@@ -726,6 +726,58 @@ This does not enable nonlinear tasks or arbitrary Carrier-family output. The
 existing selected Relation provider refuses a nonlinear sequence during planning.
 The remaining Relation work is to cover checked forms outside the table.
 
+#### Retained temporal Relation connection
+
+The retained obligation reader now admits the exact single-step temporal
+Relation forms below only when their registered bounded TEA provider accepts
+the installed sequence and supplies its capacity. Generic Relation support,
+a foreign step, another temporal operation, or an absent provider does not
+discharge the requirement. The existing prepared execution retains the checked
+interval/as-of search ceiling, output limit, input-port binding, and completion
+owner; the adapter does not add a synchronous fallback or temporal algorithm.
+
+| Authored producer form | Registered bounded provider | Checked obligation |
+| --- | --- | --- |
+| Zero-input `time_series` | Time-series provider | Series execution |
+| Single `interval_join` | Interval provider | Interval execution and pair-search ceiling |
+| Single `asof_join` | As-of provider | As-of execution and candidate-search ceiling |
+
+The targeted standard Host suite passed ordinary Programs with separate
+producer and consumer Stages, a real row Store, and Named Result access.
+It compares ordered timestamp and temporal-join rows against independent
+expectations, including an empty series and left joins with an empty right
+input. All three published names are read explicitly, rather than trusting
+the product's list to decide which results require verification.
+
+The shared fault harness passed progress-driven timer cancellation on each
+temporal provider, interval Store append failure, and as-of finalize failure
+followed by a cleanup failure and retry. Finalize failure loses the
+acknowledgement of an actual sealed file, not a mock successful completion.
+The observed Host and publication preflight share one runtime owner; its
+Compute dispatch count must not increase during failed or successful cleanup.
+The fixture also checks confirmed stop before input release, unpublished
+failed producers and consumers, and zero final holdings and reservations.
+The new offer-boundary tests passed on JS, Wasm, and native. This is local
+evidence; final integrated-SHA Linux CI remains a separate release check.
+
+The operation-specific bounded limit proofs remain those registered in the
+production resource inventory: time-series value work 90/89, control work
+4/3, and schema workspace 1/0; interval work 132/131 and workspace 18/17;
+as-of work 136/135 and workspace 21/20. The fixed kernel inputs for those
+proofs differ from the retained publication examples. They prove the same
+registered computation, not independently measured Host-wide budgets.
+
+This connection does not claim arbitrary same-task temporal/Relation chains.
+The registered temporal providers currently accept one step; any broader
+shape must retain a valid selected or fused bounded provider before execution.
+Relation-input `sequence` remains a concrete connection gap: its registered
+bounded matcher exists, but the retained obligation reader still rejects
+`SequenceExecution`, `SequenceMatch`, and `SequenceLimits`. The next unit must
+bind those duties to the matcher, preserve its checked limits and input
+identity/order validation, and add retained publication and failure evidence.
+It must not simply permit those duties for an arbitrary Relation provider.
+Native Host in-flight cancellation remains outside this completion unit.
+
 #### Mixed retained Store and typed Carrier paths
 
 A configured row Store remains the representation for row-only physical tasks.

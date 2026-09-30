@@ -9346,7 +9346,145 @@ async function exerciseStrategyGraph(
     }
     return program;
   };
-  for (const {name, source, expected, producerCidRows, fields} of [
+  const retainedTimeSeriesProgram = structuredClone(zeroInputProgram);
+  retainedTimeSeriesProgram.stages.find(stage => stage.id === 'values_a')
+    .steps = [{time_series: {
+      start: '1969-12-31T23:59:59.999Z',
+      end: '1970-01-01T00:00:00.004Z', step: 2,
+    }, as: 'out'}];
+  for (const stage of retainedTimeSeriesProgram.stages.slice(1)) {
+    stage.results.r.fields = ['time'];
+    if (stage.id !== 'values_a') stage.steps[0].select = ['time'];
+  }
+  const retainedTemporalJoinProgram = kind => {
+    const program = structuredClone(externalCrossJoinProgram);
+    const left = program.stages.find(stage => stage.id === 'cross_left');
+    const right = program.stages.find(stage => stage.id === 'cross_right');
+    const joined = program.stages.find(stage => stage.id === 'crossed');
+    let fields;
+    if (kind === 'interval') {
+      left.steps[0].values = {
+        schema: {
+          key: {type: 'number', nullable: true},
+          time: {type: 'number', nullable: false},
+          value: {type: 'number', nullable: false},
+        },
+        rows: [
+          {key: 1, time: 2, value: 10}, {key: 2, time: 7, value: 11},
+          {key: null, time: 1, value: 12},
+        ],
+      };
+      right.steps[0].values = {
+        schema: {
+          key: {type: 'number', nullable: true},
+          start: {type: 'number', nullable: false},
+          end: {type: 'number', nullable: false},
+          value: {type: 'number', nullable: false},
+        },
+        rows: [
+          {key: 1, start: 0, end: 3, value: 20},
+          {key: 1, start: 2, end: 4, value: 21},
+          {key: 2, start: 8, end: 9, value: 22},
+          {key: null, start: 0, end: 3, value: 23},
+        ],
+      };
+      fields = ['left_value', 'right_value'];
+      joined.steps = [{from: 'l', interval_join: {
+        with: 'r', kind: 'inner', mode: 'point_in_interval',
+        on: [{left: 'key', right: 'key'}],
+        left: {time: 'time'}, right: {start: 'start', end: 'end'},
+        select: {left_value: 'left.value', right_value: 'right.value'},
+        max_output_rows: 12,
+      }, as: 'out'}];
+    } else {
+      left.steps[0].values = {
+        schema: Object.fromEntries(['id', 'key', 'clock'].map(field =>
+          [field, {type: 'number', nullable: false}])),
+        rows: [{id: 1, key: 1, clock: 100}],
+      };
+      right.steps[0].values = {
+        schema: {
+          ...Object.fromEntries(['id', 'key', 'clock', 'value'].map(field =>
+            [field, {type: 'number', nullable: false}])),
+          priority: {type: 'number', nullable: true},
+        },
+        rows: [
+          {id: 11, key: 1, clock: 90, priority: 5, value: 100},
+          {id: 11, key: 1, clock: 90, priority: 5, value: 200},
+          {id: 11, key: 1, clock: 100, priority: 0, value: 300},
+        ],
+      };
+      fields = ['id', 'value'];
+      joined.steps = [{from: 'l', asof_join: {
+        with: 'r', kind: 'inner', by: [{left: 'key', right: 'key'}],
+        left_id: 'id', left_time: 'clock', right_time: 'clock',
+        direction: 'backward', tolerance: 10, right_tie_break: ['priority'],
+        select: {id: 'left.id', value: 'right.value'},
+      }, as: 'out'}];
+    }
+    left.results.r.fields = Object.keys(left.steps[0].values.schema);
+    right.results.r.fields = Object.keys(right.steps[0].values.schema);
+    joined.results.r.fields = fields;
+    for (const consumer of program.stages.filter(stage =>
+      stage.id.startsWith('external_cross_consumer_'))) {
+      const selected = consumer.id.endsWith('_a') ? fields : [...fields].reverse();
+      consumer.steps[0].select = selected;
+      consumer.results.r.fields = selected;
+    }
+    return program;
+  };
+  for (const {
+    name, source, expected, producerCidRows, fields,
+    temporal = false,
+    producerStage = 'crossed', producerTask = 3, totalTasks = 5,
+    firstStage = 'external_cross_consumer_a',
+    secondStage = 'external_cross_consumer_b',
+  } of [
+    {name: 'time-series', source: retainedTimeSeriesProgram, temporal: true,
+      producerStage: 'values_a', producerTask: 1, totalTasks: 3,
+      firstStage: 'consumer_a', secondStage: 'consumer_b',
+      expected: [
+        {time: '1969-12-31T23:59:59.999Z'},
+        {time: '1970-01-01T00:00:00.001Z'},
+        {time: '1970-01-01T00:00:00.003Z'},
+      ], fields: ['time']},
+    {name: 'interval-join', source: retainedTemporalJoinProgram('interval'),
+      temporal: true,
+      expected: [
+        {left_value: 10, right_value: 20}, {left_value: 10, right_value: 21},
+      ], fields: ['left_value', 'right_value']},
+    {name: 'asof-join', source: retainedTemporalJoinProgram('asof'),
+      temporal: true,
+      expected: [{id: 1, value: 300}], fields: ['id', 'value']},
+    {name: 'time-series-empty', source: (() => {
+      const program = structuredClone(retainedTimeSeriesProgram);
+      const series = program.stages.find(stage => stage.id === 'values_a')
+        .steps[0].time_series;
+      series.end = series.start;
+      return program;
+    })(), temporal: true,
+    producerStage: 'values_a', producerTask: 1, totalTasks: 3,
+    firstStage: 'consumer_a', secondStage: 'consumer_b',
+    expected: [], fields: ['time']},
+    {name: 'interval-empty-right', source: (() => {
+      const program = retainedTemporalJoinProgram('interval');
+      program.stages.find(stage => stage.id === 'cross_right')
+        .steps[0].values.rows = [];
+      program.stages.find(stage => stage.id === 'crossed')
+        .steps[0].interval_join.kind = 'left';
+      return program;
+    })(), temporal: true,
+    expected: [10, 11, 12].map(left_value => ({left_value, right_value: null})),
+    fields: ['left_value', 'right_value']},
+    {name: 'asof-empty-right', source: (() => {
+      const program = retainedTemporalJoinProgram('asof');
+      program.stages.find(stage => stage.id === 'cross_right')
+        .steps[0].values.rows = [];
+      program.stages.find(stage => stage.id === 'crossed')
+        .steps[0].asof_join.kind = 'left';
+      return program;
+    })(), temporal: true,
+    expected: [{id: 1, value: null}], fields: ['id', 'value']},
     {name: 'append', source: externalAppendProgram,
       expected: [{id: 1}, {id: 2}, {id: 3}, {id: 4}], fields: ['id']},
     {name: 'except-all', source: retainedSetProgram('except'),
@@ -9687,24 +9825,27 @@ async function exerciseStrategyGraph(
   ]) {
     const program = structuredClone(source);
     program.results = {
-      producer: {from: {stage: 'crossed', result: 'r'}},
-      first: {from: {stage: 'external_cross_consumer_a', result: 'r'}},
-      second: {from: {stage: 'external_cross_consumer_b', result: 'r'}},
+      producer: {from: {stage: producerStage, result: 'r'}},
+      first: {from: {stage: firstStage, result: 'r'}},
+      second: {from: {stage: secondStage, result: 'r'}},
     };
     let binaryFixture;
     try {
-      binaryFixture = name.includes('-sum-')
+      binaryFixture = temporal
+        ? fixture.strategyFixtureTeaCreate(...args, JSON.stringify(program))
+        : name.includes('-sum-')
         ? fixture.strategyFixtureNumericCreate(
           ...(name.startsWith('analytic-') ? analyticArgs : args),
           JSON.stringify(program)) : fixture.strategyFixtureCreate(
         ...(name.startsWith('analytic-') ? analyticArgs : args),
         JSON.stringify(program));
     } catch (error) {
-      throw new Error(`${name}: fixture preparation failed`, {cause: error});
+      throw new Error(`${name}: fixture preparation failed: ${String(error)}`,
+        {cause: error});
     }
-    assert.equal(fixture.strategyFixtureTaskStepCount(binaryFixture, 3),
-      program.stages.find(stage => stage.id === 'crossed').steps.length,
-      `${name}: the binary chain must remain one physical task`);
+    assert.equal(fixture.strategyFixtureTaskStepCount(binaryFixture, producerTask),
+      program.stages.find(stage => stage.id === producerStage).steps.length,
+      `${name}: the producer must remain one physical task`);
     const binaryCapture = await runNativeHostQuery(grant,
       fixture.strategyFixtureAcquisition(binaryFixture), suppliedLimits);
     const binaryDirectory = await mkdtemp(join(
@@ -9732,7 +9873,9 @@ async function exerciseStrategyGraph(
     try {
       assert.equal(fixture.strategyFixtureOpen(
         binaryFixture, binaryCapture.source()), true);
-      const setup = fixture.strategyFixtureRetainedLocalSubset(binaryFixture);
+      const setup = temporal
+        ? fixture.strategyFixtureTeaRetainedSubset(binaryFixture)
+        : fixture.strategyFixtureRetainedLocalSubset(binaryFixture);
       const runtime = runtimeCore(hostRuntime);
       publicationStore = await openLocalPublicationStore({
         directory: publicationDirectory,
@@ -9763,10 +9906,10 @@ async function exerciseStrategyGraph(
       assert.equal(owner.status, 'published', name);
       assert.equal(owner.execution.status, 'host-tasks-completed', name);
       assert.deepEqual(owner.execution.completed.map(item => item.realization),
-        Array(5).fill('local'), name);
+        Array(totalTasks).fill('local'), name);
       assert(owner.execution.completed.every(item =>
         item.outputRepresentation === 'retained-file'), name);
-      assert.equal(leases.length, 5, name);
+      assert.equal(leases.length, totalTasks, name);
       // Task output identity precedes the Named Result field projection;
       // producerCidRows fixes the canonical task-field order when it differs
       // from the authored Result projection. Publication checks both views.
@@ -9819,15 +9962,16 @@ async function exerciseStrategyGraph(
         assert.deepEqual(JSON.parse(Buffer.concat(delivered).toString('utf8')),
           rows, `${name}: ${resultName}`);
       }
-      assert.equal(fixture.strategyFixtureCid(binaryFixture, 3),
-        fixture.strategyFixtureCid(binaryFixture, 4),
+      assert.equal(fixture.strategyFixtureCid(binaryFixture, producerTask),
+        fixture.strategyFixtureCid(binaryFixture, producerTask + 1),
         `${name}: retained producer and first consumer must agree`);
       // The JSON expectation is not a typed CID preimage for window boundary
       // values. Their published values and independent consumer are checked
       // above; the producer and first consumer still share the exact CID.
       if (!name.includes('derive') && !name.includes('window')) {
-        assert.equal(fixture.strategyFixtureCid(binaryFixture, 3),
-          hash(producerCidRows ?? expected), `${name}: producer task`);
+        assert.equal(fixture.strategyFixtureCid(binaryFixture, producerTask),
+          hash(producerCidRows ?? expected),
+          `${name}: producer task`);
       }
     } finally {
       binaryCapture.close();
@@ -9849,16 +9993,28 @@ async function exerciseStrategyGraph(
       await rm(publicationDirectory, {recursive: true, force: true});
     }
   }
-  for (const {name: mode} of [
+  for (const {name: mode, temporal} of [
     {name: 'cancel'}, {name: 'cancel-after-filter'},
     {name: 'cancel-after-group'},
     {name: 'cancel-after-numeric-group'},
     {name: 'compute-failure'},
     {name: 'store-failure'}, {name: 'finalize-failure'},
+    {name: 'cancel', temporal: 'series'},
+    {name: 'cancel', temporal: 'interval'},
+    {name: 'cancel', temporal: 'asof'},
+    {name: 'store-failure', temporal: 'interval'},
+    {name: 'finalize-failure', temporal: 'asof'},
   ]) {
+    const caseName = temporal ? `${temporal}-${mode}` : mode;
+    const series = temporal === 'series';
+    const producerTask = series ? 1 : 3;
+    const priorTasks = series ? [] : [1, 2];
     const numericGroup = mode === 'cancel-after-numeric-group';
     const grouped = mode === 'cancel-after-group' || numericGroup;
-    const program = retainedBinaryChain(externalAppendProgram,
+    const cancelling = mode === 'cancel' || mode === 'cancel-after-filter' || grouped;
+    const program = temporal ? structuredClone(series
+      ? retainedTimeSeriesProgram : retainedTemporalJoinProgram(temporal))
+      : retainedBinaryChain(externalAppendProgram,
       grouped
         ? [{group: {by: ['id'], aggregates: {
           n: numericGroup ? {fn: 'sum', field: 'id'} : {fn: 'count'},
@@ -9868,30 +10024,32 @@ async function exerciseStrategyGraph(
           ? '1 / (id - id) > 0' : 'id >= 10'}],
       grouped ? ['id', 'n'] : ['id']);
     program.results = {
-      producer: {from: {stage: 'crossed', result: 'r'}},
-      first: {from: {stage: 'external_cross_consumer_a', result: 'r'}},
-      second: {from: {stage: 'external_cross_consumer_b', result: 'r'}},
+      producer: {from: {stage: series ? 'values_a' : 'crossed', result: 'r'}},
+      first: {from: {stage: series ? 'consumer_a' : 'external_cross_consumer_a', result: 'r'}},
+      second: {from: {stage: series ? 'consumer_b' : 'external_cross_consumer_b', result: 'r'}},
     };
-    if (mode === 'cancel-after-filter' || grouped) {
+    if (!temporal && (mode === 'cancel-after-filter' || grouped)) {
       // Three rows give the Append child exactly 28 work units. Its bounded
       // handoff costs one more; work above 29 proves the filter has advanced.
       program.stages.find(stage => stage.id === 'cross_left')
         .steps[0].values.rows = [{id: 1}];
       program.stages.find(stage => stage.id === 'cross_right')
         .steps[0].values.rows = [{id: 2}, {id: 3}];
-    } else if (mode !== 'compute-failure') {
+    } else if (!temporal && mode !== 'compute-failure') {
       program.stages.find(stage => stage.id === 'cross_left').steps[0]
         .values.rows = Array.from({length: 30}, (_, id) => ({id}));
       program.stages.find(stage => stage.id === 'cross_right').steps[0]
         .values.rows = Array.from({length: 30}, (_, index) => ({id: index + 30}));
     }
-    const binaryFixture = numericGroup
+    const binaryFixture = temporal
+      ? fixture.strategyFixtureTeaCreate(...args, JSON.stringify(program))
+      : numericGroup
       ? fixture.strategyFixtureNumericCreate(...args, JSON.stringify(program))
       : fixture.strategyFixtureCreate(...args, JSON.stringify(program));
     const binaryCapture = await runNativeHostQuery(grant,
       fixture.strategyFixtureAcquisition(binaryFixture), suppliedLimits);
     const directory = await mkdtemp(join(tmpdir(),
-      `actql-retained-append-${mode}-`));
+      `actql-retained-${caseName}-`));
     const store = await createLocalRetainedStore({
       parentDirectory: directory,
       capacityBytes: 8 * 1024 * 1024,
@@ -9904,7 +10062,7 @@ async function exerciseStrategyGraph(
       leases++;
       const failThisOutput =
         (mode === 'store-failure' || mode === 'finalize-failure') &&
-        leases === 3;
+        leases === producerTask;
       let writer, closed = false;
       return Object.freeze({
         status: () => ({reservedBytes: writer && (!closed ||
@@ -9931,7 +10089,7 @@ async function exerciseStrategyGraph(
           });
         },
         close() {
-          if ((mode === 'cancel' || mode === 'cancel-after-filter' || grouped) &&
+          if (cancelling &&
               cancellation.signal.aborted) {
             assert.equal(sawStop, true, 'input release must follow confirmed stop');
           }
@@ -9950,8 +10108,7 @@ async function exerciseStrategyGraph(
     let sawWork = false, sawStop = false, scheduled = false;
     let producerWork = 0n, sawLaterWork = false;
     let dispatches = 0;
-    const observedRuntime = (mode === 'cancel' ||
-      mode === 'cancel-after-filter' || grouped) ? new Proxy(hostRuntime, {
+    const observedRuntime = new Proxy(hostRuntime, {
       get(target, property, receiver) {
         if (property !== 'strategyModule_local_Dispatch') {
           return Reflect.get(target, property, receiver);
@@ -9963,12 +10120,12 @@ async function exerciseStrategyGraph(
           return {$tag: 1, _0: new Proxy(operations, {
             get(operation, name, operationReceiver) {
               if (name === 'execute') {
-                assert.fail('retained append ran synchronously');
+                assert.fail(`${caseName}: retained task ran synchronously`);
               }
               if (name === 'execution_stopped') {
                 return () => {
                   const stopped = operation.execution_stopped();
-                  if (dispatch === 3 && cancellation.signal.aborted && stopped) {
+                  if (dispatch === producerTask && cancellation.signal.aborted && stopped) {
                     sawStop = true;
                   }
                   return stopped;
@@ -9978,8 +10135,9 @@ async function exerciseStrategyGraph(
                 return Reflect.get(operation, name, operationReceiver);
               }
               return quantum => {
-                const result = operation.advance(Math.min(quantum, 1));
-                if (dispatch === 3 && !cancellation.signal.aborted) {
+                const result = operation.advance(cancelling
+                  ? Math.min(quantum, 1) : quantum);
+                if (dispatch === producerTask && !cancellation.signal.aborted) {
                   const poll = checked(result);
                   producerWork += poll.work;
                   if ((mode === 'cancel-after-filter' || grouped) &&
@@ -9989,7 +10147,7 @@ async function exerciseStrategyGraph(
                   if (!poll.complete && poll.progress > 0n) {
                     sawWork = true;
                   }
-                  if (!scheduled && (mode === 'cancel'
+                  if (cancelling && !scheduled && (mode === 'cancel'
                     ? sawWork : sawLaterWork)) {
                     scheduled = true;
                     setTimeout(() => cancellation.abort(), 0);
@@ -10001,14 +10159,18 @@ async function exerciseStrategyGraph(
           })};
         };
       },
-    }) : hostRuntime;
+    });
+    const observedHost = createNodeHostEntry(
+      () => observedRuntime, installStrategyContributions);
     let execution;
     try {
       assert.equal(fixture.strategyFixtureOpen(
         binaryFixture, binaryCapture.source()), true);
-      const setup = fixture.strategyFixtureRetainedLocalSubset(binaryFixture);
+      const setup = temporal
+        ? fixture.strategyFixtureTeaRetainedSubset(binaryFixture)
+        : fixture.strategyFixtureRetainedLocalSubset(binaryFixture);
       if (mode === 'finalize-failure') {
-        const runtime = runtimeCore(hostRuntime);
+        const runtime = runtimeCore(observedRuntime);
         failurePublicationStore = await openLocalPublicationStore({
           directory: join(directory, 'publication'),
           storeAuthorityCid: hash('binary-finalize-failure-store'),
@@ -10019,7 +10181,7 @@ async function exerciseStrategyGraph(
         const plan = standardPublicationPlan(runtime,
           runtime.programDefinitionCid(setup),
           runtime.resultInventory(setup).length, 'binary-finalize-failure');
-        await assert.rejects(runPublishedCapturedStrategy(setup,
+        await assert.rejects(observedHost.runPublishedCapturedStrategy(setup,
           {store: failurePublicationStore, plan}, {local: configuration},
           cancellation.signal), error => {
           execution = error.execution;
@@ -10037,24 +10199,25 @@ async function exerciseStrategyGraph(
           configuration)],
         cancellation.signal,
       );
-      assert.equal(execution.status, 'host-tasks-failed', mode);
-      assert.deepEqual(execution.completed.map(item => item.task), [1, 2], mode);
-      if (mode === 'cancel' || mode === 'cancel-after-filter' || grouped) {
-        assert.equal(dispatches, 3);
+      assert.equal(execution.status, 'host-tasks-failed', caseName);
+      assert.deepEqual(execution.completed.map(item => item.task), priorTasks, caseName);
+      const dispatchesAtFailure = dispatches;
+      assert.equal(dispatchesAtFailure, producerTask, caseName);
+      if (cancelling) {
         assert.equal(sawWork, true);
         if (mode === 'cancel-after-filter' || grouped) {
           assert.equal(sawLaterWork, true);
         }
         assert.equal(sawStop, true);
         assert.equal(execution.failure?.name, 'AbortError');
-        assert.equal(leases, 2);
+        assert.equal(leases, priorTasks.length);
       } else if (mode === 'compute-failure') {
         assert.equal(leases, 2);
         assert.equal(execution.failure?.code, 'MoonBitHostFailure');
         assert.equal(fixture.strategyFixtureRetainedChainFilterArithmetic(
           execution.failure.cause), true);
       } else {
-        assert.equal(leases, 3);
+        assert.equal(leases, producerTask);
         assert.equal(failedAppends, mode === 'store-failure' ? 1 : 0);
         assert.equal(failedFinalizations, mode === 'finalize-failure' ? 1 : 0);
         if (mode === 'finalize-failure') {
@@ -10062,6 +10225,8 @@ async function exerciseStrategyGraph(
           assert.equal(await execution.cleanup(), false);
           assert(execution.usage().reservedExecutionBytes > 0n ||
             execution.usage().heldBytes > 0n);
+          assert.equal(dispatches, dispatchesAtFailure,
+            `${caseName}: failed cleanup must not rerun Compute`);
           permitCleanup = true;
         }
       }
@@ -10071,9 +10236,8 @@ async function exerciseStrategyGraph(
       await execution?.close();
       if (execution) {
         assert.equal(await execution.cleanup(), true);
-        if (mode === 'cancel' || mode === 'cancel-after-filter' || grouped) {
-          assert.equal(dispatches, 3, 'cleanup must not redispatch Compute');
-        }
+        assert.equal(dispatches, producerTask,
+          `${caseName}: cleanup must not redispatch Compute`);
         assert.equal(execution.cleanupPending(), false);
         assert.equal(execution.usage().heldBytes, 0n);
         assert.equal(execution.usage().reservedExecutionBytes, 0n);
