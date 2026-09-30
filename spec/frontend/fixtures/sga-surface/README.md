@@ -41,6 +41,13 @@ Graph path. The independent Program keeps the seed as one producer, and the
 Result fixture expects the semantic string IDs, node sequence, and closed
 `{src, dst, rel}` edge identity with an explicit null label. It declares no
 extra sort or materialization.
+`shortest-path.named.aql` asks for the shortest A-to-D path in a diamond
+Graph. A-to-B-to-D and A-to-C-to-D have equal unit cost and hop count; the
+normative node-identity tie break selects B. Its independently authored
+Program preserves both explicit endpoints, the hop and output bounds, and one
+Named Result. Its Result fixture checks total cost, hop count, ordered node
+IDs, and both closed edge identities. This is later acceptance work and is not
+part of the thirteen-case evidence recorded below.
 `union-graphs.named.aql` composes two Graph producers with a one-element
 ordered `with` list, then declares separate node and edge Results. The second
 Graph shares B with the first, adds C and B-to-C, and the expected union keeps

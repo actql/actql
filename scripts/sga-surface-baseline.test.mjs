@@ -103,6 +103,13 @@ test('traverse paths retain a Relation seed and semantic edge identities', () =>
     fixture('traverse-paths.named.aql'))), JSON.parse(expected));
 });
 
+test('shortest path retains explicit endpoints and the authored hop bound', () => {
+  const expected = fixture('shortest-path.expected-program.json');
+  assert.equal(jsonAdmissionDiagnostic(expected), '');
+  assert.deepEqual(JSON.parse(structuralToJson(
+    fixture('shortest-path.named.aql'))), JSON.parse(expected));
+});
+
 test('structural Graph union preserves both producers and Results', () => {
   const expected = fixture('union-graphs.expected-program.json');
   assert.equal(jsonAdmissionDiagnostic(expected), '');

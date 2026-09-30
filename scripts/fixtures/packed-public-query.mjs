@@ -75,9 +75,17 @@ const observe = directory => () => {
   } finally { journal.close(); }
 };
 const sgaCases = ['normalize-rows', 'mean-graphs', 'traverse-paths',
+  'shortest-path',
   'union-graphs', 'graft-graphs', 'subtract-graphs', 'degree-rows',
   'components', 'graph-bounds', 'match-projections', 'reach-subgraph',
   'graphs-equal', 'diff-apply'];
+const selectedSgaCases = process.env.ACTQL_TEST_SGA_CASES === undefined
+  ? sgaCases : process.env.ACTQL_TEST_SGA_CASES.split(',');
+if (selectedSgaCases.length === 0 ||
+    new Set(selectedSgaCases).size !== selectedSgaCases.length ||
+    selectedSgaCases.some(name => !sgaCases.includes(name))) {
+  throw new Error('Invalid selected SGA acceptance cases');
+}
 const sgaFixtureDirectory = resolve('sga-fixtures');
 await mkdir(sgaFixtureDirectory);
 for (const name of sgaCases) {
@@ -87,7 +95,7 @@ for (const name of sgaCases) {
   }
 }
 async function exerciseSga(mode, extraEnv) {
-  for (const name of sgaCases) {
+  for (const name of selectedSgaCases) {
     const child = spawn(process.execPath,
       ['accept-sga-public-source.mjs', resolve('.'), sgaFixtureDirectory,
         mode, name],

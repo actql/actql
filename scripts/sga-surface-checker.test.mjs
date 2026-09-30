@@ -36,6 +36,7 @@ const prepare = program => moon.clientProgramPrepareEffectFreeWithParameters(
 test('named SGA Programs pass common preparation without a new checker', () => {
   for (const name of ['components', 'reach-subgraph', 'diff-apply',
     'mean-graphs', 'graphs-equal', 'normalize-rows', 'degree-rows',
+    'shortest-path',
     'graph-bounds', 'traverse-paths', 'union-graphs', 'graft-graphs',
     'subtract-graphs', 'match-projections']) {
     const outcome = prepare(fixture(name));
