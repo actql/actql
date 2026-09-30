@@ -17,5 +17,24 @@
       "set-specific scratch reclamation and two-input ownership",
       "two-consumer custody, driver and physical backend acceptance"
     ]
+  },
+  {
+    "operation": "except",
+    "variant": "all",
+    "profile": "checked complete rows including nullable fields",
+    "provider": "src/connectors/local/set_provider.mbt",
+    "entrypoint": "set_provider",
+    "kernel": "start_bounded_set",
+    "premises": [
+      "accepted counters are nonnegative representable and monotone",
+      "kernel work per resume is between zero and quantum",
+      "cleanup callback true means complete reclamation"
+    ],
+    "residual": [
+      "set comparison, NULL equality, order and duplicate multiplicity",
+      "kernel initialization and every internal phase charge work correctly",
+      "set-specific scratch reclamation and two-input ownership",
+      "two-consumer custody, driver and physical backend acceptance"
+    ]
   }
 ]

@@ -72,8 +72,8 @@ All files are restored in `finally`; the final source snapshot must match.
 
 ## Pilot and residual obligations
 
-The first derived scope is `intersect/all`, selected from the current registered
-set implementation. Its local obligations remain set comparison, duplicate
+The pilot derives scopes for `intersect/all` and `except/all` from the current
+registered set implementation. Its local obligations remain set comparison, duplicate
 multiplicity, NULL equality, ordering, kernel phase costs, exact work/workspace
 limits, scratch reclamation, ordered two-input ownership and two-consumer custody.
 These are not derived from the common adapter. In particular, the operation-specific
@@ -150,3 +150,53 @@ and overflow checks/tests remain. The current official guide also distinguishes
 mathematical arithmetic from runtime overflow; this experiment is tied to the
 repository's fixed compiler rather than assuming nightly capabilities:
 <https://docs.moonbitlang.com/en/latest/language/verification.html>.
+
+## Test retirement and marginal operation cost
+
+The evidence-addition revision is `b1685224abca14a3680b3d9e000a69440ee058c2`.
+It retained every old test. The follow-up retires two basic common-Session examples:
+
+| Previous example | Replacement and preserved obligations |
+| --- | --- |
+| bounded session advances with fresh tokens and finite work | generated histories check exact counters, fresh/stale/foreign tokens, normal completion, stop/pending flags, one-time cleanup; token and accounting model laws are reused |
+| stop confirmation precedes retryable cleanup | generated histories check positive-work cancel/deadline, unchanged counters at stop, pending cleanup, recovery and callback counts; terminal/reclamation model laws are reused |
+
+`retirements.json` records the exact previous body digest, every old observation,
+replacement test, theorem references, premises, implementation connection,
+mutations and retained unique regressions. The runner checks the structural
+mapping and retained regression references; the Lean checker and executed suites
+provide the substantive evidence. The deletion is not justified by matching names.
+
+The deleted examples had no pending unaccepted result. The five existing
+Session ownership/error regressions remain, including the regression additions
+from `f56eed506` (unaccepted-result retention, disposition retry, accepted custody
+transfer and overflow cleanup). All set-specific and physical suites are unchanged.
+This is a replacement of duplicated protocol examples, not removal of kernel or
+backend acceptance. It removes two hand-written tests (79 lines) after the
+replacement domains and mutation checks passed.
+
+The operation-reuse demonstration adds the `except/all` binding beside the
+`intersect/all` pilot. The existing registered fixture already exercises both
+operations and variants with independent expected rows. The additional binding
+uses the same source-checked provider, existing executed connection witness,
+model theorem and common correspondence suites. It adds **zero** Lean theorems,
+common-mechanism tests or operation×protocol fixtures. The generator and graph
+derive a second claim per target from the same checked premises. This is a
+retrospective acceptance comparison using two existing operations, not a claim
+that a new semantic algorithm needs no local tests.
+
+| Adding the second operation scope | Observed change |
+| --- | --- |
+| Local semantic/boundary tests | existing except expectations and boundaries retained |
+| Connection review | existing `set_provider` route and registered fixture reused |
+| Evidence descriptor | one explicit operation/variant binding |
+| Common protocol proofs/tests | no additional theorem, trace suite or hand-written combination |
+| Derived report | one additional conditional claim on each target |
+
+Initial setup adds proof/generator/gate maintenance work. This pilot demonstrates
+reduced marginal verification/review work; it does not claim lower total CI cost
+or an overall test-count reduction relative to the pre-pilot repository. The
+reports measure proof time, correspondence time and integration build/execution
+time separately. Historical developer/reviewer time was not measured and is
+not invented. Different provider families still need their own connection and
+kernel premises checked before using the common guarantees.

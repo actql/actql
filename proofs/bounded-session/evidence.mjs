@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { readFileSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join, relative } from 'node:path';
 
 export const targets = ['js', 'wasm', 'native'];
@@ -159,4 +159,35 @@ export function checkBindings(root, bindings) {
       throw new Error('Invalid variant or missing premise');
     }
   }
+}
+
+export function checkRetirements(root) {
+  const path = join(root, 'proofs/bounded-session/retirements.json');
+  if (!existsSync(path)) return [];
+  const manifest = JSON.parse(readFileSync(path));
+  if (manifest.version !== 'actql-session-test-retirements/0.1') throw new Error('Unknown retirement manifest');
+  const expected = ['bounded session advances with fresh tokens and finite work',
+    'stop confirmation precedes retryable cleanup'];
+  if (manifest.retirements?.length !== expected.length ||
+      expected.some(name => !manifest.retirements.some(entry => entry.old_test === name))) {
+    throw new Error('Every retired example requires its own replacement mapping');
+  }
+  const model = readFileSync(join(root, 'proofs/bounded-session/Session.lean'), 'utf8');
+  for (const entry of manifest.retirements) {
+    const old = readFileSync(join(root, entry.path), 'utf8');
+    const replacement = readFileSync(join(root, entry.replacement), 'utf8');
+    if (old.includes(`test "${entry.old_test}"`)) throw new Error('Retired example is still present');
+    if (!replacement.includes(`test "${entry.replacement_test}"`) ||
+      !entry.observations?.length || !entry.premises?.length || !entry.mutations?.length ||
+      !/^[0-9a-f]{64}$/.test(entry.prior_body_sha256)) throw new Error('Incomplete replacement mapping');
+    for (const name of entry.formal_model_theorems) {
+      if (!model.includes(`theorem ${name} `)) throw new Error(`Missing replacement theorem: ${name}`);
+    }
+    for (const name of entry.retained_regressions) {
+      if (!old.includes(`test "${name}"`)) throw new Error(`Unique regression removed: ${name}`);
+    }
+  }
+  // Names here only check the mapping's references. check.mjs still proves
+  // propositions and their expected types; source text alone is not evidence.
+  return manifest.retirements;
 }
