@@ -414,6 +414,8 @@ pub fn strategy_fixture_two_resources_dispatch(StrategyFixture) -> @connectors_b
 
 pub fn strategy_fixture_usage(StrategyFixture, Int) -> Int64
 
+pub fn strategy_fixture_veca_consumer_filter_arithmetic(@actql/actql/connectors/local/driver.LocalDispatchIssue) -> Bool
+
 pub fn strategy_fixture_veca_create(String, String, String, String, String, String, String, String, String, String) -> StrategyFixture
 
 pub fn strategy_fixture_veca_retained_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
