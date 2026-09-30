@@ -2,6 +2,7 @@
 priv struct AsOfProviderExecution {
   active : @execution.BoundedAsOfJoinExecution
   control : @bounded.Control
+  step : Int
   mut progress : Int64
   mut work : Int64
   mut terminal : Bool
@@ -24,6 +25,20 @@ fn asof_provider_accepts(sequence : @execution.GeneratedSequence) -> Bool {
 ///|
 fn asof_provider_issue() -> @connector.FixedComputeIssue {
   @connector.Execution(@execution.InputSet)
+}
+
+///|
+fn asof_provider_failure(
+  issue : @execution.BoundedAsOfJoinIssue,
+  step : Int,
+) -> @connector.FixedComputeIssue {
+  match issue {
+    @execution.Rows(row_issue) =>
+      @connector.Execution(@execution.Rows(step, row_issue))
+    @execution.Capture(capture_issue) =>
+      @connector.Execution(@execution.Capture(step, capture_issue))
+    _ => asof_provider_issue()
+  }
 }
 
 ///|
@@ -75,10 +90,10 @@ fn asof_provider_poll(
       Ok(@local.managed_provider_continue(progress_delta, work_delta))
     @execution.BoundedAsOfJoinComplete(output, ..) =>
       Ok(@local.managed_provider_complete(output, progress_delta, work_delta))
-    @execution.BoundedAsOfJoinFailed(_, ..) =>
+    @execution.BoundedAsOfJoinFailed(issue, ..) =>
       Ok(
         @local.managed_provider_failed(
-          asof_provider_issue(),
+          asof_provider_failure(issue, state.step),
           progress_delta,
           work_delta,
         ),
@@ -113,7 +128,7 @@ pub fn asof_join_provider(
   limits : @storage.Limits,
   capacity : @execution.ExecutionCapacity,
 ) -> @local.ManagedProvider {
-  @local.managed_provider(
+  @local.managed_provider_with_inputs(
     asof_provider_accepts,
     sequence => {
       if asof_provider_accepts(sequence) {
@@ -132,25 +147,47 @@ pub fn asof_join_provider(
         return Err(@connector.InvalidLimits)
       }
       let control = @bounded.control()
-      let active = match
-        @execution.start_bounded_asof_join(
-          control,
-          sequence,
-          inputs[0],
-          inputs[1],
-          max_rows,
-          execution.rows.output_values,
-          execution.max_work,
-          execution.max_frames,
-          limits.max_workspace_slots,
-          max_value_bytes,
-        ) {
+      let step = @execution.generated_sequence_step_index_at(sequence, 0).unwrap()
+      guard inputs[1] is @local.RelationInput(right) else {
+        return Err(asof_provider_issue())
+      }
+      let started = match inputs[0] {
+        @local.RelationInput(left) =>
+          @execution.start_bounded_asof_join(
+            control,
+            sequence,
+            left,
+            right,
+            max_rows,
+            execution.rows.output_values,
+            execution.max_work,
+            execution.max_frames,
+            limits.max_workspace_slots,
+            max_value_bytes,
+          )
+        @local.CarrierInput(left) =>
+          @execution.start_bounded_asof_join_events(
+            control,
+            sequence,
+            left,
+            right,
+            max_rows,
+            execution.rows.output_values,
+            execution.max_work,
+            execution.max_frames,
+            limits.max_workspace_slots,
+            max_value_bytes,
+          )
+        @local.SuppliedRelationInput(_) => Err(@execution.InvalidExecution)
+      }
+      let active = match started {
         Ok(value) => value
-        Err(_) => return Err(asof_provider_issue())
+        Err(issue) => return Err(asof_provider_failure(issue, step))
       }
       let state : AsOfProviderExecution = {
         active,
         control,
+        step,
         progress: 0L,
         work: 0L,
         terminal: false,

@@ -87,6 +87,7 @@ pub fn node_accepts_managed_carrier_view(
     | "BRIDGE.graph.to_node_rows"
     | "BRIDGE.graph.to_edge_rows" => true
     "SGA.apply_delta" => index == 0
+    "TEA.join.asof" => index == 0
     "SGA.shortest_path" => index == 0
     "SGA.subgraph" => index == 0
     "SGA.traverse" => index == 0
@@ -137,6 +138,7 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
       operation(node) == "TEA.dedupe" ||
       operation(node) == "TEA.window.session_assign"
     SequenceRows(_) => operation(node) == "TEA.sequence.match"
+    AsOfJoinRows(_) => operation(node) == "TEA.join.asof"
     RowWindow(_) => true
     CarrierProjection(_) =>
       operation(node) == "BRIDGE.graph.to_node_rows" ||
