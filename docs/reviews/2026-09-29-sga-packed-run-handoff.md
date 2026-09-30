@@ -509,3 +509,53 @@ failure, not a passing acceptance. At
 native jobs passed 7,027/7,027, 7,024/7,024 and 7,086/7,086 respectively.
 The later source changes only reproduction scripts and this evidence. These
 common-kernel gates do not prove the three pending packed product paths.
+
+## Current main integration and packed acceptance
+
+The previous three-case handoff describes the source before the Graph path
+query changes in main. This section supersedes its pending-case count. Main
+`89991451cb5da3c4ecfe93bbca26aaa4395e009a` was merged without replacing
+Frontend changes. Its Reach implementation initially failed to compile
+because the retained and ordinary execution views passed each other's start
+binding. Commit `4491db39869dd2b0536181223073ac6d7d08d86e` shares the existing
+checked selector resolver between those views; it does not add a Reach
+contract. Local SGA JS tests passed 59/59, including the selected Graph view
+and Relation selector tests.
+
+At `8aa414c4ee90aa6247a7e49b4383b7b82e9d7be9`, a clean installation of
+five packed packages ran eleven named SGA sources through Embedded Local and
+HTTPS Remote, including `reach-subgraph`. Each source reached its authored
+Named Results and independently authored rows; the native CLI also passed its
+representative SGA Result. The original eight-case acceptance set has six
+passing cases and two remaining cases. The public Result API does not expose
+schema type, nullability, or field order, so those properties are not claimed
+as packed Result evidence. The exact command was
+`node scripts/test-packed-public-query.mjs` with the pinned MoonBit toolchain.
+Evidence is in `worktrees/.codex-scratch/public-query-evidence-ecITw8/summary.json`.
+The run removed its installed packages, cache, and Stores after preserving logs.
+
+| Package | SHA-256 of packed tarball |
+| --- | --- |
+| `client-wire` | `8e09005f4aac5063c1f6f8e4680dbb778a00e5c098126a85283e1f07685a76e5` |
+| `sdk` | `1e4e83612b9c965388795f066be8cf24b0358feb46bd2335c8d98c36e83ed515` |
+| `run-host-core` | `b20244d639f9fb51f0a402ce79dcf2c3f6e122963caae063d19d1c97bb0a4a03` |
+| `local-node` | `6a350e411ec0d5f8b3ad650f0597e8910ac3d0f6df6c1afe6998660dc58cebac` |
+| `node` | `c72364973dd1ed42faea32425632b314de037c9b92035c9f5ec35b875914f225` |
+
+At `4491db39869dd2b0536181223073ac6d7d08d86e`, the optional packed
+Local probe passed `reach-subgraph` and reproduced failures for the other two
+cases. The change from that SHA to the accepted SHA only promotes the passing
+case into mandatory Local/HTTP acceptance. The two remaining failures are:
+
+| Case | Checked task and public failure | Required owner work |
+| --- | --- | --- |
+| `graphs-equal` | A fused `SGA.equal(Graph, Graph) -> Relation` task compiles, but the accepted Run ends as `ACTQL_E_UNPUBLISHED_RUN`; the prior captured strategy trace shows `Dispatch(NoStrategy)` before Compute. | A: select a bounded Graph Relation provider for the existing checked task without changing the Frontend operation. |
+| `diff-apply` | A fused `SGA.diff` Delta Relation, `SGA.apply_delta` Graph, and node/edge projections still returns `Plan(TaskGraph(Root(Root(RequiresResultTransformation))))`; public submit reports nested `RunHostCompilationRejected`. | A: retain the typed Graph/Delta handoffs and Result producers in physical tasks without silently dropping Result roots or order. |
+
+Both sources match independently authored Programs, pass common preparation,
+and have independently authored expected Results. The direct JSON replay in
+the earlier evidence fails after the Frontend boundary as well. A's fixed SHA
+must be merged into this integration branch, then both named sources must pass
+the same external packed Embedded Local and HTTP acceptance. Until then PR #63
+remains Draft. The Frontend must not add a second execution path or silently
+weaken these expectations.

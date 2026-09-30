@@ -67,20 +67,21 @@ the node-count violation before A's degree violation; the second is empty at
 inclusive limits. The independently authored expectations include a nullable
 `node_id` for whole-graph violations. Neither DATA expression adds a sort or
 Result order declaration.
-At `14b108bc2d4af771cce116e1021ae482dd4d3030`, the standard clean packed
+At `8aa414c4ee90aa6247a7e49b4383b7b82e9d7be9`, the standard clean packed
 installation passed `normalize-rows`, `mean-graphs`, `traverse-paths`,
 `union-graphs`, `graft-graphs`, `subtract-graphs`, `degree-rows`, `components`,
-`graph-bounds` and `match-projections` through both Embedded Local and HTTP.
+`graph-bounds`, `match-projections` and `reach-subgraph` through both Embedded
+Local and HTTP.
 The same source passed the Node-free native CLI's
 representative SGA Result. The driver checked independently authored rows and
 stream termination; the public Result API does not expose schema type,
 nullability or column order.
-The original eight-case acceptance set still has three unproved cases.
-Common preparation admits graphs-equal, reach-subgraph and diff-apply, and
-their named source matches the independently authored Programs. From packed
-JSON Program input without the Frontend, graphs-equal is accepted but ends
-before publication with `ACTQL_E_UNPUBLISHED_RUN`; reach-subgraph and
-diff-apply are refused during Run compilation. See the current handoff in
+The original eight-case acceptance set still has two unproved cases.
+Common preparation admits graphs-equal and diff-apply, and their named source
+matches the independently authored Programs. In the latest packed Local probe,
+graphs-equal is accepted but ends before publication with
+`ACTQL_E_UNPUBLISHED_RUN`; diff-apply is refused during Run compilation.
+See the current handoff in
 `docs/reviews/2026-09-29-sga-packed-run-handoff.md`. These failures are not
 successful Result evidence.
 The distribution Client job runs `scripts/sga-surface-checker.test.mjs`
