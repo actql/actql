@@ -480,7 +480,7 @@ and checked by `check:local-resource-accounting`.
 | Operation-specific boundary records | 68 |
 | Four-role lifecycle assurance | 68 |
 | Full route work/workspace assurance | 68 |
-| Path-scoped work/workspace assurance | 120 |
+| Path-scoped work/workspace assurance | 121 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -875,6 +875,41 @@ not newly measured Host-wide exact budgets. Final-SHA local validation and
 Linux CI remain separate evidence; Native Host cancellation remains separate.
 
 #### Mixed retained Store and typed Carrier paths
+
+The registered as-of provider now accepts a checked Events generation on its
+left port and a Relation on its right port. The two typed readers share the
+existing identity validation, clock conversion, bounded candidate search,
+stable `(left time, identity)` output order, value admission and completion
+owner. The Events view remains attached to its exact owner, generation and
+operation port; it is not implicitly converted into a new Relation. Selected
+capability metadata permits only the left Carrier port. The existing DAG
+splitter can therefore retain `values -> to_events -> asof_join -> filter`
+within one authored Stage as independently owned tasks, with two later
+Relation consumers. This does not enable a fused Carrier/Relation chain or a
+Carrier on the as-of right port.
+
+The Events-specific portable fixture derives control work 105/104 from six
+field resolutions, four clocks and two identity comparisons. Workspace
+16/15 follows six metadata slots, four clocks, two ordered indices and two
+output cells plus their checked copies. It tests these boundaries on the
+actual Events entrypoint, rejects swapped and foreign-owner ports, and
+cancels one active consumer without preventing another from completing.
+The provider preserves the typed `RowLimit` with its original step.
+An empty-left regression also exposed an existing identity-sort cursor
+overrun. The shared kernel now finishes uniqueness checking when the cursor
+is beyond the empty index; both Relation and Events inputs terminate with
+an empty output at quantum one without releasing their input owners.
+
+The standard Host fixture uses a real retained Store and the existing Named
+Result owner. Its independent rows distinguish reversed source order from
+the normative as-of order, and it reads all three expected published names.
+The mixed-path fault harness delivers cancellation after positive search
+progress, checks a typed arithmetic failure in the later filter, and keeps a
+failed input Store cleanup lease through retry without another Compute
+dispatch. These fixture connections are tracked in the production route
+inventory; local executions and final-SHA Linux CI are separate evidence.
+The unchanged Relation-input Store append/finalize failure controls are not
+new Events-output fault evidence. Native Host cancellation remains separate.
 
 A configured row Store remains the representation for row-only physical tasks.
 It does not turn Graph, Events, or Vectors generations into row files. A task

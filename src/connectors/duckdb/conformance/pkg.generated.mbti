@@ -356,6 +356,8 @@ pub fn strategy_fixture_resident_dispatch(StrategyFixture) -> @connectors_builti
 
 pub fn strategy_fixture_retained_chain_filter_arithmetic(@actql/actql/connectors/local/driver.LocalDispatchIssue) -> Bool
 
+pub fn strategy_fixture_retained_events_asof_arithmetic(@actql/actql/connectors/local/driver.LocalDispatchIssue) -> Bool
+
 pub fn strategy_fixture_retained_input_limit(@actql/actql/connectors/local/driver.LocalDispatchIssue) -> Bool
 
 pub fn strategy_fixture_retained_local_limits(StrategyFixture, Int, Int) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]

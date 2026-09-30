@@ -8620,7 +8620,18 @@
         "path": "src/execution_relation/bounded_asof_join.mbt",
         "symbol": "start_bounded_asof_join"
       },
+      "view_entrypoint": {
+        "path": "src/execution_relation/bounded_asof_join.mbt",
+        "symbol": "start_bounded_asof_join_events"
+      },
       "boundary_tests": [
+        {
+          "role": "asof_events_exact_one_short_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_events_asof_wbtest.mbt",
+          "fixture": "registered as-of provider consumes exact Events and Relation ports"
+        },
         {
           "role": "asof_join_retained_linear_task_shape",
           "suite": "moon:query_integration",
@@ -8698,6 +8709,27 @@
       ],
       "environment_tests": [
         {
+          "role": "asof_events_retained_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "events-asof-filter"
+        },
+        {
+          "role": "asof_events_host_cancel_cleanup",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "events-asof-in-flight-cancel"
+        },
+        {
+          "role": "asof_events_host_cleanup_retry",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "events-asof-cleanup-retry"
+        },
+        {
           "role": "asof_join_retained_chain_publication",
           "suite": "node:duckdb_standard_host",
           "targets": [
@@ -8715,6 +8747,12 @@
         }
       ],
       "path_assurance": {
+        "view_entrypoint": {
+          "exact_limit": "asof_events_exact_one_short_cancel_cleanup",
+          "one_short_limit": "asof_events_exact_one_short_cancel_cleanup",
+          "in_flight_cancel": "asof_events_host_cancel_cleanup",
+          "cleanup": "asof_events_exact_one_short_cancel_cleanup"
+        },
         "entrypoint": {
           "exact_limit": "asof_work_exact_one_short",
           "one_short_limit": "asof_output_workspace_exact_one_short",
@@ -8723,6 +8761,16 @@
         }
       },
       "resource_assurance": {
+        "view_entrypoint": {
+          "work": {
+            "exact_limit": "asof_events_exact_one_short_cancel_cleanup",
+            "one_short_limit": "asof_events_exact_one_short_cancel_cleanup"
+          },
+          "workspace": {
+            "exact_limit": "asof_events_exact_one_short_cancel_cleanup",
+            "one_short_limit": "asof_events_exact_one_short_cancel_cleanup"
+          }
+        },
         "entrypoint": {
           "work": {
             "exact_limit": "asof_work_exact_one_short",

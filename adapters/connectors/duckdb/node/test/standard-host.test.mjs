@@ -3823,6 +3823,44 @@ async function exerciseStrategyGraph(
         window_start_ms: 10, window_end_ms: 20},
     ],
   }, {
+    name: 'events-asof-filter',
+    source: eventPublicationProgram,
+    create: program => fixture.strategyFixtureTeaCreate(
+      ...args, JSON.stringify(program)),
+    configure: value => fixture.strategyFixtureTeaRetainedSubset(value),
+    additionalSteps: [{
+      values: {
+        schema: {
+          event_id: {type: 'number', nullable: false},
+          occurred_at: {type: 'number', nullable: false},
+          payload: {type: 'string', nullable: false},
+        },
+        rows: [
+          {event_id: 10, occurred_at: 8, payload: 'eight'},
+          {event_id: 11, occurred_at: 10, payload: 'ten'},
+        ],
+      },
+      as: 'right',
+    }],
+    transform: {
+      from: 'source', asof_join: {
+        with: 'right', kind: 'left', by: [],
+        left_time: 'occurred_at', right_time: 'occurred_at',
+        direction: 'backward', tolerance: 10,
+        right_tie_break: ['event_id'],
+        select: {id: 'left.event_id', value: 'right.payload'},
+      }, as: 'matched',
+    },
+    relationOutput: true,
+    fields: ['id', 'value'],
+    secondFields: ['value', 'id'],
+    rows: [
+      {event_id: 1, occurred_at: 11, payload: 'first'},
+      {event_id: 2, occurred_at: 9, payload: 'second'},
+    ],
+    // As-of order is left time, then identity, not source row order.
+    expectedRows: [{id: 2, value: 'eight'}, {id: 1, value: 'ten'}],
+  }, {
     name: 'vectors',
     source: carrierVectorPublicationProgram,
     create: program => fixture.strategyFixtureVecaCreate(
@@ -3906,8 +3944,10 @@ async function exerciseStrategyGraph(
     carrierStage.steps = [
       rowStep,
       carrierStage.steps[0],
+      ...(carrierCase.additionalSteps ?? []),
       ...(carrierCase.transform ? [carrierCase.transform] : []),
-      carrierStage.steps.at(-1),
+      carrierCase.relationOutput
+        ? {filter: 'true', as: 'out'} : carrierStage.steps.at(-1),
     ];
     carrierStage.steps.at(-1).from =
       carrierCase.transform?.as ?? 'source';
@@ -3933,6 +3973,7 @@ async function exerciseStrategyGraph(
       `${carrierCase.name}-handoff`,
     );
     let directOwner;
+    let directFailedExecution;
     let directStore;
     try {
       assert.equal(
@@ -3958,12 +3999,20 @@ async function exerciseStrategyGraph(
         resultCount,
         `${carrierCase.name}-handoff-attempt`,
       );
-      directOwner = await runPublishedCapturedStrategy(
-        setup,
-        {store: directStore, plan},
-        {local: directRetained.configuration},
-        new AbortController().signal,
-      );
+      try {
+        directOwner = await runPublishedCapturedStrategy(
+          setup,
+          {store: directStore, plan},
+          {local: directRetained.configuration},
+          new AbortController().signal,
+        );
+      } catch (error) {
+        directFailedExecution = error.execution;
+        throw new Error(`${carrierCase.name}: ${String(error.cause)}; ` +
+          `completed=${inspect(directFailedExecution?.completed?.map(item => item.task))}; ` +
+          `failure=${inspect(directFailedExecution?.failure, {depth: 7})}`,
+        {cause: error});
+      }
       assert.equal(directOwner.status, 'published');
       assert.equal(directOwner.publication.publication.state, 'succeeded');
       assert(directRetained.leases.length > 0);
@@ -3971,7 +4020,7 @@ async function exerciseStrategyGraph(
         value.outputRepresentation === 'retained-file'));
       assert.equal(directOwner.execution.completed.filter(value =>
         value.outputRepresentation === 'managed-local-carrier').length,
-      carrierCase.transform ? 2 : 1);
+      carrierCase.transform && !carrierCase.relationOutput ? 2 : 1);
       const rows = carrierCase.expectedRows ?? carrierCase.rows;
       const expected = {
         published: rows,
@@ -3980,8 +4029,11 @@ async function exerciseStrategyGraph(
           Object.fromEntries(carrierCase.secondFields.map(
             field => [field, row[field]]))),
       };
-      for (const occurrence of directOwner.execution.publicationInventory
-        .occurrences) {
+      const occurrences = directOwner.execution.publicationInventory.occurrences;
+      assert.deepEqual(occurrences.map(value => value.name).sort(),
+        ['consumed_a', 'consumed_b', 'published']);
+      for (const name of ['published', 'consumed_a', 'consumed_b']) {
+        const occurrence = occurrences.find(value => value.name === name);
         const received = [];
         await directStore.consumeCommittedResult({
           namespaceId: plan.request.namespaceId,
@@ -4002,6 +4054,11 @@ async function exerciseStrategyGraph(
         assert.equal(directOwner.execution.usage().heldBytes, 0n);
         assert.equal(
           directOwner.execution.usage().reservedExecutionBytes, 0n);
+      } else if (directFailedExecution !== undefined) {
+        await directFailedExecution.close();
+        assert.equal(await directFailedExecution.cleanup(), true);
+        assert.equal(directFailedExecution.usage().heldBytes, 0n);
+        assert.equal(directFailedExecution.usage().reservedExecutionBytes, 0n);
       }
       directCapture.close();
       await directStore?.close();
@@ -10155,7 +10212,8 @@ async function exerciseStrategyGraph(
       await rm(publicationDirectory, {recursive: true, force: true});
     }
   }
-  for (const {name: mode, temporal, chain = false} of [
+  for (const {name, mode: fixtureMode, temporal, chain = false,
+    eventsAsOf = false} of [
     {name: 'cancel'}, {name: 'cancel-after-filter'},
     {name: 'nest-cancel'},
     {name: 'cancel-after-group'},
@@ -10174,13 +10232,27 @@ async function exerciseStrategyGraph(
     {name: 'compute-failure', temporal: 'asof', chain: true},
     {name: 'store-failure', temporal: 'interval', chain: true},
     {name: 'finalize-failure', temporal: 'sequence', chain: true},
+    {name: 'events-asof-in-flight-cancel', mode: 'cancel',
+      temporal: 'asof', eventsAsOf: true},
+    {name: 'events-asof-later-arithmetic', mode: 'compute-failure',
+      temporal: 'asof', eventsAsOf: true},
+    {name: 'events-asof-cleanup-retry', mode: 'compute-cleanup-failure',
+      temporal: 'asof', eventsAsOf: true},
   ]) {
-    const caseName = (temporal ? `${temporal}-${mode}` : mode) +
-      (chain ? '-chain' : '');
+    const mode = fixtureMode ?? name;
+    const caseName = fixtureMode === undefined
+      ? (temporal ? `${temporal}-${mode}` : mode) + (chain ? '-chain' : '')
+      : name;
     const series = temporal === 'series';
     const sequence = temporal === 'sequence';
-    const producerTask = series ? 1 : sequence ? 2 : 3;
-    const priorTasks = series ? [] : sequence ? [1] : [1, 2];
+    const computeFailure = mode === 'compute-failure' ||
+      mode === 'compute-cleanup-failure';
+    // Events construction is task 3; as-of and the later row filter own
+    // separate checked generations. Neither is disguised as a row file.
+    const producerTask = eventsAsOf ? (computeFailure ? 5 : 4)
+      : series ? 1 : sequence ? 2 : 3;
+    const priorTasks = eventsAsOf ? (computeFailure ? [1, 2, 3, 4] : [1, 2, 3])
+      : series ? [] : sequence ? [1] : [1, 2];
     const numericGroup = mode === 'cancel-after-numeric-group';
     const grouped = mode === 'cancel-after-group' || numericGroup;
     const nestCancel = mode === 'nest-cancel';
@@ -10206,6 +10278,15 @@ async function exerciseStrategyGraph(
       program = retainedFamilyChain(program, producerId,
         [{filter: mode === 'compute-failure'
           ? '1 / (id - id) > 0' : 'true'}], fields);
+    }
+    if (eventsAsOf) {
+      const joined = program.stages.find(stage => stage.id === 'crossed');
+      joined.steps = [{
+        from: 'l', to_events: {id: 'id', time: 'clock'}, as: 'source',
+      }, {...joined.steps[0], from: 'source', as: 'matched'}, {
+        from: 'matched', filter: computeFailure
+          ? '1 / (id - id) > 0' : 'true', as: 'out',
+      }];
     }
     program.results = nestCancel ? {
       producer: {from: {stage: 'nested', result: 'r'}},
@@ -10247,12 +10328,15 @@ async function exerciseStrategyGraph(
     });
     let leases = 0, failedAppends = 0, failedFinalizations = 0;
     let failurePublicationStore;
-    let permitCleanup = mode !== 'finalize-failure';
+    let permitCleanup = mode !== 'finalize-failure' &&
+      mode !== 'compute-cleanup-failure';
     const configuration = installLocalRetainedStore((key, bytes) => {
       leases++;
-      const failThisOutput =
+      const failWrite =
         (mode === 'store-failure' || mode === 'finalize-failure') &&
         leases === producerTask;
+      const failThisOutput = failWrite ||
+        (mode === 'compute-cleanup-failure' && leases === 1);
       let writer, closed = false;
       return Object.freeze({
         status: () => ({reservedBytes: writer && (!closed ||
@@ -10261,7 +10345,7 @@ async function exerciseStrategyGraph(
             (writer?.cleanupHandle?.status?.().pending ?? false)}),
         reserve(value) {
           writer = store.reserve(value);
-          if (!failThisOutput) return writer;
+          if (!failWrite) return writer;
           return Object.freeze({
             start: () => writer.start(),
             append: async part => {
@@ -10300,13 +10384,13 @@ async function exerciseStrategyGraph(
     let dispatches = 0;
     const observedRuntime = new Proxy(hostRuntime, {
       get(target, property, receiver) {
-        if (property !== 'strategyModule_local_Dispatch') {
+        if (property !== 'strategyModule_local_Dispatch' &&
+            property !== 'strategyModule_local_ManagedStart') {
           return Reflect.get(target, property, receiver);
         }
-        return (setup, task) => {
+        return (...callArguments) => {
           const dispatch = ++dispatches;
-          const operations = checked(target.strategyModule_local_Dispatch(
-            setup, task));
+          const operations = checked(target[property](...callArguments));
           return {$tag: 1, _0: new Proxy(operations, {
             get(operation, name, operationReceiver) {
               if (name === 'execute') {
@@ -10354,6 +10438,7 @@ async function exerciseStrategyGraph(
     const observedHost = createNodeHostEntry(
       () => observedRuntime, installStrategyContributions);
     let execution;
+    let failedCloseObserved = false;
     try {
       assert.equal(fixture.strategyFixtureOpen(
         binaryFixture, binaryCapture.source()), true);
@@ -10361,10 +10446,10 @@ async function exerciseStrategyGraph(
         ? fixture.strategyFixtureTeaRetainedSubset(binaryFixture)
         : fixture.strategyFixtureRetainedLocalSubset(binaryFixture);
       assert.equal(fixture.strategyFixtureTaskStepCount(binaryFixture, producerTask),
-        program.stages.find(stage => stage.id ===
+        eventsAsOf ? 1 : program.stages.find(stage => stage.id ===
           (series ? 'values_a' : sequence ? 'matched' : nestCancel
             ? 'nested' : 'crossed')).steps.length,
-        `${caseName}: cancellation and failures keep the authored task intact`);
+        `${caseName}: cancellation and failures preserve the selected task shape`);
       if (mode === 'finalize-failure') {
         const runtime = runtimeCore(observedRuntime);
         failurePublicationStore = await openLocalPublicationStore({
@@ -10406,12 +10491,31 @@ async function exerciseStrategyGraph(
         }
         assert.equal(sawStop, true);
         assert.equal(execution.failure?.name, 'AbortError');
-        assert.equal(leases, priorTasks.length);
-      } else if (mode === 'compute-failure') {
+        assert.equal(leases, eventsAsOf ? 2 : priorTasks.length);
+      } else if (computeFailure) {
         assert.equal(leases, 2);
         assert.equal(execution.failure?.code, 'MoonBitHostFailure');
-        assert.equal(fixture.strategyFixtureRetainedChainFilterArithmetic(
-          execution.failure.cause), true);
+        const arithmeticFailure = eventsAsOf
+          ? fixture.strategyFixtureRetainedEventsAsOfArithmetic
+          : fixture.strategyFixtureRetainedChainFilterArithmetic;
+        assert.equal(arithmeticFailure(execution.failure.cause), true);
+        if (mode === 'compute-cleanup-failure') {
+          await assert.rejects(async () => execution.close(),
+            /InjectedRetainedCleanupPending/);
+          failedCloseObserved = true;
+          assert.equal(execution.cleanupPending(), true,
+            'failed close must retain the mixed input cleanup owner');
+          await assert.rejects(execution.cleanup(), error =>
+            error instanceof AggregateError &&
+            error.errors.some(cause =>
+              cause.message === 'InjectedRetainedCleanupPending'));
+          assert.equal(execution.cleanupPending(), true);
+          assert(execution.usage().reservedExecutionBytes > 0n ||
+            execution.usage().heldBytes > 0n);
+          assert.equal(dispatches, dispatchesAtFailure,
+            `${caseName}: failed cleanup must not rerun Compute`);
+          permitCleanup = true;
+        }
       } else {
         assert.equal(leases, producerTask);
         assert.equal(failedAppends, mode === 'store-failure' ? 1 : 0);
@@ -10426,13 +10530,18 @@ async function exerciseStrategyGraph(
           permitCleanup = true;
         }
       }
+    } catch (error) {
+      throw new Error(`${caseName}: ${String(error)}; ` +
+        `completed=${inspect(execution?.completed?.map(item => item.task))}; ` +
+        `failure=${inspect(execution?.failure, {depth: 7})}`, {cause: error});
     } finally {
+      const dispatchesBeforeCleanup = dispatches;
       permitCleanup = true;
       binaryCapture.close();
-      await execution?.close();
+      if (!failedCloseObserved) await execution?.close();
       if (execution) {
         assert.equal(await execution.cleanup(), true);
-        assert.equal(dispatches, producerTask,
+        assert.equal(dispatches, dispatchesBeforeCleanup,
           `${caseName}: cleanup must not redispatch Compute`);
         assert.equal(execution.cleanupPending(), false);
         assert.equal(execution.usage().heldBytes, 0n);
