@@ -405,6 +405,53 @@ try {
   ]);
   const entries = async () => existsSync(entryLog)
     ? (await readFile(entryLog, 'utf8')).split('\n').filter(Boolean) : [];
+  const publicationRoot = join(root, 'publication');
+  const journalPath = join(root, 'journal.sqlite3');
+  const reservedPayloadBytes = (publication = publicationRoot) => {
+    const database = new DatabaseSync(join(publication,
+      '.actql-publication.sqlite3'), {readOnly: true});
+    database.exec('PRAGMA busy_timeout = 5000');
+    try {
+      const row = database.prepare('SELECT COALESCE(SUM(reserved_bytes), 0) ' +
+        'AS bytes FROM actql_capacity WHERE namespace = ?')
+        .get('publication_payload');
+      return Number(row.bytes);
+    } finally { database.close(); }
+  };
+  const pendingIntents = (journal = journalPath) => {
+    const database = new DatabaseSync(journal, {readOnly: true});
+    database.exec('PRAGMA busy_timeout = 5000');
+    try {
+      return database.prepare('SELECT record_key FROM actql_records ' +
+        'WHERE namespace = ? AND record_key NOT IN (SELECT record_key ' +
+        'FROM actql_records WHERE namespace = ?)')
+        .all('site_output_intent', 'site_output_intent_done')
+        .map(row => row.record_key);
+    } finally { database.close(); }
+  };
+  // A real journal write failure: another connection holds the write lock
+  // longer than the Site's busy timeout.
+  const lockJournal = async () => {
+    const database = new DatabaseSync(journalPath);
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        database.exec('BEGIN IMMEDIATE');
+        break;
+      } catch (error) {
+        if (attempt > 400) { database.close(); throw error; }
+        await new Promise(resolve => setTimeout(resolve, 25));
+      }
+    }
+    return () => {
+      database.exec('ROLLBACK');
+      database.close();
+    };
+  };
+  let expectedEntries = 0;
+
+  // The focused mode reuses this exact real-process fixture and assertions;
+  // CI and the default command still execute every foundation scenario.
+  if (!process.argv.includes('--start-authority-only')) {
 
   // 1. A source-free Values Run is accepted, executed once in a holder and
   //    reported with its terminal record.
@@ -545,7 +592,7 @@ try {
   //    one after another never exhaust a Store sized for one payload.
   const bounded = startSite(['--publication-capacity-bytes', '40']);
   currentSite = bounded;
-  let expectedEntries = (await entries()).length;
+  expectedEntries = (await entries()).length;
   for (let run = 0; run < 5; run += 1) {
     const dispatch = dispatchFor(`resident-bounded-${run}`, 20 + run);
     await within(gateway.dispatch({dispatch, inputBindingBody: '{}',
@@ -579,7 +626,6 @@ try {
   assert.equal(retrying.lines.filter(line =>
     line.kind === 'holder-request-unavailable').length, 3);
   const ninthTerminal = await settledQuery(ninth, 'ninth');
-  const publicationRoot = join(root, 'publication');
   const ninthIntentTag = 'ninth';
   const ninthRelease = (async () => {
     const intent = siteControl.prepareOutputIntent(ninth, {
@@ -642,19 +688,6 @@ try {
 
   // Payload capacity still reserved in the Site's publication Store, read
   // directly from its database.
-  const reservedPayloadBytes = (publication = publicationRoot) => {
-    const database = new DatabaseSync(join(publication,
-      '.actql-publication.sqlite3'), {readOnly: true});
-    database.exec('PRAGMA busy_timeout = 5000');
-    try {
-      const row = database.prepare('SELECT COALESCE(SUM(reserved_bytes), 0) ' +
-        'AS bytes FROM actql_capacity WHERE namespace = ?')
-        .get('publication_payload');
-      return Number(row.bytes);
-    } finally {
-      database.close();
-    }
-  };
   assert.equal(reservedPayloadBytes(), 0);
   // One more Run through a Store sized for one payload: it succeeds only if
   // no earlier payload is still reserved.
@@ -829,20 +862,6 @@ try {
   // Output intents in the Site journal whose cleanup is not recorded
   // complete, and the payload records of the Store, read from their
   // databases.
-  const journalPath = join(root, 'journal.sqlite3');
-  const pendingIntents = (journal = journalPath) => {
-    const database = new DatabaseSync(journal, {readOnly: true});
-    database.exec('PRAGMA busy_timeout = 5000');
-    try {
-      return database.prepare('SELECT record_key FROM actql_records ' +
-        'WHERE namespace = ? AND record_key NOT IN (SELECT record_key ' +
-        'FROM actql_records WHERE namespace = ?)')
-        .all('site_output_intent', 'site_output_intent_done')
-        .map(row => row.record_key);
-    } finally {
-      database.close();
-    }
-  };
   const payloadRecords = () => {
     const database = new DatabaseSync(join(publicationRoot,
       '.actql-publication.sqlite3'), {readOnly: true});
@@ -854,24 +873,6 @@ try {
     } finally {
       database.close();
     }
-  };
-  // A real journal write failure: another connection holds the write lock
-  // longer than the Site's busy timeout.
-  const lockJournal = async () => {
-    const database = new DatabaseSync(journalPath);
-    for (let attempt = 0; ; attempt += 1) {
-      try {
-        database.exec('BEGIN IMMEDIATE');
-        break;
-      } catch (error) {
-        if (attempt > 400) throw error;
-        await new Promise(resolve => setTimeout(resolve, 25));
-      }
-    }
-    return () => {
-      database.exec('ROLLBACK');
-      database.close();
-    };
   };
   const sleep = milliseconds =>
     new Promise(resolve => setTimeout(resolve, milliseconds));
@@ -1256,6 +1257,8 @@ try {
     }
   }
 
+  }
+
   // 23. A locally controlled clock advances at observed boundaries, not after
   // a guessed startup sleep. The executor evidence hook is not the barrier.
   // Receipt expiry, expiry after acceptance/before rebuilding, and expiry
@@ -1308,20 +1311,15 @@ try {
       await writeFile(clockPath, validUntil);
       await waitFor(() => expiredSite.lines.some(line => line.kind === 'execute-failed' &&
         line.reason === 'refused-not-current'), `${point} expiry refusal`);
-      if (point === 'before-physical-start') {
-        await waitFor(() => expiredSite.lines.some(line => line.kind === 'holder-exited' &&
-          line.attempt === acceptance.attempt), `${point} physical holder exit`);
-        // A duplicate Accepted observation can already resolve the stand-in
-        // dispatch waiter. Query the durable failure/cleanup, independently
-        // of whether the stand-in still accepts an unsolicited status ACK.
-        const stopped = await within(gateway.query({dispatch: expired}), 'expired claimed status');
-        // Failed, NoEvidence, CleanupReleased, no material, no quarantine.
-        assert.deepEqual(stopped.state, [4, 0, 2, 0, 0],
-          'claimed expiry is stopped-before-start, with cleanup confirmed');
-      } else {
-        await waitFor(() => expiredSite.lines.some(line => line.kind === 'holder-unclaimed'),
-          `${point} cleanup and holder exit`);
-      }
+      await waitFor(() => expiredSite.lines.some(line => line.kind === 'holder-exited' &&
+        line.attempt === acceptance.attempt), `${point} physical holder exit`);
+      // A duplicate Accepted observation can already resolve the stand-in
+      // dispatch waiter. Query the durable failure/cleanup, independently
+      // of whether the stand-in still accepts an unsolicited status ACK.
+      const stopped = await within(gateway.query({dispatch: expired}), 'expired claimed status');
+      // Failed, NoEvidence, CleanupReleased, no material, no quarantine.
+      assert.deepEqual(stopped.state, [4, 0, 2, 0, 0],
+        'claimed expiry is stopped-before-start, with cleanup confirmed');
     }
     gateway.withdraw({dispatch: expired});
     await outcome;
@@ -1333,6 +1331,141 @@ try {
     expiredSite.child.kill('SIGTERM');
     await expiredSite.exited;
   }
+
+  // 24. A pre-claim expired queue head and a longer-lived successor share
+  // one Site/journal. The head must become durably failed/released through
+  // exclusive claim, never start, and never prevent the successor's start.
+  const queueClockRoot = join(root, 'expiry-queue-clock');
+  await mkdir(queueClockRoot);
+  const queueClockPath = join(queueClockRoot, 'clock.txt');
+  await writeFile(queueClockPath, new Date(now).toISOString());
+  const queueSite = startSite(['--test-clock-root', queueClockRoot,
+    '--holder-pause-at', 'before-start', '--holder-pause-ms', '1000']);
+  currentSite = queueSite;
+  const expiredHead = dispatchFor('resident-expired-queue-head', 220);
+  const headOutcome = gateway.dispatch({dispatch: expiredHead,
+    inputBindingBody: '{}', dispatchEnvelope: materialsEnvelope(expiredHead)})
+    .catch(error => error);
+  await waitFor(() => queueSite.lines.some(line => line.kind === 'holder-paused' &&
+    line.point === 'before-start'), 'accepted queue head before claim');
+  const headAcceptance = queueSite.lines.find(line => line.kind === 'accepted' &&
+    line.request_cid === siteControl.identity(expiredHead));
+  assert.ok(headAcceptance);
+  const laterUntil = new Date(now + 7_200_000).toISOString();
+  const laterCompiled = portable.publicationControl.prepareCheckedClientCompiledRun(program,
+    'values', {executionContextCid: physicalCid('resident-execution-context'),
+      hostPolicyCid: physicalCid('resident-host-policy'), expiresAt: laterUntil});
+  const laterDefinition = portable.publicationControl.defineCheckedClientCompiledRun(laterCompiled,
+    {namespaceId: 'resident-scope', runId: 'resident-live-successor', createdAt,
+      validUntil: laterUntil});
+  const laterMaterials = JSON.stringify({...JSON.parse(materials),
+    prepared_invocation: laterCompiled.preparedEvidence.wire,
+    run_authorization: laterCompiled.authorization.wire,
+    run_id: 'resident-live-successor', valid_until: laterUntil});
+  const later = dispatchFor('resident-live-successor', 221,
+    {runDefinitionCid: laterDefinition.identity});
+  await writeFile(queueClockPath, validUntil);
+  const laterOutcome = gateway.dispatch({dispatch: later, inputBindingBody: '{}',
+    dispatchEnvelope: coordinator.pollDispatchMaterialsJson(coordinator.admitDispatchJson(
+      siteControl.requestJson(later), siteControl.identity(later)), '{}', 16, laterMaterials)});
+  await waitFor(() => queueSite.lines.some(line => line.kind === 'accepted' &&
+    line.request_cid === siteControl.identity(later)), 'valid successor acceptance');
+  await waitFor(() => queueSite.lines.some(line => line.kind === 'holder-exited' &&
+    line.attempt === headAcceptance.attempt), 'expired queue head physical exit');
+  gateway.withdraw({dispatch: expiredHead});
+  await headOutcome;
+  const headStatus = await within(gateway.query({dispatch: expiredHead}), 'expired head status');
+  assert.deepEqual(headStatus.state, [4, 0, 2, 0, 0], 'expired head durably failed and reclaimed');
+  await within(laterOutcome, 'live successor dispatch');
+  expectedEntries += 1;
+  await waitFor(async () => (await entries()).length === expectedEntries, 'only live successor enters');
+  const laterStatus = await settledQuery(later, 'live successor');
+  const laterAcceptance = queueSite.lines.find(line => line.kind === 'accepted' &&
+    line.request_cid === siteControl.identity(later));
+  assert.ok(laterAcceptance);
+  const headHolder = queueSite.lines.find(line => line.kind === 'holder-started' &&
+    line.attempt === headAcceptance.attempt);
+  const laterHolder = queueSite.lines.find(line => line.kind === 'holder-started' &&
+    line.attempt === laterAcceptance.attempt);
+  assert.ok(headHolder);
+  assert.ok(laterHolder);
+  // The durable attempt identity is not the executor's occurrence key.
+  // Match each actual entry to its OS holder's claimant instead.
+  assert.equal((await entries()).filter(line => line.split(' ')[0] === headHolder.claimant).length, 0);
+  assert.equal((await entries()).filter(line => line.split(' ')[0] === laterHolder.claimant).length, 1);
+  await deliverAndRelease(later, laterStatus, 'live-successor');
+  await waitFor(() => queueSite.lines.some(line => line.kind === 'holder-released'), 'successor cleanup');
+  assert.equal(pendingIntents().length, 0);
+  assert.equal(reservedPayloadBytes(), 0);
+  const headStarts = queueSite.lines.filter(line => line.kind === 'holder-started' &&
+    line.attempt === headAcceptance.attempt).length;
+  // Redelivery is checked against the terminal record even at a restored
+  // earlier test time; it cannot create another holder or executor.
+  await writeFile(queueClockPath, new Date(now).toISOString());
+  const replay = await within(gateway.dispatch({dispatch: expiredHead, inputBindingBody: '{}',
+    dispatchEnvelope: materialsEnvelope(expiredHead)}), 'expired head redelivery');
+  assert.deepEqual(replay.state, [4, 0, 2, 0, 0]);
+  assert.equal((await entries()).length, expectedEntries);
+  assert.equal(queueSite.lines.filter(line => line.kind === 'holder-started' &&
+    line.attempt === headAcceptance.attempt).length, headStarts);
+  assert.equal(headStarts, 1);
+  assert.equal((await within(gateway.query({dispatch: expiredHead}), 'redelivered head status')).revision,
+    headStatus.revision, 'redelivery does not mutate the terminal record');
+  queueSite.child.kill('SIGTERM');
+  await queueSite.exited;
+
+  // 25. A lifetime rejection is definite, but recording it can fail. Keep
+  // the runtime/slot until the real SQLite write lock is removed; retry
+  // cleanup only, not execution or acceptance. This is not a new attempt.
+  await writeFile(queueClockPath, new Date(now).toISOString());
+  const lockedSite = startSite(['--test-clock-root', queueClockRoot,
+    '--holder-pause-at', 'before-physical-start', '--holder-pause-ms', '1000']);
+  currentSite = lockedSite;
+  const lockedExpiry = dispatchFor('resident-expiry-persistence-failure', 222);
+  const lockedOutcome = gateway.dispatch({dispatch: lockedExpiry,
+    inputBindingBody: '{}', dispatchEnvelope: materialsEnvelope(lockedExpiry)})
+    .catch(error => error);
+  await waitFor(() => lockedSite.lines.some(line => line.kind === 'holder-paused' &&
+    line.point === 'before-physical-start'), 'expiry after claim before physical call');
+  const lockedAcceptance = lockedSite.lines.find(line => line.kind === 'accepted' &&
+    line.request_cid === siteControl.identity(lockedExpiry));
+  assert.ok(lockedAcceptance);
+  const unlockExpiry = await lockJournal();
+  try {
+    await writeFile(queueClockPath, validUntil);
+    await waitFor(() => lockedSite.lines.some(line => line.kind === 'cleanup-pending' &&
+      line.step === 'runtime-after-failure'), 'expiry journal failure retains owner', 60_000);
+    assert.equal(lockedSite.lines.find(line => line.kind === 'execute-failed')?.reason,
+      'runtime-journal');
+    assert.equal(lockedSite.lines.find(line => line.kind === 'cleanup-pending' &&
+      line.step === 'runtime-after-failure')?.reason, 'journal');
+    assert.equal((await entries()).length, expectedEntries, 'expiry never entered executor');
+    assert.equal(lockedSite.lines.filter(line => line.kind === 'holder-started').length, 1);
+    assert.equal(lockedSite.lines.some(line => line.kind === 'holder-exited' ||
+      line.kind === 'runtime-cleaned'), false, 'slot custody remains with the live holder');
+    const database = new DatabaseSync(journalPath, {readOnly: true});
+    try {
+      const claims = database.prepare('SELECT body FROM actql_records WHERE namespace = ?')
+        .all('site_start_claim').map(row => JSON.parse(Buffer.from(row.body).toString('utf8')));
+      assert.ok(claims.some(claim => claim.dispatch_request_cid === siteControl.identity(lockedExpiry)),
+        'failed persistence does not discard the exclusive claim');
+    } finally { database.close(); }
+  } finally { unlockExpiry(); }
+  await waitFor(() => lockedSite.lines.some(line => line.kind === 'runtime-cleaned'),
+    'expiry cleanup persisted after journal recovery', 60_000);
+  await waitFor(() => lockedSite.lines.some(line => line.kind === 'holder-exited' &&
+    line.attempt === lockedAcceptance.attempt), 'expiry owner physical cleanup complete');
+  gateway.withdraw({dispatch: lockedExpiry});
+  await lockedOutcome;
+  const lockedTerminal = await within(gateway.query({dispatch: lockedExpiry}),
+    'expiry failure durable cleanup');
+  assert.deepEqual(lockedTerminal.state, [4, 0, 2, 0, 0]);
+  assert.equal((await entries()).length, expectedEntries, 'cleanup did not retry execution');
+  assert.equal(lockedSite.lines.filter(line => line.kind === 'holder-started').length, 1);
+  assert.equal(reservedPayloadBytes(), 0);
+  assert.equal(pendingIntents().length, 0);
+  lockedSite.child.kill('SIGTERM');
+  await lockedSite.exited;
 
   // Each entry names one holder claimant and one attempt key; no attempt
   // key appears twice.

@@ -35,14 +35,13 @@ pub(all) enum ResidentAcceptance {
 }
 
 ///|
-fn admit_materials(
+fn rebuild_materials(
   admission : ResidentRunAdmission,
   request : @remote.DispatchRequest,
   materials : String,
-  now : String,
 ) -> Result[@host.ClientValuesRunMaterials, @resident.ResidentDispatchRefusal] {
   let (run_definition_cid, _) = @remote.dispatch_request_task_scope(request)
-  let rebuilt = match
+  match
     @host.admit_client_values_run_materials(
       materials,
       run_definition_cid,
@@ -51,8 +50,21 @@ fn admit_materials(
       admission.manifests,
       admission.limits,
     ) {
+    Ok(value) => Ok(value)
+    Err(issue) => Err(MaterialsRejected(issue))
+  }
+}
+
+///|
+fn admit_materials(
+  admission : ResidentRunAdmission,
+  request : @remote.DispatchRequest,
+  materials : String,
+  now : String,
+) -> Result[@host.ClientValuesRunMaterials, @resident.ResidentDispatchRefusal] {
+  let rebuilt = match rebuild_materials(admission, request, materials) {
     Ok(value) => value
-    Err(issue) => return Err(MaterialsRejected(issue))
+    Err(refusal) => return Err(refusal)
   }
   match @resident.check_resident_run_current(rebuilt, now) {
     Ok(_) => Ok(rebuilt)
@@ -246,11 +258,19 @@ pub fn execute_resident_attempt(
     identity == attempt_identity else {
     return Err(failed(EnvelopeMissing))
   }
-  let rebuilt = match
-    admit_materials(admission, request, materials, current_time()) {
+  let rebuilt = match rebuild_materials(admission, request, materials) {
     Ok(value) => value
     Err(refusal) => return Err(failed(Refused(refusal)))
   }
+  // Receipt already accepted this exact Run. A lifetime refusal here must
+  // acquire the existing exclusive start claim and terminate through the
+  // runtime owner; returning while still Accepted would indefinitely retry
+  // the queue head. No physical call is permitted by this claim.
+  let accepted_run_current = @resident.check_resident_run_current(
+      rebuilt,
+      current_time(),
+    )
+    is Ok(_)
   let executor = match
     @values.install_native_remote_values_task_executor(
       rebuilt.prepared,
@@ -287,7 +307,11 @@ pub fn execute_resident_attempt(
   // close is confirmed.
   match
     runtime.guard_executor_start(() => {
-      @resident.check_resident_run_current(rebuilt, current_time()) is Ok(_)
+      let current = @resident.check_resident_run_current(
+        rebuilt,
+        current_time(),
+      )
+      accepted_run_current && current is Ok(_)
     }) {
     Ok(_) => ()
     Err(issue) => return failed_after_runtime(runtime, Runtime(issue))

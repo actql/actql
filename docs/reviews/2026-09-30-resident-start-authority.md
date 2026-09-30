@@ -11,12 +11,22 @@ Running persistence, before `RuntimeExecutePhysical`. It checks again after
 the executor-entry evidence hook, immediately before the physical call.
 The evidence hook is not an authorization callback.
 
-Rejection before claim leaves the accepted attempt unstarted under the existing
-owner rules. Rejection after claim uses `StartAuthorizationRejected` and the
-existing stopped-before-start failure/cleanup progression. The Host exposes
-`Refused(NotCurrent)` while retaining a runtime whose close is still pending.
+Receipt expiry rejects before durable acceptance. After receipt, the Host
+structurally rebuilds the exact saved Run without returning early on lifetime
+rejection: an expired Accepted record otherwise remains the retryable queue
+head forever. It latches that rejection, acquires the existing exclusive start
+claim, and uses `StartAuthorizationRejected` and the stopped-before-start
+failure/cleanup progression. Provisioning/Running are control records, not
+evidence of an executor call. The terminal record is Failed/NoEvidence/
+CleanupReleased/no-material/no-quarantine; it is neither Cancelled nor erased.
+The parent removes the head only after its existing durable-owner inspection.
+The Host exposes `Refused(NotCurrent)` while retaining a runtime whose close is still pending.
 The runtime, bundle, Site operation and slot are not freed by a clock failure;
 their existing owners confirm cleanup. No claim authorizes re-execution.
+Structural reconstruction and temporary Store/journal failures are not
+reclassified as lifetime rejection. Failure persistence after claim can itself
+fail: the existing runtime keeps its cleanup owner and the holder keeps the
+slot, retrying close only until the terminal state and cleanup are durable.
 
 `execute_resident_attempt` now takes `() -> String` rather than a fixed clock
 string. The runtime adds `guard_executor_start` and a typed rejection. Both
@@ -26,8 +36,15 @@ and saved formats are unchanged by this correction.
 
 The process regression advances a **local test clock**, not a dispatch clock,
 at observed receipt, before-reconstruction and post-claim boundaries. Its
-post-claim check reads the exact durable claim before advancing time. Separate
-journals avoid carrying an unclaimed acceptance into another test case. The
+post-claim check reads the exact durable claim before advancing time. The three
+boundary cases use separate journals; a further regression deliberately uses
+the **same Site and journal** for an expired accepted head and a longer-lived
+successor. It checks real executor entries (head zero, successor one), durable
+failure/cleanup, Output release/capacity, and exact redelivery without another
+holder, entry or terminal revision change. A real SQLite write lock also
+prevents expiry failure/cleanup persistence after claim; the test checks the
+live holder, retained claim/slot and zero entries, then removes the fault and
+requires durable Failed/CleanupReleased without restarting execution. The
 normal CLI path always reads the system clock; missing/invalid test-clock bytes
 fail closed. This is controlled-clock fault injection, not evidence of live
 mid-execution revocation. All three cases require zero executor entries and
@@ -94,6 +111,14 @@ CleanupReleased/no-material/no-quarantine state. Coordinator ACK is separate
 from physical cleanup. No product timeout, retry, state or expected start count
 is relaxed.
 
+The supplied `pr72-expiry` reproduction at `c0c9301559cb2049e7ea998145dfe6b401115751`
+showed three head holders and zero successor entries. The new same-journal
+regression asserts one head holder, no head executor call, and exactly one
+successor call. An initial test-development failure compared the executor's
+occurrence key with the durable attempt identity (different domains); the
+assertion now joins actual entry lines to OS-holder claimant identities, not
+transport notifications. This does not weaken the zero/one entry expectations.
+
 ```sh
 node --test scripts/client-values-run-materials-vector.test.mjs
 moon test --target js src/run_publication_host --deny-warn
@@ -101,6 +126,8 @@ moon test --target wasm src/run_publication_host --deny-warn
 moon test --target native src/run_publication_host --deny-warn
 ACTQL_TEST_SCRATCH_ROOT=/path/to/task-owned/scratch \
   node scripts/test-native-resident-site.mjs
+ACTQL_TEST_SCRATCH_ROOT=/path/to/task-owned/scratch \
+  node scripts/test-native-resident-site.mjs --start-authority-only
 node scripts/local-checks.mjs run lint
 ```
 
