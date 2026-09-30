@@ -111,12 +111,20 @@ test('captured retained Host requires acquisition binding and executable fault e
     route.boundary_tests = route.boundary_tests.filter(item =>
       item.role !== 'retained_captured_factory_binding');
   }), /reviewed retained_captured_factory_binding fixture is missing/u);
+  for (const role of ['retained_file_identity_exact_content',
+    'retained_file_capture_identity_lifetime']) {
+    assert.match(run(undefined, routes => {
+      const route = filter(routes);
+      route.boundary_tests = route.boundary_tests.filter(item => item.role !== role);
+    }), new RegExp(`reviewed ${role} fixture is missing`, 'u'));
+  }
   for (const role of [
     'retained_captured_named_results', 'retained_captured_empty_input',
     'retained_captured_empty_output', 'retained_captured_host_exact_budgets',
     'retained_captured_host_work_short', 'retained_captured_host_workspace_short',
     'retained_captured_progress_timer_cleanup', 'retained_captured_filter_arithmetic',
     'retained_captured_append_cleanup', 'retained_captured_finalize_cleanup_retry',
+    'retained_file_identity_delivered_stop', 'retained_file_compute_delivered_stop',
   ]) {
     assert.match(run(undefined, routes => {
       const route = filter(routes);

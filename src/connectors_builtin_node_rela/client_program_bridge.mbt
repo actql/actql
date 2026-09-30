@@ -1741,6 +1741,97 @@ pub fn client_program_identify_captured_effect_source_relation(
 }
 
 ///|
+/// Installed, on-demand identity for a file-represented acquisition. The same
+/// standard export profile applies without materializing the complete source.
+#export_name("clientProgramPrepareCapturedSourceIdentityScan")
+pub fn client_program_prepare_captured_source_identity_scan(
+  source : @query.CapturedInputSource,
+) -> Result[
+  @query.CapturedSourceIdentityScan,
+  @query.CapturedSourceIdentityScanIssue,
+] {
+  @query.prepare_captured_source_identity_scan(
+    source,
+    10000,
+    100000,
+    10000,
+    {
+      max_nodes: 1000000,
+      max_text_bytes: 10000000,
+      max_depth: 64,
+      max_work: 1000000,
+    },
+    {
+      max_columns: 100,
+      max_order_work: 1000000,
+      max_bytes: 10000000,
+      max_nodes: 1000000,
+      max_depth: 64,
+    },
+    {
+      max_columns: 100,
+      max_order_work: 1000000,
+      max_bytes: 10000000,
+      max_nodes: 1000003,
+      max_depth: 66,
+    },
+    { max_fields: 100, max_bytes: 100000, max_nodes: 10000, max_depth: 64, },
+    65536,
+  )
+}
+
+///|
+#export_name("clientProgramCapturedSourceIdentityScanStorage")
+pub fn client_program_captured_source_identity_scan_storage(
+  scan : @query.CapturedSourceIdentityScan,
+) -> @execution.ProducerStorage? {
+  @query.captured_source_identity_scan_storage(scan)
+}
+
+///|
+#export_name("clientProgramAppendCapturedSourceIdentityScan")
+pub fn client_program_append_captured_source_identity_scan(
+  scan : @query.CapturedSourceIdentityScan,
+  row : String,
+) -> Result[Unit, @query.CapturedSourceIdentityScanIssue] {
+  @query.append_captured_source_identity_scan(scan, row, {
+    max_bytes: 65536,
+    max_nodes: 1000000,
+    max_depth: 64,
+    max_text_bytes: 65536,
+  })
+}
+
+///|
+#export_name("clientProgramCapturedSourceIdentityScanMaterial")
+pub fn client_program_captured_source_identity_scan_material(
+  scan : @query.CapturedSourceIdentityScan,
+) -> @execution.RetainedOutputMaterial? {
+  @query.captured_source_identity_scan_storage(scan).bind(storage => {
+    @execution.producer_storage_retained_material(storage)
+  })
+}
+
+///|
+#export_name("clientProgramFinishCapturedSourceIdentityScan")
+pub fn client_program_finish_captured_source_identity_scan(
+  scan : @query.CapturedSourceIdentityScan,
+) -> Result[
+  @query.CapturedSourceRelationIdentity,
+  @query.CapturedSourceIdentityScanIssue,
+] {
+  @query.finish_captured_source_identity_scan(scan)
+}
+
+///|
+#export_name("clientProgramCancelCapturedSourceIdentityScan")
+pub fn client_program_cancel_captured_source_identity_scan(
+  scan : @query.CapturedSourceIdentityScan,
+) -> Bool {
+  @query.cancel_captured_source_identity_scan(scan)
+}
+
+///|
 #export_name("clientProgramCapturedSourceDependencyBodies")
 pub fn client_program_captured_source_dependency_bodies(
   identity : @query.CapturedSourceRelationIdentity,

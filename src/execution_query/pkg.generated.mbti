@@ -13,13 +13,19 @@ import {
 // Values
 pub fn admit_query_receipt(QuerySequence, Array[@decode_core.Cursor], Int, @execution_relation.ValueLimits) -> Result[QueryReceipt, QuerySequenceIssue]
 
+pub fn append_captured_source_identity_scan(CapturedSourceIdentityScan, String, @execution_relation.RetainedRowDecodeLimits) -> Result[Unit, CapturedSourceIdentityScanIssue]
+
 pub fn bind_captured_source(CapturedInputSource, @lowering_relation.BoundPrepared, Int) -> Result[@execution_relation.BoundProducerInput, CapturedSourceIssue]
 
 pub fn bind_query_receipt(QuerySequence, @execution_relation.CapturedRows) -> Result[QueryReceipt, QuerySequenceIssue]
 
+pub fn cancel_captured_source_identity_scan(CapturedSourceIdentityScan) -> Bool
+
 pub fn[P] capture_verified_source(TrustedCapturePort[P], P) -> Result[CapturedInputSource, CapturedSourceIssue]
 
 pub fn captured_source_available(CapturedInputSource) -> Bool
+
+pub fn captured_source_identity_scan_storage(CapturedSourceIdentityScan) -> @execution_relation.ProducerStorage?
 
 pub fn captured_source_matches(CapturedInputSource, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.BoundPrepared) -> Bool
 
@@ -47,7 +53,11 @@ pub fn execute_query_receipt(QuerySequence, QueryReceipt, @execution_relation.Se
 
 pub fn execute_query_receipt_guarded(QuerySequence, QueryReceipt, @execution_relation.SequenceExecutionLimits, max_output_rows~ : Int, max_value_bytes~ : Int, QueryGuardMeasureLimits) -> Result[(@execution_relation.CompletedSequence, (Int, Int, Int)), QueryGuardIssue]
 
+pub fn finish_captured_source_identity_scan(CapturedSourceIdentityScan) -> Result[CapturedSourceRelationIdentity, CapturedSourceIdentityScanIssue]
+
 pub fn identify_captured_source_relation(CapturedInputSource, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, retain_body_bytes? : Int) -> Result[CapturedSourceRelationIdentity, CapturedSourceIssue]
+
+pub fn prepare_captured_source_identity_scan(CapturedInputSource, Int, Int, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[CapturedSourceIdentityScan, CapturedSourceIdentityScanIssue]
 
 pub fn prepare_captured_source_relation_export(CapturedInputSource, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[@execution_relation.CompletedOutputExport, CapturedSourceIssue]
 
@@ -73,6 +83,15 @@ pub fn start_captured_source_result_export(CapturedInputSource, @execution_relat
 
 // Types and methods
 type CapturedInputSource
+
+type CapturedSourceIdentityScan
+
+pub(all) enum CapturedSourceIdentityScanIssue {
+  Source(CapturedSourceIssue)
+  Scan(@execution_relation.CompletedImportIssue)
+  Schema(@execution_relation.RelationSchemaIdentityIssue)
+  Unavailable
+}
 
 pub(all) enum CapturedSourceIssue {
   Unavailable

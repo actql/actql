@@ -20,6 +20,7 @@ test "full retained storage scan is bounded and exact without constructing a con
     assert_true(scan.stream.buffer.rows.is_empty())
   }
   let verified = finish_retained_storage_scan(scan).unwrap()
+  assert_true(verified_storage_scan_relation_identity(verified) is None)
   assert_true(verified_storage_scan_matches(verified, storage))
   assert_false(
     verified_storage_scan_matches(
@@ -29,6 +30,91 @@ test "full retained storage scan is bounded and exact without constructing a con
   )
   assert_false(completed_has_cell_access(output))
   assert_true(finish_retained_storage_scan(scan) is Err(Closed))
+}
+
+///|
+test "retained identity scan hashes the exact Relation envelope without keeping rows" {
+  let live = Ref(true)
+  let (output, _) = retained_fixture(capture_fixture(), live)
+  let storage = prepare_producer_storage(output, 1000, 10000).unwrap()
+  let scan = prepare_retained_relation_identity_scan(
+    storage,
+    2,
+    stream_value_limits(),
+    row_wire_limits(),
+    { ..row_wire_limits(), max_bytes: 65, },
+    0,
+  ).unwrap()
+  for row in ["{\"n\":1,\"s\":\"é\"}", "{\"n\":2,\"s\":\"😀\"}"] {
+    append_retained_storage_scan_wire(scan, row, retained_row_test_limits()).unwrap()
+    |> ignore
+    assert_true(scan.stream.buffer.rows.is_empty())
+  }
+  let verified = finish_retained_storage_scan(scan).unwrap()
+  let identity = verified_storage_scan_relation_identity(verified).unwrap()
+  // Independent SHA-256 of the literal UTF-8 Relation envelope, not the rows CID.
+  assert_eq(
+    logical_relation_cid(identity),
+    "sha256:5f089a447a51c56f479c2c6258d8c3b687ec1368bf8e0bc28eda2d53efa0e5b8",
+  )
+  assert_eq(logical_relation_usage(identity).0, 65)
+  assert_eq(logical_relation_usage(identity).2, 2)
+  assert_eq(output_stream_value_usage(verified.receipt), {
+    nodes: 6,
+    text_bytes: 10,
+    work: 16,
+  })
+  assert_true(verified_storage_scan_matches(verified, storage))
+  live.val = false
+  assert_true(verified_storage_scan_relation_identity(verified) is None)
+}
+
+///|
+test "retained Relation identity cannot bypass content checks or envelope limits" {
+  let owner = capture_fixture()
+  let (output, _) = retained_fixture(owner, Ref(true))
+  let storage = prepare_producer_storage(output, 1000, 10000).unwrap()
+  for mode in 0..<5 {
+    let scan = prepare_retained_relation_identity_scan(
+      storage,
+      2,
+      stream_value_limits(),
+      row_wire_limits(),
+      { ..row_wire_limits(), max_bytes: if mode == 4 { 64 } else { 65 }, },
+      0,
+    ).unwrap()
+    if mode == 2 {
+      assert_true(cancel_retained_storage_scan(scan))
+      assert_true(finish_retained_storage_scan(scan) is Err(Closed))
+    } else if mode == 3 {
+      assert_true(
+        append_retained_storage_scan_values(
+          scan,
+          output_fixture_row(capture_fixture(), 0),
+        )
+        is Err(Encoding(Admission(ForeignCheckedValue(0, _)))),
+      )
+      assert_true(finish_retained_storage_scan(scan) is Err(Closed))
+    } else {
+      for row in 0..<(if mode == 1 { 1 } else { 2 }) {
+        append_retained_storage_scan_values(
+          scan,
+          output_fixture_row(owner, if mode == 0 { 1 - row } else { row }),
+        ).unwrap()
+        |> ignore
+      }
+      let result = finish_retained_storage_scan(scan)
+      if mode == 4 {
+        assert_true(
+          result is Err(Encoding(Wire(Encoding(@encode.OutputLimit)))),
+        )
+      } else {
+        assert_true(result is Err(IdentityMismatch))
+      }
+      assert_true(finish_retained_storage_scan(scan) is Err(Closed))
+    }
+  }
+  assert_true(producer_storage_available(storage))
 }
 
 ///|
