@@ -162,3 +162,38 @@ for both controls (37/37 combined source/checker tests). These are prepared
 acceptance assertions; their packed runtime outcome remains unverified until
 the provider input connection is fixed. The capacity-input helper is copied
 only into the external acceptance installation, not an OSS product package.
+
+## Public cancellation before physical start
+
+At `b558f87583fb65567bf0647a8767dfb9b09487c5`, this fixed-source
+packed acceptance passes on both Embedded Local and HTTPS Remote:
+
+```sh
+node scripts/test-packed-public-query.mjs --cancellation-only
+```
+
+The unchanged named Reach Relation-selector source is submitted through the
+installed `@actql/node`. The existing awaited Host test hook holds dispatch
+after its durable reservation and before any physical start. The application
+looks up the original request, attaches its actual RunRef, requests Run
+cancellation, and releases the hook. It observes `cancelled`, confirmed
+physical stop, and no available Result. This access-controlled profile has no
+committed publication index, so Result read correctly returns
+`ResultAccessDenied`; no payload is returned. The account permits read and
+write, and is not used to manufacture that refusal.
+
+Same-request resubmission, lookup and attach keep the original cancelled Run.
+Embedded Local additionally closes its last Client, reopens the installed
+Host from its durable state, and confirms cancellation without new dispatch.
+Each mode records one dispatch reservation, zero physical start reservations
+and zero Compute completions. The test uses the installed provider and common
+Run owner, with no alternate scheduler, compiler or cancellation state machine.
+It runs in the normal packed acceptance command as well as the narrow probe.
+
+Evidence: `worktrees/.codex-scratch/public-query-evidence-T8G1Gl`.
+All eight recorded commands exit zero; command 008 runs both modes. The five
+tarball digests equal the artifact table above. Installed artifacts are removed
+after observations and logs are saved. This proves pre-start Run cancellation,
+not cancellation during Graph execution. The in-flight retained-input kernel
+tests and the still-pending positive selector/Host capacity acceptance remain
+separate evidence.
