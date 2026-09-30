@@ -102,3 +102,48 @@ the typed refusal/runtime membership tests through both packed SDK
 transports, then close the requested capacity-excess and cancellation
 acceptance. Neither the eight-case success nor the compiler port tests
 substitute for those remaining checks. The SGA goal is still active.
+
+## Follow-up verification and current public failure
+
+The retained selector capacity and cancellation tests are committed in
+`ec6c924ec159c3a1dd66ba658e3f7a3a9487840b`. The three-node cycle has
+two unique starts and exactly six output rows, despite a duplicated selector
+ID. Six rows succeed, five fail with `CaptureLimit`, and an empty selector
+fits a zero-row allowance. In-flight Relation-selector cancellation stops
+the kernel, releases its private work, and preserves both retained inputs.
+An explicit separate kernel execution can still use those same inputs after
+cleanup. This is kernel evidence, not a public Run retry or Host cancellation
+claim.
+
+| Verification | Source SHA | Result |
+| --- | --- | --- |
+| `local-checks.mjs run core --target js` | `4de0ed5f5166e5d0c57cde954ce110a4d333513d` | 7,042/7,042 |
+| `moon test --target js src/query_integration/reach_selector_wbtest.mbt` | `ec6c924ec159c3a1dd66ba658e3f7a3a9487840b` | 6/6 |
+| `local-checks.mjs run core --target wasm` | `ec6c924ec159c3a1dd66ba658e3f7a3a9487840b` | 7,040/7,040 |
+| `local-checks.mjs run core --target native` | `ec6c924ec159c3a1dd66ba658e3f7a3a9487840b` | 7,102/7,102 |
+
+The later commit adds tests only; production sources are unchanged from the
+full JS check. Format and whitespace checks pass. Linux CI for these newer
+SHAs remains unverified; the successful earlier Shortest CI must not be
+attributed to this integration.
+
+At the same fixed `ec6c924ec` source, the minimal packed command was:
+
+```sh
+ACTQL_TEST_SGA_CASES=reach-selector node scripts/test-packed-public-query.mjs
+```
+
+Both Embedded Local and HTTPS Remote accepted the Run, then reported
+`failed`, `ACTQL_E_UNPUBLISHED_RUN`, unavailable `answer`, and confirmed
+physical stop. Neither returned the expected three rows. This is a runtime
+failure after the corrected compiler ports, not the earlier
+`RunHostCompilationRejected` probe. The exact provider input cardinality
+check described above still rejects the one retained selector Relation.
+
+Evidence: `worktrees/.codex-scratch/public-query-evidence-hDstqT`.
+Command 008 exited one, without a timeout or signal. The recorded five
+tarball digests match the successful original-eight acceptance artifacts in
+the table above. Failure logs and observations were saved before removing
+the run's installed artifacts. Native CLI selector acceptance did not run
+after this SDK failure. No positive public selector, Host capacity-excess,
+or in-flight Run cancellation completion is claimed.
