@@ -1,5 +1,5 @@
 ///|
-/// This selected Node package installs SGA; the RelA-only package supplies a
+/// This selected Node package installs all Local families; RelA-only supplies a
 /// different, provider-free selection without changing the common bridge body.
 fn selected_sga_supported() -> Bool {
   true
@@ -23,10 +23,36 @@ fn selected_graph_limits() -> @graph_storage.Limits {
 }
 
 ///|
-fn installed_client_graph_providers(
+fn selected_record_limits() -> @record_storage.Limits {
+  {
+    max_input_records: 100,
+    max_records: 100,
+    max_fields_per_record: 100,
+    max_value_bytes: 10000,
+    max_total_value_bytes: 100000,
+    max_retained_value_bytes: 100000,
+    max_value_nodes: 10000,
+    max_value_depth: 100,
+    max_contract_work: 10000,
+    max_work: 100000,
+    max_workspace_slots: 10000,
+  }
+}
+
+///|
+fn installed_client_family_providers(
   capacity : @execution.ExecutionCapacity,
 ) -> Array[@local.ManagedProvider] {
-  [@local_sga_provider.provider(selected_graph_limits(), 10000L, capacity)]
+  let records = selected_record_limits()
+  [
+    @local_sga_provider.provider(selected_graph_limits(), 10000L, capacity),
+    @local_tea_provider.provider(records, 100000L, capacity),
+    @local_tea_provider.time_series_provider(records, capacity),
+    @local_tea_provider.interval_join_provider(records, capacity),
+    @local_tea_provider.asof_join_provider(records, capacity),
+    @local_tea_provider.sequence_match_provider(records, capacity),
+    @local_veca_provider.provider(records, 100000L, capacity),
+  ]
 }
 
 ///|

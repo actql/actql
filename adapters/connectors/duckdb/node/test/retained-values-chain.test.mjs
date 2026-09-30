@@ -5,6 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {inspect} from 'node:util';
+import {createHash} from 'node:crypto';
 import {DuckDBInstance} from '@duckdb/node-api';
 import * as moon from '../../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import * as fixture from '../../../../../_build/js/release/build/connectors/duckdb/conformance/conformance.js';
@@ -81,6 +82,46 @@ function capturedProgram(filter = 'id >= 2', sort = true) {
   document.stages[1].steps = [{from: 'r', filter, as: 'kept'},
     ...(sort ? [{from: 'kept', sort: [{id: 'asc'}], as: 'ordered'}] : []),
     {from: sort ? 'ordered' : 'kept', select: ['id'], as: 'selected'}];
+  return JSON.stringify(document);
+}
+
+function familyProgram(family, filter = 'id >= 1') {
+  const document = JSON.parse(program([]));
+  document.id = `retained-installed-${family}`;
+  const rows = [{id: 3}, {id: 1}, {id: 2}];
+  const values = family === 'vectors'
+    ? {schema: {id: {type: 'number', nullable: false},
+      embedding: {type: 'vector', dimensions: 2, nullable: false}},
+    rows: rows.map(({id}) => ({id, embedding: [0, 2]}))}
+    : family === 'graph'
+      ? {schema: {id: {type: 'number', nullable: false},
+        src: {type: 'number', nullable: false}, dst: {type: 'number', nullable: false}},
+      rows: rows.map(({id}) => ({id, src: id, dst: id}))}
+      : {schema: {id: {type: 'number', nullable: false}}, rows};
+  const bridge = family === 'events'
+    ? {from: 'seed', to_events: {id: 'id', time: 'id'}, as: 'carrier'}
+    : family === 'vectors'
+      ? {from: 'seed', to_vectors: {id: 'id', vector: 'embedding'}, as: 'carrier'}
+      : {graph: {nodes: {from: 'seed', id: 'id', fields: []},
+        edges: {from: 'seed', source: 'src', target: 'dst', fields: []}}, as: 'carrier'};
+  const compute = family === 'events'
+    ? {watermark_events: {watermark_ms: 2, policy: 'mark'}}
+    : family === 'vectors' ? {normalize_vectors: true} : {normalize_graph: true};
+  const projection = family === 'events' ? {events: true}
+    : family === 'vectors' ? {vectors: true} : {node_rows: true};
+  const fields = family === 'events' ? ['id', 'late']
+    : family === 'vectors' ? ['id', 'embedding'] : ['id'];
+  document.stages[0].steps = [{values, as: 'seed'}, bridge,
+    {from: 'carrier', ...compute, as: 'computed'},
+    {from: 'computed', ...projection, as: 'rows'},
+    {from: 'rows', filter, as: 'kept'},
+    {from: 'kept', sort: [{id: 'desc'}], as: 'ordered'},
+    {from: 'ordered', select: fields, as: 'selected'}];
+  document.stages[0].results.out.fields = fields;
+  for (const consumer of document.stages.slice(1)) {
+    consumer.steps[0].select = fields;
+    consumer.results.out.fields = fields;
+  }
   return JSON.stringify(document);
 }
 
@@ -165,24 +206,40 @@ async function openCapturedRetained(prepared, contracts, directory, rows, budget
 }
 
 async function retainedRun(document, use, mode = 'success', budgets, captureRows,
-  fileInput = false) {
+  fileInput = false, route = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-retained-values-chain-'));
-  let retained, publication, owner, execution, captured;
-  let permitCleanup = mode !== 'finalize-failure';
+  let retained, publication, owner, execution, captured, publicationFailure;
+  let permitCleanup = mode !== 'finalize-failure' && !route.publicationFault;
   let dispatches = 0, appendsFailed = 0, finalizationsFailed = 0;
   let producerWork = 0n, sawStop = false, scheduled = false;
+  const observedDispatch = route.cancelDispatch ?? 1;
   const cancellation = new AbortController();
   try {
     const body = JSON.parse(await readFile(join(root, captureRows
       ? 'adapters/host-node/fixtures/query-amount-environment.json'
       : 'packages/sdk/fixtures/values.environment.json'), 'utf8'));
+    if (route.family === 'graph') {
+      Object.assign(body.host_policy_profile.capacity, {
+        max_graph_construction_input_rows: 1000,
+        max_graph_construction_nodes: 1000, max_graph_construction_edges: 1000,
+      });
+      delete body.evidence_bundle_cid;
+      body.evidence_bundle_cid = 'sha256:' + createHash('sha256')
+        .update(canonicalText(body)).digest('hex');
+    }
     const environment = moon.clientProgramCheckEnvironment(canonicalText(body),
-      body.evidence_bundle_cid, false, false, true, false, false, false, false);
+      body.evidence_bundle_cid, false, route.family === 'vectors', true,
+      route.family === 'graph', route.family === 'events', false, false);
     assert.ok(environment);
     const prepare = installNodeClientProgramPreparation({moon, environment});
-    const prepared = prepare({kind: 'aql',
-      input: {text: document, format: 'json'},
-      parameters: captureRows ? {minimum: 0} : null});
+    let prepared;
+    try {
+      prepared = prepare({kind: 'aql', input: {text: document, format: 'json'},
+        parameters: captureRows ? {minimum: 0} : null});
+    } catch (error) {
+      throw new Error(`${error.message}: ${inspect(error.cause, {depth: 4})}`,
+        {cause: error});
+    }
     const contracts = await pinnedEngineContracts(root, ['registered_body',
       'registered_values', 'registered_fragment', 'registered_ordered']);
     const [registry, values, fragment] = contracts;
@@ -196,13 +253,18 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
       : moon.clientProgramOpenSourceFreeLocalRetainedHost(
         prepared, registry, values, 1n, 0n, 0n, 0n, fragment, undefined));
     assert.ok(setup, 'the checked retained factory must admit this chain');
-    // The declared producer remains one physical task, not a fixture split.
     const first = captured ? 1 : 0;
-    assert.equal(fixture.strategyFixtureConfiguredTaskStepCount(setup, first),
-      JSON.parse(document).stages[first].steps.length);
-    assert.equal(fixture.strategyFixtureConfiguredTaskStepCount(setup, first + 1), 1);
-    assert.equal(fixture.strategyFixtureConfiguredTaskStepCount(setup, first + 2), 1);
-    assert.equal(fixture.strategyFixtureConfiguredTaskStepCount(setup, first + 3), undefined);
+    // Existing Relation chains remain one task. Carrier fixtures explicitly
+    // require the checked DAG's selected boundaries, not authored Stage splits.
+    const expectedSteps = route.taskSteps ?? [
+      JSON.parse(document).stages[first].steps.length, 1, 1,
+    ];
+    for (const [index, count] of expectedSteps.entries()) {
+      assert.equal(fixture.strategyFixtureConfiguredTaskStepCount(setup, first + index),
+        count, `physical task ${index}`);
+    }
+    assert.equal(fixture.strategyFixtureConfiguredTaskStepCount(setup,
+      first + expectedSteps.length), undefined);
     const observedMoon = new Proxy(moon, {
       get(target, property, receiver) {
         if (property !== 'strategyModule_local_Dispatch' &&
@@ -217,7 +279,7 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
               if (name === 'execute') return () => assert.fail('synchronous Compute');
               if (name === 'execution_stopped') return () => {
                 const stopped = operation.execution_stopped();
-                if (dispatch === 1 && cancellation.signal.aborted && stopped) {
+                if (dispatch === observedDispatch && cancellation.signal.aborted && stopped) {
                   sawStop = true;
                 }
                 return stopped;
@@ -225,12 +287,12 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
               if (name !== 'advance') return Reflect.get(operation, name, receiver);
               return quantum => {
                 const result = operation.advance(Math.min(quantum, 1));
-                if (dispatch === 1 && result.$tag === 1) {
+                if (dispatch === observedDispatch && result.$tag === 1) {
                   producerWork += result._0.work;
                   // For Values, eleven polls and one handoff precede Filter.
                   // Captured mode proves positive Compute progress only.
                   if (['cancel-after-filter', 'cancel-after-progress'].includes(mode) && !scheduled &&
-                      producerWork >= 13n && !result._0.complete) {
+                      producerWork >= (route.cancelWork ?? 13n) && !result._0.complete) {
                     scheduled = true;
                     setTimeout(() => cancellation.abort(), 0);
                   }
@@ -264,10 +326,37 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
       maxObjectBytes: plan.outputLimits.maxWireBytes, maxObjects: 100,
       maxContractNodes: 10000, maxContractDepth: 64,
     }, runtime.publicationControl);
+    // Carrier and Bridge outputs retain managed generations; this injects a
+    // fault in the real Named Result payload Store, not a fictitious row lease.
+    let publicationWriters = 0;
+    const publicationStore = !route.publicationFault ? publication
+      : Object.freeze({...publication,
+        createPreparedObjectWriter(...args) {
+          assert.equal(dispatches, 9, 'publication follows all Compute tasks');
+          const writer = publication.createPreparedObjectWriter(...args);
+          if (++publicationWriters !== 1) return writer;
+          return Object.freeze({...writer,
+            async append(...parts) {
+              if (route.publicationFault !== 'append') return writer.append(...parts);
+              appendsFailed++;
+              throw new Error('InjectedPublicationAppendFailure');
+            },
+            async seal(...identity) {
+              if (route.publicationFault !== 'finalize') return writer.seal(...identity);
+              finalizationsFailed++;
+              throw new Error('InjectedPublicationFinalizeFailure');
+            },
+            async cancel() {
+              if (!permitCleanup) throw new Error('InjectedPublicationCleanupPending');
+              return writer.cancel();
+            },
+          });
+        },
+      });
     const leases = [];
     const configuration = installLocalRetainedStore((key, bytes) => {
       leases.push(key);
-      const failWrite = leases.length === 1 &&
+      const failWrite = leases.length === (route.failLease ?? 1) &&
         (mode === 'append-failure' || mode === 'finalize-failure');
       let writer, closed = false;
       return Object.freeze({
@@ -310,12 +399,13 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
       async run() {
         try {
           owner = await host.runPublishedCapturedStrategy(setup,
-            {store: publication, plan}, {local: configuration},
+            {store: publicationStore, plan}, {local: configuration},
             cancellation.signal);
           execution = owner.execution;
           return owner;
         } catch (error) {
           execution = error.execution;
+          publicationFailure = error;
           if (mode !== 'success') throw error;
           throw new Error(`${error.message}: ${inspect(error.cause)}; ` +
             `failure=${inspect(execution?.failure, {depth: 8})}`, {cause: error});
@@ -326,6 +416,9 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
     const beforeCleanup = dispatches;
     permitCleanup = true;
     try {
+      if (route.publicationFault && publicationFailure?.cleanupHandle) {
+        assert.equal((await publicationFailure.cleanupHandle.retry()).pending, false);
+      }
       if (owner) {
         await owner.close();
         assert.equal(await owner.cleanup(), true);
@@ -342,6 +435,10 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
         assert.equal(retained.status().reservedBytes, 0);
         assert.equal(retained.status().holdings, 0);
         assert.equal(retained.status().reservedReadBufferBytes, 0);
+      }
+      if (route.publicationFault && publication) {
+        assert.equal(publication.status().reservedBytes, 0);
+        assert.equal(publication.status().reservedObjects, 0);
       }
       if (captured) {
         assert.equal(nativeSourceIdentityMatches(captured.capture,
@@ -362,6 +459,105 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
       }
     }
   }
+}
+
+for (const {family, name} of [
+  {family: 'graph', name: 'installed retained graph factory executes a normal mixed Stage'},
+  {family: 'events', name: 'installed retained events factory executes a normal mixed Stage'},
+  {family: 'vectors', name: 'installed retained vectors factory executes a normal mixed Stage'},
+]) {
+  test(name,
+    async () => retainedRun(familyProgram(family),
+      async ({run, plan, publication, observations}) => {
+        const owner = await run();
+        assert.equal(owner.status, 'published');
+        assert.equal(observations().dispatches, 9);
+        await assertPublishedRows(publication, plan, owner.execution,
+          family === 'events' ? [{id: 3, late: false}, {id: 2, late: false},
+            {id: 1, late: true}]
+            : family === 'vectors' ? [{id: 3, embedding: [0, 1]},
+              {id: 2, embedding: [0, 1]}, {id: 1, embedding: [0, 1]}]
+              : [{id: 3}, {id: 2}, {id: 1}]);
+      }, 'success', undefined, undefined, false,
+      {family, taskSteps: Array(9).fill(1)}));
+}
+
+for (const {name, family, mode, cancelDispatch} of [
+  {name: 'installed retained Events cancels during Carrier computation',
+    family: 'events', mode: 'cancel-after-progress', cancelDispatch: 3},
+  {name: 'installed retained Vectors cancels after the Relation Bridge',
+    family: 'vectors', mode: 'cancel-after-progress', cancelDispatch: 5},
+  {name: 'installed retained Events rejects a later filter arithmetic failure',
+    family: 'events', mode: 'arithmetic'},
+]) {
+  test(name, async () => retainedRun(familyProgram(family,
+    mode === 'arithmetic' ? '1 / (id - id) > 0' : 'id >= 1'),
+  async ({run, plan, publication, observations, permitCleanup}) => {
+    let execution;
+    await assert.rejects(run(), error => {
+      assert.equal(error.code, 'CapturedRunPublicationFailed');
+      execution = error.execution;
+      return true;
+    });
+    assert.equal(execution.status, 'host-tasks-failed');
+    assert.ok(execution.completed.length < 7, 'no terminal producer or consumer');
+    await assert.rejects(publication.lookupCommittedIndex({
+      namespaceId: plan.request.namespaceId,
+      authorityScopeCid: plan.request.authorityScopeCid,
+      runDefinitionCid: plan.runDefinition.identity,
+    }, () => true), /PublicationLookupDenied/);
+    if (cancelDispatch) {
+      assert.equal(observations().dispatches, cancelDispatch);
+      assert.equal(execution.completed.length, cancelDispatch - 1);
+      assert.ok(observations().producerWork > 0n);
+      assert.equal(observations().scheduled, true);
+      assert.equal(observations().sawStop, true);
+      assert.equal(execution.failure.name, 'AbortError');
+    } else if (mode === 'arithmetic') {
+      assert.equal(observations().dispatches, 5);
+      assert.equal(fixture.strategyFixtureManagedFilterArithmetic(
+        execution.failure.cause, 4), true);
+    }
+  }, mode, undefined, undefined, false,
+  {family, taskSteps: Array(9).fill(1), cancelDispatch, cancelWork: 1n}));
+}
+
+for (const {name, family, publicationFault} of [
+  {name: 'installed retained Vectors retains custody after publication append failure',
+    family: 'vectors', publicationFault: 'append'},
+  {name: 'installed retained Events retries cleanup after publication finalize failure',
+    family: 'events', publicationFault: 'finalize'},
+]) {
+  test(name, async () => retainedRun(familyProgram(family),
+    async ({run, plan, publication, observations, permitCleanup}) => {
+      let failure;
+      await assert.rejects(run(), error => {
+        failure = error;
+        return error.code === 'CapturedRunPublicationFailed';
+      });
+      assert.equal(failure.execution.status, 'host-tasks-completed');
+      assert.equal(failure.execution.completed.length, 9);
+      assert.equal(observations().dispatches, 9);
+      assert.equal(publicationFault === 'append' ? observations().appendsFailed
+        : observations().finalizationsFailed, 1);
+      assert.equal(failure.cleanupPending, true);
+      assert.equal(failure.cleanupHandle.status().pending, true);
+      assert.ok(publication.status().reservedBytes > 0);
+      await assert.rejects(publication.lookupCommittedIndex({
+        namespaceId: plan.request.namespaceId,
+        authorityScopeCid: plan.request.authorityScopeCid,
+        runDefinitionCid: plan.runDefinition.identity,
+      }, () => true), /PublicationLookupDenied/);
+      assert.equal((await failure.cleanupHandle.retry()).pending, true);
+      assert.equal(failure.cleanupHandle.status().pending, true);
+      assert.equal(observations().dispatches, 9);
+      permitCleanup();
+      assert.equal((await failure.cleanupHandle.retry()).pending, false);
+      assert.equal(publication.status().reservedBytes, 0);
+      assert.equal(publication.status().reservedObjects, 0);
+      assert.equal(observations().dispatches, 9, 'cleanup never repeats Compute');
+    }, 'publication-failure', undefined, undefined, false,
+    {family, taskSteps: Array(9).fill(1), publicationFault}));
 }
 
 // Independent scalar phase model, also checked in the portable provider test:

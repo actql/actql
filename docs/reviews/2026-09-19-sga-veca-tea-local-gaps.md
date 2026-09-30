@@ -965,6 +965,73 @@ the configured standard-Host path, not an implicit retained mode in every
 public Client configuration. Linux CI evidence is recorded separately from
 local execution, and Native Host in-flight cancellation remains a separate unit.
 
+#### Installed family providers in retained Node configuration
+
+The full Node factory now installs the existing SGA, TEA and VecA providers,
+including the Relation-valued time-series, interval/as-of and sequence
+providers. The four source-free/captured and memory/retained factories share
+this selection. RelA-only keeps the same bridge body with no family providers;
+the artifact gate checks both import closure and actual linked cores. The
+specialized SGA selector factory remains SGA-only.
+
+The common checked DAG segments source-free Relation-to-Carrier construction
+from its typed output and operands, not a Graph-only operation-name whitelist.
+Task compilation emits the existing 0.1 Events/Vectors structural contracts,
+preserving record contracts, identity roles, clock roles and vector components.
+Producer port contracts and consumer kinds must match exactly. Unknown sorts,
+incomplete contracts, changed graph wires and foreign prepared owners remain
+rejected. Independent contract CIDs and exact byte ceilings are portable tests;
+no language, version, canonical body or pin is changed.
+
+Normal one-Stage Programs exercise these installed factory paths:
+
+| Checked Program prefix | Same-Stage suffix | Published values |
+| --- | --- | --- |
+| Values -> graph -> normalize_graph -> node_rows | filter -> sort DESC -> select | IDs 3, 2, 1 |
+| Values -> to_events -> watermark_events -> events | filter -> sort DESC -> select | IDs 3, 2, 1 with late false, false, true |
+| Values -> to_vectors -> normalize_vectors -> vectors | filter -> sort DESC -> select | IDs 3, 2, 1 with components [0, 1] |
+
+These are authored single Stages, with nine selected physical tasks including
+two real downstream Compute consumers. The normal product factory, rather
+than injected fixture providers, is used. All three explicitly named committed
+Results are read from the real publication Store against literal ordered
+expectations. The unchanged kernel boundary evidence in the production route
+inventory remains applicable; these Host tests do not introduce sampled
+Host-wide exact budget claims or certify every family variant.
+
+The configured row Store retains Values. Carrier outputs and formal Bridge
+Relation views retain managed generations under the existing common owner;
+they are not implicitly copied to row-file Store leases. Named Result payloads
+use the real publication Store. Fault injection follows that physical scope:
+Events kernel cancellation, cancellation in the later Vectors filter, a typed
+later-filter division failure, and publication payload append/finalize failure.
+Publication failure preserves completed Compute separately from unpublished
+Results. A blocked writer cleanup retains its reservation and retry owner;
+retry does not redispatch Compute, and final reservations and holdings vanish.
+The existing row-only Compute Store failure tests remain separate evidence.
+
+Public Client retained-mode selection remains Host-owned as described above.
+`embedded-local.mjs` already chooses the task compiler in `planFor` for
+multi-task Programs or Graph Carrier Programs. This includes the multi-task
+Events/Vectors Programs exercised here. The remaining Client connection is in
+`client-dispatch-owner.mjs`: carry the retained configuration and select the
+retained factory instead of the current memory-output factory. Neither Client
+owner is replaced here.
+This addition certifies explicit configured standard-Host factory paths, not
+an implicit retained mode in every Client configuration. Native Host in-flight
+cancellation and full family-variant acceptance are not completed by these
+representative Node paths. Fixed-SHA validation and Linux CI are separate.
+
+Local checks of this source unit passed: the two changed shared packages have
+44 tests on each of JS, Wasm and native; the retained Host suite has 38 passing
+cases, including the eight installed-family cases; the resource gate has 212
+passing regressions. The full/RelA/family import and linked-artifact check,
+bundle generator regressions, formatting, Workers and Node fixture freshness
+also passed. These are local source-tree checks, not final-SHA Linux CI or an
+implicit public Client retained-mode guarantee. The full affected lint job and
+all-package Core suites also passed: JS 7,092, Wasm 7,088 and native 7,170 tests.
+The remaining affected-job checks remain the push gate.
+
 #### Retained captured-input Host configuration
 
 `client_local_host.open_captured_local_retained_host` is the additive trusted

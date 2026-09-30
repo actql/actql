@@ -6294,6 +6294,13 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "normalize-selected-kernel"
+        },
+        {
+          "role": "installed_retained_graph_named_results",
+          "suite": "node:duckdb_retained_values_chain",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
+          "fixture": "installed retained graph factory executes a normal mixed Stage"
         }
       ],
       "path_assurance": {
@@ -8380,6 +8387,34 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "watermark"
+        },
+        {
+          "role": "installed_retained_events_named_results",
+          "suite": "node:duckdb_retained_values_chain",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
+          "fixture": "installed retained events factory executes a normal mixed Stage"
+        },
+        {
+          "role": "installed_retained_events_kernel_cancel",
+          "suite": "node:duckdb_retained_values_chain",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
+          "fixture": "installed retained Events cancels during Carrier computation"
+        },
+        {
+          "role": "installed_retained_events_filter_arithmetic",
+          "suite": "node:duckdb_retained_values_chain",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
+          "fixture": "installed retained Events rejects a later filter arithmetic failure"
+        },
+        {
+          "role": "installed_retained_events_publication_finalize_cleanup",
+          "suite": "node:duckdb_retained_values_chain",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
+          "fixture": "installed retained Events retries cleanup after publication finalize failure"
         }
       ],
       "path_assurance": {
@@ -9311,6 +9346,27 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "vector-normalize"
+        },
+        {
+          "role": "installed_retained_vectors_named_results",
+          "suite": "node:duckdb_retained_values_chain",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
+          "fixture": "installed retained vectors factory executes a normal mixed Stage"
+        },
+        {
+          "role": "installed_retained_vectors_filter_cancel",
+          "suite": "node:duckdb_retained_values_chain",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
+          "fixture": "installed retained Vectors cancels after the Relation Bridge"
+        },
+        {
+          "role": "installed_retained_vectors_publication_append_cleanup",
+          "suite": "node:duckdb_retained_values_chain",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
+          "fixture": "installed retained Vectors retains custody after publication append failure"
         }
       ],
       "path_assurance": {

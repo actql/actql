@@ -103,6 +103,36 @@ test('retained source-free Values requires exact admission and Host evidence', (
   }), /missing environment fixture absent-values-fixture/u);
 });
 
+test('installed retained families require actual product Host fault evidence', () => {
+  for (const [family, operation, roles] of [
+    ['SGA', 'normalize_graph', ['installed_retained_graph_named_results']],
+    ['TEA', 'watermark_events', [
+      'installed_retained_events_named_results',
+      'installed_retained_events_kernel_cancel',
+      'installed_retained_events_filter_arithmetic',
+      'installed_retained_events_publication_finalize_cleanup',
+    ]],
+    ['VecA', 'normalize_vectors', [
+      'installed_retained_vectors_named_results',
+      'installed_retained_vectors_filter_cancel',
+      'installed_retained_vectors_publication_append_cleanup',
+    ]],
+  ]) {
+    const find = routes => routes.routes.find(route =>
+      route.family === family && route.operation === operation);
+    for (const role of roles) {
+      assert.match(run(undefined, routes => {
+        const route = find(routes);
+        route.environment_tests = route.environment_tests.filter(item => item.role !== role);
+      }), new RegExp(`${role} fixture is missing`, 'u'));
+    }
+    assert.match(run(undefined, routes => {
+      find(routes).environment_tests.find(item => item.role === roles[0])
+        .fixture = 'absent-installed-family-case';
+    }), /missing environment fixture absent-installed-family-case/u);
+  }
+});
+
 test('captured retained Host requires acquisition binding and executable fault evidence', () => {
   const filter = routes => routes.routes.find(route =>
     route.family === 'RelA' && route.operation === 'filter');

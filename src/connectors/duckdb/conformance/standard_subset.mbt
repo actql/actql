@@ -362,6 +362,31 @@ pub fn strategy_fixture_retained_events_asof_arithmetic(
 }
 
 ///|
+/// Match the authored arithmetic failure in a selected managed Relation step.
+#export_name("strategyFixtureManagedFilterArithmetic")
+pub fn strategy_fixture_managed_filter_arithmetic(
+  issue : @local_driver.LocalDispatchIssue,
+  expected_step : Int,
+) -> Bool {
+  guard issue
+    is @local_driver.Configuration(
+      @connector.Execution(
+        @execution.Rows(step, @execution.Evaluation(0, 0, evaluation))
+      )
+    ) &&
+    step == expected_step &&
+    evaluation.kind is @execution.Scalar(@execution.ArithmeticFailure) else {
+    return false
+  }
+  let location = @lower.expression_location(evaluation.expression)
+  guard @decode.text(location.source) is Ok("1 / (id - id) > 0") &&
+    location.range is Some(range) else {
+    return false
+  }
+  range.start == 0 && range.end == 13
+}
+
+///|
 /// Count the physical task, not all steps retained by its source owner.
 #export_name("strategyFixtureTaskStepCount")
 pub fn strategy_fixture_task_step_count(
