@@ -56,6 +56,8 @@ jobs:
       - run: moon fmt --check
       - name: Check public interfaces
         run: node scripts/check-moonbit-api.mjs
+      - name: Type-check public SDK and Client wire declarations
+        run: npm run check:client-types
       - name: Test environment guards
         run: node --test scripts/moonbit-environment.test.mjs
       - name: Test portable dependency inspection and injected violations
@@ -256,6 +258,14 @@ jobs:
           echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
           echo "$toolchain/bin" >> "$GITHUB_PATH"
       - run: npm run check:spec
+      - name: Check strict Local resource boundary evidence
+        run: npm run check:local-resource-completion
+      - name: Check independently pinned execution authorization vectors
+        run: npm run check:execution-authorization-vectors
+      - name: Check specification metadata without updating it
+        run: npm run check:metadata
+      - name: Verify metadata checks did not change tracked files
+        run: git diff --exit-code
   # macOS minutes cost ten times Linux ones: run for main, pull requests to
   # main, and on demand.
   native-macos:
