@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
-import { artifacts, checkBindings, graph, snapshot, targets, validate } from './evidence.mjs';
+import { artifacts, checkBindings, checkRetirements, graph, snapshot, targets, validate } from './evidence.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const selected = process.argv[2] ?? 'all';
@@ -14,6 +14,7 @@ const moon = join(home, 'bin/moon');
 const env = { ...process.env, MOON_HOME: home, PATH: `${home}/bin:${process.env.PATH}` };
 const bindings = JSON.parse(readFileSync(new URL('bindings.json', import.meta.url)));
 checkBindings(root, bindings);
+const retirements = checkRetirements(root);
 const source = snapshot(root);
 const directory = join(root, '.artifacts/bounded-session');
 mkdirSync(directory, { recursive: true });
@@ -52,7 +53,7 @@ for (const target of selected === 'all' ? targets : [selected]) {
     ['test', 'src/query_integration/local_managed_set_wbtest.mbt', '--target', target, '--deny-warn'], target, 'query_integration');
   const report = {
     version: 'actql-bounded-session-evidence/0.1', mode: 'report-only', revision, worktreeDirty,
-    source, toolchain: pin, target, runs, claims: graph(bindings, target),
+    source, toolchain: pin, target, runs, claims: graph(bindings, target), retirements,
     trust: ['Lean kernel and permitted foundational axioms', 'MoonBit compiler/runtime',
       'reviewed source connection plus executed integration fixture',
       'finite correspondence domains; operation/kernel premises remain obligations'],
