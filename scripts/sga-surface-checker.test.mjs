@@ -60,21 +60,28 @@ test('intermediate Graph delta Result retains its own task output', () => {
   const outcome = prepare(program);
   const ready = moon.clientProgramPreparationReady(outcome);
   assert.ok(ready, String(moon.clientProgramPreparationIssueCode(outcome)));
-  assert.equal(moon.clientProgramTaskCount(ready), 2);
+  assert.equal(moon.clientProgramTaskCount(ready), 8);
   const compiled = moon.clientProgramCompileLocalTasks(ready);
   assert.equal(compiled.$tag, 1);
   const plan = JSON.parse(moon.clientProgramTaskCompilationPlanWire(compiled._0));
   assert.deepEqual(plan.nodes.map(node => node.pipeline.output),
-    ['graph_diff_6', 'select_7']);
-  assert.deepEqual(plan.data_edges.map(edge => [edge.from, edge.to]), [[
-    {node_id: 'task_0', port: 'graph_diff_6'},
-    {node_id: 'task_1', port: 'input_0'},
-  ]]);
-  assert.deepEqual(plan.root_refs.map(root => [root.name, root.ref]), [
-    ['changes', {node_id: 'task_0', port: 'graph_diff_6'}],
-    ['selected', {node_id: 'task_1', port: 'select_7'}],
+    ['values_0', 'values_1', 'values_2', 'values_3', 'graph_4',
+      'graph_5', 'graph_diff_6', 'select_7']);
+  assert.deepEqual(plan.data_edges.filter(edge =>
+    ['task_6', 'task_7'].includes(edge.to.node_id)).map(edge =>
+      [edge.carrier, edge.from, edge.to]), [
+    ['graph', {node_id: 'task_4', port: 'graph_4'},
+      {node_id: 'task_6', port: 'input_0'}],
+    ['graph', {node_id: 'task_5', port: 'graph_5'},
+      {node_id: 'task_6', port: 'input_1'}],
+    ['relation', {node_id: 'task_6', port: 'graph_diff_6'},
+      {node_id: 'task_7', port: 'input_0'}],
   ]);
-  assert.equal(plan.nodes[1].pipeline.steps.length, 1);
+  assert.deepEqual(plan.root_refs.map(root => [root.name, root.ref]), [
+    ['changes', {node_id: 'task_6', port: 'graph_diff_6'}],
+    ['selected', {node_id: 'task_7', port: 'select_7'}],
+  ]);
+  assert.equal(plan.nodes[7].pipeline.steps.length, 1);
 });
 
 test('terminal Graph-to-Relation path selects bounded task providers', () => {
