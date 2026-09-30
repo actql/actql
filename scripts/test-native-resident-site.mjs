@@ -882,7 +882,14 @@ try {
   const foreignStaging = join(publicationRoot,
     `stage-${'f'.repeat(64)}`);
   await writeFile(foreignStaging, 'foreign', {mode: 0o600});
-  const foreignStagingBefore = JSON.stringify(await stat(foreignStaging));
+  // Identity and content, not access times: the file is neither removed
+  // nor replaced nor written.
+  const foreignStagingState = async () => {
+    const {ino, size, mtimeMs} = await stat(foreignStaging);
+    return JSON.stringify({ino, size, mtimeMs,
+      content: await readFile(foreignStaging, 'utf8')});
+  };
+  const foreignStagingBefore = await foreignStagingState();
   const killPoints = ['before-intent', 'after-intent', 'allocated', 'owned',
     'payload-written', 'sealed', 'reclaimed'];
   for (const [index, point] of killPoints.entries()) {
@@ -921,8 +928,8 @@ try {
     for (const [key, revision] of others) {
       assert.equal(after.get(key), revision, `${tag} other payload unchanged`);
     }
-    assert.equal(JSON.stringify(await stat(foreignStaging)),
-      foreignStagingBefore, `${tag} foreign staging untouched`);
+    assert.equal(await foreignStagingState(), foreignStagingBefore,
+      `${tag} foreign staging untouched`);
     // No private allocation file is left behind.
     assert.deepEqual((await readdir(publicationRoot))
       .filter(name => name.startsWith('alloc-')), [], `${tag} allocation gone`);
@@ -1106,6 +1113,30 @@ try {
   await within(gateway.release({dispatch: nextAttempt}), 'next release');
   failing.child.kill('SIGTERM');
   await failing.exited;
+
+  // 21. A dispatch envelope whose run materials exceed the cap (262144
+  //     bytes) is refused by the same admitter on the Cloud side before it is
+  //     served: the Site never receives it, accepts nothing and records
+  //     nothing. The Site's own receive-side refusal is covered by the
+  //     protocol tests.
+  const bounded2 = startSite();
+  currentSite = bounded2;
+  const oversized = dispatchFor('resident-oversized-materials', 80);
+  const oversizedEnvelope = JSON.parse(materialsEnvelope(oversized));
+  oversizedEnvelope.run_materials_json = 'x'.repeat(262145);
+  assert.throws(() => gateway.dispatch({dispatch: oversized,
+    inputBindingBody: '{}',
+    dispatchEnvelope: JSON.stringify(oversizedEnvelope)}),
+  {code: 'MoonBitHostFailure'});
+  await sleep(1000);
+  assert.ok(!bounded2.lines.some(line => line.kind === 'accepted' ||
+    line.kind === 'holder-started' || line.kind === 'poll-failed'));
+  const unseenOversized = await within(gateway.query({dispatch: oversized})
+    .catch(error => error), 'oversized query');
+  assert.equal(unseenOversized.code, 'RemoteDispatchNotSeen');
+  assert.equal((await entries()).length, expectedEntries);
+  bounded2.child.kill('SIGTERM');
+  await bounded2.exited;
 
   // Each entry names one holder claimant and one attempt key; no attempt
   // key appears twice.

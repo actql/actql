@@ -1444,3 +1444,116 @@ test "native delivery limit failure keeps its reader until explicit close" {
   store.reclaim_payload(info.material_generation_cid).unwrap()
   assert_true(store.close().unwrap())
 }
+
+///|
+/// The Store's own allocation steps up to the private file, as begin_payload
+/// takes them, stopped as a killed process would: the record and the file
+/// are left, the writer is never cancelled.
+fn native_stopped_allocation(
+  store : Store,
+  request : @payload.PublicationPayloadRequest,
+  owned : Bool,
+) -> (String, @filesystem.Writer) {
+  let key = record_key(request)
+  let record = @payload.prepare_publication_payload_record(request)
+  ignore(
+    store.database
+    .insert(
+      "publication_payload",
+      key,
+      @utf8.encode(
+        @payload.publication_payload_record_durable_json(record).unwrap(),
+      ),
+    )
+    .unwrap(),
+  )
+  ignore(
+    store.database
+    .reserve_capacity(
+      "publication_payload",
+      key,
+      @payload.publication_payload_request_max_bytes(request),
+      1L,
+      store.capacity_bytes,
+      store.max_objects,
+    )
+    .unwrap(),
+  )
+  let reserved = persist_transition(
+    store,
+    @payload.prepare_publication_payload_reserved(record).unwrap(),
+  ).unwrap()
+  let writing = persist_transition(
+    store,
+    @payload.prepare_publication_payload_writing(reserved).unwrap(),
+  ).unwrap()
+  let private_name = allocation_name(
+    request,
+    next_allocation_ordinal(store, request).unwrap(),
+  )
+  record_allocation(store, key, private_name).unwrap()
+  let stopped = store.root.create_writer(private_name, 32L).unwrap()
+  stopped.append(b"partial").unwrap()
+  if owned {
+    ignore(
+      persist_transition(
+        store,
+        @payload.prepare_publication_payload_owned(
+          writing,
+          payload_ownership(stopped.ownership()),
+        ).unwrap(),
+      ).unwrap(),
+    )
+  }
+  (private_name, stopped)
+}
+
+///|
+test "native publication recovery reclaims an allocation stopped before or after its ownership is durable and leaves foreign staging" {
+  guard native_payload_fixture("allocation-window", 4096L)
+    is Some((store, authority, _)) else {
+    return
+  }
+  // The root's capacity namespace is shared with the other tests' Stores,
+  // some of which keep a sealed payload: only this test's delta is checked.
+  let base = store.capacity_usage().unwrap().reserved_bytes
+  for owned in [false, true] {
+    let request = native_payload_request(
+      authority,
+      "allocation-window-" + owned.to_string() + "-" + @env.now().to_string(),
+      32L,
+    )
+    // A foreign file at the public staging name that no record owns.
+    let public_name = @payload.publication_payload_staging_name(request)
+    let foreign = store.root.create_writer(public_name, 32L).unwrap()
+    foreign.append(b"foreign").unwrap()
+    let foreign_before = store.root
+      .inspect_generation(public_name)
+      .unwrap()
+      .unwrap()
+    let (private_name, stopped) = native_stopped_allocation(
+      store, request, owned,
+    )
+    assert_eq(store.capacity_usage().unwrap().reserved_bytes, base + 32L)
+    assert_true(store.root.inspect_generation(private_name).unwrap() is Some(_))
+    // Recovery, as the next Store open runs it: only the allocation's own
+    // file goes, the capacity is released, and the foreign file stays.
+    let recovered = store.recover().unwrap()
+    assert_eq(recovered.reclaimed, 1)
+    assert_eq(store.root.inspect_generation(private_name).unwrap(), None)
+    assert_eq(
+      store.root.inspect_generation(public_name).unwrap(),
+      Some(foreign_before),
+    )
+    assert_eq(store.capacity_usage().unwrap().reserved_bytes, base)
+    // The same request is reclaimed once; a second recovery changes nothing.
+    assert_eq(store.recover().unwrap().reclaimed, 0)
+    assert_eq(
+      store.root.inspect_generation(public_name).unwrap(),
+      Some(foreign_before),
+    )
+    ignore(stopped)
+    foreign.cancel().unwrap()
+  }
+  assert_true(store.close().unwrap())
+}

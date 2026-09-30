@@ -875,6 +875,25 @@ test "native journal keeps one exact dispatch envelope per attempt" {
     test_control(test_site()),
   ).unwrap()
   assert_eq(reader.dispatch_envelope(key).unwrap(), Some("{\"envelope\":1}"))
+  // An envelope past the journal's record bound is refused; nothing is kept.
+  let other = test_request_for(
+    "dispatch-envelope-large",
+    8,
+    4,
+    test_cid("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+  )
+  assert_true(
+    journal.retain_dispatch_envelope(other, "x".repeat(262145))
+    is Err(Physical(@sqlite.BodyTooLarge)),
+  )
+  assert_eq(
+    journal
+    .dispatch_envelope(
+      @remote.dispatch_request_attempt_identity(other).unwrap(),
+    )
+    .unwrap(),
+    None,
+  )
   assert_true(journal.close())
   assert_true(reader.close())
 }

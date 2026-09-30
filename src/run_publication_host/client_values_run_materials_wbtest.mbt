@@ -136,6 +136,17 @@ test "run materials rebuild exactly the dispatched source-free Values Run" {
       limits,
     )
   }
+  // The Run definition CID of this fixed fixture, pinned independently of
+  // the issuer: a change in what the CID covers, or in how the Site
+  // rebuilds the Run, moves it. The Program definition CID has the same
+  // shape and is not it.
+  assert_eq(
+    issued_cid, "sha256:e80cf974a2d99757867e3d087e88f48245aab36df049d0dd6959d264ec6be7b5",
+  )
+  assert_eq(
+    prepared_client_identity(issuer_prepared).program_definition_cid,
+    "sha256:f3514c8f22c6d72818a167ca3341b3c945397042351c51a5982d7abc881a298c",
+  )
   // The Site rebuilds the same Run; the materials never supply the Plan.
   let rebuilt = admit(run_materials_json(fields), issued_cid).unwrap()
   assert_eq(
@@ -170,6 +181,22 @@ test "run materials rebuild exactly the dispatched source-free Values Run" {
   assert_true(
     admit(replace("valid_until", Some("2098-01-01T00:00:00.000Z")), issued_cid)
     is Err(MaterialsRunMismatch),
+  )
+  // Each inner body is bounded by its own owner's limit; a body past it is
+  // refused before anything is rebuilt.
+  assert_true(
+    admit(
+      replace("parameters", Some("\"" + "p".repeat(65536) + "\"")),
+      issued_cid,
+    )
+    is Err(_),
+  )
+  assert_true(
+    admit(
+      replace("program", Some(run_materials_document + " ".repeat(65537))),
+      issued_cid,
+    )
+    is Err(_),
   )
   // Received evidence must be the named evidence of this Plan.
   assert_true(

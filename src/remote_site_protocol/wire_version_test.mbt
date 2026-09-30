@@ -183,4 +183,16 @@ test "dispatch envelope carries typed run materials as a separate body" {
     )
     is Err(_),
   )
+  // Exactly at the cap the materials are carried and admitted; the outer
+  // envelope grows past the inner size when the materials need escaping,
+  // and the envelope's own bound still covers it.
+  let at_cap = "\"".repeat(REMOTE_RUN_MATERIALS_MAX_BYTES)
+  let capped = remote_poll_dispatch_materials_json(request, binding, at_cap).unwrap()
+  assert_true(capped.length() > 2 * REMOTE_RUN_MATERIALS_MAX_BYTES)
+  assert_eq(
+    remote_poll_dispatch_run_materials(
+      admit_remote_poll_dispatch_json(capped).unwrap(),
+    ),
+    Some(at_cap),
+  )
 }
