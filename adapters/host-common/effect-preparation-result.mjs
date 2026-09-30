@@ -6,7 +6,7 @@ export const isEffectPreparationRefusal = error =>
   error !== null && typeof error === 'object' && refusals.has(error);
 
 // Only use for a semantic check whose inputs have actually been observed.
-// A checked ABI error alone says nothing about transport certainty. This
+// A checked JS bridge error alone says nothing about transport certainty. This
 // marker neither grants dispatch nor proves physical stop or cleanup.
 export function checkedEffectPreparation(result) {
   try {

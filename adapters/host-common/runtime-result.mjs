@@ -1,4 +1,5 @@
-// Pinned MoonBit raise ABI. This adapter handles runtime results, not provider data.
+// Pinned MoonBit compiler's JS representation of raised results. This adapter
+// handles runtime results, not provider data.
 export function checked(result) {
   if (result?.$tag === 1) return result._0;
   if (result?.$tag === 0) {

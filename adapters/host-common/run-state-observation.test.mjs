@@ -48,7 +48,7 @@ test('installed Run control retains the common issuer failure', () => {
     });
 });
 
-test('an absent ABI result remains a fault, not a missing Run', () => {
+test('an absent JS bridge result remains a fault, not a missing Run', () => {
   const moon = {clientRunControlObservation: () => undefined};
   assert.throws(() => issueInstalledRunControlObservation(moon, control),
     error => {

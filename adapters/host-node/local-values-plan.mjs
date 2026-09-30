@@ -45,7 +45,7 @@ function localPublicationPlan(options) {
 }
 
 // Keep the retained input policy available to Effect evidence issuance
-// without extending the closed publication-plan ABI used by ordinary Runs.
+// without extending the closed publication-plan JS bridge used by ordinary Runs.
 function buildLocalPublicationPlan({control, admission, runDefinition, invocation,
   observation, compiledPlanCid, programDefinitionCid, inputRelationCids,
   sourceEvidence, authorityScopeCid, namespaceId, storeAuthorityCid,

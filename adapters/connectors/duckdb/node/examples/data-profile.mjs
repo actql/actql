@@ -1,4 +1,4 @@
-// Pure profile validation. Keep byte/count values exact across the MoonBit ABI.
+// Pure profile validation. Keep byte/count values exact across the MoonBit-to-JS boundary.
 export function snapshotDataProfile(value) {
   if (value === undefined) return undefined;
   const keys = ['source_rows', 'task_rows', 'columns', 'value_bytes', 'wire_bytes',

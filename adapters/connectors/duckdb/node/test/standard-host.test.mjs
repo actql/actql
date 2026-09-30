@@ -648,7 +648,7 @@ test('standard native and broad Node Hosts own verification through real capture
         if (kind === 'invalid-unused') {
           await assert.rejects(execute(grant, setup, limits), error => {
             assert.equal(error.code, 'MoonBitHostFailure');
-            assert(error.cause); // Preserve the typed admission failure, not a JS ABI error.
+            assert(error.cause); // Preserve the typed admission failure, not a JS bridge error.
             return true;
           });
           continue;

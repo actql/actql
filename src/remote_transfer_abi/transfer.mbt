@@ -1,6 +1,7 @@
 ///|
 /// The portable in-process boundary exposes the existing Transfer owner.
 /// Physical adapters persist its canonical bodies before committing a step.
+/// The historical package name contains `abi`; this is an internal JS bridge.
 #export_name("transferAdmitEnvelopeJson")
 pub fn transfer_admit_envelope_json(
   body : String,
