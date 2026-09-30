@@ -4,6 +4,7 @@
 import {createHash} from 'node:crypto';
 import {
   deliverAuthorizedResult,
+  describeAuthorizedResult,
   inspectAuthorizedDeliveryAttempt,
   installResultAccessAuthority,
   installResultAccessService,
@@ -13,7 +14,7 @@ const exactKeys = (value, keys) => value !== null &&
   typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
 
-export {deliverAuthorizedResult, inspectAuthorizedDeliveryAttempt,
+export {deliverAuthorizedResult, describeAuthorizedResult, inspectAuthorizedDeliveryAttempt,
   installResultAccessAuthority};
 
 export function installNodeResultAccessService(configuration) {

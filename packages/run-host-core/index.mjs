@@ -622,6 +622,20 @@ export function projectCommittedResultRead(index, manifest, resultName,
     physicalSha256: value.physical_sha256});
 }
 
+export function describeCommittedResult(index, manifest, resultName,
+  bindings, definition, schemaWire, format, limits) {
+  const bounds = publicationLimits(limits);
+  const wire = owner.clientValuesHostDescribeCommittedResult(
+    publicationToken(index), publicationToken(manifest), resultName,
+    publicationItems(bindings), publicationToken(definition), schemaWire,
+    format, bounds.maxWireBytes, bounds.maxNodes, bounds.maxDepth);
+  if (typeof wire !== 'string') {
+    throw Object.assign(new Error('RunHostResultDescriptionRejected'),
+      {code: 'RunHostResultDescriptionRejected'});
+  }
+  return JSON.parse(wire);
+}
+
 export function admitRunDefinition(wire) {
   if (typeof wire !== 'string') throw new TypeError('InvalidRunHostDefinition');
   const value = checked(owner.clientValuesHostAdmitRunDefinition(wire),
@@ -641,6 +655,32 @@ export function admitSourceFreeRunDefinition(prepared, compilation,
     requireHandle(preparations, prepared), compiled.value, admitted.value,
     wire), 'RunHostSourceFreeAdmissionRejected');
   return handle(definitions, value, 'run-definition');
+}
+
+/** Project the original Run; this does not compile or issue authorization. */
+export function issueSourceFreeRunMaterials(prepared, compilation, admission,
+  definition, retained) {
+  const compiled = requireHandle(compilations, compilation);
+  const admitted = requireHandle(admissions, admission);
+  if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  if (retained === null || typeof retained !== 'object' ||
+      Array.isArray(retained) || retained.format !== 'json' ||
+      typeof retained.document !== 'string' ||
+      typeof retained.environmentWire !== 'string' ||
+      retained.parametersWire !== undefined &&
+        typeof retained.parametersWire !== 'string' ||
+      Object.keys(retained).some(key => !['format', 'document',
+        'environment', 'environmentWire', 'parametersWire'].includes(key))) {
+    throw new TypeError('InvalidRunHostRunMaterialsInput');
+  }
+  return checked(owner.clientValuesHostIssueSourceFreeRunMaterials(
+    requireHandle(preparations, prepared), compiled.value, admitted.value,
+    requireHandle(definitions, definition),
+    requireHandle(environments, retained.environment),
+    retained.environmentWire, retained.document, retained.parametersWire),
+  'RunHostRunMaterialsRejected');
 }
 
 export function prepareRunStart(requested, retained, definition,
@@ -1313,6 +1353,36 @@ export function openResultDeliveryControl() {
   const mark = (method, progress, value) =>
     deliveryCall(method, progressToken(progress), value);
   return Object.freeze({
+    describeCommittedResult(index, manifest, resultName, bindings,
+      definition, schemaWire, format, limits) {
+      return describeCommittedResult(deliveryContract(index),
+        deliveryContract(manifest), resultName,
+        bindings.map(deliveryContract), deliveryContract(definition),
+        schemaWire, format, limits);
+    },
+    resultMetadataRetentionState(retention, observedAt) {
+      const value = owner.clientValuesHostResultMetadataRetentionState(
+        deliveryToken(retention), observedAt);
+      if (!['retained', 'delete_due'].includes(value)) {
+        throw new Error('RunHostMetadataRetentionRejected');
+      }
+      return value;
+    },
+    issueManifestReadGrant(index, manifest, grant, limits) {
+      return issuedDelivery('clientValuesHostIssueManifestReadGrant',
+        deliveryToken(index), deliveryToken(manifest),
+        grant.principalId, grant.purpose, grant.dataCeilingCid,
+        grant.maxBytes, grant.maxUses, grant.expiresAt,
+        grant.authorizationContextCid, ...limitsOf(limits));
+    },
+    manifestReadGrantValidAt(grant, at) {
+      return deliveryCall('clientValuesHostManifestReadGrantValidAt',
+        deliveryToken(grant), at);
+    },
+    manifestReadGrantAllowsBytes(grant, bytes) {
+      return deliveryCall('clientValuesHostManifestReadGrantAllowsBytes',
+        deliveryToken(grant), bytes);
+    },
     admit(name, wire, limits) {
       return deliveryView(admitPublicationContract(name, wire, limits));
     },

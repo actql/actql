@@ -10,6 +10,7 @@ import {admitDispatchJson, dispatchCid, createJournal, prepareIntent,
   from '../coordinator-core/index.mjs';
 import {admitEnvironment, admitRequestFields, admitRunDefinition,
   admitSourceFreeRunDefinition,
+  issueSourceFreeRunMaterials,
   admitPublicationContract, admitRunEvidenceValue, sealRunEvidenceValue,
   validatePublicationChain,
   validatePublicationRecordTransition,
@@ -43,7 +44,7 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   admitCompletedSourceObservation,
   issueTaskInvocation,
   issueUnpublishedRunStateWire, issueSucceededRunStateWire, projectSiteRun,
-  resultReadAvailability,
+  resultReadAvailability, describeCommittedResult,
   prepareRunStart, prepareRunPhysicalStart, prepareRunCancellation,
   prepareRunPreStartFailure,
   issueRunControlObservation,
@@ -62,6 +63,84 @@ const without = (value, key) => {
   delete body[key];
   return cid(body);
 };
+
+test('Run materials project the original owner and retained input, not new authority', () => {
+  const document = read('values.json');
+  const environment = admitEnvironment(environmentWire, evidenceCid, {rela: true});
+  const prepared = prepare(document, 'json', environment);
+  const compilation = compileValues(prepared);
+  const authority = {executionContextCid: 'sha256:' + 'a'.repeat(64),
+    hostPolicyCid: 'sha256:' + 'b'.repeat(64), expiresAt: '2099-01-01T00:00:00.000Z'};
+  const allowed = issueAllowedRun(prepared, compilation, authority);
+  const definition = issueSourceFreeRunDefinition(prepared, compilation,
+    allowed.admission, 'original-scope', 'original-run',
+    '2026-09-30T00:00:00.000Z', '2098-01-01T00:00:00.000Z');
+  const retained = {document, format: 'json', environment, environmentWire};
+  const emit = (input = retained, run = definition) => issueSourceFreeRunMaterials(
+    prepared, compilation, allowed.admission, run, input);
+  const expected = {check_environment: environmentWire,
+    check_environment_cid: evidenceCid, created_at: '2026-09-30T00:00:00.000Z',
+    parameters: null, prepared_invocation: allowed.preparedInvocationWire,
+    program: document, program_format: 'json',
+    run_authorization: allowed.authorizationWire, run_id: 'original-run',
+    scope_id: 'original-scope', valid_until: '2098-01-01T00:00:00.000Z',
+    version: 'actql-remote-run-materials/0.1'};
+  assert.deepEqual(JSON.parse(emit()), expected);
+  const before = privateRunDefinition(definition);
+  assert.equal(emit(), emit());
+  assert.deepEqual(privateRunDefinition(definition), before);
+  const changedInput = JSON.parse(document);
+  changedInput.stages[0].steps[0].values.rows[1].id = 3;
+  assert.throws(() => emit({...retained, document: JSON.stringify(changedInput)}),
+    {code: 'RunHostRunMaterialsRejected'});
+  assert.throws(() => emit({...retained, environmentWire: '{}'}),
+    {code: 'RunHostRunMaterialsRejected'});
+  assert.throws(() => emit({...retained, parametersWire: ' '.repeat(65537)}),
+    {code: 'RunHostRunMaterialsRejected'});
+  assert.throws(() => emit({...retained, format: 'yaml'}),
+    {message: 'InvalidRunHostRunMaterialsInput'});
+  assert.throws(() => emit({...retained, run_id: 'replacement'}),
+    {message: 'InvalidRunHostRunMaterialsInput'});
+  const other = prepare(document, 'json', environment);
+  assert.throws(() => issueSourceFreeRunMaterials(other, compilation,
+    allowed.admission, definition, retained), {message: 'ForeignRunHostCompilation'});
+  // Both raw bodies fit their individual 64KiB bounds. Outer JSON quoting
+  // nevertheless exceeds 262144 bytes and must be bounded by the issuer.
+  const parametersWire = '\t'.repeat(65534) + '{}';
+  const paddedDocument = '\t'.repeat(65536 - Buffer.byteLength(document)) + document;
+  const paddedInput = {...retained, document: paddedDocument, parametersWire};
+  // Establish that input/parameters are individually admitted and unchanged.
+  assert.deepEqual(requestFields(prepareRequest(prepare(paddedDocument, 'json',
+    environment, parametersWire), 'sha256:' + 'c'.repeat(64), 'padding',
+  'sha256:' + 'd'.repeat(64))),
+  requestFields(prepareRequest(prepared, 'sha256:' + 'c'.repeat(64), 'padding',
+    'sha256:' + 'd'.repeat(64))));
+  assert.ok(Buffer.byteLength(JSON.stringify({...expected,
+    program: paddedDocument, parameters: parametersWire})) > 262144);
+  assert.throws(() => emit(paddedInput), {code: 'RunHostRunMaterialsRejected'});
+});
+
+test('Run materials preserve separately supplied parameter identity', () => {
+  const document = read('parameter-values.json');
+  const environment = admitEnvironment(environmentWire, evidenceCid, {rela: true});
+  const parametersWire = '{"n":3}';
+  const prepared = prepare(document, 'json', environment, parametersWire);
+  const compilation = compileValues(prepared);
+  const allowed = issueAllowedRun(prepared, compilation, {
+    executionContextCid: 'sha256:' + 'a'.repeat(64),
+    hostPolicyCid: 'sha256:' + 'b'.repeat(64), expiresAt: '2099-01-01T00:00:00.000Z'});
+  const definition = issueSourceFreeRunDefinition(prepared, compilation,
+    allowed.admission, 'original-scope', 'parameter-run',
+    '2026-09-30T00:00:00.000Z', '2098-01-01T00:00:00.000Z');
+  const retained = {document, format: 'json', environment, environmentWire, parametersWire};
+  const emit = input => issueSourceFreeRunMaterials(prepared, compilation,
+    allowed.admission, definition, input);
+  assert.equal(JSON.parse(emit(retained)).parameters, parametersWire);
+  assert.throws(() => emit({...retained, parametersWire: '{"n":4}'}),
+    {code: 'RunHostRunMaterialsRejected'});
+  assert.throws(() => emit({...retained, parametersWire: undefined}),
+    {code: 'RunHostRunMaterialsRejected'});
+});
 
 test('acquired observation binds the checked source and completed input',
   () => {
@@ -548,6 +627,48 @@ test('portable Host issues a Manifest for exact admitted Result evidence',
     }), limits);
     const readManifest = readControl.admit('result_manifest',
       manifest.wire, limits);
+    const retainedDescription = {
+      programDefinitionCid: fixed('6'), resultDefinitionCid: definition.cid,
+      resultArtifactCid: artifact.cid, resultSchemaCid: schemaCid,
+      resultName: 'answer',
+      columns: [{name: 'value', contract: {nullable: false, type: 'integer'}}],
+      serialization: {format: 'jsonl', version: 'actql-jsonl/0.1',
+        contractCid: cid({version: 'actql-jsonl/0.1'})},
+    };
+    assert.deepEqual(readControl.describeCommittedResult(publicIndex,
+      readManifest, 'answer', [readControl.admit('durable_result_binding',
+        binding.wire, limits)], readControl.admit('result_definition',
+        definition.wire, limits), schemaWire, 'jsonl', limits),
+    retainedDescription);
+    const indexContract = admitPublicationContract('public_index_entry',
+      publicIndex.wire, limits);
+    assert.deepEqual(describeCommittedResult(indexContract, manifest,
+      'answer', [binding], definition, schemaWire, 'jsonl', limits),
+    retainedDescription);
+    assert.throws(() => describeCommittedResult(indexContract, manifest,
+      'answer', [], definition, schemaWire, 'jsonl', limits),
+    {code: 'RunHostResultDescriptionRejected'});
+    assert.throws(() => describeCommittedResult(indexContract, manifest,
+      'answer', [binding], definition, '{}', 'jsonl', limits),
+    {code: 'RunHostResultDescriptionRejected'});
+    const metadataRetention = readControl.admit('result_retention_policy',
+      retention.wire, limits);
+    assert.equal(readControl.resultMetadataRetentionState(metadataRetention,
+      '2026-09-18T02:30:00.000Z'), 'retained');
+    assert.equal(readControl.resultMetadataRetentionState(metadataRetention,
+      '2026-09-18T04:00:00.000Z'), 'delete_due');
+    const metadataGrant = readControl.issueManifestReadGrant(publicIndex,
+      readManifest, {principalId: 'reader', purpose: 'inspect',
+        dataCeilingCid: fixed('a'), maxBytes: 1024, maxUses: 1,
+        expiresAt: '2026-09-18T00:45:00.000Z',
+        authorizationContextCid: fixed('4')}, limits);
+    assert.equal(metadataGrant.name, 'manifest_read_grant');
+    assert.equal(readControl.manifestReadGrantValidAt(metadataGrant,
+      '2026-09-18T00:30:00.000Z'), true);
+    assert.equal(readControl.manifestReadGrantValidAt(metadataGrant,
+      '2026-09-18T00:45:00.001Z'), false);
+    assert.equal(readControl.manifestReadGrantAllowsBytes(metadataGrant, 1024), true);
+    assert.equal(readControl.manifestReadGrantAllowsBytes(metadataGrant, 1025), false);
     assert.throws(() => readControl.resultReadDefinitionCid({
       ...readManifest,
     }, 'answer'), {name: 'TypeError', message: 'ForeignRunHostDelivery'});

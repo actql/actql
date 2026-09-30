@@ -132,6 +132,13 @@ pub fn ClientResultTransformationPreparation::finish(
     replay_wire: self.limits.payload_wire,
     max_batch_bytes: self.limits.max_batch_bytes,
     definition: Some(self.selection.definition),
+    declared_fields: Some(
+      @results.fields(
+        @results.port_result(
+          @execution.managed_result_occurrence_port(self.selection.occurrence),
+        ),
+      ),
+    ),
     receipt: None,
     evidence: None,
     artifact: None,

@@ -3112,6 +3112,14 @@ function publicationControl(moon) {
         limits.maxDepth,
       ));
     },
+    describeCommittedResult(index, manifest, resultName, bindings,
+      definition, schemaWire, format, limits) {
+      issuanceLimits(limits, 'Result description');
+      return JSON.parse(checked(moon.strategyDescribeCommittedResult(
+        token(index), token(manifest), resultName, bindings.map(token),
+        token(definition), schemaWire, format, limits.maxWireBytes,
+        limits.maxNodes, limits.maxDepth)));
+    },
     issueManifestReadGrant(index, manifest, grant, limits) {
       issuanceLimits(limits, 'Manifest read grant');
       if (grant === null || typeof grant !== 'object') {

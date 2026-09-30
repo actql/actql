@@ -5,12 +5,12 @@ import {performClientSubmit} from './client-submit.mjs';
 import {observeClientAuthorizationFailure} from
   './client-authentication-observation.mjs';
 import {deliverAuthorizedResult,
-  inspectAuthorizedDeliveryAttempt} from './result-access.mjs';
+  describeAuthorizedResult, inspectAuthorizedDeliveryAttempt} from './result-access.mjs';
 import {clientHostOperations, validCheckpointPage, validCheckpointReview,
   validClientAdmission, validClientBody, validClientProfile,
   validDeliveryAttemptLookup, validRequestLookup, validResolveResults,
   validRequestCancellation, validResourceInspection, validResourceListing,
-  validResourcePeek, validRunState} from
+  validResourcePeek, validRunState, validResultDescription} from
   '../../packages/client-wire/index.mjs';
 
 const operations = new Set(clientHostOperations);
@@ -63,6 +63,8 @@ function responseCode(error) {
   if (error?.code === 'CheckpointReviewTooLarge') return 413;
   if (error?.code === 'ClientRequestIntentConflict') return 409;
   if (error?.code === 'ResultUnavailable') return 410;
+  if (error?.code === 'ResultDescriptionUnavailable') return 410;
+  if (error?.code === 'ResultDescriptionTooLarge') return 413;
   if (error?.code === 'ClientRequestTooLarge' ||
       error?.code === 'ClientParametersTooLarge') return 413;
   if (error?.code === 'InvalidClientRequest' ||
@@ -217,6 +219,20 @@ export function createClientHttpHandler({
             () => invoke(prepareSubmit),
           submit: prepared => invoke(submit, undefined, prepared)});
         sendJson(admission);
+      } else if (operation === 'result-describe') {
+        const observation = observationAttempt(response);
+        try {
+          const answer = await describeAuthorizedResult(resultService, {
+            indexKey: ref, principalId: principal, purpose: 'inspect',
+            resultName: body.resultName, format: body.format,
+            attemptId: body.attemptId, maxWireBytes: body.maxWireBytes,
+            maxNodes: body.maxNodes, maxDepth: body.maxDepth,
+          }, observation.signal);
+          if (!validResultDescription(answer, body, body)) {
+            invalid('InvalidClientHostResultDescription');
+          }
+          sendJson(answer);
+        } finally { observation.release(); }
       } else if (operation === 'attach') {
         const admission = await invoke(attach);
         if (!validClientAdmission(admission, connection) ||

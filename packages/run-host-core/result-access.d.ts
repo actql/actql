@@ -41,3 +41,7 @@ export function deliverAuthorizedResult(service: ResultAccessService,
 export function inspectAuthorizedDeliveryAttempt(
   service: ResultAccessService,
   request: Omit<ResultAccessRequest, 'format'>): Promise<unknown>;
+export function describeAuthorizedResult(service: ResultAccessService,
+  request: ResultAccessRequest & Readonly<{
+    maxWireBytes: number; maxNodes: number; maxDepth: number}>,
+  signal?: AbortSignal): Promise<import('@actql/client-wire').WireResultDescription>;

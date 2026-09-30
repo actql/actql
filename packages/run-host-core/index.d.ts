@@ -102,6 +102,22 @@ export interface DurableResultRowFrames {
 }
 
 export interface ResultDeliveryControl {
+  describeCommittedResult(index: IndexView, manifest: ManifestView,
+    resultName: string, bindings: readonly DeliveryContractView<string>[],
+    definition: DeliveryContractView<string>, schemaWire: string,
+    format: string, limits: PublicationLimits):
+    Omit<import('@actql/client-wire').WireResultDescription, 'ref'>;
+  resultMetadataRetentionState(retention: RetentionView,
+    observedAt: string): 'retained' | 'delete_due';
+  issueManifestReadGrant(index: IndexView, manifest: ManifestView,
+    grant: Readonly<{principalId: string; purpose: string;
+      dataCeilingCid: string; maxBytes: number; maxUses: number;
+      expiresAt: string; authorizationContextCid: string}>,
+    limits: PublicationLimits): DeliveryContractView<'manifest_read_grant'>;
+  manifestReadGrantValidAt(grant: DeliveryContractView<'manifest_read_grant'>,
+    at: string): boolean;
+  manifestReadGrantAllowsBytes(grant: DeliveryContractView<'manifest_read_grant'>,
+    bytes: number): boolean;
   admit<Kind extends string>(name: Kind, wire: string,
     limits: PublicationLimits): DeliveryContractView<Kind>;
   beginResultAccessProgress(): ResultAccessProgress;
@@ -395,6 +411,11 @@ export function issueSucceededRunStateWire(prepared: PreparedProgram,
 export function resultReadAvailability(manifest: PublicationContract,
   resultName: string, retention: PublicationContract,
   observedAt: string): 'available' | 'retention_expired' | 'delete_due';
+export function describeCommittedResult(index: PublicationContract,
+  manifest: PublicationContract, resultName: string,
+  bindings: readonly PublicationContract[], definition: PublicationContract,
+  schemaWire: string, format: string, limits: PublicationLimits):
+  Omit<import('@actql/client-wire').WireResultDescription, 'ref'>;
 /** Select one committed Result and validate the complete binding inventory. */
 export function projectCommittedResultRead(index: PublicationContract,
   manifest: PublicationContract, resultName: string,
@@ -420,6 +441,20 @@ export function admitRunDefinition(wire: string): RunDefinition;
 export function admitSourceFreeRunDefinition(prepared: PreparedProgram,
   compilation: ValuesCompilation, admission: RunAdmission,
   wire: string): RunDefinition;
+/** Original JSON input retained alongside a Run; not new authority. */
+export interface SourceFreeRunMaterialsInput {
+  readonly document: string;
+  readonly format: 'json';
+  readonly environment: CheckEnvironment;
+  readonly environmentWire: string;
+  readonly parametersWire?: string;
+}
+/** Projects the existing Run and evidence. Does not compile, authorize or
+ * extend expiry. The encoded body is bounded to 262144 UTF-8 bytes. */
+export function issueSourceFreeRunMaterials(prepared: PreparedProgram,
+  compilation: ValuesCompilation, admission: RunAdmission,
+  definition: RunDefinition, retained: SourceFreeRunMaterialsInput): string;
+
 export function prepareRunStart(requested: RequestIdentity,
   retained: RequestIdentity, definition: RunDefinition,
   retainedRunDefinitionCid: string, dispatchReserved: boolean,

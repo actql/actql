@@ -6,7 +6,7 @@ import {clientHostOperations, clientHostRequestKeys,
   validAdmissionShape, validCancellationShape, validCheckpointReviewShape,
   validCheckpointSummaryShape, validConnectionShape, validHeldShape,
   validLookupFoundShape, validLookupNotFoundShape, validLookupUnknownShape,
-  validProfileShape, validRequestCancellationShape, validResolveItemShape,
+  validProfileShape, validRequestCancellationShape, validResultDescriptionShape, validResolveItemShape,
   validResolveResultShape, validResourceInspectionShape,
   validResourceListingShape, validResourcePeekShape,
   validRunRefShape, validRunStateShape,
@@ -40,6 +40,51 @@ export const resourceLimits = Object.freeze({
 const boundedText = (value, maximum = 256) => typeof value === 'string' &&
   value.length > 0 && value.length <= maximum &&
   !/[\u0000-\u001f\u007f]/u.test(value);
+
+// Whole response limits, including the envelope and nested type descriptors.
+// These are UTF-8 JSON wire bytes and structural budgets, not payload limits.
+export const resultDescriptionLimits = Object.freeze({
+  maxWireBytes: 1024 * 1024, maxNodes: 10000, maxDepth: 64,
+});
+export function withinResultDescriptionLimits(value,
+  limits = resultDescriptionLimits) {
+  if (!Object.keys(resultDescriptionLimits).every(key =>
+    Number.isSafeInteger(limits?.[key]) && limits[key] > 0 &&
+    limits[key] <= resultDescriptionLimits[key])) return false;
+  let nodes = 0;
+  const seen = new Set();
+  const work = [[value, 1]];
+  while (work.length) {
+    const [item, depth] = work.pop();
+    if (++nodes > limits.maxNodes || depth > limits.maxDepth) return false;
+    if (item !== null && typeof item === 'object') {
+      if (seen.has(item)) return false;
+      seen.add(item);
+      const entries = Object.entries(item);
+      // Object keys also occupy nodes in the canonical wire budget.
+      if (!Array.isArray(item)) nodes += entries.length;
+      if (nodes + work.length + entries.length > limits.maxNodes) return false;
+      for (const [, child] of entries) work.push([child, depth + 1]);
+    }
+  }
+  try {
+    return new TextEncoder().encode(JSON.stringify(value)).byteLength <=
+      limits.maxWireBytes;
+  } catch { return false; }
+}
+export function validResultDescription(value, expected,
+  limits = resultDescriptionLimits) {
+  if (!withinResultDescriptionLimits(value, limits) ||
+      !validResultDescriptionShape(value) || !validRunRef(expected?.ref) ||
+      !['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].every(key =>
+        value.ref[key] === expected.ref[key]) ||
+      value.resultName !== expected.resultName ||
+      value.serialization.format !== expected.format ||
+      value.serialization.version !== `actql-${expected.format}/0.1` ||
+      new Set(value.columns.map(column => column.name)).size !==
+        value.columns.length) return false;
+  return true;
+}
 
 // These are the installed submit boundary's explicit refusal contracts:
 // request validation, preparation, connection policy and admission checks.
@@ -160,6 +205,11 @@ export function validClientBody(operation, body) {
         body.items.length;
   }
   if (!validRunRef(body.ref)) return false;
+  if (operation === 'result-describe') return boundedText(body.resultName) &&
+    boundedText(body.attemptId) && ['json', 'jsonl', 'csv'].includes(body.format) &&
+    Object.keys(resultDescriptionLimits).every(key =>
+      Number.isSafeInteger(body[key]) && body[key] > 0 &&
+      body[key] <= resultDescriptionLimits[key]);
   if (operation === 'read') return boundedText(body.resultName) &&
     boundedText(body.attemptId) &&
     ['json', 'jsonl', 'csv'].includes(body.format);

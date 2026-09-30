@@ -19,8 +19,15 @@ pub fn Client::post_json(Self, String, Bytes) -> Result[NativeHttpResponse, Nati
 pub fn Client::request(Self, NativeHttpMethod, String, Array[NativeHttpHeader], Bytes) -> Result[NativeHttpResponse, NativeHttpIssue]
 
 type Library
+pub fn Library::create_authenticated_client(Self, String, NativeHttpAuthentication, Int64, Int, Int) -> Result[Client, NativeHttpIssue]
 pub fn Library::create_client(Self, String, String, String, Int64, Int, Int) -> Result[Client, NativeHttpIssue]
 pub fn Library::version(Self) -> String
+
+pub(all) enum NativeHttpAuthentication {
+  MutualTls(String, String)
+  Bearer(String)
+  MutualTlsAndBearer(String, String, String)
+}
 
 pub(all) struct NativeHttpHeader {
   name : String
@@ -37,6 +44,7 @@ pub(all) enum NativeHttpIssue {
   Cancelled
   Closed
   DeadlineExpired
+  CredentialUnavailable
   Transport(String)
 }
 

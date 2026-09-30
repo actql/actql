@@ -1,0 +1,34 @@
+{
+  "version": "actql/0.1", "id": "sga.shortest_path",
+  "stages": [{
+    "id": "main", "inputs": {},
+    "steps": [
+      {"values": {"schema": {"id": {"type": "string", "nullable": false}},
+        "rows": [{"id": "A"}, {"id": "B"}, {"id": "C"}, {"id": "D"}]}, "as": "nodes"},
+      {"values": {"schema": {
+        "src": {"type": "string", "nullable": false},
+        "dst": {"type": "string", "nullable": false}},
+        "rows": [
+          {"src": "A", "dst": "B"}, {"src": "B", "dst": "D"},
+          {"src": "A", "dst": "C"}, {"src": "C", "dst": "D"}
+        ]}, "as": "edges"},
+      {"graph": {
+        "nodes": {"from": "nodes", "id": "id", "fields": []},
+        "edges": {"from": "edges", "source": "src", "target": "dst", "fields": []}
+      }, "as": "g"},
+      {"from": "g", "shortest_path": {
+        "source": "A", "target": "D", "direction": "out",
+        "max_hops": 3, "max_output_rows": 1
+      }, "as": "shortest"}
+    ],
+    "results": {
+      "answer": {"from": "shortest", "fields": [
+        "source_id", "target_id", "total_cost", "hop_count",
+        "node_ids", "edge_ids"
+      ]}
+    }
+  }],
+  "results": {
+    "answer": {"from": {"stage": "main", "result": "answer"}}
+  }
+}

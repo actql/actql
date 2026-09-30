@@ -60,6 +60,19 @@ received or saved every value. A reader reaches `complete` only after the
 normal wire terminator; values yielded before a failure are a prefix.
 An empty JSONL record fails the attempt instead of silently omitting a row.
 
+`await result.describe({format: 'jsonl'})` returns the confirmed Result's
+existing Definition, Artifact and schema identifiers, declaration-ordered
+columns with complete checked type contracts, and the requested delivery
+profile. `jsonl` is the default; `json` and `csv` use existing delivery
+contracts, while unsupported formats are rejected. No rows are sampled or
+read, and an empty Result still has a description. Current authorization and
+metadata retention apply on every call. Retained metadata can remain available
+after payload expiration or deletion; description does not guarantee a
+subsequent row read. `maxWireBytes`, `maxNodes` and `maxDepth` may tighten the
+whole-response ceilings of 1 MiB, 10,000 structural nodes and depth 64.
+Exceeding them fails without truncation. See
+[Result description semantics](../../docs/design/result-description.md).
+
 The Client caps ordinary JSON control responses at 1 MiB of wire bytes,
 including connection, submission, status, lookup and Host error bodies. Review
 uses the requested body bound expanded for base64 plus a bounded envelope.

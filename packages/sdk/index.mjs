@@ -5,9 +5,10 @@ import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCan
   validRequestLookup,
   validResolveItem, validResolveResults, validRunRef, validRunState,
   validSubmitReply, validClientBody, validResourceInspection,
-  validResourceListing, validResourcePeek} from
+  validResourceListing, validResourcePeek, resultDescriptionLimits,
+  validResultDescription} from
   '@actql/client-wire';
-import {bytesCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
+import {bytesCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
 const positive = value => Number.isSafeInteger(value) && value > 0;
 const maxControlResponseBytes = 1024 * 1024;
 
@@ -473,6 +474,46 @@ async function connectSelected(selected, port) {
             fail('ExpectedOneColumn');
           }
           return Object.values(row)[0];
+        },
+        describe: async ({signal, format = 'jsonl',
+          ...requestedLimits} = {}) => {
+          if (!['json', 'jsonl', 'csv'].includes(format)) {
+            fail('UnsupportedResultDescriptionFormat');
+          }
+          if (Object.keys(requestedLimits).some(key =>
+            !Object.hasOwn(resultDescriptionLimits, key))) {
+            fail('InvalidResultDescriptionOptions');
+          }
+          const limits = Object.fromEntries(
+            Object.entries(resultDescriptionLimits).map(([key, ceiling]) => {
+              const value = requestedLimits[key] ?? ceiling;
+              if (!positive(value) || value > ceiling) {
+                fail('InvalidResultDescriptionOptions');
+              }
+              return [key, value];
+            }));
+          const response = await runRequest('result-describe', {
+            resultName: name, format, attemptId: crypto.randomUUID(),
+            ...limits,
+          }, signal);
+          let answer;
+          try { answer = await controlValue(response, limits.maxWireBytes); }
+          catch (cause) {
+            throw new ClientError('InvalidHostResultDescription', {cause});
+          }
+          if (!validResultDescription(answer, {ref, resultName: name, format},
+            limits)) fail('InvalidHostResultDescription');
+          const schema = Object.fromEntries(answer.columns.map(column =>
+            [column.name, column.contract]));
+          if (await contentCid(schema) !== answer.resultSchemaCid ||
+              await contentCid({version: answer.serialization.version}) !==
+                answer.serialization.contractCid ||
+              await contentCid({version: 'actql-result-definition/0.1',
+                program_definition_cid: answer.programDefinitionCid,
+                result_name: name}) !== answer.resultDefinitionCid) {
+            fail('InvalidHostResultDescription');
+          }
+          return Object.freeze(answer);
         },
         deliveryAttempt: async (attemptId, {signal} = {}) => {
           if (typeof attemptId !== 'string' || !attemptId) {

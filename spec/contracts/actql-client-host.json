@@ -10,6 +10,7 @@
     "cancel": ["connection", "ref"],
     "reconcile": ["connection", "ref"],
     "read": ["connection", "ref", "resultName", "format", "attemptId"],
+    "result-describe": ["connection", "ref", "resultName", "format", "attemptId", "maxWireBytes", "maxNodes", "maxDepth"],
     "delivery-attempt": ["connection", "ref", "resultName", "attemptId"],
     "checkpoints": ["connection", "after", "limit"],
     "checkpoint-review": ["connection", "checkpointCid", "maxBytes"],
@@ -277,6 +278,119 @@
           "ClientProgramNeedsInputs",
           "ClientProgramRejected"
         ]}
+      }
+    },
+    "result_description": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ref",
+        "resultName",
+        "programDefinitionCid",
+        "resultDefinitionCid",
+        "resultArtifactCid",
+        "resultSchemaCid",
+        "columns",
+        "serialization"
+      ],
+      "properties": {
+        "ref": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "namespaceId",
+            "authorityScopeCid",
+            "runDefinitionCid"
+          ],
+          "properties": {
+            "namespaceId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256,
+              "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+            },
+            "authorityScopeCid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "runDefinitionCid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        },
+        "resultName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+        },
+        "programDefinitionCid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "resultDefinitionCid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "resultArtifactCid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "resultSchemaCid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "columns": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "name",
+              "contract"
+            ],
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "contract": {
+                "$ref": "actql-protocol-schemas.json#/schemas/canonical_value_contract"
+              }
+            }
+          }
+        },
+        "serialization": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "format",
+            "version",
+            "contractCid"
+          ],
+          "properties": {
+            "format": {
+              "enum": [
+                "json",
+                "jsonl",
+                "csv"
+              ]
+            },
+            "version": {
+              "enum": [
+                "actql-json/0.1",
+                "actql-jsonl/0.1",
+                "actql-csv/0.1"
+              ]
+            },
+            "contractCid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        }
       }
     }
   }

@@ -2245,14 +2245,20 @@ pub fn provider(
           )
         _ => false
       }
-      let direct_reach = match
+      let direct_reach_selector = match
         @lower.sequence_step(
           @execution.generated_prepared_sequence(sequence),
           selected_step.unwrap_or(0),
         ) {
-        Some(@lower.GraphReachStep(_)) => selected_step is Some(_)
-        _ => false
+        Some(@lower.GraphReachStep(reach)) =>
+          if selected_step is Some(_) {
+            Some(@lower.graph_reach_start_relation_field(reach) is Some(_))
+          } else {
+            None
+          }
+        _ => None
       }
+      let direct_reach = direct_reach_selector is Some(_)
       let direct_shortest = match
         @lower.sequence_step(
           @execution.generated_prepared_sequence(sequence),
@@ -2355,8 +2361,16 @@ pub fn provider(
           (relations.length() != 0 || carriers.length() != 1)
         ) ||
         (
-          (direct_normalize || direct_diagnostic || direct_reach) &&
+          (direct_normalize || direct_diagnostic) &&
           (relations.length() != 0 || carriers.length() != 1)
+        ) ||
+        (
+          direct_reach &&
+          (
+            relations.length() !=
+            (if direct_reach_selector == Some(true) { 1 } else { 0 }) ||
+            carriers.length() != 1
+          )
         ) ||
         (direct_apply && (relations.length() != 1 || carriers.length() != 1)) ||
         (

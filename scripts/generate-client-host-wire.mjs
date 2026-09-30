@@ -12,12 +12,12 @@ const names = ['run_ref', 'connection', 'profile', 'admission',
   'checkpoint_summary', 'checkpoint_review', 'resolve_item',
   'resolve_result', 'submit_preparation_error', 'cancellation',
   'request_cancellation', 'resource_listing', 'resource_inspection',
-  'resource_peek'];
+  'resource_peek', 'result_description'];
 const exports = ['RunRef', 'Connection', 'Profile', 'Admission',
   'LookupFound', 'LookupNotFound', 'LookupUnknown', 'Held',
   'CheckpointSummary', 'CheckpointReview', 'ResolveItem', 'ResolveResult',
   'SubmitPreparationError', 'Cancellation', 'RequestCancellation',
-  'ResourceListing', 'ResourceInspection', 'ResourcePeek'];
+  'ResourceListing', 'ResourceInspection', 'ResourcePeek', 'ResultDescription'];
 
 export function buildClientHostWire(registry, protocol) {
   if (registry.version !== 'actql-client-host/0.1' ||
@@ -41,6 +41,8 @@ export function buildClientHostWire(registry, protocol) {
     throw new Error('MissingRunStateSchema');
   }
   schemas.run_state = project(protocol.artifact_schemas.run_state);
+  schemas.value_contract = project(
+    protocol.schemas.canonical_value_contract.$defs.value_contract);
   const module = `// Generated from the registered Client–Host machine contract.\n` +
     `// Run: node scripts/generate-client-host-wire.mjs --write\n` +
     `const schemas = ${JSON.stringify(schemas, null, 2)};\n` +
@@ -59,6 +61,7 @@ export function buildClientHostWire(registry, protocol) {
   const types = `// Generated from the registered Client–Host machine contract.\n` +
     `export type ClientHostOperation = ${operations.map(([name]) =>
       JSON.stringify(name)).join(' | ')};\n` +
+    `export type WireValueContractShape = ${typeOf(schemas.value_contract)};\n` +
     names.map((name, index) =>
       `export type Wire${exports[index]}Shape = ${typeOf(schemas[name])};\n`
     ).join('\n') +

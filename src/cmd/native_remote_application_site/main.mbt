@@ -124,6 +124,13 @@ fn runtime_issue_message(issue : @runtime.NativeRemoteRuntimeIssue) -> String {
     @runtime.OutputReaderPhysical(message) =>
       "remote output reader failed: " + message
     @runtime.Physical(message) => "remote runtime failed: " + message
+    @runtime.ExecutorEntryUnrecorded =>
+      "remote runtime executor entry evidence was not recorded"
+    @runtime.StartAuthorizationRejected =>
+      "remote runtime execution authority is not current"
+    @runtime.StartClaimLost(_) =>
+      "remote runtime start was claimed by another executor"
+    @runtime.StartCancelled => "remote runtime start lost to cancellation"
     @runtime.CleanupPending(message) =>
       "remote runtime cleanup remains pending: " + message
     @runtime.Protocol(_) => "remote runtime protocol rejected"
@@ -366,6 +373,17 @@ fn application_files() -> @application.NativeRemoteApplicationFiles {
     query: "query.json",
     evidence: "evidence.json",
     two_receipt: "two-receipt.json",
+  }
+}
+
+///|
+fn application_run_files() -> @application.NativeRemoteApplicationRunFiles {
+  {
+    run_definition: "run-definition.json",
+    compiled_plan: "compiled-plan.json",
+    invocation_template: "invocation-template.json",
+    prepared_invocation: "prepared-invocation.json",
+    run_authorization: "run-authorization.json",
   }
 }
 
@@ -777,6 +795,25 @@ fn execute_checked(matches : @argparse.Matches) -> Unit raise CommandStop {
       stop("application admission failed")
     }
   }
+  // Dispatches name the admitted Run by its Run definition CID.
+  let run_definition_cid = match
+    @application.admit_native_remote_application_run(
+      app,
+      application_root,
+      application_files(),
+      application_run_files(),
+      max_file_bytes,
+    ) {
+    Ok(value) => value
+    Err(_) => {
+      ignore(client.close())
+      ignore(transfer_journal.close())
+      ignore(dispatch_journal.close())
+      ignore(bundles.release(process_hold_id))
+      ignore(bundles.close())
+      stop("application Run admission failed")
+    }
+  }
   let codec = match
     @remote_standard.register_native_remote_standard_row_codec(
       input_schema_cid, input_view_cid, input_codec_cid,
@@ -827,6 +864,7 @@ fn execute_checked(matches : @argparse.Matches) -> Unit raise CommandStop {
   let application_site = match
     @application.open_native_remote_application_store_site_distribution(
       app,
+      run_definition_cid,
       transfer_journal,
       transfer_root,
       codec,

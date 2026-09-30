@@ -118,3 +118,81 @@ test "unknown execution restoration rejects obsolete nested dispatch" {
   // Rejection cannot mutate the retained current owner or authorize execution.
   assert_eq(dispatch_record_durable_json(record), Ok(body))
 }
+
+///|
+test "dispatch envelope carries typed run materials as a separate body" {
+  let request_body = "{\"budget_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"connector_registration\":\"local\",\"connector_revision\":\"local/1\",\"coordinator_authority\":\"coordinator-a\",\"dispatch_id\":\"dispatch-a\",\"evidence_issuer_capability_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"grant_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"input_binding_cid\":\"sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a\",\"obligations_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"run_definition_cid\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"runtime_bundle_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"site_generation\":1,\"site_key\":\"site-a\",\"strategy_revision\":\"strategy/1\",\"task_attempt\":1,\"task_key\":\"task-a\",\"version\":\"actql-remote-dispatch-request/0.1\"}"
+  let request = admit_dispatch_request_json(
+    request_body,
+    "sha256:" + @sha.text_hex(request_body).unwrap(),
+  ).unwrap()
+  let binding = prepare_remote_input_binding("{}", 16).unwrap()
+  let plain = admit_remote_poll_dispatch_json(
+    remote_poll_dispatch_json(request, binding).unwrap(),
+  ).unwrap()
+  assert_true(remote_poll_dispatch_run_materials(plain) is None)
+  let materials = "{\"version\":\"materials-under-test\"}"
+  let body = remote_poll_dispatch_materials_json(request, binding, materials).unwrap()
+  // Keys are canonical: the materials sit beside, not inside, the binding.
+  assert_true(
+    body.has_suffix(
+      ",\"run_materials_json\":\"{\\\"version\\\":\\\"materials-under-test\\\"}\",\"version\":\"actql-remote-poll-dispatch-materials/0.1\"}",
+    ),
+  )
+  let admitted = admit_remote_poll_dispatch_json(body).unwrap()
+  assert_eq(remote_poll_dispatch_run_materials(admitted), Some(materials))
+  assert_eq(
+    dispatch_request_identity(remote_poll_dispatch_request(admitted)),
+    dispatch_request_identity(request),
+  )
+  assert_eq(
+    remote_input_binding_body(remote_poll_dispatch_input_binding(admitted)),
+    "{}",
+  )
+  // Each version admits exactly its own field set.
+  assert_true(
+    admit_remote_poll_dispatch_json(
+      body.replace(
+        old="actql-remote-poll-dispatch-materials/0.1",
+        new="actql-remote-poll-dispatch/0.1",
+      ),
+    )
+    is Err(_),
+  )
+  let plain_body = remote_poll_dispatch_json(request, binding).unwrap()
+  assert_true(
+    admit_remote_poll_dispatch_json(
+      plain_body.replace(
+        old="actql-remote-poll-dispatch/0.1",
+        new="actql-remote-poll-dispatch-materials/0.1",
+      ),
+    )
+    is Err(_),
+  )
+  // Materials are bounded and never empty.
+  assert_true(
+    remote_poll_dispatch_materials_json(request, binding, "") is Err(_),
+  )
+  let oversized = "x".repeat(REMOTE_RUN_MATERIALS_MAX_BYTES + 1)
+  assert_true(
+    remote_poll_dispatch_materials_json(request, binding, oversized) is Err(_),
+  )
+  assert_true(
+    admit_remote_poll_dispatch_json(
+      body.replace(old=materials.escape(quote=false), new=oversized),
+    )
+    is Err(_),
+  )
+  // Exactly at the cap the materials are carried and admitted; the outer
+  // envelope grows past the inner size when the materials need escaping,
+  // and the envelope's own bound still covers it.
+  let at_cap = "\"".repeat(REMOTE_RUN_MATERIALS_MAX_BYTES)
+  let capped = remote_poll_dispatch_materials_json(request, binding, at_cap).unwrap()
+  assert_true(capped.length() > 2 * REMOTE_RUN_MATERIALS_MAX_BYTES)
+  assert_eq(
+    remote_poll_dispatch_run_materials(
+      admit_remote_poll_dispatch_json(capped).unwrap(),
+    ),
+    Some(at_cap),
+  )
+}

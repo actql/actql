@@ -1718,6 +1718,30 @@ pub fn strategy_result_serialization_contract_cid(
 }
 
 ///|
+#export_name("strategyDescribeCommittedResult")
+pub fn strategy_describe_committed_result(
+  index : @publication.PublicationContract,
+  manifest : @publication.PublicationContract,
+  result_name : String,
+  bindings : Array[@publication.PublicationContract],
+  definition : @publication.PublicationContract,
+  schema_wire : String,
+  format : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> String raise NodeHostFailure {
+  match
+    @publication.describe_committed_result(
+      index, manifest, result_name, bindings, definition, schema_wire, format, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    Ok(wire) => wire
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
 #export_name("strategyIssueManifestReadGrant")
 pub fn strategy_issue_manifest_read_grant(
   index : @publication.PublicationContract,
@@ -10379,6 +10403,30 @@ pub fn async_strategy_result_serialization_contract_cid(
       format, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
+    Err(_) => raise InvalidCommand
+  }
+}
+
+///|
+#export_name("asyncStrategyDescribeCommittedResult")
+pub fn async_strategy_describe_committed_result(
+  index : @publication.PublicationContract,
+  manifest : @publication.PublicationContract,
+  result_name : String,
+  bindings : Array[@publication.PublicationContract],
+  definition : @publication.PublicationContract,
+  schema_wire : String,
+  format : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> String raise AsyncHostFailure {
+  match
+    @publication.describe_committed_result(
+      index, manifest, result_name, bindings, definition, schema_wire, format, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    Ok(wire) => wire
     Err(_) => raise InvalidCommand
   }
 }

@@ -36,6 +36,23 @@ extern "C" fn create_client_ffi(
 ) -> Client = "actql_native_http_create_client"
 
 ///|
+#borrow(library, ca_path, certificate_path, key_path, bearer_path)
+extern "C" fn create_authenticated_client_ffi(
+  library : Library,
+  ca_path : Bytes,
+  ca_path_length : Int,
+  certificate_path : Bytes,
+  certificate_path_length : Int,
+  key_path : Bytes,
+  key_path_length : Int,
+  bearer_path : Bytes,
+  bearer_path_length : Int,
+  max_response_bytes : Int64,
+  connect_timeout_ms : Int,
+  operation_timeout_ms : Int,
+) -> Client = "actql_native_http_create_authenticated_client"
+
+///|
 #borrow(client)
 extern "C" fn client_ready_ffi(client : Client) -> Bool = "actql_native_http_client_ready"
 
@@ -166,6 +183,64 @@ pub fn Library::create_client(
 }
 
 ///|
+/// Create a client that authenticates by client certificate, by a bearer
+/// credential file read for every request, or by both.
+pub fn Library::create_authenticated_client(
+  self : Library,
+  ca_path : String,
+  authentication : NativeHttpAuthentication,
+  max_response_bytes : Int64,
+  connect_timeout_ms : Int,
+  operation_timeout_ms : Int,
+) -> Result[Client, NativeHttpIssue] {
+  let (certificate_path, key_path, bearer_path, configured) = match
+    authentication {
+    MutualTls(certificate, key) =>
+      (certificate, key, "", valid_path(certificate) && valid_path(key))
+    Bearer(bearer) => ("", "", bearer, valid_path(bearer))
+    MutualTlsAndBearer(certificate, key, bearer) =>
+      (
+        certificate,
+        key,
+        bearer,
+        valid_path(certificate) && valid_path(key) && valid_path(bearer),
+      )
+  }
+  if !valid_path(ca_path) ||
+    !configured ||
+    max_response_bytes < 0L ||
+    max_response_bytes > 2147483647L ||
+    connect_timeout_ms <= 0 ||
+    operation_timeout_ms <= 0 ||
+    operation_timeout_ms < connect_timeout_ms {
+    return Err(InvalidConfiguration)
+  }
+  let ca = @utf8.encode(ca_path)
+  let certificate = @utf8.encode(certificate_path)
+  let key = @utf8.encode(key_path)
+  let bearer = @utf8.encode(bearer_path)
+  let client = create_authenticated_client_ffi(
+    self,
+    ca,
+    ca.length(),
+    certificate,
+    certificate.length(),
+    key,
+    key.length(),
+    bearer,
+    bearer.length(),
+    max_response_bytes,
+    connect_timeout_ms,
+    operation_timeout_ms,
+  )
+  if client_ready_ffi(client) {
+    Ok(client)
+  } else {
+    Err(ClientCreate(decode_message(client_error_ffi(client))))
+  }
+}
+
+///|
 pub fn Client::post_json(
   self : Client,
   url : String,
@@ -187,6 +262,7 @@ pub fn Client::post_json(
     1 => Err(CapacityExceeded)
     2 => Err(Cancelled)
     3 => Err(Closed)
+    5 => Err(CredentialUnavailable)
     _ => Err(Transport(decode_message(client_error_ffi(self))))
   }
 }
@@ -242,7 +318,7 @@ fn encode_headers(headers : Array[NativeHttpHeader]) -> Bytes? {
 }
 
 ///|
-/// Perform one bounded mTLS request. The entire response is bounded by the
+/// Perform one bounded HTTPS request with the client's authentication. The entire response is bounded by the
 /// client configuration. Callers use this for control bodies and one admitted
 /// data chunk at a time, not for an unbounded whole-result materialization.
 pub fn Client::request(
@@ -279,6 +355,8 @@ pub fn Client::request(
     1 => Err(CapacityExceeded)
     2 => Err(Cancelled)
     3 => Err(Closed)
+    5 => Err(CredentialUnavailable)
+    6 => Err(InvalidRequest)
     _ => Err(Transport(decode_message(client_error_ffi(self))))
   }
 }

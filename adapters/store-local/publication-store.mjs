@@ -3317,18 +3317,19 @@ export async function openLocalPublicationStore(
     );
   };
 
-  const readCommittedResultRetentionExtension = async (
+  const readRetainedResultExtension = async (
     key,
     resultDefinitionCid,
+    metadataOnly = false,
   ) => {
     active();
     const selected = await requireCommittedResultBinding(
       key, resultDefinitionCid,
     );
     const keyHash = indexKey(key);
-    await requireResultNotDeleted(
-      keyHash, selected, resultDefinitionCid,
-    );
+    if (!metadataOnly) {
+      await requireResultNotDeleted(keyHash, selected, resultDefinitionCid);
+    }
     const record = await readResultRetentionExtension(
       keyHash, resultDefinitionCid,
     );
@@ -3344,6 +3345,27 @@ export async function openLocalPublicationStore(
       'result_retention_policy',
     );
     return Object.freeze({record, extension: extension.contract});
+  };
+
+  const readCommittedResultRetentionExtension = (key, resultDefinitionCid) =>
+    readRetainedResultExtension(key, resultDefinitionCid, false);
+
+  // Inspect the retained immutable schema and binding inventory. Payload
+  // deletion does not delete publication metadata; no generation is opened,
+  // hashed or held as a payload reader by this operation.
+  const readCommittedResultDescriptionEvidence = async (key, definitionCid) => {
+    active();
+    const selected = await requireCommittedResultBinding(key, definitionCid);
+    const bindings = await Promise.all(
+      selected.entry.durable_result_binding_cids.map(async cid =>
+        (await readContract(cid, 'durable_result_binding')).contract));
+    const schemaWire = (await readSemanticBytes(
+      selected.value.result_schema_cid)).toString('utf8');
+    const definition = (await readContract(
+      definitionCid, 'result_definition')).contract;
+    const retained = await readRetainedResultExtension(
+      key, definitionCid, true);
+    return Object.freeze({bindings, schemaWire, definition, retained});
   };
 
   const putCommittedResultRetentionExtension = async (
@@ -5023,6 +5045,7 @@ export async function openLocalPublicationStore(
     withCommittedResultRows,
     consumeCommittedResult,
     readCommittedResultRetentionExtension,
+    readCommittedResultDescriptionEvidence,
     putCommittedResultRetentionExtension,
     retireCommittedResult,
     retireCommittedPublicationMetadata,

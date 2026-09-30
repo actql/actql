@@ -46,6 +46,7 @@ const {admitEnvironment, prepare, compileValues, compiledPlanCid,
   executionShape, privateCompilationWires,
   resultDefinitions, resultSchema, prepareSourceFreeRequest,
   requestFields, issueAllowedRun, issueRunDefinition,
+  issueSourceFreeRunDefinition, issueSourceFreeRunMaterials,
   issueSourceFreeInvocation, inspectCanonicalResultRows,
   openResultDeliveryControl} =
   await import('@actql/run-host-core');
@@ -85,6 +86,17 @@ const allowed = issueAllowedRun(prepared, compilation, {
   hostPolicyCid: 'sha256:' + 'c'.repeat(64),
   expiresAt: '2099-01-01T00:00:00.000Z',
 });
+const sourceFreeDefinition = issueSourceFreeRunDefinition(prepared, compilation,
+  allowed.admission, 'packed-scope', 'packed-original',
+  '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z');
+const materials = JSON.parse(issueSourceFreeRunMaterials(prepared, compilation,
+  allowed.admission, sourceFreeDefinition, {document: readFileSync('values.json', 'utf8'),
+    format: 'json', environment, environmentWire}));
+assert.equal(materials.run_id, 'packed-original');
+assert.equal(materials.scope_id, 'packed-scope');
+assert.equal(materials.valid_until, '2027-01-01T00:00:00.000Z');
+assert.equal(materials.prepared_invocation, allowed.preparedInvocationWire);
+assert.equal(materials.run_authorization, allowed.authorizationWire);
 const definition = issueRunDefinition(allowed.admission,
   'packed-scope', 'packed-run', 'sha256:' + 'd'.repeat(64),
   '2026-09-24T00:00:00.000Z', '2027-01-01T00:00:00.000Z');

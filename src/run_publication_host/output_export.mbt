@@ -44,6 +44,7 @@ struct PublicationOutputExport {
   replay_wire : @execution.RowWireLimits
   max_batch_bytes : Int
   definition : @publication.PublicationContract?
+  declared_fields : Array[String]?
   mut receipt : @execution.CompletedRelationExportReceipt?
   mut evidence : @publication.ResultOrderingEvidence?
   mut artifact : @publication.PublicationContract?
@@ -80,6 +81,7 @@ pub fn prepare_publication_output_export(
     replay_wire: limits.payload_wire,
     max_batch_bytes: limits.max_batch_bytes,
     definition: None,
+    declared_fields: None,
     receipt: None,
     evidence: None,
     artifact: None,
@@ -120,6 +122,13 @@ pub fn prepare_result_publication_export(
     replay_wire: limits.payload_wire,
     max_batch_bytes: limits.max_batch_bytes,
     definition: Some(definition),
+    declared_fields: Some(
+      @results.fields(
+        @results.port_result(
+          @execution.managed_result_occurrence_port(occurrence),
+        ),
+      ),
+    ),
     receipt: None,
     evidence: None,
     artifact: None,
@@ -414,7 +423,21 @@ pub fn PublicationOutputExport::result_fields(
   self : PublicationOutputExport,
 ) -> Result[Array[String], PublicationOutputExportIssue] {
   guard self.receipt is Some(receipt) else { return Err(InvalidState) }
-  Ok(@execution.completed_relation_export_field_names(receipt))
+  // The receipt enumerates the canonical schema map. A checked Result's field
+  // declaration supplies presentation order, independently of payload key order.
+  match self.declared_fields {
+    Some(fields) => {
+      let exported = @execution.completed_relation_export_field_names(receipt)
+      guard fields.length() == exported.length() else {
+        return Err(InvalidState)
+      }
+      for field in fields {
+        guard exported.contains(field) else { return Err(InvalidState) }
+      }
+      Ok(fields.copy())
+    }
+    None => Ok(@execution.completed_relation_export_field_names(receipt))
+  }
 }
 
 ///|
