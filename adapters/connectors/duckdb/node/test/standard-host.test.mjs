@@ -2529,16 +2529,21 @@ async function exerciseStrategyGraph(
           runDefinitionCid: plan.runDefinition.identity,
         }, occurrence.definitionContract.identity, () => true,
         chunk => received.push(Buffer.from(chunk)));
-        const rows = JSON.parse(Buffer.concat(received).toString('utf8'));
-        const expectedRows = expectedResults[occurrence.name];
-        const unorderedEdgeProjection = publicationCase.step?.edge_rows ===
-          true || publicationCase.steps?.at(-1)?.edge_rows === true;
-        // edge_rows preserves values and multiplicity but does not prove order.
-        const compareRows = values => unorderedEdgeProjection
-          ? [...values].sort((left, right) =>
-            canonical(left).localeCompare(canonical(right)))
-          : values;
-        assert.deepEqual(compareRows(rows), compareRows(expectedRows));
+        const actual = JSON.parse(Buffer.concat(received).toString('utf8'));
+        const expected = expectedResults[occurrence.name];
+        assert.deepEqual(
+          actual,
+          expected,
+          `${publicationCase.name}/${occurrence.name}`,
+        );
+        if (publicationCase.name === 'edge-rows' &&
+            occurrence.name === 'published') {
+          assert.throws(
+            () => assert.deepEqual([...actual].reverse(), expected),
+            {code: 'ERR_ASSERTION'},
+            'the published edge-row assertion must reject reversed output',
+          );
+        }
       }
     } finally {
       if (sgaPublicationOwner !== undefined) {
@@ -4883,6 +4888,30 @@ async function exerciseStrategyGraph(
     }],
     fields: ['delta'],
   }, {
+    name: 'retained-graph-diff-filter-in-flight',
+    retainedOutput: true,
+    selectedStructural: true,
+    rows: 2,
+    advanceQuantum: 1,
+    constructionStarts: [1, 2],
+    constructionProgress: 8,
+    cancelOnManagedStart: 3,
+    managedStarts: 3,
+    cancelTask: 4,
+    completedTasks: [1, 2, 3],
+    steps: [{
+      graph: {
+        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
+        edges: {
+          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
+        },
+      },
+      as: 'right_graph',
+    }, {
+      from: 'g', graph_diff: {with: 'right_graph'}, as: 'out',
+    }],
+    fields: ['delta'],
+  }, {
     name: 'graph-apply-delta-in-flight',
     rows: 2,
     advanceQuantum: 1,
@@ -5604,6 +5633,7 @@ async function exerciseStrategyGraph(
       'graphs-equal-in-flight', 'graph-diff-in-flight',
       'graph-apply-delta-in-flight',
       'retained-graphs-equal-filter-in-flight',
+      'retained-graph-diff-filter-in-flight',
     ].includes(cancellationCase.name);
     const teaTransform = cancellationCase.operation === 'window-fixed'
       ? {window_events: {kind: 'fixed', size: 10}}

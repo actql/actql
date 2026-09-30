@@ -91,3 +91,28 @@ test "graph row projection alone does not claim canonical logical order" {
     assert_true(@pipeline.logical_order(p, Step(2)) is None)
   }
 }
+
+///|
+test "nullable Graph edge labels use projected Result order" {
+  let p = @pipeline.check_carriers(
+    cursor(ordered_graph_source("\"edge_rows\":true,\"as\":\"out\"")),
+    [],
+    None,
+    None,
+    ranking_limits(),
+  ).unwrap()
+  let results = @relation_results.check(
+    p,
+    cursor("{\"out\":{\"from\":\"out\",\"fields\":[\"src\",\"dst\",\"rel\"]}}"),
+    limits(),
+  ).unwrap()
+  let order = resolve(results)
+  assert_eq(@relation_results.publication_strategy(order), ProjectedFields)
+  assert_true(@relation_results.publication_key(order) is None)
+  for (index, name) in [(0, "src"), (1, "dst"), (2, "rel")] {
+    let term = @relation_results.publication_term_at(order, index).unwrap()
+    assert_eq(@relation_results.publication_term_field(term), Unqualified(name))
+    assert_eq(@relation_results.publication_term_direction(term), Asc)
+    assert_eq(@relation_results.publication_term_nulls(term), Last)
+  }
+}
