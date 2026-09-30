@@ -1,0 +1,5 @@
+FROM tickets AS old
+|> INFER `model-task:risk-score.v1`
+     ITEM KEY (id)
+     INPUT (text = text)
+     AS assessment

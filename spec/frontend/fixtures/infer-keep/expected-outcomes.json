@@ -1,0 +1,26 @@
+{
+  "execution_status":"not_run",
+  "contract":"model-task:risk-score.v1",
+  "input":{"type":"object","nullable":false,"fields":{"text":{"type":"string","nullable":true}}},
+  "success_value":{"type":"object","nullable":false,"fields":{"risk":{"type":"string","nullable":false},"reason":{"type":"string","nullable":true}}},
+  "result_columns":[
+    {"name":"id","contract":{"type":"string","nullable":false}},
+    {"name":"note","contract":{"type":"string","nullable":true}},
+    {"name":"assessment","contract":{"type":"object","nullable":false,"fields":{
+      "input_key":{"type":"object","nullable":false,"fields":{"id":{"type":"string","nullable":false}}},
+      "outcome":{"type":"string","nullable":false},
+      "value":{"type":"object","nullable":true,"fields":{"risk":{"type":"string","nullable":false},"reason":{"type":"string","nullable":true}}}
+    }}}
+  ],
+  "flat_captured_rows":[
+    {"id":"a","outcome":"ok","value":{"risk":"high","reason":null}},
+    {"id":"b","outcome":"failed:refusal","value":null}
+  ],
+  "kept_rows":[
+    {"id":"a","note":"urgent","assessment":{"input_key":{"id":"a"},"outcome":"ok","value":{"risk":"high","reason":null}}},
+    {"id":"b","note":null,"assessment":{"input_key":{"id":"b"},"outcome":"failed:refusal","value":null}}
+  ],
+  "filtered_rows":[{"id":"a","risk":"high"}],
+  "empty_rows":[],
+  "outcomes":["ok","failed:rate_limit","failed:timeout","failed:provider_error","failed:refusal","failed:schema_invalid","failed:safety_rejected","failed:truncated"]
+}

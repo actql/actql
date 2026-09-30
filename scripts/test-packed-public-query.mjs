@@ -67,6 +67,9 @@ const runtimeEnvironment = {...environment,
 if (process.argv.includes('--alias-scope-only')) {
   runtimeEnvironment.ACTQL_TEST_PIPE_SCOPE_ONLY = '1';
 }
+if (process.argv.includes('--infer-refusal-only')) {
+  runtimeEnvironment.ACTQL_TEST_INFER_REFUSAL_ONLY = '1';
+}
 for (const name of ['MOON_HOME', 'ACTQL_LOCAL_SOURCE_PROFILE',
   'ACTQL_LOCAL_EFFECT_PROFILE', 'ACTQL_LOCAL_STATE_DIR']) {
   delete runtimeEnvironment[name];
@@ -79,7 +82,8 @@ if (process.argv.includes('--cancellation-only')) {
 const output = run(process.execPath, ['acceptance.mjs'], root,
   runtimeEnvironment, 900_000);
 console.log(output.trimEnd());
-if (process.argv.includes('--alias-scope-only')) return;
+if (process.argv.includes('--alias-scope-only') ||
+  process.argv.includes('--infer-refusal-only')) return;
 console.log(run(process.execPath, ['sga-cancellation.mjs'], root,
   runtimeEnvironment, 120000).trimEnd());
 run('moon', ['build', '--target', 'native', '--release',
