@@ -17,8 +17,9 @@ await withPackedQueryEvidence({scratch, revision: revision.stdout.trim(),
   keepArtifacts: process.argv.includes('--keep-artifacts')},
 async ({root, directory, run: capture, recordTarball}) => {
 const environment = {...process.env, npm_config_cache: join(root, 'npm-cache')};
-function run(command, args, cwd = root, env = environment) {
-  return capture(command, args, {cwd, env});
+function run(command, args, cwd = root, env = environment,
+  timeout = 240_000) {
+  return capture(command, args, {cwd, env, timeout});
 }
 console.log(`Packed public-query evidence: ${directory}`);
 const packages = ['client-wire', 'sdk', 'run-host-core', 'local-node', 'node'];
@@ -61,7 +62,8 @@ for (const name of ['MOON_HOME', 'ACTQL_LOCAL_SOURCE_PROFILE',
   'ACTQL_LOCAL_EFFECT_PROFILE', 'ACTQL_LOCAL_STATE_DIR']) {
   delete runtimeEnvironment[name];
 }
-const output = run(process.execPath, ['acceptance.mjs'], root, runtimeEnvironment);
+const output = run(process.execPath, ['acceptance.mjs'], root,
+  runtimeEnvironment, 900_000);
 console.log(output.trimEnd());
 run('moon', ['build', '--target', 'native', '--release',
   'src/cmd/native_client'], repository, environment);
