@@ -1678,6 +1678,7 @@ async function exerciseStrategyGraph(
           ? bytes : 0, cleanupPending}),
         reserve: value => (writer = store.reserve(value)),
         close() {
+          options.beforeClose?.();
           closed = true;
           if (lease === options.failCleanupLease) cleanupPending = true;
           else writer?.cancel();
@@ -3912,6 +3913,28 @@ async function exerciseStrategyGraph(
       {id: 2, embedding: [0, 2], score: 0},
     ],
   }, {
+    name: 'relation-vectors-pool',
+    source: carrierVectorPublicationProgram,
+    create: program => fixture.strategyFixtureVecaCreate(
+      ...args, JSON.stringify(program), orderedContract),
+    configure: value => fixture.strategyFixtureVecaRetainedSubset(value),
+    relationSource: true,
+    transform: {
+      from: 'source',
+      pool_vectors: {vector: 'embedding', by: ['group'], method: 'sum'},
+      as: 'pooled',
+    },
+    additionalTransforms: [{
+      from: 'pooled', normalize_vectors: true, as: 'same_carrier',
+    }],
+    fields: ['group', 'embedding', 'member_count'],
+    secondFields: ['member_count', 'embedding', 'group'],
+    rows: [
+      {id: 2, group: 1, embedding: [0, 2]},
+      {id: 1, group: 1, embedding: [3, 4]},
+    ],
+    expectedRows: [{group: 1, embedding: [3, 6], member_count: 2}],
+  }, {
     name: 'vectors-pool',
     source: carrierVectorPublicationProgram,
     create: program => fixture.strategyFixtureVecaCreate(
@@ -3935,7 +3958,7 @@ async function exerciseStrategyGraph(
     const directProgram = structuredClone(carrierCase.source);
     const rowStep = directProgram.stages[1].steps[0];
     rowStep.as = 'rows';
-    if (carrierCase.name === 'vectors-pool') {
+    if (carrierCase.name === 'vectors-pool' || carrierCase.relationSource) {
       rowStep.values.schema.group = {type: 'number', nullable: false};
     }
     rowStep.values.rows = carrierCase.rows;
@@ -3943,9 +3966,12 @@ async function exerciseStrategyGraph(
     carrierStage.inputs = {};
     carrierStage.steps = [
       rowStep,
-      carrierStage.steps[0],
+      carrierCase.relationSource
+        ? {from: 'rows', assert_rows: {unique_by: ['id']}, as: 'source'}
+        : carrierStage.steps[0],
       ...(carrierCase.additionalSteps ?? []),
       ...(carrierCase.transform ? [carrierCase.transform] : []),
+      ...(carrierCase.additionalTransforms ?? []),
       carrierCase.relationOutput
         ? {filter: 'true', as: 'out'} : carrierStage.steps.at(-1),
     ];
@@ -4064,6 +4090,151 @@ async function exerciseStrategyGraph(
       await directStore?.close();
       await rm(directDirectory, {recursive: true, force: true});
       await directRetained.close();
+    }
+  }
+  // Relation pooling retains its source generation until confirmed stop;
+  // cleanup retry must not invoke the selected Compute again.
+  for (const {name} of [{name: 'relation-pool-in-flight-cancel'},
+    {name: 'relation-pool-consumer-failure-cleanup'}]) {
+    const cancelling = name === 'relation-pool-in-flight-cancel';
+    const fields = ['group', 'candidate_id', 'embedding', 'member_count'];
+    const program = structuredClone(carrierVectorPublicationProgram);
+    program.stages[2].inputs = {};
+    program.stages[2].steps = [{
+      values: {schema: {
+        id: {type: 'number', nullable: false},
+        group: {type: 'number', nullable: false},
+        embedding: {type: 'vector', dimensions: 2, nullable: false},
+      }, rows: [{id: 2, group: 1, embedding: [0, 2]},
+        {id: 1, group: 1, embedding: [3, 4]}]}, as: 'rows',
+    }, {
+      from: 'rows', assert_rows: {unique_by: ['id']}, as: 'keyed',
+    }, {
+      from: 'keyed', pool_vectors: {vector: 'embedding', by: ['group'],
+        method: 'sum', output_id: 'candidate_id'}, as: 'pooled',
+    }, {from: 'pooled', vectors: true, as: 'out'}];
+    program.stages[2].results.r.fields = fields;
+    program.stages.splice(1, 1);
+    for (const consumer of program.stages.slice(2)) {
+      consumer.steps = !cancelling && consumer.id === 'consumer_a' ? [{
+        filter: '1 / (candidate_id - candidate_id) > 0', as: 'filtered',
+      }, {from: 'filtered', select: fields, as: 'out'}]
+        : [{select: fields, as: 'out'}];
+      consumer.results.r.fields = fields;
+    }
+    const poolFixture = fixture.strategyFixtureVecaCreate(
+      ...args, JSON.stringify(program), orderedContract);
+    const capture = await runNativeHostQuery(grant,
+      fixture.strategyFixtureAcquisition(poolFixture), suppliedLimits);
+    const directory = await mkdtemp(join(root,
+      `_build/duckdb-fixtures/${name}-`));
+    const cancellation = new AbortController();
+    let entrances = 0, scheduled = false, stopped = false;
+    let advanced = false;
+    const retained = await createCarrierRetainedStore(name, {
+      failCleanupLease: cancelling ? undefined : 1,
+      beforeClose() {
+        if (cancellation.signal.aborted) {
+          assert.equal(stopped, true, 'pool input release must follow stop');
+        }
+      },
+    });
+    const observed = new Proxy(hostRuntime, {
+      get(target, property, receiver) {
+        if (property !== 'strategyModule_local_Dispatch' &&
+            property !== 'strategyModule_local_ManagedStart') {
+          return Reflect.get(target, property, receiver);
+        }
+        return (...args) => {
+          const entrance = ++entrances;
+          const operations = checked(target[property](...args));
+          return {$tag: 1, _0: new Proxy(operations, {
+            get(operation, member, receiver) {
+              if (member === 'execute') assert.fail('pool used synchronous execution');
+              if (member === 'execution_stopped') return () => {
+                const value = operation.execution_stopped();
+                if (entrance === 3 && cancellation.signal.aborted && value) stopped = true;
+                return value;
+              };
+              if (member !== 'advance') return Reflect.get(operation, member, receiver);
+              return quantum => {
+                const value = operation.advance(Math.min(quantum, 1));
+                const poll = checked(value);
+                if (entrance === 3 && !poll.complete && poll.progress > 0n) {
+                  advanced = true;
+                  if (cancelling && !scheduled) {
+                    scheduled = true;
+                    setTimeout(() => cancellation.abort(), 0);
+                  }
+                }
+                return value;
+              };
+            },
+          })};
+        };
+      },
+    });
+    const host = createNodeHostEntry(() => observed, installStrategyContributions);
+    let store, execution, closeAttempted = false;
+    try {
+      assert.equal(fixture.strategyFixtureOpen(poolFixture, capture.source()), true);
+      const setup = fixture.strategyFixtureVecaRetainedSubset(poolFixture);
+      const runtime = runtimeCore(observed);
+      store = await openLocalPublicationStore({
+        directory, storeAuthorityCid: hash(`${name}-store`),
+        capacityBytes: 4 * 1024 * 1024,
+        maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+        maxObjects: 100, maxContractNodes: 10000, maxContractDepth: 64,
+      }, runtime.publicationControl);
+      const plan = standardPublicationPlan(runtime,
+        runtime.programDefinitionCid(setup), runtime.resultInventory(setup).length, name);
+      await assert.rejects(host.runPublishedCapturedStrategy(setup,
+        {store, plan}, {local: retained.configuration}, cancellation.signal), error => {
+        execution = error.execution;
+        return error.code === 'CapturedRunPublicationFailed';
+      });
+      assert.equal(execution.status, 'host-tasks-failed');
+      assert.equal(advanced, true);
+      assert.equal(entrances, cancelling ? 3 : 5);
+      assert.deepEqual(execution.completed.map(value => value.task),
+        cancelling ? [1, 2] : [1, 2, 3, 4]);
+      if (cancelling) {
+        assert.equal(stopped, true);
+        assert.equal(execution.failure?.name, 'AbortError');
+      } else {
+        assert.equal(execution.failure?.code, 'MoonBitHostFailure');
+        assert.equal(fixture.strategyFixtureVecaConsumerFilterArithmetic(
+          execution.failure.cause), true);
+      }
+      await assert.rejects(store.lookupCommittedIndex({
+        namespaceId: plan.request.namespaceId,
+        authorityScopeCid: plan.request.authorityScopeCid,
+        runDefinitionCid: plan.runDefinition.identity,
+      }, () => true), /PublicationLookupDenied/);
+      const atFailure = entrances;
+      closeAttempted = true;
+      if (!cancelling) {
+        await assert.rejects(async () => execution.close(),
+          /InjectedCarrierRetainedCleanupPending/);
+        assert.equal(execution.cleanupPending(), true);
+        assert(execution.usage().heldBytes > 0n ||
+          execution.usage().reservedExecutionBytes > 0n);
+        assert.equal(entrances, atFailure);
+        retained.permitCleanup();
+      } else await execution.close();
+      assert.equal(await execution.cleanup(), true);
+      assert.equal(entrances, atFailure);
+      assert.equal(execution.cleanupPending(), false);
+      assert.equal(execution.usage().heldBytes, 0n);
+      assert.equal(execution.usage().reservedExecutionBytes, 0n);
+    } finally {
+      retained.permitCleanup();
+      if (execution !== undefined && !closeAttempted) await execution.close();
+      await execution?.cleanup();
+      capture.close();
+      await store?.close();
+      await retained.close();
+      await rm(directory, {recursive: true, force: true});
     }
   }
   // Sequence matching is a Relation-producing Events consumer. Its selected

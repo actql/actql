@@ -9314,6 +9314,20 @@
       },
       "boundary_tests": [
         {
+          "role": "pool_relation_registered_limits_stop_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "registered Relation pool retains exact limits and stopped cleanup"
+        },
+        {
+          "role": "pool_relation_registered_generation",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "fixture": "registered Relation pool returns a standalone Vectors generation"
+        },
+        {
           "role": "pool_view_work_workspace_exact_one_short",
           "suite": "moon:local_veca",
           "targets": ["js", "wasm", "native"],
@@ -9418,7 +9432,21 @@
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "vector-pool-relation"
+          "fixture": "relation-pool-in-flight-cancel"
+        },
+        {
+          "role": "pool_relation_retained_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "relation-vectors-pool"
+        },
+        {
+          "role": "pool_relation_retained_failure_cleanup_retry",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "relation-pool-consumer-failure-cleanup"
         },
         {
           "role": "pool_view_host_in_flight_cancel",
@@ -9439,7 +9467,7 @@
           "exact_limit": "pool_relation_work_exact_one_short",
           "one_short_limit": "pool_relation_workspace_exact_one_short",
           "in_flight_cancel": "pool_relation_host_in_flight_cancel",
-          "cleanup": "pool_relation_kernel_cancel_cleanup"
+          "cleanup": "pool_relation_registered_limits_stop_cleanup"
         },
         "view_entrypoint": {
           "exact_limit": "pool_view_work_workspace_exact_one_short",
@@ -9461,12 +9489,12 @@
         },
         "relation_entrypoint": {
           "work": {
-            "exact_limit": "pool_relation_work_exact_one_short",
-            "one_short_limit": "pool_relation_work_exact_one_short"
+            "exact_limit": "pool_relation_registered_generation",
+            "one_short_limit": "pool_relation_registered_limits_stop_cleanup"
           },
           "workspace": {
-            "exact_limit": "pool_relation_workspace_exact_one_short",
-            "one_short_limit": "pool_relation_workspace_exact_one_short"
+            "exact_limit": "pool_relation_registered_generation",
+            "one_short_limit": "pool_relation_registered_limits_stop_cleanup"
           }
         },
         "view_entrypoint": {

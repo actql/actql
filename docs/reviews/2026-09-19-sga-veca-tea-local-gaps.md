@@ -876,6 +876,33 @@ Linux CI remain separate evidence; Native Host cancellation remains separate.
 
 #### Mixed retained Store and typed Carrier paths
 
+Relation-input `pool_vectors` can now execute as a selected one-step task
+and return its Vectors generation before a later formal `vectors` Bridge.
+Previously, its standalone provider required a Carrier view even for a
+checked Relation input; the Relation kernel was reachable only in the fused
+pool/projection pair. The provider now distinguishes the checked input Carrier
+and starts the existing `start_relation_pool` at the exact global step. The
+selected capability accepts a Relation view only for `VEC.pool`. No member
+identity, ordering, numeric fold, storage algorithm or completion owner changed.
+The existing fused Relation pool/projection and Vectors-input paths remain
+regression controls.
+
+The registered-provider fixture tests both standalone and selected execution,
+including a selected pool at a nonzero source step, independent exact work
+32/31 and workspace 18/17, positive-progress stop and cleanup, and rejection of
+a foreign input owner. It derives these limits from the existing one-record
+Relation kernel proof, not measured successful execution. A completed Vectors
+generation survives provider cleanup until its own reclamation.
+
+The retained Host fixtures connect Values, candidate-key validation, Relation
+pooling, an actual Vectors consumer and the formal Relation projection in an
+ordinary Stage. They compare three explicit Named Results against independent
+ordered rows, deliver a timer cancellation inside pooling, and preserve typed
+later-consumer arithmetic failure and an input Store cleanup responsibility
+through retry without redispatch. These describe the new acceptance fixtures;
+local execution and Linux CI results are separate verification evidence. They
+do not add Events/Vectors serialization or Native Host cancellation delivery.
+
 The registered as-of provider now accepts a checked Events generation on its
 left port and a Relation on its right port. The two typed readers share the
 existing identity validation, clock conversion, bounded candidate search,
