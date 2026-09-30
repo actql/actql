@@ -643,6 +643,32 @@ export function admitSourceFreeRunDefinition(prepared, compilation,
   return handle(definitions, value, 'run-definition');
 }
 
+/** Project the original Run; this does not compile or issue authorization. */
+export function issueSourceFreeRunMaterials(prepared, compilation, admission,
+  definition, retained) {
+  const compiled = requireHandle(compilations, compilation);
+  const admitted = requireHandle(admissions, admission);
+  if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  if (retained === null || typeof retained !== 'object' ||
+      Array.isArray(retained) || retained.format !== 'json' ||
+      typeof retained.document !== 'string' ||
+      typeof retained.environmentWire !== 'string' ||
+      retained.parametersWire !== undefined &&
+        typeof retained.parametersWire !== 'string' ||
+      Object.keys(retained).some(key => !['format', 'document',
+        'environment', 'environmentWire', 'parametersWire'].includes(key))) {
+    throw new TypeError('InvalidRunHostRunMaterialsInput');
+  }
+  return checked(owner.clientValuesHostIssueSourceFreeRunMaterials(
+    requireHandle(preparations, prepared), compiled.value, admitted.value,
+    requireHandle(definitions, definition),
+    requireHandle(environments, retained.environment),
+    retained.environmentWire, retained.document, retained.parametersWire),
+  'RunHostRunMaterialsRejected');
+}
+
 export function prepareRunStart(requested, retained, definition,
   retainedRunDefinitionCid, dispatchReserved, currentAuthorization) {
   if (typeof retainedRunDefinitionCid !== 'string' ||

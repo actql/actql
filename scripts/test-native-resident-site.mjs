@@ -87,6 +87,9 @@ try {
     'connectors_builtin_node.js')).href);
   const coordinator = await import(pathToFileURL(join(repository,
     'packages/coordinator-core/index.mjs')).href);
+  const runHost = await import(pathToFileURL(
+    process.env.ACTQL_TEST_RUN_HOST_CORE_MODULE ??
+      join(repository, 'packages/run-host-core/index.mjs')).href);
   const portable = runtimeCore(moonModule);
   const siteControl = portable.remoteSiteControl;
 
@@ -232,20 +235,37 @@ try {
   const definition = portable.publicationControl.defineCheckedClientCompiledRun(
     compiled, {namespaceId: 'resident-scope', runId: 'resident-run-1',
       createdAt, validUntil});
-  const materials = JSON.stringify({
-    check_environment: environmentWire,
-    check_environment_cid: environmentCid,
-    created_at: createdAt,
-    parameters: null,
-    prepared_invocation: compiled.preparedEvidence.wire,
-    program: programText,
-    program_format: 'json',
-    run_authorization: compiled.authorization.wire,
-    run_id: 'resident-run-1',
-    scope_id: 'resident-scope',
-    valid_until: validUntil,
-    version: 'actql-remote-run-materials/0.1',
-  });
+  // Restore the original owners from retained evidence. The new issuer only
+  // projects them: it cannot authorize, recompile or issue a replacement Run.
+  const retainedEnvironment = runHost.admitEnvironment(environmentWire,
+    environmentCid, {rela: true});
+  const retainedPrepared = runHost.prepare(programText, 'json', retainedEnvironment);
+  const retainedCompilation = runHost.compileValues(retainedPrepared);
+  const retainedAdmission = runHost.admitRun(retainedPrepared, retainedCompilation,
+    compiled.preparedEvidence.wire, compiled.authorization.wire);
+  const retainedDefinition = runHost.admitSourceFreeRunDefinition(retainedPrepared,
+    retainedCompilation, retainedAdmission, definition.wire);
+  const materials = runHost.issueSourceFreeRunMaterials(retainedPrepared,
+    retainedCompilation, retainedAdmission, retainedDefinition, {
+      environment: retainedEnvironment, environmentWire,
+      document: programText, format: 'json',
+    });
+  assert.equal(runHost.privateRunDefinition(retainedDefinition).cid, definition.identity);
+  const projected = JSON.parse(materials);
+  assert.equal(projected.prepared_invocation, compiled.preparedEvidence.wire);
+  assert.equal(projected.run_authorization, compiled.authorization.wire);
+  assert.equal(projected.run_id, 'resident-run-1');
+  assert.equal(projected.scope_id, 'resident-scope');
+  assert.equal(projected.created_at, createdAt);
+  assert.equal(projected.valid_until, validUntil);
+  // Individual inputs remain valid, but quoting both makes the aggregate
+  // materials exceed the cap. Exercise this through the installed issuer too.
+  assert.throws(() => runHost.issueSourceFreeRunMaterials(retainedPrepared,
+    retainedCompilation, retainedAdmission, retainedDefinition, {
+      environment: retainedEnvironment, environmentWire, format: 'json',
+      document: '\t'.repeat(65536 - Buffer.byteLength(programText)) + programText,
+      parametersWire: '\t'.repeat(65534) + '{}',
+    }), {code: 'RunHostRunMaterialsRejected'});
   const operationCapability = physicalCid('resident-operation-capability');
   const issuerCapability = physicalCid('resident-issuer-capability');
   const budget = siteControl.prepareBudget({retainedBytes: 1048576n,
@@ -277,8 +297,6 @@ try {
     coordinator.admitDispatchJson(siteControl.requestJson(dispatch),
       siteControl.identity(dispatch)), '{}', 16, materials);
   // The Result the Coordinator publishes, from the ordinary Client owners.
-  const runHost = await import(pathToFileURL(join(repository,
-    'packages/run-host-core/index.mjs')).href);
   const hostPrepared = runHost.prepare(programText, 'json',
     runHost.admitEnvironment(environmentWire, environmentCid, {rela: true}));
   const resultDefinitionCid = runHost.resultDefinitions(hostPrepared,
@@ -398,11 +416,15 @@ try {
     }
     throw new Error(`timed out waiting for ${what}`);
   };
-  const within = (promise, what, milliseconds = 60_000) => Promise.race([
-    promise,
-    new Promise((_, reject) => setTimeout(() =>
-      reject(new Error(`timed out waiting for ${what}`)), milliseconds)),
-  ]);
+  const within = async (promise, what, milliseconds = 60_000) => {
+    let timer;
+    try {
+      return await Promise.race([promise, new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`timed out waiting for ${what}`)),
+          milliseconds);
+      })]);
+    } finally { clearTimeout(timer); }
+  };
   const entries = async () => existsSync(entryLog)
     ? (await readFile(entryLog, 'utf8')).split('\n').filter(Boolean) : [];
   const publicationRoot = join(root, 'publication');
@@ -478,6 +500,58 @@ try {
   await waitFor(() => site.lines.some(line => line.kind === 'holder-settled'),
     'first holder ended after release');
   assert.equal((await entries()).length, 1);
+
+  if (process.argv.includes('--materials-only')) {
+    // The exact public-package materials have traversed actual native admission
+    // and execution. Release ACK alone is not evidence of physical reclamation.
+    await waitFor(() => site.lines.some(line => line.kind === 'holder-released'),
+      'packed materials physical release');
+    const released = await within(gateway.query({dispatch: first}), 'packed release query');
+    assert.equal(released.state[2], 2);
+    assert.equal(reservedPayloadBytes(), 0);
+    assert.equal(pendingIntents().length, 0);
+    console.log(JSON.stringify({kind: 'packed-run-materials-verified',
+      runDefinitionCid: definition.identity,
+      dispatchRequestCid: siteControl.identity(first),
+      attempt: site.lines.find(line => line.kind === 'accepted').attempt,
+      executorEntries: 1, physicalCleanup: 'released',
+      reservedPayloadBytes: reservedPayloadBytes(), pendingOutputIntents: 0}));
+    site.child.kill('SIGTERM');
+    await site.exited;
+    for (const [index, mutate] of [
+      body => {
+        const input = JSON.parse(body.program);
+        input.stages[0].steps[0].values.rows[1].id = 3;
+        return {...body, program: JSON.stringify(input)};
+      },
+      body => { const {prepared_invocation, ...rest} = body; return rest; },
+    ].entries()) {
+      // One new control process per rejected offer: refusal logs deliberately
+      // have no request CID, so a previous offer's log cannot satisfy this wait.
+      const rejecting = startSite();
+      currentSite = rejecting;
+      const dispatch = dispatchFor(`packed-materials-refusal-${index}`, 90 + index);
+      const envelope = JSON.parse(materialsEnvelope(dispatch));
+      envelope.run_materials_json = JSON.stringify(mutate(projected));
+      const outcome = gateway.dispatch({dispatch, inputBindingBody: '{}',
+        dispatchEnvelope: JSON.stringify(envelope)}).catch(error => error);
+      await waitFor(() => rejecting.lines.some(line => line.kind === 'refused' &&
+        line.reason === 'materials-rejected'), `packed refusal ${index}`);
+      assert.equal(gateway.withdraw({dispatch}), true);
+      assert.equal((await within(outcome, 'withdraw rejected materials')).code,
+        'RemoteDispatchWithdrawn');
+      assert.equal((await within(gateway.query({dispatch}).catch(error => error),
+        'rejected materials query')).code, 'RemoteDispatchNotSeen');
+      assert.equal((await entries()).length, 1);
+      assert.equal(rejecting.lines.some(line => line.kind === 'accepted' ||
+        line.kind === 'holder-started'), false);
+      rejecting.child.kill('SIGTERM');
+      await rejecting.exited;
+    }
+    expectedEntries = 1;
+  }
+
+  if (!process.argv.includes('--materials-only')) {
 
   // 2. The same attempt delivered again is never started again.
   const again = await within(gateway.dispatch({dispatch: first,
@@ -1258,6 +1332,7 @@ try {
   }
 
   }
+  }
 
   // 23. A locally controlled clock advances at observed boundaries, not after
   // a guessed startup sleep. The executor evidence hook is not the barrier.
@@ -1267,9 +1342,8 @@ try {
     const clockRoot = join(root, `expiry-clock-${index}`);
     await mkdir(clockRoot);
     const clockPath = join(clockRoot, 'clock.txt');
-    // An expired, unclaimed acceptance remains queued by the existing owner
-    // rules. Isolate each case so that restoring another case's clock cannot
-    // revive that older queued acceptance.
+    // Isolate clock-controlled cases; the durable failure checks below also
+    // cover expiry after acceptance, without reviving a queued execution.
     const siteJournal = join(clockRoot, 'journal.sqlite3');
     const publication = join(clockRoot, 'publication');
     await mkdir(publication);
@@ -1332,6 +1406,7 @@ try {
     await expiredSite.exited;
   }
 
+  if (!process.argv.includes('--materials-only')) {
   // 24. A pre-claim expired queue head and a longer-lived successor share
   // one Site/journal. The head must become durably failed/released through
   // exclusive claim, never start, and never prevent the successor's start.
@@ -1358,10 +1433,15 @@ try {
   const laterDefinition = portable.publicationControl.defineCheckedClientCompiledRun(laterCompiled,
     {namespaceId: 'resident-scope', runId: 'resident-live-successor', createdAt,
       validUntil: laterUntil});
-  const laterMaterials = JSON.stringify({...JSON.parse(materials),
-    prepared_invocation: laterCompiled.preparedEvidence.wire,
-    run_authorization: laterCompiled.authorization.wire,
-    run_id: 'resident-live-successor', valid_until: laterUntil});
+  const laterAdmission = runHost.admitRun(retainedPrepared, retainedCompilation,
+    laterCompiled.preparedEvidence.wire, laterCompiled.authorization.wire);
+  const laterOwnedDefinition = runHost.admitSourceFreeRunDefinition(retainedPrepared,
+    retainedCompilation, laterAdmission, laterDefinition.wire);
+  const laterMaterials = runHost.issueSourceFreeRunMaterials(retainedPrepared,
+    retainedCompilation, laterAdmission, laterOwnedDefinition, {
+      environment: retainedEnvironment, environmentWire,
+      document: programText, format: 'json',
+    });
   const later = dispatchFor('resident-live-successor', 221,
     {runDefinitionCid: laterDefinition.identity});
   await writeFile(queueClockPath, validUntil);
@@ -1466,6 +1546,7 @@ try {
   assert.equal(pendingIntents().length, 0);
   lockedSite.child.kill('SIGTERM');
   await lockedSite.exited;
+  }
 
   // Each entry names one holder claimant and one attempt key; no attempt
   // key appears twice.
