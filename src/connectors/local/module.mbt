@@ -81,6 +81,7 @@ pub fn[T] prepare_local_module_managed_compute(
   request : @connector.ManagedFixedComputeRequest[T],
   interval_search_ceilings? : Array[(Int, Int64)] = [],
   asof_search_ceilings? : Array[(Int, Int64)] = [],
+  sequence_match_ceilings? : Array[(Int, Int64, Int64)] = [],
 ) -> Result[
   (
     @connector.PreparedManagedCompute[T, @execution.GeneratedSequence],
@@ -95,6 +96,7 @@ pub fn[T] prepare_local_module_managed_compute(
     [{ work_slots: [0, 1, 2, 3, 4], milliseconds: Some(1L), }],
     interval_search_ceilings~,
     asof_search_ceilings~,
+    sequence_match_ceilings~,
   )
 }
 
@@ -109,6 +111,7 @@ pub fn[T] prepare_local_module_managed_compute_with_estimates(
   estimates : Array[@cost.SerialEstimateLine],
   interval_search_ceilings? : Array[(Int, Int64)] = [],
   asof_search_ceilings? : Array[(Int, Int64)] = [],
+  sequence_match_ceilings? : Array[(Int, Int64, Int64)] = [],
 ) -> Result[
   (
     @connector.PreparedManagedCompute[T, @execution.GeneratedSequence],
@@ -130,6 +133,15 @@ pub fn[T] prepare_local_module_managed_compute_with_estimates(
   for (step, ceiling) in asof_search_ceilings {
     sequence = match
       @execution.constrain_generated_asof_search(sequence, step, ceiling) {
+      Ok(value) => value
+      Err(issue) => return Err(Candidate(Execution(issue)))
+    }
+  }
+  for (step, matches, output) in sequence_match_ceilings {
+    sequence = match
+      @execution.constrain_generated_sequence_match_limits(
+        sequence, step, matches, output,
+      ) {
       Ok(value) => value
       Err(issue) => return Err(Candidate(Execution(issue)))
     }
@@ -197,6 +209,7 @@ pub(all) enum LocalBoundedTemporalRelationCheck {
   TimeSeries
   IntervalJoin
   AsOfJoin
+  SequenceMatch
 }
 
 ///|
@@ -217,7 +230,8 @@ pub fn local_module_bounded_temporal_relation_obligation(
     (@execution.generated_sequence_step_at(sequence, 0), check) {
     (Some(@lower.TimeSeriesStep(_)), TimeSeries)
     | (Some(@lower.IntervalJoinStep(_)), IntervalJoin)
-    | (Some(@lower.AsOfJoinStep(_)), AsOfJoin) => true
+    | (Some(@lower.AsOfJoinStep(_)), AsOfJoin)
+    | (Some(@lower.SequenceMatchStep(_)), SequenceMatch) => true
     _ => false
   }
   matches &&
@@ -735,6 +749,7 @@ pub fn[E] prepare_local_module_materializing_compute(
   expansion_output_ceilings? : Array[(Int, Int64)] = [],
   interval_search_ceilings? : Array[(Int, Int64)] = [],
   asof_search_ceilings? : Array[(Int, Int64)] = [],
+  sequence_match_ceilings? : Array[(Int, Int64, Int64)] = [],
   aggregate_output_ceilings? : Array[@connector.AggregateOutputCeiling] = [],
   analytic_envelopes? : Array[@connector.AnalyticEnvelope] = [],
 ) -> Result[
@@ -759,6 +774,7 @@ pub fn[E] prepare_local_module_materializing_compute(
     expansion_output_ceilings~,
     interval_search_ceilings~,
     asof_search_ceilings~,
+    sequence_match_ceilings~,
     aggregate_output_ceilings~,
     analytic_envelopes~,
     family_providers=installed.managed_providers,

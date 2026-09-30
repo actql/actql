@@ -327,6 +327,7 @@ pub fn constrain_local_managed_sequence(
   expansion_output_ceilings? : Array[(Int, Int64)] = [],
   interval_search_ceilings? : Array[(Int, Int64)] = [],
   asof_search_ceilings? : Array[(Int, Int64)] = [],
+  sequence_match_ceilings? : Array[(Int, Int64, Int64)] = [],
   aggregate_output_ceilings? : Array[@connector.AggregateOutputCeiling] = [],
   analytic_envelopes? : Array[@connector.AnalyticEnvelope] = [],
   numeric? : @execution.NumericAggregateExecution? = None,
@@ -363,6 +364,15 @@ pub fn constrain_local_managed_sequence(
   for (step, ceiling) in asof_search_ceilings {
     constrained = match
       @execution.constrain_generated_asof_search(constrained, step, ceiling) {
+      Ok(value) => value
+      Err(issue) => return Err(Execution(issue))
+    }
+  }
+  for (step, matches, output) in sequence_match_ceilings {
+    constrained = match
+      @execution.constrain_generated_sequence_match_limits(
+        constrained, step, matches, output,
+      ) {
       Ok(value) => value
       Err(issue) => return Err(Execution(issue))
     }

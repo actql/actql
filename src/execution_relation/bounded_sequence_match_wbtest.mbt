@@ -76,6 +76,7 @@ fn bounded_sequence_try_fixture(
   unicode? : Bool = false,
   extra_columns? : Int = 0,
   extra_patterns? : Int = 0,
+  constrain? : (GeneratedSequence) -> GeneratedSequence = value => value,
 ) -> (
   @bounded.Control,
   Result[BoundedSequenceMatchExecution, BoundedSequenceMatchIssue],
@@ -159,7 +160,7 @@ fn bounded_sequence_try_fixture(
   let control = @bounded.control()
   let execution = start_bounded_sequence_match(
     control,
-    generated,
+    constrain(generated),
     input,
     max_rows,
     run_limits().output_values,
@@ -183,6 +184,7 @@ fn bounded_sequence_fixture(
   max_entries? : Int = 10000,
   unicode? : Bool = false,
   extra_patterns? : Int = 0,
+  constrain? : (GeneratedSequence) -> GeneratedSequence = value => value,
 ) -> (@bounded.Control, BoundedSequenceMatchExecution, ProducerRead) raise {
   let (control, execution, input) = bounded_sequence_try_fixture(
     overlap~,
@@ -195,6 +197,7 @@ fn bounded_sequence_fixture(
     max_entries~,
     unicode~,
     extra_patterns~,
+    constrain~,
   )
   (control, execution.unwrap(), input)
 }
@@ -223,6 +226,67 @@ fn assert_bounded_sequence_scratch_reclaimed(
   assert_eq(state.output_row.length(), 0)
   assert_eq(state.checked_row.length(), 0)
   assert_eq(state.workspace.live, 0)
+}
+
+///|
+test "bounded sequence enforces independent selected match and output ceilings" {
+  // Key 1 produces two matches; key 2 produces one. These limits come from
+  // the hand-authored input and pattern, not a successful work observation.
+  for
+    (matches, output, succeeds) in [
+      (2L, 3L, true),
+      (1L, 3L, false),
+      (2L, 2L, false),
+    ] {
+    let (_, active, input) = bounded_sequence_fixture(constrain=value => {
+      constrain_generated_sequence_match_limits(value, 0, matches, output).unwrap()
+    })
+    let terminal = finish_bounded_sequence(active)
+    if succeeds {
+      assert_true(terminal is BoundedSequenceMatchComplete(_, ..))
+    } else {
+      assert_true(terminal is BoundedSequenceMatchFailed(Rows(RowLimit), ..))
+    }
+    assert_true(producer_read_available(input))
+    assert_true(cleanup_bounded_sequence_match(active).unwrap())
+    assert_bounded_sequence_scratch_reclaimed(active)
+  }
+}
+
+///|
+test "bounded sequence selections preserve authored and prior ceilings" {
+  let preserved = Ref(false)
+  let rejected = Ref(false)
+  let (_, active, _) = bounded_sequence_fixture(constrain=value => {
+    rejected.val = constrain_generated_sequence_match_limits(value, 1, 2L, 3L)
+      is Err(InputSet) &&
+      constrain_generated_sequence_match_limits(value, 0, -1L, 3L)
+      is Err(InvalidLimits)
+    let first = constrain_generated_sequence_match_limits(value, 0, 2L, 3L).unwrap()
+    let next = constrain_generated_sequence_match_limits(first, 0, 99L, 99L).unwrap()
+    rejected.val = rejected.val &&
+      execute_generated_sequence(next, [], compute_test_limits())
+      is Err(InputSet)
+    preserved.val = generated_sequence_match_limits(value, 0) is None &&
+      generated_sequence_match_limits(next, 0) == Some((2L, 3L))
+    next
+  })
+  assert_true(rejected.val)
+  assert_true(preserved.val)
+  assert_true(
+    finish_bounded_sequence(active) is BoundedSequenceMatchComplete(_, ..),
+  )
+  assert_true(cleanup_bounded_sequence_match(active).unwrap())
+
+  let (_, guarded, _) = bounded_sequence_fixture(max_output_rows=Some(2), constrain=value => {
+    constrain_generated_sequence_match_limits(value, 0, 99L, 99L).unwrap()
+  })
+  assert_true(
+    finish_bounded_sequence(guarded)
+    is BoundedSequenceMatchFailed(Rows(RowLimit), ..),
+  )
+  assert_true(cleanup_bounded_sequence_match(guarded).unwrap())
+  assert_bounded_sequence_scratch_reclaimed(guarded)
 }
 
 ///|

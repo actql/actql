@@ -2,6 +2,7 @@
 priv struct SequenceMatchProviderExecution {
   active : @execution.BoundedSequenceMatchExecution
   control : @bounded.Control
+  step : Int
   mut progress : Int64
   mut work : Int64
   mut terminal : Bool
@@ -23,6 +24,20 @@ fn sequence_match_provider_accepts(
 ///|
 fn sequence_match_provider_issue() -> @connector.FixedComputeIssue {
   @connector.Execution(@execution.InputSet)
+}
+
+///|
+fn sequence_match_provider_failure(
+  issue : @execution.BoundedSequenceMatchIssue,
+  step : Int,
+) -> @connector.FixedComputeIssue {
+  match issue {
+    @execution.Rows(row_issue) =>
+      @connector.Execution(@execution.Rows(step, row_issue))
+    @execution.Capture(capture_issue) =>
+      @connector.Execution(@execution.Capture(step, capture_issue))
+    _ => sequence_match_provider_issue()
+  }
 }
 
 ///|
@@ -80,10 +95,10 @@ fn sequence_match_provider_poll(
       Ok(@local.managed_provider_continue(progress_delta, work_delta))
     @execution.BoundedSequenceMatchComplete(output, ..) =>
       Ok(@local.managed_provider_complete(output, progress_delta, work_delta))
-    @execution.BoundedSequenceMatchFailed(_, ..) =>
+    @execution.BoundedSequenceMatchFailed(issue, ..) =>
       Ok(
         @local.managed_provider_failed(
-          sequence_match_provider_issue(),
+          sequence_match_provider_failure(issue, state.step),
           progress_delta,
           work_delta,
         ),
@@ -137,6 +152,7 @@ pub fn sequence_match_provider(
         return Err(@connector.InvalidLimits)
       }
       let control = @bounded.control()
+      let step = @execution.generated_sequence_step_index_at(sequence, 0).unwrap()
       let started = match inputs[0] {
         @local.RelationInput(input) =>
           @execution.start_bounded_sequence_match(
@@ -166,11 +182,12 @@ pub fn sequence_match_provider(
       }
       let active = match started {
         Ok(value) => value
-        Err(_) => return Err(sequence_match_provider_issue())
+        Err(issue) => return Err(sequence_match_provider_failure(issue, step))
       }
       let state : SequenceMatchProviderExecution = {
         active,
         control,
+        step,
         progress: 0L,
         work: 0L,
         terminal: false,

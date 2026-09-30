@@ -144,6 +144,15 @@ pub fn local_dispatch_rejection(
             ) {
             return Some("unsupported_execution_obligation")
           }
+        SequenceExecution(_) | SequenceMatch(_) | SequenceLimits(_) =>
+          if !@local.local_module_bounded_temporal_relation_obligation(
+              installed.implementation,
+              local_task_slot(installed, task),
+              requirement.site.step,
+              @local.SequenceMatch,
+            ) {
+            return Some("unsupported_execution_obligation")
+          }
         RankingExecution(_) =>
           if !@local.local_module_bounded_ranking_obligation(
               installed.implementation,
@@ -357,6 +366,53 @@ fn local_dispatch_carrier_path(
   task : Int,
 ) -> Bool {
   installed.carrier_paths.get(task).unwrap_or(false)
+}
+
+///|
+fn local_task_sequence_match_ceilings(
+  run : @strategy.CapturedDAG,
+  task : Int,
+) -> Array[(Int, Int64, Int64)]? {
+  let graph = @strategy.captured_dag_graph(run)
+  guard @strategy.graph_task_operation_count(graph, task) is Some(count) else {
+    return None
+  }
+  let ceilings : Array[(Int, Int64, Int64)] = []
+  let required_steps : Array[Int] = []
+  for index in 0..<count {
+    guard @strategy.graph_task_operation_at(graph, task, index)
+      is Some(requirement) else {
+      return None
+    }
+    if requirement.disposition is ExecutionCheck(check) {
+      match check {
+        SequenceExecution(_) | SequenceMatch(_) | SequenceLimits(_) =>
+          if !required_steps.contains(requirement.site.step) {
+            required_steps.push(requirement.site.step)
+          }
+        _ => ()
+      }
+    }
+    if requirement.disposition is ExecutionCheck(SequenceLimits(check)) {
+      let matches = @sequence_limits.effective_maximum(
+        check.limits,
+        MatchesPerKey,
+      )
+      let output = @sequence_limits.effective_maximum(check.limits, OutputRows)
+      if matches < 0L ||
+        output < 0L ||
+        ceilings.any(entry => entry.0 == requirement.site.step) {
+        return None
+      }
+      ceilings.push((requirement.site.step, matches, output))
+    }
+  }
+  for step in required_steps {
+    if !ceilings.any(entry => entry.0 == step) {
+      return None
+    }
+  }
+  Some(ceilings)
 }
 
 ///|
