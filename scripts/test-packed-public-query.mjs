@@ -43,7 +43,7 @@ for (const [source, destination] of [
 await mkdir(join(root, 'sga-source-fixtures'));
 for (const name of ['normalize-rows', 'mean-graphs', 'traverse-paths',
   'union-graphs', 'graft-graphs', 'subtract-graphs', 'degree-rows',
-  'components', 'graph-bounds', 'match-projections']) {
+  'components', 'graph-bounds', 'match-projections', 'reach-subgraph']) {
   for (const suffix of ['named.aql', 'expected-results.json']) {
     const file = `${name}.${suffix}`;
     await writeFile(join(root, 'sga-source-fixtures', file),
@@ -74,7 +74,7 @@ const nativeOutput = run(process.execPath,
     root, nativeClient, directory], root, runtimeEnvironment);
 console.log(nativeOutput.trimEnd());
 if (probeSga) {
-  const cases = ['graphs-equal', 'reach-subgraph', 'diff-apply'];
+  const cases = ['graphs-equal', 'diff-apply'];
   const results = [];
   for (const name of cases) {
     for (const suffix of ['named.aql', 'expected-results.json']) {
