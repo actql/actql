@@ -46,8 +46,8 @@ Graph. A-to-B-to-D and A-to-C-to-D have equal unit cost and hop count; the
 normative node-identity tie break selects B. Its independently authored
 Program preserves both explicit endpoints, the hop and output bounds, and one
 Named Result. Its Result fixture checks total cost, hop count, ordered node
-IDs, and both closed edge identities. This is later acceptance work and is not
-part of the thirteen-case evidence recorded below.
+IDs, and both closed edge identities. The additional fourteen-case and native
+CLI evidence is recorded separately below.
 `union-graphs.named.aql` composes two Graph producers with a one-element
 ordered `with` list, then declares separate node and edge Results. The second
 Graph shares B with the first, adds C and B-to-C, and the expected union keeps
@@ -93,6 +93,22 @@ checks typed Graph/Delta task edges and Result roots, and rejects a Relation
 passed to a Graph-only operation and a bounds call without a threshold.
 Source authorization and independent positive, rejection and boundary
 fixtures for other Graph operations remain separate work.
+
+At `5835d644410e702223c0b77250a9a154abfcabea`, all fourteen fixtures,
+including `shortest-path`, passed through clean packed Embedded Local and
+HTTP. The targeted native CLI shortest-path run also matched the independent
+path, cost, hop count and edge identities. Invalid `max_hops: 0` was rejected
+before Run acceptance through both SDK transports. The fixture driver checks
+accepted Run counts and actual source I/O; no extra Run or read was introduced
+by that refusal. See the
+[additional acceptance record](../../../../docs/reviews/2026-09-30-sga-shortest-acceptance.md)
+for source inputs, package digests and verification limits.
+
+These results use the prior Graph provider, not the newer PR #92 semantics.
+The separate #92 integration still rejects authored edge Result order in
+`diff-apply` and `mean-graphs`; its successful `graphs-equal` result does not
+close that regression. The original eight-case milestone remains incomplete
+on that newer integration until the order witness is corrected.
 
 The zero-argument node_rows/edge_rows syntax emits boolean `true` in
 the existing Program. An empty object is not the registered operation body.
