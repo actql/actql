@@ -246,6 +246,8 @@ pub fn node_prefers_fused_without_relation_consumer(
     StructuralGraph(_) | GraphUnion(_) | GraphMeanValue(_) => true
     GraphSubgraphValue(_) => operation(node) == "SGA.subgraph"
     GraphEqualityRows(_) => operation(node) == "SGA.equal"
+    GraphDiffRows(_) => operation(node) == "SGA.diff"
+    GraphApplyValue(_) => operation(node) == "SGA.apply_delta"
     GraphMatchRows(_) =>
       operation(node) == "SGA.match_nodes" ||
       operation(node) == "SGA.match_edges"

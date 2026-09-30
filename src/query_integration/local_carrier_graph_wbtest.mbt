@@ -1378,6 +1378,47 @@ fn carrier_selected_graph_equal_owner(
 }
 
 ///|
+fn carrier_selected_graph_diff_owner(
+  graph_owner : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  let graph_input = @pipeline.ProducedInput(
+    @pipeline.produced_input(
+      @lower.pipeline(@lower.bound_preparation(graph_owner)),
+      @pipeline.Step(0),
+    ).unwrap(),
+  )
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      "[{\"from\":\"left\",\"graph_diff\":{\"with\":\"right\"}," +
+      "\"as\":\"changes\"},{\"from\":\"changes\"," +
+      "\"filter\":\"true\",\"as\":\"out\"}]",
+    ),
+    [("left", graph_input), ("right", graph_input)],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 1000,
+      max_identifier_bytes: 1000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
 fn carrier_graph_diff_owner(
   source : @lower.BoundPrepared,
 ) -> @lower.BoundPrepared {
@@ -10618,7 +10659,13 @@ fn graph_relation_publication_cid(variant : String) -> String {
   if variant == "graph_diff_changes" {
     "sha256:de8347c32fb9edf7f0bddd3ab5bcd9b986ba90aeff296e55f02e52f067067ef9"
   } else if variant == "concise_projection" {
-    "sha256:4dc1796ed34dc82b34758a1fca828ec1a34ef068e231fd5637d51841529bdb97"
+    // Canonical completion selects the admitted edge identity in field-name
+    // order: dst precedes src. The declared Result contains only dst, id,
+    // src, and weight, with the dst=1 row before the dst=2 row.
+    // Independent CID preimage: {"sort":"relation","value":[
+    // {"dst":1,"id":2,"src":2,"weight":20},
+    // {"dst":2,"id":1,"src":1,"weight":10}]}.
+    "sha256:1ea8f658a8b10b25d7771a8d605d9d2a3134405b2ddd9ed2397190ca2879d968"
   } else if variant == "subtract_exact" {
     "sha256:61658ff21fd18cc3b110c965c92422c813ef6e76d1aef0415841101c72e8f576"
   } else if variant == "subtract" {
@@ -10773,6 +10820,68 @@ test "selected Graph equality keeps repeated input occurrences and exact work" {
     is @local_sga.GraphsEqualStopped(_, progress=0L, work=1L),
   )
   assert_eq(@local_sga.cleanup_graphs_equal(cancelled), Ok(true))
+  assert_true(@carrier_runtime.material_available(material))
+  assert_true(@carrier_runtime.reclaim_material(material))
+}
+
+///|
+test "selected Graph diff reads exact retained input occurrences" {
+  let source_owner = carrier_graph_source_owner_with_rows("[]")
+  let graph_owner = carrier_graph_material_owner(source_owner)
+  let material = carrier_graph_diagnostic_material(graph_owner, source_owner)
+  let owner = carrier_selected_graph_diff_owner(graph_owner)
+  let generated = @execution.select_generated_sequence_step(
+    task_test_generated(owner),
+    0,
+  ).unwrap()
+  let left = @carrier_runtime.material_prepare_view(
+    material, owner, 0, graph_owner,
+  ).unwrap()
+  assert_true(
+    @local_sga.start_graph_diff_view(
+      @bounded.control(),
+      @execution.generated_completion_preparation(generated),
+      @execution.generated_prepared_sequence(generated),
+      0,
+      left,
+      left,
+      1,
+      { max_nodes: 10000, max_text_bytes: 10000, max_depth: 20, max_work: 10000, },
+      10000,
+      2,
+      10000,
+    )
+    is Err(@local_sga.InvalidGraphDiffKernel),
+  )
+  let right = @carrier_runtime.material_prepare_view(
+    material, owner, 1, graph_owner,
+  ).unwrap()
+  let execution = @local_sga.start_graph_diff_view(
+    @bounded.control(),
+    @execution.generated_completion_preparation(generated),
+    @execution.generated_prepared_sequence(generated),
+    0,
+    left,
+    right,
+    1,
+    { max_nodes: 10000, max_text_bytes: 10000, max_depth: 20, max_work: 10000, },
+    10000,
+    2,
+    10000,
+  ).unwrap()
+  let mut completed = None
+  let mut polls = 0
+  while completed is None {
+    polls += 1
+    assert_true(polls < 1000)
+    match @local_sga.advance_graph_diff(execution, 1).unwrap() {
+      @local_sga.GraphDiffContinue(..) => ()
+      @local_sga.GraphDiffComplete(output, ..) => completed = Some(output)
+      _ => abort("selected Graph diff failed")
+    }
+  }
+  assert_true(@execution.completed_cell(completed.unwrap(), 0, 0) is Some(Captured(_)))
+  assert_eq(@local_sga.cleanup_graph_diff(execution), Ok(true))
   assert_true(@carrier_runtime.material_available(material))
   assert_true(@carrier_runtime.reclaim_material(material))
 }
