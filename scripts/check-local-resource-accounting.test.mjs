@@ -92,6 +92,33 @@ test('Events as-of view requires its own limits, delivered stop and cleanup proo
   }), /TEA asof_join: view_entrypoint cleanup lacks an executable fixture/u);
 });
 
+test('Relation session chain requires its retained offer, limits and fault evidence', () => {
+  const session = routes => routes.routes.find(entry =>
+    entry.family === 'TEA' && entry.operation === 'session');
+  for (const role of [
+    'session_relation_retained_offer', 'session_relation_bounded_chain',
+    'session_relation_child_cancel_cleanup', 'session_relation_cumulative_work',
+    'session_relation_output_envelope', 'session_empty_finish_limits',
+  ]) {
+    assert.match(run(undefined, routes => {
+      session(routes).boundary_tests = session(routes).boundary_tests
+        .filter(item => item.role !== role);
+    }), new RegExp(`TEA session: ${role} fixture is missing`, 'u'));
+  }
+  for (const role of [
+    'session_relation_retained_publication', 'session_relation_retained_empty',
+    'session_relation_retained_chain_stop', 'session_relation_retained_arithmetic',
+    'session_relation_retained_append_failure',
+    'session_relation_retained_finalize_failure',
+    'session_relation_retained_cleanup_retry',
+  ]) {
+    assert.match(run(undefined, routes => {
+      session(routes).environment_tests = session(routes).environment_tests
+        .filter(item => item.role !== role);
+    }), new RegExp(`TEA session: ${role} fixture is missing`, 'u'));
+  }
+});
+
 test('standalone Relation pooling requires registered limits and retained stop evidence', () => {
   const pool = routes => routes.routes.find(entry =>
     entry.family === 'VecA' && entry.operation === 'pool_vectors');
@@ -1111,7 +1138,7 @@ test('session Relation path retains separate Host and resource evidence', () => 
     const session = routes.routes.find(entry =>
       entry.family === 'TEA' && entry.operation === 'session');
     session.environment_tests = session.environment_tests.filter(item =>
-      item.role !== 'session_relation_host_timer');
+      item.role !== 'session_relation_retained_chain_stop');
   }), /TEA session: relation_entrypoint in_flight_cancel lacks an executable fixture/);
   for (const dimension of ['work', 'workspace']) {
     for (const limit of ['exact_limit', 'one_short_limit']) {

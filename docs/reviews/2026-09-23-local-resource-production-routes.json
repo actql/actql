@@ -8249,6 +8249,48 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_carrier_events_wbtest.mbt",
           "fixture": "Events-view session checks combined output workspace"
+        },
+        {
+          "role": "session_relation_retained_offer",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_retained_relation_session_wbtest.mbt",
+          "fixture": "retained Relation session offer reaches its registered family child"
+        },
+        {
+          "role": "session_relation_bounded_chain",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_retained_relation_session_wbtest.mbt",
+          "fixture": "registered Relation session chain preserves bounded child custody"
+        },
+        {
+          "role": "session_relation_child_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_retained_relation_session_wbtest.mbt",
+          "fixture": "Relation session chain retains cancellation custody across child handoffs"
+        },
+        {
+          "role": "session_relation_cumulative_work",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_retained_relation_session_wbtest.mbt",
+          "fixture": "Relation session chain enforces cumulative work before its suffix"
+        },
+        {
+          "role": "session_relation_output_envelope",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_retained_relation_session_wbtest.mbt",
+          "fixture": "Relation session output envelope preserves its exact occurrence"
+        },
+        {
+          "role": "session_empty_finish_limits",
+          "suite": "moon:local_tea",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/local_tea/session_wbtest.mbt",
+          "fixture": "empty session retains its metadata and finish limits"
         }
       ],
       "environment_tests": [
@@ -8272,6 +8314,55 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
           "fixture": "session-relation"
+        },
+        {
+          "role": "session_relation_retained_publication",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "session-filter-select-chain"
+        },
+        {
+          "role": "session_relation_retained_empty",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "session-empty-filter-select-chain"
+        },
+        {
+          "role": "session_relation_retained_chain_stop",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "session-in-flight-filter-cancel"
+        },
+        {
+          "role": "session_relation_retained_arithmetic",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "session-later-arithmetic"
+        },
+        {
+          "role": "session_relation_retained_append_failure",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "session-store-append-failure"
+        },
+        {
+          "role": "session_relation_retained_finalize_failure",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "session-store-finalize-failure"
+        },
+        {
+          "role": "session_relation_retained_cleanup_retry",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "session-cleanup-retry"
         }
       ],
       "path_assurance": {
@@ -8284,8 +8375,8 @@
         "relation_entrypoint": {
           "exact_limit": "session_relation_work_workspace_exact_one_short",
           "one_short_limit": "session_relation_work_workspace_exact_one_short",
-          "in_flight_cancel": "session_relation_host_timer",
-          "cleanup": "session_relation_work_workspace_exact_one_short"
+          "in_flight_cancel": "session_relation_retained_chain_stop",
+          "cleanup": "session_relation_child_cancel_cleanup"
         },
         "view_entrypoint": {
           "exact_limit": "session_view_work_workspace_exact_one_short",

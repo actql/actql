@@ -544,7 +544,7 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
   let session = variant.has_prefix("session")
   let session_global = variant == "session_global"
   let session_parameter = variant == "session_parameter"
-  let session_relation = variant == "session_relation"
+  let session_relation = variant.has_prefix("session_relation")
   let fields = if sequence {
     "[\"match_start_ms\",\"match_end_ms\",\"start_id\"," +
     "\"start_time_ms\",\"end_id\",\"end_time_ms\"]"
@@ -627,7 +627,15 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
   let event_steps = if session_relation {
     "{\"from\":\"rows\",\"session\":{\"id\":\"event_id\"," +
     "\"time\":\"occurred_at\",\"by\":[\"payload\"],\"gap\":10}," +
-    "\"as\":\"out\"}"
+    (if variant == "session_relation_chain" {
+      "\"as\":\"sessionized\"},{\"from\":\"sessionized\"," +
+      "\"filter\":\"true\",\"as\":\"filtered\"},{\"from\":\"filtered\"," +
+      "\"select\":" +
+      fields +
+      ",\"as\":\"out\"}"
+    } else {
+      "\"as\":\"out\"}"
+    })
   } else if sequence {
     "{\"from\":\"rows\",\"to_events\":{\"id\":\"event_id\"," +
     "\"time\":\"occurred_at\"}}," +
