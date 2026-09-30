@@ -43,7 +43,7 @@ function program(rows, filter = 'id >= 2') {
   });
 }
 
-async function retainedRun(document, use, mode = 'success') {
+async function retainedRun(document, use, mode = 'success', budgets) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-retained-values-chain-'));
   let retained, publication, owner, execution;
   let permitCleanup = mode !== 'finalize-failure';
@@ -60,8 +60,15 @@ async function retainedRun(document, use, mode = 'success') {
     const prepared = prepare({kind: 'aql',
       input: {text: document, format: 'json'}, parameters: null});
     const contracts = await pinnedEngineContracts(root);
-    const setup = fixture.strategyFixtureSourceFreeRetainedSubset(
-      prepared, ...contracts, 100000, 10000);
+    const [registry, values, fragment] = contracts;
+    // Boundary injection uses the same checked owner, installed provider and
+    // retained driver. Ordinary success/fault cases use the product factory.
+    const setup = budgets
+      ? fixture.strategyFixtureSourceFreeRetainedSubset(prepared,
+        registry, values, fragment, budgets.work, budgets.workspace)
+      : moon.clientProgramOpenSourceFreeLocalRetainedHost(
+        prepared, registry, values, 1n, 0n, 0n, 0n, fragment, undefined);
+    assert.ok(setup, 'the product source-free factory must admit this chain');
     // The source-free root is one physical task with three checked steps,
     // not a test-only acquisition task or an artificially split chain.
     assert.equal(fixture.strategyFixtureConfiguredTaskStepCount(setup, 0), 3);
@@ -206,6 +213,61 @@ async function retainedRun(document, use, mode = 'success') {
       await rm(directory, {recursive: true, force: true});
     }
   }
+}
+
+// Independent scalar phase model, also checked in the portable provider test:
+// Values 11 + filter true 31 + select 19 + two handoffs = 63 work units.
+// Filter's three metadata entries, three roots, snapshot and two predicate
+// slots peak at nine workspace entries. These are not sampled from a run.
+for (const {name, work, workspace, failure} of [
+  {name: 'exact scalar chain budgets', work: 63, workspace: 9},
+  {name: 'one-short scalar chain work', work: 62, workspace: 9,
+    failure: 'work'},
+  {name: 'one-short scalar chain workspace', work: 63, workspace: 8,
+    failure: 'workspace'},
+]) {
+  test(`retained Values honors ${name}`, async () => retainedRun(
+    program([{id: 3}, {id: 1}, {id: 2}], 'true'),
+    async ({run, plan, publication, observations}) => {
+      if (!failure) {
+        const owner = await run();
+        assert.equal(owner.status, 'published');
+        assert.equal(observations().producerWork, 63n);
+        const inventory = owner.execution.publicationInventory.occurrences;
+        assert.deepEqual(inventory.map(value => value.name).sort(),
+          [...resultNames].sort());
+        for (const name of resultNames) {
+          const occurrence = inventory.find(value => value.name === name);
+          const chunks = [];
+          await publication.consumeCommittedResult({
+            namespaceId: plan.request.namespaceId,
+            authorityScopeCid: plan.request.authorityScopeCid,
+            runDefinitionCid: plan.runDefinition.identity,
+          }, occurrence.definitionContract.identity, () => true,
+          chunk => chunks.push(Buffer.from(chunk)));
+          assert.deepEqual(JSON.parse(Buffer.concat(chunks).toString('utf8')),
+            [{id: 3}, {id: 1}, {id: 2}]);
+        }
+      } else {
+        let execution;
+        await assert.rejects(run(), error => {
+          assert.equal(error.code, 'CapturedRunPublicationFailed');
+          execution = error.execution;
+          return true;
+        });
+        assert.deepEqual(execution.completed, []);
+        assert.equal(execution.failure.code, 'MoonBitHostFailure');
+        assert.equal(failure === 'work'
+          ? fixture.strategyFixtureRetainedInputLimit(execution.failure.cause)
+          : fixture.strategyFixtureRetainedRowLimit(execution.failure.cause), true);
+        assert.equal(observations().dispatches, 1);
+        await assert.rejects(publication.lookupCommittedIndex({
+          namespaceId: plan.request.namespaceId,
+          authorityScopeCid: plan.request.authorityScopeCid,
+          runDefinitionCid: plan.runDefinition.identity,
+        }, () => true), /PublicationLookupDenied/);
+      }
+    }, failure ?? 'success', {work, workspace}));
 }
 
 for (const {name: mode} of [

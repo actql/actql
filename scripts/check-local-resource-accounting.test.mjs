@@ -78,7 +78,9 @@ test('retained source-free Values requires exact admission and Host evidence', (
   const values = routes => routes.routes.find(route =>
     route.family === 'RelA' && route.operation === 'values');
   for (const role of ['retained_source_free_chain_admission',
-    'retained_source_free_chain_rejection']) {
+    'retained_source_free_chain_rejection',
+    'retained_source_free_product_configuration',
+    'retained_source_free_product_rejection', 'retained_source_free_chain_budgets']) {
     assert.match(run(undefined, routes => {
       const route = values(routes);
       route.boundary_tests = route.boundary_tests.filter(test => test.role !== role);
@@ -87,7 +89,9 @@ test('retained source-free Values requires exact admission and Host evidence', (
   for (const role of ['retained_source_free_named_results',
     'retained_source_free_empty_input', 'retained_source_free_empty_output',
     'retained_source_free_filter_timer_cleanup', 'retained_source_free_filter_arithmetic',
-    'retained_source_free_append_cleanup', 'retained_source_free_finalize_cleanup_retry']) {
+    'retained_source_free_append_cleanup', 'retained_source_free_finalize_cleanup_retry',
+    'retained_source_free_host_exact_budgets', 'retained_source_free_host_work_short',
+    'retained_source_free_host_workspace_short']) {
     assert.match(run(undefined, routes => {
       const route = values(routes);
       route.environment_tests = route.environment_tests.filter(test => test.role !== role);

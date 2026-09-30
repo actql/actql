@@ -5338,6 +5338,27 @@
           "targets": ["js", "wasm", "native"],
           "path": "src/query_integration/local_retained_values_chain_wbtest.mbt",
           "fixture": "Values publication rejects wrong children nonlinear chains and shadowing providers"
+        },
+        {
+          "role": "retained_source_free_product_configuration",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_retained_values_chain_wbtest.mbt",
+          "fixture": "product source-free retained factory installs exact bounded chain offers"
+        },
+        {
+          "role": "retained_source_free_product_rejection",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_retained_values_chain_wbtest.mbt",
+          "fixture": "product retained factory refuses a nonlinear Values suffix before Compute"
+        },
+        {
+          "role": "retained_source_free_chain_budgets",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_retained_values_chain_wbtest.mbt",
+          "fixture": "source-free scalar chain uses independent exact work and workspace limits"
         }
       ],
       "environment_tests": [
@@ -5424,6 +5445,27 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
           "fixture": "finalize-failure"
+        },
+        {
+          "role": "retained_source_free_host_exact_budgets",
+          "suite": "node:duckdb_retained_values_chain",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
+          "fixture": "exact scalar chain budgets"
+        },
+        {
+          "role": "retained_source_free_host_work_short",
+          "suite": "node:duckdb_retained_values_chain",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
+          "fixture": "one-short scalar chain work"
+        },
+        {
+          "role": "retained_source_free_host_workspace_short",
+          "suite": "node:duckdb_retained_values_chain",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
+          "fixture": "one-short scalar chain workspace"
         }
       ],
       "path_assurance": {

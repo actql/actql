@@ -454,6 +454,9 @@ for (const [index, route] of routeEntries.entries()) {
       'zero_input_unique_two_consumers',
       'retained_source_free_chain_admission',
       'retained_source_free_chain_rejection',
+      'retained_source_free_product_configuration',
+      'retained_source_free_product_rejection',
+      'retained_source_free_chain_budgets',
     ];
     if (route.zero_input_entrypoint?.symbol !== 'values_provider' ||
       requiredValuesRoles.some(role => !boundaryRoles.has(role))) {
@@ -1002,6 +1005,9 @@ for (const [index, route] of routeEntries.entries()) {
       'retained_source_free_empty_output', 'retained_source_free_filter_timer_cleanup',
       'retained_source_free_filter_arithmetic', 'retained_source_free_append_cleanup',
       'retained_source_free_finalize_cleanup_retry',
+      'retained_source_free_host_exact_budgets',
+      'retained_source_free_host_work_short',
+      'retained_source_free_host_workspace_short',
     ]) {
       if (!environmentRoles.has(role)) {
         fail(`${label}: ${role} fixture is missing`);

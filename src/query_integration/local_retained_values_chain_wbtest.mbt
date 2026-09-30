@@ -131,6 +131,176 @@ fn retained_values_chain_source() -> String {
 }
 
 ///|
+test "source-free scalar chain uses independent exact work and workspace limits" {
+  // Three one-column rows and filter true have no data-dependent search.
+  // Values: one name + three (begin/cell/commit) + finish = 11.
+  // Filter: six input steps + three retained roots + three seven-step
+  // rows (begin/snapshot/two literal steps/build/check/commit) + finish = 31.
+  // Select: six input steps + three four-step output rows + finish = 19.
+  // Two exact child handoffs give 11 + 31 + 19 + 2 = 63, independently
+  // of the execution meter. Each child's control charges fit this ceiling.
+  // Filter workspace peaks at three metadata entries + three input roots
+  // + one snapshot + two predicate slots = 9; Values and Select need less.
+  let defaults = dispatch_test_limits()
+  let registry = search_registry()
+  let generated = task_test_generated(
+    zero_input_request_owner(
+      retained_values_chain_source().replace(old="id >= 2", new="true"),
+    ),
+  )
+  for
+    (max_work, max_entries, expected) in [
+      (63, 9, "complete"),
+      (62, 9, "work"),
+      (63, 8, "workspace"),
+    ] {
+    let limits : @execution.SequenceExecutionLimits = {
+      ..defaults.local_execution,
+      max_work,
+      rows: { ..defaults.local_execution.rows, operation_entries: max_entries, },
+    }
+    let installed = @local_connector.prepare_local_compute_module(
+      registry,
+      @connector.capability_registration_at(registry, 0).unwrap(),
+      [generated],
+      limits,
+      defaults.guards,
+      defaults.candidate_work,
+      1,
+    ).unwrap()
+    let provider = @local_connector.local_module_managed_provider(
+      installed, generated,
+    ).unwrap()
+    let active = @local_connector.start_managed_provider_with_inputs_and_execution(
+      provider,
+      generated,
+      [],
+      100,
+      10000,
+      limits,
+    ).unwrap()
+    let mut outcome = ""
+    let mut work = 0L
+    for _ in 0..<100 {
+      if outcome != "" {
+        break
+      }
+      match @local_connector.advance_managed_provider(active, 1).unwrap() {
+        @local_connector.Continue(work=charged, ..) => {
+          assert_true(charged <= 1L)
+          work += charged
+        }
+        @local_connector.Complete(output, work=charged, ..) => {
+          work += charged
+          assert_eq(work, 63L)
+          assert_eq(@execution.completed_row_count(output), 3)
+          for row, value in [3.0, 1.0, 2.0] {
+            guard @execution.completed_cell(output, row, 0)
+              is Some(Number(actual)) else {
+              fail("scalar chain output has the wrong value type")
+            }
+            assert_eq(actual, value)
+          }
+          outcome = "complete"
+        }
+        @local_connector.Failed(@connector.Execution(@execution.InputLimit), ..) =>
+          outcome = "work"
+        @local_connector.Failed(
+          @connector.Execution(@execution.Rows(_, @execution.RowLimit)),
+          ..
+        ) => outcome = "workspace"
+        _ => fail("scalar chain failed for an unrelated reason")
+      }
+    }
+    assert_eq(outcome, expected)
+    assert_true(@local_connector.managed_provider_stopped(active))
+    assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
+    assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
+  }
+}
+
+///|
+fn retained_values_client_preparation(
+  nonlinear : Bool,
+) -> @publication_host.PreparedClientProgram {
+  let (_, environment, limits) = local_effect_export_fixture()
+  let source = if nonlinear {
+    retained_values_chain_source().replace(
+      old="{\"select\":[\"id\"],\"as\":\"selected\"}",
+      new="{\"from\":\"seed\",\"select\":[\"id\"],\"as\":\"selected\"}",
+    )
+  } else {
+    retained_values_chain_source()
+  }
+  @publication_host.prepare_effect_free_client_program(
+    "{\"version\":\"actql/0.1\",\"id\":\"retained-values-client\",\"stages\":[{\"id\":\"source\",\"inputs\":{},\"steps\":" +
+    source +
+    ",\"results\":{\"out\":{\"from\":\"selected\",\"fields\":[\"id\"]}}}],\"results\":{\"published\":{\"from\":{\"stage\":\"source\",\"result\":\"out\"}}}}",
+    Json,
+    environment,
+    None,
+    limits.program,
+  ).unwrap()
+}
+
+///|
+test "product source-free retained factory installs exact bounded chain offers" {
+  let prepared = retained_values_client_preparation(false)
+  let setup = @client_local_host.open_source_free_local_retained_host(
+    prepared,
+    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    @identity.stringify_value(registered_values(), 100000, 10000, 100),
+    1L,
+    0L,
+    0L,
+    0L,
+    fragment_body=Some(
+      @identity.stringify_value(registered_fragment(), 100000, 10000, 100),
+    ),
+  ).unwrap()
+  let run = @host_driver.dispatch_driver_run(
+    @builtin.configured_host_driver(setup),
+  )
+  assert_eq(@strategy.captured_compute_first_task(run), 0)
+  assert_eq(@strategy.graph_task_count(@strategy.captured_dag_graph(run)), 1)
+  assert_true(@strategy.captured_dag_strategy(run) is Some(_))
+  assert_eq(
+    @local_driver.local_dispatch_rejection(
+      @builtin.configured_local_module(@builtin.configured_host_modules(setup)).unwrap(),
+      0,
+    ),
+    None,
+  )
+  assert_false(@strategy.captured_task_completed(run, 0))
+  @strategy.stop_captured_dag(run)
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(usage.attempts, 0)
+  assert_eq(usage.held_bytes, 0L)
+  assert_eq(usage.reserved_execution_bytes, 0L)
+}
+
+///|
+test "product retained factory refuses a nonlinear Values suffix before Compute" {
+  let prepared = retained_values_client_preparation(true)
+  assert_true(
+    @client_local_host.open_source_free_local_retained_host(
+      prepared,
+      @identity.stringify_value(registered_body(), 100000, 10000, 100),
+      @identity.stringify_value(registered_values(), 100000, 10000, 100),
+      1L,
+      0L,
+      0L,
+      0L,
+      fragment_body=Some(
+        @identity.stringify_value(registered_fragment(), 100000, 10000, 100),
+      ),
+    )
+    is None,
+  )
+}
+
+///|
 test "Values publication rejects wrong children nonlinear chains and shadowing providers" {
   let limits = dispatch_test_limits()
   let registry = search_registry()
