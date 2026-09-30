@@ -38,7 +38,12 @@ then evaluates the CTE over that captured Stage Result. Repeated CTE references
 share the one producer. This preserves Source Evidence admission and does not
 add a Host fallback or a second acquisition owner. The independent Program
 fixture checks the capture and both producer references; the packed fixtures
-require exactly one physical source read per Run.
+require the same physical table statement count for shared CTEs as for the
+ordinary SELECT control. Literal-true broad capture executes one table scan;
+filtered native capture executes the existing pinned validation scan plus the
+native query (two statements). See
+`adapters/connectors/duckdb/node/native-acquisition.mjs`; neither validation
+nor acquisition is bypassed to satisfy a counter.
 
 ## Independent acceptance fixtures
 

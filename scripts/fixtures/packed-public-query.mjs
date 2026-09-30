@@ -94,6 +94,7 @@ await writeFile(sourceProfilePath, canonical({
 }));
 // Observe actual native execution, never a diagnostic notification.
 let sourceIo = 0, sourceReads = 0;
+const sourceReadCommands = [];
 const extractedSql = new WeakMap(), preparedSql = new WeakMap();
 const extract = DuckDBConnection.prototype.extractStatements;
 const prepare = DuckDBExtractedStatements.prototype.prepare;
@@ -114,6 +115,8 @@ DuckDBPreparedStatement.prototype.stream = function(...args) {
   // and Local resident computation. This observes emitted physical SQL only.
   if (/\bFROM\s+(?:"main"\.)?"records"(?=\s|$)/iu.test(preparedSql.get(this) ?? '')) {
     sourceReads++;
+    sourceReadCommands.push({sql: preparedSql.get(this),
+      columns: Array.from({length: this.columnCount}, (_, index) => this.columnName(index))});
   }
   return Reflect.apply(stream, this, args);
 };
@@ -121,7 +124,7 @@ const observe = directory => () => {
   const journal = new DatabaseSync(resolve(directory, 'requests',
     'client-requests.sqlite3'), {readOnly: true});
   try {
-    return {sourceIo, sourceReads, acceptedRuns: journal.prepare(
+    return {sourceIo, sourceReads, sourceReadCommands, acceptedRuns: journal.prepare(
       'SELECT COUNT(*) AS count FROM client_requests').get().count};
   } finally { journal.close(); }
 };

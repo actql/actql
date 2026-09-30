@@ -1,6 +1,36 @@
 {
   "successes": [
     {
+      "name": "select-filtered-capture",
+      "format": "sql",
+      "text": "SELECT id AS y FROM records WHERE amount > 15 ORDER BY y + 1",
+      "sourceRows": [
+        {
+          "id": 2,
+          "amount": 10
+        },
+        {
+          "id": 1,
+          "amount": 20
+        }
+      ],
+      "expected": [
+        {
+          "y": 1
+        }
+      ],
+      "columns": [
+        {
+          "name": "y",
+          "contract": {
+            "type": "number",
+            "nullable": false
+          }
+        }
+      ],
+      "sourceReadCount": 2
+    },
+    {
       "name": "select-alias-collision",
       "format": "sql",
       "text": "SELECT id AS amount FROM records ORDER BY amount + 1",
@@ -418,7 +448,7 @@
           }
         }
       ],
-      "sourceReadCount": 1
+      "sourceReadCount": 2
     },
     {
       "name": "pipe-select-alias",

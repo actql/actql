@@ -86,7 +86,8 @@ export async function exercisePublicQueryInput(connect, options,
       const beforeRead = await counters();
       if (sourceReadCount !== undefined) {
         assert.equal(beforeRead.sourceReads - beforeSubmit.sourceReads, sourceReadCount,
-          'shared producers acquire once per authored source');
+          'shared producers acquire once per authored source: ' +
+            JSON.stringify((await observe()).sourceReadCommands));
       }
       assert.deepEqual(await execution.result('answer').all(), expected);
       if (columns !== undefined) {
