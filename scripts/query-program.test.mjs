@@ -125,3 +125,21 @@ test('node Graph pattern retains its explicit label selection', () => {
     {field: 'entity_type'}, {literal: 'Account'}]});
   assert.deepEqual(program.stages[0].results.rows.fields, ['name']);
 });
+
+test('INFER KEEP and omitted KEEP match independent complete Program fixtures', async () => {
+  const input = JSON.parse(await readFile(fixture('infer-keep/input.json'), 'utf8'));
+  for (const name of ['kept', 'omitted']) {
+    const text = await readFile(fixture(`infer-keep/${name}.aql`), 'utf8');
+    const expected = JSON.parse(await readFile(
+      fixture(`infer-keep/${name}.expected-program.json`), 'utf8'));
+    const actual = compileValuesQueryJson(text, 'tickets', 'tickets',
+      JSON.stringify(input), JSON.stringify(['id', 'text', 'secret']),
+      'fixture.infer_keep');
+    assert.notEqual(actual, '');
+    assert.deepEqual(JSON.parse(actual), expected);
+    // Lowering emits no second Values/source acquisition or model egress from KEEP.
+    assert.equal(expected.stages[0].steps.filter(step => step.values).length, 1);
+    assert.deepEqual(expected.stages[0].steps.find(step => step.infer).infer.input,
+      {text: {field: 'text'}});
+  }
+});

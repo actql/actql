@@ -1,0 +1,14 @@
+{
+  "version":"actql/0.1","id":"fixture.infer_keep",
+  "stages":[{"id":"main","inputs":{},"steps":[
+    {"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":true},"secret":{"type":"string","nullable":false}},"rows":[{"id":"a","text":"urgent","secret":"private-a"},{"id":"b","text":null,"secret":"private-b"}]},"as":"tickets"},
+    {"from":"tickets","select":["id","text","secret"],"as":"aql_infer_input_0"},
+    {"from":"aql_infer_input_0","infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"aql_infer_outcome_0"},
+    {"derive":{"aql_infer_result_5":{"object":{
+      "input_key":{"object":{"id":{"field":"id"}}},
+      "outcome":{"field":"outcome"},"value":{"field":"value"}
+    }}}},
+    {"select":[{"assessment":"aql_infer_result_5"}],"as":"aql_gen_0"}
+  ],"results":{"rows":{"from":"aql_gen_0","fields":["assessment"]}}}],
+  "results":{"answer":{"from":{"stage":"main","result":"rows"}}}
+}

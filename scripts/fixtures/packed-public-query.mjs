@@ -11,15 +11,17 @@ import {DatabaseSync} from 'node:sqlite';
 import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from
   './node_modules/@actql/local-node/adapters/host-node/embedded-local.mjs';
-import {exercisePublicQueryInput, querySuccesses, queryRefusals, sourceRows}
+import {exercisePublicQueryInput, querySuccesses, queryRefusals, inferRefusals, sourceRows}
   from './public-query-input.mjs';
 
-const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1';
+const inferOnly = process.env.ACTQL_TEST_INFER_REFUSAL_ONLY === '1';
+const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || inferOnly;
 const scope = JSON.parse(await readFile('pipe-scope-cases.json', 'utf8'));
 assert.deepEqual(scope.source_rows, sourceRows);
-const scopeInputs = scopeOnly ? {successes: scope.successes,
+const scopeInputs = inferOnly ? {successes: [querySuccesses[0]], refusals: inferRefusals}
+  : scopeOnly ? {successes: scope.successes,
   refusals: scope.refusals} : {successes: [...querySuccesses, ...scope.successes],
-  refusals: [...queryRefusals, ...scope.refusals]};
+  refusals: [...queryRefusals, ...scope.refusals, ...inferRefusals]};
 const expectedQueryRuns = scopeInputs.successes.length;
 
 assert.equal(spawnSync('moon', ['version']).error?.code, 'ENOENT');

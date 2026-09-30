@@ -71,6 +71,7 @@ pub(all) enum Issue {
   UnsupportedJoin
   UnsupportedCte
   UnsupportedGraph
+  UnsupportedInfer
   Construction(@builder.Issue)
   Expression(@expression.Diagnostic)
   Admission(@program.SyntaxError)
@@ -542,7 +543,7 @@ fn append_pipe_expression(
   max_work : Int,
 ) -> @builder.Node raise Abort {
   match
-    @expression.append(
+    @expression.append_with_properties(
       expression,
       path => pipe_slot(path, visible, ranges),
       construction.builder,
@@ -617,7 +618,12 @@ fn append_expression(
 ) -> @builder.Node raise Abort {
   let resolve = path => resolve_column(path, query, input, fields)
   let lowered = if input.graph_bindings.is_empty() {
-    @expression.append(expression, resolve, construction.builder, max_work)
+    @expression.append_with_properties(
+      expression,
+      resolve,
+      construction.builder,
+      max_work,
+    )
   } else {
     @expression.append_with_macros(
       expression,
@@ -1222,6 +1228,32 @@ fn compile_steps(
       first = false
     }
     match operation {
+      Infer(clause) => {
+        let (steps, fields) = lower_infer_steps(
+          construction,
+          clause,
+          pipe_visible,
+          pipe_ranges,
+          active_fields,
+          entries,
+          i,
+          input.name,
+          max_work,
+        )
+        for step in steps {
+          step_entries.push(step)
+        }
+        entries.clear()
+        active_fields = fields.copy()
+        output = fields
+        pipe_visible = active_fields.map(field => (field, field))
+        pipe_ranges = []
+        pipe_rebound = true
+        pipe_changed = false
+        grouped = false
+        selected_expressions = []
+        deferred = true
+      }
       Where(predicate) if pipe_changed || pipe_rebound =>
         entries.push(
           (
@@ -1722,7 +1754,20 @@ fn compile_steps(
                 Reference(path) =>
                   match pipe_slot(path, pipe_visible, pipe_ranges) {
                     Some(slot) => slot
-                    None => raise Abort(UnknownColumn)
+                    None => {
+                      let slot = pipe_physical_name(physical, "aql_pipe_expr_")
+                      physical.push(slot)
+                      derives.push(
+                        (
+                          slot,
+                          append_pipe_expression(
+                            construction, expression, pipe_visible, pipe_ranges,
+                            max_work,
+                          ),
+                        ),
+                      )
+                      slot
+                    }
                   }
                 _ => {
                   let slot = pipe_physical_name(physical, "aql_pipe_expr_")
@@ -1985,7 +2030,7 @@ fn compile_steps(
               expression,
               @query.expression_root(expression),
             ).unwrap().kind {
-            Reference(path) if path.length() == 1 => resolve(path)
+            Reference(path) => resolve(path)
             _ => None
           }
           let name = if direct is Some(slot) {
@@ -2003,48 +2048,34 @@ fn compile_steps(
                 }
                 slot
               }
-              None =>
-                match
-                  @query.expression_node(
-                    expression,
-                    @query.expression_root(expression),
-                  ).unwrap().kind {
-                  Reference(path) =>
-                    match resolve(path) {
-                      Some(slot) => slot
-                      None => raise Abort(UnsupportedOrdering)
-                    }
-                  _ => {
-                    let mut reused : String? = None
-                    for pair in hidden {
-                      if same_expression(expression, pair.0) {
-                        reused = Some(pair.1)
-                      }
-                    }
-                    match reused {
-                      Some(slot) => slot
-                      None => {
-                        let slot = pipe_physical_name(
-                          reserved, "aql_pipe_sort_",
-                        )
-                        reserved.push(slot)
-                        let value = match
-                          @expression.append(
-                            expression,
-                            resolve,
-                            construction.builder,
-                            max_work,
-                          ) {
-                          Ok(node) => node
-                          Err(error) => raise Abort(Expression(error))
-                        }
-                        derives.push((slot, value))
-                        hidden.push((expression, slot))
-                        slot
-                      }
-                    }
+              None => {
+                let mut reused : String? = None
+                for pair in hidden {
+                  if same_expression(expression, pair.0) {
+                    reused = Some(pair.1)
                   }
                 }
+                match reused {
+                  Some(slot) => slot
+                  None => {
+                    let slot = pipe_physical_name(reserved, "aql_pipe_sort_")
+                    reserved.push(slot)
+                    let value = match
+                      @expression.append_with_properties(
+                        expression,
+                        resolve,
+                        construction.builder,
+                        max_work,
+                      ) {
+                      Ok(node) => node
+                      Err(error) => raise Abort(Expression(error))
+                    }
+                    derives.push((slot, value))
+                    hidden.push((expression, slot))
+                    slot
+                  }
+                }
+              }
             }
           }
           sort.push(

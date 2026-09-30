@@ -38,6 +38,22 @@ export const queryRefusals = [
   {name: 'missing-alias', text: 'SELECT id FROM unregistered', format: 'sql'},
   {name: 'wrong-language', text: 'FROM records |> SELECT id', format: 'sql'},
 ];
+// These syntactically valid source forms must remain non-executable until
+// the common infer owner exists. Rejection is not a model outcome.
+export const inferRefusals = [
+  {name: 'infer-common-owner', format: 'aql-text',
+    text: 'FROM records |> INFER `model-task:risk.v1` ITEM KEY (id) '
+      + 'INPUT (n = amount) KEEP (id) AS assessment'},
+  {name: 'infer-omitted-keep', format: 'aql-text',
+    text: 'FROM records |> INFER `model-task:risk.v1` ITEM KEY (id) '
+      + 'INPUT (n = amount) AS assessment'},
+  {name: 'infer-removed-alias', format: 'aql-text',
+    text: 'FROM records AS old |> INFER score ITEM KEY (id) INPUT (n = amount) '
+      + 'KEEP (id) AS assessment |> SELECT old.amount'},
+  {name: 'infer-output-collision', format: 'aql-text',
+    text: 'FROM records |> INFER score ITEM KEY (id) INPUT (n = amount) '
+      + 'KEEP (id AS assessment) AS assessment'},
+];
 const inputCodes = new Set(['ClientProgramInvalidInput',
   'ClientParametersInvalid', 'ClientParametersTooLarge',
   'ClientProgramUnsupported', 'ClientProgramNeedsInputs',

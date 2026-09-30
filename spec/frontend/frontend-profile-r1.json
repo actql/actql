@@ -1251,13 +1251,17 @@
       "spec_section": "12.1",
       "execution_evidence_ids": [],
       "adoption": "supported",
-      "implementation_status": "not_implemented",
+      "implementation_status": "partial",
       "delivery_unit": "PR-6",
       "acceptance_case_ids": [
         "FX-02",
         "FX-03"
       ],
-      "additional_fixture_requirements": []
+      "additional_fixture_requirements": [
+        "Common infer checker, ModelTask capture/replay and provenance owner",
+        "Common object/property expression execution",
+        "Packed Local/HTTP outcomes, empty input, describe and no-redispatch acceptance"
+      ]
     },
     {
       "feature_id": "artifact.serialize",

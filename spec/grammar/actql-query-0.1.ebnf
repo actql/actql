@@ -58,7 +58,13 @@ pipe_item     = where_clause | "SELECT", select_list
               | "AS", identifier
               | "AGGREGATE", select_list, [ group_clause ]
               | join | order_clause | limit_clause
-              | pipe_set_part ;
+              | pipe_set_part | infer_operator ;
+infer_operator = "INFER", identifier, "ITEM", "KEY", "(",
+                 path, { ",", path }, ")", "INPUT", "(",
+                 [ assignment, { ",", assignment } ], ")",
+                 [ keep_clause ], "AS", identifier ;
+keep_clause   = "KEEP", "(", keep_item, { ",", keep_item }, ")" ;
+keep_item     = path, [ "AS", identifier ] | "*" | path, ".", "*" ;
 pipe_set_part = ( "UNION", ( "ALL" | "DISTINCT" )
               | "INTERSECT", "DISTINCT" | "EXCEPT", "DISTINCT" ),
                 [ "BY", "NAME" ], "(", select_core, ")" ;

@@ -19,4 +19,5 @@ import {
   "moonbitlang/core/encoding/utf8",
   "actql/actql/sha256" @sha,
   "moonbitlang/core/debug",
+  "actql/actql/lowering_relation" @lower,
 } for "test"

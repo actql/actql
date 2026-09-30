@@ -63,6 +63,7 @@ pub(all) struct SortTerm {
 
 ///|
 pub(all) enum QueryOperation {
+  Infer(InferClause)
   Where(Expression)
   Extend(Array[Projection])
   Set(Array[(NamePart, Expression)])
@@ -75,6 +76,22 @@ pub(all) enum QueryOperation {
   Select(Array[Projection], Bool)
   Order(Array[SortTerm])
   Limit(Int64, Int64)
+}
+
+///|
+pub(all) struct KeepItem {
+  path : Array[NamePart]
+  wildcard : Bool
+  name : NamePart?
+}
+
+///|
+pub(all) struct InferClause {
+  contract : NamePart
+  keys : Array[Array[NamePart]]
+  inputs : Array[(NamePart, Expression)]
+  keep : Array[KeepItem]
+  name : NamePart
 }
 
 ///|
@@ -284,6 +301,15 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
     return None
   }
   match query.operations[index] {
+    Infer(clause) =>
+      Some(
+        Infer({
+          ..clause,
+          keys: clause.keys.map(path => path.copy()),
+          inputs: clause.inputs.copy(),
+          keep: clause.keep.map(item => { ..item, path: item.path.copy(), }),
+        }),
+      )
     Where(e) => Some(Where(e))
     Extend(xs) => Some(Extend(xs.copy()))
     Set(xs) => Some(Set(xs.copy()))
@@ -1301,9 +1327,11 @@ fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
       } else {
         final_operations.push(operation)
       }
-    } else if self.has("INFER") || self.has("NEAREST") || self.has("KEEP") {
+    } else if self.has("INFER") {
+      operations.push(Infer(self.infer_clause()))
+    } else if self.has("NEAREST") || self.has("KEEP") {
       raise QueryAbort(
-        "INFER/NEAREST KEEP is adopted but not implemented in the query frontend",
+        "NEAREST KEEP is adopted but not implemented in the query frontend",
         self.peek().start,
       )
     } else {
@@ -1329,6 +1357,93 @@ fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
     final_operations,
     work: self.work,
   }
+}
+
+///|
+fn QueryParser::symbol(
+  self : QueryParser,
+  expected : Int,
+) -> Unit raise QueryAbort {
+  let token = self.advance()
+  if token.value != Symbol(expected) {
+    raise QueryAbort("Expected INFER clause delimiter", token.start)
+  }
+}
+
+///|
+fn QueryParser::infer_clause(
+  self : QueryParser,
+) -> InferClause raise QueryAbort {
+  self.keyword("INFER")
+  let contract = self.name()
+  self.keyword("ITEM")
+  self.keyword("KEY")
+  self.symbol(40)
+  let keys : Array[Array[NamePart]] = []
+  while true {
+    self.node()
+    keys.push(self.path())
+    if self.peek().value != Symbol(44) {
+      break
+    }
+    ignore(self.advance())
+  }
+  self.symbol(41)
+  self.keyword("INPUT")
+  self.symbol(40)
+  let inputs : Array[(NamePart, Expression)] = []
+  if self.peek().value != Symbol(41) {
+    while true {
+      self.node()
+      let name = self.name()
+      self.symbol(61)
+      inputs.push((name, self.expression()))
+      if self.peek().value != Symbol(44) {
+        break
+      }
+      ignore(self.advance())
+    }
+  }
+  self.symbol(41)
+  let keep : Array[KeepItem] = []
+  if self.has("KEEP") {
+    self.keyword("KEEP")
+    self.symbol(40)
+    while true {
+      self.node()
+      let path : Array[NamePart] = []
+      let mut wildcard = false
+      if self.peek().value == Symbol(42) {
+        ignore(self.advance())
+        wildcard = true
+      } else {
+        path.push(self.name())
+        while self.peek().value == Symbol(46) {
+          ignore(self.advance())
+          if self.peek().value == Symbol(42) {
+            ignore(self.advance())
+            wildcard = true
+            break
+          }
+          path.push(self.name())
+        }
+      }
+      let name = if self.has("AS") && !wildcard {
+        self.keyword("AS")
+        Some(self.name())
+      } else {
+        None
+      }
+      keep.push({ path, wildcard, name, })
+      if self.peek().value != Symbol(44) {
+        break
+      }
+      ignore(self.advance())
+    }
+    self.symbol(41)
+  }
+  self.keyword("AS")
+  { contract, keys, inputs, keep, name: self.name(), }
 }
 
 ///|
