@@ -46,6 +46,7 @@ fn bounded_asof_fixture_result(
   text_key? : Bool = false,
   text_id? : Bool = false,
   text_tie? : Bool = false,
+  empty_left? : Bool = false,
 ) -> Result[
   (@bounded.Control, BoundedAsOfJoinExecution, Array[ProducerRead]),
   BoundedAsOfJoinIssue,
@@ -123,7 +124,11 @@ fn bounded_asof_fixture_result(
     right_rows
   }
   let (left_owner, left_output) = bounded_asof_source(
-    left_rows,
+    if empty_left {
+      "[]"
+    } else {
+      left_rows
+    },
     text_key~,
     text_id~,
     text_tie~,
@@ -224,6 +229,32 @@ fn bounded_asof_fixture(
   max_entries? : Int = 10000,
 ) -> (@bounded.Control, BoundedAsOfJoinExecution, Array[ProducerRead]) raise {
   bounded_asof_fixture_result(max_entries, 100000).unwrap()
+}
+
+///|
+test "bounded Relation as-of terminates with empty left input" {
+  let (_, execution, inputs) = bounded_asof_fixture_result(
+    10000,
+    100000,
+    empty_left=true,
+  ).unwrap()
+  let mut complete = false
+  for _ in 0..<100 {
+    if !complete {
+      match advance_bounded_asof_join(execution, 1).unwrap() {
+        BoundedAsOfJoinContinue(..) => ()
+        BoundedAsOfJoinComplete(output, ..) => {
+          assert_eq(completed_row_count(output), 0)
+          assert_true(completed_output_matches_inputs(output, inputs))
+          complete = true
+        }
+        _ => fail("empty Relation as-of did not complete")
+      }
+    }
+  }
+  assert_true(complete)
+  assert_true(cleanup_bounded_asof_join(execution).unwrap())
+  assert_true(inputs.all(producer_read_available))
 }
 
 ///|

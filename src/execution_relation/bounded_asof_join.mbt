@@ -1,4 +1,44 @@
 ///|
+priv enum BoundedAsOfInput {
+  RelationInput(ProducerRead)
+  EventsInput(@managed_carrier.ProducerView)
+}
+
+///|
+fn bounded_asof_input_available(input : BoundedAsOfInput) -> Bool {
+  match input {
+    RelationInput(value) => producer_read_available(value)
+    EventsInput(value) =>
+      @managed_carrier.producer_view_record_count(value) is Some(_)
+  }
+}
+
+///|
+fn bounded_asof_input_count(input : BoundedAsOfInput) -> Int {
+  match input {
+    RelationInput(value) => producer_read_row_count(value)
+    EventsInput(value) =>
+      @managed_carrier.producer_view_record_count(value).unwrap_or(0)
+  }
+}
+
+///|
+fn bounded_asof_input_cell(
+  input : BoundedAsOfInput,
+  row : Int,
+  column : Int,
+) -> Value? {
+  match input {
+    RelationInput(value) => producer_read_cell(value, row, column)
+    EventsInput(value) =>
+      match @managed_carrier.producer_view_record_field(value, row, column) {
+        Ok((_, checked)) => Some(capture(checked.value))
+        Err(_) => None
+      }
+  }
+}
+
+///|
 priv enum BoundedAsOfPhase {
   ValidateIdentity
   StartIdentitySort
@@ -21,7 +61,7 @@ priv enum BoundedAsOfPhase {
 
 ///|
 priv struct BoundedAsOfState {
-  left : ProducerRead
+  left : BoundedAsOfInput
   right : ProducerRead
   left_time : Int
   right_time : Int
@@ -144,7 +184,8 @@ fn cleanup_bounded_asof_state(state : BoundedAsOfState) -> Bool {
 
 ///|
 fn bounded_asof_inputs_available(state : BoundedAsOfState) -> Bool {
-  producer_read_available(state.left) && producer_read_available(state.right)
+  bounded_asof_input_available(state.left) &&
+  producer_read_available(state.right)
 }
 
 ///|
@@ -168,8 +209,8 @@ fn bounded_asof_compare_columns_step(
     return Ok(Some(0))
   }
   let column = columns[state.sort_compare_index]
-  guard producer_read_cell(state.left, first, column) is Some(left) &&
-    producer_read_cell(state.left, second, column) is Some(right) else {
+  guard bounded_asof_input_cell(state.left, first, column) is Some(left) &&
+    bounded_asof_input_cell(state.left, second, column) is Some(right) else {
     return Err(InvalidRows)
   }
   let left_null = asof_null(left)
@@ -210,7 +251,7 @@ fn bounded_asof_start_sort(
   state : BoundedAsOfState,
   compare : (Int, Int) -> Result[Int?, RowIssue],
 ) -> Bool {
-  let count = producer_read_row_count(state.left)
+  let count = bounded_asof_input_count(state.left)
   if count > (state.workspace.limit - state.workspace.live) / 2 ||
     !reserve_slots(state.workspace, count * 2) {
     return false
@@ -251,7 +292,7 @@ fn bounded_asof_step(
 ) -> @bounded.KernelStep[CompletedOutput, BoundedAsOfJoinIssue] {
   let mut used = 0
   let mut progress = 0
-  let left_count = producer_read_row_count(state.left)
+  let left_count = bounded_asof_input_count(state.left)
   let right_count = producer_read_row_count(state.right)
   while used < quantum {
     if @bounded.stop_requested(reader) is Some(reason) {
@@ -271,7 +312,7 @@ fn bounded_asof_step(
           state.identity_row = 0
           continue
         }
-        guard producer_read_cell(
+        guard bounded_asof_input_cell(
             state.left,
             state.identity_row,
             state.identities[state.identity_field],
@@ -330,7 +371,7 @@ fn bounded_asof_step(
         }
       }
       CheckUnique => {
-        if state.unique_index == state.identity_order.length() {
+        if state.unique_index >= state.identity_order.length() {
           state.identity_order = []
           release_slots(state.workspace, left_count)
           state.phase = ReadLeftClocks
@@ -371,7 +412,11 @@ fn bounded_asof_step(
           state.phase = ReadRightClocks
           continue
         }
-        guard producer_read_cell(state.left, state.clock_row, state.left_time)
+        guard bounded_asof_input_cell(
+            state.left,
+            state.clock_row,
+            state.left_time,
+          )
           is Some(raw) else {
           return bounded_asof_failure(InvalidExecution, progress, used)
         }
@@ -466,7 +511,7 @@ fn bounded_asof_step(
           continue
         }
         let pair = state.keys[state.key_index]
-        guard producer_read_cell(state.left, state.left_row, pair.0)
+        guard bounded_asof_input_cell(state.left, state.left_row, pair.0)
           is Some(left_value) &&
           producer_read_cell(state.right, state.right_row, pair.1)
           is Some(right_value) else {
@@ -646,7 +691,7 @@ fn bounded_asof_step(
         }
         let source = state.columns[state.column]
         let value = if source.0 {
-          producer_read_cell(state.left, state.left_row, source.1)
+          bounded_asof_input_cell(state.left, state.left_row, source.1)
         } else {
           match state.best {
             Some(row) => producer_read_cell(state.right, row, source.1)
@@ -726,11 +771,99 @@ fn bounded_asof_step(
 }
 
 ///|
+/// The Relation and Events entrypoints share search, ordering and accounting.
 pub fn start_bounded_asof_join(
   engine : @bounded.Control,
   generated : GeneratedSequence,
   left : ProducerRead,
   right : ProducerRead,
+  max_rows : Int,
+  values : ValueLimits,
+  max_work : Int,
+  max_frames : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+) -> Result[BoundedAsOfJoinExecution, BoundedAsOfJoinIssue] {
+  let owner = @lower.sequence_owner(generated.sequence)
+  guard generated_sequence_step_count(generated) == 1 &&
+    generated_sequence_step_index_at(generated, 0) is Some(step) &&
+    producer_read_matches_operation_input(left, owner, step, 0) &&
+    producer_read_has_cell_access(left) else {
+    return Err(InvalidExecution)
+  }
+  start_bounded_asof_join_input(
+    engine,
+    generated,
+    RelationInput(left),
+    right,
+    producer_read_schema(left),
+    [trusted_output_relation_input(left), trusted_output_relation_input(right)],
+    max_rows,
+    values,
+    max_work,
+    max_frames,
+    max_entries,
+    max_name_bytes,
+  )
+}
+
+///|
+/// Preserve the exact Events generation and operation port in completion.
+pub fn start_bounded_asof_join_events(
+  engine : @bounded.Control,
+  generated : GeneratedSequence,
+  left : @managed_carrier.ProducerView,
+  right : ProducerRead,
+  max_rows : Int,
+  values : ValueLimits,
+  max_work : Int,
+  max_frames : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+) -> Result[BoundedAsOfJoinExecution, BoundedAsOfJoinIssue] {
+  let owner = @lower.sequence_owner(generated.sequence)
+  let prepared = @lower.bound_preparation(owner)
+  let reference = @managed_carrier.producer_view_read_reference(left)
+  guard generated_sequence_step_count(generated) == 1 &&
+    generated_sequence_step_index_at(generated, 0) is Some(step) &&
+    @lower.node_at(prepared, step) is Some(node) &&
+    @lower.node_input_target(node, 0) is Some(target) &&
+    @managed_carrier.producer_view_kind(left) == @carrier.EventsKind &&
+    @managed_carrier.producer_read_reference_matches_operation_input(
+      reference, owner, step, 0,
+    ) &&
+    @lower.preparation_carrier_at(prepared, target)
+    is Some(@carrier.EventValue(events)) &&
+    @carrier.complete_schema(@carrier.event_records(events)) is Some(schema) else {
+    return Err(InvalidExecution)
+  }
+  start_bounded_asof_join_input(
+    engine,
+    generated,
+    EventsInput(left),
+    right,
+    schema,
+    [
+      trusted_output_carrier_input(reference),
+      trusted_output_relation_input(right),
+    ],
+    max_rows,
+    values,
+    max_work,
+    max_frames,
+    max_entries,
+    max_name_bytes,
+  )
+}
+
+///|
+fn start_bounded_asof_join_input(
+  engine : @bounded.Control,
+  generated : GeneratedSequence,
+  left : BoundedAsOfInput,
+  right : ProducerRead,
+  left_schema : @schema.Schema,
+  trusted_inputs : Array[TrustedOutputInput],
   max_rows : Int,
   values : ValueLimits,
   max_work : Int,
@@ -751,11 +884,10 @@ pub fn start_bounded_asof_join(
     generated_sequence_step_index_at(generated, 0) is Some(step) &&
     generated_sequence_step_at(generated, 0)
     is Some(@lower.AsOfJoinStep(kernel)) &&
-    producer_read_matches_operation_input(left, owner, step, 0) &&
     producer_read_matches_operation_input(right, owner, step, 1) &&
-    producer_read_has_cell_access(left) &&
+    bounded_asof_input_available(left) &&
     producer_read_has_cell_access(right) &&
-    producer_read_row_count(left) <= max_rows &&
+    bounded_asof_input_count(left) <= max_rows &&
     producer_read_row_count(right) <= max_rows &&
     @lower.preparation_schema_at(
       @lower.bound_preparation(owner),
@@ -768,7 +900,7 @@ pub fn start_bounded_asof_join(
     Some(value) if value >= 0L => value
     _ => return Err(InvalidExecution)
   }
-  let left_count = producer_read_row_count(left)
+  let left_count = bounded_asof_input_count(left)
   let right_count = producer_read_row_count(right)
   if right_count != 0 &&
     left_count.to_int64() > search_ceiling / right_count.to_int64() {
@@ -816,8 +948,8 @@ pub fn start_bounded_asof_join(
   }
   let control : ControlBudget = { remaining: max_work, max_frames, }
   let workspace = row_workspace(max_entries)
-  let resolve = fn(input : ProducerRead, field : @schema.FieldName) -> Int? {
-    let schema = producer_read_schema(input)
+  let right_schema = producer_read_schema(right)
+  let resolve = fn(schema : @schema.Schema, field : @schema.FieldName) -> Int? {
     let name = @schema.reference_name(field)
     for index in 0..<@schema.field_count(schema) {
       if !spend_control(control, 1) || !spend_control_text(control, name) {
@@ -832,15 +964,17 @@ pub fn start_bounded_asof_join(
     }
     None
   }
-  guard resolve(left, @lower.asof_join_time(kernel, true)) is Some(left_time) &&
-    resolve(right, @lower.asof_join_time(kernel, false)) is Some(right_time) else {
+  guard resolve(left_schema, @lower.asof_join_time(kernel, true))
+    is Some(left_time) &&
+    resolve(right_schema, @lower.asof_join_time(kernel, false))
+    is Some(right_time) else {
     return Err(InvalidExecution)
   }
   let keys : Array[(Int, Int)] = []
   for index in 0..<key_count {
     guard @lower.asof_join_key_at(kernel, index) is Some(pair) &&
-      resolve(left, pair.0) is Some(left_column) &&
-      resolve(right, pair.1) is Some(right_column) else {
+      resolve(left_schema, pair.0) is Some(left_column) &&
+      resolve(right_schema, pair.1) is Some(right_column) else {
       return Err(InvalidExecution)
     }
     keys.push((left_column, right_column))
@@ -848,7 +982,7 @@ pub fn start_bounded_asof_join(
   let identities : Array[Int] = []
   for index in 0..<identity_count {
     guard @lower.asof_join_identity_at(kernel, index) is Some(field) &&
-      resolve(left, field) is Some(column) else {
+      resolve(left_schema, field) is Some(column) else {
       return Err(InvalidExecution)
     }
     identities.push(column)
@@ -859,7 +993,7 @@ pub fn start_bounded_asof_join(
   let ties : Array[Int] = []
   for index in 0..<tie_count {
     guard @lower.asof_join_tie_break_at(kernel, index) is Some(field) &&
-      resolve(right, field) is Some(column) else {
+      resolve(right_schema, field) is Some(column) else {
       return Err(InvalidExecution)
     }
     ties.push(column)
@@ -874,7 +1008,8 @@ pub fn start_bounded_asof_join(
         (side == @schema.Left, @schema.Unqualified(name))
       _ => return Err(InvalidExecution)
     }
-    guard resolve(if on_left { left } else { right }, source) is Some(column) else {
+    guard resolve(if on_left { left_schema } else { right_schema }, source)
+      is Some(column) else {
       return Err(InvalidExecution)
     }
     columns.push((on_left, column))
@@ -909,13 +1044,13 @@ pub fn start_bounded_asof_join(
   let live = Ref(true)
   let accepted = Ref(false)
   let port = match
-    prepare_trusted_output_port(
+    prepare_trusted_output_port_with_inputs(
       generated_completion_preparation(generated),
       @pipeline.Step(step),
       max_entries,
       max_name_bytes,
       fn(_) { if live.val { rows.val } else { None } },
-      inputs=[left, right],
+      inputs=trusted_inputs,
     ) {
     Ok(value) => value
     Err(issue) => {

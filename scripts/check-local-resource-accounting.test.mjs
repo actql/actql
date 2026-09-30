@@ -71,7 +71,25 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
 });
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 68 with four-role boundary evidence, 68 with full work\/workspace assurance, 120 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 68 with four-role boundary evidence, 68 with full work\/workspace assurance, 121 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+});
+
+test('Events as-of view requires its own limits, delivered stop and cleanup proof', () => {
+  const asof = routes => routes.routes.find(entry =>
+    entry.family === 'TEA' && entry.operation === 'asof_join');
+  assert.match(run(undefined, routes => {
+    const route = asof(routes);
+    route.boundary_tests = route.boundary_tests.filter(item =>
+      item.role !== 'asof_events_exact_one_short_cancel_cleanup');
+  }), /TEA asof_join: view_entrypoint exact_limit lacks an executable fixture/u);
+  assert.match(run(undefined, routes => {
+    const route = asof(routes);
+    route.environment_tests = route.environment_tests.filter(item =>
+      item.role !== 'asof_events_host_cancel_cleanup');
+  }), /TEA asof_join: view_entrypoint in_flight_cancel lacks an executable fixture/u);
+  assert.match(run(undefined, routes => {
+    asof(routes).path_assurance.view_entrypoint.cleanup = 'missing_cleanup';
+  }), /TEA asof_join: view_entrypoint cleanup lacks an executable fixture/u);
 });
 
 test('selected Graph diagnostics require their own route and boundary proof', () => {
@@ -944,7 +962,7 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 120 |',
+    '| Path-scoped work/workspace assurance | 121 |',
     '| Path-scoped work/workspace assurance | 52 |',
   );
   assert.notEqual(stale, gaps);
