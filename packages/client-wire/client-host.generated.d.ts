@@ -1,5 +1,43 @@
 // Generated from the registered Client–Host machine contract.
-export type ClientHostOperation = "connect" | "submit" | "attach" | "lookup-request" | "status" | "wait" | "cancel" | "reconcile" | "read" | "delivery-attempt" | "checkpoints" | "checkpoint-review" | "resolve" | "cancel-request" | "resources" | "resource-inspect" | "resource-peek";
+export type ClientHostOperation = "connect" | "submit" | "attach" | "lookup-request" | "status" | "wait" | "cancel" | "reconcile" | "read" | "result-describe" | "delivery-attempt" | "checkpoints" | "checkpoint-review" | "resolve" | "cancel-request" | "resources" | "resource-inspect" | "resource-peek";
+export type WireValueContractShape = Readonly<{
+  type: "decimal";
+  nullable: boolean;
+  precision: number;
+  scale: number;
+}> | Readonly<{
+  type: "string";
+  nullable: boolean;
+  min_length?: number;
+  max_codepoints?: number;
+  max_utf8_bytes?: number;
+}> | Readonly<{
+  type: "number" | "boolean" | "timestamp" | "date" | "json";
+  nullable: boolean;
+}> | Readonly<{
+  type: "array";
+  nullable: boolean;
+  items: WireValueContractShape;
+  max_items?: number;
+}> | Readonly<{
+  type: "object";
+  nullable: boolean;
+  additional_properties: false;
+  fields: Readonly<Record<string, WireValueContractShape>>;
+}> | Readonly<{
+  type: "vector";
+  nullable: boolean;
+  dimensions: number;
+  element_type: "f32";
+}> | Readonly<{
+  type: "resource_ref";
+  nullable: boolean;
+  resource_kind: string;
+}> | Readonly<{
+  type: "artifact_ref";
+  nullable: boolean;
+  media_type?: string;
+}>;
 export type WireRunRefShape = Readonly<{
   namespaceId: string;
   authorityScopeCid: string;
@@ -182,6 +220,28 @@ export type WireResourcePeekShape = Readonly<{
   fields: readonly string[];
   rowsJson: string;
   limited: boolean;
+}>;
+
+export type WireResultDescriptionShape = Readonly<{
+  ref: Readonly<{
+  namespaceId: string;
+  authorityScopeCid: string;
+  runDefinitionCid: string;
+}>;
+  resultName: string;
+  programDefinitionCid: string;
+  resultDefinitionCid: string;
+  resultArtifactCid: string;
+  resultSchemaCid: string;
+  columns: readonly Readonly<{
+  name: string;
+  contract: WireValueContractShape;
+}>[];
+  serialization: Readonly<{
+  format: "json" | "jsonl" | "csv";
+  version: "actql-json/0.1" | "actql-jsonl/0.1" | "actql-csv/0.1";
+  contractCid: string;
+}>;
 }>;
 
 export type WireRunStateShape = Readonly<{

@@ -305,6 +305,16 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       actual === principalId,
     authorizeDeliveryAttemptLookup: ({principalId: actual}) =>
       actual === principalId,
+    authorizeResultDescription: ({principalId: actual}) =>
+      actual === principalId,
+    admitResultDescription: ({attemptId}) => ({
+      authorizationContextCid: cid({version: 'actql-local-read/0.1',
+        attemptId}),
+      dataCeilingCid: cid({version: 'actql-local-read-ceiling/0.1'}),
+      egressAdmissionCid: cid({version: 'actql-local-egress/0.1'}),
+      expiresAt: plus(now(), 60 * 60 * 1000),
+      maxBytes: localOutputLimits.maxWireBytes, maxUses: 1,
+    }),
   });
   const resultService = installNodeResultAccessService({store, control,
     authority: resultAuthority, now, limits: localContractLimits,

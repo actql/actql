@@ -5,7 +5,8 @@ import type {ClientHostOperation, WireAdmissionShape, WireCancellationShape,
   WireRequestCancellationShape, WireResourceInspectionShape,
   WireResourceListingShape, WireResourcePeekShape,
   WireResolveItemShape, WireResolveResultShape, WireRunRefShape,
-  WireRunStateShape, WireSubmitPreparationErrorShape} from
+  WireRunStateShape, WireSubmitPreparationErrorShape,
+  WireResultDescriptionShape, WireValueContractShape} from
   './client-host.generated.js';
 export type {ClientHostOperation} from './client-host.generated.js';
 
@@ -27,6 +28,16 @@ export type WireConnection =
       movementPolicyRef: string; cloudConnectionRef?: never}>);
 
 export type WireRunRef = WireRunRefShape;
+export type WireResultDescription = WireResultDescriptionShape;
+export type WireValueContract = WireValueContractShape;
+export declare const resultDescriptionLimits: Readonly<{
+  maxWireBytes: number; maxNodes: number; maxDepth: number}>;
+export declare function withinResultDescriptionLimits(value: unknown,
+  limits?: typeof resultDescriptionLimits): boolean;
+export declare function validResultDescription(value: unknown,
+  expected: Readonly<{ref: WireRunRef; resultName: string;
+    format: 'json' | 'jsonl' | 'csv'}>,
+  limits?: typeof resultDescriptionLimits): value is WireResultDescription;
 export type WireRunState = WireRunStateShape;
 export type WireSubmitPreparationError = WireSubmitPreparationErrorShape;
 export type ClientSourceFormat = 'json' | 'yaml' | 'aql-json' |
@@ -52,6 +63,9 @@ export type WireClientBodyByOperation = Readonly<{
   wait: WireRefBody & Readonly<{until: string | null}>;
   cancel: WireRefBody;
   reconcile: WireRefBody;
+  'result-describe': WireRefBody & Readonly<{
+    resultName: string; format: 'json' | 'jsonl' | 'csv'; attemptId: string;
+    maxWireBytes: number; maxNodes: number; maxDepth: number}>;
   read: WireRefBody & Readonly<{
     resultName: string;
     format: 'json' | 'jsonl' | 'csv';

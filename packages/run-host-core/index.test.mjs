@@ -43,7 +43,7 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   admitCompletedSourceObservation,
   issueTaskInvocation,
   issueUnpublishedRunStateWire, issueSucceededRunStateWire, projectSiteRun,
-  resultReadAvailability,
+  resultReadAvailability, describeCommittedResult,
   prepareRunStart, prepareRunPhysicalStart, prepareRunCancellation,
   prepareRunPreStartFailure,
   issueRunControlObservation,
@@ -548,6 +548,48 @@ test('portable Host issues a Manifest for exact admitted Result evidence',
     }), limits);
     const readManifest = readControl.admit('result_manifest',
       manifest.wire, limits);
+    const retainedDescription = {
+      programDefinitionCid: fixed('6'), resultDefinitionCid: definition.cid,
+      resultArtifactCid: artifact.cid, resultSchemaCid: schemaCid,
+      resultName: 'answer',
+      columns: [{name: 'value', contract: {nullable: false, type: 'integer'}}],
+      serialization: {format: 'jsonl', version: 'actql-jsonl/0.1',
+        contractCid: cid({version: 'actql-jsonl/0.1'})},
+    };
+    assert.deepEqual(readControl.describeCommittedResult(publicIndex,
+      readManifest, 'answer', [readControl.admit('durable_result_binding',
+        binding.wire, limits)], readControl.admit('result_definition',
+        definition.wire, limits), schemaWire, 'jsonl', limits),
+    retainedDescription);
+    const indexContract = admitPublicationContract('public_index_entry',
+      publicIndex.wire, limits);
+    assert.deepEqual(describeCommittedResult(indexContract, manifest,
+      'answer', [binding], definition, schemaWire, 'jsonl', limits),
+    retainedDescription);
+    assert.throws(() => describeCommittedResult(indexContract, manifest,
+      'answer', [], definition, schemaWire, 'jsonl', limits),
+    {code: 'RunHostResultDescriptionRejected'});
+    assert.throws(() => describeCommittedResult(indexContract, manifest,
+      'answer', [binding], definition, '{}', 'jsonl', limits),
+    {code: 'RunHostResultDescriptionRejected'});
+    const metadataRetention = readControl.admit('result_retention_policy',
+      retention.wire, limits);
+    assert.equal(readControl.resultMetadataRetentionState(metadataRetention,
+      '2026-09-18T02:30:00.000Z'), 'retained');
+    assert.equal(readControl.resultMetadataRetentionState(metadataRetention,
+      '2026-09-18T04:00:00.000Z'), 'delete_due');
+    const metadataGrant = readControl.issueManifestReadGrant(publicIndex,
+      readManifest, {principalId: 'reader', purpose: 'inspect',
+        dataCeilingCid: fixed('a'), maxBytes: 1024, maxUses: 1,
+        expiresAt: '2026-09-18T00:45:00.000Z',
+        authorizationContextCid: fixed('4')}, limits);
+    assert.equal(metadataGrant.name, 'manifest_read_grant');
+    assert.equal(readControl.manifestReadGrantValidAt(metadataGrant,
+      '2026-09-18T00:30:00.000Z'), true);
+    assert.equal(readControl.manifestReadGrantValidAt(metadataGrant,
+      '2026-09-18T00:45:00.001Z'), false);
+    assert.equal(readControl.manifestReadGrantAllowsBytes(metadataGrant, 1024), true);
+    assert.equal(readControl.manifestReadGrantAllowsBytes(metadataGrant, 1025), false);
     assert.throws(() => readControl.resultReadDefinitionCid({
       ...readManifest,
     }, 'answer'), {name: 'TypeError', message: 'ForeignRunHostDelivery'});

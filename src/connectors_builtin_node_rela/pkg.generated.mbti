@@ -805,6 +805,8 @@ pub fn strategy_delivery_result_definition_cid(@run_publication.PublicationContr
 
 pub fn strategy_delivery_success_valid(@run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract) -> Bool
 
+pub fn strategy_describe_committed_result(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[@run_publication.PublicationContract], @run_publication.PublicationContract, String, String, Int, Int, Int) -> String raise NodeHostFailure
+
 pub fn strategy_durable_payload_failure_action(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> Int
 
 pub fn strategy_effect_admit_ledger_entry(String, Int, Int, Int) -> @effect_application.EffectLedgerEntry raise NodeHostFailure

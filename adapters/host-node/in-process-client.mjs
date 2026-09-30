@@ -8,11 +8,11 @@ import {validCheckpointPage, validCheckpointReview, validClientAdmission,
   validClientBody, validClientProfile, validDeliveryAttemptLookup,
   validRequestCancellation, validRequestLookup, validResolveResults,
   validResourceInspection, validResourceListing, validResourcePeek,
-  validRunState} from
+  validRunState, validResultDescription} from
   '../../packages/client-wire/index.mjs';
 import {inspectAuthorizedRunState} from
   '../host-common/run-state-access.mjs';
-import {inspectAuthorizedDeliveryAttempt} from './result-access.mjs';
+import {inspectAuthorizedDeliveryAttempt, describeAuthorizedResult} from './result-access.mjs';
 import {authorizedLocalResultFrames} from './in-process-result.mjs';
 import {publicClientErrorCode} from './client-http.mjs';
 
@@ -159,6 +159,18 @@ export function createNodeInProcessClientHost({
         return answer;
       }
       if (operation === 'cancel') return await invoke(cancel);
+      if (operation === 'result-describe') {
+        const answer = await describeAuthorizedResult(resultService, {
+          indexKey: ref, principalId, purpose: 'inspect',
+          resultName: body.resultName, format: body.format,
+          attemptId: body.attemptId, maxWireBytes: body.maxWireBytes,
+          maxNodes: body.maxNodes, maxDepth: body.maxDepth,
+        }, signal);
+        if (!validResultDescription(answer, body, body)) {
+          fail('InvalidClientHostResultDescription');
+        }
+        return answer;
+      }
       if (operation === 'reconcile') return await invoke(reconcile);
       if (operation === 'delivery-attempt') {
         const found = await inspectAuthorizedDeliveryAttempt(resultService, {

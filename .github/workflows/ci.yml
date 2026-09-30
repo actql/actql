@@ -162,6 +162,17 @@ jobs:
         with:
           directory: ${{ steps.packed-query.outputs.evidence-directory }}
           name: packed-public-query-${{ github.sha }}
+      - name: Test committed Result descriptions through packed Local and HTTP
+        # The description path reads retained metadata, including empty Results.
+        # It must be exercised from installed packages on both transports.
+        run: node scripts/test-packed-result-description.mjs
+        id: packed-result-description
+      - name: Retain packed Result description evidence
+        if: always() && steps.packed-result-description.outputs.evidence-directory != ''
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.packed-result-description.outputs.evidence-directory }}
+          name: packed-result-description-${{ github.sha }}
       - name: Test Salesforce Site Catalog and bounded query acquisition
         run: npm run check:salesforce-site
       - name: Count actual Effect Compute calls across recovery

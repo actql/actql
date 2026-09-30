@@ -2,7 +2,8 @@
 // MoonBit owns grant and delivery semantics. This module keeps caller input
 // separate from Host-owned authorization and delegates physical effects.
 import {deliverPublishedResult} from './result-delivery.mjs';
-import {validDeliveryAttemptLookup} from
+import {validDeliveryAttemptLookup, validResultDescription,
+  withinResultDescriptionLimits, resultDescriptionLimits} from
   '../../packages/client-wire/index.mjs';
 
 const authorities = new WeakMap();
@@ -54,10 +55,18 @@ export class ResultAccessError extends Error {
 const fail = (code, cause) => { throw new ResultAccessError(code, cause); };
 
 function validateAuthority(configuration) {
-  if (!(exactKeys(configuration, [
+  const {authorizeResultDescription, admitResultDescription, ...reads} =
+    configuration ?? {};
+  if ((authorizeResultDescription !== undefined ||
+      admitResultDescription !== undefined) &&
+      (typeof authorizeResultDescription !== 'function' ||
+       typeof admitResultDescription !== 'function')) {
+    fail('InvalidResultAccessAuthority');
+  }
+  if (!(exactKeys(reads, [
     'authorizeResultReadRequest', 'admitResultRead',
     'authorizeResultRead',
-  ]) || exactKeys(configuration, [
+  ]) || exactKeys(reads, [
     'authorizeResultReadRequest', 'admitResultRead',
     'authorizeResultRead', 'authorizeDeliveryAttemptLookup',
   ])) || typeof configuration.authorizeResultReadRequest !== 'function' ||
@@ -78,8 +87,117 @@ export function installResultAccessAuthority(configuration) {
     authorizeResultRead: configuration.authorizeResultRead,
     authorizeDeliveryAttemptLookup:
       configuration.authorizeDeliveryAttemptLookup,
+    authorizeResultDescription: configuration.authorizeResultDescription,
+    admitResultDescription: configuration.admitResultDescription,
   }));
   return authority;
+}
+
+export async function describeAuthorizedResult(service, input, signal) {
+  const installed = services.get(service) ?? fail('ForeignResultAccessService');
+  const {maxWireBytes, maxNodes, maxDepth, ...readInput} = input ?? {};
+  const request = ownedResultRequest(readInput, true);
+  validateRequest(request);
+  const limits = Object.freeze({maxWireBytes, maxNodes, maxDepth});
+  if (!Object.keys(resultDescriptionLimits).every(key =>
+    positive(limits[key]) && limits[key] <= resultDescriptionLimits[key])) {
+    fail('InvalidResultAccessRequest');
+  }
+  const {store, control, authority, now} = installed;
+  if (typeof authority.authorizeResultDescription !== 'function' ||
+      typeof authority.admitResultDescription !== 'function' ||
+      typeof store.readCommittedResultDescriptionEvidence !== 'function' ||
+      typeof control.describeCommittedResult !== 'function') {
+    fail('ClientOperationUnavailable');
+  }
+  signal?.throwIfAborted();
+  const authorize = async facts => {
+    let allowed;
+    try { allowed = await authority.authorizeResultDescription(facts); }
+    catch { fail('ResultAccessDenied'); }
+    if (allowed !== true) fail('ResultAccessDenied');
+    signal?.throwIfAborted();
+  };
+  await authorize(Object.freeze({...request, stage: 'request'}));
+  let entry, index, manifest, retention, evidence;
+  try {
+    entry = await store.confirmCommittedIndex(request.indexKey);
+    if (entry === undefined) fail('ResultAccessDenied');
+    index = await store.readPublicationContract(
+      entry.public_index_entry_cid, 'public_index_entry');
+    manifest = await store.readPublicationContract(
+      entry.result_manifest_cid, 'result_manifest');
+    const definitionCid = control.resultReadDefinitionCid(
+      manifest, request.resultName);
+    retention = await store.readPublicationContract(
+      control.resultReadRetentionPolicyCid(manifest, request.resultName),
+      'result_retention_policy');
+    evidence = await store.readCommittedResultDescriptionEvidence(
+      request.indexKey, definitionCid);
+  } catch (error) {
+    if (error?.code === 'PublicationLookupDenied') fail('ResultAccessDenied');
+    if (['PublicationObjectMissing', 'PublicationContractMissing']
+      .includes(error?.code)) {
+      fail('ResultDescriptionUnavailable', error);
+    }
+    throw error;
+  }
+  const effectiveRetention = evidence.retained?.extension ?? retention;
+  const clockCid = control.resultRetentionClockContractCid(retention);
+  const checkRetained = async () => {
+    const at = observedAt(now);
+    await store.observeTrustedClock(clockCid, at);
+    // Validate the stored extension's exact base binding using its owner.
+    if (evidence.retained !== undefined) {
+      control.resultReadExtendedAvailability(manifest, request.resultName,
+        retention, effectiveRetention, at);
+    }
+    if (control.resultMetadataRetentionState(effectiveRetention, at) !==
+        'retained') fail('ResultDescriptionUnavailable');
+    return at;
+  };
+  const at = await checkRetained();
+  const facts = Object.freeze({...request, index, manifest,
+    retention: effectiveRetention, observedAt: at});
+  const admission = await authority.admitResultDescription(facts);
+  validateAdmission(admission);
+  // Metadata consumes the existing Manifest grant, not a payload delivery.
+  const grant = control.issueManifestReadGrant(index, manifest, {
+    principalId: request.principalId, purpose: request.purpose,
+    dataCeilingCid: admission.dataCeilingCid,
+    maxBytes: admission.maxBytes, maxUses: admission.maxUses,
+    expiresAt: admission.expiresAt,
+    authorizationContextCid: admission.authorizationContextCid,
+  }, installed.limits);
+  const authorizedFacts = Object.freeze({...facts, grant,
+    authorizationContextCid: admission.authorizationContextCid,
+    egressAdmissionCid: admission.egressAdmissionCid});
+  await authorize(Object.freeze({...authorizedFacts, stage: 'read'}));
+  const response = Object.freeze({ref: request.indexKey,
+    ...control.describeCommittedResult(index, manifest, request.resultName,
+      evidence.bindings, evidence.definition, evidence.schemaWire,
+      request.format, installed.limits)});
+  if (!withinResultDescriptionLimits(response, limits)) {
+    fail('ResultDescriptionTooLarge');
+  }
+  if (!validResultDescription(response, {ref: request.indexKey,
+    resultName: request.resultName, format: request.format}, limits)) {
+    fail('InvalidResultDescription');
+  }
+  const byteCount = new TextEncoder().encode(JSON.stringify(response)).length;
+  if (!control.manifestReadGrantAllowsBytes(grant, byteCount) ||
+      !control.manifestReadGrantValidAt(grant, await checkRetained())) {
+    fail('ResultAccessDenied');
+  }
+  await store.consumeManifestReadGrant(grant.wire, request.attemptId);
+  await authorize(Object.freeze({...authorizedFacts, stage: 'response'}));
+  if (!control.manifestReadGrantValidAt(grant, await checkRetained()) ||
+      (await store.confirmCommittedIndex(request.indexKey))
+        ?.public_index_entry_cid !== entry.public_index_entry_cid) {
+    fail('ResultDescriptionUnavailable');
+  }
+  signal?.throwIfAborted();
+  return response;
 }
 
 function validateServiceConfiguration(configuration) {

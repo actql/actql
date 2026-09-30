@@ -2,7 +2,7 @@ import type {ClientSourceFormat, WireCancellation, WireCheckpointSummary, WireCl
   WireRequestCancellation,
   WireDeliveryAttemptLookup, WireHeldRequest, WireRequestLookup,
   WireResolveItem, WireResolveResult, WireRunRef,
-  WireRunState} from '@actql/client-wire';
+  WireRunState, WireResultDescription} from '@actql/client-wire';
 
 export type Durability = 'volatile' | 'durable';
 export type RunReference = WireRunRef;
@@ -89,7 +89,17 @@ export interface Reader<T> extends AsyncIterable<T> {
   state(): 'not_started' | 'prefix' | 'complete';
 }
 
+export type ResultDescription = WireResultDescription;
+export interface ResultDescriptionOptions {
+  signal?: AbortSignal;
+  format?: 'json' | 'jsonl' | 'csv';
+  /** Whole UTF-8 JSON response bytes, including its envelope. */
+  maxWireBytes?: number;
+  maxNodes?: number;
+  maxDepth?: number;
+}
 export interface Result {
+  describe(options?: ResultDescriptionOptions): Promise<ResultDescription>;
   rows(options?: ReadOptions): Reader<unknown>;
   batches(options?: ReadOptions): Reader<unknown[]>;
   all(options?: ReadOptions): Promise<unknown[]>;

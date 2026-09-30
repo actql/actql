@@ -936,6 +936,119 @@ const schemas = {
       }
     }
   },
+  "result_description": {
+    "type": "object",
+    "required": [
+      "ref",
+      "resultName",
+      "programDefinitionCid",
+      "resultDefinitionCid",
+      "resultArtifactCid",
+      "resultSchemaCid",
+      "columns",
+      "serialization"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "ref": {
+        "type": "object",
+        "required": [
+          "namespaceId",
+          "authorityScopeCid",
+          "runDefinitionCid"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "namespaceId": {
+            "type": "string",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "authorityScopeCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "runDefinitionCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        }
+      },
+      "resultName": {
+        "type": "string",
+        "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "programDefinitionCid": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "resultDefinitionCid": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "resultArtifactCid": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "resultSchemaCid": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "columns": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "required": [
+            "name",
+            "contract"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "contract": {
+              "$ref": "value_contract"
+            }
+          }
+        }
+      },
+      "serialization": {
+        "type": "object",
+        "required": [
+          "format",
+          "version",
+          "contractCid"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "enum": [
+              "json",
+              "jsonl",
+              "csv"
+            ]
+          },
+          "version": {
+            "enum": [
+              "actql-json/0.1",
+              "actql-jsonl/0.1",
+              "actql-csv/0.1"
+            ]
+          },
+          "contractCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        }
+      }
+    }
+  },
   "run_state": {
     "type": "object",
     "required": [
@@ -1447,6 +1560,932 @@ const schemas = {
         }
       }
     ]
+  },
+  "value_contract": {
+    "oneOf": [
+      {
+        "type": "object",
+        "required": [
+          "type",
+          "nullable",
+          "precision",
+          "scale"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "decimal"
+          },
+          "nullable": {
+            "type": "boolean"
+          },
+          "precision": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 38
+          },
+          "scale": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 38
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 1
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 1
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 2
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 2
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 3
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 3
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 4
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 4
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 5
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 5
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 6
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 6
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 7
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 7
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 8
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 8
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 9
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 9
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 10
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 10
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 11
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 11
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 12
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 12
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 13
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 13
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 14
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 14
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 15
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 15
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 16
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 16
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 17
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 17
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 18
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 18
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 19
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 19
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 20
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 20
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 21
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 21
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 22
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 22
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 23
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 23
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 24
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 24
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 25
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 25
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 26
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 26
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 27
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 27
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 28
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 28
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 29
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 29
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 30
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 30
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 31
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 31
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 32
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 32
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 33
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 33
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 34
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 34
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 35
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 35
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 36
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 36
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 37
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 37
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "required": [
+                "precision"
+              ],
+              "properties": {
+                "precision": {
+                  "const": 38
+                }
+              }
+            },
+            "then": {
+              "properties": {
+                "scale": {
+                  "maximum": 38
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "type": "object",
+        "required": [
+          "type",
+          "nullable"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "string"
+          },
+          "nullable": {
+            "type": "boolean"
+          },
+          "min_length": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "max_codepoints": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "max_utf8_bytes": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      {
+        "type": "object",
+        "required": [
+          "type",
+          "nullable"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "enum": [
+              "number",
+              "boolean",
+              "timestamp",
+              "date",
+              "json"
+            ]
+          },
+          "nullable": {
+            "type": "boolean"
+          }
+        }
+      },
+      {
+        "type": "object",
+        "required": [
+          "type",
+          "nullable",
+          "items"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "array"
+          },
+          "nullable": {
+            "type": "boolean"
+          },
+          "items": {
+            "$ref": "value_contract"
+          },
+          "max_items": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      {
+        "type": "object",
+        "required": [
+          "type",
+          "nullable",
+          "additional_properties",
+          "fields"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "object"
+          },
+          "nullable": {
+            "type": "boolean"
+          },
+          "additional_properties": {
+            "const": false
+          },
+          "fields": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "value_contract"
+            },
+            "propertyNames": {
+              "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
+            }
+          }
+        }
+      },
+      {
+        "type": "object",
+        "required": [
+          "type",
+          "nullable",
+          "dimensions",
+          "element_type"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "vector"
+          },
+          "nullable": {
+            "type": "boolean"
+          },
+          "dimensions": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "element_type": {
+            "const": "f32"
+          }
+        }
+      },
+      {
+        "type": "object",
+        "required": [
+          "type",
+          "nullable",
+          "resource_kind"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "resource_ref"
+          },
+          "nullable": {
+            "type": "boolean"
+          },
+          "resource_kind": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      {
+        "type": "object",
+        "required": [
+          "type",
+          "nullable"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "const": "artifact_ref"
+          },
+          "nullable": {
+            "type": "boolean"
+          },
+          "media_type": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    ]
   }
 };
 const operationKeys = {
@@ -1491,6 +2530,16 @@ const operationKeys = {
     "resultName",
     "format",
     "attemptId"
+  ],
+  "result-describe": [
+    "connection",
+    "ref",
+    "resultName",
+    "format",
+    "attemptId",
+    "maxWireBytes",
+    "maxNodes",
+    "maxDepth"
   ],
   "delivery-attempt": [
     "connection",
@@ -1539,12 +2588,16 @@ const operationKeys = {
 };
 
 function valid(value, schema) {
+  if (schema.$ref) return valid(value, schemas[schema.$ref]);
   if (schema.oneOf && schema.oneOf.filter(rule => valid(value, rule)).length !== 1) return false;
   if (schema.not && valid(value, schema.not)) return false;
   if (schema.if && valid(value, schema.if) && !valid(value, schema.then)) return false;
   if (schema.allOf && !schema.allOf.every(rule => valid(value, rule))) return false;
   if (Object.hasOwn(schema, 'const') && value !== schema.const) return false;
   if (schema.enum && !schema.enum.includes(value)) return false;
+  if (typeof value === 'number' &&
+      (schema.minimum !== undefined && value < schema.minimum ||
+       schema.maximum !== undefined && value > schema.maximum)) return false;
   if (typeof value === 'string' &&
       ((schema.minLength !== undefined && [...value].length < schema.minLength) ||
         (schema.maxLength !== undefined && value.length > schema.maxLength) ||
@@ -1599,4 +2652,5 @@ export const validRequestCancellationShape = value => valid(value, schemas.reque
 export const validResourceListingShape = value => valid(value, schemas.resource_listing);
 export const validResourceInspectionShape = value => valid(value, schemas.resource_inspection);
 export const validResourcePeekShape = value => valid(value, schemas.resource_peek);
+export const validResultDescriptionShape = value => valid(value, schemas.result_description);
 export const validRunStateShape = value => valid(value, schemas.run_state);

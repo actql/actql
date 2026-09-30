@@ -19,7 +19,7 @@ const ref = Object.freeze({namespaceId: 'namespace-a',
 
 test('public wire accepts the exact connected request shapes', () => {
   // The Run, request, Checkpoint and three Resource discovery operations.
-  assert.equal(clientHostOperations.length, 17);
+  assert.equal(clientHostOperations.length, 18);
   assert.equal(validClientConnection(connection), true);
   assert.equal(validRunRef(ref), true);
   assert.equal(validClientBody('connect', {connection}), true);
