@@ -134,7 +134,20 @@ fn host_code(issue : @resident_host.ResidentHostIssue) -> String {
     Runtime(@runtime.StartClaimLost(_)) => "start-claim-lost"
     Runtime(@runtime.StartCancelled) => "start-cancelled"
     Runtime(@runtime.ExecutorEntryUnrecorded) => "executor-entry-unrecorded"
-    Runtime(_) => "runtime"
+    Runtime(issue) => "runtime-" + runtime_code(issue)
+  }
+}
+
+///|
+fn runtime_code(issue : @runtime.NativeRemoteRuntimeIssue) -> String {
+  match issue {
+    Journal(_) => "journal"
+    Bundle(_) => "bundle"
+    CleanupPending(_) => "cleanup-pending"
+    Physical(_) => "physical"
+    Protocol(_) => "protocol"
+    Closed => "closed"
+    _ => "other"
   }
 }
 
@@ -597,6 +610,127 @@ fn holder_left_startable(
 }
 
 ///|
+/// Acceptance evidence only: while `failures` is positive, a reclaim pass is
+/// reported as skipped and the count goes down.
+fn skip_reclaim(failures : Ref[Int]) -> Bool {
+  if failures.val <= 0 {
+    return false
+  }
+  failures.val -= 1
+  report("orphan-reclaim-pending", [("reason", "injected")])
+  true
+}
+
+///|
+priv enum OrphanReclaim {
+  /// No output intent is pending; the slot is not held by this process.
+  OrphansDone
+  /// Some intents stay pending for a later pass; the slot is released.
+  OrphansPending
+  /// The Store this process opened could not close yet; it keeps the Store
+  /// and the slot until it does.
+  OrphanStoreOpen(@publication_store.Store)
+}
+
+///|
+/// Reclaim the payloads of output intents left by holders that are gone. It
+/// acts only while this process holds the executor slot, which proves that no
+/// holder can still write them, and uses the existing publication Store
+/// owner. The Store is closed and the slot released before any holder
+/// starts. Execution is never resumed or repeated.
+fn reclaim_orphaned_outputs(
+  matches : @argparse.Matches,
+  environment : ControlEnvironment,
+  slot : @slot.NativeExecutorSlot,
+  held : @publication_store.Store?,
+) -> OrphanReclaim raise CommandStop {
+  let close_held = fn(store : @publication_store.Store) -> OrphanReclaim {
+    match store.close() {
+      Ok(_) => {
+        ignore(slot.close())
+        OrphansPending
+      }
+      Err(_) => {
+        report("orphan-reclaim-pending", [("reason", "store-close")])
+        OrphanStoreOpen(store)
+      }
+    }
+  }
+  guard fresh_journal(environment) is Some(journal) else {
+    report("orphan-reclaim-pending", [("reason", "journal-open")])
+    return match held {
+      Some(store) => close_held(store)
+      None => OrphansPending
+    }
+  }
+  let pending = match journal.pending_output_intents() {
+    Ok(value) => value.length()
+    Err(_) => {
+      ignore(journal.close())
+      report("orphan-reclaim-pending", [("reason", "journal-read")])
+      return match held {
+        Some(store) => close_held(store)
+        None => OrphansPending
+      }
+    }
+  }
+  if pending == 0 && held is None {
+    ignore(journal.close())
+    return OrphansDone
+  }
+  let store = match held {
+    Some(value) => value
+    None => {
+      match slot.try_acquire() {
+        Ok(true) => ()
+        Ok(false) => {
+          ignore(journal.close())
+          report("orphan-reclaim-pending", [("reason", "slot-busy")])
+          return OrphansPending
+        }
+        Err(_) => {
+          ignore(journal.close())
+          stop("executor slot lock failed")
+        }
+      }
+      let opened = @publication_store.open_store(
+        environment.sqlite_library,
+        required(matches, "publication-root"),
+        required(matches, "publication-authority-cid"),
+        required_int64(matches, "publication-capacity-bytes"),
+        required_int(matches, "max-transfers").to_int64(),
+        environment.max_record_bytes,
+      )
+      match opened {
+        Ok(value) => value
+        Err(_) => {
+          ignore(journal.close())
+          ignore(slot.close())
+          report("orphan-reclaim-pending", [("reason", "store-open")])
+          return OrphansPending
+        }
+      }
+    }
+  }
+  let remaining = @resident_host.reclaim_resident_output_intents(journal, store)
+  ignore(journal.close())
+  match remaining {
+    Ok(0) => report("orphans-reclaimed", [("intents", pending.to_string())])
+    Ok(count) =>
+      report("orphan-reclaim-pending", [
+        ("reason", "store"),
+        ("intents", count.to_string()),
+      ])
+    Err(issue) =>
+      report("orphan-reclaim-pending", [("reason", output_code(issue))])
+  }
+  match close_held(store) {
+    OrphansPending if remaining is Ok(0) => OrphansDone
+    other => other
+  }
+}
+
+///|
 /// The exact dispatch request kept for an accepted attempt, read from a
 /// fresh journal view. `failures` is an acceptance test hook: while it is
 /// positive, one read is reported as failed.
@@ -672,6 +806,16 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   let unsettled : Array[RunningHolder] = []
   let mut backoff_ms = 0
   let mut next_start_ms : UInt64 = 0
+  // Output intents of holders that are gone are looked for at startup and
+  // whenever a holder ends. A publication Store this process opened for that
+  // stays here, with the slot, until it closes.
+  let mut reclaim_due = true
+  let mut next_reclaim_ms : UInt64 = 0
+  let mut orphan_store : @publication_store.Store? = None
+  // Acceptance evidence only: reclaim passes skipped before the first one.
+  let reclaim_failures : Ref[Int] = {
+    val: required_int(matches, "control-reclaim-failures"),
+  }
   let mut polls = 0
   let mut holders = 0
   while !@slot.native_termination_requested() {
@@ -682,6 +826,8 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
           Ok(Some(_)) => {
             ignore(current.channel.close())
             holder = None
+            // A holder that died may have left output intents behind.
+            reclaim_due = true
             // A holder that ended without claiming (its setup failed) left
             // the attempt startable: it stays queued and starts again after
             // the error backoff. Only a record that can no longer start is
@@ -716,9 +862,38 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
     unsettled.append(still_unsettled)
     // Start the oldest accepted attempt when the slot is free. The lock is
     // taken here and passed to the holder without a gap.
-    if holder is None && @env.now() >= next_start_ms {
+    if holder is None && !slot.is_open() {
       // A slot handed to an earlier holder is opened again; the same file is
       // always used.
+      slot = match @slot.open_native_executor_slot(slot_path) {
+        Ok(value) => value
+        Err(_) => stop("executor slot open failed")
+      }
+    }
+    if holder is None &&
+      (
+        orphan_store is Some(_) ||
+        (reclaim_due && @env.now() >= next_reclaim_ms)
+      ) &&
+      !skip_reclaim(reclaim_failures) {
+      match reclaim_orphaned_outputs(matches, environment, slot, orphan_store) {
+        OrphansDone => {
+          reclaim_due = false
+          orphan_store = None
+        }
+        OrphansPending => {
+          orphan_store = None
+          next_reclaim_ms = @env.now() + max_backoff_ms.to_uint64()
+        }
+        OrphanStoreOpen(store) => {
+          orphan_store = Some(store)
+          next_reclaim_ms = @env.now() + max_backoff_ms.to_uint64()
+        }
+      }
+    }
+    // No holder starts while this process still has the slot for a Store
+    // it could not close yet.
+    if holder is None && orphan_store is None && @env.now() >= next_start_ms {
       if !slot.is_open() {
         slot = match @slot.open_native_executor_slot(slot_path) {
           Ok(value) => value
@@ -942,6 +1117,15 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   if holder is Some(current) {
     report("holder-still-running", [("attempt", current.attempt)])
   }
+  // A Store kept open for reclaiming is closed once more; if it still cannot
+  // close, its payloads stay recorded as pending intents for the next start.
+  match orphan_store {
+    Some(store) =>
+      if store.close() is Err(_) {
+        report("orphan-reclaim-pending", [("reason", "store-close")])
+      }
+    None => ()
+  }
   ignore(client.close())
   ignore(slot.close())
   report("stopped", [])
@@ -1006,6 +1190,9 @@ fn output_code(issue : @resident_host.ResidentOutputIssue) -> String {
       }
     OutputTransfer(_) => "transfer-setup"
     OutputProtocol(_) => "protocol"
+    OutputStoreRefused => "store-refused"
+    OutputIntent(_) => "intent"
+    OutputIntentInvalid => "intent-invalid"
   }
 }
 
@@ -1023,9 +1210,15 @@ priv struct HolderOutputResources {
   coordinator_authority : String
   site_key : String
   site_generation : Int
+  store_authority : String
   release_failures : Int
   // Acceptance evidence only: result reports withheld after a delivery.
   mut result_report_failures : Int
+  // Acceptance evidence only: the output step at which the holder kills
+  // itself with SIGKILL, and the step at which it pauses for `pause_ms`.
+  kill_at : String
+  pause_at : String
+  pause_ms : Int
 }
 
 ///|
@@ -1041,6 +1234,9 @@ fn open_holder_output_resources(
     required_int(matches, "site-generation"),
     required_int(matches, "holder-release-failures"),
     required_int(matches, "holder-result-report-failures"),
+    required(matches, "holder-kill-at"),
+    required(matches, "holder-pause-at"),
+    required_int(matches, "holder-pause-ms"),
     required_int64(matches, "max-bytes"),
     required_int64(matches, "max-record-bytes"),
     required_int64(matches, "publication-capacity-bytes"),
@@ -1059,6 +1255,9 @@ fn open_holder_output_resources(
     site_generation,
     release_failures,
     result_report_failures,
+    kill_at,
+    pause_at,
+    pause_ms,
     max_bytes,
     max_record_bytes,
     publication_capacity,
@@ -1119,9 +1318,29 @@ fn open_holder_output_resources(
     coordinator_authority,
     site_key,
     site_generation,
+    store_authority: publication_authority,
     release_failures,
     result_report_failures,
+    kill_at,
+    pause_at,
+    pause_ms,
   })
+}
+
+///|
+/// Acceptance evidence only: at the named output step the holder kills
+/// itself with SIGKILL, as an abrupt external kill would.
+fn holder_checkpoint(resources : HolderOutputResources) -> (String) -> Unit {
+  fn(point : String) {
+    if point == resources.pause_at {
+      report("holder-paused", [("point", point)])
+      @slot.native_wait_milliseconds(resources.pause_ms)
+    }
+    if point == resources.kill_at {
+      report("holder-killed", [("point", point)])
+      @slot.native_kill_self()
+    }
+  }
 }
 
 ///|
@@ -1228,7 +1447,9 @@ fn serve_holder_output(
                   transfer,
                   transfer_journal,
                   destination_origin,
+                  resources.store_authority,
                   65536,
+                  holder_checkpoint(resources),
                 ) {
                 delivery => {
                   // Whatever happened, a payload the Store may hold for this
@@ -1289,10 +1510,12 @@ fn serve_holder_output(
   settle_holder_cleanup(
     runtime,
     request,
+    environment.journal,
     store,
     failed_cleanups,
     payloads,
     resources.release_failures,
+    holder_checkpoint(resources),
   )
   ignore(transfer_journal.close())
   ignore(transfer.close())
@@ -1306,10 +1529,12 @@ fn serve_holder_output(
 fn settle_holder_cleanup(
   runtime : @runtime.NativeRemoteRuntime,
   request : @remote.DispatchRequest,
+  journal : @journal.Journal,
   store : @publication_store.Store,
   failed_cleanups : Array[@resident_host.ResidentOutputIssue],
   payloads : Array[@payload.PublicationPayloadRequest],
   injected_release_failures : Int,
+  checkpoint : (String) -> Unit,
 ) -> Unit {
   let identity = @remote.dispatch_request_identity(request)
   let mut wait_ms = 50
@@ -1360,7 +1585,19 @@ fn settle_holder_cleanup(
     attempts = 0
     while true {
       attempts += 1
-      match @resident_host.reclaim_resident_payload(store, payload) {
+      // The intent is completed only after the Store confirmed the reclaim;
+      // a reclaim that is already done is confirmed again at no cost.
+      let done = match @resident_host.reclaim_resident_payload(store, payload) {
+        Ok(true) => {
+          checkpoint("reclaimed")
+          @resident_host.complete_resident_output_intent(journal, payload).map(_ => {
+            true
+          })
+        }
+        Ok(false) => Ok(false)
+        Err(issue) => Err(issue)
+      }
+      match done {
         Ok(true) => break
         _ => {
           report("cleanup-pending", [
@@ -1504,7 +1741,12 @@ fn run_holder(
   // Acceptance evidence only: record each executor entry, and optionally
   // hold the slot for a while after it so process tests can act meanwhile.
   let entry_log = optional(matches, "executor-entry-log")
-  let pause_ms = required_int(matches, "holder-pause-ms")
+  // With a named pause point the executor entry does not pause.
+  let pause_ms = if required(matches, "holder-pause-at") == "none" {
+    required_int(matches, "holder-pause-ms")
+  } else {
+    0
+  }
   let observer = match entry_log {
     Some(path) =>
       Some(fn(key : String) -> Bool {
@@ -1551,8 +1793,37 @@ fn run_holder(
       serve_holder_output(resources, environment, executed)
       0
     }
-    Err(issue) => {
+    Err(failure) => {
+      let issue = failure.issue
       report("execute-failed", [("reason", host_code(issue))])
+      // A runtime whose cleanup is not confirmed is kept: only its close is
+      // retried, with the slot still held, and nothing is started again.
+      match failure.pending_runtime {
+        Some(runtime) => {
+          let mut wait_ms = 50
+          let mut attempts = 0
+          while true {
+            match runtime.close() {
+              Ok(_) => break
+              Err(cleanup) => {
+                attempts += 1
+                report("cleanup-pending", [
+                  ("step", "runtime-after-failure"),
+                  ("reason", runtime_code(cleanup)),
+                  ("attempt", attempts.to_string()),
+                ])
+                @slot.native_wait_milliseconds(wait_ms)
+                wait_ms = if wait_ms * 2 > 5000 { 5000 } else { wait_ms * 2 }
+              }
+            }
+          }
+          report("runtime-cleaned", [
+            ("reason", host_code(issue)),
+            ("attempts", attempts.to_string()),
+          ])
+        }
+        None => ()
+      }
       close_holder_output_resources(resources)
       match issue {
         Runtime(@runtime.StartClaimLost(_))
@@ -1637,6 +1908,9 @@ fn command() -> @argparse.Command {
       // Acceptance test hooks only.
       defaulted("holder-release-failures", "0"),
       defaulted("holder-result-report-failures", "0"),
+      defaulted("holder-kill-at", "none"),
+      defaulted("holder-pause-at", "none"),
+      defaulted("control-reclaim-failures", "0"),
       defaulted("control-envelope-read-failures", "0"),
       defaulted("publication-capacity-bytes", "268435456"),
     ],

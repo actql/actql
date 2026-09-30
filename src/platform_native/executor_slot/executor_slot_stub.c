@@ -412,3 +412,10 @@ moonbit_bytes_t actql_executor_slot_read_input_line(int32_t max_bytes) {
   free(buffer);
   return result;
 }
+
+// Acceptance evidence only: ends this process at once with SIGKILL, as an
+// abrupt external kill would, without running any cleanup.
+int32_t actql_executor_slot_kill_self(void) {
+  kill(getpid(), SIGKILL);
+  return -1;
+}

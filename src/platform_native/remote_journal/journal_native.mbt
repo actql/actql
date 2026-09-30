@@ -798,6 +798,157 @@ pub fn Journal::retain_dispatch_envelope(
 }
 
 ///|
+/// Durably keep one output intent before any payload can exist for it: `key`
+/// names the exact payload request and `body` binds it to its dispatch
+/// attempt. It is written under the current Site binding, so a holder of an
+/// older generation cannot add one. Keeping identical bytes again is
+/// idempotent; different bytes for the same key, or an intent that was
+/// already completed, are refused, so a completed cleanup is never reopened.
+pub fn Journal::retain_output_intent(
+  self : Journal,
+  key : String,
+  body : String,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let bytes = @utf8.encode(body)
+  match self.begin_mutation(true) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match self.database.read("site_output_intent_done", key) {
+    Ok(_) => {
+      ignore(self.database.rollback())
+      return Err(StateCollision)
+    }
+    Err(@sqlite.NotFound) => ()
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match self.database.read("site_output_intent", key) {
+    Ok(value) => {
+      ignore(self.database.rollback())
+      return if value.body == bytes { Ok(()) } else { Err(StateCollision) }
+    }
+    Err(@sqlite.NotFound) => ()
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match self.database.insert("site_output_intent", key, bytes) {
+    Ok(0L) => ()
+    Ok(_) | Err(@sqlite.Collision) => {
+      ignore(self.database.rollback())
+      return Err(StateCollision)
+    }
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match self.database.commit() {
+    Ok(_) => Ok(())
+    Err(issue) => {
+      ignore(self.database.rollback())
+      Err(Physical(issue))
+    }
+  }
+}
+
+///|
+/// Output intents whose cleanup is not yet recorded complete, as `(key,
+/// body)` pairs in key order.
+pub fn Journal::pending_output_intents(
+  self : Journal,
+) -> Result[Array[(String, String)], NativeRemoteJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  let pending : Array[(String, String)] = []
+  let mut cursor = ""
+  while true {
+    let entry = match self.database.scan_after("site_output_intent", cursor) {
+      Ok(value) => value
+      Err(@sqlite.NotFound) => break
+      Err(issue) => return Err(Physical(issue))
+    }
+    cursor = entry.key
+    match self.database.read("site_output_intent_done", entry.key) {
+      Ok(_) => ()
+      Err(@sqlite.NotFound) =>
+        pending.push((entry.key, @utf8.decode_lossy(entry.body)))
+      Err(issue) => return Err(Physical(issue))
+    }
+  }
+  Ok(pending)
+}
+
+///|
+/// Record that the cleanup of one output intent is confirmed. Only an
+/// existing intent can be completed; completing it again is idempotent.
+pub fn Journal::complete_output_intent(
+  self : Journal,
+  key : String,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  match self.begin_mutation(false) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match self.database.read("site_output_intent", key) {
+    Ok(_) => ()
+    Err(@sqlite.NotFound) => {
+      ignore(self.database.rollback())
+      return Err(MissingDispatch)
+    }
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match self.database.read("site_output_intent_done", key) {
+    Ok(_) => {
+      ignore(self.database.rollback())
+      return Ok(())
+    }
+    Err(@sqlite.NotFound) => ()
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match
+    self.database.insert(
+      "site_output_intent_done",
+      key,
+      @utf8.encode("{\"version\":\"actql-remote-output-intent-done/0.1\"}"),
+    ) {
+    Ok(0L) => ()
+    Ok(_) | Err(@sqlite.Collision) => {
+      ignore(self.database.rollback())
+      return Err(StateCollision)
+    }
+    Err(issue) => {
+      ignore(self.database.rollback())
+      return Err(Physical(issue))
+    }
+  }
+  match self.database.commit() {
+    Ok(_) => Ok(())
+    Err(issue) => {
+      ignore(self.database.rollback())
+      Err(Physical(issue))
+    }
+  }
+}
+
+///|
 /// The dispatch envelope kept for one attempt identity, if any.
 pub fn Journal::dispatch_envelope(
   self : Journal,

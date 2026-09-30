@@ -409,3 +409,13 @@ pub fn native_read_holder_input(max_bytes : Int) -> NativeHolderInput {
     _ => InputInvalid
   }
 }
+
+///|
+extern "C" fn kill_self_ffi() -> Int = "actql_executor_slot_kill_self"
+
+///|
+/// Acceptance evidence only: end this process at once with SIGKILL, running
+/// no cleanup.
+pub fn native_kill_self() -> Unit {
+  ignore(kill_self_ffi())
+}

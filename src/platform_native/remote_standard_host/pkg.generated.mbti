@@ -81,7 +81,7 @@ pub fn open_native_remote_standard_site_distribution(@execution_site.ExecutionSi
 
 pub fn open_native_remote_standard_site_runtime(@execution_site.ExecutionSite, @runtime_bundle.NativeActiveRuntimeBinding, String, String, Array[NativeRemoteStandardTaskExecutor], @remote_journal.Journal, @runtime_bundle.NativeRuntimeBundleStore, Array[@remote_site_protocol.RemoteDispatchBudget]) -> Result[@remote_runtime.NativeRemoteRuntime, NativeRemoteStandardHostIssue]
 
-pub fn persist_native_remote_observed_output_payload(@remote_runtime.NativeRemoteRuntime, @remote_journal.Journal, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, @publication_payload.PublicationPayloadRequest, @publication_store.Store, Int) -> Result[@publication_store.NativePublicationPayloadInfo, NativeRemoteStandardPayloadFailure]
+pub fn persist_native_remote_observed_output_payload(@remote_runtime.NativeRemoteRuntime, @remote_journal.Journal, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, @publication_payload.PublicationPayloadRequest, @publication_store.Store, Int, after_append? : () -> Unit) -> Result[@publication_store.NativePublicationPayloadInfo, NativeRemoteStandardPayloadFailure]
 
 pub fn prepare_native_remote_observed_output_plan(String, Int, @remote_runtime.NativeRemoteOutputFacts, NativeRemoteObservedOutputIntent) -> Result[NativeRemoteObservedOutputPlan, NativeRemoteObservedOutputPlanIssue]
 

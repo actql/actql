@@ -197,3 +197,27 @@ pub fn Journal::dispatch_envelope(
 ) -> Result[String?, NativeRemoteJournalIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+pub fn Journal::retain_output_intent(
+  _self : Journal,
+  _key : String,
+  _body : String,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::pending_output_intents(
+  _self : Journal,
+) -> Result[Array[(String, String)], NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::complete_output_intent(
+  _self : Journal,
+  _key : String,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}

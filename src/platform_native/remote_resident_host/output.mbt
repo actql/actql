@@ -11,6 +11,53 @@ pub(all) enum ResidentOutputIssue {
   OutputPayload(@output.NativeRemoteStandardPayloadFailure)
   OutputTransfer(@output.NativeRemoteStandardSiteComponentIssue)
   OutputProtocol(@remote.DispatchIssue)
+  /// The payload request names another publication Store than the Site's.
+  OutputStoreRefused
+  /// The output intent could not be kept durably; nothing touched the Store.
+  OutputIntent(@journal.NativeRemoteJournalIssue)
+  /// A kept output intent does not admit as one.
+  OutputIntentInvalid
+}
+
+///|
+/// Kill points for acceptance tests of output cleanup. `checkpoint` is
+/// called with one of these names; production callers pass a no-op.
+pub fn resident_output_checkpoints() -> Array[String] {
+  ["before-intent", "after-intent", "payload-written", "sealed"]
+}
+
+///|
+fn output_intent_body(
+  attempt : String,
+  dispatch_request_cid : String,
+  payload_json : String,
+) -> String {
+  let fields : Map[String, Json] = {
+    "attempt": Json::string(attempt),
+    "dispatch_request_cid": Json::string(dispatch_request_cid),
+    "payload_request": Json::string(payload_json),
+    "version": Json::string("actql-resident-output-intent/0.1"),
+  }
+  Json::object(fields).stringify()
+}
+
+///|
+/// The exact payload request an output intent names, admitted against its
+/// key (the request identity).
+fn output_intent_request(
+  key : String,
+  body : String,
+) -> @payload.PublicationPayloadRequest? {
+  let parsed = @json.parse(body) catch { _ => return None }
+  guard parsed is Object(fields) &&
+    fields.length() == 4 &&
+    fields.get("version") is Some(String("actql-resident-output-intent/0.1")) &&
+    fields.get("attempt") is Some(String(_)) &&
+    fields.get("dispatch_request_cid") is Some(String(_)) &&
+    fields.get("payload_request") is Some(String(payload_json)) else {
+    return None
+  }
+  @payload.admit_publication_payload_request_json(payload_json, key).to_option()
 }
 
 ///|
@@ -151,7 +198,9 @@ pub fn deliver_resident_output(
   transfer_client : @http.Client,
   transfer_journal : @transfer_journal.Journal,
   destination_origin : String,
+  store_authority : String,
   max_chunk_bytes : Int,
+  checkpoint : (String) -> Unit,
 ) -> ResidentDelivery {
   let (request, completion, _, plan) = match
     observed_output(
@@ -167,6 +216,37 @@ pub fn deliver_resident_output(
     selected.transfer_origin != destination_origin {
     return { payload: None, result: Err(OutputRouteRefused), }
   }
+  if @payload.publication_payload_request_store_authority(plan.payload) !=
+    store_authority {
+    return { payload: None, result: Err(OutputStoreRefused), }
+  }
+  // The exact payload request is kept durably, bound to its attempt, before
+  // the Store can hold anything for it. Without a confirmed intent the Store
+  // is not touched, so a holder that dies later still leaves its cleanup
+  // findable.
+  checkpoint("before-intent")
+  let payload_json = match
+    @payload.publication_payload_request_json(plan.payload) {
+    Ok(value) => value
+    Err(_) => return { payload: None, result: Err(OutputIntentInvalid), }
+  }
+  let attempt = match @remote.dispatch_request_attempt_identity(request) {
+    Ok(value) => value
+    Err(issue) => return { payload: None, result: Err(OutputProtocol(issue)), }
+  }
+  match
+    journal.retain_output_intent(
+      @payload.publication_payload_request_identity(plan.payload),
+      output_intent_body(
+        attempt,
+        @remote.dispatch_request_identity(request),
+        payload_json,
+      ),
+    ) {
+    Ok(_) => ()
+    Err(issue) => return { payload: None, result: Err(OutputIntent(issue)), }
+  }
+  checkpoint("after-intent")
   // From here the Store may hold a payload for this exact request.
   let owned = Some(plan.payload)
   let payload = match store.reconcile_payload(plan.payload) {
@@ -181,8 +261,12 @@ pub fn deliver_resident_output(
           plan.payload,
           store,
           max_chunk_bytes,
+          after_append=fn() { checkpoint("payload-written") },
         ) {
-        Ok(value) => value
+        Ok(value) => {
+          checkpoint("sealed")
+          value
+        }
         Err(issue) =>
           return { payload: owned, result: Err(OutputPayload(issue)), }
       }
@@ -243,6 +327,70 @@ pub fn retry_resident_output_cleanup(issue : ResidentOutputIssue) -> Bool {
     _ => ()
   }
   !resident_output_cleanup_pending(issue)
+}
+
+///|
+/// Record that the cleanup of `request` is confirmed. Call only after
+/// `reclaim_resident_payload` returned `Ok(true)` for it.
+pub fn complete_resident_output_intent(
+  journal : @journal.Journal,
+  request : @payload.PublicationPayloadRequest,
+) -> Result[Unit, ResidentOutputIssue] {
+  journal
+  .complete_output_intent(
+    @payload.publication_payload_request_identity(request),
+  )
+  .map_err(issue => OutputIntent(issue))
+}
+
+///|
+/// Reclaim the payloads of output intents whose holder is gone. The caller
+/// must hold the Site's executor slot, which proves that no holder can still
+/// write them. Each exact request is reclaimed through the existing Store
+/// owner, and its intent is completed only after the Store confirmed it.
+/// Returns how many intents are still pending; a failure leaves them pending
+/// for a later call and never re-runs anything.
+pub fn reclaim_resident_output_intents(
+  journal : @journal.Journal,
+  store : @publication_store.Store,
+) -> Result[Int, ResidentOutputIssue] {
+  let pending = match journal.pending_output_intents() {
+    Ok(value) => value
+    Err(issue) => return Err(OutputIntent(issue))
+  }
+  let mut remaining = 0
+  let mut failure : ResidentOutputIssue? = None
+  for intent in pending {
+    let (key, body) = intent
+    guard output_intent_request(key, body) is Some(request) else {
+      // Kept, never dropped: an intent that cannot be read stays pending.
+      remaining += 1
+      if failure is None {
+        failure = Some(OutputIntentInvalid)
+      }
+      continue
+    }
+    let done = match reclaim_resident_payload(store, request) {
+      Ok(true) =>
+        complete_resident_output_intent(journal, request).map(_ => true)
+      Ok(false) => Ok(false)
+      Err(issue) => Err(issue)
+    }
+    match done {
+      Ok(true) => ()
+      Ok(false) => remaining += 1
+      Err(issue) => {
+        remaining += 1
+        if failure is None {
+          failure = Some(issue)
+        }
+      }
+    }
+  }
+  match failure {
+    Some(issue) => Err(issue)
+    None => Ok(remaining)
+  }
 }
 
 ///|

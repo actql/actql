@@ -191,6 +191,31 @@ pub(all) struct ResidentExecuted {
 }
 
 ///|
+/// A failed execution with its primary cause. `pending_runtime` is set when
+/// the runtime existed and its cleanup is not confirmed: the caller keeps it,
+/// retries only `close` until that succeeds, and never starts it again.
+pub(all) struct ResidentExecutionFailure {
+  issue : ResidentHostIssue
+  pending_runtime : @runtime.NativeRemoteRuntime?
+}
+
+///|
+fn failed(issue : ResidentHostIssue) -> ResidentExecutionFailure {
+  { issue, pending_runtime: None, }
+}
+
+///|
+fn failed_after_runtime(
+  runtime : @runtime.NativeRemoteRuntime,
+  issue : ResidentHostIssue,
+) -> Result[ResidentExecuted, ResidentExecutionFailure] {
+  match runtime.close() {
+    Ok(_) => Err({ issue, pending_runtime: None, })
+    Err(_) => Err({ issue, pending_runtime: Some(runtime), })
+  }
+}
+
+///|
 /// Run one accepted attempt in the executing process. The kept envelope is
 /// read back and the Run rebuilt again from its materials, its lifetime is
 /// checked at the Site's clock, and the start is an exclusive claim by
@@ -204,26 +229,26 @@ pub fn execute_resident_attempt(
   claimant : String,
   now : String,
   executor_entry : ((String) -> Bool)?,
-) -> Result[ResidentExecuted, ResidentHostIssue] {
+) -> Result[ResidentExecuted, ResidentExecutionFailure] {
   let envelope = match journal.dispatch_envelope(attempt_identity) {
     Ok(Some(value)) => value
-    Ok(None) => return Err(EnvelopeMissing)
-    Err(issue) => return Err(Journal(issue))
+    Ok(None) => return Err(failed(EnvelopeMissing))
+    Err(issue) => return Err(failed(Journal(issue)))
   }
   let dispatch = match @remote.admit_remote_poll_dispatch_json(envelope) {
     Ok(value) => value
-    Err(_) => return Err(EnvelopeMissing)
+    Err(_) => return Err(failed(EnvelopeMissing))
   }
   let request = @remote.remote_poll_dispatch_request(dispatch)
   let binding = @remote.remote_poll_dispatch_input_binding(dispatch)
   guard @remote.remote_poll_dispatch_run_materials(dispatch) is Some(materials) &&
     @remote.dispatch_request_attempt_identity(request) is Ok(identity) &&
     identity == attempt_identity else {
-    return Err(EnvelopeMissing)
+    return Err(failed(EnvelopeMissing))
   }
   let rebuilt = match admit_materials(admission, request, materials, now) {
     Ok(value) => value
-    Err(refusal) => return Err(Refused(refusal))
+    Err(refusal) => return Err(failed(Refused(refusal)))
   }
   let executor = match
     @values.install_native_remote_values_task_executor(
@@ -241,7 +266,7 @@ pub fn execute_resident_attempt(
       execution.limits,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(Values(issue))
+    Err(issue) => return Err(failed(Values(issue)))
   }
   let runtime = match
     @values.open_native_remote_values_site_runtime(
@@ -255,17 +280,19 @@ pub fn execute_resident_attempt(
       execution.budgets,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(Values(issue))
+    Err(issue) => return Err(failed(Values(issue)))
   }
+  // From here the runtime may own cleanup: every failure keeps it until its
+  // close is confirmed.
   match runtime.claim_starts_as(claimant) {
     Ok(_) => ()
-    Err(issue) => return Err(Runtime(issue))
+    Err(issue) => return failed_after_runtime(runtime, Runtime(issue))
   }
   match executor_entry {
     Some(observer) =>
       match runtime.observe_executor_entry(observer) {
         Ok(_) => ()
-        Err(issue) => return Err(Runtime(issue))
+        Err(issue) => return failed_after_runtime(runtime, Runtime(issue))
       }
     None => ()
   }
@@ -277,9 +304,6 @@ pub fn execute_resident_attempt(
         request,
         result_definition_cid: executor.result_definition_cid(),
       })
-    Err(issue) => {
-      ignore(runtime.close())
-      Err(Runtime(issue))
-    }
+    Err(issue) => failed_after_runtime(runtime, Runtime(issue))
   }
 }

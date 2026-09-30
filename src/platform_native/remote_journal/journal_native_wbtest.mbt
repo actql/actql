@@ -878,3 +878,59 @@ test "native journal keeps one exact dispatch envelope per attempt" {
   assert_true(journal.close())
   assert_true(reader.close())
 }
+
+///|
+test "native journal keeps output intents until their cleanup is complete" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    return
+  }
+  let library = @sqlite.load_library(path).unwrap()
+  let database_path = root +
+    "/remote-output-intent-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let journal = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(test_site()),
+  ).unwrap()
+  assert_eq(journal.pending_output_intents().unwrap().length(), 0)
+  journal.retain_output_intent("sha256:a", "{\"intent\":\"a\"}").unwrap()
+  // A retry after a lost reply is idempotent; other bytes are refused.
+  journal.retain_output_intent("sha256:a", "{\"intent\":\"a\"}").unwrap()
+  assert_true(
+    journal.retain_output_intent("sha256:a", "{\"intent\":\"x\"}")
+    is Err(StateCollision),
+  )
+  journal.retain_output_intent("sha256:b", "{\"intent\":\"b\"}").unwrap()
+  // Another process sees both, in key order.
+  let reader = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(test_site()),
+  ).unwrap()
+  assert_eq(reader.pending_output_intents().unwrap(), [
+    ("sha256:a", "{\"intent\":\"a\"}"),
+    ("sha256:b", "{\"intent\":\"b\"}"),
+  ])
+  // Completion is recorded once, repeats are idempotent, and only an
+  // existing intent can be completed.
+  reader.complete_output_intent("sha256:a").unwrap()
+  reader.complete_output_intent("sha256:a").unwrap()
+  assert_true(reader.complete_output_intent("sha256:c") is Err(MissingDispatch))
+  assert_eq(journal.pending_output_intents().unwrap(), [
+    ("sha256:b", "{\"intent\":\"b\"}"),
+  ])
+  // A completed intent is never reopened.
+  assert_true(
+    journal.retain_output_intent("sha256:a", "{\"intent\":\"a\"}")
+    is Err(StateCollision),
+  )
+  assert_true(journal.close())
+  assert_true(reader.close())
+}

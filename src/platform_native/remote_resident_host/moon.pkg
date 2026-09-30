@@ -19,4 +19,5 @@ import {
   "actql/actql/remote_transfer" @transfer,
   "actql/actql/publication_payload" @payload,
   "actql/actql/platform_native/sqlite",
+  "moonbitlang/core/json",
 }

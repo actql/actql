@@ -476,6 +476,11 @@ pub fn NativeRemoteStandardSiteComponent::persist_observed_output_payload(
 }
 
 ///|
+fn no_payload_observer() -> Unit {
+  ()
+}
+
+///|
 /// The same observed-output payload persistence, borrowing a runtime and
 /// journal the caller owns (for example an executor holder process).
 pub fn persist_native_remote_observed_output_payload(
@@ -486,6 +491,7 @@ pub fn persist_native_remote_observed_output_payload(
   payload_request : @payload.PublicationPayloadRequest,
   store : @publication_store.Store,
   max_chunk_bytes : Int,
+  after_append? : () -> Unit = no_payload_observer,
 ) -> Result[
   @publication_store.NativePublicationPayloadInfo,
   NativeRemoteStandardPayloadFailure,
@@ -574,6 +580,8 @@ pub fn persist_native_remote_observed_output_payload(
           ),
         )
     }
+    // Acceptance evidence only: the payload is partly written, not sealed.
+    after_append()
     finished = chunk.eof
   }
   match reader.finish() {

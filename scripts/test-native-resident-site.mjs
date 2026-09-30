@@ -639,6 +639,7 @@ try {
   const reservedPayloadBytes = () => {
     const database = new DatabaseSync(join(publicationRoot,
       '.actql-publication.sqlite3'), {readOnly: true});
+    database.exec('PRAGMA busy_timeout = 5000');
     try {
       const row = database.prepare('SELECT COALESCE(SUM(reserved_bytes), 0) ' +
         'AS bytes FROM actql_capacity WHERE namespace = ?')
@@ -818,6 +819,280 @@ try {
     assert.equal((await entries()).length, expectedEntries);
     assert.equal(reservedPayloadBytes(), 0);
   }
+
+  // Output intents in the Site journal whose cleanup is not recorded
+  // complete, and the payload records of the Store, read from their
+  // databases.
+  const journalPath = join(root, 'journal.sqlite3');
+  const pendingIntents = () => {
+    const database = new DatabaseSync(journalPath, {readOnly: true});
+    database.exec('PRAGMA busy_timeout = 5000');
+    try {
+      return database.prepare('SELECT record_key FROM actql_records ' +
+        'WHERE namespace = ? AND record_key NOT IN (SELECT record_key ' +
+        'FROM actql_records WHERE namespace = ?)')
+        .all('site_output_intent', 'site_output_intent_done')
+        .map(row => row.record_key);
+    } finally {
+      database.close();
+    }
+  };
+  const payloadRecords = () => {
+    const database = new DatabaseSync(join(publicationRoot,
+      '.actql-publication.sqlite3'), {readOnly: true});
+    database.exec('PRAGMA busy_timeout = 5000');
+    try {
+      return new Map(database.prepare('SELECT record_key, revision FROM ' +
+        'actql_records WHERE namespace = ?').all('publication_payload')
+        .map(row => [row.record_key, Number(row.revision)]));
+    } finally {
+      database.close();
+    }
+  };
+  // A real journal write failure: another connection holds the write lock
+  // longer than the Site's busy timeout.
+  const lockJournal = async () => {
+    const database = new DatabaseSync(journalPath);
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        database.exec('BEGIN IMMEDIATE');
+        break;
+      } catch (error) {
+        if (attempt > 400) throw error;
+        await new Promise(resolve => setTimeout(resolve, 25));
+      }
+    }
+    return () => {
+      database.exec('ROLLBACK');
+      database.close();
+    };
+  };
+  const sleep = milliseconds =>
+    new Promise(resolve => setTimeout(resolve, milliseconds));
+
+  // 16. The holder is killed with SIGKILL at each step of keeping its
+  //     output: before and after the durable intent, while the payload is
+  //     written, right after the seal, and after the reclaim but before the
+  //     intent is completed. The Site reclaims what the dead holder left
+  //     (holding the slot), completes the intent, changes no other payload
+  //     record and never executes again; a Store sized for one payload then
+  //     takes the next Run.
+  const killPoints = ['before-intent', 'after-intent', 'payload-written',
+    'sealed', 'reclaimed'];
+  for (const [index, point] of killPoints.entries()) {
+    const tag = `killed-${point}`;
+    const killed = startSite(['--publication-capacity-bytes', '40',
+      '--holder-kill-at', point]);
+    currentSite = killed;
+    const dispatch = dispatchFor(`resident-${tag}`, 50 + index * 2);
+    await within(gateway.dispatch({dispatch, inputBindingBody: '{}',
+      dispatchEnvelope: materialsEnvelope(dispatch)}), `${tag} dispatch`);
+    expectedEntries += 1;
+    await waitFor(async () => (await entries()).length === expectedEntries,
+      `${tag} entry`);
+    const others = payloadRecords();
+    const output = requestOutput(dispatch, await planOutput(dispatch,
+      await settledQuery(dispatch, tag), tag)).catch(error => error);
+    let release;
+    if (point === 'reclaimed') {
+      await within(output, `${tag} output`);
+      release = gateway.release({dispatch}).catch(error => error);
+    }
+    await waitFor(() => killed.lines.some(line =>
+      line.kind === 'holder-killed' && line.point === point), `${tag} kill`);
+    gateway.withdraw({dispatch});
+    await output;
+    await release;
+    await waitFor(() => pendingIntents().length === 0 &&
+      reservedPayloadBytes() === 0, `${tag} reclaimed after the holder died`);
+    if (point !== 'before-intent') {
+      assert.ok(killed.lines.some(line => line.kind === 'orphans-reclaimed'),
+        `${tag} reclaimed by the Site`);
+    }
+    const after = payloadRecords();
+    for (const [key, revision] of others) {
+      assert.equal(after.get(key), revision, `${tag} other payload unchanged`);
+    }
+    assert.equal((await entries()).length, expectedEntries);
+    killed.child.kill('SIGTERM');
+    await killed.exited;
+    await provesCapacityFree(`after-${tag}`, 51 + index * 2);
+  }
+
+  // 17. While the holder that owns an intent is alive, another control
+  //     process of the Site does not reclaim it: it cannot take the slot.
+  const living = startSite(['--publication-capacity-bytes', '40']);
+  currentSite = living;
+  const livingDispatch = dispatchFor('resident-living-holder', 70);
+  await within(gateway.dispatch({dispatch: livingDispatch,
+    inputBindingBody: '{}', dispatchEnvelope: materialsEnvelope(livingDispatch)}),
+  'living dispatch');
+  expectedEntries += 1;
+  await waitFor(async () => (await entries()).length === expectedEntries,
+    'living entry');
+  await within(requestOutput(livingDispatch, await planOutput(livingDispatch,
+    await settledQuery(livingDispatch, 'living'), 'living')), 'living output');
+  assert.equal(pendingIntents().length, 1);
+  const reservedWhileLiving = reservedPayloadBytes();
+  assert.ok(reservedWhileLiving > 0);
+  const bystander = startSite(['--publication-capacity-bytes', '40']);
+  await waitFor(() => bystander.lines.some(line =>
+    line.kind === 'orphan-reclaim-pending' && line.reason === 'slot-busy'),
+  'bystander finds the slot held');
+  assert.ok(!bystander.lines.some(line => line.kind === 'orphans-reclaimed'));
+  assert.equal(pendingIntents().length, 1);
+  assert.equal(reservedPayloadBytes(), reservedWhileLiving);
+  bystander.child.kill('SIGTERM');
+  await bystander.exited;
+  await within(gateway.release({dispatch: livingDispatch}), 'living release');
+  await waitFor(() => living.lines.some(line =>
+    line.kind === 'holder-released' && line.payloads === '1'),
+  'living holder released');
+  assert.equal(pendingIntents().length, 0);
+  assert.equal(reservedPayloadBytes(), 0);
+  living.child.kill('SIGTERM');
+  await living.exited;
+
+  // 18. The holder dies right after the seal and its control process never
+  //     reclaims (acceptance hook: reclaim passes skipped), then the control
+  //     process is killed too. A restarted Site reclaims the payload.
+  const neglecting = startSite(['--publication-capacity-bytes', '40',
+    '--holder-kill-at', 'sealed', '--control-reclaim-failures', '1000000']);
+  currentSite = neglecting;
+  const restartDispatch = dispatchFor('resident-restart-reclaim', 72);
+  await within(gateway.dispatch({dispatch: restartDispatch,
+    inputBindingBody: '{}',
+    dispatchEnvelope: materialsEnvelope(restartDispatch)}),
+  'restart dispatch');
+  expectedEntries += 1;
+  await waitFor(async () => (await entries()).length === expectedEntries,
+    'restart entry');
+  const restartOutput = requestOutput(restartDispatch, await planOutput(
+    restartDispatch, await settledQuery(restartDispatch, 'restart'),
+    'restart')).catch(error => error);
+  await waitFor(() => neglecting.lines.some(line =>
+    line.kind === 'holder-killed'), 'restart holder killed');
+  gateway.withdraw({dispatch: restartDispatch});
+  await restartOutput;
+  await sleep(1000);
+  assert.equal(pendingIntents().length, 1);
+  assert.ok(reservedPayloadBytes() > 0);
+  neglecting.child.kill('SIGKILL');
+  await neglecting.exited;
+  const restartedSite = startSite(['--publication-capacity-bytes', '40']);
+  currentSite = restartedSite;
+  await waitFor(() => restartedSite.lines.some(line =>
+    line.kind === 'orphans-reclaimed'), 'reclaimed after restart');
+  assert.equal(pendingIntents().length, 0);
+  assert.equal(reservedPayloadBytes(), 0);
+  assert.equal((await entries()).length, expectedEntries);
+  restartedSite.child.kill('SIGTERM');
+  await restartedSite.exited;
+  await provesCapacityFree('after-restart-reclaim', 73);
+
+  // 19. The intent cannot be kept (a real journal write failure: another
+  //     connection holds the write lock past the busy timeout). The holder
+  //     does not touch the Store for that output.
+  const unrecorded = startSite(['--publication-capacity-bytes', '40',
+    '--holder-pause-at', 'before-intent', '--holder-pause-ms', '3000']);
+  currentSite = unrecorded;
+  const intentDispatch = dispatchFor('resident-intent-failure', 75);
+  await within(gateway.dispatch({dispatch: intentDispatch,
+    inputBindingBody: '{}', dispatchEnvelope: materialsEnvelope(intentDispatch)}),
+  'intent dispatch');
+  expectedEntries += 1;
+  await waitFor(async () => (await entries()).length === expectedEntries,
+    'intent entry');
+  const recordsBefore = payloadRecords();
+  const intentOutput = requestOutput(intentDispatch, await planOutput(
+    intentDispatch, await settledQuery(intentDispatch, 'intent'), 'intent'))
+    .catch(error => error);
+  await waitFor(() => unrecorded.lines.some(line =>
+    line.kind === 'holder-paused' && line.point === 'before-intent'),
+  'holder paused before the intent');
+  const unlockForIntent = await lockJournal();
+  try {
+    await waitFor(() => unrecorded.lines.some(line =>
+      line.kind === 'output-failed' && line.reason === 'intent'),
+    'intent write failed', 60_000);
+    gateway.withdraw({dispatch: intentDispatch});
+    assert.equal(pendingIntents().length, 0);
+    assert.equal(reservedPayloadBytes(), 0);
+    assert.deepEqual([...payloadRecords()], [...recordsBefore]);
+  } finally {
+    unlockForIntent();
+  }
+  await intentOutput;
+  await within(gateway.release({dispatch: intentDispatch}), 'intent release');
+  // Output operations served again before the withdrawal may still reach
+  // the holder after the journal recovered; each keeps its intent first.
+  await waitFor(() => unrecorded.lines.some(line =>
+    line.kind === 'holder-released'), 'intent holder released');
+  assert.equal(pendingIntents().length, 0);
+  assert.equal(reservedPayloadBytes(), 0);
+  unrecorded.child.kill('SIGTERM');
+  await unrecorded.exited;
+
+  // 20. The journal fails while the runtime owns resources (a real write
+  //     failure: the lock is held from the executor entry), so the start
+  //     fails and so does the runtime's close. The holder keeps the slot and
+  //     retries only the close; no other holder starts meanwhile. After the
+  //     journal recovers, the cleanup completes, the slot is freed and the
+  //     next attempt runs; the failed attempt never executes again.
+  const failing = startSite(['--holder-pause-ms', '3000']);
+  currentSite = failing;
+  const failedStart = dispatchFor('resident-start-failure', 77);
+  const failedStartSettled = within(gateway.dispatch({dispatch: failedStart,
+    inputBindingBody: '{}', dispatchEnvelope: materialsEnvelope(failedStart)}),
+  'failing dispatch').catch(error => error);
+  await waitFor(async () => (await entries()).length === expectedEntries + 1,
+    'failing entry');
+  expectedEntries += 1;
+  const unlockForStart = await lockJournal();
+  const nextAttempt = dispatchFor('resident-after-start-failure', 78);
+  let nextSettled;
+  try {
+    await waitFor(() => failing.lines.some(line =>
+      line.kind === 'cleanup-pending' &&
+      line.step === 'runtime-after-failure'), 'runtime cleanup pending',
+    60_000);
+    // The primary cause is the journal failure; the pending cleanup fails on
+    // the journal too.
+    const failure = failing.lines.find(line => line.kind === 'execute-failed');
+    assert.equal(failure?.reason, 'runtime-journal', JSON.stringify(failure));
+    const pendingCleanup = failing.lines.find(line =>
+      line.kind === 'cleanup-pending' && line.step === 'runtime-after-failure');
+    assert.equal(pendingCleanup.reason, 'journal',
+      JSON.stringify(pendingCleanup));
+    nextSettled = within(gateway.dispatch({dispatch: nextAttempt,
+      inputBindingBody: '{}', dispatchEnvelope: materialsEnvelope(nextAttempt)}),
+    'next dispatch', 120_000);
+    await sleep(2000);
+    assert.equal(failing.lines.filter(line =>
+      line.kind === 'holder-started').length, 1, 'no other holder started');
+    assert.ok(!failing.lines.some(line => line.kind === 'runtime-cleaned'));
+  } finally {
+    unlockForStart();
+  }
+  await waitFor(() => failing.lines.some(line =>
+    line.kind === 'runtime-cleaned'), 'runtime cleaned after recovery', 60_000);
+  assert.equal(failing.lines.find(line =>
+    line.kind === 'runtime-cleaned').reason, 'runtime-journal');
+  const cleanedAt = failing.lines.findIndex(line =>
+    line.kind === 'runtime-cleaned');
+  await nextSettled;
+  expectedEntries += 1;
+  await waitFor(async () => (await entries()).length === expectedEntries,
+    'next attempt entry');
+  const nextStartedAt = failing.lines.findIndex((line, index) =>
+    index > 0 && line.kind === 'holder-started' &&
+    failing.lines.slice(0, index).some(earlier =>
+      earlier.kind === 'holder-started'));
+  assert.ok(nextStartedAt > cleanedAt, 'next holder starts after cleanup');
+  void failedStartSettled;
+  await within(gateway.release({dispatch: nextAttempt}), 'next release');
+  failing.child.kill('SIGTERM');
+  await failing.exited;
 
   // Each entry names one holder claimant and one attempt key; no attempt
   // key appears twice.
