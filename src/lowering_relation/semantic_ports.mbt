@@ -66,6 +66,7 @@ pub fn node_accepts_managed_carrier_view(
     | "SGA.bounds_check"
     | "SGA.degree_metrics"
     | "SGA.components"
+    | "SGA.reachable"
     | "SGA.graft"
     | "SGA.union_structural"
     | "SGA.diff_structural"
@@ -83,6 +84,7 @@ pub fn node_accepts_managed_carrier_view(
     | "BRIDGE.vectors.to_rows"
     | "BRIDGE.graph.to_node_rows"
     | "BRIDGE.graph.to_edge_rows" => true
+    "SGA.shortest_path" => index == 0
     "SGA.subgraph" => index == 0
     "SGA.traverse" => index == 0
     "SGA.match_nodes" | "SGA.match_edges" => index == 0
@@ -107,6 +109,8 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     GraphMatchRows(_) =>
       operation(node) == "SGA.match_nodes" ||
       operation(node) == "SGA.match_edges"
+    GraphReachRows(_) => operation(node) == "SGA.reachable"
+    GraphShortestRows(_) => operation(node) == "SGA.shortest_path"
     BasicGraph(_) =>
       operation(node) == "SGA.normalize" ||
       operation(node) == "SGA.bounds_check" ||

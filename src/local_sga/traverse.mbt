@@ -63,7 +63,8 @@ pub fn start_traverse(
     hop_count > 0 &&
     @lower.graph_traverse_hop_direction(prepared, 0) is Some(direction) &&
     @graph.producer_read_matches_operation_input(input, owner, step, 0) &&
-    @graph.producer_read_storage(input) is Some(source) else {
+    @graph.producer_read_storage(input) is Some(source) &&
+    @storage.carrier(source) is @carrier.GraphValue(graph) else {
     return Err(UnsupportedTraverseKernel)
   }
   for hop in 0..<hop_count {
@@ -132,8 +133,8 @@ pub fn start_traverse(
     preparation,
     sequence,
     step,
-    input,
-    source,
+    Stored(input),
+    graph,
     @lower.graph_traverse_output_schema(prepared),
     starts,
     if patterned {
