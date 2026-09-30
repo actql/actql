@@ -1003,16 +1003,29 @@ reuses the same checked capture and retained driver; ordinary success and
 fault cases use the product factory. These kernel budgets do not assert an
 exact bound for physical acquisition or the complete Host reservation ledger.
 
-The verified acquisition here has the existing cell/memory representation;
-the Compute outputs use real retained files. File-represented acquisition is
-not certified by these tests: `identify_captured_source_relation` currently
-requires a cell export and rejects it with `NotCellRepresentation`.
-Supporting that representation requires an owned identity/measurement path
-that can consume retained input without synchronous materialization, followed
-by source evidence and the existing publication admission. Public Client
-dispatch still chooses the memory-output captured factory; its Host owner
+Both cell-backed and file-represented acquisitions now reach this configured
+standard Host. The file identity pass reuses `RetainedStorageScan`: it verifies
+the entire original receipt before issuing the requested Relation envelope
+identity. It does not reinterpret a bare rows CID as a Relation CID, retain
+all source rows, or bypass schema/value/encoding limits. Ordinary storage
+scans still omit logical CID generation. Effect dependency body retention is
+unchanged and is not provided by this new file identity pass.
+
+`identifyRetainedCapturedSource` uses the installed Store body and the portable
+row framer. Actual event-loop yields between admitted rows allow cancellation
+delivery; the pass closes without retiring the original acquisition. The
+file-captured tests cover ordered, empty-input and empty-output publication,
+two consumers, the same independently derived 51/9 scalar kernel boundary,
+typed one-short refusal, positive-progress Compute cancellation, and Store
+append/finalize failure with cleanup retry. A separate delivered cancellation
+during identity verification confirms no identity finish, no remaining read
+buffer reservation, and successful later reuse of the original capture.
+Full-content verification rejects foreign values, changed order and truncation;
+the independent envelope vectors also cover exact bytes and one-byte-short.
+
+Public Client dispatch still chooses the memory-output captured factory; its Host owner
 must explicitly connect the additive retained factory and Store configuration.
-These two concrete connection gaps remain, rather than being hidden by the
+This concrete configuration gap remains, rather than being hidden by the
 configured standard-Host proof. Linux CI and Native Host in-flight cancellation
 are separate evidence and completion units.
 

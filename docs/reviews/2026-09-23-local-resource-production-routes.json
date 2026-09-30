@@ -181,6 +181,20 @@
           "fixture": "product captured retained factory preserves exact acquisition and bounded offers"
         },
         {
+          "role": "retained_file_identity_exact_content",
+          "suite": "moon:execution_relation",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/execution_relation/retained_storage_scan_wbtest.mbt",
+          "fixture": "retained identity scan hashes the exact Relation envelope without keeping rows"
+        },
+        {
+          "role": "retained_file_capture_identity_lifetime",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/captured_source_identity_scan_wbtest.mbt",
+          "fixture": "retained acquisition identity uses exact held content without cell materialization"
+        },
+        {
           "role": "filter_mixed_stage_lifetime",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -328,6 +342,20 @@
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
           "fixture": "captured finalize cleanup retry"
+        },
+        {
+          "role": "retained_file_identity_delivered_stop",
+          "suite": "node:duckdb_retained_values_chain",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
+          "fixture": "file-captured identity observes delivered cancellation and preserves acquisition custody"
+        },
+        {
+          "role": "retained_file_compute_delivered_stop",
+          "suite": "node:duckdb_retained_values_chain",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
+          "fixture": "file-captured retained Host preserves source custody after positive Compute cancellation"
         }
       ],
       "path_assurance": {
