@@ -431,3 +431,81 @@ the generated installation and Store were removed. Its package digests
 match the table above because only fixtures and acceptance scripts changed.
 This adds one supported structural operation; the six original provider
 handoff cases remain unaccepted.
+
+## Current main integration and three-case provider handoff
+
+The integration branch merged `origin/main` at
+`7bb612ff113946df43bcab05ffd383a7379ce71b`. The clean packed
+acceptance at `14b108bc2d4af771cce116e1021ae482dd4d3030` passed the
+following named-source cases through both installed Embedded Local and HTTPS
+Remote: `normalize-rows`, `mean-graphs`, `traverse-paths`, `union-graphs`,
+`graft-graphs`, `subtract-graphs`, `degree-rows`, `components`,
+`graph-bounds`, and `match-projections`. Each read its independently authored
+Named Result to normal termination. The same driver passed raw SQL/Pipe and
+the Node-free native CLI's representative SGA Result. The driver records
+`status: passed` in
+`worktrees/.codex-scratch/public-query-evidence-wA0PFq/summary.json`.
+The same evidence directory retains `planning.jsonl`, three `named-*.log`
+and three `json-*.log` counterexamples. Its temporary package installation,
+npm cache and Run Stores were reclaimed after those probes; `cleanup.json`
+records that separate cleanup because the driver used `--keep-artifacts` for
+direct JSON replay.
+Its installed tarball digests are:
+
+| Package | SHA-256 |
+| --- | --- |
+| `client-wire` | `8e09005f4aac5063c1f6f8e4680dbb778a00e5c098126a85283e1f07685a76e5` |
+| `sdk` | `1e4e83612b9c965388795f066be8cf24b0358feb46bd2335c8d98c36e83ed515` |
+| `run-host-core` | `6de98d41935134939a567807f55da7e10ed03472b473812eb01f372c6cc35e46` |
+| `local-node` | `e7478495c39ac9dcbd6cf1a9625d993c13493da4dbc2744c70be5eb387611088` |
+| `node` | `c72364973dd1ed42faea32425632b314de037c9b92035c9f5ec35b875914f225` |
+
+The original eight-case SGA acceptance set now has five passing cases and
+three open cases. This supersedes the six-case historical table above. For
+each open case, `scripts/sga-surface-baseline.test.mjs` proves that the named
+source matches the separate `*.expected-program.json`; the ordinary common
+checker admits that Program in `scripts/sga-surface-checker.test.mjs`.
+`node scripts/diagnose-sga-provider-handoff.mjs` prints the checked task
+pipeline and common compiler result. The independently authored
+`*.expected-results.json` files state the required rows and schemas.
+
+| Source and expected Program | Required output | Checked task and failure on packed Local | Direct JSON Program without Frontend |
+| --- | --- | --- | --- |
+| `graphs-equal` | `answer = [{"equal":true}]` | One task ends in `SGA.equal(Graph, Graph) -> Relation`. The common task compiler succeeds. The Run is accepted, then fails before publication with `ACTQL_E_UNPUBLISHED_RUN`. An earlier captured-strategy probe returned `Dispatch(NoStrategy)` before Compute. | Same accepted-then-failed state. |
+| `reach-subgraph` | `nodes = A,B`; `edges = A -> B` with null `rel` | One fused task contains `SGA.reachable(Graph) -> Relation`, `SGA.subgraph(Graph, Relation) -> Graph`, then separate node/edge projections. The task compiler returns `Plan(TaskGraph(Root(Root(RequiresResultTransformation))))`; public submit exposes nested `RunHostCompilationRejected` inside `SubmissionUnknown`. | Same compiler refusal and public codes. |
+| `diff-apply` | `nodes = A,B,C`; `edges = A -> B, B -> C` with null `rel` | One fused task contains `SGA.diff(Graph, Graph) -> Delta Relation`, `SGA.apply_delta(Graph, Delta Relation) -> Graph`, then separate node/edge projections. It returns the same common compiler issue and public codes. | Same compiler refusal and public codes. |
+
+The exact minimal sources, Programs, schemas and rows are the three named
+fixture pairs under `spec/frontend/fixtures/sga-surface`. The generated AoA
+uses the registered operation strings and typed input order; it does not
+rename `SGA.equal` or substitute a different operation. The Graph provider
+accepts `SGA.equal` in its terminal fused-sequence branch but its selected
+step branch currently rejects `GraphRelationStep`. The observed `NoStrategy`
+is therefore a physical selection/provider gap, not a Frontend spelling
+mismatch. The provider owner should confirm the selected-step shape and add
+only the bounded candidate and owned input handoff that satisfy the existing
+Graph equality contract. The two Graph/Relation/Delta chains need installed
+candidate boundaries that retain each Result producer; the Frontend must not
+remove Result roots, drop order, or retry the fused task as another Compute.
+
+Reproduce after `npm run build:runtime-packages -- local-node` with:
+
+```sh
+node --test scripts/sga-surface-baseline.test.mjs scripts/sga-surface-checker.test.mjs
+node scripts/diagnose-sga-provider-handoff.mjs
+node scripts/test-packed-public-query.mjs --keep-artifacts
+ACTQL_LOCAL_STATE_DIR=<fresh-directory> node scripts/reproduce-sga-baseline.mjs <packed-installation> --graphs-equal
+ACTQL_LOCAL_STATE_DIR=<fresh-directory> node scripts/reproduce-sga-baseline.mjs <packed-installation>
+ACTQL_LOCAL_STATE_DIR=<fresh-directory> node scripts/reproduce-sga-baseline.mjs <packed-installation> --diff-apply
+```
+
+The latter three commands submit the authored JSON Program directly through
+the installed standard Client, with no Frontend parse/lower path. The
+equivalent named-source commands use
+`scripts/accept-sga-public-source.mjs <packed-installation>
+<fixture-directory> local <case-name>`. The nonzero result is a reproduced
+failure, not a passing acceptance. At
+`76c97eb2c2f4d5a5ef8f12c5f834e0db3209498a`, the Core JS, Wasm and
+native jobs passed 7,027/7,027, 7,024/7,024 and 7,086/7,086 respectively.
+The later source changes only reproduction scripts and this evidence. These
+common-kernel gates do not prove the three pending packed product paths.
