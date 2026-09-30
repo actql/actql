@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
+import {inspect} from 'node:util';
 
 import * as moon from
   '../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
@@ -182,5 +183,32 @@ test('Reach selector tasks retain distinct Graph and Relation input ports', () =
     ], name);
     assert.deepEqual(plan.root_refs.map(root => [root.name, root.ref]),
       [['answer', {node_id: reachTask, port: reachOutput}]], name);
+  }
+});
+
+test('Reach capacity controls compile without increasing the Host ceiling', () => {
+  assert.equal(environment.host_policy_profile.capacity.max_graph_output_rows,
+    1000);
+  for (const count of [44, 45]) {
+    const program = fixture('reach-selector');
+    const nodes = [];
+    const edges = [];
+    for (let node = count - 1; node >= 0; node--) {
+      nodes.push({id: `N${String(node).padStart(2, '0')}`});
+    }
+    for (let edge = 0; edge < count - 1; edge++) {
+      edges.push({src: `N${String(edge).padStart(2, '0')}`,
+        dst: `N${String(edge + 1).padStart(2, '0')}`});
+    }
+    const steps = program.stages[0].steps;
+    steps[0].values.rows = nodes;
+    steps[1].values.rows = edges;
+    steps[3].reach.max_depth = count - 1;
+    const outcome = prepare(program);
+    const ready = moon.clientProgramPreparationReady(outcome);
+    assert.ok(ready, String(moon.clientProgramPreparationIssueCode(outcome)));
+    assert.equal(moon.clientProgramTaskCount(ready), 4);
+    const compiled = moon.clientProgramCompileLocalTasks(ready);
+    assert.equal(compiled.$tag, 1, inspect(compiled, {depth: 12}));
   }
 });

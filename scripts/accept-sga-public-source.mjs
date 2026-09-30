@@ -4,6 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {join, resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
+import {reachSelectorChainSource} from './reach-selector-capacity-fixture.mjs';
 
 // Copy this script and the authored fixtures into a clean packed installation.
 // Only the installed Client and Host handle source compilation and execution.
@@ -126,6 +127,43 @@ try {
           requestId: id})).ref, rejected.ref);
       }
       console.log(`packed ${mode} selector membership and NULL failures passed`);
+    }
+    if (name === 'reach-selector') {
+      // The installed Host profile has a 1,000-row Graph output ceiling.
+      // In a directed chain, all starts reach exactly n(n+1)/2 endpoint pairs.
+      // This oracle comes from the Reach law, not compiler or kernel output.
+      const bounded = reachSelectorChainSource(source, 44);
+      assert.notEqual(bounded, source);
+      const within = await client.aql(bounded, {format: 'aql-text',
+        requestId: `sga-selector-capacity-within-${randomUUID()}`});
+      assert.equal((await within.wait({signal: AbortSignal.timeout(120000)}))
+        .status, 'succeeded');
+      const expectedRows = [];
+      for (let start = 0; start < 44; start++) {
+        for (let endpoint = start; endpoint < 44; endpoint++) {
+          const startId = `N${String(start).padStart(2, '0')}`;
+          const nodeId = `N${String(endpoint).padStart(2, '0')}`;
+          expectedRows.push({start_id: startId, node_id: nodeId,
+            depth: endpoint - start, id: nodeId});
+        }
+      }
+      assert.equal(expectedRows.length, 990);
+      assert.deepEqual(await within.result('answer').all(), expectedRows);
+      const overflowing = reachSelectorChainSource(source, 45); // 1,035 pairs.
+      const overflowId = `sga-selector-capacity-overflow-${randomUUID()}`;
+      const over = await client.aql(overflowing, {format: 'aql-text',
+        requestId: overflowId});
+      const overState = await over.wait({signal: AbortSignal.timeout(120000)});
+      assert.equal(overState.status, 'failed', JSON.stringify(overState));
+      assert.equal(overState.result_available, false);
+      assert.deepEqual((await client.lookupRequest(overflowId)).ref, over.ref);
+      const restored = await client.attach(over.ref);
+      assert.equal((await restored.status()).status, 'failed');
+      await assert.rejects(restored.result('answer').all(),
+        error => error.code === 'ResultUnavailable');
+      assert.deepEqual((await client.aql(overflowing, {format: 'aql-text',
+        requestId: overflowId})).ref, over.ref);
+      console.log(`packed ${mode} selector capacity boundary passed`);
     }
   }
   console.log(`packed ${mode} named SGA source and Result acceptance passed`);

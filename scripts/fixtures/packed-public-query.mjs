@@ -91,7 +91,12 @@ if (selectedSgaCases.length === 0 ||
 // Nullable selector acceptance also starts two well-typed failing Runs.
 // Its schema-type refusal must not add a third Run.
 const expectedSgaRuns = selectedSgaCases.length +
-  (selectedSgaCases.includes('reach-selector-nullable') ? 2 : 0);
+  (selectedSgaCases.includes('reach-selector-nullable') ? 2 : 0) +
+  (selectedSgaCases.includes('reach-selector') ? 2 : 0);
+if (selectedSgaCases.includes('reach-selector')) {
+  assert.equal(environment.host_policy_profile.capacity.max_graph_output_rows,
+    1000, 'Reach capacity acceptance requires the actual 1,000-row Host ceiling');
+}
 const sgaFixtureDirectory = resolve('sga-fixtures');
 await mkdir(sgaFixtureDirectory);
 for (const name of sgaCases) {

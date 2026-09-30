@@ -36,6 +36,7 @@ for (const [source, destination] of [
   ['adapters/host-node/fixtures/query-amount-environment.json', 'source-environment.json'],
   ['spec/local-check-environment.json', 'base-environment.json'],
   ['scripts/accept-sga-public-source.mjs', 'accept-sga-public-source.mjs'],
+  ['scripts/reach-selector-capacity-fixture.mjs', 'reach-selector-capacity-fixture.mjs'],
 ]) {
   await writeFile(join(root, destination), await readFile(join(repository, source)));
 }

@@ -147,3 +147,18 @@ the table above. Failure logs and observations were saved before removing
 the run's installed artifacts. Native CLI selector acceptance did not run
 after this SDK failure. No positive public selector, Host capacity-excess,
 or in-flight Run cancellation completion is claimed.
+
+The next packed selector acceptance now includes independent output-capacity
+controls. A directed 44-node chain with every node selected has 990 reachable
+start/endpoint pairs; a 45-node chain has 1,035. Both reuse the node producer
+through the existing DATA alias, and use fewer than the unchanged cumulative
+100 Values-row compilation allowance. The installed Host's actual Graph
+output ceiling must equal 1,000; the test does not raise it. The first case
+requires all independent rows and depths, and the second requires a failed
+Run with no Result, exact attach, and idempotent request lookup behavior.
+
+Source-to-independent-Program and common preparation/compilation checks pass
+for both controls (37/37 combined source/checker tests). These are prepared
+acceptance assertions; their packed runtime outcome remains unverified until
+the provider input connection is fixed. The capacity-input helper is copied
+only into the external acceptance installation, not an OSS product package.
