@@ -1,6 +1,6 @@
 ///|
 /// This selected Node package installs SGA; the RelA-only package supplies a
-/// different, provider-free selection without changing the common ABI body.
+/// different, provider-free selection without changing the common bridge body.
 fn selected_sga_supported() -> Bool {
   true
 }

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {publicationAction} from './publication-action.mjs';
 
-test('publication ABI rejects undefined numeric actions', () => {
+test('publication JS bridge rejects undefined numeric actions', () => {
   assert.equal(publicationAction('resultAccess', 0), 'authorize_request');
   assert.equal(publicationAction('existingDelivery', 3), 'invalid');
   for (const code of [-1, 7, 1.5, Number.NaN, undefined]) {
@@ -13,7 +13,7 @@ test('publication ABI rejects undefined numeric actions', () => {
     {name: 'TypeError', message: 'InvalidRunHostPublicationAction'});
 });
 
-test('publication lifecycle actions have explicit ABI names and reject gaps',
+test('publication lifecycle actions have explicit JS bridge names and reject gaps',
   () => {
     const cases = Object.freeze({
       setup: ['check_existing_commit', 'validate_existing_evidence',

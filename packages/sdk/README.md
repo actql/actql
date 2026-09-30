@@ -42,7 +42,7 @@ The `@actql/sdk/host-port` subpath is for the installed standard provider,
 not application-side provider registration. It reuses the same Client facade
 with an in-process Host port. Control values are objects, and Result reads
 use typed frames rather than HTTP or JSONL. Each frame reports the bytes
-transferred through that ABI; the Client enforces wire and decoded-value
+transferred through that in-process Host API; the Client enforces wire and decoded-value
 bounds independently. The provider must enforce its own pre-transfer row
 bound, current authorization, and Run ownership before yielding a frame.
 The port's `AbortSignal` belongs only to that observation or read attempt.

@@ -31,7 +31,7 @@ const fixture = Object.freeze({
 });
 const expires = '2099-01-01T00:00:00.000Z';
 
-test('Run-control issuer failure retains its typed reason across the Host ABI',
+test('Run-control issuer failure retains its typed reason across the Host JS bridge',
   () => {
     assert.throws(() => issueInstalledRunControlObservation(moon, {
       revision: -1, cancellationRequested: false,
