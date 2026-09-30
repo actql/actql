@@ -152,14 +152,19 @@ pub fn select_key(
   usage : KeyUse,
   limits : TransferLimits,
 ) -> Result[KeySelection, Issue] {
-  select_matching_key(source, value, field => eligible(field, usage), limits)
+  select_matching_key(
+    source,
+    value,
+    (_, _, field) => eligible(field, usage),
+    limits,
+  )
 }
 
 ///|
 fn select_matching_key(
   source : @decode.Cursor,
   value : KeySet,
-  accepts : (KeyField) -> Bool,
+  accepts : (KeyedRelation, Int, KeyField) -> Bool,
   limits : TransferLimits,
 ) -> Result[KeySelection, Issue] {
   try {
@@ -176,13 +181,13 @@ fn select_matching_key(
       let candidates : Array[(KeyField, Array[KeyField])] = []
       let mut valid = true
       spend(b, source, key.aliases.length())
-      for aliases in key.aliases {
+      for index, aliases in key.aliases {
         let mut best : KeyField? = None
         let surviving : Array[KeyField] = []
         spend(b, source, aliases.length())
         for field in aliases {
           charge(b, source, field.name)
-          if accepts(field) {
+          if accepts(key, index, field) {
             surviving.push(field)
             if best is None ||
               @canonical.compare_utf16(

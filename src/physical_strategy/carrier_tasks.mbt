@@ -65,21 +65,50 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
     }
     let mut values_source = false
     let mut graph_construction = false
-    let mut graph_rows = false
+    let mut carrier_relation_consumer = false
+    let mut intermediate_result = false
     for step in 0..<count {
       guard @lower.node_at(prepared, step) is Some(node) else { return None }
       match @lower.operation(node) {
         "REL.values" => values_source = true
         "BRIDGE.rows.to_graph" => graph_construction = true
-        "BRIDGE.graph.to_node_rows" | "BRIDGE.graph.to_edge_rows" =>
-          graph_rows = true
         _ => ()
       }
+      if @lower.preparation_carrier_at(prepared, @pipeline.Step(step))
+        is Some(output) &&
+        @carrier.kind(output) == @carrier.RelationKind {
+        for input in 0..<@lower.node_input_count(node) {
+          match @lower.node_input_target(node, input) {
+            Some(@pipeline.Step(producer)) =>
+              if @lower.preparation_carrier_at(
+                  prepared,
+                  @pipeline.Step(producer),
+                )
+                is Some(source) &&
+                @carrier.kind(source) != @carrier.RelationKind {
+                carrier_relation_consumer = true
+              }
+            _ => ()
+          }
+        }
+      }
     }
-    // Only the closed Values-to-Graph frontend shape needs stage-zero
-    // segmentation. Effectful Values and existing Graph operators retain
-    // their checked task layout.
-    if !values_source || !graph_construction || !graph_rows {
+    for result in graph.results {
+      if result.task == stage &&
+        @ports.port_target(
+          @execution.managed_result_occurrence_port(result.occurrence),
+        )
+        is @pipeline.Step(step) &&
+        step < count - 1 {
+        intermediate_result = true
+      }
+    }
+    // A source-free Graph prefix needs segmentation when a later typed
+    // Carrier-to-Relation step or an intermediate Result needs independent
+    // ownership. Graph-only prefixes without either retain fused execution.
+    if !values_source ||
+      !graph_construction ||
+      (!carrier_relation_consumer && !intermediate_result) {
       return None
     }
   }
