@@ -3,6 +3,7 @@ fn sequence_fixture_capacity(
   environment : @environment.WireEnvironment,
   stage : String,
   step? : Int = 0,
+  input_rows? : Int64 = 40L,
 ) -> @context.StageCapacityInput raise {
   let policy = @environment.capacity_policy(
     @environment.read_capacity(environment, {
@@ -61,7 +62,7 @@ fn sequence_fixture_capacity(
       ),
     )
   }
-  let input = traversal_fixture_proof("actql.bound.values", 40L, step=0)
+  let input = traversal_fixture_proof("actql.bound.values", input_rows, step=0)
   let output = traversal_fixture_proof(
     "actql.bound.sequence-output",
     @wire.value(witnesses[1]),

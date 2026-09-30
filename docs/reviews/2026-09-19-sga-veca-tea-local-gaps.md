@@ -784,13 +784,47 @@ registered computation, not independently measured Host-wide budgets.
 This connection does not claim arbitrary same-task temporal/Relation chains.
 The registered temporal providers currently accept one step; any broader
 shape must retain a valid selected or fused bounded provider before execution.
-Relation-input `sequence` remains a concrete connection gap: its registered
-bounded matcher exists, but the retained obligation reader still rejects
-`SequenceExecution`, `SequenceMatch`, and `SequenceLimits`. The next unit must
-bind those duties to the matcher, preserve its checked limits and input
-identity/order validation, and add retained publication and failure evidence.
-It must not simply permit those duties for an arbitrary Relation provider.
 Native Host in-flight cancellation remains outside this completion unit.
+
+#### Retained Relation sequence matching
+
+A single `sequence` step with a Relation input now reaches the existing
+registered bounded matcher under a retained row Store. The obligation reader
+accepts `SequenceExecution`, `SequenceMatch`, and `SequenceLimits` only for
+that exact step and provider capacity. A missing matcher, another step, or
+another temporal operation remains ineligible before Compute starts.
+
+Both resolved ceilings are bound to the checked occurrence: matches per key
+and total output rows. Neither substitutes for the other. Rebinding can only
+narrow a ceiling, authored guards still apply, and synchronous whole-sequence
+execution rejects this bounded-only configuration instead of ignoring it.
+The provider preserves typed row/resource failures and their original step.
+Input identity, uniqueness, ordering, predicate demand, work, and workspace
+continue to use the existing matcher and completion owner.
+
+An ordinary Program with literal input, a separate matcher Stage, and two
+consumer Stages now publishes three Named Results through the real Store.
+The shared Host harness compares complete ordered rows with independent
+expectations, including empty input and adjacent/disallow matching. A
+two-key fixture produces two matches in the first key and one in the second;
+policy ceilings of two matches per key and three output rows succeed, while
+one match per key or two output rows fail with typed `RowLimit`, leave no
+committed Result, and reclaim all holdings and reservations. Its input
+capacity proof counts authored literal rows, not executed output.
+
+The same Host harness delivers cancellation after positive matcher progress,
+checks stop before releasing inputs, and exercises Store append failure and
+finalize acknowledgement loss. Cleanup failure preserves the pending owner;
+retry reclaims it without another Compute dispatch. The independent shared
+kernel fixtures retain work 621/620 and workspace 58/57 boundaries. Portable
+tests additionally check independent selected ceilings, guard preservation,
+immutable earlier configurations, and rejection of synchronous execution.
+
+This closes the single-step Relation-input matcher connection, not arbitrary
+same-task matcher chains. An Events-to-matcher-to-filter selected path has
+separate existing evidence above. Other shapes still need a matching bounded
+provider and checked task binding; generic Relation support does not discharge
+their temporal duties. Native Host in-flight cancellation remains separate.
 
 #### Mixed retained Store and typed Carrier paths
 

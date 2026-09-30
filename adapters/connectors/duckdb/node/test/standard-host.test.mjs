@@ -9435,13 +9435,93 @@ async function exerciseStrategyGraph(
     }
     return program;
   };
+  const relationSequenceFields = [
+    'end_id', 'end_time_ms', 'key', 'match_end_ms', 'match_start_ms',
+    'start_id', 'start_time_ms',
+  ];
+  const retainedRelationSequenceProgram = structuredClone(zeroInputProgram);
+  const sequenceInput = retainedRelationSequenceProgram.stages.find(stage =>
+    stage.id === 'values_a');
+  sequenceInput.steps[0].values = {
+    schema: Object.fromEntries(['id', 'key', 'clock', 'value'].map(field =>
+      [field, {type: 'number', nullable: false}])),
+    rows: [
+      {id: 3, key: 1, clock: 3, value: 2},
+      {id: 1, key: 1, clock: 1, value: 1},
+      {id: 4, key: 2, clock: 4, value: 2},
+      {id: 2, key: 1, clock: 2, value: 2},
+      {id: 5, key: 2, clock: 3, value: 1},
+    ],
+  };
+  sequenceInput.results.r.fields = ['id', 'key', 'clock', 'value'];
+  retainedRelationSequenceProgram.stages.splice(2, 0, {
+    id: 'matched', inputs: {x: {result: {stage: 'values_a', result: 'r'}}},
+    steps: [{from: 'x', sequence: {
+      by: ['key'], id: 'id', time: 'clock',
+      pattern: [{as: 'start', where: 'value = 1'},
+        {as: 'end', where: 'value = 2'}],
+      within: 10, overlap: 'allow', contiguity: 'subsequence',
+    }, as: 'out'}],
+    results: {r: {from: 'out', fields: relationSequenceFields}},
+  });
+  for (const consumer of retainedRelationSequenceProgram.stages.filter(stage =>
+    stage.id.startsWith('consumer_'))) {
+    consumer.inputs.x.result.stage = 'matched';
+    consumer.steps[0].select = relationSequenceFields;
+    consumer.results.r.fields = relationSequenceFields;
+  }
+  const sequenceExpected = [
+    {end_id: 2, end_time_ms: 2, key: 1, match_end_ms: 2,
+      match_start_ms: 1, start_id: 1, start_time_ms: 1},
+    {end_id: 3, end_time_ms: 3, key: 1, match_end_ms: 3,
+      match_start_ms: 1, start_id: 1, start_time_ms: 1},
+    {end_id: 4, end_time_ms: 4, key: 2, match_end_ms: 4,
+      match_start_ms: 3, start_id: 5, start_time_ms: 3},
+  ];
+  const sequencePolicyArgs = (matches, output) => {
+    const environment = JSON.parse(args[0]);
+    Object.assign(environment.host_policy_profile.capacity, {
+      max_temporal_matches_per_key: matches,
+      max_temporal_output_rows: output,
+    });
+    const {evidence_bundle_cid: ignored, ...body} = environment;
+    void ignored;
+    environment.evidence_bundle_cid = canonicalHash(body);
+    return [canonical(environment), environment.evidence_bundle_cid,
+      ...args.slice(2)];
+  };
   for (const {
     name, source, expected, producerCidRows, fields,
-    temporal = false,
+    temporal = false, sequence = false, fixtureArgs = args,
     producerStage = 'crossed', producerTask = 3, totalTasks = 5,
     firstStage = 'external_cross_consumer_a',
     secondStage = 'external_cross_consumer_b',
   } of [
+    {name: 'sequence', source: retainedRelationSequenceProgram, temporal: true,
+      sequence: true, producerStage: 'matched', producerTask: 2, totalTasks: 4,
+      firstStage: 'consumer_a', secondStage: 'consumer_b',
+      expected: sequenceExpected, fields: relationSequenceFields,
+      fixtureArgs: sequencePolicyArgs(2, 3)},
+    {name: 'sequence-empty', source: (() => {
+      const program = structuredClone(retainedRelationSequenceProgram);
+      program.stages.find(stage => stage.id === 'values_a')
+        .steps[0].values.rows = [];
+      return program;
+    })(), temporal: true, sequence: true,
+    producerStage: 'matched', producerTask: 2, totalTasks: 4,
+    firstStage: 'consumer_a', secondStage: 'consumer_b',
+    expected: [], fields: relationSequenceFields},
+    {name: 'sequence-adjacent-disallow', source: (() => {
+      const program = structuredClone(retainedRelationSequenceProgram);
+      const matcher = program.stages.find(stage => stage.id === 'matched')
+        .steps[0].sequence;
+      matcher.contiguity = 'adjacent';
+      matcher.overlap = 'disallow';
+      return program;
+    })(), temporal: true, sequence: true,
+    producerStage: 'matched', producerTask: 2, totalTasks: 4,
+    firstStage: 'consumer_a', secondStage: 'consumer_b',
+    expected: [sequenceExpected[0], sequenceExpected[2]], fields: relationSequenceFields},
     {name: 'time-series', source: retainedTimeSeriesProgram, temporal: true,
       producerStage: 'values_a', producerTask: 1, totalTasks: 3,
       firstStage: 'consumer_a', secondStage: 'consumer_b',
@@ -9843,7 +9923,9 @@ async function exerciseStrategyGraph(
     };
     let binaryFixture;
     try {
-      binaryFixture = temporal
+      binaryFixture = sequence
+        ? fixture.strategyFixtureTeaSequenceCreate(...fixtureArgs, JSON.stringify(program))
+        : temporal
         ? fixture.strategyFixtureTeaCreate(...args, JSON.stringify(program))
         : name.includes('-sum-')
         ? fixture.strategyFixtureNumericCreate(
@@ -10017,18 +10099,23 @@ async function exerciseStrategyGraph(
     {name: 'cancel', temporal: 'asof'},
     {name: 'store-failure', temporal: 'interval'},
     {name: 'finalize-failure', temporal: 'asof'},
+    {name: 'cancel', temporal: 'sequence'},
+    {name: 'store-failure', temporal: 'sequence'},
+    {name: 'finalize-failure', temporal: 'sequence'},
   ]) {
     const caseName = temporal ? `${temporal}-${mode}` : mode;
     const series = temporal === 'series';
-    const producerTask = series ? 1 : 3;
-    const priorTasks = series ? [] : [1, 2];
+    const sequence = temporal === 'sequence';
+    const producerTask = series ? 1 : sequence ? 2 : 3;
+    const priorTasks = series ? [] : sequence ? [1] : [1, 2];
     const numericGroup = mode === 'cancel-after-numeric-group';
     const grouped = mode === 'cancel-after-group' || numericGroup;
     const nestCancel = mode === 'nest-cancel';
     const cancelling = mode === 'cancel' ||
       mode === 'cancel-after-filter' || grouped || nestCancel;
     const program = temporal ? structuredClone(series
-      ? retainedTimeSeriesProgram : retainedTemporalJoinProgram(temporal))
+      ? retainedTimeSeriesProgram : sequence
+      ? retainedRelationSequenceProgram : retainedTemporalJoinProgram(temporal))
       : nestCancel ? structuredClone(nestProgram)
       : retainedBinaryChain(externalAppendProgram,
       grouped
@@ -10044,9 +10131,9 @@ async function exerciseStrategyGraph(
       first: {from: {stage: 'nest_consumer_a', result: 'r'}},
       second: {from: {stage: 'nest_consumer_b', result: 'r'}},
     } : {
-      producer: {from: {stage: series ? 'values_a' : 'crossed', result: 'r'}},
-      first: {from: {stage: series ? 'consumer_a' : 'external_cross_consumer_a', result: 'r'}},
-      second: {from: {stage: series ? 'consumer_b' : 'external_cross_consumer_b', result: 'r'}},
+      producer: {from: {stage: series ? 'values_a' : sequence ? 'matched' : 'crossed', result: 'r'}},
+      first: {from: {stage: series || sequence ? 'consumer_a' : 'external_cross_consumer_a', result: 'r'}},
+      second: {from: {stage: series || sequence ? 'consumer_b' : 'external_cross_consumer_b', result: 'r'}},
     };
     if (!temporal && (mode === 'cancel-after-filter' || grouped)) {
       // Three rows give the Append child exactly 28 work units. Its bounded
@@ -10061,7 +10148,9 @@ async function exerciseStrategyGraph(
       program.stages.find(stage => stage.id === 'cross_right').steps[0]
         .values.rows = Array.from({length: 30}, (_, index) => ({id: index + 30}));
     }
-    const binaryFixture = temporal
+    const binaryFixture = sequence
+      ? fixture.strategyFixtureTeaSequenceCreate(...args, JSON.stringify(program))
+      : temporal
       ? fixture.strategyFixtureTeaCreate(...args, JSON.stringify(program))
       : numericGroup
       ? fixture.strategyFixtureNumericCreate(...args, JSON.stringify(program))
@@ -10395,6 +10484,79 @@ async function exerciseStrategyGraph(
         assert.equal(execution.usage().heldBytes, 0n, name);
         assert.equal(execution.usage().reservedExecutionBytes, 0n, name);
       }
+      store.close();
+      await store.cleanup();
+      await rm(directory, {recursive: true, force: true});
+    }
+  }
+  // Checked match-per-key and output-row ceilings are separate from the
+  // generous provider work/workspace envelope, and each can reject this input.
+  for (const [name, matches, output] of [
+    ['matches-per-key', 1, 3], ['output-rows', 2, 2],
+  ]) {
+    const program = structuredClone(retainedRelationSequenceProgram);
+    program.results = {producer: {from: {stage: 'matched', result: 'r'}}};
+    const selectedFixture = fixture.strategyFixtureTeaSequenceCreate(
+      ...sequencePolicyArgs(matches, output), JSON.stringify(program));
+    const capture = await runNativeHostQuery(grant,
+      fixture.strategyFixtureAcquisition(selectedFixture), suppliedLimits);
+    const directory = await mkdtemp(join(tmpdir(),
+      `actql-retained-sequence-${name}-`));
+    const store = await createLocalRetainedStore({
+      parentDirectory: directory, capacityBytes: 8 * 1024 * 1024,
+      maxFrameBytes: 1024 * 1024,
+    });
+    const runtime = runtimeCore(hostRuntime);
+    const publication = await openLocalPublicationStore({
+      directory: join(directory, 'publication'),
+      storeAuthorityCid: hash(`retained-sequence-${name}-store`),
+      capacityBytes: 4 * 1024 * 1024,
+      maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+      maxObjects: 100, maxContractNodes: 10000, maxContractDepth: 64,
+    }, runtime.publicationControl);
+    const configuration = installLocalRetainedStore((key, bytes) => {
+      let writer, closed = false;
+      return {
+        status: () => ({reservedBytes: writer && !closed ? bytes : 0,
+          cleanupPending: writer?.cleanupHandle?.status?.().pending ?? false}),
+        reserve: value => (writer = store.reserve(value)),
+        close() { closed = true; writer?.cancel(); },
+        async cleanup() { await writer?.cleanupHandle?.retry?.(); },
+      };
+    });
+    let failure;
+    try {
+      assert.equal(fixture.strategyFixtureOpen(selectedFixture,
+        capture.source()), true);
+      const setup = fixture.strategyFixtureTeaRetainedSubset(selectedFixture);
+      const plan = standardPublicationPlan(runtime,
+        runtime.programDefinitionCid(setup), runtime.resultInventory(setup).length,
+        `retained-sequence-${name}-attempt`);
+      await assert.rejects(runPublishedCapturedStrategy(setup,
+        {store: publication, plan}, {local: configuration},
+        new AbortController().signal), error => {
+        failure = error.execution;
+        return error.code === 'CapturedRunPublicationFailed';
+      });
+      assert.equal(failure.status, 'host-tasks-failed', name);
+      assert.deepEqual(failure.completed.map(item => item.task), [1], name);
+      assert.equal(failure.failure?.code, 'MoonBitHostFailure', name);
+      assert.equal(fixture.strategyFixtureRetainedRowLimit(
+        failure.failure.cause), true, name);
+      await assert.rejects(publication.lookupCommittedIndex({
+        namespaceId: plan.request.namespaceId,
+        authorityScopeCid: plan.request.authorityScopeCid,
+        runDefinitionCid: plan.runDefinition.identity,
+      }, () => true), /PublicationLookupDenied/);
+    } finally {
+      capture.close();
+      await failure?.close();
+      if (failure) {
+        assert.equal(await failure.cleanup(), true, name);
+        assert.equal(failure.usage().heldBytes, 0n, name);
+        assert.equal(failure.usage().reservedExecutionBytes, 0n, name);
+      }
+      await publication.close();
       store.close();
       await store.cleanup();
       await rm(directory, {recursive: true, force: true});
