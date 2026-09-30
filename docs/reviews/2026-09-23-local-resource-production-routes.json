@@ -8322,6 +8322,13 @@
       },
       "boundary_tests": [
         {
+          "role": "time_series_retained_provider_ownership",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_retained_temporal_obligations_wbtest.mbt",
+          "fixture": "retained time series requires its registered bounded provider"
+        },
+        {
           "role": "time_series_output_exact_one_short_and_finish_work",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
@@ -8401,6 +8408,13 @@
         "symbol": "start_bounded_interval_join"
       },
       "boundary_tests": [
+        {
+          "role": "interval_retained_provider_ownership",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_retained_temporal_obligations_wbtest.mbt",
+          "fixture": "retained interval join requires its registered bounded provider"
+        },
         {
           "role": "interval_metadata_workspace_preflight",
           "suite": "moon:execution_relation",
@@ -8547,6 +8561,13 @@
         "symbol": "start_bounded_asof_join"
       },
       "boundary_tests": [
+        {
+          "role": "asof_retained_provider_ownership",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_retained_temporal_obligations_wbtest.mbt",
+          "fixture": "retained as-of join requires its registered bounded provider"
+        },
         {
           "role": "asof_metadata_workspace_preflight",
           "suite": "moon:execution_relation",

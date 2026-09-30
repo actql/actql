@@ -117,6 +117,33 @@ pub fn local_dispatch_rejection(
             ) {
             return Some("unsupported_execution_obligation")
           }
+        SeriesExecution(_) =>
+          if !@local.local_module_bounded_temporal_relation_obligation(
+              installed.implementation,
+              local_task_slot(installed, task),
+              requirement.site.step,
+              @local.TimeSeries,
+            ) {
+            return Some("unsupported_execution_obligation")
+          }
+        IntervalExecution(_) | IntervalSearch(_) =>
+          if !@local.local_module_bounded_temporal_relation_obligation(
+              installed.implementation,
+              local_task_slot(installed, task),
+              requirement.site.step,
+              @local.IntervalJoin,
+            ) {
+            return Some("unsupported_execution_obligation")
+          }
+        AsOfExecution(_) | AsOfSearch(_) =>
+          if !@local.local_module_bounded_temporal_relation_obligation(
+              installed.implementation,
+              local_task_slot(installed, task),
+              requirement.site.step,
+              @local.AsOfJoin,
+            ) {
+            return Some("unsupported_execution_obligation")
+          }
         RankingExecution(_) =>
           if !@local.local_module_bounded_ranking_obligation(
               installed.implementation,

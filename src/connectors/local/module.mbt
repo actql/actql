@@ -193,6 +193,41 @@ pub fn local_module_bounded_values_publication(
 }
 
 ///|
+pub(all) enum LocalBoundedTemporalRelationCheck {
+  TimeSeries
+  IntervalJoin
+  AsOfJoin
+}
+
+///|
+/// Temporal Relation obligations require the registered bounded family
+/// provider for the exact one-step occurrence, with an admitted capacity.
+pub fn local_module_bounded_temporal_relation_obligation(
+  installed : LocalComputeModule,
+  slot : Int,
+  step : Int,
+  check : LocalBoundedTemporalRelationCheck,
+) -> Bool {
+  guard installed.sequences.get(slot) is Some(sequence) &&
+    @execution.generated_sequence_step_index_at(sequence, 0) == Some(step) &&
+    @execution.generated_sequence_step_index_at(sequence, 1) is None else {
+    return false
+  }
+  let matches = match
+    (@execution.generated_sequence_step_at(sequence, 0), check) {
+    (Some(@lower.TimeSeriesStep(_)), TimeSeries)
+    | (Some(@lower.IntervalJoinStep(_)), IntervalJoin)
+    | (Some(@lower.AsOfJoinStep(_)), AsOfJoin) => true
+    _ => false
+  }
+  matches &&
+  installed.managed_providers.any(provider => {
+    managed_provider_accepts(provider, sequence) &&
+    managed_provider_capacity(provider, sequence) is Some(_)
+  })
+}
+
+///|
 /// Ranking checks belong to the exact finite-list occurrence owned by the
 /// registered bounded family provider, not a generic Relation fallback.
 pub fn local_module_bounded_ranking_obligation(

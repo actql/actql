@@ -83,6 +83,8 @@ pub fn local_module_bounded_relation_obligation(LocalComputeModule, Int, Int, Lo
 
 pub fn local_module_bounded_set_obligation(LocalComputeModule, Int, Int) -> Bool
 
+pub fn local_module_bounded_temporal_relation_obligation(LocalComputeModule, Int, Int, LocalBoundedTemporalRelationCheck) -> Bool
+
 pub fn local_module_bounded_values_publication(LocalComputeModule, Int) -> Bool
 
 pub fn local_module_capacity(LocalComputeModule, Int) -> @execution_relation.ExecutionCapacity?
@@ -182,6 +184,12 @@ pub(all) enum LocalBoundedRelationCheck {
   Dedupe
   Assertion
   Expansion
+}
+
+pub(all) enum LocalBoundedTemporalRelationCheck {
+  TimeSeries
+  IntervalJoin
+  AsOfJoin
 }
 
 type LocalComputeModule
