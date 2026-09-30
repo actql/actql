@@ -228,6 +228,60 @@ test('Coordinator SQLite stores admission history with state and replays after r
     {revision: 1, state: [4, 0, 0, 0, 0]}));
 });
 
+test('a separate Coordinator process restores exact receipts without pending memory', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-coordinator-process-replay-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const store = openSqliteCoordinatorDispatchJournal(root, {coordinatorAuthority: 'coordinator-a'});
+  const dispatch = request('process-replay');
+  const record = store.accept(control.prepareCoordinatorIntent(
+    control.createCoordinatorJournal('coordinator-a'), dispatch), dispatch, control);
+  for (const revision of [1, 3]) {
+    store.advance(control.prepareCoordinatorObservation(record,
+      {revision, state: [2, 0, 0, 0, 0]}), record, control);
+  }
+  const before = store.inspectState(dispatch, control);
+  store.close();
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e', `
+    import assert from 'node:assert/strict';
+    import * as moon from ${JSON.stringify(new URL(
+      '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href)};
+    import {runtimeCore} from ${JSON.stringify(new URL('../host-common/runtime-core.mjs', import.meta.url).href)};
+    import {openSqliteCoordinatorDispatchJournal} from ${JSON.stringify(new URL('./sqlite-coordinator-journal.mjs', import.meta.url).href)};
+    const control = runtimeCore(moon).remoteSiteControl;
+    const store = openSqliteCoordinatorDispatchJournal(process.argv[1], {
+      coordinatorAuthority: 'coordinator-a',
+    });
+    const recovered = store.recoverJournal(control.createCoordinatorJournal('coordinator-a'), control);
+    assert.equal(recovered.length, 1);
+    const [{request: dispatch, record}] = recovered;
+    const expected = JSON.parse(process.argv[2]);
+    assert.deepEqual(store.inspectState(dispatch, control), expected);
+    const history = control.coordinatorRecordHistoryJson(record);
+    assert.deepEqual(JSON.parse(history), [
+      ['1', '2', '0', '0', '0', '0', '', '', ''],
+      ['3', '2', '0', '0', '0', '0', '', '', ''],
+    ]);
+    for (const revision of [1, 3]) {
+      const transition = control.prepareCoordinatorObservation(record,
+        {revision, state: [2, 0, 0, 0, 0]});
+      assert.equal(control.coordinatorTransitionIsReplay(transition), true);
+      store.advance(transition, record, control);
+      assert.deepEqual(store.inspectState(dispatch, control), expected);
+      assert.equal(control.coordinatorRecordRevision(record), 2);
+      assert.equal(control.coordinatorRecordHistoryJson(record), history);
+    }
+    assert.throws(() => control.prepareCoordinatorObservation(record,
+      {revision: 2, state: [2, 0, 0, 0, 0]}));
+    assert.throws(() => control.prepareCoordinatorObservation(record,
+      {revision: 1, state: [4, 0, 0, 0, 0]}));
+    assert.deepEqual(store.inspectState(dispatch, control), expected);
+    store.close();
+    console.log('separate-process-replay-verified');
+  `, root, JSON.stringify(before)], {encoding: 'utf8', timeout: 15_000});
+  assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
+  assert.match(result.stdout, /separate-process-replay-verified/u);
+});
+
 for (const mismatch of ['legacy-version', 'current-version-wrong-schema',
   'missing-metadata', 'missing-output-table', 'missing-output-constraints']) {
   test(`Coordinator refuses ${mismatch} with uncheckpointed WAL and no SHM without source mutation`, async t => {

@@ -246,6 +246,19 @@ original DB, WAL and unfinished cleanup custody; it is not cancellation,
 reclaim, failure confirmation, or permission to resend work. No automatic
 migration is provided.
 
+An operator retaining an old journal must use a separately pinned matching
+implementation, rather than deleting its root or asking the new writer to
+invent receipts. With the same configured authority, the old owner recovers
+the exact dispatch and its outstanding custody, then reconciles and releases
+it using that version's ordinary rules. Returning to the new writer requires
+a separate empty root; rejection alone never terminates the old obligation.
+The fixed-baseline compatibility check in
+`scripts/test-coordinator-legacy-custody.mjs` verifies old-owner continuation
+after a DB+WAL/no-SHM refusal, and that the old writer rejects the new format
+without changing its logical state/history. This is Coordinator custody
+evidence, not a claim that replaying a release observation proves physical Site
+cleanup. Site physical release requires its normal independent evidence.
+
 Before opening an unclassified Node database normally, the adapter inspects a
 private DB+WAL snapshot using read-only source descriptors, retaining file
 identity and rejecting changes during inspection. SQLite never opens the
