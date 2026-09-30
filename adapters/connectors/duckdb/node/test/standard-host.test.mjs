@@ -2160,6 +2160,39 @@ async function exerciseStrategyGraph(
       {node_id: 1, component_id: 1, component_size: 2},
       {node_id: 2, component_id: 1, component_size: 2},
     ],
+  }, {
+    name: 'retained-bounds-filter',
+    retainedOutput: true,
+    selectedStructural: true,
+    step: {
+      from: 'g',
+      graph_bounds: {max_nodes: 1},
+      as: 'out',
+    },
+    fields: ['kind', 'node_id', 'actual', 'max'],
+    secondFields: ['kind', 'node_id'],
+    expected: [
+      {kind: 'nodes', node_id: null, actual: 2, max: 1},
+    ],
+  }, {
+    name: 'retained-degree-filter',
+    retainedOutput: true,
+    selectedStructural: true,
+    step: {from: 'g', degree: {direction: 'both'}, as: 'out'},
+    fields: ['node', 'degree'],
+    secondFields: ['degree'],
+    expected: [{node: 1, degree: 2}, {node: 2, degree: 2}],
+  }, {
+    name: 'components-retained-filter',
+    retainedOutput: true,
+    selectedStructural: true,
+    step: {from: 'g', components: {kind: 'weak'}, as: 'out'},
+    fields: ['node_id', 'component_id', 'component_size'],
+    secondFields: ['component_id', 'component_size'],
+    expected: [
+      {node_id: 1, component_id: 1, component_size: 2},
+      {node_id: 2, component_id: 1, component_size: 2},
+    ],
   }];
   graphPublicationCases.push({
     name: 'selected-subgraph-literal',
@@ -4602,6 +4635,48 @@ async function exerciseStrategyGraph(
     },
     fields: ['kind', 'node_id', 'actual', 'max'],
   }, {
+    name: 'retained-bounds-filter-in-flight',
+    retainedOutput: true,
+    selectedStructural: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    constructionStarts: [1],
+    cancelOnManagedStart: 2,
+    managedStarts: 2,
+    cancelTask: 3,
+    completedTasks: [1, 2],
+    steps: [{from: 'g', graph_bounds: {max_nodes: 1}, as: 'out'}],
+    fields: ['kind', 'node_id', 'actual', 'max'],
+  }, {
+    name: 'retained-degree-filter-in-flight',
+    retainedOutput: true,
+    selectedStructural: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    constructionStarts: [1],
+    cancelOnManagedStart: 2,
+    managedStarts: 2,
+    cancelTask: 3,
+    completedTasks: [1, 2],
+    steps: [{from: 'g', degree: {direction: 'both'}, as: 'out'}],
+    fields: ['node', 'degree'],
+  }, {
+    name: 'components-retained-filter-in-flight',
+    retainedOutput: true,
+    selectedStructural: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    constructionStarts: [1],
+    cancelOnManagedStart: 2,
+    managedStarts: 2,
+    cancelTask: 3,
+    completedTasks: [1, 2],
+    steps: [{from: 'g', components: {kind: 'weak'}, as: 'out'}],
+    fields: ['node_id', 'component_id', 'component_size'],
+  }, {
     name: 'match-nodes-predicate-in-flight',
     rows: 40,
     step: {
@@ -6109,7 +6184,7 @@ async function exerciseStrategyGraph(
         ? fixture.strategyFixtureVecaCreate
       : unsizedGraph
         ? fixture.strategyFixtureSgaCreate
-      : cancellationCase.name === 'components-strong'
+      : cancellationCase.name.startsWith('components-')
         ? fixture.strategyFixtureSgaComponentsSizedCreate
         : cancellationCase.name === 'traverse-paths'
           ? fixture.strategyFixtureSgaTraversePathsSizedCreate
