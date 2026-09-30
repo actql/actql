@@ -9,6 +9,27 @@ export const premises = [
   'cleanup callback true means complete reclamation',
 ];
 export const guarantees = ['delta accounting', 'terminal seals advance', 'cleanup retry without compute'];
+// Reviewed coverage of the actual fixture, independent of requested bindings.
+// Expanding this table requires reviewing/changing that fixture, not relabeling
+// a derived claim. Digests pin that review's code; they do not prove its scope.
+export const connectionFixture = 'src/query_integration/local_managed_set_wbtest.mbt';
+const connectionCoverage = Object.freeze(['except', 'intersect'].flatMap(operation =>
+  ['all', 'distinct'].map(variant => Object.freeze({
+    operation, variant, profile: 'checked complete rows including nullable fields',
+    provider: 'src/connectors/local/set_provider.mbt', entrypoint: 'set_provider',
+    kernel: 'start_bounded_set',
+  }))));
+export function executedConnectionCoverage() {
+  return { fixture: connectionFixture, scopes: connectionCoverage.map(scope => ({ ...scope })) };
+}
+const scopeMatches = (actual, expected, keys) => keys.every(key => actual?.[key] === expected[key]);
+function checkExecutedConnection(scope, coverage) {
+  const reviewed = executedConnectionCoverage();
+  if (JSON.stringify(coverage) !== JSON.stringify(reviewed)) throw new Error('Unverified executed connection coverage');
+  if (!coverage.scopes.some(verified => scopeMatches(scope, verified, ['operation', 'variant', 'profile']))) {
+    throw new Error('Scope mismatch: claim is outside independently executed connection coverage');
+  }
+}
 const hash = value => createHash('sha256').update(value).digest('hex');
 
 function files(directory) {
@@ -98,6 +119,7 @@ export function validate(nodes, report, current, expectedTarget) {
       if (expected && (JSON.stringify(result.command) !== JSON.stringify(expected) || !(result.count > 0))) {
         throw new Error(`Unrelated execution used as evidence: ${node.run}`);
       }
+      if (node.run === `connection-${expectedTarget}`) checkExecutedConnection(node.scope, result.coverage);
       if (node.kind === 'formal-model' && result.command?.[1] !== 'proofs/bounded-session/check.mjs') {
         throw new Error('Wrong proof artifact');
       }
@@ -115,6 +137,16 @@ export function validate(nodes, report, current, expectedTarget) {
 export function checkBindings(root, bindings) {
   const inventory = JSON.parse(readFileSync(join(root, 'docs/reviews/2026-09-23-local-resource-production-routes.json')));
   for (const binding of bindings) {
+    // This connection run executes all four set variants. Another provider
+    // needs its OWN executed fixture; sharing the adapter is not that witness.
+    const verified = connectionCoverage.find(scope => scopeMatches(binding, scope,
+      ['operation', 'variant', 'provider', 'entrypoint', 'kernel']));
+    if (!verified) {
+      throw new Error('Unsupported connection scope: supply an executed provider-specific witness');
+    }
+    if (binding.profile !== verified.profile) {
+      throw new Error('Unverified connection profile');
+    }
     const route = inventory.routes.find(row => row.operation === binding.operation);
     if (!route || route.entrypoint?.path !== binding.provider || route.entrypoint.symbol !== binding.entrypoint) {
       throw new Error(`Provider differs from authoritative route: ${binding.operation}`);

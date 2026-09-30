@@ -88,6 +88,14 @@ does not constitute refinement: the registered fixture also executes, and the
 production-route mutation must fail it. The same connection fixture intentionally
 retains all four except/intersect × all/distinct semantic cases and its two consumers.
 
+The fixture's reviewed operation/variant/profile coverage is fixed independently
+of `bindings.json` in `evidence.mjs` and recorded with the successful connection
+execution. Both `checkBindings` and `validate` compare the requested scope with
+that witness. Changing the connection and derived labels together, while keeping
+the execution record and source/artifact digests unchanged, is rejected. Missing
+coverage or a relabeled execution scope is also rejected. This pilot deliberately
+uses an exact reviewed table; it does not infer profile inclusion from labels.
+
 For a new provider using this adapter, review its callback premises, add its
 operation-specific law/boundary checks and an executed connection witness, and
 instantiate the existing model claims. A different kernel, ownership handoff,
