@@ -181,7 +181,7 @@ export function openSqliteEffectLedger(root, {
   } catch (error) {
     throwSqliteInitializationFailure(database, error, 'effect_ledger');
   }
-
+  try {
   const usage = database.prepare(`
     SELECT
       (SELECT COUNT(*) FROM effect_ledger_entries) +
@@ -210,7 +210,6 @@ export function openSqliteEffectLedger(root, {
       initialUsage.entries > maxEntries ||
       initialUsage.max_response_bytes > maxResponseBytes ||
       initialUsage.bytes > maxStoredBytes) {
-    database.close();
     fail('EffectLedgerCapacityExceeded');
   }
 
@@ -940,4 +939,7 @@ export function openSqliteEffectLedger(root, {
       return true;
     },
   });
+  } catch (error) {
+    throwSqliteInitializationFailure(database, error, 'effect_ledger');
+  }
 }

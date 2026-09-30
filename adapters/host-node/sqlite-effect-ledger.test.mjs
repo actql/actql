@@ -142,6 +142,98 @@ test('Effect close failure rejects operations and retries only close',
     t.after(() => reopened.close());
   });
 
+for (const [name, fails] of [
+  ['late statement preparation', sql =>
+    sql.includes('FROM effect_ledger_heads WHERE')],
+  ['usage statement preparation', sql =>
+    sql.includes('(SELECT COUNT(*) FROM effect_ledger_entries)')],
+]) {
+  test(`Effect initialization owns ${name} failure`, async t => {
+    const root = await fixture(t);
+    const prepare = DatabaseSync.prototype.prepare;
+    const close = DatabaseSync.prototype.close;
+    let closes = 0;
+    t.mock.method(DatabaseSync.prototype, 'prepare', function(sql) {
+      if (fails(sql)) throw new Error('PREPARE_FAILED');
+      return prepare.call(this, sql);
+    });
+    t.mock.method(DatabaseSync.prototype, 'close', function() {
+      closes++;
+      return close.call(this);
+    });
+    assert.throws(() => openSqliteEffectLedger(root,
+      {authorityScopeCid: scope}), /PREPARE_FAILED/u);
+    assert.equal(closes, 1);
+    t.mock.restoreAll();
+    const reopened = openSqliteEffectLedger(root,
+      {authorityScopeCid: scope});
+    t.after(() => reopened.close());
+  });
+}
+
+test('Effect usage read failure retains the database cleanup owner',
+  async t => {
+    const root = await fixture(t);
+    const prepare = DatabaseSync.prototype.prepare;
+    const close = DatabaseSync.prototype.close;
+    let closes = 0;
+    t.mock.method(DatabaseSync.prototype, 'prepare', function(sql) {
+      if (sql.includes('(SELECT COUNT(*) FROM effect_ledger_entries)')) {
+        return {get() { throw new Error('USAGE_READ_FAILED'); }};
+      }
+      return prepare.call(this, sql);
+    });
+    t.mock.method(DatabaseSync.prototype, 'close', function() {
+      closes++;
+      return close.call(this);
+    });
+    assert.throws(() => openSqliteEffectLedger(root,
+      {authorityScopeCid: scope}), /USAGE_READ_FAILED/u);
+    assert.equal(closes, 1);
+    t.mock.restoreAll();
+    const reopened = openSqliteEffectLedger(root,
+      {authorityScopeCid: scope});
+    t.after(() => reopened.close());
+  });
+
+test('Effect capacity failure keeps its cause through failed close retry',
+  async t => {
+    const root = await fixture(t);
+    const seeded = openSqliteEffectLedger(root, {authorityScopeCid: scope});
+    append(seeded, 0, cid('1'), firstJson);
+    append(seeded, 1, cid('2'), secondJson);
+    seeded.close();
+    const close = DatabaseSync.prototype.close;
+    let closes = 0;
+    t.mock.method(DatabaseSync.prototype, 'close', function() {
+      closes++;
+      if (closes === 1) throw new Error('CLOSE_FAILED');
+      return close.call(this);
+    });
+    let failure;
+    assert.throws(() => openSqliteEffectLedger(root,
+      {authorityScopeCid: scope, maxEntries: 1}), error => {
+      failure = error;
+      assert.equal(error.code, 'SqliteJournalInitializationCleanupPending');
+      assert.equal(error.primaryFailure.code,
+        'EffectLedgerCapacityExceeded');
+      assert.match(error.cleanupErrors[0].error.message, /CLOSE_FAILED/u);
+      assert.equal(error.cleanupPending, true);
+      return true;
+    });
+    assert.deepEqual(failure.cleanupHandle.status().owners,
+      ['effect_ledger']);
+    assert.equal(failure.cleanupHandle.retry().pending, false);
+    assert.equal(failure.cleanupPending, false);
+    assert.equal(failure.cleanupHandle.retry().pending, false);
+    assert.equal(closes, 2);
+    t.mock.restoreAll();
+    const reopened = openSqliteEffectLedger(root,
+      {authorityScopeCid: scope});
+    t.after(() => reopened.close());
+    assert.equal(reopened.current(locator).revision, 2);
+  });
+
 test('two processes cannot advance one Effect head from one revision',
   async t => {
     const root = await fixture(t);
