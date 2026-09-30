@@ -31,6 +31,8 @@ if (mode === 'remote' && (!options.endpoint || !options.token)) {
 const cases = ['components', 'reach-subgraph', 'diff-apply',
   'mean-graphs', 'graphs-equal', 'normalize-rows', 'degree-rows',
   'shortest-path',
+  'reach-selector', 'reach-selector-duplicates', 'reach-selector-empty',
+  'reach-selector-nullable',
   'graph-bounds', 'traverse-paths', 'union-graphs', 'graft-graphs',
   'subtract-graphs', 'match-projections'];
 if (requestedCase && !cases.includes(requestedCase)) {
@@ -91,6 +93,39 @@ try {
       await assert.rejects(client.aql(invalid, {format: 'aql-text',
         requestId: `sga-invalid-hop-${randomUUID()}`}),
       error => error.code === 'ClientProgramRejected');
+    }
+    if (name === 'reach-selector-nullable') {
+      const invalid = source.replace(
+        '"id":{"type":"string","nullable":true}},"rows":[{"id":"A"}]',
+        '"id":{"type":"number","nullable":true}},"rows":[{"id":1}]');
+      assert.notEqual(invalid, source);
+      await assert.rejects(client.aql(invalid, {format: 'aql-text',
+        requestId: `sga-invalid-selector-type-${randomUUID()}`}),
+      error => error.code === 'ClientProgramRejected');
+      // Both Programs are well typed. Membership and selected NULL admission
+      // require the actual retained Graph and Relation, so fail at execution.
+      for (const [label, rows] of [['missing', [{id: 'C'}]],
+        ['null', [{id: null}]]]) {
+        const seed = JSON.stringify({schema: {id: {type: 'string',
+          nullable: true}}, rows});
+        const badSource = source.replace(/^    DATA seeds = OP values .*;$/m,
+          `    DATA seeds = OP values ${seed};`);
+        assert.notEqual(badSource, source);
+        const id = `sga-selector-${label}-${randomUUID()}`;
+        const rejected = await client.aql(badSource, {format: 'aql-text',
+          requestId: id});
+        const failed = await rejected.wait({signal: AbortSignal.timeout(120000)});
+        assert.equal(failed.status, 'failed', `${label}: ${JSON.stringify(failed)}`);
+        assert.equal(failed.result_available, false, label);
+        assert.deepEqual((await client.lookupRequest(id)).ref, rejected.ref);
+        const restored = await client.attach(rejected.ref);
+        assert.equal((await restored.status()).status, 'failed', label);
+        await assert.rejects(restored.result('answer').all(),
+          error => error.code === 'ResultUnavailable');
+        assert.deepEqual((await client.aql(badSource, {format: 'aql-text',
+          requestId: id})).ref, rejected.ref);
+      }
+      console.log(`packed ${mode} selector membership and NULL failures passed`);
     }
   }
   console.log(`packed ${mode} named SGA source and Result acceptance passed`);

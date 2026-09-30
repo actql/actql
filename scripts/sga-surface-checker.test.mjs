@@ -37,6 +37,8 @@ test('named SGA Programs pass common preparation without a new checker', () => {
   for (const name of ['components', 'reach-subgraph', 'diff-apply',
     'mean-graphs', 'graphs-equal', 'normalize-rows', 'degree-rows',
     'shortest-path',
+  'reach-selector', 'reach-selector-duplicates', 'reach-selector-empty',
+  'reach-selector-nullable',
     'graph-bounds', 'traverse-paths', 'union-graphs', 'graft-graphs',
     'subtract-graphs', 'match-projections']) {
     const outcome = prepare(fixture(name));
@@ -144,4 +146,15 @@ test('invalid shortest path bounds retain a definitive input rejection', () => {
   assert.equal(moon.clientProgramPreparationIssueCode(outcome),
     'check_invalid_input');
   assert.ok(moon.clientProgramPreparationIssue(outcome));
+});
+
+test('Reach selector ID types are checked before Run preparation', () => {
+  const program = fixture('reach-selector-nullable');
+  const seed = program.stages[0].steps[3].values;
+  seed.schema.id.type = 'number';
+  seed.rows = [{id: 1}];
+  const outcome = prepare(program);
+  assert.equal(moon.clientProgramPreparationReady(outcome), undefined);
+  assert.equal(moon.clientProgramPreparationIssueCode(outcome),
+    'check_invalid_input');
 });

@@ -42,6 +42,8 @@ for (const [source, destination] of [
 await mkdir(join(root, 'sga-source-fixtures'));
 for (const name of ['normalize-rows', 'mean-graphs', 'traverse-paths',
   'shortest-path',
+  'reach-selector', 'reach-selector-duplicates', 'reach-selector-empty',
+  'reach-selector-nullable',
   'union-graphs', 'graft-graphs', 'subtract-graphs', 'degree-rows',
   'components', 'graph-bounds', 'match-projections', 'reach-subgraph',
   'graphs-equal', 'diff-apply']) {

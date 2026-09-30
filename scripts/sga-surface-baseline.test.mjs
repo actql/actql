@@ -47,6 +47,16 @@ test('Reach selector rejects missing, forward and JSON-string references', () =>
   }
 });
 
+test('Reach selector fixtures preserve duplicate, empty and nullable inputs', () => {
+  for (const name of ['reach-selector-duplicates', 'reach-selector-empty',
+    'reach-selector-nullable']) {
+    const expected = fixture(`${name}.expected-program.json`);
+    assert.equal(jsonAdmissionDiagnostic(expected), '', name);
+    assert.deepEqual(JSON.parse(structuralToJson(fixture(`${name}.named.aql`))),
+      JSON.parse(expected), name);
+  }
+});
+
 test('components call and Relation SELECT preserve the authored Result', () => {
   const expected = fixture('components.expected-program.json');
   assert.equal(jsonAdmissionDiagnostic(expected), '');

@@ -17,6 +17,21 @@ adding a step. The independently authored expected Program therefore binds
 `reach.start.from` to `nodes`; it also records that named and OP syntax have
 the same Program meaning.
 
+The Relation-selector Result explicitly exports `start_id`, `node_id`,
+`depth`, and the semantic `id` alias. It does not ask the Host to infer an
+open Result projection. The independently authored rows follow the common
+Reach law: starts A and B yield A/A at depth zero, A/B at depth one, and B/B
+at depth zero, in start/endpoint order.
+`reach-selector-duplicates` supplies B, A, B and expects exactly those same
+three rows; `reach-selector-empty` expects no rows; and
+`reach-selector-nullable` supplies the non-null A under a nullable declaration
+and expects only A/A and A/B. Their expected Programs retain the seed producer
+as a separate input, without expanding its references into acquisitions.
+The packed driver also tests selector type rejection before Run acceptance,
+and well-typed selected NULL and missing-member failures without a Result.
+These cases require their own public Host evidence; syntax or kernel success
+does not by itself prove the packed path.
+
 `reach-subgraph.expected-results.json` records independent expected schema and
 rows from the normative reach and induced-subgraph laws: A is included at
 zero hops, B is reached, C is excluded, and precisely the A-to-B edge remains.

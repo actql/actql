@@ -76,6 +76,8 @@ const observe = directory => () => {
 };
 const sgaCases = ['normalize-rows', 'mean-graphs', 'traverse-paths',
   'shortest-path',
+  'reach-selector', 'reach-selector-duplicates', 'reach-selector-empty',
+  'reach-selector-nullable',
   'union-graphs', 'graft-graphs', 'subtract-graphs', 'degree-rows',
   'components', 'graph-bounds', 'match-projections', 'reach-subgraph',
   'graphs-equal', 'diff-apply'];
@@ -86,6 +88,10 @@ if (selectedSgaCases.length === 0 ||
     selectedSgaCases.some(name => !sgaCases.includes(name))) {
   throw new Error('Invalid selected SGA acceptance cases');
 }
+// Nullable selector acceptance also starts two well-typed failing Runs.
+// Its schema-type refusal must not add a third Run.
+const expectedSgaRuns = selectedSgaCases.length +
+  (selectedSgaCases.includes('reach-selector-nullable') ? 2 : 0);
 const sgaFixtureDirectory = resolve('sga-fixtures');
 await mkdir(sgaFixtureDirectory);
 for (const name of sgaCases) {
@@ -121,7 +127,7 @@ assert.ok(sourceIo >= 5);
 console.log('packed raw SQL/Pipe Embedded Local acceptance passed');
 await exerciseSga('local', {ACTQL_LOCAL_STATE_DIR: resolve('sga-local-state'),
   ACTQL_TEST_LOCAL_SOURCE_PROFILE: sourceProfilePath});
-assert.equal(observe('sga-local-state')().acceptedRuns, selectedSgaCases.length);
+assert.equal(observe('sga-local-state')().acceptedRuns, expectedSgaRuns);
 const beforeRemote = sourceIo;
 const host = await openInstalledRemoteHttpHost({
   directory: resolve('remote-state'), sourceProfilePath,
@@ -146,7 +152,7 @@ try {
   });
   const afterSga = observe('remote-state')();
   assert.equal(afterSga.acceptedRuns - beforeSga.acceptedRuns,
-    selectedSgaCases.length);
+    expectedSgaRuns);
   assert.equal(afterSga.sourceIo, beforeSga.sourceIo);
 } finally {
   server.closeAllConnections();
