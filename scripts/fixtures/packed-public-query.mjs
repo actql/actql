@@ -76,7 +76,8 @@ const observe = directory => () => {
 };
 const sgaCases = ['normalize-rows', 'mean-graphs', 'traverse-paths',
   'union-graphs', 'graft-graphs', 'subtract-graphs', 'degree-rows',
-  'components', 'graph-bounds', 'match-projections', 'reach-subgraph'];
+  'components', 'graph-bounds', 'match-projections', 'reach-subgraph',
+  'graphs-equal', 'diff-apply'];
 const sgaFixtureDirectory = resolve('sga-fixtures');
 await mkdir(sgaFixtureDirectory);
 for (const name of sgaCases) {
