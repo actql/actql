@@ -52,6 +52,96 @@ test('append-only Effect facts survive restart and exact retry', async t => {
   });
 });
 
+test('Effect COMMIT uncertainty keeps the connection separate from the result',
+  async t => {
+    const root = await fixture(t);
+    const ledger = openSqliteEffectLedger(root, {authorityScopeCid: scope});
+    const exec = DatabaseSync.prototype.exec;
+    let loseCommit = true;
+    t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+      if (sql === 'COMMIT' && loseCommit) {
+        loseCommit = false;
+        throw new Error('COMMIT_RESULT_LOST');
+      }
+      return exec.call(this, sql);
+    });
+    assert.throws(() => append(ledger, 0, cid('1'), firstJson), error => {
+      assert.equal(error.code, 'EffectLedgerCommitOutcomeUnknown');
+      assert.equal(error.outcome, 'unknown');
+      assert.equal(error.connectionUsable, true);
+      assert.match(error.cause.message, /COMMIT_RESULT_LOST/u);
+      return true;
+    });
+    assert.equal(ledger.current(locator), undefined);
+    t.mock.restoreAll();
+    ledger.close();
+    const reopened = openSqliteEffectLedger(root, {authorityScopeCid: scope});
+    t.after(() => reopened.close());
+    assert.equal(reopened.current(locator), undefined);
+  });
+
+test('Effect COMMIT plus rollback loss fences further reads and writes',
+  async t => {
+    const root = await fixture(t);
+    const ledger = openSqliteEffectLedger(root, {authorityScopeCid: scope});
+    const exec = DatabaseSync.prototype.exec;
+    let loseCommit = true;
+    let loseRollback = true;
+    t.mock.method(DatabaseSync.prototype, 'exec', function(sql) {
+      if (sql === 'COMMIT' && loseCommit) {
+        loseCommit = false;
+        throw new Error('COMMIT_RESULT_LOST');
+      }
+      if (sql === 'ROLLBACK' && loseRollback) {
+        loseRollback = false;
+        throw new Error('ROLLBACK_FAILED');
+      }
+      return exec.call(this, sql);
+    });
+    assert.throws(() => append(ledger, 0, cid('1'), firstJson), error => {
+      assert.equal(error.code, 'EffectLedgerCommitOutcomeUnknown');
+      assert.equal(error.outcome, 'unknown');
+      assert.equal(error.connectionUsable, false);
+      assert.match(error.cause.message, /COMMIT_RESULT_LOST/u);
+      assert.match(error.rollbackCause.message, /ROLLBACK_FAILED/u);
+      return true;
+    });
+    assert.throws(() => ledger.current(locator),
+      {code: 'EffectLedgerConnectionUnusable'});
+    assert.throws(() => append(ledger, 0, cid('1'), firstJson),
+      {code: 'EffectLedgerConnectionUnusable'});
+    t.mock.restoreAll();
+    ledger.close();
+    const reopened = openSqliteEffectLedger(root, {authorityScopeCid: scope});
+    t.after(() => reopened.close());
+    assert.equal(reopened.current(locator), undefined);
+  });
+
+test('Effect close failure rejects operations and retries only close',
+  async t => {
+    const root = await fixture(t);
+    const ledger = openSqliteEffectLedger(root, {authorityScopeCid: scope});
+    const close = DatabaseSync.prototype.close;
+    let failOnce = true;
+    let closes = 0;
+    t.mock.method(DatabaseSync.prototype, 'close', function() {
+      closes++;
+      if (failOnce) {
+        failOnce = false;
+        throw new Error('CLOSE_FAILED');
+      }
+      return close.call(this);
+    });
+    assert.throws(() => ledger.close(), /CLOSE_FAILED/u);
+    assert.throws(() => ledger.current(locator), {code: 'EffectLedgerClosed'});
+    assert.equal(ledger.close(), true);
+    assert.equal(ledger.close(), false);
+    assert.equal(closes, 2);
+    t.mock.restoreAll();
+    const reopened = openSqliteEffectLedger(root, {authorityScopeCid: scope});
+    t.after(() => reopened.close());
+  });
+
 test('two processes cannot advance one Effect head from one revision',
   async t => {
     const root = await fixture(t);

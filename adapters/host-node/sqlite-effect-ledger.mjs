@@ -9,6 +9,8 @@ import {
   realpathSync,
 } from 'node:fs';
 import {dirname, join} from 'node:path';
+import {createSqliteTransaction, throwSqliteInitializationFailure} from
+  '../host-common/sqlite-transaction.mjs';
 
 const fail = code => {
   throw Object.assign(new Error(code), {code});
@@ -47,19 +49,6 @@ const outcomeDigest = row => createHash('sha256')
 const sha256Hex = value => typeof value === 'string' &&
   /^[0-9a-f]{64}$/.test(value);
 
-function transaction(database, action) {
-  database.exec('BEGIN IMMEDIATE');
-  try {
-    const result = action();
-    database.exec('COMMIT');
-    return result;
-  } catch (error) {
-    try { database.exec('ROLLBACK'); }
-    catch { fail('EffectLedgerRollbackFailed'); }
-    throw error;
-  }
-}
-
 // Stores the exact canonical ledger-entry bytes and CAS head pointers. It
 // neither constructs CIDs nor decides Effect transitions or retry authority.
 export function openSqliteEffectLedger(root, {
@@ -88,11 +77,13 @@ export function openSqliteEffectLedger(root, {
     readOnly: false,
     enableForeignKeyConstraints: true,
   });
+  const transaction = createSqliteTransaction(database, 'EffectLedger');
   let closed = false;
+  let databaseClosed = false;
   try {
     database.exec('PRAGMA journal_mode = WAL');
     database.exec('PRAGMA synchronous = FULL');
-    transaction(database, () => {
+    transaction.run(() => {
       database.exec(`
         CREATE TABLE IF NOT EXISTS effect_ledger_metadata (
           key TEXT PRIMARY KEY NOT NULL,
@@ -188,8 +179,7 @@ export function openSqliteEffectLedger(root, {
       finally { closeSync(descriptor); }
     }
   } catch (error) {
-    database.close();
-    throw error;
+    throwSqliteInitializationFailure(database, error, 'effect_ledger');
   }
 
   const usage = database.prepare(`
@@ -224,7 +214,10 @@ export function openSqliteEffectLedger(root, {
     fail('EffectLedgerCapacityExceeded');
   }
 
-  const active = () => { if (closed) fail('EffectLedgerClosed'); };
+  const active = () => {
+    if (closed) fail('EffectLedgerClosed');
+    transaction.assertUsable();
+  };
   const readHead = database.prepare(`
     SELECT logical_request_scope_cid, revision, entry_cid
     FROM effect_ledger_heads WHERE logical_item_locator_cid = ?
@@ -511,7 +504,7 @@ export function openSqliteEffectLedger(root, {
           !verifiedBatchResponses.has(batchEvidence)) {
         fail('EffectPhysicalResponseNotOwned');
       }
-      return transaction(database, () => {
+      return transaction.run(() => {
         // A write through another connection invalidates the short-lived
         // verified view. Re-read and re-hash before accepting its custody.
         const reused = batchEvidence !== undefined &&
@@ -592,7 +585,7 @@ export function openSqliteEffectLedger(root, {
           responseBytes.byteLength > maxResponseBytes) {
         fail('InvalidEffectPhysicalResponse');
       }
-      return transaction(database, () => {
+      return transaction.run(() => {
         const existing = materializeResponse(
           readResponse.get(dispatchEntryCid));
         if (readBatchMember.get(dispatchEntryCid) !== undefined) {
@@ -676,7 +669,7 @@ export function openSqliteEffectLedger(root, {
         };
       });
       const batchOwnerCid = indexed[0].dispatch_entry_cid;
-      return transaction(database, () => {
+      return transaction.run(() => {
         const existing = readBatchResponse.get(batchOwnerCid);
         if (existing !== undefined) {
           const stored = materializeBatchResponse(batchOwnerCid);
@@ -759,7 +752,7 @@ export function openSqliteEffectLedger(root, {
           Buffer.byteLength(entryJson) > maxEntryBytes) {
         fail('InvalidEffectLedgerAppend');
       }
-      return transaction(database, () => {
+      return transaction.run(() => {
         const head = readHead.get(logicalItemLocatorCid);
         const revision = head?.revision ?? 0;
         if (head !== undefined &&
@@ -864,7 +857,7 @@ export function openSqliteEffectLedger(root, {
           additionalBytes += Buffer.byteLength(entry.entryJson);
         }
       }
-      return transaction(database, () => {
+      return transaction.run(() => {
         for (const operation of operations) {
           const head = readHead.get(operation.logicalItemLocatorCid);
           if ((head?.revision ?? 0) !== operation.expectedRevision ||
@@ -940,9 +933,10 @@ export function openSqliteEffectLedger(root, {
       }));
     },
     close() {
-      if (closed) return false;
       closed = true;
+      if (databaseClosed) return false;
       database.close();
+      databaseClosed = true;
       return true;
     },
   });
