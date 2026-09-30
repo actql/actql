@@ -10846,7 +10846,12 @@ test "selected Graph diff reads exact retained input occurrences" {
       left,
       left,
       1,
-      { max_nodes: 10000, max_text_bytes: 10000, max_depth: 20, max_work: 10000, },
+      {
+        max_nodes: 10000,
+        max_text_bytes: 10000,
+        max_depth: 20,
+        max_work: 10000,
+      },
       10000,
       2,
       10000,
@@ -10880,7 +10885,9 @@ test "selected Graph diff reads exact retained input occurrences" {
       _ => abort("selected Graph diff failed")
     }
   }
-  assert_true(@execution.completed_cell(completed.unwrap(), 0, 0) is Some(Captured(_)))
+  assert_true(
+    @execution.completed_cell(completed.unwrap(), 0, 0) is Some(Captured(_)),
+  )
   assert_eq(@local_sga.cleanup_graph_diff(execution), Ok(true))
   assert_true(@carrier_runtime.material_available(material))
   assert_true(@carrier_runtime.reclaim_material(material))
