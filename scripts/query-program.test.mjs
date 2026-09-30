@@ -38,6 +38,59 @@ test('query pair can bind admitted source-free Values for the Host', async () =>
   assert.deepEqual(program.results, expected.results);
 });
 
+test('Pipe scopes lower to independently authored existing Program operations', () => {
+  const values = {as: 'pair', values: {schema: {
+    x: {type: 'number', nullable: false},
+    y: {type: 'number', nullable: false}}, rows: [{x: 1, y: 20}, {x: 2, y: 10}]}};
+  const cases = [
+    {source: 'FROM pair AS before |> SET x = y |> AS later '
+      + '|> SELECT later.x AS new_x, later.y AS y', fields: ['new_x', 'y'],
+    steps: [{from: 'pair', derive: {aql_pipe_set_2: {field: 'y'}}},
+      {select: [{new_x: 'aql_pipe_set_2'}, 'y'], as: 'aql_gen_0'}]},
+    {source: 'FROM pair AS before |> SET x = y |> AS before '
+      + '|> SELECT before.x AS new_x, before.y AS y', fields: ['new_x', 'y'],
+    steps: [{from: 'pair', derive: {aql_pipe_set_2: {field: 'y'}}},
+      {select: [{new_x: 'aql_pipe_set_2'}, 'y'], as: 'aql_gen_0'}]},
+    {source: 'FROM pair AS before |> DROP x '
+      + '|> SELECT before.x AS old_x, y', fields: ['old_x', 'y'],
+    steps: [{from: 'pair', select: [{old_x: 'x'}, 'y'], as: 'aql_gen_0'}]},
+    {source: 'FROM pair AS before |> RENAME x AS z '
+      + '|> SELECT z AS new_x, before.x AS old_x', fields: ['new_x', 'old_x'],
+    steps: [{from: 'pair', select: [{new_x: 'x'}, {old_x: 'x'}], as: 'aql_gen_0'}]},
+  ];
+  for (const {source, steps, fields} of cases) {
+    const expected = {version: 'actql/0.1', id: 'fixture.pipe_scope',
+      stages: [{id: 'main', inputs: {}, steps: [values, ...steps],
+        results: {rows: {from: 'aql_gen_0', fields}}}],
+      results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+    const actual = compileValuesQueryJson(source, 'pair', 'pair',
+      JSON.stringify(values), JSON.stringify(['x', 'y']), 'fixture.pipe_scope');
+    assert.notEqual(actual, '');
+    assert.deepEqual(JSON.parse(actual), expected, source);
+  }
+});
+
+test('rebound Pipe ORDER evaluates a current expression once and hides its slot', () => {
+  const values = {as: 'pair', values: {schema: {
+    x: {type: 'number', nullable: false}}, rows: [{x: 2}, {x: 1}]}};
+  const expected = {version: 'actql/0.1', id: 'fixture.pipe_order_scope',
+    stages: [{id: 'main', inputs: {}, steps: [values,
+      {from: 'pair', select: ['x']},
+      {filter: {gt: [{field: 'x'}, {literal: 0}]}},
+      {derive: {aql_pipe_sort_2: {add: [{field: 'x'}, {literal: 1}]}}},
+      {sort: [{field: 'aql_pipe_sort_2', dir: 'asc', nulls: 'first'},
+        {field: 'aql_pipe_sort_2', dir: 'desc', nulls: 'last'}]},
+      {select: ['x'], as: 'aql_gen_0'}],
+    results: {rows: {from: 'aql_gen_0', fields: ['x']}}}],
+    results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+  const source = 'FROM pair |> AS t |> SELECT x |> WHERE x > 0 '
+    + '|> SELECT x |> ORDER BY x + 1, x + 1 DESC';
+  const wire = compileValuesQueryJson(source, 'pair', 'pair',
+    JSON.stringify(values), JSON.stringify(['x']), 'fixture.pipe_order_scope');
+  assert.notEqual(wire, '');
+  assert.deepEqual(JSON.parse(wire), expected);
+});
+
 test('node Graph pattern retains its explicit label selection', () => {
   const steps = [
     {values: {schema: {

@@ -1094,12 +1094,14 @@
     {
       "feature_id": "vector.nearest",
       "surface_forms": [
-        "NEAREST JSON"
+        "NEAREST candidate AS c QUERY KEY (...) VECTOR ... CANDIDATE KEY (...) VECTOR ... METRIC ... K ... [KEEP (...)] AS result"
       ],
       "canonical_lowering": "nearest",
       "preconditions": [
         "per-query k",
-        "pipe input remains corpus",
+        "pipe input supplies queries; named candidate source supplies corpus",
+        "KEEP and result STRUCT form a new output scope without old input aliases",
+        "named key STRUCT projection preserves the common nearest identity roles",
         "exact only"
       ],
       "spec_section": "10.2",
@@ -1236,12 +1238,14 @@
     {
       "feature_id": "acquisition.infer",
       "surface_forms": [
-        "INFER JSON"
+        "INFER model_task ITEM KEY (...) INPUT (...) [KEEP (...)] AS result"
       ],
       "canonical_lowering": "infer",
       "preconditions": [
         "exact input mapping",
         "typed outcomes",
+        "known fields of a nullable non-success value remain typed NULL",
+        "KEEP and result STRUCT form a new output scope without old input aliases",
         "not scalar"
       ],
       "spec_section": "12.1",

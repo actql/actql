@@ -46,6 +46,21 @@ an analytic `OVER` clause resolve against the input snapshot, not the final
 ORDER BY scope. These rules follow the adopted GoogleSQL query and window
 scopes; they do not confer general GoogleSQL compatibility.
 
+Pipe range variables bind immutable input value slots. `SET` replaces the
+current unqualified columns; every assignment sees the same pre-SET row.
+`DROP` removes current names, and `RENAME` changes current names. These three
+operations retain an existing range variable's original column names and
+values. A removed or renamed current column does not become available through
+an unqualified reference simply because an older range variable retains it.
+
+Pipe `AS name` replaces all preceding range variables with that name, bound
+to the current visible columns and values. Reusing the same name is allowed
+and establishes a new binding. References to a displaced initial or
+intermediate range variable are rejected, including references inside
+expressions, WHERE and ORDER BY. AS does not restore dropped names or expose
+compiler helper slots. These are the adopted
+[GoogleSQL Pipe scope rules](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/pipe-syntax).
+
 Ordinary SELECT may order by a visible non-output input expression. After
 DISTINCT, ordering must be resolvable from the selected expressions or their
 aliases. Helper slots do not participate in DISTINCT equality or Named Result

@@ -28,6 +28,18 @@ decisions, conditions, delivery units and explicit case mappings. Its
 are requirement associations, not claims that a case covers every surface.
 Missing cases are recorded in `additional_fixture_requirements`.
 
+The adopted follow-on Pipe scope correction supersedes two imported
+requirements without rewriting the imported source bytes or digest history.
+NEAREST's surface takes the current query rows and an explicitly named
+candidate source; its common operation still receives candidates plus a
+`queries` reference. INFER's known fields on a non-success nullable value are
+typed NULL, rather than rejected merely for preceding outcome refinement.
+FX-03 retains its original requirement digest and superseded expectation and
+records the corrected expectation separately. Neither change is execution
+evidence for the new surface. INFER/NEAREST KEEP remains unimplemented.
+The [scope mapping](../../docs/design/frontend-pipe-scope.md) distinguishes
+this accepted target from current syntax support and retained common meaning.
+
 [acceptance-index.json](acceptance-index.json) retains all 140 imported case
 IDs. Their baseline status is `not_run`; the requirement digest identifies the original case,
 not an execution receipt. Builder cases start in PR-1; structural coverage

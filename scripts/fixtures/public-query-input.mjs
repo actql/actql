@@ -48,7 +48,8 @@ const inputCodes = new Set(['ClientProgramInvalidInput',
 // I/O, not a replacement provider or a Client-side alias map. This function
 // does not lower source, manufacture schema, or call a test compiler bridge.
 export async function exercisePublicQueryInput(connect, options,
-  {requestPrefix, observe}) {
+  {requestPrefix, observe, successes = querySuccesses,
+    refusals = queryRefusals, prepareCase}) {
   assert.equal(typeof observe, 'function');
   const counters = async () => {
     const current = await observe();
@@ -58,13 +59,18 @@ export async function exercisePublicQueryInput(connect, options,
   };
   const client = await connect(options);
   try {
-    for (const {name, text, expected, ...input} of querySuccesses) {
+    for (const {name, text, expected, columns, sourceRows, ...input} of successes) {
+      await prepareCase?.(sourceRows);
       const requestId = requestPrefix + '-' + name;
       const execution = await client.aql(text, {...input, requestId});
       const state = await execution.wait();
-      assert.equal(state.status, 'succeeded', JSON.stringify(state));
+      assert.equal(state.status, 'succeeded', JSON.stringify({name, state}));
       const beforeRead = await counters();
       assert.deepEqual(await execution.result('answer').all(), expected);
+      if (columns !== undefined) {
+        assert.deepEqual((await execution.result('answer').describe()).columns,
+          columns, 'retained column order and contracts match the authored fixture');
+      }
       const attached = await client.attach(execution.ref);
       assert.deepEqual(await attached.result('answer').all(), expected);
       const resent = await client.aql(text, {...input, requestId});
@@ -72,6 +78,7 @@ export async function exercisePublicQueryInput(connect, options,
       assert.deepEqual((await client.lookupRequest(requestId)).ref, execution.ref);
       assert.deepEqual(await counters(), beforeRead,
         'reading, attaching and resending must not accept or acquire again');
+      console.log(`Public query passed: ${requestPrefix}/${name}`);
       if (name === 'sql') {
         await assert.rejects(execution.result('answer').all({maxRows: 1}),
           {code: 'ResultRetainedLimit'});
@@ -80,7 +87,8 @@ export async function exercisePublicQueryInput(connect, options,
         assert.equal((await execution.status()).status, 'succeeded');
       }
     }
-    for (const {name, text, ...input} of queryRefusals) {
+    for (const {name, text, ...input} of refusals) {
+      await prepareCase?.();
       const requestId = requestPrefix + '-reject-' + name;
       const before = await counters();
       await assert.rejects(client.aql(text, {...input, requestId}), error => {
