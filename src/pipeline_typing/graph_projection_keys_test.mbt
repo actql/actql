@@ -110,8 +110,8 @@ test "graph projection keys retain role aliases and exact graph admission origin
       assert_true(
         @evidence.key_field_at(retained, 2).unwrap().contract.unwrap().nullable,
       )
-      // Graph edge identity permits its nullable label in canonical order,
-      // without claiming that the label is a non-null scalar identity.
+      // Graph edge identity does not turn its nullable label into a
+      // Relation candidate key for canonical order completion.
       assert_true(
         @evidence.select_key(
           source,
@@ -119,7 +119,7 @@ test "graph projection keys retain role aliases and exact graph admission origin
           CanonicalOrder,
           { max_work: 100, max_name_bytes: 100, },
         ).unwrap().key
-        is Some(_),
+        is None,
       )
     }
     let used = @pipeline_typing.usage(p)
