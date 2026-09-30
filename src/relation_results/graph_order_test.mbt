@@ -30,6 +30,7 @@ test "ordered graph queries retain their origin through take and nonorderable Re
       ),
       ("\"components\":{\"kind\":\"weak\"}", "component_id"),
       ("\"components\":{\"kind\":\"strong\"}", "component_id"),
+      ("\"graph_bounds\":{\"max_nodes\":0,\"max_degree\":0}", "kind"),
     ] {
     let source = ordered_graph_source(
       operation + "},{\"take\":1,\"as\":\"query\"",
