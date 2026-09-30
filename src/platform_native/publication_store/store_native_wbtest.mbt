@@ -1565,18 +1565,310 @@ test "native publication recovery reclaims an allocation stopped before or after
 }
 
 ///|
-test "native publication recovery never takes what stands at an allocation name it did not create" {
-  guard native_payload_fixture("allocation-foreign", 4096L)
+test "native publication allocation preparation failures reclaim the acquired area" {
+  guard native_payload_fixture("allocation-failure", 4096L)
+    is Some((store, authority, _)) else {
+    return
+  }
+  let base = store.capacity_usage().unwrap()
+  for step in ["identity", "open", "writer"] {
+    let request = native_payload_request(
+      authority,
+      "allocation-failure-" + step + "-" + @env.now().to_string(),
+      32L,
+    )
+    let name = allocation_name(request, 1L)
+    let issue = Filesystem(@filesystem.WriterCreate("injected-" + step))
+    let injected = Ref(false)
+    store.allocation_failure.val = Some(fn(actual) {
+      if actual == step && !injected.val {
+        injected.val = true
+        Some(issue)
+      } else {
+        None
+      }
+    })
+    guard store.begin_payload(request) is Err(actual) else {
+      fail("allocation preparation fault was not injected")
+    }
+    assert_true(
+      actual is Filesystem(@filesystem.WriterCreate(message)) &&
+      message == "injected-" + step,
+    )
+    store.allocation_failure.val = None
+    assert_eq(store.root.inspect_directory(name).unwrap(), None)
+    let usage = store.capacity_usage().unwrap()
+    assert_eq(usage.reserved_bytes, base.reserved_bytes)
+    assert_eq(usage.reserved_objects, base.reserved_objects)
+    assert_eq(store.recover().unwrap().reclaimed, 0)
+  }
+  assert_true(store.close().unwrap())
+}
+
+///|
+test "native publication nonempty allocation keeps capacity and does not delete unrelated files" {
+  guard native_payload_fixture("allocation-not-empty", 4096L)
+    is Some((store, authority, _)) else {
+    return
+  }
+  let base = store.capacity_usage().unwrap()
+  let request = native_payload_request(
+    authority,
+    "allocation-not-empty-" + @env.now().to_string(),
+    32L,
+  )
+  let name = allocation_name(request, 1L)
+  let unrelated : Ref[@filesystem.Writer?] = Ref(None)
+  store.allocation_failure.val = Some(fn(step) {
+    if step == "writer" {
+      let file = store.root
+        .open_child(name)
+        .unwrap()
+        .create_writer("unrelated", 16L)
+        .unwrap()
+      file.append(b"foreign").unwrap()
+      unrelated.val = Some(file)
+      Some(Filesystem(@filesystem.WriterCreate("injected-writer")))
+    } else {
+      None
+    }
+  })
+  assert_true(store.begin_payload(request) is Err(CleanupPending))
+  store.allocation_failure.val = None
+  let identity = store.root.inspect_directory(name).unwrap()
+  let before = store.root
+    .open_child(name)
+    .unwrap()
+    .inspect_generation("unrelated")
+    .unwrap()
+  let cleanup = store.acquire_payload_cleanup(request).unwrap()
+  assert_true(cleanup.retry() is Err(CleanupPending))
+  assert_true(cleanup.pending())
+  assert_eq(store.root.inspect_directory(name).unwrap(), identity)
+  assert_eq(
+    store.root
+    .open_child(name)
+    .unwrap()
+    .inspect_generation("unrelated")
+    .unwrap(),
+    before,
+  )
+  assert_eq(
+    store.capacity_usage().unwrap().reserved_bytes,
+    base.reserved_bytes + 32L,
+  )
+  unrelated.val.unwrap().cancel().unwrap()
+  assert_true(cleanup.retry().unwrap())
+  assert_false(cleanup.retry().unwrap())
+  assert_eq(store.root.inspect_directory(name).unwrap(), None)
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, base.reserved_bytes)
+  assert_true(store.close().unwrap())
+}
+
+///|
+test "native publication allocation creation sync failure retains its exact cleanup owner" {
+  guard native_payload_fixture("allocation-create-sync", 4096L)
+    is Some((store, authority, _)) else {
+    return
+  }
+  let base = store.capacity_usage().unwrap()
+  let request = native_payload_request(
+    authority,
+    "allocation-create-sync-" + @env.now().to_string(),
+    32L,
+  )
+  let name = allocation_name(request, 1L)
+  // Actual mkdir succeeds, but the first durability confirmation and the
+  // cleanup's directory sync fail. This is not a simulated create result.
+  test_fail_root_sync(store.root, 2)
+  assert_true(store.begin_payload(request) is Err(CleanupPending))
+  assert_eq(
+    store.capacity_usage().unwrap().reserved_bytes,
+    base.reserved_bytes + 32L,
+  )
+  let cleanup = store.acquire_payload_cleanup(request).unwrap()
+  assert_true(cleanup.pending())
+  assert_true(cleanup.retry().unwrap())
+  assert_false(cleanup.pending())
+  assert_false(cleanup.retry().unwrap())
+  assert_eq(store.root.inspect_directory(name).unwrap(), None)
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, base.reserved_bytes)
+  assert_true(store.close().unwrap())
+}
+
+///|
+#borrow(root)
+extern "C" fn test_fail_created_directory_inspect(
+  root : @filesystem.Root,
+  failures : Int,
+) -> Unit = "actql_native_filesystem_test_fail_created_directory_inspect"
+
+///|
+test "native publication allocation without confirmed identity stays pending" {
+  guard native_payload_fixture("allocation-inspect", 4096L)
     is Some((store, authority, _)) else {
     return
   }
   let base = store.capacity_usage().unwrap().reserved_bytes
+  let request = native_payload_request(
+    authority,
+    "allocation-inspect-" + @env.now().to_string(),
+    32L,
+  )
+  let name = allocation_name(request, 1L)
+  test_fail_created_directory_inspect(store.root, 1)
+  assert_true(store.begin_payload(request) is Err(CleanupPending))
+  let directory = store.root.inspect_directory(name).unwrap().unwrap()
+  assert_true(
+    recorded_allocation(store, request).unwrap() is Some({ identity: None, .. }),
+  )
+  let cleanup = store.acquire_payload_cleanup(request).unwrap()
+  assert_true(cleanup.retry() is Err(RecoveryRequired))
+  assert_true(cleanup.pending())
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, base + 32L)
+  assert_eq(store.root.inspect_directory(name).unwrap(), Some(directory))
+  // Test-fixture disposal uses the separately captured identity, not a
+  // product repair API or an inferred ownership record.
+  assert_true(store.root.remove_directory(name, directory).unwrap())
+  assert_true(cleanup.retry().unwrap())
+  assert_false(cleanup.retry().unwrap())
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, base)
+  assert_true(store.close().unwrap())
+}
+
+///|
+test "native publication failed allocation ownership keeps cleanup and capacity until retry" {
+  guard native_payload_fixture("allocation-owner-retry", 4096L)
+    is Some((store, authority, _)) else {
+    return
+  }
+  let base = store.capacity_usage().unwrap()
+  let request = native_payload_request(
+    authority,
+    "allocation-owner-retry-" + @env.now().to_string(),
+    32L,
+  )
+  let key = record_key(request)
+  let name = allocation_name(request, 1L)
+  store.allocation_failure.val = Some(fn(step) {
+    if step == "identity" {
+      Some(Database(@sqlite.DatabaseClosed))
+    } else {
+      None
+    }
+  })
+  assert_true(store.begin_payload(request) is Err(CleanupPending))
+  let identity = store.root.inspect_directory(name).unwrap().unwrap()
+  assert_true(
+    store.pending_allocations.get(key) is Some({ identity: Some(owned), .. }) &&
+    owned == identity,
+  )
+  assert_eq(
+    store.capacity_usage().unwrap().reserved_bytes,
+    base.reserved_bytes + 32L,
+  )
+  assert_true(store.begin_payload(request) is Err(RecoveryRequired))
+  let cleanup = store.acquire_payload_cleanup(request).unwrap()
+  assert_true(cleanup.retry() is Err(Database(@sqlite.DatabaseClosed)))
+  assert_true(cleanup.pending())
+  assert_true(store.close() is Err(Database(@sqlite.DatabaseClosed)))
+  assert_eq(store.root.inspect_directory(name).unwrap(), Some(identity))
+  assert_true(
+    @payload.publication_payload_record_state(load_record(store, key).unwrap()) !=
+    @payload.Reclaimed,
+  )
+  store.allocation_failure.val = None
+  assert_true(cleanup.retry().unwrap())
+  assert_false(cleanup.pending())
+  assert_false(cleanup.retry().unwrap())
+  assert_false(store.pending_allocations.contains(key))
+  assert_eq(store.root.inspect_directory(name).unwrap(), None)
+  assert_eq(store.capacity_usage().unwrap().reserved_bytes, base.reserved_bytes)
+  assert_true(store.close().unwrap())
+  assert_false(store.close().unwrap())
+}
+
+///|
+test "native publication allocation preparation cleanup survives sync failure and restart" {
+  guard native_payload_fixture("allocation-failure-restart", 4096L)
+    is Some((initial, authority, library)) else {
+    return
+  }
+  let root = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let base = initial.capacity_usage().unwrap()
+  let current = Ref(initial)
+  for step in ["identity", "open", "writer"] {
+    let store = current.val
+    let request = native_payload_request(
+      authority,
+      "allocation-restart-" + step + "-" + @env.now().to_string(),
+      32L,
+    )
+    let name = allocation_name(request, 1L)
+    let foreign_name = @payload.publication_payload_staging_name(request)
+    let foreign = store.root.create_writer(foreign_name, 16L).unwrap()
+    foreign.append(b"foreign").unwrap()
+    let before = store.root.inspect_generation(foreign_name).unwrap()
+    let injected = Ref(false)
+    store.allocation_failure.val = Some(fn(actual) {
+      if actual == step && !injected.val {
+        injected.val = true
+        test_fail_root_sync(store.root, 1)
+        Some(Filesystem(@filesystem.WriterCreate("injected-" + step)))
+      } else {
+        None
+      }
+    })
+    assert_true(store.begin_payload(request) is Err(CleanupPending))
+    assert_eq(
+      store.capacity_usage().unwrap().reserved_bytes,
+      base.reserved_bytes + 32L,
+    )
+    assert_true(
+      @payload.publication_payload_record_state(
+        load_record(store, record_key(request)).unwrap(),
+      )
+      is @payload.Reclaiming,
+    )
+    // Simulate process death: no Store cleanup or mutation of its payload records.
+    store.database.close()
+    assert_true(store.lock.close())
+    let reopened = open_store(library, root, authority, 4096L, 8L, 65536L).unwrap()
+    assert_eq(reopened.recover().unwrap().reclaimed, 1)
+    assert_eq(reopened.root.inspect_directory(name).unwrap(), None)
+    assert_eq(reopened.root.inspect_generation(foreign_name).unwrap(), before)
+    assert_eq(
+      reopened.capacity_usage().unwrap().reserved_bytes,
+      base.reserved_bytes,
+    )
+    assert_eq(
+      reopened.capacity_usage().unwrap().reserved_objects,
+      base.reserved_objects,
+    )
+    assert_eq(reopened.recover().unwrap().reclaimed, 0)
+    foreign.cancel().unwrap()
+    current.val = reopened
+  }
+  assert_true(current.val.close().unwrap())
+}
+
+///|
+test "native publication recovery never takes what stands at an allocation name it did not create" {
+  guard native_payload_fixture("allocation-foreign", 4096L)
+    is Some((initial, authority, library)) else {
+    return
+  }
+  let current = Ref(initial)
+  let root = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  let store = current.val
+  let base = store.capacity_usage().unwrap().reserved_bytes
   // First a foreign file at the name; then a foreign directory holding a
   // file. In both, the Store recorded the name and stopped before creating
   // the area (or its creation conflicted and the stop came before the
-  // failure was made durable): the record is recovered and its capacity
-  // released, but nothing at the name is touched.
+  // failure was made durable): ownership is ambiguous after a stop. The
+  // record and capacity remain pending; nothing at the name is touched.
   for kind in ["file", "directory"] {
+    let store = current.val
     let request = native_payload_request(
       authority,
       "allocation-foreign-" + kind + "-" + @env.now().to_string(),
@@ -1609,9 +1901,36 @@ test "native publication recovery never takes what stands at an allocation name 
     // The Store's own creation at that name is a conflict, never a claim.
     assert_true(store.root.create_directory(name) is Err(@filesystem.Conflict))
     assert_eq(store.capacity_usage().unwrap().reserved_bytes, base + 32L)
-    let recovered = store.recover().unwrap()
-    assert_eq(recovered.reclaimed, 1)
-    assert_eq(store.capacity_usage().unwrap().reserved_bytes, base)
+    assert_true(store.recover() is Err(RecoveryRequired))
+    assert_eq(store.capacity_usage().unwrap().reserved_bytes, base + 32L)
+    assert_true(store.begin_payload(request) is Err(RecoveryRequired))
+    let cleanup = store.acquire_payload_cleanup(request).unwrap()
+    assert_true(cleanup.retry() is Err(RecoveryRequired))
+    assert_true(cleanup.pending())
+    assert_true(store.close() is Err(RecoveryRequired))
+    assert_eq(next_allocation_ordinal(store, request).unwrap(), 2L)
+    let durable_before = store.database
+      .read("publication_payload", record_key(request))
+      .unwrap()
+    assert_true(
+      @payload.publication_payload_record_state(
+        load_record(store, record_key(request)).unwrap(),
+      )
+      is @payload.Reclaiming,
+    )
+    // Simulate losing the live process's knowledge, then re-open.
+    store.database.close()
+    assert_true(store.lock.close())
+    let reopened = open_store(library, root, authority, 4096L, 8L, 65536L).unwrap()
+    assert_true(reopened.recover() is Err(RecoveryRequired))
+    assert_eq(reopened.capacity_usage().unwrap().reserved_bytes, base + 32L)
+    assert_eq(
+      reopened.database
+      .read("publication_payload", record_key(request))
+      .unwrap().body,
+      durable_before.body,
+    )
+    assert_true(reopened.begin_payload(request) is Err(RecoveryRequired))
     let after = if kind == "file" {
       store.root.inspect_generation(name).unwrap().unwrap()
     } else {
@@ -1624,12 +1943,19 @@ test "native publication recovery never takes what stands at an allocation name 
     }
     assert_eq(after, before)
     // The next allocation of the same request never returns to that name.
-    assert_eq(next_allocation_ordinal(store, request).unwrap(), 2L)
+    assert_eq(next_allocation_ordinal(reopened, request).unwrap(), 2L)
     foreign_file.cancel().unwrap()
     if kind == "directory" {
-      let identity = store.root.inspect_directory(name).unwrap().unwrap()
-      assert_true(store.root.remove_directory(name, identity).unwrap())
+      let identity = reopened.root.inspect_directory(name).unwrap().unwrap()
+      assert_true(reopened.root.remove_directory(name, identity).unwrap())
     }
+    // Only this test's separate, known foreign owner removed its entry.
+    // Absence is then synchronized by the existing reclaim owner.
+    let retry = reopened.acquire_payload_cleanup(request).unwrap()
+    assert_true(retry.retry().unwrap())
+    assert_false(retry.retry().unwrap())
+    assert_eq(reopened.capacity_usage().unwrap().reserved_bytes, base)
+    current.val = reopened
   }
-  assert_true(store.close().unwrap())
+  assert_true(current.val.close().unwrap())
 }

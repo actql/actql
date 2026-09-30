@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 import {execFileSync, spawn} from 'node:child_process';
 import {createHash, generateKeyPairSync, X509Certificate} from 'node:crypto';
 import {once} from 'node:events';
-import {chmod, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile} from
+import {chmod, mkdir, mkdtemp, readdir, readFile, rm, rmdir, stat, writeFile} from
   'node:fs/promises';
 import {existsSync} from 'node:fs';
 import {createServer} from 'node:net';
@@ -361,8 +361,13 @@ try {
   const startSite = (extra = [], {
     origin = receiver.origin,
     transferJournal = join(root, 'site-transfer.sqlite3'),
+    publication = join(root, 'publication'),
+    siteJournal = join(root, 'journal.sqlite3'),
   } = {}) => {
-    const child = spawn(executable, ['run', ...common,
+    const configured = [...common];
+    configured[configured.indexOf('--publication-root') + 1] = publication;
+    configured[configured.indexOf('--journal') + 1] = siteJournal;
+    const child = spawn(executable, ['run', ...configured,
       '--transfer-origin', origin, '--transfer-journal', transferJournal,
       ...extra], {
       cwd: root, stdio: ['ignore', 'pipe', 'pipe']});
@@ -637,8 +642,8 @@ try {
 
   // Payload capacity still reserved in the Site's publication Store, read
   // directly from its database.
-  const reservedPayloadBytes = () => {
-    const database = new DatabaseSync(join(publicationRoot,
+  const reservedPayloadBytes = (publication = publicationRoot) => {
+    const database = new DatabaseSync(join(publication,
       '.actql-publication.sqlite3'), {readOnly: true});
     database.exec('PRAGMA busy_timeout = 5000');
     try {
@@ -825,8 +830,8 @@ try {
   // complete, and the payload records of the Store, read from their
   // databases.
   const journalPath = join(root, 'journal.sqlite3');
-  const pendingIntents = () => {
-    const database = new DatabaseSync(journalPath, {readOnly: true});
+  const pendingIntents = (journal = journalPath) => {
+    const database = new DatabaseSync(journal, {readOnly: true});
     database.exec('PRAGMA busy_timeout = 5000');
     try {
       return database.prepare('SELECT record_key FROM actql_records ' +
@@ -1137,6 +1142,119 @@ try {
   assert.equal((await entries()).length, expectedEntries);
   bounded2.child.kill('SIGTERM');
   await bounded2.exited;
+
+  // 22. SIGKILL after mkdir, before its ownership is durable, cannot be
+  // repaired by guessing from the name. Preserve capacity, the exact intent
+  // and Reclaiming state on repeated process restarts. Test both the created
+  // directory and a separately owned directory replacing it at that name.
+  for (const [index, kind] of ['created', 'foreign'].entries()) {
+    const publication = join(root, `unconfirmed-${kind}`);
+    const siteJournal = join(root, `unconfirmed-${kind}.sqlite3`);
+    await mkdir(publication);
+    const options = {publication, siteJournal};
+    const killed = startSite(['--publication-capacity-bytes', '40',
+      '--holder-kill-at', 'allocation-created',
+      '--control-reclaim-failures', '1000000'], options);
+    currentSite = killed;
+    const dispatch = dispatchFor(`unconfirmed-${kind}`, 90 + index * 2);
+    await within(gateway.dispatch({dispatch, inputBindingBody: '{}',
+      dispatchEnvelope: materialsEnvelope(dispatch)}), `${kind} dispatch`);
+    expectedEntries += 1;
+    await waitFor(async () => (await entries()).length === expectedEntries,
+      `${kind} executor entry`);
+    const output = requestOutput(dispatch, await planOutput(dispatch,
+      await settledQuery(dispatch, kind), kind)).catch(error => error);
+    await waitFor(() => killed.lines.some(line =>
+      line.kind === 'holder-killed' && line.point === 'allocation-created'),
+    `${kind} stop before ownership persistence`);
+    gateway.withdraw({dispatch});
+    await output;
+    killed.child.kill('SIGKILL');
+    await killed.exited;
+    const names = (await readdir(publication))
+      .filter(name => name.startsWith('alloc-'));
+    assert.equal(names.length, 1);
+    const area = join(publication, names[0]);
+    if (kind === 'foreign') {
+      // Only the test removes its known, empty fixture allocation. The Site
+      // must not take ownership of the replacement at the same name.
+      assert.deepEqual(await readdir(area), []);
+      await rmdir(area);
+      await mkdir(area);
+      await writeFile(join(area, 'foreign'), 'not-owned-by-the-Site');
+    }
+    const directoryBefore = (await stat(area)).ino;
+    const pendingBefore = pendingIntents(siteJournal);
+    assert.equal(pendingBefore.length, 1);
+    const capacityBefore = reservedPayloadBytes(publication);
+    assert.ok(capacityBefore > 0);
+    const allocationRecords = () => {
+      const database = new DatabaseSync(join(publication,
+        '.actql-publication.sqlite3'), {readOnly: true});
+      try {
+        const allocations = database.prepare('SELECT record_key, revision, CAST(body AS TEXT) AS body ' +
+          'FROM actql_records WHERE namespace = ? ORDER BY record_key')
+          .all('publication_payload_allocation');
+        const payloads = database.prepare('SELECT record_key, revision, CAST(body AS TEXT) AS body ' +
+          'FROM actql_records WHERE namespace = ? ORDER BY record_key')
+          .all('publication_payload');
+        return {allocations, payloads};
+      } finally { database.close(); }
+    };
+    let durable;
+    for (let restart = 0; restart < 2; restart += 1) {
+      const blocked = startSite(['--publication-capacity-bytes', '40'], options);
+      currentSite = blocked;
+      await waitFor(() => blocked.lines.some(line =>
+        line.kind === 'allocation-needs-reconciliation'),
+      `${kind} durable reconciliation after restart ${restart}`);
+      assert.equal(blocked.lines.filter(line =>
+        line.kind === 'allocation-needs-reconciliation').length, 1);
+      assert.equal((await stat(area)).ino, directoryBefore);
+      assert.deepEqual(pendingIntents(siteJournal), pendingBefore);
+      assert.equal(reservedPayloadBytes(publication), capacityBefore);
+      const records = allocationRecords();
+      assert.equal(records.allocations.length, 1);
+      assert.equal(records.allocations[0].body, names[0],
+        'no guessed inode or new allocation ordinal');
+      assert.equal(records.payloads.length, 1);
+      assert.equal(JSON.parse(records.payloads[0].body).state, 'reclaiming');
+      if (durable !== undefined) assert.deepEqual(records, durable);
+      durable = records;
+      assert.deepEqual((await readdir(publication))
+        .filter(name => name.startsWith('alloc-')), names);
+      if (kind === 'foreign') {
+        assert.equal(await readFile(join(area, 'foreign'), 'utf8'),
+          'not-owned-by-the-Site');
+      }
+      // Acceptance is not execution completion: this fixture's dispatch
+      // Promise stays pending until terminal status or explicit withdrawal.
+      // Two separately observed acceptances prove the control loop advanced
+      // through its start boundary without starting a queued executor.
+      for (let pulse = 0; pulse < 2; pulse += 1) {
+        const next = dispatchFor(`blocked-${kind}-${restart}-${pulse}`,
+          100 + index * 4 + restart * 2 + pulse);
+        const outcome = gateway.dispatch({dispatch: next,
+          inputBindingBody: '{}', dispatchEnvelope: materialsEnvelope(next)})
+          .catch(error => error);
+        await waitFor(() => blocked.lines.some(line =>
+          line.kind === 'accepted' && line.request_cid ===
+            siteControl.identity(next)), `${kind} queued pulse ${pulse}`);
+        // Withdraw only the stand-in transport waiter. The accepted Site
+        // journal record and its queued execution are not cancelled.
+        assert.equal(gateway.withdraw({dispatch: next}), true);
+        assert.equal((await within(outcome, `${kind} withdraw queued dispatch`))
+          .code, 'RemoteDispatchWithdrawn');
+      }
+      assert.equal(blocked.lines.some(line => line.kind === 'holder-started'), false);
+      assert.equal((await entries()).length, expectedEntries);
+      blocked.child.kill('SIGTERM');
+      await blocked.exited;
+      assert.deepEqual(allocationRecords(), durable);
+      assert.deepEqual(pendingIntents(siteJournal), pendingBefore);
+      assert.equal(reservedPayloadBytes(publication), capacityBefore);
+    }
+  }
 
   // Each entry names one holder claimant and one attempt key; no attempt
   // key appears twice.

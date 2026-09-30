@@ -630,6 +630,9 @@ priv enum OrphanReclaim {
   /// The Store this process opened could not close yet; it keeps the Store
   /// and the slot until it does.
   OrphanStoreOpen(@publication_store.Store)
+  /// Ownership cannot be reconstructed safely. Durable evidence and capacity
+  /// remain held; no automatic retry can manufacture the missing authority.
+  OrphanNeedsReconciliation(@publication_store.Store)
 }
 
 ///|
@@ -644,11 +647,20 @@ fn reclaim_orphaned_outputs(
   slot : @slot.NativeExecutorSlot,
   held : @publication_store.Store?,
 ) -> OrphanReclaim raise CommandStop {
+  let publication_root = required(matches, "publication-root")
   let close_held = fn(store : @publication_store.Store) -> OrphanReclaim {
     match store.close() {
       Ok(_) => {
         ignore(slot.close())
         OrphansPending
+      }
+      Err(@publication_store.RecoveryRequired) => {
+        report("allocation-needs-reconciliation", [
+          ("reason", "allocation-ownership-unconfirmed"),
+          ("publication_root", publication_root),
+          ("journal", environment.journal_path),
+        ])
+        OrphanNeedsReconciliation(store)
       }
       Err(_) => {
         report("orphan-reclaim-pending", [("reason", "store-close")])
@@ -663,8 +675,8 @@ fn reclaim_orphaned_outputs(
       None => OrphansPending
     }
   }
-  let pending = match journal.pending_output_intents() {
-    Ok(value) => value.length()
+  let intents = match journal.pending_output_intents() {
+    Ok(value) => value
     Err(_) => {
       ignore(journal.close())
       report("orphan-reclaim-pending", [("reason", "journal-read")])
@@ -674,6 +686,7 @@ fn reclaim_orphaned_outputs(
       }
     }
   }
+  let pending = intents.length()
   if pending == 0 && held is None {
     ignore(journal.close())
     return OrphansDone
@@ -713,6 +726,16 @@ fn reclaim_orphaned_outputs(
     }
   }
   let remaining = @resident_host.reclaim_resident_output_intents(journal, store)
+  if remaining
+    is Err(
+      @resident_host.OutputPayloadStore(@publication_store.RecoveryRequired)
+    ) {
+    for intent in intents {
+      report("allocation-reconciliation-intent", [
+        ("payload_request_cid", intent.0),
+      ])
+    }
+  }
   ignore(journal.close())
   match remaining {
     Ok(0) => report("orphans-reclaimed", [("intents", pending.to_string())])
@@ -812,6 +835,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   let mut reclaim_due = true
   let mut next_reclaim_ms : UInt64 = 0
   let mut orphan_store : @publication_store.Store? = None
+  let mut orphan_reconciliation = false
   // Acceptance evidence only: reclaim passes skipped before the first one.
   let reclaim_failures : Ref[Int] = {
     val: required_int(matches, "control-reclaim-failures"),
@@ -870,7 +894,8 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
         Err(_) => stop("executor slot open failed")
       }
     }
-    if holder is None &&
+    if !orphan_reconciliation &&
+      holder is None &&
       (
         orphan_store is Some(_) ||
         (reclaim_due && @env.now() >= next_reclaim_ms)
@@ -888,6 +913,10 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
         OrphanStoreOpen(store) => {
           orphan_store = Some(store)
           next_reclaim_ms = @env.now() + max_backoff_ms.to_uint64()
+        }
+        OrphanNeedsReconciliation(store) => {
+          orphan_store = Some(store)
+          orphan_reconciliation = true
         }
       }
     }

@@ -21,6 +21,8 @@ typedef struct {
   uint64_t result_inode;
   int64_t result_size;
   int32_t test_sync_failures;
+  int32_t result_directory_acquired;
+  int32_t test_directory_inspect_failures;
 } actql_native_filesystem_root;
 
 typedef struct {
@@ -995,6 +997,20 @@ void actql_native_filesystem_test_fail_root_sync(
   root->test_sync_failures = failures < 0 ? 0 : failures;
 }
 
+void actql_native_filesystem_test_fail_created_directory_inspect(
+  actql_native_filesystem_root *root,
+  int32_t failures
+) {
+  if (root != NULL) root->test_directory_inspect_failures = failures;
+}
+
+// 0: no acquisition; 1: acquired but identity unconfirmed; 2: exact identity.
+int32_t actql_native_filesystem_root_result_directory_acquired(
+  actql_native_filesystem_root *root
+) {
+  return root == NULL ? 0 : root->result_directory_acquired;
+}
+
 void *actql_native_filesystem_open_reader(
   actql_native_filesystem_root *root,
   moonbit_bytes_t name,
@@ -1184,7 +1200,9 @@ int32_t actql_native_filesystem_create_directory(
   moonbit_bytes_t name,
   int32_t length
 ) {
-  if (root == NULL || root->fd < 0) return -1;
+  if (root == NULL) return -1;
+  root->result_directory_acquired = 0;
+  if (root->fd < 0) return -1;
   actql_replace_error(&root->error, NULL);
   root->result_device = 0;
   root->result_inode = 0;
@@ -1206,22 +1224,35 @@ int32_t actql_native_filesystem_create_directory(
     actql_replace_errno_error(&root->error, "create directory", create_error);
     return -1;
   }
+  root->result_directory_acquired = 1;
   struct stat status;
-  if (fstatat(root->fd, name_text, &status, AT_SYMLINK_NOFOLLOW) != 0 ||
+  int inspect_result;
+  if (root->test_directory_inspect_failures > 0) {
+    root->test_directory_inspect_failures--;
+    errno = EIO;
+    inspect_result = -1;
+  } else {
+    inspect_result = fstatat(root->fd, name_text, &status, AT_SYMLINK_NOFOLLOW);
+  }
+  if (inspect_result != 0 ||
       !S_ISDIR(status.st_mode)) {
     int stat_error = errno;
-    unlinkat(root->fd, name_text, AT_REMOVEDIR);
     free(name_text);
+    // No identity: retain the allocation for reconciliation, never unlink
+    // whichever entry happens to be at this name now.
     actql_replace_errno_error(&root->error, "inspect created directory", stat_error);
     return -1;
   }
   free(name_text);
+  // Creation acquired this exact directory even if durability confirmation
+  // fails next. Keep its identity available to the Store's cleanup owner.
+  root->result_device = (uint64_t)status.st_dev;
+  root->result_inode = (uint64_t)status.st_ino;
+  root->result_directory_acquired = 2;
   if (actql_sync_root(root) != 0) {
     actql_replace_errno_error(&root->error, "sync Store root", errno);
     return -1;
   }
-  root->result_device = (uint64_t)status.st_dev;
-  root->result_inode = (uint64_t)status.st_ino;
   return 0;
 }
 
