@@ -110,7 +110,8 @@ test "graph projection keys retain role aliases and exact graph admission origin
       assert_true(
         @evidence.key_field_at(retained, 2).unwrap().contract.unwrap().nullable,
       )
-      // The nullable label cannot silently become a non-null ordering key.
+      // Graph edge identity does not turn its nullable label into a
+      // Relation candidate key for canonical order completion.
       assert_true(
         @evidence.select_key(
           source,

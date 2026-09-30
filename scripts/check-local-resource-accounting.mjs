@@ -1295,6 +1295,7 @@ for (const [index, route] of routeEntries.entries()) {
   }
   if (route.family === 'SGA' && [
     'graph_bounds', 'degree', 'components', 'reach', 'shortest_path',
+    'graphs_equal',
   ].includes(route.operation)) {
     const selectedSymbol = {
       graph_bounds: 'start_graph_bounds_view',
@@ -1302,6 +1303,7 @@ for (const [index, route] of routeEntries.entries()) {
       components: 'start_components_view',
       reach: 'start_reach_view',
       shortest_path: 'start_shortest_view',
+      graphs_equal: 'start_graphs_equal_view',
     }[route.operation];
     const provider = fs.readFileSync(path.join(root, route.dispatch.path), 'utf8');
     if (route.selected_entrypoint?.symbol !== selectedSymbol ||

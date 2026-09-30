@@ -30,3 +30,7 @@ import {
 import {
   "actql/actql/source_value" @source,
 } for "test"
+
+import {
+  "actql/actql/source_value" @source,
+} for "wbtest"
