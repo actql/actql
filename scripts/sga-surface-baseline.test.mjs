@@ -124,6 +124,13 @@ test('Graph subtraction retains operands and endpoint-closed Results', () => {
     fixture('subtract-graphs.named.aql'))), JSON.parse(expected));
 });
 
+test('Graph match projections retain duplicate selectors and both Results', () => {
+  const expected = fixture('match-projections.expected-program.json');
+  assert.equal(jsonAdmissionDiagnostic(expected), '');
+  assert.deepEqual(JSON.parse(structuralToJson(
+    fixture('match-projections.named.aql'))), JSON.parse(expected));
+});
+
 const envelope = body => `AQL '0.1'; PROGRAM 'roles' { STAGE s {
   INPUT g = {"carrier":"graph"}; INPUT target = {"carrier":"graph"};
   DATA output = ${body}; RESULT r = {"from":"output"};

@@ -55,6 +55,10 @@ creating an implicit Result or ordering boundary.
 The independent expectation retains A and B and the A-to-B edge; the
 B-to-C edge disappears by endpoint closure even though it is absent from the
 removal Graph. Both Results have authored order.
+`match-projections.named.aql` uses duplicate authored node IDs to select
+A and C once each, and separately projects the two original edges. Its
+independent rows follow the semantic node and edge identity orders rather
+than the input Values order. It declares two Results without authored sorts.
 `degree-rows.named.aql` computes out-degree from a Graph with two edges from A.
 The authored sort fixes A, B, C order; the independent Result fixture expects
 degrees 2, 0, 0 and keeps the `node`/`degree` schema from the existing contract.
@@ -65,12 +69,16 @@ inclusive limits. The independently authored expectations include a nullable
 Result order declaration.
 The normalize-rows, mean-graphs, traverse-paths, union-graphs, graft-graphs
 and subtract-graphs expectations passed packed Local and HTTP execution from
-named source.
+named source. Degree-rows, components, graph-bounds and match-projections
+passed the optional Local probe after integration with the retained Graph
+implementations and the common Result order proof. Their standard Local and
+HTTP acceptance is pending.
 The remaining named fixtures still need independent runtime acceptance.
-Common preparation admits reach/subgraph, diff/apply and components, but
-degree-rows and components currently end before publication and graph-bounds
-is rejected during Run compilation. These are distinct from the former Result
-transformation gap, which is connected for normalize-rows.
+Common preparation admits reach/subgraph, diff/apply and components. In the
+latest integrated packed probe, graphs-equal still ends before publication,
+while reach/subgraph and diff/apply are rejected during Run compilation.
+These are distinct from the former Result transformation gap, which is
+connected for normalize-rows.
 The distribution Client job runs `scripts/sga-surface-checker.test.mjs`
 against common preparation. It admits the four source-free Graph fixtures that
 currently prepare and rejects a Relation passed to a Graph-only operation and
