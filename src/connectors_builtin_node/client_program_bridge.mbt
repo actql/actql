@@ -14,7 +14,9 @@ pub fn client_program_check_environment(
   calendar : Bool,
   text_rank : Bool,
 ) -> @program_check.CheckEnvironment? {
-  // SELECTED_SGA_CAPABILITY
+  if sga && !selected_sga_supported() {
+    return None
+  }
   @publication_host.admit_client_check_environment(
     body,
     evidence_bundle_cid,
@@ -39,7 +41,9 @@ pub fn client_program_check_environment_with_numeric_profile(
   text_rank : Bool,
   numeric_profile_cid : String,
 ) -> @program_check.CheckEnvironment? {
-  // SELECTED_SGA_NUMERIC_CAPABILITY
+  if sga && !selected_sga_supported() {
+    return None
+  }
   @publication_host.admit_client_check_environment(
     body,
     evidence_bundle_cid,
@@ -2194,29 +2198,6 @@ pub fn client_program_admit_local_values_aoa_identity(
 
 ///|
 /// Open the portable installed Local Host from this JS ABI.
-// SELECTED_CLIENT_GRAPH_PROVIDER_BEGIN
-fn installed_client_graph_providers(
-  capacity : @execution.ExecutionCapacity,
-) -> Array[@local.ManagedProvider] {
-  let graph_limits : @graph_storage.Limits = {
-    max_input_rows: 100,
-    max_nodes: 100,
-    max_edges: 100,
-    max_value_bytes: 10000,
-    max_total_value_bytes: 10000,
-    max_retained_value_bytes: 10000,
-    max_value_nodes: 10000,
-    max_value_depth: 100,
-    max_contract_work: 10000,
-    max_work: 100000,
-    max_workspace_slots: 10000,
-  }
-  [@local_sga_provider.provider(graph_limits, 10000L, capacity)]
-}
-// SELECTED_CLIENT_GRAPH_PROVIDER_END
-
-///|
-/// Open the portable installed Local Host from this JS ABI.
 #export_name("clientProgramOpenSourceFreeLocalHost")
 pub fn client_program_open_source_free_local_host(
   prepared : @publication_host.PreparedClientProgram,
@@ -3417,49 +3398,11 @@ fn client_program_configure_local_host(
     max_nodes: 10000,
     max_depth: 100,
   }
-  // SELECTED_SGA_PROVIDER_BEGIN
-  let graph_limits : @graph_storage.Limits = {
-    max_input_rows: 100,
-    max_nodes: 100,
-    max_edges: 100,
-    max_value_bytes: 10000,
-    max_total_value_bytes: 10000,
-    max_retained_value_bytes: 10000,
-    max_value_nodes: 10000,
-    max_value_depth: 100,
-    max_contract_work: 10000,
-    max_work: 100000,
-    max_workspace_slots: 10000,
-  }
-  let mut retained_bytes = 0L
-  let mut execution_bytes = 0L
-  for sequence in generated {
-    guard @execution.generated_sequence_capacity(
-        sequence, execution, measurement,
-      )
-      is Some(sequence_capacity) else {
-      return reject_client_local_run(run)
-    }
-    let retained = @execution.execution_capacity_retained_bytes(
-      sequence_capacity,
-    )
-    let executing = @execution.execution_capacity_execution_bytes(
-      sequence_capacity,
-    )
-    if retained > retained_bytes {
-      retained_bytes = retained
-    }
-    if executing > execution_bytes {
-      execution_bytes = executing
-    }
-  }
   let providers = match
-    @execution.execution_capacity(retained_bytes, execution_bytes) {
-    Some(sequence_capacity) =>
-      [@local_sga_provider.provider(graph_limits, 10000L, sequence_capacity)]
+    selected_client_sga_providers(generated, execution, measurement) {
+    Some(providers) => providers
     None => return reject_client_local_run(run)
   }
-  // SELECTED_SGA_PROVIDER_END
   let local_configuration : @local_driver.LocalComputeConfiguration = {
     sequences: generated,
     managed_providers: providers,
