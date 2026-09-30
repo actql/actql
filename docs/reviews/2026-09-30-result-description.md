@@ -139,3 +139,19 @@ This record is local evidence. Exact-SHA CI is recorded in the independent PR's
 Validation section and checks, rather than inferred from PR #97 or another SHA.
 No external deployment or follow-on environment adapter implementation is
 claimed. Owner F still implements that adapter using the handoff above.
+
+## Shared-template generation correction
+
+PR #101's first CI at `a49b8ed0648e58836140d2c73bb1aff962bc28dc`
+detected an omitted Workers projection of the shared strategy template. Both
+Workers composition bridges and the Workers host fixture were regenerated with
+`scripts/workers-composition.mjs --write`, then
+`scripts/workers-fixtures.mjs --write` and
+`scripts/node-host-fixtures.mjs --write`. Public interfaces were generated with
+`moon info --target js`; no generated file was manually corrected.
+
+`node scripts/local-checks.mjs run workers` passed after this correction:
+fixture freshness, the isolated production Core closure in JS/Wasm/native, and
+27/27 Node/workerd checks. This is generated-profile regression evidence, not a
+claim of a new public Workers metadata endpoint. The standard Local/HTTP
+implementation and the five recorded package payloads are unchanged.
