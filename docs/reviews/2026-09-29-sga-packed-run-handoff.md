@@ -411,5 +411,23 @@ fixed row order from an `edge_rows` projection without an authored order.
 The `62e4301e5` test correction compares the projected edge rows as a
 multiset, preserving their values and multiplicity; cases with an authored
 sort retain exact order comparison. The focused standard native/broad Host
-test passed 1/1 locally after this correction. This is not a successful CI
-result for the newer branch HEAD.
+test passed 1/1 locally after this correction. The later
+`747acd6b04daf29f62f775ef2dd63fb023b7a49a` completed Linux CI run
+`36644881348` successfully, including both affected jobs. The performance
+matrix and optional six-case probe were skipped by configuration.
+
+At `3beaf1e9031c1d41cef6dd8ae95553e617637240`, the standard packed
+acceptance added `subtract-graphs`. Its independently authored base has
+A, B, C and D and the A-to-B, B-to-C and C-to-D edges; the removal Graph has
+C, D and C-to-D. The expected Results contain A, B and A-to-B. B-to-C must
+disappear by endpoint closure even though it is absent from the removal
+Graph. The named source matched the independently authored Program and
+ordinary preparation admitted it. The fixed-SHA Client job passed packed
+Embedded Local and HTTPS Remote Named Result reads for this and the five
+previous SGA cases, SQL/Pipe, native CLI, and its other Client regressions.
+The retained evidence is
+`worktrees/.codex-scratch/public-query-evidence-FXK9iM/summary.json`;
+the generated installation and Store were removed. Its package digests
+match the table above because only fixtures and acceptance scripts changed.
+This adds one supported structural operation; the six original provider
+handoff cases remain unaccepted.
