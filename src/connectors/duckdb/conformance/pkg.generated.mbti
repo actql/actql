@@ -362,6 +362,8 @@ pub fn strategy_fixture_retained_local_limits(StrategyFixture, Int, Int) -> @con
 
 pub fn strategy_fixture_retained_local_subset(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
+pub fn strategy_fixture_retained_nest_item_limit(@actql/actql/connectors/local/driver.LocalDispatchIssue) -> Bool
+
 pub fn strategy_fixture_retained_resident_dispatch(StrategyFixture) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
 
 pub fn strategy_fixture_retained_row_limit(@actql/actql/connectors/local/driver.LocalDispatchIssue) -> Bool
