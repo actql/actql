@@ -179,6 +179,42 @@ test "Coordinator output transitions issue exact durable bodies" {
     durable_coordinator_output_record_poll_json(initial),
     Ok(exact_poll),
   )
+  // The Output request of the same retained plan: the same request and
+  // intent under the Output version, admitted by an outbound Site as the
+  // Output operation of that dispatch and not as a plan, and stable.
+  let exact_output = remote_poll_output_json(
+    remote_poll_output_request(output),
+    remote_poll_output_intent(output),
+  ).unwrap()
+  assert_eq(durable_coordinator_output_request_json(initial), Ok(exact_output))
+  assert_eq(durable_coordinator_output_request_json(initial), Ok(exact_output))
+  assert_eq(
+    exact_output.replace(
+      old="\"version\":\"actql-remote-poll-output/0.1\"",
+      new="\"version\":\"actql-remote-poll-output-plan/0.1\"",
+    ),
+    exact_poll,
+  )
+  let admitted = admit_remote_poll_output_json(exact_output).unwrap()
+  assert_eq(
+    dispatch_request_identity(remote_poll_output_request(admitted)),
+    dispatch_request_identity(remote_poll_output_request(output)),
+  )
+  assert_eq(
+    remote_output_intent_identity(remote_poll_output_intent(admitted)),
+    remote_output_intent_identity(remote_poll_output_intent(output)),
+  )
+  assert_true(admit_remote_poll_output_plan_json(exact_output) is Err(_))
+  assert_true(admit_remote_poll_output_json(exact_poll) is Err(_))
+  // The issuer refuses an intent that names another dispatch; an admitted
+  // Output record can never hold one, so the refusal sits in the issuer.
+  assert_true(
+    remote_poll_output_json(
+      coordinator_request("dispatch-foreign", 2),
+      remote_poll_output_intent(output),
+    )
+    is Err(DispatchIdentityMismatch),
+  )
   let unknown = prepare_coordinator_output_unknown(record).unwrap()
   assert_eq(coordinator_output_transition_expected_revision(unknown), 0)
   let uncertain = advance_durable_coordinator_output_record(initial, unknown).unwrap()

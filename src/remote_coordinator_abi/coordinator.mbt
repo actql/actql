@@ -1,5 +1,6 @@
 ///|
-/// In-process JS ABI for the common durable Coordinator dispatch owner.
+/// Internal JS bridge for the common durable Coordinator dispatch owner.
+/// The historical package name contains `abi`; it does not name a binary ABI.
 /// Durable bytes cross the adapter boundary; opaque handles remain local.
 #export_name("coordinatorCreateJournal")
 pub fn coordinator_create_journal(

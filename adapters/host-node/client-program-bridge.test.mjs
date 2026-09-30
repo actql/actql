@@ -921,7 +921,7 @@ function checkedValuesPublicationPlan(prepared, control,
   });
 }
 
-test('Node ABI derives the checked named Result and request identity', async () => {
+test('Node JS bridge derives the checked named Result and request identity', async () => {
   const {document, environment} = await checkedFixture();
   const prepared = moon.clientProgramPrepareEffectFree(
     document, 'json', environment);
@@ -1415,7 +1415,7 @@ test('Node ABI derives the checked named Result and request identity', async () 
   undefined);
 });
 
-test('Node ABI binds separately supplied Parameters through the shared checker',
+test('Node JS bridge binds separately supplied Parameters through the shared checker',
   async t => {
     const {environment} = await checkedFixture();
     const [json, yaml] = await Promise.all([

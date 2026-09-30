@@ -1,5 +1,5 @@
 ///|
-/// Host-internal ABI. The environment is an admitted machine-contract value,
+/// Internal JS bridge. The environment is an admitted machine-contract value,
 /// and its selected pure-operation profiles are supplied by the installed
 /// Host. None of these handles is a wire credential or execution authority.
 #export_name("clientProgramCheckEnvironment")
@@ -54,7 +54,7 @@ pub fn client_program_check_environment_with_numeric_profile(
 }
 
 ///|
-/// Preserve the shared checker's typed failure across the in-process Host ABI.
+/// Preserve the shared checker's typed failure across the in-process Host bridge.
 /// A wire adapter may project it to a public error, but must not recheck the
 /// Program or infer missing inputs from an absent prepared handle.
 pub(all) enum ClientProgramBridgeIssue {
@@ -172,7 +172,7 @@ pub fn client_program_preparation_issue_code(
 }
 
 ///|
-/// Retain the original no-Parameter convenience ABI for existing installed
+/// Retain the original no-Parameter convenience bridge entry for existing installed
 /// hosts. New submit paths must use the typed preparation entry above.
 #export_name("clientProgramPrepareEffectFree")
 pub fn client_program_prepare_effect_free(
@@ -786,7 +786,7 @@ pub fn client_program_admit_publication_plan_facts(
 }
 
 ///|
-/// Issue the checked Result-publication Plan subset for this private ABI.
+/// Issue the checked Result-publication Plan subset for this private JS bridge.
 #export_name("clientProgramIssuePublicationPlanFacts")
 pub fn client_program_issue_publication_plan_facts(
   prepared : @publication_host.PreparedClientProgram,
@@ -2197,7 +2197,7 @@ pub fn client_program_admit_local_values_aoa_identity(
 }
 
 ///|
-/// Open the portable installed Local Host from this JS ABI.
+/// Open the portable installed Local Host from this JS bridge.
 #export_name("clientProgramOpenSourceFreeLocalHost")
 pub fn client_program_open_source_free_local_host(
   prepared : @publication_host.PreparedClientProgram,

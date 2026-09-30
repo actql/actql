@@ -1,5 +1,9 @@
 # Publication boundary ABI follow-up
 
+Terminology note (2026-09-30): “ABI” here describes the internal JS bridge
+and its numeric action representation. It does not denote a native binary ABI
+or the public wire format; the historical wording below is retained.
+
 The portable MoonBit publication owner remains the source of progression
 decisions. Its numeric FFI codes are now decoded once in the common JS runtime
 adapter. The publication orchestrators consume named actions, and the decoder
