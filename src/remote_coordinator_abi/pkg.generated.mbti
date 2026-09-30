@@ -135,6 +135,8 @@ pub fn coordinator_payload_transition_expected_revision(@publication_payload.Pub
 
 pub fn coordinator_poll_dispatch_json(@remote_site_protocol.DispatchRequest, String, Int) -> Result[String, @remote_site_protocol.DispatchIssue]
 
+pub fn coordinator_poll_dispatch_materials_json(@remote_site_protocol.DispatchRequest, String, Int, String) -> Result[String, @remote_site_protocol.DispatchIssue]
+
 pub fn coordinator_poll_query_json(@remote_site_protocol.DispatchRequest) -> Result[String, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_poll_release_json(@remote_site_protocol.DispatchRequest) -> Result[String, @remote_site_protocol.DispatchIssue]

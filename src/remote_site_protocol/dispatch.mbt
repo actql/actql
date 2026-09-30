@@ -286,6 +286,23 @@ fn attempt_key(request : DispatchRequest) -> String {
 }
 
 ///|
+/// The durable identity of one execution attempt: Coordinator authority, Run,
+/// task and attempt number. Redelivery of the same dispatch keeps this key.
+pub fn remote_dispatch_attempt_key(request : DispatchRequest) -> String {
+  attempt_key(request)
+}
+
+///|
+/// True only for the transition that begins execution (Accepted to
+/// Provisioning). An exclusive start claim applies to this transition alone.
+pub fn dispatch_transition_starts_execution(
+  transition : DispatchTransition,
+) -> Bool {
+  transition.expected_execution == Accepted &&
+  transition.next_execution == Provisioning
+}
+
+///|
 fn valid_request_fields(request : DispatchRequest) -> Bool {
   nonempty(request.coordinator_authority) &&
   valid_cid(request.run_definition_cid) &&

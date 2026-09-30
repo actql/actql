@@ -35,6 +35,18 @@ pub fn Library::create_client(
 }
 
 ///|
+pub fn Library::create_authenticated_client(
+  _self : Library,
+  _ca_path : String,
+  _authentication : NativeHttpAuthentication,
+  _max_response_bytes : Int64,
+  _connect_timeout_ms : Int,
+  _operation_timeout_ms : Int,
+) -> Result[Client, NativeHttpIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Client::post_json(
   _self : Client,
   url : String,

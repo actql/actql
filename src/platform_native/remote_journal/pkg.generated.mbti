@@ -5,6 +5,7 @@ import {
   "actql/actql/execution_site",
   "actql/actql/platform_native/sqlite",
   "actql/actql/remote_site_protocol",
+  "moonbitlang/core/debug",
 }
 
 // Values
@@ -42,14 +43,20 @@ pub fn CoordinatorJournal::require(Self, @remote_site_protocol.DispatchRequest) 
 
 type Journal
 pub fn Journal::accept(Self, @remote_site_protocol.DispatchRequest) -> Result[(@remote_site_protocol.DispatchAcceptance, @remote_site_protocol.DispatchRecord), NativeRemoteJournalIssue]
+pub fn Journal::claim_start(Self, @remote_site_protocol.DispatchTransition, String) -> Result[NativeRemoteStartClaim, NativeRemoteJournalIssue]
 pub fn Journal::close(Self) -> Bool
 pub fn Journal::commit_evidence_transition(Self, @remote_site_protocol.DispatchTransition, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::commit_transition(Self, @remote_site_protocol.DispatchTransition) -> Result[Unit, NativeRemoteJournalIssue]
+pub fn Journal::complete_output_intent(Self, String) -> Result[Unit, NativeRemoteJournalIssue]
+pub fn Journal::dispatch_envelope(Self, String) -> Result[String?, NativeRemoteJournalIssue]
 pub fn Journal::force_loss(Self, @remote_site_protocol.DispatchRecord, Bool) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::observation(Self, @remote_site_protocol.DispatchRequest) -> Result[RecoveredSiteDispatch, NativeRemoteJournalIssue]
+pub fn Journal::pending_output_intents(Self) -> Result[Array[(String, String)], NativeRemoteJournalIssue]
 pub fn Journal::recover_after(Self, String) -> Result[(String, @remote_site_protocol.DispatchRecord)?, NativeRemoteJournalIssue]
 pub fn Journal::require(Self, @remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.DispatchRecord, NativeRemoteJournalIssue]
 pub fn Journal::restart(Self, @execution_site.ExecutionSite) -> Result[Int, NativeRemoteJournalIssue]
+pub fn Journal::retain_dispatch_envelope(Self, @remote_site_protocol.DispatchRequest, String) -> Result[Unit, NativeRemoteJournalIssue]
+pub fn Journal::retain_output_intent(Self, String, String) -> Result[Unit, NativeRemoteJournalIssue]
 
 pub(all) enum NativeRemoteJournalIssue {
   UnsupportedTarget
@@ -60,6 +67,13 @@ pub(all) enum NativeRemoteJournalIssue {
   MissingDispatch
   StateCollision
 }
+
+pub(all) enum NativeRemoteStartClaim {
+  Won
+  AlreadyMine
+  LostTo(String)
+  Cancelled
+} derive(Eq, @debug.Debug)
 
 type RecoveredCoordinatorDispatch
 

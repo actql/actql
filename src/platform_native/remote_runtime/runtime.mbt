@@ -160,6 +160,9 @@ struct NativeRemoteRuntime {
   admitting : Map[String, Bool]
   owners : Map[String, NativeRemoteRuntimeOwner]
   pending_cleanup : Map[String, NativeRemoteRuntimeOwner]
+  mut executor_entry : ((String) -> Bool)?
+  mut executor_start_guard : (() -> Bool)?
+  mut start_claimant : String?
   mut closed : Bool
 }
 
@@ -195,6 +198,14 @@ pub(all) enum NativeRemoteRuntimeIssue {
   OutputReaderChunkExceeded
   OutputReaderPhysical(String)
   Physical(String)
+  /// The acceptance evidence hook could not record the executor entry.
+  ExecutorEntryUnrecorded
+  /// The execution authority is no longer current at physical start.
+  StartAuthorizationRejected
+  /// Another claimant began this attempt; this runtime did not execute.
+  StartClaimLost(String)
+  /// Cancellation won the Accepted state; this runtime did not execute.
+  StartCancelled
   CleanupPending(String)
   Protocol(@remote.DispatchIssue)
   Journal(@journal.NativeRemoteJournalIssue)
@@ -518,8 +529,78 @@ pub fn open_native_remote_runtime(
     admitting: Map([]),
     owners: Map([]),
     pending_cleanup: Map([]),
+    executor_entry: None,
+    executor_start_guard: None,
+    start_claimant: None,
     closed: false,
   })
+}
+
+///|
+/// Make every start of this runtime an exclusive journal claim by
+/// `claimant` (see `Journal::claim_start`). A runtime that does not win the
+/// claim writes nothing and does not execute. It can be set once, before any
+/// dispatch starts.
+pub fn NativeRemoteRuntime::claim_starts_as(
+  self : NativeRemoteRuntime,
+  claimant : String,
+) -> Result[Unit, NativeRemoteRuntimeIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if self.start_claimant is Some(_) ||
+    !self.admitting.is_empty() ||
+    !self.owners.is_empty() ||
+    !self.pending_cleanup.is_empty() {
+    return Err(InvalidConfiguration)
+  }
+  self.start_claimant = Some(claimant)
+  Ok(())
+}
+
+///|
+/// Evidence hook for acceptance tests: called with the dispatch attempt key
+/// immediately before the physical executor, and only there. When it returns
+/// false the executor is not called and the dispatch fails with
+/// `ExecutorEntryUnrecorded`. A count of these calls is the number of times
+/// the pre-call boundary was reached, not proof that execution began. It can
+/// be installed once, before any dispatch starts.
+pub fn NativeRemoteRuntime::observe_executor_entry(
+  self : NativeRemoteRuntime,
+  observer : (String) -> Bool,
+) -> Result[Unit, NativeRemoteRuntimeIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if self.executor_entry is Some(_) ||
+    !self.admitting.is_empty() ||
+    !self.owners.is_empty() ||
+    !self.pending_cleanup.is_empty() {
+    return Err(InvalidConfiguration)
+  }
+  self.executor_entry = Some(observer)
+  Ok(())
+}
+
+///|
+/// A mandatory execution barrier, distinct from diagnostic/evidence hooks.
+/// Re-evaluated after claim and Running persistence, immediately before the
+/// physical call. Rejection uses the ordinary stopped-before-start cleanup.
+pub fn NativeRemoteRuntime::guard_executor_start(
+  self : NativeRemoteRuntime,
+  guard_start : () -> Bool,
+) -> Result[Unit, NativeRemoteRuntimeIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if self.executor_start_guard is Some(_) ||
+    !self.admitting.is_empty() ||
+    !self.owners.is_empty() ||
+    !self.pending_cleanup.is_empty() {
+    return Err(InvalidConfiguration)
+  }
+  self.executor_start_guard = Some(guard_start)
+  Ok(())
 }
 
 ///|
@@ -858,6 +939,27 @@ fn NativeRemoteRuntime::run_success(
               ),
             )
         }
+        match self.start_claimant {
+          Some(claimant) =>
+            match self.journal.claim_start(transition, claimant) {
+              Ok(@journal.Won) | Ok(@journal.AlreadyMine) => continue
+              Ok(@journal.LostTo(other)) => {
+                ignore(self.bundles.release(owner.bundle_hold_id))
+                return Err(StartClaimLost(other))
+              }
+              Ok(@journal.Cancelled) => {
+                ignore(self.bundles.release(owner.bundle_hold_id))
+                return Err(StartCancelled)
+              }
+              // Whether the claim became durable is unknown; nothing more is
+              // written here and a retry by the same claimant reconciles it.
+              Err(issue) => {
+                ignore(self.bundles.release(owner.bundle_hold_id))
+                return Err(Journal(issue))
+              }
+            }
+          None => ()
+        }
         match self.journal.commit_transition(transition) {
           Ok(_) => continue
           Err(issue) =>
@@ -937,7 +1039,46 @@ fn NativeRemoteRuntime::run_success(
             )
         }
       }
-      @remote.RuntimeExecutePhysical =>
+      @remote.RuntimeExecutePhysical => {
+        if self.executor_start_guard is Some(check) && !check() {
+          return Err(
+            self.retain_failed_owner(
+              identity,
+              owner,
+              StartAuthorizationRejected,
+              false,
+              false,
+              true,
+            ),
+          )
+        }
+        if self.executor_entry is Some(observe) &&
+          !observe(@remote.remote_dispatch_attempt_key(owner.request)) {
+          return Err(
+            self.retain_failed_owner(
+              identity,
+              owner,
+              ExecutorEntryUnrecorded,
+              false,
+              false,
+              true,
+            ),
+          )
+        }
+        // Evidence recording may itself wait. It cannot supply execution
+        // permission, and expiry during it must still prevent the call.
+        if self.executor_start_guard is Some(check) && !check() {
+          return Err(
+            self.retain_failed_owner(
+              identity,
+              owner,
+              StartAuthorizationRejected,
+              false,
+              false,
+              true,
+            ),
+          )
+        }
         match
           (owner.registration.execute)(owner.request, owner.binding, budget) {
           NativeRemoteOutputReady(output) => {
@@ -982,6 +1123,7 @@ fn NativeRemoteRuntime::run_success(
             )
           }
         }
+      }
       @remote.RuntimeAcquireHolding => {
         guard owner.operation is Some(operation) else {
           return Err(
