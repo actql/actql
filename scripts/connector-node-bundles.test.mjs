@@ -1,13 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {readFileSync} from 'node:fs';
+import {existsSync, readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {installStrategyContributions} from '../adapters/connectors-builtin/strategy.generated.mjs';
 import '../adapters/host-node/installation.test.mjs';
 
-test('RelA bridge uses the exact shared body with package-local provider selection', () => {
-  const shared = readFileSync(fileURLToPath(
-    new URL('../src/connectors_builtin_node/client_program_bridge.mbt', import.meta.url)), 'utf8');
+test('RelA bridge uses the exact shared body with package-local provider selection', t => {
+  const sharedPath = fileURLToPath(
+    new URL('../src/connectors_builtin_node/client_program_bridge.mbt', import.meta.url));
+  if (!existsSync(sharedPath)) {
+    t.skip('the JS-only Host subset intentionally omits MoonBit bridge sources');
+    return;
+  }
+  const shared = readFileSync(sharedPath, 'utf8');
   const rela = readFileSync(fileURLToPath(
     new URL('../src/connectors_builtin_node_rela/client_program_bridge.mbt', import.meta.url)), 'utf8');
   assert.equal(rela,
