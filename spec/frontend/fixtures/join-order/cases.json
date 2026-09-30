@@ -391,39 +391,6 @@
       "sourceReadCount": 1
     },
     {
-      "name": "pipe-join-alias",
-      "format": "aql-text",
-      "text": "WITH seed AS (SELECT id AS x, amount AS y FROM records) FROM seed AS l |> JOIN seed AS r ON l.x = r.x |> SELECT l.x AS y |> ORDER BY y + 1",
-      "sourceRows": [
-        {
-          "id": 2,
-          "amount": 10
-        },
-        {
-          "id": 1,
-          "amount": 20
-        }
-      ],
-      "expected": [
-        {
-          "y": 1
-        },
-        {
-          "y": 2
-        }
-      ],
-      "columns": [
-        {
-          "name": "y",
-          "contract": {
-            "type": "number",
-            "nullable": false
-          }
-        }
-      ],
-      "sourceReadCount": 1
-    },
-    {
       "name": "join-filtered-capture",
       "format": "sql",
       "text": "WITH seed AS (SELECT id AS x, amount AS y FROM records WHERE amount > 15) SELECT l.x AS y FROM seed AS l JOIN seed AS r ON l.x = r.x ORDER BY y + 1",
@@ -452,6 +419,39 @@
         }
       ],
       "sourceReadCount": 1
+    },
+    {
+      "name": "pipe-select-alias",
+      "format": "aql-text",
+      "text": "FROM records |> SELECT id AS amount |> ORDER BY amount + 1",
+      "sourceRows": [
+        {
+          "id": 2,
+          "amount": 10
+        },
+        {
+          "id": 1,
+          "amount": 20
+        }
+      ],
+      "expected": [
+        {
+          "amount": 1
+        },
+        {
+          "amount": 2
+        }
+      ],
+      "columns": [
+        {
+          "name": "amount",
+          "contract": {
+            "type": "number",
+            "nullable": false
+          }
+        }
+      ],
+      "sourceReadCount": 1
     }
   ],
   "refusals": [
@@ -459,6 +459,11 @@
       "name": "join-distinct-private-expression",
       "format": "sql",
       "text": "WITH seed AS (SELECT id AS x, amount AS y FROM records) SELECT DISTINCT l.x AS x FROM seed AS l JOIN seed AS r ON l.x = r.x ORDER BY l.y + 1"
+    },
+    {
+      "name": "pipe-join-alias",
+      "format": "aql-text",
+      "text": "WITH seed AS (SELECT id AS x, amount AS y FROM records) FROM seed AS l |> JOIN seed AS r ON l.x = r.x |> SELECT l.x AS y |> ORDER BY y + 1"
     }
   ]
 }

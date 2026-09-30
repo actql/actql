@@ -2,9 +2,16 @@
 
 ## Scope
 
-Baseline: `a526fe6e16c77d51ec180297e949a719b71e93d7`.
+Initial baseline: `a526fe6e16c77d51ec180297e949a719b71e93d7`.
+Adopted main after INFER source integration:
+`0a7398e486b1547b41fa292385011fd844c59cad`.
+The three committed implementation units were rebased onto this main.
+Conflicts were limited to the packed mode selectors and appended bridge tests;
+both INFER and ORDER acceptance paths were retained. No other worktree changed.
 This fixes existing SQL/Pipe ORDER BY semantics, without changing grammar,
-public API, wire contracts, provider execution or Run ownership.
+public API, wire contracts, provider execution or Run ownership. Affected generated
+Program identities change; the Grammar Manifest and JSON/YAML Program admission
+remain unchanged.
 
 An unqualified reference inside ORDER BY resolves a SELECT alias first.
 A qualified reference retains its input meaning. Expression equality permits
@@ -39,7 +46,10 @@ require exactly one physical source read per Run.
 expected rows, ordered column contracts and a DISTINCT refusal. It covers
 normal SELECT, computed aliases, identical expressions with two aliases,
 qualified input references, an alias changing an expression's reference
-meaning, CTE JOIN and Pipe JOIN. The input order differs from the expected
+meaning, CTE JOIN and ordinary Pipe SELECT. Direct GeneratedValues Pipe JOIN is
+covered by the shared compiler/checker regression. The currently unrouted
+WITH-plus-Pipe combination is a typed refusal here, not a permanent language
+restriction or a claimed execution success. The input order differs from the expected
 alias order.
 
 The installed Host supports these real-input JOIN cases through the existing
@@ -68,4 +78,4 @@ JS tests passed, including six new regression tests. Syntax checks for the
 two edited Node scripts and `git diff --check` passed.
 
 Fixed-source packed evidence and affected job results will be recorded after
-running the committed source. Linux CI is not yet verified.
+running the committed source. Linux CI for this JOIN branch is not yet verified.
