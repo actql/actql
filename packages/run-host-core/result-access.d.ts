@@ -31,6 +31,10 @@ export interface ResultDeliverySink {
 
 // Both constructors validate every callback and Store method at runtime.
 // The physical adapter supplies them; the portable service owns sequencing.
+// A Store may provide sampleTrustedClock(clockContractCid, now): Promise<string>
+// to sample the installed Host clock after reading its durable lower bound.
+// It returns the exact durably accepted sample and must re-sample after a CAS
+// conflict. Explicit observeTrustedClock remains the compatibility contract.
 export function installResultAccessAuthority(
   configuration: unknown): ResultAccessAuthority;
 export function installResultAccessService(
