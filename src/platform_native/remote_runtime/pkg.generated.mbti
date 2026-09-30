@@ -77,10 +77,13 @@ type NativeRemotePhysicalManifestReader
 type NativeRemotePhysicalReader
 
 type NativeRemoteRuntime
+pub fn NativeRemoteRuntime::claim_starts_as(Self, String) -> Result[Unit, NativeRemoteRuntimeIssue]
 pub fn NativeRemoteRuntime::cleanup(Self, @remote_site_protocol.DispatchRequest) -> Result[Bool, NativeRemoteRuntimeIssue]
 pub fn NativeRemoteRuntime::cleanup_pending(Self) -> Bool
 pub fn NativeRemoteRuntime::close(Self) -> Result[Bool, NativeRemoteRuntimeIssue]
+pub fn NativeRemoteRuntime::guard_executor_start(Self, () -> Bool) -> Result[Unit, NativeRemoteRuntimeIssue]
 pub fn NativeRemoteRuntime::inspect_output_facts(Self, @remote_site_protocol.DispatchRequest, String) -> Result[NativeRemoteOutputFacts, NativeRemoteRuntimeIssue]
+pub fn NativeRemoteRuntime::observe_executor_entry(Self, (String) -> Bool) -> Result[Unit, NativeRemoteRuntimeIssue]
 pub fn NativeRemoteRuntime::observed_completion(Self, @remote_site_protocol.DispatchRequest) -> Result[NativeRemoteRuntimeCompletion, NativeRemoteRuntimeIssue]
 pub fn NativeRemoteRuntime::open_output_manifest_reader(Self, @remote_site_protocol.DispatchRequest, String, Int) -> Result[NativeRemoteOutputManifestReader, NativeRemoteRuntimeIssue]
 pub fn NativeRemoteRuntime::open_output_reader(Self, @remote_site_protocol.DispatchRequest, String, Int) -> Result[NativeRemoteOutputReader, NativeRemoteRuntimeIssue]
@@ -119,6 +122,10 @@ pub(all) enum NativeRemoteRuntimeIssue {
   OutputReaderChunkExceeded
   OutputReaderPhysical(String)
   Physical(String)
+  ExecutorEntryUnrecorded
+  StartAuthorizationRejected
+  StartClaimLost(String)
+  StartCancelled
   CleanupPending(String)
   Protocol(@remote_site_protocol.DispatchIssue)
   Journal(@remote_journal.NativeRemoteJournalIssue)

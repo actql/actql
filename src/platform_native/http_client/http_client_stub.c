@@ -88,6 +88,7 @@ typedef struct {
   char *ca_path;
   char *certificate_path;
   char *key_path;
+  char *bearer_path;
   char *error;
   unsigned char *response;
   size_t response_length;
@@ -187,11 +188,13 @@ static void actql_native_http_client_finalize(void *value) {
   free(client->ca_path);
   free(client->certificate_path);
   free(client->key_path);
+  free(client->bearer_path);
   free(client->error);
   free(client->response);
   client->ca_path = NULL;
   client->certificate_path = NULL;
   client->key_path = NULL;
+  client->bearer_path = NULL;
   client->error = NULL;
   client->response = NULL;
   if (client->library != NULL) {
@@ -340,6 +343,149 @@ moonbit_bytes_t actql_native_http_library_version(
   return actql_copy_message(library->version());
 }
 
+enum { ACTQL_BEARER_FILE_MAX_BYTES = 4096 };
+
+static bool actql_bearer_token_byte(unsigned char value) {
+  return (value >= 'A' && value <= 'Z') || (value >= 'a' && value <= 'z') ||
+    (value >= '0' && value <= '9') || value == '-' || value == '.' ||
+    value == '_' || value == '~' || value == '+' || value == '/';
+}
+
+// RFC 6750 b64token: token characters followed only by trailing '='.
+static bool actql_bearer_b64token(const unsigned char *token, size_t length) {
+  size_t index = 0;
+  while (index < length && actql_bearer_token_byte(token[index])) index += 1;
+  if (index == 0) return false;
+  while (index < length && token[index] == '=') index += 1;
+  return index == length;
+}
+
+// Reads "Authorization: Bearer <token>" from an exact local file for one
+// request. The checks apply to the opened descriptor: a regular file owned by
+// this process's user, not readable or writable by group or others, the same
+// file generation throughout, read within a fixed bound. A strict read also
+// admits only an RFC 6750 b64token with at most one trailing newline. The
+// secret is zeroed on every path and never enters an error message.
+static bool actql_read_bearer_authorization(
+  const char *path,
+  size_t max_bytes,
+  bool strict,
+  char **authorization_out,
+  size_t *authorization_length_out
+) {
+  *authorization_out = NULL;
+  *authorization_length_out = 0;
+  enum { ACTQL_BEARER_BUFFER_BYTES = 8192 };
+  if (path == NULL || max_bytes == 0 || max_bytes > ACTQL_BEARER_BUFFER_BYTES) {
+    return false;
+  }
+  struct stat expected_secret;
+  bool secret_generation_valid =
+    lstat(path, &expected_secret) == 0 && S_ISREG(expected_secret.st_mode);
+  int descriptor = secret_generation_valid
+    ? open(path, O_RDONLY | O_CLOEXEC | O_NOFOLLOW)
+    : -1;
+  if (descriptor < 0) return false;
+  unsigned char secret[ACTQL_BEARER_BUFFER_BYTES + 1];
+  size_t secret_length = 0;
+  struct stat opened_secret;
+  bool secret_valid = fstat(descriptor, &opened_secret) == 0 &&
+    S_ISREG(opened_secret.st_mode) &&
+    actql_same_file_generation(&expected_secret, &opened_secret) &&
+    (opened_secret.st_mode & 077) == 0 &&
+    (!strict || opened_secret.st_uid == geteuid());
+  while (secret_valid && secret_length <= max_bytes) {
+    ssize_t count = read(
+      descriptor,
+      secret + secret_length,
+      max_bytes + 1 - secret_length
+    );
+    if (count < 0) {
+      secret_valid = false;
+      break;
+    }
+    if (count == 0) break;
+    secret_length += (size_t)count;
+    if (secret_length > max_bytes) {
+      secret_valid = false;
+      break;
+    }
+  }
+  unsigned char verified_secret[ACTQL_BEARER_BUFFER_BYTES + 1];
+  size_t verified_length = 0;
+  if (secret_valid && lseek(descriptor, 0, SEEK_SET) < 0) {
+    secret_valid = false;
+  }
+  while (secret_valid && verified_length <= max_bytes) {
+    ssize_t count = read(
+      descriptor,
+      verified_secret + verified_length,
+      max_bytes + 1 - verified_length
+    );
+    if (count < 0) {
+      secret_valid = false;
+      break;
+    }
+    if (count == 0) break;
+    verified_length += (size_t)count;
+    if (verified_length > max_bytes) {
+      secret_valid = false;
+      break;
+    }
+  }
+  if (secret_valid &&
+      (verified_length != secret_length ||
+       memcmp(secret, verified_secret, secret_length) != 0)) {
+    secret_valid = false;
+  }
+  memset(verified_secret, 0, sizeof(verified_secret));
+  struct stat completed_secret;
+  if (fstat(descriptor, &completed_secret) != 0 ||
+      !actql_same_file_generation(&opened_secret, &completed_secret)) {
+    secret_valid = false;
+  }
+  if (close(descriptor) != 0) secret_valid = false;
+  if (strict) {
+    if (secret_length > 0 && secret[secret_length - 1] == '\n') {
+      secret_length -= 1;
+    }
+    if (!actql_bearer_b64token(secret, secret_length)) secret_valid = false;
+  } else {
+    while (secret_length > 0 &&
+           (secret[secret_length - 1] == '\n' ||
+            secret[secret_length - 1] == '\r')) {
+      secret_length -= 1;
+    }
+    if (secret_length == 0 ||
+        memchr(secret, 0, secret_length) != NULL ||
+        memchr(secret, '\n', secret_length) != NULL ||
+        memchr(secret, '\r', secret_length) != NULL) {
+      secret_valid = false;
+    }
+  }
+  const char prefix[] = "Authorization: Bearer ";
+  size_t authorization_length = sizeof(prefix) - 1 + secret_length;
+  char *authorization = secret_valid
+    ? malloc(authorization_length + 1)
+    : NULL;
+  if (authorization != NULL) {
+    memcpy(authorization, prefix, sizeof(prefix) - 1);
+    memcpy(authorization + sizeof(prefix) - 1, secret, secret_length);
+    authorization[authorization_length] = '\0';
+  }
+  memset(secret, 0, sizeof(secret));
+  if (authorization == NULL) return false;
+  *authorization_out = authorization;
+  *authorization_length_out = authorization_length;
+  return true;
+}
+
+static void actql_forget_authorization(char *authorization, size_t length) {
+  if (authorization == NULL) return;
+  memset(authorization, 0, length);
+  free(authorization);
+}
+
 void *actql_native_http_create_client(
   actql_native_http_library *library,
   moonbit_bytes_t ca_path,
@@ -382,6 +528,63 @@ void *actql_native_http_create_client(
   return client;
 }
 
+// A client authenticated by a client certificate, by a per-request bearer
+// credential file, or by both. The server is always verified against the CA.
+void *actql_native_http_create_authenticated_client(
+  actql_native_http_library *library,
+  moonbit_bytes_t ca_path,
+  int32_t ca_path_length,
+  moonbit_bytes_t certificate_path,
+  int32_t certificate_path_length,
+  moonbit_bytes_t key_path,
+  int32_t key_path_length,
+  moonbit_bytes_t bearer_path,
+  int32_t bearer_path_length,
+  int64_t max_response_bytes,
+  int32_t connect_timeout_ms,
+  int32_t operation_timeout_ms
+) {
+  actql_native_http_client *client = moonbit_make_external_object(
+    actql_native_http_client_finalize,
+    sizeof(actql_native_http_client)
+  );
+  memset(client, 0, sizeof(*client));
+  atomic_init(&client->cancelled, false);
+  client->library = library;
+  if (library != NULL) moonbit_incref(library);
+  client->max_response_bytes = max_response_bytes;
+  client->connect_timeout_ms = connect_timeout_ms;
+  client->operation_timeout_ms = operation_timeout_ms;
+  bool mutual = certificate_path_length > 0 || key_path_length > 0;
+  bool bearer = bearer_path_length > 0;
+  if (library == NULL || library->dynamic_library == NULL ||
+      max_response_bytes < 0 || max_response_bytes > INT32_MAX ||
+      connect_timeout_ms <= 0 || operation_timeout_ms < connect_timeout_ms ||
+      (!mutual && !bearer) ||
+      (mutual && (certificate_path_length <= 0 || key_path_length <= 0))) {
+    actql_replace_error(&client->error, "invalid HTTP client configuration");
+    return client;
+  }
+  client->ca_path = actql_copy_text(ca_path, ca_path_length);
+  if (mutual) {
+    client->certificate_path = actql_copy_text(
+      certificate_path,
+      certificate_path_length
+    );
+    client->key_path = actql_copy_text(key_path, key_path_length);
+  }
+  if (bearer) {
+    client->bearer_path = actql_copy_text(bearer_path, bearer_path_length);
+  }
+  if (client->ca_path == NULL ||
+      (mutual && (client->certificate_path == NULL ||
+        client->key_path == NULL)) ||
+      (bearer && client->bearer_path == NULL)) {
+    actql_replace_error(&client->error, "HTTP credential path allocation failed");
+  }
+  return client;
+}
+
 int32_t actql_native_http_client_ready(actql_native_http_client *client) {
   return client != NULL && client->library != NULL &&
     client->library->dynamic_library != NULL && client->error == NULL &&
@@ -411,8 +614,23 @@ int32_t actql_native_http_client_post_json(
     actql_replace_error(&client->error, "invalid HTTPS URL");
     return -1;
   }
+  char *authorization = NULL;
+  size_t authorization_length = 0;
+  if (client->bearer_path != NULL &&
+      !actql_read_bearer_authorization(
+        client->bearer_path,
+        ACTQL_BEARER_FILE_MAX_BYTES,
+        true,
+        &authorization,
+        &authorization_length
+      )) {
+    free(url_text);
+    actql_replace_error(&client->error, "bearer credential unavailable");
+    return 5;
+  }
   CURL *curl = client->library->easy_init();
   if (curl == NULL) {
+    actql_forget_authorization(authorization, authorization_length);
     free(url_text);
     actql_replace_error(&client->error, "initialize HTTP request failed");
     return -1;
@@ -436,6 +654,19 @@ int32_t actql_native_http_client_post_json(
       headers = next_headers;
     }
   }
+  if (configured && authorization != NULL) {
+    curl_slist *next_headers = client->library->slist_append(
+      headers,
+      authorization
+    );
+    if (next_headers == NULL) {
+      configured = false;
+      actql_replace_error(&client->error, "HTTP header allocation failed");
+    } else {
+      headers = next_headers;
+    }
+  }
+  actql_forget_authorization(authorization, authorization_length);
 #define ACTQL_SET(option, value) \
   do { \
     if (configured && !actql_option( \
@@ -450,8 +681,10 @@ int32_t actql_native_http_client_post_json(
   ACTQL_SET(ACTQL_CURLOPT_POSTFIELDSIZE_LARGE, (curl_off_t)body_length);
   ACTQL_SET(ACTQL_CURLOPT_HTTPHEADER, headers);
   ACTQL_SET(ACTQL_CURLOPT_CAINFO, client->ca_path);
-  ACTQL_SET(ACTQL_CURLOPT_SSLCERT, client->certificate_path);
-  ACTQL_SET(ACTQL_CURLOPT_SSLKEY, client->key_path);
+  if (client->certificate_path != NULL) {
+    ACTQL_SET(ACTQL_CURLOPT_SSLCERT, client->certificate_path);
+    ACTQL_SET(ACTQL_CURLOPT_SSLKEY, client->key_path);
+  }
   ACTQL_SET(ACTQL_CURLOPT_SSL_VERIFYPEER, 1L);
   ACTQL_SET(ACTQL_CURLOPT_SSL_VERIFYHOST, 2L);
   ACTQL_SET(ACTQL_CURLOPT_FOLLOWLOCATION, 0L);
@@ -521,6 +754,9 @@ static curl_slist *actql_http_headers_from_block(
     for (int32_t index = offset; index < colon; index += 1) {
       if (!actql_http_header_name_byte(block[index])) goto invalid;
     }
+    // A configured bearer credential is the only Authorization header.
+    if (client->bearer_path != NULL && colon - offset == 13 &&
+        memcmp(block + offset, "authorization", 13) == 0) goto invalid;
     for (int32_t index = colon + 2; index < end; index += 1) {
       if (block[index] < 32 || block[index] > 126) goto invalid;
     }
@@ -588,7 +824,37 @@ int32_t actql_native_http_client_request(
   if (!headers_valid) {
     free(method_text);
     free(url_text);
-    return -1;
+    return 6;
+  }
+  if (client->bearer_path != NULL) {
+    char *authorization = NULL;
+    size_t authorization_length = 0;
+    if (!actql_read_bearer_authorization(
+          client->bearer_path,
+          ACTQL_BEARER_FILE_MAX_BYTES,
+          true,
+          &authorization,
+          &authorization_length
+        )) {
+      client->library->slist_free_all(headers);
+      free(method_text);
+      free(url_text);
+      actql_replace_error(&client->error, "bearer credential unavailable");
+      return 5;
+    }
+    curl_slist *next_headers = client->library->slist_append(
+      headers,
+      authorization
+    );
+    actql_forget_authorization(authorization, authorization_length);
+    if (next_headers == NULL) {
+      client->library->slist_free_all(headers);
+      free(method_text);
+      free(url_text);
+      actql_replace_error(&client->error, "HTTP header allocation failed");
+      return -1;
+    }
+    headers = next_headers;
   }
   CURL *curl = client->library->easy_init();
   if (curl == NULL) {
@@ -620,8 +886,10 @@ int32_t actql_native_http_client_request(
   }
   ACTQL_SET(ACTQL_CURLOPT_HTTPHEADER, headers);
   ACTQL_SET(ACTQL_CURLOPT_CAINFO, client->ca_path);
-  ACTQL_SET(ACTQL_CURLOPT_SSLCERT, client->certificate_path);
-  ACTQL_SET(ACTQL_CURLOPT_SSLKEY, client->key_path);
+  if (client->certificate_path != NULL) {
+    ACTQL_SET(ACTQL_CURLOPT_SSLCERT, client->certificate_path);
+    ACTQL_SET(ACTQL_CURLOPT_SSLKEY, client->key_path);
+  }
   ACTQL_SET(ACTQL_CURLOPT_SSL_VERIFYPEER, 1L);
   ACTQL_SET(ACTQL_CURLOPT_SSL_VERIFYHOST, 2L);
   ACTQL_SET(ACTQL_CURLOPT_FOLLOWLOCATION, 0L);
@@ -682,103 +950,17 @@ int32_t actql_native_http_client_get_bearer_file(
     actql_replace_error(&client->error, "invalid HTTPS credential request");
     return -1;
   }
-  struct stat expected_secret;
-  bool secret_generation_valid =
-    lstat(secret_path_text, &expected_secret) == 0 &&
-    S_ISREG(expected_secret.st_mode);
-  int descriptor = secret_generation_valid
-    ? open(secret_path_text, O_RDONLY | O_CLOEXEC | O_NOFOLLOW)
-    : -1;
+  char *authorization = NULL;
+  size_t authorization_length = 0;
+  bool secret_valid = actql_read_bearer_authorization(
+    secret_path_text,
+    8192,
+    false,
+    &authorization,
+    &authorization_length
+  );
   free(secret_path_text);
-  if (descriptor < 0) {
-    free(url_text);
-    actql_replace_error(&client->error, "open bearer credential failed");
-    return -1;
-  }
-  enum { ACTQL_MAX_BEARER_BYTES = 8192 };
-  unsigned char secret[ACTQL_MAX_BEARER_BYTES + 1];
-  size_t secret_length = 0;
-  struct stat opened_secret;
-  bool secret_valid = fstat(descriptor, &opened_secret) == 0 &&
-    S_ISREG(opened_secret.st_mode) &&
-    actql_same_file_generation(&expected_secret, &opened_secret) &&
-    (opened_secret.st_mode & 077) == 0;
-  while (secret_length <= ACTQL_MAX_BEARER_BYTES) {
-    ssize_t count = read(
-      descriptor,
-      secret + secret_length,
-      sizeof(secret) - secret_length
-    );
-    if (count < 0) {
-      secret_valid = false;
-      break;
-    }
-    if (count == 0) break;
-    secret_length += (size_t)count;
-    if (secret_length > ACTQL_MAX_BEARER_BYTES) {
-      secret_valid = false;
-      break;
-    }
-  }
-  unsigned char verified_secret[ACTQL_MAX_BEARER_BYTES + 1];
-  size_t verified_length = 0;
-  if (secret_valid && lseek(descriptor, 0, SEEK_SET) < 0) {
-    secret_valid = false;
-  }
-  while (secret_valid && verified_length <= ACTQL_MAX_BEARER_BYTES) {
-    ssize_t count = read(
-      descriptor,
-      verified_secret + verified_length,
-      sizeof(verified_secret) - verified_length
-    );
-    if (count < 0) {
-      secret_valid = false;
-      break;
-    }
-    if (count == 0) break;
-    verified_length += (size_t)count;
-    if (verified_length > ACTQL_MAX_BEARER_BYTES) {
-      secret_valid = false;
-      break;
-    }
-  }
-  if (secret_valid &&
-      (verified_length != secret_length ||
-       memcmp(secret, verified_secret, secret_length) != 0)) {
-    secret_valid = false;
-  }
-  memset(verified_secret, 0, sizeof(verified_secret));
-  struct stat completed_secret;
-  if (fstat(descriptor, &completed_secret) != 0 ||
-      !actql_same_file_generation(&opened_secret, &completed_secret) ||
-      close(descriptor) != 0) {
-    secret_valid = false;
-  }
-  while (secret_length > 0 &&
-         (secret[secret_length - 1] == '\n' ||
-          secret[secret_length - 1] == '\r')) {
-    secret_length -= 1;
-  }
-  if (secret_length == 0 ||
-      memchr(secret, 0, secret_length) != NULL ||
-      memchr(secret, '\n', secret_length) != NULL ||
-      memchr(secret, '\r', secret_length) != NULL) {
-    secret_valid = false;
-  }
-  const char prefix[] = "Authorization: Bearer ";
-  size_t authorization_length = sizeof(prefix) - 1 + secret_length;
-  char *authorization = secret_valid
-    ? malloc(authorization_length + 1)
-    : NULL;
-  if (authorization == NULL) secret_valid = false;
-  if (secret_valid) {
-    memcpy(authorization, prefix, sizeof(prefix) - 1);
-    memcpy(authorization + sizeof(prefix) - 1, secret, secret_length);
-    authorization[authorization_length] = '\0';
-  }
-  memset(secret, 0, sizeof(secret));
   if (!secret_valid) {
-    free(authorization);
     free(url_text);
     actql_replace_error(&client->error, "read bearer credential failed");
     return -1;
@@ -837,8 +1019,10 @@ int32_t actql_native_http_client_get_bearer_file(
   ACTQL_SET(ACTQL_CURLOPT_ERRORBUFFER, error_buffer);
   ACTQL_SET(ACTQL_CURLOPT_HTTPHEADER, headers);
   ACTQL_SET(ACTQL_CURLOPT_CAINFO, client->ca_path);
-  ACTQL_SET(ACTQL_CURLOPT_SSLCERT, client->certificate_path);
-  ACTQL_SET(ACTQL_CURLOPT_SSLKEY, client->key_path);
+  if (client->certificate_path != NULL) {
+    ACTQL_SET(ACTQL_CURLOPT_SSLCERT, client->certificate_path);
+    ACTQL_SET(ACTQL_CURLOPT_SSLKEY, client->key_path);
+  }
   ACTQL_SET(ACTQL_CURLOPT_SSL_VERIFYPEER, 1L);
   ACTQL_SET(ACTQL_CURLOPT_SSL_VERIFYHOST, 2L);
   ACTQL_SET(ACTQL_CURLOPT_FOLLOWLOCATION, 0L);

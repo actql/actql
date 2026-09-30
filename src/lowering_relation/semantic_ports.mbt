@@ -66,7 +66,6 @@ pub fn node_accepts_managed_carrier_view(
     | "SGA.bounds_check"
     | "SGA.degree_metrics"
     | "SGA.components"
-    | "SGA.reachable"
     | "SGA.equal"
     | "SGA.diff"
     | "SGA.graft"
@@ -88,6 +87,7 @@ pub fn node_accepts_managed_carrier_view(
     | "BRIDGE.graph.to_edge_rows" => true
     "SGA.apply_delta" => index == 0
     "TEA.join.asof" => index == 0
+    "SGA.reachable" => index == 0
     "SGA.shortest_path" => index == 0
     "SGA.subgraph" => index == 0
     "SGA.traverse" => index == 0
@@ -285,6 +285,7 @@ pub fn node_accepts_managed_relation_view(
   if node.input_targets.length() == 2 && index >= 0 && index < 2 {
     return match node.payload {
       GraphConstructionValue(_) => operation(node) == "BRIDGE.rows.to_graph"
+      GraphReachRows(_) => index == 1 && operation(node) == "SGA.reachable"
       GraphTraverseRows(_) => index == 1 && operation(node) == "SGA.traverse"
       GraphSubgraphValue(_) => index == 1 && operation(node) == "SGA.subgraph"
       GraphApplyValue(_) => index == 1 && operation(node) == "SGA.apply_delta"

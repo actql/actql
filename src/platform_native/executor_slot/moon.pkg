@@ -1,0 +1,13 @@
+supported_targets = "native"
+
+import {
+  "moonbitlang/core/encoding/utf8",
+}
+
+import {
+  "moonbitlang/core/env",
+} for "wbtest"
+
+options(
+  "native-stub": [ "executor_slot_stub.c" ],
+)

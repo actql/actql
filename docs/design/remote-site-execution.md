@@ -55,6 +55,36 @@ handle before the ordinary Host task commit can run. Site-issued evidence on
 its own cannot commit a DAG output, even when its signature and physical
 subject are otherwise valid.
 
+## Projecting an existing source-free Run
+
+`@actql/run-host-core.issueSourceFreeRunMaterials(prepared, compilation,
+admission, definition, retained)` projects an existing source-free, effect-free
+JSON Values Run into `actql-remote-run-materials/0.1`. `retained` contains the
+original document, optional parameter body, admitted environment owner and its
+original wire body. The existing Run binding verifies the compilation,
+admission and definition. Ordinary bounded input checking verifies the retained
+Program and parameter identities against that preparation; it does not compile
+a new executable Plan, issue authorization, or issue a new Run definition.
+
+Run identity, scope, creation and expiration times come from the admitted
+definition. Prepared invocation and authorization come from the admitted Run
+evidence. Callers cannot override these fields. The issuer does not extend or
+refresh expiry; the Site must still verify current authority and lifetime at
+receipt and physical start. Receiving Site admission reconstructs the Plan with
+its existing checker/compiler and matches the original Run definition CID;
+matching identity alone is not execution permission.
+
+The encoded inner body is bounded to 262144 UTF-8 bytes, including JSON quoting.
+Program, parameters and environment retain their existing 65536-byte bounds;
+passing those individual checks does not exempt the aggregate wire limit. The
+existing `pollDispatchMaterialsJson` issuer wraps this body without changing the
+Connector input binding or the dispatch identity domain. No wire version, CID
+preimage, stored data or authorization contract changes are required.
+
+This projection does not supply response-loss recovery, handout cancellation,
+restart execution permission, or repair missing Output by recomputation. Those
+remain separate from Run identity admission and physical resource release.
+
 ## Dispatch identity and durable admission
 
 A remote dispatch separates four identities:
@@ -66,7 +96,8 @@ A remote dispatch separates four identities:
 - transport nonce and sequence values protect one communication session.
 
 The canonical dispatch request binds the Coordinator authority, Run
-Definition, exact task and attempt, target Site and generation, runtime bundle,
+Definition (`run_definition_cid` is always the `actql-run-definition/0.1`
+CID, never a Program definition CID), exact task and attempt, target Site and generation, runtime bundle,
 Connector registration and revisions, input binding, obligations, budget, and
 grant. It excludes future execution results and transport nonces. Its identity
 is independent of the transport encoding.

@@ -84,6 +84,8 @@ jobs:
           python: 'true'
       - name: Check common core
         run: moon check --target "${{ matrix.target }}" --deny-warn
+      - name: Check independent fixed Run materials identity
+        run: node --test scripts/client-values-run-materials-vector.test.mjs
       # Measured on these 2-vCPU runners: the default left native test
       # execution on about one CPU; one job per CPU shortened execution on
       # every target with no change in memory. Building is unaffected.
@@ -190,6 +192,17 @@ jobs:
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ github.workspace }}/.native-tests
         run: npm run check:native-http-client
+      - name: Test public packed Run materials against native resident Site
+        id: packed-materials
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/packed-resident-materials
+        run: node scripts/test-packed-resident-materials.mjs
+      - name: Retain packed resident materials evidence
+        if: always() && steps.packed-materials.outputs.evidence-directory != ''
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.packed-materials.outputs.evidence-directory }}
+          name: packed-resident-materials-${{ github.sha }}
       - name: Verify registered Native retained product path
         run: |
           moon build --target js --release

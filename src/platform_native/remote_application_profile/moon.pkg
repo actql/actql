@@ -22,6 +22,9 @@ import {
   "actql/actql/platform_native/bounded_files",
   "actql/actql/platform_native/remote_agent" @agent,
   "actql/actql/platform_native/remote_runtime" @runtime,
+  "actql/actql/pipeline_check_context" @context,
+  "actql/actql/program_references" @program_refs,
+  "actql/actql/run_publication" @publication,
 }
 
 import {

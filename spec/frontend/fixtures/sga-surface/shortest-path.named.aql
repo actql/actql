@@ -1,0 +1,34 @@
+AQL '0.1';
+PROGRAM 'sga.shortest_path' {
+  STAGE main {
+    DATA nodes = OP values {
+      "schema": {"id": {"type": "string", "nullable": false}},
+      "rows": [{"id": "A"}, {"id": "B"}, {"id": "C"}, {"id": "D"}]
+    };
+    DATA edges = OP values {
+      "schema": {
+        "src": {"type": "string", "nullable": false},
+        "dst": {"type": "string", "nullable": false}
+      },
+      "rows": [
+        {"src": "A", "dst": "B"}, {"src": "B", "dst": "D"},
+        {"src": "A", "dst": "C"}, {"src": "C", "dst": "D"}
+      ]
+    };
+    DATA g = OP graph {
+      "nodes": {"from": "nodes", "id": "id", "fields": []},
+      "edges": {"from": "edges", "source": "src", "target": "dst", "fields": []}
+    };
+    DATA shortest = FROM g |> shortest_path(
+      source: "A", target: "D", direction: "out", max_hops: 3,
+      max_output_rows: 1);
+    RESULT answer = {
+      "from": "shortest",
+      "fields": [
+        "source_id", "target_id", "total_cost", "hop_count",
+        "node_ids", "edge_ids"
+      ]
+    };
+  }
+  RESULT answer = {"from": {"stage": "main", "result": "answer"}};
+}

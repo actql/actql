@@ -1,0 +1,20 @@
+{
+  "answer": {
+    "schema": {
+      "source_id": {"type": "string", "nullable": false},
+      "target_id": {"type": "string", "nullable": false},
+      "total_cost": {"type": "number", "nullable": false},
+      "hop_count": {"type": "number", "nullable": false},
+      "node_ids": {"type": "object", "nullable": false},
+      "edge_ids": {"type": "object", "nullable": false}
+    },
+    "rows": [{
+      "source_id": "A", "target_id": "D", "total_cost": 2,
+      "hop_count": 2, "node_ids": ["A", "B", "D"],
+      "edge_ids": [
+        {"src": "A", "dst": "B", "rel": null},
+        {"src": "B", "dst": "D", "rel": null}
+      ]
+    }]
+  }
+}

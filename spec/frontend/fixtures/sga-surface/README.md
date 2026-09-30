@@ -17,6 +17,21 @@ adding a step. The independently authored expected Program therefore binds
 `reach.start.from` to `nodes`; it also records that named and OP syntax have
 the same Program meaning.
 
+The Relation-selector Result explicitly exports `start_id`, `node_id`,
+`depth`, and the semantic `id` alias. It does not ask the Host to infer an
+open Result projection. The independently authored rows follow the common
+Reach law: starts A and B yield A/A at depth zero, A/B at depth one, and B/B
+at depth zero, in start/endpoint order.
+`reach-selector-duplicates` supplies B, A, B and expects exactly those same
+three rows; `reach-selector-empty` expects no rows; and
+`reach-selector-nullable` supplies the non-null A under a nullable declaration
+and expects only A/A and A/B. Their expected Programs retain the seed producer
+as a separate input, without expanding its references into acquisitions.
+The packed driver also tests selector type rejection before Run acceptance,
+and well-typed selected NULL and missing-member failures without a Result.
+These cases require their own public Host evidence; syntax or kernel success
+does not by itself prove the packed path.
+
 `reach-subgraph.expected-results.json` records independent expected schema and
 rows from the normative reach and induced-subgraph laws: A is included at
 zero hops, B is reached, C is excluded, and precisely the A-to-B edge remains.
@@ -41,6 +56,13 @@ Graph path. The independent Program keeps the seed as one producer, and the
 Result fixture expects the semantic string IDs, node sequence, and closed
 `{src, dst, rel}` edge identity with an explicit null label. It declares no
 extra sort or materialization.
+`shortest-path.named.aql` asks for the shortest A-to-D path in a diamond
+Graph. A-to-B-to-D and A-to-C-to-D have equal unit cost and hop count; the
+normative node-identity tie break selects B. Its independently authored
+Program preserves both explicit endpoints, the hop and output bounds, and one
+Named Result. Its Result fixture checks total cost, hop count, ordered node
+IDs, and both closed edge identities. The additional fourteen-case and native
+CLI evidence is recorded separately below.
 `union-graphs.named.aql` composes two Graph producers with a one-element
 ordered `with` list, then declares separate node and edge Results. The second
 Graph shares B with the first, adds C and B-to-C, and the expected union keeps
@@ -86,6 +108,26 @@ checks typed Graph/Delta task edges and Result roots, and rejects a Relation
 passed to a Graph-only operation and a bounds call without a threshold.
 Source authorization and independent positive, rejection and boundary
 fixtures for other Graph operations remain separate work.
+
+At `5835d644410e702223c0b77250a9a154abfcabea`, all fourteen fixtures,
+including `shortest-path`, passed through clean packed Embedded Local and
+HTTP. The targeted native CLI shortest-path run also matched the independent
+path, cost, hop count and edge identities. Invalid `max_hops: 0` was rejected
+before Run acceptance through both SDK transports. The fixture driver checks
+accepted Run counts and actual source I/O; no extra Run or read was introduced
+by that refusal. See the
+[additional acceptance record](../../../../docs/reviews/2026-09-30-sga-shortest-acceptance.md)
+for source inputs, package digests and verification limits.
+
+These results use the prior Graph provider, not the newer PR #92 semantics.
+The initial separate #92 integration rejected authored edge Result order in
+`diff-apply` and `mean-graphs`; its successful `graphs-equal` result does not
+close that regression. The subsequent checked Graph order correction is now
+merged with PR #63. At `64812d8eff6d16414c4e894d5845e2f44d8b21c7`, all
+original eight cases passed packed Embedded Local, HTTPS Remote and the
+Node-free native CLI. See the
+[follow-up record](../../../../docs/reviews/2026-09-30-sga-selector-host-followup.md)
+for artifact correspondence and the separate Reach selector provider gap.
 
 The zero-argument node_rows/edge_rows syntax emits boolean `true` in
 the existing Program. An empty object is not the registered operation body.

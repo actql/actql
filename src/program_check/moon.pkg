@@ -24,6 +24,7 @@ formatter(
 )
 
 import {
+  "actql/actql/expression_syntax",
   "actql/actql/source_value" @source,
   "actql/actql/calendar_typing" @calendar,
   "actql/actql/parameter_binding" @parameters,

@@ -9,8 +9,324 @@ struct Store {
   max_record_bytes : Int
   active_writers : Map[String, Bool]
   pending_writers : Map[String, PendingPayloadCleanup]
+  // Exact ownership acquired but not yet confirmed in the durable allocation
+  // record. Capacity stays with this Store until persistence and reclaim finish.
+  pending_allocations : Map[String, RecordedAllocation]
   active_readers : Map[String, Int]
   mut closed : Bool
+  // Acceptance evidence only: called at the steps of a payload allocation.
+  mut allocation_observer : ((String) -> Unit)?
+  // Whitebox fault injection at fallible allocation preparation boundaries.
+  allocation_failure : Ref[((String) -> NativePublicationStoreIssue?)?]
+}
+
+///|
+/// Acceptance evidence only: `observer` is called with `"allocated"` once the
+/// private staging file exists and before its ownership is durable, and with
+/// `"owned"` once the ownership is durable and before the file gets its
+/// public name.
+pub fn Store::observe_allocation(
+  self : Store,
+  observer : (String) -> Unit,
+) -> Unit {
+  self.allocation_observer = Some(observer)
+}
+
+///|
+fn observe(store : Store, step : String) -> Unit {
+  match store.allocation_observer {
+    Some(observer) => observer(step)
+    None => ()
+  }
+}
+
+///|
+fn[T] allocation_prepare(
+  store : Store,
+  step : String,
+  operation : () -> Result[T, NativePublicationStoreIssue],
+) -> Result[T, NativePublicationStoreIssue] {
+  if store.allocation_failure.val is Some(inject) && inject(step) is Some(issue) {
+    return Err(issue)
+  }
+  operation()
+}
+
+///|
+// The filesystem creation primitive retains the acquired identity even when
+// its directory sync reports failure. Borrow that exact acquisition result;
+// inspecting a name after an error would not prove this Store created it.
+#borrow(root)
+extern "C" fn allocation_device_ffi(root : @filesystem.Root) -> UInt64 = "actql_native_filesystem_root_result_device"
+
+///|
+#borrow(root)
+extern "C" fn allocation_inode_ffi(root : @filesystem.Root) -> UInt64 = "actql_native_filesystem_root_result_inode"
+
+///|
+#borrow(root)
+extern "C" fn allocation_acquired_ffi(root : @filesystem.Root) -> Int = "actql_native_filesystem_root_result_directory_acquired"
+
+///|
+/// The name of the private allocation area a payload is first created in.
+/// The area is a directory this Store creates exclusively; its recorded
+/// identity, not its name, is what proves that what is inside was created by
+/// this allocation.
+fn allocation_name(
+  request : @payload.PublicationPayloadRequest,
+  ordinal : Int64,
+) -> String {
+  "alloc-" + record_key(request)[7:].to_owned() + "-" + ordinal.to_string()
+}
+
+///|
+/// The file name inside an allocation area.
+const ALLOCATION_FILE : String = "payload"
+
+///|
+/// What the Store recorded about a request's allocation area: its name and,
+/// once the area existed, its identity. A name without an identity gives no
+/// authority over anything found at that name.
+priv struct RecordedAllocation {
+  name : String
+  identity : @filesystem.NativeFileOwnership?
+}
+
+///|
+fn parse_digits(text : String) -> Int64? {
+  if text.is_empty() {
+    return None
+  }
+  let mut value = 0L
+  for character in text {
+    let code = character.to_int()
+    if code < 48 || code > 57 || value > 100000000000000L {
+      return None
+    }
+    value = value * 10L + (code - 48).to_int64()
+  }
+  Some(value)
+}
+
+///|
+fn allocation_body(allocation : RecordedAllocation) -> Bytes {
+  @utf8.encode(
+    match allocation.identity {
+      Some(identity) =>
+        allocation.name +
+        "|" +
+        identity.device.to_string() +
+        "|" +
+        identity.inode.to_string()
+      None => allocation.name
+    },
+  )
+}
+
+///|
+/// The allocation recorded for a request, if any. A recorded body that is
+/// not an allocation of this request is a collision, never a name to touch.
+fn recorded_allocation(
+  store : Store,
+  request : @payload.PublicationPayloadRequest,
+) -> Result[RecordedAllocation?, NativePublicationStoreIssue] {
+  let prefix = "alloc-" + record_key(request)[7:].to_owned() + "-"
+  match
+    store.database.read("publication_payload_allocation", record_key(request)) {
+    Ok(value) => {
+      let parts = @utf8.decode_lossy(value.body).split("|").collect()
+      guard parts.length() == 1 || parts.length() == 3 else {
+        return Err(StateCollision)
+      }
+      let name = parts[0].to_owned()
+      guard name.has_prefix(prefix) &&
+        parse_digits(
+          name.unsafe_substring(start=prefix.length(), end=name.length()),
+        )
+        is Some(_) else {
+        return Err(StateCollision)
+      }
+      if parts.length() == 1 {
+        return Ok(Some({ name, identity: None, }))
+      }
+      match
+        (parse_digits(parts[1].to_owned()), parse_digits(parts[2].to_owned())) {
+        (Some(device), Some(inode)) =>
+          Ok(
+            Some({
+              name,
+              identity: Some({
+                device: device.reinterpret_as_uint64(),
+                inode: inode.reinterpret_as_uint64(),
+              }),
+            }),
+          )
+        _ => Err(StateCollision)
+      }
+    }
+    Err(@sqlite.NotFound) => Ok(None)
+    Err(issue) => Err(Database(issue))
+  }
+}
+
+///|
+/// The ordinal of the next allocation for a request: one more than the last
+/// recorded one, so every allocation of a key has its own area, and a name
+/// that could not be created is never tried again.
+fn next_allocation_ordinal(
+  store : Store,
+  request : @payload.PublicationPayloadRequest,
+) -> Result[Int64, NativePublicationStoreIssue] {
+  match recorded_allocation(store, request) {
+    Ok(None) => Ok(1L)
+    Ok(Some(allocation)) => {
+      let prefix = "alloc-" + record_key(request)[7:].to_owned() + "-"
+      match
+        parse_digits(
+          allocation.name.unsafe_substring(
+            start=prefix.length(),
+            end=allocation.name.length(),
+          ),
+        ) {
+        Some(ordinal) => Ok(ordinal + 1L)
+        None => Err(StateCollision)
+      }
+    }
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Record a request's allocation durably: first its name, before the area
+/// exists; then, once the area was created exclusively, its identity.
+fn record_allocation(
+  store : Store,
+  key : String,
+  allocation : RecordedAllocation,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  let body = allocation_body(allocation)
+  match store.database.insert("publication_payload_allocation", key, body) {
+    Ok(_) => return Ok(())
+    Err(@sqlite.Collision) => ()
+    Err(issue) => return Err(Database(issue))
+  }
+  let current = match
+    store.database.read("publication_payload_allocation", key) {
+    Ok(value) => value
+    Err(issue) => return Err(Database(issue))
+  }
+  match
+    store.database.compare_exchange(
+      "publication_payload_allocation",
+      key,
+      current.revision,
+      body,
+    ) {
+    Ok(_) => Ok(())
+    Err(issue) => Err(Database(issue))
+  }
+}
+
+///|
+/// The allocation area of a request when, and only when, the Store proved it
+/// created it: the recorded identity matches the directory found at the
+/// name. Anything inside was created by this allocation, since the area was
+/// empty when it was created and only this Store creates names in it.
+priv struct OwnedAllocation {
+  name : String
+  identity : @filesystem.NativeFileOwnership
+  area : @filesystem.Root
+  file : @filesystem.NativeFileGeneration?
+}
+
+///|
+fn owned_allocation(
+  store : Store,
+  request : @payload.PublicationPayloadRequest,
+) -> Result[OwnedAllocation?, NativePublicationStoreIssue] {
+  guard recorded_allocation(store, request)
+    is Ok(Some({ name, identity: Some(identity), })) else {
+    return match recorded_allocation(store, request) {
+      Err(issue) => Err(issue)
+      _ => Ok(None)
+    }
+  }
+  let actual = match store.root.inspect_directory(name) {
+    Ok(Some(value)) => value
+    Ok(None) => return Ok(None)
+    Err(@filesystem.GenerationMismatch) => return Ok(None)
+    Err(issue) => return Err(Filesystem(issue))
+  }
+  if actual.device != identity.device || actual.inode != identity.inode {
+    return Ok(None)
+  }
+  let area = match store.root.open_child(name) {
+    Ok(value) => value
+    Err(issue) => return Err(Filesystem(issue))
+  }
+  let file = match area.inspect_generation(ALLOCATION_FILE) {
+    Ok(value) => value
+    Err(issue) => return Err(Filesystem(issue))
+  }
+  Ok(Some({ name, identity, area, file, }))
+}
+
+///|
+// An intent without acquired ownership cannot distinguish a directory made
+// by a dead process from a foreign entry. Absence can be synchronized and
+// reclaimed; presence requires reconciliation, never name-only deletion.
+fn allocation_owner_unknown(
+  store : Store,
+  request : @payload.PublicationPayloadRequest,
+) -> Result[Bool, NativePublicationStoreIssue] {
+  match recorded_allocation(store, request) {
+    Ok(Some({ name, identity: None, })) =>
+      match store.root.inspect_directory(name) {
+        Ok(None) => Ok(false)
+        Ok(Some(_)) | Err(@filesystem.GenerationMismatch) => Ok(true)
+        Err(issue) => Err(Filesystem(issue))
+      }
+    Ok(_) => Ok(false)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Reclaim what an owned allocation area holds: the file, only when it is
+/// the recorded generation or no generation was recorded yet, then the
+/// area itself once empty.
+fn reclaim_owned_allocation(
+  store : Store,
+  record : @payload.PublicationPayloadRecord,
+  allocation : OwnedAllocation,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  match allocation.file {
+    Some(generation) => {
+      match @payload.publication_payload_record_ownership(record) {
+        Some(owner) =>
+          if !allocation_matches(generation, owner) {
+            return Err(Filesystem(@filesystem.GenerationMismatch))
+          }
+        None => ()
+      }
+      match
+        filesystem(
+          allocation.area.reclaim_generation(ALLOCATION_FILE, generation),
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+    }
+    None => ()
+  }
+  match
+    filesystem(
+      store.root.remove_directory(allocation.name, allocation.identity),
+    ) {
+    Ok(true) => Ok(())
+    Ok(false) => Err(CleanupPending)
+    Err(issue) => Err(issue)
+  }
 }
 
 ///|
@@ -207,8 +523,11 @@ pub fn open_store(
     max_record_bytes: max_record_bytes.to_int(),
     active_writers: Map([]),
     pending_writers: Map([]),
+    pending_allocations: Map([]),
     active_readers: Map([]),
     closed: false,
+    allocation_observer: None,
+    allocation_failure: Ref(None),
   })
 }
 
@@ -307,9 +626,18 @@ fn discovered_generations(
   store : Store,
   request : @payload.PublicationPayloadRequest,
 ) -> Result[
-  (@filesystem.NativeFileGeneration?, @filesystem.NativeFileGeneration?),
+  (
+    @filesystem.NativeFileGeneration?,
+    @filesystem.NativeFileGeneration?,
+    OwnedAllocation?,
+  ),
   NativePublicationStoreIssue,
 ] {
+  // The allocation area, when the Store proved it created it.
+  let allocation = match owned_allocation(store, request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let staging = match
     store.root.inspect_generation(
       @payload.publication_payload_staging_name(request),
@@ -324,7 +652,7 @@ fn discovered_generations(
     Ok(value) => value
     Err(issue) => return Err(Filesystem(issue))
   }
-  Ok((staging, committed))
+  Ok((staging, committed, allocation))
 }
 
 ///|
@@ -333,11 +661,19 @@ fn reclaimable_generation(
   actual : @filesystem.NativeFileGeneration,
   committed_name : Bool,
 ) -> Result[Bool, NativePublicationStoreIssue] {
+  // A record without durable ownership never reached a public name: the
+  // file is created under the private allocation name and linked to its
+  // public name only after the ownership is durable. A file found at a
+  // public name is then foreign and is left alone.
   guard @payload.publication_payload_record_ownership(record) is Some(owner) else {
-    return if committed_name { Ok(false) } else { Err(RecoveryRequired) }
+    return Ok(false)
   }
   if !allocation_matches(actual, owner) {
-    return if committed_name &&
+    // The owned generation is known: another generation at the public
+    // staging name is a foreign file (the owned one never got that name, or
+    // lost it), and at the committed name it is foreign as long as nothing
+    // was committed. Both are left alone.
+    return if !committed_name ||
       @payload.publication_payload_record_generation(record) is None {
       Ok(false)
     } else {
@@ -369,6 +705,21 @@ fn reclaim_record_internal(
   if store.active_readers.get(key).unwrap_or(0) != 0 {
     return Err(ReaderBusy)
   }
+  if store.pending_allocations.get(key) is Some(allocation) {
+    if known_unallocated {
+      return Err(StateCollision)
+    }
+    // A failed ownership write does not discard the identity returned by
+    // exclusive creation. Make that exact identity durable before recovery
+    // proceeds; failure keeps both this owner and its reservation.
+    match
+      allocation_prepare(store, "identity", fn() {
+        record_allocation(store, key, allocation)
+      }) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
   let state = @payload.publication_payload_record_state(record)
   if state == @payload.Reclaimed {
     match
@@ -391,6 +742,7 @@ fn reclaim_record_internal(
   }
   let mut reclaim_staging = false
   let mut reclaim_committed = false
+  let mut reclaim_allocation = false
   if !known_unallocated {
     if found.0 is Some(value) {
       reclaim_staging = match reclaimable_generation(record, value, false) {
@@ -404,6 +756,7 @@ fn reclaim_record_internal(
         Err(issue) => return Err(issue)
       }
     }
+    reclaim_allocation = found.2 is Some(_)
   } else if @payload.publication_payload_record_ownership(record) is Some(_) ||
     @payload.publication_payload_record_generation(record) is Some(_) {
     return Err(StateCollision)
@@ -431,8 +784,22 @@ fn reclaim_record_internal(
         Err(issue) => return Err(issue)
       }
     }
+    reclaim_allocation = found.2 is Some(_)
   }
   if !known_unallocated {
+    match allocation_owner_unknown(store, request) {
+      Ok(true) => return Err(RecoveryRequired)
+      Ok(false) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
+  if !known_unallocated {
+    if reclaim_allocation && found.2 is Some(allocation) {
+      match reclaim_owned_allocation(store, record, allocation) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+    }
     if reclaim_staging && found.0 is Some(generation) {
       match
         filesystem(
@@ -487,6 +854,7 @@ fn reclaim_record_internal(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
+  ignore(store.pending_allocations.remove(key))
   Ok(())
 }
 
@@ -714,19 +1082,102 @@ pub fn Store::begin_payload(
       }
     Err(issue) => return Err(issue)
   }
-  let physical = match
-    self.root.create_writer(
-      @payload.publication_payload_staging_name(request),
-      @payload.publication_payload_request_max_bytes(request),
-    ) {
+  // Record the allocation intent before creation; the name alone never
+  // authorizes deleting an entry found there.
+  let ordinal = match next_allocation_ordinal(self, request) {
     Ok(value) => value
     Err(issue) => {
+      if !cleanup_after_begin_failure(self, writing) {
+        return Err(CleanupPending)
+      }
+      return Err(issue)
+    }
+  }
+  let name = allocation_name(request, ordinal)
+  match record_allocation(self, key, { name, identity: None, }) {
+    Ok(_) => ()
+    Err(issue) => {
+      if !cleanup_after_begin_failure(self, writing) {
+        return Err(CleanupPending)
+      }
+      return Err(issue)
+    }
+  }
+  observe(self, "allocation-recorded")
+  // The allocation area is created exclusively; a name already taken is a
+  // conflict and nothing there is touched. Its identity is recorded before
+  // anything is created inside it, so a file found there later is this
+  // allocation's by that identity, never by the name.
+  let identity = match self.root.create_directory(name) {
+    Ok(value) => value
+    Err(issue) => {
+      let acquired = allocation_acquired_ffi(self.root)
+      if acquired != 0 {
+        if acquired == 2 {
+          self.pending_allocations[key] = {
+            name,
+            identity: Some({
+              device: allocation_device_ffi(self.root),
+              inode: allocation_inode_ffi(self.root),
+            }),
+          }
+        }
+        if reclaim_record(self, writing) is Err(_) {
+          return Err(CleanupPending)
+        }
+        return Err(Filesystem(issue))
+      }
       if !cleanup_after_begin_failure(self, writing) {
         return Err(CleanupPending)
       }
       return Err(Filesystem(issue))
     }
   }
+  let allocation = { name, identity: Some(identity), }
+  self.pending_allocations[key] = allocation
+  observe(self, "allocation-created")
+  match
+    allocation_prepare(self, "identity", fn() {
+      record_allocation(self, key, allocation)
+    }) {
+    Ok(_) => ignore(self.pending_allocations.remove(key))
+    Err(issue) => {
+      if reclaim_record(self, writing) is Err(_) {
+        return Err(CleanupPending)
+      }
+      return Err(issue)
+    }
+  }
+  let area = match
+    allocation_prepare(self, "open", fn() {
+      filesystem(self.root.open_child(name))
+    }) {
+    Ok(value) => value
+    Err(issue) => {
+      if reclaim_record(self, writing) is Err(_) {
+        return Err(CleanupPending)
+      }
+      return Err(issue)
+    }
+  }
+  let physical = match
+    allocation_prepare(self, "writer", fn() {
+      filesystem(
+        area.create_writer(
+          ALLOCATION_FILE,
+          @payload.publication_payload_request_max_bytes(request),
+        ),
+      )
+    }) {
+    Ok(value) => value
+    Err(issue) => {
+      if reclaim_record(self, writing) is Err(_) {
+        return Err(CleanupPending)
+      }
+      return Err(issue)
+    }
+  }
+  observe(self, "allocated")
   let owned = match
     protocol(
       @payload.prepare_publication_payload_owned(
@@ -751,10 +1202,35 @@ pub fn Store::begin_payload(
       }
     Err(issue) => {
       let stopped = physical.cancel() is Ok(_)
-      if stopped && cleanup_after_begin_failure(self, writing) {
+      if stopped && reclaim_record(self, writing) is Ok(_) {
         return Err(issue)
       }
       match retain_pending_writer(self, writing, physical, stopped) {
+        Ok(_) => return Err(CleanupPending)
+        Err(_) => return Err(CleanupPending)
+      }
+    }
+  }
+  observe(self, "owned")
+  // Only now does the file get its public staging name, exclusively: a
+  // foreign file there is a conflict, is never replaced, and this owned
+  // allocation is reclaimed by its record.
+  match
+    physical.adopt_name(
+      self.root,
+      @payload.publication_payload_staging_name(request),
+    ) {
+    Ok(_) =>
+      // The area is empty now; if it cannot go yet, recovery removes it by
+      // its identity later.
+      ignore(self.root.remove_directory(name, identity))
+    Err(issue) => {
+      let stopped = physical.cancel() is Ok(_)
+      let current = load_record(self, key).unwrap_or(owned)
+      if stopped && reclaim_record(self, current) is Ok(_) {
+        return Err(Filesystem(issue))
+      }
+      match retain_pending_writer(self, current, physical, stopped) {
         Ok(_) => return Err(CleanupPending)
         Err(_) => return Err(CleanupPending)
       }

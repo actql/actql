@@ -435,3 +435,11 @@ pub fn durable_dispatch_record_attempt_identity(
 ) -> Result[String, DispatchIssue] {
   dispatch_request_attempt_identity(durable.request)
 }
+
+///|
+/// True when the durable record says execution was cancelled.
+pub fn durable_dispatch_record_execution_cancelled(
+  record : DurableDispatchRecord,
+) -> Bool {
+  record.execution_code == 5
+}

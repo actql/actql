@@ -36,11 +36,16 @@ for (const [source, destination] of [
   ['adapters/host-node/fixtures/query-amount-environment.json', 'source-environment.json'],
   ['spec/local-check-environment.json', 'base-environment.json'],
   ['scripts/accept-sga-public-source.mjs', 'accept-sga-public-source.mjs'],
+  ['scripts/reach-selector-capacity-fixture.mjs', 'reach-selector-capacity-fixture.mjs'],
+  ['scripts/fixtures/packed-sga-cancellation.mjs', 'sga-cancellation.mjs'],
 ]) {
   await writeFile(join(root, destination), await readFile(join(repository, source)));
 }
 await mkdir(join(root, 'sga-source-fixtures'));
 for (const name of ['normalize-rows', 'mean-graphs', 'traverse-paths',
+  'shortest-path',
+  'reach-selector', 'reach-selector-duplicates', 'reach-selector-empty',
+  'reach-selector-nullable',
   'union-graphs', 'graft-graphs', 'subtract-graphs', 'degree-rows',
   'components', 'graph-bounds', 'match-projections', 'reach-subgraph',
   'graphs-equal', 'diff-apply']) {
@@ -62,9 +67,16 @@ for (const name of ['MOON_HOME', 'ACTQL_LOCAL_SOURCE_PROFILE',
   'ACTQL_LOCAL_EFFECT_PROFILE', 'ACTQL_LOCAL_STATE_DIR']) {
   delete runtimeEnvironment[name];
 }
+if (process.argv.includes('--cancellation-only')) {
+  console.log(run(process.execPath, ['sga-cancellation.mjs'], root,
+    runtimeEnvironment, 120000).trimEnd());
+  return;
+}
 const output = run(process.execPath, ['acceptance.mjs'], root,
   runtimeEnvironment, 900_000);
 console.log(output.trimEnd());
+console.log(run(process.execPath, ['sga-cancellation.mjs'], root,
+  runtimeEnvironment, 120000).trimEnd());
 run('moon', ['build', '--target', 'native', '--release',
   'src/cmd/native_client'], repository, environment);
 const nativeClient = join(repository, '_build/native/release/build/cmd',

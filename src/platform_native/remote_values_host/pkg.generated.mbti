@@ -60,6 +60,7 @@ pub(all) enum NativeRemoteValuesSiteEndpointIssue {
 }
 
 type NativeRemoteValuesTaskExecutor
+pub fn NativeRemoteValuesTaskExecutor::result_definition_cid(Self) -> String
 
 pub(all) struct NativeRemoteValuesTaskLimits {
   finalization_quantum : Int
