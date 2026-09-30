@@ -480,7 +480,7 @@ and checked by `check:local-resource-accounting`.
 | Operation-specific boundary records | 68 |
 | Four-role lifecycle assurance | 68 |
 | Full route work/workspace assurance | 68 |
-| Path-scoped work/workspace assurance | 119 |
+| Path-scoped work/workspace assurance | 120 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -4049,6 +4049,19 @@ Store, compares producer and two consumer Named Results with independent
 expected rows, and delivers in-flight cancellation to each selected query.
 The fused paths remain available where splitting is unnecessary. These proofs
 do not establish every endpoint variant or mixed Carrier failure path.
+
+Selected `SGA.equal` now accepts two exact managed Graph views when a later
+Relation operation splits the authored Stage. Each operation input position
+has its own binding and completion obligation, including when both positions
+refer to the same material. The existing bounded comparison kernel is shared
+with the fused route; the latter remains preferred without a later Relation
+consumer. A portable fixture checks repeated input positions, foreign-port
+rejection, exact and one-short work and workspace limits, positive-work
+cancellation, and input custody. The Node standard Host retains and publishes
+equal-then-filter and unequal-then-filter results in a real Store, compares
+their Named Results and two consumer results with independent expected rows,
+and delivers cancellation after selected comparison begins. This selected
+route does not establish the remaining Graph comparison or diff routes.
 
 The retained Relation path now also splits a checked finite-list
 `VEC.merge_rankings` occurrence from a later `filter` in the same Stage.

@@ -11,10 +11,13 @@ priv enum GraphsEqualPhase {
 
 ///|
 priv struct GraphsEqualState {
-  left_read : @graph.ProducerRead
-  right_read : @graph.ProducerRead
-  left : @storage.Storage
-  right : @storage.Storage
+  left : GraphReadSource
+  right : GraphReadSource
+  graph : @carrier.Graph
+  left_nodes : Int
+  right_nodes : Int
+  left_edges : Int
+  right_edges : Int
   schema : @schema.Schema
   mut output : @execution.AdmittedOutput?
   rows : Ref[@execution.AdmittedOutputRows?]
@@ -122,14 +125,58 @@ fn advance_checked_values_equal(
 }
 
 ///|
+fn equal_node_index(
+  source : GraphReadSource,
+  identity : @value.CheckedValue,
+) -> Result[Int?, GraphsEqualIssue] {
+  match source {
+    Stored(read) =>
+      match @graph.producer_read_storage(read) {
+        Some(storage) =>
+          @storage.node_index(storage, identity).map_err(issue => {
+            GraphsEqualStorage(issue)
+          })
+        None => Err(GraphsEqualInputUnavailable)
+      }
+    Viewed(_) =>
+      graph_read_node_index(source, identity).map_err(_ => {
+        GraphsEqualInputUnavailable
+      })
+  }
+}
+
+///|
+fn equal_edge_index(
+  source : GraphReadSource,
+  from : @value.CheckedValue,
+  to : @value.CheckedValue,
+  label : @value.CheckedValue?,
+) -> Result[Int?, GraphsEqualIssue] {
+  match source {
+    Stored(read) =>
+      match @graph.producer_read_storage(read) {
+        Some(storage) =>
+          @storage.edge_index(storage, from, to, label).map_err(issue => {
+            GraphsEqualStorage(issue)
+          })
+        None => Err(GraphsEqualInputUnavailable)
+      }
+    Viewed(_) =>
+      graph_read_edge_index(source, from, to, label).map_err(_ => {
+        GraphsEqualInputUnavailable
+      })
+  }
+}
+
+///|
 fn select_equal_node(
   state : GraphsEqualState,
 ) -> Result[Unit, GraphsEqualIssue] {
-  guard @storage.node_identity(state.left, state.record) is Some(identity) else {
+  guard graph_read_node_identity(state.left, state.record) is Some(identity) else {
     return Err(GraphsEqualInputUnavailable)
   }
-  match @storage.node_index(state.right, identity) {
-    Err(issue) => Err(GraphsEqualStorage(issue))
+  match equal_node_index(state.right, identity) {
+    Err(issue) => Err(issue)
     Ok(None) => {
       state.equal = false
       state.phase = Emit
@@ -149,18 +196,15 @@ fn compare_equal_node_property(
   state : GraphsEqualState,
   quantum : Int,
 ) -> Result[(Bool, Int), GraphsEqualIssue] {
-  guard @storage.carrier(state.left) is @carrier.GraphValue(graph) else {
-    return Err(GraphsEqualInputUnavailable)
-  }
-  let count = @carrier.field_count(@carrier.graph_node_properties(graph))
+  let count = @carrier.field_count(@carrier.graph_node_properties(state.graph))
   if state.property >= count {
     state.record += 1
     state.phase = SelectNode
     return Ok((true, 0))
   }
-  guard @storage.node_property(state.left, state.record, state.property)
+  guard graph_read_node_property(state.left, state.record, state.property)
     is Some(left) &&
-    @storage.node_property(state.right, state.other, state.property)
+    graph_read_node_property(state.right, state.other, state.property)
     is Some(right) else {
     return Err(GraphsEqualInputUnavailable)
   }
@@ -183,15 +227,15 @@ fn compare_equal_node_property(
 fn select_equal_edge(
   state : GraphsEqualState,
 ) -> Result[Unit, GraphsEqualIssue] {
-  guard @storage.edge_endpoints(state.left, state.record)
+  guard graph_read_edge_endpoints(state.left, state.record)
     is Some((source, target)) &&
-    @storage.node_identity(state.left, source) is Some(source_id) &&
-    @storage.node_identity(state.left, target) is Some(target_id) &&
-    @storage.edge_label(state.left, state.record) is Some(label) else {
+    graph_read_node_identity(state.left, source) is Some(source_id) &&
+    graph_read_node_identity(state.left, target) is Some(target_id) &&
+    graph_read_edge_label(state.left, state.record) is Some(label) else {
     return Err(GraphsEqualInputUnavailable)
   }
-  match @storage.edge_index(state.right, source_id, target_id, label) {
-    Err(issue) => Err(GraphsEqualStorage(issue))
+  match equal_edge_index(state.right, source_id, target_id, label) {
+    Err(issue) => Err(issue)
     Ok(None) => {
       state.equal = false
       state.phase = Emit
@@ -211,18 +255,15 @@ fn compare_equal_edge_property(
   state : GraphsEqualState,
   quantum : Int,
 ) -> Result[(Bool, Int), GraphsEqualIssue] {
-  guard @storage.carrier(state.left) is @carrier.GraphValue(graph) else {
-    return Err(GraphsEqualInputUnavailable)
-  }
-  let count = @carrier.field_count(@carrier.graph_edge_properties(graph))
+  let count = @carrier.field_count(@carrier.graph_edge_properties(state.graph))
   if state.property >= count {
     state.record += 1
     state.phase = SelectEdge
     return Ok((true, 0))
   }
-  guard @storage.edge_property(state.left, state.record, state.property)
+  guard graph_read_edge_property(state.left, state.record, state.property)
     is Some(left) &&
-    @storage.edge_property(state.right, state.other, state.property)
+    graph_read_edge_property(state.right, state.other, state.property)
     is Some(right) else {
     return Err(GraphsEqualInputUnavailable)
   }
@@ -253,8 +294,7 @@ fn graphs_equal_step(
     if @bounded.stop_requested(reader) is Some(reason) {
       return @bounded.Stopped(reason, progress, used)
     }
-    if !@graph.producer_read_available(state.left_read) ||
-      !@graph.producer_read_available(state.right_read) {
+    if !graph_read_available(state.left) || !graph_read_available(state.right) {
       return @bounded.Failed(GraphsEqualInputUnavailable, progress, used)
     }
     if used >= state.control_work_remaining {
@@ -263,8 +303,8 @@ fn graphs_equal_step(
     match state.phase {
       CompareCounts => {
         used += 1
-        if @storage.node_count(state.left) != @storage.node_count(state.right) ||
-          @storage.edge_count(state.left) != @storage.edge_count(state.right) {
+        if state.left_nodes != state.right_nodes ||
+          state.left_edges != state.right_edges {
           state.equal = false
           state.phase = Emit
         } else {
@@ -272,7 +312,7 @@ fn graphs_equal_step(
         }
       }
       SelectNode =>
-        if state.record >= @storage.node_count(state.left) {
+        if state.record >= state.left_nodes {
           state.record = 0
           state.phase = SelectEdge
         } else {
@@ -296,7 +336,7 @@ fn graphs_equal_step(
           }
         }
       SelectEdge =>
-        if state.record >= @storage.edge_count(state.left) {
+        if state.record >= state.left_edges {
           state.phase = Emit
         } else {
           used += 1
@@ -376,13 +416,14 @@ fn cleanup_graphs_equal_state(state : GraphsEqualState) -> Bool {
 }
 
 ///|
-pub fn start_graphs_equal(
+fn start_graphs_equal_read(
   control : @bounded.Control,
   preparation : @execution.CompletionPreparation,
   sequence : @lower.PreparedSequence,
   step : Int,
-  left_read : @graph.ProducerRead,
-  right_read : @graph.ProducerRead,
+  left : GraphReadSource,
+  right : GraphReadSource,
+  graph : @carrier.Graph,
   max_rows : Int,
   limits : @execution.ValueLimits,
   max_entries : Int,
@@ -395,6 +436,27 @@ pub fn start_graphs_equal(
   if control_work_limit < 0 {
     return Err(GraphsEqualWorkLimit)
   }
+  let input_matches = match (left, right) {
+    (Stored(left_read), Stored(right_read)) =>
+      @graph.producer_read_matches_operation_input(left_read, owner, step, 0) &&
+      @graph.producer_read_matches_operation_input(right_read, owner, step, 1)
+    (Viewed(left_view), Viewed(right_view)) =>
+      @lifecycle.producer_view_kind(left_view) == @carrier.GraphKind &&
+      @lifecycle.producer_view_kind(right_view) == @carrier.GraphKind &&
+      @lifecycle.producer_read_reference_matches_operation_input(
+        @lifecycle.producer_view_read_reference(left_view),
+        owner,
+        step,
+        0,
+      ) &&
+      @lifecycle.producer_read_reference_matches_operation_input(
+        @lifecycle.producer_view_read_reference(right_view),
+        owner,
+        step,
+        1,
+      )
+    _ => false
+  }
   guard physical_equal(
       @execution.completion_preparation_owner(preparation),
       owner,
@@ -402,10 +464,11 @@ pub fn start_graphs_equal(
     @lower.sequence_step(sequence, step)
     is Some(@lower.GraphRelationStep(prepared)) &&
     @lower.graph_relation_kind(prepared) == @lower.GraphsEqualRelation &&
-    @graph.producer_read_matches_operation_input(left_read, owner, step, 0) &&
-    @graph.producer_read_matches_operation_input(right_read, owner, step, 1) &&
-    @graph.producer_read_storage(left_read) is Some(left) &&
-    @graph.producer_read_storage(right_read) is Some(right) else {
+    input_matches &&
+    graph_read_node_count(left) is Some(left_nodes) &&
+    graph_read_node_count(right) is Some(right_nodes) &&
+    graph_read_edge_count(left) is Some(left_edges) &&
+    graph_read_edge_count(right) is Some(right_edges) else {
     return Err(InvalidGraphsEqualKernel)
   }
   let output = match
@@ -421,15 +484,38 @@ pub fn start_graphs_equal(
   let rows : Ref[@execution.AdmittedOutputRows?] = Ref(None)
   let live = Ref(true)
   let accepted = Ref(false)
-  let port = match
-    @execution.prepare_trusted_output_port(
-      preparation,
-      @pipeline.Step(step),
-      max_entries,
-      max_name_bytes,
-      fn(_) { if live.val { rows.val } else { None } },
-      inputs~,
-    ) {
+  let port_result = match (left, right) {
+    (Stored(_), Stored(_)) =>
+      @execution.prepare_trusted_output_port(
+        preparation,
+        @pipeline.Step(step),
+        max_entries,
+        max_name_bytes,
+        fn(_) { if live.val { rows.val } else { None } },
+        inputs~,
+      )
+    (Viewed(left_view), Viewed(right_view)) =>
+      @execution.prepare_trusted_output_port_with_inputs(
+        preparation,
+        @pipeline.Step(step),
+        max_entries,
+        max_name_bytes,
+        fn(_) { if live.val { rows.val } else { None } },
+        inputs=[
+          @execution.trusted_output_carrier_input(
+            @lifecycle.producer_view_read_reference(left_view),
+          ),
+          @execution.trusted_output_carrier_input(
+            @lifecycle.producer_view_read_reference(right_view),
+          ),
+        ],
+      )
+    _ => {
+      @execution.cancel_admitted_output(output) |> ignore
+      return Err(InvalidGraphsEqualKernel)
+    }
+  }
+  let port = match port_result {
     Ok(value) => value
     Err(issue) => {
       @execution.cancel_admitted_output(output) |> ignore
@@ -437,10 +523,13 @@ pub fn start_graphs_equal(
     }
   }
   let state : GraphsEqualState = {
-    left_read,
-    right_read,
     left,
     right,
+    graph,
+    left_nodes,
+    right_nodes,
+    left_edges,
+    right_edges,
     schema: @lower.graph_relation_output_schema(prepared),
     output: Some(output),
     rows,
@@ -478,6 +567,86 @@ pub fn start_graphs_equal(
     max_noninterruptible_value_nodes: limits.max_nodes,
     max_noninterruptible_value_bytes: limits.max_text_bytes,
   })
+}
+
+///|
+pub fn start_graphs_equal(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  left_read : @graph.ProducerRead,
+  right_read : @graph.ProducerRead,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
+) -> Result[GraphsEqualExecution, GraphsEqualIssue] {
+  guard @graph.producer_read_storage(left_read) is Some(storage) &&
+    @storage.carrier(storage) is @carrier.GraphValue(graph) else {
+    return Err(GraphsEqualInputUnavailable)
+  }
+  start_graphs_equal_read(
+    control,
+    preparation,
+    sequence,
+    step,
+    Stored(left_read),
+    Stored(right_read),
+    graph,
+    max_rows,
+    limits,
+    max_entries,
+    max_name_bytes,
+    inputs,
+    control_work_limit~,
+  )
+}
+
+///|
+pub fn start_graphs_equal_view(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  left : @lifecycle.ProducerView,
+  right : @lifecycle.ProducerView,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[@execution.ProducerRead],
+  control_work_limit? : Int? = None,
+) -> Result[GraphsEqualExecution, GraphsEqualIssue] {
+  let owner = @lower.sequence_owner(sequence)
+  guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.node_input_count(node) == 2 &&
+    @lower.node_input_target(node, 0) is Some(left_target) &&
+    @lower.node_input_target(node, 1) is Some(right_target) &&
+    @lower.preparation_carrier_at(@lower.bound_preparation(owner), left_target)
+    is Some(@carrier.GraphValue(graph)) &&
+    @lower.preparation_carrier_at(@lower.bound_preparation(owner), right_target)
+    is Some(@carrier.GraphValue(_)) &&
+    inputs.is_empty() else {
+    return Err(InvalidGraphsEqualKernel)
+  }
+  start_graphs_equal_read(
+    control,
+    preparation,
+    sequence,
+    step,
+    Viewed(left),
+    Viewed(right),
+    graph,
+    max_rows,
+    limits,
+    max_entries,
+    max_name_bytes,
+    inputs,
+    control_work_limit~,
+  )
 }
 
 ///|

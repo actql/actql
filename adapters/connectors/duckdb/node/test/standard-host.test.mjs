@@ -2001,6 +2001,43 @@ async function exerciseStrategyGraph(
     secondFields: ['equal'],
     expected: [{equal: true}],
   }, {
+    name: 'retained-graphs-equal-filter',
+    retainedOutput: true,
+    selectedStructural: true,
+    steps: [{
+      graph: {
+        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
+        edges: {
+          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
+        },
+      },
+      as: 'right_graph',
+    }, {
+      from: 'g', graphs_equal: {with: 'right_graph'}, as: 'out',
+    }],
+    fields: ['equal'],
+    secondFields: ['equal'],
+    expected: [{equal: true}],
+  }, {
+    name: 'retained-graphs-unequal-filter',
+    retainedOutput: true,
+    selectedStructural: true,
+    rightRows: distinctRightRows,
+    steps: [{
+      graph: {
+        nodes: {from: 'right_rows', id: 'id', fields: ['node_name']},
+        edges: {
+          from: 'right_rows', source: 'src', target: 'dst', fields: ['weight'],
+        },
+      },
+      as: 'right_graph',
+    }, {
+      from: 'g', graphs_equal: {with: 'right_graph'}, as: 'out',
+    }],
+    fields: ['equal'],
+    secondFields: ['equal'],
+    expected: [{equal: false}],
+  }, {
     name: 'match-nodes',
     step: {
       from: 'g',
@@ -4635,6 +4672,30 @@ async function exerciseStrategyGraph(
     }],
     fields: ['equal'],
   }, {
+    name: 'retained-graphs-equal-filter-in-flight',
+    retainedOutput: true,
+    selectedStructural: true,
+    rows: 2,
+    advanceQuantum: 1,
+    constructionStarts: [1, 2],
+    constructionProgress: 8,
+    cancelOnManagedStart: 3,
+    managedStarts: 3,
+    cancelTask: 4,
+    completedTasks: [1, 2, 3],
+    steps: [{
+      graph: {
+        nodes: {from: 'rows', id: 'id', fields: ['node_name']},
+        edges: {
+          from: 'rows', source: 'src', target: 'dst', fields: ['weight'],
+        },
+      },
+      as: 'right_graph',
+    }, {
+      from: 'g', graphs_equal: {with: 'right_graph'}, as: 'out',
+    }],
+    fields: ['equal'],
+  }, {
     name: 'graph-diff-in-flight',
     rows: 2,
     advanceQuantum: 1,
@@ -5372,6 +5433,7 @@ async function exerciseStrategyGraph(
     const unsizedGraph = [
       'graphs-equal-in-flight', 'graph-diff-in-flight',
       'graph-apply-delta-in-flight',
+      'retained-graphs-equal-filter-in-flight',
     ].includes(cancellationCase.name);
     const teaTransform = cancellationCase.operation === 'window-fixed'
       ? {window_events: {kind: 'fixed', size: 10}}
@@ -6290,19 +6352,25 @@ async function exerciseStrategyGraph(
         : cancellationCase.concise === true
           ? fixture.strategyFixtureSgaDerivedCreate
         : fixture.strategyFixtureSgaSizedCreate;
-    const cancellationFixture = createCancellationFixture(
-      ...(teaFamily || vecaFamily
-        ? cancellationArguments
-        : sgaEnvironmentArguments(cancellationArguments)),
-      JSON.stringify(graphCancellationProgram),
-      ...(teaFamily || unsizedGraph
-        ? []
-        : vecaFamily
-          ? cancellationCase.scoredPolicy !== undefined
-            ? [orderedContract, cancellationCase.rows]
-            : [orderedContract]
-        : [BigInt(cancellationCase.rows)]),
-    );
+    let cancellationFixture;
+    try {
+      cancellationFixture = createCancellationFixture(
+        ...(teaFamily || vecaFamily
+          ? cancellationArguments
+          : sgaEnvironmentArguments(cancellationArguments)),
+        JSON.stringify(graphCancellationProgram),
+        ...(teaFamily || unsizedGraph
+          ? []
+          : vecaFamily
+            ? cancellationCase.scoredPolicy !== undefined
+              ? [orderedContract, cancellationCase.rows]
+              : [orderedContract]
+          : [BigInt(cancellationCase.rows)]),
+      );
+    } catch (error) {
+      throw new Error(`Graph cancellation fixture ${cancellationCase.name} failed to check`,
+        {cause: error});
+    }
     const cancellationCapture = await runNativeHostQuery(
       grant,
       fixture.strategyFixtureAcquisition(cancellationFixture),

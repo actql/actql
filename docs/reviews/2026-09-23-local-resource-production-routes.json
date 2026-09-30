@@ -7673,7 +7673,18 @@
         "path": "src/local_sga/graphs_equal.mbt",
         "symbol": "start_graphs_equal"
       },
+      "selected_entrypoint": {
+        "path": "src/local_sga/graphs_equal.mbt",
+        "symbol": "start_graphs_equal_view"
+      },
       "boundary_tests": [
+        {
+          "role": "graphs_equal_selected_exact_one_short_cancel",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "selected Graph equality keeps repeated input occurrences and exact work"
+        },
         {
           "role": "graphs_equal_control_work_exact_one_short_and_cancel",
           "suite": "moon:query_integration",
@@ -7698,6 +7709,20 @@
       ],
       "environment_tests": [
         {
+          "role": "graphs_equal_selected_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "retained-graphs-equal-filter-in-flight"
+        },
+        {
+          "role": "graphs_equal_selected_host_two_consumers",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "retained-graphs-equal-filter"
+        },
+        {
           "role": "graphs_equal_host_two_consumers",
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
@@ -7718,6 +7743,12 @@
           "one_short_limit": "graphs_equal_control_work_exact_one_short_and_cancel",
           "in_flight_cancel": "graphs_equal_host_in_flight_cancel",
           "cleanup": "graphs_equal_long_text_quantum_cancel_cleanup"
+        },
+        "selected_entrypoint": {
+          "exact_limit": "graphs_equal_selected_exact_one_short_cancel",
+          "one_short_limit": "graphs_equal_selected_exact_one_short_cancel",
+          "in_flight_cancel": "graphs_equal_selected_host_in_flight_cancel",
+          "cleanup": "graphs_equal_selected_exact_one_short_cancel"
         }
       },
       "resource_assurance": {
@@ -7729,6 +7760,16 @@
           "workspace": {
             "exact_limit": "graphs_equal_control_work_exact_one_short_and_cancel",
             "one_short_limit": "graphs_equal_control_work_exact_one_short_and_cancel"
+          }
+        },
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "graphs_equal_selected_exact_one_short_cancel",
+            "one_short_limit": "graphs_equal_selected_exact_one_short_cancel"
+          },
+          "workspace": {
+            "exact_limit": "graphs_equal_selected_exact_one_short_cancel",
+            "one_short_limit": "graphs_equal_selected_exact_one_short_cancel"
           }
         }
       }
