@@ -305,6 +305,7 @@ pub fn node_accepts_managed_relation_view(
   match node.payload {
     EventValue(_) => operation(node) == "BRIDGE.rows.to_events"
     VectorValue(_) => operation(node) == "BRIDGE.rows.to_vectors"
+    PoolValue(_) => operation(node) == "VEC.pool"
     Where(_)
     | Derive(_)
     | Select(_)
