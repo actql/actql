@@ -85,6 +85,13 @@ try {
     }
     assert.equal((await execution.status()).status, 'succeeded', name);
     assert.equal((await execution.cancel()).kind, 'already_terminal', name);
+    if (name === 'shortest-path') {
+      const invalid = source.replace('max_hops: 3', 'max_hops: 0');
+      assert.notEqual(invalid, source);
+      await assert.rejects(client.aql(invalid, {format: 'aql-text',
+        requestId: `sga-invalid-hop-${randomUUID()}`}),
+      error => error.code === 'ClientProgramRejected');
+    }
   }
   console.log(`packed ${mode} named SGA source and Result acceptance passed`);
 } finally {

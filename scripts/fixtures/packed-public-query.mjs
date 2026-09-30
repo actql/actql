@@ -121,6 +121,7 @@ assert.ok(sourceIo >= 5);
 console.log('packed raw SQL/Pipe Embedded Local acceptance passed');
 await exerciseSga('local', {ACTQL_LOCAL_STATE_DIR: resolve('sga-local-state'),
   ACTQL_TEST_LOCAL_SOURCE_PROFILE: sourceProfilePath});
+assert.equal(observe('sga-local-state')().acceptedRuns, selectedSgaCases.length);
 const beforeRemote = sourceIo;
 const host = await openInstalledRemoteHttpHost({
   directory: resolve('remote-state'), sourceProfilePath,
@@ -138,10 +139,15 @@ try {
   assert.equal(observe('remote-state')().acceptedRuns, 5);
   assert.ok(sourceIo >= beforeRemote + 5);
   console.log('packed raw SQL/Pipe HTTP acceptance passed');
+  const beforeSga = observe('remote-state')();
   await exerciseSga('remote', {
     ACTQL_TEST_REMOTE_ENDPOINT: `https://127.0.0.1:${server.address().port}/`,
     ACTQL_TEST_REMOTE_TOKEN: 'fixture-token',
   });
+  const afterSga = observe('remote-state')();
+  assert.equal(afterSga.acceptedRuns - beforeSga.acceptedRuns,
+    selectedSgaCases.length);
+  assert.equal(afterSga.sourceIo, beforeSga.sourceIo);
 } finally {
   server.closeAllConnections();
   await new Promise(resolve => server.close(resolve));
