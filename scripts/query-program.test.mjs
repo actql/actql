@@ -70,6 +70,27 @@ test('Pipe scopes lower to independently authored existing Program operations', 
   }
 });
 
+test('rebound Pipe ORDER evaluates a current expression once and hides its slot', () => {
+  const values = {as: 'pair', values: {schema: {
+    x: {type: 'number', nullable: false}}, rows: [{x: 2}, {x: 1}]}};
+  const expected = {version: 'actql/0.1', id: 'fixture.pipe_order_scope',
+    stages: [{id: 'main', inputs: {}, steps: [values,
+      {from: 'pair', select: ['x']},
+      {filter: {gt: [{field: 'x'}, {literal: 0}]}},
+      {derive: {aql_pipe_sort_2: {add: [{field: 'x'}, {literal: 1}]}}},
+      {sort: [{field: 'aql_pipe_sort_2', dir: 'asc', nulls: 'first'},
+        {field: 'aql_pipe_sort_2', dir: 'desc', nulls: 'last'}]},
+      {select: ['x'], as: 'aql_gen_0'}],
+    results: {rows: {from: 'aql_gen_0', fields: ['x']}}}],
+    results: {answer: {from: {stage: 'main', result: 'rows'}}}};
+  const source = 'FROM pair |> AS t |> SELECT x |> WHERE x > 0 '
+    + '|> SELECT x |> ORDER BY x + 1, x + 1 DESC';
+  const wire = compileValuesQueryJson(source, 'pair', 'pair',
+    JSON.stringify(values), JSON.stringify(['x']), 'fixture.pipe_order_scope');
+  assert.notEqual(wire, '');
+  assert.deepEqual(JSON.parse(wire), expected);
+});
+
 test('node Graph pattern retains its explicit label selection', () => {
   const steps = [
     {values: {schema: {

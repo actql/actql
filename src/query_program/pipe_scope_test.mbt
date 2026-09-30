@@ -88,3 +88,40 @@ test "Pipe AS sees only current names after DROP and RENAME" {
     Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
   }
 }
+
+///|
+test "Pipe AS current columns support ORDER expressions after repeated SELECT" {
+  for
+    source in [
+      "FROM pair |> AS t |> SELECT x |> WHERE x > 0 |> SELECT x |> ORDER BY x + 1",
+      "FROM pair |> AS t |> SELECT x AS z |> ORDER BY z + 1, z + 1 DESC", "FROM pair |> AS t |> SELECT DISTINCT x |> ORDER BY x + 1",
+      "FROM pair |> AS t |> ORDER BY x + 1 |> SELECT x",
+    ] {
+    let program = compile(
+      @query.parse_query(source, syntax_limits()).unwrap(),
+      pair_context(),
+      construction_limits(),
+    ).unwrap()
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      NeedsInputs(_) => fail("Values inputs are closed")
+      Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+    }
+  }
+  for
+    source in [
+      "FROM pair |> AS t |> SELECT x |> WHERE x > 0 |> SELECT x |> ORDER BY pair.x + 1",
+      "FROM pair AS old |> AS t |> SELECT x |> ORDER BY old.x + 1", "FROM pair |> AS t |> SELECT DISTINCT x |> ORDER BY y + 1",
+    ] {
+    assert_true(
+      compile(
+        @query.parse_query(source, syntax_limits()).unwrap(),
+        pair_context(),
+        construction_limits(),
+      )
+      is Err(_),
+      msg=source,
+    )
+  }
+}

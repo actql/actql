@@ -1953,96 +1953,99 @@ fn compile_steps(
           active_fields = names.copy()
         }
       }
-      Order(terms) if pipe_selected => {
+      Order(terms) if pipe_selected || pipe_changed || pipe_rebound => {
         let sort : Array[@builder.Node] = []
+        let hidden : Array[(@query.Expression, String)] = []
+        let derives : Array[(String, @builder.Node)] = []
+        let reserved = active_fields + output
+        // SELECT aliases refer to already evaluated physical slots. Other
+        // references use only the current Pipe scope, never the FROM scope.
+        let resolve = fn(path : Array[@query.NamePart]) -> String? {
+          if pending_select is Some(_) && path.length() == 1 {
+            for binding in pending_bindings {
+              if same_name(path[0], { value: binding.0, quoted: false, }) {
+                return Some(binding.1)
+              }
+            }
+          }
+          pipe_slot(path, pipe_visible, pipe_ranges)
+        }
         for term in terms {
           let expression = term.expression
           let mut selected : String? = None
-          for pair in selected_expressions {
-            if selected is None && same_expression(expression, pair.0) {
-              selected = Some(pair.1)
+          if pipe_selected {
+            for pair in selected_expressions {
+              if selected is None && same_expression(expression, pair.0) {
+                selected = Some(pair.1)
+              }
             }
           }
-          let name = match selected {
-            Some(name) => {
-              let mut slot = name
-              if pending_select is Some(_) {
-                for binding in pending_bindings {
-                  if binding.0 == name {
-                    slot = binding.1
-                  }
-                }
-              }
-              slot
-            }
-            None =>
-              match
-                @query.expression_node(
-                  expression,
-                  @query.expression_root(expression),
-                ).unwrap().kind {
-                Reference(path) if path.length() == 1 => {
-                  let mut slot : String? = None
-                  for name in output {
-                    if same_name(path[0], { value: name, quoted: false, }) {
-                      slot = Some(name)
-                    }
-                  }
-                  match slot {
-                    Some(name) => {
-                      let mut physical = name
-                      if pending_select is Some(_) {
-                        for binding in pending_bindings {
-                          if binding.0 == name {
-                            physical = binding.1
-                          }
-                        }
-                      }
-                      physical
-                    }
-                    None =>
-                      if pending_select is Some(_) {
-                        match pipe_slot(path, pipe_visible, pipe_ranges) {
-                          Some(slot) => slot
-                          None => raise Abort(UnsupportedOrdering)
-                        }
-                      } else {
-                        raise Abort(UnsupportedOrdering)
-                      }
-                  }
-                }
-                Reference(path) if pending_select is Some(_) =>
-                  match pipe_slot(path, pipe_visible, pipe_ranges) {
-                    Some(slot) => slot
-                    None => raise Abort(UnsupportedOrdering)
-                  }
-                _ => raise Abort(UnsupportedOrdering)
-              }
-          }
-          sort.push(
-            construction.object([
-              ("field", construction.text(name)),
-              ("dir", construction.text(term.direction)),
-              ("nulls", construction.text(term.nulls)),
-            ]),
-          )
-        }
-        entries.push(("sort", construction.array(sort)))
-      }
-      Order(terms) if pipe_changed || pipe_rebound => {
-        let sort : Array[@builder.Node] = []
-        for term in terms {
-          let name = match
+          let direct = match
             @query.expression_node(
-              term.expression,
-              @query.expression_root(term.expression),
+              expression,
+              @query.expression_root(expression),
             ).unwrap().kind {
-            Reference(path) =>
-              match pipe_slot(path, pipe_visible, pipe_ranges) {
-                Some(slot) => slot
-                None => raise Abort(UnsupportedOrdering)
+            Reference(path) if path.length() == 1 => resolve(path)
+            _ => None
+          }
+          let name = if direct is Some(slot) {
+            slot
+          } else {
+            match selected {
+              Some(name) => {
+                let mut slot = name
+                if pending_select is Some(_) {
+                  for binding in pending_bindings {
+                    if binding.0 == name {
+                      slot = binding.1
+                    }
+                  }
+                }
+                slot
               }
-            _ => raise Abort(UnsupportedOrdering)
+              None =>
+                match
+                  @query.expression_node(
+                    expression,
+                    @query.expression_root(expression),
+                  ).unwrap().kind {
+                  Reference(path) =>
+                    match resolve(path) {
+                      Some(slot) => slot
+                      None => raise Abort(UnsupportedOrdering)
+                    }
+                  _ => {
+                    let mut reused : String? = None
+                    for pair in hidden {
+                      if same_expression(expression, pair.0) {
+                        reused = Some(pair.1)
+                      }
+                    }
+                    match reused {
+                      Some(slot) => slot
+                      None => {
+                        let slot = pipe_physical_name(
+                          reserved, "aql_pipe_sort_",
+                        )
+                        reserved.push(slot)
+                        let value = match
+                          @expression.append(
+                            expression,
+                            resolve,
+                            construction.builder,
+                            max_work,
+                          ) {
+                          Ok(node) => node
+                          Err(error) => raise Abort(Expression(error))
+                        }
+                        derives.push((slot, value))
+                        hidden.push((expression, slot))
+                        slot
+                      }
+                    }
+                  }
+                }
+            }
           }
           sort.push(
             construction.object([
@@ -2052,7 +2055,29 @@ fn compile_steps(
             ]),
           )
         }
+        if !derives.is_empty() {
+          let derive_step : Array[(String, @builder.Node)] = []
+          if entries.length() == 1 && entries[0].0 == "from" {
+            derive_step.push(entries.remove(0))
+          }
+          derive_step.push(("derive", construction.object(derives)))
+          step_entries.push(derive_step)
+        }
         entries.push(("sort", construction.array(sort)))
+        if !derives.is_empty() && pending_select is None {
+          // With no deferred SELECT, remove sort-only slots immediately.
+          // Retain demanded original slots for the existing range snapshots.
+          step_entries.push(entries)
+          step_entries.push([
+            (
+              "select",
+              construction.array(
+                active_fields.map(field => construction.text(field)),
+              ),
+            ),
+          ])
+          deferred = true
+        }
       }
       Order(terms) => {
         let sort : Array[@builder.Node] = []
