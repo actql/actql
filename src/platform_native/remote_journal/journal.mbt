@@ -7,6 +7,11 @@ pub(all) enum NativeRemoteJournalIssue {
   StaleSiteBinding
   MissingDispatch
   StateCollision
+  InitializationCleanupPending(
+    NativeRemoteJournalIssue?,
+    NativeRemoteJournalIssue,
+    CoordinatorInitializationCleanup
+  )
 }
 
 ///|

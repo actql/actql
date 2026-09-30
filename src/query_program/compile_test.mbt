@@ -976,7 +976,7 @@ test "Pipe SET keeps old range slots and evaluates replacements together" {
 }
 
 ///|
-test "Pipe DROP and AS separate current names from old range snapshots" {
+test "Pipe DROP and RENAME separate current names from old range snapshots" {
   let context = pair_context()
   let retained = compile(
     @query.parse_query(
@@ -1002,7 +1002,7 @@ test "Pipe DROP and AS separate current names from old range snapshots" {
   }
   let renamed = compile(
     @query.parse_query(
-      "FROM pair |> RENAME x AS z |> AS later |> SELECT later.z AS new_x, pair.x AS old_x",
+      "FROM pair AS before |> RENAME x AS z |> SELECT z AS new_x, before.x AS old_x",
       syntax_limits(),
     ).unwrap(),
     pair_context(),

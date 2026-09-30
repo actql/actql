@@ -1,0 +1,9 @@
+FROM tickets AS old
+|> INFER `model-task:risk-score.v1`
+     ITEM KEY (id)
+     INPUT (text = text)
+     KEEP (id, text AS note)
+     AS assessment
+|> WHERE assessment.outcome = 'ok'
+     AND assessment.value.risk = 'high'
+|> SELECT id, assessment.value.risk AS risk

@@ -12,9 +12,11 @@ pub fn Database::begin_immediate(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::capacity_usage(Self, String) -> Result[NativeCapacityUsage, NativeSqliteIssue]
 pub fn Database::claim_ordinal(Self, String, String, Int64) -> Result[Int64, NativeSqliteIssue]
 pub fn Database::close(Self) -> Unit
+pub fn Database::close_checked(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::commit(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::compare_exchange(Self, String, String, Int64, Bytes) -> Result[Int64, NativeSqliteIssue]
 pub fn Database::insert(Self, String, String, Bytes) -> Result[Int64, NativeSqliteIssue]
+pub fn Database::inspection_status(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::read(Self, String, String) -> Result[NativeJournalValue, NativeSqliteIssue]
 pub fn Database::release_capacity(Self, String, String, Int64, Int64) -> Result[Bool, NativeSqliteIssue]
 pub fn Database::reserve_capacity(Self, String, String, Int64, Int64, Int64, Int64) -> Result[Bool, NativeSqliteIssue]
@@ -23,6 +25,7 @@ pub fn Database::scan_after(Self, String, String) -> Result[NativeJournalEntry, 
 
 type Library
 pub fn Library::open_database(Self, String, Int64) -> Result[Database, NativeSqliteIssue]
+pub fn Library::open_inspection_database(Self, String, Int64) -> Database
 pub fn Library::version(Self) -> String
 
 pub(all) struct NativeCapacityUsage {

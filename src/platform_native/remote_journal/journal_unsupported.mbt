@@ -5,6 +5,23 @@ type Journal
 type CoordinatorJournal
 
 ///|
+type CoordinatorInitializationCleanup
+
+///|
+pub fn CoordinatorInitializationCleanup::pending(
+  _self : CoordinatorInitializationCleanup,
+) -> Bool {
+  false
+}
+
+///|
+pub fn CoordinatorInitializationCleanup::retry(
+  _self : CoordinatorInitializationCleanup,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn open_journal(
   _library : @sqlite.Library,
   path : String,

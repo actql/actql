@@ -1,0 +1,27 @@
+{
+  "version":"actql/0.1","id":"fixture.infer_keep",
+  "stages":[{"id":"main","inputs":{},"steps":[
+    {"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":true},"secret":{"type":"string","nullable":false}},"rows":[{"id":"a","text":"urgent","secret":"private-a"},{"id":"b","text":null,"secret":"private-b"}]},"as":"tickets"},
+    {"from":"tickets","select":["id","text","secret"],"as":"aql_infer_input_0"},
+    {"from":"aql_infer_input_0","infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"aql_infer_outcome_0"},
+    {"join":{"with":"aql_infer_input_0","kind":"inner","cardinality":"one_to_one","on":[{"left":"id","right":"id"}],"select":{
+      "id":{"join_field":{"side":"right","name":"id"}},
+      "note":{"join_field":{"side":"right","name":"text"}},
+      "aql_infer_key_3":{"join_field":{"side":"left","name":"id"}},
+      "aql_infer_role_4":{"join_field":{"side":"left","name":"outcome"}},
+      "aql_infer_role_5":{"join_field":{"side":"left","name":"value"}}
+    }}},
+    {"derive":{"aql_infer_result_7":{"object":{
+      "input_key":{"object":{"id":{"field":"aql_infer_key_3"}}},
+      "outcome":{"field":"aql_infer_role_4"},"value":{"field":"aql_infer_role_5"}
+    }}}},
+    {"select":["id","note",{"assessment":"aql_infer_result_7"}]},
+    {"filter":{"and":[
+      {"eq":[{"property":{"value":{"field":"assessment"},"name":"outcome"}},{"literal":"ok"}]},
+      {"eq":[{"property":{"value":{"property":{"value":{"field":"assessment"},"name":"value"}},"name":"risk"}},{"literal":"high"}]}
+    ]}},
+    {"derive":{"aql_pipe_expr_3":{"property":{"value":{"property":{"value":{"field":"assessment"},"name":"value"}},"name":"risk"}}}},
+    {"select":["id",{"risk":"aql_pipe_expr_3"}],"as":"aql_gen_0"}
+  ],"results":{"rows":{"from":"aql_gen_0","fields":["id","risk"]}}}],
+  "results":{"answer":{"from":{"stage":"main","result":"rows"}}}
+}

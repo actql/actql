@@ -35,6 +35,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/packed-public-query.mjs', 'acceptance.mjs'],
   ['adapters/host-node/fixtures/query-amount-environment.json', 'source-environment.json'],
   ['spec/local-check-environment.json', 'base-environment.json'],
+  ['spec/frontend/fixtures/pipe-scope/cases.json', 'pipe-scope-cases.json'],
   ['scripts/accept-sga-public-source.mjs', 'accept-sga-public-source.mjs'],
   ['scripts/reach-selector-capacity-fixture.mjs', 'reach-selector-capacity-fixture.mjs'],
   ['scripts/fixtures/packed-sga-cancellation.mjs', 'sga-cancellation.mjs'],
@@ -63,6 +64,12 @@ run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
 const runtimeEnvironment = {...environment,
   PATH: `${dirname(process.execPath)}:/usr/bin:/bin`,
   NODE_EXTRA_CA_CERTS: join(root, 'remote.crt')};
+if (process.argv.includes('--alias-scope-only')) {
+  runtimeEnvironment.ACTQL_TEST_PIPE_SCOPE_ONLY = '1';
+}
+if (process.argv.includes('--infer-refusal-only')) {
+  runtimeEnvironment.ACTQL_TEST_INFER_REFUSAL_ONLY = '1';
+}
 for (const name of ['MOON_HOME', 'ACTQL_LOCAL_SOURCE_PROFILE',
   'ACTQL_LOCAL_EFFECT_PROFILE', 'ACTQL_LOCAL_STATE_DIR']) {
   delete runtimeEnvironment[name];
@@ -75,6 +82,8 @@ if (process.argv.includes('--cancellation-only')) {
 const output = run(process.execPath, ['acceptance.mjs'], root,
   runtimeEnvironment, 900_000);
 console.log(output.trimEnd());
+if (process.argv.includes('--alias-scope-only') ||
+  process.argv.includes('--infer-refusal-only')) return;
 console.log(run(process.execPath, ['sga-cancellation.mjs'], root,
   runtimeEnvironment, 120000).trimEnd());
 run('moon', ['build', '--target', 'native', '--release',

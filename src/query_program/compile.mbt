@@ -71,6 +71,7 @@ pub(all) enum Issue {
   UnsupportedJoin
   UnsupportedCte
   UnsupportedGraph
+  UnsupportedInfer
   Construction(@builder.Issue)
   Expression(@expression.Diagnostic)
   Admission(@program.SyntaxError)
@@ -542,7 +543,7 @@ fn append_pipe_expression(
   max_work : Int,
 ) -> @builder.Node raise Abort {
   match
-    @expression.append(
+    @expression.append_with_properties(
       expression,
       path => pipe_slot(path, visible, ranges),
       construction.builder,
@@ -617,7 +618,12 @@ fn append_expression(
 ) -> @builder.Node raise Abort {
   let resolve = path => resolve_column(path, query, input, fields)
   let lowered = if input.graph_bindings.is_empty() {
-    @expression.append(expression, resolve, construction.builder, max_work)
+    @expression.append_with_properties(
+      expression,
+      resolve,
+      construction.builder,
+      max_work,
+    )
   } else {
     @expression.append_with_macros(
       expression,
@@ -1192,6 +1198,10 @@ fn compile_steps(
   let initial_range = query_range_name(query)
   let mut pipe_ranges = [(initial_range, pipe_visible.copy())]
   let mut pipe_changed = false
+  // Materializing a SELECT resets private slots, not the replacement of
+  // range variables. Never resolve subsequent operators through the source
+  // alias again after Pipe AS has established a new scope.
+  let mut pipe_rebound = false
   let mut pipe_selected = false
   for i in start_at..<@query.operation_count(query) {
     let operation = @query.operation_at(query, i).unwrap()
@@ -1218,7 +1228,33 @@ fn compile_steps(
       first = false
     }
     match operation {
-      Where(predicate) if pipe_changed =>
+      Infer(clause) => {
+        let (steps, fields) = lower_infer_steps(
+          construction,
+          clause,
+          pipe_visible,
+          pipe_ranges,
+          active_fields,
+          entries,
+          i,
+          input.name,
+          max_work,
+        )
+        for step in steps {
+          step_entries.push(step)
+        }
+        entries.clear()
+        active_fields = fields.copy()
+        output = fields
+        pipe_visible = active_fields.map(field => (field, field))
+        pipe_ranges = []
+        pipe_rebound = true
+        pipe_changed = false
+        grouped = false
+        selected_expressions = []
+        deferred = true
+      }
+      Where(predicate) if pipe_changed || pipe_rebound =>
         entries.push(
           (
             "filter",
@@ -1236,7 +1272,7 @@ fn compile_steps(
             ),
           ),
         )
-      Extend(projections) if pipe_changed => {
+      Extend(projections) if pipe_changed || pipe_rebound => {
         let snapshot = pipe_visible.copy()
         let derived : Array[(String, @builder.Node)] = []
         let next = snapshot.copy()
@@ -1264,6 +1300,7 @@ fn compile_steps(
         entries.push(("derive", construction.object(derived)))
         pipe_visible = next
         output = next.map(entry => entry.0)
+        pipe_changed = true
       }
       Extend(projections) => {
         let derived : Array[(String, @builder.Node)] = []
@@ -1394,15 +1431,15 @@ fn compile_steps(
         deferred = true
       }
       Alias(name) => {
-        if pipe_ranges.any(range => same_name(range.0, name)) {
-          raise Abort(AmbiguousRelation)
-        }
-        pipe_ranges.push((name, pipe_visible.copy()))
+        // Pipe AS replaces every preceding range variable with the current
+        // visible row. Reusing the same name binds its current value slots.
+        pipe_ranges = [(name, pipe_visible.copy())]
+        pipe_rebound = true
         pipe_changed = true
         deferred = true
       }
       Group(keys, projections) => {
-        let scoped = pipe_changed
+        let scoped = pipe_changed || pipe_rebound
         if scoped {
           let materialize : Array[(String, @builder.Node)] = []
           if entries.length() == 1 && entries[0].0 == "from" {
@@ -1640,12 +1677,12 @@ fn compile_steps(
             groups.push([projection])
           }
           active_fields.push(name)
-          if pipe_changed {
+          if pipe_changed || pipe_rebound {
             pipe_visible.push((name, name))
           }
         }
         let resolve = fn(path : Array[@query.NamePart]) -> String? {
-          if pipe_changed {
+          if pipe_changed || pipe_rebound {
             pipe_slot(path, analytic_visible, pipe_ranges)
           } else {
             resolve_column(path, query, input, snapshot)
@@ -1664,7 +1701,7 @@ fn compile_steps(
         output = active_fields.copy()
         deferred = true
       }
-      Select(projections, distinct) if pipe_changed => {
+      Select(projections, distinct) if pipe_changed || pipe_rebound => {
         let names : Array[String] = []
         let selected : Array[@builder.Node] = []
         let derives : Array[(String, @builder.Node)] = []
@@ -1717,7 +1754,20 @@ fn compile_steps(
                 Reference(path) =>
                   match pipe_slot(path, pipe_visible, pipe_ranges) {
                     Some(slot) => slot
-                    None => raise Abort(UnknownColumn)
+                    None => {
+                      let slot = pipe_physical_name(physical, "aql_pipe_expr_")
+                      physical.push(slot)
+                      derives.push(
+                        (
+                          slot,
+                          append_pipe_expression(
+                            construction, expression, pipe_visible, pipe_ranges,
+                            max_work,
+                          ),
+                        ),
+                      )
+                      slot
+                    }
                   }
                 _ => {
                   let slot = pipe_physical_name(physical, "aql_pipe_expr_")
@@ -1948,96 +1998,85 @@ fn compile_steps(
           active_fields = names.copy()
         }
       }
-      Order(terms) if pipe_selected => {
+      Order(terms) if pipe_selected || pipe_changed || pipe_rebound => {
         let sort : Array[@builder.Node] = []
+        let hidden : Array[(@query.Expression, String)] = []
+        let derives : Array[(String, @builder.Node)] = []
+        let reserved = active_fields + output
+        // SELECT aliases refer to already evaluated physical slots. Other
+        // references use only the current Pipe scope, never the FROM scope.
+        let resolve = fn(path : Array[@query.NamePart]) -> String? {
+          if pending_select is Some(_) && path.length() == 1 {
+            for binding in pending_bindings {
+              if same_name(path[0], { value: binding.0, quoted: false, }) {
+                return Some(binding.1)
+              }
+            }
+          }
+          pipe_slot(path, pipe_visible, pipe_ranges)
+        }
         for term in terms {
           let expression = term.expression
           let mut selected : String? = None
-          for pair in selected_expressions {
-            if selected is None && same_expression(expression, pair.0) {
-              selected = Some(pair.1)
+          if pipe_selected {
+            for pair in selected_expressions {
+              if selected is None && same_expression(expression, pair.0) {
+                selected = Some(pair.1)
+              }
             }
           }
-          let name = match selected {
-            Some(name) => {
-              let mut slot = name
-              if pending_select is Some(_) {
-                for binding in pending_bindings {
-                  if binding.0 == name {
-                    slot = binding.1
-                  }
-                }
-              }
-              slot
-            }
-            None =>
-              match
-                @query.expression_node(
-                  expression,
-                  @query.expression_root(expression),
-                ).unwrap().kind {
-                Reference(path) if path.length() == 1 => {
-                  let mut slot : String? = None
-                  for name in output {
-                    if same_name(path[0], { value: name, quoted: false, }) {
-                      slot = Some(name)
-                    }
-                  }
-                  match slot {
-                    Some(name) => {
-                      let mut physical = name
-                      if pending_select is Some(_) {
-                        for binding in pending_bindings {
-                          if binding.0 == name {
-                            physical = binding.1
-                          }
-                        }
-                      }
-                      physical
-                    }
-                    None =>
-                      if pending_select is Some(_) {
-                        match pipe_slot(path, pipe_visible, pipe_ranges) {
-                          Some(slot) => slot
-                          None => raise Abort(UnsupportedOrdering)
-                        }
-                      } else {
-                        raise Abort(UnsupportedOrdering)
-                      }
-                  }
-                }
-                Reference(path) if pending_select is Some(_) =>
-                  match pipe_slot(path, pipe_visible, pipe_ranges) {
-                    Some(slot) => slot
-                    None => raise Abort(UnsupportedOrdering)
-                  }
-                _ => raise Abort(UnsupportedOrdering)
-              }
-          }
-          sort.push(
-            construction.object([
-              ("field", construction.text(name)),
-              ("dir", construction.text(term.direction)),
-              ("nulls", construction.text(term.nulls)),
-            ]),
-          )
-        }
-        entries.push(("sort", construction.array(sort)))
-      }
-      Order(terms) if pipe_changed => {
-        let sort : Array[@builder.Node] = []
-        for term in terms {
-          let name = match
+          let direct = match
             @query.expression_node(
-              term.expression,
-              @query.expression_root(term.expression),
+              expression,
+              @query.expression_root(expression),
             ).unwrap().kind {
-            Reference(path) =>
-              match pipe_slot(path, pipe_visible, pipe_ranges) {
-                Some(slot) => slot
-                None => raise Abort(UnsupportedOrdering)
+            Reference(path) => resolve(path)
+            _ => None
+          }
+          let name = if direct is Some(slot) {
+            slot
+          } else {
+            match selected {
+              Some(name) => {
+                let mut slot = name
+                if pending_select is Some(_) {
+                  for binding in pending_bindings {
+                    if binding.0 == name {
+                      slot = binding.1
+                    }
+                  }
+                }
+                slot
               }
-            _ => raise Abort(UnsupportedOrdering)
+              None => {
+                let mut reused : String? = None
+                for pair in hidden {
+                  if same_expression(expression, pair.0) {
+                    reused = Some(pair.1)
+                  }
+                }
+                match reused {
+                  Some(slot) => slot
+                  None => {
+                    let slot = pipe_physical_name(reserved, "aql_pipe_sort_")
+                    reserved.push(slot)
+                    let value = match
+                      @expression.append_with_properties(
+                        expression,
+                        resolve,
+                        construction.builder,
+                        max_work,
+                      ) {
+                      Ok(node) => node
+                      Err(error) => raise Abort(Expression(error))
+                    }
+                    derives.push((slot, value))
+                    hidden.push((expression, slot))
+                    slot
+                  }
+                }
+              }
+            }
           }
           sort.push(
             construction.object([
@@ -2047,7 +2086,29 @@ fn compile_steps(
             ]),
           )
         }
+        if !derives.is_empty() {
+          let derive_step : Array[(String, @builder.Node)] = []
+          if entries.length() == 1 && entries[0].0 == "from" {
+            derive_step.push(entries.remove(0))
+          }
+          derive_step.push(("derive", construction.object(derives)))
+          step_entries.push(derive_step)
+        }
         entries.push(("sort", construction.array(sort)))
+        if !derives.is_empty() && pending_select is None {
+          // With no deferred SELECT, remove sort-only slots immediately.
+          // Retain demanded original slots for the existing range snapshots.
+          step_entries.push(entries)
+          step_entries.push([
+            (
+              "select",
+              construction.array(
+                active_fields.map(field => construction.text(field)),
+              ),
+            ),
+          ])
+          deferred = true
+        }
       }
       Order(terms) => {
         let sort : Array[@builder.Node] = []

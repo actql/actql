@@ -51,7 +51,7 @@ test('adoption decisions retain conditions and explicit case or fixture gaps', (
       'effect.hidden'].includes(feature.feature_id);
     assert.equal(feature.implementation_status, structural ?
       (feature.feature_id === 'effect.hidden' ? 'partial' : 'implemented') :
-      'not_implemented');
+      (feature.feature_id === 'acquisition.infer' ? 'partial' : 'not_implemented'));
     assert.deepEqual(feature.execution_evidence_ids,
       structural ? ['frontend-pr2-structural'] : []);
     for (const evidence of feature.execution_evidence_ids) {
@@ -85,6 +85,26 @@ test('frozen imported requirements retain their baseline, not document-check pas
     }
   }
   assert.equal(baseline.frontend_runtime_cases_executed, 0);
+});
+
+test('INFER source lowering does not claim executed KEEP outcomes', () => {
+  const infer = profile.features.find(f => f.feature_id === 'acquisition.infer');
+  const nearest = profile.features.find(f => f.feature_id === 'vector.nearest');
+  for (const feature of [infer, nearest]) {
+    assert.equal(feature.implementation_status,
+      feature === infer ? 'partial' : 'not_implemented');
+    assert.deepEqual(feature.execution_evidence_ids, []);
+    assert.ok(feature.surface_forms.some(form => form.includes('KEEP')));
+    assert.ok(feature.preconditions.some(rule => rule.includes('new output scope')));
+  }
+  assert.ok(nearest.preconditions.includes(
+    'pipe input supplies queries; named candidate source supplies corpus'));
+  const fx03 = index.cases.find(c => c.id === 'FX-03');
+  assert.equal(fx03.imported_requirement_sha256,
+    '79cd901d3319e2cb4512884d19dd4d9d016cf4f5469ac3393ddd0318f67e0ed2');
+  assert.match(fx03.superseded_imported_expectation, /^Reject non-success/u);
+  assert.match(fx03.expectation, /typed NULL/u);
+  assert.match(fx03.expectation, /reject unknown fields/u);
 });
 
 test('independent fixtures and existing CID oracles retain their baseline bytes', () => {

@@ -169,6 +169,8 @@ pub fn coordinator_transition_durable_json(@remote_site_protocol.DurableCoordina
 
 pub fn coordinator_transition_expected_revision(@remote_site_protocol.CoordinatorDispatchTransition) -> Int
 
+pub fn coordinator_transition_is_replay(@remote_site_protocol.CoordinatorDispatchTransition) -> Bool
+
 // Errors
 
 // Types and methods

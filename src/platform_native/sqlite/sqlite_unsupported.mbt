@@ -2,7 +2,33 @@
 type Library
 
 ///|
-type Database
+struct Database {
+  unsupported : Unit
+}
+
+///|
+pub fn Library::open_inspection_database(
+  _self : Library,
+  _path : String,
+  _max_body_bytes : Int64,
+) -> Database {
+  { unsupported: (), }
+}
+
+///|
+pub fn Database::inspection_status(
+  self : Database,
+) -> Result[Unit, NativeSqliteIssue] {
+  ignore(self.unsupported)
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Database::close_checked(
+  _self : Database,
+) -> Result[Unit, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
 
 ///|
 pub fn load_library(_path : String) -> Result[Library, NativeSqliteIssue] {

@@ -182,3 +182,42 @@ test "query clauses append to one source owner without expression reparse" {
   assert_true(append(fixture("z"), resolve, other, 10000) is Err(_))
   @builder.discard(other)
 }
+
+///|
+test "property lowering resolves a scope prefix without flattening names" {
+  let expression = fixture(
+    "assessment.outcome = 'ok' AND assessment.value.risk = 'high'",
+  )
+  let builder = @builder.create(
+    @query.expression_document(expression),
+    limits().construction,
+  ).unwrap()
+  let root = append_with_properties(
+    expression,
+    path => {
+      if path.length() == 1 && path[0].value == "assessment" {
+        Some("result_slot")
+      } else {
+        None
+      }
+    },
+    builder,
+    10000,
+  ).unwrap()
+  let source = @builder.finish(builder, root).unwrap()
+  let admitted = @expression.admit(@builder.cursor(source), limits().expression).unwrap()
+  let writer = @encode.writer(100000, 10000, 100)
+  @expression.emit_source(admitted, writer)
+  assert_eq(
+    @encode.finish(writer),
+    "{\"and\":[{\"eq\":[{\"property\":{\"name\":\"outcome\",\"value\":{\"field\":\"result_slot\"}}},{\"literal\":\"ok\"}]},{\"eq\":[{\"property\":{\"name\":\"risk\",\"value\":{\"property\":{\"name\":\"value\",\"value\":{\"field\":\"result_slot\"}}}}},{\"literal\":\"high\"}]}]}",
+  )
+  let bounded = @builder.create(
+    @query.expression_document(expression),
+    limits().construction,
+  ).unwrap()
+  assert_true(
+    append_with_properties(expression, _ => Some("slot"), bounded, 1) is Err(_),
+  )
+  @builder.discard(bounded)
+}

@@ -54,6 +54,8 @@ fn journal_issue_code(issue : @journal.NativeRemoteJournalIssue) -> String {
     @journal.StaleSiteBinding => "stale-site-binding"
     @journal.MissingDispatch => "missing-dispatch"
     @journal.StateCollision => "state-collision"
+    @journal.InitializationCleanupPending(_, _, _) =>
+      "initialization-cleanup-pending"
   }
 }
 

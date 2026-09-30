@@ -1,0 +1,1 @@
+{"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":true},"secret":{"type":"string","nullable":false}},"rows":[{"id":"a","text":"urgent","secret":"private-a"},{"id":"b","text":null,"secret":"private-b"}]},"as":"tickets"}

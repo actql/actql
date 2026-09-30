@@ -1,0 +1,85 @@
+{
+  "version": "actql-session-test-retirements/0.1",
+  "evidence_addition_commit": "b1685224abca14a3680b3d9e000a69440ee058c2",
+  "scope": "two common protocol examples only; no operation-specific or physical test removed",
+  "retirements": [
+    {
+      "old_test": "bounded session advances with fresh tokens and finite work",
+      "path": "src/bounded_execution/session_wbtest.mbt",
+      "prior_body_sha256": "218535d46b0b89de163d7b92f0fe34197919c74594b76c728c68e2dc92334867",
+      "observations": [
+        "fresh token generation and rejection of consumed tokens",
+        "exact cumulative progress/work under varying positive quanta",
+        "completed output and stop observation",
+        "pending state reclamation and changed=false after completion",
+        "state callback executes exactly once"
+      ],
+      "replacement": "src/bounded_execution/session_contract_wbtest.mbt",
+      "replacement_test": "session contract explores command histories independently of kernels",
+      "formal_model_theorems": [
+        "delta_reconstructs",
+        "delta_bounded",
+        "charges_telescope",
+        "consumed_token_rejected",
+        "terminal_cannot_resume",
+        "reclaim_preserves_completed"
+      ],
+      "premises": [
+        "kernel reports admitted finite work and monotone progress",
+        "callback success means its state has been reclaimed",
+        "no unaccepted result is held in these two basic examples"
+      ],
+      "connection": "replacement tests call production start/advance/cleanup directly; provider instance additionally executes the registered set route",
+      "mutations": [
+        "stale-token-reuse",
+        "zero-quantum",
+        "terminal-resume",
+        "cleanup-changed-as-complete"
+      ],
+      "retained_regressions": [
+        "a request delivered during one step suppresses completion",
+        "bounded session rejects invalid reports before cleanup",
+        "unaccepted result disposal remains pending and retryable",
+        "accepted result custody transfers without session disposal",
+        "counter overflow retains completed result for cleanup"
+      ]
+    },
+    {
+      "old_test": "stop confirmation precedes retryable cleanup",
+      "path": "src/bounded_execution/session_wbtest.mbt",
+      "prior_body_sha256": "dd7b0c891722082c71c9d835b6a3184d9ace03823e839b20873e64b1ea0c53dc",
+      "observations": [
+        "positive work before cancel or deadline",
+        "requested stop reason preserved with unchanged accepted counters",
+        "cleanup remains pending while callback cannot reclaim",
+        "recovery permits reclamation without another advance",
+        "cleanup callback attempt count preserved"
+      ],
+      "replacement": "src/bounded_execution/session_contract_wbtest.mbt",
+      "replacement_test": "session contract explores command histories independently of kernels",
+      "formal_model_theorems": [
+        "terminal_cannot_resume",
+        "cleanup_preserves_outcome",
+        "running_cannot_reclaim",
+        "cleanup_completed_stays_completed"
+      ],
+      "premises": [
+        "kernel reports admitted finite work and monotone progress",
+        "callback success means its state has been reclaimed",
+        "no unaccepted result is held in these two basic examples"
+      ],
+      "connection": "replacement tests call production start/advance/cleanup directly; provider instance additionally executes the registered set route",
+      "mutations": [
+        "terminal-resume",
+        "cleanup-changed-as-complete"
+      ],
+      "retained_regressions": [
+        "a request delivered during one step suppresses completion",
+        "bounded session rejects invalid reports before cleanup",
+        "unaccepted result disposal remains pending and retryable",
+        "accepted result custody transfers without session disposal",
+        "counter overflow retains completed result for cleanup"
+      ]
+    }
+  ]
+}

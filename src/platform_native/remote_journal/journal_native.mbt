@@ -122,6 +122,10 @@ pub fn open_coordinator_journal(
   max_record_bytes : Int64,
   control : @remote.CoordinatorDispatchJournal,
 ) -> Result[CoordinatorJournal, NativeRemoteJournalIssue] {
+  match inspect_coordinator_source(library, path, max_record_bytes, control) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   match library.open_database(path, max_record_bytes) {
     Ok(database) => Ok({ database, control, closed: false, })
     Err(issue) => Err(Physical(issue))
@@ -1298,21 +1302,27 @@ pub fn CoordinatorJournal::commit_transition(
     Ok(value) => @utf8.encode(value)
     Err(issue) => return Err(Protocol(issue))
   }
-  let durable = match
-    self.database.compare_exchange(
-      "coordinator_dispatch",
-      key,
-      expected.to_int64(),
-      body,
-    ) {
-    Ok(revision) => revision == expected.to_int64() + 1L
-    Err(@sqlite.Collision) =>
-      match self.database.read("coordinator_dispatch", key) {
-        Ok(value) =>
-          value.revision == expected.to_int64() + 1L && value.body == body
-        Err(issue) => return Err(Physical(issue))
-      }
-    Err(issue) => return Err(Physical(issue))
+  let durable = if @remote.coordinator_dispatch_transition_is_replay(transition) {
+    // The exact history is already durable. Read/admission above is the
+    // replay linearization point; no CAS/revision write is performed.
+    body == current_value.body
+  } else {
+    match
+      self.database.compare_exchange(
+        "coordinator_dispatch",
+        key,
+        expected.to_int64(),
+        body,
+      ) {
+      Ok(revision) => revision == expected.to_int64() + 1L
+      Err(@sqlite.Collision) =>
+        match self.database.read("coordinator_dispatch", key) {
+          Ok(value) =>
+            value.revision == expected.to_int64() + 1L && value.body == body
+          Err(issue) => return Err(Physical(issue))
+        }
+      Err(issue) => return Err(Physical(issue))
+    }
   }
   if !durable {
     return Err(StateCollision)

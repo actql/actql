@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import {execFileSync, spawn} from 'node:child_process';
 import {createHash, generateKeyPairSync, X509Certificate} from 'node:crypto';
 import {once} from 'node:events';
+import {request as httpsRequest} from 'node:https';
 import {chmod, mkdir, mkdtemp, readdir, readFile, rm, rmdir, stat, writeFile} from
   'node:fs/promises';
 import {existsSync} from 'node:fs';
@@ -19,6 +20,10 @@ import {installNodeClientProgramPreparation} from
   '../adapters/host-node/client-program-preparation.mjs';
 import {startHttpsOutboundSiteGateway} from
   '../adapters/host-node/outbound-site-gateway.mjs';
+import {openSqliteCoordinatorDispatchJournal} from
+  '../adapters/host-node/sqlite-coordinator-journal.mjs';
+import {createRemoteSiteCoordinator} from
+  '../adapters/host-node/remote-site-coordinator.mjs';
 import {signRemoteRuntimeBundle} from
   '../adapters/site-node/remote-bundle-signature.mjs';
 import {pinnedEngineContracts} from
@@ -68,6 +73,10 @@ let receiver;
 let receiverStore;
 let receiverJournal;
 let currentSite;
+let observationStore;
+let observationReceiver;
+const observationBodies = [];
+const observationFailures = [];
 const running = new Set();
 try {
   // Build the resident Site and the portable owners the test drives.
@@ -127,6 +136,21 @@ try {
       {siteKey, siteGeneration: 1},
     ]]),
     control: siteControl,
+    receiveObservation: process.argv.includes('--observation-replay-only')
+      ? async value => {
+        try {
+          const receipt = await observationReceiver.receiveObservation(value);
+          observationBodies.push(value.body);
+          return receipt;
+        } catch (error) {
+          if (observationFailures.length < 4) observationFailures.push({
+            code: error.code, message: error.message, cause: error.cause,
+            issueCode: error.issueCode, binding: value.binding,
+            observation: JSON.parse(value.body),
+          });
+          throw error;
+        }
+      } : undefined,
     idlePollMilliseconds: 200,
   });
 
@@ -470,6 +494,83 @@ try {
     };
   };
   let expectedEntries = 0;
+
+  if (process.argv.includes('--observation-replay-only')) {
+    // R1's receiver is the existing Coordinator owner/journal, not a test
+    // receipt map. The retained bodies below are actual native Site reports;
+    // their authority is checked again by the gateway on each HTTPS request.
+    const dispatch = dispatchFor('resident-observation-replay', 1);
+    const coordinatorRoot = join(root, 'coordinator-observations');
+    const openObservationReceiver = () => {
+      observationStore = openSqliteCoordinatorDispatchJournal(coordinatorRoot,
+        {coordinatorAuthority: 'cloud-coordinator'});
+      observationReceiver = createRemoteSiteCoordinator({control: siteControl,
+        journal: siteControl.createCoordinatorJournal('cloud-coordinator'),
+        store: observationStore});
+    };
+    observationStore = openSqliteCoordinatorDispatchJournal(coordinatorRoot,
+      {coordinatorAuthority: 'cloud-coordinator'});
+    observationStore.accept(siteControl.prepareCoordinatorIntent(
+      siteControl.createCoordinatorJournal('cloud-coordinator'), dispatch),
+    dispatch, siteControl);
+    observationStore.close();
+    openObservationReceiver();
+    const site = startSite();
+    currentSite = site;
+    await within(gateway.dispatch({dispatch, inputBindingBody: '{}',
+      dispatchEnvelope: materialsEnvelope(dispatch)}), 'R1 native dispatch');
+    await waitFor(async () => (await entries()).length === 1, 'R1 native executor');
+    await settledQuery(dispatch, 'R1 native settled');
+    const savedState = observationStore.inspectState(dispatch, siteControl);
+    const firstBody = observationBodies[0];
+    const latestBody = observationBodies.at(-1);
+    const observationCa = await readFile(join(root, 'ca.crt'));
+    assert.ok(firstBody && latestBody && firstBody !== latestBody);
+    const submitObservation = (body, loseAck = false) => new Promise((resolve, reject) => {
+      const request = httpsRequest(new URL(
+        `/v1/sites/${siteKey}/generations/1/outbound/observations`, gateway.origin),
+      {method: 'POST', ca: observationCa, headers: {
+        authorization: `Bearer ${token}`, 'content-type': 'application/json',
+        'content-length': Buffer.byteLength(body),
+      }}, response => {
+        if (loseAck) {
+          assert.equal(response.statusCode, 200);
+          // Drop the actual HTTPS response after durable admission, not before
+          // a handler or a test-only counter claims that admission occurred.
+          response.destroy(new Error('R1_ACK_LOST'));
+          resolve('lost');
+        } else {
+          response.resume();
+          response.once('end', () => resolve(response.statusCode));
+        }
+        response.on('error', error => { if (!loseAck) reject(error); });
+      });
+      request.on('error', reject);
+      request.end(body);
+    });
+    assert.equal(await submitObservation(firstBody, true), 'lost');
+    assert.deepEqual(observationStore.inspectState(dispatch, siteControl), savedState);
+    observationStore.close();
+    openObservationReceiver();
+    for (const body of [firstBody, latestBody]) {
+      assert.equal(await submitObservation(body), 200);
+      assert.deepEqual(observationStore.inspectState(dispatch, siteControl), savedState);
+      assert.equal((await entries()).length, 1);
+    }
+    await within(gateway.release({dispatch}), 'R1 physical release');
+    await waitFor(() => site.lines.some(line => line.kind === 'holder-released'),
+      'R1 holder released');
+    assert.equal(reservedPayloadBytes(), 0);
+    assert.equal(pendingIntents().length, 0);
+    assert.equal((await entries()).length, 1);
+    console.log(JSON.stringify({kind: 'resident-observation-replay-verified',
+      dispatchRequestCid: siteControl.identity(dispatch),
+      runDefinitionCid: definition.identity,
+      executorEntries: 1, historicalReplayAfterCoordinatorRestart: true,
+      reservedPayloadBytes: 0, pendingOutputIntents: 0}));
+    site.child.kill('SIGTERM');
+    await site.exited;
+  } else {
 
   // The focused mode reuses this exact real-process fixture and assertions;
   // CI and the default command still execute every foundation scenario.
@@ -1548,6 +1649,7 @@ try {
   await lockedSite.exited;
   }
 
+  }
   // Each entry names one holder claimant and one attempt key; no attempt
   // key appears twice.
   const keys = (await entries()).map(line => line.split(' ')[1]);
@@ -1555,6 +1657,9 @@ try {
   console.log('native resident Site acceptance passed');
 } catch (error) {
   console.error('resident Site test failed:', error);
+  if (observationFailures.length) {
+    console.error('Coordinator observation failures:', observationFailures);
+  }
   if (currentSite !== undefined) {
     console.error('resident Site output:', JSON.stringify(currentSite.lines));
     console.error('resident Site stderr:', currentSite.stderr());
@@ -1565,6 +1670,7 @@ try {
   if (gateway !== undefined) await gateway.close().catch(() => {});
   if (receiver !== undefined) await receiver.close().catch(() => {});
   receiverJournal?.close();
+  observationStore?.close();
   receiverStore?.close();
   await receiverStore?.cleanup();
   if (process.env.ACTQL_TEST_PRESERVE_SCRATCH !== '1') {

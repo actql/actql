@@ -91,6 +91,46 @@ jobs:
       # every target with no change in memory. Building is unaffected.
       - name: Test common core
         run: moon test --target "${{ matrix.target }}" --deny-warn -j "$(getconf _NPROCESSORS_ONLN)"
+  # Conditional proof and correspondence evidence beside the existing gates.
+  session-evidence:
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+      - name: Install audited Lean pin
+        run: |
+          node proofs/bounded-session/setup-lean.mjs
+          echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
+      - name: Reject invalid evidence derivations
+        run: node --test proofs/bounded-session/evidence.test.mjs proofs/bounded-session/proof-check.test.mjs
+      - name: Produce conditional common-mechanism evidence beside existing gates
+        run: node proofs/bounded-session/run.mjs all
+      - name: Detect representative production mutations with replacement tests
+        run: node proofs/bounded-session/mutations.mjs
+      - name: Reject invalid serial chain derivations and weakened claims
+        run: node --test proofs/relation-chain/evidence.test.mjs proofs/relation-chain/proof-check.test.mjs
+      - name: Detect serial chain accounting and ownership mutations
+        run: node proofs/relation-chain/mutations.mjs
+      # Keep both evidence sets fresh: either mutation batch can invalidate
+      # another target's incremental artifacts even after source restoration.
+      - name: Restore and verify final common-mechanism artifacts on all targets
+        run: node proofs/bounded-session/run.mjs all
+      - name: Produce final serial chain evidence on all targets
+        run: node proofs/relation-chain/run.mjs all
+      - name: Retain exact-source evidence and mutation results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: bounded-session-evidence-${{ github.sha }}
+          path: |
+            .artifacts/bounded-session/
+            .artifacts/relation-chain/
+          include-hidden-files: true
+          if-no-files-found: error
   # Host, authorization, Checkpoint and retained-state owners.
   host:
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
@@ -121,6 +161,8 @@ jobs:
         run: npm run check:process-capacity
       - name: Test durable Remote Site dispatch admission
         run: npm run check:remote-site-runtime
+      - name: Test non-destructive SQLite format inspection
+        run: node --test adapters/host-common/sqlite-format-inspection.test.mjs
       - name: Test durable Checkpoint journal and resumed dispatch admission
         run: npm run check:checkpoint-runtime
       - name: Test native retained task file ownership
@@ -232,7 +274,7 @@ jobs:
   # scheduled (see its condition).
   check:
     if: ${{ always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
-    needs: [lint, core, host, client, native, spec, native-macos,
+    needs: [lint, core, host, client, native, spec, session-evidence, native-macos,
       native-separated-network, workers, connector-addition, duckdb-node]
     runs-on: ubuntu-24.04
     timeout-minutes: 5

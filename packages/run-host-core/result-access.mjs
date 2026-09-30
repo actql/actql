@@ -103,7 +103,7 @@ export async function describeAuthorizedResult(service, input, signal) {
     positive(limits[key]) && limits[key] <= resultDescriptionLimits[key])) {
     fail('InvalidResultAccessRequest');
   }
-  const {store, control, authority, now} = installed;
+  const {store, control, authority} = installed;
   if (typeof authority.authorizeResultDescription !== 'function' ||
       typeof authority.admitResultDescription !== 'function' ||
       typeof store.readCommittedResultDescriptionEvidence !== 'function' ||
@@ -149,8 +149,15 @@ export async function describeAuthorizedResult(service, input, signal) {
   const effectiveRetention = evidence.retained?.extension ?? retention;
   const clockCid = control.resultRetentionClockContractCid(retention);
   const checkRetained = async () => {
-    const at = observedAt(now);
-    await store.observeTrustedClock(clockCid, at);
+    const acceptedAt = await sampleTrustedClock(installed, clockCid);
+    // A durable write may settle after metadata or grant expiry. Keep the
+    // accepted lower bound while checking the time after physical IO too.
+    const at = typeof store.sampleTrustedClock === 'function'
+      ? observedAt(installed.now) : acceptedAt;
+    if (typeof store.sampleTrustedClock === 'function' &&
+        !control.trustedClockNotBefore(acceptedAt, at)) {
+      fail('InvalidResultAccessClock');
+    }
     // Validate the stored extension's exact base binding using its owner.
     if (evidence.retained !== undefined) {
       control.resultReadExtendedAvailability(manifest, request.resultName,
@@ -215,10 +222,14 @@ function validateServiceConfiguration(configuration) {
       typeof configuration.store.confirmCommittedIndex !== 'function' ||
       typeof configuration.store.readPublicationContract !== 'function' ||
       typeof configuration.store.observeTrustedClock !== 'function' ||
+      configuration.store.sampleTrustedClock !== undefined &&
+        typeof configuration.store.sampleTrustedClock !== 'function' ||
       typeof configuration.store.readCommittedResultRetentionExtension !==
         'function' ||
       configuration.control === null ||
       typeof configuration.control !== 'object' ||
+      configuration.store.sampleTrustedClock !== undefined &&
+        typeof configuration.control.trustedClockNotBefore !== 'function' ||
       typeof configuration.control.issueResultReadGrant !== 'function' ||
       typeof configuration.control.resultReadRetentionPolicyCid !==
         'function' ||
@@ -351,6 +362,25 @@ function observedAt(now) {
   return value;
 }
 
+// A concurrent physical Store may sample only after it reads its durable
+// clock bound, and sample again after a CAS conflict. Use that exact accepted
+// observation for semantic checks rather than an earlier caller sample.
+// The explicit-observation fallback retains the existing Store contract.
+async function sampleTrustedClock(installed, clockContractCid, suppliedAt) {
+  if (typeof installed.store.sampleTrustedClock === 'function') {
+    const at = await installed.store.sampleTrustedClock(
+      clockContractCid, () => observedAt(installed.now),
+    );
+    if (!installed.control.trustedClockNotBefore(suppliedAt, at)) {
+      fail('InvalidResultAccessClock');
+    }
+    return at;
+  }
+  const at = suppliedAt ?? observedAt(installed.now);
+  await installed.store.observeTrustedClock(clockContractCid, at);
+  return at;
+}
+
 export async function deliverAuthorizedResult(
   service,
   input,
@@ -437,7 +467,6 @@ export async function deliverAuthorizedResult(
     throw error;
   }
   installed.control.recordResultAccessResolution(progress, true);
-  const admittedAt = observedAt(installed.now);
   const availability = observed => retained === undefined
     ? installed.control.resultReadAvailability(
       manifest, request.resultName, retention, observed,
@@ -451,7 +480,7 @@ export async function deliverAuthorizedResult(
     );
   const clockContractCid =
     installed.control.resultRetentionClockContractCid(retention);
-  await installed.store.observeTrustedClock(clockContractCid, admittedAt);
+  const admittedAt = await sampleTrustedClock(installed, clockContractCid);
   const initiallyAvailable = availability(admittedAt) === 'available';
   requireAction('check_initial_availability');
   installed.control.recordResultAccessInitialAvailability(
@@ -510,10 +539,9 @@ export async function deliverAuthorizedResult(
   installed.control.recordResultAccessGrant(progress, true);
   requireAction('start_delivery');
   const authorize = async facts => {
-    await installed.store.observeTrustedClock(
-      clockContractCid, facts.observedAt,
-    );
-    if (availability(facts.observedAt) !== 'available') {
+    const at = await sampleTrustedClock(installed,
+      clockContractCid, facts.observedAt);
+    if (availability(at) !== 'available') {
       return false;
     }
     const allowed = await installed.authority.authorizeResultRead(
@@ -522,15 +550,18 @@ export async function deliverAuthorizedResult(
         grant,
         authorizationContextCid: admission.authorizationContextCid,
         egressAdmissionCid: admission.egressAdmissionCid,
-        delivery: facts,
+        delivery: Object.freeze({...facts, observedAt: at}),
       }),
     );
     if (allowed !== true) return false;
-    const authorizedAt = observedAt(installed.now);
-    await installed.store.observeTrustedClock(
-      clockContractCid, authorizedAt,
-    );
+    const authorizedAt = await sampleTrustedClock(installed, clockContractCid);
     const usableAt = observedAt(installed.now);
+    // Persistence can cross expiry. Retain the post-I/O expiry check, while
+    // refusing a fresh clock sample below the accepted durable observation.
+    if (typeof installed.store.sampleTrustedClock === 'function' &&
+        !installed.control.trustedClockNotBefore(authorizedAt, usableAt)) {
+      fail('InvalidResultAccessClock');
+    }
     return availability(usableAt) === 'available' &&
       installed.control.resultReadGrantValidAt(grant, usableAt);
   };

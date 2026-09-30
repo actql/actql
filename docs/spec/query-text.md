@@ -46,6 +46,21 @@ an analytic `OVER` clause resolve against the input snapshot, not the final
 ORDER BY scope. These rules follow the adopted GoogleSQL query and window
 scopes; they do not confer general GoogleSQL compatibility.
 
+Pipe range variables bind immutable input value slots. `SET` replaces the
+current unqualified columns; every assignment sees the same pre-SET row.
+`DROP` removes current names, and `RENAME` changes current names. These three
+operations retain an existing range variable's original column names and
+values. A removed or renamed current column does not become available through
+an unqualified reference simply because an older range variable retains it.
+
+Pipe `AS name` replaces all preceding range variables with that name, bound
+to the current visible columns and values. Reusing the same name is allowed
+and establishes a new binding. References to a displaced initial or
+intermediate range variable are rejected, including references inside
+expressions, WHERE and ORDER BY. AS does not restore dropped names or expose
+compiler helper slots. These are the adopted
+[GoogleSQL Pipe scope rules](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/pipe-syntax).
+
 Ordinary SELECT may order by a visible non-output input expression. After
 DISTINCT, ordering must be resolvable from the selected expressions or their
 aliases. Helper slots do not participate in DISTINCT equality or Named Result
@@ -62,6 +77,44 @@ query. Finite bounds, stable-order evidence, identity requirements, captured
 source grants and current authorization remain ordinary admission obligations.
 Unsupported shapes must be rejected instead of approximated by a second
 checker or evaluator.
+
+## INFER KEEP source projection
+
+The adopted INFER Pipe form has mandatory `ITEM KEY`, `INPUT`, and result
+`AS` clauses, with optional `KEEP`. The contract name is carried unchanged
+to ordinary `infer.contract` resolution in the same Check Environment;
+backticks can delimit a complete existing reference such as
+`model-task:risk-score.v1`. Parsing a name does not resolve a ModelTask, select
+a newer version, or authorize model egress. An empty INPUT is checked against
+the resolved closed input contract, not treated as permission to omit fields.
+
+KEEP accepts column references, optional output aliases, and known-schema
+`*` or range `.*`. Expansion retains visible declaration order, and explicit
+items retain authored order. Calculations belong in SELECT or EXTEND.
+Duplicate output names, a collision with the result AS name, unresolved
+references, and repeated ITEM KEY value slots are rejected. The common checker
+still proves the complete non-null scalar candidate key; specifying ITEM KEY
+never supplies that proof. Only INPUT mappings are sent to the model.
+
+The new visible scope consists of KEEP columns followed by one result object:
+`input_key` (named fields in the authored key tuple), `outcome`, and `value`.
+Omitted KEEP produces only that object. Prior range aliases cannot recover
+omitted input fields. KEEP is a checked one-to-one correspondence with the
+same retained input producer, not a new read or a row-position join. The common
+infer output remains flat keys, outcome and value. Ordinary join and object
+projection construct the surface shape without changing its capture format.
+
+Success value is the existing non-null closed ModelTask output object, retaining
+each field's nullability. Non-success value is typed NULL, and outcomes retain
+the fixed [infer contract](language.md#infer) enumeration. Nested references
+lower to ordinary property expressions after resolving a visible column or
+range prefix. Known properties on a nullable receiver propagate NULL; unknown
+properties require the common type error. Outcome/value refinement and capture
+provenance remain common-owner obligations, never facts fabricated by a name,
+projection or assignment. Frontend construction of a Program is not evidence
+of model execution support. Until common infer and object-expression execution
+are available, normal Host preparation rejects these Programs before Run
+acceptance and provider I/O.
 
 ## Graph pattern source
 

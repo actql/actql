@@ -270,6 +270,7 @@ export const prepareResponseObservation = (record, response) =>
   checked(owner.coordinatorPrepareResponseObservation(record, response));
 export const transitionExpectedRevision =
   owner.coordinatorTransitionExpectedRevision;
+export const transitionIsReplay = owner.coordinatorTransitionIsReplay;
 export const transitionDurableJson = (durable, transition) =>
   checked(owner.coordinatorTransitionDurableJson(durable, transition));
 export const responseDurableJson = (durable, transition, response) =>
