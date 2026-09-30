@@ -66,8 +66,10 @@ authority.
 At implementation `f0448758e`, using the pinned MoonBit toolchain, real SQLite
 and filesystem on macOS:
 
-- Publication Store suite: **26/26 passed**, with the required native SQLite
-  and fresh Store-root environment variables set (not silently skipped).
+- Publication Store runner: **26/26 passed**, with native SQLite and a fresh
+  Store root set; all allocation regressions executed. The legacy-root and
+  subprocess-lock fixtures have additional environment guards and did not
+  execute in this direct command; the Native-job harness supplies those.
 - Allocation-focused earlier run: **10/10 passed** before adding the created
   directory inspection fault regression.
 - `scripts/test-native-resident-site.mjs`: passed. Its existing success,
