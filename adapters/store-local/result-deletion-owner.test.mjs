@@ -10,8 +10,14 @@ function fixture() {
   let allocation = 'exclusive';
   let syncFailures = 0;
   let unlinkFailures = 0;
+  let busy = Promise.resolve();
   const operations = {
-    async serialize(run) { calls.push('serialize'); return run(); },
+    serialize(run) {
+      calls.push('serialize');
+      const operation = busy.then(run);
+      busy = operation.catch(() => {});
+      return operation;
+    },
     async ensureMarker() { calls.push('marker'); },
     async retention() { calls.push('retention'); return retention; },
     markReclaiming() { calls.push('reclaiming'); },
@@ -100,3 +106,11 @@ test('another live reference settles this deletion without reclaiming',
       'serialize', 'marker', 'retention', 'settle-reference',
     ]);
   });
+
+test('concurrent retries unlink and release capacity only once', async () => {
+  const {owner, calls} = fixture();
+  const results = await Promise.all([owner.retry(), owner.retry()]);
+  assert.deepEqual(results.map(result => result.pending), [false, false]);
+  assert.equal(calls.filter(call => call === 'unlink').length, 1);
+  assert.equal(calls.filter(call => call === 'account').length, 1);
+});
