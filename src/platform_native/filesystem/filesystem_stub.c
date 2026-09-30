@@ -682,9 +682,11 @@ int32_t actql_native_filesystem_writer_seal(
 // the generation changed, 3 when the writer cannot be renamed, -1 otherwise.
 int32_t actql_native_filesystem_writer_adopt_name(
   actql_native_filesystem_writer *writer,
+  actql_native_filesystem_root *target,
   moonbit_bytes_t name,
   int32_t length
 ) {
+  if (target == NULL || target->fd < 0) return 3;
   if (writer == NULL || !writer->ready || writer->cancelled ||
       writer->cleanup_requested || writer->sealed || writer->fd < 0 ||
       !writer->staging_present) {
@@ -696,7 +698,7 @@ int32_t actql_native_filesystem_writer_adopt_name(
     return -1;
   }
   if (!actql_valid_name(adopted, (size_t)length) ||
-      strcmp(adopted, writer->staging_name) == 0) {
+      (target == writer->root && strcmp(adopted, writer->staging_name) == 0)) {
     free(adopted);
     actql_replace_error(&writer->error, "invalid adopted name");
     return -1;
@@ -705,7 +707,7 @@ int32_t actql_native_filesystem_writer_adopt_name(
   if (linkat(
         writer->root->fd,
         writer->staging_name,
-        writer->root->fd,
+        target->fd,
         adopted,
         0
       ) != 0) {
@@ -716,9 +718,9 @@ int32_t actql_native_filesystem_writer_adopt_name(
     return -1;
   }
   struct stat status;
-  if (fstatat(writer->root->fd, adopted, &status, AT_SYMLINK_NOFOLLOW) != 0) {
+  if (fstatat(target->fd, adopted, &status, AT_SYMLINK_NOFOLLOW) != 0) {
     int stat_error = errno;
-    unlinkat(writer->root->fd, adopted, 0);
+    unlinkat(target->fd, adopted, 0);
     free(adopted);
     actql_replace_errno_error(&writer->error, "inspect adopted name", stat_error);
     return -1;
@@ -729,26 +731,40 @@ int32_t actql_native_filesystem_writer_adopt_name(
         writer->inode,
         writer->written
       )) {
-    unlinkat(writer->root->fd, adopted, 0);
+    unlinkat(target->fd, adopted, 0);
     free(adopted);
     actql_replace_error(&writer->error, "adopted name generation changed");
     return 2;
   }
+  // The private name goes from its own root; from here the writer's names
+  // live under the target root.
+  actql_native_filesystem_root *origin = writer->root;
   char *private_name = writer->staging_name;
   bool private_present = writer->staging_present;
-  writer->staging_name = adopted;
   int remove_result = actql_remove_owned_name(
     writer,
     private_name,
     &private_present
   );
   if (remove_result != 0) {
-    // The adopted name is kept: the file now has two names, and cleanup of
-    // either finds the same generation.
-    free(private_name);
+    // Both names stay; cleanup of either finds the same generation. The
+    // adopted name is dropped again so the writer keeps one root.
+    unlinkat(target->fd, adopted, 0);
+    free(adopted);
     return remove_result;
   }
   free(private_name);
+  writer->staging_name = adopted;
+  if (target != origin) {
+    moonbit_incref(target);
+    writer->root = target;
+    if (actql_sync_root(origin) != 0) {
+      actql_replace_errno_error(&writer->error, "sync allocation root", errno);
+      moonbit_decref(origin);
+      return -1;
+    }
+    moonbit_decref(origin);
+  }
   if (actql_sync_root(writer->root) != 0) {
     actql_replace_errno_error(&writer->error, "sync Store root", errno);
     return -1;
@@ -1158,4 +1174,183 @@ int32_t actql_native_filesystem_reader_close(
     return -1;
   }
   return 0;
+}
+
+// Creates one directory exclusively below the root and reports its identity.
+// 0 with the identity in the root's result fields, 1 when the name exists,
+// -1 otherwise.
+int32_t actql_native_filesystem_create_directory(
+  actql_native_filesystem_root *root,
+  moonbit_bytes_t name,
+  int32_t length
+) {
+  if (root == NULL || root->fd < 0) return -1;
+  actql_replace_error(&root->error, NULL);
+  root->result_device = 0;
+  root->result_inode = 0;
+  root->result_size = 0;
+  char *name_text = actql_copy_text(name, length);
+  if (name_text == NULL) {
+    actql_replace_error(&root->error, "directory name allocation failed");
+    return -1;
+  }
+  if (!actql_valid_name(name_text, (size_t)length)) {
+    free(name_text);
+    actql_replace_error(&root->error, "invalid directory name");
+    return -1;
+  }
+  if (mkdirat(root->fd, name_text, 0700) != 0) {
+    int create_error = errno;
+    free(name_text);
+    if (create_error == EEXIST) return 1;
+    actql_replace_errno_error(&root->error, "create directory", create_error);
+    return -1;
+  }
+  struct stat status;
+  if (fstatat(root->fd, name_text, &status, AT_SYMLINK_NOFOLLOW) != 0 ||
+      !S_ISDIR(status.st_mode)) {
+    int stat_error = errno;
+    unlinkat(root->fd, name_text, AT_REMOVEDIR);
+    free(name_text);
+    actql_replace_errno_error(&root->error, "inspect created directory", stat_error);
+    return -1;
+  }
+  free(name_text);
+  if (actql_sync_root(root) != 0) {
+    actql_replace_errno_error(&root->error, "sync Store root", errno);
+    return -1;
+  }
+  root->result_device = (uint64_t)status.st_dev;
+  root->result_inode = (uint64_t)status.st_ino;
+  return 0;
+}
+
+// Reports the identity of a directory below the root: 0 with the identity,
+// 1 when absent, 2 when the name is not a directory, -1 otherwise.
+int32_t actql_native_filesystem_inspect_directory(
+  actql_native_filesystem_root *root,
+  moonbit_bytes_t name,
+  int32_t length
+) {
+  if (root == NULL || root->fd < 0) return -1;
+  actql_replace_error(&root->error, NULL);
+  root->result_device = 0;
+  root->result_inode = 0;
+  root->result_size = 0;
+  char *name_text = actql_copy_text(name, length);
+  if (name_text == NULL) {
+    actql_replace_error(&root->error, "directory name allocation failed");
+    return -1;
+  }
+  if (!actql_valid_name(name_text, (size_t)length)) {
+    free(name_text);
+    actql_replace_error(&root->error, "invalid directory name");
+    return 2;
+  }
+  struct stat status;
+  if (fstatat(root->fd, name_text, &status, AT_SYMLINK_NOFOLLOW) != 0) {
+    int stat_error = errno;
+    free(name_text);
+    if (stat_error == ENOENT) return 1;
+    actql_replace_errno_error(&root->error, "inspect directory", stat_error);
+    return -1;
+  }
+  free(name_text);
+  if (!S_ISDIR(status.st_mode)) return 2;
+  root->result_device = (uint64_t)status.st_dev;
+  root->result_inode = (uint64_t)status.st_ino;
+  return 0;
+}
+
+// Removes one exact empty directory below the root: 0 when removed or
+// already absent, 1 when another directory or a file holds the name, 3 when
+// it is not empty, -1 otherwise.
+int32_t actql_native_filesystem_remove_directory(
+  actql_native_filesystem_root *root,
+  moonbit_bytes_t name,
+  int32_t length,
+  uint64_t device,
+  uint64_t inode
+) {
+  if (root == NULL || root->fd < 0) return -1;
+  actql_replace_error(&root->error, NULL);
+  char *name_text = actql_copy_text(name, length);
+  if (name_text == NULL) {
+    actql_replace_error(&root->error, "directory name allocation failed");
+    return -1;
+  }
+  if (!actql_valid_name(name_text, (size_t)length)) {
+    free(name_text);
+    return 1;
+  }
+  struct stat status;
+  if (fstatat(root->fd, name_text, &status, AT_SYMLINK_NOFOLLOW) != 0) {
+    int stat_error = errno;
+    free(name_text);
+    if (stat_error == ENOENT) {
+      if (actql_sync_root(root) == 0) return 0;
+      actql_replace_errno_error(&root->error, "sync Store root", errno);
+      return -1;
+    }
+    actql_replace_errno_error(&root->error, "inspect directory for removal", stat_error);
+    return -1;
+  }
+  if (!S_ISDIR(status.st_mode) || (uint64_t)status.st_dev != device ||
+      (uint64_t)status.st_ino != inode) {
+    free(name_text);
+    return 1;
+  }
+  if (unlinkat(root->fd, name_text, AT_REMOVEDIR) != 0) {
+    int remove_error = errno;
+    free(name_text);
+    if (remove_error == ENOTEMPTY || remove_error == EEXIST) return 3;
+    if (remove_error == ENOENT) return 0;
+    actql_replace_errno_error(&root->error, "remove directory", remove_error);
+    return -1;
+  }
+  free(name_text);
+  if (actql_sync_root(root) != 0) {
+    actql_replace_errno_error(&root->error, "sync Store root", errno);
+    return -1;
+  }
+  return 0;
+}
+
+// Opens one directory below the root as a root of its own.
+void *actql_native_filesystem_open_child_root(
+  actql_native_filesystem_root *root,
+  moonbit_bytes_t name,
+  int32_t length
+) {
+  actql_native_filesystem_root *child = moonbit_make_external_object(
+    actql_native_filesystem_root_finalize,
+    sizeof(actql_native_filesystem_root)
+  );
+  memset(child, 0, sizeof(*child));
+  child->fd = -1;
+  if (root == NULL || root->fd < 0) {
+    actql_replace_error(&child->error, "Store root is unavailable");
+    return child;
+  }
+  char *name_text = actql_copy_text(name, length);
+  if (name_text == NULL) {
+    actql_replace_error(&child->error, "directory name allocation failed");
+    return child;
+  }
+  if (!actql_valid_name(name_text, (size_t)length)) {
+    free(name_text);
+    actql_replace_error(&child->error, "invalid directory name");
+    return child;
+  }
+  child->fd = openat(
+    root->fd,
+    name_text,
+    O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW
+  );
+  int open_error = errno;
+  free(name_text);
+  if (child->fd < 0) {
+    actql_replace_errno_error(&child->error, "open allocation directory", open_error);
+  }
+  return child;
 }

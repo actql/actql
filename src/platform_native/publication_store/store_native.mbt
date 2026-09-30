@@ -36,10 +36,10 @@ fn observe(store : Store, step : String) -> Unit {
 }
 
 ///|
-/// The private name a payload is first created under. It is derived from an
-/// allocation ordinal the Store recorded durably before the file existed, so
-/// a file found there was created by that exact allocation: nothing else is
-/// created under it, and it is never a name a foreign writer uses.
+/// The name of the private allocation area a payload is first created in.
+/// The area is a directory this Store creates exclusively; its recorded
+/// identity, not its name, is what proves that what is inside was created by
+/// this allocation.
 fn allocation_name(
   request : @payload.PublicationPayloadRequest,
   ordinal : Int64,
@@ -48,21 +48,88 @@ fn allocation_name(
 }
 
 ///|
-/// The private allocation name recorded for a request, if one was ever
-/// recorded. A recorded name that is not an allocation name of this request
-/// is a collision, never a name to touch.
+/// The file name inside an allocation area.
+const ALLOCATION_FILE : String = "payload"
+
+///|
+/// What the Store recorded about a request's allocation area: its name and,
+/// once the area existed, its identity. A name without an identity gives no
+/// authority over anything found at that name.
+priv struct RecordedAllocation {
+  name : String
+  identity : @filesystem.NativeFileOwnership?
+}
+
+///|
+fn parse_digits(text : String) -> Int64? {
+  if text.is_empty() {
+    return None
+  }
+  let mut value = 0L
+  for character in text {
+    let code = character.to_int()
+    if code < 48 || code > 57 || value > 100000000000000L {
+      return None
+    }
+    value = value * 10L + (code - 48).to_int64()
+  }
+  Some(value)
+}
+
+///|
+fn allocation_body(allocation : RecordedAllocation) -> Bytes {
+  @utf8.encode(
+    match allocation.identity {
+      Some(identity) =>
+        allocation.name +
+        "|" +
+        identity.device.to_string() +
+        "|" +
+        identity.inode.to_string()
+      None => allocation.name
+    },
+  )
+}
+
+///|
+/// The allocation recorded for a request, if any. A recorded body that is
+/// not an allocation of this request is a collision, never a name to touch.
 fn recorded_allocation(
   store : Store,
   request : @payload.PublicationPayloadRequest,
-) -> Result[String?, NativePublicationStoreIssue] {
+) -> Result[RecordedAllocation?, NativePublicationStoreIssue] {
+  let prefix = "alloc-" + record_key(request)[7:].to_owned() + "-"
   match
     store.database.read("publication_payload_allocation", record_key(request)) {
     Ok(value) => {
-      let name = @utf8.decode_lossy(value.body)
-      if name.has_prefix("alloc-" + record_key(request)[7:].to_owned() + "-") {
-        Ok(Some(name))
-      } else {
-        Err(StateCollision)
+      let parts = @utf8.decode_lossy(value.body).split("|").collect()
+      guard parts.length() == 1 || parts.length() == 3 else {
+        return Err(StateCollision)
+      }
+      let name = parts[0].to_string()
+      guard name.has_prefix(prefix) &&
+        parse_digits(
+          name.unsafe_substring(start=prefix.length(), end=name.length()),
+        )
+        is Some(_) else {
+        return Err(StateCollision)
+      }
+      if parts.length() == 1 {
+        return Ok(Some({ name, identity: None, }))
+      }
+      match
+        (parse_digits(parts[1].to_string()), parse_digits(parts[2].to_string())) {
+        (Some(device), Some(inode)) =>
+          Ok(
+            Some({
+              name,
+              identity: Some({
+                device: device.reinterpret_as_uint64(),
+                inode: inode.reinterpret_as_uint64(),
+              }),
+            }),
+          )
+        _ => Err(StateCollision)
       }
     }
     Err(@sqlite.NotFound) => Ok(None)
@@ -72,45 +139,40 @@ fn recorded_allocation(
 
 ///|
 /// The ordinal of the next allocation for a request: one more than the last
-/// recorded one, so every allocation of a key has its own private name.
+/// recorded one, so every allocation of a key has its own area, and a name
+/// that could not be created is never tried again.
 fn next_allocation_ordinal(
   store : Store,
   request : @payload.PublicationPayloadRequest,
 ) -> Result[Int64, NativePublicationStoreIssue] {
   match recorded_allocation(store, request) {
     Ok(None) => Ok(1L)
-    Ok(Some(name)) => {
+    Ok(Some(allocation)) => {
       let prefix = "alloc-" + record_key(request)[7:].to_owned() + "-"
-      let digits = name.unsafe_substring(
-        start=prefix.length(),
-        end=name.length(),
-      )
-      let mut ordinal = 0L
-      for character in digits {
-        let code = character.to_int()
-        if code < 48 || code > 57 || ordinal > 100000000000000L {
-          return Err(StateCollision)
-        }
-        ordinal = ordinal * 10L + (code - 48).to_int64()
+      match
+        parse_digits(
+          allocation.name.unsafe_substring(
+            start=prefix.length(),
+            end=allocation.name.length(),
+          ),
+        ) {
+        Some(ordinal) => Ok(ordinal + 1L)
+        None => Err(StateCollision)
       }
-      if digits.is_empty() {
-        return Err(StateCollision)
-      }
-      Ok(ordinal + 1L)
     }
     Err(issue) => Err(issue)
   }
 }
 
 ///|
-/// Record the allocation ordinal for a request durably. A later allocation
-/// for the same key replaces an earlier one, whose file is gone by then.
+/// Record a request's allocation durably: first its name, before the area
+/// exists; then, once the area was created exclusively, its identity.
 fn record_allocation(
   store : Store,
   key : String,
-  name : String,
+  allocation : RecordedAllocation,
 ) -> Result[Unit, NativePublicationStoreIssue] {
-  let body = @utf8.encode(name)
+  let body = allocation_body(allocation)
   match store.database.insert("publication_payload_allocation", key, body) {
     Ok(_) => return Ok(())
     Err(@sqlite.Collision) => ()
@@ -134,20 +196,84 @@ fn record_allocation(
 }
 
 ///|
-/// Whether a file at the private allocation name belongs to this record.
-/// Before the ownership is durable it does, by construction of the name;
-/// afterwards it must be the owned generation.
-fn reclaimable_allocation(
+/// The allocation area of a request when, and only when, the Store proved it
+/// created it: the recorded identity matches the directory found at the
+/// name. Anything inside was created by this allocation, since the area was
+/// empty when it was created and only this Store creates names in it.
+priv struct OwnedAllocation {
+  name : String
+  identity : @filesystem.NativeFileOwnership
+  area : @filesystem.Root
+  file : @filesystem.NativeFileGeneration?
+}
+
+///|
+fn owned_allocation(
+  store : Store,
+  request : @payload.PublicationPayloadRequest,
+) -> Result[OwnedAllocation?, NativePublicationStoreIssue] {
+  guard recorded_allocation(store, request)
+    is Ok(Some({ name, identity: Some(identity), })) else {
+    return match recorded_allocation(store, request) {
+      Err(issue) => Err(issue)
+      _ => Ok(None)
+    }
+  }
+  let actual = match store.root.inspect_directory(name) {
+    Ok(Some(value)) => value
+    Ok(None) => return Ok(None)
+    Err(@filesystem.GenerationMismatch) => return Ok(None)
+    Err(issue) => return Err(Filesystem(issue))
+  }
+  if actual.device != identity.device || actual.inode != identity.inode {
+    return Ok(None)
+  }
+  let area = match store.root.open_child(name) {
+    Ok(value) => value
+    Err(issue) => return Err(Filesystem(issue))
+  }
+  let file = match area.inspect_generation(ALLOCATION_FILE) {
+    Ok(value) => value
+    Err(issue) => return Err(Filesystem(issue))
+  }
+  Ok(Some({ name, identity, area, file, }))
+}
+
+///|
+/// Reclaim what an owned allocation area holds: the file, only when it is
+/// the recorded generation or no generation was recorded yet, then the
+/// area itself once empty.
+fn reclaim_owned_allocation(
+  store : Store,
   record : @payload.PublicationPayloadRecord,
-  actual : @filesystem.NativeFileGeneration,
-) -> Result[Bool, NativePublicationStoreIssue] {
-  guard @payload.publication_payload_record_ownership(record) is Some(owner) else {
-    return Ok(true)
+  allocation : OwnedAllocation,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  match allocation.file {
+    Some(generation) => {
+      match @payload.publication_payload_record_ownership(record) {
+        Some(owner) =>
+          if !allocation_matches(generation, owner) {
+            return Err(Filesystem(@filesystem.GenerationMismatch))
+          }
+        None => ()
+      }
+      match
+        filesystem(
+          allocation.area.reclaim_generation(ALLOCATION_FILE, generation),
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+    }
+    None => ()
   }
-  if !allocation_matches(actual, owner) {
-    return Err(Filesystem(@filesystem.GenerationMismatch))
+  match
+    filesystem(
+      store.root.remove_directory(allocation.name, allocation.identity),
+    ) {
+    Ok(_) => Ok(())
+    Err(issue) => Err(issue)
   }
-  Ok(true)
 }
 
 ///|
@@ -448,19 +574,13 @@ fn discovered_generations(
   (
     @filesystem.NativeFileGeneration?,
     @filesystem.NativeFileGeneration?,
-    (String, @filesystem.NativeFileGeneration)?,
+    OwnedAllocation?,
   ),
   NativePublicationStoreIssue,
 ] {
-  // The private allocation name, when an allocation was recorded.
-  let allocation = match recorded_allocation(store, request) {
-    Ok(Some(name)) =>
-      match store.root.inspect_generation(name) {
-        Ok(Some(generation)) => Some((name, generation))
-        Ok(None) => None
-        Err(issue) => return Err(Filesystem(issue))
-      }
-    Ok(None) => None
+  // The allocation area, when the Store proved it created it.
+  let allocation = match owned_allocation(store, request) {
+    Ok(value) => value
     Err(issue) => return Err(issue)
   }
   let staging = match
@@ -566,12 +686,7 @@ fn reclaim_record_internal(
         Err(issue) => return Err(issue)
       }
     }
-    if found.2 is Some((_, value)) {
-      reclaim_allocation = match reclaimable_allocation(record, value) {
-        Ok(result) => result
-        Err(issue) => return Err(issue)
-      }
-    }
+    reclaim_allocation = found.2 is Some(_)
   } else if @payload.publication_payload_record_ownership(record) is Some(_) ||
     @payload.publication_payload_record_generation(record) is Some(_) {
     return Err(StateCollision)
@@ -599,16 +714,11 @@ fn reclaim_record_internal(
         Err(issue) => return Err(issue)
       }
     }
-    if found.2 is Some((_, value)) {
-      reclaim_allocation = match reclaimable_allocation(record, value) {
-        Ok(result) => result
-        Err(issue) => return Err(issue)
-      }
-    }
+    reclaim_allocation = found.2 is Some(_)
   }
   if !known_unallocated {
-    if reclaim_allocation && found.2 is Some((name, generation)) {
-      match filesystem(store.root.reclaim_generation(name, generation)) {
+    if reclaim_allocation && found.2 is Some(allocation) {
+      match reclaim_owned_allocation(store, record, allocation) {
         Ok(_) => ()
         Err(issue) => return Err(issue)
       }
@@ -906,7 +1016,8 @@ pub fn Store::begin_payload(
       return Err(issue)
     }
   }
-  match record_allocation(self, key, allocation_name(request, ordinal)) {
+  let name = allocation_name(request, ordinal)
+  match record_allocation(self, key, { name, identity: None, }) {
     Ok(_) => ()
     Err(issue) => {
       if !cleanup_after_begin_failure(self, writing) {
@@ -915,9 +1026,40 @@ pub fn Store::begin_payload(
       return Err(issue)
     }
   }
+  // The allocation area is created exclusively; a name already taken is a
+  // conflict and nothing there is touched. Its identity is recorded before
+  // anything is created inside it, so a file found there later is this
+  // allocation's by that identity, never by the name.
+  let identity = match self.root.create_directory(name) {
+    Ok(value) => value
+    Err(issue) => {
+      if !cleanup_after_begin_failure(self, writing) {
+        return Err(CleanupPending)
+      }
+      return Err(Filesystem(issue))
+    }
+  }
+  match record_allocation(self, key, { name, identity: Some(identity), }) {
+    Ok(_) => ()
+    Err(issue) => {
+      if !cleanup_after_begin_failure(self, writing) {
+        return Err(CleanupPending)
+      }
+      return Err(issue)
+    }
+  }
+  let area = match self.root.open_child(name) {
+    Ok(value) => value
+    Err(issue) => {
+      if !cleanup_after_begin_failure(self, writing) {
+        return Err(CleanupPending)
+      }
+      return Err(Filesystem(issue))
+    }
+  }
   let physical = match
-    self.root.create_writer(
-      allocation_name(request, ordinal),
+    area.create_writer(
+      ALLOCATION_FILE,
       @payload.publication_payload_request_max_bytes(request),
     ) {
     Ok(value) => value
@@ -967,8 +1109,14 @@ pub fn Store::begin_payload(
   // foreign file there is a conflict, is never replaced, and this owned
   // allocation is reclaimed by its record.
   match
-    physical.adopt_name(@payload.publication_payload_staging_name(request)) {
-    Ok(_) => ()
+    physical.adopt_name(
+      self.root,
+      @payload.publication_payload_staging_name(request),
+    ) {
+    Ok(_) =>
+      // The area is empty now; if it cannot go yet, recovery removes it by
+      // its identity later.
+      ignore(self.root.remove_directory(name, identity))
     Err(issue) => {
       let stopped = physical.cancel() is Ok(_)
       let current = load_record(self, key).unwrap_or(owned)

@@ -60,8 +60,42 @@ pub fn Writer::seal(
 ///|
 pub fn Writer::adopt_name(
   _self : Writer,
+  _target : Root,
   _name : String,
 ) -> Result[Unit, NativeFilesystemIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Root::create_directory(
+  _self : Root,
+  _name : String,
+) -> Result[NativeFileOwnership, NativeFilesystemIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Root::inspect_directory(
+  _self : Root,
+  _name : String,
+) -> Result[NativeFileOwnership?, NativeFilesystemIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Root::remove_directory(
+  _self : Root,
+  _name : String,
+  _identity : NativeFileOwnership,
+) -> Result[Bool, NativeFilesystemIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Root::open_child(
+  _self : Root,
+  _name : String,
+) -> Result[Root, NativeFilesystemIssue] {
   Err(UnsupportedTarget)
 }
 

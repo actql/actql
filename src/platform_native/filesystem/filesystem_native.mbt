@@ -309,27 +309,30 @@ pub fn Writer::seal(
 }
 
 ///|
-#borrow(writer, name)
+#borrow(writer, target, name)
 extern "C" fn writer_adopt_name_ffi(
   writer : Writer,
+  target : Root,
   name : Bytes,
   length : Int,
 ) -> Int = "actql_native_filesystem_writer_adopt_name"
 
 ///|
-/// Give the open staging file its public name and drop its private one. The
-/// public name is linked exclusively: an existing file there is a conflict
-/// and is never replaced or removed. The generation is verified before the
-/// private name goes.
+/// Give the open staging file its public name under `target` and drop its
+/// private one. The public name is linked exclusively: an existing file
+/// there is a conflict and is never replaced or removed. The generation is
+/// verified before the private name goes; from then on the writer's names
+/// live under `target`.
 pub fn Writer::adopt_name(
   self : Writer,
+  target : Root,
   name : String,
 ) -> Result[Unit, NativeFilesystemIssue] {
   if !valid_object_name(name) {
     return Err(InvalidName)
   }
   let encoded = @utf8.encode(name)
-  match writer_adopt_name_ffi(self, encoded, encoded.length()) {
+  match writer_adopt_name_ffi(self, target, encoded, encoded.length()) {
     0 => Ok(())
     1 => Err(Conflict)
     2 => Err(GenerationMismatch)
@@ -523,5 +526,131 @@ pub fn Reader::close(self : Reader) -> Result[Unit, NativeFilesystemIssue] {
     Ok(())
   } else {
     Err(Read(decode_message(reader_error_ffi(self))))
+  }
+}
+
+///|
+#borrow(root, name)
+extern "C" fn create_directory_ffi(
+  root : Root,
+  name : Bytes,
+  length : Int,
+) -> Int = "actql_native_filesystem_create_directory"
+
+///|
+#borrow(root, name)
+extern "C" fn inspect_directory_ffi(
+  root : Root,
+  name : Bytes,
+  length : Int,
+) -> Int = "actql_native_filesystem_inspect_directory"
+
+///|
+#borrow(root, name)
+extern "C" fn remove_directory_ffi(
+  root : Root,
+  name : Bytes,
+  length : Int,
+  device : UInt64,
+  inode : UInt64,
+) -> Int = "actql_native_filesystem_remove_directory"
+
+///|
+#borrow(root, name)
+extern "C" fn open_child_root_ffi(
+  root : Root,
+  name : Bytes,
+  length : Int,
+) -> Root = "actql_native_filesystem_open_child_root"
+
+///|
+/// Create one directory below this root exclusively and return its identity.
+/// An existing name is a conflict; nothing there is touched.
+pub fn Root::create_directory(
+  self : Root,
+  name : String,
+) -> Result[NativeFileOwnership, NativeFilesystemIssue] {
+  if !valid_object_name(name) {
+    return Err(InvalidName)
+  }
+  let encoded = @utf8.encode(name)
+  match create_directory_ffi(self, encoded, encoded.length()) {
+    0 =>
+      Ok({
+        device: root_result_device_ffi(self),
+        inode: root_result_inode_ffi(self),
+      })
+    1 => Err(Conflict)
+    _ => Err(WriterCreate(decode_message(root_error_ffi(self))))
+  }
+}
+
+///|
+/// The identity of a directory below this root, if one is there.
+pub fn Root::inspect_directory(
+  self : Root,
+  name : String,
+) -> Result[NativeFileOwnership?, NativeFilesystemIssue] {
+  if !valid_object_name(name) {
+    return Err(InvalidName)
+  }
+  let encoded = @utf8.encode(name)
+  match inspect_directory_ffi(self, encoded, encoded.length()) {
+    0 =>
+      Ok(
+        Some({
+          device: root_result_device_ffi(self),
+          inode: root_result_inode_ffi(self),
+        }),
+      )
+    1 => Ok(None)
+    2 => Err(GenerationMismatch)
+    _ => Err(Read(decode_message(root_error_ffi(self))))
+  }
+}
+
+///|
+/// Durably remove one exact empty directory. A missing name is idempotent
+/// success; a directory that is not empty is left, with `Ok(false)`; another
+/// directory or a file at the name is never removed.
+pub fn Root::remove_directory(
+  self : Root,
+  name : String,
+  identity : NativeFileOwnership,
+) -> Result[Bool, NativeFilesystemIssue] {
+  if !valid_object_name(name) {
+    return Err(InvalidName)
+  }
+  let encoded = @utf8.encode(name)
+  match
+    remove_directory_ffi(
+      self,
+      encoded,
+      encoded.length(),
+      identity.device,
+      identity.inode,
+    ) {
+    0 => Ok(true)
+    1 => Err(GenerationMismatch)
+    3 => Ok(false)
+    _ => Err(Cleanup(decode_message(root_error_ffi(self))))
+  }
+}
+
+///|
+/// Open one directory below this root as a root of its own.
+pub fn Root::open_child(
+  self : Root,
+  name : String,
+) -> Result[Root, NativeFilesystemIssue] {
+  if !valid_object_name(name) {
+    return Err(InvalidName)
+  }
+  let encoded = @utf8.encode(name)
+  let child = open_child_root_ffi(self, encoded, encoded.length())
+  if root_ready_ffi(child) {
+    Ok(child)
+  } else {
+    Err(RootOpen(decode_message(root_error_ffi(child))))
   }
 }

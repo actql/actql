@@ -1446,14 +1446,15 @@ test "native delivery limit failure keeps its reader until explicit close" {
 }
 
 ///|
-/// The Store's own allocation steps up to the private file, as begin_payload
-/// takes them, stopped as a killed process would: the record and the file
-/// are left, the writer is never cancelled.
+/// The Store's own allocation steps, as begin_payload takes them, stopped as
+/// a killed process would: records and files are left, the writer is never
+/// cancelled. `stage` names the stop: "recorded" before the area is created,
+/// "allocated" after the file exists, "owned" after its ownership is durable.
 fn native_stopped_allocation(
   store : Store,
   request : @payload.PublicationPayloadRequest,
-  owned : Bool,
-) -> (String, @filesystem.Writer) {
+  stage : String,
+) -> (String, @filesystem.Writer?) {
   let key = record_key(request)
   let record = @payload.prepare_publication_payload_record(request)
   ignore(
@@ -1487,14 +1488,20 @@ fn native_stopped_allocation(
     store,
     @payload.prepare_publication_payload_writing(reserved).unwrap(),
   ).unwrap()
-  let private_name = allocation_name(
+  let name = allocation_name(
     request,
     next_allocation_ordinal(store, request).unwrap(),
   )
-  record_allocation(store, key, private_name).unwrap()
-  let stopped = store.root.create_writer(private_name, 32L).unwrap()
+  record_allocation(store, key, { name, identity: None, }).unwrap()
+  if stage == "recorded" {
+    return (name, None)
+  }
+  let identity = store.root.create_directory(name).unwrap()
+  record_allocation(store, key, { name, identity: Some(identity), }).unwrap()
+  let area = store.root.open_child(name).unwrap()
+  let stopped = area.create_writer(ALLOCATION_FILE, 32L).unwrap()
   stopped.append(b"partial").unwrap()
-  if owned {
+  if stage == "owned" {
     ignore(
       persist_transition(
         store,
@@ -1505,7 +1512,7 @@ fn native_stopped_allocation(
       ).unwrap(),
     )
   }
-  (private_name, stopped)
+  (name, Some(stopped))
 }
 
 ///|
@@ -1517,10 +1524,10 @@ test "native publication recovery reclaims an allocation stopped before or after
   // The root's capacity namespace is shared with the other tests' Stores,
   // some of which keep a sealed payload: only this test's delta is checked.
   let base = store.capacity_usage().unwrap().reserved_bytes
-  for owned in [false, true] {
+  for stage in ["allocated", "owned"] {
     let request = native_payload_request(
       authority,
-      "allocation-window-" + owned.to_string() + "-" + @env.now().to_string(),
+      "allocation-window-" + stage + "-" + @env.now().to_string(),
       32L,
     )
     // A foreign file at the public staging name that no record owns.
@@ -1531,16 +1538,15 @@ test "native publication recovery reclaims an allocation stopped before or after
       .inspect_generation(public_name)
       .unwrap()
       .unwrap()
-    let (private_name, stopped) = native_stopped_allocation(
-      store, request, owned,
-    )
+    let (name, stopped) = native_stopped_allocation(store, request, stage)
     assert_eq(store.capacity_usage().unwrap().reserved_bytes, base + 32L)
-    assert_true(store.root.inspect_generation(private_name).unwrap() is Some(_))
-    // Recovery, as the next Store open runs it: only the allocation's own
-    // file goes, the capacity is released, and the foreign file stays.
+    assert_true(store.root.inspect_directory(name).unwrap() is Some(_))
+    // Recovery, as the next Store open runs it: the area the Store proved
+    // it created goes with its file, the capacity is released, and the
+    // foreign file stays.
     let recovered = store.recover().unwrap()
     assert_eq(recovered.reclaimed, 1)
-    assert_eq(store.root.inspect_generation(private_name).unwrap(), None)
+    assert_eq(store.root.inspect_directory(name).unwrap(), None)
     assert_eq(
       store.root.inspect_generation(public_name).unwrap(),
       Some(foreign_before),
@@ -1554,6 +1560,76 @@ test "native publication recovery reclaims an allocation stopped before or after
     )
     ignore(stopped)
     foreign.cancel().unwrap()
+  }
+  assert_true(store.close().unwrap())
+}
+
+///|
+test "native publication recovery never takes what stands at an allocation name it did not create" {
+  guard native_payload_fixture("allocation-foreign", 4096L)
+    is Some((store, authority, _)) else {
+    return
+  }
+  let base = store.capacity_usage().unwrap().reserved_bytes
+  // First a foreign file at the name; then a foreign directory holding a
+  // file. In both, the Store recorded the name and stopped before creating
+  // the area (or its creation conflicted and the stop came before the
+  // failure was made durable): the record is recovered and its capacity
+  // released, but nothing at the name is touched.
+  for kind in ["file", "directory"] {
+    let request = native_payload_request(
+      authority,
+      "allocation-foreign-" + kind + "-" + @env.now().to_string(),
+      32L,
+    )
+    let name = allocation_name(request, 1L)
+    let foreign_file = if kind == "file" {
+      store.root.create_writer(name, 32L).unwrap()
+    } else {
+      ignore(store.root.create_directory(name).unwrap())
+      store.root
+      .open_child(name)
+      .unwrap()
+      .create_writer(ALLOCATION_FILE, 32L)
+      .unwrap()
+    }
+    foreign_file.append(b"foreign").unwrap()
+    let before = if kind == "file" {
+      store.root.inspect_generation(name).unwrap().unwrap()
+    } else {
+      store.root
+      .open_child(name)
+      .unwrap()
+      .inspect_generation(ALLOCATION_FILE)
+      .unwrap()
+      .unwrap()
+    }
+    let (recorded, _) = native_stopped_allocation(store, request, "recorded")
+    assert_eq(recorded, name)
+    // The Store's own creation at that name is a conflict, never a claim.
+    assert_true(store.root.create_directory(name) is Err(@filesystem.Conflict))
+    assert_eq(store.capacity_usage().unwrap().reserved_bytes, base + 32L)
+    let recovered = store.recover().unwrap()
+    assert_eq(recovered.reclaimed, 1)
+    assert_eq(store.capacity_usage().unwrap().reserved_bytes, base)
+    let after = if kind == "file" {
+      store.root.inspect_generation(name).unwrap().unwrap()
+    } else {
+      store.root
+      .open_child(name)
+      .unwrap()
+      .inspect_generation(ALLOCATION_FILE)
+      .unwrap()
+      .unwrap()
+    }
+    assert_eq(after, before)
+    // The next allocation of the same request never returns to that name.
+    assert_eq(next_allocation_ordinal(store, request).unwrap(), 2L)
+    foreign_file.cancel().unwrap()
+    if kind == "directory" {
+      let identity = store.root.inspect_directory(name).unwrap().unwrap()
+      assert_true(store.root.remove_directory(name, identity).unwrap())
+    }
   }
   assert_true(store.close().unwrap())
 }

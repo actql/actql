@@ -182,7 +182,7 @@ test "native filesystem adopts a public name exclusively and keeps the generatio
     .inspect_generation(public_name)
     .unwrap()
     .unwrap()
-  assert_true(writer.adopt_name(public_name) is Err(Conflict))
+  assert_true(writer.adopt_name(root, public_name) is Err(Conflict))
   assert_eq(
     root.inspect_generation(public_name).unwrap(),
     Some(foreign_generation),
@@ -191,7 +191,7 @@ test "native filesystem adopts a public name exclusively and keeps the generatio
   foreign.cancel().unwrap()
   // Without a conflict the same generation gains the public name and loses
   // the private one; writing and sealing continue under the public name.
-  writer.adopt_name(public_name).unwrap()
+  writer.adopt_name(root, public_name).unwrap()
   assert_eq(root.inspect_generation(private_name).unwrap(), None)
   let adopted = root.inspect_generation(public_name).unwrap().unwrap()
   assert_eq(adopted.device, ownership.device)
@@ -203,4 +203,46 @@ test "native filesystem adopts a public name exclusively and keeps the generatio
   assert_true(root.verify_generation(final_name, generation))
   writer.cancel().unwrap()
   assert_false(root.verify_generation(final_name, generation))
+}
+
+///|
+test "native filesystem creates an allocation area exclusively and removes only its exact empty self" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(path) else {
+    return
+  }
+  let root = open_root(path).unwrap()
+  let token = @env.now().to_string()
+  let name = "area-" + token
+  assert_eq(root.inspect_directory(name).unwrap(), None)
+  let identity = root.create_directory(name).unwrap()
+  // A second creation at the name is a conflict; the area is unchanged.
+  assert_true(root.create_directory(name) is Err(Conflict))
+  assert_eq(root.inspect_directory(name).unwrap(), Some(identity))
+  // A file inside is created and later adopted into the parent root under
+  // the same generation; the area is then empty and can go.
+  let area = root.open_child(name).unwrap()
+  let writer = area.create_writer("payload", 8L).unwrap()
+  writer.append(b"ab").unwrap()
+  let ownership = writer.ownership()
+  assert_false(root.remove_directory(name, identity).unwrap())
+  let public_name = "stage-area-" + token
+  writer.adopt_name(root, public_name).unwrap()
+  assert_eq(area.inspect_generation("payload").unwrap(), None)
+  let adopted = root.inspect_generation(public_name).unwrap().unwrap()
+  assert_eq(adopted.inode, ownership.inode)
+  assert_true(root.remove_directory(name, identity).unwrap())
+  assert_eq(root.inspect_directory(name).unwrap(), None)
+  // Removing again is idempotent; another identity at the name is refused.
+  assert_true(root.remove_directory(name, identity).unwrap())
+  let other = root.create_directory(name).unwrap()
+  assert_true(root.remove_directory(name, identity) is Err(GenerationMismatch))
+  assert_true(root.remove_directory(name, other).unwrap())
+  // A regular file at a directory name is neither a directory nor removed.
+  let file = root.create_writer(name, 8L).unwrap()
+  assert_true(root.inspect_directory(name) is Err(GenerationMismatch))
+  assert_true(root.remove_directory(name, identity) is Err(GenerationMismatch))
+  file.cancel().unwrap()
+  writer.append(b"cd").unwrap()
+  ignore(writer.seal("object-area-" + token).unwrap())
+  writer.cancel().unwrap()
 }
