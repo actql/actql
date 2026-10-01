@@ -125,6 +125,52 @@ belongs in separate reports tied to case IDs and the implementation revision.
 YAML parsing does not establish ActQL semantic validity. The MoonBit checker and
 runtime must verify these same fixtures as implementation becomes available.
 
+## Focused test execution
+
+Use the existing local verification tool when a selected test must actually run:
+
+```sh
+node scripts/local-checks.mjs test node -- --test-name-pattern 'selected name' scripts/example.test.mjs
+node scripts/local-checks.mjs test moon -- --target js -p query_integration --filter '*selected name*'
+```
+
+Replace the example file/package/filter with the intended selection. `changed`
+prints guarded commands for the affected test files and MoonBit packages.
+The small reusable guard in `scripts/test-execution.mjs` also covers successful
+Node selections in `test-acquired-effect-computation-probe.mjs`, the recovery
+phase of `test-effect-capture-host-crash.mjs`, the focused Node/MoonBit checks in
+`check-connector-addition.mjs`, and every MoonBit selection in
+`test-native-publication-store-lock.mjs`.
+
+The guard requires at least one passed executable case and no failed/cancelled
+cases. Zero discovery, unmatched selections, skip-only and todo-only results
+fail with the command/selection and observed counts. Mixed passed/skipped Node
+cases can pass; suite headings and synthetic passing test-file records do not
+count. Original nonzero process statuses remain failures; the local-checks
+command preserves the exit code (or the usual 128 + signal number). Missing,
+malformed or contradictory summaries fail closed with counts unavailable.
+
+Node uses a TAP reporter that additionally retains structured `test:summary`
+events. Only per-file case counts are added; the final process summary is
+required for completeness but can falsely count an unmatched file as one pass.
+This is tested with the CI Node 22.22.0 pin. Reporter overrides, watch mode and
+nondefault isolation are unsupported by this focused path. Moon's pinned
+0.1.20260904 tool emits `Total tests: N, passed: P, failed: F.` even with
+`--output-json`; that complete line is the parsed format. It excludes `#skip`
+cases, so skipped/cancelled/todo counts are unknown (`null`), never inferred as
+zero. Each emitted target total must contain a pass. Recheck these fixtures and
+live-tool tests when updating toolchains.
+
+This does not wrap raw `node`/`moon` commands, every npm script, benchmarks,
+compiled test executables, or all commands in `local-checks run`. Intentional
+process-crash preparation remains an expected failure verified by its original
+exit/custody assertions, not a passing-test claim. Existing optional CI jobs
+retain their conditions: a sanctioned job/test skip is still a skip, not
+successful execution. No general allow-empty switch or mandatory optional job
+is introduced. Run the guard regressions with
+`node --test scripts/test-execution.test.mjs` (the pinned MoonBit toolchain must
+be on PATH).
+
 ## Updating specification metadata
 
 For normative edits, preserve or explicitly assign `requirement-block` IDs.

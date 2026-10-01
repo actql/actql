@@ -58,6 +58,8 @@ jobs:
         run: node scripts/check-moonbit-api.mjs
       - name: Type-check public SDK and Client wire declarations
         run: npm run check:client-types
+      - name: Test nonzero execution guards
+        run: node --test scripts/test-execution.test.mjs
       - name: Test environment guards
         run: node --test scripts/moonbit-environment.test.mjs
       - name: Test portable dependency inspection and injected violations
