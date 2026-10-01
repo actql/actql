@@ -857,7 +857,12 @@ try {
         }});
     };
     openCoordinator();
-    const site = startSite([], {controlOrigin: ackLossProxy.origin});
+    // The Site reports a record only to an exact arrival or a query. Holding
+    // the executor after it starts makes a redelivered arrival observe Running
+    // and settle the recovery before execution ends, as on a slow runner; the
+    // terminal record is then reported only to the Coordinator's query.
+    const site = startSite(['--holder-pause-ms', '1000'],
+      {controlOrigin: ackLossProxy.origin});
     currentSite = site;
     const loseAcceptance = async (dispatch, previousEntries) => {
       loseDispatchCid = siteControl.identity(dispatch);
@@ -910,9 +915,12 @@ try {
     assert.ok(recovered.every(value => value.action === 'redelivered'));
     assert.equal(parallelSends, 2);
     beforeSend = undefined;
-    await waitFor(() => terminalAckLosses.length === 1, 'R2 terminal ACK loss after execution');
     await waitFor(async () => (await entries()).length === 1, 'R2 first executor entry');
+    // Whether a late arrival or this query carries the terminal record, the
+    // Coordinator durably admits it and exactly that first ACK is lost. The
+    // query resolves before the proxy sees the 200 it then drops.
     const firstTerminal = await settledQuery(first, 'R2 first terminal');
+    await waitFor(() => terminalAckLosses.length === 1, 'R2 terminal ACK loss after execution');
     const terminalState = observationStore.inspectState(first, siteControl);
     observationReceiver.receiveObservation({body: firstAccepted, binding: {siteKey, siteGeneration: 1}});
     assert.deepEqual(observationStore.inspectState(first, siteControl), terminalState);
@@ -946,6 +954,11 @@ try {
     await deliverAndRelease(second, secondTerminal, 'r2-second');
     await waitFor(() => site.lines.filter(line => line.kind === 'holder-released').length === 2,
       'R2 final physical release');
+    // Physical release does not stop the control process's journal updates.
+    // Close that process before inspecting the final durable occurrence counts;
+    // a read-only connection otherwise races its SQLite commit lock on Linux.
+    site.child.kill('SIGTERM');
+    await site.exited;
     assert.equal((await entries()).length, 2);
     assert.equal(new Set((await entries()).map(line => line.split(' ').at(-1))).size, 2);
     assert.equal(reservedPayloadBytes(), 0);
@@ -966,8 +979,6 @@ try {
       coordinatorRecreated: true, concurrentRedelivery: true,
       startedBetweenQueryAndArrival: true, historicalAcceptedDoesNotRewind: true,
       reservedPayloadBytes: 0, pendingOutputIntents: 0}));
-    site.child.kill('SIGTERM');
-    await site.exited;
   } else if (process.argv.includes('--observation-replay-only')) {
     // R1's receiver is the existing Coordinator owner/journal, not a test
     // receipt map. The retained bodies below are actual native Site reports;

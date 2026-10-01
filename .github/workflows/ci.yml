@@ -146,6 +146,43 @@ jobs:
             .artifacts/relation-capacity/
           include-hidden-files: true
           if-no-files-found: error
+  # Typed pipeline pilot remains beside the existing semantic/physical suites.
+  pipeline-evidence:
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+      - name: Install audited Lean pin
+        run: |
+          node proofs/bounded-session/setup-lean.mjs
+          echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
+      - name: Reject invalid pipeline scopes and shrinking substitutions
+        run: node --test proofs/relation-pipeline/*.test.mjs
+      - name: Verify the three-operation baseline at this same source
+        run: node proofs/relation-pipeline/run.mjs js base
+      - name: Search and shrink real JS mutations, then replay exact minima on each target
+        run: node proofs/relation-pipeline/mutations.mjs
+      - name: Restore and verify final registered pipelines on every target
+        run: node proofs/relation-pipeline/run.mjs all
+      - name: Audit independent execution records, shrink minima and marginal registration
+        run: node proofs/relation-pipeline/audit.mjs
+      - name: Reject internally consistent whole reports from another target at the audit entrypoint
+        run: node proofs/relation-pipeline/audit-target-regression.mjs
+      - name: Retain exact-source pipeline evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-evidence-${{ github.sha }}
+          path: |
+            .artifacts/relation-pipeline/
+            .artifacts/relation-pipeline-target-regression/run-*/*.json
+            .artifacts/relation-pipeline-target-regression/run-*/*.log
+          include-hidden-files: true
+          if-no-files-found: error
   # Host, authorization, Checkpoint and retained-state owners.
   host:
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
@@ -319,7 +356,7 @@ jobs:
   # scheduled (see its condition).
   check:
     if: ${{ always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
-    needs: [lint, core, host, client, native, spec, session-evidence, native-macos,
+    needs: [lint, core, host, client, native, spec, session-evidence, pipeline-evidence, native-macos,
       native-separated-network, workers, connector-addition, duckdb-node]
     runs-on: ubuntu-24.04
     timeout-minutes: 5

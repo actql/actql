@@ -1,0 +1,110 @@
+{
+  "version": "actql-relation-pipeline-baseline/0.1",
+  "revision": "aea4f81bd435b2a834f5b8ade26acb018e7e4c8d",
+  "purpose": "retrospective registry extension; counts of generated cases are not test savings",
+  "domain": {
+    "root": "checked Values authored occurrence-order imported as exact ProducedInput",
+    "fields": {
+      "k": "nullable number, bounded integers",
+      "tag": "nonnullable number, bounded integers; no candidate key asserted",
+      "extra": "nonnullable number, bounded integers"
+    },
+    "rows": "empty, NULL, exact duplicates, distinguishable stable ties",
+    "sequence": "filter/select/sort initially; take held out; successful straight-line registered Relation execution only"
+  },
+  "existingGroup": [
+    {
+      "path": "src/query_integration/local_managed_values_wbtest.mbt",
+      "test": "standard Host bounds supplied Relation chains and retains two consumers",
+      "observations": [
+        "exact checked producer connections",
+        "sort then take composition"
+      ],
+      "retain": [
+        "two-consumer custody",
+        "Host/Store cleanup"
+      ]
+    },
+    {
+      "path": "src/query_integration/sort_take_differential_wbtest.mbt",
+      "test": "Local sort take preserves numeric zero ties and null placement",
+      "observations": [
+        "NULL placement independent of direction",
+        "sort/take ordered values"
+      ],
+      "retain": [
+        "numeric zero boundary regression"
+      ]
+    },
+    {
+      "path": "src/query_integration/local_managed_unary_wbtest.mbt",
+      "test": "Local managed unary source forms feed two downstream Computes",
+      "observations": [
+        "projection column order",
+        "filter/select/sort/take operation semantics"
+      ],
+      "retain": [
+        "per-operation boundaries",
+        "two consumers",
+        "physical reclamation"
+      ]
+    }
+  ],
+  "extensionMeasurement": {
+    "unit": "valid directed adjacent operation contracts admitted by same generator",
+    "initialOperations": [
+      "filter",
+      "select",
+      "sort"
+    ],
+    "heldOut": "take",
+    "newObligations": [
+      "filter/take",
+      "select/take",
+      "sort/take",
+      "take/filter",
+      "take/select",
+      "take/sort",
+      "take/take"
+    ],
+    "handwrittenCombinationAdditions": 0,
+    "testRetirements": []
+  },
+  "reuse": {
+    "session": "existing conditional model and tested correspondence",
+    "adapter": "selected_binding_rows_execution is NOT bounded_session_execution; real-path witness required",
+    "chain": "existing operation-independent conditional theorem; old fixed-scope gate unchanged",
+    "newClaims": "finite executed case scopes only; not arbitrary registry/length refinement"
+  },
+  "shrink": {
+    "dimensions": [
+      "operation subsequence",
+      "input rows",
+      "values",
+      "arguments"
+    ],
+    "eligibility": [
+      "successful checker admission",
+      "valid exact producer references",
+      "admitted occurrence order retained",
+      "same explicit mismatch condition and anchored witnesses"
+    ],
+    "minimality": "one-step local under enumerated reductions; no global minimality claim"
+  },
+  "unchangedCommon": {
+    "proofs/bounded-session/Session.lean": "d5a9f5e62e5a360b52d5cf0d886f6832c38a00088737c3378b01dff6b6b1a434",
+    "proofs/bounded-session/Claims.lean": "70084213e510d49a17797e52509c8e2b3b0d5231519322665f686ba1f151fdd1",
+    "proofs/bounded-session/check.mjs": "32b0fe354922e5b89870e19aef05a00fbc5679bdc960717bb6ffce392b33392a",
+    "proofs/relation-chain/Chain.lean": "9246eec44f86fd3af52c9f7f9db3689a5728d8ec0a28c4b9b3ec1c8524ad1661",
+    "proofs/relation-chain/Claims.lean": "94947cc1ea5d6d5b7818ef81843dfa1f2888837790013797ca5148de82c95edc",
+    "proofs/relation-chain/check.mjs": "abac294b2005149066e11305c4422f1c5f619bec5a657e74a78cd8fe0c37da6c",
+    "src/bounded_execution/session_contract_wbtest.mbt": "31e7f210d8b115b6643da572d01b026849cf4cf78219a830712e0e30026933b1",
+    "src/connectors/local/bounded_session_contract_wbtest.mbt": "c6f19d17089b6c6298e55fffa895795c77b5a1cb8a0984d28b40f121498f8806"
+  },
+  "residual": [
+    "capacity child/runtime bounds including 256 bytes remain unproved",
+    "Store/backend/failure/resource tests retained",
+    "delayed-stop callback work not changed",
+    "no product bug fixes; preserve counterexample and hand off to owner"
+  ]
+}

@@ -152,6 +152,29 @@ receiver. The fixture now connects those existing ports. The R2 expectations,
 executor cardinality and physical-release checks remain unchanged; this is not
 an unexplained timeout or a blind retry.
 
+The missing fixture ports were corrected in
+`ca488968cb1695fb9ce07979fb4a66a37369c1b4`: the R2 Coordinator now connects
+`output` to the existing gateway and supplies the existing `transferControl`.
+Its predecessor `d15dae18b1755a79cccd3274f9f8c719c1e9c706` fails before
+Output admission with `RemoteCoordinatorOutputUnavailable`; after the correction,
+both packed redelivery and output-report acceptance pass locally. No product
+ACK decision or expected result was changed.
+
+Run 36830586437 on that corrected source failed at a different boundary:
+packed redelivery's final read-only Site journal count raised SQLite error 5
+(`database is locked`) while the control process was still running. Output and
+physical release had already completed; the subsequent packed ACK step was
+skipped, not passed. The test now waits for the control process to exit before
+reading its final durable counts and capacity. No product SQLite policy, timeout,
+retry, cardinality or ACK assertion changes. This failure is distinct from #129's
+terminal-ACK/query ordering race.
+
+The integration includes main `d632998d8` and merged #129
+(`bf111b2a8eefea51eaf09e2c0071ef48b7cca96c`). Its R2 terminal observation is
+obtained through the status query before waiting for the deliberately lost ACK.
+The real Output/Transfer receiver, all report crash boundaries, concurrent
+replay and late-ACK assertions remain in the same resident Site fixture.
+
 The preflight snapshot bound includes the maximum decimal width of an admitted
 Transfer revision, rather than the single-digit revision of the sizing fixture.
 A regression with revision 2147483647 verifies that the actual snapshot fits

@@ -46,16 +46,8 @@ test "KEEP expands the selected row or original range snapshot in fixed order" {
     "FROM pair AS before |> SET y = x |> INFER score ITEM KEY (x) INPUT (n = y) KEEP (y AS current, before.y AS original) AS assessment",
   ).unwrap()
   let body = semantic(program)
-  assert_true(
-    body.contains(
-      "\"current\":{\"join_field\":{\"name\":\"aql_pipe_set_2\",\"side\":\"right\"}}",
-    ),
-  )
-  assert_true(
-    body.contains(
-      "\"original\":{\"join_field\":{\"name\":\"y\",\"side\":\"right\"}}",
-    ),
-  )
+  assert_true(body.contains("\"current\":\"right.aql_pipe_set_2\""))
+  assert_true(body.contains("\"original\":\"right.y\""))
 }
 
 ///|

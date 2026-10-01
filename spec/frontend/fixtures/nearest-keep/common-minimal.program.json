@@ -1,0 +1,187 @@
+{
+  "version": "actql/0.1",
+  "id": "fixture.nearest_keep",
+  "stages": [
+    {
+      "id": "main",
+      "inputs": {},
+      "steps": [
+        {
+          "values": {
+            "schema": {
+              "request_id": {
+                "type": "string",
+                "nullable": false
+              },
+              "embedding": {
+                "type": "vector",
+                "dimensions": 2,
+                "nullable": false
+              },
+              "note": {
+                "type": "string",
+                "nullable": true
+              }
+            },
+            "rows": [
+              {
+                "request_id": "q1",
+                "embedding": [
+                  1,
+                  0
+                ],
+                "note": null
+              }
+            ]
+          },
+          "as": "queries"
+        },
+        {
+          "values": {
+            "schema": {
+              "item_id": {
+                "type": "string",
+                "nullable": false
+              },
+              "embedding": {
+                "type": "vector",
+                "dimensions": 2,
+                "nullable": false
+              },
+              "label": {
+                "type": "string",
+                "nullable": false
+              }
+            },
+            "rows": [
+              {
+                "item_id": "b",
+                "embedding": [
+                  0,
+                  1
+                ],
+                "label": "second"
+              },
+              {
+                "item_id": "a",
+                "embedding": [
+                  1,
+                  0
+                ],
+                "label": "first"
+              }
+            ]
+          },
+          "as": "candidates"
+        },
+        {
+          "from": "candidates",
+          "nearest": {
+            "queries": "queries",
+            "candidate_id": "item_id",
+            "candidate_vector": "embedding",
+            "query_id": "request_id",
+            "query_vector": "embedding",
+            "metric": "dot",
+            "k": 2
+          }
+        },
+        {
+          "join": {
+            "with": "queries",
+            "kind": "inner",
+            "cardinality": "many_to_one",
+            "on": [
+              {
+                "left": "query_id",
+                "right": "request_id"
+              }
+            ],
+            "select": {
+              "note": "right.note",
+              "query_id": "left.query_id",
+              "candidate_id": "left.candidate_id",
+              "score": "left.score",
+              "rank": "left.rank"
+            }
+          }
+        },
+        {
+          "join": {
+            "with": "candidates",
+            "kind": "inner",
+            "cardinality": "many_to_one",
+            "on": [
+              {
+                "left": "candidate_id",
+                "right": "item_id"
+              }
+            ],
+            "select": {
+              "note": "left.note",
+              "label": "right.label",
+              "query_id": "left.query_id",
+              "candidate_id": "left.candidate_id",
+              "score": "left.score",
+              "rank": "left.rank"
+            }
+          }
+        },
+        {
+          "derive": {
+            "neighbor": {
+              "object": {
+                "query_key": {
+                  "object": {
+                    "request_id": {
+                      "field": "query_id"
+                    }
+                  }
+                },
+                "candidate_key": {
+                  "object": {
+                    "item_id": {
+                      "field": "candidate_id"
+                    }
+                  }
+                },
+                "score": {
+                  "field": "score"
+                },
+                "rank": {
+                  "field": "rank"
+                }
+              }
+            }
+          }
+        },
+        {
+          "select": [
+            "note",
+            "label",
+            "neighbor"
+          ],
+          "as": "out"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "out",
+          "fields": [
+            "note",
+            "label",
+            "neighbor"
+          ]
+        }
+      }
+    }
+  ],
+  "results": {
+    "answer": {
+      "from": {
+        "stage": "main",
+        "result": "rows"
+      }
+    }
+  }
+}

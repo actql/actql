@@ -1,0 +1,6 @@
+FROM queries AS q
+|> NEAREST candidates AS c
+   QUERY KEY (q.request_id) VECTOR q.embedding
+   CANDIDATE KEY (c.item_id) VECTOR c.embedding
+   METRIC dot K 2
+   KEEP (q.note, c.label) AS neighbor
