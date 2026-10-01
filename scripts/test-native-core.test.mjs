@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {spawn, spawnSync} from 'node:child_process';
 import {chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync,
-  readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
+  readFileSync, readdirSync, realpathSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -12,7 +12,7 @@ const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml',
 const coreStep = workflow.jobs.core.steps.find(step => step.name === 'Test common core');
 
 function fixture(t) {
-  const root = mkdtempSync(join(tmpdir(), 'actql-native-namespace-test-'));
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-native-namespace-test-')));
   t.after(() => rmSync(root, {recursive: true, force: true}));
   const checkout = join(root, 'checkout');
   const parent = join(root, 'sqlite');
