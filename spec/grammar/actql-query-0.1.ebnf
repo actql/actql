@@ -58,11 +58,18 @@ pipe_item     = where_clause | "SELECT", select_list
               | "AS", identifier
               | "AGGREGATE", select_list, [ group_clause ]
               | join | order_clause | limit_clause
-              | pipe_set_part | infer_operator ;
+              | pipe_set_part | infer_operator | nearest_operator ;
 infer_operator = "INFER", identifier, "ITEM", "KEY", "(",
                  path, { ",", path }, ")", "INPUT", "(",
                  [ assignment, { ",", assignment } ], ")",
                  [ keep_clause ], "AS", identifier ;
+nearest_operator = "NEAREST", path, "AS", identifier,
+                   "QUERY", "KEY", "(", path, { ",", path }, ")",
+                   "VECTOR", expression,
+                   "CANDIDATE", "KEY", "(", path, { ",", path }, ")",
+                   "VECTOR", expression, "METRIC", metric,
+                   "K", integer, [ keep_clause ], "AS", identifier ;
+metric        = "cosine" | "dot" | "l2" ;
 keep_clause   = "KEEP", "(", keep_item, { ",", keep_item }, ")" ;
 keep_item     = path, [ "AS", identifier ] | "*" | path, ".", "*" ;
 pipe_set_part = ( "UNION", ( "ALL" | "DISTINCT" )

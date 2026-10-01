@@ -72,6 +72,7 @@ pub(all) enum Issue {
   UnsupportedCte
   UnsupportedGraph
   UnsupportedInfer
+  UnsupportedNearest
   Construction(@builder.Issue)
   Expression(@expression.Diagnostic)
   Admission(@program.SyntaxError)
@@ -1217,6 +1218,7 @@ fn compile_steps(
   preserve_identity_select : Bool,
   final_alias : String,
   graph_bindings_only? : Bool = false,
+  nearest_inputs? : Array[Input] = [],
 ) -> (Array[@builder.Node], Array[String]) raise Abort {
   let step_entries : Array[Array[(String, @builder.Node)]] = []
   let mut output = fields.copy()
@@ -1264,6 +1266,35 @@ fn compile_steps(
       first = false
     }
     match operation {
+      Nearest(clause) => {
+        let matches = nearest_inputs.filter(candidate => {
+          same_relation_path(candidate.relation, clause.relation)
+        })
+        guard matches.length() == 1 else { raise Abort(UnknownRelation) }
+        let (steps, fields) = lower_nearest_steps(
+          construction,
+          clause,
+          matches[0],
+          pipe_visible,
+          pipe_ranges,
+          active_fields,
+          entries,
+          i,
+          nearest_inputs.map(input => input.name),
+          max_work,
+        )
+        step_entries.append(steps)
+        entries.clear()
+        active_fields = fields.copy()
+        output = fields
+        pipe_visible = active_fields.map(field => (field, field))
+        pipe_ranges = []
+        pipe_rebound = true
+        pipe_changed = false
+        grouped = false
+        selected_expressions = []
+        deferred = true
+      }
       Infer(clause) => {
         let (steps, fields) = lower_infer_steps(
           construction,
@@ -2380,6 +2411,21 @@ pub fn compile(
   context : Context,
   limits : Limits,
 ) -> Result[@program.Program, Issue] {
+  let mut has_nearest = false
+  for i in 0..<@query.operation_count(query) {
+    if @query.operation_at(query, i) is Some(Nearest(_)) {
+      has_nearest = true
+    }
+  }
+  if has_nearest &&
+    (
+      @query.cte_count(query) > 0 ||
+      @query.set_part_count(query) > 0 ||
+      @query.join_part_count(query) > 0 ||
+      @query.graph_query(query) is Some(_)
+    ) {
+    return Err(UnsupportedNearest)
+  }
   if @query.graph_query(query) is Some(_) {
     return compile_graph_query(query, context, limits)
   }
@@ -2413,6 +2459,8 @@ pub fn compile(
   }
   let construction : Construction = { builder, generated, }
   try {
+    let dependencies = nearest_dependencies(query, context.inputs)
+    let reused_query_source = dependencies.any(other => other.name == input.name)
     let fragment = match input.source {
       Captured(declaration) => declaration
       GeneratedValues(step) => step
@@ -2428,7 +2476,7 @@ pub fn compile(
         match context.captured_stage {
           Some(stage_id) => {
             let predicate = match @query.operation_at(query, 0) {
-              Some(Where(expression)) => {
+              Some(Where(expression)) if !reused_query_source => {
                 start_at = 1
                 append_expression(
                   construction,
@@ -2462,6 +2510,52 @@ pub fn compile(
       }
       StageResult(_, _) => raise Abort(InvalidContext)
     }
+    let capture_stages = match capture_stage {
+      Some(stage) => [stage]
+      None => []
+    }
+    for candidate in dependencies {
+      if candidate.name == input.name {
+        if !same_relation_path(candidate.relation, input.relation) {
+          raise Abort(InvalidContext)
+        }
+        continue
+      }
+      match candidate.source {
+        GeneratedValues(step) => {
+          if context.captured_stage is Some(_) {
+            raise Abort(InvalidContext)
+          }
+          seed_steps.push(import_query_cursor(construction, step))
+        }
+        Captured(declaration) => {
+          let imported = import_query_cursor(construction, declaration)
+          match context.captured_stage {
+            None => input_entries.push((candidate.name, imported))
+            Some(stage_id) => {
+              let capture_id = stage_id +
+                "_nearest_" +
+                capture_stages.length().to_string()
+              if capture_id == context.stage_id ||
+                context.inputs.any(input => input.name == capture_id) {
+                raise Abort(InvalidContext)
+              }
+              let (capture, reference) = capture_source_boundary(
+                construction,
+                capture_id,
+                candidate.name,
+                imported,
+                columns(candidate),
+                construction.object([("literal", construction.add(Bool(true)))]),
+              )
+              capture_stages.push(capture)
+              input_entries.push((candidate.name, reference))
+            }
+          }
+        }
+        StageResult(_, _) => raise Abort(UnsupportedNearest)
+      }
+    }
     let (steps, output) = compile_steps(
       construction,
       query,
@@ -2473,6 +2567,8 @@ pub fn compile(
       start_at,
       context.captured_stage is Some(_),
       "aql_gen_0",
+      nearest_inputs=[input] +
+        dependencies.filter(other => other.name != input.name),
     )
     let all_steps = seed_steps + steps
     let result_source = if steps.is_empty() { input.name } else { "aql_gen_0" }
@@ -2489,10 +2585,7 @@ pub fn compile(
       ("steps", construction.array(all_steps)),
       ("results", construction.object([(context.stage_result, result)])),
     ])
-    let stages = match capture_stage {
-      Some(capture) => [capture, stage]
-      None => [stage]
-    }
+    let stages = capture_stages + [stage]
     let root = program_root(construction, context, stages)
     let source = match @builder.finish(builder, root) {
       Ok(source) => source
