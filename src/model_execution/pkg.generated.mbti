@@ -13,6 +13,8 @@ import {
 }
 
 // Values
+pub fn acquire_verified_model_capture(ModelExecution) -> VerifiedModelCapture?
+
 pub fn advance_model_execution(ModelExecution, Int) -> Result[ModelObservation, ModelExecutionIssue]
 
 pub fn advance_model_output_preparation(ModelOutputPreparation, Int) -> Result[@execution_relation.AdmittedOutputPoll, ModelExecutionIssue]
@@ -39,11 +41,17 @@ pub fn model_execution_resource_usage(ModelExecution) -> @physical_resources.Led
 
 pub fn model_execution_sealing_observation(ModelExecution) -> Bool
 
+pub fn release_verified_model_capture(VerifiedModelCapture) -> Bool
+
 pub fn replay_model_capture(@check_environment.ModelTaskContract, String, ModelCaptureBundle) -> Result[Array[@value_admission.CheckedValue], ModelExecutionIssue]
 
 pub fn replay_model_capture_rows(@execution_relation.PreparedInferRows, String, ModelCaptureBundle) -> Result[Array[@value_admission.CheckedValue], ModelExecutionIssue]
 
 pub fn request_model_cancel(ModelExecution) -> Bool
+
+pub fn retain_verified_model_capture(VerifiedModelCapture) -> VerifiedModelCapture?
+
+pub fn start_model_capture_replay(@execution_relation.PreparedInferRows, @run_publication_host.ClientInferCallScope, VerifiedModelCapture, ModelExecutionLimits) -> Result[ModelExecution, ModelExecutionIssue]
 
 pub fn start_model_execution(@execution_relation.PreparedInferRows, ModelProvider, String, ModelExecutionLimits, call_scope? : @run_publication_host.ClientInferCallScope?) -> Result[ModelExecution, ModelExecutionIssue]
 
@@ -149,6 +157,11 @@ pub(all) struct ModelSlotCapture {
 }
 
 type ModelState
+
+pub struct VerifiedModelCapture {
+  owner : ModelExecution
+  mut released : Bool
+}
 
 // Type aliases
 

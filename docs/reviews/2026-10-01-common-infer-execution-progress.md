@@ -110,7 +110,7 @@ physical stop and cleanup remain separate. Scalar wire emission and schema
 setup retain their existing bounded ceilings; this does not claim that every
 Unicode leaf or schema operation is character-stepped.
 
-The current narrow verification passed on JS, Wasm and native: identity scan
+The preceding narrow verification passed on JS, Wasm and native: identity scan
 2/2, completed export 15/15, model execution 2/2, inference Host owner 16/16,
 and Run compilation 31/31 on each target. The Node inference bridge passed
 24/24, including actual
@@ -133,7 +133,50 @@ Cancellation is tested after response admission but before observation sealing,
 and after sealing but before output handoff. Neither exposes a completed output;
 the latter retains its private observation until cleanup. Cleanup makes no
 additional provider call. These are in-process observation/custody tests, not
-the required durable-capture stop windows or reconstruction replay test.
+the required durable-capture stop windows or process-restart replay test.
+
+### Checked observation replay and custody
+
+The common model owner now issues an opaque `VerifiedModelCapture` read only
+after its scoped execution has accepted every checked response and its actual
+invocation evidence. A matching slot CID, a public `ModelCaptureBundle`, or an
+unaccepted execution cannot issue this read. It does not grant egress, durable
+Store custody, or Run publication authority.
+
+`client_infer_host.start_replay` prepares the ordinary Program prefix again,
+scans its actual completed input, and establishes its new exact call scope.
+The shared bounded request-preparation code derives the typed key and formal
+slot exactly as for physical calls. Replay additionally checks the task,
+fixed request, input Artifact and row count against the checked capture owner.
+Changed input and changed ModelTask are rejected with `OutputIdentity` instead
+of falling back to a provider. There is no provider parameter or dispatch
+alternative in the replay API.
+
+The caller's capture read, the prefix execution, the model replay child and
+output consumers have independent custody. Releasing the caller's read after
+starting replay cannot reclaim the captured data during the prefix or model
+phase. Stop confirmation still precedes child cleanup. Final cleanup releases
+the replay read, mapped input and original physical reservations without another
+model invocation. This is a reconstruction under a fresh prepared Program in
+the same process, not restoration of capture from disk after a restart.
+
+The added acceptance fixtures compare transformed output with the independent
+literal row above, reject input and ModelTask changes, reject a released capture,
+and cancel replay both during its ordinary prefix and model preparation. For
+the one-row replay, the independently derived model work boundary is ten:
+one start transition, eight shared request-preparation transitions and one
+accepted-capture transition. Nine fails specifically with `WorkLimit`; no
+output is issued. Replay makes no model attempt or transfer charge, while its
+ordinary prefix, identity traversal and output retain their existing budgets.
+
+Verification of this replay unit passed: `client_infer_host` 20/20 on each of
+JS, Wasm and native; `model_execution` 2/2 on each target; the Node bridge 26/26.
+The JS runtime build, generated interfaces on all three targets, public API
+comparison, `moon fmt --check` and `git diff --check` are the narrow checks for
+this code-only unit. The first Node run omitted the pinned `MOON_HOME` and its
+fixture freshness check rejected that environment; the rerun with the pinned
+toolchain passed all 26 cases. No runtime bundle is committed. No new Linux CI
+or pushed-SHA verification is claimed.
 
 Durable response/capture custody, verified formal replay, installed public Host
 registration and committed Named Result retrieval remain unfinished. The

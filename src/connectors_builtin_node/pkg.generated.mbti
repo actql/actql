@@ -41,6 +41,8 @@ import {
 }
 
 // Values
+pub fn client_program_acquire_infer_capture(@client_infer_host.Execution) -> @model_execution.VerifiedModelCapture?
+
 pub fn client_program_acquire_infer_output(@client_infer_host.Execution) -> @client_infer_host.OutputUse?
 
 pub fn client_program_acquired_effect_catalog_bodies(@run_publication_host.ClientEffectAcquiredEvidence, Int, Int, Int) -> Result[Array[(String, String, String)], @run_publication_host.ClientEffectAcquiredEvidenceIssue]
@@ -725,6 +727,8 @@ pub fn client_program_release_effect_input(@physical_strategy.CapturedEffectInpu
 
 pub fn client_program_release_effect_inputs(@physical_strategy.CapturedEffectInputs) -> Bool
 
+pub fn client_program_release_infer_capture(@model_execution.VerifiedModelCapture) -> Bool
+
 pub fn client_program_release_infer_output(@client_infer_host.OutputUse) -> Bool
 
 pub fn client_program_replay_model_capture(@execution_relation.PreparedInferRows, String, @model_execution.ModelCaptureBundle) -> Bool
@@ -816,6 +820,8 @@ pub fn client_program_stage_semantics_json(@run_publication_host.PreparedClientP
 pub fn client_program_start_infer_execution(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelProvider, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
 pub fn client_program_start_infer_input(@run_publication_host.PreparedClientProgram, String, String, Int) -> @client_local_host.ClientInferInputExecution?
+
+pub fn client_program_start_infer_replay(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.VerifiedModelCapture) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
 pub fn client_program_start_model_execution(@execution_relation.PreparedInferRows, @model_execution.ModelProvider, String) -> Result[@model_execution.ModelExecution, @model_execution.ModelExecutionIssue]
 

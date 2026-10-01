@@ -198,7 +198,7 @@ fn accept_model_slot(
     slot_cid: request.slot_cid,
     input_key_cid,
     fixed_request_cid: request.fixed_request_cid,
-    provider_id: state.provider.provider_id,
+    provider_id: @environment.model_task_connector(state.task),
     provider_model: response.provider_model,
     provider_request_id: response.provider_request_id,
     value: checked,

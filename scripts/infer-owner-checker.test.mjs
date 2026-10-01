@@ -265,6 +265,24 @@ async function acceptedModel() {
   return {prepared, input, rows, active, calls: () => calls};
 }
 
+function scopedInferGraph(prepared, installedTask = task) {
+  // Identity-only dependency bodies exercise the composed physical owner.
+  // They remain distinct from public Host policy/egress admission.
+  const body = {version: 'actql-model-execution-contract/0.1',
+    model_task_contract_cid: installedTask.contract_cid,
+    retry_classification_contract_cid: `sha256:${'a'.repeat(64)}`,
+    backoff_contract_cid: `sha256:${'a'.repeat(64)}`,
+    max_attempts_per_slot: 2, max_total_attempts: 4,
+    max_total_cost_units: 0, max_total_duration_ms: 1000,
+    max_total_wire_bytes: 2048, max_total_token_reservation: 128,
+    media_input_contracts: {}, default_publication: 'outcomes'};
+  const identity = cid(body);
+  const execution = checked(moon.clientProgramReadInferModelExecution(
+    prepared, 2, canonicalText({...body, self_cid: identity}), identity));
+  return checked(moon.clientProgramInferPlanGraph(prepared, 2,
+    execution, `sha256:${'b'.repeat(64)}`, `sha256:${'c'.repeat(64)}`));
+}
+
 function ownedInfer(source = program(), onInvoke, options = {}) {
   const preparation = moon.clientProgramPrepareEffectFreeWithParameters(
       canonicalText(source), 'json', environment(true, options.hostItems, task,
@@ -285,21 +303,7 @@ function ownedInfer(source = program(), onInvoke, options = {}) {
         1n, 2n, '2026-10-01T00:00:00.000Z');
     });
   if (options.scoped === true) {
-    // Identity-only dependency bodies exercise the composed physical owner.
-    // They remain distinct from public Host policy/egress admission.
-    const body = {version: 'actql-model-execution-contract/0.1',
-      model_task_contract_cid: task.contract_cid,
-      retry_classification_contract_cid: `sha256:${'a'.repeat(64)}`,
-      backoff_contract_cid: `sha256:${'a'.repeat(64)}`,
-      max_attempts_per_slot: 2, max_total_attempts: 4,
-      max_total_cost_units: 0, max_total_duration_ms: 1000,
-      max_total_wire_bytes: 2048, max_total_token_reservation: 128,
-      media_input_contracts: {}, default_publication: 'outcomes'};
-    const identity = cid(body);
-    const execution = checked(moon.clientProgramReadInferModelExecution(
-      prepared, 2, canonicalText({...body, self_cid: identity}), identity));
-    const graph = checked(moon.clientProgramInferPlanGraph(prepared, 2,
-      execution, `sha256:${'b'.repeat(64)}`, `sha256:${'c'.repeat(64)}`));
+    const graph = scopedInferGraph(prepared);
     active = checked(moon.clientProgramStartScopedInferExecution(
       prepared, 2, graph, registry, values, provider));
   } else {
@@ -564,6 +568,92 @@ test('scoped normal inference reconstructs a stable slot from its completed inpu
     assert.equal(calls(), 1);
   }
   assert.equal(slots[0], slots[1]);
+});
+
+async function inferExportRows(prepared, completed) {
+  const transform = checked(moon.clientProgramInferResultExportBegin(
+    prepared, 0, completed));
+  let ready = false;
+  for (let poll = 0; poll < 2000; poll++) {
+    if (checked(moon.clientProgramInferResultExportAdvance(transform, 1))._0) {
+      ready = true;
+      break;
+    }
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  assert.equal(ready, true);
+  const stream = checked(moon.clientProgramInferResultExportFinish(transform));
+  try {
+    let wire = '';
+    let next;
+    while ((next = checked(moon.clientProgramInferResultExportNext(stream))) !== undefined) {
+      wire += next;
+    }
+    wire += checked(moon.clientProgramInferResultExportSeal(stream));
+    return JSON.parse(wire);
+  } finally {
+    moon.clientProgramInferResultExportClose(stream);
+  }
+}
+
+test('a fresh normal preparation replays opaque checked observations without dispatch', async () => {
+  const original = ownedInfer(undefined, undefined, {scoped: true});
+  assert.equal(moon.clientProgramAcquireInferCapture(original.active), undefined);
+  assert.equal((await ownedInferTerminal(original.active)).$tag, 1);
+  const saved = moon.clientProgramAcquireInferCapture(original.active);
+  assert.ok(saved);
+  const prepared = moon.clientProgramPreparationReady(prepare(program(), environment()));
+  assert.ok(prepared);
+  assert.notEqual(prepared, original.prepared);
+  // No physical provider is installed or accepted by this replay API.
+  const replay = checked(moon.clientProgramStartInferReplay(prepared, 2,
+    scopedInferGraph(prepared), registry, values, saved));
+  assert.equal(moon.clientProgramReleaseInferCapture(saved), true);
+  assert.equal(moon.clientProgramReleaseInferCapture(saved), false);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(original.active)), false);
+  const terminal = await ownedInferTerminal(replay);
+  assert.equal(terminal.$tag, 1, inspect(terminal));
+  assert.deepEqual(await inferExportRows(prepared,
+    moon.clientProgramInferExecutionOutput(terminal)), [
+    {id: 'a', outcome: 'ok', value: {reason: null, risk: 'high'}},
+  ]);
+  assert.equal(original.calls(), 1);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(original.active)), false);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(replay)), true);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(original.active)), true);
+  assert.equal(original.calls(), 1);
+  assert.equal(moon.clientProgramStartInferReplay(prepared, 2,
+    scopedInferGraph(prepared), registry, values, saved).$tag, 0);
+});
+
+test('replay rejects changed input and task instead of redispatching a model', async () => {
+  const original = ownedInfer(undefined, undefined, {scoped: true});
+  assert.equal((await ownedInferTerminal(original.active)).$tag, 1);
+  const saved = moon.clientProgramAcquireInferCapture(original.active);
+  assert.ok(saved);
+  const changedTask = structuredClone(task);
+  changedTask.authored_model_selector = 'fixture-other-model';
+  delete changedTask.contract_cid;
+  changedTask.contract_cid = cid(changedTask);
+  const changedInput = program();
+  changedInput.stages[0].steps[0].values.rows[0].text = 'changed';
+  for (const [source, installedTask] of [[changedInput, task], [program(), changedTask]]) {
+    const prepared = moon.clientProgramPreparationReady(
+      prepare(source, environment(true, undefined, installedTask)));
+    assert.ok(prepared);
+    const replay = checked(moon.clientProgramStartInferReplay(prepared, 2,
+      scopedInferGraph(prepared, installedTask), registry, values, saved));
+    const terminal = await ownedInferTerminal(replay);
+    assert.equal(terminal.$tag, 2, inspect(terminal));
+    assert.equal(terminal._0.$tag, 2, 'Model issue');
+    assert.equal(terminal._0._0.$tag, 6, 'exact OutputIdentity cause');
+    assert.equal(moon.clientProgramAcquireInferOutput(replay), undefined);
+    assert.equal(moon.clientProgramAcquireInferCapture(replay), undefined);
+    assert.equal(checked(moon.clientProgramCleanupInferExecution(replay)), true);
+    assert.equal(original.calls(), 1);
+  }
+  assert.equal(moon.clientProgramReleaseInferCapture(saved), true);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(original.active)), true);
 });
 
 test('stopping between checked response and sealed observation issues no completed evidence', async () => {

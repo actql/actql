@@ -45,6 +45,12 @@ enum Phase {
 }
 
 ///|
+enum Source {
+  Physical(@model.ModelProvider)
+  Replay(@model.VerifiedModelCapture)
+}
+
+///|
 pub enum Poll {
   Continue(work~ : Int64)
   Complete(@relation.CompletedOutput, work~ : Int64)
@@ -59,7 +65,7 @@ pub enum Poll {
 pub struct Execution {
   prepared : @publication_host.PreparedClientProgram
   input : @input.ClientInferInputExecution
-  provider : @model.ModelProvider
+  source : Source
   fixed_request_cid : String
   step : Int
   plan : @publication_host.ClientInferPlanGraph?
@@ -99,6 +105,60 @@ pub fn start(
   fixed_request_cid : String,
   limits : Limits,
   plan? : @publication_host.ClientInferPlanGraph? = None,
+) -> Result[Execution, Issue] {
+  start_owned(
+    prepared,
+    step,
+    registry,
+    values,
+    Physical(provider),
+    fixed_request_cid,
+    limits,
+    plan,
+  )
+}
+
+///|
+/// Reconstruction follows the ordinary bounded prefix and identity scan.
+/// It cannot redispatch: the only model source is an existing checked capture.
+pub fn start_replay(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  registry : String,
+  values : String,
+  capture : @model.VerifiedModelCapture,
+  limits : Limits,
+  plan : @publication_host.ClientInferPlanGraph,
+) -> Result[Execution, Issue] {
+  guard @model.retain_verified_model_capture(capture) is Some(retained) else {
+    return Err(Model(@model.OutputIdentity))
+  }
+  let started = start_owned(
+    prepared,
+    step,
+    registry,
+    values,
+    Replay(retained),
+    @publication_host.client_infer_plan_graph_request_cid(plan),
+    limits,
+    Some(plan),
+  )
+  if started is Err(_) {
+    @model.release_verified_model_capture(retained) |> ignore
+  }
+  started
+}
+
+///|
+fn start_owned(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  registry : String,
+  values : String,
+  source : Source,
+  fixed_request_cid : String,
+  limits : Limits,
+  plan : @publication_host.ClientInferPlanGraph?,
 ) -> Result[Execution, Issue] {
   if limits.output_rows < 0 ||
     limits.output_work < 0 ||
@@ -169,7 +229,7 @@ pub fn start(
   Ok({
     prepared,
     input,
-    provider,
+    source,
     fixed_request_cid,
     step,
     plan,
@@ -226,14 +286,28 @@ fn stopped(active : Execution) -> Poll {
 ///|
 fn begin_model(active : Execution) -> Poll {
   guard active.rows is Some(rows) else { return fail(active, InvalidAdvance) }
-  active.model = match
-    @model.start_model_execution(
-      rows,
-      active.provider,
-      active.fixed_request_cid,
-      active.limits.model,
-      call_scope=active.call_scope,
-    ) {
+  let started = match active.source {
+    Physical(provider) =>
+      @model.start_model_execution(
+        rows,
+        provider,
+        active.fixed_request_cid,
+        active.limits.model,
+        call_scope=active.call_scope,
+      )
+    Replay(capture) => {
+      guard active.call_scope is Some(scope) else {
+        return fail(active, Model(@model.OutputIdentity))
+      }
+      @model.start_model_capture_replay(
+        rows,
+        scope,
+        capture,
+        active.limits.model,
+      )
+    }
+  }
+  active.model = match started {
     Ok(value) => Some(value)
     Err(issue) => return fail(active, Model(issue))
   }
@@ -600,6 +674,20 @@ pub fn invocation_evidence(
 }
 
 ///|
+/// Retain an opaque read of the checked model owner, independently of output
+/// readers. Durable persistence and Run publication are not implied.
+pub fn acquire_capture(active : Execution) -> @model.VerifiedModelCapture? {
+  if active.reclaimed {
+    None
+  } else {
+    match active.model {
+      Some(model) => @model.acquire_verified_model_capture(model)
+      None => None
+    }
+  }
+}
+
+///|
 pub fn sealing_observation(active : Execution) -> Bool {
   !active.reclaimed &&
   active.model is Some(model) &&
@@ -733,6 +821,9 @@ pub fn cleanup(active : Execution) -> Result[Bool, Issue] {
   }
   match @input.cleanup_client_infer_input(active.input) {
     Ok(true) => {
+      if active.source is Replay(capture) {
+        @model.release_verified_model_capture(capture) |> ignore
+      }
       active.rows = None
       active.call_scope = None
       active.reclaimed = true

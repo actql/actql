@@ -50,6 +50,44 @@ pub fn client_program_start_scoped_infer_execution(
 }
 
 ///|
+/// Replay has no physical provider and prepares the normal input again.
+#export_name("clientProgramStartInferReplay")
+pub fn client_program_start_infer_replay(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  graph : @publication_host.ClientInferPlanGraph,
+  registry : String,
+  values : String,
+  capture : @model.VerifiedModelCapture,
+) -> Result[@infer_host.Execution, @infer_host.Issue] {
+  @infer_host.start_replay(
+    prepared,
+    step,
+    registry,
+    values,
+    capture,
+    @infer_host.standard_limits(),
+    graph,
+  )
+}
+
+///|
+#export_name("clientProgramAcquireInferCapture")
+pub fn client_program_acquire_infer_capture(
+  active : @infer_host.Execution,
+) -> @model.VerifiedModelCapture? {
+  @infer_host.acquire_capture(active)
+}
+
+///|
+#export_name("clientProgramReleaseInferCapture")
+pub fn client_program_release_infer_capture(
+  capture : @model.VerifiedModelCapture,
+) -> Bool {
+  @model.release_verified_model_capture(capture)
+}
+
+///|
 /// Start one owned physical operation only after the Host admits model access.
 /// Preparation, dispatch and output share the original checked Program owner.
 #export_name("clientProgramStartInferExecution")

@@ -10,6 +10,8 @@ import {
 }
 
 // Values
+pub fn acquire_capture(Execution) -> @model_execution.VerifiedModelCapture?
+
 pub fn acquire_output(Execution) -> OutputUse?
 
 pub fn advance(Execution, Int) -> Result[Poll, Issue]
@@ -44,13 +46,15 @@ pub fn standard_limits() -> Limits
 
 pub fn start(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelProvider, String, Limits, plan? : @run_publication_host.ClientInferPlanGraph?) -> Result[Execution, Issue]
 
+pub fn start_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.VerifiedModelCapture, Limits, @run_publication_host.ClientInferPlanGraph) -> Result[Execution, Issue]
+
 // Errors
 
 // Types and methods
 pub struct Execution {
   prepared : @run_publication_host.PreparedClientProgram
   input : @client_local_host.ClientInferInputExecution
-  provider : @model_execution.ModelProvider
+  source : Source
   fixed_request_cid : String
   step : Int
   plan : @run_publication_host.ClientInferPlanGraph?
@@ -115,6 +119,8 @@ pub enum Poll {
   Failed(Issue, work~ : Int64)
   Stopped(work~ : Int64)
 }
+
+type Source
 
 // Type aliases
 

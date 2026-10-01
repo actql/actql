@@ -124,11 +124,17 @@ priv enum ModelPhase {
 }
 
 ///|
+priv enum ModelSource {
+  Provider(ModelProvider)
+  Replay(VerifiedModelCapture)
+}
+
+///|
 struct ModelState {
   rows : @relation.PreparedInferRows
   input_use : @relation.InferRowsUse
   task : @environment.ModelTaskContract
-  provider : ModelProvider
+  source : ModelSource
   fixed_request_cid : String
   limits : ModelExecutionLimits
   call_scope : @publication_host.ClientInferCallScope?
@@ -246,6 +252,12 @@ fn advance_model(
   }
   state.work += 1
   if state.phase is ReserveSlots {
+    // Replay owns a read of an already checked observation. It must neither
+    // reserve another physical attempt nor re-enter a provider on failure.
+    if state.source is Replay(_) {
+      state.phase = PrepareRequests
+      return @bounded.Continue(1, 1)
+    }
     if state.reservations.length() <
       @relation.prepared_infer_rows_count(state.rows) {
       match
@@ -325,8 +337,14 @@ fn advance_model(
     return @bounded.Failed(OutputIdentity, 1, 1)
   }
   let request = prepared.request
+  if state.source is Replay(capture) {
+    return advance_model_capture_replay(state, capture, prepared)
+  }
+  guard state.source is Provider(provider) else {
+    return @bounded.Failed(OutputIdentity, 1, 1)
+  }
   let reservation = state.reservations[state.next_slot]
-  let response = match (state.provider.invoke)(request) {
+  let response = match (provider.invoke)(request) {
     Ok(value) => value
     Err(issue) => return @bounded.Failed(provider_error(issue), 1, 1)
   }
@@ -365,6 +383,23 @@ pub fn start_model_execution(
   limits : ModelExecutionLimits,
   call_scope? : @publication_host.ClientInferCallScope? = None,
 ) -> Result[ModelExecution, ModelExecutionIssue] {
+  start_model_owned(
+    rows,
+    Provider(provider),
+    fixed_request_cid,
+    limits,
+    call_scope,
+  )
+}
+
+///|
+fn start_model_owned(
+  rows : @relation.PreparedInferRows,
+  source : ModelSource,
+  fixed_request_cid : String,
+  limits : ModelExecutionLimits,
+  call_scope : @publication_host.ClientInferCallScope?,
+) -> Result[ModelExecution, ModelExecutionIssue] {
   if !valid_cid(fixed_request_cid) ||
     limits.max_items < 0 ||
     limits.max_work < 0 ||
@@ -384,7 +419,8 @@ pub fn start_model_execution(
   }
   let count = @relation.prepared_infer_rows_count(rows)
   let task = @infer.model_task(@relation.prepared_infer_rows_owner(rows))
-  if provider.provider_id != @environment.model_task_connector(task) {
+  if source is Provider(provider) &&
+    provider.provider_id != @environment.model_task_connector(task) {
     return Err(InvalidProvider)
   }
   if count > limits.max_items ||
@@ -413,7 +449,7 @@ pub fn start_model_execution(
     rows,
     input_use,
     task,
-    provider,
+    source,
     fixed_request_cid,
     limits,
     call_scope,
@@ -530,6 +566,9 @@ pub fn cleanup_model_execution(
       execution.state.captures.clear()
       execution.state.invocation_evidence.clear()
       execution.state.requests.clear()
+      if execution.state.source is Replay(capture) {
+        capture.owner.state.output_uses -= 1
+      }
       execution.state.reclaimed = true
       Ok(true)
     }
