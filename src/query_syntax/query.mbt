@@ -1517,13 +1517,11 @@ fn QueryParser::nearest_clause(
   self.keyword("VECTOR")
   let candidate_vector = self.expression()
   self.keyword("METRIC")
+  let metric_start = self.peek().start
   let metric = self.name()
   if metric.quoted ||
     !["COSINE", "DOT", "L2"].contains(ascii_upper(metric.value)) {
-    raise QueryAbort(
-      "NEAREST metric must be cosine, dot or l2",
-      self.peek().start,
-    )
+    raise QueryAbort("NEAREST metric must be cosine, dot or l2", metric_start)
   }
   self.keyword("K")
   let k = self.safe_integer(false)

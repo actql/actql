@@ -62,6 +62,16 @@ test "NEAREST rejects malformed clauses and preserves source diagnostics and bou
     }
   }
   let source = prefix + roles + "METRIC dot K 1 AS n"
+  let before_metric = prefix + roles + "METRIC "
+  for metric in ["approximate", "`dot`"] {
+    match parse_query(before_metric + metric + " K 1 AS n", query_limits()) {
+      Err({ span: Some(span), .. }) => {
+        assert_eq(span.start_line, 1)
+        assert_eq(span.start_column, before_metric.length() + 1)
+      }
+      _ => fail(metric)
+    }
+  }
   assert_true(
     parse_query(source, { ..query_limits(), max_syntax_nodes: 1, }) is Err(_),
   )
