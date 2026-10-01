@@ -115,12 +115,20 @@ jobs:
         run: node --test proofs/relation-chain/evidence.test.mjs proofs/relation-chain/proof-check.test.mjs
       - name: Detect serial chain accounting and ownership mutations
         run: node proofs/relation-chain/mutations.mjs
+      - name: Reject invalid allocation bounds and weakened capacity propositions
+        run: node --test proofs/relation-capacity/model.test.mjs proofs/relation-capacity/evidence.test.mjs proofs/relation-capacity/proof-check.test.mjs
+      - name: Retain separate registered delayed-stop work counterexample
+        run: node proofs/relation-capacity/repro-delayed-stop.mjs
+      - name: Detect allocation reservation and identity mutations on JS
+        run: node proofs/relation-capacity/mutations.mjs
       # Keep both evidence sets fresh: either mutation batch can invalidate
       # another target's incremental artifacts even after source restoration.
       - name: Restore and verify final common-mechanism artifacts on all targets
         run: node proofs/bounded-session/run.mjs all
       - name: Produce final serial chain evidence on all targets
         run: node proofs/relation-chain/run.mjs all
+      - name: Produce conditional allocation capacity evidence on all targets
+        run: node proofs/relation-capacity/run.mjs all
       - name: Retain exact-source evidence and mutation results
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -129,6 +137,7 @@ jobs:
           path: |
             .artifacts/bounded-session/
             .artifacts/relation-chain/
+            .artifacts/relation-capacity/
           include-hidden-files: true
           if-no-files-found: error
   # Host, authorization, Checkpoint and retained-state owners.

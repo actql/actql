@@ -1,0 +1,61 @@
+{
+  "version": "actql-relation-capacity-inventory/0.1",
+  "baseline": "01ee57ea17dd5ee9308360fd9744e335718283cc",
+  "subject": "existing serial Relation chain; Host-declared live allocation capacity, not process heap/RSS",
+  "identity": "physical allocation identity, never value, row equality, CID or reference count",
+  "included": [
+    {
+      "id": "base-retained",
+      "objects": "original generated sequence retention/output/metadata envelope",
+      "source": "src/execution_relation/execution_capacity.mbt",
+      "symbols": ["retention_nodes", "retained +="],
+      "bound": "base.retained_bytes",
+      "status": "assumed provider/container bound; not a measured allocation census"
+    },
+    {
+      "id": "child-state",
+      "objects": "each started child's Session/control/token, provider state and closures, kernel workspaces, expression roots/cursors and staged output",
+      "source": "src/bounded_execution/session.mbt",
+      "symbols": ["struct Session", "pending_result", "dispose_result"],
+      "additionalSources": ["src/local_tea/time_series.mbt", "src/local_tea_provider/time_series.mbt", "src/execution_relation/bounded_binding_rows.mbt", "src/connectors/local/selected_relation_provider.mbt"],
+      "bound": "child.retained_bytes + child.execution_bytes",
+      "status": "assumed for each actual child and every phase; independent child allocation bounds remain unproved"
+    },
+    {
+      "id": "intermediate-output-and-edge",
+      "objects": "completed output rows/column/occurrence arrays and value backing allocations; newly made exact edge binding/read wrappers and input arrays; next child's staged output while the predecessor remains alive",
+      "source": "src/connectors/local/selected_relation_provider.mbt",
+      "symbols": ["relation_chain_step_inputs", "bind_completed_operation_input", "previous.val = Some(output)", "children.val.push(next)"],
+      "additionalSources": ["src/execution_relation/producer_binding.mbt", "src/execution_relation/producer_read.mbt", "src/execution_relation/managed_independent_output.mbt"],
+      "bound": "covered by producing/consuming child bounds; uncovered edge bookkeeping must be included in parent-control",
+      "status": "coverage premise; borrowing shares allocation IDs, independent occurrence-array copies introduce distinct IDs even with equal values"
+    },
+    {
+      "id": "parent-control",
+      "objects": "children Ref/array and growth backing arrays; previous/current/position/pending/used/cancelled/terminal/reclaimed/cleanup_index Refs; start_next closure; advance/cancel/stopped/cleanup closures and managed execution record; edge bookkeeping not covered by a child",
+      "source": "src/connectors/local/selected_relation_provider.mbt",
+      "symbols": ["let children", "let previous", "let current", "let position", "let pending", "let used", "let cancelled", "let terminal", "let reclaimed", "let cleanup_index", "let start_next", "managed_provider_execution"],
+      "bound": "count * 256",
+      "status": "UNPROVED: no chain-specific sizing derivation for these objects; neither a formal-model nor a finite test discharges this bound"
+    }
+  ],
+  "excluded": [
+    {"objects": "caller-owned input payloads and preexisting sequence/registry/family/numeric configuration", "reason": "borrowed from existing owners; no payload copy is performed by a reference; every new wrapper or copy remains included above"},
+    {"objects": "driver imported input and independent final output conversion outside this chain", "reason": "separately reserved by managed_dispatch capacity.execution_bytes; not justified by the chain theorem", "source": "src/connectors/local/driver/managed_dispatch.mbt"},
+    {"objects": "GC arenas, allocator fragmentation, compiler/runtime metadata, stacks, JIT/code pages and RSS", "reason": "process-wide physical memory is a separate unit; does not remove any chain-owned logical container allocation from the included inventory"}
+  ],
+  "lifetime": [
+    "starting the next child retains predecessors and may create a fresh output while old output is live",
+    "some child scratch may release early; the full declared bound remains a conservative reservation",
+    "false/error cleanup retains that child's obligation and every still-owned allocation",
+    "terminal observation alone does not authorize releasing the reservation",
+    "reverse cleanup releases readers before producers; shared allocation remains live until its last owner is done"
+  ],
+  "parentAllowance": {
+    "value": 256,
+    "introducedBy": "7c8342c0a811ad74f0db5dae373806d25a2f4ac7",
+    "rationaleFound": "live child sessions, provisional outputs, and handles; same coefficient as general node/container allowances",
+    "missing": "enumerated parent allocation sizes, array growth and retained capacity, target-specific representation and an upper-bound derivation",
+    "disposition": "explicit undischarged premise; no unconditional live-byte guarantee; a product sizing/reservation change requires separate evidence and PR"
+  }
+}
