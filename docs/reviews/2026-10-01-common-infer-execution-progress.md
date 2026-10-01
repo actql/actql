@@ -60,8 +60,8 @@ node --test --test-name-pattern='retained object projection' \
 
 | Boundary | Current limitation | Required implementation |
 | --- | --- | --- |
-| ModelTask admission | Typed task and execution-contract readers exist; Program preparation does not yet invoke them | Bind the admitted task to the checked infer operation and resolve prompt, retry, backoff and attachment dependencies before execution |
-| Checked operation | The standalone typed infer owner exists; Program and pipeline preparation still refuse `infer` | Connect the typed owner, resolved capacities, produced-key evidence and success refinement with executable acquisition |
+| ModelTask admission | Explicit Program preparation binds the admitted task inventory; dependency and execution preflight remain absent | Resolve prompt, retry, backoff and attachment dependencies before execution |
+| Checked operation | Pipeline and topology preparation retain the typed infer owner, INPUT mappings and produced keys; complete Program execution remains refused | Close acquisition capacities, success refinement and runtime obligations without lowering acquisition as pure computation |
 | Barrier execution | No shared checked model-call execution owner is installed | Preflight all keys, requests and adapter plans before dispatch; retain slot/attempt identity, reservations, stop observation and cleanup custody |
 | Capture and replay | Existing publication code admits model evidence, but no inference owner produces it | Seal classified slot outcomes and real response/issuer evidence; replay captured observations without provider calls |
 | Public Host | The current dispatch owner opens source-free or SourceView acquisition configurations | Connect the typed inference barrier to the existing Run admission, dispatch and publication owners; do not add a second Host state machine |
@@ -188,7 +188,7 @@ The final `infer_typing` suite passed 8/8 on JS, Wasm and native. The unchanged
 `relation_typing` suite, including the new shared count-guard regression,
 passed 274/274 on each target before the final qualified-scope test was added.
 These are typing and admission tests, not model dispatch or packed acceptance.
-Program integration, barrier preflight, call execution, capture, replay and
+Complete Program closure, barrier preflight, call execution, capture, replay and
 the existing Host dispatch connection remain unfinished. No external model
 service has been called.
 
@@ -271,3 +271,51 @@ The first test version incorrectly expected key selection to return the same
 outer witness allocation. Selection legitimately projects a witness; the
 correct regression checks the unchanged exact producer and records owners.
 No production admission check was weakened to resolve that fixture error.
+
+## Ordinary Program topology
+
+Program topology preparation now accepts an explicitly admitted ModelTask
+inventory. INFER retains its exact input edge, unique alias, checked INPUT
+expressions, parameter declarations, source locations and produced key. KEEP
+joins select that evidence through the existing join boundary. The output
+order witness is canonical typed key order, not source or provider order.
+When local environment inputs are supplied, an equal-CID foreign task
+environment is rejected rather than substituted for their owner.
+
+This preparation does not certify full Program execution. INFER has no pure
+operation profile or pure obligations; its acquisition obligations still need
+an execution owner. Pure AoA lowering rejects the infer step explicitly, and
+core contract closure reports `UnclosedModelAcquisition`. Static publication
+policy does not invent model provenance. These refusals remain until real
+dispatch and capture are connected.
+
+The pipeline, stage topology, inference typing and mapped-input execution
+suites passed 415/415 tests on each of JS, Wasm and native. The fixed pipeline
+corpus was regenerated from its source, and its Node tests passed 2/2. These
+are preparation and expression checks, not public Host INFER acceptance.
+
+## KEEP projection connection
+
+B's `infer-keep/kept.expected-program.json` at `0996714df` puts expression
+objects such as `{"join_field":{"side":"right","name":"id"}}` in
+`join.select`. The current common grammar requires qualified field strings
+such as `"right.id"`. A correctly keyed INFER followed by the string form
+passes topology preparation; the expression form reports `Join(InvalidBody)`.
+The regression preserves that grammar rather than widening it for one
+frontend. B owns the source-construction correction; its independent expected
+Result values are unchanged. A first KEEP-free Host example can proceed
+without waiting for that correction.
+
+## Outstanding executable connection
+
+`client-dispatch-owner.mjs` currently opens source-free computation or the
+existing SourceView acquisition path. ModelTask dispatch must join that Run
+owner without impersonating a SourceView. The checked DAG currently owns
+pure prepared task sequences and captured SourceView roots, not a typed
+mid-pipeline model barrier. All mapped requests, keys, finite adapter plans
+and reservations must be ready before the first physical call. The existing
+model capture and publication evidence checks remain authoritative.
+
+There is still no SHA that runs the requested one-row public Host INFER,
+no executable provider registration example, and no capture/replay completion
+claim. The foundation commits are not an adoption handoff for B.

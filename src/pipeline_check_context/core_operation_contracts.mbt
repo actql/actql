@@ -11,6 +11,7 @@ priv enum OperationCountContract {
   Ranking
   Series
   ClassificationOnly
+  Acquisition
 }
 
 ///|
@@ -20,6 +21,7 @@ fn operation_count_contract(
   operation : @pipeline.CheckedOperation,
 ) -> OperationCountContract {
   match operation {
+    @pipeline.Infer(_) => Acquisition
     @pipeline.Values(_) => Values
     @pipeline.Unary(_)
     | @pipeline.WindowGroup(_)
@@ -68,6 +70,7 @@ fn core_operation_count_root(
   step : Int,
 ) -> Unit raise CoreContractStop {
   let (site, body) = match operation_count_contract(operation) {
+    Acquisition => raise CoreContractStop(UnclosedModelAcquisition(stage, step))
     Values => {
       core_contract_root(
         b,

@@ -280,6 +280,8 @@ pub fn operation(value : PreparedNode) -> String {
 ///|
 fn classify(op : @pipeline.CheckedOperation) -> Payload? {
   match op {
+    // INFER is an acquisition barrier. It must not become a pure AoA node.
+    Infer(_) => None
     Values(v) => Some(Values(v))
     TimeSeries(v) => Some(TimeSeriesValue(v))
     Window(value) => Some(RowWindow(value))

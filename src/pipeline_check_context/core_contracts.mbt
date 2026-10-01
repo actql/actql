@@ -20,6 +20,7 @@ pub(all) enum CoreContractIssue {
   ForeignNumericSlots
   IncomingInventory(IncomingIssue)
   UnsupportedIncoming(Int)
+  UnclosedModelAcquisition(Int, Int)
   LocalTypeEncoding(Int, Int)
 } derive(Eq, Debug)
 

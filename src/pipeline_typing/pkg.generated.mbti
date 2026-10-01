@@ -8,6 +8,7 @@ import {
   "actql/actql/capacity_law",
   "actql/actql/carrier_contract",
   "actql/actql/carrier_projection",
+  "actql/actql/check_environment",
   "actql/actql/decode_core",
   "actql/actql/event_typing",
   "actql/actql/expression_text",
@@ -104,11 +105,11 @@ pub fn candidate_keys(CheckedPipeline, Target) -> @relation_evidence.KeySet?
 
 pub fn carrier_at(CheckedPipeline, Target) -> @carrier_contract.Carrier?
 
-pub fn check(@decode_core.Cursor, Array[(String, @relation_schema.Schema)], @parameter_binding.Declarations?, @decode_core.Cursor?, Limits, calendar_profile? : @calendar_profile.Profile?, text_rank_profile? : @text_rank_profile.Profile?, delta_contracts? : Array[(String, @relation_schema.FieldName, @graph_contract.CheckedContract)]) -> Result[CheckedPipeline, Issue]
+pub fn check(@decode_core.Cursor, Array[(String, @relation_schema.Schema)], @parameter_binding.Declarations?, @decode_core.Cursor?, Limits, calendar_profile? : @calendar_profile.Profile?, text_rank_profile? : @text_rank_profile.Profile?, delta_contracts? : Array[(String, @relation_schema.FieldName, @graph_contract.CheckedContract)], model_tasks? : @check_environment.ModelTasks?) -> Result[CheckedPipeline, Issue]
 
-pub fn check_carriers(@decode_core.Cursor, Array[(String, @carrier_contract.Carrier)], @parameter_binding.Declarations?, @decode_core.Cursor?, Limits, calendar_profile? : @calendar_profile.Profile?, text_rank_profile? : @text_rank_profile.Profile?, delta_contracts? : Array[(String, @relation_schema.FieldName, @graph_contract.CheckedContract)]) -> Result[CheckedPipeline, Issue]
+pub fn check_carriers(@decode_core.Cursor, Array[(String, @carrier_contract.Carrier)], @parameter_binding.Declarations?, @decode_core.Cursor?, Limits, calendar_profile? : @calendar_profile.Profile?, text_rank_profile? : @text_rank_profile.Profile?, delta_contracts? : Array[(String, @relation_schema.FieldName, @graph_contract.CheckedContract)], model_tasks? : @check_environment.ModelTasks?) -> Result[CheckedPipeline, Issue]
 
-pub fn check_with_evidence(@decode_core.Cursor, Array[(String, InputContract)], @parameter_binding.Declarations?, @decode_core.Cursor?, Limits, calendar_profile? : @calendar_profile.Profile?, text_rank_profile? : @text_rank_profile.Profile?, delta_contracts? : Array[(String, @relation_schema.FieldName, @graph_contract.CheckedContract)]) -> Result[CheckedPipeline, Issue]
+pub fn check_with_evidence(@decode_core.Cursor, Array[(String, InputContract)], @parameter_binding.Declarations?, @decode_core.Cursor?, Limits, calendar_profile? : @calendar_profile.Profile?, text_rank_profile? : @text_rank_profile.Profile?, delta_contracts? : Array[(String, @relation_schema.FieldName, @graph_contract.CheckedContract)], model_tasks? : @check_environment.ModelTasks?) -> Result[CheckedPipeline, Issue]
 
 pub fn collect_author_guards(CheckedPipeline, max_work~ : Int, max_text_bytes~ : Int) -> Result[AuthorGuards, Issue]
 
@@ -428,6 +429,7 @@ type BoundAuthorGuards
 type BoundGuardClosure
 
 pub enum CheckedOperation {
+  Infer(@relation_evidence.CheckedInfer)
   Unary(@relation_typing.CheckedOperation)
   Join(right~ : Target, checked~ : @relation_join_shape.CheckedJoin)
   Append(right~ : Target, checked~ : @relation_append.CheckedAppend)
@@ -530,6 +532,7 @@ pub(all) enum ExpressionConsumer {
   TraverseEdges(Int)
   TraverseNodes(Int)
   ShortestEndpoint(@relation_schema.Side)
+  InferInput(Int)
 } derive(Eq, @debug.Debug)
 
 pub struct ExpressionFilter {
@@ -615,6 +618,9 @@ pub(all) enum IssueKind {
   UnknownName(String)
   MissingCurrent
   MissingKeyEvidence
+  MissingModelTasks
+  InferRequiresAlias
+  Infer(@relation_evidence.InferIssueKind)
   UnresolvedOrder
   KeyEvidence(@relation_evidence.IssueKind)
   WrongCarrier(@carrier_contract.Kind)

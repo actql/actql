@@ -37,6 +37,7 @@ pub fn prepare_local_source(
   limits : LocalProgramLimits,
   environment? : @environment.WireEnvironment? = None,
   calendar_profile? : @calendar_profile.Profile? = None,
+  model_tasks? : @environment.ModelTasks? = None,
 ) -> Result[PreparedLocalSource, LocalSourceIssue] {
   if max_parameters < 0 ||
     limits.max_stages < 0 ||
@@ -104,6 +105,7 @@ pub fn prepare_local_source(
       },
       environment=inputs,
       calendar_profile~,
+      model_tasks~,
     ) {
     Ok(v) => v
     Err(e) => return Err(Program(e))

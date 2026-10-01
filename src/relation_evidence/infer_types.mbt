@@ -39,7 +39,7 @@ pub(all) enum InferIssueKind {
   Syntax(@expression_syntax.Issue)
   Expression(@typing.IssueKind)
   Guard(@relation.IssueKind)
-}
+} derive(Eq, Debug)
 
 ///|
 pub struct InferIssue {

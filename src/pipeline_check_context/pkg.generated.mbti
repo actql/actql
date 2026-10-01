@@ -765,7 +765,7 @@ pub fn prepare_source_state_requirement(ProgramSourceIdentity, Int, Int, @local_
 
 pub fn prepare_sourceview_context(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs, @decode_core.Cursor?, Array[Array[CapacityMaterial]], @stage_results.LocalProgramLimits, LocalContextLimits, proof_owners? : Array[Array[(Int, Int, Int)]]?, input_owners? : Array[Array[(Int, Int, Int, Int)]]?, calendar? : @check_environment.SelectedCalendarProfile?, capacity_inputs? : ProgramCapacityInputs?, derived_capacity_limits? : @capacity_witness.Limits?) -> Result[SelectedPolicyContext, SourceViewContextIssue]
 
-pub fn prepare_sourceview_program(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs, @stage_results.LocalProgramLimits, calendar? : @check_environment.SelectedCalendarProfile?) -> Result[(@stage_results.ResultWiring, @stage_results.LocalProgramUsage), SourceViewProgramIssue]
+pub fn prepare_sourceview_program(@sourceview_resolution.PipelineInputs, @stage_local_inputs.ProgramEnvironmentInputs, @stage_results.LocalProgramLimits, calendar? : @check_environment.SelectedCalendarProfile?, model_tasks? : @check_environment.ModelTasks?) -> Result[(@stage_results.ResultWiring, @stage_results.LocalProgramUsage), SourceViewProgramIssue]
 
 pub fn prepare_values_row_bound(@pipeline_typing.CheckedPipeline, Int, @capacity_witness.Limits) -> Result[ValuesRowBound, ValuesRowLimitIssue]
 
@@ -1400,6 +1400,7 @@ pub(all) enum CoreContractIssue {
   ForeignNumericSlots
   IncomingInventory(IncomingIssue)
   UnsupportedIncoming(Int)
+  UnclosedModelAcquisition(Int, Int)
   LocalTypeEncoding(Int, Int)
 } derive(Eq, @debug.Debug)
 

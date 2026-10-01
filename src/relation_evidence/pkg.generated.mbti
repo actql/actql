@@ -582,7 +582,7 @@ pub(all) enum InferIssueKind {
   Syntax(@expression_syntax.Issue)
   Expression(@expression_typing.IssueKind)
   Guard(@relation_typing.IssueKind)
-}
+} derive(Eq, @debug.Debug)
 
 pub struct InferKeyBinding {
   field : @relation_schema.FieldName
