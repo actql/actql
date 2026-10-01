@@ -460,6 +460,10 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
                 if (output.cleanupHandle.status().pending) throw new Error('LocalOutputCleanupPending');
               } catch (error) {
                 const failure = error instanceof Error ? error : new Error('LocalOutputCleanupFailed');
+                // Failed close must hand over cleanup authority even if the
+                // Store physically finished before a later refresh failed.
+                // The common Site owner observes the handle before release.
+                failure.cleanupPending = true;
                 failure.cleanupHandle = output.cleanupHandle;
                 throw failure;
               }
