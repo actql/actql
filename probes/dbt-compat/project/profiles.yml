@@ -1,0 +1,9 @@
+# Compile-only target. With --no-populate-cache, dbt compile never opens this
+# DuckDB database; it only gives ref() the database name "memory".
+actql_probe:
+  target: compile
+  outputs:
+    compile:
+      type: duckdb
+      path: ':memory:'
+      threads: 1
