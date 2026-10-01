@@ -33,9 +33,9 @@ test('prepared packed expectations retain independent types and nullable values'
 // They do not execute a Program, implement INFER or count as packed evidence.
 function assertionProbe({wrongRows = false, wrongColumns = false,
   repeatDispatch = false, missingCaptureObservation = false,
-  wrongDispatchCount = false} = {}) {
+  wrongDispatchCount = false, firstRowOnly = false} = {}) {
   const one = structuredClone(fixture);
-  one.successes = [one.successes[0]];
+  one.successes = [firstRowOnly ? one.first_row_success : one.successes[0]];
   one.preparation_refusals = [];
   one.preflight_failures = [];
   const counters = {acceptedRuns: 0, sourceIo: 0, modelDispatches: 0,
@@ -43,9 +43,9 @@ function assertionProbe({wrongRows = false, wrongColumns = false,
   const ref = {tenant: 'assertion-only', scope: 'assertion-only', run: 'run'};
   let closed = false;
   let submissions = 0;
-  const columns = structuredClone(one.columns.kept);
+  const columns = structuredClone(one.columns[one.successes[0].columns]);
   if (wrongColumns) columns[2].contract.fields.value.nullable = false;
-  const rows = structuredClone(one.expected_rows.kept);
+  const rows = structuredClone(one.expected_rows[one.successes[0].expected_rows]);
   if (wrongRows) rows[1].assessment.value = {};
   const description = {ref, resultName: 'answer', columns,
     serialization: {format: 'jsonl', version: 'actql-jsonl/0.1'}};
@@ -66,8 +66,9 @@ function assertionProbe({wrongRows = false, wrongColumns = false,
       if (submissions++ === 0) {
         counters.acceptedRuns++;
         counters.sourceIo++;
-        counters.modelDispatches += wrongDispatchCount ? 1 : 2;
-        counters.capturedSlots += 2;
+        counters.modelDispatches += wrongDispatchCount ? 1
+          : one.successes[0].model_dispatches;
+        counters.capturedSlots += one.successes[0].captured_slots;
       }
       return execution;
     },
@@ -85,6 +86,18 @@ function assertionProbe({wrongRows = false, wrongColumns = false,
 test('assertion-only control exercises the public call sequence', async () => {
   const probe = assertionProbe();
   assert.equal((await probe.run()).length, 1);
+  assert.equal(probe.isClosed(), true);
+});
+
+test('one-row assertion control retains description, identity and no-dispatch checks', async () => {
+  const probe = assertionProbe({firstRowOnly: true});
+  const records = await probe.run();
+  assert.equal(records.length, 1);
+  assert.equal(records[0].name, 'first-row');
+  assert.equal(records[0].rows, 1);
+  assert.equal(records[0].modelDispatches, 1);
+  assert.equal(records[0].capturedSlots, 1);
+  assert.deepEqual(records[0].columns, fixture.columns.omitted);
   assert.equal(probe.isClosed(), true);
 });
 

@@ -9,6 +9,9 @@
   },
   "candidate_keys": [["id"]],
   "source_rows": {
+    "first-row": [
+      {"id": "a", "text": "urgent", "secret": "private-a"}
+    ],
     "standard": [
       {"id": "a", "text": "urgent", "secret": "private-a"},
       {"id": "b", "text": null, "secret": "private-b"}
@@ -52,6 +55,9 @@
     ]
   },
   "expected_rows": {
+    "first-row": [
+      {"assessment": {"input_key": {"id": "a"}, "outcome": "ok", "value": {"risk": "high", "reason": null}}}
+    ],
     "kept": [
       {"id": "a", "note": "urgent", "assessment": {"input_key": {"id": "a"}, "outcome": "ok", "value": {"risk": "high", "reason": null}}},
       {"id": "b", "note": null, "assessment": {"input_key": {"id": "b"}, "outcome": "failed:refusal", "value": null}}
@@ -62,6 +68,15 @@
     ],
     "filtered": [{"id": "a", "risk": "high"}],
     "empty": []
+  },
+  "first_row_success": {
+    "name": "first-row",
+    "source_rows": "first-row",
+    "source": "FROM tickets |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (text = text) AS assessment",
+    "columns": "omitted",
+    "expected_rows": "first-row",
+    "model_dispatches": 1,
+    "captured_slots": 1
   },
   "successes": [
     {

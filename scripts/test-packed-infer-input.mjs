@@ -12,13 +12,30 @@ export function inferPackedOptions(args) {
   const {values} = parseArgs({args, options: {
     'host-setup': {type: 'string'}, 'owner-sha': {type: 'string'},
     'keep-artifacts': {type: 'boolean', default: false},
+    'first-row-only': {type: 'boolean', default: false},
   }, allowPositionals: false});
   if (!values['host-setup']) throw new Error('InferTestHostSetupRequired');
   if (!/^[a-f0-9]{40}$/u.test(values['owner-sha'] ?? '')) {
     throw new Error('InferCommonOwnerFullShaRequired');
   }
   return {setup: resolve(values['host-setup']),
-    ownerSha: values['owner-sha'], keepArtifacts: values['keep-artifacts']};
+    ownerSha: values['owner-sha'], keepArtifacts: values['keep-artifacts'],
+    firstRowOnly: values['first-row-only']};
+}
+
+// Select authored acceptance cases, never construct expected rows from runtime
+// output. The initial path deliberately avoids KEEP's join and ordered output.
+export function inferPackedFixture(fixture, firstRowOnly) {
+  const selected = structuredClone(fixture);
+  if (firstRowOnly) {
+    if (selected.first_row_success === undefined) {
+      throw new Error('InferFirstRowFixtureRequired');
+    }
+    selected.successes = [selected.first_row_success];
+    selected.preparation_refusals = [];
+    selected.preflight_failures = [];
+  }
+  return selected;
 }
 
 export async function runPackedInferInput(args) {
@@ -45,6 +62,7 @@ export async function runPackedInferInput(args) {
   }, async ({root, directory, run, recordTarball}) => {
     const provenance = {sourceSha: revision.stdout.trim(),
       commonOwnerSha: options.ownerSha,
+      acceptanceProfile: options.firstRowOnly ? 'first-row' : 'keep-as',
       hostSetupSha256: createHash('sha256').update(setup).digest('hex')};
     await writeFile(join(directory, 'infer-provenance.json'),
       JSON.stringify(provenance, null, 2) + '\n');
@@ -64,12 +82,14 @@ export async function runPackedInferInput(args) {
     for (const [source, destination] of [
       ['scripts/fixtures/packed-infer-client.mjs', 'packed-infer-client.mjs'],
       ['scripts/fixtures/public-infer-input.mjs', 'public-infer-input.mjs'],
-      ['spec/frontend/fixtures/infer-keep/packed-acceptance.json',
-        'infer-acceptance.json'],
     ]) {
       await writeFile(join(root, destination),
         await readFile(join(repository, source)));
     }
+    const fixture = JSON.parse(await readFile(join(repository,
+      'spec/frontend/fixtures/infer-keep/packed-acceptance.json'), 'utf8'));
+    await writeFile(join(root, 'infer-acceptance.json'), JSON.stringify(
+      inferPackedFixture(fixture, options.firstRowOnly), null, 2) + '\n');
     await writeFile(join(root, 'infer-host-setup.mjs'), setup);
     run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
       '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1',

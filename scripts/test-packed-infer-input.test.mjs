@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {readFile} from 'node:fs/promises';
 import test from 'node:test';
-import {inferPackedOptions} from './test-packed-infer-input.mjs';
+import {inferPackedFixture, inferPackedOptions} from './test-packed-infer-input.mjs';
 
 const owner = 'a'.repeat(40);
 test('packed INFER requires a real setup and full common owner SHA', () => {
@@ -17,6 +18,33 @@ test('packed INFER requires a real setup and full common owner SHA', () => {
     '--owner-sha', owner, '--keep-artifacts']);
   assert.equal(options.ownerSha, owner);
   assert.equal(options.keepArtifacts, true);
+  assert.equal(options.firstRowOnly, false);
+  assert.equal(inferPackedOptions(['--host-setup', 'real-host.mjs',
+    '--owner-sha', owner, '--first-row-only']).firstRowOnly, true);
+});
+
+test('one-row profile selects independent expectations without changing the full matrix', async () => {
+  const fixture = JSON.parse(await readFile(new URL(
+    '../spec/frontend/fixtures/infer-keep/packed-acceptance.json',
+    import.meta.url), 'utf8'));
+  const original = structuredClone(fixture);
+  const first = inferPackedFixture(fixture, true);
+  assert.deepEqual(first.successes, [fixture.first_row_success]);
+  assert.deepEqual(first.expected_rows['first-row'], [{assessment: {
+    input_key: {id: 'a'}, outcome: 'ok',
+    value: {risk: 'high', reason: null},
+  }}]);
+  assert.deepEqual(first.source_rows['first-row'], [
+    {id: 'a', text: 'urgent', secret: 'private-a'},
+  ]);
+  assert.equal(first.successes[0].model_dispatches, 1);
+  assert.equal(first.successes[0].captured_slots, 1);
+  assert.equal(first.successes[0].columns, 'omitted');
+  assert.deepEqual(first.preparation_refusals, []);
+  assert.deepEqual(first.preflight_failures, []);
+  assert.deepEqual(inferPackedFixture(fixture, false), original);
+  assert.deepEqual(fixture, original);
+  assert.throws(() => inferPackedFixture({}, true), /InferFirstRowFixtureRequired/u);
 });
 
 for (const [name, args, message] of [

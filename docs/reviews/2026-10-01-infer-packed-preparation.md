@@ -71,8 +71,16 @@ run from the committed integration worktree:
 ```sh
 node scripts/test-packed-infer-input.mjs \
   --owner-sha <full-adopted-common-owner-sha> \
-  --host-setup ./real-host-setup.mjs
+  --host-setup ./real-host-setup.mjs --first-row-only
 ```
+
+The first-row profile uses a separately authored one-row source and expected
+assessment object, without KEEP or an ordering declaration. It still checks
+the complete Result description, one model dispatch and capture, and no new
+execution on re-read, attach, lookup or identical submit. Provenance records
+`acceptanceProfile: "first-row"`; success does not certify the full KEEP/AS
+matrix. After that path passes, omit `--first-row-only` to run the full matrix.
+Both profiles remain `not_run` until they use the adopted real common Host.
 
 The owner SHA must be an ancestor of the committed source being packed.
 The standalone setup module must import installed OSS packages, without
@@ -118,6 +126,12 @@ not recorded as a successful gate.
 The packed-controller prerequisite tests separately reject missing setup,
 missing/short owner SHA and nonexistent setup before invoking build tools.
 These are preparation tests, not packed execution evidence.
+
+The first-row profile addition passed the public assertion, packed-controller
+prerequisite and packed-evidence tests: 20/20. This checks profile selection,
+independent one-row values, description/nullability comparisons, capture and
+dispatch counts, and retained no-extra-dispatch checks. Canned assertion
+controls remain distinct from real public Host execution.
 
 Both local preparation gates subsequently passed on the unchanged committed
 source `23c1dcc0eecd6a37c68491f83ac4e30a8c98359f`:

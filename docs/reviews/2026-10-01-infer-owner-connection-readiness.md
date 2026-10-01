@@ -49,6 +49,31 @@ data-handling, retry or backoff evidence.
 
 ## Required adoptable handoff from A
 
+### Follow-up committed-owner inspection
+
+`c6a4753af3dae688299e542b5ec2a51b40ef0203` adds the common
+`model_execution.install_model_provider`, `start_model_execution`,
+`advance_model_execution`, `request_model_cancel`,
+`cleanup_model_execution` and `replay_model_capture` operations.
+`a9de6459f7b0afeb9778314b5f85925e4e5edf98` retains an input key CID on
+each capture. These committed sources were read without integrating them or
+using A's uncommitted Host/lowering changes.
+
+This is progress beyond the earlier inspection table, but is still not a
+public Host adoption handoff. At these commits, a physical provider's
+`Refusal` returns an execution failure from `advance_model`; the independent
+two-row fixture requires a classified `failed:refusal` item with typed NULL
+alongside a successful item. The common owner must supply that outcome path
+before the full KEEP/AS acceptance can pass. B will keep the authored expected
+rows and will not translate a barrier failure into a model-outcome row.
+
+The first public Host test can use the separate one-row success fixture via
+`--first-row-only`. Its complete description and no-extra-dispatch assertions
+are prepared; execution remains `not_run`. Full KEEP/AS, non-success items and
+Host restart/replay are separate outstanding evidence. The qualified KEEP
+join construction correction is available in B's
+`4cdc4baa7a8a4b74c4b593eafdbe5facf1dbed35` (PR #126).
+
 1. A complete published adoption SHA and its required dependency order. State
    whether it includes the normal Program checker, executable inference owner,
    shared object/property evaluation and public Host connection. Preserve any
