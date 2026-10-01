@@ -59,17 +59,8 @@ pub fn prepare_client_infer_prefix(
   fragment_body? : String? = None,
   ordered_body? : String? = None,
 ) -> @execution.GeneratedSequence? {
-  let graph = @publication_host.prepared_client_graph(prepared)
-  // This initial connection has no external inputs or earlier task outputs.
-  // Refuse other shapes at preparation, before provider work begins.
-  guard task == 0 &&
-    @strategy.graph_task_count(graph) == 1 &&
-    step > 0 &&
-    @strategy.graph_task_owner(graph, task) is Some(owner) &&
-    @lower.preparation_input_count(@lower.bound_preparation(owner)) == 0 &&
-    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
-    @lower.payload(node) is @lower.Infer(_) &&
-    @lower.node_input_target(node, 0) == Some(@pipeline.Step(step - 1)) else {
+  guard @publication_host.client_infer_prefix_owner(prepared, task, step)
+    is Some(_) else {
     return None
   }
   prepare_client_local_sequences_owned(

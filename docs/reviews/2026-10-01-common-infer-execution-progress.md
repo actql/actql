@@ -82,6 +82,46 @@ The remaining connection belongs to the common inference work:
 - Read the committed Named Result and compare it with the independent row
   expectation before supplying an adoption SHA or Host startup example to B.
 
+## Checked compilation prefix
+
+Compilation and bounded execution now share
+`run_publication_host.client_infer_prefix_owner`. The initial source-free,
+single-task shape selects an actual Infer's adjacent Relation producer from
+the original bound Program; wrong task, wrong step and non-Relation inputs
+do not select a prefix. The fragment compiler prepares only those pure steps
+and seals their actual Relation output contract. Ordinary task compilation
+retains its existing full-sequence preparation and validation.
+
+`issue_prepared_client_infer_prefix_fragment` does not issue an Executable
+Plan or claim to support the acquisition. The original whole-task compiler
+still rejects Infer as a pure kernel. The narrow fixture compares this
+fragment with an independently prepared pure Program: their pipelines,
+logical CIDs and output contracts agree. Strict versus outcomes mode does
+not change the adjacent AoA fragment. Two prefix steps fit a two-step
+preparation limit; one step fails with `SequenceLimit`. Invalid task/step,
+encoding limits and accidental whole-task AoA compilation are also refused.
+
+The next connection is the acquisition node and its execution envelope, not
+another Relation evaluator. `client_task_plan_graph` currently assumes one
+AoA node per task; executable Plan and invocation-template issuance currently
+emit empty required-profile lists. These sites must bind the installed model
+contract and acquisition inputs before the existing Client dispatch owner
+can start this Program. The barrier manifest also lacks the inference
+barrier declared by Language's typed-boundary table; no arbitrary CID or
+typing-fixture dependency is substituted for its contract. This remains A's
+common integration work, not an external B or C implementation blocker.
+
+The public Host handoff is still not ready. Prefix identity and component
+output-export checks do not prove Run acceptance, committed Named Result
+reading, current egress authority or versioned capture/replay.
+
+Narrow prefix and existing Carrier task-compilation tests pass 4/4 on each
+of JS, Wasm and native. The normal Program/model bridge passes 12/12, including
+the prefix identity comparison, and Node assembly tests pass 8/8. The regular
+and RelA-only assembly freshness checks pass. Public interface regeneration
+is checked separately; complete CI jobs and Linux CI have not run for this
+implementation unit.
+
 These are unfinished integration work, not an unspecified Engine redesign
 or a claim that C must implement a replacement Run state machine. The old
 synchronous fixture helper has been removed: it captured Values directly,

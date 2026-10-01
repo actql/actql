@@ -57,6 +57,57 @@ const checked = value => {
   return value._0;
 };
 
+test('Infer compilation retains the same pure prefix as bounded execution', () => {
+  const source = program();
+  const prepared = moon.clientProgramPreparationReady(
+    prepare(source, environment()));
+  assert.ok(prepared);
+  const prefix = JSON.parse(moon.clientProgramTaskFragmentWire(checked(
+    moon.clientProgramInferPrefixFragment(prepared, 0, 2))));
+  assert.equal(prefix.kind, 'aoa_fragment');
+  assert.equal(prefix.node_id, 'task_0_before_infer_2');
+  assert.deepEqual(prefix.input_contracts, {});
+  assert.equal(prefix.logical_cid, cid(prefix.pipeline));
+  assert.equal(prefix.output_contracts[prefix.pipeline.output], cid({
+    type: 'object', nullable: false, additional_properties: false,
+    fields: {id: {type: 'string', nullable: false},
+      text: {type: 'string', nullable: true}},
+  }));
+
+  // Compile an ordinary pure Program independently, rather than removing
+  // nodes from the fragment returned for the Infer Program under test.
+  const pure = program();
+  pure.stages[0].steps.pop();
+  pure.stages[0].results.captured = {from: 'unique', fields: ['id', 'text']};
+  const purePrepared = moon.clientProgramPreparationReady(
+    prepare(pure, environment()));
+  assert.ok(purePrepared);
+  const pureFragment = JSON.parse(moon.clientProgramTaskFragmentWire(checked(
+    moon.clientProgramIssueTaskFragment(purePrepared, 0))));
+  assert.deepEqual(prefix.pipeline, pureFragment.pipeline);
+  assert.equal(prefix.logical_cid, pureFragment.logical_cid);
+  assert.deepEqual(prefix.output_contracts, pureFragment.output_contracts);
+
+  const strict = program();
+  strict.stages[0].steps[2].infer.on_non_success = 'fail';
+  const strictPrepared = moon.clientProgramPreparationReady(
+    prepare(strict, environment()));
+  assert.ok(strictPrepared);
+  const strictPrefix = JSON.parse(moon.clientProgramTaskFragmentWire(checked(
+    moon.clientProgramInferPrefixFragment(strictPrepared, 0, 2))));
+  assert.deepEqual(strictPrefix, prefix,
+    'acquisition policy does not change adjacent pure computation identity');
+
+  for (const [taskIndex, step] of [[1, 2], [0, 0], [0, 1], [0, 3]]) {
+    assert.equal(moon.clientProgramInferPrefixFragment(
+      prepared, taskIndex, step).$tag, 0);
+  }
+  assert.equal(moon.clientProgramIssueTaskFragment(prepared, 0).$tag, 0,
+    'the acquisition cannot be misrepresented as a pure AoA task');
+  assert.equal(moon.clientProgramCompileLocalTasks(prepared).$tag, 0,
+    'a prefix alone does not authorize a complete acquisition Plan');
+});
+
 function startInput(source = program()) {
   const prepared = moon.clientProgramPreparationReady(
     prepare(source, environment()));

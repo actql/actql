@@ -423,6 +423,8 @@ pub fn client_program_imported_effect_relation_bodies(@run_publication_host.Clie
 
 pub fn client_program_infer_input_rows(@client_local_host.ClientInferInputPoll) -> @execution_relation.PreparedInferRows?
 
+pub fn client_program_infer_prefix_fragment(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[@run_publication_host.ClientTaskFragmentNode, @run_publication_host.ClientTaskFragmentIssue]
+
 pub fn client_program_infer_result_export_advance(@run_publication_host.ClientResultTransformationPreparation, Int) -> Result[(Bool, Int), @run_publication_host.ClientResultTransformationIssue]
 
 pub fn client_program_infer_result_export_begin(@run_publication_host.PreparedClientProgram, Int, @execution_relation.CompletedOutput) -> Result[@run_publication_host.ClientResultTransformationPreparation, @run_publication_host.ClientResultTransformationIssue]

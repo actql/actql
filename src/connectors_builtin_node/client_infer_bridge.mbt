@@ -1,4 +1,27 @@
 ///|
+/// The acquisition compiler uses the same checked pure prefix as execution.
+/// This fragment alone is not a runnable Infer Plan.
+#export_name("clientProgramInferPrefixFragment")
+pub fn client_program_infer_prefix_fragment(
+  prepared : @publication_host.PreparedClientProgram,
+  task : Int,
+  step : Int,
+) -> Result[
+  @publication_host.ClientTaskFragmentNode,
+  @publication_host.ClientTaskFragmentIssue,
+] {
+  @publication_host.issue_prepared_client_infer_prefix_fragment(
+    prepared,
+    task,
+    step,
+    @publication_host.client_standard_values_sequence_limits(),
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
 /// Begin normal checked input execution, not a capture assembled by a caller.
 #export_name("clientProgramStartInferInput")
 pub fn client_program_start_infer_input(
