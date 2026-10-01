@@ -658,6 +658,16 @@ test('the existing Host dispatch owner retains Infer custody and never reruns cl
       assert.equal(moon.clientProgramInferOutputUse(b), completed);
       saved = operation.acquireCapture();
       assert.ok(saved);
+      assert.equal(moon.clientProgramInferCaptureCallCount(saved), 1);
+      const call = moon.clientProgramInferCaptureCall(saved, 0);
+      assert.ok(call);
+      const body = JSON.parse(moon.strategyRunEvidenceJson(call));
+      const observation = JSON.parse(moon.strategyRunEvidenceJson(
+        operation.invocationEvidence(0)));
+      assert.equal(body.model_call_slot_cid, observation.model_call_slot_cid);
+      assert.equal(body.input_artifact_cid,
+        observation.input_result_artifact_cid);
+      assert.equal(moon.clientProgramInferCaptureCall(saved, 1), undefined);
       assert.equal(moon.clientProgramReleaseInferOutput(b), true);
       return rows;
     },
@@ -681,6 +691,8 @@ test('the existing Host dispatch owner retains Infer custody and never reruns cl
   assert.equal(runEntries, 1);
   assert.deepEqual(stopped, []);
   assert.equal(moon.clientProgramReleaseInferCapture(saved), true);
+  assert.equal(moon.clientProgramInferCaptureCallCount(saved), undefined);
+  assert.equal(moon.clientProgramInferCaptureCall(saved, 0), undefined);
   await supervisor.drain();
   assert.equal(fixture.operation.cleanupPending(), false);
   assert.deepEqual(stopped, [null]);

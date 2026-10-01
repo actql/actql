@@ -16,12 +16,74 @@ pub fn acquire_verified_model_capture(
     state.reclaimed ||
     state.call_scope is None ||
     state.output_uses == 2147483647 ||
+    state.requests.length() != @relation.prepared_infer_rows_count(state.rows) ||
+    state.requests.length() != state.captures.length() ||
     state.captures.length() != state.invocation_evidence.length() ||
     state.captures.length() != state.responses.length() {
     return None
   }
   state.output_uses += 1
   Some({ owner: execution, released: false, })
+}
+
+///|
+/// Complete call inventory from the accepted execution's canonical typed-key
+/// order. This is not a caller-provided count or a successful-bundle subset.
+/// Failed barriers have no accepted capture; their private outcome owner must
+/// retain responsibility separately rather than inventing unattempted slots.
+pub fn verified_model_capture_call_count(
+  capture : VerifiedModelCapture,
+) -> Int? {
+  let state = capture.owner.state
+  if capture.released || !state.accepted || state.reclaimed {
+    None
+  } else {
+    Some(state.requests.length())
+  }
+}
+
+///|
+/// Retain the exact pre-dispatch call body so the adopting capture owner can
+/// bind its record without reconstructing a call from response metadata.
+/// Reading one call does not hash a key or traverse an input again.
+pub fn verified_model_capture_call_at(
+  capture : VerifiedModelCapture,
+  slot : Int,
+) -> @publication.RunEvidenceValue? {
+  let state = capture.owner.state
+  guard !capture.released &&
+    state.accepted &&
+    !state.reclaimed &&
+    state.requests.get(slot) is Some(prepared) &&
+    prepared.call is Some(call) &&
+    state.captures.get(slot) is Some(saved) &&
+    saved.slot == slot &&
+    saved.slot_cid == @publication.run_evidence_value_identity(call) else {
+    return None
+  }
+  Some(call)
+}
+
+///|
+/// Bind against the actual accepted execution, not a supplied call list or
+/// successful-response bundle. This does not adopt attempts or verify external
+/// policy/accounting/authority references; the formal capture owner owns those.
+pub fn bind_verified_model_slot_capture(
+  capture : VerifiedModelCapture,
+  slot : Int,
+  record : @publication.RunEvidenceValue,
+) -> Result[@publication.BoundModelSlotCapture, ModelExecutionIssue] {
+  guard verified_model_capture_call_at(capture, slot) is Some(call) &&
+    capture.owner.state.invocation_evidence.get(slot) is Some(observation) else {
+    return Err(OutputIdentity)
+  }
+  let binding = match @publication.bind_model_slot_capture(call, record) {
+    Ok(value) => value
+    Err(issue) => return Err(InvocationEvidence(issue))
+  }
+  @publication.verify_model_slot_success_observation(binding, observation)
+  .map(_ => binding)
+  .map_err(issue => InvocationEvidence(issue))
 }
 
 ///|

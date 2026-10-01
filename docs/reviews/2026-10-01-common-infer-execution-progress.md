@@ -1032,3 +1032,33 @@ successfully after updating the two changed embedded-schema pins. The final
 structural owner guards were additionally checked with the targeted suites
 and canonical gate. These are local checks, not Linux CI or Named Result
 acceptance.
+
+### Execution-owned call inventory
+
+Request preparation now retains the exact formal call body generated before
+dispatch. An opaque accepted capture exposes its call count and indexed call
+in canonical typed-key order, rather than deriving an inventory from a caller
+list or the successful-response bundle. Acquiring the capture checks that the
+prepared rows, requests, captures, observations and responses have matching
+cardinality. Released reads cannot supply this inventory; an independently
+retained read keeps its execution owner alive until release and cleanup.
+
+Binding a saved successful slot now checks its actual execution-owned call
+and checked response/output observation. Freshly sealed mutations reject with
+the exact typed reference error, not merely an unrelated parsing failure.
+Restored component replay derives the same call without dispatch. Tests also
+cover reverse-authored keys, zero keys, invalid indices and independent reads.
+The Node bridge exposes the same opaque reads to the installed capture owner.
+
+Local verification passes on JS, Wasm and native: `client_infer_host` 27/27,
+`model_execution` 2/2 and `run_publication` 188/188. The release Node bridge
+build and its 35/35 component tests pass, including dispatch-supervisor custody,
+real macrotask cancellation and encrypted Store reopen/replay. Interfaces are
+generated from the integrated source; formatting and whitespace checks pass.
+
+This unit does not issue external attempt, accounting, authority or policy
+evidence. Its binding fixtures use symbolic external roots only. The current
+execution capture accepts successful barriers; failure-outcome adoption and
+durable all-slot capture remain unconnected. Public Host registration and
+committed Named Result retrieval also remain unfinished. These local checks
+do not constitute B's public acceptance SHA, Linux CI or permission to push.

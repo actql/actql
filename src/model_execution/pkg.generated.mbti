@@ -21,6 +21,8 @@ pub fn advance_model_execution(ModelExecution, Int) -> Result[ModelObservation, 
 
 pub fn advance_model_output_preparation(ModelOutputPreparation, Int) -> Result[@execution_relation.AdmittedOutputPoll, ModelExecutionIssue]
 
+pub fn bind_verified_model_slot_capture(VerifiedModelCapture, Int, @run_publication.RunEvidenceValue) -> Result[@run_publication.BoundModelSlotCapture, ModelExecutionIssue]
+
 pub fn cancel_model_capture_export(ModelCaptureExport) -> Bool
 
 pub fn cancel_model_output_preparation(ModelOutputPreparation) -> Bool
@@ -72,6 +74,10 @@ pub fn start_model_execution(@execution_relation.PreparedInferRows, ModelProvide
 pub fn start_model_output_preparation(ModelExecution, @execution_relation.CompletionPreparation, Int, @execution_relation.ValueLimits, Int, Int) -> Result[ModelOutputPreparation, ModelExecutionIssue]
 
 pub fn start_restored_model_capture_replay(@execution_relation.PreparedInferRows, @run_publication_host.ClientInferCallScope, @run_publication.ModelCaptureBundleRead, String, ModelExecutionLimits) -> Result[ModelExecution, ModelExecutionIssue]
+
+pub fn verified_model_capture_call_at(VerifiedModelCapture, Int) -> @run_publication.RunEvidenceValue?
+
+pub fn verified_model_capture_call_count(VerifiedModelCapture) -> Int?
 
 // Errors
 

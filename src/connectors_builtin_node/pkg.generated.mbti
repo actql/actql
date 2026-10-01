@@ -119,6 +119,8 @@ pub fn client_program_bind_effect_preview_inputs(ClientLocalEffectHost, @physica
 
 pub fn client_program_bind_effect_run(@run_publication_host.PreparedClientEffectComputation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> @run_publication_host.PreparedClientEffectRun?
 
+pub fn client_program_bind_infer_slot_capture(@model_execution.VerifiedModelCapture, Int, @run_publication.RunEvidenceValue) -> Result[@run_publication.BoundModelSlotCapture, @model_execution.ModelExecutionIssue]
+
 pub fn client_program_cancel_captured_source_identity_scan(@execution_query.CapturedSourceIdentityScan) -> Bool
 
 pub fn client_program_cancel_infer_capture_export(@model_execution.ModelCaptureExport) -> Bool
@@ -440,6 +442,10 @@ pub fn client_program_identify_captured_source_relation(@execution_query.Capture
 pub fn client_program_imported_effect_invocation(@run_publication_host.ClientEffectImportedEvidence) -> @run_publication_host.ClientEffectLocalInvocation
 
 pub fn client_program_imported_effect_relation_bodies(@run_publication_host.ClientEffectImportedEvidence) -> Array[String]
+
+pub fn client_program_infer_capture_call(@model_execution.VerifiedModelCapture, Int) -> @run_publication.RunEvidenceValue?
+
+pub fn client_program_infer_capture_call_count(@model_execution.VerifiedModelCapture) -> Int?
 
 pub fn client_program_infer_capture_export_identity(@model_execution.ModelCaptureExport) -> String?
 

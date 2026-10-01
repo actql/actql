@@ -80,6 +80,37 @@ pub fn client_program_acquire_infer_capture(
 }
 
 ///|
+/// The installed capture owner reads the actual accepted call inventory;
+/// successful bundle records are not a substitute for this inventory.
+#export_name("clientProgramInferCaptureCallCount")
+pub fn client_program_infer_capture_call_count(
+  capture : @model.VerifiedModelCapture,
+) -> Int? {
+  @model.verified_model_capture_call_count(capture)
+}
+
+///|
+#export_name("clientProgramInferCaptureCall")
+pub fn client_program_infer_capture_call(
+  capture : @model.VerifiedModelCapture,
+  slot : Int,
+) -> @publication.RunEvidenceValue? {
+  @model.verified_model_capture_call_at(capture, slot)
+}
+
+///|
+/// This checks exact execution references, not external attempt, authority or
+/// accounting evidence. Those remain the installing capture owner's duties.
+#export_name("clientProgramBindInferSlotCapture")
+pub fn client_program_bind_infer_slot_capture(
+  capture : @model.VerifiedModelCapture,
+  slot : Int,
+  record : @publication.RunEvidenceValue,
+) -> Result[@publication.BoundModelSlotCapture, @model.ModelExecutionIssue] {
+  @model.bind_verified_model_slot_capture(capture, slot, record)
+}
+
+///|
 /// The existing Store must authenticate and confirm the expected holding
 /// before these bytes are offered to the common record reader. This bridge
 /// performs protocol admission, not execution or publication authorization.

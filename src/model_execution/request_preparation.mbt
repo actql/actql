@@ -3,6 +3,7 @@
 // component path keeps its prior spelling and cannot produce public evidence.
 priv struct PreparedModelRequest {
   request : ModelRequest
+  call : @publication.RunEvidenceValue?
   key_cid : String
   wire_bytes : Int64
 }
@@ -30,6 +31,7 @@ priv struct ModelRequestPreparation {
   mut input_index : Int
   mut key_cid : String?
   mut slot_cid : String?
+  mut call : @publication.RunEvidenceValue?
   mut phase : RequestPreparationPhase
 }
 
@@ -73,6 +75,7 @@ fn start_model_request_preparation(
       input_index: 0,
       key_cid: None,
       slot_cid: None,
+      call: None,
       phase: ReadKey,
     })
   } catch {
@@ -181,6 +184,7 @@ fn advance_model_request_preparation(
           request.slot_cid = Some(
             @publication.run_evidence_value_identity(slot),
           )
+          request.call = Some(slot)
         } else {
           request.key_cid = Some(
             "sha256:" + @encode.finish_hash(request.key_writer),
@@ -287,6 +291,7 @@ fn advance_model_request_preparation(
           key: request.keys,
           inputs: request.inputs,
         },
+        call: request.call,
         key_cid,
         wire_bytes: bytes.to_int64(),
       })

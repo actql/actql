@@ -107,6 +107,36 @@ pub fn bound_model_slot_capture_value(
 }
 
 ///|
+/// Exact references to one successful observation. The executing/restoring
+/// owner, not a caller-authored wire record, establishes checked response
+/// content. Attempt, policy, usage and authority evidence remain separate.
+pub fn verify_model_slot_success_observation(
+  binding : BoundModelSlotCapture,
+  observation : RunEvidenceValue,
+) -> Result[Unit, RunEvidenceValueIssue] {
+  if observation.name != "model_invocation_evidence" ||
+    contract_string_from_value(binding.capture.value, "outcome") != Some("ok") {
+    return Err(model_slot_reference_error("outcome"))
+  }
+  for
+    (capture_field, observation_field) in [
+      ("slot_cid", "model_call_slot_cid"),
+      ("model_task_cid", "model_task_contract_cid"),
+      ("fixed_request_cid", "semantic_request_cid"),
+      ("input_artifact_cid", "input_result_artifact_cid"),
+      ("input_key_cid", "input_row_identity_cid"),
+      ("typed_value_artifact_cid", "validated_structured_output_cid"),
+      ("response_artifact_cid", "structured_response_artifact_cid"),
+    ] {
+    if contract_string_from_value(binding.capture.value, capture_field) !=
+      contract_string_from_value(observation.value, observation_field) {
+      return Err(model_slot_reference_error(capture_field))
+    }
+  }
+  Ok(())
+}
+
+///|
 /// Match only successful saved response records to the complete adopted-slot
 /// inventory. Failed slots do not acquire fabricated success bundle entries.
 /// Response bytes still require the existing bounded restoring model owner;
@@ -134,20 +164,9 @@ pub fn verify_model_slot_capture_bundle(
       Ok(value) => value
       Err(_) => return Err(model_slot_reference_error("model_capture_bundle"))
     }
-    for
-      (capture_field, record_field) in [
-        ("slot_cid", "model_call_slot_cid"),
-        ("model_task_cid", "model_task_contract_cid"),
-        ("fixed_request_cid", "semantic_request_cid"),
-        ("input_artifact_cid", "input_result_artifact_cid"),
-        ("input_key_cid", "input_row_identity_cid"),
-        ("typed_value_artifact_cid", "validated_structured_output_cid"),
-        ("response_artifact_cid", "structured_response_artifact_cid"),
-      ] {
-      if contract_string_from_value(binding.capture.value, capture_field) !=
-        model_capture_record_text(record, record_field) {
-        return Err(model_slot_reference_error(capture_field))
-      }
+    match verify_model_slot_success_observation(binding, record.evidence) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
     }
     index += 1
   }
