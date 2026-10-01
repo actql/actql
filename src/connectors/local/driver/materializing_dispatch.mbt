@@ -55,6 +55,11 @@ pub struct LocalDispatchOperations {
   guard_usage : () -> Array[Int]
   // Work reported by the bounded provider of a completed attempt.
   provider_work : () -> Int64?
+  // Diagnostic work remains observable after failure and close; not billing.
+  cumulative_provider_work : () -> Result[
+    Int64,
+    @local.ManagedProviderWorkIssue,
+  ]
   publication_output : () -> @execution.CompletedOutput?
   settle : () -> Result[Unit, LocalDispatchIssue]
   complete : () -> Result[Unit, LocalDispatchIssue]
@@ -183,6 +188,9 @@ pub fn[C, E] start_local_dispatch(
           }
         },
         provider_work: () => @local.local_materializing_provider_work(attempt),
+        cumulative_provider_work: () => {
+          @local.local_materializing_cumulative_work(attempt)
+        },
         publication_output: () => {
           @local.local_materializing_publication_output(attempt)
         },

@@ -108,6 +108,7 @@ pub struct LocalDispatchOperations {
   execution_stopped : () -> Bool
   guard_usage : () -> Array[Int]
   provider_work : () -> Int64?
+  cumulative_provider_work : () -> Result[Int64, @local.ManagedProviderWorkIssue]
   publication_output : () -> @execution_relation.CompletedOutput?
   settle : () -> Result[Unit, LocalDispatchIssue]
   complete : () -> Result[Unit, LocalDispatchIssue]
@@ -176,6 +177,7 @@ pub struct LocalManagedDispatchOperations[T] {
   advance : (Int) -> Result[LocalManagedAdvance, LocalDispatchIssue]
   request_cancel : () -> Bool
   execution_stopped : () -> Bool
+  cumulative_provider_work : () -> Result[Int64, @local.ManagedProviderWorkIssue]
   prepare_finalization : (T, Int64, () -> Bool) -> Result[Unit, LocalDispatchIssue]
   advance_finalization : (Int) -> Result[LocalManagedAdvance, LocalDispatchIssue]
   settle : () -> Result[Unit, LocalDispatchIssue]

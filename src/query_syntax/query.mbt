@@ -974,10 +974,14 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     self.keyword("DISTINCT")
   }
   let projections = self.projections()
-  self.keyword("FROM")
-  let (relation, source_alias, ctes) = self.query_source()
+  let (relation, source_alias, ctes) = if self.has("FROM") {
+    self.keyword("FROM")
+    self.query_source()
+  } else {
+    ([], None, [])
+  }
   let joins : Array[JoinPart] = []
-  while self.starts_join() {
+  while !relation.is_empty() && self.starts_join() {
     let (part, join_ctes) = self.join_part()
     joins.push(part)
     for cte in join_ctes {
@@ -1048,6 +1052,11 @@ fn QueryParser::query(self : QueryParser) -> Query raise QueryAbort {
       } else {
         self.sql_term()
       }
+      let body = if self.peek().value == Pipe {
+        self.pipe_tail(body, cte_body=true)
+      } else {
+        body
+      }
       if self.advance().value != Symbol(41) {
         raise QueryAbort("Expected CTE closing parenthesis", self.peek().start)
       }
@@ -1068,6 +1077,7 @@ fn QueryParser::query(self : QueryParser) -> Query raise QueryAbort {
     }
   }
   let term = if self.has("SELECT") { self.sql() } else { self.pipe() }
+  let term = if self.peek().value == Pipe { self.pipe_tail(term) } else { term }
   let all_ctes = ctes + term.ctes
   if all_ctes.length() > self.limits.max_cte_count {
     raise QueryAbort("CTE count limit", self.peek().start)
@@ -1159,10 +1169,38 @@ fn QueryParser::pipe(
   } else {
     self.query_source()
   }
-  let joins : Array[JoinPart] = []
-  let operations : Array[QueryOperation] = []
-  let sets : Array[SetPart] = []
-  let final_operations : Array[QueryOperation] = []
+  self.pipe_tail(
+    {
+      source: self.source,
+      ctes,
+      relation,
+      source_alias,
+      graph,
+      joins: [],
+      operations: [],
+      sets: [],
+      final_operations: [],
+      work: self.work,
+    },
+    cte_body~,
+  )
+}
+
+///|
+// Standard SELECT and FROM-starting Pipe use the same scope and operators.
+fn QueryParser::pipe_tail(
+  self : QueryParser,
+  input : Query,
+  cte_body? : Bool = false,
+) -> Query raise QueryAbort {
+  let relation = input.relation
+  let source_alias = input.source_alias
+  let ctes = input.ctes.copy()
+  let mut graph = input.graph
+  let joins = input.joins.copy()
+  let operations = input.operations.copy()
+  let sets = input.sets.copy()
+  let final_operations = input.final_operations.copy()
   while self.peek().value == Pipe {
     ignore(self.advance())
     self.node()

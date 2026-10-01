@@ -301,8 +301,16 @@ fn same_expression(left : @query.Expression, right : @query.Expression) -> Bool 
 }
 
 ///|
-fn selected_input(query : @query.Query, context : Context) -> Input raise Abort {
-  selected_relation(@query.relation(query), context)
+fn selected_input(
+  query : @query.Query,
+  context : Context,
+  limits : Limits,
+) -> Input raise Abort {
+  if @query.relation(query).is_empty() {
+    source_free_input(query, limits)
+  } else {
+    selected_relation(@query.relation(query), context)
+  }
 }
 
 ///|
@@ -493,7 +501,9 @@ fn query_range_name(query : @query.Query) -> @query.NamePart {
       }
     None => ()
   }
-  @query.relation_alias(query).unwrap_or(@query.relation(query).last().unwrap())
+  @query.relation_alias(query).unwrap_or(
+    @query.relation(query).last().unwrap_or({ value: "", quoted: false, }),
+  )
 }
 
 ///|
@@ -2447,10 +2457,12 @@ pub fn compile(
     context.captured_stage == Some("") {
     return Err(InvalidContext)
   }
-  let input = selected_input(query, context) catch {
+  let input = selected_input(query, context, limits) catch {
     Abort(issue) => return Err(issue)
   }
-  let fields = columns(input) catch { Abort(issue) => return Err(issue) }
+  let fields = query_columns(query, input) catch {
+    Abort(issue) => return Err(issue)
+  }
   let document = @query.query_document(query)
   let generated = @origin.range(document, 0, 0, kind=Generated).unwrap()
   let builder = match @builder.create(document, limits.source) {
@@ -2503,7 +2515,8 @@ pub fn compile(
           None => ([(input.name, imported)], [], None)
         }
       GeneratedValues(_) => {
-        if context.captured_stage is Some(_) {
+        if context.captured_stage is Some(_) &&
+          !@query.relation(query).is_empty() {
           raise Abort(InvalidContext)
         }
         ([], [imported], None)
@@ -2653,9 +2666,10 @@ fn compile_cte_query(
         return Err(UnsupportedCte)
       }
     }
-    let mut known_relation = context.inputs.any(input => {
-      same_relation_path(body_relation, input.relation)
-    })
+    let mut known_relation = body_relation.is_empty() ||
+      context.inputs.any(input => {
+        same_relation_path(body_relation, input.relation)
+      })
     for earlier in 0..<index {
       if same_relation_path(body_relation, [
           @query.cte_at(query, earlier).unwrap().name,
@@ -2945,7 +2959,7 @@ fn compile_cte_stage(
     raise Abort(UnsupportedCte)
   }
   if @query.join_part_count(body) == 1 {
-    let left = selected_input(body, { ..context, inputs: known, })
+    let left = selected_input(body, { ..context, inputs: known, }, limits)
     let right_relation = @query.join_part_at(body, 0).unwrap().relation
     let mut right : Input? = None
     for input in known {
@@ -3017,8 +3031,8 @@ fn compile_cte_stage(
       },
     )
   }
-  let input = selected_input(body, { ..context, inputs: known, })
-  let fields = columns(input)
+  let input = selected_input(body, { ..context, inputs: known, }, limits)
+  let fields = query_columns(body, input)
   let (cte_inputs, seed) = match input.source {
     Captured(declaration) => {
       let imported = match
@@ -3033,7 +3047,7 @@ fn compile_cte_stage(
       ([(input.name, imported)], [])
     }
     GeneratedValues(step) => {
-      if context.captured_stage is Some(_) {
+      if context.captured_stage is Some(_) && !@query.relation(body).is_empty() {
         raise Abort(InvalidContext)
       }
       let imported = match
@@ -3508,12 +3522,13 @@ fn compile_set_query(
       if @query.join_part_count(term) > 0 {
         raise Abort(UnsupportedJoin)
       }
-      let input = selected_input(term, context)
-      let fields = columns(input)
+      let input = selected_input(term, context, limits)
+      let fields = query_columns(term, input)
       let mut common_capture_filter = false
       let (seed_stage, seed_result) = match input.source {
         GeneratedValues(step) => {
-          if context.captured_stage is Some(_) {
+          if context.captured_stage is Some(_) &&
+            !@query.relation(term).is_empty() {
             raise Abort(InvalidContext)
           }
           let seed = match @builder.import_cursor(builder, step, generated) {
@@ -3536,7 +3551,7 @@ fn compile_set_query(
                       (
                         "fields",
                         construction.array(
-                          fields.map(name => construction.text(name)),
+                          columns(input).map(name => construction.text(name)),
                         ),
                       ),
                     ]),
@@ -3570,7 +3585,7 @@ fn compile_set_query(
               }
               let mut common = first_filter is Some(_)
               for other in terms {
-                let other_input = selected_input(other, context)
+                let other_input = selected_input(other, context, limits)
                 if other_input.name == input.name {
                   match (first_filter, @query.operation_at(other, 0)) {
                     (Some(first), Some(Where(next))) =>
@@ -4852,7 +4867,7 @@ fn compile_join_query(
     if part.kind == "full" {
       raise Abort(UnsupportedJoin)
     }
-    let left = selected_input(query, context)
+    let left = selected_input(query, context, limits)
     let right = selected_relation(part.relation, context)
     let left_fields = columns(left)
     let right_fields = columns(right)

@@ -8209,6 +8209,72 @@
       }
     },
     {
+      "requirement_id": "actql.execution/managed-retained.local-productive-budget",
+      "statement_sha256": "12103314876a22974e39fbfedb06ec2bea2a589ce1459e6ca25250c830c0c872",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "managed-retained-execution",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/managed-retained.local-stop-progress",
+      "statement_sha256": "572a8e7a0498bce67c00ab2e8e57ee81ab82e1d0bb411698b5dbd35139ea3dfb",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "managed-retained-execution",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/managed-retained.local-stop-work",
+      "statement_sha256": "7b8cebb768ca8f708516a698b2412099ab24f669210fdb42a70228327cfaf798",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "managed-retained-execution",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/managed-retained.local-cleanup-work",
+      "statement_sha256": "708a5c9c65fba46b9cc3dc6001f453c7586ff5acb8c5493d19654b64dab23059",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "managed-retained-execution",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/managed-retained.local-work-lifecycle",
+      "statement_sha256": "382aea809f5aab94f08c99abae4c82c8d9a6ac5960ea04dc3dc728755a5ad4fd",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "managed-retained-execution",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.execution/managed-retained.local-work-overflow",
+      "statement_sha256": "0732786bbc592aa1865aaac71289d9cfe1f9a302be9ce83e2ebc0f69294267f8",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "managed-retained-execution",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.execution/managed-retained.use",
       "statement_sha256": "a5b1d6689d536d20965e36884c6482db317839c356c324be942f4ae3cfbc7d3f",
       "status": "pending",

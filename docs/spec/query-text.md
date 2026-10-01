@@ -86,6 +86,31 @@ source grants and current authorization remain ordinary admission obligations.
 Unsupported shapes must be rejected instead of approximated by a second
 checker or evaluator.
 
+## Source-free SELECT
+
+A SELECT may omit FROM, following the adopted
+[GoogleSQL query syntax](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax).
+Its expressions evaluate over one logical row. A false WHERE produces an
+empty Relation with the declared output contracts. Parameters remain ordinary
+typed Program parameters; SELECT siblings and WHERE cannot refer to aliases
+introduced by that SELECT. A star without visible input columns is invalid.
+
+The frontend lowers this case to existing Values and ordinary expressions.
+Values requires a nonempty schema, so a private Boolean witness represents the
+single row. It is excluded from the query's name scope and selected Result
+columns. It is neither an external Source nor a captured input Artifact.
+Installed aliases are not acquired simply because they appear in the Host's
+published environment. The normal checker and Host capacity owners still
+validate every constructed step and output.
+
+Source-free SELECT terms may feed a supported set query, nonrecursive CTE or
+named subquery. Standard SELECT queries and FROM-starting Pipe queries share
+the same Pipe-tail parser and column scopes. CTE bodies keep their existing
+restrictions on INFER and top-level lifecycle declarations. A set or CTE form
+not yet implemented is reported as an implementation gap rather than a
+permanent language restriction. Anonymous output expression labels remain a
+separate profile gap; authored examples give their output expressions aliases.
+
 ## INFER KEEP source projection
 
 The adopted INFER Pipe form has mandatory `ITEM KEY`, `INPUT`, and result

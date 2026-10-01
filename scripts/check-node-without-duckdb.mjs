@@ -1,15 +1,18 @@
 import {execFileSync} from 'node:child_process';
-import {cpSync, mkdtempSync, mkdirSync} from 'node:fs';
+import {cpSync, mkdirSync} from 'node:fs';
 import {join, basename} from 'node:path';
 import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
+import {createOwnedScratch} from './owned-scratch.mjs';
 
 const root = fileURLToPath(new URL('../',import.meta.url));
 execFileSync(process.execPath,['scripts/node-host-fixtures.mjs'],{cwd:root,stdio:'inherit'});
 for (const pkg of ['node_host_conformance','connectors_builtin_node']) {
   execFileSync('moon',['build','--target','js','--release',`src/${pkg}`],{cwd:root,stdio:'inherit'});
 }
-const isolated = mkdtempSync(join(tmpdir(),'actql-node-no-duckdb-'));
+const scratch = await createOwnedScratch({parent: tmpdir(),
+  prefix: 'actql-node-no-duckdb-', label: 'Node dependency isolation'});
+const isolated = scratch.path;
 for (const path of ['adapters','scripts','package.json']) {
   cpSync(join(root,path),join(isolated,path),{recursive:true,
     filter: path => basename(path) !== 'node_modules'});
@@ -34,4 +37,5 @@ execFileSync(process.execPath,[
   'adapters/host-common/managed-failure.test.mjs',
 ],
   {cwd:isolated,stdio:'inherit'});
-console.log(`Dependency-free standard-entry evidence retained: ${isolated}`);
+console.log('Dependency-free standard-entry checks passed.');
+scratch.passed();

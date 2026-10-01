@@ -111,3 +111,18 @@ scratch.passed();`);
   assert.equal(existsSync(result.path), false);
   assert.equal(existsSync(outside), true);
 });
+
+test('an internal directory link cannot remove a sibling tree', t => {
+  const directory = parent(t);
+  const result = child(directory, `
+import {symlinkSync} from 'node:fs';
+const sibling = join(${JSON.stringify(directory)}, 'sibling');
+mkdirSync(sibling);
+writeFileSync(join(sibling, 'evidence'), 'kept');
+symlinkSync(sibling, join(scratch.path, 'linked-directory'), 'dir');
+scratch.passed();`);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(existsSync(result.path), false);
+  assert.equal(existsSync(join(directory, 'sibling', 'evidence')), true);
+  assert.match(result.stdout, /\(2 files, 0\.0 MiB before removal\)/u);
+});

@@ -210,6 +210,19 @@ registered safe bounds to avoid repeated measurement. Canonical top-level
 value bytes are not compressed file bytes and do not require whole row-array
 JSON materialization. A skipped physical operation is not reported as executed.
 
+<!-- requirement-block: managed-retained.local-productive-budget managed-retained.local-stop-progress managed-retained.local-stop-work managed-retained.local-cleanup-work managed-retained.local-work-lifecycle managed-retained.local-work-overflow -->
+For bounded Local Relation chains, `SequenceExecutionLimits.max_work` admits
+new Compute and handoff work. Exhaustion MUST prevent any further Compute or
+handoff and remain a failure after physical stop. Stop confirmation and cleanup
+MUST remain permitted after productive-budget exhaustion. Actual work reported
+by mandatory stop polls MUST be
+included exactly once in cumulative physical-work observations, which can
+exceed that productive allowance. Cleanup callbacks that report no work MUST
+NOT receive invented work charges. A physical-work observation is not billing
+authorization. The existing execution owner MUST retain cumulative observations
+after failure and close. Overflow MUST remain an explicit accounting error,
+without wrapping, silently saturating or preventing stop/cleanup.
+
 <!-- requirement-block: managed-retained.use -->
 Dispatch MUST acquire a pin on the exact generation, current use authority and
 required resources with a defined outcome against concurrent reclamation.
