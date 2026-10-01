@@ -2114,18 +2114,41 @@ export async function openLocalPublicationStore(
       if (attempt.result_read_grant_cid !== grantContract.identity) {
         fail('DeliveryGrantMismatch');
       }
-      const target = deliveryAttemptPath(attempt.delivery_attempt_cid);
-      try {
-        const existing = await readDeliveryAttemptContract(
-          attempt.delivery_attempt_cid,
-        );
-        if (existing.wire !== admitted.wire) {
-          fail('DeliveryAttemptConflict');
-        }
-        return Object.freeze({attempt, created: false});
-      } catch (error) {
-        if (error?.code !== 'ENOENT') throw error;
+      if (attempt.run_definition_cid !== grant.run_definition_cid ||
+          attempt.result_manifest_cid !== grant.result_manifest_cid ||
+          !grant.results.some(result => result.result_name === attempt.result_name &&
+            result.result_artifact_cid === attempt.result_artifact_cid)) {
+        fail('DeliveryGrantMismatch');
       }
+      // The existing durable lookup owns the logical key. Selection and grant
+      // consumption stay in this one admission queue and under Store ownership;
+      // no second index or process-local attempt cache substitutes for the files.
+      const retained = await findDeliveryAttempt({
+        indexKey: {namespaceId: grant.namespace_id,
+          authorityScopeCid: grant.authority_scope_cid,
+          runDefinitionCid: grant.run_definition_cid},
+        principalId: grant.principal_id, purpose: grant.purpose,
+        resultName: attempt.result_name, attemptId: attempt.attempt_id,
+      });
+      if (retained !== undefined) {
+        let original;
+        try {
+          // Admission recomputes/checks the complete canonical identity after
+          // restoring only the selected birth time. All other bindings must
+          // reproduce the retained CID; no JS hashing or field subset compare.
+          original = admitContract('delivery_attempt', JSON.stringify({...attempt,
+            requested_at: retained.attempt.requested_at,
+            delivery_attempt_cid: retained.attempt.delivery_attempt_cid}));
+        } catch (cause) { fail('DeliveryAttemptConflict', cause); }
+        const existing = await readDeliveryAttemptContract(original.identity);
+        if (original.wire !== existing.wire) fail('DeliveryAttemptConflict');
+        // A previous caller may have lost the final directory-sync response.
+        // Confirm that same selection, never allocate another attempt/reader.
+        await syncDirectory(deliveryAttemptPath(original.identity));
+        await syncDirectory(deliveriesDirectory);
+        return Object.freeze({attempt: parseContract(existing), created: false});
+      }
+      const target = deliveryAttemptPath(attempt.delivery_attempt_cid);
 
       let uses = 0;
       for (const name of await readdir(deliveriesDirectory)) {
@@ -2288,6 +2311,13 @@ export async function openLocalPublicationStore(
         query.attemptId.length > 256) {
       fail('InvalidDeliveryAttemptLookup');
     }
+    return findDeliveryAttempt(query);
+  };
+
+  // Both callers use this same durable scan. Admission has already checked the
+  // full attempt/grant contracts; it must not acquire the lookup API's separate
+  // request-size restrictions as a new writer/contract restriction.
+  const findDeliveryAttempt = async query => {
     let match;
     for (const name of await readdir(deliveriesDirectory)) {
       if (!/^[0-9a-f]{64}$/u.test(name)) continue;
