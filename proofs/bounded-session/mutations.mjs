@@ -28,6 +28,11 @@ const cases = [
   ['cleanup-retry-reruns-callback', adapter, 'if reclaimed.val {', 'if reclaimed.val && false {', 'src/connectors/local', 'adapter contract*'],
   ['actual-set-path-reaches-adapter', adapter, 'let terminated = Ref(false)', 'let terminated = Ref(true)',
     'src/query_integration/local_managed_set_wbtest.mbt', 'Local managed row sets*'],
+  ['actual-nest-path-reaches-adapter', adapter, 'let terminated = Ref(false)', 'let terminated = Ref(true)',
+    'src/query_integration/local_managed_nest_wbtest.mbt', 'Local managed nest reaches two consumers*'],
+  ['nest-parent-child-ports-swapped', 'src/connectors/local/nest_provider.mbt',
+    '          parent,\n          child,', '          child,\n          parent,',
+    'src/query_integration/local_managed_nest_wbtest.mbt', 'Local managed nest reaches two consumers*'],
 ];
 const before = snapshot(root);
 const directory = join(root, '.artifacts/bounded-session');

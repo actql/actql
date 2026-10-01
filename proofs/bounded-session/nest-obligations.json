@@ -1,0 +1,70 @@
+{
+  "version": "actql-nest-evidence-obligations/0.1",
+  "baseline": "22507d140f13ef5e18c9950aa0500bbed8bf40cf",
+  "comparison": "retrospective admission of existing Nest; not a newly implemented operation",
+  "scope": {
+    "operation": "nest",
+    "variant": "correlated-parent-major",
+    "profile": "checked nullable correlation keys; four parents; ordered child projection; two consumers",
+    "provider": "src/connectors/local/nest_provider.mbt",
+    "entrypoint": "nest_provider",
+    "kernel": "start_bounded_nest"
+  },
+  "connection": {
+    "fixture": "src/query_integration/local_managed_nest_wbtest.mbt",
+    "minimumTests": 4,
+    "kernelSource": "src/execution_relation/bounded_nest.mbt",
+    "orderedInputs": [
+      "parent exact checked operation port 0",
+      "child exact checked operation port 1"
+    ]
+  },
+  "inherited": [
+    "Session token freshness and terminal sealing under existing premises",
+    "adapter cumulative-to-delta accounting with monotone representable reports",
+    "cleanup retry without Compute and cached completed cleanup under complete-callback premise"
+  ],
+  "residual": [
+    "parent order, child projection/order, NULL nonmatching keys and empty arrays",
+    "item, grouped/attached bytes, phase work and exact/one-short workspace bounds",
+    "two exact ordered input ports and independent consumer/input custody",
+    "synchronous scratch cleanup versus accepted output ownership transfer",
+    "child/runtime allocation byte bounds remain unproved; no full chain capacity guarantee",
+    "real Store, delivered cancellation, failed publication and reclamation"
+  ],
+  "retainedSuites": [
+    "src/execution_relation/bounded_nest_wbtest.mbt",
+    "src/execution_relation/nest_sequence_wbtest.mbt",
+    "src/execution_relation/nest_scale_wbtest.mbt",
+    "src/execution_relation/bounded_resource_boundary_wbtest.mbt",
+    "src/query_integration/local_managed_nest_wbtest.mbt",
+    "src/query_integration/local_retained_family_chains_wbtest.mbt",
+    "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+  ],
+  "route": {
+    "registration": "src/connectors/local/module.mbt",
+    "selection": "src/connectors/local/selected_relation_provider.mbt",
+    "adapter": "src/connectors/local/bounded_session_provider.mbt",
+    "session": "src/bounded_execution/session.mbt",
+    "cleanupReview": "cleanup_bounded_nest_state releases scratch synchronously and returns true; accepted output remains with its owner, not reclaimed by pretending scratch cleanup is output release"
+  },
+  "unchangedCommon": {
+    "proofs/bounded-session/Claims.lean": "70084213e510d49a17797e52509c8e2b3b0d5231519322665f686ba1f151fdd1",
+    "proofs/bounded-session/Session.lean": "d5a9f5e62e5a360b52d5cf0d886f6832c38a00088737c3378b01dff6b6b1a434",
+    "proofs/bounded-session/check.mjs": "32b0fe354922e5b89870e19aef05a00fbc5679bdc960717bb6ffce392b33392a",
+    "proofs/bounded-session/lean-toolchain": "1098ca8368e0db12138f33b070187e1f6527984ae0451a587b20e3e661f96a76",
+    "proofs/relation-chain/Chain.lean": "9246eec44f86fd3af52c9f7f9db3689a5728d8ec0a28c4b9b3ec1c8524ad1661",
+    "proofs/relation-chain/Claims.lean": "94947cc1ea5d6d5b7818ef81843dfa1f2888837790013797ca5148de82c95edc",
+    "proofs/relation-chain/check.mjs": "abac294b2005149066e11305c4422f1c5f619bec5a657e74a78cd8fe0c37da6c",
+    "proofs/relation-chain/lean-toolchain": "1098ca8368e0db12138f33b070187e1f6527984ae0451a587b20e3e661f96a76",
+    "src/bounded_execution/session_contract_wbtest.mbt": "31e7f210d8b115b6643da572d01b026849cf4cf78219a830712e0e30026933b1",
+    "src/connectors/local/bounded_session_contract_wbtest.mbt": "c6f19d17089b6c6298e55fffa895795c77b5a1cb8a0984d28b40f121498f8806"
+  },
+  "excludedClaims": [
+    "straight-line chain proof for two-input Nest ownership",
+    "arbitrary DAG/fan-out proof",
+    "unconditional physical allocation/RSS bound",
+    "implementation-wide formal refinement"
+  ],
+  "testRetirements": []
+}

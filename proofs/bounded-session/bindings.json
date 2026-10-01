@@ -36,5 +36,26 @@
       "set-specific scratch reclamation and two-input ownership",
       "two-consumer custody, driver and physical backend acceptance"
     ]
+  },
+  {
+    "operation": "nest",
+    "variant": "correlated-parent-major",
+    "profile": "checked nullable correlation keys; four parents; ordered child projection; two consumers",
+    "provider": "src/connectors/local/nest_provider.mbt",
+    "entrypoint": "nest_provider",
+    "kernel": "start_bounded_nest",
+    "premises": [
+      "accepted counters are nonnegative representable and monotone",
+      "kernel work per resume is between zero and quantum",
+      "cleanup callback true means complete reclamation"
+    ],
+    "residual": [
+      "parent order, child projection/order, NULL nonmatching keys and empty arrays",
+      "item, grouped/attached bytes, phase work and exact/one-short workspace bounds",
+      "two exact ordered input ports and independent consumer/input custody",
+      "synchronous scratch cleanup versus accepted output ownership transfer",
+      "child/runtime allocation byte bounds remain unproved; no full chain capacity guarantee",
+      "real Store, delivered cancellation, failed publication and reclamation"
+    ]
   }
 ]

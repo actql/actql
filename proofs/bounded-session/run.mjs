@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
-import { artifacts, checkBindings, checkRetirements, executedConnectionCoverage, graph, snapshot, targets, validate } from './evidence.mjs';
+import { artifacts, checkBindings, checkRetirements, connectionSuites, executedConnectionCoverage, graph, nestLocalSuites, snapshot, targets, validate } from './evidence.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const selected = process.argv[2] ?? 'all';
@@ -49,11 +49,16 @@ for (const target of selected === 'all' ? targets : [selected]) {
     ['test', 'src/bounded_execution', '--target', target, '--deny-warn'], target, 'bounded_execution');
   runs[`adapter-${target}`] = run(`adapter-${target}`, moon,
     ['test', 'src/connectors/local', '--target', target, '--deny-warn'], target, 'connectors/local');
-  runs[`connection-${target}`] = run(`connection-${target}`, moon,
-    ['test', 'src/query_integration/local_managed_set_wbtest.mbt', '--target', target, '--deny-warn'], target, 'query_integration');
-  // Record the fixture's reviewed scope after executing it. Never derive this
-  // witness from the caller's requested binding or the resulting claim graph.
-  runs[`connection-${target}`].coverage = executedConnectionCoverage();
+  for (const suite of connectionSuites) {
+    runs[`${suite.id}-${target}`] = run(`${suite.id}-${target}`, moon,
+      ['test', suite.fixture, '--target', target, '--deny-warn'], target, 'query_integration');
+    // Reviewed per-fixture scope is independent of the caller's bindings.
+    runs[`${suite.id}-${target}`].coverage = executedConnectionCoverage(suite.id);
+  }
+  for (const suite of nestLocalSuites) {
+    runs[`${suite.id}-${target}`] = run(`${suite.id}-${target}`, moon,
+      ['test', suite.fixture, '--target', target, '--deny-warn', ...(suite.filter ? ['--filter', suite.filter] : [])], target, 'execution_relation');
+  }
   const report = {
     version: 'actql-bounded-session-evidence/0.1', mode: 'report-only', revision, worktreeDirty,
     source, toolchain: pin, target, runs, claims: graph(bindings, target), retirements,
@@ -64,7 +69,7 @@ for (const target of selected === 'all' ? targets : [selected]) {
   const current = snapshot(root);
   current.builtArtifacts = Object.assign({},
     artifacts(root, target, 'bounded_execution'), artifacts(root, target, 'connectors/local'),
-    artifacts(root, target, 'query_integration'));
+    artifacts(root, target, 'query_integration'), artifacts(root, target, 'execution_relation'));
   const derived = validate(report.claims, report, current, target);
   writeFileSync(join(directory, `${target}.json`), `${JSON.stringify(report, null, 2)}\n`);
   console.log(`${target}: ${derived.length} conditional derived claim(s); existing resource gates remain authoritative`);
