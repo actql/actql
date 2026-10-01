@@ -1,15 +1,22 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
+import {readdirSync} from 'node:fs';
+import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
+import {createOwnedScratch} from './owned-scratch.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const build = join(repository, '_build');
 await mkdir(build, {recursive: true});
-const root = await mkdtemp(join(build, 'packed-local-assets-'));
+// The installation and states of this run; removed after it passed.
+const scratch = await createOwnedScratch({parent: build,
+  prefix: 'packed-local-assets-', label: 'packed Local Host assets',
+  digests: () => readdirSync(root).filter(name => name.endsWith('.tgz'))
+    .sort()});
+const root = scratch.path;
 const environment = {...process.env,
   npm_config_cache: join(build, 'npm-cache')};
 
@@ -300,3 +307,5 @@ try {
 `);
 run(process.execPath, ['smoke.mjs'], root);
 console.log('packed Local Host source-free and acquired computation passed');
+// The smoke closed its Hosts and ran to completion through spawnSync.
+scratch.passed();

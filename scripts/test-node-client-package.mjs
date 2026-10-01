@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import {spawn, spawnSync} from 'node:child_process';
 import {once} from 'node:events';
-import {mkdir, mkdtemp, readFile, readdir, writeFile} from 'node:fs/promises';
+import {readdirSync} from 'node:fs';
+import {mkdir, readFile, readdir, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {createRequire} from 'node:module';
 import {userInfo} from 'node:os';
@@ -10,13 +11,19 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
 import {packedClientPackage} from './packed-client-packages.mjs';
+import {createOwnedScratch} from './owned-scratch.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const graphOnly = process.argv.includes('--graph-only');
 const projectionOnly = process.argv.includes('--projection-only');
 const build = join(repository, '_build');
 await mkdir(build, {recursive: true});
-const root = await mkdtemp(join(build, 'node-client-package-'));
+// The installation, states and bundles of this run; removed after it passed.
+const scratch = await createOwnedScratch({parent: build,
+  prefix: 'node-client-package-', label: 'packed Node Client',
+  digests: () => readdirSync(root).filter(name => name.endsWith('.tgz'))
+    .sort()});
+const root = scratch.path;
 const cache = join(build, 'npm-cache');
 const environment = {...process.env, npm_config_cache: cache,
   ACTQL_LOCAL_STATE_DIR: join(root, 'local-state')};
@@ -2515,6 +2522,8 @@ if (graphOnly || projectionOnly) {
   console.log(projectionOnly
     ? 'packed projection Local and HTTP smoke passed'
     : 'packed Graph Local and HTTP smoke passed');
+  // The smoke process exited and the in-process Host is closed.
+  scratch.passed();
   process.exit(0);
 }
 const acquiredRecoveryRequest = {requestId: 'packed-acquired-remote',
@@ -2741,3 +2750,6 @@ client.close();
 `);
 run(process.execPath, ['browser-smoke.mjs'], root);
 console.log('packed Node and browser Client smoke passed');
+// The smoke and restart Host processes exited and the in-process Host is
+// closed.
+scratch.passed();
