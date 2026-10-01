@@ -595,18 +595,9 @@ fn bounded_relation_chain_execution(
         let (progress, work) = match poll {
           Continue(progress~, work~)
           | Complete(_, progress~, work~)
+          | CarrierComplete(_, progress~, work~)
           | Failed(_, progress~, work~)
           | Stopped(progress~, work~) => (progress, work)
-          CarrierComplete(_, ..) => {
-            terminal.val = true
-            return Ok(
-              managed_provider_failed(
-                @connector.Execution(@execution.InputSet),
-                0L,
-                0L,
-              ),
-            )
-          }
         }
         if work < 0L ||
           work > child_quantum.to_int64() ||

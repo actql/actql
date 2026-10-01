@@ -370,7 +370,10 @@ pub fn advance_managed_provider(
       | Stopped(progress~, work~) => (progress, work)
     }
     if execution.reported_work is Ok(total) {
-      if progress < 0L || work < 0L || work > quantum.to_int64() {
+      if progress < 0L ||
+        work < 0L ||
+        work > quantum.to_int64() ||
+        (poll is Continue(..) && work == 0L) {
         execution.reported_work = Err(InvalidReport)
       } else if total > 9223372036854775807L - work {
         execution.reported_work = Err(CounterOverflow)
