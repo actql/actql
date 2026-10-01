@@ -103,6 +103,8 @@ pub fn client_compiled_run_admission(ClientCompiledRun) -> @run_publication.RunP
 
 pub fn client_compiled_run_authorization(ClientCompiledRun) -> @run_publication.RunEvidenceValue
 
+pub fn client_compiled_run_infer(ClientCompiledRun) -> ClientInferPlanGraph?
+
 pub fn client_compiled_run_matches(ClientCompiledRun, PreparedClientProgram) -> Bool
 
 pub fn client_compiled_run_plan(ClientCompiledRun) -> @run_publication.PublicationContract
@@ -283,6 +285,8 @@ pub fn client_standard_values_sequence_limits() -> @lowering_relation.SequenceLi
 
 pub fn client_task_compilation_compiled_plan(ClientTaskCompilation) -> @run_publication.PublicationContract
 
+pub fn client_task_compilation_infer(ClientTaskCompilation) -> ClientInferPlanGraph?
+
 pub fn client_task_compilation_plan(ClientTaskCompilation) -> ClientTaskExecutablePlan
 
 pub fn client_task_compilation_result_names(ClientTaskCompilation) -> Array[String]
@@ -440,6 +444,8 @@ pub fn issue_prepared_client_empty_invocation_bindings(PreparedClientProgram, In
 pub fn issue_prepared_client_infer_bound_template(PreparedClientProgram, ClientInferPlanGraph, ClientCompilationManifests, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientInferBoundTemplateIssue]
 
 pub fn issue_prepared_client_infer_call_scope(PreparedClientProgram, ClientInferPlanGraph, Int, @execution_relation.CompletedOutput, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int) -> Result[ClientInferCallScope, ClientInferCallScopeIssue]
+
+pub fn issue_prepared_client_infer_compilation(PreparedClientProgram, ClientInferPlanGraph, ClientCompilationManifests, Int, Int, Int, Int, Int) -> Result[ClientTaskCompilation, ClientTaskCompilationIssue]
 
 pub fn issue_prepared_client_infer_execution_material(PreparedClientProgram, ClientInferPlanGraph, ClientCompilationManifests, Int, Int, Int) -> Result[ClientExecutionMaterial, ClientExecutionMaterialIssue]
 
@@ -1191,6 +1197,7 @@ pub struct ClientTaskCompilation {
   template : @run_publication.RunEvidenceValue
   compiled_plan : @run_publication.PublicationContract
   result_names : Array[String]
+  infer : ClientInferPlanGraph?
 }
 
 pub(all) enum ClientTaskCompilationIssue {
@@ -1200,6 +1207,7 @@ pub(all) enum ClientTaskCompilationIssue {
   Template(@run_publication.RunEvidenceValueIssue)
   CompiledPlan(@run_publication.PublicationContractIssue)
   Encoding
+  ForeignInferOwner
 }
 
 pub struct ClientTaskExecutablePlan {

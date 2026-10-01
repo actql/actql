@@ -8,6 +8,7 @@ import {inspect} from 'node:util';
 import * as moon from
   '../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {canonicalText} from './check-canonical-json.mjs';
+import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
 
 // Reuse the independently hashed typing vector, not an execution result.
 const taskSource = readFileSync(new URL(
@@ -156,6 +157,30 @@ test('normal Program emits a model barrier without pretending it is pure AoA', (
     prepared, 2, executionWire, limitsCid).$tag, 0);
   assert.equal(moon.clientProgramInferPlanGraph(
     prepared, 2, execution, `sha256:${'G'.repeat(64)}`, egressCid).$tag, 0);
+
+  // The ordinary compiled Run owner retains the checked barrier. This is
+  // compilation admission only, not provider authorization or publication.
+  const control = runtimeCore(moon).publicationControl;
+  const policy = {executionContextCid: `sha256:${'d'.repeat(64)}`,
+    hostPolicyCid: `sha256:${'e'.repeat(64)}`,
+    expiresAt: '2099-01-01T00:00:00.000Z'};
+  const run = control.prepareCheckedClientCompiledRun(
+    prepared, 'infer', policy, compiled);
+  assert.deepEqual(JSON.parse(run.template.wire).required_profile_contracts,
+    template.required_profile_contracts);
+  const definition = control.defineCheckedClientCompiledRun(run,
+    {namespaceId: 'infer-compilation', runId: 'normal-program',
+      createdAt: '2026-10-01T00:00:00.000Z', validUntil: policy.expiresAt});
+  const invocation = control.issueCheckedClientCompiledInvocation(run,
+    definition, {dataPolicyCid: `sha256:${'f'.repeat(64)}`},
+    {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100});
+  assert.match(invocation.invocation.identity, /^sha256:[0-9a-f]{64}$/u);
+  assert.throws(() => control.prepareCheckedClientCompiledRun(
+    prepared, 'infer', policy), /requires its checked graph/u);
+  assert.throws(() => control.prepareCheckedClientCompiledRun(
+    foreign, 'infer', policy, compiled), /RunHostTaskCompilationRejected/u);
+  assert.throws(() => control.prepareCheckedClientCompiledRun(
+    prepared, 'tasks', policy, compiled), /requires its checked graph/u);
 });
 
 test('Infer compilation retains the same pure prefix as bounded execution', () => {

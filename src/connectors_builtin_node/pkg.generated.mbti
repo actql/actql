@@ -191,6 +191,8 @@ pub fn client_program_compilation_template_wire(@run_publication_host.ClientValu
 
 pub fn client_program_compile_local_effects(@run_publication_host.PreparedClientEffectComputation) -> Result[@run_publication_host.ClientEffectCompilation, ClientProgramEffectCompilationBridgeIssue]
 
+pub fn client_program_compile_local_infer(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientInferPlanGraph) -> Result[@run_publication_host.ClientTaskCompilation, ClientProgramTaskCompilationBridgeIssue]
+
 pub fn client_program_compile_local_tasks(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientTaskCompilation, ClientProgramTaskCompilationBridgeIssue]
 
 pub fn client_program_compile_local_values(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientValuesCompilation, ClientProgramValuesCompilationBridgeIssue]

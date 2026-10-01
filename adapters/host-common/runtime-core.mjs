@@ -1906,13 +1906,18 @@ function publicationControl(moon) {
       }
       return inspectAdmission(admission);
     },
-    prepareCheckedClientCompiledRun(checkedProgram, kind, policy) {
-      if (!['values', 'tasks'].includes(kind)) {
+    prepareCheckedClientCompiledRun(checkedProgram, kind, policy, inferGraph) {
+      if (!['values', 'tasks', 'infer'].includes(kind)) {
         throw new TypeError('Invalid Client compilation profile');
+      }
+      if ((kind === 'infer') !== (inferGraph !== undefined)) {
+        throw new TypeError('Infer compilation requires its checked graph');
       }
       const compilation = compiledRunResult(kind === 'values'
         ? moon.clientProgramCompileLocalValues(checkedProgram)
-        : moon.clientProgramCompileLocalTasks(checkedProgram),
+        : kind === 'infer'
+          ? moon.clientProgramCompileLocalInfer(checkedProgram, inferGraph)
+          : moon.clientProgramCompileLocalTasks(checkedProgram),
       kind === 'values' ? 'RunHostCompilationRejected'
         : 'RunHostTaskCompilationRejected');
       const value = compiledRunResult(kind === 'values'
@@ -1962,7 +1967,7 @@ function publicationControl(moon) {
         ? moon.clientProgramIssueCompiledRunDefinition(value,
           namespaceId, runId, createdAt, validUntil)
         : moon.clientProgramAdmitCompiledRunDefinition(value,
-          retainedDefinitionWire), compiled.kind === 'tasks'
+          retainedDefinitionWire), compiled.kind !== 'values'
         ? 'RunHostTaskDefinitionRejected'
         : retainedDefinitionWire === undefined
           ? 'RunHostSourceFreeDefinitionRejected'
@@ -1976,7 +1981,7 @@ function publicationControl(moon) {
       }
       issuanceLimits(limits, 'Client Run Invocation');
       const issued = compiledRunResult(source === undefined
-        ? (compiled.kind === 'tasks'
+        ? (compiled.kind !== 'values'
           ? moon.clientProgramIssueCompiledSourceFreeTaskInvocation(value,
             token(definition), dataPolicyCid,
             limits.maxWireBytes, limits.maxNodes, limits.maxDepth)

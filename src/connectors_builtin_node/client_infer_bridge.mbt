@@ -1,4 +1,31 @@
 ///|
+/// Compile the retained checked barrier through the existing task Run owner.
+/// Compilation does not grant model egress or attest to captured execution.
+#export_name("clientProgramCompileLocalInfer")
+pub fn client_program_compile_local_infer(
+  prepared : @publication_host.PreparedClientProgram,
+  graph : @publication_host.ClientInferPlanGraph,
+) -> Result[
+  @publication_host.ClientTaskCompilation,
+  ClientProgramTaskCompilationBridgeIssue,
+] {
+  let manifests = match
+    @publication_host.admit_client_compilation_manifests(
+      @check_environment.compiler_grammar_manifest_wire(),
+      @check_environment.compiler_barrier_contract_manifest_wire(),
+      100000,
+      10000,
+      100,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @publication_host.issue_prepared_client_infer_compilation(
+    prepared, graph, manifests, 1000, 10000, 1000000, 100000, 100,
+  ).map_err(issue => Compilation(issue))
+}
+
+///|
 /// Start one owned physical operation only after the Host admits model access.
 /// Preparation, dispatch and output share the original checked Program owner.
 #export_name("clientProgramStartInferExecution")
