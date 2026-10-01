@@ -53,6 +53,21 @@ model. It is **not** a Program, wire schema, lowerer output or executed result.
 Its classification explicitly remains `runtime_executed: false` and
 `common_representation_fixed: false`.
 
+The design ledger also separates two independent mapping obligations from the
+selected Google element-definition rules: Graph-wide consistency of the value
+type for each resolved property name, and consistency of the exposed property
+set for each resolved label name. Both span node and edge definitions and use
+the selected case-insensitive name resolution. Its four additional expected
+cases include different-label and node/edge type conflicts, a same-type case
+that this rule does not reject, and a shared-label property-set conflict. They
+remain designed expectations, not implementation or execution evidence.
+
+The identity domain is retained across executions and snapshots of the same
+admitted constructor definition. Actual input Artifacts, parameter values and
+Run/Invocation CIDs are excluded; sharing with a different inline VALUES or
+mapping definition is not guaranteed. This records the agreed domain boundary
+without introducing a new runtime representation.
+
 The fixture requires two differently keyed edges on one node to survive. Exact
 two-hop paths have four WALK sequences, two TRAIL sequences and no ACYCLIC
 sequence. Projecting just endpoints retains four or two duplicate rows rather

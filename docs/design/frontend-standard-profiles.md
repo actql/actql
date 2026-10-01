@@ -86,9 +86,11 @@ Changing `entity_type` must not alter a static `LABEL Person`.
 | Definition-scoped typed element keys; independently keyed edges | Require explicit ordered KEY tuples for Relation inputs. Never invent a primary key, row-position identity or concatenated-string key. Distinct edge keys preserve parallel edges. |
 | NULL element keys contribute no element; unmatched endpoints contribute no edge | Do not synthesize nodes. Validate complete edge-key uniqueness before excluding unmatched rows; duplicate complete keys fail even for identical payloads. Bounded validation enforces the declared key precondition. |
 | REFERENCES names the node definition | Initially require exact declared node KEY columns in order and arity; omitted columns use that KEY. Non-key reference mappings are unsupported, not reinterpreted. |
-| Node and edge static label sets; consistent property exposure for a shared label | Preserve multiple labels, property types and nullability. Label/property lookup follows the selected case-insensitive Google profile; retain authored spelling and reject collisions. Never case-fold key values. Dynamic labels/properties are outside the first profile. |
+| Graph-wide property value-type consistency | After the selected case-insensitive property-name resolution, every occurrence of a property name has the same value type throughout the Graph, across node and edge definitions and across different labels. Different labels do not relax this condition. Preserve the declared nullability separately. |
+| Consistent property exposure for a shared label | After the selected case-insensitive label/property-name resolution, every occurrence of a label name exposes the same property set across node and edge definitions. This condition is independent of Graph-wide property value-type consistency. |
+| Node and edge static label sets | Preserve multiple labels and declared property types/nullability. Label/property lookup follows the selected case-insensitive Google profile; retain authored spelling and reject collisions. Never case-fold key values. Dynamic labels/properties are outside the first profile. |
 | Default label is the element definition name; omitted properties select all columns | Support column projections/aliases, ALL COLUMNS, EXCEPT and NO PROPERTIES. Key columns can be properties; NO PROPERTIES does not remove identity. Computed properties need a separate evaluation contract. |
-| Identity is distinct from content and provenance | Preserve definition-scoped typed keys in a stable admitted mapping domain across snapshots/replay. Outer DATA spelling, row enumeration, physical location and current content CID do not define that domain. Cross-domain algebra requires an explicit compatible identity mapping. |
+| Identity is distinct from content and provenance | Preserve definition-scoped typed keys in a stable mapping domain across executions and snapshots/replay of the same admitted constructor definition. Do not include actual input Artifact identities, parameter values, Run/Invocation CIDs, outer DATA spelling, row enumeration, physical location or current content CID in the domain. Sharing is not guaranteed with a different definition produced by changing inline VALUES or the mapping. Cross-domain algebra requires an explicit compatible identity mapping. |
 
 The first three columns of an edge are not its identity. Endpoints, labels and
 properties are content of an independently keyed element. MATCH/TRAIL,
@@ -117,6 +119,10 @@ These expectations precede implementation; their listing is not a test pass.
 | Composite keys `(1,23)` and `(12,3)` | Distinct identities retaining component type and position. |
 | NULL key, duplicate complete key, missing endpoint, empty input | Exclusion, failure without partial Graph, edge exclusion, and empty typed Graph respectively. |
 | Static labels, multiple labels, property/label collision | Membership independent of property values; no duplicate elements for multiple labels. |
+| Person exposes numeric `score`; Company exposes String `SCORE` | Reject: case-insensitive property-name resolution finds incompatible value types, even though the labels differ. |
+| A node exposes numeric `score`; an edge exposes String `score` | Reject: the same property value-type rule spans node and edge definitions. |
+| Person and Company each expose numeric `score` | Do not reject under the property value-type rule; all other admission conditions still apply. |
+| Label Person exposes `{name}`; label PERSON exposes `{name, score}` | Reject: case-insensitive label resolution finds different exposed property sets. |
 | Omitted properties versus NO PROPERTIES | All selected source columns versus none, with identity retained in both. |
 | Snapshot/reload; changed endpoint at the same edge key | Identity, labels and multiplicity survive; diff/apply recognizes a content change and reaches the target. |
 
