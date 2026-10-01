@@ -143,3 +143,26 @@ test('INFER KEEP and omitted KEEP match independent complete Program fixtures', 
       {text: {field: 'text'}});
   }
 });
+
+test('prepared packed INFER sources preserve authored visible fields and one invocation', async () => {
+  const cases = JSON.parse(await readFile(
+    fixture('infer-keep/packed-acceptance.json'), 'utf8'));
+  for (const item of cases.successes) {
+    const input = {as: 'tickets', values: {schema: cases.source_schema,
+      rows: cases.source_rows[item.source_rows]}};
+    const wire = compileValuesQueryJson(item.source, 'tickets', 'tickets',
+      JSON.stringify(input), JSON.stringify(['id', 'text', 'secret']),
+      'fixture.infer_keep');
+    assert.notEqual(wire, '', item.name);
+    const program = JSON.parse(wire);
+    assert.deepEqual(program.stages[0].results.rows.fields,
+      cases.columns[item.columns].map(column => column.name));
+    assert.equal(program.stages[0].steps.filter(step => step.values).length, 1);
+    const invocations = program.stages[0].steps.filter(step => step.infer);
+    assert.equal(invocations.length, 1);
+    assert.deepEqual(invocations[0].infer, {
+      contract: 'model-task:risk-score.v1', key: 'id',
+      input: {text: {field: 'text'}},
+    });
+  }
+});

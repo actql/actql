@@ -1,0 +1,117 @@
+{
+  "execution_status": "not_run",
+  "model_task": "model-task:risk-score.v1",
+  "source_alias": "tickets",
+  "source_schema": {
+    "id": {"type": "string", "nullable": false},
+    "text": {"type": "string", "nullable": true},
+    "secret": {"type": "string", "nullable": false}
+  },
+  "candidate_keys": [["id"]],
+  "source_rows": {
+    "standard": [
+      {"id": "a", "text": "urgent", "secret": "private-a"},
+      {"id": "b", "text": null, "secret": "private-b"}
+    ],
+    "empty": [],
+    "duplicate-key": [
+      {"id": "a", "text": "urgent", "secret": "private-a"},
+      {"id": "a", "text": null, "secret": "private-b"}
+    ]
+  },
+  "model_responses": [
+    {"input": {"text": "urgent"}, "outcome": "ok", "value": {"risk": "high", "reason": null}},
+    {"input": {"text": null}, "outcome": "failed:refusal", "value": null}
+  ],
+  "columns": {
+    "kept": [
+      {"name": "id", "contract": {"type": "string", "nullable": false}},
+      {"name": "note", "contract": {"type": "string", "nullable": true}},
+      {"name": "assessment", "contract": {"type": "object", "nullable": false, "fields": {
+        "input_key": {"type": "object", "nullable": false, "fields": {"id": {"type": "string", "nullable": false}}},
+        "outcome": {"type": "string", "nullable": false},
+        "value": {"type": "object", "nullable": true, "fields": {
+          "risk": {"type": "string", "nullable": false},
+          "reason": {"type": "string", "nullable": true}
+        }}
+      }}}
+    ],
+    "omitted": [
+      {"name": "assessment", "contract": {"type": "object", "nullable": false, "fields": {
+        "input_key": {"type": "object", "nullable": false, "fields": {"id": {"type": "string", "nullable": false}}},
+        "outcome": {"type": "string", "nullable": false},
+        "value": {"type": "object", "nullable": true, "fields": {
+          "risk": {"type": "string", "nullable": false},
+          "reason": {"type": "string", "nullable": true}
+        }}
+      }}}
+    ],
+    "filtered": [
+      {"name": "id", "contract": {"type": "string", "nullable": false}},
+      {"name": "risk", "contract": {"type": "string", "nullable": false}}
+    ]
+  },
+  "expected_rows": {
+    "kept": [
+      {"id": "a", "note": "urgent", "assessment": {"input_key": {"id": "a"}, "outcome": "ok", "value": {"risk": "high", "reason": null}}},
+      {"id": "b", "note": null, "assessment": {"input_key": {"id": "b"}, "outcome": "failed:refusal", "value": null}}
+    ],
+    "omitted": [
+      {"assessment": {"input_key": {"id": "a"}, "outcome": "ok", "value": {"risk": "high", "reason": null}}},
+      {"assessment": {"input_key": {"id": "b"}, "outcome": "failed:refusal", "value": null}}
+    ],
+    "filtered": [{"id": "a", "risk": "high"}],
+    "empty": []
+  },
+  "successes": [
+    {
+      "name": "kept",
+      "source_rows": "standard",
+      "source": "FROM tickets AS old |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (text = text) KEEP (id, text AS note) AS assessment |> ORDER BY id",
+      "columns": "kept",
+      "expected_rows": "kept",
+      "model_dispatches": 2,
+      "captured_slots": 2
+    },
+    {
+      "name": "omitted",
+      "source_rows": "standard",
+      "source": "FROM tickets AS old |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (text = text) AS assessment |> ORDER BY assessment.input_key.id",
+      "columns": "omitted",
+      "expected_rows": "omitted",
+      "model_dispatches": 2,
+      "captured_slots": 2
+    },
+    {
+      "name": "nested-filter",
+      "source_rows": "standard",
+      "source": "FROM tickets AS old |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (text = text) KEEP (id, text AS note) AS assessment |> WHERE assessment.outcome = 'ok' AND assessment.value.risk = 'high' |> SELECT id, assessment.value.risk AS risk |> ORDER BY id",
+      "columns": "filtered",
+      "expected_rows": "filtered",
+      "model_dispatches": 2,
+      "captured_slots": 2
+    },
+    {
+      "name": "empty",
+      "source_rows": "empty",
+      "source": "FROM tickets AS old |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (text = text) KEEP (id, text AS note) AS assessment |> ORDER BY id",
+      "columns": "kept",
+      "expected_rows": "empty",
+      "model_dispatches": 0,
+      "captured_slots": 0
+    }
+  ],
+  "preparation_refusals": [
+    {"name": "dropped-input", "source": "FROM tickets |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (text = text) KEEP (id) AS assessment |> SELECT secret"},
+    {"name": "old-alias", "source": "FROM tickets AS old |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (text = text) KEEP (id) AS assessment |> SELECT old.secret"},
+    {"name": "duplicate-key-name", "source": "FROM tickets |> INFER `model-task:risk-score.v1` ITEM KEY (id, id) INPUT (text = text) AS assessment"},
+    {"name": "empty-key", "source": "FROM tickets |> INFER `model-task:risk-score.v1` ITEM KEY () INPUT (text = text) AS assessment"},
+    {"name": "missing-key", "source": "FROM tickets |> INFER `model-task:risk-score.v1` ITEM KEY (missing) INPUT (text = text) AS assessment"},
+    {"name": "nullable-key", "source": "FROM tickets |> INFER `model-task:risk-score.v1` ITEM KEY (text) INPUT (text = text) AS assessment"},
+    {"name": "unproven-key", "source": "FROM tickets |> INFER `model-task:risk-score.v1` ITEM KEY (secret) INPUT (text = text) AS assessment"},
+    {"name": "output-collision", "source": "FROM tickets |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (text = text) KEEP (id AS assessment) AS assessment"}
+  ],
+  "preflight_failures": [
+    {"name": "duplicate-item-key", "source_rows": "duplicate-key", "source": "FROM tickets |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (text = text) KEEP (id) AS assessment"}
+  ]
+}
