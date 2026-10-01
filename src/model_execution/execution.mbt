@@ -124,7 +124,11 @@ struct ModelState {
 
 ///|
 pub struct ModelExecution {
-  session : @bounded.Session[ModelState, ModelCaptureBundle, ModelExecutionIssue]
+  session : @bounded.Session[
+    ModelState,
+    ModelCaptureBundle,
+    ModelExecutionIssue,
+  ]
   mut token : @bounded.Token
   control : @bounded.Control
   state : ModelState
@@ -214,7 +218,9 @@ fn request_inputs(
 }
 
 ///|
-fn make_request(state : ModelState) -> Result[ModelRequest, ModelExecutionIssue] {
+fn make_request(
+  state : ModelState,
+) -> Result[ModelRequest, ModelExecutionIssue] {
   let owner = @relation.prepared_infer_rows_owner(state.rows)
   let task = @infer.model_task(owner)
   guard request_key(state.rows, state.next_slot, owner) is Some(key) &&
@@ -247,11 +253,15 @@ fn advance_model(
     return @bounded.Stopped(reason, 0, 0)
   }
   if state.next_slot >= @relation.prepared_infer_rows_count(state.rows) {
-    return @bounded.Complete({
-      task_cid: @environment.model_task_identity(state.task).2,
-      fixed_request_cid: state.fixed_request_cid,
-      captures: state.captures.copy(),
-    }, 1, 1)
+    return @bounded.Complete(
+      {
+        task_cid: @environment.model_task_identity(state.task).2,
+        fixed_request_cid: state.fixed_request_cid,
+        captures: state.captures.copy(),
+      },
+      1,
+      1,
+    )
   }
   if quantum < 1 {
     return @bounded.Failed(InvalidLimits, 0, 0)
@@ -271,18 +281,21 @@ fn advance_model(
   if response.provider_model.is_empty() ||
     response.provider_request_id.is_empty() ||
     response.observed_at.is_empty() ||
-    response.input_tokens < 0L || response.output_tokens < 0L {
+    response.input_tokens < 0L ||
+    response.output_tokens < 0L {
     return @bounded.Failed(OutputIdentity, 1, 1)
   }
-  let checked = match @admitted.recheck_runtime_value(
-    response.value,
-    @environment.model_task_output(state.task),
-    state.limits.value_limits,
-  ) {
+  let checked = match
+    @admitted.recheck_runtime_value(
+      response.value,
+      @environment.model_task_output(state.task),
+      state.limits.value_limits,
+    ) {
     Some(value) => value
     None => return @bounded.Failed(OutputValue, 1, 1)
   }
-  let transfer = state.limits.max_request_bytes + state.limits.max_response_bytes
+  let transfer = state.limits.max_request_bytes +
+    state.limits.max_response_bytes
   match @resources.charge_transfer(state.ledger, reservation, transfer) {
     Ok(_) => ()
     Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
@@ -301,11 +314,15 @@ fn advance_model(
   })
   state.next_slot += 1
   if state.next_slot == @relation.prepared_infer_rows_count(state.rows) {
-    @bounded.Complete({
-      task_cid: @environment.model_task_identity(state.task).2,
-      fixed_request_cid: state.fixed_request_cid,
-      captures: state.captures.copy(),
-    }, 1, 1)
+    @bounded.Complete(
+      {
+        task_cid: @environment.model_task_identity(state.task).2,
+        fixed_request_cid: state.fixed_request_cid,
+        captures: state.captures.copy(),
+      },
+      1,
+      1,
+    )
   } else {
     @bounded.Continue(1, 1)
   }
@@ -318,18 +335,23 @@ pub fn start_model_execution(
   fixed_request_cid : String,
   limits : ModelExecutionLimits,
 ) -> Result[ModelExecution, ModelExecutionIssue] {
-  if !valid_cid(fixed_request_cid) || limits.max_items < 0 ||
-    limits.max_work < 0 || limits.max_request_bytes < 0L ||
-    limits.max_response_bytes < 0L || limits.value_limits.max_nodes < 0 ||
-    limits.value_limits.max_depth < 0 || limits.value_limits.max_text_bytes < 0 {
+  if !valid_cid(fixed_request_cid) ||
+    limits.max_items < 0 ||
+    limits.max_work < 0 ||
+    limits.max_request_bytes < 0L ||
+    limits.max_response_bytes < 0L ||
+    limits.value_limits.max_nodes < 0 ||
+    limits.value_limits.max_depth < 0 ||
+    limits.value_limits.max_text_bytes < 0 {
     return Err(InvalidLimits)
   }
   let count = @relation.prepared_infer_rows_count(rows)
   let task = @infer.model_task(@relation.prepared_infer_rows_owner(rows))
-  if count > limits.max_items || (
-    @environment.model_task_max_items(task) is Some(max) &&
+  if count > limits.max_items ||
+    (
+      @environment.model_task_max_items(task) is Some(max) &&
       count.to_int64() > max
-  ) {
+    ) {
     return Err(ItemLimit)
   }
   if count > limits.max_work {
@@ -341,12 +363,13 @@ pub fn start_model_execution(
   }
   let reservations : Array[@resources.Reservation] = []
   for _ in 0..<count {
-    match @resources.reserve_attempt(
-      ledger,
-      limits.max_request_bytes,
-      limits.max_response_bytes,
-      0L,
-    ) {
+    match
+      @resources.reserve_attempt(
+        ledger,
+        limits.max_request_bytes,
+        limits.max_response_bytes,
+        0L,
+      ) {
       Ok(value) => reservations.push(value)
       Err(issue) => return Err(Ledger(issue))
     }
@@ -399,12 +422,15 @@ pub fn request_model_cancel(execution : ModelExecution) -> Bool {
 }
 
 ///|
-pub fn cleanup_model_execution(execution : ModelExecution) -> Result[Bool, ModelExecutionIssue] {
+pub fn cleanup_model_execution(
+  execution : ModelExecution,
+) -> Result[Bool, ModelExecutionIssue] {
   match @bounded.cleanup(execution.session) {
     Ok(value) => {
       for reservation in execution.state.reservations {
         if @resources.reservation_open(reservation) {
-          @resources.settle_reservation(execution.state.ledger, reservation) |> ignore
+          @resources.settle_reservation(execution.state.ledger, reservation)
+          |> ignore
         }
       }
       Ok(value)
@@ -472,8 +498,10 @@ pub fn replay_model_capture(
   }
   let output : Array[@admitted.CheckedValue] = []
   for index, capture in bundle.captures {
-    if capture.slot != index || capture.fixed_request_cid != fixed_request_cid ||
-      !valid_cid(capture.slot_cid) || !valid_cid(capture.input_key_cid) ||
+    if capture.slot != index ||
+      capture.fixed_request_cid != fixed_request_cid ||
+      !valid_cid(capture.slot_cid) ||
+      !valid_cid(capture.input_key_cid) ||
       capture.provider_request_id.is_empty() {
       return Err(OutputIdentity)
     }

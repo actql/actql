@@ -26,6 +26,7 @@ pub fn client_program_check_environment(
 }
 
 ///|
+
 ///|
 /// The installed Host opts into the exact pinned numeric profile before
 /// checking a Program. An unknown CID cannot silently choose an algorithm.
@@ -219,10 +220,7 @@ pub fn client_program_run_infer_fixture(
   max_wire_bytes : Int64,
 ) -> String? {
   @publication_host.run_prepared_client_fixture_infer(
-    prepared,
-    max_rows,
-    max_work,
-    max_wire_bytes,
+    prepared, max_rows, max_work, max_wire_bytes,
   )
 }
 

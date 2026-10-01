@@ -29,20 +29,17 @@ pub fn admit_client_check_environment(
     Ok(value) => value
     Err(_) => return None
   }
-  let model_tasks = match @environment.check_model_tasks(wire, {
-    bodies: {
-      max_bytes: 65536,
-      max_nodes: 4096,
-      max_depth: 64,
-      max_members: 256,
-    },
-    contracts: {
-      max_nodes: 4096,
-      max_depth: 64,
-      max_text_bytes: 65536,
-    },
-    max_work: 65536,
-  }) {
+  let model_tasks = match
+    @environment.check_model_tasks(wire, {
+      bodies: {
+        max_bytes: 65536,
+        max_nodes: 4096,
+        max_depth: 64,
+        max_members: 256,
+      },
+      contracts: { max_nodes: 4096, max_depth: 64, max_text_bytes: 65536, },
+      max_work: 65536,
+    }) {
     Ok(value) => value
     Err(_) => return None
   }

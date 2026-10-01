@@ -308,22 +308,16 @@ pub fn run_prepared_client_fixture_infer(
     return None
   }
   let graph = value.graph
-  let mut found : ( @lower.BoundPrepared, @infer.CheckedInfer, @pipeline.Target )? = None
+  let mut found : (@lower.BoundPrepared, @infer.CheckedInfer, @pipeline.Target)? = None
   for task in 0..<@strategy.graph_task_count(graph) {
     guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
       continue
     }
     let prepared = @lower.bound_preparation(owner)
     for index in 0..<@lower.node_count(prepared) {
-      guard @lower.node_at(prepared, index) is Some(node) else {
-        continue
-      }
-      guard @lower.payload(node) is @lower.Infer(infer) else {
-        continue
-      }
-      guard @lower.node_input_target(node, 0) is Some(target) else {
-        continue
-      }
+      guard @lower.node_at(prepared, index) is Some(node) else { continue }
+      guard @lower.payload(node) is @lower.Infer(infer) else { continue }
+      guard @lower.node_input_target(node, 0) is Some(target) else { continue }
       found = Some((owner, infer, target))
     }
   }
@@ -332,14 +326,10 @@ pub fn run_prepared_client_fixture_infer(
     max_nodes: max_rows * 16 + 32,
     max_depth: 32,
     max_text_bytes: max_rows * 4096 + 4096,
-    max_work: max_work,
+    max_work,
   }
-  let captured = match @execution.capture_values(
-    owner,
-    0,
-    max_rows~,
-    capture_limits,
-  ) {
+  let captured = match
+    @execution.capture_values(owner, 0, max_rows~, capture_limits) {
     Ok(value) => value
     Err(_) => return None
   }
@@ -350,27 +340,22 @@ pub fn run_prepared_client_fixture_infer(
     max_literal_nodes: max_work,
     max_literal_text_bytes: max_work * 64,
   }
-  let inputs = match @lower.prepare_infer_inputs(
-    infer,
-    @lower.parameter_bindings(owner),
-    expression_limits,
-  ) {
+  let inputs = match
+    @lower.prepare_infer_inputs(
+      infer,
+      @lower.parameter_bindings(owner),
+      expression_limits,
+    ) {
     Ok(value) => value
     Err(_) => return None
   }
-  let bound = match @execution.bind_infer_captured_input(
-    inputs,
-    owner,
-    target,
-    captured,
-  ) {
+  let bound = match
+    @execution.bind_infer_captured_input(inputs, owner, target, captured) {
     Ok(value) => value
     Err(_) => return None
   }
-  let preparation = match @execution.start_infer_rows_preparation(
-    @bounded.control(),
-    bound,
-    {
+  let preparation = match
+    @execution.start_infer_rows_preparation(@bounded.control(), bound, {
       max_items: max_rows,
       max_work,
       max_frames: max_work,
@@ -386,8 +371,7 @@ pub fn run_prepared_client_fixture_infer(
         max_live_value_bytes: max_wire_bytes,
         max_work: max_work.to_int64(),
       },
-    },
-  ) {
+    }) {
     Ok(value) => value
     Err(_) => return None
   }
@@ -411,31 +395,30 @@ pub fn run_prepared_client_fixture_infer(
   let rows = rows.unwrap()
   let task = @infer.model_task(infer)
   let task_id = @environment.model_task_identity(task).0
-  let fixed = "sha256:" + @sha.hex(@utf8.encode("actql-model-request/0.1/" + task_id))
-  let provider = match @model.install_model_provider("models/fixture", request => {
-    if @environment.model_task_identity(request.task).0 != task_id {
-      return Err(@model.ProviderError)
-    }
-    let reason = @admitted.null_value()
-    let risk = @admitted.text_value("high", 100).unwrap()
-    let value = @admitted.object_value([("reason", reason), ("risk", risk)]).unwrap()
-    Ok({
-      value,
-      provider_model: "fixture-risk-model",
-      provider_request_id: "fixture-request-" + request.slot.to_string(),
-      input_tokens: 1L,
-      output_tokens: 2L,
-      observed_at: "2026-10-01T00:00:00.000Z",
-    })
-  }) {
+  let fixed = "sha256:" +
+    @sha.hex(@utf8.encode("actql-model-request/0.1/" + task_id))
+  let provider = match
+    @model.install_model_provider("models/fixture", request => {
+      if @environment.model_task_identity(request.task).0 != task_id {
+        return Err(@model.ProviderError)
+      }
+      let reason = @admitted.null_value()
+      let risk = @admitted.text_value("high", 100).unwrap()
+      let value = @admitted.object_value([("reason", reason), ("risk", risk)]).unwrap()
+      Ok({
+        value,
+        provider_model: "fixture-risk-model",
+        provider_request_id: "fixture-request-" + request.slot.to_string(),
+        input_tokens: 1L,
+        output_tokens: 2L,
+        observed_at: "2026-10-01T00:00:00.000Z",
+      })
+    }) {
     Ok(value) => value
     Err(_) => return None
   }
-  let execution = match @model.start_model_execution(
-    rows,
-    provider,
-    fixed,
-    {
+  let execution = match
+    @model.start_model_execution(rows, provider, fixed, {
       max_items: max_rows,
       max_work,
       max_request_bytes: max_wire_bytes,
@@ -453,8 +436,7 @@ pub fn run_prepared_client_fixture_infer(
         retained_bytes: max_wire_bytes,
         execution_bytes: max_wire_bytes,
       },
-    },
-  ) {
+    }) {
     Ok(value) => value
     Err(_) => return None
   }
