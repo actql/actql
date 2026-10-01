@@ -831,7 +831,9 @@ test('outbound gateway durably dispatches without an inbound Site listener',
       control.pollNotSeenJson(unseen),
     );
     assert.equal(notSeen.status, 200);
-    assert.equal((await unseenResult).code, 'RemoteDispatchNotSeen');
+    const unseenError = await unseenResult;
+    assert.equal(unseenError.code, 'RemoteDispatchNotSeen');
+    assert.equal(unseenError.notSeenBody, control.pollNotSeenJson(unseen));
     assert.equal(siteAcceptCount, 1);
     assert.equal(gateway.pending(), 0);
 

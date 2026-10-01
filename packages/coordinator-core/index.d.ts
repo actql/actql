@@ -60,6 +60,22 @@ export function pollQueryJson(request: DispatchRequest): string;
 export function pollReleaseJson(request: DispatchRequest): string;
 /** Admits a Site's not-seen answer for exactly this request; throws otherwise. */
 export function admitPollNotSeen(body: string, request: DispatchRequest): true;
+/** Admit exact canonical poll delivery bytes. Site/Run owners separately
+ * validate materials meaning and authority. Persist before initial send. */
+export function deliveryEnvelopeJson(request: DispatchRequest, body: string): string;
+/** Host-owned CURRENT facts from existing authorization/Run owners, never
+ * copied from a response. This is transport eligibility, not start authority. */
+export interface RedeliveryContext {
+  coordinatorAuthority: string;
+  siteKey: string;
+  siteGeneration: number;
+  authorizationCurrent: boolean;
+  cancellationRequested: boolean;
+}
+/** Empty notSeenBody requires an accepted durable Site observation. A typed
+ * not-seen reply may recover only an intent with no accepted Site history. */
+export function redeliveryEligible(record: IntentRecord, request: DispatchRequest,
+  notSeenBody: string, context: Readonly<RedeliveryContext>): boolean;
 export function prepareIntent(journal: Journal,
   request: DispatchRequest): IntentAdmission;
 export function intentIsNew(admission: IntentAdmission): boolean;
@@ -238,5 +254,8 @@ export function responseDurableJson(durable: DurableRecord,
 /** Call only after the exact next durable body was atomically persisted. */
 export function commitTransition(transition: Transition): void;
 export function recordStateCodes(record: IntentRecord): string[];
+/** Structural transport candidate only (including historical Accepted).
+ * Use redeliveryEligible with current trusted Host facts and an admitted query
+ * before sending; this function grants no executor/start-claim permission. */
 export function exactRetransmissionEligible(record: IntentRecord,
   request: DispatchRequest): boolean;

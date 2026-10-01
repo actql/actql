@@ -649,6 +649,10 @@ pub fn strategy_remote_bundle_transition_projection(@remote_bundle.RemoteBundleT
 
 pub fn strategy_remote_coordinator_completion_evidence_available(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> Bool
 
+pub fn strategy_remote_coordinator_delivery_context_current(@remote_site_protocol.DispatchRequest, String, String, Int, Bool, Bool) -> Bool raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_delivery_envelope_json(@remote_site_protocol.DispatchRequest, String) -> String raise NodeHostFailure
+
 pub fn strategy_remote_coordinator_history_restore(@remote_site_protocol.CoordinatorDispatchIntentRecord, String, @remote_site_protocol.RemoteExecutionEvidence?) -> Unit raise NodeHostFailure
 
 pub fn strategy_remote_coordinator_intent_commit(@remote_site_protocol.CoordinatorDispatchIntentAdmission, Bool) -> @remote_site_protocol.CoordinatorDispatchIntentRecord raise NodeHostFailure
@@ -716,6 +720,8 @@ pub fn strategy_remote_coordinator_record_restore(@remote_site_protocol.Coordina
 pub fn strategy_remote_coordinator_record_revision(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> Int
 
 pub fn strategy_remote_coordinator_record_status(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> Array[String]
+
+pub fn strategy_remote_coordinator_redelivery_eligible(@remote_site_protocol.CoordinatorDispatchIntentRecord, @remote_site_protocol.DispatchRequest, String, String, String, Int, Bool, Bool) -> Bool raise NodeHostFailure
 
 pub fn strategy_remote_coordinator_transition_commit(@remote_site_protocol.CoordinatorDispatchTransition, Bool) -> Unit raise NodeHostFailure
 

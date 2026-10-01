@@ -32,6 +32,156 @@ const request = (dispatchId, taskAttempt = 1) => control.prepare({
   grantCid: cid('4'),
 });
 
+const deliveryFixture = id => {
+  const configuration = JSON.parse(control.requestJson(request(id)));
+  const dispatch = control.prepare({...{
+    coordinatorAuthority: configuration.coordinator_authority,
+    runDefinitionCid: configuration.run_definition_cid,
+    taskKey: configuration.task_key, taskAttempt: configuration.task_attempt,
+    dispatchId: configuration.dispatch_id, siteKey: configuration.site_key,
+    siteGeneration: configuration.site_generation,
+    runtimeBundleCid: configuration.runtime_bundle_cid,
+    connectorRegistration: configuration.connector_registration,
+    connectorRevision: configuration.connector_revision,
+    strategyRevision: configuration.strategy_revision,
+    obligationsCid: configuration.obligations_cid, budgetCid: configuration.budget_cid,
+    evidenceIssuerCapabilityCid: configuration.evidence_issuer_capability_cid,
+    grantCid: configuration.grant_cid,
+  }, inputBindingCid: control.inputBindingIdentity(control.prepareInputBinding('{}'))});
+  return {dispatch, envelope: control.pollJson(dispatch, control.prepareInputBinding('{}'))};
+};
+
+test('R2 delivery and initial intent are atomic immutable and survive reopen', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-coordinator-delivery-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const {dispatch, envelope} = deliveryFixture('delivery-atomic');
+  let store = openSqliteCoordinatorDispatchJournal(root, {coordinatorAuthority: 'coordinator-a'});
+  const journal = control.createCoordinatorJournal('coordinator-a');
+  store.accept(control.prepareCoordinatorIntent(journal, dispatch), dispatch, control, envelope);
+  assert.equal(store.deliveryEnvelope(dispatch, control), envelope);
+  store.close();
+  store = openSqliteCoordinatorDispatchJournal(root, {coordinatorAuthority: 'coordinator-a'});
+  t.after(() => store.close());
+  const restored = control.createCoordinatorJournal('coordinator-a');
+  const [{record}] = store.recoverJournal(restored, control);
+  assert.equal(store.deliveryEnvelope(dispatch, control), envelope);
+  assert.equal(control.coordinatorRecordRevision(record), 0);
+  store.accept(control.prepareCoordinatorIntent(restored, dispatch), dispatch, control, envelope);
+  assert.throws(() => store.accept(control.prepareCoordinatorIntent(restored, dispatch),
+    dispatch, control, envelope + ' '));
+  assert.equal(store.deliveryEnvelope(dispatch, control), envelope);
+});
+
+test('R2 missing legacy delivery refuses attachment but preserves query history and cleanup', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-coordinator-delivery-missing-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const {dispatch, envelope} = deliveryFixture('delivery-missing');
+  let store = openSqliteCoordinatorDispatchJournal(root, {coordinatorAuthority: 'coordinator-a'});
+  const record = store.accept(control.prepareCoordinatorIntent(control.createCoordinatorJournal('coordinator-a'), dispatch), dispatch, control);
+  store.advance(control.prepareCoordinatorObservation(record, {revision: 0, state: [0, 0, 0, 0, 0]}), record, control);
+  store.close();
+  // Exact R1 schema, before the additive delivery capability existed. Neither
+  // a saved envelope nor historical send bytes can be inferred from its intent.
+  const legacy = new DatabaseSync(join(root, 'coordinator-dispatch-journal.sqlite3'));
+  legacy.exec('DROP TABLE dispatch_deliveries');
+  legacy.prepare('DELETE FROM journal_metadata WHERE key = ?').run('dispatch_delivery');
+  legacy.close();
+  store = openSqliteCoordinatorDispatchJournal(root, {coordinatorAuthority: 'coordinator-a'});
+  t.after(() => store.close());
+  const journal = control.createCoordinatorJournal('coordinator-a');
+  const [{record: restored}] = store.recoverJournal(journal, control);
+  assert.throws(() => store.deliveryEnvelope(dispatch, control), {code: 'RemoteDispatchDeliveryMaterialsMissing'});
+  assert.throws(() => store.accept(control.prepareCoordinatorIntent(journal, dispatch), dispatch, control, envelope),
+    {code: 'RemoteDispatchDeliveryMaterialsMissing'});
+  store.advance(control.prepareCoordinatorObservation(restored, {revision: 4, state: [4, 0, 2, 0, 0]}), restored, control);
+  assert.equal(store.inspectState(dispatch, control)[5], 2);
+  assert.equal(store.inspectState(dispatch, control)[3], 4);
+});
+
+test('R2 abrupt exit immediately after durable delivery restores original bytes', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-coordinator-delivery-crash-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const {dispatch, envelope} = deliveryFixture('delivery-crash');
+  const imports = {
+    moon: new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href,
+    runtime: new URL('../host-common/runtime-core.mjs', import.meta.url).href,
+    journal: new URL('./sqlite-coordinator-journal.mjs', import.meta.url).href,
+  };
+  const child = spawnSync(process.execPath, ['--input-type=module', '-e', `
+    import * as moon from ${JSON.stringify(imports.moon)};
+    import {runtimeCore} from ${JSON.stringify(imports.runtime)};
+    import {openSqliteCoordinatorDispatchJournal} from ${JSON.stringify(imports.journal)};
+    const control = runtimeCore(moon).remoteSiteControl;
+    const request = control.admitJson(${JSON.stringify(control.requestJson(dispatch))}, ${JSON.stringify(control.identity(dispatch))});
+    const store = openSqliteCoordinatorDispatchJournal(${JSON.stringify(root)}, {coordinatorAuthority: 'coordinator-a'});
+    store.accept(control.prepareCoordinatorIntent(control.createCoordinatorJournal('coordinator-a'), request), request, control, ${JSON.stringify(envelope)});
+    // No close/finally, as at an external process stop immediately after commit.
+    process.kill(process.pid, 'SIGKILL');
+  `], {encoding: 'utf8'});
+  assert.equal(child.signal, 'SIGKILL', child.stderr);
+  const store = openSqliteCoordinatorDispatchJournal(root, {coordinatorAuthority: 'coordinator-a'});
+  t.after(() => store.close());
+  assert.equal(store.deliveryEnvelope(dispatch, control), envelope);
+  assert.equal(store.recoverJournal(control.createCoordinatorJournal('coordinator-a'), control).length, 1);
+});
+
+test('R2 valid material replacement and envelope over capacity refuse before any new send owner', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'actql-coordinator-delivery-bounds-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const {dispatch, envelope} = deliveryFixture('delivery-bounds');
+  const store = openSqliteCoordinatorDispatchJournal(root, {coordinatorAuthority: 'coordinator-a',
+    maxDeliveryBytes: Buffer.byteLength(envelope)});
+  const journal = control.createCoordinatorJournal('coordinator-a');
+  const expanded = JSON.parse(envelope);
+  expanded.version = 'actql-remote-poll-dispatch-materials/0.1';
+  expanded.run_materials_json = '{}';
+  const changed = JSON.stringify(expanded);
+  assert.throws(() => store.accept(control.prepareCoordinatorIntent(journal, dispatch), dispatch, control, changed),
+    {code: 'InvalidCoordinatorDeliveryEnvelope'});
+  assert.equal(store.contains(dispatch, control), false);
+  store.close();
+  const reopened = openSqliteCoordinatorDispatchJournal(root, {coordinatorAuthority: 'coordinator-a'});
+  t.after(() => reopened.close());
+  reopened.accept(control.prepareCoordinatorIntent(journal, dispatch), dispatch, control, envelope);
+  // The canonical envelope must pass the existing typed poll admitter; this
+  // test compares valid envelopes, rather than succeeding on syntax refusal.
+  const {version: _version, ...fields} = JSON.parse(envelope);
+  const other = JSON.stringify({...fields, run_materials_json: '{}',
+    version: 'actql-remote-poll-dispatch-materials/0.1'});
+  assert.equal(control.coordinatorDeliveryEnvelopeJson(dispatch, other), other);
+  assert.throws(() => reopened.accept(control.prepareCoordinatorIntent(journal, dispatch), dispatch, control, other),
+    {code: 'RemoteDispatchDeliveryMaterialsCollision'});
+  assert.equal(reopened.deliveryEnvelope(dispatch, control), envelope);
+});
+
+for (const commitApplied of [false, true]) {
+  test(`R2 initial delivery COMMIT loss applied=${commitApplied} never gives send ownership`, async t => {
+    const root = await mkdtemp(join(tmpdir(), 'actql-coordinator-delivery-commit-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    let store = openSqliteCoordinatorDispatchJournal(root, {coordinatorAuthority: 'coordinator-a'});
+    const {dispatch, envelope} = deliveryFixture('delivery-commit');
+    const journal = control.createCoordinatorJournal('coordinator-a');
+    const exec = DatabaseSync.prototype.exec;
+    DatabaseSync.prototype.exec = function(sql) {
+      if (sql === 'COMMIT') {
+        if (commitApplied) exec.call(this, sql);
+        throw new Error('DELIVERY_COMMIT_RESPONSE_LOST');
+      }
+      return exec.call(this, sql);
+    };
+    try {
+      assert.throws(() => store.accept(control.prepareCoordinatorIntent(journal, dispatch), dispatch, control, envelope),
+        {code: 'CoordinatorJournalCommitOutcomeUnknown'});
+    } finally { DatabaseSync.prototype.exec = exec; }
+    store.close();
+    store = openSqliteCoordinatorDispatchJournal(root, {coordinatorAuthority: 'coordinator-a'});
+    t.after(() => store.close());
+    assert.equal(store.contains(dispatch, control), commitApplied);
+    if (commitApplied) assert.equal(store.deliveryEnvelope(dispatch, control), envelope);
+    else assert.throws(() => store.deliveryEnvelope(dispatch, control), {code: 'RemoteDispatchIntentMissing'});
+  });
+}
+
 test('Coordinator journal retries a failed physical close', async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-coordinator-close-'));
   t.after(() => rm(root, {recursive: true, force: true}));

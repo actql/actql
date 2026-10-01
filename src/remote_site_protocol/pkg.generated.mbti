@@ -81,6 +81,10 @@ pub fn commit_site_generation_restart(SiteRestartTransition, Bool) -> Result[Int
 
 pub fn coordinator_completion_evidence_available(CoordinatorDispatchIntentRecord) -> Bool
 
+pub fn coordinator_delivery_context_current(DispatchRequest, String, String, Int, Bool, Bool) -> Result[Bool, DispatchIssue]
+
+pub fn coordinator_delivery_envelope_json(DispatchRequest, String) -> Result[String, DispatchIssue]
+
 pub fn coordinator_dispatch_admission_durable_json(CoordinatorDispatchIntentAdmission) -> Result[String, DispatchIssue]
 
 pub fn coordinator_dispatch_intent_json(CoordinatorDispatchIntentAdmission) -> Result[String, DispatchIssue]
@@ -144,6 +148,8 @@ pub fn coordinator_output_transition_expected_revision(CoordinatorOutputTransiti
 pub fn coordinator_output_transition_key(CoordinatorOutputTransition) -> Array[String]
 
 pub fn coordinator_output_transition_projection(CoordinatorOutputTransition) -> Array[String]
+
+pub fn coordinator_redelivery_eligible(CoordinatorDispatchIntentRecord, DispatchRequest, String, String, String, Int, Bool, Bool) -> Result[Bool, DispatchIssue]
 
 pub fn create_coordinator_dispatch_journal(String) -> Result[CoordinatorDispatchJournal, DispatchIssue]
 

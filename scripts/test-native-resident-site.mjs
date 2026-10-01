@@ -24,6 +24,8 @@ import {openSqliteCoordinatorDispatchJournal} from
   '../adapters/host-node/sqlite-coordinator-journal.mjs';
 import {createRemoteSiteCoordinator} from
   '../adapters/host-node/remote-site-coordinator.mjs';
+import {allowAllAuthorization} from '../adapters/host-node/authorization-fixture.mjs';
+import {observationAckLossProxy} from './fixtures/observation-ack-loss-proxy.mjs';
 import {signRemoteRuntimeBundle} from
   '../adapters/site-node/remote-bundle-signature.mjs';
 import {pinnedEngineContracts} from
@@ -75,6 +77,7 @@ let receiverJournal;
 let currentSite;
 let observationStore;
 let observationReceiver;
+let ackLossProxy;
 const observationBodies = [];
 const observationFailures = [];
 const running = new Set();
@@ -94,8 +97,9 @@ try {
   const moonModule = await import(pathToFileURL(join(repository,
     '_build/js/release/build/connectors_builtin_node/' +
     'connectors_builtin_node.js')).href);
-  const coordinator = await import(pathToFileURL(join(repository,
-    'packages/coordinator-core/index.mjs')).href);
+  const coordinator = await import(pathToFileURL(
+    process.env.ACTQL_TEST_COORDINATOR_CORE_MODULE ?? join(repository,
+      'packages/coordinator-core/index.mjs')).href);
   const runHost = await import(pathToFileURL(
     process.env.ACTQL_TEST_RUN_HOST_CORE_MODULE ??
       join(repository, 'packages/run-host-core/index.mjs')).href);
@@ -136,7 +140,8 @@ try {
       {siteKey, siteGeneration: 1},
     ]]),
     control: siteControl,
-    receiveObservation: process.argv.includes('--observation-replay-only')
+    receiveObservation: (process.argv.includes('--observation-replay-only') ||
+      process.argv.includes('--redelivery-only'))
       ? async value => {
         try {
           const receipt = await observationReceiver.receiveObservation(value);
@@ -402,6 +407,7 @@ try {
   ];
   const startSite = (extra = [], {
     origin = receiver.origin,
+    controlOrigin = gateway.origin,
     transferJournal = join(root, 'site-transfer.sqlite3'),
     publication = join(root, 'publication'),
     siteJournal = join(root, 'journal.sqlite3'),
@@ -409,6 +415,10 @@ try {
     const configured = [...common];
     configured[configured.indexOf('--publication-root') + 1] = publication;
     configured[configured.indexOf('--journal') + 1] = siteJournal;
+    for (const [flag, operation] of [['--poll-url', 'poll'], ['--observation-url', 'observations']]) {
+      configured[configured.indexOf(flag) + 1] =
+        `${controlOrigin}/v1/sites/${siteKey}/generations/1/outbound/${operation}`;
+    }
     const child = spawn(executable, ['run', ...configured,
       '--transfer-origin', origin, '--transfer-journal', transferJournal,
       ...extra], {
@@ -495,7 +505,180 @@ try {
   };
   let expectedEntries = 0;
 
-  if (process.argv.includes('--observation-replay-only')) {
+  if (process.argv.includes('--redelivery-only')) {
+    const coordinatorRoot = join(root, 'coordinator-redelivery');
+    const authorization = await allowAllAuthorization();
+    let blockDispatch = false;
+    let loseDispatchCid;
+    let lostBody;
+    let loseTerminal;
+    const terminalAckLosses = [];
+    const lostBodies = [];
+    ackLossProxy = await observationAckLossProxy({origin: gateway.origin,
+      key: await readFile(join(root, 'server.key')),
+      cert: await readFile(join(root, 'server.crt')), ca: await readFile(join(root, 'ca.crt')),
+      loseAck: body => {
+        const hint = JSON.parse(body);
+        if (hint.dispatch_request_cid === loseDispatchCid) return true;
+        if (loseTerminal === undefined || hint.dispatch_request_cid !== siteControl.identity(loseTerminal)) return false;
+        const admitted = siteControl.admitResponseJson(body, loseTerminal,
+          hint.version === 'actql-remote-dispatch-status/0.1');
+        return siteControl.responseProjection(admitted)[1] === 3;
+      },
+      allowDispatch: () => !blockDispatch,
+      onAckLost: body => {
+        if (JSON.parse(body).dispatch_request_cid !== loseDispatchCid) {
+          terminalAckLosses.push(body);
+          loseTerminal = undefined;
+          return;
+        }
+        loseDispatchCid = undefined;
+        lostBody = body;
+        lostBodies.push(body);
+        blockDispatch = true;
+      }});
+    const currentContext = (dispatch, body) => {
+      // The existing issuer projected these immutable bytes from the original
+      // admitted Run. Its Run owner, not received materials, is the expectation.
+      assert.equal(JSON.parse(siteControl.requestJson(dispatch)).run_definition_cid,
+        runHost.privateRunDefinition(retainedDefinition).cid);
+      assert.equal(body, materialsEnvelope(dispatch));
+      return {coordinatorAuthority: 'cloud-coordinator', siteKey, siteGeneration: 1,
+        // Never refresh original expiry. Native receipt/start recheck the
+        // admitted Run/authorization owners at their current trusted clock.
+        authorizationCurrent: Date.now() < now + 3_600_000,
+        cancellationRequested: false};
+    };
+    let beforeSend;
+    let sends = 0;
+    const openCoordinator = () => {
+      observationStore = openSqliteCoordinatorDispatchJournal(coordinatorRoot,
+        {coordinatorAuthority: 'cloud-coordinator', maxDeliveryBytes: 1_048_576});
+      observationReceiver = createRemoteSiteCoordinator({control: siteControl,
+        journal: siteControl.createCoordinatorJournal('cloud-coordinator'),
+        store: observationStore, authorization, currentDispatchContext: currentContext,
+        query: gateway.query, release: gateway.release,
+        send: async value => {
+          assert.equal(value.dispatchEnvelope, observationStore.deliveryEnvelope(value.dispatch, siteControl));
+          sends++;
+          if (beforeSend !== undefined) await beforeSend(value);
+          blockDispatch = false;
+          return gateway.dispatch(value);
+        }});
+    };
+    openCoordinator();
+    const site = startSite([], {controlOrigin: ackLossProxy.origin});
+    currentSite = site;
+    const loseAcceptance = async (dispatch, previousEntries) => {
+      loseDispatchCid = siteControl.identity(dispatch);
+      lostBody = undefined;
+      blockDispatch = false;
+      const failures = site.lines.filter(line => line.kind === 'accept-failed' &&
+        line.reason === 'client-transport').length;
+      const publicRequest = coordinator.admitDispatchJson(siteControl.requestJson(dispatch),
+        siteControl.identity(dispatch));
+      const originalEnvelope = coordinator.deliveryEnvelopeJson(publicRequest, materialsEnvelope(dispatch));
+      const pending = observationReceiver.dispatch({dispatch, inputBindingBody: '{}',
+        dispatchEnvelope: originalEnvelope}).catch(error => error);
+      await waitFor(() => lostBody !== undefined && site.lines.filter(line =>
+        line.kind === 'accept-failed' && line.reason === 'client-transport').length > failures,
+      'lost durable acceptance ACK');
+      assert.equal((await entries()).length, previousEntries);
+      assert.equal(observationStore.inspectState(dispatch, siteControl)[3], 0);
+      // Public package decisions are checked with an actual native response,
+      // not hand-authored Accepted bytes or a second executor/state machine.
+      const initial = coordinator.prepareIntent(coordinator.createJournal('cloud-coordinator'), publicRequest);
+      const durable = coordinator.admitDurableJson(coordinator.admissionDurableJson(initial));
+      const record = coordinator.commitIntent(initial);
+      const response = coordinator.admitResponseJson(lostBody, publicRequest, false);
+      const transition = coordinator.prepareResponseObservation(record, response);
+      const observed = coordinator.admitDurableJson(coordinator.responseDurableJson(durable, transition, response));
+      const restored = coordinator.restoreDurable(coordinator.createJournal('cloud-coordinator'), observed);
+      assert.equal(coordinator.redeliveryEligible(restored, publicRequest, '', currentContext(dispatch, originalEnvelope)), true);
+      assert.equal(gateway.withdraw({dispatch}), true);
+      assert.equal((await within(pending, 'lost initial dispatch')).code, 'RemoteDispatchWithdrawn');
+      return lostBody;
+    };
+    const first = dispatchFor('r2-ack-loss-concurrent', 1);
+    const firstAccepted = await loseAcceptance(first, 0);
+    observationStore.close();
+    openCoordinator();
+    loseTerminal = first;
+    let parallelSends = 0;
+    let permitParallelSend;
+    const parallelSendBarrier = new Promise(resolve => { permitParallelSend = resolve; });
+    beforeSend = async () => {
+      if (++parallelSends === 2) permitParallelSend();
+      await parallelSendBarrier;
+    };
+    // Both recoveries query the durable Accepted record, then exact delivery
+    // converges on the same existing Site admission/start claim.
+    const recovered = await within(Promise.all([
+      observationReceiver.recoverDispatch({dispatch: first}),
+      observationReceiver.recoverDispatch({dispatch: first}),
+    ]), 'R2 concurrent exact recovery');
+    assert.ok(recovered.every(value => value.action === 'redelivered'));
+    assert.equal(parallelSends, 2);
+    beforeSend = undefined;
+    await waitFor(() => terminalAckLosses.length === 1, 'R2 terminal ACK loss after execution');
+    await waitFor(async () => (await entries()).length === 1, 'R2 first executor entry');
+    const firstTerminal = await settledQuery(first, 'R2 first terminal');
+    const terminalState = observationStore.inspectState(first, siteControl);
+    observationReceiver.receiveObservation({body: firstAccepted, binding: {siteKey, siteGeneration: 1}});
+    assert.deepEqual(observationStore.inspectState(first, siteControl), terminalState);
+    assert.equal((await observationReceiver.recoverDispatch({dispatch: first})).action, 'reconciled');
+    await deliverAndRelease(first, firstTerminal, 'r2-first');
+    await waitFor(() => site.lines.some(line => line.kind === 'holder-released'), 'R2 first physical release');
+
+    const second = dispatchFor('r2-start-before-redelivery', 2);
+    const secondAccepted = await loseAcceptance(second, 1);
+    let raced = false;
+    let parallelDispatch;
+    beforeSend = async value => {
+      if (raced) return;
+      raced = true;
+      // The common owner already checked Accepted. A transport delay permits
+      // another exact arrival to start the Site before this arrival reaches it.
+      blockDispatch = false;
+      parallelDispatch = gateway.dispatch(value);
+      await waitFor(async () => (await entries()).length === 2,
+        'R2 start after Accepted query before recovered delivery');
+    };
+    const racedRecovery = await within(observationReceiver.recoverDispatch({dispatch: second}),
+      'R2 Accepted/start arrival race');
+    assert.equal(racedRecovery.action, 'redelivered');
+    await within(parallelDispatch, 'R2 competing exact arrival');
+    beforeSend = undefined;
+    const secondTerminal = await settledQuery(second, 'R2 second terminal');
+    const state = observationStore.inspectState(second, siteControl);
+    observationReceiver.receiveObservation({body: secondAccepted, binding: {siteKey, siteGeneration: 1}});
+    assert.deepEqual(observationStore.inspectState(second, siteControl), state);
+    await deliverAndRelease(second, secondTerminal, 'r2-second');
+    await waitFor(() => site.lines.filter(line => line.kind === 'holder-released').length === 2,
+      'R2 final physical release');
+    assert.equal((await entries()).length, 2);
+    assert.equal(new Set((await entries()).map(line => line.split(' ').at(-1))).size, 2);
+    assert.equal(reservedPayloadBytes(), 0);
+    assert.equal(pendingIntents().length, 0);
+    const nativeJournal = new DatabaseSync(journalPath, {readOnly: true});
+    try {
+      for (const namespace of ['site_dispatch', 'site_start_claim']) {
+        assert.equal(nativeJournal.prepare('SELECT COUNT(*) AS count FROM actql_records WHERE namespace = ?')
+          .get(namespace).count, 2, `${namespace}: one durable occurrence per attempt`);
+      }
+    } finally { nativeJournal.close(); }
+    assert.equal(lostBodies.length, 2);
+    assert.ok(sends >= 4);
+    console.log(JSON.stringify({kind: 'resident-exact-redelivery-verified',
+      runDefinitionCid: definition.identity,
+      dispatches: [first, second].map(siteControl.identity),
+      executorEntries: 2, acceptedAckLosses: 2, terminalAckLosses: 1,
+      coordinatorRecreated: true, concurrentRedelivery: true,
+      startedBetweenQueryAndArrival: true, historicalAcceptedDoesNotRewind: true,
+      reservedPayloadBytes: 0, pendingOutputIntents: 0}));
+    site.child.kill('SIGTERM');
+    await site.exited;
+  } else if (process.argv.includes('--observation-replay-only')) {
     // R1's receiver is the existing Coordinator owner/journal, not a test
     // receipt map. The retained bodies below are actual native Site reports;
     // their authority is checked again by the gateway on each HTTPS request.
@@ -1667,6 +1850,7 @@ try {
   throw error;
 } finally {
   for (const child of running) child.kill('SIGKILL');
+  if (ackLossProxy !== undefined) await ackLossProxy.close().catch(() => {});
   if (gateway !== undefined) await gateway.close().catch(() => {});
   if (receiver !== undefined) await receiver.close().catch(() => {});
   receiverJournal?.close();

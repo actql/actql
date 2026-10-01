@@ -138,6 +138,33 @@ pub fn coordinator_admit_poll_not_seen(
 }
 
 ///|
+#export_name("coordinatorDeliveryEnvelopeJson")
+pub fn coordinator_delivery_envelope_json(
+  request : @remote.DispatchRequest,
+  body : String,
+) -> Result[String, @remote.DispatchIssue] {
+  @remote.coordinator_delivery_envelope_json(request, body)
+}
+
+///|
+#export_name("coordinatorRedeliveryEligible")
+pub fn coordinator_redelivery_eligible(
+  record : @remote.CoordinatorDispatchIntentRecord,
+  request : @remote.DispatchRequest,
+  not_seen_body : String,
+  expected_authority : String,
+  expected_site : String,
+  expected_generation : Int,
+  authorization_current : Bool,
+  cancellation_requested : Bool,
+) -> Result[Bool, @remote.DispatchIssue] {
+  @remote.coordinator_redelivery_eligible(
+    record, request, not_seen_body, expected_authority, expected_site, expected_generation,
+    authorization_current, cancellation_requested,
+  )
+}
+
+///|
 #export_name("coordinatorPrepareIntent")
 pub fn coordinator_prepare_intent(
   journal : @remote.CoordinatorDispatchJournal,
