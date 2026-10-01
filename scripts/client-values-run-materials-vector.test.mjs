@@ -117,11 +117,19 @@ test('baseline preimages and changed normative pins independently determine the 
   // Isolate the grammar change from the registered inference barrier change.
   assert.equal(vector(grammarCid, cid(aoaContract)).run.run_definition_cid,
     pin('1a7ded9110cb3d2c27f151ccc75f1c6683c3a4e0316fc0570706a3c169934baf'));
+  const priorBarrier = pin('279d0ba18636af78c61888101c7230d852a94e3fbaf6effab789bc9b28808f31');
   assert.equal(vector(pin('fbbd1ae95045ce44735086efc664fd37165857f18ba449f353e7055252053d49'),
-    cid(aoaContract), barrierCid).run.run_definition_cid,
+    cid(aoaContract), priorBarrier).run.run_definition_cid,
   pin('a8b8a307827e4ebc5d2c8169acaef6dc159083e8d6d604fb6dd69dee63a815bb'));
-  assert.equal(current.run.run_definition_cid,
+  assert.equal(vector(grammarCid, cid(aoaContract), priorBarrier).run.run_definition_cid,
     pin('556bdac2d133d93a3365be921e82f02b1bb041498095fa14e1c983273bc2581f'));
+  // Correct the registry self-pin without changing the Values Program body.
+  const profiles = JSON.parse(readFileSync('spec/contracts/actql-production-profile-schemas.json', 'utf8'));
+  const {registry_cid: profilesCid, ...profilesBody} = profiles;
+  assert.equal(profilesCid, cid(profilesBody));
+  assert.equal(barrierPreimage.production_profile_registry_cid, cid(profiles));
+  assert.equal(current.run.run_definition_cid,
+    pin('7c8730fc4b50e0ae4b5d5b0494d64b6e5b8fe85fe2d3f41c36735642317d0d6c'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
 });

@@ -90,6 +90,18 @@ const selected = Object.freeze({
     schema: 'invocation_bindings',
     identity: 'invocation_bindings_cid',
   }),
+  model_effective_inputs: Object.freeze({
+    schema: 'model_effective_inputs', identity: 'effective_inputs_cid',
+  }),
+  model_input_artifact: Object.freeze({
+    schema: 'model_input_artifact', identity: 'input_artifact_cid',
+  }),
+  model_input_key: Object.freeze({
+    schema: 'model_input_key', identity: 'input_key_cid',
+  }),
+  model_call_slot: Object.freeze({
+    schema: 'model_call_slot', identity: 'model_call_slot_cid',
+  }),
 });
 
 const moonString = value => JSON.stringify(value);

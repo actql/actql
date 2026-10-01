@@ -35,6 +35,8 @@ export function verifyInferenceBarrierSchema(write = false) {
   if (write) {
     registry.schemas.inference_barrier = schema;
     registry.schema_cids.inference_barrier = cid;
+    const {registry_cid: _previousIdentity, ...body} = registry;
+    registry.registry_cid = machineCid(body);
     writeFileSync(path, JSON.stringify(registry, null, 2) + '\n');
     // Document imports bind exact bytes. Refresh their derived pins after
     // the normative owner and its schema reference have been reviewed.
@@ -55,6 +57,9 @@ export function verifyInferenceBarrierSchema(write = false) {
     'Stale inference barrier schema');
   assert.equal(registry.schema_cids.inference_barrier, cid,
     'Stale inference barrier contract identity');
+  const {registry_cid: registryCid, ...body} = registry;
+  assert.equal(registryCid, machineCid(body),
+    'Stale production profile registry identity');
   return {schema, cid};
 }
 

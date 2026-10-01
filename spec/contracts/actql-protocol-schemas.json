@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:33a60df8a493384ebbaf3f446516e292578dcd66a51658877fe43cfa58b79400",
+  "artifact_registry_cid": "sha256:2975679f38e97568fd69a3502822349abeeda1287f86d0a0b268c9f0af74ddfb",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10701,7 +10701,11 @@
     "initial_input_artifact_set": "sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d",
     "source_input_logical": "sha256:1b11bde1c1081b782d14ffe080ad5c511144724e8c8fd2d0c1c772828d1c09ea",
     "effect_row_outcome_receipt": "sha256:2a748936a4d4069cc1b801c8b3c5a179f64a538d77affeb5e68f6e53da42eb27",
-    "effect_source_artifact": "sha256:e11e51e73d3153c62314315f7f20682778e51c7a46791e87ee2bb5ac7f3f99ee"
+    "effect_source_artifact": "sha256:e11e51e73d3153c62314315f7f20682778e51c7a46791e87ee2bb5ac7f3f99ee",
+    "model_effective_inputs": "sha256:b44b64433d41470d143efa8deac6692201804a5714380694a84d66759819a727",
+    "model_input_artifact": "sha256:86e9e2c7b59634e8235b80a12b241a26f4f32f913dd30064aed36dfaecaf318c",
+    "model_input_key": "sha256:103b8c1515bb65f7ccd9f6963d798fcd20ce598cb7b266e09f2b32fac5831af0",
+    "model_call_slot": "sha256:a83e0af3e07986b5655463e0d39da3eb6c74cbefb327e65525de4be0035eac2b"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -73542,6 +73546,218 @@
           "minLength": 1
         },
         "store_authority_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "model_effective_inputs": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-model-effective-inputs-0.1.json",
+      "title": "actql-model-effective-inputs-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "parameter_values_cid",
+        "invocation_bindings_cid",
+        "input_artifacts",
+        "effective_inputs_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-model-effective-inputs/0.1"
+        },
+        "parameter_values_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "invocation_bindings_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "input_artifacts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        },
+        "effective_inputs_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "model_input_artifact": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-model-input-artifact-0.1.json",
+      "title": "actql-model-input-artifact-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "program_definition_cid",
+        "unit_definition_cid",
+        "source_ordinal",
+        "effective_inputs_cid",
+        "input_fragment_cid",
+        "logical_relation_cid",
+        "relation_schema_cid",
+        "ordered_rows_cid",
+        "completeness",
+        "input_artifact_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-model-input-artifact/0.1"
+        },
+        "program_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "unit_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "source_ordinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "effective_inputs_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "input_fragment_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "logical_relation_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "relation_schema_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "ordered_rows_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "completeness": {
+          "const": "complete"
+        },
+        "input_artifact_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "model_input_key": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-model-input-key-0.1.json",
+      "title": "actql-model-input-key-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "components",
+        "input_key_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-model-input-key/0.1"
+        },
+        "components": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "field",
+              "value_contract_cid",
+              "value_cid"
+            ],
+            "properties": {
+              "field": {
+                "type": "string",
+                "minLength": 1
+              },
+              "value_contract_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "value_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          }
+        },
+        "input_key_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "model_call_slot": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-model-call-slot-0.1.json",
+      "title": "actql-model-call-slot-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "program_definition_cid",
+        "unit_definition_cid",
+        "source_ordinal",
+        "effective_inputs_cid",
+        "input_artifact_cid",
+        "input_key_cid",
+        "model_task_cid",
+        "fixed_request_cid",
+        "model_call_slot_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-model-call-slot/0.1"
+        },
+        "program_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "unit_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "source_ordinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "effective_inputs_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "input_artifact_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "input_key_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "model_task_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "fixed_request_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "model_call_slot_cid": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
         }

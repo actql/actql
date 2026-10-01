@@ -1,6 +1,6 @@
 {
   "version": "actql-barrier-contract-manifest/0.1",
-  "production_profile_registry_cid": "sha256:a746084ad96f455eed59d27134e7c749add4f1feae2f40a002a8f19d65d6e6d0",
+  "production_profile_registry_cid": "sha256:5292f70196ff83eb6a87d4df5ef26e5ffdda5f1b3df58f972815245ae7a8a1df",
   "contracts": [
     {
       "name": "artifact_barrier",
@@ -19,5 +19,5 @@
       "contract_cid": "sha256:291c96a7206b05aeee3512d1232e399bf3be179b7a1c160030ebd0728b903237"
     }
   ],
-  "barrier_contract_manifest_cid": "sha256:279d0ba18636af78c61888101c7230d852a94e3fbaf6effab789bc9b28808f31"
+  "barrier_contract_manifest_cid": "sha256:8e3203948952a96d5153e9b0300431d29f5c209ce113f14c7f7149d3abac4818"
 }

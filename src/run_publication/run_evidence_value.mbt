@@ -36,6 +36,10 @@ fn run_evidence_identity_field(name : String) -> String? {
     "source_input_logical" => Some("input_logical_cid")
     "authoring_context" => Some("authoring_context_cid")
     "model_invocation_evidence" => Some("model_invocation_evidence_cid")
+    "model_effective_inputs" => Some("effective_inputs_cid")
+    "model_input_artifact" => Some("input_artifact_cid")
+    "model_input_key" => Some("input_key_cid")
+    "model_call_slot" => Some("model_call_slot_cid")
     _ => None
   }
 }

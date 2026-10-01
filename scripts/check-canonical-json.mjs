@@ -115,6 +115,12 @@ function fixtures() {
   const invocation = read('portability/corpus/invocation-bindings.json');
   const initialInputs = read('portability/corpus/initial-input-artifact-set.json');
   const sourceInputs = read('portability/corpus/source-input-logical.json');
+  const modelSlots = read('portability/corpus/model-call-slot.json');
+  assert.equal(modelSlots.version, 'actql-model-call-slot-vectors/0.1');
+  for (const input of modelSlots.cases) {
+    result.push({id: 'Model identity ' + input.id, value: input.body,
+      cid: input.expected_cid, text: input.expected_canonical_bytes});
+  }
   assert.equal(sourceInputs.version, 'actql-source-input-logical-vectors/0.1');
   for (const input of sourceInputs.cases) {
     result.push({id: 'Source input logical ' + input.id,

@@ -1302,7 +1302,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
 <!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:19f9d3e648dd272584afa65fe5e5444f9a7f15db82beae56da2cae5728818271 -->
-<!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:46bf4e26c33899fefd4b7618b7eb88f74130f711f2f8288acc4494be7a191792 -->
+<!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:8d2b0da02c425402474f281cbe9ab15d5bdc6fed061e40005d2ebc13353904c7 -->
 
 <a id="parameter-value-projection"></a>
 
@@ -1364,6 +1364,76 @@ admitted declarations remain semantic validation requirements. Invalid or
 incomplete bindings do not produce a Parameter Values CID. Hashing the raw
 binding strings, stripping arbitrary metadata-shaped business fields, or
 interpreting supplied tags as proof of admission is not an alternative.
+
+<a id="model-call-slot-identity"></a>
+
+### Model call-slot identity
+
+The four closed `actql-model-*/0.1` identity envelopes distinguish call
+identity from captured execution evidence. Each CID hashes the entire canonical
+JSON body excluding only its own registered identity field. None grants read,
+egress, dispatch, replay or publication authority.
+
+<!-- requirement-block: model-call-slot-identity.preimage -->
+<!-- normative-code: envelope -->
+```text
+{version:"actql-model-effective-inputs/0.1", parameter_values_cid,
+ invocation_bindings_cid, input_artifacts, effective_inputs_cid}
+{version:"actql-model-input-artifact/0.1", program_definition_cid,
+ unit_definition_cid, source_ordinal, effective_inputs_cid,
+ input_fragment_cid, logical_relation_cid, relation_schema_cid,
+ ordered_rows_cid, completeness:"complete", input_artifact_cid}
+{version:"actql-model-input-key/0.1",
+ components:[{field, value_contract_cid, value_cid}], input_key_cid}
+{version:"actql-model-call-slot/0.1", program_definition_cid,
+ unit_definition_cid, source_ordinal, effective_inputs_cid,
+ input_artifact_cid, input_key_cid, model_task_cid, fixed_request_cid,
+ model_call_slot_cid}
+```
+
+<!-- requirement-block: model-call-slot-identity.binding -->
+The call-slot owner MUST bind the saved Program Definition, owning Unit
+Definition and zero-based logical source-step ordinal of the INFER occurrence;
+the ordinal is independent of row position, execution order, lowering visits,
+worker placement and retry count. The input artifact identifies the actual
+completed pre-INFER Relation, its canonical logical rows, exact schema and
+registered ordered-row identity, and the exact typed AoA input fragment. That
+ordered-row identity binds actual enumeration without inventing a candidate key
+or a final Result publication-order witness. It is not the final
+Result artifact of the Stage containing this call. Effective inputs bind the
+checked Parameter Values and Invocation Bindings and a map from resolved
+Stage input names to their actual, complete upstream artifacts. An explicit
+empty map denotes a source-free input, not a missing or NULL map. A typed key
+has one component per authored key field in tuple order, with distinct field
+names and exact admitted value-contract CIDs. Each `value_cid` hashes that
+component's canonical typed wire value; for a Ref it hashes the verified
+reference identity CID as a canonical JSON string rather than transport or
+permission metadata. Keys are non-NULL KeyComparable values; missing and NULL
+are rejected, never normalized to an empty tuple. The fixed request identifies
+the checked, parameter-bound request-mapping fragment, while the separately
+bound ModelTask CID fixes its prompt, schemas and generation settings.
+
+<!-- requirement-block: model-call-slot-identity.acyclic -->
+The call-slot owner MUST verify an acyclic closure of interpreted identity
+references before dispatch. Neither the body nor any transitive dependency can
+refer to this slot, its response, captured attempt, adopted outcome, or its
+containing Stage Invocation. Upstream completed observations are allowed only
+when their dependency closure precedes this occurrence. CID-looking business
+strings are not interpreted references. Response and capture evidence enter
+the ObservationSet after dispatch, and that set then enters the Stage
+Invocation; no reverse dependency is introduced.
+
+<!-- requirement-block: model-call-slot-identity.reconstruction -->
+Reconstruction MUST reproduce the same slot for the same saved occurrence,
+effective inputs, actual input artifact, typed key, ModelTask and fixed request.
+A change to any of those identity-bearing values creates a different slot.
+CID equality is not execution evidence: replay consumes only a capture record
+validated by the existing capture owner against these bindings. A dispatch with
+unknown outcome is reconciled under that owner's existing policy, not
+automatically replaced by a fresh model call. Stopping after a response but
+before durable capture leaves an unresolved dispatch responsibility; stopping
+after capture but before publication retains the capture for replay without
+re-dispatch. Publication remains a separate admitted operation.
 
 <a id="compilation-identities"></a>
 
@@ -1651,6 +1721,10 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/authoring_context sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/parameter_values sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/invocation_bindings sha256:6471878465e3cf6c4af4bd7d2c161d578ab861770ec6a893c7e0de116dadbd41
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_effective_inputs sha256:b44b64433d41470d143efa8deac6692201804a5714380694a84d66759819a727
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_input_artifact sha256:86e9e2c7b59634e8235b80a12b241a26f4f32f913dd30064aed36dfaecaf318c
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_input_key sha256:103b8c1515bb65f7ccd9f6963d798fcd20ce598cb7b266e09f2b32fac5831af0
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_call_slot sha256:a83e0af3e07986b5655463e0d39da3eb6c74cbefb327e65525de4be0035eac2b
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/caller_input_intent sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/initial_input_artifact_set sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/bound_invocation_template sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7
