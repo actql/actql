@@ -56,11 +56,43 @@ checks as CI with explicit targets:
 ```sh
 for target in js wasm native; do
   moon check --target "$target" --deny-warn
-  moon test --target "$target" --deny-warn
+  if [ "$target" = native ]; then
+    node scripts/test-native-core.mjs --deny-warn
+  else
+    moon test --target "$target" --deny-warn
+  fi
 done
 node scripts/check-moonbit-api.mjs
 node --test scripts/moonbit-environment.test.mjs
 ```
+
+Native core verification uses `scripts/test-native-core.mjs`, including
+`node scripts/local-checks.mjs run core --target native`. Each invocation
+creates a fresh `native-*` SQLite namespace with the existing owned-scratch
+helper, then runs `moon test --target native` with the remaining arguments.
+For the narrow trusted-clock regression, use:
+
+```sh
+node scripts/test-native-core.mjs --deny-warn -p platform_native/trusted_clock
+```
+
+`ACTQL_TEST_NATIVE_SQLITE_ROOT`, when supplied to this wrapper, is a **parent**
+for the newly owned namespace, not an existing database root to reuse or
+remove. Relative parents resolve from the caller's working directory. The
+default parent is `$RUNNER_TEMP/core-sqlite`, or the system temporary directory's
+`core-sqlite` when `RUNNER_TEMP` is unset. Existing DB/WAL/SHM files in that parent
+remain untouched. Only the child receives the new namespace; the fixture still
+reopens its same `trusted-clock.sqlite` within the invocation and checks the
+unchanged 1000/1002 monotonicity assertions. The native HTTP harness already
+creates its own invocation root and is unchanged.
+
+The wrapper defaults the SQLite library to the supported platform's system
+library; `ACTQL_TEST_NATIVE_SQLITE_LIBRARY` can override it. After a successful,
+stopped child, owned scratch is removed and checked absent. Failure, a signal,
+spawn failure, or `ACTQL_TEST_PRESERVE_SCRATCH=1` retains evidence and reports its
+path; cleanup failure remains a failed command. Raw `moon test` does not acquire
+this namespace for callers: use the wrapper when testing native SQLite fixtures,
+and do not point an unwrapped test at a previous run's database.
 
 Use `moon info` to regenerate `.mbti` files and review and commit them when the
 public API intentionally changes. The API guard rejects cross-target differences,
