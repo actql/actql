@@ -1,5 +1,5 @@
 import { readFileSync, writeFileSync, unlinkSync, mkdirSync, existsSync, copyFileSync } from 'node:fs';
-import { join, basename } from 'node:path';
+import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -76,7 +76,9 @@ export function execute(cases, registry, target, correspondence = false, label =
   if (label === 'normal') {
     mkdirSync(join(directory, 'final-artifacts', target), { recursive: true });
     for (const [path, expected] of Object.entries(actualArtifacts)) {
-      const archive = `.artifacts/relation-pipeline/final-artifacts/${target}/${basename(path)}`;
+      const suffix = path.slice(`_build/${target}/debug/test/query_integration/`.length);
+      const archive = `.artifacts/relation-pipeline/final-artifacts/${target}/${suffix}`;
+      mkdirSync(dirname(join(root, archive)), { recursive: true });
       copyFileSync(join(root, path), join(root, archive));
       if (digest(readFileSync(join(root, archive))) !== expected) throw new Error('Archive differs from executed artifact');
       archives[path] = archive;
