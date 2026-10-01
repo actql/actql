@@ -67,6 +67,151 @@ function startInput(source = program()) {
   return input;
 }
 
+async function acceptedModel() {
+  const source = program();
+  const prepared = moon.clientProgramPreparationReady(
+    prepare(source, environment()));
+  const input = moon.clientProgramStartInferInput(prepared, registry, values, 2);
+  const rows = await mappedRows(input);
+  let calls = 0;
+  const provider = moon.clientProgramInstallModelProvider('models/fixture',
+    request => {
+      calls++;
+      return moon.clientProgramModelResponse(request,
+        '{"reason":null,"risk":"high"}', 'fixture-risk-model', 'request-1',
+        1n, 2n, '2026-10-01T00:00:00.000Z');
+    });
+  const active = checked(moon.clientProgramStartModelExecution(rows, provider,
+    `sha256:${'1'.repeat(64)}`));
+  checked(moon.clientProgramAdvanceModelExecution(active, 1));
+  return {prepared, input, rows, active, calls: () => calls};
+}
+
+test('only accepted model output enters the original checked Result transform', async () => {
+  const {prepared, input, rows, active, calls} = await acceptedModel();
+  const output = checked(moon.clientProgramStartModelOutput(input, rows, active));
+  assert.equal(moon.clientProgramCompleteModelOutput(output).$tag, 0,
+    'unsealed imported rows are not successful output');
+  assert.equal(checked(moon.clientProgramCleanupModelExecution(active)), false,
+    'output owns the model capture and mapped input');
+  let last = 0n;
+  let complete = false;
+  for (let poll = 0; poll < 200; poll++) {
+    const observation = checked(moon.clientProgramAdvanceModelOutput(output, 1));
+    const work = observation.$tag === 0 ? observation._0 : observation._1;
+    assert.equal(work - last, 1n);
+    last = work;
+    if (observation.$tag === 1) { complete = true; break; }
+    assert.equal(observation.$tag, 0, inspect(observation));
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  assert.ok(complete);
+  const completed = checked(moon.clientProgramCompleteModelOutput(output));
+  assert.equal(checked(moon.clientProgramCompleteModelOutput(output)), completed,
+    'repeated access retains one completion identity');
+  const transform = checked(moon.clientProgramInferResultExportBegin(
+    prepared, 0, completed));
+  let ready = false;
+  for (let poll = 0; poll < 200; poll++) {
+    const state = checked(moon.clientProgramInferResultExportAdvance(transform, 1));
+    assert.equal(typeof state._0, 'boolean', inspect(state));
+    if (state._0) { ready = true; break; }
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  assert.ok(ready);
+  const stream = checked(moon.clientProgramInferResultExportFinish(transform));
+  let wire = '';
+  for (let chunk = 0; chunk < 20; chunk++) {
+    const next = checked(moon.clientProgramInferResultExportNext(stream));
+    if (next === undefined) break;
+    wire += next;
+  }
+  wire += checked(moon.clientProgramInferResultExportSeal(stream));
+  // The existing publication payload contract is a row-object array.
+  assert.deepEqual(JSON.parse(wire), [
+    {id: 'a', outcome: 'ok', value: {reason: null, risk: 'high'}},
+  ]);
+  assert.equal(calls(), 1);
+  assert.equal(checked(moon.clientProgramCleanupInferInput(input)), false);
+  moon.clientProgramInferResultExportClose(stream);
+  assert.equal(checked(moon.clientProgramCleanupModelOutput(output)), true);
+  assert.equal(checked(moon.clientProgramCleanupModelOutput(output)), true);
+  assert.equal(moon.clientProgramCompleteModelOutput(output).$tag, 0);
+  assert.equal(checked(moon.clientProgramCleanupModelExecution(active)), true);
+  assert.equal(checked(moon.clientProgramCleanupModelExecution(active)), true);
+  assert.equal(checked(moon.clientProgramCleanupInferInput(input)), true);
+  assert.equal(calls(), 1, 'export and cleanup never call the model again');
+});
+
+test('model output cancellation retains its capture until physical stop and cleanup', async () => {
+  const {input, rows, active, calls} = await acceptedModel();
+  const output = checked(moon.clientProgramStartModelOutput(input, rows, active));
+  // This reaches admission of the nested ModelTask value, not prefix execution.
+  for (let step = 0; step < 15; step++) {
+    assert.equal(checked(moon.clientProgramAdvanceModelOutput(output, 1)).$tag, 0);
+  }
+  assert.equal(checked(moon.clientProgramCleanupModelExecution(active)), false);
+  assert.equal(moon.clientProgramCancelModelOutput(output), true);
+  assert.equal(checked(moon.clientProgramAdvanceModelOutput(output, 1)).$tag, 3);
+  assert.equal(moon.clientProgramCompleteModelOutput(output).$tag, 0);
+  assert.equal(checked(moon.clientProgramCleanupModelExecution(active)), false);
+  assert.equal(checked(moon.clientProgramCleanupModelOutput(output)), true);
+  assert.equal(checked(moon.clientProgramCleanupModelExecution(active)), true);
+  assert.equal(checked(moon.clientProgramCleanupInferInput(input)), true);
+  assert.equal(calls(), 1);
+});
+
+test('model output refuses unaccepted executions and a foreign prepared input owner', async () => {
+  const input = startInput();
+  const rows = await mappedRows(input);
+  let calls = 0;
+  const provider = moon.clientProgramInstallModelProvider('models/fixture',
+    request => {
+      calls++;
+      return moon.clientProgramModelResponse(request,
+        '{"reason":null,"risk":"high"}', 'fixture-risk-model', 'request-1',
+        1n, 2n, '2026-10-01T00:00:00.000Z');
+    });
+  const active = checked(moon.clientProgramStartModelExecution(rows, provider,
+    `sha256:${'1'.repeat(64)}`));
+  assert.equal(moon.clientProgramStartModelOutput(input, rows, active).$tag, 0);
+  assert.equal(calls, 0);
+  checked(moon.clientProgramAdvanceModelExecution(active, 1));
+  const foreignInput = startInput();
+  const foreignRows = await mappedRows(foreignInput);
+  assert.equal(moon.clientProgramStartModelOutput(foreignInput,
+    foreignRows, active).$tag, 0,
+  'equal source, task, schema and values do not replace the exact owner');
+  assert.equal(checked(moon.clientProgramCleanupInferInput(foreignInput)), true);
+  assert.equal(checked(moon.clientProgramCleanupModelExecution(active)), true);
+  assert.equal(checked(moon.clientProgramCleanupInferInput(input)), true);
+  assert.equal(calls, 1);
+});
+
+test('a response arriving after cancellation cannot authorize model output', async () => {
+  const input = startInput();
+  const rows = await mappedRows(input);
+  let active;
+  let calls = 0;
+  const provider = moon.clientProgramInstallModelProvider('models/fixture',
+    request => {
+      calls++;
+      assert.equal(moon.clientProgramCancelModelExecution(active), true);
+      return moon.clientProgramModelResponse(request,
+        '{"reason":null,"risk":"high"}', 'fixture-risk-model', 'request-1',
+        1n, 2n, '2026-10-01T00:00:00.000Z');
+    });
+  active = checked(moon.clientProgramStartModelExecution(rows, provider,
+    `sha256:${'1'.repeat(64)}`));
+  assert.equal(checked(moon.clientProgramAdvanceModelExecution(active, 1)).$tag, 3);
+  assert.equal(moon.clientProgramStartModelOutput(input, rows, active).$tag, 0);
+  assert.equal(checked(moon.clientProgramCleanupInferInput(input)), false,
+    'stop does not release mapped input before model cleanup');
+  assert.equal(checked(moon.clientProgramCleanupModelExecution(active)), true);
+  assert.equal(checked(moon.clientProgramCleanupInferInput(input)), true);
+  assert.equal(calls, 1);
+});
+
 async function mappedRows(input) {
   let lastWork = 0n;
   for (let poll = 0; poll < 2000; poll++) {
@@ -138,6 +283,9 @@ test('normal checked Relation completion feeds a registered ModelTask', async ()
   assert.equal(moon.clientProgramReplayModelCapture(rows,
     `sha256:${'1'.repeat(64)}`, bundle), false,
   'reclaimed input cannot be used to admit replay');
+  assert.deepEqual(JSON.parse(moon.clientProgramModelCaptureJson(bundle))
+    .captures[0].value, {reason: null, risk: 'high'},
+  'transferred capture material survives releasing the execution owner');
   assert.equal(calls, 1, 'cleanup must not dispatch again');
 });
 

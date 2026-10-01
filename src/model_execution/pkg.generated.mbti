@@ -13,7 +13,15 @@ import {
 // Values
 pub fn advance_model_execution(ModelExecution, Int) -> Result[ModelObservation, ModelExecutionIssue]
 
+pub fn advance_model_output_preparation(ModelOutputPreparation, Int) -> Result[@execution_relation.AdmittedOutputPoll, ModelExecutionIssue]
+
+pub fn cancel_model_output_preparation(ModelOutputPreparation) -> Bool
+
 pub fn cleanup_model_execution(ModelExecution) -> Result[Bool, ModelExecutionIssue]
+
+pub fn cleanup_model_output_preparation(ModelOutputPreparation) -> Result[Bool, ModelExecutionIssue]
+
+pub fn complete_model_output(ModelOutputPreparation) -> Result[@execution_relation.CompletedOutput, ModelExecutionIssue]
 
 pub fn install_model_provider(String, (ModelRequest) -> Result[ModelResponse, ModelProviderFailure]) -> Result[ModelProvider, ModelExecutionIssue]
 
@@ -26,6 +34,8 @@ pub fn replay_model_capture_rows(@execution_relation.PreparedInferRows, String, 
 pub fn request_model_cancel(ModelExecution) -> Bool
 
 pub fn start_model_execution(@execution_relation.PreparedInferRows, ModelProvider, String, ModelExecutionLimits) -> Result[ModelExecution, ModelExecutionIssue]
+
+pub fn start_model_output_preparation(ModelExecution, @execution_relation.CompletionPreparation, Int, @execution_relation.ValueLimits, Int, Int) -> Result[ModelOutputPreparation, ModelExecutionIssue]
 
 // Errors
 
@@ -72,6 +82,8 @@ pub(all) enum ModelObservation {
   Failed(ModelExecutionIssue, Int64, Int64)
   Stopped(@bounded_execution.StopReason, Int64, Int64)
 }
+
+type ModelOutputPreparation
 
 pub(all) struct ModelProvider {
   invoke : (ModelRequest) -> Result[ModelResponse, ModelProviderFailure]

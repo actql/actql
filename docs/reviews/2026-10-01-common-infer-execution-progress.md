@@ -22,6 +22,32 @@ Values capture, feeds `bind_infer_completed_input` and bounded INPUT mapping.
 The installed deterministic ModelTask provider receives the mapped `text`
 role, and the successful capture contains `{reason: null, risk: "high"}`.
 
+The accepted execution now owns the output Relation. Its private capture,
+not a caller-authored capture bundle, supplies the checked key, `outcome` and
+nullable `value` cells. Import uses the existing bounded session, incremental
+value admission and measurement cursors. An exact completion contract retains
+the Infer target separately from the adjacent pure prefix; Infer is not added
+to AoA. The original checked Result selection transforms that completed output
+into the existing publication payload:
+
+```json
+[{"id":"a","outcome":"ok","value":{"reason":null,"risk":"high"}}]
+```
+
+The one-row fixture uses `quantum=1` and actual macrotask yields while importing
+and transforming the result. It verifies one provider call, refuses unaccepted
+or foreign-owner output, retains a stable completion identity, and stops during
+admission of the nested model value. Output custody prevents model cleanup;
+model custody prevents mapped-input and prefix cleanup. Cleanup never dispatches
+again. A response returned after cancellation cannot authorize output. Repeated
+cleanup is idempotent, and transferred capture material survives execution cleanup.
+The provisional output importer preserves logical node/text/work charges;
+independent two-row bounds are 26 physical steps, seven live structural slots,
+six value nodes, ten UTF-8 bytes and sixteen logical work units. One-short limits
+reject, and a 4,096-element array can be cancelled during admission before any
+row is sealed. This does not claim incremental Unicode scalar normalization,
+vector recheck, or asynchronous provider I/O beyond their current bounds.
+
 The reproducible narrow check is:
 
 ```sh
@@ -48,7 +74,6 @@ The remaining connection belongs to the common inference work:
 
 - Derive and admit the barrier's fixed request, input Artifact, call slots,
   classification and execution envelope from the same prepared Program.
-- Issue the completed infer Relation only from that owner's accepted capture.
 - Extend `run_publication_host` task compilation to represent the acquisition
   boundary without passing INFER through pure AoA lowering.
 - Connect that compilation and the model execution to the existing
@@ -64,13 +89,15 @@ skipped the real asserted input target and returned observation JSON rather
 than a public Result. Only the full Node bridge imports the model kernel;
 the RelA-only bridge keeps its existing dependency separation.
 
-The affected input preparation, prefix lowering and model tests passed
-19/19 on each of JS, Wasm and native. The normal Program/model bridge tests
-passed 7/7 against a freshly rebuilt release artifact; Node assembly tests
-passed 8/8. JS, Wasm and native compilation of the common client input owner,
-canonical Node assembly regeneration and formatting passed. Complete CI jobs,
-Linux CI, durable capture/replay and committed Named Result reading were not
-run or established by this unit.
+The preceding input unit passed 19/19 on each target, seven normal Program/model
+bridge tests and eight Node assembly tests. The subsequent output unit is
+verified separately; the committed SHA and commands are recorded in its commit
+and the working report. Output import, original admitted output, completion,
+Infer preparation and model tests passed 22/22 on each target. The additional
+JS exact fixed-input test passed, the normal Program/model bridge passed 11/11,
+and Node assembly tests passed 8/8. Complete CI jobs, Linux CI, durable
+capture/replay and committed Named Result reading are not established by these
+component tests.
 
 ## Object and property execution
 

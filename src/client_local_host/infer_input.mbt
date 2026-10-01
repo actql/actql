@@ -4,6 +4,8 @@
 /// No ModelTask provider is invoked by input preparation.
 struct ClientInferInputExecution {
   prefix : @local.ManagedProviderExecution
+  sequence : @execution.GeneratedSequence
+  infer_step : Int
   owner : @lower.BoundPrepared
   target : @pipeline.Target
   expressions : @lower.PreparedInferInputs
@@ -98,6 +100,8 @@ pub fn start_client_infer_input(
   }
   Ok({
     prefix,
+    sequence,
+    infer_step: step,
     owner,
     target,
     expressions,
@@ -111,6 +115,21 @@ pub fn start_client_infer_input(
     reclaimed: false,
     work: 0L,
   })
+}
+
+///|
+/// Only the mapped rows actually completed by this input execution can select
+/// its acquisition output contract. Equal checked programs are not sufficient.
+pub fn client_infer_completion_preparation(
+  active : ClientInferInputExecution,
+  rows : @execution.PreparedInferRows,
+) -> @execution.CompletionPreparation? {
+  guard !active.reclaimed &&
+    active.rows is Some(actual) &&
+    physical_equal(actual, rows) else {
+    return None
+  }
+  @execution.prepare_infer_completion(active.sequence, rows, active.infer_step)
 }
 
 ///|

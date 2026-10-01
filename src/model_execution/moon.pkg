@@ -8,6 +8,8 @@ import {
   "actql/actql/value_admission" @admitted,
   "actql/actql/physical_resources" @resources,
   "actql/actql/encode_core" @encode,
+  "actql/actql/relation_schema" @schema,
+  "actql/actql/pipeline_typing" @pipeline,
 }
 
 import {

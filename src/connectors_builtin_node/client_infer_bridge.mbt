@@ -252,6 +252,14 @@ pub fn client_program_cleanup_model_execution(
 }
 
 ///|
+#export_name("clientProgramCancelModelExecution")
+pub fn client_program_cancel_model_execution(
+  active : @model.ModelExecution,
+) -> Bool {
+  @model.request_model_cancel(active)
+}
+
+///|
 #export_name("clientProgramReplayModelCapture")
 pub fn client_program_replay_model_capture(
   rows : @execution.PreparedInferRows,
@@ -259,4 +267,157 @@ pub fn client_program_replay_model_capture(
   bundle : @model.ModelCaptureBundle,
 ) -> Bool {
   @model.replay_model_capture_rows(rows, fixed_request_cid, bundle) is Ok(_)
+}
+
+///|
+#export_name("clientProgramStartModelOutput")
+pub fn client_program_start_model_output(
+  input : @client_local_host.ClientInferInputExecution,
+  rows : @execution.PreparedInferRows,
+  model : @model.ModelExecution,
+) -> Result[@model.ModelOutputPreparation, @model.ModelExecutionIssue] {
+  guard @client_local_host.client_infer_completion_preparation(input, rows)
+    is Some(completion) else {
+    return Err(@model.OutputIdentity)
+  }
+  @model.start_model_output_preparation(
+    model,
+    completion,
+    100,
+    {
+      max_nodes: 20000,
+      max_text_bytes: 500000,
+      max_depth: 100,
+      max_work: 20000000,
+    },
+    20000000,
+    10000,
+  )
+}
+
+///|
+#export_name("clientProgramAdvanceModelOutput")
+pub fn client_program_advance_model_output(
+  value : @model.ModelOutputPreparation,
+  quantum : Int,
+) -> Result[@execution.AdmittedOutputPoll, @model.ModelExecutionIssue] {
+  @model.advance_model_output_preparation(value, quantum)
+}
+
+///|
+#export_name("clientProgramCompleteModelOutput")
+pub fn client_program_complete_model_output(
+  value : @model.ModelOutputPreparation,
+) -> Result[@execution.CompletedOutput, @model.ModelExecutionIssue] {
+  @model.complete_model_output(value)
+}
+
+///|
+#export_name("clientProgramCancelModelOutput")
+pub fn client_program_cancel_model_output(
+  value : @model.ModelOutputPreparation,
+) -> Bool {
+  @model.cancel_model_output_preparation(value)
+}
+
+///|
+#export_name("clientProgramCleanupModelOutput")
+pub fn client_program_cleanup_model_output(
+  value : @model.ModelOutputPreparation,
+) -> Result[Bool, @model.ModelExecutionIssue] {
+  @model.cleanup_model_output_preparation(value)
+}
+
+///|
+/// Select the existing Result transform under the original Program owner.
+/// This is an export, not Run acceptance or a committed Named Result index.
+#export_name("clientProgramInferResultExportBegin")
+pub fn client_program_infer_result_export_begin(
+  prepared : @publication_host.PreparedClientProgram,
+  result : Int,
+  output : @execution.CompletedOutput,
+) -> Result[
+  @publication_host.ClientResultTransformationPreparation,
+  @publication_host.ClientResultTransformationIssue,
+] {
+  let selection = match
+    @publication_host.prepare_client_result_transformation(
+      prepared, result, 500000, 20000, 100,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let wire : @execution.RowWireLimits = {
+    max_columns: 256,
+    max_order_work: 20000000,
+    max_bytes: 500000,
+    max_nodes: 20000,
+    max_depth: 100,
+  }
+  @publication_host.start_client_result_transformation(selection, output, {
+    max_result_fields: 256,
+    max_result_mapping_work: 20000000,
+    max_result_order_work: 20000000,
+    max_result_workspace_entries: 10000,
+    max_rows: 100,
+    values: {
+      max_nodes: 20000,
+      max_text_bytes: 500000,
+      max_depth: 100,
+      max_work: 20000000,
+    },
+    payload_wire: wire,
+    logical_wire: wire,
+    schema: {
+      max_fields: 256,
+      max_bytes: 500000,
+      max_nodes: 20000,
+      max_depth: 100,
+    },
+    max_batch_bytes: 500000,
+  })
+}
+
+///|
+#export_name("clientProgramInferResultExportAdvance")
+pub fn client_program_infer_result_export_advance(
+  value : @publication_host.ClientResultTransformationPreparation,
+  quantum : Int,
+) -> Result[(Bool, Int), @publication_host.ClientResultTransformationIssue] {
+  value.advance(quantum)
+}
+
+///|
+#export_name("clientProgramInferResultExportFinish")
+pub fn client_program_infer_result_export_finish(
+  value : @publication_host.ClientResultTransformationPreparation,
+) -> Result[
+  @publication_host.PublicationOutputExport,
+  @publication_host.ClientResultTransformationIssue,
+] {
+  value.finish()
+}
+
+///|
+#export_name("clientProgramInferResultExportNext")
+pub fn client_program_infer_result_export_next(
+  value : @publication_host.PublicationOutputExport,
+) -> Result[String?, @publication_host.PublicationOutputExportIssue] {
+  value.next()
+}
+
+///|
+#export_name("clientProgramInferResultExportSeal")
+pub fn client_program_infer_result_export_seal(
+  value : @publication_host.PublicationOutputExport,
+) -> Result[String, @publication_host.PublicationOutputExportIssue] {
+  value.finish()
+}
+
+///|
+#export_name("clientProgramInferResultExportClose")
+pub fn client_program_infer_result_export_close(
+  value : @publication_host.PublicationOutputExport,
+) -> Unit {
+  value.cancel()
 }

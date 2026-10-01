@@ -121,6 +121,9 @@ struct ModelState {
   reservations : Array[@resources.Reservation]
   captures : Array[ModelSlotCapture]
   mut next_slot : Int
+  mut output_uses : Int
+  mut accepted : Bool
+  mut reclaimed : Bool
 }
 
 ///|
@@ -399,6 +402,9 @@ pub fn start_model_execution(
     reservations,
     captures: [],
     next_slot: 0,
+    output_uses: 0,
+    accepted: false,
+    reclaimed: false,
   }
   let control = @bounded.control()
   let (session, token) = @bounded.start(
@@ -422,8 +428,10 @@ pub fn advance_model_execution(
       execution.token = token
       Ok(Continue(progress, work))
     }
-    Ok(@bounded.Completed(bundle, progress~, work~)) =>
+    Ok(@bounded.Completed(bundle, progress~, work~)) => {
+      execution.state.accepted = true
       Ok(Completed(bundle, progress, work))
+    }
     Ok(@bounded.FailedWith(issue, progress~, work~)) =>
       Ok(Failed(issue, progress, work))
     Ok(@bounded.StoppedWith(reason, progress~, work~)) =>
@@ -440,6 +448,12 @@ pub fn request_model_cancel(execution : ModelExecution) -> Bool {
 pub fn cleanup_model_execution(
   execution : ModelExecution,
 ) -> Result[Bool, ModelExecutionIssue] {
+  if execution.state.reclaimed {
+    return Ok(true)
+  }
+  if execution.state.output_uses > 0 {
+    return Ok(false)
+  }
   match @bounded.cleanup(execution.session) {
     Ok(false) => Ok(false)
     Ok(true) => {
@@ -451,6 +465,8 @@ pub fn cleanup_model_execution(
       }
       @relation.release_prepared_infer_rows_use(execution.state.input_use)
       |> ignore
+      execution.state.captures.clear()
+      execution.state.reclaimed = true
       Ok(true)
     }
     Err(issue) => Err(Session(issue))

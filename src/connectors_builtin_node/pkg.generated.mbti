@@ -91,6 +91,8 @@ pub fn client_program_advance_infer_input(@client_local_host.ClientInferInputExe
 
 pub fn client_program_advance_model_execution(@model_execution.ModelExecution, Int) -> Result[@model_execution.ModelObservation, @model_execution.ModelExecutionIssue]
 
+pub fn client_program_advance_model_output(@model_execution.ModelOutputPreparation, Int) -> Result[@execution_relation.AdmittedOutputPoll, @model_execution.ModelExecutionIssue]
+
 pub fn client_program_allowed_effect_run_admission(@run_publication_host.ClientEffectAllowedRun) -> @run_publication.RunPublicationAdmission
 
 pub fn client_program_allowed_effect_run_authorization(@run_publication_host.ClientEffectAllowedRun) -> @run_publication.RunEvidenceValue
@@ -110,6 +112,10 @@ pub fn client_program_bind_effect_run(@run_publication_host.PreparedClientEffect
 pub fn client_program_cancel_captured_source_identity_scan(@execution_query.CapturedSourceIdentityScan) -> Bool
 
 pub fn client_program_cancel_infer_input(@client_local_host.ClientInferInputExecution) -> Bool
+
+pub fn client_program_cancel_model_execution(@model_execution.ModelExecution) -> Bool
+
+pub fn client_program_cancel_model_output(@model_execution.ModelOutputPreparation) -> Bool
 
 pub fn client_program_canonical_effect_preview_draft(String, Int, Int, Int) -> Result[String, @run_publication.PublicationContractIssue]
 
@@ -161,6 +167,8 @@ pub fn client_program_cleanup_infer_input(@client_local_host.ClientInferInputExe
 
 pub fn client_program_cleanup_model_execution(@model_execution.ModelExecution) -> Result[Bool, @model_execution.ModelExecutionIssue]
 
+pub fn client_program_cleanup_model_output(@model_execution.ModelOutputPreparation) -> Result[Bool, @model_execution.ModelExecutionIssue]
+
 pub fn client_program_close_effect_source_port(@physical_strategy.CapturedEffectInputs, Int) -> Bool
 
 pub fn client_program_compilation_compiled_plan_wire(@run_publication_host.ClientValuesCompilation) -> String
@@ -190,6 +198,8 @@ pub fn client_program_compiled_run_prepared(@run_publication_host.ClientCompiled
 pub fn client_program_compiled_run_result_transformation(@run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientResultTransformation?, @run_publication_host.ClientCompiledRunIssue]
 
 pub fn client_program_compiled_run_template(@run_publication_host.ClientCompiledRun) -> @run_publication.RunEvidenceValue
+
+pub fn client_program_complete_model_output(@model_execution.ModelOutputPreparation) -> Result[@execution_relation.CompletedOutput, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_definition_cid(@run_publication_host.PreparedClientProgram) -> String
 
@@ -412,6 +422,18 @@ pub fn client_program_imported_effect_invocation(@run_publication_host.ClientEff
 pub fn client_program_imported_effect_relation_bodies(@run_publication_host.ClientEffectImportedEvidence) -> Array[String]
 
 pub fn client_program_infer_input_rows(@client_local_host.ClientInferInputPoll) -> @execution_relation.PreparedInferRows?
+
+pub fn client_program_infer_result_export_advance(@run_publication_host.ClientResultTransformationPreparation, Int) -> Result[(Bool, Int), @run_publication_host.ClientResultTransformationIssue]
+
+pub fn client_program_infer_result_export_begin(@run_publication_host.PreparedClientProgram, Int, @execution_relation.CompletedOutput) -> Result[@run_publication_host.ClientResultTransformationPreparation, @run_publication_host.ClientResultTransformationIssue]
+
+pub fn client_program_infer_result_export_close(@run_publication_host.PublicationOutputExport) -> Unit
+
+pub fn client_program_infer_result_export_finish(@run_publication_host.ClientResultTransformationPreparation) -> Result[@run_publication_host.PublicationOutputExport, @run_publication_host.ClientResultTransformationIssue]
+
+pub fn client_program_infer_result_export_next(@run_publication_host.PublicationOutputExport) -> Result[String?, @run_publication_host.PublicationOutputExportIssue]
+
+pub fn client_program_infer_result_export_seal(@run_publication_host.PublicationOutputExport) -> Result[String, @run_publication_host.PublicationOutputExportIssue]
 
 pub fn client_program_install_model_provider(String, (@model_execution.ModelRequest) -> @model_execution.ModelResponse?) -> @model_execution.ModelProvider?
 
@@ -748,6 +770,8 @@ pub fn client_program_stage_semantics_json(@run_publication_host.PreparedClientP
 pub fn client_program_start_infer_input(@run_publication_host.PreparedClientProgram, String, String, Int) -> @client_local_host.ClientInferInputExecution?
 
 pub fn client_program_start_model_execution(@execution_relation.PreparedInferRows, @model_execution.ModelProvider, String) -> Result[@model_execution.ModelExecution, @model_execution.ModelExecutionIssue]
+
+pub fn client_program_start_model_output(@client_local_host.ClientInferInputExecution, @execution_relation.PreparedInferRows, @model_execution.ModelExecution) -> Result[@model_execution.ModelOutputPreparation, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_task_compilation_compiled_plan_wire(@run_publication_host.ClientTaskCompilation) -> String
 
