@@ -3,7 +3,6 @@ pub(all) enum Lexeme {
   Word(String)
   QuotedName(String)
   Text(String)
-  JsonText(String)
   Numeric(String)
   Parameter(String)
   Operator(String)
@@ -17,6 +16,7 @@ pub struct Token {
   value : Lexeme
   start : Int
   end : Int
+  annotation_compatible : Bool
 } derive(Eq, Debug)
 
 ///|
@@ -145,10 +145,11 @@ fn Scanner::escaped_scalar(self : Scanner, digits : Int) -> Int raise {
 }
 
 ///|
-fn Scanner::quoted(self : Scanner, delimiter : Int) -> String raise {
+fn Scanner::quoted(self : Scanner, delimiter : Int) -> (String, Bool) raise {
   let start = self.byte_offset
   ignore(self.advance())
   let output = StringBuilder()
+  let mut annotation_compatible = true
   while true {
     let n = match self.peek() {
       Some(n) => n
@@ -160,23 +161,58 @@ fn Scanner::quoted(self : Scanner, delimiter : Int) -> String raise {
       if delimiter == 0x60 && result.is_empty() {
         raise LexicalAbort(EmptyIdentifier, start)
       }
-      return result
+      return (result, annotation_compatible)
     }
-    if n < 0x20 {
+    if n == 0x0a || n == 0x0d || (delimiter == 0x60 && n < 0x20) {
       raise LexicalAbort(UnexpectedToken, self.byte_offset)
+    }
+    // Plain query strings forbid raw newlines, not every control scalar.
+    // The historical annotation language still requires escaped controls.
+    if n < 0x20 {
+      annotation_compatible = false
     }
     let scalar = if n == 0x5c {
       ignore(self.advance())
       let at = self.byte_offset
       let escaped = self.advance()
+      // Keep the historical Graph annotation profile distinct from query
+      // strings. Both use this bounded decoder; query-only escape forms must
+      // not become newly valid annotation keys or field designations.
+      if delimiter == 0x22 &&
+        !(escaped == 0x5c ||
+        escaped == 0x22 ||
+        escaped == 0x6e ||
+        escaped == 0x72 ||
+        escaped == 0x74 ||
+        escaped == 0x75 ||
+        escaped == 0x55) {
+        annotation_compatible = false
+      }
       match escaped {
         0x5c => 0x5c
-        0x27 if delimiter == 0x27 => 0x27
-        0x22 if delimiter == 0x22 => 0x22
-        0x60 if delimiter == 0x60 => 0x60
+        0x27 | 0x22 if delimiter != 0x60 => escaped
+        0x60 => 0x60
+        0x61 if delimiter != 0x60 => 0x07
+        0x62 if delimiter != 0x60 => 0x08
+        0x66 if delimiter != 0x60 => 0x0c
         0x6e if delimiter == 0x27 || delimiter == 0x22 => 0x0a
         0x72 if delimiter == 0x27 || delimiter == 0x22 => 0x0d
         0x74 if delimiter == 0x27 || delimiter == 0x22 => 0x09
+        0x76 if delimiter != 0x60 => 0x0b
+        0x3f if delimiter != 0x60 => 0x3f
+        0x78 | 0x58 if delimiter != 0x60 => self.escaped_scalar(2)
+        0x30..=0x37 if delimiter != 0x60 => {
+          let mut value = escaped - 0x30
+          for _ in 0..<2 {
+            let next = match self.peek() {
+              Some(n) if n >= 0x30 && n <= 0x37 => n - 0x30
+              _ => raise LexicalAbort(InvalidEscape, self.byte_offset)
+            }
+            value = value * 8 + next
+            ignore(self.advance())
+          }
+          value
+        }
         0x75 => self.escaped_scalar(4)
         0x55 => self.escaped_scalar(8)
         _ => raise LexicalAbort(InvalidEscape, at)
@@ -273,11 +309,22 @@ fn Scanner::next(self : Scanner) -> Token raise {
   self.trivia()
   self.budget.charge(Tokens, 1, self.byte_offset)
   let start = self.byte_offset
+  let mut annotation_compatible = false
   let value = match self.peek() {
     None => End
-    Some(0x27) => Text(self.quoted(0x27))
-    Some(0x22) => JsonText(self.quoted(0x22))
-    Some(0x60) => QuotedName(self.quoted(0x60))
+    Some(0x27) => {
+      let (text, _) = self.quoted(0x27)
+      Text(text)
+    }
+    Some(0x22) => {
+      let (text, compatible) = self.quoted(0x22)
+      annotation_compatible = compatible
+      Text(text)
+    }
+    Some(0x60) => {
+      let (text, _) = self.quoted(0x60)
+      QuotedName(text)
+    }
     Some(n) if identifier_start(n) => Word(self.name())
     Some(n) if digit(n) => Numeric(self.number())
     Some(0x2e) if self.peek(ahead=1) is Some(n) && digit(n) =>
@@ -287,7 +334,8 @@ fn Scanner::next(self : Scanner) -> Token raise {
       if self.peek() is Some(n) && identifier_start(n) {
         Parameter(self.name())
       } else if self.peek() == Some(0x60) {
-        Parameter(self.quoted(0x60))
+        let (text, _) = self.quoted(0x60)
+        Parameter(text)
       } else {
         raise LexicalAbort(InvalidParameter, start)
       }
@@ -334,5 +382,5 @@ fn Scanner::next(self : Scanner) -> Token raise {
     ) => Symbol(self.advance())
     _ => raise LexicalAbort(UnexpectedToken, start)
   }
-  { value, start, end: self.byte_offset, }
+  { value, start, end: self.byte_offset, annotation_compatible, }
 }

@@ -66,7 +66,7 @@ fn QueryParser::graph_symbol(
 fn QueryParser::graph_text(self : QueryParser) -> String raise QueryAbort {
   let token = self.advance()
   match token.value {
-    JsonText(value) => value
+    Text(value) if token.annotation_compatible => value
     _ => raise QueryAbort("Expected Graph LABELS string", token.start)
   }
 }

@@ -127,14 +127,14 @@ test "query escapes and comments preserve decoded scalar values" {
     [Text("a\n\r\t\\'b😀"), QuotedName("a`b"), End],
   )
   assert_eq(values("\"node\":\"entity_type\""), [
-    JsonText("node"),
+    Text("node"),
     Symbol(58),
-    JsonText("entity_type"),
+    Text("entity_type"),
     End,
   ])
   for
     text in [
-      "'\\uD800'", "'\\U00110000'", "'\\x41'", "'raw\nline'", "``", "/* unfinished",
+      "'\\uD800'", "'\\U00110000'", "'\\x4'", "'raw\nline'", "``", "/* unfinished",
       "@", "$x", "!", "|", "é",
     ] {
     assert_true(tokenize(text, limits()) is Err(_), msg=text)

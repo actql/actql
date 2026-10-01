@@ -85,4 +85,5 @@ path          = identifier, { ".", identifier } ;
 expression    = ? closed query expression grammar in query-text.md ? ;
 identifier    = ? ASCII identifier or backtick-quoted identifier ? ;
 integer       = ? decimal integer within the adopted exact range ? ;
-json_text     = ? double-quoted JSON string reserved for LABELS ? ;
+query_string  = ? single- or double-quoted Unicode scalar string with the selected GoogleSQL escapes in query-text.md ? ;
+json_text     = ? double-quoted string using the separate LABELS annotation escape profile in query-text.md ? ;

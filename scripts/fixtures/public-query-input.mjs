@@ -32,6 +32,19 @@ export const querySuccesses = [
 // available in the Host, but none of these Programs acquires them.
 const numberColumn = name => ({name, contract: {type: 'number', nullable: false}});
 export const sourceFreeSuccesses = [
+  {name: 'double-quoted-exact-values', format: 'sql',
+    text: 'SELECT "\\r" AS cr, "\\n" AS lf, "\\r\\n" AS crlf, "é" AS composed, "e\\u0301" AS decomposed, "\\\\n" AS slash_n',
+    expected: [{cr: '\r', lf: '\n', crlf: '\r\n', composed: 'é', decomposed: 'e\u0301', slash_n: '\\n'}],
+    columns: [['cr', 1], ['lf', 1], ['crlf', 2], ['composed', 2],
+      ['decomposed', 3], ['slash_n', 2]].map(([name, bytes]) => ({name,
+        contract: {type: 'string', nullable: false, max_utf8_bytes: bytes}})),
+    sourceReadCount: 0},
+  {name: 'quoted-scalar-escapes', format: 'sql',
+    text: `SELECT '\\101\\x42\\X43\\u65e5\\U0001F600' AS single_value, "\\101\\x42\\X43\\u65e5\\U0001F600" AS double_value`,
+    expected: [{single_value: 'ABC日😀', double_value: 'ABC日😀'}],
+    columns: ['single_value', 'double_value'].map(name => ({name,
+      contract: {type: 'string', nullable: false, max_utf8_bytes: 10}})),
+    sourceReadCount: 0},
   {name: 'exact-string-values', format: 'sql',
     // SQL escapes and direct decomposed text are decoded once. Expected values
     // below are authored independently, including a literal backslash plus n.
@@ -71,6 +84,12 @@ export const sourceFreeSuccesses = [
     expected: [{x: 2}], columns: [numberColumn('x')], sourceReadCount: 0},
 ];
 export const sourceFreeRefusals = [
+  ...['SELECT "\\uD800" AS s', 'SELECT "\\U00110000" AS s',
+    'SELECT "\\x4" AS s', 'SELECT "\\12" AS s',
+    'SELECT "memory"."main"."table"', 'SELECT r"raw" AS s',
+    'SELECT """triple""" AS s', 'SELECT b"bytes" AS s',
+    'SELECT "a" "b" AS s'].map((text, index) => ({
+    name: `quoted-input-refusal-${index}`, format: 'sql', text})),
   {name: 'source-free-star', format: 'sql', text: 'SELECT *'},
   {name: 'source-free-private-column', format: 'sql', text: 'SELECT aql_source_free_unit AS x'},
   {name: 'source-free-private-range', format: 'sql', text: 'SELECT aql_source_free.aql_source_free_unit AS x'},

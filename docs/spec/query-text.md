@@ -17,15 +17,32 @@ the original spelling remains in the parsed source and authored output name.
 Relation paths use their separate rule: an unquoted component matches without
 ASCII case, while a quoted relation component requires exact spelling.
 Unquoted names match `[A-Za-z_][A-Za-z0-9_]*`. Backticks quote names and do
-not switch column lookup to exact-case mode. Single quotes delimit strings;
-only escaped quote, backslash, `n`, `r`, `t`, four-hex-digit `u`, and
-eight-hex-digit `U` are decoded. Escapes must denote valid Unicode scalars.
-Double-quoted tokens are reserved for the explicit Graph `LABELS` annotation;
-they are not query expression strings or quoted identifiers.
+not switch column lookup to exact-case mode.
+
+Single and double quotes delimit query STRING literals, following the selected
+[GoogleSQL lexical rules](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/lexical#string_and_bytes_literals).
+The opposite quote can appear unescaped. Both forms decode backslash, either
+quote, backtick, question mark, `a`, `b`, `f`, `n`, `r`, `t`, `v`, exactly
+three octal digits, `x`/`X` with exactly two hex digits, `u` with four hex
+digits, and `U` with eight hex digits. These escapes produce Unicode scalars;
+surrogates, out-of-range values and incomplete or unknown escapes are rejected.
+Plain quoted literals cannot contain a raw CR or LF, including an escaped
+physical newline. A decoded CR, LF, CRLF or decomposed Unicode sequence is
+preserved exactly through the ordinary String value contract. Escape decoding
+does not apply identifier normalization to the resulting value.
+
+Double quotes do not quote identifiers: `"id"` is a value, while `` `id` `` is
+a name. The explicit Graph `LABELS` annotation retains its separate historical
+double-quoted annotation profile; accepting double-quoted query literals does
+not expand that profile's escapes or admit raw control characters in it.
+Backtick identifiers currently retain their existing limited escape profile;
+the wider GoogleSQL identifier escape repertoire is a coverage gap.
 Comments are line `--` and non-nested block `/* ... */` comments. Query
-parameters use `@name`; interpolation, raw/triple/byte literals and multiple
-statements are rejected. The legacy JSON/YAML expression-text dialect is
-unchanged.
+parameters use `@name`. Raw, triple-quoted, bytes and adjacent literal chunks
+are not yet implemented in this profile and are rejected, rather than decoded
+as another literal kind. They are GoogleSQL coverage gaps, not restrictions of
+the reference language. Interpolation and multiple statements are rejected.
+The JSON/YAML machine-expression text dialect keeps its own quotation rules.
 
 Expressions use a shared parsed tree and lower directly to the existing
 structured Expression form. Operator precedence, searched CASE, closed scalar
