@@ -8,10 +8,10 @@ struct RemoteOutputReportCustody {
 }
 
 ///|
-/// Compute the exact upper-bound snapshot size before any payload or transfer
-/// side effect.  The transfer reply has a fixed canonical shape for a given
-/// request, so a committed synthetic record is sufficient to measure the
-/// report envelope without inventing a second execution or transfer.
+/// Bound the snapshot before any payload or transfer side effect. A committed
+/// synthetic record measures the fixed envelope; allowance for the Transfer
+/// revision's decimal width covers later durable transitions without another
+/// execution or transfer.
 pub fn remote_output_report_custody_preflight_bytes(
   output : RemotePollOutput,
   payload : @payload.PublicationPayloadRequest,
@@ -52,7 +52,11 @@ pub fn remote_output_report_custody_preflight_bytes(
   }
   match
     prepare_remote_output_report_custody(output, payload, transfer, result) {
-    Ok(custody) => Ok(@utf8.encode(custody.body).length().to_int64())
+    // The closed Transfer reply has nine Int state entries: the eight state
+    // codes are single digits; revision is a nonnegative 32-bit Int (at most
+    // ten digits). Digits do not expand in the nested JSON strings. The fresh
+    // synthetic revision is one digit, so nine more bytes bound every reply.
+    Ok(custody) => Ok(@utf8.encode(custody.body).length().to_int64() + 9L)
     Err(issue) => Err(issue)
   }
 }

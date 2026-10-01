@@ -264,9 +264,9 @@ enumerated from the journal; a holder queue or an in-memory CID is not a
 recovery source. Physical payload release may precede ACK, but it never stands
 in for ACK and does not authorize recomputation or a second executor entry.
 
-The current R1 implementation retains one immutable snapshot slot per Output
+The current Output-report implementation retains one immutable snapshot slot per Output
 intent and bounds the set to 32 slots. Duplicate ACKs, retries, and cleanup do
-not allocate additional history. This is an R1 retention bound, not the global
+not allocate additional history. This is an Output-report retention bound, not the global
 history-limit proof for later O5/O2/O6 work.
 
 There is at most one delivery per dispatch, bounded by `maxDispatches`. The

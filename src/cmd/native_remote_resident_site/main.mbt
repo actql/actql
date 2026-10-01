@@ -805,6 +805,7 @@ fn replay_output_reports(
   backoff_ms : Int,
   cursor_owner : Ref[String],
   delegation : @resident.ResidentSiteDelegation,
+  checkpoint : (String) -> Unit,
 ) -> Unit {
   guard fresh_journal(environment) is Some(journal) else { return }
   let mut cursor = cursor_owner.val
@@ -876,7 +877,13 @@ fn replay_output_reports(
           continue
         }
         match
-          @client.acknowledge_retained_output_report(journal, client, url, key) {
+          @client.acknowledge_retained_output_report(
+            journal,
+            client,
+            url,
+            key,
+            checkpoint~,
+          ) {
           Ok(_) =>
             report("output-delivered", [
               (
@@ -969,10 +976,17 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   let mut holders = 0
   let next_output_report : Map[String, UInt64] = Map([])
   let report_cursor : Ref[String] = { val: "", }
+  let report_kill_at = required(matches, "control-report-kill-at")
+  let report_checkpoint = fn(point : String) {
+    if point == report_kill_at {
+      report("control-report-killed", [("point", point)])
+      @slot.native_kill_self()
+    }
+  }
   while !@slot.native_termination_requested() {
     replay_output_reports(
       environment, client, observation_url, next_output_report, max_backoff_ms, report_cursor,
-      site_delegation,
+      site_delegation, report_checkpoint,
     )
     // A finished holder's durable record is reported before new work.
     match holder {
@@ -2110,6 +2124,7 @@ fn command() -> @argparse.Command {
       defaulted("holder-release-failures", "0"),
       defaulted("holder-result-report-failures", "0"),
       defaulted("holder-kill-at", "none"),
+      defaulted("control-report-kill-at", "none"),
       defaulted("holder-pause-at", "none"),
       defaulted("control-reclaim-failures", "0"),
       defaulted("control-envelope-read-failures", "0"),

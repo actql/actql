@@ -262,6 +262,7 @@ pub fn acknowledge_retained_output_report(
   client : @http.Client,
   url : String,
   key : String,
+  checkpoint? : (String) -> Unit = fn(_) {  },
 ) -> Result[Unit, NativeRemoteClientIssue] {
   let (custody, reply) = match journal.output_report(key) {
     Ok(value) => value
@@ -308,10 +309,12 @@ pub fn acknowledge_retained_output_report(
     response.status != 409 {
     return Err(HttpStatus(response.status))
   }
+  checkpoint("before-ack-save")
   match journal.record_output_report_reply(key, text) {
     Ok(_) => ()
     Err(issue) => return Err(Journal(issue))
   }
+  checkpoint("after-ack-save")
   match admitted {
     @remote.RemoteOutputReportReply::Accepted => Ok(())
     @remote.RemoteOutputReportReply::Refused(reason) =>

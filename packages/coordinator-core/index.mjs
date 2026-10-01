@@ -17,6 +17,10 @@ export const createJournal = authority =>
 export const outputReportAckJson = (record, originalReport) =>
   checked(owner.coordinatorOutputReportAckJson(record, originalReport));
 
+// The receiver must first establish this current, definitive refusal.
+export const outputReportRefusalJson = (record, originalReport, reason) =>
+  checked(owner.coordinatorOutputReportRefusalJson(record, originalReport, reason));
+
 export const prepareDispatch = input => checked(owner.coordinatorPrepareDispatch(
   input.coordinatorAuthority, input.runDefinitionCid, input.taskKey,
   input.taskAttempt, input.dispatchId, input.siteKey, input.siteGeneration,

@@ -42,3 +42,27 @@ test "Output report ACK is exact, closed and cannot authorize execution" {
     Err(InvalidDispatch),
   )
 }
+
+///|
+test "custody preflight bounds the largest admitted Transfer revision" {
+  let (output, payload, request, transfer) = output_result_fixture()
+  let state = @transfer.record_projection(transfer)
+  state[0] = 2147483647
+  let widest = @transfer.restore_record(request, state).unwrap()
+  let result = prepare_remote_output_result(
+    output,
+    payload,
+    cid("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"),
+    widest,
+  ).unwrap()
+  let custody = prepare_remote_output_report_custody(
+    output, payload, request, result,
+  ).unwrap()
+  let actual = @utf8.encode(remote_output_report_custody_json(custody))
+    .length()
+    .to_int64()
+  let bound = remote_output_report_custody_preflight_bytes(
+    output, payload, request,
+  ).unwrap()
+  assert_true(actual <= bound)
+}

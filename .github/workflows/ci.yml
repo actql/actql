@@ -90,7 +90,13 @@ jobs:
       # execution on about one CPU; one job per CPU shortened execution on
       # every target with no change in memory. Building is unaffected.
       - name: Test common core
-        run: moon test --target "${{ matrix.target }}" --deny-warn -j "$(getconf _NPROCESSORS_ONLN)"
+        run: |
+          if [ "${{ matrix.target }}" = native ]; then
+            export ACTQL_TEST_NATIVE_SQLITE_LIBRARY="${ACTQL_TEST_NATIVE_SQLITE_LIBRARY:-/usr/lib/x86_64-linux-gnu/libsqlite3.so.0}"
+            export ACTQL_TEST_NATIVE_SQLITE_ROOT="${ACTQL_TEST_NATIVE_SQLITE_ROOT:-$RUNNER_TEMP/core-sqlite}"
+            mkdir -p "$ACTQL_TEST_NATIVE_SQLITE_ROOT"
+          fi
+          moon test --target "${{ matrix.target }}" --deny-warn -j "$(getconf _NPROCESSORS_ONLN)"
   # Conditional proof and correspondence evidence beside the existing gates.
   session-evidence:
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
@@ -278,6 +284,17 @@ jobs:
         env:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/packed-resident-redelivery
         run: node scripts/test-packed-resident-materials.mjs --redelivery-only
+      - name: Test packed Output report custody and ACK crash boundaries
+        id: packed-output-report
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/packed-output-report
+        run: node scripts/test-packed-resident-materials.mjs --output-report-only
+      - name: Retain packed Output report evidence
+        if: always() && steps.packed-output-report.outputs.evidence-directory != ''
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.packed-output-report.outputs.evidence-directory }}
+          name: packed-output-report-${{ github.sha }}
       - name: Retain packed exact redelivery evidence
         if: always() && steps.packed-redelivery.outputs.evidence-directory != ''
         uses: ./.github/actions/upload-packed-query-evidence

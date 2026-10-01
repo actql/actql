@@ -149,6 +149,8 @@ pub fn coordinator_output_record_status(CoordinatorOutputRecord) -> Array[String
 
 pub fn coordinator_output_report_ack_json(CoordinatorOutputRecord, String) -> Result[String, DispatchIssue]
 
+pub fn coordinator_output_report_refusal_json(CoordinatorOutputRecord, String, String) -> Result[String, DispatchIssue]
+
 pub fn coordinator_output_transition_durable_json(DurableCoordinatorOutputRecord, CoordinatorOutputTransition) -> Result[String, DispatchIssue]
 
 pub fn coordinator_output_transition_expected_revision(CoordinatorOutputTransition) -> Int

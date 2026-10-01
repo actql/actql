@@ -241,6 +241,10 @@ export function outputResultJson(record: OutputRecord): string;
 /** Call after durable acceptance. Exact replay is ACK-only; foreign or
  * unaccepted report bytes are rejected. Never use an in-memory waiter. */
 export function outputReportAckJson(record: OutputRecord, originalReport: string): string;
+/** After a checked current refusal. Unknown HTTP/errors are not refusals.
+ * Admits the original report against the expected Output owner; no transition. */
+export function outputReportRefusalJson(record: OutputRecord, originalReport: string,
+  reason: 'authorization_denied' | 'scope_mismatch' | 'report_conflict'): string;
 export function prepareUnknown(record: IntentRecord): Transition;
 export function admitResponseJson(body: string, request: DispatchRequest,
   statusReply: boolean): DispatchResponse;
