@@ -8,7 +8,6 @@ pub fn prepare_infer_completion(
   step : Int,
 ) -> CompletionPreparation? {
   let owner = generated_sequence_owner(prefix)
-  let prepared = @lower.bound_preparation(owner)
   guard step > 0 &&
     @lower.sequence_count(prefix.sequence) == step &&
     physical_equal(rows.input.expected, owner) &&
@@ -16,17 +15,19 @@ pub fn prepare_infer_completion(
     rows.input.source is CompletedInput(_) &&
     !rows.reclaimed &&
     infer_rows_available(rows.input) &&
-    @lower.node_at(prepared, step) is Some(node) &&
-    @lower.payload(node) is @lower.Infer(infer) &&
-    physical_equal(infer, prepared_infer_rows_owner(rows)) &&
-    @lower.node_input_count(node) == 1 &&
-    @lower.node_input_target(node, 0) == Some(rows.input.target) else {
+    @lower.infer_output_binding(
+      owner,
+      step,
+      prepared_infer_rows_owner(rows),
+      rows.input.target,
+    )
+    is Some(output_id) else {
     return None
   }
   Some({
     contracts: prefix.contracts,
     sequence: prefix.sequence,
-    retained_ids: [@lower.node_id(node)],
+    retained_ids: [output_id],
     selected_step: Some(step),
     selected_terminal_step: Some(step),
   })
@@ -39,16 +40,19 @@ pub fn infer_completion_matches_rows(
 ) -> Bool {
   let step = completion_preparation_terminal_step(value)
   let owner = completion_preparation_owner(value)
-  let prepared = @lower.bound_preparation(owner)
   guard !rows.reclaimed &&
     physical_equal(rows.input.expected, owner) &&
     rows.input.target == @pipeline.Step(step - 1) &&
-    @lower.node_at(prepared, step) is Some(node) &&
-    @lower.payload(node) is @lower.Infer(infer) else {
+    @lower.infer_output_binding(
+      owner,
+      step,
+      prepared_infer_rows_owner(rows),
+      rows.input.target,
+    )
+    is Some(output_id) else {
     return false
   }
   value.selected_step == Some(step) &&
   value.selected_terminal_step == Some(step) &&
-  value.retained_ids == [@lower.node_id(node)] &&
-  physical_equal(infer, prepared_infer_rows_owner(rows))
+  value.retained_ids == [output_id]
 }

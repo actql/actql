@@ -57,6 +57,72 @@ const checked = value => {
   return value._0;
 };
 
+test('normal Program emits a model barrier without pretending it is pure AoA', () => {
+  const source = program();
+  const prepared = moon.clientProgramPreparationReady(
+    prepare(source, environment()));
+  assert.ok(prepared);
+  // These independent dependency pins exercise compilation identity, not
+  // current Host authorization or executable retry/egress policy.
+  const executionBody = {
+    version: 'actql-model-execution-contract/0.1',
+    model_task_contract_cid: task.contract_cid,
+    retry_classification_contract_cid: `sha256:${'a'.repeat(64)}`,
+    backoff_contract_cid: `sha256:${'a'.repeat(64)}`,
+    max_attempts_per_slot: 2, max_total_attempts: 4,
+    max_total_cost_units: 0, max_total_duration_ms: 1000,
+    max_total_wire_bytes: 2048, max_total_token_reservation: 128,
+    media_input_contracts: {}, default_publication: 'outcomes',
+  };
+  const executionCid = cid(executionBody);
+  const executionWire = canonicalText({...executionBody, self_cid: executionCid});
+  const execution = checked(moon.clientProgramReadInferModelExecution(
+    prepared, 2, executionWire, executionCid));
+  const limitsCid = `sha256:${'b'.repeat(64)}`;
+  const egressCid = `sha256:${'c'.repeat(64)}`;
+  const compiled = checked(moon.clientProgramInferPlanGraph(
+    prepared, 2, execution, limitsCid, egressCid));
+  const graph = JSON.parse(moon.clientProgramInferPlanGraphWire(compiled));
+  assert.deepEqual(graph.nodes.map(node => node.kind),
+    ['aoa_fragment', 'acquisition_barrier']);
+  const [prefix, acquisition] = graph.nodes;
+  const request = {text: {op: 'field', body: 'text'}};
+  assert.deepEqual(JSON.parse(moon.clientProgramInferPlanRequestWire(compiled)), request);
+  const {barrier_cid: barrierCid, ...barrierBody} = acquisition.barrier;
+  assert.equal(barrierCid, cid(barrierBody));
+  assert.deepEqual(barrierBody, {
+    version: 'actql-inference-barrier/0.1',
+    model_execution_contract_cid: executionCid,
+    model_task_contract_cid: task.contract_cid,
+    request_fragment_cid: cid(request),
+    input_contract_cid: prefix.output_contracts[prefix.pipeline.output],
+    output_contract_cid: cid({type: 'object', nullable: false,
+      additional_properties: false, fields: {
+        id: {type: 'string', nullable: false},
+        outcome: {type: 'string', nullable: false},
+        value: {...task.output_contract, nullable: true},
+      }}),
+    key_fields: ['id'], input_roles: {text: '/text'}, on_non_success: 'outcomes',
+    input_fragment_cid: cid(prefix.pipeline), limits_cid: limitsCid,
+    egress_requirements_cid: egressCid,
+  });
+  assert.equal(acquisition.profile_id, 'actql-infer/0.1');
+  assert.deepEqual(graph.data_edges, [{carrier: 'relation',
+    contract_cid: barrierBody.input_contract_cid,
+    from: {node_id: prefix.node_id, port: prefix.pipeline.output},
+    to: {node_id: acquisition.node_id, port: 'input_0'},
+  }]);
+  assert.deepEqual(graph.root_refs, [{name: 'answer', role: 'requested_result',
+    ref: {node_id: acquisition.node_id, port: acquisition.output_ref}}]);
+  const foreign = moon.clientProgramPreparationReady(prepare(source, environment()));
+  assert.equal(moon.clientProgramInferPlanGraph(
+    foreign, 2, execution, limitsCid, egressCid).$tag, 0);
+  assert.equal(moon.clientProgramReadInferModelExecution(
+    prepared, 2, executionWire, limitsCid).$tag, 0);
+  assert.equal(moon.clientProgramInferPlanGraph(
+    prepared, 2, execution, `sha256:${'G'.repeat(64)}`, egressCid).$tag, 0);
+});
+
 test('Infer compilation retains the same pure prefix as bounded execution', () => {
   const source = program();
   const prepared = moon.clientProgramPreparationReady(

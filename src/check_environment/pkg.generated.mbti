@@ -162,6 +162,8 @@ pub fn compiler_grammar_manifest_cid() -> String
 
 pub fn compiler_grammar_manifest_wire() -> String
 
+pub fn compiler_inference_barrier_contract_cid() -> String
+
 pub fn compiler_version_token() -> String
 
 pub fn connector_manifest(WireEnvironment) -> @decode_core.Cursor?

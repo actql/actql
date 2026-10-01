@@ -12,12 +12,12 @@ pub fn compiler_grammar_manifest_wire() -> String {
 
 ///|
 pub fn compiler_barrier_contract_manifest_cid() -> String {
-  "sha256:075ce7af21828f3a298162c90140b0bdcc1f225e7fec3922b89ceaddf2185443"
+  "sha256:279d0ba18636af78c61888101c7230d852a94e3fbaf6effab789bc9b28808f31"
 }
 
 ///|
 pub fn compiler_barrier_contract_manifest_wire() -> String {
-  "{\"barrier_contract_manifest_cid\":\"sha256:075ce7af21828f3a298162c90140b0bdcc1f225e7fec3922b89ceaddf2185443\",\"contracts\":[{\"contract_cid\":\"sha256:296c6790884b8aaeb80d6df720d86d2bc1eea3786095dfd6a6618284091fc2fd\",\"name\":\"artifact_barrier\"},{\"contract_cid\":\"sha256:587bfea69fbab0d23d200ac65ffc20c373142c4843820d37db6e0c617f10206a\",\"name\":\"lookup_barrier\"},{\"contract_cid\":\"sha256:291c96a7206b05aeee3512d1232e399bf3be179b7a1c160030ebd0728b903237\",\"name\":\"text_time_evaluation_barrier\"}],\"production_profile_registry_cid\":\"sha256:6417dbaca8fa69a3c5263052ed307dc83e98dd43165b9793f2e86cdd008a9c4d\",\"version\":\"actql-barrier-contract-manifest/0.1\"}"
+  "{\"barrier_contract_manifest_cid\":\"sha256:279d0ba18636af78c61888101c7230d852a94e3fbaf6effab789bc9b28808f31\",\"contracts\":[{\"contract_cid\":\"sha256:296c6790884b8aaeb80d6df720d86d2bc1eea3786095dfd6a6618284091fc2fd\",\"name\":\"artifact_barrier\"},{\"contract_cid\":\"sha256:34f1a37cbaea973964f4cf84ca3806b2492df545b718042ad8057604c95cb6dd\",\"name\":\"inference_barrier\"},{\"contract_cid\":\"sha256:587bfea69fbab0d23d200ac65ffc20c373142c4843820d37db6e0c617f10206a\",\"name\":\"lookup_barrier\"},{\"contract_cid\":\"sha256:291c96a7206b05aeee3512d1232e399bf3be179b7a1c160030ebd0728b903237\",\"name\":\"text_time_evaluation_barrier\"}],\"production_profile_registry_cid\":\"sha256:a746084ad96f455eed59d27134e7c749add4f1feae2f40a002a8f19d65d6e6d0\",\"version\":\"actql-barrier-contract-manifest/0.1\"}"
 }
 
 ///|
@@ -33,4 +33,9 @@ pub fn compiler_version_token() -> String {
 ///|
 pub fn compiler_aoa_ir_version_token() -> String {
   "aoa-pipeline:0.1"
+}
+
+///|
+pub fn compiler_inference_barrier_contract_cid() -> String {
+  "sha256:34f1a37cbaea973964f4cf84ca3806b2492df545b718042ad8057604c95cb6dd"
 }

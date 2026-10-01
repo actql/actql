@@ -154,7 +154,7 @@ test "ModelTask admission rejects recomputed environment over stale inner identi
 test "ModelTask checks unused malformed declarations and closed generation data handling" {
   for
     (path, value) in [
-      (["schema"], Some(Json::string("actql.model_task/9"))),
+      (["schema"], Some(Json::string("actql.model_task/" + "invalid"))),
       (["task_id"], Some(Json::string("risk-score"))),
       (["connector_id"], Some(Json::string(""))),
       (["prompt_template_cid"], Some(Json::string("sha256:" + "A".repeat(64)))),

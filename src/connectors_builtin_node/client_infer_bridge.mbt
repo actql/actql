@@ -1,4 +1,68 @@
 ///|
+/// Admit compiler dependency material under the normal prepared Program.
+#export_name("clientProgramReadInferModelExecution")
+pub fn client_program_read_infer_model_execution(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  body : String,
+  expected_cid : String,
+) -> Result[
+  @check_environment.ModelExecutionContract,
+  @publication_host.ClientInferPlanGraphIssue,
+] {
+  @publication_host.read_prepared_client_infer_model_execution(
+    prepared,
+    step,
+    @utf8.encode(body),
+    expected_cid,
+    { max_bytes: 100000, max_nodes: 10000, max_depth: 100, max_members: 10000, },
+    1000000,
+  )
+}
+
+///|
+/// The graph binds references but does not authorize a Run or a model call.
+#export_name("clientProgramInferPlanGraph")
+pub fn client_program_infer_plan_graph(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  execution : @check_environment.ModelExecutionContract,
+  limits_cid : String,
+  egress_cid : String,
+) -> Result[
+  @publication_host.ClientInferPlanGraph,
+  @publication_host.ClientInferPlanGraphIssue,
+] {
+  @publication_host.issue_prepared_client_infer_plan_graph(
+    prepared,
+    step,
+    execution,
+    limits_cid,
+    egress_cid,
+    @publication_host.client_standard_values_sequence_limits(),
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
+#export_name("clientProgramInferPlanGraphWire")
+pub fn client_program_infer_plan_graph_wire(
+  value : @publication_host.ClientInferPlanGraph,
+) -> String {
+  @publication_host.client_infer_plan_graph_wire(value)
+}
+
+///|
+#export_name("clientProgramInferPlanRequestWire")
+pub fn client_program_infer_plan_request_wire(
+  value : @publication_host.ClientInferPlanGraph,
+) -> String {
+  @publication_host.client_infer_plan_graph_request_wire(value)
+}
+
+///|
 /// The acquisition compiler uses the same checked pure prefix as execution.
 /// This fragment alone is not a runnable Infer Plan.
 #export_name("clientProgramInferPrefixFragment")

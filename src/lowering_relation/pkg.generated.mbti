@@ -547,6 +547,8 @@ pub fn infer_inputs_parameters(PreparedInferInputs) -> @parameter_binding.BoundV
 
 pub fn infer_inputs_usage(PreparedInferInputs) -> (Int, Int, Int, Int)
 
+pub fn infer_output_binding(BoundPrepared, Int, @relation_evidence.CheckedInfer, @pipeline_typing.Target) -> String?
+
 pub fn inner_join_assertion(PreparedInnerJoin) -> @relation_join_shape.Cardinality?
 
 pub fn inner_join_checked(PreparedInnerJoin) -> @relation_join_shape.CheckedJoin

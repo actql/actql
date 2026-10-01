@@ -1085,6 +1085,17 @@ alone does not prove exactly-once.
 
 ### ModelTask outcomes and attachments
 
+<!-- machine-import: ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/inference_barrier sha256:34f1a37cbaea973964f4cf84ca3806b2492df545b718042ad8057604c95cb6dd -->
+
+The declared `actql-inference-barrier/0.1` body closes the existing
+model-outcome Plan fields under the barrier version. It additionally binds
+the adjacent input AoA fragment CID. Its `barrier_cid` hashes the canonical
+body with that field omitted. The `actql-infer/0.1` Plan profile contract is
+this registered barrier schema CID; a task contract CID is not a substitute
+for it. Execution, request-fragment, limits and egress references still need
+their checked/admitted bodies. Neither a valid barrier CID nor a schema
+reference authorizes model access or supplies future observations.
+
 ModelTask contracts MUST fix finite retry classification and ceilings, immutable
 slot request/model/prompt/generation/output contracts, data handling and typed
 attachment roles. Outcome classes and strict publication are defined by
@@ -1290,7 +1301,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
 <!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:88766b272b13ec7c881bbda4c5e2cdfab1a3fa90ef9201bd81a0d5fd41eb7b42 -->
-<!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:ae28ef802697bf58df5d343f5a6f457bbcc0e7f814636086a640e12a1a1163e3 -->
+<!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:46bf4e26c33899fefd4b7618b7eb88f74130f711f2f8288acc4494be7a191792 -->
 
 <a id="parameter-value-projection"></a>
 

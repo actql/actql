@@ -153,7 +153,7 @@ test "Model execution rejects missing ceilings and wrong task references without
   )
   for
     (path, value) in [
-      (["version"], Json::string("actql-model-execution-contract/9")),
+      (["version"], Json::string("actql-model-execution-contract/" + "invalid")),
       (["default_publication"], Json::string("fail")),
       (["max_attempts_per_slot"], Json::number(0)),
       (["max_total_attempts"], Json::number(1.5)),

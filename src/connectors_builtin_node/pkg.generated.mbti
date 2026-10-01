@@ -3,6 +3,7 @@ package "actql/actql/connectors_builtin_node"
 
 import {
   "actql/actql/canonical_json",
+  "actql/actql/check_environment",
   "actql/actql/client_local_host",
   "actql/actql/client_salesforce_host",
   "actql/actql/connector_sdk",
@@ -423,6 +424,12 @@ pub fn client_program_imported_effect_relation_bodies(@run_publication_host.Clie
 
 pub fn client_program_infer_input_rows(@client_local_host.ClientInferInputPoll) -> @execution_relation.PreparedInferRows?
 
+pub fn client_program_infer_plan_graph(@run_publication_host.PreparedClientProgram, Int, @check_environment.ModelExecutionContract, String, String) -> Result[@run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferPlanGraphIssue]
+
+pub fn client_program_infer_plan_graph_wire(@run_publication_host.ClientInferPlanGraph) -> String
+
+pub fn client_program_infer_plan_request_wire(@run_publication_host.ClientInferPlanGraph) -> String
+
 pub fn client_program_infer_prefix_fragment(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[@run_publication_host.ClientTaskFragmentNode, @run_publication_host.ClientTaskFragmentIssue]
 
 pub fn client_program_infer_result_export_advance(@run_publication_host.ClientResultTransformationPreparation, Int) -> Result[(Bool, Int), @run_publication_host.ClientResultTransformationIssue]
@@ -676,6 +683,8 @@ pub fn client_program_query_requirement_source_contract_cid(@query_planning.Quer
 pub fn client_program_query_requirement_source_evidence_facts(@query_planning.QueryRequirement) -> Result[Array[String], String]
 
 pub fn client_program_query_requirement_source_ref(@query_planning.QueryRequirement) -> String
+
+pub fn client_program_read_infer_model_execution(@run_publication_host.PreparedClientProgram, Int, String, String) -> Result[@check_environment.ModelExecutionContract, @run_publication_host.ClientInferPlanGraphIssue]
 
 pub fn client_program_recover_effect_target_guards(@run_publication.EffectPreviewIdentity, Array[Array[@logical_request_scope.LogicalRequestScope]], Array[Array[@effect_application.LogicalItemLocator]], Array[Array[@effect_application.EffectDispatchKey]], Array[Array[@effect_application.EffectLedgerBasis]], Array[Array[@effect_application.EffectLedgerEntry?]], Array[Array[Bool]], Int, Int, Int) -> Result[@effect_application.RecoveredEffectTargetGuards, @effect_application.EffectSetProgressIssue]
 

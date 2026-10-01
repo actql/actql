@@ -205,6 +205,18 @@ pub fn client_execution_material_template_wire(ClientExecutionMaterial) -> Strin
 
 pub fn client_execution_material_wire(ClientExecutionMaterial) -> String
 
+pub fn client_infer_plan_graph_barrier_cid(ClientInferPlanGraph) -> String
+
+pub fn client_infer_plan_graph_input_cid(ClientInferPlanGraph) -> String
+
+pub fn client_infer_plan_graph_matches(ClientInferPlanGraph, PreparedClientProgram, @check_environment.ModelExecutionContract) -> Bool
+
+pub fn client_infer_plan_graph_request_cid(ClientInferPlanGraph) -> String
+
+pub fn client_infer_plan_graph_request_wire(ClientInferPlanGraph) -> String
+
+pub fn client_infer_plan_graph_wire(ClientInferPlanGraph) -> String
+
 pub fn client_infer_prefix_owner(PreparedClientProgram, Int, Int) -> @lowering_relation.BoundPrepared?
 
 pub fn client_publication_plan_fact_bindings(ClientPublicationPlanFacts) -> Array[String]
@@ -413,6 +425,8 @@ pub fn issue_prepared_client_effect_values_fragment(PreparedClientEffectComputat
 
 pub fn issue_prepared_client_empty_invocation_bindings(PreparedClientProgram, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientEmptyInvocationBindingsIssue]
 
+pub fn issue_prepared_client_infer_plan_graph(PreparedClientProgram, Int, @check_environment.ModelExecutionContract, String, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue]
+
 pub fn issue_prepared_client_infer_prefix_fragment(PreparedClientProgram, Int, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientTaskFragmentNode, ClientTaskFragmentIssue]
 
 pub fn issue_prepared_client_publication_plan_facts(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientPublicationPlanFacts, ClientPublicationPlanFactIssue]
@@ -552,6 +566,8 @@ pub fn prepared_client_result_count(PreparedClientProgram) -> Int
 pub fn prepared_client_result_name(PreparedClientProgram, Int) -> String?
 
 pub fn prepared_client_uses_graph_carrier(PreparedClientProgram) -> Bool
+
+pub fn read_prepared_client_infer_model_execution(PreparedClientProgram, Int, Bytes, String, @check_environment.Limits, Int) -> Result[@check_environment.ModelExecutionContract, ClientInferPlanGraphIssue]
 
 pub fn source_free_caller_input_intent_cid() -> String
 
@@ -835,6 +851,27 @@ pub(all) enum ClientExecutionMaterialIssue {
 
 pub(all) enum ClientIdentityMaterialIssue {
   MissingStage
+  Encoding
+}
+
+pub struct ClientInferPlanGraph {
+  owner : PreparedClientProgram
+  execution : @check_environment.ModelExecutionContract
+  graph : ClientTaskPlanGraph
+  input_fragment_cid : String
+  request_wire : String
+  request_cid : String
+  barrier_cid : String
+}
+
+pub(all) enum ClientInferPlanGraphIssue {
+  UnsupportedProgram
+  ForeignExecution
+  InvalidDependency
+  Execution(@check_environment.ModelTaskIssue)
+  Input(ClientTaskFragmentIssue)
+  Mapping(@lowering_relation.InferInputIssue)
+  Result(ClientResultPlanPartsIssue)
   Encoding
 }
 

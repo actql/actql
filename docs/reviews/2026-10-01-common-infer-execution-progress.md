@@ -494,3 +494,53 @@ model capture and publication evidence checks remain authoritative.
 There is still no SHA that runs the requested one-row public Host INFER,
 no executable provider registration example, and no capture/replay completion
 claim. The foundation commits are not an adoption handoff for B.
+
+## Inference barrier graph compilation
+
+The compiler now selects the same checked pure prefix used by bounded input
+execution, admits the execution contract against that exact installed
+ModelTask, and emits an `acquisition_barrier` rather than an AoA Infer opcode.
+The new `ClientInferPlanGraph` is private compilation material, not a Run
+admission, ModelTask dispatch ticket, or completed output.
+
+The graph binds the pure input fragment, receiving and producing Relation
+contracts, canonical bound mapping expressions, authored key tuple, outcome
+mode, execution contract, and referenced limits and egress requirements.
+Result roots use the actual model-output port; partial projections reuse the
+existing checked Result transformation. A fresh installation of an equal
+ModelTask CID cannot substitute for the checked owner.
+
+The already-declared inference barrier had no registered machine body. Its
+closed body reuses the existing model-outcome Plan fields, adds the adjacent
+input fragment identity, and uses the barrier self-CID field. This fills a
+structural contract gap on the existing 0.1 baseline; it does not add source
+syntax or change model outcomes. The production registry, compiler manifest,
+normative owner references, generated metadata, and dependent Values Run
+vector move together. The historical Values vector is retained; the current
+Run CID is recomputed from an independent, hand-assembled preimage.
+
+The graph tests intentionally use identity-only retry, limits, and egress
+dependencies. Those pins are not executable Host configuration. Their bodies,
+current classification and authorization, and finite adapter preflight still
+need admission before the compiler material can enter a runnable Plan.
+
+The completion boundary now asks lowering to verify the exact Infer output
+binding instead of traversing a generic frontend payload in the execution
+engine. The backend semantic boundary gate remains unchanged.
+
+The next required connection is the admitted inference profile in the common
+Executable Plan and the existing Client dispatch owner, followed by actual
+model observation evidence and committed Named Result publication. There is
+still no adoption-ready public Host SHA or provider startup example for B.
+The provisional capture/replay tests do not establish durable Run replay.
+
+The barrier, prefix binding, Values identity, ModelTask, and execution-contract
+fixtures pass 14 tests on each of JS, Wasm, and native. The normal Program Node
+bridge passes 13 tests, and the independent manifest/Values vectors pass six.
+The unchanged backend semantic-boundary gate passes 49 tests. Full and
+RelA-only Node assembly freshness checks pass.
+
+The specification gate was interrupted while running the existing resource
+audit mutation suite after the preceding specification and boundary checks
+passed. It has not completed; no full specification-gate or Linux CI success
+is claimed for this compilation unit.

@@ -1,5 +1,8 @@
 ///|
-fn client_infer_prefix_test_program() -> PreparedClientProgram {
+fn client_infer_prefix_test_program(
+  result_fields? : String = "[\"id\",\"outcome\",\"value\"]",
+  strict? : Bool = false,
+) -> PreparedClientProgram {
   // Reuse the independently hashed ModelTask typing vector. These dependency
   // CIDs prove installation identity, not provider or egress authority.
   let task =
@@ -27,7 +30,19 @@ fn client_infer_prefix_test_program() -> PreparedClientProgram {
   let source =
     #|{"version":"actql/0.1","id":"infer-prefix","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":true}},"rows":[{"id":"a","text":"hello"}]},"as":"input"},{"assert_rows":{"unique_by":["id"]},"as":"unique"},{"infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"captured"}],"results":{"captured":{"from":"captured","fields":["id","outcome","value"]}}}],"results":{"answer":{"from":{"stage":"main","result":"captured"}}}}
   prepare_effect_free_client_program(
-    source,
+    source
+    .replace(
+      old="\"fields\":[\"id\",\"outcome\",\"value\"]",
+      new="\"fields\":" + result_fields,
+    )
+    .replace(
+      old="\"key\":\"id\",\"input\":",
+      new=if strict {
+        "\"key\":\"id\",\"on_non_success\":\"fail\",\"input\":"
+      } else {
+        "\"key\":\"id\",\"input\":"
+      },
+    ),
     Json,
     environment,
     None,
@@ -39,6 +54,29 @@ fn client_infer_prefix_test_program() -> PreparedClientProgram {
 test "Infer prefix compilation preserves the checked owner and pure limits" {
   let prepared = client_infer_prefix_test_program()
   let owner = client_infer_prefix_owner(prepared, 0, 2).unwrap()
+  let infer_output = @lower.node_at(@lower.bound_preparation(owner), 2).unwrap()
+  guard @lower.payload(infer_output) is @lower.Infer(infer) else {
+    abort("checked Infer fixture")
+  }
+  assert_eq(
+    @lower.infer_output_binding(owner, 2, infer, @pipeline.Step(1)),
+    Some(@lower.node_id(infer_output)),
+  )
+  assert_true(
+    @lower.infer_output_binding(owner, 1, infer, @pipeline.Step(1)) is None,
+  )
+  assert_true(
+    @lower.infer_output_binding(owner, 2, infer, @pipeline.Step(0)) is None,
+  )
+  let foreign_owner = client_infer_prefix_owner(
+    client_infer_prefix_test_program(),
+    0,
+    2,
+  ).unwrap()
+  assert_true(
+    @lower.infer_output_binding(foreign_owner, 2, infer, @pipeline.Step(1))
+    is None,
+  )
   assert_true(
     physical_equal(
       owner,

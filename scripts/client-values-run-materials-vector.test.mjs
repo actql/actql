@@ -55,15 +55,15 @@ const limitBindings = limits.map(value => seal({version: 'actql-execution-limit-
 const facts = limits.map(value => ({kind: 'resolved_limit', value}));
 const factManifest = cid({plan_facts: facts, version: 'actql-plan-fact-manifest/0.1'});
 
-function vector(grammar, aoa) {
+function vector(grammar, aoa, barrierCid = barrier) {
   const template = seal({version: 'actql-bound-invocation-template/0.1',
-    barrier_contract_manifest_cid: barrier, check_environment_cid: environment,
+    barrier_contract_manifest_cid: barrierCid, check_environment_cid: environment,
     grammar_manifest_cid: grammar, invocation_bindings_cid: bindings,
     parameter_values_cid: parameterValues, program_definition_cid: programCid,
     required_profile_contracts: [], source_evidence: 'unbound'}, 'bound_invocation_template_cid');
   const executable = seal({version: 'actql-executable-plan/0.1',
     bound_witnesses: [upper, rowCeiling, byteCeiling], data_edges: [],
-    execution_material: {aoa_contract_cid: aoa, barrier_contract_manifest_cid: barrier,
+    execution_material: {aoa_contract_cid: aoa, barrier_contract_manifest_cid: barrierCid,
       check_environment_cid: environment, effect_plan_logical_cids: {},
       grammar_manifest_cid: grammar, invocation_binding_names: [],
       invocation_bindings_cid: bindings, invocation_template_cid: template.bound_invocation_template_cid,
@@ -106,9 +106,12 @@ test('baseline preimages and changed normative pins independently determine the 
   const aoaContract = JSON.parse(readFileSync('spec/contracts/actql-aoa.json', 'utf8'));
   const {grammar_manifest_cid: grammarCid, ...grammarPreimage} = grammar;
   assert.equal(cid(grammarPreimage), grammarCid);
-  const current = vector(grammarCid, cid(aoaContract));
+  const barrierManifest = JSON.parse(readFileSync('spec/manifests/actql-barrier-contracts-0.1.json', 'utf8'));
+  const {barrier_contract_manifest_cid: barrierCid, ...barrierPreimage} = barrierManifest;
+  assert.equal(cid(barrierPreimage), barrierCid);
+  const current = vector(grammarCid, cid(aoaContract), barrierCid);
   assert.equal(current.run.run_definition_cid,
-    pin('013df58e65a99d436902ffcdfe7e1a3eb92d9eb7f881689d23fa227c88800317'));
+    pin('a8b8a307827e4ebc5d2c8169acaef6dc159083e8d6d604fb6dd69dee63a815bb'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
 });

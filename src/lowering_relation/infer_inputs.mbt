@@ -154,3 +154,23 @@ pub fn infer_input_expression_at(
 pub fn infer_inputs_usage(value : PreparedInferInputs) -> (Int, Int, Int, Int) {
   value.usage
 }
+
+///|
+/// Check the acquisition's exact output binding without exposing a generic
+/// frontend payload to the execution engine. This does not execute Infer or
+/// authorize a model call.
+pub fn infer_output_binding(
+  owner : BoundPrepared,
+  step : Int,
+  infer : @infer.CheckedInfer,
+  input : @pipeline.Target,
+) -> String? {
+  guard node_at(bound_preparation(owner), step) is Some(node) &&
+    node.payload is Infer(checked) &&
+    physical_equal(checked, infer) &&
+    node_input_count(node) == 1 &&
+    node_input_target(node, 0) == Some(input) else {
+    return None
+  }
+  Some(node.id)
+}
