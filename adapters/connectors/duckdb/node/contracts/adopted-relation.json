@@ -1,7 +1,7 @@
 {
   "source_revision": "9edb5a65db8b822b8629cfa4913fb1097fb99945",
-  "registry_cid": "sha256:fda8b3f12e5a42673160163c097f9626b09d999ee3f4889b96e549c6e5e24332",
-  "values_cid": "sha256:9dec7cf1abedfb23b0af130ec5e25c7442d28c205a94cad0218b2f5982d44b44",
+  "registry_cid": "sha256:579c3a62fc22e6fea165bdd5714e3ca26206f606e43098434e84c02c8c0651cc",
+  "values_cid": "sha256:9b716536b27d313e93deadae776d9abf21c3d06dcd653d2eb3b74e0c276a182b",
   "fragment_cid": "sha256:1282c3d8af052606f64be809cead104630c67a8b676050bcdc7edd4a884b9b60",
   "registry": {
     "REL.select": {
@@ -471,7 +471,7 @@
       "execution_contract": {
         "file": "spec/contracts/actql-aoa.json",
         "pointer": "/execution_contracts/REL.values",
-        "cid": "sha256:9dec7cf1abedfb23b0af130ec5e25c7442d28c205a94cad0218b2f5982d44b44"
+        "cid": "sha256:9b716536b27d313e93deadae776d9abf21c3d06dcd653d2eb3b74e0c276a182b"
       }
     },
     "ACTQL.expression_fragment/0.1": {
@@ -1451,6 +1451,9 @@
       "business_objects": "never_reinterpret_param_or_literal_members",
       "row_fields": "exact_declared_set_including_nullable_fields",
       "values": "recursive_declared_type_admission_without_cast_repair_or_rounding",
+      "strings": "preserve_well_formed_unicode_scalar_sequence_without_NFC_or_line_break_repair",
+      "object_member_names": "NFC_then_LF_reject_noncanonical_names_and_collisions",
+      "string_extents": "retained_unicode_scalars_and_UTF8_bytes",
       "decimal": "canonical_fixed_scale_string_under_declared_precision_and_scale",
       "empty_rows": "retain_declared_schema",
       "row_order": "retain_occurrence_order",

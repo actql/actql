@@ -23,9 +23,9 @@ test('fixture registry covers every fixed publication schema', () => {
   }
 });
 
-test('canonical identity normalizes text and excludes only the self field', () => {
+test('canonical identity preserves values and normalizes names and excludes only the self field', () => {
   assert.equal(canonicalJson({b: 'e\u0301\r\n', a: 2}),
-    '{"a":2,"b":"é\\n"}');
+    '{"a":2,"b":"e\u0301\\r\\n"}');
   const body = sealPublicationContract('run_invocation', {
     version: 'actql-run-invocation/0.1',
     invocation_template_cid: cid('1'),

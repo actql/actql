@@ -34,8 +34,8 @@
         "b": true,
         "s": "é\r\n😀"
       },
-      "expected_canonical_json": "{\"values\":{\"a\":[1,2],\"b\":true,\"n\":1e+21,\"o\":{},\"s\":\"é\\n😀\"},\"version\":\"actql-parameter-values/0.1\"}",
-      "expected_cid": "sha256:5ba75bd322aac2d2605fe5e6d4194f33125a34ea4c9e46b851f39edaab0635e5"
+      "expected_canonical_json": "{\"values\":{\"a\":[1,2],\"b\":true,\"n\":1e+21,\"o\":{},\"s\":\"é\\r\\n😀\"},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:9430ca7bf991b6418a01a714a748a9a7332635b34faaf75ff820a38bb08834d2"
     },
     {
       "id": "duration-1s",
@@ -398,8 +398,8 @@
           "é": "a\r\nb"
         }
       },
-      "expected_canonical_json": "{\"values\":{\"v\":{\"é\":\"a\\nb\",\"😀\":{\"$actql_value\":[\"duration\",1000]},\"\":\"x\"}},\"version\":\"actql-parameter-values/0.1\"}",
-      "expected_cid": "sha256:9206dafe34032f0ddfc42d7a97bf69836e3201057eb71bcdb2e52443a2edf7ca"
+      "expected_canonical_json": "{\"values\":{\"v\":{\"é\":\"a\\r\\nb\",\"😀\":{\"$actql_value\":[\"duration\",1000]},\"\":\"x\"}},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:b588f88ceb61b23d362efda21cef5581cdfaad65adce3ba560cac56eabf3961f"
     },
     {
       "id": "dates-remain-text",
@@ -519,6 +519,84 @@
       },
       "expected_canonical_json": "{\"values\":{\"v\":{\"$actql_value\":[\"object\",[[\"!first\",7],[\"$actql_value\",\"data\"],[\"😀\",{\"$actql_value\":[\"duration\",1000]}],[\"\",{\"$actql_value\":[\"decimal\",{\"coefficient\":\"12\",\"precision\":2,\"scale\":1,\"version\":\"aoa-decimal-value/0.1\"}]}]]]}},\"version\":\"actql-parameter-values/0.1\"}",
       "expected_cid": "sha256:06091873311e70b5c62e57e7b7546d5cd38573be05506cb866a313163288d039"
+    },
+    {
+      "id": "preserved-string-CR",
+      "declarations": {
+        "s": {
+          "type": "string"
+        }
+      },
+      "supplied": {
+        "s": "\r"
+      },
+      "expected_canonical_json": "{\"values\":{\"s\":\"\\r\"},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:139d12cde166532e23568de1ddb0134d21dc75a72a5aaa04e30aa3e493b72f1e"
+    },
+    {
+      "id": "preserved-string-LF",
+      "declarations": {
+        "s": {
+          "type": "string"
+        }
+      },
+      "supplied": {
+        "s": "\n"
+      },
+      "expected_canonical_json": "{\"values\":{\"s\":\"\\n\"},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:6786d043a392d955353cfcc5e276e049c821d67f49b91ba5a6e0c4fdc910cec4"
+    },
+    {
+      "id": "preserved-string-CRLF",
+      "declarations": {
+        "s": {
+          "type": "string"
+        }
+      },
+      "supplied": {
+        "s": "\r\n"
+      },
+      "expected_canonical_json": "{\"values\":{\"s\":\"\\r\\n\"},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:76c4e14adb6506c78dc60e0ccb75ce096f61839aa32c42f29e2751ee504661ae"
+    },
+    {
+      "id": "preserved-string-composed",
+      "declarations": {
+        "s": {
+          "type": "string"
+        }
+      },
+      "supplied": {
+        "s": "é"
+      },
+      "expected_canonical_json": "{\"values\":{\"s\":\"é\"},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:a79143e63850f1d58fe733697832e01d035186390de8750d8fc6a963e22d5b3b"
+    },
+    {
+      "id": "preserved-string-decomposed",
+      "declarations": {
+        "s": {
+          "type": "string"
+        }
+      },
+      "supplied": {
+        "s": "é"
+      },
+      "expected_canonical_json": "{\"values\":{\"s\":\"é\"},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:c203f099c700348dab4c9803e226d2ee784116f06e9bf8518316e86f7784dfca"
+    },
+    {
+      "id": "preserved-string-backslash-n",
+      "declarations": {
+        "s": {
+          "type": "string"
+        }
+      },
+      "supplied": {
+        "s": "\\n"
+      },
+      "expected_canonical_json": "{\"values\":{\"s\":\"\\\\n\"},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:d15f2356492e90b5d2c945c22e7173674480e2a68b3ef0a9529da8379d86a216"
     }
   ]
 }

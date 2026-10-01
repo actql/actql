@@ -6,10 +6,15 @@ priv struct RecheckBudget {
 }
 
 ///|
-fn recheck_text(value : String, budget : RecheckBudget) -> Int? {
-  guard @scalar.admit_utf8_length(value, budget.text) is Ok(bytes) &&
-    @canonical.normalize_nfc_lf(value) is Ok(normalized) &&
-    normalized == value else {
+fn recheck_text(
+  value : String,
+  budget : RecheckBudget,
+  identifier? : Bool = false,
+) -> Int? {
+  guard @scalar.admit_utf8_length(value, budget.text) is Ok(bytes) else {
+    return None
+  }
+  if identifier && @canonical.normalize_nfc_lf(value) != Ok(value) {
     return None
   }
   budget.text -= bytes
@@ -40,7 +45,7 @@ fn recheck_json(value : Value, budget : RecheckBudget, depth : Int) -> Bool {
         return false
       }
       for (name, child) in values.values {
-        if recheck_text(name, budget) is None ||
+        if recheck_text(name, budget, identifier=true) is None ||
           !recheck_json(child, budget, depth + 1) {
           return false
         }
@@ -135,7 +140,7 @@ fn recheck_value(
         let (name, child) = values.values[index]
         guard @contract.field_at(fields, index) is Some(field) &&
           name == field.name &&
-          recheck_text(name, budget) is Some(_) &&
+          recheck_text(name, budget, identifier=true) is Some(_) &&
           recheck_value(child, field.contract, budget, depth + 1) else {
           return false
         }

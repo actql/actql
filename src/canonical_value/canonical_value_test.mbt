@@ -148,3 +148,21 @@ test "long reordered runs preserve equal-class order and composition blocking" {
   assert_eq(normalize_nfc(input), Ok(expected))
   assert_eq(normalize_nfc_lf(input), Ok(expected))
 }
+
+///|
+test "scalar value admission preserves normalization forms and every newline sequence" {
+  for
+    value in ["\r", "\n", "\r\n", "é", "e\u{0301}", "\\n", "😀", "\u{0344}"] {
+    assert_eq(validate_scalar_text(value), Ok(()))
+  }
+  for (units, offset) in [([0xD800], 0), ([65, 0xDC00], 1), ([0xD800, 65], 0)] {
+    assert_eq(
+      validate_scalar_text(
+        String::from_array(units.map(n => n.unsafe_to_char())),
+      ),
+      Err(UnpairedSurrogate(offset)),
+    )
+  }
+  // Identifier normalization remains its separate, unchanged operation.
+  assert_eq(normalize_nfc_lf("e\u{0301}\r\n"), Ok("é\n"))
+}

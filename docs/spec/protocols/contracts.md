@@ -1308,7 +1308,7 @@ not authorize dropping required names.
 <!-- requirement-block: bound-template-wire.parameter-projection -->
 Parameter Values identity MUST use the following recursive projection of a
 complete bound set and its admitted Parameter types. Null projects to null.
-Ordinary booleans, numbers and normalized strings retain their JSON values;
+Ordinary booleans, numbers and exact retained strings retain their JSON values;
 date and timestamp retain their canonical wire strings. Arrays project their
 elements in order. Object values project their fields in normalized UTF-16
 code-unit order. Neither null nor an empty collection receives a declaration

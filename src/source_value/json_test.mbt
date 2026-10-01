@@ -43,12 +43,12 @@ test "JSON roots and editable ordered fields preserve structure" {
 }
 
 ///|
-test "source strings normalize NFC then LF but not compatibility or other separators" {
+test "decoded string values preserve scalars while object keys normalize NFC and LF" {
   for
     (source, expected) in [
-      ("\"e\\u0301\"", "é"),
-      ("\"\\u0344\"", "\u0308\u0301"),
-      ("\"\\r\\nX\\rY\\n\"", "\nX\nY\n"),
+      ("\"e\\u0301\"", "e\u0301"),
+      ("\"\\u0344\"", "\u0344"),
+      ("\"\\r\\nX\\rY\\n\"", "\r\nX\rY\n"),
       ("\"\\uD83D\\uDE00\"", "😀"),
       ("\"😀\"", "😀"),
       ("\"\\u0000\\b\\f\\t\\\"\\\\\\/\"", "\u0000\b\f\t\"\\/"),

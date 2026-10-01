@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
+import {valuesUnitIdentity} from './fixtures/string-contract-identities.mjs';
 
 const canonical = value => JSON.stringify(normalize(value));
 function normalize(value) {
@@ -18,8 +19,8 @@ const pin = hex => 'sha256:' + hex;
 const seal = (body, field) => ({...body, [field]: cid(body)});
 const programCid = pin('f3514c8f22c6d72818a167ca3341b3c945397042351c51a5982d7abc881a298c');
 const semanticsCid = pin('b1f21c4233445f6ba90ee54729213a87322e69b8eccf4318aeba5c5e4798400e');
-const unit = pin('63464270481cf4518c2fcc0be076d6ec2cc7986d53031f0d919ab8d57772eca9');
-const proof = pin('22eca16bd792feacf027e5c5e60463882ad90ad4ac88d19b77719dc174292609');
+const oldUnit = pin('63464270481cf4518c2fcc0be076d6ec2cc7986d53031f0d919ab8d57772eca9');
+const oldProof = pin('22eca16bd792feacf027e5c5e60463882ad90ad4ac88d19b77719dc174292609');
 const policy = pin('38a92017de0e3e13901d328ab622696708aab0563dd980b04bfc9a2b6c451853');
 const environment = pin('aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904');
 const parameterValues = pin('c183484727a250f184812053fce437f9b9c90ca889a7a7505a9f9791d84a7b52');
@@ -32,6 +33,16 @@ const program = {version: 'actql/0.1', id: 'client-values',
   stages: [{id: 'source', inputs: {}, steps: [{as: 'selected', values: {schema, rows}}],
     results: {rows: {fields: ['id'], from: 'selected'}}}],
   results: {answer: {from: {stage: 'source', result: 'rows'}}}};
+function vector(grammar, aoa, unit = oldUnit) {
+  const proof = cid({version: 'actql-bound-proof/0.1', inputs: [],
+    law_id: 'actql.bound.values', semantic_ref: `unit:${unit}#/steps/0`, unit: 'rows', value: 2});
+  if (unit === oldUnit) assert.equal(proof, oldProof);
+  const resultPlan = cid({version: 'actql-result-plan/0.1',
+    order: {strategy: 'inherited', terms: []}, projection: [{input: 'id', output: 'id',
+      value_contract_cid: pin('8a7be765d273ccfa06d916976f27fcb0404d814371e72c058502335b51b9bd3d')}],
+    result_name: 'answer', typed_output_port: {carrier: 'relation', name: 'rows',
+      row_contract_cid: pin('999395be222d44c0d3dafb4eb4e306cc6f0329a2096af1aeb380341d4cfa588c')},
+    unit_definition_cid: unit, unit_result_name: 'rows', unit_result_ordinal: 0});
 const upper = seal({version: 'actql-bound-witness/0.1', dependencies: [proof],
   derivation: {op: 'source'}, law_id: 'actql.bound.values', role: 'proven_upper_bound',
   source: {kind: 'program', proof_cid: proof, semantic_ref: `unit:${unit}#/steps/0`},
@@ -55,7 +66,6 @@ const limitBindings = limits.map(value => seal({version: 'actql-execution-limit-
 const facts = limits.map(value => ({kind: 'resolved_limit', value}));
 const factManifest = cid({plan_facts: facts, version: 'actql-plan-fact-manifest/0.1'});
 
-function vector(grammar, aoa) {
   const template = seal({version: 'actql-bound-invocation-template/0.1',
     barrier_contract_manifest_cid: barrier, check_environment_cid: environment,
     grammar_manifest_cid: grammar, invocation_bindings_cid: bindings,
@@ -69,7 +79,7 @@ function vector(grammar, aoa) {
       invocation_bindings_cid: bindings, invocation_template_cid: template.bound_invocation_template_cid,
       parameter_names: [], parameter_values_cid: parameterValues, program,
       program_definition_cid: programCid, result_plan_logical_cids: {
-        answer: pin('8d2ad95f6f8b7be42c550d922d0614e68be2700bba05d7af2c7e03a4fcbbcc38')}},
+        answer: resultPlan}},
     limit_bindings: limitBindings, nodes: [{input_contracts: {}, kind: 'aoa_fragment',
       logical_cid: logical, node_id: 'values_0', output_contracts: {
         values_0: pin('999395be222d44c0d3dafb4eb4e306cc6f0329a2096af1aeb380341d4cfa588c')},
@@ -106,17 +116,21 @@ test('baseline preimages and changed normative pins independently determine the 
   const aoaContract = JSON.parse(readFileSync('spec/contracts/actql-aoa.json', 'utf8'));
   const {grammar_manifest_cid: grammarCid, ...grammarPreimage} = grammar;
   assert.equal(cid(grammarPreimage), grammarCid);
-  const current = vector(grammarCid, cid(aoaContract));
+  assert.equal(valuesUnitIdentity(program, true), oldUnit);
+  const currentUnit = valuesUnitIdentity(program);
+  assert.equal(currentUnit, pin('0ec8026865253c45b26d8eb0b9df6e4cb63b64bf7ae19590e6f1fc2aff10879c'));
+  const current = vector(grammarCid, cid(aoaContract), currentUnit);
   // Preserve the prior WITH/Pipe vector; the new policy changes no Values body.
   assert.equal(vector(pin('a8f1bbabb5eeda9287716c651b398d1c0954201c985b5c70ccb78d96a9ed1416'),
-    cid(aoaContract)).run.run_definition_cid,
+    pin('bfb017e25670c872293a2a4eec302b7d1217c3cb1adf74637c2339286d5c39ea')).run.run_definition_cid,
   pin('47752e67dd0f083b491b0110dd181af4fd312905f5ec67952badf7a8adb832fe'));
   // Keep the merged text-retirement vector as an independent baseline.
   assert.equal(vector(pin('8fc336e2b475104366fea9024c38d171a3d18743a63f05b254272e14bedd886d'),
-    cid(aoaContract)).run.run_definition_cid,
+    pin('bfb017e25670c872293a2a4eec302b7d1217c3cb1adf74637c2339286d5c39ea')).run.run_definition_cid,
     pin('1a7ded9110cb3d2c27f151ccc75f1c6683c3a4e0316fc0570706a3c169934baf'));
   assert.equal(current.run.run_definition_cid,
-    pin('b8f4539c6741e24dd20bdd1ce77f5dc9d0c0466684c6e151e4441bccaaaaca9c'));
+    pin('e7c495589dedf6a62557d8594eb50994bfa38e9d61b17f18176d277de484240b'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
+
 });
