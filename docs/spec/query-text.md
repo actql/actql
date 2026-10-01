@@ -116,6 +116,48 @@ of model execution support. Until common infer and object-expression execution
 are available, normal Host preparation rejects these Programs before Run
 acceptance and provider I/O.
 
+## NEAREST KEEP source projection
+
+NEAREST consumes the current Relation as queries and an explicitly named
+candidate Relation. The candidate range alias, QUERY KEY and VECTOR, CANDIDATE
+KEY and VECTOR, METRIC, positive safe-integer literal K, and result AS are
+mandatory. Metrics are the existing exact cosine, dot and negative-distance
+l2 contracts. K is per query, not a search-work or memory ceiling.
+
+KEY references resolve independently within each side. Named key objects use
+the resolved input column names; quoting and case-insensitive lookup do not
+replace those names with the spelling of the reference. The shared checker
+and execution owner verify non-null typed IDs, dimensions, uniqueness,
+quantization, finite components, ordering and resource obligations.
+
+KEEP resolves against both input scopes. Unqualified ambiguous references,
+duplicate output names and collisions with the result AS name are rejected.
+Wildcards expand known columns in declaration order; `*` expands query columns
+then candidate columns and still rejects duplicates. Each explicit item retains
+its authored position. The output contains KEEP columns followed by the result
+closed object: query_key and candidate_key (named objects), score and rank.
+Omitted KEEP yields only that result object. Old input aliases cannot recover
+omitted columns. Query values repeat for each retained candidate match; no
+match produces no row. Query-key-only uniqueness is never inferred after KNN.
+
+Lowering retains each source producer once, uses the existing rows-to-Vectors
+bridges and nearest operation, then common many-to-one joins for KEEP and
+ordinary object projection. Explicit candidate selection cannot be replaced
+by the filtered query Relation. Shared sources retain one capture boundary
+covering both demands under the ordinary grant and capacity checks. No read
+permission, synthetic ID, output key witness, implicit sort, retry or alternate
+execution engine is supplied by the frontend. The flat pair key remains common
+owner evidence; nesting its values does not declare an arbitrary object key.
+
+Implementation support is currently source construction for a linear Relation
+Pipe with singleton keys. Composite-key syntax is adopted, but its lowering
+reports UnsupportedNearest until the common Program bridge can express that
+identity tuple. Combining NEAREST with CTE/set/JOIN query assembly is also
+pending and explicitly rejected. These are implementation gaps, not permanent
+language restrictions. Object/property execution is a separate common-owner
+dependency; source construction and type checking do not claim packed Host
+execution or successful publication.
+
 ## Graph pattern source
 
 `FROM GRAPH name` selects an existing Graph value. `MATCH` requires an explicit

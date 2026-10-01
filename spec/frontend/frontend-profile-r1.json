@@ -1107,7 +1107,7 @@
       "spec_section": "10.2",
       "execution_evidence_ids": [],
       "adoption": "supported",
-      "implementation_status": "not_implemented",
+      "implementation_status": "partial",
       "delivery_unit": "PR-6",
       "acceptance_case_ids": [
         "VEC-01",
@@ -1115,7 +1115,10 @@
         "VEC-06",
         "VEC-09"
       ],
-      "additional_fixture_requirements": []
+      "additional_fixture_requirements": [
+        "singleton NEAREST KEEP source lowering is not packed execution evidence",
+        "composite Program identity bridge and common object execution remain pending"
+      ]
     },
     {
       "feature_id": "vector.search",

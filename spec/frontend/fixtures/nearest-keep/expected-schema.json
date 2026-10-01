@@ -1,0 +1,58 @@
+{
+  "columns": [
+    {
+      "name": "note",
+      "contract": {
+        "type": "string",
+        "nullable": true
+      }
+    },
+    {
+      "name": "label",
+      "contract": {
+        "type": "string",
+        "nullable": false
+      }
+    },
+    {
+      "name": "neighbor",
+      "contract": {
+        "type": "object",
+        "nullable": false,
+        "additional_properties": false,
+        "fields": {
+          "query_key": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {
+              "request_id": {
+                "type": "string",
+                "nullable": false
+              }
+            }
+          },
+          "candidate_key": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {
+              "item_id": {
+                "type": "string",
+                "nullable": false
+              }
+            }
+          },
+          "score": {
+            "type": "number",
+            "nullable": false
+          },
+          "rank": {
+            "type": "number",
+            "nullable": false
+          }
+        }
+      }
+    }
+  ]
+}

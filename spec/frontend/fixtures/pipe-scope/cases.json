@@ -96,7 +96,7 @@
     {"name":"as-does-not-recover-dropped","format":"aql-text","text":"FROM records AS old |> DROP amount |> AS current |> SELECT current.amount"},
     {"name":"rename-collision","format":"aql-text","text":"FROM records |> RENAME amount AS id |> SELECT id"},
     {"name":"infer-keep-unimplemented","format":"aql-text","text":"FROM records AS old |> INFER score ITEM KEY (id) INPUT (amount = amount) KEEP (old.id) AS assessment"},
-    {"name":"nearest-keep-unimplemented","format":"aql-text","text":"FROM records AS q |> NEAREST records AS c QUERY KEY (q.id) VECTOR q.amount CANDIDATE KEY (c.id) VECTOR c.amount METRIC cosine K 2 KEEP (q.id) AS neighbor"},
+    {"name":"nearest-invalid-vector-contract","format":"aql-text","text":"FROM records AS q |> NEAREST records AS c QUERY KEY (q.id) VECTOR q.amount CANDIDATE KEY (c.id) VECTOR c.amount METRIC cosine K 2 KEEP (q.id) AS neighbor"},
     {"name":"as-old-repeated-select-order-expression","format":"aql-text","text":"FROM records |> AS t |> SELECT id |> WHERE id > 0 |> SELECT id |> ORDER BY records.id + 1"}
   ]
 }

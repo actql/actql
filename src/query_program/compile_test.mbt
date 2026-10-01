@@ -498,7 +498,10 @@ fn check_limits() -> @check.CheckLimits {
 }
 
 ///|
-fn check_environment(numeric? : Bool = false) -> @check.CheckEnvironment {
+fn check_environment(
+  numeric? : Bool = false,
+  veca? : Bool = false,
+) -> @check.CheckEnvironment {
   let cid = "sha256:04185e37572a0a791a18909c4bc09da47f393976a9b6bb940ed9658a0497de07"
   let wire = @environment.read(
     @utf8.encode(
@@ -511,7 +514,7 @@ fn check_environment(numeric? : Bool = false) -> @check.CheckEnvironment {
   ).unwrap()
   @check.checking_environment(
     wire,
-    { text_time: false, veca: false, },
+    { text_time: false, veca, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
     numeric_profile=if numeric {
       Some(@numeric.builtin_profile())

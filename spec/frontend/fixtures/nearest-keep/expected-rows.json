@@ -1,0 +1,30 @@
+[
+  {
+    "note": null,
+    "label": "first",
+    "neighbor": {
+      "query_key": {
+        "request_id": "q1"
+      },
+      "candidate_key": {
+        "item_id": "a"
+      },
+      "score": 1,
+      "rank": 1
+    }
+  },
+  {
+    "note": null,
+    "label": "second",
+    "neighbor": {
+      "query_key": {
+        "request_id": "q1"
+      },
+      "candidate_key": {
+        "item_id": "b"
+      },
+      "score": 0,
+      "rank": 2
+    }
+  }
+]

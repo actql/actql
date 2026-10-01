@@ -51,7 +51,7 @@ test('adoption decisions retain conditions and explicit case or fixture gaps', (
       'effect.hidden'].includes(feature.feature_id);
     assert.equal(feature.implementation_status, structural ?
       (feature.feature_id === 'effect.hidden' ? 'partial' : 'implemented') :
-      (feature.feature_id === 'acquisition.infer' ? 'partial' : 'not_implemented'));
+      (['acquisition.infer', 'vector.nearest'].includes(feature.feature_id) ? 'partial' : 'not_implemented'));
     assert.deepEqual(feature.execution_evidence_ids,
       structural ? ['frontend-pr2-structural'] : []);
     for (const evidence of feature.execution_evidence_ids) {
@@ -87,12 +87,12 @@ test('frozen imported requirements retain their baseline, not document-check pas
   assert.equal(baseline.frontend_runtime_cases_executed, 0);
 });
 
-test('INFER source lowering does not claim executed KEEP outcomes', () => {
+test('INFER and NEAREST source lowering do not claim executed KEEP outcomes', () => {
   const infer = profile.features.find(f => f.feature_id === 'acquisition.infer');
   const nearest = profile.features.find(f => f.feature_id === 'vector.nearest');
   for (const feature of [infer, nearest]) {
     assert.equal(feature.implementation_status,
-      feature === infer ? 'partial' : 'not_implemented');
+      'partial');
     assert.deepEqual(feature.execution_evidence_ids, []);
     assert.ok(feature.surface_forms.some(form => form.includes('KEEP')));
     assert.ok(feature.preconditions.some(rule => rule.includes('new output scope')));
