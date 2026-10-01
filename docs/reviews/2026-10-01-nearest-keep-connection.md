@@ -105,3 +105,39 @@ from source, not edited directly. No runtime bundle is committed.
 
 Fixed-SHA results are recorded after the source commit. Source construction,
 checker success, shared-gap probes and packed execution are separate evidence.
+
+### Local verification
+
+Implementation and generated-artifact SHA:
+`a829178608c05fdc246797c27cd47d5715bf5121`.
+
+| Source SHA | Command / boundary | Result |
+| --- | --- | --- |
+| `d636da9dd` | `local-checks.mjs run core --target js` | Check and independent Run vector passed; 7,148/7,148 tests passed |
+| `d636da9dd` | `local-checks.mjs run lint` | Passed, including three-target API agreement and no-DuckDB module isolation |
+| `45edf6a35` | `local-checks.mjs run spec` | Passed through contracts, links, examples, documentation, Unicode and encoding; stopped at stale canonical fixture |
+| `a82917860` | Remaining `check:spec` commands from `check:canonical` through `check:events`, read directly from `package.json` | All passed after regeneration |
+| `a82917860` | `moon check --target js/wasm/native --deny-warn` (separate commands) | All passed |
+| `a82917860` | `moon test --target js src/query_syntax src/query_program src/canonical_json` | 577/577 passed |
+
+The full final-SHA local spec aggregate was not repeated after the canonical
+fixture-only correction. Its complete CI execution is a separate result;
+staged checks above must not be presented as that aggregate's exit-code success.
+Local full Wasm/native test suites and packed runtime acceptance were not run.
+Logs are retained under `_build/nearest-keep-evidence/` and are not shipped.
+
+Generation order for the grammar dependency closure:
+
+```sh
+node scripts/compilation-manifests.mjs --write
+node scripts/update-document-metadata.mjs --write
+node scripts/check-actql-spec-family.mjs --write
+npm run generate:canonical
+```
+
+An existing INFER frontend follow-up was also identified: `infer_join_field`
+emits a `join_field` object, while the common join selection used by the
+independent probe accepts `left.field` / `right.field` strings. B must reconcile
+that emitter with the adopted common join contract when resuming INFER
+acceptance. It is not an additional common execution-owner request, and this
+NEAREST unit does not modify the preserved INFER acceptance SHA.
