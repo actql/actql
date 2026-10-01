@@ -78,6 +78,7 @@ let currentSite;
 let observationStore;
 let observationReceiver;
 let ackLossProxy;
+let crashOutputReceiver;
 const observationBodies = [];
 const observationFailures = [];
 const running = new Set();
@@ -131,6 +132,8 @@ try {
   await writeFile(tokenFile, `${token}\n`, {mode: 0o600});
   await chmod(tokenFile, 0o600);
   const siteKey = 'resident-site';
+  const durableObservationMode = process.argv.includes('--observation-replay-only') ||
+    process.argv.includes('--redelivery-only') || process.argv.includes('--output-report-only');
   gateway = await startHttpsOutboundSiteGateway({
     key: await readFile(join(root, 'server.key')),
     cert: await readFile(join(root, 'server.crt')),
@@ -140,10 +143,28 @@ try {
       {siteKey, siteGeneration: 1},
     ]]),
     control: siteControl,
-    receiveObservation: (process.argv.includes('--observation-replay-only') ||
-      process.argv.includes('--redelivery-only'))
-      ? async value => {
+    receiveObservation: async value => {
         try {
+          // Output plans are a request/response waiter, not an execution
+          // observation. The Coordinator owner admits the resulting report
+          // below, after the plan has been used to build its exact Output
+          // record.
+          if (JSON.parse(value.body).version === 'actql-remote-output-plan/0.1') {
+            return Object.freeze({});
+          }
+          // The foundation fixture exercises direct dispatch transport. Only
+          // its Output path uses the durable Coordinator receiver; the R1/R2
+          // modes independently exercise durable dispatch observations.
+          if (!durableObservationMode &&
+              JSON.parse(value.body).version !== 'actql-remote-output-result/0.1') {
+            return Object.freeze({});
+          }
+          if (crashOutputReceiver !== undefined &&
+              JSON.parse(value.body).version === 'actql-remote-output-result/0.1') {
+            const crash = crashOutputReceiver;
+            crashOutputReceiver = undefined;
+            await crash(value);
+          }
           const receipt = await observationReceiver.receiveObservation(value);
           observationBodies.push(value.body);
           return receipt;
@@ -155,7 +176,7 @@ try {
           });
           throw error;
         }
-      } : undefined,
+      },
     idlePollMilliseconds: 200,
   });
 
@@ -325,6 +346,23 @@ try {
   const materialsEnvelope = dispatch => coordinator.pollDispatchMaterialsJson(
     coordinator.admitDispatchJson(siteControl.requestJson(dispatch),
       siteControl.identity(dispatch)), '{}', 16, materials);
+  const ensureOutputReceiver = async dispatch => {
+    if (observationStore?.contains(dispatch, siteControl)) return;
+    observationStore ??= openSqliteCoordinatorDispatchJournal(
+      join(root, 'foundation-coordinator-output'),
+      {coordinatorAuthority: 'cloud-coordinator'});
+    observationStore.accept(siteControl.prepareCoordinatorIntent(
+      siteControl.createCoordinatorJournal('cloud-coordinator'), dispatch),
+    dispatch, siteControl);
+    observationReceiver = createRemoteSiteCoordinator({
+      control: siteControl,
+      journal: siteControl.createCoordinatorJournal('cloud-coordinator'),
+      store: observationStore,
+      authorization: await allowAllAuthorization(),
+      output: value => gateway.output(value),
+      transferControl,
+    });
+  };
   // The Result the Coordinator publishes, from the ordinary Client owners.
   const hostPrepared = runHost.prepare(programText, 'json',
     runHost.admitEnvironment(environmentWire, environmentCid, {rela: true}));
@@ -344,6 +382,7 @@ try {
   // the direct route, and releases the holder's retained output.
   const planOutput = async (dispatch, terminal, tag,
     origin = receiver.origin) => {
+    await ensureOutputReceiver(dispatch);
     const intent = siteControl.prepareOutputIntent(dispatch, {
       storeAuthorityCid: physicalCid('resident-publication-store'),
       publicationAttemptCid: physicalCid(`resident-publication-${tag}`),
@@ -366,7 +405,7 @@ try {
       maxReferencedBytes: 1048576n}), `${tag} plan`);
     return {intent, planned};
   };
-  const requestOutput = (dispatch, {intent, planned}) => gateway.output({
+  const requestOutput = (dispatch, {intent, planned}) => observationReceiver.output({
     dispatch, intent, payloadRequest: planned.payloadRequest,
     transferRequest: planned.transferRequest});
   const deliverAndRelease = async (dispatch, terminal, tag) => {
@@ -408,6 +447,7 @@ try {
   const startSite = (extra = [], {
     origin = receiver.origin,
     controlOrigin = gateway.origin,
+    observationOrigin = controlOrigin,
     transferJournal = join(root, 'site-transfer.sqlite3'),
     publication = join(root, 'publication'),
     siteJournal = join(root, 'journal.sqlite3'),
@@ -417,7 +457,7 @@ try {
     configured[configured.indexOf('--journal') + 1] = siteJournal;
     for (const [flag, operation] of [['--poll-url', 'poll'], ['--observation-url', 'observations']]) {
       configured[configured.indexOf(flag) + 1] =
-        `${controlOrigin}/v1/sites/${siteKey}/generations/1/outbound/${operation}`;
+        `${(operation === 'observations' ? observationOrigin : controlOrigin)}/v1/sites/${siteKey}/generations/1/outbound/${operation}`;
     }
     const child = spawn(executable, ['run', ...configured,
       '--transfer-origin', origin, '--transfer-journal', transferJournal,
@@ -485,6 +525,19 @@ try {
         .map(row => row.record_key);
     } finally { database.close(); }
   };
+  const reportState = () => {
+    const database = new DatabaseSync(journalPath, {readOnly: true});
+    try {
+      const reports = database.prepare('SELECT record_key, body FROM actql_records ' +
+        'WHERE namespace = ?').all('site_output_report');
+      const replies = database.prepare('SELECT record_key, revision, body FROM actql_records ' +
+        'WHERE namespace = ?').all('site_output_report_reply');
+      const accepted = new Set(replies.filter(row =>
+        JSON.parse(Buffer.from(row.body).toString('utf8')).outcome === 'accepted')
+        .map(row => row.record_key));
+      return {reports, replies, pending: reports.filter(row => !accepted.has(row.record_key)).length};
+    } finally { database.close(); }
+  };
   // A real journal write failure: another connection holds the write lock
   // longer than the Site's busy timeout.
   const lockJournal = async () => {
@@ -505,7 +558,243 @@ try {
   };
   let expectedEntries = 0;
 
-  if (process.argv.includes('--redelivery-only')) {
+  if (process.argv.includes('--output-report-only')) {
+    // Exercise the complete report path with the real native holder and the
+    // existing Coordinator/SQLite owner. The proxy drops only the first
+    // typed ACK; no receipt map or synthetic result is used.
+    const coordinatorRoot = join(root, 'coordinator-output-report');
+    const authorization = await allowAllAuthorization();
+    let dropOutputAck = true;
+    let invalidAck;
+    let holdOutputReply;
+    const invalidAckCases = [];
+    const reportBodies = [];
+    ackLossProxy = await observationAckLossProxy({
+      origin: gateway.origin,
+      key: await readFile(join(root, 'server.key')),
+      cert: await readFile(join(root, 'server.crt')),
+      ca: await readFile(join(root, 'ca.crt')),
+      loseAck: body => {
+        const hint = JSON.parse(body);
+        return dropOutputAck && hint.version === 'actql-remote-output-result/0.1';
+      },
+      allowDispatch: () => true,
+      onAckLost: body => {
+        if (reportBodies.length === 0) reportBodies.push(body);
+      },
+      transformReply: async (body, upstream) => {
+        if (holdOutputReply !== undefined &&
+            JSON.parse(body).version === 'actql-remote-output-result/0.1') {
+          return holdOutputReply(upstream);
+        }
+        if (invalidAck === undefined ||
+            JSON.parse(body).version !== 'actql-remote-output-result/0.1') return upstream;
+        invalidAckCases.push(invalidAck.name);
+        return invalidAck.reply(upstream);
+      },
+    });
+    const openOutputReceiver = () => {
+      observationStore = openSqliteCoordinatorDispatchJournal(coordinatorRoot,
+        {coordinatorAuthority: 'cloud-coordinator', maxDeliveryBytes: 1_048_576});
+      observationReceiver = createRemoteSiteCoordinator({
+        control: siteControl,
+        journal: siteControl.createCoordinatorJournal('cloud-coordinator'),
+        store: observationStore,
+        authorization,
+        send: value => gateway.dispatch(value),
+        query: value => gateway.query(value),
+        cancel: value => gateway.cancel(value),
+        release: value => gateway.release(value),
+        output: value => gateway.output(value),
+        transferControl,
+      });
+    };
+    openOutputReceiver();
+    crashOutputReceiver = async value => {
+      const inputPath = join(root, 'receiver-crash-input.json');
+      await writeFile(inputPath, JSON.stringify(value));
+      const child = spawn(process.execPath, [join(repository,
+        'scripts/fixtures/output-report-receiver-crash.mjs'), join(repository,
+        '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js'),
+      coordinatorRoot, inputPath], {stdio: ['ignore', 'pipe', 'pipe']});
+      running.add(child);
+      let diagnostics = '';
+      child.stderr.on('data', chunk => { diagnostics += chunk; });
+      const exit = await within(once(child, 'exit'), 'durable receiver abrupt exit');
+      running.delete(child);
+      assert.deepEqual(exit, [null, 'SIGKILL'], diagnostics);
+    };
+    let site = startSite(['--holder-kill-at', 'report-handoff'], {
+      controlOrigin: gateway.origin,
+      observationOrigin: ackLossProxy.origin,
+    });
+    currentSite = site;
+    const dispatch = dispatchFor('resident-output-report-custody', 1);
+    const dispatched = await within(observationReceiver.dispatch({
+      dispatch, inputBindingBody: '{}',
+      dispatchEnvelope: materialsEnvelope(dispatch),
+    }), 'output report dispatch');
+    assert.ok(dispatched);
+    await waitFor(async () => (await entries()).length === 1,
+      'output report executor');
+    const terminal = await settledQuery(dispatch, 'output report terminal');
+    const planned = await planOutput(dispatch, terminal, 'output-report-custody');
+    const delivered = await within(observationReceiver.output({
+      dispatch, intent: planned.intent, subject: terminal.subject,
+      payloadRequest: planned.planned.payloadRequest,
+      transferRequest: planned.planned.transferRequest,
+    }), 'output report delivery');
+    assert.ok(delivered);
+    await within(observationReceiver.release({dispatch}), 'output report release');
+    await waitFor(() => reportBodies.length === 1,
+      'first output ACK loss');
+    await waitFor(() => site.lines.some(line =>
+      line.kind === 'holder-killed' && line.point === 'report-handoff'),
+    'output report handoff holder exit');
+    assert.equal((await entries()).length, 1);
+    await waitFor(() => reservedPayloadBytes() === 0 &&
+      pendingIntents().length === 0, 'output report cleanup after holder exit');
+    const firstReport = reportBodies[0];
+    assert.equal(reportState().pending, 1, 'physical release does not acknowledge the report');
+    site.child.kill('SIGTERM');
+    await site.exited;
+    dropOutputAck = false;
+    observationStore.close();
+    openOutputReceiver();
+    const originalReceiverFact = observationStore.inspectOutput(
+      observationReceiver.recoveredOutputs[0].record, siteControl);
+    for (const invalid of [
+      {name: 'legacy-200', reply: () => ({status: 200, body: '{"accepted":true}'})},
+      {name: 'empty-200', reply: () => ({status: 200, body: ''})},
+      {name: 'malformed-200', reply: () => ({status: 200, body: '{'})},
+      {name: 'different-report', reply: upstream => ({status: 200,
+        body: upstream.body.toString('utf8').replace(
+          JSON.parse(upstream.body).report_cid, physicalCid('different-report'))})},
+      {name: 'unconfirmed-503', reply: upstream => ({...upstream, status: 503})},
+    ]) {
+      invalidAck = invalid;
+      site = startSite(['--max-polls', '3'], {controlOrigin: gateway.origin,
+        observationOrigin: ackLossProxy.origin});
+      currentSite = site;
+      assert.deepEqual(await within(site.exited, `${invalid.name} response`), [0, null]);
+      assert.ok(invalidAckCases.includes(invalid.name), 'fault reached the real native client');
+      assert.equal(reportState().pending, 1, `${invalid.name} must not acknowledge the report`);
+      assert.equal(reservedPayloadBytes(), 0);
+      assert.equal(pendingIntents().length, 0);
+    }
+    invalidAck = undefined;
+    // A typed, exact refusal is attention, not success and not an HTTP-code
+    // inference. The operator command re-enables only this original report.
+    invalidAck = {name: 'checked-refusal', reply: upstream => {
+      const fields = JSON.parse(upstream.body);
+      fields.outcome = 'refused';
+      fields.reason = 'authorization_denied';
+      return {status: 409, body: JSON.stringify(fields)};
+    }};
+    site = startSite(['--max-polls', '3'], {controlOrigin: gateway.origin,
+      observationOrigin: ackLossProxy.origin});
+    currentSite = site;
+    assert.deepEqual(await within(site.exited, 'checked refusal'), [0, null]);
+    assert.equal(reportState().pending, 1);
+    const inspection = execFileSync(executable, [...common, 'output-reports'], {encoding: 'utf8'})
+      .trim().split('\n').map(line => JSON.parse(line));
+    const attention = inspection.find(line => line.kind === 'output-report-state');
+    assert.equal(attention.state, 'attention');
+    assert.equal(attention.reason, 'authorization_denied');
+    execFileSync(executable, [...common, 'retry-output-report', '--intent-cid',
+      attention.intent_cid], {stdio: 'pipe'});
+    invalidAck = undefined;
+    const initialReportCount = observationBodies.filter(body =>
+      JSON.parse(body).version === 'actql-remote-output-result/0.1').length;
+    // The report is recovered from the Coordinator journal, while the Site
+    // journal independently replays the exact bytes after its restart.
+    site = startSite(['--control-report-kill-at', 'before-ack-save'],
+      {controlOrigin: gateway.origin});
+    currentSite = site;
+    assert.deepEqual(await within(site.exited, 'before ACK save abrupt exit'), [null, 'SIGKILL']);
+    assert.ok(site.lines.some(line => line.kind === 'control-report-killed' &&
+      line.point === 'before-ack-save'));
+    assert.equal(reportState().pending, 1, 'ACK received without a commit remains pending');
+    assert.equal(reservedPayloadBytes(), 0);
+    assert.equal(pendingIntents().length, 0);
+    // Two real control processes recover the same saved report. Hold the
+    // first ACK until the second has durably saved it, then deliver the late
+    // ACK. Release is already physically complete; neither replay may reopen
+    // payload custody or consume another ACK revision.
+    let releaseHeldAck;
+    let firstAckArrived;
+    const heldAck = new Promise(resolve => { releaseHeldAck = resolve; });
+    const firstAck = new Promise(resolve => { firstAckArrived = resolve; });
+    let parallelReplies = 0;
+    holdOutputReply = async upstream => {
+      if (++parallelReplies === 1) {
+        firstAckArrived();
+        await heldAck;
+      }
+      return upstream;
+    };
+    const lateSite = startSite(['--control-report-kill-at', 'after-ack-save'],
+      {controlOrigin: gateway.origin, observationOrigin: ackLossProxy.origin});
+    currentSite = lateSite;
+    await within(firstAck, 'first parallel report ACK held');
+    site = startSite(['--control-report-kill-at', 'after-ack-save'],
+      {controlOrigin: gateway.origin, observationOrigin: ackLossProxy.origin});
+    currentSite = site;
+    assert.deepEqual(await within(site.exited, 'second replay ACK save abrupt exit'), [null, 'SIGKILL']);
+    assert.ok(site.lines.some(line => line.kind === 'control-report-killed' &&
+      line.point === 'after-ack-save'));
+    assert.equal(reportState().pending, 0, 'committed ACK survives abrupt exit');
+    const savedAckState = reportState();
+    releaseHeldAck();
+    assert.deepEqual(await within(lateSite.exited, 'late replay ACK save abrupt exit'), [null, 'SIGKILL']);
+    assert.ok(lateSite.lines.some(line => line.kind === 'control-report-killed' &&
+      line.point === 'after-ack-save'));
+    assert.equal(parallelReplies, 2, 'both real processes posted the original report');
+    assert.deepEqual(reportState(), savedAckState, 'late ACK does not change durable custody or revision');
+    holdOutputReply = undefined;
+    const replayCount = observationBodies.filter(body =>
+      JSON.parse(body).version === 'actql-remote-output-result/0.1').length;
+    site = startSite(['--max-polls', '3'], {controlOrigin: gateway.origin});
+    currentSite = site;
+    assert.deepEqual(await within(site.exited, 'ACK-confirmed restart'), [0, null]);
+    assert.equal(observationBodies.filter(body =>
+      JSON.parse(body).version === 'actql-remote-output-result/0.1').length, replayCount,
+    'confirmed ACK is not posted again after restart');
+    await waitFor(() => observationBodies.filter(body =>
+      JSON.parse(body).version === 'actql-remote-output-result/0.1').length >= 2,
+      'replayed output report body');
+    // Replay reuses the already terminal Coordinator fact and the retained
+    // report; it must not start a new holder. Physical release was confirmed
+    // before the first Site process was stopped.
+    assert.equal(observationStore.inspectOutput(
+      observationReceiver.recoveredOutputs[0].record, siteControl).progress, 2);
+    assert.equal((await entries()).length, 1);
+    assert.equal(reservedPayloadBytes(), 0);
+    assert.equal(pendingIntents().length, 0);
+    assert.equal(reportState().pending, 0);
+    assert.deepEqual((await readdir(publicationRoot)).filter(name => name.startsWith('alloc-')), [],
+      'physical allocation directories are gone independently of report custody');
+    assert.deepEqual(observationStore.inspectOutput(
+      observationReceiver.recoveredOutputs[0].record, siteControl), originalReceiverFact,
+    'ACK-only replays do not alter receiver state or revision');
+    const outputBodies = observationBodies.filter(body =>
+      JSON.parse(body).version === 'actql-remote-output-result/0.1');
+    assert.equal(outputBodies.length, initialReportCount + 3);
+    for (const body of outputBodies) assert.equal(body, firstReport);
+    assert.deepEqual(outputBodies[0], firstReport);
+    console.log(JSON.stringify({kind: 'resident-output-report-custody-verified',
+      runDefinitionCid: definition.identity,
+      dispatchRequestCid: siteControl.identity(dispatch), executorEntries: 1,
+      ackLostAfterDurableAdmission: true, coordinatorReconstructed: true,
+      receiverKilledAfterDurableAdmission: true,
+      invalidAckCases: [...new Set(invalidAckCases)],
+      checkedRefusalAndExplicitRetry: true,
+      concurrentReplayAndLateAck: true,
+      releaseBeforeAck: true, reportBytesReplayedExactly: true,
+      ackSaveStopPoints: ['before-ack-save', 'after-ack-save'],
+      receiverFactUnchanged: true, reservedPayloadBytes: 0,
+      pendingOutputIntents: 0, pendingOutputReports: 0}));
+  } else if (process.argv.includes('--redelivery-only')) {
     const coordinatorRoot = join(root, 'coordinator-redelivery');
     const authorization = await allowAllAuthorization();
     let blockDispatch = false;
@@ -558,6 +847,7 @@ try {
         journal: siteControl.createCoordinatorJournal('cloud-coordinator'),
         store: observationStore, authorization, currentDispatchContext: currentContext,
         query: gateway.query, release: gateway.release,
+        output: value => gateway.output(value), transferControl,
         send: async value => {
           assert.equal(value.dispatchEnvelope, observationStore.deliveryEnvelope(value.dispatch, siteControl));
           sends++;
@@ -664,6 +954,11 @@ try {
     await deliverAndRelease(second, secondTerminal, 'r2-second');
     await waitFor(() => site.lines.filter(line => line.kind === 'holder-released').length === 2,
       'R2 final physical release');
+    // Physical release does not stop the control process's journal updates.
+    // Close that process before inspecting the final durable occurrence counts;
+    // a read-only connection otherwise races its SQLite commit lock on Linux.
+    site.child.kill('SIGTERM');
+    await site.exited;
     assert.equal((await entries()).length, 2);
     assert.equal(new Set((await entries()).map(line => line.split(' ').at(-1))).size, 2);
     assert.equal(reservedPayloadBytes(), 0);
@@ -684,8 +979,6 @@ try {
       coordinatorRecreated: true, concurrentRedelivery: true,
       startedBetweenQueryAndArrival: true, historicalAcceptedDoesNotRewind: true,
       reservedPayloadBytes: 0, pendingOutputIntents: 0}));
-    site.child.kill('SIGTERM');
-    await site.exited;
   } else if (process.argv.includes('--observation-replay-only')) {
     // R1's receiver is the existing Coordinator owner/journal, not a test
     // receipt map. The retained bodies below are actual native Site reports;
@@ -992,31 +1285,9 @@ try {
   assert.equal(retrying.lines.filter(line =>
     line.kind === 'holder-request-unavailable').length, 3);
   const ninthTerminal = await settledQuery(ninth, 'ninth');
-  const ninthIntentTag = 'ninth';
   const ninthRelease = (async () => {
-    const intent = siteControl.prepareOutputIntent(ninth, {
-      storeAuthorityCid: physicalCid('resident-publication-store'),
-      publicationAttemptCid: physicalCid(`resident-publication-${ninthIntentTag}`),
-      resultDefinitionCid,
-      orderingEvidenceCid: physicalCid('resident-ordering'),
-      coordinatorAuthority: 'cloud-coordinator',
-      transferAttemptId: `resident-transfer-${ninthIntentTag}`,
-      transferRoute: 'direct',
-      destinationSite: 'cloud-results',
-      destinationSiteGeneration: 1,
-      transferMaxBytes: 1048576n,
-      transferExpiresAtMilliseconds: 4102444800000n,
-      sourceGrantCid: physicalCid('resident-source-grant'),
-      destinationGrantCid: physicalCid('resident-destination-grant'),
-      routeCapabilityCid: physicalCid('resident-direct-route'),
-      transferOrigin: receiver.origin,
-    });
-    const planned = await within(gateway.plan({dispatch: ninth, intent,
-      subject: ninthTerminal.subject, maxChunks: 8, maxManifestBytes: 65536,
-      maxReferencedBytes: 1048576n}), 'ninth plan');
-    await within(gateway.output({dispatch: ninth, intent,
-      payloadRequest: planned.payloadRequest,
-      transferRequest: planned.transferRequest}), 'ninth output');
+    await within(requestOutput(ninth,
+      await planOutput(ninth, ninthTerminal, 'ninth')), 'ninth output');
     await chmod(publicationRoot, 0o500);
     return within(gateway.release({dispatch: ninth}), 'ninth release', 120_000);
   })();

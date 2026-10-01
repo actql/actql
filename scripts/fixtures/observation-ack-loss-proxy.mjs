@@ -4,7 +4,7 @@
 import {createServer, request} from 'node:https';
 
 export async function observationAckLossProxy({origin, key, cert, ca,
-  loseAck, allowDispatch, onAckLost}) {
+  loseAck, allowDispatch, onAckLost, transformReply}) {
   const server = createServer({key, cert, minVersion: 'TLSv1.3'}, async (incoming, outgoing) => {
     try {
       const chunks = [];
@@ -39,8 +39,9 @@ export async function observationAckLossProxy({origin, key, cert, ca,
           return;
         }
       }
-      outgoing.writeHead(upstream.status, {'content-type': 'application/json'});
-      outgoing.end(upstream.body);
+      const reply = await (transformReply?.(body.toString('utf8'), upstream) ?? upstream);
+      outgoing.writeHead(reply.status, {'content-type': 'application/json'});
+      outgoing.end(reply.body);
     } catch (error) { outgoing.destroy(error); }
   });
   await new Promise((resolve, reject) => {

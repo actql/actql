@@ -4098,6 +4098,16 @@ test "contract spec/contracts/actql-remote-site-wire.json#/schemas/poll_dispatch
 }
 
 ///|
+test "contract spec/contracts/actql-remote-site-wire.json#/schemas/output_report_reply" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"dispatch_request_cid\",\"intent_cid\",\"outcome\",\"reason\",\"report_cid\",\"version\"],\"properties\":{\"dispatch_request_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"intent_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"outcome\":{\"type\":\"string\",\"enum\":[\"accepted\",\"refused\"]},\"reason\":{\"type\":\"string\",\"enum\":[\"\",\"authorization_denied\",\"scope_mismatch\",\"report_conflict\"]},\"report_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"version\":{\"const\":\"actql-remote-output-report-reply/0.1\"}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 35, 4, 628)
+  assert_eq(@canonical_json.cid_value(value, 628, 35, 4), "sha256:db3cd45931cdbbdf86ac79545a19a0691b1240d1b78fe963812eb331f9820284")
+  assert_eq(@canonical_json.measure_value(value, 628, 35, 4), 628)
+}
+
+///|
 test "contract spec/contracts/actql-discovery.json#/schemas/host_capabilities" {
   let input = @json.parse([
     "{\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"version\":{\"const\":\"actql-host-capabilities/0.1\"},\"supported_profiles\":{\"type\":\"array\",\"minItems\":0,\"items\":{\"type\":\"object\",\"additionalProperties\":false,\"properties\":{\"profile_id\":{\"type\":\"string\",\"minLength\":1},\"contract_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[a-f0-9]{64}$\"},\"status\":{\"enum\":[\"conformant\",\"partial\"]}},\"required\":[\"profile_id\",\"contract_cid\",\"status\"]}},\"interfaces\":{\"type\":\"array\",\"minItems\":1,\"items\":{\"enum\":[\"discovery\",\"read_collection\"]},\"uniqueItems\":true,\"contains\":{\"const\":\"discovery\"}}},\"required\":[\"version\",\"supported_profiles\",\"interfaces\"]}",

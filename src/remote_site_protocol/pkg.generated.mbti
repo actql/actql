@@ -47,6 +47,12 @@ pub fn admit_remote_output_intent_json(String, String, DispatchRequest) -> Resul
 
 pub fn admit_remote_output_plan_json(String, RemotePollOutput, RemoteManagedOutputSubject, Int, Int, Int64) -> Result[RemoteOutputPlan, DispatchIssue]
 
+pub fn admit_remote_output_report_custody_json(String) -> Result[RemoteOutputReportCustody, DispatchIssue]
+
+pub fn admit_remote_output_report_reply_json(String, RemoteOutputResult) -> Result[RemoteOutputReportReply, DispatchIssue]
+
+pub fn admit_remote_output_report_retry_json(String) -> Result[String, DispatchIssue]
+
 pub fn admit_remote_output_result_json(String, RemotePollOutput, @publication_payload.PublicationPayloadRequest, @remote_transfer.RemoteTransferRequest) -> Result[RemoteOutputResult, DispatchIssue]
 
 pub fn admit_remote_poll_dispatch_json(String) -> Result[RemotePollDispatch, DispatchIssue]
@@ -140,6 +146,10 @@ pub fn coordinator_output_record_result_projection(CoordinatorOutputRecord) -> R
 pub fn coordinator_output_record_revision(CoordinatorOutputRecord) -> Int
 
 pub fn coordinator_output_record_status(CoordinatorOutputRecord) -> Array[String]
+
+pub fn coordinator_output_report_ack_json(CoordinatorOutputRecord, String) -> Result[String, DispatchIssue]
+
+pub fn coordinator_output_report_refusal_json(CoordinatorOutputRecord, String, String) -> Result[String, DispatchIssue]
 
 pub fn coordinator_output_transition_durable_json(DurableCoordinatorOutputRecord, CoordinatorOutputTransition) -> Result[String, DispatchIssue]
 
@@ -337,6 +347,8 @@ pub fn prepare_remote_output_intent(DispatchRequest, RemoteOutputIntentProjectio
 
 pub fn prepare_remote_output_plan(RemotePollOutput, RemoteManagedOutputSubject, @publication_payload.PublicationPayloadRequest, @remote_transfer.RemoteTransferRequest) -> Result[RemoteOutputPlan, DispatchIssue]
 
+pub fn prepare_remote_output_report_custody(RemotePollOutput, @publication_payload.PublicationPayloadRequest, @remote_transfer.RemoteTransferRequest, RemoteOutputResult) -> Result[RemoteOutputReportCustody, DispatchIssue]
+
 pub fn prepare_remote_output_result(RemotePollOutput, @publication_payload.PublicationPayloadRequest, String, @remote_transfer.RemoteTransferRecord) -> Result[RemoteOutputResult, DispatchIssue]
 
 pub fn prepare_remote_runtime_cleanup(DispatchRecord, Bool, Bool, Bool) -> Result[RemoteRuntimeStep, DispatchIssue]
@@ -440,6 +452,22 @@ pub fn remote_output_plan_json(RemoteOutputPlan) -> Result[String, DispatchIssue
 pub fn remote_output_plan_payload_request(RemoteOutputPlan) -> @publication_payload.PublicationPayloadRequest
 
 pub fn remote_output_plan_transfer_request(RemoteOutputPlan) -> @remote_transfer.RemoteTransferRequest
+
+pub fn remote_output_report_custody_dispatch(RemoteOutputReportCustody) -> DispatchRequest
+
+pub fn remote_output_report_custody_json(RemoteOutputReportCustody) -> String
+
+pub fn remote_output_report_custody_key(RemoteOutputReportCustody) -> String
+
+pub fn remote_output_report_custody_output(RemoteOutputReportCustody) -> RemotePollOutput
+
+pub fn remote_output_report_custody_preflight_bytes(RemotePollOutput, @publication_payload.PublicationPayloadRequest, @remote_transfer.RemoteTransferRequest) -> Result[Int64, DispatchIssue]
+
+pub fn remote_output_report_custody_result(RemoteOutputReportCustody) -> RemoteOutputResult
+
+pub fn remote_output_report_reply_json(RemoteOutputResult, RemoteOutputReportReply) -> Result[String, DispatchIssue]
+
+pub fn remote_output_report_retry_json(String) -> Result[String, DispatchIssue]
 
 pub fn remote_output_result_identity(RemoteOutputResult) -> String
 
@@ -728,6 +756,14 @@ pub(all) struct RemoteOutputIntentProjection {
 }
 
 type RemoteOutputPlan
+
+type RemoteOutputReportCustody
+
+pub(all) enum RemoteOutputReportReply {
+  Accepted
+  Refused(String)
+  Retry(String)
+} derive(Eq, @debug.Debug)
 
 type RemoteOutputResult
 

@@ -4326,6 +4326,32 @@ pub fn strategy_remote_output_result_identity(
 }
 
 ///|
+#export_name("strategyRemoteCoordinatorOutputReportAckJson")
+pub fn strategy_remote_coordinator_output_report_ack_json(
+  record : @remote.CoordinatorOutputRecord,
+  body : String,
+) -> String raise NodeHostFailure {
+  match @remote.coordinator_output_report_ack_json(record, body) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteOutputReportReplyAdmit")
+pub fn strategy_remote_output_report_reply_admit(
+  body : String,
+  result : @remote.RemoteOutputResult,
+) -> Bool raise NodeHostFailure {
+  match @remote.admit_remote_output_report_reply_json(body, result) {
+    Ok(@remote.RemoteOutputReportReply::Accepted) => true
+    Ok(@remote.RemoteOutputReportReply::Refused(_)) => false
+    Ok(@remote.RemoteOutputReportReply::Retry(_)) => false
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteOutputResultProjection")
 pub fn strategy_remote_output_result_projection(
   result : @remote.RemoteOutputResult,
