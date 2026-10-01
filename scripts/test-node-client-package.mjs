@@ -9,6 +9,7 @@ import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
+import {packedClientPackage} from './packed-client-packages.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const graphOnly = process.argv.includes('--graph-only');
@@ -62,8 +63,9 @@ assert.deepEqual(JSON.parse(structuralValues), JSON.parse(await readFile(
 
 for (const name of ['client-wire', 'sdk', 'local-node',
   'node']) {
-  run('npm', ['pack', '--pack-destination', root, '--json'],
-    join(repository, 'packages', name));
+  await packedClientPackage({repository, name, destination: root,
+    pack: () => run('npm', ['pack', '--pack-destination', root, '--json'],
+      join(repository, 'packages', name))});
 }
 const sdk = join(root, 'actql-sdk-0.0.0-development.tgz');
 const node = join(root, 'actql-node-0.0.0-development.tgz');
