@@ -5,6 +5,7 @@ import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {withPackedQueryEvidence} from './packed-query-evidence.mjs';
+import {packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const scratch = join(repository, '..', '.codex-scratch');
@@ -15,7 +16,7 @@ await withPackedQueryEvidence({scratch, revision: revision.stdout.trim(),
   githubOutput: process.env.GITHUB_OUTPUT,
   keepArtifacts: process.argv.includes('--keep-artifacts')},
 async ({root, directory, run: capture, recordTarball}) => {
-const environment = {...process.env, npm_config_cache: join(root, 'npm-cache')};
+const environment = {...process.env, npm_config_cache: packedNpmCache(root)};
 function run(command, args, cwd = root, env = environment,
   timeout = 240_000) {
   return capture(command, args, {cwd, env, timeout});
@@ -23,8 +24,9 @@ function run(command, args, cwd = root, env = environment,
 console.log(`Packed public-query evidence: ${directory}`);
 const packages = ['client-wire', 'sdk', 'run-host-core', 'local-node', 'node'];
 for (const name of packages) {
-  run('npm', ['pack', '--pack-destination', root, '--json'],
-    join(repository, 'packages', name));
+  await packedClientPackage({repository, name, destination: root,
+    pack: () => run('npm', ['pack', '--pack-destination', root, '--json'],
+      join(repository, 'packages', name))});
   recordTarball(join(root, `actql-${name}-0.0.0-development.tgz`));
 }
 await writeFile(join(root, 'package.json'), '{"private":true,"type":"module"}\n');
