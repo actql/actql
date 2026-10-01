@@ -1,0 +1,10 @@
+# The same models with dbt-duckdb's default quoting (no `quoting:` setting).
+# Used only for the default-quoting probe.
+name: actql_probe
+version: '0.1.0'
+config-version: 2
+profile: actql_probe
+model-paths: ['models']
+models:
+  actql_probe:
+    +materialized: view

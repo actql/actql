@@ -1,0 +1,75 @@
+{
+  "version": "actql/0.1",
+  "id": "dbt_probe.orders_amount_above_10",
+  "stages": [
+    {
+      "id": "acquire",
+      "inputs": {
+        "orders": {
+          "connector": "crm/main",
+          "resource": "r"
+        }
+      },
+      "steps": [
+        {
+          "filter": "amount > 10",
+          "as": "kept"
+        },
+        {
+          "select": [
+            "id",
+            "amount"
+          ],
+          "as": "captured"
+        }
+      ],
+      "results": {
+        "r": {
+          "from": "captured",
+          "fields": [
+            "id",
+            "amount"
+          ]
+        }
+      }
+    },
+    {
+      "id": "main",
+      "inputs": {
+        "kept": {
+          "result": {
+            "stage": "acquire",
+            "result": "r"
+          }
+        }
+      },
+      "steps": [
+        {
+          "from": "kept",
+          "select": [
+            "id",
+            "amount"
+          ],
+          "as": "projected"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "projected",
+          "fields": [
+            "id",
+            "amount"
+          ]
+        }
+      }
+    }
+  ],
+  "results": {
+    "answer": {
+      "from": {
+        "stage": "main",
+        "result": "rows"
+      }
+    }
+  }
+}
