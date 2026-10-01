@@ -36,11 +36,7 @@ test "GoogleSQL strings are distinct from backtick identifiers and path names" {
   )
   let literal = parse_expression("\"ID\"", expression_limits()).unwrap()
   assert_eq(kind(literal, expression_root(literal)), StringLiteral("ID"))
-  for
-    source in [
-      "\"memory\".\"main\".\"records\"", "t.\"id\"", "'a' 'b'", "r'raw'", "b'bytes'",
-      "'''triple'''", "\"\"\"triple\"\"\"",
-    ] {
+  for source in ["\"memory\".\"main\".\"records\"", "t.\"id\"", "b'bytes'"] {
     assert_true(
       parse_expression(source, expression_limits()) is Err(_),
       msg=source,

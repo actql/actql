@@ -32,6 +32,24 @@ export const querySuccesses = [
 // available in the Host, but none of these Programs acquires them.
 const numberColumn = name => ({name, contract: {type: 'number', nullable: false}});
 export const sourceFreeSuccesses = [
+  {name: 'raw-string-chunks', format: 'sql',
+    text: `SELECT r'\\n' AS slash_n, R"\\u0041" AS unicode_text, r'a\\'b' AS quoted`,
+    expected: [{slash_n: '\\n', unicode_text: '\\u0041', quoted: "a\\'b"}],
+    columns: [['slash_n', 2], ['unicode_text', 6], ['quoted', 4]].map(([name, bytes]) => ({name,
+      contract: {type: 'string', nullable: false, max_utf8_bytes: bytes}})),
+    sourceReadCount: 0},
+  {name: 'triple-string-newlines', format: 'aql-text',
+    text: `SELECT '''a\r\nb''' AS physical, """\\r""" AS escaped, '''e\u0301''' AS decomposed`,
+    expected: [{physical: 'a\nb', escaped: '\r', decomposed: 'e\u0301'}],
+    columns: [['physical', 3], ['escaped', 1], ['decomposed', 3]].map(([name, bytes]) => ({name,
+      contract: {type: 'string', nullable: false, max_utf8_bytes: bytes}})),
+    sourceReadCount: 0},
+  {name: 'mixed-separated-string-chunks', format: 'sql',
+    text: `SELECT r'\\n' /* only this chunk is raw */ '\\n' "é" '''e\u0301''' AS joined, '' "" '''''' AS empty`,
+    expected: [{joined: '\\n\née\u0301', empty: ''}],
+    columns: [['joined', 8], ['empty', 0]].map(([name, bytes]) => ({name,
+      contract: {type: 'string', nullable: false, max_utf8_bytes: bytes}})),
+    sourceReadCount: 0},
   {name: 'double-quoted-exact-values', format: 'sql',
     text: 'SELECT "\\r" AS cr, "\\n" AS lf, "\\r\\n" AS crlf, "é" AS composed, "e\\u0301" AS decomposed, "\\\\n" AS slash_n',
     expected: [{cr: '\r', lf: '\n', crlf: '\r\n', composed: 'é', decomposed: 'e\u0301', slash_n: '\\n'}],
@@ -86,9 +104,10 @@ export const sourceFreeSuccesses = [
 export const sourceFreeRefusals = [
   ...['SELECT "\\uD800" AS s', 'SELECT "\\U00110000" AS s',
     'SELECT "\\x4" AS s', 'SELECT "\\12" AS s',
-    'SELECT "memory"."main"."table"', 'SELECT r"raw" AS s',
-    'SELECT """triple""" AS s', 'SELECT b"bytes" AS s',
-    'SELECT "a" "b" AS s'].map((text, index) => ({
+    'SELECT "memory"."main"."table"', 'SELECT r"odd\\" AS s',
+    'SELECT """unfinished"" AS s', 'SELECT b"bytes" AS s',
+    'SELECT "a""b" AS s', 'SELECT "a" b"b" AS s',
+    'SELECT rb"bytes" AS s', 'SELECT """bad\\\nline""" AS s'].map((text, index) => ({
     name: `quoted-input-refusal-${index}`, format: 'sql', text})),
   {name: 'source-free-star', format: 'sql', text: 'SELECT *'},
   {name: 'source-free-private-column', format: 'sql', text: 'SELECT aql_source_free_unit AS x'},

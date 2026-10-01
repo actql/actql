@@ -10,7 +10,8 @@ test "source-free SELECT lowers to an independently authored ordinary Program" {
   for
     source in [
       "SELECT 1 AS id, 'hello' AS label", "SELECT 1 AS id, \"hello\" AS label", "SELECT 1 AS id, \"\\x68ello\" AS label",
-      "SELECT 1 AS id, '\\150ello' AS label",
+      "SELECT 1 AS id, '\\150ello' AS label", "SELECT 1 AS id, r'hello' AS label",
+      "SELECT 1 AS id, '''hello''' AS label", "SELECT 1 AS id, 'he' /* join chunks */ R\"llo\" AS label",
     ] {
     let query = @query.parse_query(source, syntax_limits()).unwrap()
     for captured_stage in [None, Some("capture")] {
@@ -41,6 +42,7 @@ test "quoted values preserve exact text in an independent checked Program" {
     source in [
       "SELECT '\\r' AS cr, '\\n' AS lf, '\\r\\n' AS crlf, 'é' AS composed, 'e\\u0301' AS decomposed, '\\\\n' AS slash_n",
       "SELECT \"\\r\" AS cr, \"\\n\" AS lf, \"\\r\\n\" AS crlf, \"é\" AS composed, \"e\\u0301\" AS decomposed, \"\\\\n\" AS slash_n",
+      "SELECT '''\\r''' AS cr, '''\n''' AS lf, '\\r' /*join*/ '\\n' AS crlf, r\"é\" AS composed, R'e\u0301' AS decomposed, r'\\n' AS slash_n",
     ] {
     let program = compile(
       @query.parse_query(source, syntax_limits()).unwrap(),

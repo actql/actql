@@ -31,6 +31,27 @@ physical newline. A decoded CR, LF, CRLF or decomposed Unicode sequence is
 preserved exactly through the ordinary String value contract. Escape decoding
 does not apply identifier normalization to the resulting value.
 
+Triple single or double quotes also delimit STRING. They permit physical
+newlines and individual matching quotes; three unescaped matching quotes close
+the chunk. Unescaped source CR and CRLF in these chunks decode to LF, following the
+pinned [GoogleSQL literal decoder](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/googlesql/public/strings.cc)'s
+newline interpretation. Escaped `\r` remains CR;
+this source interpretation does not normalize decoded or stored values.
+An escaped physical newline is rejected in a non-raw chunk.
+
+An immediately adjacent `r` or `R` prefix makes one plain or triple-quoted
+chunk raw. A backslash and the following scalar are both retained, including
+an escaped quote; a raw chunk cannot end with an odd number of backslashes.
+Plain raw chunks still reject physical newlines. Raw mode does not extend to
+later chunks.
+
+Consecutive STRING chunks separated by whitespace or comments form one
+literal whose value is their concatenation. They may mix quote styles, plain
+and triple quotes, and raw and decoded chunks. Without separation they are
+rejected. Quoted identifiers do not concatenate. Decoded byte, token and work
+budgets apply to every chunk, and the resulting expression's source range
+covers the original chunks and intervening trivia.
+
 Double quotes do not quote identifiers: `"id"` is a value, while `` `id` `` is
 a name. The explicit Graph `LABELS` annotation retains its separate historical
 double-quoted annotation profile; accepting double-quoted query literals does
@@ -38,9 +59,9 @@ not expand that profile's escapes or admit raw control characters in it.
 Backtick identifiers currently retain their existing limited escape profile;
 the wider GoogleSQL identifier escape repertoire is a coverage gap.
 Comments are line `--` and non-nested block `/* ... */` comments. Query
-parameters use `@name`. Raw, triple-quoted, bytes and adjacent literal chunks
-are not yet implemented in this profile and are rejected, rather than decoded
-as another literal kind. They are GoogleSQL coverage gaps, not restrictions of
+parameters use `@name`. Bytes and raw bytes are not yet implemented in this
+profile and are rejected, including mixed STRING/bytes chunks, rather than
+decoded as STRING. They remain GoogleSQL coverage gaps, not restrictions of
 the reference language. Interpolation and multiple statements are rejected.
 The JSON/YAML machine-expression text dialect keeps its own quotation rules.
 
