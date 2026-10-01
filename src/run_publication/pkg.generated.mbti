@@ -336,6 +336,20 @@ pub fn manifest_result_names(PublicationContract) -> Result[Array[String], Deliv
 
 pub fn manifest_result_names_json(PublicationContract, Int, Int, Int) -> Result[String, DeliveryIssuanceIssue]
 
+pub fn model_capture_bundle_count(ModelCaptureBundleRead) -> Int
+
+pub fn model_capture_bundle_identity(ModelCaptureBundleRead) -> String?
+
+pub fn model_capture_bundle_record(ModelCaptureBundleRead, Int) -> Result[ModelCaptureRecordRead, RunEvidenceValueIssue]
+
+pub fn model_capture_record_evidence(ModelCaptureRecordRead) -> RunEvidenceValue
+
+pub fn model_capture_record_response(ModelCaptureRecordRead) -> @canonical_json.CanonicalValue
+
+pub fn model_capture_record_text(ModelCaptureRecordRead, String) -> String?
+
+pub fn model_capture_record_tokens(ModelCaptureRecordRead) -> (Int64, Int64)?
+
 pub fn next_result_delivery_row(ResultDeliverySerializer, String) -> Result[String, DeliverySerializationIssue]
 
 pub fn parse_effect_outcome_shape(String, Int, Int, Int) -> Result[@canonical_json.CanonicalValue, PublicationContractIssue]
@@ -432,6 +446,8 @@ pub fn publication_snapshot_state_text(PublicationSnapshot) -> String
 
 pub fn publication_unknown_retry_action_code(PublicationUnknownRetryAction) -> Int
 
+pub fn read_model_capture_bundle(String, String, Int, Int, Int) -> Result[ModelCaptureBundleRead, RunEvidenceValueIssue]
+
 pub fn record_result_access_grant(ResultAccessProgress, Bool) -> Result[Unit, ResultAccessProgressIssue]
 
 pub fn record_result_access_initial_availability(ResultAccessProgress, Bool) -> Result[Unit, ResultAccessProgressIssue]
@@ -441,6 +457,8 @@ pub fn record_result_access_read_admission(ResultAccessProgress, Bool) -> Result
 pub fn record_result_access_request_authorization(ResultAccessProgress, Bool) -> Result[Unit, ResultAccessProgressIssue]
 
 pub fn record_result_access_resolution(ResultAccessProgress, Bool) -> Result[Unit, ResultAccessProgressIssue]
+
+pub fn release_model_capture_bundle_read(ModelCaptureBundleRead) -> Bool
 
 pub fn resolve_run_local_result_evidence_refs(RunPublicationAdmission, PublicationContract, PublicationContract, RunEvidenceValue, PublicationContract) -> Result[(String, String, String), RunLocalResultEvidenceIssue]
 
@@ -495,6 +513,8 @@ pub fn result_retention_clock_contract_cid(PublicationContract) -> Result[String
 pub fn result_retention_intervals_valid(PublicationContract) -> Bool
 
 pub fn result_serialization_contract_cid(String, Int, Int, Int) -> Result[String, DeliveryIssuanceIssue]
+
+pub fn retain_model_capture_bundle_read(ModelCaptureBundleRead) -> ModelCaptureBundleRead?
 
 pub fn run_definition_has_empty_initial_input_artifact_set(PublicationContract) -> Bool
 
@@ -965,6 +985,18 @@ pub(all) enum ExistingDeliveryAttemptAction {
   DeliveryRejectTerminalAttempt
   ExistingDeliveryAttemptInvalid
 } derive(Eq, @debug.Debug)
+
+pub struct ModelCaptureBundleRead {
+  storage : ModelCaptureStorage
+  mut released : Bool
+}
+
+pub struct ModelCaptureRecordRead {
+  evidence : RunEvidenceValue
+  response : @canonical_json.CanonicalValue
+}
+
+type ModelCaptureStorage
 
 type PendingSourceStateAdvance
 

@@ -50,6 +50,10 @@ const selected = Object.freeze({
     schema: 'model_invocation_evidence',
     identity: 'model_invocation_evidence_cid',
   }),
+  model_capture_bundle: Object.freeze({
+    schema: 'model_capture_bundle',
+    identity: 'bundle_cid',
+  }),
   run_receipt: Object.freeze({
     schema: 'run_receipt',
     identity: 'receipt_identity_cid',

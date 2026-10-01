@@ -457,6 +457,8 @@ pub fn client_program_infer_execution_material_wire(@run_publication_host.Client
 
 pub fn client_program_infer_execution_output(@client_infer_host.Poll) -> @execution_relation.CompletedOutput?
 
+pub fn client_program_infer_execution_restoring(@client_infer_host.Execution) -> Bool
+
 pub fn client_program_infer_identity_pending(@client_infer_host.Execution) -> Bool
 
 pub fn client_program_infer_input_rows(@client_local_host.ClientInferInputPoll) -> @execution_relation.PreparedInferRows?
@@ -729,6 +731,8 @@ pub fn client_program_query_requirement_source_evidence_facts(@query_planning.Qu
 
 pub fn client_program_query_requirement_source_ref(@query_planning.QueryRequirement) -> String
 
+pub fn client_program_read_infer_capture_bundle(String, String) -> Result[@run_publication.ModelCaptureBundleRead, @run_publication.RunEvidenceValueIssue]
+
 pub fn client_program_read_infer_model_execution(@run_publication_host.PreparedClientProgram, Int, String, String) -> Result[@check_environment.ModelExecutionContract, @run_publication_host.ClientInferPlanGraphIssue]
 
 pub fn client_program_recover_effect_target_guards(@run_publication.EffectPreviewIdentity, Array[Array[@logical_request_scope.LogicalRequestScope]], Array[Array[@effect_application.LogicalItemLocator]], Array[Array[@effect_application.EffectDispatchKey]], Array[Array[@effect_application.EffectLedgerBasis]], Array[Array[@effect_application.EffectLedgerEntry?]], Array[Array[Bool]], Int, Int, Int) -> Result[@effect_application.RecoveredEffectTargetGuards, @effect_application.EffectSetProgressIssue]
@@ -738,6 +742,8 @@ pub fn client_program_release_effect_input(@physical_strategy.CapturedEffectInpu
 pub fn client_program_release_effect_inputs(@physical_strategy.CapturedEffectInputs) -> Bool
 
 pub fn client_program_release_infer_capture(@model_execution.VerifiedModelCapture) -> Bool
+
+pub fn client_program_release_infer_capture_bundle(@run_publication.ModelCaptureBundleRead) -> Bool
 
 pub fn client_program_release_infer_output(@client_infer_host.OutputUse) -> Bool
 
@@ -838,6 +844,8 @@ pub fn client_program_start_infer_replay(@run_publication_host.PreparedClientPro
 pub fn client_program_start_model_execution(@execution_relation.PreparedInferRows, @model_execution.ModelProvider, String) -> Result[@model_execution.ModelExecution, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_start_model_output(@client_local_host.ClientInferInputExecution, @execution_relation.PreparedInferRows, @model_execution.ModelExecution) -> Result[@model_execution.ModelOutputPreparation, @model_execution.ModelExecutionIssue]
+
+pub fn client_program_start_restored_infer_replay(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @run_publication.ModelCaptureBundleRead) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
 pub fn client_program_start_scoped_infer_execution(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelProvider) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 

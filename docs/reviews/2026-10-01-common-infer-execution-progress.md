@@ -219,10 +219,68 @@ private-evidence Store cases passed. The JS runtime build, generated interfaces,
 public API comparison, formatting and diff checks cover this code-only unit.
 No runtime bundle is committed; no push or Linux CI success is claimed.
 
-Durable response/capture custody, verified formal replay, installed public Host
-registration and committed Named Result retrieval remain unfinished. The
-fixture execution policy is identity-only material, not public policy admission.
-The current SHA is therefore not an adoption-ready handoff to B.
+The persistence-only unit above did not restore its saved record. The next
+unit below adds authenticated Store restoration and checked component replay.
+Installed public Host registration and committed Named Result retrieval still
+remain unfinished. The fixture execution policy is identity-only material,
+not public policy admission. This branch is not an adoption-ready handoff to B.
+
+### Restored capture validation and component replay
+
+The existing model capture bundle schema is now registered with the common
+generated protocol reader. Its canonical body, version and schema pin are
+unchanged. Structural admission verifies the outer self-CID, and each record
+separately verifies its invocation-evidence self-CID and record references.
+Neither admission nor a matching CID grants model execution authority.
+
+The restoring path prepares the ordinary Program prefix and its actual
+CompletedOutput again, derives the fresh typed key and fixed request, and
+checks ModelTask, input Artifact, slot, request, key and model selector against
+the saved record. Raw response conversion and normal typed recheck advance
+incrementally, including array, object and vector members. Decimal and
+timestamp leaves use the existing scalar admission rules, not a second model
+decoder. The common model owner then recomputes response/value identities and
+invocation evidence; that exact evidence must match the saved record before
+acceptance. There is no provider argument or dispatch fallback in this path.
+
+Saved reads have independent caller, Host and model-child custody. Releasing
+the caller's read cannot invalidate a replay already preparing its prefix.
+Cancellation during nested reconstruction exposes neither output nor capture;
+stop confirmation precedes cleanup, which releases reads and builders without
+another Compute or model invocation. Replay reserves no new model attempt or
+transfer, while its ordinary prefix, validation and output remain charged.
+
+The actual encrypted Local Store test now reclaims the original execution,
+closes the Store, starts a fresh Node process, authenticates and confirms the
+saved physical holding, and prepares and replays the Program there. It compares
+independent literal output rows and the original invocation evidence. No model
+provider is installed in that process. Mutation cases independently reseal the
+outer bundle and reject changed slot, request, task, Artifact, key or response;
+an unsealed inner record is rejected even when the outer CID is valid. A
+512-member response is stopped during incremental reconstruction after real
+macrotask yields. The original physical provider remains at one call.
+
+Verification passed on JS, Wasm and native: `canonical_json` 455/455,
+`value_admission` 135/135, `client_infer_host` 24/24, `model_execution` 2/2,
+and `run_publication` 179/179 on each target. The Node bridge passed 30/30;
+the protocol generator and its six tests passed. Generated public interfaces,
+API comparison, formatting and diff checks cover this implementation unit.
+No runtime bundle is committed. No push or Linux CI result is claimed.
+
+This proves component replay after process restart, not public Run replay or
+Named Result publication. Protocol parsing is a document operation under
+installed byte/node/depth ceilings; this does not claim unbounded incremental
+JSON admission. Scalar text and metadata retain their bounded leaf operations.
+Serialized Ref objects do not mint issuer authority. Production transitive
+dependency admission, installed policy/envelope admission, durable handling of
+unknown physical outcomes and the public Run/publication connection remain.
+
+The normative ObservationSet must bind captured model attempts and adopted
+outcomes. Its current closed machine schema has no model-capture reference
+field. The source-evidence and input-Artifact fields must not be repurposed
+for that distinct identity domain. A coordinated contract correction is needed
+before the final model-containing Invocation can be issued; the existing
+empty/source-only issuers continue to reject it.
 
 ## Checked compilation prefix
 

@@ -80,6 +80,58 @@ pub fn client_program_acquire_infer_capture(
 }
 
 ///|
+/// The existing Store must authenticate and confirm the expected holding
+/// before these bytes are offered to the common record reader. This bridge
+/// performs protocol admission, not execution or publication authorization.
+#export_name("clientProgramReadInferCaptureBundle")
+pub fn client_program_read_infer_capture_bundle(
+  wire : String,
+  expected_cid : String,
+) -> Result[
+  @publication.ModelCaptureBundleRead,
+  @publication.RunEvidenceValueIssue,
+] {
+  @publication.read_model_capture_bundle(wire, expected_cid, 100000, 20000, 100)
+}
+
+///|
+#export_name("clientProgramStartRestoredInferReplay")
+pub fn client_program_start_restored_infer_replay(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  graph : @publication_host.ClientInferPlanGraph,
+  registry : String,
+  values : String,
+  capture : @publication.ModelCaptureBundleRead,
+) -> Result[@infer_host.Execution, @infer_host.Issue] {
+  @infer_host.start_restored_replay(
+    prepared,
+    step,
+    registry,
+    values,
+    capture,
+    @infer_host.standard_limits(),
+    graph,
+  )
+}
+
+///|
+#export_name("clientProgramReleaseInferCaptureBundle")
+pub fn client_program_release_infer_capture_bundle(
+  capture : @publication.ModelCaptureBundleRead,
+) -> Bool {
+  @publication.release_model_capture_bundle_read(capture)
+}
+
+///|
+#export_name("clientProgramInferExecutionRestoring")
+pub fn client_program_infer_execution_restoring(
+  active : @infer_host.Execution,
+) -> Bool {
+  @infer_host.restoring(active)
+}
+
+///|
 #export_name("clientProgramReleaseInferCapture")
 pub fn client_program_release_infer_capture(
   capture : @model.VerifiedModelCapture,

@@ -21,6 +21,17 @@ pub fn[T] array_values(value : FrozenArray[T]) -> Array[T] {
 }
 
 ///|
+/// Indexed readers preserve ownership without copying an entire subtree.
+pub fn[T] array_count(value : FrozenArray[T]) -> Int {
+  value.values.length()
+}
+
+///|
+pub fn[T] array_at(value : FrozenArray[T], index : Int) -> T? {
+  value.values.get(index)
+}
+
+///|
 pub(all) suberror CanonicalFailure {
   InvalidNumber
   InvalidUnicode(Int)

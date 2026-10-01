@@ -76,6 +76,7 @@ test "all generated Run evidence versions are exact" {
     ("source_input_logical", "actql-source-input-logical/0.1"),
     ("authoring_context", "actql-authoring-context/0.1"),
     ("model_invocation_evidence", "actql-model-invocation-evidence/0.1"),
+    ("model_capture_bundle", "actql-model-capture-bundle/0.1"),
     ("run_receipt", "actql-run-receipt/0.1"),
     ("captured_run", "actql-captured-run/0.1"),
     ("result_delivery_receipt", "actql-result-delivery-receipt/0.1"),

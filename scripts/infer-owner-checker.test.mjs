@@ -721,12 +721,97 @@ test('checked capture serializes its formal bundle and survives encrypted Store 
     assert.equal(moon.clientProgramReleaseInferCapture(saved), true);
     assert.equal(checked(moon.clientProgramCleanupInferExecution(original.active)), true);
     assert.equal(original.calls(), 1);
+    const recoveredCapture = checked(moon.clientProgramReadInferCaptureBundle(
+      recovered.toString('utf8'), exported.identity));
+    const fresh = moon.clientProgramPreparationReady(prepare(program(), environment()));
+    const replay = checked(moon.clientProgramStartRestoredInferReplay(fresh, 2,
+      scopedInferGraph(fresh), registry, values, recoveredCapture));
+    assert.equal(moon.clientProgramReleaseInferCaptureBundle(recoveredCapture), true);
+    assert.equal(moon.clientProgramReleaseInferCaptureBundle(recoveredCapture), false);
+    const terminal = await ownedInferTerminal(replay);
+    assert.equal(terminal.$tag, 1, inspect(terminal));
+    assert.deepEqual(await inferExportRows(fresh,
+      moon.clientProgramInferExecutionOutput(terminal)), [
+      {id: 'a', outcome: 'ok', value: {reason: null, risk: 'high'}},
+    ]);
+    assert.equal(moon.strategyRunEvidenceJson(
+      moon.clientProgramInferInvocationEvidence(replay, 0)), canonicalText(observation));
+    assert.equal(checked(moon.clientProgramCleanupInferExecution(replay)), true);
+    assert.equal(original.calls(), 1, 'restored replay has no provider fallback');
+    assert.equal(moon.clientProgramStartRestoredInferReplay(fresh, 2,
+      scopedInferGraph(fresh), registry, values, recoveredCapture).$tag, 0);
+
+    await store.close();
+    store = undefined;
+    // A fresh VM cannot retain the original execution, capture read or module
+    // state. It authenticates the physical holding and prepares the Program
+    // itself. This remains a component replay, not public Run publication.
+    const childSource = `
+      import assert from 'node:assert/strict';
+      import {createHash} from 'node:crypto';
+      import {readFileSync} from 'node:fs';
+      import {inspect} from 'node:util';
+      import * as moon from ${JSON.stringify(new URL(
+        '../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',
+        import.meta.url).href)};
+      import {canonicalText} from ${JSON.stringify(new URL(
+        './check-canonical-json.mjs', import.meta.url).href)};
+      import {openLocalPublicationStore} from ${JSON.stringify(new URL(
+        '../adapters/store-local/publication-store.mjs', import.meta.url).href)};
+      import {createPublicationContractControlFixture} from ${JSON.stringify(new URL(
+        '../adapters/host-common/publication-contract-control.fixture.mjs', import.meta.url).href)};
+      const fixture = JSON.parse(readFileSync(0, 'utf8'));
+      const {task, baseEnvironment, registry, values} = fixture;
+      const cid = ${cid.toString()};
+      const checked = ${checked.toString()};
+      const environment = ${environment.toString()};
+      const prepare = ${prepare.toString()};
+      const program = ${program.toString()};
+      const scopedInferGraph = ${scopedInferGraph.toString()};
+      const ownedInferTerminal = ${ownedInferTerminal.toString()};
+      const inferExportRows = ${inferExportRows.toString()};
+      const configuration = {...fixture.configuration,
+        privateEvidenceKey: Buffer.alloc(32, 17)};
+      const store = await openLocalPublicationStore(configuration,
+        createPublicationContractControlFixture());
+      try {
+        const bytes = await store.readPrivateEvidence('model_capture_bundle',
+          fixture.identity, fixture.holdingCid);
+        await store.confirmPrivateEvidence({name: 'model_capture_bundle',
+          semanticCid: fixture.identity, holdingCid: fixture.holdingCid,
+          wire: bytes.toString('utf8')});
+        const saved = checked(moon.clientProgramReadInferCaptureBundle(
+          bytes.toString('utf8'), fixture.identity));
+        const prepared = moon.clientProgramPreparationReady(prepare(program(), environment()));
+        const replay = checked(moon.clientProgramStartRestoredInferReplay(prepared,
+          2, scopedInferGraph(prepared), registry, values, saved));
+        assert.equal(moon.clientProgramReleaseInferCaptureBundle(saved), true);
+        const terminal = await ownedInferTerminal(replay);
+        assert.equal(terminal.$tag, 1, inspect(terminal));
+        const rows = await inferExportRows(prepared,
+          moon.clientProgramInferExecutionOutput(terminal));
+        const evidenceWire = moon.strategyRunEvidenceJson(
+          moon.clientProgramInferInvocationEvidence(replay, 0));
+        assert.equal(checked(moon.clientProgramCleanupInferExecution(replay)), true);
+        process.stdout.write(JSON.stringify({rows, evidenceWire}));
+      } finally { await store.close(); }
+    `;
+    const restarted = JSON.parse(execFileSync(process.execPath,
+      ['--input-type=module', '-e', childSource], {encoding: 'utf8',
+        input: JSON.stringify({task, baseEnvironment, registry, values,
+          configuration: {...configuration, privateEvidenceKey: undefined},
+          identity: exported.identity, holdingCid})}));
+    assert.deepEqual(restarted.rows, [
+      {id: 'a', outcome: 'ok', value: {reason: null, risk: 'high'}},
+    ]);
+    assert.equal(restarted.evidenceWire, canonicalText(observation));
+    assert.equal(original.calls(), 1);
   } finally {
     if (store !== undefined) await store.close();
     await rm(directory, {recursive: true, force: true});
   }
-  // This proves durable authenticated bytes, not yet restored ModelTask replay
-  // or a committed Named Result through the public Run owner.
+  // This proves authenticated restoration and component replay after restart,
+  // not yet a committed Named Result through the public Run owner.
 });
 
 test('a macrotask stops nested capture serialization without releasing its owner early', async () => {
@@ -774,6 +859,114 @@ test('a macrotask stops nested capture serialization without releasing its owner
   assert.equal(moon.clientProgramInferCaptureExportIdentity(stream), undefined);
   assert.equal(checked(moon.clientProgramCleanupInferCaptureExport(stream)), true);
   assert.equal(checked(moon.clientProgramCleanupInferExecution(original.active)), true);
+  assert.equal(original.calls(), 1);
+});
+
+test('restored replay validates records and typed responses rather than accepting a matching slot', async () => {
+  const original = ownedInfer(undefined, undefined, {scoped: true});
+  assert.equal((await ownedInferTerminal(original.active)).$tag, 1);
+  const capture = moon.clientProgramAcquireInferCapture(original.active);
+  const exported = await exportedModelCapture(capture);
+  const baseline = JSON.parse(exported.wire);
+  assert.equal(checked(moon.clientProgramCleanupInferCaptureExport(exported.active)), true);
+  assert.equal(moon.clientProgramReleaseInferCapture(capture), true);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(original.active)), true);
+  assert.equal(moon.clientProgramReadInferCaptureBundle(exported.wire,
+    cid({foreign: 'holding'})).$tag, 0);
+
+  const cases = [
+    ['raw response', slot => { slot.structured_response.risk = 'low'; }, false, 6],
+    ['typed response', slot => { slot.structured_response.risk = 42; }, false, 5],
+    ['key payload', slot => { slot.evidence.input_row_identity = 'b'; }, true, 6],
+    ['slot', slot => {
+      slot.model_call_slot_cid = cid({foreign: 'slot'});
+      slot.evidence.model_call_slot_cid = slot.model_call_slot_cid;
+    }, true, 6],
+    ['request', slot => {
+      slot.semantic_request_cid = cid({foreign: 'request'});
+      slot.evidence.semantic_request_cid = slot.semantic_request_cid;
+    }, true, 6],
+    ['task', slot => { slot.evidence.model_task_contract_cid = cid({foreign: 'task'}); }, true, 6],
+    ['artifact', slot => { slot.evidence.input_result_artifact_cid = cid({foreign: 'input'}); }, true, 6],
+    ['unsealed observation', slot => { slot.evidence.provider_request_id = 'altered'; }, false, 13],
+  ];
+  for (const [name, mutate, reseal, cause] of cases) {
+    const body = structuredClone(baseline);
+    delete body.bundle_cid;
+    mutate(body.captures[0]);
+    if (reseal) {
+      const {model_invocation_evidence_cid: ignored, ...evidence} = body.captures[0].evidence;
+      void ignored;
+      body.captures[0].evidence.model_invocation_evidence_cid = cid(evidence);
+    }
+    const identity = cid(body);
+    // Transport/self integrity alone is valid, deliberately. The common
+    // model owner must still reject inconsistent execution observations.
+    const read = checked(moon.clientProgramReadInferCaptureBundle(
+      canonicalText({...body, bundle_cid: identity}), identity));
+    const prepared = moon.clientProgramPreparationReady(prepare(program(), environment()));
+    const replay = checked(moon.clientProgramStartRestoredInferReplay(prepared, 2,
+      scopedInferGraph(prepared), registry, values, read));
+    assert.equal(moon.clientProgramReleaseInferCaptureBundle(read), true);
+    const terminal = await ownedInferTerminal(replay);
+    assert.equal(terminal.$tag, 2, name);
+    assert.equal(terminal._0.$tag, 2, `${name}: model cause`);
+    assert.equal(terminal._0._0.$tag, cause, `${name}: exact typed cause`);
+    assert.equal(moon.clientProgramInferExecutionOutput(terminal), undefined);
+    assert.equal(moon.clientProgramAcquireInferCapture(replay), undefined);
+    assert.equal(checked(moon.clientProgramCleanupInferExecution(replay)), true);
+    assert.equal(original.calls(), 1, name);
+  }
+});
+
+test('restored nested response remains private and cancellable during reconstruction', async () => {
+  const installedTask = structuredClone(task);
+  installedTask.output_contract.fields.risk = {
+    type: 'array', nullable: false, max_items: 1024,
+    items: {type: 'number', nullable: false},
+  };
+  installedTask.output_schema_cid = cid(installedTask.output_contract);
+  delete installedTask.contract_cid;
+  installedTask.contract_cid = cid(installedTask);
+  const original = ownedInfer(undefined, undefined, {scoped: true, installedTask,
+    responseBody: canonicalText({reason: null, risk: Array(512).fill(0)})});
+  assert.equal((await ownedInferTerminal(original.active, undefined, 100000)).$tag, 1);
+  const capture = moon.clientProgramAcquireInferCapture(original.active);
+  const exported = await exportedModelCapture(capture);
+  const saved = checked(moon.clientProgramReadInferCaptureBundle(exported.wire, exported.identity));
+  assert.equal(checked(moon.clientProgramCleanupInferCaptureExport(exported.active)), true);
+  assert.equal(moon.clientProgramReleaseInferCapture(capture), true);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(original.active)), true);
+  const prepared = moon.clientProgramPreparationReady(prepare(program(),
+    environment(true, undefined, installedTask)));
+  const replay = checked(moon.clientProgramStartRestoredInferReplay(prepared, 2,
+    scopedInferGraph(prepared, installedTask), registry, values, saved));
+  assert.equal(moon.clientProgramReleaseInferCaptureBundle(saved), true);
+  let reached = false;
+  for (let poll = 0; poll < 2000; poll++) {
+    const observed = checked(moon.clientProgramAdvanceInferExecution(replay, 1));
+    assert.equal(observed.$tag, 0);
+    if (moon.clientProgramInferExecutionRestoring(replay)) { reached = true; break; }
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  assert.equal(reached, true);
+  for (let poll = 0; poll < 64; poll++) {
+    assert.equal(checked(moon.clientProgramAdvanceInferExecution(replay, 1)).$tag, 0);
+    assert.equal(moon.clientProgramInferExecutionRestoring(replay), true);
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  assert.equal(moon.clientProgramAcquireInferCapture(replay), undefined);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(replay)), false);
+  await new Promise(resolve => setImmediate(() => {
+    assert.equal(moon.clientProgramCancelInferExecution(replay), true);
+    resolve();
+  }));
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(replay)), false);
+  const stopped = checked(moon.clientProgramAdvanceInferExecution(replay, 1));
+  assert.equal(stopped.$tag, 3);
+  assert.equal(moon.clientProgramInferExecutionOutput(stopped), undefined);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(replay)), true);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(replay)), true);
   assert.equal(original.calls(), 1);
 });
 

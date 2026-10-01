@@ -48,6 +48,7 @@ enum Phase {
 enum Source {
   Physical(@model.ModelProvider)
   Replay(@model.VerifiedModelCapture)
+  Restored(@publication.ModelCaptureBundleRead)
 }
 
 ///|
@@ -147,6 +148,45 @@ pub fn start_replay(
     @model.release_verified_model_capture(retained) |> ignore
   }
   started
+}
+
+///|
+/// A fresh normal Program executes its prefix before verifying saved capture
+/// records. No provider is installed in this operation or used as a fallback.
+pub fn start_restored_replay(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  registry : String,
+  values : String,
+  capture : @publication.ModelCaptureBundleRead,
+  limits : Limits,
+  plan : @publication_host.ClientInferPlanGraph,
+) -> Result[Execution, Issue] {
+  guard @publication.retain_model_capture_bundle_read(capture) is Some(retained) else {
+    return Err(Model(@model.OutputIdentity))
+  }
+  let started = start_owned(
+    prepared,
+    step,
+    registry,
+    values,
+    Restored(retained),
+    @publication_host.client_infer_plan_graph_request_cid(plan),
+    limits,
+    Some(plan),
+  )
+  if started is Err(_) {
+    @publication.release_model_capture_bundle_read(retained) |> ignore
+  }
+  started
+}
+
+///|
+/// A synchronization point for physical progress, not evidence authority.
+pub fn restoring(active : Execution) -> Bool {
+  active.phase is Model &&
+  active.model is Some(model) &&
+  @model.model_execution_restoring(model)
 }
 
 ///|
@@ -303,6 +343,18 @@ fn begin_model(active : Execution) -> Poll {
         rows,
         scope,
         capture,
+        active.limits.model,
+      )
+    }
+    Restored(capture) => {
+      guard active.call_scope is Some(scope) else {
+        return fail(active, Model(@model.OutputIdentity))
+      }
+      @model.start_restored_model_capture_replay(
+        rows,
+        scope,
+        capture,
+        active.fixed_request_cid,
         active.limits.model,
       )
     }
@@ -823,6 +875,9 @@ pub fn cleanup(active : Execution) -> Result[Bool, Issue] {
     Ok(true) => {
       if active.source is Replay(capture) {
         @model.release_verified_model_capture(capture) |> ignore
+      }
+      if active.source is Restored(capture) {
+        @publication.release_model_capture_bundle_read(capture) |> ignore
       }
       active.rows = None
       active.call_scope = None

@@ -40,6 +40,8 @@ pub fn release_output(OutputUse) -> Bool
 
 pub fn request_preflight_pending(Execution) -> Bool
 
+pub fn restoring(Execution) -> Bool
+
 pub fn sealing_observation(Execution) -> Bool
 
 pub fn standard_limits() -> Limits
@@ -47,6 +49,8 @@ pub fn standard_limits() -> Limits
 pub fn start(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelProvider, String, Limits, plan? : @run_publication_host.ClientInferPlanGraph?) -> Result[Execution, Issue]
 
 pub fn start_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.VerifiedModelCapture, Limits, @run_publication_host.ClientInferPlanGraph) -> Result[Execution, Issue]
+
+pub fn start_restored_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @run_publication.ModelCaptureBundleRead, Limits, @run_publication_host.ClientInferPlanGraph) -> Result[Execution, Issue]
 
 // Errors
 

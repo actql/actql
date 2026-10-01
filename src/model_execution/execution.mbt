@@ -119,6 +119,11 @@ priv enum ModelPhase {
   PrepareRequests
   DispatchSlot
   CheckResponse(ModelRequest, ModelResponse, String, @admitted.RecheckCursor)
+  RestoreResponse(
+    PreparedModelRequest,
+    @publication.ModelCaptureRecordRead,
+    @admitted.CanonicalConversion
+  )
   PrepareEvidence(ModelEvidencePreparation)
   Reclaimed
 }
@@ -127,6 +132,7 @@ priv enum ModelPhase {
 priv enum ModelSource {
   Provider(ModelProvider)
   Replay(VerifiedModelCapture)
+  Restored(@publication.ModelCaptureBundleRead)
 }
 
 ///|
@@ -145,6 +151,7 @@ struct ModelState {
   captures : Array[ModelSlotCapture]
   responses : Array[@admitted.Value]
   invocation_evidence : Array[@publication.RunEvidenceValue]
+  mut restored_evidence : @publication.RunEvidenceValue?
   mut phase : ModelPhase
   mut work : Int
   mut next_slot : Int
@@ -255,7 +262,7 @@ fn advance_model(
   if state.phase is ReserveSlots {
     // Replay owns a read of an already checked observation. It must neither
     // reserve another physical attempt nor re-enter a provider on failure.
-    if state.source is Replay(_) {
+    if state.source is Replay(_) || state.source is Restored(_) {
       state.phase = PrepareRequests
       return @bounded.Continue(1, 1)
     }
@@ -315,11 +322,25 @@ fn advance_model(
       }
     }
   }
+  if state.phase is RestoreResponse(prepared, record, cursor) {
+    return advance_restored_model_response(state, prepared, record, cursor)
+  }
   if state.phase is PrepareEvidence(preparation) {
     match advance_model_evidence(state, preparation) {
       Err(issue) => return @bounded.Failed(issue, 1, 1)
       Ok(None) => return @bounded.Continue(1, 1)
       Ok(Some(evidence)) => {
+        if state.source is Restored(_) &&
+          (
+            state.restored_evidence is None ||
+            @publication.run_evidence_value_identity(
+              state.restored_evidence.unwrap(),
+            ) !=
+            @publication.run_evidence_value_identity(evidence)
+          ) {
+          return @bounded.Failed(OutputIdentity, 1, 1)
+        }
+        state.restored_evidence = None
         state.invocation_evidence.push(evidence)
         return accept_model_slot(
           state,
@@ -340,6 +361,9 @@ fn advance_model(
   let request = prepared.request
   if state.source is Replay(capture) {
     return advance_model_capture_replay(state, capture, prepared)
+  }
+  if state.source is Restored(capture) {
+    return begin_restored_model_response(state, capture, prepared)
   }
   guard state.source is Provider(provider) else {
     return @bounded.Failed(OutputIdentity, 1, 1)
@@ -461,6 +485,7 @@ fn start_model_owned(
     captures: [],
     responses: [],
     invocation_evidence: [],
+    restored_evidence: None,
     phase: ReserveSlots,
     work: 0,
     next_slot: 0,
@@ -552,6 +577,9 @@ pub fn cleanup_model_execution(
       if execution.state.phase is PrepareEvidence(value) {
         cancel_model_evidence(value)
       }
+      if execution.state.phase is RestoreResponse(_, _, cursor) {
+        @admitted.cancel_canonical_conversion(cursor)
+      }
       if execution.state.request is Some(request) {
         cancel_model_request_preparation(request)
         execution.state.request = None
@@ -568,9 +596,13 @@ pub fn cleanup_model_execution(
       execution.state.captures.clear()
       execution.state.responses.clear()
       execution.state.invocation_evidence.clear()
+      execution.state.restored_evidence = None
       execution.state.requests.clear()
       if execution.state.source is Replay(capture) {
         capture.owner.state.output_uses -= 1
+      }
+      if execution.state.source is Restored(capture) {
+        @publication.release_model_capture_bundle_read(capture) |> ignore
       }
       execution.state.reclaimed = true
       Ok(true)
