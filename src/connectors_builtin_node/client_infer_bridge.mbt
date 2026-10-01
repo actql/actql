@@ -26,6 +26,30 @@ pub fn client_program_compile_local_infer(
 }
 
 ///|
+/// The installed Host retains the checked barrier and derives call identity
+/// from the exact completed input before the first physical model dispatch.
+#export_name("clientProgramStartScopedInferExecution")
+pub fn client_program_start_scoped_infer_execution(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  graph : @publication_host.ClientInferPlanGraph,
+  registry : String,
+  values : String,
+  provider : @model.ModelProvider,
+) -> Result[@infer_host.Execution, @infer_host.Issue] {
+  @infer_host.start(
+    prepared,
+    step,
+    registry,
+    values,
+    provider,
+    @publication_host.client_infer_plan_graph_request_cid(graph),
+    @infer_host.standard_limits(),
+    plan=Some(graph),
+  )
+}
+
+///|
 /// Start one owned physical operation only after the Host admits model access.
 /// Preparation, dispatch and output share the original checked Program owner.
 #export_name("clientProgramStartInferExecution")
@@ -79,6 +103,14 @@ pub fn client_program_infer_request_preflight_pending(
   active : @infer_host.Execution,
 ) -> Bool {
   @infer_host.request_preflight_pending(active)
+}
+
+///|
+#export_name("clientProgramInferIdentityPending")
+pub fn client_program_infer_identity_pending(
+  active : @infer_host.Execution,
+) -> Bool {
+  @infer_host.identity_pending(active)
 }
 
 ///|

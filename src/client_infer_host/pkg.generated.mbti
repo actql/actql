@@ -13,6 +13,8 @@ pub fn acquire_output(Execution) -> OutputUse?
 
 pub fn advance(Execution, Int) -> Result[Poll, Issue]
 
+pub fn call_scope(Execution) -> @run_publication_host.ClientInferCallScope?
+
 pub fn cancel(Execution) -> Bool
 
 pub fn capture(Execution) -> @model_execution.ModelCaptureBundle?
@@ -22,6 +24,8 @@ pub fn cleanup(Execution) -> Result[Bool, Issue]
 pub fn completed(Poll) -> @execution_relation.CompletedOutput?
 
 pub fn handoff_pending(Execution) -> Bool
+
+pub fn identity_pending(Execution) -> Bool
 
 pub fn matches(Execution, @run_publication_host.PreparedClientProgram) -> Bool
 
@@ -33,7 +37,7 @@ pub fn request_preflight_pending(Execution) -> Bool
 
 pub fn standard_limits() -> Limits
 
-pub fn start(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelProvider, String, Limits) -> Result[Execution, Issue]
+pub fn start(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelProvider, String, Limits, plan? : @run_publication_host.ClientInferPlanGraph?) -> Result[Execution, Issue]
 
 // Errors
 
@@ -43,8 +47,12 @@ pub struct Execution {
   input : @client_local_host.ClientInferInputExecution
   provider : @model_execution.ModelProvider
   fixed_request_cid : String
+  step : Int
+  plan : @run_publication_host.ClientInferPlanGraph?
   limits : Limits
   mut rows : @execution_relation.PreparedInferRows?
+  mut identity : @execution_relation.CompletedRelationIdentityScan?
+  mut call_scope : @run_publication_host.ClientInferCallScope?
   mut model : @model_execution.ModelExecution?
   mut capture : @model_execution.ModelCaptureBundle?
   mut output : @model_execution.ModelOutputPreparation?
@@ -58,11 +66,22 @@ pub struct Execution {
   mut output_uses : Int
 }
 
+pub(all) struct IdentityLimits {
+  rows : Int
+  wire : @execution_relation.RowWireLimits
+  logical_wire : @execution_relation.RowWireLimits
+  schema : @execution_relation.RelationSchemaIdentityLimits
+  work : Int
+  workspace : Int
+}
+
 pub(all) enum Issue {
   InvalidAdvance
   Input(@client_local_host.ClientInferInputIssue)
   Model(@model_execution.ModelExecutionIssue)
   Capacity(@run_publication_host.ClientInferHostCapacityIssue)
+  IdentityExport(@execution_relation.CompletedExportIssue)
+  CallScope(@run_publication_host.ClientInferCallScopeIssue)
 }
 
 pub(all) struct Limits {
@@ -74,6 +93,7 @@ pub(all) struct Limits {
   output_values : @execution_relation.ValueLimits
   output_work : Int
   output_workspace : Int
+  identity : IdentityLimits
 }
 
 pub struct OutputUse {

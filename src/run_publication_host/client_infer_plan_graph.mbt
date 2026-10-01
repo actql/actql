@@ -64,6 +64,17 @@ pub fn client_infer_plan_graph_matches(
 }
 
 ///|
+/// Bind a physical input preparation to the saved logical call occurrence.
+/// Equal graph bytes or a different prepared Program cannot substitute.
+pub fn client_infer_plan_graph_matches_occurrence(
+  value : ClientInferPlanGraph,
+  owner : PreparedClientProgram,
+  step : Int,
+) -> Bool {
+  physical_equal(value.owner, owner) && value.source_ordinal == step
+}
+
+///|
 pub fn client_infer_plan_graph_wire(value : ClientInferPlanGraph) -> String {
   value.graph.wire
 }

@@ -10,6 +10,18 @@ pub(all) struct Limits {
   output_values : @relation.ValueLimits
   output_work : Int
   output_workspace : Int
+  identity : IdentityLimits
+}
+
+///|
+/// Input identity is a separate bounded conversion before model dispatch.
+pub(all) struct IdentityLimits {
+  rows : Int
+  wire : @relation.RowWireLimits
+  logical_wire : @relation.RowWireLimits
+  schema : @relation.RelationSchemaIdentityLimits
+  work : Int
+  workspace : Int
 }
 
 ///|
@@ -18,11 +30,14 @@ pub(all) enum Issue {
   Input(@input.ClientInferInputIssue)
   Model(@model.ModelExecutionIssue)
   Capacity(@publication_host.ClientInferHostCapacityIssue)
+  IdentityExport(@relation.CompletedExportIssue)
+  CallScope(@publication_host.ClientInferCallScopeIssue)
 }
 
 ///|
 enum Phase {
   Input
+  Identity
   Model
   Output
   Handoff
@@ -46,8 +61,12 @@ pub struct Execution {
   input : @input.ClientInferInputExecution
   provider : @model.ModelProvider
   fixed_request_cid : String
+  step : Int
+  plan : @publication_host.ClientInferPlanGraph?
   limits : Limits
   mut rows : @relation.PreparedInferRows?
+  mut identity : @relation.CompletedRelationIdentityScan?
+  mut call_scope : @publication_host.ClientInferCallScope?
   mut model : @model.ModelExecution?
   mut capture : @model.ModelCaptureBundle?
   mut output : @model.ModelOutputPreparation?
@@ -79,6 +98,7 @@ pub fn start(
   provider : @model.ModelProvider,
   fixed_request_cid : String,
   limits : Limits,
+  plan? : @publication_host.ClientInferPlanGraph? = None,
 ) -> Result[Execution, Issue] {
   if limits.output_rows < 0 ||
     limits.output_work < 0 ||
@@ -94,6 +114,16 @@ pub fn start(
     if !((c >= 48 && c <= 57) || (c >= 97 && c <= 102)) {
       return Err(Model(@model.RequestIdentity))
     }
+  }
+  if plan is Some(graph) &&
+    (
+      !@publication_host.client_infer_plan_graph_matches_occurrence(
+        graph, prepared, step,
+      ) ||
+      @publication_host.client_infer_plan_graph_request_cid(graph) !=
+      fixed_request_cid
+    ) {
+    return Err(Model(@model.RequestIdentity))
   }
   let ceiling = match
     @publication_host.prepared_client_infer_host_item_ceiling(prepared, step) {
@@ -141,8 +171,12 @@ pub fn start(
     input,
     provider,
     fixed_request_cid,
+    step,
+    plan,
     limits,
     rows: None,
+    identity: None,
+    call_scope: None,
     model: None,
     capture: None,
     output: None,
@@ -190,6 +224,25 @@ fn stopped(active : Execution) -> Poll {
 }
 
 ///|
+fn begin_model(active : Execution) -> Poll {
+  guard active.rows is Some(rows) else { return fail(active, InvalidAdvance) }
+  active.model = match
+    @model.start_model_execution(
+      rows,
+      active.provider,
+      active.fixed_request_cid,
+      active.limits.model,
+      call_scope=active.call_scope,
+    ) {
+    Ok(value) => Some(value)
+    Err(issue) => return fail(active, Model(issue))
+  }
+  active.child_work = 0L
+  active.phase = Model
+  Continue(work=active.work)
+}
+
+///|
 fn advance_child(active : Execution, quantum : Int) -> Poll {
   match active.phase {
     Input =>
@@ -211,19 +264,31 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
           if active.cancelled {
             return stopped(active)
           }
-          active.model = match
-            @model.start_model_execution(
-              rows,
-              active.provider,
-              active.fixed_request_cid,
-              active.limits.model,
-            ) {
-            Ok(value) => Some(value)
-            Err(issue) => return fail(active, Model(issue))
+          if active.plan is Some(_) {
+            guard @input.client_infer_completed_input(active.input)
+              is Some(completed) else {
+              return fail(active, InvalidAdvance)
+            }
+            let limits = active.limits.identity
+            active.identity = match
+              @relation.start_completed_relation_identity_scan(
+                completed,
+                limits.rows,
+                active.limits.input.rows.output_values,
+                limits.wire,
+                limits.logical_wire,
+                limits.schema,
+                limits.work,
+                limits.workspace,
+              ) {
+              Ok(value) => Some(value)
+              Err(issue) => return fail(active, IdentityExport(issue))
+            }
+            active.child_work = 0L
+            active.phase = Identity
+            return Continue(work=active.work)
           }
-          active.child_work = 0L
-          active.phase = Model
-          Continue(work=active.work)
+          begin_model(active)
         }
         Ok(@input.Failed(issue, work~)) => {
           account(active, work) |> ignore
@@ -234,6 +299,60 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
           stopped(active)
         }
       }
+    Identity => {
+      if active.cancelled {
+        return stopped(active)
+      }
+      guard active.identity is Some(identity) else {
+        return fail(active, InvalidAdvance)
+      }
+      let (done, _) = match
+        @relation.advance_completed_relation_identity_scan(identity, quantum) {
+        Ok(value) => value
+        Err(issue) => {
+          if !account(
+              active,
+              @relation.completed_relation_identity_scan_work(identity),
+            ) {
+            return fail(active, InvalidAdvance)
+          }
+          return fail(active, IdentityExport(issue))
+        }
+      }
+      if !account(
+          active,
+          @relation.completed_relation_identity_scan_work(identity),
+        ) {
+        return fail(active, InvalidAdvance)
+      }
+      if !done {
+        return Continue(work=active.work)
+      }
+      let receipt = match
+        @relation.finish_completed_relation_identity_scan(identity) {
+        Ok(value) => value
+        Err(issue) => return fail(active, IdentityExport(issue))
+      }
+      guard active.plan is Some(plan) &&
+        @input.client_infer_completed_input(active.input) is Some(completed) else {
+        return fail(active, InvalidAdvance)
+      }
+      active.call_scope = match
+        @publication_host.issue_prepared_client_infer_call_scope(
+          active.prepared,
+          plan,
+          active.step,
+          completed,
+          receipt,
+          100000,
+          10000,
+          100,
+        ) {
+        Ok(value) => Some(value)
+        Err(issue) => return fail(active, CallScope(issue))
+      }
+      begin_model(active)
+    }
     Model => {
       guard active.model is Some(model) else {
         return fail(active, InvalidAdvance)
@@ -359,6 +478,10 @@ pub fn cancel(active : Execution) -> Bool {
   active.cancelled = true
   match active.phase {
     Input => @input.cancel_client_infer_input(active.input) |> ignore
+    Identity =>
+      if active.identity is Some(identity) {
+        @relation.cancel_completed_relation_identity_scan(identity) |> ignore
+      }
     Model =>
       if active.model is Some(model) {
         @model.request_model_cancel(model) |> ignore
@@ -429,6 +552,23 @@ pub fn release_output(value : OutputUse) -> Bool {
 /// A handoff is a yield boundary, not yet publication or ownership transfer.
 pub fn handoff_pending(active : Execution) -> Bool {
   !active.reclaimed && active.phase is Handoff
+}
+
+///|
+pub fn identity_pending(active : Execution) -> Bool {
+  !active.reclaimed && active.phase is Identity
+}
+
+///|
+/// Input identity retained by the physical owner, never execution evidence.
+pub fn call_scope(
+  active : Execution,
+) -> @publication_host.ClientInferCallScope? {
+  if active.reclaimed {
+    None
+  } else {
+    active.call_scope
+  }
 }
 
 ///|
@@ -507,6 +647,31 @@ pub fn standard_limits() -> Limits {
     output_values: values,
     output_work: values.max_work,
     output_workspace: 10000,
+    identity: {
+      rows: 100,
+      wire: {
+        max_columns: 100,
+        max_order_work: 10000,
+        max_bytes: 500000,
+        max_nodes: 20000,
+        max_depth: 100,
+      },
+      logical_wire: {
+        max_columns: 100,
+        max_order_work: 10000,
+        max_bytes: 500100,
+        max_nodes: 20002,
+        max_depth: 102,
+      },
+      schema: {
+        max_fields: 100,
+        max_bytes: 100000,
+        max_nodes: 10000,
+        max_depth: 100,
+      },
+      work: values.max_work,
+      workspace: 100000,
+    },
   }
 }
 
@@ -538,9 +703,14 @@ pub fn cleanup(active : Execution) -> Result[Bool, Issue] {
     active.model = None
     active.capture = None
   }
+  if active.identity is Some(identity) {
+    @relation.cancel_completed_relation_identity_scan(identity) |> ignore
+    active.identity = None
+  }
   match @input.cleanup_client_infer_input(active.input) {
     Ok(true) => {
       active.rows = None
+      active.call_scope = None
       active.reclaimed = true
       Ok(true)
     }

@@ -445,6 +445,8 @@ pub fn client_program_infer_execution_material_wire(@run_publication_host.Client
 
 pub fn client_program_infer_execution_output(@client_infer_host.Poll) -> @execution_relation.CompletedOutput?
 
+pub fn client_program_infer_identity_pending(@client_infer_host.Execution) -> Bool
+
 pub fn client_program_infer_input_rows(@client_local_host.ClientInferInputPoll) -> @execution_relation.PreparedInferRows?
 
 pub fn client_program_infer_output_use(@client_infer_host.OutputUse) -> @execution_relation.CompletedOutput?
@@ -814,6 +816,8 @@ pub fn client_program_start_infer_input(@run_publication_host.PreparedClientProg
 pub fn client_program_start_model_execution(@execution_relation.PreparedInferRows, @model_execution.ModelProvider, String) -> Result[@model_execution.ModelExecution, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_start_model_output(@client_local_host.ClientInferInputExecution, @execution_relation.PreparedInferRows, @model_execution.ModelExecution) -> Result[@model_execution.ModelOutputPreparation, @model_execution.ModelExecutionIssue]
+
+pub fn client_program_start_scoped_infer_execution(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelProvider) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
 pub fn client_program_task_compilation_compiled_plan_wire(@run_publication_host.ClientTaskCompilation) -> String
 

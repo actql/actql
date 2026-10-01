@@ -283,8 +283,28 @@ function ownedInfer(source = program(), onInvoke, options = {}) {
         '{"reason":null,"risk":"high"}', 'fixture-risk-model', 'request-1',
         1n, 2n, '2026-10-01T00:00:00.000Z');
     });
-  active = checked(moon.clientProgramStartInferExecution(
-    prepared, 2, registry, values, provider, `sha256:${'1'.repeat(64)}`));
+  if (options.scoped === true) {
+    // Identity-only dependency bodies exercise the composed physical owner.
+    // They remain distinct from public Host policy/egress admission.
+    const body = {version: 'actql-model-execution-contract/0.1',
+      model_task_contract_cid: task.contract_cid,
+      retry_classification_contract_cid: `sha256:${'a'.repeat(64)}`,
+      backoff_contract_cid: `sha256:${'a'.repeat(64)}`,
+      max_attempts_per_slot: 2, max_total_attempts: 4,
+      max_total_cost_units: 0, max_total_duration_ms: 1000,
+      max_total_wire_bytes: 2048, max_total_token_reservation: 128,
+      media_input_contracts: {}, default_publication: 'outcomes'};
+    const identity = cid(body);
+    const execution = checked(moon.clientProgramReadInferModelExecution(
+      prepared, 2, canonicalText({...body, self_cid: identity}), identity));
+    const graph = checked(moon.clientProgramInferPlanGraph(prepared, 2,
+      execution, `sha256:${'b'.repeat(64)}`, `sha256:${'c'.repeat(64)}`));
+    active = checked(moon.clientProgramStartScopedInferExecution(
+      prepared, 2, graph, registry, values, provider));
+  } else {
+    active = checked(moon.clientProgramStartInferExecution(
+      prepared, 2, registry, values, provider, `sha256:${'1'.repeat(64)}`));
+  }
   return {prepared, active, calls: () => calls};
 }
 
@@ -500,6 +520,61 @@ test('one MoonBit owner executes the checked prefix, model and Result output', a
   assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), true);
   assert.equal(moon.clientProgramAcquireInferOutput(active), undefined);
   assert.equal(calls(), 1);
+});
+
+test('scoped normal inference reconstructs a stable slot from its completed input', async () => {
+  const slots = [];
+  for (let reconstruction = 0; reconstruction < 2; reconstruction++) {
+    const {active, calls} = ownedInfer(undefined, undefined, {scoped: true});
+    const terminal = await ownedInferTerminal(active);
+    assert.equal(terminal.$tag, 1, inspect(terminal));
+    assert.equal(calls(), 1);
+    const capture = JSON.parse(moon.clientProgramModelCaptureJson(
+      moon.clientProgramInferExecutionCapture(active)));
+    assert.equal(capture.captures.length, 1);
+    assert.equal(capture.captures[0].input_key_cid,
+      'sha256:042a400915c1e3c348ec713c0e6b496f28dcde211e33c64fbada352b6e6e7011');
+    slots.push(capture.captures[0].slot_cid);
+    assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), true);
+    assert.equal(calls(), 1);
+  }
+  assert.equal(slots[0], slots[1]);
+});
+
+test('a macrotask stops unused nested input identity before scoped model dispatch', async () => {
+  const source = program();
+  source.stages[0].steps[0].values.schema.payload = {
+    type: 'array', nullable: false,
+    items: {type: 'number', nullable: false}};
+  source.stages[0].steps[0].values.rows[0].payload = Array(500).fill(0);
+  const {active, calls} = ownedInfer(source, undefined, {scoped: true,
+    capacityOverrides: {max_nested_value_bytes: 10000, max_artifact_bytes: 10000}});
+  let reached = false;
+  for (let poll = 0; poll < 20000; poll++) {
+    assert.equal(checked(moon.clientProgramAdvanceInferExecution(active, 1)).$tag, 0);
+    if (moon.clientProgramInferIdentityPending(active)) {
+      reached = true;
+      break;
+    }
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  assert.equal(reached, true);
+  for (let poll = 0; poll < 100; poll++) {
+    assert.equal(checked(moon.clientProgramAdvanceInferExecution(active, 1)).$tag, 0);
+    assert.equal(moon.clientProgramInferIdentityPending(active), true);
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  assert.equal(calls(), 0);
+  await new Promise(resolve => setImmediate(() => {
+    assert.equal(moon.clientProgramCancelInferExecution(active), true);
+    resolve();
+  }));
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), false);
+  assert.equal(checked(moon.clientProgramAdvanceInferExecution(active, 1)).$tag, 3);
+  assert.equal(moon.clientProgramAcquireInferOutput(active), undefined);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), true);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), true);
+  assert.equal(calls(), 0);
 });
 
 test('owned inference observes cancellation at model and output handoffs', async () => {

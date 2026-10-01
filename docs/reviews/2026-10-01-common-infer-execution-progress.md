@@ -72,15 +72,52 @@ from this test observation.
 
 The remaining connection belongs to the common inference work:
 
-- Derive and admit the barrier's fixed request, input Artifact, call slots,
-  classification and execution envelope from the same prepared Program.
-- Extend `run_publication_host` task compilation to represent the acquisition
-  boundary without passing INFER through pure AoA lowering.
+- Admit the barrier's classification, dependency closure and execution
+  envelope under the installed Host authority. Identity alone grants none of
+  these permissions.
 - Connect that compilation and the model execution to the existing
   `client-dispatch-owner` and publication owner, retaining stop and cleanup
   custody. `local-values-plan.mjs` currently supplies empty model evidence.
 - Read the committed Named Result and compare it with the independent row
   expectation before supplying an adoption SHA or Host startup example to B.
+
+### Current checked compilation and call identity
+
+The 0.1 schemas, pins and independent vectors now define effective inputs,
+the actual completed input Artifact, typed ordered keys and logical call slots.
+The slot excludes responses, captures and its containing Stage Invocation.
+Its occurrence is the saved checked Program step, not execution order or a
+worker/attempt index. The normative indirect-cycle rule still needs production
+dependency-closure admission; the independent cycle oracle is not that owner.
+
+Checked inference compilation now uses the existing Executable Plan, Bound
+Invocation Template, Run Definition and source-free Invocation owners. It
+retains the registered inference profile and exact acquisition graph while
+keeping the pure input fragment as its AoA identity. This is compilation
+support, not installed ModelTask dispatch authority.
+
+Scoped physical execution derives the input Artifact from its real bounded
+prefix completion. A stepped scan wraps the existing export/receipt owner,
+preserving its canonical identities and column measurements without retaining
+a row-sized payload. Nested admission and measurement consume quantum before
+ModelTask dispatch. Cancelling the scan cannot revoke its producer's input;
+physical stop and cleanup remain separate. Scalar wire emission and schema
+setup retain their existing bounded ceilings; this does not claim that every
+Unicode leaf or schema operation is character-stepped.
+
+The current narrow verification passed on JS, Wasm and native: identity scan
+2/2, completed export 15/15, inference Host owner 15/15, and Run compilation
+31/31 on each target. The Node inference bridge passed 23/23, including actual
+macrotask cancellation during unused nested input measurement and stable slot
+identity after reconstruction. Independently specified scan bounds are 29
+steps and 47 workspace slots; one-short failures retain no scan allocation.
+The earlier complete specification gate passed; its log is
+`_build/model-call-slot-spec.log`. No Linux CI result is claimed for this unit.
+
+Durable response/capture custody, verified formal replay, installed public Host
+registration and committed Named Result retrieval remain unfinished. The
+fixture execution policy is identity-only material, not public policy admission.
+The current SHA is therefore not an adoption-ready handoff to B.
 
 ## Checked compilation prefix
 
