@@ -144,6 +144,14 @@ bypassed that receiver and returned `RemoteDispatchIntentMissing`; its
 Output-plan and delivery calls now use the same owner as the other scenarios.
 No timeout or expected cleanup state was relaxed.
 
+Run 36828635181 at `d15dae18b` then passed all leaf jobs except Linux Native.
+Its retained packed-redelivery stderr identifies `RemoteCoordinatorOutputUnavailable`
+before the new ACK step: the R2 fixture's restored Coordinator omitted its
+Output/Transfer ports after the shared output helper moved to the durable
+receiver. The fixture now connects those existing ports. The R2 expectations,
+executor cardinality and physical-release checks remain unchanged; this is not
+an unexplained timeout or a blind retry.
+
 The preflight snapshot bound includes the maximum decimal width of an admitted
 Transfer revision, rather than the single-digit revision of the sizing fixture.
 A regression with revision 2147483647 verifies that the actual snapshot fits

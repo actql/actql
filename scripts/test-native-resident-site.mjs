@@ -847,6 +847,7 @@ try {
         journal: siteControl.createCoordinatorJournal('cloud-coordinator'),
         store: observationStore, authorization, currentDispatchContext: currentContext,
         query: gateway.query, release: gateway.release,
+        output: value => gateway.output(value), transferControl,
         send: async value => {
           assert.equal(value.dispatchEnvelope, observationStore.deliveryEnvelope(value.dispatch, siteControl));
           sends++;
