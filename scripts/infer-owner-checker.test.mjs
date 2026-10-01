@@ -20,9 +20,13 @@ void ignored;
 const cid = value => `sha256:${createHash('sha256')
   .update(canonicalText(value)).digest('hex')}`;
 
-function environment(installTask = true) {
+function environment(installTask = true, hostItems) {
   const body = {...baseEnvironment,
     model_task_contracts: installTask ? [task] : []};
+  if (hostItems !== undefined) {
+    body.host_policy_profile = {...body.host_policy_profile,
+      capacity: {...body.host_policy_profile.capacity, max_infer_items: hostItems}};
+  }
   const evidenceCid = cid(body);
   return moon.clientProgramCheckEnvironment(
     canonicalText({...body, evidence_bundle_cid: evidenceCid}), evidenceCid,
@@ -210,10 +214,12 @@ async function acceptedModel() {
   return {prepared, input, rows, active, calls: () => calls};
 }
 
-function ownedInfer(source = program(), onInvoke) {
-  const prepared = moon.clientProgramPreparationReady(
-    prepare(source, environment()));
-  assert.ok(prepared);
+function ownedInfer(source = program(), onInvoke, options = {}) {
+  const preparation = moon.clientProgramPrepareEffectFreeWithParameters(
+      canonicalText(source), 'json', environment(true, options.hostItems),
+      options.parameters === undefined ? undefined : canonicalText(options.parameters));
+  const prepared = moon.clientProgramPreparationReady(preparation);
+  assert.ok(prepared, inspect(preparation, {depth: 4}));
   let active;
   let calls = 0;
   const provider = moon.clientProgramInstallModelProvider('models/fixture',
@@ -336,6 +342,38 @@ test('owned inference closes an empty checked input without model dispatch', asy
   assert.deepEqual(JSON.parse(moon.clientProgramModelCaptureJson(
     moon.clientProgramInferExecutionCapture(active))).captures, []);
   assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), true);
+});
+
+test('normal Infer dispatch respects actual Host and bound author item ceilings', async () => {
+  const two = program();
+  two.stages[0].steps[0].values.rows.push({id: 'b', text: 'hello'});
+  const guarded = structuredClone(two);
+  guarded.stages[0].steps[2].infer.max_items = 1;
+  const parameterized = structuredClone(two);
+  parameterized.params = {limit: {type: 'number', nullable: false}};
+  parameterized.stages[0].steps[2].infer.max_items = {$param: 'limit'};
+  for (const [source, options] of [
+    [two, {hostItems: 1}],
+    [guarded, {}],
+    [parameterized, {parameters: {limit: 1}}],
+  ]) {
+    const {active, calls} = ownedInfer(source, undefined, options);
+    const terminal = await ownedInferTerminal(active);
+    assert.equal(terminal.$tag, 2, inspect(terminal, {depth: 4}));
+    // Exact typed Model(ItemLimit), not a coincidental downstream failure.
+    assert.equal(terminal._0.$tag, 2);
+    assert.equal(terminal._0._0.$tag, 2);
+    assert.equal(calls(), 0);
+    assert.equal(moon.clientProgramInferExecutionOutput(terminal), undefined);
+    assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), true);
+    assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), true);
+    assert.equal(calls(), 0);
+  }
+  const {active, calls} = ownedInfer(two, undefined, {hostItems: 2});
+  assert.equal((await ownedInferTerminal(active)).$tag, 1);
+  assert.equal(calls(), 2);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), true);
+  assert.equal(calls(), 2);
 });
 
 test('only accepted model output enters the original checked Result transform', async () => {

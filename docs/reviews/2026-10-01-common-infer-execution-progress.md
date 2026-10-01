@@ -84,6 +84,33 @@ The remaining connection belongs to the common inference work:
 
 ## Checked compilation prefix
 
+### Dispatch item admission
+
+The composed execution reads `max_infer_items` from the original prepared
+Program's checked Host capacity policy. An adapter envelope may tighten this
+ceiling, never widen it. INPUT lowering retains literal or parameter-bound
+`max_items` under the exact parameter declaration owner, and the common model
+owner checks that guard after key admission but before attempt reservation or
+provider dispatch. Invalid positive-count bindings retain their typed cause
+and authored guard location.
+
+Normal two-row Programs exercise an independently chosen exact boundary of
+two slots and a one-short boundary of one slot. The short Host ceiling,
+literal guard and bound parameter guard cause `Model(ItemLimit)`, zero
+provider calls, no completed output, and idempotent cleanup. This is physical
+item admission, not the full resolved-limit witness closure, adapter preflight
+or model-egress authority of an executable inference Plan. The public Host
+handoff remains unavailable until those and committed publication are connected.
+
+Focused item-admission checks passed on JS, Wasm and native: four
+`client_infer_host` tests, four `infer_inputs_wbtest` tests and two
+`model_execution` tests per target. The rebuilt Node bridge passed all 18
+`infer-owner-checker` tests. Formatting and whitespace checks passed.
+These results do not cover public Run acceptance, committed Named Results,
+Linux CI or an adoption-ready handoff to the Frontend owner.
+
+### Prefix compilation
+
 Compilation and bounded execution now share
 `run_publication_host.client_infer_prefix_owner`. The initial source-free,
 single-task shape selects an actual Infer's adjacent Relation producer from

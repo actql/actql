@@ -52,6 +52,7 @@ fn infer_fixture_input() -> @carrier.Carrier {
 fn infer_fixture_checked(
   mapping : String,
   parameters? : @parameter.Declarations? = None,
+  extra? : String = "",
 ) -> @infer.CheckedInfer {
   let input = infer_fixture_input()
   let key = @evidence.declare_primary_key(input_cursor("[\"id\"]"), input, {
@@ -62,7 +63,9 @@ fn infer_fixture_checked(
     input_cursor(
       "{\"contract\":\"model-task:risk-score.v1\",\"key\":\"id\",\"input\":{\"text\":" +
       mapping +
-      "}}",
+      "}" +
+      extra +
+      "}",
     ),
     input,
     Some(@evidence.singleton_key(key)),
@@ -234,6 +237,60 @@ test "infer object property mapping preserves closed typed fields and nullable m
       expected,
     )
   }
+}
+
+///|
+test "infer lowering binds positive item guards under the exact declaration owner" {
+  let declarations = @parameter.read_declarations(
+    Some(input_cursor("{\"limit\":{\"type\":\"number\",\"nullable\":true}}")),
+    { max_parameters: 1, max_nodes: 100, max_depth: 10, max_text_bytes: 1000, },
+  ).unwrap()
+  let checked = infer_fixture_checked(
+    "{\"field\":\"text\"}",
+    parameters=Some(declarations),
+    extra=",\"max_items\":{\"$param\":\"limit\"}",
+  )
+  for
+    (body, expected) in [
+      ("{\"limit\":1}", Some(1L)),
+      ("{\"limit\":9007199254740991}", Some(9007199254740991L)),
+      ("{\"limit\":0}", None),
+      ("{\"limit\":1.5}", None),
+      ("{\"limit\":null}", None),
+    ] {
+    guard @parameter.bind(declarations, Some(input_cursor(body)), {
+        max_nodes: 100,
+        max_depth: 10,
+        max_text_bytes: 1000,
+      }).unwrap()
+      is Ready(bound) else {
+      abort("complete guard binding")
+    }
+    let result = @lower.prepare_infer_inputs(
+      checked,
+      Some(bound),
+      infer_fixture_expression_limits(),
+    )
+    if expected is Some(value) {
+      assert_eq(@lower.infer_input_item_guard(result.unwrap()), Some(value))
+    } else {
+      assert_true(result is Err({ kind: InvalidItemGuard("limit"), .. }))
+    }
+  }
+  let literal = infer_fixture_checked(
+    "{\"field\":\"text\"}",
+    extra=",\"max_items\":2",
+  )
+  assert_eq(
+    @lower.infer_input_item_guard(
+      @lower.prepare_infer_inputs(
+        literal,
+        None,
+        infer_fixture_expression_limits(),
+      ).unwrap(),
+    ),
+    Some(2L),
+  )
 }
 
 ///|

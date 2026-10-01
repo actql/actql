@@ -559,6 +559,8 @@ pub fn prepared_client_graph(PreparedClientProgram) -> @physical_strategy.Checke
 
 pub fn prepared_client_identity(PreparedClientProgram) -> ClientProgramIdentity
 
+pub fn prepared_client_infer_host_item_ceiling(PreparedClientProgram, Int) -> Result[Int64, ClientInferHostCapacityIssue]
+
 pub fn prepared_client_program_semantics_cid(PreparedClientProgram) -> String
 
 pub fn prepared_client_result_count(PreparedClientProgram) -> Int
@@ -852,6 +854,12 @@ pub(all) enum ClientExecutionMaterialIssue {
 pub(all) enum ClientIdentityMaterialIssue {
   MissingStage
   Encoding
+}
+
+pub(all) enum ClientInferHostCapacityIssue {
+  UnsupportedProgram
+  Capacity(@check_environment.CapacityIssue)
+  MissingItemCeiling
 }
 
 pub struct ClientInferPlanGraph {

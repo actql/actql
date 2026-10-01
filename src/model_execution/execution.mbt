@@ -357,6 +357,10 @@ pub fn start_model_execution(
   }
   if count > limits.max_items ||
     (
+      @relation.prepared_infer_rows_item_guard(rows) is Some(max) &&
+      count.to_int64() > max
+    ) ||
+    (
       @environment.model_task_max_items(task) is Some(max) &&
       count.to_int64() > max
     ) {

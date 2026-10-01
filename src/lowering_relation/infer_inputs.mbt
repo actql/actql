@@ -5,6 +5,8 @@ pub(all) enum InferInputIssueKind {
   Binding(BindingIssueKind)
   MissingCheckedInput
   MissingResolvedField(String)
+  MissingItemGuard(String)
+  InvalidItemGuard(String)
   Expression(ExpressionIssueKind)
 }
 
@@ -19,6 +21,7 @@ struct PreparedInferInputs {
   owner : @infer.CheckedInfer
   parameters : @parameter.BoundValues?
   inputs : Array[Expression]
+  item_guard : Int64?
   usage : (Int, Int, Int, Int)
 }
 
@@ -63,6 +66,38 @@ pub fn prepare_infer_inputs(
   let mut nodes = limits.max_nodes
   let mut literal_nodes = limits.max_literal_nodes
   let mut text_bytes = limits.max_literal_text_bytes - parameter_bytes
+  let item_guard = match @infer.max_items_guard(owner) {
+    None => None
+    Some(authored) => {
+      let guard_source = @relation.count_value_source(authored)
+      if work == 0 {
+        return Err({ kind: BudgetExceeded, source, })
+      }
+      work -= 1
+      match @relation.count_value(authored) {
+        Literal(value) => Some(value)
+        Parameter(name) => {
+          if name.length() > text_bytes {
+            return Err({ kind: BudgetExceeded, source, })
+          }
+          let bytes = @utf8.encode(name).length()
+          if bytes > text_bytes {
+            return Err({ kind: BudgetExceeded, source, })
+          }
+          text_bytes -= bytes
+          guard by_name.get(name) is Some(value) else {
+            return Err({ kind: MissingItemGuard(name), source: guard_source, })
+          }
+          guard value.value is @value.Number(number) &&
+            @scalar.read_safe_integer(number) is Some(value) &&
+            value > 0L else {
+            return Err({ kind: InvalidItemGuard(name), source: guard_source, })
+          }
+          Some(value)
+        }
+      }
+    }
+  }
   let inputs = []
   for index in 0..<count {
     guard @infer.input_binding_at(owner, index) is Some(binding) else {
@@ -116,6 +151,7 @@ pub fn prepare_infer_inputs(
     owner,
     parameters,
     inputs,
+    item_guard,
     usage: (
       limits.max_work - work,
       limits.max_nodes - nodes,
@@ -135,6 +171,13 @@ pub fn infer_inputs_parameters(
   value : PreparedInferInputs,
 ) -> @parameter.BoundValues? {
   value.parameters
+}
+
+///|
+/// The author's bound item guard under the exact parameter declaration owner.
+/// It is not a resolved limit or model-egress authority.
+pub fn infer_input_item_guard(value : PreparedInferInputs) -> Int64? {
+  value.item_guard
 }
 
 ///|

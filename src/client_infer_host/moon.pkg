@@ -9,4 +9,6 @@ import {
 
 import {
   "actql/actql/value_admission" @admitted,
+  "actql/actql/sha256" @sha,
+  "moonbitlang/core/encoding/utf8",
 } for "wbtest"

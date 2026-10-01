@@ -182,6 +182,13 @@ pub fn prepared_infer_rows_count(value : PreparedInferRows) -> Int {
 }
 
 ///|
+/// Retain the guard from the same typed mapping that admitted these keys.
+/// Reading it does not discharge the separate Host and Contract ceilings.
+pub fn prepared_infer_rows_item_guard(value : PreparedInferRows) -> Int64? {
+  @lower.infer_input_item_guard(value.input.prepared)
+}
+
+///|
 pub fn prepared_infer_rows_key(
   value : PreparedInferRows,
   slot : Int,

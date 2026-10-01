@@ -60,6 +60,7 @@ pub(all) enum Issue {
   InvalidAdvance
   Input(@client_local_host.ClientInferInputIssue)
   Model(@model_execution.ModelExecutionIssue)
+  Capacity(@run_publication_host.ClientInferHostCapacityIssue)
 }
 
 pub(all) struct Limits {

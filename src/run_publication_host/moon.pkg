@@ -19,6 +19,7 @@ import {
   "actql/actql/program_references" @program_refs,
   "actql/actql/capacity_witness" @capacity,
   "actql/actql/capacity_derivation" @arithmetic,
+  "actql/actql/capacity_policy",
   "actql/actql/source_value" @source,
   "actql/actql/canonical_json" @canonical,
   "actql/actql/canonical_value",

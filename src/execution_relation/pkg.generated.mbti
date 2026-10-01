@@ -865,6 +865,8 @@ pub fn[P] prepare_trusted_retained_scan_reuse(ProducerRead, P, (P, ProducerRead)
 
 pub fn prepared_infer_rows_count(PreparedInferRows) -> Int
 
+pub fn prepared_infer_rows_item_guard(PreparedInferRows) -> Int64?
+
 pub fn prepared_infer_rows_key(PreparedInferRows, Int, Int) -> @value_admission.CheckedValue?
 
 pub fn prepared_infer_rows_owner(PreparedInferRows) -> @relation_evidence.CheckedInfer

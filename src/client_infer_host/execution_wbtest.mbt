@@ -1,18 +1,71 @@
 ///|
-fn fixture_prepared() -> @publication_host.PreparedClientProgram {
+fn fixture_prepared(
+  source? : String = infer_fixture_program,
+  host_items? : Int = 1000,
+) -> @publication_host.PreparedClientProgram {
+  let unsigned = infer_fixture_environment
+    .replace(
+      old="\"evidence_bundle_cid\":\"" + infer_fixture_environment_cid + "\",",
+      new="",
+    )
+    .replace(
+      old="\"max_infer_items\":1000",
+      new="\"max_infer_items\":" + host_items.to_string(),
+    )
+  let cid = "sha256:" + @sha.hex(@utf8.encode(unsigned))
+  let wire = unsigned.replace(
+    old="\"host_policy_profile\":",
+    new="\"evidence_bundle_cid\":\"" + cid + "\",\"host_policy_profile\":",
+  )
   let environment = @publication_host.admit_client_check_environment(
-    infer_fixture_environment,
-    infer_fixture_environment_cid,
+    wire,
+    cid,
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
   @publication_host.prepare_effect_free_client_program(
-    infer_fixture_program,
+    source,
     Json,
     environment,
     None,
     @publication_host.client_standard_program_preparation_limits(),
   ).unwrap()
+}
+
+///|
+test "actual Host and author item ceilings reject dispatch without losing custody" {
+  let two = infer_fixture_program.replace(
+    old="\"rows\":[{\"id\":\"a\",\"text\":\"hello\"}]",
+    new="\"rows\":[{\"id\":\"a\",\"text\":\"hello\"},{\"id\":\"b\",\"text\":\"hello\"}]",
+  )
+  for
+    prepared in [
+      fixture_prepared(source=two, host_items=1),
+      fixture_prepared(
+        source=two.replace(
+          old="\"key\":\"id\",\"input\":",
+          new="\"key\":\"id\",\"max_items\":1,\"input\":",
+        ),
+      ),
+    ] {
+    let calls = Ref(0)
+    let active = fixture_start(prepared, () => calls.val += 1)
+    assert_true(fixture_finish(active) is Failed(Model(@model.ItemLimit), ..))
+    assert_true(acquire_output(active) is None)
+    assert_eq(calls.val, 0)
+    assert_true(cleanup(active).unwrap())
+    assert_true(cleanup(active).unwrap())
+    assert_eq(calls.val, 0)
+  }
+  // Independently chosen exact boundary: two admitted keys, two item slots.
+  let calls = Ref(0)
+  let active = fixture_start(fixture_prepared(source=two, host_items=2), () => {
+    calls.val += 1
+  })
+  assert_true(fixture_finish(active) is Complete(_, ..))
+  assert_eq(calls.val, 2)
+  assert_true(cleanup(active).unwrap())
+  assert_eq(calls.val, 2)
 }
 
 ///|

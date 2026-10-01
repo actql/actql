@@ -17,6 +17,7 @@ pub(all) enum Issue {
   InvalidAdvance
   Input(@input.ClientInferInputIssue)
   Model(@model.ModelExecutionIssue)
+  Capacity(@publication_host.ClientInferHostCapacityIssue)
 }
 
 ///|
@@ -93,6 +94,24 @@ pub fn start(
     if !((c >= 48 && c <= 57) || (c >= 97 && c <= 102)) {
       return Err(Model(@model.RequestIdentity))
     }
+  }
+  let ceiling = match
+    @publication_host.prepared_client_infer_host_item_ceiling(prepared, step) {
+    Ok(value) => value
+    Err(issue) => return Err(Capacity(issue))
+  }
+  if limits.model.max_items < 0 {
+    return Err(Model(@model.InvalidLimits))
+  }
+  // A Host-installed physical envelope may tighten the checked policy, never
+  // widen it. The common model owner checks this after all keys are admitted
+  // and before it reserves attempts or invokes the provider.
+  let limits = {
+    ..limits,
+    model: {
+      ..limits.model,
+      max_items: Int64::min(ceiling, limits.model.max_items.to_int64()).to_int(),
+    },
   }
   let input = match
     @input.start_client_infer_input(

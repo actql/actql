@@ -28,3 +28,38 @@ pub fn client_infer_prefix_owner(
   }
   Some(owner)
 }
+
+///|
+pub(all) enum ClientInferHostCapacityIssue {
+  UnsupportedProgram
+  Capacity(@environment.CapacityIssue)
+  MissingItemCeiling
+}
+
+///|
+/// Read the actual checked Host policy, never an adapter default. This is one
+/// physical admission candidate, not the complete inference Plan envelope.
+pub fn prepared_client_infer_host_item_ceiling(
+  value : PreparedClientProgram,
+  step : Int,
+) -> Result[Int64, ClientInferHostCapacityIssue] {
+  if client_infer_prefix_owner(value, 0, step) is None {
+    return Err(UnsupportedProgram)
+  }
+  let capacity = match
+    @environment.read_capacity(
+      @checked.checked_environment(@strategy.graph_program(value.graph)),
+      { max_bytes: 100000, max_nodes: 10000, max_depth: 100, },
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Capacity(issue))
+  }
+  guard @capacity_policy.ceiling(
+      @environment.capacity_policy(capacity),
+      "max_infer_items",
+    )
+    is Some(ceiling) else {
+    return Err(MissingItemCeiling)
+  }
+  Ok(@capacity_policy.ceiling_value(ceiling))
+}

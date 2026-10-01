@@ -541,6 +541,8 @@ pub fn infer_input_count(PreparedInferInputs) -> Int
 
 pub fn infer_input_expression_at(PreparedInferInputs, Int) -> Expression?
 
+pub fn infer_input_item_guard(PreparedInferInputs) -> Int64?
+
 pub fn infer_inputs_owner(PreparedInferInputs) -> @relation_evidence.CheckedInfer
 
 pub fn infer_inputs_parameters(PreparedInferInputs) -> @parameter_binding.BoundValues?
@@ -1394,6 +1396,8 @@ pub(all) enum InferInputIssueKind {
   Binding(BindingIssueKind)
   MissingCheckedInput
   MissingResolvedField(String)
+  MissingItemGuard(String)
+  InvalidItemGuard(String)
   Expression(ExpressionIssueKind)
 }
 
