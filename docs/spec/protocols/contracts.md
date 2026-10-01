@@ -1265,13 +1265,14 @@ immediately before `<a id="predicates"></a>`. That section contains the
 expression syntax, decoding and printer rules. It also binds
 `structural_text_grammar_sha256` to the raw UTF-8 bytes of
 `spec/grammar/actql-text-0.1.ebnf` and `structural_text_rules_sha256` to the
-complete raw UTF-8 bytes of [Structural text AQL](../structural-text.md).
+complete raw UTF-8 bytes of the [structural text withdrawal policy](../structural-text.md).
+Those fields bind rejection of the retired public envelope, not permission to
+use its historical internal fixture parser or formatter.
 It binds `query_text_grammar_sha256` to the raw UTF-8 bytes of
 `spec/grammar/actql-query-0.1.ebnf` and `query_text_rules_sha256` to the
 complete raw UTF-8 bytes of [Query text profile](../query-text.md).
-These fields bind source mapping, native DATA lowering, origins, bounds and
-structural and query formatting without replacing the existing Program schema
-identity.
+The query fields bind implemented query source mapping, origins, bounds and
+meaning preservation without replacing the existing Program schema identity.
 The manifest CID hashes canonical JSON of every member except
 `grammar_manifest_cid`.
 
