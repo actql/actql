@@ -1517,6 +1517,7 @@ pub(all) struct OrderedReferenceLimits {
 type OrderedReferences
 
 pub enum Payload {
+  Infer(@relation_evidence.CheckedInfer)
   Values(@relation_values.CheckedValues)
   TimeSeriesValue(@time_series.CheckedSeries)
   RowWindow(@temporal_window.CheckedWindow)

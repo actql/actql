@@ -54,6 +54,7 @@ pub(all) enum CoreContractBody {
   CanonicalIdentityRules
   SourceResponsePolicyRules
   EffectiveDataPolicyRules
+  ModelAcquisitionContract(String)
 } derive(Eq, Debug)
 
 ///|
@@ -78,6 +79,7 @@ pub(all) enum CoreContractSite {
   OperationGraphCountRules(Int, Int, Int)
   OperationRankingCountRules(Int, Int, Int)
   OperationSeriesCountRules(Int, Int, Int)
+  OperationModelContract(Int, Int, Int, Int)
   NumericAggregateProfile(Int, Int, Int, Int)
   NumericAggregateSlotRules(Int, Int, Int, Int)
   StageLocalInputRules(Int, Int)
@@ -643,6 +645,7 @@ pub fn collect_core_contracts(
       match b.bodies[index] {
         AdoptedBody(_)
         | CatalogContract(_)
+        | ModelAcquisitionContract(_)
         | ProgramSourceGrammar
         | StageSemantics(_)
         | CalendarProfileData(_)
@@ -804,6 +807,7 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
     ExpressionBody(body) => @environment.expression_contract_body_cid(body)
     AdoptedBody(law) => @pipeline.adopted_operation_law_cid(law)
     CatalogContract(cid) => cid
+    ModelAcquisitionContract(cid) => cid
     CatalogGrammarBody(body) => @environment.catalog_grammar_cid(body)
     ProgramSourceGrammar => @environment.program_source_grammar_cid()
     StageSemantics(rules) => @environment.stage_semantic_contract_cid(rules)

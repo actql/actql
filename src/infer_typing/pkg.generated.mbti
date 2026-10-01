@@ -18,6 +18,8 @@ pub fn input_binding_at(@relation_evidence.CheckedInfer, Int) -> @relation_evide
 
 pub fn input_binding_count(@relation_evidence.CheckedInfer) -> Int
 
+pub fn input_binding_role(@relation_evidence.InferInputBinding) -> String
+
 pub fn input_records(@relation_evidence.CheckedInfer) -> @carrier_contract.Knowledge
 
 pub fn input_schema(@relation_evidence.CheckedInfer) -> @relation_schema.Schema

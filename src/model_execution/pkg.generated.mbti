@@ -1,0 +1,125 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/model_execution"
+
+import {
+  "actql/actql/bounded_execution",
+  "actql/actql/check_environment",
+  "actql/actql/execution_relation",
+  "actql/actql/physical_resources",
+  "actql/actql/value_admission",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn advance_model_execution(ModelExecution, Int) -> Result[ModelObservation, ModelExecutionIssue]
+
+pub fn cleanup_model_execution(ModelExecution) -> Result[Bool, ModelExecutionIssue]
+
+pub fn install_model_provider(String, (ModelRequest) -> Result[ModelResponse, ModelProviderFailure]) -> Result[ModelProvider, ModelExecutionIssue]
+
+pub fn model_capture_bundle_json(ModelCaptureBundle, Int, Int, Int) -> String?
+
+pub fn replay_model_capture(@check_environment.ModelTaskContract, String, ModelCaptureBundle) -> Result[Array[@value_admission.CheckedValue], ModelExecutionIssue]
+
+pub fn request_model_cancel(ModelExecution) -> Bool
+
+pub fn start_model_execution(@execution_relation.PreparedInferRows, ModelProvider, String, ModelExecutionLimits) -> Result[ModelExecution, ModelExecutionIssue]
+
+// Errors
+
+// Types and methods
+pub(all) struct ModelCaptureBundle {
+  task_cid : String
+  fixed_request_cid : String
+  captures : Array[ModelSlotCapture]
+}
+
+pub struct ModelExecution {
+  session : @bounded_execution.Session[ModelState, ModelCaptureBundle, ModelExecutionIssue]
+  mut token : @bounded_execution.Token
+  control : @bounded_execution.Control
+  state : ModelState
+}
+
+pub(all) enum ModelExecutionIssue {
+  InvalidLimits
+  InvalidProvider
+  ItemLimit
+  RequestIdentity
+  Provider(ModelProviderFailure)
+  OutputValue
+  OutputIdentity
+  Cancelled
+  Deadline
+  Ledger(@physical_resources.LedgerIssue)
+  Session(@bounded_execution.Issue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ModelExecutionLimits {
+  max_items : Int
+  max_work : Int
+  max_request_bytes : Int64
+  max_response_bytes : Int64
+  value_limits : @value_admission.Limits
+  ledger : @physical_resources.LedgerLimits
+}
+
+pub(all) enum ModelObservation {
+  Continue(Int64, Int64)
+  Completed(ModelCaptureBundle, Int64, Int64)
+  Failed(ModelExecutionIssue, Int64, Int64)
+  Stopped(@bounded_execution.StopReason, Int64, Int64)
+}
+
+pub(all) struct ModelProvider {
+  invoke : (ModelRequest) -> Result[ModelResponse, ModelProviderFailure]
+  provider_id : String
+}
+
+pub(all) enum ModelProviderFailure {
+  RateLimit
+  Timeout
+  ProviderError
+  Refusal
+  SchemaInvalid
+  SafetyRejected
+  Truncated
+  Cancelled
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ModelRequest {
+  task : @check_environment.ModelTaskContract
+  slot : Int
+  slot_cid : String
+  fixed_request_cid : String
+  key : Array[@value_admission.CheckedValue]
+  inputs : Array[(String, @value_admission.CheckedValue)]
+}
+
+pub(all) struct ModelResponse {
+  value : @value_admission.Value
+  provider_model : String
+  provider_request_id : String
+  input_tokens : Int64
+  output_tokens : Int64
+  observed_at : String
+}
+
+pub(all) struct ModelSlotCapture {
+  slot : Int
+  slot_cid : String
+  input_key_cid : String
+  fixed_request_cid : String
+  provider_id : String
+  provider_request_id : String
+  value : @value_admission.CheckedValue
+  input_tokens : Int64
+  output_tokens : Int64
+  observed_at : String
+}
+
+type ModelState
+
+// Type aliases
+
+// Traits

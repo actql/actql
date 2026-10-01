@@ -70,7 +70,37 @@ fn core_operation_count_root(
   step : Int,
 ) -> Unit raise CoreContractStop {
   let (site, body) = match operation_count_contract(operation) {
-    Acquisition => raise CoreContractStop(UnclosedModelAcquisition(stage, step))
+    Acquisition => {
+      guard operation is @pipeline.Infer(infer) else {
+        raise CoreContractStop(UnclosedModelAcquisition(stage, step))
+      }
+      let task = @evidence.infer_model_task(infer)
+      let (_, _, task_cid) = @environment.model_task_identity(task)
+      let (input_cid, output_cid) = @environment.model_task_schema_cids(task)
+      // Keep each dependency role as an occurrence, even when bodies share a
+      // CID. Selection retains identity; it does not authorize model egress.
+      let pins = [
+        task_cid,
+        input_cid,
+        output_cid,
+        @environment.model_task_prompt_cid(task),
+        @environment.model_task_data_handling_cid(task),
+      ]
+      let parent = ModelAcquisitionContract(task_cid)
+      for role, cid in pins {
+        let body = ModelAcquisitionContract(cid)
+        core_contract_root(
+          b,
+          OperationModelContract(stage, visit, step, role),
+          body,
+        )
+        if role != 0 {
+          core_contract_edge(b)
+          core_contract_dependency(b, parent, body)
+        }
+      }
+      return
+    }
     Values => {
       core_contract_root(
         b,
