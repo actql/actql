@@ -11,6 +11,7 @@ import {
   "actql/actql/managed_carrier_runtime",
   "actql/actql/numeric_reduction",
   "actql/actql/pipeline_typing",
+  "actql/actql/relation_evidence",
   "actql/actql/relation_results",
   "actql/actql/relation_schema",
   "actql/actql/value_admission",
@@ -75,6 +76,8 @@ pub fn advance_bounded_values(BoundedValuesExecution, Int) -> Result[BoundedValu
 pub fn advance_completed_result_relation_export(CompletedResultRelationExportPreparation, Int) -> Result[(Bool, Int), CompletedExportIssue]
 
 pub fn advance_expression_execution(ExpressionExecution) -> Result[ExpressionExecutionPoll, EvalIssue]
+
+pub fn advance_infer_rows_preparation(InferRowsPreparation, Int) -> Result[InferRowsPreparationPoll, InferPreparationIssue]
 
 pub fn advance_predicate_expression(PredicateExpressionExecution) -> Result[PredicateExpressionPoll, EvalIssue]
 
@@ -147,6 +150,10 @@ pub fn bind_completed_operation_input(@lowering_relation.BoundPrepared, Int, Int
 pub fn bind_completed_output_export(CompletedOutputExportReceipt, RetainedOutputMaterial) -> Result[CompletedOutput, CompletedExportIssue]
 
 pub fn bind_generated_numeric_execution(GeneratedSequence, NumericAggregateExecution) -> GeneratedSequence
+
+pub fn bind_infer_captured_input(@lowering_relation.PreparedInferInputs, @lowering_relation.BoundPrepared, @pipeline_typing.Target, CapturedRows) -> Result[InferRowInput, InferPreparationIssue]
+
+pub fn bind_infer_completed_input(@lowering_relation.PreparedInferInputs, @lowering_relation.BoundPrepared, @pipeline_typing.Target, CompletedOutput) -> Result[InferRowInput, InferPreparationIssue]
 
 pub fn bind_live_completed_input(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, CompletedOutput, () -> Bool) -> Result[BoundProducerInput, ProducerBindingIssue]
 
@@ -301,6 +308,10 @@ pub fn cleanup_bounded_unnest(BoundedUnnestExecution) -> Result[Bool, BoundedUnn
 pub fn cleanup_bounded_unpivot(BoundedUnpivotExecution) -> Result[Bool, BoundedUnpivotIssue]
 
 pub fn cleanup_bounded_values(BoundedValuesExecution) -> Result[Bool, BoundedValuesIssue]
+
+pub fn cleanup_infer_rows_preparation(InferRowsPreparation) -> Result[Bool, InferPreparationIssue]
+
+pub fn cleanup_prepared_infer_rows(PreparedInferRows) -> Bool
 
 pub fn[T] close_managed_producer_bridge(ManagedProducerBridge[T]) -> Unit
 
@@ -521,6 +532,10 @@ pub fn identify_captured_rows(CapturedRows, RowWireLimits) -> Result[RowWireIden
 pub fn identify_completed_rows(CompletedOutput, RowWireLimits) -> Result[RowWireIdentity, RowWireIssue]
 
 pub fn identify_relation_schema(@relation_schema.Schema, RelationSchemaIdentityLimits) -> Result[RelationSchemaIdentity, RelationSchemaIdentityIssue]
+
+pub fn infer_rows_preparation_stopped(InferRowsPreparation) -> Bool
+
+pub fn infer_rows_preparation_usage(InferRowsPreparation) -> (Int, Int, Int)
 
 pub fn issue_managed_execution_attempt() -> ManagedExecutionAttempt
 
@@ -832,6 +847,14 @@ pub fn[P] prepare_trusted_retained_readmission(CompletionPreparation, RetainedCo
 
 pub fn[P] prepare_trusted_retained_scan_reuse(ProducerRead, P, (P, ProducerRead) -> Bool) -> RetainedScanReuse?
 
+pub fn prepared_infer_rows_count(PreparedInferRows) -> Int
+
+pub fn prepared_infer_rows_key(PreparedInferRows, Int, Int) -> @value_admission.CheckedValue?
+
+pub fn prepared_infer_rows_owner(PreparedInferRows) -> @relation_evidence.CheckedInfer
+
+pub fn prepared_infer_rows_value(PreparedInferRows, Int, Int) -> @value_admission.CheckedValue?
+
 pub fn process_carrier_managed_obligations(@lowering_relation.BoundPrepared) -> ManagedObligations
 
 pub fn process_managed_obligations(@lowering_relation.BoundPrepared) -> ManagedObligations
@@ -1009,6 +1032,8 @@ pub fn start_bounded_values(@bounded_execution.Control, GeneratedSequence, Int, 
 pub fn start_completed_result_relation_export(CompletedOutput, ManagedResultOccurrence, CompletedResultViewLimits, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedResultRelationExportPreparation, CompletedExportIssue]
 
 pub fn start_expression_execution(@lowering_relation.Expression, Map[String, Value], Array[Value], Int, Int, Int) -> Result[ExpressionExecution, EvalIssue]
+
+pub fn start_infer_rows_preparation(@bounded_execution.Control, InferRowInput, InferPreparationLimits) -> Result[InferRowsPreparation, InferPreparationIssue]
 
 pub fn start_predicate_expression(@lowering_relation.Expression, Map[String, Value], Int, Int, Int) -> Result[PredicateExpressionExecution, EvalIssue]
 
@@ -1590,6 +1615,41 @@ pub enum IndependentRowCopyPoll {
   RowCopyStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
 
+pub(all) enum InferPreparationIssue {
+  InvalidLimits
+  ForeignInput
+  InputUnavailable
+  InputRepresentationUnavailable
+  ItemLimit
+  WorkLimit
+  WorkspaceLimit
+  ValueLimit
+  InvalidKey(Int, Int)
+  DuplicateKey(Int, Int)
+  InvalidMappedValue(Int, Int)
+  Evaluation(Int, Int, EvalIssue)
+  Comparison(@value_admission.KeyOrderIssue)
+  Session(@bounded_execution.Issue)
+}
+
+pub(all) struct InferPreparationLimits {
+  max_items : Int
+  max_work : Int
+  max_frames : Int
+  max_workspace_slots : Int
+  values : @value_admission.Limits
+}
+
+type InferRowInput
+
+type InferRowsPreparation
+
+pub enum InferRowsPreparationPoll {
+  InferRowsContinue(work~ : Int64)
+  InferRowsComplete(PreparedInferRows, work~ : Int64)
+  InferRowsStopped(@bounded_execution.StopReason, work~ : Int64)
+}
+
 pub(all) enum InputKeyIssue {
   WrongOrigin
   MissingField
@@ -1926,6 +1986,8 @@ pub(all) enum PredicateExpressionPoll {
   PredicateExpressionContinue
   PredicateExpressionComplete(Bool)
 }
+
+type PreparedInferRows
 
 pub(all) enum ProducerBindingIssue {
   NotProducedInput
