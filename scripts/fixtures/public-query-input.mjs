@@ -11,6 +11,12 @@ const declarations = {minimum: {type: 'number'}};
 const relationNumber = (name, nullable = false) => ({name,
   contract: {type: 'number', nullable}});
 export const queryCompositionSuccesses = [
+  {name: 'quoted-cte-case', format: 'sql',
+    text: 'WITH `Chosen` AS (SELECT id FROM records WHERE amount IS NULL) SELECT chosen.id FROM chosen ORDER BY id',
+    expected: [{id: 1}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
+  {name: 'nested-with-quoted-case', format: 'sql',
+    text: 'WITH chosen AS (WITH `Hidden` AS (SELECT id FROM records WHERE amount IS NULL) SELECT hidden.id FROM hidden) SELECT id FROM chosen ORDER BY id',
+    expected: [{id: 1}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
   {name: 'nested-with-shadow', format: 'sql',
     text: 'WITH base AS (SELECT id, amount FROM records), chosen AS (WITH base AS (SELECT id FROM base WHERE amount >= 20) SELECT base.id FROM base) SELECT id FROM chosen UNION ALL SELECT id FROM base WHERE amount IS NULL ORDER BY id',
     expected: [{id: 1}, {id: 2}, {id: 3}, {id: 3}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
@@ -69,6 +75,8 @@ export const queryCompositionSuccesses = [
 
 ];
 export const queryCompositionRefusals = [
+  {name: 'nested-with-quoted-duplicate', format: 'sql',
+    text: 'WITH chosen AS (WITH `Hidden` AS (SELECT id FROM records), hidden AS (SELECT id FROM records) SELECT id FROM hidden) SELECT id FROM chosen'},
   {name: 'nested-with-escaped-name', format: 'sql',
     text: 'WITH chosen AS (WITH hidden AS (SELECT id FROM records) SELECT id FROM hidden) SELECT id FROM chosen UNION ALL SELECT id FROM hidden'},
   {name: 'derived-with-escaped-name', format: 'sql',

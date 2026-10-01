@@ -412,6 +412,13 @@ pub fn same_relation_name(left : NamePart, right : NamePart) -> Bool {
 }
 
 ///|
+// A CTE is a query-local alias, not a published Source View path. Backticks
+// quote its syntax without changing case-insensitive alias resolution.
+fn same_cte_name(left : NamePart, right : NamePart) -> Bool {
+  ascii_upper(left.value) == ascii_upper(right.value)
+}
+
+///|
 fn QueryParser::resolve_cte(
   self : QueryParser,
   relation : Array[NamePart],
@@ -426,7 +433,7 @@ fn QueryParser::resolve_cte(
     while index >= 0 {
       self.spend(1)
       let (authored, producer) = bindings[index]
-      if same_relation_name(relation[0], authored) {
+      if same_cte_name(relation[0], authored) {
         return [producer]
       }
       index -= 1
@@ -1143,7 +1150,7 @@ fn QueryParser::query(
         raise QueryAbort("CTE count limit", self.peek().start)
       }
       let name = self.name()
-      if scope.any(binding => same_relation_name(binding.0, name)) {
+      if scope.any(binding => same_cte_name(binding.0, name)) {
         raise QueryAbort("Duplicate CTE name", self.peek().start)
       }
       self.keyword("AS")

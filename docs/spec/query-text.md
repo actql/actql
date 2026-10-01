@@ -14,8 +14,9 @@ Input must be strict UTF-8 scalar text. A leading BOM follows the existing
 source policy. Keywords are ASCII case-insensitive. Column, field and alias
 lookups are ASCII case-insensitive whether or not the name is backtick-quoted;
 the original spelling remains in the parsed source and authored output name.
-Relation paths use their separate rule: an unquoted component matches without
-ASCII case, while a quoted relation component requires exact spelling.
+Published Source View paths use their separate rule: an unquoted component
+matches without ASCII case, while a quoted relation component requires exact
+spelling.
 Unquoted names match `[A-Za-z_][A-Za-z0-9_]*`. Backticks quote names and do
 not switch column lookup to exact-case mode. Single quotes delimit strings;
 only escaped quote, backslash, `n`, `r`, `t`, four-hex-digit `u`, and
@@ -83,9 +84,10 @@ and the containing query may reference it. Nested WITH declarations can shadow
 outer bindings but are not visible outside that query expression. When a
 nested producer is retained as a Stage Result, its private producer identity
 does not replace the authored range qualifier or expose its name to an outer
-scope. Duplicate declaration names follow the same relation-name comparison
-as references. This is lexical producer binding, not SQL rewriting or repeated
-execution. Each body ends at its
+scope. CTE names are query-local aliases: reference and duplicate-name lookup
+are ASCII case-insensitive, including backtick-quoted names. This is distinct
+from published Source View path resolution. This is lexical producer binding,
+not SQL rewriting or repeated execution. Each body ends at its
 own closing parenthesis; a statement terminator is allowed only after the
 complete query. INFER is excluded from CTE bodies. Recursive declarations,
 forward references and references to a displaced range variable remain

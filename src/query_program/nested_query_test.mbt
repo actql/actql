@@ -6,6 +6,7 @@ test "nested WITH declarations preserve lexical visibility and range spelling" {
       "WITH base AS (SELECT a FROM left_rows), chosen AS (WITH base AS (SELECT a FROM base WHERE a > 0) SELECT base.a FROM base) SELECT a FROM chosen UNION ALL SELECT a FROM base",
       "SELECT chosen.a FROM (WITH hidden AS (SELECT a FROM left_rows) SELECT hidden.a FROM hidden) AS chosen",
       "WITH chosen AS (WITH `Hidden` AS (SELECT a FROM left_rows) SELECT `Hidden`.a FROM `Hidden`) SELECT a FROM chosen",
+      "WITH `Chosen` AS (SELECT a FROM left_rows) SELECT chosen.a FROM chosen", "WITH chosen AS (WITH `Hidden` AS (SELECT a FROM left_rows) SELECT hidden.a FROM hidden) SELECT a FROM chosen",
     ] {
     let program = match
       compile(
@@ -33,6 +34,7 @@ test "hoisted nested WITH producers do not escape their authored scope" {
       "WITH chosen AS (WITH hidden AS (SELECT a FROM later), later AS (SELECT a FROM left_rows) SELECT a FROM hidden) SELECT a FROM chosen",
       "WITH chosen AS (WITH hidden AS (SELECT a FROM hidden) SELECT a FROM hidden) SELECT a FROM chosen",
       "WITH chosen AS (WITH hidden AS (SELECT a FROM left_rows), HIDDEN AS (SELECT a FROM left_rows) SELECT a FROM hidden) SELECT a FROM chosen",
+      "WITH chosen AS (WITH `Hidden` AS (SELECT a FROM left_rows), hidden AS (SELECT a FROM left_rows) SELECT a FROM hidden) SELECT a FROM chosen",
     ] {
     let result = @query.parse_query(text, syntax_limits()).map(query => {
       compile(query, set_context(), construction_limits())
