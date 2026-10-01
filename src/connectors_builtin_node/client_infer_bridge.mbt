@@ -214,6 +214,51 @@ pub fn client_program_release_infer_capture_bundle(
 }
 
 ///|
+/// The capture owner authenticates and confirms each private holding first.
+/// This is structural admission, not permission to publish or dispatch.
+#export_name("clientProgramReadInferSlotReplay")
+pub fn client_program_read_infer_slot_replay(
+  observation : @publication.RunEvidenceValue,
+  records : Array[@publication.RunEvidenceValue],
+  bundle : @publication.ModelCaptureBundleRead,
+  max_slots : Int,
+  max_slot_wire_units : Int,
+) -> Result[@model.ModelSlotReplayRead, @model.ModelExecutionIssue] {
+  @model.read_model_slot_replay(
+    observation, records, bundle, max_slots, max_slot_wire_units,
+  )
+}
+
+///|
+#export_name("clientProgramStartRestoredInferSlotReplay")
+pub fn client_program_start_restored_infer_slot_replay(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  graph : @publication_host.ClientInferPlanGraph,
+  registry : String,
+  values : String,
+  read : @model.ModelSlotReplayRead,
+) -> Result[@infer_host.Execution, @infer_host.Issue] {
+  @infer_host.start_restored_slot_replay(
+    prepared,
+    step,
+    registry,
+    values,
+    read,
+    @infer_host.standard_limits(),
+    graph,
+  )
+}
+
+///|
+#export_name("clientProgramReleaseInferSlotReplay")
+pub fn client_program_release_infer_slot_replay(
+  read : @model.ModelSlotReplayRead,
+) -> Bool {
+  @model.release_model_slot_replay(read)
+}
+
+///|
 #export_name("clientProgramInferExecutionRestoring")
 pub fn client_program_infer_execution_restoring(
   active : @infer_host.Execution,

@@ -107,6 +107,14 @@ pub fn bound_model_slot_capture_value(
 }
 
 ///|
+/// The structurally admitted classification, not evidence of execution.
+pub fn bound_model_slot_capture_outcome(
+  value : BoundModelSlotCapture,
+) -> String? {
+  contract_string_from_value(value.capture.value, "outcome")
+}
+
+///|
 /// Indexed structural readers for the installing capture owner's bounded
 /// verifier. An absent field is distinct from the explicit zero-key array.
 pub fn model_observation_slot_count(observation : RunEvidenceValue) -> Int? {

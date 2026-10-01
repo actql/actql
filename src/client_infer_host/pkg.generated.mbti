@@ -60,6 +60,8 @@ pub fn start_replay(@run_publication_host.PreparedClientProgram, Int, String, St
 
 pub fn start_restored_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @run_publication.ModelCaptureBundleRead, Limits, @run_publication_host.ClientInferPlanGraph) -> Result[Execution, Issue]
 
+pub fn start_restored_slot_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelSlotReplayRead, Limits, @run_publication_host.ClientInferPlanGraph) -> Result[Execution, Issue]
+
 // Errors
 
 // Types and methods

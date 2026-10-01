@@ -39,18 +39,32 @@ fn accept_failed_model_slot(
     return @bounded.Failed(Provider(failure), 1, 1)
   }
   if state.next_slot == @relation.prepared_infer_rows_count(state.rows) {
-    @bounded.Complete(
-      {
-        task_cid: @environment.model_task_identity(state.task).2,
-        fixed_request_cid: state.fixed_request_cid,
-        captures: state.captures.copy(),
-      },
-      1,
-      1,
-    )
+    complete_model_slots(state)
   } else {
     @bounded.Continue(1, 1)
   }
+}
+
+///|
+fn complete_model_slots(
+  state : ModelState,
+) -> @bounded.KernelStep[ModelCaptureBundle, ModelExecutionIssue] {
+  if state.source is RestoredSlots(read) {
+    guard model_slot_replay_count(read) == Some(state.next_slot) &&
+      read.storage.bundle is Some(bundle) &&
+      @publication.model_capture_bundle_count(bundle) == state.captures.length() else {
+      return @bounded.Failed(OutputIdentity, 1, 1)
+    }
+  }
+  @bounded.Complete(
+    {
+      task_cid: @environment.model_task_identity(state.task).2,
+      fixed_request_cid: state.fixed_request_cid,
+      captures: state.captures.copy(),
+    },
+    1,
+    1,
+  )
 }
 
 ///|

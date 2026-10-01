@@ -211,15 +211,7 @@ fn accept_model_slot(
   state.next_slot += 1
   state.phase = DispatchSlot
   if state.next_slot == @relation.prepared_infer_rows_count(state.rows) {
-    @bounded.Complete(
-      {
-        task_cid: @environment.model_task_identity(state.task).2,
-        fixed_request_cid: state.fixed_request_cid,
-        captures: state.captures.copy(),
-      },
-      1,
-      1,
-    )
+    complete_model_slots(state)
   } else {
     @bounded.Continue(1, 1)
   }

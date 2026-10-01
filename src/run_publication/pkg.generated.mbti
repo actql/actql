@@ -76,6 +76,8 @@ pub fn begin_result_material_holds(String, String) -> Result[ResultMaterialHolds
 
 pub fn bind_model_slot_capture(RunEvidenceValue, RunEvidenceValue) -> Result[BoundModelSlotCapture, RunEvidenceValueIssue]
 
+pub fn bound_model_slot_capture_outcome(BoundModelSlotCapture) -> String?
+
 pub fn bound_model_slot_capture_value(BoundModelSlotCapture) -> RunEvidenceValue
 
 pub fn cancel_durable_result_row_frames(DurableResultRowFrames) -> Unit

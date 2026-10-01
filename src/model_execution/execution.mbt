@@ -141,6 +141,7 @@ priv enum ModelSource {
   Provider(ModelProvider)
   Replay(VerifiedModelCapture)
   Restored(@publication.ModelCaptureBundleRead)
+  RestoredSlots(ModelSlotReplayRead)
 }
 
 ///|
@@ -161,6 +162,7 @@ struct ModelState {
   responses : Array[@admitted.Value]
   invocation_evidence : Array[@publication.RunEvidenceValue]
   mut restored_evidence : @publication.RunEvidenceValue?
+  mut restored_binding : @publication.BoundModelSlotCapture?
   mut phase : ModelPhase
   mut work : Int
   mut next_slot : Int
@@ -266,7 +268,9 @@ fn advance_model(
   if state.phase is ReserveSlots {
     // Replay owns a read of an already checked observation. It must neither
     // reserve another physical attempt nor re-enter a provider on failure.
-    if state.source is Replay(_) || state.source is Restored(_) {
+    if state.source is Replay(_) ||
+      state.source is Restored(_) ||
+      state.source is RestoredSlots(_) {
       state.phase = PrepareRequests
       return @bounded.Continue(1, 1)
     }
@@ -295,15 +299,7 @@ fn advance_model(
     return advance_model_request_preparation(state)
   }
   if state.next_slot >= @relation.prepared_infer_rows_count(state.rows) {
-    return @bounded.Complete(
-      {
-        task_cid: @environment.model_task_identity(state.task).2,
-        fixed_request_cid: state.fixed_request_cid,
-        captures: state.captures.copy(),
-      },
-      1,
-      1,
-    )
+    return complete_model_slots(state)
   }
   if state.phase is CheckResponse(request, response, input_key_cid, cursor) {
     match @admitted.advance_recheck_runtime_value(cursor) {
@@ -334,7 +330,7 @@ fn advance_model(
       Err(issue) => return @bounded.Failed(issue, 1, 1)
       Ok(None) => return @bounded.Continue(1, 1)
       Ok(Some(evidence)) => {
-        if state.source is Restored(_) &&
+        if (state.source is Restored(_) || state.source is RestoredSlots(_)) &&
           (
             state.restored_evidence is None ||
             @publication.run_evidence_value_identity(
@@ -343,6 +339,20 @@ fn advance_model(
             @publication.run_evidence_value_identity(evidence)
           ) {
           return @bounded.Failed(OutputIdentity, 1, 1)
+        }
+        if state.source is RestoredSlots(_) {
+          guard state.restored_binding is Some(binding) else {
+            return @bounded.Failed(OutputIdentity, 1, 1)
+          }
+          match
+            @publication.verify_model_slot_success_observation(
+              binding, evidence,
+            ) {
+            Err(issue) =>
+              return @bounded.Failed(InvocationEvidence(issue), 1, 1)
+            Ok(_) => ()
+          }
+          state.restored_binding = None
         }
         state.restored_evidence = None
         state.invocation_evidence.push(evidence)
@@ -368,6 +378,9 @@ fn advance_model(
   }
   if state.source is Restored(capture) {
     return begin_restored_model_response(state, capture, prepared)
+  }
+  if state.source is RestoredSlots(read) {
+    return begin_restored_model_slot(state, read, prepared)
   }
   guard state.source is Provider(provider) else {
     return @bounded.Failed(OutputIdentity, 1, 1)
@@ -510,6 +523,7 @@ fn start_model_owned(
     responses: [],
     invocation_evidence: [],
     restored_evidence: None,
+    restored_binding: None,
     phase: ReserveSlots,
     work: 0,
     next_slot: 0,
@@ -621,6 +635,7 @@ pub fn cleanup_model_execution(
       execution.state.responses.clear()
       execution.state.invocation_evidence.clear()
       execution.state.restored_evidence = None
+      execution.state.restored_binding = None
       execution.state.requests.clear()
       execution.state.outcomes.clear()
       if execution.state.source is Replay(capture) {
@@ -628,6 +643,9 @@ pub fn cleanup_model_execution(
       }
       if execution.state.source is Restored(capture) {
         @publication.release_model_capture_bundle_read(capture) |> ignore
+      }
+      if execution.state.source is RestoredSlots(read) {
+        release_model_slot_replay(read) |> ignore
       }
       execution.state.reclaimed = true
       Ok(true)

@@ -49,6 +49,7 @@ enum Source {
   Physical(@model.ModelProvider)
   Replay(@model.VerifiedModelCapture)
   Restored(@publication.ModelCaptureBundleRead)
+  RestoredSlots(@model.ModelSlotReplayRead)
 }
 
 ///|
@@ -177,6 +178,37 @@ pub fn start_restored_replay(
   )
   if started is Err(_) {
     @publication.release_model_capture_bundle_read(retained) |> ignore
+  }
+  started
+}
+
+///|
+/// Complete saved slot inventory and the separate successful-response bundle
+/// follow the same normal Program input path. This cannot dispatch a model.
+pub fn start_restored_slot_replay(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  registry : String,
+  values : String,
+  read : @model.ModelSlotReplayRead,
+  limits : Limits,
+  plan : @publication_host.ClientInferPlanGraph,
+) -> Result[Execution, Issue] {
+  guard @model.retain_model_slot_replay(read) is Some(retained) else {
+    return Err(Model(@model.OutputIdentity))
+  }
+  let started = start_owned(
+    prepared,
+    step,
+    registry,
+    values,
+    RestoredSlots(retained),
+    @publication_host.client_infer_plan_graph_request_cid(plan),
+    limits,
+    Some(plan),
+  )
+  if started is Err(_) {
+    @model.release_model_slot_replay(retained) |> ignore
   }
   started
 }
@@ -367,6 +399,18 @@ fn begin_model(active : Execution) -> Poll {
         rows,
         scope,
         capture,
+        active.fixed_request_cid,
+        active.limits.model,
+      )
+    }
+    RestoredSlots(read) => {
+      guard active.call_scope is Some(scope) else {
+        return fail(active, Model(@model.OutputIdentity))
+      }
+      @model.start_restored_model_slot_replay(
+        rows,
+        scope,
+        read,
         active.fixed_request_cid,
         active.limits.model,
       )
@@ -915,6 +959,9 @@ pub fn cleanup(active : Execution) -> Result[Bool, Issue] {
       }
       if active.source is Restored(capture) {
         @publication.release_model_capture_bundle_read(capture) |> ignore
+      }
+      if active.source is RestoredSlots(read) {
+        @model.release_model_slot_replay(read) |> ignore
       }
       active.rows = None
       active.call_scope = None

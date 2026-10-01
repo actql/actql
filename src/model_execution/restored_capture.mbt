@@ -34,9 +34,10 @@ fn begin_restored_model_response(
   state : ModelState,
   capture : @publication.ModelCaptureBundleRead,
   prepared : PreparedModelRequest,
+  record_index? : Int = state.next_slot,
 ) -> @bounded.KernelStep[ModelCaptureBundle, ModelExecutionIssue] {
   let record = match
-    @publication.model_capture_bundle_record(capture, state.next_slot) {
+    @publication.model_capture_bundle_record(capture, record_index) {
     Ok(value) => value
     Err(issue) => return @bounded.Failed(InvocationEvidence(issue), 1, 1)
   }

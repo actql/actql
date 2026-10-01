@@ -11,17 +11,21 @@ const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
 // object to client-dispatch-owner before calling run, hence before any advance.
 // Exactly one physical provider or already Store-confirmed saved read is used.
 export function openNodeInferOperation({moon, preparedProgram, step, graph,
-  registry, values, provider, savedCapture, signal, quantum = 256}) {
+  registry, values, provider, savedCapture, savedSlots, signal, quantum = 256}) {
   if (!Number.isSafeInteger(quantum) || quantum < 1 || quantum > 2147483647 ||
-      (provider === undefined) === (savedCapture === undefined)) {
+      [provider, savedCapture, savedSlots].filter(value => value !== undefined)
+        .length !== 1) {
     throw new TypeError('InvalidInstalledInferOperation');
   }
   signal?.throwIfAborted();
-  const active = checked(savedCapture === undefined
-    ? moon.clientProgramStartScopedInferExecution(preparedProgram, step,
-      graph, registry, values, provider)
-    : moon.clientProgramStartRestoredInferReplay(preparedProgram, step,
-      graph, registry, values, savedCapture));
+  const active = checked(savedSlots !== undefined
+    ? moon.clientProgramStartRestoredInferSlotReplay(preparedProgram, step,
+      graph, registry, values, savedSlots)
+    : savedCapture === undefined
+      ? moon.clientProgramStartScopedInferExecution(preparedProgram, step,
+        graph, registry, values, provider)
+      : moon.clientProgramStartRestoredInferReplay(preparedProgram, step,
+        graph, registry, values, savedCapture));
   const requestStop = () => moon.clientProgramCancelInferExecution(active);
   signal?.addEventListener('abort', requestStop, {once: true});
   let flight;

@@ -17,9 +17,12 @@ of the complete inference path.
 The current execution owner now adopts classified no-response failures as
 keyed outcomes, replays mixed success/failure observations without dispatch,
 and retains strict-failure observations through private stopped-execution
-reads. Formal durable all-slot evidence, installed policy/dependency admission
-and the public Host-to-Named-Result connection are still incomplete. The units
-below must not be substituted for those remaining acceptance conditions.
+reads. Saved success/failure component replay also authenticates individual
+slot holdings in the real encrypted Store and reconstructs the ordinary input
+in a fresh process. Formal adoption/authority/accounting evidence, installed
+policy/dependency admission and the public Host-to-Named-Result connection are
+still incomplete. The units below must not be substituted for those remaining
+acceptance conditions.
 
 Normal Program preparation now retains the installed ModelTask contract and
 its role-specific dependency roots. The runtime input connection uses the
@@ -1151,3 +1154,57 @@ reference binding, not issuance or truth of those external records. This is
 not yet durable all-slot capture or public Host publication. The public
 handoff, installed dependency admission, formal evidence owners and Named
 Result retrieval remain open; no Linux CI or push result is claimed.
+
+## Persisted adopted-slot component replay
+
+The common model owner now accepts the dedicated ordered ObservationSet
+inventory together with individual `model_slot_capture` records and the
+separate successful-response bundle. No new wire envelope, model cache,
+ledger, retry state machine or Run owner is introduced. Starting the saved
+read retains existing custody without scanning or copying a full inventory.
+Every bounded replay transition binds a slot record to the freshly prepared
+normal Program call and its exact input Artifact, typed key, task and request.
+
+Logical positions include failures; successful-response positions do not.
+Saved failures preserve their classification and NULL value without invoking
+a provider. Successes use the existing incremental response conversion,
+runtime value admission and independently regenerated invocation evidence.
+Missing or extra responses cannot silently alter the adopted inventory.
+Reordered slot records, missing/extra slots, changed inputs and mutation of a
+pending record array fail before accepting output. Zero-key INFER requires
+the explicit empty slot array and no successful response records.
+
+The existing Node physical wrapper selects exactly one physical provider,
+success-only saved read or complete saved-slot read. Replay has no provider
+fallback. The encrypted Store now confirms the registered `model_slot_capture`
+private evidence name using the same exact holding, semantic CID, namespace,
+wire and directory durability checks as existing private evidence. Store
+confirmation is physical custody, not semantic authority or execution proof.
+
+The component Store test retains the accepted execution capture while slot
+confirmation fails, retries only confirmation, then releases the original
+execution. A fresh process authenticates both holdings, prepares the normal
+Program, and returns the literal expected failure row without model dispatch.
+Mismatched wire, evidence name and holding are rejected. Final retirement
+releases all stored bytes. This is not a committed public Named Result test.
+
+Local verification passes on JS, Wasm and native: `client_infer_host` 44/44,
+`model_execution` 2/2 and `run_publication` 188/188 on each target. Six new
+common tests cover seven failure classifications, both mixed response orders,
+missing/extra responses, cancellation, independent custody, explicit zero-key
+inventory and an independently specified ten-transition failure replay bound
+with a one-short `WorkLimit`. The Node inference, Store, dispatch-owner and
+independent ObservationSet suites pass 120/120. The first aggregate Node run
+lacked the pinned toolchain environment; it was rerun with `MOON_HOME` and
+`PATH` set before Node, with all tests passing.
+Generated public interfaces match across all three targets and tracked files;
+formatting and whitespace checks pass. Ignored runtime bundles stay untracked.
+
+These fixtures use symbolic external attempt, authority, accounting, policy
+and outcome roots. They prove saved structural binding and physical custody,
+not truth or issuance of those records. The public connection still requires
+installed model dependency admission in `openInstalledHost`, an inference
+branch in `planFor`, and verified all-slot evidence supplied to the existing
+publication owner rather than the empty model evidence currently supplied by
+`buildLocalPublicationPlan`. No public adoption SHA, startup example, push or
+Linux CI success is claimed for this component unit.

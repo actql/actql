@@ -823,9 +823,201 @@ test('invalid or already cancelled opening performs no physical Infer start', ()
     assert.throws(() => openNodeInferOperation({moon: {}, provider: {}, quantum}),
       /InvalidInstalledInferOperation/u);
   }
-  for (const inputs of [{}, {provider: {}, savedCapture: {}}]) {
+  for (const inputs of [{}, {provider: {}, savedCapture: {}},
+    {provider: {}, savedSlots: {}}, {savedCapture: {}, savedSlots: {}}]) {
     assert.throws(() => openNodeInferOperation({moon: {}, ...inputs}),
       /InvalidInstalledInferOperation/u);
+  }
+});
+
+test('failed slot custody survives encrypted Store reopen and replays without dispatch', async () => {
+  // Symbolic external roots exercise stored structural replay, not formal
+  // attempt/accounting/policy authority or public Run completion.
+  const original = supervisedInferFixture(undefined, undefined,
+    '{"reason":null,"risk":123}');
+  const completed = await original.operation.run();
+  assert.deepEqual(await inferExportRows(original.prepared, completed),
+    [{id: 'a', outcome: 'failed:provider_error', value: null}]);
+  const saved = original.operation.acquireCapture();
+  const call = JSON.parse(moon.strategyRunEvidenceJson(
+    moon.clientProgramInferCaptureCall(saved, 0)));
+  const root = cid({fixture: 'symbolic-external-slot-root'});
+  const body = {
+    version: 'actql-model-slot-capture/0.1', slot_cid: call.model_call_slot_cid,
+    model_task_cid: call.model_task_cid, fixed_request_cid: call.fixed_request_cid,
+    input_artifact_cid: call.input_artifact_cid, input_key_cid: call.input_key_cid,
+    ordered_attempt_cids: [root], adopted_attempt_cid: root,
+    outcome: 'failed:provider_error', typed_value_artifact_cid: null,
+    accounting_evidence_cid: root, authority_evidence_cid: root, policy_cid: root,
+    outcome_evidence_cid: root, response_artifact_cid: null,
+    response_issuer_evidence_cid: null, attachment_admission_cids: [],
+  };
+  const identity = cid(body);
+  const slotWire = canonicalText({...body, self_cid: identity});
+  const slot = checked(moon.strategyRunEvidenceAdmit('model_slot_capture', slotWire,
+    16384, 1024, 20));
+  checked(moon.clientProgramBindInferSlotCapture(saved, 0, slot));
+  const exported = await exportedModelCapture(saved);
+  const bundleBody = {version: 'actql-model-capture-bundle/0.1',
+    barrier_receipts: [], captures: []};
+  assert.equal(exported.identity, cid(bundleBody));
+  assert.equal(exported.wire, canonicalText({...bundleBody,
+    bundle_cid: cid(bundleBody)}));
+  const observationBody = {
+    version: 'actql-observation-set/0.1', invocation_template_cid: root,
+    captured_input_artifact_cids: [], source_evidence_cids: [],
+    data_policy_cid: root, consistency: 'no_external_sources',
+    capture_started_at: null, capture_completed_at: null,
+    replayability: {materialized: false, availability_evidence_cids: []},
+    model_slot_capture_cids: [identity],
+  };
+  const observationWire = canonicalText({...observationBody,
+    observation_set_cid: cid(observationBody)});
+  const directory = await mkdtemp(join(tmpdir(), 'actql-failed-slot-'));
+  const configuration = {
+    directory, storeAuthorityCid: cid({fixture: 'failed-slot-store'}),
+    capacityBytes: 1024 * 1024, maxObjectBytes: 100000, maxObjects: 100,
+    maxContractNodes: 20000, maxContractDepth: 100,
+    privateEvidenceKey: Buffer.alloc(32, 17),
+  };
+  let rejectConfirmationSync = false;
+  const durability = Object.freeze({
+    async syncDirectory(path) {
+      if (path === join(directory, 'physical-holdings') && rejectConfirmationSync) {
+        rejectConfirmationSync = false;
+        throw Object.assign(new Error('injected slot confirmation failure'),
+          {code: 'EIO'});
+      }
+      const handle = await open(path, 'r');
+      try { await handle.sync(); }
+      finally { await handle.close(); }
+    },
+  });
+  let store;
+  try {
+    store = await openLocalPublicationStore(configuration,
+      createPublicationContractControlFixture(), durability);
+    const bindings = [];
+    for (const [name, wire, semanticCid] of [
+      ['model_slot_capture', slotWire, identity],
+      ['model_capture_bundle', exported.wire, exported.identity],
+    ]) {
+      const prepared = await store.preparePrivateEvidence(name, wire, semanticCid);
+      const holdingCid = cid({fixture: 'saved-slot-holding', name, semanticCid});
+      await store.commitPhysicalHolding({
+        version: 'actql-local-physical-holding/0.1', namespace: 'publication-private',
+        holding_cid: holdingCid, manifest_cid: semanticCid,
+        objects: [{cid: prepared.physicalCid, byte_count: prepared.bytes}],
+      }, [prepared.prepared]);
+      const binding = {name, wire, semanticCid, holdingCid};
+      if (name === 'model_slot_capture') {
+        rejectConfirmationSync = true;
+        await assert.rejects(store.confirmPrivateEvidence(binding),
+          {code: 'EIO'});
+        assert.equal(original.operation.cleanup(), false);
+        assert.equal(original.calls(), 1);
+      }
+      await store.confirmPrivateEvidence(binding);
+      bindings.push(binding);
+    }
+    await assert.rejects(store.confirmPrivateEvidence({...bindings[0], wire: '{}'}),
+      {code: 'PublicationPrivateEvidenceConflict'});
+    await assert.rejects(store.readPrivateEvidence('model_capture_bundle',
+      identity, bindings[0].holdingCid),
+    {code: 'PublicationPrivateEvidenceCorrupt'});
+    await assert.rejects(store.readPrivateEvidence('model_slot_capture',
+      identity, bindings[1].holdingCid),
+    {code: 'PublicationPrivateEvidenceUnavailable'});
+    assert.equal(checked(moon.clientProgramCleanupInferCaptureExport(exported.active)), true);
+    assert.equal(moon.clientProgramReleaseInferCapture(saved), true);
+    await original.operation.close();
+    assert.equal(original.operation.cleanupPending(), false);
+    assert.equal(original.calls(), 1);
+    await store.close();
+    store = undefined;
+    // A fresh process cannot retain the original capture/execution. Each slot
+    // and the separate success bundle come from authenticated exact holdings.
+    const childSource = `
+      import assert from 'node:assert/strict';
+      import {createHash} from 'node:crypto';
+      import {readFileSync} from 'node:fs';
+      import {inspect} from 'node:util';
+      import * as moon from ${JSON.stringify(new URL(
+        '../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',
+        import.meta.url).href)};
+      import {canonicalText} from ${JSON.stringify(new URL(
+        './check-canonical-json.mjs', import.meta.url).href)};
+      import {openLocalPublicationStore} from ${JSON.stringify(new URL(
+        '../adapters/store-local/publication-store.mjs', import.meta.url).href)};
+      import {openNodeInferOperation} from ${JSON.stringify(new URL(
+        '../adapters/host-node/infer-operation.mjs', import.meta.url).href)};
+      import {createPublicationContractControlFixture} from ${JSON.stringify(new URL(
+        '../adapters/host-common/publication-contract-control.fixture.mjs', import.meta.url).href)};
+      const fixture = JSON.parse(readFileSync(0, 'utf8'));
+      const {task, baseEnvironment, registry, values} = fixture;
+      const cid = ${cid.toString()};
+      const checked = ${checked.toString()};
+      const environment = ${environment.toString()};
+      const prepare = ${prepare.toString()};
+      const program = ${program.toString()};
+      const scopedInferGraph = ${scopedInferGraph.toString()};
+      const inferExportRows = ${inferExportRows.toString()};
+      const store = await openLocalPublicationStore({...fixture.configuration,
+        privateEvidenceKey: Buffer.alloc(32, 17)},
+        createPublicationContractControlFixture());
+      try {
+        const records = [];
+        let bundle;
+        for (const binding of fixture.bindings) {
+          const bytes = await store.readPrivateEvidence(binding.name,
+            binding.semanticCid, binding.holdingCid);
+          const wire = bytes.toString('utf8');
+          await store.confirmPrivateEvidence({...binding, wire});
+          if (binding.name === 'model_slot_capture') {
+            records.push(checked(moon.strategyRunEvidenceAdmit(binding.name, wire,
+              16384, 1024, 20)));
+          } else {
+            bundle = checked(moon.clientProgramReadInferCaptureBundle(wire,
+              binding.semanticCid));
+          }
+        }
+        const observation = checked(moon.strategyRunEvidenceAdmit('observation_set',
+          fixture.observationWire, 16384, 1024, 20));
+        const read = checked(moon.clientProgramReadInferSlotReplay(observation,
+          records, bundle, 1, 16384));
+        assert.equal(moon.clientProgramReleaseInferCaptureBundle(bundle), true);
+        const prepared = moon.clientProgramPreparationReady(prepare(program(), environment()));
+        const replay = openNodeInferOperation({moon, preparedProgram: prepared,
+          step: 2, graph: scopedInferGraph(prepared), registry, values,
+          savedSlots: read, quantum: 1});
+        assert.equal(moon.clientProgramReleaseInferSlotReplay(read), true);
+        const output = await replay.run();
+        const rows = await inferExportRows(prepared, output);
+        assert.equal(replay.invocationEvidence(0), undefined);
+        assert.equal(replay.physicalStopped(), true);
+        await replay.close();
+        assert.equal(replay.cleanupPending(), false);
+        process.stdout.write(JSON.stringify(rows));
+      } finally { await store.close(); }
+    `;
+    const restarted = JSON.parse(execFileSync(process.execPath,
+      ['--input-type=module', '-e', childSource], {encoding: 'utf8',
+        input: JSON.stringify({task, baseEnvironment, registry, values,
+          configuration: {...configuration, privateEvidenceKey: undefined},
+          bindings, observationWire})}));
+    assert.deepEqual(restarted,
+      [{id: 'a', outcome: 'failed:provider_error', value: null}]);
+    assert.equal(original.calls(), 1);
+    store = await openLocalPublicationStore(configuration,
+      createPublicationContractControlFixture());
+    for (const binding of bindings) {
+      assert.equal((await store.retirePhysicalHolding(binding.holdingCid)).deleted,
+        true);
+    }
+    assert.equal(store.status().storedBytes, 0);
+  } finally {
+    if (store !== undefined) await store.close();
+    await rm(directory, {recursive: true, force: true});
   }
 });
 

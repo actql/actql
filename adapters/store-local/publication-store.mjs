@@ -3988,7 +3988,8 @@ export async function openLocalPublicationStore(
     active();
     if (!exactKeys(binding, [
       'name', 'semanticCid', 'holdingCid', 'wire',
-    ]) || !['effect_preview', 'effect_capture', 'model_capture_bundle'].includes(binding.name) ||
+    ]) || !['effect_preview', 'effect_capture', 'model_capture_bundle',
+      'model_slot_capture'].includes(binding.name) ||
         typeof binding.wire !== 'string') {
       fail('InvalidPublicationPrivateEvidence');
     }
