@@ -1,6 +1,6 @@
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
 import assert from 'node:assert/strict';import {createHash, generateKeyPairSync, sign, verify} from 'node:crypto';
-import {mkdir, mkdtemp, open, readFile, rm} from 'node:fs/promises';
+import {mkdir, mkdtemp, open, readFile, readdir, rm} from 'node:fs/promises';
 import {createServer} from 'node:http';
 import {createRequire} from 'node:module';
 import {join} from 'node:path';
@@ -64,7 +64,7 @@ import {retainCompletedEffectDependencyPayloads} from
 import {suspendCompletedEffectfulComputation, retireCompletedEffectfulCapture} from
   '../host-common/completed-run-publication.mjs';
 
-import {nativeSourceIdentityMatches, runNativeHostQuery, issueNativeSourceEvidence} from
+import {nativeSourceIdentityMatches, runNativeHostQuery, runRetainedNativeHostQuery, issueNativeSourceEvidence} from
   '../connectors/duckdb/node/host.mjs';
 import {authorizeLocalDatabase, revokeLocalDatabase} from
   '../connectors/duckdb/node/session.mjs';
@@ -190,7 +190,7 @@ async function checkedFixture() {
 }
 
 test('checked acquired source and downstream task emit their input ports',
-  async () => {
+  async t => {
     const source = await readFile(new URL(
       '../../src/query_integration/query_amount_catalog_wbtest.mbt',
       import.meta.url), 'utf8');
@@ -321,6 +321,77 @@ test('checked acquired source and downstream task emit their input ports',
       {message: 'InstalledSourcePreparationMismatch'});
       assert.equal(handedOff.outcome, 'not_started');
       assert.equal(handedOff.message, 'InstalledSourcePreparationMismatch');
+      await assert.rejects(openCapturedDuckDBSource({...sourceOptions,
+        preparedSource, transportLimits: {...sourceOptions.transportLimits,
+          maxRows: 1},
+        reportAcquisitionFailure(failure) { handedOff = failure; }}),
+      {code: 'Rows'});
+      assert.equal(handedOff.outcome, 'stopped');
+
+      // The provider can be stopped while this acquisition's auxiliary Store
+      // still owns a writer and its reservation. Transfer both facts, not a
+      // stopped statement that loses the retained cleanup owner.
+      const retainedDirectory = join(directory, 'retained-acquisition');
+      await mkdir(retainedDirectory);
+      const retainedGrant = await authorizeLocalDatabase(path, sourceAccess);
+      let retainedFailure;
+      try {
+        await assert.rejects(runRetainedNativeHostQuery(retainedGrant,
+          nativeSetup, {...sourceOptions.transportLimits, maxRows: 1}, {
+            parentDirectory: retainedDirectory, maxFrameBytes: 4096,
+            wire: {max_bytes: 10000, max_nodes: 10000, max_depth: 100,
+              max_columns: 10, max_order_work: 10000},
+          }), error => { retainedFailure = error; return error.code === 'Rows'; });
+        assert.equal(retainedFailure.outcome, 'unknown');
+        assert.equal(retainedFailure.cleanupPending, true);
+        assert.equal(retainedFailure.recovery.cleanupPending(), true);
+        assert.equal((await readdir(retainedDirectory)).length, 1);
+        await retainedFailure.cleanupHandle.retry();
+        assert.equal(retainedFailure.cleanupPending, false);
+        assert.equal(retainedFailure.recovery.cleanupPending(), false);
+        assert.deepEqual(await readdir(retainedDirectory), []);
+        await retainedFailure.recovery.cleanup();
+        assert.deepEqual(await readdir(retainedDirectory), []);
+      } finally { await retainedFailure?.cleanupHandle?.retry(); }
+
+      const close = DuckDBInstance.prototype.closeSync;
+      let allowClose = false;
+      const mock = t.mock.method(DuckDBInstance.prototype, 'closeSync', function () {
+        if (!allowClose) throw new Error('InstalledAcquisitionCloseInjected');
+        return close.call(this);
+      });
+      try {
+        await assert.rejects(openCapturedDuckDBSource({...sourceOptions,
+          preparedSource, transportLimits: {...sourceOptions.transportLimits,
+            maxRows: 1},
+          reportAcquisitionFailure(failure) { handedOff = failure; }}),
+        {code: 'Rows'});
+        assert.equal(handedOff.outcome, 'unknown');
+        assert.equal(handedOff.recovery.cleanupPending(), true);
+        allowClose = true;
+        await handedOff.recovery.close();
+        assert.equal(await handedOff.recovery.cleanup(), true);
+        assert.equal(handedOff.recovery.cleanupPending(), false);
+      } finally {
+        allowClose = true;
+        await handedOff.recovery?.cleanup();
+        mock.mock.restore();
+      }
+
+      let localHostOpens = 0;
+      const postCaptureRuntime = {...moon,
+        clientProgramCapturedSourceMatches() { throw new Error('CapturedSourceCheckInjected'); },
+        clientProgramOpenCapturedLocalHost(...args) {
+          localHostOpens++;
+          return moon.clientProgramOpenCapturedLocalHost(...args);
+        },
+      };
+      await assert.rejects(openCapturedDuckDBSource({...sourceOptions,
+        moon: postCaptureRuntime,
+        reportAcquisitionFailure(failure) { handedOff = failure; }}),
+      {message: 'CapturedSourceCheckInjected'});
+      assert.equal(handedOff.outcome, 'stopped');
+      assert.equal(localHostOpens, 0);
       const opened = await openCapturedDuckDBSource({...sourceOptions,
         preparedSource});
       const capturedSource = opened.capture.source();

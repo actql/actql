@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import {setImmediate as yieldToHost} from 'node:timers/promises';
 import { runNativeQuery } from './native-query.mjs';
 import { runBroadQuery } from './broad-query.mjs';
+import {sourceAcquisitionFailure} from './source-acquisition.mjs';
 import { runFixedCompute, runResidentFixedCompute, matchesFixedCompute, releaseFixedCompute } from './fixed-compute.mjs';
 import { DuckDBTransportError, provisionComputeDatabase, validateLimits, withCurrentSourceEvidenceRead } from './session.mjs';
 import { computePhysicalCapacity } from './physical-capacity.mjs';
@@ -1261,6 +1262,21 @@ async function runHostNativeQuery(grant, setup, limits, signal, ledger, retained
           return { pending: retainedCleanup.status().pending || !!prior?.status().pending };
         },
       });
+      // A stopped provider session does not release this acquisition's Store.
+      // Give the same combined owner to both the Run handoff and transport
+      // cleanup API; no acquisition or Compute is repeated during recovery.
+      if (failure.cleanupHandle.status().pending) {
+        const handle = failure.cleanupHandle;
+        const recovery = Object.freeze({
+          close() {},
+          async cleanup() {
+            await handle.retry();
+            return !handle.status().pending;
+          },
+          cleanupPending: () => handle.status().pending,
+        });
+        throw sourceAcquisitionFailure(failure, 'unknown', recovery);
+      }
       throw failure;
     }
     throw error;
@@ -1313,6 +1329,7 @@ async function runHostNativeQuery(grant, setup, limits, signal, ledger, retained
   );
   const observedAt = new Date().toISOString();
   let sourceCapture;
+  let captureReleased = false;
   const retainedSourceCapture = () => {
     liveRun();
     return sourceCapture ??= checked(moon.nativeHostSourceCapture(
@@ -1345,12 +1362,13 @@ async function runHostNativeQuery(grant, setup, limits, signal, ledger, retained
       openDAG: graph => checked(moon.nativeHostOpenDAG(liveRun(), graph, captured.observation)),
     }),
     close() {
-      if (closed) return;
+      if (captureReleased) return;
       closed = true;
       if (retainedOutput !== undefined) retainedComputations.delete(retainedOutput);
       body?.close();
       store?.close();
       captured.close();
+      captureReleased = true;
     },
   });
   if (capacity === undefined) {
@@ -1424,6 +1442,7 @@ export async function runBroadHostQuery(grant, setup, limits, signal) {
     });
   }, limits, signal);
   let closed = false;
+  let captureReleased = false;
   let sourceCapture;
   const observedAt = new Date().toISOString();
   const retainedSourceCapture = () => {
@@ -1438,9 +1457,10 @@ export async function runBroadHostQuery(grant, setup, limits, signal) {
     source: () => checked(moon.broadHostSourceCaptureSource(
       retainedSourceCapture())),
     close() {
-      if (closed) return;
+      if (captureReleased) return;
       closed = true;
       captured.close();
+      captureReleased = true;
     },
   });
   ownedSourceCaptures.set(result, Object.freeze({

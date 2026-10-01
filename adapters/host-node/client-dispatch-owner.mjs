@@ -80,8 +80,12 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       entry.stopObservationPending = true;
     }
     if (entry.sourceCapture !== undefined) {
-      entry.sourceCapture.close();
+      await entry.sourceCapture.close();
       entry.sourceCapture = undefined;
+      // Acquisition returned successfully, but evidence/plan preparation can
+      // fail before Compute has an owner. Closing that exact capture confirms
+      // this physical end; it does not confirm an unowned Compute attempt.
+      if (!entry.computeStartAttempted) entry.stopObservationPending = true;
     }
     if (entry.stopObservationPending) await observeStop(entry);
     if (entry.cleanupHandle !== undefined) {
@@ -137,6 +141,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       finished, promise: undefined,
       reserved: false, settled: false, abort: new AbortController(),
       physicalStarted: false, physicalStartClaimAttempted: false,
+      computeStartAttempted: false,
       failureObservationPending: false, stopObservationPending: false,
       stopObserved: false, physicalWorkMayHaveStarted: false,
       finishPending: false, releasePending: checkpoints !== undefined,
@@ -240,6 +245,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       }
       entry.abort.signal.throwIfAborted();
       entry.physicalWorkMayHaveStarted = true;
+      entry.computeStartAttempted = true;
       const published = await runPublished(setup,
         {store, plan: held.plan},
         sourceProfile === undefined ? {} :

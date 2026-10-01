@@ -3,7 +3,7 @@
 // this adapter supplies only the approved database grant and bounded I/O.
 import {readFile} from 'node:fs/promises';
 import {checked} from '../host-common/runtime-result.mjs';
-import {acquisitionFailure} from '../host-common/acquisition-outcome.mjs';
+import {acquisitionFailure, acquisitionOutcome} from '../host-common/acquisition-outcome.mjs';
 import {ExecutionAuthorizationError} from
   '../host-common/authorization-gate.mjs';
 import {authorizeLocalDatabase} from
@@ -101,9 +101,9 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
 }
 
 // A failure states how the acquisition ended: nothing before the native read
-// starts it (a denied read is decided before any session opens); a failure
-// after the capture opened closes it, so it has stopped. Any other native
-// read failure keeps its end unknown.
+// starts it (a denied read is decided before any session opens). Native/broad
+// reads transfer physical session observations and unresolved recovery owners.
+// A capture's successful close is required before reporting its stop.
 export async function openCapturedDuckDBSource({moon, preparedProgram,
   preparedEffect,
   registry, values, fragment, ordered, database, schema, table,
@@ -113,8 +113,8 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
       typeof reportAcquisitionFailure !== 'function') {
     throw new TypeError('InvalidAcquisitionEndReceiver');
   }
-  const failAcquisition = (cause, outcome) => {
-    const failure = acquisitionFailure(cause, outcome);
+  const failAcquisition = (cause, outcome, recovery) => {
+    const failure = acquisitionFailure(cause, outcome, recovery);
     reportAcquisitionFailure?.(failure);
     throw failure;
   };
@@ -148,8 +148,10 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
     capture = await acquire(grant, acquisition, transportLimits,
       signal);
   } catch (cause) {
+    const ended = acquisitionOutcome(cause);
     failAcquisition(cause, cause instanceof
-      ExecutionAuthorizationError ? 'not_started' : 'unknown');
+      ExecutionAuthorizationError ? 'not_started' : ended.outcome,
+      ended.recovery);
   }
   try {
     const capturedSource = capture.source();
@@ -186,7 +188,20 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
         {...options, context: evidenceContext, identity, logicalInput}),
       close: () => capture.close()});
   } catch (cause) {
-    capture.close();
+    try { await capture.close(); }
+    catch (cleanup) {
+      let pending = true;
+      const recovery = Object.freeze({
+        close() {},
+        async cleanup() { await capture.close(); pending = false; return true; },
+        cleanupPending: () => pending,
+      });
+      const failure = Object.assign(new Error(cause?.message ?? 'AcquisitionFailed', {cause}), {
+        code: cause?.code, primaryFailure: cause,
+        cleanupErrors: Object.freeze([cleanup]),
+      });
+      failAcquisition(failure, 'unknown', recovery);
+    }
     failAcquisition(cause, 'stopped');
   }
 }
