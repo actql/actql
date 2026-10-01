@@ -236,13 +236,7 @@ fn infer_join_field(
   side : String,
   field : String,
 ) -> @builder.Node raise Abort {
-  construction.object([
-    (
-      "join_field",
-      construction.object([
-        ("side", construction.text(side)),
-        ("name", construction.text(field)),
-      ]),
-    ),
-  ])
+  // Join selections use the existing qualified field-reference contract.
+  // Keep/AS lowering must not introduce a second join-field wire shape.
+  construction.text(side + "." + field)
 }

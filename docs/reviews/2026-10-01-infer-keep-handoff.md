@@ -29,6 +29,12 @@ one-to-one key join only when KEEP needs it, and ordinary object projection.
 No additional acquisition is introduced by the join-back. INPUT alone is the
 model-egress mapping; KEEP is neither an input mapping nor authorization.
 
+KEEP join selections use the existing qualified field-reference contract:
+`left.field` and `right.field`. The frontend does not introduce a separate
+`join_field` object shape. This keeps the generated Program aligned with the
+common join checker and preserves the independent fixture as the source of
+expected identity and column order.
+
 The output scope contains KEEP fields in authored/expanded order followed by
 the result alias. All older range variables are removed. Named key fields
 remain inside `input_key`, including when no top-level key is kept. Source
@@ -125,6 +131,11 @@ The packed command installs real artifacts outside the checkout and uses the
 normal Embedded Local and HTTP Hosts. Its current scope is a working SQL
 control plus typed INFER refusals, with zero new Run acceptance and source I/O
 on refusal. It is not successful model execution evidence.
+
+The frontend correction for qualified KEEP join selections is covered by the
+query-program bridge and the existing frontend target tests. It changes source
+lowering only; it does not claim that a common INFER execution owner or public
+Host capture/replay path is available.
 
 After A's fixed SHA is adopted, B closes success/non-success/nullable/empty
 input, complete Result.describe contracts and column order, invalid key and
