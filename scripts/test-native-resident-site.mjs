@@ -530,12 +530,12 @@ try {
     try {
       const reports = database.prepare('SELECT record_key, body FROM actql_records ' +
         'WHERE namespace = ?').all('site_output_report');
-      const replies = database.prepare('SELECT record_key, body FROM actql_records ' +
+      const replies = database.prepare('SELECT record_key, revision, body FROM actql_records ' +
         'WHERE namespace = ?').all('site_output_report_reply');
       const accepted = new Set(replies.filter(row =>
         JSON.parse(Buffer.from(row.body).toString('utf8')).outcome === 'accepted')
         .map(row => row.record_key));
-      return {reports, pending: reports.filter(row => !accepted.has(row.record_key)).length};
+      return {reports, replies, pending: reports.filter(row => !accepted.has(row.record_key)).length};
     } finally { database.close(); }
   };
   // A real journal write failure: another connection holds the write lock
@@ -566,6 +566,7 @@ try {
     const authorization = await allowAllAuthorization();
     let dropOutputAck = true;
     let invalidAck;
+    let holdOutputReply;
     const invalidAckCases = [];
     const reportBodies = [];
     ackLossProxy = await observationAckLossProxy({
@@ -581,7 +582,11 @@ try {
       onAckLost: body => {
         if (reportBodies.length === 0) reportBodies.push(body);
       },
-      transformReply: (body, upstream) => {
+      transformReply: async (body, upstream) => {
+        if (holdOutputReply !== undefined &&
+            JSON.parse(body).version === 'actql-remote-output-result/0.1') {
+          return holdOutputReply(upstream);
+        }
         if (invalidAck === undefined ||
             JSON.parse(body).version !== 'actql-remote-output-result/0.1') return upstream;
         invalidAckCases.push(invalidAck.name);
@@ -712,13 +717,41 @@ try {
     assert.equal(reportState().pending, 1, 'ACK received without a commit remains pending');
     assert.equal(reservedPayloadBytes(), 0);
     assert.equal(pendingIntents().length, 0);
+    // Two real control processes recover the same saved report. Hold the
+    // first ACK until the second has durably saved it, then deliver the late
+    // ACK. Release is already physically complete; neither replay may reopen
+    // payload custody or consume another ACK revision.
+    let releaseHeldAck;
+    let firstAckArrived;
+    const heldAck = new Promise(resolve => { releaseHeldAck = resolve; });
+    const firstAck = new Promise(resolve => { firstAckArrived = resolve; });
+    let parallelReplies = 0;
+    holdOutputReply = async upstream => {
+      if (++parallelReplies === 1) {
+        firstAckArrived();
+        await heldAck;
+      }
+      return upstream;
+    };
+    const lateSite = startSite(['--control-report-kill-at', 'after-ack-save'],
+      {controlOrigin: gateway.origin, observationOrigin: ackLossProxy.origin});
+    currentSite = lateSite;
+    await within(firstAck, 'first parallel report ACK held');
     site = startSite(['--control-report-kill-at', 'after-ack-save'],
-      {controlOrigin: gateway.origin});
+      {controlOrigin: gateway.origin, observationOrigin: ackLossProxy.origin});
     currentSite = site;
-    assert.deepEqual(await within(site.exited, 'after ACK save abrupt exit'), [null, 'SIGKILL']);
+    assert.deepEqual(await within(site.exited, 'second replay ACK save abrupt exit'), [null, 'SIGKILL']);
     assert.ok(site.lines.some(line => line.kind === 'control-report-killed' &&
       line.point === 'after-ack-save'));
     assert.equal(reportState().pending, 0, 'committed ACK survives abrupt exit');
+    const savedAckState = reportState();
+    releaseHeldAck();
+    assert.deepEqual(await within(lateSite.exited, 'late replay ACK save abrupt exit'), [null, 'SIGKILL']);
+    assert.ok(lateSite.lines.some(line => line.kind === 'control-report-killed' &&
+      line.point === 'after-ack-save'));
+    assert.equal(parallelReplies, 2, 'both real processes posted the original report');
+    assert.deepEqual(reportState(), savedAckState, 'late ACK does not change durable custody or revision');
+    holdOutputReply = undefined;
     const replayCount = observationBodies.filter(body =>
       JSON.parse(body).version === 'actql-remote-output-result/0.1').length;
     site = startSite(['--max-polls', '3'], {controlOrigin: gateway.origin});
@@ -746,7 +779,7 @@ try {
     'ACK-only replays do not alter receiver state or revision');
     const outputBodies = observationBodies.filter(body =>
       JSON.parse(body).version === 'actql-remote-output-result/0.1');
-    assert.equal(outputBodies.length, initialReportCount + 2);
+    assert.equal(outputBodies.length, initialReportCount + 3);
     for (const body of outputBodies) assert.equal(body, firstReport);
     assert.deepEqual(outputBodies[0], firstReport);
     console.log(JSON.stringify({kind: 'resident-output-report-custody-verified',
@@ -756,6 +789,7 @@ try {
       receiverKilledAfterDurableAdmission: true,
       invalidAckCases: [...new Set(invalidAckCases)],
       checkedRefusalAndExplicitRetry: true,
+      concurrentReplayAndLateAck: true,
       releaseBeforeAck: true, reportBytesReplayedExactly: true,
       ackSaveStopPoints: ['before-ack-save', 'after-ack-save'],
       receiverFactUnchanged: true, reservedPayloadBytes: 0,

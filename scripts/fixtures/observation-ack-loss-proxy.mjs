@@ -39,7 +39,7 @@ export async function observationAckLossProxy({origin, key, cert, ca,
           return;
         }
       }
-      const reply = transformReply?.(body.toString('utf8'), upstream) ?? upstream;
+      const reply = await (transformReply?.(body.toString('utf8'), upstream) ?? upstream);
       outgoing.writeHead(reply.status, {'content-type': 'application/json'});
       outgoing.end(reply.body);
     } catch (error) { outgoing.destroy(error); }

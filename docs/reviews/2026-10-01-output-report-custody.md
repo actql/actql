@@ -91,6 +91,9 @@ The fixed-toolchain evidence for this unit is:
   preserves the receiver's durable state and revision. A checked refusal is
   inspected after process exit; explicit operator retry re-enables the same
   report without payload or executor reconstruction;
+  two real control processes replay concurrently, one ACK is held until the
+  other process saves it and exits, and the late ACK leaves the saved journal
+  bytes/revision unchanged after physical release;
 * common remote-site protocol JS tests: 73/73 on the pinned checkout before
   the native process run. Initial local attempts without the pinned MoonBit
   toolchain or the optional esbuild dependency are environment setup failures,
