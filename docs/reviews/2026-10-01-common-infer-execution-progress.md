@@ -60,7 +60,7 @@ node --test --test-name-pattern='retained object projection' \
 
 | Boundary | Current limitation | Required implementation |
 | --- | --- | --- |
-| ModelTask admission | `check_environment` retains `ModelTaskContracts` as integrity-checked opaque members | Resolve one exact admitted task and its closed input/output contracts, generation configuration and data-handling policy |
+| ModelTask admission | Typed task and execution-contract readers exist; Program preparation does not yet invoke them | Bind the admitted task to the checked infer operation and resolve prompt, retry, backoff and attachment dependencies before execution |
 | Checked operation | `program_check/check.mbt:check_supported_source` and `pipeline_typing/check.mbt` still refuse `infer` | Bind typed INPUT expressions, a proven non-null scalar candidate-key tuple, fixed output roles, capacities and success refinement |
 | Barrier execution | No shared checked model-call execution owner is installed | Preflight all keys, requests and adapter plans before dispatch; retain slot/attempt identity, reservations, stop observation and cleanup custody |
 | Capture and replay | Existing publication code admits model evidence, but no inference owner produces it | Seal classified slot outcomes and real response/issuer evidence; replay captured observations without provider calls |
@@ -116,3 +116,41 @@ The initial large-object fixture had a missing closed-contract flag and
 used a small test parser limit; correcting fixture admission resolved those
 test setup failures. Full lint/Core/DuckDB jobs, successful packed inference,
 Linux CI and external provider acceptance have not been run for this unit.
+
+## ModelTask contract admission
+
+`check_environment/model_tasks.mbt` now checks every supplied ModelTask,
+including unused declarations. It recomputes the task self-CID and both
+embedded schema CIDs, reads checked non-null closed input/output objects,
+validates generation and data handling, and rejects duplicate task selectors.
+Nullable object members and absent optional limits are preserved. Lookups
+retain the exact admitted environment; a same-CID foreign member is not an
+interchangeable owner. Unknown classification never satisfies the task's
+accepted-classification test. That test is compatibility, not Host authority.
+
+`check_environment/model_execution.mbt` reads the registered
+`actql-model-execution-contract/0.1` body. It checks canonical bytes, self-CID,
+the exact admitted task reference and all six finite execution ceilings.
+Retry-classification, backoff and media contract CIDs remain unresolved
+dependencies. Reading this body does not authorize retry, media access or
+model dispatch. Preparation uses cumulative body, value-contract and work
+limits; subtree hashing and typed reconstruction are charged separately.
+
+The task and execution-contract identity fixtures use independent Node crypto
+vectors. Regression coverage includes missing required fields, stale inner
+CIDs under a freshly hashed environment, duplicate selectors, unsafe or
+invalid settings, exact/one-short preparation limits, closed object contracts,
+nullable success members and foreign environment handles.
+
+This is a foundation for the shared inference owner, not a completed
+acquisition path. The Program checker still refuses `infer` until checked
+execution, capture and replay are connected. No B fixture was marked as a
+successful packed inference, and no external model was called.
+
+The complete `check_environment` package passed 201/201 tests on each of
+JS, Wasm and native after adding the readers and regressions. After the
+final typed-reconstruction precharge, all 201 JS tests and the nine affected
+regressions on Wasm and native passed again. `moon fmt --check` and
+`git diff --check` passed. The generated public interface passed
+`scripts/check-moonbit-api.mjs` across JS, Wasm and native.
+Full affected CI jobs and Linux CI remain unverified for this unit.

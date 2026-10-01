@@ -122,6 +122,8 @@ pub fn check_mapping_conversions(MappingContractShape, Int) -> Result[MappingCon
 
 pub fn check_mapping_row_fields(MappingContractShape, Int) -> Result[MappingRowFields, MappingRowFieldsIssue]
 
+pub fn check_model_tasks(WireEnvironment, ModelTaskLimits) -> Result[ModelTasks, ModelTaskIssue]
+
 pub fn check_protocol_value_contracts(SourceDataPolicies, ValueContractLimits) -> Result[ProtocolValueContracts, ValueContractIssue]
 
 pub fn check_pushdown_body_dependencies(PushdownContracts, ContractEnvelope) -> Result[CatalogBodyDependencies, BodyDependencyIssue]
@@ -344,6 +346,62 @@ pub fn member_section(Member) -> Section
 
 pub fn member_usage(Member) -> (Int, Int)
 
+pub fn model_execution_backoff_cid(ModelExecutionContract) -> String
+
+pub fn model_execution_ceiling(ModelExecutionContract, ModelExecutionCeiling) -> Int64
+
+pub fn model_execution_cid(ModelExecutionContract) -> String
+
+pub fn model_execution_media_at(ModelExecutionContract, Int) -> (String, String)?
+
+pub fn model_execution_media_count(ModelExecutionContract) -> Int
+
+pub fn model_execution_retry_cid(ModelExecutionContract) -> String
+
+pub fn model_execution_source(ModelExecutionContract) -> @decode_core.Cursor
+
+pub fn model_execution_task(ModelExecutionContract) -> ModelTaskContract
+
+pub fn model_execution_usage(ModelExecutionContract) -> (Int, Int, Int)
+
+pub fn model_task_accepts_classification(ModelTaskContract, DataClassification) -> Bool
+
+pub fn model_task_at(ModelTasks, Int) -> ModelTaskContract?
+
+pub fn model_task_connector(ModelTaskContract) -> String
+
+pub fn model_task_data_handling_cid(ModelTaskContract) -> String
+
+pub fn model_task_for(ModelTasks, Member) -> ModelTaskContract?
+
+pub fn model_task_generation_config(ModelTaskContract) -> ModelGeneration
+
+pub fn model_task_identity(ModelTaskContract) -> (String, String, String)
+
+pub fn model_task_input(ModelTaskContract) -> @value_contract.Contract
+
+pub fn model_task_max_items(ModelTaskContract) -> Int64?
+
+pub fn model_task_member(ModelTaskContract) -> Member
+
+pub fn model_task_model_selector(ModelTaskContract) -> String
+
+pub fn model_task_output(ModelTaskContract) -> @value_contract.Contract
+
+pub fn model_task_prompt_cid(ModelTaskContract) -> String
+
+pub fn model_task_provider_retention(ModelTaskContract) -> Bool
+
+pub fn model_task_region_at(ModelTaskContract, Int) -> String?
+
+pub fn model_task_region_count(ModelTaskContract) -> Int
+
+pub fn model_task_schema_cids(ModelTaskContract) -> (String, String)
+
+pub fn model_tasks_environment(ModelTasks) -> WireEnvironment
+
+pub fn model_tasks_usage(ModelTasks) -> (Int, Int, Int, Int, Int, Int)
+
 pub fn program_source_grammar_cid() -> String
 
 pub fn protocol_value_at(ProtocolValueContracts, Int) -> ProtocolValueContract?
@@ -396,6 +454,8 @@ pub fn read_mode_usage(SourceReadModes) -> (Int, Int)
 
 pub fn read_mode_view_at(SourceReadModes, Int) -> SourceViewModes?
 
+pub fn read_model_execution_contract(ModelTaskContract, Bytes, String, Limits, Int) -> Result[ModelExecutionContract, ModelTaskIssue]
+
 pub fn read_text_rank_selection(WireEnvironment, Int) -> Result[TextRankSelection, TextRankSelectionIssue]
 
 pub fn read_text_time(WireEnvironment, @text_time_policy.Limits) -> Result[TextTime, TextTimeIssue]
@@ -415,6 +475,8 @@ pub fn reference_usage(CatalogReferences) -> (Int, Int)
 pub fn resolve_catalog_contract(Catalog, String, String, String, String) -> Result[ContractEnvelope, CatalogIssue]
 
 pub fn resolve_contract(ContractRegistry, String, String, String, String) -> Result[ContractEnvelope, ContractIssue]
+
+pub fn resolve_model_task(ModelTasks, String) -> Result[ModelTaskContract, ModelTaskIssue]
 
 pub fn select_command_target(CatalogContents, String, Int) -> Result[CommandTarget, CommandTargetIssue]
 
@@ -924,6 +986,55 @@ pub(all) enum MappingShapeIssue {
 } derive(Eq, @debug.Debug)
 
 type Member
+
+pub(all) enum ModelExecutionCeiling {
+  AttemptsPerSlot
+  TotalAttempts
+  TotalCostUnits
+  TotalDurationMs
+  TotalWireBytes
+  TotalTokenReservation
+} derive(Eq, @debug.Debug)
+
+type ModelExecutionContract
+
+pub struct ModelGeneration {
+  temperature : Double
+  top_p : Double
+  max_output_tokens : Int64
+  seed_requested : Int64?
+}
+
+type ModelTaskContract
+
+pub(all) struct ModelTaskIssue {
+  kind : ModelTaskIssueKind
+  source : @decode_core.Cursor?
+}
+
+pub(all) enum ModelTaskIssueKind {
+  InvalidLimits
+  TaskLimit
+  BodyLimit
+  WorkLimit
+  InvalidBody
+  IdentityMismatch
+  InputSchemaMismatch
+  OutputSchemaMismatch
+  InvalidValueContract(@value_contract.AdmissionError)
+  InvalidObjectContract
+  DuplicateSelector(String)
+  UnknownSelector(String)
+  ReferenceMismatch
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ModelTaskLimits {
+  bodies : Limits
+  contracts : @value_contract.Limits
+  max_work : Int
+}
+
+type ModelTasks
 
 type ProtocolValueContract
 
