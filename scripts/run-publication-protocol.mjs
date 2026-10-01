@@ -9,6 +9,8 @@ const output = join(
   root, 'src/run_publication/protocol_schema.generated.mbt',
 );
 const document = JSON.parse(readFileSync(source, 'utf8'));
+const stage = JSON.parse(readFileSync(join(root,
+  'spec/contracts/actql-stage-contracts.json'), 'utf8'));
 const selected = Object.freeze({
   result_plan: Object.freeze({
     schema: 'result_plan',
@@ -53,6 +55,9 @@ const selected = Object.freeze({
   model_capture_bundle: Object.freeze({
     schema: 'model_capture_bundle',
     identity: 'bundle_cid',
+  }),
+  model_slot_capture: Object.freeze({
+    schema: 'model_slot_capture', identity: 'self_cid', registry: 'stage',
   }),
   run_receipt: Object.freeze({
     schema: 'run_receipt',
@@ -415,7 +420,8 @@ function omitRequiredProperty(schema, field) {
 
 for (const [name, selection] of Object.entries(selected)) {
   const complete = structuredClone(
-    document.artifact_schemas[selection.schema],
+    selection.registry === 'stage' ? stage.schemas[selection.schema]
+      : document.artifact_schemas[selection.schema],
   );
   if (complete === undefined) {
     throw new Error(`Missing publication schema: ${selection.schema}`);

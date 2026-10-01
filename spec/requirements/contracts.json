@@ -1750,6 +1750,17 @@
         "anchor": "machine-contracts",
         "kind": "law"
       }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-call-slot-identity.observation-slot-captures",
+      "statement_sha256": "1bc469bdc86250ec3452471d0d70edee4102cd11d3af49068dd1659b2aaed074",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify complete adopted-slot matching and public Host capture/replay with independent evidence.",
+      "source": {
+        "anchor": "model-call-slot-identity",
+        "kind": "prose"
+      }
     }
   ]
 }

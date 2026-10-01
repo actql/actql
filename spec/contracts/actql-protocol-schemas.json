@@ -10658,14 +10658,14 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:2975679f38e97568fd69a3502822349abeeda1287f86d0a0b268c9f0af74ddfb",
+  "artifact_registry_cid": "sha256:ec5a822ebe8852c058d05c9d8350a9f65da86ce9514839953aa2777d277d3d7c",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
     "invocation_bindings": "sha256:6471878465e3cf6c4af4bd7d2c161d578ab861770ec6a893c7e0de116dadbd41",
     "bound_invocation_template": "sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7",
     "source_evidence": "sha256:434d2f1c97a9721e01d5eb614577d8620bc3662e2b5b3b05bdecb3029d2eafa6",
-    "observation_set": "sha256:960b462c42c793913e981f64473c374538283d1dc7379cc694239d729e8f8537",
+    "observation_set": "sha256:627f88eeb134771cfa81e24419845fbe76bc4a61b4f9c81da3cff48aa3fc5719",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
     "executable_plan": "sha256:16c6535a631ceba7edda8cc842d78009df47930ee545da2a63f9a4b99a3ebb6e",
@@ -10678,7 +10678,7 @@
     "effect_apply_receipt": "sha256:4f4aabc61bc08bf79ecfe89cf958906e99d5bde4e12b3e95f5ef6539c9964c62",
     "effect_set_apply_receipt": "sha256:311b168738be9062ba8ff88d5e3d3d1d7fbbfe3935ee334cb6216d92e0a4b9cb",
     "effect_reconciliation_receipt": "sha256:abcfcc932af4c63ae91e9670d0cd41d2cd23a0e3bec25044cfa018cd2b5f3fb2",
-    "run_receipt": "sha256:d017cd0e95bce341edd4fabf859fc521588ee8d12eadfa9fd2704d8d8a94f526",
+    "run_receipt": "sha256:d5de76fb14e35a588d34bfa13d758b6e6b2e0a388645630b692de8cf1f27ba79",
     "runtime_error": "sha256:065e22b471b7e63c67061a75854e5ca3d1821841fcc07016742d6b715632608d",
     "execution_context": "sha256:49bb0acf26e64ffc1d0802b03b251f27476732ad28c80f0c89b35c5cbf5734b2",
     "run_policy": "sha256:d1c763d2ba8357fd33fa41afd690eed8088a310e4640fa615907c4866a125db6",
@@ -10695,7 +10695,7 @@
     "plan_document": "sha256:6d77f736215cbf1379db11e4d793e66e19715bb28b8a6e737fae3bdd62590bbc",
     "plan_result": "sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7",
     "run_state": "sha256:e61cdac45a5af98ca5362ee945511d705c373613cd4e9dc42009e036eb9fcb84",
-    "captured_run": "sha256:7b3d173c3a078431c99352e3bac4e5a2341ea2217c1995ab8c97dd9c56027ac1",
+    "captured_run": "sha256:d10eba96fc9983ffe709fee16faab30c9912af109d4310acad64fc675360b0c7",
     "execution_account_config": "sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20",
     "caller_input_intent": "sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d",
     "initial_input_artifact_set": "sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d",
@@ -12201,6 +12201,14 @@
         "observation_set_cid": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "model_slot_capture_cids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
         }
       }
     },
@@ -38837,6 +38845,14 @@
             "observation_set_cid": {
               "type": "string",
               "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "model_slot_capture_cids": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
             }
           }
         },
@@ -71759,6 +71775,14 @@
                 "observation_set_cid": {
                   "type": "string",
                   "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "model_slot_capture_cids": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
                 }
               }
             },

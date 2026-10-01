@@ -37,6 +37,7 @@ fn run_evidence_identity_field(name : String) -> String? {
     "authoring_context" => Some("authoring_context_cid")
     "model_invocation_evidence" => Some("model_invocation_evidence_cid")
     "model_capture_bundle" => Some("bundle_cid")
+    "model_slot_capture" => Some("self_cid")
     "model_effective_inputs" => Some("effective_inputs_cid")
     "model_input_artifact" => Some("input_artifact_cid")
     "model_input_key" => Some("input_key_cid")
@@ -188,6 +189,25 @@ pub fn run_evidence_value_document(
 /// Establish the Run-bound Invocation only after the exact ObservationSet has
 /// been captured and admitted against its Bound Invocation Template.
 pub fn issue_run_invocation(
+  template : RunEvidenceValue,
+  observation : RunEvidenceValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[PublicationContract, RunEvidenceValueIssue] {
+  // Model observations require exact, complete call-slot matching first.
+  // The generic source-only issuer cannot authorize this dedicated field.
+  if model_template_requires_slots(template) ||
+    @json.object_field(observation.value, "model_slot_capture_cids") is Some(_) {
+    return Err(RunEvidenceReferenceMismatch("model_slot_capture_cids"))
+  }
+  issue_run_invocation_owned(
+    template, observation, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+fn issue_run_invocation_owned(
   template : RunEvidenceValue,
   observation : RunEvidenceValue,
   max_wire_bytes : Int,

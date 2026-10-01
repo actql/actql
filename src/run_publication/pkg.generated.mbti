@@ -74,6 +74,10 @@ pub fn begin_result_delivery(ResultDeliverySerializer) -> Result[String, Deliver
 
 pub fn begin_result_material_holds(String, String) -> Result[ResultMaterialHolds, ResultMaterialHoldIssue]
 
+pub fn bind_model_slot_capture(RunEvidenceValue, RunEvidenceValue) -> Result[BoundModelSlotCapture, RunEvidenceValueIssue]
+
+pub fn bound_model_slot_capture_value(BoundModelSlotCapture) -> RunEvidenceValue
+
 pub fn cancel_durable_result_row_frames(DurableResultRowFrames) -> Unit
 
 pub fn canonical_effect_preview_draft_wire(String, Int, Int, Int) -> Result[String, PublicationContractIssue]
@@ -297,6 +301,8 @@ pub fn issue_effectful_final_run_receipt(PublicationContract, PublicationContrac
 pub fn issue_local_result_occurrence_evidence(String, String, String, String, Array[String], String, String, String, String, Int, Int, Int) -> Result[ResultOrderingEvidence, ResultEvidenceIssuanceIssue]
 
 pub fn issue_manifest_read_grant(PublicationContract, PublicationContract, String, String, String, Int, Int, String, String, Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
+
+pub fn issue_model_run_invocation(RunEvidenceValue, RunEvidenceValue, Array[BoundModelSlotCapture], Int, Int, Int) -> Result[PublicationContract, RunEvidenceValueIssue]
 
 pub fn issue_public_index_entry(PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, Array[PublicationContract], PublicationContract, PublicationContract, String, Int, Int, Int) -> Result[PublicationContract, PublicationCommitIssuanceIssue]
 
@@ -586,6 +592,10 @@ pub fn validate_run_publication_chain(PublicationContract, PublicationContract, 
 
 pub fn validate_run_state(RunOutcomeStatus, Array[String], Array[ResultAvailability], Bool, RunNextAction, Bool) -> Result[Unit, RunStateIssue]
 
+pub fn verify_model_observation_slots(RunEvidenceValue, Array[BoundModelSlotCapture]) -> Result[Unit, RunEvidenceValueIssue]
+
+pub fn verify_model_slot_capture_bundle(Array[BoundModelSlotCapture], ModelCaptureBundleRead) -> Result[Unit, RunEvidenceValueIssue]
+
 // Errors
 
 // Types and methods
@@ -596,6 +606,11 @@ pub(all) enum AcquisitionRelationIssue {
   Encoding
   Contract(PublicationContractIssue)
 } derive(Eq, @debug.Debug)
+
+pub struct BoundModelSlotCapture {
+  call : RunEvidenceValue
+  capture : RunEvidenceValue
+}
 
 type CapturedEffectDependencyBody
 

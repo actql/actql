@@ -1435,6 +1435,23 @@ before durable capture leaves an unresolved dispatch responsibility; stopping
 after capture but before publication retains the capture for replay without
 re-dispatch. Publication remains a separate admitted operation.
 
+<!-- requirement-block: model-call-slot-identity.observation-slot-captures -->
+An INFER-containing ObservationSet MUST contain `model_slot_capture_cids`, an
+ordered array of the admitted `actql-model-slot-capture/0.1` identities for
+every call slot's adopted outcome, including failures. Occurrences are ordered
+by their saved Program position; within an occurrence, slots use canonical
+typed-key order, not CID or JSON text order. The capture owner checks exact
+call, ModelTask, fixed request, actual input Artifact and typed-key bindings,
+the ordered attempts, adoption and referenced accounting, authority, policy,
+outcome and response evidence. Missing, duplicate, additional or reordered
+captures are rejected, as are records inconsistent with the retained input or
+successful-response bundle. A successful-response `model_capture_bundle` is
+not a substitute for slot captures. Zero-key INFER explicitly includes the
+empty array; a non-INFER ObservationSet omits the field, preserving its prior
+preimage. The schema field is optional only because non-INFER observations
+share that envelope. Capture integrity and custody do not confer dispatch or
+publication authority.
+
 <a id="compilation-identities"></a>
 
 ### Compilation identity envelopes

@@ -988,3 +988,47 @@ The specification gate was interrupted while running the existing resource
 audit mutation suite after the preceding specification and boundary checks
 passed. It has not completed; no full specification-gate or Linux CI success
 is claimed for this compilation unit.
+
+## Adopted model slots in ObservationSet
+
+The approved 0.1 correction adds optional `model_slot_capture_cids` to every
+embedded ObservationSet schema. INFER requires the complete adopted-outcome
+inventory, including failures, in saved logical occurrence order followed by
+canonical typed-key order. Zero-key INFER uses an explicit empty array.
+Non-INFER omits the field and retains its existing canonical preimage.
+Successful-response `model_capture_bundle` identities are not substitutes.
+
+The generated protocol parser now also admits the existing Stage-owned
+`model_slot_capture` schema, without defining a second copy. Structural
+binding checks the exact call, task, request, input artifact and key, ordered
+attempt membership, and outcome/response consistency. Observation matching
+rejects missing, duplicate, extra and reordered references. The generic
+source-only Invocation issuer rejects this dedicated field; the model issuer
+requires exact slot matching, the INFER profile, the exact Invocation Template
+and the call's Program definition. The source-only issuer also rejects an
+INFER template when the dedicated array is absent.
+
+Successful saved-bundle records are matched to the successful subset of all
+slot captures. Missing or additional records, duplicate expected calls, wrong
+input/task/request/slot bindings, and mismatched response/output identities
+are rejected. Failed slots do not fabricate entries in the success bundle.
+This compares structural references; actual response content is still
+validated by the existing bounded restoring owner.
+
+This is structural evidence admission, not an executable capture owner.
+Symbolic accounting, authority, policy and outcome roots in independent wire
+vectors do not prove execution or custody. The installing owner must verify
+those referenced records and supply the complete checked call inventory
+before publication. The executable capture-owner and public Host connection
+remain unfinished. No adoption-ready public Host SHA is available for B yet.
+
+The schema pins, normative imports and independent vectors move together.
+Removing only the optional field reproduces the preceding Run Receipt and
+Captured Run schema pins. The touched publication suite passes 188/188 and
+canonical JSON passes 460/460 on each of JS, Wasm and native. Node schema and
+independent-vector tests pass 3/3; existing publication-contract tests pass
+10/10, and protocol-generator tests pass 6/6. The specification gate completed
+successfully after updating the two changed embedded-schema pins. The final
+structural owner guards were additionally checked with the targeted suites
+and canonical gate. These are local checks, not Linux CI or Named Result
+acceptance.
