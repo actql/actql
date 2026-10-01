@@ -193,6 +193,7 @@ fn accept_model_slot(
   input_key_cid : String,
   checked : @admitted.CheckedValue,
 ) -> @bounded.KernelStep[ModelCaptureBundle, ModelExecutionIssue] {
+  state.outcomes.push(Success(state.captures.length()))
   state.responses.push(response.value)
   state.captures.push({
     slot: request.slot,
@@ -235,7 +236,10 @@ pub fn model_execution_invocation_evidence(
   if !execution.state.accepted || execution.state.reclaimed {
     None
   } else {
-    execution.state.invocation_evidence.get(slot)
+    match execution.state.outcomes.get(slot) {
+      Some(Success(index)) => execution.state.invocation_evidence.get(index)
+      _ => None
+    }
   }
 }
 

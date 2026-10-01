@@ -106,6 +106,14 @@ pub(all) struct ModelCaptureBundle {
 }
 
 ///|
+// The accepted inventory covers every logical key. Successful response records
+// remain a separate subset; failed calls never fabricate a typed response.
+priv enum AdoptedModelSlot {
+  Success(Int)
+  NoResponseFailure(ModelProviderFailure)
+}
+
+///|
 pub(all) enum ModelObservation {
   Continue(Int64, Int64)
   Completed(ModelCaptureBundle, Int64, Int64)
@@ -147,6 +155,7 @@ struct ModelState {
   ledger : @resources.Ledger
   reservations : Array[@resources.Reservation]
   requests : Array[PreparedModelRequest]
+  outcomes : Array[AdoptedModelSlot]
   mut request : ModelRequestPreparation?
   captures : Array[ModelSlotCapture]
   responses : Array[@admitted.Value]
@@ -236,11 +245,6 @@ fn request_key(
     output.push(value)
   }
   Some(output)
-}
-
-///|
-fn provider_error(value : ModelProviderFailure) -> ModelExecutionIssue {
-  Provider(value)
 }
 
 ///|
@@ -371,7 +375,26 @@ fn advance_model(
   let reservation = state.reservations[state.next_slot]
   let response = match (provider.invoke)(request) {
     Ok(value) => value
-    Err(issue) => return @bounded.Failed(provider_error(issue), 1, 1)
+    Err(issue) => {
+      // No physical byte observation arrived. Cleanup cannot turn the
+      // dispatched request's unknown usage into an unused reservation.
+      match
+        @resources.mark_transfer_uncertain(
+          state.ledger,
+          reservation,
+          state.limits.max_request_bytes + state.limits.max_response_bytes,
+        ) {
+        Err(error) => return @bounded.Failed(Ledger(error), 1, 1)
+        Ok(_) => ()
+      }
+      if @bounded.stop_requested(reader) is Some(reason) {
+        return @bounded.Stopped(reason, 1, 1)
+      }
+      if issue == Cancelled {
+        return @bounded.Stopped(@bounded.Cancelled, 1, 1)
+      }
+      return accept_failed_model_slot(state, issue)
+    }
   }
   let input_key_cid = prepared.key_cid
   if response.provider_model.is_empty() ||
@@ -481,6 +504,7 @@ fn start_model_owned(
     ledger,
     reservations,
     requests: [],
+    outcomes: [],
     request: None,
     captures: [],
     responses: [],
@@ -598,6 +622,7 @@ pub fn cleanup_model_execution(
       execution.state.invocation_evidence.clear()
       execution.state.restored_evidence = None
       execution.state.requests.clear()
+      execution.state.outcomes.clear()
       if execution.state.source is Replay(capture) {
         capture.owner.state.output_uses -= 1
       }

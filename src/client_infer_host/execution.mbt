@@ -190,6 +190,19 @@ pub fn restoring(active : Execution) -> Bool {
 }
 
 ///|
+/// Stopped model observations retain custody independently of accepted output.
+/// Strict failure may have only an adopted prefix, never fabricated later slots.
+pub fn acquire_outcomes(active : Execution) -> @model.ModelOutcomeRead? {
+  if active.reclaimed {
+    return None
+  }
+  match active.model {
+    Some(model) => @model.acquire_model_outcomes(model)
+    None => None
+  }
+}
+
+///|
 fn start_owned(
   prepared : @publication_host.PreparedClientProgram,
   step : Int,

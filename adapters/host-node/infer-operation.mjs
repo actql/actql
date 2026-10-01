@@ -103,6 +103,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     physicalStopped: () => moon.clientProgramInferExecutionStopped(active),
     acquireOutput: () => moon.clientProgramAcquireInferOutput(active),
     acquireCapture: () => moon.clientProgramAcquireInferCapture(active),
+    acquireOutcomes: () => moon.clientProgramAcquireInferOutcomes(active),
     invocationEvidence: slot => moon.clientProgramInferInvocationEvidence(active,
       slot),
   });

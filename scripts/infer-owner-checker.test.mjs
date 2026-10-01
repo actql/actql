@@ -606,8 +606,9 @@ async function inferExportRows(prepared, completed) {
   }
 }
 
-function supervisedInferFixture(signal, onInvoke, responseBody = '{"reason":null,"risk":"high"}') {
-  const preparation = prepare(program(), environment());
+function supervisedInferFixture(signal, onInvoke, responseBody = '{"reason":null,"risk":"high"}',
+  source = program()) {
+  const preparation = prepare(source, environment());
   const prepared = moon.clientProgramPreparationReady(preparation);
   assert.ok(prepared, inspect(preparation));
   let calls = 0;
@@ -754,8 +755,10 @@ test('closing an unstarted physical Infer owner cannot dispatch or report reques
 });
 
 test('the physical Infer wrapper preserves a typed model failure and cleans without redispatch', async () => {
+  const source = program();
+  source.stages[0].steps[2].infer.on_non_success = 'fail';
   const fixture = supervisedInferFixture(undefined, undefined,
-    '{"reason":null,"risk":123}');
+    '{"reason":null,"risk":123}', source);
   await assert.rejects(fixture.operation.run(), error => {
     assert.equal(error.code, 'MoonBitHostFailure');
     assert.equal(error.cause?.$tag, 2, 'Host Model issue');
@@ -766,10 +769,47 @@ test('the physical Infer wrapper preserves a typed model failure and cleans with
   assert.equal(fixture.operation.physicalStopped(), true);
   assert.equal(fixture.operation.acquireOutput(), undefined);
   assert.equal(fixture.operation.acquireCapture(), undefined);
-  await fixture.operation.close();
+  const outcomes = fixture.operation.acquireOutcomes();
+  assert.ok(outcomes);
+  assert.equal(moon.clientProgramInferOutcomesAccepted(outcomes), false);
+  assert.equal(moon.clientProgramInferOutcomesCount(outcomes), 1);
+  assert.equal(moon.clientProgramInferOutcomesOutcome(outcomes, 0),
+    'failed:provider_error');
+  assert.ok(moon.clientProgramInferOutcomesCall(outcomes, 0));
+  assert.equal(moon.clientProgramInferOutcomesCall(outcomes, 1), undefined);
+  await assert.rejects(fixture.operation.close(),
+    {code: 'ClientDispatchCleanupPending'});
+  assert.equal(fixture.operation.physicalStopped(), true);
+  assert.equal(fixture.operation.cleanupPending(), true);
+  assert.equal(fixture.calls(), 1);
+  assert.equal(moon.clientProgramReleaseInferOutcomes(outcomes), true);
+  assert.equal(moon.clientProgramReleaseInferOutcomes(outcomes), false);
+  assert.equal(moon.clientProgramInferOutcomesCount(outcomes), undefined);
+  assert.equal(fixture.operation.cleanup(), true);
   assert.equal(fixture.operation.cleanupPending(), false);
   assert.equal(fixture.calls(), 1);
   assert.equal(fixture.operation.cleanup(), true);
+  assert.equal(fixture.calls(), 1);
+});
+
+test('outcome-mode failures retain a real key and NULL value without a success response', async () => {
+  const fixture = supervisedInferFixture(undefined, undefined,
+    '{"reason":null,"risk":123}');
+  const completed = await fixture.operation.run();
+  assert.deepEqual(await inferExportRows(fixture.prepared, completed),
+    [{id: 'a', outcome: 'failed:provider_error', value: null}]);
+  assert.equal(fixture.calls(), 1);
+  const capture = fixture.operation.acquireCapture();
+  assert.ok(capture);
+  assert.equal(moon.clientProgramInferCaptureCallCount(capture), 1);
+  assert.equal(moon.clientProgramInferCaptureOutcome(capture, 0),
+    'failed:provider_error');
+  assert.ok(moon.clientProgramInferCaptureCall(capture, 0));
+  assert.equal(fixture.operation.invocationEvidence(0), undefined);
+  assert.equal(fixture.operation.cleanup(), false);
+  assert.equal(moon.clientProgramReleaseInferCapture(capture), true);
+  await fixture.operation.close();
+  assert.equal(fixture.operation.cleanupPending(), false);
   assert.equal(fixture.calls(), 1);
 });
 

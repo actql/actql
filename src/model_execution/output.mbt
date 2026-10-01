@@ -19,17 +19,21 @@ fn model_output_cell(
   if !state.accepted || state.reclaimed {
     return None
   }
-  guard state.captures.get(row) is Some(capture) &&
+  guard state.outcomes.get(row) is Some(outcome) &&
     @schema.field_at(schema, column) is Some(field) else {
     return None
   }
   let owner = @relation.prepared_infer_rows_owner(state.rows)
   let name = @schema.reference_name(field.name)
   if name == "outcome" {
-    return @admitted.text_value("ok", 2)
+    return @admitted.text_value(adopted_model_slot_outcome(outcome), 32)
   }
   if name == "value" {
-    return Some(capture.value.value)
+    return match outcome {
+      Success(index) =>
+        state.captures.get(index).map(value => value.value.value)
+      NoResponseFailure(_) => Some(@admitted.null_value())
+    }
   }
   for key in 0..<@infer.key_count(owner) {
     if @infer.key_at(owner, key) is Some(binding) && binding.field == field.name {
@@ -42,7 +46,7 @@ fn model_output_cell(
 }
 
 ///|
-/// Exact typed target selection and a private successful execution are both
+/// Exact typed target selection and a private accepted execution are both
 /// required. Raw captures, even with matching CIDs, cannot complete a task.
 pub fn start_model_output_preparation(
   execution : ModelExecution,
@@ -79,7 +83,7 @@ pub fn start_model_output_preparation(
   let materialization = match
     @relation.start_admitted_output_preparation(
       output,
-      state.captures.length(),
+      state.outcomes.length(),
       max_step_work,
       max_workspace_slots,
       (row, column) => model_output_cell(state, schema, row, column),

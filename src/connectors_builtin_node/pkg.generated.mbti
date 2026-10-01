@@ -43,6 +43,8 @@ import {
 // Values
 pub fn client_program_acquire_infer_capture(@client_infer_host.Execution) -> @model_execution.VerifiedModelCapture?
 
+pub fn client_program_acquire_infer_outcomes(@client_infer_host.Execution) -> @model_execution.ModelOutcomeRead?
+
 pub fn client_program_acquire_infer_output(@client_infer_host.Execution) -> @client_infer_host.OutputUse?
 
 pub fn client_program_acquired_effect_catalog_bodies(@run_publication_host.ClientEffectAcquiredEvidence, Int, Int, Int) -> Result[Array[(String, String, String)], @run_publication_host.ClientEffectAcquiredEvidenceIssue]
@@ -451,6 +453,8 @@ pub fn client_program_infer_capture_export_identity(@model_execution.ModelCaptur
 
 pub fn client_program_infer_capture_export_response_pending(@model_execution.ModelCaptureExport) -> Bool
 
+pub fn client_program_infer_capture_outcome(@model_execution.VerifiedModelCapture, Int) -> String?
+
 pub fn client_program_infer_execution_capture(@client_infer_host.Execution) -> @model_execution.ModelCaptureBundle?
 
 pub fn client_program_infer_execution_handoff_pending(@client_infer_host.Execution) -> Bool
@@ -478,6 +482,14 @@ pub fn client_program_infer_input_rows(@client_local_host.ClientInferInputPoll) 
 pub fn client_program_infer_invocation_evidence(@client_infer_host.Execution, Int) -> @run_publication.RunEvidenceValue?
 
 pub fn client_program_infer_observation_pending(@client_infer_host.Execution) -> Bool
+
+pub fn client_program_infer_outcomes_accepted(@model_execution.ModelOutcomeRead) -> Bool
+
+pub fn client_program_infer_outcomes_call(@model_execution.ModelOutcomeRead, Int) -> @run_publication.RunEvidenceValue?
+
+pub fn client_program_infer_outcomes_count(@model_execution.ModelOutcomeRead) -> Int?
+
+pub fn client_program_infer_outcomes_outcome(@model_execution.ModelOutcomeRead, Int) -> String?
 
 pub fn client_program_infer_output_use(@client_infer_host.OutputUse) -> @execution_relation.CompletedOutput?
 
@@ -756,6 +768,8 @@ pub fn client_program_release_effect_inputs(@physical_strategy.CapturedEffectInp
 pub fn client_program_release_infer_capture(@model_execution.VerifiedModelCapture) -> Bool
 
 pub fn client_program_release_infer_capture_bundle(@run_publication.ModelCaptureBundleRead) -> Bool
+
+pub fn client_program_release_infer_outcomes(@model_execution.ModelOutcomeRead) -> Bool
 
 pub fn client_program_release_infer_output(@client_infer_host.OutputUse) -> Bool
 

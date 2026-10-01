@@ -13,6 +13,8 @@ import {
 }
 
 // Values
+pub fn acquire_model_outcomes(ModelExecution) -> ModelOutcomeRead?
+
 pub fn acquire_verified_model_capture(ModelExecution) -> VerifiedModelCapture?
 
 pub fn advance_model_capture_export(ModelCaptureExport, Int) -> Result[(Bool, String, Int64), ModelExecutionIssue]
@@ -55,6 +57,18 @@ pub fn model_execution_restoring(ModelExecution) -> Bool
 
 pub fn model_execution_sealing_observation(ModelExecution) -> Bool
 
+pub fn model_outcomes_accepted(ModelOutcomeRead) -> Bool
+
+pub fn model_outcomes_call_at(ModelOutcomeRead, Int) -> @run_publication.RunEvidenceValue?
+
+pub fn model_outcomes_count(ModelOutcomeRead) -> Int?
+
+pub fn model_outcomes_invocation_evidence(ModelOutcomeRead, Int) -> @run_publication.RunEvidenceValue?
+
+pub fn model_outcomes_outcome(ModelOutcomeRead, Int) -> String?
+
+pub fn release_model_outcomes(ModelOutcomeRead) -> Bool
+
 pub fn release_verified_model_capture(VerifiedModelCapture) -> Bool
 
 pub fn replay_model_capture(@check_environment.ModelTaskContract, String, ModelCaptureBundle) -> Result[Array[@value_admission.CheckedValue], ModelExecutionIssue]
@@ -62,6 +76,8 @@ pub fn replay_model_capture(@check_environment.ModelTaskContract, String, ModelC
 pub fn replay_model_capture_rows(@execution_relation.PreparedInferRows, String, ModelCaptureBundle) -> Result[Array[@value_admission.CheckedValue], ModelExecutionIssue]
 
 pub fn request_model_cancel(ModelExecution) -> Bool
+
+pub fn retain_model_outcomes(ModelOutcomeRead) -> ModelOutcomeRead?
 
 pub fn retain_verified_model_capture(VerifiedModelCapture) -> VerifiedModelCapture?
 
@@ -78,6 +94,8 @@ pub fn start_restored_model_capture_replay(@execution_relation.PreparedInferRows
 pub fn verified_model_capture_call_at(VerifiedModelCapture, Int) -> @run_publication.RunEvidenceValue?
 
 pub fn verified_model_capture_call_count(VerifiedModelCapture) -> Int?
+
+pub fn verified_model_capture_outcome(VerifiedModelCapture, Int) -> String?
 
 // Errors
 
@@ -145,6 +163,11 @@ pub(all) enum ModelObservation {
   Completed(ModelCaptureBundle, Int64, Int64)
   Failed(ModelExecutionIssue, Int64, Int64)
   Stopped(@bounded_execution.StopReason, Int64, Int64)
+}
+
+pub struct ModelOutcomeRead {
+  owner : ModelExecution
+  mut released : Bool
 }
 
 type ModelOutputPreparation

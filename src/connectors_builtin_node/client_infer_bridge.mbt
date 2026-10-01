@@ -80,6 +80,56 @@ pub fn client_program_acquire_infer_capture(
 }
 
 ///|
+#export_name("clientProgramAcquireInferOutcomes")
+pub fn client_program_acquire_infer_outcomes(
+  active : @infer_host.Execution,
+) -> @model.ModelOutcomeRead? {
+  @infer_host.acquire_outcomes(active)
+}
+
+///|
+#export_name("clientProgramInferOutcomesAccepted")
+pub fn client_program_infer_outcomes_accepted(
+  read : @model.ModelOutcomeRead,
+) -> Bool {
+  @model.model_outcomes_accepted(read)
+}
+
+///|
+#export_name("clientProgramInferOutcomesCount")
+pub fn client_program_infer_outcomes_count(
+  read : @model.ModelOutcomeRead,
+) -> Int? {
+  @model.model_outcomes_count(read)
+}
+
+///|
+#export_name("clientProgramInferOutcomesCall")
+pub fn client_program_infer_outcomes_call(
+  read : @model.ModelOutcomeRead,
+  slot : Int,
+) -> @publication.RunEvidenceValue? {
+  @model.model_outcomes_call_at(read, slot)
+}
+
+///|
+#export_name("clientProgramInferOutcomesOutcome")
+pub fn client_program_infer_outcomes_outcome(
+  read : @model.ModelOutcomeRead,
+  slot : Int,
+) -> String? {
+  @model.model_outcomes_outcome(read, slot)
+}
+
+///|
+#export_name("clientProgramReleaseInferOutcomes")
+pub fn client_program_release_infer_outcomes(
+  read : @model.ModelOutcomeRead,
+) -> Bool {
+  @model.release_model_outcomes(read)
+}
+
+///|
 /// The installed capture owner reads the actual accepted call inventory;
 /// successful bundle records are not a substitute for this inventory.
 #export_name("clientProgramInferCaptureCallCount")
@@ -87,6 +137,15 @@ pub fn client_program_infer_capture_call_count(
   capture : @model.VerifiedModelCapture,
 ) -> Int? {
   @model.verified_model_capture_call_count(capture)
+}
+
+///|
+#export_name("clientProgramInferCaptureOutcome")
+pub fn client_program_infer_capture_outcome(
+  capture : @model.VerifiedModelCapture,
+  slot : Int,
+) -> String? {
+  @model.verified_model_capture_outcome(capture, slot)
 }
 
 ///|

@@ -14,6 +14,13 @@ The one-row public Host handoff is **not ready**. The records below describe
 earlier implementation units and their verification, not current acceptance
 of the complete inference path.
 
+The current execution owner now adopts classified no-response failures as
+keyed outcomes, replays mixed success/failure observations without dispatch,
+and retains strict-failure observations through private stopped-execution
+reads. Formal durable all-slot evidence, installed policy/dependency admission
+and the public Host-to-Named-Result connection are still incomplete. The units
+below must not be substituted for those remaining acceptance conditions.
+
 Normal Program preparation now retains the installed ModelTask contract and
 its role-specific dependency roots. The runtime input connection uses the
 same checked Program owner to execute `Values -> assert_rows` through the
@@ -1062,3 +1069,53 @@ execution capture accepts successful barriers; failure-outcome adoption and
 durable all-slot capture remain unconnected. Public Host registration and
 committed Named Result retrieval also remain unfinished. These local checks
 do not constitute B's public acceptance SHA, Linux CI or permission to push.
+
+## Execution-owned provider outcomes
+
+The model owner now keeps an adopted slot inventory separate from successful
+response records. Each success points to its checked response and invocation
+evidence; each classified no-response failure retains its actual provider
+classification. Ordinary `outcomes` mode emits one keyed row per adopted slot,
+with a NULL value on failure. Seven classified failures are covered. Provider
+cancellation and cancellation delivered during a callback stop the barrier
+instead of fabricating a provider-failure row. Strict mode rejects output at
+the first failed slot; prepared but unattempted keys are not adopted outcomes.
+
+Successful capture bundle shape and identity remain unchanged. Such a bundle
+contains only the successful response subset and is not the full slot list.
+Live opaque replay prepares the ordinary input and verifies every call/key
+again, then reuses successes and failures in canonical key order without a
+provider. Invocation-evidence lookup uses the logical slot position rather
+than a success-subset index. Stored success-only replay still rejects an
+incomplete key inventory; durable replay of failures remains unfinished.
+
+Private `ModelOutcomeRead` custody can retain an adopted prefix after strict
+failure, including preceding successful evidence. Physical stop is required
+before acquiring it. This read is not accepted-output authority or a completed
+ObservationSet. Independent reads keep the original input and observations
+alive through failed cleanup; releasing the last read permits cleanup without
+another model call. Released reads and unattempted slot positions are rejected.
+
+The existing physical ledger gains `mark_transfer_uncertain`. A dispatched
+call with no confirmed wire observation moves its reserved upper bound to
+uncertain transfer usage. Cleanup releases physical retention/execution but
+does not refund this unknown usage. This is not an exact measured charge and
+does not establish the still-missing token, cost or duration accounting. The
+primitive is shared; no model-specific ledger or Run state machine is added.
+
+Independent one-row bounds cover ten model work transitions and 66,536 bytes
+of request/response retention. Exact limits admit the failed outcome; one-short
+rejects with `WorkLimit` or `Ledger(RetentionLimit)` before the callback. Other
+tests cover all-failure rows, mixed replay, exact typed capture mismatches,
+no-response artifacts, cancellation races and strict-prefix custody. Local
+JS/Wasm/native suites pass: inference owner 34/34, model owner 2/2, publication
+188/188 and physical resources 16/16 on each target. Node bridge integration
+passes 36/36, dispatch-owner regressions 13/13, and contribution generation,
+formatting and whitespace checks pass. Generated interfaces are refreshed.
+
+The Node Option-returning legacy provider still represents an absent decoded
+response as `ProviderError`; it is not a full raw-response classifier. These
+tests do not claim actual error-response issuer evidence, retry/backoff/media
+admission, formal adoption/accounting/authority records, durable all-slot
+capture, installed public startup or committed Named Result retrieval. No
+push or Linux CI success is claimed, and no adoption SHA is supplied to B.

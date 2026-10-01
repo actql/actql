@@ -596,6 +596,8 @@ pub fn verify_model_observation_slots(RunEvidenceValue, Array[BoundModelSlotCapt
 
 pub fn verify_model_slot_capture_bundle(Array[BoundModelSlotCapture], ModelCaptureBundleRead) -> Result[Unit, RunEvidenceValueIssue]
 
+pub fn verify_model_slot_no_response_failure(BoundModelSlotCapture, String) -> Result[Unit, RunEvidenceValueIssue]
+
 pub fn verify_model_slot_success_observation(BoundModelSlotCapture, RunEvidenceValue) -> Result[Unit, RunEvidenceValueIssue]
 
 // Errors

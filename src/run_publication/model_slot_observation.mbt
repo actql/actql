@@ -137,6 +137,27 @@ pub fn verify_model_slot_success_observation(
 }
 
 ///|
+/// Match a response-less failure to the executing owner's classification.
+/// Classification/attempt/accounting authority still requires its own records;
+/// this structural matcher cannot turn a caller-supplied outcome into proof.
+pub fn verify_model_slot_no_response_failure(
+  binding : BoundModelSlotCapture,
+  outcome : String,
+) -> Result[Unit, RunEvidenceValueIssue] {
+  if !outcome.has_prefix("failed:") ||
+    contract_string_from_value(binding.capture.value, "outcome") !=
+    Some(outcome) {
+    return Err(model_slot_reference_error("outcome"))
+  }
+  for name in ["response_artifact_cid", "response_issuer_evidence_cid"] {
+    if contract_string_from_value(binding.capture.value, name) is Some(_) {
+      return Err(model_slot_reference_error(name))
+    }
+  }
+  Ok(())
+}
+
+///|
 /// Match only successful saved response records to the complete adopted-slot
 /// inventory. Failed slots do not acquire fabricated success bundle entries.
 /// Response bytes still require the existing bounded restoring model owner;

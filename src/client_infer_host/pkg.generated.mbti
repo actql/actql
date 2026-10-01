@@ -12,6 +12,8 @@ import {
 // Values
 pub fn acquire_capture(Execution) -> @model_execution.VerifiedModelCapture?
 
+pub fn acquire_outcomes(Execution) -> @model_execution.ModelOutcomeRead?
+
 pub fn acquire_output(Execution) -> OutputUse?
 
 pub fn advance(Execution, Int) -> Result[Poll, Issue]

@@ -1,5 +1,5 @@
 ///|
-/// A read of observations issued by the successful model owner. This opaque
+/// A read of outcomes issued by the accepted model owner. This opaque
 /// handle is not constructible from a slot CID or a ModelCaptureBundle. It
 /// retains private execution custody, not durable Store or egress authority.
 pub struct VerifiedModelCapture {
@@ -17,7 +17,7 @@ pub fn acquire_verified_model_capture(
     state.call_scope is None ||
     state.output_uses == 2147483647 ||
     state.requests.length() != @relation.prepared_infer_rows_count(state.rows) ||
-    state.requests.length() != state.captures.length() ||
+    state.requests.length() != state.outcomes.length() ||
     state.captures.length() != state.invocation_evidence.length() ||
     state.captures.length() != state.responses.length() {
     return None
@@ -29,7 +29,7 @@ pub fn acquire_verified_model_capture(
 ///|
 /// Complete call inventory from the accepted execution's canonical typed-key
 /// order. This is not a caller-provided count or a successful-bundle subset.
-/// Failed barriers have no accepted capture; their private outcome owner must
+/// Strict failed barriers have no accepted capture; their private outcome owner must
 /// retain responsibility separately rather than inventing unattempted slots.
 pub fn verified_model_capture_call_count(
   capture : VerifiedModelCapture,
@@ -56,9 +56,9 @@ pub fn verified_model_capture_call_at(
     !state.reclaimed &&
     state.requests.get(slot) is Some(prepared) &&
     prepared.call is Some(call) &&
-    state.captures.get(slot) is Some(saved) &&
-    saved.slot == slot &&
-    saved.slot_cid == @publication.run_evidence_value_identity(call) else {
+    prepared.request.slot == slot &&
+    prepared.request.slot_cid == @publication.run_evidence_value_identity(call) &&
+    state.outcomes.get(slot) is Some(_) else {
     return None
   }
   Some(call)
@@ -74,16 +74,28 @@ pub fn bind_verified_model_slot_capture(
   record : @publication.RunEvidenceValue,
 ) -> Result[@publication.BoundModelSlotCapture, ModelExecutionIssue] {
   guard verified_model_capture_call_at(capture, slot) is Some(call) &&
-    capture.owner.state.invocation_evidence.get(slot) is Some(observation) else {
+    capture.owner.state.outcomes.get(slot) is Some(outcome) else {
     return Err(OutputIdentity)
   }
   let binding = match @publication.bind_model_slot_capture(call, record) {
     Ok(value) => value
     Err(issue) => return Err(InvocationEvidence(issue))
   }
-  @publication.verify_model_slot_success_observation(binding, observation)
-  .map(_ => binding)
-  .map_err(issue => InvocationEvidence(issue))
+  let verified = match outcome {
+    Success(index) => {
+      guard capture.owner.state.invocation_evidence.get(index)
+        is Some(observation) else {
+        return Err(OutputIdentity)
+      }
+      @publication.verify_model_slot_success_observation(binding, observation)
+    }
+    NoResponseFailure(_) =>
+      @publication.verify_model_slot_no_response_failure(
+        binding,
+        adopted_model_slot_outcome(outcome),
+      )
+  }
+  verified.map(_ => binding).map_err(issue => InvocationEvidence(issue))
 }
 
 ///|
@@ -134,7 +146,7 @@ pub fn start_model_capture_replay(
     @publication.run_evidence_value_identity(
       @publication_host.client_infer_call_scope_artifact(prior_scope),
     ) ||
-    @relation.prepared_infer_rows_count(rows) != prior.captures.length() {
+    @relation.prepared_infer_rows_count(rows) != prior.outcomes.length() {
     return Err(OutputIdentity)
   }
   match
@@ -168,9 +180,22 @@ fn advance_model_capture_replay(
   let request = prepared.request
   guard !prior.reclaimed &&
     prior.accepted &&
-    prior.captures.get(state.next_slot) is Some(saved) &&
-    prior.responses.get(state.next_slot) is Some(response) &&
-    prior.invocation_evidence.get(state.next_slot) is Some(evidence) else {
+    prior.requests.get(state.next_slot) is Some(prior_request) &&
+    prior.outcomes.get(state.next_slot) is Some(outcome) else {
+    return @bounded.Failed(OutputIdentity, 1, 1)
+  }
+  if prior_request.request.slot_cid != request.slot_cid ||
+    prior_request.key_cid != prepared.key_cid ||
+    prior_request.request.fixed_request_cid != request.fixed_request_cid {
+    return @bounded.Failed(OutputIdentity, 1, 1)
+  }
+  if outcome is NoResponseFailure(failure) {
+    return accept_failed_model_slot(state, failure)
+  }
+  guard outcome is Success(index) &&
+    prior.captures.get(index) is Some(saved) &&
+    prior.responses.get(index) is Some(response) &&
+    prior.invocation_evidence.get(index) is Some(evidence) else {
     return @bounded.Failed(OutputIdentity, 1, 1)
   }
   if saved.slot_cid != request.slot_cid ||
@@ -180,6 +205,7 @@ fn advance_model_capture_replay(
     return @bounded.Failed(OutputIdentity, 1, 1)
   }
   state.captures.push(saved)
+  state.outcomes.push(Success(state.responses.length()))
   state.responses.push(response)
   state.invocation_evidence.push(evidence)
   state.next_slot += 1
