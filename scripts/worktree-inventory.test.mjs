@@ -25,7 +25,7 @@ function git(root, ...args) {
   return result.stdout;
 }
 function fixture(t) {
-  const parent = mkdtempSync(join(tmpdir(), 'actql inventory '));
+  const parent = realpathSync(mkdtempSync(join(tmpdir(), 'actql inventory ')));
   // Only this test's newly created fixtures are removed, never scanned user roots.
   t.after(() => rmSync(parent, {recursive: true, force: true}));
   function root(name) {
