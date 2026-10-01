@@ -5,7 +5,7 @@ fn selected_sga_supported() -> Bool {
 }
 
 ///|
-fn installed_client_graph_providers(
+fn installed_client_family_providers(
   _capacity : @execution.ExecutionCapacity,
 ) -> Array[@local.ManagedProvider] {
   []

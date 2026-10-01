@@ -1,5 +1,5 @@
 ///|
-/// One checked Relation task projected as an AoA Plan node. The input
+/// One checked Carrier task projected as an AoA Plan node. The input
 /// contracts identify ports; the Plan graph must still bind their producers.
 pub struct ClientTaskFragmentNode {
   wire : String
@@ -59,6 +59,109 @@ pub fn client_task_fragment_output_contract_cid(
 }
 
 ///|
+fn client_task_carrier_sort(carrier : @carrier.Carrier) -> String {
+  match @carrier.kind(carrier) {
+    RelationKind => "relation"
+    GraphKind => "graph"
+    EventsKind => "events"
+    VectorsKind => "vectors"
+  }
+}
+
+///|
+fn client_task_carrier_kind(sort : String) -> @carrier.Kind? {
+  match sort {
+    "relation" => Some(RelationKind)
+    "graph" => Some(GraphKind)
+    "events" => Some(EventsKind)
+    "vectors" => Some(VectorsKind)
+    _ => None
+  }
+}
+
+///|
+fn client_task_record_role(name : @schema.FieldName) -> String? {
+  match name {
+    @schema.Unqualified(value) => Some(value)
+    @schema.Qualified(_, _) => None
+  }
+}
+
+///|
+/// The existing 0.1 structural body keeps roles separate from row fields.
+/// It is a bare Carrier contract CID, not a Contract Envelope or data CID.
+fn client_task_record_carrier_contract(
+  carrier : @carrier.Carrier,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> (String, String)? {
+  let records = match carrier {
+    @carrier.EventValue(events) => @carrier.event_records(events)
+    @carrier.VectorValue(vectors) => @carrier.vector_records(vectors)
+    _ => return None
+  }
+  guard @carrier.complete_schema(records) is Some(schema) &&
+    @schema.as_object(schema) is Some(row) else {
+    return None
+  }
+  try {
+    let writer = @encode.hashing_writer(max_wire_bytes, max_nodes, max_depth)
+    @encode.begin_object(writer)
+    match carrier {
+      @carrier.EventValue(events) => {
+        guard client_task_record_role(@carrier.event_identity(events).name)
+          is Some(id) &&
+          client_task_record_role(@carrier.event_time(events).name)
+          is Some(time) else {
+          return None
+        }
+        @encode.key(writer, "id")
+        @encode.string_value(writer, id)
+        @encode.key(writer, "records")
+        @contract.emit_checked(row, writer)
+        @encode.key(writer, "time")
+        @encode.string_value(writer, time)
+        @encode.key(writer, "version")
+        @encode.string_value(writer, "actql-events-contract/0.1")
+      }
+      @carrier.VectorValue(vectors) => {
+        guard client_task_record_role(@carrier.vector_components(vectors).name)
+          is Some(components) else {
+          return None
+        }
+        @encode.key(writer, "components")
+        @encode.string_value(writer, components)
+        @encode.key(writer, "ids")
+        @encode.begin_array(writer)
+        for index in 0..<@carrier.vector_identity_count(vectors) {
+          guard @carrier.vector_identity_at(vectors, index) is Some(field) &&
+            client_task_record_role(field.name) is Some(name) else {
+            return None
+          }
+          @encode.string_value(writer, name)
+        }
+        @encode.end_array(writer)
+        @encode.key(writer, "records")
+        @contract.emit_checked(row, writer)
+        @encode.key(writer, "version")
+        @encode.string_value(writer, "actql-vectors-contract/0.1")
+      }
+      _ => return None
+    }
+    @encode.end_object(writer)
+    Some(
+      (
+        client_task_carrier_sort(carrier),
+        "sha256:" + @encode.finish_hash(writer),
+      ),
+    )
+  } catch {
+    _ => None
+  }
+}
+
+///|
 fn client_task_carrier_contract(
   carrier : @carrier.Carrier,
   max_wire_bytes : Int,
@@ -93,12 +196,15 @@ fn client_task_carrier_contract(
         Ok(contract) => Some(("graph", @graph_contract.cid(contract)))
         Err(_) => None
       }
-    _ => None
+    EventsKind | VectorsKind =>
+      client_task_record_carrier_contract(
+        carrier, max_wire_bytes, max_nodes, max_depth,
+      )
   }
 }
 
 ///|
-/// Seal the checked task pipeline and complete Relation port types together.
+/// Seal the checked task pipeline and complete Carrier port types together.
 /// Physical source capture, producer edges, Result roots, and resource facts
 /// are separate admission obligations before an Executable Plan is issued.
 pub fn issue_prepared_client_task_fragment(

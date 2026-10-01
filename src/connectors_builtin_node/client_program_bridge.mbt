@@ -2311,7 +2311,7 @@ pub fn client_program_open_source_free_local_host(
     per_pair_ms,
     fragment_body~,
     ordered_body~,
-    provider_factory=installed_client_graph_providers,
+    provider_factory=installed_client_family_providers,
   )
 }
 
@@ -2340,7 +2340,7 @@ pub fn client_program_open_source_free_local_retained_host(
     per_pair_ms,
     fragment_body~,
     ordered_body~,
-    provider_factory=installed_client_graph_providers,
+    provider_factory=installed_client_family_providers,
   )
 }
 
@@ -2371,7 +2371,7 @@ pub fn client_program_open_captured_local_host(
     per_pair_ms,
     fragment_body~,
     ordered_body~,
-    provider_factory=installed_client_graph_providers,
+    provider_factory=installed_client_family_providers,
   )
 }
 
@@ -2402,7 +2402,7 @@ pub fn client_program_open_captured_local_retained_host(
     per_pair_ms,
     fragment_body~,
     ordered_body~,
-    provider_factory=installed_client_graph_providers,
+    provider_factory=installed_client_family_providers,
   )
 }
 

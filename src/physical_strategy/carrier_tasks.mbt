@@ -118,15 +118,26 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
       return None
     }
     let mut values_source = false
-    let mut graph_construction = false
+    let mut carrier_construction = false
     let mut carrier_relation_consumer = false
     let mut intermediate_result = false
     for step in 0..<count {
       guard @lower.node_at(prepared, step) is Some(node) else { return None }
       match @lower.operation(node) {
         "REL.values" => values_source = true
-        "BRIDGE.rows.to_graph" => graph_construction = true
         _ => ()
+      }
+      if @carrier.kind(@lower.node_output_carrier(node)) !=
+        @carrier.RelationKind {
+        for input in 0..<@lower.node_input_count(node) {
+          if @lower.node_input_target(node, input)
+            is Some(@pipeline.Step(producer)) &&
+            @lower.preparation_carrier_at(prepared, @pipeline.Step(producer))
+            is Some(source) &&
+            @carrier.kind(source) == @carrier.RelationKind {
+            carrier_construction = true
+          }
+        }
       }
       if @lower.preparation_carrier_at(prepared, @pipeline.Step(step))
         is Some(output) &&
@@ -157,11 +168,11 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
         intermediate_result = true
       }
     }
-    // A source-free Graph prefix needs segmentation when a later typed
+    // A source-free Carrier prefix needs segmentation when a later typed
     // Carrier-to-Relation step or an intermediate Result needs independent
-    // ownership. Graph-only prefixes without either retain fused execution.
+    // ownership. Carrier-only prefixes without either retain fused execution.
     if !values_source ||
-      !graph_construction ||
+      !carrier_construction ||
       (!carrier_relation_consumer && !intermediate_result) {
       return None
     }

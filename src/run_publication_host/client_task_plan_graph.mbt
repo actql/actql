@@ -170,12 +170,8 @@ fn issue_client_task_plan_graph(
       guard fragments.get(producer) is Some(source) &&
         fragments.get(consumer) is Some(destination) &&
         input is Some((input_name, carrier)) &&
-        @carrier.kind(carrier) ==
-        (if source.output_carrier == "graph" {
-          GraphKind
-        } else {
-          RelationKind
-        }) &&
+        client_task_carrier_kind(source.output_carrier) is Some(source_kind) &&
+        @carrier.kind(carrier) == source_kind &&
         nodes.get(consumer) is Some(consumer_node) &&
         @canonical.object_field(consumer_node, "input_contracts")
         is Some(input_contracts) &&

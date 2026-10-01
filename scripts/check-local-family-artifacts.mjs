@@ -67,6 +67,11 @@ const familyPackages = {
 };
 
 const configurations = [{
+  name: 'all',
+  entry: `${moduleName}/connectors_builtin_node`,
+  forbidden: [],
+  required: ['sga', 'tea', 'veca'],
+}, {
   name: 'rela',
   entry: `${moduleName}/connectors_builtin_node_rela`,
   forbidden: ['sga', 'tea', 'veca'],
@@ -92,6 +97,13 @@ for (const configuration of configurations) {
         throw new Error(
           `${configuration.name} imports unselected package ${forbidden}`,
         );
+      }
+    }
+  }
+  for (const family of configuration.required ?? []) {
+    for (const required of familyPackages[family]) {
+      if (!closure.has(required)) {
+        throw new Error(`${configuration.name} omits selected package ${required}`);
       }
     }
   }
@@ -135,6 +147,8 @@ function artifactFor(name) {
 }
 
 const artifacts = new Map([
+  ['all', path.join(root,
+    '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js')],
   ['rela', path.join(
     root,
     '_build/js/release/build/connectors_builtin_node_rela/',
@@ -174,6 +188,18 @@ for (const family of ['sga', 'tea', 'veca']) {
 for (const required of ['driver', 'managed_carrier_runtime']) {
   if (!linkedCores.has(required)) {
     throw new Error(`RelA artifact is missing required runtime core ${required}`);
+  }
+}
+const allResponse = path.join(root,
+  '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js.rsp');
+const allLinked = new Set(readFileSync(allResponse, 'utf8').split(/\r?\n/u)
+  .filter(line => line.endsWith('.core')).map(line => path.basename(line, '.core')));
+for (const family of ['sga', 'tea', 'veca']) {
+  for (const required of familyPackages[family]) {
+    const shortName = required.slice(moduleName.length + 1).replaceAll('/', '_');
+    if (!allLinked.has(shortName)) {
+      throw new Error(`all-family artifact omits selected package ${required}`);
+    }
   }
 }
 

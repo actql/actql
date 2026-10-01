@@ -12,7 +12,7 @@ const bridgePackage = options.bridge ?? 'connectors_builtin_node';
 const adapter = options.adapter ?? 'connectors-builtin';
 const loading = options.loading ?? 'selected';
 const nativeRemoteStandard = options.nativeRemoteStandard ?? true;
-const selectedSga = options.selectedSga ??
+const selectedFamilies = options.selectedFamilies ??
   bridgePackage === 'connectors_builtin_node';
 if (!['selected', 'static'].includes(loading)) throw new Error('Invalid module loading profile');
 if (![assembly, bridgePackage].every(value => /^[a-z][a-z0-9_]*$/.test(value)) ||
@@ -258,9 +258,12 @@ if (existsSync(join(root, 'src', bridgePackage,
       dependencies.set(entry.path, entry.alias);
     }
   }
-  if (selectedSga) {
+  if (selectedFamilies) {
     dependencies.set('actql/actql/local_sga_provider', 'local_sga_provider');
     dependencies.set('actql/actql/managed_graph_storage', 'graph_storage');
+    dependencies.set('actql/actql/local_tea_provider', 'local_tea_provider');
+    dependencies.set('actql/actql/local_veca_provider', 'local_veca_provider');
+    dependencies.set('actql/actql/managed_record_storage', 'record_storage');
   }
 }
 if (hasLocalCarrierBridge) {

@@ -996,6 +996,25 @@ for (const [index, route] of routeEntries.entries()) {
     !environmentRoles.has('append_same_stage_node_timer_cancel_cleanup')) {
     fail(`${label}: same-stage append timer evidence is missing`);
   }
+  const installedRetainedRoles = {
+    'SGA:normalize_graph': ['installed_retained_graph_named_results'],
+    'TEA:watermark_events': [
+      'installed_retained_events_named_results',
+      'installed_retained_events_kernel_cancel',
+      'installed_retained_events_filter_arithmetic',
+      'installed_retained_events_publication_finalize_cleanup',
+    ],
+    'VecA:normalize_vectors': [
+      'installed_retained_vectors_named_results',
+      'installed_retained_vectors_filter_cancel',
+      'installed_retained_vectors_publication_append_cleanup',
+    ],
+  }[`${route.family}:${route.operation}`] ?? [];
+  for (const role of installedRetainedRoles) {
+    if (!environmentRoles.has(role)) {
+      fail(`${label}: ${role} fixture is missing`);
+    }
+  }
   if (route.family === 'RelA' && route.operation === 'values' &&
     !environmentRoles.has('zero_input_derive_timer_cancel_cleanup')) {
     fail(`${label}: same-stage derive timer evidence is missing`);
