@@ -50,6 +50,7 @@ test "model capture replay validates task and fixed request without provider cal
     input_key_cid: "sha256:4444444444444444444444444444444444444444444444444444444444444444",
     fixed_request_cid: fixed,
     provider_id: "models/fixture",
+    provider_model: "fixture-risk-model",
     provider_request_id: "request-1",
     value: model_execution_test_output(task),
     input_tokens: 1L,
@@ -75,6 +76,29 @@ test "model capture replay validates task and fixed request without provider cal
   assert_true(
     replay_model_capture(task, fixed, invalid_bundle) is Err(OutputIdentity),
   )
+  for
+    invalid in [
+      { ..capture, provider_id: "models/foreign", },
+      { ..capture, provider_model: "", },
+      { ..capture, observed_at: "", },
+      { ..capture, input_tokens: -1L, },
+      { ..capture, output_tokens: -1L, },
+    ] {
+    assert_true(
+      replay_model_capture(task, fixed, { ..bundle, captures: [invalid], })
+      is Err(OutputIdentity),
+    )
+  }
+  // The private observation preserves integer bytes, without rounding an
+  // Int64 through binary64 or claiming canonical public Run evidence.
+  let large = { ..capture, input_tokens: 9223372036854775807L, }
+  let wire = model_capture_bundle_json(
+    { ..bundle, captures: [large], },
+    4096,
+    100,
+    16,
+  ).unwrap()
+  assert_true(wire.contains("\"input_tokens\":9223372036854775807"))
 }
 
 ///|

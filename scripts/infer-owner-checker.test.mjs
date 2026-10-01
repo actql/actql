@@ -20,9 +20,9 @@ void ignored;
 const cid = value => `sha256:${createHash('sha256')
   .update(canonicalText(value)).digest('hex')}`;
 
-function environment(installTask = true, hostItems) {
+function environment(installTask = true, hostItems, installedTask = task) {
   const body = {...baseEnvironment,
-    model_task_contracts: installTask ? [task] : []};
+    model_task_contracts: installTask ? [installedTask] : []};
   if (hostItems !== undefined) {
     body.host_policy_profile = {...body.host_policy_profile,
       capacity: {...body.host_policy_profile.capacity, max_infer_items: hostItems}};
@@ -210,7 +210,7 @@ async function acceptedModel() {
     });
   const active = checked(moon.clientProgramStartModelExecution(rows, provider,
     `sha256:${'1'.repeat(64)}`));
-  checked(moon.clientProgramAdvanceModelExecution(active, 1));
+  assert.equal((await modelTerminal(active)).$tag, 1);
   return {prepared, input, rows, active, calls: () => calls};
 }
 
@@ -236,6 +236,62 @@ function ownedInfer(source = program(), onInvoke, options = {}) {
     prepared, 2, registry, values, provider, `sha256:${'1'.repeat(64)}`));
   return {prepared, active, calls: () => calls};
 }
+
+async function modelTerminal(active) {
+  let lastWork = 0n;
+  for (let poll = 0; poll < 20000; poll++) {
+    const value = checked(moon.clientProgramAdvanceModelExecution(active, 1));
+    const work = value._2 ?? value._1;
+    assert.ok(work >= lastWork && work - lastWork <= 1n);
+    lastWork = work;
+    if (value.$tag !== 0) return value;
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  assert.fail('model did not reach its independent finite poll ceiling');
+}
+
+test('a macrotask cancellation stops nested response admission without replaying dispatch', async () => {
+  const arrayTask = structuredClone(task);
+  arrayTask.output_contract.fields.risk = {type: 'array', nullable: false,
+    max_items: 4096, items: {type: 'number', nullable: false}};
+  arrayTask.output_schema_cid = cid(arrayTask.output_contract);
+  delete arrayTask.contract_cid;
+  arrayTask.contract_cid = cid(arrayTask);
+  const prepared = moon.clientProgramPreparationReady(
+    prepare(program(), environment(true, undefined, arrayTask)));
+  assert.ok(prepared);
+  const response = canonicalText({reason: null,
+    risk: Array.from({length: 4096}, (_, index) => index)});
+  let calls = 0;
+  const provider = moon.clientProgramInstallModelProvider('models/fixture', request => {
+    calls++;
+    return moon.clientProgramModelResponse(request, response, 'fixture-array-model',
+      'array-response-1', 1n, 4096n, '2026-10-01T00:00:00.000Z');
+  });
+  const active = checked(moon.clientProgramStartInferExecution(
+    prepared, 2, registry, values, provider, `sha256:${'1'.repeat(64)}`));
+  for (let poll = 0; poll < 2000 && calls === 0; poll++) {
+    assert.equal(checked(moon.clientProgramAdvanceInferExecution(active, 1)).$tag, 0);
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  assert.equal(calls, 1);
+  for (let poll = 0; poll < 64; poll++) {
+    assert.equal(checked(moon.clientProgramAdvanceInferExecution(active, 1)).$tag, 0);
+    assert.equal(moon.clientProgramInferExecutionCapture(active), undefined);
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), false);
+  await new Promise(resolve => setImmediate(() => {
+    assert.equal(moon.clientProgramCancelInferExecution(active), true);
+    resolve();
+  }));
+  assert.equal(checked(moon.clientProgramAdvanceInferExecution(active, 1)).$tag, 3);
+  assert.equal(moon.clientProgramInferExecutionCapture(active), undefined);
+  assert.equal(moon.clientProgramInferExecutionOutput(active), undefined);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), true);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), true);
+  assert.equal(calls, 1);
+});
 
 async function ownedInferTerminal(active, atYield) {
   let lastWork = 0n;
@@ -465,7 +521,7 @@ test('model output refuses unaccepted executions and a foreign prepared input ow
     `sha256:${'1'.repeat(64)}`));
   assert.equal(moon.clientProgramStartModelOutput(input, rows, active).$tag, 0);
   assert.equal(calls, 0);
-  checked(moon.clientProgramAdvanceModelExecution(active, 1));
+  assert.equal((await modelTerminal(active)).$tag, 1);
   const foreignInput = startInput();
   const foreignRows = await mappedRows(foreignInput);
   assert.equal(moon.clientProgramStartModelOutput(foreignInput,
@@ -492,6 +548,9 @@ test('a response arriving after cancellation cannot authorize model output', asy
     });
   active = checked(moon.clientProgramStartModelExecution(rows, provider,
     `sha256:${'1'.repeat(64)}`));
+  assert.equal(checked(moon.clientProgramAdvanceModelExecution(active, 1)).$tag, 0,
+    'reserve attempts in bounded steps before the first call');
+  assert.equal(calls, 0);
   assert.equal(checked(moon.clientProgramAdvanceModelExecution(active, 1)).$tag, 3);
   assert.equal(moon.clientProgramStartModelOutput(input, rows, active).$tag, 0);
   assert.equal(checked(moon.clientProgramCleanupInferInput(input)), false,
@@ -554,6 +613,10 @@ test('normal checked Relation completion feeds a registered ModelTask', async ()
   assert.equal(captured.task_cid, task.contract_cid);
   assert.equal(captured.captures.length, 1);
   assert.deepEqual(captured.captures[0].value, {reason: null, risk: 'high'});
+  assert.equal(captured.captures[0].provider_model, 'fixture-risk-model');
+  assert.equal(captured.captures[0].input_tokens, 1);
+  assert.equal(captured.captures[0].output_tokens, 2);
+  assert.equal(captured.captures[0].observed_at, '2026-10-01T00:00:00.000Z');
   assert.equal(moon.clientProgramReplayModelCapture(rows,
     `sha256:${'1'.repeat(64)}`, bundle), true);
   assert.equal(moon.clientProgramReplayModelCapture(rows,

@@ -75,6 +75,7 @@ pub(all) enum ModelExecutionIssue {
   Deadline
   Ledger(@resources.LedgerIssue)
   Session(@bounded.Issue)
+  WorkLimit
 } derive(Eq, Debug)
 
 ///|
@@ -87,6 +88,7 @@ pub(all) struct ModelSlotCapture {
   input_key_cid : String
   fixed_request_cid : String
   provider_id : String
+  provider_model : String
   provider_request_id : String
   value : @admitted.CheckedValue
   input_tokens : Int64
@@ -110,6 +112,14 @@ pub(all) enum ModelObservation {
 }
 
 ///|
+priv enum ModelPhase {
+  ReserveSlots
+  DispatchSlot
+  CheckResponse(ModelRequest, ModelResponse, String, @admitted.RecheckCursor)
+  Reclaimed
+}
+
+///|
 struct ModelState {
   rows : @relation.PreparedInferRows
   input_use : @relation.InferRowsUse
@@ -120,6 +130,8 @@ struct ModelState {
   ledger : @resources.Ledger
   reservations : Array[@resources.Reservation]
   captures : Array[ModelSlotCapture]
+  mut phase : ModelPhase
+  mut work : Int
   mut next_slot : Int
   mut output_uses : Int
   mut accepted : Bool
@@ -256,6 +268,35 @@ fn advance_model(
   if @bounded.stop_requested(reader) is Some(reason) {
     return @bounded.Stopped(reason, 0, 0)
   }
+  if quantum < 1 {
+    return @bounded.Failed(InvalidLimits, 0, 0)
+  }
+  if state.work >= state.limits.max_work {
+    return @bounded.Failed(WorkLimit, 0, 0)
+  }
+  state.work += 1
+  if state.phase is ReserveSlots {
+    if state.reservations.length() <
+      @relation.prepared_infer_rows_count(state.rows) {
+      match
+        @resources.reserve_attempt(
+          state.ledger,
+          state.limits.max_request_bytes + state.limits.max_response_bytes,
+          state.limits.max_response_bytes,
+          0L,
+        ) {
+        Ok(value) => state.reservations.push(value)
+        Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
+      }
+      if state.reservations.length() ==
+        @relation.prepared_infer_rows_count(state.rows) {
+        state.phase = DispatchSlot
+      }
+      return @bounded.Continue(1, 1)
+    }
+    // All reservations precede the first dispatch, including an empty input.
+    state.phase = DispatchSlot
+  }
   if state.next_slot >= @relation.prepared_infer_rows_count(state.rows) {
     return @bounded.Complete(
       {
@@ -267,8 +308,43 @@ fn advance_model(
       1,
     )
   }
-  if quantum < 1 {
-    return @bounded.Failed(InvalidLimits, 0, 0)
+  if state.phase is CheckResponse(request, response, input_key_cid, cursor) {
+    match @admitted.advance_recheck_runtime_value(cursor) {
+      RecheckContinue => return @bounded.Continue(1, 1)
+      RecheckFailed => return @bounded.Failed(OutputValue, 1, 1)
+      RecheckComplete(checked, _, _) => {
+        state.captures.push({
+          slot: request.slot,
+          slot_cid: request.slot_cid,
+          input_key_cid,
+          fixed_request_cid: request.fixed_request_cid,
+          provider_id: state.provider.provider_id,
+          provider_model: response.provider_model,
+          provider_request_id: response.provider_request_id,
+          value: checked,
+          input_tokens: response.input_tokens,
+          output_tokens: response.output_tokens,
+          observed_at: response.observed_at,
+        })
+        state.next_slot += 1
+        state.phase = DispatchSlot
+        if state.next_slot == @relation.prepared_infer_rows_count(state.rows) {
+          return @bounded.Complete(
+            {
+              task_cid: @environment.model_task_identity(state.task).2,
+              fixed_request_cid: state.fixed_request_cid,
+              captures: state.captures.copy(),
+            },
+            1,
+            1,
+          )
+        }
+        return @bounded.Continue(1, 1)
+      }
+    }
+  }
+  if !(state.phase is DispatchSlot) {
+    return @bounded.Failed(OutputIdentity, 1, 1)
   }
   let request = match make_request(state) {
     Ok(value) => value
@@ -289,8 +365,8 @@ fn advance_model(
     response.output_tokens < 0L {
     return @bounded.Failed(OutputIdentity, 1, 1)
   }
-  let checked = match
-    @admitted.recheck_runtime_value(
+  let cursor = match
+    @admitted.start_recheck_runtime_value(
       response.value,
       @environment.model_task_output(state.task),
       state.limits.value_limits,
@@ -304,32 +380,8 @@ fn advance_model(
     Ok(_) => ()
     Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
   }
-  state.captures.push({
-    slot: request.slot,
-    slot_cid: request.slot_cid,
-    input_key_cid,
-    fixed_request_cid: request.fixed_request_cid,
-    provider_id: state.provider.provider_id,
-    provider_request_id: response.provider_request_id,
-    value: checked,
-    input_tokens: response.input_tokens,
-    output_tokens: response.output_tokens,
-    observed_at: response.observed_at,
-  })
-  state.next_slot += 1
-  if state.next_slot == @relation.prepared_infer_rows_count(state.rows) {
-    @bounded.Complete(
-      {
-        task_cid: @environment.model_task_identity(state.task).2,
-        fixed_request_cid: state.fixed_request_cid,
-        captures: state.captures.copy(),
-      },
-      1,
-      1,
-    )
-  } else {
-    @bounded.Continue(1, 1)
-  }
+  state.phase = CheckResponse(request, response, input_key_cid, cursor)
+  @bounded.Continue(1, 1)
 }
 
 ///|
@@ -377,24 +429,6 @@ pub fn start_model_execution(
     return Err(OutputIdentity)
   }
   let reservations : Array[@resources.Reservation] = []
-  for _ in 0..<count {
-    match
-      @resources.reserve_attempt(
-        ledger,
-        limits.max_request_bytes + limits.max_response_bytes,
-        limits.max_response_bytes,
-        0L,
-      ) {
-      Ok(value) => reservations.push(value)
-      Err(issue) => {
-        for prior in reservations {
-          @resources.settle_reservation(ledger, prior) |> ignore
-        }
-        @relation.release_prepared_infer_rows_use(input_use) |> ignore
-        return Err(Ledger(issue))
-      }
-    }
-  }
   let state : ModelState = {
     rows,
     input_use,
@@ -405,6 +439,8 @@ pub fn start_model_execution(
     ledger,
     reservations,
     captures: [],
+    phase: ReserveSlots,
+    work: 0,
     next_slot: 0,
     output_uses: 0,
     accepted: false,
@@ -449,6 +485,15 @@ pub fn request_model_cancel(execution : ModelExecution) -> Bool {
 }
 
 ///|
+/// Observe the existing physical ledger; this does not issue budget or Run
+/// evidence or authorize another dispatch.
+pub fn model_execution_resource_usage(
+  execution : ModelExecution,
+) -> @resources.LedgerUsage {
+  @resources.ledger_usage(execution.state.ledger)
+}
+
+///|
 pub fn cleanup_model_execution(
   execution : ModelExecution,
 ) -> Result[Bool, ModelExecutionIssue] {
@@ -461,6 +506,10 @@ pub fn cleanup_model_execution(
   match @bounded.cleanup(execution.session) {
     Ok(false) => Ok(false)
     Ok(true) => {
+      if execution.state.phase is CheckResponse(_, _, _, cursor) {
+        @admitted.cancel_recheck_runtime_value(cursor)
+      }
+      execution.state.phase = Reclaimed
       for reservation in execution.state.reservations {
         if @resources.reservation_open(reservation) {
           @resources.settle_reservation(execution.state.ledger, reservation)
@@ -502,8 +551,16 @@ pub fn model_capture_bundle_json(
       @encode.begin_object(writer)
       @encode.key(writer, "input_key_cid")
       @encode.string_value(writer, capture.input_key_cid)
+      @encode.key(writer, "input_tokens")
+      @encode.decimal_number_value(writer, capture.input_tokens.to_string())
+      @encode.key(writer, "observed_at")
+      @encode.string_value(writer, capture.observed_at)
+      @encode.key(writer, "output_tokens")
+      @encode.decimal_number_value(writer, capture.output_tokens.to_string())
       @encode.key(writer, "provider_id")
       @encode.string_value(writer, capture.provider_id)
+      @encode.key(writer, "provider_model")
+      @encode.string_value(writer, capture.provider_model)
       @encode.key(writer, "provider_request_id")
       @encode.string_value(writer, capture.provider_request_id)
       @encode.key(writer, "slot")
@@ -540,6 +597,11 @@ pub fn replay_model_capture(
       capture.fixed_request_cid != fixed_request_cid ||
       !valid_cid(capture.slot_cid) ||
       !valid_cid(capture.input_key_cid) ||
+      capture.provider_id != @environment.model_task_connector(task) ||
+      capture.provider_model.is_empty() ||
+      capture.input_tokens < 0L ||
+      capture.output_tokens < 0L ||
+      capture.observed_at.is_empty() ||
       capture.provider_request_id.is_empty() {
       return Err(OutputIdentity)
     }

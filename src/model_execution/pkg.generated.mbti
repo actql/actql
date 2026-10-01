@@ -27,6 +27,8 @@ pub fn install_model_provider(String, (ModelRequest) -> Result[ModelResponse, Mo
 
 pub fn model_capture_bundle_json(ModelCaptureBundle, Int, Int, Int) -> String?
 
+pub fn model_execution_resource_usage(ModelExecution) -> @physical_resources.LedgerUsage
+
 pub fn replay_model_capture(@check_environment.ModelTaskContract, String, ModelCaptureBundle) -> Result[Array[@value_admission.CheckedValue], ModelExecutionIssue]
 
 pub fn replay_model_capture_rows(@execution_relation.PreparedInferRows, String, ModelCaptureBundle) -> Result[Array[@value_admission.CheckedValue], ModelExecutionIssue]
@@ -65,6 +67,7 @@ pub(all) enum ModelExecutionIssue {
   Deadline
   Ledger(@physical_resources.LedgerIssue)
   Session(@bounded_execution.Issue)
+  WorkLimit
 } derive(Eq, @debug.Debug)
 
 pub(all) struct ModelExecutionLimits {
@@ -125,6 +128,7 @@ pub(all) struct ModelSlotCapture {
   input_key_cid : String
   fixed_request_cid : String
   provider_id : String
+  provider_model : String
   provider_request_id : String
   value : @value_admission.CheckedValue
   input_tokens : Int64

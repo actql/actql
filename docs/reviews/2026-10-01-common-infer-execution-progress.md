@@ -84,6 +84,37 @@ The remaining connection belongs to the common inference work:
 
 ## Checked compilation prefix
 
+### Bounded response custody
+
+The model owner now reserves one attempt per resume, completes all slot
+reservations before dispatch, and validates a returned value with the existing
+incremental runtime admission cursor. Pending responses remain private and
+owned until validation succeeds or cleanup completes. Each transition consumes
+cumulative work; a one-short work limit cannot accept an incomplete response.
+The actual provider-reported model, request ID, token counts and observation
+time are retained rather than replacing them with the authored selector.
+
+Independent one-row bounds are nine model transitions for the two-field
+response and `2 * n + 10` transitions for a response containing `n` array
+elements. Exact and one-short work/value-node cases preserve one provider call.
+A 4,096-element response stops during child admission after an actual macrotask
+cancellation, before capture or output completion. Cleanup releases the existing
+ledger reservations and input use without dispatching again. A two-row attempt
+limit of one rejects during reservation with zero provider calls and retains
+partial reservations until cleanup. Read-only ledger observations establish
+that transfer, retention, execution and held charges are zero after reclamation;
+the cumulative attempt count is not refunded.
+
+The focused checks passed on JS, Wasm and native: eight `client_infer_host`
+tests and two `model_execution` tests per target. The rebuilt Node bridge passed
+all 19 `infer-owner-checker` tests. Public interfaces were regenerated, and
+formatting and whitespace checks passed. These are component results, not
+public Host or Linux CI acceptance. Provider callbacks, final capture copying
+and scalar admission retain their existing bounds; this change does not prove
+fully asynchronous provider I/O or every possible non-interruptible operation.
+The capture JSON and same-owner replay remain provisional, not formal versioned
+Run evidence or durable replay. The public handoff status above is unchanged.
+
 ### Dispatch item admission
 
 The composed execution reads `max_infer_items` from the original prepared

@@ -2,8 +2,9 @@
 fn fixture_prepared(
   source? : String = infer_fixture_program,
   host_items? : Int = 1000,
+  environment_wire? : String = infer_fixture_environment,
 ) -> @publication_host.PreparedClientProgram {
-  let unsigned = infer_fixture_environment
+  let unsigned = environment_wire
     .replace(
       old="\"evidence_bundle_cid\":\"" + infer_fixture_environment_cid + "\",",
       new="",
@@ -72,6 +73,7 @@ test "actual Host and author item ceilings reject dispatch without losing custod
 fn fixture_start(
   prepared : @publication_host.PreparedClientProgram,
   on_invoke : () -> Unit,
+  limits? : Limits = standard_limits(),
 ) -> Execution {
   let provider = @model.install_model_provider("models/fixture", _request => {
     on_invoke()
@@ -95,7 +97,7 @@ fn fixture_start(
     infer_fixture_values,
     provider,
     "sha256:" + "1".repeat(64),
-    standard_limits(),
+    limits,
   ).unwrap()
 }
 
@@ -185,5 +187,229 @@ test "prefix cancellation makes no model call and retains cleanup custody" {
   assert_true(!cleanup(active).unwrap())
   assert_true(fixture_finish(active) is Stopped(_))
   assert_true(cleanup(active).unwrap())
+  assert_eq(calls.val, 0)
+}
+
+///|
+test "model response admission charges exact steps and retains provider observations" {
+  // One reservation, one dispatch, and seven recheck transitions: root,
+  // two child selections, two scalar checks, container end, cursor end.
+  let limits = standard_limits()
+  let exact = { ..limits, model: { ..limits.model, max_work: 9, }, }
+  let calls = Ref(0)
+  let active = fixture_start(
+    fixture_prepared(),
+    () => calls.val += 1,
+    limits=exact,
+  )
+  assert_true(fixture_finish(active) is Complete(_, ..))
+  let captured = capture(active).unwrap().captures[0]
+  assert_eq(captured.provider_model, "fixture-risk-model")
+  assert_eq(captured.input_tokens, 1L)
+  assert_eq(captured.output_tokens, 2L)
+  assert_eq(captured.observed_at, "2026-10-01T00:00:00.000Z")
+  assert_eq(calls.val, 1)
+  assert_true(cleanup(active).unwrap())
+  let short_calls = Ref(0)
+  let short = fixture_start(fixture_prepared(), () => short_calls.val += 1, limits={
+    ..exact,
+    model: { ..exact.model, max_work: 8, },
+  })
+  assert_true(fixture_finish(short) is Failed(Model(@model.WorkLimit), ..))
+  assert_true(capture(short) is None)
+  assert_true(acquire_output(short) is None)
+  assert_true(cleanup(short).unwrap())
+  assert_true(cleanup(short).unwrap())
+  assert_eq(short_calls.val, 1)
+}
+
+///|
+fn fixture_canonical(value : Json) -> String raise {
+  @canonical.stringify_value(
+    @canonical.from_json(value, 10000, 64, 100000),
+    100000,
+    10000,
+    64,
+  )
+}
+
+///|
+fn fixture_array_prepared() -> @publication_host.PreparedClientProgram raise {
+  let wire = @json.parse(infer_fixture_environment)
+  guard wire is Object(environment) &&
+    environment["model_task_contracts"] is Array([task]) &&
+    task is Object(fields) &&
+    fields["output_contract"] is Object(contract) &&
+    contract["fields"] is Object(output_fields) else {
+    abort("ordinary ModelTask admission fixture")
+  }
+  let risk =
+    #|{"items":{"nullable":false,"type":"number"},"max_items":4096,"nullable":false,"type":"array"}
+  output_fields["risk"] = @json.parse(risk)
+  fields["output_schema_cid"] = Json::string(
+    "sha256:" +
+    @sha.hex(@utf8.encode(fixture_canonical(fields["output_contract"]))),
+  )
+  fields.remove("contract_cid") |> ignore
+  fields["contract_cid"] = Json::string(
+    "sha256:" + @sha.hex(@utf8.encode(fixture_canonical(task))),
+  )
+  environment.remove("evidence_bundle_cid") |> ignore
+  fixture_prepared(environment_wire=fixture_canonical(wire))
+}
+
+///|
+fn fixture_array_start(
+  count : Int,
+  calls : Ref[Int],
+  limits : Limits,
+) -> Execution raise {
+  let value = @admitted.object_value([
+    ("reason", @admitted.null_value()),
+    (
+      "risk",
+      @admitted.array_value(
+        Array::makei(count, index => {
+          @admitted.number_value(index.to_double()).unwrap()
+        }),
+      ),
+    ),
+  ]).unwrap()
+  let provider = @model.install_model_provider("models/fixture", _ => {
+    calls.val += 1
+    Ok({
+      value,
+      provider_model: "fixture-array-model",
+      provider_request_id: "array-response-1",
+      input_tokens: 1L,
+      output_tokens: count.to_int64(),
+      observed_at: "2026-10-01T00:00:00.000Z",
+    })
+  }).unwrap()
+  start(
+    fixture_array_prepared(),
+    2,
+    infer_fixture_registry,
+    infer_fixture_values,
+    provider,
+    "sha256:" + "1".repeat(64),
+    limits,
+  ).unwrap()
+}
+
+///|
+test "large model response can stop between child values without a second dispatch" {
+  let calls = Ref(0)
+  let active = fixture_array_start(4096, calls, standard_limits())
+  for _ in 0..<2000 {
+    assert_true(advance(active, 1).unwrap() is Continue(_))
+    if calls.val == 1 {
+      break
+    }
+  }
+  assert_eq(calls.val, 1)
+  // The provider has returned; the following polls must validate children,
+  // not declare the entire 4096-element response accepted in one step.
+  for _ in 0..<64 {
+    assert_true(advance(active, 1).unwrap() is Continue(_))
+    assert_true(active.capture is None)
+  }
+  assert_true(!cleanup(active).unwrap())
+  assert_true(!@input.cleanup_client_infer_input(active.input).unwrap())
+  assert_true(cancel(active))
+  assert_true(advance(active, 1).unwrap() is Stopped(_))
+  let model = active.model.unwrap()
+  let before = @model.model_execution_resource_usage(model)
+  assert_eq(before.attempts, 1)
+  assert_eq(before.reserved_retention_bytes, 65536L)
+  assert_true(acquire_output(active) is None)
+  assert_true(capture(active) is None)
+  assert_true(!@input.cleanup_client_infer_input(active.input).unwrap())
+  assert_true(cleanup(active).unwrap())
+  assert_true(cleanup(active).unwrap())
+  let after = @model.model_execution_resource_usage(model)
+  assert_eq(after.reserved_transfer_bytes, 0L)
+  assert_eq(after.reserved_retention_bytes, 0L)
+  assert_eq(after.reserved_execution_bytes, 0L)
+  assert_eq(after.held_bytes, 0L)
+  assert_eq(after.attempts, 1)
+  assert_eq(calls.val, 1)
+}
+
+///|
+test "model response has independent exact and one-short node boundaries" {
+  let n = 16
+  let base = standard_limits()
+  // Object, NULL, array and n number occurrences; two container cursors
+  // and their child selections determine 2*n + 10 model steps.
+  let exact = {
+    ..base,
+    model: {
+      ..base.model,
+      max_work: 2 * n + 10,
+      value_limits: { max_nodes: n + 3, max_depth: 8, max_text_bytes: 10, },
+    },
+  }
+  let calls = Ref(0)
+  let active = fixture_array_start(n, calls, exact)
+  assert_true(fixture_finish(active) is Complete(_, ..))
+  assert_eq(
+    capture(active).unwrap().captures[0].provider_model,
+    "fixture-array-model",
+  )
+  assert_true(cleanup(active).unwrap())
+  let short_calls = Ref(0)
+  let short = fixture_array_start(n, short_calls, {
+    ..exact,
+    model: {
+      ..exact.model,
+      value_limits: { ..exact.model.value_limits, max_nodes: n + 2, },
+    },
+  })
+  assert_true(fixture_finish(short) is Failed(Model(@model.OutputValue), ..))
+  assert_true(acquire_output(short) is None)
+  assert_true(capture(short) is None)
+  assert_true(cleanup(short).unwrap())
+  assert_eq(calls.val, 1)
+  assert_eq(short_calls.val, 1)
+}
+
+///|
+test "partial model reservations fail before calls and stay owned until cleanup" {
+  let two = infer_fixture_program.replace(
+    old="\"rows\":[{\"id\":\"a\",\"text\":\"hello\"}]",
+    new="\"rows\":[{\"id\":\"a\",\"text\":\"hello\"},{\"id\":\"b\",\"text\":\"hello\"}]",
+  )
+  let base = standard_limits()
+  let limits = {
+    ..base,
+    model: { ..base.model, ledger: { ..base.model.ledger, attempts: 1, }, },
+  }
+  let calls = Ref(0)
+  let active = fixture_start(
+    fixture_prepared(source=two),
+    () => calls.val += 1,
+    limits~,
+  )
+  assert_true(
+    fixture_finish(active)
+    is Failed(Model(@model.Ledger(@resources.AttemptLimit)), ..),
+  )
+  let model = active.model.unwrap()
+  let usage = @model.model_execution_resource_usage(model)
+  assert_eq(usage.attempts, 1)
+  assert_eq(usage.reserved_transfer_bytes, 131072L)
+  assert_eq(usage.reserved_retention_bytes, 65536L)
+  assert_eq(calls.val, 0)
+  assert_true(acquire_output(active) is None)
+  assert_true(capture(active) is None)
+  assert_true(!@input.cleanup_client_infer_input(active.input).unwrap())
+  assert_true(cleanup(active).unwrap())
+  assert_true(cleanup(active).unwrap())
+  let settled = @model.model_execution_resource_usage(model)
+  assert_eq(settled.reserved_transfer_bytes, 0L)
+  assert_eq(settled.reserved_retention_bytes, 0L)
+  assert_eq(settled.reserved_execution_bytes, 0L)
+  assert_eq(settled.attempts, 1)
   assert_eq(calls.val, 0)
 }
