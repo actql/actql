@@ -114,11 +114,20 @@ parent reads the body's output columns and range variable, not the body's
 hidden source columns or displaced aliases. Parsing does not query a Catalog,
 copy a source, authorize acquisition or introduce another execution engine.
 
-This shared body does not yet cover top-level parenthesized query expressions,
-nested set-operation bodies or every set/Pipe combination. Those remain
-composition gaps, not prohibitions of GoogleSQL. INFER and Graph-query placement
-retain their separately adopted boundaries; this relational unit does not make
-them executable within a CTE or derived table.
+The same query-expression parser covers parenthesized roots, nested
+non-recursive WITH bodies and set-operation bodies. A Pipe tail after a
+parenthesized or combined set producer operates on its retained output; it
+does not expand that producer into another acquisition. Nested CTE declarations
+retain lexical visibility and are bound after their bodies, so an inner
+declaration can read an already-visible outer CTE before shadowing its name.
+CTE aliases are case-insensitive even when quoted, independently of the
+Source View identifier profile. Hidden body columns and out-of-scope CTEs are
+not made visible by internal producer names.
+
+This does not claim every query composition is implemented. In particular,
+wider post-set ORDER BY expressions and INFER/Graph-query placement retain
+their separate boundaries. This relational unit does not make INFER or Graph
+queries executable within a CTE or derived table.
 
 SQL and Pipe use the adopted GoogleSQL vocabulary and one query expression
 representation before lowering to existing Program expressions and operations.

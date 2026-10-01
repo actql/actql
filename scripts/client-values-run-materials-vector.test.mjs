@@ -124,8 +124,13 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('3c8ac36faac086564fc41c468477c5ea3bfb2aedd1d86b4996220d43ad337356'),
     cid(aoaContract)).run.run_definition_cid,
     pin('dbbc63ad3aad5cc0f47ccad3112138b9a3e3056d4d8d5e83d7a2781f77cd560d'));
-  assert.equal(current.run.run_definition_cid,
+  // Preserve the initial composite-query vector before the lexical CTE-scope
+  // rules were made explicit in the normative document.
+  assert.equal(vector(pin('72fc89e110c5597c976be9aad63418cb03faf0b1ddeeeb021a124fb5ffd67aa2'),
+    cid(aoaContract)).run.run_definition_cid,
     pin('e50e7c8bd772eed517264aa3d946da1696e98328b22879f32a5980172e2b5c7c'));
+  assert.equal(current.run.run_definition_cid,
+    pin('012e0a4567a1a9fb115d6476031e6f635f924f1f3ca9c1aeabb03cd0e06d9e55'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
 });
