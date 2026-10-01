@@ -17,6 +17,7 @@ test('whole-row registration retains schema and requires its exact variant', () 
   const state = initialState();
   assert.deepEqual(distinct.contract(state), state);
   assert(distinct.admits(state, {}));
+  assert(!distinct.admits({ ...state, order: { total: false } }, {}));
   for (const args of [null, [], { fields: ['extra'] }, { keyed: true }]) assert(!distinct.admits(state, args));
   assert.deepEqual(distinct.syntax({}), { distinct: true });
 });

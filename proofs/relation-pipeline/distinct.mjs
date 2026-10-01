@@ -1,8 +1,8 @@
 import { canonicalFields } from './engine.mjs';
 export const distinct = {
   name: 'distinct',
-  enabled: state => state.fields.length > 0,
-  admits: (state, args) => state.fields.length > 0 && args !== null && typeof args === 'object' &&
+  enabled: state => state.fields.length > 0 && state.order.total,
+  admits: (state, args) => state.fields.length > 0 && state.order.total && args !== null && typeof args === 'object' &&
     !Array.isArray(args) && Object.keys(args).length === 0,
   generate: () => ({}),
   contract: state => ({ ...state, fields: canonicalFields(state.fields) }),
