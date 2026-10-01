@@ -19,6 +19,7 @@ pub fn operation_profile_requirement(
     MatchRequirement(o) =>
       match o {
         ResolveMatchProfile => Some(SGA)
+        ResolvePropertyGraphMatchProfile => Some(PropertyGraph)
         AdmitMatchGraphData
         | ValidateSelectedIdentityMembership
         | FilterSelectedEdgeTypes
@@ -49,11 +50,13 @@ pub fn operation_profile_requirement(
     TraverseRequirement(o) =>
       match o {
         ResolveTraversalProfile => Some(SGA)
+        ResolvePropertyGraphTraversalProfile => Some(PropertyGraph)
         AdmitTraversalGraph
         | RespectTraversalHopBounds
         | EvaluateTraversalHopPredicates
         | EmitMinimumNodeDepth
         | EnumerateSimplePaths
+        | EnumeratePropertyPaths
         | DeduplicateExactPaths
         | CanonicalTraversalOrder
         | EnforceTraversalOutputGuard
@@ -142,6 +145,7 @@ pub fn operation_profile_requirement(
     ConstructionRequirement(o) =>
       match o {
         ResolveSgaProfile => Some(SGA)
+        ResolvePropertyGraphProfile => Some(PropertyGraph)
         AdmitGraphInputRows
         | CloseBothEndpointsAgainstDeclaredNodes
         | DeriveDistinctEndpointNodes
@@ -149,6 +153,8 @@ pub fn operation_profile_requirement(
         | JournalLabelCompletion
         | CollapseEqualIdentityPayloads
         | RejectConflictingIdentityPayloads
+        | RejectDuplicateDefinitionKeys
+        | ExcludeNullKeysAndMissingEndpoints
         | ResolveGraphConstructionResources => None
       }
     VectorRequirement(o) =>

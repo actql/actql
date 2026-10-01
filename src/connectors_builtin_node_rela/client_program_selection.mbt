@@ -5,6 +5,11 @@ fn selected_sga_supported() -> Bool {
 }
 
 ///|
+fn selected_property_graph_supported() -> Bool {
+  false
+}
+
+///|
 fn installed_client_family_providers(
   _capacity : @execution.ExecutionCapacity,
 ) -> Array[@local.ManagedProvider] {

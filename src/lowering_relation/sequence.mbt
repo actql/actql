@@ -31,6 +31,7 @@ pub enum PreparedStep {
   GraphShortestStep(PreparedGraphShortest)
   GraphRelationStep(PreparedGraphRelation)
   GraphConstructionStep(PreparedGraphConstruction)
+  PropertyGraphConstructionStep(PreparedPropertyGraphConstruction)
   VectorStep(PreparedVector)
   EventStep(PreparedEvent)
   CarrierProjectionStep(PreparedCarrierProjection)
@@ -357,6 +358,27 @@ pub fn prepare_sequence(
         }
         GraphRelationStep(prepared)
       }
+      PropertyGraphConstructionValue(_) => {
+        let (prepared, used_entries, used_names, used_work) = match
+          prepare_property_graph_construction_node(
+            owner,
+            i,
+            max_entries=bindings,
+            max_name_bytes=names,
+            max_work=expressions.max_work,
+            max_depth=expressions.max_depth,
+          ) {
+          Ok(value) => value
+          Err(issue) => return Err(GraphConstructionFailure(i, issue))
+        }
+        bindings -= used_entries
+        names -= used_names
+        expressions = {
+          ..expressions,
+          max_work: expressions.max_work - used_work,
+        }
+        PropertyGraphConstructionStep(prepared)
+      }
       GraphConstructionValue(_) => {
         let (prepared, used_entries, used_names, used_work) = match
           prepare_graph_construction_node(
@@ -584,6 +606,8 @@ pub fn emit_sequence_steps(
       GraphShortestStep(v) => emit_graph_shortest_node(v, out)
       GraphRelationStep(v) => emit_graph_relation_node(v, out)
       GraphConstructionStep(v) => emit_graph_construction_node(v, out)
+      PropertyGraphConstructionStep(v) =>
+        emit_property_graph_construction_node(v, out)
       VectorStep(v) => emit_vector_node(v, out)
       EventStep(v) => emit_event_node(v, out)
       CarrierProjectionStep(v) => emit_carrier_projection_node(v, out)

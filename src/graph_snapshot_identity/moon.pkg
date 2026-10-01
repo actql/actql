@@ -4,6 +4,7 @@ import {
   "actql/actql/encode_core" @encode,
   "actql/actql/value_admission" @value,
   "actql/actql/canonical_value" @canonical,
+  "actql/actql/graph_contract" @graph,
 }
 
 import {

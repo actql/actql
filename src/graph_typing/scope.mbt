@@ -29,6 +29,9 @@ pub fn check_scope(
     if @carrier.kind(input) != @carrier.GraphKind {
       fail(source, WrongCarrier(@carrier.kind(input)))
     }
+    if input is @carrier.GraphValue(graph) {
+      require_legacy_profile(graph, source)
+    }
     let b : Budget = {
       limits,
       work: limits.max_work,

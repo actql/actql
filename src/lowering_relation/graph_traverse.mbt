@@ -15,6 +15,13 @@ struct PreparedGraphTraverse {
 }
 
 ///|
+pub fn graph_traverse_property_path_mode(
+  value : PreparedGraphTraverse,
+) -> @graph.PropertyPathMode? {
+  @graph.traverse_property_path_mode(value.checked)
+}
+
+///|
 /// The checked Relation schema produced by this traversal occurrence.
 pub fn graph_traverse_output_schema(
   value : PreparedGraphTraverse,
@@ -326,6 +333,17 @@ fn emit_graph_traverse_node(
     prepared.start_predicate,
     out,
   )
+  if graph_traverse_property_path_mode(prepared) is Some(mode) {
+    @encode.key(out, "path_mode")
+    @encode.string_value(
+      out,
+      match mode {
+        @graph.Walk => "walk"
+        @graph.Trail => "trail"
+        @graph.Acyclic => "acyclic"
+      },
+    )
+  }
   if @graph.traverse_patterned(prepared.checked) {
     @encode.key(out, "hops")
     @encode.begin_array(out)

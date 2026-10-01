@@ -14,6 +14,7 @@ pub(all) enum MatchObligation {
   CanonicalMatchOrder
   ResolveMatchResources
   ResolveMatchProfile
+  ResolvePropertyGraphMatchProfile
 } derive(Eq, Debug)
 
 ///|
@@ -27,6 +28,7 @@ struct CheckedMatch {
   ids : Array[@value.CheckedValue]
   types : Array[String]?
   usage : PredicateUsage
+  property_scope : PropertyMatchScope?
 }
 
 ///|
@@ -62,10 +64,19 @@ pub fn check_match(
       text: limits.max_text_bytes,
     }
     scan(b, source)
+    let property_graph = match input {
+      @carrier.GraphValue(graph) =>
+        @carrier.graph_property_definition(graph) is Some(_)
+      _ => false
+    }
     let root = decoded(
       @decode.closed_object(
         source,
-        if entity == Nodes {
+        if property_graph && entity == Nodes {
+          ["ids", "where", "fields", "definition", "label", "bindings"]
+        } else if property_graph {
+          ["types", "where", "fields", "definition", "label", "bindings"]
+        } else if entity == Nodes {
           ["ids", "where", "fields"]
         } else {
           ["types", "where", "fields"]
@@ -77,15 +88,27 @@ pub fn check_match(
     if entity == Nodes && (ids_source is Some(_)) == (where_source is Some(_)) {
       fail(source, InvalidBody)
     }
-    let scoped = match
-      check_scope(entity, source, input, {
-        ..b.limits,
-        max_work: b.work,
-        max_nodes: b.nodes,
-        max_text_bytes: b.text,
-      }) {
-      Ok(s) => s
-      Err(e) => raise Stop(e)
+    let property_scope = if property_graph {
+      guard input is @carrier.GraphValue(graph) else {
+        fail(source, IncompleteGraph)
+      }
+      Some(check_property_match_scope(entity, source, root, graph, b))
+    } else {
+      None
+    }
+    let scoped = match property_scope {
+      Some(scope) => scope.scope
+      None =>
+        match
+          check_scope(entity, source, input, {
+            ..b.limits,
+            max_work: b.work,
+            max_nodes: b.nodes,
+            max_text_bytes: b.text,
+          }) {
+          Ok(s) => s
+          Err(e) => raise Stop(e)
+        }
     }
     b.work -= scoped.usage.work
     b.text -= scoped.usage.text_bytes
@@ -181,14 +204,19 @@ pub fn check_match(
     let predicate = match where_source {
       None => None
       Some(at) => {
-        let p = match
-          check_predicate(entity, at, input, parameters, {
-            max_work: b.work,
-            max_nodes: b.nodes,
-            max_depth: limits.max_depth,
-            max_text_bytes: b.text,
-            max_tokens: limits.max_tokens,
-          }) {
+        let remaining = {
+          max_work: b.work,
+          max_nodes: b.nodes,
+          max_depth: limits.max_depth,
+          max_text_bytes: b.text,
+          max_tokens: limits.max_tokens,
+        }
+        let result = if property_scope is Some(scope) {
+          check_predicate_in_scope(scope.scope, at, parameters, remaining)
+        } else {
+          check_predicate(entity, at, input, parameters, remaining)
+        }
+        let p = match result {
           Ok(p) => p
           Err(e) => raise MatchStop(MatchPredicate(e))
         }
@@ -207,6 +235,7 @@ pub fn check_match(
       fields: output.map(value => value.0),
       ids,
       types,
+      property_scope,
       usage: {
         work: limits.max_work - b.work,
         nodes: limits.max_nodes - b.nodes,
@@ -305,7 +334,13 @@ fn match_pending_each(
   emit(AdmitMatchGraphData)
   emit(CanonicalMatchOrder)
   emit(ResolveMatchResources)
-  emit(ResolveMatchProfile)
+  emit(
+    if c.property_scope is Some(_) {
+      ResolvePropertyGraphMatchProfile
+    } else {
+      ResolveMatchProfile
+    },
+  )
   if !c.ids.is_empty() {
     emit(ValidateSelectedIdentityMembership)
   }

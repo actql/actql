@@ -6,6 +6,7 @@ fn rule_input_count_valid(rule : Rule, n : Int) -> Bool {
     Clamp(_) => n <= 1
     Sum | Join(_) => n == 2
     GraphCombine(_, expected) => n == expected
+    PropertyGraphMeasure(_, _, expected) => n == expected
     GraphQuery(query) => n == query.inputs.length()
     QueryTopK(_) => n == 1 || n == 2
     Ranking(expected, maximum) =>
@@ -26,6 +27,7 @@ fn rule_input_descriptor(
   }
   let edge = match rule {
     GraphMeasure(_, _, edge, _) => edge
+    PropertyGraphMeasure(_, start, _) => start + i
     GraphQuery(query) => query.inputs[i].1
     QueryTopK(_) if n == 1 => 1
     _ => i

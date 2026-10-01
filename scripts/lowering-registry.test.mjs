@@ -18,12 +18,16 @@ const cid = (v) => `sha256:${createHash('sha256').update(canonical(v)).digest('h
 test('current registry and historical preimages keep distinct identities', () => {
   assert.equal(cid(registry), contract.pipeline_registry_cid);
   assert.equal(cid(registry),
-    'sha256:fda8b3f12e5a42673160163c097f9626b09d999ee3f4889b96e549c6e5e24332');
+    'sha256:7e6ae70262de7974f1145a440bd06c2dd1c9c2f56e373676c89d4da3f257f356');
   const fragmentRegistry = JSON.parse(read('portability/fixtures/pipeline-registry-fragment.json'));
   assert.equal(cid(fragmentRegistry), 'sha256:23a7f1081d1a2cdab7b20e425dddce846510355ba964058e0c809350fae33816');
   const valuesRegistry = JSON.parse(read('portability/fixtures/pipeline-registry-values.json'));
   assert.equal(cid(valuesRegistry), 'sha256:b97a22de3664c1dafe3bc1e6791f1f8bcfb70324a1fcc1087450fe057e0f2311');
-  const {['ACTQL.expression_fragment/0.1']: fragment, ...previous} = registry;
+  const {['BRIDGE.rows.to_property_graph']: property, ...preProperty} = registry;
+  assert.ok(property);
+  assert.equal(cid(preProperty),
+    'sha256:fda8b3f12e5a42673160163c097f9626b09d999ee3f4889b96e549c6e5e24332');
+  const {['ACTQL.expression_fragment/0.1']: fragment, ...previous} = preProperty;
   assert.ok(fragment);
   const primitive = structuredClone(previous);
   assert.equal(

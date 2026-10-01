@@ -44,7 +44,7 @@ priv struct RowsToGraphState {
 ///|
 struct RowsToGraphExecution {
   session : @bounded.Session[
-    RowsToGraphState,
+    GraphConstructionState,
     @graph.Completed,
     GraphBridgeIssue,
   ]
@@ -121,6 +121,8 @@ pub(all) enum GraphBridgeIssue {
   GraphRelationOutput(@execution.CaptureIssue)
   GraphCompletion(@execution.TrustedOutputIssue)
   GraphExecution(@bounded.Issue)
+  GraphSnapshot(@snapshot.Issue)
+  GraphSnapshotOutput(@graph.Issue)
 } derive(Eq, Debug)
 
 ///|
@@ -659,7 +661,11 @@ pub fn start_rows_to_graph(
     control_work_remaining: control_work_limit,
   }
   let (session, token) = @bounded.start(
-    control, state, bounded_rows_to_graph_step, cleanup_rows_to_graph_state, @graph.discard_completed,
+    control,
+    LegacyConstruction(state),
+    graph_construction_step,
+    cleanup_graph_construction_state,
+    @graph.discard_completed,
   )
   Ok({ session, token: Some(token), })
 }

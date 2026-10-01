@@ -479,5 +479,17 @@
       "pointer": "/execution_contracts/ACTQL.expression_fragment~10.1",
       "cid": "sha256:1282c3d8af052606f64be809cead104630c67a8b676050bcdc7edd4a884b9b60"
     }
+  },
+  "BRIDGE.rows.to_property_graph": {
+    "finite_inputs": {
+      "repeated_input": "relation",
+      "minimum_inputs": 0
+    },
+    "output": "graph",
+    "execution_contract": {
+      "file": "spec/contracts/actql-aoa.json",
+      "pointer": "/execution_contracts/BRIDGE.rows.to_property_graph",
+      "cid": "sha256:6f84b787b55f3a84c6b420046e3f9346ac9019627bc852311fcf8d9f577dec03"
+    }
   }
 }

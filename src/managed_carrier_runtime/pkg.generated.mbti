@@ -69,6 +69,8 @@ pub fn prepare_material(CompletionReference, (@lowering_relation.BoundPrepared, 
 
 pub fn[E, T] prepare_producer_read(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, Completed[E, T]) -> Result[ProducerRead[E, T], ProducerReadIssue]
 
+pub fn prepare_property_graph_producer_view(ProducerReadReference, Int, Int, (Int) -> @value_admission.CheckedValue?, (Int, Int) -> @value_admission.CheckedValue?, (@value_admission.CheckedValue) -> Int??, (Int) -> (Int, Int)?, (Int, Int) -> @value_admission.CheckedValue?, (Int) -> Int?, (Int) -> Int?, (Int) -> @value_admission.CheckedValue?, (@value_admission.CheckedValue) -> Int??, (Int, Int) -> @value_admission.CheckedValue?, (Int, Int) -> @value_admission.CheckedValue?, (Int) -> String?, (Int) -> String?) -> Result[ProducerView, ViewIssue]
+
 pub fn prepare_record_producer_view(ProducerReadReference, Int, (Int) -> Int?, (Int, Int) -> (@relation_schema.FieldName, @value_admission.CheckedValue)?) -> Result[ProducerView, ViewIssue]
 
 pub fn[P, E, T] prepare_retention_port(Binding, (P) -> (Receipt, E, T, Int64, () -> Bool)?) -> RetentionPort[P, E, T]
@@ -105,9 +107,19 @@ pub fn[E, T] producer_read_same(ProducerRead[E, T], ProducerRead[E, T]) -> Bool
 
 pub fn producer_view_edge_count(ProducerView) -> Int?
 
+pub fn producer_view_edge_definition(ProducerView, Int) -> Result[Int, ViewIssue]
+
 pub fn producer_view_edge_endpoints(ProducerView, Int) -> Result[(Int, Int), ViewIssue]
 
+pub fn producer_view_edge_identity(ProducerView, Int) -> Result[@value_admission.CheckedValue, ViewIssue]
+
+pub fn producer_view_edge_identity_index(ProducerView, @value_admission.CheckedValue) -> Result[Int?, ViewIssue]
+
+pub fn producer_view_edge_identity_order_key(ProducerView, Int) -> Result[String, ViewIssue]
+
 pub fn producer_view_edge_index(ProducerView, @value_admission.CheckedValue, @value_admission.CheckedValue, @value_admission.CheckedValue?) -> Result[Int?, ViewIssue]
+
+pub fn producer_view_edge_key(ProducerView, Int, Int) -> Result[@value_admission.CheckedValue, ViewIssue]
 
 pub fn producer_view_edge_label(ProducerView, Int) -> Result[@value_admission.CheckedValue?, ViewIssue]
 
@@ -119,11 +131,19 @@ pub fn producer_view_matches_read(ProducerView, ProducerReadReference) -> Bool
 
 pub fn producer_view_node_count(ProducerView) -> Int?
 
+pub fn producer_view_node_definition(ProducerView, Int) -> Result[Int, ViewIssue]
+
 pub fn producer_view_node_identity(ProducerView, Int) -> Result[@value_admission.CheckedValue, ViewIssue]
+
+pub fn producer_view_node_identity_order_key(ProducerView, Int) -> Result[String, ViewIssue]
 
 pub fn producer_view_node_index(ProducerView, @value_admission.CheckedValue) -> Result[Int?, ViewIssue]
 
+pub fn producer_view_node_key(ProducerView, Int, Int) -> Result[@value_admission.CheckedValue, ViewIssue]
+
 pub fn producer_view_node_property(ProducerView, Int, Int) -> Result[@value_admission.CheckedValue, ViewIssue]
+
+pub fn producer_view_property_graph_definition(ProducerView) -> Result[@carrier_contract.PropertyGraphDefinition, ViewIssue]
 
 pub fn producer_view_read_reference(ProducerView) -> ProducerReadReference
 

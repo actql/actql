@@ -37,18 +37,28 @@ pub(all) enum Issue {
   WorkspaceLimit
   DuplicateNodeConflict
   DuplicateEdgeConflict
+  DuplicateNodeKey
+  DuplicateEdgeKey
+  WrongProfile
   MissingEndpoint
   Closed
 } derive(Eq, Debug)
 
 ///|
 priv struct Node {
+  property_definition : Int?
+  identity_order_key : String?
+  typed_key : Array[@value.CheckedValue]?
   identity : @value.CheckedValue
   properties : Array[@value.CheckedValue]
 }
 
 ///|
 priv struct Edge {
+  property_definition : Int?
+  identity_order_key : String?
+  identity : @value.CheckedValue?
+  typed_key : Array[@value.CheckedValue]?
   source : Int
   target : Int
   label : @value.CheckedValue?
@@ -67,6 +77,7 @@ struct Builder {
   node_payloads : Map[String, String]
   edge_keys : Map[String, Int]
   edge_payloads : Map[String, String]
+  excluded_edge_keys : Array[(String, Int)]
   mut input_rows : Int
   mut value_bytes : Int
   mut retained_value_bytes : Int
@@ -132,9 +143,16 @@ pub fn prepare(
     return Err(InvalidLimits)
   }
   guard contract is @carrier.GraphValue(graph) else { return Err(WrongCarrier) }
-  if !closed_typed_properties(@carrier.graph_node_properties(graph)) ||
-    !closed_typed_properties(@carrier.graph_edge_properties(graph)) {
+  if @carrier.graph_property_definition(graph) is None &&
+    (
+      !closed_typed_properties(@carrier.graph_node_properties(graph)) ||
+      !closed_typed_properties(@carrier.graph_edge_properties(graph))
+    ) {
     return Err(OpenPropertyContract)
+  }
+  if mode == DerivedEndpoints &&
+    @carrier.graph_property_definition(graph) is Some(_) {
+    return Err(WrongMode)
   }
   if mode == DerivedEndpoints &&
     @carrier.field_count(@carrier.graph_node_properties(graph)) != 0 {
@@ -150,6 +168,7 @@ pub fn prepare(
     node_payloads: Map([]),
     edge_keys: Map([]),
     edge_payloads: Map([]),
+    excluded_edge_keys: [],
     input_rows: 0,
     value_bytes: 0,
     retained_value_bytes: 0,
@@ -345,6 +364,9 @@ pub fn append_node(
   identity : @value.CheckedValue,
   properties : Array[@value.CheckedValue],
 ) -> Result[Unit, Issue] {
+  if @carrier.graph_property_definition(builder.graph) is Some(_) {
+    return fail(builder, WrongProfile)
+  }
   if !builder.open {
     return Err(Closed)
   }
@@ -365,18 +387,33 @@ pub fn append_node(
     ) {
     return fail(builder, InvalidProperties)
   }
+  append_node_record(builder, identity, properties, None, None, 0)
+}
+
+///|
+fn append_node_record(
+  builder : Builder,
+  identity : @value.CheckedValue,
+  properties : Array[@value.CheckedValue],
+  property_definition : Int?,
+  typed_key : Array[@value.CheckedValue]?,
+  initial_work : Int,
+) -> Result[Unit, Issue] {
   let (key, key_bytes, key_work) = match
-    encoded_values(builder, [identity], 0, 1) {
+    encoded_values(builder, [identity], 0, 1 + initial_work) {
     Ok(value) => value
     Err(issue) => return fail(builder, issue)
   }
   let (payload, payload_bytes, payload_work) = match
-    encoded_values(builder, properties, key_bytes, key_work + 1) {
+    encoded_values(builder, properties, key_bytes, key_work + 1 + initial_work) {
     Ok(value) => value
     Err(issue) => return fail(builder, issue)
   }
   let bytes = key_bytes + payload_bytes
   if builder.node_keys.get(key) is Some(_) {
+    if property_definition is Some(_) {
+      return fail(builder, DuplicateNodeKey)
+    }
     if builder.node_payloads.get(key) == Some(payload) {
       match
         reserve(builder, 1, 0, 0, bytes, 0, key_work + payload_work + 1, 0) {
@@ -391,20 +428,31 @@ pub fn append_node(
     }
     return fail(builder, DuplicateNodeConflict)
   }
-  let slots = node_slots(properties.length())
-  match
-    reserve(builder, 1, 1, 0, bytes, bytes, key_work + payload_work + 1, slots) {
+  let slots = node_slots(properties.length()) +
+    typed_key.map(values => values.length() + 1).unwrap_or(0)
+  let work = key_work + payload_work + 1 + initial_work
+  match reserve(builder, 1, 1, 0, bytes, bytes, work, slots) {
     Some(issue) => return fail(builder, issue)
     None => ()
   }
   let index = builder.nodes.length()
-  builder.nodes.push({ identity, properties: properties.copy(), })
+  builder.nodes.push({
+    identity,
+    properties: properties.copy(),
+    property_definition,
+    identity_order_key: if property_definition is Some(_) {
+      Some(key)
+    } else {
+      None
+    },
+    typed_key: typed_key.map(values => values.copy()),
+  })
   builder.node_keys[key] = index
   builder.node_payloads[key] = payload
   builder.input_rows += 1
   builder.value_bytes += bytes
   builder.retained_value_bytes += bytes
-  builder.work += key_work + payload_work + 1
+  builder.work += work
   builder.workspace_slots += slots
   Ok(())
 }
@@ -418,6 +466,9 @@ pub fn observe_node(
   identity : @value.CheckedValue,
   properties : Array[@value.CheckedValue],
 ) -> Result[Unit, Issue] {
+  if @carrier.graph_property_definition(builder.graph) is Some(_) {
+    return fail(builder, WrongProfile)
+  }
   if !builder.open {
     return Err(Closed)
   }
@@ -474,6 +525,9 @@ pub fn contains_declared_node(
   builder : Builder,
   identity : @value.CheckedValue,
 ) -> Result[Bool, Issue] {
+  if @carrier.graph_property_definition(builder.graph) is Some(_) {
+    return Err(WrongProfile)
+  }
   if !builder.open {
     return Err(Closed)
   }
@@ -502,6 +556,9 @@ pub fn append_edge(
   label : @value.CheckedValue?,
   properties : Array[@value.CheckedValue],
 ) -> Result[Unit, Issue] {
+  if @carrier.graph_property_definition(builder.graph) is Some(_) {
+    return fail(builder, WrongProfile)
+  }
   if !builder.open {
     return Err(Closed)
   }
@@ -599,7 +656,13 @@ pub fn append_edge(
     Some(index) => index
     None => {
       let index = builder.nodes.length()
-      builder.nodes.push({ identity: source, properties: empty, })
+      builder.nodes.push({
+        identity: source,
+        properties: empty,
+        property_definition: None,
+        identity_order_key: None,
+        typed_key: None,
+      })
       builder.node_keys[source_key] = index
       builder.node_payloads[source_key] = "[]"
       index
@@ -612,7 +675,13 @@ pub fn append_edge(
         Some(index) => index
         None => {
           let index = builder.nodes.length()
-          builder.nodes.push({ identity: target, properties: empty, })
+          builder.nodes.push({
+            identity: target,
+            properties: empty,
+            property_definition: None,
+            identity_order_key: None,
+            typed_key: None,
+          })
           builder.node_keys[target_key] = index
           builder.node_payloads[target_key] = "[]"
           index
@@ -621,6 +690,10 @@ pub fn append_edge(
   }
   let edge_index = builder.edges.length()
   builder.edges.push({
+    property_definition: None,
+    identity_order_key: None,
+    identity: None,
+    typed_key: None,
     source: actual_source,
     target: actual_target,
     label,
@@ -646,6 +719,9 @@ pub fn observe_edge(
   label : @value.CheckedValue?,
   properties : Array[@value.CheckedValue],
 ) -> Result[Unit, Issue] {
+  if @carrier.graph_property_definition(builder.graph) is Some(_) {
+    return fail(builder, WrongProfile)
+  }
   if !builder.open {
     return Err(Closed)
   }
@@ -709,6 +785,12 @@ pub fn finish(builder : Builder) -> Result[Storage, Issue] {
   }
   builder.open = false
   builder.owns_private = false
+  for (key, bytes) in builder.excluded_edge_keys {
+    builder.edge_keys.remove(key) |> ignore
+    builder.retained_value_bytes -= bytes
+    builder.workspace_slots -= 3
+  }
+  builder.excluded_edge_keys.clear()
   Ok({
     graph: builder.graph,
     mode: builder.mode,
@@ -738,6 +820,7 @@ pub fn cancel(builder : Builder) -> Bool {
   builder.node_payloads.clear()
   builder.edge_keys.clear()
   builder.edge_payloads.clear()
+  builder.excluded_edge_keys.clear()
   builder.retained_value_bytes = 0
   builder.workspace_slots = 0
   true
@@ -835,6 +918,12 @@ pub fn node_index(
   value : Storage,
   identity : @value.CheckedValue,
 ) -> Result[Int?, Issue] {
+  if @carrier.graph_property_definition(value.graph) is Some(_) {
+    match property_lookup_scope(value, identity, edge=false) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
   let expected = @carrier.graph_identity(value.graph)
   let same = @contract.type_equal(
     expected,
@@ -871,6 +960,9 @@ pub fn edge_index(
   target : @value.CheckedValue,
   label : @value.CheckedValue?,
 ) -> Result[Int?, Issue] {
+  if @carrier.graph_property_definition(value.graph) is Some(_) {
+    return Err(WrongProfile)
+  }
   let expected = @carrier.graph_identity(value.graph)
   let same_source = @contract.type_equal(
     expected,

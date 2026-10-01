@@ -104,6 +104,10 @@ pub fn admit_graph(
   graph : @carrier.Graph,
   limits : Limits,
 ) -> Result[CheckedContract, Issue] {
+  // A Property Graph must never be serialized under the legacy identity law.
+  if @carrier.graph_property_definition(graph) is Some(_) {
+    return Err(IncompleteGraph)
+  }
   if limits.max_bytes < 0 || limits.max_nodes < 0 || limits.max_depth < 0 {
     return Err(InvalidLimits)
   }

@@ -17,7 +17,7 @@ test('legacy contract and law versions are rejected while external versions are 
 });
 
 test('missing manifests and modified preimages cannot keep their old pins', () => {
-  for (const key of ['kernel', 'pipeline', 'scalar', 'primitive', 'vector', 'graph', 'graphIdentity']) {
+  for (const key of ['kernel', 'pipeline', 'scalar', 'primitive', 'vector', 'graph', 'graphIdentity', 'propertyGraph']) {
     const missing = loadDependencies();
     delete missing.bodies[key];
     assert.throws(() => checkDependencies(missing));
@@ -31,6 +31,9 @@ test('Graph contract implementation pins the published identity and value law bo
   const {contract} = loadDependencies();
   const implementation = readFileSync(new URL('../src/graph_contract/contract.mbt', import.meta.url), 'utf8');
   assert.ok(implementation.includes('"' + contract.sga_identity_law_manifest_cid + '"'));
+  const propertyImplementation = readFileSync(new URL('../src/graph_contract/property_contract.mbt', import.meta.url), 'utf8');
+  assert.ok(propertyImplementation.includes('"' + contract.property_graph_law_manifest_cid + '"'));
+  assert.notEqual(contract.property_graph_law_manifest_cid, contract.sga_identity_law_manifest_cid);
 });
 
 test('renamed Effect law must be present even if the manifest pin is recomputed', () => {

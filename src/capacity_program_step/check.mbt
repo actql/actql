@@ -108,6 +108,7 @@ priv enum Rule {
   Join(@join.Kind)
   GraphMeasure(@arithmetic.BoundUnit, @arithmetic.BoundUnit, Int, Int64)
   GraphCombine(@arithmetic.BoundUnit, Int)
+  PropertyGraphMeasure(@arithmetic.BoundUnit, Int, Int)
   GraphQuery(QueryBound)
 }
 
@@ -138,6 +139,27 @@ fn operation_rule(
     return Ok((law, GraphCombine(unit, n)))
   }
   match step.operation {
+    @pipeline.PropertyGraphConstruction(checked~, ..) => {
+      let nodes = @graph.property_construction_node_count(checked)
+      let edges = @graph.property_construction_edge_count(checked)
+      return match unit {
+        @arithmetic.Nodes =>
+          Ok(
+            (
+              "actql.bound.property-graph-nodes",
+              PropertyGraphMeasure(unit, 0, nodes),
+            ),
+          )
+        @arithmetic.Edges =>
+          Ok(
+            (
+              "actql.bound.property-graph-edges",
+              PropertyGraphMeasure(unit, nodes, edges),
+            ),
+          )
+        _ => Err(LawMismatch)
+      }
+    }
     @pipeline.Traverse(checked~, ..) => {
       if @graph.traverse_emission(checked) != @graph.TraversedNodes {
         return Err(UnsupportedOperation)
@@ -618,7 +640,9 @@ fn check_application(
   let operand_work = prepared.operand_work
   // Proof arrays sort capacity operands but retain repetitions. Derivations
   // below must still match their actual left/right data roles.
-  if rule is Ranking(_, _) || rule is GraphCombine(_, _) {
+  if rule is Ranking(_, _) ||
+    rule is GraphCombine(_, _) ||
+    rule is PropertyGraphMeasure(_, _, _) {
     let remaining : Map[String, Int] = Map([])
     for id in ids {
       remaining[id] = remaining.get(id).unwrap_or(0) + 1
@@ -664,6 +688,7 @@ fn check_application(
     (GraphQuery(_), @wire.SourceValue) => ()
     (GraphMeasure(_, _, _, _), @wire.SourceValue) => ()
     (GraphCombine(_, _), @wire.SourceValue) => ()
+    (PropertyGraphMeasure(_, _, _), @wire.SourceValue) => ()
     (GraphCombine(_, 1), @wire.Preserve(input)) if input == ids[0] => ()
     (GraphCombine(_, 2), @wire.Add(left, right)) if left == ids[0] &&
       right == ids[1] => ()
@@ -704,7 +729,9 @@ fn check_application(
 ///|
 fn rule_output_unit(rule : Rule) -> @arithmetic.BoundUnit {
   match rule {
-    GraphMeasure(unit, _, _, _) | GraphCombine(unit, _) => unit
+    GraphMeasure(unit, _, _, _)
+    | GraphCombine(unit, _)
+    | PropertyGraphMeasure(unit, _, _) => unit
     _ => @arithmetic.Rows
   }
 }
@@ -731,7 +758,9 @@ fn prepare_bound_inputs(
   usage : Array[Int]?,
   aggregate_work? : Int? = None,
 ) -> Result[PreparedBoundInputs, Issue] {
-  let operand_work = if rule is Ranking(_, _) || rule is GraphCombine(_, _) {
+  let operand_work = if rule is Ranking(_, _) ||
+    rule is GraphCombine(_, _) ||
+    rule is PropertyGraphMeasure(_, _, _) {
     // Five bounded passes: edges, multiset construction, proof comparison,
     // arithmetic and owned input copy. Check before allocating either table.
     if n > max_operand_work / 5 {

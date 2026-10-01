@@ -219,6 +219,9 @@ fn path_edge_identity_value(
   source : GraphReadSource,
   edge : Int,
 ) -> @value.Value? {
+  if graph_read_edge_identity(source, edge) is Some(identity) {
+    return Some(identity.value)
+  }
   guard graph_read_edge_endpoints(source, edge) is Some((from, to)) &&
     graph_read_node_identity(source, from) is Some(from_id) &&
     graph_read_node_identity(source, to) is Some(to_id) &&
@@ -246,6 +249,13 @@ fn compare_traversal_edges(
   left : Int,
   right : Int,
 ) -> Result[Int, TraversePathsIssue] {
+  if @carrier.graph_property_definition(state.graph) is Some(_) {
+    guard graph_read_edge_identity_order_key(state.source, left) is Some(left) &&
+      graph_read_edge_identity_order_key(state.source, right) is Some(right) else {
+      return Err(TraversePathsInputUnavailable)
+    }
+    return Ok(@canonical.compare_utf16(left, right))
+  }
   guard graph_read_edge_endpoints(state.source, left)
     is Some((left_source, left_target)) &&
     graph_read_edge_endpoints(state.source, right)
@@ -282,6 +292,26 @@ fn compare_traversal_edges(
         TraversePathsKeyOrder(issue)
       })
   }
+}
+
+///|
+fn compare_traversal_node_ids(
+  state : TraversePathsState,
+  left : @value.CheckedValue,
+  right : @value.CheckedValue,
+  left_index : Int,
+  right_index : Int,
+) -> Result[Int, @value.KeyOrderIssue] {
+  if @carrier.graph_property_definition(state.graph) is Some(_) {
+    guard graph_read_node_identity_order_key(state.source, left_index)
+      is Some(left) &&
+      graph_read_node_identity_order_key(state.source, right_index)
+      is Some(right) else {
+      return Err(@value.InvalidKey)
+    }
+    return Ok(@canonical.compare_utf16(left, right))
+  }
+  @value.compare_key_values(left, right)
 }
 
 ///|
@@ -431,6 +461,22 @@ fn traverse_path_edge_type_matches(
   edge : Int,
   index : Int,
 ) -> Bool {
+  if @carrier.graph_property_definition(state.graph) is Some(definition) {
+    guard @lower.graph_traverse_hop_type_at(
+        state.prepared,
+        traverse_path_hop(state),
+        index,
+      )
+      is Some(expected) &&
+      graph_read_edge_definition(state.source, edge) is Some(element) &&
+      @carrier.property_graph_edge_at(definition, element) is Some(element) else {
+      return false
+    }
+    return @carrier.property_definition_has_label(
+      @carrier.property_edge_element(element),
+      expected,
+    )
+  }
   guard @lower.graph_traverse_hop_type_at(
       state.prepared,
       traverse_path_hop(state),
@@ -768,7 +814,14 @@ fn traverse_paths_step(
               used,
             )
           }
-          let order = match @value.compare_key_values(left, right) {
+          let order = match
+            compare_traversal_node_ids(
+              state,
+              left,
+              right,
+              state.start_nodes[state.sort_cursor - 1],
+              state.start_nodes[state.sort_cursor],
+            ) {
             Ok(value) => value
             Err(issue) =>
               return @bounded.Failed(
@@ -907,9 +960,27 @@ fn traverse_paths_step(
         guard state.frontier.get(state.path_index) is Some(path) else {
           return @bounded.Failed(TraversePathsInputUnavailable, progress, used)
         }
-        if state.member_index < path.nodes.length() {
+        let mode = @lower.graph_traverse_property_path_mode(state.prepared)
+        let members = if mode == Some(@graph_type.Trail) {
+          path.edges.length()
+        } else {
+          path.nodes.length()
+        }
+        if mode == Some(@graph_type.Walk) {
           used += 1
-          if path.nodes[state.member_index] == state.candidate_node {
+          prepare_traverse_path_candidate(
+            state,
+            state.candidate_edge,
+            state.candidate_node,
+          )
+        } else if state.member_index < members {
+          used += 1
+          let repeated = if mode == Some(@graph_type.Trail) {
+            path.edges[state.member_index] == state.candidate_edge
+          } else {
+            path.nodes[state.member_index] == state.candidate_node
+          }
+          if repeated {
             state.phase = ScanEdge
           } else {
             state.member_index += 1
@@ -1216,7 +1287,14 @@ fn traverse_paths_step(
               used,
             )
           }
-          let order = match @value.compare_key_values(left_id, right_id) {
+          let order = match
+            compare_traversal_node_ids(
+              state,
+              left_id,
+              right_id,
+              left.nodes[state.compare_index],
+              right.nodes[state.compare_index],
+            ) {
             Ok(value) => value
             Err(issue) =>
               return @bounded.Failed(
@@ -1344,7 +1422,14 @@ fn traverse_paths_step(
               used,
             )
           }
-          let order = match @value.compare_key_values(left, right) {
+          let order = match
+            compare_traversal_node_ids(
+              state,
+              left,
+              right,
+              state.node_order[state.node_sort_left],
+              state.node_order[state.node_sort_right],
+            ) {
             Ok(value) => value
             Err(issue) =>
               return @bounded.Failed(
@@ -1783,6 +1868,29 @@ fn start_traverse_paths_read(
   let accepted = Ref(false)
   let value_item_attempts = Ref(0)
   let port_result = match source {
+    Stored(read) if @carrier.graph_property_definition(graph) is Some(_) &&
+      @lifecycle.producer_read_reference_matches_input(
+        @graph.producer_read_carrier_reference(read),
+        owner,
+        0,
+      ) => {
+      let retained_inputs = [
+        @execution.trusted_output_carrier_input(
+          @graph.producer_read_carrier_reference(read),
+        ),
+      ]
+      for input in inputs {
+        retained_inputs.push(@execution.trusted_output_relation_input(input))
+      }
+      @execution.prepare_trusted_output_port_with_inputs(
+        preparation,
+        @pipeline.Step(step),
+        max_entries,
+        max_name_bytes,
+        fn(_) { if live.val { rows.val } else { None } },
+        inputs=retained_inputs,
+      )
+    }
     Stored(_) =>
       @execution.prepare_trusted_output_port(
         preparation,
@@ -1793,9 +1901,18 @@ fn start_traverse_paths_read(
         inputs~,
       )
     Viewed(view) => {
-      guard inputs.length() == 1 else {
+      guard @carrier.graph_property_definition(graph) is Some(_) ||
+        inputs.length() == 1 else {
         @execution.cancel_admitted_output(output) |> ignore
         return Err(InvalidTraversePathsKernel)
+      }
+      let retained_inputs = [
+        @execution.trusted_output_carrier_input(
+          @lifecycle.producer_view_read_reference(view),
+        ),
+      ]
+      for input in inputs {
+        retained_inputs.push(@execution.trusted_output_relation_input(input))
       }
       @execution.prepare_trusted_output_port_with_inputs(
         preparation,
@@ -1803,12 +1920,7 @@ fn start_traverse_paths_read(
         max_entries,
         max_name_bytes,
         fn(_) { if live.val { rows.val } else { None } },
-        inputs=[
-          @execution.trusted_output_carrier_input(
-            @lifecycle.producer_view_read_reference(view),
-          ),
-          @execution.trusted_output_relation_input(inputs[0]),
-        ],
+        inputs=retained_inputs,
       )
     }
   }

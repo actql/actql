@@ -28,6 +28,7 @@ fn construct_local(
   references_out? : Array[@environment.CatalogReferences]? = None,
   capacity_inputs? : @context.ProgramCapacityInputs? = None,
   effect_headers? : @syntax.EffectHeaders? = None,
+  property_graph? : Bool = false,
 ) -> (
   @context.ProgramSourceIdentity,
   @context.StageRequirementClosure,
@@ -117,6 +118,7 @@ fn construct_local(
     operation_profiles,
     limits,
     calendar~,
+    property_graph~,
     capacity_inputs~,
     derived_capacity_limits=if capacity_inputs is Some(_) {
       Some({

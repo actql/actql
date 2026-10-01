@@ -2604,19 +2604,19 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 <!-- local-family-coverage-summary:start -->
 | Coverage state | Count |
 |---|---:|
-| `contract` | 39/39 |
-| `checker` | 39/39 |
-| `lowering` | 39/39 |
-| `kernel` | 39/39 |
-| `managed` | 39/39 |
-| `standard_host` | 39/39 |
-| `consumer_lifetime` | 39/39 |
-| `resources` | 39/39 |
-| `cancellation` | 39/39 |
-| `publication` | 39/39 |
-| `three_targets` | 39/39 |
-| complete operations | 39/39 |
-| open operations | 0/39 |
+| `contract` | 39/40 |
+| `checker` | 39/40 |
+| `lowering` | 39/40 |
+| `kernel` | 39/40 |
+| `managed` | 39/40 |
+| `standard_host` | 39/40 |
+| `consumer_lifetime` | 39/40 |
+| `resources` | 39/40 |
+| `cancellation` | 39/40 |
+| `publication` | 39/40 |
+| `three_targets` | 39/40 |
+| complete operations | 39/40 |
+| open operations | 1/40 |
 <!-- local-family-coverage-summary:end -->
 
 ## Closed normative contract mismatches

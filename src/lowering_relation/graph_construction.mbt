@@ -103,6 +103,7 @@ fn graph_construction_expansion_reference_count(
 ///|
 pub(all) enum GraphConstructionIssue {
   InvalidGraphConstruction
+  InvalidPropertyGraphConstruction
 } derive(Eq, Debug)
 
 ///|

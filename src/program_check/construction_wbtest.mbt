@@ -40,6 +40,7 @@ fn local_construction_fixture(
   text_time? : Bool = false,
   tea? : Bool = false,
   sga? : Bool = false,
+  property_graph? : Bool = false,
   veca? : Bool = false,
   graph_construction_limit? : Int? = None,
   components_capacity_rows? : Int? = None,
@@ -458,6 +459,7 @@ fn local_construction_fixture(
       max_nodes=budget.nodes,
       max_depth=budget.depth,
       numeric_profile~,
+      property_graph~,
       calendar=selected_calendar,
       text_rank=selected_text_rank,
     )
@@ -489,6 +491,7 @@ fn local_construction_fixture(
     ),
     budget,
     calendar=selected_calendar,
+    property_graph~,
     text_rank=selected_text_rank,
   )
 }

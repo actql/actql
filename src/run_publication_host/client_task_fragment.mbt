@@ -186,7 +186,22 @@ fn client_task_carrier_contract(
       let cid = @encode.finish_hash(output_hash) catch { _ => return None }
       Some(("relation", "sha256:" + cid))
     }
-    GraphKind =>
+    GraphKind => {
+      // Select from the retained checked Carrier profile, never from a claimed
+      // CID or a failed legacy admission. The two contract bodies stay distinct.
+      if carrier is @carrier.GraphValue(graph) &&
+        @carrier.graph_property_definition(graph) is Some(_) {
+        return match
+          @graph_contract.admit_property_graph(carrier, {
+            max_bytes: max_wire_bytes,
+            max_nodes,
+            max_depth,
+          }) {
+          Ok(contract) =>
+            Some(("graph", @graph_contract.property_cid(contract)))
+          Err(_) => None
+        }
+      }
       match
         @graph_contract.admit(carrier, {
           max_bytes: max_wire_bytes,
@@ -196,6 +211,7 @@ fn client_task_carrier_contract(
         Ok(contract) => Some(("graph", @graph_contract.cid(contract)))
         Err(_) => None
       }
+    }
     EventsKind | VectorsKind =>
       client_task_record_carrier_contract(
         carrier, max_wire_bytes, max_nodes, max_depth,

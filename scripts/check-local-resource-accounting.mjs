@@ -827,6 +827,8 @@ for (const [index, route] of routeEntries.entries()) {
         'adapters/connectors/duckdb/node/test/standard-host.test.mjs',
       'node:duckdb_retained_values_chain':
         'adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs',
+      'node:property_graph_surface_checker':
+        'scripts/property-graph-surface-checker.test.mjs',
     }[item.suite];
     if (!suitePath || item.path !== suitePath ||
       JSON.stringify(item.targets) !== JSON.stringify(['node']) ||

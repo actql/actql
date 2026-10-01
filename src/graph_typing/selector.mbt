@@ -33,6 +33,7 @@ pub fn check_selector(
   relation : @carrier.Carrier?,
   parameters : @parameter.Declarations?,
   limits : PredicateLimits,
+  property_graph? : Bool = false,
 ) -> Result[CheckedSelector, MatchIssue] {
   try {
     if limits.max_work < 0 ||
@@ -49,6 +50,12 @@ pub fn check_selector(
       fail(source, IncompleteGraph)
     }
     let identity = @carrier.graph_identity(g)
+    if property_graph && @carrier.graph_property_definition(g) is None {
+      fail(source, UnsupportedGraphProfile)
+    }
+    if !property_graph {
+      require_legacy_profile(g, source)
+    }
     let b : Budget = {
       limits: {
         max_work: limits.max_work,

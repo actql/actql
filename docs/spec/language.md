@@ -2994,6 +2994,7 @@ The complete canonical vocabulary is:
 | VecA | [`pool_vectors`](#pool-vectors) | relation/vectors -> vectors |
 | VecA | [`merge_rankings`](#merge-rankings) | relation x relation (RRF: nonempty finite relation list) -> relation |
 | Bridge | [`graph`](#graph-construction) | relation x relation -> graph |
+| Bridge | [`property_graph`](#property-graph-construction) | finite ordered relation occurrences -> keyed property graph |
 | Bridge | [`node_rows`](#graph-rows) | graph -> relation |
 | Bridge | [`edge_rows`](#graph-rows) | graph -> relation |
 | Bridge | [`to_events`](#event-bridges) | relation -> events |
@@ -5227,6 +5228,71 @@ application to an external graph store.
 
 MDM completeness remains a separate future profile. Property match and typed
 traversal/path query are part of SGA 0.1 and do not imply MDM authority.
+
+<a id="property-graph-construction"></a>
+
+#### `property_graph`: separately selected keyed profile
+
+`actql-property-graph-constructor/0.1` selects the distinct
+`actql-property-graph-contract/0.1` representation. It is not an alias,
+normalization or migration of the legacy `graph` constructor below. The legacy
+constructor, tuple edge identities and snapshot bytes retain their meanings.
+The keyed profile requires explicit installed profile selection; claiming the
+legacy SGA module alone does not enable it.
+
+The closed constructor body has `version`, `nodes` and `edges`. Each ordered
+node definition has `name`, `from`, a nonempty ordered `key` column list and
+optional `labels`. Each edge definition additionally has `source` and `target`,
+each with a node `definition`, ordered source `key` columns and optional
+`references_key` naming that node's declared key columns in the same order.
+Names resolve through common checking. A constructor requires step `as` and
+has no implicit current operand or outer step `from`. Repeated producer
+references remain separate input occurrences; an empty definition family has
+zero occurrences, not an invented operand.
+
+A label entry has a static `name` and optional closed `properties` selector:
+`{mode: "columns", columns: [{from, to}, ...]}`, `{mode: "all_columns"}`,
+`{mode: "all_columns_except", except: [...]}`, or `{mode: "no_properties"}`.
+Omitted labels use the definition name; an omitted selector selects all
+columns, including key columns. An explicit empty label list has no labels.
+Property aliases remain property mappings, never semantic label roles.
+Conflicting aliases, unknown columns and incomplete types reject admission.
+
+Identity is the admitted constructor-definition domain, element definition
+name, ordered semantic key types and complete non-null key tuple. Edge keys
+are independent of endpoints: different keys retain parallel edges and
+self-loops. NULL element keys exclude that element. Duplicate non-null keys
+reject even identical payloads, including duplicate edge keys whose endpoints
+would later be excluded. NULL or missing endpoints exclude an edge without
+inventing nodes. These are different rules from legacy equal-payload collapse.
+
+Domain issuance projects resolved constructor source references to ordered
+input occurrences and retains the unbound producer definitions. Outer DATA
+aliases and source locations do not enter identity. Neither bound Artifact
+CIDs, parameter values, Run/Invocation CIDs nor Graph content enters the
+domain. Editing inline VALUES or semantic mapping defines a different domain;
+cross-domain comparison has no implicit compatibility mapping. Within one
+admitted domain and typed key, changed properties, labels or endpoints change
+snapshot content, not element identity. A bare external Carrier/name is not
+producer-definition provenance; the initial retained-VALUES path rejects that
+unsupported provenance rather than inventing a domain.
+
+Definition-scoped `match_nodes` and `match_edges` select a required
+`definition`, optional static `label`, existing predicate/projection fields and
+optional explicit `bindings` (`identity`, plus edge `source`/`target`). Binding
+names are ordinary caller-selected fields; collisions reject. Bounded keyed
+`traverse` requires explicit `path_mode` (`walk`, `trail` or `acyclic`) and
+`emit: "paths"`. TRAIL tracks independent edge identities, not endpoint tuples.
+Unimplemented SGA consumers reject this profile; keyed construction and this
+vertical path are not a claim of complete SGA support.
+
+Construction and reload reuse the existing bounded Graph storage, checking,
+stop and cleanup owners. Selected construction row/node/edge ceilings apply
+before exposing a complete Graph; failure or cancellation exposes no partial
+Graph. `actql-property-graph-snapshot/0.1` separately records the admitted
+contract, full typed identities, properties, labels and endpoints. Reload
+revalidates this correspondence and exact content identity, without creating a
+new domain or implicitly interpreting legacy snapshot bytes.
 
 <a id="graph-construction"></a>
 
@@ -7936,6 +8002,7 @@ operations is:
 | `edge_rows` | `BRIDGE.graph.to_edge_rows` |
 | `node_rows` | `BRIDGE.graph.to_node_rows` |
 | `graph` | `BRIDGE.rows.to_graph` |
+| `property_graph` | `BRIDGE.rows.to_property_graph` |
 | `events` | `BRIDGE.events.to_rows` |
 | `to_events` | `BRIDGE.rows.to_events` |
 | `vectors` | `BRIDGE.vectors.to_rows` |
@@ -9652,8 +9719,8 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:bfb017e25670c872293a2a4eec302b7d1217c3cb1adf74637c2339286d5c39ea
-../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
+../../spec/contracts/actql-aoa.json# sha256:072c1c6e630f683e41a1c814b3a000d0544506ae25c5d89210fa8982ff73c5ff
+../../spec/contracts/actql-bound-transfer-laws.json# sha256:7c14b2a994a8d2ff84e5bf42ee59f0ccfff728982d693426f210b4779d7dac23
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/author_value_contract sha256:ad31b593c607142e6fce65b15ca12531c46d61f3bcf8cc55f34eef1b4dca6b6e

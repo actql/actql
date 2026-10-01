@@ -209,6 +209,23 @@ fn check_impl(
       Some(v) => v
       None => fail(body, InvalidBody)
     }
+    if key == "property_graph" {
+      let step = check_property_graph_step(
+        body,
+        @decode.lookup(object, key).unwrap(),
+        object,
+        names,
+        inputs,
+        produced_inputs,
+        steps,
+        b,
+      )
+      let target = Step(steps.length())
+      names[step.binding_name.unwrap()] = target
+      steps.push(step)
+      current = Some(target)
+      continue
+    }
     if key == "graph" {
       let at = @decode.lookup(object, key).unwrap()
       let config = match @decode.open_object(at) {
@@ -1196,7 +1213,7 @@ fn check_impl(
           } else {
             [
               "start", "hops", "direction", "edge_types", "min_hops", "max_hops",
-              "emit", "max_output_rows",
+              "emit", "max_output_rows", "path_mode",
             ]
           },
         ) {
@@ -2144,6 +2161,8 @@ fn check_impl(
     let target = Step(steps.length())
     let connections : Connections = {
       entries: match checked {
+        PropertyGraphConstruction(inputs~, ..) =>
+          inputs.mapi((index, target) => { role: Sample(index), target, })
         GraphConstruction(nodes~, edges~, ..) =>
           match nodes {
             Some(t) =>

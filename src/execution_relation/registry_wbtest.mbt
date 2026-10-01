@@ -21,7 +21,7 @@ test "registry admission hashes complete immutable bodies and excludes historica
   ).unwrap()
   assert_eq(
     accepted.registry_cid,
-    "sha256:fda8b3f12e5a42673160163c097f9626b09d999ee3f4889b96e549c6e5e24332",
+    "sha256:7e6ae70262de7974f1145a440bd06c2dd1c9c2f56e373676c89d4da3f257f356",
   )
   assert_eq(
     accepted.values_contract_cid,
@@ -42,6 +42,15 @@ test "registry admission hashes complete immutable bodies and excludes historica
       registry_limits(),
     )
     is Err(ValuesContractMismatch),
+  )
+}
+
+///|
+test "new constructor registration pins its complete execution contract separately from legacy Graph" {
+  // Independent Node canonical SHA-256 of the machine contract, not product output.
+  assert_eq(
+    @identity.cid_value(registered_property_graph(), 100000, 10000, 100),
+    "sha256:6f84b787b55f3a84c6b420046e3f9346ac9019627bc852311fcf8d9f577dec03",
   )
 }
 

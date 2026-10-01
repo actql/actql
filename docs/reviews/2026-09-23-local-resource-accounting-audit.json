@@ -437,7 +437,7 @@
       "family": "Bridge",
       "profile": "carrier_bridges",
       "operations": [
-        "graph", "node_rows", "edge_rows", "to_events", "events",
+        "property_graph", "graph", "node_rows", "edge_rows", "to_events", "events",
         "to_vectors", "vectors"
       ]
     },

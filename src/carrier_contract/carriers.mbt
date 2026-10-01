@@ -21,6 +21,7 @@ pub(all) enum Issue {
 
 ///|
 struct Graph {
+  property_graph : PropertyGraphDefinition?
   semantic_label : @value.Contract?
   row_names : GraphRowNames?
   identity : @value.Contract
@@ -174,6 +175,7 @@ pub fn graph(
   }
   Ok(
     GraphValue({
+      property_graph: None,
       identity,
       node_properties,
       edge_properties,

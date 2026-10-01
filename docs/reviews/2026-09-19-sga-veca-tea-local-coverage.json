@@ -2782,6 +2782,25 @@
     },
     {
       "family": "Bridge",
+      "operation": "property_graph",
+      "input": "finite ordered relation occurrences",
+      "output": "keyed property graph",
+      "canonical": ["BRIDGE.rows.to_property_graph"],
+      "variants": ["definition-scoped typed composite keys", "independent edge keys", "static label property scopes", "NULL-key and missing-endpoint exclusion", "duplicate-key rejection", "repeated producer occurrences", "empty definition families"],
+      "status": "partial",
+      "owner": "local-bridge",
+      "completed_layers": [],
+      "layer_evidence": [
+        "src/query_integration/property_graph_construction_wbtest.mbt",
+        "src/query_integration/property_graph_plan_wbtest.mbt",
+        "src/query_integration/property_graph_snapshot_wbtest.mbt",
+        "scripts/property-graph-public-host.test.mjs",
+        "scripts/test-packed-property-graph.mjs"
+      ],
+      "remaining": ["fixed-SHA suite evidence", "production-path exact/one-short work and workspace boundary evidence", "Host in-flight cancellation boundary evidence"]
+    },
+    {
+      "family": "Bridge",
       "operation": "graph",
       "input": "relation, relation",
       "output": "graph",

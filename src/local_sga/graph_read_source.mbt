@@ -110,6 +110,91 @@ fn graph_read_edge_label(
 }
 
 ///|
+fn graph_read_edge_identity(
+  source : GraphReadSource,
+  edge : Int,
+) -> @value.CheckedValue? {
+  match source {
+    Stored(read) =>
+      @graph.producer_read_storage(read).bind(storage => {
+        @storage.edge_identity(storage, edge)
+      })
+    Viewed(view) =>
+      @lifecycle.producer_view_edge_identity(view, edge).to_option()
+  }
+}
+
+///|
+fn graph_read_node_identity_order_key(
+  source : GraphReadSource,
+  node : Int,
+) -> String? {
+  match source {
+    Stored(read) =>
+      @graph.producer_read_storage(read).bind(storage => {
+        @storage.node_identity_order_key(storage, node)
+      })
+    Viewed(view) =>
+      @lifecycle.producer_view_node_identity_order_key(view, node).to_option()
+  }
+}
+
+///|
+fn graph_read_edge_identity_order_key(
+  source : GraphReadSource,
+  edge : Int,
+) -> String? {
+  match source {
+    Stored(read) =>
+      @graph.producer_read_storage(read).bind(storage => {
+        @storage.edge_identity_order_key(storage, edge)
+      })
+    Viewed(view) =>
+      @lifecycle.producer_view_edge_identity_order_key(view, edge).to_option()
+  }
+}
+
+///|
+fn graph_read_edge_definition(source : GraphReadSource, edge : Int) -> Int? {
+  match source {
+    Stored(read) =>
+      @graph.producer_read_storage(read).bind(storage => {
+        @storage.edge_definition_index(storage, edge)
+      })
+    Viewed(view) =>
+      @lifecycle.producer_view_edge_definition(view, edge).to_option()
+  }
+}
+
+///|
+fn graph_read_node_definition(source : GraphReadSource, node : Int) -> Int? {
+  match source {
+    Stored(read) =>
+      @graph.producer_read_storage(read).bind(storage => {
+        @storage.node_definition_index(storage, node)
+      })
+    Viewed(view) =>
+      @lifecycle.producer_view_node_definition(view, node).to_option()
+  }
+}
+
+///|
+fn property_match_field_index(
+  prepared : @lower.PreparedGraphMatch,
+  field : @schema.FieldName,
+) -> Int? {
+  guard @lower.graph_match_property_schema(prepared) is Some(properties) else {
+    return None
+  }
+  for index in 0..<@carrier.field_count(properties) {
+    if @carrier.field_at(properties, index).unwrap().name == field {
+      return Some(index)
+    }
+  }
+  None
+}
+
+///|
 fn graph_read_edge_property(
   source : GraphReadSource,
   edge : Int,

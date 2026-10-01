@@ -268,6 +268,20 @@ pub fn index_program_operation_resolutions(
         let policy = @capacity.application_closure_policy(
           stage.context.capacity,
         )
+        // Keyed constructors check every ordered definition input. Charge the
+        // actual visit count before that scan, including repeated producers.
+        if site.requirement is @pipeline.ConstructionRequirement(pending) &&
+          pending != @graph.ResolvePropertyGraphProfile &&
+          @pipeline.step_at(site.pipeline, site.step)
+          is Some({ operation: @pipeline.PropertyGraphConstruction(..), .. }) {
+          let cost = @pipeline.input_occurrence_count(
+            @pipeline.step_at(site.pipeline, site.step).unwrap(),
+          )
+          if cost > max_work - work {
+            return Err(BudgetExceeded)
+          }
+          work += cost
+        }
         let direct = direct_execution_candidate(
           site, policy, window_candidate, watermark_candidate,
         )

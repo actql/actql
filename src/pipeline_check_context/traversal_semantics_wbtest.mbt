@@ -1,4 +1,100 @@
 ///|
+test "keyed traversal checks retain explicit mode and never reuse simple-path law obligations" {
+  let producer = property_execution_pipeline()
+  let graph = @pipeline.carrier_at(producer, @pipeline.Step(1)).unwrap()
+  guard graph is @carrier.GraphValue(schema) else { fail("keyed Graph schema") }
+  let domain = @carrier.property_graph_domain(
+    @carrier.graph_property_definition(schema).unwrap(),
+  )
+  let identity = "{\"definition\":\"N\",\"domain\":\"" +
+    domain +
+    "\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}"
+  for
+    (name, mode) in [
+      ("walk", @graph.Walk),
+      ("trail", @graph.Trail),
+      ("acyclic", @graph.Acyclic),
+    ] {
+    let pipeline = @pipeline.check_carriers(
+      asof_test_cursor(
+        "[{\"from\":\"g\",\"traverse\":{\"start\":{\"ids\":[" +
+        identity +
+        "]},\"hops\":[{\"direction\":\"out\"}],\"path_mode\":\"" +
+        name +
+        "\",\"emit\":\"paths\"}}]",
+      ),
+      [("g", graph)],
+      None,
+      None,
+      {
+        max_steps: 1,
+        max_work: 100000,
+        max_text_bytes: 100000,
+        max_nodes: 10000,
+        max_tokens: 10000,
+        max_depth: 100,
+      },
+    ).unwrap()
+    let step = @pipeline.step_at(pipeline, 0).unwrap()
+    assert_eq(
+      @pipeline.operation_profile_at(step.operation, 0),
+      Some(@pipeline.PropertyGraph),
+    )
+    assert_eq(
+      @pipeline.operation_profile_adopted_law_at(@pipeline.PropertyGraph, 0),
+      Some(@pipeline.PropertyGraphLaw),
+    )
+    let body = @pipeline.operation_obligation_group_at(step.operation, 0).unwrap()
+    let rules : Array[TraversalRule] = []
+    let mut unresolved = 0
+    for index in 0..<@pipeline.operation_obligations_count(body) {
+      let site : OperationRequirementSite = {
+        stage: 0,
+        producer_visit: 0,
+        step: 0,
+        group: 0,
+        index,
+        pipeline,
+        obligations: body,
+        requirement: @pipeline.operation_obligations_at(body, index).unwrap(),
+      }
+      match traversal_execution_check(site).unwrap() {
+        Some(TraversalExecution(check)) => {
+          assert_true(physical_equal(check.step, step))
+          assert_eq(
+            @graph.traverse_property_path_mode(check.operation),
+            Some(mode),
+          )
+          assert_eq(check.input, @pipeline.Input(0))
+          assert_true(check.selector_relation is None)
+          rules.push(check.rule)
+        }
+        None => {
+          assert_true(
+            site.requirement
+            is @pipeline.TraverseRequirement(
+              ResolveTraversalResources
+              | ResolvePropertyGraphTraversalProfile
+            ),
+          )
+          unresolved += 1
+        }
+        _ => fail("wrong keyed traversal requirement")
+      }
+    }
+    assert_eq(rules, [
+      AdmitInputGraph,
+      RespectAuthoredHops,
+      EvaluateHopConditions,
+      OrderTraversalRows,
+      EnumeratePropertyPaths,
+      DeduplicatePathIdentities,
+    ])
+    assert_eq(unresolved, 2)
+  }
+}
+
+///|
 test "traversal semantic bindings preserve mode predicates input roles and unresolved guards" {
   let fields = @carrier.rows(
     [],
