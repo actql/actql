@@ -21,17 +21,23 @@ pub fn advance_model_capture_export(ModelCaptureExport, Int) -> Result[(Bool, St
 
 pub fn advance_model_execution(ModelExecution, Int) -> Result[ModelObservation, ModelExecutionIssue]
 
+pub fn advance_model_observation_verification(ModelObservationVerification, Int) -> Result[(Bool, Int64), ModelExecutionIssue]
+
 pub fn advance_model_output_preparation(ModelOutputPreparation, Int) -> Result[@execution_relation.AdmittedOutputPoll, ModelExecutionIssue]
 
 pub fn bind_verified_model_slot_capture(VerifiedModelCapture, Int, @run_publication.RunEvidenceValue) -> Result[@run_publication.BoundModelSlotCapture, ModelExecutionIssue]
 
 pub fn cancel_model_capture_export(ModelCaptureExport) -> Bool
 
+pub fn cancel_model_observation_verification(ModelObservationVerification) -> Bool
+
 pub fn cancel_model_output_preparation(ModelOutputPreparation) -> Bool
 
 pub fn cleanup_model_capture_export(ModelCaptureExport) -> Result[Bool, ModelExecutionIssue]
 
 pub fn cleanup_model_execution(ModelExecution) -> Result[Bool, ModelExecutionIssue]
+
+pub fn cleanup_model_observation_verification(ModelObservationVerification) -> Result[Bool, ModelExecutionIssue]
 
 pub fn cleanup_model_output_preparation(ModelOutputPreparation) -> Result[Bool, ModelExecutionIssue]
 
@@ -56,6 +62,8 @@ pub fn model_execution_resource_usage(ModelExecution) -> @physical_resources.Led
 pub fn model_execution_restoring(ModelExecution) -> Bool
 
 pub fn model_execution_sealing_observation(ModelExecution) -> Bool
+
+pub fn model_observation_verification_value(ModelObservationVerification) -> @run_publication.RunEvidenceValue?
 
 pub fn model_outcomes_accepted(ModelOutcomeRead) -> Bool
 
@@ -86,6 +94,8 @@ pub fn start_model_capture_export(VerifiedModelCapture, ModelCaptureExportLimits
 pub fn start_model_capture_replay(@execution_relation.PreparedInferRows, @run_publication_host.ClientInferCallScope, VerifiedModelCapture, ModelExecutionLimits) -> Result[ModelExecution, ModelExecutionIssue]
 
 pub fn start_model_execution(@execution_relation.PreparedInferRows, ModelProvider, String, ModelExecutionLimits, call_scope? : @run_publication_host.ClientInferCallScope?) -> Result[ModelExecution, ModelExecutionIssue]
+
+pub fn start_model_observation_verification(VerifiedModelCapture, @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], ModelObservationVerificationLimits) -> Result[ModelObservationVerification, ModelExecutionIssue]
 
 pub fn start_model_output_preparation(ModelExecution, @execution_relation.CompletionPreparation, Int, @execution_relation.ValueLimits, Int, Int) -> Result[ModelOutputPreparation, ModelExecutionIssue]
 
@@ -164,6 +174,23 @@ pub(all) enum ModelObservation {
   Failed(ModelExecutionIssue, Int64, Int64)
   Stopped(@bounded_execution.StopReason, Int64, Int64)
 }
+
+pub struct ModelObservationVerification {
+  state : ModelObservationVerificationState
+  session : @bounded_execution.Session[ModelObservationVerificationState, Unit, ModelExecutionIssue]
+  control : @bounded_execution.Control
+  mut token : @bounded_execution.Token
+  mut accepted : Bool
+  mut reclaimed : Bool
+}
+
+pub(all) struct ModelObservationVerificationLimits {
+  max_slots : Int
+  max_slot_wire_units : Int
+  max_work : Int
+}
+
+type ModelObservationVerificationState
 
 pub struct ModelOutcomeRead {
   owner : ModelExecution

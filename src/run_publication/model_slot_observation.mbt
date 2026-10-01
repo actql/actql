@@ -107,6 +107,31 @@ pub fn bound_model_slot_capture_value(
 }
 
 ///|
+/// Indexed structural readers for the installing capture owner's bounded
+/// verifier. An absent field is distinct from the explicit zero-key array.
+pub fn model_observation_slot_count(observation : RunEvidenceValue) -> Int? {
+  guard observation.name == "observation_set" &&
+    @json.object_field(observation.value, "model_slot_capture_cids")
+    is Some(@json.Array(captures)) else {
+    return None
+  }
+  Some(@json.array_count(captures))
+}
+
+///|
+pub fn model_observation_slot_at(
+  observation : RunEvidenceValue,
+  index : Int,
+) -> String? {
+  guard observation.name == "observation_set" &&
+    @json.object_field(observation.value, "model_slot_capture_cids")
+    is Some(@json.Array(captures)) else {
+    return None
+  }
+  optional_string(@json.array_at(captures, index))
+}
+
+///|
 /// Exact references to one successful observation. The executing/restoring
 /// owner, not a caller-authored wire record, establishes checked response
 /// content. Attempt, policy, usage and authority evidence remain separate.

@@ -1119,3 +1119,35 @@ tests do not claim actual error-response issuer evidence, retry/backoff/media
 admission, formal adoption/accounting/authority records, durable all-slot
 capture, installed public startup or committed Named Result retrieval. No
 push or Linux CI success is claimed, and no adoption SHA is supplied to B.
+
+## Bounded observation-to-slot verification
+
+The execution owner now verifies the dedicated ObservationSet array against
+its actual accepted call inventory, not a caller-supplied expected count or
+the successful capture subset. Start rejects missing or extra records before
+retaining a child read. Each bounded transition checks one immutable capture
+against the exact logical call, adopted outcome and successful response when
+present, then checks its CID at the same ObservationSet position. A separate
+terminal transition accepts the observation only after every call is matched.
+
+The closed schema rejects duplicate CIDs. The owner rejects reordered records,
+reordered observation references, absent slots and extra identities. Zero-key
+INFER requires an explicit empty array, with zero model invocations. Existing
+non-INFER omission and its preimage are unchanged. A stopped or work-limited
+verifier cannot expose an accepted observation. Its independently retained
+execution read prevents input cleanup until the verifier itself is cleaned;
+cleanup drops only its reference and never clears the caller's record array.
+
+No second complete record or response inventory is copied at start. Installed
+slot and per-record wire-unit ceilings bound structural admission. The exact
+two-slot work bound is three transitions: two matches and terminal acceptance.
+One-short fails with `WorkLimit`, and removing pending records fails with
+`OutputIdentity` rather than accepting a truncated observation.
+
+Local package tests pass on JS, Wasm and native: inference owner 38/38, model
+owner 2/2 and publication 188/188. The matcher fixtures use symbolic external
+attempt, authority, accounting and policy roots explicitly; they test exact
+reference binding, not issuance or truth of those external records. This is
+not yet durable all-slot capture or public Host publication. The public
+handoff, installed dependency admission, formal evidence owners and Named
+Result retrieval remain open; no Linux CI or push result is claimed.

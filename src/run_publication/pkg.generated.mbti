@@ -356,6 +356,10 @@ pub fn model_capture_record_text(ModelCaptureRecordRead, String) -> String?
 
 pub fn model_capture_record_tokens(ModelCaptureRecordRead) -> (Int64, Int64)?
 
+pub fn model_observation_slot_at(RunEvidenceValue, Int) -> String?
+
+pub fn model_observation_slot_count(RunEvidenceValue) -> Int?
+
 pub fn next_result_delivery_row(ResultDeliverySerializer, String) -> Result[String, DeliverySerializationIssue]
 
 pub fn parse_effect_outcome_shape(String, Int, Int, Int) -> Result[@canonical_json.CanonicalValue, PublicationContractIssue]
