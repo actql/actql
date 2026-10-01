@@ -109,20 +109,48 @@ test that wrong NULL, nested nullability, dispatch counts and replay are caught.
 They are assertion tests, not model execution, packed acceptance or a substitute
 for A's implementation.
 
-The query bridge was rebuilt from this base and the prepared sources lower
-successfully. The combined bridge/assertion tests passed 14/14; `test:docs`
-passed 52/52. The spec job's `check:spec`, strict resource boundary check,
-authorization vectors and metadata check passed. Its final clean-diff guard
-initially failed because this preparation was still uncommitted, with no
-additional generated/metadata changes. That guard must be checked again after
-committing. The guard passed on `4bac7384b0c82fb8f8ab15de87fcb9eb43f311a6`.
-This is not recorded as a successful end-to-end wrapper run.
+The query bridge was rebuilt from the integrated source. The bridge, acceptance
+assertions, controller prerequisites and packed-evidence tests passed 26/26.
+The prepared INFER sources lower successfully; this does not establish runtime
+support. An earlier uncommitted run failed the final clean-diff guard and was
+not recorded as a successful gate.
 
 The packed-controller prerequisite tests separately reject missing setup,
 missing/short owner SHA and nonexistent setup before invoking build tools.
 These are preparation tests, not packed execution evidence.
 
-Client/Core execution gates, Linux CI and real packed INFER execution have not
-been run for this preparation unit. The common owner and real Host setup remain
-the dependencies for execution acceptance; the #112 source-only completion is
-unchanged.
+Both local preparation gates subsequently passed on the unchanged committed
+source `23c1dcc0eecd6a37c68491f83ac4e30a8c98359f`:
+
+| Command | Result | Scope |
+| --- | --- | --- |
+| `node scripts/local-checks.mjs run spec` | Exit 0, 972.9 seconds | Full spec job, including generated artifacts, authorization vectors, metadata and the final clean-diff guard |
+| `node scripts/local-checks.mjs run client` | Exit 0, 2285.8 seconds | Client/Host 321/321; packed Node/browser and Checkpoint; native mTLS; packed SQL/Pipe/SGA and Result descriptions; simulated Salesforce Site 277/277; Effect recovery and capture cleanup |
+
+Recovery probes recorded zero Source/Compute calls on restart, and uncertain
+Effects were not resent. These probes exercise existing Effect execution;
+they are not INFER ModelTask evidence or real Salesforce org acceptance.
+Tracked files remained unchanged throughout both jobs.
+
+The SQL/Pipe/SGA packed regression used the following artifact SHA-256 values
+from that same source. Its external installation completed Local/HTTP Named
+Result acceptance and was reclaimed after evidence was saved.
+
+| Package tarball | SHA-256 |
+| --- | --- |
+| `actql-client-wire-0.0.0-development.tgz` | `c9882e6300c184e7086e86a56cc70b1be3f65e059d0b97364ea49b379eac3a86` |
+| `actql-sdk-0.0.0-development.tgz` | `823149a8d04223425d9752b29596b72e72d3401ef168e6d164b7ec1557b38cf3` |
+| `actql-run-host-core-0.0.0-development.tgz` | `7f9b0c0d91987a45fbbdf5aa4a3f819db56e73a340d5c7297e52462e54df01a2` |
+| `actql-local-node-0.0.0-development.tgz` | `5faf5e785fcac31371111e6291b7de9df35c8cebd281cfca2f9596d19c0ee1f6` |
+| `actql-node-0.0.0-development.tgz` | `c72364973dd1ed42faea32425632b314de037c9b92035c9f5ec35b875914f225` |
+
+The native Client binary SHA-256 was
+`7e83cc468cbb72e5c9c44be6ea6d50bee7cda91f46f952426e3e7bbf27968dd4`.
+Local logs are retained under `_build/infer-preparation-evidence`; the packed
+evidence owner retains per-command logs, termination records and provenance.
+
+Shared Core three-target gates were not rerun for these Client-only preparation
+changes. Linux CI is not yet verified for this preparation branch. Real packed
+INFER execution remains `not_run`: the common owner and real Host setup remain
+the dependencies for execution acceptance. The #112 Frontend completion is
+unchanged and is distinct from the incomplete inference execution milestone.
