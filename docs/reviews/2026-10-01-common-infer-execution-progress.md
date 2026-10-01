@@ -82,8 +82,10 @@ neither the frontend nor the infer owner may invent that proof from a name.
 `run_publication/evidence_chain.mbt` already provide model evidence checks;
 they must not be replaced by a new capture ledger. Existing
 `actql.model_task/0.1` and `actql-model-slot-capture/0.1` bodies remain the
-contract baseline. Checker acceptance will not be broadened independently
-of executable, captured and replayable semantics.
+contract baseline. Checker acceptance will not be reported as executable
+inference. The first runtime handoff can cover one real Host-dispatched row
+while the remaining KEEP and replay acceptance is developed in parallel.
+Capture and replay remain requirements for completing the inference unit.
 
 There is not yet a SHA on this branch at which B's entire independent INFER
 Program executes. Its successful packed acceptance remains pending. The
@@ -189,3 +191,54 @@ These are typing and admission tests, not model dispatch or packed acceptance.
 Program integration, barrier preflight, call execution, capture, replay and
 the existing Host dispatch connection remain unfinished. No external model
 service has been called.
+
+## Shared INPUT lowering and evaluation
+
+`lowering_relation/prepare_infer_inputs` now prepares each admitted INPUT
+mapping using the existing expression lowerer. Relation and acquisition
+bindings share one implementation, including profile admission, typed object
+fields, checked property ordinals, source locations and cumulative limits.
+No second expression evaluator is added.
+
+The infer owner retains its exact parameter declaration owner. Binding checks
+use the same helper as ordinary Relation preparation: an equal-shaped foreign
+declaration or missing required binding cannot substitute for it. Preparation
+charges input entries, field resolution and expression work against one
+budget rather than resetting the allowance for each role. The returned owner
+does not admit call slots, classification, adapter transport or model access.
+
+The mapped field, nested object/property and nullable parameter fixtures use
+the existing resumable expression execution. Independent expectations cover
+the existing 0.1 expression wire, string and NULL values, exact/one-short
+preparation work, a foreign binding owner, and cancellation without destroying
+the caller-owned input. These are input-expression tests, not a model call,
+all-request preflight, capture or replay.
+
+Verification of this source change:
+
+- Complete `infer_typing`, `lowering_relation` and `execution_relation` JS
+  suites: 1,294/1,294.
+- Affected infer, parameter binding, expression lowering and object/property
+  execution regressions: 38/38 on Wasm and 38/38 on native.
+- Public interfaces regenerated from the integrated sources on all three
+  targets; formatting passed.
+
+## First runtime handoff
+
+B's committed connection audit is
+`0996714dfa283c428d9feb1e77f869ab94f9cd98`,
+`docs/reviews/2026-10-01-infer-owner-connection-readiness.md` on B's branch.
+It was inspected without adopting or modifying B's source or expectations.
+
+The first adoption SHA must run the one-row INFER through the real public
+Host. It will include a reproducible startup and deterministic physical
+provider registration example, exact dependency bodies, input key admission,
+finite limits, and an explicit list of unsupported forms. A standalone typed
+owner or an injected finished Result does not meet that handoff condition.
+
+The four remaining connections are ordinary Program inference admission,
+produced key evidence for KEEP, physical ModelTask dispatch under the current
+Host owner, and capture/replay with no replacement model execution. The first
+Host connection can be handed off before the complete KEEP/replay matrix,
+but those unfinished guarantees must remain visible. There is still no
+adoptable full-Program execution SHA or public model registration example.

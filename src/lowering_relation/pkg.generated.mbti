@@ -10,6 +10,7 @@ import {
   "actql/actql/expression_syntax",
   "actql/actql/expression_typing",
   "actql/actql/graph_typing",
+  "actql/actql/infer_typing",
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
   "actql/actql/relation_append",
@@ -537,6 +538,16 @@ pub fn group_name_bytes(PreparedGroup) -> Int
 
 pub fn group_output_schema(PreparedGroup) -> @relation_schema.Schema
 
+pub fn infer_input_count(PreparedInferInputs) -> Int
+
+pub fn infer_input_expression_at(PreparedInferInputs, Int) -> Expression?
+
+pub fn infer_inputs_owner(PreparedInferInputs) -> @infer_typing.CheckedInfer
+
+pub fn infer_inputs_parameters(PreparedInferInputs) -> @parameter_binding.BoundValues?
+
+pub fn infer_inputs_usage(PreparedInferInputs) -> (Int, Int, Int, Int)
+
 pub fn inner_join_assertion(PreparedInnerJoin) -> @relation_join_shape.Cardinality?
 
 pub fn inner_join_checked(PreparedInnerJoin) -> @relation_join_shape.CheckedJoin
@@ -820,6 +831,8 @@ pub fn prepare_fragment_pipeline(PreparedSequence, Int, RootLimits) -> Result[Fr
 pub fn prepare_fragment_request(FragmentPipeline, Int64, Int64, row_limits? : FragmentRowLimits?) -> Result[FragmentRequest, FragmentRequestIssue]
 
 pub fn prepare_group(BoundPrepared, Int, Int, Int, ExpressionLimits) -> Result[(PreparedGroup, ExpressionLimits), GroupIssue]
+
+pub fn prepare_infer_inputs(@infer_typing.CheckedInfer, @parameter_binding.BoundValues?, ExpressionLimits, expression_profiles? : ExpressionProfileAdmission) -> Result[PreparedInferInputs, InferInputIssue]
 
 pub fn prepare_inner_join(@relation_join_shape.CheckedJoin, Int, Int) -> Result[PreparedInnerJoin, InnerJoinIssue]
 
@@ -1367,6 +1380,20 @@ pub(all) enum GroupIssue {
   InvalidCheckedAggregate(Int)
 }
 
+pub struct InferInputIssue {
+  kind : InferInputIssueKind
+  source : @decode_core.Cursor
+}
+
+pub(all) enum InferInputIssueKind {
+  InvalidLimits
+  BudgetExceeded
+  Binding(BindingIssueKind)
+  MissingCheckedInput
+  MissingResolvedField(String)
+  Expression(ExpressionIssueKind)
+}
+
 pub struct InnerJoinField {
   output : @relation_schema.FieldName
   input : @relation_schema.FieldName
@@ -1626,6 +1653,8 @@ type PreparedGraphTraverse
 type PreparedGraphUnion
 
 type PreparedGroup
+
+type PreparedInferInputs
 
 type PreparedInnerJoin
 

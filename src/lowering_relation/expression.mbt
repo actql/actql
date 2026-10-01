@@ -607,6 +607,29 @@ fn lower_expression_measured(
       | CarrierProjection(_) =>
         expression_fail(step.source, MissingCheckedBinding)
     }
+    lower_typed_expression_measured(
+      typed,
+      resolved_fields,
+      bound.by_name,
+      profile => expression_profile_admitted(bound, profile),
+      limits,
+    )
+  } catch {
+    ExpressionStop(issue) => Err(issue)
+  }
+}
+
+///|
+/// One lowering implementation for checked Relation and acquisition bindings.
+/// Callers retain their own exact checked owner and declaration association.
+fn lower_typed_expression_measured(
+  typed : @typing.TypedExpression,
+  resolved_fields : Array[(String, @relation.ReferenceTarget)],
+  parameters : Map[String, @value.CheckedValue],
+  profile_admitted : (String) -> Bool,
+  limits : ExpressionLimits,
+) -> Result[(Expression, ExpressionBudget), ExpressionIssue] {
+  try {
     let syntax = @typing.expression(typed)
     let root = @syntax.tree(syntax)
     let budget : ExpressionBudget = {
@@ -638,8 +661,7 @@ fn lower_expression_measured(
     }
     for obligation in @typing.pending_validations(typed) {
       let admitted = match obligation.kind {
-        @typing.ProfileAdmission(profile) =>
-          expression_profile_admitted(bound, profile)
+        @typing.ProfileAdmission(profile) => profile_admitted(profile)
         @typing.PatternValidation(_) | @typing.HostEnvelope => false
       }
       if !admitted {
@@ -751,7 +773,7 @@ fn lower_expression_measured(
         }
         "$param" => {
           let name = @decode.text(body).unwrap()
-          guard bound.by_name.get(name) is Some(value) else {
+          guard parameters.get(name) is Some(value) else {
             expression_fail(cursor, MissingParameter(name))
           }
           charge_bound_literal(budget, cursor, value.value)

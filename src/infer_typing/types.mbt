@@ -73,6 +73,7 @@ struct CheckedInfer {
   input : @carrier.Knowledge
   schema : @schema.Schema
   task : @environment.ModelTaskContract
+  parameters : @parameter.Declarations?
   key_witness : @evidence.KeyedRelation
   keys : Array[KeyBinding]
   bindings : Array[InputBinding]
@@ -160,6 +161,11 @@ pub fn output_schema(value : CheckedInfer) -> @schema.Schema {
 ///|
 pub fn model_task(value : CheckedInfer) -> @environment.ModelTaskContract {
   value.task
+}
+
+///|
+pub fn parameters(value : CheckedInfer) -> @parameter.Declarations? {
+  value.parameters
 }
 
 ///|

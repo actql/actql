@@ -40,6 +40,8 @@ pub fn model_task(CheckedInfer) -> @check_environment.ModelTaskContract
 
 pub fn output_schema(CheckedInfer) -> @relation_schema.Schema
 
+pub fn parameters(CheckedInfer) -> @parameter_binding.Declarations?
+
 pub fn result_mode(CheckedInfer) -> ResultMode
 
 pub fn source(CheckedInfer) -> @decode_core.Cursor

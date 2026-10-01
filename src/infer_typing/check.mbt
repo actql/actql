@@ -314,6 +314,7 @@ pub fn check(
       input: records,
       schema,
       task,
+      parameters,
       key_witness: witness,
       keys: key_fields,
       bindings,
