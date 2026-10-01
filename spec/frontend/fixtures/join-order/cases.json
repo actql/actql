@@ -64,6 +64,21 @@
       "sourceReadCount": 1
     },
     {
+      "name": "pipe-join-alias",
+      "format": "aql-text",
+      "text": "WITH seed AS (SELECT id AS x, amount AS y FROM records) FROM seed AS l |> JOIN seed AS r ON l.x = r.x |> SELECT l.x AS y |> ORDER BY y + 1",
+      "sourceRows": [
+        {"id": 2, "amount": 10},
+        {"id": 1, "amount": null},
+        {"id": 2, "amount": 20}
+      ],
+      "expected": [{"y": 1}, {"y": 2}, {"y": 2}, {"y": 2}, {"y": 2}],
+      "columns": [
+        {"name": "y", "contract": {"type": "number", "nullable": false}}
+      ],
+      "sourceReadCount": 1
+    },
+    {
       "name": "select-qualified-input",
       "format": "sql",
       "text": "SELECT id AS amount FROM records AS t ORDER BY t.amount + 1",
@@ -489,11 +504,6 @@
       "name": "join-distinct-private-expression",
       "format": "sql",
       "text": "WITH seed AS (SELECT id AS x, amount AS y FROM records) SELECT DISTINCT l.x AS x FROM seed AS l JOIN seed AS r ON l.x = r.x ORDER BY l.y + 1"
-    },
-    {
-      "name": "pipe-join-alias",
-      "format": "aql-text",
-      "text": "WITH seed AS (SELECT id AS x, amount AS y FROM records) FROM seed AS l |> JOIN seed AS r ON l.x = r.x |> SELECT l.x AS y |> ORDER BY y + 1"
     }
   ]
 }
