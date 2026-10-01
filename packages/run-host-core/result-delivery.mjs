@@ -36,7 +36,7 @@ function validateStore(store) {
 
 function validateControl(control) {
   if (control === null || typeof control !== 'object' ||
-      !['issueDeliveryAttempt', 'deliveryResultDefinitionCid',
+      !['admit', 'issueDeliveryAttempt', 'deliveryResultDefinitionCid',
         'resultReadGrantAllowsBytes', 'resultReadGrantValidAt',
         'issueDeliveryRecord', 'issueResultDeliveryReceipt',
         'prepareResultDeliverySerializer', 'beginResultDelivery',
@@ -45,6 +45,31 @@ function validateControl(control) {
         'deliveryRecordRetryAction']
         .every(name => typeof control[name] === 'function')) {
     fail('InvalidResultDeliveryControl');
+  }
+}
+
+function selectDeliveryAttempt(control, admitted, proposed, index, manifest,
+  grant, request, limits) {
+  try {
+    if (typeof admitted?.created !== 'boolean' || admitted.attempt === null ||
+        typeof admitted.attempt !== 'object' || Array.isArray(admitted.attempt)) {
+      fail('InvalidResultDeliveryAttemptState');
+    }
+    // Store selects the canonical birth time for a logical attempt. Admit its
+    // complete contract, then check every binding through the existing issuer.
+    const selected = control.admit('delivery_attempt',
+      JSON.stringify(admitted.attempt), limits);
+    const expected = control.issueDeliveryAttempt(index, manifest, grant, {
+      ...request, requestedAt: JSON.parse(selected.wire).requested_at,
+    }, limits);
+    if (selected.identity !== expected.identity || selected.wire !== expected.wire ||
+        admitted.created && selected.wire !== proposed.wire) {
+      fail('InvalidResultDeliveryAttemptState');
+    }
+    return selected;
+  } catch (cause) {
+    if (cause instanceof ResultDeliveryError) throw cause;
+    fail('InvalidResultDeliveryAttemptState', cause);
   }
 }
 
@@ -240,7 +265,7 @@ export async function deliverPublishedResult(options) {
     stage: 'attempt',
     observedAt: requestedAt,
   });
-  const attempt = control.issueDeliveryAttempt(
+  const proposed = control.issueDeliveryAttempt(
     index,
     manifest,
     grant,
@@ -248,12 +273,17 @@ export async function deliverPublishedResult(options) {
     limits,
   );
   const admitted = await store.createDeliveryAttempt(
-    attempt.wire, grant.wire,
+    proposed.wire, grant.wire,
   );
+  const attempt = selectDeliveryAttempt(control, admitted, proposed, index,
+    manifest, grant, {resultName, format, attemptId}, limits);
   if (!admitted.created) {
     const existing = await store.latestDeliveryRecordContract(
       attempt.identity,
     );
+    // Another caller may own the first record commit. Absence is not authority
+    // to start a second stream or consume another grant use.
+    if (existing === undefined) fail('ResultDeliveryAttemptUnresolved');
     if (existing !== undefined) {
       const action = control.existingDeliveryAttemptAction(existing);
       const value = JSON.parse(existing.wire);

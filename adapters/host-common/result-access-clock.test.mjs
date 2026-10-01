@@ -67,7 +67,7 @@ function fixture(api, options = {}) {
     },
     async createDeliveryAttempt(wire) {
       state.attempts.push(JSON.parse(wire));
-      return {created: true};
+      return {created: true, attempt: JSON.parse(wire)};
     },
     async latestDeliveryRecord() {},
     async latestDeliveryRecordContract() {},
@@ -83,6 +83,10 @@ function fixture(api, options = {}) {
   };
   if (options.legacy) delete store.sampleTrustedClock;
   const control = {...semantic,
+    admit(name, wire, bounds) {
+      return name === 'delivery_attempt'
+        ? contract(name, 'a', JSON.parse(wire)) : semantic.admit(name, wire, bounds);
+    },
     resultReadRetentionPolicyCid: () => retention.identity,
     resultReadDefinitionCid: () => cid('8'),
     resultRetentionClockContractCid: () => cid('9'),
@@ -97,7 +101,8 @@ function fixture(api, options = {}) {
     },
     resultReadGrantAllowsBytes: () => true,
     issueDeliveryAttempt(_index, _manifest, _grant, value) {
-      return contract('delivery_attempt', 'a', value);
+      return contract('delivery_attempt', 'a',
+        {...value, requested_at: value.requestedAt});
     },
     issueDeliveryRecord(_attempt, _previous, value) {
       return contract('delivery_record', 'b', value);
