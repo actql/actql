@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {spawnSync} from 'node:child_process';
 import {createServer} from 'node:http';
 import test from 'node:test';
-import {mkdtemp, open, readdir, rm} from 'node:fs/promises';
+import {link, mkdir, mkdtemp, open, readdir, readFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import * as moon from
@@ -243,6 +244,285 @@ function deliveryRoot(control) {
   }), limits);
   return {artifact, manifest, index};
 }
+
+async function logicalDeliveryStore(t, control, durability) {
+  const scratch = new URL('../../_build/local-delivery-tests/', import.meta.url);
+  await mkdir(scratch, {recursive: true});
+  const directory = await mkdtemp(new URL('store-', scratch).pathname);
+  const configuration = {directory, storeAuthorityCid: cid('a'),
+    capacityBytes: 1024 * 1024, maxObjectBytes: limits.maxWireBytes,
+    maxObjects: 100, maxContractNodes: limits.maxNodes,
+    maxContractDepth: limits.maxDepth};
+  const stores = [];
+  const reopen = async () => {
+    const store = await openLocalPublicationStore(configuration, control, durability);
+    stores.push(store);
+    return store;
+  };
+  t.after(async () => {
+    for (const store of stores) await store.close();
+    await rm(directory, {recursive: true, force: true});
+  });
+  return {directory, configuration, reopen, store: await reopen()};
+}
+
+function logicalDeliveryRequest(control, maxUses = 1) {
+  const root = deliveryRoot(control);
+  const policy = {resultNames: ['answer'], formats: ['json', 'jsonl'],
+    principalId: 'principal', purpose: 'download', dataCeilingCid: cid('1'),
+    maxBytes: 4096, maxUses, expiresAt: '2026-09-19T00:00:00.000Z',
+    authorizationContextCid: cid('2'), egressAdmissionCid: cid('3')};
+  const grant = control.issueResultReadGrant(root.index, root.manifest, policy, limits);
+  const attempt = (seconds, options = {}, selectedGrant = grant) =>
+    control.issueDeliveryAttempt(root.index, root.manifest, selectedGrant, {
+      resultName: 'answer', format: 'json', attemptId: 'logical-attempt',
+      requestedAt: `2026-09-18T01:00:0${seconds}.000Z`, ...options,
+    }, limits);
+  return {...root, policy, grant, attempt};
+}
+
+test('Local delivery retains its logical attempt and successful record across restart',
+  async t => {
+    const control = runtimeCore(moon).publicationControl;
+    const request = logicalDeliveryRequest(control, 2);
+    const {store, reopen, directory} = await logicalDeliveryStore(t, control);
+    const original = request.attempt(0);
+    await store.createDeliveryAttempt(original.wire, request.grant.wire);
+    const fields = {state: 'streaming', confirmedByteCount: 0, exposure: 'exact',
+      observedAt: '2026-09-18T01:00:00.000Z', cleanupOwnerCids: []};
+    const streaming = control.issueDeliveryRecord(original, undefined, fields, limits);
+    await store.appendDeliveryRecord(streaming.wire);
+    const receipt = control.issueResultDeliveryReceipt(request.index, request.manifest,
+      request.grant, original, {byteCount: 2, sha256: '0'.repeat(64)}, limits);
+    await store.putPublicationContract(receipt.name, receipt.wire);
+    const succeeded = control.issueDeliveryRecord(original, streaming, {...fields,
+      state: 'succeeded', confirmedByteCount: 2, deliveredSha256: '0'.repeat(64),
+      receipt, observedAt: '2026-09-18T01:00:01.000Z'}, limits);
+    await store.appendDeliveryRecord(succeeded.wire);
+    const path = join(directory, 'deliveries', original.identity.slice(7), '1.json');
+    const bytes = await readFile(path);
+    const usage = store.status();
+    await store.close();
+    const resumed = await reopen();
+    for (const seconds of [1, 2, 3]) {
+      const selected = await resumed.createDeliveryAttempt(request.attempt(seconds).wire,
+        request.grant.wire);
+      assert.equal(selected.created, false);
+      assert.deepEqual(selected.attempt, JSON.parse(original.wire));
+      assert.equal((await resumed.latestDeliveryRecordContract(original.identity)).wire,
+        succeeded.wire);
+      assert.deepEqual(await readFile(path), bytes);
+      assert.deepEqual(resumed.status(), usage);
+    }
+    // The second grant use is still available for a genuinely different request.
+    assert.equal((await resumed.createDeliveryAttempt(request.attempt(4,
+      {attemptId: 'independent'}).wire, request.grant.wire)).created, true);
+    await assert.rejects(resumed.createDeliveryAttempt(request.attempt(5,
+      {attemptId: 'third'}).wire, request.grant.wire), {code: 'DeliveryGrantUseLimit'});
+    assert.equal((await readdir(join(directory, 'deliveries'))).length, 2);
+  });
+
+test('Local delivery selects one durable owner for concurrent different-time requests',
+  async t => {
+    const control = runtimeCore(moon).publicationControl;
+    const request = logicalDeliveryRequest(control);
+    const {store, reopen, directory} = await logicalDeliveryStore(t, control);
+    const outcomes = await Promise.all([0, 1].map(seconds =>
+      store.createDeliveryAttempt(request.attempt(seconds).wire, request.grant.wire)));
+    assert.equal(outcomes.filter(value => value.created).length, 1);
+    assert.deepEqual(outcomes[0].attempt, outcomes[1].attempt);
+    assert.deepEqual(outcomes[0].attempt, JSON.parse(request.attempt(0).wire));
+    assert.equal(await store.latestDeliveryRecordContract(
+      outcomes[0].attempt.delivery_attempt_cid), undefined);
+    await store.close();
+    const resumed = await reopen();
+    const retry = await resumed.createDeliveryAttempt(request.attempt(2).wire,
+      request.grant.wire);
+    assert.equal(retry.created, false);
+    assert.deepEqual(retry.attempt, outcomes[0].attempt);
+    assert.equal((await readdir(join(directory, 'deliveries'))).length, 1);
+  });
+
+test('Local delivery preserves contract-sized attempt IDs independently of lookup limits',
+  async t => {
+    const control = runtimeCore(moon).publicationControl;
+    const request = logicalDeliveryRequest(control);
+    const {store} = await logicalDeliveryStore(t, control);
+    const attemptId = 'x'.repeat(300);
+    const original = request.attempt(0, {attemptId});
+    assert.equal((await store.createDeliveryAttempt(original.wire,
+      request.grant.wire)).created, true);
+    const replay = await store.createDeliveryAttempt(request.attempt(1,
+      {attemptId}).wire, request.grant.wire);
+    assert.equal(replay.created, false);
+    assert.deepEqual(replay.attempt, JSON.parse(original.wire));
+    await assert.rejects(store.lookupDeliveryAttempt({
+      indexKey: {namespaceId: 'namespace', authorityScopeCid: cid('a'),
+        runDefinitionCid: cid('9')}, principalId: 'principal', purpose: 'download',
+      resultName: 'answer', attemptId,
+    }), {code: 'InvalidDeliveryAttemptLookup'});
+  });
+
+test('Local delivery rejects changed immutable binding without consuming another use',
+  async t => {
+    const control = runtimeCore(moon).publicationControl;
+    const request = logicalDeliveryRequest(control, 2);
+    const {store, directory} = await logicalDeliveryStore(t, control);
+    const original = request.attempt(0);
+    await store.createDeliveryAttempt(original.wire, request.grant.wire);
+    const alternativeGrant = control.issueResultReadGrant(request.index, request.manifest,
+      {...request.policy, maxBytes: 2048}, limits);
+    for (const [attempt, grant] of [
+      [request.attempt(1, {format: 'jsonl'}), request.grant],
+      [request.attempt(1, {}, alternativeGrant), alternativeGrant],
+    ]) {
+      await assert.rejects(store.createDeliveryAttempt(attempt.wire, grant.wire),
+        {code: 'DeliveryAttemptConflict'});
+    }
+    assert.equal((await readdir(join(directory, 'deliveries'))).length, 1);
+    assert.equal((await store.createDeliveryAttempt(request.attempt(2,
+      {attemptId: 'independent'}).wire, request.grant.wire)).created, true);
+  });
+
+test('Local delivery retains a visible selection after final sync failure without a record',
+  async t => {
+    const control = runtimeCore(moon).publicationControl;
+    const request = logicalDeliveryRequest(control);
+    let deliveries, failSync = false, failures = 0;
+    const durability = {async syncDirectory(path) {
+      if (path === deliveries && failSync) {
+        failSync = false;
+        failures++;
+        throw Object.assign(new Error('delivery selection sync failed'), {code: 'EIO'});
+      }
+      const handle = await open(path, 'r');
+      try { await handle.sync(); }
+      finally { await handle.close(); }
+    }};
+    const {store, reopen, directory} = await logicalDeliveryStore(t, control, durability);
+    deliveries = join(directory, 'deliveries');
+    const original = request.attempt(0);
+    failSync = true;
+    await assert.rejects(store.createDeliveryAttempt(original.wire, request.grant.wire),
+      {code: 'EIO'});
+    assert.equal(await store.latestDeliveryRecordContract(original.identity), undefined);
+    // Confirmation failure must not return successful admission either.
+    failSync = true;
+    await assert.rejects(store.createDeliveryAttempt(request.attempt(1).wire,
+      request.grant.wire), {code: 'EIO'});
+    assert.equal(failures, 2);
+    await store.close();
+    const resumed = await reopen();
+    const selected = await resumed.createDeliveryAttempt(request.attempt(2).wire,
+      request.grant.wire);
+    assert.equal(selected.created, false);
+    assert.deepEqual(selected.attempt, JSON.parse(original.wire));
+    assert.equal(await resumed.latestDeliveryRecordContract(original.identity), undefined);
+    assert.deepEqual(await readdir(deliveries), [original.identity.slice(7)]);
+    await assert.rejects(resumed.createDeliveryAttempt(request.attempt(3,
+      {attemptId: 'independent'}).wire, request.grant.wire), {code: 'DeliveryGrantUseLimit'});
+  });
+
+test('Local delivery logical keys keep scope Run principal purpose and Result independent',
+  async t => {
+    const control = runtimeCore(moon).publicationControl;
+    const request = logicalDeliveryRequest(control);
+    const {store} = await logicalDeliveryStore(t, control);
+    const change = (contract, fields) => {
+      const body = {...JSON.parse(contract.wire), ...fields};
+      delete body[contract.identityField];
+      return control.seal(contract.name, JSON.stringify(body), limits);
+    };
+    const original = request.attempt(0);
+    await store.createDeliveryAttempt(original.wire, request.grant.wire);
+    for (const field of ['namespace', 'scope', 'run', 'principal', 'purpose', 'result']) {
+      const resultName = field === 'result' ? 'other' : 'answer';
+      const runCid = field === 'run' ? cid('e') : cid('9');
+      const manifest = change(request.manifest, {run_definition_cid: runCid,
+        results: {[resultName]: JSON.parse(request.artifact.wire)}});
+      const index = change(request.index, {run_definition_cid: runCid,
+        result_manifest_cid: manifest.identity,
+        namespace_id: field === 'namespace' ? 'other' : 'namespace',
+        authority_scope_cid: field === 'scope' ? cid('e') : cid('a')});
+      const grant = control.issueResultReadGrant(index, manifest, {...request.policy,
+        resultNames: [resultName], principalId: field === 'principal' ? 'other' : 'principal',
+        purpose: field === 'purpose' ? 'other' : 'download'}, limits);
+      const issue = seconds => control.issueDeliveryAttempt(index, manifest, grant,
+        {resultName, format: 'json', attemptId: 'logical-attempt',
+          requestedAt: `2026-09-18T01:00:0${seconds}.000Z`}, limits);
+      const first = issue(0);
+      assert.equal((await store.createDeliveryAttempt(first.wire, grant.wire)).created,
+        true, field);
+      const repeat = await store.createDeliveryAttempt(issue(1).wire, grant.wire);
+      assert.equal(repeat.created, false, field);
+      assert.deepEqual(repeat.attempt, JSON.parse(first.wire), field);
+    }
+  });
+
+test('Local delivery selects the same unfinished attempt after abrupt process exit',
+  async t => {
+    const control = runtimeCore(moon).publicationControl;
+    const request = logicalDeliveryRequest(control);
+    const {store, directory, configuration, reopen} = await logicalDeliveryStore(t, control);
+    await store.close();
+    const original = request.attempt(0);
+    const child = spawnSync(process.execPath, ['--input-type=module', '--eval', `
+      import {open} from 'node:fs/promises';
+      import * as moon from ${JSON.stringify(new URL(
+    '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',
+    import.meta.url).href)};
+      import {runtimeCore} from ${JSON.stringify(new URL('./runtime-core.mjs', import.meta.url).href)};
+      import {openLocalPublicationStore} from ${JSON.stringify(new URL(
+    '../store-local/publication-store.mjs', import.meta.url).href)};
+      let armed = false;
+      const store = await openLocalPublicationStore(${JSON.stringify(configuration)},
+        runtimeCore(moon).publicationControl, {async syncDirectory(path) {
+          if (armed && path === ${JSON.stringify(join(directory, 'deliveries'))}) {
+            process.exit(19); // selection visible, final durability/ACK not returned
+          }
+          const handle = await open(path, 'r');
+          try { await handle.sync(); } finally { await handle.close(); }
+        }});
+      armed = true;
+      await store.createDeliveryAttempt(${JSON.stringify(original.wire)},
+        ${JSON.stringify(request.grant.wire)});
+      process.exit(20);
+    `], {encoding: 'utf8', timeout: 30000});
+    assert.equal(child.status, 19, child.stderr);
+    const resumed = await reopen();
+    const selected = await resumed.createDeliveryAttempt(request.attempt(1).wire,
+      request.grant.wire);
+    assert.equal(selected.created, false);
+    assert.deepEqual(selected.attempt, JSON.parse(original.wire));
+    assert.equal(await resumed.latestDeliveryRecordContract(original.identity), undefined);
+    assert.deepEqual(await readdir(join(directory, 'deliveries')), [original.identity.slice(7)]);
+    await assert.rejects(resumed.createDeliveryAttempt(request.attempt(2,
+      {attemptId: 'independent'}).wire, request.grant.wire), {code: 'DeliveryGrantUseLimit'});
+  });
+
+test('Local delivery refuses preexisting ambiguous logical attempts without rewriting them',
+  async t => {
+    const control = runtimeCore(moon).publicationControl;
+    const request = logicalDeliveryRequest(control, 2);
+    const {store, directory} = await logicalDeliveryStore(t, control);
+    // Reproduce the previous writer's two valid CID-keyed entries. Do not invent
+    // a migration rule that guesses which record/exposure owns this request.
+    await store.putPublicationContract('result_read_grant', request.grant.wire);
+    const paths = [];
+    for (const seconds of [0, 1]) {
+      const attempt = request.attempt(seconds);
+      await store.putPublicationContract('delivery_attempt', attempt.wire);
+      const target = join(directory, 'deliveries', attempt.identity.slice(7));
+      await mkdir(target);
+      const path = join(target, 'attempt.json');
+      await link(join(directory, 'contracts', `${attempt.identity.slice(7)}.json`), path);
+      paths.push([path, await readFile(path)]);
+    }
+    await assert.rejects(store.createDeliveryAttempt(request.attempt(2).wire,
+      request.grant.wire), {code: 'AmbiguousDeliveryAttemptLookup'});
+    assert.equal((await readdir(join(directory, 'deliveries'))).length, 2);
+    for (const [path, bytes] of paths) assert.deepEqual(await readFile(path), bytes);
+  });
 
 test('installed publication control uses the portable contract owner', () => {
   const control = runtimeCore(moon).publicationControl;
@@ -2532,10 +2812,29 @@ test('portable control validates Receipt and Captured Run references',
     jsonl: '{"value":7}\n',
     csv: '"value"\n7\n',
   });
+  let jsonReaders = 0, enteredRecord, releaseRecord, gateEntered = false;
+  const recordEntered = new Promise(resolve => { enteredRecord = resolve; });
+  const recordGate = new Promise(resolve => { releaseRecord = resolve; });
+  const jsonStore = {
+    ...deliveryStore,
+    async appendDeliveryRecord(wire) {
+      if (!gateEntered) {
+        gateEntered = true;
+        enteredRecord();
+        await recordGate;
+      }
+      return deliveryStore.appendDeliveryRecord(wire);
+    },
+    withCommittedResultRows(...args) {
+      jsonReaders++;
+      return deliveryStore.withCommittedResultRows(...args);
+    },
+  };
   for (const format of ['json', 'jsonl', 'csv']) {
     const chunks = [];
-    const delivered = await deliverPublishedResult({
+    const options = {
       ...deliveryBase,
+      store: format === 'json' ? jsonStore : deliveryStore,
       format,
       attemptId: `delivery-${format}`,
       createDigest: format === 'jsonl' ? () => {
@@ -2550,7 +2849,23 @@ test('portable control validates Receipt and Captured Run references',
         },
         async finish() { return {confirmed: true}; },
       },
-    });
+    };
+    const first = deliverPublishedResult(options);
+    if (format === 'json') {
+      // Real Store selection is committed; no first record or payload reader
+      // exists yet. A later-time concurrent request must not acquire that slot.
+      await Promise.race([recordEntered, first.then(() => {
+        assert.fail('delivery bypassed the first-record boundary');
+      })]);
+      try {
+        await assert.rejects(deliverPublishedResult({...options,
+          now: () => '2026-09-18T01:00:01.000Z'}),
+        {code: 'ResultDeliveryAttemptUnresolved'});
+        assert.equal(jsonReaders, 0);
+        assert.equal(chunks.length, 0);
+      } finally { releaseRecord(); await first; }
+    }
+    const delivered = await first;
     const deliveryBytes = Buffer.concat(chunks);
     assert.equal(deliveryBytes.toString('utf8'), expectedDelivery[format]);
     assert.equal(delivered.byteCount, deliveryBytes.byteLength);
@@ -2559,6 +2874,7 @@ test('portable control validates Receipt and Captured Run references',
       createHash('sha256').update(deliveryBytes).digest('hex'),
     );
   }
+  assert.equal(jsonReaders, 1);
   const emptyGrant = control.issueResultReadGrant(
     deliveryIndex,
     deliveryManifest,
@@ -2664,8 +2980,14 @@ test('portable control validates Receipt and Captured Run references',
     assert.equal(record.state, 'failed');
     assert.equal(record.result_delivery_receipt_cid, undefined);
   }
+  const beforeReplay = await deliveryStore.lookupDeliveryAttempt({
+    indexKey: deliveryBase.indexKey, principalId: 'principal-a',
+    purpose: 'download', resultName: 'answer', attemptId: 'delivery-json',
+  });
   const idempotentDelivery = await deliverPublishedResult({
     ...deliveryBase,
+    store: jsonStore,
+    now: () => '2026-09-18T01:00:01.000Z',
     format: 'json',
     attemptId: 'delivery-json',
     sink: {
@@ -2674,6 +2996,12 @@ test('portable control validates Receipt and Captured Run references',
     },
   });
   assert.equal(idempotentDelivery.idempotent, true);
+  assert.equal(idempotentDelivery.attempt.identity,
+    beforeReplay.attempt.delivery_attempt_cid);
+  assert.deepEqual(JSON.parse(idempotentDelivery.record.wire), beforeReplay.record);
+  assert.deepEqual(JSON.parse(idempotentDelivery.receipt.wire),
+    beforeReplay.hostReleaseReceipt);
+  assert.equal(jsonReaders, 1);
 
   let sinkWrites = 0;
   await assert.rejects(deliverPublishedResult({
