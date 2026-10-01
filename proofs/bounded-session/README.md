@@ -100,8 +100,9 @@ For a new provider using this adapter, review its callback premises, add its
 operation-specific law/boundary checks and an executed connection witness, and
 instantiate the existing model claims. A different kernel, ownership handoff,
 backend, counter representation or cleanup meaning creates a residual obligation;
-it cannot be admitted by copying a binding. This initial runner accepts the set
-family only, rather than pretending to verify an arbitrary new provider's fixture.
+it cannot be admitted by copying a binding. The runner now accepts the reviewed
+set and Nest routes, each with its own independently fixed executed coverage;
+it does not verify arbitrary providers from their names or self-declarations.
 
 ## Reproduction and audit
 
@@ -200,3 +201,56 @@ reports measure proof time, correspondence time and integration build/execution
 time separately. Historical developer/reviewer time was not measured and is
 not invented. Different provider families still need their own connection and
 kernel premises checked before using the common guarantees.
+
+## Retrospective Nest acceptance comparison
+
+`nest-obligations.json` separates inherited and local obligations before the
+evidence changes (commit `3b85cb458`, baseline `22507d140`). This applies the
+evidence infrastructure to an **existing** operation. It does not report that a
+new operation, kernel or semantic algorithm was implemented.
+
+The reviewed `correlated-parent-major` scope uses four checked parents,
+nullable correlation keys, ordered child projection and two independent
+consumers. `local_managed_nest_wbtest.mbt` executes the actual module registration
+and managed driver with two ordered reads, quantum 1 and `require_provider=true`.
+Its independent expected rows cover duplicate parent keys, NULL nonmatching keys,
+NULL projected amounts and empty child arrays. The gate requires this fixture's
+own execution, rather than relabeling the passing set fixture.
+
+The concrete route is `module.mbt` → `nest_provider` → `start_bounded_nest` →
+production `bounded.Session`; provider polling passes through the unchanged
+`bounded_session_execution` adapter. Both inputs must match the checked owner,
+step and operation positions 0/1. Kernel scratch cleanup is synchronous;
+`cleanup_bounded_nest_state` frees its scan, sort and value/workspace state and
+returns true. After completion, accepted output custody remains with its owner.
+Treating scratch cleanup as permission to reclaim accepted output is not an
+inherited guarantee.
+
+| Verification when admitting Nest | Added / reused work |
+| --- | --- |
+| Connection | Execute Nest's existing registered 2-input/2-consumer fixture on JS/Wasm/native; independently fix its scope and verify source connections |
+| Local semantics/resources | Execute existing bounded Nest, sequence, scaling and exact-workspace fixtures; retain order, NULLs, item/grouped/attached bytes, phase costs and one-short boundaries |
+| Misimplementation detection | Two new JS mutations witness the common adapter route and reject swapped parent/child ports; eleven existing common mutations remain |
+| Evidence gate | Reject set-to-Nest evidence reuse, symmetric profile/provider relabeling, missing local obligations and partial/missing fixture execution |
+| Common verification | Reuse the same 14 Lean model propositions, 6,561 Session histories and 1,875 adapter cases; add no theorem, shared-protocol test or operation×protocol fixture |
+| Existing combinations | Add no hand-written Nest × existing-operation matrix; the already-existing downstream/consumer cases remain |
+
+The frozen common artifact digests are checked before admission. No production
+source or MoonBit test is changed or retired. Unique two-input binding/custody,
+per-phase cleanup, item/value/workspace boundaries, real Store and delivered
+cancellation/failed-publication/reclamation tests remain. The existing Local
+resource inventory still owns their physical acceptance. The evidence runner's
+conditional protocol claim does not turn them into an implementation proof.
+
+Only cumulative-to-delta accounting, terminal sealing and cleanup retry without
+Compute are inherited, under the existing callback premises. Nest's kernel work
+costs, NULL/order/multiplicity semantics, input authority, nested allocations and
+output ownership remain local. No straight-line chain theorem is used for the
+two-input operation. The allocation sizing gaps from #117, including child and
+runtime bounds and the 256-byte allowance, remain unresolved; this comparison
+does not establish unconditional live-byte or whole-process memory bounds.
+
+The marginal result is a checked connection, preserved local acceptance and a
+derived protocol claim without repeating common proofs or protocol exploration
+for Nest. Actual implementation/reviewer hours and total CI savings were not
+measured and are not claimed.
