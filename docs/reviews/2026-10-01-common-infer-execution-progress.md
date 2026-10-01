@@ -282,6 +282,46 @@ for that distinct identity domain. A coordinated contract correction is needed
 before the final model-containing Invocation can be issued; the existing
 empty/source-only issuers continue to reject it.
 
+### Existing dispatch supervision and physical stepping
+
+`adapters/host-node/infer-operation.mjs` adapts the existing MoonBit execution
+to the installed `client-dispatch-owner` cleanup interface. Opening executes
+no model callback. The dispatch callback retains the physical owner before
+its first advance. One stepping promise drives either the installed provider
+or an authenticated, Store-confirmed saved read; replay has no provider
+alternative. The adapter yields real macrotasks between bounded advances.
+
+MoonBit reports the typed terminal poll and physical stop state. JavaScript
+does not derive completion from row counts, cancellation delivery or absence
+of output. Physical stop and reclamation are separate: independent output
+or capture reads can keep cleanup pending after execution has settled. Close
+retains its first promise, while cleanup retries call only the existing owner
+and never restart inference. Typed model failures remain the cause of the
+existing `MoonBitHostFailure`, without a new public error classifier.
+
+The component integration uses the normal checked one-row Program and actual
+ModelTask callback under the existing dispatch supervisor. Two output readers
+retain the same completed output independently. A held capture makes close
+and drain fail, and releasing it permits drain without a second run or model
+call. A model response schedules cancellation on a real macrotask before
+output handoff; the test verifies no completed output or capture, eventual
+physical stop and final cleanup. Invalid opening and closing before the first
+advance perform no model dispatch. The encrypted Store reopen and fresh-process
+replay tests now drive this same physical adapter as well.
+
+Verification passed: inference Host owner 24/24 on each of JS, Wasm and native;
+Node inference bridge 35/35 and existing dispatch-owner regressions 13/13.
+The release bridge build, regenerated interfaces, API comparison, Node syntax,
+formatting and diff checks cover this unit. No ignored bundle is committed.
+No push, Linux CI or public Named Result acceptance is claimed.
+
+This adapter is not yet installed by `embedded-local.mjs`. Its component
+fixtures use identity-only policy dependencies, not a runnable public policy.
+The pending ObservationSet contract correction, production dependency and
+policy admission, public startup registration, and final Result publication
+remain necessary. The supervisor integration does not supply an adoption SHA
+or a completed public Host startup example to B.
+
 ## Checked compilation prefix
 
 ### Owned inference template material

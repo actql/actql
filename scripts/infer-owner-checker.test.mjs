@@ -15,6 +15,9 @@ import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
 import {openLocalPublicationStore} from '../adapters/store-local/publication-store.mjs';
 import {createPublicationContractControlFixture} from
   '../adapters/host-common/publication-contract-control.fixture.mjs';
+import {openNodeInferOperation} from '../adapters/host-node/infer-operation.mjs';
+import {installNodeClientDispatchOwner} from
+  '../adapters/host-node/client-dispatch-owner.mjs';
 
 // Reuse the independently hashed typing vector, not an execution result.
 const taskSource = readFileSync(new URL(
@@ -603,6 +606,177 @@ async function inferExportRows(prepared, completed) {
   }
 }
 
+function supervisedInferFixture(signal, onInvoke, responseBody = '{"reason":null,"risk":"high"}') {
+  const preparation = prepare(program(), environment());
+  const prepared = moon.clientProgramPreparationReady(preparation);
+  assert.ok(prepared, inspect(preparation));
+  let calls = 0;
+  const provider = moon.clientProgramInstallModelProvider('models/fixture',
+    request => {
+      calls++;
+      onInvoke?.();
+      assert.equal(moon.clientProgramModelRequestInput(request, 'text'), '"hello"');
+      return moon.clientProgramModelResponse(request,
+        responseBody, 'fixture-risk-model', 'request-1',
+        1n, 2n, '2026-10-01T00:00:00.000Z');
+    });
+  const operation = openNodeInferOperation({moon, preparedProgram: prepared,
+    step: 2, graph: scopedInferGraph(prepared), registry, values, provider,
+    signal, quantum: 1});
+  return {prepared, operation, calls: () => calls};
+}
+
+test('the existing Host dispatch owner retains Infer custody and never reruns cleanup', async () => {
+  const supervisor = installNodeClientDispatchOwner({});
+  const ref = {runDefinitionCid: cid({fixture: 'supervised-infer'})};
+  let fixture;
+  let saved;
+  let rows;
+  let runEntries = 0;
+  const stopped = [];
+  const execution = supervisor.track(ref, {
+    async run(physical) {
+      runEntries++;
+      fixture = supervisedInferFixture(physical.signal);
+      const {operation, prepared} = fixture;
+      assert.equal(fixture.calls(), 0, 'opening performs no physical model call');
+      physical.retainExecution(operation);
+      physical.beginPhysicalWork();
+      assert.equal(operation.physicalStopped(), false);
+      const first = operation.run();
+      assert.equal(operation.run(), first, 'one physical stepping flight');
+      const completed = await first;
+      assert.equal(operation.physicalStopped(), true);
+      const a = operation.acquireOutput();
+      const b = operation.acquireOutput();
+      assert.ok(a && b);
+      assert.equal(moon.clientProgramInferOutputUse(a), completed);
+      assert.equal(moon.clientProgramInferOutputUse(b), completed);
+      rows = await inferExportRows(prepared, moon.clientProgramInferOutputUse(a));
+      assert.equal(moon.clientProgramReleaseInferOutput(a), true);
+      assert.equal(operation.cleanup(), false);
+      assert.equal(moon.clientProgramInferOutputUse(b), completed);
+      saved = operation.acquireCapture();
+      assert.ok(saved);
+      assert.equal(moon.clientProgramReleaseInferOutput(b), true);
+      return rows;
+    },
+    async observeStopped(outcome) { stopped.push(outcome); },
+  });
+  assert.equal(supervisor.track(ref, {
+    run() { assert.fail('a second caller cannot dispatch the same Run'); },
+    observeStopped() { assert.fail('the original observer retains custody'); },
+  }), execution);
+  await assert.rejects(execution, /ClientDispatchCleanupPending/u);
+  assert.deepEqual(rows, [{id: 'a', outcome: 'ok',
+    value: {reason: null, risk: 'high'}}]);
+  assert.equal(runEntries, 1);
+  assert.equal(fixture.calls(), 1);
+  assert.equal(fixture.operation.physicalStopped(), true);
+  assert.equal(fixture.operation.cleanupPending(), true);
+  assert.equal(supervisor.live(ref), false);
+  assert.equal(supervisor.operation(ref), execution);
+  await assert.rejects(supervisor.drain(), {code: 'ClientDispatchCleanupPending'});
+  assert.equal(fixture.calls(), 1);
+  assert.equal(runEntries, 1);
+  assert.deepEqual(stopped, []);
+  assert.equal(moon.clientProgramReleaseInferCapture(saved), true);
+  await supervisor.drain();
+  assert.equal(fixture.operation.cleanupPending(), false);
+  assert.deepEqual(stopped, [null]);
+  assert.equal(supervisor.operation(ref), undefined);
+  assert.equal(fixture.calls(), 1);
+  assert.equal(runEntries, 1);
+  await assert.rejects(fixture.operation.run(), /InferOperationClosed/u);
+});
+
+test('Host cancellation is delivered after a model response and before output handoff', async () => {
+  const supervisor = installNodeClientDispatchOwner({});
+  const ref = {runDefinitionCid: cid({fixture: 'supervised-infer-cancel'})};
+  let fixture;
+  let cancellationObserved;
+  const delivered = new Promise(resolve => { cancellationObserved = resolve; });
+  let stopped = 0;
+  const execution = supervisor.track(ref, {
+    async run(physical) {
+      fixture = supervisedInferFixture(physical.signal, () => {
+        setImmediate(() => {
+          assert.equal(fixture.operation.physicalStopped(), false);
+          supervisor.cancel(ref);
+          assert.equal(fixture.operation.physicalStopped(), false,
+            'request delivery is not physical settlement');
+          assert.equal(fixture.operation.cleanup(), false);
+          cancellationObserved();
+        });
+      });
+      physical.retainExecution(fixture.operation);
+      physical.beginPhysicalWork();
+      return fixture.operation.run();
+    },
+    async observeStopped() {
+      assert.equal(fixture.operation.physicalStopped(), true);
+      stopped++;
+    },
+  });
+  await delivered;
+  await assert.rejects(execution, /ClientRunCancellationRequested/u);
+  assert.equal(fixture.operation.acquireOutput(), undefined);
+  assert.equal(fixture.operation.acquireCapture(), undefined);
+  assert.equal(fixture.operation.physicalStopped(), true);
+  assert.equal(fixture.operation.cleanupPending(), false);
+  await supervisor.drain();
+  assert.equal(stopped, 1);
+  assert.equal(fixture.calls(), 1);
+});
+
+test('closing an unstarted physical Infer owner cannot dispatch or report request as stop', async () => {
+  const fixture = supervisedInferFixture();
+  assert.equal(fixture.operation.cleanup(), false);
+  assert.equal(fixture.operation.physicalStopped(), false);
+  await fixture.operation.close();
+  assert.equal(fixture.operation.physicalStopped(), true);
+  assert.equal(fixture.operation.cleanupPending(), false);
+  assert.equal(fixture.calls(), 0);
+  await assert.rejects(fixture.operation.run(), /InferOperationClosed/u);
+  assert.equal(fixture.calls(), 0);
+});
+
+test('the physical Infer wrapper preserves a typed model failure and cleans without redispatch', async () => {
+  const fixture = supervisedInferFixture(undefined, undefined,
+    '{"reason":null,"risk":123}');
+  await assert.rejects(fixture.operation.run(), error => {
+    assert.equal(error.code, 'MoonBitHostFailure');
+    assert.equal(error.cause?.$tag, 2, 'Host Model issue');
+    assert.equal(error.cause?._0?.$tag, 4, 'Model Provider issue');
+    assert.equal(error.cause?._0?._0, 2, 'ProviderError from invalid response');
+    return true;
+  });
+  assert.equal(fixture.operation.physicalStopped(), true);
+  assert.equal(fixture.operation.acquireOutput(), undefined);
+  assert.equal(fixture.operation.acquireCapture(), undefined);
+  await fixture.operation.close();
+  assert.equal(fixture.operation.cleanupPending(), false);
+  assert.equal(fixture.calls(), 1);
+  assert.equal(fixture.operation.cleanup(), true);
+  assert.equal(fixture.calls(), 1);
+});
+
+test('invalid or already cancelled opening performs no physical Infer start', () => {
+  const controller = new AbortController();
+  const cause = new Error('CancelledBeforePhysicalStart');
+  controller.abort(cause);
+  assert.throws(() => openNodeInferOperation({moon: {}, provider: {},
+    signal: controller.signal}), error => error === cause);
+  for (const quantum of [0, -1, 0.5, NaN, Infinity, 2147483648]) {
+    assert.throws(() => openNodeInferOperation({moon: {}, provider: {}, quantum}),
+      /InvalidInstalledInferOperation/u);
+  }
+  for (const inputs of [{}, {provider: {}, savedCapture: {}}]) {
+    assert.throws(() => openNodeInferOperation({moon: {}, ...inputs}),
+      /InvalidInstalledInferOperation/u);
+  }
+});
+
 async function exportedModelCapture(saved, {maxBytes = 100000, maxWork = 10000} = {}) {
   const active = checked(moon.clientProgramStartInferCaptureExport(saved, maxBytes, maxWork));
   let wire = '';
@@ -724,19 +898,20 @@ test('checked capture serializes its formal bundle and survives encrypted Store 
     const recoveredCapture = checked(moon.clientProgramReadInferCaptureBundle(
       recovered.toString('utf8'), exported.identity));
     const fresh = moon.clientProgramPreparationReady(prepare(program(), environment()));
-    const replay = checked(moon.clientProgramStartRestoredInferReplay(fresh, 2,
-      scopedInferGraph(fresh), registry, values, recoveredCapture));
+    const replay = openNodeInferOperation({moon, preparedProgram: fresh, step: 2,
+      graph: scopedInferGraph(fresh), registry, values, savedCapture: recoveredCapture,
+      quantum: 1});
     assert.equal(moon.clientProgramReleaseInferCaptureBundle(recoveredCapture), true);
     assert.equal(moon.clientProgramReleaseInferCaptureBundle(recoveredCapture), false);
-    const terminal = await ownedInferTerminal(replay);
-    assert.equal(terminal.$tag, 1, inspect(terminal));
-    assert.deepEqual(await inferExportRows(fresh,
-      moon.clientProgramInferExecutionOutput(terminal)), [
+    const completed = await replay.run();
+    assert.equal(replay.physicalStopped(), true);
+    assert.deepEqual(await inferExportRows(fresh, completed), [
       {id: 'a', outcome: 'ok', value: {reason: null, risk: 'high'}},
     ]);
     assert.equal(moon.strategyRunEvidenceJson(
-      moon.clientProgramInferInvocationEvidence(replay, 0)), canonicalText(observation));
-    assert.equal(checked(moon.clientProgramCleanupInferExecution(replay)), true);
+      replay.invocationEvidence(0)), canonicalText(observation));
+    await replay.close();
+    assert.equal(replay.cleanupPending(), false);
     assert.equal(original.calls(), 1, 'restored replay has no provider fallback');
     assert.equal(moon.clientProgramStartRestoredInferReplay(fresh, 2,
       scopedInferGraph(fresh), registry, values, recoveredCapture).$tag, 0);
@@ -758,6 +933,8 @@ test('checked capture serializes its formal bundle and survives encrypted Store 
         './check-canonical-json.mjs', import.meta.url).href)};
       import {openLocalPublicationStore} from ${JSON.stringify(new URL(
         '../adapters/store-local/publication-store.mjs', import.meta.url).href)};
+      import {openNodeInferOperation} from ${JSON.stringify(new URL(
+        '../adapters/host-node/infer-operation.mjs', import.meta.url).href)};
       import {createPublicationContractControlFixture} from ${JSON.stringify(new URL(
         '../adapters/host-common/publication-contract-control.fixture.mjs', import.meta.url).href)};
       const fixture = JSON.parse(readFileSync(0, 'utf8'));
@@ -768,7 +945,6 @@ test('checked capture serializes its formal bundle and survives encrypted Store 
       const prepare = ${prepare.toString()};
       const program = ${program.toString()};
       const scopedInferGraph = ${scopedInferGraph.toString()};
-      const ownedInferTerminal = ${ownedInferTerminal.toString()};
       const inferExportRows = ${inferExportRows.toString()};
       const configuration = {...fixture.configuration,
         privateEvidenceKey: Buffer.alloc(32, 17)};
@@ -783,16 +959,17 @@ test('checked capture serializes its formal bundle and survives encrypted Store 
         const saved = checked(moon.clientProgramReadInferCaptureBundle(
           bytes.toString('utf8'), fixture.identity));
         const prepared = moon.clientProgramPreparationReady(prepare(program(), environment()));
-        const replay = checked(moon.clientProgramStartRestoredInferReplay(prepared,
-          2, scopedInferGraph(prepared), registry, values, saved));
+        const replay = openNodeInferOperation({moon, preparedProgram: prepared,
+          step: 2, graph: scopedInferGraph(prepared), registry, values,
+          savedCapture: saved, quantum: 1});
         assert.equal(moon.clientProgramReleaseInferCaptureBundle(saved), true);
-        const terminal = await ownedInferTerminal(replay);
-        assert.equal(terminal.$tag, 1, inspect(terminal));
-        const rows = await inferExportRows(prepared,
-          moon.clientProgramInferExecutionOutput(terminal));
+        const completed = await replay.run();
+        assert.equal(replay.physicalStopped(), true);
+        const rows = await inferExportRows(prepared, completed);
         const evidenceWire = moon.strategyRunEvidenceJson(
-          moon.clientProgramInferInvocationEvidence(replay, 0));
-        assert.equal(checked(moon.clientProgramCleanupInferExecution(replay)), true);
+          replay.invocationEvidence(0));
+        await replay.close();
+        assert.equal(replay.cleanupPending(), false);
         process.stdout.write(JSON.stringify({rows, evidenceWire}));
       } finally { await store.close(); }
     `;

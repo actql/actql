@@ -237,6 +237,30 @@ pub fn client_program_infer_execution_output(
 }
 
 ///|
+#export_name("clientProgramInferExecutionStopped")
+pub fn client_program_infer_execution_stopped(
+  active : @infer_host.Execution,
+) -> Bool {
+  @infer_host.execution_stopped(active)
+}
+
+///|
+#export_name("clientProgramInferExecutionPollKind")
+pub fn client_program_infer_execution_poll_kind(
+  value : @infer_host.Poll,
+) -> String {
+  @infer_host.poll_kind(value)
+}
+
+///|
+#export_name("clientProgramInferExecutionPollIssue")
+pub fn client_program_infer_execution_poll_issue(
+  value : @infer_host.Poll,
+) -> @infer_host.Issue? {
+  @infer_host.poll_issue(value)
+}
+
+///|
 #export_name("clientProgramInferExecutionHandoffPending")
 pub fn client_program_infer_execution_handoff_pending(
   active : @infer_host.Execution,

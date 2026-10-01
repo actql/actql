@@ -641,6 +641,30 @@ pub fn completed(poll : Poll) -> @relation.CompletedOutput? {
 }
 
 ///|
+/// Physical settlement only. Reclamation and public Run outcome are separate.
+pub fn execution_stopped(active : Execution) -> Bool {
+  !active.advancing && active.phase is Terminal
+}
+
+///|
+pub fn poll_kind(poll : Poll) -> String {
+  match poll {
+    Continue(_) => "continue"
+    Complete(_, ..) => "complete"
+    Failed(_, ..) => "failed"
+    Stopped(_) => "stopped"
+  }
+}
+
+///|
+pub fn poll_issue(poll : Poll) -> Issue? {
+  match poll {
+    Failed(issue, ..) => Some(issue)
+    _ => None
+  }
+}
+
+///|
 /// Publication and downstream consumers retain separate uses. One consumer's
 /// release cannot authorize cleanup while another still needs the output.
 pub fn acquire_output(active : Execution) -> OutputUse? {

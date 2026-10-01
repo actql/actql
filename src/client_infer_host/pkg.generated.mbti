@@ -26,6 +26,8 @@ pub fn cleanup(Execution) -> Result[Bool, Issue]
 
 pub fn completed(Poll) -> @execution_relation.CompletedOutput?
 
+pub fn execution_stopped(Execution) -> Bool
+
 pub fn handoff_pending(Execution) -> Bool
 
 pub fn identity_pending(Execution) -> Bool
@@ -35,6 +37,10 @@ pub fn invocation_evidence(Execution, Int) -> @run_publication.RunEvidenceValue?
 pub fn matches(Execution, @run_publication_host.PreparedClientProgram) -> Bool
 
 pub fn output(OutputUse) -> @execution_relation.CompletedOutput?
+
+pub fn poll_issue(Poll) -> Issue?
+
+pub fn poll_kind(Poll) -> String
 
 pub fn release_output(OutputUse) -> Bool
 

@@ -457,7 +457,13 @@ pub fn client_program_infer_execution_material_wire(@run_publication_host.Client
 
 pub fn client_program_infer_execution_output(@client_infer_host.Poll) -> @execution_relation.CompletedOutput?
 
+pub fn client_program_infer_execution_poll_issue(@client_infer_host.Poll) -> @client_infer_host.Issue?
+
+pub fn client_program_infer_execution_poll_kind(@client_infer_host.Poll) -> String
+
 pub fn client_program_infer_execution_restoring(@client_infer_host.Execution) -> Bool
+
+pub fn client_program_infer_execution_stopped(@client_infer_host.Execution) -> Bool
 
 pub fn client_program_infer_identity_pending(@client_infer_host.Execution) -> Bool
 
