@@ -111,40 +111,35 @@ identity evidence and stale source/artifacts. Source/artifact hashes bind eviden
 to code and do not discharge size assumptions. All old capacity/workspace,
 algorithm, Store/process and backend tests remain; no test is deleted.
 
-## Delayed-stop callback: separate reproduced residual
+## Delayed-stop callback: separate runtime regression
 
 `node proofs/relation-capacity/repro-delayed-stop.mjs` copies the fixed fixture
 briefly into the real integration package, invokes **existing**
 `prepare_local_compute_module(managed_providers=[family])` and
-`local_module_managed_provider`, and retains the expected failing equality and
+`local_module_managed_provider`, and retains the independent equality and
 the execution log. Only its own newly created test copy is removed afterward.
 The fixed fixture and reports remain. This is not accepted capacity evidence.
 
 With Compute budget 1 and quantum 1, the callback runs Compute once, accepts
 cancel, then confirms stop after three one-unit stop polls. The observed values
-are child work 4 and parent work 3. The chain reports positive continuation work
-after internal `used` reached 1 and drops the final stop poll's work. The wrapper
-does not restart Compute, so accounting loss and cancellation progress are
-distinct. This is a registered callback-path counterexample, not an assertion
-that stock prompt-stop Session children behave that way.
+were child work 4 and parent work 3 before the accounting correction: the chain
+dropped the final stop poll's work. The same fixture now requires child work 4,
+parent work 4 and diagnostic cumulative work 4, with one Compute entry. This is
+a registered callback-path runtime regression, not formal certification of
+arbitrary delayed-stop providers or a new capacity scope.
 
-Separate completion conditions:
+The adopted contract makes `max_work` an admission budget for new Compute and
+handoff. Mandatory stop work is counted and may make the cumulative total exceed
+that budget; it cannot resume Compute or turn budget failure into success. There
+is no independent stop budget. The existing execution owner performs checked
+accumulation; diagnostic getters remain available after failure/close. Runtime
+regressions also cover upper drivers, cleanup false/error, duplicate close and
+sticky accounting errors. See [the accounting contract](../../docs/design/local-provider-work-accounting.md).
 
-1. Specify admissible stop work and whether it is part of the cumulative Compute
-   envelope or a distinct bounded stop allowance. The current generic provider
-   has no explicit independent stop-budget contract; this capacity PR does not
-   silently introduce one.
-2. Preserve every accepted child poll's actual work, including the final
-   stopped/failed poll, with checked accumulation and explicit public accounting.
-3. Keep polling for physical stop and retrying cleanup under that contract;
-   neither dropping work nor cutting off stop calls is a fix.
-4. Turn the fixed failing equality into a passing regression on the current
-   registration and upper materializing/managed-dispatch routes in a separate
-   product PR. Test quantum, exact/one-short budget, multi-poll stop, stop failure,
-   cleanup false/error and all supported targets; no Compute restart or output
-   publication is allowed.
-5. The unchanged prompt-stop pilot must remain valid, and the evidence gate
-   must continue rejecting application to an uncertified callback.
+The prompt-stop pilot and its premises remain unchanged. Evidence gates still
+reject an uncertified callback. Source-bound reports must be regenerated; the
+runtime regression does not discharge allocation sizing or stop-liveness
+assumptions.
 
 ## Reproduction
 
@@ -161,4 +156,4 @@ gate at a time without editing the tree. Regenerate all final reports after ever
 mutation/reproduction batch: restored source alone does not ensure incremental
 binary freshness. CI retains `.artifacts/relation-capacity/` beside both existing
 evidence sets. Model, finite correspondence, JS mutation detections and the
-expected failing counterexample are separate report categories.
+corrected delayed-stop runtime regression are separate report categories.

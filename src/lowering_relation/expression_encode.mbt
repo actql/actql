@@ -107,6 +107,15 @@ fn emit_frames(
             @contract.emit_checked(expr.contract, output)
             @encode.end_object(output)
           }
+          Cast(child) => {
+            pending.push(Op("cast"))
+            @encode.begin_object(output)
+            @encode.key(output, "target")
+            emit_cast_target(expr.contract, output)
+            @encode.key(output, "value")
+            pending.push(EndObject)
+            pending.push(Expr(child))
+          }
           Unary(op, arg) => {
             pending.push(
               Op(

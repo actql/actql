@@ -2,17 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { generate, initialState, inspect } from './engine.mjs';
-import { baseRegistry, registry } from './registry.mjs';
+import { baseRegistry, takeRegistry as registry } from './registry.mjs';
 import { take } from './take.mjs';
-import { hash } from './inventory.mjs';
-test('held-out take registration preserves the frozen generator, oracle coordinator, harness and common evidence', () => {
+import { checkTakeHistory } from './history.mjs';
+import { fileURLToPath } from 'node:url';
+test('held-out take registration preserved its historical foundation; later foundation changes do not rewrite that measurement', () => {
   const extension = JSON.parse(readFileSync(new URL('./extension.json', import.meta.url)));
   assert.deepEqual(Object.keys(extension.postRegistrationCorrections), ['proofs/relation-pipeline/audit.mjs']);
-  for (const [path, expected] of Object.entries(extension.frozen)) {
-    const correction = extension.postRegistrationCorrections[path];
-    if (correction) assert.equal(correction.registrationDigest, expected);
-    assert.equal(hash(readFileSync(new URL(`../../${path}`, import.meta.url))), correction?.correctedDigest ?? expected, path);
-  }
+  checkTakeHistory(fileURLToPath(new URL('../../', import.meta.url)));
   assert.deepEqual(registry.slice(0, 3), baseRegistry);
   assert.equal(registry[3], take);
   const pairs = reg => generate(reg).filter(c => c.id.startsWith('pair:')).map(c => c.steps.map(s => s.op).join('/'));

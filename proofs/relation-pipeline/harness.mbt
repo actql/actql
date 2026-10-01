@@ -60,6 +60,74 @@ fn relation_pipeline_wire(output : @execution.CompletedOutput) -> String {
 }
 
 ///|
+fn relation_pipeline_schema(schema : @schema.Schema) -> String {
+  @execution.relation_schema_wire(
+    @execution.identify_relation_schema(schema, {
+      max_fields: 100,
+      max_bytes: 10000,
+      max_nodes: 1000,
+      max_depth: 10,
+    }).unwrap(),
+  )
+}
+
+///|
+/// Observe the checked pipeline and selected kernels from the SAME sequence
+/// supplied to the registered provider, not a separately checked request.
+fn relation_pipeline_contracts(
+  sequence : @execution.GeneratedSequence,
+) -> String {
+  let pipeline = @lower.pipeline(
+    @lower.bound_preparation(@execution.generated_sequence_owner(sequence)),
+  )
+  let contracts = []
+  for index in 0..<@execution.generated_sequence_step_count(sequence) {
+    let kernel = match @execution.generated_sequence_step_at(sequence, index) {
+      Some(@lower.RowStep(kernel)) => kernel
+      _ => abort("pipeline evidence requires a selected row kernel")
+    }
+    let (route, projection) = match @lower.kernel_body(kernel) {
+      @lower.Filter(_) => ("Filter", "null")
+      @lower.Select(fields) =>
+        (
+          "Select",
+          "[" +
+          fields
+          .map(field => {
+            "{\"input\":" +
+            query_oracle_quote(@schema.reference_name(field.input)) +
+            ",\"output\":" +
+            query_oracle_quote(@schema.reference_name(field.output)) +
+            "}"
+          })
+          .join(",") +
+          "]",
+        )
+      @lower.StableSort(_) => ("StableSort", "null")
+      @lower.Limit(_, _, _) => ("Limit", "null")
+      @lower.DistinctRows => ("DistinctRows", "null")
+      _ => abort("unreviewed pipeline kernel")
+    }
+    contracts.push(
+      "{\"index\":" +
+      index.to_string() +
+      ",\"route\":" +
+      query_oracle_quote(route) +
+      ",\"checked\":" +
+      relation_pipeline_schema(
+        @pipeline.schema_at(pipeline, Step(index)).unwrap(),
+      ) +
+      ",\"kernel\":" +
+      relation_pipeline_schema(@lower.kernel_output_schema(kernel)) +
+      ",\"projection\":" +
+      projection +
+      "}",
+    )
+  }
+  "[" + contracts.join(",") + "]"
+}
+
+///|
 fn relation_pipeline_provider(
   sequence : @execution.GeneratedSequence,
 ) -> @local_connector.ManagedProvider {
@@ -98,13 +166,14 @@ fn relation_pipeline_start(
 fn relation_pipeline_child_reference(
   sequence : @execution.GeneratedSequence,
   first : @execution.ProducerRead,
-) -> (Int64, Int, Int) raise {
+) -> (Int64, Int, Int, String) raise {
   let owner = @execution.generated_sequence_owner(sequence)
   let children = []
   let mut previous = None
   let mut total = 0L
   let mut cancel_confirmed = 0
   let mut already_terminal = 0
+  let stage_values = []
   for index in 0..<@execution.generated_sequence_step_count(sequence) {
     let selected = @execution.select_generated_sequence_step(
       sequence,
@@ -157,6 +226,17 @@ fn relation_pipeline_child_reference(
             progress += p
             assert_eq((progress, work), (kp, kw))
             previous = Some(output)
+            stage_values.push(
+              "{\"columns\":" +
+              relation_pipeline_projection(selected, output) +
+              ",\"schemaColumns\":" +
+              relation_pipeline_columns(output) +
+              ",\"tableRows\":" +
+              relation_pipeline_rows(output) +
+              ",\"wireRows\":" +
+              relation_pipeline_wire(output) +
+              "}",
+            )
             done = true
           }
           _ => fail("selected adapter differs from its cumulative kernel")
@@ -211,6 +291,7 @@ fn relation_pipeline_child_reference(
     total + (@execution.generated_sequence_step_count(sequence) - 1).to_int64(),
     cancel_confirmed,
     already_terminal,
+    "[" + stage_values.join(",") + "]",
   )
 }
 
@@ -276,7 +357,7 @@ fn relation_pipeline_observe(
     None => ("failed", "[]", "[]", "[]", "[]")
   }
   let witnesses = if correspondence {
-    let (reference, cancelled, already) = relation_pipeline_child_reference(
+    let (reference, cancelled, already, stage_values) = relation_pipeline_child_reference(
       sequence, input,
     )
     assert_eq(work, reference)
@@ -285,7 +366,9 @@ fn relation_pipeline_observe(
     ",\"cancelConfirmedChildren\":" +
     cancelled.to_string() +
     ",\"alreadyTerminalChildren\":" +
-    already.to_string()
+    already.to_string() +
+    ",\"stageValues\":" +
+    stage_values
   } else {
     ""
   }
@@ -303,6 +386,8 @@ fn relation_pipeline_observe(
     query_oracle_quote(steps) +
     ",\"stepCount\":" +
     @execution.generated_sequence_step_count(sequence).to_string() +
+    ",\"contracts\":" +
+    relation_pipeline_contracts(sequence) +
     ",\"orderOrigin\":" +
     query_oracle_quote(origin) +
     ",\"checked\":true,\"registered\":true,\"kind\":" +

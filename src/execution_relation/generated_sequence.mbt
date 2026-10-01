@@ -24,6 +24,8 @@ struct GeneratedSequence {
 
 ///|
 /// Immutable quantities, never counters shared between invocations.
+/// In a Relation chain, max_work admits new Compute/handoff, not mandatory
+/// physical stop. Diagnostic total work includes stop deltas and can exceed it.
 pub(all) struct SequenceExecutionLimits {
   rows : SequenceRunLimits
   max_work : Int

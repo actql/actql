@@ -171,6 +171,62 @@ is introduced. Run the guard regressions with
 `node --test scripts/test-execution.test.mjs` (the pinned MoonBit toolchain must
 be on PATH).
 
+## CI evidence by source revision
+
+Use the read-only GitHub CLI helper to inspect this repository or another
+GitHub.com repository, including `actql/actql-cloud`. It needs Node.js 22 or
+newer and an installed `gh` with read access to the repository and Actions.
+Policy inspection additionally needs access to classic branch protection;
+if that policy is unavailable, required checks remain **unknown**.
+
+```sh
+node scripts/ci-evidence.mjs actql/actql --pr PR_NUMBER
+node scripts/ci-evidence.mjs actql/actql-cloud --sha FULL_40_CHARACTER_SHA --json
+node scripts/ci-evidence.mjs actql/actql-cloud --sha FULL_40_CHARACTER_SHA --branch main
+node --test scripts/ci-evidence.test.mjs
+```
+
+The text and JSON reports preserve each workflow run, event, source SHA and
+attempt, including earlier failed attempts. Jobs retain their actual status
+and conclusion: `queued`/`in_progress`, `failure`, `cancelled`, `skipped`,
+`neutral` and `success` are different evidence. A conditional skip is not
+successful execution. No successful jobs are combined across runs or attempts,
+and a green push run never substitutes for a red or stale PR run.
+
+PR inspection discovers exact-head runs and branch-history candidates, plus
+runs associated with the current merge/test-ref SHA. Branch names can collide
+across forks or be reused, so unassociated older branch runs are explicitly
+labelled `stale-or-unrelated-branch-run`. GitHub's run-reported `head_sha`,
+associated PR head/base SHAs and current `refs/pull/N/merge` are separate fields.
+Today's PR merge SHA is not historical checkout evidence: the helper reports
+the tested checkout SHA as unknown because jobs can customize checkout and
+the run API does not prove it. Closed PRs have no current test-ref claim.
+Commit check runs and status history are also shown by SHA, separately from
+Actions evidence because those endpoints do not attribute a workflow event or
+attempt. Absence of checks is reported as absence, not success.
+
+Named required status checks come only from classic branch protection and
+active repository/organization branch rules, retaining the expected app IDs.
+An inaccessible, missing or ambiguous policy (including unsupported workflow,
+scanning or quality rules) leaves the overall requirement set unknown. A bare SHA has no implied
+target branch; supply `--branch` to inspect its policy. No merge, deployment
+or real Preview acceptance verdict is produced, even when requirements are
+known and all visible jobs passed.
+
+Collection requests use `gh api --paginate --slurp`. The report marks missing
+pages/counts, API/permission errors, identity mismatches and the filtered
+workflow-run API's 1,000-result cap as incomplete. GitHub also bounds commit
+check-run history to the latest 1,000 check suites; this API limit is disclosed
+even when the returned collection fits on one page. It is a non-atomic snapshot;
+runs may change during collection. Exit code `0` means retrieval completed
+(failed or skipped CI is still data), `1` means incomplete retrieval, and `2`
+means invalid arguments. Policy can intentionally remain unknown for a bare
+SHA or unsupported policy even after retrieval. JSON output retains partial
+evidence and diagnostics for automation. The helper only makes GET requests;
+it never reruns jobs, updates PRs, merges, deploys or prints authentication
+credentials or raw `gh` diagnostics. Offline tests use fixed response fixtures
+and a temporary fake `gh`, with no live network or credentials required.
+
 ## Updating specification metadata
 
 For normative edits, preserve or explicitly assign `requirement-block` IDs.
