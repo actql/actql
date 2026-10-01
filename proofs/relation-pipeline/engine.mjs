@@ -42,8 +42,9 @@ export function oracle(testCase, registry) {
   const stages = [];
   for (const [index, step] of testCase.steps.entries()) {
     const descriptor = registry.find(d => d.name === step.op);
+    const input = clone(rows);
     rows = descriptor.oracle(rows, step.args);
-    stages.push({ operation: step.op, args: clone(step.args), ids: rows.map(r => r.id),
+    stages.push({ operation: step.op, args: clone(step.args), input, output: clone(rows), ids: rows.map(r => r.id),
       columns: states[index + 1].fields, rows: rows.map(r => states[index + 1].fields.map(f => r.values[f])) });
   }
   return { ...stages.at(-1), occurrences: rows, stages, states };

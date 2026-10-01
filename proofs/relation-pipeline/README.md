@@ -1,139 +1,139 @@
-# Typed Relation pipeline pilot
+# Common acceptance for typed Relation pipelines
 
-This is a retrospective test/review-cost comparison for existing operations,
-not delivery of a new product operation. Existing failure, capacity, backend,
-Store and historical regression tests remain in place. No test is retired.
-`baseline.json` was committed before generator implementation.
+This foundation accepts existing operations on the registered serial Relation
+route. It extends the #128 pilot; it does not deliver a new product operation,
+retire the four Host tests kept by #131, or prove the whole implementation.
 
-## Contract and domain
+## Development procedure
 
-The initial registry contains `filter`, `select` and `sort`. Its checked root is
-an authored `Values` producer, imported with its exact `ProducedInput` ownership
-and occurrence-order evidence. The historical `duckdb_fixed_values` helper uses
-the ActQL pipeline/lowering/execution APIs; it invokes no SQL or DuckDB evaluator.
-Rows contain three numeric fields (`k` nullable), bounded integer values, at most
-six rows, NULL, duplicates, empty input/output and distinguishable ties. Generated
-sequences have two to four steps. Shrunk sequences may have one step.
+1. Add an operation descriptor: admitted input conditions, schema and order
+   postconditions, syntax, bounded arguments, independent semantic oracle and
+   argument reductions. Do not import product checking, lowering or comparators
+   to produce expected contracts or rows.
+2. Register its precise variant and actual selected kernel route in
+   `obligations.mjs`. Add predicates for concrete semantic boundaries over
+   independent intermediate inputs/outputs. Labels and adjacent pairs are not
+   evidence. `corpus.mjs` completes missing witnesses deterministically using
+   the same typed generator and rejects any remaining missing obligation.
+3. Register small production-site mutants, their admitted search domains and
+   same-defect anchors in `mutation-registry.mjs`. Keep fixed reproductions in
+   `regressions.json`; include primitive-specific and connection defects.
+4. Run `node --test proofs/relation-pipeline/*.test.mjs`, then the existing
+   `node scripts/local-checks.mjs run pipeline-evidence` job with the pinned
+   MoonBit and audited Lean tools. Submit the marginal operation rules, actual
+   connection evidence, mutation/shrink receipts and remaining obligations.
 
-The generator tracks schema/nullability, exact prior producer and the admitted
-total occurrence order. Each descriptor must satisfy its precondition before
-construction. Removing a step rebuilds exact producer references; reductions
-which lose a required field or order premise are excluded before execution.
-Each actual case goes through the checker, registered Local module provider and
-selected Relation execution. A rejected or unexecuted case is not counted.
+For a second operation, freeze the completed first foundation's source SHA and
+common hashes in `reuse-baseline.json`. The audit rejects common changes against
+that baseline. A necessary generic correction must be a separate commit and
+reported as a failure of the original no-common-change comparison, followed by
+its corrected result. Moving large meaning rules into callbacks does not count
+as avoiding review work.
 
-The [adopted order contract](../../docs/spec/language.md) supplies sort tie
-behavior: eligible checked candidate keys take precedence; this pilot asserts
-none, so an admitted total input occurrence witness supplies the tie order.
-Unique-looking data is not a candidate-key proof. Arbitrary physical Relation
-enumeration does not supply that witness. `take` requires the tracked admitted
-total order. Select's authored public projection order and canonical internal
-schema order are observed separately.
+## Supported route and independent observations
 
-The independent JS oracle implements the restricted specification using numeric
-comparison, NULL-aware predicates, projection and strict insertion sorting.
-It imports no product evaluator/comparator. Neither product output nor its
-accounting reference supplies expected semantic rows.
+The root is checked authored Values with exact ProducedInput ownership and total
+occurrence order. Three numeric fields (`k` nullable), bounded integers, at most
+six rows, NULL, duplicates, empty input/output and distinguishable ties are
+admitted. Sequences have one to five steps; generated sequences have two to four.
+Filter, select, sort, take and simultaneous rename are registered. Unsupported
+variants, strings, arbitrary schemas and candidate-key assertions remain outside
+this domain. Their existing tests stay in place.
 
-## Reuse versus new obligations
+Every case is checked and executed through `prepare_local_compute_module`, the
+registered Local provider and the selected Relation chain. Each selected child
+uses `selected_binding_rows_execution` and the bounded binding-rows Session.
+This is a different adapter from the nest pilot: its own cumulative/delta,
+terminal, cancellation, exact-input and cleanup correspondence is exercised.
+The historical `duckdb_fixed_values` helper invokes no SQL or DuckDB evaluator.
 
-| Obligation | Evidence and limits |
+Three observations are kept separate:
+
+| Observation | Expectation and actual binding |
 | --- | --- |
-| Delta work and terminal/cleanup behavior | Existing conditional Session theorem; new finite real selected-adapter/kernel comparisons. This adapter is not the generic adapter used by the nest pilot. |
-| Child work plus handoff, preserved consumed budget, cleanup responsibility | Existing conditional arbitrary-finite serial chain model; actual per-case registered chain accounting and exact child input bindings. |
-| Filter NULL/true-only behavior, projection, numeric/NULL sort and ties | Descriptor contract and independent oracle, with actual checked public/internal observations. |
-| Exact schema/producer/order connections | Construction metadata plus independently logged checked source/sequence/order origin and registered execution. |
-| Capacity | Existing reservations/tests retained. Child/runtime upper bounds and the 256-byte allowance remain unproved. |
-| Store, backend and ownership boundaries | Existing acceptance/regression tests retained; no substitution with this numeric pipeline model. |
+| Independent expected contract | Descriptor postconditions derive full field type/nullability; compared with the checked schema for every step. Empty/all-NULL cases validate that contract, not a type inferred from cells. |
+| Connection to execution | The same GeneratedSequence passed to the registered provider supplies selected kernels, checked/kernel output schemas and Select input/output references. No second unrelated checker plan is used. |
+| Executed values | Public columns and their order, canonical completed-table columns, wire projection, cell values, duplicates and row order are compared with the independent oracle. |
 
-The harness runs each child through its actual selected adapter and its direct
-cumulative kernel, comparing progress/work on every poll. It checks sealing,
-cleanup retry and cancellation at that actual child/adapter boundary. Empty
-children which finish on the first poll are recorded separately rather than
-inventing a cancellation observation. Parent work is compared with summed child
-work and attempted handoff charges. These are finite implementation correspondence
-tests, not a proof of MoonBit/compiler/FFI refinement for arbitrary sequences.
-The delayed-stop callback counterexample is a separate residual obligation.
+Completed tables do not expose independent runtime field contracts. This adds
+no runtime metadata or public API. The selected kernel schema is an associated
+checked contract, not independently inferred runtime schema. Existing completed
+wire projection is observed separately from canonical cell storage.
 
-Common Lean propositions, audits and shared state-machine histories are frozen
-by `baseline.json`. No new common theorem, owner, product operation or lifetime
-optimization is introduced. Old fixed-scope evidence gates are not widened.
+Sort ties use the adopted specification's admitted input occurrence witness,
+not physical enumeration or an assumed stable library sort. Take requires total
+order. Rename preserves contracts and occurrence order, rewrites sort key names,
+and expands in canonical INPUT-name order; public output-name order can differ
+from canonical schema order. Downstream operations actually reference new names.
+A swap reads both original fields simultaneously. Rename lowers to Select and
+is not evidence for a new physical algorithm.
 
-## Generation, shrinking and mutations
+## Reused guarantees and residual obligations
 
-Seed `105106` constructs valid directed adjacent pairs and 48 additional seeded
-sequences. Initial three-operation corpus: 57 cases, nine adjacent contracts.
-Four-operation corpus after `take` registration: 64 cases, 16 adjacent contracts.
-Case counts do not measure tests removed or developer hours saved.
+Existing conditional Session/chain Lean propositions and axiom audits remain
+unchanged. Finite actual child/adapter/kernel comparisons check delta accounting,
+sealing, cancel-next-advance stop without Compute, cleanup retry and exact input
+bindings. Parent work is compared with child work plus attempted handoff charges.
+Empty children already terminal on the first poll are counted separately.
 
-Actual production-site mutants exercise wrong checked handoff port and reversed
-stable ties. Source is restored byte-for-byte after each mutant, including on
-failure. Only JS explores and shrinks. Exact shrunk counterexamples are then run
-under mutated and restored source on JS/Wasm/native. These are finite reproductions
-on each target, not backend-wide mutation coverage.
+The general theorems are model proofs under stated premises. The real sequence
+observations are finite tested correspondence. Neither is a proof of the MoonBit
+compiler, runtime, FFI, all providers, arbitrary DAGs or all Algebra operations.
+Child/runtime capacity bounds, the 256-byte allowance and delayed-stop work remain
+unproved/separate. Reservation, resource-boundary, cancellation, retained Host,
+fan-out, Store and physical backend tests are maintained.
 
-Connection shrinking must retain the same operation-occurrence producer/consumer
-edge and the traced wrong port. Order shrinking must retain the same sort
-occurrence/field, the same distinguishable input occurrence pair with equal keys,
-the expected pair order, the actual inversion and the same output multiset.
-Thus another error with the same broad classification does not qualify.
-Reductions cover operation subsequences, rows, individual numeric/null values,
-equal-key value classes and descriptor arguments. The final certificate checks
-every admissible one-step reduction. Minimality is local to these reductions.
+## Fixed verification, fresh exploration and audit
 
-## Marginal registration comparison
+CI always executes fixed corpus, concrete obligation checks, known-site mutant
+and restored-success reproductions on JS/Wasm/native, and whole-report target
+substitution rejection. Fresh JS exploration and shrinking are additionally
+required by `exploration-impact.mjs` for kernel, adapter, Session/chain, typing,
+specification, build dependency, CI and unknown-path changes. Invalid/missing
+base, empty diff or diff failure also require exploration. Only a small reviewed
+presentation-only allowlist can skip it. The required check prints and retains
+its source-bound decision; the audit independently recomputes it.
 
-`extension.json` freezes the three-operation engine, execution/observation harness,
-gate and orchestration before registering `take`. Adding take changes its own
-descriptor and registry registration. The descriptor supplies order/count/offset
-preconditions, postcondition, independent skip/limit oracle, syntax, argument
-generation and reductions. Review additionally covers that local contract and
-the existing bounded take route.
-
-The original registration hashes remain in `extension.json`. The subsequent
-PR #128 review correction is recorded separately in `postRegistrationCorrections`:
-only the audit entrypoint changed to bind each requested target independently.
-This correction is not attributed to adding `take`; the generator, oracle
-coordinator, execution harness, orchestration and common theorems remain frozen.
-
-The same generator then covers `filter/take`, `select/take`, `sort/take`,
-`take/filter`, `take/select`, `take/sort` and `take/take` without adding a handwritten
-sequence fixture, generator branch or common theorem. These are seven new
-adjacent contract obligations; they are not seven deleted or saved test cases.
-The remaining per-operation boundary/resource/Store review is still necessary.
-This establishes the supported registration mechanism, not universal elimination
-of combination-specific semantic review.
-
-## Reproduction and receipt audit
-
-Use the repository's pinned MoonBit and existing audited Lean pins:
+Exploration retains source SHA, toolchain, seed, reviewed domain, same-defect
+anchor, each shrink attempt and every final one-step reduction. Minimality is
+local to those reductions. Fixed replay never claims fresh search or minimality.
+Exact minima are replayed under mutated/restored source on all targets; a JS
+search result is not a backend-wide detection guarantee. Source restoration is
+byte-for-byte, including failure paths. Timings separate search, shrink, mutated
+and restored target replays, and normal fixed target verification.
 
 ```sh
-node --test proofs/relation-pipeline/engine.test.mjs proofs/relation-pipeline/evidence.test.mjs
+node --test proofs/relation-pipeline/*.test.mjs
 node proofs/relation-pipeline/run.mjs js base
-node proofs/relation-pipeline/mutations.mjs
+node proofs/relation-pipeline/mutations.mjs fixed
+node proofs/relation-pipeline/mutations.mjs auto
 node proofs/relation-pipeline/run.mjs all
 node proofs/relation-pipeline/audit.mjs
 node proofs/relation-pipeline/audit-target-regression.mjs
 ```
 
-CI runs this beside the existing gates. `.artifacts/relation-pipeline/` retains
-exact requested cases/programs, source snapshots, compiler pin, generated fixtures,
-successful execution logs, at-run artifact hashes, model audit logs and shrunk
-counterexamples. The audit independently checks fixture/log/receipt/request
-agreement, target, source, profile, order, conditional premises, local minimality
-and the take extension hashes. Hashes identify evidence; they do not prove scope.
-Execution fixture programs and checked origin are matched independently of the
-requested/derived metadata, including a negative test that relabels both sides.
-The entrypoint requires the baseline report to be JS and each normal report to
-match its requested JS/Wasm/native slot. Receipts, commands and artifact paths
-are bound to that target. The entrypoint regression first accepts healthy evidence,
-then rejects unchanged native reports in the JS, Wasm, both, and baseline slots;
-it preserves their internally consistent receipts and archived evidence. Logs
-and alternate audit directories remain in `.artifacts/relation-pipeline-target-regression/`.
+`.artifacts/relation-pipeline/` retains actual inputs, programs, source snapshots,
+fixture/log/receipt hashes, compiler, model logs, normal binaries and mutation
+receipts. Audit binds the requested target to report, receipt, command, artifact
+path and archived normal binary. Unchanged native reports in JS, Wasm or baseline
+slots are rejected. Hashes fix evidence identity; scope is checked independently.
+The runner, compiler and environment remain trusted assumptions.
 
-Earlier batches overwrite the temporary compiled observation driver. Their
-artifact hashes identify the binary at execution time, not the final current
-binary. Final normal-corpus binaries are archived and checked separately. Receipt
-auditing does not execute downloaded Linux binaries on the local macOS machine.
-The trusted runner, compiler and environment remain explicit assumptions.
+## Review-cost comparison
+
+The historical take experiment in `extension.json` remains immutable and is
+checked against its original Git blobs, including the separately recorded #128
+P2 correction. It is not relabelled as using this expanded foundation.
+
+This first increment pays common costs for concrete obligation completion,
+checked/kernel observations and separate fixed/exploratory CI auditing. Rename
+adds its own contract/oracle/reductions, six concrete predicates, actual Select
+projection correspondence and three primitive/connection mutations. No common
+Lean theorem or handwritten existing-operation/rename combination fixture is
+added. Generic construction supplies those combinations. Its fixed single-step
+mutation regressions are additional defect reproductions, not saved tests.
+
+No deletion count, generated-case-to-saved-test conversion or CI speedup is
+claimed. Existing operation boundaries and physical-route reviews still apply.
+The second distinct increment measures marginal meaning rules and connection
+review against the fixed first foundation, separately from these initial costs.

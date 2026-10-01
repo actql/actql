@@ -1,30 +1,45 @@
+import { fixedCorpus, coverage } from './corpus.mjs';
+import { registrations } from './obligations.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { generate, oracle, program, clone } from './engine.mjs';
 import { baseRegistry } from './registry.mjs';
-import { profile, inherited, premises, validate } from './evidence.mjs';
+import { profile, inherited, premises, validate, expectedContracts } from './evidence.mjs';
 import { hash } from './inventory.mjs';
 import { connectionAnchor, connectionMismatch, orderMismatch } from './mismatch.mjs';
 
 // Gate unit fixture only: no claim that these synthetic records executed.
 function fixture() {
-  const testCase = generate(baseRegistry)[1];
+  const cases = fixedCorpus(baseRegistry, registrations);
+  const testCase = cases[0];
   const expected = oracle(testCase, baseRegistry);
   const p = program(testCase, baseRegistry);
   const source = { sources: { 'example': hash('source') } };
   source.digest = hash(JSON.stringify(source.sources));
   const origin = expected.states.at(-1).order.origin;
   const observation = { id: 'executed:0', source: p.source, steps: p.steps,
-    kind: 'complete', checked: true, registered: true, correspondence: true,
+    kind: 'complete', checked: true, registered: true, correspondence: true, contracts: expectedContracts(testCase, baseRegistry),
     columns: expected.columns, schemaColumns: [...expected.columns].sort(), rows: expected.rows,
     wireRows: expected.rows.map(row => Object.fromEntries(expected.columns.map((f, i) => [f, row[i]]))),
     tableRows: expected.occurrences.map(row => [...expected.columns].sort().map(f => row.values[f])),
     stepCount: testCase.steps.length, orderOrigin: origin === 'prior' ? 'input:0' : `step:${origin.slice(1)}`,
     work: 3, referenceWork: 3, cancelConfirmedChildren: 2, alreadyTerminalChildren: 0, faults: [] };
+  const entries = cases.map((testCase, index) => {
+    const expected = oracle(testCase, baseRegistry), p = program(testCase, baseRegistry);
+    const origin = expected.states.at(-1).order.origin;
+    const actual = { ...observation, id: `executed:${index}`, source: p.source, steps: p.steps,
+      contracts: expectedContracts(testCase, baseRegistry), columns: expected.columns,
+      schemaColumns: [...expected.columns].sort(), rows: expected.rows,
+      wireRows: expected.rows.map(row => Object.fromEntries(expected.columns.map((f, i) => [f, row[i]]))),
+      tableRows: expected.occurrences.map(row => [...expected.columns].sort().map(f => row.values[f])),
+      stepCount: testCase.steps.length, cancelConfirmedChildren: testCase.steps.length,
+      orderOrigin: origin === 'prior' ? 'input:0' : `step:${origin.slice(1)}` };
+    return { id: actual.id, testCase, program: p, caseDigest: hash(JSON.stringify(testCase)), observation: actual };
+  });
   const receipt = { target: 'js', correspondence: true, compiler: 'unit-test-only', sourceDigest: source.digest,
     exit: 0, command: ['moon', 'test', 'src/query_integration/relation_pipeline_batch_wbtest.mbt', '--target', 'js', '--deny-warn'],
     artifacts: { '_build/js/debug/test/query_integration/unit.js': hash('binary') },
-    cases: [{ id: observation.id, testCase, program: p, caseDigest: hash(JSON.stringify(testCase)), observation }] };
+    cases: entries };
   const report = { version: 'actql-relation-pipeline-evidence/0.1', profile, source, target: 'js',
     registry: baseRegistry.map(d => d.name), inherited, premises,
     models: Object.fromEntries(['session', 'chain'].map(id => [id, {
@@ -33,7 +48,7 @@ function fixture() {
     }])), toolchain: { moonc: 'unit-test-only' },
     evidenceKinds: ['formal-model', 'tested-refinement', 'independent-semantic-check'],
     residual: ['No arbitrary registry/length implementation refinement; capacity remains conditional'],
-    caseCount: 1, requested: [receipt.cases[0].caseDigest],
+    caseCount: cases.length, obligations: coverage(cases, baseRegistry, registrations), requested: entries.map(e => e.caseDigest),
     executions: [{ receipt, digest: hash(JSON.stringify(receipt)) }] };
   return { report, source };
 }
@@ -43,7 +58,7 @@ function reseal(report) {
 }
 test('finite gate accepts its exact independently observed request', () => {
   const { report, source } = fixture();
-  assert.equal(validate(report, source, baseRegistry).finiteCases, 1);
+  assert.equal(validate(report, source, baseRegistry).finiteCases, fixedCorpus(baseRegistry, registrations).length);
 });
 test('copied operation names cannot substitute an unreviewed variant/oracle', () => {
   const { report, source } = fixture();
@@ -51,6 +66,7 @@ test('copied operation names cannot substitute an unreviewed variant/oracle', ()
   assert.throws(() => validate(report, source, copied), /Unreviewed/);
 });
 for (const [name, change] of [
+  ['concrete obligation record omitted', r => { delete r.obligations; }],
   ['profile widened on both requested/derived sides', r => { r.profile = 'UNCHECKED arbitrary field types'; }],
   ['target relabeled', r => { r.target = 'native'; }],
   ['unreviewed premise substituted', r => { r.premises = ['any provider is stopped after cancel']; }],
@@ -63,6 +79,11 @@ for (const [name, change] of [
   }],
   ['order origin relabeled', r => { r.executions[0].receipt.cases[0].observation.orderOrigin = 'physical enumeration'; }],
   ['selected adapter correspondence absent', r => { r.executions[0].receipt.correspondence = false; }],
+  ['kernel binding differs despite correct checked schema', r => { r.executions[0].receipt.cases[0].observation.contracts[0].kernel = {}; }],
+  ['nullable contract relabeled on both checked/kernel sides', r => {
+    const c = r.executions[0].receipt.cases[0].observation.contracts[0];
+    c.checked.k.nullable = false; c.kernel.k.nullable = false;
+  }],
   ['registered execution absent', r => { r.executions[0].receipt.cases[0].observation.registered = false; }],
   ['consumed budget reset', r => { r.executions[0].receipt.cases[0].observation.work++; }],
   ['models substituted', r => { r.models.chain.command = ['node', 'proofs/bounded-session/check.mjs']; }],

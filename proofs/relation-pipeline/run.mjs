@@ -1,7 +1,9 @@
+import { fixedCorpus, coverage } from './corpus.mjs';
+import { registrations } from './obligations.mjs';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { generate, oracle } from './engine.mjs';
+import { oracle } from './engine.mjs';
 import { baseRegistry, registry } from './registry.mjs';
 import { execute, executions, root, environment, toolchain } from './execute.mjs';
 import { snapshot, hash } from './inventory.mjs';
@@ -22,9 +24,11 @@ for (const [id, path] of [['session', 'proofs/bounded-session/check.mjs'], ['cha
   models[id] = { command: [process.execPath, path], exit: result.status, passed: true, sourceDigest: source.digest,
     logPath: `.artifacts/relation-pipeline/${id}-model.log`, logDigest: hash(log) };
 }
-const cases = generate(selected);
+const cases = fixedCorpus(selected, registrations);
+const obligations = coverage(cases, selected, registrations);
 for (const backend of target === 'all' ? ['js', 'wasm', 'native'] : [target]) {
   const start = executions.length;
+  const started = performance.now();
   const results = execute(cases, selected, backend, true, process.argv[3] === 'base' ? 'base' : 'normal');
   results.forEach((result, i) => compareSemantics(cases[i], result, selected));
   const actual = executions.slice(start);
@@ -34,7 +38,7 @@ for (const backend of target === 'all' ? ['js', 'wasm', 'native'] : [target]) {
     models, inherited, premises, toolchain, evidenceKinds: ['formal-model', 'tested-refinement', 'independent-semantic-check'],
     residual: ['No arbitrary registry/length implementation refinement; capacity remains conditional',
       'child/runtime capacity bounds and 256-byte allowance unproved', 'physical Store and backend boundaries retain existing tests'],
-    caseCount: cases.length, requested: actual.flatMap(e => e.receipt.cases.map(c => c.caseDigest)), executions: actual };
+    caseCount: cases.length, obligations, durationMs: performance.now() - started, requested: actual.flatMap(e => e.receipt.cases.map(c => c.caseDigest)), executions: actual };
   validate(report, snapshot(root), selected);
   writeFileSync(join(directory, `${process.argv[3] === 'base' ? 'base-' : ''}${backend}.json`), JSON.stringify(report, null, 2) + '\n');
   const pairs = cases.filter(c => c.id.startsWith('pair:')).map(c => c.steps.map(s => s.op).join('/'));

@@ -1,14 +1,18 @@
+import { variants } from './mutation-registry.mjs';
+import { fixedCorpus, coverage } from './corpus.mjs';
+import { registrations } from './obligations.mjs';
+import { checkTakeHistory, checkFoundation } from './history.mjs';
+import { decision } from './exploration-impact.mjs';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { candidates, generate, program } from './engine.mjs';
+import { candidates, program } from './engine.mjs';
 import { registry, baseRegistry } from './registry.mjs';
 import { hash, snapshot, checkBaseline } from './inventory.mjs';
 import { validate, compareSemantics } from './evidence.mjs';
-import { connectionMismatch, orderMismatch } from './mismatch.mjs';
 import { body, payload, inputVariable } from './fixture.mjs';
-import { sites, applyMutation } from './sites.mjs';
+import { applyMutation } from './sites.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const directory = resolve(process.argv[2] ?? join(root, '.artifacts/relation-pipeline'));
 const artifact = path => {
@@ -18,8 +22,10 @@ const artifact = path => {
   return join(directory, relative);
 };
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
-const baseline = checkBaseline(root);
+checkBaseline(root);
+checkFoundation(root);
 const current = snapshot(root);
+const expectedImpact = decision(root);
 function auditExecution(execution, selected, expectedTarget = execution.receipt.target) {
   const run = execution.receipt;
   assert(['js', 'wasm', 'native'].includes(expectedTarget));
@@ -77,16 +83,19 @@ function auditModels(report) {
 }
 const baseReport = read(join(directory, 'base-js.json'));
 assert.equal(baseReport.target, 'js', 'Baseline report target differs from requested audit target js');
+assert.equal(baseReport.revision, expectedImpact.revision);
 validate(baseReport, current, baseRegistry);
-assert.deepEqual(baseReport.executions.flatMap(e => e.receipt.cases.map(c => c.testCase)), generate(baseRegistry));
+assert.deepEqual(baseReport.executions.flatMap(e => e.receipt.cases.map(c => c.testCase)), fixedCorpus(baseRegistry, registrations));
 baseReport.executions.forEach(e => auditExecution(e, baseRegistry, 'js'));
 auditModels(baseReport);
 for (const target of ['js', 'wasm', 'native']) {
   const report = read(join(directory, `${target}.json`));
   assert.equal(report.target, target, `Report target differs from requested audit target ${target}`);
+  assert.equal(report.revision, expectedImpact.revision);
   validate(report, current, registry);
-  assert.equal(report.caseCount, generate(registry).length);
-  assert.deepEqual(report.executions.flatMap(e => e.receipt.cases.map(c => c.testCase)), generate(registry));
+  assert.deepEqual(report.obligations, coverage(fixedCorpus(registry, registrations), registry, registrations));
+  assert.equal(report.caseCount, fixedCorpus(registry, registrations).length);
+  assert.deepEqual(report.executions.flatMap(e => e.receipt.cases.map(c => c.testCase)), fixedCorpus(registry, registrations));
   report.executions.forEach(e => auditExecution(e, registry, target));
   auditModels(report);
   for (const execution of report.executions) {
@@ -97,27 +106,35 @@ for (const target of ['js', 'wasm', 'native']) {
   }
   console.log(`${target}: exact normal corpus, source, fixtures and successful logs audited`);
 }
-const mutations = read(join(directory, 'mutations.json'));
+const impact = read(join(directory, 'exploration-decision.json'));
+assert.deepEqual(impact, decision(root));
+for (const mode of impact.required ? ['fixed', 'explore'] : ['fixed']) {
+const mutations = read(join(directory, mode === 'fixed' ? 'fixed-mutations.json' : 'mutations.json'));
+assert.equal(mutations.mode, mode);
+assert.deepEqual(mutations.decision, impact);
+assert.equal(mutations.revision, impact.revision);
 assert.deepEqual(mutations.source, current);
-assert.equal(mutations.explorationTarget, 'js');
-assert.equal(mutations.seed, 105106);
-assert.deepEqual(mutations.results.map(r => r.name), ['handoff-wrong-port', 'stable-tie-reversed']);
+assert.equal(mutations.explorationTarget, mode === 'explore' ? 'js' : null);
+assert.equal(mutations.seed, mode === 'explore' ? 105106 : null);
+assert.deepEqual(mutations.results.map(r => r.name), variants.map(v => v.name));
 for (const result of mutations.results) {
-  const preserves = result.name === 'handoff-wrong-port' ? connectionMismatch
-    : (c, observed, anchor) => orderMismatch(c, observed, anchor, registry);
+  const variant = variants.find(v => v.name === result.name);
+  const preserves = (c, o, a) => variant.eligible(c) && variant.preserves(c, o, a, registry);
   const changed = Object.keys(current.sources).filter(path => current.sources[path] !== result.source.sources[path]);
   assert.deepEqual(changed, [result.site], 'Mutation changed unrelated source');
   assert.equal(result.originalDigest, current.sources[result.site]);
   assert.equal(result.mutatedDigest, result.source.sources[result.site]);
-  const site = sites.find(site => site.name === result.name);
+  const site = variant;
   assert.equal(site.path, result.site);
   assert.equal(hash(applyMutation(readFileSync(join(root, site.path), 'utf8'), site)), result.mutatedDigest);
   assert.equal(result.source.digest, hash(JSON.stringify(result.source.sources)));
-  assert(result.killed && result.localMinimal && result.history.at(-1).accepted === -1);
+  assert(result.killed);
+  if (mode === 'explore') {
+  assert(result.localMinimal && result.history.at(-1).accepted === -1);
   assert.deepEqual(result.finalCandidates, candidates(result.minimal, registry));
   assert.equal(result.finalCandidates.length, result.finalObservations.length);
   assert(result.finalCandidates.every((c, i) => !preserves(c, result.finalObservations[i], result.anchor)), 'False local minimality');
-  assert.deepEqual(result.executions[0].receipt.cases.map(c => c.testCase), generate(registry));
+  assert.deepEqual(result.executions[0].receipt.cases.map(c => c.testCase), fixedCorpus(registry, registrations).filter(variant.eligible));
   const original = result.executions[0].receipt.cases.find(c => JSON.stringify(c.testCase) === JSON.stringify(result.original));
   assert(original && preserves(result.original, original.observation, result.anchor));
   let intermediate = result.original;
@@ -133,12 +150,19 @@ for (const result of mutations.results) {
   }
   assert.deepEqual(intermediate, result.minimal);
   assert.equal(result.executions.length, cursor + 3);
+  } else {
+    const fixed = read(join(root, 'proofs/relation-pipeline/regressions.json')).find(r => r.name === result.name);
+    assert.deepEqual(result.minimal, fixed.testCase);
+    assert.deepEqual(result.anchor, fixed.anchor);
+    assert.equal(result.localMinimal, false);
+    assert.equal(result.executions.length, 3);
+  }
   const recorded = new Map();
   for (const execution of result.executions) {
     assert.deepEqual(auditExecution(execution, registry), result.source);
     for (const entry of execution.receipt.cases) recorded.set(JSON.stringify(entry.observation), entry.testCase);
   }
-  for (const [i, actual] of result.finalObservations.entries()) {
+  for (const [i, actual] of (result.finalObservations ?? []).entries()) {
     assert.deepEqual(recorded.get(JSON.stringify(actual)), result.finalCandidates[i]);
   }
   for (const target of ['js', 'wasm', 'native']) {
@@ -158,19 +182,9 @@ for (const result of mutations.results) {
     assert(!preserves(result.minimal, result.healthy[target], result.anchor));
     assert.deepEqual(healthy.get(JSON.stringify(result.healthy[target])), { target, testCase: result.minimal });
   }
-  console.log(`${result.name}: actual JS search, exhaustive final reductions and mutated/restored finite replay audited`);
+  console.log(`${result.name}: ${mode} evidence and mutated/restored finite replay audited`);
 }
-if (existsSync(join(root, 'proofs/relation-pipeline/extension.json'))) {
-  const extension = read(join(root, 'proofs/relation-pipeline/extension.json'));
-  assert.deepEqual(Object.keys(extension.postRegistrationCorrections), ['proofs/relation-pipeline/audit.mjs']);
-  for (const [path, digest] of Object.entries(extension.frozen)) {
-    const correction = extension.postRegistrationCorrections[path];
-    if (correction) assert.equal(correction.registrationDigest, digest);
-    assert.equal(hash(readFileSync(join(root, path))), correction?.correctedDigest ?? digest, `Changed extension-independent mechanism ${path}`);
-  }
-  const base = generate(baseRegistry).filter(c => c.id.startsWith('pair:')).map(c => c.steps.map(s => s.op).join('/'));
-  const full = generate(registry).filter(c => c.id.startsWith('pair:')).map(c => c.steps.map(s => s.op).join('/'));
-  assert.deepEqual(full.filter(p => !base.includes(p)), baseline.extensionMeasurement.newObligations);
-  assert.equal(extension.handwrittenCombinationAdditions, 0);
-  console.log(`take extension: ${full.length - base.length} additional adjacent obligations; 0 handwritten combination fixtures; not a deleted-test count`);
 }
+const extension = checkTakeHistory(root);
+assert.equal(extension.handwrittenCombinationAdditions, 0);
+console.log('Historical take measurement preserved; current foundation changes are counted separately');

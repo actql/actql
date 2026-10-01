@@ -1,8 +1,18 @@
+import { coverage } from './corpus.mjs';
 import assert from 'node:assert/strict';
 import { inspect, oracle, program } from './engine.mjs';
 import { hash, checkBaseline } from './inventory.mjs';
 import { premises } from '../relation-chain/evidence.mjs';
 import { baseRegistry, registry as reviewedRegistry } from './registry.mjs';
+import { registrations } from './obligations.mjs';
+export function expectedContracts(testCase, registry) {
+  const states = inspect(testCase, registry);
+  return testCase.steps.map((step, index) => {
+    const state = states[index + 1];
+    const projection = registrations[step.op].projection?.(states[index], step.args) ?? null;
+    return { index, route: registrations[step.op].route, checked: state.schema, kernel: state.schema, projection };
+  });
+}
 export { premises };
 export const profile = 'finite successful numeric/NULL Relation pipelines; owned Values occurrence order; no candidate key assertion';
 export const inherited = ['reported work is child work plus attempted handoff charges',
@@ -12,6 +22,7 @@ export const inherited = ['reported work is child work plus attempted handoff ch
 export function compareSemantics(testCase, observation, registry) {
   const expected = oracle(testCase, registry);
   assert.equal(observation.kind, 'complete', 'Success domain reached failure');
+  assert.deepEqual(observation.contracts, expectedContracts(testCase, registry), 'Independent checked/kernel contract or projection binding differs');
   assert.deepEqual(observation.columns, expected.columns, 'Projection/schema columns differ');
   assert.deepEqual(observation.schemaColumns, [...expected.columns].sort(), 'Canonical schema differs');
   for (const row of observation.wireRows) assert.deepEqual(Object.keys(row), expected.columns, 'Authored wire projection order differs');
@@ -79,6 +90,7 @@ export function validate(report, current, registry) {
     }
   }
   assert(count > 0);
+  assert.deepEqual(report.obligations, coverage(report.executions.flatMap(e => e.receipt.cases.map(c => c.testCase)), registry, registrations), 'Concrete obligation witnesses differ');
   assert.equal(report.caseCount, count);
   assert.deepEqual(report.requested, report.executions.flatMap(e => e.receipt.cases.map(c => c.caseDigest)), 'Requested/independently executed scope mismatch');
   return { target: report.target, finiteCases: count, inherited: [...inherited], profile };

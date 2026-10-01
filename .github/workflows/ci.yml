@@ -155,6 +155,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
+          fetch-depth: 0
       - uses: ./.github/actions/setup-toolchain
       - name: Install audited Lean pin
         run: |
@@ -164,8 +165,10 @@ jobs:
         run: node --test proofs/relation-pipeline/*.test.mjs
       - name: Verify the three-operation baseline at this same source
         run: node proofs/relation-pipeline/run.mjs js base
-      - name: Search and shrink real JS mutations, then replay exact minima on each target
-        run: node proofs/relation-pipeline/mutations.mjs
+      - name: Replay fixed known mutations and restored success on each target
+        run: node proofs/relation-pipeline/mutations.mjs fixed
+      - name: Determine impact and require fresh exploration and shrinking for relevant changes
+        run: node proofs/relation-pipeline/mutations.mjs auto
       - name: Restore and verify final registered pipelines on every target
         run: node proofs/relation-pipeline/run.mjs all
       - name: Audit independent execution records, shrink minima and marginal registration
