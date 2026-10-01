@@ -55,3 +55,38 @@ test "Pipe CTE chains retain prior scope and reject unchecked declarations" {
     )
   }
 }
+
+///|
+test "captured WHERE-only and source-only CTEs bind the retained producer" {
+  let expected = @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"capture","inputs":{"orders":{"carrier":"relation","schema":{"id":{"type":"string","nullable":false},"customer_id":{"type":"string","nullable":false},"status":{"type":"string","nullable":false},"amount":{"type":"number","nullable":false}},"primary_key":["id"]}},"steps":[{"from":"orders","filter":{"gt":[{"field":"amount"},{"literal":10}]}},{"select":["id","customer_id","status","amount"],"as":"aql_capture_0"}],"results":{"source":{"from":"aql_capture_0","fields":["id","customer_id","status","amount"]}}},{"id":"main","inputs":{"chosen":{"result":{"stage":"capture","result":"source"}}},"steps":[{"from":"chosen","select":["id"],"as":"aql_gen_0"}],"results":{"rows":{"from":"aql_gen_0","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+  let context = { ..fixture_context(), captured_stage: Some("capture"), }
+  for
+    text in [
+      "WITH chosen AS (FROM orders |> WHERE amount > 10) FROM chosen |> SELECT id",
+      "WITH first AS (FROM orders |> WHERE amount > 10), chosen AS (FROM first) FROM chosen |> SELECT id",
+      "WITH chosen AS (FROM orders |> WHERE amount > 10) SELECT id FROM chosen",
+      "WITH chosen AS (FROM orders |> WHERE amount > 10 |> AS fresh) FROM chosen |> SELECT id",
+    ] {
+    let query = @query.parse_query(text, syntax_limits()).unwrap()
+    let program = compile(query, context, construction_limits()).unwrap()
+    assert_eq(semantic(program), semantic(expected))
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      _ => fail("captured CTE must use the ordinary checker")
+    }
+  }
+  let query = @query.parse_query(
+    "WITH chosen AS (FROM orders) FROM chosen |> SELECT id",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(query, context, construction_limits()).unwrap()
+  assert_eq(@program.stage_count(program), 2)
+  assert_true(!semantic(program).contains("aql_cte_0"))
+}

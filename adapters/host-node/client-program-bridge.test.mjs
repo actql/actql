@@ -132,6 +132,22 @@ test('public source preparation binds installed aliases before checking a Progra
   const pipe = prepare('FROM records |> SELECT id', 'aql-text');
   assert.ok(moon.clientProgramPreparationReady(pipe),
     String(moon.clientProgramPreparationIssueCode(pipe)));
+  for (const text of [
+    'WITH c AS (FROM records |> WHERE amount > 10) FROM c |> SELECT id, amount',
+    'WITH first AS (FROM records |> WHERE amount > 10), c AS (FROM first) FROM c |> SELECT id, amount',
+    'WITH c AS (FROM records) FROM c |> SELECT id, amount',
+    'WITH c AS (FROM records |> WHERE amount > 10 |> AS fresh) FROM c |> SELECT id, amount',
+  ]) {
+    const outcome = prepare(text, 'aql-text');
+    const prepared = moon.clientProgramPreparationReady(outcome);
+    assert.ok(prepared, inspect(moon.clientProgramPreparationIssue(outcome)));
+    const program = JSON.parse(checked(
+      moon.clientProgramSemanticDocumentJson(prepared)));
+    // The CTE binds the existing captured producer, without an empty Stage.
+    assert.equal(program.stages.length, 2);
+    assert.equal(JSON.stringify(program).includes('aql_cte_0'), false);
+    checked(moon.clientProgramCompileLocalTasks(prepared));
+  }
   for (const changed of [
     {...publication, environmentCid: cid('0')},
     {...publication, aliases: [{...alias, sourceRef: 'connector://crm/main/other#v'}]},
