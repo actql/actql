@@ -62,6 +62,8 @@ jobs:
         run: node --test scripts/moonbit-environment.test.mjs
       - name: Test portable dependency inspection and injected violations
         run: node --test scripts/portable-core.test.mjs
+      - name: Test dependency isolation scratch ownership
+        run: node --test scripts/owned-scratch.test.mjs scripts/dependency-isolation-scratch.test.mjs
       - name: Execute standard module subsets without DuckDB dependencies
         run: node scripts/check-node-without-duckdb.mjs
   # One runner per target: check, then test, each with --deny-warn, as
