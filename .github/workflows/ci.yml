@@ -196,6 +196,14 @@ jobs:
       - uses: ./.github/actions/setup-toolchain
         with:
           python: 'true'
+      # The packed acceptance scripts below install the same Client tarballs.
+      # Pack them once (each pack runs the package's prepack build) and share
+      # one npm cache; every script still installs into its own clean root.
+      - name: Pack the Client packages once for this job
+        run: |
+          node scripts/packed-client-packages.mjs "$RUNNER_TEMP/actql-client-packages"
+          echo "ACTQL_PACKED_CLIENT_PACKAGES=$RUNNER_TEMP/actql-client-packages" >> "$GITHUB_ENV"
+          echo "ACTQL_TEST_NPM_CACHE=$RUNNER_TEMP/actql-npm-cache" >> "$GITHUB_ENV"
       - name: Test distribution Client wire, Host and packed Node assembly
         env:
           TMPDIR: ${{ github.workspace }}/_build

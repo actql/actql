@@ -8,6 +8,7 @@ import {userInfo} from 'node:os';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {canonicalText} from './check-canonical-json.mjs';
+import {packedClientPackage} from './packed-client-packages.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const externalScratch = join(repository, '..', '.codex-scratch');
@@ -29,8 +30,9 @@ function run(command, args, cwd = root, env = environment) {
 
 for (const name of ['client-wire', 'sdk', 'run-host-core', 'local-node',
   'node']) {
-  run('npm', ['pack', '--pack-destination', root, '--json'],
-    join(repository, 'packages', name));
+  await packedClientPackage({repository, name, destination: root,
+    pack: () => run('npm', ['pack', '--pack-destination', root, '--json'],
+      join(repository, 'packages', name))});
 }
 await writeFile(join(root, 'package.json'),
   '{"private":true,"type":"module"}\n');

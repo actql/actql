@@ -6,11 +6,12 @@ import assert from 'node:assert/strict';
 import {spawn, spawnSync} from 'node:child_process';
 import {generateKeyPairSync} from 'node:crypto';
 import {once} from 'node:events';
-import {mkdir, mkdtemp, readFile, readdir, writeFile} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {canonicalText} from './check-canonical-json.mjs';
+import {packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const recoveryOnly = process.argv.includes('--recovery-only');
@@ -22,7 +23,7 @@ await mkdir(externalScratch, {recursive: true});
 const root = await mkdtemp(join(externalScratch,
   'client-checkpoint-package-'));
 const environment = {...process.env,
-  npm_config_cache: join(root, 'npm-cache'),
+  npm_config_cache: packedNpmCache(root),
   NODE_EXTRA_CA_CERTS: join(root, 'remote.crt')};
 
 function run(command, args, cwd = root) {
@@ -37,8 +38,9 @@ function run(command, args, cwd = root) {
 
 for (const name of ['client-wire', 'sdk', 'run-host-core', 'local-node',
   'node']) {
-  run('npm', ['pack', '--pack-destination', root, '--json'],
-    join(repository, 'packages', name));
+  await packedClientPackage({repository, name, destination: root,
+    pack: () => run('npm', ['pack', '--pack-destination', root, '--json'],
+      join(repository, 'packages', name))});
 }
 await writeFile(join(root, 'package.json'),
   '{"private":true,"type":"module"}\n');
@@ -593,6 +595,10 @@ async function assertRetired(name, state = 'retired') {
   }
 }
 
+// Expiry cases whose restart waits for their Checkpoint deadline. They are
+// finished after the remaining cases, in the order they were prepared.
+const pastDeadline = [];
+
 // 1 and 9. allow runs with no Checkpoint and no Host policy call; deny and a
 // missing configuration make no protected call.
 if (!recoveryOnly) {
@@ -668,14 +674,21 @@ if (!recoveryOnly) {
     // inject their pre-start crash. Expiry is then observed after the crash.
     await approvedAndStopped(name, name, extra);
     await crashed(name, {CRASH_AT: crashAt, ...extra});
-    // Past the Checkpoint's answer deadline, which bounds the approval.
-    if (extra.TTL_MS !== undefined) await untilPast(await expiresAt(name));
-    await withHost(name, {...restart, ...extra}, started => client(started,
-      step, [name], {EXPECT_STATUS: 'failed'}));
-    const counted = await counts(name);
-    assert.equal(counted.physical_start_reserved, 0, name);
-    assert.equal(counted.computed, 0, name);
-    await assertRetired(name);
+    const restartAfterCrash = async () => {
+      // Past the Checkpoint's answer deadline, which bounds the approval.
+      if (extra.TTL_MS !== undefined) await untilPast(await expiresAt(name));
+      await withHost(name, {...restart, ...extra}, started => client(started,
+        step, [name], {EXPECT_STATUS: 'failed'}));
+      const counted = await counts(name);
+      assert.equal(counted.physical_start_reserved, 0, name);
+      assert.equal(counted.computed, 0, name);
+      await assertRetired(name);
+    };
+    // An expiry case's state stays stopped until its deadline has passed.
+    // The other cases run meanwhile instead of waiting idle; each case has
+    // its own state, events and Host, so the order changes no assertion.
+    if (extra.TTL_MS === undefined) await restartAfterCrash();
+    else pastDeadline.push(restartAfterCrash);
   }
 
   // 8. A Run defined before a crash is cancelled through the public Client
@@ -832,10 +845,12 @@ if (!recoveryOnly) {
   // 5. An approval whose own permission expired before the Host resumed
   // starts nothing; the request ends without a Run.
   await approvedAndStopped('expired', 'expired-a', {TTL_MS: '10000'});
-  await untilPast(await expiresAt('expired-a'));
-  await withHost('expired', {}, started => client(started, 'ended',
-    ['expired-a'], {END_REASON: 'failed'}));
-  assert.deepEqual(await counts('expired'), none);
+  pastDeadline.push(async () => {
+    await untilPast(await expiresAt('expired-a'));
+    await withHost('expired', {}, started => client(started, 'ended',
+      ['expired-a'], {END_REASON: 'failed'}));
+    assert.deepEqual(await counts('expired'), none);
+  });
 
   // 5. A configuration changed while waiting (to allow) does not resume the
   // held request: it ends without a Run and nothing is dispatched.
@@ -870,5 +885,12 @@ if (!recoveryOnly) {
     client(started, 'finished', ['batch-b']));
   assert.deepEqual(await counts('batch'), ran());
 }
+for (const restartAfterCrash of pastDeadline) await restartAfterCrash();
 console.log(recoveryOnly ? 'packed client Checkpoint recovery: ok'
   : 'packed client Checkpoint acceptance: ok');
+// A failed run keeps its installation, states and event logs for diagnosis.
+if (process.env.ACTQL_TEST_PRESERVE_SCRATCH === '1') {
+  console.error(`packed client Checkpoint scratch kept: ${root}`);
+} else {
+  await rm(root, {recursive: true, force: true});
+}
