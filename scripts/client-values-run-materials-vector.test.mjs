@@ -110,8 +110,18 @@ test('baseline preimages and changed normative pins independently determine the 
   const {barrier_contract_manifest_cid: barrierCid, ...barrierPreimage} = barrierManifest;
   assert.equal(cid(barrierPreimage), barrierCid);
   const current = vector(grammarCid, cid(aoaContract), barrierCid);
+  // Preserve the prior WITH/Pipe vector; the new policy changes no Values body.
+  assert.equal(vector(pin('a8f1bbabb5eeda9287716c651b398d1c0954201c985b5c70ccb78d96a9ed1416'),
+    cid(aoaContract)).run.run_definition_cid,
+  pin('47752e67dd0f083b491b0110dd181af4fd312905f5ec67952badf7a8adb832fe'));
+  // Isolate the grammar change from the registered inference barrier change.
+  assert.equal(vector(grammarCid, cid(aoaContract)).run.run_definition_cid,
+    pin('1a7ded9110cb3d2c27f151ccc75f1c6683c3a4e0316fc0570706a3c169934baf'));
+  assert.equal(vector(pin('fbbd1ae95045ce44735086efc664fd37165857f18ba449f353e7055252053d49'),
+    cid(aoaContract), barrierCid).run.run_definition_cid,
+  pin('a8b8a307827e4ebc5d2c8169acaef6dc159083e8d6d604fb6dd69dee63a815bb'));
   assert.equal(current.run.run_definition_cid,
-    pin('a8b8a307827e4ebc5d2c8169acaef6dc159083e8d6d604fb6dd69dee63a815bb'));
+    pin('556bdac2d133d93a3365be921e82f02b1bb041498095fa14e1c983273bc2581f'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
 });

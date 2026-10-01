@@ -72,6 +72,7 @@ pub(all) enum Issue {
   UnsupportedCte
   UnsupportedGraph
   UnsupportedInfer
+  UnsupportedNearest
   Construction(@builder.Issue)
   Expression(@expression.Diagnostic)
   Admission(@program.SyntaxError)
@@ -651,11 +652,8 @@ fn append_expression(
 }
 
 ///|
-fn order_expression_slot(
+fn order_output_slot(
   path : Array[@query.NamePart],
-  query : @query.Query,
-  input : Input,
-  fields : Array[String],
   selected : Array[(String, String)],
 ) -> String? {
   if path.length() == 1 {
@@ -665,7 +663,44 @@ fn order_expression_slot(
       }
     }
   }
-  resolve_column(path, query, input, fields)
+  None
+}
+
+///|
+// Expression equality only permits reuse when ORDER has the same reference
+// meaning as SELECT. A colliding output alias can change a nested reference.
+fn reusable_order_expression(
+  expression : @query.Expression,
+  selected : Array[(@query.Expression, String)],
+  aliases : Array[(String, String)],
+  input_slot : (Array[@query.NamePart]) -> String?,
+) -> String? {
+  for path in join_reference_paths(expression) {
+    match order_output_slot(path, aliases) {
+      Some(slot) if input_slot(path) != Some(slot) => return None
+      _ => ()
+    }
+  }
+  for (value, slot) in selected {
+    if same_expression(expression, value) {
+      return Some(slot)
+    }
+  }
+  None
+}
+
+///|
+fn order_expression_slot(
+  path : Array[@query.NamePart],
+  query : @query.Query,
+  input : Input,
+  fields : Array[String],
+  selected : Array[(String, String)],
+) -> String? {
+  match order_output_slot(path, selected) {
+    Some(slot) => Some(slot)
+    None => resolve_column(path, query, input, fields)
+  }
 }
 
 ///|
@@ -1183,6 +1218,7 @@ fn compile_steps(
   preserve_identity_select : Bool,
   final_alias : String,
   graph_bindings_only? : Bool = false,
+  nearest_inputs? : Array[Input] = [],
 ) -> (Array[@builder.Node], Array[String]) raise Abort {
   let step_entries : Array[Array[(String, @builder.Node)]] = []
   let mut output = fields.copy()
@@ -1194,6 +1230,8 @@ fn compile_steps(
   let mut pending_select : Array[(String, @builder.Node)]? = None
   let mut pending_bindings : Array[(String, String)] = []
   let mut selected_expressions : Array[(@query.Expression, String)] = []
+  let mut selected_input_fields = fields.copy()
+  let mut selected_output_slots : Array[(String, String)] = []
   let mut pipe_visible = fields.map(field => (field, field))
   let initial_range = query_range_name(query)
   let mut pipe_ranges = [(initial_range, pipe_visible.copy())]
@@ -1228,6 +1266,35 @@ fn compile_steps(
       first = false
     }
     match operation {
+      Nearest(clause) => {
+        let matches = nearest_inputs.filter(candidate => {
+          same_relation_path(candidate.relation, clause.relation)
+        })
+        guard matches.length() == 1 else { raise Abort(UnknownRelation) }
+        let (steps, fields) = lower_nearest_steps(
+          construction,
+          clause,
+          matches[0],
+          pipe_visible,
+          pipe_ranges,
+          active_fields,
+          entries,
+          i,
+          nearest_inputs.map(input => input.name),
+          max_work,
+        )
+        step_entries.append(steps)
+        entries.clear()
+        active_fields = fields.copy()
+        output = fields
+        pipe_visible = active_fields.map(field => (field, field))
+        pipe_ranges = []
+        pipe_rebound = true
+        pipe_changed = false
+        grouped = false
+        selected_expressions = []
+        deferred = true
+      }
       Infer(clause) => {
         let (steps, fields) = lower_infer_steps(
           construction,
@@ -1856,6 +1923,7 @@ fn compile_steps(
         deferred = true
       }
       Select(projections, distinct) => {
+        selected_input_fields = active_fields.copy()
         let names : Array[String] = []
         let derives : Array[(String, @builder.Node)] = []
         let temporary_names : Array[String] = []
@@ -1960,6 +2028,7 @@ fn compile_steps(
         output = names
         pipe_visible = names.map(name => (name, name))
         selected_expressions = expressions
+        selected_output_slots = bindings.copy()
         add_distinct = distinct
         let needs_input_order = if distinct {
           false
@@ -1967,9 +2036,13 @@ fn compile_steps(
           match @query.operation_at(query, i + 1) {
             Some(Order(terms)) =>
               terms.any(term => {
-                let selected_expression = expressions.any(pair => {
-                  same_expression(term.expression, pair.0)
-                })
+                let selected_expression = reusable_order_expression(
+                    term.expression,
+                    expressions,
+                    bindings,
+                    path => resolve_column(path, query, input, active_fields),
+                  )
+                  is Some(_)
                 let selected_name = match
                   @query.expression_node(
                     term.expression,
@@ -2131,13 +2204,12 @@ fn compile_steps(
             _ => ()
           }
           if selected is None {
-            for pair in selected_expressions {
-              if selected is None && same_expression(term.expression, pair.0) {
-                // Equal expressions are alternative already evaluated slots,
-                // not an ambiguous reference to different column names.
-                selected = Some(pair.1)
-              }
-            }
+            selected = reusable_order_expression(
+              term.expression,
+              selected_expressions,
+              selected_output_slots,
+              path => resolve_column(path, query, input, selected_input_fields),
+            )
           }
           let name = match selected {
             Some(field) => {
@@ -2285,6 +2357,53 @@ fn compile_steps(
 }
 
 ///|
+// Reuse the same explicit acquisition boundary for ordinary and CTE sources.
+// Downstream projection and shared CTE references consume the captured Result.
+fn capture_source_boundary(
+  construction : Construction,
+  stage_id : String,
+  input_name : String,
+  imported : @builder.Node,
+  fields : Array[String],
+  predicate : @builder.Node,
+) -> (@builder.Node, @builder.Node) raise Abort {
+  let capture_filter = construction.object([
+    ("from", construction.text(input_name)),
+    ("filter", predicate),
+  ])
+  let capture_step = construction.object([
+    (
+      "select",
+      construction.array(fields.map(field => construction.text(field))),
+    ),
+    ("as", construction.text("aql_capture_0")),
+  ])
+  let capture_result = construction.object([
+    ("from", construction.text("aql_capture_0")),
+    (
+      "fields",
+      construction.array(fields.map(field => construction.text(field))),
+    ),
+  ])
+  let capture = construction.object([
+    ("id", construction.text(stage_id)),
+    ("inputs", construction.object([(input_name, imported)])),
+    ("steps", construction.array([capture_filter, capture_step])),
+    ("results", construction.object([("source", capture_result)])),
+  ])
+  let source_ref = construction.object([
+    (
+      "result",
+      construction.object([
+        ("stage", construction.text(stage_id)),
+        ("result", construction.text("source")),
+      ]),
+    ),
+  ])
+  (capture, source_ref)
+}
+
+///|
 // Supplied source fragments are admitted projections of a compile context.
 // This frontend does not ask a provider for rows or infer schema during check.
 pub fn compile(
@@ -2292,6 +2411,21 @@ pub fn compile(
   context : Context,
   limits : Limits,
 ) -> Result[@program.Program, Issue] {
+  let mut has_nearest = false
+  for i in 0..<@query.operation_count(query) {
+    if @query.operation_at(query, i) is Some(Nearest(_)) {
+      has_nearest = true
+    }
+  }
+  if has_nearest &&
+    (
+      @query.cte_count(query) > 0 ||
+      @query.set_part_count(query) > 0 ||
+      @query.join_part_count(query) > 0 ||
+      @query.graph_query(query) is Some(_)
+    ) {
+    return Err(UnsupportedNearest)
+  }
   if @query.graph_query(query) is Some(_) {
     return compile_graph_query(query, context, limits)
   }
@@ -2325,6 +2459,8 @@ pub fn compile(
   }
   let construction : Construction = { builder, generated, }
   try {
+    let dependencies = nearest_dependencies(query, context.inputs)
+    let reused_query_source = dependencies.any(other => other.name == input.name)
     let fragment = match input.source {
       Captured(declaration) => declaration
       GeneratedValues(step) => step
@@ -2340,7 +2476,7 @@ pub fn compile(
         match context.captured_stage {
           Some(stage_id) => {
             let predicate = match @query.operation_at(query, 0) {
-              Some(Where(expression)) => {
+              Some(Where(expression)) if !reused_query_source => {
                 start_at = 1
                 append_expression(
                   construction,
@@ -2354,43 +2490,14 @@ pub fn compile(
               _ =>
                 construction.object([("literal", construction.add(Bool(true)))])
             }
-            let capture_filter = construction.object([
-              ("from", construction.text(input.name)),
-              ("filter", predicate),
-            ])
-            let capture_step = construction.object([
-              (
-                "select",
-                construction.array(
-                  fields.map(field => construction.text(field)),
-                ),
-              ),
-              ("as", construction.text("aql_capture_0")),
-            ])
-            let capture_result = construction.object([
-              ("from", construction.text("aql_capture_0")),
-              (
-                "fields",
-                construction.array(
-                  fields.map(field => construction.text(field)),
-                ),
-              ),
-            ])
-            let capture = construction.object([
-              ("id", construction.text(stage_id)),
-              ("inputs", construction.object([(input.name, imported)])),
-              ("steps", construction.array([capture_filter, capture_step])),
-              ("results", construction.object([("source", capture_result)])),
-            ])
-            let source_ref = construction.object([
-              (
-                "result",
-                construction.object([
-                  ("stage", construction.text(stage_id)),
-                  ("result", construction.text("source")),
-                ]),
-              ),
-            ])
+            let (capture, source_ref) = capture_source_boundary(
+              construction,
+              stage_id,
+              input.name,
+              imported,
+              fields,
+              predicate,
+            )
             ([(input.name, source_ref)], [], Some(capture))
           }
           None => ([(input.name, imported)], [], None)
@@ -2403,6 +2510,52 @@ pub fn compile(
       }
       StageResult(_, _) => raise Abort(InvalidContext)
     }
+    let capture_stages = match capture_stage {
+      Some(stage) => [stage]
+      None => []
+    }
+    for candidate in dependencies {
+      if candidate.name == input.name {
+        if !same_relation_path(candidate.relation, input.relation) {
+          raise Abort(InvalidContext)
+        }
+        continue
+      }
+      match candidate.source {
+        GeneratedValues(step) => {
+          if context.captured_stage is Some(_) {
+            raise Abort(InvalidContext)
+          }
+          seed_steps.push(import_query_cursor(construction, step))
+        }
+        Captured(declaration) => {
+          let imported = import_query_cursor(construction, declaration)
+          match context.captured_stage {
+            None => input_entries.push((candidate.name, imported))
+            Some(stage_id) => {
+              let capture_id = stage_id +
+                "_nearest_" +
+                capture_stages.length().to_string()
+              if capture_id == context.stage_id ||
+                context.inputs.any(input => input.name == capture_id) {
+                raise Abort(InvalidContext)
+              }
+              let (capture, reference) = capture_source_boundary(
+                construction,
+                capture_id,
+                candidate.name,
+                imported,
+                columns(candidate),
+                construction.object([("literal", construction.add(Bool(true)))]),
+              )
+              capture_stages.push(capture)
+              input_entries.push((candidate.name, reference))
+            }
+          }
+        }
+        StageResult(_, _) => raise Abort(UnsupportedNearest)
+      }
+    }
     let (steps, output) = compile_steps(
       construction,
       query,
@@ -2414,6 +2567,8 @@ pub fn compile(
       start_at,
       context.captured_stage is Some(_),
       "aql_gen_0",
+      nearest_inputs=[input] +
+        dependencies.filter(other => other.name != input.name),
     )
     let all_steps = seed_steps + steps
     let result_source = if steps.is_empty() { input.name } else { "aql_gen_0" }
@@ -2430,10 +2585,7 @@ pub fn compile(
       ("steps", construction.array(all_steps)),
       ("results", construction.object([(context.stage_result, result)])),
     ])
-    let stages = match capture_stage {
-      Some(capture) => [capture, stage]
-      None => [stage]
-    }
+    let stages = capture_stages + [stage]
     let root = program_root(construction, context, stages)
     let source = match @builder.finish(builder, root) {
       Ok(source) => source
@@ -2597,19 +2749,69 @@ fn compile_cte_query(
       if captures_source {
         captured_owner = true
       }
-      let stage_name = if captures_source {
-        context.captured_stage.unwrap_or("aql_cte_" + index.to_string())
-      } else {
-        "aql_cte_" + index.to_string()
+      let mut body_start = 0
+      if captures_source && context.captured_stage is Some(capture_name) {
+        if capture_name == context.stage_id ||
+          capture_name == "" ||
+          used_stage_names.contains(capture_name) {
+          raise Abort(InvalidContext)
+        }
+        let input = selected_relation(body_relation, {
+          ..context,
+          inputs: known,
+        })
+        guard input.source is Captured(declaration) else {
+          raise Abort(InvalidContext)
+        }
+        let imported = match
+          @builder.import_cursor(builder, declaration, generated) {
+          Ok(node) => node
+          Err(issue) => raise Abort(Construction(issue))
+        }
+        let predicate = match @query.operation_at(cte.query, 0) {
+          Some(Where(expression)) => {
+            body_start = 1
+            append_expression(
+              construction,
+              expression,
+              cte.query,
+              input,
+              columns(input),
+              limits.max_expression_work,
+            )
+          }
+          _ => construction.object([("literal", construction.add(Bool(true)))])
+        }
+        let (capture, _) = capture_source_boundary(
+          construction,
+          capture_name,
+          input.name,
+          imported,
+          columns(input),
+          predicate,
+        )
+        stages.push(capture)
+        used_stage_names.push(capture_name)
+        known = known.map(value => {
+          if same_relation_path(value.relation, input.relation) {
+            { ..value, source: StageResult(capture_name, "source"), }
+          } else {
+            value
+          }
+        })
       }
-      if stage_name == context.stage_id || used_stage_names.contains(stage_name) {
-        raise Abort(InvalidContext)
-      }
-      used_stage_names.push(stage_name)
+      let stage_name = "aql_cte_" + index.to_string()
       let (stage, binding) = compile_cte_stage(
-        construction, cte, known, context, limits, stage_name,
+        construction, cte, known, context, limits, stage_name, body_start,
       )
-      stages.push(stage)
+      if stage is Some(stage) {
+        if stage_name == context.stage_id ||
+          used_stage_names.contains(stage_name) {
+          raise Abort(InvalidContext)
+        }
+        used_stage_names.push(stage_name)
+        stages.push(stage)
+      }
       known = known.filter(input => {
         !same_relation_path(input.relation, [cte.name])
       })
@@ -2734,7 +2936,8 @@ fn compile_cte_stage(
   context : Context,
   limits : Limits,
   stage_name : String,
-) -> (@builder.Node, Input) raise Abort {
+  body_start : Int,
+) -> (@builder.Node?, Input) raise Abort {
   let body = cte.query
   if @query.set_part_count(body) != 0 ||
     @query.join_part_count(body) > 1 ||
@@ -2804,7 +3007,7 @@ fn compile_cte_stage(
       ),
     ])
     return (
-      stage,
+      Some(stage),
       {
         relation: [cte.name],
         name: cte.name.value,
@@ -2866,10 +3069,31 @@ fn compile_cte_stage(
     limits.max_expression_work,
     limits.max_collection_items,
     limits.max_collection_bytes,
-    0,
+    body_start,
     input.source is Captured(_),
     final_alias,
   )
+  // A CTE with no remaining computation binds the existing producer after
+  // scope validation. compile_steps may emit a synthetic identity projection
+  // for a range alias; an explicit SELECT still keeps its own computation.
+  let mut binding_only = true
+  for i in body_start..<@query.operation_count(body) {
+    if !(@query.operation_at(body, i) is Some(Alias(_))) {
+      binding_only = false
+    }
+  }
+  if binding_only && seed.is_empty() && input.source is StageResult(_, _) {
+    return (
+      None,
+      {
+        relation: [cte.name],
+        name: cte.name.value,
+        source: input.source,
+        visible_fields: body_output,
+        graph_bindings: [],
+      },
+    )
+  }
   let body_from = if body_steps.is_empty() { input.name } else { final_alias }
   let stage = construction.object([
     ("id", construction.text(stage_name)),
@@ -2894,7 +3118,7 @@ fn compile_cte_stage(
     ),
   ])
   (
-    stage,
+    Some(stage),
     {
       relation: [cte.name],
       name: cte.name.value,
@@ -2973,12 +3197,14 @@ fn compile_cte_join_steps(
     raise Abort(UnsupportedCte)
   }
   if part.kind != "full" {
-    let (projected, visible_names, order_fields, next) = join_order_projection(
-      query, projections, distinct, select_index, left_fields, right_fields,
+    let (projected, visible_names, order_fields, order_expressions, next) = join_order_projection(
+      query, projections, distinct, select_index, part, left_qualifier, right_qualifier,
+      left_fields, right_fields,
     )
     let (select, tail, output, joined) = joined_projection(
       construction,
       projected,
+      order_expressions,
       predicate,
       part,
       left_qualifier,
@@ -4171,6 +4397,7 @@ fn join_reference_paths(
 fn joined_projection(
   construction : Construction,
   projections : Array[@query.Projection],
+  order_expressions : Array[(String, @query.Expression)],
   predicate : @query.Expression?,
   part : @query.JoinPart,
   left_qualifier : @query.NamePart,
@@ -4186,7 +4413,8 @@ fn joined_projection(
 ) raise Abort {
   let select : Array[(String, @builder.Node)] = []
   let output : Array[String] = []
-  let mut private_projection = predicate is Some(_)
+  let mut private_projection = predicate is Some(_) ||
+    !order_expressions.is_empty()
   for projection in projections {
     guard projection.expression is Some(expression) &&
       projection.aggregate is None &&
@@ -4251,13 +4479,29 @@ fn joined_projection(
       }
     None => ()
   }
+  let aliases = output.map(name => (name, name))
+  for (_, expression) in order_expressions {
+    for path in join_reference_paths(expression) {
+      if order_output_slot(path, aliases) is None {
+        let field = join_projection_field(
+          path, part, left_qualifier, right_qualifier, left_fields, right_fields,
+        )
+        if !required.contains(field) {
+          required.push(field)
+        }
+      }
+    }
+  }
   if required.is_empty() {
     if left_fields.is_empty() {
       raise Abort(UnsupportedJoin)
     }
     required.push(("left", left_fields[0]))
   }
-  let reserved = output + left_fields + right_fields
+  let reserved = output +
+    order_expressions.map(pair => pair.0) +
+    left_fields +
+    right_fields
   let slots : Array[(String, String, String)] = []
   for field in required {
     let slot = pipe_physical_name(reserved, "aql_join_input_")
@@ -4306,6 +4550,7 @@ fn joined_projection(
   }
   let derivations : Array[(String, @builder.Node)] = []
   let final_select : Array[@builder.Node] = []
+  let output_slots : Array[(String, String)] = []
   for index in 0..<projections.length() {
     let expression = projections[index].expression.unwrap()
     let name = output[index]
@@ -4319,6 +4564,7 @@ fn joined_projection(
         final_select.push(
           construction.object([(name, construction.text(slot))]),
         )
+        output_slots.push((name, slot))
       }
       _ => {
         let value = match
@@ -4333,6 +4579,7 @@ fn joined_projection(
         }
         derivations.push((name, value))
         final_select.push(construction.text(name))
+        output_slots.push((name, name))
       }
     }
   }
@@ -4345,6 +4592,37 @@ fn joined_projection(
       ]),
     )
     from = "aql_join_derived"
+  }
+  let order_derivations : Array[(String, @builder.Node)] = []
+  for (name, expression) in order_expressions {
+    let value = match
+      @expression.append(
+        expression,
+        path => {
+          match order_output_slot(path, output_slots) {
+            Some(slot) => Some(slot)
+            None => resolve(path)
+          }
+        },
+        construction.builder,
+        max_work,
+      ) {
+      Ok(value) => value
+      Err(error) => raise Abort(Expression(error))
+    }
+    order_derivations.push((name, value))
+    final_select.push(construction.text(name))
+    output.push(name)
+  }
+  if !order_derivations.is_empty() {
+    tail.push(
+      construction.object([
+        ("from", construction.text(from)),
+        ("derive", construction.object(order_derivations)),
+        ("as", construction.text("aql_join_order_derived")),
+      ]),
+    )
+    from = "aql_join_order_derived"
   }
   tail.push(
     construction.object([
@@ -4365,12 +4643,16 @@ fn join_order_projection(
   projections : Array[@query.Projection],
   distinct : Bool,
   select_index : Int,
+  part : @query.JoinPart,
+  left_qualifier : @query.NamePart,
+  right_qualifier : @query.NamePart,
   left_fields : Array[String],
   right_fields : Array[String],
 ) -> (
   Array[@query.Projection],
   Array[String],
   Array[(String, String, String)],
+  Array[(String, @query.Expression)],
   Int,
 ) raise Abort {
   let visible_names : Array[String] = []
@@ -4396,7 +4678,30 @@ fn join_order_projection(
     }
     visible_names.push(name)
   }
-  let projected = projections.copy()
+  let selected_expressions : Array[(@query.Expression, String)] = []
+  let aliases : Array[(String, String)] = []
+  let input_slot = fn(path : Array[@query.NamePart]) -> String? {
+    let resolved = Some(
+      join_projection_field(
+        path, part, left_qualifier, right_qualifier, left_fields, right_fields,
+      ),
+    ) catch {
+      Abort(_) => None
+    }
+    resolved.map(field => field.0 + "." + field.1)
+  }
+  for index in 0..<projections.length() {
+    let expression = projections[index].expression.unwrap()
+    selected_expressions.push((expression, visible_names[index]))
+    let identity = match
+      @query.expression_node(expression, @query.expression_root(expression)).unwrap().kind {
+      Reference(path) =>
+        input_slot(path).unwrap_or("projection:" + index.to_string())
+      _ => "projection:" + index.to_string()
+    }
+    aliases.push((visible_names[index], identity))
+  }
+  let order_expressions : Array[(String, @query.Expression)] = []
   let order_fields : Array[(String, String, String)] = []
   let mut next = select_index + 1
   match @query.operation_at(query, next) {
@@ -4416,30 +4721,25 @@ fn join_order_projection(
           _ => ()
         }
         if selected is None {
-          for index in 0..<projections.length() {
-            if projections[index].expression is Some(value) &&
-              same_expression(expression, value) {
-              if selected is Some(_) {
-                raise Abort(UnsupportedOrdering)
-              }
-              selected = Some(visible_names[index])
-            }
-          }
+          selected = reusable_order_expression(
+            expression, selected_expressions, aliases, input_slot,
+          )
         }
         if selected is None {
           if distinct {
             raise Abort(UnsupportedOrdering)
           }
-          let hidden = pipe_physical_name(reserved, "aql_join_sort_")
-          reserved.push(hidden)
-          projected.push({
-            expression: Some(expression),
-            aggregate: None,
-            analytic: None,
-            name: Some({ value: hidden, quoted: false, }),
-            star: None,
-          })
-          selected = Some(hidden)
+          for (name, value) in order_expressions {
+            if same_expression(expression, value) {
+              selected = Some(name)
+            }
+          }
+          if selected is None {
+            let hidden = pipe_physical_name(reserved, "aql_join_sort_")
+            reserved.push(hidden)
+            order_expressions.push((hidden, expression))
+            selected = Some(hidden)
+          }
         }
         order_fields.push((selected.unwrap(), term.direction, term.nulls))
       }
@@ -4447,7 +4747,7 @@ fn join_order_projection(
     }
     _ => ()
   }
-  (projected, visible_names, order_fields, next)
+  (projections, visible_names, order_fields, order_expressions, next)
 }
 
 ///|
@@ -4577,12 +4877,14 @@ fn compile_join_query(
       is Some(Select(projections, distinct)) else {
       raise Abort(UnsupportedJoin)
     }
-    let (projected, visible_names, order_fields, next) = join_order_projection(
-      query, projections, distinct, select_index, left_fields, right_fields,
+    let (projected, visible_names, order_fields, order_expressions, next) = join_order_projection(
+      query, projections, distinct, select_index, part, left_qualifier, right_qualifier,
+      left_fields, right_fields,
     )
     let (select, computed_steps, output, joined) = joined_projection(
       construction,
       projected,
+      order_expressions,
       predicate,
       part,
       left_qualifier,

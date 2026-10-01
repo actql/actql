@@ -3,31 +3,29 @@
   "status": "adopted_design_not_runtime_evidence",
   "program_semantics": "actql/0.1",
   "frontend_profiles": [
-    "actql-text/0.1",
     "actql-query/0.1",
     "actql-pattern/0.1"
   ],
   "current_milestone": [
-    "PR-0",
-    "PR-1",
-    "PR-2"
+    "public_structural_retirement"
   ],
   "principles": [
     "one_canonical_program",
     "no_checker_bypass",
     "no_new_runtime",
     "explicit_effects_and_acquisitions",
-    "legacy_semantics_preserved",
     "no_silent_approximation",
-    "bounded_frontend_expansion"
+    "bounded_frontend_expansion",
+    "machine_program_semantics_preserved",
+    "adopted_target_not_shrunk_by_implementation_gaps"
   ],
   "structured_total_coverage": [
     {
       "operation": "filter",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -35,8 +33,8 @@
       "operation": "select",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -44,8 +42,8 @@
       "operation": "rename",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -53,8 +51,8 @@
       "operation": "drop",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -62,8 +60,8 @@
       "operation": "derive",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -71,8 +69,8 @@
       "operation": "sort",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -80,8 +78,8 @@
       "operation": "take",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -89,8 +87,8 @@
       "operation": "top_k",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -98,8 +96,8 @@
       "operation": "top_k_by",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -107,8 +105,8 @@
       "operation": "row_window",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -116,8 +114,8 @@
       "operation": "window_group",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -125,8 +123,8 @@
       "operation": "lag",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -134,8 +132,8 @@
       "operation": "watermark_rows",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -143,8 +141,8 @@
       "operation": "pivot",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -152,8 +150,8 @@
       "operation": "unpivot",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -161,8 +159,8 @@
       "operation": "json_pick",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -170,8 +168,8 @@
       "operation": "unnest",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -179,8 +177,8 @@
       "operation": "join",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -188,8 +186,8 @@
       "operation": "nest",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -197,8 +195,8 @@
       "operation": "group",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -206,8 +204,8 @@
       "operation": "distinct",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -215,8 +213,8 @@
       "operation": "dedupe_rows",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -224,8 +222,8 @@
       "operation": "assert_rows",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -233,8 +231,8 @@
       "operation": "append",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -242,8 +240,8 @@
       "operation": "values",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -251,8 +249,8 @@
       "operation": "except",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -260,8 +258,8 @@
       "operation": "intersect",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -269,8 +267,8 @@
       "operation": "cross_join",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -278,8 +276,8 @@
       "operation": "analytic",
       "family": "RelA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -287,8 +285,8 @@
       "operation": "normalize_graph",
       "family": "SGA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -296,8 +294,8 @@
       "operation": "match_nodes",
       "family": "SGA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -305,8 +303,8 @@
       "operation": "match_edges",
       "family": "SGA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -314,8 +312,8 @@
       "operation": "traverse",
       "family": "SGA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -323,8 +321,8 @@
       "operation": "shortest_path",
       "family": "SGA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -332,8 +330,8 @@
       "operation": "components",
       "family": "SGA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -341,8 +339,8 @@
       "operation": "reach",
       "family": "SGA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -350,8 +348,8 @@
       "operation": "graph_bounds",
       "family": "SGA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -359,8 +357,8 @@
       "operation": "degree",
       "family": "SGA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -368,8 +366,8 @@
       "operation": "graph_diff",
       "family": "SGA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -377,8 +375,8 @@
       "operation": "graft_graph",
       "family": "SGA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -386,8 +384,8 @@
       "operation": "union_graphs",
       "family": "SGA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -395,8 +393,8 @@
       "operation": "subtract_graphs",
       "family": "SGA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -404,8 +402,8 @@
       "operation": "subgraph",
       "family": "SGA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -413,8 +411,8 @@
       "operation": "graphs_equal",
       "family": "SGA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -422,8 +420,8 @@
       "operation": "apply_graph_delta",
       "family": "SGA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -431,8 +429,8 @@
       "operation": "mean_graphs",
       "family": "SGA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -440,8 +438,8 @@
       "operation": "window_events",
       "family": "TEA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -449,8 +447,8 @@
       "operation": "watermark_events",
       "family": "TEA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -458,8 +456,8 @@
       "operation": "session",
       "family": "TEA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -467,8 +465,8 @@
       "operation": "time_series",
       "family": "TEA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -476,8 +474,8 @@
       "operation": "interval_join",
       "family": "TEA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -485,8 +483,8 @@
       "operation": "dedupe_events",
       "family": "TEA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -494,8 +492,8 @@
       "operation": "asof_join",
       "family": "TEA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -503,8 +501,8 @@
       "operation": "sequence",
       "family": "TEA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -512,8 +510,8 @@
       "operation": "calendar_bucket",
       "family": "Calendar",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -521,8 +519,8 @@
       "operation": "calendar_series",
       "family": "Calendar",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -530,8 +528,8 @@
       "operation": "normalize_vectors",
       "family": "VecA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -539,8 +537,8 @@
       "operation": "score_vectors",
       "family": "VecA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -548,8 +546,8 @@
       "operation": "nearest",
       "family": "VecA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -557,8 +555,8 @@
       "operation": "pool_vectors",
       "family": "VecA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -566,8 +564,8 @@
       "operation": "merge_rankings",
       "family": "VecA",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -575,8 +573,8 @@
       "operation": "graph",
       "family": "Bridge",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -584,8 +582,8 @@
       "operation": "node_rows",
       "family": "Bridge",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -593,8 +591,8 @@
       "operation": "edge_rows",
       "family": "Bridge",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -602,8 +600,8 @@
       "operation": "to_events",
       "family": "Bridge",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -611,8 +609,8 @@
       "operation": "events",
       "family": "Bridge",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -620,8 +618,8 @@
       "operation": "to_vectors",
       "family": "Bridge",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -629,8 +627,8 @@
       "operation": "vectors",
       "family": "Bridge",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -638,8 +636,8 @@
       "operation": "infer",
       "family": "Acquisition",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -647,8 +645,8 @@
       "operation": "search_candidates",
       "family": "Acquisition",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -656,8 +654,8 @@
       "operation": "text_rank",
       "family": "Search",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     },
@@ -665,8 +663,8 @@
       "operation": "serialize",
       "family": "Artifact",
       "surface": [
-        "STEP",
-        "OP"
+        "Program JSON",
+        "Program YAML"
       ],
       "runtime_support": "determined_by_existing_contract_checker_and_host"
     }
@@ -684,16 +682,14 @@
         "PARAMS",
         "BINDINGS"
       ],
-      "canonical_lowering": "normal Program envelope",
+      "canonical_lowering": null,
       "preconditions": [
-        "existing closed envelope constraints"
+        "historical internal fixture only; no public compatibility route"
       ],
       "spec_section": "5",
-      "execution_evidence_ids": [
-        "frontend-pr2-structural"
-      ],
-      "adoption": "supported",
-      "implementation_status": "implemented",
+      "execution_evidence_ids": [],
+      "adoption": "rejected",
+      "implementation_status": "retired",
       "delivery_unit": "PR-2",
       "acceptance_case_ids": [
         "STR-02",
@@ -711,16 +707,14 @@
         "STEP JSON",
         "OP name JSON"
       ],
-      "canonical_lowering": "exact registered canonical operation",
+      "canonical_lowering": null,
       "preconditions": [
-        "operation name must exist in closed inventory"
+        "historical internal fixture only; no public compatibility route"
       ],
       "spec_section": "5.5",
-      "execution_evidence_ids": [
-        "frontend-pr2-structural"
-      ],
-      "adoption": "supported",
-      "implementation_status": "implemented",
+      "execution_evidence_ids": [],
+      "adoption": "rejected",
+      "implementation_status": "retired",
       "delivery_unit": "PR-2",
       "acceptance_case_ids": [
         "STR-01",
@@ -1107,7 +1101,7 @@
       "spec_section": "10.2",
       "execution_evidence_ids": [],
       "adoption": "supported",
-      "implementation_status": "not_implemented",
+      "implementation_status": "partial",
       "delivery_unit": "PR-6",
       "acceptance_case_ids": [
         "VEC-01",
@@ -1115,7 +1109,10 @@
         "VEC-06",
         "VEC-09"
       ],
-      "additional_fixture_requirements": []
+      "additional_fixture_requirements": [
+        "singleton NEAREST KEEP source lowering is not packed execution evidence",
+        "composite Program identity bridge and common object execution remain pending"
+      ]
     },
     {
       "feature_id": "vector.search",
@@ -1285,20 +1282,18 @@
     {
       "feature_id": "effect.declaration",
       "surface_forms": [
-        "EFFECT name = JSON"
+        "|> EFFECT name ...",
+        "EFFECT name ..."
       ],
       "canonical_lowering": "stage effect map",
       "preconditions": [
-        "not pipe",
-        "named Result",
-        "mapping contract"
+        "explicit terminal Effect; ordinary checked owner",
+        "mapping and authority contracts unchanged"
       ],
       "spec_section": "12.2",
-      "execution_evidence_ids": [
-        "frontend-pr2-structural"
-      ],
+      "execution_evidence_ids": [],
       "adoption": "supported",
-      "implementation_status": "implemented",
+      "implementation_status": "not_implemented",
       "delivery_unit": "PR-2",
       "acceptance_case_ids": [
         "FX-01",
@@ -1309,7 +1304,9 @@
         "FX-11",
         "SYS-04"
       ],
-      "additional_fixture_requirements": []
+      "additional_fixture_requirements": [
+        "Adopted target Effect surface lowering and public execution; retired EFFECT name = JSON is not a substitute"
+      ]
     },
     {
       "feature_id": "sql.insert",
@@ -1520,7 +1517,6 @@
     {
       "feature_id": "effect.hidden",
       "surface_forms": [
-        "|> EFFECT",
         "infer(...) in scalar expression",
         "raw HTTP",
         "arbitrary WASM"
@@ -1530,9 +1526,7 @@
         "violates existing boundaries"
       ],
       "spec_section": "12",
-      "execution_evidence_ids": [
-        "frontend-pr2-structural"
-      ],
+      "execution_evidence_ids": [],
       "adoption": "rejected",
       "implementation_status": "partial",
       "delivery_unit": "PR-2",
@@ -1541,7 +1535,7 @@
         "FX-13"
       ],
       "additional_fixture_requirements": [
-        "Query scalar INFER rejection in PR-3; pipe EFFECT rejection in PR-4"
+        "Query scalar INFER, raw HTTP and arbitrary WASM rejection; explicit Pipe EFFECT is adopted but not implemented"
       ]
     },
     {
@@ -1569,5 +1563,8 @@
   ],
   "implementation_evidence": {
     "frontend-pr2-structural": "docs/reviews/2026-09-27-frontend-pr2.md"
-  }
+  },
+  "retired_public_profiles": [
+    "actql-text/0.1"
+  ]
 }

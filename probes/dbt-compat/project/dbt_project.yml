@@ -1,0 +1,17 @@
+# Compile-only project for the ActQL compatibility probe. Nothing here is
+# materialized: dbt only renders the models, and ActQL runs the compiled SQL.
+name: actql_probe
+version: '0.1.0'
+config-version: 2
+profile: actql_probe
+model-paths: ['models']
+# ActQL reads `memory.main.stg_orders`; it does not accept double-quoted
+# identifiers. Every identifier here is a plain lowercase name, so leaving it
+# unquoted does not change which relation it names.
+quoting:
+  database: false
+  schema: false
+  identifier: false
+models:
+  actql_probe:
+    +materialized: view

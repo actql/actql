@@ -17,20 +17,25 @@ const directory = await withPackedQueryEvidence({
   keepArtifacts: process.argv.includes('--keep-artifacts'),
 }, async ({root, run, recordTarball}) => {
   const env = {...process.env, npm_config_cache: join(root, 'npm-cache')};
-  for (const name of ['run-host-core', 'client-wire']) {
+  const redelivery = process.argv.includes('--redelivery-only');
+  const outputReport = process.argv.includes('--output-report-only');
+  const packages = ['run-host-core', 'client-wire', ...((redelivery || outputReport) ? ['coordinator-core'] : [])];
+  for (const name of packages) {
     run('npm', ['pack', '--pack-destination', root, '--json'],
       {cwd: join(repository, 'packages', name), env});
     recordTarball(join(root, `actql-${name}-0.0.0-development.tgz`));
   }
   await writeFile(join(root, 'package.json'), '{"private":true,"type":"module"}\n');
   run('npm', ['install', '--offline', '--ignore-scripts', '--no-save',
-    join(root, 'actql-run-host-core-0.0.0-development.tgz'),
-    join(root, 'actql-client-wire-0.0.0-development.tgz')], {cwd: root, env});
+    ...packages.map(name => join(root, `actql-${name}-0.0.0-development.tgz`))], {cwd: root, env});
   const output = run(process.execPath,
-    [join(repository, 'scripts/test-native-resident-site.mjs'), '--materials-only'],
+    [join(repository, 'scripts/test-native-resident-site.mjs'),
+      outputReport ? '--output-report-only' : redelivery ? '--redelivery-only' : '--materials-only'],
     {cwd: root, env: {...env, ACTQL_TEST_SCRATCH_ROOT: root,
       ACTQL_TEST_RUN_HOST_CORE_MODULE: join(root,
-        'node_modules/@actql/run-host-core/index.mjs')}, timeout: 900_000});
+        'node_modules/@actql/run-host-core/index.mjs'),
+      ...((redelivery || outputReport) ? {ACTQL_TEST_COORDINATOR_CORE_MODULE: join(root,
+        'node_modules/@actql/coordinator-core/index.mjs')} : {})}, timeout: 900_000});
   console.log(output.trimEnd());
 });
 console.log(`Packed resident materials evidence: ${directory}`);

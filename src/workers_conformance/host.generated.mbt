@@ -4326,6 +4326,32 @@ pub fn strategy_remote_output_result_identity(
 }
 
 ///|
+#export_name("strategyRemoteCoordinatorOutputReportAckJson")
+pub fn strategy_remote_coordinator_output_report_ack_json(
+  record : @remote.CoordinatorOutputRecord,
+  body : String,
+) -> String raise NodeHostFailure {
+  match @remote.coordinator_output_report_ack_json(record, body) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteOutputReportReplyAdmit")
+pub fn strategy_remote_output_report_reply_admit(
+  body : String,
+  result : @remote.RemoteOutputResult,
+) -> Bool raise NodeHostFailure {
+  match @remote.admit_remote_output_report_reply_json(body, result) {
+    Ok(@remote.RemoteOutputReportReply::Accepted) => true
+    Ok(@remote.RemoteOutputReportReply::Refused(_)) => false
+    Ok(@remote.RemoteOutputReportReply::Retry(_)) => false
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteOutputResultProjection")
 pub fn strategy_remote_output_result_projection(
   result : @remote.RemoteOutputResult,
@@ -4646,6 +4672,60 @@ pub fn strategy_remote_coordinator_intent_matches(
   request : @remote.DispatchRequest,
 ) -> Bool {
   @remote.coordinator_dispatch_intent_matches_request(record, request)
+}
+
+///|
+#export_name("strategyRemoteCoordinatorDeliveryEnvelopeJson")
+pub fn strategy_remote_coordinator_delivery_envelope_json(
+  request : @remote.DispatchRequest,
+  body : String,
+) -> String raise NodeHostFailure {
+  match @remote.coordinator_delivery_envelope_json(request, body) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCoordinatorRedeliveryEligible")
+pub fn strategy_remote_coordinator_redelivery_eligible(
+  record : @remote.CoordinatorDispatchIntentRecord,
+  request : @remote.DispatchRequest,
+  not_seen_body : String,
+  expected_authority : String,
+  expected_site : String,
+  expected_generation : Int,
+  authorization_current : Bool,
+  cancellation_requested : Bool,
+) -> Bool raise NodeHostFailure {
+  match
+    @remote.coordinator_redelivery_eligible(
+      record, request, not_seen_body, expected_authority, expected_site, expected_generation,
+      authorization_current, cancellation_requested,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCoordinatorDeliveryContextCurrent")
+pub fn strategy_remote_coordinator_delivery_context_current(
+  request : @remote.DispatchRequest,
+  expected_authority : String,
+  expected_site : String,
+  expected_generation : Int,
+  authorization_current : Bool,
+  cancellation_requested : Bool,
+) -> Bool raise NodeHostFailure {
+  match
+    @remote.coordinator_delivery_context_current(
+      request, expected_authority, expected_site, expected_generation, authorization_current,
+      cancellation_requested,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
 }
 
 ///|
@@ -13098,6 +13178,32 @@ pub fn async_strategy_remote_output_result_identity(
 }
 
 ///|
+#export_name("asyncStrategyRemoteCoordinatorOutputReportAckJson")
+pub fn async_strategy_remote_coordinator_output_report_ack_json(
+  record : @remote.CoordinatorOutputRecord,
+  body : String,
+) -> String raise AsyncHostFailure {
+  match @remote.coordinator_output_report_ack_json(record, body) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteOutputReportReplyAdmit")
+pub fn async_strategy_remote_output_report_reply_admit(
+  body : String,
+  result : @remote.RemoteOutputResult,
+) -> Bool raise AsyncHostFailure {
+  match @remote.admit_remote_output_report_reply_json(body, result) {
+    Ok(@remote.RemoteOutputReportReply::Accepted) => true
+    Ok(@remote.RemoteOutputReportReply::Refused(_)) => false
+    Ok(@remote.RemoteOutputReportReply::Retry(_)) => false
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("asyncStrategyRemoteOutputResultProjection")
 pub fn async_strategy_remote_output_result_projection(
   result : @remote.RemoteOutputResult,
@@ -13418,6 +13524,60 @@ pub fn async_strategy_remote_coordinator_intent_matches(
   request : @remote.DispatchRequest,
 ) -> Bool {
   @remote.coordinator_dispatch_intent_matches_request(record, request)
+}
+
+///|
+#export_name("asyncStrategyRemoteCoordinatorDeliveryEnvelopeJson")
+pub fn async_strategy_remote_coordinator_delivery_envelope_json(
+  request : @remote.DispatchRequest,
+  body : String,
+) -> String raise AsyncHostFailure {
+  match @remote.coordinator_delivery_envelope_json(request, body) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteCoordinatorRedeliveryEligible")
+pub fn async_strategy_remote_coordinator_redelivery_eligible(
+  record : @remote.CoordinatorDispatchIntentRecord,
+  request : @remote.DispatchRequest,
+  not_seen_body : String,
+  expected_authority : String,
+  expected_site : String,
+  expected_generation : Int,
+  authorization_current : Bool,
+  cancellation_requested : Bool,
+) -> Bool raise AsyncHostFailure {
+  match
+    @remote.coordinator_redelivery_eligible(
+      record, request, not_seen_body, expected_authority, expected_site, expected_generation,
+      authorization_current, cancellation_requested,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteCoordinatorDeliveryContextCurrent")
+pub fn async_strategy_remote_coordinator_delivery_context_current(
+  request : @remote.DispatchRequest,
+  expected_authority : String,
+  expected_site : String,
+  expected_generation : Int,
+  authorization_current : Bool,
+  cancellation_requested : Bool,
+) -> Bool raise AsyncHostFailure {
+  match
+    @remote.coordinator_delivery_context_current(
+      request, expected_authority, expected_site, expected_generation, authorization_current,
+      cancellation_requested,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
 }
 
 ///|

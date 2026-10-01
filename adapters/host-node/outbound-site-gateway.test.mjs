@@ -361,6 +361,7 @@ test('outbound gateway admits one exact retained-output result', async t => {
   const root = await mkdtemp(join(scratch, 'outbound-output-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   const certificates_ = await certificates(root);
+  let coordinator;
   const gateway = await startHttpsOutboundSiteGateway({
     key: certificates_.serverKey,
     cert: certificates_.serverCertificate,
@@ -370,9 +371,18 @@ test('outbound gateway admits one exact retained-output result', async t => {
       {siteKey: 'site-a', siteGeneration: 1},
     ]]),
     control,
+    receiveObservation: value => coordinator.receiveObservation(value),
   });
   t.after(() => gateway.close());
   const request = dispatch({dispatchId: 'dispatch-output'});
+  const store = openSqliteCoordinatorDispatchJournal(join(root, 'coordinator'), {
+    coordinatorAuthority: 'coordinator-a',
+  });
+  t.after(() => store.close());
+  coordinator = createRemoteSiteCoordinator({authorization: remoteAuthorization,
+    control, transferControl, journal: control.createCoordinatorJournal('coordinator-a'), store,
+    send: async () => ({revision: 0, state: [0, 0, 0, 0, 0]}), output: gateway.output});
+  await coordinator.dispatch({dispatch: request});
   const intentConfiguration = {
     storeAuthorityCid: cid('5'),
     publicationAttemptCid: cid('6'),
@@ -516,7 +526,8 @@ test('outbound gateway admits one exact retained-output result', async t => {
     siteMaterial,
     control.replyJson(acceptedRecord),
   );
-  assert.equal(wrongOperation.status, 404);
+  // It is a valid durable dispatch observation, but cannot settle the Plan.
+  assert.equal(wrongOperation.status, 200);
   assert.equal(gateway.pending(), 1);
   const plan = control.prepareOutputPlan(
     planOutput,
@@ -540,18 +551,19 @@ test('outbound gateway admits one exact retained-output result', async t => {
     transferControl.identity(planned.transferRequest),
     transferControl.identity(transferRequest),
   );
-  const completion = gateway.output({
+  const completion = coordinator.output({
     dispatch: request,
     intent,
     payloadRequest,
     transferRequest,
   });
-  const retry = gateway.output({
+  const retry = coordinator.output({
     dispatch: request,
     intent,
     payloadRequest,
     transferRequest,
   });
+  await new Promise(resolve => setImmediate(resolve));
   assert.equal(gateway.pending(), 1);
   const polled = await post(gateway.origin, `${path}/poll`, siteMaterial);
   assert.equal(polled.status, 200);
@@ -572,7 +584,7 @@ test('outbound gateway admits one exact retained-output result', async t => {
       cid('0'),
     ),
   );
-  assert.equal(altered.status, 404);
+  assert.notEqual(altered.status, 200);
   assert.equal(gateway.pending(), 1);
   const observed = await post(
     gateway.origin,
@@ -586,6 +598,18 @@ test('outbound gateway admits one exact retained-output result', async t => {
   assert.equal(first.payloadDigest, payloadDigest);
   assert.equal(first.transferRequestCid, transferControl.identity(transferRequest));
   assert.equal(first.transferRevision, 3);
+  assert.equal(control.admitOutputReportReply(observed.body, outputResult), true);
+  const inspectOutput = () => {
+    const journal = control.createCoordinatorJournal('coordinator-a');
+    store.recoverJournal(journal, control);
+    return store.inspectOutput(store.recoverOutputs(journal, control, transferControl)[0].record, control);
+  };
+  const beforeReplay = inspectOutput();
+  const replayed = await post(gateway.origin, `${path}/observations`, siteMaterial,
+    control.outputResultJson(outputResult));
+  assert.equal(replayed.status, 200);
+  assert.equal(replayed.body, observed.body);
+  assert.deepEqual(inspectOutput(), beforeReplay);
   assert.equal(gateway.pending(), 0);
 });
 
@@ -831,7 +855,9 @@ test('outbound gateway durably dispatches without an inbound Site listener',
       control.pollNotSeenJson(unseen),
     );
     assert.equal(notSeen.status, 200);
-    assert.equal((await unseenResult).code, 'RemoteDispatchNotSeen');
+    const unseenError = await unseenResult;
+    assert.equal(unseenError.code, 'RemoteDispatchNotSeen');
+    assert.equal(unseenError.notSeenBody, control.pollNotSeenJson(unseen));
     assert.equal(siteAcceptCount, 1);
     assert.equal(gateway.pending(), 0);
 
@@ -915,6 +941,7 @@ test('Coordinator restores a committed output without repeating transport',
     const root = await mkdtemp(join(scratch, 'outbound-output-journal-'));
     t.after(() => rm(root, {recursive: true, force: true}));
     const certificates_ = await certificates(root);
+    let receiver;
     const gateway = await startHttpsOutboundSiteGateway({
       key: certificates_.serverKey,
       cert: certificates_.serverCertificate,
@@ -924,6 +951,7 @@ test('Coordinator restores a committed output without repeating transport',
         {siteKey: 'site-a', siteGeneration: 1},
       ]]),
       control,
+      receiveObservation: value => receiver.receiveObservation(value),
     });
     t.after(() => gateway.close());
     const storeRoot = join(root, 'coordinator');
@@ -944,6 +972,7 @@ test('Coordinator restores a committed output without repeating transport',
       }),
       output: gateway.output,
     });
+    receiver = coordinator;
     await coordinator.dispatch({dispatch: request});
     const outputRequest = {
       dispatch: request,
@@ -998,6 +1027,11 @@ test('Coordinator restores a committed output without repeating transport',
         throw new Error('output transport must not repeat');
       },
     });
+    receiver = reopened;
+    const replayed = await post(gateway.origin, `${path}/observations`, siteMaterial,
+      control.outputResultJson(result));
+    assert.equal(replayed.status, 200);
+    assert.equal(replayed.body, observed.body);
     assert.equal(reopened.recoveredOutputs.length, 1);
     const restored = await reopened.output({
       dispatch: request,

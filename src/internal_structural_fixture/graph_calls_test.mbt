@@ -6,7 +6,7 @@ test "named Graph calls lower through ordinary Program admission" {
     #|  DATA reached = FROM g |> reach(start: "A", direction: "out", max_depth: 2);
     #|  RESULT r = {"from":"reached"};
     #|} RESULT r = {"from":{"stage":"s","result":"r"}}; }
-  match parse(text, limits()) {
+  match parse_fixture(text, limits()) {
     Ok(_) => ()
     Err(error) => fail(@debug.to_string(error))
   }
@@ -20,7 +20,7 @@ test "named nested selector keeps its producer role" {
     #|  DATA selected = FROM g |> subgraph(nodes: {from: g, id: "node_id"});
     #|  RESULT r = {"from":"selected"};
     #|} RESULT r = {"from":{"stage":"s","result":"r"}}; }
-  match parse(text, limits()) {
+  match parse_fixture(text, limits()) {
     Ok(_) => ()
     Err(error) => fail(@debug.to_string(error))
   }
@@ -36,7 +36,7 @@ test "named graph list retains repeated references" {
     #|    properties: {nodes: {}, edges: {}});
     #|  RESULT r = {"from":"average"};
     #|} RESULT r = {"from":{"stage":"s","result":"r"}}; }
-  match parse(text, limits()) {
+  match parse_fixture(text, limits()) {
     Ok(_) => ()
     Err(error) => fail(@debug.to_string(error))
   }
@@ -50,7 +50,7 @@ test "named argument source span and measured limits remain bounded" {
     #|  DATA reached = FROM g |> reach(start: "A", direction: "out", max_depth: 2);
     #|  RESULT r = {"from":"reached"};
     #|} RESULT r = {"from":{"stage":"s","result":"r"}}; }
-  let parsed = parse(text, limits(), source_path="named-graph.aql").unwrap()
+  let parsed = parse_fixture(text, limits(), source_path="named-graph.aql").unwrap()
   let root = @decode.open_object(@syntax.program_body(program(parsed))).unwrap()
   let stage = @decode.element_at(@decode.required(root, "stages").unwrap(), 0).unwrap()
   let step = @decode.element_at(
@@ -65,14 +65,14 @@ test "named argument source span and measured limits remain bounded" {
   assert_eq(@origin.span(origin).start_line, 3)
   let syntax_nodes = usage(parsed, SyntaxNodes)
   assert_true(
-    parse(text, {
+    parse_fixture(text, {
       ..limits(),
       frontend: { ..limits().frontend, max_syntax_nodes: syntax_nodes, },
     })
     is Ok(_),
   )
   assert_true(
-    parse(text, {
+    parse_fixture(text, {
       ..limits(),
       frontend: { ..limits().frontend, max_syntax_nodes: syntax_nodes - 1, },
     })
@@ -80,7 +80,7 @@ test "named argument source span and measured limits remain bounded" {
   )
   let work = usage(parsed, LoweringWork)
   assert_true(
-    parse(text, {
+    parse_fixture(text, {
       ..limits(),
       frontend: { ..limits().frontend, max_lowering_work: work - 1, },
     })
@@ -102,8 +102,8 @@ test "named Graph call and existing OP share the Program identity" {
     #|  DATA reached = FROM g |> OP reach {"start":"A","direction":"out","max_depth":2};
     #|  RESULT r = {"from":"reached"};
     #|} RESULT r = {"from":{"stage":"s","result":"r"}}; }
-  let named_program = program(parse(named, limits()).unwrap())
-  let existing_program = program(parse(existing, limits()).unwrap())
+  let named_program = program(parse_fixture(named, limits()).unwrap())
+  let existing_program = program(parse_fixture(existing, limits()).unwrap())
   assert_eq(
     identity_projection(named_program),
     identity_projection(existing_program),

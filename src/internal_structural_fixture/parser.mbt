@@ -46,7 +46,7 @@ pub fn source(parsed : Parsed) -> @builder.Source {
 }
 
 ///|
-pub fn parse_bytes(
+pub fn parse_fixture_bytes(
   bytes : Bytes,
   limits : Limits,
   source_path? : String = "<aql>",
@@ -57,7 +57,7 @@ pub fn parse_bytes(
   let text = @utf8.decode(bytes[:], ignore_bom=false) catch {
     _ => return Err({ issue: OriginalSource(@origin.InvalidUtf8), span: None, })
   }
-  parse(text, limits, source_path~)
+  parse_fixture(text, limits, source_path~)
 }
 
 ///|
@@ -428,7 +428,7 @@ fn Parser::document(self : Parser) -> @builder.Node raise {
 }
 
 ///|
-pub fn parse(
+pub fn parse_fixture(
   text : String,
   limits : Limits,
   source_path? : String = "<aql>",

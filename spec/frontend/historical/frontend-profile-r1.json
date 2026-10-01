@@ -1,0 +1,1576 @@
+{
+  "profile": "frontend-r1",
+  "status": "adopted_design_not_runtime_evidence",
+  "program_semantics": "actql/0.1",
+  "frontend_profiles": [
+    "actql-text/0.1",
+    "actql-query/0.1",
+    "actql-pattern/0.1"
+  ],
+  "current_milestone": [
+    "PR-0",
+    "PR-1",
+    "PR-2"
+  ],
+  "principles": [
+    "one_canonical_program",
+    "no_checker_bypass",
+    "no_new_runtime",
+    "explicit_effects_and_acquisitions",
+    "legacy_semantics_preserved",
+    "no_silent_approximation",
+    "bounded_frontend_expansion"
+  ],
+  "structured_total_coverage": [
+    {
+      "operation": "filter",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "select",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "rename",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "drop",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "derive",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "sort",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "take",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "top_k",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "top_k_by",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "row_window",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "window_group",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "lag",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "watermark_rows",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "pivot",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "unpivot",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "json_pick",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "unnest",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "join",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "nest",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "group",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "distinct",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "dedupe_rows",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "assert_rows",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "append",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "values",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "except",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "intersect",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "cross_join",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "analytic",
+      "family": "RelA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "normalize_graph",
+      "family": "SGA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "match_nodes",
+      "family": "SGA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "match_edges",
+      "family": "SGA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "traverse",
+      "family": "SGA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "shortest_path",
+      "family": "SGA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "components",
+      "family": "SGA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "reach",
+      "family": "SGA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "graph_bounds",
+      "family": "SGA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "degree",
+      "family": "SGA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "graph_diff",
+      "family": "SGA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "graft_graph",
+      "family": "SGA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "union_graphs",
+      "family": "SGA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "subtract_graphs",
+      "family": "SGA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "subgraph",
+      "family": "SGA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "graphs_equal",
+      "family": "SGA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "apply_graph_delta",
+      "family": "SGA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "mean_graphs",
+      "family": "SGA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "window_events",
+      "family": "TEA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "watermark_events",
+      "family": "TEA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "session",
+      "family": "TEA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "time_series",
+      "family": "TEA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "interval_join",
+      "family": "TEA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "dedupe_events",
+      "family": "TEA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "asof_join",
+      "family": "TEA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "sequence",
+      "family": "TEA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "calendar_bucket",
+      "family": "Calendar",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "calendar_series",
+      "family": "Calendar",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "normalize_vectors",
+      "family": "VecA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "score_vectors",
+      "family": "VecA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "nearest",
+      "family": "VecA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "pool_vectors",
+      "family": "VecA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "merge_rankings",
+      "family": "VecA",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "graph",
+      "family": "Bridge",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "node_rows",
+      "family": "Bridge",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "edge_rows",
+      "family": "Bridge",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "to_events",
+      "family": "Bridge",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "events",
+      "family": "Bridge",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "to_vectors",
+      "family": "Bridge",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "vectors",
+      "family": "Bridge",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "infer",
+      "family": "Acquisition",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "search_candidates",
+      "family": "Acquisition",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "text_rank",
+      "family": "Search",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    },
+    {
+      "operation": "serialize",
+      "family": "Artifact",
+      "surface": [
+        "STEP",
+        "OP"
+      ],
+      "runtime_support": "determined_by_existing_contract_checker_and_host"
+    }
+  ],
+  "features": [
+    {
+      "feature_id": "text.envelope",
+      "surface_forms": [
+        "PROGRAM",
+        "STAGE",
+        "INPUT",
+        "RESULT",
+        "EFFECT",
+        "META",
+        "PARAMS",
+        "BINDINGS"
+      ],
+      "canonical_lowering": "normal Program envelope",
+      "preconditions": [
+        "existing closed envelope constraints"
+      ],
+      "spec_section": "5",
+      "execution_evidence_ids": [
+        "frontend-pr2-structural"
+      ],
+      "adoption": "supported",
+      "implementation_status": "implemented",
+      "delivery_unit": "PR-2",
+      "acceptance_case_ids": [
+        "STR-02",
+        "STR-03",
+        "STR-04",
+        "STR-07",
+        "STR-08",
+        "STR-09"
+      ],
+      "additional_fixture_requirements": []
+    },
+    {
+      "feature_id": "text.total",
+      "surface_forms": [
+        "STEP JSON",
+        "OP name JSON"
+      ],
+      "canonical_lowering": "exact registered canonical operation",
+      "preconditions": [
+        "operation name must exist in closed inventory"
+      ],
+      "spec_section": "5.5",
+      "execution_evidence_ids": [
+        "frontend-pr2-structural"
+      ],
+      "adoption": "supported",
+      "implementation_status": "implemented",
+      "delivery_unit": "PR-2",
+      "acceptance_case_ids": [
+        "STR-01",
+        "STR-05",
+        "STR-06",
+        "VEC-10",
+        "FX-13",
+        "SYS-01",
+        "SYS-03"
+      ],
+      "additional_fixture_requirements": []
+    },
+    {
+      "feature_id": "query.select",
+      "surface_forms": [
+        "SELECT",
+        "FROM-only",
+        "WHERE"
+      ],
+      "canonical_lowering": "derive/filter/select",
+      "preconditions": [
+        "complete output schema",
+        "declared expression subset"
+      ],
+      "spec_section": "7",
+      "execution_evidence_ids": [],
+      "adoption": "restricted",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-4",
+      "acceptance_case_ids": [
+        "SQL-01",
+        "SQL-07",
+        "SQL-33",
+        "SQL-34"
+      ],
+      "additional_fixture_requirements": []
+    },
+    {
+      "feature_id": "query.pipe",
+      "surface_forms": [
+        "|> WHERE",
+        "|> SELECT",
+        "|> EXTEND",
+        "|> SET",
+        "|> DROP",
+        "|> RENAME",
+        "|> AS"
+      ],
+      "canonical_lowering": "shared Query AST and ordinary Steps",
+      "preconditions": [
+        "snapshot field slots",
+        "range-alias preservation"
+      ],
+      "spec_section": "7.2-7.4",
+      "execution_evidence_ids": [],
+      "adoption": "restricted",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-4",
+      "acceptance_case_ids": [
+        "SQL-01",
+        "SQL-02",
+        "SQL-03",
+        "SQL-04",
+        "SQL-05",
+        "SQL-06"
+      ],
+      "additional_fixture_requirements": []
+    },
+    {
+      "feature_id": "query.aggregate",
+      "surface_forms": [
+        "GROUP BY",
+        "HAVING",
+        "|> AGGREGATE"
+      ],
+      "canonical_lowering": "group and exact expression demand",
+      "preconditions": [
+        "closed signatures",
+        "no implicit grouping/representative row"
+      ],
+      "spec_section": "7.5",
+      "execution_evidence_ids": [],
+      "adoption": "restricted",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-4",
+      "acceptance_case_ids": [
+        "SQL-13",
+        "SQL-14",
+        "SQL-15",
+        "SQL-16"
+      ],
+      "additional_fixture_requirements": []
+    },
+    {
+      "feature_id": "query.join",
+      "surface_forms": [
+        "INNER JOIN",
+        "LEFT JOIN",
+        "FULL JOIN",
+        "USING",
+        "CROSS JOIN"
+      ],
+      "canonical_lowering": "join/cross_join with bounded source resolution",
+      "preconditions": [
+        "equality keys for normal join",
+        "source profile and bounds"
+      ],
+      "spec_section": "7.7",
+      "execution_evidence_ids": [],
+      "adoption": "restricted",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-4",
+      "acceptance_case_ids": [
+        "SQL-07",
+        "SQL-08",
+        "SQL-09",
+        "SQL-29"
+      ],
+      "additional_fixture_requirements": []
+    },
+    {
+      "feature_id": "query.cte",
+      "surface_forms": [
+        "WITH nonrecursive"
+      ],
+      "canonical_lowering": "static named dataflow",
+      "preconditions": [
+        "earlier CTEs only",
+        "no recursive/volatile body"
+      ],
+      "spec_section": "7.8",
+      "execution_evidence_ids": [],
+      "adoption": "restricted",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-4",
+      "acceptance_case_ids": [
+        "SQL-27",
+        "SQL-28",
+        "SYS-08"
+      ],
+      "additional_fixture_requirements": []
+    },
+    {
+      "feature_id": "query.order_limit",
+      "surface_forms": [
+        "ORDER BY",
+        "LIMIT n OFFSET m"
+      ],
+      "canonical_lowering": "sort/take",
+      "preconditions": [
+        "n positive integer literal",
+        "m nonnegative integer literal",
+        "stable order witness"
+      ],
+      "spec_section": "7.6",
+      "execution_evidence_ids": [],
+      "adoption": "restricted",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-4",
+      "acceptance_case_ids": [
+        "SQL-17",
+        "SQL-18",
+        "SQL-19",
+        "SQL-21"
+      ],
+      "additional_fixture_requirements": []
+    },
+    {
+      "feature_id": "query.set",
+      "surface_forms": [
+        "UNION ALL",
+        "UNION DISTINCT",
+        "INTERSECT DISTINCT",
+        "EXCEPT DISTINCT"
+      ],
+      "canonical_lowering": "position alignment then existing operations",
+      "preconditions": [
+        "compatible explicit types",
+        "strict BY NAME exact field set"
+      ],
+      "spec_section": "7.7",
+      "execution_evidence_ids": [],
+      "adoption": "restricted",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-4",
+      "acceptance_case_ids": [
+        "SQL-10",
+        "SQL-11",
+        "SQL-12"
+      ],
+      "additional_fixture_requirements": []
+    },
+    {
+      "feature_id": "query.analytic",
+      "surface_forms": [
+        "ROW_NUMBER",
+        "RANK",
+        "DENSE_RANK",
+        "LAG",
+        "LEAD",
+        "FIRST_VALUE",
+        "LAST_VALUE",
+        "registered OVER aggregates"
+      ],
+      "canonical_lowering": "analytic",
+      "preconditions": [
+        "inline OVER",
+        "explicit ROWS frame when required",
+        "no RANGE/GROUPS/EXCLUDE"
+      ],
+      "spec_section": "B.2",
+      "execution_evidence_ids": [],
+      "adoption": "restricted",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-4",
+      "acceptance_case_ids": [
+        "SQL-30",
+        "SQL-31",
+        "SQL-32"
+      ],
+      "additional_fixture_requirements": []
+    },
+    {
+      "feature_id": "query.concat",
+      "surface_forms": [
+        "CONCAT",
+        "ACTQL.CONCAT",
+        "||"
+      ],
+      "canonical_lowering": "concat_strict / legacy concat",
+      "preconditions": [
+        "STRING only in borrowed CONCAT",
+        "no automatic casts"
+      ],
+      "spec_section": "6.3",
+      "execution_evidence_ids": [],
+      "adoption": "restricted",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-3",
+      "acceptance_case_ids": [
+        "SQL-23",
+        "SQL-24"
+      ],
+      "additional_fixture_requirements": []
+    },
+    {
+      "feature_id": "graph.fixed",
+      "surface_forms": [
+        "MATCH mode fixed-directed-path"
+      ],
+      "canonical_lowering": "node_rows/edge_rows plus bounded RelA joins",
+      "preconditions": [
+        "explicit WALK/TRAIL/ACYCLIC",
+        "one path",
+        "typed properties"
+      ],
+      "spec_section": "9.3-9.6",
+      "execution_evidence_ids": [],
+      "adoption": "restricted",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-5",
+      "acceptance_case_ids": [
+        "GRF-01",
+        "GRF-02",
+        "GRF-03",
+        "GRF-04",
+        "GRF-05",
+        "GRF-06",
+        "GRF-07",
+        "GRF-18",
+        "GRF-19",
+        "GRF-20",
+        "GRF-21",
+        "GRF-22",
+        "GRF-23"
+      ],
+      "additional_fixture_requirements": []
+    },
+    {
+      "feature_id": "graph.bounded",
+      "surface_forms": [
+        "MATCH p = ACYCLIC (a)-[:R]->{m,n}(b)"
+      ],
+      "canonical_lowering": "traverse emit paths + endpoint joins",
+      "preconditions": [
+        "0<=m<=n and n>0",
+        "literal finite maximum",
+        "no quantified internal variable/predicate"
+      ],
+      "spec_section": "9.7",
+      "execution_evidence_ids": [],
+      "adoption": "restricted",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-5",
+      "acceptance_case_ids": [
+        "GRF-13",
+        "GRF-14",
+        "GRF-15"
+      ],
+      "additional_fixture_requirements": []
+    },
+    {
+      "feature_id": "graph.labels",
+      "surface_forms": [
+        "FROM GRAPH g LABELS {\"node\":{\"field\":\"type\"}}"
+      ],
+      "canonical_lowering": "explicit label-to-property equality expansion",
+      "preconditions": [
+        "known string field",
+        "single label only",
+        "no MDM authority"
+      ],
+      "spec_section": "9.2",
+      "execution_evidence_ids": [],
+      "adoption": "restricted",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-5",
+      "acceptance_case_ids": [
+        "GRF-09",
+        "GRF-10",
+        "GRF-11",
+        "GRF-12"
+      ],
+      "additional_fixture_requirements": []
+    },
+    {
+      "feature_id": "graph.binary",
+      "surface_forms": [
+        "GRAPH UNION JSON",
+        "GRAPH DIFF JSON"
+      ],
+      "canonical_lowering": "union_graphs/graph_diff",
+      "preconditions": [
+        "all existing typed and merge laws retained"
+      ],
+      "spec_section": "9.8",
+      "execution_evidence_ids": [],
+      "adoption": "supported",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-5",
+      "acceptance_case_ids": [
+        "GRF-24",
+        "GRF-25"
+      ],
+      "additional_fixture_requirements": []
+    },
+    {
+      "feature_id": "vector.scalar",
+      "surface_forms": [
+        "VECTOR_COSINE_SIMILARITY",
+        "VECTOR_INNER_PRODUCT",
+        "VECTOR_L2_DISTANCE",
+        "VECTOR_CONCAT"
+      ],
+      "canonical_lowering": "vector_score/vector_concat/negate",
+      "preconditions": [
+        "existing dimensions and numerical law"
+      ],
+      "spec_section": "10.1",
+      "execution_evidence_ids": [],
+      "adoption": "restricted",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-6",
+      "acceptance_case_ids": [
+        "VEC-02",
+        "VEC-04",
+        "VEC-05"
+      ],
+      "additional_fixture_requirements": []
+    },
+    {
+      "feature_id": "vector.nearest",
+      "surface_forms": [
+        "NEAREST candidate AS c QUERY KEY (...) VECTOR ... CANDIDATE KEY (...) VECTOR ... METRIC ... K ... [KEEP (...)] AS result"
+      ],
+      "canonical_lowering": "nearest",
+      "preconditions": [
+        "per-query k",
+        "pipe input supplies queries; named candidate source supplies corpus",
+        "KEEP and result STRUCT form a new output scope without old input aliases",
+        "named key STRUCT projection preserves the common nearest identity roles",
+        "exact only"
+      ],
+      "spec_section": "10.2",
+      "execution_evidence_ids": [],
+      "adoption": "supported",
+      "implementation_status": "partial",
+      "delivery_unit": "PR-6",
+      "acceptance_case_ids": [
+        "VEC-01",
+        "VEC-03",
+        "VEC-06",
+        "VEC-09"
+      ],
+      "additional_fixture_requirements": [
+        "singleton NEAREST KEEP source lowering is not packed execution evidence",
+        "composite Program identity bridge and common object execution remain pending"
+      ]
+    },
+    {
+      "feature_id": "vector.search",
+      "surface_forms": [
+        "SEARCH CANDIDATES JSON"
+      ],
+      "canonical_lowering": "search_candidates acquisition",
+      "preconditions": [
+        "source/model/index/exactness/coverage contracts"
+      ],
+      "spec_section": "10.3",
+      "execution_evidence_ids": [],
+      "adoption": "supported",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-6",
+      "acceptance_case_ids": [
+        "VEC-07"
+      ],
+      "additional_fixture_requirements": []
+    },
+    {
+      "feature_id": "event.window",
+      "surface_forms": [
+        "WINDOW TUMBLE",
+        "WINDOW HOP"
+      ],
+      "canonical_lowering": "row_window/window_events",
+      "preconditions": [
+        "checked carrier",
+        "fixed event-time membership and offset"
+      ],
+      "spec_section": "11.2",
+      "execution_evidence_ids": [],
+      "adoption": "restricted",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-6",
+      "acceptance_case_ids": [
+        "EVT-01",
+        "EVT-02",
+        "EVT-03",
+        "EVT-04",
+        "EVT-20"
+      ],
+      "additional_fixture_requirements": []
+    },
+    {
+      "feature_id": "event.session",
+      "surface_forms": [
+        "SESSION JSON"
+      ],
+      "canonical_lowering": "session",
+      "preconditions": [
+        "ID/time shape determined by existing contract"
+      ],
+      "spec_section": "11.3",
+      "execution_evidence_ids": [],
+      "adoption": "supported",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-6",
+      "acceptance_case_ids": [
+        "EVT-05",
+        "EVT-07",
+        "EVT-19"
+      ],
+      "additional_fixture_requirements": []
+    },
+    {
+      "feature_id": "event.sequence",
+      "surface_forms": [
+        "RECOGNIZE finite-label-list"
+      ],
+      "canonical_lowering": "sequence",
+      "preconditions": [
+        "at least two unique labels",
+        "ID/TIME/BY/WITHIN/CONTIGUITY/OVERLAP required"
+      ],
+      "spec_section": "11.4",
+      "execution_evidence_ids": [],
+      "adoption": "restricted",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-6",
+      "acceptance_case_ids": [
+        "EVT-06",
+        "EVT-07",
+        "EVT-08",
+        "EVT-09",
+        "EVT-10",
+        "EVT-11",
+        "EVT-12",
+        "EVT-13",
+        "EVT-15"
+      ],
+      "additional_fixture_requirements": []
+    },
+    {
+      "feature_id": "event.native_alias",
+      "surface_forms": [
+        "ASOF JOIN JSON",
+        "INTERVAL JOIN JSON",
+        "WATERMARK JSON"
+      ],
+      "canonical_lowering": "asof_join/interval_join/watermark_events",
+      "preconditions": [
+        "no historical-snapshot semantics",
+        "WATERMARK requires Events"
+      ],
+      "spec_section": "11.5",
+      "execution_evidence_ids": [],
+      "adoption": "restricted",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-6",
+      "acceptance_case_ids": [
+        "EVT-16",
+        "EVT-17"
+      ],
+      "additional_fixture_requirements": [
+        "Native ASOF JOIN and INTERVAL JOIN alias equivalence"
+      ]
+    },
+    {
+      "feature_id": "acquisition.infer",
+      "surface_forms": [
+        "INFER model_task ITEM KEY (...) INPUT (...) [KEEP (...)] AS result"
+      ],
+      "canonical_lowering": "infer",
+      "preconditions": [
+        "exact input mapping",
+        "typed outcomes",
+        "known fields of a nullable non-success value remain typed NULL",
+        "KEEP and result STRUCT form a new output scope without old input aliases",
+        "not scalar"
+      ],
+      "spec_section": "12.1",
+      "execution_evidence_ids": [],
+      "adoption": "supported",
+      "implementation_status": "partial",
+      "delivery_unit": "PR-6",
+      "acceptance_case_ids": [
+        "FX-02",
+        "FX-03"
+      ],
+      "additional_fixture_requirements": [
+        "Common infer checker, ModelTask capture/replay and provenance owner",
+        "Common object/property expression execution",
+        "Packed Local/HTTP outcomes, empty input, describe and no-redispatch acceptance"
+      ]
+    },
+    {
+      "feature_id": "artifact.serialize",
+      "surface_forms": [
+        "SERIALIZE JSON"
+      ],
+      "canonical_lowering": "serialize",
+      "preconditions": [
+        "existing Artifact barrier"
+      ],
+      "spec_section": "12.1",
+      "execution_evidence_ids": [],
+      "adoption": "supported",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-6",
+      "acceptance_case_ids": [],
+      "additional_fixture_requirements": [
+        "Artifact barrier preservation through structural OP and SERIALIZE alias"
+      ]
+    },
+    {
+      "feature_id": "effect.declaration",
+      "surface_forms": [
+        "EFFECT name = JSON"
+      ],
+      "canonical_lowering": "stage effect map",
+      "preconditions": [
+        "not pipe",
+        "named Result",
+        "mapping contract"
+      ],
+      "spec_section": "12.2",
+      "execution_evidence_ids": [
+        "frontend-pr2-structural"
+      ],
+      "adoption": "supported",
+      "implementation_status": "implemented",
+      "delivery_unit": "PR-2",
+      "acceptance_case_ids": [
+        "FX-01",
+        "FX-04",
+        "FX-05",
+        "FX-06",
+        "FX-07",
+        "FX-11",
+        "SYS-04"
+      ],
+      "additional_fixture_requirements": []
+    },
+    {
+      "feature_id": "sql.insert",
+      "surface_forms": [
+        "INSERT INTO target (columns) query"
+      ],
+      "canonical_lowering": "normal create Effect plus requested_rows Result",
+      "preconditions": [
+        "explicit Program ID",
+        "WriteTarget mapping",
+        "not transactional affected-row claim"
+      ],
+      "spec_section": "12.4",
+      "execution_evidence_ids": [],
+      "adoption": "restricted",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-7",
+      "acceptance_case_ids": [
+        "FX-08",
+        "FX-09",
+        "FX-10"
+      ],
+      "additional_fixture_requirements": []
+    },
+    {
+      "feature_id": "query.limit_zero",
+      "surface_forms": [
+        "LIMIT 0"
+      ],
+      "canonical_lowering": null,
+      "preconditions": [
+        "positive-count semantics require separate revision"
+      ],
+      "spec_section": "7.6",
+      "execution_evidence_ids": [],
+      "adoption": "rejected",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-4",
+      "acceptance_case_ids": [
+        "SQL-20"
+      ],
+      "additional_fixture_requirements": []
+    },
+    {
+      "feature_id": "query.right_theta",
+      "surface_forms": [
+        "RIGHT JOIN",
+        "arbitrary theta JOIN",
+        "LATERAL",
+        "correlated subquery"
+      ],
+      "canonical_lowering": null,
+      "preconditions": [
+        "not supported by r1 lowering contract"
+      ],
+      "spec_section": "7.1",
+      "execution_evidence_ids": [],
+      "adoption": "rejected",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-4",
+      "acceptance_case_ids": [
+        "SQL-29"
+      ],
+      "additional_fixture_requirements": [
+        "RIGHT JOIN, LATERAL and correlated subquery rejection"
+      ]
+    },
+    {
+      "feature_id": "query.large_types",
+      "surface_forms": [
+        "INT64",
+        "NUMERIC",
+        "BIGNUMERIC"
+      ],
+      "canonical_lowering": null,
+      "preconditions": [
+        "cannot promise existing value-domain equivalence"
+      ],
+      "spec_section": "6.4",
+      "execution_evidence_ids": [],
+      "adoption": "rejected",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-3",
+      "acceptance_case_ids": [
+        "SQL-22"
+      ],
+      "additional_fixture_requirements": [
+        "INT64, NUMERIC and BIGNUMERIC type rejection (SQL-22 only covers literal range)"
+      ]
+    },
+    {
+      "feature_id": "query.recursive",
+      "surface_forms": [
+        "WITH RECURSIVE",
+        "procedure",
+        "SQL UDF",
+        "transaction",
+        "DDL"
+      ],
+      "canonical_lowering": null,
+      "preconditions": [
+        "outside r1 bounded query profile"
+      ],
+      "spec_section": "7.1",
+      "execution_evidence_ids": [],
+      "adoption": "rejected",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-4",
+      "acceptance_case_ids": [
+        "SQL-28"
+      ],
+      "additional_fixture_requirements": [
+        "Procedure, SQL UDF, transaction and DDL rejection"
+      ]
+    },
+    {
+      "feature_id": "graph.general",
+      "surface_forms": [
+        "OPTIONAL MATCH",
+        "SHORTEST k",
+        "ALL SHORTEST",
+        "comma patterns",
+        "open quantifiers",
+        "group variables"
+      ],
+      "canonical_lowering": null,
+      "preconditions": [
+        "needs explicit graph/query semantics expansion"
+      ],
+      "spec_section": "9.3",
+      "execution_evidence_ids": [],
+      "adoption": "rejected",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-5",
+      "acceptance_case_ids": [
+        "GRF-14",
+        "GRF-15",
+        "GRF-23"
+      ],
+      "additional_fixture_requirements": [
+        "OPTIONAL MATCH, SHORTEST k, ALL SHORTEST and comma-pattern rejection"
+      ]
+    },
+    {
+      "feature_id": "vector.approximate_pure",
+      "surface_forms": [
+        "NEAREST APPROXIMATE"
+      ],
+      "canonical_lowering": null,
+      "preconditions": [
+        "must be acquisition not pure approximate substitution"
+      ],
+      "spec_section": "10.3",
+      "execution_evidence_ids": [],
+      "adoption": "rejected",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-6",
+      "acceptance_case_ids": [
+        "VEC-08"
+      ],
+      "additional_fixture_requirements": []
+    },
+    {
+      "feature_id": "event.regex",
+      "surface_forms": [
+        "PATTERN(A B+ C)",
+        "greedy/lazy quantifiers",
+        "AFTER MATCH SKIP"
+      ],
+      "canonical_lowering": null,
+      "preconditions": [
+        "not existing finite sequence semantics"
+      ],
+      "spec_section": "11.4",
+      "execution_evidence_ids": [],
+      "adoption": "rejected",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-6",
+      "acceptance_case_ids": [
+        "EVT-14"
+      ],
+      "additional_fixture_requirements": []
+    },
+    {
+      "feature_id": "event.continuous",
+      "surface_forms": [
+        "CHANGES",
+        "SUBSCRIBE",
+        "AS OF",
+        "DURING",
+        "ALLOW LATENESS"
+      ],
+      "canonical_lowering": null,
+      "preconditions": [
+        "requires new temporal/streaming contracts"
+      ],
+      "spec_section": "11.5",
+      "execution_evidence_ids": [],
+      "adoption": "rejected",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-6",
+      "acceptance_case_ids": [
+        "EVT-17",
+        "EVT-18"
+      ],
+      "additional_fixture_requirements": []
+    },
+    {
+      "feature_id": "effect.hidden",
+      "surface_forms": [
+        "|> EFFECT",
+        "infer(...) in scalar expression",
+        "raw HTTP",
+        "arbitrary WASM"
+      ],
+      "canonical_lowering": null,
+      "preconditions": [
+        "violates existing boundaries"
+      ],
+      "spec_section": "12",
+      "execution_evidence_ids": [
+        "frontend-pr2-structural"
+      ],
+      "adoption": "rejected",
+      "implementation_status": "partial",
+      "delivery_unit": "PR-2",
+      "acceptance_case_ids": [
+        "FX-12",
+        "FX-13"
+      ],
+      "additional_fixture_requirements": [
+        "Query scalar INFER rejection in PR-3; pipe EFFECT rejection in PR-4"
+      ]
+    },
+    {
+      "feature_id": "sql.other_dml",
+      "surface_forms": [
+        "UPDATE",
+        "DELETE",
+        "MERGE",
+        "multiple SQL statements"
+      ],
+      "canonical_lowering": null,
+      "preconditions": [
+        "use explicit AQL Effect or future DML profile"
+      ],
+      "spec_section": "12.4",
+      "execution_evidence_ids": [],
+      "adoption": "rejected",
+      "implementation_status": "not_implemented",
+      "delivery_unit": "PR-7",
+      "acceptance_case_ids": [],
+      "additional_fixture_requirements": [
+        "UPDATE, DELETE, MERGE and multiple-statement rejection"
+      ]
+    }
+  ],
+  "implementation_evidence": {
+    "frontend-pr2-structural": "docs/reviews/2026-09-27-frontend-pr2.md"
+  }
+}

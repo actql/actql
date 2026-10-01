@@ -3,6 +3,7 @@ import {readFile, writeFile} from 'node:fs/promises';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {withPackedQueryEvidence} from './packed-query-evidence.mjs';
+import {packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const revision = spawnSync('git', ['rev-parse', 'HEAD'], {
@@ -14,11 +15,12 @@ await withPackedQueryEvidence({revision: revision.stdout.trim(),
   githubOutput: process.env.GITHUB_OUTPUT},
 async ({root, directory, run, recordTarball}) => {
   console.log(`Result description evidence: ${directory}`);
-  const env = {...process.env, npm_config_cache: join(root, 'npm-cache')};
+  const env = {...process.env, npm_config_cache: packedNpmCache(root)};
   const packages = ['client-wire', 'sdk', 'run-host-core', 'local-node', 'node'];
   for (const name of packages) {
-    run('npm', ['pack', '--pack-destination', root, '--json'], {
-      cwd: join(repository, 'packages', name), env});
+    await packedClientPackage({repository, name, destination: root,
+      pack: () => run('npm', ['pack', '--pack-destination', root, '--json'], {
+        cwd: join(repository, 'packages', name), env})});
     recordTarball(join(root, `actql-${name}-0.0.0-development.tgz`));
   }
   await writeFile(join(root, 'package.json'), '{"private":true,"type":"module"}\n');

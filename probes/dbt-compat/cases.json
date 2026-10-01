@@ -1,0 +1,303 @@
+{
+  "version": "actql-dbt-compat-cases/0.1",
+  "source": {
+    "relation": "memory.main.stg_orders",
+    "table": "stg_orders",
+    "columns": [
+      {
+        "name": "id",
+        "contract": {"type": "number", "nullable": false}
+      },
+      {
+        "name": "amount",
+        "contract": {"type": "number", "nullable": true}
+      }
+    ],
+    "rows": [
+      {"id": 1, "amount": 7},
+      {"id": 2, "amount": 20},
+      {"id": 3, "amount": 30},
+      {"id": 3, "amount": 30},
+      {"id": 4, "amount": 5},
+      {"id": 5, "amount": null}
+    ]
+  },
+  "cases": [
+    {
+      "name": "pipe-ref",
+      "project": "project",
+      "model": "orders_pipe",
+      "format": "aql-text",
+      "role": "baseline",
+      "expect": "rows",
+      "order": "unordered",
+      "rows": [
+        {"id": 2, "amount": 20},
+        {"id": 3, "amount": 30},
+        {"id": 3, "amount": 30},
+        {"id": 4, "amount": 5},
+        {"id": 5, "amount": null}
+      ],
+      "emptySource": true,
+      "program": "programs/orders-id-above-1.json"
+    },
+    {
+      "name": "pipe-ref-ordered",
+      "project": "project",
+      "model": "orders_pipe_ordered",
+      "format": "aql-text",
+      "role": "baseline",
+      "expect": "rows",
+      "order": "id-descending",
+      "rows": [
+        {"id": 5, "amount": null},
+        {"id": 4, "amount": 5},
+        {"id": 3, "amount": 30},
+        {"id": 3, "amount": 30},
+        {"id": 2, "amount": 20}
+      ]
+    },
+    {
+      "name": "select-cte",
+      "project": "project",
+      "model": "orders_select_cte",
+      "format": "sql",
+      "role": "control",
+      "expect": "rows",
+      "order": "unordered",
+      "rows": [
+        {"id": 2, "amount": 20},
+        {"id": 3, "amount": 30},
+        {"id": 3, "amount": 30}
+      ],
+      "emptySource": true,
+      "program": "programs/orders-amount-above-10.json"
+    },
+    {
+      "name": "ephemeral-select-into-select",
+      "project": "project",
+      "model": "orders_select_over_eph_select",
+      "format": "sql",
+      "role": "probe",
+      "expect": "rows",
+      "order": "unordered",
+      "rows": [
+        {"id": 2, "amount": 20},
+        {"id": 3, "amount": 30},
+        {"id": 3, "amount": 30}
+      ],
+      "emptySource": true
+    },
+    {
+      "name": "ephemeral-pipe-into-pipe",
+      "project": "project",
+      "model": "orders_pipe_over_eph_pipe",
+      "format": "aql-text",
+      "role": "probe",
+      "expect": "rows",
+      "order": "unordered",
+      "rows": [
+        {"id": 2, "amount": 20},
+        {"id": 3, "amount": 30},
+        {"id": 3, "amount": 30}
+      ],
+      "emptySource": true
+    },
+    {
+      "name": "ephemeral-select-into-pipe",
+      "project": "project",
+      "model": "orders_pipe_over_eph_select",
+      "format": "aql-text",
+      "role": "probe",
+      "expect": "rows",
+      "order": "unordered",
+      "rows": [
+        {"id": 2, "amount": 20},
+        {"id": 3, "amount": 30},
+        {"id": 3, "amount": 30}
+      ],
+      "emptySource": true
+    },
+    {
+      "name": "default-quoting",
+      "project": "project-default-quoting",
+      "model": "orders_pipe",
+      "format": "aql-text",
+      "role": "probe",
+      "expect": "observe",
+      "order": "unordered",
+      "rows": [
+        {"id": 2, "amount": 20},
+        {"id": 3, "amount": 30},
+        {"id": 3, "amount": 30},
+        {"id": 4, "amount": 5},
+        {"id": 5, "amount": null}
+      ]
+    },
+    {
+      "name": "infer",
+      "project": "project",
+      "model": "orders_infer",
+      "format": "aql-text",
+      "role": "probe",
+      "expect": "observe",
+      "note": "No model provider or ModelTask contract is installed; reaching a Named Result here would not show inference compatibility."
+    }
+  ],
+  "reproductions": [
+    {
+      "name": "plain-pipe",
+      "format": "aql-text",
+      "text": "FROM memory.main.stg_orders |> SELECT id",
+      "purpose": "positive control: the unquoted rendered name in a plain Pipe",
+      "expect": "rows",
+      "order": "unordered",
+      "columns": [
+        {
+          "name": "id",
+          "contract": {"type": "number", "nullable": false}
+        }
+      ],
+      "rows": [
+        {"id": 1},
+        {"id": 2},
+        {"id": 3},
+        {"id": 3},
+        {"id": 4},
+        {"id": 5}
+      ]
+    },
+    {
+      "name": "double-quoted-name",
+      "format": "aql-text",
+      "text": "FROM \"memory\".\"main\".\"stg_orders\" |> SELECT id",
+      "purpose": "only the identifier quoting differs from plain-pipe",
+      "expect": "observe"
+    },
+    {
+      "name": "backtick-quoted-name",
+      "format": "aql-text",
+      "text": "FROM `memory`.`main`.`stg_orders` |> SELECT id",
+      "purpose": "positive control: ActQL's own quoted-identifier form of the same name",
+      "expect": "rows",
+      "order": "unordered",
+      "columns": [
+        {
+          "name": "id",
+          "contract": {"type": "number", "nullable": false}
+        }
+      ],
+      "rows": [
+        {"id": 1},
+        {"id": 2},
+        {"id": 3},
+        {"id": 3},
+        {"id": 4},
+        {"id": 5}
+      ]
+    },
+    {
+      "name": "select-cte-into-select",
+      "format": "sql",
+      "text": "WITH c AS (SELECT id FROM memory.main.stg_orders) SELECT id FROM c",
+      "purpose": "positive control: SELECT CTE body and SELECT top level",
+      "expect": "rows",
+      "order": "unordered",
+      "columns": [
+        {
+          "name": "id",
+          "contract": {"type": "number", "nullable": false}
+        }
+      ],
+      "rows": [
+        {"id": 1},
+        {"id": 2},
+        {"id": 3},
+        {"id": 3},
+        {"id": 4},
+        {"id": 5}
+      ]
+    },
+    {
+      "name": "pipe-cte-body",
+      "format": "aql-text",
+      "text": "WITH c AS (FROM memory.main.stg_orders |> SELECT id) SELECT id FROM c",
+      "purpose": "only the CTE body is Pipe",
+      "expect": "rows",
+      "order": "unordered",
+      "columns": [
+        {"name": "id", "contract": {"type": "number", "nullable": false}}
+      ],
+      "rows": [{"id": 1}, {"id": 2}, {"id": 3}, {"id": 3}, {"id": 4}, {"id": 5}]
+    },
+    {
+      "name": "with-then-pipe",
+      "format": "aql-text",
+      "text": "WITH c AS (SELECT id FROM memory.main.stg_orders) FROM c |> SELECT id",
+      "purpose": "only the top level after WITH is Pipe",
+      "expect": "rows",
+      "order": "unordered",
+      "columns": [
+        {"name": "id", "contract": {"type": "number", "nullable": false}}
+      ],
+      "rows": [{"id": 1}, {"id": 2}, {"id": 3}, {"id": 3}, {"id": 4}, {"id": 5}]
+    },
+    {
+      "name": "infer-plain",
+      "format": "aql-text",
+      "text": "FROM memory.main.stg_orders |> INFER `model-task:risk.v1` ITEM KEY (id) INPUT (n = amount) KEEP (id) AS assessment",
+      "purpose": "the dbt INFER text without dbt, on one line",
+      "expect": "observe"
+    },
+    {
+      "name": "pipe-cte-ordered-null",
+      "format": "aql-text",
+      "text": "WITH c AS (FROM memory.main.stg_orders |> SELECT amount, id) FROM c |> SELECT amount, id |> ORDER BY id DESC",
+      "purpose": "Pipe CTE retains nullable values, duplicate rows and authored output column order",
+      "expect": "rows",
+      "order": "id-descending",
+      "columns": [
+        {
+          "name": "amount",
+          "contract": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        {
+          "name": "id",
+          "contract": {
+            "type": "number",
+            "nullable": false
+          }
+        }
+      ],
+      "rows": [
+        {
+          "amount": null,
+          "id": 5
+        },
+        {
+          "amount": 5,
+          "id": 4
+        },
+        {
+          "amount": 30,
+          "id": 3
+        },
+        {
+          "amount": 30,
+          "id": 3
+        },
+        {
+          "amount": 20,
+          "id": 2
+        },
+        {
+          "amount": 7,
+          "id": 1
+        }
+      ]
+    }
+  ]
+}

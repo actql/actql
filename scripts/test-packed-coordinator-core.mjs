@@ -92,6 +92,37 @@ try {
   coordinator.commitTransition(replay);
   assert.deepEqual(coordinator.recordStateCodes(replayRecord), stateBeforeReplay);
   assert.equal(coordinator.exactRetransmissionEligible(replayRecord, fixture.request), false);
+  const context = {coordinatorAuthority: 'coordinator-a', siteKey: 'site-a',
+    siteGeneration: 1, authorizationCurrent: true, cancellationRequested: false};
+  // Query-before-send decisions come from the same packed owner. Terminal
+  // evidence is never downgraded to Accepted/unstarted delivery eligibility.
+  assert.equal(coordinator.redeliveryEligible(replayRecord, fixture.request, '', context), false);
+  assert.throws(() => coordinator.redeliveryEligible(replayRecord, fixture.request, '',
+    {...context, siteGeneration: 2}), {code: 'CoordinatorOwnerRejected'});
+  const fresh = coordinator.restoreDurable(coordinator.createJournal('coordinator-a'),
+    coordinator.admitDurableJson(coordinator.admissionDurableJson(
+      coordinator.prepareIntent(coordinator.createJournal('coordinator-a'), request))));
+  assert.equal(coordinator.redeliveryEligible(fresh, request, '', context), false);
+  assert.equal(coordinator.redeliveryEligible(fresh, request, notSeen(requestCid), context), true);
+  assert.equal(coordinator.redeliveryEligible(fresh, request, notSeen(requestCid),
+    {...context, authorizationCurrent: false}), false);
+  assert.equal(coordinator.redeliveryEligible(fresh, request, notSeen(requestCid),
+    {...context, cancellationRequested: true}), false);
+  const {createHash} = await import('node:crypto');
+  const bindingCid = 'sha256:' + createHash('sha256').update('{}').digest('hex');
+  const deliverable = coordinator.prepareDispatch({
+    coordinatorAuthority: 'coordinator-a', runDefinitionCid: cid('0'), taskKey: 'task-a',
+    taskAttempt: 1, dispatchId: 'packed-r2-envelope', siteKey: 'site-a', siteGeneration: 1,
+    runtimeBundleCid: cid('a'), connectorRegistration: 'local', connectorRevision: 'local/1',
+    strategyRevision: 'strategy/1', inputBindingCid: bindingCid, obligationsCid: cid('2'),
+    budgetCid: cid('3'), evidenceIssuerCapabilityCid: cid('b'), grantCid: cid('4'),
+  });
+  const delivery = coordinator.pollDispatchMaterialsJson(deliverable, '{}', 16, '{}');
+  assert.equal(coordinator.deliveryEnvelopeJson(deliverable, delivery), delivery);
+  assert.throws(() => coordinator.deliveryEnvelopeJson(request, delivery),
+    {code: 'CoordinatorOwnerRejected'});
+  assert.throws(() => coordinator.deliveryEnvelopeJson(deliverable, delivery + ' '),
+    {code: 'CoordinatorOwnerRejected'});
   const replayAgain = coordinator.prepareResponseObservation(replayRecord, replayResponse);
   assert.equal(coordinator.responseDurableJson(
     fixture.durable, replayAgain, replayResponse), replayBody);
@@ -102,7 +133,55 @@ try {
   assert.equal(outputRequest.intent_json,
     JSON.parse(coordinator.durableOutputPollJson(fixture.outputDurable))
       .intent_json);
-  console.log('packed coordinator-core release, not-seen, output request and durable replay');
+  // The packed ACK issuer uses its own public Output record, restored from
+  // admitted durable bytes. A protocol receipt fixture is not native I/O.
+  const transfer = fixture.transferControl;
+  let transferRecord = transfer.open(fixture.transferRequest);
+  for (const transition of [
+    () => transfer.prepareStart(transferRecord),
+    () => transfer.prepareSourceSettled(transferRecord, true, false),
+    () => transfer.prepareDestinationCommit(transferRecord),
+  ]) transferRecord = transfer.commitTransition(transition(), true);
+  const report = coordinator.prepareOutputResultJson(fixture.outputDurable,
+    transfer.replyJson(transferRecord), cid('f'));
+  const outputJournal = coordinator.createJournal('coordinator-a');
+  coordinator.restoreDurable(outputJournal, fixture.durable);
+  let outputRecord = coordinator.restoreDurableOutput(outputJournal, fixture.outputDurable);
+  assert.throws(() => coordinator.outputReportAckJson(outputRecord, report),
+    {code: 'CoordinatorOwnerRejected'});
+  const refusal = JSON.parse(coordinator.outputReportRefusalJson(outputRecord,
+    report, 'authorization_denied'));
+  assert.equal(refusal.outcome, 'refused');
+  assert.equal(refusal.reason, 'authorization_denied');
+  assert.equal(refusal.report_cid, 'sha256:' + createHash('sha256').update(report).digest('hex'));
+  assert.throws(() => coordinator.outputReportRefusalJson(outputRecord, report,
+    'private_diagnostic'), {code: 'CoordinatorOwnerRejected'});
+  assert.throws(() => coordinator.outputReportRefusalJson(outputRecord,
+    report.replace(fixture.requestCid, dispatchCid(dispatch('foreign-report'))),
+    'report_conflict'), {code: 'CoordinatorOwnerRejected'});
+  const success = coordinator.prepareOutputSuccessJson(outputRecord, report);
+  const savedOutput = coordinator.outputTransitionDurableJson(fixture.outputDurable, success);
+  outputRecord = coordinator.commitOutputTransition(success);
+  const reportFields = JSON.parse(report);
+  const expectedAck = JSON.stringify({dispatch_request_cid: fixture.requestCid,
+    intent_cid: reportFields.intent_cid, outcome: 'accepted', reason: '',
+    report_cid: 'sha256:' + createHash('sha256').update(report).digest('hex'),
+    version: 'actql-remote-output-report-reply/0.1'});
+  assert.equal(coordinator.outputReportAckJson(outputRecord, report), expectedAck);
+  const status = coordinator.outputRecordStatus(outputRecord);
+  assert.equal(coordinator.outputReportAckJson(outputRecord, report), expectedAck);
+  assert.deepEqual(coordinator.outputRecordStatus(outputRecord), status);
+  assert.throws(() => coordinator.outputReportAckJson(outputRecord,
+    report.replace(fixture.requestCid, dispatchCid(dispatch('foreign-report')))),
+  {code: 'CoordinatorOwnerRejected'});
+  const reopenedJournal = coordinator.createJournal('coordinator-a');
+  coordinator.restoreDurable(reopenedJournal, fixture.durable);
+  const reopened = coordinator.restoreDurableOutput(reopenedJournal,
+    coordinator.admitDurableOutputJson(savedOutput, fixture.durable, cid('7'),
+      {maxChunks: 4, maxManifestBytes: 4096, maxReferencedBytes: 12n}));
+  assert.equal(coordinator.outputReportAckJson(reopened, report), expectedAck);
+  assert.deepEqual(coordinator.outputRecordStatus(reopened), status);
+  console.log('packed coordinator-core release, not-seen, output request, durable replay and exact ACK');
   `);
   process.stdout.write(run(process.execPath, ['smoke.mjs'], installation));
 } finally {

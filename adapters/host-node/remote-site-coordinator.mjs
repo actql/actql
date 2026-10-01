@@ -62,6 +62,11 @@ export function createRemoteSiteCoordinator({
   receiveStoreOutput,
   transferControl,
   authorization = missingAuthorizationGate(),
+  // Host-installed synchronous projection through the retained Run owners:
+  // verify dispatch/binding/materials against the ORIGINAL Run, then project
+  // CURRENT authorization/lifetime, generation and cancellation. Never take
+  // this callback or its facts from a received dispatch/query.
+  currentDispatchContext,
 } = {}) {
   if (control === null || typeof control !== 'object' ||
       typeof control.prepareCoordinatorIntent !== 'function' ||
@@ -83,6 +88,14 @@ export function createRemoteSiteCoordinator({
   if (authorization === null || typeof authorization !== 'object' ||
       typeof authorization.authorize !== 'function') {
     fail('InvalidRemoteSiteCoordinatorAuthorization');
+  }
+  if (currentDispatchContext !== undefined &&
+      (typeof currentDispatchContext !== 'function' ||
+      typeof store.deliveryEnvelope !== 'function' ||
+      typeof control.coordinatorDeliveryEnvelopeJson !== 'function' ||
+      typeof control.coordinatorDeliveryContextCurrent !== 'function' ||
+      typeof control.coordinatorRedeliveryEligible !== 'function')) {
+    fail('InvalidRemoteCoordinatorRecoveryConfiguration');
   }
   if (planOutput !== undefined && typeof planOutput !== 'function') {
     fail('InvalidRemoteSiteCoordinatorOutputPlan');
@@ -450,6 +463,63 @@ export function createRemoteSiteCoordinator({
         error}));
     }
   };
+  const retainedDelivery = request => {
+    const envelope = store.deliveryEnvelope(request.dispatch, control);
+    const admitted = control.admitPollDispatch(envelope);
+    if ((request.dispatchEnvelope !== undefined && request.dispatchEnvelope !== envelope) ||
+        (request.inputBindingBody !== undefined && request.inputBindingBody !==
+          control.pollDispatchBindingBody(admitted))) {
+      fail('RemoteDispatchDeliveryMaterialsCollision');
+    }
+    return Object.freeze({...request, dispatchEnvelope: envelope,
+      inputBindingBody: control.pollDispatchBindingBody(admitted)});
+  };
+  const currentContext = (dispatch, envelope) => {
+    const context = currentDispatchContext(dispatch, envelope);
+    if (context === null || typeof context !== 'object' ||
+        !text(context.coordinatorAuthority) || !text(context.siteKey) ||
+        !Number.isSafeInteger(context.siteGeneration) ||
+        context.siteGeneration < 0 || context.siteGeneration > 2147483647 ||
+        typeof context.authorizationCurrent !== 'boolean' ||
+        typeof context.cancellationRequested !== 'boolean') {
+      fail('InvalidRemoteCoordinatorRecoveryContext');
+    }
+    return context;
+  };
+  const recoverDispatch = async value => {
+    const request = requireIntent(value);
+    if (currentDispatchContext === undefined) fail('RemoteCoordinatorRecoveryUnavailable');
+    // A legacy intent still permits query and cleanup, but no materials may be
+    // attached afterwards: we cannot prove that its first send never occurred.
+    const retained = retainedDelivery(request);
+    let notSeenBody = '';
+    let response;
+    try {
+      response = await exchange(request, query);
+    } catch (error) {
+      if (error?.code !== 'RemoteDispatchNotSeen' ||
+          typeof error.notSeenBody !== 'string') throw error;
+      // Re-admit the exact authenticated transport reply in the common owner.
+      control.admitPollNotSeen(error.notSeenBody, request.dispatch);
+      notSeenBody = error.notSeenBody;
+    }
+    const facts = dispatchFacts(request.dispatch);
+    const decision = await requireDispatch('activation', {
+      connection: facts.site, resource: facts.registration, operation: 'write',
+    }, facts.runDefinitionCid, request.signal, request.resumption);
+    if (request.resumption !== undefined) enterResumed(decision, control.identity(request.dispatch));
+    // No await from the CURRENT checked Host projection through decision/send.
+    const context = currentContext(request.dispatch, retained.dispatchEnvelope);
+    if (!control.coordinatorRedeliveryEligible(recordFor(request.dispatch),
+        request.dispatch, notSeenBody, context)) {
+      if (response !== undefined && context.authorizationCurrent && !context.cancellationRequested) {
+        return Object.freeze({action: 'reconciled', observation: response});
+      }
+      fail('RemoteDispatchRedeliveryDenied');
+    }
+    const observation = await exchange(retained, send);
+    return Object.freeze({action: 'redelivered', observation});
+  };
   return Object.freeze({
     recovered,
     recoveredOutputs,
@@ -473,6 +543,43 @@ export function createRemoteSiteCoordinator({
       if (key[1] !== binding.siteKey || Number(key[2]) !== binding.siteGeneration) {
         fail('RemoteCoordinatorObservationScopeMismatch');
       }
+      if (hint.version === 'actql-remote-output-result/0.1') {
+        const output = outputs.get(`${hint.dispatch_request_cid}:${hint.intent_cid}`);
+        if (output === undefined) fail('RemoteCoordinatorOutputRecordMissing');
+        const result = control.admitOutputResult(body, output.output,
+          output.payloadRequest, output.transferRequest);
+        const saved = store.inspectOutput(output.record, control);
+        if (saved?.progress === 2) {
+          if (saved.resultJson !== body || saved.resultCid !== control.outputResultIdentity(result)) {
+            fail('RemoteCoordinatorOutputReportConflict');
+          }
+          // The SQLite commit may have succeeded while the caller lost the
+          // response.  Rebuild the in-memory owner from that exact durable
+          // fact before issuing an ACK; do not advance it or mint a new
+          // revision on replay.
+          const local = control.coordinatorOutputRecordStatus(output.record);
+          if (Number(local[0]) !== saved.revision ||
+              Number(local[1]) !== saved.progress ||
+              local[2] !== saved.resultCid) {
+            control.restoreCoordinatorOutputRecord(
+              output.record,
+              saved.revision,
+              saved.progress,
+              saved.resultJson,
+            );
+          }
+        } else {
+          const transition = control.prepareCoordinatorOutputSuccess(output.record, result);
+          store.advanceOutputSuccess(transition, result, output.record, control);
+        }
+        // Recheck durable fact even if the local owner already succeeded.
+        const confirmed = store.inspectOutput(output.record, control);
+        if (confirmed?.progress !== 2 || confirmed.resultJson !== body) {
+          fail('RemoteCoordinatorOutputAcceptanceUnconfirmed');
+        }
+        return Object.freeze({outputAckWire:
+          control.coordinatorOutputReportAckJson(output.record, body)});
+      }
       try {
         const statusReply = hint.version === 'actql-remote-dispatch-status/0.1';
         const admitted = control.admitResponseJson(body, retained.dispatch, statusReply);
@@ -487,6 +594,16 @@ export function createRemoteSiteCoordinator({
     },
     async dispatch(value) {
       const request = options(value);
+      if (currentDispatchContext !== undefined && store.contains(request.dispatch, control)) {
+        // Calling dispatch again is recovery, never an unconditional send.
+        if (request.dispatchEnvelope !== undefined &&
+            request.dispatchEnvelope !== store.deliveryEnvelope(request.dispatch, control)) {
+          fail('RemoteDispatchDeliveryMaterialsCollision');
+        }
+        // Preserve dispatch's existing observation return shape. Only the
+        // explicit recovery operation adds its transport action projection.
+        return (await recoverDispatch(request)).observation;
+      }
       // Before the durable intent and before any send: a deny, failure,
       // unsupported defer or persisted wait records nothing and sends nothing.
       const facts = dispatchFacts(request.dispatch);
@@ -509,11 +626,26 @@ export function createRemoteSiteCoordinator({
         journal,
         request.dispatch,
       );
-      const record = store.accept(admission, request.dispatch, control);
+      const envelope = currentDispatchContext === undefined ? undefined
+        : control.coordinatorDeliveryEnvelopeJson(request.dispatch,
+          request.dispatchEnvelope ?? control.pollJson(request.dispatch,
+            control.prepareInputBinding(request.inputBindingBody)));
+      if (envelope !== undefined && !control.coordinatorDeliveryContextCurrent(
+          request.dispatch, currentContext(request.dispatch, envelope))) {
+        fail('RemoteDispatchRedeliveryDenied');
+      }
+      const record = store.accept(admission, request.dispatch, control, envelope);
       records.set(control.identity(request.dispatch),
         Object.freeze({dispatch: request.dispatch, record}));
-      return exchange(request, send);
+      if (envelope !== undefined) {
+        const context = currentContext(request.dispatch, envelope);
+        if (!control.coordinatorDeliveryContextCurrent(request.dispatch, context)) {
+          fail('RemoteDispatchRedeliveryDenied');
+        }
+      }
+      return exchange(envelope === undefined ? request : retainedDelivery(request), send);
     },
+    recoverDispatch,
     query(value) {
       return exchange(requireIntent(value), query);
     },

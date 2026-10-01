@@ -13,6 +13,14 @@ function checked(result) {
 export const createJournal = authority =>
   checked(owner.coordinatorCreateJournal(authority));
 
+// Only after the exact successful Output record was durably committed.
+export const outputReportAckJson = (record, originalReport) =>
+  checked(owner.coordinatorOutputReportAckJson(record, originalReport));
+
+// The receiver must first establish this current, definitive refusal.
+export const outputReportRefusalJson = (record, originalReport, reason) =>
+  checked(owner.coordinatorOutputReportRefusalJson(record, originalReport, reason));
+
 export const prepareDispatch = input => checked(owner.coordinatorPrepareDispatch(
   input.coordinatorAuthority, input.runDefinitionCid, input.taskKey,
   input.taskAttempt, input.dispatchId, input.siteKey, input.siteGeneration,
@@ -40,6 +48,24 @@ export const pollReleaseJson = request =>
   checked(owner.coordinatorPollReleaseJson(request));
 export const admitPollNotSeen = (body, request) =>
   checked(owner.coordinatorAdmitPollNotSeen(body, request));
+export const deliveryEnvelopeJson = (request, body) =>
+  checked(owner.coordinatorDeliveryEnvelopeJson(request, body));
+export const redeliveryEligible = (record, request, notSeenBody, context) => {
+  if (context === null || typeof context !== 'object' ||
+      typeof context.coordinatorAuthority !== 'string' ||
+      typeof context.siteKey !== 'string' ||
+      !Number.isSafeInteger(context.siteGeneration) ||
+      context.siteGeneration < 0 || context.siteGeneration > 2147483647 ||
+      typeof context.authorizationCurrent !== 'boolean' ||
+      typeof context.cancellationRequested !== 'boolean' ||
+      typeof notSeenBody !== 'string') {
+    throw new TypeError('InvalidCoordinatorRedeliveryContext');
+  }
+  return checked(owner.coordinatorRedeliveryEligible(record, request,
+    notSeenBody, context.coordinatorAuthority, context.siteKey,
+    context.siteGeneration, context.authorizationCurrent,
+    context.cancellationRequested));
+};
 export const prepareIntent = (journal, request) =>
   checked(owner.coordinatorPrepareIntent(journal, request));
 export const intentIsNew = owner.coordinatorIntentIsNew;

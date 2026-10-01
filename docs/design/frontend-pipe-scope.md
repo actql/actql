@@ -40,7 +40,7 @@ hidden fields or implicitly grants model egress. New calculations belong in
 SELECT/EXTEND. Repeating a query's retained fields for several nearest matches
 does not preserve query-only uniqueness.
 
-NEAREST's proposed surface supplies query rows on the left and names the
+NEAREST's surface supplies query rows on the left and names the
 candidate source explicitly. Lowering must wire the common nearest operation's
 candidate input and `queries` reference correctly, then use common typed
 projection and checked correspondence for KEEP. This does not redefine its
@@ -52,15 +52,17 @@ proof or a changed infer wire shape.
 INFER's source parser and lowering now construct ordinary infer, one-to-one
 join-back and object projections. This does not implement its shared checker,
 ModelTask acquisition or evidence owner. Normal Host preparation continues to
-reject execution before Run acceptance or source I/O. NEAREST KEEP retains
-its explicit original-source unsupported diagnostic. These temporary gaps are
+reject execution before Run acceptance or source I/O. NEAREST source lowering
+uses the existing nearest, many-to-one correspondence and object projection.
+Its common object execution and composite Program bridge remain unavailable.
+These temporary gaps are
 not permanent language prohibitions. The adoption profile and corrected FX-03
 requirement distinguish source lowering from executed KEEP cases.
 
 ## Separate follow-on units
 
-NEAREST KEEP and shared INFER execution remain subsequent completion units;
-INFER source parsing/lowering is implemented separately from runtime acceptance.
+Packed NEAREST KEEP and shared INFER execution remain subsequent completion
+units; source parsing/lowering is implemented separately from runtime acceptance.
 Removing the older public STEP/OP surface is also separate: first inventory
 public routing, SDK/CLI, documentation and distribution tests, then specify
 their migration and removal. The column-scope change removes no input format.

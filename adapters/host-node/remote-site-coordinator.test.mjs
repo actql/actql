@@ -4,6 +4,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
+import {DatabaseSync} from 'node:sqlite';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
@@ -27,7 +28,7 @@ const runtime = runtimeCore(moon);
 const control = runtime.remoteSiteControl;
 const transferControl = runtime.remoteTransferControl;
 const scratch = fileURLToPath(new URL('../../../actql-test-runs/', import.meta.url));
-const request = (dispatchId, {connectorRegistration = 'local'} = {}) =>
+const request = (dispatchId, {connectorRegistration = 'local', inputBindingCid = cid('1')} = {}) =>
   control.prepare({
   coordinatorAuthority: 'coordinator-a',
   runDefinitionCid: cid('0'),
@@ -40,11 +41,192 @@ const request = (dispatchId, {connectorRegistration = 'local'} = {}) =>
   connectorRegistration,
   connectorRevision: 'local/1',
   strategyRevision: 'strategy/1',
-  inputBindingCid: cid('1'),
+  inputBindingCid,
   obligationsCid: cid('2'),
   budgetCid: cid('3'),
   evidenceIssuerCapabilityCid: cid('b'),
   grantCid: cid('4'),
+});
+
+const recoveryContext = () => ({coordinatorAuthority: 'coordinator-a',
+  siteKey: 'site-a', siteGeneration: 1, authorizationCurrent: true,
+  cancellationRequested: false});
+const accepted = () => ({revision: 0, state: [0, 0, 0, 0, 0]});
+const deliveryRequest = id => {
+  const dispatch = request(id, {inputBindingCid: control.inputBindingIdentity(
+    control.prepareInputBinding('{}'))});
+  return {dispatch, inputBindingBody: '{}', dispatchEnvelope:
+    control.pollJson(dispatch, control.prepareInputBinding('{}'))};
+};
+
+test('R2 recreates Coordinator and redelivers only the saved envelope after Accepted query', async t => {
+  await mkdir(scratch, {recursive: true});
+  const root = await mkdtemp(join(scratch, 'coordinator-redelivery-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const value = deliveryRequest('r2-reconstruct');
+  let store = openSqliteCoordinatorDispatchJournal(root, {coordinatorAuthority: 'coordinator-a'});
+  let sends = 0;
+  const configuration = () => ({authorization, control, store,
+    journal: control.createCoordinatorJournal('coordinator-a'),
+    currentDispatchContext: recoveryContext,
+    query: async () => accepted(),
+    send: async sent => {
+      assert.equal(sent.dispatchEnvelope, value.dispatchEnvelope);
+      assert.equal(store.deliveryEnvelope(sent.dispatch, control), value.dispatchEnvelope);
+      sends++;
+      if (sends === 1) throw Object.assign(new Error('ACK_LOST'), {code: 'ACK_LOST'});
+      return accepted();
+    }});
+  let coordinator = createRemoteSiteCoordinator(configuration());
+  await assert.rejects(coordinator.dispatch(value), {code: 'ACK_LOST'});
+  store.close();
+  store = openSqliteCoordinatorDispatchJournal(root, {coordinatorAuthority: 'coordinator-a'});
+  t.after(() => store.close());
+  coordinator = createRemoteSiteCoordinator(configuration());
+  const result = await coordinator.recoverDispatch({dispatch: value.dispatch});
+  assert.equal(result.action, 'redelivered');
+  assert.equal(sends, 2);
+  const state = store.inspectState(value.dispatch, control);
+  // An exact Accepted ACK/replay grants no new revision or start permission.
+  const repeated = await coordinator.dispatch({dispatch: value.dispatch});
+  assert.deepEqual(repeated.state, [0, 0, 0, 0, 0]);
+  assert.deepEqual(store.inspectState(value.dispatch, control), state);
+  assert.equal(sends, 3);
+});
+
+for (const applied of [false, true]) {
+  test(`R2 failed/unknown first material save sends nothing (COMMIT applied=${applied})`, async t => {
+    await mkdir(scratch, {recursive: true});
+    const root = await mkdtemp(join(scratch, 'coordinator-save-no-send-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const store = openSqliteCoordinatorDispatchJournal(root, {coordinatorAuthority: 'coordinator-a'});
+    t.after(() => store.close());
+    let sends = 0;
+    const coordinator = createRemoteSiteCoordinator({authorization, control, store,
+      journal: control.createCoordinatorJournal('coordinator-a'),
+      currentDispatchContext: recoveryContext, send: async () => { sends++; return accepted(); }});
+    const exec = DatabaseSync.prototype.exec;
+    DatabaseSync.prototype.exec = function(sql) {
+      if (sql === 'COMMIT') {
+        if (applied) exec.call(this, sql);
+        throw new Error('MATERIAL_SAVE_RESPONSE_LOST');
+      }
+      return exec.call(this, sql);
+    };
+    try {
+      await assert.rejects(coordinator.dispatch(deliveryRequest(`r2-save-${applied}`)),
+        {code: 'CoordinatorJournalCommitOutcomeUnknown'});
+      assert.equal(sends, 0);
+    } finally { DatabaseSync.prototype.exec = exec; }
+  });
+}
+
+test('R2 uses typed not-seen only; timeout and started history never authorize a send', async t => {
+  await mkdir(scratch, {recursive: true});
+  const root = await mkdtemp(join(scratch, 'coordinator-not-seen-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const store = openSqliteCoordinatorDispatchJournal(root, {coordinatorAuthority: 'coordinator-a'});
+  t.after(() => store.close());
+  const value = deliveryRequest('r2-not-seen');
+  let sends = 0;
+  let mode = 'timeout';
+  const coordinator = createRemoteSiteCoordinator({authorization, control, store,
+    journal: control.createCoordinatorJournal('coordinator-a'), currentDispatchContext: recoveryContext,
+    send: async () => { sends++; throw Object.assign(new Error('ACK_LOST'), {code: 'ACK_LOST'}); },
+    query: async () => {
+      if (mode === 'timeout') throw Object.assign(new Error('TIMEOUT'), {code: 'TIMEOUT'});
+      if (mode === 'not-seen') throw Object.assign(new Error('RemoteDispatchNotSeen'),
+        {code: 'RemoteDispatchNotSeen', notSeenBody: control.pollNotSeenJson(value.dispatch)});
+      return mode === 'running' ? {revision: 2, state: [2, 0, 0, 0, 0]} : accepted();
+    }});
+  await assert.rejects(coordinator.dispatch(value), {code: 'ACK_LOST'});
+  await assert.rejects(coordinator.recoverDispatch(value), {code: 'TIMEOUT'});
+  assert.equal(sends, 1);
+  mode = 'not-seen';
+  await assert.rejects(coordinator.recoverDispatch(value), {code: 'ACK_LOST'});
+  assert.equal(sends, 2);
+  mode = 'running';
+  assert.equal((await coordinator.recoverDispatch(value)).action, 'reconciled');
+  const running = store.inspectState(value.dispatch, control);
+  mode = 'accepted';
+  // This observation was not received earlier, so it is stale, not a replay.
+  await assert.rejects(coordinator.recoverDispatch(value));
+  assert.deepEqual(store.inspectState(value.dispatch, control), running);
+  assert.equal(sends, 2);
+  mode = 'not-seen';
+  await assert.rejects(coordinator.recoverDispatch(value), {code: 'RemoteDispatchRedeliveryDenied'});
+  assert.equal(sends, 2);
+});
+
+for (const change of ['expiry', 'cancel', 'generation', 'authorization']) {
+  test(`R2 rechecks current ${change} after the query await`, async t => {
+    await mkdir(scratch, {recursive: true});
+    const root = await mkdtemp(join(scratch, 'coordinator-current-context-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const store = openSqliteCoordinatorDispatchJournal(root, {coordinatorAuthority: 'coordinator-a'});
+    t.after(() => store.close());
+    const context = recoveryContext();
+    let sends = 0;
+    const coordinator = createRemoteSiteCoordinator({authorization, control, store,
+      journal: control.createCoordinatorJournal('coordinator-a'), currentDispatchContext: () => context,
+      send: async () => { sends++; return accepted(); }, query: async () => {
+        if (change === 'cancel') context.cancellationRequested = true;
+        else if (change === 'generation') context.siteGeneration++;
+        else context.authorizationCurrent = false;
+        return accepted();
+      }});
+    const value = deliveryRequest(`r2-current-${change}`);
+    await coordinator.dispatch(value);
+    await assert.rejects(coordinator.recoverDispatch(value));
+    assert.equal(sends, 1);
+  });
+}
+
+test('R2 legacy materials missing refuses redelivery, not normal query or release', async t => {
+  await mkdir(scratch, {recursive: true});
+  const root = await mkdtemp(join(scratch, 'coordinator-legacy-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const store = openSqliteCoordinatorDispatchJournal(root, {coordinatorAuthority: 'coordinator-a'});
+  t.after(() => store.close());
+  const value = deliveryRequest('r2-legacy');
+  store.accept(control.prepareCoordinatorIntent(control.createCoordinatorJournal('coordinator-a'), value.dispatch),
+    value.dispatch, control);
+  let sends = 0;
+  const coordinator = createRemoteSiteCoordinator({authorization, control, store,
+    journal: control.createCoordinatorJournal('coordinator-a'), currentDispatchContext: recoveryContext,
+    send: async () => { sends++; return accepted(); }, query: async () => accepted(),
+    release: async () => ({revision: 3, state: [4, 0, 2, 0, 0]})});
+  await assert.rejects(coordinator.recoverDispatch(value), {code: 'RemoteDispatchDeliveryMaterialsMissing'});
+  await coordinator.query(value);
+  await coordinator.release(value);
+  assert.equal(store.inspectState(value.dispatch, control)[5], 2);
+  assert.equal(sends, 0);
+});
+
+test('R2 original Run association and current admission refuse before material persistence', async t => {
+  await mkdir(scratch, {recursive: true});
+  const root = await mkdtemp(join(scratch, 'coordinator-original-run-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const store = openSqliteCoordinatorDispatchJournal(root, {coordinatorAuthority: 'coordinator-a'});
+  t.after(() => store.close());
+  let sends = 0;
+  let valid = false;
+  const value = deliveryRequest('r2-original-run');
+  const failure = Object.assign(new Error('OriginalRunBindingDenied'), {code: 'OriginalRunBindingDenied'});
+  const coordinator = createRemoteSiteCoordinator({authorization, control, store,
+    journal: control.createCoordinatorJournal('coordinator-a'),
+    currentDispatchContext: (dispatch, body) => {
+      assert.equal(control.identity(dispatch), control.identity(value.dispatch));
+      assert.equal(body, value.dispatchEnvelope);
+      if (!valid) throw failure;
+      return {...recoveryContext(), authorizationCurrent: false};
+    }, send: async () => { sends++; return accepted(); }});
+  await assert.rejects(coordinator.dispatch(value), error => error === failure);
+  assert.equal(store.contains(value.dispatch, control), false);
+  valid = true;
+  await assert.rejects(coordinator.dispatch(value), {code: 'RemoteDispatchRedeliveryDenied'});
+  assert.equal(store.contains(value.dispatch, control), false);
+  assert.equal(sends, 0);
 });
 
 function outputFixture(dispatch, route = 'direct', overrides = {}) {

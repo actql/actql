@@ -43,12 +43,12 @@ pub fn structural_to_json(text : String) -> String {
 
 ///|
 fn compile_text(text : String) -> String raise {
-  let parsed = match @aql.parse(text, limits()) {
+  let parsed = match @aql.parse_fixture(text, limits()) {
     Ok(p) => p
     Err(_) => raise FixtureRejected
   }
   let writer = @encode.writer(1000000, 100000, 128)
-  @aql.emit_program_json(@aql.program(parsed), writer)
+  @syntax.emit_program_source(@aql.program(parsed), writer)
   @encode.finish(writer)
 }
 
@@ -76,7 +76,7 @@ fn format_json(text : String) -> String raise {
     Ok(p) => p
     Err(_) => raise FixtureRejected
   }
-  match @aql.format(parsed, 1000000) {
+  match @aql.format_fixture(parsed, 1000000) {
     Ok(text) => text
     Err(e) => raise e
   }

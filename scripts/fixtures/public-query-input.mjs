@@ -28,6 +28,14 @@ export const querySuccesses = [
     text: 'SELECT id FROM records WHERE amount > 100 ORDER BY id', expected: []},
 ];
 export const queryRefusals = [
+  ...['aql-text', 'sql'].flatMap(format => [
+    {name: `retired-envelope-${format}`, format,
+      text: "-- prefix\nAQL '0.1'; PROGRAM 'old' { STAGE s { STEP {}; } }"},
+    {name: `retired-program-${format}`, format, text: "PROGRAM 'old' {}"},
+    {name: `retired-stage-${format}`, format, text: 'STAGE s { STEP {}; }'},
+    {name: `retired-step-${format}`, format, text: 'STEP {};'},
+    {name: `retired-op-${format}`, format, text: 'OP values {};'},
+  ]),
   {name: 'syntax', text: 'SELECT id FROM', format: 'sql'},
   {name: 'undeclared', text: 'SELECT id FROM records WHERE id = @p',
     format: 'sql'},
@@ -71,17 +79,24 @@ export async function exercisePublicQueryInput(connect, options,
     const current = await observe();
     assert.ok(Number.isSafeInteger(current.acceptedRuns));
     assert.ok(Number.isSafeInteger(current.sourceIo));
-    return {acceptedRuns: current.acceptedRuns, sourceIo: current.sourceIo};
+    return {acceptedRuns: current.acceptedRuns, sourceIo: current.sourceIo,
+      ...(current.sourceReads === undefined ? {} : {sourceReads: current.sourceReads})};
   };
   const client = await connect(options);
   try {
-    for (const {name, text, expected, columns, sourceRows, ...input} of successes) {
+    for (const {name, text, expected, columns, sourceRows, sourceReadCount, ...input} of successes) {
       await prepareCase?.(sourceRows);
       const requestId = requestPrefix + '-' + name;
+      const beforeSubmit = await counters();
       const execution = await client.aql(text, {...input, requestId});
       const state = await execution.wait();
       assert.equal(state.status, 'succeeded', JSON.stringify({name, state}));
       const beforeRead = await counters();
+      if (sourceReadCount !== undefined) {
+        assert.equal(beforeRead.sourceReads - beforeSubmit.sourceReads, sourceReadCount,
+          'shared producers acquire once per authored source: ' +
+            JSON.stringify((await observe()).sourceReadCommands));
+      }
       assert.deepEqual(await execution.result('answer').all(), expected);
       if (columns !== undefined) {
         assert.deepEqual((await execution.result('answer').describe()).columns,

@@ -41,6 +41,8 @@ pub fn coordinator_commit_transition(@remote_site_protocol.CoordinatorDispatchTr
 
 pub fn coordinator_create_journal(String) -> Result[@remote_site_protocol.CoordinatorDispatchJournal, @remote_site_protocol.DispatchIssue]
 
+pub fn coordinator_delivery_envelope_json(@remote_site_protocol.DispatchRequest, String) -> Result[String, @remote_site_protocol.DispatchIssue]
+
 pub fn coordinator_dispatch_cid(@remote_site_protocol.DispatchRequest) -> String
 
 pub fn coordinator_dispatch_json(@remote_site_protocol.DispatchRequest) -> Result[String, @remote_site_protocol.DispatchIssue]
@@ -76,6 +78,10 @@ pub fn coordinator_output_initial_poll_json(@remote_site_protocol.CoordinatorOut
 pub fn coordinator_output_intent_is_new(@remote_site_protocol.CoordinatorOutputAdmission) -> Bool
 
 pub fn coordinator_output_record_status(@remote_site_protocol.CoordinatorOutputRecord) -> Array[String]
+
+pub fn coordinator_output_report_ack_json(@remote_site_protocol.CoordinatorOutputRecord, String) -> Result[String, @remote_site_protocol.DispatchIssue]
+
+pub fn coordinator_output_report_refusal_json(@remote_site_protocol.CoordinatorOutputRecord, String, String) -> Result[String, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_output_result_json(@remote_site_protocol.CoordinatorOutputRecord) -> Result[String, @remote_site_protocol.DispatchIssue]
 
@@ -158,6 +164,8 @@ pub fn coordinator_prepare_response_observation(@remote_site_protocol.Coordinato
 pub fn coordinator_prepare_unknown(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> Result[@remote_site_protocol.CoordinatorDispatchTransition, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_record_state_codes(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> Array[String]
+
+pub fn coordinator_redelivery_eligible(@remote_site_protocol.CoordinatorDispatchIntentRecord, @remote_site_protocol.DispatchRequest, String, String, String, Int, Bool, Bool) -> Result[Bool, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_response_durable_json(@remote_site_protocol.DurableCoordinatorDispatchRecord, @remote_site_protocol.CoordinatorDispatchTransition, @remote_site_protocol.RemoteDispatchResponse) -> Result[String, @remote_site_protocol.DispatchIssue]
 

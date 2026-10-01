@@ -1,7 +1,12 @@
+> Current public status: the legacy AQL/PROGRAM/STAGE/STEP/OP surface is
+> withdrawn. The PR-0 baseline and original imports below are historical.
+> JSON/YAML Program remains machine input; the retained structural sources are
+> internal fixtures. See the [migration mapping](../../docs/design/frontend-language-migration.md).
+
 # Frontend r1 adoption baseline
 
 The frozen baseline and imported index are PR-0 evidence, not a parser release.
-Current structural implementation evidence is recorded separately in the
+Historical structural implementation evidence is recorded separately in the
 [PR-2 record](../../docs/reviews/2026-09-27-frontend-pr2.md); it does not rewrite
 the baseline's historical observations. The agreed first milestone is
 PR-0 (baseline and adoption), PR-1 (bounded source builder and origins), then
@@ -18,8 +23,8 @@ operations equal the 72 current Manifest operations; this does not establish
 runtime support for all operations or equate them with Local's path counts.
 
 The imported source material is immutable. Its older branch SHAs and waiting
-instructions are historical. The public adoption record below stands on the
-current repository interfaces; it does not require another repository to run.
+instructions are historical. The historical adoption record below records the
+then-current repository interfaces; it does not require another repository to run.
 
 [frontend-profile-r1.json](frontend-profile-r1.json) records all 36 feature
 decisions, conditions, delivery units and explicit case mappings. Its

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import {spawn, spawnSync} from 'node:child_process';
 import {once} from 'node:events';
-import {mkdir, mkdtemp, readFile, readdir, writeFile} from 'node:fs/promises';
+import {readdirSync} from 'node:fs';
+import {mkdir, readFile, readdir, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {createRequire} from 'node:module';
 import {userInfo} from 'node:os';
@@ -9,13 +10,20 @@ import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {machineCid} from './actql-spec-family.mjs';
 import {canonicalText} from './check-canonical-json.mjs';
+import {packedClientPackage} from './packed-client-packages.mjs';
+import {createOwnedScratch} from './owned-scratch.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const graphOnly = process.argv.includes('--graph-only');
 const projectionOnly = process.argv.includes('--projection-only');
 const build = join(repository, '_build');
 await mkdir(build, {recursive: true});
-const root = await mkdtemp(join(build, 'node-client-package-'));
+// The installation, states and bundles of this run; removed after it passed.
+const scratch = await createOwnedScratch({parent: build,
+  prefix: 'node-client-package-', label: 'packed Node Client',
+  digests: () => readdirSync(root).filter(name => name.endsWith('.tgz'))
+    .sort()});
+const root = scratch.path;
 const cache = join(build, 'npm-cache');
 const environment = {...process.env, npm_config_cache: cache,
   ACTQL_LOCAL_STATE_DIR: join(root, 'local-state')};
@@ -45,25 +53,21 @@ function runAsync(command, args, cwd, extraEnvironment = {}) {
   });
 }
 
-// PR-2 uses a test-only source adapter; the installed Client and Host retain
-// their ordinary JSON admission and execution path. Raw-text SDK routing is
-// intentionally a separate delivery unit.
+// Historical parser tests remain internal fixture checks. Installed Programs
+// use independent JSON machine input; no compatibility text entry is exposed.
 run('moon', ['build', '--target', 'js', 'src/aql_text_test_bridge'], repository);
 run('node', ['--test', 'scripts/aql-text.test.mjs'], repository);
 run('moon', ['build', '--target', 'js', 'src/query_program_test_bridge'],
   repository);
 run('node', ['--test', 'scripts/query-program.test.mjs'], repository);
-const frontend = await import(pathToFileURL(join(repository,
-  '_build/js/debug/build/aql_text_test_bridge/aql_text_test_bridge.js')));
-const structuralValues = frontend.structuralToJson(await readFile(join(repository,
-  'spec/frontend/fixtures/client-values.structural.aql'), 'utf8'));
-assert.deepEqual(JSON.parse(structuralValues), JSON.parse(await readFile(
-  join(repository, 'packages/sdk/fixtures/values.json'), 'utf8')));
+const machineValues = await readFile(join(repository,
+  'packages/sdk/fixtures/values.json'), 'utf8');
 
 for (const name of ['client-wire', 'sdk', 'local-node',
   'node']) {
-  run('npm', ['pack', '--pack-destination', root, '--json'],
-    join(repository, 'packages', name));
+  await packedClientPackage({repository, name, destination: root,
+    pack: () => run('npm', ['pack', '--pack-destination', root, '--json'],
+      join(repository, 'packages', name))});
 }
 const sdk = join(root, 'actql-sdk-0.0.0-development.tgz');
 const node = join(root, 'actql-node-0.0.0-development.tgz');
@@ -89,13 +93,10 @@ for (const name of ['host-port.mjs', 'host-port.d.ts']) {
   assert((await readFile(join(root, 'node_modules', '@actql',
     'sdk', name), 'utf8')).length > 0);
 }
-await writeFile(join(root, 'values.json'), structuralValues);
+await writeFile(join(root, 'values.json'), machineValues);
 const sourceProgram = await readFile(join(repository,
   'adapters/connectors/duckdb/node/examples/program.json'), 'utf8');
-const sourceRoundtrip = frontend.structuralToJson(
-  frontend.jsonToStructural(sourceProgram));
-assert.deepEqual(JSON.parse(sourceRoundtrip), JSON.parse(sourceProgram));
-await writeFile(join(root, 'source-program.json'), sourceRoundtrip);
+await writeFile(join(root, 'source-program.json'), sourceProgram);
 const queryFrontend = await import(pathToFileURL(join(repository,
   '_build/js/debug/build/query_program_test_bridge/query_program_test_bridge.js')));
 const graphSteps = [
@@ -341,7 +342,7 @@ assert.notEqual(pairQuery, '');
 await writeFile(join(root, 'query-pair.json'), pairQuery);
 await writeFile(join(root, 'query-pair.expected-rows.json'),
   JSON.stringify(pairExpectedRows));
-const valuesStep = JSON.parse(structuralValues).stages[0].steps[0];
+const valuesStep = JSON.parse(machineValues).stages[0].steps[0];
 const valuesQuery = queryFrontend.compileValuesQueryJson(
   'SELECT * FROM rows', 'rows', 'selected', JSON.stringify(valuesStep),
   JSON.stringify(['id']), 'fixture.values_query');
@@ -2513,6 +2514,8 @@ if (graphOnly || projectionOnly) {
   console.log(projectionOnly
     ? 'packed projection Local and HTTP smoke passed'
     : 'packed Graph Local and HTTP smoke passed');
+  // The smoke process exited and the in-process Host is closed.
+  scratch.passed();
   process.exit(0);
 }
 const acquiredRecoveryRequest = {requestId: 'packed-acquired-remote',
@@ -2739,3 +2742,6 @@ client.close();
 `);
 run(process.execPath, ['browser-smoke.mjs'], root);
 console.log('packed Node and browser Client smoke passed');
+// The smoke and restart Host processes exited and the in-process Host is
+// closed.
+scratch.passed();

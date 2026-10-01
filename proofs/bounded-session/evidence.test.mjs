@@ -2,19 +2,105 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { checkBindings, executedConnectionCoverage, graph, premises, validate } from './evidence.mjs';
+import { checkBindings, checkNestObligations, executedConnectionCoverage, graph, nestLocalSuites, premises, validate } from './evidence.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const binding = JSON.parse(readFileSync(new URL('bindings.json', import.meta.url)))[0];
+const nestBinding = JSON.parse(readFileSync(new URL('bindings.json', import.meta.url))).find(b => b.operation === 'nest');
 
 test('connection evidence admits only the executed set fixture scopes', () => {
   checkBindings(root, [binding, { ...binding, operation: 'except', variant: 'distinct' }]);
 });
 
-test('set connection execution cannot witness another adapter-using provider', () => {
+test('copying the set binding cannot witness another adapter-using provider', () => {
   assert.throws(() => checkBindings(root, [{ ...binding, operation: 'nest',
     provider: 'src/connectors/local/nest_provider.mbt', entrypoint: 'nest_provider', kernel: 'start_bounded_nest',
   }]), /Unsupported connection scope/);
+});
+
+function nestFixture() {
+  const { report, current } = fixture();
+  const result = { exit: 0, passed: true, count: 4, target: 'native', sourceDigest: current.digest,
+    artifacts: { 'native.exe': 'current-binary' } };
+  report.runs['nest-connection-native'] = { ...result, coverage: executedConnectionCoverage('nest-connection'),
+    command: ['moon', 'test', 'src/query_integration/local_managed_nest_wbtest.mbt', '--target', 'native', '--deny-warn'] };
+  for (const suite of nestLocalSuites) report.runs[`${suite.id}-native`] = { ...result, count: suite.minimumTests,
+    command: ['moon', 'test', suite.fixture, '--target', 'native', '--deny-warn', ...(suite.filter ? ['--filter', suite.filter] : [])] };
+  return { nodes: graph([nestBinding], 'native'), report, current };
+}
+
+test('Nest admits its own registered witness and retains all local obligations without changing common proofs', () => {
+  checkBindings(root, [nestBinding]);
+  assert.equal(checkNestObligations(root).testRetirements.length, 0);
+  const { nodes, report, current } = nestFixture();
+  const [claim] = validate(nodes, report, current, 'native');
+  assert.deepEqual(claim.premises, premises);
+  assert.deepEqual(claim.residual, nestBinding.residual);
+  assert.deepEqual(claim.dependencies, ['session', 'adapter', 'nest/correlated-parent-major:connection']);
+});
+
+test('existing set execution cannot be relabeled as the Nest witness', () => {
+  const { nodes, report, current } = nestFixture();
+  report.runs['nest-connection-native'] = report.runs['connection-native'];
+  assert.throws(() => validate(nodes, report, current, 'native'), /Unrelated execution/);
+});
+
+test('Nest connection cannot select the set run even after forging its coverage label', () => {
+  const { nodes, report, current } = nestFixture();
+  nodes[3].run = 'connection-native';
+  report.runs['connection-native'].coverage = executedConnectionCoverage('nest-connection');
+  assert.throws(() => validate(nodes, report, current, 'native'), /Unrelated connection execution/);
+});
+
+test('operation-specific passing tests cannot replace common correspondence', () => {
+  for (const index of [1, 2]) {
+    const { nodes, report, current } = nestFixture();
+    nodes[index].run = 'nest-kernel-native';
+    assert.throws(() => validate(nodes, report, current, 'native'), /Invalid common correspondence/);
+  }
+});
+
+test('Nest symmetric profile widening fails with unchanged execution and source/artifact receipts', () => {
+  const { report, current } = nestFixture();
+  const before = JSON.stringify({ report, current });
+  const widened = { ...nestBinding, profile: 'UNCHECKED arbitrary parent and child fields' };
+  assert.throws(() => checkBindings(root, [widened]), /Unverified connection profile/);
+  assert.throws(() => validate(graph([widened], 'native'), report, current, 'native'), /independently executed connection coverage/);
+  assert.equal(JSON.stringify({ report, current }), before);
+});
+
+test('Nest cannot substitute another provider while relabeling both claim scopes', () => {
+  const { report, current } = nestFixture();
+  const wrong = { ...nestBinding, provider: 'src/connectors/local/set_provider.mbt' };
+  assert.throws(() => checkBindings(root, [wrong]), /Unsupported connection scope/);
+  assert.throws(() => validate(graph([wrong], 'native'), report, current, 'native'), /independently executed connection coverage/);
+});
+
+test('Nest two-input and capacity obligations cannot disappear from a copied binding', () => {
+  for (const index of [1, 2, 4]) {
+    const { report, current } = nestFixture();
+    const incomplete = { ...nestBinding, residual: nestBinding.residual.filter((_, i) => i !== index) };
+    assert.throws(() => checkBindings(root, [incomplete]), /Missing Nest-specific residual/);
+    assert.throws(() => validate(graph([incomplete], 'native'), report, current, 'native'), /Missing Nest-specific residual/);
+  }
+});
+
+test('Nest rejects partial connection execution and missing operation-specific boundaries', () => {
+  const partial = nestFixture();
+  partial.report.runs['nest-connection-native'].count = 3;
+  assert.throws(() => validate(partial.nodes, partial.report, partial.current, 'native'), /Unrelated execution/);
+  for (const suite of nestLocalSuites) {
+    const state = nestFixture();
+    delete state.report.runs[`${suite.id}-native`];
+    assert.throws(() => validate(state.nodes, state.report, state.current, 'native'), /Missing executed Nest-specific obligation/);
+  }
+});
+
+test('Nest rejects an invented executed profile even when a binding matches it', () => {
+  const { report, current } = nestFixture();
+  const widened = { ...nestBinding, profile: 'arbitrary unchecked rows' };
+  report.runs['nest-connection-native'].coverage.scopes[0].profile = widened.profile;
+  assert.throws(() => validate(graph([widened], 'native'), report, current, 'native'), /independently executed connection coverage/);
 });
 
 test('connection profile cannot be replaced by an unexecuted one', () => {
@@ -70,7 +156,7 @@ test('execution coverage cannot be broadened together with the claim', () => {
   const { report, current } = fixture();
   const copied = { ...binding, profile: 'UNCHECKED rows with arbitrary field types' };
   report.runs['connection-native'].coverage.scopes[2].profile = copied.profile;
-  assert.throws(() => validate(graph([copied], 'native'), report, current, 'native'), /Unverified executed connection coverage/);
+  assert.throws(() => validate(graph([copied], 'native'), report, current, 'native'), /independently executed connection coverage/);
 });
 
 test('missing independent execution coverage is rejected', () => {

@@ -64,6 +64,7 @@ pub(all) struct SortTerm {
 ///|
 pub(all) enum QueryOperation {
   Infer(InferClause)
+  Nearest(NearestClause)
   Where(Expression)
   Extend(Array[Projection])
   Set(Array[(NamePart, Expression)])
@@ -90,6 +91,20 @@ pub(all) struct InferClause {
   contract : NamePart
   keys : Array[Array[NamePart]]
   inputs : Array[(NamePart, Expression)]
+  keep : Array[KeepItem]
+  name : NamePart
+}
+
+///|
+pub(all) struct NearestClause {
+  relation : Array[NamePart]
+  candidate_alias : NamePart
+  query_keys : Array[Array[NamePart]]
+  query_vector : Expression
+  candidate_keys : Array[Array[NamePart]]
+  candidate_vector : Expression
+  metric : String
+  k : Int64
   keep : Array[KeepItem]
   name : NamePart
 }
@@ -301,6 +316,16 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
     return None
   }
   match query.operations[index] {
+    Nearest(clause) =>
+      Some(
+        Nearest({
+          ..clause,
+          relation: clause.relation.copy(),
+          query_keys: clause.query_keys.map(path => path.copy()),
+          candidate_keys: clause.candidate_keys.map(path => path.copy()),
+          keep: clause.keep.map(item => { ..item, path: item.path.copy(), }),
+        }),
+      )
     Infer(clause) =>
       Some(
         Infer({
@@ -998,7 +1023,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
 }
 
 ///|
-fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
+fn QueryParser::query(self : QueryParser) -> Query raise QueryAbort {
   let ctes : Array[CtePart] = []
   if self.has("WITH") {
     self.keyword("WITH")
@@ -1018,7 +1043,11 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
       if self.advance().value != Symbol(40) {
         raise QueryAbort("Expected CTE opening parenthesis", self.peek().start)
       }
-      let body = self.sql_term()
+      let body = if self.has("FROM") {
+        self.pipe(cte_body=true)
+      } else {
+        self.sql_term()
+      }
       if self.advance().value != Symbol(41) {
         raise QueryAbort("Expected CTE closing parenthesis", self.peek().start)
       }
@@ -1038,6 +1067,16 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
       ignore(self.advance())
     }
   }
+  let term = if self.has("SELECT") { self.sql() } else { self.pipe() }
+  let all_ctes = ctes + term.ctes
+  if all_ctes.length() > self.limits.max_cte_count {
+    raise QueryAbort("CTE count limit", self.peek().start)
+  }
+  { ..term, ctes: all_ctes, work: self.work, }
+}
+
+///|
+fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
   let term = self.sql_term()
   let sets : Array[SetPart] = []
   let mut set_spelling : (String, String, Bool)? = None
@@ -1094,28 +1133,24 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
     self.node()
     tail.push(self.limit())
   }
-  self.end()
-  let all_ctes = ctes + term.ctes
-  if all_ctes.length() > self.limits.max_cte_count {
-    raise QueryAbort("CTE count limit", self.peek().start)
-  }
   if sets.is_empty() {
-    {
-      ..term,
-      ctes: all_ctes,
-      operations: term.operations + tail,
-      work: self.work,
-    }
+    { ..term, operations: term.operations + tail, work: self.work, }
   } else {
-    { ..term, ctes: all_ctes, sets, final_operations: tail, work: self.work, }
+    { ..term, sets, final_operations: tail, work: self.work, }
   }
 }
 
 ///|
-fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
+fn QueryParser::pipe(
+  self : QueryParser,
+  cte_body? : Bool = false,
+) -> Query raise QueryAbort {
   self.keyword("FROM")
   let mut graph : GraphQuery? = None
   let (relation, source_alias, ctes) = if self.has("GRAPH") {
+    if cte_body {
+      raise QueryAbort("Graph CTE body is unsupported", self.peek().start)
+    }
     self.keyword("GRAPH")
     let relation = self.path()
     let label_field = self.graph_labels()
@@ -1328,17 +1363,24 @@ fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
         final_operations.push(operation)
       }
     } else if self.has("INFER") {
+      if cte_body {
+        raise QueryAbort(
+          "INFER is not allowed in a CTE body",
+          self.peek().start,
+        )
+      }
       operations.push(Infer(self.infer_clause()))
-    } else if self.has("NEAREST") || self.has("KEEP") {
+    } else if self.has("NEAREST") {
+      operations.push(Nearest(self.nearest_clause()))
+    } else if self.has("KEEP") {
       raise QueryAbort(
-        "NEAREST KEEP is adopted but not implemented in the query frontend",
+        "KEEP requires an INFER or NEAREST operator",
         self.peek().start,
       )
     } else {
       raise QueryAbort("Unknown Pipe operation", self.peek().start)
     }
   }
-  self.end()
   if graph is Some(current) && current.pattern is None {
     raise QueryAbort("GRAPH_PATTERN_MATCH_REQUIRED", self.peek().start)
   }
@@ -1366,7 +1408,7 @@ fn QueryParser::symbol(
 ) -> Unit raise QueryAbort {
   let token = self.advance()
   if token.value != Symbol(expected) {
-    raise QueryAbort("Expected INFER clause delimiter", token.start)
+    raise QueryAbort("Expected operator clause delimiter", token.start)
   }
 }
 
@@ -1405,6 +1447,15 @@ fn QueryParser::infer_clause(
     }
   }
   self.symbol(41)
+  let keep = self.keep_clause()
+  self.keyword("AS")
+  { contract, keys, inputs, keep, name: self.name(), }
+}
+
+///|
+fn QueryParser::keep_clause(
+  self : QueryParser,
+) -> Array[KeepItem] raise QueryAbort {
   let keep : Array[KeepItem] = []
   if self.has("KEEP") {
     self.keyword("KEEP")
@@ -1442,8 +1493,67 @@ fn QueryParser::infer_clause(
     }
     self.symbol(41)
   }
+  keep
+}
+
+///|
+fn QueryParser::nearest_keys(
+  self : QueryParser,
+) -> Array[Array[NamePart]] raise QueryAbort {
+  self.keyword("KEY")
+  self.symbol(40)
+  let keys : Array[Array[NamePart]] = []
+  while true {
+    self.node()
+    keys.push(self.path())
+    if self.peek().value != Symbol(44) {
+      break
+    }
+    ignore(self.advance())
+  }
+  self.symbol(41)
+  keys
+}
+
+///|
+fn QueryParser::nearest_clause(
+  self : QueryParser,
+) -> NearestClause raise QueryAbort {
+  self.keyword("NEAREST")
+  let relation = self.path()
   self.keyword("AS")
-  { contract, keys, inputs, keep, name: self.name(), }
+  let candidate_alias = self.name()
+  self.keyword("QUERY")
+  let query_keys = self.nearest_keys()
+  self.keyword("VECTOR")
+  let query_vector = self.expression()
+  self.keyword("CANDIDATE")
+  let candidate_keys = self.nearest_keys()
+  self.keyword("VECTOR")
+  let candidate_vector = self.expression()
+  self.keyword("METRIC")
+  let metric_start = self.peek().start
+  let metric = self.name()
+  if metric.quoted ||
+    !["COSINE", "DOT", "L2"].contains(ascii_upper(metric.value)) {
+    raise QueryAbort("NEAREST metric must be cosine, dot or l2", metric_start)
+  }
+  self.keyword("K")
+  let k = self.safe_integer(false)
+  let keep = self.keep_clause()
+  self.keyword("AS")
+  {
+    relation,
+    candidate_alias,
+    query_keys,
+    query_vector,
+    candidate_keys,
+    candidate_vector,
+    metric: metric.value.to_lower(),
+    k,
+    keep,
+    name: self.name(),
+  }
 }
 
 ///|
@@ -1472,12 +1582,9 @@ pub fn parse_query(
     synthetic_sources: 0,
   }
   try {
-    let query = if parser.has("SELECT") || parser.has("WITH") {
-      parser.sql()
-    } else {
-      parser.pipe()
-    }
-    Ok(query)
+    let query = parser.query()
+    parser.end()
+    Ok({ ..query, work: parser.work, })
   } catch {
     QueryExpression(error) => Err(error)
     QueryAbort(message, at) =>

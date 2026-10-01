@@ -521,6 +521,7 @@ fn execute_checked(matches : @argparse.Matches) -> Unit raise CommandStop {
     observation_count += 1
     let body = @utf8.decode(body_bytes) catch { _ => "" }
     let mut accepted = false
+    let mut output_ack : String? = None
     match
       @remote.admit_remote_dispatch_response_json(
         body,
@@ -616,15 +617,30 @@ fn execute_checked(matches : @argparse.Matches) -> Unit raise CommandStop {
                 Ok(_) => ()
                 Err(issue) => stop(issue)
               }
-              let transition = match
-                @remote.prepare_coordinator_output_success(output_state, result) {
-                Ok(value) => value
-                Err(_) => stop("output success transition failed")
+              // An exact replay uses the already durable terminal fact. It
+              // does not create another transition or advance its revision.
+              let confirmed = if output_result_body[0] is Ok(Some(_)) {
+                output_state
+              } else {
+                let transition = match
+                  @remote.prepare_coordinator_output_success(
+                    output_state, result,
+                  ) {
+                  Ok(value) => value
+                  Err(_) => stop("output success transition failed")
+                }
+                match
+                  @remote.commit_coordinator_output_transition(transition, true) {
+                  Ok(value) => value
+                  Err(_) => stop("output success commit failed")
+                }
               }
-              output_record[0] = match
-                @remote.commit_coordinator_output_transition(transition, true) {
+              output_record[0] = Some(confirmed)
+              output_result_body[0] = Ok(Some(body))
+              output_ack = match
+                @remote.coordinator_output_report_ack_json(confirmed, body) {
                 Ok(value) => Some(value)
-                Err(_) => stop("output success commit failed")
+                Err(_) => stop("durable output ACK preparation failed")
               }
               accepted = true
             }
@@ -635,7 +651,7 @@ fn execute_checked(matches : @argparse.Matches) -> Unit raise CommandStop {
       }
     }
     if accepted {
-      reply(server, request, 200, "{\"accepted\":true}")
+      reply(server, request, 200, output_ack.unwrap_or("{\"accepted\":true}"))
     } else {
       reply(server, request, 404, "{\"error\":\"not_found\"}")
     }

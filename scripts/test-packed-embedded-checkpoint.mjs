@@ -3,17 +3,25 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {generateKeyPairSync} from 'node:crypto';
-import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
+import {readdirSync} from 'node:fs';
+import {mkdir, readFile, writeFile} from 'node:fs/promises';
 import {userInfo} from 'node:os';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {canonicalText} from './check-canonical-json.mjs';
+import {createOwnedScratch} from './owned-scratch.mjs';
+import {packedClientPackage} from './packed-client-packages.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const externalScratch = join(repository, '..', '.codex-scratch');
 await mkdir(externalScratch, {recursive: true});
-const root = await mkdtemp(join(externalScratch,
-  'embedded-checkpoint-package-'));
+// The installation, states and logs of this run; removed after it passed.
+const scratch = await createOwnedScratch({parent: externalScratch,
+  prefix: 'embedded-checkpoint-package-',
+  label: 'packed Embedded Local Checkpoint',
+  digests: () => readdirSync(root).filter(name => name.endsWith('.tgz'))
+    .sort()});
+const root = scratch.path;
 const environment = {...process.env,
   npm_config_cache: join(externalScratch, 'npm-cache')};
 
@@ -29,8 +37,9 @@ function run(command, args, cwd = root, env = environment) {
 
 for (const name of ['client-wire', 'sdk', 'run-host-core', 'local-node',
   'node']) {
-  run('npm', ['pack', '--pack-destination', root, '--json'],
-    join(repository, 'packages', name));
+  await packedClientPackage({repository, name, destination: root,
+    pack: () => run('npm', ['pack', '--pack-destination', root, '--json'],
+      join(repository, 'packages', name))});
 }
 await writeFile(join(root, 'package.json'),
   '{"private":true,"type":"module"}\n');
@@ -86,3 +95,5 @@ assert.equal(events.filter(event => event === 'physical_start_reserved').length,
   1);
 console.log('packed Embedded Local Checkpoint approval, restart and ' +
   'Named Result passed');
+// Every child ran to completion through spawnSync.
+scratch.passed();

@@ -69,6 +69,14 @@ not duplicate its evaluation, failures or resource accounting. Unqualified
 joined fields must be unique. `USING` exposes one coalesced key for FULL JOIN
 and does not invent an arbitrary representative row.
 
+WITH may precede either a SELECT query or a FROM-starting Pipe query. A CTE
+body may be a SELECT core or a relational Pipe query, using the same expression
+and column-scope rules as the corresponding query head. Each body ends at its
+own closing parenthesis; a statement terminator is allowed only after the
+complete query. INFER is excluded from CTE bodies. Recursive declarations,
+forward references and references to a displaced range variable remain
+invalid. Parsing shares the existing syntax-node, CTE-count and work budgets.
+
 Nonrecursive CTEs and named, noncorrelated FROM subqueries become checked Stage
 Result references, so reusing a source does not imply another physical read.
 JOIN, grouping, sets, analytic and Pipe operations lower to existing Program
@@ -116,6 +124,48 @@ of model execution support. Until common infer and object-expression execution
 are available, normal Host preparation rejects these Programs before Run
 acceptance and provider I/O.
 
+## NEAREST KEEP source projection
+
+NEAREST consumes the current Relation as queries and an explicitly named
+candidate Relation. The candidate range alias, QUERY KEY and VECTOR, CANDIDATE
+KEY and VECTOR, METRIC, positive safe-integer literal K, and result AS are
+mandatory. Metrics are the existing exact cosine, dot and negative-distance
+l2 contracts. K is per query, not a search-work or memory ceiling.
+
+KEY references resolve independently within each side. Named key objects use
+the resolved input column names; quoting and case-insensitive lookup do not
+replace those names with the spelling of the reference. The shared checker
+and execution owner verify non-null typed IDs, dimensions, uniqueness,
+quantization, finite components, ordering and resource obligations.
+
+KEEP resolves against both input scopes. Unqualified ambiguous references,
+duplicate output names and collisions with the result AS name are rejected.
+Wildcards expand known columns in declaration order; `*` expands query columns
+then candidate columns and still rejects duplicates. Each explicit item retains
+its authored position. The output contains KEEP columns followed by the result
+closed object: query_key and candidate_key (named objects), score and rank.
+Omitted KEEP yields only that result object. Old input aliases cannot recover
+omitted columns. Query values repeat for each retained candidate match; no
+match produces no row. Query-key-only uniqueness is never inferred after KNN.
+
+Lowering retains each source producer once, uses the existing rows-to-Vectors
+bridges and nearest operation, then common many-to-one joins for KEEP and
+ordinary object projection. Explicit candidate selection cannot be replaced
+by the filtered query Relation. Shared sources retain one capture boundary
+covering both demands under the ordinary grant and capacity checks. No read
+permission, synthetic ID, output key witness, implicit sort, retry or alternate
+execution engine is supplied by the frontend. The flat pair key remains common
+owner evidence; nesting its values does not declare an arbitrary object key.
+
+Implementation support is currently source construction for a linear Relation
+Pipe with singleton keys. Composite-key syntax is adopted, but its lowering
+reports UnsupportedNearest until the common Program bridge can express that
+identity tuple. Combining NEAREST with CTE/set/JOIN query assembly is also
+pending and explicitly rejected. These are implementation gaps, not permanent
+language restrictions. Object/property execution is a separate common-owner
+dependency; source construction and type checking do not claim packed Host
+execution or successful publication.
+
 ## Graph pattern source
 
 `FROM GRAPH name` selects an existing Graph value. `MATCH` requires an explicit
@@ -159,7 +209,9 @@ partial Program. Formatter output may normalize case and spacing but must
 preserve the checked Program meaning and explicit query structure.
 
 The Grammar Manifest binds the raw UTF-8 bytes of this document and the query
-EBNF separately from the legacy expression text and structural text grammar.
+EBNF separately from the retained expression-text dialect and the structural
+text withdrawal policy. There is no structural text fallback or public
+Program-to-STEP formatter.
 These identities describe the source form. They do not certify that a specific
 Run succeeded or that all r1 acceptance cases have been implemented. Changing
 either input changes the manifest CID and dependent compiled identities; the

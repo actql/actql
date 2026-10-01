@@ -273,6 +273,19 @@ pub(all) struct NamePart {
   quoted : Bool
 } derive(Eq, @debug.Debug)
 
+pub(all) struct NearestClause {
+  relation : Array[NamePart]
+  candidate_alias : NamePart
+  query_keys : Array[Array[NamePart]]
+  query_vector : Expression
+  candidate_keys : Array[Array[NamePart]]
+  candidate_vector : Expression
+  metric : String
+  k : Int64
+  keep : Array[KeepItem]
+  name : NamePart
+}
+
 pub(all) struct Projection {
   expression : Expression?
   aggregate : AggregateCall?
@@ -293,6 +306,7 @@ pub(all) struct QueryLimits {
 
 pub(all) enum QueryOperation {
   Infer(InferClause)
+  Nearest(NearestClause)
   Where(Expression)
   Extend(Array[Projection])
   Set(Array[(NamePart, Expression)])

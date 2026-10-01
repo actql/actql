@@ -153,5 +153,5 @@ export function durableOutputRecordFixture(coordinator, runtime,
   });
   return Object.freeze({request, requestCid: coordinator.dispatchCid(request),
     durable, outputDurable, pollBody, planOutput, control, siteRequest,
-    siteIntent, reply});
+    siteIntent, reply, transferRequest, payloadRequest, transferControl});
 }

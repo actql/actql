@@ -1,7 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
-  "actql/actql/aql_text" @aql,
+  "actql/actql/internal_structural_fixture" @aql,
   "actql/actql/program_source_builder" @builder,
   "actql/actql/frontend_source_map" @origin,
   "actql/actql/sha256" @sha,

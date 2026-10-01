@@ -116,7 +116,7 @@ test('isolated build retains production aliases and excludes test-only packages 
   const f = fixture(t);
   f.put('root', 'moon.pkg', manifest + `
     import { "actql/actql/helper" @production, }
-    import { "actql/actql/aql_text" @frontend, } for "test"
+    import { "actql/actql/internal_structural_fixture" @frontend, } for "test"
     import { "moonbitlang/core/env" @host, } for "wbtest"
     formatter(ignore: ["example_test.mbt"],)
   `);
@@ -134,6 +134,6 @@ test('isolated build retains production aliases and excludes test-only packages 
     [{path: 'actql/actql/helper', alias: 'production', scope: 'production'}]);
   assert.equal(readFileSync(join(isolated, 'src', 'root', 'main.mbt'), 'utf8'),
     readFileSync(join(f.root, 'src', 'root', 'main.mbt'), 'utf8'));
-  assert.equal(existsSync(join(isolated, 'src', 'aql_text')), false);
+  assert.equal(existsSync(join(isolated, 'src', 'internal_structural_fixture')), false);
   assert.deepEqual(inspectCore(isolated, ['root']).packages, audit.packages);
 });

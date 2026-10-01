@@ -1,0 +1,62 @@
+{
+  "version": "actql/0.1",
+  "id": "fixture.nearest_composite_bridge",
+  "stages": [
+    {
+      "id": "main",
+      "inputs": {},
+      "steps": [
+        {
+          "values": {
+            "schema": {
+              "tenant": {
+                "type": "string",
+                "nullable": false
+              },
+              "id": {
+                "type": "string",
+                "nullable": false
+              },
+              "embedding": {
+                "type": "vector",
+                "dimensions": 2,
+                "nullable": false
+              }
+            },
+            "rows": []
+          },
+          "as": "queries"
+        },
+        {
+          "from": "queries",
+          "to_vectors": {
+            "id": [
+              "tenant",
+              "id"
+            ],
+            "vector": "embedding"
+          },
+          "as": "out"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "out",
+          "fields": [
+            "tenant",
+            "id",
+            "embedding"
+          ]
+        }
+      }
+    }
+  ],
+  "results": {
+    "answer": {
+      "from": {
+        "stage": "main",
+        "result": "rows"
+      }
+    }
+  }
+}

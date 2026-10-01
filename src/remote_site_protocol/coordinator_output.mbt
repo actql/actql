@@ -384,6 +384,51 @@ pub fn prepare_coordinator_output_success_json(
 }
 
 ///|
+/// ACK-only replay from the exact successful fact. Adapters call this only
+/// after confirming the corresponding durable record, never from a waiter.
+pub fn coordinator_output_report_ack_json(
+  record : CoordinatorOutputRecord,
+  body : String,
+) -> Result[String, DispatchIssue] {
+  if record.progress != CoordinatorOutputSucceeded ||
+    coordinator_output_record_result_json(record) != Ok(body) {
+    return Err(InvalidTransition)
+  }
+  match
+    admit_remote_output_result_json(
+      body,
+      record.output,
+      record.payload_request,
+      record.transfer_request,
+    ) {
+    Ok(result) =>
+      remote_output_report_reply_json(result, RemoteOutputReportReply::Accepted)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// The receiver supplies a checked current refusal, not a raw HTTP status or
+/// diagnostic. Bind it through the existing expected Output owner before
+/// issuing a report response; this never changes acceptance or execution.
+pub fn coordinator_output_report_refusal_json(
+  record : CoordinatorOutputRecord,
+  body : String,
+  reason : String,
+) -> Result[String, DispatchIssue] {
+  match
+    admit_remote_output_result_json(
+      body,
+      record.output,
+      record.payload_request,
+      record.transfer_request,
+    ) {
+    Ok(result) => remote_output_report_reply_json(result, Refused(reason))
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
 pub fn coordinator_output_transition_key(
   transition : CoordinatorOutputTransition,
 ) -> Array[String] {

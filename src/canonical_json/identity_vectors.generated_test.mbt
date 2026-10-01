@@ -2031,10 +2031,10 @@ test "contract spec/contracts/actql-compilation-manifests.json#/schemas/barrier_
 test "contract spec/manifests/actql-grammar-0.1.json#" {
   let input = @json.parse([
     "{\"version\":\"actql-grammar-manifest/0.1\",\"source_grammar_cid\":\"sha256:a6bfc4b6c00d89f521ccee9e99e1dbbd7385675fd55478f1536f36f860b1ef0a\",\"operations\":[\"analytic\",\"append\",\"apply_graph_delta\",\"asof_join\",\"assert_rows\",\"calendar_bucket\",\"calendar_series\",\"components\",\"cross_join\",\"dedupe_events\",\"dedupe_rows\",\"degree\",\"derive\",\"distinct\",\"drop\",\"edge_rows\",\"events\",\"except\",\"filter\",\"graft_graph\",\"graph\",\"graph_bounds\",\"graph_diff\",\"graphs_equal\",\"group\",\"infer\",\"intersect\",\"interval_join\",\"join\",\"json_pick\",\"lag\",\"match_edges\",\"match_nodes\",\"mean_graphs\",\"merge_rankings\",\"nearest\",\"nest\",\"node_rows\",\"normalize_graph\",\"normalize_vectors\",\"pivot\",\"pool_vectors\",\"reach\",\"rename\",\"row_window\",\"score_vectors\",\"search_candidates\",\"select\",\"sequence\",\"serialize\",\"session\",\"shortest_path\",\"sort\",\"subgraph\",\"subtract_graphs\",\"take\",\"text_rank\",\"time_series\",\"to_events\",\"to_vectors\",\"top_k\",\"top_k_by\",\"traverse\",\"union_graphs\",\"unnest\",\"unpivot\",\"values\",\"vectors\",\"watermark_events\",\"watermark_rows\",\"window_events\",\"windo",
-    "w_group\"],\"expression_contract_cid\":\"sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb\",\"expression_text_grammar_sha256\":\"af7d4d19de39d888daff8195773a8599c8246602d41e450da6975e336de96fd7\",\"expression_text_rules_sha256\":\"997601c137dc1ef2d6d63585d5930aae7f5c39efb54aa56ffbe59b068e2f68c2\",\"structural_text_grammar_sha256\":\"22feaa018d1e2595c9fa96c973fa86a5b32b601d5cf405b8e4704078899b69a8\",\"structural_text_rules_sha256\":\"a94342cf6b8b33a3541722d03e2c29ef9a118556dc110a14f9b8ed87fb6f1184\",\"query_text_grammar_sha256\":\"cbf44f5be1ce7c2a523b61bfaded9a87ae29c32c90d1749e031a007a0622da70\",\"query_text_rules_sha256\":\"78d6ce6374fff884151babdfd69faeea26599000f8513f7c911870ae10b8fb57\",\"grammar_manifest_cid\":\"sha256:fbbd1ae95045ce44735086efc664fd37165857f18ba449f353e7055252053d49\"}",
+    "w_group\"],\"expression_contract_cid\":\"sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb\",\"expression_text_grammar_sha256\":\"af7d4d19de39d888daff8195773a8599c8246602d41e450da6975e336de96fd7\",\"expression_text_rules_sha256\":\"997601c137dc1ef2d6d63585d5930aae7f5c39efb54aa56ffbe59b068e2f68c2\",\"structural_text_grammar_sha256\":\"0f6a0337a350348efbe20e23fe658ce1e56297d407ba9dac3ec2eaf008849a56\",\"structural_text_rules_sha256\":\"209cde18dff4cc5b8b7cdd6749a3329b0bcf6a8fe6c7243977c0c5f169e49762\",\"query_text_grammar_sha256\":\"24d200469ee0ec999173db9a29feda1196d9fbf8b63083e2ff184737583609eb\",\"query_text_rules_sha256\":\"294f1cbc6da0a0f69b66fcd45ff625d260f2835d18eaef2d5f246e493f1cc388\",\"grammar_manifest_cid\":\"sha256:8fc336e2b475104366fea9024c38d171a3d18743a63f05b254272e14bedd886d\"}",
   ].join(""))
   let value = @canonical_json.from_json(input, 84, 2, 1815)
-  assert_eq(@canonical_json.cid_value(value, 1815, 84, 2), "sha256:88766b272b13ec7c881bbda4c5e2cdfab1a3fa90ef9201bd81a0d5fd41eb7b42")
+  assert_eq(@canonical_json.cid_value(value, 1815, 84, 2), "sha256:19f9d3e648dd272584afa65fe5e5444f9a7f15db82beae56da2cae5728818271")
   assert_eq(@canonical_json.measure_value(value, 1815, 84, 2), 1815)
 }
 
@@ -4095,6 +4095,16 @@ test "contract spec/contracts/actql-remote-site-wire.json#/schemas/poll_dispatch
   let value = @canonical_json.from_json(input, 25, 3, 520)
   assert_eq(@canonical_json.cid_value(value, 520, 25, 3), "sha256:ca7951b1ccab716fdf738573b94f402f92ccbdaeadbf4ab699b00a777003ab56")
   assert_eq(@canonical_json.measure_value(value, 520, 25, 3), 520)
+}
+
+///|
+test "contract spec/contracts/actql-remote-site-wire.json#/schemas/output_report_reply" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"dispatch_request_cid\",\"intent_cid\",\"outcome\",\"reason\",\"report_cid\",\"version\"],\"properties\":{\"dispatch_request_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"intent_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"outcome\":{\"type\":\"string\",\"enum\":[\"accepted\",\"refused\"]},\"reason\":{\"type\":\"string\",\"enum\":[\"\",\"authorization_denied\",\"scope_mismatch\",\"report_conflict\"]},\"report_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"version\":{\"const\":\"actql-remote-output-report-reply/0.1\"}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 35, 4, 628)
+  assert_eq(@canonical_json.cid_value(value, 628, 35, 4), "sha256:db3cd45931cdbbdf86ac79545a19a0691b1240d1b78fe963812eb331f9820284")
+  assert_eq(@canonical_json.measure_value(value, 628, 35, 4), 628)
 }
 
 ///|

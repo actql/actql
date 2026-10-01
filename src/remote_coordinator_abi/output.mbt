@@ -349,3 +349,22 @@ pub fn coordinator_output_result_json(
 ) -> Result[String, @remote.DispatchIssue] {
   @remote.coordinator_output_record_result_json(record)
 }
+
+///|
+#export_name("coordinatorOutputReportAckJson")
+pub fn coordinator_output_report_ack_json(
+  record : @remote.CoordinatorOutputRecord,
+  body : String,
+) -> Result[String, @remote.DispatchIssue] {
+  @remote.coordinator_output_report_ack_json(record, body)
+}
+
+///|
+#export_name("coordinatorOutputReportRefusalJson")
+pub fn coordinator_output_report_refusal_json(
+  record : @remote.CoordinatorOutputRecord,
+  body : String,
+  reason : String,
+) -> Result[String, @remote.DispatchIssue] {
+  @remote.coordinator_output_report_refusal_json(record, body, reason)
+}

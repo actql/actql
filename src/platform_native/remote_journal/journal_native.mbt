@@ -2,6 +2,7 @@
 struct Journal {
   database : @sqlite.Database
   control : @remote.SiteDispatchJournal
+  max_record_bytes : Int64
   mut closed : Bool
 }
 
@@ -107,7 +108,7 @@ pub fn open_journal(
     Err(issue) => return Err(Physical(issue))
   }
   match install_site_binding(database, control) {
-    Ok(_) => Ok({ database, control, closed: false, })
+    Ok(_) => Ok({ database, control, max_record_bytes, closed: false, })
     Err(issue) => {
       database.close()
       Err(issue)

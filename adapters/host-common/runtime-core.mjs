@@ -475,6 +475,10 @@ function remoteSiteControl(moon) {
       moon.strategyRemoteOutputResultJson(result),
     ),
     outputResultIdentity: moon.strategyRemoteOutputResultIdentity,
+    coordinatorOutputReportAckJson: (record, body) => checked(
+      moon.strategyRemoteCoordinatorOutputReportAckJson(record, body)),
+    admitOutputReportReply: (body, result) => checked(
+      moon.strategyRemoteOutputReportReplyAdmit(body, result)),
     outputResultProjection: (result, transferRequest) => checked(
       moon.strategyRemoteOutputResultProjection(result, transferRequest),
     ),
@@ -541,6 +545,20 @@ function remoteSiteControl(moon) {
     ),
     coordinatorIntentMatches:
       moon.strategyRemoteCoordinatorIntentMatches,
+    coordinatorDeliveryEnvelopeJson: (request, body) => checked(
+      moon.strategyRemoteCoordinatorDeliveryEnvelopeJson(request, body),
+    ),
+    coordinatorDeliveryContextCurrent: (request, context) => checked(
+      moon.strategyRemoteCoordinatorDeliveryContextCurrent(request,
+        context.coordinatorAuthority, context.siteKey, context.siteGeneration,
+        context.authorizationCurrent, context.cancellationRequested),
+    ),
+    coordinatorRedeliveryEligible: (record, request, notSeenBody, context) => checked(
+      moon.strategyRemoteCoordinatorRedeliveryEligible(record, request,
+        notSeenBody, context.coordinatorAuthority, context.siteKey,
+        context.siteGeneration, context.authorizationCurrent,
+        context.cancellationRequested),
+    ),
     restoreCoordinatorIntent: (journal, request) => checked(
       moon.strategyRemoteCoordinatorIntentRestore(journal, request),
     ),

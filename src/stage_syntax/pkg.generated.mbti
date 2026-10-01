@@ -47,6 +47,8 @@ pub fn emit_effect_header_semantics(EffectHeader, @encode_core.Writer) -> Unit r
 
 pub fn emit_metadata_stripped_program(Program, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_program_source(Program, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_source_free_unit_program(Program, @encode_core.Writer) -> Bool raise @encode_core.EncodeFailure
 
 pub fn export_at(Program, Int) -> (String, String, String)?

@@ -77,7 +77,7 @@ test "structural envelope enters normal admission without dropping source struct
     #|}
   let expected =
     #|{"version":"actql/0.1","id":"p","meta":{"note":"é😀"},"params":{"n":{"type":"number","default":2}},"stages":[{"id":"s","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false}},"rows":[{"x":1}]},"as":"rows","meta":{"tag":"step"}}],"effects":{},"results":{"r":{"from":"rows","meta":{"note":"result"}}}}],"results":{"out":{"from":{"stage":"s","result":"r"}}}}
-  let parsed = parse(text, limits(), source_path="program.aql").unwrap()
+  let parsed = parse_fixture(text, limits(), source_path="program.aql").unwrap()
   let ordinary = @syntax.parse(
     expected,
     {
@@ -111,14 +111,17 @@ test "structural declarations and strict JSON fail without publishing a Program"
       "META {unquoted:1};", "META {/* comment */\"a\":1};", "META {\"a\":-0};", "META {\"a\":1,};",
       "PARAMS {};", "BINDINGS {};", "UNKNOWN {};",
     ] {
-    assert_true(parse(prefix + body + suffix, limits()) is Err(_), msg=body)
+    assert_true(
+      parse_fixture(prefix + body + suffix, limits()) is Err(_),
+      msg=body,
+    )
   }
   for
     text in [
       "AQL '0.2'; PROGRAM 'p' {}", "AQL '0.1'; PROGRAM p {}", "AQL '0.1'; PROGRAM 'p' {} trailing",
       "AQL '0.1'; PROGRAM 'p' {",
     ] {
-    assert_true(parse(text, limits()) is Err(_), msg=text)
+    assert_true(parse_fixture(text, limits()) is Err(_), msg=text)
   }
 }
 
@@ -135,24 +138,24 @@ test "formatter roundtrip retains explicit steps Effects metadata and stage orde
     },
     format=Json,
   ).unwrap()
-  let printed = format(ordinary, 100000).unwrap()
-  let roundtrip = parse(printed, limits()).unwrap()
+  let printed = format_fixture(ordinary, 100000).unwrap()
+  let roundtrip = parse_fixture(printed, limits()).unwrap()
   same_values(
     @syntax.program_body(ordinary),
     @syntax.program_body(program(roundtrip)),
   )
-  assert_eq(format(program(roundtrip), 100000).unwrap(), printed)
+  assert_eq(format_fixture(program(roundtrip), 100000).unwrap(), printed)
   let bytes = @origin.input_bytes(@origin.document(printed, 100000).unwrap())
-  assert_eq(format(ordinary, bytes).unwrap(), printed)
-  assert_true(format(ordinary, bytes - 1) is Err(_))
-  assert_true(format(ordinary, -1) is Err(_))
+  assert_eq(format_fixture(ordinary, bytes).unwrap(), printed)
+  assert_true(format_fixture(ordinary, bytes - 1) is Err(_))
+  assert_true(format_fixture(ordinary, -1) is Err(_))
 }
 
 ///|
 test "structural source and output limits reject rather than truncate" {
   let text = "AQL '0.1'; PROGRAM 'p' { STAGE s { RESULT r = {\"from\":\"x\"}; } RESULT r = {\"from\":{\"stage\":\"s\",\"result\":\"r\"}}; }"
   let large = limits()
-  let parsed = parse(text, large).unwrap()
+  let parsed = parse_fixture(text, large).unwrap()
   let bytes = @origin.input_bytes(@origin.document(text, 100000).unwrap())
   let exact = {
     ..large,
@@ -162,9 +165,9 @@ test "structural source and output limits reject rather than truncate" {
       max_output_bytes: @builder.output_bytes(source(parsed)),
     },
   }
-  assert_true(parse(text, exact) is Ok(_))
+  assert_true(parse_fixture(text, exact) is Ok(_))
   assert_true(
-    parse(text, {
+    parse_fixture(text, {
       ..exact,
       construction: {
         ..exact.construction,
@@ -174,7 +177,7 @@ test "structural source and output limits reject rather than truncate" {
     is Err(_),
   )
   assert_true(
-    parse(text, {
+    parse_fixture(text, {
       ..exact,
       construction: {
         ..exact.construction,
@@ -183,9 +186,9 @@ test "structural source and output limits reject rather than truncate" {
     })
     is Err(_),
   )
-  assert_true(parse(text, { ..large, max_stages: 0, }) is Err(_))
+  assert_true(parse_fixture(text, { ..large, max_stages: 0, }) is Err(_))
   assert_true(
-    parse(text, {
+    parse_fixture(text, {
       ..large,
       construction: {
         ..large.construction,
@@ -195,7 +198,7 @@ test "structural source and output limits reject rather than truncate" {
     is Err(_),
   )
   assert_true(
-    parse(text, {
+    parse_fixture(text, {
       ..large,
       construction: {
         ..large.construction,
@@ -219,7 +222,7 @@ test "native DATA maps generators and explicit sources into existing steps" {
     #|}
   let expected =
     #|{"version":"actql/0.1","id":"native","stages":[{"id":"s","inputs":{},"steps":[{"as":"rows","values":{"schema":{"x":{"type":"number","nullable":false}},"rows":[{"x":2},{"x":1}]}},{"from":"rows","filter":"x > 1","as":"kept"}],"results":{"r":{"from":"kept"}}}],"results":{"r":{"from":{"stage":"s","result":"r"}}}}
-  let parsed = parse(text, limits()).unwrap()
+  let parsed = parse_fixture(text, limits()).unwrap()
   let ordinary = @syntax.parse(
     expected,
     {
@@ -233,16 +236,16 @@ test "native DATA maps generators and explicit sources into existing steps" {
     @syntax.program_body(program(parsed)),
     @syntax.program_body(ordinary),
   )
-  let printed = format(program(parsed), 100000).unwrap()
+  let printed = format_fixture(program(parsed), 100000).unwrap()
   same_values(
-    @syntax.program_body(program(parse(printed, limits()).unwrap())),
+    @syntax.program_body(program(parse_fixture(printed, limits()).unwrap())),
     @syntax.program_body(ordinary),
   )
   for op in ["unknown", "VALUES", "provider_command"] {
     let invalid = "AQL '0.1'; PROGRAM 'p' { STAGE s { DATA x = OP " +
       op +
       " {}; RESULT r = {\"from\":\"x\"}; } RESULT r = {\"from\":{\"stage\":\"s\",\"result\":\"r\"}}; }"
-    assert_true(parse(invalid, limits()) is Err(_), msg=op)
+    assert_true(parse_fixture(invalid, limits()) is Err(_), msg=op)
   }
 }
 
@@ -278,7 +281,7 @@ test "Program IDs and Effect names retain their canonical identity significance"
     ] {
     let expected = ordinary_program(changed)
     let actual = program(
-      parse(format(expected, 100000).unwrap(), limits()).unwrap(),
+      parse_fixture(format_fixture(expected, 100000).unwrap(), limits()).unwrap(),
     )
     assert_eq(identity_projection(actual), identity_projection(expected))
     assert_true(identity_projection(actual) != original_cid)
@@ -296,8 +299,8 @@ test "existing literal SELECT structure is preserved without a new SQL frontend"
   let expected =
     #|{"version":"actql/0.1","id":"literal-query-1","stages":[{"id":"sql_source","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"debt":{"type":"number","nullable":false}},"rows":[{"id":1,"debt":-2}]},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id","debt"]}}}],"results":{"answer":{"from":{"stage":"sql_source","result":"rows"}}}}
   let actual = program(
-    parse(
-      format(ordinary_program(compiled.document), 100000).unwrap(),
+    parse_fixture(
+      format_fixture(ordinary_program(compiled.document), 100000).unwrap(),
       limits(),
     ).unwrap(),
   )
@@ -352,9 +355,9 @@ test "legacy YAML expression trees and explicit completed gating roundtrip" {
   ).unwrap()
   let expected =
     #|{"version":"actql/0.1","id":"legacy","params":{"threshold":{"type":"number","default":2}},"stages":[{"id":"first","inputs":{"rows":{"carrier":"relation","schema":{"x":{"type":"number","nullable":false}}}},"steps":[{"filter":{"gte":[{"field":"x"},{"$param":"threshold"}]},"as":"selected"}],"results":{"out":{"from":"selected"}}},{"id":"second","after":"completed","inputs":{"rows":{"result":{"stage":"first","result":"out"}}},"steps":[],"results":{"out":{"from":"rows"}}}],"results":{"out":{"from":{"stage":"second","result":"out"}}}}
-  let text = format(original, 100000).unwrap()
+  let text = format_fixture(original, 100000).unwrap()
   same_values(
-    @syntax.program_body(program(parse(text, limits()).unwrap())),
+    @syntax.program_body(program(parse_fixture(text, limits()).unwrap())),
     @syntax.program_body(ordinary_program(expected)),
   )
 }
@@ -365,13 +368,13 @@ test "nonfinite JSON numbers and raw transport operations are not admitted" {
     let text = "AQL '0.1'; PROGRAM 'p' { STAGE s { DATA x = OP values " +
       body +
       "; RESULT r = {\"from\":\"x\"}; } RESULT r = {\"from\":{\"stage\":\"s\",\"result\":\"r\"}}; }"
-    assert_true(parse(text, limits()) is Err(_))
+    assert_true(parse_fixture(text, limits()) is Err(_))
   }
   for op in ["http", "fetch", "wasm"] {
     let text = "AQL '0.1'; PROGRAM 'p' { STAGE s { DATA x = OP " +
       op +
       " {}; RESULT r = {\"from\":\"x\"}; } RESULT r = {\"from\":{\"stage\":\"s\",\"result\":\"r\"}}; }"
-    assert_true(parse(text, limits()) is Err(_))
+    assert_true(parse_fixture(text, limits()) is Err(_))
   }
 }
 
@@ -379,9 +382,11 @@ test "nonfinite JSON numbers and raw transport operations are not admitted" {
 test "comments delimit scalar JSON islands but never occur inside JSON bodies" {
   let prefix = "AQL '0.1'; PROGRAM 'p' { STAGE s { INPUT rows = {}; DATA x = FROM rows |> OP take "
   let suffix = "; RESULT r = {\"from\":\"x\"}; } RESULT r = {\"from\":{\"stage\":\"s\",\"result\":\"r\"}}; }"
-  let expected = program(parse(prefix + "1" + suffix, limits()).unwrap())
+  let expected = program(
+    parse_fixture(prefix + "1" + suffix, limits()).unwrap(),
+  )
   for scalar in ["1/* adjacent */", "1-- adjacent\n", "1 /* spaced */"] {
-    let parsed = parse(prefix + scalar + suffix, limits()).unwrap()
+    let parsed = parse_fixture(prefix + scalar + suffix, limits()).unwrap()
     same_values(
       @syntax.program_body(program(parsed)),
       @syntax.program_body(expected),
@@ -391,7 +396,7 @@ test "comments delimit scalar JSON islands but never occur inside JSON bodies" {
     invalid in [
       "[1/* not JSON */]", "{\"n\":1-- not JSON\n}", "1e/* incomplete exponent */",
     ] {
-    assert_true(parse(prefix + invalid + suffix, limits()) is Err(_))
+    assert_true(parse_fixture(prefix + invalid + suffix, limits()) is Err(_))
   }
 }
 
@@ -411,14 +416,14 @@ test "native chains and aliases preserve explicit computation without identity s
     #|}
   let expected =
     #|{"version":"actql/0.1","id":"chain","stages":[{"id":"s","inputs":{},"steps":[{"as":"__aql_native_0","values":{"schema":{"x":{"type":"number","nullable":false}},"rows":[{"x":2},{"x":1}]}},{"filter":"x > 1"},{"select":["x"],"as":"kept"},{"from":"kept","join":{"with":"kept","on":"left.x = right.x"},"as":"joined","meta":{"from":"again"}}],"results":{"r":{"from":"kept","meta":{"from":"alias"}}}}],"results":{"r":{"from":{"stage":"s","result":"r"}}}}
-  let parsed = parse(text, limits()).unwrap()
+  let parsed = parse_fixture(text, limits()).unwrap()
   same_values(
     @syntax.program_body(program(parsed)),
     @syntax.program_body(ordinary_program(expected)),
   )
-  let printed = format(program(parsed), 100000).unwrap()
+  let printed = format_fixture(program(parsed), 100000).unwrap()
   same_values(
-    @syntax.program_body(program(parse(printed, limits()).unwrap())),
+    @syntax.program_body(program(parse_fixture(printed, limits()).unwrap())),
     @syntax.program_body(ordinary_program(expected)),
   )
 }
@@ -431,7 +436,7 @@ test "generated names avoid later declarations and authored reference targets" {
     #| STEP {"values":{"schema":{"x":{"type":"number","nullable":false}},"rows":[]},"as":"__aql_native_0"};
     #| RESULT r = {"from":"__aql_native_1"};
     #| } RESULT r = {"from":{"stage":"s","result":"r"}}; }
-  let parsed = parse(text, limits()).unwrap()
+  let parsed = parse_fixture(text, limits()).unwrap()
   let stage = @syntax.stage_body(@syntax.stages(program(parsed))[0])
   let steps = @decode.required(@decode.open_object(stage).unwrap(), "steps").unwrap()
   let first = @decode.element_at(steps, 0).unwrap()
@@ -456,7 +461,7 @@ test "DATA rejects self forward duplicate and implicit previous-current sources"
       "DATA x = OP graph {\"id\":\"id\"};", "INPUT x = {}; DATA x = OP values {};",
     ] {
     assert_true(
-      parse(prefix + declarations + suffix, limits()) is Err(_),
+      parse_fixture(prefix + declarations + suffix, limits()) is Err(_),
       msg=declarations,
     )
   }
@@ -471,7 +476,7 @@ test "frontend accounting applies to the whole source with exact resource bounda
     #| RESULT r = {"from":"z"};
     #| } RESULT r = {"from":{"stage":"s","result":"r"}}; }
   let large = limits()
-  let measured = parse(text, large).unwrap()
+  let measured = parse_fixture(text, large).unwrap()
   let exact : FrontendLimits = {
     max_tokens: usage(measured, Tokens),
     max_syntax_nodes: usage(measured, SyntaxNodes),
@@ -482,7 +487,7 @@ test "frontend accounting applies to the whole source with exact resource bounda
     max_generated_fields: usage(measured, GeneratedFields),
     max_lowering_work: usage(measured, LoweringWork),
   }
-  assert_true(parse(text, { ..large, frontend: exact, }) is Ok(_))
+  assert_true(parse_fixture(text, { ..large, frontend: exact, }) is Ok(_))
   for
     small in [
       { ..exact, max_tokens: exact.max_tokens - 1, },
@@ -494,13 +499,17 @@ test "frontend accounting applies to the whole source with exact resource bounda
       { ..exact, max_generated_fields: exact.max_generated_fields - 1, },
       { ..exact, max_lowering_work: exact.max_lowering_work - 1, },
     ] {
-    assert_true(parse(text, { ..large, frontend: small, }) is Err(_))
+    assert_true(parse_fixture(text, { ..large, frontend: small, }) is Err(_))
   }
   assert_true(
-    parse(text, { ..large, frontend: { ..exact, max_tokens: -1, }, }) is Err(_),
+    parse_fixture(text, { ..large, frontend: { ..exact, max_tokens: -1, }, })
+    is Err(_),
   )
   assert_true(
-    parse("/* additional traversal */" + text, { ..large, frontend: exact, })
+    parse_fixture("/* additional traversal */" + text, {
+      ..large,
+      frontend: exact,
+    })
     is Err(_),
   )
 }
@@ -514,26 +523,26 @@ test "syntax admission diagnostics retain original body positions" {
     #|  STAGE s { RESULT r = {"from":"x"}; }
     #|  RESULT r = {"from":{"stage":"s","result":"r"}};
     #|}
-  match parse(text, limits(), source_path="original.aql") {
+  match parse_fixture(text, limits(), source_path="original.aql") {
     Err(diagnostic) => {
       assert_eq(diagnostic.span.unwrap().start_line, 3)
       assert_eq(diagnostic.span.unwrap().source_path, "original.aql")
     }
     _ => fail("empty metadata must retain the existing rejection")
   }
-  assert_true(parse_bytes(b"\xff", limits()) is Err(_))
+  assert_true(parse_fixture_bytes(b"\xff", limits()) is Err(_))
 }
 
 ///|
 test "invalid scalar input and unsupported root metadata retain admission rejection" {
   let invalid = String::from_array([(0xd800).unsafe_to_char()])
-  assert_true(parse(invalid, limits()) is Err(_))
+  assert_true(parse_fixture(invalid, limits()) is Err(_))
   let text =
     #|AQL '0.1'; PROGRAM 'p' { STAGE s {
     #| STEP {"values":{"schema":{"x":{"type":"number","nullable":false}},"rows":[]},"as":"x"};
     #| RESULT r = {"from":"x"};
     #| } RESULT r = {"from":{"stage":"s","result":"r"},"meta":{"note":"unsupported"}}; }
-  assert_true(parse(text, limits()) is Err(_))
+  assert_true(parse_fixture(text, limits()) is Err(_))
 }
 
 ///|
@@ -543,7 +552,7 @@ test "self import and missing exported Results fail normal structural admission"
     #| INPUT rows = {"result":{"stage":"s","result":"r"}};
     #| RESULT r = {"from":"rows"};
     #| } RESULT r = {"from":{"stage":"s","result":"r"}}; }
-  match parse(self_import, limits(), source_path="self.aql") {
+  match parse_fixture(self_import, limits(), source_path="self.aql") {
     Err(diagnostic) => {
       assert_true(diagnostic.issue is Admission(_))
       let span = diagnostic.span.unwrap()
@@ -553,7 +562,7 @@ test "self import and missing exported Results fail normal structural admission"
     _ => fail("a stage cannot import its own Result")
   }
   assert_true(
-    parse(
+    parse_fixture(
       "AQL '0.1'; PROGRAM 'p' { STAGE s { RESULT r = {\"from\":\"x\"}; } }",
       limits(),
     )
@@ -570,7 +579,7 @@ test "quoted structural keywords remain ordinary names and trivia preserves stru
     #| } RESULT `DATA` = {"from":{"stage":"STAGE","result":"RESULT"}}; }
   let expected =
     #|{"version":"actql/0.1","id":"p","stages":[{"id":"STAGE","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false}},"rows":[]},"as":"x"}],"results":{"RESULT":{"from":"x"}}}],"results":{"DATA":{"from":{"stage":"STAGE","result":"RESULT"}}}}
-  let parsed = parse(text, limits()).unwrap()
+  let parsed = parse_fixture(text, limits()).unwrap()
   same_values(
     @syntax.program_body(program(parsed)),
     @syntax.program_body(ordinary_program(expected)),
@@ -579,10 +588,11 @@ test "quoted structural keywords remain ordinary names and trivia preserves stru
     text +
     "\n-- trailing comment"
   same_values(
-    @syntax.program_body(program(parse(decorated, limits()).unwrap())),
+    @syntax.program_body(program(parse_fixture(decorated, limits()).unwrap())),
     @syntax.program_body(program(parsed)),
   )
   assert_true(
-    parse("AQL '0.1'; PROGRAM 'p' { STAGE STAGE {} }", limits()) is Err(_),
+    parse_fixture("AQL '0.1'; PROGRAM 'p' { STAGE STAGE {} }", limits())
+    is Err(_),
   )
 }

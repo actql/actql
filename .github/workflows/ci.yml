@@ -90,7 +90,13 @@ jobs:
       # execution on about one CPU; one job per CPU shortened execution on
       # every target with no change in memory. Building is unaffected.
       - name: Test common core
-        run: moon test --target "${{ matrix.target }}" --deny-warn -j "$(getconf _NPROCESSORS_ONLN)"
+        run: |
+          if [ "${{ matrix.target }}" = native ]; then
+            export ACTQL_TEST_NATIVE_SQLITE_LIBRARY="${ACTQL_TEST_NATIVE_SQLITE_LIBRARY:-/usr/lib/x86_64-linux-gnu/libsqlite3.so.0}"
+            export ACTQL_TEST_NATIVE_SQLITE_ROOT="${ACTQL_TEST_NATIVE_SQLITE_ROOT:-$RUNNER_TEMP/core-sqlite}"
+            mkdir -p "$ACTQL_TEST_NATIVE_SQLITE_ROOT"
+          fi
+          moon test --target "${{ matrix.target }}" --deny-warn -j "$(getconf _NPROCESSORS_ONLN)"
   # Conditional proof and correspondence evidence beside the existing gates.
   session-evidence:
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
@@ -115,12 +121,20 @@ jobs:
         run: node --test proofs/relation-chain/evidence.test.mjs proofs/relation-chain/proof-check.test.mjs
       - name: Detect serial chain accounting and ownership mutations
         run: node proofs/relation-chain/mutations.mjs
+      - name: Reject invalid allocation bounds and weakened capacity propositions
+        run: node --test proofs/relation-capacity/model.test.mjs proofs/relation-capacity/evidence.test.mjs proofs/relation-capacity/proof-check.test.mjs
+      - name: Retain separate registered delayed-stop work counterexample
+        run: node proofs/relation-capacity/repro-delayed-stop.mjs
+      - name: Detect allocation reservation and identity mutations on JS
+        run: node proofs/relation-capacity/mutations.mjs
       # Keep both evidence sets fresh: either mutation batch can invalidate
       # another target's incremental artifacts even after source restoration.
       - name: Restore and verify final common-mechanism artifacts on all targets
         run: node proofs/bounded-session/run.mjs all
       - name: Produce final serial chain evidence on all targets
         run: node proofs/relation-chain/run.mjs all
+      - name: Produce conditional allocation capacity evidence on all targets
+        run: node proofs/relation-capacity/run.mjs all
       - name: Retain exact-source evidence and mutation results
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -129,6 +143,44 @@ jobs:
           path: |
             .artifacts/bounded-session/
             .artifacts/relation-chain/
+            .artifacts/relation-capacity/
+          include-hidden-files: true
+          if-no-files-found: error
+  # Typed pipeline pilot remains beside the existing semantic/physical suites.
+  pipeline-evidence:
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+      - name: Install audited Lean pin
+        run: |
+          node proofs/bounded-session/setup-lean.mjs
+          echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
+      - name: Reject invalid pipeline scopes and shrinking substitutions
+        run: node --test proofs/relation-pipeline/*.test.mjs
+      - name: Verify the three-operation baseline at this same source
+        run: node proofs/relation-pipeline/run.mjs js base
+      - name: Search and shrink real JS mutations, then replay exact minima on each target
+        run: node proofs/relation-pipeline/mutations.mjs
+      - name: Restore and verify final registered pipelines on every target
+        run: node proofs/relation-pipeline/run.mjs all
+      - name: Audit independent execution records, shrink minima and marginal registration
+        run: node proofs/relation-pipeline/audit.mjs
+      - name: Reject internally consistent whole reports from another target at the audit entrypoint
+        run: node proofs/relation-pipeline/audit-target-regression.mjs
+      - name: Retain exact-source pipeline evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: relation-pipeline-evidence-${{ github.sha }}
+          path: |
+            .artifacts/relation-pipeline/
+            .artifacts/relation-pipeline-target-regression/run-*/*.json
+            .artifacts/relation-pipeline-target-regression/run-*/*.log
           include-hidden-files: true
           if-no-files-found: error
   # Host, authorization, Checkpoint and retained-state owners.
@@ -187,6 +239,14 @@ jobs:
       - uses: ./.github/actions/setup-toolchain
         with:
           python: 'true'
+      # The packed acceptance scripts below install the same Client tarballs.
+      # Pack them once (each pack runs the package's prepack build) and share
+      # one npm cache; every script still installs into its own clean root.
+      - name: Pack the Client packages once for this job
+        run: |
+          node scripts/packed-client-packages.mjs "$RUNNER_TEMP/actql-client-packages"
+          echo "ACTQL_PACKED_CLIENT_PACKAGES=$RUNNER_TEMP/actql-client-packages" >> "$GITHUB_ENV"
+          echo "ACTQL_TEST_NPM_CACHE=$RUNNER_TEMP/actql-npm-cache" >> "$GITHUB_ENV"
       - name: Test distribution Client wire, Host and packed Node assembly
         env:
           TMPDIR: ${{ github.workspace }}/_build
@@ -256,6 +316,28 @@ jobs:
         with:
           directory: ${{ steps.packed-materials.outputs.evidence-directory }}
           name: packed-resident-materials-${{ github.sha }}
+      - name: Test packed exact dispatch recovery against native resident Site
+        id: packed-redelivery
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/packed-resident-redelivery
+        run: node scripts/test-packed-resident-materials.mjs --redelivery-only
+      - name: Test packed Output report custody and ACK crash boundaries
+        id: packed-output-report
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/packed-output-report
+        run: node scripts/test-packed-resident-materials.mjs --output-report-only
+      - name: Retain packed Output report evidence
+        if: always() && steps.packed-output-report.outputs.evidence-directory != ''
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.packed-output-report.outputs.evidence-directory }}
+          name: packed-output-report-${{ github.sha }}
+      - name: Retain packed exact redelivery evidence
+        if: always() && steps.packed-redelivery.outputs.evidence-directory != ''
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.packed-redelivery.outputs.evidence-directory }}
+          name: packed-resident-redelivery-${{ github.sha }}
       - name: Verify registered Native retained product path
         run: |
           moon build --target js --release
@@ -274,7 +356,7 @@ jobs:
   # scheduled (see its condition).
   check:
     if: ${{ always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
-    needs: [lint, core, host, client, native, spec, session-evidence, native-macos,
+    needs: [lint, core, host, client, native, spec, session-evidence, pipeline-evidence, native-macos,
       native-separated-network, workers, connector-addition, duckdb-node]
     runs-on: ubuntu-24.04
     timeout-minutes: 5

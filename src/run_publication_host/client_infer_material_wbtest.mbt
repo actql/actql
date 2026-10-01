@@ -151,7 +151,7 @@ test "Infer material retains checked Program Result maps and rejects saved subst
         new="sha256:" + "d".repeat(64),
       ),
       material.wire.replace(old="\"answer\":", new="\"missing\":"),
-      material.wire.replace(old="\"actql/0.1\"", new="\"actql/9.9\""),
+      material.wire.replace(old="\"actql/0.1\"", new="\"foreign-program\""),
     ] {
     assert_true(changed != material.wire)
     assert_true(

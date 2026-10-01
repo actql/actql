@@ -1,11 +1,16 @@
+> Public migration status: the legacy structural envelope, STEP and OP are
+> withdrawn. Named-call examples below record the adopted logical mapping;
+> their historical decoder is an internal fixture tool. They are not currently
+> executable public source. See [migration mapping](frontend-language-migration.md).
+
 # SGA surface syntax over the existing Program
 
-This is the accepted design for the SGA Frontend increment. Named Graph calls
-in structural DATA now lower to the existing Program; the current contract
-baseline remains 0.1. Public SDK/CLI source routing and packed Local/HTTP
-execution remain required for product acceptance. The Frontend owns those
-packed acceptance tests after the Host connection. Graph execution support
-continues to be measured per operation and profile.
+This is the accepted logical design for the SGA Frontend increment. Named
+Graph calls previously lowered inside structural DATA; that public envelope
+is withdrawn. The standalone adopted surface still needs the migration
+connections listed above. The contract baseline remains 0.1. Public SDK/CLI
+source routing and packed Local/HTTP execution are required for text migration
+acceptance. Graph execution support is measured per operation and profile.
 
 ## Meaning and placement
 
@@ -72,9 +77,9 @@ its declared list, and is rejected after `FROM` or another Pipe operation.
 
 ## Complete Graph operation inventory
 
-All rows have structural STEP/OP forms. The STEP key and OP name equal the
-existing operation name in the first column. Named calls cover the 19 rows
-other than Graph construction; they remain subject to ordinary checked
+All rows have machine Program operation keys and historical internal STEP/OP
+fixtures. The operation key equals the name in the first column. Adopted named
+calls cover the 19 rows other than Graph construction; they remain subject to ordinary checked
 operation contracts. MATCH is separate: fixed patterns lower through
 Graph-to-Relation bridges and relational steps; bounded patterns also use
 traverse. MATCH coverage does not imply natural syntax for every SGA operation.
@@ -86,10 +91,10 @@ and integration to [local_carrier_graph_wbtest.mbt](../../src/query_integration/
 This is evidence for existing operations, not packed execution of the new
 named source.
 
-| Existing STEP/OP | Pipe/current input | Other inputs | Output | Named DATA | Local evidence |
+| Program operation | Pipe/current input | Other inputs | Output | Adopted named DATA | Local evidence |
 | --- | --- | --- | --- | --- | --- |
-| graph, concise form | Relation | Existing graph field mapping | Graph | OP only | Host |
-| graph, explicit form | None | Node Relation and edge Relation | Graph | OP only | Host |
+| graph, concise form | Relation | Existing graph field mapping | Graph | Text construction pending | Host |
+| graph, explicit form | None | Node Relation and edge Relation | Graph | Text construction pending | Host |
 | normalize_graph | Graph | None | Graph | `normalize_graph()` | Host |
 | match_nodes | Graph | Predicate/projection arguments | Relation | `match_nodes(...)` | Host |
 | match_edges | Graph | Predicate/projection arguments | Relation | `match_edges(...)` | Host |

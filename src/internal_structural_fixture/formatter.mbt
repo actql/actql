@@ -151,7 +151,7 @@ fn Printer::named(
 ///|
 /// Format a normally admitted Program without dropping authored structure.
 /// The bound covers the complete UTF-8 output, including punctuation/trivia.
-pub fn format(
+pub fn format_fixture(
   program : @syntax.Program,
   max_output_bytes : Int,
 ) -> Result[String, @encode.EncodeFailure] {
@@ -215,14 +215,4 @@ pub fn format(
   } catch {
     e => Err(e)
   }
-}
-
-///|
-/// Serialize the complete admitted source, including all annotation fields.
-/// This is an interchange representation, not an identity projection.
-pub fn emit_program_json(
-  program : @syntax.Program,
-  out : @encode.Writer,
-) -> Unit raise @encode.EncodeFailure {
-  emit_body(@syntax.program_body(program), out)
 }
