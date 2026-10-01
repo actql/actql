@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { checkVocabulary } from './generate-aql-text-vocabulary.mjs';
 
@@ -11,7 +11,45 @@ const baseline = json('spec/frontend/baseline.json');
 const index = json('spec/frontend/acceptance-index.json');
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 
-test('adopted structural vocabulary matches the current closed inventory', () => {
+test('public source closure has no legacy parser or formatter dependency', () => {
+  assert.equal(existsSync('src/aql_text/moon.pkg'), false);
+  const pending = ['source_frontend', 'connectors_builtin_node'];
+  const visited = new Set();
+  while (pending.length) {
+    const name = pending.pop();
+    if (visited.has(name)) continue;
+    visited.add(name);
+    assert.notEqual(name, 'internal_structural_fixture');
+    const manifest = read(`src/${name}/moon.pkg`).toString();
+    for (const section of manifest.matchAll(/import\s*\{([\s\S]*?)\}(\s*for\s*"test")?/gu)) {
+      if (section[2]) continue;
+      for (const entry of section[1].matchAll(/"actql\/actql\/([^"]+)"/gu)) {
+        pending.push(entry[1]);
+      }
+    }
+  }
+  assert.ok(visited.has('query_syntax'));
+  assert.ok(visited.has('query_program'));
+  assert.ok(visited.has('stage_syntax'));
+});
+
+test('retired text is distinct from retained machine input and migration completion', () => {
+  assert.deepEqual(profile.retired_public_profiles, ['actql-text/0.1']);
+  assert.ok(!profile.frontend_profiles.includes('actql-text/0.1'));
+  const grammar = read('spec/grammar/actql-text-0.1.ebnf').toString();
+  assert.match(grammar, /no accepted public structural text document/u);
+  assert.doesNotMatch(grammar, /^\s*(program|stage|step|native_op)\s*=/mu);
+  const effect = profile.features.find(f => f.feature_id === 'effect.declaration');
+  assert.equal(effect.adoption, 'supported');
+  assert.equal(effect.implementation_status, 'not_implemented');
+  assert.ok(effect.surface_forms.includes('|> EFFECT name ...'));
+  assert.ok(!profile.features.find(f => f.feature_id === 'effect.hidden')
+    .surface_forms.includes('|> EFFECT'));
+  assert.match(read('docs/design/frontend-language-migration.md').toString(),
+    /Keeping machine Programs[\s\S]*not completion/u);
+});
+
+test('machine Program vocabulary matches the current closed inventory', () => {
   checkVocabulary();
   const manifest = json('spec/manifests/actql-grammar-0.1.json');
   const operations = profile.structured_total_coverage.map(x => x.operation);
@@ -29,7 +67,7 @@ test('adopted structural vocabulary matches the current closed inventory', () =>
   assert.equal(queryGrammar, hash(read('spec/grammar/actql-query-0.1.ebnf')));
   assert.equal(queryRules, hash(read('docs/spec/query-text.md')));
   for (const op of profile.structured_total_coverage) {
-    assert.deepEqual(op.surface, ['STEP', 'OP']);
+    assert.deepEqual(op.surface, ['Program JSON', 'Program YAML']);
     assert.equal(op.runtime_support,
       'determined_by_existing_contract_checker_and_host');
   }
@@ -47,13 +85,11 @@ test('adoption decisions retain conditions and explicit case or fixture gaps', (
     assert.ok(feature.acceptance_case_ids.length > 0 ||
       feature.additional_fixture_requirements.length > 0, feature.feature_id);
     for (const id of feature.acceptance_case_ids) assert.ok(ids.has(id), id);
-    const structural = ['text.envelope', 'text.total', 'effect.declaration',
-      'effect.hidden'].includes(feature.feature_id);
-    assert.equal(feature.implementation_status, structural ?
-      (feature.feature_id === 'effect.hidden' ? 'partial' : 'implemented') :
-      (['acquisition.infer', 'vector.nearest'].includes(feature.feature_id) ? 'partial' : 'not_implemented'));
+    const retired = ['text.envelope', 'text.total'].includes(feature.feature_id);
+    assert.equal(feature.implementation_status, retired ? 'retired' :
+      (['acquisition.infer', 'vector.nearest', 'effect.hidden'].includes(feature.feature_id) ? 'partial' : 'not_implemented'));
     assert.deepEqual(feature.execution_evidence_ids,
-      structural ? ['frontend-pr2-structural'] : []);
+      []);
     for (const evidence of feature.execution_evidence_ids) {
       assert.ok(read(profile.implementation_evidence[evidence]).length > 0);
     }

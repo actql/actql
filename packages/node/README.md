@@ -20,3 +20,13 @@ not make a held or unknown request safe to resubmit under another connection.
 The [packed acceptance record](../../docs/reviews/2026-09-29-local-remote-client-parity.md)
 uses one Values document in both modes and distinguishes these local Host
 tests from live Cloud verification.
+
+## Query text and machine input
+
+`aql-text` accepts the implemented query language, including Pipe and admitted
+Graph patterns; `sql` selects SQL query heads. The retired
+`AQL / PROGRAM / STAGE / STEP / OP` envelope is rejected by the Host before
+Run acceptance and provider I/O. JSON/YAML Program remains supported machine
+input. Text is never retried as another format, and extensions do not choose
+a language. Removal of the old surface does not claim that every adopted
+Graph, VecA/TEA or Effect surface is implemented.

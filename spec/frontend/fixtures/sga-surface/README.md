@@ -1,3 +1,8 @@
+> These `.aql` files are historical/internal fixtures, not accepted public
+> source. Independent `*.expected-program.json` files remain machine-input
+> execution fixtures. JSON execution does not complete new text migration.
+> See [migration mapping](../../../../docs/design/frontend-language-migration.md).
+
 # SGA surface baseline fixtures
 
 These independently authored fixtures compare named SGA calls with the

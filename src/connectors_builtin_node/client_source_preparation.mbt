@@ -22,7 +22,6 @@ fn client_source_preparation_issue_code(
     Frontend(issue) =>
       match issue {
         MissingQueryContext => "source_missing_input"
-        ExternalDeclarationsOnProgram => "source_declarations"
         Encoding => "source_encoding"
         QueryLowering(issue) =>
           match issue {
@@ -38,8 +37,7 @@ fn client_source_preparation_issue_code(
             | UnsupportedGraph => "source_unsupported"
             _ => "source_rejected"
           }
-        SourceSyntax({ issue: ResourceLimit(_), .. })
-        | QuerySyntax({ issue: Limit(_), .. }) => "source_limit"
+        QuerySyntax({ issue: Limit(_), .. }) => "source_limit"
         _ => "source_invalid_input"
       }
   }

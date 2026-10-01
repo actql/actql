@@ -241,3 +241,13 @@ const listing = await client.resources('salesforce:00D000000000001EAA',
 const preview = await client.peekResource('salesforce:00D000000000001EAA',
   'Test_Record__c', {fields: ['Id', 'Name'], maxRows: 5});
 ```
+
+## Query text and machine input
+
+`aql-text` accepts the implemented query language, including Pipe and admitted
+Graph patterns; `sql` selects SQL query heads. The retired
+`AQL / PROGRAM / STAGE / STEP / OP` envelope is rejected by the Host before
+Run acceptance and provider I/O. JSON/YAML Program remains supported machine
+input. Text is never retried as another format, and extensions do not choose
+a language. Removal of the old surface does not claim that every adopted
+Graph, VecA/TEA or Effect surface is implemented.

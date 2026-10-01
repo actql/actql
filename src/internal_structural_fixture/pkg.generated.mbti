@@ -1,5 +1,5 @@
 // Generated using `moon info`, DON'T EDIT IT
-package "actql/actql/aql_text"
+package "actql/actql/internal_structural_fixture"
 
 import {
   "actql/actql/encode_core",
@@ -12,13 +12,11 @@ import {
 }
 
 // Values
-pub fn emit_program_json(@stage_syntax.Program, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+pub fn format_fixture(@stage_syntax.Program, Int) -> Result[String, @encode_core.EncodeFailure]
 
-pub fn format(@stage_syntax.Program, Int) -> Result[String, @encode_core.EncodeFailure]
+pub fn parse_fixture(String, Limits, source_path? : String) -> Result[Parsed, Diagnostic]
 
-pub fn parse(String, Limits, source_path? : String) -> Result[Parsed, Diagnostic]
-
-pub fn parse_bytes(Bytes, Limits, source_path? : String) -> Result[Parsed, Diagnostic]
+pub fn parse_fixture_bytes(Bytes, Limits, source_path? : String) -> Result[Parsed, Diagnostic]
 
 pub fn program(Parsed) -> @stage_syntax.Program
 

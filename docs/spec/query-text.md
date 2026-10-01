@@ -209,7 +209,9 @@ partial Program. Formatter output may normalize case and spacing but must
 preserve the checked Program meaning and explicit query structure.
 
 The Grammar Manifest binds the raw UTF-8 bytes of this document and the query
-EBNF separately from the legacy expression text and structural text grammar.
+EBNF separately from the retained expression-text dialect and the structural
+text withdrawal policy. There is no structural text fallback or public
+Program-to-STEP formatter.
 These identities describe the source form. They do not certify that a specific
 Run succeeded or that all r1 acceptance cases have been implemented. Changing
 either input changes the manifest CID and dependent compiled identities; the

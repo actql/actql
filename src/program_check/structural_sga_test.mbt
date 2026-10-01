@@ -40,8 +40,14 @@ test "named SGA source and existing OP reach the same checked Program" {
       structure: { ..base.compilation.structure, steps: 12, },
     },
   }
-  let named = @aql.parse(named_sga_text(true), structural_limits(limits)).unwrap()
-  let existing = @aql.parse(named_sga_text(false), structural_limits(limits)).unwrap()
+  let named = @aql.parse_fixture(
+    named_sga_text(true),
+    structural_limits(limits),
+  ).unwrap()
+  let existing = @aql.parse_fixture(
+    named_sga_text(false),
+    structural_limits(limits),
+  ).unwrap()
   let a = public_checked(
     check_parsed_with_evidence(
       @aql.program(named),
@@ -85,7 +91,7 @@ test "named SGA rejects a Relation where its Graph input is required" {
     old="DATA reached = FROM g |> reach",
     new="DATA reached = FROM nodes |> reach",
   )
-  let parsed = @aql.parse(invalid, structural_limits(limits)).unwrap()
+  let parsed = @aql.parse_fixture(invalid, structural_limits(limits)).unwrap()
   match
     check_parsed_with_evidence(
       @aql.program(parsed),
@@ -126,7 +132,7 @@ test "named Graph diff and apply keep the checked Delta producer" {
       new="DATA rows = FROM restored |> node_rows();",
     )
   assert_true(source.contains("apply_graph_delta"))
-  let parsed = @aql.parse(source, structural_limits(limits)).unwrap()
+  let parsed = @aql.parse_fixture(source, structural_limits(limits)).unwrap()
   let checked = public_checked(
     check_parsed_with_evidence(
       @aql.program(parsed),
@@ -166,7 +172,7 @@ test "named mean_graphs retains repeated checked Graph inputs" {
       new="DATA rows = FROM average |> node_rows();",
     )
   assert_true(source.contains("mean_graphs"))
-  let parsed = @aql.parse(source, structural_limits(limits)).unwrap()
+  let parsed = @aql.parse_fixture(source, structural_limits(limits)).unwrap()
   let checked = public_checked(
     check_parsed_with_evidence(
       @aql.program(parsed),
@@ -206,7 +212,7 @@ test "named graphs_equal can reuse the checked Graph producer" {
       new="DATA rows = FROM comparison |> OP select [\"equal\"];",
     )
     .replace(old="[\"id\"]", new="[\"equal\"]")
-  let parsed = @aql.parse(source, structural_limits(limits)).unwrap()
+  let parsed = @aql.parse_fixture(source, structural_limits(limits)).unwrap()
   let checked = public_checked(
     check_parsed_with_evidence(
       @aql.program(parsed),

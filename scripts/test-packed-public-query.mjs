@@ -53,7 +53,7 @@ for (const name of ['normalize-rows', 'mean-graphs', 'traverse-paths',
   'union-graphs', 'graft-graphs', 'subtract-graphs', 'degree-rows',
   'components', 'graph-bounds', 'match-projections', 'reach-subgraph',
   'graphs-equal', 'diff-apply']) {
-  for (const suffix of ['named.aql', 'expected-results.json']) {
+  for (const suffix of ['named.aql', 'expected-program.json', 'expected-results.json']) {
     const file = `${name}.${suffix}`;
     await writeFile(join(root, 'sga-source-fixtures', file),
       await readFile(join(repository,
