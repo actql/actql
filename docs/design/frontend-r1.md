@@ -131,7 +131,7 @@ explicit NULL, numeric, acquisition and failure semantics.
 | Final ORDER BY | Query output ordering | sort | Explicit ASC NULLS FIRST / DESC NULLS LAST; proof-driven tie completion |
 | INNER / LEFT / FULL / CROSS JOIN | Scoped relation join and equality keys; USING exposes a merged unqualified key | join / cross_join plus checked output bound; FULL key through derive/coalesce | FULL needs stable row identity; no implicit representative row or key |
 | UNION / INTERSECT / EXCEPT | Positional or exact BY NAME alignment | projection plus append/distinct/row-set | No implicit type promotion or missing-column padding |
-| Nonrecursive CTE | Query-local dataflow binding | Shared Stage captured input and step references | No reacquisition per reference; no recursive CTE |
+| Nonrecursive CTE | SELECT or relational Pipe body; SELECT or Pipe head after WITH | Shared Stage captured input and step references | No reacquisition per reference; no recursive CTE |
 | FROM subquery | Named noncorrelated query source | Checked Stage Result with a source alias | No correlated reference or independent runtime; nested source stages preserve ordinary admission |
 | Parameter | Named query parameter | Existing parameter expression | New @name spelling; legacy $name remains unchanged |
 | CONCAT / ACTQL.CONCAT | Closed function mapping | concat_strict / concat | Strict STRING NULL propagation versus explicit legacy null-skipping |

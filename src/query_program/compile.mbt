@@ -2801,14 +2801,17 @@ fn compile_cte_query(
         })
       }
       let stage_name = "aql_cte_" + index.to_string()
-      if stage_name == context.stage_id || used_stage_names.contains(stage_name) {
-        raise Abort(InvalidContext)
-      }
-      used_stage_names.push(stage_name)
       let (stage, binding) = compile_cte_stage(
         construction, cte, known, context, limits, stage_name, body_start,
       )
-      stages.push(stage)
+      if stage is Some(stage) {
+        if stage_name == context.stage_id ||
+          used_stage_names.contains(stage_name) {
+          raise Abort(InvalidContext)
+        }
+        used_stage_names.push(stage_name)
+        stages.push(stage)
+      }
       known = known.filter(input => {
         !same_relation_path(input.relation, [cte.name])
       })
@@ -2934,7 +2937,7 @@ fn compile_cte_stage(
   limits : Limits,
   stage_name : String,
   body_start : Int,
-) -> (@builder.Node, Input) raise Abort {
+) -> (@builder.Node?, Input) raise Abort {
   let body = cte.query
   if @query.set_part_count(body) != 0 ||
     @query.join_part_count(body) > 1 ||
@@ -3004,7 +3007,7 @@ fn compile_cte_stage(
       ),
     ])
     return (
-      stage,
+      Some(stage),
       {
         relation: [cte.name],
         name: cte.name.value,
@@ -3070,6 +3073,27 @@ fn compile_cte_stage(
     input.source is Captured(_),
     final_alias,
   )
+  // A CTE with no remaining computation binds the existing producer after
+  // scope validation. compile_steps may emit a synthetic identity projection
+  // for a range alias; an explicit SELECT still keeps its own computation.
+  let mut binding_only = true
+  for i in body_start..<@query.operation_count(body) {
+    if !(@query.operation_at(body, i) is Some(Alias(_))) {
+      binding_only = false
+    }
+  }
+  if binding_only && seed.is_empty() && input.source is StageResult(_, _) {
+    return (
+      None,
+      {
+        relation: [cte.name],
+        name: cte.name.value,
+        source: input.source,
+        visible_fields: body_output,
+        graph_bindings: [],
+      },
+    )
+  }
   let body_from = if body_steps.is_empty() { input.name } else { final_alias }
   let stage = construction.object([
     ("id", construction.text(stage_name)),
@@ -3094,7 +3118,7 @@ fn compile_cte_stage(
     ),
   ])
   (
-    stage,
+    Some(stage),
     {
       relation: [cte.name],
       name: cte.name.value,

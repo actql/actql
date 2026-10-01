@@ -69,6 +69,14 @@ not duplicate its evaluation, failures or resource accounting. Unqualified
 joined fields must be unique. `USING` exposes one coalesced key for FULL JOIN
 and does not invent an arbitrary representative row.
 
+WITH may precede either a SELECT query or a FROM-starting Pipe query. A CTE
+body may be a SELECT core or a relational Pipe query, using the same expression
+and column-scope rules as the corresponding query head. Each body ends at its
+own closing parenthesis; a statement terminator is allowed only after the
+complete query. INFER is excluded from CTE bodies. Recursive declarations,
+forward references and references to a displaced range variable remain
+invalid. Parsing shares the existing syntax-node, CTE-count and work budgets.
+
 Nonrecursive CTEs and named, noncorrelated FROM subqueries become checked Stage
 Result references, so reusing a source does not imply another physical read.
 JOIN, grouping, sets, analytic and Pipe operations lower to existing Program
