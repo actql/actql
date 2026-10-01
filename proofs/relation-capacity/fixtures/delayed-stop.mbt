@@ -1,5 +1,5 @@
 ///|
-/// Expected-failure reproducer, copied only by repro-delayed-stop.mjs. It is
+/// Historical counterexample regression, copied by repro-delayed-stop.mjs. It is
 /// deliberately outside the ordinary MoonBit suites and the capacity proof.
 test "delayed stop registered callback preserves actual child work" {
   let sequence = chain_evidence_sequence(2)
@@ -72,7 +72,9 @@ test "delayed stop registered callback preserves actual child work" {
     " child=" + child_work.val.to_string() +
     " stop_polls=" + stop_polls.val.to_string(),
   )
-  // The real child did 4 units, while current chain reports only 3. Do not
-  // change this expectation to bless the discarded terminal child work.
+  // Independent child deltas fix the expected total, including terminal stop.
+  // The old chain returned 3 here; keep the equality rather than bless that loss.
+  assert_eq(child_work.val, 4L)
   assert_eq(reported, child_work.val)
+  assert_eq(@local_connector.managed_provider_cumulative_work(active), Ok(4L))
 }

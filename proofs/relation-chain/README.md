@@ -98,22 +98,29 @@ on each runtime, and the whole reservation's bound on the live allocation set.
 Existing arithmetic guards and capacity/workspace acceptance tests remain.
 This pilot does not establish the chain's complete resource guarantee.
 
-## Exhausted-budget stop branch: separate residual
+## Delayed-stop accounting: runtime correction, separate proof residual
 
 The active-child branch at `selected_relation_provider.mbt` cancels and polls a
-child once with quantum 1. If the child still reports not-stopped, it currently
-returns `Continue(work=1)` without increasing `used`, and discards the child poll.
-This is not covered by the model's prompt-stop constructor and is not declared
-correct by this pilot.
+child with quantum 1 after productive-budget exhaustion. Historically it
+discarded the child poll, returned a fixed `Continue(work=1)` while not-stopped,
+and returned terminal work zero. The runtime now forwards the actual stop delta
+and its existing provider owner counts all reported work, including terminal
+work. `used` remains the productive admission counter; stop polls never restore
+Compute or handoff permission. Total diagnostic work can exceed `max_work`.
+This is not covered by the model's prompt-stop constructor and does not widen
+this pilot's formal guarantee.
 
 Accounting was traced independently:
 
-* `connectors/local/materializing.mbt` adds positive Continue work to
-  `attempt.provider_work`; its public counter is exposed only for successful
-  completed attempts. Failure/stop returns an error, not a billed success.
+* `connectors/local/managed_provider.mbt` counts validated per-poll deltas once
+  in the existing execution owner, with sticky invalid-report/overflow errors.
+* `connectors/local/materializing.mbt` retains that owner's result across
+  cleanup. Its old getter remains successful-completion-only; the additive
+  cumulative accessor is available after failure and close, not billed success.
 * `connectors/local/driver/managed_dispatch.mbt` passes valid Continue work to
   `LocalManagedAdvance`; it does not compare aggregate poll work with this
-  chain's `used` counter. Failed/Stopped polls become errors.
+  chain's `used` counter. Failed/Stopped polls become errors; the additive
+  cumulative accessor still exposes the provider total through the same owner.
 * `adapters/local-node/strategy-bundle.mjs` checks per-poll quantum/positivity,
   yields to the host and waits for completion; it does not restore the chain's
   internal cumulative accounting.
@@ -128,13 +135,21 @@ The executed TimeSeries/filter/select paths confirm prompt stop in real child,
 adapter and chain paths, including active budget exhaustion. The standard other
 Relation family adapters forward `request_cancel` to kernels using bounded
 Session; that source audit is not an executed correspondence certificate for
-those families. Arbitrary delayed-stop callbacks remain an explicit residual:
-their admissible stop work, cumulative accounting and physical-stop progress
-must be resolved together. No stop calls are cut short and no work is hidden to
-make the model fit. No existing-contract violation has yet been reproduced on
-an executed standard provider path; this is not a finding that the general
-callback branch is safe. A reproducible violation requires a minimal production
-fix and dedicated regression in a separate PR under the approved scope.
+those families. The deterministic delayed-stop fixture in
+`src/query_integration/relation_chain_delayed_work_wbtest.mbt` covers a registered
+child and the real chain/standard managed-driver route: productive budget 1,
+child work `[1, 1, 1]`, cumulative chain/driver work 3, one Compute entry, retained
+limit failure, and cleanup retry. These are runtime regressions, not a new model
+or a correspondence proof for arbitrary delayed-stop providers.
+
+`Chain.lean` and `Claims.lean` retain their conditional `reported <= budget`
+propositions. Their cancellation premise adds no work and confirms stop on the
+next advance. They are not stop-inclusive hard caps for the delayed-stop branch.
+The source/artifact snapshot changes require fresh evidence; old certificates
+must not be reused for this revision. Delayed-stop liveness, arbitrary child
+behavior and capacity soundness remain explicit residuals. No stop calls are
+cut short and no work is hidden to make the model fit. See the
+[runtime accounting contract](../../docs/design/local-provider-work-accounting.md).
 
 ## Retained acceptance and test retirement
 

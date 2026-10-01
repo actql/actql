@@ -123,7 +123,7 @@ jobs:
         run: node proofs/relation-chain/mutations.mjs
       - name: Reject invalid allocation bounds and weakened capacity propositions
         run: node --test proofs/relation-capacity/model.test.mjs proofs/relation-capacity/evidence.test.mjs proofs/relation-capacity/proof-check.test.mjs
-      - name: Retain separate registered delayed-stop work counterexample
+      - name: Check separate registered delayed-stop work regression
         run: node proofs/relation-capacity/repro-delayed-stop.mjs
       - name: Detect allocation reservation and identity mutations on JS
         run: node proofs/relation-capacity/mutations.mjs
