@@ -578,3 +578,92 @@ test "infer uses typed qualified scopes and exact cross-product key provenance" 
     is Err({ kind: Expression(@expression.UnknownField("text")), .. }),
   )
 }
+
+///|
+test "infer result keys retain the exact producer and KEEP join dependency" {
+  let input = infer_input()
+  let input_keys = keys(input, ["[\"id\"]"])
+  let checked = check(body(), input, Some(input_keys), tasks(), None, limits()).unwrap()
+  let exact : @evidence.TransferLimits = { max_work: 4, max_name_bytes: 2, }
+  let transferred = result_keys(checked, exact).unwrap()
+  assert_eq((transferred.work, transferred.name_bytes), (4, 2))
+  assert_eq(@evidence.key_witness_count(transferred.keys), 1)
+  let key = @evidence.key_witness_at(transferred.keys, 0).unwrap()
+  assert_eq(@evidence.key_origin(key), InferResult)
+  assert_true(
+    physical_equal(@evidence.key_infer_producer(key).unwrap(), checked),
+  )
+  assert_true(
+    physical_equal(
+      @evidence.key_infer_dependency(key).unwrap(),
+      key_witness(checked),
+    ),
+  )
+  assert_true(
+    @evidence.key_pending_count(@evidence.key_infer_dependency(key).unwrap()) >
+    0,
+  )
+  assert_eq(@evidence.key_pending_at(key, 0), Some(ValidateKeyProducer))
+  assert_eq(@evidence.key_field_count(key), 1)
+  assert_eq(
+    @evidence.key_field_at(key, 0).unwrap().name,
+    @schema.Unqualified("id"),
+  )
+  assert_true(
+    physical_equal(
+      @carrier.complete_schema(@evidence.keyed_records(key)).unwrap(),
+      output_schema(checked),
+    ),
+  )
+  for limited in [{ ..exact, max_work: 3, }, { ..exact, max_name_bytes: 1, }] {
+    assert_true(
+      result_keys(checked, limited) is Err({ kind: LimitExceeded, .. }),
+    )
+  }
+  // KEEP's one-to-one join consumes the output proof, not a declaration rebuilt
+  // from a schema, task CID, unique fixture rows or the original input owner.
+  let join = @join.check(
+    cursor(
+      "{\"with\":\"captured\",\"kind\":\"inner\",\"on\":\"id\",\"cardinality\":\"one_to_one\"}",
+    ),
+    input_schema(checked),
+    output_schema(checked),
+    None,
+    { max_work: 10000, max_text_bytes: 10000, max_nodes: 1000, max_depth: 100, },
+  ).unwrap()
+  let selected = @evidence.select_join_key(
+    join,
+    Right,
+    Some(transferred.keys),
+    { max_work: 10000, max_name_bytes: 10000, },
+  ).unwrap().key.unwrap()
+  assert_true(
+    physical_equal(@evidence.key_infer_producer(selected).unwrap(), checked),
+  )
+  assert_true(
+    physical_equal(
+      @evidence.keyed_records(selected),
+      @evidence.keyed_records(key),
+    ),
+  )
+  assert_eq(
+    @evidence.key_field_at(selected, 0).unwrap().name,
+    @schema.Unqualified("id"),
+  )
+  assert_true(
+    @evidence.select_join_key(join, Right, Some(input_keys), {
+      max_work: 10000,
+      max_name_bytes: 10000,
+    })
+    is Err({ kind: InputContractMismatch, .. }),
+  )
+  let foreign = check(body(), input, Some(input_keys), tasks(), None, limits()).unwrap()
+  let foreign_keys = result_keys(foreign, exact).unwrap().keys
+  assert_true(
+    @evidence.select_join_key(join, Right, Some(foreign_keys), {
+      max_work: 10000,
+      max_name_bytes: 10000,
+    })
+    is Err({ kind: InputContractMismatch, .. }),
+  )
+}

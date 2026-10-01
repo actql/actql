@@ -1,24 +1,24 @@
 ///|
-fn model_input_preflight(
-  b : Budget,
+fn infer_model_input_preflight(
+  b : InferBudget,
   source : @decode.Cursor,
   root : @contract.Contract,
-) -> Unit raise Stop {
+) -> Unit raise InferStop {
   let work = [(root, 0)]
   while work.pop() is Some((c, depth)) {
-    spend(b, source)
+    infer_spend(b, source)
     if depth > b.limits.max_depth {
-      fail(source, BudgetExceeded)
+      infer_fail(source, BudgetExceeded)
     }
     match c.shape {
-      @contract.ResourceRef(..) => fail(source, ForbiddenModelInput)
+      @contract.ResourceRef(..) => infer_fail(source, ForbiddenModelInput)
       @contract.Array(item, ..) => work.push((item, depth + 1))
       @contract.Object(fields) => {
         let count = @contract.field_count(fields)
-        spend(b, source, count~)
+        infer_spend(b, source, count~)
         for i in 0..<count {
           let field = @contract.field_at(fields, i).unwrap()
-          charge(b, source, field.name)
+          infer_charge(b, source, field.name)
           work.push((field.contract, depth + 1))
         }
       }
@@ -28,29 +28,29 @@ fn model_input_preflight(
 }
 
 ///|
-fn expression_scope(
-  b : Budget,
+fn infer_expression_scope(
+  b : InferBudget,
   source : @decode.Cursor,
-  schema : @schema.Schema,
+  schema : @row.Schema,
   parameters : @parameter.Declarations?,
-) -> @expression.Environment raise Stop {
-  if @schema.as_object(schema) is Some(row) {
+) -> @typing.Environment raise InferStop {
+  if @row.as_object(schema) is Some(row) {
     return { fields: Some(row), left: None, right: None, parameters, }
   }
-  let count = @schema.field_count(schema)
-  spend(b, source, count~)
+  let count = @row.field_count(schema)
+  infer_spend(b, source, count~)
   let fields = []
   let left = []
   let right = []
   let bytes = b.text
   for i in 0..<count {
-    let field = @schema.field_at(schema, i).unwrap()
+    let field = @row.field_at(schema, i).unwrap()
     let (target, name) = match field.name {
-      @schema.Unqualified(name) => (fields, name)
-      @schema.Qualified(Left, name) => (left, name)
-      @schema.Qualified(Right, name) => (right, name)
+      @row.Unqualified(name) => (fields, name)
+      @row.Qualified(Left, name) => (left, name)
+      @row.Qualified(Right, name) => (right, name)
     }
-    charge(b, source, name)
+    infer_charge(b, source, name)
     target.push((name, field.contract))
   }
   let scope = (items : Array[(String, @contract.Contract)]) => {
@@ -62,7 +62,7 @@ fn expression_scope(
         max_name_bytes=bytes,
       ) {
       Ok(value) => value
-      Err(_) => fail(source, InvalidBody)
+      Err(_) => infer_fail(source, InvalidBody)
     }
   }
   {
@@ -74,15 +74,15 @@ fn expression_scope(
 }
 
 ///|
-fn input_expression(
-  b : Budget,
+fn infer_input_expression(
+  b : InferBudget,
   source : @decode.Cursor,
-  env : @expression.Environment,
+  env : @typing.Environment,
   role : String,
   expected : @contract.Contract,
-) -> @expression.TypedExpression raise Stop {
+) -> @typing.TypedExpression raise InferStop {
   let syntax = match
-    @syntax.admit(source, {
+    @expression_syntax.admit(source, {
       max_nodes: b.nodes.min(b.work),
       max_depth: b.limits.max_depth,
       max_text_bytes: b.text,
@@ -95,14 +95,14 @@ fn input_expression(
       },
     }) {
     Ok(value) => value
-    Err(issue) => fail(source, Syntax(issue))
+    Err(issue) => infer_fail(source, Syntax(issue))
   }
-  let used = @syntax.usage(syntax)
-  spend(b, source, count=used.nodes)
+  let used = @expression_syntax.usage(syntax)
+  infer_spend(b, source, count=used.nodes)
   b.nodes -= used.nodes
   b.text -= used.text_bytes
   b.tokens -= used.tokens
-  let limits : @expression.Limits = {
+  let limits : @typing.Limits = {
     max_nodes: b.nodes.min(b.work),
     max_depth: b.limits.max_depth,
     max_work: b.work,
@@ -110,29 +110,29 @@ fn input_expression(
   }
   let result = match expected.shape {
     @contract.Text(_) =>
-      @expression.check_argument(syntax, env, StringArgument, limits)
+      @typing.check_argument(syntax, env, StringArgument, limits)
     @contract.Number =>
-      @expression.check_argument(syntax, env, NumberArgument, limits)
+      @typing.check_argument(syntax, env, NumberArgument, limits)
     @contract.Boolean =>
-      @expression.check_argument(syntax, env, BooleanArgument, limits)
-    _ => @expression.check(syntax, env, limits)
+      @typing.check_argument(syntax, env, BooleanArgument, limits)
+    _ => @typing.check(syntax, env, limits)
   }
   let expression = match result {
     Ok(value) => value
-    Err(issue) => fail(issue.location.source, Expression(issue.kind))
+    Err(issue) => infer_fail(issue.location.source, Expression(issue.kind))
   }
-  let used = @expression.usage(expression)
-  spend(b, source, count=used.work)
+  let used = @typing.usage(expression)
+  infer_spend(b, source, count=used.work)
   b.nodes -= used.nodes
   b.text -= used.text_bytes
-  let actual = @expression.result_type(expression)
-  model_input_preflight(b, source, actual)
+  let actual = @typing.result_type(expression)
+  infer_model_input_preflight(b, source, actual)
   let (compatible, count) = @contract.assignable_usage(actual, expected, b.work) catch {
-    _ => fail(source, BudgetExceeded)
+    _ => infer_fail(source, BudgetExceeded)
   }
-  spend(b, source, count~)
+  infer_spend(b, source, count~)
   if !compatible {
-    fail(source, InputTypeMismatch(role))
+    infer_fail(source, InputTypeMismatch(role))
   }
   expression
 }
@@ -140,14 +140,14 @@ fn input_expression(
 ///|
 /// Resolves acquisition typing only. No adapter plan, authority or call slot is
 /// admitted here, and the pure Relation evaluator cannot execute this owner.
-pub fn check(
+pub fn check_infer(
   source : @decode.Cursor,
   input : @carrier.Carrier,
-  keys : @evidence.KeySet?,
-  tasks : @environment.ModelTasks,
+  keys : KeySet?,
+  tasks : @model_environment.ModelTasks,
   parameters : @parameter.Declarations?,
-  limits : Limits,
-) -> Result[CheckedInfer, Issue] {
+  limits : InferLimits,
+) -> Result[CheckedInfer, InferIssue] {
   try {
     if limits.max_work < 0 ||
       limits.max_nodes < 0 ||
@@ -156,38 +156,41 @@ pub fn check(
       limits.max_tokens < 0 ||
       limits.max_key_fields < 0 ||
       limits.max_input_roles < 0 {
-      fail(source, InvalidLimits)
+      infer_fail(source, InvalidLimits)
     }
-    let b : Budget = {
+    let b : InferBudget = {
       limits,
       work: limits.max_work,
       nodes: limits.max_nodes,
       text: limits.max_text_bytes,
       tokens: limits.max_tokens,
     }
-    spend(b, source)
-    let body = decoded(
+    infer_spend(b, source)
+    let body = infer_decoded(
       source,
       @decode.closed_object(source, [
         "contract", "key", "input", "max_items", "on_non_success", "minimum_classification",
       ]),
     )
-    let selector_source = decoded(source, @decode.required(body, "contract"))
-    let selector = decoded(selector_source, @decode.text(selector_source))
-    charge(b, selector_source, selector)
-    let task = match @environment.resolve_model_task(tasks, selector) {
+    let selector_source = infer_decoded(
+      source,
+      @decode.required(body, "contract"),
+    )
+    let selector = infer_decoded(selector_source, @decode.text(selector_source))
+    infer_charge(b, selector_source, selector)
+    let task = match @model_environment.resolve_model_task(tasks, selector) {
       Ok(value) => value
-      Err(issue) => fail(selector_source, Task(issue.kind))
+      Err(issue) => infer_fail(selector_source, Task(issue.kind))
     }
     let records = match @carrier.relation_rows(input) {
       Some(value) => value
-      None => fail(source, WrongCarrier(@carrier.kind(input)))
+      None => infer_fail(source, WrongCarrier(@carrier.kind(input)))
     }
     let schema = match @carrier.complete_schema(records) {
       Some(value) => value
-      None => fail(source, IncompleteInputContract)
+      None => infer_fail(source, IncompleteInputContract)
     }
-    let (witness, key_fields) = resolve_key(
+    let (witness, key_fields) = infer_resolve_key(
       b,
       source,
       @decode.lookup(body, "key"),
@@ -195,56 +198,65 @@ pub fn check(
       schema,
       keys,
     )
-    let task_input = @environment.model_task_input(task)
-    model_input_preflight(b, source, task_input)
+    let task_input = @model_environment.model_task_input(task)
+    infer_model_input_preflight(b, source, task_input)
     guard task_input.shape is @contract.Object(input_fields) else {
-      fail(source, InvalidBody)
+      infer_fail(source, InvalidBody)
     }
-    let mapping_source = decoded(source, @decode.required(body, "input"))
-    ignore(decoded(mapping_source, @decode.open_object(mapping_source)))
+    let mapping_source = infer_decoded(source, @decode.required(body, "input"))
+    ignore(infer_decoded(mapping_source, @decode.open_object(mapping_source)))
     let role_count = @contract.field_count(input_fields)
     let mapping_count = @decode.object_length(mapping_source).unwrap()
     if role_count > limits.max_input_roles ||
       mapping_count > limits.max_input_roles {
-      fail(mapping_source, BudgetExceeded)
+      infer_fail(mapping_source, BudgetExceeded)
     }
-    spend(b, mapping_source, count=mapping_count)
-    let mapping = decoded(mapping_source, @decode.open_object(mapping_source))
+    infer_spend(b, mapping_source, count=mapping_count)
+    let mapping = infer_decoded(
+      mapping_source,
+      @decode.open_object(mapping_source),
+    )
     for i in 0..<mapping_count {
       let (name, at) = @decode.field_at(mapping_source, i).unwrap()
-      charge(b, at, name)
+      infer_charge(b, at, name)
       let mut known = false
       for j in 0..<role_count {
-        spend(b, at)
+        infer_spend(b, at)
         if @contract.field_at(input_fields, j).unwrap().name == name {
           known = true
           break
         }
       }
       if !known {
-        fail(at, UnknownInputRole(name))
+        infer_fail(at, UnknownInputRole(name))
       }
     }
-    spend(b, mapping_source, count=role_count)
-    let bindings : Array[InputBinding] = []
-    let env = expression_scope(b, source, schema, parameters)
+    infer_spend(b, mapping_source, count=role_count)
+    let bindings : Array[InferInputBinding] = []
+    let env = infer_expression_scope(b, source, schema, parameters)
     for i in 0..<role_count {
       let role = @contract.field_at(input_fields, i).unwrap()
-      charge(b, mapping_source, role.name)
+      infer_charge(b, mapping_source, role.name)
       let at = match @decode.lookup(mapping, role.name) {
         Some(value) => value
-        None => fail(mapping_source, MissingInputRole(role.name))
+        None => infer_fail(mapping_source, MissingInputRole(role.name))
       }
-      let expression = input_expression(b, at, env, role.name, role.contract)
+      let expression = infer_input_expression(
+        b,
+        at,
+        env,
+        role.name,
+        role.contract,
+      )
       bindings.push({ role: role.name, source: at, expression, })
     }
     let mode = match @decode.lookup(body, "on_non_success") {
       None => Outcomes
       Some(at) =>
-        match decoded(at, @decode.text(at)) {
+        match infer_decoded(at, @decode.text(at)) {
           "outcomes" => Outcomes
           "fail" => Fail
-          _ => fail(at, InvalidBody)
+          _ => infer_fail(at, InvalidBody)
         }
     }
     let minimum_classification = match
@@ -252,12 +264,12 @@ pub fn check(
       None => None
       Some(at) =>
         Some(
-          match decoded(at, @decode.text(at)) {
-            "public" => @environment.Public
+          match infer_decoded(at, @decode.text(at)) {
+            "public" => @model_environment.Public
             "internal" => Internal
             "confidential" => Confidential
             "restricted" => Restricted
-            _ => fail(at, InvalidBody)
+            _ => infer_fail(at, InvalidBody)
           },
         )
     }
@@ -273,41 +285,44 @@ pub fn check(
             max_tokens: b.tokens,
           }) {
           Ok(value) => value
-          Err(issue) => fail(issue.source, Guard(issue.kind))
+          Err(issue) => infer_fail(issue.source, Guard(issue.kind))
         }
         let (work, text) = @relation.count_value_usage(checked_guard)
-        spend(b, at, count=work)
+        infer_spend(b, at, count=work)
         b.text -= text
         Some(checked_guard)
       }
     }
     let count = key_fields.length() + 2
-    spend(b, source, count~)
-    let entries : Array[(@schema.FieldName, @contract.Contract)] = []
+    infer_spend(b, source, count~)
+    let entries : Array[(@row.FieldName, @contract.Contract)] = []
     let name_budget = b.text
     for field in key_fields {
-      let name = @schema.reference_name(field.field)
-      charge(b, source, name)
+      let name = @row.reference_name(field.field)
+      infer_charge(b, source, name)
       entries.push((field.field, field.contract))
     }
-    charge(b, source, "outcome")
-    charge(b, source, "value")
+    infer_charge(b, source, "outcome")
+    infer_charge(b, source, "value")
     entries.push(
       (
-        @schema.Unqualified("outcome"),
+        @row.Unqualified("outcome"),
         @contract.primitive(StringType, nullable=false),
       ),
     )
     entries.push(
       (
-        @schema.Unqualified("value"),
-        @contract.with_nullability(@environment.model_task_output(task), true),
+        @row.Unqualified("value"),
+        @contract.with_nullability(
+          @model_environment.model_task_output(task),
+          true,
+        ),
       ),
     )
     let output = match
-      @schema.from_fields(entries, max_fields=count, max_name_bytes=name_budget) {
+      @row.from_fields(entries, max_fields=count, max_name_bytes=name_budget) {
       Ok(value) => value
-      Err(_) => fail(source, InvalidBody)
+      Err(_) => infer_fail(source, InvalidBody)
     }
     Ok({
       source,
@@ -330,6 +345,6 @@ pub fn check(
       },
     })
   } catch {
-    Stop(issue) => Err(issue)
+    InferStop(issue) => Err(issue)
   }
 }

@@ -159,7 +159,7 @@ Full affected CI jobs and Linux CI remain unverified for this unit.
 
 ## Typed inference binding
 
-`infer_typing/check.mbt` binds the exact admitted ModelTask, complete input
+The checked inference owner binds the exact admitted ModelTask, complete input
 schema, candidate-key witness and typed INPUT expressions. It requires all
 and only the closed task input roles, checks assignment compatibility and
 retains expression validation obligations. Qualified Relation scopes use the
@@ -175,8 +175,8 @@ original witness keeps its producer and pending runtime validation obligations.
 
 The output schema contains only the selected key fields and fixed outcome
 and value roles. The success object retains its original child nullability;
-only the outer value becomes nullable for failure outcomes. This schema is
-not yet a produced-key proof or outcome-dependent refinement proof.
+only the outer value becomes nullable for failure outcomes. This schema alone
+is neither a produced-key proof nor an outcome-dependent refinement proof.
 
 `relation_typing/check_count_value` exposes the existing count rule for the
 infer author guard. It retains the exact parameter declaration owner and
@@ -242,3 +242,32 @@ Host owner, and capture/replay with no replacement model execution. The first
 Host connection can be handed off before the complete KEEP/replay matrix,
 but those unfinished guarantees must remain visible. There is still no
 adoptable full-Program execution SHA or public model registration example.
+
+## Produced inference key evidence
+
+The checked inference implementation now lives alongside the existing key
+producer owners in `relation_evidence/infer_check.mbt`. `infer_typing` delegates
+to that same opaque owner through a thin facade; it has no second checker.
+Its type aliases expose the underlying shared evidence types. This dependency
+placement allows the output key to retain the exact checked infer producer,
+rather than reconstructing an operation from its source, schema or CID.
+
+`infer_result_keys` preserves only the selected tuple, including its authored
+order, under the existing conditional `ValidateKeyProducer` obligation. The
+original input witness remains an explicit dependency with its physical key
+validation obligations. The output key is neither an input declaration nor
+an assertion that any model calls, captures or publication have completed.
+The eventual execution owner must fulfill the input and producer obligations.
+
+The new KEEP join regression consumes this produced key through the existing
+`select_join_key` boundary. It verifies exact producer and input dependencies,
+fixed field names, exact/one-short metadata budgets, and rejection of the
+original input key or another infer's equal-shaped output key. It does not
+yet execute the ordinary Program or prove a runtime one-to-one join.
+
+The complete `relation_evidence` and `infer_typing` suites, plus the mapped
+input execution regressions, passed 32/32 on each of JS, Wasm and native.
+The first test version incorrectly expected key selection to return the same
+outer witness allocation. Selection legitimately projects a witness; the
+correct regression checks the unchanged exact producer and records owners.
+No production admission check was weakened to resolve that fixture error.

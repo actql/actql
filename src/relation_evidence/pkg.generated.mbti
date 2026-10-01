@@ -5,8 +5,11 @@ import {
   "actql/actql/calendar_typing",
   "actql/actql/carrier_contract",
   "actql/actql/carrier_projection",
+  "actql/actql/check_environment",
   "actql/actql/decode_core",
   "actql/actql/event_typing",
+  "actql/actql/expression_syntax",
+  "actql/actql/expression_typing",
   "actql/actql/graph_typing",
   "actql/actql/parameter_binding",
   "actql/actql/relation_append",
@@ -85,6 +88,8 @@ pub fn check_asof(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contr
 
 pub fn check_asof_sources(@decode_core.Cursor, AsOfSource, AsOfSource, @parameter_binding.Declarations?, @relation_join_shape.Limits) -> Result[CheckedAsOf, @relation_join_shape.Issue]
 
+pub fn check_infer(@decode_core.Cursor, @carrier_contract.Carrier, KeySet?, @check_environment.ModelTasks, @parameter_binding.Declarations?, InferLimits) -> Result[CheckedInfer, InferIssue]
+
 pub fn check_merge_rankings(@decode_core.Cursor, Array[RankingInput], @vector_checking.Limits) -> Result[CheckedRanking, @vector_checking.Issue]
 
 pub fn check_nearest(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, @vector_checking.Limits) -> Result[CheckedNearest, @vector_checking.Issue]
@@ -133,6 +138,38 @@ pub fn graph_projection_keys(@carrier_projection.CheckedProjection, TransferLimi
 
 pub fn graph_query_keys(GraphKeyOperation, TransferLimits) -> Result[KeySetTransfer, Issue]
 
+pub fn infer_input_binding_at(CheckedInfer, Int) -> InferInputBinding?
+
+pub fn infer_input_binding_count(CheckedInfer) -> Int
+
+pub fn infer_input_records(CheckedInfer) -> @carrier_contract.Knowledge
+
+pub fn infer_input_schema(CheckedInfer) -> @relation_schema.Schema
+
+pub fn infer_key_at(CheckedInfer, Int) -> InferKeyBinding?
+
+pub fn infer_key_count(CheckedInfer) -> Int
+
+pub fn infer_key_witness(CheckedInfer) -> KeyedRelation
+
+pub fn infer_max_items_guard(CheckedInfer) -> @relation_typing.CheckedCountValue?
+
+pub fn infer_minimum_classification(CheckedInfer) -> @check_environment.DataClassification?
+
+pub fn infer_model_task(CheckedInfer) -> @check_environment.ModelTaskContract
+
+pub fn infer_output_schema(CheckedInfer) -> @relation_schema.Schema
+
+pub fn infer_parameters(CheckedInfer) -> @parameter_binding.Declarations?
+
+pub fn infer_result_keys(CheckedInfer, TransferLimits) -> Result[KeySetTransfer, Issue]
+
+pub fn infer_result_mode(CheckedInfer) -> InferResultMode
+
+pub fn infer_source(CheckedInfer) -> @decode_core.Cursor
+
+pub fn infer_usage(CheckedInfer) -> InferUsage
+
 pub fn key_alias_at(KeyedRelation, Int, Int) -> KeyField?
 
 pub fn key_alias_count(KeyedRelation, Int) -> Int
@@ -168,6 +205,10 @@ pub fn key_field_count(KeyedRelation) -> Int
 pub fn key_graph_projection_producer(KeyedRelation) -> @carrier_projection.CheckedProjection?
 
 pub fn key_graph_query_producer(KeyedRelation) -> GraphKeyOperation?
+
+pub fn key_infer_dependency(KeyedRelation) -> KeyedRelation?
+
+pub fn key_infer_producer(KeyedRelation) -> CheckedInfer?
 
 pub fn key_interval_join_dependency_at(KeyedRelation, Int) -> KeyedRelation?
 
@@ -491,6 +532,8 @@ pub(all) enum AsOfSource {
 
 type CheckedAsOf
 
+type CheckedInfer
+
 type CheckedNearest
 
 type CheckedRanking
@@ -506,6 +549,67 @@ pub(all) enum GraphKeyOperation {
   TraverseOperation(@graph_typing.CheckedTraverse)
   ShortestOperation(@graph_typing.CheckedShortest)
 }
+
+pub struct InferInputBinding {
+  role : String
+  source : @decode_core.Cursor
+  expression : @expression_typing.TypedExpression
+}
+
+pub struct InferIssue {
+  kind : InferIssueKind
+  source : @decode_core.Cursor
+}
+
+pub(all) enum InferIssueKind {
+  InvalidLimits
+  BudgetExceeded
+  InvalidBody
+  WrongCarrier(@carrier_contract.Kind)
+  IncompleteInputContract
+  Task(@check_environment.ModelTaskIssueKind)
+  InputKeyOwnerMismatch
+  CandidateKeyRequired
+  AmbiguousCandidateKey
+  InvalidKeyTuple
+  UnknownKeyField(String)
+  InvalidKeyType(String)
+  KeyRoleCollision(String)
+  UnknownInputRole(String)
+  MissingInputRole(String)
+  InputTypeMismatch(String)
+  ForbiddenModelInput
+  Syntax(@expression_syntax.Issue)
+  Expression(@expression_typing.IssueKind)
+  Guard(@relation_typing.IssueKind)
+}
+
+pub struct InferKeyBinding {
+  field : @relation_schema.FieldName
+  contract : @value_contract.Contract
+}
+
+pub(all) struct InferLimits {
+  max_work : Int
+  max_nodes : Int
+  max_depth : Int
+  max_text_bytes : Int
+  max_tokens : Int
+  max_key_fields : Int
+  max_input_roles : Int
+}
+
+pub(all) enum InferResultMode {
+  Outcomes
+  Fail
+} derive(Eq, @debug.Debug)
+
+pub(all) struct InferUsage {
+  work : Int
+  nodes : Int
+  text_bytes : Int
+  tokens : Int
+} derive(Eq, @debug.Debug)
 
 pub struct Issue {
   kind : IssueKind
@@ -559,6 +663,7 @@ pub(all) enum KeyOrigin {
   RankingResult
   TextRankResult
   SetDistinctResult
+  InferResult
 } derive(Eq, @debug.Debug)
 
 pub struct KeySelection {

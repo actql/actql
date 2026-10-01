@@ -10,7 +10,6 @@ import {
   "actql/actql/expression_syntax",
   "actql/actql/expression_typing",
   "actql/actql/graph_typing",
-  "actql/actql/infer_typing",
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
   "actql/actql/relation_append",
@@ -542,7 +541,7 @@ pub fn infer_input_count(PreparedInferInputs) -> Int
 
 pub fn infer_input_expression_at(PreparedInferInputs, Int) -> Expression?
 
-pub fn infer_inputs_owner(PreparedInferInputs) -> @infer_typing.CheckedInfer
+pub fn infer_inputs_owner(PreparedInferInputs) -> @relation_evidence.CheckedInfer
 
 pub fn infer_inputs_parameters(PreparedInferInputs) -> @parameter_binding.BoundValues?
 
@@ -832,7 +831,7 @@ pub fn prepare_fragment_request(FragmentPipeline, Int64, Int64, row_limits? : Fr
 
 pub fn prepare_group(BoundPrepared, Int, Int, Int, ExpressionLimits) -> Result[(PreparedGroup, ExpressionLimits), GroupIssue]
 
-pub fn prepare_infer_inputs(@infer_typing.CheckedInfer, @parameter_binding.BoundValues?, ExpressionLimits, expression_profiles? : ExpressionProfileAdmission) -> Result[PreparedInferInputs, InferInputIssue]
+pub fn prepare_infer_inputs(@relation_evidence.CheckedInfer, @parameter_binding.BoundValues?, ExpressionLimits, expression_profiles? : ExpressionProfileAdmission) -> Result[PreparedInferInputs, InferInputIssue]
 
 pub fn prepare_inner_join(@relation_join_shape.CheckedJoin, Int, Int) -> Result[PreparedInnerJoin, InnerJoinIssue]
 

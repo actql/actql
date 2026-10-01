@@ -5,16 +5,14 @@ import {
   "actql/actql/carrier_contract" @carrier,
   "actql/actql/relation_evidence" @evidence,
   "actql/actql/relation_schema" @schema,
-  "actql/actql/value_contract" @contract,
   "actql/actql/decode_core" @decode,
-  "actql/actql/decode_scalar" @scalar,
-  "actql/actql/expression_syntax" @syntax,
-  "actql/actql/expression_typing" @expression,
   "actql/actql/parameter_binding" @parameter,
   "actql/actql/relation_typing" @relation,
 }
 
 import {
+  "actql/actql/value_contract" @contract,
+  "actql/actql/expression_typing" @expression,
   "actql/actql/relation_join_shape" @join,
   "actql/actql/source_value" @source,
   "moonbitlang/core/encoding/utf8",

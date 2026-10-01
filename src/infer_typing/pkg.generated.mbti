@@ -5,115 +5,66 @@ import {
   "actql/actql/carrier_contract",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
-  "actql/actql/expression_syntax",
-  "actql/actql/expression_typing",
   "actql/actql/parameter_binding",
   "actql/actql/relation_evidence",
   "actql/actql/relation_schema",
   "actql/actql/relation_typing",
-  "actql/actql/value_contract",
-  "moonbitlang/core/debug",
 }
 
 // Values
-pub fn check(@decode_core.Cursor, @carrier_contract.Carrier, @relation_evidence.KeySet?, @check_environment.ModelTasks, @parameter_binding.Declarations?, Limits) -> Result[CheckedInfer, Issue]
+pub fn check(@decode_core.Cursor, @carrier_contract.Carrier, @relation_evidence.KeySet?, @check_environment.ModelTasks, @parameter_binding.Declarations?, @relation_evidence.InferLimits) -> Result[@relation_evidence.CheckedInfer, @relation_evidence.InferIssue]
 
-pub fn input_binding_at(CheckedInfer, Int) -> InputBinding?
+pub fn input_binding_at(@relation_evidence.CheckedInfer, Int) -> @relation_evidence.InferInputBinding?
 
-pub fn input_binding_count(CheckedInfer) -> Int
+pub fn input_binding_count(@relation_evidence.CheckedInfer) -> Int
 
-pub fn input_records(CheckedInfer) -> @carrier_contract.Knowledge
+pub fn input_records(@relation_evidence.CheckedInfer) -> @carrier_contract.Knowledge
 
-pub fn input_schema(CheckedInfer) -> @relation_schema.Schema
+pub fn input_schema(@relation_evidence.CheckedInfer) -> @relation_schema.Schema
 
-pub fn key_at(CheckedInfer, Int) -> KeyBinding?
+pub fn key_at(@relation_evidence.CheckedInfer, Int) -> @relation_evidence.InferKeyBinding?
 
-pub fn key_count(CheckedInfer) -> Int
+pub fn key_count(@relation_evidence.CheckedInfer) -> Int
 
-pub fn key_witness(CheckedInfer) -> @relation_evidence.KeyedRelation
+pub fn key_witness(@relation_evidence.CheckedInfer) -> @relation_evidence.KeyedRelation
 
-pub fn max_items_guard(CheckedInfer) -> @relation_typing.CheckedCountValue?
+pub fn max_items_guard(@relation_evidence.CheckedInfer) -> @relation_typing.CheckedCountValue?
 
-pub fn minimum_classification(CheckedInfer) -> @check_environment.DataClassification?
+pub fn minimum_classification(@relation_evidence.CheckedInfer) -> @check_environment.DataClassification?
 
-pub fn model_task(CheckedInfer) -> @check_environment.ModelTaskContract
+pub fn model_task(@relation_evidence.CheckedInfer) -> @check_environment.ModelTaskContract
 
-pub fn output_schema(CheckedInfer) -> @relation_schema.Schema
+pub fn output_schema(@relation_evidence.CheckedInfer) -> @relation_schema.Schema
 
-pub fn parameters(CheckedInfer) -> @parameter_binding.Declarations?
+pub fn parameters(@relation_evidence.CheckedInfer) -> @parameter_binding.Declarations?
 
-pub fn result_mode(CheckedInfer) -> ResultMode
+pub fn result_keys(@relation_evidence.CheckedInfer, @relation_evidence.TransferLimits) -> Result[@relation_evidence.KeySetTransfer, @relation_evidence.Issue]
 
-pub fn source(CheckedInfer) -> @decode_core.Cursor
+pub fn result_mode(@relation_evidence.CheckedInfer) -> @relation_evidence.InferResultMode
 
-pub fn usage(CheckedInfer) -> Usage
+pub fn source(@relation_evidence.CheckedInfer) -> @decode_core.Cursor
+
+pub fn usage(@relation_evidence.CheckedInfer) -> @relation_evidence.InferUsage
 
 // Errors
 
 // Types and methods
-type CheckedInfer
-
-pub struct InputBinding {
-  role : String
-  source : @decode_core.Cursor
-  expression : @expression_typing.TypedExpression
-}
-
-pub struct Issue {
-  kind : IssueKind
-  source : @decode_core.Cursor
-}
-
-pub(all) enum IssueKind {
-  InvalidLimits
-  BudgetExceeded
-  InvalidBody
-  WrongCarrier(@carrier_contract.Kind)
-  IncompleteInputContract
-  Task(@check_environment.ModelTaskIssueKind)
-  InputKeyOwnerMismatch
-  CandidateKeyRequired
-  AmbiguousCandidateKey
-  InvalidKeyTuple
-  UnknownKeyField(String)
-  InvalidKeyType(String)
-  KeyRoleCollision(String)
-  UnknownInputRole(String)
-  MissingInputRole(String)
-  InputTypeMismatch(String)
-  ForbiddenModelInput
-  Syntax(@expression_syntax.Issue)
-  Expression(@expression_typing.IssueKind)
-  Guard(@relation_typing.IssueKind)
-}
-
-pub struct KeyBinding {
-  field : @relation_schema.FieldName
-  contract : @value_contract.Contract
-}
-
-pub(all) struct Limits {
-  max_work : Int
-  max_nodes : Int
-  max_depth : Int
-  max_text_bytes : Int
-  max_tokens : Int
-  max_key_fields : Int
-  max_input_roles : Int
-}
-
-pub(all) enum ResultMode {
-  Outcomes
-  Fail
-} derive(Eq, @debug.Debug)
-
-pub(all) struct Usage {
-  work : Int
-  nodes : Int
-  text_bytes : Int
-  tokens : Int
-} derive(Eq, @debug.Debug)
 
 // Type aliases
+pub using @relation_evidence {type CheckedInfer}
+
+pub using @relation_evidence {type InferInputBinding as InputBinding}
+
+pub using @relation_evidence {type InferIssue as Issue}
+
+pub using @relation_evidence {type InferIssueKind as IssueKind}
+
+pub using @relation_evidence {type InferKeyBinding as KeyBinding}
+
+pub using @relation_evidence {type InferLimits as Limits}
+
+pub using @relation_evidence {type InferResultMode as ResultMode}
+
+pub using @relation_evidence {type InferUsage as Usage}
 
 // Traits
