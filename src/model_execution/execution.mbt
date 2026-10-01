@@ -84,6 +84,7 @@ pub(all) enum ModelExecutionIssue {
 pub(all) struct ModelSlotCapture {
   slot : Int
   slot_cid : String
+  input_key_cid : String
   fixed_request_cid : String
   provider_id : String
   provider_request_id : String
@@ -154,6 +155,24 @@ fn slot_cid(
     @encode.key(writer, "slot")
     @encode.number_value(writer, index.to_double())
     @encode.end_object(writer)
+    let (digest, _, _) = @encode.finish_hash_usage(writer)
+    Some("sha256:" + digest)
+  } catch {
+    _ => None
+  }
+}
+
+///|
+/// The key evidence is retained separately from the call-slot identity so a
+/// KEEP consumer can bind its output key without decoding request metadata.
+fn key_cid(key : Array[@admitted.CheckedValue]) -> String? {
+  let writer = @encode.hashing_writer(4096, 256, 8) catch { _ => return None }
+  try {
+    @encode.begin_array(writer)
+    for value in key {
+      @admitted.emit_checked_wire_value(value, writer)
+    }
+    @encode.end_array(writer)
     let (digest, _, _) = @encode.finish_hash_usage(writer)
     Some("sha256:" + digest)
   } catch {
@@ -246,6 +265,9 @@ fn advance_model(
     Ok(value) => value
     Err(issue) => return @bounded.Failed(provider_error(issue), 1, 1)
   }
+  guard key_cid(request.key) is Some(input_key_cid) else {
+    return @bounded.Failed(OutputIdentity, 1, 1)
+  }
   if response.provider_model.is_empty() ||
     response.provider_request_id.is_empty() ||
     response.observed_at.is_empty() ||
@@ -268,6 +290,7 @@ fn advance_model(
   state.captures.push({
     slot: request.slot,
     slot_cid: request.slot_cid,
+    input_key_cid,
     fixed_request_cid: request.fixed_request_cid,
     provider_id: state.provider.provider_id,
     provider_request_id: response.provider_request_id,
@@ -405,7 +428,8 @@ pub fn replay_model_capture(
   let output : Array[@admitted.CheckedValue] = []
   for index, capture in bundle.captures {
     if capture.slot != index || capture.fixed_request_cid != fixed_request_cid ||
-      !valid_cid(capture.slot_cid) || capture.provider_request_id.is_empty() {
+      !valid_cid(capture.slot_cid) || !valid_cid(capture.input_key_cid) ||
+      capture.provider_request_id.is_empty() {
       return Err(OutputIdentity)
     }
     output.push(capture.value)

@@ -45,6 +45,7 @@ test "model capture replay validates task and fixed request without provider cal
   let capture : ModelSlotCapture = {
     slot: 0,
     slot_cid: slot,
+    input_key_cid: "sha256:4444444444444444444444444444444444444444444444444444444444444444",
     fixed_request_cid: fixed,
     provider_id: "models/fixture",
     provider_request_id: "request-1",
@@ -64,6 +65,9 @@ test "model capture replay validates task and fixed request without provider cal
     replay_model_capture(task, "sha256:3333333333333333333333333333333333333333333333333333333333333333", bundle)
     is Err(OutputIdentity),
   )
+  let invalid_key = { ..capture, input_key_cid: "not-a-cid" }
+  let invalid_bundle = { ..bundle, captures: [invalid_key] }
+  assert_true(replay_model_capture(task, fixed, invalid_bundle) is Err(OutputIdentity))
 }
 
 ///|
