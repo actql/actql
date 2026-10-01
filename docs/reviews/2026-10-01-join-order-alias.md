@@ -78,9 +78,49 @@ the external installation.
 ## Verification
 
 Before the fix, the targeted regression file had four failures and one
-qualified-reference control success. After the fix, all 81 query_program
-JS tests passed, including six new regression tests. Syntax checks for the
-two edited Node scripts and `git diff --check` passed.
+qualified-reference control success. After integration, all 89 query_program
+JS tests passed, including six new regression tests. Independent Program
+bridge fixtures passed 7/7. Syntax checks and `git diff --check` passed.
 
-Fixed-source packed evidence and affected job results will be recorded after
-running the committed source. Linux CI for this JOIN branch is not yet verified.
+Verified implementation source:
+`ac488c91be022f4ce9fd0b28f7f82bda0a5894e3`.
+The focused packed command passed all 14 authored success cases and two typed
+refusals on each of Embedded Local and HTTPS. Rows, actual retained column
+contracts, column order, hidden-column exclusion and table statement counts
+were compared with the independent fixture. Attach, identical-request
+resubmission and rereading did not add Run admission or acquisition.
+Both refusal cases left Run admission and provider I/O unchanged.
+
+The following affected jobs passed on that same source, one at a time:
+
+```sh
+node scripts/local-checks.mjs run lint
+node scripts/local-checks.mjs run core --target js
+node scripts/local-checks.mjs run spec
+node scripts/local-checks.mjs run client
+```
+
+Core JS passed 7,126/7,126. The complete Client job included 311 Client/Host
+tests, installed Node/browser and Checkpoint tests, native mTLS Client tests,
+the default raw-source Local/HTTP and native SGA acceptance, packed Result
+description tests, 277 Salesforce adapter tests, and the existing Effect
+recovery/crash probes. Those Effect probes used simulated providers, not a
+live Salesforce org. Recovery performed no replacement Source/Compute calls.
+INFER refusals in this job are not successful inference execution evidence.
+
+Focused packed artifact SHA-256 digests:
+
+| Package | SHA-256 |
+| --- | --- |
+| `@actql/client-wire` | `c9882e6300c184e7086e86a56cc70b1be3f65e059d0b97364ea49b379eac3a86` |
+| `@actql/sdk` | `823149a8d04223425d9752b29596b72e72d3401ef168e6d164b7ec1557b38cf3` |
+| `@actql/run-host-core` | `6ad3039654b116729d329903d23479ffe59a2a9a0b5c6fe61cded0178e45a176` |
+| `@actql/local-node` | `7eb535d0ca877599eac1a4e61a3dcd8f122a4b35f9311640b98623a6ea25b1ad` |
+| `@actql/node` | `c72364973dd1ed42faea32425632b314de037c9b92035c9f5ec35b875914f225` |
+
+The external evidence retains the source SHA, digests, exit results and logs;
+its expanded installation and tarballs were reclaimed after success.
+Local gate logs are retained under `_build/join-order-evidence/`.
+The final validation-record commit changes documentation only.
+Full Core Wasm/native were not repeated locally. Pushed-SHA Linux CI is
+reported separately in the PR; local success is not CI success.
