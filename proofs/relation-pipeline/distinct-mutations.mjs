@@ -24,9 +24,8 @@ function semanticMismatch(c, observed, anchor, registry) {
       if (!kept.some(prior => (anchor.kind === 'distinct compares only first column' ? [fields[0]] : fields)
         .every(f => prior.values[f] === row.values[f]))) kept.push(row);
     }
-    if (anchor.kind === 'distinct mirrors the first-occurrence keep mask') {
-      const first = input.map(row => kept.find(prior => Object.keys(row.values).every(f => prior.values[f] === row.values[f])).id === row.id);
-      return input.filter((_, i) => first[input.length - i - 1]);
+    if (anchor.kind === 'distinct reverses surviving row order') {
+      return kept.reverse();
     }
     return kept;
   } });
@@ -63,11 +62,11 @@ export const distinctMutations = [
     after: 'PrepareDistinctTerms => {\n        if state.column == 1',
     eligible: oneDistinct,
     anchor: (c, o, registry) => anchorFor('distinct compares only first column', c, o, registry), preserves: semanticMismatch },
-  { name: 'distinct-mirrored-keep-mask', path: 'src/execution_relation/bounded_binding_rows.mbt',
-    before: 'indices[state.row]\n          } else {\n            state.row\n          }',
-    after: 'indices[state.row]\n          } else {\n            count - state.row - 1\n          }',
+  { name: 'distinct-reversed-survivors', path: 'src/execution_relation/bounded_binding_rows.mbt',
+    before: 'let rows = match finish_admitted_output(output) {',
+    after: 'if state.distinct && !state.dedupe {\n          let entries = output.buffer.rows\n          let mut left = 0\n          let mut right = entries.length() - 1\n          while left < right {\n            let row = entries[left]\n            entries[left] = entries[right]\n            entries[right] = row\n            left += 1\n            right -= 1\n          }\n        }\n        let rows = match finish_admitted_output(output) {',
     eligible: oneDistinct,
-    anchor: (c, o, registry) => anchorFor('distinct mirrors the first-occurrence keep mask', c, o, registry), preserves: semanticMismatch },
+    anchor: (c, o, registry) => anchorFor('distinct reverses surviving row order', c, o, registry), preserves: semanticMismatch },
   { ...sites[0], name: 'distinct-handoff-wrong-port', eligible: firstEdge,
     anchor: c => connectionAnchor(c),
     preserves: (c, o, anchor) => firstEdge(c) && connectionMismatch(c, o, anchor) },

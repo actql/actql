@@ -219,7 +219,7 @@
     }
   },
   {
-    "name": "distinct-mirrored-keep-mask",
+    "name": "distinct-reversed-survivors",
     "testCase": {
       "id": "distinct-boundaries",
       "rows": [
@@ -265,7 +265,7 @@
       ]
     },
     "anchor": {
-      "kind": "distinct mirrors the first-occurrence keep mask",
+      "kind": "distinct reverses surviving row order",
       "step": "distinct",
       "field": "extra",
       "rows": [

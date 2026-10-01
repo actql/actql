@@ -13,7 +13,7 @@ current source. The historical take comparison remains separate.
 | `distinct.mjs` | Exact whole-row variant; admitted total input occurrence order; schema/order preservation; independent complete-row equality including NULL; first occurrence; argument registration |
 | `distinct-acceptance.mjs` | Different complete rows with a shared first column; NULL-containing equal rows; interleaved duplicate order observable through take; empty input |
 | Registration entries | Actual `DistinctRows` kernel route, descriptor and mutation registration |
-| `distinct-mutations.mjs` | First-column-only comparison, mirrored first-occurrence keep mask, and checked handoff-port defects; source sites and same-visible-defect shrink anchors |
+| `distinct-mutations.mjs` | First-column-only comparison, reversed survivor order, and checked handoff-port defects; source sites and same-visible-defect shrink anchors |
 | `regressions.json` | Three fixed defect reproductions, including their exact anchored rows/edge; these are additional regression work, not ordinary pairwise combination fixtures |
 | `distinct.test.mjs` | Independent primitive contract/oracle checks and exact variant rejection |
 
@@ -48,7 +48,7 @@ runtime cells.
 
 Mutations preserve the same operation, affected input occurrences or checked
 producer/consumer edge. The partial-comparison defect must remove an anchored
-output class; the keep-mask defect must invert the same two distinguishable
+output class; the survivor-order defect must invert the same two distinguishable
 surviving payloads. Another mismatch with the same broad classification does
 not qualify. JS exploration/shrinking and finite mutated/restored target replay
 are recorded separately from fixed prior-regression replay.
