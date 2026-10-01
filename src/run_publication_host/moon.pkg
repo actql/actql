@@ -2,6 +2,10 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/execution_relation" @execution,
+  "actql/actql/infer_typing" @infer,
+  "actql/actql/model_execution" @model,
+  "actql/actql/bounded_execution" @bounded,
+  "actql/actql/value_admission" @admitted,
   "actql/actql/physical_strategy" @strategy,
   "actql/actql/execution_query" @query,
   "actql/actql/physical_resources" @resources,

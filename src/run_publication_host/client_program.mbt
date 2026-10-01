@@ -294,6 +294,203 @@ pub fn prepared_client_result_name(
 }
 
 ///|
+/// Execute the first checked INFER acquisition through the ordinary prepared
+/// Program owner. This fixture provider is a Host registration, not a model
+/// selector supplied by the Program; production adapters replace the provider
+/// while retaining this owner, request and capture contract.
+pub fn run_prepared_client_fixture_infer(
+  value : PreparedClientProgram,
+  max_rows : Int,
+  max_work : Int,
+  max_wire_bytes : Int64,
+) -> String? {
+  if max_rows < 0 || max_work < 0 || max_wire_bytes < 0L {
+    return None
+  }
+  let graph = value.graph
+  let mut found : ( @lower.BoundPrepared, @infer.CheckedInfer, @pipeline.Target )? = None
+  for task in 0..<@strategy.graph_task_count(graph) {
+    guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
+      continue
+    }
+    let prepared = @lower.bound_preparation(owner)
+    for index in 0..<@lower.node_count(prepared) {
+      guard @lower.node_at(prepared, index) is Some(node) else {
+        continue
+      }
+      guard @lower.payload(node) is @lower.Infer(infer) else {
+        continue
+      }
+      guard @lower.node_input_target(node, 0) is Some(target) else {
+        continue
+      }
+      found = Some((owner, infer, target))
+    }
+  }
+  guard found is Some((owner, infer, target)) else { return None }
+  let capture_limits : @execution.ValueLimits = {
+    max_nodes: max_rows * 16 + 32,
+    max_depth: 32,
+    max_text_bytes: max_rows * 4096 + 4096,
+    max_work: max_work,
+  }
+  let captured = match @execution.capture_values(
+    owner,
+    0,
+    max_rows~,
+    capture_limits,
+  ) {
+    Ok(value) => value
+    Err(_) => return None
+  }
+  let expression_limits : @lower.ExpressionLimits = {
+    max_nodes: max_work,
+    max_work,
+    max_depth: 32,
+    max_literal_nodes: max_work,
+    max_literal_text_bytes: max_work * 64,
+  }
+  let inputs = match @lower.prepare_infer_inputs(
+    infer,
+    @lower.parameter_bindings(owner),
+    expression_limits,
+  ) {
+    Ok(value) => value
+    Err(_) => return None
+  }
+  let bound = match @execution.bind_infer_captured_input(
+    inputs,
+    owner,
+    target,
+    captured,
+  ) {
+    Ok(value) => value
+    Err(_) => return None
+  }
+  let preparation = match @execution.start_infer_rows_preparation(
+    @bounded.control(),
+    bound,
+    {
+      max_items: max_rows,
+      max_work,
+      max_frames: max_work,
+      max_workspace_slots: max_work,
+      values: {
+        max_nodes: max_rows * 16 + 32,
+        max_depth: 32,
+        max_text_bytes: max_rows * 4096 + 4096,
+      },
+      logical: {
+        max_input_rows: max_rows.to_int64(),
+        max_value_bytes: max_wire_bytes,
+        max_live_value_bytes: max_wire_bytes,
+        max_work: max_work.to_int64(),
+      },
+    },
+  ) {
+    Ok(value) => value
+    Err(_) => return None
+  }
+  let mut rows : @execution.PreparedInferRows? = None
+  let mut preparing = true
+  let mut preparation_steps = 0
+  while preparing {
+    if preparation_steps >= max_work {
+      return None
+    }
+    preparation_steps += 1
+    match @execution.advance_infer_rows_preparation(preparation, 1) {
+      Ok(@execution.InferRowsContinue(_)) => ()
+      Ok(@execution.InferRowsComplete(value, ..)) => {
+        rows = Some(value)
+        preparing = false
+      }
+      _ => return None
+    }
+  }
+  let rows = rows.unwrap()
+  let task = @infer.model_task(infer)
+  let task_id = @environment.model_task_identity(task).0
+  let fixed = "sha256:" + @sha.hex(@utf8.encode("actql-model-request/0.1/" + task_id))
+  let provider = match @model.install_model_provider("models/fixture", request => {
+    if @environment.model_task_identity(request.task).0 != task_id {
+      return Err(@model.ProviderError)
+    }
+    let reason = @admitted.null_value()
+    let risk = @admitted.text_value("high", 100).unwrap()
+    let value = @admitted.object_value([("reason", reason), ("risk", risk)]).unwrap()
+    Ok({
+      value,
+      provider_model: "fixture-risk-model",
+      provider_request_id: "fixture-request-" + request.slot.to_string(),
+      input_tokens: 1L,
+      output_tokens: 2L,
+      observed_at: "2026-10-01T00:00:00.000Z",
+    })
+  }) {
+    Ok(value) => value
+    Err(_) => return None
+  }
+  let execution = match @model.start_model_execution(
+    rows,
+    provider,
+    fixed,
+    {
+      max_items: max_rows,
+      max_work,
+      max_request_bytes: max_wire_bytes,
+      max_response_bytes: max_wire_bytes,
+      value_limits: {
+        max_nodes: max_rows * 16 + 32,
+        max_depth: 32,
+        max_text_bytes: max_rows * 4096 + 4096,
+      },
+      ledger: {
+        planning_work: max_work,
+        attempts: max_rows + 1,
+        holdings: max_rows + 1,
+        transfer_bytes: max_wire_bytes * 2L,
+        retained_bytes: max_wire_bytes,
+        execution_bytes: max_wire_bytes,
+      },
+    },
+  ) {
+    Ok(value) => value
+    Err(_) => return None
+  }
+  let mut bundle : @model.ModelCaptureBundle? = None
+  let mut running = true
+  let mut execution_steps = 0
+  while running {
+    if execution_steps >= max_work {
+      ignore(@model.cleanup_model_execution(execution))
+      return None
+    }
+    execution_steps += 1
+    match @model.advance_model_execution(execution, 1) {
+      Ok(@model.Continue(_, _)) => ()
+      Ok(@model.Completed(value, _, _)) => {
+        bundle = Some(value)
+        running = false
+      }
+      _ => {
+        ignore(@model.cleanup_model_execution(execution))
+        return None
+      }
+    }
+  }
+  guard @model.cleanup_model_execution(execution) is Ok(true) else {
+    return None
+  }
+  @model.model_capture_bundle_json(
+    bundle.unwrap(),
+    max_wire_bytes.to_int(),
+    max_rows * 32 + 64,
+    32,
+  )
+}
+
+///|
 pub(all) enum ClientPublicationLimitScope {
   Rows
   Bytes

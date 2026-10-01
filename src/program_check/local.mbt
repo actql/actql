@@ -36,9 +36,6 @@ fn construct_local(
   @context.CoreContractInventory,
   Array[BuiltUnit],
 ) raise LocalConstructionFailure {
-  // ModelTask ownership is retained on CheckedProgram; the executable
-  // acquisition owner is admitted by the Host after this structural check.
-  ignore(model_tasks)
   if budget.work < 0 || budget.bytes < 0 || budget.nodes < 0 || budget.depth < 0 {
     raise InvalidLimits
   }
@@ -122,6 +119,7 @@ fn construct_local(
     limits,
     calendar~,
     capacity_inputs~,
+    model_tasks~,
     derived_capacity_limits=if capacity_inputs is Some(_) {
       Some({
         max_bytes: limits.identity.identity.max_hash_bytes,
