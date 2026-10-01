@@ -567,7 +567,12 @@ try {
         }});
     };
     openCoordinator();
-    const site = startSite([], {controlOrigin: ackLossProxy.origin});
+    // The Site reports a record only to an exact arrival or a query. Holding
+    // the executor after it starts makes a redelivered arrival observe Running
+    // and settle the recovery before execution ends, as on a slow runner; the
+    // terminal record is then reported only to the Coordinator's query.
+    const site = startSite(['--holder-pause-ms', '1000'],
+      {controlOrigin: ackLossProxy.origin});
     currentSite = site;
     const loseAcceptance = async (dispatch, previousEntries) => {
       loseDispatchCid = siteControl.identity(dispatch);
@@ -620,9 +625,12 @@ try {
     assert.ok(recovered.every(value => value.action === 'redelivered'));
     assert.equal(parallelSends, 2);
     beforeSend = undefined;
-    await waitFor(() => terminalAckLosses.length === 1, 'R2 terminal ACK loss after execution');
     await waitFor(async () => (await entries()).length === 1, 'R2 first executor entry');
+    // Whether a late arrival or this query carries the terminal record, the
+    // Coordinator durably admits it and exactly that first ACK is lost. The
+    // query resolves before the proxy sees the 200 it then drops.
     const firstTerminal = await settledQuery(first, 'R2 first terminal');
+    await waitFor(() => terminalAckLosses.length === 1, 'R2 terminal ACK loss after execution');
     const terminalState = observationStore.inspectState(first, siteControl);
     observationReceiver.receiveObservation({body: firstAccepted, binding: {siteKey, siteGeneration: 1}});
     assert.deepEqual(observationStore.inspectState(first, siteControl), terminalState);
