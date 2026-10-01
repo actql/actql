@@ -70,10 +70,15 @@ joined fields must be unique. `USING` exposes one coalesced key for FULL JOIN
 and does not invent an arbitrary representative row.
 
 WITH may precede either a SELECT query or a FROM-starting Pipe query. A CTE
-body and a named FROM/JOIN subquery use the same relational body: a SELECT
-core with optional ORDER BY/LIMIT and a pure Pipe tail, or a FROM-starting Pipe
-query. They use the same expression and column-scope rules as the corresponding
-query head. Each body ends at its
+body, named FROM/JOIN subquery and parenthesized query operand use the same
+relational query composition: SELECT or FROM-starting Pipe, set expressions,
+optional ORDER BY/LIMIT, and a pure Pipe tail. Parentheses retain the inner
+query's scope and ORDER BY/LIMIT placement. A Pipe operator following a set
+consumes the combined output, not its left operand; input range variables and
+non-output columns of the operands are not visible there. Set operands may
+refer to previously bound CTE Results without re-expanding their producer.
+They use the same expression and column-scope rules as the corresponding query
+head. Each body ends at its
 own closing parenthesis; a statement terminator is allowed only after the
 complete query. INFER is excluded from CTE bodies. Recursive declarations,
 forward references and references to a displaced range variable remain

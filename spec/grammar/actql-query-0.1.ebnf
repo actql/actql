@@ -1,12 +1,14 @@
 (* GoogleSQL-derived ActQL query surface. Semantic restrictions are in
    docs/spec/query-text.md. This grammar does not define GoogleSQL as a whole. *)
 query         = [ with_clause ], ( sql_query | pipe_query ), [ ";" ] ;
-sql_query     = select_core, { set_part },
+sql_query     = sql_operand, { set_part },
                 [ order_clause ], [ limit_clause ], { "|>", pipe_item } ;
 with_clause   = "WITH", cte, { ",", cte } ;
 cte           = identifier, "AS", "(", relational_body, ")" ;
-relational_body = select_core, [ order_clause ], [ limit_clause ], { "|>", cte_pipe_item }
-                | cte_pipe ;
+relational_body = [ with_clause ], ( relational_sql | cte_pipe ) ;
+relational_sql = sql_operand, { set_part }, [ order_clause ], [ limit_clause ],
+                 { "|>", cte_pipe_item } ;
+sql_operand   = select_core | "(", relational_body, ")" ;
 (* CTE bodies use the same relational operators except top-level INFER. *)
 cte_pipe      = "FROM", source, { "|>", cte_pipe_item } ;
 cte_pipe_item = relation_pipe_item | nearest_operator ;
@@ -54,7 +56,7 @@ sort_item     = expression, [ "ASC" | "DESC" ],
 limit_clause  = "LIMIT", integer, [ "OFFSET", integer ] ;
 set_part      = ( "UNION", ( "ALL" | "DISTINCT" )
               | "INTERSECT", "DISTINCT" | "EXCEPT", "DISTINCT" ),
-                [ "BY", "NAME" ], select_core ;
+                [ "BY", "NAME" ], sql_operand ;
 pipe_item     = relation_pipe_item | infer_operator | nearest_operator ;
 relation_pipe_item = where_clause | "SELECT", [ "DISTINCT" ], select_list
               | "EXTEND", select_list
@@ -80,7 +82,7 @@ keep_clause   = "KEEP", "(", keep_item, { ",", keep_item }, ")" ;
 keep_item     = path, [ "AS", identifier ] | "*" | path, ".", "*" ;
 pipe_set_part = ( "UNION", ( "ALL" | "DISTINCT" )
               | "INTERSECT", "DISTINCT" | "EXCEPT", "DISTINCT" ),
-                [ "BY", "NAME" ], "(", select_core, ")" ;
+                [ "BY", "NAME" ], "(", relational_body, ")" ;
 assignment    = identifier, "=", expression ;
 rename        = identifier, "AS", identifier ;
 path          = identifier, { ".", identifier } ;

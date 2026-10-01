@@ -92,3 +92,115 @@ test "derived captured Pipe binds one retained source producer" {
     }
   }
 }
+
+///|
+test "query-expression composition uses the existing checked set and CTE owners" {
+  for
+    text in [
+      "(SELECT a FROM left_rows)", "((SELECT a FROM left_rows)) |> WHERE a > 0 |> SELECT a",
+      "WITH chosen AS (SELECT a FROM left_rows UNION ALL SELECT c FROM right_rows) SELECT a FROM chosen",
+      "SELECT a FROM (SELECT a FROM left_rows UNION ALL SELECT c FROM right_rows) AS chosen",
+      "(SELECT a FROM left_rows UNION ALL SELECT c FROM right_rows) |> WHERE a > 0 |> SELECT a",
+      "SELECT a FROM left_rows UNION ALL (SELECT c FROM right_rows ORDER BY c LIMIT 1)",
+      "SELECT a FROM left_rows UNION ALL (SELECT c FROM right_rows INTERSECT DISTINCT SELECT a FROM left_rows)",
+      "FROM left_rows |> SELECT a |> UNION ALL (FROM right_rows |> SELECT c) |> WHERE a > 0 |> SELECT a",
+      "WITH base AS (SELECT a FROM left_rows) SELECT a FROM base UNION ALL SELECT a FROM base",
+      "WITH base AS (SELECT a FROM left_rows), combined AS (SELECT a FROM base UNION ALL SELECT a FROM base) SELECT a FROM combined",
+      "WITH base AS (SELECT a FROM left_rows) SELECT a FROM base UNION ALL SELECT c FROM right_rows",
+    ] {
+    let program = match
+      compile(
+        @query.parse_query(text, syntax_limits()).unwrap(),
+        set_context(),
+        construction_limits(),
+      ) {
+      Ok(program) => program
+      Err(_) => fail(text)
+    }
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      NeedsInputs(_) => fail(text)
+      Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+    }
+  }
+}
+
+///|
+test "captured set CTE preserves differing filters after one source capture" {
+  let context = { ..fixture_context(), captured_stage: Some("capture"), }
+  for
+    text in [
+      "WITH chosen AS (SELECT id FROM orders WHERE amount > 10 UNION ALL SELECT id FROM orders WHERE amount < 5) SELECT id FROM chosen",
+      "(SELECT id FROM orders WHERE amount > 10 UNION ALL SELECT id FROM orders WHERE amount < 5) |> SELECT id",
+      "WITH large AS (SELECT id FROM orders WHERE amount > 10), small AS (SELECT id FROM orders WHERE amount < 5) SELECT id FROM large UNION ALL SELECT id FROM small",
+    ] {
+    let program = match
+      compile(
+        @query.parse_query(text, syntax_limits()).unwrap(),
+        context,
+        construction_limits(),
+      ) {
+      Ok(program) => program
+      Err(_) => fail(text)
+    }
+    let wire = semantic(program)
+    // Independent obligations: broad capture, both retained branch filters,
+    // and exactly one external declaration; no predicate from the first arm
+    // may remove rows needed by the other arm before capture.
+    assert_true(wire.contains("\"filter\":{\"literal\":true}"))
+    assert_true(
+      wire.contains("\"gt\":[{\"field\":\"amount\"},{\"literal\":10}]"),
+    )
+    assert_true(
+      wire.contains("\"lt\":[{\"field\":\"amount\"},{\"literal\":5}]"),
+    )
+    assert_eq(wire.split("\"carrier\":\"relation\"").length(), 2)
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      _ => fail(text)
+    }
+  }
+}
+
+///|
+test "set composition does not leak source scopes or accept forward dependencies" {
+  for
+    text in [
+      "(SELECT a FROM left_rows) |> SELECT left_rows.a", "SELECT a FROM left_rows UNION ALL SELECT c FROM right_rows |> SELECT b",
+      "WITH chosen AS (SELECT a FROM left_rows UNION ALL SELECT a FROM later), later AS (SELECT a FROM left_rows) SELECT a FROM chosen",
+      "WITH chosen AS (SELECT a FROM left_rows UNION ALL SELECT a FROM chosen) SELECT a FROM chosen",
+    ] {
+    assert_true(
+      compile(
+        @query.parse_query(text, syntax_limits()).unwrap(),
+        set_context(),
+        construction_limits(),
+      )
+      is Err(_),
+      msg=text,
+    )
+  }
+}
+
+///|
+test "captured set CTE matches an independently authored Program" {
+  let expected = @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"capture","inputs":{"orders":{"carrier":"relation","schema":{"id":{"type":"string","nullable":false},"customer_id":{"type":"string","nullable":false},"status":{"type":"string","nullable":false},"amount":{"type":"number","nullable":false}},"primary_key":["id"]}},"steps":[{"from":"orders","filter":{"literal":true}},{"select":["id","customer_id","status","amount"],"as":"aql_capture_0"}],"results":{"source":{"from":"aql_capture_0","fields":["id","customer_id","status","amount"]}}},{"id":"aql_cte_0_aql_set_term_0","inputs":{"orders":{"result":{"stage":"capture","result":"source"}}},"steps":[{"from":"orders","filter":{"gt":[{"field":"amount"},{"literal":10}]}},{"select":["id"],"as":"aql_set_output_0"}],"results":{"aql_cte_0_aql_set_term_0":{"from":"aql_set_output_0","fields":["id"]}}},{"id":"aql_cte_0_aql_set_term_1","inputs":{"orders":{"result":{"stage":"capture","result":"source"}}},"steps":[{"from":"orders","filter":{"lt":[{"field":"amount"},{"literal":5}]}},{"select":["id"],"as":"aql_set_output_1"}],"results":{"aql_cte_0_aql_set_term_1":{"from":"aql_set_output_1","fields":["id"]}}},{"id":"aql_cte_0_aql_set_merge_0","inputs":{"l":{"result":{"stage":"aql_cte_0_aql_set_term_0","result":"aql_cte_0_aql_set_term_0"}},"r":{"result":{"stage":"aql_cte_0_aql_set_term_1","result":"aql_cte_0_aql_set_term_1"}}},"steps":[{"from":"l","append":{"with":"r"},"as":"aql_set_combined_0"}],"results":{"aql_cte_0_aql_set_merge_0":{"from":"aql_set_combined_0","fields":["id"]}}},{"id":"aql_cte_0","inputs":{"set_rows":{"result":{"stage":"aql_cte_0_aql_set_merge_0","result":"aql_cte_0_aql_set_merge_0"}}},"steps":[{"from":"set_rows","select":["id"],"as":"aql_set_final_0"}],"results":{"rows":{"from":"aql_set_final_0","fields":["id"]}}},{"id":"main","inputs":{"chosen":{"result":{"stage":"aql_cte_0","result":"rows"}}},"steps":[{"from":"chosen","select":["id"],"as":"aql_gen_0"}],"results":{"rows":{"from":"aql_gen_0","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+  let query = @query.parse_query(
+    "WITH chosen AS (SELECT id FROM orders WHERE amount > 10 UNION ALL SELECT id FROM orders WHERE amount < 5) SELECT id FROM chosen",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(
+    query,
+    { ..fixture_context(), captured_stage: Some("capture"), },
+    construction_limits(),
+  ).unwrap()
+  assert_eq(semantic(program), semantic(expected))
+}

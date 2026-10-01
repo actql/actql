@@ -59,3 +59,35 @@ test "nested relational query stops at its own boundary" {
     assert_true(parse_query(text, query_limits()) is Err(_), msg=text)
   }
 }
+
+///|
+test "parenthesized and set query bodies share bounded source classification" {
+  assert_true(
+    starts_query("(/* head */ SELECT a FROM rows)", query_limits().lexical).unwrap(),
+  )
+  assert_true(
+    starts_sql("((SELECT a FROM rows))", query_limits().lexical).unwrap(),
+  )
+  assert_false(
+    starts_sql("(FROM rows |> SELECT a)", query_limits().lexical).unwrap(),
+  )
+  for
+    text in [
+      "(SELECT a FROM rows)", "WITH chosen AS (SELECT a FROM rows UNION ALL SELECT a FROM rows) SELECT a FROM chosen",
+      "SELECT a FROM rows UNION ALL (FROM rows |> SELECT a)", "FROM rows |> UNION ALL (SELECT a FROM rows UNION ALL SELECT a FROM rows) |> WHERE a > 0",
+    ] {
+    assert_true(parse_query(text, query_limits()) is Ok(_), msg=text)
+  }
+  assert_true(
+    parse_query("(SELECT a FROM rows)", { ..query_limits(), max_cte_count: 0, })
+    is Err(_),
+  )
+  let text = "(".repeat(33) + "SELECT a FROM rows" + ")".repeat(33)
+  assert_true(parse_query(text, query_limits()) is Err(_))
+  for
+    text in [
+      "(SELECT a FROM rows;)", "(FROM rows |> INFER task ITEM KEY (a) INPUT (n = a) AS outcome)",
+    ] {
+    assert_true(parse_query(text, query_limits()) is Err(_), msg=text)
+  }
+}

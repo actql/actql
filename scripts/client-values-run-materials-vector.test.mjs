@@ -119,8 +119,13 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('ecf842ba6846f2dbac5cb8fa42b5b708c14e0ec170fc14d05043a351c0300582'),
     cid(aoaContract)).run.run_definition_cid,
     pin('b8f4539c6741e24dd20bdd1ce77f5dc9d0c0466684c6e151e4441bccaaaaca9c'));
-  assert.equal(current.run.run_definition_cid,
+  // Preserve the previous derived-query vector; this change only binds the
+  // expanded query grammar/profile, not a new Values or AoA numeric meaning.
+  assert.equal(vector(pin('3c8ac36faac086564fc41c468477c5ea3bfb2aedd1d86b4996220d43ad337356'),
+    cid(aoaContract)).run.run_definition_cid,
     pin('dbbc63ad3aad5cc0f47ccad3112138b9a3e3056d4d8d5e83d7a2781f77cd560d'));
+  assert.equal(current.run.run_definition_cid,
+    pin('e50e7c8bd772eed517264aa3d946da1696e98328b22879f32a5980172e2b5c7c'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
 });

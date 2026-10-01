@@ -222,7 +222,8 @@ pub fn starts_query(
       Ok(
         keyword(first, "SELECT") ||
         keyword(first, "WITH") ||
-        keyword(first, "FROM"),
+        keyword(first, "FROM") ||
+        first.value == Symbol(40),
       )
     }
   }
@@ -240,7 +241,21 @@ pub fn starts_sql(
     Err(issue) => Err(issue)
     Ok(tokens) => {
       let first = token_at(tokens, 0).unwrap()
-      Ok(keyword(first, "SELECT") || keyword(first, "WITH"))
+      if first.value != Symbol(40) {
+        return Ok(keyword(first, "SELECT") || keyword(first, "WITH"))
+      }
+      // Inspect admitted tokens, not source substrings: parentheses and
+      // comments do not change whether the head is SQL or FROM-headed Pipe.
+      let tokens = match tokenize(text, limits, source_path~) {
+        Ok(tokens) => tokens
+        Err(issue) => return Err(issue)
+      }
+      let mut index = 0
+      while token_at(tokens, index).unwrap().value == Symbol(40) {
+        index += 1
+      }
+      let head = token_at(tokens, index).unwrap()
+      Ok(keyword(head, "SELECT") || keyword(head, "WITH"))
     }
   }
 }
@@ -509,10 +524,20 @@ fn QueryParser::query_source(
     let (relation, source_alias) = self.source_name()
     return (relation, source_alias, [])
   }
-  self.node()
-  if self.source_depth >= 32 {
-    raise QueryAbort("Subquery depth limit", self.peek().start)
+  let bound = self.bind_query(self.parenthesized())
+  let source_alias = match self.optional_source_alias() {
+    Some(value) => value
+    None => raise QueryAbort("Subquery requires an alias", self.peek().start)
   }
+  (bound.relation, Some(source_alias), bound.ctes)
+}
+
+///|
+fn QueryParser::bind_query(
+  self : QueryParser,
+  inner : Query,
+) -> Query raise QueryAbort {
+  self.node()
   let mut serial = self.synthetic_sources
   let mut generated_name = "aql_query_source_" + serial.to_string()
   while self.source.tokens.any(token => {
@@ -527,23 +552,50 @@ fn QueryParser::query_source(
     generated_name = "aql_query_source_" + serial.to_string()
   }
   self.synthetic_sources = serial + 1
-  self.source_depth += 1
-  ignore(self.advance())
-  let inner = self.relational_body()
-  self.source_depth -= 1
-  if self.advance().value != Symbol(41) {
-    raise QueryAbort("Expected subquery closing parenthesis", self.peek().start)
-  }
-  let source_alias = match self.optional_source_alias() {
-    Some(value) => value
-    None => raise QueryAbort("Subquery requires an alias", self.peek().start)
-  }
   let generated : NamePart = { value: generated_name, quoted: false, }
   let ctes = inner.ctes + [{ name: generated, query: { ..inner, ctes: [], }, }]
   if ctes.length() > self.limits.max_cte_count {
     raise QueryAbort("CTE count limit", self.peek().start)
   }
-  ([generated], Some(source_alias), ctes)
+  {
+    source: self.source,
+    ctes,
+    relation: [generated],
+    source_alias: None,
+    graph: None,
+    joins: [],
+    operations: [],
+    sets: [],
+    final_operations: [],
+    work: self.work,
+  }
+}
+
+///|
+fn QueryParser::parenthesized(self : QueryParser) -> Query raise QueryAbort {
+  if self.source_depth >= 32 {
+    raise QueryAbort("Subquery depth limit", self.peek().start)
+  }
+  self.node()
+  self.source_depth += 1
+  if self.advance().value != Symbol(40) {
+    raise QueryAbort("Expected query opening parenthesis", self.peek().start)
+  }
+  let inner = self.query(cte_body=true)
+  self.source_depth -= 1
+  if self.advance().value != Symbol(41) {
+    raise QueryAbort("Expected query closing parenthesis", self.peek().start)
+  }
+  inner
+}
+
+///|
+fn QueryParser::sql_operand(self : QueryParser) -> Query raise QueryAbort {
+  if self.peek().value == Symbol(40) {
+    self.bind_query(self.parenthesized())
+  } else {
+    self.sql_term()
+  }
 }
 
 ///|
@@ -1017,7 +1069,10 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
 }
 
 ///|
-fn QueryParser::query(self : QueryParser) -> Query raise QueryAbort {
+fn QueryParser::query(
+  self : QueryParser,
+  cte_body? : Bool = false,
+) -> Query raise QueryAbort {
   let ctes : Array[CtePart] = []
   if self.has("WITH") {
     self.keyword("WITH")
@@ -1034,13 +1089,7 @@ fn QueryParser::query(self : QueryParser) -> Query raise QueryAbort {
         raise QueryAbort("Duplicate CTE name", self.peek().start)
       }
       self.keyword("AS")
-      if self.advance().value != Symbol(40) {
-        raise QueryAbort("Expected CTE opening parenthesis", self.peek().start)
-      }
-      let body = self.relational_body()
-      if self.advance().value != Symbol(41) {
-        raise QueryAbort("Expected CTE closing parenthesis", self.peek().start)
-      }
+      let body = self.parenthesized()
       for nested in body.ctes {
         if ctes.length() >= self.limits.max_cte_count {
           raise QueryAbort("CTE count limit", self.peek().start)
@@ -1057,8 +1106,12 @@ fn QueryParser::query(self : QueryParser) -> Query raise QueryAbort {
       ignore(self.advance())
     }
   }
-  let term = if self.has("SELECT") { self.sql() } else { self.pipe() }
-  let term = if self.peek().value == Pipe { self.pipe_tail(term) } else { term }
+  let term = if self.has("FROM") { self.pipe(cte_body~) } else { self.sql() }
+  let term = if self.peek().value == Pipe {
+    self.pipe_tail(term, cte_body~)
+  } else {
+    term
+  }
   let all_ctes = ctes + term.ctes
   if all_ctes.length() > self.limits.max_cte_count {
     raise QueryAbort("CTE count limit", self.peek().start)
@@ -1067,36 +1120,9 @@ fn QueryParser::query(self : QueryParser) -> Query raise QueryAbort {
 }
 
 ///|
-// A parenthesized relational producer has the same heads and pure Pipe tail
-// whether it is a CTE or a derived source. Its closing delimiter belongs to
-// the caller. Neither context admits INFER or a Graph query head through this
-// relational path; those operations retain their own placement contracts.
-fn QueryParser::relational_body(self : QueryParser) -> Query raise QueryAbort {
-  let term = if self.has("FROM") {
-    self.pipe(cte_body=true)
-  } else {
-    let term = self.sql_term()
-    let tail : Array[QueryOperation] = []
-    if self.has("ORDER") {
-      self.keyword("ORDER")
-      self.keyword("BY")
-      tail.push(Order(self.order()))
-    }
-    if self.has("LIMIT") {
-      tail.push(self.limit())
-    }
-    { ..term, operations: term.operations + tail, }
-  }
-  if self.peek().value == Pipe {
-    self.pipe_tail(term, cte_body=true)
-  } else {
-    term
-  }
-}
-
-///|
 fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
-  let term = self.sql_term()
+  let term = self.sql_operand()
+  let ctes = term.ctes.copy()
   let sets : Array[SetPart] = []
   let mut set_spelling : (String, String, Bool)? = None
   while self.has("UNION") || self.has("INTERSECT") || self.has("EXCEPT") {
@@ -1140,7 +1166,11 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
         }
       None => set_spelling = Some((kind, duplicates, by_name))
     }
-    sets.push({ kind, duplicates, by_name, right: self.sql_term(), })
+    let right = self.sql_operand()
+    for cte in right.ctes {
+      ctes.push(cte)
+    }
+    sets.push({ kind, duplicates, by_name, right: { ..right, ctes: [], }, })
   }
   let tail : Array[QueryOperation] = []
   if self.has("ORDER") {
@@ -1155,7 +1185,7 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
   if sets.is_empty() {
     { ..term, operations: term.operations + tail, work: self.work, }
   } else {
-    { ..term, sets, final_operations: tail, work: self.work, }
+    { ..term, ctes, sets, final_operations: tail, work: self.work, }
   }
 }
 
@@ -1211,6 +1241,40 @@ fn QueryParser::pipe_tail(
   let sets = input.sets.copy()
   let final_operations = input.final_operations.copy()
   while self.peek().value == Pipe {
+    // Once a set is complete, a following relational operator consumes its
+    // output scope. Bind that producer instead of pushing the operator into
+    // the left operand or repeating either operand's computation.
+    let next = token_at(self.source, self.index + 1).unwrap()
+    if !sets.is_empty() &&
+      (
+        (
+          !final_operations.is_empty() &&
+          (
+            keyword(next, "UNION") ||
+            keyword(next, "INTERSECT") ||
+            keyword(next, "EXCEPT")
+          )
+        ) ||
+        !(keyword(next, "ORDER") ||
+        keyword(next, "LIMIT") ||
+        keyword(next, "UNION") ||
+        keyword(next, "INTERSECT") ||
+        keyword(next, "EXCEPT"))
+      ) {
+      let producer : Query = {
+        source: self.source,
+        ctes,
+        relation,
+        source_alias,
+        graph,
+        joins,
+        operations,
+        sets,
+        final_operations,
+        work: self.work,
+      }
+      return self.pipe_tail(self.bind_query(producer), cte_body~)
+    }
     ignore(self.advance())
     self.node()
     if self.has("MATCH") {
@@ -1274,19 +1338,27 @@ fn QueryParser::pipe_tail(
           self.peek().start,
         )
       }
-      let right = self.sql_term()
+      if self.source_depth >= 32 {
+        raise QueryAbort("Subquery depth limit", self.peek().start)
+      }
+      self.source_depth += 1
+      let parsed = self.query(cte_body=true)
+      self.source_depth -= 1
+      let right = if !parsed.sets.is_empty() {
+        self.bind_query(parsed)
+      } else {
+        parsed
+      }
+      for cte in right.ctes {
+        ctes.push(cte)
+      }
       if self.advance().value != Symbol(41) {
         raise QueryAbort(
           "Expected Pipe set closing parenthesis",
           self.peek().start,
         )
       }
-      sets.push({ kind, duplicates, by_name, right, })
-    } else if !sets.is_empty() && !(self.has("ORDER") || self.has("LIMIT")) {
-      raise QueryAbort(
-        "Unsupported operation after Pipe set",
-        self.peek().start,
-      )
+      sets.push({ kind, duplicates, by_name, right: { ..right, ctes: [], }, })
     } else if self.starts_join() {
       if !sets.is_empty() ||
         (!joins.is_empty() && !operations.is_empty()) ||
