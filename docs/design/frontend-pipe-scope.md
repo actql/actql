@@ -25,7 +25,7 @@ particularly SET, DROP, RENAME and AS. They are not an attempt to retain an
 incompatible legacy behavior. The normative owner is
 [Query text profile](../spec/query-text.md#scope-and-lowering).
 
-## Adopted KEEP target, not current execution support
+## Adopted KEEP target and source lowering
 
 INFER and NEAREST with KEEP establish a new output scope. Only explicit KEEP
 columns and the result STRUCT are visible; prior input aliases do not provide
@@ -49,15 +49,18 @@ known-field typed NULL; unknown fields remain errors. Outcome refinement and
 correlation must use existing common evidence, without a frontend-only success
 proof or a changed infer wire shape.
 
-Neither operator's new surface is implemented by the column-scope correction.
-An attempted operator has an explicit original-source diagnostic before Run
-acceptance or source I/O. This temporary lack of support is not a permanent
-language prohibition. The adoption profile and corrected FX-03 requirement
-record this target without claiming an executed KEEP case.
+INFER's source parser and lowering now construct ordinary infer, one-to-one
+join-back and object projections. This does not implement its shared checker,
+ModelTask acquisition or evidence owner. Normal Host preparation continues to
+reject execution before Run acceptance or source I/O. NEAREST KEEP retains
+its explicit original-source unsupported diagnostic. These temporary gaps are
+not permanent language prohibitions. The adoption profile and corrected FX-03
+requirement distinguish source lowering from executed KEEP cases.
 
 ## Separate follow-on units
 
-KEEP parsing/lowering and public execution are a subsequent completion unit.
+NEAREST KEEP and shared INFER execution remain subsequent completion units;
+INFER source parsing/lowering is implemented separately from runtime acceptance.
 Removing the older public STEP/OP surface is also separate: first inventory
 public routing, SDK/CLI, documentation and distribution tests, then specify
 their migration and removal. The column-scope change removes no input format.

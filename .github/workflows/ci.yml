@@ -111,14 +111,24 @@ jobs:
         run: node proofs/bounded-session/run.mjs all
       - name: Detect representative production mutations with replacement tests
         run: node proofs/bounded-session/mutations.mjs
-      - name: Restore and verify final production artifacts after mutations
-        run: node proofs/bounded-session/run.mjs js
+      - name: Reject invalid serial chain derivations and weakened claims
+        run: node --test proofs/relation-chain/evidence.test.mjs proofs/relation-chain/proof-check.test.mjs
+      - name: Detect serial chain accounting and ownership mutations
+        run: node proofs/relation-chain/mutations.mjs
+      # Keep both evidence sets fresh: either mutation batch can invalidate
+      # another target's incremental artifacts even after source restoration.
+      - name: Restore and verify final common-mechanism artifacts on all targets
+        run: node proofs/bounded-session/run.mjs all
+      - name: Produce final serial chain evidence on all targets
+        run: node proofs/relation-chain/run.mjs all
       - name: Retain exact-source evidence and mutation results
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: bounded-session-evidence-${{ github.sha }}
-          path: .artifacts/bounded-session/
+          path: |
+            .artifacts/bounded-session/
+            .artifacts/relation-chain/
           include-hidden-files: true
           if-no-files-found: error
   # Host, authorization, Checkpoint and retained-state owners.
@@ -151,6 +161,8 @@ jobs:
         run: npm run check:process-capacity
       - name: Test durable Remote Site dispatch admission
         run: npm run check:remote-site-runtime
+      - name: Test non-destructive SQLite format inspection
+        run: node --test adapters/host-common/sqlite-format-inspection.test.mjs
       - name: Test durable Checkpoint journal and resumed dispatch admission
         run: npm run check:checkpoint-runtime
       - name: Test native retained task file ownership

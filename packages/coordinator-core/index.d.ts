@@ -228,6 +228,9 @@ export function admitResponseJson(body: string, request: DispatchRequest,
 export function prepareResponseObservation(record: IntentRecord,
   response: DispatchResponse): Transition;
 export function transitionExpectedRevision(transition: Transition): number;
+/** Exact admitted replay: responseDurableJson returns the unchanged body.
+ * Reconcile/persist that body before ACK; do not increment its revision. */
+export function transitionIsReplay(transition: Transition): boolean;
 export function transitionDurableJson(durable: DurableRecord,
   transition: Transition): string;
 export function responseDurableJson(durable: DurableRecord,

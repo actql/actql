@@ -198,6 +198,18 @@ pub fn append(
 }
 
 ///|
+/// Resolve a column/range prefix through the caller's scope, then use ordinary
+/// property expressions. The common checker owns closed-object field typing.
+pub fn append_with_properties(
+  ast : @query.Expression,
+  resolve : (Array[@query.NamePart]) -> String?,
+  builder : @builder.Builder,
+  max_work : Int,
+) -> Result[@builder.Node, Diagnostic] {
+  append_resolved(ast, resolve, (_, _) => None, builder, max_work, true)
+}
+
+///|
 /// Resolve a closed frontend macro before its element reference is lowered.
 /// Other callers retain the ordinary scalar-function vocabulary above.
 pub fn append_with_macros(
@@ -206,6 +218,18 @@ pub fn append_with_macros(
   resolve_macro : (Array[@query.NamePart], Array[@query.NamePart]) -> MacroValue?,
   builder : @builder.Builder,
   max_work : Int,
+) -> Result[@builder.Node, Diagnostic] {
+  append_resolved(ast, resolve, resolve_macro, builder, max_work, false)
+}
+
+///|
+fn append_resolved(
+  ast : @query.Expression,
+  resolve : (Array[@query.NamePart]) -> String?,
+  resolve_macro : (Array[@query.NamePart], Array[@query.NamePart]) -> MacroValue?,
+  builder : @builder.Builder,
+  max_work : Int,
+  resolve_properties : Bool,
 ) -> Result[@builder.Node, Diagnostic] {
   if max_work < 0 {
     return Err({ issue: InvalidLimits, origin: None, })
@@ -270,11 +294,35 @@ pub fn append_with_macros(
               lowering.form("literal", raw)
             }
             None => {
-              let name = match resolve(parts) {
+              let mut length = parts.length()
+              let mut name = resolve(parts)
+              while name is None && resolve_properties && length > 1 {
+                if work >= max_work {
+                  raise Abort(WorkLimit)
+                }
+                work += 1
+                length -= 1
+                name = resolve(parts[:length].to_owned())
+              }
+              let name = match name {
                 Some(name) => name
                 None => raise Abort(UnknownReference)
               }
-              lowering.form("field", lowering.add(String(name)))
+              let mut value = lowering.form("field", lowering.add(String(name)))
+              for part in parts[length:] {
+                if work >= max_work {
+                  raise Abort(WorkLimit)
+                }
+                work += 1
+                value = lowering.form(
+                  "property",
+                  lowering.object([
+                    ("value", value),
+                    ("name", lowering.add(String(part.value))),
+                  ]),
+                )
+              }
+              value
             }
           }
         ParameterReference(name) =>

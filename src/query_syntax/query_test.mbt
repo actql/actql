@@ -88,11 +88,10 @@ test "query source clauses reject partial and unsupported input" {
 }
 
 ///|
-test "adopted KEEP operators are explicitly unimplemented with original spans" {
+test "NEAREST KEEP remains explicitly unimplemented with original spans" {
   for
     source in [
-      "FROM records |> INFER score KEEP (id) AS assessment", "FROM records |> NEAREST records KEEP (id) AS neighbor",
-      "FROM records |> KEEP (id)",
+      "FROM records |> NEAREST records KEEP (id) AS neighbor", "FROM records |> KEEP (id)",
     ] {
     match parse_query(source, query_limits(), source_path="scope.pipe") {
       Err({ issue: Syntax(message), span: Some(span), }) => {

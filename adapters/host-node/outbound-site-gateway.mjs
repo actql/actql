@@ -69,6 +69,7 @@ export async function startHttpsOutboundSiteGateway({
   siteAuthorities = new Map(),
   bearerAuthorities = new Map(),
   control,
+  receiveObservation,
   maxRequestBytes = 65_536,
   maxPendingDispatches = 1024,
   idlePollMilliseconds = 1000,
@@ -92,6 +93,7 @@ export async function startHttpsOutboundSiteGateway({
       typeof control.outputExpectedIdentity !== 'function' ||
       typeof control.admitPollNotSeen !== 'function' ||
       typeof control.admitResponseJson !== 'function' ||
+      (receiveObservation !== undefined && typeof receiveObservation !== 'function') ||
       !Number.isSafeInteger(maxRequestBytes) || maxRequestBytes <= 0 ||
       !Number.isSafeInteger(maxPendingDispatches) ||
       maxPendingDispatches <= 0 ||
@@ -316,6 +318,7 @@ export async function startHttpsOutboundSiteGateway({
     rejectUnauthorized: bearers.size === 0,
     minVersion: 'TLSv1.3',
   }, async (request, response) => {
+    let observationAdmissionAttempted = false;
     try {
       const peer = request.socket.getPeerCertificate();
       const authorization = request.headers.authorization;
@@ -437,11 +440,18 @@ export async function startHttpsOutboundSiteGateway({
         try {
           statusReply = entry.operation === 'query' ||
             entry.operation === 'release' || entry.acceptanceObserved;
-          admitted = control.admitResponseJson(
-            body,
-            entry.dispatch,
-            statusReply,
-          );
+          try {
+            admitted = control.admitResponseJson(body, entry.dispatch, statusReply);
+          } catch (error) {
+            // A native Site reports the same dispatch again after acceptance,
+            // including its later execution state. Acceptance does not change
+            // that reply's typed wire kind into a query/status response.
+            if (entry.operation !== 'dispatch' || !entry.acceptanceObserved) {
+              throw error;
+            }
+            admitted = control.admitResponseJson(body, entry.dispatch, false);
+            statusReply = false;
+          }
           matched = entry;
           break;
         } catch {}
@@ -468,6 +478,14 @@ export async function startHttpsOutboundSiteGateway({
         }
       }
       if (matched === undefined) {
+        if (receiveObservation !== undefined) {
+          // No pending waiter is needed for a durably admitted replay or an
+          // allowed evidence supplement. The existing Coordinator owns both.
+          observationAdmissionAttempted = true;
+          await receiveObservation(Object.freeze({body, binding}));
+          replyJson(response, 200, {accepted: true});
+          return;
+        }
         replyJson(response, 404, {error: 'not_found'});
         return;
       }
@@ -477,6 +495,12 @@ export async function startHttpsOutboundSiteGateway({
         admitted,
         {statusReply},
       );
+      if (receiveObservation !== undefined) {
+        // Commit admission and replay history before resolving a waiter or
+        // sending ACK. A failed/unknown commit leaves the waiter pending.
+        observationAdmissionAttempted = true;
+        await receiveObservation(Object.freeze({body, binding}));
+      }
       if (matched.operation === 'dispatch' && !statusReply &&
           projected.state.every(value => value === 0)) {
         matched.acceptanceObserved = true;
@@ -487,7 +511,16 @@ export async function startHttpsOutboundSiteGateway({
       replyJson(response, 200, {accepted: true});
     } catch (error) {
       if (!response.headersSent) {
-        replyJson(response, 400, {error: 'invalid_request'});
+        if (error?.code === 'RemoteDispatchIntentMissing') {
+          replyJson(response, 404, {error: 'not_found'});
+        } else if (error?.code === 'RemoteCoordinatorObservationRejected' ||
+            error?.code === 'RemoteCoordinatorObservationScopeMismatch') {
+          replyJson(response, 409, {error: error.code, issue: error.issueCode});
+        } else if (observationAdmissionAttempted) {
+          replyJson(response, 503, {error: 'OutboundObservationRetry'});
+        } else {
+          replyJson(response, 400, {error: 'invalid_request'});
+        }
       } else {
         response.destroy(error);
       }

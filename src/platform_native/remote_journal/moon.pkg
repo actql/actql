@@ -12,7 +12,9 @@ import {
 } for "wbtest"
 
 options(
+  "native-stub": [ "inspection_stub.c" ],
   targets: {
+    "inspection_native.mbt": [ "native" ],
     "journal_native.mbt": [ "native" ],
     "journal_native_wbtest.mbt": [ "native" ],
     "journal_unsupported.mbt": [ "not", "native" ],

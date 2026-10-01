@@ -78,6 +78,44 @@ source grants and current authorization remain ordinary admission obligations.
 Unsupported shapes must be rejected instead of approximated by a second
 checker or evaluator.
 
+## INFER KEEP source projection
+
+The adopted INFER Pipe form has mandatory `ITEM KEY`, `INPUT`, and result
+`AS` clauses, with optional `KEEP`. The contract name is carried unchanged
+to ordinary `infer.contract` resolution in the same Check Environment;
+backticks can delimit a complete existing reference such as
+`model-task:risk-score.v1`. Parsing a name does not resolve a ModelTask, select
+a newer version, or authorize model egress. An empty INPUT is checked against
+the resolved closed input contract, not treated as permission to omit fields.
+
+KEEP accepts column references, optional output aliases, and known-schema
+`*` or range `.*`. Expansion retains visible declaration order, and explicit
+items retain authored order. Calculations belong in SELECT or EXTEND.
+Duplicate output names, a collision with the result AS name, unresolved
+references, and repeated ITEM KEY value slots are rejected. The common checker
+still proves the complete non-null scalar candidate key; specifying ITEM KEY
+never supplies that proof. Only INPUT mappings are sent to the model.
+
+The new visible scope consists of KEEP columns followed by one result object:
+`input_key` (named fields in the authored key tuple), `outcome`, and `value`.
+Omitted KEEP produces only that object. Prior range aliases cannot recover
+omitted input fields. KEEP is a checked one-to-one correspondence with the
+same retained input producer, not a new read or a row-position join. The common
+infer output remains flat keys, outcome and value. Ordinary join and object
+projection construct the surface shape without changing its capture format.
+
+Success value is the existing non-null closed ModelTask output object, retaining
+each field's nullability. Non-success value is typed NULL, and outcomes retain
+the fixed [infer contract](language.md#infer) enumeration. Nested references
+lower to ordinary property expressions after resolving a visible column or
+range prefix. Known properties on a nullable receiver propagate NULL; unknown
+properties require the common type error. Outcome/value refinement and capture
+provenance remain common-owner obligations, never facts fabricated by a name,
+projection or assignment. Frontend construction of a Program is not evidence
+of model execution support. Until common infer and object-expression execution
+are available, normal Host preparation rejects these Programs before Run
+acceptance and provider I/O.
+
 ## Graph pattern source
 
 `FROM GRAPH name` selects an existing Graph value. `MATCH` requires an explicit

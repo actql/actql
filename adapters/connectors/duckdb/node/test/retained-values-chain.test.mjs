@@ -17,17 +17,35 @@ import {checked} from '../../../../host-common/runtime-result.mjs';
 import {sourceFreeTaskPlan, acquiredTaskRunAdmission,
   acquiredTaskPublicationPlan} from '../../../../host-node/local-values-plan.mjs';
 import {authorizeLocalDatabase} from '../session.mjs';
-import {runNativeHostQuery, nativeSourceIdentityMatches,
+import {runNativeHostQuery, runRetainedNativeHostQuery, nativeSourceIdentityMatches,
   issueNativeSourceEvidence} from '../host.mjs';
 import {fixtureSourceAccess} from '../../../../host-node/authorization-fixture.mjs';
 import {installLocalRetainedStore} from '../../../../local-node/retained-store.mjs';
 import {createLocalRetainedStore} from '../../../../store-local/files.mjs';
+import {identifyRetainedCapturedSource} from '../../../../local-node/captured-source-identity.mjs';
 import {openLocalPublicationStore} from '../../../../store-local/publication-store.mjs';
 import {pinnedEngineContracts} from './pinned-engine-contracts.mjs';
 
 const root = fileURLToPath(new URL('../../../../../', import.meta.url));
 const cid = digit => `sha256:${digit.repeat(64)}`;
 const resultNames = ['published', 'consumed_a', 'consumed_b'];
+
+async function assertPublishedRows(publication, plan, execution, expected) {
+  const inventory = execution.publicationInventory.occurrences;
+  assert.deepEqual(inventory.map(value => value.name).sort(), [...resultNames].sort());
+  for (const name of resultNames) {
+    const occurrence = inventory.find(value => value.name === name);
+    const chunks = [];
+    const result = await publication.consumeCommittedResult({
+      namespaceId: plan.request.namespaceId,
+      authorityScopeCid: plan.request.authorityScopeCid,
+      runDefinitionCid: plan.runDefinition.identity,
+    }, occurrence.definitionContract.identity, () => true,
+    chunk => chunks.push(Buffer.from(chunk)));
+    assert.equal(result.rowCount, expected.length);
+    assert.deepEqual(JSON.parse(Buffer.concat(chunks).toString('utf8')), expected);
+  }
+}
 
 function program(rows, filter = 'id >= 2') {
   const consumers = ['a', 'b'].map(name => ({
@@ -69,7 +87,8 @@ function capturedProgram(filter = 'id >= 2', sort = true) {
 // Use the checked acquisition planner and real native capture. The
 // test installs Compute configuration directly; public Client dispatch mode
 // selection remains with its Host owner.
-async function openCapturedRetained(prepared, contracts, directory, rows, budgets) {
+async function openCapturedRetained(prepared, contracts, directory, rows, budgets,
+  fileInput = false) {
   const [registry, values, fragment, ordered] = contracts;
   const planned = moon.clientProgramPrepareLocalQueryRequirement(
     prepared, 0, 0, registry, values, fragment, ordered);
@@ -100,18 +119,29 @@ async function openCapturedRetained(prepared, contracts, directory, rows, budget
     ...fixtureSourceAccess, sourceRef,
   });
   const captureStartedAt = new Date().toISOString();
-  const capture = await runNativeHostQuery(grant, acquisition, {
+  const limits = {
     maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
     maxSqlBytes: 10000, maxParameters: 10, maxColumns: 10,
     memoryBytes: 128 * 1024 * 1024, threads: 1,
-  });
+  };
+  const capture = fileInput
+    ? await runRetainedNativeHostQuery(grant, acquisition, limits, {
+      parentDirectory: directory, maxFrameBytes: 4096,
+      wire: {max_columns: 10, max_order_work: 10000, max_bytes: 100000,
+        max_nodes: 10000, max_depth: 64},
+    }) : await runNativeHostQuery(grant, acquisition, limits);
   try {
     const captureCompletedAt = new Date().toISOString();
     const source = capture.source();
     assert.equal(moon.clientProgramCapturedSourceMatches(prepared, source), true);
-    const identified = moon.clientProgramIdentifyCapturedSourceRelation(source);
-    assert.equal(identified?.$tag, 1, `captured identity: ${inspect(identified, {depth: 8})}`);
-    const identity = checked(identified);
+    const identity = fileInput
+      ? await identifyRetainedCapturedSource(moon, source)
+      : checked(moon.clientProgramIdentifyCapturedSourceRelation(source));
+    if (fileInput && rows.length === 0) {
+      // Independent SHA-256 of {"sort":"relation","value":[]}.
+      assert.equal(moon.clientProgramCapturedSourceLogicalCid(identity),
+        'sha256:d2889f6d3b43fe20f75149d13eb0585918c94cf3a5b0520f5f9e1525b0846f3d');
+    }
     assert.equal(nativeSourceIdentityMatches(capture, identity), true);
     const logicalInput = checked(moon.clientProgramIssueCapturedSourceLogical(
       prepared, source, identity, requirement));
@@ -134,7 +164,8 @@ async function openCapturedRetained(prepared, contracts, directory, rows, budget
   }
 }
 
-async function retainedRun(document, use, mode = 'success', budgets, captureRows) {
+async function retainedRun(document, use, mode = 'success', budgets, captureRows,
+  fileInput = false) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-retained-values-chain-'));
   let retained, publication, owner, execution, captured;
   let permitCleanup = mode !== 'finalize-failure';
@@ -156,7 +187,7 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
       'registered_values', 'registered_fragment', 'registered_ordered']);
     const [registry, values, fragment] = contracts;
     if (captureRows) captured = await openCapturedRetained(prepared,
-      contracts, directory, captureRows, budgets);
+      contracts, directory, captureRows, budgets, fileInput);
     // Boundary injection uses the same checked owner, installed provider and
     // retained driver. Ordinary success/fault cases use the product factory.
     const setup = captured?.setup ?? (budgets
@@ -468,13 +499,14 @@ for (const {name, rows, expected} of [
     }));
 }
 
+for (const fileInput of [false, true]) {
 for (const {name, rows, expected} of [
   {name: 'ordered acquired chain',
     rows: [{id: 3}, {id: 1}, {id: 2}], expected: [{id: 2}, {id: 3}]},
   {name: 'empty acquired chain', rows: [], expected: []},
   {name: 'empty acquired filtered output', rows: [{id: 1}], expected: []},
 ]) {
-  test(`product captured retained Host publishes ${name} and two consumers`,
+  test(`product ${fileInput ? 'file-captured' : 'captured'} retained Host publishes ${name} and two consumers`,
     async () => retainedRun(capturedProgram(),
       async ({run, plan, publication, leases, captured}) => {
         const owner = await run();
@@ -498,18 +530,74 @@ for (const {name, rows, expected} of [
           assert.equal(result.rowCount, expected.length);
           assert.deepEqual(JSON.parse(Buffer.concat(chunks).toString('utf8')), expected);
         }
-      }, 'success', undefined, rows));
+      }, 'success', undefined, rows, fileInput));
 }
+}
+
+test('file-captured identity observes delivered cancellation and preserves acquisition custody',
+  async () => retainedRun(capturedProgram(),
+    async ({run, publication, plan, captured}) => {
+      const cancellation = new AbortController();
+      let rows = 0, finishes = 0;
+      const observed = new Proxy(moon, {get(target, name, receiver) {
+        if (name === 'clientProgramAppendCapturedSourceIdentityScan') {
+          return (...args) => {
+            const result = target[name](...args);
+            if (result.$tag === 1 && ++rows === 1) {
+              setImmediate(() => cancellation.abort());
+            }
+            return result;
+          };
+        }
+        if (name === 'clientProgramFinishCapturedSourceIdentityScan') {
+          return (...args) => { finishes++; return target[name](...args); };
+        }
+        return Reflect.get(target, name, receiver);
+      }});
+      await assert.rejects(identifyRetainedCapturedSource(observed,
+        captured.capture.source(), cancellation.signal), {name: 'AbortError'});
+      assert.equal(rows, 1);
+      assert.equal(finishes, 0);
+      assert.equal(captured.capture.storageUsage().reservedReadBufferBytes, 0);
+      assert.equal(nativeSourceIdentityMatches(captured.capture, captured.identity), true);
+      const identity = await identifyRetainedCapturedSource(moon, captured.capture.source());
+      assert.equal(moon.clientProgramCapturedSourceLogicalCid(identity),
+        moon.clientProgramCapturedSourceLogicalCid(captured.identity));
+      const owner = await run();
+      assert.equal(owner.status, 'published');
+      await assertPublishedRows(publication, plan, owner.execution, [{id: 2}, {id: 3}]);
+    }, 'success', undefined, [{id: 3}, {id: 1}, {id: 2}], true));
+
+test('file-captured retained Host preserves source custody after positive Compute cancellation',
+  async () => retainedRun(capturedProgram(),
+    async ({run, plan, publication, captured, observations}) => {
+      await assert.rejects(run, error => {
+        const execution = error.execution;
+        assert.equal(observations().scheduled, true);
+        assert.equal(observations().sawStop, true);
+        assert.ok(observations().producerWork > 0n);
+        assert.equal(execution.completed.length, 0);
+        assert.equal(observations().dispatches, 1);
+        assert.equal(nativeSourceIdentityMatches(captured.capture, captured.identity), true);
+        return true;
+      });
+      await assert.rejects(publication.lookupCommittedIndex({
+        namespaceId: plan.request.namespaceId,
+        authorityScopeCid: plan.request.authorityScopeCid,
+        runDefinitionCid: plan.runDefinition.identity,
+      }, () => true), /PublicationLookupDenied/);
+    }, 'cancel-after-progress', undefined, [{id: 3}, {id: 1}, {id: 2}], true));
 
 // The same three-row Filter (31), Select (19), and one handoff (1) require
 // 51 work units and nine peak workspace entries. No Values child runs here.
+for (const fileInput of [false, true]) {
 for (const {name, work, workspace, failure} of [
   {name: 'exact captured scalar budgets', work: 51, workspace: 9},
   {name: 'one-short captured scalar work', work: 50, workspace: 9, failure: 'work'},
   {name: 'one-short captured scalar workspace', work: 51, workspace: 8,
     failure: 'workspace'},
 ]) {
-  test(`product captured retained Host honors ${name}`, async () => retainedRun(
+  test(`product ${fileInput ? 'file-captured' : 'captured'} retained Host honors ${name}`, async () => retainedRun(
     capturedProgram('true', false),
     async ({run, plan, publication, captured, observations}) => {
       if (!failure) {
@@ -550,16 +638,19 @@ for (const {name, work, workspace, failure} of [
         }, () => true), /PublicationLookupDenied/);
       }
       assert.equal(nativeSourceIdentityMatches(captured.capture, captured.identity), true);
-    }, failure ?? 'success', {work, workspace}, [{id: 1}, {id: 2}, {id: 3}]));
+    }, failure ?? 'success', {work, workspace}, [{id: 1}, {id: 2}, {id: 3}], fileInput));
+}
 }
 
+for (const fileInput of [false, true]) {
 for (const {name, mode} of [
   {name: 'captured progress cancellation', mode: 'cancel-after-progress'},
   {name: 'captured filter arithmetic', mode: 'arithmetic'},
   {name: 'captured append failure', mode: 'append-failure'},
   {name: 'captured finalize cleanup retry', mode: 'finalize-failure'},
 ]) {
-  test(`product captured retained Host keeps source and cleanup after ${name}`,
+  if (fileInput && !['append-failure', 'finalize-failure'].includes(mode)) continue;
+  test(`product ${fileInput ? 'file-captured' : 'captured'} retained Host keeps source and cleanup after ${name}`,
     async () => retainedRun(capturedProgram(mode === 'arithmetic'
       ? '1 / (id - id) > 0' : 'id >= 2'),
     async ({run, plan, publication, captured, observations, permitCleanup}) => {
@@ -596,5 +687,6 @@ for (const {name, mode} of [
         assert.equal(observations().dispatches, 1);
         permitCleanup();
       }
-    }, mode, undefined, [{id: 3}, {id: 1}, {id: 2}]));
+    }, mode, undefined, [{id: 3}, {id: 1}, {id: 2}], fileInput));
+}
 }

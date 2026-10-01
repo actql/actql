@@ -835,7 +835,8 @@ for (const [index, route] of routeEntries.entries()) {
       continue;
     }
     const sourceText = fs.readFileSync(path.join(root, suitePath), 'utf8');
-    const namedCase = sourceText.includes(`name: '${item.fixture}'`);
+    const namedCase = sourceText.includes(`name: '${item.fixture}'`) ||
+      sourceText.includes(`test('${item.fixture}',`);
     const tupleCase = typeof item.case === 'string' &&
       /^[a-zA-Z][a-zA-Z0-9]*$/u.test(item.case) &&
       sourceText.includes(`const ${item.case} =`) &&
@@ -1376,6 +1377,8 @@ for (const [index, route] of routeEntries.entries()) {
     for (const role of [
       'ordinary_filter_quantum_and_lifetime',
       'retained_captured_factory_binding',
+      'retained_file_identity_exact_content',
+      'retained_file_capture_identity_lifetime',
       'filter_mixed_stage_lifetime',
       'filter_input_exact',
       'filter_input_one_short',
@@ -1394,6 +1397,7 @@ for (const [index, route] of routeEntries.entries()) {
       'retained_captured_host_work_short', 'retained_captured_host_workspace_short',
       'retained_captured_progress_timer_cleanup', 'retained_captured_filter_arithmetic',
       'retained_captured_append_cleanup', 'retained_captured_finalize_cleanup_retry',
+      'retained_file_identity_delivered_stop', 'retained_file_compute_delivered_stop',
     ]) {
       if (!environmentRoles.has(role)) fail(`${label}: ${role} fixture is missing`);
     }

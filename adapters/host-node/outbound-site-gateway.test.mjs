@@ -6,6 +6,7 @@ import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
+import {DatabaseSync} from 'node:sqlite';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
@@ -122,6 +123,133 @@ function post(origin, path, material, body = '{}') {
     request.end(bytes);
   });
 }
+
+function postWithLostAck(origin, path, material, body) {
+  return new Promise((resolve, reject) => {
+    const request = httpsRequest(new URL(path, origin), {
+      method: 'POST', ca: material.ca, cert: material.cert, key: material.key,
+      servername: 'localhost', minVersion: 'TLSv1.3',
+      headers: {'content-type': 'application/json',
+        'content-length': Buffer.byteLength(body)},
+    }, response => {
+      assert.equal(response.statusCode, 200);
+      // Lose the ACK body on the actual client stream after the server's
+      // admission commit, rather than merely pretending an inspected ACK failed.
+      response.on('error', reject);
+      response.destroy(Object.assign(new Error('ACK_LOST'), {code: 'ACK_LOST'}));
+    });
+    request.on('error', reject);
+    request.end(body);
+  });
+}
+
+test('durable observation replay survives lost ACK and restart without a pending dispatch', {timeout: 15_000}, async t => {
+  await mkdir(scratch, {recursive: true});
+  const root = await mkdtemp(join(scratch, 'outbound-replay-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const materials = await certificates(root);
+  const siteMaterial = {ca: materials.ca, cert: materials.siteCertificate, key: materials.siteKey};
+  const foreignMaterial = {ca: materials.ca, cert: materials.foreignCertificate, key: materials.foreignKey};
+  const storeRoot = join(root, 'coordinator');
+  let store = openSqliteCoordinatorDispatchJournal(storeRoot, {coordinatorAuthority: 'coordinator-a'});
+  let gateway;
+  let receiverCalls = 0;
+  let dispatchCalls = 0;
+  const createOwner = () => createRemoteSiteCoordinator({
+    authorization: remoteAuthorization, control,
+    journal: control.createCoordinatorJournal('coordinator-a'), store,
+    send: value => { dispatchCalls++; return gateway.dispatch(value); },
+  });
+  let owner = createOwner();
+  const start = () => startHttpsOutboundSiteGateway({
+    key: materials.serverKey, cert: materials.serverCertificate, ca: materials.ca,
+    siteAuthorities: new Map([
+      [materials.siteFingerprint, {siteKey: 'site-a', siteGeneration: 1}],
+      [new X509Certificate(materials.foreignCertificate).fingerprint256,
+        {siteKey: 'site-a', siteGeneration: 2}],
+    ]), control,
+    receiveObservation: value => { receiverCalls++; return owner.receiveObservation(value); },
+  });
+  gateway = await start();
+  t.after(async () => { await gateway.close(); store.close(); });
+  const request = dispatch();
+  const completion = owner.dispatch({dispatch: request, inputBindingBody: '{}'});
+  // Register rejection handling immediately; failures below still close the
+  // gateway and must not leave an unhandled waiter rejection behind.
+  completion.catch(() => {});
+  const path = '/v1/sites/site-a/generations/1/outbound';
+  const polled = await post(gateway.origin, `${path}/poll`, siteMaterial);
+  assert.equal(polled.status, 200);
+  const received = control.pollDispatchRequest(control.admitPollDispatch(polled.body));
+  assert.equal(control.identity(received), control.identity(request));
+  const site = runtime.siteControl.create({key: 'site-a', generation: 1,
+    runtimeRevision: cid('a'), maxConcurrentOperations: 4, maxConcurrentTransfers: 4,
+    maxRetainedBytes: 1_048_576n, maxExecutionBytes: 1_048_576n});
+  const siteJournal = control.createJournal(site);
+  const admission = control.prepareAdmission(siteJournal, received);
+  const record = control.commitAdmission(admission, true);
+  const accepted = control.replyJson(record);
+  await assert.rejects(postWithLostAck(gateway.origin, `${path}/observations`, siteMaterial, accepted), {code: 'ACK_LOST'});
+  assert.equal(store.inspectState(request, control)[0], 1);
+  assert.equal(gateway.pending(), 1);
+  control.commitTransition(control.prepareProvisioning(record,
+    control.registerExecutionCapability({site, runtimeBundleCid: cid('a'),
+      connectorRegistration: 'local', connectorRevision: 'local/1',
+      strategyRevision: 'strategy/1', operationCapabilityCid: cid('4')})), true);
+  const unadmitted = control.replyJson(record);
+  control.commitTransition(control.prepareExecution(record), true);
+  const running = control.replyJson(record);
+  const runningStatus = control.statusJson(record, undefined, undefined, undefined);
+
+  // COMMIT did persist the observation, but its return was lost. This request
+  // must get retryable failure, not successful ACK. Exact retry reconciles the
+  // same state/history commit and does not manufacture a second revision.
+  const exec = DatabaseSync.prototype.exec;
+  let injected = false;
+  DatabaseSync.prototype.exec = function(sql) {
+    const result = exec.call(this, sql);
+    if (sql === 'COMMIT' && !injected) {
+      injected = true;
+      throw new Error('COMMIT_RESPONSE_LOST');
+    }
+    return result;
+  };
+  try {
+    assert.equal((await post(gateway.origin, `${path}/observations`, siteMaterial, running)).status, 503);
+    assert.equal(gateway.pending(), 1);
+  } finally { DatabaseSync.prototype.exec = exec; }
+  assert.equal((await post(gateway.origin, `${path}/observations`, siteMaterial, running)).status, 200);
+  assert.equal(gateway.pending(), 0, 'later dispatch reply settles its already accepted dispatch');
+  await completion;
+  assert.equal(gateway.pending(), 0);
+  const before = store.inspectState(request, control);
+  assert.equal(before[0], 2);
+  assert.equal((await post(gateway.origin, `${path}/observations`, siteMaterial, accepted)).status, 200);
+  assert.deepEqual(store.inspectState(request, control), before);
+  await gateway.close();
+  store.close();
+  store = openSqliteCoordinatorDispatchJournal(storeRoot, {coordinatorAuthority: 'coordinator-a'});
+  owner = createOwner();
+  gateway = await start();
+  for (const body of [accepted, running, runningStatus]) {
+    assert.equal((await post(gateway.origin, `${path}/observations`, siteMaterial, body)).status, 200);
+  }
+  assert.deepEqual(store.inspectState(request, control), before);
+  assert.equal((await post(gateway.origin, `${path}/observations`, siteMaterial, unadmitted)).status, 409);
+  const conflicting = JSON.parse(accepted);
+  conflicting.state[0] = 1;
+  const collision = await post(gateway.origin, `${path}/observations`, siteMaterial, JSON.stringify(conflicting));
+  assert.equal(collision.status, 409);
+  assert.equal(JSON.parse(collision.body).issue, 'StateCollision');
+  assert.equal((await post(gateway.origin,
+    '/v1/sites/site-a/generations/2/outbound/observations', foreignMaterial, accepted)).status, 409);
+  const checked = receiverCalls;
+  assert.equal((await post(gateway.origin, `${path}/observations`, foreignMaterial, accepted)).status, 404);
+  assert.equal(receiverCalls, checked);
+  assert.deepEqual(store.inspectState(request, control), before);
+  assert.equal(gateway.pending(), 0);
+  assert.equal(dispatchCalls, 1);
+});
 
 function dispatch(overrides = {}) {
   return control.prepare({

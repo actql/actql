@@ -91,6 +91,8 @@ pub fn client_program_allowed_effect_run_authorization(@run_publication_host.Cli
 
 pub fn client_program_allowed_effect_run_prepared(@run_publication_host.ClientEffectAllowedRun) -> @run_publication.RunEvidenceValue
 
+pub fn client_program_append_captured_source_identity_scan(@execution_query.CapturedSourceIdentityScan, String) -> Result[Unit, @execution_query.CapturedSourceIdentityScanIssue]
+
 pub fn client_program_author_effect_preview(String, String, String, @logical_request_scope.LogicalRequestScope, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[(String, Array[Array[@effect_application.EffectDispatchKey]]), ClientEffectPreviewAuthorIssue]
 
 pub fn client_program_bind_compiled_effect_run(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract) -> Result[@run_publication_host.PreparedClientEffectRun, @run_publication_host.ClientEffectCompiledRunIssue]
@@ -99,9 +101,15 @@ pub fn client_program_bind_effect_preview_inputs(ClientLocalEffectHost, @physica
 
 pub fn client_program_bind_effect_run(@run_publication_host.PreparedClientEffectComputation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> @run_publication_host.PreparedClientEffectRun?
 
+pub fn client_program_cancel_captured_source_identity_scan(@execution_query.CapturedSourceIdentityScan) -> Bool
+
 pub fn client_program_canonical_effect_preview_draft(String, Int, Int, Int) -> Result[String, @run_publication.PublicationContractIssue]
 
 pub fn client_program_captured_source_dependency_bodies(@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedInputSource) -> (String, String)?
+
+pub fn client_program_captured_source_identity_scan_material(@execution_query.CapturedSourceIdentityScan) -> @execution_relation.RetainedOutputMaterial?
+
+pub fn client_program_captured_source_identity_scan_storage(@execution_query.CapturedSourceIdentityScan) -> @execution_relation.ProducerStorage?
 
 pub fn client_program_captured_source_logical_cid(@execution_query.CapturedSourceRelationIdentity) -> String
 
@@ -379,6 +387,8 @@ pub fn client_program_effect_source_artifact_preview_binding(@run_publication.Pu
 
 pub fn client_program_encode_plan_fact_manifest_identity(String) -> Result[@run_publication_host.PlanFactManifestIdentity, @run_publication_host.PlanFactManifestIdentityIssue]
 
+pub fn client_program_finish_captured_source_identity_scan(@execution_query.CapturedSourceIdentityScan) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIdentityScanIssue]
+
 pub fn client_program_identify_captured_effect_source_relation(@execution_query.CapturedInputSource) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
 
 pub fn client_program_identify_captured_source_relation(@execution_query.CapturedInputSource) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
@@ -562,6 +572,8 @@ pub fn client_program_preparation_issue(ClientProgramBridgeOutcome) -> ClientPro
 pub fn client_program_preparation_issue_code(ClientProgramBridgeOutcome) -> String?
 
 pub fn client_program_preparation_ready(ClientProgramBridgeOutcome) -> @run_publication_host.PreparedClientProgram?
+
+pub fn client_program_prepare_captured_source_identity_scan(@execution_query.CapturedInputSource) -> Result[@execution_query.CapturedSourceIdentityScan, @execution_query.CapturedSourceIdentityScanIssue]
 
 pub fn client_program_prepare_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String, String, String) -> Result[@actql/actql/connectors/duckdb/host.NativeHostConfiguration, @client_local_host.ClientDuckDBAcquisitionIssue]
 
@@ -1375,6 +1387,8 @@ pub fn strategy_remote_bundle_transition_projection(@remote_bundle.RemoteBundleT
 
 pub fn strategy_remote_coordinator_completion_evidence_available(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> Bool
 
+pub fn strategy_remote_coordinator_history_restore(@remote_site_protocol.CoordinatorDispatchIntentRecord, String, @remote_site_protocol.RemoteExecutionEvidence?) -> Unit raise NodeHostFailure
+
 pub fn strategy_remote_coordinator_intent_commit(@remote_site_protocol.CoordinatorDispatchIntentAdmission, Bool) -> @remote_site_protocol.CoordinatorDispatchIntentRecord raise NodeHostFailure
 
 pub fn strategy_remote_coordinator_intent_is_new(@remote_site_protocol.CoordinatorDispatchIntentAdmission) -> Bool
@@ -1388,6 +1402,8 @@ pub fn strategy_remote_coordinator_intent_prepare(@remote_site_protocol.Coordina
 pub fn strategy_remote_coordinator_intent_restore(@remote_site_protocol.CoordinatorDispatchJournal, @remote_site_protocol.DispatchRequest) -> @remote_site_protocol.CoordinatorDispatchIntentRecord raise NodeHostFailure
 
 pub fn strategy_remote_coordinator_journal_create(String) -> @remote_site_protocol.CoordinatorDispatchJournal raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_observation_issue_code(NodeHostFailure) -> String
 
 pub fn strategy_remote_coordinator_output_admission_json(@remote_site_protocol.CoordinatorOutputAdmission) -> String raise NodeHostFailure
 
@@ -1431,6 +1447,8 @@ pub fn strategy_remote_coordinator_prepare_observation_without_evidence(@remote_
 
 pub fn strategy_remote_coordinator_prepare_unknown(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> @remote_site_protocol.CoordinatorDispatchTransition raise NodeHostFailure
 
+pub fn strategy_remote_coordinator_record_history_json(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> String raise NodeHostFailure
+
 pub fn strategy_remote_coordinator_record_restore(@remote_site_protocol.CoordinatorDispatchIntentRecord, Int, Int, Int, Int, Int, Int, Bool, Bool, String, String, String) -> Unit raise NodeHostFailure
 
 pub fn strategy_remote_coordinator_record_revision(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> Int
@@ -1438,6 +1456,12 @@ pub fn strategy_remote_coordinator_record_revision(@remote_site_protocol.Coordin
 pub fn strategy_remote_coordinator_record_status(@remote_site_protocol.CoordinatorDispatchIntentRecord) -> Array[String]
 
 pub fn strategy_remote_coordinator_transition_commit(@remote_site_protocol.CoordinatorDispatchTransition, Bool) -> Unit raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_transition_expected_history_json(@remote_site_protocol.CoordinatorDispatchTransition) -> String raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_transition_history_json(@remote_site_protocol.CoordinatorDispatchTransition) -> String raise NodeHostFailure
+
+pub fn strategy_remote_coordinator_transition_is_replay(@remote_site_protocol.CoordinatorDispatchTransition) -> Bool
 
 pub fn strategy_remote_coordinator_transition_key(@remote_site_protocol.CoordinatorDispatchTransition) -> Array[String]
 

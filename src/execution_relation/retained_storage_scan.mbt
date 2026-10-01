@@ -5,6 +5,7 @@ struct RetainedStorageScan {
   storage : ProducerStorage
   expected : AdmittedOutputStreamReceipt
   stream : AdmittedOutputStream
+  logical_writer : @encode.Writer?
   mut open : Bool
 }
 
@@ -12,6 +13,7 @@ struct RetainedStorageScan {
 struct VerifiedStorageScan {
   storage : ProducerStorage
   receipt : AdmittedOutputStreamReceipt
+  logical : LogicalRelationIdentity?
 }
 
 ///|
@@ -21,6 +23,40 @@ pub fn prepare_retained_storage_scan(
   values : ValueLimits,
   wire : RowWireLimits,
   max_batch_bytes : Int,
+) -> Result[RetainedStorageScan, CompletedImportIssue] {
+  prepare_storage_scan(storage, max_rows, values, wire, max_batch_bytes, None)
+}
+
+///|
+/// Establish the Relation envelope identity during the same exact storage
+/// verification. No rows are retained and no identity is issued for a partial,
+/// changed or unavailable representation. Ordinary scans do not hash an envelope.
+pub fn prepare_retained_relation_identity_scan(
+  storage : ProducerStorage,
+  max_rows : Int,
+  values : ValueLimits,
+  wire : RowWireLimits,
+  logical_wire : RowWireLimits,
+  max_batch_bytes : Int,
+) -> Result[RetainedStorageScan, CompletedImportIssue] {
+  prepare_storage_scan(
+    storage,
+    max_rows,
+    values,
+    wire,
+    max_batch_bytes,
+    Some(logical_wire),
+  )
+}
+
+///|
+fn prepare_storage_scan(
+  storage : ProducerStorage,
+  max_rows : Int,
+  values : ValueLimits,
+  wire : RowWireLimits,
+  max_batch_bytes : Int,
+  logical_wire : RowWireLimits?,
 ) -> Result[RetainedStorageScan, CompletedImportIssue] {
   if !producer_storage_available(storage) {
     return Err(Unavailable)
@@ -37,6 +73,15 @@ pub fn prepare_retained_storage_scan(
   if max_rows < expected.rows {
     return Err(Admission(CaptureLimit))
   }
+  if logical_wire is Some(limits) {
+    if !row_wire_valid_limits(limits) {
+      return Err(Encoding(Wire(InvalidLimits)))
+    }
+    if limits.max_columns < wire.max_columns ||
+      limits.max_order_work < wire.max_order_work {
+      return Err(Encoding(Wire(OrderLimit)))
+    }
+  }
   match
     prepare_admitted_stream(
       expected.owner,
@@ -48,7 +93,28 @@ pub fn prepare_retained_storage_scan(
       false,
     ) {
     Err(issue) => Err(Encoding(issue))
-    Ok(stream) => Ok({ storage, expected, stream, open: true, })
+    Ok(stream) =>
+      try {
+        let logical_writer = logical_wire.map(limits => {
+          let writer = @encode.hashing_writer(
+            limits.max_bytes,
+            limits.max_nodes,
+            limits.max_depth,
+          )
+          @encode.begin_object(writer)
+          @encode.key(writer, "sort")
+          @encode.string_value(writer, "relation")
+          @encode.key(writer, "value")
+          @encode.begin_array(writer)
+          writer
+        })
+        Ok({ storage, expected, stream, logical_writer, open: true, })
+      } catch {
+        issue => {
+          cancel_admitted_output_stream(stream) |> ignore
+          Err(Encoding(Wire(Encoding(issue))))
+        }
+      }
   }
 }
 
@@ -103,7 +169,23 @@ pub fn append_retained_storage_scan_values(
     append_admitted_output_stream(scan.stream, values.length(), column => {
       values.get(column)
     }) {
-    Ok(_) => Ok(values)
+    Ok(_) =>
+      try {
+        if scan.logical_writer is Some(writer) {
+          @encode.begin_object(writer)
+          for (name, column) in scan.stream.order.columns {
+            @encode.key(writer, name)
+            @admitted.emit_checked_wire_value(values[column], writer)
+          }
+          @encode.end_object(writer)
+        }
+        Ok(values)
+      } catch {
+        issue => {
+          cancel_retained_storage_scan(scan) |> ignore
+          Err(Encoding(Wire(Encoding(issue))))
+        }
+      }
     Err(issue) => {
       cancel_retained_storage_scan(scan) |> ignore
       Err(Encoding(issue))
@@ -139,7 +221,29 @@ pub fn finish_retained_storage_scan(
     !physical_equal(receipt.schema, expected.schema) {
     return Err(IdentityMismatch)
   }
-  Ok({ storage: scan.storage, receipt, })
+  try {
+    let logical = scan.logical_writer.map(writer => {
+      @encode.end_array(writer)
+      @encode.end_object(writer)
+      let (hash, bytes, nodes, _) = @encode.finish_hash_metrics(writer)
+      { cid: "sha256:" + hash, bytes, nodes, rows: receipt.rows, }
+    })
+    Ok({ storage: scan.storage, receipt, logical, })
+  } catch {
+    issue => Err(Encoding(Wire(Encoding(issue))))
+  }
+}
+
+///|
+/// Only a successful full scan can expose the requested identity, while the
+/// exact retained output remains available. A bare payload CID is not enough.
+pub fn verified_storage_scan_relation_identity(
+  scan : VerifiedStorageScan,
+) -> LogicalRelationIdentity? {
+  if !producer_storage_available(scan.storage) {
+    return None
+  }
+  scan.logical
 }
 
 ///|

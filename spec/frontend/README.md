@@ -36,7 +36,11 @@ candidate source; its common operation still receives candidates plus a
 typed NULL, rather than rejected merely for preceding outcome refinement.
 FX-03 retains its original requirement digest and superseded expectation and
 records the corrected expectation separately. Neither change is execution
-evidence for the new surface. INFER/NEAREST KEEP remains unimplemented.
+evidence for the new surface. INFER KEEP source lowering is partial support;
+common checking/acquisition and packed execution remain unimplemented.
+NEAREST KEEP remains unimplemented. Independent INFER source/Program and
+future output expectations are in [infer-keep](fixtures/infer-keep/);
+their output expectations are not executed model observations.
 The [scope mapping](../../docs/design/frontend-pipe-scope.md) distinguishes
 this accepted target from current syntax support and retained common meaning.
 
