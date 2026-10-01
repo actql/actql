@@ -53,7 +53,7 @@ Three observations are kept separate:
 | --- | --- |
 | Independent expected contract | Descriptor postconditions derive full field type/nullability; compared with the checked schema for every step. Empty/all-NULL cases validate that contract, not a type inferred from cells. |
 | Connection to execution | The same GeneratedSequence passed to the registered provider supplies selected kernels, checked/kernel output schemas and Select input/output references. No second unrelated checker plan is used. |
-| Executed values | Public columns and their order, canonical completed-table columns, wire projection, cell values, duplicates and row order are compared with the independent oracle. |
+| Executed values | Public columns and their order, canonical completed-table columns, wire projection, cell values, duplicates and row order are compared with the independent oracle. Each selected child output is also compared with its independent intermediate result, so a later empty output cannot hide an intermediate defect. |
 
 Completed tables do not expose independent runtime field contracts. This adds
 no runtime metadata or public API. The selected kernel schema is an associated

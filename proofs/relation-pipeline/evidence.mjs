@@ -23,6 +23,17 @@ export function compareSemantics(testCase, observation, registry) {
   const expected = oracle(testCase, registry);
   assert.equal(observation.kind, 'complete', 'Success domain reached failure');
   assert.deepEqual(observation.contracts, expectedContracts(testCase, registry), 'Independent checked/kernel contract or projection binding differs');
+  if (observation.correspondence) {
+    assert.equal(observation.stageValues?.length, expected.stages.length, 'Missing actual selected child values');
+    for (const [index, stage] of expected.stages.entries()) {
+      const actual = observation.stageValues[index];
+      assert.deepEqual(actual.columns, stage.columns, 'Selected child public projection differs');
+      assert.deepEqual(actual.schemaColumns, [...stage.columns].sort(), 'Selected child canonical columns differ');
+      for (const row of actual.wireRows) assert.deepEqual(Object.keys(row), stage.columns);
+      assert.deepEqual(actual.wireRows.map(row => stage.columns.map(field => row[field])), stage.rows, 'Selected child ordered values differ');
+      assert.deepEqual(actual.tableRows, actual.wireRows.map(row => actual.schemaColumns.map(field => row[field])), 'Selected child cell/wire values differ');
+    }
+  }
   assert.deepEqual(observation.columns, expected.columns, 'Projection/schema columns differ');
   assert.deepEqual(observation.schemaColumns, [...expected.columns].sort(), 'Canonical schema differs');
   for (const row of observation.wireRows) assert.deepEqual(Object.keys(row), expected.columns, 'Authored wire projection order differs');

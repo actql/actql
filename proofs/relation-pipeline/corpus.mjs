@@ -37,14 +37,17 @@ export function fixedCorpus(registry, registrations) {
   checkRegistration(registry, registrations);
   const cases = generate(registry);
   const obligations = registry.flatMap(d => registrations[d.name].obligations);
-  const missing = () => obligations.filter(o => !cases.some(testCase => o.holds({ testCase, expected: oracle(testCase, registry) })));
-  for (let seed = 1; seed <= 256 && missing().length; seed++) {
+  const traces = cases.map(testCase => ({ testCase, expected: oracle(testCase, registry) }));
+  let pending = obligations.filter(o => !traces.some(trace => o.holds(trace)));
+  for (let seed = 1; seed <= 256 && pending.length; seed++) {
     for (const candidate of generate(registry, seed, 24)) {
       const expected = oracle(candidate, registry);
-      if (missing().some(o => o.holds({ testCase: candidate, expected }))) {
+      const trace = { testCase: candidate, expected };
+      if (pending.some(o => o.holds(trace))) {
         const value = clone(candidate);
         value.id = `completion:${seed}:${candidate.id}`;
         cases.push(value);
+        pending = pending.filter(o => !o.holds(trace));
       }
     }
   }

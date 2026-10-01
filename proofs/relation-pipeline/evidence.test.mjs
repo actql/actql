@@ -28,6 +28,10 @@ function fixture() {
     const expected = oracle(testCase, baseRegistry), p = program(testCase, baseRegistry);
     const origin = expected.states.at(-1).order.origin;
     const actual = { ...observation, id: `executed:${index}`, source: p.source, steps: p.steps,
+      stageValues: expected.stages.map(stage => ({ columns: stage.columns,
+        schemaColumns: [...stage.columns].sort(),
+        wireRows: stage.output.map(r => Object.fromEntries(stage.columns.map(f => [f, r.values[f]]))),
+        tableRows: stage.output.map(r => [...stage.columns].sort().map(f => r.values[f])) })),
       contracts: expectedContracts(testCase, baseRegistry), columns: expected.columns,
       schemaColumns: [...expected.columns].sort(), rows: expected.rows,
       wireRows: expected.rows.map(row => Object.fromEntries(expected.columns.map((f, i) => [f, row[i]]))),
@@ -66,6 +70,7 @@ test('copied operation names cannot substitute an unreviewed variant/oracle', ()
   assert.throws(() => validate(report, source, copied), /Unreviewed/);
 });
 for (const [name, change] of [
+  ['intermediate value error hidden by empty final output', r => { r.executions[0].receipt.cases[0].observation.stageValues[0].wireRows = [{extra: 2}]; }],
   ['concrete obligation record omitted', r => { delete r.obligations; }],
   ['profile widened on both requested/derived sides', r => { r.profile = 'UNCHECKED arbitrary field types'; }],
   ['target relabeled', r => { r.target = 'native'; }],

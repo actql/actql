@@ -166,13 +166,14 @@ fn relation_pipeline_start(
 fn relation_pipeline_child_reference(
   sequence : @execution.GeneratedSequence,
   first : @execution.ProducerRead,
-) -> (Int64, Int, Int) raise {
+) -> (Int64, Int, Int, String) raise {
   let owner = @execution.generated_sequence_owner(sequence)
   let children = []
   let mut previous = None
   let mut total = 0L
   let mut cancel_confirmed = 0
   let mut already_terminal = 0
+  let stage_values = []
   for index in 0..<@execution.generated_sequence_step_count(sequence) {
     let selected = @execution.select_generated_sequence_step(
       sequence,
@@ -225,6 +226,17 @@ fn relation_pipeline_child_reference(
             progress += p
             assert_eq((progress, work), (kp, kw))
             previous = Some(output)
+            stage_values.push(
+              "{\"columns\":" +
+              relation_pipeline_projection(selected, output) +
+              ",\"schemaColumns\":" +
+              relation_pipeline_columns(output) +
+              ",\"tableRows\":" +
+              relation_pipeline_rows(output) +
+              ",\"wireRows\":" +
+              relation_pipeline_wire(output) +
+              "}",
+            )
             done = true
           }
           _ => fail("selected adapter differs from its cumulative kernel")
@@ -279,6 +291,7 @@ fn relation_pipeline_child_reference(
     total + (@execution.generated_sequence_step_count(sequence) - 1).to_int64(),
     cancel_confirmed,
     already_terminal,
+    "[" + stage_values.join(",") + "]",
   )
 }
 
@@ -344,7 +357,7 @@ fn relation_pipeline_observe(
     None => ("failed", "[]", "[]", "[]", "[]")
   }
   let witnesses = if correspondence {
-    let (reference, cancelled, already) = relation_pipeline_child_reference(
+    let (reference, cancelled, already, stage_values) = relation_pipeline_child_reference(
       sequence, input,
     )
     assert_eq(work, reference)
@@ -353,7 +366,9 @@ fn relation_pipeline_observe(
     ",\"cancelConfirmedChildren\":" +
     cancelled.to_string() +
     ",\"alreadyTerminalChildren\":" +
-    already.to_string()
+    already.to_string() +
+    ",\"stageValues\":" +
+    stage_values
   } else {
     ""
   }
