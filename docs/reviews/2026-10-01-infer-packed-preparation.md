@@ -3,6 +3,8 @@
 ## Scope and status
 
 Base: `373764e0bd0c100451575cdb0b1a4e90f4e8ce43` (includes #112).
+The preparation also integrates main
+`10231f2a9a71779bb377bbf7ed500bdd5f89aee9` (includes #116).
 The Frontend source/lowering unit in #112 is complete. Common infer execution
 and nullable object/property execution have no adoptable public SHA yet.
 This change prepares the public acceptance application and independent data;

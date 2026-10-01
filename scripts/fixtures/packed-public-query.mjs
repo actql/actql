@@ -15,13 +15,15 @@ import {exercisePublicQueryInput, querySuccesses, queryRefusals, inferRefusals, 
   from './public-query-input.mjs';
 
 const inferOnly = process.env.ACTQL_TEST_INFER_REFUSAL_ONLY === '1';
-const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || inferOnly;
+const joinOnly = process.env.ACTQL_TEST_JOIN_ORDER_ONLY === '1';
+const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || inferOnly || joinOnly;
+const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const scope = JSON.parse(await readFile('pipe-scope-cases.json', 'utf8'));
 assert.deepEqual(scope.source_rows, sourceRows);
 const scopeInputs = inferOnly ? {successes: [querySuccesses[0]], refusals: inferRefusals}
-  : scopeOnly ? {successes: scope.successes,
-  refusals: scope.refusals} : {successes: [...querySuccesses, ...scope.successes],
-  refusals: [...queryRefusals, ...scope.refusals, ...inferRefusals]};
+  : joinOnly ? joinOrder : scopeOnly ? {successes: scope.successes,
+  refusals: scope.refusals} : {successes: [...querySuccesses, ...scope.successes, ...joinOrder.successes],
+  refusals: [...queryRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals]};
 const expectedQueryRuns = scopeInputs.successes.length;
 
 assert.equal(spawnSync('moon', ['version']).error?.code, 'ENOENT');
@@ -41,7 +43,8 @@ delete environment.evidence_bundle_cid;
 environment.evidence_bundle_cid = 'sha256:' + createHash('sha256')
   .update(canonical(environment)).digest('hex');
 const database = resolve('records.duckdb');
-const {DuckDBInstance, DuckDBPreparedStatement} = createRequire(
+const {DuckDBInstance, DuckDBPreparedStatement, DuckDBConnection,
+  DuckDBExtractedStatements} = createRequire(
   new URL('./node_modules/@actql/local-node/package.json', import.meta.url))(
   '@duckdb/node-api');
 const instance = await DuckDBInstance.create(database);
@@ -90,17 +93,38 @@ await writeFile(sourceProfilePath, canonical({
       operation: {any_of: ['read']}, exclusions: []}]}),
 }));
 // Observe actual native execution, never a diagnostic notification.
-let sourceIo = 0;
+let sourceIo = 0, sourceReads = 0;
+const sourceReadCommands = [];
+const extractedSql = new WeakMap(), preparedSql = new WeakMap();
+const extract = DuckDBConnection.prototype.extractStatements;
+const prepare = DuckDBExtractedStatements.prototype.prepare;
+DuckDBConnection.prototype.extractStatements = async function(sql) {
+  const statements = await Reflect.apply(extract, this, [sql]);
+  extractedSql.set(statements, sql);
+  return statements;
+};
+DuckDBExtractedStatements.prototype.prepare = async function(index) {
+  const statement = await Reflect.apply(prepare, this, [index]);
+  preparedSql.set(statement, extractedSql.get(this));
+  return statement;
+};
 const stream = DuckDBPreparedStatement.prototype.stream;
 DuckDBPreparedStatement.prototype.stream = function(...args) {
   sourceIo++;
+  // Distinguish the real source-table acquisition from identity/metadata I/O
+  // and Local resident computation. This observes emitted physical SQL only.
+  if (/\bFROM\s+(?:"main"\.)?"records"(?=\s|$)/iu.test(preparedSql.get(this) ?? '')) {
+    sourceReads++;
+    sourceReadCommands.push({sql: preparedSql.get(this),
+      columns: Array.from({length: this.columnCount}, (_, index) => this.columnName(index))});
+  }
   return Reflect.apply(stream, this, args);
 };
 const observe = directory => () => {
   const journal = new DatabaseSync(resolve(directory, 'requests',
     'client-requests.sqlite3'), {readOnly: true});
   try {
-    return {sourceIo, acceptedRuns: journal.prepare(
+    return {sourceIo, sourceReads, sourceReadCommands, acceptedRuns: journal.prepare(
       'SELECT COUNT(*) AS count FROM client_requests').get().count};
   } finally { journal.close(); }
 };
@@ -201,6 +225,8 @@ try {
   await new Promise(resolve => server.close(resolve));
   await host.close();
   DuckDBPreparedStatement.prototype.stream = stream;
+  DuckDBConnection.prototype.extractStatements = extract;
+  DuckDBExtractedStatements.prototype.prepare = prepare;
 }
 // Exercise both transports before rejecting the acceptance run. A failed
 // case remains a failure; the other transport provides independent evidence.
