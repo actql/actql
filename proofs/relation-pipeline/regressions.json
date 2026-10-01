@@ -1,0 +1,165 @@
+[
+  {
+    "name": "handoff-wrong-port",
+    "testCase": {
+      "id": "seed:105106:47",
+      "rows": [],
+      "steps": [
+        {
+          "id": "n0",
+          "op": "select",
+          "args": {
+            "fields": [
+              "k"
+            ]
+          }
+        },
+        {
+          "id": "n1",
+          "op": "filter",
+          "args": {
+            "mode": "gt",
+            "field": "k",
+            "threshold": 0
+          }
+        }
+      ]
+    },
+    "anchor": {
+      "kind": "wrong checked handoff port",
+      "producer": "n0",
+      "consumer": "n1"
+    }
+  },
+  {
+    "name": "stable-tie-reversed",
+    "testCase": {
+      "id": "seed:105106:31",
+      "rows": [
+        {
+          "id": "31:r2",
+          "values": {
+            "extra": 0,
+            "k": null,
+            "tag": 0
+          }
+        },
+        {
+          "id": "31:r3",
+          "values": {
+            "extra": 0,
+            "k": 0,
+            "tag": 0
+          }
+        }
+      ],
+      "steps": [
+        {
+          "id": "n0",
+          "op": "sort",
+          "args": {
+            "field": "extra",
+            "dir": "asc",
+            "nulls": "first"
+          }
+        }
+      ]
+    },
+    "anchor": {
+      "kind": "owned equal-key occurrence pair inverted",
+      "sort": "n0",
+      "field": "extra",
+      "rows": [
+        "31:r2",
+        "31:r3"
+      ]
+    }
+  },
+  {
+    "name": "rename-nullability-widened",
+    "testCase": {
+      "id": "rename-contract",
+      "rows": [],
+      "steps": [
+        {
+          "id": "rename",
+          "op": "rename",
+          "args": {
+            "mapping": {
+              "k": "key"
+            }
+          }
+        }
+      ]
+    },
+    "anchor": {
+      "kind": "rename-nullability-widened",
+      "step": "rename",
+      "field": "extra",
+      "property": "nullable",
+      "expected": false,
+      "wrong": true
+    }
+  },
+  {
+    "name": "rename-type-changed",
+    "testCase": {
+      "id": "rename-contract",
+      "rows": [],
+      "steps": [
+        {
+          "id": "rename",
+          "op": "rename",
+          "args": {
+            "mapping": {
+              "k": "key"
+            }
+          }
+        }
+      ]
+    },
+    "anchor": {
+      "kind": "rename-type-changed",
+      "step": "rename",
+      "field": "key",
+      "property": "type",
+      "expected": "number",
+      "wrong": "string"
+    }
+  },
+  {
+    "name": "rename-swap-wrong-input",
+    "testCase": {
+      "id": "rename-swap",
+      "rows": [
+        {
+          "id": "different",
+          "values": {
+            "extra": 2,
+            "k": 1,
+            "tag": 0
+          }
+        }
+      ],
+      "steps": [
+        {
+          "id": "rename",
+          "op": "rename",
+          "args": {
+            "mapping": {
+              "extra": "k",
+              "k": "extra"
+            }
+          }
+        }
+      ]
+    },
+    "anchor": {
+      "kind": "rename swap reads output column",
+      "step": "rename",
+      "input": "extra",
+      "output": "k",
+      "row": "different"
+    }
+  }
+]
