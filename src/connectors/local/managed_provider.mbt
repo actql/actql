@@ -62,7 +62,16 @@ struct ManagedProviderExecution {
   stopped : () -> Bool
   // True confirms that cleanup is complete. False keeps cleanup pending.
   cleanup : () -> Result[Bool, @connector.FixedComputeIssue]
+  mut reported_work : Result[Int64, ManagedProviderWorkIssue]
+  mut child_work_issue : () -> ManagedProviderWorkIssue?
 }
+
+///|
+/// A diagnostic accounting failure, not permission to bill or resume Compute.
+pub(all) enum ManagedProviderWorkIssue {
+  InvalidReport
+  CounterOverflow
+} derive(Eq, Debug)
 
 ///|
 pub enum ManagedProviderPoll {
@@ -199,7 +208,14 @@ pub fn managed_provider_execution(
   stopped : () -> Bool,
   cleanup : () -> Result[Bool, @connector.FixedComputeIssue],
 ) -> ManagedProviderExecution {
-  { advance, cancel, stopped, cleanup, }
+  {
+    advance,
+    cancel,
+    stopped,
+    cleanup,
+    reported_work: Ok(0L),
+    child_work_issue: fn() { None },
+  }
 }
 
 ///|
@@ -208,6 +224,21 @@ pub fn managed_provider_accepts(
   sequence : @execution.GeneratedSequence,
 ) -> Bool {
   (provider.accepts)(sequence)
+}
+
+///|
+/// Internal composition binding, without changing the public constructor's
+/// four-callback function type or creating another accounting owner.
+fn managed_provider_execution_with_child_work_issue(
+  advance : (Int) -> Result[ManagedProviderPoll, @connector.FixedComputeIssue],
+  cancel : () -> Bool,
+  stopped : () -> Bool,
+  cleanup : () -> Result[Bool, @connector.FixedComputeIssue],
+  child_work_issue : () -> ManagedProviderWorkIssue?,
+) -> ManagedProviderExecution {
+  let owner = managed_provider_execution(advance, cancel, stopped, cleanup)
+  owner.child_work_issue = child_work_issue
+  owner
 }
 
 ///|
@@ -329,7 +360,47 @@ pub fn advance_managed_provider(
   execution : ManagedProviderExecution,
   quantum : Int,
 ) -> Result[ManagedProviderPoll, @connector.FixedComputeIssue] {
-  (execution.advance)(quantum)
+  let result = (execution.advance)(quantum)
+  if result is Ok(poll) {
+    let (progress, work) = match poll {
+      Continue(progress~, work~)
+      | Complete(_, progress~, work~)
+      | CarrierComplete(_, progress~, work~)
+      | Failed(_, progress~, work~)
+      | Stopped(progress~, work~) => (progress, work)
+    }
+    if execution.reported_work is Ok(total) {
+      if progress < 0L || work < 0L || work > quantum.to_int64() {
+        execution.reported_work = Err(InvalidReport)
+      } else if total > 9223372036854775807L - work {
+        execution.reported_work = Err(CounterOverflow)
+      } else {
+        execution.reported_work = Ok(total + work)
+      }
+    }
+  }
+  // A composition must not turn an invalid child's unaccountable work into a
+  // smaller normal parent total. Latch the fault before cleanup drops children.
+  if execution.reported_work is Ok(_) &&
+    (execution.child_work_issue)() is Some(issue) {
+    execution.reported_work = Err(issue)
+  }
+  if execution.reported_work is Err(_) {
+    // Accounting cannot authorize more Compute. Keep the same owner able to
+    // poll its physical stop and retry cleanup even after this sticky fault.
+    cancel_managed_provider(execution) |> ignore
+  }
+  result
+}
+
+///|
+/// Sum of this owner's validated per-poll deltas, including terminal and
+/// stop-only work. Reads and cleanup do not add work. Available after cleanup;
+/// an overflow/invalid report remains an error, never a saturated normal total.
+pub fn managed_provider_cumulative_work(
+  execution : ManagedProviderExecution,
+) -> Result[Int64, ManagedProviderWorkIssue] {
+  execution.reported_work
 }
 
 ///|
