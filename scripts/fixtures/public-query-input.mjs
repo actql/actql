@@ -8,6 +8,39 @@ export const sourceRows = [
   {id: 2, amount: 20}, {id: 3, amount: 30},
 ];
 const declarations = {minimum: {type: 'number'}};
+const relationNumber = (name, nullable = false) => ({name,
+  contract: {type: 'number', nullable}});
+export const queryCompositionSuccesses = [
+  {name: 'derived-pipe', format: 'sql',
+    text: 'SELECT id FROM (FROM records |> WHERE amount >= @minimum |> SELECT id) AS chosen ORDER BY id',
+    parameterDeclarations: declarations, parameters: {minimum: 20},
+    expected: [{id: 2}, {id: 3}, {id: 3}], columns: [relationNumber('id')], sourceReadCount: 1},
+  {name: 'derived-select-pipe', format: 'sql',
+    text: 'SELECT id FROM (SELECT id FROM records |> WHERE id > 1) AS chosen ORDER BY id',
+    expected: [{id: 2}, {id: 3}, {id: 3}], columns: [relationNumber('id')], sourceReadCount: 1},
+  {name: 'derived-outer-pipe', format: 'aql-text',
+    text: 'FROM (FROM records |> WHERE amount >= 20 |> SELECT id) AS chosen |> SELECT chosen.id AS id |> ORDER BY id',
+    expected: [{id: 2}, {id: 3}, {id: 3}], columns: [relationNumber('id')], sourceReadCount: 1},
+  {name: 'derived-null', format: 'sql',
+    text: 'SELECT amount, id FROM (FROM records |> WHERE amount IS NULL |> SELECT id, amount) AS chosen ORDER BY id',
+    expected: [{amount: null, id: 1}], columns: [relationNumber('amount', true), relationNumber('id')], sourceReadCount: 1},
+  {name: 'derived-empty', format: 'sql',
+    text: 'SELECT amount, id FROM (FROM records |> WHERE amount > 100 |> SELECT id, amount) AS chosen ORDER BY id',
+    expected: [], columns: [relationNumber('amount', true), relationNumber('id')], sourceReadCount: 1},
+  {name: 'cte-query-order-limit', format: 'sql',
+    text: 'WITH chosen AS (SELECT id, amount FROM records ORDER BY id LIMIT 1) SELECT amount, id FROM chosen ORDER BY id',
+    expected: [{amount: null, id: 1}], columns: [relationNumber('amount', true), relationNumber('id')], sourceReadCount: 1},
+];
+export const queryCompositionRefusals = [
+  {name: 'derived-hidden-column', format: 'sql',
+    text: 'SELECT chosen.amount FROM (FROM records |> SELECT id) AS chosen'},
+  {name: 'derived-hidden-range', format: 'sql',
+    text: 'SELECT old.id FROM (FROM records AS old |> SELECT id) AS chosen'},
+  {name: 'derived-displaced-range', format: 'sql',
+    text: 'SELECT id FROM (FROM records AS old |> AS fresh |> SELECT old.id) AS chosen'},
+  {name: 'derived-inner-terminator', format: 'sql',
+    text: 'SELECT id FROM (FROM records |> SELECT id;) AS chosen'},
+];
 export const querySuccesses = [
   {name: 'sql', format: 'sql',
     text: 'SELECT id FROM records WHERE amount >= @minimum ORDER BY id',

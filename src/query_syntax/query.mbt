@@ -529,17 +529,7 @@ fn QueryParser::query_source(
   self.synthetic_sources = serial + 1
   self.source_depth += 1
   ignore(self.advance())
-  let term = self.sql_term()
-  let tail : Array[QueryOperation] = []
-  if self.has("ORDER") {
-    self.keyword("ORDER")
-    self.keyword("BY")
-    tail.push(Order(self.order()))
-  }
-  if self.has("LIMIT") {
-    tail.push(self.limit())
-  }
-  let inner = { ..term, operations: term.operations + tail, }
+  let inner = self.relational_body()
   self.source_depth -= 1
   if self.advance().value != Symbol(41) {
     raise QueryAbort("Expected subquery closing parenthesis", self.peek().start)
@@ -1047,16 +1037,7 @@ fn QueryParser::query(self : QueryParser) -> Query raise QueryAbort {
       if self.advance().value != Symbol(40) {
         raise QueryAbort("Expected CTE opening parenthesis", self.peek().start)
       }
-      let body = if self.has("FROM") {
-        self.pipe(cte_body=true)
-      } else {
-        self.sql_term()
-      }
-      let body = if self.peek().value == Pipe {
-        self.pipe_tail(body, cte_body=true)
-      } else {
-        body
-      }
+      let body = self.relational_body()
       if self.advance().value != Symbol(41) {
         raise QueryAbort("Expected CTE closing parenthesis", self.peek().start)
       }
@@ -1083,6 +1064,34 @@ fn QueryParser::query(self : QueryParser) -> Query raise QueryAbort {
     raise QueryAbort("CTE count limit", self.peek().start)
   }
   { ..term, ctes: all_ctes, work: self.work, }
+}
+
+///|
+// A parenthesized relational producer has the same heads and pure Pipe tail
+// whether it is a CTE or a derived source. Its closing delimiter belongs to
+// the caller. Neither context admits INFER or a Graph query head through this
+// relational path; those operations retain their own placement contracts.
+fn QueryParser::relational_body(self : QueryParser) -> Query raise QueryAbort {
+  let term = if self.has("FROM") {
+    self.pipe(cte_body=true)
+  } else {
+    let term = self.sql_term()
+    let tail : Array[QueryOperation] = []
+    if self.has("ORDER") {
+      self.keyword("ORDER")
+      self.keyword("BY")
+      tail.push(Order(self.order()))
+    }
+    if self.has("LIMIT") {
+      tail.push(self.limit())
+    }
+    { ..term, operations: term.operations + tail, }
+  }
+  if self.peek().value == Pipe {
+    self.pipe_tail(term, cte_body=true)
+  } else {
+    term
+  }
 }
 
 ///|
