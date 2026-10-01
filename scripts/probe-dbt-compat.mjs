@@ -11,12 +11,17 @@
 // Requires Python 3.13 (ACTQL_PROBE_PYTHON, default `python3.13`), network
 // access for the initial wheel installation, and a repository build that can
 // pack the Client packages. dbt compile itself runs offline.
+//
+// Test only: ACTQL_DBT_PROBE_INJECT_RUN_FAILURE=<case>,... records those
+// cases' successful Runs as Run failures (marked `injected`), to show that a
+// Run failure fails the probe and keeps the evidence.
 import {spawnSync} from 'node:child_process';
 import {createHash, randomBytes} from 'node:crypto';
 import {existsSync} from 'node:fs';
 import {cp, mkdir, readdir, readFile, writeFile} from 'node:fs/promises';
 import {dirname, join, relative} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {probeStatus} from './fixtures/dbt-compat-judge.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {CLIENT_PACKAGES, packedClientPackage, packedNpmCache} from
   './packed-client-packages.mjs';
@@ -182,6 +187,7 @@ await run('npm', ['install', '--ignore-scripts', '--no-save',
     `actql-${name}-0.0.0-development.tgz`))], {cwd: install, env: npmEnv});
 for (const [source, destination] of [
   ['scripts/fixtures/dbt-compat-acceptance.mjs', 'acceptance.mjs'],
+  ['scripts/fixtures/dbt-compat-judge.mjs', 'dbt-compat-judge.mjs'],
   ['adapters/host-node/fixtures/query-amount-environment.json',
     'source-environment.json'],
   ['spec/local-check-environment.json', 'base-environment.json'],
@@ -220,16 +226,17 @@ const revision = spawnSync('git', ['rev-parse', 'HEAD'], {cwd: repository,
   encoding: 'utf8'}).stdout.trim();
 const dirty = spawnSync('git', ['status', '--porcelain', '--untracked-files=no'],
   {cwd: repository, encoding: 'utf8'}).stdout.trim() !== '';
-const failures = results.filter(item =>
-  ['baseline-failed', 'wrong-result'].includes(item.verdict));
 const compileProblems = Object.entries(compileChecks).filter(([, check]) =>
   check.connectionOpens !== 0 || check.duckdbFiles.length !== 0 ||
   check.userFile);
+const {status, failures} = probeStatus({outcomes: results, compileProblems,
+  fault});
+const injected = process.env.ACTQL_DBT_PROBE_INJECT_RUN_FAILURE;
 const summary = {
   version: 'actql-dbt-compat-evidence/0.1',
-  status: failures.length === 0 && compileProblems.length === 0 &&
-    fault === undefined ? 'passed' : 'failed',
+  status,
   ...(fault === undefined ? {} : {fault}),
+  ...(injected ? {injectedRunFailures: injected.split(',')} : {}),
   startedAt: new Date(started).toISOString(),
   elapsedMs: Date.now() - started,
   platform: `${process.platform}-${process.arch}`,
@@ -238,8 +245,9 @@ const summary = {
   dbt: {...versions, requirementsSha256: sha256(await readFile(join(probe,
     'requirements.txt'))), compileChecks},
   outcomes: results.map(({case: name, transport, stage, verdict, code,
-    problems}) => ({case: name, transport, stage, verdict,
+    problems, injected}) => ({case: name, transport, stage, verdict,
     ...(code === undefined ? {} : {code}),
+    ...(injected === undefined ? {} : {injected}),
     ...(problems === undefined ? {} : {problems})})),
 };
 await writeFile(join(evidence, 'summary.json'),

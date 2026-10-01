@@ -56,7 +56,7 @@ had the same outcome on Local and HTTP.
 | `ephemeral-pipe-into-pipe` | Pipe model over a Pipe ephemeral | `aql-text` | `ClientProgramInvalidInput` | ActQL parsing: `Expected SELECT` at 3:1, the Pipe `FROM` inside dbt's injected CTE body |
 | `ephemeral-select-into-pipe` | Pipe model over a SELECT ephemeral | `aql-text` | `ClientProgramInvalidInput` | ActQL parsing: `Expected SELECT` at 4:3, the Pipe `FROM` after dbt's injected `with … )` |
 | `default-quoting` | `pipe-ref` compiled without the `quoting:` setting | `aql-text` | `ClientProgramInvalidInput` | ActQL parsing: `Expected identifier` at 1:6, at `"memory"` |
-| `infer` | `FROM ref |> INFER \`model-task:risk.v1\` …` | `aql-text` | `ClientProgramUnsupported` | ActQL checking. The text parses and lowers. The checker refuses the lowered `stages.1.steps.1` (the `infer` step) as an unsupported implementation. |
+| `infer` | `FROM ref |> INFER \`model-task:risk.v1\` …` | `aql-text` | `ClientProgramUnsupported` | ActQL checking. The text parses and lowers. At this revision the shared checker has no `infer` owner, so it refuses the lowered `stages.1.steps.1` (the `infer` step) as an unsupported implementation. |
 
 ### Raw `dbt compile` output that runs on ActQL
 
@@ -85,18 +85,24 @@ dbt.
 - **dbt's default quoting.**
   - Minimal reproduction: `FROM "memory"."main"."stg_orders" |> SELECT id`, which gives `Expected identifier` at 1:6.
   - Controls: the unquoted form and ActQL's own `` `memory`.`main`.`stg_orders` `` both reach a Named Result.
-- **INFER.** With no ModelTask provider installed, a checked INFER Program is
-  refused as unsupported.
+- **INFER.** Parsing and lowering accept the dbt-rendered text. The shared
+  checker at this revision does not implement `infer` and refuses it as
+  unsupported. The repository states this in `src/query_program/infer_test.mbt`
+  ("INFER Program admission is not common checker or execution support").
   - Minimal reproduction: the one-line INFER text in `cases.json` (`infer-plain`). It stops at the same lowered step as the dbt model.
-  - Reaching a Named Result here would not have shown inference compatibility.
+  - A missing ModelTask provider is a separate, untested condition. The probe
+    installs none, and the refusal happens before any provider would be
+    consulted. Installing a provider would not, by itself, make this run.
 
 The internal diagnostic (message, line and column, checked node) comes from the
 in-process Local Client, which carries the Host's preparation issue. HTTP
 returns the same public code without the diagnostic.
 
 The minimal reproductions are hand-written texts that each differ from a
-reference in one construct. They run in every probe run on both transports. They
-are not dbt output.
+positive control in one construct. They run in every probe run on both
+transports. They are not dbt output. The positive controls (`plain-pipe`,
+`backtick-quoted-name`, `select-cte-into-select`) are checked for expected rows,
+columns and stream completion like the baselines.
 
 ## How results are judged
 
@@ -117,14 +123,28 @@ are not dbt output.
   projection written as JSON Programs. They agree with the dbt models, but they
   run on the same runtime, so the agreement is a front-end comparison, not an
   independent oracle.
-- **Expected non-support versus faults.** A refusal with one of the Client
-  submission codes is recorded as `unsupported` for an observe case. A baseline
-  or control that does not reach the expected Named Result fails the run, and so
-  does any other error (connection, timeout, missing dependency). Such a fault
-  is written to `results.json` with the outcomes recorded before it.
+- **Expected non-support versus failures.** The rules are in
+  `scripts/fixtures/dbt-compat-judge.mjs` and tested by
+  `scripts/dbt-compat-judge.test.mjs`, part of `check:distribution-client`.
+  - Only a refusal at submission, with one of the Client submission codes, of
+    an observe case is a finding (`unsupported`).
+  - A Run that was admitted and did not succeed is `run-failed` and fails the
+    probe, for observe cases as well as baselines and controls. It is a fault of
+    the run, not a statement about what ActQL supports.
+  - A baseline or control refused at submission is `baseline-failed`, and wrong
+    rows, columns or stream state are `wrong-result`. Both fail the probe.
+  - Any other error (connection, timeout, missing dependency) stops the run as a
+    fault. It is written to `results.json` with the outcomes recorded before it.
 - **Check of the comparison itself.** Changing one expected `(3, 30)` to
   `(3, 31)` made the run fail with `wrong-result` on both transports and kept
   the evidence and the environment.
+- **Check of the Run-failure rule.**
+  `ACTQL_DBT_PROBE_INJECT_RUN_FAILURE=<case>,…` is a test-only switch. It
+  records the named cases' successful Runs as Run failures, marked `injected`
+  in the evidence. Injecting the observe case `ephemeral-select-into-select` and
+  the positive control `reproduction:plain-pipe` made the run fail with
+  `run-failed` for both, on both transports. It exited 1 and kept the evidence
+  and the environment.
 
 ## What `dbt compile` needs
 
@@ -171,7 +191,7 @@ The run keeps:
 `summary.json` has `status: "passed"` only if all of these hold:
 
 - the compile checks pass;
-- no baseline or control failed;
+- no case is `baseline-failed`, `wrong-result` or `run-failed`;
 - no fault occurred.
 
 ## Runtime and maintenance cost
@@ -224,8 +244,10 @@ The probe did not implement any of these.
 2. **dbt's default double-quoted identifiers.** `"…"` is reserved for JSON text
    (Graph labels). Accepting the default quoting would need a lexing decision.
    Otherwise the documented quoting configuration remains a requirement.
-3. **INFER needs a ModelTask provider.** This probe shows only that the
-   dbt-rendered text parses, lowers and is refused at checking.
+3. **INFER.** Once shared `infer` checking and its Host execution path are
+   adopted, provide a ModelTask provider and verify execution. This probe shows
+   only that the dbt-rendered text parses, lowers and is refused by the shared
+   checker at this revision.
 4. **One relation per source profile.** An installed source profile binds one
    DuckDB table, so this probe covers models that read one relation. Models that
    `ref()` two relations were not tested.

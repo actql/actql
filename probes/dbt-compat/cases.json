@@ -146,43 +146,95 @@
       "name": "plain-pipe",
       "format": "aql-text",
       "text": "FROM memory.main.stg_orders |> SELECT id",
-      "purpose": "reference: the unquoted rendered name in a plain Pipe"
+      "purpose": "positive control: the unquoted rendered name in a plain Pipe",
+      "expect": "rows",
+      "order": "unordered",
+      "columns": [
+        {
+          "name": "id",
+          "contract": {"type": "number", "nullable": false}
+        }
+      ],
+      "rows": [
+        {"id": 1},
+        {"id": 2},
+        {"id": 3},
+        {"id": 3},
+        {"id": 4},
+        {"id": 5}
+      ]
     },
     {
       "name": "double-quoted-name",
       "format": "aql-text",
       "text": "FROM \"memory\".\"main\".\"stg_orders\" |> SELECT id",
-      "purpose": "only the identifier quoting differs from plain-pipe"
+      "purpose": "only the identifier quoting differs from plain-pipe",
+      "expect": "observe"
     },
     {
       "name": "backtick-quoted-name",
       "format": "aql-text",
       "text": "FROM `memory`.`main`.`stg_orders` |> SELECT id",
-      "purpose": "ActQL's own quoted-identifier form of the same name"
+      "purpose": "positive control: ActQL's own quoted-identifier form of the same name",
+      "expect": "rows",
+      "order": "unordered",
+      "columns": [
+        {
+          "name": "id",
+          "contract": {"type": "number", "nullable": false}
+        }
+      ],
+      "rows": [
+        {"id": 1},
+        {"id": 2},
+        {"id": 3},
+        {"id": 3},
+        {"id": 4},
+        {"id": 5}
+      ]
     },
     {
       "name": "select-cte-into-select",
       "format": "sql",
       "text": "WITH c AS (SELECT id FROM memory.main.stg_orders) SELECT id FROM c",
-      "purpose": "reference: SELECT CTE body and SELECT top level"
+      "purpose": "positive control: SELECT CTE body and SELECT top level",
+      "expect": "rows",
+      "order": "unordered",
+      "columns": [
+        {
+          "name": "id",
+          "contract": {"type": "number", "nullable": false}
+        }
+      ],
+      "rows": [
+        {"id": 1},
+        {"id": 2},
+        {"id": 3},
+        {"id": 3},
+        {"id": 4},
+        {"id": 5}
+      ]
     },
     {
       "name": "pipe-cte-body",
       "format": "aql-text",
       "text": "WITH c AS (FROM memory.main.stg_orders |> SELECT id) SELECT id FROM c",
-      "purpose": "only the CTE body is Pipe"
+      "purpose": "only the CTE body is Pipe",
+      "expect": "observe"
     },
     {
       "name": "with-then-pipe",
       "format": "aql-text",
       "text": "WITH c AS (SELECT id FROM memory.main.stg_orders) FROM c |> SELECT id",
-      "purpose": "only the top level after WITH is Pipe"
+      "purpose": "only the top level after WITH is Pipe",
+      "expect": "observe"
     },
     {
       "name": "infer-plain",
       "format": "aql-text",
       "text": "FROM memory.main.stg_orders |> INFER `model-task:risk.v1` ITEM KEY (id) INPUT (n = amount) KEEP (id) AS assessment",
-      "purpose": "the dbt INFER text without dbt, on one line"
+      "purpose": "the dbt INFER text without dbt, on one line",
+      "expect": "observe"
     }
   ]
 }

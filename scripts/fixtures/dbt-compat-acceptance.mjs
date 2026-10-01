@@ -14,6 +14,7 @@ import {resolve} from 'node:path';
 import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from
   './node_modules/@actql/local-node/adapters/host-node/embedded-local.mjs';
+import {canonical, judge} from './dbt-compat-judge.mjs';
 
 const [casesPath, compiledPath, resultsPath] = process.argv.slice(2);
 const specification = JSON.parse(await readFile(casesPath, 'utf8'));
@@ -27,12 +28,11 @@ const refusalCodes = new Set(['ClientProgramInvalidInput',
   'ClientProgramUnsupported', 'ClientProgramNeedsInputs',
   'ClientProgramRejected']);
 
-const canonical = value => Array.isArray(value)
-  ? '[' + value.map(canonical).join(',') + ']'
-  : value !== null && typeof value === 'object'
-    ? '{' + Object.keys(value).sort().map(key =>
-      JSON.stringify(key) + ':' + canonical(value[key])).join(',') + '}'
-    : JSON.stringify(value);
+// Test-only: case names whose admitted, successful Run is recorded as a Run
+// failure, to show that such a failure fails the whole probe and keeps its
+// evidence. Every injected outcome is marked as injected.
+const injectedRunFailures = new Set((process.env
+  .ACTQL_DBT_PROBE_INJECT_RUN_FAILURE ?? '').split(',').filter(Boolean));
 
 // The check environment and source profile, built as the packed public-query
 // acceptance builds them; only the alias name and table differ.
@@ -85,14 +85,6 @@ await writeFile(sourceProfilePath, canonical({
       connection: {all: true}, resource: {all: true},
       operation: {any_of: ['read']}, exclusions: []}]}),
 }));
-
-// Rows compared with duplicates kept; order only where the case orders.
-const multiset = rows => rows.map(canonical).sort();
-function sameRows(actual, expected, order) {
-  return order === 'unordered'
-    ? canonical(multiset(actual)) === canonical(multiset(expected))
-    : canonical(actual) === canonical(expected);
-}
 
 async function readAnswer(execution) {
   const result = execution.result('answer');
@@ -184,28 +176,20 @@ async function submit(client, requestId, text, format) {
   return {stage: 'named-result', ...await readAnswer(execution)};
 }
 
-function judge(item, outcome) {
-  if (outcome.stage !== 'named-result') {
-    return item.expect === 'rows'
-      ? {verdict: 'baseline-failed'} : {verdict: 'unsupported'};
+// Submit, apply a test-only injected Run failure, judge and record.
+async function record(client, transport, name, item, text, format) {
+  let outcome = await submit(client,
+    `dbt-${transport}-${name.replaceAll(':', '-')}`, text, format);
+  if (injectedRunFailures.has(name) && outcome.stage === 'named-result') {
+    outcome = {stage: 'actql-run-failed', injected: true,
+      state: {status: 'failed',
+        reason: 'injected by ACTQL_DBT_PROBE_INJECT_RUN_FAILURE'}};
   }
-  const problems = [];
-  if (item.rows !== undefined &&
-      !sameRows(outcome.all, item.rows, item.order)) {
-    problems.push('rows differ from the expected rows');
-  }
-  if (!sameRows(outcome.streamed, outcome.all, item.order ?? 'unordered')) {
-    problems.push('streamed rows differ from all()');
-  }
-  if (outcome.streamState !== 'complete') {
-    problems.push(`stream ended in state ${outcome.streamState}`);
-  }
-  if (item.rows !== undefined &&
-      canonical(outcome.columns) !== canonical(source.columns)) {
-    problems.push('result columns differ from the expected schema');
-  }
-  return problems.length === 0 ? {verdict: 'passed'}
-    : {verdict: 'wrong-result', problems};
+  const entry = {case: name, transport, ...outcome,
+    ...judge(item, outcome, source.columns)};
+  outcomes.push(entry);
+  await writeOutcomes();
+  return entry;
 }
 
 const outcomes = [];
@@ -222,42 +206,28 @@ async function exercise(transport, options) {
     for (const item of specification.cases) {
       const text = compiled[item.name];
       assert.equal(typeof text, 'string', `no compiled text for ${item.name}`);
-      const outcome = await submit(client, `dbt-${transport}-${item.name}`,
-        text, item.format);
-      outcomes.push({case: item.name, transport, ...outcome,
-        ...judge(item, outcome)});
-      await writeOutcomes();
-      if (outcome.stage === 'named-result' && item.program !== undefined) {
+      const entry = await record(client, transport, item.name, item, text,
+        item.format);
+      if (entry.stage === 'named-result' && item.program !== undefined) {
         // The same filter and projection authored as a JSON Program. It goes
-        // through the same runtime, so it is a comparison, not an oracle.
-        const program = await readFile(item.program, 'utf8');
-        const compared = await submit(client,
-          `dbt-${transport}-${item.name}-program`, program, 'json');
-        outcomes.push({case: `${item.name}:json-program`, transport,
-          ...compared, ...(compared.stage === 'named-result' &&
-            sameRows(compared.all, outcome.all, 'unordered')
-            ? {verdict: 'passed'}
-            : {verdict: 'wrong-result',
-              problems: ['JSON Program rows differ from the dbt model rows']})});
+        // through the same runtime, so it is a comparison, not an oracle:
+        // it must reproduce the dbt model's rows.
+        await record(client, transport, `${item.name}:json-program`,
+          {expect: 'rows', rows: entry.all, order: 'unordered'},
+          await readFile(item.program, 'utf8'), 'json');
       }
     }
-    // Hand-written minimal texts, each differing from a reference in one
-    // construct, to locate a refusal. They are not dbt output.
+    // Hand-written minimal texts, each differing from a positive control in
+    // one construct, to locate a refusal. They are not dbt output.
     for (const item of specification.reproductions ?? []) {
-      const outcome = await submit(client,
-        `dbt-${transport}-reproduction-${item.name}`, item.text, item.format);
-      outcomes.push({case: `reproduction:${item.name}`, transport, ...outcome,
-        verdict: 'recorded'});
-      await writeOutcomes();
+      await record(client, transport, `reproduction:${item.name}`, item,
+        item.text, item.format);
     }
     // Empty source: the same compiled text yields no rows and the same schema.
     await installRows([]);
     for (const item of specification.cases.filter(item => item.emptySource)) {
-      const outcome = await submit(client,
-        `dbt-${transport}-${item.name}-empty`, compiled[item.name],
-        item.format);
-      outcomes.push({case: `${item.name}:empty-source`, transport, ...outcome,
-        ...judge({...item, rows: []}, outcome)});
+      await record(client, transport, `${item.name}:empty-source`,
+        {...item, rows: []}, compiled[item.name], item.format);
     }
     await installRows(source.rows);
   } finally {
