@@ -8,6 +8,70 @@ The independent acceptance Program and outcomes remain those in
 [B's handoff](2026-10-01-infer-keep-handoff.md). No frontend evaluator,
 alternative Run owner, model cache, or new wire version is introduced.
 
+## Current handoff status
+
+The one-row public Host handoff is **not ready**. The records below describe
+earlier implementation units and their verification, not current acceptance
+of the complete inference path.
+
+Normal Program preparation now retains the installed ModelTask contract and
+its role-specific dependency roots. The runtime input connection uses the
+same checked Program owner to execute `Values -> assert_rows` through the
+existing bounded Local provider. Its actual `CompletedOutput`, not a raw
+Values capture, feeds `bind_infer_completed_input` and bounded INPUT mapping.
+The installed deterministic ModelTask provider receives the mapped `text`
+role, and the successful capture contains `{reason: null, risk: "high"}`.
+
+The reproducible narrow check is:
+
+```sh
+moon build --target js --release src/connectors_builtin_node
+node --test scripts/infer-owner-checker.test.mjs
+```
+
+This uses normal Program preparation and the common runtime bridge, not the
+public Embedded Local/HTTP Run entry. The test owns provider registration
+through `clientProgramInstallModelProvider`; it does not assemble internal
+execution state. Calls are one for the successful row and zero for empty
+input, prefix key failure and prefix cancellation. Same-input replay and
+cleanup do not call the provider again. Foreign providers, foreign request
+identities, changed keys and reclaimed input are rejected. Model consumers
+pin mapped rows and the prefix until physical settlement and cleanup.
+
+This internal replay check is not the versioned durable model capture or
+Run replay contract. The fixture's supplied fixed-request CID is likewise
+not evidence that the normal Host has derived and admitted a semantic
+request. No public Result, response Artifact or Run evidence is manufactured
+from this test observation.
+
+The remaining connection belongs to the common inference work:
+
+- Derive and admit the barrier's fixed request, input Artifact, call slots,
+  classification and execution envelope from the same prepared Program.
+- Issue the completed infer Relation only from that owner's accepted capture.
+- Extend `run_publication_host` task compilation to represent the acquisition
+  boundary without passing INFER through pure AoA lowering.
+- Connect that compilation and the model execution to the existing
+  `client-dispatch-owner` and publication owner, retaining stop and cleanup
+  custody. `local-values-plan.mjs` currently supplies empty model evidence.
+- Read the committed Named Result and compare it with the independent row
+  expectation before supplying an adoption SHA or Host startup example to B.
+
+These are unfinished integration work, not an unspecified Engine redesign
+or a claim that C must implement a replacement Run state machine. The old
+synchronous fixture helper has been removed: it captured Values directly,
+skipped the real asserted input target and returned observation JSON rather
+than a public Result. Only the full Node bridge imports the model kernel;
+the RelA-only bridge keeps its existing dependency separation.
+
+The affected input preparation, prefix lowering and model tests passed
+19/19 on each of JS, Wasm and native. The normal Program/model bridge tests
+passed 7/7 against a freshly rebuilt release artifact; Node assembly tests
+passed 8/8. JS, Wasm and native compilation of the common client input owner,
+canonical Node assembly regeneration and formatting passed. Complete CI jobs,
+Linux CI, durable capture/replay and committed Named Result reading were not
+run or established by this unit.
+
 ## Object and property execution
 
 The existing checked expression forms now reach shared typed lowering and

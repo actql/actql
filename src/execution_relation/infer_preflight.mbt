@@ -138,6 +138,35 @@ struct PreparedInferRows {
   logical : LogicalBudget
   roots : Array[LogicalRoot]
   mut reclaimed : Bool
+  mut consumers : Int
+}
+
+///|
+/// Exact nonpersistent custody for a ModelTask consuming mapped input.
+struct InferRowsUse {
+  owner : PreparedInferRows
+  mut released : Bool
+}
+
+///|
+pub fn acquire_prepared_infer_rows(value : PreparedInferRows) -> InferRowsUse? {
+  if value.reclaimed ||
+    !infer_rows_available(value.input) ||
+    value.consumers == 2147483647 {
+    return None
+  }
+  value.consumers += 1
+  Some({ owner: value, released: false, })
+}
+
+///|
+pub fn release_prepared_infer_rows_use(value : InferRowsUse) -> Bool {
+  if value.released {
+    return false
+  }
+  value.released = true
+  value.owner.consumers -= 1
+  true
 }
 
 ///|
@@ -181,6 +210,9 @@ pub fn prepared_infer_rows_value(
 
 ///|
 pub fn cleanup_prepared_infer_rows(value : PreparedInferRows) -> Bool {
+  if value.consumers > 0 {
+    return false
+  }
   if !value.reclaimed {
     for root in value.roots {
       release_logical_root(value.logical, root) |> ignore
@@ -846,6 +878,7 @@ fn infer_preparation_advance(
             logical: state.logical,
             roots: state.roots,
             reclaimed: false,
+            consumers: 0,
           },
           work,
           work,

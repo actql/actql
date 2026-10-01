@@ -96,6 +96,30 @@ pub fn prepare_sequence(
   owner : BoundPrepared,
   limits : SequenceLimits,
 ) -> Result[PreparedSequence, SequenceIssue] {
+  prepare_sequence_count(owner, owner.prepared.nodes.length(), limits)
+}
+
+///|
+/// Prepare only an exact checked prefix before an acquisition barrier. The
+/// bound invocation is retained; neither suffix execution nor acquisition
+/// success is implied. A barrier inside the prefix is still rejected.
+pub fn prepare_sequence_prefix(
+  owner : BoundPrepared,
+  terminal : Int,
+  limits : SequenceLimits,
+) -> Result[PreparedSequence, SequenceIssue] {
+  if terminal < 0 || terminal >= owner.prepared.nodes.length() {
+    return Err(SequenceLimit)
+  }
+  prepare_sequence_count(owner, terminal + 1, limits)
+}
+
+///|
+fn prepare_sequence_count(
+  owner : BoundPrepared,
+  count : Int,
+  limits : SequenceLimits,
+) -> Result[PreparedSequence, SequenceIssue] {
   let e = limits.expressions
   if limits.max_steps < 0 ||
     limits.max_rows < 0 ||
@@ -109,7 +133,7 @@ pub fn prepare_sequence(
     e.max_literal_text_bytes < 0 {
     return Err(InvalidSequenceLimits)
   }
-  if owner.prepared.nodes.length() > limits.max_steps {
+  if count > limits.max_steps {
     return Err(SequenceLimit)
   }
   let steps : Array[PreparedStep] = []
@@ -118,7 +142,7 @@ pub fn prepare_sequence(
   let mut bindings = limits.max_bindings
   let mut names = limits.max_name_bytes
   let mut expressions = limits.expressions
-  for i = 0; i < owner.prepared.nodes.length(); i = i + 1 {
+  for i = 0; i < count; i = i + 1 {
     let step = match owner.prepared.nodes[i].payload {
       Infer(_) => return Err(KernelFailure(i, MissingKernelNode))
       InnerJoin(_) => {

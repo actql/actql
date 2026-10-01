@@ -549,8 +549,6 @@ pub fn prepared_client_result_name(PreparedClientProgram, Int) -> String?
 
 pub fn prepared_client_uses_graph_carrier(PreparedClientProgram) -> Bool
 
-pub fn run_prepared_client_fixture_infer(PreparedClientProgram, Int, Int, Int64) -> String?
-
 pub fn source_free_caller_input_intent_cid() -> String
 
 pub fn start_captured_client_result_transformation(ClientResultTransformation, @physical_strategy.CapturedDAG, Int, PublicationOutputExportLimits, converted_output? : @execution_relation.CompletedOutput, max_pins? : Int) -> Result[CapturedClientResultTransformation, CapturedClientResultTransformationIssue]

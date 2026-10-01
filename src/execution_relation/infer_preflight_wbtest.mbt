@@ -127,6 +127,34 @@ test "inference input preparation sorts typed keys and maps only declared roles"
 }
 
 ///|
+test "mapped inference rows remain owned until all model uses settle" {
+  let (input, _) = infer_preflight_fixture(
+    (
+      #|[{"id":"a","text":"hello","secret":"private"}]
+    ),
+  )
+  let preparation = start_infer_rows_preparation(
+    @bounded.control(),
+    input,
+    infer_preflight_limits(),
+  ).unwrap()
+  let rows = infer_preflight_drain(preparation).unwrap()
+  let first = acquire_prepared_infer_rows(rows).unwrap()
+  let second = acquire_prepared_infer_rows(rows).unwrap()
+  assert_false(cleanup_prepared_infer_rows(rows))
+  assert_true(release_prepared_infer_rows_use(first))
+  assert_false(release_prepared_infer_rows_use(first))
+  assert_false(cleanup_prepared_infer_rows(rows))
+  assert_true(prepared_infer_rows_key(rows, 0, 0) is Some(_))
+  assert_true(release_prepared_infer_rows_use(second))
+  assert_true(cleanup_prepared_infer_rows(rows))
+  assert_true(acquire_prepared_infer_rows(rows) is None)
+  assert_true(prepared_infer_rows_key(rows, 0, 0) is None)
+  assert_true(cleanup_infer_rows_preparation(preparation).unwrap())
+  assert_eq(infer_rows_preparation_usage(preparation).1, 0)
+}
+
+///|
 test "duplicate inference keys reject before mapping and empty input prepares no slots" {
   let (input, source) = infer_preflight_fixture(
     (

@@ -47,6 +47,43 @@ priv enum ClientLocalSequenceOwner {
 }
 
 ///|
+/// Prepare the exact pure Relation prefix consumed by an installed Infer.
+/// The acquisition remains outside the generated Compute sequence, while
+/// both halves retain the original bound Program invocation.
+pub fn prepare_client_infer_prefix(
+  prepared : @publication_host.PreparedClientProgram,
+  task : Int,
+  step : Int,
+  registry_body : String,
+  values_body : String,
+  fragment_body? : String? = None,
+  ordered_body? : String? = None,
+) -> @execution.GeneratedSequence? {
+  let graph = @publication_host.prepared_client_graph(prepared)
+  // This initial connection has no external inputs or earlier task outputs.
+  // Refuse other shapes at preparation, before provider work begins.
+  guard task == 0 &&
+    @strategy.graph_task_count(graph) == 1 &&
+    step > 0 &&
+    @strategy.graph_task_owner(graph, task) is Some(owner) &&
+    @lower.preparation_input_count(@lower.bound_preparation(owner)) == 0 &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.payload(node) is @lower.Infer(_) &&
+    @lower.node_input_target(node, 0) == Some(@pipeline.Step(step - 1)) else {
+    return None
+  }
+  prepare_client_local_sequences_owned(
+    Pure(prepared),
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+    task_count=Some(1),
+    infer_prefix=Some((task, step - 1)),
+  ).bind(sequences => sequences.get(0))
+}
+
+///|
 fn prepare_client_local_sequences_owned(
   prepared : ClientLocalSequenceOwner,
   registry_body : String,
@@ -54,6 +91,7 @@ fn prepare_client_local_sequences_owned(
   fragment_body : String?,
   ordered_body : String?,
   task_count? : Int? = None,
+  infer_prefix? : (Int, Int)? = None,
 ) -> Array[@execution.GeneratedSequence]? {
   if registry_body.length() > 100000 || values_body.length() > 100000 {
     return None
@@ -145,10 +183,19 @@ fn prepare_client_local_sequences_owned(
         is Ok(_)
     }
     let sequence = match
-      @lower.prepare_sequence(
-        owner,
-        @publication_host.client_standard_values_sequence_limits(),
-      ) {
+      (match infer_prefix {
+        Some((prefix_task, terminal)) if task == prefix_task =>
+          @lower.prepare_sequence_prefix(
+            owner,
+            terminal,
+            @publication_host.client_standard_values_sequence_limits(),
+          )
+        _ =>
+          @lower.prepare_sequence(
+            owner,
+            @publication_host.client_standard_values_sequence_limits(),
+          )
+      }) {
       Ok(value) => value
       Err(_) => return None
     }
@@ -244,29 +291,47 @@ fn prepare_client_local_sequences_owned(
         _ => ()
       }
     }
-    let outcome = match prepared {
-      Pure(value) =>
-        @publication_host.prepare_client_task_sequence(
-          value,
-          task,
-          contracts,
-          contexts,
-          @publication_host.client_standard_values_sequence_limits(),
-          100000,
-          10000,
-          prepared_sequence=Some(sequence),
-        )
-      Effect(value) =>
-        @publication_host.prepare_client_effect_task_sequence(
-          value,
-          task,
-          contracts,
-          contexts,
-          @publication_host.client_standard_values_sequence_limits(),
-          100000,
-          10000,
-          prepared_sequence=Some(sequence),
-        )
+    let outcome = if infer_prefix is Some((prefix_task, terminal)) &&
+      task == prefix_task {
+      guard @lower.node_at(@lower.bound_preparation(owner), terminal)
+        is Some(node) else {
+        return None
+      }
+      @execution.prepare_generated_sequence(
+        contracts,
+        sequence,
+        contexts,
+        [@lower.node_id(node)],
+        100000,
+        10000,
+      ).map_err(issue => {
+        @publication_host.ClientTaskSequenceIssue::Generated(issue)
+      })
+    } else {
+      match prepared {
+        Pure(value) =>
+          @publication_host.prepare_client_task_sequence(
+            value,
+            task,
+            contracts,
+            contexts,
+            @publication_host.client_standard_values_sequence_limits(),
+            100000,
+            10000,
+            prepared_sequence=Some(sequence),
+          )
+        Effect(value) =>
+          @publication_host.prepare_client_effect_task_sequence(
+            value,
+            task,
+            contracts,
+            contexts,
+            @publication_host.client_standard_values_sequence_limits(),
+            100000,
+            10000,
+            prepared_sequence=Some(sequence),
+          )
+      }
     }
     let sequence = match outcome {
       Ok(value) => value

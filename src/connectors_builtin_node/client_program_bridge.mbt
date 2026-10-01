@@ -26,8 +26,6 @@ pub fn client_program_check_environment(
 }
 
 ///|
-
-///|
 /// The installed Host opts into the exact pinned numeric profile before
 /// checking a Program. An unknown CID cannot silently choose an algorithm.
 #export_name("clientProgramCheckEnvironmentWithNumericProfile")
@@ -206,22 +204,6 @@ pub fn client_program_task_count(
   prepared : @publication_host.PreparedClientProgram,
 ) -> Int {
   @strategy.graph_task_count(@publication_host.prepared_client_graph(prepared))
-}
-
-///|
-/// Run the installed fixture ModelTask through the checked Program owner.
-/// This is an actual Host dispatch bridge: the Program supplies the checked
-/// task and rows, while the Host supplies the registered provider.
-#export_name("clientProgramRunInferFixture")
-pub fn client_program_run_infer_fixture(
-  prepared : @publication_host.PreparedClientProgram,
-  max_rows : Int,
-  max_work : Int,
-  max_wire_bytes : Int64,
-) -> String? {
-  @publication_host.run_prepared_client_fixture_infer(
-    prepared, max_rows, max_work, max_wire_bytes,
-  )
 }
 
 ///|

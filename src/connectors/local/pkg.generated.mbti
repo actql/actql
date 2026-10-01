@@ -45,6 +45,8 @@ pub fn finish_local_output_export(LocalMaterializingAttempt) -> Result[(@executi
 
 pub fn install_local_export_retention(LocalMaterializingAttempt, () -> Bool) -> Result[Unit, LocalMaterializingIssue]
 
+pub fn local_bounded_relation_provider(@execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.GeneratedSequence) -> ManagedProvider?
+
 pub fn local_default_import_limits(@execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> LocalImportLimits
 
 pub fn local_export_retention_capacity(LocalExportLimits) -> Int64?

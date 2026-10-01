@@ -19,6 +19,8 @@ import {
 }
 
 // Values
+pub fn acquire_prepared_infer_rows(PreparedInferRows) -> InferRowsUse?
+
 pub fn admit_fragment_contract(RegisteredRelationContracts, @canonical_json.CanonicalValue, RegistryLimits) -> Result[FragmentContract, FragmentContractIssue]
 
 pub fn admit_managed_execution_profile(@canonical_json.CanonicalValue, RegistryLimits) -> Result[ManagedExecutionProfile, ManagedProfileIssue]
@@ -911,6 +913,8 @@ pub fn relation_schema_usage(RelationSchemaIdentity) -> (Int, Int, Int)
 
 pub fn relation_schema_wire(RelationSchemaIdentity) -> String
 
+pub fn release_prepared_infer_rows_use(InferRowsUse) -> Bool
+
 pub fn replay_completed_relation_export(CompletedOutputExport, CompletedRelationExportReceipt, ValueLimits, RowWireLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
 
 pub fn request_bounded_independent_row_copy_cancel(BoundedIndependentRowCopy) -> Bool
@@ -1653,6 +1657,8 @@ pub enum InferRowsPreparationPoll {
   InferRowsComplete(PreparedInferRows, work~ : Int64)
   InferRowsStopped(@bounded_execution.StopReason, work~ : Int64)
 }
+
+type InferRowsUse
 
 pub(all) enum InputKeyIssue {
   WrongOrigin

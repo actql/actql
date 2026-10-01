@@ -853,6 +853,8 @@ pub fn prepare_roots(PreparedSequence, RootLimits) -> Result[RootIndex, RootIssu
 
 pub fn prepare_sequence(BoundPrepared, SequenceLimits) -> Result[PreparedSequence, SequenceIssue]
 
+pub fn prepare_sequence_prefix(BoundPrepared, Int, SequenceLimits) -> Result[PreparedSequence, SequenceIssue]
+
 pub fn prepare_sequence_requirements(PreparedSequence, Array[FragmentEnforcement], Array[(Int, Int64)], Int) -> Result[SequenceRequirements, SequenceRequirementsIssue]
 
 pub fn prepare_set_kernel(BoundPrepared, Int, Int, Int) -> Result[PreparedSetKernel, SetIssue]

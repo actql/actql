@@ -112,6 +112,7 @@ pub(all) enum ModelObservation {
 ///|
 struct ModelState {
   rows : @relation.PreparedInferRows
+  input_use : @relation.InferRowsUse
   task : @environment.ModelTaskContract
   provider : ModelProvider
   fixed_request_cid : String
@@ -340,6 +341,7 @@ pub fn start_model_execution(
     limits.max_work < 0 ||
     limits.max_request_bytes < 0L ||
     limits.max_response_bytes < 0L ||
+    limits.max_request_bytes > 9223372036854775807L - limits.max_response_bytes ||
     limits.value_limits.max_nodes < 0 ||
     limits.value_limits.max_depth < 0 ||
     limits.value_limits.max_text_bytes < 0 {
@@ -347,6 +349,9 @@ pub fn start_model_execution(
   }
   let count = @relation.prepared_infer_rows_count(rows)
   let task = @infer.model_task(@relation.prepared_infer_rows_owner(rows))
+  if provider.provider_id != @environment.model_task_connector(task) {
+    return Err(InvalidProvider)
+  }
   if count > limits.max_items ||
     (
       @environment.model_task_max_items(task) is Some(max) &&
@@ -361,21 +366,31 @@ pub fn start_model_execution(
     Ok(value) => value
     Err(issue) => return Err(Ledger(issue))
   }
+  guard @relation.acquire_prepared_infer_rows(rows) is Some(input_use) else {
+    return Err(OutputIdentity)
+  }
   let reservations : Array[@resources.Reservation] = []
   for _ in 0..<count {
     match
       @resources.reserve_attempt(
         ledger,
-        limits.max_request_bytes,
+        limits.max_request_bytes + limits.max_response_bytes,
         limits.max_response_bytes,
         0L,
       ) {
       Ok(value) => reservations.push(value)
-      Err(issue) => return Err(Ledger(issue))
+      Err(issue) => {
+        for prior in reservations {
+          @resources.settle_reservation(ledger, prior) |> ignore
+        }
+        @relation.release_prepared_infer_rows_use(input_use) |> ignore
+        return Err(Ledger(issue))
+      }
     }
   }
   let state : ModelState = {
     rows,
+    input_use,
     task,
     provider,
     fixed_request_cid,
@@ -426,14 +441,17 @@ pub fn cleanup_model_execution(
   execution : ModelExecution,
 ) -> Result[Bool, ModelExecutionIssue] {
   match @bounded.cleanup(execution.session) {
-    Ok(value) => {
+    Ok(false) => Ok(false)
+    Ok(true) => {
       for reservation in execution.state.reservations {
         if @resources.reservation_open(reservation) {
           @resources.settle_reservation(execution.state.ledger, reservation)
           |> ignore
         }
       }
-      Ok(value)
+      @relation.release_prepared_infer_rows_use(execution.state.input_use)
+      |> ignore
+      Ok(true)
     }
     Err(issue) => Err(Session(issue))
   }
@@ -508,4 +526,47 @@ pub fn replay_model_capture(
     output.push(capture.value)
   }
   Ok(output)
+}
+
+///|
+/// Replay for the exact admitted input: valid-looking CID strings alone do
+/// not prove that captures belong to these keys or call slots. No provider
+/// or dispatch operation is available through this path.
+pub fn replay_model_capture_rows(
+  rows : @relation.PreparedInferRows,
+  fixed_request_cid : String,
+  bundle : ModelCaptureBundle,
+) -> Result[Array[@admitted.CheckedValue], ModelExecutionIssue] {
+  guard @relation.acquire_prepared_infer_rows(rows) is Some(input_use) else {
+    return Err(OutputIdentity)
+  }
+  let result = replay_model_capture_rows_owned(rows, fixed_request_cid, bundle)
+  @relation.release_prepared_infer_rows_use(input_use) |> ignore
+  result
+}
+
+///|
+fn replay_model_capture_rows_owned(
+  rows : @relation.PreparedInferRows,
+  fixed_request_cid : String,
+  bundle : ModelCaptureBundle,
+) -> Result[Array[@admitted.CheckedValue], ModelExecutionIssue] {
+  let owner = @relation.prepared_infer_rows_owner(rows)
+  let task = @infer.model_task(owner)
+  if bundle.captures.length() != @relation.prepared_infer_rows_count(rows) {
+    return Err(OutputIdentity)
+  }
+  for index, capture in bundle.captures {
+    guard request_key(rows, index, owner) is Some(key) &&
+      key_cid(key) is Some(expected_key) &&
+      slot_cid(fixed_request_cid, index, key) is Some(expected_slot) else {
+      return Err(OutputIdentity)
+    }
+    if capture.input_key_cid != expected_key ||
+      capture.slot_cid != expected_slot ||
+      capture.provider_id != @environment.model_task_connector(task) {
+      return Err(OutputIdentity)
+    }
+  }
+  replay_model_capture(task, fixed_request_cid, bundle)
 }

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
+import {inspect} from 'node:util';
 
 import * as moon from
   '../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
@@ -45,6 +46,173 @@ function program() {
 const prepare = (source, owner) =>
   moon.clientProgramPrepareEffectFreeWithParameters(
     canonicalText(source), 'json', owner, undefined);
+
+const registry = readFileSync(new URL(
+  '../spec/dependencies/aoa-pipeline-registry.json', import.meta.url), 'utf8');
+const values = canonicalText(JSON.parse(readFileSync(new URL(
+  '../spec/contracts/actql-aoa.json', import.meta.url), 'utf8'))
+  .execution_contracts['REL.values']);
+const checked = value => {
+  assert.equal(value?.$tag, 1, inspect(value, {depth: 3}));
+  return value._0;
+};
+
+function startInput(source = program()) {
+  const prepared = moon.clientProgramPreparationReady(
+    prepare(source, environment()));
+  assert.ok(prepared);
+  const input = moon.clientProgramStartInferInput(
+    prepared, registry, values, 2);
+  assert.ok(input);
+  return input;
+}
+
+async function mappedRows(input) {
+  let lastWork = 0n;
+  for (let poll = 0; poll < 2000; poll++) {
+    const value = checked(moon.clientProgramAdvanceInferInput(input, 1));
+    const work = value.$tag === 0 ? value._0 : value._1;
+    assert.ok(work >= lastWork && work - lastWork <= 1n);
+    lastWork = work;
+    const rows = moon.clientProgramInferInputRows(value);
+    if (rows !== undefined) return rows;
+    assert.equal(value.$tag, 0, inspect(value, {depth: 3}));
+    // A macrotask boundary can deliver cancellation, unlike a microtask loop.
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  assert.fail('input did not reach a terminal outcome');
+}
+
+test('normal checked Relation completion feeds a registered ModelTask', async () => {
+  const input = startInput();
+  const rows = await mappedRows(input);
+  let calls = 0;
+  const provider = moon.clientProgramInstallModelProvider(
+    'models/fixture', request => {
+      calls++;
+      assert.equal(moon.clientProgramModelRequestInput(request, 'text'),
+        '"hello"');
+      return moon.clientProgramModelResponse(request,
+        '{"reason":null,"risk":"high"}', 'fixture-risk-model', 'request-1',
+        1n, 2n, '2026-10-01T00:00:00.000Z');
+    });
+  assert.ok(provider);
+  assert.equal(calls, 0, 'preparation must not call the provider');
+  const active = checked(moon.clientProgramStartModelExecution(rows, provider,
+    `sha256:${'1'.repeat(64)}`));
+  assert.equal(moon.clientProgramCleanupModelExecution(active).$tag, 0,
+    'the common session refuses cleanup before physical stop');
+  assert.equal(checked(moon.clientProgramCleanupInferInput(input)), false,
+    'the live ModelTask must retain its mapped input and prefix');
+  assert.equal(calls, 0);
+  let bundle;
+  for (let poll = 0; poll < 20; poll++) {
+    const observation = checked(moon.clientProgramAdvanceModelExecution(
+      active, 1));
+    bundle = moon.clientProgramModelCapture(observation);
+    if (bundle !== undefined) break;
+    assert.equal(observation.$tag, 0, inspect(observation, {depth: 5}));
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  assert.ok(bundle);
+  const captured = JSON.parse(moon.clientProgramModelCaptureJson(bundle));
+  assert.equal(calls, 1);
+  assert.equal(captured.task_cid, task.contract_cid);
+  assert.equal(captured.captures.length, 1);
+  assert.deepEqual(captured.captures[0].value, {reason: null, risk: 'high'});
+  assert.equal(moon.clientProgramReplayModelCapture(rows,
+    `sha256:${'1'.repeat(64)}`, bundle), true);
+  assert.equal(moon.clientProgramReplayModelCapture(rows,
+    `sha256:${'2'.repeat(64)}`, bundle), false);
+  const changed = program();
+  changed.stages[0].steps[0].values.rows[0].id = 'b';
+  const changedInput = startInput(changed);
+  const changedRows = await mappedRows(changedInput);
+  assert.equal(moon.clientProgramReplayModelCapture(changedRows,
+    `sha256:${'1'.repeat(64)}`, bundle), false,
+  'equal task and request identities cannot substitute a different key');
+  assert.equal(checked(moon.clientProgramCleanupInferInput(changedInput)), true);
+  assert.equal(calls, 1, 'replay must not dispatch the provider');
+  assert.equal(checked(moon.clientProgramCleanupModelExecution(active)), true);
+  assert.equal(checked(moon.clientProgramCleanupInferInput(input)), true);
+  assert.equal(moon.clientProgramReplayModelCapture(rows,
+    `sha256:${'1'.repeat(64)}`, bundle), false,
+  'reclaimed input cannot be used to admit replay');
+  assert.equal(calls, 1, 'cleanup must not dispatch again');
+});
+
+test('a foreign physical provider is refused before invocation', async () => {
+  const input = startInput();
+  const rows = await mappedRows(input);
+  let calls = 0;
+  const provider = moon.clientProgramInstallModelProvider('models/foreign',
+    () => { calls++; return undefined; });
+  assert.ok(provider);
+  assert.equal(moon.clientProgramStartModelExecution(rows, provider,
+    `sha256:${'1'.repeat(64)}`).$tag, 0);
+  assert.equal(calls, 0);
+  assert.equal(checked(moon.clientProgramCleanupInferInput(input)), true);
+});
+
+test('empty completed input captures no slots and invokes no provider', async () => {
+  const source = program();
+  source.stages[0].steps[0].values.rows = [];
+  const input = startInput(source);
+  const rows = await mappedRows(input);
+  let calls = 0;
+  const provider = moon.clientProgramInstallModelProvider('models/fixture',
+    () => { calls++; return undefined; });
+  const active = checked(moon.clientProgramStartModelExecution(rows, provider,
+    `sha256:${'1'.repeat(64)}`));
+  const observation = checked(moon.clientProgramAdvanceModelExecution(active, 1));
+  const bundle = moon.clientProgramModelCapture(observation);
+  assert.ok(bundle);
+  assert.deepEqual(JSON.parse(moon.clientProgramModelCaptureJson(bundle))
+    .captures, []);
+  assert.equal(calls, 0);
+  assert.equal(checked(moon.clientProgramCleanupModelExecution(active)), true);
+  assert.equal(checked(moon.clientProgramCleanupInferInput(input)), true);
+  assert.equal(moon.clientProgramReplayModelCapture(rows,
+    `sha256:${'1'.repeat(64)}`, bundle), false);
+});
+
+test('the actual prefix key assertion runs before any model dispatch', async () => {
+  const source = program();
+  source.stages[0].steps[0].values.rows.push({id: 'a', text: 'duplicate'});
+  const input = startInput(source);
+  let failed = false;
+  for (let poll = 0; poll < 2000; poll++) {
+    const value = checked(moon.clientProgramAdvanceInferInput(input, 1));
+    assert.equal(moon.clientProgramInferInputRows(value), undefined);
+    if (value.$tag === 3) {
+      failed = true;
+      break;
+    }
+    assert.equal(value.$tag, 0);
+  }
+  assert.ok(failed);
+  assert.equal(checked(moon.clientProgramCleanupInferInput(input)), true);
+});
+
+test('started prefix cancellation stops without producing mapped rows', async () => {
+  const input = startInput();
+  const first = checked(moon.clientProgramAdvanceInferInput(input, 1));
+  assert.equal(first.$tag, 0);
+  assert.ok(first._0 > 0n);
+  assert.equal(moon.clientProgramCancelInferInput(input), true);
+  let stopped = false;
+  for (let poll = 0; poll < 20; poll++) {
+    const value = checked(moon.clientProgramAdvanceInferInput(input, 1));
+    assert.equal(moon.clientProgramInferInputRows(value), undefined);
+    if (value.$tag === 2) {
+      stopped = true;
+      break;
+    }
+    assert.equal(value.$tag, 0);
+  }
+  assert.ok(stopped);
+  assert.equal(checked(moon.clientProgramCleanupInferInput(input)), true);
+});
 
 test('normal Program checking retains the installed model acquisition', () => {
   const owner = environment();

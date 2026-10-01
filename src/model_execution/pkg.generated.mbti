@@ -21,6 +21,8 @@ pub fn model_capture_bundle_json(ModelCaptureBundle, Int, Int, Int) -> String?
 
 pub fn replay_model_capture(@check_environment.ModelTaskContract, String, ModelCaptureBundle) -> Result[Array[@value_admission.CheckedValue], ModelExecutionIssue]
 
+pub fn replay_model_capture_rows(@execution_relation.PreparedInferRows, String, ModelCaptureBundle) -> Result[Array[@value_admission.CheckedValue], ModelExecutionIssue]
+
 pub fn request_model_cancel(ModelExecution) -> Bool
 
 pub fn start_model_execution(@execution_relation.PreparedInferRows, ModelProvider, String, ModelExecutionLimits) -> Result[ModelExecution, ModelExecutionIssue]
