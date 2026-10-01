@@ -476,11 +476,11 @@ and checked by `check:local-resource-accounting`.
 <!-- local-resource-accounting-summary:start -->
 | Resource boundary evidence | Count |
 |---|---:|
-| Production routes | 68 |
-| Operation-specific boundary records | 68 |
-| Four-role lifecycle assurance | 68 |
-| Full route work/workspace assurance | 68 |
-| Path-scoped work/workspace assurance | 121 |
+| Production routes | 69 |
+| Operation-specific boundary records | 69 |
+| Four-role lifecycle assurance | 69 |
+| Full route work/workspace assurance | 69 |
+| Path-scoped work/workspace assurance | 122 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -2604,19 +2604,19 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 <!-- local-family-coverage-summary:start -->
 | Coverage state | Count |
 |---|---:|
-| `contract` | 39/40 |
-| `checker` | 39/40 |
-| `lowering` | 39/40 |
-| `kernel` | 39/40 |
-| `managed` | 39/40 |
-| `standard_host` | 39/40 |
-| `consumer_lifetime` | 39/40 |
-| `resources` | 39/40 |
-| `cancellation` | 39/40 |
-| `publication` | 39/40 |
-| `three_targets` | 39/40 |
-| complete operations | 39/40 |
-| open operations | 1/40 |
+| `contract` | 40/40 |
+| `checker` | 40/40 |
+| `lowering` | 40/40 |
+| `kernel` | 40/40 |
+| `managed` | 40/40 |
+| `standard_host` | 40/40 |
+| `consumer_lifetime` | 40/40 |
+| `resources` | 40/40 |
+| `cancellation` | 40/40 |
+| `publication` | 40/40 |
+| `three_targets` | 40/40 |
+| complete operations | 40/40 |
+| open operations | 0/40 |
 <!-- local-family-coverage-summary:end -->
 
 ## Closed normative contract mismatches
