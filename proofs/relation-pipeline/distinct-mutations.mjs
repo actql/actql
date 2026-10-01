@@ -59,8 +59,8 @@ function anchorFor(kind, c, observed, registry) {
 }
 export const distinctMutations = [
   { name: 'distinct-first-column-only', path: 'src/execution_relation/bounded_binding_rows.mbt',
-    before: 'indices[state.distinct_cursor - 1],\n              indices[state.distinct_cursor],\n              state.sort_orders.length(),',
-    after: 'indices[state.distinct_cursor - 1],\n              indices[state.distinct_cursor],\n              1,',
+    before: 'PrepareDistinctTerms => {\n        if state.column == state.output_names.length()',
+    after: 'PrepareDistinctTerms => {\n        if state.column == 1',
     eligible: oneDistinct,
     anchor: (c, o, registry) => anchorFor('distinct compares only first column', c, o, registry), preserves: semanticMismatch },
   { name: 'distinct-mirrored-keep-mask', path: 'src/execution_relation/bounded_binding_rows.mbt',

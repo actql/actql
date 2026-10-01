@@ -1,6 +1,6 @@
 {
   "version": "actql-relation-pipeline-reuse-baseline/0.1",
-  "revision": "7379b1013b5cd374b213d6abf1bd2193005f2a99",
+  "revision": "489f3c4ad38eece09de9674eae7a1b0ddeab1969",
   "comparison": "existing whole-row distinct registered after the completed rename acceptance foundation; no new product operation",
   "common": {
     ".github/workflows/ci.yml": "d596cf233de53b3723d289cc058574a9c38c540a4d5e2de281d862e9d60d3f8a",
