@@ -100,7 +100,12 @@ pub fn start(
     Ok(value) => value
     Err(issue) => return Err(Capacity(issue))
   }
-  if limits.model.max_items < 0 {
+  let request_ceiling = match
+    @publication_host.prepared_client_infer_host_request_ceiling(prepared, step) {
+    Ok(value) => value
+    Err(issue) => return Err(Capacity(issue))
+  }
+  if limits.model.max_items < 0 || limits.model.max_request_bytes < 0L {
     return Err(Model(@model.InvalidLimits))
   }
   // A Host-installed physical envelope may tighten the checked policy, never
@@ -111,6 +116,10 @@ pub fn start(
     model: {
       ..limits.model,
       max_items: Int64::min(ceiling, limits.model.max_items.to_int64()).to_int(),
+      max_request_bytes: Int64::min(
+        request_ceiling,
+        limits.model.max_request_bytes,
+      ),
     },
   }
   let input = match
@@ -361,6 +370,17 @@ pub fn cancel(active : Execution) -> Bool {
     Handoff | Terminal => ()
   }
   true
+}
+
+///|
+/// Read a bounded physical phase for cancellation tests and diagnostics.
+/// This grants no Run, model-egress or evidence authority.
+pub fn request_preflight_pending(active : Execution) -> Bool {
+  !active.reclaimed &&
+  !active.cancelled &&
+  active.phase is Model &&
+  active.model is Some(model) &&
+  @model.model_execution_preflighting(model)
 }
 
 ///|

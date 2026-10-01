@@ -122,7 +122,46 @@ the complete rerun with `MOON_HOME` and its `bin` on `PATH` passed. Generated
 interfaces were refreshed from source. These results are not public Host,
 committed Named Result, complete core-gate or Linux CI evidence.
 
-### Bounded response custody
+### Bounded mapped-request preflight
+
+The model owner prepares every mapped request before its first provider call.
+Key and private slot encoding, input collection and structured input measurement
+advance through the existing incremental wire cursor. A later row that exceeds
+the byte ceiling rejects the execution with zero calls, even when the earlier
+row fits. The ceiling is read from the same prepared Program's checked Host
+policy; a physical envelope can tighten it but cannot widen it.
+
+Each slot reserves request and response retention together before preflight.
+Cancellation retains mapped-input custody and those reservations until physical
+stop and cleanup. The normal Program test cancels a 1,024-element request from
+an actual JavaScript macrotask during incremental encoding, before any provider
+call, capture or completed output. Cleanup releases retained and reserved
+charges without refunding attempts or dispatching again. Provider callbacks
+observe all requests prepared before the first call.
+
+Independent boundaries are 16 mapped-input JSON bytes for `{"text":"hello"}`,
+48 bytes for `{"text":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]}`,
+and 17 or 50 model transitions respectively for their two-field responses.
+Exact and one-short cases check typed failures, provider counts and custody.
+Nested response work is now `2 * n + 18`, including request preflight. With
+the fixture Host's 1,000-byte request and 65,536-byte response ceilings, the
+one-row reservation is 66,536 bytes. The old response-only bounds below are
+historical results from the preceding implementation unit, not current limits.
+
+Focused checks passed on JS, Wasm and native: twelve `client_infer_host` tests,
+two `model_execution` tests and seven Infer-focused `run_publication_host`
+tests per target. The rebuilt Node bridge passed all 21 tests, including both
+request and response cancellation through actual macrotask delivery.
+
+These measured bytes describe mapped-input JSON, not an exact physical adapter
+request, prompt/tokenizer/media plan, semantic request or model-egress authority.
+The existing scalar encoding and private identity bounds remain unchanged.
+The private slot spelling is not a registered public call-slot identity.
+Executable Plan admission, common Run dispatch, formal captures/replay and
+committed Named Result reading still need their production connection. This
+unit supplies no adoption-ready public Host SHA or Linux CI evidence.
+
+### Historical response-admission boundary
 
 The model owner now reserves one attempt per resume, completes all slot
 reservations before dispatch, and validates a returned value with the existing

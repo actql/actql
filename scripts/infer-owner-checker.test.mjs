@@ -20,12 +20,14 @@ void ignored;
 const cid = value => `sha256:${createHash('sha256')
   .update(canonicalText(value)).digest('hex')}`;
 
-function environment(installTask = true, hostItems, installedTask = task) {
+function environment(installTask = true, hostItems, installedTask = task,
+  capacityOverrides = {}) {
   const body = {...baseEnvironment,
     model_task_contracts: installTask ? [installedTask] : []};
-  if (hostItems !== undefined) {
+  if (hostItems !== undefined || Object.keys(capacityOverrides).length > 0) {
     body.host_policy_profile = {...body.host_policy_profile,
-      capacity: {...body.host_policy_profile.capacity, max_infer_items: hostItems}};
+      capacity: {...body.host_policy_profile.capacity, ...capacityOverrides,
+        ...(hostItems === undefined ? {} : {max_infer_items: hostItems})}};
   }
   const evidenceCid = cid(body);
   return moon.clientProgramCheckEnvironment(
@@ -216,7 +218,8 @@ async function acceptedModel() {
 
 function ownedInfer(source = program(), onInvoke, options = {}) {
   const preparation = moon.clientProgramPrepareEffectFreeWithParameters(
-      canonicalText(source), 'json', environment(true, options.hostItems),
+      canonicalText(source), 'json', environment(true, options.hostItems, task,
+        options.capacityOverrides),
       options.parameters === undefined ? undefined : canonicalText(options.parameters));
   const prepared = moon.clientProgramPreparationReady(preparation);
   assert.ok(prepared, inspect(preparation, {depth: 4}));
@@ -237,8 +240,8 @@ function ownedInfer(source = program(), onInvoke, options = {}) {
   return {prepared, active, calls: () => calls};
 }
 
-async function modelTerminal(active) {
-  let lastWork = 0n;
+async function modelTerminal(active, initialWork = 0n) {
+  let lastWork = initialWork;
   for (let poll = 0; poll < 20000; poll++) {
     const value = checked(moon.clientProgramAdvanceModelExecution(active, 1));
     const work = value._2 ?? value._1;
@@ -307,6 +310,99 @@ async function ownedInferTerminal(active, atYield) {
   }
   assert.fail('owned inference failed to settle within the finite poll bound');
 }
+
+test('actual Host request ceilings reject a late row before any dispatch', async () => {
+  const source = program();
+  const exact = ownedInfer(source, undefined, {capacityOverrides: {
+    max_model_request_bytes_per_item: 16,
+  }});
+  assert.equal((await ownedInferTerminal(exact.active)).$tag, 1);
+  assert.equal(exact.calls(), 1);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(exact.active)), true);
+  const late = structuredClone(source);
+  late.stages[0].steps[0].values.rows.push({id: 'b', text: 'longer'});
+  for (const [candidate, requestBytes] of [[source, 15], [late, 16]]) {
+    const {active, calls} = ownedInfer(candidate, undefined, {capacityOverrides: {
+      max_model_request_bytes_per_item: requestBytes,
+    }});
+    const failed = await ownedInferTerminal(active);
+    assert.equal(failed.$tag, 2, inspect(failed));
+    assert.equal(failed._0.$tag, 2, 'the common model owner rejects preflight');
+    assert.equal(failed._0._0.$tag, 12, 'exact Model(RequestLimit) cause');
+    assert.equal(calls(), 0);
+    assert.equal(moon.clientProgramInferExecutionCapture(active), undefined);
+    assert.equal(moon.clientProgramAcquireInferOutput(active), undefined);
+    assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), true);
+    assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), true);
+    assert.equal(calls(), 0);
+  }
+});
+
+test('macrotask cancellation stops nested request preflight before model access', async () => {
+  const source = program();
+  const arrayTask = structuredClone(task);
+  const inputType = {type: 'array', nullable: true, max_items: 1024,
+    items: {type: 'number', nullable: false}};
+  source.stages[0].steps[0].values.schema.text = inputType;
+  source.stages[0].steps[0].values.rows[0].text =
+    Array.from({length: 1024}, (_, index) => index);
+  arrayTask.input_contract.fields.text = inputType;
+  arrayTask.input_schema_cid = cid(arrayTask.input_contract);
+  delete arrayTask.contract_cid;
+  arrayTask.contract_cid = cid(arrayTask);
+  const preparation = prepare(source, environment(true, undefined, arrayTask, {
+    max_model_request_bytes_per_item: 65536, max_nested_value_bytes: 10000,
+  }));
+  const prepared = moon.clientProgramPreparationReady(preparation);
+  assert.ok(prepared, inspect(preparation, {depth: 4}));
+  let calls = 0;
+  const provider = moon.clientProgramInstallModelProvider('models/fixture', request => {
+    calls++;
+    return moon.clientProgramModelResponse(request,
+      '{"reason":null,"risk":"high"}', 'fixture-risk-model', 'request-1',
+      1n, 2n, '2026-10-01T00:00:00.000Z');
+  });
+  const active = checked(moon.clientProgramStartInferExecution(
+    prepared, 2, registry, values, provider, `sha256:${'1'.repeat(64)}`));
+  let reached = false;
+  let last = 0n;
+  for (let poll = 0; poll < 50000; poll++) {
+    const observation = checked(moon.clientProgramAdvanceInferExecution(active, 1));
+    assert.equal(observation.$tag, 0, inspect(observation));
+    assert.ok(observation._0 >= last && observation._0 - last <= 1n);
+    last = observation._0;
+    if (moon.clientProgramInferRequestPreflightPending(active)) {
+      reached = true;
+      break;
+    }
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  assert.equal(reached, true, 'the normal Program reached model preflight');
+  for (let poll = 0; poll < 64; poll++) {
+    const observation = checked(moon.clientProgramAdvanceInferExecution(active, 1));
+    assert.equal(observation.$tag, 0);
+    assert.ok(observation._0 >= last && observation._0 - last <= 1n);
+    last = observation._0;
+    assert.equal(moon.clientProgramInferRequestPreflightPending(active), true);
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  assert.equal(calls, 0);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), false);
+  await new Promise(resolve => setImmediate(() => {
+    assert.equal(moon.clientProgramCancelInferExecution(active), true);
+    resolve();
+  }));
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), false,
+    'a cancellation request is not physical stop confirmation');
+  const stopped = checked(moon.clientProgramAdvanceInferExecution(active, 1));
+  assert.equal(stopped.$tag, 3);
+  assert.equal(moon.clientProgramInferRequestPreflightPending(active), false);
+  assert.equal(moon.clientProgramInferExecutionOutput(stopped), undefined);
+  assert.equal(moon.clientProgramInferExecutionCapture(active), undefined);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), true);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), true);
+  assert.equal(calls, 0);
+});
 
 test('one MoonBit owner executes the checked prefix, model and Result output', async () => {
   const {prepared, active, calls} = ownedInfer(undefined, owner => {
@@ -548,10 +644,12 @@ test('a response arriving after cancellation cannot authorize model output', asy
     });
   active = checked(moon.clientProgramStartModelExecution(rows, provider,
     `sha256:${'1'.repeat(64)}`));
-  assert.equal(checked(moon.clientProgramAdvanceModelExecution(active, 1)).$tag, 0,
+  const reservation = checked(moon.clientProgramAdvanceModelExecution(active, 1));
+  assert.equal(reservation.$tag, 0,
     'reserve attempts in bounded steps before the first call');
   assert.equal(calls, 0);
-  assert.equal(checked(moon.clientProgramAdvanceModelExecution(active, 1)).$tag, 3);
+  assert.equal((await modelTerminal(active, reservation._2 ?? reservation._1)).$tag, 3,
+    'preflight reaches the provider before its cancellation stops the owner');
   assert.equal(moon.clientProgramStartModelOutput(input, rows, active).$tag, 0);
   assert.equal(checked(moon.clientProgramCleanupInferInput(input)), false,
     'stop does not release mapped input before model cleanup');
@@ -664,7 +762,7 @@ test('empty completed input captures no slots and invokes no provider', async ()
     () => { calls++; return undefined; });
   const active = checked(moon.clientProgramStartModelExecution(rows, provider,
     `sha256:${'1'.repeat(64)}`));
-  const observation = checked(moon.clientProgramAdvanceModelExecution(active, 1));
+  const observation = await modelTerminal(active);
   const bundle = moon.clientProgramModelCapture(observation);
   assert.ok(bundle);
   assert.deepEqual(JSON.parse(moon.clientProgramModelCaptureJson(bundle))

@@ -565,6 +565,8 @@ pub fn prepared_client_identity(PreparedClientProgram) -> ClientProgramIdentity
 
 pub fn prepared_client_infer_host_item_ceiling(PreparedClientProgram, Int) -> Result[Int64, ClientInferHostCapacityIssue]
 
+pub fn prepared_client_infer_host_request_ceiling(PreparedClientProgram, Int) -> Result[Int64, ClientInferHostCapacityIssue]
+
 pub fn prepared_client_program_semantics_cid(PreparedClientProgram) -> String
 
 pub fn prepared_client_result_count(PreparedClientProgram) -> Int
@@ -864,6 +866,7 @@ pub(all) enum ClientInferHostCapacityIssue {
   UnsupportedProgram
   Capacity(@check_environment.CapacityIssue)
   MissingItemCeiling
+  MissingRequestCeiling
 }
 
 pub(all) enum ClientInferItemLimitIssue {

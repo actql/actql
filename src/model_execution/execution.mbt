@@ -76,6 +76,7 @@ pub(all) enum ModelExecutionIssue {
   Ledger(@resources.LedgerIssue)
   Session(@bounded.Issue)
   WorkLimit
+  RequestLimit
 } derive(Eq, Debug)
 
 ///|
@@ -114,6 +115,7 @@ pub(all) enum ModelObservation {
 ///|
 priv enum ModelPhase {
   ReserveSlots
+  PrepareRequests
   DispatchSlot
   CheckResponse(ModelRequest, ModelResponse, String, @admitted.RecheckCursor)
   Reclaimed
@@ -129,6 +131,8 @@ struct ModelState {
   limits : ModelExecutionLimits
   ledger : @resources.Ledger
   reservations : Array[@resources.Reservation]
+  requests : Array[PreparedModelRequest]
+  mut request : ModelRequestPreparation?
   captures : Array[ModelSlotCapture]
   mut phase : ModelPhase
   mut work : Int
@@ -217,44 +221,6 @@ fn request_key(
 }
 
 ///|
-fn request_inputs(
-  rows : @relation.PreparedInferRows,
-  slot : Int,
-  owner : @infer.CheckedInfer,
-) -> Array[(String, @admitted.CheckedValue)]? {
-  let output : Array[(String, @admitted.CheckedValue)] = []
-  for index in 0..<@infer.input_binding_count(owner) {
-    guard @infer.input_binding_at(owner, index) is Some(binding) &&
-      @relation.prepared_infer_rows_value(rows, slot, index) is Some(value) else {
-      return None
-    }
-    output.push((@infer.input_binding_role(binding), value))
-  }
-  Some(output)
-}
-
-///|
-fn make_request(
-  state : ModelState,
-) -> Result[ModelRequest, ModelExecutionIssue] {
-  let owner = @relation.prepared_infer_rows_owner(state.rows)
-  let task = @infer.model_task(owner)
-  guard request_key(state.rows, state.next_slot, owner) is Some(key) &&
-    request_inputs(state.rows, state.next_slot, owner) is Some(inputs) &&
-    slot_cid(state.fixed_request_cid, state.next_slot, key) is Some(slot_cid) else {
-    return Err(OutputIdentity)
-  }
-  Ok({
-    task,
-    slot: state.next_slot,
-    slot_cid,
-    fixed_request_cid: state.fixed_request_cid,
-    key,
-    inputs,
-  })
-}
-
-///|
 fn provider_error(value : ModelProviderFailure) -> ModelExecutionIssue {
   Provider(value)
 }
@@ -282,7 +248,7 @@ fn advance_model(
         @resources.reserve_attempt(
           state.ledger,
           state.limits.max_request_bytes + state.limits.max_response_bytes,
-          state.limits.max_response_bytes,
+          state.limits.max_request_bytes + state.limits.max_response_bytes,
           0L,
         ) {
         Ok(value) => state.reservations.push(value)
@@ -290,12 +256,15 @@ fn advance_model(
       }
       if state.reservations.length() ==
         @relation.prepared_infer_rows_count(state.rows) {
-        state.phase = DispatchSlot
+        state.phase = PrepareRequests
       }
       return @bounded.Continue(1, 1)
     }
     // All reservations precede the first dispatch, including an empty input.
-    state.phase = DispatchSlot
+    state.phase = PrepareRequests
+  }
+  if state.phase is PrepareRequests {
+    return advance_model_request_preparation(state)
   }
   if state.next_slot >= @relation.prepared_infer_rows_count(state.rows) {
     return @bounded.Complete(
@@ -346,18 +315,16 @@ fn advance_model(
   if !(state.phase is DispatchSlot) {
     return @bounded.Failed(OutputIdentity, 1, 1)
   }
-  let request = match make_request(state) {
-    Ok(value) => value
-    Err(issue) => return @bounded.Failed(issue, 1, 1)
+  guard state.requests.get(state.next_slot) is Some(prepared) else {
+    return @bounded.Failed(OutputIdentity, 1, 1)
   }
+  let request = prepared.request
   let reservation = state.reservations[state.next_slot]
   let response = match (state.provider.invoke)(request) {
     Ok(value) => value
     Err(issue) => return @bounded.Failed(provider_error(issue), 1, 1)
   }
-  guard key_cid(request.key) is Some(input_key_cid) else {
-    return @bounded.Failed(OutputIdentity, 1, 1)
-  }
+  let input_key_cid = prepared.key_cid
   if response.provider_model.is_empty() ||
     response.provider_request_id.is_empty() ||
     response.observed_at.is_empty() ||
@@ -438,6 +405,8 @@ pub fn start_model_execution(
     limits,
     ledger,
     reservations,
+    requests: [],
+    request: None,
     captures: [],
     phase: ReserveSlots,
     work: 0,
@@ -494,6 +463,24 @@ pub fn model_execution_resource_usage(
 }
 
 ///|
+/// Observe physical preparation progress, never a Run or evidence authority.
+pub fn model_execution_preflighting(execution : ModelExecution) -> Bool {
+  !execution.state.reclaimed &&
+  !@bounded.session_stopped(execution.session) &&
+  execution.state.phase is PrepareRequests
+}
+
+///|
+/// A measured mapped-input body is not an admitted adapter request. It is
+/// retained here so later dispatch cannot skip a failed row's preflight.
+pub fn model_execution_prepared_request_bytes(
+  execution : ModelExecution,
+  slot : Int,
+) -> Int64? {
+  execution.state.requests.get(slot).map(value => value.wire_bytes)
+}
+
+///|
 pub fn cleanup_model_execution(
   execution : ModelExecution,
 ) -> Result[Bool, ModelExecutionIssue] {
@@ -509,6 +496,10 @@ pub fn cleanup_model_execution(
       if execution.state.phase is CheckResponse(_, _, _, cursor) {
         @admitted.cancel_recheck_runtime_value(cursor)
       }
+      if execution.state.request is Some(request) {
+        cancel_model_request_preparation(request)
+        execution.state.request = None
+      }
       execution.state.phase = Reclaimed
       for reservation in execution.state.reservations {
         if @resources.reservation_open(reservation) {
@@ -519,6 +510,7 @@ pub fn cleanup_model_execution(
       @relation.release_prepared_infer_rows_use(execution.state.input_use)
       |> ignore
       execution.state.captures.clear()
+      execution.state.requests.clear()
       execution.state.reclaimed = true
       Ok(true)
     }

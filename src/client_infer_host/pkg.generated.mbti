@@ -29,6 +29,8 @@ pub fn output(OutputUse) -> @execution_relation.CompletedOutput?
 
 pub fn release_output(OutputUse) -> Bool
 
+pub fn request_preflight_pending(Execution) -> Bool
+
 pub fn standard_limits() -> Limits
 
 pub fn start(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelProvider, String, Limits) -> Result[Execution, Issue]

@@ -192,10 +192,10 @@ test "prefix cancellation makes no model call and retains cleanup custody" {
 
 ///|
 test "model response admission charges exact steps and retains provider observations" {
-  // One reservation, one dispatch, and seven recheck transitions: root,
-  // two child selections, two scalar checks, container end, cursor end.
+  // One reservation, eight request transitions, one dispatch, and seven
+  // response transitions: root, child selections/checks and cursor ends.
   let limits = standard_limits()
-  let exact = { ..limits, model: { ..limits.model, max_work: 9, }, }
+  let exact = { ..limits, model: { ..limits.model, max_work: 17, }, }
   let calls = Ref(0)
   let active = fixture_start(
     fixture_prepared(),
@@ -213,7 +213,7 @@ test "model response admission charges exact steps and retains provider observat
   let short_calls = Ref(0)
   let short = fixture_start(fixture_prepared(), () => short_calls.val += 1, limits={
     ..exact,
-    model: { ..exact.model, max_work: 8, },
+    model: { ..exact.model, max_work: 16, },
   })
   assert_true(fixture_finish(short) is Failed(Model(@model.WorkLimit), ..))
   assert_true(capture(short) is None)
@@ -321,7 +321,8 @@ test "large model response can stop between child values without a second dispat
   let model = active.model.unwrap()
   let before = @model.model_execution_resource_usage(model)
   assert_eq(before.attempts, 1)
-  assert_eq(before.reserved_retention_bytes, 65536L)
+  // The actual Host caps the request at 1000 bytes; the response at 65536.
+  assert_eq(before.reserved_retention_bytes, 66536L)
   assert_true(acquire_output(active) is None)
   assert_true(capture(active) is None)
   assert_true(!@input.cleanup_client_infer_input(active.input).unwrap())
@@ -341,12 +342,12 @@ test "model response has independent exact and one-short node boundaries" {
   let n = 16
   let base = standard_limits()
   // Object, NULL, array and n number occurrences; two container cursors
-  // and their child selections determine 2*n + 10 model steps.
+  // and their child selections plus request preflight determine 2*n + 18.
   let exact = {
     ..base,
     model: {
       ..base.model,
-      max_work: 2 * n + 10,
+      max_work: 2 * n + 18,
       value_limits: { max_nodes: n + 3, max_depth: 8, max_text_bytes: 10, },
     },
   }
@@ -398,8 +399,8 @@ test "partial model reservations fail before calls and stay owned until cleanup"
   let model = active.model.unwrap()
   let usage = @model.model_execution_resource_usage(model)
   assert_eq(usage.attempts, 1)
-  assert_eq(usage.reserved_transfer_bytes, 131072L)
-  assert_eq(usage.reserved_retention_bytes, 65536L)
+  assert_eq(usage.reserved_transfer_bytes, 66536L)
+  assert_eq(usage.reserved_retention_bytes, 66536L)
   assert_eq(calls.val, 0)
   assert_true(acquire_output(active) is None)
   assert_true(capture(active) is None)
@@ -412,4 +413,215 @@ test "partial model reservations fail before calls and stay owned until cleanup"
   assert_eq(settled.reserved_execution_bytes, 0L)
   assert_eq(settled.attempts, 1)
   assert_eq(calls.val, 0)
+}
+
+///|
+test "mapped request byte limits preflight every row before the first call" {
+  // Canonical {"text":"hello"} has sixteen bytes, independently of the
+  // execution counters or provider output. Fifteen cannot admit this request.
+  let base = standard_limits()
+  let exact = { ..base, model: { ..base.model, max_request_bytes: 16L, }, }
+  let exact_calls = Ref(0)
+  let exact_run = fixture_start(
+    fixture_prepared(),
+    () => exact_calls.val += 1,
+    limits=exact,
+  )
+  assert_true(fixture_finish(exact_run) is Complete(_, ..))
+  assert_eq(exact_calls.val, 1)
+  assert_eq(
+    @model.model_execution_prepared_request_bytes(exact_run.model.unwrap(), 0),
+    Some(16L),
+  )
+  assert_true(cleanup(exact_run).unwrap())
+  let short_calls = Ref(0)
+  let short = fixture_start(fixture_prepared(), () => short_calls.val += 1, limits={
+    ..exact,
+    model: { ..exact.model, max_request_bytes: 15L, },
+  })
+  assert_true(fixture_finish(short) is Failed(Model(@model.RequestLimit), ..))
+  assert_eq(short_calls.val, 0)
+  assert_true(capture(short) is None)
+  assert_true(acquire_output(short) is None)
+  assert_true(cleanup(short).unwrap())
+  let two = infer_fixture_program.replace(
+    old="\"rows\":[{\"id\":\"a\",\"text\":\"hello\"}]",
+    new="\"rows\":[{\"id\":\"a\",\"text\":\"hello\"},{\"id\":\"b\",\"text\":\"longer\"}]",
+  )
+  let late_calls = Ref(0)
+  let late = fixture_start(
+    fixture_prepared(source=two),
+    () => late_calls.val += 1,
+    limits=exact,
+  )
+  assert_true(fixture_finish(late) is Failed(Model(@model.RequestLimit), ..))
+  let model = late.model.unwrap()
+  assert_eq(@model.model_execution_prepared_request_bytes(model, 0), Some(16L))
+  assert_eq(@model.model_execution_prepared_request_bytes(model, 1), None)
+  assert_eq(late_calls.val, 0)
+  assert_true(acquire_output(late) is None)
+  let before = @model.model_execution_resource_usage(model)
+  assert_eq(before.attempts, 2)
+  assert_eq(before.reserved_retention_bytes, 2L * (16L + 65536L))
+  assert_true(cleanup(late).unwrap())
+  assert_true(cleanup(late).unwrap())
+  let after = @model.model_execution_resource_usage(model)
+  assert_eq(after.reserved_transfer_bytes, 0L)
+  assert_eq(after.reserved_retention_bytes, 0L)
+  assert_eq(after.reserved_execution_bytes, 0L)
+  assert_eq(after.held_bytes, 0L)
+  assert_eq(after.attempts, 2)
+  assert_eq(late_calls.val, 0)
+}
+
+///|
+test "all mapped requests remain prepared and pinned across model dispatch" {
+  let two = infer_fixture_program.replace(
+    old="\"rows\":[{\"id\":\"a\",\"text\":\"hello\"}]",
+    new="\"rows\":[{\"id\":\"a\",\"text\":\"hello\"},{\"id\":\"b\",\"text\":\"hello\"}]",
+  )
+  let current : Ref[Execution?] = Ref(None)
+  let calls = Ref(0)
+  let ready = Ref(true)
+  let active = fixture_start(fixture_prepared(source=two), () => {
+    let owner = current.val.unwrap()
+    let model = owner.model.unwrap()
+    ready.val = ready.val &&
+      !@model.model_execution_preflighting(model) &&
+      @model.model_execution_prepared_request_bytes(model, 0) == Some(16L) &&
+      @model.model_execution_prepared_request_bytes(model, 1) == Some(16L) &&
+      !@input.cleanup_client_infer_input(owner.input).unwrap()
+    calls.val += 1
+  })
+  current.val = Some(active)
+  assert_true(fixture_finish(active) is Complete(_, ..))
+  assert_eq(calls.val, 2)
+  assert_true(ready.val)
+  assert_true(cleanup(active).unwrap())
+  assert_eq(calls.val, 2)
+}
+
+///|
+fn fixture_input_array_prepared(
+  count : Int,
+) -> @publication_host.PreparedClientProgram raise {
+  let wire = @json.parse(infer_fixture_environment)
+  let source = @json.parse(infer_fixture_program)
+  guard wire is Object(environment) &&
+    environment["model_task_contracts"] is Array([task]) &&
+    task is Object(fields) &&
+    fields["input_contract"] is Object(contract) &&
+    contract["fields"] is Object(input_fields) &&
+    environment["host_policy_profile"] is Object(policy) &&
+    policy["capacity"] is Object(capacity) &&
+    source is Object(program) &&
+    program["stages"] is Array([Object(stage)]) &&
+    stage["steps"] is Array([Object(first), ..]) &&
+    first["values"] is Object(values) &&
+    values["schema"] is Object(schema) &&
+    values["rows"] is Array([Object(row)]) else {
+    abort("ordinary input-array Program fixture")
+  }
+  let input_wire =
+    #|{"items":{"nullable":false,"type":"number"},"max_items":1024,"nullable":true,"type":"array"}
+  let input_type = @json.parse(input_wire)
+  schema["text"] = input_type
+  input_fields["text"] = input_type
+  row["text"] = Json::array(
+    Array::makei(count, index => Json::number(index.to_double())),
+  )
+  capacity["max_model_request_bytes_per_item"] = Json::number(65536)
+  capacity["max_nested_value_bytes"] = Json::number(10000)
+  fields["input_schema_cid"] = Json::string(
+    "sha256:" +
+    @sha.hex(@utf8.encode(fixture_canonical(fields["input_contract"]))),
+  )
+  fields.remove("contract_cid") |> ignore
+  fields["contract_cid"] = Json::string(
+    "sha256:" + @sha.hex(@utf8.encode(fixture_canonical(task))),
+  )
+  environment.remove("evidence_bundle_cid") |> ignore
+  fixture_prepared(
+    source=fixture_canonical(source),
+    environment_wire=fixture_canonical(wire),
+  )
+}
+
+///|
+test "nested mapped input stops during request encoding with zero model calls" {
+  let calls = Ref(0)
+  let active = fixture_start(fixture_input_array_prepared(1024), () => {
+    calls.val += 1
+  })
+  let mut reached = false
+  for _ in 0..<50000 {
+    assert_true(advance(active, 1).unwrap() is Continue(_))
+    if request_preflight_pending(active) {
+      reached = true
+      break
+    }
+  }
+  assert_true(reached)
+  // Key/read setup costs fewer than 64 steps. The 1024-element array itself
+  // needs 2050 emitted frames, so these polls are inside the request encoder.
+  for _ in 0..<64 {
+    assert_true(advance(active, 1).unwrap() is Continue(_))
+    assert_true(request_preflight_pending(active))
+  }
+  let model = active.model.unwrap()
+  assert_eq(@model.model_execution_prepared_request_bytes(model, 0), None)
+  assert_eq(calls.val, 0)
+  assert_false(cleanup(active).unwrap())
+  assert_false(@input.cleanup_client_infer_input(active.input).unwrap())
+  assert_true(cancel(active))
+  assert_true(advance(active, 1).unwrap() is Stopped(_))
+  assert_true(capture(active) is None)
+  assert_true(acquire_output(active) is None)
+  let before = @model.model_execution_resource_usage(model)
+  assert_eq(before.attempts, 1)
+  assert_eq(before.reserved_retention_bytes, 131072L)
+  assert_true(cleanup(active).unwrap())
+  assert_true(cleanup(active).unwrap())
+  let after = @model.model_execution_resource_usage(model)
+  assert_eq(after.reserved_transfer_bytes, 0L)
+  assert_eq(after.reserved_retention_bytes, 0L)
+  assert_eq(after.reserved_execution_bytes, 0L)
+  assert_eq(after.held_bytes, 0L)
+  assert_eq(after.attempts, 1)
+  assert_eq(calls.val, 0)
+}
+
+///|
+test "nested mapped request has independent byte and charged-work boundaries" {
+  // {"text":[0,...,15]}: eleven structural/name bytes, twenty-two digit
+  // bytes and fifteen commas. Its array emits 34 frames, replacing a scalar
+  // frame in the 17-transition model path: 17 - 1 + 34 = 50 transitions.
+  let base = standard_limits()
+  let exact = {
+    ..base,
+    model: { ..base.model, max_request_bytes: 48L, max_work: 50, },
+  }
+  let calls = Ref(0)
+  let active = fixture_start(
+    fixture_input_array_prepared(16),
+    () => calls.val += 1,
+    limits=exact,
+  )
+  assert_true(fixture_finish(active) is Complete(_, ..))
+  assert_eq(
+    @model.model_execution_prepared_request_bytes(active.model.unwrap(), 0),
+    Some(48L),
+  )
+  assert_eq(calls.val, 1)
+  assert_true(cleanup(active).unwrap())
+  let short_calls = Ref(0)
+  let short = fixture_start(
+    fixture_input_array_prepared(16),
+    () => short_calls.val += 1,
+    limits={ ..exact, model: { ..exact.model, max_request_bytes: 47L, }, },
+  )
+  assert_true(fixture_finish(short) is Failed(Model(@model.RequestLimit), ..))
+  assert_eq(short_calls.val, 0)
+  assert_true(capture(short) is None)
+  assert_true(cleanup(short).unwrap())
 }

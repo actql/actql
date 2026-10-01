@@ -449,6 +449,8 @@ pub fn client_program_infer_plan_request_wire(@run_publication_host.ClientInferP
 
 pub fn client_program_infer_prefix_fragment(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[@run_publication_host.ClientTaskFragmentNode, @run_publication_host.ClientTaskFragmentIssue]
 
+pub fn client_program_infer_request_preflight_pending(@client_infer_host.Execution) -> Bool
+
 pub fn client_program_infer_result_export_advance(@run_publication_host.ClientResultTransformationPreparation, Int) -> Result[(Bool, Int), @run_publication_host.ClientResultTransformationIssue]
 
 pub fn client_program_infer_result_export_begin(@run_publication_host.PreparedClientProgram, Int, @execution_relation.CompletedOutput) -> Result[@run_publication_host.ClientResultTransformationPreparation, @run_publication_host.ClientResultTransformationIssue]

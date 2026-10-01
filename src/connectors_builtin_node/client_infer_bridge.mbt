@@ -47,6 +47,14 @@ pub fn client_program_infer_execution_handoff_pending(
 }
 
 ///|
+#export_name("clientProgramInferRequestPreflightPending")
+pub fn client_program_infer_request_preflight_pending(
+  active : @infer_host.Execution,
+) -> Bool {
+  @infer_host.request_preflight_pending(active)
+}
+
+///|
 #export_name("clientProgramInferExecutionCapture")
 pub fn client_program_infer_execution_capture(
   active : @infer_host.Execution,

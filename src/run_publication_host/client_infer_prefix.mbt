@@ -34,6 +34,7 @@ pub(all) enum ClientInferHostCapacityIssue {
   UnsupportedProgram
   Capacity(@environment.CapacityIssue)
   MissingItemCeiling
+  MissingRequestCeiling
 }
 
 ///|
@@ -79,6 +80,35 @@ pub fn prepared_client_infer_host_item_ceiling(
   value : PreparedClientProgram,
   step : Int,
 ) -> Result[Int64, ClientInferHostCapacityIssue] {
+  prepared_client_infer_host_ceiling(
+    value,
+    step,
+    "max_infer_items",
+    MissingItemCeiling,
+  )
+}
+
+///|
+/// Read the checked per-item request ceiling for bounded physical preflight.
+pub fn prepared_client_infer_host_request_ceiling(
+  value : PreparedClientProgram,
+  step : Int,
+) -> Result[Int64, ClientInferHostCapacityIssue] {
+  prepared_client_infer_host_ceiling(
+    value,
+    step,
+    "max_model_request_bytes_per_item",
+    MissingRequestCeiling,
+  )
+}
+
+///|
+fn prepared_client_infer_host_ceiling(
+  value : PreparedClientProgram,
+  step : Int,
+  field : String,
+  missing : ClientInferHostCapacityIssue,
+) -> Result[Int64, ClientInferHostCapacityIssue] {
   if client_infer_prefix_owner(value, 0, step) is None {
     return Err(UnsupportedProgram)
   }
@@ -90,12 +120,9 @@ pub fn prepared_client_infer_host_item_ceiling(
     Ok(value) => value
     Err(issue) => return Err(Capacity(issue))
   }
-  guard @capacity_policy.ceiling(
-      @environment.capacity_policy(capacity),
-      "max_infer_items",
-    )
+  guard @capacity_policy.ceiling(@environment.capacity_policy(capacity), field)
     is Some(ceiling) else {
-    return Err(MissingItemCeiling)
+    return Err(missing)
   }
   Ok(@capacity_policy.ceiling_value(ceiling))
 }
