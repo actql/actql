@@ -414,6 +414,51 @@ pub fn cleanup_model_execution(execution : ModelExecution) -> Result[Bool, Model
 }
 
 ///|
+/// Emit the sealed captures as a bounded JSON observation for a Host boundary.
+/// The key CID and slot identity remain alongside each typed result so a caller
+/// cannot validate only the result values and silently lose input evidence.
+pub fn model_capture_bundle_json(
+  bundle : ModelCaptureBundle,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> String? {
+  let writer = @encode.writer(max_bytes, max_nodes, max_depth) catch {
+    _ => return None
+  }
+  try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "fixed_request_cid")
+    @encode.string_value(writer, bundle.fixed_request_cid)
+    @encode.key(writer, "task_cid")
+    @encode.string_value(writer, bundle.task_cid)
+    @encode.key(writer, "captures")
+    @encode.begin_array(writer)
+    for capture in bundle.captures {
+      @encode.begin_object(writer)
+      @encode.key(writer, "input_key_cid")
+      @encode.string_value(writer, capture.input_key_cid)
+      @encode.key(writer, "provider_id")
+      @encode.string_value(writer, capture.provider_id)
+      @encode.key(writer, "provider_request_id")
+      @encode.string_value(writer, capture.provider_request_id)
+      @encode.key(writer, "slot")
+      @encode.number_value(writer, capture.slot.to_double())
+      @encode.key(writer, "slot_cid")
+      @encode.string_value(writer, capture.slot_cid)
+      @encode.key(writer, "value")
+      @admitted.emit_checked_wire_value(capture.value, writer)
+      @encode.end_object(writer)
+    }
+    @encode.end_array(writer)
+    @encode.end_object(writer)
+    Some(@encode.finish(writer))
+  } catch {
+    _ => None
+  }
+}
+
+///|
 /// Replay validates the fixed request and slot identities, and returns the
 /// retained typed values without invoking a Provider.
 pub fn replay_model_capture(
