@@ -7,8 +7,11 @@ import { take } from './take.mjs';
 import { hash } from './inventory.mjs';
 test('held-out take registration preserves the frozen generator, oracle coordinator, harness and common evidence', () => {
   const extension = JSON.parse(readFileSync(new URL('./extension.json', import.meta.url)));
+  assert.deepEqual(Object.keys(extension.postRegistrationCorrections), ['proofs/relation-pipeline/audit.mjs']);
   for (const [path, expected] of Object.entries(extension.frozen)) {
-    assert.equal(hash(readFileSync(new URL(`../../${path}`, import.meta.url))), expected, path);
+    const correction = extension.postRegistrationCorrections[path];
+    if (correction) assert.equal(correction.registrationDigest, expected);
+    assert.equal(hash(readFileSync(new URL(`../../${path}`, import.meta.url))), correction?.correctedDigest ?? expected, path);
   }
   assert.deepEqual(registry.slice(0, 3), baseRegistry);
   assert.equal(registry[3], take);

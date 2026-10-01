@@ -37,5 +37,12 @@
   ],
   "handwrittenCombinationAdditions": 0,
   "testRetirements": [],
-  "comparison": "retrospective registration of existing take, not new operation delivery"
+  "comparison": "retrospective registration of existing take, not new operation delivery",
+  "postRegistrationCorrections": {
+    "proofs/relation-pipeline/audit.mjs": {
+      "registrationDigest": "2e392ccd1d5d78a1afe01aa073f6938172733b0127b0c4abcfb80433a7b4bb39",
+      "correctedDigest": "dc6e7104beea5938e0ab7c13036208eecb9ec9e6c5101a5630ca92e11a43867f",
+      "reason": "PR #128 P2: independently bind requested target after take registration"
+    }
+  }
 }

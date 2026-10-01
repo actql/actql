@@ -90,6 +90,12 @@ preconditions, postcondition, independent skip/limit oracle, syntax, argument
 generation and reductions. Review additionally covers that local contract and
 the existing bounded take route.
 
+The original registration hashes remain in `extension.json`. The subsequent
+PR #128 review correction is recorded separately in `postRegistrationCorrections`:
+only the audit entrypoint changed to bind each requested target independently.
+This correction is not attributed to adding `take`; the generator, oracle
+coordinator, execution harness, orchestration and common theorems remain frozen.
+
 The same generator then covers `filter/take`, `select/take`, `sort/take`,
 `take/filter`, `take/select`, `take/sort` and `take/take` without adding a handwritten
 sequence fixture, generator branch or common theorem. These are seven new
@@ -108,6 +114,7 @@ node proofs/relation-pipeline/run.mjs js base
 node proofs/relation-pipeline/mutations.mjs
 node proofs/relation-pipeline/run.mjs all
 node proofs/relation-pipeline/audit.mjs
+node proofs/relation-pipeline/audit-target-regression.mjs
 ```
 
 CI runs this beside the existing gates. `.artifacts/relation-pipeline/` retains
@@ -118,6 +125,12 @@ agreement, target, source, profile, order, conditional premises, local minimalit
 and the take extension hashes. Hashes identify evidence; they do not prove scope.
 Execution fixture programs and checked origin are matched independently of the
 requested/derived metadata, including a negative test that relabels both sides.
+The entrypoint requires the baseline report to be JS and each normal report to
+match its requested JS/Wasm/native slot. Receipts, commands and artifact paths
+are bound to that target. The entrypoint regression first accepts healthy evidence,
+then rejects unchanged native reports in the JS, Wasm, both, and baseline slots;
+it preserves their internally consistent receipts and archived evidence. Logs
+and alternate audit directories remain in `.artifacts/relation-pipeline-target-regression/`.
 
 Earlier batches overwrite the temporary compiled observation driver. Their
 artifact hashes identify the binary at execution time, not the final current

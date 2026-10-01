@@ -164,12 +164,17 @@ jobs:
         run: node proofs/relation-pipeline/run.mjs all
       - name: Audit independent execution records, shrink minima and marginal registration
         run: node proofs/relation-pipeline/audit.mjs
+      - name: Reject internally consistent whole reports from another target at the audit entrypoint
+        run: node proofs/relation-pipeline/audit-target-regression.mjs
       - name: Retain exact-source pipeline evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: relation-pipeline-evidence-${{ github.sha }}
-          path: .artifacts/relation-pipeline/
+          path: |
+            .artifacts/relation-pipeline/
+            .artifacts/relation-pipeline-target-regression/run-*/*.json
+            .artifacts/relation-pipeline-target-regression/run-*/*.log
           include-hidden-files: true
           if-no-files-found: error
   # Host, authorization, Checkpoint and retained-state owners.

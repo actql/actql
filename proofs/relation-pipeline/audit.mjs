@@ -20,8 +20,10 @@ const artifact = path => {
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const baseline = checkBaseline(root);
 const current = snapshot(root);
-function auditExecution(execution, selected) {
+function auditExecution(execution, selected, expectedTarget = execution.receipt.target) {
   const run = execution.receipt;
+  assert(['js', 'wasm', 'native'].includes(expectedTarget));
+  assert.equal(run.target, expectedTarget, 'Receipt target differs from requested audit target');
   assert.equal(hash(JSON.stringify(read(artifact(execution.path)))), execution.digest);
   assert.equal(hash(JSON.stringify(run)), execution.digest);
   const source = read(artifact(run.sourcePath));
@@ -37,7 +39,11 @@ function auditExecution(execution, selected) {
     assert.equal(entry.observation.correspondence, run.correspondence);
   });
   assert.equal(run.compiler, read(join(root, 'toolchain.json')).moonc);
-  assert.deepEqual(run.command, ['moon', 'test', 'src/query_integration/relation_pipeline_batch_wbtest.mbt', '--target', run.target, '--deny-warn']);
+  assert.deepEqual(run.command, ['moon', 'test', 'src/query_integration/relation_pipeline_batch_wbtest.mbt', '--target', expectedTarget, '--deny-warn']);
+  assert(Object.keys(run.artifacts).length > 0);
+  for (const path of Object.keys(run.artifacts)) {
+    assert(path.startsWith(`_build/${expectedTarget}/debug/test/query_integration/`), 'Artifact target differs from requested audit target');
+  }
   assert.equal(run.inputVariable, inputVariable);
   const inputs = payload(run.cases, run.correspondence);
   assert.equal(readFileSync(artifact(run.inputPath), 'utf8'), inputs);
@@ -70,16 +76,18 @@ function auditModels(report) {
   }
 }
 const baseReport = read(join(directory, 'base-js.json'));
+assert.equal(baseReport.target, 'js', 'Baseline report target differs from requested audit target js');
 validate(baseReport, current, baseRegistry);
 assert.deepEqual(baseReport.executions.flatMap(e => e.receipt.cases.map(c => c.testCase)), generate(baseRegistry));
-baseReport.executions.forEach(e => auditExecution(e, baseRegistry));
+baseReport.executions.forEach(e => auditExecution(e, baseRegistry, 'js'));
 auditModels(baseReport);
 for (const target of ['js', 'wasm', 'native']) {
   const report = read(join(directory, `${target}.json`));
+  assert.equal(report.target, target, `Report target differs from requested audit target ${target}`);
   validate(report, current, registry);
   assert.equal(report.caseCount, generate(registry).length);
   assert.deepEqual(report.executions.flatMap(e => e.receipt.cases.map(c => c.testCase)), generate(registry));
-  report.executions.forEach(e => auditExecution(e, registry));
+  report.executions.forEach(e => auditExecution(e, registry, target));
   auditModels(report);
   for (const execution of report.executions) {
     assert.deepEqual(Object.keys(execution.receipt.archives), Object.keys(execution.receipt.artifacts));
@@ -154,7 +162,12 @@ for (const result of mutations.results) {
 }
 if (existsSync(join(root, 'proofs/relation-pipeline/extension.json'))) {
   const extension = read(join(root, 'proofs/relation-pipeline/extension.json'));
-  for (const [path, digest] of Object.entries(extension.frozen)) assert.equal(hash(readFileSync(join(root, path))), digest, `Changed extension-independent mechanism ${path}`);
+  assert.deepEqual(Object.keys(extension.postRegistrationCorrections), ['proofs/relation-pipeline/audit.mjs']);
+  for (const [path, digest] of Object.entries(extension.frozen)) {
+    const correction = extension.postRegistrationCorrections[path];
+    if (correction) assert.equal(correction.registrationDigest, digest);
+    assert.equal(hash(readFileSync(join(root, path))), correction?.correctedDigest ?? digest, `Changed extension-independent mechanism ${path}`);
+  }
   const base = generate(baseRegistry).filter(c => c.id.startsWith('pair:')).map(c => c.steps.map(s => s.op).join('/'));
   const full = generate(registry).filter(c => c.id.startsWith('pair:')).map(c => c.steps.map(s => s.op).join('/'));
   assert.deepEqual(full.filter(p => !base.includes(p)), baseline.extensionMeasurement.newObligations);
