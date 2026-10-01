@@ -28,6 +28,7 @@ fn construct_local(
   references_out? : Array[@environment.CatalogReferences]? = None,
   capacity_inputs? : @context.ProgramCapacityInputs? = None,
   effect_headers? : @syntax.EffectHeaders? = None,
+  model_tasks? : @environment.ModelTasks? = None,
 ) -> (
   @context.ProgramSourceIdentity,
   @context.StageRequirementClosure,
@@ -35,6 +36,9 @@ fn construct_local(
   @context.CoreContractInventory,
   Array[BuiltUnit],
 ) raise LocalConstructionFailure {
+  // ModelTask ownership is retained on CheckedProgram; the executable
+  // acquisition owner is admitted by the Host after this structural check.
+  ignore(model_tasks)
   if budget.work < 0 || budget.bytes < 0 || budget.nodes < 0 || budget.depth < 0 {
     raise InvalidLimits
   }

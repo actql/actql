@@ -78,6 +78,13 @@ pub fn input_binding_at(value : CheckedInfer, index : Int) -> InputBinding? {
 }
 
 ///|
+/// Return the exact authored ModelTask role retained by one input binding.
+/// Callers must not reconstruct this name from source fields.
+pub fn input_binding_role(value : InputBinding) -> String {
+  value.role
+}
+
+///|
 pub fn result_mode(value : CheckedInfer) -> ResultMode {
   @evidence.infer_result_mode(value)
 }

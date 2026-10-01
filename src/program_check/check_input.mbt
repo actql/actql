@@ -16,6 +16,7 @@ struct CheckEnvironment {
   numeric : @numeric.Profile?
   calendar : @environment.SelectedCalendarProfile?
   text_rank : @environment.SelectedTextRankProfile?
+  model_tasks : @environment.ModelTasks?
 }
 
 ///|
@@ -29,6 +30,7 @@ pub fn checking_environment(
   numeric_profile? : @numeric.Profile? = None,
   calendar? : @environment.SelectedCalendarProfile? = None,
   text_rank? : @environment.SelectedTextRankProfile? = None,
+  model_tasks? : @environment.ModelTasks? = None,
 ) -> CheckEnvironment {
   {
     wire,
@@ -37,7 +39,18 @@ pub fn checking_environment(
     numeric: numeric_profile,
     calendar,
     text_rank,
+    model_tasks,
   }
+}
+
+///|
+/// Return the exact ModelTask owner selected for this checker. The owner is
+/// retained by every CheckedProgram produced from this environment; callers
+/// must not replace it with a same-shaped task registry later.
+pub fn checking_environment_model_tasks(
+  value : CheckEnvironment,
+) -> @environment.ModelTasks? {
+  value.model_tasks
 }
 
 ///|

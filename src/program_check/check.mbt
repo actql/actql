@@ -24,6 +24,7 @@ struct CheckedProgram {
   numeric_slots : NumericSlotIdentities
   analytic_numeric_slots : AnalyticNumericSlotIdentities
   pivot_numeric_slots : PivotNumericSlotIdentities
+  model_tasks : @environment.ModelTasks?
 }
 
 ///|
@@ -127,6 +128,7 @@ fn check_supported_source(
               | "text_rank"
               | "node_rows"
               | "edge_rows"
+              | "infer"
               | "values" => ()
               _ => raise UnitBuildFailure::UnsupportedStaticPath(step)
             }
@@ -160,6 +162,7 @@ fn check(
   text_rank? : @environment.SelectedTextRankProfile? = None,
   capacity_inputs? : @context.ProgramCapacityInputs? = None,
   effect_headers? : @syntax.EffectHeaders? = None,
+  model_tasks? : @environment.ModelTasks? = None,
 ) -> CheckedProgram raise LocalConstructionFailure {
   if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
     raise InvalidLimits
@@ -189,6 +192,7 @@ fn check(
     references_out=Some(references),
     capacity_inputs~,
     effect_headers~,
+    model_tasks~,
   )
   let conversion = Some(conversions[0])
   audit_source_execution(contracts, units[0].source_execution, budget) catch {
@@ -336,6 +340,7 @@ fn check(
     numeric_slots,
     analytic_numeric_slots,
     pivot_numeric_slots,
+    model_tasks,
   }
 }
 
@@ -636,6 +641,16 @@ pub fn checked_catalog_references(
   program : CheckedProgram,
 ) -> @environment.CatalogReferences {
   program.catalog_references
+}
+
+///|
+/// Return the exact typed ModelTask set retained by this checked Program.
+/// Runtime dispatch must still perform its own authority and resource
+/// admission before invoking a provider.
+pub fn checked_model_tasks(
+  program : CheckedProgram,
+) -> @environment.ModelTasks? {
+  program.model_tasks
 }
 
 ///|
