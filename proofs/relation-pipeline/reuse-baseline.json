@@ -1,9 +1,9 @@
 {
   "version": "actql-relation-pipeline-reuse-baseline/0.1",
-  "revision": "e47ef84232f05697fd2172294db5e0d12b6aa67d",
+  "revision": "9fa0cab091aefb52454d06501bd38aa7e2176d82",
   "comparison": "existing whole-row distinct registration; initial frozen rename experiment and subsequent upstream integration are separate",
   "common": {
-    ".github/workflows/ci.yml": "a021418dcfd1074b47c15c9721cb6a30f85d55f9b04551f7298ece344b2f387b",
+    ".github/workflows/ci.yml": "274c17e2a6da81ccd73d398f97c4fe5549272ad69686a82efbe84e27ba075c32",
     "moon.mod": "25a486222e1c9dc52d6a64e8e0ecc52ba7f9aa9e8c0c7d2d1bdc82bfa37689b9",
     "package-lock.json": "a642fafc496ba9288c8ce4ca0fa68b6c934fff413046f191f06aefec49b7167d",
     "package.json": "78c15ac34fbe375959bf166c3d236ce06a2a6a0d4d2f4b2d7f7f094e844a8a15",
@@ -58,7 +58,7 @@
     "proofs/relation-pipeline/sites.mjs": "0c6c09d17e642755968fe5a209e3b4b63512ddba0d216bbbbdc9e8b7acd2296d",
     "proofs/relation-pipeline/sort.mjs": "ee5546e8f486ed9858e805bd40c39aa024360165c32000bbace16a8a7bc48271",
     "proofs/relation-pipeline/take.mjs": "443827acf024454f8de4056c0aa416e41a843b2c321fe32f59931cd7e5a28a3d",
-    "scripts/local-checks.mjs": "30042a8ac1451c823be4831b1020dfcd8672b5c65d2b9247fd74dd7fef7cf878",
+    "scripts/local-checks.mjs": "bcab6e27f3cdb094eec5b818c81b5aecbe13a2fd281f9f2502f2f302c7eded0b",
     "toolchain.json": "8a3a1396f02ba4d5d780382960d1bcf95ccc8d6b97c3da446c0899b98874819a"
   },
   "registrationChanges": [
@@ -76,12 +76,12 @@
     "verification": "complete local pipeline-evidence passed; the first CI was cancelled after merge-source pin rejection was independently reproduced"
   },
   "upstreamIntegration": {
-    "revision": "e47ef84232f05697fd2172294db5e0d12b6aa67d",
+    "revision": "9fa0cab091aefb52454d06501bd38aa7e2176d82",
     "changedCommon": [
       {
         "path": ".github/workflows/ci.yml",
         "originalDigest": "d596cf233de53b3723d289cc058574a9c38c540a4d5e2de281d862e9d60d3f8a",
-        "integratedDigest": "a021418dcfd1074b47c15c9721cb6a30f85d55f9b04551f7298ece344b2f387b"
+        "integratedDigest": "274c17e2a6da81ccd73d398f97c4fe5549272ad69686a82efbe84e27ba075c32"
       },
       {
         "path": "package.json",
@@ -92,9 +92,14 @@
         "path": "proofs/relation-chain/README.md",
         "originalDigest": "a7717a0cbacbb29ad81e5d5eec827d0b5e6df3acb541dedbe3934d777af04c47",
         "integratedDigest": "4c953c6f0a53ba6734e154b36d09265568bd29b8d29e4166d37b76a0b9e84901"
+      },
+      {
+        "path": "scripts/local-checks.mjs",
+        "originalDigest": "30042a8ac1451c823be4831b1020dfcd8672b5c65d2b9247fd74dd7fef7cf878",
+        "integratedDigest": "bcab6e27f3cdb094eec5b818c81b5aecbe13a2fd281f9f2502f2f302c7eded0b"
       }
     ],
-    "unchangedFromOriginal": 54,
+    "unchangedFromOriginal": 53,
     "attribution": "upstream changes only; no generator, shrinking coordinator, oracle framework or common theorem changes by this registration"
   }
 }

@@ -9,17 +9,19 @@ The historical take comparison remains separate.
 
 ## Upstream integration is a separate verification
 
-Main subsequently changed three pinned common files: `.github/workflows/ci.yml`,
-`package.json` and `proofs/relation-chain/README.md`. The original audit correctly
+Main subsequently changed four pinned common files: `.github/workflows/ci.yml`,
+`package.json`, `proofs/relation-chain/README.md` and `scripts/local-checks.mjs`. The original audit correctly
 rejects that merged source rather than reusing the old certificate. The first CI
 run was cancelled after this rejection was independently reproduced; it is not
 reported as a passing full CI run.
 
 `reuse-baseline.json` retains the original experiment revisions and pins the
-integration foundation at `e47ef84232f05697fd2172294db5e0d12b6aa67d`. The normal
+integration foundation at `9fa0cab091aefb52454d06501bd38aa7e2176d82`. The normal
 audit still checks all 57 current common hashes against Git and actual source.
-54 match the original rename foundation; the three listed changes are upstream
-updates, not distinct-specific common machinery. The baseline metadata refresh
+53 match the original rename foundation; the four listed changes are upstream
+updates, not distinct-specific common machinery. The native namespace fixture
+now also copies the focused-test helper imported by the updated local runner;
+this fixes the separately observed CI import failure without weakening tests. The baseline metadata refresh
 and fresh integration verification are additional review work. No claim is made
 that the entire integrated source is unchanged from the original experiment.
 

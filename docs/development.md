@@ -56,11 +56,43 @@ checks as CI with explicit targets:
 ```sh
 for target in js wasm native; do
   moon check --target "$target" --deny-warn
-  moon test --target "$target" --deny-warn
+  if [ "$target" = native ]; then
+    node scripts/test-native-core.mjs --deny-warn
+  else
+    moon test --target "$target" --deny-warn
+  fi
 done
 node scripts/check-moonbit-api.mjs
 node --test scripts/moonbit-environment.test.mjs
 ```
+
+Native core verification uses `scripts/test-native-core.mjs`, including
+`node scripts/local-checks.mjs run core --target native`. Each invocation
+creates a fresh `native-*` SQLite namespace with the existing owned-scratch
+helper, then runs `moon test --target native` with the remaining arguments.
+For the narrow trusted-clock regression, use:
+
+```sh
+node scripts/test-native-core.mjs --deny-warn -p platform_native/trusted_clock
+```
+
+`ACTQL_TEST_NATIVE_SQLITE_ROOT`, when supplied to this wrapper, is a **parent**
+for the newly owned namespace, not an existing database root to reuse or
+remove. Relative parents resolve from the caller's working directory. The
+default parent is `$RUNNER_TEMP/core-sqlite`, or the system temporary directory's
+`core-sqlite` when `RUNNER_TEMP` is unset. Existing DB/WAL/SHM files in that parent
+remain untouched. Only the child receives the new namespace; the fixture still
+reopens its same `trusted-clock.sqlite` within the invocation and checks the
+unchanged 1000/1002 monotonicity assertions. The native HTTP harness already
+creates its own invocation root and is unchanged.
+
+The wrapper defaults the SQLite library to the supported platform's system
+library; `ACTQL_TEST_NATIVE_SQLITE_LIBRARY` can override it. After a successful,
+stopped child, owned scratch is removed and checked absent. Failure, a signal,
+spawn failure, or `ACTQL_TEST_PRESERVE_SCRATCH=1` retains evidence and reports its
+path; cleanup failure remains a failed command. Raw `moon test` does not acquire
+this namespace for callers: use the wrapper when testing native SQLite fixtures,
+and do not point an unwrapped test at a previous run's database.
 
 Use `moon info` to regenerate `.mbti` files and review and commit them when the
 public API intentionally changes. The API guard rejects cross-target differences,
@@ -124,6 +156,52 @@ Case definitions contain expectations, not execution results. Execution evidence
 belongs in separate reports tied to case IDs and the implementation revision.
 YAML parsing does not establish ActQL semantic validity. The MoonBit checker and
 runtime must verify these same fixtures as implementation becomes available.
+
+## Focused test execution
+
+Use the existing local verification tool when a selected test must actually run:
+
+```sh
+node scripts/local-checks.mjs test node -- --test-name-pattern 'selected name' scripts/example.test.mjs
+node scripts/local-checks.mjs test moon -- --target js -p query_integration --filter '*selected name*'
+```
+
+Replace the example file/package/filter with the intended selection. `changed`
+prints guarded commands for the affected test files and MoonBit packages.
+The small reusable guard in `scripts/test-execution.mjs` also covers successful
+Node selections in `test-acquired-effect-computation-probe.mjs`, the recovery
+phase of `test-effect-capture-host-crash.mjs`, the focused Node/MoonBit checks in
+`check-connector-addition.mjs`, and every MoonBit selection in
+`test-native-publication-store-lock.mjs`.
+
+The guard requires at least one passed executable case and no failed/cancelled
+cases. Zero discovery, unmatched selections, skip-only and todo-only results
+fail with the command/selection and observed counts. Mixed passed/skipped Node
+cases can pass; suite headings and synthetic passing test-file records do not
+count. Original nonzero process statuses remain failures; the local-checks
+command preserves the exit code (or the usual 128 + signal number). Missing,
+malformed or contradictory summaries fail closed with counts unavailable.
+
+Node uses a TAP reporter that additionally retains structured `test:summary`
+events. Only per-file case counts are added; the final process summary is
+required for completeness but can falsely count an unmatched file as one pass.
+This is tested with the CI Node 22.22.0 pin. Reporter overrides, watch mode and
+nondefault isolation are unsupported by this focused path. Moon's pinned
+0.1.20260904 tool emits `Total tests: N, passed: P, failed: F.` even with
+`--output-json`; that complete line is the parsed format. It excludes `#skip`
+cases, so skipped/cancelled/todo counts are unknown (`null`), never inferred as
+zero. Each emitted target total must contain a pass. Recheck these fixtures and
+live-tool tests when updating toolchains.
+
+This does not wrap raw `node`/`moon` commands, every npm script, benchmarks,
+compiled test executables, or all commands in `local-checks run`. Intentional
+process-crash preparation remains an expected failure verified by its original
+exit/custody assertions, not a passing-test claim. Existing optional CI jobs
+retain their conditions: a sanctioned job/test skip is still a skip, not
+successful execution. No general allow-empty switch or mandatory optional job
+is introduced. Run the guard regressions with
+`node --test scripts/test-execution.test.mjs` (the pinned MoonBit toolchain must
+be on PATH).
 
 ## CI evidence by source revision
 
