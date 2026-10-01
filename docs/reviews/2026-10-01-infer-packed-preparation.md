@@ -42,8 +42,9 @@ it must not inject completed Result rows or bypass preflight and capture.
 
 ## Packed connection procedure after A's adoption
 
-Use the existing packed installation controller to produce/install artifacts
-from the fixed integrated source, with prepack enabled. Copy
+The prepared [packed controller](../../scripts/test-packed-infer-input.mjs)
+produces and installs artifacts from the fixed integrated source, with prepack
+enabled. It copies
 [packed-infer-client.mjs](../../scripts/fixtures/packed-infer-client.mjs),
 [public-infer-input.mjs](../../scripts/fixtures/public-infer-input.mjs), and
 the fixture as `infer-acceptance.json` into the external application directory.
@@ -62,7 +63,22 @@ new public product API. It returns:
   records. Counters cannot reset between cases or fabricate missing evidence.
 - `close()`: close the real Host and its physical test resources.
 
-Run inside the clean installation:
+After adopting A's fixed SHA and adding the real standalone Host setup module,
+run from the committed integration worktree:
+
+```sh
+node scripts/test-packed-infer-input.mjs \
+  --owner-sha <full-adopted-common-owner-sha> \
+  --host-setup ./real-host-setup.mjs
+```
+
+The owner SHA must be an ancestor of the committed source being packed.
+The standalone setup module must import installed OSS packages, without
+workspace-relative modules. Its exact bytes are copied to the installation
+and their SHA-256 is retained with both source and common-owner SHAs. This
+controller does not make an unimplemented owner available.
+
+The resulting application command inside the clean installation is:
 
 ```sh
 node packed-infer-client.mjs ./real-host-setup.mjs
@@ -72,6 +88,10 @@ Both transport runs must complete. The setup module and actual ModelTask
 installation are not provided yet: missing setup or rejected execution fails
 the application; there is no mock fallback or automatic skip. Use a fresh Host
 Store per transport/run so request IDs cannot collide with earlier evidence.
+The existing packed-evidence owner saves tarball digests, stdout/stderr,
+termination and timing before checking success. Expanded installation files
+are reclaimed on success or failure; `--keep-artifacts` preserves them for
+diagnosis. Logs and provenance remain in the evidence directory.
 
 B will connect this test setup using the adopted common owner, then record A/B
 source SHAs, package digests, real counters and successful Local/HTTP results.
@@ -93,7 +113,12 @@ passed 52/52. The spec job's `check:spec`, strict resource boundary check,
 authorization vectors and metadata check passed. Its final clean-diff guard
 initially failed because this preparation was still uncommitted, with no
 additional generated/metadata changes. That guard must be checked again after
-committing. This is not recorded as a successful end-to-end wrapper run.
+committing. The guard passed on `4bac7384b0c82fb8f8ab15de87fcb9eb43f311a6`.
+This is not recorded as a successful end-to-end wrapper run.
+
+The packed-controller prerequisite tests separately reject missing setup,
+missing/short owner SHA and nonexistent setup before invoking build tools.
+These are preparation tests, not packed execution evidence.
 
 Client/Core execution gates, Linux CI and real packed INFER execution have not
 been run for this preparation unit. The common owner and real Host setup remain
