@@ -273,6 +273,17 @@ jobs:
         with:
           directory: ${{ steps.packed-materials.outputs.evidence-directory }}
           name: packed-resident-materials-${{ github.sha }}
+      - name: Test packed exact dispatch recovery against native resident Site
+        id: packed-redelivery
+        env:
+          ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/packed-resident-redelivery
+        run: node scripts/test-packed-resident-materials.mjs --redelivery-only
+      - name: Retain packed exact redelivery evidence
+        if: always() && steps.packed-redelivery.outputs.evidence-directory != ''
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.packed-redelivery.outputs.evidence-directory }}
+          name: packed-resident-redelivery-${{ github.sha }}
       - name: Verify registered Native retained product path
         run: |
           moon build --target js --release

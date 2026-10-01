@@ -206,19 +206,32 @@ pub fn coordinator_dispatch_intent_matches_request(
 }
 
 ///|
-/// An exact transport retransmission may recover an intent with no accepted
-/// Site observation. It reuses the same dispatch and input binding; the Site
-/// journal must deduplicate it before physical execution. An observed Site
-/// record is reconciled by query instead.
+/// Transport eligibility only, not start authority. An accepted observation
+/// is historical: the Site must reconcile its current record and exclusive
+/// claim when the identical dispatch arrives. A later started/terminal or
+/// cleanup observation permanently removes this eligibility.
 pub fn coordinator_exact_retransmission_eligible(
   record : CoordinatorDispatchIntentRecord,
   request : DispatchRequest,
 ) -> Bool {
   coordinator_dispatch_intent_matches_request(record, request) &&
-  record.site_revision == -1 &&
   (
-    record.progress == CoordinatorIntentDurable ||
-    record.progress == CoordinatorOutcomeUnknown
+    (
+      record.site_revision == -1 &&
+      (
+        record.progress == CoordinatorIntentDurable ||
+        record.progress == CoordinatorOutcomeUnknown
+      )
+    ) ||
+    (
+      record.site_revision >= 0 &&
+      record.site_execution == 0 &&
+      record.site_evidence == 0 &&
+      record.site_cleanup == 0 &&
+      !record.site_material_available &&
+      !record.site_quarantined_capacity &&
+      record.accepted_evidence_cid.is_empty()
+    )
   )
 }
 

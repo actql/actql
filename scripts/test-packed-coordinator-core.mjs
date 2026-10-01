@@ -92,6 +92,37 @@ try {
   coordinator.commitTransition(replay);
   assert.deepEqual(coordinator.recordStateCodes(replayRecord), stateBeforeReplay);
   assert.equal(coordinator.exactRetransmissionEligible(replayRecord, fixture.request), false);
+  const context = {coordinatorAuthority: 'coordinator-a', siteKey: 'site-a',
+    siteGeneration: 1, authorizationCurrent: true, cancellationRequested: false};
+  // Query-before-send decisions come from the same packed owner. Terminal
+  // evidence is never downgraded to Accepted/unstarted delivery eligibility.
+  assert.equal(coordinator.redeliveryEligible(replayRecord, fixture.request, '', context), false);
+  assert.throws(() => coordinator.redeliveryEligible(replayRecord, fixture.request, '',
+    {...context, siteGeneration: 2}), {code: 'CoordinatorOwnerRejected'});
+  const fresh = coordinator.restoreDurable(coordinator.createJournal('coordinator-a'),
+    coordinator.admitDurableJson(coordinator.admissionDurableJson(
+      coordinator.prepareIntent(coordinator.createJournal('coordinator-a'), request))));
+  assert.equal(coordinator.redeliveryEligible(fresh, request, '', context), false);
+  assert.equal(coordinator.redeliveryEligible(fresh, request, notSeen(requestCid), context), true);
+  assert.equal(coordinator.redeliveryEligible(fresh, request, notSeen(requestCid),
+    {...context, authorizationCurrent: false}), false);
+  assert.equal(coordinator.redeliveryEligible(fresh, request, notSeen(requestCid),
+    {...context, cancellationRequested: true}), false);
+  const {createHash} = await import('node:crypto');
+  const bindingCid = 'sha256:' + createHash('sha256').update('{}').digest('hex');
+  const deliverable = coordinator.prepareDispatch({
+    coordinatorAuthority: 'coordinator-a', runDefinitionCid: cid('0'), taskKey: 'task-a',
+    taskAttempt: 1, dispatchId: 'packed-r2-envelope', siteKey: 'site-a', siteGeneration: 1,
+    runtimeBundleCid: cid('a'), connectorRegistration: 'local', connectorRevision: 'local/1',
+    strategyRevision: 'strategy/1', inputBindingCid: bindingCid, obligationsCid: cid('2'),
+    budgetCid: cid('3'), evidenceIssuerCapabilityCid: cid('b'), grantCid: cid('4'),
+  });
+  const delivery = coordinator.pollDispatchMaterialsJson(deliverable, '{}', 16, '{}');
+  assert.equal(coordinator.deliveryEnvelopeJson(deliverable, delivery), delivery);
+  assert.throws(() => coordinator.deliveryEnvelopeJson(request, delivery),
+    {code: 'CoordinatorOwnerRejected'});
+  assert.throws(() => coordinator.deliveryEnvelopeJson(deliverable, delivery + ' '),
+    {code: 'CoordinatorOwnerRejected'});
   const replayAgain = coordinator.prepareResponseObservation(replayRecord, replayResponse);
   assert.equal(coordinator.responseDurableJson(
     fixture.durable, replayAgain, replayResponse), replayBody);

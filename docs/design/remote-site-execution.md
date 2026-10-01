@@ -184,6 +184,73 @@ observation to unknown without inventing a Site fact. A semantic refusal or
 failed/unknown observation commit does not manufacture another transport
 transition. A later authenticated query may reconcile the same dispatch.
 
+### Exact dispatch recovery after response loss
+
+The Coordinator must retain the original dispatch, Connector binding and any
+Run materials together before the initial delivery. The existing poll owner
+checks the dispatch/binding identity and canonical envelope. The retained Run
+owners separately check that the materials were projected from that original
+Run; the envelope's CID or syntax is not a Run authorization decision. No
+expiry, authorization evidence, input or Run identity is reissued on recovery.
+
+The Node Coordinator's recovery-enabled installation supplies
+`currentDispatchContext(dispatch, envelope)`: a synchronous, trusted Host
+projection from those retained Run/configuration/authorization owners. It must
+verify the original association and current Run/authorization lifetime, Site
+binding and cancellation facts, not copy claims from the envelope or a query
+reply. The ordinary activation authorization gate also runs again. Initial
+delivery checks this projection before persistence and again after its commit;
+recovery checks it after the query/authorization awaits immediately before
+transport. Missing installation does not opt a legacy transport into R2.
+
+| Durable observation at recovery | Current exact query | Common owner decision |
+| --- | --- | --- |
+| No Site observation | Admitted `not seen` for this request | May redeliver the retained envelope if current checks allow |
+| No Site observation | Timeout, missing reply or other transport/storage failure | Unknown; no automatic send |
+| Accepted, no start/evidence/cleanup fact | Accepted, or an already-admitted Accepted replay | May redeliver the same occurrence if current checks allow |
+| Start/provisioning, running or terminal observed | Any admitted old Accepted replay | Reconcile; never restore Accepted or grant another start |
+| Any Site observation | `not seen` | Does not erase durable history or authorize a send |
+| Any observation | Different identity, stale unadmitted observation or contradictory body | Typed refusal; no replacement attempt |
+
+Accepted is a historical observation, not an unstarted lease. A Site receiving
+the same delivery uses its existing admission, queue deduplication, executor
+slot and durable start claim. It may queue the existing Accepted occurrence;
+if start won between query and arrival it only acknowledges the current record.
+`AlreadyMine` is confirmation of a saved claim, never independent permission
+for a new process to enter the executor. A resident holder has a fresh claimant
+and uses the existing startable-record/runtime-custody checks. Recovery does not
+construct a second execution state machine.
+
+The Node SQLite journal retains delivery bytes in the additive
+`dispatch_deliveries` table, with a foreign key to the exact dispatch intent and
+the `dispatch_delivery = actql-remote-coordinator-delivery/0.1` capability. The
+initial intent and delivery are inserted in the same SQLite transaction. A
+failed/unknown commit gives no send permission; reconstruct the Coordinator
+from the durable journal before attempting recovery. An existing dispatch with
+different envelope bytes is `RemoteDispatchDeliveryMaterialsCollision`.
+
+The history-journal/record and public wire formats remain 0.1 and their canonical
+bodies/CIDs are unchanged. R1-compatible journals without this capability stay
+openable: initializing the additive empty table does not manufacture delivery
+bytes or rewrite their observation records. Their query, evidence and cleanup
+remain usable; `RemoteDispatchDeliveryMaterialsMissing` refuses only automatic
+redelivery. Never attach newly generated materials to such an old intent.
+Pre-R1 journals retain the separate history-required refusal described below.
+
+There is at most one delivery per dispatch, bounded by `maxDispatches`. The
+encoded envelope bound is 1,442,816 UTF-8 bytes, matching the existing poll
+materials encoder (1,179,648 + 262,144 + 1,024); `maxDeliveryBytes` can impose a
+smaller deployment bound. Inner materials retain their 262,144-byte cap, and
+binding/quoting retain the existing poll-owner bounds. The resident HTTP default
+is 1,441,792 bytes and its journal defaults to 1,048,576 bytes per record; a Host
+targeting that configuration must select the tighter 1,048,576-byte delivery
+cap. Those transport/storage limits do not enlarge the common encoder limit.
+Over-limit envelopes are refused before initial delivery. No unbounded history
+or automatic retry loop is added; one recovery step queries then reconciles or
+delivers the exact saved bytes once. A retained gateway offer remains transport
+custody, not proof of start permission. O2 cancellation and O6 generation/restart
+completion remain separate units.
+
 ### Durable observation replay
 
 The existing Coordinator owner records the typed state and the evidence

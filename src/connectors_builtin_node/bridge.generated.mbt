@@ -4649,6 +4649,60 @@ pub fn strategy_remote_coordinator_intent_matches(
 }
 
 ///|
+#export_name("strategyRemoteCoordinatorDeliveryEnvelopeJson")
+pub fn strategy_remote_coordinator_delivery_envelope_json(
+  request : @remote.DispatchRequest,
+  body : String,
+) -> String raise NodeHostFailure {
+  match @remote.coordinator_delivery_envelope_json(request, body) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCoordinatorRedeliveryEligible")
+pub fn strategy_remote_coordinator_redelivery_eligible(
+  record : @remote.CoordinatorDispatchIntentRecord,
+  request : @remote.DispatchRequest,
+  not_seen_body : String,
+  expected_authority : String,
+  expected_site : String,
+  expected_generation : Int,
+  authorization_current : Bool,
+  cancellation_requested : Bool,
+) -> Bool raise NodeHostFailure {
+  match
+    @remote.coordinator_redelivery_eligible(
+      record, request, not_seen_body, expected_authority, expected_site, expected_generation,
+      authorization_current, cancellation_requested,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteCoordinatorDeliveryContextCurrent")
+pub fn strategy_remote_coordinator_delivery_context_current(
+  request : @remote.DispatchRequest,
+  expected_authority : String,
+  expected_site : String,
+  expected_generation : Int,
+  authorization_current : Bool,
+  cancellation_requested : Bool,
+) -> Bool raise NodeHostFailure {
+  match
+    @remote.coordinator_delivery_context_current(
+      request, expected_authority, expected_site, expected_generation, authorization_current,
+      cancellation_requested,
+    ) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
 #export_name("strategyRemoteCoordinatorIntentRestore")
 pub fn strategy_remote_coordinator_intent_restore(
   journal : @remote.CoordinatorDispatchJournal,

@@ -27,6 +27,16 @@ const text = value => typeof value === 'string' && value.length > 0;
 const count = value => Number.isSafeInteger(value) && value >= 0;
 const journalVersion = 'actql-remote-coordinator-history-journal/0.1';
 const historyBytes = 131_072;
+// Same bound as the existing materials poll encoder (binding + quoted
+// materials + framing). Configured receivers may impose a smaller bound.
+const deliveryBytes = 1_442_816;
+const deliveryVersion = 'actql-remote-coordinator-delivery/0.1';
+const deliverySchemaSql = `CREATE TABLE IF NOT EXISTS dispatch_deliveries (
+        dispatch_request_cid TEXT PRIMARY KEY NOT NULL,
+        envelope_json TEXT NOT NULL,
+        FOREIGN KEY (dispatch_request_cid)
+          REFERENCES dispatch_intents (dispatch_request_cid)
+      ) STRICT;`;
 const schemaSql = `
       CREATE TABLE IF NOT EXISTS journal_metadata (
         key TEXT PRIMARY KEY NOT NULL,
@@ -144,6 +154,16 @@ function inspectCoordinatorFormat(root, coordinatorAuthority) {
       ).get(name)?.sql;
       if (actual !== expected) fail('UnknownCoordinatorJournalFormat');
     }
+    const deliverySql = database.prepare(
+      "SELECT sql FROM sqlite_schema WHERE type = 'table' AND name = ?",
+    ).get('dispatch_deliveries')?.sql;
+    const capability = metadata.get('dispatch_delivery')?.value;
+    if (deliverySql !== undefined || capability !== undefined) {
+      if (capability !== deliveryVersion || deliverySql !==
+          deliverySchemaSql.replace(' IF NOT EXISTS', '').replace(/;$/u, '')) {
+        fail('UnknownCoordinatorJournalDeliveryFormat');
+      }
+    }
   }, {code: 'UnknownCoordinatorJournalFormat',
     validateSource: () => JSON.stringify(readdirSync(root).sort()) ===
       JSON.stringify(entries)});
@@ -166,6 +186,7 @@ export function openSqliteCoordinatorDispatchJournal(root, {
   maxTransferChunks = 65_536,
   maxTransferManifestBytes = 16_777_216,
   maxTransferReferencedBytes = Number.MAX_SAFE_INTEGER,
+  maxDeliveryBytes = deliveryBytes,
 } = {}) {
   if (!text(root) || !text(coordinatorAuthority) || !count(maxDispatches) ||
       maxDispatches === 0 || !count(maxRequestBytes) ||
@@ -176,7 +197,8 @@ export function openSqliteCoordinatorDispatchJournal(root, {
       maxTransferChunks === 0 || !count(maxTransferManifestBytes) ||
       maxTransferManifestBytes === 0 ||
       !count(maxTransferReferencedBytes) ||
-      maxTransferReferencedBytes === 0) {
+      maxTransferReferencedBytes === 0 || !count(maxDeliveryBytes) ||
+      maxDeliveryBytes === 0 || maxDeliveryBytes > deliveryBytes) {
     fail('InvalidCoordinatorJournalConfiguration');
   }
   const current = inspectCoordinatorFormat(root, coordinatorAuthority);
@@ -198,6 +220,11 @@ export function openSqliteCoordinatorDispatchJournal(root, {
     database.exec('PRAGMA synchronous = FULL');
     database.exec(schemaSql);
     transaction.run(() => {
+      // Add a distinguishable optional capability, never fabricate delivery
+      // material for an existing intent. Old intent/history rows stay intact.
+      database.exec(deliverySchemaSql);
+      database.prepare('INSERT OR IGNORE INTO journal_metadata (key, value) VALUES (?, ?)')
+        .run('dispatch_delivery', deliveryVersion);
       const version = database.prepare(
         'SELECT value FROM journal_metadata WHERE key = ?',
       ).get('schema_version');
@@ -223,6 +250,10 @@ export function openSqliteCoordinatorDispatchJournal(root, {
   }
 
   try {
+  const selectDelivery = database.prepare(
+    'SELECT envelope_json FROM dispatch_deliveries WHERE dispatch_request_cid = ?');
+  const insertDelivery = database.prepare(
+    'INSERT INTO dispatch_deliveries (dispatch_request_cid, envelope_json) VALUES (?, ?)');
   const selectDispatch = database.prepare(`
     SELECT dispatch_request_cid, request_json, revision, progress_state,
       site_revision, site_execution, site_evidence, site_cleanup,
@@ -572,7 +603,7 @@ export function openSqliteCoordinatorDispatchJournal(root, {
     }
     return record;
   };
-  const install = (request, requestJson, control) => {
+  const install = (request, requestJson, control, deliveryEnvelope) => {
     ensureOpen();
     if (!text(requestJson) || Buffer.byteLength(requestJson, 'utf8') >
         maxRequestBytes || control === null || typeof control !== 'object' ||
@@ -591,6 +622,13 @@ export function openSqliteCoordinatorDispatchJournal(root, {
     if (!count(generation) || !count(attempt) || attempt === 0) {
       fail('InvalidCoordinatorJournalRequest');
     }
+    if (deliveryEnvelope !== undefined) {
+      if (!text(deliveryEnvelope) || Buffer.byteLength(deliveryEnvelope) > maxDeliveryBytes ||
+          typeof control.coordinatorDeliveryEnvelopeJson !== 'function') {
+        fail('InvalidCoordinatorDeliveryEnvelope');
+      }
+      control.coordinatorDeliveryEnvelopeJson(request, deliveryEnvelope);
+    }
     return transaction.run(() => {
       const existing = selectDispatch.get(
         key[0], key[1], generation, key[3],
@@ -599,6 +637,13 @@ export function openSqliteCoordinatorDispatchJournal(root, {
         if (existing.dispatch_request_cid !== identity ||
             existing.request_json !== requestJson) {
           fail('RemoteDispatchCollision');
+        }
+        if (deliveryEnvelope !== undefined) {
+          const retained = selectDelivery.get(identity);
+          if (retained === undefined) fail('RemoteDispatchDeliveryMaterialsMissing');
+          if (retained.envelope_json !== deliveryEnvelope) {
+            fail('RemoteDispatchDeliveryMaterialsCollision');
+          }
         }
         return false;
       }
@@ -612,6 +657,7 @@ export function openSqliteCoordinatorDispatchJournal(root, {
         key[0], key[1], generation, key[3], identity,
         key[4], key[5], attempt, requestJson,
       );
+      if (deliveryEnvelope !== undefined) insertDelivery.run(identity, deliveryEnvelope);
       return true;
     });
   };
@@ -820,6 +866,17 @@ export function openSqliteCoordinatorDispatchJournal(root, {
 
   return Object.freeze({
     path,
+    deliveryEnvelope(request, control) {
+      ensureOpen();
+      if (!this.contains(request, control)) fail('RemoteDispatchIntentMissing');
+      const retained = selectDelivery.get(control.identity(request));
+      if (retained === undefined) fail('RemoteDispatchDeliveryMaterialsMissing');
+      if (!text(retained.envelope_json) ||
+          Buffer.byteLength(retained.envelope_json) > maxDeliveryBytes) {
+        fail('InvalidCoordinatorDeliveryEnvelope');
+      }
+      return control.coordinatorDeliveryEnvelopeJson(request, retained.envelope_json);
+    },
     recoverJournal(journal, control) {
       ensureOpen();
       if (control === null || typeof control !== 'object' ||
@@ -1027,7 +1084,7 @@ export function openSqliteCoordinatorDispatchJournal(root, {
       }
       return Object.freeze(recovered);
     },
-    accept(admission, request, control) {
+    accept(admission, request, control, deliveryEnvelope) {
       ensureOpen();
       if (control === null || typeof control !== 'object' ||
           typeof control.coordinatorIntentJson !== 'function' ||
@@ -1039,7 +1096,7 @@ export function openSqliteCoordinatorDispatchJournal(root, {
       if (requestJson !== control.requestJson(request)) {
         fail('CoordinatorIntentRequestMismatch');
       }
-      install(request, requestJson, control);
+      install(request, requestJson, control, deliveryEnvelope);
       const record = control.commitCoordinatorIntent(admission, true);
       if (!control.coordinatorIntentMatches(record, request)) {
         fail('CoordinatorJournalControlDiverged');

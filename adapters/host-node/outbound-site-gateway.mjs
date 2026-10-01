@@ -470,7 +470,7 @@ export async function startHttpsOutboundSiteGateway({
         if (matched !== undefined) {
           const error = Object.assign(
             new Error('RemoteDispatchNotSeen'),
-            {code: 'RemoteDispatchNotSeen'},
+            {code: 'RemoteDispatchNotSeen', notSeenBody: body},
           );
           settle(matched, 'reject', error);
           replyJson(response, 200, {accepted: true});
@@ -556,6 +556,10 @@ export async function startHttpsOutboundSiteGateway({
         fail('InvalidOutboundDispatch');
       }
       if (dispatchEnvelope !== undefined) {
+        const retained = materialsEnvelopes.get(control.identity(dispatch));
+        if (retained !== undefined && retained !== dispatchEnvelope) {
+          fail('OutboundDispatchMaterialsCollision');
+        }
         materialsEnvelopes.set(control.identity(dispatch), dispatchEnvelope);
       }
       return waitFor(dispatch, signal, 'dispatch', inputBindingBody);
