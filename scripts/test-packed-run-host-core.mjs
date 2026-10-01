@@ -38,6 +38,8 @@ for (const name of ['values.json', 'values.environment.json']) {
   await writeFile(join(installation, name),
     await readFile(join(repository, 'packages/sdk/fixtures', name)));
 }
+await writeFile(join(installation, 'result-delivery-acceptance.mjs'),
+  await readFile(join(repository, 'scripts/fixtures/result-delivery-acceptance.mjs')));
 await writeFile(join(installation, 'smoke.mjs'), `
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -50,8 +52,12 @@ const {admitEnvironment, prepare, compileValues, compiledPlanCid,
   issueSourceFreeInvocation, inspectCanonicalResultRows,
   openResultDeliveryControl} =
   await import('@actql/run-host-core');
-const {installResultAccessAuthority} =
-  await import('@actql/run-host-core/result-access');
+const resultAccess = await import('@actql/run-host-core/result-access');
+const {installResultAccessAuthority} = resultAccess;
+const {exerciseResultDeliveryAcceptance} =
+  await import('./result-delivery-acceptance.mjs');
+assert.equal((await exerciseResultDeliveryAcceptance(resultAccess,
+  openResultDeliveryControl)).length, 3);
 assert.equal(typeof installResultAccessAuthority, 'function');
 assert.equal(openResultDeliveryControl()
   .beginResultAccessProgress().kind, 'result-access-progress');
@@ -113,4 +119,4 @@ assert.deepEqual(inspectCanonicalResultRows('[{"id":1},{"id":2}]',
 });
 `);
 run(process.execPath, ['smoke.mjs'], installation);
-console.log('packed portable Run Host admission and row inspection passed');
+console.log('packed portable Run Host admission, row inspection and Result delivery passed');
