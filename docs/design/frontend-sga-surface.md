@@ -20,6 +20,14 @@ synonyms, or treat graph operations as SQL scalar functions. GQL-derived MATCH
 and ActQL-specific SGA operations are distinct surfaces over the same Program.
 The authority for operation meaning is [Graph operations](../spec/language.md#graph-operations-sga).
 
+The [standard-profile ledger](frontend-standard-profiles.md) distinguishes these
+ActQL operations from GQL pattern syntax and SQL/PGQ-derived table mapping.
+The adopted Property Graph constructor requires independently keyed edges
+and graph-owned node/edge label sets. The operation inventory below refers to
+the current simple-Graph contract; it is not evidence that those consumers
+already preserve the new identity model. Adapt laws and consumers together,
+and reject unsupported new-model input instead of collapsing parallel edges.
+
 DATA binds a logical producer. Existing lowering emits ordinary steps with
 `as`/`from`; a bare DATA alias reuses its producer without emitting a step.
 Adding the surface must not introduce per-binding acquisition, materialization,
