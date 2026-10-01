@@ -27,6 +27,49 @@ export const querySuccesses = [
   {name: 'empty', format: 'sql',
     text: 'SELECT id FROM records WHERE amount > 100 ORDER BY id', expected: []},
 ];
+// Hand-authored source-free expectations. No compiler or output snapshot
+// generates these rows, contracts or order. Installed source aliases remain
+// available in the Host, but none of these Programs acquires them.
+const numberColumn = name => ({name, contract: {type: 'number', nullable: false}});
+export const sourceFreeSuccesses = [
+  {name: 'literal-values', format: 'sql',
+    text: "SELECT 1 AS id, 'hello' AS label",
+    expected: [{id: 1, label: 'hello'}], sourceReadCount: 0,
+    columns: [numberColumn('id'), {name: 'label', contract: {type: 'string', nullable: false,
+      // The authored ASCII literal has five UTF-8 bytes; its extent is exact.
+      max_utf8_bytes: 5}}]},
+  {name: 'machine-values-migration', format: 'sql',
+    text: 'SELECT 1 AS id UNION ALL SELECT 2 AS id ORDER BY id',
+    expected: [{id: 1}, {id: 2}], columns: [numberColumn('id')], sourceReadCount: 0},
+  {name: 'source-free-duplicates', format: 'sql',
+    text: 'SELECT 2 AS id UNION ALL SELECT 1 AS id UNION ALL SELECT 2 AS id ORDER BY id',
+    expected: [{id: 1}, {id: 2}, {id: 2}], columns: [numberColumn('id')], sourceReadCount: 0},
+  {name: 'source-free-null', format: 'sql',
+    text: 'SELECT CAST(NULL AS STRING) AS label', expected: [{label: null}],
+    columns: [{name: 'label', contract: {type: 'string', nullable: true}}], sourceReadCount: 0},
+  {name: 'source-free-empty', format: 'sql',
+    text: 'SELECT 1 AS id WHERE FALSE', expected: [], columns: [numberColumn('id')], sourceReadCount: 0},
+  {name: 'source-free-parameter', format: 'sql', text: 'SELECT @minimum AS amount',
+    parameterDeclarations: declarations, parameters: {minimum: 20},
+    expected: [{amount: 20}], columns: [numberColumn('amount')], sourceReadCount: 0},
+  {name: 'source-free-pipe', format: 'aql-text',
+    text: 'SELECT 2 AS x |> WHERE x > 0 |> SET x = x + 1 |> SELECT x',
+    expected: [{x: 3}], columns: [numberColumn('x')], sourceReadCount: 0},
+  {name: 'source-free-count', format: 'sql', text: 'SELECT COUNT(*) AS n',
+    expected: [{n: 1}], columns: [numberColumn('n')], sourceReadCount: 0},
+  {name: 'source-free-cte', format: 'sql',
+    text: 'WITH seed AS (SELECT 2 AS x |> WHERE x > 0 |> SELECT x) SELECT x FROM seed ORDER BY x',
+    expected: [{x: 2}], columns: [numberColumn('x')], sourceReadCount: 0},
+];
+export const sourceFreeRefusals = [
+  {name: 'source-free-star', format: 'sql', text: 'SELECT *'},
+  {name: 'source-free-private-column', format: 'sql', text: 'SELECT aql_source_free_unit AS x'},
+  {name: 'source-free-private-range', format: 'sql', text: 'SELECT aql_source_free.aql_source_free_unit AS x'},
+  {name: 'source-free-sibling', format: 'sql', text: 'SELECT 1 AS x, x AS y'},
+  {name: 'source-free-before-select', format: 'sql', text: 'SELECT 1 AS x WHERE x > 0'},
+  {name: 'source-free-undeclared', format: 'sql', text: 'SELECT @p AS x'},
+  {name: 'source-free-missing-value', format: 'sql', text: 'SELECT @minimum AS x', parameterDeclarations: declarations},
+];
 export const queryRefusals = [
   ...['aql-text', 'sql'].flatMap(format => [
     {name: `retired-envelope-${format}`, format,
