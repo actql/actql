@@ -114,6 +114,14 @@ pub fn prepare_ordered_references(
               entries.push({ at: path, target, })
             }
             Literal(_) | TypedNull => ()
+            Cast(child) => {
+              guard append_path(path, "/body/value") is Some(child_path) else {
+                return Err(ReferenceLimit)
+              }
+              if !push(Visit(child, child_path)) {
+                return Err(ReferenceLimit)
+              }
+            }
             Unary(_, child) => {
               guard append_path(path, "/body") is Some(child_path) else {
                 return Err(ReferenceLimit)

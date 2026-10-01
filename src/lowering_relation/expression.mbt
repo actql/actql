@@ -15,6 +15,7 @@ pub enum ExpressionBody {
   Field(String, @relation.ReferenceTarget)
   Literal(@value.CheckedValue)
   TypedNull
+  Cast(Expression)
   Unary(UnaryOperator, Expression)
   Binary(BinaryOperator, Expression, Expression)
   VectorScore(VectorMetric, Expression, Expression)
@@ -121,6 +122,7 @@ pub fn expression_view_entries(value : Expression) -> Int {
     Field(_, _)
     | Literal(_)
     | TypedNull
+    | Cast(_)
     | Unary(_, _)
     | Binary(_, _, _)
     | VectorScore(_, _, _)
@@ -193,6 +195,7 @@ fn expression_tag(
     | "concat_strict"
     | "vector_score"
     | "vector_concat"
+    | "cast"
     | "if"
     | "case" => ()
     other => expression_fail(source, ExpressionNotImplemented(other))
@@ -207,6 +210,10 @@ fn expression_children(
 ) -> Array[@decode.Cursor] raise ExpressionStop {
   match tag {
     "literal" | "field" | "$param" => []
+    "cast" => {
+      let obj = @decode.open_object(body).unwrap()
+      [@decode.lookup(obj, "value").unwrap()]
+    }
     "negate"
     | "not"
     | "is_null"
@@ -704,6 +711,7 @@ fn lower_expression_measured(
           }
         }
         "negate" => Unary(Negate, args[0])
+        "cast" => Cast(args[0])
         "not" => Unary(Not, args[0])
         "is_null" => Unary(IsNull, args[0])
         "not_null" => Unary(NotNull, args[0])
@@ -780,6 +788,7 @@ fn lower_expression_measured(
         uses_veca: match lowered {
           VectorScore(_, _, _) | VectorConcat(_) => true
           Unary(_, child) => child.uses_veca
+          Cast(child) => child.uses_veca
           Binary(_, left, right) => left.uses_veca || right.uses_veca
           Many(_, children) => children.any(child => child.uses_veca)
           Conditional(condition, yes, no) =>
