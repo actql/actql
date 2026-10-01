@@ -5,11 +5,11 @@
     {"from":"tickets","select":["id","text","secret"],"as":"aql_infer_input_0"},
     {"from":"aql_infer_input_0","infer":{"contract":"model-task:risk-score.v1","key":"id","input":{"text":{"field":"text"}}},"as":"aql_infer_outcome_0"},
     {"join":{"with":"aql_infer_input_0","kind":"inner","cardinality":"one_to_one","on":[{"left":"id","right":"id"}],"select":{
-      "id":{"join_field":{"side":"right","name":"id"}},
-      "note":{"join_field":{"side":"right","name":"text"}},
-      "aql_infer_key_3":{"join_field":{"side":"left","name":"id"}},
-      "aql_infer_role_4":{"join_field":{"side":"left","name":"outcome"}},
-      "aql_infer_role_5":{"join_field":{"side":"left","name":"value"}}
+      "id":"right.id",
+      "note":"right.text",
+      "aql_infer_key_3":"left.id",
+      "aql_infer_role_4":"left.outcome",
+      "aql_infer_role_5":"left.value"
     }}},
     {"derive":{"aql_infer_result_7":{"object":{
       "input_key":{"object":{"id":{"field":"aql_infer_key_3"}}},
