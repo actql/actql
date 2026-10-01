@@ -1,0 +1,41 @@
+{
+  "version": "actql-relation-pipeline-extension/0.1",
+  "baseRevision": "20bf79d975c72ef1e6ca7512f28a9a8636a89634",
+  "initialOperations": [
+    "filter",
+    "select",
+    "sort"
+  ],
+  "additionalOperation": "take",
+  "frozen": {
+    "proofs/relation-pipeline/audit.mjs": "2e392ccd1d5d78a1afe01aa073f6938172733b0127b0c4abcfb80433a7b4bb39",
+    "proofs/relation-pipeline/engine.mjs": "d706118af424ac40aee17d022efe731d696323643ea1bf30ef1f6f4dca1344df",
+    "proofs/relation-pipeline/engine.test.mjs": "cae0d3e71f8b44e654c51b0c0c55e98306c24b6ce396bdd1e0a673d83e4f5dad",
+    "proofs/relation-pipeline/evidence.mjs": "740ac782f5415cce39dd3bb68aa7bd47e2f0bfdc1ce8cd0fb03aad885dc841a8",
+    "proofs/relation-pipeline/evidence.test.mjs": "97c424cb1d2a95d2c8b52b36c36a1e02513e807afdc759d1b490b4ddd4b698b3",
+    "proofs/relation-pipeline/execute.mjs": "0a248c882d978e40b443f05e2f61cd32bd34849cba80e90c8fcf2318a02e7eba",
+    "proofs/relation-pipeline/filter.mjs": "d97b221ef9c40bc7de9cc805c701c378050d1c97f279d6ad797aa5834ec32a1f",
+    "proofs/relation-pipeline/fixture.mjs": "0f24f57ff4ebed236f069d9c24ef501a991af4d960f2f962744cc2b65028c42d",
+    "proofs/relation-pipeline/harness.mbt": "5330b7ec59cbfa39052f640f32817cade870214578462156241a8a2b797083c9",
+    "proofs/relation-pipeline/inventory.mjs": "69852ca60d28d22852219ebc7c330827214c758ff4091fb5e6de5f6c37cce13d",
+    "proofs/relation-pipeline/mismatch.mjs": "88bb4f692b372080e7715745ba0ce75c70e83d7767fb389c3c8ac156d674e473",
+    "proofs/relation-pipeline/mutations.mjs": "499b13c49da336ec97be46df96e60ad24146ffd143a5439f9498396d2cfcb57d",
+    "proofs/relation-pipeline/run.mjs": "b816317dd6f0ead7ad145a67e7444f895614762266a2dacaa89793be6e8bda58",
+    "proofs/relation-pipeline/select.mjs": "d379ec6eae288e20756b43dae6eeeed9c2b8a98c70060ab2940863eea0aaedbe",
+    "proofs/relation-pipeline/sites.mjs": "0c6c09d17e642755968fe5a209e3b4b63512ddba0d216bbbbdc9e8b7acd2296d",
+    "proofs/relation-pipeline/sort.mjs": "ee5546e8f486ed9858e805bd40c39aa024360165c32000bbace16a8a7bc48271"
+  },
+  "implementationChanges": [
+    "proofs/relation-pipeline/take.mjs",
+    "proofs/relation-pipeline/registry.mjs"
+  ],
+  "reviewChanges": [
+    "take order premise, positive count and nonnegative offset; bounded successful domain",
+    "independent skip/limit oracle and canonical/public projection contract",
+    "typed registration and argument reductions",
+    "existing selected binding rows adapter and bounded take route; actual correspondence/corpus replay"
+  ],
+  "handwrittenCombinationAdditions": 0,
+  "testRetirements": [],
+  "comparison": "retrospective registration of existing take, not new operation delivery"
+}
