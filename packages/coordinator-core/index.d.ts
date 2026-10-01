@@ -238,6 +238,9 @@ export function outputTransitionDurableJson(durable: DurableOutputRecord,
 export function commitOutputTransition(
   transition: OutputTransition): OutputRecord;
 export function outputResultJson(record: OutputRecord): string;
+/** Call after durable acceptance. Exact replay is ACK-only; foreign or
+ * unaccepted report bytes are rejected. Never use an in-memory waiter. */
+export function outputReportAckJson(record: OutputRecord, originalReport: string): string;
 export function prepareUnknown(record: IntentRecord): Transition;
 export function admitResponseJson(body: string, request: DispatchRequest,
   statusReply: boolean): DispatchResponse;

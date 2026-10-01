@@ -689,6 +689,8 @@ pub fn async_strategy_remote_coordinator_output_record_revision(@remote_site_pro
 
 pub fn async_strategy_remote_coordinator_output_record_status(@remote_site_protocol.CoordinatorOutputRecord) -> Array[String]
 
+pub fn async_strategy_remote_coordinator_output_report_ack_json(@remote_site_protocol.CoordinatorOutputRecord, String) -> String raise AsyncHostFailure
+
 pub fn async_strategy_remote_coordinator_output_transition_commit(@remote_site_protocol.CoordinatorOutputTransition, Bool) -> Unit raise AsyncHostFailure
 
 pub fn async_strategy_remote_coordinator_output_transition_key(@remote_site_protocol.CoordinatorOutputTransition) -> Array[String]
@@ -872,6 +874,8 @@ pub fn async_strategy_remote_output_plan_payload_request(@remote_site_protocol.R
 pub fn async_strategy_remote_output_plan_prepare(@remote_site_protocol.RemotePollOutput, @remote_site_protocol.RemoteManagedOutputSubject, @publication_payload.PublicationPayloadRequest, @remote_transfer.RemoteTransferRequest) -> @remote_site_protocol.RemoteOutputPlan raise AsyncHostFailure
 
 pub fn async_strategy_remote_output_plan_transfer_request(@remote_site_protocol.RemoteOutputPlan) -> @remote_transfer.RemoteTransferRequest
+
+pub fn async_strategy_remote_output_report_reply_admit(String, @remote_site_protocol.RemoteOutputResult) -> Bool raise AsyncHostFailure
 
 pub fn async_strategy_remote_output_result_admit(String, @remote_site_protocol.RemotePollOutput, @publication_payload.PublicationPayloadRequest, @remote_transfer.RemoteTransferRequest) -> @remote_site_protocol.RemoteOutputResult raise AsyncHostFailure
 
@@ -1991,6 +1995,8 @@ pub fn strategy_remote_coordinator_output_record_revision(@remote_site_protocol.
 
 pub fn strategy_remote_coordinator_output_record_status(@remote_site_protocol.CoordinatorOutputRecord) -> Array[String]
 
+pub fn strategy_remote_coordinator_output_report_ack_json(@remote_site_protocol.CoordinatorOutputRecord, String) -> String raise NodeHostFailure
+
 pub fn strategy_remote_coordinator_output_transition_commit(@remote_site_protocol.CoordinatorOutputTransition, Bool) -> Unit raise NodeHostFailure
 
 pub fn strategy_remote_coordinator_output_transition_key(@remote_site_protocol.CoordinatorOutputTransition) -> Array[String]
@@ -2174,6 +2180,8 @@ pub fn strategy_remote_output_plan_payload_request(@remote_site_protocol.RemoteO
 pub fn strategy_remote_output_plan_prepare(@remote_site_protocol.RemotePollOutput, @remote_site_protocol.RemoteManagedOutputSubject, @publication_payload.PublicationPayloadRequest, @remote_transfer.RemoteTransferRequest) -> @remote_site_protocol.RemoteOutputPlan raise NodeHostFailure
 
 pub fn strategy_remote_output_plan_transfer_request(@remote_site_protocol.RemoteOutputPlan) -> @remote_transfer.RemoteTransferRequest
+
+pub fn strategy_remote_output_report_reply_admit(String, @remote_site_protocol.RemoteOutputResult) -> Bool raise NodeHostFailure
 
 pub fn strategy_remote_output_result_admit(String, @remote_site_protocol.RemotePollOutput, @publication_payload.PublicationPayloadRequest, @remote_transfer.RemoteTransferRequest) -> @remote_site_protocol.RemoteOutputResult raise NodeHostFailure
 

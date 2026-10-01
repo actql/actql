@@ -4,7 +4,9 @@ package "actql/actql/platform_native/remote_journal"
 import {
   "actql/actql/execution_site",
   "actql/actql/platform_native/sqlite",
+  "actql/actql/publication_payload",
   "actql/actql/remote_site_protocol",
+  "actql/actql/remote_transfer",
   "moonbitlang/core/debug",
 }
 
@@ -53,14 +55,21 @@ pub fn Journal::commit_evidence_transition(Self, @remote_site_protocol.DispatchT
 pub fn Journal::commit_transition(Self, @remote_site_protocol.DispatchTransition) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::complete_output_intent(Self, String) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::dispatch_envelope(Self, String) -> Result[String?, NativeRemoteJournalIssue]
+pub fn Journal::ensure_output_report_capacity(Self, @remote_site_protocol.RemotePollOutput, @publication_payload.PublicationPayloadRequest, @remote_transfer.RemoteTransferRequest) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::force_loss(Self, @remote_site_protocol.DispatchRecord, Bool) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::observation(Self, @remote_site_protocol.DispatchRequest) -> Result[RecoveredSiteDispatch, NativeRemoteJournalIssue]
+pub fn Journal::output_report(Self, String) -> Result[(@remote_site_protocol.RemoteOutputReportCustody, @remote_site_protocol.RemoteOutputReportReply?), NativeRemoteJournalIssue]
+pub fn Journal::output_report_after(Self, String) -> Result[(String, @remote_site_protocol.RemoteOutputReportCustody, @remote_site_protocol.RemoteOutputReportReply?)?, NativeRemoteJournalIssue]
 pub fn Journal::pending_output_intents(Self) -> Result[Array[(String, String)], NativeRemoteJournalIssue]
+pub fn Journal::record_output_report_reply(Self, String, String) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::recover_after(Self, String) -> Result[(String, @remote_site_protocol.DispatchRecord)?, NativeRemoteJournalIssue]
 pub fn Journal::require(Self, @remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.DispatchRecord, NativeRemoteJournalIssue]
+pub fn Journal::reserve_output_report(Self, @remote_site_protocol.RemotePollOutput) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::restart(Self, @execution_site.ExecutionSite) -> Result[Int, NativeRemoteJournalIssue]
 pub fn Journal::retain_dispatch_envelope(Self, @remote_site_protocol.DispatchRequest, String) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::retain_output_intent(Self, String, String) -> Result[Unit, NativeRemoteJournalIssue]
+pub fn Journal::retain_output_report(Self, @remote_site_protocol.RemoteOutputReportCustody) -> Result[Unit, NativeRemoteJournalIssue]
+pub fn Journal::retry_output_report(Self, String) -> Result[Unit, NativeRemoteJournalIssue]
 
 pub(all) enum NativeRemoteJournalIssue {
   UnsupportedTarget

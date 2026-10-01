@@ -7,6 +7,7 @@ pub(all) enum NativeRemoteClientIssue {
   Protocol(@remote.DispatchIssue)
   HttpStatus(Int)
   InvalidUtf8
+  OutputReportRefused(String)
   NotAuthorized
   OutcomeUnknownPersistence(
     @journal.NativeRemoteJournalIssue,

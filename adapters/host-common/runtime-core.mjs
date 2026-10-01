@@ -475,6 +475,10 @@ function remoteSiteControl(moon) {
       moon.strategyRemoteOutputResultJson(result),
     ),
     outputResultIdentity: moon.strategyRemoteOutputResultIdentity,
+    coordinatorOutputReportAckJson: (record, body) => checked(
+      moon.strategyRemoteCoordinatorOutputReportAckJson(record, body)),
+    admitOutputReportReply: (body, result) => checked(
+      moon.strategyRemoteOutputReportReplyAdmit(body, result)),
     outputResultProjection: (result, transferRequest) => checked(
       moon.strategyRemoteOutputResultProjection(result, transferRequest),
     ),

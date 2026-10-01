@@ -141,9 +141,17 @@ try {
     ]]),
     control: siteControl,
     receiveObservation: (process.argv.includes('--observation-replay-only') ||
-      process.argv.includes('--redelivery-only'))
+      process.argv.includes('--redelivery-only') ||
+      process.argv.includes('--output-report-only'))
       ? async value => {
         try {
+          // Output plans are a request/response waiter, not an execution
+          // observation. The Coordinator owner admits the resulting report
+          // below, after the plan has been used to build its exact Output
+          // record.
+          if (JSON.parse(value.body).version === 'actql-remote-output-plan/0.1') {
+            return Object.freeze({});
+          }
           const receipt = await observationReceiver.receiveObservation(value);
           observationBodies.push(value.body);
           return receipt;
@@ -408,6 +416,7 @@ try {
   const startSite = (extra = [], {
     origin = receiver.origin,
     controlOrigin = gateway.origin,
+    observationOrigin = controlOrigin,
     transferJournal = join(root, 'site-transfer.sqlite3'),
     publication = join(root, 'publication'),
     siteJournal = join(root, 'journal.sqlite3'),
@@ -417,7 +426,7 @@ try {
     configured[configured.indexOf('--journal') + 1] = siteJournal;
     for (const [flag, operation] of [['--poll-url', 'poll'], ['--observation-url', 'observations']]) {
       configured[configured.indexOf(flag) + 1] =
-        `${controlOrigin}/v1/sites/${siteKey}/generations/1/outbound/${operation}`;
+        `${(operation === 'observations' ? observationOrigin : controlOrigin)}/v1/sites/${siteKey}/generations/1/outbound/${operation}`;
     }
     const child = spawn(executable, ['run', ...configured,
       '--transfer-origin', origin, '--transfer-journal', transferJournal,
@@ -505,7 +514,112 @@ try {
   };
   let expectedEntries = 0;
 
-  if (process.argv.includes('--redelivery-only')) {
+  if (process.argv.includes('--output-report-only')) {
+    // Exercise the complete report path with the real native holder and the
+    // existing Coordinator/SQLite owner. The proxy drops only the first
+    // typed ACK; no receipt map or synthetic result is used.
+    const coordinatorRoot = join(root, 'coordinator-output-report');
+    const authorization = await allowAllAuthorization();
+    let dropOutputAck = true;
+    const reportBodies = [];
+    ackLossProxy = await observationAckLossProxy({
+      origin: gateway.origin,
+      key: await readFile(join(root, 'server.key')),
+      cert: await readFile(join(root, 'server.crt')),
+      ca: await readFile(join(root, 'ca.crt')),
+      loseAck: body => {
+        const hint = JSON.parse(body);
+        return dropOutputAck && hint.version === 'actql-remote-output-result/0.1';
+      },
+      allowDispatch: () => true,
+      onAckLost: body => {
+        if (reportBodies.length === 0) reportBodies.push(body);
+      },
+    });
+    const openOutputReceiver = () => {
+      observationStore = openSqliteCoordinatorDispatchJournal(coordinatorRoot,
+        {coordinatorAuthority: 'cloud-coordinator', maxDeliveryBytes: 1_048_576});
+      observationReceiver = createRemoteSiteCoordinator({
+        control: siteControl,
+        journal: siteControl.createCoordinatorJournal('cloud-coordinator'),
+        store: observationStore,
+        authorization,
+        send: value => gateway.dispatch(value),
+        query: value => gateway.query(value),
+        cancel: value => gateway.cancel(value),
+        release: value => gateway.release(value),
+        output: value => gateway.output(value),
+        transferControl,
+      });
+    };
+    openOutputReceiver();
+    let site = startSite(['--holder-kill-at', 'report-handoff'], {
+      controlOrigin: gateway.origin,
+      observationOrigin: ackLossProxy.origin,
+    });
+    currentSite = site;
+    const dispatch = dispatchFor('resident-output-report-custody', 1);
+    const dispatched = await within(observationReceiver.dispatch({
+      dispatch, inputBindingBody: '{}',
+      dispatchEnvelope: materialsEnvelope(dispatch),
+    }), 'output report dispatch');
+    assert.ok(dispatched);
+    await waitFor(async () => (await entries()).length === 1,
+      'output report executor');
+    const terminal = await settledQuery(dispatch, 'output report terminal');
+    const planned = await planOutput(dispatch, terminal, 'output-report-custody');
+    const delivered = await within(observationReceiver.output({
+      dispatch, intent: planned.intent, subject: terminal.subject,
+      payloadRequest: planned.planned.payloadRequest,
+      transferRequest: planned.planned.transferRequest,
+    }), 'output report delivery');
+    assert.ok(delivered);
+    await within(observationReceiver.release({dispatch}), 'output report release');
+    await waitFor(() => reportBodies.length === 1,
+      'first output ACK loss');
+    await waitFor(() => site.lines.some(line =>
+      line.kind === 'holder-killed' && line.point === 'report-handoff'),
+    'output report handoff holder exit');
+    assert.equal((await entries()).length, 1);
+    await waitFor(() => reservedPayloadBytes() === 0 &&
+      pendingIntents().length === 0, 'output report cleanup after holder exit');
+    const firstReport = reportBodies[0];
+    site.child.kill('SIGTERM');
+    await site.exited;
+    dropOutputAck = false;
+    observationStore.close();
+    openOutputReceiver();
+    // The report is recovered from the Coordinator journal, while the Site
+    // journal independently replays the exact bytes after its restart.
+    site = startSite([], {controlOrigin: gateway.origin});
+    currentSite = site;
+    await waitFor(() => site.lines.some(line => line.kind === 'output-delivered'),
+      'replayed output report ACK');
+    await waitFor(() => observationBodies.filter(body =>
+      JSON.parse(body).version === 'actql-remote-output-result/0.1').length >= 2,
+      'replayed output report body');
+    // Replay reuses the already terminal Coordinator fact and the retained
+    // report; it must not start a new holder. Physical release was confirmed
+    // before the first Site process was stopped.
+    assert.equal(observationStore.inspectOutput(
+      observationReceiver.recoveredOutputs[0].record, siteControl).progress, 2);
+    assert.equal((await entries()).length, 1);
+    assert.equal(reservedPayloadBytes(), 0);
+    assert.equal(pendingIntents().length, 0);
+    const outputBodies = observationBodies.filter(body =>
+      JSON.parse(body).version === 'actql-remote-output-result/0.1');
+    assert.equal(outputBodies.length, 2);
+    assert.deepEqual(outputBodies[0], outputBodies[1]);
+    assert.deepEqual(outputBodies[0], firstReport);
+    console.log(JSON.stringify({kind: 'resident-output-report-custody-verified',
+      runDefinitionCid: definition.identity,
+      dispatchRequestCid: siteControl.identity(dispatch), executorEntries: 1,
+      ackLostAfterDurableAdmission: true, coordinatorReconstructed: true,
+      releaseBeforeAck: true, reportBytesReplayedExactly: true,
+      reservedPayloadBytes: 0, pendingOutputIntents: 0}));
+    site.child.kill('SIGTERM');
+    await site.exited;
+  } else if (process.argv.includes('--redelivery-only')) {
     const coordinatorRoot = join(root, 'coordinator-redelivery');
     const authorization = await allowAllAuthorization();
     let blockDispatch = false;

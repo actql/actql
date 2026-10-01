@@ -79,6 +79,16 @@ pub fn acknowledge_output_result(
 }
 
 ///|
+pub fn acknowledge_retained_output_report(
+  _journal : @journal.Journal,
+  _client : @http.Client,
+  _url : String,
+  _key : String,
+) -> Result[Unit, NativeRemoteClientIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn acknowledge_output_plan(
   _client : @http.Client,
   _url : String,

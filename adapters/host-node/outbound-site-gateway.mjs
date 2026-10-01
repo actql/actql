@@ -410,6 +410,13 @@ export async function startHttpsOutboundSiteGateway({
           admitted,
           matched.transferRequest,
         );
+        observationAdmissionAttempted = true;
+        if (receiveObservation === undefined) fail('RemoteCoordinatorOutputDurableReceiverMissing');
+        const receipt = await receiveObservation(Object.freeze({body, binding}));
+        if (typeof receipt?.outputAckWire !== 'string' ||
+            control.admitOutputReportReply(receipt.outputAckWire, admitted) !== true) {
+          fail('RemoteCoordinatorOutputAcceptanceUnconfirmed');
+        }
         settle(matched, 'resolve', Object.freeze({
           result: admitted,
           resultWire: body,
@@ -419,7 +426,7 @@ export async function startHttpsOutboundSiteGateway({
           transferRequestCid: projection[3],
           transferRevision: Number(projection[4]),
         }));
-        replyJson(response, 200, {accepted: true});
+        replyCanonical(response, receipt.outputAckWire);
         return;
       }
       // Defer only dispatch waiters with an explicit query for that exact
@@ -482,8 +489,19 @@ export async function startHttpsOutboundSiteGateway({
           // No pending waiter is needed for a durably admitted replay or an
           // allowed evidence supplement. The existing Coordinator owns both.
           observationAdmissionAttempted = true;
-          await receiveObservation(Object.freeze({body, binding}));
-          replyJson(response, 200, {accepted: true});
+          const receipt = await receiveObservation(Object.freeze({body, binding}));
+          let noWaiterHint;
+          try { noWaiterHint = JSON.parse(body); } catch {}
+          if (typeof receipt?.outputAckWire === 'string') {
+            replyCanonical(response, receipt.outputAckWire);
+          } else if (noWaiterHint?.version === 'actql-remote-output-result/0.1') {
+            // Output reports have a typed, report-bound acknowledgement.  A
+            // legacy {accepted:true} body is never evidence that the durable
+            // report was accepted, including after Coordinator recovery.
+            fail('RemoteCoordinatorOutputAcceptanceUnconfirmed');
+          } else {
+            replyJson(response, 200, {accepted: true});
+          }
           return;
         }
         replyJson(response, 404, {error: 'not_found'});

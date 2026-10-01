@@ -17,6 +17,11 @@ pub(all) enum ResidentOutputIssue {
   OutputIntent(@journal.NativeRemoteJournalIssue)
   /// A kept output intent does not admit as one.
   OutputIntentInvalid
+  /// A prepared original report whose durable handoff is not confirmed.
+  OutputReportPending(
+    @remote.RemoteOutputReportCustody,
+    @journal.NativeRemoteJournalIssue
+  )
 }
 
 ///|
@@ -202,6 +207,24 @@ pub fn deliver_resident_output(
   max_chunk_bytes : Int,
   checkpoint : (String) -> Unit,
 ) -> ResidentDelivery {
+  let intent_key = @remote.remote_output_intent_identity(
+    @remote.remote_poll_output_intent(output),
+  )
+  match journal.output_report(intent_key) {
+    Ok((custody, _)) if @remote.dispatch_request_identity(
+        @remote.remote_output_report_custody_dispatch(custody),
+      ) ==
+      @remote.dispatch_request_identity(
+        @remote.remote_poll_output_request(output),
+      ) =>
+      return {
+        payload: None,
+        result: Ok(@remote.remote_output_report_custody_result(custody)),
+      }
+    Ok(_) => return { payload: None, result: Err(OutputForeign), }
+    Err(@journal.Physical(@sqlite.NotFound)) => ()
+    Err(issue) => return { payload: None, result: Err(OutputJournal(issue)), }
+  }
   let (request, completion, _, plan) = match
     observed_output(
       executed, journal, coordinator_authority, site_key, site_generation, output,
@@ -224,7 +247,19 @@ pub fn deliver_resident_output(
   // the Store can hold anything for it. Without a confirmed intent the Store
   // is not touched, so a holder that dies later still leaves its cleanup
   // findable.
+  // Measure the exact report envelope against the configured journal before
+  // any payload or Transfer side effect.  A report that cannot be made
+  // durable must not create physical work whose recovery would be memory-only.
+  match
+    journal.ensure_output_report_capacity(output, plan.payload, plan.transfer) {
+    Ok(_) => ()
+    Err(issue) => return { payload: None, result: Err(OutputIntent(issue)), }
+  }
   checkpoint("before-intent")
+  match journal.reserve_output_report(output) {
+    Ok(_) => ()
+    Err(issue) => return { payload: None, result: Err(OutputIntent(issue)), }
+  }
   let payload_json = match
     @payload.publication_payload_request_json(plan.payload) {
     Ok(value) => value
@@ -288,14 +323,34 @@ pub fn deliver_resident_output(
     Ok(value) => value
     Err(issue) => return { payload: owned, result: Err(OutputTransfer(issue)), }
   }
-  {
-    payload: owned,
-    result: @remote.prepare_remote_output_result(
+  let result = match
+    @remote.prepare_remote_output_result(
       output,
       plan.payload,
       payload.physical_digest,
       record,
-    ).map_err(issue => OutputProtocol(issue)),
+    ) {
+    Ok(value) => value
+    Err(issue) => return { payload: owned, result: Err(OutputProtocol(issue)), }
+  }
+  let custody = match
+    @remote.prepare_remote_output_report_custody(
+      output,
+      plan.payload,
+      plan.transfer,
+      result,
+    ) {
+    Ok(value) => value
+    Err(issue) => return { payload: owned, result: Err(OutputProtocol(issue)), }
+  }
+  checkpoint("before-report-save")
+  match journal.retain_output_report(custody) {
+    Ok(_) => {
+      checkpoint("after-report-save")
+      { payload: owned, result: Ok(result), }
+    }
+    Err(issue) =>
+      { payload: owned, result: Err(OutputReportPending(custody, issue)), }
   }
 }
 

@@ -543,6 +543,43 @@ export function createRemoteSiteCoordinator({
       if (key[1] !== binding.siteKey || Number(key[2]) !== binding.siteGeneration) {
         fail('RemoteCoordinatorObservationScopeMismatch');
       }
+      if (hint.version === 'actql-remote-output-result/0.1') {
+        const output = outputs.get(`${hint.dispatch_request_cid}:${hint.intent_cid}`);
+        if (output === undefined) fail('RemoteCoordinatorOutputRecordMissing');
+        const result = control.admitOutputResult(body, output.output,
+          output.payloadRequest, output.transferRequest);
+        const saved = store.inspectOutput(output.record, control);
+        if (saved?.progress === 2) {
+          if (saved.resultJson !== body || saved.resultCid !== control.outputResultIdentity(result)) {
+            fail('RemoteCoordinatorOutputReportConflict');
+          }
+          // The SQLite commit may have succeeded while the caller lost the
+          // response.  Rebuild the in-memory owner from that exact durable
+          // fact before issuing an ACK; do not advance it or mint a new
+          // revision on replay.
+          const local = control.coordinatorOutputRecordStatus(output.record);
+          if (Number(local[0]) !== saved.revision ||
+              Number(local[1]) !== saved.progress ||
+              local[2] !== saved.resultCid) {
+            control.restoreCoordinatorOutputRecord(
+              output.record,
+              saved.revision,
+              saved.progress,
+              saved.resultJson,
+            );
+          }
+        } else {
+          const transition = control.prepareCoordinatorOutputSuccess(output.record, result);
+          store.advanceOutputSuccess(transition, result, output.record, control);
+        }
+        // Recheck durable fact even if the local owner already succeeded.
+        const confirmed = store.inspectOutput(output.record, control);
+        if (confirmed?.progress !== 2 || confirmed.resultJson !== body) {
+          fail('RemoteCoordinatorOutputAcceptanceUnconfirmed');
+        }
+        return Object.freeze({outputAckWire:
+          control.coordinatorOutputReportAckJson(output.record, body)});
+      }
       try {
         const statusReply = hint.version === 'actql-remote-dispatch-status/0.1';
         const admitted = control.admitResponseJson(body, retained.dispatch, statusReply);

@@ -237,6 +237,38 @@ remain usable; `RemoteDispatchDeliveryMaterialsMissing` refuses only automatic
 redelivery. Never attach newly generated materials to such an old intent.
 Pre-R1 journals retain the separate history-required refusal described below.
 
+### Output report custody and acknowledgement
+
+An Output-result report is a durable observation separate from publication,
+physical release, and execution completion. Before the Site sends the report,
+its existing journal stores the canonical report bytes and the exact
+Run/dispatch/attempt/Output-bound inputs. The report CID is not replaced by a
+new attempt or regenerated after a response loss. The journal performs a
+preflight size check against its configured record limit before payload or
+Transfer side effects begin.
+
+The receiver responds only with the typed
+`actql-remote-output-report-reply/0.1` envelope. `accepted` is emitted only
+after the receiver's existing Output owner durably admits the exact report;
+replaying the same report returns the saved acceptance fact without a new
+revision or delivery. Empty bodies, legacy `200`/`accepted: true`, unknown
+responses, and another report's CID are not acknowledgements. A checked
+refusal is one of the allowlisted typed reasons and remains a durable attention
+state until an explicit retry rechecks current authority and scope.
+
+The Site validates the typed ACK against the saved report, commits that reply
+in the same existing journal owner, and only then closes report-pending state.
+Transport failure or an uncertain ACK commit leaves the report pending with
+bounded retry state. On control-process startup, unacknowledged reports are
+enumerated from the journal; a holder queue or an in-memory CID is not a
+recovery source. Physical payload release may precede ACK, but it never stands
+in for ACK and does not authorize recomputation or a second executor entry.
+
+The current R1 implementation retains one immutable snapshot slot per Output
+intent and bounds the set to 32 slots. Duplicate ACKs, retries, and cleanup do
+not allocate additional history. This is an R1 retention bound, not the global
+history-limit proof for later O5/O2/O6 work.
+
 There is at most one delivery per dispatch, bounded by `maxDispatches`. The
 encoded envelope bound is 1,442,816 UTF-8 bytes, matching the existing poll
 materials encoder (1,179,648 + 262,144 + 1,024); `maxDeliveryBytes` can impose a

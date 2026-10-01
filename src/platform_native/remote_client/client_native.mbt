@@ -226,8 +226,8 @@ pub fn acknowledge_status(
 
 ///|
 /// Post one canonical retained-output result. The physical payload and
-/// Transfer records are already durable; a lost response is reconciled by
-/// repeating the exact output operation rather than rerunning Compute.
+/// Transfer records are already durable. Only a checked, report-bound
+/// response acknowledges this observation; a bare HTTP 200 is not an ACK.
 pub fn acknowledge_output_result(
   client : @http.Client,
   url : String,
@@ -237,10 +237,87 @@ pub fn acknowledge_output_result(
     Ok(value) => @utf8.encode(value)
     Err(issue) => return Err(Protocol(issue))
   }
-  match client.post_json(url, body) {
-    Ok(value) if value.status == 200 => Ok(())
-    Ok(value) => Err(HttpStatus(value.status))
-    Err(issue) => Err(Http(issue))
+  let response = match client.post_json(url, body) {
+    Ok(value) => value
+    Err(issue) => return Err(Http(issue))
+  }
+  let text = @utf8.decode(response.body) catch { _ => return Err(InvalidUtf8) }
+  match @remote.admit_remote_output_report_reply_json(text, result) {
+    Ok(@remote.RemoteOutputReportReply::Accepted) if response.status == 200 =>
+      Ok(())
+    Ok(@remote.RemoteOutputReportReply::Refused(reason)) if response.status ==
+      409 => Err(OutputReportRefused(reason))
+    Ok(@remote.RemoteOutputReportReply::Retry(_)) =>
+      Err(Protocol(@remote.InvalidDispatch))
+    _ if response.status != 200 => Err(HttpStatus(response.status))
+    _ => Err(Protocol(@remote.InvalidDispatch))
+  }
+}
+
+///|
+/// Replay the exact saved report. The journal independently tracks physical
+/// cleanup and checked acknowledgement; no runtime or Transfer is reopened.
+pub fn acknowledge_retained_output_report(
+  journal : @journal.Journal,
+  client : @http.Client,
+  url : String,
+  key : String,
+) -> Result[Unit, NativeRemoteClientIssue] {
+  let (custody, reply) = match journal.output_report(key) {
+    Ok(value) => value
+    Err(issue) => return Err(Journal(issue))
+  }
+  match reply {
+    Some(@remote.RemoteOutputReportReply::Accepted) => return Ok(())
+    Some(@remote.RemoteOutputReportReply::Refused(reason)) =>
+      return Err(OutputReportRefused(reason))
+    Some(@remote.RemoteOutputReportReply::Retry(_)) => ()
+    None => ()
+  }
+  // This validates the current Site binding even after physical release.
+  // Reusing the existing durable original is idempotent, not new execution.
+  match journal.retain_output_report(custody) {
+    Ok(_) => ()
+    Err(issue) => return Err(Journal(issue))
+  }
+  let result = @remote.remote_output_report_custody_result(custody)
+  let body = match @remote.remote_output_result_json(result) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  let response = match client.post_json(url, @utf8.encode(body)) {
+    Ok(value) => value
+    Err(issue) => return Err(Http(issue))
+  }
+  let text = @utf8.decode(response.body) catch { _ => return Err(InvalidUtf8) }
+  let admitted = match
+    @remote.admit_remote_output_report_reply_json(text, result) {
+    Ok(value) => value
+    Err(issue) =>
+      return if response.status == 200 {
+        Err(Protocol(issue))
+      } else {
+        Err(HttpStatus(response.status))
+      }
+  }
+  if admitted is @remote.RemoteOutputReportReply::Accepted &&
+    response.status != 200 {
+    return Err(HttpStatus(response.status))
+  }
+  if admitted is @remote.RemoteOutputReportReply::Refused(_) &&
+    response.status != 409 {
+    return Err(HttpStatus(response.status))
+  }
+  match journal.record_output_report_reply(key, text) {
+    Ok(_) => ()
+    Err(issue) => return Err(Journal(issue))
+  }
+  match admitted {
+    @remote.RemoteOutputReportReply::Accepted => Ok(())
+    @remote.RemoteOutputReportReply::Refused(reason) =>
+      Err(OutputReportRefused(reason))
+    @remote.RemoteOutputReportReply::Retry(_) =>
+      Err(Protocol(@remote.InvalidDispatch))
   }
 }
 

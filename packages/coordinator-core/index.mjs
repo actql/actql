@@ -13,6 +13,10 @@ function checked(result) {
 export const createJournal = authority =>
   checked(owner.coordinatorCreateJournal(authority));
 
+// Only after the exact successful Output record was durably committed.
+export const outputReportAckJson = (record, originalReport) =>
+  checked(owner.coordinatorOutputReportAckJson(record, originalReport));
+
 export const prepareDispatch = input => checked(owner.coordinatorPrepareDispatch(
   input.coordinatorAuthority, input.runDefinitionCid, input.taskKey,
   input.taskAttempt, input.dispatchId, input.siteKey, input.siteGeneration,

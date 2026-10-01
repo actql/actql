@@ -126,6 +126,7 @@ fn client_code(issue : @client.NativeRemoteClientIssue) -> String {
     Protocol(_) => "protocol"
     Journal(_) => "journal"
     InvalidUtf8 => "invalid-utf8"
+    OutputReportRefused(reason) => "output-report-" + reason
     OutcomeUnknownPersistence(_, _) => "outcome-unknown"
     Closed => "closed"
     UnsupportedTarget => "unsupported-target"
@@ -796,6 +797,120 @@ fn accepted_request(
 }
 
 ///|
+fn replay_output_reports(
+  environment : ControlEnvironment,
+  client : @http.Client,
+  url : String,
+  next : Map[String, UInt64],
+  backoff_ms : Int,
+  cursor_owner : Ref[String],
+  delegation : @resident.ResidentSiteDelegation,
+) -> Unit {
+  guard fresh_journal(environment) is Some(journal) else { return }
+  let mut cursor = cursor_owner.val
+  // One report per pass; rotate the cursor so retries cannot starve poll,
+  // release, or another report even when requests outlast the backoff.
+  while true {
+    match journal.output_report_after(cursor) {
+      Ok(Some((key, custody, state))) => {
+        cursor = key
+        cursor_owner.val = key
+        if state is Some(@remote.RemoteOutputReportReply::Accepted) {
+          continue
+        }
+        if next.get(key) is Some(deadline) && @env.now() < deadline {
+          continue
+        }
+        next.set(key, @env.now() + backoff_ms.to_uint64())
+        let result = @remote.remote_output_report_custody_result(custody)
+        if state is Some(@remote.RemoteOutputReportReply::Refused(reason)) {
+          report("output-report-attention", [
+            ("report_cid", @remote.remote_output_result_identity(result)),
+            ("reason", reason),
+          ])
+          continue
+        }
+        if state is Some(@remote.RemoteOutputReportReply::Retry(reason)) {
+          report("output-report-retry", [
+            ("report_cid", @remote.remote_output_result_identity(result)),
+            ("reason", reason),
+          ])
+        }
+        let request = @remote.remote_output_report_custody_dispatch(custody)
+        if @resident.check_resident_dispatch_delegation(
+            delegation,
+            request,
+            environment.site_generation,
+          )
+          is Err(_) {
+          let refusal = @remote.remote_output_report_reply_json(
+            result,
+            @remote.RemoteOutputReportReply::Refused("scope_mismatch"),
+          )
+          match refusal {
+            Ok(body) =>
+              match journal.record_output_report_reply(key, body) {
+                Ok(_) =>
+                  report("output-report-attention", [
+                    (
+                      "report_cid",
+                      @remote.remote_output_result_identity(result),
+                    ),
+                    ("reason", "scope_mismatch"),
+                  ])
+                Err(_) =>
+                  report("output-report-recovery-pending", [
+                    (
+                      "report_cid",
+                      @remote.remote_output_result_identity(result),
+                    ),
+                    ("reason", "scope-mismatch-record"),
+                  ])
+              }
+            Err(_) =>
+              report("output-report-recovery-pending", [
+                ("report_cid", @remote.remote_output_result_identity(result)),
+                ("reason", "scope-mismatch-encode"),
+              ])
+          }
+          continue
+        }
+        match
+          @client.acknowledge_retained_output_report(journal, client, url, key) {
+          Ok(_) =>
+            report("output-delivered", [
+              (
+                "request_cid",
+                @remote.dispatch_request_identity(
+                  @remote.remote_output_report_custody_dispatch(custody),
+                ),
+              ),
+              ("report_cid", @remote.remote_output_result_identity(result)),
+            ])
+          Err(issue) =>
+            report("output-result-unreported", [
+              ("report_cid", @remote.remote_output_result_identity(result)),
+              ("reason", client_code(issue)),
+            ])
+        }
+        break
+      }
+      Ok(None) => {
+        cursor_owner.val = ""
+        break
+      }
+      Err(_) => {
+        report("output-report-recovery-pending", [("reason", "journal")])
+        break
+      }
+    }
+  }
+  if !journal.close() {
+    report("output-report-recovery-pending", [("reason", "journal-close")])
+  }
+}
+
+///|
 fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   if !@slot.install_native_termination_request() {
     stop("termination handling could not be installed")
@@ -852,7 +967,13 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   }
   let mut polls = 0
   let mut holders = 0
+  let next_output_report : Map[String, UInt64] = Map([])
+  let report_cursor : Ref[String] = { val: "", }
   while !@slot.native_termination_requested() {
+    replay_output_reports(
+      environment, client, observation_url, next_output_report, max_backoff_ms, report_cursor,
+      site_delegation,
+    )
     // A finished holder's durable record is reported before new work.
     match holder {
       Some(current) =>
@@ -1235,6 +1356,7 @@ fn output_code(issue : @resident_host.ResidentOutputIssue) -> String {
     OutputStoreRefused => "store-refused"
     OutputIntent(_) => "intent"
     OutputIntentInvalid => "intent-invalid"
+    OutputReportPending(_, _) => "report-save-pending"
   }
 }
 
@@ -1426,6 +1548,7 @@ fn serve_holder_output(
   // Failed outputs that still own physical cleanup (a payload reader or
   // writer, a Store recovery, a Transfer source); retried until done.
   let failed_cleanups : Array[@resident_host.ResidentOutputIssue] = []
+  let unsaved_reports : Array[@remote.RemoteOutputReportCustody] = []
   let mut serving = true
   while serving {
     match @slot.native_read_holder_input(2097152) {
@@ -1523,17 +1646,26 @@ fn serve_holder_output(
                       ])
                     }
                     Ok(result) =>
-                      match
-                        @client.acknowledge_output_result(
-                          control, observation_url, result,
-                        ) {
-                        Ok(_) =>
-                          report("output-delivered", [("request_cid", identity)])
-                        Err(issue) =>
-                          report("output-result-unreported", [
-                            ("reason", client_code(issue)),
-                          ])
+                      report("output-report-retained", [
+                        ("request_cid", identity),
+                        (
+                          "report_cid",
+                          @remote.remote_output_result_identity(result),
+                        ),
+                      ])
+                    Err(@resident_host.OutputReportPending(custody, _)) => {
+                      let key = @remote.remote_output_report_custody_key(
+                        custody,
+                      )
+                      if !unsaved_reports.any(value => {
+                          @remote.remote_output_report_custody_key(value) == key
+                        }) {
+                        unsaved_reports.push(custody)
                       }
+                      report("output-report-save-pending", [
+                        ("request_cid", identity),
+                      ])
+                    }
                     Err(issue) => {
                       report("output-failed", [("reason", output_code(issue))])
                       if !@resident_host.retry_resident_output_cleanup(issue) {
@@ -1550,6 +1682,18 @@ fn serve_holder_output(
         }
     }
   }
+  // Saving is the only retried operation: neither delivery nor Compute.
+  while !unsaved_reports.is_empty() {
+    let remaining = unsaved_reports.filter(value => {
+      environment.journal.retain_output_report(value) is Err(_)
+    })
+    unsaved_reports.clear()
+    unsaved_reports.append(remaining)
+    if !unsaved_reports.is_empty() {
+      @slot.native_wait_milliseconds(250)
+    }
+  }
+  holder_checkpoint(resources)("report-handoff")
   settle_holder_cleanup(
     runtime,
     request,
@@ -1973,6 +2117,10 @@ fn command() -> @argparse.Command {
     ],
     subcommands=[
       @argparse.Command("run"),
+      @argparse.Command("output-reports"),
+      @argparse.Command("retry-output-report", options=[
+        @argparse.OptionArg("intent-cid", required=true),
+      ]),
       @argparse.Command("execute", options=[
         @argparse.OptionArg("attempt", required=true),
         @argparse.OptionArg("claimant", required=true),
@@ -1986,6 +2134,80 @@ fn run_command(matches : @argparse.Matches) -> Unit raise CommandStop {
   match matches.subcommand {
     Some(("run", _)) => run_control(matches)
     Some(("execute", child)) => run_holder(matches, child)
+    Some(("output-reports", _)) => {
+      let environment = open_control_environment(matches)
+      guard fresh_journal(environment) is Some(journal) else {
+        stop("journal unavailable")
+      }
+      let mut cursor = ""
+      while true {
+        match journal.output_report_after(cursor) {
+          Ok(Some((key, custody, state))) => {
+            cursor = key
+            let (status, reason) = match state {
+              Some(@remote.RemoteOutputReportReply::Accepted) =>
+                ("acknowledged", "")
+              Some(@remote.RemoteOutputReportReply::Refused(reason)) =>
+                ("attention", reason)
+              Some(@remote.RemoteOutputReportReply::Retry(reason)) =>
+                ("retry-pending", reason)
+              None => ("pending", "")
+            }
+            report("output-report-state", [
+              ("intent_cid", key),
+              (
+                "report_cid",
+                @remote.remote_output_result_identity(
+                  @remote.remote_output_report_custody_result(custody),
+                ),
+              ),
+              ("state", status),
+              ("reason", reason),
+            ])
+          }
+          Ok(None) => break
+          Err(_) => {
+            ignore(journal.close())
+            stop("report inspection failed")
+          }
+        }
+      }
+      if !journal.close() {
+        stop("journal close pending")
+      }
+    }
+    Some(("retry-output-report", child)) => {
+      let environment = open_control_environment(matches)
+      guard fresh_journal(environment) is Some(journal) else {
+        stop("journal unavailable")
+      }
+      let key = required(child, "intent-cid")
+      let custody = match journal.output_report(key) {
+        Ok(value) => value.0
+        Err(_) => {
+          ignore(journal.close())
+          stop("report unavailable")
+        }
+      }
+      if @resident.check_resident_dispatch_delegation(
+          delegation(matches, budget(matches)),
+          @remote.remote_output_report_custody_dispatch(custody),
+          environment.site_generation,
+        )
+        is Err(_) {
+        ignore(journal.close())
+        stop("current report scope refused")
+      }
+      let result = journal.retry_output_report(key)
+      let closed = journal.close()
+      if result is Err(_) {
+        stop("report retry rejected")
+      }
+      if !closed {
+        stop("journal close pending")
+      }
+      report("output-report-retry-enabled", [])
+    }
     _ => stop("missing operation")
   }
 }

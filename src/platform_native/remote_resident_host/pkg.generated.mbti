@@ -106,6 +106,7 @@ pub(all) enum ResidentOutputIssue {
   OutputStoreRefused
   OutputIntent(@remote_journal.NativeRemoteJournalIssue)
   OutputIntentInvalid
+  OutputReportPending(@remote_site_protocol.RemoteOutputReportCustody, @remote_journal.NativeRemoteJournalIssue)
 }
 
 pub(all) struct ResidentRunAdmission {
