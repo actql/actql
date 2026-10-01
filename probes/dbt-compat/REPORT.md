@@ -42,9 +42,20 @@ The results hold only for this combination:
 The probe makes no claim about dbt Fusion / v2, the `dbt` or `dbt-oss`
 packages, other adapters, other dbt versions, `dbt run`, or materialization.
 
-## Result
+## Current CTE and Pipe acceptance
 
-The table shows the reference run at the PR head on darwin-arm64. Every case
+The adopted query profile permits a relational Pipe CTE body and a Pipe
+query after WITH. The corresponding ephemeral models and minimal
+reproductions in `cases.json` are now required positive cases: submission
+refusal fails acceptance. The project models, lock and dbt compile output
+are unchanged. Empty-source runs retain the declared schema; a separate
+ordered reproduction keeps NULL and duplicate rows and reverses output
+column order. See the [CTE/Pipe implementation record](../../docs/reviews/2026-10-01-cte-pipe.md)
+for source and artifact verification.
+
+## Historical #125 result
+
+The table shows the reference run at #125 on darwin-arm64. Every case
 had the same outcome on Local and HTTP.
 
 | Case | Model | Format | Outcome | Where it stops |
@@ -70,7 +81,7 @@ The second column gives the setting for each requirement.
 | Model shape | Either a Pipe model whose relations are all `ref()`s to non-ephemeral models, or a SELECT model, with or without CTEs and SELECT ephemerals. |
 | Format | `aql-text` for Pipe models and `sql` for SELECT models. The caller chooses the format. dbt does not record it. |
 
-### Unsupported cases
+### Historical unsupported cases
 
 These cases are unsupported, and the boundary is ActQL parsing or checking, not
 dbt.
@@ -239,11 +250,12 @@ Maintenance:
 
 ## Limits and follow-ups
 
-The probe did not implement any of these.
+The original probe did not implement any of these.
 
-1. **WITH followed by a Pipe query, and Pipe CTE bodies.** This is the parse
-   boundary for every ephemeral used with Pipe. Changing it is a grammar
-   decision; the reproductions are in `cases.json`.
+1. **WITH followed by a Pipe query, and Pipe CTE bodies.** This follow-up
+   connects the adopted grammar through the existing parser and Stage Result
+   lowering. The original probe cases are now required positive acceptance,
+   rather than tolerated submission refusals.
 2. **dbt's default double-quoted identifiers.** `"…"` is reserved for JSON text
    (Graph labels). Accepting the default quoting would need a lexing decision.
    Otherwise the documented quoting configuration remains a requirement.

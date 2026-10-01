@@ -1,17 +1,20 @@
 (* GoogleSQL-derived ActQL query surface. Semantic restrictions are in
    docs/spec/query-text.md. This grammar does not define GoogleSQL as a whole. *)
-query         = sql_query | pipe_query ;
-sql_query     = [ with_clause ], select_core, { set_part },
-                [ order_clause ], [ limit_clause ], [ ";" ] ;
+query         = [ with_clause ], ( sql_query | pipe_query ), [ ";" ] ;
+sql_query     = select_core, { set_part },
+                [ order_clause ], [ limit_clause ] ;
 with_clause   = "WITH", cte, { ",", cte } ;
-cte           = identifier, "AS", "(", select_core, ")" ;
+cte           = identifier, "AS", "(", ( select_core | cte_pipe ), ")" ;
+(* CTE bodies use the same relational operators except top-level INFER. *)
+cte_pipe      = "FROM", source, { "|>", cte_pipe_item } ;
+cte_pipe_item = relation_pipe_item | nearest_operator ;
 select_core   = "SELECT", [ "DISTINCT" ], select_list, "FROM", source,
                 { join }, [ where_clause ], [ group_clause ],
                 [ having_clause ] ;
 pipe_query    = relation_pipe | graph_pipe ;
-relation_pipe = "FROM", source, { "|>", pipe_item }, [ ";" ] ;
+relation_pipe = "FROM", source, { "|>", pipe_item } ;
 graph_pipe    = "FROM", "GRAPH", path, [ graph_labels ],
-                "|>", graph_match, { "|>", pipe_item }, [ ";" ] ;
+                "|>", graph_match, { "|>", pipe_item } ;
 graph_labels  = "LABELS", "{", json_text, ":", "{",
                 json_text, ":", json_text, "}", "}" ;
 graph_match   = "MATCH", [ identifier, "=" ],
@@ -50,7 +53,8 @@ limit_clause  = "LIMIT", integer, [ "OFFSET", integer ] ;
 set_part      = ( "UNION", ( "ALL" | "DISTINCT" )
               | "INTERSECT", "DISTINCT" | "EXCEPT", "DISTINCT" ),
                 [ "BY", "NAME" ], select_core ;
-pipe_item     = where_clause | "SELECT", select_list
+pipe_item     = relation_pipe_item | infer_operator | nearest_operator ;
+relation_pipe_item = where_clause | "SELECT", [ "DISTINCT" ], select_list
               | "EXTEND", select_list
               | "SET", assignment, { ",", assignment }
               | "DROP", identifier, { ",", identifier }
@@ -58,7 +62,7 @@ pipe_item     = where_clause | "SELECT", select_list
               | "AS", identifier
               | "AGGREGATE", select_list, [ group_clause ]
               | join | order_clause | limit_clause
-              | pipe_set_part | infer_operator | nearest_operator ;
+              | pipe_set_part ;
 infer_operator = "INFER", identifier, "ITEM", "KEY", "(",
                  path, { ",", path }, ")", "INPUT", "(",
                  [ assignment, { ",", assignment } ], ")",

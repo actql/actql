@@ -1023,7 +1023,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
 }
 
 ///|
-fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
+fn QueryParser::query(self : QueryParser) -> Query raise QueryAbort {
   let ctes : Array[CtePart] = []
   if self.has("WITH") {
     self.keyword("WITH")
@@ -1043,7 +1043,11 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
       if self.advance().value != Symbol(40) {
         raise QueryAbort("Expected CTE opening parenthesis", self.peek().start)
       }
-      let body = self.sql_term()
+      let body = if self.has("FROM") {
+        self.pipe(cte_body=true)
+      } else {
+        self.sql_term()
+      }
       if self.advance().value != Symbol(41) {
         raise QueryAbort("Expected CTE closing parenthesis", self.peek().start)
       }
@@ -1063,6 +1067,16 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
       ignore(self.advance())
     }
   }
+  let term = if self.has("SELECT") { self.sql() } else { self.pipe() }
+  let all_ctes = ctes + term.ctes
+  if all_ctes.length() > self.limits.max_cte_count {
+    raise QueryAbort("CTE count limit", self.peek().start)
+  }
+  { ..term, ctes: all_ctes, work: self.work, }
+}
+
+///|
+fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
   let term = self.sql_term()
   let sets : Array[SetPart] = []
   let mut set_spelling : (String, String, Bool)? = None
@@ -1119,28 +1133,24 @@ fn QueryParser::sql(self : QueryParser) -> Query raise QueryAbort {
     self.node()
     tail.push(self.limit())
   }
-  self.end()
-  let all_ctes = ctes + term.ctes
-  if all_ctes.length() > self.limits.max_cte_count {
-    raise QueryAbort("CTE count limit", self.peek().start)
-  }
   if sets.is_empty() {
-    {
-      ..term,
-      ctes: all_ctes,
-      operations: term.operations + tail,
-      work: self.work,
-    }
+    { ..term, operations: term.operations + tail, work: self.work, }
   } else {
-    { ..term, ctes: all_ctes, sets, final_operations: tail, work: self.work, }
+    { ..term, sets, final_operations: tail, work: self.work, }
   }
 }
 
 ///|
-fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
+fn QueryParser::pipe(
+  self : QueryParser,
+  cte_body? : Bool = false,
+) -> Query raise QueryAbort {
   self.keyword("FROM")
   let mut graph : GraphQuery? = None
   let (relation, source_alias, ctes) = if self.has("GRAPH") {
+    if cte_body {
+      raise QueryAbort("Graph CTE body is unsupported", self.peek().start)
+    }
     self.keyword("GRAPH")
     let relation = self.path()
     let label_field = self.graph_labels()
@@ -1353,6 +1363,12 @@ fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
         final_operations.push(operation)
       }
     } else if self.has("INFER") {
+      if cte_body {
+        raise QueryAbort(
+          "INFER is not allowed in a CTE body",
+          self.peek().start,
+        )
+      }
       operations.push(Infer(self.infer_clause()))
     } else if self.has("NEAREST") {
       operations.push(Nearest(self.nearest_clause()))
@@ -1365,7 +1381,6 @@ fn QueryParser::pipe(self : QueryParser) -> Query raise QueryAbort {
       raise QueryAbort("Unknown Pipe operation", self.peek().start)
     }
   }
-  self.end()
   if graph is Some(current) && current.pattern is None {
     raise QueryAbort("GRAPH_PATTERN_MATCH_REQUIRED", self.peek().start)
   }
@@ -1567,12 +1582,9 @@ pub fn parse_query(
     synthetic_sources: 0,
   }
   try {
-    let query = if parser.has("SELECT") || parser.has("WITH") {
-      parser.sql()
-    } else {
-      parser.pipe()
-    }
-    Ok(query)
+    let query = parser.query()
+    parser.end()
+    Ok({ ..query, work: parser.work, })
   } catch {
     QueryExpression(error) => Err(error)
     QueryAbort(message, at) =>
