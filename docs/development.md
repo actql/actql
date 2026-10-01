@@ -317,3 +317,59 @@ the remaining 48 operations, shared Carrier/evidence work and completion gates.
 `check:aoa` also checks fixed pure-operation law examples with independent small
 oracles. Those examples and their law pins are specification checks, not proof
 that the product executes graph, vector or temporal profiles.
+
+
+## Read-only worktree inventory
+
+Run this opt-in development command with every worktree whose borrowed
+links should be considered, using explicit paths (quote paths with spaces):
+
+```sh
+npm run inventory:worktrees -- -- "/path/to/owner tree" "/path/to/borrower tree"
+node scripts/worktree-inventory.mjs --json -- "/path/to/owner tree" "/path/to/borrower tree"
+```
+
+It prints a timestamp, resolved roots, Git changes, largest generated-output
+candidates, allocated bytes, dependency/symbolic-link real paths and reverse
+references in the declared scope, and visible live file/cwd references. JSON
+uses the same information as the readable report. It does not read credential
+or other file contents, delete anything, change worktrees, terminate inspected
+processes, make network requests, or install dependencies. Git optional locks
+and fsmonitor are disabled. The supported live-process interface is `lsof` on
+Linux/macOS, with name/port lookups and device-cache writes disabled; `ps` is
+never used. Missing `lsof`, warnings, permissions, command failure, timeouts,
+and unsupported platforms are recorded as failed checks with unknown visibility.
+
+No absence of observed references certifies a path unused. Other users,
+containers/namespaces, closed files that will be opened later, concurrent
+changes, undeclared worktrees, and excluded paths remain outside that evidence.
+A present live reference is `active`; otherwise usage remains `unknown`.
+A borrowed link is independently reported even when its borrower is not running.
+The report is evidence for review, never global deletion authorization.
+
+Tracked source and dirty/untracked paths are separate from candidates. Known
+credential, database/WAL, evidence, runtime-journal and recovery names are
+protected without traversing their contents. Generated-looking directories
+containing such paths move to `protectedOutputs`. Compiler source modules
+named `journal` are classified as source rather than runtime data. These are
+conservative metadata/name classifications, not a complete data-type detector.
+A failed Git check leaves protection knowledge explicitly unknown.
+
+Defaults bound the scan to 20,000 entries, depth 6, dependency depth 2, and
+10 seconds/4 MiB per child command. `node_modules` package contents are not
+fully traversed by default. Nested and scoped links are resolved, including
+links through other links; cycles and broken links are reported as unknown.
+Targets are never traversed through a link; declare their worktree separately
+to inventory them. Increase only the needed bound with `--max-depth N`,
+`--max-entries N`, `--dependency-depth N`, or `--timeout-ms N`. Excluded paths,
+partial measurements and failed checks are part of both output formats.
+Allocated bytes use filesystem block counts with hardlinks deduplicated within
+each candidate. Partial sizes are lower bounds. Even complete observed sizes
+are not guaranteed reclaimable bytes (shared blocks, other hardlinks and races
+are not ruled out). Roots may overlap; totals must not be added together.
+
+CI runs only synthetic regression fixtures, not a scan of CI worktrees:
+
+```sh
+node --test scripts/worktree-inventory.test.mjs
+```

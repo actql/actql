@@ -58,6 +58,8 @@ jobs:
         run: node scripts/check-moonbit-api.mjs
       - name: Type-check public SDK and Client wire declarations
         run: npm run check:client-types
+      - name: Test read-only worktree inventory fixtures
+        run: node --test scripts/worktree-inventory.test.mjs
       - name: Test environment guards
         run: node --test scripts/moonbit-environment.test.mjs
       - name: Test read-only CI evidence reporting
@@ -599,3 +601,4 @@ jobs:
         run: node --test adapters/connectors/duckdb/node/bench/matched-equivalent-pair.test.mjs
       - name: Build fixture-independent acquisition Host entries
         run: npm run build:host --prefix adapters/connectors/duckdb/node
+
