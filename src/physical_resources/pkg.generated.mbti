@@ -34,6 +34,8 @@ pub fn ledger_usage(Ledger) -> LedgerUsage
 
 pub fn mark_cleanup_pending(Ledger, Reservation) -> Result[Unit, LedgerIssue]
 
+pub fn mark_transfer_uncertain(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
+
 pub fn release_allocation(Ledger, Holding) -> Result[Unit, LedgerIssue]
 
 pub fn release_shared_capacity(SharedAllocation) -> Result[Unit, LedgerIssue]

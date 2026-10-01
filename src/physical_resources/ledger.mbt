@@ -221,6 +221,35 @@ pub fn charge_transfer(
 }
 
 ///|
+/// A dispatched operation has no confirmed byte observation. Preserve its
+/// reserved upper bound as uncertain usage even after physical cleanup. This
+/// is not an exact transfer charge or evidence that no request was sent.
+pub fn mark_transfer_uncertain(
+  ledger : Ledger,
+  reservation : Reservation,
+  bytes : Int64,
+) -> Result[Unit, LedgerIssue] {
+  match reservation_check(ledger, reservation) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if bytes < 0L {
+    return Err(InvalidCharge)
+  }
+  if bytes > reservation.transfer {
+    return Err(TransferLimit)
+  }
+  reservation.transfer -= bytes
+  let usage = ledger.usage
+  ledger.usage = {
+    ..usage,
+    uncertain_transfer_bytes: usage.uncertain_transfer_bytes + bytes,
+    reserved_transfer_bytes: usage.reserved_transfer_bytes - bytes,
+  }
+  Ok(())
+}
+
+///|
 /// Commit reserved capacity to one retained allocation before exposing it.
 /// Copying its handle does not allocate a new buffer or create a second charge.
 pub fn retain_allocation(
