@@ -94,6 +94,27 @@ test('normal Program emits a model barrier without pretending it is pure AoA', (
   const egressCid = `sha256:${'c'.repeat(64)}`;
   const compiled = checked(moon.clientProgramInferPlanGraph(
     prepared, 2, execution, limitsCid, egressCid));
+  const material = checked(moon.clientProgramInferExecutionMaterial(prepared,
+    compiled));
+  const template = JSON.parse(
+    moon.clientProgramInferExecutionMaterialTemplateWire(material));
+  const {bound_invocation_template_cid: templateCid, ...templateBody} = template;
+  assert.equal(templateCid, cid(templateBody));
+  assert.deepEqual(template.required_profile_contracts, [{
+    profile_id: 'actql-infer/0.1',
+    contract_cid: 'sha256:34f1a37cbaea973964f4cf84ca3806b2492df545b718042ad8057604c95cb6dd',
+  }]);
+  assert.equal(template.source_evidence, 'unbound');
+  assert.equal(template.model_invocation_evidence, undefined);
+  const executionMaterial = JSON.parse(
+    moon.clientProgramInferExecutionMaterialWire(material));
+  assert.equal(executionMaterial.invocation_template_cid, templateCid);
+  assert.deepEqual(Object.keys(executionMaterial.result_plan_logical_cids),
+    ['answer']);
+  assert.deepEqual(executionMaterial.program.stages[0].steps[2].infer.input,
+    {text: {field: 'text'}});
+  assert.equal(executionMaterial.program.stages[0].steps[2].infer.contract,
+    'model-task:risk-score.v1');
   const graph = JSON.parse(moon.clientProgramInferPlanGraphWire(compiled));
   assert.deepEqual(graph.nodes.map(node => node.kind),
     ['aoa_fragment', 'acquisition_barrier']);
@@ -127,6 +148,8 @@ test('normal Program emits a model barrier without pretending it is pure AoA', (
   assert.deepEqual(graph.root_refs, [{name: 'answer', role: 'requested_result',
     ref: {node_id: acquisition.node_id, port: acquisition.output_ref}}]);
   const foreign = moon.clientProgramPreparationReady(prepare(source, environment()));
+  assert.equal(moon.clientProgramInferExecutionMaterial(foreign, compiled).$tag,
+    0, 'equal Program bytes do not substitute for the graph owner');
   assert.equal(moon.clientProgramInferPlanGraph(
     foreign, 2, execution, limitsCid, egressCid).$tag, 0);
   assert.equal(moon.clientProgramReadInferModelExecution(

@@ -435,6 +435,12 @@ pub fn client_program_infer_execution_capture(@client_infer_host.Execution) -> @
 
 pub fn client_program_infer_execution_handoff_pending(@client_infer_host.Execution) -> Bool
 
+pub fn client_program_infer_execution_material(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientInferPlanGraph) -> Result[@run_publication_host.ClientExecutionMaterial, ClientProgramInferMaterialBridgeIssue]
+
+pub fn client_program_infer_execution_material_template_wire(@run_publication_host.ClientExecutionMaterial) -> String
+
+pub fn client_program_infer_execution_material_wire(@run_publication_host.ClientExecutionMaterial) -> String
+
 pub fn client_program_infer_execution_output(@client_infer_host.Poll) -> @execution_relation.CompletedOutput?
 
 pub fn client_program_infer_input_rows(@client_local_host.ClientInferInputPoll) -> @execution_relation.PreparedInferRows?
@@ -2323,6 +2329,11 @@ pub(all) enum ClientProgramBridgeOutcome {
 pub(all) enum ClientProgramEffectCompilationBridgeIssue {
   Manifests(@run_publication_host.ClientCompilationManifestIssue)
   Compilation(@run_publication_host.ClientEffectCompilationIssue)
+}
+
+pub(all) enum ClientProgramInferMaterialBridgeIssue {
+  Manifests(@run_publication_host.ClientCompilationManifestIssue)
+  Material(@run_publication_host.ClientExecutionMaterialIssue)
 }
 
 pub(all) enum ClientProgramTaskCompilationBridgeIssue {

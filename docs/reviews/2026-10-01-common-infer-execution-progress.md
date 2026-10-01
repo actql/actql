@@ -84,6 +84,43 @@ The remaining connection belongs to the common inference work:
 
 ## Checked compilation prefix
 
+### Owned inference template material
+
+The checked Infer acquisition graph now feeds the existing Bound Invocation
+Template and execution-material owners. Its template requires the registered
+`actql-infer/0.1` barrier schema, not the authored ModelTask contract as a
+profile substitute. Program, parameter, environment, opaque-binding and pinned
+compiler identities come from the original prepared owner. The existing
+Result-plan issuer supplies the complete named Result map; no new Result
+identity or publication path is introduced.
+
+An equal serialized Program with a different owner cannot use this graph.
+Saved material is reissued under the checked graph and current manifests;
+changed Template CIDs, missing Result names and changed Program bodies reject.
+Strict mode and empty input still require the Infer profile. Existing pure
+task templates continue to emit their empty profile list.
+
+These are compilation prerequisites, not an admitted executable Plan. The
+private graph's limit and egress references still lack admitted bodies, and
+the template deliberately retains `source_evidence: unbound`. It supplies
+neither future model evidence nor a fabricated call-slot identity. The normal
+Client Run compiler/dispatch/publication connection and B's committed Named
+Result acceptance remain unfinished. The canonical call-slot definition
+requested in the working report is still awaiting approval and unchanged.
+
+The Node bridge exposes this material under the same ordinary Program
+preparation. Its component test independently hashes the template, checks the
+registered profile, original input mapping and Result name, and refuses an
+equal foreign owner. It does not construct internal preparation state or
+claim a public Host startup example.
+
+All 30 `run_publication_host` tests passed on each of JS, Wasm and native,
+including the three new Infer material tests and existing pure compilation
+regressions. The rebuilt Node component bridge passed all 21 tests. Generated
+interfaces were refreshed from the integrated source; formatting, JavaScript
+syntax and whitespace checks passed. Complete CI jobs, Linux CI, packed
+Embedded Local/HTTP acceptance and committed Named Result reading did not run.
+
 ### Owned item-capacity compilation
 
 The private Infer graph retains item-capacity material derived from its actual

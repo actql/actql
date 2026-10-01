@@ -167,6 +167,55 @@ pub fn client_program_infer_plan_request_wire(
 }
 
 ///|
+pub(all) enum ClientProgramInferMaterialBridgeIssue {
+  Manifests(@publication_host.ClientCompilationManifestIssue)
+  Material(@publication_host.ClientExecutionMaterialIssue)
+}
+
+///|
+/// Compile profile/template and Result material under the original owner.
+/// This does not issue a runnable Plan or authorize a provider dispatch.
+#export_name("clientProgramInferExecutionMaterial")
+pub fn client_program_infer_execution_material(
+  prepared : @publication_host.PreparedClientProgram,
+  graph : @publication_host.ClientInferPlanGraph,
+) -> Result[
+  @publication_host.ClientExecutionMaterial,
+  ClientProgramInferMaterialBridgeIssue,
+] {
+  let manifests = match
+    @publication_host.admit_client_compilation_manifests(
+      @check_environment.compiler_grammar_manifest_wire(),
+      @check_environment.compiler_barrier_contract_manifest_wire(),
+      100000,
+      10000,
+      100,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Manifests(issue))
+  }
+  @publication_host.issue_prepared_client_infer_execution_material(
+    prepared, graph, manifests, 100000, 10000, 100,
+  ).map_err(issue => Material(issue))
+}
+
+///|
+#export_name("clientProgramInferExecutionMaterialWire")
+pub fn client_program_infer_execution_material_wire(
+  value : @publication_host.ClientExecutionMaterial,
+) -> String {
+  @publication_host.client_execution_material_wire(value)
+}
+
+///|
+#export_name("clientProgramInferExecutionMaterialTemplateWire")
+pub fn client_program_infer_execution_material_template_wire(
+  value : @publication_host.ClientExecutionMaterial,
+) -> String {
+  @publication_host.client_execution_material_template_wire(value)
+}
+
+///|
 /// The acquisition compiler uses the same checked pure prefix as execution.
 /// This fragment alone is not a runnable Infer Plan.
 #export_name("clientProgramInferPrefixFragment")

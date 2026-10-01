@@ -45,6 +45,8 @@ pub fn admit_prepared_client_effect_run_publication(PreparedClientEffectComputat
 
 pub fn admit_prepared_client_effect_values_fragment(PreparedClientEffectComputation, Int, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesFragmentNode, ClientValuesFragmentAdmissionIssue]
 
+pub fn admit_prepared_client_infer_execution_material(PreparedClientProgram, ClientInferPlanGraph, String, ClientCompilationManifests, Int, Int, Int) -> Result[ClientExecutionMaterial, ClientExecutionMaterialAdmissionIssue]
+
 pub fn admit_prepared_client_publication_binding(PreparedClientProgram, Int, Int, ClientPublicationLimitScope, String, Int, Int, Int) -> Result[Unit, ClientPublicationBindingAdmissionIssue]
 
 pub fn admit_prepared_client_publication_binding_set(PreparedClientProgram, Array[String], Int, Int, Int, Int) -> Result[Unit, ClientPublicationBindingSetIssue]
@@ -426,6 +428,10 @@ pub fn issue_prepared_client_effect_compilation(PreparedClientEffectComputation,
 pub fn issue_prepared_client_effect_values_fragment(PreparedClientEffectComputation, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesFragmentNode, ClientValuesFragmentIssue]
 
 pub fn issue_prepared_client_empty_invocation_bindings(PreparedClientProgram, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientEmptyInvocationBindingsIssue]
+
+pub fn issue_prepared_client_infer_bound_template(PreparedClientProgram, ClientInferPlanGraph, ClientCompilationManifests, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientInferBoundTemplateIssue]
+
+pub fn issue_prepared_client_infer_execution_material(PreparedClientProgram, ClientInferPlanGraph, ClientCompilationManifests, Int, Int, Int) -> Result[ClientExecutionMaterial, ClientExecutionMaterialIssue]
 
 pub fn issue_prepared_client_infer_plan_graph(PreparedClientProgram, Int, @check_environment.ModelExecutionContract, String, String, @lowering_relation.SequenceLimits, Int, Int, Int, capacity_work? : Int) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue]
 
@@ -855,11 +861,18 @@ pub(all) enum ClientExecutionMaterialIssue {
   ResultPlan(ClientResultPlanIssue)
   DuplicateResultName
   Encoding
+  InferTemplate(ClientInferBoundTemplateIssue)
 }
 
 pub(all) enum ClientIdentityMaterialIssue {
   MissingStage
   Encoding
+}
+
+pub(all) enum ClientInferBoundTemplateIssue {
+  InvalidLimits
+  ForeignGraph
+  Template(ClientTaskBoundTemplateIssue)
 }
 
 pub(all) enum ClientInferHostCapacityIssue {
@@ -1140,6 +1153,7 @@ pub(all) enum ClientTaskBoundTemplateIssue {
   Graph(ClientTaskPlanGraphIssue)
   OpaqueBindings(ClientEmptyInvocationBindingsIssue)
   Evidence(@run_publication.RunEvidenceValueIssue)
+  Encoding
 }
 
 pub struct ClientTaskCompilation {
