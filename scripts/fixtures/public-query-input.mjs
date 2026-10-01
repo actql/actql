@@ -14,22 +14,22 @@ export const queryCompositionSuccesses = [
   {name: 'derived-pipe', format: 'sql',
     text: 'SELECT id FROM (FROM records |> WHERE amount >= @minimum |> SELECT id) AS chosen ORDER BY id',
     parameterDeclarations: declarations, parameters: {minimum: 20},
-    expected: [{id: 2}, {id: 3}, {id: 3}], columns: [relationNumber('id')], sourceReadCount: 1},
+    expected: [{id: 2}, {id: 3}, {id: 3}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
   {name: 'derived-select-pipe', format: 'sql',
     text: 'SELECT id FROM (SELECT id FROM records |> WHERE id > 1) AS chosen ORDER BY id',
-    expected: [{id: 2}, {id: 3}, {id: 3}], columns: [relationNumber('id')], sourceReadCount: 1},
+    expected: [{id: 2}, {id: 3}, {id: 3}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
   {name: 'derived-outer-pipe', format: 'aql-text',
     text: 'FROM (FROM records |> WHERE amount >= 20 |> SELECT id) AS chosen |> SELECT chosen.id AS id |> ORDER BY id',
-    expected: [{id: 2}, {id: 3}, {id: 3}], columns: [relationNumber('id')], sourceReadCount: 1},
+    expected: [{id: 2}, {id: 3}, {id: 3}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
   {name: 'derived-null', format: 'sql',
     text: 'SELECT amount, id FROM (FROM records |> WHERE amount IS NULL |> SELECT id, amount) AS chosen ORDER BY id',
-    expected: [{amount: null, id: 1}], columns: [relationNumber('amount', true), relationNumber('id')], sourceReadCount: 1},
+    expected: [{amount: null, id: 1}], columns: [relationNumber('amount', true), relationNumber('id')], sourceReadSessionCount: 1},
   {name: 'derived-empty', format: 'sql',
     text: 'SELECT amount, id FROM (FROM records |> WHERE amount > 100 |> SELECT id, amount) AS chosen ORDER BY id',
-    expected: [], columns: [relationNumber('amount', true), relationNumber('id')], sourceReadCount: 1},
+    expected: [], columns: [relationNumber('amount', true), relationNumber('id')], sourceReadSessionCount: 1},
   {name: 'cte-query-order-limit', format: 'sql',
     text: 'WITH chosen AS (SELECT id, amount FROM records ORDER BY id LIMIT 1) SELECT amount, id FROM chosen ORDER BY id',
-    expected: [{amount: null, id: 1}], columns: [relationNumber('amount', true), relationNumber('id')], sourceReadCount: 1},
+    expected: [{amount: null, id: 1}], columns: [relationNumber('amount', true), relationNumber('id')], sourceReadSessionCount: 1},
 ];
 export const queryCompositionRefusals = [
   {name: 'derived-hidden-column', format: 'sql',
@@ -156,11 +156,12 @@ export async function exercisePublicQueryInput(connect, options,
     assert.ok(Number.isSafeInteger(current.acceptedRuns));
     assert.ok(Number.isSafeInteger(current.sourceIo));
     return {acceptedRuns: current.acceptedRuns, sourceIo: current.sourceIo,
-      ...(current.sourceReads === undefined ? {} : {sourceReads: current.sourceReads})};
+      ...(current.sourceReads === undefined ? {} : {sourceReads: current.sourceReads}),
+      ...(current.sourceReadSessions === undefined ? {} : {sourceReadSessions: current.sourceReadSessions})};
   };
   const client = await connect(options);
   try {
-    for (const {name, text, expected, columns, sourceRows, sourceReadCount, ...input} of successes) {
+    for (const {name, text, expected, columns, sourceRows, sourceReadCount, sourceReadSessionCount, ...input} of successes) {
       await prepareCase?.(sourceRows);
       const requestId = requestPrefix + '-' + name;
       const beforeSubmit = await counters();
@@ -170,7 +171,12 @@ export async function exercisePublicQueryInput(connect, options,
       const beforeRead = await counters();
       if (sourceReadCount !== undefined) {
         assert.equal(beforeRead.sourceReads - beforeSubmit.sourceReads, sourceReadCount,
-          'shared producers acquire once per authored source: ' +
+          'physical source row scan count: ' +
+            JSON.stringify((await observe()).sourceReadCommands));
+      }
+      if (sourceReadSessionCount !== undefined) {
+        assert.equal(beforeRead.sourceReadSessions - beforeSubmit.sourceReadSessions,
+          sourceReadSessionCount, 'one acquisition session per authored source: ' +
             JSON.stringify((await observe()).sourceReadCommands));
       }
       assert.deepEqual(await execution.result('answer').all(), expected);

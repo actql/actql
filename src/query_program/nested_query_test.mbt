@@ -62,3 +62,33 @@ test "derived Pipe projection exposes only its output scope" {
     )
   }
 }
+
+///|
+test "derived captured Pipe binds one retained source producer" {
+  // Independently authored from the captured Stage Result contract. The
+  // derived relation refers to the capture; it has no second external input.
+  let expected = @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"capture","inputs":{"orders":{"carrier":"relation","schema":{"id":{"type":"string","nullable":false},"customer_id":{"type":"string","nullable":false},"status":{"type":"string","nullable":false},"amount":{"type":"number","nullable":false}},"primary_key":["id"]}},"steps":[{"from":"orders","filter":{"gt":[{"field":"amount"},{"literal":10}]}},{"select":["id","customer_id","status","amount"],"as":"aql_capture_0"}],"results":{"source":{"from":"aql_capture_0","fields":["id","customer_id","status","amount"]}}},{"id":"main","inputs":{"aql_query_source_0":{"result":{"stage":"capture","result":"source"}}},"steps":[{"from":"aql_query_source_0","select":["id"],"as":"aql_gen_0"}],"results":{"rows":{"from":"aql_gen_0","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+  let context = { ..fixture_context(), captured_stage: Some("capture"), }
+  for
+    text in [
+      "SELECT id FROM (FROM orders |> WHERE amount > 10) AS chosen", "FROM (FROM orders |> WHERE amount > 10) AS chosen |> SELECT id",
+    ] {
+    let program = compile(
+      @query.parse_query(text, syntax_limits()).unwrap(),
+      context,
+      construction_limits(),
+    ).unwrap()
+    assert_eq(semantic(program), semantic(expected))
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      _ => fail("derived input must share the single checked capture")
+    }
+  }
+}
