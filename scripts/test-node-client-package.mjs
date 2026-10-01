@@ -342,7 +342,7 @@ assert.notEqual(pairQuery, '');
 await writeFile(join(root, 'query-pair.json'), pairQuery);
 await writeFile(join(root, 'query-pair.expected-rows.json'),
   JSON.stringify(pairExpectedRows));
-const valuesStep = JSON.parse(structuralValues).stages[0].steps[0];
+const valuesStep = JSON.parse(machineValues).stages[0].steps[0];
 const valuesQuery = queryFrontend.compileValuesQueryJson(
   'SELECT * FROM rows', 'rows', 'selected', JSON.stringify(valuesStep),
   JSON.stringify(['id']), 'fixture.values_query');
