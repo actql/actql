@@ -196,17 +196,20 @@ The run keeps:
 
 ## Runtime and maintenance cost
 
-Reference run on darwin-arm64 took 153 s. Across five runs the total was
-105–190 s.
+The reference run (`9ecf2777c`, darwin-arm64) took 198 s. Across seven runs the
+total was 105–334 s; the 334 s run was the injected-failure check on a loaded
+machine. The two largest steps vary most between runs.
+
+The steps of the reference run, with the range across runs:
 
 | Step | Time |
 |---|---|
-| venv | 6 s |
-| pip install | 40 s (network, cold cache) |
-| first `dbt compile` | 32 s (cold imports) |
-| second `dbt compile` | 4 s |
-| `npm pack` × 5 + install | 19 s |
-| Local and HTTP cases | 48 s |
+| venv | 9 s (6–9) |
+| pip install | 58 s (40–58; network, cold cache) |
+| first `dbt compile` | 14 s (14–32; cold imports) |
+| second `dbt compile` | 7 s (4–7) |
+| `npm pack` × 5 + install | 33 s (19–33) |
+| Local and HTTP cases | 75 s (48–75) |
 
 Disk use is about 357 MiB of scratch, removed after a successful run, and about
 270 KB of evidence.
