@@ -98,15 +98,23 @@ Exploration retains source SHA, toolchain, seed, reviewed domain, same-defect
 anchor, each shrink attempt and every final one-step reduction. Minimality is
 local to those reductions. Fixed replay never claims fresh search or minimality.
 Exact minima are replayed under mutated/restored source on all targets; a JS
-search result is not a backend-wide detection guarantee. Source restoration is
+search result is not a backend-wide detection guarantee. The CI `verify` mode
+visits each mutation once: fixed replay and, when required, fresh search/shrink
+and minima replay run under that same mutated source. After byte-for-byte
+restoration, each obligation separately executes its restored success on every
+target. The two reports and every execution receipt remain distinct. This
+reuses Moon's existing target-separated incremental build while sources remain
+unchanged; it does not cache observations, test outcomes or evidence across
+source revisions. The original `fixed`, `explore` and `auto` commands remain
+available; `verify` uses the unchanged impact decision and always runs fixed
+replays even when fresh exploration is not required. Source restoration is
 byte-for-byte, including failure paths. Timings separate search, shrink, mutated
 and restored target replays, and normal fixed target verification.
 
 ```sh
 node --test proofs/relation-pipeline/*.test.mjs
 node proofs/relation-pipeline/run.mjs js base
-node proofs/relation-pipeline/mutations.mjs fixed
-node proofs/relation-pipeline/mutations.mjs auto
+node proofs/relation-pipeline/mutations.mjs verify
 node proofs/relation-pipeline/run.mjs all
 node proofs/relation-pipeline/audit.mjs
 node proofs/relation-pipeline/audit-target-regression.mjs
