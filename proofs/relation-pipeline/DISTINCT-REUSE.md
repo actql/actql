@@ -15,9 +15,9 @@ rejects that merged source rather than reusing the old certificate. The first CI
 run was cancelled after this rejection was independently reproduced; it is not
 reported as a passing full CI run.
 
-`reuse-baseline.json` retains the original experiment revisions and pins the
-integration foundation at `9fa0cab091aefb52454d06501bd38aa7e2176d82`. The normal
-audit still checks all 57 current common hashes against Git and actual source.
+`reuse-baseline.json` retains the original experiment revisions and the upstream
+integration at `9fa0cab091aefb52454d06501bd38aa7e2176d82`. The normal audit still
+checks all 57 current common hashes against Git and actual source.
 53 match the original rename foundation; the four listed changes are upstream
 updates, not distinct-specific common machinery. The native namespace fixture
 now also copies the focused-test helper imported by the updated local runner;
@@ -29,6 +29,24 @@ Upstream also corrected the registered provider's work owner. Fresh finite
 correspondence exercises that source, while the unchanged Lean model remains
 conditional on prompt, zero-work cancellation. Delayed-stop providers are not
 added to its formal scope, and old source receipts are not reused.
+
+## Required common CI correction
+
+CI run `36932112609` exceeded the 40-minute job limit on registration revision
+`4c3121971740a06f184634dcde3230ff91ea5850`. All eight fixed mutated/restored
+replays passed in 23 minutes 46 seconds. Fresh exploration completed four
+mutations before cancellation. This is not a passing full CI run.
+
+A separate common correction at `fe0dbb424792ba7ccd4ae5517a74530b56a15f3c`
+raises only the pipeline job limit to 90 minutes; all verification steps remain.
+The baseline pins that exact corrected source, records the old/new workflow
+digests and preserves the original local experiment. No generation, shrinking,
+oracle framework or common theorem is changed.
+
+The original no-common-change comparison succeeded locally, but complete CI
+acceptance without a common correction was not achieved. The corrected complete
+result must be verified separately. CI capacity and pin review are additional
+work, not hidden inside operation registration, and no CI speedup is claimed.
 
 ## Marginal rules people add and review
 

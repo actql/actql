@@ -1,9 +1,9 @@
 {
   "version": "actql-relation-pipeline-reuse-baseline/0.1",
-  "revision": "9fa0cab091aefb52454d06501bd38aa7e2176d82",
+  "revision": "fe0dbb424792ba7ccd4ae5517a74530b56a15f3c",
   "comparison": "existing whole-row distinct registration; initial frozen rename experiment and subsequent upstream integration are separate",
   "common": {
-    ".github/workflows/ci.yml": "274c17e2a6da81ccd73d398f97c4fe5549272ad69686a82efbe84e27ba075c32",
+    ".github/workflows/ci.yml": "60b5752abc492be508fcf7a6bb2acd944b3883443bd100b82ea422c713c93d61",
     "moon.mod": "25a486222e1c9dc52d6a64e8e0ecc52ba7f9aa9e8c0c7d2d1bdc82bfa37689b9",
     "package-lock.json": "a642fafc496ba9288c8ce4ca0fa68b6c934fff413046f191f06aefec49b7167d",
     "package.json": "78c15ac34fbe375959bf166c3d236ce06a2a6a0d4d2f4b2d7f7f094e844a8a15",
@@ -101,5 +101,14 @@
     ],
     "unchangedFromOriginal": 53,
     "attribution": "upstream changes only; no generator, shrinking coordinator, oracle framework or common theorem changes by this registration"
+  },
+  "verificationCorrection": {
+    "revision": "fe0dbb424792ba7ccd4ae5517a74530b56a15f3c",
+    "path": ".github/workflows/ci.yml",
+    "priorDigest": "274c17e2a6da81ccd73d398f97c4fe5549272ad69686a82efbe84e27ba075c32",
+    "correctedDigest": "60b5752abc492be508fcf7a6bb2acd944b3883443bd100b82ea422c713c93d61",
+    "change": "pipeline-evidence timeout 40 -> 90 minutes; all verification steps and obligations retained",
+    "reason": "CI run 36932112609 exceeded 40 minutes after all eight fixed replays and four fresh mutation replays completed",
+    "originalNoCommonChangeCompleteCI": "not achieved; original local frozen-source experiment remains separate"
   }
 }
