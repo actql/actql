@@ -18,6 +18,7 @@ import {
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_check_context",
   "actql/actql/pipeline_typing",
+  "actql/actql/relation_evidence",
   "actql/actql/relation_nest",
   "actql/actql/relation_typing",
   "actql/actql/run_publication",
@@ -289,6 +290,20 @@ pub fn group_string_limit_source(GroupStringLimit) -> GroupAggregateSource
 
 pub fn incoming_gates(CheckedProgram) -> @pipeline_check_context.ProgramIncomingGates
 
+pub fn infer_item_limit_claim(InferItemLimit) -> @capacity_witness.LimitClaim
+
+pub fn infer_item_limit_matches(InferItemLimit, CheckedProgram, Int, Int) -> Bool
+
+pub fn infer_item_limit_maximum(InferItemLimit) -> Int64
+
+pub fn infer_item_limit_proof_at(InferItemLimit, Int) -> ReidentifiedStep?
+
+pub fn infer_item_limit_proof_count(InferItemLimit) -> Int
+
+pub fn infer_item_limit_witness_at(InferItemLimit, Int) -> @capacity_witness.WireWitness?
+
+pub fn infer_item_limit_witness_count(InferItemLimit) -> Int
+
 pub fn input_completeness_is_supplied(InputCompletenessRequirement) -> Bool
 
 pub fn input_request_at(InputRequests, Int) -> InputRequest?
@@ -364,6 +379,8 @@ pub fn pivot_numeric_slots_for_requirement(CheckedProgram, Int) -> PivotNumericS
 pub fn pivot_numeric_slots_operation(PivotNumericSlots) -> UnitOperationSource
 
 pub fn prepare_effect_computation_candidate(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, Int, Int) -> Result[EffectComputationCandidate, EffectComputationIssue]
+
+pub fn prepare_infer_item_limit(CheckedProgram, Int, Int, Int, Int, Int, Int) -> InferItemLimit raise UnitBuildFailure
 
 pub fn proof_application(ReidentifiedStep) -> @capacity_program_step.StepBound
 
@@ -914,6 +931,17 @@ type GroupLimit
 type GroupNumericSlot
 
 type GroupStringLimit
+
+pub struct InferItemLimit {
+  owner : CheckedProgram
+  unit : Int
+  source : UnitOperationSource
+  infer : @relation_evidence.CheckedInfer
+  limit : @capacity_witness.LimitClaim
+  witnesses : Array[@capacity_witness.WireWitness]
+  proofs : Array[ReidentifiedStep]
+  guard_value : Int64?
+}
 
 pub enum InputCompletenessBinding {
   Local(@pipeline_check_context.LocalInputRequirement)

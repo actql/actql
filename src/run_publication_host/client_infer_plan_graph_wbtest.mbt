@@ -38,6 +38,16 @@ test "Infer graph binds the exact prefix model contract and Result port" {
     100,
   ).unwrap()
   assert_true(client_infer_plan_graph_matches(issued, prepared, execution))
+  let item_limit = client_infer_plan_graph_item_limit(issued)
+  assert_eq(@checked.infer_item_limit_maximum(item_limit), 1L)
+  assert_true(
+    @checked.infer_item_limit_matches(
+      item_limit,
+      @strategy.graph_program(prepared.graph),
+      0,
+      2,
+    ),
+  )
   assert_true(
     !client_infer_plan_graph_matches(
       issued,
@@ -174,6 +184,21 @@ test "Infer graph rejects foreign contract owners invalid dependencies and short
   let prepared = client_infer_prefix_test_program()
   let execution = client_infer_graph_test_execution(prepared)
   let limits = run_materials_limits().sequence
+  assert_true(
+    issue_prepared_client_infer_plan_graph(
+      prepared,
+      2,
+      execution,
+      "sha256:" + "b".repeat(64),
+      "sha256:" + "c".repeat(64),
+      limits,
+      100000,
+      10000,
+      100,
+      capacity_work=0,
+    )
+    is Err(ItemLimit(Preparation(@checked.UnitBuildFailure::BudgetExceeded))),
+  )
   let issue = (step, contract, dependency, sequence) => {
     issue_prepared_client_infer_plan_graph(
       prepared,

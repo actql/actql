@@ -5,6 +5,7 @@
 pub struct ClientInferPlanGraph {
   owner : PreparedClientProgram
   execution : @environment.ModelExecutionContract
+  item_limit : @checked.InferItemLimit
   graph : ClientTaskPlanGraph
   input_fragment_cid : String
   request_wire : String
@@ -22,6 +23,7 @@ pub(all) enum ClientInferPlanGraphIssue {
   Mapping(@lower.InferInputIssue)
   Result(ClientResultPlanPartsIssue)
   Encoding
+  ItemLimit(ClientInferItemLimitIssue)
 }
 
 ///|
@@ -94,6 +96,15 @@ pub fn client_infer_plan_graph_barrier_cid(
 }
 
 ///|
+/// Retain the owner-derived item evidence alongside the acquisition graph.
+/// The complete physical envelope and current egress authority are separate.
+pub fn client_infer_plan_graph_item_limit(
+  value : ClientInferPlanGraph,
+) -> @checked.InferItemLimit {
+  value.item_limit
+}
+
+///|
 fn client_infer_dependency_cid(value : String) -> Bool {
   if value.length() != 71 || !value.has_prefix("sha256:") {
     return false
@@ -121,6 +132,7 @@ pub fn issue_prepared_client_infer_plan_graph(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  capacity_work? : Int = 1000000,
 ) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue] {
   guard client_infer_prefix_owner(value, 0, step) is Some(owner) &&
     @strategy.graph_task_target(value.graph, 0) == Some(@pipeline.Step(step)) &&
@@ -137,6 +149,13 @@ pub fn issue_prepared_client_infer_plan_graph(
   if !client_infer_dependency_cid(limits_cid) ||
     !client_infer_dependency_cid(egress_requirements_cid) {
     return Err(InvalidDependency)
+  }
+  let item_limit = match
+    prepare_client_infer_item_limit(
+      value, step, capacity_work, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(ItemLimit(issue))
   }
   let prefix = match
     issue_prepared_client_infer_prefix_fragment(
@@ -366,6 +385,7 @@ pub fn issue_prepared_client_infer_plan_graph(
     Ok({
       owner: value,
       execution,
+      item_limit,
       graph: { wire: @encode.finish(graph_writer), transformations, },
       input_fragment_cid: prefix.logical_cid,
       request_wire,

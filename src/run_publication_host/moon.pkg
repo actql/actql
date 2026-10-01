@@ -43,3 +43,7 @@ import {
   "actql/actql/connector_sdk" @connector,
   "actql/actql/physical_host" @host_driver,
 } for "test"
+
+import {
+  "actql/actql/capacity_law",
+} for "wbtest"

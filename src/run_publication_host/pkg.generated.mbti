@@ -209,6 +209,8 @@ pub fn client_infer_plan_graph_barrier_cid(ClientInferPlanGraph) -> String
 
 pub fn client_infer_plan_graph_input_cid(ClientInferPlanGraph) -> String
 
+pub fn client_infer_plan_graph_item_limit(ClientInferPlanGraph) -> @program_check.InferItemLimit
+
 pub fn client_infer_plan_graph_matches(ClientInferPlanGraph, PreparedClientProgram, @check_environment.ModelExecutionContract) -> Bool
 
 pub fn client_infer_plan_graph_request_cid(ClientInferPlanGraph) -> String
@@ -425,7 +427,7 @@ pub fn issue_prepared_client_effect_values_fragment(PreparedClientEffectComputat
 
 pub fn issue_prepared_client_empty_invocation_bindings(PreparedClientProgram, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientEmptyInvocationBindingsIssue]
 
-pub fn issue_prepared_client_infer_plan_graph(PreparedClientProgram, Int, @check_environment.ModelExecutionContract, String, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue]
+pub fn issue_prepared_client_infer_plan_graph(PreparedClientProgram, Int, @check_environment.ModelExecutionContract, String, String, @lowering_relation.SequenceLimits, Int, Int, Int, capacity_work? : Int) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue]
 
 pub fn issue_prepared_client_infer_prefix_fragment(PreparedClientProgram, Int, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientTaskFragmentNode, ClientTaskFragmentIssue]
 
@@ -500,6 +502,8 @@ pub fn prepare_client_effect_query_requirement(PreparedClientEffectComputation, 
 pub fn prepare_client_effect_request_identity(PreparedClientEffectComputation, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
 pub fn prepare_client_effect_task_sequence(PreparedClientEffectComputation, Int, @execution_relation.RegisteredRelationContracts, Array[@execution_relation.FragmentRuntimeContext], @lowering_relation.SequenceLimits, Int, Int, prepared_sequence? : @lowering_relation.PreparedSequence?) -> Result[@execution_relation.GeneratedSequence, ClientTaskSequenceIssue]
+
+pub fn prepare_client_infer_item_limit(PreparedClientProgram, Int, Int, Int, Int, Int) -> Result[@program_check.InferItemLimit, ClientInferItemLimitIssue]
 
 pub fn prepare_client_query_acquisition(PreparedClientProgram, Int, Int) -> Result[@sourceview_resolution.QueryAcquisition, ClientAcquisitionIssue]
 
@@ -862,9 +866,15 @@ pub(all) enum ClientInferHostCapacityIssue {
   MissingItemCeiling
 }
 
+pub(all) enum ClientInferItemLimitIssue {
+  UnsupportedProgram
+  Preparation(@program_check.UnitBuildFailure)
+}
+
 pub struct ClientInferPlanGraph {
   owner : PreparedClientProgram
   execution : @check_environment.ModelExecutionContract
+  item_limit : @program_check.InferItemLimit
   graph : ClientTaskPlanGraph
   input_fragment_cid : String
   request_wire : String
@@ -881,6 +891,7 @@ pub(all) enum ClientInferPlanGraphIssue {
   Mapping(@lowering_relation.InferInputIssue)
   Result(ClientResultPlanPartsIssue)
   Encoding
+  ItemLimit(ClientInferItemLimitIssue)
 }
 
 pub(all) struct ClientProgramIdentity {

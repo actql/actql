@@ -37,6 +37,42 @@ pub(all) enum ClientInferHostCapacityIssue {
 }
 
 ///|
+pub(all) enum ClientInferItemLimitIssue {
+  UnsupportedProgram
+  Preparation(@checked.UnitBuildFailure)
+}
+
+///|
+/// Prepare capacity evidence from the same checked Program as the Relation
+/// prefix. This runs during compilation, not inside bounded execution start.
+/// It does not replace the barrier's physical envelope or egress admission.
+pub fn prepare_client_infer_item_limit(
+  value : PreparedClientProgram,
+  step : Int,
+  max_work : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@checked.InferItemLimit, ClientInferItemLimitIssue] {
+  if client_infer_prefix_owner(value, 0, step) is None {
+    return Err(UnsupportedProgram)
+  }
+  Ok(
+    @checked.prepare_infer_item_limit(
+      @strategy.graph_program(value.graph),
+      0,
+      step,
+      max_work,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    ),
+  ) catch {
+    issue => Err(Preparation(issue))
+  }
+}
+
+///|
 /// Read the actual checked Host policy, never an adapter default. This is one
 /// physical admission candidate, not the complete inference Plan envelope.
 pub fn prepared_client_infer_host_item_ceiling(

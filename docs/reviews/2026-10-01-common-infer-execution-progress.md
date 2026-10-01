@@ -84,6 +84,44 @@ The remaining connection belongs to the common inference work:
 
 ## Checked compilation prefix
 
+### Owned item-capacity compilation
+
+The private Infer graph retains item-capacity material derived from its actual
+checked Program. Applicable input row proofs are reidentified under the same
+Unit owners and bound to the Infer occurrence through the registered
+`actql.bound.infer-distinct-keys` law. Host and installed ModelTask ceilings
+remain distinct candidates. Literal and supplied-parameter guards retain their
+actual declaration owner; the minimum is not inferred from a successful model
+execution or an observed input count.
+
+Preparation uses an explicit work/encoding budget and happens during graph
+compilation, not inside bounded execution start. Foreign Program owners,
+non-Infer steps and insufficient preparation work do not issue this material.
+The normal Program fixtures independently expect one key from one input row,
+two from three rows under the ModelTask ceiling, one under the Host ceiling,
+and zero for empty input. They also check the guard witness and its supplied
+parameter value.
+
+This is not a complete executable inference Plan. Its existing item candidates
+do not admit a language-ceiling body, retry/backoff/media dependencies, the
+physical envelope or current egress authority. In particular, the barrier's
+`limits_cid` is not replaced by the item-limit CID. The private graph retains
+the checked material for subsequent Plan fact and envelope compilation.
+
+The public Host handoff remains unavailable. Formal model evidence requires
+the missing canonical call-slot preimage to be resolved; the current private
+capture must not be relabeled as that evidence. A still owns the remaining
+Plan, common dispatch-owner and publication connection. B cannot start packed
+INFER acceptance from the component bridge or a placeholder evidence CID.
+
+Focused capacity/prefix/graph tests passed 7/7 on JS, Wasm and native. The
+rebuilt Node bridge passed 19/19, including one actual provider call for the
+successful row and zero calls for rejected item limits. The first Node run
+omitted the pinned toolchain environment and failed its fixture precondition;
+the complete rerun with `MOON_HOME` and its `bin` on `PATH` passed. Generated
+interfaces were refreshed from source. These results are not public Host,
+committed Named Result, complete core-gate or Linux CI evidence.
+
 ### Bounded response custody
 
 The model owner now reserves one attempt per resume, completes all slot

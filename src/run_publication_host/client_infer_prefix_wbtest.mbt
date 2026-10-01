@@ -2,6 +2,11 @@
 fn client_infer_prefix_test_program(
   result_fields? : String = "[\"id\",\"outcome\",\"value\"]",
   strict? : Bool = false,
+  host_items? : Int = 1000,
+  item_guard? : String = "",
+  input_rows? : String = "[{\"id\":\"a\",\"text\":\"hello\"}]",
+  parameters? : String = "",
+  supplied? : @decode.Cursor? = None,
 ) -> PreparedClientProgram {
   // Reuse the independently hashed ModelTask typing vector. These dependency
   // CIDs prove installation identity, not provider or egress authority.
@@ -15,6 +20,10 @@ fn client_infer_prefix_test_program(
     .replace(
       old="\"model_task_contracts\":[]",
       new="\"model_task_contracts\":[" + task + "]",
+    )
+    .replace(
+      old="\"max_infer_items\":1000",
+      new="\"max_infer_items\":" + host_items.to_string(),
     )
   let cid = "sha256:" + @sha.hex(@utf8.encode(unsigned))
   let wire = unsigned.replace(
@@ -32,6 +41,14 @@ fn client_infer_prefix_test_program(
   prepare_effect_free_client_program(
     source
     .replace(
+      old="\"id\":\"infer-prefix\",",
+      new="\"id\":\"infer-prefix\"," + parameters,
+    )
+    .replace(
+      old="\"rows\":[{\"id\":\"a\",\"text\":\"hello\"}]",
+      new="\"rows\":" + input_rows,
+    )
+    .replace(
       old="\"fields\":[\"id\",\"outcome\",\"value\"]",
       new="\"fields\":" + result_fields,
     )
@@ -42,10 +59,14 @@ fn client_infer_prefix_test_program(
       } else {
         "\"key\":\"id\",\"input\":"
       },
+    )
+    .replace(
+      old="\"contract\":\"model-task:risk-score.v1\",",
+      new="\"contract\":\"model-task:risk-score.v1\"," + item_guard,
     ),
     Json,
     environment,
-    None,
+    supplied,
     client_standard_program_preparation_limits(),
   ).unwrap()
 }
