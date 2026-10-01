@@ -308,3 +308,23 @@ test('lsof cache writes and network name/port lookups are disabled', t => {
   }});
   assert.equal(observed, true);
 });
+
+
+test('Git-linked worktrees stay protected until scanned as explicit roots', t => {
+  const f = fixture(t);
+  const root = f.root('parent');
+  const nested = join(root, 'nested');
+  mkdirSync(nested);
+  git(nested, 'init', '-q');
+  put(nested, '.gitignore', '_build/\n');
+  put(nested, 'source', 'source');
+  git(nested, 'add', '.');
+  git(nested, '-c', 'user.name=fixture', '-c', 'user.email=fixture@example.invalid',
+    'commit', '-qm', 'nested');
+  git(root, 'add', 'nested');
+  put(nested, '_build/output');
+  const report = inventory([root]);
+  assert.ok(!report.candidates.some(item => item.path === join(nested, '_build')));
+  assert.ok(report.exclusions.some(item => item.path === nested && /gitlink/u.test(item.reason)));
+  assert.ok(candidate(inventory([root, nested]), join(nested, '_build')));
+});

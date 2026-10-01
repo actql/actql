@@ -256,6 +256,12 @@ export function inventoryWorktrees(roots, options = {}) {
       exclude(path, `${kind}: metadata only, contents not traversed`);
       return;
     }
+    if (metadata.isDirectory() && gitProtection.get(root.path).trackedExact.has(path)) {
+      protect(path, root.path, kind ?? 'tracked-source');
+      exclude(path, 'tracked directory/gitlink: scan its worktree as an explicit root');
+      if (candidate) { candidate.protectedContents.push({path, kind: 'tracked-source'}); candidate.size.status = 'partial'; }
+      return;
+    }
     if (metadata.isSymbolicLink()) {
       link(path, root.path);
       protect(path, root.path, kind ?? 'symbolic-link');
@@ -298,6 +304,7 @@ export function inventoryWorktrees(roots, options = {}) {
       const git = gitInventory(path, run, limits, fail);
       report.roots.push({requested, path, git});
       gitProtection.set(path, {tracked: ancestors(path, git.trackedPaths),
+        trackedExact: new Set(git.trackedPaths.map(item => join(path, item))),
         changed: ancestors(path, git.changes.map(item => item.path))});
     } catch (error) { report.roots.push({requested, path: null, status: 'unknown'}); fail('root', requested, error.code ?? 'unavailable'); }
   }
