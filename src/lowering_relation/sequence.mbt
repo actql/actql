@@ -120,6 +120,7 @@ pub fn prepare_sequence(
   let mut expressions = limits.expressions
   for i = 0; i < owner.prepared.nodes.length(); i = i + 1 {
     let step = match owner.prepared.nodes[i].payload {
+      Infer(_) => return Err(KernelFailure(i, MissingKernelNode))
       InnerJoin(_) => {
         let kernel = match prepare_join_kernel(owner, i, bindings, names) {
           Ok(v) => v

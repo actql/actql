@@ -134,16 +134,22 @@ test "ordinary Program preparation retains typed INFER and KEEP dependencies" {
       )
       assert_true(join.right is Some(_))
     }
-    // Topology admission is not pure execution or full Host admission.
+    // Lowering retains INFER as an acquisition barrier; pure execution still
+    // requires the model Host to dispatch this payload.
     let lowered = @lower.prepare(pipeline, {
       max_nodes: 100,
       max_references: 100,
       max_work: 10000,
       max_identifier_bytes: 10000,
     })
-    guard lowered is Err(issue) else { fail("INFER entered pure AoA lowering") }
-    assert_eq(issue.kind, OperationNotImplemented)
-    assert_true(physical_equal(issue.source, step.source))
+    let prepared = lowered.unwrap()
+    guard @lower.node_at(prepared, 1) is Some(node) else {
+      fail("INFER lowering node was not retained")
+    }
+    guard @lower.payload(node) is @lower.Infer(owned) else {
+      fail("INFER did not remain an acquisition barrier")
+    }
+    assert_true(physical_equal(owned, checked))
   }
 }
 
