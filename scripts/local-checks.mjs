@@ -95,6 +95,7 @@ function runJob(name) {
 // CI jobs that cover a changed path. The narrow checks come first; the jobs
 // are what to run before pushing, and Linux CI remains the full check.
 const areas = [
+  [/^proofs\/relation-pipeline\//u, ['pipeline-evidence']],
   [/^scripts\/(build-runtime-packages|test-runtime-package-build|build-local-node|build-run-host-core|build-remote-(coordinator|transfer)-package)|^packages\/(run-host-core|coordinator-core|transfer-core)\//u, ['host']],
   [/^\.github\/|^scripts\/local-checks\.mjs$/u, ['lint']],
   [/^src\//u, ['lint', 'core']],
