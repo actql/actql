@@ -1,0 +1,117 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/infer_typing"
+
+import {
+  "actql/actql/carrier_contract",
+  "actql/actql/check_environment",
+  "actql/actql/decode_core",
+  "actql/actql/expression_syntax",
+  "actql/actql/expression_typing",
+  "actql/actql/parameter_binding",
+  "actql/actql/relation_evidence",
+  "actql/actql/relation_schema",
+  "actql/actql/relation_typing",
+  "actql/actql/value_contract",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn check(@decode_core.Cursor, @carrier_contract.Carrier, @relation_evidence.KeySet?, @check_environment.ModelTasks, @parameter_binding.Declarations?, Limits) -> Result[CheckedInfer, Issue]
+
+pub fn input_binding_at(CheckedInfer, Int) -> InputBinding?
+
+pub fn input_binding_count(CheckedInfer) -> Int
+
+pub fn input_records(CheckedInfer) -> @carrier_contract.Knowledge
+
+pub fn input_schema(CheckedInfer) -> @relation_schema.Schema
+
+pub fn key_at(CheckedInfer, Int) -> KeyBinding?
+
+pub fn key_count(CheckedInfer) -> Int
+
+pub fn key_witness(CheckedInfer) -> @relation_evidence.KeyedRelation
+
+pub fn max_items_guard(CheckedInfer) -> @relation_typing.CheckedCountValue?
+
+pub fn minimum_classification(CheckedInfer) -> @check_environment.DataClassification?
+
+pub fn model_task(CheckedInfer) -> @check_environment.ModelTaskContract
+
+pub fn output_schema(CheckedInfer) -> @relation_schema.Schema
+
+pub fn result_mode(CheckedInfer) -> ResultMode
+
+pub fn source(CheckedInfer) -> @decode_core.Cursor
+
+pub fn usage(CheckedInfer) -> Usage
+
+// Errors
+
+// Types and methods
+type CheckedInfer
+
+pub struct InputBinding {
+  role : String
+  source : @decode_core.Cursor
+  expression : @expression_typing.TypedExpression
+}
+
+pub struct Issue {
+  kind : IssueKind
+  source : @decode_core.Cursor
+}
+
+pub(all) enum IssueKind {
+  InvalidLimits
+  BudgetExceeded
+  InvalidBody
+  WrongCarrier(@carrier_contract.Kind)
+  IncompleteInputContract
+  Task(@check_environment.ModelTaskIssueKind)
+  InputKeyOwnerMismatch
+  CandidateKeyRequired
+  AmbiguousCandidateKey
+  InvalidKeyTuple
+  UnknownKeyField(String)
+  InvalidKeyType(String)
+  KeyRoleCollision(String)
+  UnknownInputRole(String)
+  MissingInputRole(String)
+  InputTypeMismatch(String)
+  ForbiddenModelInput
+  Syntax(@expression_syntax.Issue)
+  Expression(@expression_typing.IssueKind)
+  Guard(@relation_typing.IssueKind)
+}
+
+pub struct KeyBinding {
+  field : @relation_schema.FieldName
+  contract : @value_contract.Contract
+}
+
+pub(all) struct Limits {
+  max_work : Int
+  max_nodes : Int
+  max_depth : Int
+  max_text_bytes : Int
+  max_tokens : Int
+  max_key_fields : Int
+  max_input_roles : Int
+}
+
+pub(all) enum ResultMode {
+  Outcomes
+  Fail
+} derive(Eq, @debug.Debug)
+
+pub(all) struct Usage {
+  work : Int
+  nodes : Int
+  text_bytes : Int
+  tokens : Int
+} derive(Eq, @debug.Debug)
+
+// Type aliases
+
+// Traits

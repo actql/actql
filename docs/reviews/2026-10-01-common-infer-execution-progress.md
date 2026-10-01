@@ -61,7 +61,7 @@ node --test --test-name-pattern='retained object projection' \
 | Boundary | Current limitation | Required implementation |
 | --- | --- | --- |
 | ModelTask admission | Typed task and execution-contract readers exist; Program preparation does not yet invoke them | Bind the admitted task to the checked infer operation and resolve prompt, retry, backoff and attachment dependencies before execution |
-| Checked operation | `program_check/check.mbt:check_supported_source` and `pipeline_typing/check.mbt` still refuse `infer` | Bind typed INPUT expressions, a proven non-null scalar candidate-key tuple, fixed output roles, capacities and success refinement |
+| Checked operation | The standalone typed infer owner exists; Program and pipeline preparation still refuse `infer` | Connect the typed owner, resolved capacities, produced-key evidence and success refinement with executable acquisition |
 | Barrier execution | No shared checked model-call execution owner is installed | Preflight all keys, requests and adapter plans before dispatch; retain slot/attempt identity, reservations, stop observation and cleanup custody |
 | Capture and replay | Existing publication code admits model evidence, but no inference owner produces it | Seal classified slot outcomes and real response/issuer evidence; replay captured observations without provider calls |
 | Public Host | The current dispatch owner opens source-free or SourceView acquisition configurations | Connect the typed inference barrier to the existing Run admission, dispatch and publication owners; do not add a second Host state machine |
@@ -154,3 +154,38 @@ regressions on Wasm and native passed again. `moon fmt --check` and
 `git diff --check` passed. The generated public interface passed
 `scripts/check-moonbit-api.mjs` across JS, Wasm and native.
 Full affected CI jobs and Linux CI remain unverified for this unit.
+
+## Typed inference binding
+
+`infer_typing/check.mbt` binds the exact admitted ModelTask, complete input
+schema, candidate-key witness and typed INPUT expressions. It requires all
+and only the closed task input roles, checks assignment compatibility and
+retains expression validation obligations. Qualified Relation scopes use the
+existing schema and expression scope rules, not flattened field names.
+
+An explicit key must equal a whole non-null scalar candidate tuple. Subsets,
+supersets and repeated components are rejected. Authored tuple order remains
+a separate sidecar from canonical schema order. Omission requires a unique
+candidate tuple, including alias alternatives; duplicate witnesses for the
+same tuple remain retained rather than creating false ambiguity. Evidence
+from an equal-shaped but independently admitted input is rejected. The
+original witness keeps its producer and pending runtime validation obligations.
+
+The output schema contains only the selected key fields and fixed outcome
+and value roles. The success object retains its original child nullability;
+only the outer value becomes nullable for failure outcomes. This schema is
+not yet a produced-key proof or outcome-dependent refinement proof.
+
+`relation_typing/check_count_value` exposes the existing count rule for the
+infer author guard. It retains the exact parameter declaration owner and
+deferred positive-safe-integer validation. No separate parameter parser,
+resolved limit or Host authority is invented. Authored minimum classification
+and result mode are likewise retained without granting model egress.
+
+The final `infer_typing` suite passed 8/8 on JS, Wasm and native. The unchanged
+`relation_typing` suite, including the new shared count-guard regression,
+passed 274/274 on each target before the final qualified-scope test was added.
+These are typing and admission tests, not model dispatch or packed acceptance.
+Program integration, barrier preflight, call execution, capture, replay and
+the existing Host dispatch connection remain unfinished. No external model
+service has been called.
