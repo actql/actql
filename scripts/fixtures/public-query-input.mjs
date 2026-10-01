@@ -35,7 +35,9 @@ export const sourceFreeSuccesses = [
   {name: 'literal-values', format: 'sql',
     text: "SELECT 1 AS id, 'hello' AS label",
     expected: [{id: 1, label: 'hello'}], sourceReadCount: 0,
-    columns: [numberColumn('id'), {name: 'label', contract: {type: 'string', nullable: false}}]},
+    columns: [numberColumn('id'), {name: 'label', contract: {type: 'string', nullable: false,
+      // The authored ASCII literal has five UTF-8 bytes; its extent is exact.
+      max_utf8_bytes: 5}}]},
   {name: 'machine-values-migration', format: 'sql',
     text: 'SELECT 1 AS id UNION ALL SELECT 2 AS id ORDER BY id',
     expected: [{id: 1}, {id: 2}], columns: [numberColumn('id')], sourceReadCount: 0},
