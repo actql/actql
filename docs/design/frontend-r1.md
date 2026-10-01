@@ -124,10 +124,20 @@ CTE aliases are case-insensitive even when quoted, independently of the
 Source View identifier profile. Hidden body columns and out-of-scope CTEs are
 not made visible by internal producer names.
 
-This does not claim every query composition is implemented. In particular,
-wider post-set ORDER BY expressions and INFER/Graph-query placement retain
-their separate boundaries. This relational unit does not make INFER or Graph
-queries executable within a CTE or derived table.
+An ORDER BY expression following a set is resolved only against the combined
+output fields, using its first operand's output names. Existing common
+expressions derive any sort-only slot once; repeated equivalent terms reuse
+it. Ordinary sort and a final projection preserve the declared output without
+publishing hidden sort fields. Operand range variables, non-output columns
+and aliases unique to a later operand remain out of scope. This follows the
+selected [GoogleSQL ORDER BY reference](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/query-syntax.md#order_by_clause)
+and its [independent analyzer cases](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/googlesql/analyzer/testdata/orderby.test).
+
+This does not claim every query composition is implemented. Positional numeric
+ORDER BY terms remain an implementation gap and are not interpreted as
+constant sort keys. INFER/Graph-query placement retains its separate boundary;
+this relational unit does not make those queries executable within a CTE or
+derived table.
 
 SQL and Pipe use the adopted GoogleSQL vocabulary and one query expression
 representation before lowering to existing Program expressions and operations.

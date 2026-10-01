@@ -11,6 +11,20 @@ const declarations = {minimum: {type: 'number'}};
 const relationNumber = (name, nullable = false) => ({name,
   contract: {type: 'number', nullable}});
 export const queryCompositionSuccesses = [
+  {name: 'set-output-alias-expression', format: 'sql',
+    text: 'SELECT id AS amount FROM records UNION ALL SELECT id AS other FROM records ORDER BY 0 - amount, 0 - amount DESC LIMIT 3',
+    expected: [{amount: 3}, {amount: 3}, {amount: 3}], columns: [relationNumber('amount')], sourceReadSessionCount: 1},
+  {name: 'set-output-expression-null', format: 'sql',
+    text: 'SELECT amount, id FROM records UNION DISTINCT SELECT amount, id FROM records ORDER BY COALESCE(amount, 0) + 1 DESC, id',
+    expected: [{amount: 30, id: 3}, {amount: 20, id: 2}, {amount: null, id: 1}],
+    columns: [relationNumber('amount', true), relationNumber('id')], sourceReadSessionCount: 1},
+  {name: 'cte-set-output-expression', format: 'sql',
+    text: 'WITH chosen AS (SELECT id FROM records WHERE amount >= 20 UNION ALL SELECT id FROM records WHERE amount IS NULL ORDER BY 0 - id LIMIT 2) SELECT id FROM chosen ORDER BY id',
+    expected: [{id: 3}, {id: 3}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
+  {name: 'empty-set-output-expression', format: 'sql',
+    text: 'SELECT id FROM records WHERE amount > 100 UNION ALL SELECT id FROM records WHERE amount < 0 ORDER BY id + 1',
+    expected: [], columns: [relationNumber('id')], sourceReadSessionCount: 1},
+
   {name: 'quoted-cte-case', format: 'sql',
     text: 'WITH `Chosen` AS (SELECT id FROM records WHERE amount IS NULL) SELECT chosen.id FROM chosen ORDER BY id',
     expected: [{id: 1}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
@@ -75,6 +89,13 @@ export const queryCompositionSuccesses = [
 
 ];
 export const queryCompositionRefusals = [
+  {name: 'set-order-operand-column', format: 'sql',
+    text: 'SELECT id AS amount FROM records UNION ALL SELECT id AS other FROM records ORDER BY id + 1'},
+  {name: 'set-order-right-alias', format: 'sql',
+    text: 'SELECT id AS amount FROM records UNION ALL SELECT id AS other FROM records ORDER BY other + 1'},
+  {name: 'set-order-qualified-input', format: 'sql',
+    text: 'SELECT id FROM records UNION ALL SELECT id FROM records ORDER BY records.id + 1'},
+
   {name: 'nested-with-quoted-duplicate', format: 'sql',
     text: 'WITH chosen AS (WITH `Hidden` AS (SELECT id FROM records), hidden AS (SELECT id FROM records) SELECT id FROM hidden) SELECT id FROM chosen'},
   {name: 'nested-with-escaped-name', format: 'sql',

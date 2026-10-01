@@ -4118,23 +4118,63 @@ fn compile_set_stages(
     match operation {
       Order(terms) => {
         let sort : Array[@builder.Node] = []
+        let hidden : Array[(@query.Expression, String)] = []
+        let derives : Array[(String, @builder.Node)] = []
+        let reserved = left_fields.copy()
+        let visible = left_fields.map(field => (field, field))
         for term in terms {
-          let root = @query.expression_node(
+          let mut root = @query.expression_node(
             term.expression,
             @query.expression_root(term.expression),
           ).unwrap()
-          guard root.kind is Reference(path) && path.length() == 1 else {
-            raise Abort(UnsupportedOrdering)
+          while root.kind is Parenthesized(child) {
+            root = @query.expression_node(term.expression, child).unwrap()
           }
-          let mut selected : String? = None
-          for field in left_fields {
-            if same_name(path[0], { value: field, quoted: false, }) {
-              selected = Some(field)
+          let direct = match root.kind {
+            Reference(path) => pipe_slot(path, visible, [])
+            // A bare numeric ORDER term denotes a selected-column ordinal,
+            // not a constant sort key. That separate frontend gap must not
+            // be silently reinterpreted by expression lowering.
+            Number(_) | StringLiteral(_) | Boolean(_) | Null =>
+              raise Abort(UnsupportedOrdering)
+            Unary("-", child) => {
+              if @query.expression_node(term.expression, child).unwrap().kind
+                is Number(_) {
+                raise Abort(UnsupportedOrdering)
+              }
+              None
             }
+            _ => None
           }
-          let field = match selected {
+          let field = match direct {
             Some(field) => field
-            None => raise Abort(UnsupportedOrdering)
+            None => {
+              let mut reused : String? = None
+              for pair in hidden {
+                if same_expression(term.expression, pair.0) {
+                  reused = Some(pair.1)
+                }
+              }
+              match reused {
+                Some(field) => field
+                None => {
+                  let field = pipe_physical_name(reserved, "aql_set_sort_")
+                  reserved.push(field)
+                  // Only the combined output scope is visible. Reuse its
+                  // evaluated slots; never expand an operand's SELECT.
+                  let value = append_pipe_expression(
+                    construction,
+                    term.expression,
+                    visible,
+                    [],
+                    limits.max_expression_work,
+                  )
+                  derives.push((field, value))
+                  hidden.push((term.expression, field))
+                  field
+                }
+              }
+            }
           }
           sort.push(
             construction.object([
@@ -4144,13 +4184,42 @@ fn compile_set_stages(
             ]),
           )
         }
+        let mut sort_from = current
+        let sort_output = if derives.is_empty() {
+          final_name
+        } else {
+          let derived = "aql_set_order_input_" + index.to_string()
+          steps.push(
+            construction.object([
+              ("from", construction.text(current)),
+              ("derive", construction.object(derives)),
+              ("as", construction.text(derived)),
+            ]),
+          )
+          sort_from = derived
+          "aql_set_ordered_" + index.to_string()
+        }
         steps.push(
           construction.object([
-            ("from", construction.text(current)),
+            ("from", construction.text(sort_from)),
             ("sort", construction.array(sort)),
-            ("as", construction.text(final_name)),
+            ("as", construction.text(sort_output)),
           ]),
         )
+        if !derives.is_empty() {
+          steps.push(
+            construction.object([
+              ("from", construction.text(sort_output)),
+              (
+                "select",
+                construction.array(
+                  left_fields.map(field => construction.text(field)),
+                ),
+              ),
+              ("as", construction.text(final_name)),
+            ]),
+          )
+        }
       }
       Limit(count, offset) =>
         steps.push(
