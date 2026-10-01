@@ -60,6 +60,8 @@ jobs:
         run: npm run check:client-types
       - name: Test read-only worktree inventory fixtures
         run: node --test scripts/worktree-inventory.test.mjs
+      - name: Test nonzero execution guards
+        run: node --test scripts/test-execution.test.mjs
       - name: Test environment guards
         run: node --test scripts/moonbit-environment.test.mjs
       - name: Test native SQLite namespace ownership
