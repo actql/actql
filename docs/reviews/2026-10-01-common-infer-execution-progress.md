@@ -106,9 +106,9 @@ another Relation evaluator. `client_task_plan_graph` currently assumes one
 AoA node per task; executable Plan and invocation-template issuance currently
 emit empty required-profile lists. These sites must bind the installed model
 contract and acquisition inputs before the existing Client dispatch owner
-can start this Program. The barrier manifest also lacks the inference
-barrier declared by Language's typed-boundary table; no arbitrary CID or
-typing-fixture dependency is substituted for its contract. This remains A's
+can start this Program. The pinned barrier manifest now contains the
+inference barrier declared by Language's typed-boundary table; its presence
+does not admit retry, prompt, media or egress dependency bodies. This remains A's
 common integration work, not an external B or C implementation blocker.
 
 The public Host handoff is still not ready. Prefix identity and component
@@ -193,7 +193,7 @@ node --test --test-name-pattern='retained object projection' \
 | --- | --- | --- |
 | ModelTask admission | Explicit Program preparation binds the admitted task inventory; dependency and execution preflight remain absent | Resolve prompt, retry, backoff and attachment dependencies before execution |
 | Checked operation | Pipeline and topology preparation retain the typed infer owner, INPUT mappings and produced keys; complete Program execution remains refused | Close acquisition capacities, success refinement and runtime obligations without lowering acquisition as pure computation |
-| Barrier execution | No shared checked model-call execution owner is installed | Preflight all keys, requests and adapter plans before dispatch; retain slot/attempt identity, reservations, stop observation and cleanup custody |
+| Barrier execution | The private bounded owner connects the real checked Relation prefix to a registered ModelTask; standard Host admission has not installed it | Admit fixed request and dependency bodies, adapter plans and egress before dispatch; bind formal slot and attempt evidence |
 | Capture and replay | Existing publication code admits model evidence, but no inference owner produces it | Seal classified slot outcomes and real response/issuer evidence; replay captured observations without provider calls |
 | Public Host | The current dispatch owner opens source-free or SourceView acquisition configurations | Connect the typed inference barrier to the existing Run admission, dispatch and publication owners; do not add a second Host state machine |
 
@@ -217,6 +217,38 @@ contract baseline. Checker acceptance will not be reported as executable
 inference. The first runtime handoff can cover one real Host-dispatched row
 while the remaining KEEP and replay acceptance is developed in parallel.
 Capture and replay remain requirements for completing the inference unit.
+
+## Bounded physical composition
+
+`client_infer_host` now composes the existing Local prefix, mapped input,
+ModelTask session and incremental output importer under one physical owner.
+It retains the original prepared Program rather than accepting finished
+input rows. Each advance runs one child only, even at a phase transition;
+work accumulates across children and is never reset with a child cursor.
+The package is registered in the full Node bridge only. The RelA-only
+bridge does not import it or the model kernel.
+
+Completion has an explicit final yield before output handoff. Cancellation
+at that yield or during a response callback prevents output acquisition.
+Reentrant advance is rejected, and cleanup waits for physical settlement.
+Two output uses retain independent custody: releasing one cannot invalidate
+the other, and cleanup does not dispatch another model call. This physical
+owner does not replace Run admission, dispatch journaling or publication.
+
+The new normal-Program fixtures pass three tests on each of JS, Wasm and
+native. They cover the actual prefix, one provider invocation, independent
+output uses, prefix cancellation and cancellation at the final yield.
+Node tests also yield through `setImmediate` between advances; they do not
+claim cancellation delivery during a synchronous foreign provider call.
+Admission data is projected from existing independent vectors, formatted
+with the pinned formatter, and checked for freshness by the Node suite.
+Expected values and finite poll ceilings are authored separately.
+
+This remains a component connection. The public Host has not yet derived
+and admitted the fixture's fixed request, produced formal model evidence,
+or committed its Named Result. B must not adopt this commit as the requested
+public Host execution SHA. Durable capture/replay and KEEP acceptance remain
+unfinished; the provisional capture tests do not discharge those contracts.
 
 ## Mapped-row preparation
 

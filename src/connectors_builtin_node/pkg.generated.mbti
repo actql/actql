@@ -4,6 +4,7 @@ package "actql/actql/connectors_builtin_node"
 import {
   "actql/actql/canonical_json",
   "actql/actql/check_environment",
+  "actql/actql/client_infer_host",
   "actql/actql/client_local_host",
   "actql/actql/client_salesforce_host",
   "actql/actql/connector_sdk",
@@ -40,6 +41,8 @@ import {
 }
 
 // Values
+pub fn client_program_acquire_infer_output(@client_infer_host.Execution) -> @client_infer_host.OutputUse?
+
 pub fn client_program_acquired_effect_catalog_bodies(@run_publication_host.ClientEffectAcquiredEvidence, Int, Int, Int) -> Result[Array[(String, String, String)], @run_publication_host.ClientEffectAcquiredEvidenceIssue]
 
 pub fn client_program_acquired_effect_dependency_bodies(@run_publication_host.ClientEffectAcquiredEvidence) -> Array[(String, String)]
@@ -88,6 +91,8 @@ pub fn client_program_admit_result_plan(@run_publication_host.PreparedClientProg
 
 pub fn client_program_admit_task_plan_graph(@run_publication_host.PreparedClientProgram, String) -> Result[@run_publication_host.ClientTaskPlanGraph, @run_publication_host.ClientTaskPlanGraphAdmissionIssue]
 
+pub fn client_program_advance_infer_execution(@client_infer_host.Execution, Int) -> Result[@client_infer_host.Poll, @client_infer_host.Issue]
+
 pub fn client_program_advance_infer_input(@client_local_host.ClientInferInputExecution, Int) -> Result[@client_local_host.ClientInferInputPoll, @client_local_host.ClientInferInputIssue]
 
 pub fn client_program_advance_model_execution(@model_execution.ModelExecution, Int) -> Result[@model_execution.ModelObservation, @model_execution.ModelExecutionIssue]
@@ -111,6 +116,8 @@ pub fn client_program_bind_effect_preview_inputs(ClientLocalEffectHost, @physica
 pub fn client_program_bind_effect_run(@run_publication_host.PreparedClientEffectComputation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> @run_publication_host.PreparedClientEffectRun?
 
 pub fn client_program_cancel_captured_source_identity_scan(@execution_query.CapturedSourceIdentityScan) -> Bool
+
+pub fn client_program_cancel_infer_execution(@client_infer_host.Execution) -> Bool
 
 pub fn client_program_cancel_infer_input(@client_local_host.ClientInferInputExecution) -> Bool
 
@@ -163,6 +170,8 @@ pub fn client_program_check_run_binding(@run_publication_host.PreparedClientProg
 pub fn client_program_check_source_free_local_effect_preview_identities(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, String, String, String, Array[@run_publication_host.ClientEffectLocalIdentity], Int, Int, Int) -> Result[Unit, @run_publication_host.ClientEffectLocalIdentityIssue]
 
 pub fn client_program_checking_environment_cid(@program_check.CheckEnvironment) -> String
+
+pub fn client_program_cleanup_infer_execution(@client_infer_host.Execution) -> Result[Bool, @client_infer_host.Issue]
 
 pub fn client_program_cleanup_infer_input(@client_local_host.ClientInferInputExecution) -> Result[Bool, @client_local_host.ClientInferInputIssue]
 
@@ -422,7 +431,15 @@ pub fn client_program_imported_effect_invocation(@run_publication_host.ClientEff
 
 pub fn client_program_imported_effect_relation_bodies(@run_publication_host.ClientEffectImportedEvidence) -> Array[String]
 
+pub fn client_program_infer_execution_capture(@client_infer_host.Execution) -> @model_execution.ModelCaptureBundle?
+
+pub fn client_program_infer_execution_handoff_pending(@client_infer_host.Execution) -> Bool
+
+pub fn client_program_infer_execution_output(@client_infer_host.Poll) -> @execution_relation.CompletedOutput?
+
 pub fn client_program_infer_input_rows(@client_local_host.ClientInferInputPoll) -> @execution_relation.PreparedInferRows?
+
+pub fn client_program_infer_output_use(@client_infer_host.OutputUse) -> @execution_relation.CompletedOutput?
 
 pub fn client_program_infer_plan_graph(@run_publication_host.PreparedClientProgram, Int, @check_environment.ModelExecutionContract, String, String) -> Result[@run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferPlanGraphIssue]
 
@@ -692,6 +709,8 @@ pub fn client_program_release_effect_input(@physical_strategy.CapturedEffectInpu
 
 pub fn client_program_release_effect_inputs(@physical_strategy.CapturedEffectInputs) -> Bool
 
+pub fn client_program_release_infer_output(@client_infer_host.OutputUse) -> Bool
+
 pub fn client_program_replay_model_capture(@execution_relation.PreparedInferRows, String, @model_execution.ModelCaptureBundle) -> Bool
 
 pub fn client_program_request_identity(@run_publication_host.PreparedClientProgram, String, String, String) -> @run_publication_host.ClientRequestIdentity?
@@ -777,6 +796,8 @@ pub fn client_program_source_free_input_intent_cid() -> String
 pub fn client_program_source_publication_valid(@program_check.CheckEnvironment, String) -> Bool
 
 pub fn client_program_stage_semantics_json(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]
+
+pub fn client_program_start_infer_execution(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelProvider, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
 pub fn client_program_start_infer_input(@run_publication_host.PreparedClientProgram, String, String, Int) -> @client_local_host.ClientInferInputExecution?
 

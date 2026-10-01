@@ -1,0 +1,93 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/client_infer_host"
+
+import {
+  "actql/actql/client_local_host",
+  "actql/actql/execution_relation",
+  "actql/actql/model_execution",
+  "actql/actql/run_publication_host",
+}
+
+// Values
+pub fn acquire_output(Execution) -> OutputUse?
+
+pub fn advance(Execution, Int) -> Result[Poll, Issue]
+
+pub fn cancel(Execution) -> Bool
+
+pub fn capture(Execution) -> @model_execution.ModelCaptureBundle?
+
+pub fn cleanup(Execution) -> Result[Bool, Issue]
+
+pub fn completed(Poll) -> @execution_relation.CompletedOutput?
+
+pub fn handoff_pending(Execution) -> Bool
+
+pub fn matches(Execution, @run_publication_host.PreparedClientProgram) -> Bool
+
+pub fn output(OutputUse) -> @execution_relation.CompletedOutput?
+
+pub fn release_output(OutputUse) -> Bool
+
+pub fn standard_limits() -> Limits
+
+pub fn start(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelProvider, String, Limits) -> Result[Execution, Issue]
+
+// Errors
+
+// Types and methods
+pub struct Execution {
+  prepared : @run_publication_host.PreparedClientProgram
+  input : @client_local_host.ClientInferInputExecution
+  provider : @model_execution.ModelProvider
+  fixed_request_cid : String
+  limits : Limits
+  mut rows : @execution_relation.PreparedInferRows?
+  mut model : @model_execution.ModelExecution?
+  mut capture : @model_execution.ModelCaptureBundle?
+  mut output : @model_execution.ModelOutputPreparation?
+  mut completed : @execution_relation.CompletedOutput?
+  mut phase : Phase
+  mut cancelled : Bool
+  mut advancing : Bool
+  mut reclaimed : Bool
+  mut work : Int64
+  mut child_work : Int64
+  mut output_uses : Int
+}
+
+pub(all) enum Issue {
+  InvalidAdvance
+  Input(@client_local_host.ClientInferInputIssue)
+  Model(@model_execution.ModelExecutionIssue)
+}
+
+pub(all) struct Limits {
+  input : @execution_relation.SequenceExecutionLimits
+  measurement : @execution_relation.FixedInputGuardMeasureLimits
+  mapping : @execution_relation.InferPreparationLimits
+  model : @model_execution.ModelExecutionLimits
+  output_rows : Int
+  output_values : @execution_relation.ValueLimits
+  output_work : Int
+  output_workspace : Int
+}
+
+pub struct OutputUse {
+  owner : Execution
+  output : @execution_relation.CompletedOutput
+  mut released : Bool
+}
+
+type Phase
+
+pub enum Poll {
+  Continue(work~ : Int64)
+  Complete(@execution_relation.CompletedOutput, work~ : Int64)
+  Failed(Issue, work~ : Int64)
+  Stopped(work~ : Int64)
+}
+
+// Type aliases
+
+// Traits

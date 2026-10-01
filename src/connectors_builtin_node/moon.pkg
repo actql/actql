@@ -28,6 +28,7 @@ import {
   "actql/actql/effect_application" @effect,
   "actql/actql/remote_transfer" @transfer,
   "actql/actql/model_execution" @model,
+  "actql/actql/client_infer_host" @infer_host,
   "actql/actql/value_admission" @admitted,
   "actql/actql/client_local_host",
   "actql/actql/canonical_json" @identity,

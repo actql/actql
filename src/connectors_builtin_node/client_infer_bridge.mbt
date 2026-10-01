@@ -1,4 +1,100 @@
 ///|
+/// Start one owned physical operation only after the Host admits model access.
+/// Preparation, dispatch and output share the original checked Program owner.
+#export_name("clientProgramStartInferExecution")
+pub fn client_program_start_infer_execution(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  registry : String,
+  values : String,
+  provider : @model.ModelProvider,
+  fixed_request_cid : String,
+) -> Result[@infer_host.Execution, @infer_host.Issue] {
+  @infer_host.start(
+    prepared,
+    step,
+    registry,
+    values,
+    provider,
+    fixed_request_cid,
+    @infer_host.standard_limits(),
+  )
+}
+
+///|
+#export_name("clientProgramAdvanceInferExecution")
+pub fn client_program_advance_infer_execution(
+  active : @infer_host.Execution,
+  quantum : Int,
+) -> Result[@infer_host.Poll, @infer_host.Issue] {
+  @infer_host.advance(active, quantum)
+}
+
+///|
+#export_name("clientProgramInferExecutionOutput")
+pub fn client_program_infer_execution_output(
+  value : @infer_host.Poll,
+) -> @execution.CompletedOutput? {
+  @infer_host.completed(value)
+}
+
+///|
+#export_name("clientProgramInferExecutionHandoffPending")
+pub fn client_program_infer_execution_handoff_pending(
+  active : @infer_host.Execution,
+) -> Bool {
+  @infer_host.handoff_pending(active)
+}
+
+///|
+#export_name("clientProgramInferExecutionCapture")
+pub fn client_program_infer_execution_capture(
+  active : @infer_host.Execution,
+) -> @model.ModelCaptureBundle? {
+  @infer_host.capture(active)
+}
+
+///|
+#export_name("clientProgramCancelInferExecution")
+pub fn client_program_cancel_infer_execution(
+  active : @infer_host.Execution,
+) -> Bool {
+  @infer_host.cancel(active)
+}
+
+///|
+#export_name("clientProgramCleanupInferExecution")
+pub fn client_program_cleanup_infer_execution(
+  active : @infer_host.Execution,
+) -> Result[Bool, @infer_host.Issue] {
+  @infer_host.cleanup(active)
+}
+
+///|
+#export_name("clientProgramAcquireInferOutput")
+pub fn client_program_acquire_infer_output(
+  active : @infer_host.Execution,
+) -> @infer_host.OutputUse? {
+  @infer_host.acquire_output(active)
+}
+
+///|
+#export_name("clientProgramInferOutputUse")
+pub fn client_program_infer_output_use(
+  value : @infer_host.OutputUse,
+) -> @execution.CompletedOutput? {
+  @infer_host.output(value)
+}
+
+///|
+#export_name("clientProgramReleaseInferOutput")
+pub fn client_program_release_infer_output(
+  value : @infer_host.OutputUse,
+) -> Bool {
+  @infer_host.release_output(value)
+}
+
+///|
 /// Admit compiler dependency material under the normal prepared Program.
 #export_name("clientProgramReadInferModelExecution")
 pub fn client_program_read_infer_model_execution(

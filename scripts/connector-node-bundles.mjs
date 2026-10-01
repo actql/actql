@@ -213,6 +213,7 @@ dependencies.set('actql/actql/effect_application', 'effect');
 dependencies.set('actql/actql/remote_transfer', 'transfer');
 if (existsSync(join(root, 'src', bridgePackage, 'client_infer_bridge.mbt'))) {
   dependencies.set('actql/actql/model_execution', 'model');
+  dependencies.set('actql/actql/client_infer_host', 'infer_host');
   dependencies.set('actql/actql/value_admission', 'admitted');
 }
 if (existsSync(join(root, 'src', bridgePackage,

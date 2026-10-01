@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {execFileSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {inspect} from 'node:util';
@@ -56,6 +57,11 @@ const checked = value => {
   assert.equal(value?.$tag, 1, inspect(value, {depth: 3}));
   return value._0;
 };
+
+test('bounded Infer admission fixtures match their existing checked owners', () => {
+  execFileSync(process.execPath, ['scripts/infer-host-fixtures.mjs'],
+    {stdio: 'pipe'});
+});
 
 test('normal Program emits a model barrier without pretending it is pure AoA', () => {
   const source = program();
@@ -203,6 +209,134 @@ async function acceptedModel() {
   checked(moon.clientProgramAdvanceModelExecution(active, 1));
   return {prepared, input, rows, active, calls: () => calls};
 }
+
+function ownedInfer(source = program(), onInvoke) {
+  const prepared = moon.clientProgramPreparationReady(
+    prepare(source, environment()));
+  assert.ok(prepared);
+  let active;
+  let calls = 0;
+  const provider = moon.clientProgramInstallModelProvider('models/fixture',
+    request => {
+      calls++;
+      assert.equal(moon.clientProgramModelRequestInput(request, 'text'),
+        '"hello"');
+      onInvoke?.(active);
+      return moon.clientProgramModelResponse(request,
+        '{"reason":null,"risk":"high"}', 'fixture-risk-model', 'request-1',
+        1n, 2n, '2026-10-01T00:00:00.000Z');
+    });
+  active = checked(moon.clientProgramStartInferExecution(
+    prepared, 2, registry, values, provider, `sha256:${'1'.repeat(64)}`));
+  return {prepared, active, calls: () => calls};
+}
+
+async function ownedInferTerminal(active, atYield) {
+  let lastWork = 0n;
+  for (let poll = 0; poll < 2000; poll++) {
+    const value = checked(moon.clientProgramAdvanceInferExecution(active, 1));
+    const work = value.$tag === 0 || value.$tag === 3 ? value._0 : value._1;
+    assert.ok(work >= lastWork && work - lastWork <= 1n,
+      'child transitions preserve cumulative work and the quantum');
+    lastWork = work;
+    if (value.$tag !== 0) return value;
+    atYield?.();
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  assert.fail('owned inference failed to settle within the finite poll bound');
+}
+
+test('one MoonBit owner executes the checked prefix, model and Result output', async () => {
+  const {prepared, active, calls} = ownedInfer(undefined, owner => {
+    assert.equal(moon.clientProgramAdvanceInferExecution(owner, 1).$tag, 0,
+      'reentrant advance cannot dispatch another request');
+  });
+  assert.equal(calls(), 0);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), false);
+  const terminal = await ownedInferTerminal(active);
+  assert.equal(terminal.$tag, 1, inspect(terminal));
+  const completed = moon.clientProgramInferExecutionOutput(terminal);
+  assert.ok(completed);
+  const a = moon.clientProgramAcquireInferOutput(active);
+  const b = moon.clientProgramAcquireInferOutput(active);
+  assert.ok(a && b);
+  assert.equal(moon.clientProgramInferOutputUse(a), completed);
+  assert.equal(moon.clientProgramInferOutputUse(b), completed);
+  const transform = checked(moon.clientProgramInferResultExportBegin(
+    prepared, 0, moon.clientProgramInferOutputUse(a)));
+  for (let poll = 0; poll < 200; poll++) {
+    if (checked(moon.clientProgramInferResultExportAdvance(transform, 1))._0) break;
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  const stream = checked(moon.clientProgramInferResultExportFinish(transform));
+  let wire = '';
+  for (let chunk = 0; chunk < 20; chunk++) {
+    const next = checked(moon.clientProgramInferResultExportNext(stream));
+    if (next === undefined) break;
+    wire += next;
+  }
+  wire += checked(moon.clientProgramInferResultExportSeal(stream));
+  assert.deepEqual(JSON.parse(wire), [
+    {id: 'a', outcome: 'ok', value: {reason: null, risk: 'high'}},
+  ]);
+  const capture = moon.clientProgramInferExecutionCapture(active);
+  assert.equal(JSON.parse(moon.clientProgramModelCaptureJson(capture))
+    .captures.length, 1);
+  moon.clientProgramInferResultExportClose(stream);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), false);
+  assert.equal(moon.clientProgramReleaseInferOutput(a), true);
+  assert.equal(moon.clientProgramReleaseInferOutput(a), false);
+  assert.equal(moon.clientProgramInferOutputUse(a), undefined);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), false);
+  assert.equal(moon.clientProgramInferOutputUse(b), completed);
+  assert.equal(moon.clientProgramReleaseInferOutput(b), true);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), true);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), true);
+  assert.equal(moon.clientProgramAcquireInferOutput(active), undefined);
+  assert.equal(calls(), 1);
+});
+
+test('owned inference observes cancellation at model and output handoffs', async () => {
+  for (const where of ['input', 'response', 'output', 'handoff']) {
+    let requested = false;
+    const {active, calls} = ownedInfer(undefined, owner => {
+      if (where === 'response') {
+        requested = moon.clientProgramCancelInferExecution(owner);
+      }
+    });
+    if (where === 'input') {
+      requested = moon.clientProgramCancelInferExecution(active);
+    }
+    const terminal = await ownedInferTerminal(active, () => {
+      if (!requested && (where === 'output' && calls() === 1 ||
+          where === 'handoff' &&
+            moon.clientProgramInferExecutionHandoffPending(active))) {
+        assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), false);
+        requested = moon.clientProgramCancelInferExecution(active);
+      }
+    });
+    assert.equal(requested, true, where);
+    assert.equal(terminal.$tag, 3, `${where}: ${inspect(terminal)}`);
+    assert.equal(moon.clientProgramAcquireInferOutput(active), undefined);
+    assert.equal(moon.clientProgramInferExecutionCapture(active), undefined);
+    const stoppedCalls = calls();
+    assert.equal(stoppedCalls, where === 'input' ? 0 : 1);
+    assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), true);
+    assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), true);
+    assert.equal(calls(), stoppedCalls, 'cleanup cannot dispatch the model');
+  }
+});
+
+test('owned inference closes an empty checked input without model dispatch', async () => {
+  const source = program();
+  source.stages[0].steps[0].values.rows = [];
+  const {active, calls} = ownedInfer(source);
+  assert.equal((await ownedInferTerminal(active)).$tag, 1);
+  assert.equal(calls(), 0);
+  assert.deepEqual(JSON.parse(moon.clientProgramModelCaptureJson(
+    moon.clientProgramInferExecutionCapture(active))).captures, []);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), true);
+});
 
 test('only accepted model output enters the original checked Result transform', async () => {
   const {prepared, input, rows, active, calls} = await acceptedModel();
