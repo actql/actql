@@ -78,6 +78,8 @@ fn check_backend_capabilities(
       let edges = match body {
         Field(_, _) | Literal(_) | TypedNull => 0
         Unary(_, _) => 1
+        Property(_, _, _) => 1
+        Object(fields) => fields.length()
         Binary(_, _, _) => 2
         VectorScore(_, _, _) => 2
         VectorConcat(children) => children.length()
@@ -97,6 +99,11 @@ fn check_backend_capabilities(
       match body {
         Field(_, _) | Literal(_) | TypedNull => ()
         Unary(_, child) => pending.push(child)
+        Property(child, _, _) => pending.push(child)
+        Object(fields) =>
+          for j = fields.length() - 1; j >= 0; j = j - 1 {
+            pending.push(fields[j].1)
+          }
         Binary(op, left, right) => {
           match op {
             Equal

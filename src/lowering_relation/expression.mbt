@@ -15,6 +15,8 @@ pub enum ExpressionBody {
   Field(String, @relation.ReferenceTarget)
   Literal(@value.CheckedValue)
   TypedNull
+  Object(Array[(String, Expression)])
+  Property(Expression, String, Int)
   Unary(UnaryOperator, Expression)
   Binary(BinaryOperator, Expression, Expression)
   VectorScore(VectorMetric, Expression, Expression)
@@ -104,6 +106,7 @@ priv suberror ExpressionStop {
 ///|
 pub fn expression_body(value : Expression) -> ExpressionBody {
   match value.body {
+    Object(fields) => Object(fields.copy())
     VectorConcat(children) => VectorConcat(children.copy())
     Many(op, children) => Many(op, children.copy())
     Case(clauses, otherwise) => Case(clauses.copy(), otherwise)
@@ -115,12 +118,14 @@ pub fn expression_body(value : Expression) -> ExpressionBody {
 /// O(1), allocation-free number of entries copied by expression_body.
 pub fn expression_view_entries(value : Expression) -> Int {
   match value.body {
+    Object(fields) => fields.length()
     VectorConcat(children) => children.length()
     Many(_, children) => children.length()
     Case(clauses, _) => clauses.length()
     Field(_, _)
     | Literal(_)
     | TypedNull
+    | Property(_, _, _)
     | Unary(_, _)
     | Binary(_, _, _)
     | VectorScore(_, _, _)
@@ -195,6 +200,7 @@ fn expression_tag(
     | "vector_concat"
     | "if"
     | "case" => ()
+    "object" | "property" => ()
     other => expression_fail(source, ExpressionNotImplemented(other))
   }
 }
@@ -206,6 +212,19 @@ fn expression_children(
   max_nodes : Int,
 ) -> Array[@decode.Cursor] raise ExpressionStop {
   match tag {
+    "property" =>
+      [@decode.lookup(@decode.open_object(body).unwrap(), "value").unwrap()]
+    "object" => {
+      let count = @decode.object_length(body).unwrap()
+      if count > max_nodes {
+        expression_fail(body, ExpressionBudgetExceeded)
+      }
+      let children = []
+      for i in 0..<count {
+        children.push(@decode.field_at(body, i).unwrap().1)
+      }
+      children
+    }
     "literal" | "field" | "$param" => []
     "negate"
     | "not"
@@ -667,6 +686,45 @@ fn lower_expression_measured(
         completed.get(@decode.tree_index(root, c).unwrap()).unwrap()
       })
       let lowered = match tag {
+        "object" => {
+          guard contract.shape is @contract.Object(contracts) else {
+            expression_fail(cursor, MissingTypeAnnotation)
+          }
+          let fields = []
+          let object = @decode.open_object(body).unwrap()
+          for i in 0..<@contract.field_count(contracts) {
+            expression_spend(budget, cursor)
+            let name = @contract.field_at(contracts, i).unwrap().name
+            let child = @decode.lookup(object, name).unwrap()
+            fields.push(
+              (
+                name,
+                completed.get(@decode.tree_index(root, child).unwrap()).unwrap(),
+              ),
+            )
+          }
+          // Checked syntax fixes canonical field evaluation order.
+          Object(fields)
+        }
+        "property" => {
+          let name = @decode.text(
+            @decode.lookup(@decode.open_object(body).unwrap(), "name").unwrap(),
+          ).unwrap()
+          guard args[0].contract.shape is @contract.Object(fields) else {
+            expression_fail(cursor, MissingTypeAnnotation)
+          }
+          let mut ordinal = -1
+          for i in 0..<@contract.field_count(fields) {
+            expression_spend(budget, cursor)
+            if @contract.field_at(fields, i).unwrap().name == name {
+              ordinal = i
+            }
+          }
+          if ordinal < 0 {
+            expression_fail(cursor, MissingResolvedField(name))
+          }
+          Property(args[0], name, ordinal)
+        }
         "field" => {
           let name = @decode.text(body).unwrap()
           guard fields.get(name) is Some(target) else {
@@ -780,6 +838,8 @@ fn lower_expression_measured(
         uses_veca: match lowered {
           VectorScore(_, _, _) | VectorConcat(_) => true
           Unary(_, child) => child.uses_veca
+          Property(child, _, _) => child.uses_veca
+          Object(fields) => fields.any(field => field.1.uses_veca)
           Binary(_, left, right) => left.uses_veca || right.uses_veca
           Many(_, children) => children.any(child => child.uses_veca)
           Conditional(condition, yes, no) =>

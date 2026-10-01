@@ -1197,6 +1197,8 @@ pub enum ExpressionBody {
   Field(String, @relation_typing.ReferenceTarget)
   Literal(@value_admission.CheckedValue)
   TypedNull
+  Object(Array[(String, Expression)])
+  Property(Expression, String, Int)
   Unary(UnaryOperator, Expression)
   Binary(BinaryOperator, Expression, Expression)
   VectorScore(VectorMetric, Expression, Expression)

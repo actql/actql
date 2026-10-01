@@ -45,6 +45,8 @@ pub struct EvalIssue {
 priv enum Continuation {
   Forward(@lower.Expression)
   Unary(@lower.Expression, @lower.UnaryOperator)
+  Property(@lower.Expression, String, Int)
+  Object(ObjectExpressionState)
   Left(@lower.Expression, @lower.BinaryOperator, @lower.Expression)
   Right(@lower.Expression, @lower.BinaryOperator, Value, ExpressionRootLease?)
   VectorLeft(@lower.Expression, @lower.VectorMetric, @lower.Expression)
@@ -86,6 +88,19 @@ priv enum Evaluation {
   Return(Value)
   Score(VectorScoreState)
   Concat(VectorConcatState)
+  FinishObject(ObjectExpressionState)
+  MeasureObject(ObjectExpressionState, Value, LogicalMeasureCursor)
+  MeasureObjectOperand(Value, LogicalMeasureCursor)
+}
+
+///|
+priv struct ObjectExpressionState {
+  expression : @lower.Expression
+  fields : Array[(String, @lower.Expression)]
+  builder : @admitted.ObjectBuilder
+  roots : Array[ExpressionRootLease?]
+  root : ExpressionRootLease?
+  mut index : Int
 }
 
 ///|
@@ -210,6 +225,8 @@ priv struct ExpressionFrame {
   workspace : RowWorkspace
   scope : ExpressionRoots?
   stack : Array[Continuation]
+  objects : Array[@admitted.ObjectBuilder]
+  mut object_context : Int
   mut state : Evaluation
   mut active : @lower.Expression
   mut current_root : ExpressionRootLease?
@@ -241,6 +258,8 @@ fn expression_frame(
     workspace,
     scope,
     stack: [],
+    objects: [],
+    object_context: 0,
     state: Enter(root),
     active: root,
     current_root: None,
@@ -256,10 +275,17 @@ fn close_expression_frame(frame : ExpressionFrame) -> Unit {
   if frame.scope is Some(scope) {
     cleanup_expression_roots(scope)
   }
+  for builder in frame.objects {
+    @admitted.cancel_object_value(builder) |> ignore
+  }
+  frame.objects.clear()
+  frame.object_context = 0
   frame.stack.clear()
   frame.current_root = None
   match frame.state {
     Concat(state) => @admitted.cancel_vector_value(state.builder) |> ignore
+    MeasureObject(_, _, cursor) => clear_logical_measure(cursor)
+    MeasureObjectOperand(_, cursor) => clear_logical_measure(cursor)
     _ => ()
   }
   if frame.workspace.live > frame.workspace_baseline {
@@ -340,11 +366,14 @@ fn advance_expression_frame_impl(
         }
     }
   }
-  fn charge_value(value : Value) -> LogicalBudgetIssue? {
+  fn charge_value(
+    value : Value,
+    root : ExpressionRootLease?,
+  ) -> LogicalBudgetIssue? {
     match logical_work {
       None => None
       Some(logical) =>
-        match charge_logical_value(logical, value) {
+        match consume_expression_value(logical, value, root) {
           Ok(_) => None
           Err(issue) => Some(issue)
         }
@@ -375,6 +404,8 @@ fn advance_expression_frame_impl(
         let leaf = match body {
           Field(_, _) | Literal(_) | TypedNull => true
           Unary(_, _)
+          | Object(_)
+          | Property(_, _, _)
           | Binary(_, _, _)
           | VectorScore(_, _, _)
           | VectorConcat(_)
@@ -404,6 +435,55 @@ fn advance_expression_frame_impl(
           }
           Literal(value) => frame.state = Return(capture(value.value))
           TypedNull => frame.state = Return(Null)
+          Property(child, name, index) => {
+            frame.object_context += 1
+            frame.stack.push(Property(expr, name, index))
+            frame.state = Enter(child)
+          }
+          Object(fields) => {
+            let root = if scope is Some(scope) {
+              let budget = scope.budget
+              if budget.host_nodes < 1 ||
+                budget.host_depth < 1 ||
+                budget.host_bytes < 2 ||
+                budget.limits.max_value_bytes < 2L {
+                return Err({
+                  kind: LogicalValue(ValueMeasure(HostMeasureLimit)),
+                  expression: expr,
+                })
+              }
+              let root = match reserve_logical_bytes(budget, 2L) {
+                Ok(root) => root
+                Err(issue) =>
+                  return Err({ kind: LogicalValue(issue), expression: expr, })
+              }
+              match register_scope_root(scope, root) {
+                Ok(root) => Some(root)
+                Err(issue) =>
+                  return Err({ kind: LogicalValue(issue), expression: expr, })
+              }
+            } else {
+              None
+            }
+            guard fields.get(0) is Some((_, child)) &&
+              reserve_slots(workspace, 1) &&
+              @admitted.prepare_object_value(fields.length()) is Some(builder) else {
+              return Err({ kind: WorkspaceLimit, expression: expr, })
+            }
+            frame.objects.push(builder)
+            frame.object_context += 1
+            frame.stack.push(
+              Object({
+                expression: expr,
+                fields,
+                builder,
+                roots: [],
+                root,
+                index: 0,
+              }),
+            )
+            frame.state = Enter(child)
+          }
           Unary(op, child) => {
             frame.stack.push(Unary(expr, op))
             frame.state = Enter(child)
@@ -471,6 +551,41 @@ fn advance_expression_frame_impl(
         }
       }
       Return(value) => {
+        // A borrowed aggregate still needs an exact measurement before its
+        // first semantic consumption. Object/property must not drain a large
+        // model output in a single Return transition. Other operation paths
+        // retain their existing measurement/charge schedule.
+        let object_operand = frame.object_context > 0 ||
+          @lower.expression_body(frame.active) is @lower.Property(_, _, _)
+        if object_operand &&
+          frame.current_root is None &&
+          scope is Some(scope) &&
+          value is Captured(@admitted.Object(_) | @admitted.Array(_)) {
+          let logical = scope.budget
+          let cursor = match
+            start_logical_measure(
+              value,
+              logical.limits.max_work - logical.work,
+              Int64::min(
+                logical.limits.max_value_bytes,
+                logical.host_bytes.to_int64(),
+              ).to_int(),
+              logical.host_nodes,
+              logical.host_depth,
+            ) {
+            Ok(cursor) => cursor
+            Err(issue) =>
+              return Err({
+                kind: LogicalValue(ValueMeasure(issue)),
+                expression: frame.active,
+              })
+          }
+          frame.state = MeasureObjectOperand(value, cursor)
+          if !drain {
+            return Ok(None)
+          }
+          continue
+        }
         // Every Return completes one semantic expression, including selection
         // nodes forwarded from their chosen child. Internal boolean seeds and
         // fold accumulators do not invent extra semantic expression results.
@@ -500,10 +615,101 @@ fn advance_expression_frame_impl(
           return Ok(Some({ value, root: retained, }))
         }
         match continuation {
+          Property(expr, name, index) => {
+            frame.object_context -= 1
+            frame.active = expr
+            if charge_value(value, frame.current_root) is Some(issue) {
+              return Err({ kind: LogicalValue(issue), expression: expr, })
+            }
+            if !spend_control_text(budget, name) {
+              return Err({ kind: ControlLimit, expression: expr, })
+            }
+            let selected = match value {
+              Null => Null
+              Captured(@admitted.Object(fields)) => {
+                guard @admitted.element_at(fields, index)
+                  is Some((actual, selected_value)) &&
+                  actual == name else {
+                  return Err({ kind: MissingValue, expression: expr, })
+                }
+                capture(selected_value)
+              }
+              _ =>
+                return Err({ kind: Scalar(InvalidOperand), expression: expr, })
+            }
+            if release(frame.current_root) is Some(issue) {
+              return Err({ kind: LogicalValue(issue), expression: expr, })
+            }
+            frame.current_root = None
+            release_slots(workspace, 1)
+            frame.state = Return(selected)
+          }
+          Object(state) => {
+            let expr = state.expression
+            frame.active = expr
+            if state.root is Some(root) {
+              let budget = root.scope.budget
+              let measured = match
+                consume_expression_value(budget, value, frame.current_root) {
+                Ok(measured) => measured
+                Err(issue) =>
+                  return Err({ kind: LogicalValue(issue), expression: expr, })
+              }
+              let name_bytes = try {
+                let writer = @encode.measuring_writer(budget.host_bytes, 1, 1)
+                @encode.string_value(writer, state.fields[state.index].0)
+                @encode.finish_measurement(writer)
+              } catch {
+                _ =>
+                  return Err({
+                    kind: LogicalValue(ValueMeasure(WireMeasureFailure)),
+                    expression: expr,
+                  })
+              }
+              let delta = name_bytes.to_int64() +
+                1L +
+                measured.wire_bytes.to_int64() +
+                (if state.index == 0 { 0L } else { 1L })
+              match grow_object_root(root, delta) {
+                Ok(_) => ()
+                Err(issue) =>
+                  return Err({ kind: LogicalValue(issue), expression: expr, })
+              }
+            }
+            // Reserve the field tuple and its retained child before append.
+            if !reserve_slots(workspace, 3) {
+              return Err({ kind: WorkspaceLimit, expression: expr, })
+            }
+            if !spend_control_text(budget, state.fields[state.index].0) {
+              return Err({ kind: ControlLimit, expression: expr, })
+            }
+            let admitted = match admitted_aggregate_item(value, budget) {
+              Ok(Some(value)) => value
+              Ok(None) => @admitted.null_value()
+              Err(_) => return Err({ kind: ControlLimit, expression: expr, })
+            }
+            if !@admitted.append_object_field(
+                state.builder,
+                state.fields[state.index].0,
+                admitted,
+              ) {
+              return Err({ kind: Scalar(InvalidOperand), expression: expr, })
+            }
+            state.roots.push(frame.current_root)
+            frame.current_root = None
+            state.index += 1
+            if state.fields.get(state.index) is Some((_, child)) {
+              frame.stack.push(Object(state))
+              frame.state = Enter(child)
+            } else {
+              state.index = 0
+              frame.state = FinishObject(state)
+            }
+          }
           Forward(expr) => {
             release_slots(workspace, 1)
             frame.active = expr
-            if charge_value(value) is Some(issue) {
+            if charge_value(value, frame.current_root) is Some(issue) {
               return Err({ kind: LogicalValue(issue), expression: expr, })
             }
             frame.state = Return(value)
@@ -511,7 +717,7 @@ fn advance_expression_frame_impl(
           Unary(expr, op) => {
             release_slots(workspace, 1)
             frame.active = expr
-            if charge_value(value) is Some(issue) {
+            if charge_value(value, frame.current_root) is Some(issue) {
               return Err({ kind: LogicalValue(issue), expression: expr, })
             }
             match unary(op, value) {
@@ -559,11 +765,11 @@ fn advance_expression_frame_impl(
           }
           VectorRight(expr, metric, left, left_root) => {
             frame.active = expr
-            if charge_value(left) is Some(issue) {
+            if charge_value(left, left_root) is Some(issue) {
               release_slots(workspace, 1)
               return Err({ kind: LogicalValue(issue), expression: expr, })
             }
-            if charge_value(value) is Some(issue) {
+            if charge_value(value, frame.current_root) is Some(issue) {
               release_slots(workspace, 1)
               return Err({ kind: LogicalValue(issue), expression: expr, })
             }
@@ -615,7 +821,7 @@ fn advance_expression_frame_impl(
             expected_dimension
           ) => {
             frame.active = expr
-            if charge_value(value) is Some(issue) {
+            if charge_value(value, frame.current_root) is Some(issue) {
               return Err({ kind: LogicalValue(issue), expression: expr, })
             }
             let mut next_null = null_seen
@@ -694,7 +900,7 @@ fn advance_expression_frame_impl(
           }
           Many(expr, op, children, index, previous, previous_root) => {
             frame.active = expr
-            if charge_value(value) is Some(issue) {
+            if charge_value(value, frame.current_root) is Some(issue) {
               return Err({ kind: LogicalValue(issue), expression: expr, })
             }
             let combined = match op {
@@ -786,7 +992,7 @@ fn advance_expression_frame_impl(
             }
           }
           Case(expr, clauses, index, otherwise) => {
-            if charge_value(value) is Some(issue) {
+            if charge_value(value, frame.current_root) is Some(issue) {
               return Err({ kind: LogicalValue(issue), expression: expr, })
             }
             if !(value is Null || value is Boolean(_)) {
@@ -909,6 +1115,117 @@ fn advance_expression_frame_impl(
           frame.state = Return(Captured(checked.value))
         }
       }
+      FinishObject(state) => {
+        frame.active = state.expression
+        if state.roots.get(state.index) is Some(root) {
+          if release(root) is Some(issue) {
+            return Err({
+              kind: LogicalValue(issue),
+              expression: state.expression,
+            })
+          }
+          state.index += 1
+          release_slots(workspace, 1)
+        } else {
+          guard @admitted.finish_object_value(state.builder) is Some(object) else {
+            return Err({
+              kind: Scalar(InvalidOperand),
+              expression: state.expression,
+            })
+          }
+          frame.objects.pop() |> ignore
+          frame.object_context -= 1
+          release_slots(workspace, state.fields.length() * 3 + 2)
+          let value = Captured(object)
+          if state.root is Some(root) {
+            let budget = root.scope.budget
+            let cursor = match
+              start_logical_measure(
+                value,
+                budget.limits.max_work - budget.work,
+                Int64::min(
+                  budget.limits.max_value_bytes,
+                  budget.host_bytes.to_int64(),
+                ).to_int(),
+                budget.host_nodes,
+                budget.host_depth,
+              ) {
+              Ok(cursor) => cursor
+              Err(issue) =>
+                return Err({
+                  kind: LogicalValue(ValueMeasure(issue)),
+                  expression: state.expression,
+                })
+            }
+            frame.state = MeasureObject(state, value, cursor)
+          } else {
+            frame.state = Return(value)
+          }
+        }
+      }
+      MeasureObject(state, value, cursor) => {
+        frame.active = state.expression
+        match advance_logical_measure(cursor) {
+          Err(issue) =>
+            return Err({
+              kind: LogicalValue(ValueMeasure(issue)),
+              expression: state.expression,
+            })
+          Ok(None) => ()
+          Ok(Some(measured)) => {
+            guard state.root is Some(root) &&
+              root.root.bytes == measured.wire_bytes.to_int64() else {
+              return Err({
+                kind: LogicalValue(InvalidRootLifetime),
+                expression: state.expression,
+              })
+            }
+            root.root.measurement = Some(measured)
+            frame.current_root = Some(root)
+            frame.state = Return(value)
+          }
+        }
+      }
+      MeasureObjectOperand(value, cursor) =>
+        match advance_logical_measure(cursor) {
+          Err(issue) =>
+            return Err({
+              kind: LogicalValue(ValueMeasure(issue)),
+              expression: frame.active,
+            })
+          Ok(None) => ()
+          Ok(Some(measured)) => {
+            guard scope is Some(scope) else {
+              return Err({
+                kind: LogicalValue(InvalidRootLifetime),
+                expression: frame.active,
+              })
+            }
+            let root = match
+              reserve_logical_bytes(
+                scope.budget,
+                measured.wire_bytes.to_int64(),
+              ) {
+              Ok(root) => root
+              Err(issue) =>
+                return Err({
+                  kind: LogicalValue(issue),
+                  expression: frame.active,
+                })
+            }
+            root.measurement = Some(measured)
+            frame.current_root = match register_scope_root(scope, root) {
+              Ok(root) => Some(root)
+              Err(issue) =>
+                return Err({
+                  kind: LogicalValue(issue),
+                  expression: frame.active,
+                })
+            }
+            // Return pays the same full value weight as synchronous evaluation.
+            frame.state = Return(value)
+          }
+        }
     }
     if !drain {
       return Ok(None)
