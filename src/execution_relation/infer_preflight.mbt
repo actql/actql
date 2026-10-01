@@ -29,6 +29,7 @@ pub(all) enum InferPreparationIssue {
   InvalidMappedValue(Int, Int)
   Evaluation(Int, Int, EvalIssue)
   Comparison(@admitted.KeyOrderIssue)
+  Logical(LogicalBudgetIssue)
   Session(@bounded.Issue)
 }
 
@@ -39,6 +40,7 @@ pub(all) struct InferPreparationLimits {
   max_frames : Int
   max_workspace_slots : Int
   values : @admitted.Limits
+  logical : LogicalLimits
 }
 
 ///|
@@ -133,6 +135,8 @@ struct PreparedInferRows {
   order : Array[Int]
   values : Array[Array[@admitted.CheckedValue]]
   workspace : RowWorkspace
+  logical : LogicalBudget
+  roots : Array[LogicalRoot]
   mut reclaimed : Bool
 }
 
@@ -178,6 +182,10 @@ pub fn prepared_infer_rows_value(
 ///|
 pub fn cleanup_prepared_infer_rows(value : PreparedInferRows) -> Bool {
   if !value.reclaimed {
+    for root in value.roots {
+      release_logical_root(value.logical, root) |> ignore
+    }
+    value.roots.clear()
     value.keys.clear()
     value.order.clear()
     value.values.clear()
@@ -209,6 +217,9 @@ priv struct InferPreparationState {
   limits : InferPreparationLimits
   control : ControlBudget
   workspace : RowWorkspace
+  logical : LogicalBudget
+  roots : Array[LogicalRoot]
+  mut pending_root : LogicalRoot?
   mut phase : InferPreparationPhase
   key_columns : Array[Int]
   source_columns : Array[Int]
@@ -277,11 +288,28 @@ pub fn start_infer_rows_preparation(
   if infer_rows_count(input) > limits.max_items {
     return Err(ItemLimit)
   }
+  let logical = match
+    logical_budget(
+      limits.logical,
+      Int64::min(limits.logical.max_value_bytes, 2147483647L).to_int(),
+      limits.values.max_nodes,
+      limits.values.max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Logical(issue))
+  }
+  match admit_logical_rows(logical, infer_rows_count(input).to_int64()) {
+    Err(issue) => return Err(Logical(issue))
+    Ok(_) => ()
+  }
   let state : InferPreparationState = {
     input,
     limits,
     control: { remaining: limits.max_work, max_frames: limits.max_frames, },
     workspace: row_workspace(limits.max_workspace_slots),
+    logical,
+    roots: [],
+    pending_root: None,
     phase: ResolveSourceColumns,
     source_columns: [],
     key_columns: [],
@@ -319,6 +347,10 @@ fn infer_preparation_cleanup(state : InferPreparationState) -> Bool {
     close_expression_frame(frame)
   }
   state.frame = None
+  if state.pending_root is Some(root) {
+    release_logical_root(state.logical, root) |> ignore
+  }
+  state.pending_root = None
   if state.recheck is Some(cursor) {
     @admitted.cancel_recheck_runtime_value(cursor)
   }
@@ -333,6 +365,10 @@ fn infer_preparation_cleanup(state : InferPreparationState) -> Bool {
   state.key_columns.clear()
   state.source_columns.clear()
   if !state.transferred {
+    for root in state.roots {
+      release_logical_root(state.logical, root) |> ignore
+    }
+    state.roots.clear()
     state.keys.clear()
     state.order.clear()
     state.values.clear()
@@ -691,7 +727,7 @@ fn infer_preparation_step(
               [],
               state.control,
               state.workspace,
-              None,
+              Some(expression_roots(state.logical, state.limits.max_frames)),
             ) {
             Ok(frame) => frame
             Err(issue) => return Err(Evaluation(state.row, state.field, issue))
@@ -702,6 +738,15 @@ fn infer_preparation_step(
           Err(issue) => return Err(Evaluation(state.row, state.field, issue))
           Ok(None) => ()
           Ok(Some(result)) => {
+            // The frame detached this exact root. Keep its custody through
+            // receiving-contract validation, failure, or mapped-row handoff.
+            state.pending_root = result.root
+            if result.root is Some(_) {
+              match infer_preparation_reserve(state, 1) {
+                Err(issue) => return Err(issue)
+                Ok(_) => ()
+              }
+            }
             guard infer_preparation_value(result.value, state.value_bytes)
               is Some(value) else {
               return Err(ValueLimit)
@@ -734,13 +779,19 @@ fn infer_preparation_step(
           state.value_nodes -= nodes
           state.value_bytes -= bytes
           state.recheck = None
-          close_expression_frame(state.frame.unwrap())
+          // advance_expression_frame already closed its temporary scope.
+          // Closing again would release reservations acquired by this owner
+          // after the frame returned, including the detached root sidecar.
           state.frame = None
           match infer_preparation_reserve(state, 1) {
             Err(e) => return Err(e)
             Ok(_) => ()
           }
           state.mapped.push(value)
+          if state.pending_root is Some(root) {
+            state.roots.push(root)
+          }
+          state.pending_root = None
           state.field += 1
           state.phase = EvaluateMapping
         }
@@ -792,6 +843,8 @@ fn infer_preparation_advance(
             order: state.order,
             values: state.values,
             workspace: state.workspace,
+            logical: state.logical,
+            roots: state.roots,
             reclaimed: false,
           },
           work,
@@ -841,4 +894,13 @@ pub fn infer_rows_preparation_usage(
     value.state.workspace.live,
     value.state.workspace.peak,
   )
+}
+
+///|
+/// Cumulative expression work and live logical result-root bytes. Aliased
+/// storage remains with the borrowed input's existing physical owner.
+pub fn infer_rows_preparation_logical_usage(
+  value : InferRowsPreparation,
+) -> (Int64, Int64, Int64) {
+  (value.state.logical.work, value.state.logical.live, value.state.logical.peak)
 }

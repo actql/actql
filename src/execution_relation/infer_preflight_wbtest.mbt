@@ -60,6 +60,12 @@ fn infer_preflight_limits() -> InferPreparationLimits {
     max_frames: 100,
     max_workspace_slots: 10000,
     values: { max_nodes: 10000, max_text_bytes: 10000, max_depth: 100, },
+    logical: {
+      max_input_rows: 100L,
+      max_value_bytes: 10000L,
+      max_live_value_bytes: 100000L,
+      max_work: 100000L,
+    },
   }
 }
 
@@ -162,24 +168,24 @@ test "mapped inference inputs have independent exact and one-short preparation b
   // Forty-three preparation transitions, twelve snapshot-name bytes, two
   // expression transitions and four field-name bytes cost 61 work units.
   // Source/key metadata and shared sorting peak at nine slots; a three-field
-  // snapshot, one mapped value and its row container raise the peak to 12.
+  // snapshot, one detached root, mapped value and row container peak at 13.
   // Shared sort cleanup leaves only one output index per row before mapping.
   let exact = {
     ..infer_preflight_limits(),
     max_work: 61,
-    max_workspace_slots: 12,
+    max_workspace_slots: 13,
     values: { max_nodes: 2, max_text_bytes: 7, max_depth: 0, },
   }
   let execution = start_infer_rows_preparation(@bounded.control(), input, exact).unwrap()
   let prepared = infer_preflight_drain(execution).unwrap()
-  assert_eq(infer_rows_preparation_usage(execution), (61, 5, 12))
+  assert_eq(infer_rows_preparation_usage(execution), (61, 6, 13))
   assert_true(cleanup_infer_rows_preparation(execution).unwrap())
   assert_true(cleanup_prepared_infer_rows(prepared))
   assert_eq(infer_rows_preparation_usage(execution).1, 0)
   for
     (limits, workspace) in [
       ({ ..exact, max_work: 60, }, false),
-      ({ ..exact, max_workspace_slots: 11, }, true),
+      ({ ..exact, max_workspace_slots: 12, }, true),
     ] {
     let execution = start_infer_rows_preparation(
       @bounded.control(),
@@ -412,4 +418,144 @@ test "key comparisons yield within long common prefixes without changing order" 
   )
   assert_true(cleanup_infer_rows_preparation(execution).unwrap())
   assert_true(cleanup_prepared_infer_rows(rows))
+}
+
+///|
+test "inference mapping shares exact logical work and retained-root budgets" {
+  let (input, source) = infer_preflight_fixture(
+    (
+      #|[{"id":"a","text":"urgent","secret":"private-a"},{"id":"b","text":"urgent","secret":"private-b"}]
+    ),
+  )
+  // Each field mapping enters once and produces a value of weight 1+6.
+  // Both independently retained result roots encode as eight-byte strings.
+  let exact : LogicalLimits = {
+    max_input_rows: 2L,
+    max_value_bytes: 8L,
+    max_live_value_bytes: 16L,
+    max_work: 16L,
+  }
+  let execution = start_infer_rows_preparation(@bounded.control(), input, {
+    ..infer_preflight_limits(),
+    logical: exact,
+  }).unwrap()
+  let rows = infer_preflight_drain(execution).unwrap()
+  assert_eq(infer_rows_preparation_logical_usage(execution), (16L, 16L, 16L))
+  assert_true(cleanup_infer_rows_preparation(execution).unwrap())
+  assert_eq(infer_rows_preparation_logical_usage(execution).1, 16L)
+  assert_true(cleanup_prepared_infer_rows(rows))
+  assert_eq(infer_rows_preparation_logical_usage(execution), (16L, 0L, 16L))
+  assert_true(cleanup_prepared_infer_rows(rows))
+  assert_eq(infer_rows_preparation_usage(execution).1, 0)
+  for
+    (logical, work_limit) in [
+      ({ ..exact, max_work: 15L, }, true),
+      ({ ..exact, max_live_value_bytes: 15L, }, false),
+    ] {
+    let execution = start_infer_rows_preparation(@bounded.control(), input, {
+      ..infer_preflight_limits(),
+      logical,
+    }).unwrap()
+    let result = infer_preflight_drain(execution)
+    if work_limit {
+      assert_true(
+        result
+        is Err(
+          Evaluation(
+            1,
+            0,
+            { kind: LogicalValue(ValueMeasure(LogicalWorkLimit)), .. }
+          )
+        ),
+      )
+    } else {
+      assert_true(
+        result
+        is Err(Evaluation(1, 0, { kind: LogicalValue(LiveValueLimit), .. })),
+      )
+    }
+    let charged = infer_rows_preparation_logical_usage(execution).0
+    assert_true(cleanup_infer_rows_preparation(execution).unwrap())
+    assert_eq(infer_rows_preparation_logical_usage(execution).0, charged)
+    assert_eq(infer_rows_preparation_logical_usage(execution).1, 0L)
+    assert_eq(infer_rows_preparation_usage(execution).1, 0)
+  }
+  assert_true(
+    start_infer_rows_preparation(@bounded.control(), input, {
+      ..infer_preflight_limits(),
+      logical: { ..exact, max_input_rows: 1L, },
+    })
+    is Err(Logical(InputRowLimit)),
+  )
+  assert_eq(captured_row_count(source), 2)
+}
+
+///|
+test "inference object intermediates enforce logical limits and keep cancellation custody" {
+  let mapping =
+    #|{"property":{"value":{"object":{"a":{"field":"text"},"b":{"field":"secret"}}},"name":"a"}}
+  let (input, source) = infer_preflight_fixture(
+    (
+      #|[{"id":"a","text":"urgent","secret":"private-a"}]
+    ),
+    mapping~,
+  )
+  let limits = infer_preflight_limits()
+  let execution = start_infer_rows_preparation(@bounded.control(), input, {
+    ..limits,
+    // The final scalar fits, but the demanded intermediate object is 30 bytes.
+    logical: { ..limits.logical, max_value_bytes: 29L, },
+  }).unwrap()
+  assert_true(
+    infer_preflight_drain(execution)
+    is Err(
+      Evaluation(
+        0,
+        0,
+        { kind: LogicalValue(ValueMeasure(WireMeasureFailure)), .. }
+      )
+    ),
+  )
+  assert_eq(execution.state.values.length(), 0)
+  assert_true(cleanup_infer_rows_preparation(execution).unwrap())
+  assert_eq(infer_rows_preparation_logical_usage(execution).1, 0L)
+  assert_eq(infer_rows_preparation_usage(execution).1, 0)
+  let control = @bounded.control()
+  let execution = start_infer_rows_preparation(control, input, limits).unwrap()
+  let mut reached = false
+  for _ in 0..<1000 {
+    assert_true(
+      advance_infer_rows_preparation(execution, 1).unwrap()
+      is InferRowsContinue(..),
+    )
+    if execution.state.frame is Some(frame) &&
+      frame.state is MeasureObject(_, _, _) {
+      reached = true
+      break
+    }
+  }
+  assert_true(reached)
+  assert_true(infer_rows_preparation_logical_usage(execution).1 > 0L)
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_infer_rows_preparation(execution, 1).unwrap()
+    is InferRowsStopped(Cancelled, ..),
+  )
+  assert_true(cleanup_infer_rows_preparation(execution).unwrap())
+  assert_eq(infer_rows_preparation_logical_usage(execution).1, 0L)
+  assert_eq(infer_rows_preparation_usage(execution).1, 0)
+  let execution = start_infer_rows_preparation(
+    @bounded.control(),
+    input,
+    limits,
+  ).unwrap()
+  let rows = infer_preflight_drain(execution).unwrap()
+  assert_true(
+    prepared_infer_rows_value(rows, 0, 0).unwrap().value
+    is @admitted.Text("urgent"),
+  )
+  assert_true(cleanup_infer_rows_preparation(execution).unwrap())
+  assert_true(cleanup_prepared_infer_rows(rows))
+  assert_eq(infer_rows_preparation_logical_usage(execution).1, 0L)
+  assert_eq(captured_row_count(source), 1)
 }

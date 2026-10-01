@@ -94,8 +94,9 @@ completed rows to the exact checked schema, bound invocation and input target.
 Its shared bounded session prepares all keys before evaluating INPUT mappings.
 It reuses the Relation merge sorter and resumable typed key comparator, rejects
 duplicate and invalid keys, and visits rows in canonical typed key order.
-All mappings share cumulative control and workspace budgets. Only declared
-input roles are returned; unrelated columns are not model inputs.
+All mappings share cumulative control, workspace and existing logical root
+budgets. Only declared input roles are returned; unrelated columns are not
+model inputs.
 
 Key scanning, sort initialization, comparisons, snapshots and mapping
 transitions run inside resume. Cancellation preserves the borrowed input;
@@ -103,23 +104,30 @@ accepted mapped rows have separate cleanup custody. The completed-input path
 resolves physical column positions from the existing completion rather than
 assuming that its stored columns are in checked-schema order. A foreign
 invocation, schema or target cannot substitute for the exact binding.
+Detached expression roots remain with preparation during receiving-contract
+validation, then transfer to the accepted mapped-row owner. Failure and
+cancellation release pending roots without refunding work. Preparing a second
+row or role does not reset logical work or live-value accounting.
 
 This is row preparation, not a model dispatch plan. Its `max_items` is a
 preparation capacity ceiling, not the final resolved Contract/Host/author
 limit. It does not yet admit prompt/retry/media dependencies, classification,
 authority, exact adapter requests, tokenizer results or token/cost reservations.
-Expression evaluation still needs the existing logical root budget connected
-before complete request preflight. Existing scalar text admission/rechecking
+Expression evaluation enforces intermediate value, live-root and work limits
+through the existing owner. Existing scalar text admission/rechecking
 can scan a scalar synchronously; the long-prefix test establishes bounded key
 comparison, not universal boundedness of all input validation. These gaps must
 not be hidden by treating successful preparation as permission to dispatch.
 
 The affected preparation, mapping, object/property and shared-sort regressions
-passed 22/22 on each of JS, Wasm and native. The complete `execution_relation`
-JS suite passed 1,073/1,073. Tests include duplicate/NULL keys, an independently
-derived one-row work bound of 61 and workspace peak of 12, exact/one-short
+passed 24/24 on each of JS, Wasm and native. The complete `execution_relation`
+JS suite passed 1,075/1,075. Tests include duplicate/NULL keys, an independently
+derived one-row work bound of 61 and workspace peak of 13, exact/one-short
 limits, cancellation at four preparation phases and during a long-prefix
 comparison, borrowed-source availability, empty input and final cleanup.
+Additional tests fix two scalar mappings at 16 logical work units and 16
+live encoded bytes, check the one-short limits, and reject a 30-byte demanded
+intermediate object under a 29-byte ceiling even though the final scalar fits.
 These are common-core tests, not timer-delivered Host cancellation or model
 capture/replay. No public Host inference adoption SHA is available yet.
 

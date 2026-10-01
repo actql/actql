@@ -533,6 +533,8 @@ pub fn identify_completed_rows(CompletedOutput, RowWireLimits) -> Result[RowWire
 
 pub fn identify_relation_schema(@relation_schema.Schema, RelationSchemaIdentityLimits) -> Result[RelationSchemaIdentity, RelationSchemaIdentityIssue]
 
+pub fn infer_rows_preparation_logical_usage(InferRowsPreparation) -> (Int64, Int64, Int64)
+
 pub fn infer_rows_preparation_stopped(InferRowsPreparation) -> Bool
 
 pub fn infer_rows_preparation_usage(InferRowsPreparation) -> (Int, Int, Int)
@@ -1629,6 +1631,7 @@ pub(all) enum InferPreparationIssue {
   InvalidMappedValue(Int, Int)
   Evaluation(Int, Int, EvalIssue)
   Comparison(@value_admission.KeyOrderIssue)
+  Logical(LogicalBudgetIssue)
   Session(@bounded_execution.Issue)
 }
 
@@ -1638,6 +1641,7 @@ pub(all) struct InferPreparationLimits {
   max_frames : Int
   max_workspace_slots : Int
   values : @value_admission.Limits
+  logical : @lowering_relation.FragmentRowLimits
 }
 
 type InferRowInput
