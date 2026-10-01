@@ -16,8 +16,8 @@ if (!installation || !executable) {
 }
 const fixtureDirectory = join(installation, 'sga-fixtures');
 const availableCases = (await readdir(fixtureDirectory))
-  .filter(name => name.endsWith('.named.aql'))
-  .map(name => name.slice(0, -'.named.aql'.length)).sort();
+  .filter(name => name.endsWith('.expected-program.json'))
+  .map(name => name.slice(0, -'.expected-program.json'.length)).sort();
 const cases = process.env.ACTQL_TEST_SGA_CASES === undefined
   ? ['normalize-rows'] : process.env.ACTQL_TEST_SGA_CASES.split(',');
 if (cases.length === 0 || new Set(cases).size !== cases.length ||
@@ -64,14 +64,23 @@ try {
   const profile = JSON.parse(await run('connect'));
   assert.equal(profile.mode, 'remote');
   for (const name of cases) {
-    const sourceFile = `${name}.named.aql`;
+    const sourceFile = `${name}.expected-program.json`;
     await writeFile(join(installation, sourceFile),
       await readFile(join(fixtureDirectory, sourceFile)));
     const expected = JSON.parse(await readFile(join(fixtureDirectory,
       `${name}.expected-results.json`), 'utf8'));
     const requestId = `sga-native-${name}-${randomUUID()}`;
+    const retiredFile = `${name}.named.aql`;
+    await writeFile(join(installation, retiredFile),
+      await readFile(join(fixtureDirectory, retiredFile)));
+    await assert.rejects(run('aql', '--program-file', retiredFile,
+      '--format', 'aql-text', '--request-id', `retired-${requestId}`),
+    error => error.message.includes('ClientProgramInvalidInput') &&
+      !error.message.includes('SubmissionUnknown'));
+    assert.deepEqual(JSON.parse(await run('lookup-request', '--request-id',
+      `retired-${requestId}`)), {kind: 'not_found'});
     const accepted = JSON.parse(await run('aql', '--program-file',
-      sourceFile, '--format', 'aql-text', '--request-id', requestId));
+      sourceFile, '--format', 'json', '--request-id', requestId));
     assert.ok(accepted.ref, name);
     const refFile = `${name}.native-ref.json`;
     await writeFile(join(installation, refFile), JSON.stringify(accepted.ref));
@@ -85,7 +94,7 @@ try {
         : payload.split('\n').map(line => JSON.parse(line));
       assert.deepEqual(rows, result.rows, `${name}.${resultName}`);
     }
-    console.log(`native ${name} source and Named Results passed`);
+    console.log(`native ${name} machine Program and Named Results passed`);
   }
 } finally {
   await writeFile(join(evidenceDirectory, 'native-sga.log'),

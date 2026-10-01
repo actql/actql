@@ -1265,13 +1265,14 @@ immediately before `<a id="predicates"></a>`. That section contains the
 expression syntax, decoding and printer rules. It also binds
 `structural_text_grammar_sha256` to the raw UTF-8 bytes of
 `spec/grammar/actql-text-0.1.ebnf` and `structural_text_rules_sha256` to the
-complete raw UTF-8 bytes of [Structural text AQL](../structural-text.md).
+complete raw UTF-8 bytes of the [structural text withdrawal policy](../structural-text.md).
+Those fields bind rejection of the retired public envelope, not permission to
+use its historical internal fixture parser or formatter.
 It binds `query_text_grammar_sha256` to the raw UTF-8 bytes of
 `spec/grammar/actql-query-0.1.ebnf` and `query_text_rules_sha256` to the
 complete raw UTF-8 bytes of [Query text profile](../query-text.md).
-These fields bind source mapping, native DATA lowering, origins, bounds and
-structural and query formatting without replacing the existing Program schema
-identity.
+The query fields bind implemented query source mapping, origins, bounds and
+meaning preservation without replacing the existing Program schema identity.
 The manifest CID hashes canonical JSON of every member except
 `grammar_manifest_cid`.
 
@@ -1289,7 +1290,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:f2590f98dbf689c88515222bad6159cdb7f3f98a4d3b36c5b2a17c8d314749c8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:0d1345a9c9eebd4f481832dc9fd78fab05a8d166fe8fc80375a4cc29d3c72cb3 -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:5b6627aaa3613058a3e8fb204972630fd779463bdc8792ba0bf1865c720ec291 -->
 <!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:ae28ef802697bf58df5d343f5a6f457bbcc0e7f814636086a640e12a1a1163e3 -->
 
 <a id="parameter-value-projection"></a>

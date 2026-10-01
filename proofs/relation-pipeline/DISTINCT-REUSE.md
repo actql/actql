@@ -2,9 +2,31 @@
 
 This increment registers the existing `distinct: true` implementation. It does
 not deliver a new product operation or retire any existing test. The completed
-rename foundation revision and its common source hashes are recorded in
-`reuse-baseline.json`; the normal audit verifies those hashes against Git and
-current source. The historical take comparison remains separate.
+rename foundation was frozen at `489f3c4ad38eece09de9674eae7a1b0ddeab1969`.
+The complete local pipeline-evidence job passed on registration revision
+`e73411cc068c853314b6a771dbd6b27680499115`, with all 57 common files unchanged.
+The historical take comparison remains separate.
+
+## Upstream integration is a separate verification
+
+Main subsequently changed three pinned common files: `.github/workflows/ci.yml`,
+`package.json` and `proofs/relation-chain/README.md`. The original audit correctly
+rejects that merged source rather than reusing the old certificate. The first CI
+run was cancelled after this rejection was independently reproduced; it is not
+reported as a passing full CI run.
+
+`reuse-baseline.json` retains the original experiment revisions and pins the
+integration foundation at `e47ef84232f05697fd2172294db5e0d12b6aa67d`. The normal
+audit still checks all 57 current common hashes against Git and actual source.
+54 match the original rename foundation; the three listed changes are upstream
+updates, not distinct-specific common machinery. The baseline metadata refresh
+and fresh integration verification are additional review work. No claim is made
+that the entire integrated source is unchanged from the original experiment.
+
+Upstream also corrected the registered provider's work owner. Fresh finite
+correspondence exercises that source, while the unchanged Lean model remains
+conditional on prompt, zero-work cancellation. Delayed-stop providers are not
+added to its formal scope, and old source receipts are not reused.
 
 ## Marginal rules people add and review
 

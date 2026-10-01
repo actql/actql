@@ -112,3 +112,13 @@ request. Once there is a Run reference, `read --ref-file run-ref.json
 | `SubmissionUnknown request-id=...` | Admission was not confirmed. Preserve the original request ID and intent and use lookup. Do not infer failure or automatically create another request. |
 | JSON with `kind: "held"` | No Run exists yet. Observe the request and use the existing Client Checkpoint workflow for answers. |
 | `IncompleteResultStream attempt-id=...` | The read did not reach its normal terminator. This does not cancel the Run or prove the Host sent nothing. |
+
+## Query text and machine input
+
+`aql-text` accepts the implemented query language, including Pipe and admitted
+Graph patterns; `sql` selects SQL query heads. The retired
+`AQL / PROGRAM / STAGE / STEP / OP` envelope is rejected by the Host before
+Run acceptance and provider I/O. JSON/YAML Program remains supported machine
+input. Text is never retried as another format, and extensions do not choose
+a language. Removal of the old surface does not claim that every adopted
+Graph, VecA/TEA or Effect surface is implemented.

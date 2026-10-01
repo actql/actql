@@ -1,12 +1,12 @@
 {
   "version": "actql-relation-pipeline-reuse-baseline/0.1",
-  "revision": "489f3c4ad38eece09de9674eae7a1b0ddeab1969",
-  "comparison": "existing whole-row distinct registered after the completed rename acceptance foundation; no new product operation",
+  "revision": "e47ef84232f05697fd2172294db5e0d12b6aa67d",
+  "comparison": "existing whole-row distinct registration; initial frozen rename experiment and subsequent upstream integration are separate",
   "common": {
-    ".github/workflows/ci.yml": "d596cf233de53b3723d289cc058574a9c38c540a4d5e2de281d862e9d60d3f8a",
+    ".github/workflows/ci.yml": "a021418dcfd1074b47c15c9721cb6a30f85d55f9b04551f7298ece344b2f387b",
     "moon.mod": "25a486222e1c9dc52d6a64e8e0ecc52ba7f9aa9e8c0c7d2d1bdc82bfa37689b9",
     "package-lock.json": "a642fafc496ba9288c8ce4ca0fa68b6c934fff413046f191f06aefec49b7167d",
-    "package.json": "96f84b8ba78071944fc4c6710479730e4d643d14a3c03e7a94c9a7250c95f64a",
+    "package.json": "78c15ac34fbe375959bf166c3d236ce06a2a6a0d4d2f4b2d7f7f094e844a8a15",
     "proofs/bounded-session/Claims.lean": "70084213e510d49a17797e52509c8e2b3b0d5231519322665f686ba1f151fdd1",
     "proofs/bounded-session/README.md": "0d26b308eca8fa79d75b8faa658e52f0a9390f394fd6cbb827fcb5d11e7f6b30",
     "proofs/bounded-session/Session.lean": "d5a9f5e62e5a360b52d5cf0d886f6832c38a00088737c3378b01dff6b6b1a434",
@@ -24,7 +24,7 @@
     "proofs/bounded-session/setup-lean.mjs": "30c1ddca64e445af944770438f4c5634c7249af9bf7862a8f5d6b975e32e413a",
     "proofs/relation-chain/Chain.lean": "9246eec44f86fd3af52c9f7f9db3689a5728d8ec0a28c4b9b3ec1c8524ad1661",
     "proofs/relation-chain/Claims.lean": "94947cc1ea5d6d5b7818ef81843dfa1f2888837790013797ca5148de82c95edc",
-    "proofs/relation-chain/README.md": "a7717a0cbacbb29ad81e5d5eec827d0b5e6df3acb541dedbe3934d777af04c47",
+    "proofs/relation-chain/README.md": "4c953c6f0a53ba6734e154b36d09265568bd29b8d29e4166d37b76a0b9e84901",
     "proofs/relation-chain/check.mjs": "abac294b2005149066e11305c4422f1c5f619bec5a657e74a78cd8fe0c37da6c",
     "proofs/relation-chain/evidence.mjs": "1646ffb719b9e3651c224f6b22d6978052ab0d5b5e27061501ecdadf8b4ba207",
     "proofs/relation-chain/evidence.test.mjs": "5ac2e97b35824cdf33e7c040169ffe2e32e811eef23c20f6e37feaf2548e1dcd",
@@ -68,5 +68,33 @@
     "proofs/relation-pipeline/regressions.json"
   ],
   "handwrittenOrdinaryCombinationFixturesAdded": 0,
-  "testsRetired": 0
+  "testsRetired": 0,
+  "originalExperiment": {
+    "foundationRevision": "489f3c4ad38eece09de9674eae7a1b0ddeab1969",
+    "verifiedRegistrationRevision": "e73411cc068c853314b6a771dbd6b27680499115",
+    "commonFilesUnchanged": 57,
+    "verification": "complete local pipeline-evidence passed; the first CI was cancelled after merge-source pin rejection was independently reproduced"
+  },
+  "upstreamIntegration": {
+    "revision": "e47ef84232f05697fd2172294db5e0d12b6aa67d",
+    "changedCommon": [
+      {
+        "path": ".github/workflows/ci.yml",
+        "originalDigest": "d596cf233de53b3723d289cc058574a9c38c540a4d5e2de281d862e9d60d3f8a",
+        "integratedDigest": "a021418dcfd1074b47c15c9721cb6a30f85d55f9b04551f7298ece344b2f387b"
+      },
+      {
+        "path": "package.json",
+        "originalDigest": "96f84b8ba78071944fc4c6710479730e4d643d14a3c03e7a94c9a7250c95f64a",
+        "integratedDigest": "78c15ac34fbe375959bf166c3d236ce06a2a6a0d4d2f4b2d7f7f094e844a8a15"
+      },
+      {
+        "path": "proofs/relation-chain/README.md",
+        "originalDigest": "a7717a0cbacbb29ad81e5d5eec827d0b5e6df3acb541dedbe3934d777af04c47",
+        "integratedDigest": "4c953c6f0a53ba6734e154b36d09265568bd29b8d29e4166d37b76a0b9e84901"
+      }
+    ],
+    "unchangedFromOriginal": 54,
+    "attribution": "upstream changes only; no generator, shrinking coordinator, oracle framework or common theorem changes by this registration"
+  }
 }

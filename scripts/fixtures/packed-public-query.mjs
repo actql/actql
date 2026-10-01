@@ -11,20 +11,23 @@ import {DatabaseSync} from 'node:sqlite';
 import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from
   './node_modules/@actql/local-node/adapters/host-node/embedded-local.mjs';
-import {exercisePublicQueryInput, querySuccesses, queryRefusals, inferRefusals, sourceRows}
+import {exercisePublicQueryInput, querySuccesses, queryRefusals, inferRefusals, sourceRows, sourceFreeSuccesses, sourceFreeRefusals}
   from './public-query-input.mjs';
 
+const sourceFreeOnly = process.env.ACTQL_TEST_SOURCE_FREE_ONLY === '1';
 const inferOnly = process.env.ACTQL_TEST_INFER_REFUSAL_ONLY === '1';
 const joinOnly = process.env.ACTQL_TEST_JOIN_ORDER_ONLY === '1';
-const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || inferOnly || joinOnly;
+const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || inferOnly || joinOnly || sourceFreeOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const scope = JSON.parse(await readFile('pipe-scope-cases.json', 'utf8'));
 assert.deepEqual(scope.source_rows, sourceRows);
-const scopeInputs = inferOnly ? {successes: [querySuccesses[0]], refusals: inferRefusals}
+const scopeInputs = sourceFreeOnly ? {successes: sourceFreeSuccesses, refusals: sourceFreeRefusals}
+  : inferOnly ? {successes: [querySuccesses[0]], refusals: inferRefusals}
   : joinOnly ? joinOrder : scopeOnly ? {successes: scope.successes,
-  refusals: scope.refusals} : {successes: [...querySuccesses, ...scope.successes, ...joinOrder.successes],
-  refusals: [...queryRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals]};
+  refusals: scope.refusals} : {successes: [...querySuccesses, ...sourceFreeSuccesses, ...scope.successes, ...joinOrder.successes],
+  refusals: [...queryRefusals, ...sourceFreeRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals]};
 const expectedQueryRuns = scopeInputs.successes.length;
+const expectedSourceReads = scopeInputs.successes.reduce((count, item) => count + (item.sourceReadCount ?? 1), 0);
 
 assert.equal(spawnSync('moon', ['version']).error?.code, 'ENOENT');
 const canonical = value => Array.isArray(value)
@@ -154,7 +157,7 @@ if (selectedSgaCases.includes('reach-selector')) {
 const sgaFixtureDirectory = resolve('sga-fixtures');
 await mkdir(sgaFixtureDirectory);
 for (const name of sgaCases) {
-  for (const suffix of ['named.aql', 'expected-results.json']) {
+  for (const suffix of ['named.aql', 'expected-program.json', 'expected-results.json']) {
     await writeFile(resolve(sgaFixtureDirectory, `${name}.${suffix}`),
       await readFile(resolve('sga-source-fixtures', `${name}.${suffix}`)));
   }
@@ -189,7 +192,7 @@ await exercisePublicQueryInput(connect, {mode: 'local', owner: 'local',
     sourceProfilePath}}, {requestPrefix: 'packed-local',
   observe: observe('local-state'), prepareCase, ...scopeInputs});
 assert.equal(observe('local-state')().acceptedRuns, expectedQueryRuns);
-assert.ok(sourceIo >= expectedQueryRuns);
+assert.ok(sourceIo >= expectedSourceReads);
 console.log('packed raw SQL/Pipe Embedded Local acceptance passed');
 await exerciseSga('local', {ACTQL_LOCAL_STATE_DIR: resolve('sga-local-state'),
   ACTQL_TEST_LOCAL_SOURCE_PROFILE: sourceProfilePath});
@@ -209,7 +212,7 @@ try {
     token: 'fixture-token', durability: 'durable'},
   {requestPrefix: 'packed-http', observe: observe('remote-state'), prepareCase, ...scopeInputs});
   assert.equal(observe('remote-state')().acceptedRuns, expectedQueryRuns);
-  assert.ok(sourceIo >= beforeRemote + expectedQueryRuns);
+  assert.ok(sourceIo >= beforeRemote + expectedSourceReads);
   console.log('packed raw SQL/Pipe HTTP acceptance passed');
   const beforeSga = observe('remote-state')();
   await exerciseSga('remote', {

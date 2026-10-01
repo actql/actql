@@ -78,9 +78,9 @@
   "expression_contract_cid": "sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb",
   "expression_text_grammar_sha256": "af7d4d19de39d888daff8195773a8599c8246602d41e450da6975e336de96fd7",
   "expression_text_rules_sha256": "997601c137dc1ef2d6d63585d5930aae7f5c39efb54aa56ffbe59b068e2f68c2",
-  "structural_text_grammar_sha256": "22feaa018d1e2595c9fa96c973fa86a5b32b601d5cf405b8e4704078899b69a8",
-  "structural_text_rules_sha256": "a94342cf6b8b33a3541722d03e2c29ef9a118556dc110a14f9b8ed87fb6f1184",
-  "query_text_grammar_sha256": "24d200469ee0ec999173db9a29feda1196d9fbf8b63083e2ff184737583609eb",
-  "query_text_rules_sha256": "8b9144d93a61b881f9d77e0e5655fc5dbde9fe5dd66ec7725a9194a5d0063d61",
-  "grammar_manifest_cid": "sha256:a8f1bbabb5eeda9287716c651b398d1c0954201c985b5c70ccb78d96a9ed1416"
+  "structural_text_grammar_sha256": "0f6a0337a350348efbe20e23fe658ce1e56297d407ba9dac3ec2eaf008849a56",
+  "structural_text_rules_sha256": "209cde18dff4cc5b8b7cdd6749a3329b0bcf6a8fe6c7243977c0c5f169e49762",
+  "query_text_grammar_sha256": "12351b309863a26b26a054e3477d1d80cf1dd538fd6ad9fc6c4d7b7a6034be2f",
+  "query_text_rules_sha256": "41ba7d45f9a29ac4a66ddb329cdb1d1d45c9efd07ca8c8ecc8d759ecd8fe3f71",
+  "grammar_manifest_cid": "sha256:ecf842ba6846f2dbac5cb8fa42b5b708c14e0ec170fc14d05043a351c0300582"
 }

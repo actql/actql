@@ -18,9 +18,9 @@ export function renderVocabulary(manifest) {
 
 export function checkVocabulary() {
   const manifest = JSON.parse(readFileSync(new URL('../spec/manifests/actql-grammar-0.1.json', import.meta.url)));
-  const path = new URL('../src/aql_text/vocabulary.generated.mbt', import.meta.url);
+  const path = new URL('../src/internal_structural_fixture/vocabulary.generated.mbt', import.meta.url);
   if (readFileSync(path, 'utf8') !== renderVocabulary(manifest)) {
-    throw new Error('Structural AQL operation vocabulary is stale');
+    throw new Error('Historical fixture operation vocabulary is stale');
   }
 }
 
@@ -29,6 +29,6 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     checkVocabulary();
   } else {
     const manifest = JSON.parse(readFileSync(new URL('../spec/manifests/actql-grammar-0.1.json', import.meta.url)));
-    writeFileSync(new URL('../src/aql_text/vocabulary.generated.mbt', import.meta.url), renderVocabulary(manifest));
+    writeFileSync(new URL('../src/internal_structural_fixture/vocabulary.generated.mbt', import.meta.url), renderVocabulary(manifest));
   }
 }

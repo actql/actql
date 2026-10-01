@@ -33,8 +33,9 @@ struct LocalMaterializingAttempt {
   max_rows : Int
   max_value_bytes : Int
   mut provider_execution : ManagedProviderExecution?
-  // Work the provider reported, summed once per accepted advance.
-  mut provider_work : Int64
+  // Snapshot only when cleanup releases the provider handle. The provider's
+  // existing owner is the sole accumulator, also for close-driven stop polls.
+  mut provider_work : Result[Int64, ManagedProviderWorkIssue]
   // The reads given to the provider: imported copies rebind their producer.
   mut reads : Array[@execution.ProducerRead]
   mut started : Bool
@@ -250,7 +251,7 @@ pub fn[E] prepare_local_materializing_execution(
         max_rows: request_capacity.max_rows,
         max_value_bytes: request_capacity.max_value_bytes,
         provider_execution: None,
-        provider_work: 0L,
+        provider_work: Ok(0L),
         reads: [],
         started: false,
         closed: false,
@@ -486,14 +487,18 @@ pub fn advance_local_materializing_attempt(
     work <= quantum.to_int64() &&
     (complete || work > 0L)
   }
-  match advance_managed_provider(active, quantum) {
+  let poll = advance_managed_provider(active, quantum)
+  if managed_provider_cumulative_work(active) is Err(_) {
+    close_local_materializing_attempt(attempt)
+    return Err(Candidate(InvalidLimits))
+  }
+  match poll {
     Err(error) => {
       close_local_materializing_attempt(attempt)
       Err(Candidate(error))
     }
     Ok(Continue(progress~, work~)) =>
       if bounded(progress, work, false) {
-        attempt.provider_work += work
         Ok({ complete: false, progress, work, })
       } else {
         close_local_materializing_attempt(attempt)
@@ -520,7 +525,6 @@ pub fn advance_local_materializing_attempt(
           return Err(Candidate(ForeignPreparation))
         }
         attempt.output = Some(anchored)
-        attempt.provider_work += work
         Ok({ complete: true, progress, work, })
       } else {
         close_local_materializing_attempt(attempt)
@@ -583,7 +587,19 @@ pub fn local_materializing_provider_work(
   if attempt.closed || attempt.output is None {
     None
   } else {
-    Some(attempt.provider_work)
+    local_materializing_cumulative_work(attempt).to_option()
+  }
+}
+
+///|
+/// Diagnostic provider work, including failure and physical stop, available
+/// before completion and after close/cleanup. This is not billing approval.
+pub fn local_materializing_cumulative_work(
+  attempt : LocalMaterializingAttempt,
+) -> Result[Int64, ManagedProviderWorkIssue] {
+  match attempt.provider_execution {
+    Some(active) => managed_provider_cumulative_work(active)
+    None => attempt.provider_work
   }
 }
 
@@ -651,6 +667,7 @@ pub fn close_local_materializing_attempt(
     }
     if managed_provider_stopped(active) &&
       cleanup_managed_provider(active).unwrap_or(false) {
+      attempt.provider_work = managed_provider_cumulative_work(active)
       attempt.provider_execution = None
     }
   }

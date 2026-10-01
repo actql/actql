@@ -20,8 +20,6 @@ pub(all) enum Issue {
   InvalidFormat
   MissingQueryContext
   WrongQueryForm
-  ExternalDeclarationsOnProgram
-  SourceSyntax(@aql.Diagnostic)
   QuerySyntax(@syntax.Diagnostic)
   QueryLowering(@query.Issue)
   Encoding
@@ -134,18 +132,14 @@ pub fn select_format(name : String) -> Result[Format, Issue] {
 }
 
 ///|
-fn source_limits() -> @aql.Limits {
+priv struct SourceLimits {
+  construction : @builder.Limits
+  max_stages : Int
+}
+
+///|
+fn source_limits() -> SourceLimits {
   {
-    frontend: {
-      max_tokens: 8192,
-      max_syntax_nodes: 8192,
-      max_syntax_depth: 64,
-      max_literal_bytes: 65536,
-      max_symbol_count: 1024,
-      max_generated_steps: 1024,
-      max_generated_fields: 8192,
-      max_lowering_work: 1000000,
-    },
     construction: {
       source: { max_input_bytes: 65536, max_nodes: 8192, max_depth: 64, },
       tree: {
@@ -204,7 +198,7 @@ fn query_limits() -> @query.Limits {
 fn emit(program : @program.Program) -> Result[Lowered, Issue] {
   let document = try {
     let writer = @encode.writer(65536, 8192, 64)
-    @aql.emit_program_json(program, writer)
+    @program.emit_program_source(program, writer)
     @encode.finish(writer)
   } catch {
     _ => return Err(Encoding)
@@ -213,8 +207,8 @@ fn emit(program : @program.Program) -> Result[Lowered, Issue] {
 }
 
 ///|
-/// Lower only the selected language. A structural or query error cannot be
-/// retried as another format. The Host checks the resulting Program normally.
+/// Lower only the selected query language. No structural text fallback or
+/// compatibility parser is available. The Host checks the resulting Program normally.
 pub fn lower(
   document : String,
   format : Format,
@@ -225,17 +219,19 @@ pub fn lower(
     Json => Ok({ document, format: @program.Json, })
     Yaml => Ok({ document, format: @program.Yaml, })
     Text | Sql => {
-      let query_form = if format == Sql {
+      let query_form = match
+        @syntax.starts_query(document, syntax_limits().lexical, source_path~) {
+        Ok(value) => value
+        Err(issue) => return Err(QuerySyntax(issue))
+      }
+      if !query_form {
+        return Err(WrongQueryForm)
+      }
+      if format == Sql {
         match
           @syntax.starts_sql(document, syntax_limits().lexical, source_path~) {
-          Ok(true) => true
+          Ok(true) => ()
           Ok(false) => return Err(WrongQueryForm)
-          Err(issue) => return Err(QuerySyntax(issue))
-        }
-      } else {
-        match
-          @syntax.starts_query(document, syntax_limits().lexical, source_path~) {
-          Ok(value) => value
           Err(issue) => return Err(QuerySyntax(issue))
         }
       }
@@ -252,14 +248,7 @@ pub fn lower(
         }
         emit(program)
       } else {
-        if context is Some({ parameter_declarations: Some(_), .. }) {
-          return Err(ExternalDeclarationsOnProgram)
-        }
-        let parsed = match @aql.parse(document, source_limits(), source_path~) {
-          Ok(value) => value
-          Err(issue) => return Err(SourceSyntax(issue))
-        }
-        emit(@aql.program(parsed))
+        Err(WrongQueryForm)
       }
     }
   }

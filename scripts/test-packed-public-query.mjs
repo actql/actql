@@ -53,7 +53,7 @@ for (const name of ['normalize-rows', 'mean-graphs', 'traverse-paths',
   'union-graphs', 'graft-graphs', 'subtract-graphs', 'degree-rows',
   'components', 'graph-bounds', 'match-projections', 'reach-subgraph',
   'graphs-equal', 'diff-apply']) {
-  for (const suffix of ['named.aql', 'expected-results.json']) {
+  for (const suffix of ['named.aql', 'expected-program.json', 'expected-results.json']) {
     const file = `${name}.${suffix}`;
     await writeFile(join(root, 'sga-source-fixtures', file),
       await readFile(join(repository,
@@ -67,6 +67,9 @@ run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
 const runtimeEnvironment = {...environment,
   PATH: `${dirname(process.execPath)}:/usr/bin:/bin`,
   NODE_EXTRA_CA_CERTS: join(root, 'remote.crt')};
+if (process.argv.includes('--source-free-only')) {
+  runtimeEnvironment.ACTQL_TEST_SOURCE_FREE_ONLY = '1';
+}
 if (process.argv.includes('--join-order-only')) {
   runtimeEnvironment.ACTQL_TEST_JOIN_ORDER_ONLY = '1';
 }
@@ -88,7 +91,8 @@ if (process.argv.includes('--cancellation-only')) {
 const output = run(process.execPath, ['acceptance.mjs'], root,
   runtimeEnvironment, 900_000);
 console.log(output.trimEnd());
-if (process.argv.includes('--alias-scope-only') ||
+if (process.argv.includes('--source-free-only') ||
+  process.argv.includes('--alias-scope-only') ||
   process.argv.includes('--infer-refusal-only') ||
   process.argv.includes('--join-order-only')) return;
 console.log(run(process.execPath, ['sga-cancellation.mjs'], root,

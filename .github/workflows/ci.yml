@@ -58,10 +58,16 @@ jobs:
         run: node scripts/check-moonbit-api.mjs
       - name: Type-check public SDK and Client wire declarations
         run: npm run check:client-types
+      - name: Test read-only worktree inventory fixtures
+        run: node --test scripts/worktree-inventory.test.mjs
       - name: Test environment guards
         run: node --test scripts/moonbit-environment.test.mjs
+      - name: Test read-only CI evidence reporting
+        run: node --test scripts/ci-evidence.test.mjs
       - name: Test portable dependency inspection and injected violations
         run: node --test scripts/portable-core.test.mjs
+      - name: Test dependency isolation scratch ownership
+        run: node --test scripts/owned-scratch.test.mjs scripts/dependency-isolation-scratch.test.mjs
       - name: Execute standard module subsets without DuckDB dependencies
         run: node scripts/check-node-without-duckdb.mjs
   # One runner per target: check, then test, each with --deny-warn, as
@@ -123,7 +129,7 @@ jobs:
         run: node proofs/relation-chain/mutations.mjs
       - name: Reject invalid allocation bounds and weakened capacity propositions
         run: node --test proofs/relation-capacity/model.test.mjs proofs/relation-capacity/evidence.test.mjs proofs/relation-capacity/proof-check.test.mjs
-      - name: Retain separate registered delayed-stop work counterexample
+      - name: Check separate registered delayed-stop work regression
         run: node proofs/relation-capacity/repro-delayed-stop.mjs
       - name: Detect allocation reservation and identity mutations on JS
         run: node proofs/relation-capacity/mutations.mjs
@@ -595,3 +601,4 @@ jobs:
         run: node --test adapters/connectors/duckdb/node/bench/matched-equivalent-pair.test.mjs
       - name: Build fixture-independent acquisition Host entries
         run: npm run build:host --prefix adapters/connectors/duckdb/node
+

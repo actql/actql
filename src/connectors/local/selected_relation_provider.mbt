@@ -441,6 +441,8 @@ fn bounded_relation_chain_execution(
   let position = Ref(0)
   let pending = Ref(false)
   let used = Ref(0L)
+  // Productive admission only. The existing ManagedProviderExecution owner
+  // separately sums all reported deltas, including mandatory stop work.
   let cancelled = Ref(false)
   let terminal = Ref(false)
   let reclaimed = Ref(false)
@@ -491,7 +493,7 @@ fn bounded_relation_chain_execution(
     Ok(())
   }
   Ok(
-    managed_provider_execution(
+    managed_provider_execution_with_child_work_issue(
       quantum => {
         if quantum <= 0 || terminal.val {
           return Err(@connector.InvalidLimits)
@@ -530,24 +532,46 @@ fn bounded_relation_chain_execution(
             ),
           )
         }
-        if used.val >= execution.max_work.to_int64() {
+        if cancelled.val || used.val >= execution.max_work.to_int64() {
           // The exhausted budget must not authorize another compute step.
           // Confirm the active child's stop before exposing the limit error;
           // otherwise its private output remains owned by an active session.
           cancel_managed_provider(active) |> ignore
-          match advance_managed_provider(active, 1) {
-            Ok(_) => ()
-            Err(_) => ()
+          let poll = match advance_managed_provider(active, 1) {
+            Ok(value) => value
+            Err(issue) => {
+              if !managed_provider_stopped(active) {
+                return Err(issue)
+              }
+              // An independently confirmed stop may reject further advance.
+              // No new delta was reported: preserve the budget failure and
+              // cleanup custody without inventing work or inferring stop
+              // from the exception itself.
+              managed_provider_stopped_poll(0L, 0L)
+            }
+          }
+          let (progress, work) = match poll {
+            Continue(progress~, work~)
+            | Complete(_, progress~, work~)
+            | CarrierComplete(_, progress~, work~)
+            | Failed(_, progress~, work~)
+            | Stopped(progress~, work~) => (progress, work)
+          }
+          if progress < 0L || work < 0L || work > 1L {
+            return Err(@connector.InvalidLimits)
           }
           if !managed_provider_stopped(active) {
-            return Ok(managed_provider_continue(0L, 1L))
+            return Ok(managed_provider_continue(progress, work))
           }
           terminal.val = true
+          if used.val < execution.max_work.to_int64() {
+            return Ok(managed_provider_stopped_poll(progress, work))
+          }
           return Ok(
             managed_provider_failed(
               @connector.Execution(@execution.InputLimit),
-              0L,
-              0L,
+              progress,
+              work,
             ),
           )
         }
@@ -560,21 +584,20 @@ fn bounded_relation_chain_execution(
             return Ok(managed_provider_failed(issue, 0L, 0L))
           }
         }
+        if managed_provider_cumulative_work(active) is Err(_) {
+          // The common child owner has already requested cancellation. Do
+          // not declare physical stop from an accounting error; keep this
+          // chain in its stop-only branch until that child confirms it.
+          cancelled.val = true
+          terminal.val = managed_provider_stopped(active)
+          return Err(@connector.InvalidLimits)
+        }
         let (progress, work) = match poll {
           Continue(progress~, work~)
           | Complete(_, progress~, work~)
+          | CarrierComplete(_, progress~, work~)
           | Failed(_, progress~, work~)
           | Stopped(progress~, work~) => (progress, work)
-          CarrierComplete(_, ..) => {
-            terminal.val = true
-            return Ok(
-              managed_provider_failed(
-                @connector.Execution(@execution.InputSet),
-                0L,
-                0L,
-              ),
-            )
-          }
         }
         if work < 0L ||
           work > child_quantum.to_int64() ||
@@ -677,6 +700,14 @@ fn bounded_relation_chain_execution(
         children.val = []
         reclaimed.val = true
         Ok(true)
+      },
+      fn() {
+        for child in children.val {
+          if managed_provider_cumulative_work(child) is Err(issue) {
+            return Some(issue)
+          }
+        }
+        None
       },
     ),
   )

@@ -107,9 +107,16 @@ test('baseline preimages and changed normative pins independently determine the 
   const {grammar_manifest_cid: grammarCid, ...grammarPreimage} = grammar;
   assert.equal(cid(grammarPreimage), grammarCid);
   const current = vector(grammarCid, cid(aoaContract));
-  // Query source rules change the grammar pin, not the Values Program body.
+  // Preserve the prior WITH/Pipe vector; the new policy changes no Values body.
+  assert.equal(vector(pin('a8f1bbabb5eeda9287716c651b398d1c0954201c985b5c70ccb78d96a9ed1416'),
+    cid(aoaContract)).run.run_definition_cid,
+  pin('47752e67dd0f083b491b0110dd181af4fd312905f5ec67952badf7a8adb832fe'));
+  // Keep the merged text-retirement vector as an independent baseline.
+  assert.equal(vector(pin('8fc336e2b475104366fea9024c38d171a3d18743a63f05b254272e14bedd886d'),
+    cid(aoaContract)).run.run_definition_cid,
+    pin('1a7ded9110cb3d2c27f151ccc75f1c6683c3a4e0316fc0570706a3c169934baf'));
   assert.equal(current.run.run_definition_cid,
-    pin('47752e67dd0f083b491b0110dd181af4fd312905f5ec67952badf7a8adb832fe'));
+    pin('b8f4539c6741e24dd20bdd1ce77f5dc9d0c0466684c6e151e4441bccaaaaca9c'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
 });

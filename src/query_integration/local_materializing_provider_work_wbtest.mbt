@@ -117,6 +117,10 @@ test "bounded Local provider work is the sum of its advances, counted once" {
     Some(summed),
   )
   assert_eq(summed, total)
+  assert_eq(
+    @local_connector.local_materializing_cumulative_work(stepped),
+    Ok(total),
+  )
   // Reading the total again does not add to it.
   assert_eq(
     @local_connector.local_materializing_provider_work(stepped),
@@ -125,6 +129,15 @@ test "bounded Local provider work is the sum of its advances, counted once" {
   @local_connector.close_local_materializing_attempt(stepped)
   assert_true(
     @local_connector.local_materializing_provider_work(stepped) is None,
+  )
+  assert_eq(
+    @local_connector.local_materializing_cumulative_work(stepped),
+    Ok(total),
+  )
+  @local_connector.close_local_materializing_attempt(stepped)
+  assert_eq(
+    @local_connector.local_materializing_cumulative_work(stepped),
+    Ok(total),
   )
   provider_work_close(run, producer, ticket)
 }

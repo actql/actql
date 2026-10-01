@@ -33,7 +33,7 @@ test "structural authored forward references reach the common checker with origi
     #| }
     #| RESULT r = {"from":{"stage":"s","result":"r"}};
     #|}
-  let parsed = @aql.parse(
+  let parsed = @aql.parse_fixture(
     text,
     structural_limits(limits),
     source_path="forward.aql",
@@ -69,8 +69,11 @@ test "structural text retains common checker identities and evidence requirement
     let (_, ordinary, environment, evidence, limits) = public_input_fixture(
       generated~,
     )
-    let text = @aql.format(ordinary, limits.input.source.max_input_bytes).unwrap()
-    let parsed = @aql.parse(text, {
+    let text = @aql.format_fixture(
+      ordinary,
+      limits.input.source.max_input_bytes,
+    ).unwrap()
+    let parsed = @aql.parse_fixture(text, {
       frontend: {
         max_tokens: 100000,
         max_syntax_nodes: 100000,

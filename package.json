@@ -7,6 +7,7 @@
     "node": ">=22"
   },
   "scripts": {
+    "inventory:worktrees": "node scripts/worktree-inventory.mjs",
     "check:session-evidence": "node --test proofs/bounded-session/evidence.test.mjs proofs/bounded-session/proof-check.test.mjs && node proofs/bounded-session/run.mjs all",
     "check:session-evidence-mutations": "node proofs/bounded-session/mutations.mjs",
     "check:packed-embedded-checkpoint": "node scripts/test-packed-embedded-checkpoint.mjs",
@@ -126,3 +127,4 @@
     "yaml": "2.9.0"
   }
 }
+
