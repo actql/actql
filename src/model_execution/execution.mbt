@@ -77,12 +77,13 @@ pub(all) enum ModelExecutionIssue {
   Session(@bounded.Issue)
   WorkLimit
   RequestLimit
+  InvocationEvidence(@publication.RunEvidenceValueIssue)
 } derive(Eq, Debug)
 
 ///|
-/// A sealed slot capture. It is retained by the execution owner until the
-/// caller explicitly transfers it to publication; replay never calls a
-/// provider.
+/// A private checked slot observation, not a durable model-slot capture or
+/// authority/accounting proof. Public evidence is issued by the execution
+/// owner separately; this constructible bundle cannot authorize completion.
 pub(all) struct ModelSlotCapture {
   slot : Int
   slot_cid : String
@@ -118,6 +119,7 @@ priv enum ModelPhase {
   PrepareRequests
   DispatchSlot
   CheckResponse(ModelRequest, ModelResponse, String, @admitted.RecheckCursor)
+  PrepareEvidence(ModelEvidencePreparation)
   Reclaimed
 }
 
@@ -135,6 +137,7 @@ struct ModelState {
   requests : Array[PreparedModelRequest]
   mut request : ModelRequestPreparation?
   captures : Array[ModelSlotCapture]
+  invocation_evidence : Array[@publication.RunEvidenceValue]
   mut phase : ModelPhase
   mut work : Int
   mut next_slot : Int
@@ -283,33 +286,35 @@ fn advance_model(
       RecheckContinue => return @bounded.Continue(1, 1)
       RecheckFailed => return @bounded.Failed(OutputValue, 1, 1)
       RecheckComplete(checked, _, _) => {
-        state.captures.push({
-          slot: request.slot,
-          slot_cid: request.slot_cid,
-          input_key_cid,
-          fixed_request_cid: request.fixed_request_cid,
-          provider_id: state.provider.provider_id,
-          provider_model: response.provider_model,
-          provider_request_id: response.provider_request_id,
-          value: checked,
-          input_tokens: response.input_tokens,
-          output_tokens: response.output_tokens,
-          observed_at: response.observed_at,
-        })
-        state.next_slot += 1
-        state.phase = DispatchSlot
-        if state.next_slot == @relation.prepared_infer_rows_count(state.rows) {
-          return @bounded.Complete(
-            {
-              task_cid: @environment.model_task_identity(state.task).2,
-              fixed_request_cid: state.fixed_request_cid,
-              captures: state.captures.copy(),
-            },
-            1,
-            1,
-          )
+        if state.call_scope is Some(_) {
+          match
+            start_model_evidence(
+              state, request, response, input_key_cid, checked,
+            ) {
+            Ok(value) => state.phase = PrepareEvidence(value)
+            Err(issue) => return @bounded.Failed(issue, 1, 1)
+          }
+          return @bounded.Continue(1, 1)
         }
-        return @bounded.Continue(1, 1)
+        return accept_model_slot(
+          state, request, response, input_key_cid, checked,
+        )
+      }
+    }
+  }
+  if state.phase is PrepareEvidence(preparation) {
+    match advance_model_evidence(state, preparation) {
+      Err(issue) => return @bounded.Failed(issue, 1, 1)
+      Ok(None) => return @bounded.Continue(1, 1)
+      Ok(Some(evidence)) => {
+        state.invocation_evidence.push(evidence)
+        return accept_model_slot(
+          state,
+          preparation.request,
+          preparation.response,
+          preparation.key_cid,
+          preparation.checked,
+        )
       }
     }
   }
@@ -417,6 +422,7 @@ pub fn start_model_execution(
     requests: [],
     request: None,
     captures: [],
+    invocation_evidence: [],
     phase: ReserveSlots,
     work: 0,
     next_slot: 0,
@@ -505,6 +511,9 @@ pub fn cleanup_model_execution(
       if execution.state.phase is CheckResponse(_, _, _, cursor) {
         @admitted.cancel_recheck_runtime_value(cursor)
       }
+      if execution.state.phase is PrepareEvidence(value) {
+        cancel_model_evidence(value)
+      }
       if execution.state.request is Some(request) {
         cancel_model_request_preparation(request)
         execution.state.request = None
@@ -519,6 +528,7 @@ pub fn cleanup_model_execution(
       @relation.release_prepared_infer_rows_use(execution.state.input_use)
       |> ignore
       execution.state.captures.clear()
+      execution.state.invocation_evidence.clear()
       execution.state.requests.clear()
       execution.state.reclaimed = true
       Ok(true)

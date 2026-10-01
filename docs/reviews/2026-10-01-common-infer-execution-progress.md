@@ -91,10 +91,15 @@ worker/attempt index. The normative indirect-cycle rule still needs production
 dependency-closure admission; the independent cycle oracle is not that owner.
 
 Checked inference compilation now uses the existing Executable Plan, Bound
-Invocation Template, Run Definition and source-free Invocation owners. It
+Invocation Template and Run Definition owners. It
 retains the registered inference profile and exact acquisition graph while
 keeping the pure input fragment as its AoA identity. This is compilation
 support, not installed ModelTask dispatch authority.
+
+Model-containing compilations now reject both the empty source-free Invocation
+issuer and the source-only issuer. Having no SourceView inputs cannot erase
+the model acquisition. Its final ObservationSet and Invocation must be bound
+to verified capture, not issued in advance using an empty observation.
 
 Scoped physical execution derives the input Artifact from its real bounded
 prefix completion. A stepped scan wraps the existing export/receipt owner,
@@ -106,13 +111,29 @@ setup retain their existing bounded ceilings; this does not claim that every
 Unicode leaf or schema operation is character-stepped.
 
 The current narrow verification passed on JS, Wasm and native: identity scan
-2/2, completed export 15/15, inference Host owner 15/15, and Run compilation
-31/31 on each target. The Node inference bridge passed 23/23, including actual
+2/2, completed export 15/15, model execution 2/2, inference Host owner 16/16,
+and Run compilation 31/31 on each target. The Node inference bridge passed
+24/24, including actual
 macrotask cancellation during unused nested input measurement and stable slot
 identity after reconstruction. Independently specified scan bounds are 29
 steps and 47 workspace slots; one-short failures retain no scan allocation.
 The earlier complete specification gate passed; its log is
 `_build/model-call-slot-spec.log`. No Linux CI result is claimed for this unit.
+
+The scoped model execution now issues the registered model-invocation evidence
+from its own checked response, exact input Artifact, typed key and call slot.
+Response and validated-value hashing use bounded wire cursors; each transition
+consumes work before returning. Independent Node expectations bind the actual
+response/value CIDs, input key, provider identity, request ID, token usage and
+observation time. Caller-authored `ModelCaptureBundle` data cannot supply this
+execution's evidence. The unscoped fixture path remains a private observation
+and does not acquire formal evidence authority.
+
+Cancellation is tested after response admission but before observation sealing,
+and after sealing but before output handoff. Neither exposes a completed output;
+the latter retains its private observation until cleanup. Cleanup makes no
+additional provider call. These are in-process observation/custody tests, not
+the required durable-capture stop windows or reconstruction replay test.
 
 Durable response/capture custody, verified formal replay, installed public Host
 registration and committed Named Result retrieval remain unfinished. The

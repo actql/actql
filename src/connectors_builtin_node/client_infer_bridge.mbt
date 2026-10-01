@@ -543,6 +543,23 @@ pub fn client_program_model_capture_json(
 }
 
 ///|
+#export_name("clientProgramInferInvocationEvidence")
+pub fn client_program_infer_invocation_evidence(
+  active : @infer_host.Execution,
+  slot : Int,
+) -> @publication.RunEvidenceValue? {
+  @infer_host.invocation_evidence(active, slot)
+}
+
+///|
+#export_name("clientProgramInferObservationPending")
+pub fn client_program_infer_observation_pending(
+  active : @infer_host.Execution,
+) -> Bool {
+  @infer_host.sealing_observation(active)
+}
+
+///|
 #export_name("clientProgramCleanupModelExecution")
 pub fn client_program_cleanup_model_execution(
   active : @model.ModelExecution,

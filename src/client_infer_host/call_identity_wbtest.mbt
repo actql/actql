@@ -153,11 +153,85 @@ test "normal Infer owner identifies its own completed prefix before scoped dispa
       "sha256:042a400915c1e3c348ec713c0e6b496f28dcde211e33c64fbada352b6e6e7011",
     )
     assert_true(call_scope(active) is Some(_))
+    let evidence = invocation_evidence(active, 0).unwrap()
+    assert_eq(
+      @publication.run_evidence_value_name(evidence),
+      "model_invocation_evidence",
+    )
+    let wire = @publication.run_evidence_value_json(evidence)
+    assert_true(wire.contains("\"input_row_identity\":\"a\""))
+    assert_true(
+      wire.contains(
+        "\"model_call_slot_cid\":\"" + slots[slots.length() - 1] + "\"",
+      ),
+    )
+    assert_true(wire.contains("\"provider_request_id\":\"request-1\""))
+    assert_true(invocation_evidence(active, 1) is None)
     assert_true(cleanup(active).unwrap())
     assert_true(call_scope(active) is None)
+    assert_true(invocation_evidence(active, 0) is None)
     assert_eq(calls.val, 1)
   }
   assert_eq(slots[0], slots[1])
+}
+
+///|
+test "scoped response observation is private until sealed and survives output stop" {
+  for stop_after_seal in [false, true] {
+    let prepared = fixture_prepared()
+    let plan = call_identity_plan(prepared)
+    let calls = Ref(0)
+    let provider = @model.install_model_provider("models/fixture", _ => {
+      calls.val += 1
+      Ok({
+        value: @admitted.object_value([
+          ("reason", @admitted.null_value()),
+          ("risk", @admitted.text_value("high", 100).unwrap()),
+        ]).unwrap(),
+        provider_model: "fixture-risk-model",
+        provider_request_id: "request-1",
+        input_tokens: 1L,
+        output_tokens: 2L,
+        observed_at: "2026-10-01T00:00:00.000Z",
+      })
+    }).unwrap()
+    let active = start(
+      prepared,
+      2,
+      infer_fixture_registry,
+      infer_fixture_values,
+      provider,
+      @publication_host.client_infer_plan_graph_request_cid(plan),
+      standard_limits(),
+      plan=Some(plan),
+    ).unwrap()
+    let mut reached = false
+    for _ in 0..<2000 {
+      assert_true(advance(active, 1).unwrap() is Continue(_))
+      if (if stop_after_seal {
+          invocation_evidence(active, 0) is Some(_)
+        } else {
+          sealing_observation(active)
+        }) {
+        reached = true
+        break
+      }
+    }
+    assert_true(reached)
+    assert_eq(calls.val, 1)
+    assert_true(acquire_output(active) is None)
+    assert_eq(invocation_evidence(active, 0) is Some(_), stop_after_seal)
+    assert_true(cancel(active))
+    assert_true(!cleanup(active).unwrap())
+    assert_true(advance(active, 1).unwrap() is Stopped(_))
+    assert_true(acquire_output(active) is None)
+    // An accepted observation remains private custody, not a public Result.
+    assert_eq(invocation_evidence(active, 0) is Some(_), stop_after_seal)
+    assert_true(cleanup(active).unwrap())
+    assert_true(cleanup(active).unwrap())
+    assert_true(invocation_evidence(active, 0) is None)
+    assert_eq(calls.val, 1)
+  }
 }
 
 ///|

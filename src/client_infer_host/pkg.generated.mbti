@@ -5,6 +5,7 @@ import {
   "actql/actql/client_local_host",
   "actql/actql/execution_relation",
   "actql/actql/model_execution",
+  "actql/actql/run_publication",
   "actql/actql/run_publication_host",
 }
 
@@ -27,6 +28,8 @@ pub fn handoff_pending(Execution) -> Bool
 
 pub fn identity_pending(Execution) -> Bool
 
+pub fn invocation_evidence(Execution, Int) -> @run_publication.RunEvidenceValue?
+
 pub fn matches(Execution, @run_publication_host.PreparedClientProgram) -> Bool
 
 pub fn output(OutputUse) -> @execution_relation.CompletedOutput?
@@ -34,6 +37,8 @@ pub fn output(OutputUse) -> @execution_relation.CompletedOutput?
 pub fn release_output(OutputUse) -> Bool
 
 pub fn request_preflight_pending(Execution) -> Bool
+
+pub fn sealing_observation(Execution) -> Bool
 
 pub fn standard_limits() -> Limits
 

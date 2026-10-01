@@ -583,6 +583,30 @@ pub fn capture(active : Execution) -> @model.ModelCaptureBundle? {
 }
 
 ///|
+/// Private successful observation issued by the child execution, not a
+/// caller's capture bundle or proof of durable Store custody.
+pub fn invocation_evidence(
+  active : Execution,
+  slot : Int,
+) -> @publication.RunEvidenceValue? {
+  if active.reclaimed {
+    None
+  } else {
+    match active.model {
+      Some(model) => @model.model_execution_invocation_evidence(model, slot)
+      None => None
+    }
+  }
+}
+
+///|
+pub fn sealing_observation(active : Execution) -> Bool {
+  !active.reclaimed &&
+  active.model is Some(model) &&
+  @model.model_execution_sealing_observation(model)
+}
+
+///|
 /// Existing installed Local bounds for the initial source-free configuration.
 /// This preset does not resolve model policy, dependencies or authorization.
 pub fn standard_limits() -> Limits {

@@ -449,6 +449,10 @@ pub fn client_program_infer_identity_pending(@client_infer_host.Execution) -> Bo
 
 pub fn client_program_infer_input_rows(@client_local_host.ClientInferInputPoll) -> @execution_relation.PreparedInferRows?
 
+pub fn client_program_infer_invocation_evidence(@client_infer_host.Execution, Int) -> @run_publication.RunEvidenceValue?
+
+pub fn client_program_infer_observation_pending(@client_infer_host.Execution) -> Bool
+
 pub fn client_program_infer_output_use(@client_infer_host.OutputUse) -> @execution_relation.CompletedOutput?
 
 pub fn client_program_infer_plan_graph(@run_publication_host.PreparedClientProgram, Int, @check_environment.ModelExecutionContract, String, String) -> Result[@run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferPlanGraphIssue]

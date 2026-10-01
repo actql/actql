@@ -84,21 +84,46 @@ test "Infer compilation reaches the shared Run owner with the checked barrier" {
     assert_true(
       check_client_compiled_run_definition(admitted, definition) is Ok(_),
     )
-    let (observation, invocation) = issue_client_compiled_source_free_task_invocation(
-      admitted,
-      definition,
-      "sha256:" + "c".repeat(64),
-      100000,
-      10000,
-      100,
-    ).unwrap()
-    assert_eq(
-      @publication.run_evidence_value_name(observation),
-      "observation_set",
+    assert_true(
+      issue_client_compiled_source_free_task_invocation(
+        admitted,
+        definition,
+        "sha256:" + "c".repeat(64),
+        100000,
+        10000,
+        100,
+      )
+      is Err(@publication.RunEvidenceReferenceMismatch("model_capture")),
     )
-    assert_eq(
-      @publication.publication_contract_name(invocation),
-      "run_invocation",
+    assert_true(
+      issue_client_task_source_free_invocation(
+        compilation,
+        "sha256:" + "c".repeat(64),
+        100000,
+        10000,
+        100,
+      )
+      is Err(@publication.RunEvidenceReferenceMismatch("model_capture")),
+    )
+    assert_true(
+      issue_client_task_invocation(
+        prepared,
+        compilation,
+        admitted.admission,
+        definition,
+        "{}",
+        "{}",
+        "not-an-admitted-source",
+        "sha256:" + "d".repeat(64),
+        "sha256:" + "e".repeat(64),
+        "sha256:" + "c".repeat(64),
+        "2026-10-01T00:00:00.000Z",
+        "2026-10-01T00:00:00.000Z",
+        100000,
+        10000,
+        100,
+      )
+      is Err(@publication.RunEvidenceReferenceMismatch("model_capture")),
     )
     assert_eq(
       client_compiled_run_result_transformation(admitted, prepared, 0).unwrap()

@@ -171,10 +171,11 @@ test('normal Program emits a model barrier without pretending it is pure AoA', (
   const definition = control.defineCheckedClientCompiledRun(run,
     {namespaceId: 'infer-compilation', runId: 'normal-program',
       createdAt: '2026-10-01T00:00:00.000Z', validUntil: policy.expiresAt});
-  const invocation = control.issueCheckedClientCompiledInvocation(run,
+  assert.throws(() => control.issueCheckedClientCompiledInvocation(run,
     definition, {dataPolicyCid: `sha256:${'f'.repeat(64)}`},
-    {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100});
-  assert.match(invocation.invocation.identity, /^sha256:[0-9a-f]{64}$/u);
+    {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100}),
+  /RunHostInvocationRejected/u,
+  'source-free input cannot erase the containing model observation');
   assert.throws(() => control.prepareCheckedClientCompiledRun(
     prepared, 'infer', policy), /requires its checked graph/u);
   assert.throws(() => control.prepareCheckedClientCompiledRun(
@@ -534,11 +535,62 @@ test('scoped normal inference reconstructs a stable slot from its completed inpu
     assert.equal(capture.captures.length, 1);
     assert.equal(capture.captures[0].input_key_cid,
       'sha256:042a400915c1e3c348ec713c0e6b496f28dcde211e33c64fbada352b6e6e7011');
+    const admittedEvidence = moon.clientProgramInferInvocationEvidence(active, 0);
+    assert.ok(admittedEvidence);
+    const evidence = JSON.parse(moon.strategyRunEvidenceJson(admittedEvidence));
+    const {model_invocation_evidence_cid: evidenceCid, ...preimage} = evidence;
+    assert.equal(evidenceCid, cid(preimage));
+    assert.equal(evidence.model_task_contract_cid, task.contract_cid);
+    assert.equal(evidence.semantic_request_cid, capture.fixed_request_cid);
+    assert.equal(evidence.model_call_slot_cid, capture.captures[0].slot_cid);
+    assert.equal(evidence.input_row_identity_cid, capture.captures[0].input_key_cid);
+    assert.equal(evidence.input_row_identity, 'a');
+    assert.equal(evidence.authored_model_selector, 'fixture-risk-model');
+    assert.equal(evidence.provider_reported_model_id, 'fixture-risk-model');
+    assert.equal(evidence.provider_request_id, 'request-1');
+    assert.equal(evidence.attempt, 1);
+    assert.equal(evidence.structured_response_artifact_cid,
+      cid({reason: null, risk: 'high'}));
+    assert.equal(evidence.validated_structured_output_cid,
+      cid({reason: null, risk: 'high'}));
+    assert.equal(evidence.input_tokens, 1);
+    assert.equal(evidence.output_tokens, 2);
+    assert.equal(evidence.finish_reason, 'stop');
+    assert.equal(evidence.observed_at, '2026-10-01T00:00:00.000Z');
+    assert.equal(moon.clientProgramInferInvocationEvidence(active, 1), undefined);
     slots.push(capture.captures[0].slot_cid);
     assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), true);
+    assert.equal(moon.clientProgramInferInvocationEvidence(active, 0), undefined);
     assert.equal(calls(), 1);
   }
   assert.equal(slots[0], slots[1]);
+});
+
+test('stopping between checked response and sealed observation issues no completed evidence', async () => {
+  const {active, calls} = ownedInfer(undefined, undefined, {scoped: true});
+  let reached = false;
+  for (let poll = 0; poll < 20000; poll++) {
+    assert.equal(checked(moon.clientProgramAdvanceInferExecution(active, 1)).$tag, 0);
+    if (moon.clientProgramInferObservationPending(active)) {
+      reached = true;
+      break;
+    }
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  assert.equal(reached, true);
+  assert.equal(calls(), 1);
+  assert.equal(moon.clientProgramInferExecutionCapture(active), undefined);
+  assert.equal(moon.clientProgramInferInvocationEvidence(active, 0), undefined);
+  await new Promise(resolve => setImmediate(() => {
+    assert.equal(moon.clientProgramCancelInferExecution(active), true);
+    resolve();
+  }));
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), false);
+  assert.equal(checked(moon.clientProgramAdvanceInferExecution(active, 1)).$tag, 3);
+  assert.equal(moon.clientProgramAcquireInferOutput(active), undefined);
+  assert.equal(moon.clientProgramInferInvocationEvidence(active, 0), undefined);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(active)), true);
+  assert.equal(calls(), 1, 'cleanup must not repeat a physically completed call');
 });
 
 test('a macrotask stops unused nested input identity before scoped model dispatch', async () => {

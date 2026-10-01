@@ -6,6 +6,7 @@ import {
   "actql/actql/check_environment",
   "actql/actql/execution_relation",
   "actql/actql/physical_resources",
+  "actql/actql/run_publication",
   "actql/actql/run_publication_host",
   "actql/actql/value_admission",
   "moonbitlang/core/debug",
@@ -28,11 +29,15 @@ pub fn install_model_provider(String, (ModelRequest) -> Result[ModelResponse, Mo
 
 pub fn model_capture_bundle_json(ModelCaptureBundle, Int, Int, Int) -> String?
 
+pub fn model_execution_invocation_evidence(ModelExecution, Int) -> @run_publication.RunEvidenceValue?
+
 pub fn model_execution_preflighting(ModelExecution) -> Bool
 
 pub fn model_execution_prepared_request_bytes(ModelExecution, Int) -> Int64?
 
 pub fn model_execution_resource_usage(ModelExecution) -> @physical_resources.LedgerUsage
+
+pub fn model_execution_sealing_observation(ModelExecution) -> Bool
 
 pub fn replay_model_capture(@check_environment.ModelTaskContract, String, ModelCaptureBundle) -> Result[Array[@value_admission.CheckedValue], ModelExecutionIssue]
 
@@ -74,6 +79,7 @@ pub(all) enum ModelExecutionIssue {
   Session(@bounded_execution.Issue)
   WorkLimit
   RequestLimit
+  InvocationEvidence(@run_publication.RunEvidenceValueIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct ModelExecutionLimits {
