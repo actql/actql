@@ -1,4 +1,28 @@
 ///|
+test "nested WITH preserves lexical qualifiers within the original budgets" {
+  let text = "WITH chosen AS (WITH hidden AS (SELECT a FROM rows) SELECT hidden.a FROM hidden) SELECT a FROM chosen"
+  let query = parse_query(text, query_limits()).unwrap()
+  assert_eq(cte_count(query), 2)
+  let nested = cte_at(query, 0).unwrap()
+  assert_true(nested.name.value != "hidden")
+  let chosen = cte_at(query, 1).unwrap()
+  assert_eq(relation(chosen.query), [nested.name])
+  assert_eq(
+    relation_alias(chosen.query),
+    Some({ value: "hidden", quoted: false, }),
+  )
+  assert_true(
+    parse_query(text, { ..query_limits(), max_cte_count: 1, }) is Err(_),
+  )
+  assert_true(parse_query(text, { ..query_limits(), max_work: 10, }) is Err(_))
+  let collision = parse_query(
+    "WITH aql_cte_scope_0 AS (SELECT a FROM rows), chosen AS (WITH hidden AS (SELECT a FROM aql_cte_scope_0) SELECT a FROM hidden) SELECT a FROM chosen",
+    query_limits(),
+  ).unwrap()
+  assert_eq(cte_at(collision, 1).unwrap().name.value, "aql_cte_scope_1")
+}
+
+///|
 test "derived sources share SELECT and Pipe query heads" {
   for
     text in [

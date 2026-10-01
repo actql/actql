@@ -11,6 +11,15 @@ const declarations = {minimum: {type: 'number'}};
 const relationNumber = (name, nullable = false) => ({name,
   contract: {type: 'number', nullable}});
 export const queryCompositionSuccesses = [
+  {name: 'nested-with-shadow', format: 'sql',
+    text: 'WITH base AS (SELECT id, amount FROM records), chosen AS (WITH base AS (SELECT id FROM base WHERE amount >= 20) SELECT base.id FROM base) SELECT id FROM chosen UNION ALL SELECT id FROM base WHERE amount IS NULL ORDER BY id',
+    expected: [{id: 1}, {id: 2}, {id: 3}, {id: 3}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
+  {name: 'nested-with-quoted-range', format: 'sql',
+    text: 'SELECT chosen.id FROM (WITH `Hidden` AS (SELECT id FROM records WHERE amount IS NULL) SELECT `Hidden`.id FROM `Hidden`) AS chosen ORDER BY id',
+    expected: [{id: 1}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
+  {name: 'nested-with-pipe-range', format: 'aql-text',
+    text: 'WITH chosen AS (WITH hidden AS (FROM records |> WHERE amount >= 20 |> SELECT id) FROM hidden |> SELECT hidden.id AS id) FROM chosen |> SELECT id |> ORDER BY id',
+    expected: [{id: 2}, {id: 3}, {id: 3}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
   {name: 'derived-pipe', format: 'sql',
     text: 'SELECT id FROM (FROM records |> WHERE amount >= @minimum |> SELECT id) AS chosen ORDER BY id',
     parameterDeclarations: declarations, parameters: {minimum: 20},
@@ -60,6 +69,14 @@ export const queryCompositionSuccesses = [
 
 ];
 export const queryCompositionRefusals = [
+  {name: 'nested-with-escaped-name', format: 'sql',
+    text: 'WITH chosen AS (WITH hidden AS (SELECT id FROM records) SELECT id FROM hidden) SELECT id FROM chosen UNION ALL SELECT id FROM hidden'},
+  {name: 'derived-with-escaped-name', format: 'sql',
+    text: 'SELECT id FROM (WITH hidden AS (SELECT id FROM records) SELECT id FROM hidden) AS chosen UNION ALL SELECT id FROM hidden'},
+  {name: 'nested-with-forward-reference', format: 'sql',
+    text: 'WITH chosen AS (WITH hidden AS (SELECT id FROM later), later AS (SELECT id FROM records) SELECT id FROM hidden) SELECT id FROM chosen'},
+  {name: 'nested-with-duplicate-name', format: 'sql',
+    text: 'WITH chosen AS (WITH hidden AS (SELECT id FROM records), HIDDEN AS (SELECT id FROM records) SELECT id FROM hidden) SELECT id FROM chosen'},
   {name: 'derived-hidden-column', format: 'sql',
     text: 'SELECT chosen.amount FROM (FROM records |> SELECT id) AS chosen'},
   {name: 'derived-hidden-range', format: 'sql',

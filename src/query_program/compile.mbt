@@ -196,11 +196,7 @@ fn same_name(left : @query.NamePart, right : @query.NamePart) -> Bool {
 // Relation path spelling has its own rule. Quoting does not change column,
 // field or alias lookup, but a quoted relation path remains exact.
 fn same_relation_name(left : @query.NamePart, right : @query.NamePart) -> Bool {
-  if left.quoted || right.quoted {
-    left.value == right.value
-  } else {
-    ascii_upper(left.value) == ascii_upper(right.value)
-  }
+  @query.same_relation_name(left, right)
 }
 
 ///|

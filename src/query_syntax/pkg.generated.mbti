@@ -56,6 +56,8 @@ pub fn relation(Query) -> Array[NamePart]
 
 pub fn relation_alias(Query) -> NamePart?
 
+pub fn same_relation_name(NamePart, NamePart) -> Bool
+
 pub fn set_part_at(Query, Int) -> SetPart?
 
 pub fn set_part_count(Query) -> Int

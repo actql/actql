@@ -78,7 +78,14 @@ consumes the combined output, not its left operand; input range variables and
 non-output columns of the operands are not visible there. Set operands may
 refer to previously bound CTE Results without re-expanding their producer.
 They use the same expression and column-scope rules as the corresponding query
-head. Each body ends at its
+head. A nonrecursive WITH binds each declaration after its body; later bodies
+and the containing query may reference it. Nested WITH declarations can shadow
+outer bindings but are not visible outside that query expression. When a
+nested producer is retained as a Stage Result, its private producer identity
+does not replace the authored range qualifier or expose its name to an outer
+scope. Duplicate declaration names follow the same relation-name comparison
+as references. This is lexical producer binding, not SQL rewriting or repeated
+execution. Each body ends at its
 own closing parenthesis; a statement terminator is allowed only after the
 complete query. INFER is excluded from CTE bodies. Recursive declarations,
 forward references and references to a displaced range variable remain

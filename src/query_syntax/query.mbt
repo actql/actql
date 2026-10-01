@@ -386,6 +386,7 @@ priv struct QueryParser {
   mut syntax_nodes : Int
   mut source_depth : Int
   mut synthetic_sources : Int
+  cte_scopes : Array[Array[(NamePart, NamePart)]]
 }
 
 ///|
@@ -398,6 +399,41 @@ fn ascii_upper(value : String) -> String {
     )
   }
   out.to_string()
+}
+
+///|
+/// Relation names retain exact quoted spelling, separately from field aliases.
+pub fn same_relation_name(left : NamePart, right : NamePart) -> Bool {
+  if left.quoted || right.quoted {
+    left.value == right.value
+  } else {
+    ascii_upper(left.value) == ascii_upper(right.value)
+  }
+}
+
+///|
+fn QueryParser::resolve_cte(
+  self : QueryParser,
+  relation : Array[NamePart],
+) -> Array[NamePart] raise QueryAbort {
+  if relation.length() != 1 {
+    return relation
+  }
+  let mut scope = self.cte_scopes.length() - 1
+  while scope >= 0 {
+    let bindings = self.cte_scopes[scope]
+    let mut index = bindings.length() - 1
+    while index >= 0 {
+      self.spend(1)
+      let (authored, producer) = bindings[index]
+      if same_relation_name(relation[0], authored) {
+        return [producer]
+      }
+      index -= 1
+    }
+    scope -= 1
+  }
+  relation
 }
 
 ///|
@@ -495,7 +531,15 @@ fn QueryParser::source_name(
   self : QueryParser,
 ) -> (Array[NamePart], NamePart?) raise QueryAbort {
   let relation = self.path()
-  (relation, self.optional_source_alias())
+  let resolved = self.resolve_cte(relation)
+  let explicit_alias = self.optional_source_alias()
+  let source_alias = if explicit_alias is None &&
+    resolved[0].value != relation[0].value {
+    Some(relation[0])
+  } else {
+    explicit_alias
+  }
+  (resolved, source_alias)
 }
 
 ///|
@@ -538,21 +582,7 @@ fn QueryParser::bind_query(
   inner : Query,
 ) -> Query raise QueryAbort {
   self.node()
-  let mut serial = self.synthetic_sources
-  let mut generated_name = "aql_query_source_" + serial.to_string()
-  while self.source.tokens.any(token => {
-          match token.value {
-            Word(value) | QuotedName(value) =>
-              ascii_upper(value) == ascii_upper(generated_name)
-            _ => false
-          }
-        }) {
-    self.spend(self.source.tokens.length())
-    serial += 1
-    generated_name = "aql_query_source_" + serial.to_string()
-  }
-  self.synthetic_sources = serial + 1
-  let generated : NamePart = { value: generated_name, quoted: false, }
+  let generated = self.fresh_producer("aql_query_source_")
   let ctes = inner.ctes + [{ name: generated, query: { ..inner, ctes: [], }, }]
   if ctes.length() > self.limits.max_cte_count {
     raise QueryAbort("CTE count limit", self.peek().start)
@@ -569,6 +599,31 @@ fn QueryParser::bind_query(
     final_operations: [],
     work: self.work,
   }
+}
+
+///|
+fn QueryParser::fresh_producer(
+  self : QueryParser,
+  prefix : String,
+) -> NamePart raise QueryAbort {
+  let mut serial = self.synthetic_sources
+  let mut generated_name = prefix + serial.to_string()
+  while true {
+    self.spend(self.source.tokens.length())
+    if !self.source.tokens.any(token => {
+        match token.value {
+          Word(value) | QuotedName(value) =>
+            ascii_upper(value) == ascii_upper(generated_name)
+          _ => false
+        }
+      }) {
+      break
+    }
+    serial += 1
+    generated_name = prefix + serial.to_string()
+  }
+  self.synthetic_sources = serial + 1
+  { value: generated_name, quoted: false, }
 }
 
 ///|
@@ -1074,6 +1129,9 @@ fn QueryParser::query(
   cte_body? : Bool = false,
 ) -> Query raise QueryAbort {
   let ctes : Array[CtePart] = []
+  let scope : Array[(NamePart, NamePart)] = []
+  let nested_scope = !self.cte_scopes.is_empty()
+  self.cte_scopes.push(scope)
   if self.has("WITH") {
     self.keyword("WITH")
     if self.has("RECURSIVE") {
@@ -1085,7 +1143,7 @@ fn QueryParser::query(
         raise QueryAbort("CTE count limit", self.peek().start)
       }
       let name = self.name()
-      if ctes.any(part => part.name.value == name.value) {
+      if scope.any(binding => same_relation_name(binding.0, name)) {
         raise QueryAbort("Duplicate CTE name", self.peek().start)
       }
       self.keyword("AS")
@@ -1099,7 +1157,17 @@ fn QueryParser::query(
       if ctes.length() >= self.limits.max_cte_count {
         raise QueryAbort("CTE count limit", self.peek().start)
       }
-      ctes.push({ name, query: { ..body, ctes: [], }, })
+      // Bind only after the body: non-recursive declarations can see earlier
+      // CTEs, including outer scopes, but cannot acquire a recursive binding.
+      // Nested names get private producer identities before flattening. Range
+      // aliases keep the authored spelling, so qualification is unchanged.
+      let producer = if nested_scope {
+        self.fresh_producer("aql_cte_scope_")
+      } else {
+        name
+      }
+      scope.push((name, producer))
+      ctes.push({ name: producer, query: { ..body, ctes: [], }, })
       if self.peek().value != Symbol(44) {
         break
       }
@@ -1116,6 +1184,7 @@ fn QueryParser::query(
   if all_ctes.length() > self.limits.max_cte_count {
     raise QueryAbort("CTE count limit", self.peek().start)
   }
+  ignore(self.cte_scopes.pop())
   { ..term, ctes: all_ctes, work: self.work, }
 }
 
@@ -1639,7 +1708,7 @@ fn QueryParser::nearest_clause(
   self : QueryParser,
 ) -> NearestClause raise QueryAbort {
   self.keyword("NEAREST")
-  let relation = self.path()
+  let relation = self.resolve_cte(self.path())
   self.keyword("AS")
   let candidate_alias = self.name()
   self.keyword("QUERY")
@@ -1699,6 +1768,7 @@ pub fn parse_query(
     syntax_nodes: 0,
     source_depth: 0,
     synthetic_sources: 0,
+    cte_scopes: [],
   }
   try {
     let query = parser.query()

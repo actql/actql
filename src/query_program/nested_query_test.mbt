@@ -1,4 +1,47 @@
 ///|
+test "nested WITH declarations preserve lexical visibility and range spelling" {
+  for
+    text in [
+      "WITH chosen AS (WITH hidden AS (SELECT a FROM left_rows) SELECT hidden.a FROM hidden) SELECT chosen.a FROM chosen",
+      "WITH base AS (SELECT a FROM left_rows), chosen AS (WITH base AS (SELECT a FROM base WHERE a > 0) SELECT base.a FROM base) SELECT a FROM chosen UNION ALL SELECT a FROM base",
+      "SELECT chosen.a FROM (WITH hidden AS (SELECT a FROM left_rows) SELECT hidden.a FROM hidden) AS chosen",
+      "WITH chosen AS (WITH `Hidden` AS (SELECT a FROM left_rows) SELECT `Hidden`.a FROM `Hidden`) SELECT a FROM chosen",
+    ] {
+    let program = match
+      compile(
+        @query.parse_query(text, syntax_limits()).unwrap(),
+        set_context(),
+        construction_limits(),
+      ) {
+      Ok(program) => program
+      Err(_) => fail(text)
+    }
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      _ => fail(text)
+    }
+  }
+}
+
+///|
+test "hoisted nested WITH producers do not escape their authored scope" {
+  for
+    text in [
+      "WITH chosen AS (WITH hidden AS (SELECT a FROM left_rows) SELECT a FROM hidden) SELECT a FROM chosen UNION ALL SELECT a FROM hidden",
+      "SELECT a FROM (WITH hidden AS (SELECT a FROM left_rows) SELECT a FROM hidden) AS chosen UNION ALL SELECT a FROM hidden",
+      "WITH chosen AS (WITH hidden AS (SELECT a FROM later), later AS (SELECT a FROM left_rows) SELECT a FROM hidden) SELECT a FROM chosen",
+      "WITH chosen AS (WITH hidden AS (SELECT a FROM hidden) SELECT a FROM hidden) SELECT a FROM chosen",
+      "WITH chosen AS (WITH hidden AS (SELECT a FROM left_rows), HIDDEN AS (SELECT a FROM left_rows) SELECT a FROM hidden) SELECT a FROM chosen",
+    ] {
+    let result = @query.parse_query(text, syntax_limits()).map(query => {
+      compile(query, set_context(), construction_limits())
+    })
+    assert_true(result is Err(_) || result is Ok(Err(_)), msg=text)
+  }
+}
+
+///|
 test "derived SQL and Pipe sources have the same independent checked Program" {
   // The authored Stage Result input is the parsed derived producer, not a
   // repeated expansion of its Values acquisition or an independent evaluator.
