@@ -129,6 +129,7 @@ struct ModelState {
   provider : ModelProvider
   fixed_request_cid : String
   limits : ModelExecutionLimits
+  call_scope : @publication_host.ClientInferCallScope?
   ledger : @resources.Ledger
   reservations : Array[@resources.Reservation]
   requests : Array[PreparedModelRequest]
@@ -357,6 +358,7 @@ pub fn start_model_execution(
   provider : ModelProvider,
   fixed_request_cid : String,
   limits : ModelExecutionLimits,
+  call_scope? : @publication_host.ClientInferCallScope? = None,
 ) -> Result[ModelExecution, ModelExecutionIssue] {
   if !valid_cid(fixed_request_cid) ||
     limits.max_items < 0 ||
@@ -368,6 +370,12 @@ pub fn start_model_execution(
     limits.value_limits.max_depth < 0 ||
     limits.value_limits.max_text_bytes < 0 {
     return Err(InvalidLimits)
+  }
+  if call_scope is Some(scope) &&
+    !@publication_host.client_infer_call_scope_matches_rows(
+      scope, rows, fixed_request_cid,
+    ) {
+    return Err(RequestIdentity)
   }
   let count = @relation.prepared_infer_rows_count(rows)
   let task = @infer.model_task(@relation.prepared_infer_rows_owner(rows))
@@ -403,6 +411,7 @@ pub fn start_model_execution(
     provider,
     fixed_request_cid,
     limits,
+    call_scope,
     ledger,
     reservations,
     requests: [],

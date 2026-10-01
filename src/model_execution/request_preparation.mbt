@@ -1,6 +1,6 @@
 ///|
-// This retains the existing private slot/key spelling. Formal public model
-// identities and adapter-plan admission are independent prerequisites.
+// Formal call identity uses an exact completed-input scope. The legacy private
+// component path keeps its prior spelling and cannot produce public evidence.
 priv struct PreparedModelRequest {
   request : ModelRequest
   key_cid : String
@@ -12,6 +12,7 @@ priv enum RequestPreparationPhase {
   ReadKey
   KeyWire(@admitted.WireEmitCursor)
   SlotWire(@admitted.WireEmitCursor)
+  FinishKeyIdentity
   ReadInput
   InputWire(@admitted.WireEmitCursor)
 }
@@ -24,6 +25,7 @@ priv struct ModelRequestPreparation {
   key_writer : @encode.Writer
   slot_writer : @encode.Writer
   input_writer : @encode.Writer
+  mut value_writer : @encode.Writer?
   mut key_index : Int
   mut input_index : Int
   mut key_cid : String?
@@ -39,11 +41,19 @@ fn start_model_request_preparation(
   try {
     // These are the existing private identity bounds, not a new language
     // restriction. Each key value is emitted incrementally into both sinks.
-    let key_writer = @encode.hashing_writer(4096, 256, 8)
+    let key_writer = if state.call_scope is Some(_) {
+      @encode.writer(4096, 256, 8)
+    } else {
+      @encode.hashing_writer(4096, 256, 8)
+    }
     let slot_writer = @encode.hashing_writer(4096, 256, 8)
     // Every JSON node and nesting level costs a byte, so the wire ceiling
     // also bounds this measuring sink without borrowing output-value limits.
     let input_writer = @encode.measuring_writer(bytes, bytes, bytes)
+    if state.call_scope is Some(_) {
+      @encode.begin_object(key_writer)
+      @encode.key(key_writer, "components")
+    }
     @encode.begin_array(key_writer)
     @encode.begin_object(slot_writer)
     @encode.key(slot_writer, "fixed_request_cid")
@@ -58,6 +68,7 @@ fn start_model_request_preparation(
       key_writer,
       slot_writer,
       input_writer,
+      value_writer: None,
       key_index: 0,
       input_index: 0,
       key_cid: None,
@@ -101,23 +112,87 @@ fn advance_model_request_preparation(
           return @bounded.Failed(OutputIdentity, 1, 1)
         }
         request.keys.push(value)
-        request.phase = KeyWire(
-          @admitted.start_wire_emit(value.value, request.key_writer),
-        )
+        if state.call_scope is Some(_) {
+          guard @infer.key_at(owner, request.key_index) is Some(binding) else {
+            return @bounded.Failed(OutputIdentity, 1, 1)
+          }
+          try {
+            let contract_writer = @encode.hashing_writer(4096, 256, 8)
+            @contract.emit_checked(value.contract, contract_writer)
+            let contract_cid = "sha256:" + @encode.finish_hash(contract_writer)
+            @encode.begin_object(request.key_writer)
+            @encode.key(request.key_writer, "field")
+            @encode.string_value(
+              request.key_writer,
+              @schema.reference_name(binding.field),
+            )
+            @encode.key(request.key_writer, "value_contract_cid")
+            @encode.string_value(request.key_writer, contract_cid)
+            let writer = @encode.hashing_writer(4096, 256, 8)
+            request.value_writer = Some(writer)
+            match value.value {
+              @admitted.Reference(reference) => {
+                @encode.string_value(
+                  writer,
+                  @admitted.reference_identity_cid(reference),
+                )
+                request.phase = FinishKeyIdentity
+              }
+              _ =>
+                request.phase = KeyWire(
+                  @admitted.start_wire_emit(value.value, writer),
+                )
+            }
+          } catch {
+            _ => return @bounded.Failed(OutputIdentity, 1, 1)
+          }
+        } else {
+          request.phase = KeyWire(
+            @admitted.start_wire_emit(value.value, request.key_writer),
+          )
+        }
         return @bounded.Continue(1, 1)
       }
       try {
         @encode.end_array(request.key_writer)
-        request.key_cid = Some(
-          "sha256:" + @encode.finish_hash(request.key_writer),
-        )
-        @encode.end_array(request.slot_writer)
-        @encode.key(request.slot_writer, "slot")
-        @encode.number_value(request.slot_writer, request.slot.to_double())
-        @encode.end_object(request.slot_writer)
-        request.slot_cid = Some(
-          "sha256:" + @encode.finish_hash(request.slot_writer),
-        )
+        if state.call_scope is Some(scope) {
+          @encode.key(request.key_writer, "version")
+          @encode.string_value(request.key_writer, "actql-model-input-key/0.1")
+          @encode.end_object(request.key_writer)
+          let key = match
+            @publication.seal_run_evidence_value(
+              "model_input_key",
+              @encode.finish(request.key_writer),
+              8192,
+              512,
+              10,
+            ) {
+            Ok(value) => value
+            Err(_) => return @bounded.Failed(OutputIdentity, 1, 1)
+          }
+          let slot = match
+            @publication_host.issue_client_infer_call_slot(
+              scope, key, 8192, 512, 10,
+            ) {
+            Ok(value) => value
+            Err(_) => return @bounded.Failed(OutputIdentity, 1, 1)
+          }
+          request.key_cid = Some(@publication.run_evidence_value_identity(key))
+          request.slot_cid = Some(
+            @publication.run_evidence_value_identity(slot),
+          )
+        } else {
+          request.key_cid = Some(
+            "sha256:" + @encode.finish_hash(request.key_writer),
+          )
+          @encode.end_array(request.slot_writer)
+          @encode.key(request.slot_writer, "slot")
+          @encode.number_value(request.slot_writer, request.slot.to_double())
+          @encode.end_object(request.slot_writer)
+          request.slot_cid = Some(
+            "sha256:" + @encode.finish_hash(request.slot_writer),
+          )
+        }
       } catch {
         _ => return @bounded.Failed(OutputIdentity, 1, 1)
       }
@@ -129,13 +204,36 @@ fn advance_model_request_preparation(
         _ => return @bounded.Failed(OutputIdentity, 1, 1)
       }
       if finished {
-        request.phase = SlotWire(
-          @admitted.start_wire_emit(
-            request.keys[request.key_index].value,
-            request.slot_writer,
-          ),
-        )
+        if state.call_scope is Some(_) {
+          request.phase = FinishKeyIdentity
+        } else {
+          request.phase = SlotWire(
+            @admitted.start_wire_emit(
+              request.keys[request.key_index].value,
+              request.slot_writer,
+            ),
+          )
+        }
       }
+      @bounded.Continue(1, 1)
+    }
+    FinishKeyIdentity => {
+      try {
+        guard request.value_writer is Some(writer) else {
+          return @bounded.Failed(OutputIdentity, 1, 1)
+        }
+        @encode.key(request.key_writer, "value_cid")
+        @encode.string_value(
+          request.key_writer,
+          "sha256:" + @encode.finish_hash(writer),
+        )
+        @encode.end_object(request.key_writer)
+      } catch {
+        _ => return @bounded.Failed(OutputIdentity, 1, 1)
+      }
+      request.value_writer = None
+      request.key_index += 1
+      request.phase = ReadKey
       @bounded.Continue(1, 1)
     }
     SlotWire(cursor) => {
@@ -217,7 +315,7 @@ fn cancel_model_request_preparation(request : ModelRequestPreparation) -> Unit {
   match request.phase {
     KeyWire(cursor) | SlotWire(cursor) | InputWire(cursor) =>
       @admitted.cancel_wire_emit(cursor)
-    ReadKey | ReadInput => ()
+    ReadKey | ReadInput | FinishKeyIdentity => ()
   }
   request.keys.clear()
   request.inputs.clear()

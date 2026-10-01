@@ -207,6 +207,12 @@ pub fn client_execution_material_template_wire(ClientExecutionMaterial) -> Strin
 
 pub fn client_execution_material_wire(ClientExecutionMaterial) -> String
 
+pub fn client_infer_call_scope_artifact(ClientInferCallScope) -> @run_publication.RunEvidenceValue
+
+pub fn client_infer_call_scope_matches(ClientInferCallScope, PreparedClientProgram, @execution_relation.CompletedOutput) -> Bool
+
+pub fn client_infer_call_scope_matches_rows(ClientInferCallScope, @execution_relation.PreparedInferRows, String) -> Bool
+
 pub fn client_infer_plan_graph_barrier_cid(ClientInferPlanGraph) -> String
 
 pub fn client_infer_plan_graph_input_cid(ClientInferPlanGraph) -> String
@@ -403,6 +409,8 @@ pub fn issue_client_effect_run_definition(ClientEffectAllowedRun, String, String
 
 pub fn issue_client_effect_source_free_invocation(ClientEffectCompilation, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
+pub fn issue_client_infer_call_slot(ClientInferCallScope, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientInferCallScopeIssue]
+
 pub fn issue_client_task_compiled_run(PreparedClientProgram, ClientTaskCompilation, String, String, String) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
 
 pub fn issue_client_task_invocation(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, String, String, String, String, String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
@@ -430,6 +438,8 @@ pub fn issue_prepared_client_effect_values_fragment(PreparedClientEffectComputat
 pub fn issue_prepared_client_empty_invocation_bindings(PreparedClientProgram, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientEmptyInvocationBindingsIssue]
 
 pub fn issue_prepared_client_infer_bound_template(PreparedClientProgram, ClientInferPlanGraph, ClientCompilationManifests, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientInferBoundTemplateIssue]
+
+pub fn issue_prepared_client_infer_call_scope(PreparedClientProgram, ClientInferPlanGraph, Int, @execution_relation.CompletedOutput, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int) -> Result[ClientInferCallScope, ClientInferCallScopeIssue]
 
 pub fn issue_prepared_client_infer_execution_material(PreparedClientProgram, ClientInferPlanGraph, ClientCompilationManifests, Int, Int, Int) -> Result[ClientExecutionMaterial, ClientExecutionMaterialIssue]
 
@@ -875,6 +885,24 @@ pub(all) enum ClientInferBoundTemplateIssue {
   Template(ClientTaskBoundTemplateIssue)
 }
 
+pub struct ClientInferCallScope {
+  owner : PreparedClientProgram
+  plan : ClientInferPlanGraph
+  input : @execution_relation.CompletedOutput
+  artifact : @run_publication.RunEvidenceValue
+  effective : @run_publication.RunEvidenceValue
+  unit_definition_cid : String
+  source_ordinal : Int
+}
+
+pub(all) enum ClientInferCallScopeIssue {
+  ForeignOwner
+  ForeignInput
+  UnsupportedBindings
+  Encoding
+  Evidence(@run_publication.RunEvidenceValueIssue)
+}
+
 pub(all) enum ClientInferHostCapacityIssue {
   UnsupportedProgram
   Capacity(@check_environment.CapacityIssue)
@@ -889,6 +917,7 @@ pub(all) enum ClientInferItemLimitIssue {
 
 pub struct ClientInferPlanGraph {
   owner : PreparedClientProgram
+  source_ordinal : Int
   execution : @check_environment.ModelExecutionContract
   item_limit : @program_check.InferItemLimit
   graph : ClientTaskPlanGraph

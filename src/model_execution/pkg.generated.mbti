@@ -6,6 +6,7 @@ import {
   "actql/actql/check_environment",
   "actql/actql/execution_relation",
   "actql/actql/physical_resources",
+  "actql/actql/run_publication_host",
   "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
@@ -39,7 +40,7 @@ pub fn replay_model_capture_rows(@execution_relation.PreparedInferRows, String, 
 
 pub fn request_model_cancel(ModelExecution) -> Bool
 
-pub fn start_model_execution(@execution_relation.PreparedInferRows, ModelProvider, String, ModelExecutionLimits) -> Result[ModelExecution, ModelExecutionIssue]
+pub fn start_model_execution(@execution_relation.PreparedInferRows, ModelProvider, String, ModelExecutionLimits, call_scope? : @run_publication_host.ClientInferCallScope?) -> Result[ModelExecution, ModelExecutionIssue]
 
 pub fn start_model_output_preparation(ModelExecution, @execution_relation.CompletionPreparation, Int, @execution_relation.ValueLimits, Int, Int) -> Result[ModelOutputPreparation, ModelExecutionIssue]
 

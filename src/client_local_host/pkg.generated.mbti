@@ -23,6 +23,8 @@ pub fn cancel_client_infer_input(ClientInferInputExecution) -> Bool
 
 pub fn cleanup_client_infer_input(ClientInferInputExecution) -> Result[Bool, ClientInferInputIssue]
 
+pub fn client_infer_completed_input(ClientInferInputExecution) -> @execution_relation.CompletedOutput?
+
 pub fn client_infer_completion_preparation(ClientInferInputExecution, @execution_relation.PreparedInferRows) -> @execution_relation.CompletionPreparation?
 
 pub fn execute_source_free_values(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]

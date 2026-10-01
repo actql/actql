@@ -142,6 +142,22 @@ struct PreparedInferRows {
 }
 
 ///|
+/// Match mapped input to the exact live completion it borrowed. Content
+/// equality and a captured-source input do not substitute for that owner.
+pub fn prepared_infer_rows_matches_completed_input(
+  value : PreparedInferRows,
+  output : CompletedOutput,
+) -> Bool {
+  if value.reclaimed || !completed_output_available(output) {
+    return false
+  }
+  match value.input.source {
+    CompletedInput(source) => completed_output_same_occurrence(source, output)
+    CapturedInput(_) => false
+  }
+}
+
+///|
 /// Exact nonpersistent custody for a ModelTask consuming mapped input.
 struct InferRowsUse {
   owner : PreparedInferRows

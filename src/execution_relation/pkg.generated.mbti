@@ -367,6 +367,8 @@ pub fn completed_relation_export_field_names(CompletedRelationExportReceipt) -> 
 
 pub fn completed_relation_export_identity(CompletedRelationExportReceipt) -> LogicalRelationIdentity
 
+pub fn completed_relation_export_matches_output(CompletedRelationExportReceipt, CompletedOutput) -> Bool
+
 pub fn completed_relation_export_measurement(CompletedRelationExportReceipt) -> CompletedRelationExportMeasurement
 
 pub fn completed_relation_export_schema_identity(CompletedRelationExportReceipt) -> RelationSchemaIdentity
@@ -868,6 +870,8 @@ pub fn prepared_infer_rows_count(PreparedInferRows) -> Int
 pub fn prepared_infer_rows_item_guard(PreparedInferRows) -> Int64?
 
 pub fn prepared_infer_rows_key(PreparedInferRows, Int, Int) -> @value_admission.CheckedValue?
+
+pub fn prepared_infer_rows_matches_completed_input(PreparedInferRows, CompletedOutput) -> Bool
 
 pub fn prepared_infer_rows_owner(PreparedInferRows) -> @relation_evidence.CheckedInfer
 

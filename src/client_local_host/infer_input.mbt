@@ -13,6 +13,7 @@ struct ClientInferInputExecution {
   control : @bounded.Control
   mut mapping : @execution.InferRowsPreparation?
   mut rows : @execution.PreparedInferRows?
+  mut completed_input : @execution.CompletedOutput?
   mut prefix_done : Bool
   mut stopped : Bool
   mut cancelled : Bool
@@ -109,6 +110,7 @@ pub fn start_client_infer_input(
     control: @bounded.control(),
     mapping: None,
     rows: None,
+    completed_input: None,
     prefix_done: false,
     stopped: false,
     cancelled: false,
@@ -130,6 +132,20 @@ pub fn client_infer_completion_preparation(
     return None
   }
   @execution.prepare_infer_completion(active.sequence, rows, active.infer_step)
+}
+
+///|
+/// Borrow the actual pre-INFER completion while its existing prefix owner
+/// retains it. This does not copy rows or transfer cleanup responsibility.
+pub fn client_infer_completed_input(
+  active : ClientInferInputExecution,
+) -> @execution.CompletedOutput? {
+  guard !active.reclaimed &&
+    active.completed_input is Some(output) &&
+    @execution.completed_output_available(output) else {
+    return None
+  }
+  Some(output)
 }
 
 ///|
@@ -162,6 +178,7 @@ pub fn advance_client_infer_input(
       @local.Complete(output, work~, ..) => {
         active.work += work
         active.prefix_done = true
+        active.completed_input = Some(output)
         if active.cancelled {
           active.stopped = true
           return Ok(Stopped(work=active.work))
@@ -278,5 +295,6 @@ pub fn cleanup_client_infer_input(
     Err(issue) => return Err(Local(issue))
   }
   active.reclaimed = true
+  active.completed_input = None
   Ok(true)
 }

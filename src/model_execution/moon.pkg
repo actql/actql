@@ -10,6 +10,9 @@ import {
   "actql/actql/encode_core" @encode,
   "actql/actql/relation_schema" @schema,
   "actql/actql/pipeline_typing" @pipeline,
+  "actql/actql/run_publication_host" @publication_host,
+  "actql/actql/run_publication" @publication,
+  "actql/actql/value_contract" @contract,
 }
 
 import {

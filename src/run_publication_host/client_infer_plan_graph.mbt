@@ -4,6 +4,7 @@
 /// and register a physical provider before accepting a Run.
 pub struct ClientInferPlanGraph {
   owner : PreparedClientProgram
+  source_ordinal : Int
   execution : @environment.ModelExecutionContract
   item_limit : @checked.InferItemLimit
   graph : ClientTaskPlanGraph
@@ -384,6 +385,7 @@ pub fn issue_prepared_client_infer_plan_graph(
     @encode.end_object(graph_writer)
     Ok({
       owner: value,
+      source_ordinal: step,
       execution,
       item_limit,
       graph: { wire: @encode.finish(graph_writer), transformations, },
