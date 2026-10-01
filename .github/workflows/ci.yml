@@ -60,6 +60,8 @@ jobs:
         run: npm run check:client-types
       - name: Test environment guards
         run: node --test scripts/moonbit-environment.test.mjs
+      - name: Test read-only CI evidence reporting
+        run: node --test scripts/ci-evidence.test.mjs
       - name: Test portable dependency inspection and injected violations
         run: node --test scripts/portable-core.test.mjs
       - name: Test dependency isolation scratch ownership
