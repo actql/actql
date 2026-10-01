@@ -1,14 +1,19 @@
+> These `.aql` files are historical/internal fixtures, not accepted public
+> source. Independent `*.expected-program.json` files remain machine-input
+> execution fixtures. JSON execution does not complete new text migration.
+> See [migration mapping](../../../../docs/design/frontend-language-migration.md).
+
 # SGA surface baseline fixtures
 
 These independently authored fixtures compare named SGA calls with the
 existing Program side of syntax acceptance.
 
-`reach-subgraph.op.aql` uses today's structural DATA/OP syntax.
+`reach-subgraph.op.aql` records the retired structural DATA/OP syntax.
 `reach-subgraph.named.aql` uses the direct named calls for reach, subgraph,
 node_rows and edge_rows. Both source forms must match the same Program.
 `reach-subgraph.expected-program.json` is a separately authored Program, not
 new-lowerer output. Both explicitly declare two Results and their order.
-The test checks ordinary source admission and exact Program equality,
+The internal fixture test checks ordinary source admission and exact Program equality,
 including shared producer references. It is included by `aql-text.test.mjs`.
 
 `reach-selector.named.aql` and `reach-selector.op.aql` exercise a Relation
@@ -89,6 +94,12 @@ the node-count violation before A's degree violation; the second is empty at
 inclusive limits. The independently authored expectations include a nullable
 `node_id` for whole-graph violations. Neither DATA expression adds a sort or
 Result order declaration.
+## Historical public text execution evidence
+
+These observations apply to the recorded earlier SHAs. Current packed tests
+submit the independent machine Programs and reject the historical text. They
+do not demonstrate replacement text migration.
+
 At `0601a0f02f99e23cb38b908f2d0955a96339b50f`, the standard clean packed
 installation passed `normalize-rows`, `mean-graphs`, `traverse-paths`,
 `union-graphs`, `graft-graphs`, `subtract-graphs`, `degree-rows`, `components`,
@@ -96,10 +107,11 @@ installation passed `normalize-rows`, `mean-graphs`, `traverse-paths`,
 `diff-apply` through both Embedded Local and HTTP.
 The same source passed the Node-free native CLI's
 representative SGA Result. The driver checked independently authored rows and
-stream termination; the public Result API does not expose schema type,
-nullability or column order.
-All original eight cases now pass packed Embedded Local and HTTP. The five
-additional cases above also pass, for thirteen standard named-source cases.
+stream termination; that version of the public Result API did not expose
+schema type, nullability or column order. Current `Result.describe()` exposes
+the retained contracts separately from these row-shape expectations.
+All original eight cases passed packed Embedded Local and HTTP at that SHA.
+The five additional cases above passed, for thirteen standard named-source cases.
 The earlier failed probes and their repaired provider boundaries are recorded
 in `docs/reviews/2026-09-29-sga-packed-run-handoff.md`.
 The distribution Client job runs `scripts/sga-surface-checker.test.mjs`

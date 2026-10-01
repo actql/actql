@@ -71,31 +71,25 @@ test "explicit format aliases retain the structured route" {
 }
 
 ///|
-test "structural JSON escapes are admitted by the structural parser" {
-  let document =
-    #|AQL '0.1'; PROGRAM 'escaped' {
-    #| STAGE main {
-    #|  DATA source = OP values {"schema":{"id":{"type":"string","nullable":false}},"rows":[{"id":"\ud83d\ude00"}]};
-    #|  RESULT rows = {"from":"source"};
-    #| }
-    #| RESULT answer = {"from":{"stage":"main","result":"rows"}};
-    #|}
-  assert_true(lower(document, Text, None) is Ok(_))
+test "retired structural envelopes reject without context or a fallback" {
+  for
+    document in [
+      "AQL '0.1'; PROGRAM 'old' { STAGE s { STEP {}; } }", "-- retired\n /* prefix */ aQl '0.1'; PROGRAM 'old' {}",
+      "PROGRAM 'old' {}", "STAGE main { STEP {}; }", "STEP {\"values\":{}};", "OP values {};",
+      "DATA same = FROM g |> graphs_equal(with: g);",
+    ] {
+    let formats : Array[Format] = [Text, Sql]
+    for format in formats {
+      assert_true(lower(document, format, None) is Err(WrongQueryForm))
+      assert_true(
+        lower(document, format, Some(test_context())) is Err(WrongQueryForm),
+      )
+    }
+  }
 }
 
 ///|
-test "structural AQL and query-only AQL use distinct parsers" {
-  let structural =
-    #|AQL '0.1'; PROGRAM 'frontend.route' {
-    #| STAGE main {
-    #|  DATA source = OP values {"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":2}]};
-    #|  RESULT rows = {"from":"source"};
-    #| }
-    #| RESULT answer = {"from":{"stage":"main","result":"rows"}};
-    #|}
-  let first = lower(structural, Text, None).unwrap()
-  assert_eq(first.format, @program.Json)
-  assert_true(first.document.contains("\"frontend.route\""))
+test "query and machine input routes retain explicit formats and declarations" {
   let context = test_context()
   let sql = lower("SELECT id FROM records WHERE id > 1", Sql, Some(context)).unwrap()
   let pipe = lower(
@@ -114,58 +108,22 @@ test "structural AQL and query-only AQL use distinct parsers" {
     lower("FROM records |> SELECT id", Sql, Some(context))
     is Err(WrongQueryForm),
   )
-  assert_true(
-    lower("AQL '0.1'; PROGRAM 'broken' {", Text, None) is Err(SourceSyntax(_)),
-  )
   let declared = {
-    ..test_context(),
+    ..context,
     parameter_declarations: Some(test_declarations()),
   }
-  assert_true(
-    lower(structural, Text, Some(declared))
-    is Err(ExternalDeclarationsOnProgram),
-  )
-  let declared_program = lower(
+  let program = lower(
     "SELECT id FROM records WHERE id = @p",
     Sql,
     Some(declared),
   ).unwrap()
   assert_true(
-    declared_program.document.contains(
-      "\"params\":{\"p\":{\"type\":\"number\"}}",
-    ),
+    program.document.contains("\"params\":{\"p\":{\"type\":\"number\"}}"),
   )
-}
-
-///|
-test "public text routing preserves named SGA Program meaning" {
-  let named =
-    #|AQL '0.1'; PROGRAM 'sga.route' { STAGE main {
-    #|  INPUT g = {"carrier":"graph"};
-    #|  DATA same = FROM g |> graphs_equal(with: g);
-    #|  RESULT rows = {"from":"same"};
-    #|} RESULT answer = {"from":{"stage":"main","result":"rows"}}; }
-  let existing =
-    #|AQL '0.1'; PROGRAM 'sga.route' { STAGE main {
-    #|  INPUT g = {"carrier":"graph"};
-    #|  DATA same = FROM g |> OP graphs_equal {"with":"g"};
-    #|  RESULT rows = {"from":"same"};
-    #|} RESULT answer = {"from":{"stage":"main","result":"rows"}}; }
-  let lowered = lower(named, Text, None).unwrap()
-  assert_eq(lowered.format, @program.Json)
-  assert_eq(lowered.document, lower(existing, Text, None).unwrap().document)
-  assert_true(lower(named, Sql, None) is Err(WrongQueryForm))
-  assert_true(
-    lower(
-      named,
-      Text,
-      Some({
-        ..test_context(),
-        parameter_declarations: Some(test_declarations()),
-      }),
-    )
-    is Err(ExternalDeclarationsOnProgram),
-  )
+  let machine = "{\"version\":\"actql/0.1\",\"id\":\"retained\"}"
+  assert_eq(lower(machine, Json, None).unwrap().document, machine)
+  let yaml = "version: actql/0.1\nid: retained\n"
+  assert_eq(lower(yaml, Yaml, None).unwrap().document, yaml)
 }
 
 ///|

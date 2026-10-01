@@ -53,20 +53,15 @@ function runAsync(command, args, cwd, extraEnvironment = {}) {
   });
 }
 
-// PR-2 uses a test-only source adapter; the installed Client and Host retain
-// their ordinary JSON admission and execution path. Raw-text SDK routing is
-// intentionally a separate delivery unit.
+// Historical parser tests remain internal fixture checks. Installed Programs
+// use independent JSON machine input; no compatibility text entry is exposed.
 run('moon', ['build', '--target', 'js', 'src/aql_text_test_bridge'], repository);
 run('node', ['--test', 'scripts/aql-text.test.mjs'], repository);
 run('moon', ['build', '--target', 'js', 'src/query_program_test_bridge'],
   repository);
 run('node', ['--test', 'scripts/query-program.test.mjs'], repository);
-const frontend = await import(pathToFileURL(join(repository,
-  '_build/js/debug/build/aql_text_test_bridge/aql_text_test_bridge.js')));
-const structuralValues = frontend.structuralToJson(await readFile(join(repository,
-  'spec/frontend/fixtures/client-values.structural.aql'), 'utf8'));
-assert.deepEqual(JSON.parse(structuralValues), JSON.parse(await readFile(
-  join(repository, 'packages/sdk/fixtures/values.json'), 'utf8')));
+const machineValues = await readFile(join(repository,
+  'packages/sdk/fixtures/values.json'), 'utf8');
 
 for (const name of ['client-wire', 'sdk', 'local-node',
   'node']) {
@@ -98,13 +93,10 @@ for (const name of ['host-port.mjs', 'host-port.d.ts']) {
   assert((await readFile(join(root, 'node_modules', '@actql',
     'sdk', name), 'utf8')).length > 0);
 }
-await writeFile(join(root, 'values.json'), structuralValues);
+await writeFile(join(root, 'values.json'), machineValues);
 const sourceProgram = await readFile(join(repository,
   'adapters/connectors/duckdb/node/examples/program.json'), 'utf8');
-const sourceRoundtrip = frontend.structuralToJson(
-  frontend.jsonToStructural(sourceProgram));
-assert.deepEqual(JSON.parse(sourceRoundtrip), JSON.parse(sourceProgram));
-await writeFile(join(root, 'source-program.json'), sourceRoundtrip);
+await writeFile(join(root, 'source-program.json'), sourceProgram);
 const queryFrontend = await import(pathToFileURL(join(repository,
   '_build/js/debug/build/query_program_test_bridge/query_program_test_bridge.js')));
 const graphSteps = [
@@ -350,7 +342,7 @@ assert.notEqual(pairQuery, '');
 await writeFile(join(root, 'query-pair.json'), pairQuery);
 await writeFile(join(root, 'query-pair.expected-rows.json'),
   JSON.stringify(pairExpectedRows));
-const valuesStep = JSON.parse(structuralValues).stages[0].steps[0];
+const valuesStep = JSON.parse(machineValues).stages[0].steps[0];
 const valuesQuery = queryFrontend.compileValuesQueryJson(
   'SELECT * FROM rows', 'rows', 'selected', JSON.stringify(valuesStep),
   JSON.stringify(['id']), 'fixture.values_query');

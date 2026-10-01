@@ -28,6 +28,14 @@ export const querySuccesses = [
     text: 'SELECT id FROM records WHERE amount > 100 ORDER BY id', expected: []},
 ];
 export const queryRefusals = [
+  ...['aql-text', 'sql'].flatMap(format => [
+    {name: `retired-envelope-${format}`, format,
+      text: "-- prefix\nAQL '0.1'; PROGRAM 'old' { STAGE s { STEP {}; } }"},
+    {name: `retired-program-${format}`, format, text: "PROGRAM 'old' {}"},
+    {name: `retired-stage-${format}`, format, text: 'STAGE s { STEP {}; }'},
+    {name: `retired-step-${format}`, format, text: 'STEP {};'},
+    {name: `retired-op-${format}`, format, text: 'OP values {};'},
+  ]),
   {name: 'syntax', text: 'SELECT id FROM', format: 'sql'},
   {name: 'undeclared', text: 'SELECT id FROM records WHERE id = @p',
     format: 'sql'},

@@ -78,6 +78,8 @@ test('Reach capacity sources preserve independently declared chain Programs', ()
     steps[3].reach.max_depth = count - 1;
     assert.deepEqual(JSON.parse(structuralToJson(
       reachSelectorChainSource(source, count))), expected);
+    assert.deepEqual(JSON.parse(reachSelectorChainSource(
+      fixture('reach-selector.expected-program.json'), count)), expected);
     assert.equal(jsonAdmissionDiagnostic(JSON.stringify(expected)), '');
   }
 });

@@ -154,7 +154,7 @@ if (selectedSgaCases.includes('reach-selector')) {
 const sgaFixtureDirectory = resolve('sga-fixtures');
 await mkdir(sgaFixtureDirectory);
 for (const name of sgaCases) {
-  for (const suffix of ['named.aql', 'expected-results.json']) {
+  for (const suffix of ['named.aql', 'expected-program.json', 'expected-results.json']) {
     await writeFile(resolve(sgaFixtureDirectory, `${name}.${suffix}`),
       await readFile(resolve('sga-source-fixtures', `${name}.${suffix}`)));
   }

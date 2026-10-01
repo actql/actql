@@ -269,12 +269,14 @@ same model, followed by ordinary admission and the common checker.
 
 ### Source representation
 
-ActQL source files SHOULD use the `.aql` extension for YAML, JSON and structural text
-representations. The extension identifies the language, not the representation.
+ActQL source files SHOULD use the `.aql` extension for YAML, JSON and adopted
+query representations. The extension identifies the language, not the
+representation, and does not select a parser.
 
 The [Frontend r1 adoption registry](../../spec/frontend/frontend-profile-r1.json)
-records the selected structural-text and later query/pattern profiles separately
-from installed parser support. JSON/YAML decoding below is unchanged. A caller
+records adopted query/pattern profiles and the withdrawal of the old
+`AQL / PROGRAM / STAGE / STEP / OP` text surface separately from installed
+parser support. JSON/YAML Program remains public machine input. A caller
 selects an installed frontend explicitly; a failure in that frontend does not
 trigger reinterpretation as another format. Each frontend preserves the closed
 Program model, explicit steps, semantic array order and the existing checking

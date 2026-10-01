@@ -1,4 +1,4 @@
-# Frontend r1: structural source before query sugar
+# Frontend r1: adopted query surfaces and machine Program input
 
 Frontend r1 adds representations of the existing Program. It does not add an
 execution engine, an alternative checker, or authority to acquire inputs or
@@ -14,7 +14,8 @@ implemented syntax and public Host execution evidence.
 
 ## One Program and one operation vocabulary
 
-JSON and YAML remain compatible. Structural text represents the complete
+JSON and YAML remain public machine inputs. The retired internal fixture
+representation records the complete
 closed Program envelope: metadata, IDs, parameters, opaque bindings, stages,
 inputs, explicit steps, Results and Effects. Expression strings inside JSON
 bodies retain the existing expression grammar. Object order is immaterial;
@@ -22,15 +23,17 @@ array order and explicit steps are preserved. Missing optional members and
 explicitly empty permitted members are not conflated. An empty Effect map can
 be represented by `EFFECTS {};`.
 
-`STEP` carries an ordinary JSON step, including its metadata and output name.
+In historical fixtures only, `STEP` carries an ordinary JSON step, including its metadata and output name.
 `OP` selects a name from the existing closed operation inventory. The minimum
 structural `DATA` form chains only native operations, for example
 `DATA x = OP values {...};` and `DATA y = FROM x |> OP filter {...};`.
-These are illustrative productions, not executable fixtures. `WHERE`, `SELECT`,
-query expressions, domain aliases and `MATCH` are separate later work.
-Unknown operations are rejected rather than forwarded to a Host.
+These record historical productions, not current public examples. `WHERE`,
+`SELECT`, query expressions, domain aliases and `MATCH` use the query frontend.
+The entire old envelope is rejected by public source routing. Supported
+SQL/Pipe and Graph query syntax follows query-text.md; the adopted target is
+broader than implemented syntax. See [migration mapping](frontend-language-migration.md).
 
-The minimal formatter reconstructs the admitted structure, including unused
+The internal fixture formatter reconstructs the admitted structure, including unused
 steps and explicit no-ops. It does not optimize the Program or preserve comments
 and whitespace. It does not use the metadata-stripped identity projection as
 its source. Source text and semantic identity are distinct: trivia can change
@@ -65,11 +68,11 @@ significant according to their existing contracts. A changed Grammar Manifest
 can change dependent compilation identities; frontend equivalence is not a
 promise that all Plan identities survive a grammar change.
 
-The Grammar Manifest binds the structural EBNF and the structural source rules
-separately from the existing Program source grammar and expression contracts.
-This binds lexical, lowering and formatter obligations without changing the
-Program schema. Its pins, dependent artifacts and independent vectors change
-together with those obligations.
+The Grammar Manifest's structural-text fields bind the withdrawal grammar
+and policy, separately from the existing Program source grammar and expression
+contracts. They no longer authorize a structural parser or formatter. Its
+pins, dependent artifacts and independent vectors change together with those
+obligations; the Program schema remains unchanged.
 All owned contracts remain on the initial 0.1 baseline.
 
 Pure checking performs no provider I/O. Execution uses the normal Host and
@@ -79,14 +82,15 @@ The 72-operation language inventory and Local execution-path accounting count
 different things.
 
 The lightweight transport SDK does not depend on the parser or Core. Existing
-`aql`, `start`, `attach` and Result behavior stays intact. Structural tests can
-use an ordinary Host adapter before full source-format routing is packaged.
+`aql`, `start`, `attach` and Result behavior stays intact. Historical structural tests are fixture-tool tests; they cannot submit old
+text to the public Host. Public machine-input execution and new source
+execution are distinct acceptance claims.
 No second Run API, SQL engine, retry mechanism or Effect scheduler is needed.
 
-## Later profiles
+## Query profiles and remaining adoption work
 
-Query, Pipe and limited graph patterns lower into the same Program after the
-structural representation is complete. The profile registry records their
+Query, Pipe and limited graph patterns lower into the same Program. The
+profile registry records their
 preconditions and rejection reasons. Restricted syntax is not expanded by
 guessing schema, inserting casts, hiding acquisition, approximating computation,
 or treating a runtime capability declaration as execution evidence.

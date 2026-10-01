@@ -1,5 +1,5 @@
 // Runs unchanged in the clean installation. Only the installed SDK and Host
-// parse, check, admit and control the named Reach Program.
+// check, admit and control the independent machine-input Reach Program.
 import assert from 'node:assert/strict';
 import {generateKeyPairSync, randomUUID} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
@@ -11,7 +11,7 @@ import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from
   './node_modules/@actql/local-node/adapters/host-node/embedded-local.mjs';
 
-const source = await readFile('sga-source-fixtures/reach-selector.named.aql',
+const source = await readFile('sga-source-fixtures/reach-selector.expected-program.json',
   'utf8');
 const deferred = () => {
   let resolve;
@@ -70,7 +70,7 @@ for (const mode of ['local', 'remote']) {
     }
     client = await connect(options);
     const requestId = `sga-cancel-${mode}-${randomUUID()}`;
-    submission = client.aql(source, {format: 'aql-text', requestId});
+    submission = client.aql(source, {format: 'json', requestId});
     // Record a rejection immediately, even if intake fails before the hook.
     const submitFailure = submission.then(() => new Promise(() => {}),
       error => { throw error; });
@@ -97,7 +97,7 @@ for (const mode of ['local', 'remote']) {
     await assert.rejects(execution.result('answer').all(),
       error => error.code === 'ResultAccessDenied');
     assert.deepEqual((await client.aql(source,
-      {format: 'aql-text', requestId})).ref, execution.ref);
+      {format: 'json', requestId})).ref, execution.ref);
     assert.deepEqual((await client.lookupRequest(requestId)).ref, execution.ref);
     assert.equal((await (await client.attach(execution.ref)).status()).status,
       'cancelled');
@@ -110,7 +110,7 @@ for (const mode of ['local', 'remote']) {
       const restored = await client.attach(execution.ref);
       assert.equal((await restored.status()).status, 'cancelled');
       assert.deepEqual((await client.aql(source,
-        {format: 'aql-text', requestId})).ref, execution.ref);
+        {format: 'json', requestId})).ref, execution.ref);
     }
     assert.equal(steps.filter(name => name === 'dispatch_reserved').length, 1);
     assert.equal(steps.filter(name => name === 'physical_start_reserved').length,

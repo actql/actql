@@ -63,18 +63,24 @@ const client = await connect(options);
 try {
   assert.equal(client.profile.mode, mode);
   for (const name of requestedCase ? [requestedCase] : cases) {
-    const source = await readFixture(name, 'named.aql');
+    const source = JSON.stringify(JSON.parse(await readFixture(name, 'expected-program.json')));
+    // A retained historical source is not a public compatibility route.
+    const retired = await readFixture(name, 'named.aql');
+    const retiredId = `sga-retired-${name}-${randomUUID()}`;
+    await assert.rejects(client.aql(retired, {format: 'aql-text',
+      requestId: retiredId}), error => error.code === 'ClientProgramInvalidInput');
+    assert.deepEqual(await client.lookupRequest(retiredId), {kind: 'not_found'});
     const expected = JSON.parse(await readFixture(name,
       'expected-results.json'));
     const requestId = `sga-public-${name}-${randomUUID()}`;
-    const execution = await client.aql(source, {format: 'aql-text', requestId});
+    const execution = await client.aql(source, {format: 'json', requestId});
     const state = await execution.wait({signal: AbortSignal.timeout(120000)});
     assert.equal(state.status, 'succeeded', `${name}: ${JSON.stringify(state)}`);
     assert.deepEqual((await client.lookupRequest(requestId)).ref,
       execution.ref, name);
     const attached = await client.attach(execution.ref);
     assert.deepEqual(attached.ref, execution.ref, name);
-    assert.deepEqual((await client.aql(source, {format: 'aql-text',
+    assert.deepEqual((await client.aql(source, {format: 'json',
       requestId})).ref, execution.ref, name);
     for (const [resultName, result] of Object.entries(expected)) {
       const rows = await attached.result(resultName).all();
@@ -89,9 +95,9 @@ try {
     assert.equal((await execution.status()).status, 'succeeded', name);
     assert.equal((await execution.cancel()).kind, 'already_terminal', name);
     if (name === 'shortest-path') {
-      const invalid = source.replace('max_hops: 3', 'max_hops: 0');
+      const invalid = source.replace('"max_hops":3', '"max_hops":0');
       assert.notEqual(invalid, source);
-      await assert.rejects(client.aql(invalid, {format: 'aql-text',
+      await assert.rejects(client.aql(invalid, {format: 'json',
         requestId: `sga-invalid-hop-${randomUUID()}`}),
       error => error.code === 'ClientProgramRejected');
     }
@@ -100,7 +106,7 @@ try {
         '"id":{"type":"string","nullable":true}},"rows":[{"id":"A"}]',
         '"id":{"type":"number","nullable":true}},"rows":[{"id":1}]');
       assert.notEqual(invalid, source);
-      await assert.rejects(client.aql(invalid, {format: 'aql-text',
+      await assert.rejects(client.aql(invalid, {format: 'json',
         requestId: `sga-invalid-selector-type-${randomUUID()}`}),
       error => error.code === 'ClientProgramRejected');
       // Both Programs are well typed. Membership and selected NULL admission
@@ -109,11 +115,12 @@ try {
         ['null', [{id: null}]]]) {
         const seed = JSON.stringify({schema: {id: {type: 'string',
           nullable: true}}, rows});
-        const badSource = source.replace(/^    DATA seeds = OP values .*;$/m,
-          `    DATA seeds = OP values ${seed};`);
+        const program = JSON.parse(source);
+        program.stages[0].steps.find(step => step.as === 'seeds').values = JSON.parse(seed);
+        const badSource = JSON.stringify(program);
         assert.notEqual(badSource, source);
         const id = `sga-selector-${label}-${randomUUID()}`;
-        const rejected = await client.aql(badSource, {format: 'aql-text',
+        const rejected = await client.aql(badSource, {format: 'json',
           requestId: id});
         const failed = await rejected.wait({signal: AbortSignal.timeout(120000)});
         assert.equal(failed.status, 'failed', `${label}: ${JSON.stringify(failed)}`);
@@ -123,7 +130,7 @@ try {
         assert.equal((await restored.status()).status, 'failed', label);
         await assert.rejects(restored.result('answer').all(),
           error => error.code === 'ResultAccessDenied');
-        assert.deepEqual((await client.aql(badSource, {format: 'aql-text',
+        assert.deepEqual((await client.aql(badSource, {format: 'json',
           requestId: id})).ref, rejected.ref);
       }
       console.log(`packed ${mode} selector membership and NULL failures passed`);
@@ -135,7 +142,7 @@ try {
       // This oracle comes from the Reach law, not compiler or kernel output.
       const bounded = reachSelectorChainSource(source, 13);
       assert.notEqual(bounded, source);
-      const within = await client.aql(bounded, {format: 'aql-text',
+      const within = await client.aql(bounded, {format: 'json',
         requestId: `sga-selector-capacity-within-${randomUUID()}`});
       const withinState = await within.wait({signal: AbortSignal.timeout(120000)});
       assert.equal(withinState.status, 'succeeded', JSON.stringify(withinState));
@@ -152,7 +159,7 @@ try {
       assert.deepEqual(await within.result('answer').all(), expectedRows);
       const overflowing = reachSelectorChainSource(source, 14); // 105 pairs.
       const overflowId = `sga-selector-capacity-overflow-${randomUUID()}`;
-      const over = await client.aql(overflowing, {format: 'aql-text',
+      const over = await client.aql(overflowing, {format: 'json',
         requestId: overflowId});
       const overState = await over.wait({signal: AbortSignal.timeout(120000)});
       assert.equal(overState.status, 'failed', JSON.stringify(overState));
@@ -162,12 +169,12 @@ try {
       assert.equal((await restored.status()).status, 'failed');
       await assert.rejects(restored.result('answer').all(),
         error => error.code === 'ResultAccessDenied');
-      assert.deepEqual((await client.aql(overflowing, {format: 'aql-text',
+      assert.deepEqual((await client.aql(overflowing, {format: 'json',
         requestId: overflowId})).ref, over.ref);
       console.log(`packed ${mode} selector capacity boundary passed`);
     }
   }
-  console.log(`packed ${mode} named SGA source and Result acceptance passed`);
+  console.log(`packed ${mode} SGA machine Program and Result acceptance passed`);
 } finally {
   await client.close();
 }
