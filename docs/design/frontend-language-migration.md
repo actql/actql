@@ -47,7 +47,7 @@ envelope withdraws its *text path*, not the common Graph operation.
 
 | Prior example | Adopted new expression / meaning | Missing implementation | Completion evidence required |
 | --- | --- | --- | --- |
-| `client-values.structural.aql`: OP values | A source-free Relation with the same declared schema/rows; no fabricated external source | Concrete inline Values spelling needs a scoped proposal; current query parser requires a source | New source versus independent `packages/sdk/fixtures/values.json`, then Local/HTTP Result |
+| `client-values.structural.aql`: OP values | A source-free Relation with the same declared schema/rows; no fabricated external source | Source-free SELECT and UNION ALL lower to existing Values; the explicit RESULT surface remains separate | `SELECT 1 AS id UNION ALL SELECT 2 AS id ORDER BY id` versus independent `packages/sdk/fixtures/values.json`, then Local/HTTP Result |
 | `orders.structural.aql`: filter/group/sort | SQL/Pipe WHERE, AGGREGATE, ORDER BY; explicit RESULT where requested | Computation surfaces exist; exact authored IDs, metadata and Result envelope are not represented by query sugar | Preserve the independent machine Program; test modern complete source after Result surface is connected |
 | Named SGA examples: OP graph plus named calls | Existing producer references, named typed arguments and Graph-to-Graph or Graph-to-Relation operations | Standalone named DATA/SGA query parsing and source Graph construction; explicit Result syntax | All nodes, edges, types, order, multiplicity and Delta compared through public text Local/HTTP |
 | Metadata, bindings, unused steps and explicit no-ops | Program machine input retains these authored facts | No automatic equivalent text spelling is claimed; some facts belong to source context rather than query operators | Independent lossless machine input tests; any proposed text context must bind exact facts |
@@ -55,8 +55,9 @@ envelope withdraws its *text path*, not the common Graph operation.
 | INFER/NEAREST KEEP and AS | KEEP plus one result STRUCT forms a new output scope | Source lowering and execution are separate; common INFER handoff still required | Values/types/nullability, keys, replay and no-redispatch through packed Local/HTTP |
 | VecA/TEA OP forms | Their adopted domain vocabulary and existing logical operators | Remaining surface productions and lowering | Independent Program/result cases; never approximate with SQL scalar functions |
 
-For inline Values/Graph construction, report a concrete spelling proposal and
-its expected machine Program before implementing a new surface. Do not preserve
+Source-free Relation examples use the adopted FROM-optional SELECT and set
+syntax. Graph construction still needs a concrete spelling proposal and its
+expected machine Program before implementing a new surface. Do not preserve
 OP merely because those spellings are unfinished. An installed Graph source and
 a source-free constructed Graph are distinct input obligations.
 

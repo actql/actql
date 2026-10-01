@@ -2,14 +2,14 @@
    docs/spec/query-text.md. This grammar does not define GoogleSQL as a whole. *)
 query         = [ with_clause ], ( sql_query | pipe_query ), [ ";" ] ;
 sql_query     = select_core, { set_part },
-                [ order_clause ], [ limit_clause ] ;
+                [ order_clause ], [ limit_clause ], { "|>", pipe_item } ;
 with_clause   = "WITH", cte, { ",", cte } ;
-cte           = identifier, "AS", "(", ( select_core | cte_pipe ), ")" ;
+cte           = identifier, "AS", "(", ( select_core, { "|>", cte_pipe_item } | cte_pipe ), ")" ;
 (* CTE bodies use the same relational operators except top-level INFER. *)
 cte_pipe      = "FROM", source, { "|>", cte_pipe_item } ;
 cte_pipe_item = relation_pipe_item | nearest_operator ;
-select_core   = "SELECT", [ "DISTINCT" ], select_list, "FROM", source,
-                { join }, [ where_clause ], [ group_clause ],
+select_core   = "SELECT", [ "DISTINCT" ], select_list, [ "FROM", source, { join } ],
+                [ where_clause ], [ group_clause ],
                 [ having_clause ] ;
 pipe_query    = relation_pipe | graph_pipe ;
 relation_pipe = "FROM", source, { "|>", pipe_item } ;
