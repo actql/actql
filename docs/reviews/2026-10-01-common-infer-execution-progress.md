@@ -178,6 +178,47 @@ fixture freshness check rejected that environment; the rerun with the pinned
 toolchain passed all 26 cases. No runtime bundle is committed. No new Linux CI
 or pushed-SHA verification is claimed.
 
+### Bounded capture export and encrypted Store custody
+
+The checked model owner now retains the actual raw structured response beside
+its validated value and invocation evidence. An opaque capture read can export
+the existing `actql-model-capture-bundle/0.1` body through a bounded session.
+The first pass hashes the preimage; the second emits provisional chunks with
+the bundle self-CID. Only accepted terminal output exposes that identity.
+Nested response traversal consumes individual steps and observes cancellation.
+Flat invocation evidence has an explicit 16-KiB/1,024-node serialization bound;
+it cannot conceal an unbounded response subtree in that step.
+
+The exporter retains its own capture read. Stop confirmation precedes cleanup,
+which discards the writer's partial buffer and releases that read exactly once.
+The original model owner cannot reclaim its input or observation while export
+or caller custody remains. This uses the existing bounded execution and capture
+owners, not a second model scheduler or durable execution ledger.
+
+The Node integration independently encodes the expected formal bundle and its
+CID, checks the exact full-wire byte ceiling and one-byte-short rejection,
+and saves the result using the actual Local publication Store's encrypted
+private-evidence and physical-holding APIs. Closing and reopening that Store
+preserves authenticated, exact-bound bytes. A directory-sync failure during
+confirmation retains the capture owner; retry confirms the same holding without
+another model call. A different wire is rejected. A macrotask cancellation
+during a 512-element response export produces no accepted bundle CID.
+
+This unit proves bounded serialization and durable authenticated bytes, not
+restoration into a verified model replay owner after process restart. Store
+confirmation is physical custody, not inference authorization or publication.
+The serializer's own byte/node/work bounds also do not replace admission under
+the global Host execution envelope. Transitive dependency admission, installed
+ModelTask policy, restored replay and public Named Result publication remain
+required before B receives an adoption-ready SHA.
+
+Verification passed on JS, Wasm and native: `client_infer_host` 22/22,
+`encode_core` 37/37, `model_execution` 2/2 and `run_publication` 179/179 on
+each target. The Node inference bridge passed 28/28, and the two existing
+private-evidence Store cases passed. The JS runtime build, generated interfaces,
+public API comparison, formatting and diff checks cover this code-only unit.
+No runtime bundle is committed; no push or Linux CI success is claimed.
+
 Durable response/capture custody, verified formal replay, installed public Host
 registration and committed Named Result retrieval remain unfinished. The
 fixture execution policy is identity-only material, not public policy admission.

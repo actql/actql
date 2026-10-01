@@ -193,6 +193,7 @@ fn accept_model_slot(
   input_key_cid : String,
   checked : @admitted.CheckedValue,
 ) -> @bounded.KernelStep[ModelCaptureBundle, ModelExecutionIssue] {
+  state.responses.push(response.value)
   state.captures.push({
     slot: request.slot,
     slot_cid: request.slot_cid,

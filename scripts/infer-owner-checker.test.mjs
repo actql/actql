@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
+import {mkdtemp, open, rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import test from 'node:test';
 import {inspect} from 'node:util';
 
@@ -9,6 +12,9 @@ import * as moon from
   '../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {canonicalText} from './check-canonical-json.mjs';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
+import {openLocalPublicationStore} from '../adapters/store-local/publication-store.mjs';
+import {createPublicationContractControlFixture} from
+  '../adapters/host-common/publication-contract-control.fixture.mjs';
 
 // Reuse the independently hashed typing vector, not an execution result.
 const taskSource = readFileSync(new URL(
@@ -284,8 +290,9 @@ function scopedInferGraph(prepared, installedTask = task) {
 }
 
 function ownedInfer(source = program(), onInvoke, options = {}) {
+  const installedTask = options.installedTask ?? task;
   const preparation = moon.clientProgramPrepareEffectFreeWithParameters(
-      canonicalText(source), 'json', environment(true, options.hostItems, task,
+      canonicalText(source), 'json', environment(true, options.hostItems, installedTask,
         options.capacityOverrides),
       options.parameters === undefined ? undefined : canonicalText(options.parameters));
   const prepared = moon.clientProgramPreparationReady(preparation);
@@ -299,11 +306,11 @@ function ownedInfer(source = program(), onInvoke, options = {}) {
         '"hello"');
       onInvoke?.(active);
       return moon.clientProgramModelResponse(request,
-        '{"reason":null,"risk":"high"}', 'fixture-risk-model', 'request-1',
+        options.responseBody ?? '{"reason":null,"risk":"high"}', 'fixture-risk-model', 'request-1',
         1n, 2n, '2026-10-01T00:00:00.000Z');
     });
   if (options.scoped === true) {
-    const graph = scopedInferGraph(prepared);
+    const graph = scopedInferGraph(prepared, installedTask);
     active = checked(moon.clientProgramStartScopedInferExecution(
       prepared, 2, graph, registry, values, provider));
   } else {
@@ -369,9 +376,9 @@ test('a macrotask cancellation stops nested response admission without replaying
   assert.equal(calls, 1);
 });
 
-async function ownedInferTerminal(active, atYield) {
+async function ownedInferTerminal(active, atYield, maxPolls = 2000) {
   let lastWork = 0n;
-  for (let poll = 0; poll < 2000; poll++) {
+  for (let poll = 0; poll < maxPolls; poll++) {
     const value = checked(moon.clientProgramAdvanceInferExecution(active, 1));
     const work = value.$tag === 0 || value.$tag === 3 ? value._0 : value._1;
     assert.ok(work >= lastWork && work - lastWork <= 1n,
@@ -595,6 +602,180 @@ async function inferExportRows(prepared, completed) {
     moon.clientProgramInferResultExportClose(stream);
   }
 }
+
+async function exportedModelCapture(saved, {maxBytes = 100000, maxWork = 10000} = {}) {
+  const active = checked(moon.clientProgramStartInferCaptureExport(saved, maxBytes, maxWork));
+  let wire = '';
+  let work = 0n;
+  for (let poll = 0; poll < 10000; poll++) {
+    const step = moon.clientProgramAdvanceInferCaptureExport(active, 1);
+    if (step.$tag === 0) return {active, failure: step._0, wire};
+    const value = checked(step);
+    assert.equal(value._2 - work, 1n);
+    work = value._2;
+    wire += value._1;
+    if (value._0) {
+      return {active, wire, identity: moon.clientProgramInferCaptureExportIdentity(active)};
+    }
+    assert.equal(moon.clientProgramInferCaptureExportIdentity(active), undefined);
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  assert.fail('capture export exceeded its independent finite poll ceiling');
+}
+
+test('checked capture serializes its formal bundle and survives encrypted Store reopen', async t => {
+  const original = ownedInfer(undefined, undefined, {scoped: true});
+  assert.equal((await ownedInferTerminal(original.active)).$tag, 1);
+  const saved = moon.clientProgramAcquireInferCapture(original.active);
+  assert.ok(saved);
+  const exported = await exportedModelCapture(saved);
+  assert.equal(exported.failure, undefined);
+  assert.ok(exported.identity);
+  const observation = JSON.parse(moon.strategyRunEvidenceJson(
+    moon.clientProgramInferInvocationEvidence(original.active, 0)));
+  const expectedBody = {
+    version: 'actql-model-capture-bundle/0.1', barrier_receipts: [], captures: [{
+      model_call_slot_cid: observation.model_call_slot_cid,
+      semantic_request_cid: observation.semantic_request_cid,
+      structured_response: {reason: null, risk: 'high'}, evidence: observation,
+    }],
+  };
+  assert.equal(exported.identity, cid(expectedBody));
+  const expectedWire = canonicalText({...expectedBody, bundle_cid: cid(expectedBody)});
+  assert.equal(exported.wire, expectedWire);
+  assert.equal(moon.clientProgramCancelInferCaptureExport(exported.active), false);
+
+  // An independent canonical encoding supplies the exact full-wire boundary.
+  const exactBytes = Buffer.byteLength(expectedWire);
+  const exact = await exportedModelCapture(saved, {maxBytes: exactBytes});
+  assert.equal(exact.identity, cid(expectedBody));
+  assert.equal(exact.wire, expectedWire);
+  assert.equal(checked(moon.clientProgramCleanupInferCaptureExport(exact.active)), true);
+  const oneShort = await exportedModelCapture(saved, {maxBytes: exactBytes - 1});
+  assert.equal(oneShort.failure.$tag, 5, 'exact OutputValue serialization failure');
+  assert.equal(moon.clientProgramInferCaptureExportIdentity(oneShort.active), undefined);
+  assert.equal(checked(moon.clientProgramCleanupInferCaptureExport(oneShort.active)), true);
+
+  const directory = await mkdtemp(join(tmpdir(), 'actql-model-capture-'));
+  const configuration = {
+    directory, storeAuthorityCid: cid({fixture: 'model-capture-store'}),
+    capacityBytes: 1024 * 1024, maxObjectBytes: 100000, maxObjects: 100,
+    maxContractNodes: 20000, maxContractDepth: 100,
+    privateEvidenceKey: Buffer.alloc(32, 17),
+  };
+  const control = createPublicationContractControlFixture();
+  let rejectConfirmationSync = false;
+  const durability = Object.freeze({
+    async syncDirectory(path) {
+      if (path === join(directory, 'physical-holdings') && rejectConfirmationSync) {
+        rejectConfirmationSync = false;
+        const error = new Error('injected model capture confirmation failure');
+        error.code = 'EIO';
+        throw error;
+      }
+      const handle = await open(path, 'r');
+      try { await handle.sync(); }
+      finally { await handle.close(); }
+    },
+  });
+  let store;
+  try {
+    store = await openLocalPublicationStore(configuration, control, durability);
+    const prepared = await store.preparePrivateEvidence(
+      'model_capture_bundle', exported.wire, exported.identity);
+    const holdingCid = cid({fixture: 'capture-holding', bundle: exported.identity});
+    const record = {
+      version: 'actql-local-physical-holding/0.1', namespace: 'publication-private',
+      holding_cid: holdingCid, manifest_cid: exported.identity,
+      objects: [{cid: prepared.physicalCid, byte_count: prepared.bytes}],
+    };
+    await store.commitPhysicalHolding(record, [prepared.prepared]);
+    assert.equal(prepared.prepared.status().pending, false);
+    const ciphertext = [];
+    await store.consumeObject(prepared.physicalCid, chunk => ciphertext.push(Buffer.from(chunk)));
+    assert.equal(Buffer.concat(ciphertext).includes(Buffer.from('fixture-risk-model')), false);
+    assert.equal(checked(moon.clientProgramCleanupInferExecution(original.active)), false,
+      'serialization and Store I/O retain their checked capture owner');
+    await store.close();
+    store = undefined;
+    store = await openLocalPublicationStore(configuration, control);
+    const recovered = await store.readPrivateEvidence(
+      'model_capture_bundle', exported.identity, holdingCid);
+    assert.equal(recovered.toString('utf8'), expectedWire);
+    const binding = {name: 'model_capture_bundle', semanticCid: exported.identity,
+      holdingCid, wire: expectedWire};
+    await store.close();
+    store = undefined;
+    store = await openLocalPublicationStore(configuration, control, durability);
+    rejectConfirmationSync = true;
+    await assert.rejects(store.confirmPrivateEvidence(binding),
+      error => error?.code === 'EIO');
+    assert.equal(checked(moon.clientProgramCleanupInferExecution(original.active)), false,
+      'uncertain durability retains the existing capture owner');
+    assert.equal(original.calls(), 1, 'confirmation failure cannot redispatch');
+    assert.deepEqual(await store.confirmPrivateEvidence(binding), record);
+    await assert.rejects(store.confirmPrivateEvidence({...binding, wire: '{}'}),
+      error => error?.code === 'PublicationPrivateEvidenceConflict');
+    assert.equal(original.calls(), 1);
+    assert.equal(checked(moon.clientProgramCleanupInferCaptureExport(exported.active)), true);
+    assert.equal(moon.clientProgramReleaseInferCapture(saved), true);
+    assert.equal(checked(moon.clientProgramCleanupInferExecution(original.active)), true);
+    assert.equal(original.calls(), 1);
+  } finally {
+    if (store !== undefined) await store.close();
+    await rm(directory, {recursive: true, force: true});
+  }
+  // This proves durable authenticated bytes, not yet restored ModelTask replay
+  // or a committed Named Result through the public Run owner.
+});
+
+test('a macrotask stops nested capture serialization without releasing its owner early', async () => {
+  const installedTask = structuredClone(task);
+  installedTask.output_contract.fields.risk = {
+    type: 'array', nullable: false, max_items: 1024,
+    items: {type: 'number', nullable: false},
+  };
+  installedTask.output_schema_cid = cid(installedTask.output_contract);
+  delete installedTask.contract_cid;
+  installedTask.contract_cid = cid(installedTask);
+  const original = ownedInfer(undefined, undefined, {
+    scoped: true, installedTask,
+    responseBody: canonicalText({reason: null, risk: Array(512).fill(0)}),
+  });
+  assert.equal((await ownedInferTerminal(original.active, undefined, 100000)).$tag, 1);
+  const saved = moon.clientProgramAcquireInferCapture(original.active);
+  const stream = checked(moon.clientProgramStartInferCaptureExport(saved, 100000, 10000));
+  assert.equal(moon.clientProgramReleaseInferCapture(saved), true);
+  let reached = false;
+  for (let poll = 0; poll < 100; poll++) {
+    assert.equal(checked(moon.clientProgramAdvanceInferCaptureExport(stream, 1))._0, false);
+    if (moon.clientProgramInferCaptureExportResponsePending(stream)) {
+      reached = true;
+      break;
+    }
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  assert.equal(reached, true);
+  for (let poll = 0; poll < 64; poll++) {
+    assert.equal(checked(moon.clientProgramAdvanceInferCaptureExport(stream, 1))._0, false);
+    assert.equal(moon.clientProgramInferCaptureExportResponsePending(stream), true);
+    await new Promise(resolve => setImmediate(resolve));
+  }
+  assert.equal(moon.clientProgramInferCaptureExportIdentity(stream), undefined);
+  await new Promise(resolve => setImmediate(() => {
+    assert.equal(moon.clientProgramCancelInferCaptureExport(stream), true);
+    resolve();
+  }));
+  assert.equal(checked(moon.clientProgramCleanupInferCaptureExport(stream)), false);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(original.active)), false);
+  const stopped = moon.clientProgramAdvanceInferCaptureExport(stream, 1);
+  assert.equal(stopped.$tag, 0);
+  assert.equal(stopped._0.$tag, 7, 'exact Cancelled cause');
+  assert.equal(moon.clientProgramInferCaptureExportIdentity(stream), undefined);
+  assert.equal(checked(moon.clientProgramCleanupInferCaptureExport(stream)), true);
+  assert.equal(checked(moon.clientProgramCleanupInferExecution(original.active)), true);
+  assert.equal(original.calls(), 1);
+});
 
 test('a fresh normal preparation replays opaque checked observations without dispatch', async () => {
   const original = ownedInfer(undefined, undefined, {scoped: true});

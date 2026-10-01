@@ -88,6 +88,63 @@ pub fn client_program_release_infer_capture(
 }
 
 ///|
+#export_name("clientProgramStartInferCaptureExport")
+pub fn client_program_start_infer_capture_export(
+  capture : @model.VerifiedModelCapture,
+  max_bytes : Int,
+  max_work : Int,
+) -> Result[@model.ModelCaptureExport, @model.ModelExecutionIssue] {
+  @model.start_model_capture_export(capture, {
+    max_bytes,
+    max_nodes: 20000,
+    max_depth: 100,
+    max_chunk_bytes: 65536,
+    max_work,
+  })
+}
+
+///|
+#export_name("clientProgramAdvanceInferCaptureExport")
+pub fn client_program_advance_infer_capture_export(
+  active : @model.ModelCaptureExport,
+  quantum : Int,
+) -> Result[(Bool, String, Int64), @model.ModelExecutionIssue] {
+  @model.advance_model_capture_export(active, quantum)
+}
+
+///|
+#export_name("clientProgramInferCaptureExportIdentity")
+pub fn client_program_infer_capture_export_identity(
+  active : @model.ModelCaptureExport,
+) -> String? {
+  @model.model_capture_export_identity(active)
+}
+
+///|
+#export_name("clientProgramCancelInferCaptureExport")
+pub fn client_program_cancel_infer_capture_export(
+  active : @model.ModelCaptureExport,
+) -> Bool {
+  @model.cancel_model_capture_export(active)
+}
+
+///|
+#export_name("clientProgramInferCaptureExportResponsePending")
+pub fn client_program_infer_capture_export_response_pending(
+  active : @model.ModelCaptureExport,
+) -> Bool {
+  @model.model_capture_export_response_pending(active)
+}
+
+///|
+#export_name("clientProgramCleanupInferCaptureExport")
+pub fn client_program_cleanup_infer_capture_export(
+  active : @model.ModelCaptureExport,
+) -> Result[Bool, @model.ModelExecutionIssue] {
+  @model.cleanup_model_capture_export(active)
+}
+
+///|
 /// Start one owned physical operation only after the Host admits model access.
 /// Preparation, dispatch and output share the original checked Program owner.
 #export_name("clientProgramStartInferExecution")

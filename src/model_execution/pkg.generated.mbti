@@ -15,11 +15,17 @@ import {
 // Values
 pub fn acquire_verified_model_capture(ModelExecution) -> VerifiedModelCapture?
 
+pub fn advance_model_capture_export(ModelCaptureExport, Int) -> Result[(Bool, String, Int64), ModelExecutionIssue]
+
 pub fn advance_model_execution(ModelExecution, Int) -> Result[ModelObservation, ModelExecutionIssue]
 
 pub fn advance_model_output_preparation(ModelOutputPreparation, Int) -> Result[@execution_relation.AdmittedOutputPoll, ModelExecutionIssue]
 
+pub fn cancel_model_capture_export(ModelCaptureExport) -> Bool
+
 pub fn cancel_model_output_preparation(ModelOutputPreparation) -> Bool
+
+pub fn cleanup_model_capture_export(ModelCaptureExport) -> Result[Bool, ModelExecutionIssue]
 
 pub fn cleanup_model_execution(ModelExecution) -> Result[Bool, ModelExecutionIssue]
 
@@ -30,6 +36,10 @@ pub fn complete_model_output(ModelOutputPreparation) -> Result[@execution_relati
 pub fn install_model_provider(String, (ModelRequest) -> Result[ModelResponse, ModelProviderFailure]) -> Result[ModelProvider, ModelExecutionIssue]
 
 pub fn model_capture_bundle_json(ModelCaptureBundle, Int, Int, Int) -> String?
+
+pub fn model_capture_export_identity(ModelCaptureExport) -> String?
+
+pub fn model_capture_export_response_pending(ModelCaptureExport) -> Bool
 
 pub fn model_execution_invocation_evidence(ModelExecution, Int) -> @run_publication.RunEvidenceValue?
 
@@ -51,6 +61,8 @@ pub fn request_model_cancel(ModelExecution) -> Bool
 
 pub fn retain_verified_model_capture(VerifiedModelCapture) -> VerifiedModelCapture?
 
+pub fn start_model_capture_export(VerifiedModelCapture, ModelCaptureExportLimits) -> Result[ModelCaptureExport, ModelExecutionIssue]
+
 pub fn start_model_capture_replay(@execution_relation.PreparedInferRows, @run_publication_host.ClientInferCallScope, VerifiedModelCapture, ModelExecutionLimits) -> Result[ModelExecution, ModelExecutionIssue]
 
 pub fn start_model_execution(@execution_relation.PreparedInferRows, ModelProvider, String, ModelExecutionLimits, call_scope? : @run_publication_host.ClientInferCallScope?) -> Result[ModelExecution, ModelExecutionIssue]
@@ -60,10 +72,29 @@ pub fn start_model_output_preparation(ModelExecution, @execution_relation.Comple
 // Errors
 
 // Types and methods
+type CaptureExportState
+
 pub(all) struct ModelCaptureBundle {
   task_cid : String
   fixed_request_cid : String
   captures : Array[ModelSlotCapture]
+}
+
+pub struct ModelCaptureExport {
+  state : CaptureExportState
+  session : @bounded_execution.Session[CaptureExportState, String, ModelExecutionIssue]
+  control : @bounded_execution.Control
+  mut token : @bounded_execution.Token
+  mut accepted : Bool
+  mut reclaimed : Bool
+}
+
+pub(all) struct ModelCaptureExportLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_chunk_bytes : Int
+  max_work : Int
 }
 
 pub struct ModelExecution {

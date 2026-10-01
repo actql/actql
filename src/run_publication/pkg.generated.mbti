@@ -3,6 +3,7 @@ package "actql/actql/run_publication"
 
 import {
   "actql/actql/canonical_json",
+  "actql/actql/encode_core",
   "moonbitlang/core/debug",
 }
 
@@ -498,6 +499,8 @@ pub fn result_serialization_contract_cid(String, Int, Int, Int) -> Result[String
 pub fn run_definition_has_empty_initial_input_artifact_set(PublicationContract) -> Bool
 
 pub fn run_definition_run_id(PublicationContract) -> Result[String, DeliveryIssuanceIssue]
+
+pub fn run_evidence_value_document(RunEvidenceValue, Int, Int, Int) -> @encode_core.EncodedDocument raise @encode_core.EncodeFailure
 
 pub fn run_evidence_value_identity(RunEvidenceValue) -> String
 

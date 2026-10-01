@@ -143,6 +143,7 @@ struct ModelState {
   requests : Array[PreparedModelRequest]
   mut request : ModelRequestPreparation?
   captures : Array[ModelSlotCapture]
+  responses : Array[@admitted.Value]
   invocation_evidence : Array[@publication.RunEvidenceValue]
   mut phase : ModelPhase
   mut work : Int
@@ -458,6 +459,7 @@ fn start_model_owned(
     requests: [],
     request: None,
     captures: [],
+    responses: [],
     invocation_evidence: [],
     phase: ReserveSlots,
     work: 0,
@@ -564,6 +566,7 @@ pub fn cleanup_model_execution(
       @relation.release_prepared_infer_rows_use(execution.state.input_use)
       |> ignore
       execution.state.captures.clear()
+      execution.state.responses.clear()
       execution.state.invocation_evidence.clear()
       execution.state.requests.clear()
       if execution.state.source is Replay(capture) {

@@ -170,6 +170,20 @@ pub fn run_evidence_value_json(value : RunEvidenceValue) -> String {
 }
 
 ///|
+/// Embed a previously admitted value without a caller-authored text/count
+/// pair. The caller selects explicit bounds for this indivisible document.
+pub fn run_evidence_value_document(
+  value : RunEvidenceValue,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> @encode.EncodedDocument raise @encode.EncodeFailure {
+  let writer = @encode.writer(max_bytes, max_nodes, max_depth)
+  @json.emit_value(value.value, writer)
+  @encode.finish_document(writer)
+}
+
+///|
 /// Establish the Run-bound Invocation only after the exact ObservationSet has
 /// been captured and admitted against its Bound Invocation Template.
 pub fn issue_run_invocation(

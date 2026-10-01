@@ -16,7 +16,8 @@ pub fn acquire_verified_model_capture(
     state.reclaimed ||
     state.call_scope is None ||
     state.output_uses == 2147483647 ||
-    state.captures.length() != state.invocation_evidence.length() {
+    state.captures.length() != state.invocation_evidence.length() ||
+    state.captures.length() != state.responses.length() {
     return None
   }
   state.output_uses += 1
@@ -106,6 +107,7 @@ fn advance_model_capture_replay(
   guard !prior.reclaimed &&
     prior.accepted &&
     prior.captures.get(state.next_slot) is Some(saved) &&
+    prior.responses.get(state.next_slot) is Some(response) &&
     prior.invocation_evidence.get(state.next_slot) is Some(evidence) else {
     return @bounded.Failed(OutputIdentity, 1, 1)
   }
@@ -116,6 +118,7 @@ fn advance_model_capture_replay(
     return @bounded.Failed(OutputIdentity, 1, 1)
   }
   state.captures.push(saved)
+  state.responses.push(response)
   state.invocation_evidence.push(evidence)
   state.next_slot += 1
   if state.next_slot == @relation.prepared_infer_rows_count(state.rows) {
