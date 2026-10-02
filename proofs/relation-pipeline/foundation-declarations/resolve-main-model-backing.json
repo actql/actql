@@ -1,0 +1,37 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-main-model-backing",
+  "kind": "resolution",
+  "revision": "fcf1c6efe00db7e17632090c5ff6bea9eef818d5",
+  "parents": [
+    "e86d28e85468f02fdc2a43ff796980ce585b0f81",
+    "9fe3e2d738b541c17414a5eb09cd759c3e99adb4"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "e86d28e85468f02fdc2a43ff796980ce585b0f81",
+          "digest": "b3945aa267d98ac5228eff6f4cfd4bffe697b72d6dd09edefe82d3fd97dc652a",
+          "mode": "100644"
+        },
+        {
+          "revision": "9fe3e2d738b541c17414a5eb09cd759c3e99adb4",
+          "digest": "ecea48a0b7c94c50367b87e2ef02fc67a50a2b9972fd2b29effa01ecd4ce1523",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "36e951a381e4be1061b14e536801262bcedef20964915d55ea60efdfc060c209",
+      "afterMode": "100644",
+      "reason": "Integrate main #178 model capture/replay and #181 backing-capacity test/evidence steps with the foundation aggregate generation step; retain every existing workflow command and all source declarations without rewriting historical or migration inputs."
+    }
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-343a5565c1ac",
+    "adopt-985dbbba2789",
+    "adopt-dafff1a1aeea",
+    "issue-180-foundation-composition"
+  ]
+}
