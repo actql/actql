@@ -13,17 +13,21 @@ import {openInstalledRemoteHttpHost} from
   './node_modules/@actql/local-node/adapters/host-node/embedded-local.mjs';
 import {exercisePublicQueryInput, querySuccesses, queryRefusals, inferRefusals, sourceRows, sourceFreeSuccesses, sourceFreeRefusals, queryCompositionSuccesses, queryCompositionRefusals, pipeResultSuccesses, pipeResultRefusals, pipeResultExecutionFailures}
   from './public-query-input.mjs';
+import {propertyGraphSourceSuccesses, propertyGraphSourceRefusals}
+  from './property-graph-source-input.mjs';
 
 const sourceFreeOnly = process.env.ACTQL_TEST_SOURCE_FREE_ONLY === '1';
 const inferOnly = process.env.ACTQL_TEST_INFER_REFUSAL_ONLY === '1';
 const joinOnly = process.env.ACTQL_TEST_JOIN_ORDER_ONLY === '1';
 const compositionOnly = process.env.ACTQL_TEST_QUERY_COMPOSITION_ONLY === '1';
 const resultOnly = process.env.ACTQL_TEST_PIPE_RESULT_ONLY === '1';
-const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || inferOnly || joinOnly || sourceFreeOnly || compositionOnly || resultOnly;
+const graphSourceOnly = process.env.ACTQL_TEST_PROPERTY_GRAPH_SOURCE_ONLY === '1';
+const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || inferOnly || joinOnly || sourceFreeOnly || compositionOnly || resultOnly || graphSourceOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const scope = JSON.parse(await readFile('pipe-scope-cases.json', 'utf8'));
 assert.deepEqual(scope.source_rows, sourceRows);
-const scopeInputs = sourceFreeOnly ? {successes: sourceFreeSuccesses, refusals: sourceFreeRefusals}
+const scopeInputs = graphSourceOnly ? {successes: propertyGraphSourceSuccesses, refusals: propertyGraphSourceRefusals}
+  : sourceFreeOnly ? {successes: sourceFreeSuccesses, refusals: sourceFreeRefusals}
   : resultOnly ? {successes: pipeResultSuccesses, refusals: pipeResultRefusals,
     executionFailures: pipeResultExecutionFailures}
   : compositionOnly ? {successes: queryCompositionSuccesses, refusals: queryCompositionRefusals}

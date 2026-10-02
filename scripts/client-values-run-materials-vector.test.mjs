@@ -169,9 +169,14 @@ test('baseline preimages and changed normative pins independently determine the 
     pin('ce0e1e8935e1c65b8992f2fb0272da80b192d54616c546efd80a0cad87bd4ec4'),
     historicalDependencies(pin('0ec8026865253c45b26d8eb0b9df6e4cb63b64bf7ae19590e6f1fc2aff10879c'))).run.run_definition_cid,
     pin('857742abdfaf8e4e90e07c4f60f37b771ea62ef44e41f0bdb078bf3d0134069b'));
-  // Current combined query grammar, exact Strings and keyed Graph closure.
+  // Preserve the integrated predecessor, with its fixed Unit and grammar.
+  assert.equal(vector(pin('a008ad4bb4aa68f02a688b00306bc3818de0dae7beae81d977e54e76f156ad5d'),
+    pin('2a06d014da3ce71fc643f995bf0d0acc2b296fdbeb9016dca935539b6cbe8ade'),
+    historicalDependencies(pin('0894114a68047606a91d50d53b3a3a33f50ab402341ed7d6acdd692cf74a2f92'))).run.run_definition_cid,
+    pin('33b9fb4c38a1a0dce33674944cdef96b01c4a3ace604854ed175e7de8cb59065'));
+  // Current DATA/constructor grammar: Values and AoA meanings are unchanged.
   assert.equal(current.run.run_definition_cid,
-    'sha256:33b9fb4c38a1a0dce33674944cdef96b01c4a3ace604854ed175e7de8cb59065');
+    'sha256:b956c4d981b3011254a442aec64602473e016be109d0d4443c38ab416ca6a2dc');
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');

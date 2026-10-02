@@ -237,6 +237,30 @@ pub fn lower(
       }
       if query_form {
         guard context is Some(context) else { return Err(MissingQueryContext) }
+        if format == Text {
+          let script = match
+            @syntax.parse_query_script(document, syntax_limits(), source_path~) {
+            Ok(value) => value
+            Err(issue) => return Err(QuerySyntax(issue))
+          }
+          let program = if @syntax.data_declaration_count(script) > 0 {
+            match @query.compile_query_script(script, context, query_limits()) {
+              Ok(value) => value
+              Err(issue) => return Err(QueryLowering(issue))
+            }
+          } else {
+            match
+              @query.compile(
+                @syntax.script_query(script),
+                context,
+                query_limits(),
+              ) {
+              Ok(value) => value
+              Err(issue) => return Err(QueryLowering(issue))
+            }
+          }
+          return emit(program)
+        }
         let parsed = match
           @syntax.parse_query(document, syntax_limits(), source_path~) {
           Ok(value) => value

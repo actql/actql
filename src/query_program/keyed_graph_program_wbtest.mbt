@@ -87,6 +87,10 @@ test "keyed source path modes lower to the existing traversal with full identity
 test "keyed source refuses internal Graph star and unadapted identity binding" {
   let prefix = "DATA n = SELECT 1 AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node PROPERTIES (id))); "
   assert_true(
+    keyed_script(prefix + "FROM GRAPH g |> MATCH WALK (a)")
+    is Err(UnsupportedProjection),
+  )
+  assert_true(
     keyed_script(prefix + "FROM GRAPH g |> MATCH WALK (a) |> SELECT *")
     is Err(UnsupportedProjection),
   )

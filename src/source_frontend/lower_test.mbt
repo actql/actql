@@ -76,7 +76,6 @@ test "retired structural envelopes reject without context or a fallback" {
     document in [
       "AQL '0.1'; PROGRAM 'old' { STAGE s { STEP {}; } }", "-- retired\n /* prefix */ aQl '0.1'; PROGRAM 'old' {}",
       "PROGRAM 'old' {}", "STAGE main { STEP {}; }", "STEP {\"values\":{}};", "OP values {};",
-      "DATA same = FROM g |> graphs_equal(with: g);",
     ] {
     let formats : Array[Format] = [Text, Sql]
     for format in formats {

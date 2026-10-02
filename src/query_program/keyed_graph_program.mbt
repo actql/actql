@@ -117,6 +117,17 @@ fn lower_script_keyed_graph_query(
   let matches = graphs.filter(graph => same_name(graph.name, relation[0]))
   guard matches.length() == 1 else { raise Abort(UnknownRelation) }
   let graph = matches[0]
+  let mut projected = false
+  for index in 0..<@query.operation_count(query) {
+    if @query.operation_at(query, index) is Some(Select(_, _)) {
+      projected = true
+    }
+  }
+  // Implicit Graph element-value export has no adapted source contract yet.
+  // Do not manufacture an empty Relation or export physical pattern slots.
+  if !projected {
+    raise Abort(UnsupportedProjection)
+  }
   if graph.mapping.nodes.length() != 1 ||
     pattern.nodes.is_empty() ||
     pattern_query.label_field is Some(_) ||

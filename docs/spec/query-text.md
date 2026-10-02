@@ -284,7 +284,52 @@ language restrictions. Object/property execution is a separate common-owner
 dependency; source construction and type checking do not claim packed Host
 execution or successful publication.
 
-## Graph pattern source
+## Logical DATA and pure Property Graph construction
+
+The AQL-text source route accepts zero or more `DATA name = expression;`
+bindings followed by a query. SQL format retains its query-only entry.
+Names bind existing logical producers; DATA does not introduce a capture,
+retained Result, sort, storage operation, placement decision or physical task.
+Bodies resolve before their name becomes visible: duplicate names, recursive
+and forward references are rejected. A Graph binding is not a Relation alias.
+Statement-level RESULT and INFER are not permitted in a DATA query body.
+The final query retains explicit RESULT declarations through the usual owner.
+
+`DATA g = PROPERTY GRAPH (...)` is an explicit ActQL pure-value extension.
+Its NODE TABLES, EDGE TABLES, KEY, REFERENCES, LABEL and PROPERTIES clauses
+use the [selected GoogleSQL/SQL-PGQ mapping profile](../design/frontend-standard-profiles.md#property-graph-mapping-and-element-identity).
+This does not claim ISO GQL constructor syntax or create a Catalog object.
+Producers, element definitions and labels have separate namespaces.
+REFERENCES names an element definition, with ordered columns matching its
+declared KEY in this first profile. Key tuples are typed; neither row position
+nor a concatenated String supplies an identity.
+
+Omitted labels use the element definition name; omitted properties select all
+columns, while NO PROPERTIES selects none. Property aliases are column
+projections. Common Graph admission checks complete-key uniqueness, endpoint
+mapping, Graph-wide property type consistency and same-label property sets.
+NULL key rows and unmatched endpoints follow the adopted exclusion rules.
+Distinct edge keys remain distinct even when endpoints and labels coincide.
+The constructor does not grant acquisition authority or issue checked facts.
+
+The source lowering connects definition-scoped node matching and explicit
+WALK/TRAIL/ACYCLIC traversal to the common keyed Graph owners. Labels are
+membership in Graph-owned static label sets, never a property comparison.
+NODE_ID returns the full semantic identity, separately from any `id` property.
+Private identity/traversal slots are not source columns. A direct Graph SELECT
+star is rejected; an explicit projection creates an ordinary Relation whose
+later star remains valid. RESULT declarations do not publish private slots.
+
+Current lowering gaps are explicit implementation limits, not changes to the
+adopted language: DATA CTE/set/JOIN composition and captured-source bodies;
+multiple node definitions in pattern lowering; edge/intermediate variable
+bindings and predicates; repeated node binding; implicit Graph element-value
+export without an explicit SELECT; computed/dynamic properties
+and non-key REFERENCES. These shapes are refused before Run admission rather
+than approximated by legacy tuple identities or a second Graph evaluator.
+Source/checker support is separate from packed Host and snapshot acceptance.
+
+## Legacy simple-Graph pattern source
 
 `FROM GRAPH name` selects an existing Graph value. `MATCH` requires an explicit
 `WALK`, `TRAIL`, or `ACYCLIC` mode and yields a binding Relation. It cannot
@@ -292,7 +337,10 @@ silently construct a Graph from a Relation, attach to an ambient Graph, or
 introduce a second implicit Graph input. One Graph source admits one MATCH;
 another pattern needs a separate source and an explicit Relation join.
 
-`LABELS {"node":{"field":"entity_type"}}` is a query-local annotation. A
+This existing adaptation applies only to the legacy simple-Graph input
+profile; it does not define the semantics of keyed Property Graphs or prove
+GoogleSQL/GQL label conformance. `LABELS {"node":{"field":"entity_type"}}`
+is a query-local annotation. A
 node label such as `(a:Account)` expands to equality on that declared string
 field; a null field value does not match. A node label without this annotation
 is rejected. The annotation neither changes Graph identity nor grants entity

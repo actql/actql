@@ -224,6 +224,7 @@ pub fn starts_query(
         keyword(first, "SELECT") ||
         keyword(first, "WITH") ||
         keyword(first, "FROM") ||
+        keyword(first, "DATA") ||
         first.value == Symbol(40),
       )
     }
