@@ -11,6 +11,16 @@ const declarations = {minimum: {type: 'number'}};
 const relationNumber = (name, nullable = false) => ({name,
   contract: {type: 'number', nullable}});
 export const queryCompositionSuccesses = [
+  {name: 'derived-exact-string-chunks', format: 'sql',
+    text: "SELECT value FROM (SELECT r'\\n' 'e\\u0301' AS value) AS chosen",
+    expected: [{value: '\\ne\u0301'}],
+    columns: [{name: 'value', contract: {type: 'string', nullable: false,
+      max_utf8_bytes: 5}}], sourceReadCount: 0},
+  {name: 'captured-cte-set-exact-string-chunks', format: 'sql',
+    text: "WITH chosen AS (SELECT r'\\n' 'e\\u0301' AS label FROM records WHERE id = 1) SELECT label FROM chosen UNION ALL SELECT '\\r\\néx' AS other FROM chosen ORDER BY label",
+    expected: [{label: '\r\néx'}, {label: '\\ne\u0301'}],
+    columns: [{name: 'label', contract: {type: 'string', nullable: false,
+      max_utf8_bytes: 5}}], sourceReadSessionCount: 1},
   {name: 'set-output-alias-expression', format: 'sql',
     text: 'SELECT id AS amount FROM records UNION ALL SELECT id AS other FROM records ORDER BY 0 - amount, 0 - amount DESC LIMIT 3',
     expected: [{amount: 3}, {amount: 3}, {amount: 3}], columns: [relationNumber('amount')], sourceReadSessionCount: 1},
@@ -89,6 +99,10 @@ export const queryCompositionSuccesses = [
 
 ];
 export const queryCompositionRefusals = [
+  {name: 'nested-cte-octal-range', format: 'sql',
+    text: "WITH chosen AS (SELECT '\\400' AS label FROM records) SELECT label FROM chosen"},
+  {name: 'literal-set-later-alias-hidden', format: 'sql',
+    text: "WITH chosen AS (SELECT r'\\400' AS label FROM records) SELECT label FROM chosen UNION ALL SELECT label AS other FROM chosen ORDER BY other"},
   {name: 'set-order-operand-column', format: 'sql',
     text: 'SELECT id AS amount FROM records UNION ALL SELECT id AS other FROM records ORDER BY id + 1'},
   {name: 'set-order-right-alias', format: 'sql',
