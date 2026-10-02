@@ -507,6 +507,211 @@ test "keyed node MATCH preserves exact work workspace and every private stop bou
 }
 
 ///|
+test "keyed edge MATCH preserves exact work workspace and every private stop boundary" {
+  let nodes = keyed_node_source()
+  let edges = keyed_edge_source(
+    rows="[{\"key\":10,\"tenant\":\"a\",\"src\":1,\"dst\":1}]",
+  )
+  let graph_owner = keyed_bridge_owner(nodes, edges)
+  let construction = @local_bridge.start_rows_to_property_graph(
+    @bounded.control(),
+    prepared_sequence(graph_owner),
+    0,
+    keyed_bridge_inputs(graph_owner, nodes, edges),
+    carrier_graph_storage_limits(),
+    8192L,
+    1000,
+    () => true,
+  ).unwrap()
+  guard keyed_bridge_terminal(construction) is @local_bridge.Complete(graph, ..) else {
+    fail("constructor failed")
+  }
+  guard @pipeline.carrier_at(
+      @lower.pipeline(@lower.bound_preparation(graph_owner)),
+      @pipeline.Step(0),
+    )
+    is Some(@carrier_contract.GraphValue(carrier)) else {
+    fail("Graph schema")
+  }
+  let domain = @carrier_contract.property_graph_domain(
+    @carrier_contract.graph_property_definition(carrier),
+  )
+  let expected = "{\"key\":{\"definition\":\"E\",\"domain\":\"" +
+    domain +
+    "\",\"key\":[10],\"key_types\":[{\"kind\":\"number\"}]}}"
+  let owner = keyed_graph_receiver(
+    graph_owner,
+    body="[{\"from\":\"g\",\"match_edges\":{\"definition\":\"E\",\"bindings\":{\"identity\":\"key\"},\"fields\":[\"key\"]}}]",
+  )
+  let input = @graphs.prepare_producer_read(owner, 0, graph_owner, graph).unwrap()
+  let sequence = prepared_sequence(owner)
+  let limits : @execution.ValueLimits = {
+    max_work: 100000,
+    max_nodes: 10000,
+    max_text_bytes: 10000,
+    max_depth: 50,
+  }
+  // One retained edge: two sort entries plus one output column. Without
+  // a predicate, scratch + select + read + commit + finish costs 5.
+  // These constants come from the fixture and phases, not a measured run.
+  let workspace = 2 * 1 + 1
+  let work = 1 + 1 + 1 + 1 + 1
+  let retained : Array[@execution.CompletedOutput] = []
+  let preparation = task_test_completion(owner)
+  for viewed in [false, true] {
+    let start = fn(control, slots, allowed_work, maximum) {
+      if viewed {
+        @local_sga.start_match_edges_view(
+          control,
+          preparation,
+          sequence,
+          0,
+          @graphs.producer_read_view(input).unwrap(),
+          maximum,
+          limits,
+          slots,
+          10000,
+          10000,
+          [],
+          control_work_limit=Some(allowed_work),
+        )
+      } else {
+        @local_sga.start_match_edges(
+          control,
+          preparation,
+          sequence,
+          0,
+          input,
+          maximum,
+          limits,
+          slots,
+          10000,
+          10000,
+          [],
+          control_work_limit=Some(allowed_work),
+        )
+      }
+    }
+    assert_true(
+      start(@bounded.control(), workspace - 1, work, 1)
+      is Err(@local_sga.MatchEdgesWorkspaceLimit),
+    )
+    for quantum in [1, 7] {
+      for (allowed, maximum) in [(work, 1), (work - 1, 1), (work, 0)] {
+        let active = start(@bounded.control(), workspace, allowed, maximum).unwrap()
+        let mut terminal = false
+        for _ in 0..<20 {
+          match @local_sga.advance_match_edges(active, quantum).unwrap() {
+            @local_sga.MatchEdgesContinue(..) => ()
+            @local_sga.MatchEdgesComplete(output, work=spent, ..) => {
+              assert_eq(allowed, work)
+              assert_eq(maximum, 1)
+              assert_eq(spent, work.to_int64())
+              assert_eq(@execution.completed_row_count(output), 1)
+              assert_eq(
+                @execution.completed_output_row_wire(
+                  output, 0, 10000, 10000, 50,
+                ).unwrap(),
+                expected,
+              )
+              retained.push(output)
+              terminal = true
+              break
+            }
+            @local_sga.MatchEdgesFailed(
+              @local_sga.MatchEdgesWorkLimit,
+              work=spent,
+              ..
+            ) => {
+              assert_eq(allowed, work - 1)
+              assert_eq(spent, allowed.to_int64())
+              terminal = true
+              break
+            }
+            @local_sga.MatchEdgesFailed(
+              @local_sga.MatchEdgesOutput(@execution.CaptureLimit),
+              ..
+            ) => {
+              assert_eq(maximum, 0)
+              terminal = true
+              break
+            }
+            _ =>
+              fail(
+                "MATCH must preserve the exact limit and never publish a partial result",
+              )
+          }
+        }
+        assert_true(terminal)
+        assert_true(@local_sga.match_edges_cleanup_pending(active))
+        assert_true(@local_sga.cleanup_match_edges(active).unwrap())
+        assert_false(@local_sga.cleanup_match_edges(active).unwrap())
+        assert_false(@local_sga.match_edges_cleanup_pending(active))
+        assert_eq(@local_sga.match_edges_scratch_slots(active), 0)
+        assert_true(@graphs.producer_read_available(input))
+      }
+    }
+    // Stop at every quantum-one yield before public completion, including
+    // after a private row has been committed but before final publication.
+    for prefix in 0..<work {
+      let control = @bounded.control()
+      let active = start(control, workspace, work, 1).unwrap()
+      for _ in 0..<prefix {
+        assert_true(
+          @local_sga.advance_match_edges(active, 1)
+          is Ok(@local_sga.MatchEdgesContinue(..)),
+        )
+      }
+      assert_true(@bounded.request_cancel(control))
+      guard @local_sga.advance_match_edges(active, 1)
+        is Ok(@local_sga.MatchEdgesStopped(_, work=spent, ..)) else {
+        fail("cancelled MATCH must not hand off private output")
+      }
+      assert_eq(spent, prefix.to_int64())
+      assert_true(@local_sga.match_edges_stopped(active))
+      assert_true(@local_sga.cleanup_match_edges(active).unwrap())
+      assert_false(@local_sga.cleanup_match_edges(active).unwrap())
+      assert_false(@local_sga.match_edges_cleanup_pending(active))
+      assert_eq(@local_sga.match_edges_scratch_slots(active), 0)
+      assert_true(@local_sga.advance_match_edges(active, 1) is Err(_))
+      assert_true(@graphs.producer_read_available(input))
+    }
+  }
+  assert_true(@local_bridge.cleanup_rows_to_graph(construction).unwrap())
+  assert_true(@graphs.discard_completed(graph))
+  // Completed Relation rows remain independent of the reclaimed Graph.
+  assert_eq(retained.length(), 4)
+  for output in retained {
+    assert_true(@execution.completed_output_available(output))
+    assert_eq(
+      @execution.completed_output_row_wire(output, 0, 10000, 10000, 50).unwrap(),
+      expected,
+    )
+  }
+  for body in ["[{\"select\":[\"key\"]}]", "[{\"filter\":{\"literal\":true}}]"] {
+    let consumer = typed_receiver(owner, body, target=@pipeline.Step(0))
+    let binding = @execution.bind_completed_input(
+      consumer,
+      0,
+      owner,
+      retained[0],
+    ).unwrap()
+    let result = @execution.execute_generated_sequence(
+      task_test_generated(consumer),
+      [],
+      compute_test_limits(),
+      produced=[binding],
+    ).unwrap()
+    let output = @execution.completed_output(result, @pipeline.Step(0)).unwrap()
+    assert_eq(
+      @execution.completed_output_row_wire(output, 0, 10000, 10000, 50).unwrap(),
+      expected,
+    )
+    assert_true(@execution.completed_output_available(retained[0]))
+  }
+}
+
+///|
 test "keyed MATCH failure and cancellation retain cleanup without partial output" {
   let nodes = keyed_node_source()
   let edges = keyed_edge_source()

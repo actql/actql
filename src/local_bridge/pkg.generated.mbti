@@ -20,8 +20,6 @@ import {
 // Values
 pub fn advance_events_to_rows(EventsToRowsExecution, Int) -> Result[EventsToRowsPoll, EventsBridgeIssue]
 
-pub fn advance_graph_to_rows(GraphRowsExecution, Int) -> Result[GraphRowsPoll, GraphBridgeIssue]
-
 pub fn advance_property_snapshot_handoff_reload(PropertySnapshotHandoff, Int) -> Result[RowsToGraphPoll, GraphBridgeIssue]
 
 pub fn advance_property_snapshot_save(PropertySnapshotHandoff, Int) -> Result[PropertySnapshotSavePoll, GraphBridgeIssue]
@@ -36,8 +34,6 @@ pub fn advance_vectors_to_rows(VectorsToRowsExecution, Int) -> Result[VectorsToR
 
 pub fn cleanup_events_to_rows(EventsToRowsExecution) -> Result[Bool, EventsBridgeIssue]
 
-pub fn cleanup_graph_to_rows(GraphRowsExecution) -> Result[Bool, GraphBridgeIssue]
-
 pub fn cleanup_property_snapshot_handoff(PropertySnapshotHandoff) -> Result[Bool, GraphBridgeIssue]
 
 pub fn cleanup_rows_to_events(RowsToEventsExecution) -> Result[Bool, EventsBridgeIssue]
@@ -51,8 +47,6 @@ pub fn cleanup_vectors_to_rows(VectorsToRowsExecution) -> Result[Bool, EventsBri
 pub fn completed_property_snapshot_material(@bounded_execution.Control, @lowering_relation.BoundPrepared, @pipeline_typing.Target, @managed_graph_runtime.Completed, @managed_graph_storage.Limits, @bounded_graph_snapshot.Limits, @decode_core.Limits, Int, Int, Int64, () -> Bool) -> Result[@managed_carrier_runtime.Material, GraphBridgeIssue]
 
 pub fn events_to_rows_cleanup_pending(EventsToRowsExecution) -> Bool
-
-pub fn graph_to_rows_cleanup_pending(GraphRowsExecution) -> Bool
 
 pub fn prepare_property_snapshot_handoff(@bounded_execution.Control, @lowering_relation.BoundPrepared, @pipeline_typing.Target, @managed_graph_runtime.Completed, @managed_graph_storage.Limits, @bounded_graph_snapshot.Limits, Int, () -> Bool) -> Result[PropertySnapshotHandoff, GraphBridgeIssue]
 
@@ -71,12 +65,6 @@ pub fn start_completed_relation_to_rows(@bounded_execution.Control, @execution_r
 pub fn start_events_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[EventsToRowsExecution, EventsBridgeIssue]
 
 pub fn start_events_view_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, control_work_limit? : Int?) -> Result[EventsToRowsExecution, EventsBridgeIssue]
-
-pub fn start_graph_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[GraphRowsExecution, GraphBridgeIssue]
-
-pub fn start_graph_to_rows_from_carrier_inputs(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, control_work_limit? : Int?) -> Result[GraphRowsExecution, GraphBridgeIssue]
-
-pub fn start_graph_view_to_rows(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, control_work_limit? : Int?) -> Result[GraphRowsExecution, GraphBridgeIssue]
 
 pub fn start_property_snapshot_handoff_reload(PropertySnapshotHandoff, @decode_core.Cursor, () -> Bool, reference_issuer? : @value_admission.ReferenceIssuer?, control_work_limit? : Int?) -> Result[Unit, GraphBridgeIssue]
 
@@ -136,15 +124,6 @@ pub(all) enum GraphBridgeIssue {
   GraphSnapshot(@bounded_graph_snapshot.Issue)
   GraphSnapshotOutput(@managed_graph_runtime.Issue)
 } derive(Eq, @debug.Debug)
-
-type GraphRowsExecution
-
-pub enum GraphRowsPoll {
-  Continue(progress~ : Int64, work~ : Int64)
-  Complete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
-  Failed(GraphBridgeIssue, progress~ : Int64, work~ : Int64)
-  Stopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
-}
 
 type PropertySnapshotHandoff
 

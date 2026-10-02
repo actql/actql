@@ -684,3 +684,53 @@ The Program-only initial run passes 1/1; the corrected first combined run
 passes 3/3. The test path in those logs predates the rename to MATCH.
 Full Core/spec, old typed branch/API removal and final submitted public
 snapshot/packed/CI verification remain open.
+
+The committed MATCH owner API check passes at
+`/private/tmp/property-graph-match-owner-api-committed-20261003.log`.
+
+## Tuple Graph-to-Relation reader removal
+
+The Local bridge's homogeneous node/edge reader is deleted: `GraphRowsState`,
+`GraphRowsExecution`, its stored/viewed source union, field-role restoration,
+endpoint/label tuple readers, bounded projection loop, start/advance/cleanup
+entry points and poll type. It cannot be a fallback for current MATCH. The
+current keyed constructor still uses its original bounded session and shared
+checked-cell reader; those are not duplicated or removed.
+
+Five obsolete projection tests and two private projection helpers are removed
+from the mixed integration file, along with an unused missing-endpoint source
+helper. Historical work formulas and homogeneous output schemas are withdrawn,
+not represented as new refusal successes. Positive equivalents remain:
+
+- Explicit keyed construction, repeated producer occurrences, missing endpoint
+  exclusion, foreign owner refusal and exact/one-short constructor work and
+  workspace are tested by `property_graph_construction_wbtest.mbt`.
+- Current node MATCH tests all private stop prefixes, exact/one-short work and
+  workspace, output limits, stored/viewed inputs and idempotent cleanup.
+- A new independent one-edge MATCH case applies the same obligations to edge
+  output: three workspace slots and five phase-derived work units; two slots
+  or four units fail. Every private quantum-one yield can be cancelled without
+  output. Completed typed identity rows remain readable after Graph reclamation
+  and feed two independently checked Relation consumers (SELECT and FILTER),
+  each retaining the original output owner.
+- Runtime lifecycle tests retain two exact downstream Graph consumers,
+  revocation, final reclamation and unavailable/failed output custody. Keyed
+  snapshot and selector tests retain their existing cancellation and ownership
+  positives.
+
+The first retirement run passes 31/31 JS but reports the newly unused helper;
+that helper is removed, not warning-exempted. The new edge test first passes
+32/32. Adding downstream FILTER initially fails in the old demonstration
+`compute_test_sequence` helper, which supplies contexts only for a three-step
+fixture. Using existing `task_test_generated` prepares the exact authored
+expression context; no evaluator or assertion is relaxed. The initial 19/20
+log is `/private/tmp/property-graph-edge-match-retained-rows-first-js-20261003.log`;
+the corrected run passes 20/20.
+
+The current Graph/storage/runtime/snapshot suite plus migrated entity bounds,
+MATCH obligation custody and Program preflight now passes **103/103 on each
+JS, Wasm and native**:
+`/private/tmp/property-graph-tuple-reader-retirement-{js,wasm,native}-20261003.log`.
+This is focused evidence, not full Core/spec or published-SHA acceptance.
+Old Carrier constructor/getters, unsupported typed consumer branches, mixed
+upper/Host fixtures and the strict resource-route inventory remain open.
