@@ -44,7 +44,14 @@ function fixture() {
   const merged = run(14, 'pull_request', merge, 1, 'success');
   merged.pull_requests[0].head.sha = head;
   const data = {
-    [`${prefix}/pulls/7`]: {number: 7, state: 'open', head: {sha: head, ref: 'feature/one', repo: {full_name: repository}},
+    [prefix]: {default_branch: 'main'},
+    [`${prefix}/branches/main`]: {name: 'main', commit: {sha: base}},
+    [`${prefix}/pulls/7/reviews?per_page=100`]: [[]],
+    [`${prefix}/git/commits/${base}`]: {sha: base, tree: {sha: base}, parents: []},
+    [`${prefix}/git/commits/${head}`]: {sha: head, tree: {sha: head}, parents: [{sha: base}]},
+    [`${prefix}/git/commits/${merge}`]: {sha: merge, tree: {sha: merge}, parents: [{sha: base}, {sha: head}]},
+    [`${prefix}/compare/${head}...${base}`]: {status: 'behind', base_commit: {sha: head}, merge_base_commit: {sha: base}},
+    [`${prefix}/pulls/7`]: {number: 7, state: 'open', draft: false, merged: false, mergeable: null, mergeable_state: 'unknown', head: {sha: head, ref: 'feature/one', repo: {full_name: repository}},
       base: {sha: base, ref: 'main'}, merge_commit_sha: merge, html_url: 'https://github.com/example/project/pull/7'},
     [`${prefix}/git/ref/pull/7/merge`]: {ref: 'refs/pull/7/merge', object: {sha: merge}},
     [protection]: {required_status_checks: {strict: true, contexts: ['build'], checks: [{context: 'build', app_id: 42}]}},
@@ -539,6 +546,241 @@ test('fixed-run CLI remains GET-only and keeps all attempts outside the selected
     assert.equal(group.maximumSeconds, 50);
   });
 }
+
+
+// #196 and #198 use the same collector and existing lint test entrypoint.
+const comparePath = (from, to = base) => `${prefix}/compare/${from}...${to}`;
+const commitPath = value => `${prefix}/git/commits/${value}`;
+function mergedPR(data, destination = 'main') {
+  const pr = data[`${prefix}/pulls/7`];
+  Object.assign(pr, {state: 'closed', merged: true, merged_at: '2026-10-02T12:00:00Z'});
+  pr.base.ref = destination;
+  if (destination !== 'main') {
+    data[`${prefix}/pulls?state=all&head=example%3A${encodeURIComponent(destination)}&per_page=100`] = [[]];
+    data[`${prefix}/branches/${encodeURIComponent(destination)}/protection`] = data[protection];
+    data[`${prefix}/rules/branches/${encodeURIComponent(destination)}?per_page=100`] = data[rules];
+  }
+  data[comparePath(merge)] = {status: 'diverged', base_commit: {sha: merge}, merge_base_commit: {sha: stale}};
+  return pr;
+}
+function requiredBuild(data) {
+  data[rules] = [[]];
+  for (const id of [10, 11, 12, 13, 14]) {
+    for (let attempt = 1; attempt <= (id === 13 ? 2 : 1); attempt++) {
+      const run = data[attemptPath(id, attempt)];
+      run.check_suite_id = id * 100;
+      run.workflow_id = id === 10 ? 1 : 2;
+      for (const page of data[jobsPath(id, attempt)]) for (const job of page.jobs) {
+        job.check_run_url = `https://api.github.com/repos/${repository}/check-runs/${job.id}`;
+        job.name = 'build';
+      }
+    }
+  }
+}
+function check(id, suiteId, source, status = 'completed', conclusion = 'success', appId = 42) {
+  return {id, name: 'build', head_sha: source, status, conclusion,
+    check_suite: {id: suiteId}, app: {id: appId}};
+}
+
+test('#196 normal merge proves exact original ancestry and records the merge destination', async () => {
+  const data = fixture();
+  mergedPR(data);
+  data[comparePath(head)] = {status: 'ahead', base_commit: {sha: head}, merge_base_commit: {sha: head}};
+  data[comparePath(merge)] = {status: 'ahead', base_commit: {sha: merge}, merge_base_commit: {sha: merge}};
+  const report = await collect(data), subject = report.integration.subjects[0];
+  assert.equal(report.complete, true);
+  assert.equal(subject.relation, 'exact-head-reachable');
+  assert.deepEqual(subject.mergeDestination, {repository, branch: 'main'});
+  assert.equal(subject.mergeResultAncestry.state, 'reachable');
+  assert.equal(report.target.currentMergeTestSha, null);
+});
+
+test('#196 merged into a feature branch is not main integration and identifies the missing step', async () => {
+  const data = fixture();
+  mergedPR(data, 'feature/parent');
+  const report = await collect(data), subject = report.integration.subjects[0];
+  assert.equal(report.complete, true);
+  assert.equal(subject.mergeDestination.branch, 'feature/parent');
+  assert.equal(subject.relation, 'not-reachable-content-unverified');
+  assert.match(subject.nextStep, /merge result from feature\/parent.*into main/u);
+  assert.match(formatHuman(report), /merge destination: example\/project:feature\/parent/u);
+  assert.equal(report.reviewEvidence.verdict, 'not-issued');
+});
+
+test('#196 squash correspondence distinguishes exact trees from original ancestry and unknown content', async () => {
+  const data = fixture();
+  mergedPR(data);
+  data[comparePath(merge)] = {status: 'ahead', base_commit: {sha: merge}, merge_base_commit: {sha: merge}};
+  data[commitPath(merge)].tree.sha = head;
+  let subject = (await collect(data)).integration.subjects[0];
+  assert.equal(subject.headAncestry.state, 'not-reachable');
+  assert.equal(subject.headToMergeResultTree, 'equal');
+  assert.equal(subject.relation, 'equivalent-tree-in-reachable-merge-result');
+  data[commitPath(merge)].tree.sha = merge;
+  subject = (await collect(data)).integration.subjects[0];
+  assert.equal(subject.relation, 'merge-result-reachable-content-unverified');
+  assert.match(subject.nextStep, /before claiming/u);
+  data[commitPath(base)].tree.sha = head;
+  assert.equal((await collect(data)).integration.subjects[0].relation, 'equivalent-tree-at-integration-tip');
+});
+
+test('#196 missing history and wrong comparison/tree identity never establish integration', async () => {
+  for (const replacement of [{error: 'gh API HTTP 404'}, {status: 'ahead', base_commit: {sha: stale}, merge_base_commit: {sha: head}},
+    {status: 'ahead', base_commit: {sha: head}, merge_base_commit: {sha: stale}}]) {
+    const data = fixture();
+    data[comparePath(head)] = replacement;
+    const report = await collect(data);
+    assert.equal(report.integration.subjects[0].relation, 'unknown');
+    assert.equal(report.complete, false);
+  }
+  const data = fixture();
+  data[commitPath(head)] = {sha: stale, tree: {sha: base}};
+  assert.equal((await collect(data)).integration.subjects[0].headToIntegrationTree, 'unknown');
+});
+
+test('#196 explicit dependencies and current-base candidates are repository-scoped and report each destination', async () => {
+  const data = fixture();
+  data[`${prefix}/pulls/7`].base.ref = 'feature/parent';
+  data[`${prefix}/branches/feature%2Fparent/protection`] = data[protection];
+  data[`${prefix}/rules/branches/feature%2Fparent?per_page=100`] = data[rules];
+  data[`${prefix}/pulls?state=all&head=example%3Afeature%2Fparent&per_page=100`] = [[
+    {number: 8, head: {ref: 'feature/parent', repo: {full_name: repository}}},
+    {number: 9, head: {ref: 'feature/parent', repo: {full_name: 'other/project'}}},
+  ]];
+  data[`${prefix}/pulls/8`] = {...structuredClone(data[`${prefix}/pulls/7`]), number: 8, merged: true,
+    state: 'closed', base: {ref: 'feature/grandparent', sha: stale}, merge_commit_sha: merge};
+  data[comparePath(merge)] = {status: 'diverged', base_commit: {sha: merge}, merge_base_commit: {sha: stale}};
+  const calls = [];
+  const report = await collectEvidence({repository, pr: 7, integration: 'main', dependencies: [8]}, reader(data, calls));
+  assert.deepEqual(report.integration.subjects.map(item => item.number), [7, 8]);
+  assert.equal(report.integration.subjects[1].mergeDestination.branch, 'feature/grandparent');
+  assert.equal(report.integration.subjects[1].relation, 'not-reachable-content-unverified');
+  assert.equal(calls.filter(item => item.endpoint === `${prefix}/pulls/8`).length, 2);
+  assert.ok(!calls.some(item => item.endpoint === `${prefix}/pulls/9`));
+});
+
+test('#198 final HEAD/base reread detects movement and unavailable boundaries', async () => {
+  for (const change of ['head', 'base', 'base-ref', 'draft', 'unavailable']) {
+    const data = fixture(), calls = [];
+    let reads = 0;
+    const request = reader(data, calls);
+    const report = await collectEvidence({repository, pr: 7}, async (endpoint, paginate) => {
+      if (endpoint === `${prefix}/pulls/7` && ++reads === 2) {
+        if (change === 'unavailable') throw new Error('gh API HTTP 403');
+        if (change === 'head') data[endpoint].head.sha = stale;
+        if (change === 'base') data[endpoint].base.sha = stale;
+        if (change === 'base-ref') data[endpoint].base.ref = 'other';
+        if (change === 'draft') data[endpoint].draft = true;
+      }
+      return request(endpoint, paginate);
+    });
+    assert.equal(report.complete, false);
+    assert.equal(report.revision.state, change === 'unavailable' ? 'unknown' : 'changed');
+    assert.equal(calls.at(-1).endpoint, change === 'unavailable' ? `${prefix}/git/ref/pull/7/merge` : `${prefix}/pulls/7`);
+    assert.equal(report.reviewEvidence.verdict, 'not-issued');
+  }
+});
+
+test('#196/#198 integration branch or merge-ref movement invalidates the observed boundary', async () => {
+  for (const endpoint of [`${prefix}/branches/main`, `${prefix}/git/ref/pull/7/merge`]) {
+    const data = fixture(); let reads = 0;
+    const request = reader(data);
+    const report = await collectEvidence({repository, pr: 7}, async (path, paginate) => {
+      if (path === endpoint && ++reads === 2) {
+        if (path.includes('/branches/')) data[path].commit.sha = stale;
+        else data[path].object.sha = stale;
+      }
+      return request(path, paginate);
+    });
+    assert.equal(report.revision.state, 'changed');
+    assert.equal(report.complete, false);
+  }
+});
+
+test('#198 current requirements retain actual run/attempt/event and never use stale green jobs', async () => {
+  const data = fixture(); requiredBuild(data);
+  data[`${prefix}/commits/${head}/check-runs?filter=all&per_page=100`] = collection('check_runs', [check(130, 1300, head)]);
+  const report = await collect(data), required = report.requiredChecks.observations[0];
+  const current = required.sourcesAtRevision[0];
+  assert.equal(current.state, 'completed-success');
+  assert.deepEqual([current.checks[0].attribution.runId, current.checks[0].attribution.attempt,
+    current.checks[0].attribution.event], [13, 2, 'pull_request']);
+  assert.equal(required.sourcesAtRevision[1].state, 'missing');
+  assert.equal(required.relatedJobs.find(item => item.runId === 12).sourceMatch, 'stale-pr-head');
+  data[`${prefix}/commits/${head}/check-runs?filter=all&per_page=100`] = collection('check_runs', []);
+  assert.equal((await collect(data)).requiredChecks.observations[0].sourcesAtRevision[0].state, 'missing');
+});
+
+test('#198 duplicate names across workflows stay separate, mismatched sources and apps cannot become current', async () => {
+  const data = fixture(); requiredBuild(data);
+  data[`${prefix}/commits/${head}/check-runs?filter=all&per_page=100`] = collection('check_runs', [check(100, 1000, head), check(110, 1100, head)]);
+  let current = (await collect(data)).requiredChecks.observations[0].sourcesAtRevision[0];
+  assert.equal(current.state, 'multiple-observations');
+  assert.deepEqual(current.checks.map(item => item.attribution.workflowId), [1, 2]);
+  data[`${prefix}/commits/${head}/check-runs?filter=all&per_page=100`] = collection('check_runs', [check(120, 1200, stale)]);
+  current = (await collect(data)).requiredChecks.observations[0].sourcesAtRevision[0];
+  assert.equal(current.state, 'unknown');
+  assert.equal(current.checks[0].revisionMatch, 'mismatched-sha');
+  data[`${prefix}/commits/${head}/check-runs?filter=all&per_page=100`] = collection('check_runs', [check(100, 1000, head, 'completed', 'success', 99)]);
+  assert.equal((await collect(data)).requiredChecks.observations[0].sourcesAtRevision[0].state, 'missing');
+});
+
+test('#198 retries supersede old success without hiding cancelled, skipped or running outcomes', async () => {
+  const data = fixture(); requiredBuild(data);
+  for (const [status, conclusion, state] of [['in_progress', null, 'running-or-pending'],
+    ['completed', 'cancelled', 'completed-cancelled'], ['completed', 'skipped', 'completed-skipped'],
+    ['completed', 'neutral', 'completed-neutral']]) {
+    data[`${prefix}/commits/${head}/check-runs?filter=all&per_page=100`] = collection('check_runs', [
+      check(129, 1300, head), check(130, 1300, head, status, conclusion)]);
+    const current = (await collect(data)).requiredChecks.observations[0].sourcesAtRevision[0];
+    assert.equal(current.state, state);
+    assert.equal(current.checks[0].attemptState, 'superseded-attempt');
+    assert.equal(current.checks[1].attemptState, 'latest-observed-attempt');
+  }
+});
+
+test('#198 unavailable policy stays unknown, merge tree and reviews preserve exact revision bindings', async () => {
+  const data = fixture(); requiredBuild(data);
+  data[protection] = {error: 'gh API HTTP 403'};
+  data[rules] = [[{type: 'required_status_checks', parameters: {required_status_checks: [{context: 'build', integration_id: 42}]}}]];
+  data[`${prefix}/pulls/7`].draft = true;
+  data[`${prefix}/pulls/7/reviews?per_page=100`] = [[
+    {id: 1, user: {login: 'reviewer'}, state: 'APPROVED', commit_id: stale},
+    {id: 2, user: {login: 'reviewer'}, state: 'CHANGES_REQUESTED', commit_id: head},
+  ]];
+  let report = await collect(data);
+  assert.equal(report.requiredChecks.state, 'unknown');
+  assert.equal(report.requiredChecks.observations[0].authoritative, false);
+  assert.equal(report.reviewEvidence.draft, true);
+  assert.equal(report.reviewEvidence.finalMergeabilityState, 'unknown');
+  assert.equal(report.target.mergeTestRelationship, 'current-base-and-head');
+  assert.deepEqual(report.target.mergeTestParents, [base, head]);
+  assert.deepEqual(report.reviews.observations.map(review => review.sourceMatch), ['stale-head', 'exact-head']);
+  data[commitPath(merge)].parents[0].sha = stale;
+  report = await collect(data);
+  assert.equal(report.target.mergeTestRelationship, 'mismatched-or-unverified-parents');
+  assert.equal(report.reviewEvidence.verdict, 'not-issued');
+});
+
+test('#196 strict integration/dependency CLI options are explicit PR-only GET selection', () => {
+  assert.deepEqual(parseArguments([repository, '--pr', '7', '--integration', 'release/one', '--dependencies', '8,9']),
+    {repository, pr: 7, integration: 'release/one', dependencies: [8, 9], json: false});
+  for (const args of [['--sha', head, '--integration', 'main'], ['--runs', '10', '--dependencies', '7'],
+    ['--pr', '7', '--dependencies', '8,8'], ['--pr', '7', '--dependencies', '0']]) {
+    assert.throws(() => parseArguments([repository, ...args]), /Usage/u);
+  }
+});
+
+test('#198 an app-pinned requirement cannot attribute a legacy status to the required app', async () => {
+  const data = fixture(); requiredBuild(data);
+  data[`${prefix}/commits/${head}/statuses?per_page=100`] = [[{id: 91, context: 'build', state: 'success'}]];
+  let required = (await collect(data)).requiredChecks.observations[0];
+  assert.equal(required.sourcesAtRevision[0].state, 'unknown-app-source');
+  data[protection].required_status_checks.checks[0].app_id = -1;
+  required = (await collect(data)).requiredChecks.observations[0];
+  assert.equal(required.appId, null);
+  assert.equal(required.sourcesAtRevision[0].state, 'status-success');
+});
 
 // Read-only scheduling diagnostics share the existing CI reporting fixture gate.
 import './verification-actions.test.mjs';

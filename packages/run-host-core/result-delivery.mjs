@@ -176,6 +176,7 @@ function pendingRecordFailure(
   const errors = [recordFailure];
   let pending = true;
   let nextRecord = 0;
+  let retrying;
   const status = () => Object.freeze({
     pending,
     errors: Object.freeze([...errors]),
@@ -188,28 +189,34 @@ function pendingRecordFailure(
   };
   failure.cleanupHandle = Object.freeze({
     status,
-    async retry() {
-      while (true) {
-        const action = control.deliveryRecordRetryAction(
-          nextRecord, records.length,
-        );
-        if (action === 'finished') {
-          pending = false;
-          break;
+    retry() {
+      if (retrying !== undefined) return retrying;
+      // Install the shared flight before invoking either port. Only this loop
+      // may advance the retained cursor; a later flight resumes after failure.
+      retrying = Promise.resolve().then(async () => {
+        while (true) {
+          const action = control.deliveryRecordRetryAction(
+            nextRecord, records.length,
+          );
+          if (action === 'finished') {
+            pending = false;
+            break;
+          }
+          if (action !== 'append_next_record') {
+            fail('InvalidResultDeliveryRecordRetry');
+          }
+          try {
+            await appendExactRecord(store, records[nextRecord]);
+            nextRecord++;
+          } catch (error) {
+            errors.push(error);
+            break;
+          }
         }
-        if (action !== 'append_next_record') {
-          fail('InvalidResultDeliveryRecordRetry');
-        }
-        try {
-          await appendExactRecord(store, records[nextRecord]);
-          nextRecord++;
-        } catch (error) {
-          errors.push(error);
-          break;
-        }
-      }
-      pending = nextRecord < records.length;
-      return update();
+        pending = nextRecord < records.length;
+        return update();
+      }).finally(() => { retrying = undefined; });
+      return retrying;
     },
   });
   update();
