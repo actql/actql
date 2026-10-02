@@ -77,7 +77,7 @@ test "nearest produces a pair key rather than query-only uniqueness" {
 }
 
 ///|
-test "nearest named object projection identifies the common execution gap" {
+test "nearest named object projection lowers through common expressions" {
   let checked = match
     @check.check_parsed(
       nearest_shared_program(true),
@@ -110,7 +110,7 @@ test "nearest named object projection identifies the common execution gap" {
       max_literal_nodes: 1000,
       max_literal_text_bytes: 10000,
     })
-    is Err({ kind: @lower.ExpressionNotImplemented("object"), .. }),
+    is Ok(_),
   )
 }
 

@@ -67,19 +67,24 @@ test "INFER rejects duplicate keys, output collisions and unresolved input roles
 }
 
 ///|
-test "INFER Program admission is not common checker or execution support" {
+test "INFER requires a ModelTask from the checking environment" {
   let program = infer_program(
     "FROM pair |> INFER score ITEM KEY (x) INPUT (n = y) AS assessment",
   ).unwrap()
-  // No checked owner is manufactured while the shared infer checker is absent.
-  match
-    @check.check_parsed(program, check_environment(), None, check_limits()) {
-    Rejected(error) =>
-      assert_eq(
-        @check.diagnostic_category(error),
-        @check.UnsupportedImplementation,
-      )
-    _ => fail("the common infer owner is not implemented")
+  // This environment declares no ModelTask. Syntax admission cannot supply
+  // one, even though the common infer checker is now implemented.
+  let environment = check_environment()
+  assert_true(@check.checking_environment_model_tasks(environment) is None)
+  match @check.check_parsed(program, environment, None, check_limits()) {
+    Rejected(error) => {
+      assert_eq(@check.diagnostic_category(error), @check.InvalidInput)
+      match @check.diagnostic_cause(error) {
+        Source(SourceView(Program(Program(Pipeline(_, issue))))) =>
+          assert_true(issue.kind is MissingModelTasks)
+        other => raise other
+      }
+    }
+    _ => fail("an undeclared ModelTask must not issue a checked owner")
   }
 }
 
