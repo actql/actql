@@ -2,6 +2,31 @@
 
 ## Current authority and completion boundary
 
+### Snapshot composition boundary correction (2026-10-03)
+
+At `155bb335183e28f462614db3aa1c01618b1ff30f`, aggregate `check:spec` fails
+in `connector-dispatch-boundary.test.mjs`: shared client dispatch constructs
+the concrete `local` configuration key for snapshot storage. This is a current
+snapshot connection defect, not an unsupported SGA operation or a reason to
+relax the guard. The concrete Embedded adapter now creates the configuration
+map; shared dispatch forwards that map without selecting a Connector identity.
+Current acquired-input authorization remains supplied by the dispatch owner.
+
+The regression requires an opaque installed provider configuration to arrive
+unchanged at publication dispatch. It fails before the change and passes after
+it. The focused dispatch custody and common-boundary tests pass **22/22**.
+The unfiltered test also imports two-source public acceptance: seven failures
+there are caused by the borrowed stale `@actql/client-wire` lacking
+`validCheckOutcome`, before public execution; the missing subsequent reports
+are consequences, not successful crash/recovery checks. A negative-lookahead
+test-name selection still selected nested public tests and reproduced that
+environment failure; the final focused selection names the relevant unit tests
+explicitly. Borrowed dependencies and acceptance expectations were not changed.
+Retained failure areas are `_build/two-source-public-4QL6T2` and
+`_build/two-source-public-h3xlgO`. Full public acceptance still requires fresh
+packages on the final source. Aggregate spec did not reach its later checks in
+the initial run and is not reported as successful.
+
 ### Initial-scope resource gate checkpoint (2026-10-03)
 
 On top of `caa5932bce615c1b6d46f392575033c24e71500f`, the existing resource

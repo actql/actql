@@ -13,7 +13,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   store, checkpoints, startRun, hostConnection, beforeDispatch, observed,
   prepareAcquisition, planFor, sourceProfile, registry, values, fragment,
   ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
-  faultInjection, runInfer, localSnapshotConfiguration,
+  faultInjection, runInfer, computeConfigurations = {},
   runPublished = runPublishedCapturedStrategy}) {
   const entries = new Map();
   const diagnostic = diagnosticObserver(observed);
@@ -410,10 +410,9 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       }
       const published = await runPublished(setup,
         {store, plan: held.plan},
-        { ...(sourceAccess === undefined ? {} :
-            {authorization: sourceAccess.authorization}),
-          ...(localSnapshotConfiguration === undefined ? {} :
-            {local:localSnapshotConfiguration}) },
+        { ...computeConfigurations,
+          ...(sourceAccess === undefined ? {} :
+            {authorization: sourceAccess.authorization}) },
         entry.abort.signal, undefined, execution => {
           entry.cleanupOwner = execution;
           entry.pendingSetup = undefined;
