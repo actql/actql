@@ -10,7 +10,8 @@ import {clientHostOperations, validCheckpointPage, validCheckpointReview,
   validClientAdmission, validClientBody, validClientProfile,
   validDeliveryAttemptLookup, validRequestLookup, validResolveResults,
   validRequestCancellation, validResourceInspection, validResourceListing,
-  validResourcePeek, validRunState, validResultDescription} from
+  validResourcePeek, validRunState, validResultDescription,
+  validCheckOutcome} from
   '../../packages/client-wire/index.mjs';
 
 const operations = new Set(clientHostOperations);
@@ -147,7 +148,7 @@ export function createClientHttpHandler({
   negotiate, submit, attach, lookupRequest, observeRun, wait, cancel,
   reconcile, deliveryAttempt, prepareSubmit, checkpoints, checkpointReview,
   resolve, cancelRequest, resources, inspectResource, peekResource,
-  maxRequestBytes = 65536, observe,
+  check, maxRequestBytes = 65536, observe,
 }) {
   if (typeof authenticate !== 'function' ||
       typeof authorizeConnection !== 'function' ||
@@ -300,6 +301,17 @@ export function createClientHttpHandler({
           invalid('InvalidClientHostRequestCancellation');
         }
         sendJson(cancelled);
+      } else if (operation === 'check') {
+        // Every check outcome, including failed and unavailable, is a
+        // successful operation: the status never encodes a verdict.
+        const observer = observationAttempt(response);
+        try {
+          const outcome = await invoke(check, observer.signal);
+          if (!validCheckOutcome(outcome)) {
+            invalid('InvalidClientHostCheckOutcome');
+          }
+          sendJson(outcome);
+        } finally { observer.release(); }
       } else if (operation === 'resources' ||
           operation === 'resource-inspect' || operation === 'resource-peek') {
         // Aborting a discovery read ends only that read.
