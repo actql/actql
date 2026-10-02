@@ -1,0 +1,290 @@
+{
+  "execution_status": "not_run",
+  "model_task": {
+    "authored_model_selector": "fixture-risk-model",
+    "connector_id": "models/fixture",
+    "contract_cid": "sha256:cfb4c49389dd5ecbcd97d4b60276549dcf6fd2ce62584707b5c661d94dce4560",
+    "data_handling": {
+      "accepted_classifications": [
+        "public",
+        "internal"
+      ],
+      "allowed_regions": [
+        "fixture-region"
+      ],
+      "contract_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "retention": "none",
+      "training_use": "forbidden"
+    },
+    "generation_config": {
+      "max_output_tokens": 32,
+      "seed_requested": -7,
+      "temperature": 0,
+      "top_p": 1
+    },
+    "input_contract": {
+      "additional_properties": false,
+      "fields": {
+        "text": {
+          "nullable": true,
+          "type": "string"
+        }
+      },
+      "nullable": false,
+      "type": "object"
+    },
+    "input_schema_cid": "sha256:57887e29c270383ae1e005ba3476a81c8b0012a8b566db860c75abba9c786dd7",
+    "max_items": 2,
+    "output_contract": {
+      "additional_properties": false,
+      "fields": {
+        "reason": {
+          "nullable": true,
+          "type": "string"
+        },
+        "risk": {
+          "nullable": false,
+          "type": "string"
+        }
+      },
+      "nullable": false,
+      "type": "object"
+    },
+    "output_schema_cid": "sha256:d67003c78c0eb8b7ab0499bbed57bc8d5895c43ed0b3ce27755b656a65fd49f3",
+    "prompt_template_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "retrieval_policy": "none",
+    "schema": "actql.model_task/0.1",
+    "streaming": false,
+    "task_id": "model-task:risk-score.v1",
+    "task_kind": "structured_generate",
+    "tool_policy": "none",
+    "version": "1"
+  },
+  "control_program": {
+    "version": "actql/0.1",
+    "id": "packed-infer-checkpoint",
+    "stages": [
+      {
+        "id": "main",
+        "inputs": {},
+        "steps": [
+          {
+            "values": {
+              "schema": {
+                "id": {
+                  "type": "string",
+                  "nullable": false
+                },
+                "text": {
+                  "type": "string",
+                  "nullable": true
+                }
+              },
+              "rows": [
+                {
+                  "id": "a",
+                  "text": "hello"
+                }
+              ]
+            },
+            "as": "input"
+          },
+          {
+            "assert_rows": {
+              "unique_by": [
+                "id"
+              ]
+            },
+            "as": "unique"
+          },
+          {
+            "infer": {
+              "contract": "model-task:risk-score.v1",
+              "key": "id",
+              "input": {
+                "text": {
+                  "field": "text"
+                }
+              }
+            },
+            "as": "captured"
+          }
+        ],
+        "results": {
+          "captured": {
+            "from": "captured",
+            "fields": [
+              "id",
+              "outcome",
+              "value"
+            ]
+          }
+        }
+      }
+    ],
+    "results": {
+      "answer": {
+        "from": {
+          "stage": "main",
+          "result": "captured"
+        }
+      }
+    }
+  },
+  "control_columns": [
+    {
+      "name": "id",
+      "type": {
+        "type": "string",
+        "nullable": false
+      }
+    },
+    {
+      "name": "outcome",
+      "type": {
+        "type": "string",
+        "nullable": false
+      }
+    },
+    {
+      "name": "value",
+      "type": {
+        "type": "object",
+        "nullable": true,
+        "additional_properties": false,
+        "fields": {
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "risk": {
+            "type": "string",
+            "nullable": false
+          }
+        }
+      }
+    }
+  ],
+  "control_rows": [
+    {
+      "id": "a",
+      "outcome": "ok",
+      "value": {
+        "reason": null,
+        "risk": "high"
+      }
+    }
+  ],
+  "source": "SELECT 'a' AS id, 'hello' AS text |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (text = text) AS assessment",
+  "source_rows": [
+    {
+      "assessment": {
+        "input_key": {
+          "id": "a"
+        },
+        "outcome": "ok",
+        "value": {
+          "reason": null,
+          "risk": "high"
+        }
+      }
+    }
+  ],
+  "projected_program": {
+    "version": "actql/0.1",
+    "id": "packed-infer-projected",
+    "stages": [
+      {
+        "id": "main",
+        "inputs": {},
+        "steps": [
+          {
+            "values": {
+              "schema": {
+                "id": {
+                  "type": "string",
+                  "nullable": false
+                },
+                "text": {
+                  "type": "string",
+                  "nullable": true
+                }
+              },
+              "rows": [
+                {
+                  "id": "a",
+                  "text": "hello"
+                }
+              ]
+            },
+            "as": "input"
+          },
+          {
+            "assert_rows": {
+              "unique_by": [
+                "id"
+              ]
+            },
+            "as": "unique"
+          },
+          {
+            "infer": {
+              "contract": "model-task:risk-score.v1",
+              "key": "id",
+              "input": {
+                "text": {
+                  "field": "text"
+                }
+              }
+            },
+            "as": "captured"
+          },
+          {
+            "derive": {
+              "assessment": {
+                "object": {
+                  "input_key": {
+                    "object": {
+                      "id": {
+                        "field": "id"
+                      }
+                    }
+                  },
+                  "outcome": {
+                    "field": "outcome"
+                  },
+                  "value": {
+                    "field": "value"
+                  }
+                }
+              }
+            },
+            "as": "structured"
+          },
+          {
+            "select": [
+              "assessment"
+            ],
+            "as": "projected"
+          }
+        ],
+        "results": {
+          "captured": {
+            "from": "projected",
+            "fields": [
+              "assessment"
+            ]
+          }
+        }
+      }
+    ],
+    "results": {
+      "answer": {
+        "from": {
+          "stage": "main",
+          "result": "captured"
+        }
+      }
+    }
+  }
+}
