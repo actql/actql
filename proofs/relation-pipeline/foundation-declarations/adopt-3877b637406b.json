@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "adopt-3877b637406b",
+  "kind": "change",
+  "revision": "3877b637406b99a224beb343018c7f347960d734",
+  "parents": [
+    "cd157ac3272445562eadcb420a057135beeb590a"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "cd157ac3272445562eadcb420a057135beeb590a",
+          "digest": "227c2fcb42df515554d897a418b7ec1ae6fddc02f43a04d8c46d53780a229e2f",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "17f9008869fdbf738c229401430f068a494ffc9aa151e1cf610ba804de1fb3e5",
+      "afterMode": "100644",
+      "reason": "Retain installed INFER public-host tests and model dependency contract generation/tests from #178."
+    }
+  ]
+}
