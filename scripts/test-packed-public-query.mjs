@@ -71,6 +71,12 @@ const runtimeEnvironment = {...environment,
 if (process.argv.includes('--source-free-only')) {
   runtimeEnvironment.ACTQL_TEST_SOURCE_FREE_ONLY = '1';
 }
+if (process.argv.includes('--query-composition-only')) {
+  runtimeEnvironment.ACTQL_TEST_QUERY_COMPOSITION_ONLY = '1';
+}
+if (process.argv.includes('--pipe-result-only')) {
+  runtimeEnvironment.ACTQL_TEST_PIPE_RESULT_ONLY = '1';
+}
 if (process.argv.includes('--join-order-only')) {
   runtimeEnvironment.ACTQL_TEST_JOIN_ORDER_ONLY = '1';
 }
@@ -94,12 +100,16 @@ const output = run(process.execPath, ['acceptance.mjs'], root,
 console.log(output.trimEnd());
 // The first Host process has exited: no live Local installation still owns
 // its Store. Restore retained Results in a new process without resubmission.
+// Narrow selections without the String fixture have no retained String Run.
+// Keep restart acceptance for full/source-free selections that create it.
 if (!process.argv.some(flag => ['--alias-scope-only', '--infer-refusal-only',
-  '--join-order-only'].includes(flag))) {
+  '--join-order-only', '--query-composition-only', '--pipe-result-only'].includes(flag))) {
   console.log(run(process.execPath, ['string-values-restart.mjs'], root,
     runtimeEnvironment, 120000).trimEnd());
 }
 if (process.argv.includes('--source-free-only') ||
+  process.argv.includes('--query-composition-only') ||
+  process.argv.includes('--pipe-result-only') ||
   process.argv.includes('--alias-scope-only') ||
   process.argv.includes('--infer-refusal-only') ||
   process.argv.includes('--join-order-only')) return;
