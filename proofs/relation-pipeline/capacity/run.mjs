@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync } from
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { execute, executions, root, toolchain } from '../execute.mjs';
+import { finishCapacityCampaign } from './finish.mjs';
 import { hash, snapshot } from '../inventory.mjs';
 import { generate, shrink, candidates } from '../engine.mjs';
 import { fixedCorpus } from '../corpus.mjs';
@@ -153,6 +154,9 @@ try {
     console.log(`${variant.name}: fresh JS detection/shrink, same-resource minimum, ${targets.length} mutated/restored targets`);
   }
 } finally { restore(); }
+// Persist the completed campaign before transferring the checkout's temporary
+// fixture slot. Parent and child executors never share a live fixture owner.
+finishCapacityCampaign(report, targets);
 if (targets.includes('native')) {
   // Keep this receipt separate: the diagnostic observes native parent roots,
   // not the portable child campaign, and must not contaminate its source set.

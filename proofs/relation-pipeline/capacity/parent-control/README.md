@@ -94,6 +94,17 @@ node proofs/relation-pipeline/capacity/parent-control/run.mjs
 The complete hosted capacity campaign runs it after restoring the child
 observer/mutations. Its separate report and content-addressed executed binaries
 are archived below `.artifacts/relation-pipeline/capacity/parent-control-probe`.
+Before spawning it, the capacity campaign saves its observations/receipts and
+calls the executor's terminal `closeExecutor()`. This checks ownership, physical
+file identity and exact fixture bytes before removing only that fixture. Matching
+bytes from another process do not confer ownership. The exit hook is a fallback,
+not a parent-to-child handoff. Closing retains every archived fixture and receipt.
+The isolated lifecycle regression uses the real executor/finish boundary and
+live parent/child processes with a mocked Moon transport; it also detects an
+omitted close. Full real capacity-campaign-to-parent-probe execution remains the
+hosted CI integration check. #190's per-workspace `createExecutor().close` is the
+same terminal boundary; its default executor must expose `closeExecutor` when
+that executor version is integrated.
 The final independent capacity audit rechecks the receipt. Local validation is
 limited to touched Node tests and one native generated case; complete campaign
 results belong to CI on the pushed SHA.
