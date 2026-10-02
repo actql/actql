@@ -22,11 +22,8 @@ pub(all) struct Limits {
 pub(all) enum Issue {
   InvalidLimits
   WrongCarrier
-  OpenPropertyContract
   InvalidIdentity
-  InvalidLabel
   InvalidProperties
-  WrongMode
   InputRowLimit
   NodeLimit
   EdgeLimit
@@ -34,33 +31,29 @@ pub(all) enum Issue {
   RetainedValueLimit
   WorkLimit
   WorkspaceLimit
-  DuplicateNodeConflict
-  DuplicateEdgeConflict
   DuplicateNodeKey
   DuplicateEdgeKey
-  WrongProfile
   MissingEndpoint
   Closed
 } derive(Eq, Debug)
 
 ///|
 priv struct Node {
-  property_definition : Int?
-  identity_order_key : String?
-  typed_key : Array[@value.CheckedValue]?
+  property_definition : Int
+  identity_order_key : String
+  typed_key : Array[@value.CheckedValue]
   identity : @value.CheckedValue
   properties : Array[@value.CheckedValue]
 }
 
 ///|
 priv struct Edge {
-  property_definition : Int?
-  identity_order_key : String?
-  identity : @value.CheckedValue?
-  typed_key : Array[@value.CheckedValue]?
+  property_definition : Int
+  identity_order_key : String
+  identity : @value.CheckedValue
+  typed_key : Array[@value.CheckedValue]
   source : Int
   target : Int
-  label : @value.CheckedValue?
   properties : Array[@value.CheckedValue]
 }
 
@@ -277,9 +270,9 @@ fn node_slots(properties : Int) -> Int {
 }
 
 ///|
-fn edge_slots(properties : Int, label : Bool) -> Int {
+fn edge_slots(properties : Int) -> Int {
   // Edge record, identity key, payload key, index entry, endpoints and values.
-  6 + properties + (if label { 1 } else { 0 })
+  6 + properties
 }
 
 ///|
@@ -315,9 +308,9 @@ fn append_node_record(
   builder.nodes.push({
     identity,
     properties: properties.copy(),
-    property_definition: Some(property_definition),
-    identity_order_key: Some(key),
-    typed_key: Some(typed_key.copy()),
+    property_definition,
+    identity_order_key: key,
+    typed_key: typed_key.copy(),
   })
   builder.node_keys[key] = index
   builder.node_payloads[key] = payload
@@ -502,19 +495,6 @@ pub fn node_index(
 }
 
 ///|
-/// Refuse endpoint-tuple edge lookup; use edge_identity_index with an admitted
-/// independent typed identity instead.
-pub fn edge_index(
-  _value : Storage,
-  _source : @value.CheckedValue,
-  _target : @value.CheckedValue,
-  _label : @value.CheckedValue?,
-) -> Result[Int?, Issue] {
-  // Only independent typed edge keys can select an edge.
-  Err(WrongProfile)
-}
-
-///|
 pub fn node_identity(value : Storage, index : Int) -> @value.CheckedValue? {
   value.nodes.get(index).map(node => node.identity)
 }
@@ -531,11 +511,6 @@ pub fn node_property(
 ///|
 pub fn edge_endpoints(value : Storage, index : Int) -> (Int, Int)? {
   value.edges.get(index).map(edge => (edge.source, edge.target))
-}
-
-///|
-pub fn edge_label(value : Storage, index : Int) -> @value.CheckedValue?? {
-  value.edges.get(index).map(edge => edge.label)
 }
 
 ///|

@@ -1400,3 +1400,38 @@ workspace, quantum, cancellation, cleanup, exact input ownership and repeated
 consumer guarantees that cannot be discarded with their old setup. Public
 snapshot and submitted required CI remain incomplete; no branch replacement,
 push, merge or completed B handoff has occurred.
+
+## Sole keyed storage and reader representation
+
+Stored nodes/edges now require their admitted definition index, canonical
+identity-order token and typed composite key. Every edge requires its independent
+identity. Optional fields that permitted a homogeneous record and the scalar
+edge-label field are deleted. Strict snapshot admission reuses the exact
+retained endpoint keys and preserves its canonical ordering and identity checks.
+No identity is reconstructed as reference authority.
+
+The endpoint-tuple lookup and scalar-label reader APIs/callbacks are removed
+from storage and managed views, along with unused retired storage issues.
+Managed property reads always select the exact admitted definition schema;
+there is no fallback to a global homogeneous property count. Events/Vectors
+retain their existing record view. Its optional Graph-specific view means
+different Carrier families, not old/new Graph implementations.
+
+Current positive regressions retain same-endpoint parallel edges, independent
+typed keys, key-copy isolation, exact definition labels (not property names),
+invalid record/component refusal, unchanged snapshot bytes/CIDs and reference
+authority, original owner custody, cancellation and idempotent cleanup.
+Logical workspace accounting is unchanged: removing the unused scalar-label
+slot branch does not alter any current keyed edge's charge.
+
+The storage/runtime/view/snapshot packages and current construction, selector,
+snapshot and managed-provider custody tests pass **72/72 on JS, Wasm and native**
+with `--deny-warn`:
+`/private/tmp/property-graph-sole-storage-{js-pass,wasm,native}-20261003.log`.
+The deleted tuple/scalar reader refusal assertions do not retain obsolete public
+APIs as a compatibility layer; current public identity/non-key, wrong-domain,
+endpoint, label and malformed snapshot tests remain active.
+
+Remaining checked profile/predicate scaffolding, Source declaration ownership,
+aggregate fixture migration, strict inventories and published-SHA public
+snapshot/fresh packed/required CI still prevent #164 completion.

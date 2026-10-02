@@ -363,7 +363,7 @@ pub fn append_property_edge(
   match (source_index, target_index) {
     (Some(source), Some(target)) => {
       let retained = key_bytes + payload_bytes
-      let slots = edge_slots(properties.length(), false) + keys.length() + 3
+      let slots = edge_slots(properties.length()) + keys.length() + 3
       match reserve(builder, 1, 0, 1, bytes, retained, work, slots) {
         Some(issue) => return fail(builder, issue)
         None => ()
@@ -371,13 +371,12 @@ pub fn append_property_edge(
       builder.edge_keys[key] = builder.edges.length()
       builder.edge_payloads[key] = payload
       builder.edges.push({
-        property_definition: Some(definition_index),
-        identity_order_key: Some(key),
-        identity: Some(identity),
-        typed_key: Some(keys.copy()),
+        property_definition: definition_index,
+        identity_order_key: key,
+        identity,
+        typed_key: keys.copy(),
         source,
         target,
-        label: None,
         properties: properties.copy(),
       })
       builder.retained_value_bytes += retained
@@ -403,7 +402,7 @@ pub fn append_property_edge(
 
 ///|
 pub fn node_definition_index(value : Storage, index : Int) -> Int? {
-  value.nodes.get(index).bind(node => node.property_definition)
+  value.nodes.get(index).map(node => node.property_definition)
 }
 
 ///|
@@ -411,7 +410,7 @@ pub fn node_typed_key(
   value : Storage,
   index : Int,
 ) -> Array[@value.CheckedValue]? {
-  value.nodes.get(index).bind(node => node.typed_key.map(keys => keys.copy()))
+  value.nodes.get(index).map(node => node.typed_key.copy())
 }
 
 ///|
@@ -422,14 +421,12 @@ pub fn node_typed_key_at(
   index : Int,
   component : Int,
 ) -> @value.CheckedValue? {
-  value.nodes
-  .get(index)
-  .bind(node => node.typed_key.bind(keys => keys.get(component)))
+  value.nodes.get(index).bind(node => node.typed_key.get(component))
 }
 
 ///|
 pub fn edge_definition_index(value : Storage, index : Int) -> Int? {
-  value.edges.get(index).bind(edge => edge.property_definition)
+  value.edges.get(index).map(edge => edge.property_definition)
 }
 
 ///|
@@ -437,7 +434,7 @@ pub fn edge_typed_key(
   value : Storage,
   index : Int,
 ) -> Array[@value.CheckedValue]? {
-  value.edges.get(index).bind(edge => edge.typed_key.map(keys => keys.copy()))
+  value.edges.get(index).map(edge => edge.typed_key.copy())
 }
 
 ///|
@@ -446,14 +443,12 @@ pub fn edge_typed_key_at(
   index : Int,
   component : Int,
 ) -> @value.CheckedValue? {
-  value.edges
-  .get(index)
-  .bind(edge => edge.typed_key.bind(keys => keys.get(component)))
+  value.edges.get(index).bind(edge => edge.typed_key.get(component))
 }
 
 ///|
 pub fn edge_identity(value : Storage, index : Int) -> @value.CheckedValue? {
-  value.edges.get(index).bind(edge => edge.identity)
+  value.edges.get(index).map(edge => edge.identity)
 }
 
 ///|
@@ -461,12 +456,12 @@ pub fn edge_identity(value : Storage, index : Int) -> @value.CheckedValue? {
 /// Its array wrapper is common to every token and does not change ordering.
 /// No identity re-encoding or property comparison is performed during a read.
 pub fn node_identity_order_key(value : Storage, index : Int) -> String? {
-  value.nodes.get(index).bind(node => node.identity_order_key)
+  value.nodes.get(index).map(node => node.identity_order_key)
 }
 
 ///|
 pub fn edge_identity_order_key(value : Storage, index : Int) -> String? {
-  value.edges.get(index).bind(edge => edge.identity_order_key)
+  value.edges.get(index).map(edge => edge.identity_order_key)
 }
 
 ///|

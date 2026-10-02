@@ -201,13 +201,23 @@ test "keyed graph preserves independent parallel edges and scoped composite keys
   assert_eq(edge_definition_index(storage, 1), Some(0))
   assert_eq(node_typed_key(storage, 0).unwrap().length(), 2)
   assert_eq(edge_typed_key(storage, 1).unwrap().length(), 2)
+  assert_true(node_typed_key_at(storage, -1, 0) is None)
+  assert_true(node_typed_key_at(storage, 0, 2) is None)
+  assert_true(edge_typed_key_at(storage, 2, 0) is None)
+  assert_true(edge_typed_key_at(storage, 0, -1) is None)
+  assert_true(edge_identity(storage, 2) is None)
+  let detached = edge_typed_key(storage, 1).unwrap()
+  detached.clear()
+  assert_eq(edge_typed_key(storage, 1).unwrap().length(), 2)
+  assert_true(
+    edge_typed_key_at(storage, 1, 1).unwrap().value is @value.Text("edge"),
+  )
   let out = @encode.writer(5000, 100, 10)
   @value.emit_checked_wire_value(edge_identity(storage, 0).unwrap(), out)
   assert_eq(
     @encode.finish(out),
     "{\"definition\":\"E\",\"domain\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"key\":[10,\"edge\"],\"key_types\":[{\"kind\":\"number\"},{\"kind\":\"string\"}]}",
   )
-  assert_eq(edge_index(storage, first, first, None), Err(WrongProfile))
 }
 
 ///|

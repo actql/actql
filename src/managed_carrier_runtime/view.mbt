@@ -7,15 +7,11 @@ struct ProducerView {
   nodes : Int
   edges : Int
   records : Int
-  node_properties : Int
-  edge_properties : Int
   node_identity : (Int) -> @value.CheckedValue?
   node_property : (Int, Int) -> @value.CheckedValue?
   node_index : (@value.CheckedValue) -> Int??
   edge_endpoints : (Int) -> (Int, Int)?
-  edge_label : (Int) -> @value.CheckedValue??
   edge_property : (Int, Int) -> @value.CheckedValue?
-  edge_index : (@value.CheckedValue, @value.CheckedValue, @value.CheckedValue?) -> Int??
   property_graph : PropertyGraphView?
   record_fields : (Int) -> Int?
   record_field : (Int, Int) -> (@schema.FieldName, @value.CheckedValue)?
@@ -92,15 +88,11 @@ pub fn prepare_property_graph_producer_view(
     nodes,
     edges,
     records: 0,
-    node_properties: 0,
-    edge_properties: 0,
     node_identity,
     node_property,
     node_index,
     edge_endpoints,
-    edge_label: _ => None,
     edge_property,
-    edge_index: (_, _, _) => None,
     property_graph: Some({
       definition,
       node_definition,
@@ -140,15 +132,11 @@ pub fn prepare_record_producer_view(
     nodes: 0,
     edges: 0,
     records,
-    node_properties: 0,
-    edge_properties: 0,
     node_identity: _ => None,
     node_property: (_, _) => None,
     node_index: _ => None,
     edge_endpoints: _ => None,
-    edge_label: _ => None,
     edge_property: (_, _) => None,
-    edge_index: (_, _, _) => None,
     property_graph: None,
     record_fields,
     record_field,
@@ -405,7 +393,7 @@ pub fn producer_view_node_property(
     return Err(InvalidRecord)
   }
   let count = match value.property_graph {
-    None => value.node_properties
+    None => return Err(WrongCarrier)
     Some(profile) => {
       guard (profile.node_definition)(node) is Some(index) &&
         @carrier.property_graph_node_at(profile.definition, index)
@@ -462,29 +450,6 @@ pub fn producer_view_edge_endpoints(
 }
 
 ///|
-pub fn producer_view_edge_label(
-  value : ProducerView,
-  edge : Int,
-) -> Result[@value.CheckedValue?, ViewIssue] {
-  if !producer_view_live(value) {
-    return Err(Unavailable)
-  }
-  if value.kind != @carrier.GraphKind {
-    return Err(WrongCarrier)
-  }
-  if value.property_graph is Some(_) {
-    return Err(WrongCarrier)
-  }
-  if edge < 0 || edge >= value.edges {
-    return Err(InvalidRecord)
-  }
-  match (value.edge_label)(edge) {
-    Some(value) => Ok(value)
-    None => Err(InvalidRecord)
-  }
-}
-
-///|
 pub fn producer_view_edge_property(
   value : ProducerView,
   edge : Int,
@@ -500,7 +465,7 @@ pub fn producer_view_edge_property(
     return Err(InvalidRecord)
   }
   let count = match value.property_graph {
-    None => value.edge_properties
+    None => return Err(WrongCarrier)
     Some(profile) => {
       guard (profile.edge_definition)(edge) is Some(index) &&
         @carrier.property_graph_edge_at(profile.definition, index)
@@ -520,28 +485,6 @@ pub fn producer_view_edge_property(
   match (value.edge_property)(edge, property) {
     Some(value) => Ok(value)
     None => Err(InvalidField)
-  }
-}
-
-///|
-pub fn producer_view_edge_index(
-  value : ProducerView,
-  source : @value.CheckedValue,
-  target : @value.CheckedValue,
-  label : @value.CheckedValue?,
-) -> Result[Int?, ViewIssue] {
-  if !producer_view_live(value) {
-    return Err(Unavailable)
-  }
-  if value.kind != @carrier.GraphKind {
-    return Err(WrongCarrier)
-  }
-  if value.property_graph is Some(_) {
-    return Err(WrongCarrier)
-  }
-  match (value.edge_index)(source, target, label) {
-    Some(index) => Ok(index)
-    None => Err(InvalidRecord)
   }
 }
 

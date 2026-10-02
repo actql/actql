@@ -166,6 +166,12 @@ test "property graph view retains heterogeneous definitions and independent edge
   assert_eq(@lifecycle.producer_view_node_definition(view, 0), Ok(0))
   assert_eq(@lifecycle.producer_view_node_definition(view, 1), Ok(1))
   assert_eq(@lifecycle.producer_view_edge_definition(view, 1), Ok(0))
+  let definition = @lifecycle.producer_view_property_graph_definition(view).unwrap()
+  let element = @carrier.property_edge_element(
+    @carrier.property_graph_edge_at(definition, 0).unwrap(),
+  )
+  assert_true(@carrier.property_definition_has_label(element, "R"))
+  assert_false(@carrier.property_definition_has_label(element, "weight"))
   assert_true(
     @lifecycle.producer_view_node_key(view, 0, 0).unwrap().value
     is @value.Number(1.0),
@@ -226,13 +232,6 @@ test "property graph view retains heterogeneous definitions and independent edge
   assert_true(
     @lifecycle.producer_view_edge_property(view, 1, 1)
     is Err(@lifecycle.InvalidField),
-  )
-  assert_true(
-    @lifecycle.producer_view_edge_label(view, 0) is Err(@lifecycle.WrongCarrier),
-  )
-  assert_true(
-    @lifecycle.producer_view_edge_index(view, first, first, None)
-    is Err(@lifecycle.WrongCarrier),
   )
   assert_true(
     @lifecycle.producer_view_edge_identity(view, 2)

@@ -187,8 +187,7 @@ pub fn append_property_snapshot_node(
     )
     let token = snapshot_token(builder, identity)
     if builder.nodes.last() is Some(previous) &&
-      previous.identity_order_key is Some(previous) &&
-      @canonical.compare_utf16(previous, token) >= 0 {
+      @canonical.compare_utf16(previous.identity_order_key, token) >= 0 {
       raise PropertySnapshotStop(InvalidIdentity)
     }
     let keys = snapshot_keys(
@@ -209,7 +208,7 @@ pub fn append_property_snapshot_node(
       Err(issue) => raise PropertySnapshotStop(issue)
     }
     if builder.nodes.length() != before + 1 ||
-      builder.nodes[before].identity_order_key != Some(token) {
+      builder.nodes[before].identity_order_key != token {
       raise PropertySnapshotStop(InvalidIdentity)
     }
     Ok(())
@@ -243,8 +242,7 @@ pub fn append_property_snapshot_edge(
     )
     let token = snapshot_token(builder, identity)
     if builder.edges.last() is Some(previous) &&
-      previous.identity_order_key is Some(previous) &&
-      @canonical.compare_utf16(previous, token) >= 0 {
+      @canonical.compare_utf16(previous.identity_order_key, token) >= 0 {
       raise PropertySnapshotStop(InvalidIdentity)
     }
     let keys = snapshot_keys(
@@ -274,11 +272,11 @@ pub fn append_property_snapshot_edge(
     guard builder.node_keys.get(snapshot_token(builder, source))
       is Some(source_index) &&
       builder.node_keys.get(snapshot_token(builder, target))
-      is Some(target_index) &&
-      builder.nodes[source_index].typed_key is Some(source_keys) &&
-      builder.nodes[target_index].typed_key is Some(target_keys) else {
+      is Some(target_index) else {
       raise PropertySnapshotStop(MissingEndpoint)
     }
+    let source_keys = builder.nodes[source_index].typed_key
+    let target_keys = builder.nodes[target_index].typed_key
     // Reuse the admitted endpoint key evidence; identity JSON is not authority.
     let before = builder.edges.length()
     match
@@ -289,7 +287,7 @@ pub fn append_property_snapshot_edge(
       Err(issue) => raise PropertySnapshotStop(issue)
     }
     if builder.edges.length() != before + 1 ||
-      builder.edges[before].identity_order_key != Some(token) ||
+      builder.edges[before].identity_order_key != token ||
       builder.edges[before].source != source_index ||
       builder.edges[before].target != target_index {
       raise PropertySnapshotStop(InvalidIdentity)
