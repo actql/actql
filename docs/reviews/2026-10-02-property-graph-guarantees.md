@@ -452,6 +452,33 @@ This does not claim final Host/public snapshot acceptance or full Core/spec/CI
 at a submitted revision. Other obsolete product paths and the strict resource
 inventory remain open.
 
+### Current aggregate diagnostic after mean retirement
+
+At source `ecd003217e0a960b88a4ecdf3b0e09925ea84abd`, the official public
+MoonBit API check passes across targets and tracked interfaces:
+`/private/tmp/property-graph-mean-api-committed-20261003.log`.
+The full Core JS diagnostic completes with **7,398 total / 7,250 passed /
+148 failed** (exit 2), at
+`/private/tmp/property-graph-core-js-after-mean-retirement-20261003.log`.
+All 148 failure records, including the union failure without a colon after
+`failed`, are counted. This is not a green Core result.
+
+| Remaining failing package | Failures | Required next action |
+| --- | ---: | --- |
+| `capacity_program_step` | 9 | Separate unsupported union/structural/nodes/shortest algorithms from applicable overflow, exact work and bound-owner assertions; migrate the latter positively |
+| `pipeline_check_context` | 16 | Remove unsupported bindings; migrate TRAIL selector/guard/phase, resource-owner and repeated producer requirements without substituting equal checked owners |
+| `pipeline_typing` | 7 | Retire Graph diff/apply Delta forwarding assumptions without disabling non-Graph contract and input ownership checks |
+| `program_check` | 34 | Separate unsupported algorithm-specific claims from imported policy, preflight, selector and atomic failure guarantees; investigate the mixed malformed-step diagnostic test rather than changing every expected refusal |
+| `query_integration` | 75 | Retire old constructor/kernel-specific fixtures; retain positive current MATCH/TRAIL quantum, work/workspace, private cancellation, input/retained output custody and Host composition coverage |
+| `query_program` | 7 | Coordinate Frontend fixtures and typed Graph lowering with B; no old contract fallback or parallel Frontend change |
+
+This table is an outstanding work inventory, not a claim that every failing
+assertion is obsolete. In particular, mixed capacity/cancellation/cleanup
+fixtures cannot be removed merely because their old setup is now refused.
+No required gate is weakened or bypassed. The final published snapshot
+save/revoke/reload acceptance, aggregate checks and required CI remain pending;
+the public PR still points to its previous archived source.
+
 The subgraph removal is committed as
 `7dd8c80797f788649a00af038f0c7aea2a16943d`. Its official committed API check
 passes at `/private/tmp/property-graph-subgraph-retirement-api-committed-20261002.log`.
