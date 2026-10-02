@@ -1807,3 +1807,50 @@ legacy Graph input API. Remove empty `graph_inputs` fields from B's Context
 fixtures. This concrete Frontend adoption delta is not reported as completed
 or as a current #174 compatibility guarantee. No A task-split/provider file
 or B worktree was edited.
+
+## Current main integration and inventory-driven public refusal (2026-10-03)
+
+At `bbee40456643871f4d2e5c532399e5d5cd3674d7`, complete Core JS passes
+7,281/7,281 and Wasm passes 7,277/7,277. The direct native invocation reports
+7,364 total, 7,362 passed and two failures requiring the real SQLite library
+environment. This is not native acceptance. The existing
+`scripts/test-native-core.mjs` supplies a private SQLite namespace and the real
+platform library and must be used for the integrated native verification.
+The first aggregate launcher also failed before executing MoonBit because
+CommonJS `require` and top-level `await` were mixed; neither launcher failure
+is hidden or counted as a product success.
+
+`ab9a591c24ddad1d7515d2d7c3a5404c60fb0bc6` merges current main
+`9332196a056703ea1840c85cbae71a82f8f76c25` without conflicts. The installed
+DuckDB acquisition selection/diagnostics, split Client CI and their foundation
+declarations survive alongside the current Graph snapshot configuration.
+No carrier task splitting or other owner's worktree was changed.
+
+The agreed required-gate scope is strict execution-resource evidence for the
+current constructor/MATCH/TRAIL subset and typed pre-execution refusal for
+unimplemented consumers. Full SGA completion remains a separate obligation,
+not a claim derived from a green subset gate. The existing family coverage
+inventory is the sole operation classification. The public Host acceptance
+reads that inventory, submits one shared current Program shape per unsupported
+key, requires `ClientError('ClientProgramUnsupported')`, verifies the request
+is not durably registered, and observes no admission/acquisition/dispatch
+fault-hook steps. The packed runner copies the same authoritative inventory;
+it does not add a second capability table or handwritten per-operation fixtures.
+
+A first fresh packed diagnostic run passes both Local and HTTPS, including
+the inventory-driven refusals and independently checked snapshot bytes/CID,
+original Source revocation, verified reload, parallel-edge MATCH and typed
+TRAIL identities. Its retained evidence is
+`worktrees/.codex-scratch/property-graph-package-zXIbCK/acceptance.json` and
+`/private/tmp/property-graph-public-refusal-packed-20261003.log`. The record
+explicitly has `clean: false`; it is not final fixed-SHA acceptance. The source
+test attempt failed before execution because borrowed `node_modules` resolved
+an older Client wire without `validCheckOutcome`; the dependency was not
+overwritten or bypassed with a loader. The fresh installation resolves the
+current public tarballs. A second fresh packed diagnostic run adds the
+external-input control and passes both transports: all 17 inventory-classified
+unsupported keys are refused both with and without an unavailable external
+binding, with no durable request and no physical work. Evidence:
+`worktrees/.codex-scratch/property-graph-package-iwSTnT/acceptance.json` and
+`/private/tmp/property-graph-public-refusal-external-packed-20261003.log`.
+This also has `clean: false`. All final-SHA gates remain to be run before handoff.

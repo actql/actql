@@ -34,6 +34,8 @@ await run('npm',['install','--ignore-scripts','--no-save',...CLIENT_PACKAGES.map
 await mkdir(join(root,'fixtures'));
 for (const name of ['property-graph-public-host.test.mjs','check-canonical-json.mjs',
   'fixtures/property-graph-parallel.program.json']) await copyFile(join(repository,'scripts',name),join(root,name));
+await copyFile(join(repository,'docs/reviews/2026-09-19-sga-veca-tea-local-coverage.json'),
+  join(root,'local-family-coverage.json'));
 await mkdir(join(root,'tls'));
 await certificates(join(root,'tls'));
 const output = await run(process.execPath,['--test','property-graph-public-host.test.mjs'],root,
@@ -50,6 +52,7 @@ await writeFile(join(root,'acceptance.json'),JSON.stringify({
   packages:digests,paths:['embedded-local','remote-https'],
   independentFixture:'fixtures/property-graph-parallel.program.json',
   assertions:['typed MATCH Named Result','independent-key TRAIL identities',
+    'inventory-driven unsupported consumer refusal before Run admission and physical work',
     'composite keys and label sets','independent snapshot bytes and CID',
     'physical save, source revocation and verified reload',
     'temporary body reclaimed before restored completion'],

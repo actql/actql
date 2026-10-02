@@ -10,12 +10,22 @@ import {canonicalText} from './check-canonical-json.mjs';
 // The same independent oracle runs against source and repository-external
 // tarballs. The packed branch imports no checkout implementation or toolchain.
 const packed = process.env.ACTQL_PROPERTY_GRAPH_PACKED === '1';
-const {connect} = await import(packed ? '@actql/sdk' : '../packages/sdk/index.mjs');
+const {connect, ClientError} = await import(packed ? '@actql/sdk' : '../packages/sdk/index.mjs');
 const {connectEmbeddedLocal, openInstalledRemoteHttpHost} = await import(packed
   ? new URL('./adapters/host-node/embedded-local.mjs', import.meta.resolve('@actql/local-node'))
   : '../adapters/host-node/embedded-local.mjs');
 
 const fixture = JSON.parse(await readFile(new URL('./fixtures/property-graph-parallel.program.json', import.meta.url), 'utf8'));
+// Use the existing authoritative inventory, not a second supported-operation
+// list or hand-authored per-consumer request fixtures. The common checker
+// refuses unsupported operation keys before interpreting their payloads.
+const coverage = JSON.parse(await readFile(new URL(packed
+  ? './local-family-coverage.json'
+  : '../docs/reviews/2026-09-19-sga-veca-tea-local-coverage.json', import.meta.url), 'utf8'));
+const unsupported = coverage.operations.filter(entry =>
+  coverage.current_graph_profile.classification[entry.operation] === 'blocked');
+assert(unsupported.length > 0);
+assert(unsupported.every(entry => entry.status === 'blocked'));
 const scratch = new URL(packed ? './state/' : '../_build/property-graph-public-host/', import.meta.url);
 await mkdir(scratch, {recursive:true});
 const cid = value => 'sha256:' + createHash('sha256').update(canonicalText(value)).digest('hex');
@@ -58,6 +68,7 @@ for (const mode of ['local','remote']) {
     t.diagnostic(`Retained Host regression evidence: ${directory}`);
     const snapshots = new Map();
     const snapshotWaiters = new Map();
+    const physicalSteps = [];
     const keys = generateKeyPairSync('ed25519');
     const authorization = {accountConfiguration:canonicalText({
       version:'actql-execution-account-config/0.1',account_id:'graph-test-owner',
@@ -69,6 +80,7 @@ for (const mode of ['local','remote']) {
         principalId:userInfo().username,
         publicKey:keys.publicKey.export({type:'spki',format:'pem'})}],
       faultInjection(name, detail) {
+      physicalSteps.push(name);
       if (name === 'computed') {
         snapshots.set(detail.ref.runDefinitionCid, detail.carrierSnapshots);
         snapshotWaiters.get(detail.ref.runDefinitionCid)?.();
@@ -110,6 +122,30 @@ for (const mode of ['local','remote']) {
       client = await connect({mode,endpoint:`https://127.0.0.1:${server.address().port}/`,token:'synthetic-test-token'});
     }
     t.after(() => client.close());
+    // Both public transports must refuse before durable Run acceptance,
+    // acquisition I/O or dispatch. A checker-only verdict is not enough.
+    for (const entry of unsupported) for (const externalInput of [false,true]) {
+      const requestId = `unsupported-${entry.operation}-${mode}-${externalInput}`;
+      const rejected = structuredClone(fixture);
+      rejected.id = requestId;
+      // An unavailable external binding must not turn an unsupported
+      // consumer into a Source acquisition or obscure the typed refusal.
+      if (externalInput) rejected.stages[0].inputs = {
+        unopened:{connector:'unavailable/graph-source',resource:'never-read'},
+      };
+      rejected.stages[0].steps[3] = {
+        from:'g', [entry.operation]:true, as:'matched',
+      };
+      const before = physicalSteps.length;
+      await assert.rejects(client.aql(canonicalText(rejected),
+        {format:'json',requestId}), error =>
+        error instanceof ClientError && error.code === 'ClientProgramUnsupported');
+      assert.deepEqual(await client.lookupRequest(requestId), {kind:'not_found'});
+      assert.deepEqual(physicalSteps.slice(before), [],
+        `${entry.operation} reached Run admission, acquisition or dispatch`);
+      assert.equal(snapshots.size, 0);
+    }
+    t.diagnostic(`${unsupported.length} inventory-classified unsupported consumers refused with and without external input; no Run or physical work`);
     const run = await client.aql(canonicalText(fixture), {format:'json',requestId:`property-match-${mode}`});
     const state = await run.wait();
     assert.equal(state.status,'succeeded',JSON.stringify(state));
