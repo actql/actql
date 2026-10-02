@@ -8,6 +8,136 @@ export const sourceRows = [
   {id: 2, amount: 20}, {id: 3, amount: 30},
 ];
 const declarations = {minimum: {type: 'number'}};
+const relationNumber = (name, nullable = false) => ({name,
+  contract: {type: 'number', nullable}});
+export const queryCompositionSuccesses = [
+  {name: 'derived-exact-string-chunks', format: 'sql',
+    text: "SELECT value FROM (SELECT r'\\n' 'e\\u0301' AS value) AS chosen",
+    expected: [{value: '\\ne\u0301'}],
+    columns: [{name: 'value', contract: {type: 'string', nullable: false,
+      max_utf8_bytes: 5}}], sourceReadCount: 0},
+  {name: 'captured-cte-set-exact-string-chunks', format: 'sql',
+    text: "WITH chosen AS (SELECT r'\\n' 'e\\u0301' AS label FROM records WHERE id = 1) SELECT label FROM chosen UNION ALL SELECT '\\r\\néx' AS other FROM chosen ORDER BY label",
+    expected: [{label: '\r\néx'}, {label: '\\ne\u0301'}],
+    columns: [{name: 'label', contract: {type: 'string', nullable: false,
+      max_utf8_bytes: 5}}], sourceReadSessionCount: 1},
+  {name: 'set-output-alias-expression', format: 'sql',
+    text: 'SELECT id AS amount FROM records UNION ALL SELECT id AS other FROM records ORDER BY 0 - amount, 0 - amount DESC LIMIT 3',
+    expected: [{amount: 3}, {amount: 3}, {amount: 3}], columns: [relationNumber('amount')], sourceReadSessionCount: 1},
+  {name: 'set-output-expression-null', format: 'sql',
+    text: 'SELECT amount, id FROM records UNION DISTINCT SELECT amount, id FROM records ORDER BY COALESCE(amount, 0) + 1 DESC, id',
+    expected: [{amount: 30, id: 3}, {amount: 20, id: 2}, {amount: null, id: 1}],
+    columns: [relationNumber('amount', true), relationNumber('id')], sourceReadSessionCount: 1},
+  {name: 'cte-set-output-expression', format: 'sql',
+    text: 'WITH chosen AS (SELECT id FROM records WHERE amount >= 20 UNION ALL SELECT id FROM records WHERE amount IS NULL ORDER BY 0 - id LIMIT 2) SELECT id FROM chosen ORDER BY id',
+    expected: [{id: 3}, {id: 3}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
+  {name: 'empty-set-output-expression', format: 'sql',
+    text: 'SELECT id FROM records WHERE amount > 100 UNION ALL SELECT id FROM records WHERE amount < 0 ORDER BY id + 1',
+    expected: [], columns: [relationNumber('id')], sourceReadSessionCount: 1},
+
+  {name: 'quoted-cte-case', format: 'sql',
+    text: 'WITH `Chosen` AS (SELECT id FROM records WHERE amount IS NULL) SELECT chosen.id FROM chosen ORDER BY id',
+    expected: [{id: 1}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
+  {name: 'nested-with-quoted-case', format: 'sql',
+    text: 'WITH chosen AS (WITH `Hidden` AS (SELECT id FROM records WHERE amount IS NULL) SELECT hidden.id FROM hidden) SELECT id FROM chosen ORDER BY id',
+    expected: [{id: 1}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
+  {name: 'nested-with-shadow', format: 'sql',
+    text: 'WITH base AS (SELECT id, amount FROM records), chosen AS (WITH base AS (SELECT id FROM base WHERE amount >= 20) SELECT base.id FROM base) SELECT id FROM chosen UNION ALL SELECT id FROM base WHERE amount IS NULL ORDER BY id',
+    expected: [{id: 1}, {id: 2}, {id: 3}, {id: 3}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
+  {name: 'nested-with-quoted-range', format: 'sql',
+    text: 'SELECT chosen.id FROM (WITH `Hidden` AS (SELECT id FROM records WHERE amount IS NULL) SELECT `Hidden`.id FROM `Hidden`) AS chosen ORDER BY id',
+    expected: [{id: 1}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
+  {name: 'nested-with-pipe-range', format: 'aql-text',
+    text: 'WITH chosen AS (WITH hidden AS (FROM records |> WHERE amount >= 20 |> SELECT id) FROM hidden |> SELECT hidden.id AS id) FROM chosen |> SELECT id |> ORDER BY id',
+    expected: [{id: 2}, {id: 3}, {id: 3}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
+  {name: 'derived-pipe', format: 'sql',
+    text: 'SELECT id FROM (FROM records |> WHERE amount >= @minimum |> SELECT id) AS chosen ORDER BY id',
+    parameterDeclarations: declarations, parameters: {minimum: 20},
+    expected: [{id: 2}, {id: 3}, {id: 3}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
+  {name: 'derived-select-pipe', format: 'sql',
+    text: 'SELECT id FROM (SELECT id FROM records |> WHERE id > 1) AS chosen ORDER BY id',
+    expected: [{id: 2}, {id: 3}, {id: 3}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
+  {name: 'derived-outer-pipe', format: 'aql-text',
+    text: 'FROM (FROM records |> WHERE amount >= 20 |> SELECT id) AS chosen |> SELECT chosen.id AS id |> ORDER BY id',
+    expected: [{id: 2}, {id: 3}, {id: 3}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
+  {name: 'derived-null', format: 'sql',
+    text: 'SELECT amount, id FROM (FROM records |> WHERE amount IS NULL |> SELECT id, amount) AS chosen ORDER BY id',
+    expected: [{amount: null, id: 1}], columns: [relationNumber('amount', true), relationNumber('id')], sourceReadSessionCount: 1},
+  {name: 'derived-empty', format: 'sql',
+    text: 'SELECT amount, id FROM (FROM records |> WHERE amount > 100 |> SELECT id, amount) AS chosen ORDER BY id',
+    expected: [], columns: [relationNumber('amount', true), relationNumber('id')], sourceReadSessionCount: 1},
+  {name: 'cte-query-order-limit', format: 'sql',
+    text: 'WITH chosen AS (SELECT id, amount FROM records ORDER BY id LIMIT 1) SELECT amount, id FROM chosen ORDER BY id',
+    expected: [{amount: null, id: 1}], columns: [relationNumber('amount', true), relationNumber('id')], sourceReadSessionCount: 1},
+  {name: 'parenthesized-query', format: 'sql',
+    text: '(SELECT id FROM records WHERE amount >= 20) |> WHERE id > 1 |> SELECT id |> ORDER BY id',
+    expected: [{id: 2}, {id: 3}, {id: 3}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
+  {name: 'cte-set-differing-predicates', format: 'sql',
+    text: 'WITH chosen AS (SELECT id FROM records WHERE amount >= 20 UNION ALL SELECT id FROM records WHERE amount IS NULL) SELECT id FROM chosen ORDER BY id',
+    expected: [{id: 1}, {id: 2}, {id: 3}, {id: 3}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
+  {name: 'pipe-after-set', format: 'sql',
+    text: 'SELECT id FROM records UNION ALL SELECT id FROM records |> WHERE id > 1 |> SELECT id |> ORDER BY id',
+    expected: [{id: 2}, {id: 2}, {id: 3}, {id: 3}, {id: 3}, {id: 3}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
+  {name: 'set-reuses-cte', format: 'sql',
+    text: 'WITH chosen AS (SELECT id FROM records WHERE amount >= 20) SELECT id FROM chosen UNION ALL SELECT id FROM chosen ORDER BY id',
+    expected: [{id: 2}, {id: 2}, {id: 3}, {id: 3}, {id: 3}, {id: 3}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
+  {name: 'parenthesized-set-operand', format: 'sql',
+    text: 'SELECT id FROM records WHERE amount IS NULL UNION ALL (SELECT id FROM records WHERE amount >= 20 ORDER BY id LIMIT 1) ORDER BY id',
+    expected: [{id: 1}, {id: 2}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
+  {name: 'nested-set-operand', format: 'sql',
+    text: 'SELECT id FROM records WHERE amount IS NULL UNION ALL (SELECT id FROM records WHERE amount >= 20 INTERSECT DISTINCT SELECT id FROM records WHERE amount >= 20) ORDER BY id',
+    expected: [{id: 1}, {id: 2}, {id: 3}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
+  {name: 'pipe-set-operand', format: 'aql-text',
+    text: 'FROM records |> SELECT id |> UNION ALL (FROM records |> WHERE amount IS NULL |> SELECT id) |> WHERE id = 1 |> SELECT id |> ORDER BY id',
+    expected: [{id: 1}, {id: 1}], columns: [relationNumber('id')], sourceReadSessionCount: 1},
+  {name: 'derived-set', format: 'sql',
+    text: 'SELECT amount, id FROM (SELECT id, amount FROM records WHERE amount IS NULL UNION ALL SELECT id, amount FROM records WHERE amount IS NULL) AS chosen ORDER BY id',
+    expected: [{amount: null, id: 1}, {amount: null, id: 1}], columns: [relationNumber('amount', true), relationNumber('id')], sourceReadSessionCount: 1},
+  {name: 'empty-set', format: 'sql',
+    text: '(SELECT id, amount FROM records WHERE amount > 100 UNION ALL SELECT id, amount FROM records WHERE amount < 0) |> SELECT amount, id |> ORDER BY id',
+    expected: [], columns: [relationNumber('amount', true), relationNumber('id')], sourceReadSessionCount: 1},
+
+];
+export const queryCompositionRefusals = [
+  {name: 'nested-cte-octal-range', format: 'sql',
+    text: "WITH chosen AS (SELECT '\\400' AS label FROM records) SELECT label FROM chosen"},
+  {name: 'literal-set-later-alias-hidden', format: 'sql',
+    text: "WITH chosen AS (SELECT r'\\400' AS label FROM records) SELECT label FROM chosen UNION ALL SELECT label AS other FROM chosen ORDER BY other"},
+  {name: 'set-order-operand-column', format: 'sql',
+    text: 'SELECT id AS amount FROM records UNION ALL SELECT id AS other FROM records ORDER BY id + 1'},
+  {name: 'set-order-right-alias', format: 'sql',
+    text: 'SELECT id AS amount FROM records UNION ALL SELECT id AS other FROM records ORDER BY other + 1'},
+  {name: 'set-order-qualified-input', format: 'sql',
+    text: 'SELECT id FROM records UNION ALL SELECT id FROM records ORDER BY records.id + 1'},
+
+  {name: 'nested-with-quoted-duplicate', format: 'sql',
+    text: 'WITH chosen AS (WITH `Hidden` AS (SELECT id FROM records), hidden AS (SELECT id FROM records) SELECT id FROM hidden) SELECT id FROM chosen'},
+  {name: 'nested-with-escaped-name', format: 'sql',
+    text: 'WITH chosen AS (WITH hidden AS (SELECT id FROM records) SELECT id FROM hidden) SELECT id FROM chosen UNION ALL SELECT id FROM hidden'},
+  {name: 'derived-with-escaped-name', format: 'sql',
+    text: 'SELECT id FROM (WITH hidden AS (SELECT id FROM records) SELECT id FROM hidden) AS chosen UNION ALL SELECT id FROM hidden'},
+  {name: 'nested-with-forward-reference', format: 'sql',
+    text: 'WITH chosen AS (WITH hidden AS (SELECT id FROM later), later AS (SELECT id FROM records) SELECT id FROM hidden) SELECT id FROM chosen'},
+  {name: 'nested-with-duplicate-name', format: 'sql',
+    text: 'WITH chosen AS (WITH hidden AS (SELECT id FROM records), HIDDEN AS (SELECT id FROM records) SELECT id FROM hidden) SELECT id FROM chosen'},
+  {name: 'derived-hidden-column', format: 'sql',
+    text: 'SELECT chosen.amount FROM (FROM records |> SELECT id) AS chosen'},
+  {name: 'derived-hidden-range', format: 'sql',
+    text: 'SELECT old.id FROM (FROM records AS old |> SELECT id) AS chosen'},
+  {name: 'derived-displaced-range', format: 'sql',
+    text: 'SELECT id FROM (FROM records AS old |> AS fresh |> SELECT old.id) AS chosen'},
+  {name: 'derived-inner-terminator', format: 'sql',
+    text: 'SELECT id FROM (FROM records |> SELECT id;) AS chosen'},
+  {name: 'parenthesized-hidden-range', format: 'sql',
+    text: '(SELECT id FROM records) |> SELECT records.id'},
+  {name: 'set-hidden-column', format: 'sql',
+    text: 'SELECT id FROM records UNION ALL SELECT id FROM records |> SELECT amount'},
+  {name: 'set-forward-cte', format: 'sql',
+    text: 'WITH chosen AS (SELECT id FROM records UNION ALL SELECT id FROM later), later AS (SELECT id FROM records) SELECT id FROM chosen'},
+  {name: 'parenthesized-inner-terminator', format: 'sql',
+    text: '(SELECT id FROM records;)'},
+
+];
 export const querySuccesses = [
   {name: 'sql', format: 'sql',
     text: 'SELECT id FROM records WHERE amount >= @minimum ORDER BY id',
@@ -192,11 +322,12 @@ export async function exercisePublicQueryInput(connect, options,
     assert.ok(Number.isSafeInteger(current.acceptedRuns));
     assert.ok(Number.isSafeInteger(current.sourceIo));
     return {acceptedRuns: current.acceptedRuns, sourceIo: current.sourceIo,
-      ...(current.sourceReads === undefined ? {} : {sourceReads: current.sourceReads})};
+      ...(current.sourceReads === undefined ? {} : {sourceReads: current.sourceReads}),
+      ...(current.sourceReadSessions === undefined ? {} : {sourceReadSessions: current.sourceReadSessions})};
   };
   const client = await connect(options);
   try {
-    for (const {name, text, expected, columns, sourceRows, sourceReadCount, ...input} of successes) {
+    for (const {name, text, expected, columns, sourceRows, sourceReadCount, sourceReadSessionCount, ...input} of successes) {
       await prepareCase?.(sourceRows);
       const requestId = requestPrefix + '-' + name;
       const beforeSubmit = await counters();
@@ -206,7 +337,12 @@ export async function exercisePublicQueryInput(connect, options,
       const beforeRead = await counters();
       if (sourceReadCount !== undefined) {
         assert.equal(beforeRead.sourceReads - beforeSubmit.sourceReads, sourceReadCount,
-          'shared producers acquire once per authored source: ' +
+          'physical source row scan count: ' +
+            JSON.stringify((await observe()).sourceReadCommands));
+      }
+      if (sourceReadSessionCount !== undefined) {
+        assert.equal(beforeRead.sourceReadSessions - beforeSubmit.sourceReadSessions,
+          sourceReadSessionCount, 'one acquisition session per authored source: ' +
             JSON.stringify((await observe()).sourceReadCommands));
       }
       assert.deepEqual(await execution.result('answer').all(), expected);

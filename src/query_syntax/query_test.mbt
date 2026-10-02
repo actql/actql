@@ -262,10 +262,7 @@ test "Pipe set inputs are parenthesized and retain final ordering" {
   let part = set_part_at(parsed, 0).unwrap()
   assert_eq((part.kind, part.duplicates, part.by_name), ("union", "all", false))
   assert_eq(final_operation_count(parsed), 2)
-  for
-    text in [
-      "FROM left_rows |> UNION ALL SELECT c, d FROM right_rows", "FROM left_rows |> UNION ALL (SELECT c, d FROM right_rows) |> WHERE a > 1",
-    ] {
+  for text in ["FROM left_rows |> UNION ALL SELECT c, d FROM right_rows"] {
     assert_true(parse_query(text, query_limits()) is Err(_), msg=text)
   }
 }

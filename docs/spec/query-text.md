@@ -14,8 +14,9 @@ Input must be strict UTF-8 scalar text. A leading BOM follows the existing
 source policy. Keywords are ASCII case-insensitive. Column, field and alias
 lookups are ASCII case-insensitive whether or not the name is backtick-quoted;
 the original spelling remains in the parsed source and authored output name.
-Relation paths use their separate rule: an unquoted component matches without
-ASCII case, while a quoted relation component requires exact spelling.
+Published Source View paths use their separate rule: an unquoted component
+matches without ASCII case, while a quoted relation component requires exact
+spelling.
 Unquoted names match `[A-Za-z_][A-Za-z0-9_]*`. Backticks quote names and do
 not switch column lookup to exact-case mode.
 
@@ -111,8 +112,23 @@ joined fields must be unique. `USING` exposes one coalesced key for FULL JOIN
 and does not invent an arbitrary representative row.
 
 WITH may precede either a SELECT query or a FROM-starting Pipe query. A CTE
-body may be a SELECT core or a relational Pipe query, using the same expression
-and column-scope rules as the corresponding query head. Each body ends at its
+body, named FROM/JOIN subquery and parenthesized query operand use the same
+relational query composition: SELECT or FROM-starting Pipe, set expressions,
+optional ORDER BY/LIMIT, and a pure Pipe tail. Parentheses retain the inner
+query's scope and ORDER BY/LIMIT placement. A Pipe operator following a set
+consumes the combined output, not its left operand; input range variables and
+non-output columns of the operands are not visible there. Set operands may
+refer to previously bound CTE Results without re-expanding their producer.
+They use the same expression and column-scope rules as the corresponding query
+head. A nonrecursive WITH binds each declaration after its body; later bodies
+and the containing query may reference it. Nested WITH declarations can shadow
+outer bindings but are not visible outside that query expression. When a
+nested producer is retained as a Stage Result, its private producer identity
+does not replace the authored range qualifier or expose its name to an outer
+scope. CTE names are query-local aliases: reference and duplicate-name lookup
+are ASCII case-insensitive, including backtick-quoted names. This is distinct
+from published Source View path resolution. This is lexical producer binding,
+not SQL rewriting or repeated execution. Each body ends at its
 own closing parenthesis; a statement terminator is allowed only after the
 complete query. INFER is excluded from CTE bodies. Recursive declarations,
 forward references and references to a displaced range variable remain

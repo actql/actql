@@ -128,6 +128,22 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('8fc336e2b475104366fea9024c38d171a3d18743a63f05b254272e14bedd886d'),
     pin('bfb017e25670c872293a2a4eec302b7d1217c3cb1adf74637c2339286d5c39ea')).run.run_definition_cid,
     pin('1a7ded9110cb3d2c27f151ccc75f1c6683c3a4e0316fc0570706a3c169934baf'));
+  // Preserve the prior SELECT-headed-Pipe grammar vector independently.
+  assert.equal(vector(pin('ecf842ba6846f2dbac5cb8fa42b5b708c14e0ec170fc14d05043a351c0300582'),
+    pin('bfb017e25670c872293a2a4eec302b7d1217c3cb1adf74637c2339286d5c39ea')).run.run_definition_cid,
+    pin('b8f4539c6741e24dd20bdd1ce77f5dc9d0c0466684c6e151e4441bccaaaaca9c'));
+  // Preserve the previous derived-query vector; this change only binds the
+  // expanded query grammar/profile, not a new Values or AoA numeric meaning.
+  assert.equal(vector(pin('3c8ac36faac086564fc41c468477c5ea3bfb2aedd1d86b4996220d43ad337356'),
+    pin('bfb017e25670c872293a2a4eec302b7d1217c3cb1adf74637c2339286d5c39ea')).run.run_definition_cid,
+    pin('dbbc63ad3aad5cc0f47ccad3112138b9a3e3056d4d8d5e83d7a2781f77cd560d'));
+  // Preserve the initial composite-query vector before the lexical CTE-scope
+  // rules were made explicit in the normative document.
+  assert.equal(vector(pin('72fc89e110c5597c976be9aad63418cb03faf0b1ddeeeb021a124fb5ffd67aa2'),
+    pin('bfb017e25670c872293a2a4eec302b7d1217c3cb1adf74637c2339286d5c39ea')).run.run_definition_cid,
+    pin('e50e7c8bd772eed517264aa3d946da1696e98328b22879f32a5980172e2b5c7c'));
+  assert.equal(vector(pin('5df79a1521ff009f2a54b8a12e259ac287b048961828c4901f066ad169fac975'), pin('bfb017e25670c872293a2a4eec302b7d1217c3cb1adf74637c2339286d5c39ea')).run.run_definition_cid,
+    pin('012e0a4567a1a9fb115d6476031e6f635f924f1f3ca9c1aeabb03cd0e06d9e55'));
   // Retain the exact-String predecessor's independent Run preimage.
   assert.equal(vector(pin('ecf842ba6846f2dbac5cb8fa42b5b708c14e0ec170fc14d05043a351c0300582'),
     cid(aoaContract), currentUnit).run.run_definition_cid,
@@ -141,8 +157,10 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('69bfc5ff4846f34bf910fcbdbb3a1d8e21750797e1a1c4b578d97571da1afd1f'),
     cid(aoaContract), currentUnit).run.run_definition_cid,
     pin('f835722f8d8fc55b5f325e101aa38c43b5783bf807161d6d2cb58a3091437dd5'));
-  assert.equal(current.run.run_definition_cid,
+  assert.equal(vector(pin('74823e16a311511bb8078beedb472b6fc8ce0dcda0cceae9432bc0d6da4c3871'), cid(aoaContract), currentUnit).run.run_definition_cid,
     pin('535f3d5b34ee29911cc3d258e9fe2c8324e34a8f75cd4db799f31323fad2d0a3'));
+  assert.equal(current.run.run_definition_cid,
+    pin("8574f5eb487efe877f5d11cda228d63ba737c3ef8821f7cd20ce804b964b3810"));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
 

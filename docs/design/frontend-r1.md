@@ -138,6 +138,45 @@ do not by themselves establish execution success.
 
 ## Shared query vocabulary and scope
 
+### Relational query bodies
+
+The selected [GoogleSQL Pipe reference](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/pipe-syntax.md)
+allows standard and Pipe syntax to be mixed, including different syntax in a
+subquery and its parent. A named FROM/JOIN subquery and a CTE therefore share
+the relational-body parser, original source positions and query resource
+budgets. SELECT heads retain their optional ORDER BY/LIMIT; FROM heads and
+SELECT heads can both use the existing pure relational Pipe operators.
+
+Both contexts lower through the existing producer/Stage Result boundary. A
+parent reads the body's output columns and range variable, not the body's
+hidden source columns or displaced aliases. Parsing does not query a Catalog,
+copy a source, authorize acquisition or introduce another execution engine.
+
+The same query-expression parser covers parenthesized roots, nested
+non-recursive WITH bodies and set-operation bodies. A Pipe tail after a
+parenthesized or combined set producer operates on its retained output; it
+does not expand that producer into another acquisition. Nested CTE declarations
+retain lexical visibility and are bound after their bodies, so an inner
+declaration can read an already-visible outer CTE before shadowing its name.
+CTE aliases are case-insensitive even when quoted, independently of the
+Source View identifier profile. Hidden body columns and out-of-scope CTEs are
+not made visible by internal producer names.
+
+An ORDER BY expression following a set is resolved only against the combined
+output fields, using its first operand's output names. Existing common
+expressions derive any sort-only slot once; repeated equivalent terms reuse
+it. Ordinary sort and a final projection preserve the declared output without
+publishing hidden sort fields. Operand range variables, non-output columns
+and aliases unique to a later operand remain out of scope. This follows the
+selected [GoogleSQL ORDER BY reference](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/query-syntax.md#order_by_clause)
+and its [independent analyzer cases](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/googlesql/analyzer/testdata/orderby.test).
+
+This does not claim every query composition is implemented. Positional numeric
+ORDER BY terms remain an implementation gap and are not interpreted as
+constant sort keys. INFER/Graph-query placement retains its separate boundary;
+this relational unit does not make those queries executable within a CTE or
+derived table.
+
 SQL and Pipe use the adopted GoogleSQL vocabulary and one query expression
 representation before lowering to existing Program expressions and operations.
 They do not roundtrip generated expression strings through the legacy parser.

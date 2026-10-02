@@ -48,11 +48,14 @@ test "Pipe CTE chains retain prior scope and reject unchecked declarations" {
       "WITH c AS (FROM c |> SELECT a) FROM c |> SELECT a", "WITH c AS (FROM left_rows |> SELECT a) FROM c |> SELECT b",
       "WITH c AS (FROM left_rows |> SELECT a), C AS (FROM left_rows |> SELECT a) FROM c |> SELECT a",
     ] {
-    let query = @query.parse_query(text, syntax_limits()).unwrap()
-    assert_true(
-      compile(query, set_context(), construction_limits()) is Err(_),
-      msg=text,
-    )
+    match @query.parse_query(text, syntax_limits()) {
+      Err(_) => ()
+      Ok(query) =>
+        assert_true(
+          compile(query, set_context(), construction_limits()) is Err(_),
+          msg=text,
+        )
+    }
   }
 }
 
