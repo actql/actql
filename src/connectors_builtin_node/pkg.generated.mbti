@@ -182,6 +182,8 @@ pub fn client_program_captured_source_row_count(@execution_query.CapturedSourceR
 
 pub fn client_program_captured_source_schema_cid(@execution_query.CapturedSourceRelationIdentity) -> String
 
+pub fn client_program_check_compiler_identity() -> String
+
 pub fn client_program_check_effect_apply_preflight(@physical_strategy.CapturedEffectPreviewInputs, Array[@physical_strategy.CapturedEffectPlanProof], Array[String], Array[String], Array[String], Array[String], Array[String], Array[String], Array[@effect_application.EffectApplyCapabilityObservation], @effect_application.EffectRiskAcceptanceBody?, Bool, String, String, String, String, String, String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int, Int) -> Result[Unit, @physical_strategy.CapturedEffectApplyPreflightIssue]
 
 pub fn client_program_check_effect_plan_proofs(@physical_strategy.CapturedEffectPreviewInputs, Array[@physical_strategy.CapturedEffectPlanProof], Int, Int) -> Result[Unit, @physical_strategy.CapturedEffectPlanInventoryIssue]
@@ -208,7 +210,11 @@ pub fn client_program_check_recovered_effect_apply_semantics(@run_publication.Ef
 
 pub fn client_program_check_run_binding(@run_publication_host.PreparedClientProgram, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Bool
 
+pub fn client_program_check_source(String, String, @program_check.CheckEnvironment, String, String?, String?, String) -> String
+
 pub fn client_program_check_source_free_local_effect_preview_identities(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, String, String, String, Array[@run_publication_host.ClientEffectLocalIdentity], Int, Int, Int) -> Result[Unit, @run_publication_host.ClientEffectLocalIdentityIssue]
+
+pub fn client_program_check_unavailable(String) -> String
 
 pub fn client_program_checking_environment_cid(@program_check.CheckEnvironment) -> String
 

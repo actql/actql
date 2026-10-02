@@ -41,6 +41,10 @@ export function buildClientHostWire(registry, protocol) {
     throw new Error('MissingRunStateSchema');
   }
   schemas.run_state = project(protocol.artifact_schemas.run_state);
+  if (protocol?.artifact_schemas?.check_outcome === undefined) {
+    throw new Error('MissingCheckOutcomeSchema');
+  }
+  schemas.check_outcome = project(protocol.artifact_schemas.check_outcome);
   schemas.value_contract = project(
     protocol.schemas.canonical_value_contract.$defs.value_contract);
   const module = `// Generated from the registered Client–Host machine contract.\n` +
@@ -57,7 +61,9 @@ export function buildClientHostWire(registry, protocol) {
       `export const valid${exports[index]}Shape = value => ` +
       `valid(value, schemas.${name});\n`).join('') +
     `export const validRunStateShape = value => ` +
-    `valid(value, schemas.run_state);\n`;
+    `valid(value, schemas.run_state);\n` +
+    `export const validCheckOutcomeShape = value => ` +
+    `valid(value, schemas.check_outcome);\n`;
   const types = `// Generated from the registered Client–Host machine contract.\n` +
     `export type ClientHostOperation = ${operations.map(([name]) =>
       JSON.stringify(name)).join(' | ')};\n` +
@@ -65,7 +71,8 @@ export function buildClientHostWire(registry, protocol) {
     names.map((name, index) =>
       `export type Wire${exports[index]}Shape = ${typeOf(schemas[name])};\n`
     ).join('\n') +
-    `\nexport type WireRunStateShape = ${typeOf(schemas.run_state)};\n`;
+    `\nexport type WireRunStateShape = ${typeOf(schemas.run_state)};\n` +
+    `export type WireCheckOutcomeShape = ${typeOf(schemas.check_outcome)};\n`;
   return {module, types};
 }
 

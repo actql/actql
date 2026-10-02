@@ -558,7 +558,167 @@ try {
   };
   let expectedEntries = 0;
 
-  if (process.argv.includes('--output-report-only')) {
+  if (process.argv.includes('--release-recovery-only')) {
+    // The same physical Site and journals must discharge release after a
+    // bounded failure, a lost control reply, and loss of the live holder.
+    const releaseModes = process.argv.includes('--release-maintenance-only') ? ['maintenance'] :
+      ['release-failure', 'lost-release', 'holder-exit', 'recovery-interrupted', 'maintenance'];
+    for (const [index, mode] of releaseModes.entries()) {
+      let lostRelease = false;
+      if (mode === 'lost-release') {
+        ackLossProxy = await observationAckLossProxy({origin: gateway.origin,
+          key: await readFile(join(root, 'server.key')),
+          cert: await readFile(join(root, 'server.crt')),
+          ca: await readFile(join(root, 'ca.crt')),
+          loseAck: () => false, allowDispatch: () => true, onAckLost: () => {},
+          transformReply: (_body, upstream) => {
+            if (!lostRelease && upstream.status === 200 &&
+                JSON.parse(upstream.body.toString('utf8')).version === 'actql-remote-poll-release/0.1') {
+              lostRelease = true;
+              return {status: 204, body: ''};
+            }
+            return upstream;
+          }});
+      }
+      let site = startSite(mode === 'release-failure' ? ['--holder-release-failures', '3'] :
+        mode === 'maintenance' ? ['--holder-kill-at', 'report-handoff'] :
+        mode === 'holder-exit' ? ['--holder-kill-at', 'report-handoff', '--release-recovery-close-failures', '1'] :
+          mode === 'recovery-interrupted' ? ['--holder-kill-at', 'report-handoff', '--release-recovery-kill-at', 'after-transition'] : [],
+      {controlOrigin: mode === 'lost-release' ? ackLossProxy.origin : gateway.origin});
+      currentSite = site;
+      const dispatch = dispatchFor(`resident-release-recovery-${mode}`, 200 + index);
+      await within(gateway.dispatch({dispatch, inputBindingBody: '{}',
+        dispatchEnvelope: materialsEnvelope(dispatch)}), `${mode} dispatch`);
+      await waitFor(async () => (await entries()).length === index + 1, `${mode} entry`);
+      const terminal = await settledQuery(dispatch, mode);
+      await within(requestOutput(dispatch, await planOutput(dispatch, terminal, mode)), `${mode} output`);
+      let released = gateway.release({dispatch}).catch(error => error);
+      if (mode === 'holder-exit' || mode === 'recovery-interrupted' || mode === 'maintenance') {
+        await waitFor(() => site.lines.some(line => line.kind === 'holder-killed'), 'holder exit');
+        await waitFor(() => pendingIntents().length === 0 && reservedPayloadBytes() === 0,
+          'orphan physical cleanup');
+      }
+      if (mode === 'lost-release') {
+        await waitFor(() => lostRelease, 'lost release response');
+        gateway.withdraw({dispatch});
+        await released;
+        released = gateway.release({dispatch});
+      }
+      await within(released, `${mode} release`);
+      if (mode === 'maintenance') {
+        await waitFor(() => reportState().pending === 0, 'maintenance durable Output ACK');
+        site.child.kill('SIGTERM');
+        await site.exited;
+        const savedAttempt = site.lines.find(line => line.kind === 'accepted' &&
+          line.request_cid === siteControl.identity(dispatch)).attempt;
+        const beforeJournal = new DatabaseSync(journalPath, {readOnly: true});
+        const beforeBundles = new DatabaseSync(join(runtimeRoot, '.actql-runtime-bundle.sqlite3'), {readOnly: true});
+        try {
+          const saved = JSON.parse(Buffer.from(beforeJournal.prepare(
+            'SELECT body FROM actql_records WHERE namespace=? AND record_key=?')
+            .get('site_dispatch', savedAttempt).body).toString('utf8'));
+          assert.equal(saved.cleanup_state, 0, 'operator recovery starts from CleanupActive');
+          const catalog = JSON.parse(Buffer.from(beforeBundles.prepare(
+            'SELECT body FROM actql_records WHERE namespace=? AND record_key=?')
+            .get('runtime_bundle', 'catalog').body).toString('utf8'));
+          assert.equal(catalog.entries.flatMap(entry => entry.holds).length, 2,
+            'the stopped holder and original dispatch still own their bundle holdings');
+        } finally { beforeJournal.close(); beforeBundles.close(); }
+        // Simulate an upgraded operator binary, preserving the old installed
+        // component and its exact journal identity. This operator cannot
+        // enter execute without its inherited slot; cleanup acquires no
+        // execution binding and does not alter executable attestation.
+        const maintenanceExecutable = join(root, 'maintenance.exe');
+        await writeFile(maintenanceExecutable, Buffer.concat([
+          await readFile(executable), Buffer.from('\nmaintenance-test-binary\n')]), {mode: 0o700});
+        assert.notEqual(physicalCid(await readFile(maintenanceExecutable)), componentCid);
+        const operate = async (operation, requestCid = siteControl.identity(dispatch)) => {
+          const args = operation === 'recover-release' ?
+            [operation, '--attempt', savedAttempt, '--expect-dispatch', requestCid, ...common] :
+            [operation, '--attempt', savedAttempt, '--claimant', 'maintenance-must-not-execute', ...common];
+          const process = spawn(maintenanceExecutable, args, {cwd: root,
+            stdio: ['ignore', 'pipe', 'pipe']});
+          running.add(process);
+          const closed = once(process, 'close');
+          let stdout = '', stderr = '';
+          process.stdout.on('data', chunk => { stdout += chunk; });
+          process.stderr.on('data', chunk => { stderr += chunk; });
+          try {
+            const [code] = await within(closed, 'maintenance bounded completion');
+            return {code, stdout, stderr};
+          } finally {
+            if (process.exitCode === null && process.signalCode === null) {
+              process.kill('SIGKILL'); await closed;
+            }
+            running.delete(process);
+          }
+        };
+        const mismatch = await operate('execute');
+        assert.notEqual(mismatch.code, 0);
+        assert.match(mismatch.stdout, /executor slot is not held/u);
+        const foreign = await operate('recover-release', physicalCid('foreign-dispatch'));
+        assert.notEqual(foreign.code, 0);
+        assert.match(foreign.stdout, /dispatch-mismatch/u);
+        const firstObservation = gateway.query({dispatch});
+        const recovered = await operate('recover-release');
+        assert.equal(recovered.code, 0, recovered.stderr);
+        assert.match(recovered.stdout, /release-recovery-observed/u);
+        const first = await within(firstObservation, 'maintenance formal observation');
+        for (let retry = 0; retry < 2; retry++) {
+          const nextObservation = gateway.query({dispatch});
+          const repeated = await operate('recover-release');
+          assert.equal(repeated.code, 0, repeated.stderr);
+          const snapshot = await within(nextObservation, 'maintenance repeated observation');
+          assert.equal(snapshot.state[2], 2);
+          assert.equal(snapshot.revision, first.revision);
+          assert.equal((await entries()).length, index + 1);
+        }
+        // Query/release waiters below are serviced by the ordinary control
+        // process, with the unchanged original installed executable.
+        site = startSite(); currentSite = site;
+      }
+      if (mode === 'holder-exit') {
+        const pending = await within(gateway.release({dispatch}), 'recovery close failure');
+        assert.equal(pending.state[2], 0, 'close failure must not publish Released');
+        await within(gateway.release({dispatch}), 'recover stopped holder release');
+      }
+      if (mode === 'recovery-interrupted') {
+        const interrupted = gateway.release({dispatch}).catch(error => error);
+        assert.deepEqual(await within(site.exited, 'recovery interrupted after durable transition'), [null, 'SIGKILL']);
+        assert(site.lines.some(line => line.kind === 'release-recovery-killed'));
+        gateway.withdraw({dispatch});
+        await interrupted;
+        site = startSite();
+        currentSite = site;
+        await within(gateway.release({dispatch}), 'resumed recovery');
+      }
+      const observed = await within(gateway.query({dispatch}), `${mode} cleanup observation`);
+      assert.equal(observed.state[2], 2, `${mode}: physical cleanup must have a formal Released observation`);
+      assert(Number.isSafeInteger(observed.revision), 'the durable revision must be present');
+      await waitFor(() => reservedPayloadBytes() === 0 && pendingIntents().length === 0,
+        `${mode} resource zero`);
+      for (let retry = 0; retry < 2; retry++) {
+        const repeated = await within(gateway.release({dispatch}), `${mode} repeated release`);
+        assert.equal(repeated.state[2], 2);
+        assert.equal(repeated.revision, observed.revision, 'release retry must not advance the durable revision');
+        assert.equal((await entries()).length, index + 1);
+        assert.equal(reservedPayloadBytes(), 0);
+        assert.equal(pendingIntents().length, 0);
+      }
+      const bundles = new DatabaseSync(join(runtimeRoot, '.actql-runtime-bundle.sqlite3'), {readOnly: true});
+      try {
+        const catalog = JSON.parse(Buffer.from(bundles.prepare(
+          'SELECT body FROM actql_records WHERE namespace=? AND record_key=?').get('runtime_bundle', 'catalog').body).toString('utf8'));
+        assert.deepEqual(catalog.entries.flatMap(entry => entry.holds), [], 'no dispatch, holder, or recovery bundle holding remains');
+      } finally { bundles.close(); }
+      console.log(JSON.stringify({kind: 'resident-release-case', mode,
+        dispatchCid: siteControl.identity(dispatch), executorEntries: index + 1,
+        cleanup: observed.state[2], pendingIntents: 0, reservedPayloadBytes: 0}));
+      site.child.kill('SIGTERM');
+      await site.exited;
+      if (ackLossProxy) { await ackLossProxy.close(); ackLossProxy = undefined; }
+    }
+  } else if (process.argv.includes('--output-report-only')) {
     // Exercise the complete report path with the real native holder and the
     // existing Coordinator/SQLite owner. The proxy drops only the first
     // typed ACK; no receipt map or synthetic result is used.

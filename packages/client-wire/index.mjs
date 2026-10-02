@@ -9,7 +9,7 @@ import {clientHostOperations, clientHostRequestKeys,
   validProfileShape, validRequestCancellationShape, validResultDescriptionShape, validResolveItemShape,
   validResolveResultShape, validResourceInspectionShape,
   validResourceListingShape, validResourcePeekShape,
-  validRunRefShape, validRunStateShape,
+  validRunRefShape, validRunStateShape, validCheckOutcomeShape,
   validSubmitPreparationErrorShape} from './client-host.generated.js';
 export {clientHostOperations} from './client-host.generated.js';
 // Legacy JSON/YAML spellings remain accepted by the transport Client. The
@@ -117,6 +117,12 @@ export function validRunState(value) {
   return validRunStateShape(value);
 }
 
+// The registered contract and generated validator enforce verdict/coverage
+// consistency as well as shape, without enumerating reason codes.
+export function validCheckOutcome(value) {
+  return validCheckOutcomeShape(value);
+}
+
 export function validSubmitPreparationError(value) {
   return validSubmitPreparationErrorShape(value);
 }
@@ -157,6 +163,22 @@ export function validClientBody(operation, body) {
           !Array.isArray(body.input.parameterDeclarations)) ||
         body.kind === 'program' && body.input !== null &&
         typeof body.input === 'object' && !Array.isArray(body.input));
+  }
+  // Checking reads authored source only; Program documents are not checked
+  // through this operation.
+  if (operation === 'check') {
+    return (exact(body.input, ['text', 'format']) ||
+        exact(body.input, ['text', 'format', 'parameterDeclarations'])) &&
+      typeof body.input.text === 'string' &&
+      body.input.text.length > 0 && body.input.text.length <= 65536 &&
+      !body.input.text.includes('\u0000') &&
+      ['aql-text', 'sql'].includes(body.input.format) &&
+      (body.input.parameterDeclarations === undefined ||
+        body.input.parameterDeclarations !== null &&
+        typeof body.input.parameterDeclarations === 'object' &&
+        !Array.isArray(body.input.parameterDeclarations)) &&
+      (body.parameters === null || typeof body.parameters === 'object' &&
+        !Array.isArray(body.parameters));
   }
   if (operation === 'lookup-request' || operation === 'cancel-request') {
     return boundedText(body.requestId);

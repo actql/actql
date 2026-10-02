@@ -1,5 +1,11 @@
 # Salesforce Read→Compute→Effect acceptance
 
+Evidence scope: "Current status" below is the recorded `4e4e29da0` acceptance,
+not a rerun on the latest main. Earlier failures, the resolution table and live
+request counts remain unchanged. The
+[current implementation map](current-product-status.md) distinguishes those
+results from current source inspection and coverage that remains unverified.
+
 This records the Salesforce acceptance of one Program that acquires records
 from the installed Salesforce source, computes locally, previews an update
 of the same records, waits for approval across Host restarts, writes, and

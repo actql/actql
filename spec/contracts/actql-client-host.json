@@ -3,6 +3,7 @@
   "operations": {
     "connect": ["connection"],
     "submit": ["connection", "requestId", "kind", "input", "parameters"],
+    "check": ["connection", "input", "parameters"],
     "attach": ["connection", "ref"],
     "lookup-request": ["connection", "requestId"],
     "status": ["connection", "ref"],

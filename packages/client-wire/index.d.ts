@@ -5,7 +5,7 @@ import type {ClientHostOperation, WireAdmissionShape, WireCancellationShape,
   WireRequestCancellationShape, WireResourceInspectionShape,
   WireResourceListingShape, WireResourcePeekShape,
   WireResolveItemShape, WireResolveResultShape, WireRunRefShape,
-  WireRunStateShape, WireSubmitPreparationErrorShape,
+  WireRunStateShape, WireSubmitPreparationErrorShape, WireCheckOutcomeShape,
   WireResultDescriptionShape, WireValueContractShape} from
   './client-host.generated.js';
 export type {ClientHostOperation} from './client-host.generated.js';
@@ -40,6 +40,8 @@ export declare function validResultDescription(value: unknown,
   limits?: typeof resultDescriptionLimits): value is WireResultDescription;
 export type WireRunState = WireRunStateShape;
 export type WireSubmitPreparationError = WireSubmitPreparationErrorShape;
+/** actql-check-outcome/0.1. */
+export type WireCheckOutcome = WireCheckOutcomeShape;
 export type ClientSourceFormat = 'json' | 'yaml' | 'aql-json' |
   'aql-yaml' | 'aql-text' | 'sql';
 export const clientSourceFormats: readonly ClientSourceFormat[];
@@ -57,6 +59,14 @@ export type WireClientBodyByOperation = Readonly<{
     format: ClientSourceFormat;
     parameterDeclarations?: Record<string, unknown>;
   }>}> | Readonly<{kind: 'program'; input: object}>);
+  check: WireBodyBase & Readonly<{
+    input: Readonly<{
+      text: string;
+      format: 'aql-text' | 'sql';
+      parameterDeclarations?: Record<string, unknown>;
+    }>;
+    parameters: Record<string, unknown> | null;
+  }>;
   attach: WireRefBody;
   'lookup-request': WireBodyBase & Readonly<{requestId: string}>;
   status: WireRefBody;
@@ -106,6 +116,8 @@ export type WireClientBody =
 
 export declare function validRunRef(value: unknown): value is WireRunRef;
 export declare function validRunState(value: unknown): value is WireRunState;
+export declare function validCheckOutcome(value: unknown):
+  value is WireCheckOutcome;
 export declare function validSubmitPreparationError(value: unknown):
   value is WireSubmitPreparationError;
 export declare function validClientConnection(value: unknown):

@@ -1,3 +1,6 @@
+// These small acceptance guards share the existing packed-query CI test entry.
+import './readme-quickstart.test.mjs';
+import './packed-package-boundaries.test.mjs';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync,
