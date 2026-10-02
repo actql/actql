@@ -1364,12 +1364,15 @@ test('Node JS bridge derives the checked named Result and request identity', asy
   const bytesBinding = JSON.parse(bytesBindingBody);
   const oldRows = valuesPublicationRowsBinding(oldUnit, 'rows');
   const oldBytes = valuesPublicationRowsBinding(oldUnit, 'rows', 'bytes');
+  // Historical Unit bindings must use the same historical dependency profile.
+  // Current graph/string pins intentionally produce different limit identities.
+  const historicalPublication = valuesPublicationOracle({legacy: true});
   assert.deepEqual([
     oldRows.resolved_limit_cid, oldBytes.resolved_limit_cid,
     oldRows.binding_cid, oldBytes.binding_cid,
   ], [
-    ...expected.limits.map(limit => limit.resolved_limit_cid),
-    ...expected.bindings.map(binding => binding.binding_cid),
+    ...historicalPublication.limits.map(limit => limit.resolved_limit_cid),
+    ...historicalPublication.bindings.map(binding => binding.binding_cid),
   ]);
   assert.deepEqual(rowsBinding,
     valuesPublicationRowsBinding(valuesUnitIdentity(source), 'rows'));
