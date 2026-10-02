@@ -72,8 +72,6 @@ pub fn start_property_snapshot_reload(@bounded_execution.Control, @lowering_rela
 
 pub fn start_rows_to_events(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @execution_relation.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[RowsToEventsExecution, EventsBridgeIssue]
 
-pub fn start_rows_to_graph(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, Array[@execution_relation.ProducerRead], @managed_graph_storage.Limits, Int64, Int, () -> Bool, control_work_limit? : Int?) -> Result[RowsToGraphExecution, GraphBridgeIssue]
-
 pub fn start_rows_to_property_graph(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, Array[@execution_relation.ProducerRead], @managed_graph_storage.Limits, Int64, Int, () -> Bool, control_work_limit? : Int?) -> Result[RowsToGraphExecution, GraphBridgeIssue]
 
 pub fn start_rows_to_vectors(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @execution_relation.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool) -> Result[RowsToVectorsExecution, EventsBridgeIssue]

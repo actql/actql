@@ -1592,3 +1592,21 @@ preflight overlapped formatting's lock and is not used as the final run.
 Public API consistency and frozen historical foundation verification passed
 for the preceding Source owner commit. Full Core/spec, fresh packed public
 snapshot and pushed-SHA CI are still required for #164 as a whole.
+
+## Constructor compatibility entry removal (2026-10-03)
+
+The public `local_bridge.start_rows_to_graph` wrapper is deleted rather than
+kept as an alias. All live source references now call
+`start_rows_to_property_graph`. The same existing `RowsToGraphExecution`
+bounded session, poll, stop and cleanup functions remain the sole current
+constructor/reload custody owner; their generic names do not select a retired
+representation. No replacement session or execution owner was added.
+
+The current constructor, provider, selector and snapshot regressions pass
+**36/36 on JS, Wasm and native**, with `--deny-warn`:
+`/private/tmp/property-graph-constructor-alias-{js,wasm,native}-20261003.log`.
+The legacy mixed integration file has only mechanically renamed entry calls
+in this unit; its remaining tuple fixtures are not claimed migrated or green.
+The old name occurs only in the frozen September production-route evidence
+and a negative resource-inventory test that deliberately selects an invalid
+marker. Neither is a current callable product adapter.

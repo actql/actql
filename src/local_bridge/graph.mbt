@@ -41,33 +41,6 @@ fn graph_checked_cell(
 }
 
 ///|
-/// The common constructor accepts only the admitted definition-scoped contract.
-/// Historical endpoint-tuple sequences are not executable through this entry.
-pub fn start_rows_to_graph(
-  control : @bounded.Control,
-  sequence : @lower.PreparedSequence,
-  step : Int,
-  inputs : Array[@execution.ProducerRead],
-  limits : @graph_storage.Limits,
-  storage_bytes : Int64,
-  max_workspace_slots : Int,
-  available : () -> Bool,
-  control_work_limit? : Int? = None,
-) -> Result[RowsToGraphExecution, GraphBridgeIssue] {
-  start_rows_to_property_graph(
-    control,
-    sequence,
-    step,
-    inputs,
-    limits,
-    storage_bytes,
-    max_workspace_slots,
-    available,
-    control_work_limit~,
-  )
-}
-
-///|
 pub fn advance_rows_to_graph(
   value : RowsToGraphExecution,
   quantum : Int,

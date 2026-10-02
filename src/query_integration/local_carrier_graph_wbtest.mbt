@@ -1125,7 +1125,7 @@ fn carrier_match_graph_material(
     100,
     1000,
   ).unwrap()
-  let construction = @local_bridge.start_rows_to_graph(
+  let construction = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
     prepared_sequence(graph_owner),
     0,
@@ -1666,7 +1666,7 @@ fn match_nodes_predicate_output(
     100,
     1000,
   ).unwrap()
-  let construction = @local_bridge.start_rows_to_graph(
+  let construction = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
     sequence,
     0,
@@ -1816,7 +1816,7 @@ test "bounded node identity match sorts deduplicates and completes atomically" {
     100,
     1000,
   ).unwrap()
-  let construction = @local_bridge.start_rows_to_graph(
+  let construction = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
     sequence,
     0,
@@ -1887,7 +1887,7 @@ test "node identity sort yields during a long text comparison" {
     100,
     1000,
   ).unwrap()
-  let construction = @local_bridge.start_rows_to_graph(
+  let construction = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
     sequence,
     0,
@@ -1965,7 +1965,7 @@ test "bounded node identity match rejects a missing identity before output" {
     100,
     1000,
   ).unwrap()
-  let construction = @local_bridge.start_rows_to_graph(
+  let construction = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
     sequence,
     0,
@@ -2009,7 +2009,7 @@ test "node identity match admits workspace before execution and cleans cancel" {
     100,
     1000,
   ).unwrap()
-  let construction = @local_bridge.start_rows_to_graph(
+  let construction = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
     sequence,
     0,
@@ -2073,7 +2073,7 @@ test "node identity match admits exact work and workspace and rejects one short"
     100,
     1000,
   ).unwrap()
-  let construction = @local_bridge.start_rows_to_graph(
+  let construction = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
     sequence,
     0,
@@ -2233,7 +2233,7 @@ test "bounded edge match filters repeated types and sorts canonically" {
     100,
     1000,
   ).unwrap()
-  let construction = @local_bridge.start_rows_to_graph(
+  let construction = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
     sequence,
     0,
@@ -2307,7 +2307,7 @@ test "edge identity sort yields during a long text comparison" {
     100,
     1000,
   ).unwrap()
-  let construction = @local_bridge.start_rows_to_graph(
+  let construction = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
     sequence,
     0,
@@ -2389,7 +2389,7 @@ test "bounded edge match evaluates a checked property predicate" {
     100,
     1000,
   ).unwrap()
-  let construction = @local_bridge.start_rows_to_graph(
+  let construction = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
     sequence,
     0,
@@ -2480,7 +2480,7 @@ test "bounded edge match admits workspace and cleans cancellation" {
     100,
     1000,
   ).unwrap()
-  let construction = @local_bridge.start_rows_to_graph(
+  let construction = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
     sequence,
     0,
@@ -2546,7 +2546,7 @@ test "edge type index builds within quantum and releases on cancellation" {
     100,
     1000,
   ).unwrap()
-  let construction = @local_bridge.start_rows_to_graph(
+  let construction = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
     sequence,
     0,
@@ -2614,7 +2614,7 @@ test "edge identity match admits exact work and workspace and rejects one short"
     100,
     1000,
   ).unwrap()
-  let construction = @local_bridge.start_rows_to_graph(
+  let construction = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
     sequence,
     0,
@@ -2800,7 +2800,7 @@ test "homogeneous traversal reads a Relation start selector" {
     100,
     1000,
   ).unwrap()
-  let construction = @local_bridge.start_rows_to_graph(
+  let construction = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
     sequence,
     0,
@@ -2909,7 +2909,7 @@ test "path traversal reads a Relation start selector" {
     100,
     1000,
   ).unwrap()
-  let construction = @local_bridge.start_rows_to_graph(
+  let construction = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
     sequence,
     0,
@@ -3003,7 +3003,7 @@ test "homogeneous traversal evaluates a typed start predicate" {
     100,
     1000,
   ).unwrap()
-  let construction = @local_bridge.start_rows_to_graph(
+  let construction = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
     sequence,
     0,
@@ -3071,7 +3071,7 @@ test "path traversal evaluates a typed start predicate" {
     100,
     1000,
   ).unwrap()
-  let construction = @local_bridge.start_rows_to_graph(
+  let construction = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
     sequence,
     0,
@@ -3163,7 +3163,7 @@ test "path traversal admits hop predicate bindings before allocation" {
     100,
     1000,
   ).unwrap()
-  let construction = @local_bridge.start_rows_to_graph(
+  let construction = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
     sequence,
     0,
@@ -3268,7 +3268,7 @@ fn traverse_paths_result_for_source(
     100,
     1000,
   ).unwrap()
-  let construction = @local_bridge.start_rows_to_graph(
+  let construction = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
     sequence,
     0,
@@ -3363,7 +3363,7 @@ fn traverse_nodes_result_for_source(
     100,
     1000,
   ).unwrap()
-  let construction = @local_bridge.start_rows_to_graph(
+  let construction = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
     sequence,
     0,
@@ -3456,7 +3456,7 @@ test "node traversal cancellation reclaims the unpublished path state" {
     100,
     1000,
   ).unwrap()
-  let construction = @local_bridge.start_rows_to_graph(
+  let construction = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
     sequence,
     0,
@@ -3533,7 +3533,7 @@ fn relation_traverse_result(
     100,
     1000,
   ).unwrap()
-  let construction = @local_bridge.start_rows_to_graph(
+  let construction = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
     sequence,
     0,
@@ -3639,7 +3639,7 @@ test "path traversal charges overlapping start selector and indices" {
       100,
       1000,
     ).unwrap()
-    let construction = @local_bridge.start_rows_to_graph(
+    let construction = @local_bridge.start_rows_to_property_graph(
       @bounded.control(),
       sequence,
       0,
@@ -3933,7 +3933,7 @@ test "path traversal rejects a Graph read bound to another step" {
     100,
     1000,
   ).unwrap()
-  let construction = @local_bridge.start_rows_to_graph(
+  let construction = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
     sequence,
     0,
@@ -3989,7 +3989,7 @@ test "path traversal observes cancellation before completion" {
     100,
     1000,
   ).unwrap()
-  let construction = @local_bridge.start_rows_to_graph(
+  let construction = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
     sequence,
     0,
@@ -4067,7 +4067,7 @@ test "rows to Graph Bridge admits exact control work and workspace" {
   // Finalizing the Graph is one further step: 2 * 3 + 2 * 6 + 1 = 19.
   // The two property indices and eight fixed scratch slots overlap at start.
   assert_true(
-    @local_bridge.start_rows_to_graph(
+    @local_bridge.start_rows_to_property_graph(
       @bounded.control(),
       sequence,
       0,
@@ -4081,7 +4081,7 @@ test "rows to Graph Bridge admits exact control work and workspace" {
     is Err(@local_bridge.GraphWorkspaceLimit),
   )
   for (work, accepted) in [(19, true), (18, false)] {
-    let execution = @local_bridge.start_rows_to_graph(
+    let execution = @local_bridge.start_rows_to_property_graph(
       @bounded.control(),
       sequence,
       0,
@@ -4121,7 +4121,7 @@ test "rows to Graph Bridge admits exact control work and workspace" {
     assert_true(@execution.producer_read_available(external))
   }
   let control = @bounded.control()
-  let cancelled = @local_bridge.start_rows_to_graph(
+  let cancelled = @local_bridge.start_rows_to_property_graph(
     control,
     sequence,
     0,
@@ -4160,7 +4160,7 @@ test "Graph bridge cancellation stops before cleanup and preserves inputs" {
     1000,
   ).unwrap()
   let control = @bounded.control()
-  let construction = @local_bridge.start_rows_to_graph(
+  let construction = @local_bridge.start_rows_to_property_graph(
     control,
     sequence,
     0,

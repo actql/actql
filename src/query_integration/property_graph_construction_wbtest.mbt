@@ -1865,7 +1865,7 @@ test "common constructor keeps empty keyed definition schemas" {
   let owner = keyed_bridge_owner(nodes, edges)
   let sequence = prepared_sequence(owner)
   let inputs = keyed_bridge_inputs(owner, nodes, edges)
-  let active = @local_bridge.start_rows_to_graph(
+  let active = @local_bridge.start_rows_to_property_graph(
     @bounded.control(),
     sequence,
     0,
