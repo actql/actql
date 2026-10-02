@@ -11,7 +11,7 @@ export function preparePrivatePublicationHolding(store, binding) {
       !binding || !['effect_preview', 'effect_capture', 'model_capture_bundle',
         'model_slot_capture', 'model_call_attempt', 'model_attempt_accounting',
         'model_attempt_outcome', 'model_dispatch_authority', 'observation_set',
-        'run_invocation']
+        'run_invocation', 'source_evidence']
         .includes(binding.name) ||
       typeof binding.semanticCid !== 'string' ||
       typeof binding.holdingCid !== 'string' ||

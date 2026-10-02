@@ -798,7 +798,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   // Composition installs one owner for dispatch, cancellation, stop, and
   // cleanup. Checkpoint and HTTP paths share this owner.
   const observed = diagnostic;
-  const runInfer = installNodeInferRun({moon, core: runtimeCore(moon),
+  const runInfer = installNodeInferRun({moon, core: runtimeCore(moon), fragment, ordered,
     registry, values, selections: inferSelections, namespaceId, authorityScopeCid,
     storeAuthorityCid, now, faultInjection: authorization?.faultInjection});
   dispatchOwner = installNodeClientDispatchOwner({moon, control,
@@ -1050,14 +1050,36 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       // evidence, never reserve another provider dispatch. Missing evidence
       // leaves the original unknown Run intact.
       const flight = dispatchOwner.track(accepted.ref, {
-        run: async ({signal, retainExecution, beginPhysicalWork}) => {
+        run: async ({signal, retainExecution, beginPhysicalWork, acquireSource}) => {
           const current = journal.lookupRunDefinition(accepted.ref, moon, control);
           if (current === undefined || current.cancellationRequested ||
               current.observedTerminalOutcome !== null) return;
           const plan = planFor(submission, current.runDefinition.wire);
+          let acquiredInfer;
+          if (acquired) {
+            // Reacquisition uses the current installed read admission. It
+            // grants no permission to dispatch the model again; saved slot
+            // replay separately binds the original evidence and actual input.
+            const sourceAccess = checkpoints?.acquisitionAccess(
+              submission.requestId, sourceProfile.sourceAccess) ?? sourceProfile.sourceAccess;
+            const preparedSource = await prepareAcquisition(submission.preparedProgram,
+              sourceAccess);
+            const {captured, sourceEvidenceWire, captureStartedAt, captureCompletedAt} =
+              await acquireSource({preparedProgram: submission.preparedProgram,
+                preparedSource, sourceAccess});
+            const input = checked(moon.clientProgramAdmitInferCapturedInput(
+              submission.preparedProgram, captured.inferStep, captured.capturedSource,
+              captured.identity, captured.requirement, captured.logicalInput,
+              sourceEvidenceWire, authorityScopeCid,
+              captured.checkedSource.sourceDataPolicyCid,
+              captureStartedAt, captureCompletedAt));
+            acquiredInfer = {input, sourceEvidence: control.admitRunEvidence(
+              'source_evidence', sourceEvidenceWire,
+              {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100})};
+          }
           await runInfer({preparedProgram: submission.preparedProgram, plan,
             store, principalId: actual, signal, retainExecution,
-            beginPhysicalWork, replay: true});
+            beginPhysicalWork, acquiredInfer, replay: true});
         },
         observeStopped: async () => {
           // Only the existing publication owner can make recovery successful.

@@ -366,7 +366,7 @@ export function inferTaskRunAdmission(options) {
 // Retention and Result evidence reuse the ordinary publication plan. The
 // caller owns the returned binding until all Store users have settled.
 export function inferTaskPublicationPlan({moon, control, preparedProgram,
-  admitted, operation, issuance, modelEvidence, authorityScopeCid, namespaceId,
+  admitted, operation, issuance, modelEvidence, sourceEvidence = [], authorityScopeCid, namespaceId,
   storeAuthorityCid, now}) {
   control.checkClientCompiledRunOwner(admitted.compiled, preparedProgram);
   if (admitted.kind !== 'infer' || !Array.isArray(modelEvidence)) {
@@ -383,7 +383,7 @@ export function inferTaskPublicationPlan({moon, control, preparedProgram,
       compiledPlanCid: admitted.compiledPlan.identity,
       programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
       inputRelationCids: observation.captured_input_artifact_cids,
-      sourceEvidence: [], modelEvidence, authorityScopeCid, namespaceId,
+      sourceEvidence, modelEvidence, authorityScopeCid, namespaceId,
       storeAuthorityCid, dataPolicyCid: observation.data_policy_cid,
       createdAt: admitted.createdAt, now,
       resultCount: moon.clientProgramResultCount(preparedProgram),

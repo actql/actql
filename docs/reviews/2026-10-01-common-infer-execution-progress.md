@@ -2140,3 +2140,53 @@ and its exact common-file digests. It preserves historical evidence and
 does not weaken the foundation checker. Full integrated-SHA CI remains the
 merge-readiness check; complete local Core suites were not repeated solely
 for the merge.
+
+### Acquired input continuation
+
+The acquired-input unit starts at
+`8f906009fd3d64b5873f227bc24ec993938023be` on
+`feat/infer-acquired-input`. It is separate from the merged source-free unit.
+
+The ordinary Program used by `adapters/host-node/acquired-infer.test.mjs`
+reads the installed DuckDB SourceView, filters and selects its columns,
+asserts the input key, and invokes the installed ModelTask. The acquisition
+prefix retains its checked owner and input binding. Local residual evaluation
+uses the existing bounded provider with cumulative input/output record guards;
+the acquisition owner retains cleanup across capture failures. Model input
+identity binds the actual source logical artifact and the completed prefix.
+
+The public Embedded Local test reads the independent expected Named Result.
+Separate processes exercise exit after capture persistence and replay: the
+first calls the provider once and the second zero times. Replay restores the
+original SourceEvidence and observation interval, validates it against the
+newly admitted acquired input, and rejects changed rows without redispatch.
+Acquisition still passes the installed read authority; capture identity is
+not a new read or dispatch permission.
+
+Post-dispatch cancellation and usage overflow both publish no Result. After
+the execution process exits, a separate Store reader verifies encrypted
+SourceEvidence, retained token usage, positive work, unknown cost, and the
+cancelled or budget-exceeded outcome. Private holding retries reuse the same
+prepared object and refuse replacement evidence.
+
+Local evidence at the working revision:
+
+- Seven affected MoonBit packages: JS 2,279/2,279 passed through
+  `local-checks.mjs test moon`.
+- Public acquired success and authored-classification refusal passed.
+- Fresh-process replay and changed-input refusal passed independently.
+- Post-dispatch cancellation and usage failure: 2/2 passed.
+- Dispatch-owner regression plus acquired success/refusal: 21/21 passed.
+- Source observation binding: 2/2; private source custody retry: 1/1.
+- Runtime rebuilt; MoonBit formatted and three-target interfaces regenerated.
+- Focused Node batch: 33 executed cases passed; the broad-query file initially
+  failed to start because `moon` was absent from PATH. Its pinned-toolchain
+  rerun passed 1/1. The failed aggregate run is not recorded as successful.
+
+This is not a final SHA or release verdict. Full affected Node jobs,
+Wasm/native execution, final interface verification and Linux CI remain to
+be recorded. The external packed acquired-input acceptance is not yet run.
+Broad KEEP, multiple SourceViews and immediate capture-to-INFER without a
+post-capture Local step are not claimed supported. Acquisition retention
+identity measurement still uses its existing synchronous completion path;
+the bounded residual change does not prove that entire phase interruptible.

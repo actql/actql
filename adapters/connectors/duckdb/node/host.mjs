@@ -1440,9 +1440,38 @@ export async function runBroadHostQuery(grant, setup, limits, signal) {
     return Object.freeze({
       attempt, port,
       complete: () => checked(moon.broadHostComplete(run)),
+      async completeBounded(activeSignal) {
+        checked(moon.broadHostStartResidual(run));
+        try {
+          for (;;) {
+            activeSignal?.throwIfAborted();
+            if (checked(moon.broadHostAdvanceResidual(run, 128))) break;
+            await yieldToHost();
+          }
+          activeSignal?.throwIfAborted();
+          return checked(moon.broadHostComplete(run));
+        } catch (cause) {
+          moon.broadHostAbort(run);
+          try {
+            while (!moon.broadHostResidualStopped(run)) {
+              try { checked(moon.broadHostAdvanceResidual(run, 128)); }
+              catch (stopError) {
+                if (!moon.broadHostResidualStopped(run)) throw stopError;
+              }
+              if (!moon.broadHostResidualStopped(run)) await yieldToHost();
+            }
+          } catch (stopError) {
+            throw new DuckDBTransportError('ResidualStopUnconfirmed', {
+              cause: new AggregateError([cause, stopError]),
+            });
+          }
+          throw cause;
+        }
+      },
+      stopped: () => moon.broadHostResidualStopped(run),
       bindInput: (observation, receiver, inputIndex) => checked(moon.broadHostBind(run, observation, receiver, rows(inputIndex))),
       abort() { moon.broadHostAbort(run); },
-      close() { moon.broadHostClose(run); },
+      close() { checked(moon.broadHostClose(run)); },
     });
   }, limits, signal);
   let closed = false;
