@@ -40,6 +40,9 @@ for (const [source, destination] of [
   ['scripts/fixtures/public-query-input.mjs', 'public-query-input.mjs'],
   ['scripts/fixtures/string-values-restart.mjs', 'string-values-restart.mjs'],
   ['scripts/fixtures/packed-public-query.mjs', 'acceptance.mjs'],
+  ['scripts/fixtures/packed-two-source-public-query.mjs', 'packed-two-source-public-query.mjs'],
+  ['scripts/fixtures/two-source-public-query.mjs', 'two-source-public-query.mjs'],
+  ['scripts/fixtures/two-source-restart.mjs', 'two-source-restart.mjs'],
   ['adapters/host-node/fixtures/query-amount-environment.json', 'source-environment.json'],
   ['spec/local-check-environment.json', 'base-environment.json'],
   ['spec/frontend/fixtures/pipe-scope/cases.json', 'pipe-scope-cases.json'],
@@ -49,6 +52,13 @@ for (const [source, destination] of [
   ['scripts/fixtures/packed-sga-cancellation.mjs', 'sga-cancellation.mjs'],
 ]) {
   await writeFile(join(root, destination), await readFile(join(repository, source)));
+}
+await mkdir(join(root, 'two-source-fixtures'));
+for (const name of ['database-rows.json', 'two-source-join.program.json',
+  'two-source-join.expected.json', 'equal-content-join.expected.json',
+  'left-only.program.json', 'left.environment.json', 'right.environment.json']) {
+  await writeFile(join(root, 'two-source-fixtures', name), await readFile(join(repository,
+    'adapters/host-node/fixtures/two-source', name)));
 }
 await mkdir(join(root, 'sga-source-fixtures'));
 for (const name of ['normalize-rows', 'mean-graphs', 'traverse-paths',
@@ -94,6 +104,9 @@ if (process.argv.includes('--alias-scope-only')) {
 if (process.argv.includes('--infer-refusal-only')) {
   runtimeEnvironment.ACTQL_TEST_INFER_REFUSAL_ONLY = '1';
 }
+if (process.argv.includes('--two-source-only')) {
+  runtimeEnvironment.ACTQL_TEST_TWO_SOURCE_ONLY = '1';
+}
 for (const name of ['NODE_PATH', 'NODE_OPTIONS', 'MOON_HOME', 'ACTQL_LOCAL_SOURCE_PROFILE',
   'ACTQL_LOCAL_EFFECT_PROFILE', 'ACTQL_LOCAL_STATE_DIR']) {
   delete runtimeEnvironment[name];
@@ -127,15 +140,25 @@ if (process.argv.includes('--cancellation-only')) {
     runtimeEnvironment, 120000).trimEnd());
   return;
 }
-const output = run(process.execPath, ['acceptance.mjs'], root,
-  runtimeEnvironment, 900_000);
-console.log(output.trimEnd());
+try {
+  const output = run(process.execPath, ['acceptance.mjs'], root,
+    runtimeEnvironment, 900_000);
+  console.log(output.trimEnd());
+} finally {
+  // Preserve two-source observations beside existing command/tarball evidence
+  // before the harness removes its installed consumer, including on failure.
+  try {
+    await writeFile(join(directory, 'two-source-acceptance.json'),
+      await readFile(join(root, 'two-source-packed-report.json')));
+  } catch (error) { if (error.code !== 'ENOENT') throw error; }
+}
 // The first Host process has exited: no live Local installation still owns
 // its Store. Restore retained Results in a new process without resubmission.
 // Narrow selections without the String fixture have no retained String Run.
 // Keep restart acceptance for full/source-free selections that create it.
 if (!process.argv.some(flag => ['--alias-scope-only', '--infer-refusal-only',
-  '--join-order-only', '--query-composition-only', '--pipe-result-only'].includes(flag))) {
+  '--join-order-only', '--query-composition-only', '--pipe-result-only',
+  '--two-source-only'].includes(flag))) {
   console.log(run(process.execPath, ['string-values-restart.mjs'], root,
     runtimeEnvironment, 120000).trimEnd());
 }
@@ -144,6 +167,7 @@ if (process.argv.includes('--source-free-only') ||
   process.argv.includes('--pipe-result-only') ||
   process.argv.includes('--alias-scope-only') ||
   process.argv.includes('--infer-refusal-only') ||
+  process.argv.includes('--two-source-only') ||
   process.argv.includes('--join-order-only')) return;
 console.log(run(process.execPath, ['sga-cancellation.mjs'], root,
   runtimeEnvironment, 120000).trimEnd());

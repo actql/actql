@@ -110,6 +110,9 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
     graph.prefix_ends[stage] is Some(_) {
     return None
   }
+  if stage < graph.captured_prefix {
+    return None
+  }
   let prepared = @lower.bound_preparation(graph.owners[stage])
   let pipeline = @lower.pipeline(prepared)
   let count = @pipeline.step_count(pipeline)
@@ -712,6 +715,7 @@ pub fn expand_internal_carrier_tasks(
   Ok({
     program: graph.program,
     source_free_root: graph.source_free_root,
+    captured_prefix: graph.captured_prefix,
     owners,
     stage_tasks,
     targets,

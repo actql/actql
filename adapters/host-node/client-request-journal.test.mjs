@@ -8,6 +8,8 @@ import {DatabaseSync} from 'node:sqlite';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {openClientRequestJournal} from './client-request-journal.mjs';
+import {canonicalJson} from './local-account-config.mjs';
+import './client-two-source-checkpoints.test.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -1037,4 +1039,399 @@ test('a started Run keeps one reconciliation state across a restart',
       state(['save']));
     assert.equal(journal.lookupReconciliationState({...accepted.ref,
       runDefinitionCid: cid('9')}), undefined);
+  });
+
+// These are Host-private storage fixtures, not authorization evidence. The
+// common admission owner remains responsible for the opaque owner wires.
+function sourceInventoryObject() {
+  return {
+    version: 'actql-client-source-inventory/0.1', environmentCid: cid('e'),
+    acquisitions: ['left', 'right'].map((side, index) => ({
+      stage: index, input: 0, task: index,
+      checkedSource: {
+        requirementCid: cid(String(index + 1)),
+        sourceRef: `connector://fixture/${side}/r#v`,
+        sourceContractCid: cid('3'), carrierSchemaContractCid: cid('4'),
+        sourceDataPolicyCid: cid('5'), dataClassification: 'internal',
+        sourceViewContractCid: cid('6'), inputContractCid: cid('7'),
+        outputContractCid: cid('8'),
+      },
+      readTuple: {connection: 'database', resource: '/warehouse.db',
+        operation: 'read'},
+      physicalBinding: {version: 'actql-installed-duckdb-target/0.1',
+        database: 'warehouse', schema: 'main', table: side,
+        utf8_hex: {database: '77617265686f757365', schema: '6d61696e',
+          table: index === 0 ? '6c656674' : '7269676874'}},
+    })),
+  };
+}
+
+function inventoryEvidence(sourceInventory) {
+  return {prepared: 'prepared-owner-wire', authorization: 'authorization-owner-wire',
+    ...(sourceInventory === undefined ? {} : {sourceInventory})};
+}
+
+function acceptInventory(journal, sourceInventory, runId = 'inventory-run') {
+  return journal.acceptDefinition(identity(), {
+    namespaceId: 'namespace-a', runDefinition: runDefinition(runId),
+    lookupExpiresAt: expires, resultNames: ['answer'],
+    runAdmissionEvidence: inventoryEvidence(sourceInventory),
+  }, moon, publicationControl);
+}
+
+function readInventoryRow(path) {
+  const database = new DatabaseSync(join(path, 'client-requests.sqlite3'));
+  try { return database.prepare('SELECT * FROM client_requests').get(); }
+  finally { database.close(); }
+}
+
+test('source inventory is retained atomically and byte-exactly across restart',
+  async t => {
+    const path = await directory(t);
+    let journal = openClientRequestJournal(path);
+    t.after(() => journal.close());
+    const authored = sourceInventoryObject();
+    // Native UTF-8 bytes survive even when the logical identifier uses NFC.
+    authored.acquisitions[1].physicalBinding.table = 'right_é';
+    authored.acquisitions[1].physicalBinding.utf8_hex.table = '72696768745f65cc81';
+    const sourceInventory = canonicalJson(authored);
+    const evidence = inventoryEvidence(sourceInventory);
+    const accepted = journal.acceptDefinition(identity(), {
+      namespaceId: 'namespace-a', runDefinition: runDefinition('two-source-run'),
+      lookupExpiresAt: expires, resultNames: ['answer'], runAdmissionEvidence: evidence,
+    }, moon, publicationControl);
+    assert.equal(accepted.inserted, true);
+    assert.deepEqual(accepted.runAdmissionEvidence, evidence);
+    assert.equal(typeof accepted.runAdmissionEvidence.sourceInventory, 'string');
+    assert.equal(Object.isFrozen(accepted.runAdmissionEvidence), true);
+
+    const row = readInventoryRow(path);
+    assert.equal(row.run_admission_evidence_json, JSON.stringify(evidence));
+    assert.equal(row.run_definition_cid, accepted.ref.runDefinitionCid);
+    assert.equal(row.caller_input_intent_cid, fixture.callerInputIntentCid);
+    assert.equal(row.program_definition_cid, fixture.programDefinitionCid);
+    assert.equal(row.parameter_values_cid, fixture.parameterValuesCid);
+    assert.equal(row.logical_request_scope_cid, fixture.logicalRequestScopeCid);
+    assert.equal(row.intent_fingerprint_cid, fixture.intentFingerprintCid);
+
+    // Caller-owned mutable objects cannot retrofit the accepted string.
+    authored.environmentCid = cid('9');
+    authored.acquisitions[1].checkedSource.requirementCid = cid('a');
+    evidence.sourceInventory = canonicalJson(authored);
+    assert.equal(accepted.runAdmissionEvidence.sourceInventory, sourceInventory);
+    assert.throws(() => { accepted.runAdmissionEvidence.sourceInventory = 'changed'; },
+      TypeError);
+    journal.close();
+    journal = openClientRequestJournal(path);
+    const retained = journal.lookupRunDefinition(accepted.ref, moon, publicationControl);
+    assert.equal(retained.runAdmissionEvidence.sourceInventory, sourceInventory);
+    assert.equal(retained.runDefinition.wire, accepted.runDefinition.wire);
+    assert.equal(retained.dispatchReserved, false);
+    assert.equal(retained.physicalStartReserved, false);
+    let issuers = 0;
+    const repeated = await journal.admitOrLookupDefinition(identity(), {
+      namespaceId: 'namespace-a', lookupExpiresAt: expires, sourceInventory,
+      issueDefinition: () => { issuers++; throw new Error('UnexpectedIssuer'); },
+    }, moon, publicationControl);
+    assert.equal(issuers, 0);
+    assert.equal(repeated.inserted, false);
+    assert.deepEqual(repeated.ref, accepted.ref);
+    assert.equal(repeated.runAdmissionEvidence.sourceInventory, sourceInventory);
+    assert.equal(readInventoryRow(path).run_admission_evidence_json,
+      row.run_admission_evidence_json);
+  });
+
+test('source inventory does not change legacy singular admission evidence bytes',
+  async t => {
+    const path = await directory(t);
+    let journal = openClientRequestJournal(path);
+    t.after(() => journal.close());
+    const bytes = '{"prepared":"prepared-owner-wire","authorization":"authorization-owner-wire"}';
+    const accepted = acceptInventory(journal, undefined, 'singular-run');
+    assert.equal(readInventoryRow(path).run_admission_evidence_json, bytes);
+    journal.close();
+    journal = openClientRequestJournal(path);
+    const retained = journal.lookupRunDefinition(accepted.ref, moon, publicationControl);
+    assert.deepEqual(retained.runAdmissionEvidence, JSON.parse(bytes));
+    assert.equal(Object.hasOwn(retained.runAdmissionEvidence, 'sourceInventory'), false);
+    assert.equal(readInventoryRow(path).run_admission_evidence_json, bytes);
+  });
+
+const inventoryMutations = [
+  ['second physical binding', value => {
+    value.acquisitions[1].physicalBinding.table = 'other';
+    value.acquisitions[1].physicalBinding.utf8_hex.table = '6f74686572';
+  }],
+  ['second checked requirement', value => {
+    value.acquisitions[1].checkedSource.requirementCid = cid('9');
+  }],
+  ['environment generation', value => { value.environmentCid = cid('9'); }],
+];
+
+for (const [label, mutate] of inventoryMutations) {
+  test(`source inventory rejects changed ${label} before duplicate issuance`,
+    async t => {
+      const path = await directory(t);
+      let journal = openClientRequestJournal(path);
+      t.after(() => journal.close());
+      const original = canonicalJson(sourceInventoryObject());
+      const accepted = acceptInventory(journal, original);
+      const before = readInventoryRow(path);
+      journal.close();
+      journal = openClientRequestJournal(path);
+      const changed = sourceInventoryObject();
+      mutate(changed);
+      const proposed = canonicalJson(changed);
+      let issuers = 0;
+      await assert.rejects(journal.admitOrLookupDefinition(identity(), {
+        namespaceId: 'namespace-a', lookupExpiresAt: expires, sourceInventory: proposed,
+        issueDefinition: () => { issuers++; throw new Error('UnexpectedIssuer'); },
+      }, moon, publicationControl), {code: 'ClientRequestSourceInventoryMismatch'});
+      assert.equal(issuers, 0);
+      assert.throws(() => acceptInventory(journal, proposed, 'different-run'),
+        {code: 'ClientRequestSourceInventoryMismatch'});
+      assert.deepEqual(readInventoryRow(path), before);
+      const retained = journal.lookupRunDefinition(accepted.ref, moon, publicationControl);
+      assert.equal(retained.runAdmissionEvidence.sourceInventory, original);
+      assert.equal(retained.dispatchReserved, false);
+      assert.equal(retained.physicalStartReserved, false);
+    });
+}
+
+test('source inventory mismatch in racing issuers preserves only the winning Run',
+  async t => {
+    const path = await directory(t);
+    const left = openClientRequestJournal(path);
+    const right = openClientRequestJournal(path);
+    t.after(() => left.close());
+    t.after(() => right.close());
+    const original = canonicalJson(sourceInventoryObject());
+    const changed = sourceInventoryObject();
+    inventoryMutations[0][1](changed);
+    const proposed = canonicalJson(changed);
+    const gate = Promise.withResolvers();
+    let issuers = 0;
+    const losing = right.admitOrLookupDefinition(identity(), {
+      namespaceId: 'namespace-a', lookupExpiresAt: expires, sourceInventory: proposed,
+      issueDefinition: async () => {
+        issuers++;
+        await gate.promise;
+        return {runDefinition: runDefinition('race-loser'),
+          runAdmissionEvidence: inventoryEvidence(proposed)};
+      },
+    }, moon, publicationControl);
+    const rejected = assert.rejects(losing, {code: 'ClientRequestSourceInventoryMismatch'});
+    const accepted = await left.admitOrLookupDefinition(identity(), {
+      namespaceId: 'namespace-a', lookupExpiresAt: expires, sourceInventory: original,
+      issueDefinition: () => {
+        issuers++;
+        return {runDefinition: runDefinition('race-winner'),
+          runAdmissionEvidence: inventoryEvidence(original)};
+      },
+    }, moon, publicationControl);
+    assert.equal(issuers, 2);
+    assert.equal(accepted.inserted, true);
+    const before = readInventoryRow(path);
+    gate.resolve();
+    await rejected;
+    assert.deepEqual(readInventoryRow(path), before);
+    const retained = right.resolveDefinition(identity(), {namespaceId: 'namespace-a'},
+      moon, publicationControl);
+    assert.deepEqual(retained.ref, accepted.ref);
+    assert.equal(retained.runAdmissionEvidence.sourceInventory, original);
+    assert.equal(retained.dispatchReserved, false);
+    assert.equal(retained.physicalStartReserved, false);
+  });
+
+test('source inventory must equal the issued evidence before initial acceptance',
+  async t => {
+    const path = await directory(t);
+    const journal = openClientRequestJournal(path);
+    t.after(() => journal.close());
+    const original = canonicalJson(sourceInventoryObject());
+    const changed = sourceInventoryObject();
+    inventoryMutations[2][1](changed);
+    for (const issuedInventory of [undefined, canonicalJson(changed)]) {
+      let issuers = 0;
+      await assert.rejects(journal.admitOrLookupDefinition(identity(), {
+        namespaceId: 'namespace-a', lookupExpiresAt: expires, sourceInventory: original,
+        issueDefinition: () => {
+          issuers++;
+          return {runDefinition: runDefinition(),
+            runAdmissionEvidence: inventoryEvidence(issuedInventory)};
+        },
+      }, moon, publicationControl), {code: 'ClientRequestSourceInventoryMismatch'});
+      assert.equal(issuers, 1);
+      assert.equal(readInventoryRow(path), undefined);
+    }
+  });
+
+for (const legacyEvidence of [undefined, inventoryEvidence(undefined)]) {
+  test(`source inventory cannot retrofit an unstarted row with ${legacyEvidence === undefined
+    ? 'absent' : 'singular'} evidence`, async t => {
+    const path = await directory(t);
+    const journal = openClientRequestJournal(path);
+    t.after(() => journal.close());
+    journal.acceptDefinition(identity(), {
+      namespaceId: 'namespace-a', runDefinition: runDefinition(), lookupExpiresAt: expires,
+      runAdmissionEvidence: legacyEvidence,
+    }, moon, publicationControl);
+    const before = readInventoryRow(path);
+    const sourceInventory = canonicalJson(sourceInventoryObject());
+    let issuers = 0;
+    await assert.rejects(journal.admitOrLookupDefinition(identity(), {
+      namespaceId: 'namespace-a', lookupExpiresAt: expires, sourceInventory,
+      issueDefinition: () => { issuers++; throw new Error('UnexpectedIssuer'); },
+    }, moon, publicationControl), {code: 'ClientRequestSourceInventoryMismatch'});
+    assert.equal(issuers, 0);
+    assert.throws(() => acceptInventory(journal, sourceInventory),
+      {code: 'ClientRequestSourceInventoryMismatch'});
+    assert.deepEqual(readInventoryRow(path), before);
+  });
+}
+
+test('source inventory cannot be omitted from an accepted unstarted two-source row',
+  async t => {
+    const path = await directory(t);
+    const journal = openClientRequestJournal(path);
+    t.after(() => journal.close());
+    acceptInventory(journal, canonicalJson(sourceInventoryObject()));
+    const before = readInventoryRow(path);
+    let issuers = 0;
+    await assert.rejects(journal.admitOrLookupDefinition(identity(), {
+      namespaceId: 'namespace-a', lookupExpiresAt: expires,
+      issueDefinition: () => { issuers++; throw new Error('UnexpectedIssuer'); },
+    }, moon, publicationControl), {code: 'ClientRequestSourceInventoryMismatch'});
+    assert.equal(issuers, 0);
+    assert.throws(() => acceptInventory(journal, undefined),
+      {code: 'ClientRequestSourceInventoryMismatch'});
+    assert.deepEqual(readInventoryRow(path), before);
+  });
+
+const malformedInventories = [
+  ['non-string object', value => value],
+  ['invalid JSON', () => '{'],
+  ['noncanonical whitespace', value => ` ${canonicalJson(value)}`],
+  ['unknown version', value => { value.version = 'unknown'; return canonicalJson(value); }],
+  ['extra root field', value => { value.extra = true; return canonicalJson(value); }],
+  ['missing environment', value => { delete value.environmentCid; return canonicalJson(value); }],
+  ['missing second source', value => { value.acquisitions.pop(); return canonicalJson(value); }],
+  ['wrong stage ordinal', value => { value.acquisitions.reverse(); return canonicalJson(value); }],
+  ['wrong input ordinal', value => { value.acquisitions[1].input = 1; return canonicalJson(value); }],
+  ['wrong task ordinal', value => { value.acquisitions[1].task = 0; return canonicalJson(value); }],
+  ['duplicate requirement', value => {
+    value.acquisitions[1].checkedSource.requirementCid = cid('1'); return canonicalJson(value);
+  }],
+  ['invalid checked CID', value => {
+    value.acquisitions[1].checkedSource.outputContractCid = 'sha256:bad'; return canonicalJson(value);
+  }],
+  ['extra checked field', value => {
+    value.acquisitions[1].checkedSource.extra = true; return canonicalJson(value);
+  }],
+  ['non-read operation', value => {
+    value.acquisitions[1].readTuple.operation = 'write'; return canonicalJson(value);
+  }],
+  ['extra binding field', value => {
+    value.acquisitions[1].physicalBinding.extra = true; return canonicalJson(value);
+  }],
+  ['mismatched native UTF-8 name', value => {
+    value.acquisitions[1].physicalBinding.utf8_hex.table = '6c656674'; return canonicalJson(value);
+  }],
+  ['odd native UTF-8 hex', value => {
+    value.acquisitions[1].physicalBinding.utf8_hex.table = 'f'; return canonicalJson(value);
+  }],
+  ['invalid native UTF-8 bytes', value => {
+    value.acquisitions[1].physicalBinding.table = '\ufffd';
+    value.acquisitions[1].physicalBinding.utf8_hex.table = 'ff'; return canonicalJson(value);
+  }],
+];
+
+for (const [label, malformed] of malformedInventories) {
+  test(`source inventory refuses ${label} before issuance or acceptance`, async t => {
+    const path = await directory(t);
+    const journal = openClientRequestJournal(path);
+    t.after(() => journal.close());
+    const sourceInventory = malformed(sourceInventoryObject());
+    assert.throws(() => acceptInventory(journal, sourceInventory),
+      {code: 'InvalidClientSourceInventory'});
+    let issuers = 0;
+    await assert.rejects(journal.admitOrLookupDefinition(identity(), {
+      namespaceId: 'namespace-a', lookupExpiresAt: expires, sourceInventory,
+      issueDefinition: () => { issuers++; throw new Error('UnexpectedIssuer'); },
+    }, moon, publicationControl), {code: 'InvalidClientSourceInventory'});
+    assert.equal(issuers, 0);
+    assert.equal(readInventoryRow(path), undefined);
+  });
+}
+
+test('source inventory corruption fails every definition recovery path after restart',
+  async t => {
+    for (const [label, malformed] of malformedInventories) {
+      await t.test(label, async t => {
+        const path = await directory(t);
+        let journal = openClientRequestJournal(path);
+        t.after(() => journal.close());
+        const original = canonicalJson(sourceInventoryObject());
+        const accepted = acceptInventory(journal, original);
+        journal.close();
+        const database = new DatabaseSync(join(path, 'client-requests.sqlite3'));
+        database.prepare('UPDATE client_requests SET run_admission_evidence_json = ?')
+          .run(JSON.stringify(inventoryEvidence(malformed(sourceInventoryObject()))));
+        database.close();
+        journal = openClientRequestJournal(path);
+        const key = {namespaceId: 'namespace-a', authorityScopeCid: cid('a'),
+          requestId: fixture.requestId};
+        assert.throws(() => journal.lookupDefinition(key, moon, publicationControl),
+          {code: 'ClientRequestJournalCorrupt'});
+        assert.throws(() => journal.lookupRunDefinition(accepted.ref, moon, publicationControl),
+          {code: 'ClientRequestJournalCorrupt'});
+        assert.throws(() => journal.resolveDefinition(identity(), {namespaceId: 'namespace-a'},
+          moon, publicationControl), {code: 'ClientRequestJournalCorrupt'});
+        assert.throws(() => acceptInventory(journal, original),
+          {code: 'ClientRequestJournalCorrupt'});
+        let issuers = 0;
+        await assert.rejects(journal.admitOrLookupDefinition(identity(), {
+          namespaceId: 'namespace-a', lookupExpiresAt: expires, sourceInventory: original,
+          issueDefinition: () => { issuers++; throw new Error('UnexpectedIssuer'); },
+        }, moon, publicationControl), {code: 'ClientRequestJournalCorrupt'});
+        assert.equal(issuers, 0);
+      });
+    }
+  });
+
+test('source inventory for an already-started Run retains its original identity on resend',
+  async t => {
+    const path = await directory(t);
+    let journal = openClientRequestJournal(path);
+    t.after(() => journal.close());
+    const sourceInventory = canonicalJson(sourceInventoryObject());
+    const accepted = acceptInventory(journal, sourceInventory, 'already-started-run');
+    journal.reserveDispatch(identity(), {namespaceId: 'namespace-a',
+      currentAuthorization: true}, moon, publicationControl);
+    assert.equal(claimPhysicalStart(journal, accepted.ref), true);
+    const before = readInventoryRow(path);
+    journal.close();
+    journal = openClientRequestJournal(path);
+    const changed = sourceInventoryObject();
+    for (const [, mutate] of inventoryMutations) mutate(changed);
+    let issuers = 0;
+    for (const proposed of [canonicalJson(changed), undefined]) {
+      const retained = await journal.admitOrLookupDefinition(identity(), {
+        namespaceId: 'namespace-a', lookupExpiresAt: expires, sourceInventory: proposed,
+        issueDefinition: () => { issuers++; throw new Error('UnexpectedIssuer'); },
+      }, moon, publicationControl);
+      assert.equal(retained.inserted, false);
+      assert.deepEqual(retained.ref, accepted.ref);
+      assert.equal(retained.runDefinition.wire, accepted.runDefinition.wire);
+      assert.equal(retained.runAdmissionEvidence.sourceInventory, sourceInventory);
+      assert.equal(retained.physicalStartReserved, true);
+      const duplicate = acceptInventory(journal, proposed, 'must-not-replace-started');
+      assert.deepEqual(duplicate.ref, accepted.ref);
+      assert.equal(duplicate.runAdmissionEvidence.sourceInventory, sourceInventory);
+    }
+    assert.equal(issuers, 0);
+    assert.equal(journal.reserveDispatch(identity(), {namespaceId: 'namespace-a',
+      currentAuthorization: true}, moon, publicationControl).kind, 'reconcile');
+    assert.equal(claimPhysicalStart(journal, accepted.ref), false);
+    assert.deepEqual(readInventoryRow(path), before);
   });

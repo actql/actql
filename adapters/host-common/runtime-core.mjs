@@ -1999,6 +1999,25 @@ function publicationControl(moon) {
       return Object.freeze({observation: inspectEvidence(issued._0),
         invocation: inspect(issued._1), owner: issued._1});
     },
+    issueCheckedClientCompiledMultiInvocation(compiled, definition,
+      {sources, authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt}, limits) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'tasks' ||
+          !Array.isArray(sources) || sources.length !== 2) {
+        throw new TypeError('Foreign Client compiled multi-source Run');
+      }
+      issuanceLimits(limits, 'Client Run Invocation');
+      const issued = compiledRunResult(moon.clientProgramIssueCompiledMultiTaskInvocation(
+        value, token(definition), sources.map(source => source.captured.capture.source()),
+        sources.map(source => source.captured.identity),
+        sources.map(source => source.captured.requirement),
+        sources.map(source => source.sourceEvidenceWire),
+        sources.map(source => source.inputLogicalWire),
+        authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostTaskInvocationRejected');
+      return Object.freeze({observation: inspectEvidence(issued._0),
+        invocation: inspect(issued._1), owner: issued._1});
+    },
     // Reuse the compiled owner retained at Run admission. The physical
     // adapter supplies its opaque execution and bounded verification owner;
     // this does not adopt external attempts or grant publication authority.

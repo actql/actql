@@ -14,6 +14,9 @@ import {openInstalledRemoteHttpHost} from
 import {exercisePublicQueryInput, querySuccesses, queryRefusals, inferRefusals, sourceRows, sourceFreeSuccesses, sourceFreeRefusals, queryCompositionSuccesses, queryCompositionRefusals, pipeResultSuccesses, pipeResultRefusals, pipeResultExecutionFailures}
   from './public-query-input.mjs';
 
+if (process.env.ACTQL_TEST_TWO_SOURCE_ONLY === '1') {
+  await import('./packed-two-source-public-query.mjs');
+} else {
 const sourceFreeOnly = process.env.ACTQL_TEST_SOURCE_FREE_ONLY === '1';
 const inferOnly = process.env.ACTQL_TEST_INFER_REFUSAL_ONLY === '1';
 const joinOnly = process.env.ACTQL_TEST_JOIN_ORDER_ONLY === '1';
@@ -293,4 +296,6 @@ assert.deepEqual(sgaFailures, [], 'Packed SGA acceptance failures');
 if (retainedStrings.local && retainedStrings.remote) {
   await writeFile('retained-string-results.json', JSON.stringify(retainedStrings));
 
+}
+if (!scopeOnly) await import('./packed-two-source-public-query.mjs');
 }

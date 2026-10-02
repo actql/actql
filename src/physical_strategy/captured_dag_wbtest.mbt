@@ -92,3 +92,45 @@ test "captured DAG rejects missing duplicate and foreign input positions" {
   assert_false(ordered_data_inputs_complete([0, 1], [data_edge(0, 0, 0)]))
   assert_false(ordered_data_inputs_complete([0, 1], [data_edge(0, 2, 0)]))
 }
+
+///|
+test "two captures consume only a complete independent acquisition prefix" {
+  let inputs = [1, 1, 2]
+  let edges = [data_edge(0, 2, 0), data_edge(1, 2, 1)]
+  assert_true(ordered_data_inputs_complete(inputs, edges, captured_prefix=2))
+  assert_false(ordered_data_inputs_complete(inputs, edges))
+  assert_false(
+    ordered_data_inputs_complete(
+      inputs,
+      [data_edge(0, 2, 0)],
+      captured_prefix=2,
+    ),
+  )
+  assert_false(
+    ordered_data_inputs_complete(
+      inputs,
+      [data_edge(0, 1, 0), data_edge(0, 2, 0), data_edge(1, 2, 1)],
+      captured_prefix=2,
+    ),
+  )
+  assert_false(ordered_data_inputs_complete(inputs, edges, captured_prefix=-1))
+  assert_false(ordered_data_inputs_complete(inputs, edges, captured_prefix=4))
+}
+
+///|
+test "source-free input completeness checks task zero too" {
+  assert_true(
+    ordered_data_inputs_complete(
+      [0, 1],
+      [data_edge(0, 1, 0)],
+      captured_prefix=0,
+    ),
+  )
+  assert_false(
+    ordered_data_inputs_complete(
+      [1, 1],
+      [data_edge(0, 1, 0)],
+      captured_prefix=0,
+    ),
+  )
+}

@@ -397,8 +397,13 @@ test('checked acquired source and downstream task emit their input ports',
       }
 
       let localHostOpens = 0;
+      let sourceChecks = 0;
       const postCaptureRuntime = {...moon,
-        clientProgramCapturedSourceMatches() { throw new Error('CapturedSourceCheckInjected'); },
+        clientProgramCapturedTaskSourceMatches(_prepared, _source, task) {
+          sourceChecks++;
+          assert.equal(task, 0);
+          throw new Error('CapturedSourceCheckInjected');
+        },
         clientProgramOpenCapturedLocalHost(...args) {
           localHostOpens++;
           return moon.clientProgramOpenCapturedLocalHost(...args);
@@ -408,6 +413,7 @@ test('checked acquired source and downstream task emit their input ports',
         moon: postCaptureRuntime,
         reportAcquisitionFailure(failure) { handedOff = failure; }}),
       {message: 'CapturedSourceCheckInjected'});
+      assert.equal(sourceChecks, 1);
       assert.equal(handedOff.outcome, 'stopped');
       assert.equal(localHostOpens, 0);
       const opened = await openCapturedDuckDBSource({...sourceOptions,
