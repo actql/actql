@@ -134,16 +134,16 @@
       "id": "unknown version",
       "kind": "ModelPrompt",
       "body": {
-        "version": "actql-model-prompt/9.9",
+        "version": "actql-model-prompt/invalid",
         "payload": {
           "format": "fixture-risk/0.1",
           "instructions": "Classify the text."
         }
       },
       "accepted": false,
-      "expected_cid": "sha256:ec656c0f83640564da7e268337170d453495f38a5a1a6e481c3f1c9ada3f16a1",
-      "expected_canonical_bytes": "{\"payload\":{\"format\":\"fixture-risk/0.1\",\"instructions\":\"Classify the text.\"},\"version\":\"actql-model-prompt/9.9\"}",
-      "wire": "{\"payload\":{\"format\":\"fixture-risk/0.1\",\"instructions\":\"Classify the text.\"},\"self_cid\":\"sha256:ec656c0f83640564da7e268337170d453495f38a5a1a6e481c3f1c9ada3f16a1\",\"version\":\"actql-model-prompt/9.9\"}",
+      "expected_cid": "sha256:301a4cb2a4bd11a2eac3723eadc39100fc10062196e0404baffbbf277ff49544",
+      "expected_canonical_bytes": "{\"payload\":{\"format\":\"fixture-risk/0.1\",\"instructions\":\"Classify the text.\"},\"version\":\"actql-model-prompt/invalid\"}",
+      "wire": "{\"payload\":{\"format\":\"fixture-risk/0.1\",\"instructions\":\"Classify the text.\"},\"self_cid\":\"sha256:301a4cb2a4bd11a2eac3723eadc39100fc10062196e0404baffbbf277ff49544\",\"version\":\"actql-model-prompt/invalid\"}",
       "expected_work": null,
       "expected_nodes": 6
     },

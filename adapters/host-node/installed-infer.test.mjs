@@ -187,7 +187,7 @@ async function installedDependencyConfiguration(variant) {
     payload: variant === 'unsupported-payload' ? null :
       {format: 'fixture-risk/0.1', instructions: 'Classify the text.'}};
   if (variant === 'unknown-field') prompt.extra = true;
-  if (variant === 'unknown-version') prompt.version = 'actql-model-prompt/9.9';
+  if (variant === 'unknown-version') prompt.version = 'actql-model-prompt/invalid';
   const retry = {version: 'actql-model-retry-policy/0.1',
     retryable_failures: variant === 'nonempty-retry' ? ['timeout'] :
       variant === 'duplicate-retry' ? ['timeout', 'timeout'] :

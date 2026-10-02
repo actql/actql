@@ -27,7 +27,7 @@ const cases = [
     delays_ms: [0, 125, Number.MAX_SAFE_INTEGER]}, true],
   ['unknown envelope member', 'ModelPrompt', {...prompt, extra: null}, false],
   ['unknown version', 'ModelPrompt', {...prompt,
-    version: 'actql-model-prompt/9.9'}, false],
+    version: 'actql-model-prompt/invalid'}, false],
   ['missing payload', 'ModelPrompt', {version: prompt.version}, false],
   ['unknown retry class', 'ModelRetryPolicy', {...retry,
     retryable_failures: ['schema_invalid']}, false],

@@ -530,9 +530,9 @@ test "Model dependency: unknown version" {
   let value = read_model_dependency(
     ModelPrompt,
     @utf8.encode(
-      "{\"payload\":{\"format\":\"fixture-risk/0.1\",\"instructions\":\"Classify the text.\"},\"self_cid\":\"sha256:ec656c0f83640564da7e268337170d453495f38a5a1a6e481c3f1c9ada3f16a1\",\"version\":\"actql-model-prompt/9.9\"}",
+      "{\"payload\":{\"format\":\"fixture-risk/0.1\",\"instructions\":\"Classify the text.\"},\"self_cid\":\"sha256:301a4cb2a4bd11a2eac3723eadc39100fc10062196e0404baffbbf277ff49544\",\"version\":\"actql-model-prompt/invalid\"}",
     ),
-    "sha256:ec656c0f83640564da7e268337170d453495f38a5a1a6e481c3f1c9ada3f16a1",
+    "sha256:301a4cb2a4bd11a2eac3723eadc39100fc10062196e0404baffbbf277ff49544",
     { max_bytes: 16384, max_nodes: 1024, max_depth: 20, max_members: 3, },
     100000,
   )
