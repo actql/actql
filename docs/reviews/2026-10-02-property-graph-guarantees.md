@@ -380,3 +380,42 @@ work, not a new full Core/spec/public packed/CI result. The old remaining
 reach/shortest/components/diff/apply/traverse-nodes kernels and homogeneous
 Carrier/reader branches remain explicit removal tasks. The unchanged strict
 resource gate's obsolete-route and completeness failures remain open.
+
+The diagnostic removal is committed as
+`9bcaea698788c57713c4552b971ace48dba8e7e1`; the official committed three-target
+interface check passes:
+`/private/tmp/property-graph-diagnostic-retirement-api-committed-20261002.log`.
+
+## Retired components kernel removal checkpoint
+
+The old weak/strong components execution kernel and public handles are removed,
+with six obsolete components/diagnostic tests and three now-unused helper
+declarations in the mixed integration fixture. Its other declaration blocks
+are unchanged apart from whitespace. The typed current boundary still rejects
+components explicitly. Canonical component grouping, minimum identity ordering
+and its algorithm-specific work formula are withdrawn, not claimed supported.
+
+Empty-output admission is a separate required guarantee. A new current keyed
+MATCH positive uses explicitly empty node and edge VALUES producers while
+retaining its definition and output schema. Both stored and viewed inputs need
+one workspace slot for the output column and one Finish work unit: exact
+limits succeed, zero workspace is refused and zero work fails without output.
+Cancellation before completion stops at zero work. Cleanup is idempotent,
+releases scratch, preserves the input and disallows further polling. This
+complements the nonempty MATCH all-private-yields regression, current storage
+limits, two-consumer ownership, constructor/provider and snapshot failures.
+
+The initial empty fixture accidentally retained a node and selected no rows.
+Its scan correctly consumed work and the independently fixed one-unit empty
+Graph expectation failed. The input was corrected to explicit empty producers,
+not by relaxing the expected limit. Preserve that initial result at
+`/private/tmp/property-graph-components-retirement-empty-js-20261002.log`;
+the corrected narrow regression passes 1/1 at
+`/private/tmp/property-graph-components-retirement-empty-corrected-js-20261002.log`.
+
+Current related tests pass **98/98 on each of JS, Wasm and native**:
+`/private/tmp/property-graph-components-retirement-focused-{js,wasm,native}-20261002.log`.
+No warning exemption, owner substitution or successful unsupported-operator
+expectation is used. This remains local work, not final Core/spec/public
+snapshot/CI acceptance; reach/shortest/diff/apply/traverse-nodes and old
+Carrier/reader removals and the strict route inventory remain open.
