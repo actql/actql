@@ -42,15 +42,48 @@ fn graph_seed(name : String, count : Int) -> String {
 }
 
 ///|
-test "Graph measures bind distinct units and actual node edge inputs through row bridges" {
+fn keyed_measure_seed(name : String, count : Int) -> String {
+  "{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"src\":{\"type\":\"number\",\"nullable\":false},\"dst\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[" +
+  Array::makei(count, index => {
+    "{\"id\":" + index.to_string() + ",\"src\":0,\"dst\":0}"
+  }).join(",") +
+  "]},\"as\":\"" +
+  name +
+  "\"}"
+}
+
+///|
+fn keyed_measure_constructor(nodes : String, edges : String) -> String {
+  "{\"property_graph\":{\"version\":\"actql-property-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"" +
+  nodes +
+  "\",\"key\":[\"id\"]}],\"edges\":[{\"name\":\"E\",\"from\":\"" +
+  edges +
+  "\",\"key\":[\"id\"],\"source\":{\"definition\":\"N\",\"key\":[\"src\"]},\"target\":{\"definition\":\"N\",\"key\":[\"dst\"]}}]},\"as\":\"g\"}"
+}
+
+///|
+fn keyed_measure_match(unit : String) -> String {
+  if unit == "nodes" {
+    "{\"match_nodes\":{\"definition\":\"N\",\"bindings\":{\"identity\":\"key\"},\"where\":\"true\",\"fields\":[\"key\"]}}"
+  } else {
+    "{\"match_edges\":{\"definition\":\"E\",\"bindings\":{\"identity\":\"key\"},\"where\":\"true\",\"fields\":[\"key\"]}}"
+  }
+}
+
+///|
+test "keyed Graph measures bind distinct units and original inputs through MATCH" {
   for n in [0, 1, 3] {
     for m in [0, 1, 3] {
       let p = graph_measure_pipeline(
         "[" +
-        graph_seed("n", n) +
+        keyed_measure_seed("n", n) +
         "," +
-        graph_seed("e", m) +
-        ",{\"graph\":{\"nodes\":{\"from\":\"n\",\"id\":\"src\",\"fields\":[]},\"edges\":{\"from\":\"e\",\"source\":\"src\",\"target\":\"dst\",\"fields\":[]}},\"as\":\"g\"},{\"node_rows\":true},{\"from\":\"g\",\"edge_rows\":true},{\"take\":2}]",
+        keyed_measure_seed("e", m) +
+        "," +
+        keyed_measure_constructor("n", "e") +
+        "," +
+        keyed_measure_match("nodes") +
+        ",{\"from\":\"g\",\"match_edges\":{\"definition\":\"E\",\"bindings\":{\"identity\":\"key\"},\"where\":\"true\",\"fields\":[\"key\"]}},{\"take\":2}]",
       )
       let rows = [
         @capacity_program_step.check(
@@ -71,29 +104,47 @@ test "Graph measures bind distinct units and actual node edge inputs through row
       ]
       let graph = []
       let bridges = []
+      // These are conservative entity upper bounds from the original rows,
+      // not observed counts. With no declared nodes, endpoint exclusion can
+      // reduce actual edges to zero without invalidating the input-row bound.
       for
         (i, unit, law, count, bridge, bridge_law) in [
           (
             0,
             "nodes",
-            "actql.bound.graph-nodes",
+            "actql.bound.property-graph-nodes",
             n.to_int64(),
             3,
-            "actql.bound.graph-node-rows",
+            "actql.bound.match-nodes",
           ),
           (
             1,
             "edges",
-            "actql.bound.graph-edges",
+            "actql.bound.property-graph-edges",
             m.to_int64(),
             4,
-            "actql.bound.graph-edge-rows",
+            "actql.bound.match-edges",
           ),
         ] {
         let claim = measure_proof(2, law, unit, count, rows[i])
-        let app = @capacity_program_step.check_with_inputs(p, 2, claim, [
-          rows[i],
-        ]).unwrap()
+        let app = @capacity_program_step.check_with_inputs(
+          p,
+          2,
+          claim,
+          [rows[i]],
+          max_operand_work=5,
+        ).unwrap()
+        assert_eq(@capacity_program_step.operand_work(app), 5)
+        assert_true(
+          @capacity_program_step.check_with_inputs(
+            p,
+            2,
+            claim,
+            [rows[i]],
+            max_operand_work=4,
+          )
+          is Err(OperandWorkLimit),
+        )
         graph.push(app)
         assert_eq(
           @capacity_program_step.check_target_rows(
@@ -132,6 +183,7 @@ test "Graph measures bind distinct units and actual node edge inputs through row
             2,
             measure_proof(2, law, unit, count, rows[1 - i]),
             [rows[1 - i]],
+            max_operand_work=5,
           )
           is Err(InputTargetMismatch(_)),
         )
@@ -141,6 +193,7 @@ test "Graph measures bind distinct units and actual node edge inputs through row
             2,
             measure_proof(2, law, unit, count + 1L, rows[i]),
             [rows[i]],
+            max_operand_work=5,
           )
           is Err(ValueMismatch),
         )
@@ -156,8 +209,8 @@ test "Graph measures bind distinct units and actual node edge inputs through row
       }
       for
         (index, law, wrong) in [
-          (3, "actql.bound.graph-node-rows", graph[1]),
-          (4, "actql.bound.graph-edge-rows", graph[0]),
+          (3, "actql.bound.match-nodes", graph[1]),
+          (4, "actql.bound.match-edges", graph[0]),
         ] {
         assert_true(
           @capacity_program_step.check_with_inputs(
@@ -228,12 +281,16 @@ test "Graph measures bind distinct units and actual node edge inputs through row
 }
 
 ///|
-test "concise Graph node bounds include both endpoint occurrences" {
+test "imported keyed Graph measures retain their owner and exact input work" {
+  // The retired concise constructor's 2 * endpoint-occurrence formula is not
+  // a current guarantee. Explicit node keys instead have one row premise.
   for n in [0, 1, 3] {
     let p = graph_measure_pipeline(
       "[" +
-      graph_seed("e", n) +
-      ",{\"graph\":{\"source\":\"src\",\"target\":\"dst\"},\"as\":\"g\"}]",
+      keyed_measure_seed("seed", n) +
+      "," +
+      keyed_measure_constructor("seed", "seed") +
+      "]",
     )
     let input = @capacity_program_step.check(
       p,
@@ -242,14 +299,15 @@ test "concise Graph node bounds include both endpoint occurrences" {
     ).unwrap()
     for
       (law, unit, count) in [
-        ("actql.bound.graph-nodes", "nodes", n.to_int64() * 2L),
-        ("actql.bound.graph-edges", "edges", n.to_int64()),
+        ("actql.bound.property-graph-nodes", "nodes", n.to_int64()),
+        ("actql.bound.property-graph-edges", "edges", n.to_int64()),
       ] {
       let app = @capacity_program_step.check_with_inputs(
         p,
         1,
         measure_proof(1, law, unit, count, input),
         [input],
+        max_operand_work=5,
       ).unwrap()
       assert_eq(
         @wire.value(
@@ -263,17 +321,17 @@ test "concise Graph node bounds include both endpoint occurrences" {
           1,
           measure_proof(1, law, "rows", count, input),
           [input],
+          max_operand_work=5,
         )
         is Err(LawMismatch),
       )
-      let op = if unit == "nodes" { "node_rows" } else { "edge_rows" }
       let bridge_law = if unit == "nodes" {
-        "actql.bound.graph-node-rows"
+        "actql.bound.match-nodes"
       } else {
-        "actql.bound.graph-edge-rows"
+        "actql.bound.match-edges"
       }
       let receiver = @pipeline.check_with_evidence(
-        cursor("[{\"" + op + "\":true}]"),
+        cursor("[" + keyed_measure_match(unit) + "]"),
         [
           (
             "g",

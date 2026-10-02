@@ -624,3 +624,27 @@ The preceding 161-failure aggregate predates this migration; no new aggregate
 success or computed reduction is asserted. Remaining upper fixtures, Carrier
 API retirement, supported/refused route inventory, fresh public snapshot and
 fixed submitted-SHA CI remain open.
+
+## Distinct entity measures and imported-input custody
+
+`capacity_program_step/graph_measure_test.mbt` now uses independent explicit
+N/E key definitions, including empty and unequal input extents. Both entity
+units retain their original VALUES premise. MATCH bridges preserve the row
+unit, reject entity-unit or foreign-input substitution and fabricated values,
+and TAKE consumes the original row bound. Bounds remain conservative input-row
+upper bounds, not filtered output counts. Missing endpoint exclusion does not
+authorize fabricating a smaller witness for the input-row law.
+
+The retired concise constructor's endpoint-occurrence node formula is
+withdrawn. Its generic imported-input guarantee is migrated positively: the
+receiver's MATCH retains the exact produced Graph premise; one input-work unit
+succeeds and zero fails. Current constructor operand validation requires exactly
+five passes for each selected definition premise; four fails. No checker,
+capacity expectation or ownership boundary is relaxed.
+
+The measure fixtures, row-law fixture and existing keyed proof fixtures pass
+**5/5 on JS, Wasm and native**:
+`/private/tmp/property-graph-measure-custody-{js,wasm,native}-20261003.log`.
+The initial narrow JS run also passes 5/5. This is not a new aggregate Core,
+packed or required CI result. Remaining old Carrier/typed branches, supported
+upper fixtures, inventory and final public snapshot acceptance are still open.
