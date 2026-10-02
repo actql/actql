@@ -48,6 +48,7 @@ struct PreparedManagedExecution[I, T, E] {
   analytic_envelopes : Array[AnalyticEnvelope]
   prepare : () -> Result[(T, ManagedExecutionOperations[E]), E]
   retained_bytes : () -> Result[Int64, E]
+  scratch_released : (() -> Bool)?
   mut started : Bool
 }
 
@@ -59,6 +60,7 @@ pub fn[I, T, E, P] bind_prepared_managed_execution(
   join_output_ceilings : Array[(Int, Int64)],
   prepare : (P) -> Result[(T, ManagedExecutionOperations[E]), E],
   retained_bytes? : () -> Result[Int64, E],
+  scratch_released? : () -> Bool,
   aggregate_output_ceilings? : Array[AggregateOutputCeiling] = [],
   analytic_envelopes? : Array[AnalyticEnvelope] = [],
 ) -> Result[PreparedManagedExecution[I, T, E], FixedComputeIssue] {
@@ -98,8 +100,20 @@ pub fn[I, T, E, P] bind_prepared_managed_execution(
     retained_bytes: retained_bytes.unwrap_or(fn() {
       Ok(capacity.retained_bytes)
     }),
+    scratch_released,
     started: false,
   })
+}
+
+///|
+/// Optional installed scratch-release confirmation, separate from physical
+/// stopping and external retention. Omission preserves the existing promise
+/// that disposal synchronously releases private scratch. The callback is not
+/// wrapped around the prepared payload, so it need not retain that payload.
+pub fn[I, T, E] prepared_managed_execution_scratch_release_condition(
+  prepared : PreparedManagedExecution[I, T, E],
+) -> (() -> Bool)? {
+  prepared.scratch_released
 }
 
 ///|

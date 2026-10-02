@@ -153,6 +153,12 @@ try {
     console.log(`${variant.name}: fresh JS detection/shrink, same-resource minimum, ${targets.length} mutated/restored targets`);
   }
 } finally { restore(); }
+const custody = spawnSync(process.execPath,
+  ['proofs/relation-pipeline/capacity/parent-control/custody-check.mjs', targets.length === 1 ? 'js' : 'all'],
+  { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
+process.stdout.write(custody.stdout ?? ''); process.stderr.write(custody.stderr ?? '');
+assert.equal(custody.status, 0, 'Missing actual chain cleanup/reservation correspondence');
+report.custody = JSON.parse(readFileSync(join(directory, 'custody', `${targets.length === 1 ? 'js' : 'all'}.json`)));
 if (targets.includes('native')) {
   // Keep this receipt separate: the diagnostic observes native parent roots,
   // not the portable child campaign, and must not contaminate its source set.

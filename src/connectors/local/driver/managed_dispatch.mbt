@@ -598,6 +598,29 @@ pub fn[T] start_local_managed_dispatch(
     None,
   )
   let provider_execution : Ref[@local.ManagedProviderExecution?] = Ref(None)
+  let final_provider_work : Ref[Result[Int64, @local.ManagedProviderWorkIssue]] = Ref(
+    Ok(0L),
+  )
+  // Stop confirmation permits cleanup; it is not cleanup confirmation. Keep
+  // the task's scratch reservation until the installed provider actually
+  // releases its owned state. Cache the existing owner's cumulative work
+  // before dropping its last driver reference, without inventing cleanup work.
+  let release_provider_scratch = fn() {
+    match provider_execution.val {
+      None => true
+      Some(active) => {
+        if !@local.managed_provider_stopped(active) ||
+          !@local.cleanup_managed_provider(active).unwrap_or(false) {
+          return false
+        }
+        final_provider_work.val = @local.managed_provider_cumulative_work(
+          active,
+        )
+        provider_execution.val = None
+        true
+      }
+    }
+  }
   let execution_finished = Ref(false)
   let execution_failure : Ref[LocalDispatchIssue?] = Ref(None)
   let request = @connector.managed_fixed_compute_candidate_request(
@@ -768,6 +791,7 @@ pub fn[T] start_local_managed_dispatch(
       },
       aggregate_output_ceilings=setup.aggregate_output_ceilings,
       analytic_envelopes=setup.analytic_envelopes,
+      scratch_released=release_provider_scratch,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Configuration(issue))
@@ -1082,7 +1106,7 @@ pub fn[T] start_local_managed_dispatch(
     cumulative_provider_work: fn() {
       match provider_execution.val {
         Some(active) => @local.managed_provider_cumulative_work(active)
-        None => Ok(0L)
+        None => final_provider_work.val
       }
     },
     request_cancel: fn() {
@@ -1693,16 +1717,7 @@ pub fn[T] start_local_managed_dispatch(
       @strategy.close_task_execution(setup.run, execution)
     },
     cleanup_refresh: fn() {
-      let provider_reclaimed = match provider_execution.val {
-        None => true
-        Some(active) =>
-          if @local.managed_provider_stopped(active) {
-            @local.cleanup_managed_provider(active).unwrap_or(false)
-          } else {
-            false
-          }
-      }
-      if !provider_reclaimed {
+      if !release_provider_scratch() {
         return false
       }
       let carrier_reclaimed = match carrier.val {
