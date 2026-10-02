@@ -136,8 +136,13 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('6b812b128f53bee2b1f0edc8e2c2084a9c12044f0455c502640563ebad1fbf75'),
     cid(aoaContract), currentUnit).run.run_definition_cid,
     pin('cbbe25f3a540b4c917e555bcbc67875c7a68d8279af8c344e8c950a49b77988f'));
-  assert.equal(current.run.run_definition_cid,
+  // Preserve the prior raw/triple/chunk grammar vector. The octal bound
+  // correction changes only the normative Grammar Manifest dependency.
+  assert.equal(vector(pin('69bfc5ff4846f34bf910fcbdbb3a1d8e21750797e1a1c4b578d97571da1afd1f'),
+    cid(aoaContract), currentUnit).run.run_definition_cid,
     pin('f835722f8d8fc55b5f325e101aa38c43b5783bf807161d6d2cb58a3091437dd5'));
+  assert.equal(current.run.run_definition_cid,
+    pin('535f3d5b34ee29911cc3d258e9fe2c8324e34a8f75cd4db799f31323fad2d0a3'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
 

@@ -23,9 +23,12 @@ Single and double quotes delimit query STRING literals, following the selected
 [GoogleSQL lexical rules](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/lexical#string_and_bytes_literals).
 The opposite quote can appear unescaped. Both forms decode backslash, either
 quote, backtick, question mark, `a`, `b`, `f`, `n`, `r`, `t`, `v`, exactly
-three octal digits, `x`/`X` with exactly two hex digits, `u` with four hex
+three octal digits with a first digit in `0`–`3` (maximum `\377`, U+00FF),
+`x`/`X` with exactly two hex digits, `u` with four hex
 digits, and `U` with eight hex digits. These escapes produce Unicode scalars;
 surrogates, out-of-range values and incomplete or unknown escapes are rejected.
+In decoded plain and triple-quoted STRING chunks, `\400` and `\777` are
+invalid escapes; raw chunks preserve them as literal backslashes and digits.
 Plain quoted literals cannot contain a raw CR or LF, including an escaped
 physical newline. A decoded CR, LF, CRLF or decomposed Unicode sequence is
 preserved exactly through the ordinary String value contract. Escape decoding

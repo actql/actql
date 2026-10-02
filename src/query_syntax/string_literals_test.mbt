@@ -12,7 +12,7 @@ test "GoogleSQL quoted strings decode the same independent values" {
     ("'\\101\\x42\\X43\\u65e5\\U0001F600'", "ABC日😀"),
     ("\"\\101\\x42\\X43\\u65e5\\U0001F600\"", "ABC日😀"),
     ("'\\x41B\\1012'", "ABA2"),
-    ("'\\000\\777'", "\u0000\u01ff"),
+    ("'\\000\\377'", "\u0000\u00ff"),
     ("\"tab\there\"", "tab\there"),
     ("'e\u0301'", "e\u0301"),
     ("\"e\\u0301\"", "e\u0301"),
@@ -24,6 +24,35 @@ test "GoogleSQL quoted strings decode the same independent values" {
       kind(expression, expression_root(expression)),
       StringLiteral(expected),
     )
+  }
+}
+
+///|
+test "GoogleSQL octal escapes stop at 377 in every quoted STRING form" {
+  // Independent scalar expectations from the pinned decoder contract, not
+  // values produced by the lexer. The upper bound is U+00FF, not U+01FF.
+  for quote in ["'", "\"", "'''", "\"\"\""] {
+    for (escape, expected) in [("\\000", "\u0000"), ("\\377", "\u00ff")] {
+      let source = quote + escape + quote
+      let expression = parse_expression(source, expression_limits()).unwrap()
+      assert_eq(
+        kind(expression, expression_root(expression)),
+        StringLiteral(expected),
+      )
+    }
+    for escape in ["\\400", "\\777"] {
+      assert_true(
+        tokenize(quote + escape + quote, limits())
+        is Err({ issue: Lexical(InvalidEscape), .. }),
+      )
+      // Raw literals retain both the backslash and digits; they do not
+      // apply the decoded escape range to their contents.
+      let raw = parse_expression(
+        "r" + quote + escape + quote,
+        expression_limits(),
+      ).unwrap()
+      assert_eq(kind(raw, expression_root(raw)), StringLiteral(escape))
+    }
   }
 }
 

@@ -233,7 +233,9 @@ fn Scanner::quoted(
           0x76 if delimiter != 0x60 => 0x0b
           0x3f if delimiter != 0x60 => 0x3f
           0x78 | 0x58 if delimiter != 0x60 => self.escaped_scalar(2)
-          0x30..=0x37 if delimiter != 0x60 => {
+          // The pinned GoogleSQL STRING decoder accepts exactly three
+          // octal digits, with the first limited to 0..3 (maximum \\377).
+          0x30..=0x33 if delimiter != 0x60 => {
             let mut value = escaped - 0x30
             for _ in 0..<2 {
               let next = match self.peek() {

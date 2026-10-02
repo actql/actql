@@ -31,7 +31,23 @@ export const querySuccesses = [
 // generates these rows, contracts or order. Installed source aliases remain
 // available in the Host, but none of these Programs acquires them.
 const numberColumn = name => ({name, contract: {type: 'number', nullable: false}});
+const octalQuotes = [['single', "'"], ['double', '"'],
+  ['triple-single', "'''"], ['triple-double', '"""']];
 export const sourceFreeSuccesses = [
+  ...octalQuotes.flatMap(([name, quote]) => [
+    {name: `octal-boundary-${name}`, format: 'sql',
+      text: `SELECT ${quote}\\000${quote} AS low, ${quote}\\377${quote} AS high`,
+      expected: [{low: '\u0000', high: '\u00ff'}],
+      columns: [['low', 1], ['high', 2]].map(([name, bytes]) => ({name,
+        contract: {type: 'string', nullable: false, max_utf8_bytes: bytes}})),
+      sourceReadCount: 0},
+    {name: `raw-octal-${name}`, format: 'sql',
+      text: `SELECT r${quote}\\400${quote} AS four, R${quote}\\777${quote} AS seven`,
+      expected: [{four: '\\400', seven: '\\777'}],
+      columns: ['four', 'seven'].map(name => ({name,
+        contract: {type: 'string', nullable: false, max_utf8_bytes: 4}})),
+      sourceReadCount: 0},
+  ]),
   {name: 'raw-string-chunks', format: 'sql',
     text: `SELECT r'\\n' AS slash_n, R"\\u0041" AS unicode_text, r'a\\'b' AS quoted`,
     expected: [{slash_n: '\\n', unicode_text: '\\u0041', quoted: "a\\'b"}],
@@ -102,6 +118,12 @@ export const sourceFreeSuccesses = [
     expected: [{x: 2}], columns: [numberColumn('x')], sourceReadCount: 0},
 ];
 export const sourceFreeRefusals = [
+  ...octalQuotes.flatMap(([name, quote]) => ['400', '777'].map(digits => ({
+    name: `octal-range-${name}-${digits}`, format: 'sql',
+    // A valid published source is present. Lexical refusal must still occur
+    // before Run admission or physical acquisition of that source.
+    text: `SELECT ${quote}\\${digits}${quote} AS s FROM records`,
+  }))),
   ...['SELECT "\\uD800" AS s', 'SELECT "\\U00110000" AS s',
     'SELECT "\\x4" AS s', 'SELECT "\\12" AS s',
     'SELECT "memory"."main"."table"', 'SELECT r"odd\\" AS s',
