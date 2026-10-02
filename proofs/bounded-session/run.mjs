@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { performance } from 'node:perf_hooks';
+import { inventoryAction, serializeManifest } from './action-inputs.mjs';
 import { artifacts, checkBindings, checkRetirements, connectionSuites, executedConnectionCoverage, graph, nestLocalSuites, snapshot, targets, validate } from './evidence.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -42,6 +43,12 @@ function run(id, command, args, target = 'model', packagePath = null) {
   };
 }
 
+// Fresh Stage B inventory of this exact launch. This report cannot skip or
+// replace the theorem/type/axiom check immediately below, or any later gate.
+writeFileSync(join(directory, 'action-inputs.json'), serializeManifest(inventoryAction({
+  root, env, executable: process.execPath, args: ['proofs/bounded-session/check.mjs'], cwd: root,
+  sourceRevision: /^[a-f0-9]{40}$/.test(revision) ? revision : null,
+})));
 const lean = run('lean', process.execPath, ['proofs/bounded-session/check.mjs']);
 for (const target of selected === 'all' ? targets : [selected]) {
   const runs = { lean };
