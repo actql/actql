@@ -342,3 +342,41 @@ source revision in
 `/private/tmp/property-graph-structural-kernel-removal-foundation-20261002.json`.
 No new common-foundation digest declaration is needed for this unit. None of
 these focused checks is a substitute for final public packed acceptance or CI.
+
+## Retired diagnostic kernel removal checkpoint
+
+The unconnected Local `graph_bounds` and `degree` implementation, its execution
+handles, and ten tuple-only integration tests are removed. Four helper
+declarations used only by those tests are removed too. A declaration-level
+comparison confirms every remaining block in the mixed integration fixture
+is unchanged apart from whitespace. Current complete Graph typing still
+refuses both operators with `UnsupportedGraphOperation`; no provider fallback
+has been introduced. Degree counts, self-loop incidence semantics and the old
+diagnostic schemas are unsupported, not claimed migrated or proved.
+
+The resource/custody obligations are retained by the current constructor,
+managed output lifecycle and snapshot tests listed above. In addition, a
+positive keyed node MATCH regression independently derives its exact three
+workspace slots and five control-work units from its one-node fixture. Both
+stored and viewed inputs admit the exact limits, refuse one-short limits,
+and never publish partial rows on output-capacity failure. Cancellation is
+tested at every quantum-one private yield, including after private row commit
+and before public completion. Cleanup releases scratch exactly once, prevents
+further polling and keeps the original Graph input available. The successful
+result is checked against the independently authored value `one`.
+
+Focused current contract, construction, storage, output, snapshot and provider
+tests pass **97/97 on each of JS, Wasm and native**:
+`/private/tmp/property-graph-diagnostic-retirement-focused-{js,wasm,native}-20261002.log`.
+The first narrow compile found a raising preparation call inside a non-raising
+test closure and an assertion on a value without Eq/Debug; preparation is now
+obtained before the closure and the value is pattern-matched. Neither limits
+nor expectations were loosened. The narrow construction file then passed
+19/19 before the three-target run.
+
+Latest fetched main remains
+`0fd6332757176b88e8c4071e4a2cd0be3d6254e3`. This is still local unsubmitted
+work, not a new full Core/spec/public packed/CI result. The old remaining
+reach/shortest/components/diff/apply/traverse-nodes kernels and homogeneous
+Carrier/reader branches remain explicit removal tasks. The unchanged strict
+resource gate's obsolete-route and completeness failures remain open.
