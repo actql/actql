@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "adopt-sga-query-contract",
+  "kind": "change",
+  "revision": "231838b057bd0b89d46f2231060eec012dfc7d58",
+  "parents": [
+    "ea87b5f363d01cb4b5ee5b9a5b0acf6ff0d3ead3"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "ea87b5f363d01cb4b5ee5b9a5b0acf6ff0d3ead3",
+          "digest": "28aa357d16dcf7079b020150dff2783473bb9f6ce6b010cba94388702c570716",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "be83896fcd35570c9e150f848174011241f8a389e9dba613884cb8f1c599e9fd",
+      "afterMode": "100644",
+      "reason": "Add the independent named-SGA grammar preimage regression to the existing check:contracts command while preserving every existing contract and verification gate. No common execution mechanism, oracle, restoration check or frozen foundation is changed."
+    }
+  ]
+}
