@@ -18,8 +18,9 @@ const ref = Object.freeze({namespaceId: 'namespace-a',
   runDefinitionCid: `sha256:${'b'.repeat(64)}`});
 
 test('public wire accepts the exact connected request shapes', () => {
-  // The Run, request, Checkpoint and three Resource discovery operations.
-  assert.equal(clientHostOperations.length, 18);
+  // The Run, request, check, Checkpoint and three Resource discovery
+  // operations.
+  assert.equal(clientHostOperations.length, 19);
   assert.equal(validClientConnection(connection), true);
   assert.equal(validRunRef(ref), true);
   assert.equal(validClientBody('connect', {connection}), true);
@@ -36,6 +37,28 @@ test('public wire accepts the exact connected request shapes', () => {
     assert.equal(validClientBody('result-describe',
       {...description, ...invalid}), false);
   }
+});
+
+test('check requests carry authored source and bindings only', () => {
+  const input = {text: 'SELECT id FROM records WHERE amount >= @p',
+    format: 'sql', parameterDeclarations: {p: {type: 'number'}}};
+  assert.equal(validClientBody('check', {connection, input,
+    parameters: {p: 1}}), true);
+  assert.equal(validClientBody('check', {connection,
+    input: {text: 'SELECT id FROM records', format: 'aql-text'},
+    parameters: null}), true);
+  for (const invalid of [
+    {input: {...input, format: 'json'}},
+    {input: {...input, text: ''}},
+    {input: {...input, parameterDeclarations: null}},
+    {input: {...input, extra: true}},
+    {parameters: []},
+    {requestId: 'not-a-run'},
+  ]) {
+    assert.equal(validClientBody('check', {connection, input,
+      parameters: null, ...invalid}), false, JSON.stringify(invalid));
+  }
+  assert.equal(validClientBody('check', {connection, input}), false);
 });
 
 test('source format selection is explicit and bounded', () => {

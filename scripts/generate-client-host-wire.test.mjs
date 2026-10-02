@@ -41,3 +41,29 @@ test('schema and operation mutations invalidate generated Client–Host wire',
     assert.notEqual(buildClientHostWire(registry, changedState).module,
       original.module);
   });
+
+test('generated check validator rejects contradictory evidence and partial verification',
+  async () => {
+    const {validCheckOutcomeShape: valid} = await import(
+      '../packages/client-wire/client-host.generated.js');
+    const report = {context_ref: 'ctx:fixture', scope: {kind: 'bound_input'},
+      verdict: 'verified', reasons: [], coverage: {limits: [], unresolved: []}};
+    const outcome = report => ({version: 'actql-check-outcome/0.1',
+      outcome: 'completed', report});
+    assert.equal(valid(outcome(report)), true);
+    for (const changed of [
+      {...report, coverage: {limits: [{code: 'future_limit'}], unresolved: []}},
+      {...report, coverage: {limits: [], unresolved: [
+        {boundary: 'future_boundary', reason: 'unresolved_protected'}]}},
+      {...report, reasons: [{code: 'future_violation'}]},
+      {...report, verdict: 'invalid'},
+      {...report, verdict: 'undetermined'},
+      {...report, verdict: 'undetermined', reasons: [{code: 'future_violation'}]},
+    ]) assert.equal(valid(outcome(changed)), false, JSON.stringify(changed));
+    assert.equal(valid({version: 'actql-check-outcome/0.1', outcome: 'failed',
+      problem: {code: 'future_problem'}, partial_report: report}), false);
+    assert.equal(valid(outcome({...report, verdict: 'invalid',
+      reasons: [{code: 'future_violation'}]})), true);
+    assert.equal(valid(outcome({...report, verdict: 'undetermined',
+      coverage: {limits: [{code: 'future_limit'}], unresolved: []}})), true);
+  });

@@ -9,7 +9,7 @@ import {resolve} from 'node:path';
 import {setTimeout as delay} from 'node:timers/promises';
 import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from
-  './node_modules/@actql/local-node/adapters/host-node/embedded-local.mjs';
+  '@actql/local-node/http-host';
 
 const source = await readFile('sga-source-fixtures/reach-selector.expected-program.json',
   'utf8');

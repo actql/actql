@@ -1,5 +1,10 @@
 # Distribution R2 review disposition
 
+Historical disposition: "current" and "remaining" below refer to the named
+branch/SHAs. Later public acquisition, Effect, query-text and recovery evidence
+is indexed in the [current implementation map](current-product-status.md).
+This pointer does not reclassify untested recovery or live-service coverage.
+
 ## Current completion unit: packed Local and Remote AQL
 
 Current implementation: `feat/distribution-acquired-client`, with its current

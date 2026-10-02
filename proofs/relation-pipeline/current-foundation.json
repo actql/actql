@@ -6,9 +6,9 @@
     "digest": "48bdedbe48ab335694a725defa7fe9e7f07cdf776e4aa8f233b3935585a352c1",
     "foundationRevision": "fe0dbb424792ba7ccd4ae5517a74530b56a15f3c"
   },
-  "revision": "985dbbba27895e049a99a40185f59214f3e4fce1",
-  "proposal": "https://github.com/actql/actql/tree/985dbbba27895e049a99a40185f59214f3e4fce1/proofs/relation-pipeline/capacity",
-  "meaning": "Current Array-slot correspondence extends the conditional structural capacity foundation; the historical DISTINCT registration comparison is unchanged. Git provenance is not human approval, an implementation-wide proof or an unconditional allocation-byte bound.",
+  "revision": "b30d7d93d79a5c74a4857e5925c20503d3296c56",
+  "proposal": "https://github.com/actql/actql/pull/179",
+  "meaning": "Current Array-slot correspondence extends the integrated conditional structural capacity foundation; the historical DISTINCT registration comparison is unchanged. Git provenance is not human approval, an implementation-wide proof or an unconditional allocation-byte bound.",
   "changedCommon": [
     {
       "path": ".github/workflows/ci.yml",
@@ -21,6 +21,12 @@
       "beforeDigest": "bfd22317b2827e80542f8abd5c773a6150a0017b488c496148fbc452ab811cf1",
       "afterDigest": "bd0d8ae904ceaf3042ec68775c4b5c34e565ab66b7470340ef690183ae290645",
       "reason": "Reject early cleanup and inspect accepted output after repeated cleanup without claiming physical deallocation; capacity observations stay in proof-only source overlays."
+    },
+    {
+      "path": "package.json",
+      "beforeDigest": "78c15ac34fbe375959bf166c3d236ce06a2a6a0d4d2f4b2d7f7f094e844a8a15",
+      "afterDigest": "17d239ce960452949ff61e2b72f772677165cd230f0c98621820f1f992950e52",
+      "reason": "Retain the public check contract and Local/HTTP acceptance registrations from main together with the native release-recovery regression; all historical evidence and existing gate commands remain intact."
     },
     {
       "path": "proofs/relation-pipeline/history.mjs",
