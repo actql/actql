@@ -332,3 +332,13 @@ incomplete family layers:
 Neither validator expectations nor the frozen provenance foundation were
 changed. Aligning the route inventory and current supported/refused contract
 is still required before aggregate spec/CI can be called successful.
+
+The structural removal unit is committed as
+`2fa05b1ff6d02f541aec9350ab117977e368e36b`. Official tracked three-target API
+verification passes at this commit:
+`/private/tmp/property-graph-structural-kernel-removal-api-committed-20261002.log`.
+The unchanged composed-foundation validator also passes and records this exact
+source revision in
+`/private/tmp/property-graph-structural-kernel-removal-foundation-20261002.json`.
+No new common-foundation digest declaration is needed for this unit. None of
+these focused checks is a substitute for final public packed acceptance or CI.
