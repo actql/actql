@@ -20,7 +20,7 @@ struct PreparedPropertyGraphConstruction {
   step : Int
   node : PreparedNode
   checked : @graph.CheckedPropertyConstruction
-  contract : @graph_contract.CheckedPropertyContract
+  contract : @graph_contract.CheckedContract
   nodes : Array[PropertyElementBinding]
   edges : Array[PropertyEdgeBinding]
 }

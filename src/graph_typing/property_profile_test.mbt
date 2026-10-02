@@ -112,7 +112,7 @@ test "path profile boundaries reject omission reinterpretation and unsupported m
       is Err(_),
     )
   }
-  let legacy = match_graph()
+  let legacy = @carrier.unknown_carrier(GraphKind)
   let legacy_body = cursor(
     "{\"start\":{\"ids\":[2]},\"hops\":[{\"direction\":\"out\"}],\"emit\":\"paths\"}",
   )
@@ -124,7 +124,7 @@ test "path profile boundaries reject omission reinterpretation and unsupported m
       None,
       predicate_limits(),
     )
-    is Ok(_),
+    is Err(_),
   )
   assert_true(
     @graph_typing.check_traverse(
@@ -146,7 +146,7 @@ test "path profile boundaries reject omission reinterpretation and unsupported m
       limits(),
       property_paths=true,
     )
-    is Err({ kind: @graph_typing.UnsupportedGraphProfile, .. }),
+    is Err({ kind: @graph_typing.IncompleteGraph, .. }),
   )
   assert_true(
     @graph_typing.check_selector(
@@ -158,15 +158,13 @@ test "path profile boundaries reject omission reinterpretation and unsupported m
       property_graph=true,
     )
     is Err(
-      @graph_typing.MatchStructure(
-        { kind: @graph_typing.UnsupportedGraphProfile, .. }
-      )
+      @graph_typing.MatchStructure({ kind: @graph_typing.IncompleteGraph, .. })
     ),
   )
 }
 
 ///|
-test "unsupported legacy unary operators explicitly refuse the keyed profile" {
+test "unconnected graph operators refuse current and historical inputs without fallback" {
   for
     (operation, body) in [
       (@graph_typing.NormalizeGraph, "true"),
@@ -184,17 +182,16 @@ test "unsupported legacy unary operators explicitly refuse the keyed profile" {
       is Err(issue) else {
       abort("unsupported keyed operator was accepted")
     }
-    assert_eq(issue.kind, @graph_typing.UnsupportedGraphProfile)
-    // Existing contracts retain the same acceptance even for unknown properties.
+    assert_eq(issue.kind, @graph_typing.UnsupportedGraphOperation)
     assert_true(
       @graph_typing.check(
         operation,
         cursor(body),
-        graph(@contract.primitive(NumberType, nullable=false)),
+        @carrier.unknown_carrier(GraphKind),
         None,
         limits(),
       )
-      is Ok(_),
+      is Err({ kind: @graph_typing.IncompleteGraph, .. }),
     )
   }
 }
@@ -211,7 +208,7 @@ test "legacy property and path schemas never erase keyed graph structure" {
       is Err(issue) else {
       abort("legacy homogeneous scope accepted a keyed profile")
     }
-    assert_eq(issue.kind, @graph_typing.UnsupportedGraphProfile)
+    assert_eq(issue.kind, @graph_typing.UnsupportedGraphOperation)
   }
   for kind in [@graph_typing.TraversedPaths, @graph_typing.ShortestPaths] {
     guard @graph_typing.check_path_contract(
@@ -219,21 +216,18 @@ test "legacy property and path schemas never erase keyed graph structure" {
         cursor("true"),
         keyed_profile(),
         limits(),
+        property_paths=false,
       )
       is Err(issue) else {
       abort("endpoint-tuple path contract accepted independent edge identity")
     }
-    assert_eq(issue.kind, @graph_typing.UnsupportedGraphProfile)
+    assert_eq(issue.kind, @graph_typing.UnsupportedGraphOperation)
   }
 }
 
 ///|
 test "legacy equality refuses either keyed operand instead of fabricating a common simple graph" {
-  let legacy = complete_graph(
-    @contract.primitive(NumberType, nullable=false),
-    @contract.primitive(NumberType, nullable=false),
-    "a",
-  )
+  let legacy = @carrier.unknown_carrier(GraphKind)
   for
     (left, right) in [
       (keyed_profile(), legacy),
@@ -249,6 +243,57 @@ test "legacy equality refuses either keyed operand instead of fabricating a comm
       is Err(issue) else {
       abort("incompatible profiles were compared")
     }
-    assert_eq(issue.kind, @graph_typing.UnsupportedGraphProfile)
+    assert_true(
+      issue.kind == @graph_typing.UnsupportedGraphOperation ||
+      issue.kind == @graph_typing.IncompleteGraph,
+    )
   }
+}
+
+///|
+test "reach has no historical execution alternative under the current graph contract" {
+  for input in [keyed_profile(), @carrier.unknown_carrier(GraphKind)] {
+    guard @graph_typing.check_reach(
+        cursor("{\"start\":1,\"direction\":\"out\",\"max_depth\":1}"),
+        input,
+        limits(),
+      )
+      is Err(@graph_typing.MatchStructure(issue)) else {
+      abort("unconnected reach was accepted")
+    }
+    let expected = if input is @carrier.GraphValue(g) &&
+      @carrier.graph_property_definition(g) is Some(_) {
+      @graph_typing.UnsupportedGraphOperation
+    } else {
+      @graph_typing.IncompleteGraph
+    }
+    assert_eq(issue.kind, expected)
+  }
+}
+
+///|
+test "retired tuple construction and unconnected subgraph are explicit refusals" {
+  assert_true(
+    @graph_typing.check_construction(
+      cursor("{\"source\":\"src\",\"target\":\"dst\"}"),
+      None,
+      @carrier.relation(@carrier.unknown_rows()),
+      limits(),
+    )
+    is Err({ kind: @graph_typing.UnsupportedGraphOperation, .. }),
+  )
+  assert_true(
+    @graph_typing.check_subgraph(
+      cursor("{\"nodes\":{\"ids\":[]}}"),
+      keyed_profile(),
+      None,
+      None,
+      predicate_limits(),
+    )
+    is Err(
+      @graph_typing.MatchStructure(
+        { kind: @graph_typing.UnsupportedGraphOperation, .. }
+      )
+    ),
+  )
 }

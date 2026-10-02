@@ -353,7 +353,7 @@ pub fn check_mean(
       spend(b, at, 1)
       let g = match inputs[i] {
         @carrier.GraphValue(g) => {
-          require_legacy_profile(g, at)
+          reject_unconnected_graph_operation(g, at)
           g
         }
         @carrier.Opaque(GraphKind) => fail(at, IncompleteGraph)

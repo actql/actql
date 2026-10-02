@@ -1,41 +1,74 @@
 ///|
-test "current Graph provider refuses retired constructor projection MATCH and traversal at both selection boundaries" {
+test "retired tuple constructor cannot issue an executable generated sequence" {
   let source = carrier_graph_source_owner()
-  let graph = carrier_graph_material_owner(source)
-  let projection = task_test_generated(carrier_graph_owner(source))
-  let matched = task_test_generated(carrier_selected_match_owner(graph, true))
-  let traversed = task_test_generated(
-    carrier_graph_traverse_owner(source, 1, 2, emission="paths"),
-  )
-  let construction = task_test_generated(graph)
-  let provider = @local_sga_provider.provider(
-    carrier_graph_storage_limits(),
-    4096L,
-    @execution.execution_capacity(4096L, 65536L).unwrap(),
-  )
-  // These historical fixtures deliberately bypass normal Program rejection.
-  // A typed low-level selection must not reopen executable legacy fallback.
-  for
-    sequence in [
-      construction,
-      @execution.select_generated_sequence_step(construction, 0).unwrap(),
-      projection,
-      @execution.select_generated_sequence_step(projection, 1).unwrap(),
-      @execution.select_generated_sequence_step(matched, 0).unwrap(),
-      traversed,
-      @execution.select_generated_sequence_step(traversed, 1).unwrap(),
-    ] {
-    assert_false(@local_connector.managed_provider_accepts(provider, sequence))
-    assert_true(
-      @local_connector.managed_provider_capacity(provider, sequence) is None,
+  let produced = @pipeline.produced_input(
+    @lower.pipeline(@lower.bound_preparation(source)),
+    @pipeline.Step(0),
+  ).unwrap()
+  for projection in ["", ",{\"node_rows\":true}", ",{\"edge_rows\":true}"] {
+    let body = "[{\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\",\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\",\"source\":\"src\",\"target\":\"dst\",\"fields\":[\"weight\"]}},\"as\":\"graph\"}" +
+      projection +
+      "]"
+    guard @pipeline.check_with_evidence(
+        input_cursor(body),
+        [("rows", @pipeline.ProducedInput(produced))],
+        None,
+        Some(input_cursor("\"rows\"")),
+        {
+          max_steps: 10,
+          max_work: 10000,
+          max_text_bytes: 10000,
+          max_nodes: 1000,
+          max_tokens: 1000,
+          max_depth: 100,
+        },
+      )
+      is Err(_) else {
+      fail("historical constructor was accepted")
+    }
+  }
+}
+
+///|
+test "historical MATCH and traversal are rejected before a generated sequence exists" {
+  let empty = @carrier_contract.rows(
+    [],
+    field_set=Closed,
+    max_fields=0,
+    max_name_bytes=0,
+  ).unwrap()
+  // Historical schema knowledge is a negative fixture, never a producer owner.
+  assert_true(
+    @carrier_contract.graph(
+      @value_contract.primitive(NumberType, nullable=false),
+      empty,
+      empty,
+      labels=None,
+      max_labels=0,
+      max_label_bytes=0,
     )
+    is Err(UnsupportedGraphProfile),
+  )
+  let historical = @carrier_contract.unknown_carrier(GraphKind)
+  for
+    body in [
+      "[{\"from\":\"g\",\"match_nodes\":{\"ids\":[1],\"fields\":[\"id\"]},\"as\":\"out\"}]",
+      "[{\"from\":\"g\",\"traverse\":{\"start\":{\"ids\":[1]},\"hops\":[{\"direction\":\"out\"}],\"emit\":\"paths\"},\"as\":\"out\"}]",
+    ] {
     assert_true(
-      @local_connector.start_managed_provider_with_inputs(
-        provider,
-        sequence,
-        [],
-        10,
-        1000,
+      @pipeline.check_carriers(
+        input_cursor(body),
+        [("g", historical)],
+        None,
+        None,
+        {
+          max_steps: 10,
+          max_work: 10000,
+          max_text_bytes: 10000,
+          max_nodes: 1000,
+          max_tokens: 1000,
+          max_depth: 100,
+        },
       )
       is Err(_),
     )

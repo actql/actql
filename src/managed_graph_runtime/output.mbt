@@ -442,7 +442,8 @@ pub fn producer_read_view(
   value : ProducerRead,
 ) -> Result[@lifecycle.ProducerView, Issue] {
   guard producer_read_storage(value) is Some(storage) &&
-    @storage.carrier(storage) is @carrier.GraphValue(graph) else {
+    @storage.carrier(storage) is @carrier.GraphValue(graph) &&
+    @carrier.graph_property_definition(graph) is Some(_) else {
     return Err(Producer(@lifecycle.ProducerUnavailable))
   }
   let read = producer_read_carrier_reference(value)
@@ -462,51 +463,29 @@ pub fn producer_read_view(
   let edge_property = (edge, property) => {
     @storage.edge_property(storage, edge, property)
   }
-  let view = if @carrier.graph_property_definition(graph) is Some(_) {
-    @lifecycle.prepare_property_graph_producer_view(
-      read,
-      nodes,
-      edges,
-      node_identity,
-      node_property,
-      node_index,
-      edge_endpoints,
-      edge_property,
-      node => @storage.node_definition_index(storage, node),
-      edge => @storage.edge_definition_index(storage, edge),
-      edge => @storage.edge_identity(storage, edge),
-      identity => {
-        match @storage.edge_identity_index(storage, identity) {
-          Ok(index) => Some(index)
-          Err(_) => None
-        }
-      },
-      (node, component) => @storage.node_typed_key_at(storage, node, component),
-      (edge, component) => @storage.edge_typed_key_at(storage, edge, component),
-      node => @storage.node_identity_order_key(storage, node),
-      edge => @storage.edge_identity_order_key(storage, edge),
-    )
-  } else {
-    @lifecycle.prepare_graph_producer_view(
-      read,
-      nodes,
-      edges,
-      @carrier.field_count(@carrier.graph_node_properties(graph)),
-      @carrier.field_count(@carrier.graph_edge_properties(graph)),
-      node_identity,
-      node_property,
-      node_index,
-      edge_endpoints,
-      edge => @storage.edge_label(storage, edge),
-      edge_property,
-      (source, target, label) => {
-        match @storage.edge_index(storage, source, target, label) {
-          Ok(index) => Some(index)
-          Err(_) => None
-        }
-      },
-    )
-  }
+  let view = @lifecycle.prepare_property_graph_producer_view(
+    read,
+    nodes,
+    edges,
+    node_identity,
+    node_property,
+    node_index,
+    edge_endpoints,
+    edge_property,
+    node => @storage.node_definition_index(storage, node),
+    edge => @storage.edge_definition_index(storage, edge),
+    edge => @storage.edge_identity(storage, edge),
+    identity => {
+      match @storage.edge_identity_index(storage, identity) {
+        Ok(index) => Some(index)
+        Err(_) => None
+      }
+    },
+    (node, component) => @storage.node_typed_key_at(storage, node, component),
+    (edge, component) => @storage.edge_typed_key_at(storage, edge, component),
+    node => @storage.node_identity_order_key(storage, node),
+    edge => @storage.edge_identity_order_key(storage, edge),
+  )
   view.map_err(issue => {
     Lifecycle(
       match issue {

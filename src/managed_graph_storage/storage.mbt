@@ -121,19 +121,6 @@ fn valid_limits(limits : Limits) -> Bool {
 }
 
 ///|
-fn closed_typed_properties(value : @carrier.Knowledge) -> Bool {
-  if @carrier.field_set(value) != @carrier.Closed {
-    return false
-  }
-  for index in 0..<@carrier.field_count(value) {
-    if @carrier.field_at(value, index).unwrap().contract is None {
-      return false
-    }
-  }
-  true
-}
-
-///|
 pub fn prepare(
   contract : @carrier.Carrier,
   mode : Mode,
@@ -143,20 +130,11 @@ pub fn prepare(
     return Err(InvalidLimits)
   }
   guard contract is @carrier.GraphValue(graph) else { return Err(WrongCarrier) }
-  if @carrier.graph_property_definition(graph) is None &&
-    (
-      !closed_typed_properties(@carrier.graph_node_properties(graph)) ||
-      !closed_typed_properties(@carrier.graph_edge_properties(graph))
-    ) {
-    return Err(OpenPropertyContract)
+  if @carrier.graph_property_definition(graph) is None {
+    return Err(WrongProfile)
   }
-  if mode == DerivedEndpoints &&
-    @carrier.graph_property_definition(graph) is Some(_) {
+  if mode == DerivedEndpoints {
     return Err(WrongMode)
-  }
-  if mode == DerivedEndpoints &&
-    @carrier.field_count(@carrier.graph_node_properties(graph)) != 0 {
-    return Err(InvalidProperties)
   }
   Ok({
     graph,

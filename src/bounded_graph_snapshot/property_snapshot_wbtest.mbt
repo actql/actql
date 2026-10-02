@@ -143,7 +143,6 @@ test "property snapshot preserves independent parallel edges schema labels and t
     assert_eq(edge_count(snapshot), 2)
     assert_eq(edge_at(snapshot, 0), Some(1))
     assert_eq(edge_at(snapshot, 1), Some(0))
-    assert_eq(edge_key_at(snapshot, 0), None)
     assert_true(property_edge_key_at(snapshot, 0) is Some(_))
     assert_true(take_property_output(prepared) is Err(Terminal))
     assert_true(cleanup(snapshot))
@@ -152,37 +151,37 @@ test "property snapshot preserves independent parallel edges schema labels and t
 }
 
 ///|
-test "snapshot profiles reject implicit conversion and preserve legacy identity" {
+test "snapshot entry points share the current contract and reject historical input" {
+  assert_true(
+    @storage.prepare(
+      legacy_snapshot_carrier(),
+      @storage.DeclaredNodes,
+      storage_limits(),
+    )
+    is Err(@storage.WrongCarrier),
+  )
   assert_true(
     prepare(
       property_snapshot_storage(),
       "sha256:" + "0".repeat(64),
       snapshot_limits(100),
     )
-    is Err(InvalidGraph),
+    is Err(SnapshotContractMismatch),
   )
-  assert_true(
-    prepare_property(graph_storage(), snapshot_limits(100)) is Err(InvalidGraph),
-  )
-  let old = prepare(
-    graph_storage(),
-    "sha256:" + "0".repeat(64),
+  let prepared = prepare(
+    property_snapshot_storage(),
+    "sha256:3e06c160155f0542561eab6a31c31422a78e7a749490ff5b24fb0ce4c7ff3321",
     snapshot_limits(100),
   ).unwrap()
-  assert_true(take_property_output(old) is Err(InvalidGraph))
-  let mut result = None
-  while result is None {
-    match advance(old, 1).unwrap() {
-      Continue(..) => ()
-      Complete(value, ..) => result = Some(value)
-    }
-  }
+  let (snapshot, bytes) = finish_property_snapshot(prepared, 1)
+  assert_eq(bytes, expected_property_snapshot())
   assert_eq(
-    cid(result.unwrap()),
-    "sha256:cb6e72527d57d5cc88e9144b16f985ff80a11f9939ce287bcff0314297b804f5",
+    cid(snapshot),
+    "sha256:4d6e1221c4244ab1074b836a651e7b4522fcdfefa86414121b7529a715b60b1a",
   )
-  assert_eq(property_edge_key_at(result.unwrap(), 0), None)
 }
+
+///|
 
 ///|
 test "property snapshot limits and cancellation expose no completed snapshot" {

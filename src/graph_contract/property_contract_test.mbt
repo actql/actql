@@ -142,42 +142,54 @@ test "separate property graph contract preserves an independently authored body 
 }
 
 ///|
-test "legacy and property graph contracts never implicitly convert or share their laws" {
-  assert_true(
-    @graph_contract.read_cursor(read_source(property_body()), caps())
-    is Err(InvalidBody),
+test "all graph admission entry points share one current contract and reject historical bodies" {
+  let read = @graph_contract.read_cursor(read_source(property_body()), caps()).unwrap()
+  assert_eq(
+    @graph_contract.cid(read),
+    "sha256:3e06c160155f0542561eab6a31c31422a78e7a749490ff5b24fb0ce4c7ff3321",
   )
-  assert_true(
-    @graph_contract.read_property_graph_cursor(
-      read_source(empty_body()),
-      caps(),
-    )
-    is Err(InvalidBody),
-  )
-  let new = @graph_contract.read_property_graph_cursor(
-    read_source(property_body()),
+  assert_eq(@graph_contract.stringify(read, caps()), property_body())
+  let admitted = @graph_contract.admit_graph(
+    @graph_contract.graph(read),
     caps(),
   ).unwrap()
-  assert_true(
-    @graph_contract.admit_graph(@graph_contract.property_graph(new), caps())
-    is Err(IncompleteGraph),
+  assert_eq(@graph_contract.cid(admitted), @graph_contract.property_cid(read))
+  assert_eq(
+    @graph_contract.bytes(admitted),
+    @graph_contract.property_bytes(read),
   )
+  assert_eq(
+    @graph_contract.nodes(admitted),
+    @graph_contract.property_nodes(read),
+  )
+  assert_eq(@graph_contract.law_cid(), @graph_contract.property_law_cid())
+  for
+    rejected in [
+      empty_body(),
+      property_body().replace(
+        old="actql-property-graph-contract/0.1",
+        new="actql-graph-contract/0.1",
+      ),
+    ] {
+    assert_true(
+      @graph_contract.read_cursor(read_source(rejected), caps())
+      is Err(InvalidBody),
+    )
+    assert_true(
+      @graph_contract.read_property_graph_cursor(read_source(rejected), caps())
+      is Err(InvalidBody),
+    )
+  }
   assert_true(
     @graph_contract.admit_property_graph(graph(None), caps())
     is Err(IncompleteGraph),
   )
-  let old = @graph_contract.read_cursor(read_source(empty_body()), caps()).unwrap()
-  assert_eq(@graph_contract.stringify(old, caps()), empty_body())
-  assert_eq(
-    @graph_contract.cid(old),
-    "sha256:2d338ba9310e353b1891ca91079d3e3fa894afb3f561d97cc444d55698e53e91",
+  assert_true(
+    @graph_contract.admit(graph(None), caps()) is Err(IncompleteGraph),
   )
-  assert_eq(
-    @graph_contract.law_cid(),
-    "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4",
-  )
-  assert_true(@graph_contract.property_law_cid() != @graph_contract.law_cid())
 }
+
+///|
 
 ///|
 test "property graph contract rejects mismatched profile laws keys labels and endpoints" {
@@ -207,7 +219,7 @@ test "property graph contract rejects mismatched profile laws keys labels and en
       read_source(
         property_body().replace(
           old=@graph_contract.property_law_cid(),
-          new=@graph_contract.law_cid(),
+          new="sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4",
         ),
       ),
       caps(),

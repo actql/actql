@@ -9,4 +9,6 @@ import {
 
 import {
   "actql/actql/value_contract" @contract,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/source_value" @source,
 } for "wbtest"

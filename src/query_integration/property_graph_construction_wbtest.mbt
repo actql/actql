@@ -1395,26 +1395,13 @@ test "keyed constructor capacity failure and cancellation never hand off partial
 }
 
 ///|
-test "keyed constructor keeps empty definition schemas and refuses legacy execution" {
+test "common constructor keeps empty keyed definition schemas" {
   let nodes = keyed_node_source(rows="[]")
   let edges = keyed_edge_source(rows="[]")
   let owner = keyed_bridge_owner(nodes, edges)
   let sequence = prepared_sequence(owner)
   let inputs = keyed_bridge_inputs(owner, nodes, edges)
-  assert_true(
-    @local_bridge.start_rows_to_graph(
-      @bounded.control(),
-      sequence,
-      0,
-      inputs,
-      carrier_graph_storage_limits(),
-      4096L,
-      1000,
-      () => true,
-    )
-    is Err(@local_bridge.InvalidGraphKernel),
-  )
-  let active = @local_bridge.start_rows_to_property_graph(
+  let active = @local_bridge.start_rows_to_graph(
     @bounded.control(),
     sequence,
     0,

@@ -126,26 +126,15 @@ pub fn check_traverse(
       }
       fail(source, IncompleteGraph)
     }
-    let property_graph = @carrier.graph_property_definition(g) is Some(_)
+    require_property_profile(g, source)
     let root = decoded(
-      @decode.closed_object(
-        source,
-        if property_graph {
-          [
-            "start", "hops", "direction", "edge_types", "min_hops", "max_hops", "emit",
-            "max_output_rows", "path_mode",
-          ]
-        } else {
-          [
-            "start", "hops", "direction", "edge_types", "min_hops", "max_hops", "emit",
-            "max_output_rows",
-          ]
-        },
-      ),
+      @decode.closed_object(source, [
+        "start", "hops", "direction", "edge_types", "min_hops", "max_hops", "emit",
+        "max_output_rows", "path_mode",
+      ]),
     )
-    let property_mode = if property_graph {
-      // An explicit new-profile mode cannot be silently interpreted by the
-      // historical simple-path contract.
+    let property_mode = {
+      // A current path mode cannot be interpreted as a historical simple path.
       guard @decode.lookup(root, "path_mode") is Some(at) else {
         fail(source, UnsupportedGraphProfile)
       }
@@ -157,8 +146,6 @@ pub fn check_traverse(
           _ => fail(at, InvalidBody)
         },
       )
-    } else {
-      None
     }
     let at = decoded(@decode.required(root, "start"))
     let start = match
@@ -173,7 +160,7 @@ pub fn check_traverse(
           max_nodes: b.nodes,
           max_text_bytes: b.text,
         },
-        property_graph~,
+        property_graph=true,
       ) {
       Ok(s) => s
       Err(e) => raise MatchStop(e)
@@ -188,7 +175,7 @@ pub fn check_traverse(
       "paths" => TraversedPaths
       _ => fail(at, InvalidBody)
     }
-    if property_graph && emit != TraversedPaths {
+    if emit != TraversedPaths {
       fail(at, UnsupportedGraphProfile)
     }
     let hops = []
@@ -303,7 +290,7 @@ pub fn check_traverse(
           max_nodes: b.nodes,
           max_text_bytes: b.text,
         },
-        property_paths=property_graph,
+        property_paths=true,
       ) {
       Ok(o) => o
       Err(e) => raise Stop(e)

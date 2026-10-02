@@ -21,25 +21,25 @@ fn empty_body() -> String {
 }
 
 ///|
-test "read existing graph body retains the independently fixed identity and exact limits" {
-  let cursor = read_source(empty_body())
+test "read current graph body retains the independently fixed identity and exact limits" {
+  let cursor = read_source(property_body())
   let value = @graph_contract.read_cursor(cursor, caps()).unwrap()
   assert_eq(
     @graph_contract.cid(value),
-    "sha256:2d338ba9310e353b1891ca91079d3e3fa894afb3f561d97cc444d55698e53e91",
+    "sha256:3e06c160155f0542561eab6a31c31422a78e7a749490ff5b24fb0ce4c7ff3321",
   )
-  assert_eq(@graph_contract.stringify(value, caps()), empty_body())
+  assert_eq(@graph_contract.stringify(value, caps()), property_body())
   let exact : @graph_contract.Limits = {
     max_bytes: @graph_contract.bytes(value),
     max_nodes: @graph_contract.nodes(value),
-    max_depth: 2,
+    max_depth: caps().max_depth,
   }
   assert_true(@graph_contract.read_cursor(cursor, exact) is Ok(_))
   for
     limits in [
       { ..exact, max_bytes: exact.max_bytes - 1, },
       { ..exact, max_nodes: exact.max_nodes - 1, },
-      { ..exact, max_depth: 1, },
+      { ..exact, max_depth: 2, },
     ] {
     assert_true(@graph_contract.read_cursor(cursor, limits) is Err(_))
   }
@@ -53,25 +53,25 @@ test "read existing graph body retains the independently fixed identity and exac
 
 ///|
 test "read graph body rejects wrong laws noncanonical labels and untyped properties" {
-  let wire = empty_body()
+  let wire = property_body()
   for
     (old, replacement) in [
-      ("\"version\":\"actql-graph-contract/0.1\"", "\"version\":\"unknown\""),
+      (
+        "\"version\":\"actql-property-graph-contract/0.1\"", "\"version\":\"unknown\"",
+      ),
       ("\"nullable\":false", "\"nullable\":true"),
-      ("\"node_properties\":{}", "\"node_properties\":{\"x\":null}"),
-      ("\"edge_properties\":{}", "\"edge_properties\":[]"),
-      ("\"edge_labels\":null", "\"edge_labels\":[\"b\",\"a\"]"),
-      ("\"edge_labels\":null", "\"edge_labels\":[\"a\",\"a\"]"),
-      ("\"edge_labels\":null", "\"edge_labels\":{}"),
-      ("\"edge_labels\":null,", ""),
-      ("\"edge_labels\":null", "\"edge_labels\":null,\"extra\":0"),
+      ("\"properties\":{}", "\"properties\":{\"x\":null}"),
+      ("\"properties\":{}", "\"properties\":[]"),
+      ("\"labels\":{\"R\":[]}", "\"labels\":{\"R\":[\"b\",\"a\"]}"),
+      ("\"Node\":[\"name\"]", "\"Node\":[\"name\",\"name\"]"),
+      ("\"labels\":{\"R\":[]}", "\"labels\":[]"),
+      ("\"labels\":{\"R\":[]},", ""),
+      ("\"labels\":{\"R\":[]}", "\"labels\":{\"R\":[]},\"extra\":0"),
     ] {
+    let changed = wire.replace(old~, new=replacement)
+    assert_true(changed != wire)
     assert_true(
-      @graph_contract.read_cursor(
-        read_source(wire.replace(old~, new=replacement)),
-        caps(),
-      )
-      is Err(_),
+      @graph_contract.read_cursor(read_source(changed), caps()) is Err(_),
     )
   }
   for key in ["identity_law_cid", "value_law_cid"] {
@@ -84,17 +84,9 @@ test "read graph body rejects wrong laws noncanonical labels and untyped propert
       is Err(LawMismatch),
     )
   }
-  let closed = @graph_contract.read_cursor(
-    read_source(
-      wire.replace(old="\"edge_labels\":null", new="\"edge_labels\":[]"),
-    ),
-    caps(),
-  ).unwrap()
   assert_true(
-    @graph_contract.cid(closed) !=
-    @graph_contract.cid(
-      @graph_contract.read_cursor(read_source(wire), caps()).unwrap(),
-    ),
+    @graph_contract.read_cursor(read_source(empty_body()), caps())
+    is Err(InvalidBody),
   )
 }
 
@@ -130,7 +122,7 @@ test "graph reader preserves non-string identity domains and recursive property 
       "{\"nullable\":false,\"type\":\"decimal\",\"precision\":38,\"scale\":19}",
       "{\"nullable\":false,\"type\":\"resource_ref\",\"resource_kind\":\"record\"}",
     ] {
-    let wire = empty_body().replace(old=identity, new=replacement)
+    let wire = property_body().replace(old=identity, new=replacement)
     let value = @graph_contract.read_cursor(read_source(wire), caps()).unwrap()
     let expected = @canonical.from_json(@json.parse(wire), 1000, 100, 100000)
     assert_eq(
@@ -144,7 +136,7 @@ test "graph reader preserves non-string identity domains and recursive property 
     ] {
     assert_true(
       @graph_contract.read_cursor(
-        read_source(empty_body().replace(old=identity, new=replacement)),
+        read_source(property_body().replace(old=identity, new=replacement)),
         caps(),
       )
       is Err(InvalidStructure),

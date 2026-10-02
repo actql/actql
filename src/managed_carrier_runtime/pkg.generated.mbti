@@ -67,8 +67,6 @@ pub fn material_storage_bytes(Material) -> Int64?
 
 pub fn prepare_binding(@lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Result[Binding, Issue]
 
-pub fn prepare_graph_producer_view(ProducerReadReference, Int, Int, Int, Int, (Int) -> @value_admission.CheckedValue?, (Int, Int) -> @value_admission.CheckedValue?, (@value_admission.CheckedValue) -> Int??, (Int) -> (Int, Int)?, (Int) -> @value_admission.CheckedValue??, (Int, Int) -> @value_admission.CheckedValue?, (@value_admission.CheckedValue, @value_admission.CheckedValue, @value_admission.CheckedValue?) -> Int??) -> Result[ProducerView, ViewIssue]
-
 pub fn prepare_material(CompletionReference, (@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared) -> ProducerView?, (@lowering_relation.BoundPrepared, Int, Int, @lowering_relation.BoundPrepared) -> ProducerView?, () -> Bool, snapshot_factory? : SnapshotFactory?) -> Result[Material, Issue]
 
 pub fn[E, T] prepare_producer_read(@lowering_relation.BoundPrepared, Int, @lowering_relation.BoundPrepared, Completed[E, T]) -> Result[ProducerRead[E, T], ProducerReadIssue]

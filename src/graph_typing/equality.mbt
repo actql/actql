@@ -85,7 +85,7 @@ fn check_graph_pair(
     for (v, at) in [(left, source), (right, target)] {
       match v {
         @carrier.GraphValue(g) => {
-          require_legacy_profile(g, at)
+          reject_unconnected_graph_operation(g, at)
           graphs.push(g)
         }
         @carrier.Opaque(GraphKind) => fail(at, IncompleteGraph)

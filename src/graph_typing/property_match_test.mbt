@@ -30,7 +30,7 @@ test "keyed match scopes retain definition typing and never reinterpret the lega
     @graph_typing.check_match(
       @graph_typing.Nodes,
       body,
-      match_graph(),
+      @carrier.unknown_carrier(GraphKind),
       None,
       predicate_limits(),
     )

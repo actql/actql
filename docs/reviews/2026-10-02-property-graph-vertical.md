@@ -12,15 +12,18 @@ The existing ActQL pipeline owner consumes that body; historical `aoa` names
 in unrelated local IR contracts do not import an external implementation.
 
 The current dependency-integration checkpoint combines main
-`50fcc1ccd7e1cfb4ac379687f95a19043fdc113f` with the prior #164 source. Local
+`16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a` with the prior #164 source at
+`dfb1c51318a7faa306548c213bf1888d92ff7fce`. Local
 registration, canonical preimage and spec-family checks pass. The independent
 complete snapshot fixture is
 `portability/corpus/property-graph-owned-snapshot.json`; its records are not
 derived from a Graph encoder or runtime output. A law ownership change has new
 law, contract and snapshot CIDs; historical fixture identities stay frozen.
 
-This is not final acceptance. Executable legacy Graph paths still need to be
-removed, and the public snapshot save/reload boundary described below still
+This is not final acceptance. The common Graph now requires definition-scoped
+metadata; the retired tuple constructor cannot issue a second Graph profile.
+Remaining obsolete consumers, positive fixtures and coverage inventories still
+need source migration, and the public snapshot save/reload boundary below still
 needs connection to the existing bounded owners. Current-source fresh packed,
 three-target acceptance and final-SHA required CI remain mandatory. No success
 from an earlier checkpoint is reused for that decision.
@@ -240,8 +243,9 @@ The first implementation exposed an incorrect assumption that cleanup retry
 returned a status record (it returns a completion boolean); the active-reader
 regression caught the premature ACK, and the adapter now reads the existing
 cleanup owner's status after retry. The initial correction passed **9/9**
-including existing binary and real-process Store tests. Additional seal-loss
-and parallel-release cases are being verified. This is physical Store evidence,
+including existing binary and real-process Store tests. Expanded lost/invalid
+ACK, seal-response loss and parallel-release regressions passed **26/26** with
+the existing service and delegated process suites. This is physical Store evidence,
 not yet public Graph snapshot acceptance.
 
 ## Executed regression evidence
@@ -283,6 +287,47 @@ pins and literal CIDs. The new Run fixture is independently derived as
 This global dependency impact does not change legacy Graph contract bodies,
 tuple identities or snapshot framing. Final complete gates and Linux CI must
 be reported against the submitted SHA in the PR.
+
+## Single executable Graph contract checkpoint
+
+The common `Graph` requires an admitted Property Graph definition. The retired
+endpoint-tuple constructor returns `UnsupportedGraphProfile`; it cannot issue
+a second executable profile. Contract admission, canonical serialization,
+snapshot preparation and identity encoding now have only the definition-keyed
+representation. MATCH and TRAIL use typed element identities and label sets;
+the common rows-to-Graph entry delegates to the existing Property Graph owner.
+No parallel kernel or lossy endpoint-tuple conversion is introduced.
+
+Reach, shortest-path, structural operations and diff that have not been
+connected to the new semantics return `UnsupportedGraphOperation`. This is an
+explicit current implementation gap, not a language restriction or a claim that
+the legacy implementation provides the new semantics. Historical raw fixtures
+remain negative inputs; they do not reconstruct a legacy executable Graph.
+Some obsolete symbols, unreachable implementations and historical positive
+test inventories still require retirement or migration before full acceptance.
+
+The focused common-contract, admission, MATCH, snapshot, storage and provider
+regressions passed **98/98 on each of JS, Wasm and native**. An additional real
+Property Graph diff refusal test passed **1/1 on each target** and checks that
+refusal does not consume or alter the source material. The initial focused
+runs exposed outdated positive expectations and an opaque-Graph admission hole;
+these were corrected to test the actual current contract and distinguish
+incomplete Graph input from an unsupported operation. No relaxed legacy
+fallback was used to pass them.
+
+Three-target interface generation has completed; shared Graph interfaces do
+not diverge. The official tracked-interface check is still to be run after the
+generated interfaces are committed. The current Relation pipeline foundation
+explicitly records the integrated `dfb1c51318a7faa306548c213bf1888d92ff7fce`
+source and its added Graph acceptance commands. The immutable historical #148
+baseline and its oracle digests are unchanged. This provenance update does not
+extend the conditional Relation theorem to Property Graph providers.
+
+Full Core, spec, fresh packed public snapshot acceptance and required CI have
+not yet been established at this checkpoint. In particular, internal snapshot
+roundtrip and physical Store release tests do not prove the public save/reload
+route. The PR remains incomplete until that route and the remaining consumer
+migration are validated on one submitted SHA.
 
 ## Deliberately not claimed
 

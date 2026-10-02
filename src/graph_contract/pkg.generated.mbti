@@ -14,13 +14,13 @@ pub fn admit(@carrier_contract.Carrier, Limits) -> Result[CheckedContract, Issue
 
 pub fn admit_graph(@carrier_contract.Graph, Limits) -> Result[CheckedContract, Issue]
 
-pub fn admit_property_graph(@carrier_contract.Carrier, Limits) -> Result[CheckedPropertyContract, Issue]
+pub fn admit_property_graph(@carrier_contract.Carrier, Limits) -> Result[CheckedContract, Issue]
 
 pub fn bytes(CheckedContract) -> Int
 
 pub fn cid(CheckedContract) -> String
 
-pub fn emit_checked_property_graph(CheckedPropertyContract, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+pub fn emit_checked_property_graph(CheckedContract, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn graph(CheckedContract) -> @carrier_contract.Graph
 
@@ -28,32 +28,30 @@ pub fn law_cid() -> String
 
 pub fn nodes(CheckedContract) -> Int
 
-pub fn property_bytes(CheckedPropertyContract) -> Int
+pub fn property_bytes(CheckedContract) -> Int
 
-pub fn property_cid(CheckedPropertyContract) -> String
+pub fn property_cid(CheckedContract) -> String
 
-pub fn property_graph(CheckedPropertyContract) -> @carrier_contract.Graph
+pub fn property_graph(CheckedContract) -> @carrier_contract.Graph
 
 pub fn property_law_cid() -> String
 
-pub fn property_nodes(CheckedPropertyContract) -> Int
+pub fn property_nodes(CheckedContract) -> Int
 
 pub fn read_cursor(@decode_core.Cursor, Limits) -> Result[CheckedContract, ReadIssue]
 
-pub fn read_property_graph_cursor(@decode_core.Cursor, Limits) -> Result[CheckedPropertyContract, ReadIssue]
+pub fn read_property_graph_cursor(@decode_core.Cursor, Limits) -> Result[CheckedContract, ReadIssue]
 
-pub fn read_property_graph_cursor_usage(@decode_core.Cursor, Limits, max_contract_work~ : Int) -> Result[(CheckedPropertyContract, Int), ReadIssue]
+pub fn read_property_graph_cursor_usage(@decode_core.Cursor, Limits, max_contract_work~ : Int) -> Result[(CheckedContract, Int), ReadIssue]
 
 pub fn stringify(CheckedContract, Limits) -> String raise @encode_core.EncodeFailure
 
-pub fn stringify_property_graph(CheckedPropertyContract, Limits) -> String raise @encode_core.EncodeFailure
+pub fn stringify_property_graph(CheckedContract, Limits) -> String raise @encode_core.EncodeFailure
 
 // Errors
 
 // Types and methods
 type CheckedContract
-
-type CheckedPropertyContract
 
 pub(all) enum Issue {
   InvalidLimits

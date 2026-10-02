@@ -1,10 +1,10 @@
 ///|
-/// Opt in explicitly: legacy prepare and tuple-key access remain unchanged.
+/// The sole Graph snapshot representation retains definition-scoped keys.
 pub fn prepare_property(
   storage : @storage.Storage,
   limits : Limits,
 ) -> Result[Preparation, Issue] {
-  prepare_source(Stored(storage), "", limits, property_profile=true)
+  prepare_source(Stored(storage), "", limits)
 }
 
 ///|
@@ -39,16 +39,13 @@ pub fn prepare_property_view(
     @contract_graph.property_cid(expected) else {
     return Err(InvalidGraph)
   }
-  prepare_source(Viewed(view, graph), "", limits, property_profile=true)
+  prepare_source(Viewed(view, graph), "", limits)
 }
 
 ///|
 /// Drain into the consumer's existing provisional writer. Publication requires
 /// Complete plus successful storage finalization, not receipt of these bytes.
 pub fn take_property_output(value : Preparation) -> Result[String, Issue] {
-  if !value.property_profile {
-    return Err(InvalidGraph)
-  }
   if value.phase == Finished {
     guard value.output_tail is Some(tail) else { return Err(Terminal) }
     value.output_tail = None
@@ -60,9 +57,6 @@ pub fn take_property_output(value : Preparation) -> Result[String, Issue] {
 
 ///|
 pub fn property_edge_key_at(value : Snapshot, index : Int) -> String? {
-  if !value.property_profile {
-    return None
-  }
   @sort.key_component_at(value.edge_sort, index, 0)
 }
 
@@ -120,19 +114,9 @@ fn source_properties(
   index : Int,
   edge~ : Bool,
 ) -> @carrier.Knowledge? {
-  if @carrier.graph_property_definition(graph) is Some(_) {
-    source_element_definition(source, graph, index, edge~).map(
-      @carrier.property_definition_properties,
-    )
-  } else {
-    Some(
-      if edge {
-        @carrier.graph_edge_properties(graph)
-      } else {
-        @carrier.graph_node_properties(graph)
-      },
-    )
-  }
+  source_element_definition(source, graph, index, edge~).map(
+    @carrier.property_definition_properties,
+  )
 }
 
 ///|

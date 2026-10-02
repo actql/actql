@@ -1,15 +1,20 @@
 ///|
-/// A distinct checked schema profile, not a second Graph execution owner.
-struct CheckedPropertyContract {
-  graph : @carrier.Graph
-  cid : String
-  bytes : Int
-  nodes : Int
+pub fn property_law_cid() -> String {
+  "sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc"
 }
 
 ///|
-pub fn property_law_cid() -> String {
-  "sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc"
+fn properties(
+  rows : @carrier.Knowledge,
+  out : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.begin_object(out)
+  for index in 0..<@carrier.field_count(rows) {
+    let field = @carrier.field_at(rows, index).unwrap()
+    @encode.key(out, @row.reference_name(field.name))
+    @value.emit_checked(field.contract.unwrap(), out)
+  }
+  @encode.end_object(out)
 }
 
 ///|
@@ -112,7 +117,7 @@ fn emit_property_graph(
 pub fn admit_property_graph(
   input : @carrier.Carrier,
   limits : Limits,
-) -> Result[CheckedPropertyContract, Issue] {
+) -> Result[CheckedContract, Issue] {
   if limits.max_bytes < 0 || limits.max_nodes < 0 || limits.max_depth < 0 {
     return Err(InvalidLimits)
   }
@@ -140,29 +145,29 @@ pub fn admit_property_graph(
 }
 
 ///|
-pub fn property_cid(value : CheckedPropertyContract) -> String {
+pub fn property_cid(value : CheckedContract) -> String {
   value.cid
 }
 
 ///|
-pub fn property_bytes(value : CheckedPropertyContract) -> Int {
+pub fn property_bytes(value : CheckedContract) -> Int {
   value.bytes
 }
 
 ///|
-pub fn property_nodes(value : CheckedPropertyContract) -> Int {
+pub fn property_nodes(value : CheckedContract) -> Int {
   value.nodes
 }
 
 ///|
-pub fn property_graph(value : CheckedPropertyContract) -> @carrier.Graph {
+pub fn property_graph(value : CheckedContract) -> @carrier.Graph {
   value.graph
 }
 
 ///|
 /// Reuse the admitted profile codec when composing an enclosing contract.
 pub fn emit_checked_property_graph(
-  value : CheckedPropertyContract,
+  value : CheckedContract,
   out : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
   emit_property_graph(value.graph, out)
@@ -170,7 +175,7 @@ pub fn emit_checked_property_graph(
 
 ///|
 pub fn stringify_property_graph(
-  value : CheckedPropertyContract,
+  value : CheckedContract,
   limits : Limits,
 ) -> String raise @encode.EncodeFailure {
   let out = @encode.writer(limits.max_bytes, limits.max_nodes, limits.max_depth)
@@ -321,7 +326,7 @@ fn read_property_definition(
 pub fn read_property_graph_cursor(
   root : @decode.Cursor,
   limits : Limits,
-) -> Result[CheckedPropertyContract, ReadIssue] {
+) -> Result[CheckedContract, ReadIssue] {
   read_property_graph_cursor_usage(
     root,
     limits,
@@ -336,7 +341,7 @@ pub fn read_property_graph_cursor_usage(
   root : @decode.Cursor,
   limits : Limits,
   max_contract_work~ : Int,
-) -> Result[(CheckedPropertyContract, Int), ReadIssue] {
+) -> Result[(CheckedContract, Int), ReadIssue] {
   if limits.max_bytes < 0 ||
     limits.max_nodes < 0 ||
     limits.max_depth < 0 ||

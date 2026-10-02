@@ -322,9 +322,10 @@ test "new keyed input is not accepted by legacy builder methods or converse" {
   let builder = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
   assert_eq(append_node(builder, number(1), []), Err(WrongProfile))
   assert_true(cancel(builder))
-  let legacy = prepare(graph_fixture(), DeclaredNodes, limits()).unwrap()
-  assert_eq(append_property_node(legacy, 0, [number(1)], []), Err(WrongProfile))
-  assert_true(cancel(legacy))
+  assert_true(
+    prepare(@carrier.unknown_carrier(GraphKind), DeclaredNodes, limits())
+    is Err(WrongCarrier),
+  )
   assert_true(
     prepare(property_fixture(), DerivedEndpoints, property_limits())
     is Err(WrongMode),

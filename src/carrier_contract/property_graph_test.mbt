@@ -223,21 +223,19 @@ test "Property Graph metadata is bounded and cannot invent a domain from a locat
 }
 
 ///|
-test "legacy Graph metadata remains a separate unchanged profile" {
+test "retired tuple metadata cannot issue a second Graph profile" {
   let empty = rows([], field_set=Closed, max_fields=0, max_name_bytes=0).unwrap()
-  guard graph(
+  assert_true(
+    graph(
       @value.primitive(NumberType, nullable=false),
       empty,
       empty,
       labels=Some(["R"]),
       max_labels=1,
       max_label_bytes=10,
-    ).unwrap()
-    is GraphValue(value) else {
-    fail("legacy graph")
-  }
-  assert_true(graph_property_definition(value) is None)
-  assert_eq(graph_labels(value), Some(["R"]))
+    )
+    is Err(UnsupportedGraphProfile),
+  )
 }
 
 ///|

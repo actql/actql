@@ -17,11 +17,12 @@ pub(all) enum Issue {
   InvalidProperties
   InvalidLabel(String)
   DuplicateLabel(String)
+  UnsupportedGraphProfile
 } derive(Eq, Debug)
 
 ///|
 struct Graph {
-  property_graph : PropertyGraphDefinition?
+  property_graph : PropertyGraphDefinition
   semantic_label : @value.Contract?
   row_names : GraphRowNames?
   identity : @value.Contract
@@ -119,71 +120,26 @@ fn typed_role(
 }
 
 ///|
-/// Labels are a closed domain only when supplied. This constructor does not
-/// establish actual graph membership, edge endpoints or observed uniqueness.
+/// Retired endpoint-tuple schema. Independent edge keys and definition-scoped
+/// identity cannot be inferred from it; this entry never issues a Graph.
 pub fn graph(
-  identity : @value.Contract,
-  node_properties : Knowledge,
-  edge_properties : Knowledge,
+  _identity : @value.Contract,
+  _node_properties : Knowledge,
+  _edge_properties : Knowledge,
   labels~ : Array[String]?,
   max_labels~ : Int,
   max_label_bytes~ : Int,
   row_names? : GraphRowNames? = None,
   label_contract? : @value.Contract? = None,
 ) -> Result[Carrier, Issue] {
+  ignore(labels)
+  ignore(row_names)
+  ignore(label_contract)
   if max_labels < 0 || max_label_bytes < 0 {
-    return Err(InvalidLimits)
+    Err(InvalidLimits)
+  } else {
+    Err(UnsupportedGraphProfile)
   }
-  if !identity_domain(identity) {
-    return Err(InvalidIdentity)
-  }
-  if label_contract is Some(c) && !(c.shape is @value.Text(_)) {
-    return Err(InvalidProperties)
-  }
-  if node_properties.has_qualified_fields ||
-    edge_properties.has_qualified_fields {
-    return Err(InvalidProperties)
-  }
-  let admitted = match labels {
-    None => None
-    Some(input) => {
-      if input.length() > max_labels {
-        return Err(LimitExceeded)
-      }
-      let mut remaining = max_label_bytes
-      let seen : Map[String, Bool] = Map([])
-      let output : Array[String] = []
-      for label in input {
-        let size = match @scalar.admit_utf8_length(label, remaining) {
-          Ok(size) => size
-          Err(@scalar.MalformedUtf16(_)) => return Err(InvalidLabel(label))
-          Err(_) => return Err(LimitExceeded)
-        }
-        remaining -= size
-        if @canonical.normalize_nfc_lf(label) != Ok(label) {
-          return Err(InvalidLabel(label))
-        }
-        if seen.contains(label) {
-          return Err(DuplicateLabel(label))
-        }
-        seen[label] = true
-        output.push(label)
-      }
-      output.sort_by(@canonical.compare_utf16)
-      Some(output)
-    }
-  }
-  Ok(
-    GraphValue({
-      property_graph: None,
-      identity,
-      node_properties,
-      edge_properties,
-      labels: admitted,
-      row_names,
-      semantic_label: label_contract,
-    }),
-  )
 }
 
 ///|

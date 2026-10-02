@@ -35,6 +35,7 @@ pub(all) enum Issue {
   InvalidLimits
   InvalidGraph
   InvalidDeltaContract
+  UnsupportedGraphOperation
   WorkspaceLimit
   OutputLimit
   Snapshot(@bounded_graph_snapshot.Issue)

@@ -56,55 +56,6 @@ fn producer_view_live(value : ProducerView) -> Bool {
 }
 
 ///|
-pub fn prepare_graph_producer_view(
-  read : ProducerReadReference,
-  nodes : Int,
-  edges : Int,
-  node_properties : Int,
-  edge_properties : Int,
-  node_identity : (Int) -> @value.CheckedValue?,
-  node_property : (Int, Int) -> @value.CheckedValue?,
-  node_index : (@value.CheckedValue) -> Int??,
-  edge_endpoints : (Int) -> (Int, Int)?,
-  edge_label : (Int) -> @value.CheckedValue??,
-  edge_property : (Int, Int) -> @value.CheckedValue?,
-  edge_index : (@value.CheckedValue, @value.CheckedValue, @value.CheckedValue?) -> Int??,
-) -> Result[ProducerView, ViewIssue] {
-  if producer_reference_kind(read) != @carrier.GraphKind {
-    return Err(WrongCarrier)
-  }
-  guard read.output.binding.carrier is @carrier.GraphValue(graph) &&
-    @carrier.graph_property_definition(graph) is None else {
-    return Err(WrongCarrier)
-  }
-  if nodes < 0 || edges < 0 || node_properties < 0 || edge_properties < 0 {
-    return Err(InvalidExtent)
-  }
-  if !producer_read_reference_available(read) {
-    return Err(Unavailable)
-  }
-  Ok({
-    read,
-    kind: @carrier.GraphKind,
-    nodes,
-    edges,
-    records: 0,
-    node_properties,
-    edge_properties,
-    node_identity,
-    node_property,
-    node_index,
-    edge_endpoints,
-    edge_label,
-    edge_property,
-    edge_index,
-    property_graph: None,
-    record_fields: _ => None,
-    record_field: (_, _) => None,
-  })
-}
-
-///|
 /// A keyed Graph uses independent edge identities and per-definition schemas.
 /// The contract comes from the exact bound output, never from callback input.
 pub fn prepare_property_graph_producer_view(

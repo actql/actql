@@ -15,6 +15,7 @@ pub(all) enum Issue {
   InvalidLimits
   InvalidGraph
   InvalidDeltaContract
+  UnsupportedGraphOperation
   WorkspaceLimit
   OutputLimit
   Snapshot(@snapshot.Issue)
@@ -381,6 +382,16 @@ fn prepare_source(
     limits.max_identity_depth < 0 {
     return Err(InvalidLimits)
   }
+  // The historical delta schema identifies edges by endpoint tuples. It is not
+  // an implementation of the current independent-key Graph contract.
+  guard source_graph(left) is Some(left_graph) &&
+    source_graph(right) is Some(right_graph) else {
+    return Err(InvalidGraph)
+  }
+  if @carrier.graph_property_definition(left_graph) is Some(_) ||
+    @carrier.graph_property_definition(right_graph) is Some(_) {
+    return Err(UnsupportedGraphOperation)
+  }
   guard source_graph(left) is Some(_) &&
     source_graph(right) is Some(_) &&
     action_contracts(delta_contract, "nodes")
@@ -467,22 +478,6 @@ fn prepare_source(
     output_nodes,
     output_text,
   })
-}
-
-///|
-fn compare_edge_key(
-  left : (String, String, String),
-  right : (String, String, String),
-) -> Int {
-  let source = @canonical.compare_utf16(left.0, right.0)
-  if source != 0 {
-    return source
-  }
-  let target = @canonical.compare_utf16(left.1, right.1)
-  if target != 0 {
-    return target
-  }
-  @canonical.compare_utf16(left.2, right.2)
 }
 
 ///|
@@ -827,13 +822,14 @@ fn select_edge(value : Preparation) -> Issue? {
     schedule(value, EdgeRemove(index))
     return None
   }
-  guard @snapshot.edge_key_at(left, value.left_cursor) is Some(left_key) &&
-    @snapshot.edge_key_at(right, value.right_cursor) is Some(right_key) &&
+  guard @snapshot.property_edge_key_at(left, value.left_cursor)
+    is Some(left_key) &&
+    @snapshot.property_edge_key_at(right, value.right_cursor) is Some(right_key) &&
     @snapshot.edge_at(left, value.left_cursor) is Some(left_index) &&
     @snapshot.edge_at(right, value.right_cursor) is Some(right_index) else {
     return Some(InvalidGraph)
   }
-  let compared = compare_edge_key(left_key, right_key)
+  let compared = @canonical.compare_utf16(left_key, right_key)
   if compared < 0 {
     schedule(value, EdgeRemove(left_index))
   } else if compared > 0 {

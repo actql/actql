@@ -219,28 +219,7 @@ fn path_edge_identity_value(
   source : GraphReadSource,
   edge : Int,
 ) -> @value.Value? {
-  if graph_read_edge_identity(source, edge) is Some(identity) {
-    return Some(identity.value)
-  }
-  guard graph_read_edge_endpoints(source, edge) is Some((from, to)) &&
-    graph_read_node_identity(source, from) is Some(from_id) &&
-    graph_read_node_identity(source, to) is Some(to_id) &&
-    graph_read_edge_label(source, edge) is Some(label) &&
-    @value.object_value([
-      ("src", from_id.value),
-      ("dst", to_id.value),
-      (
-        "rel",
-        match label {
-          Some(value) => value.value
-          None => @value.null_value()
-        },
-      ),
-    ])
-    is Some(identity) else {
-    return None
-  }
-  Some(identity)
+  graph_read_edge_identity(source, edge).map(identity => identity.value)
 }
 
 ///|
@@ -249,69 +228,27 @@ fn compare_traversal_edges(
   left : Int,
   right : Int,
 ) -> Result[Int, TraversePathsIssue] {
-  if @carrier.graph_property_definition(state.graph) is Some(_) {
-    guard graph_read_edge_identity_order_key(state.source, left) is Some(left) &&
-      graph_read_edge_identity_order_key(state.source, right) is Some(right) else {
-      return Err(TraversePathsInputUnavailable)
-    }
-    return Ok(@canonical.compare_utf16(left, right))
-  }
-  guard graph_read_edge_endpoints(state.source, left)
-    is Some((left_source, left_target)) &&
-    graph_read_edge_endpoints(state.source, right)
-    is Some((right_source, right_target)) &&
-    graph_read_node_identity(state.source, left_source) is Some(left_source_id) &&
-    graph_read_node_identity(state.source, right_source)
-    is Some(right_source_id) &&
-    graph_read_node_identity(state.source, left_target) is Some(left_target_id) &&
-    graph_read_node_identity(state.source, right_target)
-    is Some(right_target_id) &&
-    graph_read_edge_label(state.source, left) is Some(left_label) &&
-    graph_read_edge_label(state.source, right) is Some(right_label) else {
+  guard graph_read_edge_identity_order_key(state.source, left) is Some(left) &&
+    graph_read_edge_identity_order_key(state.source, right) is Some(right) else {
     return Err(TraversePathsInputUnavailable)
   }
-  for
-    (left_value, right_value) in [
-      (left_source_id, right_source_id),
-      (left_target_id, right_target_id),
-    ] {
-    let order = match @value.compare_key_values(left_value, right_value) {
-      Ok(value) => value
-      Err(issue) => return Err(TraversePathsKeyOrder(issue))
-    }
-    if order != 0 {
-      return Ok(order)
-    }
-  }
-  match (left_label, right_label) {
-    (None, None) => Ok(0)
-    (None, Some(_)) => Ok(-1)
-    (Some(_), None) => Ok(1)
-    (Some(left), Some(right)) =>
-      @value.compare_present_key_values(left, right).map_err(issue => {
-        TraversePathsKeyOrder(issue)
-      })
-  }
+  Ok(@canonical.compare_utf16(left, right))
 }
 
 ///|
 fn compare_traversal_node_ids(
   state : TraversePathsState,
-  left : @value.CheckedValue,
-  right : @value.CheckedValue,
+  _left : @value.CheckedValue,
+  _right : @value.CheckedValue,
   left_index : Int,
   right_index : Int,
 ) -> Result[Int, @value.KeyOrderIssue] {
-  if @carrier.graph_property_definition(state.graph) is Some(_) {
-    guard graph_read_node_identity_order_key(state.source, left_index)
-      is Some(left) &&
-      graph_read_node_identity_order_key(state.source, right_index)
-      is Some(right) else {
-      return Err(@value.InvalidKey)
-    }
-    return Ok(@canonical.compare_utf16(left, right))
+  guard graph_read_node_identity_order_key(state.source, left_index)
+    is Some(left) &&
+    graph_read_node_identity_order_key(state.source, right_index) is Some(right) else {
+    return Err(@value.InvalidKey)
   }
-  @value.compare_key_values(left, right)
+  Ok(@canonical.compare_utf16(left, right))
 }
 
 ///|
@@ -461,33 +398,21 @@ fn traverse_path_edge_type_matches(
   edge : Int,
   index : Int,
 ) -> Bool {
-  if @carrier.graph_property_definition(state.graph) is Some(definition) {
-    guard @lower.graph_traverse_hop_type_at(
-        state.prepared,
-        traverse_path_hop(state),
-        index,
-      )
-      is Some(expected) &&
-      graph_read_edge_definition(state.source, edge) is Some(element) &&
-      @carrier.property_graph_edge_at(definition, element) is Some(element) else {
-      return false
-    }
-    return @carrier.property_definition_has_label(
-      @carrier.property_edge_element(element),
-      expected,
-    )
-  }
-  guard @lower.graph_traverse_hop_type_at(
+  guard @carrier.graph_property_definition(state.graph) is Some(definition) &&
+    @lower.graph_traverse_hop_type_at(
       state.prepared,
       traverse_path_hop(state),
       index,
     )
     is Some(expected) &&
-    graph_read_edge_label(state.source, edge)
-    is Some(Some({ value: @value.Text(actual), .. })) else {
+    graph_read_edge_definition(state.source, edge) is Some(element) &&
+    @carrier.property_graph_edge_at(definition, element) is Some(element) else {
     return false
   }
-  actual == expected
+  @carrier.property_definition_has_label(
+    @carrier.property_edge_element(element),
+    expected,
+  )
 }
 
 ///|
@@ -1807,7 +1732,9 @@ fn start_traverse_paths_read(
   guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
     @lower.node_input_target(node, 0) is Some(target) &&
     @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
-    is Some(@carrier.GraphValue(graph)) else {
+    is Some(@carrier.GraphValue(graph)) &&
+    @carrier.graph_property_definition(graph) is Some(_) &&
+    @lower.graph_traverse_property_path_mode(prepared) is Some(_) else {
     return Err(InvalidTraversePathsKernel)
   }
   let starts = match
@@ -1868,8 +1795,7 @@ fn start_traverse_paths_read(
   let accepted = Ref(false)
   let value_item_attempts = Ref(0)
   let port_result = match source {
-    Stored(read) if @carrier.graph_property_definition(graph) is Some(_) &&
-      @lifecycle.producer_read_reference_matches_input(
+    Stored(read) if @lifecycle.producer_read_reference_matches_input(
         @graph.producer_read_carrier_reference(read),
         owner,
         0,
@@ -1901,11 +1827,6 @@ fn start_traverse_paths_read(
         inputs~,
       )
     Viewed(view) => {
-      guard @carrier.graph_property_definition(graph) is Some(_) ||
-        inputs.length() == 1 else {
-        @execution.cancel_admitted_output(output) |> ignore
-        return Err(InvalidTraversePathsKernel)
-      }
       let retained_inputs = [
         @execution.trusted_output_carrier_input(
           @lifecycle.producer_view_read_reference(view),

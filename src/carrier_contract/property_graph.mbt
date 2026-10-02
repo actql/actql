@@ -436,13 +436,13 @@ pub fn property_graph_usage(
   Ok(
     (
       GraphValue({
-        property_graph: Some({
+        property_graph: {
           domain,
           nodes: nodes.copy(),
           edges: edges.copy(),
           node_names,
           edge_names,
-        }),
+        },
         identity: json,
         // There is no homogeneous property schema. Legacy consumers must not
         // mistake one representative definition for the complete new graph.
@@ -459,7 +459,7 @@ pub fn property_graph_usage(
 
 ///|
 pub fn graph_property_definition(graph : Graph) -> PropertyGraphDefinition? {
-  graph.property_graph
+  Some(graph.property_graph)
 }
 
 ///|

@@ -55,6 +55,7 @@ pub(all) enum IssueKind {
   InvalidCount
   IncompleteGraph
   UnsupportedGraphProfile
+  UnsupportedGraphOperation
   UnknownDeltaField(String)
   UntypedDeltaField(String)
   InvalidDeltaType
@@ -133,14 +134,25 @@ fn[T] fail(c : @decode.Cursor, kind : IssueKind) -> T raise Stop {
 }
 
 ///|
-// Legacy operators must not silently read scoped identities as endpoint IDs.
-// New-profile support removes this guard only from the deliberately connected
-// operator, not from every Graph-shaped consumer.
-fn require_legacy_profile(
+// Unconnected consumers are unsupported under the sole current Graph contract.
+// Historical homogeneous inputs must not unlock an alternative implementation.
+fn reject_unconnected_graph_operation(
   graph : @carrier.Graph,
   source : @decode.Cursor,
 ) -> Unit raise Stop {
   if @carrier.graph_property_definition(graph) is Some(_) {
+    fail(source, UnsupportedGraphOperation)
+  } else {
+    fail(source, UnsupportedGraphProfile)
+  }
+}
+
+///|
+fn require_property_profile(
+  graph : @carrier.Graph,
+  source : @decode.Cursor,
+) -> Unit raise Stop {
+  if @carrier.graph_property_definition(graph) is None {
     fail(source, UnsupportedGraphProfile)
   }
 }
@@ -254,9 +266,10 @@ pub fn check(
     if @carrier.kind(input) != @carrier.GraphKind {
       fail(source, WrongCarrier(@carrier.kind(input)))
     }
-    if input is @carrier.GraphValue(graph) {
-      require_legacy_profile(graph, source)
+    guard input is @carrier.GraphValue(graph) else {
+      fail(source, IncompleteGraph)
     }
+    reject_unconnected_graph_operation(graph, source)
     let params : Map[String, @contract.Contract] = Map([])
     if parameters is Some(ds) {
       let n = @parameter.declaration_count(ds)

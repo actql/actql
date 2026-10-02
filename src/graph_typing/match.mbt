@@ -64,22 +64,17 @@ pub fn check_match(
       text: limits.max_text_bytes,
     }
     scan(b, source)
-    let property_graph = match input {
-      @carrier.GraphValue(graph) =>
-        @carrier.graph_property_definition(graph) is Some(_)
-      _ => false
+    guard input is @carrier.GraphValue(graph) else {
+      fail(source, WrongCarrier(@carrier.kind(input)))
     }
+    require_property_profile(graph, source)
     let root = decoded(
       @decode.closed_object(
         source,
-        if property_graph && entity == Nodes {
+        if entity == Nodes {
           ["ids", "where", "fields", "definition", "label", "bindings"]
-        } else if property_graph {
-          ["types", "where", "fields", "definition", "label", "bindings"]
-        } else if entity == Nodes {
-          ["ids", "where", "fields"]
         } else {
-          ["types", "where", "fields"]
+          ["types", "where", "fields", "definition", "label", "bindings"]
         },
       ),
     )
@@ -88,28 +83,9 @@ pub fn check_match(
     if entity == Nodes && (ids_source is Some(_)) == (where_source is Some(_)) {
       fail(source, InvalidBody)
     }
-    let property_scope = if property_graph {
-      guard input is @carrier.GraphValue(graph) else {
-        fail(source, IncompleteGraph)
-      }
-      Some(check_property_match_scope(entity, source, root, graph, b))
-    } else {
-      None
-    }
-    let scoped = match property_scope {
-      Some(scope) => scope.scope
-      None =>
-        match
-          check_scope(entity, source, input, {
-            ..b.limits,
-            max_work: b.work,
-            max_nodes: b.nodes,
-            max_text_bytes: b.text,
-          }) {
-          Ok(s) => s
-          Err(e) => raise Stop(e)
-        }
-    }
+    let scope = check_property_match_scope(entity, source, root, graph, b)
+    let property_scope = Some(scope)
+    let scoped = scope.scope
     b.work -= scoped.usage.work
     b.text -= scoped.usage.text_bytes
     let at = decoded(@decode.required(root, "fields"))
@@ -211,11 +187,12 @@ pub fn check_match(
           max_text_bytes: b.text,
           max_tokens: limits.max_tokens,
         }
-        let result = if property_scope is Some(scope) {
-          check_predicate_in_scope(scope.scope, at, parameters, remaining)
-        } else {
-          check_predicate(entity, at, input, parameters, remaining)
-        }
+        let result = check_predicate_in_scope(
+          scope.scope,
+          at,
+          parameters,
+          remaining,
+        )
         let p = match result {
           Ok(p) => p
           Err(e) => raise MatchStop(MatchPredicate(e))

@@ -32,7 +32,6 @@ priv struct MatchEdgesState {
   mut phase : MatchEdgesPhase
   type_count : Int?
   mut type_cursor : Int
-  mut type_index : Map[String, Bool]
   mut property_type_match : Bool
   type_probes : Ref[Int]
   mut source_index : Int
@@ -55,8 +54,6 @@ priv struct MatchEdgesState {
   mut left_index : Int
   mut right_index : Int
   mut merge_index : Int
-  mut key_component : Int
-  mut key_comparison : @value.BoundedKeyComparison?
   mut copy_index : Int
   mut emit_index : Int
   mut column : Int
@@ -142,54 +139,18 @@ fn capped_match_edges_run_end(start : Int, width : Int, count : Int) -> Int {
 }
 
 ///|
-fn graph_edge_aliases(
-  graph : @carrier.Graph,
-) -> (@schema.FieldName?, @schema.FieldName?, @schema.FieldName?) {
-  match @carrier.graph_names(graph) {
-    Some(names) => {
-      let (_, source, target, label) = @carrier.graph_row_fields(names)
-      (Some(source), Some(target), label)
-    }
-    None => (None, None, None)
-  }
-}
-
-///|
-fn graph_edge_property_index(
-  graph : @carrier.Graph,
-  name : @schema.FieldName,
-) -> Int? {
-  let properties = @carrier.graph_edge_properties(graph)
-  for index in 0..<@carrier.field_count(properties) {
-    if @carrier.field_at(properties, index).unwrap().name == name {
-      return Some(index)
-    }
-  }
-  None
-}
-
-///|
-fn edge_predicate_field_count(graph : @carrier.Graph) -> Int {
-  graph_edge_predicate_binding_count(graph)
-}
-
-///|
 fn edge_predicate_binding(
   state : MatchEdgesState,
   edge : Int,
   index : Int,
 ) -> (String, @execution.Value)? {
-  if @lower.graph_match_property_scope_fields(state.prepared) is Some(fields) {
-    guard @carrier.field_at(fields, index) is Some(field) &&
-      field.contract is Some(contract) &&
-      match_edge_value(state, edge, field.name, contract) is Some(value) else {
-      return None
-    }
-    return Some(
-      (@schema.reference_name(field.name), @execution.capture(value.value)),
-    )
+  guard @lower.graph_match_property_scope_fields(state.prepared) is Some(fields) &&
+    @carrier.field_at(fields, index) is Some(field) &&
+    field.contract is Some(contract) &&
+    match_edge_value(state, edge, field.name, contract) is Some(value) else {
+    return None
   }
-  graph_edge_predicate_binding_read(state.graph, state.source, edge, index)
+  Some((@schema.reference_name(field.name), @execution.capture(value.value)))
 }
 
 ///|
@@ -211,47 +172,22 @@ fn match_edge_value(
   guard graph_read_edge_endpoints(state.source, edge) is Some((source, target)) else {
     return None
   }
-  if @lower.graph_match_property_definition(state.prepared) is Some(_) {
-    let checked = if @lower.graph_match_property_binding(
-        state.prepared,
-        "identity",
-      ) ==
-      Some(name) {
-      graph_read_edge_identity(state.source, edge)
-    } else if @lower.graph_match_property_binding(state.prepared, "source") ==
-      Some(name) {
-      graph_read_node_identity(state.source, source)
-    } else if @lower.graph_match_property_binding(state.prepared, "target") ==
-      Some(name) {
-      graph_read_node_identity(state.source, target)
-    } else {
-      property_match_field_index(state.prepared, name).bind(index => {
-        graph_read_edge_property(state.source, edge, index)
-      })
-    }
-    return checked.bind(value => {
-      @value.recheck_runtime_value(value.value, contract, state.value_limits)
-    })
-  }
-  let (source_alias, target_alias, label_alias) = graph_edge_aliases(
-    state.graph,
-  )
-  let checked = if source_alias == Some(name) {
+  let checked = if @lower.graph_match_property_binding(
+      state.prepared,
+      "identity",
+    ) ==
+    Some(name) {
+    graph_read_edge_identity(state.source, edge)
+  } else if @lower.graph_match_property_binding(state.prepared, "source") ==
+    Some(name) {
     graph_read_node_identity(state.source, source)
-  } else if target_alias == Some(name) {
+  } else if @lower.graph_match_property_binding(state.prepared, "target") ==
+    Some(name) {
     graph_read_node_identity(state.source, target)
-  } else if label_alias == Some(name) {
-    return match graph_read_edge_label(state.source, edge) {
-      Some(Some(label)) =>
-        @value.recheck_runtime_value(label.value, contract, state.value_limits)
-      Some(None) => @value.checked_null_value(contract)
-      None => None
-    }
   } else {
-    match graph_edge_property_index(state.graph, name) {
-      Some(property) => graph_read_edge_property(state.source, edge, property)
-      None => None
-    }
+    property_match_field_index(state.prepared, name).bind(index => {
+      graph_read_edge_property(state.source, edge, index)
+    })
   }
   checked.bind(value => {
     @value.recheck_runtime_value(value.value, contract, state.value_limits)
@@ -264,116 +200,24 @@ fn compare_selected_edges_step(
   left : Int,
   right : Int,
 ) -> Result[Int?, MatchEdgesIssue] {
-  if @lower.graph_match_property_definition(state.prepared) is Some(_) {
-    guard graph_read_edge_identity_order_key(state.source, left)
-      is Some(left_key) &&
-      graph_read_edge_identity_order_key(state.source, right) is Some(right_key) else {
-      return Err(MatchEdgesInputUnavailable)
-    }
-    return Ok(Some(@canonical.compare_utf16(left_key, right_key)))
-  }
-  guard graph_read_edge_endpoints(state.source, left)
-    is Some((left_source, left_target)) &&
-    graph_read_edge_endpoints(state.source, right)
-    is Some((right_source, right_target)) &&
-    graph_read_node_identity(state.source, left_source) is Some(left_source_id) &&
-    graph_read_node_identity(state.source, right_source)
-    is Some(right_source_id) &&
-    graph_read_node_identity(state.source, left_target) is Some(left_target_id) &&
-    graph_read_node_identity(state.source, right_target)
-    is Some(right_target_id) &&
-    graph_read_edge_label(state.source, left) is Some(left_label) &&
-    graph_read_edge_label(state.source, right) is Some(right_label) else {
+  guard graph_read_edge_identity_order_key(state.source, left) is Some(left_key) &&
+    graph_read_edge_identity_order_key(state.source, right) is Some(right_key) else {
     return Err(MatchEdgesInputUnavailable)
   }
-  while state.key_component < 3 {
-    if state.key_component == 2 && state.key_comparison is None {
-      match (left_label, right_label) {
-        (None, None) => {
-          state.key_component = 0
-          return Ok(Some(0))
-        }
-        (None, Some(_)) => {
-          state.key_component = 0
-          return Ok(Some(-1))
-        }
-        (Some(_), None) => {
-          state.key_component = 0
-          return Ok(Some(1))
-        }
-        _ => ()
-      }
-    }
-    let comparison = match state.key_comparison {
-      Some(value) => value
-      None => {
-        let (a, b) = match state.key_component {
-          0 => (left_source_id, right_source_id)
-          1 => (left_target_id, right_target_id)
-          _ =>
-            match (left_label, right_label) {
-              (Some(a), Some(b)) => (a, b)
-              _ => return Err(MatchEdgesInputUnavailable)
-            }
-        }
-        let started = if state.key_component < 2 {
-          @value.start_bounded_key_comparison(a, b)
-        } else {
-          @value.start_bounded_present_key_comparison(a, b)
-        }
-        let value = match started {
-          Ok(value) => value
-          Err(issue) => return Err(MatchEdgesKeyOrder(issue))
-        }
-        state.key_comparison = Some(value)
-        value
-      }
-    }
-    match @value.advance_bounded_key_comparison(comparison, 1) {
-      Ok(@value.KeyComparisonContinue(_)) => return Ok(None)
-      Ok(@value.KeyComparisonComplete(order~, ..)) => {
-        state.key_comparison = None
-        if order != 0 {
-          state.key_component = 0
-          return Ok(Some(order))
-        }
-        state.key_component += 1
-      }
-      Err(issue) => {
-        state.key_comparison = None
-        state.key_component = 0
-        return Err(MatchEdgesKeyOrder(issue))
-      }
-    }
-  }
-  state.key_component = 0
-  Ok(Some(0))
+  Ok(Some(@canonical.compare_utf16(left_key, right_key)))
 }
 
 ///|
 fn edge_matches_types(state : MatchEdgesState, edge : Int) -> Bool {
   state.type_probes.val += 1
-  if @lower.graph_match_property_definition(state.prepared) is Some(definition) {
-    if graph_read_edge_definition(state.source, edge) != Some(definition) {
-      return false
-    }
-    return match state.type_count {
-      None => true
-      Some(_) => state.property_type_match
-    }
+  guard @lower.graph_match_property_definition(state.prepared)
+    is Some(definition) &&
+    graph_read_edge_definition(state.source, edge) == Some(definition) else {
+    return false
   }
   match state.type_count {
     None => true
-    Some(0) => false
-    Some(_) =>
-      match graph_read_edge_label(state.source, edge) {
-        Some(Some(label)) =>
-          match label.value {
-            @value.Text(text) => state.type_index.contains(text)
-            _ => false
-          }
-        _ => false
-      }
+    Some(_) => state.property_type_match
   }
 }
 
@@ -454,7 +298,7 @@ fn match_edges_step(
             is Some(name) else {
             return @bounded.Failed(InvalidMatchEdgesKernel, progress, used)
           }
-          state.type_index[name] = true
+          ignore(name)
           if @lower.graph_match_property_definition(state.prepared)
             is Some(definition) &&
             @carrier.graph_property_definition(state.graph) is Some(profile) &&
@@ -701,9 +545,6 @@ fn cleanup_match_edges_state(state : MatchEdgesState) -> Bool {
   }
   state.selected = []
   state.scratch = []
-  state.key_component = 0
-  state.key_comparison = None
-  state.type_index = Map([])
   state.scratch_slots.val = 0
   state.values = []
   state.predicate_input.clear()
@@ -822,7 +663,9 @@ fn start_match_edges_read(
     ) &&
     @lower.sequence_step(sequence, step)
     is Some(@lower.GraphMatchStep(prepared)) &&
-    !@lower.graph_match_nodes(prepared) else {
+    !@lower.graph_match_nodes(prepared) &&
+    @lower.graph_match_property_definition(prepared) is Some(_) &&
+    @carrier.graph_property_definition(graph) is Some(_) else {
     return Err(InvalidMatchEdgesKernel)
   }
   let select_all = !@lower.graph_match_has_predicate(prepared) ||
@@ -840,7 +683,7 @@ fn start_match_edges_read(
   let predicate_fields = if predicate is Some(_) {
     match @lower.graph_match_property_scope_fields(prepared) {
       Some(fields) => @carrier.field_count(fields)
-      None => edge_predicate_field_count(graph)
+      None => return Err(InvalidMatchEdgesKernel)
     }
   } else {
     0
@@ -955,7 +798,6 @@ fn start_match_edges_read(
     phase: InitializeTypes,
     type_count,
     type_cursor: 0,
-    type_index: Map([]),
     property_type_match: false,
     type_probes,
     source_index: 0,
@@ -978,8 +820,6 @@ fn start_match_edges_read(
     left_index: 0,
     right_index: 0,
     merge_index: 0,
-    key_component: 0,
-    key_comparison: None,
     copy_index: 0,
     emit_index: 0,
     column: 0,

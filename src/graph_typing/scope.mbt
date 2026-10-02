@@ -30,7 +30,7 @@ pub fn check_scope(
       fail(source, WrongCarrier(@carrier.kind(input)))
     }
     if input is @carrier.GraphValue(graph) {
-      require_legacy_profile(graph, source)
+      reject_unconnected_graph_operation(graph, source)
     }
     let b : Budget = {
       limits,

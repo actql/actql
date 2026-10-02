@@ -1,8 +1,7 @@
 ///|
-/// Both profiles use the existing bounded session, Graph output builder and
-/// retention owner. Only the checked column interpretation differs.
+/// Current construction and snapshot reload share the existing bounded session,
+/// Graph output builder and retention owner. No historical tuple constructor.
 priv enum GraphConstructionState {
-  LegacyConstruction(RowsToGraphState)
   PropertyConstruction(PropertyGraphState)
   PropertySnapshotReload(PropertySnapshotState)
 }
@@ -54,8 +53,6 @@ fn graph_construction_step(
   reader : @bounded.Reader,
 ) -> @bounded.KernelStep[@graph.Completed, GraphBridgeIssue] {
   match state {
-    LegacyConstruction(value) =>
-      bounded_rows_to_graph_step(value, quantum, reader)
     PropertyConstruction(value) =>
       bounded_property_graph_step(value, quantum, reader)
     PropertySnapshotReload(value) =>
@@ -66,7 +63,6 @@ fn graph_construction_step(
 ///|
 fn cleanup_graph_construction_state(state : GraphConstructionState) -> Bool {
   match state {
-    LegacyConstruction(value) => cleanup_rows_to_graph_state(value)
     PropertyConstruction(value) => {
       if value.output is Some(output) {
         @graph.cancel_output(output) |> ignore

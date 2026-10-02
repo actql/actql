@@ -73,7 +73,7 @@ pub fn check_apply(
       @carrier.Opaque(GraphKind) => fail(source, IncompleteGraph)
       _ => fail(source, WrongCarrier(@carrier.kind(base)))
     }
-    require_legacy_profile(graph, source)
+    reject_unconnected_graph_operation(graph, source)
     let rows = match delta_rows {
       @carrier.Relation(r) => r
       _ => fail(target, WrongCarrier(@carrier.kind(delta_rows)))

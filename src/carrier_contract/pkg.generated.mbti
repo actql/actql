@@ -179,6 +179,7 @@ pub(all) enum Issue {
   InvalidProperties
   InvalidLabel(String)
   DuplicateLabel(String)
+  UnsupportedGraphProfile
 } derive(Eq, @debug.Debug)
 
 pub(all) enum Kind {

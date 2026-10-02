@@ -4,7 +4,7 @@
 /// records retain original typed key evidence as well as projected identity.
 /// Output drains are provisional bytes, never permission to publish.
 pub fn prepare_property(
-  contract : @graph.CheckedPropertyContract,
+  contract : @graph.CheckedContract,
   limits : Limits,
 ) -> Result[Builder, Issue] {
   if limits.max_bytes < 0 ||
@@ -30,13 +30,11 @@ pub fn prepare_property(
     Ok({
       writer,
       limits,
-      property_profile: true,
       phase: Nodes,
       previous_node: None,
       previous_edge: None,
       previous_property: None,
       edge_source: None,
-      edge_label: None,
     })
   } catch {
     _ => Err(EncodingLimit)
@@ -89,7 +87,7 @@ pub fn begin_property_node(
   identity : @value.CheckedValue,
   keys : Array[@value.CheckedValue],
 ) -> Result[Unit, Issue] {
-  if !builder.property_profile || builder.phase != Nodes {
+  if builder.phase != Nodes {
     return Err(InvalidPhase)
   }
   let key = match property_order_key(builder, identity) {
@@ -125,14 +123,14 @@ pub fn begin_property_edge(
   source : @value.CheckedValue,
   target : @value.CheckedValue,
 ) -> Result[Unit, Issue] {
-  if !builder.property_profile || builder.phase != Edges {
+  if builder.phase != Edges {
     return Err(InvalidPhase)
   }
   let key = match property_order_key(builder, identity) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  if builder.previous_edge is Some((previous, _, _)) &&
+  if builder.previous_edge is Some(previous) &&
     @canonical.compare_utf16(previous, key) >= 0 {
     return Err(InvalidEdgeOrder)
   }
@@ -149,7 +147,7 @@ pub fn begin_property_edge(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  builder.previous_edge = Some((key, "", ""))
+  builder.previous_edge = Some(key)
   builder.previous_property = None
   builder.edge_source = Some(source.value)
   builder.phase = EdgeProperties
@@ -158,9 +156,7 @@ pub fn begin_property_edge(
 
 ///|
 pub fn end_property_edge(builder : Builder) -> Result[Unit, Issue] {
-  if !builder.property_profile ||
-    builder.phase != EdgeProperties ||
-    builder.edge_source is None {
+  if builder.phase != EdgeProperties || builder.edge_source is None {
     return Err(InvalidPhase)
   }
   try {
@@ -178,7 +174,7 @@ pub fn end_property_edge(builder : Builder) -> Result[Unit, Issue] {
 
 ///|
 pub fn drain_property_output(builder : Builder) -> Result[String, Issue] {
-  if !builder.property_profile || builder.phase == Finished {
+  if builder.phase == Finished {
     return Err(InvalidPhase)
   }
   Ok(@encode.drain_hash_output(builder.writer)) catch {
@@ -190,7 +186,7 @@ pub fn drain_property_output(builder : Builder) -> Result[String, Issue] {
 /// Return the digest and final provisional suffix only after complete emission.
 /// The consumer must finish its existing storage/publication owner separately.
 pub fn finish_property(builder : Builder) -> Result[(String, String), Issue] {
-  if !builder.property_profile || builder.phase != Edges {
+  if builder.phase != Edges {
     return Err(InvalidPhase)
   }
   builder.phase = Finished

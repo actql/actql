@@ -12,14 +12,13 @@ struct CheckedPathContract {
 }
 
 ///|
-/// Legacy edges retain their pinned tuple law; keyed paths retain complete
-/// independent identities from the separately admitted Property Graph profile.
+/// Current paths retain complete independent node and edge identities.
 pub fn check_path_contract(
   kind : PathOutput,
   source : @decode.Cursor,
   input : @carrier.Carrier,
   limits : Limits,
-  property_paths? : Bool = false,
+  property_paths? : Bool = true,
 ) -> Result[CheckedPathContract, Issue] {
   try {
     if limits.max_work < 0 ||
@@ -40,11 +39,9 @@ pub fn check_path_contract(
       nodes: limits.max_nodes,
       text: limits.max_text_bytes,
     }
-    if property_paths && @carrier.graph_property_definition(g) is None {
-      fail(source, UnsupportedGraphProfile)
-    }
-    if !property_paths {
-      require_legacy_profile(g, source)
+    require_property_profile(g, source)
+    if !property_paths || kind != TraversedPaths {
+      fail(source, UnsupportedGraphOperation)
     }
     let id = @carrier.graph_identity(g)
     let number = @contract.primitive(NumberType, nullable=false)
@@ -55,30 +52,13 @@ pub fn check_path_contract(
       fields.push((Unqualified("depth"), Some(number)))
     } else {
       // New array/record wrappers, not the already admitted scalar ID contracts.
-      let wrappers = if property_paths { 2 } else { 3 }
+      let wrappers = 2
       if b.nodes < wrappers || limits.max_depth < 2 {
         fail(source, BudgetExceeded)
       }
       b.nodes -= wrappers
-      let edge = if property_paths {
-        spend(b, source, 2)
-        id
-      } else {
-        spend(b, source, 6)
-        for name in ["src", "dst", "rel"] {
-          charge(b, source, name)
-        }
-        @contract.object_contract(
-          [
-            ("src", id),
-            ("dst", id),
-            ("rel", @contract.primitive(StringType, nullable=true)),
-          ],
-          nullable=false,
-          max_fields=3,
-          max_name_bytes=9,
-        ).unwrap()
-      }
+      spend(b, source, 2)
+      let edge = id
       let node_ids = @contract.array_contract(id, nullable=false).unwrap()
       let edge_ids = @contract.array_contract(edge, nullable=false).unwrap()
       if kind == ShortestPaths {

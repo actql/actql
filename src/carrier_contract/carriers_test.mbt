@@ -88,67 +88,66 @@ test "unknown carriers retain kind and are not coerced into relation schemas" {
 }
 
 ///|
-test "graph label domains are owned canonical sets, not graph data evidence" {
+test "definition label domains are owned canonical sets, not graph data evidence" {
   let id = @value.primitive(StringType, nullable=false)
+  let empty = rows([], field_set=Closed, max_fields=0, max_name_bytes=0).unwrap()
   let labels = ["z", "a"]
-  let carrier = graph(
-    id,
-    unknown_rows(),
-    unknown_rows(),
-    labels=Some(labels),
-    max_labels=2,
-    max_label_bytes=2,
+  let definition = property_node_definition(
+    "N",
+    [id],
+    empty,
+    labels,
+    max_fields=2,
+    max_name_bytes=3,
   ).unwrap()
   labels.clear()
-  guard carrier is GraphValue(g) else { abort("graph kind") }
-  assert_eq(graph_labels(g).unwrap(), ["a", "z"])
-  let copy = graph_labels(g).unwrap()
+  assert_eq(property_definition_labels(definition), ["a", "z"])
+  let copy = property_definition_labels(definition)
   copy.clear()
-  assert_eq(graph_labels(g).unwrap(), ["a", "z"])
-  assert_true(complete_schema(graph_node_properties(g)) is None)
+  assert_eq(property_definition_labels(definition), ["a", "z"])
   assert_true(
-    graph(
-      id,
-      unknown_rows(),
-      unknown_rows(),
-      labels=Some(["a", "a"]),
-      max_labels=2,
-      max_label_bytes=2,
+    property_node_definition(
+      "N",
+      [id],
+      empty,
+      ["a", "a"],
+      max_fields=2,
+      max_name_bytes=3,
     )
-    is Err(DuplicateLabel("a")),
+    is Err(DuplicateLabel),
   )
   assert_true(
-    graph(
-      id,
-      unknown_rows(),
-      unknown_rows(),
-      labels=Some(["e\u{301}"]),
-      max_labels=1,
-      max_label_bytes=3,
+    property_node_definition(
+      "N",
+      [id],
+      empty,
+      ["e\u{301}"],
+      max_fields=1,
+      max_name_bytes=4,
     )
-    is Err(InvalidLabel(_)),
+    is Err(InvalidLabel),
   )
   assert_true(
-    graph(
-      id,
-      unknown_rows(),
-      unknown_rows(),
-      labels=Some(["a"]),
-      max_labels=0,
-      max_label_bytes=1,
+    property_node_definition(
+      "N",
+      [id],
+      empty,
+      ["a"],
+      max_fields=0,
+      max_name_bytes=2,
     )
     is Err(LimitExceeded),
   )
   assert_true(
     graph(
-      @value.with_nullability(id, true),
+      id,
       unknown_rows(),
       unknown_rows(),
       labels=None,
       max_labels=0,
       max_label_bytes=0,
     )
-    is Err(InvalidIdentity),
+    is Err(UnsupportedGraphProfile),
   )
 }
 

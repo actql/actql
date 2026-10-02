@@ -584,6 +584,7 @@ pub(all) enum IssueKind {
   InvalidCount
   IncompleteGraph
   UnsupportedGraphProfile
+  UnsupportedGraphOperation
   UnknownDeltaField(String)
   UntypedDeltaField(String)
   InvalidDeltaType
