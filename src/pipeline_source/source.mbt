@@ -13,6 +13,7 @@ struct Steps {
   source : @decode.Cursor
   expressions : Map[Int, @expression.Expression]
   annotations : Map[Int, Bool]
+  identifiers : Map[Int, String]
   work : Int
 }
 
@@ -35,9 +36,13 @@ fn spend(b : Budget, n : Int) -> Unit raise Stop {
 }
 
 ///|
-fn text(b : Budget, value : String) -> Unit raise Stop {
+fn text(
+  b : Budget,
+  value : String,
+  identifier? : Bool = false,
+) -> Unit raise Stop {
   spend(b, value.length())
-  if @canonical.normalize_nfc_lf(value) != Ok(value) {
+  if identifier && @canonical.normalize_nfc_lf(value) != Ok(value) {
     raise Stop(NonCanonicalText)
   }
 }
@@ -57,6 +62,7 @@ pub fn prepare(
   let source = @pipeline.source(@collection.pipeline(owner))
   let expressions : Map[Int, @expression.Expression] = Map([])
   let annotations : Map[Int, Bool] = Map([])
+  let identifiers : Map[Int, String] = Map([])
   try {
     let slots = @collection.expressions(owner)
     spend(b, @pipeline.expression_slot_count(slots))
@@ -88,6 +94,16 @@ pub fn prepare(
         let (name, child) = @decode.field_at(step, j).unwrap()
         if name == "meta" {
           annotations[@decode.tree_index(source, child).unwrap()] = true
+        } else if name == "from" || name == "as" {
+          // Only grammar-owned producer names; Values rows and literal strings
+          // are not identifier positions.
+          if @decode.text(child) is Ok(raw) {
+            match @canonical.normalize_nfc_lf(raw) {
+              Ok(value) =>
+                identifiers[@decode.tree_index(source, child).unwrap()] = value
+              Err(_) => raise Stop(NonCanonicalText)
+            }
+          }
         }
       }
     }
@@ -112,7 +128,7 @@ pub fn prepare(
         spend(b, n)
         for i in 0..<n {
           let (name, child) = @decode.field_at(cursor, i).unwrap()
-          text(b, name)
+          text(b, name, identifier=true)
           pending.push(child)
         }
       } else {
@@ -134,6 +150,7 @@ pub fn prepare(
       source,
       expressions,
       annotations,
+      identifiers,
       work: max_work - b.remaining,
     })
   } catch {
@@ -160,6 +177,8 @@ pub fn emit(
         let index = @decode.tree_index(steps.source, cursor).unwrap()
         if steps.expressions.get(index) is Some(expression) {
           @expression.emit_source(expression, writer)
+        } else if steps.identifiers.get(index) is Some(identifier) {
+          @encode.string_value(writer, identifier)
         } else if @decode.array_length(cursor) is Some(n) {
           @encode.begin_array(writer)
           pending.push(ArrayRest(cursor, 0, n))

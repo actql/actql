@@ -16,7 +16,7 @@ const canonical = v => Array.isArray(v) ? `[${v.map(canonical)}]`
     : JSON.stringify(v);
 const cid = v => 'sha256:' + createHash('sha256').update(canonical(v)).digest('hex');
 const currentCid =
-  'sha256:7e6ae70262de7974f1145a440bd06c2dd1c9c2f56e373676c89d4da3f257f356';
+  'sha256:21108cfa0ed73e4722f9199e494160fa24b17ad37f2807aa1a954316d15cea9d';
 const contractCid = 'sha256:1282c3d8af052606f64be809cead104630c67a8b676050bcdc7edd4a884b9b60';
 
 function resolve(body, selected, owner = aoa, expr = expressions) {

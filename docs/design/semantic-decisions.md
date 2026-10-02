@@ -57,6 +57,16 @@ order and partition-local order. Do not approximate a missing IR meaning in the
 frontend; identify the exact missing contract and coordinate with Compute or
 Host owners.
 
+Use the [standard-profile ledger](frontend-standard-profiles.md) to distinguish
+GoogleSQL, SQL/PGQ-derived mapping, GQL syntax evidence and ActQL extensions.
+Meaning preservation is relative to the applicable admitted contract pins; it
+does not freeze historical Program or kernel behavior against an adopted
+standard-alignment decision. A conflicting common meaning must change in its
+normative owner and dependent laws, schemas, pins and independent expectations.
+Do not hide that change in source spelling, a Frontend evaluator or a vendor
+procedure with a merely similar name. A supported subset and an implementation
+gap are different from an intentional semantic deviation.
+
 Limit terminology cleanup to the affected implementation. Internal renames are
 separate from wire or canonical-preimage changes. The latter require their
 schema, pins and independent fixtures to move together on the agreed version.

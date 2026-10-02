@@ -240,13 +240,13 @@ fn lex(
       if ch == '"' && text == "" {
         raise LexicalError(EmptyQuotedName, start, i)
       }
-      let normalized = match @canonical.normalize_nfc_lf(text) {
-        Ok(value) => value
-        Err(_) => raise LexicalError(InvalidUnicode, start, i)
-      }
       if ch == '\'' {
-        StringLiteral(normalized)
+        StringLiteral(text)
       } else {
+        let normalized = match @canonical.normalize_nfc_lf(text) {
+          Ok(value) => value
+          Err(_) => raise LexicalError(InvalidUnicode, start, i)
+        }
         QuotedName(normalized)
       }
     } else if ch == '$' {

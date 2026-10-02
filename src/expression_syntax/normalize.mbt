@@ -47,6 +47,7 @@ fn finish(
             }
           }
         } else {
+          canonical(name, cursor, origin)
           // Quotation suppresses lexical qualifier recognition, not this
           // whole-field alias normalization shared by text and structured input.
           if name.has_prefix("left.") || name.has_prefix("right.") {
@@ -210,10 +211,12 @@ fn finish(
       }
       if tag == "join_field" || tag == "property" {
         match part(value, "name") {
-          Some({ value: @map.String(name), .. }) =>
+          Some({ value: @map.String(name), .. }) => {
+            canonical(name, cursor, origin)
             if !field_name(name) {
               invalid(cursor, origin, InvalidName(name))
             }
+          }
           _ => invalid(cursor, origin, InvalidArguments)
         }
       }

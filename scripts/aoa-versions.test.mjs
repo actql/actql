@@ -42,3 +42,17 @@ test('renamed Effect law must be present even if the manifest pin is recomputed'
   value.contract.pipeline_law_manifest_cid = machineCid(value.bodies.pipeline);
   assert.throws(() => checkDependencies(value), /Missing Effect law/);
 });
+
+// Historical manifests are preserved as evidence of a different contract,
+// never re-pinned or interpreted as the current value-preservation law.
+test('old String law pins cannot admit current bodies', () => {
+  for (const [member, old] of [
+    ['kernel_law_manifest_cid', 'sha256:5a79d6cb9b012d0c3871c72e496eec7183948ac81d8ebff91b4f7ee6a59ae19d'],
+    ['rela_scalar_law_manifest_cid', 'sha256:a866ed224e15da7e25b45d4e166b25b6bd6749a31bd7dfacb185391ad3f80122'],
+  ]) {
+    const dependencies = loadDependencies();
+    dependencies.contract[member] = old;
+    assert.throws(() => checkDependencies(dependencies), /law body CID/);
+    assert.equal(dependencies.contract[member], old, 'no implicit pin repair');
+  }
+});

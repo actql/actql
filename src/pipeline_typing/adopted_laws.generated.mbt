@@ -4,7 +4,7 @@
 pub fn adopted_operation_law_cid(law : AdoptedOperationLaw) -> String {
   match law {
     RelaScalar =>
-      "sha256:a866ed224e15da7e25b45d4e166b25b6bd6749a31bd7dfacb185391ad3f80122"
+      "sha256:5afa312c0fa9b1e5620bc3556b17aa8da9e50646097ab84a2c04aa8a24575574"
     RelaPrimitive =>
       "sha256:a4ab8487ef731512c3daefa5bed078703336dc52ca268ef4cb7127145f0f2ade"
     SgaStructural =>

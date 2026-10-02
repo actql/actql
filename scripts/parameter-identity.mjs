@@ -92,7 +92,8 @@ export function project(type, value) {
     assert.equal(pairs.length, fields.size);
     return pairs.some(([k]) => k === marker) ? { [marker]: ['object', pairs] } : Object.fromEntries(pairs);
   }
-  return typeof value === 'string' ? normalize(value) : value;
+  if (typeof value === 'string') assert.ok(value.isWellFormed());
+  return value;
 }
 
 export function projectedBody(declarations, supplied) {

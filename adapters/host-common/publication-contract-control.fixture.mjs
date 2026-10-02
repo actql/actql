@@ -46,7 +46,8 @@ export function canonicalJson(value, path = '$') {
     return JSON.stringify(value);
   }
   if (typeof value === 'string') {
-    return JSON.stringify(normalizedText(value, path));
+    if (!value.isWellFormed()) fail('InvalidCanonicalText', path);
+    return JSON.stringify(value);
   }
   if (Array.isArray(value)) {
     return `[${value.map((item, index) =>

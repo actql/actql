@@ -18,14 +18,14 @@ test "large canonical CID matches text serialization without changing preimages"
 }
 
 ///|
-test "normalization and ordering precede canonical emission" {
+test "key normalization and ordering do not change string data" {
   let input = @json.parse(
     "{\"2\":\"e\\u0301\\r\\n\",\"10\":\"x\\ry\",\"z\":null,\"a\":true}",
   )
   let value = @canonical_json.from_json(input, 5, 1, 20)
   assert_eq(
     @canonical_json.stringify_value(value, 100, 5, 1),
-    "{\"10\":\"x\\ny\",\"2\":\"é\\n\",\"a\":true,\"z\":null}",
+    "{\"10\":\"x\\ry\",\"2\":\"e\u0301\\r\\n\",\"a\":true,\"z\":null}",
   )
 }
 
@@ -38,7 +38,7 @@ test "strict source trees use the same canonical owner and object projection" {
   let value = @canonical_json.from_source(node, 4, 1, 20)
   assert_eq(
     @canonical_json.stringify_value(value, 100, 4, 1),
-    "{\"identity\":\"old\",\"z\":2,\"é\":\"x\\n\"}",
+    "{\"identity\":\"old\",\"z\":2,\"é\":\"x\\r\\n\"}",
   )
   assert_eq(@canonical_json.object_field_count(value), Some(3))
   assert_eq(
@@ -57,7 +57,7 @@ test "strict source trees use the same canonical owner and object projection" {
   }
   assert_eq(
     @canonical_json.stringify_value(complete, 100, 4, 1),
-    "{\"identity\":\"new\",\"z\":2,\"é\":\"x\\n\"}",
+    "{\"identity\":\"new\",\"z\":2,\"é\":\"x\\r\\n\"}",
   )
   assert_true(
     @canonical_json.object_with_string_field(value, "identity", "new") is None,
@@ -122,7 +122,7 @@ test "input node depth and raw UTF16 budgets have exact boundaries" {
   let admitted = @canonical_json.from_json(input, 3, 2, 6)
   assert_eq(
     @canonical_json.stringify_value(admitted, 100, 3, 2),
-    "{\"é\":[\"😀\\n\"]}",
+    "{\"é\":[\"😀\\r\\n\"]}",
   )
   for
     limits in [
@@ -158,13 +158,13 @@ test "input node depth and raw UTF16 budgets have exact boundaries" {
 }
 
 ///|
-test "raw input units and normalized output bytes are independent" {
-  // NFC expands U+0344 into two combining scalars.
+test "raw input units and retained output bytes are independent" {
+  // U+0344 stays one scalar; it is not implicitly decomposed.
   let value = @canonical_json.from_json(Json::string("\u0344"), 1, 0, 1)
-  assert_eq(@canonical_json.stringify_value(value, 6, 1, 0), "\"\u0308\u0301\"")
-  assert_eq(@canonical_json.measure_value(value, 6, 1, 0), 6)
+  assert_eq(@canonical_json.stringify_value(value, 4, 1, 0), "\"\u0344\"")
+  assert_eq(@canonical_json.measure_value(value, 4, 1, 0), 4)
   let rejected = try {
-    ignore(@canonical_json.stringify_value(value, 4, 1, 0))
+    ignore(@canonical_json.stringify_value(value, 3, 1, 0))
     false
   } catch {
     @encode.OutputLimit => true

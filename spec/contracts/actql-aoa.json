@@ -1,7 +1,7 @@
 {
   "version": "actql-aoa-contract/0.1",
   "kernel_law_manifest": "aoa-kernel-laws/0.1",
-  "kernel_law_manifest_cid": "sha256:5a79d6cb9b012d0c3871c72e496eec7183948ac81d8ebff91b4f7ee6a59ae19d",
+  "kernel_law_manifest_cid": "sha256:62c052d6afb178a08620019253b091c83fc54f7c6d0f32c05b269a06c194a264",
   "pipeline_ir_version": "aoa-pipeline/0.1",
   "event_identity_contract": {
     "domain": "complete_non_null_KeyComparable",
@@ -19,14 +19,14 @@
   "expression_contract_cid": "sha256:399d4593f8212a2239a0a3e3ca552653ad711010a180207f967cf546012fc1cb",
   "pipeline_law_manifest": "aoa-pipeline-laws/0.1",
   "pipeline_law_manifest_cid": "sha256:587ab651a11c93172b597234f849d732319f61490fbb59d3d8841436e1e842dc",
-  "rela_scalar_law_manifest_cid": "sha256:a866ed224e15da7e25b45d4e166b25b6bd6749a31bd7dfacb185391ad3f80122",
+  "rela_scalar_law_manifest_cid": "sha256:5afa312c0fa9b1e5620bc3556b17aa8da9e50646097ab84a2c04aa8a24575574",
   "rela_primitive_law_manifest_cid": "sha256:a4ab8487ef731512c3daefa5bed078703336dc52ca268ef4cb7127145f0f2ade",
   "veca_numeric_law_manifest_cid": "sha256:926c086c2ea57e49102ca5dfb724c851fa7fc148370a0bdf8363457fe5fcd004",
   "sga_structural_law_manifest_cid": "sha256:1426ea2ceaffc511c0540eba706a5ece132a3df5ee3948702edce7e833fc60df",
   "sga_identity_law_manifest_cid": "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4",
   "property_graph_law_manifest_cid": "sha256:663bbb3096723cb38face189087f79ab37e9b7d34ec994937b3bff8334c405b1",
   "pipeline_registry_file": "spec/dependencies/aoa-pipeline-registry.json",
-  "pipeline_registry_cid": "sha256:7e6ae70262de7974f1145a440bd06c2dd1c9c2f56e373676c89d4da3f257f356",
+  "pipeline_registry_cid": "sha256:21108cfa0ed73e4722f9199e494160fa24b17ad37f2807aa1a954316d15cea9d",
   "target_module_contract_cid": "sha256:ae21e53e9cd0727435f707f49efb2ffc9fa1665abda9adde0ff57312265e06e1",
   "local_family_execution_profile": {
     "version": "actql-local-family-execution/0.1",
@@ -106,7 +106,7 @@
       "output": "relation",
       "execution_contract": {
         "pointer": "/execution_contracts/REL.values",
-        "cid": "sha256:9dec7cf1abedfb23b0af130ec5e25c7442d28c205a94cad0218b2f5982d44b44"
+        "cid": "sha256:9b716536b27d313e93deadae776d9abf21c3d06dcd653d2eb3b74e0c276a182b"
       }
     },
     "REL.except_rows": {
@@ -1297,6 +1297,9 @@
         "business_objects": "never_reinterpret_param_or_literal_members",
         "row_fields": "exact_declared_set_including_nullable_fields",
         "values": "recursive_declared_type_admission_without_cast_repair_or_rounding",
+        "strings": "preserve_well_formed_unicode_scalar_sequence_without_NFC_or_line_break_repair",
+        "object_member_names": "NFC_then_LF_reject_noncanonical_names_and_collisions",
+        "string_extents": "retained_unicode_scalars_and_UTF8_bytes",
         "decimal": "canonical_fixed_scale_string_under_declared_precision_and_scale",
         "empty_rows": "retain_declared_schema",
         "row_order": "retain_occurrence_order",

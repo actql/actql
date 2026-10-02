@@ -157,16 +157,53 @@ test('INFER and NEAREST source lowering do not claim executed KEEP outcomes', ()
   assert.match(fx03.expectation, /reject unknown fields/u);
 });
 
-test('independent fixtures and existing CID oracles retain their baseline bytes', () => {
+test('independent fixtures and historical CID oracles retain their baseline bytes', () => {
   assert.match(baseline.base_sha, /^[a-f0-9]{40}$/u);
   assert.deepEqual(baseline.toolchain, json('toolchain.json'));
   for (const fixture of [...baseline.fixtures, ...baseline.existing_identity_oracles]) {
-    assert.equal(hash(read(fixture.path)), fixture.sha256, fixture.path);
+    // PR-0 is frozen. Its old String-normalizing oracle remains byte-for-byte
+    // available, while the active corpus follows the adopted exact-value law.
+    const path = fixture.path === 'portability/corpus/parameter-identities.json'
+      ? 'spec/frontend/historical/parameter-identities-pr0.json' : fixture.path;
+    assert.equal(hash(read(path)), fixture.sha256, fixture.path);
   }
   for (const fixture of baseline.fixtures) {
     const imported = baseline.adopted_source.files.find(
       file => file.name === fixture.path.replace('spec/frontend/fixtures/', 'examples/'));
     assert.equal(fixture.sha256, imported.sha256);
     assert.equal(fixture.execution_status, 'not_run');
+  }
+});
+
+test('exact String parameter vectors preserve every unrelated historical expectation', () => {
+  const old = json('spec/frontend/historical/parameter-identities-pr0.json');
+  const current = json('portability/corpus/parameter-identities.json');
+  assert.equal(current.version, old.version);
+  const revised = new Set(['ordinary-values', 'utf16-field-order']);
+  for (const [i, original] of old.cases.entries()) {
+    const actual = current.cases[i];
+    if (!revised.has(original.id)) {
+      assert.deepEqual(actual, original, original.id);
+      continue;
+    }
+    const {expected_canonical_json: oldBytes, expected_cid: _oldCid, ...input} = original;
+    const {expected_canonical_json: bytes, expected_cid: cid, ...actualInput} = actual;
+    assert.deepEqual(actualInput, input);
+    // Independently selected CRLF values were formerly converted to LF.
+    assert.equal(bytes, oldBytes.replaceAll('\\n', '\\r\\n'));
+    assert.equal(cid, 'sha256:' + hash(Buffer.from(bytes, 'utf8')));
+  }
+  const strings = [
+    ['CR', '\r'], ['LF', '\n'], ['CRLF', '\r\n'],
+    ['composed', '\u00e9'], ['decomposed', 'e\u0301'], ['backslash-n', '\\n'],
+  ];
+  assert.equal(current.cases.length, old.cases.length + strings.length);
+  for (const [i, [name, value]] of strings.entries()) {
+    const bytes = JSON.stringify({values: {s: value}, version: 'actql-parameter-values/0.1'});
+    assert.deepEqual(current.cases[old.cases.length + i], {
+      id: `preserved-string-${name}`, declarations: {s: {type: 'string'}},
+      supplied: {s: value}, expected_canonical_json: bytes,
+      expected_cid: 'sha256:' + hash(Buffer.from(bytes, 'utf8')),
+    });
   }
 });

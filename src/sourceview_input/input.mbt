@@ -76,11 +76,14 @@ fn nonempty(at : @decode.Cursor) -> String raise Stop {
   if text.is_empty() {
     raise Stop(InvalidValue(at))
   }
-  text
+  match @canonical.normalize_nfc_lf(text) {
+    Ok(name) => name
+    Err(_) => raise Stop(InvalidValue(at))
+  }
 }
 
 ///|
-// Source owns normalized, scalar-valid JSON. Visit nested data only to account
+// Source owns scalar-valid, scalar-valid JSON. Visit nested data only to account
 // for work; neither metadata nor request business data is executable syntax.
 fn preflight(at : @decode.Cursor, b : Budget) -> Unit raise Stop {
   let pending = [at]

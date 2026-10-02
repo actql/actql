@@ -7,7 +7,7 @@ fn bounded_global_count_fixture(
   unused_text? : Bool = false,
   text_key? : Bool = false,
   admitted_source? : Bool = false,
-  noncanonical_raw_text? : Bool = false,
+  malformed_raw_text? : Bool = false,
   input_values? : ValueLimits = run_limits().input_values,
   output_values? : ValueLimits = run_limits().output_values,
   max_work? : Int = 100,
@@ -70,11 +70,11 @@ fn bounded_global_count_fixture(
       @pipeline.Step(0),
     ).unwrap()
   }
-  if noncanonical_raw_text {
+  if malformed_raw_text {
     guard source.table is Some(RowTable(table)) else {
       fail("expected raw RowTable source")
     }
-    table.rows[0][0] = Text("e\u{0301}")
+    table.rows[0][0] = Text(String::from_array([(0xd800).unsafe_to_char()]))
   }
   let producer = @pipeline.produced_input(
     @lower.pipeline(@lower.bound_preparation(source_owner)),
@@ -642,12 +642,12 @@ test "bounded count stops inside long output key measurement" {
 }
 
 ///|
-test "raw row table text still requires canonical admission" {
+test "raw row table text still requires well-formed Unicode admission" {
   let (_, execution, source) = bounded_global_count_fixture(
     long_count_key_rows(1),
     keyed=true,
     text_key=true,
-    noncanonical_raw_text=true,
+    malformed_raw_text=true,
   )
   let mut failed = false
   for _ in 0..<100 {
@@ -655,7 +655,10 @@ test "raw row table text still requires canonical admission" {
       match advance_bounded_global_count(execution, 1).unwrap() {
         BoundedGlobalCountContinue(..) => ()
         BoundedGlobalCountFailed(Rows(InvalidRows), ..) => failed = true
-        _ => fail("noncanonical raw text escaped output admission")
+        // Invalid UTF-16 is rejected during input-byte admission, before
+        // output capture can publish it.
+        BoundedGlobalCountFailed(InputLimit, ..) => failed = true
+        _ => fail("malformed raw text escaped admission")
       }
     }
   }

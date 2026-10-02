@@ -14,8 +14,8 @@ test('Stage canonical identity dependency matches the adopted kernel manifest', 
   assert.ok(source.includes(`CanonicalIdentityRules => "${cid}"`));
 });
 
-test('canonical reference normalizes text, sorts UTF16 keys and rejects collisions', () => {
-  assert.equal(canonicalText({ '\ue000': 1, '😀': 2, a: 'e\u0301\r\n' }), '{"a":"é\\n","😀":2,"":1}');
+test('canonical reference preserves string data, normalizes keys and rejects collisions', () => {
+  assert.equal(canonicalText({ '\ue000': 1, '😀': 2, a: 'e\u0301\r\n' }), '{"a":"e\u0301\\r\\n","😀":2,"":1}');
   assert.throws(() => canonicalText({ é: 1, 'e\u0301': 2 }));
   assert.throws(() => canonicalText({ 'a\r': 1, 'a\n': 2 }));
   for (const invalid of [NaN, Infinity, -Infinity, -0, '\ud800', '\udfff']) {

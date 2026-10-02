@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
+import {valuesUnitIdentity, acquiredUnitIdentities} from
+  '../../scripts/fixtures/string-contract-identities.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {valuesPublicationOracle} from '../../scripts/client-values-dependency-oracle.mjs';
 import {tasksDependencyOracle} from '../../scripts/client-tasks-dependency-oracle.mjs';
@@ -35,6 +37,25 @@ const grammar = JSON.parse(await read('../../spec/manifests/actql-grammar-0.1.js
 const aoa = hash(JSON.parse(await read('../../spec/contracts/actql-aoa.json')));
 const seal = (body, field) => ({...body, [field]: hash(body)});
 const expectedPlans = {};
+const rebound = (value, substitutions) => {
+  if (typeof value === 'string') {
+    for (const [old, next] of substitutions) value = value.replaceAll(old, next);
+    return value;
+  }
+  if (Array.isArray(value)) return value.map(v => rebound(v, substitutions));
+  if (!value || typeof value !== 'object') return value;
+  const result = Object.fromEntries(Object.entries(value).map(([k,v]) =>
+    [k, rebound(v, substitutions)]));
+  const self = { 'actql-bound-witness/0.1': 'witness_cid',
+    'actql-resolved-limit/0.1': 'resolved_limit_cid',
+    'actql-execution-limit-binding/0.1': 'binding_cid' }[value.version];
+  if (self) {
+    const {[self]: ignored, ...body} = result;
+    result[self] = hash(body);
+    substitutions.set(value[self], result[self]);
+  }
+  return result;
+};
 for (const kind of ['values', 'tasks']) {
   const baseline = JSON.parse(await read(`./fixtures/${kind}-compiled-plan-baseline.json`));
   const verify = (body, field) => {
@@ -58,8 +79,12 @@ for (const kind of ['values', 'tasks']) {
       prior.resultPlan);
     executable.resolved_limits = current.limits;
     executable.limit_bindings = current.bindings;
-    executable.bound_witnesses = [current.limits[0].candidates[1],
-      current.limits[0].candidates[0], current.limits[1].candidates[0]];
+    // Bound witnesses retain their semantic roles; sorted limit candidates
+    // need not place the Host ceiling before the Program proof.
+    executable.bound_witnesses = [
+      current.limits[0].candidates.find(candidate => candidate.role === 'proven_upper_bound'),
+      current.limits[0].candidates.find(candidate => candidate.role === 'host_ceiling'),
+      current.limits[1].candidates[0]];
     executable.execution_material.result_plan_logical_cids = {answer: current.resultPlan};
   } else {
     const prior = tasksDependencyOracle({legacy: true});

@@ -330,7 +330,8 @@ fn nfc_quick_check(value : String) -> Result[Bool, TextNormalizationError] {
 ///|
 /// Returns -1, 0 or 1 in raw UTF-16 code-unit order.
 /// This does not validate or normalize either input. ActQL semantic ordering
-/// requires callers to validate and NFC-normalize both strings first.
+/// requires well-formed String values. Identifier callers additionally apply
+/// their own NFC/LF rules; data values are compared without normalization.
 pub fn compare_utf16(left : String, right : String) -> Int {
   let common = if left.length() < right.length() {
     left.length()
@@ -354,4 +355,31 @@ pub fn compare_utf16(left : String, right : String) -> Int {
   } else {
     0
   }
+}
+
+///|
+/// Validate Unicode scalars without normalizing data. Callers bound input
+/// before this linear, allocation-free scan. Identifier admission uses the
+/// separate normalize_nfc_lf operation.
+pub fn validate_scalar_text(
+  value : String,
+) -> Result[Unit, TextNormalizationError] {
+  let mut index = 0
+  while index < value.length() {
+    let unit = value[index].to_int()
+    if unit >= 0xD800 && unit <= 0xDBFF {
+      if index + 1 >= value.length() {
+        return Err(UnpairedSurrogate(index))
+      }
+      let low = value[index + 1].to_int()
+      if low < 0xDC00 || low > 0xDFFF {
+        return Err(UnpairedSurrogate(index))
+      }
+      index += 1
+    } else if unit >= 0xDC00 && unit <= 0xDFFF {
+      return Err(UnpairedSurrogate(index))
+    }
+    index += 1
+  }
+  Ok(())
 }

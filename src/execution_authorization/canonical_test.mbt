@@ -73,8 +73,8 @@ test "non-canonical wire order is rejected with its location" {
 
 ///|
 test "identifiers are compared as NFC canonical text" {
-  // The JSON source decoder admits every string as NFC/LF canonical text, so
-  // a wire value is ordered and identified by its normalized form.
+  // The account identifier reader canonicalizes its own identifier positions;
+  // generic String values are not normalized.
   let decomposed = canonical_config.replace(old="\"mail\"", new="\"n\u{0303}\"")
   let composed = canonical_config.replace(old="\"mail\"", new="\"\u{F1}\"")
   assert_eq(

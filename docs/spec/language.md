@@ -312,12 +312,16 @@ round-to-nearest, ties-to-even; overflow and negative zero are rejected.
 Thus YAML `yes`, `on`, and `2026-09-06` are strings, `01` is number 1, and
 `1e3` is number 1000. JSON does not admit `01` as a number token.
 
-Source decoding, including builder-provided JSON-model values, normalizes
-strings and keys under the AoA Kernel law: NFC, then CRLF and lone CR to LF.
-This includes line breaks inside string values, not just file layout.
-Colliding keys after normalization are rejected. Semantic checking consumes
-that canonical model; admission of a purportedly canonical machine artifact
-rejects noncanonical values rather than repairing its signed or hashed bytes.
+Source decoding interprets the selected source syntax's escapes and, for YAML,
+its scalar folding/chomping. The resulting well-formed Unicode string values are
+preserved exactly, including CR, LF, CRLF and composed/decomposed sequences.
+Builder-provided JSON-model strings already are values and receive no second
+escape interpretation. Object member names use the separate identifier rule:
+Unicode 16.0 NFC, then CRLF and lone CR to LF; colliding names are rejected.
+Identifier-valued members are admitted by their grammar-owned identifier rules,
+not by normalization of every String. Admission of a purportedly canonical
+machine artifact rejects noncanonical identifiers or bytes rather than repairing
+signed or hashed material. A data string need not be NFC or LF-normalized.
 
 <a id="document-structure"></a>
 
@@ -715,7 +719,7 @@ The primitive value domains are:
 <!-- requirement-block: value-contracts.type-value-domain-string-unicode -->
 | Type | Value domain |
 | --- | --- |
-| `string` | Unicode strings in the pinned Unicode 16.0 NFC form. |
+| `string` | Well-formed Unicode scalar sequences, preserved without implicit normalization or line-break conversion. |
 | `number` | Finite IEEE-754 binary64; negative zero is invalid in canonical source. |
 | `boolean` | `true` or `false`. |
 | `decimal` | Precision, scale, and exact base-10 coefficient ([Exact decimal values](#decimal-values)). |
@@ -778,8 +782,8 @@ Unknown or wrong-type members are rejected. Array `max_items` is a
 non-negative safe integer, including zero; it constrains admitted values,
 unlike an operation guard over measured work ([Author guards, resolved limits, and Plan facts](#resolved-limits)). Checked string extents
 are non-negative safe integers and do not become author syntax.
-`min_length` and `max_codepoints` count Unicode scalar values after canonical
-string normalization; `max_utf8_bytes` counts the normalized UTF-8 bytes.
+`min_length` and `max_codepoints` count Unicode scalar values in the retained
+string; `max_utf8_bytes` counts that value's UTF-8 bytes before JSON escaping.
 Neither counts grapheme clusters or UTF-16 code units.
 
 Type equality and compatibility use the following common relations:
@@ -975,8 +979,9 @@ existing rule permits deferred type validation, the Plan MUST retain the
 before evaluating the ordering operation. This rule permits no new deferral
 and never authorizes reference ordering.
 
-Every lexicographic ordering in this specification uses the AoA canonical NFC-normalized
-UTF-16 code-unit order. Locale collation and Unicode code-point order are not
+Every lexicographic ordering in this specification uses UTF-16 code-unit order
+on the admitted values. String data is not normalized for comparison; identifier
+names retain their separate NFC/LF admission contract. Locale collation and Unicode code-point order are not
 permitted alternatives. Connector references are non-empty UTF-8 strings whose
 normalized spelling is identity-bearing. Author-facing Mapping Contract
 references use the typed-qualified closed ASCII grammar in [Mapping contracts](protocols/contracts.md#mapping-contracts). They are not
@@ -1746,7 +1751,7 @@ rules and therefore produces null. Parameters and nested expressions are not
 template placeholders; authors use the ordinary explicit expression grammar
 when those are required.
 
-String normalization is Unicode-preserving and locale-independent. `replace`
+Explicit String transformations follow their declared Unicode and locale-independent laws; ordinary String values are preserved. `replace`
 is literal substring replacement, not regex. `date_add` and `date_diff`
 require an explicit unit from `ms|s|m|h|d`; calendar-month or timezone guesses
 are not admitted in 0.1. Their forms are
@@ -1775,7 +1780,7 @@ The conversion/boundary truth table is normative:
 | `to_number(string)` | canonical decimal grammar `-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?`; no trim, hex, NaN, or Infinity; otherwise fail |
 | `to_boolean(string)` | exactly case-sensitive `true` or `false`; no trim; otherwise fail |
 | `to_string(number)` | AoA canonical number spelling |
-| `to_string(string)` | unchanged canonical string |
+| `to_string(string)` | unchanged String value |
 | `to_string(decimal)` | fixed-scale canonical decimal text |
 | `to_string(boolean)` | `true` or `false` |
 | `to_string(timestamp)`, `to_string(date)` | unchanged canonical temporal spelling |
@@ -1871,7 +1876,7 @@ timestamp.
 <!-- requirement-block: scalar-expressions.lower-upper-use-unicode-16-0-default-mappings-a-runtime-without-exactly -->
 String value and ordering rules are defined in [Carriers, values, and types](#values-and-types). `len`
 counts Unicode scalar values; `trim` removes only U+0009..U+000D and U+0020;
-`contains` is case-sensitive exact normalized matching; `like` is
+`contains` is case-sensitive exact retained-value matching; `like` is
 case-sensitive with `%`, `_`, and backslash escape; `replace` is
 non-overlapping left-to-right and an empty search is a no-op. `lower`/`upper`
 use Unicode 16.0 default mappings; a runtime without exactly those tables MUST
@@ -2658,8 +2663,10 @@ Unicode scalar.
 | `substring`: negative length, non-integer/unsafe start or length | evaluation failure |
 | either function: any null operand | null, after eager operand evaluation |
 
-All returned strings undergo canonical normalization. No locale, collation,
-provider, or Host compatibility mode changes these rules. The admitted
+Returned strings retain the operation's resulting scalar sequence without
+implicit NFC or line-break conversion. Explicit normalization/case-folding
+operations keep their separately pinned laws. No locale, collation, provider,
+or Host compatibility mode changes these rules. The admitted
 overload is the displayed fixed arity; SQL regex-substring overloads are not added.
 
 ```yaml
@@ -8185,11 +8192,12 @@ parameters are not evaluated or substituted by the REL.values executor.
 The execution boundary MUST verify each row's exact declared field set and
 recursive value/type compliance without implicit casts, filling, normalization
 repair or rounding, before publishing any output. Nullable permits null, not
-omission. Strings and keys are well-formed NFC followed by LF canonical text;
-numbers are finite binary64 and not negative zero. Decimal is canonical
+omission. String values are well-formed Unicode and are retained exactly;
+object member names satisfy the separate NFC-then-LF identifier contract.
+Numbers are finite binary64 and not negative zero. Decimal is canonical
 fixed-scale JSON string text under its declared precision/scale, not a number,
 coefficient object or typed-identity projection. Date and timestamp use their
-existing canonical text, arrays are ordered wire arrays, objects are exact
+their existing domain-specific canonical text, arrays are ordered wire arrays, objects are exact
 field maps, and vectors retain admitted finite numeric components without an
 extra quantization step here. Schema validation covers closed shape and checked
 type syntax; schema-to-row agreement, canonical text, numeric domains, calendar
@@ -9013,7 +9021,8 @@ bind delivered bytes. Result byte hashes belong to the delivery receipt defined
 in [Result delivery](protocols/artifacts.md#result-delivery).
 
 ActQL semantic identities use that pinned AoA Kernel canonical JSON contract: Unicode
-strings and object keys are normalized at the boundaries specified in [Source representation](#source-representation); object
+string values are preserved and object member names are normalized at the
+boundaries specified in [Source representation](#source-representation). Object
 keys are ordered by canonical code units, finite numbers use the AoA normalized
 number spelling, and negative zero is invalid. The ActQL CID is SHA-256 over the
 UTF-8 canonical serialization of its semantic envelope. Formatting, source key
@@ -9719,7 +9728,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:072c1c6e630f683e41a1c814b3a000d0544506ae25c5d89210fa8982ff73c5ff
+../../spec/contracts/actql-aoa.json# sha256:2a06d014da3ce71fc643f995bf0d0acc2b296fdbeb9016dca935539b6cbe8ade
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:7c14b2a994a8d2ff84e5bf42ee59f0ccfff728982d693426f210b4779d7dac23
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/artifact_ref sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55

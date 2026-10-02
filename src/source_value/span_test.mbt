@@ -30,7 +30,7 @@ test "BOM tabs CRLF and supplementary scalars retain original source coordinates
     end_column: 14,
     source_path: "example.aql",
   })
-  assert_true(fields[0].value.value is String("é"))
+  assert_true(fields[0].value.value is String("e\u0301"))
   assert_eq(fields[1].value.span.start_line, 3)
   assert_eq(fields[1].value.span.start_column, 5)
   let from_bytes = parse_json_bytes(

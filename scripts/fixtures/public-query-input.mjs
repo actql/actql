@@ -10,7 +10,137 @@ export const sourceRows = [
 const declarations = {minimum: {type: 'number'}};
 const relationNumber = (name, nullable = false) => ({name,
   contract: {type: 'number', nullable}});
+// Hand-authored tap expectations: each Result retains the Relation at its
+// own point, including duplicates, NULLs and declared column order.
+// The pinned carrier_schema in query-amount-environment.json declares
+// amount before id. Plain FROM retains that order, independently of the
+// insertion order of keys in the sourceRows objects above.
+const sourceColumns = [relationNumber('amount', true), relationNumber('id')];
+export const pipeResultSuccesses = [
+  {name: 'result-exact-string-prefix', format: 'sql',
+    text: "SELECT r'\\n' 'e\\u0301' AS value |> RESULT original |> SET value = '\\r\\néx' |> RESULT updated",
+    results: {
+      original: {rows: [{value: '\\ne\u0301'}], columns: [{name: 'value',
+        contract: {type: 'string', nullable: false, max_utf8_bytes: 5}}]},
+      updated: {rows: [{value: '\r\néx'}], columns: [{name: 'value',
+        contract: {type: 'string', nullable: false, max_utf8_bytes: 5}}]},
+    }, sourceReadCount: 0},
+  {name: 'result-cte-exact-string-octal', format: 'aql-text',
+    text: "WITH base AS (SELECT id, r'\\n' 'e\\u0301' AS label FROM records) FROM base |> ORDER BY id |> RESULT original |> WHERE id = 1 |> SET label = '\\377' |> RESULT selected",
+    results: {
+      original: {rows: [{id: 1, label: '\\ne\u0301'}, {id: 2, label: '\\ne\u0301'},
+        {id: 3, label: '\\ne\u0301'}, {id: 3, label: '\\ne\u0301'}],
+        columns: [relationNumber('id'), {name: 'label',
+          contract: {type: 'string', nullable: false, max_utf8_bytes: 5}}]},
+      selected: {rows: [{id: 1, label: '\u00ff'}],
+        columns: [relationNumber('id'), {name: 'label',
+          contract: {type: 'string', nullable: false, max_utf8_bytes: 2}}]},
+    }, sourceReadSessionCount: 1},
+  {name: 'result-before-count', format: 'aql-text',
+    text: 'FROM records |> RESULT original |> AGGREGATE COUNT(*) AS n |> RESULT summary',
+    results: {
+      original: {rows: sourceRows, columns: sourceColumns, unordered: true},
+      summary: {rows: [{n: 4}], columns: [relationNumber('n')]},
+    }, sourceReadSessionCount: 1},
+  {name: 'result-before-grouped-count', format: 'aql-text',
+    text: 'FROM records |> RESULT original |> AGGREGATE COUNT(*) AS n GROUP BY amount |> ORDER BY amount |> RESULT summary',
+    results: {
+      original: {rows: sourceRows, columns: sourceColumns, unordered: true},
+      summary: {rows: [{amount: null, n: 1}, {amount: 20, n: 1}, {amount: 30, n: 2}],
+        columns: [relationNumber('amount', true), relationNumber('n')]},
+    }, sourceReadSessionCount: 1},
+  {name: 'result-empty-before-count', format: 'aql-text',
+    text: 'FROM records |> RESULT original |> AGGREGATE COUNT(*) AS n |> RESULT summary',
+    sourceRows: [],
+    results: {
+      original: {rows: [], columns: sourceColumns},
+      summary: {rows: [{n: 0}], columns: [relationNumber('n')]},
+    }, sourceReadSessionCount: 1},
+  {name: 'result-before-distinct', format: 'aql-text',
+    text: 'FROM records |> RESULT original |> SELECT DISTINCT amount |> ORDER BY amount |> RESULT unique_amounts',
+    results: {
+      original: {rows: sourceRows, columns: sourceColumns, unordered: true},
+      unique_amounts: {rows: [{amount: null}, {amount: 20}, {amount: 30}],
+        columns: [relationNumber('amount', true)]},
+    }, sourceReadSessionCount: 1},
+  {name: 'result-before-limit', format: 'aql-text',
+    text: 'FROM records |> ORDER BY id |> RESULT original |> LIMIT 1',
+    results: {
+      original: {rows: [{id: 1, amount: null}, {id: 2, amount: 20}, {id: 3, amount: 30}, {id: 3, amount: 30}], columns: sourceColumns},
+      answer: {rows: [{id: 1, amount: null}], columns: sourceColumns},
+    }, sourceReadSessionCount: 1},
+  {name: 'terminal-result', format: 'sql',
+    text: 'SELECT amount, id FROM records ORDER BY id |> RESULT complete',
+    results: {complete: {rows: [{amount: null, id: 1}, {amount: 20, id: 2}, {amount: 30, id: 3}, {amount: 30, id: 3}],
+      columns: [relationNumber('amount', true), relationNumber('id')]}}, sourceReadSessionCount: 1},
+  {name: 'result-before-filter', format: 'aql-text',
+    text: 'FROM records |> ORDER BY id |> RESULT original |> WHERE amount IS NOT NULL |> SELECT id |> RESULT active',
+    results: {
+      original: {rows: [{id: 1, amount: null}, {id: 2, amount: 20}, {id: 3, amount: 30}, {id: 3, amount: 30}], columns: sourceColumns},
+      active: {rows: [{id: 2}, {id: 3}, {id: 3}], columns: [relationNumber('id')]},
+    }, sourceReadSessionCount: 1},
+  {name: 'result-after-set', format: 'aql-text',
+    text: 'FROM records AS old |> SET id = id + 10 |> RESULT changed |> SELECT old.id AS original, id AS current |> ORDER BY original |> RESULT final',
+    results: {
+      changed: {rows: [{id: 13, amount: 30}, {id: 11, amount: null}, {id: 12, amount: 20}, {id: 13, amount: 30}], columns: sourceColumns, unordered: true},
+      final: {rows: [{original: 1, current: 11}, {original: 2, current: 12}, {original: 3, current: 13}, {original: 3, current: 13}], columns: [relationNumber('original'), relationNumber('current')]},
+    }, sourceReadSessionCount: 1},
+  {name: 'result-after-drop', format: 'aql-text',
+    text: 'FROM records AS old |> DROP amount |> RESULT ids |> SELECT old.amount AS previous, id |> ORDER BY id |> RESULT final',
+    results: {
+      ids: {rows: [{id: 3}, {id: 1}, {id: 2}, {id: 3}], columns: [relationNumber('id')], unordered: true},
+      final: {rows: [{previous: null, id: 1}, {previous: 20, id: 2}, {previous: 30, id: 3}, {previous: 30, id: 3}], columns: [relationNumber('previous', true), relationNumber('id')]},
+    }, sourceReadSessionCount: 1},
+  {name: 'result-cte', format: 'aql-text',
+    text: 'WITH base AS (SELECT amount, id FROM records ORDER BY id) FROM base |> RESULT original |> WHERE id = 1 |> RESULT selected',
+    results: {
+      original: {rows: [{amount: null, id: 1}, {amount: 20, id: 2}, {amount: 30, id: 3}, {amount: 30, id: 3}], columns: [relationNumber('amount', true), relationNumber('id')]},
+      selected: {rows: [{amount: null, id: 1}], columns: [relationNumber('amount', true), relationNumber('id')]},
+    }, sourceReadSessionCount: 1},
+  {name: 'result-cte-join', format: 'sql',
+    text: 'WITH base AS (SELECT id FROM records) SELECT l.id AS id FROM base l JOIN base r ON l.id = r.id ORDER BY id |> RESULT joined |> LIMIT 1 |> RESULT limited',
+    results: {
+      joined: {rows: [{id: 1}, {id: 2}, {id: 3}, {id: 3}, {id: 3}, {id: 3}], columns: [relationNumber('id')]},
+      limited: {rows: [{id: 1}], columns: [relationNumber('id')]},
+    }, sourceReadSessionCount: 1},
+  {name: 'result-empty', format: 'sql',
+    text: 'SELECT amount, id FROM records WHERE amount > 100 |> RESULT empty |> LIMIT 1 |> RESULT final',
+    results: {empty: {rows: [], columns: [relationNumber('amount', true), relationNumber('id')]},
+      final: {rows: [], columns: [relationNumber('amount', true), relationNumber('id')]}}, sourceReadSessionCount: 1},
+  {name: 'result-source-free', format: 'sql',
+    text: 'SELECT 2 AS x |> RESULT original |> SET x = x + 1 |> RESULT updated',
+    results: {original: {rows: [{x: 2}], columns: [relationNumber('x')]},
+      updated: {rows: [{x: 3}], columns: [relationNumber('x')]}}, sourceReadCount: 0},
+];
+export const pipeResultRefusals = [
+  {name: 'result-octal-out-of-range', format: 'sql',
+    text: "SELECT '\\400' AS value |> RESULT original"},
+  {name: 'result-duplicate', format: 'aql-text', text: 'FROM records |> RESULT saved |> RESULT saved'},
+  {name: 'result-case-duplicate', format: 'aql-text', text: 'FROM records |> RESULT Saved |> RESULT `SAVED`'},
+  {name: 'result-primary-collision', format: 'aql-text', text: 'FROM records |> RESULT answer |> LIMIT 1'},
+  {name: 'result-cte-body', format: 'sql', text: 'WITH base AS (FROM records |> RESULT saved) SELECT id FROM base'},
+  {name: 'result-derived-body', format: 'sql', text: 'SELECT id FROM (FROM records |> RESULT saved) AS base'},
+  {name: 'result-missing-name', format: 'aql-text', text: 'FROM records |> RESULT'},
+  {name: 'result-removed-range', format: 'aql-text', text: 'FROM records AS old |> AS current |> RESULT saved |> SELECT old.id'},
+];
+// The retained prefix is only a candidate until the ordinary Run owner
+// commits publication. A downstream expression failure must not expose it.
+export const pipeResultExecutionFailures = [
+  {name: 'result-before-division-failure', format: 'aql-text',
+    text: 'FROM records |> RESULT original |> SET id = id / (id - id) |> RESULT invalid',
+    resultNames: ['original', 'invalid'], sourceReadSessionCount: 1},
+];
 export const queryCompositionSuccesses = [
+  {name: 'derived-exact-string-chunks', format: 'sql',
+    text: "SELECT value FROM (SELECT r'\\n' 'e\\u0301' AS value) AS chosen",
+    expected: [{value: '\\ne\u0301'}],
+    columns: [{name: 'value', contract: {type: 'string', nullable: false,
+      max_utf8_bytes: 5}}], sourceReadCount: 0},
+  {name: 'captured-cte-set-exact-string-chunks', format: 'sql',
+    text: "WITH chosen AS (SELECT r'\\n' 'e\\u0301' AS label FROM records WHERE id = 1) SELECT label FROM chosen UNION ALL SELECT '\\r\\néx' AS other FROM chosen ORDER BY label",
+    expected: [{label: '\r\néx'}, {label: '\\ne\u0301'}],
+    columns: [{name: 'label', contract: {type: 'string', nullable: false,
+      max_utf8_bytes: 5}}], sourceReadSessionCount: 1},
   {name: 'set-output-alias-expression', format: 'sql',
     text: 'SELECT id AS amount FROM records UNION ALL SELECT id AS other FROM records ORDER BY 0 - amount, 0 - amount DESC LIMIT 3',
     expected: [{amount: 3}, {amount: 3}, {amount: 3}], columns: [relationNumber('amount')], sourceReadSessionCount: 1},
@@ -89,6 +219,10 @@ export const queryCompositionSuccesses = [
 
 ];
 export const queryCompositionRefusals = [
+  {name: 'nested-cte-octal-range', format: 'sql',
+    text: "WITH chosen AS (SELECT '\\400' AS label FROM records) SELECT label FROM chosen"},
+  {name: 'literal-set-later-alias-hidden', format: 'sql',
+    text: "WITH chosen AS (SELECT r'\\400' AS label FROM records) SELECT label FROM chosen UNION ALL SELECT label AS other FROM chosen ORDER BY other"},
   {name: 'set-order-operand-column', format: 'sql',
     text: 'SELECT id AS amount FROM records UNION ALL SELECT id AS other FROM records ORDER BY id + 1'},
   {name: 'set-order-right-alias', format: 'sql',
@@ -147,7 +281,63 @@ export const querySuccesses = [
 // generates these rows, contracts or order. Installed source aliases remain
 // available in the Host, but none of these Programs acquires them.
 const numberColumn = name => ({name, contract: {type: 'number', nullable: false}});
+const octalQuotes = [['single', "'"], ['double', '"'],
+  ['triple-single', "'''"], ['triple-double', '"""']];
 export const sourceFreeSuccesses = [
+  ...octalQuotes.flatMap(([name, quote]) => [
+    {name: `octal-boundary-${name}`, format: 'sql',
+      text: `SELECT ${quote}\\000${quote} AS low, ${quote}\\377${quote} AS high`,
+      expected: [{low: '\u0000', high: '\u00ff'}],
+      columns: [['low', 1], ['high', 2]].map(([name, bytes]) => ({name,
+        contract: {type: 'string', nullable: false, max_utf8_bytes: bytes}})),
+      sourceReadCount: 0},
+    {name: `raw-octal-${name}`, format: 'sql',
+      text: `SELECT r${quote}\\400${quote} AS four, R${quote}\\777${quote} AS seven`,
+      expected: [{four: '\\400', seven: '\\777'}],
+      columns: ['four', 'seven'].map(name => ({name,
+        contract: {type: 'string', nullable: false, max_utf8_bytes: 4}})),
+      sourceReadCount: 0},
+  ]),
+  {name: 'raw-string-chunks', format: 'sql',
+    text: `SELECT r'\\n' AS slash_n, R"\\u0041" AS unicode_text, r'a\\'b' AS quoted`,
+    expected: [{slash_n: '\\n', unicode_text: '\\u0041', quoted: "a\\'b"}],
+    columns: [['slash_n', 2], ['unicode_text', 6], ['quoted', 4]].map(([name, bytes]) => ({name,
+      contract: {type: 'string', nullable: false, max_utf8_bytes: bytes}})),
+    sourceReadCount: 0},
+  {name: 'triple-string-newlines', format: 'aql-text',
+    text: `SELECT '''a\r\nb''' AS physical, """\\r""" AS escaped, '''e\u0301''' AS decomposed`,
+    expected: [{physical: 'a\nb', escaped: '\r', decomposed: 'e\u0301'}],
+    columns: [['physical', 3], ['escaped', 1], ['decomposed', 3]].map(([name, bytes]) => ({name,
+      contract: {type: 'string', nullable: false, max_utf8_bytes: bytes}})),
+    sourceReadCount: 0},
+  {name: 'mixed-separated-string-chunks', format: 'sql',
+    text: `SELECT r'\\n' /* only this chunk is raw */ '\\n' "é" '''e\u0301''' AS joined, '' "" '''''' AS empty`,
+    expected: [{joined: '\\n\née\u0301', empty: ''}],
+    columns: [['joined', 8], ['empty', 0]].map(([name, bytes]) => ({name,
+      contract: {type: 'string', nullable: false, max_utf8_bytes: bytes}})),
+    sourceReadCount: 0},
+  {name: 'double-quoted-exact-values', format: 'sql',
+    text: 'SELECT "\\r" AS cr, "\\n" AS lf, "\\r\\n" AS crlf, "é" AS composed, "e\\u0301" AS decomposed, "\\\\n" AS slash_n',
+    expected: [{cr: '\r', lf: '\n', crlf: '\r\n', composed: 'é', decomposed: 'e\u0301', slash_n: '\\n'}],
+    columns: [['cr', 1], ['lf', 1], ['crlf', 2], ['composed', 2],
+      ['decomposed', 3], ['slash_n', 2]].map(([name, bytes]) => ({name,
+        contract: {type: 'string', nullable: false, max_utf8_bytes: bytes}})),
+    sourceReadCount: 0},
+  {name: 'quoted-scalar-escapes', format: 'sql',
+    text: `SELECT '\\101\\x42\\X43\\u65e5\\U0001F600' AS single_value, "\\101\\x42\\X43\\u65e5\\U0001F600" AS double_value`,
+    expected: [{single_value: 'ABC日😀', double_value: 'ABC日😀'}],
+    columns: ['single_value', 'double_value'].map(name => ({name,
+      contract: {type: 'string', nullable: false, max_utf8_bytes: 10}})),
+    sourceReadCount: 0},
+  {name: 'exact-string-values', format: 'sql',
+    // SQL escapes and direct decomposed text are decoded once. Expected values
+    // below are authored independently, including a literal backslash plus n.
+    text: "SELECT '\\r' AS cr, '\\n' AS lf, '\\r\\n' AS crlf, 'é' AS composed, 'e\u0301' AS decomposed, '\\\\n' AS slash_n",
+    expected: [{cr: '\r', lf: '\n', crlf: '\r\n', composed: 'é', decomposed: 'e\u0301', slash_n: '\\n'}],
+    columns: [['cr', 1], ['lf', 1], ['crlf', 2], ['composed', 2],
+      ['decomposed', 3], ['slash_n', 2]].map(([name, bytes]) => ({name,
+        contract: {type: 'string', nullable: false, max_utf8_bytes: bytes}})),
+    sourceReadCount: 0},
   {name: 'literal-values', format: 'sql',
     text: "SELECT 1 AS id, 'hello' AS label",
     expected: [{id: 1, label: 'hello'}], sourceReadCount: 0,
@@ -178,6 +368,19 @@ export const sourceFreeSuccesses = [
     expected: [{x: 2}], columns: [numberColumn('x')], sourceReadCount: 0},
 ];
 export const sourceFreeRefusals = [
+  ...octalQuotes.flatMap(([name, quote]) => ['400', '777'].map(digits => ({
+    name: `octal-range-${name}-${digits}`, format: 'sql',
+    // A valid published source is present. Lexical refusal must still occur
+    // before Run admission or physical acquisition of that source.
+    text: `SELECT ${quote}\\${digits}${quote} AS s FROM records`,
+  }))),
+  ...['SELECT "\\uD800" AS s', 'SELECT "\\U00110000" AS s',
+    'SELECT "\\x4" AS s', 'SELECT "\\12" AS s',
+    'SELECT "memory"."main"."table"', 'SELECT r"odd\\" AS s',
+    'SELECT """unfinished"" AS s', 'SELECT b"bytes" AS s',
+    'SELECT "a""b" AS s', 'SELECT "a" b"b" AS s',
+    'SELECT rb"bytes" AS s', 'SELECT """bad\\\nline""" AS s'].map((text, index) => ({
+    name: `quoted-input-refusal-${index}`, format: 'sql', text})),
   {name: 'source-free-star', format: 'sql', text: 'SELECT *'},
   {name: 'source-free-private-column', format: 'sql', text: 'SELECT aql_source_free_unit AS x'},
   {name: 'source-free-private-range', format: 'sql', text: 'SELECT aql_source_free.aql_source_free_unit AS x'},
@@ -232,7 +435,7 @@ const inputCodes = new Set(['ClientProgramInvalidInput',
 // does not lower source, manufacture schema, or call a test compiler bridge.
 export async function exercisePublicQueryInput(connect, options,
   {requestPrefix, observe, successes = querySuccesses,
-    refusals = queryRefusals, prepareCase}) {
+    refusals = queryRefusals, executionFailures = [], prepareCase, completedCase}) {
   assert.equal(typeof observe, 'function');
   const counters = async () => {
     const current = await observe();
@@ -244,7 +447,7 @@ export async function exercisePublicQueryInput(connect, options,
   };
   const client = await connect(options);
   try {
-    for (const {name, text, expected, columns, sourceRows, sourceReadCount, sourceReadSessionCount, ...input} of successes) {
+    for (const {name, text, expected, columns, results, sourceRows, sourceReadCount, sourceReadSessionCount, ...input} of successes) {
       await prepareCase?.(sourceRows);
       const requestId = requestPrefix + '-' + name;
       const beforeSubmit = await counters();
@@ -262,18 +465,37 @@ export async function exercisePublicQueryInput(connect, options,
           sourceReadSessionCount, 'one acquisition session per authored source: ' +
             JSON.stringify((await observe()).sourceReadCommands));
       }
-      assert.deepEqual(await execution.result('answer').all(), expected);
-      if (columns !== undefined) {
-        assert.deepEqual((await execution.result('answer').describe()).columns,
-          columns, 'retained column order and contracts match the authored fixture');
+      const expectedResults = results ?? {answer: {rows: expected, columns}};
+      const compare = (actual, expected, unordered) => {
+        // An unordered SQL Relation is compared as a multiset. Sorting this
+        // test copy preserves duplicates and never changes the product output.
+        const canonicalRow = value => Array.isArray(value)
+          ? '[' + value.map(canonicalRow).join(',') + ']'
+          : value !== null && typeof value === 'object'
+            ? '{' + Object.keys(value).sort().map(key =>
+              JSON.stringify(key) + ':' + canonicalRow(value[key])).join(',') + '}'
+            : JSON.stringify(value);
+        if (unordered) assert.deepEqual(actual.map(canonicalRow).sort(),
+          expected.map(canonicalRow).sort());
+        else assert.deepEqual(actual, expected);
+      };
+      for (const [resultName, result] of Object.entries(expectedResults)) {
+        compare(await execution.result(resultName).all(), result.rows, result.unordered);
+        if (result.columns !== undefined) {
+          assert.deepEqual((await execution.result(resultName).describe()).columns,
+            result.columns, 'retained column order and contracts match the authored fixture');
+        }
       }
       const attached = await client.attach(execution.ref);
-      assert.deepEqual(await attached.result('answer').all(), expected);
+      for (const [resultName, result] of Object.entries(expectedResults)) {
+        compare(await attached.result(resultName).all(), result.rows, result.unordered);
+      }
       const resent = await client.aql(text, {...input, requestId});
       assert.deepEqual(resent.ref, execution.ref);
       assert.deepEqual((await client.lookupRequest(requestId)).ref, execution.ref);
       assert.deepEqual(await counters(), beforeRead,
         'reading, attaching and resending must not accept or acquire again');
+      await completedCase?.({name, ref: execution.ref, expected, columns});
       console.log(`Public query passed: ${requestPrefix}/${name}`);
       if (name === 'sql') {
         await assert.rejects(execution.result('answer').all({maxRows: 1}),
@@ -282,6 +504,33 @@ export async function exercisePublicQueryInput(connect, options,
           parameters: {minimum: 21}}), {code: 'ClientRequestIntentConflict'});
         assert.equal((await execution.status()).status, 'succeeded');
       }
+    }
+    for (const {name, text, resultNames, sourceReadSessionCount, ...input} of executionFailures) {
+      await prepareCase?.();
+      const requestId = requestPrefix + '-execution-failure-' + name;
+      const beforeSubmit = await counters();
+      const execution = await client.aql(text, {...input, requestId});
+      const state = await execution.wait({signal: AbortSignal.timeout(60_000)});
+      assert.equal(state.status, 'failed', JSON.stringify({name, state}));
+      const beforeRead = await counters();
+      assert.equal(beforeRead.acceptedRuns - beforeSubmit.acceptedRuns, 1);
+      if (sourceReadSessionCount !== undefined) {
+        assert.equal(beforeRead.sourceReadSessions - beforeSubmit.sourceReadSessions,
+          sourceReadSessionCount);
+      }
+      for (const resultName of resultNames) {
+        await assert.rejects(execution.result(resultName).all(), {code: 'ResultAccessDenied'});
+        await assert.rejects(execution.result(resultName).describe(), {code: 'ResultAccessDenied'});
+      }
+      const attached = await client.attach(execution.ref);
+      assert.equal((await attached.status()).status, 'failed');
+      const resent = await client.aql(text, {...input, requestId});
+      assert.deepEqual(resent.ref, execution.ref);
+      assert.equal((await resent.status()).status, 'failed');
+      assert.deepEqual((await client.lookupRequest(requestId)).ref, execution.ref);
+      assert.deepEqual(await counters(), beforeRead,
+        'failed Result reads, attach and resubmit must not recompute or acquire');
+      console.log(`Public query execution failure passed: ${requestPrefix}/${name}`);
     }
     for (const {name, text, ...input} of refusals) {
       await prepareCase?.();

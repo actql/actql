@@ -11,25 +11,30 @@ import {DatabaseSync} from 'node:sqlite';
 import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from
   './node_modules/@actql/local-node/adapters/host-node/embedded-local.mjs';
-import {exercisePublicQueryInput, querySuccesses, queryRefusals, inferRefusals, sourceRows, sourceFreeSuccesses, sourceFreeRefusals, queryCompositionSuccesses, queryCompositionRefusals}
+import {exercisePublicQueryInput, querySuccesses, queryRefusals, inferRefusals, sourceRows, sourceFreeSuccesses, sourceFreeRefusals, queryCompositionSuccesses, queryCompositionRefusals, pipeResultSuccesses, pipeResultRefusals, pipeResultExecutionFailures}
   from './public-query-input.mjs';
 
 const sourceFreeOnly = process.env.ACTQL_TEST_SOURCE_FREE_ONLY === '1';
 const inferOnly = process.env.ACTQL_TEST_INFER_REFUSAL_ONLY === '1';
 const joinOnly = process.env.ACTQL_TEST_JOIN_ORDER_ONLY === '1';
 const compositionOnly = process.env.ACTQL_TEST_QUERY_COMPOSITION_ONLY === '1';
-const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || inferOnly || joinOnly || sourceFreeOnly || compositionOnly;
+const resultOnly = process.env.ACTQL_TEST_PIPE_RESULT_ONLY === '1';
+const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || inferOnly || joinOnly || sourceFreeOnly || compositionOnly || resultOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const scope = JSON.parse(await readFile('pipe-scope-cases.json', 'utf8'));
 assert.deepEqual(scope.source_rows, sourceRows);
 const scopeInputs = sourceFreeOnly ? {successes: sourceFreeSuccesses, refusals: sourceFreeRefusals}
+  : resultOnly ? {successes: pipeResultSuccesses, refusals: pipeResultRefusals,
+    executionFailures: pipeResultExecutionFailures}
   : compositionOnly ? {successes: queryCompositionSuccesses, refusals: queryCompositionRefusals}
   : inferOnly ? {successes: [querySuccesses[0]], refusals: inferRefusals}
   : joinOnly ? joinOrder : scopeOnly ? {successes: scope.successes,
-  refusals: scope.refusals} : {successes: [...querySuccesses, ...sourceFreeSuccesses, ...queryCompositionSuccesses, ...scope.successes, ...joinOrder.successes],
-  refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals]};
-const expectedQueryRuns = scopeInputs.successes.length;
-const expectedSourceReads = scopeInputs.successes.reduce((count, item) => count + (item.sourceReadCount ?? item.sourceReadSessionCount ?? 1), 0);
+  refusals: scope.refusals} : {successes: [...querySuccesses, ...sourceFreeSuccesses, ...queryCompositionSuccesses, ...pipeResultSuccesses, ...scope.successes, ...joinOrder.successes],
+  refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals],
+  executionFailures: pipeResultExecutionFailures};
+const expectedQueryRuns = scopeInputs.successes.length + (scopeInputs.executionFailures?.length ?? 0);
+const expectedSourceReads = [...scopeInputs.successes, ...(scopeInputs.executionFailures ?? [])]
+  .reduce((count, item) => count + (item.sourceReadCount ?? item.sourceReadSessionCount ?? 1), 0);
 
 assert.equal(spawnSync('moon', ['version']).error?.code, 'ENOENT');
 const canonical = value => Array.isArray(value)
@@ -200,10 +205,14 @@ async function exerciseSga(mode, extraEnv) {
     }
   }
 }
+const retainedStrings = {};
+const recordString = mode => item => {
+  if (item.name === 'exact-string-values') retainedStrings[mode] = item;
+};
 await exercisePublicQueryInput(connect, {mode: 'local', owner: 'local',
   durability: 'durable', installation: {directory: resolve('local-state'),
     sourceProfilePath}}, {requestPrefix: 'packed-local',
-  observe: observe('local-state'), prepareCase, ...scopeInputs});
+  observe: observe('local-state'), prepareCase, completedCase: recordString('local'), ...scopeInputs});
 assert.equal(observe('local-state')().acceptedRuns, expectedQueryRuns);
 assert.ok(sourceIo >= expectedSourceReads);
 console.log('packed raw SQL/Pipe Embedded Local acceptance passed');
@@ -223,7 +232,7 @@ try {
   await exercisePublicQueryInput(connect, {mode: 'remote',
     endpoint: `https://127.0.0.1:${server.address().port}/`,
     token: 'fixture-token', durability: 'durable'},
-  {requestPrefix: 'packed-http', observe: observe('remote-state'), prepareCase, ...scopeInputs});
+  {requestPrefix: 'packed-http', observe: observe('remote-state'), prepareCase, completedCase: recordString('remote'), ...scopeInputs});
   assert.equal(observe('remote-state')().acceptedRuns, expectedQueryRuns);
   assert.ok(sourceIo >= beforeRemote + expectedSourceReads);
   console.log('packed raw SQL/Pipe HTTP acceptance passed');
@@ -247,3 +256,8 @@ try {
 // Exercise both transports before rejecting the acceptance run. A failed
 // case remains a failure; the other transport provides independent evidence.
 assert.deepEqual(sgaFailures, [], 'Packed SGA acceptance failures');
+
+if (retainedStrings.local && retainedStrings.remote) {
+  await writeFile('retained-string-results.json', JSON.stringify(retainedStrings));
+
+}

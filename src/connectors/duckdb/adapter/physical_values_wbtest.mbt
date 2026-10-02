@@ -135,8 +135,7 @@ test "floating transport, NULL, text and budgets still use shared admission" {
   assert_true(
     value(text, "\"日本語\"").unwrap().value is @admitted.Text("日本語"),
   )
-  // The source JSON parser intentionally normalizes authoring text. Physical
-  // transport must instead preserve the received text for value admission.
+  // Physical transport and source admission both preserve decoded String values.
   for received in ["e\u0301", "a\r\nb"] {
     let raw = @decode.admit(
       {
@@ -155,8 +154,9 @@ test "floating transport, NULL, text and budgets still use shared admission" {
         max_nodes: 1,
         max_depth: 0,
         max_text_bytes: 1000,
-      })
-      is Err(Admission(@admitted.ValueIssue(@admitted.NonCanonicalText, ..))),
+      }).unwrap().value
+      is @admitted.Text(actual) &&
+      actual == received,
     )
   }
   assert_true(

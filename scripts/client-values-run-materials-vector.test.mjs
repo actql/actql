@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
+import {valuesResultPlan} from './fixtures/string-contract-identities.mjs';
 import {valuesDependencyOracle} from './client-values-dependency-oracle.mjs';
 
 const canonical = value => JSON.stringify(normalize(value));
@@ -43,7 +44,10 @@ const ceiling = measure => seal({version: 'actql-bound-witness/0.1',
 const rowCeiling = ceiling('rows');
 const byteCeiling = ceiling('bytes');
 const limit = (measure, candidates, maximum, unit) => seal({version: 'actql-resolved-limit/0.1',
-  author_guard_binding: 'absent', breach: 'fail', candidates, effective_max: maximum,
+  // The wire contract orders candidates by witness CID, not issuance order.
+  author_guard_binding: 'absent', breach: 'fail',
+  candidates: [...candidates].sort((a, b) => a.witness_cid < b.witness_cid ? -1 :
+    a.witness_cid > b.witness_cid ? 1 : 0), effective_max: maximum,
   enforcement: 'engine_atomic', subject_ref: `unit:${unit}#/results/rows/${measure}`,
   unit: measure}, 'resolved_limit_cid');
 function vector(grammar, aoa, dependencies=priorDependencies) {
@@ -96,6 +100,14 @@ function vector(grammar, aoa, dependencies=priorDependencies) {
   return {template, executable, compiled, run};
 }
 
+// Frozen Unit identifiers anchor predecessor preimages. Proof and Result
+// bodies are independently assembled; no compiler output is imported.
+function historicalDependencies(unit) {
+  return {unit, proof: cid({version:'actql-bound-proof/0.1',inputs:[],
+    law_id:'actql.bound.values',semantic_ref:`unit:${unit}#/steps/0`,unit:'rows',value:2}),
+    resultPlan:valuesResultPlan(unit).result_plan_logical_cid};
+}
+
 test('baseline preimages and changed normative pins independently determine the Run CID', () => {
   const baseline = vector(pin('15a180c744c81eea1368e7e31813bb2b3712b9496ba48748973cb94135184914'),
     pin('4b6f51d57ca1d3cb16e28e04eeef20bebee34d4d3b89271de84b982a8ac74005'));
@@ -145,11 +157,21 @@ test('baseline preimages and changed normative pins independently determine the 
     priorAoA).run.run_definition_cid,
     pin('012e0a4567a1a9fb115d6476031e6f635f924f1f3ca9c1aeabb03cd0e06d9e55'));
   assert.equal(vector(pin('cd2261b7c336e0d713dcb1c2c19d9dab89d928f134883857b48e9c5b2494cffa'),
-    cid(aoaContract), dependencies).run.run_definition_cid,
+    pin('072c1c6e630f683e41a1c814b3a000d0544506ae25c5d89210fa8982ff73c5ff'),
+    historicalDependencies(pin('582a2d4805db0a13b1b02544eca5b21a4ce63b0c901679762ea11c5555ea07a5'))).run.run_definition_cid,
     pin('f171d251195c262096577393afc6d51390ca7b4b7b63bda8b17c74a13a6d54f6'));
-  // Current combined query grammar and keyed Graph dependency closure.
+  // Keep both submitted branches before combining Graph and String roots.
+  assert.equal(vector(pin('85ee0fd6d4d689e1038c4d754faf9721107835361b0ec38d804b9d6dc694fdf4'),
+    pin('072c1c6e630f683e41a1c814b3a000d0544506ae25c5d89210fa8982ff73c5ff'),
+    historicalDependencies(pin('582a2d4805db0a13b1b02544eca5b21a4ce63b0c901679762ea11c5555ea07a5'))).run.run_definition_cid,
+    pin('9cb879cebfe85960516d52e34932fe236bdab7d703150de865caaaaedccbee8c'));
+  assert.equal(vector(pin('b176b995f5dc309487656b334cb34e21409f6a9f67f8a10b89ac9c5d6e5db7c2'),
+    pin('ce0e1e8935e1c65b8992f2fb0272da80b192d54616c546efd80a0cad87bd4ec4'),
+    historicalDependencies(pin('0ec8026865253c45b26d8eb0b9df6e4cb63b64bf7ae19590e6f1fc2aff10879c'))).run.run_definition_cid,
+    pin('857742abdfaf8e4e90e07c4f60f37b771ea62ef44e41f0bdb078bf3d0134069b'));
+  // Current combined query grammar, exact Strings and keyed Graph closure.
   assert.equal(current.run.run_definition_cid,
-    pin("9cb879cebfe85960516d52e34932fe236bdab7d703150de865caaaaedccbee8c"));
+    'sha256:33b9fb4c38a1a0dce33674944cdef96b01c4a3ace604854ed175e7de8cb59065');
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');
