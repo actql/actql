@@ -71,3 +71,40 @@ test "canonical scalar text rejects null and structured values" {
     None,
   )
 }
+
+///|
+test "String admission construction recheck and serialization retain exact values" {
+  for
+    (wire, value, bytes) in [
+      ("\"\\r\"", "\r", 1),
+      ("\"\\n\"", "\n", 1),
+      ("\"\\r\\n\"", "\r\n", 2),
+      ("\"é\"", "é", 2),
+      ("\"e\\u0301\"", "e\u{0301}", 3),
+      ("\"\\\\n\"", "\\n", 2),
+    ] {
+    let checked = admitted_scalar(
+      "{\"type\":\"string\",\"nullable\":false}", wire,
+    )
+    assert_true(checked.value is Text(actual) && actual == value)
+    assert_eq(canonical_scalar_text(checked, bytes), Some(value))
+    let built = text_value(value, bytes).unwrap()
+    assert_true(
+      recheck_runtime_value(built, checked.contract, {
+        max_nodes: 1,
+        max_depth: 0,
+        max_text_bytes: bytes,
+      })
+      is Some(_),
+    )
+    assert_true(text_value(value, bytes - 1) is None)
+    assert_true(
+      recheck_runtime_value(built, checked.contract, {
+        max_nodes: 1,
+        max_depth: 0,
+        max_text_bytes: bytes - 1,
+      })
+      is None,
+    )
+  }
+}

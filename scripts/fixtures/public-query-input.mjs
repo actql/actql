@@ -17,6 +17,25 @@ const relationNumber = (name, nullable = false) => ({name,
 // insertion order of keys in the sourceRows objects above.
 const sourceColumns = [relationNumber('amount', true), relationNumber('id')];
 export const pipeResultSuccesses = [
+  {name: 'result-exact-string-prefix', format: 'sql',
+    text: "SELECT r'\\n' 'e\\u0301' AS value |> RESULT original |> SET value = '\\r\\néx' |> RESULT updated",
+    results: {
+      original: {rows: [{value: '\\ne\u0301'}], columns: [{name: 'value',
+        contract: {type: 'string', nullable: false, max_utf8_bytes: 5}}]},
+      updated: {rows: [{value: '\r\néx'}], columns: [{name: 'value',
+        contract: {type: 'string', nullable: false, max_utf8_bytes: 5}}]},
+    }, sourceReadCount: 0},
+  {name: 'result-cte-exact-string-octal', format: 'aql-text',
+    text: "WITH base AS (SELECT id, r'\\n' 'e\\u0301' AS label FROM records) FROM base |> ORDER BY id |> RESULT original |> WHERE id = 1 |> SET label = '\\377' |> RESULT selected",
+    results: {
+      original: {rows: [{id: 1, label: '\\ne\u0301'}, {id: 2, label: '\\ne\u0301'},
+        {id: 3, label: '\\ne\u0301'}, {id: 3, label: '\\ne\u0301'}],
+        columns: [relationNumber('id'), {name: 'label',
+          contract: {type: 'string', nullable: false, max_utf8_bytes: 5}}]},
+      selected: {rows: [{id: 1, label: '\u00ff'}],
+        columns: [relationNumber('id'), {name: 'label',
+          contract: {type: 'string', nullable: false, max_utf8_bytes: 2}}]},
+    }, sourceReadSessionCount: 1},
   {name: 'result-before-count', format: 'aql-text',
     text: 'FROM records |> RESULT original |> AGGREGATE COUNT(*) AS n |> RESULT summary',
     results: {
@@ -94,6 +113,8 @@ export const pipeResultSuccesses = [
       updated: {rows: [{x: 3}], columns: [relationNumber('x')]}}, sourceReadCount: 0},
 ];
 export const pipeResultRefusals = [
+  {name: 'result-octal-out-of-range', format: 'sql',
+    text: "SELECT '\\400' AS value |> RESULT original"},
   {name: 'result-duplicate', format: 'aql-text', text: 'FROM records |> RESULT saved |> RESULT saved'},
   {name: 'result-case-duplicate', format: 'aql-text', text: 'FROM records |> RESULT Saved |> RESULT `SAVED`'},
   {name: 'result-primary-collision', format: 'aql-text', text: 'FROM records |> RESULT answer |> LIMIT 1'},
@@ -110,6 +131,16 @@ export const pipeResultExecutionFailures = [
     resultNames: ['original', 'invalid'], sourceReadSessionCount: 1},
 ];
 export const queryCompositionSuccesses = [
+  {name: 'derived-exact-string-chunks', format: 'sql',
+    text: "SELECT value FROM (SELECT r'\\n' 'e\\u0301' AS value) AS chosen",
+    expected: [{value: '\\ne\u0301'}],
+    columns: [{name: 'value', contract: {type: 'string', nullable: false,
+      max_utf8_bytes: 5}}], sourceReadCount: 0},
+  {name: 'captured-cte-set-exact-string-chunks', format: 'sql',
+    text: "WITH chosen AS (SELECT r'\\n' 'e\\u0301' AS label FROM records WHERE id = 1) SELECT label FROM chosen UNION ALL SELECT '\\r\\néx' AS other FROM chosen ORDER BY label",
+    expected: [{label: '\r\néx'}, {label: '\\ne\u0301'}],
+    columns: [{name: 'label', contract: {type: 'string', nullable: false,
+      max_utf8_bytes: 5}}], sourceReadSessionCount: 1},
   {name: 'set-output-alias-expression', format: 'sql',
     text: 'SELECT id AS amount FROM records UNION ALL SELECT id AS other FROM records ORDER BY 0 - amount, 0 - amount DESC LIMIT 3',
     expected: [{amount: 3}, {amount: 3}, {amount: 3}], columns: [relationNumber('amount')], sourceReadSessionCount: 1},
@@ -188,6 +219,10 @@ export const queryCompositionSuccesses = [
 
 ];
 export const queryCompositionRefusals = [
+  {name: 'nested-cte-octal-range', format: 'sql',
+    text: "WITH chosen AS (SELECT '\\400' AS label FROM records) SELECT label FROM chosen"},
+  {name: 'literal-set-later-alias-hidden', format: 'sql',
+    text: "WITH chosen AS (SELECT r'\\400' AS label FROM records) SELECT label FROM chosen UNION ALL SELECT label AS other FROM chosen ORDER BY other"},
   {name: 'set-order-operand-column', format: 'sql',
     text: 'SELECT id AS amount FROM records UNION ALL SELECT id AS other FROM records ORDER BY id + 1'},
   {name: 'set-order-right-alias', format: 'sql',
@@ -246,7 +281,63 @@ export const querySuccesses = [
 // generates these rows, contracts or order. Installed source aliases remain
 // available in the Host, but none of these Programs acquires them.
 const numberColumn = name => ({name, contract: {type: 'number', nullable: false}});
+const octalQuotes = [['single', "'"], ['double', '"'],
+  ['triple-single', "'''"], ['triple-double', '"""']];
 export const sourceFreeSuccesses = [
+  ...octalQuotes.flatMap(([name, quote]) => [
+    {name: `octal-boundary-${name}`, format: 'sql',
+      text: `SELECT ${quote}\\000${quote} AS low, ${quote}\\377${quote} AS high`,
+      expected: [{low: '\u0000', high: '\u00ff'}],
+      columns: [['low', 1], ['high', 2]].map(([name, bytes]) => ({name,
+        contract: {type: 'string', nullable: false, max_utf8_bytes: bytes}})),
+      sourceReadCount: 0},
+    {name: `raw-octal-${name}`, format: 'sql',
+      text: `SELECT r${quote}\\400${quote} AS four, R${quote}\\777${quote} AS seven`,
+      expected: [{four: '\\400', seven: '\\777'}],
+      columns: ['four', 'seven'].map(name => ({name,
+        contract: {type: 'string', nullable: false, max_utf8_bytes: 4}})),
+      sourceReadCount: 0},
+  ]),
+  {name: 'raw-string-chunks', format: 'sql',
+    text: `SELECT r'\\n' AS slash_n, R"\\u0041" AS unicode_text, r'a\\'b' AS quoted`,
+    expected: [{slash_n: '\\n', unicode_text: '\\u0041', quoted: "a\\'b"}],
+    columns: [['slash_n', 2], ['unicode_text', 6], ['quoted', 4]].map(([name, bytes]) => ({name,
+      contract: {type: 'string', nullable: false, max_utf8_bytes: bytes}})),
+    sourceReadCount: 0},
+  {name: 'triple-string-newlines', format: 'aql-text',
+    text: `SELECT '''a\r\nb''' AS physical, """\\r""" AS escaped, '''e\u0301''' AS decomposed`,
+    expected: [{physical: 'a\nb', escaped: '\r', decomposed: 'e\u0301'}],
+    columns: [['physical', 3], ['escaped', 1], ['decomposed', 3]].map(([name, bytes]) => ({name,
+      contract: {type: 'string', nullable: false, max_utf8_bytes: bytes}})),
+    sourceReadCount: 0},
+  {name: 'mixed-separated-string-chunks', format: 'sql',
+    text: `SELECT r'\\n' /* only this chunk is raw */ '\\n' "é" '''e\u0301''' AS joined, '' "" '''''' AS empty`,
+    expected: [{joined: '\\n\née\u0301', empty: ''}],
+    columns: [['joined', 8], ['empty', 0]].map(([name, bytes]) => ({name,
+      contract: {type: 'string', nullable: false, max_utf8_bytes: bytes}})),
+    sourceReadCount: 0},
+  {name: 'double-quoted-exact-values', format: 'sql',
+    text: 'SELECT "\\r" AS cr, "\\n" AS lf, "\\r\\n" AS crlf, "é" AS composed, "e\\u0301" AS decomposed, "\\\\n" AS slash_n',
+    expected: [{cr: '\r', lf: '\n', crlf: '\r\n', composed: 'é', decomposed: 'e\u0301', slash_n: '\\n'}],
+    columns: [['cr', 1], ['lf', 1], ['crlf', 2], ['composed', 2],
+      ['decomposed', 3], ['slash_n', 2]].map(([name, bytes]) => ({name,
+        contract: {type: 'string', nullable: false, max_utf8_bytes: bytes}})),
+    sourceReadCount: 0},
+  {name: 'quoted-scalar-escapes', format: 'sql',
+    text: `SELECT '\\101\\x42\\X43\\u65e5\\U0001F600' AS single_value, "\\101\\x42\\X43\\u65e5\\U0001F600" AS double_value`,
+    expected: [{single_value: 'ABC日😀', double_value: 'ABC日😀'}],
+    columns: ['single_value', 'double_value'].map(name => ({name,
+      contract: {type: 'string', nullable: false, max_utf8_bytes: 10}})),
+    sourceReadCount: 0},
+  {name: 'exact-string-values', format: 'sql',
+    // SQL escapes and direct decomposed text are decoded once. Expected values
+    // below are authored independently, including a literal backslash plus n.
+    text: "SELECT '\\r' AS cr, '\\n' AS lf, '\\r\\n' AS crlf, 'é' AS composed, 'e\u0301' AS decomposed, '\\\\n' AS slash_n",
+    expected: [{cr: '\r', lf: '\n', crlf: '\r\n', composed: 'é', decomposed: 'e\u0301', slash_n: '\\n'}],
+    columns: [['cr', 1], ['lf', 1], ['crlf', 2], ['composed', 2],
+      ['decomposed', 3], ['slash_n', 2]].map(([name, bytes]) => ({name,
+        contract: {type: 'string', nullable: false, max_utf8_bytes: bytes}})),
+    sourceReadCount: 0},
   {name: 'literal-values', format: 'sql',
     text: "SELECT 1 AS id, 'hello' AS label",
     expected: [{id: 1, label: 'hello'}], sourceReadCount: 0,
@@ -277,6 +368,19 @@ export const sourceFreeSuccesses = [
     expected: [{x: 2}], columns: [numberColumn('x')], sourceReadCount: 0},
 ];
 export const sourceFreeRefusals = [
+  ...octalQuotes.flatMap(([name, quote]) => ['400', '777'].map(digits => ({
+    name: `octal-range-${name}-${digits}`, format: 'sql',
+    // A valid published source is present. Lexical refusal must still occur
+    // before Run admission or physical acquisition of that source.
+    text: `SELECT ${quote}\\${digits}${quote} AS s FROM records`,
+  }))),
+  ...['SELECT "\\uD800" AS s', 'SELECT "\\U00110000" AS s',
+    'SELECT "\\x4" AS s', 'SELECT "\\12" AS s',
+    'SELECT "memory"."main"."table"', 'SELECT r"odd\\" AS s',
+    'SELECT """unfinished"" AS s', 'SELECT b"bytes" AS s',
+    'SELECT "a""b" AS s', 'SELECT "a" b"b" AS s',
+    'SELECT rb"bytes" AS s', 'SELECT """bad\\\nline""" AS s'].map((text, index) => ({
+    name: `quoted-input-refusal-${index}`, format: 'sql', text})),
   {name: 'source-free-star', format: 'sql', text: 'SELECT *'},
   {name: 'source-free-private-column', format: 'sql', text: 'SELECT aql_source_free_unit AS x'},
   {name: 'source-free-private-range', format: 'sql', text: 'SELECT aql_source_free.aql_source_free_unit AS x'},
@@ -331,7 +435,7 @@ const inputCodes = new Set(['ClientProgramInvalidInput',
 // does not lower source, manufacture schema, or call a test compiler bridge.
 export async function exercisePublicQueryInput(connect, options,
   {requestPrefix, observe, successes = querySuccesses,
-    refusals = queryRefusals, executionFailures = [], prepareCase}) {
+    refusals = queryRefusals, executionFailures = [], prepareCase, completedCase}) {
   assert.equal(typeof observe, 'function');
   const counters = async () => {
     const current = await observe();
@@ -391,6 +495,7 @@ export async function exercisePublicQueryInput(connect, options,
       assert.deepEqual((await client.lookupRequest(requestId)).ref, execution.ref);
       assert.deepEqual(await counters(), beforeRead,
         'reading, attaching and resending must not accept or acquire again');
+      await completedCase?.({name, ref: execution.ref, expected, columns});
       console.log(`Public query passed: ${requestPrefix}/${name}`);
       if (name === 'sql') {
         await assert.rejects(execution.result('answer').all({maxRows: 1}),

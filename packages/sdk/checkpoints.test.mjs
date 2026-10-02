@@ -67,7 +67,7 @@ test('Client canonical CIDs and signatures follow the pinned vectors',
         artifact[selfField], vector.id);
     }
     assert.equal(canonicalJson({b: 'é', a: [1, true, null]}),
-      '{"a":[1,true,null],"b":"é"}');
+      '{"a":[1,true,null],"b":"é"}');
   });
 
 test('a signed answer binds this Checkpoint and verifies with the reviewer key',
@@ -334,3 +334,17 @@ test('a request cancellation is typed and an unknown result is resent',
     assert.ok(requests.filter(item => item.operation === 'cancel-request')
       .every(item => item.body.requestId === 'saved-a'));
   });
+
+
+test('Checkpoint canonical bytes retain data values and reject identifier collisions', async () => {
+  const values = ['\r', '\n', '\r\n', 'é', 'e\u0301', '\\n'];
+  const expected = ['"\\r"', '"\\n"', '"\\r\\n"', '"é"', '"e\u0301"', '"\\\\n"'];
+  const identities = new Set();
+  for (let index = 0; index < values.length; index++) {
+    assert.equal(canonicalJson(values[index]), expected[index]);
+    identities.add(await contentCid(values[index]));
+  }
+  assert.equal(identities.size, 6);
+  assert.throws(() => canonicalJson({'é': 1, 'e\u0301': 2}), /CanonicalKeyCollision/);
+  assert.equal(canonicalJson({'e\u0301\r': 1}), '{"é\\n":1}');
+});

@@ -14,7 +14,7 @@ const schema = aoa.execution_contracts['REL.values'].params_schema;
 test('compiler selects exact values execution and wire interpretation bodies', () => {
   const implementation = readFileSync('src/pipeline_check_context/core_contracts.mbt', 'utf8').replace(/\s+/g, ' ');
   const execution = aoa.execution_contracts['REL.values'];
-  const executionCid = 'sha256:9dec7cf1abedfb23b0af130ec5e25c7442d28c205a94cad0218b2f5982d44b44';
+  const executionCid = 'sha256:9b716536b27d313e93deadae776d9abf21c3d06dcd653d2eb3b74e0c276a182b';
   const wire = read('spec/contracts/actql-bound-values-wire-law.json');
   const wireCid = 'sha256:b36a2c0087fa668e54b50e15ffae0985bda11bf4eab06b46c1b8a91f8750e750';
   verifyIdentity(execution, executionCid);

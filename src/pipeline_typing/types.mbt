@@ -438,8 +438,12 @@ fn read_name(b : Budget, source : @decode.Cursor) -> String raise Stop {
     Ok(v) => v
     Err(_) => fail(source, InvalidBody)
   }
-  name(b, source, value)
-  value
+  let normalized = match @canonical.normalize_nfc_lf(value) {
+    Ok(value) => value
+    Err(_) => fail(source, InvalidName(value))
+  }
+  name(b, source, normalized)
+  normalized
 }
 
 ///|

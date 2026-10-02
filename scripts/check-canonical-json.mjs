@@ -22,7 +22,10 @@ export function canonicalText(value) {
     assert.ok(Number.isFinite(value) && !Object.is(value, -0), 'invalid number');
     return JSON.stringify(value);
   }
-  if (typeof value === 'string') return JSON.stringify(normalize(value));
+  if (typeof value === 'string') {
+    assert.ok(value.isWellFormed(), 'unpaired surrogate');
+    return JSON.stringify(value);
+  }
   if (Array.isArray(value)) return '[' + value.map(canonicalText).join(',') + ']';
   assert.ok(value && typeof value === 'object', 'JSON value');
   const pairs = Object.entries(value).map(([key, item]) => [normalize(key), item]);

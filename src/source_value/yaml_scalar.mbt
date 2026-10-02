@@ -132,8 +132,8 @@ fn yaml_resolve(text : String) -> Result[Value, ParseIssue] {
       ParseAbort(error) => Err(error.issue)
     }
   }
-  match @canonical.normalize_nfc_lf(text) {
-    Ok(value) => Ok(String(value))
+  match @canonical.validate_scalar_text(text) {
+    Ok(_) => Ok(String(text))
     Err(_) => Err(InvalidYamlScalar)
   }
 }

@@ -766,7 +766,7 @@ selection resolves respectively to `actql-json/0.1`, `actql-jsonl/0.1`, or
 `actql-csv/0.1`; it does not change Program Definition, Invocation, or the
 logical Result Artifacts produced by the Run.
 
-JSON and JSONL use UTF-8, NFC strings, AoA canonical number spelling, minimal JSON escaping, and
+JSON and JSONL use UTF-8, exact retained string values, AoA canonical number spelling, minimal JSON escaping, and
 no insignificant whitespace. Top-level relation-row keys follow the selected
 ResultDefinition's resolved `fields` exactly. Nested object keys use
 UTF-16 code-unit order. JSON is one canonical array with no trailing newline.

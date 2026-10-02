@@ -56,13 +56,16 @@ test "immutable builder bounds reuse and rejects owner substitution" {
   let source = @program_source_builder.finish(b, array).unwrap()
   let cursor = @program_source_builder.cursor(source)
   assert_eq(@wire.array_length(cursor), Some(2))
-  assert_eq(@wire.text(@wire.element_at(cursor, 0).unwrap()).unwrap(), "é\n")
+  assert_eq(
+    @wire.text(@wire.element_at(cursor, 0).unwrap()).unwrap(),
+    "e\u0301\r\n",
+  )
   assert_eq(@program_source_builder.usage(source), {
     input_bytes: 1,
     nodes: 3,
     depth: 1,
   })
-  assert_eq(@program_source_builder.output_bytes(source), 15)
+  assert_eq(@program_source_builder.output_bytes(source), 21)
   let mapped = @program_source_builder.origin(source, cursor).unwrap()
   assert_eq(@origin.span(mapped), @origin.span(origin))
   let other = @program_source_builder.create(document, limits()).unwrap()
@@ -184,23 +187,26 @@ test "editable ParsedSource usage and spans confer no admission" {
 }
 
 ///|
-test "string limits measure normalized values and raw admission stays bounded" {
+test "string limits measure retained value bytes and raw admission stays bounded" {
   let document = @origin.document("e\u0301", 3).unwrap()
   let origin = @origin.range(document, 0, 3).unwrap()
   let exact = {
     ..limits(),
-    tree: { ..limits().tree, max_string_bytes: 2, max_total_string_bytes: 2, },
-    max_output_bytes: 4,
+    tree: { ..limits().tree, max_string_bytes: 3, max_total_string_bytes: 3, },
+    max_output_bytes: 5,
   }
   let b = @program_source_builder.create(document, exact).unwrap()
   let n = @program_source_builder.add(b, String("e\u0301"), origin).unwrap()
   let source = @program_source_builder.finish(b, n).unwrap()
-  assert_eq(@wire.text(@program_source_builder.cursor(source)).unwrap(), "é")
-  assert_eq(@program_source_builder.output_bytes(source), 4)
+  assert_eq(
+    @wire.text(@program_source_builder.cursor(source)).unwrap(),
+    "e\u0301",
+  )
+  assert_eq(@program_source_builder.output_bytes(source), 5)
   for
     small in [
-      { ..exact, tree: { ..exact.tree, max_string_bytes: 1, }, },
-      { ..exact, tree: { ..exact.tree, max_total_string_bytes: 1, }, },
+      { ..exact, tree: { ..exact.tree, max_string_bytes: 2, }, },
+      { ..exact, tree: { ..exact.tree, max_total_string_bytes: 2, }, },
     ] {
     let b = @program_source_builder.create(document, small).unwrap()
     assert_true(

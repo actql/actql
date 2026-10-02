@@ -65,8 +65,14 @@ assert.notEqual(byId.get('cr').expected_cid,byId.get('lf').expected_cid);
 assert.notEqual(byId.get('cr-range').expected_cid,byId.get('lf-range').expected_cid);
 assert.notEqual(byId.get('sequence-crlf').expected_cid,byId.get('sequence-lfcr').expected_cid);
 assert.notEqual(byId.get('cr').expected_cid,byId.get('repeated-cr').expected_cid);
-// Reproduce the old collision without weakening canonical JSON itself.
-assert.equal(canonicalText(byId.get('legacy-cr').ast),canonicalText(byId.get('legacy-lf').ast));
+// Legacy string-valued ASTs remain rejected. The current String value law
+// preserves CR/LF; demonstrate the historical collision with its old LF
+// conversion explicitly, rather than requiring it from the current encoder.
+const legacyCr=byId.get('legacy-cr').ast, legacyLf=byId.get('legacy-lf').ast;
+assert.notEqual(canonicalText(legacyCr),canonicalText(legacyLf));
+const formerlyNormalized=structuredClone(legacyCr);
+formerlyNormalized.root.value=formerlyNormalized.root.value.replace(/\r\n?/gu,'\n');
+assert.equal(canonicalText(formerlyNormalized),canonicalText(legacyLf));
 assert.equal(valid(schema,{...byId.get('reversed-range').ast,ast_cid:'sha256:'+'0'.repeat(64)}),true);
 assert.ok(byId.get('reversed-range').ast.root.items[0].start>byId.get('reversed-range').ast.root.items[0].end);
 for(const change of [c=>{c.schema.cid='stale'},c=>{c.semantics.escapes.r=10}]) {

@@ -16,7 +16,7 @@ pub fn utf8_length_within(text : String, limit : Int) -> Int? {
 
 ///|
 /// Exact raw UTF-8 byte length without normalization or byte allocation.
-/// Language string constraints require callers to normalize with NFC then LF first.
+/// Counts the preserved scalar value; identifier normalization is a separate contract.
 /// Error order: invalid limit, whole-string UTF-16 lower bound, then the first
 /// malformed scalar or byte overflow encountered in a left-to-right scan.
 pub fn admit_utf8_length(
