@@ -143,6 +143,7 @@ fn issued_fixture_checked(
         environment,
         { text_time: false, veca, },
         { rela: true, sga, tea, calendar: false, text_rank: false, },
+        property_graph=sga,
         numeric_profile=if numeric {
           Some(@numeric.builtin_profile())
         } else {

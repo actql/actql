@@ -943,3 +943,35 @@ as a proof of the entire implementation. A/B task splitting, carrier tasks and
 Frontend implementation are not changed by this unit. The existing Graph
 provider dispatch retains its bounded sessions and owners; no parallel
 provider is introduced.
+
+### Real Host guarantee migration checkpoint (2026-10-03)
+
+The existing DuckDB `standard-host` and `retained-values-chain` tests pass
+**41/41, no skips** with the pinned toolchain. The log is
+`/private/tmp/property-graph-host-guarantee-migration-current-20261003.log`.
+This run includes the new typed constructor, node/edge MATCH, downstream
+filter/sort/take, two independent consumers, retained-file publication and
+cleanup failure followed by successful retry. Construction capacity overflow
+and predicate/Relation failures publish no partial result. Construction and
+node/edge MATCH cancellation wait for reported positive work, preserve the
+exact stopped owner, and finish with zero held/reserved capacity. Retained
+VALUES uses a file route, so the MATCH cancellation assertion checks the
+actual task identity rather than treating its managed-start ordinal as a
+physical task number. The normal retained Graph factory also executes the
+new constructor/MATCH path; surrounding Values, Events and Vectors guarantees
+remain executable and pass in the same run.
+
+Tuple-only algorithm positives are removed from this execution matrix, not
+counted as migrated algorithm guarantees. Unsupported consumers remain subject
+to the shared inventory-driven public refusal test. The conformance issuer
+selects the current Property Graph profile without a compatibility fallback.
+Earlier migration failures and corrected task-mapping assumptions remain in
+the diagnostic logs; none is reported as a successful run. This successful
+run emitted a Node FileHandle garbage-collection close/deprecation warning.
+It is recorded rather than described as a warning-free resource audit; its
+origin is not established by these assertions.
+
+This is local fixture-migration evidence at the fused-input fix, not final
+integrated-source Core/spec/packed acceptance or pushed-SHA Linux CI. Latest
+fetched main is `52ca17c4645a10d8010da616410fdd5f2bf4a13b`; integration and
+the final published #164/B handoff remain required.
