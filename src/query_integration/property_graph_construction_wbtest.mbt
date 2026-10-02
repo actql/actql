@@ -470,7 +470,7 @@ test "keyed MATCH separates heterogeneous definitions and preserves empty typed 
     )
     let edges = keyed_edge_source(rows="[]")
     let body =
-      #|[{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"nodes","key":["tenant","id"],"labels":[{"name":"Node","properties":{"mode":"columns","columns":[{"from":"name","to":"display"}]}},{"name":"IdentityOnly","properties":{"mode":"no_properties"}}]},{"name":"M","from":"nodes","key":["name"],"labels":[{"name":"Other","properties":{"mode":"columns","columns":[{"from":"id","to":"display"}]}}]}],"edges":[]},"as":"g"}]
+      #|[{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"nodes","key":["tenant","id"],"labels":[{"name":"Node","properties":{"mode":"columns","columns":[{"from":"name","to":"display"}]}},{"name":"IdentityOnly","properties":{"mode":"no_properties"}}]},{"name":"M","from":"nodes","key":["name"],"labels":[{"name":"Other","properties":{"mode":"columns","columns":[{"from":"id","to":"score"}]}}]}],"edges":[]},"as":"g"}]
     let graph_owner = keyed_bridge_owner(nodes, edges, body=Some(body))
     let node_output = carrier_events_source_output(nodes)
     let node_input = @execution.prepare_producer_read(
@@ -496,8 +496,11 @@ test "keyed MATCH separates heterogeneous definitions and preserves empty typed 
     for
       (definition, label, predicate, numeric) in [
         ("N", "Node", "display = 'one' OR display = 'two'", false),
-        ("M", "Other", "display > 0", true),
+        ("M", "Other", "score > 0", true),
       ] {
+      // Heterogeneous types use different graph-wide property names. The
+      // incompatible same-name case is rejected by the admission regressions.
+      let property = if numeric { "score" } else { "display" }
       let owner = keyed_graph_receiver(
         graph_owner,
         body="[{\"from\":\"g\",\"match_nodes\":{\"definition\":\"" +
@@ -506,7 +509,9 @@ test "keyed MATCH separates heterogeneous definitions and preserves empty typed 
           label +
           "\",\"bindings\":{\"identity\":\"element\"},\"where\":\"" +
           predicate +
-          "\",\"fields\":[\"display\",\"element\"]}}]",
+          "\",\"fields\":[\"" +
+          property +
+          "\",\"element\"]}}]",
       )
       let input = @graphs.prepare_producer_read(owner, 0, graph_owner, graph).unwrap()
       let active = @local_sga.start_match_nodes_view(
@@ -542,7 +547,16 @@ test "keyed MATCH separates heterogeneous definitions and preserves empty typed 
           _ => abort("match occurrence")
         },
       )
-      let contract = @schema.lookup(schema, @schema.Unqualified("display")).unwrap()
+      let contract = @schema.lookup(schema, @schema.Unqualified(property)).unwrap()
+      let value_column = if numeric { 1 } else { 0 }
+      assert_eq(
+        @execution.completed_column_name(output, value_column),
+        Some(property),
+      )
+      assert_eq(
+        @execution.completed_column_name(output, 1 - value_column),
+        Some("element"),
+      )
       assert_eq(contract.nullable, numeric)
       assert_true(
         if numeric {
@@ -554,12 +568,14 @@ test "keyed MATCH separates heterogeneous definitions and preserves empty typed 
       for row in 0..<(if empty { 0 } else { 2 }) {
         if numeric {
           assert_true(
-            @execution.completed_cell(output, row, 0) is Some(Number(value)) &&
+            @execution.completed_cell(output, row, value_column)
+            is Some(Number(value)) &&
             value == (row + 1).to_double(),
           )
         } else {
           assert_true(
-            @execution.completed_cell(output, row, 0) is Some(Text(value)) &&
+            @execution.completed_cell(output, row, value_column)
+            is Some(Text(value)) &&
             value == (if row == 0 { "one" } else { "two" }),
           )
         }
