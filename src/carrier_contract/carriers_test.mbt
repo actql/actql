@@ -138,17 +138,6 @@ test "definition label domains are owned canonical sets, not graph data evidence
     )
     is Err(LimitExceeded),
   )
-  assert_true(
-    graph(
-      id,
-      unknown_rows(),
-      unknown_rows(),
-      labels=None,
-      max_labels=0,
-      max_label_bytes=0,
-    )
-    is Err(UnsupportedGraphProfile),
-  )
 }
 
 ///|

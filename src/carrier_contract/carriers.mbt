@@ -120,29 +120,6 @@ fn typed_role(
 }
 
 ///|
-/// Retired endpoint-tuple schema. Independent edge keys and definition-scoped
-/// identity cannot be inferred from it; this entry never issues a Graph.
-pub fn graph(
-  _identity : @value.Contract,
-  _node_properties : Knowledge,
-  _edge_properties : Knowledge,
-  labels~ : Array[String]?,
-  max_labels~ : Int,
-  max_label_bytes~ : Int,
-  row_names? : GraphRowNames? = None,
-  label_contract? : @value.Contract? = None,
-) -> Result[Carrier, Issue] {
-  ignore(labels)
-  ignore(row_names)
-  ignore(label_contract)
-  if max_labels < 0 || max_label_bytes < 0 {
-    Err(InvalidLimits)
-  } else {
-    Err(UnsupportedGraphProfile)
-  }
-}
-
-///|
 pub fn graph_labels(graph : Graph) -> Array[String]? {
   graph.labels.map(labels => labels.copy())
 }

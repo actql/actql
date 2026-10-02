@@ -223,22 +223,6 @@ test "Property Graph metadata is bounded and cannot invent a domain from a locat
 }
 
 ///|
-test "retired tuple metadata cannot issue a second Graph profile" {
-  let empty = rows([], field_set=Closed, max_fields=0, max_name_bytes=0).unwrap()
-  assert_true(
-    graph(
-      @value.primitive(NumberType, nullable=false),
-      empty,
-      empty,
-      labels=Some(["R"]),
-      max_labels=1,
-      max_label_bytes=10,
-    )
-    is Err(UnsupportedGraphProfile),
-  )
-}
-
-///|
 fn scored_property_fixture(
   name : String,
   label : String,

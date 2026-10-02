@@ -45,29 +45,6 @@ fn text(value : String) -> @value.CheckedValue {
 }
 
 ///|
-// Historical schema bytes are rejection evidence, not executable storage.
-fn legacy_snapshot_carrier() -> @carrier.Carrier raise {
-  let empty = @carrier.rows(
-    [],
-    field_set=@carrier.Closed,
-    max_fields=0,
-    max_name_bytes=0,
-  ).unwrap()
-  assert_true(
-    @carrier.graph(
-      @contract.primitive(NumberType, nullable=false),
-      empty,
-      empty,
-      labels=None,
-      max_labels=0,
-      max_label_bytes=0,
-    )
-    is Err(UnsupportedGraphProfile),
-  )
-  @carrier.unknown_carrier(GraphKind)
-}
-
-///|
 test "snapshot shared preparation uses the sole current contract" {
   for quantum in [1, 7] {
     let prepared = prepare(
@@ -112,10 +89,10 @@ test "snapshot cancellation releases provisional bytes without publishing" {
 }
 
 ///|
-test "historical graph cannot create an executable storage or current snapshot" {
+test "incomplete Graph knowledge cannot create storage and contract mismatch cannot create a snapshot" {
   assert_true(
     @storage.prepare(
-      legacy_snapshot_carrier(),
+      @carrier.unknown_carrier(GraphKind),
       @storage.DeclaredNodes,
       storage_limits(),
     )

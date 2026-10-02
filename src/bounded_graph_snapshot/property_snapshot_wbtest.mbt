@@ -151,10 +151,10 @@ test "property snapshot preserves independent parallel edges schema labels and t
 }
 
 ///|
-test "snapshot entry points share the current contract and reject historical input" {
+test "snapshot entry points share the current contract and reject incomplete knowledge" {
   assert_true(
     @storage.prepare(
-      legacy_snapshot_carrier(),
+      @carrier.unknown_carrier(GraphKind),
       @storage.DeclaredNodes,
       storage_limits(),
     )

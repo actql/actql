@@ -26,7 +26,7 @@ public snapshot and required CI at the same submitted SHA.
 
 | Obligation / old failure group | Classification | Current executable evidence | Remaining work |
 | --- | --- | --- | --- |
-| Tuple constructor and endpoint-derived edge identity | Retired representation | `query_integration/property_graph_provider_profile_wbtest.mbt` rejects the old constructor; current keyed constructor retains independently keyed parallel edges | Audit remaining product symbols, readers and provider branches; negative tests alone do not remove them |
+| Tuple constructor and endpoint-derived edge identity | Retired representation | The old Carrier factory is deleted; current keyed constructor retains independently keyed parallel edges | Audit remaining homogeneous getters and unsupported checked consumer branches; negative tests alone do not remove them |
 | Graph builder capacity/work/cancellation and no partial publication | Required guarantee | `managed_graph_storage/storage_wbtest.mbt`, `property_storage_wbtest.mbt`; current constructor tests in `query_integration/property_graph_construction_wbtest.mbt` | Repeat aggregate verification at submitted source |
 | Completion, exact consumer/input owner, revocation, final reclamation | Required guarantee | All seven migrated `managed_graph_runtime/output_wbtest.mbt` lifecycle cases; keyed provider foreign-input and cleanup tests | Keep these positives, not substitutes that merely refuse old input |
 | Snapshot byte limits, cancellation, trusted read schema, corrupt/interrupted reload | Required guarantee | `query_integration/property_graph_snapshot_wbtest.mbt`, `managed_graph_runtime/property_snapshot_wbtest.mbt` | Fresh public Local/HTTPS save → revoke original Source → reload → MATCH/TRAIL at submitted SHA |
@@ -897,3 +897,59 @@ passes **10/10 on each JS, Wasm and native**:
 `/private/tmp/property-graph-trail-owner-migration-{js,wasm,native}-20261003.log`.
 This preserves applicable upper custody checks as positive current-contract
 tests, rather than converting them all into unsupported-operation assertions.
+
+## Aggregate diagnostic after comparison retirement
+
+Full Core JS at `e8efd8a393c08f2e1058f40a833e5d96aa0aa46f` is **7,388 total /
+7,260 passed / 128 failed**, exit 2, at
+`/private/tmp/property-graph-core-js-after-binary-retirement-20261003.log`.
+The exact failure groups are capacity_program_step 7, pipeline_check_context
+12, program_check 27, query_integration 75 and query_program 7. The union
+expect-test failure without `failed:` is included; no result is inferred by
+subtracting removed cases from the prior run.
+
+The remaining mixed bound/owner, supported MATCH/TRAIL and ordinary Host
+cases must be migrated. Component/reach/shortest, structural merge/diff/apply
+and homogeneous node/simple-path formulas are unsupported algorithm claims,
+not new-contract resource acceptance. Query-program failures include the
+unconnected external producer-definition boundary; they are not silently
+reclassified as desired language refusals. Current per-definition MATCH and
+TRAIL fixtures pass, but that does not establish all external Source routes.
+This diagnostic predates the next Carrier factory unit, and is still red.
+
+## Carrier tuple factory deletion and provider custody migration
+
+`carrier_contract.graph` is deleted, rather than retained as a compatibility
+stub returning a rejection. No remaining source call constructs a tuple
+Carrier. Old API-specific negative fixtures and three pure unsupported
+basic/reach/shortest execution fixtures are removed from execution. Historical
+sources remain in Git. Current incomplete knowledge still cannot allocate
+storage or issue a pinned contract; those checks use the existing opaque
+knowledge type directly, not a fabricated historical producer.
+
+The former provider material fixture mixed generic lifetime guarantees with
+unimplemented graft/union consumers. Its positive lifetime obligation is now
+`property_graph_provider_custody_wbtest.mbt`: the registered current constructor
+delivers one material with composite node keys and two independent parallel
+edge keys. Two current node/edge MATCH consumers are started from exact views.
+A reconstructed foreign producer is rejected. One consumer's cleanup does not
+invalidate the other's view or material; a third cancelled consumer cannot
+reclaim the shared input. Repeated cleanup remains safe. Final reclaim revokes
+both views while already completed Relation rows remain available. Expected
+rows and typed edge keys are authored independently. This is not support for
+graft or union and does not claim their old two-input algorithm migrated.
+
+The new test first failed to compile because its local start closure omitted
+`raise`; its next run rejected a node MATCH without a selector, before reaching
+the edge consumer. The fixture also lacked the edge's explicit identity binding.
+Both were connected through the existing valid MATCH contract, without changing
+the checker or expected rows. It then passes 1/1 JS. The first factory suite passes
+49/49 but exposes two now-unused private old producer helpers; those are
+deleted, not warning-exempted. The corrected factory/contract/snapshot/provider
+and task-port suite passes **49/49 on each JS, Wasm and native** at
+`/private/tmp/property-graph-factory-removal-{js,wasm,native}-20261003.log`.
+The current constructor/MATCH/snapshot, byte limits, corrupt reload, private
+cancellation and typed task-port positives remain executable. Other homogeneous
+metadata getters and unsupported checked consumer branches, mixed Host/Source
+fixtures, strict inventories and final submitted-SHA packed/CI acceptance remain
+open. This local result does not authorize a final B handoff or merge.

@@ -181,11 +181,15 @@ test "all graph admission entry points share one current contract and reject his
     )
   }
   assert_true(
-    @graph_contract.admit_property_graph(graph(None), caps())
+    @graph_contract.admit_property_graph(
+      @carrier.unknown_carrier(GraphKind),
+      caps(),
+    )
     is Err(IncompleteGraph),
   )
   assert_true(
-    @graph_contract.admit(graph(None), caps()) is Err(IncompleteGraph),
+    @graph_contract.admit(@carrier.unknown_carrier(GraphKind), caps())
+    is Err(IncompleteGraph),
   )
 }
 

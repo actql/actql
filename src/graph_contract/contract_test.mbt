@@ -4,28 +4,6 @@ fn caps() -> @graph_contract.Limits {
 }
 
 ///|
-fn graph(labels : Array[String]?) -> @carrier.Carrier raise {
-  let empty = @carrier.rows(
-    [],
-    field_set=Closed,
-    max_fields=0,
-    max_name_bytes=0,
-  ).unwrap()
-  assert_true(
-    @carrier.graph(
-      @value.primitive(NumberType, nullable=false),
-      empty,
-      empty,
-      labels~,
-      max_labels=10,
-      max_label_bytes=100,
-    )
-    is Err(UnsupportedGraphProfile),
-  )
-  @carrier.unknown_carrier(GraphKind)
-}
-
-///|
 fn with_properties(rows : @carrier.Knowledge) -> @carrier.Carrier {
   with_labels(rows, [])
 }
@@ -213,18 +191,6 @@ test "incomplete graph evidence cannot become a pinned contract" {
   assert_true(
     @graph_contract.admit(@carrier.unknown_carrier(GraphKind), caps())
     is Err(IncompleteGraph),
-  )
-  let unknown = @carrier.unknown_rows()
-  assert_true(
-    @carrier.graph(
-      @value.primitive(NumberType, nullable=false),
-      unknown,
-      unknown,
-      labels=None,
-      max_labels=0,
-      max_label_bytes=0,
-    )
-    is Err(UnsupportedGraphProfile),
   )
   let current = with_properties(
     @carrier.rows([], field_set=Closed, max_fields=0, max_name_bytes=0).unwrap(),
