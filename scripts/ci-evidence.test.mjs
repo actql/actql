@@ -1,3 +1,6 @@
+// Keep offline artifact fixtures in the existing CI evidence tooling gate.
+import './ci-artifact-reader.test.mjs';
+import './ci-artifacts.test.mjs';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
@@ -539,3 +542,11 @@ test('fixed-run CLI remains GET-only and keeps all attempts outside the selected
     assert.equal(group.maximumSeconds, 50);
   });
 }
+
+
+test('offline retained artifact selection is exclusive and needs no live collector', () => {
+  assert.deepEqual(parseArguments(['actql/actql', '--artifacts', 'saved.json', '--json']), {repository: 'actql/actql', artifacts: 'saved.json', json: true});
+  for (const extra of [['--pr', '1'], ['--runs', '2'], ['--branch', 'main'], ['--compare', '2:1']]) {
+    assert.throws(() => parseArguments(['actql/actql', '--artifacts', 'saved.json', ...extra]));
+  }
+});

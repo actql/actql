@@ -2,9 +2,10 @@
 import {spawnSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {addTimingEvidence, formatTiming} from './ci-timing.mjs';
+import {collectArtifactEvidence, formatArtifactEvidence} from './ci-artifacts.mjs';
 
 const usage = 'Usage: node scripts/ci-evidence.mjs OWNER/REPO ' +
-  '(--pr NUMBER | --sha FULL_SHA | --runs ID,ID) [--branch BASE_BRANCH] ' +
+  '(--pr NUMBER | --sha FULL_SHA | --runs ID,ID | --artifacts MANIFEST.json) [--branch BASE_BRANCH] ' +
   '[--compare RUN:ATTEMPT,RUN:ATTEMPT] [--json]';
 const fullSha = value => typeof value === 'string' && /^[a-f0-9]{40}$/iu.test(value);
 const positive = value => Number.isSafeInteger(value) && value > 0;
@@ -20,7 +21,7 @@ export function parseArguments(args) {
   const seen = new Set();
   for (let index = 0; index < rest.length; index++) {
     const flag = rest[index];
-    if (!['--pr', '--sha', '--runs', '--compare', '--branch', '--json'].includes(flag) || seen.has(flag)) {
+    if (!['--pr', '--sha', '--runs', '--artifacts', '--compare', '--branch', '--json'].includes(flag) || seen.has(flag)) {
       throw new Error(usage);
     }
     seen.add(flag);
@@ -31,9 +32,9 @@ export function parseArguments(args) {
       options[flag.slice(2)] = value;
     }
   }
-  if ([options.pr, options.sha, options.runs].filter(Boolean).length !== 1 ||
+  if ([options.pr, options.sha, options.runs, options.artifacts].filter(Boolean).length !== 1 ||
       (options.pr && (!/^[1-9][0-9]*$/u.test(options.pr) || !positive(Number(options.pr)))) ||
-      (options.sha && !fullSha(options.sha)) || (options.pr && options.branch)) {
+      (options.sha && !fullSha(options.sha)) || (options.pr && options.branch) || (options.artifacts && (options.branch || options.compare))) {
     throw new Error(usage);
   }
   if (options.pr) options.pr = Number(options.pr);
@@ -394,8 +395,10 @@ async function main() {
   try { options = parseArguments(process.argv.slice(2)); }
   catch (error) { console.error(error.message); process.exitCode = 2; return; }
   if (options.help) { console.log(usage); return; }
-  const report = await collectEvidence(options);
-  console.log(options.json ? JSON.stringify(report, null, 2) : formatHuman(report));
+  let report;
+  try { report = await (options.artifacts ? collectArtifactEvidence(options) : collectEvidence(options)); }
+  catch { console.error('Selected evidence could not be read or validated'); process.exitCode = 1; return; }
+  console.log(options.json ? JSON.stringify(report, null, 2) : options.artifacts ? formatArtifactEvidence(report) : formatHuman(report));
   // Exit status measures retrieval, not CI success. Failed/skipped CI is data.
   process.exitCode = report.complete ? 0 : 1;
 }
