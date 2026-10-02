@@ -215,7 +215,7 @@ if that policy is unavailable, required checks remain **unknown**.
 node scripts/ci-evidence.mjs actql/actql --pr PR_NUMBER
 node scripts/ci-evidence.mjs actql/actql-cloud --sha FULL_40_CHARACTER_SHA --json
 node scripts/ci-evidence.mjs actql/actql-cloud --sha FULL_40_CHARACTER_SHA --branch main
-node --test scripts/ci-evidence.test.mjs scripts/ci-timing.test.mjs
+node --test scripts/ci-evidence.test.mjs
 ```
 
 The text and JSON reports preserve each workflow run, event, source SHA and

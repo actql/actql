@@ -99,7 +99,7 @@ function runJob(name) {
 const areas = [
   [/^proofs\/relation-pipeline\//u, ['pipeline-evidence']],
   [/^scripts\/(build-runtime-packages|test-runtime-package-build|build-local-node|build-run-host-core|build-remote-(coordinator|transfer)-package)|^packages\/(run-host-core|coordinator-core|transfer-core)\//u, ['host']],
-  [/^\.github\/|^scripts\/(local-checks|ci-evidence|ci-timing)(\.test)?\.mjs$/u, ['lint']],
+  [/^\.github\/|^scripts\/local-checks\.mjs$/u, ['lint']],
   [/^src\//u, ['lint', 'core']],
   [/^(spec|docs)\/|\.md$/u, ['spec']],
   [/^adapters\/connectors\/salesforce\//u, ['client']],
