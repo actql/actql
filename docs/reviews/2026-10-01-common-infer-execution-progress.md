@@ -2183,9 +2183,15 @@ Local evidence at the working revision:
   failed to start because `moon` was absent from PATH. Its pinned-toolchain
   rerun passed 1/1. The failed aggregate run is not recorded as successful.
 
+At `eb5f13a960f6fb6632290eef48baaf39f795b25d`, the lint job passed through
+`local-checks.mjs run lint`, including public API comparison, SDK declarations
+and dependency isolation. Focused Wasm and native runs each passed 8/8 for
+record guard scans, source observation bindings and model call identity.
+These focused runs do not certify every affected package on those targets.
+
 This is not a final SHA or release verdict. Full affected Node jobs,
-Wasm/native execution, final interface verification and Linux CI remain to
-be recorded. The external packed acquired-input acceptance is not yet run.
+remaining portable execution coverage and Linux CI remain to be recorded.
+The external packed acquired-input acceptance is not yet run.
 Broad KEEP, multiple SourceViews and immediate capture-to-INFER without a
 post-capture Local step are not claimed supported. Acquisition retention
 identity measurement still uses its existing synchronous completion path;
