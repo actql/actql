@@ -19,6 +19,10 @@ pub fn acquire_output(Execution) -> OutputUse?
 
 pub fn advance(Execution, Int) -> Result[Poll, Issue]
 
+pub fn attempt_evidence(Execution, Int) -> Result[@model_execution.ModelAttemptEvidence, @model_execution.ModelExecutionIssue]
+
+pub fn bind_dispatch_admission(Execution, @run_publication_host.ClientInferDispatchAdmission) -> Result[Unit, InvocationBindingIssue]
+
 pub fn bind_invocation(Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @model_execution.ModelObservationVerification, @run_publication.PublicationContract, String) -> Result[InvocationBinding, InvocationBindingIssue]
 
 pub fn bind_run(Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, InvocationBindingIssue]
@@ -46,6 +50,8 @@ pub fn invocation_binding_observation(InvocationBinding) -> @run_publication.Run
 pub fn invocation_binding_output(InvocationBinding) -> @execution_relation.CompletedOutput?
 
 pub fn invocation_evidence(Execution, Int) -> @run_publication.RunEvidenceValue?
+
+pub fn issued_slot_capture(Execution, Int) -> Result[@run_publication.RunEvidenceValue, @model_execution.ModelExecutionIssue]
 
 pub fn matches(Execution, @run_publication_host.PreparedClientProgram) -> Bool
 
@@ -101,6 +107,7 @@ pub struct Execution {
   mut child_work : Int64
   mut output_uses : Int
   mut run_binding : ExecutionRunBinding?
+  mut dispatch_admission : @run_publication_host.ClientInferDispatchAdmission?
 }
 
 type ExecutionRunBinding

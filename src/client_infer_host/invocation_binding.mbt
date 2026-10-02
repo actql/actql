@@ -61,6 +61,52 @@ pub fn bind_run(
 }
 
 ///|
+/// Bind existing dispatch authority before any progress; evidence cannot
+/// retrospectively legitimize a physical call. Replay never needs this.
+pub fn bind_dispatch_admission(
+  active : Execution,
+  admission : @publication_host.ClientInferDispatchAdmission,
+) -> Result[Unit, InvocationBindingIssue] {
+  guard active.run_binding is Some(bound) &&
+    @publication_host.client_infer_dispatch_matches_run(
+      admission,
+      bound.compiled,
+      bound.definition,
+    ) else {
+    return Err(ForeignRun)
+  }
+  if active.reclaimed ||
+    active.cancelled ||
+    active.advancing ||
+    !(active.phase is Input) ||
+    active.work != 0L ||
+    !(active.source is Physical(_)) ||
+    active.dispatch_admission is Some(_) {
+    return Err(IncompleteExecution)
+  }
+  active.dispatch_admission = Some(admission)
+  Ok(())
+}
+
+///|
+pub fn attempt_evidence(
+  active : Execution,
+  slot : Int,
+) -> Result[@model.ModelAttemptEvidence, @model.ModelExecutionIssue] {
+  guard active.model is Some(model) else { return Err(@model.OutputIdentity) }
+  @model.model_execution_attempt_evidence(model, slot)
+}
+
+///|
+pub fn issued_slot_capture(
+  active : Execution,
+  slot : Int,
+) -> Result[@publication.RunEvidenceValue, @model.ModelExecutionIssue] {
+  guard active.model is Some(model) else { return Err(@model.OutputIdentity) }
+  @model.model_execution_issued_slot_capture(model, slot)
+}
+
+///|
 /// Bind without preparing another Program, compiling again or traversing all
 /// slots synchronously. The bounded verifier must have checked this execution.
 /// Acquire output custody only after every binding check succeeds.

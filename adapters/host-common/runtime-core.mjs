@@ -2010,6 +2010,22 @@ function publicationControl(moon) {
       return checked(moon.clientProgramBindInferRun(execution,
         value, token(definition)));
     },
+    bindCheckedClientInferDispatch(compiled, execution, definition,
+      {account, principalId, at, delegated, observeAccount, observeAt}) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer Run');
+      }
+      if (typeof observeAccount !== 'function' ||
+          typeof observeAt !== 'function') {
+        throw new TypeError('Missing current Infer dispatch observations');
+      }
+      const admitted = checked(moon.clientProgramIssueInferDispatchAdmission(
+        value, token(definition), account, principalId, at, delegated,
+        observeAccount, observeAt));
+      return checked(moon.clientProgramBindInferDispatchAdmission(execution,
+        admitted));
+    },
     bindCheckedClientInferInvocation(compiled, execution, definition,
       verified, invocation, dataPolicyCid) {
       const value = compiledRunTokens.get(compiled);
@@ -2018,6 +2034,16 @@ function publicationControl(moon) {
       }
       return checked(moon.clientProgramBindInferInvocation(execution,
         value, token(definition), verified, token(invocation), dataPolicyCid));
+    },
+    readCheckedClientInferSlotReplay(compiled, definition, observation,
+      records, bundle, proofs, {maxSlots, maxSlotWireUnits}) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer Run');
+      }
+      return checked(moon.clientProgramReadVerifiedInferSlotReplay(
+        evidenceToken(observation), records, bundle, proofs, value, token(definition),
+        maxSlots, maxSlotWireUnits));
     },
     checkClientRunDefinitionBinding(checkedProgram, admission, definition) {
       if (typeof moon.clientProgramCheckRunBinding !== 'function' ||

@@ -628,6 +628,122 @@ function supervisedInferFixture(signal, onInvoke, responseBody = '{"reason":null
   return {prepared, graph, operation, calls: () => calls};
 }
 
+test('Node Infer binds existing account authority and reads common issued attempt proofs', async () => {
+  for (const outcome of ['allow', 'deny']) {
+    const fixture = supervisedInferFixture();
+    const {prepared, graph, operation} = fixture;
+    const control = runtimeCore(moon).publicationControl;
+    const root = cid({fixture: 'infer-component-policy'});
+    const policy = {executionContextCid: root, hostPolicyCid: root,
+      expiresAt: '2099-01-01T00:00:00.000Z'};
+    const compiled = control.prepareCheckedClientCompiledRun(prepared,
+      'infer', policy, graph);
+    const runDefinition = control.defineCheckedClientCompiledRun(compiled,
+      {namespaceId: 'infer-proof-test', runId: outcome,
+        createdAt: '2026-10-02T00:00:00.000Z', validUntil: policy.expiresAt});
+    const account = moon.executionAuthorizationAdmit(canonicalText({
+      version: 'actql-execution-account-config/0.1',
+      account_id: 'model-account', entries: [{entry_id: 'infer-policy',
+        outcome, principal: {all: true}, connection: {all: true},
+        resource: {all: true}, operation: {any_of: ['infer']}, exclusions: []}],
+    }));
+    try {
+      operation.bindRun(control, {compiled, runDefinition});
+      const bind = () => operation.bindDispatch(control, {compiled,
+        runDefinition, account, principalId: 'fixture-principal',
+        at: '2026-10-02T00:00:00.000Z', observeAccount: () => account,
+        observeAt: () => '2026-10-02T00:00:00.000Z'});
+      if (outcome === 'deny') {
+        assert.throws(bind, /MoonBitHostFailure/u);
+        assert.equal(fixture.calls(), 0);
+        assert.equal(operation.acquireOutput(), undefined);
+        continue;
+      }
+      bind();
+      const completed = await operation.run();
+      assert.deepEqual(await inferExportRows(prepared, completed),
+        [{id: 'a', outcome: 'ok', value: {reason: null, risk: 'high'}}]);
+      const proof = operation.attemptEvidence(0);
+      const leaves = Object.fromEntries(
+        ['attempt', 'accounting', 'outcome', 'authority'].map(kind => [kind,
+          JSON.parse(moon.strategyRunEvidenceJson(
+            moon.clientProgramInferAttemptLeaf(proof, kind)))]));
+      const capture = JSON.parse(moon.strategyRunEvidenceJson(
+        operation.issuedSlotCapture(0)));
+      assert.deepEqual(capture.ordered_attempt_cids, [leaves.attempt.self_cid]);
+      assert.equal(capture.accounting_evidence_cid, leaves.accounting.self_cid);
+      assert.equal(capture.authority_evidence_cid, leaves.authority.self_cid);
+      assert.equal(capture.outcome_evidence_cid, leaves.outcome.self_cid);
+      assert.equal(leaves.authority.basis, 'account_allow');
+      assert.deepEqual(leaves.authority.satisfied_claims, []);
+      assert.equal(leaves.authority.principal, 'fixture-principal');
+      assert.equal(leaves.accounting.input_tokens, 1);
+      assert.equal(leaves.accounting.output_tokens, 2);
+      assert.equal(leaves.accounting.cost_units, null);
+      assert.equal(leaves.accounting.duration_ms, null);
+      assert.ok(leaves.accounting.cumulative_work > 0);
+      assert.equal(leaves.outcome.category, 'ok');
+      assert.equal(fixture.calls(), 1);
+    } finally {
+      if (operation.cleanupPending()) await operation.close();
+      assert.equal(operation.physicalStopped(), true);
+      assert.equal(operation.cleanupPending(), false);
+      assert.equal(fixture.calls(), outcome === 'allow' ? 1 : 0);
+    }
+  }
+});
+
+test('Node Infer rechecks account and clock observations immediately before model I/O', async () => {
+  for (const changed of ['account', 'expiry']) {
+    const fixture = supervisedInferFixture();
+    const {prepared, graph, operation} = fixture;
+    const control = runtimeCore(moon).publicationControl;
+    const root = cid({fixture: 'infer-component-policy'});
+    const policy = {executionContextCid: root, hostPolicyCid: root,
+      expiresAt: '2099-01-01T00:00:00.000Z'};
+    const compiled = control.prepareCheckedClientCompiledRun(prepared,
+      'infer', policy, graph);
+    const runDefinition = control.defineCheckedClientCompiledRun(compiled,
+      {namespaceId: 'infer-refresh-test', runId: changed,
+        createdAt: '2026-10-02T00:00:00.000Z', validUntil: policy.expiresAt});
+    const account = outcome => moon.executionAuthorizationAdmit(canonicalText({
+      version: 'actql-execution-account-config/0.1', account_id: 'model-account',
+      entries: [{entry_id: 'infer-policy', outcome, principal: {all: true},
+        connection: {all: true}, resource: {all: true},
+        operation: {any_of: ['infer']}, exclusions: []}],
+    }));
+    let refreshes = 0;
+    try {
+      operation.bindRun(control, {compiled, runDefinition});
+      operation.bindDispatch(control, {compiled, runDefinition,
+        account: account('allow'), principalId: 'fixture-principal',
+        at: '2026-10-02T00:00:00.000Z',
+        observeAccount: () => {
+          refreshes++;
+          return account(changed === 'account' ? 'deny' : 'allow');
+        },
+        observeAt: () => changed === 'expiry'
+          ? '2100-01-01T00:00:00.000Z' : '2026-10-02T00:00:00.000Z'});
+      await assert.rejects(operation.run(), failure => {
+        assert.equal(failure.code, 'MoonBitHostFailure');
+        assert.equal(failure.cause?.$tag, 2, 'Host Model issue');
+        assert.equal(failure.cause?._0?.$tag, 14, 'Model Authorization issue');
+        assert.equal(failure.cause?._0?._0?.$tag,
+          changed === 'expiry' ? 1 : 2, 'expiry or changed configuration');
+        return true;
+      });
+      assert.equal(refreshes, 1);
+      assert.equal(fixture.calls(), 0);
+      assert.equal(operation.acquireOutput(), undefined);
+      assert.equal(operation.acquireCapture(), undefined);
+    } finally {
+      if (operation.cleanupPending()) await operation.close();
+      assert.equal(operation.cleanupPending(), false);
+      assert.equal(fixture.calls(), 0);
+    }
+  }
+});
+
 test('physical Infer preflight enforces the selected contract before dispatch', async t => {
   for (const [capacity, ledgerIssue] of [
     [{max_total_attempts: 2, max_total_wire_bytes: 133072}, undefined],
@@ -1002,31 +1118,45 @@ test('invalid or already cancelled opening performs no physical Infer start', ()
 });
 
 test('failed slot custody survives encrypted Store reopen and replays without dispatch', async () => {
-  // Symbolic external roots exercise stored structural replay, not formal
-  // attempt/accounting/policy authority or public Run completion.
+  // The component capture owner issues all proofs. Reopening authenticated
+  // holdings verifies that chain; this is not public Named Result completion.
   const original = supervisedInferFixture(undefined, undefined,
     '{"reason":null,"risk":123}');
+  const control = runtimeCore(moon).publicationControl;
+  const root = cid({fixture: 'stored-infer-component-policy'});
+  const policy = {executionContextCid: root, hostPolicyCid: root,
+    expiresAt: '2099-01-01T00:00:00.000Z'};
+  const compiled = control.prepareCheckedClientCompiledRun(original.prepared,
+    'infer', policy, original.graph);
+  const runDefinition = control.defineCheckedClientCompiledRun(compiled,
+    {namespaceId: 'stored-infer', runId: 'failed-slot',
+      createdAt: '2026-10-02T00:00:00.000Z', validUntil: policy.expiresAt});
+  const account = moon.executionAuthorizationAdmit(canonicalText({
+    version: 'actql-execution-account-config/0.1', account_id: 'model-account',
+    entries: [{entry_id: 'infer-policy', outcome: 'allow', principal: {all: true},
+      connection: {all: true}, resource: {all: true},
+      operation: {any_of: ['infer']}, exclusions: []}],
+  }));
+  original.operation.bindRun(control, {compiled, runDefinition});
+  original.operation.bindDispatch(control, {compiled, runDefinition, account,
+    principalId: 'fixture-principal', at: '2026-10-02T00:00:00.000Z',
+    observeAccount: () => account,
+    observeAt: () => '2026-10-02T00:00:00.000Z'});
   const completed = await original.operation.run();
   assert.deepEqual(await inferExportRows(original.prepared, completed),
     [{id: 'a', outcome: 'failed:provider_error', value: null}]);
   const saved = original.operation.acquireCapture();
   const call = JSON.parse(moon.strategyRunEvidenceJson(
     moon.clientProgramInferCaptureCall(saved, 0)));
-  const root = cid({fixture: 'symbolic-external-slot-root'});
-  const body = {
-    version: 'actql-model-slot-capture/0.1', slot_cid: call.model_call_slot_cid,
-    model_task_cid: call.model_task_cid, fixed_request_cid: call.fixed_request_cid,
-    input_artifact_cid: call.input_artifact_cid, input_key_cid: call.input_key_cid,
-    ordered_attempt_cids: [root], adopted_attempt_cid: root,
-    outcome: 'failed:provider_error', typed_value_artifact_cid: null,
-    accounting_evidence_cid: root, authority_evidence_cid: root, policy_cid: root,
-    outcome_evidence_cid: root, response_artifact_cid: null,
-    response_issuer_evidence_cid: null, attachment_admission_cids: [],
-  };
-  const identity = cid(body);
-  const slotWire = canonicalText({...body, self_cid: identity});
-  const slot = checked(moon.strategyRunEvidenceAdmit('model_slot_capture', slotWire,
-    16384, 1024, 20));
+  const slot = original.operation.issuedSlotCapture(0);
+  const slotWire = moon.strategyRunEvidenceJson(slot);
+  const identity = JSON.parse(slotWire).self_cid;
+  const issued = original.operation.attemptEvidence(0);
+  const leaves = ['attempt', 'accounting', 'outcome', 'authority'].map(kind => {
+    const wire = moon.strategyRunEvidenceJson(
+      moon.clientProgramInferAttemptLeaf(issued, kind));
+    return {kind, wire, body: JSON.parse(wire)};
+  });
   checked(moon.clientProgramBindInferSlotCapture(saved, 0, slot));
   const exported = await exportedModelCapture(saved);
   const bundleBody = {version: 'actql-model-capture-bundle/0.1',
@@ -1035,9 +1165,10 @@ test('failed slot custody survives encrypted Store reopen and replays without di
   assert.equal(exported.wire, canonicalText({...bundleBody,
     bundle_cid: cid(bundleBody)}));
   const observationBody = {
-    version: 'actql-observation-set/0.1', invocation_template_cid: root,
-    captured_input_artifact_cids: [], source_evidence_cids: [],
-    data_policy_cid: root, consistency: 'no_external_sources',
+    version: 'actql-observation-set/0.1',
+    invocation_template_cid: compiled.template.identity,
+    captured_input_artifact_cids: [call.input_artifact_cid], source_evidence_cids: [],
+    data_policy_cid: task.data_handling.contract_cid, consistency: 'no_external_sources',
     capture_started_at: null, capture_completed_at: null,
     replayability: {materialized: false, availability_evidence_cids: []},
     model_slot_capture_cids: [identity],
@@ -1072,6 +1203,10 @@ test('failed slot custody survives encrypted Store reopen and replays without di
     for (const [name, wire, semanticCid] of [
       ['model_slot_capture', slotWire, identity],
       ['model_capture_bundle', exported.wire, exported.identity],
+      ...leaves.map(({kind, body, wire}) => [
+        {attempt: 'model_call_attempt', accounting: 'model_attempt_accounting',
+          outcome: 'model_attempt_outcome', authority: 'model_dispatch_authority'}[
+          kind], wire, body.self_cid]),
     ]) {
       const prepared = await store.preparePrivateEvidence(name, wire, semanticCid);
       const holdingCid = cid({fixture: 'saved-slot-holding', name, semanticCid});
@@ -1122,6 +1257,8 @@ test('failed slot custody survives encrypted Store reopen and replays without di
         '../adapters/store-local/publication-store.mjs', import.meta.url).href)};
       import {openNodeInferOperation} from ${JSON.stringify(new URL(
         '../adapters/host-node/infer-operation.mjs', import.meta.url).href)};
+      import {runtimeCore} from ${JSON.stringify(new URL(
+        '../adapters/host-common/runtime-core.mjs', import.meta.url).href)};
       import {createPublicationContractControlFixture} from ${JSON.stringify(new URL(
         '../adapters/host-common/publication-contract-control.fixture.mjs', import.meta.url).href)};
       const fixture = JSON.parse(readFileSync(0, 'utf8'));
@@ -1138,6 +1275,7 @@ test('failed slot custody survives encrypted Store reopen and replays without di
         createPublicationContractControlFixture());
       try {
         const records = [];
+        const leaves = {};
         let bundle;
         for (const binding of fixture.bindings) {
           const bytes = await store.readPrivateEvidence(binding.name,
@@ -1147,19 +1285,33 @@ test('failed slot custody survives encrypted Store reopen and replays without di
           if (binding.name === 'model_slot_capture') {
             records.push(checked(moon.strategyRunEvidenceAdmit(binding.name, wire,
               16384, 1024, 20)));
-          } else {
+          } else if (binding.name === 'model_capture_bundle') {
             bundle = checked(moon.clientProgramReadInferCaptureBundle(wire,
               binding.semanticCid));
+          } else {
+            leaves[binding.name] = checked(moon.strategyRunEvidenceAdmit(
+              binding.name, wire, 16384, 1024, 20));
           }
         }
-        const observation = checked(moon.strategyRunEvidenceAdmit('observation_set',
-          fixture.observationWire, 16384, 1024, 20));
-        const read = checked(moon.clientProgramReadInferSlotReplay(observation,
-          records, bundle, 1, 16384));
-        assert.equal(moon.clientProgramReleaseInferCaptureBundle(bundle), true);
         const prepared = moon.clientProgramPreparationReady(prepare(program(), environment()));
+        const graph = scopedInferGraph(prepared);
+        const control = runtimeCore(moon).publicationControl;
+        const compiled = control.prepareCheckedClientCompiledRun(prepared,
+          'infer', fixture.policy, graph);
+        const definition = control.defineCheckedClientCompiledRun(compiled,
+          {retainedDefinitionWire: fixture.runDefinitionWire});
+        const observation = control.admitRunEvidence('observation_set',
+          fixture.observationWire,
+          {maxWireBytes: 16384, maxNodes: 1024, maxDepth: 20});
+        const proofs = [moon.clientProgramInferAttemptRecords(
+          leaves.model_call_attempt, leaves.model_attempt_accounting,
+          leaves.model_attempt_outcome, leaves.model_dispatch_authority)];
+        const read = control.readCheckedClientInferSlotReplay(compiled,
+          definition, observation, records, bundle, proofs,
+          {maxSlots: 1, maxSlotWireUnits: 16384});
+        assert.equal(moon.clientProgramReleaseInferCaptureBundle(bundle), true);
         const replay = openNodeInferOperation({moon, preparedProgram: prepared,
-          step: 2, graph: scopedInferGraph(prepared), registry, values,
+          step: 2, graph, registry, values,
           savedSlots: read, quantum: 1});
         assert.equal(moon.clientProgramReleaseInferSlotReplay(read), true);
         const output = await replay.run();
@@ -1175,7 +1327,7 @@ test('failed slot custody survives encrypted Store reopen and replays without di
       ['--input-type=module', '-e', childSource], {encoding: 'utf8',
         input: JSON.stringify({task, baseEnvironment, registry, values,
           configuration: {...configuration, privateEvidenceKey: undefined},
-          bindings, observationWire})}));
+          bindings, observationWire, policy, runDefinitionWire: runDefinition.wire})}));
     assert.deepEqual(restarted,
       [{id: 'a', outcome: 'failed:provider_error', value: null}]);
     assert.equal(original.calls(), 1);

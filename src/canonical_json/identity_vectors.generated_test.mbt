@@ -3387,6 +3387,48 @@ test "contract spec/contracts/actql-stage-contracts.json#/schemas/pending_predec
 }
 
 ///|
+test "contract spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_dispatch_authority" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"program_definition_cid\",\"run_definition_cid\",\"run_authorization_cid\",\"account_configuration_cid\",\"model_task_cid\",\"fixed_request_cid\",\"execution_context_cid\",\"host_policy_cid\",\"principal\",\"connection\",\"resource\",\"operation\",\"entry_id\",\"basis\",\"answering_authority\",\"satisfied_claims\",\"self_cid\"],\"properties\":{\"version\":{\"const\":\"actql-model-dispatch-authority/0.1\"},\"program_definition_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"run_definition_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"run_authorization_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"account_configuration_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"model_task_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"fixed_request_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"execution_context_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"host_po",
+    "licy_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"principal\":{\"type\":\"string\",\"minLength\":1},\"connection\":{\"type\":\"string\",\"minLength\":1},\"resource\":{\"type\":\"string\",\"minLength\":1},\"operation\":{\"const\":\"infer\"},\"entry_id\":{\"type\":\"string\",\"minLength\":1},\"basis\":{\"enum\":[\"account_allow\",\"host_permit\"]},\"answering_authority\":{\"anyOf\":[{\"type\":\"string\",\"minLength\":1},{\"type\":\"null\"}]},\"satisfied_claims\":{\"type\":\"array\",\"uniqueItems\":true,\"items\":{\"type\":\"string\",\"minLength\":1}},\"self_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 84, 5, 1581)
+  assert_eq(@canonical_json.cid_value(value, 1581, 84, 5), "sha256:b00aae86b12bae22d8ef3f62d98d1a192fa9253371407fde016fc23a28117d09")
+  assert_eq(@canonical_json.measure_value(value, 1581, 84, 5), 1581)
+}
+
+///|
+test "contract spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_call_attempt" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"slot_cid\",\"run_definition_cid\",\"model_task_cid\",\"fixed_request_cid\",\"authority_evidence_cid\",\"attempt\",\"provider_id\",\"self_cid\"],\"properties\":{\"version\":{\"const\":\"actql-model-call-attempt/0.1\"},\"slot_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"run_definition_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"model_task_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"fixed_request_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"authority_evidence_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"attempt\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":9007199254740991},\"provider_id\":{\"type\":\"string\",\"minLength\":1},\"self_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 42, 3, 852)
+  assert_eq(@canonical_json.cid_value(value, 852, 42, 3), "sha256:c80b4873ed75130e12006eb5f00154d77b74a85394eb1a7dbf517078d4db2741")
+  assert_eq(@canonical_json.measure_value(value, 852, 42, 3), 852)
+}
+
+///|
+test "contract spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_attempt_accounting" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"attempt_cid\",\"slot_cid\",\"cumulative_work\",\"uncertain_wire_bytes\",\"input_tokens\",\"output_tokens\",\"cost_units\",\"duration_ms\",\"self_cid\"],\"properties\":{\"version\":{\"const\":\"actql-model-attempt-accounting/0.1\"},\"attempt_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"slot_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"cumulative_work\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},\"uncertain_wire_bytes\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},\"input_tokens\":{\"anyOf\":[{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},{\"type\":\"null\"}]},\"output_tokens\":{\"anyOf\":[{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},{\"type\":\"null\"}]},\"cost_units\":{\"anyOf\":[{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},{\"type\":\"null\"}]},\"duration_ms\":{\"anyOf\":[{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},{\"type\":\"null\"}]},\"sel",
+    "f_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 67, 5, 1084)
+  assert_eq(@canonical_json.cid_value(value, 1084, 67, 5), "sha256:9dd8efbc085ba24be98f68688d0ff3b8b02201b60d1f99c1e4faebcc3663382f")
+  assert_eq(@canonical_json.measure_value(value, 1084, 67, 5), 1084)
+}
+
+///|
+test "contract spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_attempt_outcome" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"attempt_cid\",\"slot_cid\",\"category\",\"failure\",\"self_cid\"],\"properties\":{\"version\":{\"const\":\"actql-model-attempt-outcome/0.1\"},\"attempt_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"slot_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"category\":{\"enum\":[\"ok\",\"provider_failure\",\"contract_violation\",\"cancelled\",\"result_unknown\"]},\"failure\":{\"anyOf\":[{\"enum\":[\"rate_limit\",\"timeout\",\"provider_error\",\"refusal\",\"schema_invalid\",\"safety_rejected\",\"truncated\",\"output_identity\",\"output_value\",\"cancelled\",\"deadline\",\"result_unknown\"]},{\"type\":\"null\"}]},\"self_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 48, 6, 759)
+  assert_eq(@canonical_json.cid_value(value, 759, 48, 6), "sha256:859480d0f1786ef1493208b75278617bf022b60a6115c1dc4ff06542fe975a5b")
+  assert_eq(@canonical_json.measure_value(value, 759, 48, 6), 759)
+}
+
+///|
 test "contract spec/contracts/actql-protocol-schemas.json#/schemas/hydration_evidence" {
   let input = @json.parse([
     "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"resource_ref_cid\",\"connector_id\",\"connection_revision\",\"boundary_cid\",\"source_evidence_cid\",\"authority_scope_cid\",\"hydration_evidence_cid\"],\"properties\":{\"version\":{\"const\":\"actql-resource-hydration/0.1\"},\"resource_ref_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"connector_id\":{\"type\":\"string\",\"minLength\":1},\"connection_revision\":{\"type\":\"string\",\"minLength\":1},\"boundary_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"source_evidence_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"authority_scope_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"hydration_evidence_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}}}",

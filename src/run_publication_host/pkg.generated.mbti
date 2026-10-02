@@ -5,6 +5,7 @@ import {
   "actql/actql/check_environment",
   "actql/actql/decode_core",
   "actql/actql/encode_core",
+  "actql/actql/execution_authorization",
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/logical_request_scope",
@@ -90,6 +91,8 @@ pub fn bind_prepared_client_effect_run(PreparedClientEffectComputation, @run_pub
 pub fn bind_source_free_client_values_run(PreparedClientProgram, ClientValuesCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[ClientValuesRunBinding, ClientValuesRunBindingIssue]
 
 pub fn check_client_compiled_run_definition(ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, ClientCompiledRunIssue]
+
+pub fn check_client_infer_dispatch_current(ClientInferDispatchAdmission) -> Result[Unit, ClientInferDispatchIssue]
 
 pub fn check_plan_fact_manifest_identity(String, String, Int, Int, Int) -> Result[String, PlanFactManifestIdentityIssue]
 
@@ -214,6 +217,14 @@ pub fn client_infer_call_scope_artifact(ClientInferCallScope) -> @run_publicatio
 pub fn client_infer_call_scope_matches(ClientInferCallScope, PreparedClientProgram, @execution_relation.CompletedOutput) -> Bool
 
 pub fn client_infer_call_scope_matches_rows(ClientInferCallScope, @execution_relation.PreparedInferRows, String) -> Bool
+
+pub fn client_infer_dispatch_authority(ClientInferDispatchAdmission) -> @run_publication.RunEvidenceValue
+
+pub fn client_infer_dispatch_matches_run(ClientInferDispatchAdmission, ClientCompiledRun, @run_publication.PublicationContract) -> Bool
+
+pub fn client_infer_dispatch_matches_scope(ClientInferDispatchAdmission, ClientInferCallScope) -> Bool
+
+pub fn client_infer_dispatch_run_cid(ClientInferDispatchAdmission) -> String
 
 pub fn client_infer_plan_graph_barrier_cid(ClientInferPlanGraph) -> String
 
@@ -418,6 +429,8 @@ pub fn issue_client_effect_run_definition(ClientEffectAllowedRun, String, String
 pub fn issue_client_effect_source_free_invocation(ClientEffectCompilation, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
 pub fn issue_client_infer_call_slot(ClientInferCallScope, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientInferCallScopeIssue]
+
+pub fn issue_client_infer_dispatch_admission(ClientCompiledRun, @run_publication.PublicationContract, @execution_authorization.AdmittedAccountConfiguration, String, String, delegated_action? : @execution_authorization.RuntimeAction?, observe_current~ : () -> Result[(@execution_authorization.AdmittedAccountConfiguration, String), ClientInferDispatchIssue]) -> Result[ClientInferDispatchAdmission, ClientInferDispatchIssue]
 
 pub fn issue_client_task_compiled_run(PreparedClientProgram, ClientTaskCompilation, String, String, String) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
 
@@ -912,6 +925,22 @@ pub(all) enum ClientInferCallScopeIssue {
   Encoding
   Evidence(@run_publication.RunEvidenceValueIssue)
 }
+
+pub struct ClientInferDispatchAdmission {
+  compiled : ClientCompiledRun
+  definition : @run_publication.PublicationContract
+  authorization : @execution_authorization.DispatchAuthorization
+  evidence : @run_publication.RunEvidenceValue
+  current : () -> Result[(@execution_authorization.AdmittedAccountConfiguration, String), ClientInferDispatchIssue]
+}
+
+pub(all) enum ClientInferDispatchIssue {
+  ForeignRun
+  Expired
+  Authorization(@execution_authorization.DispatchBindingIssue)
+  Evidence(@run_publication.RunEvidenceValueIssue)
+  Encoding
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ClientInferHostCapacityIssue {
   UnsupportedProgram

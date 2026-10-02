@@ -1452,6 +1452,51 @@ preimage. The schema field is optional only because non-INFER observations
 share that envelope. Capture integrity and custody do not confer dispatch or
 publication authority.
 
+<a id="model-attempt-evidence"></a>
+
+### Model attempt evidence
+
+<!-- requirement-block: model-attempt-evidence.owner -->
+The common execution owner MUST issue and verify attempt, accounting,
+authority and outcome evidence from its actual dispatch observations and
+previously admitted execution authority. Adapters supply authenticated
+observations and existing decisions, not self-authored evidence JSON.
+
+`actql-model-dispatch-authority/0.1` references the exact Run Definition,
+Run Authorization, Program, current account configuration, execution context,
+Host policy, ModelTask and fixed request. The tuple retains its principal,
+connection, resource, operation and allow/delegate basis. A delegate basis
+retains its authenticated answering authority and exact satisfied claims;
+account allow has no answering authority and an empty claims array. This record
+references an existing decision and never grants new
+permission or overrides account denial. Classification, region and media
+admission remain separate pre-dispatch obligations.
+
+`actql-model-call-attempt/0.1` binds the slot, Run Definition, ModelTask,
+fixed request, authority evidence, installed provider and positive attempt
+ordinal. The Run Definition binds the physical Run identity. A reconstructed
+capture preserves its original attempt records rather than issuing attempts
+for replay. The current single-attempt provider does not silently retry;
+support for retries requires admission of the complete ordered attempt history.
+
+`actql-model-attempt-accounting/0.1` binds an actual attempt and slot,
+reported cumulative work, uncertain wire usage and observed token, cost and
+duration amounts. An unavailable amount is explicitly NULL, not zero. The
+uncertain wire amount records the admitted dispatched envelope retained by the
+existing resource owner; it is not an exact transport-byte measurement. This
+observation does not replace pre-dispatch reservation of every required budget.
+Failure and cancellation retain the original accounting evidence.
+
+`actql-model-attempt-outcome/0.1` binds the attempt and slot to success,
+provider failure, contract violation, cancellation or unknown result. Only
+the existing seven provider-failure classifications can produce ordinary
+failed slot rows. Contract violations, cancellation and unknown result cannot
+be relabelled as an adopted successful slot. Attempt identity precedes its
+accounting and outcome records; slot capture references those leaves and then
+enters the ObservationSet. No leaf refers back to the slot capture,
+ObservationSet or Stage Invocation, including through an interpreted dependency.
+Non-INFER bodies and their identity preimages are unchanged.
+
 <a id="compilation-identities"></a>
 
 ### Compilation identity envelopes
@@ -1742,6 +1787,10 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_input_artifact sha256:86e9e2c7b59634e8235b80a12b241a26f4f32f913dd30064aed36dfaecaf318c
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_input_key sha256:103b8c1515bb65f7ccd9f6963d798fcd20ce598cb7b266e09f2b32fac5831af0
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_call_slot sha256:a83e0af3e07986b5655463e0d39da3eb6c74cbefb327e65525de4be0035eac2b
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_dispatch_authority sha256:b00aae86b12bae22d8ef3f62d98d1a192fa9253371407fde016fc23a28117d09
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_call_attempt sha256:c80b4873ed75130e12006eb5f00154d77b74a85394eb1a7dbf517078d4db2741
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_attempt_accounting sha256:9dd8efbc085ba24be98f68688d0ff3b8b02201b60d1f99c1e4faebcc3663382f
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_attempt_outcome sha256:859480d0f1786ef1493208b75278617bf022b60a6115c1dc4ff06542fe975a5b
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/caller_input_intent sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/initial_input_artifact_set sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/bound_invocation_template sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7

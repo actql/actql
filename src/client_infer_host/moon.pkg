@@ -11,6 +11,7 @@ import {
 
 import {
   "actql/actql/value_admission" @admitted,
+  "actql/actql/execution_authorization" @authorization,
   "actql/actql/sha256" @sha,
   "actql/actql/canonical_json" @canonical,
   "actql/actql/physical_resources" @resources,

@@ -74,6 +74,8 @@ pub fn begin_result_delivery(ResultDeliverySerializer) -> Result[String, Deliver
 
 pub fn begin_result_material_holds(String, String) -> Result[ResultMaterialHolds, ResultMaterialHoldIssue]
 
+pub fn bind_model_slot_attempt_evidence(BoundModelSlotCapture, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunPublicationAdmission, PublicationContract) -> Result[BoundModelAttemptEvidence, RunEvidenceValueIssue]
+
 pub fn bind_model_slot_capture(RunEvidenceValue, RunEvidenceValue) -> Result[BoundModelSlotCapture, RunEvidenceValueIssue]
 
 pub fn bound_model_slot_capture_outcome(BoundModelSlotCapture) -> String?
@@ -546,6 +548,10 @@ pub fn run_publication_authorization(RunPublicationAdmission) -> RunEvidenceValu
 
 pub fn run_publication_compiled_plan_cid(RunPublicationAdmission) -> String
 
+pub fn run_publication_execution_context(RunPublicationAdmission) -> String
+
+pub fn run_publication_host_policy(RunPublicationAdmission) -> String
+
 pub fn run_publication_prepared(RunPublicationAdmission) -> RunEvidenceValue
 
 pub fn run_publication_start_current(RunPublicationAdmission, PublicationContract, String) -> Bool
@@ -618,6 +624,14 @@ pub(all) enum AcquisitionRelationIssue {
   Encoding
   Contract(PublicationContractIssue)
 } derive(Eq, @debug.Debug)
+
+pub struct BoundModelAttemptEvidence {
+  slot : BoundModelSlotCapture
+  attempt : RunEvidenceValue
+  accounting : RunEvidenceValue
+  outcome : RunEvidenceValue
+  authority : RunEvidenceValue
+}
 
 pub struct BoundModelSlotCapture {
   call : RunEvidenceValue

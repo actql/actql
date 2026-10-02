@@ -194,6 +194,17 @@ fn accept_model_slot(
   checked : @admitted.CheckedValue,
 ) -> @bounded.KernelStep[ModelCaptureBundle, ModelExecutionIssue] {
   state.outcomes.push(Success(state.captures.length()))
+  if state.attempts.get(state.next_slot) is Some(trace) {
+    trace.category = "ok"
+    trace.failure = None
+    trace.work = state.work
+    // These references are assigned by the existing bounded response issuer.
+    if state.invocation_evidence.last() is Some(evidence) {
+      trace.response_issuer = Some(
+        @publication.run_evidence_value_identity(evidence),
+      )
+    }
+  }
   state.responses.push(response.value)
   state.captures.push({
     slot: request.slot,

@@ -78,6 +78,7 @@ pub(all) enum ModelExecutionIssue {
   WorkLimit
   RequestLimit
   InvocationEvidence(@publication.RunEvidenceValueIssue)
+  Authorization(@publication_host.ClientInferDispatchIssue)
 } derive(Eq, Debug)
 
 ///|
@@ -153,6 +154,8 @@ struct ModelState {
   fixed_request_cid : String
   limits : ModelExecutionLimits
   call_scope : @publication_host.ClientInferCallScope?
+  dispatch_admission : @publication_host.ClientInferDispatchAdmission?
+  attempts : Array[ModelAttemptTrace]
   ledger : @resources.Ledger
   reservations : Array[@resources.Reservation]
   requests : Array[PreparedModelRequest]
@@ -280,7 +283,9 @@ fn advance_model(
         @resources.reserve_attempt(
           state.ledger,
           state.limits.max_request_bytes + state.limits.max_response_bytes,
-          state.limits.max_request_bytes + state.limits.max_response_bytes,
+          state.limits.max_request_bytes +
+          state.limits.max_response_bytes +
+          (if state.dispatch_admission is Some(_) { 81920L } else { 0L }),
           0L,
         ) {
         Ok(value) => state.reservations.push(value)
@@ -356,6 +361,10 @@ fn advance_model(
         }
         state.restored_evidence = None
         state.invocation_evidence.push(evidence)
+        if state.attempts.get(state.next_slot) is Some(trace) {
+          trace.response_cid = preparation.response_cid
+          trace.output_cid = preparation.output_cid
+        }
         return accept_model_slot(
           state,
           preparation.request,
@@ -386,6 +395,17 @@ fn advance_model(
     return @bounded.Failed(OutputIdentity, 1, 1)
   }
   let reservation = state.reservations[state.next_slot]
+  let attempt = if state.dispatch_admission is Some(admission) {
+    guard prepared.call is Some(call) else {
+      return @bounded.Failed(RequestIdentity, 1, 1)
+    }
+    match start_model_attempt(state, admission, call, request) {
+      Err(issue) => return @bounded.Failed(issue, 1, 1)
+      Ok(attempt) => Some(attempt)
+    }
+  } else {
+    None
+  }
   // ModelResponse contains typed content and token observations, not exact
   // transport bytes. Retain the dispatched envelope as uncertain usage before
   // entering physical I/O: invalid metadata, rejected content or cancellation
@@ -399,6 +419,9 @@ fn advance_model(
     Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
     Ok(_) => ()
   }
+  if attempt is Some(attempt) {
+    state.attempts.push(attempt)
+  }
   let response = match (provider.invoke)(request) {
     Ok(value) => value
     Err(issue) => {
@@ -409,6 +432,18 @@ fn advance_model(
         return @bounded.Stopped(@bounded.Cancelled, 1, 1)
       }
       return accept_failed_model_slot(state, issue)
+    }
+  }
+  if state.attempts.get(state.next_slot) is Some(trace) {
+    trace.input_tokens = if response.input_tokens >= 0L {
+      Some(response.input_tokens)
+    } else {
+      None
+    }
+    trace.output_tokens = if response.output_tokens >= 0L {
+      Some(response.output_tokens)
+    } else {
+      None
     }
   }
   if @bounded.stop_requested(reader) is Some(reason) {
@@ -442,6 +477,7 @@ pub fn start_model_execution(
   fixed_request_cid : String,
   limits : ModelExecutionLimits,
   call_scope? : @publication_host.ClientInferCallScope? = None,
+  dispatch_admission? : @publication_host.ClientInferDispatchAdmission? = None,
 ) -> Result[ModelExecution, ModelExecutionIssue] {
   start_model_owned(
     rows,
@@ -449,6 +485,7 @@ pub fn start_model_execution(
     fixed_request_cid,
     limits,
     call_scope,
+    dispatch_admission~,
   )
 }
 
@@ -459,6 +496,7 @@ fn start_model_owned(
   fixed_request_cid : String,
   limits : ModelExecutionLimits,
   call_scope : @publication_host.ClientInferCallScope?,
+  dispatch_admission? : @publication_host.ClientInferDispatchAdmission? = None,
 ) -> Result[ModelExecution, ModelExecutionIssue] {
   if !valid_cid(fixed_request_cid) ||
     limits.max_items < 0 ||
@@ -471,10 +509,20 @@ fn start_model_owned(
     limits.value_limits.max_text_bytes < 0 {
     return Err(InvalidLimits)
   }
+  if dispatch_admission is Some(_) &&
+    limits.max_request_bytes + limits.max_response_bytes >
+    9223372036854775807L - 81920L {
+    return Err(InvalidLimits)
+  }
   if call_scope is Some(scope) &&
     !@publication_host.client_infer_call_scope_matches_rows(
       scope, rows, fixed_request_cid,
     ) {
+    return Err(RequestIdentity)
+  }
+  if dispatch_admission is Some(admission) &&
+    !(call_scope is Some(scope) &&
+    @publication_host.client_infer_dispatch_matches_scope(admission, scope)) {
     return Err(RequestIdentity)
   }
   let count = @relation.prepared_infer_rows_count(rows)
@@ -513,6 +561,8 @@ fn start_model_owned(
     fixed_request_cid,
     limits,
     call_scope,
+    dispatch_admission,
+    attempts: [],
     ledger,
     reservations,
     requests: [],
@@ -556,10 +606,14 @@ pub fn advance_model_execution(
       execution.state.accepted = true
       Ok(Completed(bundle, progress, work))
     }
-    Ok(@bounded.FailedWith(issue, progress~, work~)) =>
+    Ok(@bounded.FailedWith(issue, progress~, work~)) => {
+      finish_model_attempt_failure(execution.state, issue)
       Ok(Failed(issue, progress, work))
-    Ok(@bounded.StoppedWith(reason, progress~, work~)) =>
+    }
+    Ok(@bounded.StoppedWith(reason, progress~, work~)) => {
+      finish_model_attempt_stop(execution.state, reason)
       Ok(Stopped(reason, progress, work))
+    }
   }
 }
 

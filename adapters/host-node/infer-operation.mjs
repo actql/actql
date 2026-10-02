@@ -114,6 +114,13 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     // It passes the original owner to MoonBit, never recompiling this Program.
     bindRun: (control, {compiled, runDefinition}) =>
       control.bindCheckedClientInferRun(compiled, active, runDefinition),
+    bindDispatch: (control, {compiled, runDefinition, ...observation}) =>
+      control.bindCheckedClientInferDispatch(compiled, active, runDefinition,
+        observation),
+    attemptEvidence: slot => checked(moon.clientProgramInferAttemptEvidence(
+      active, slot)),
+    issuedSlotCapture: slot => checked(moon.clientProgramIssueInferSlotCapture(
+      active, slot)),
     bindInvocation: (control, {compiled, runDefinition, verification,
       invocation, dataPolicyCid}) => control.bindCheckedClientInferInvocation(
       compiled, active, runDefinition, verification, invocation, dataPolicyCid),

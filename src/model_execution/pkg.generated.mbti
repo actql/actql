@@ -45,13 +45,25 @@ pub fn complete_model_output(ModelOutputPreparation) -> Result[@execution_relati
 
 pub fn install_model_provider(String, (ModelRequest) -> Result[ModelResponse, ModelProviderFailure]) -> Result[ModelProvider, ModelExecutionIssue]
 
+pub fn model_attempt_accounting(ModelAttemptEvidence) -> @run_publication.RunEvidenceValue
+
+pub fn model_attempt_authority(ModelAttemptEvidence) -> @run_publication.RunEvidenceValue
+
+pub fn model_attempt_identity(ModelAttemptEvidence) -> @run_publication.RunEvidenceValue
+
+pub fn model_attempt_outcome(ModelAttemptEvidence) -> @run_publication.RunEvidenceValue
+
 pub fn model_capture_bundle_json(ModelCaptureBundle, Int, Int, Int) -> String?
 
 pub fn model_capture_export_identity(ModelCaptureExport) -> String?
 
 pub fn model_capture_export_response_pending(ModelCaptureExport) -> Bool
 
+pub fn model_execution_attempt_evidence(ModelExecution, Int) -> Result[ModelAttemptEvidence, ModelExecutionIssue]
+
 pub fn model_execution_invocation_evidence(ModelExecution, Int) -> @run_publication.RunEvidenceValue?
+
+pub fn model_execution_issued_slot_capture(ModelExecution, Int) -> Result[@run_publication.RunEvidenceValue, ModelExecutionIssue]
 
 pub fn model_execution_preflighting(ModelExecution) -> Bool
 
@@ -81,6 +93,8 @@ pub fn model_slot_replay_count(ModelSlotReplayRead) -> Int?
 
 pub fn read_model_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Int, Int) -> Result[ModelSlotReplayRead, ModelExecutionIssue]
 
+pub fn read_verified_model_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Array[ModelAttemptRecords], @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int) -> Result[ModelSlotReplayRead, ModelExecutionIssue]
+
 pub fn release_model_outcomes(ModelOutcomeRead) -> Bool
 
 pub fn release_model_slot_replay(ModelSlotReplayRead) -> Bool
@@ -103,7 +117,7 @@ pub fn start_model_capture_export(VerifiedModelCapture, ModelCaptureExportLimits
 
 pub fn start_model_capture_replay(@execution_relation.PreparedInferRows, @run_publication_host.ClientInferCallScope, VerifiedModelCapture, ModelExecutionLimits) -> Result[ModelExecution, ModelExecutionIssue]
 
-pub fn start_model_execution(@execution_relation.PreparedInferRows, ModelProvider, String, ModelExecutionLimits, call_scope? : @run_publication_host.ClientInferCallScope?) -> Result[ModelExecution, ModelExecutionIssue]
+pub fn start_model_execution(@execution_relation.PreparedInferRows, ModelProvider, String, ModelExecutionLimits, call_scope? : @run_publication_host.ClientInferCallScope?, dispatch_admission? : @run_publication_host.ClientInferDispatchAdmission?) -> Result[ModelExecution, ModelExecutionIssue]
 
 pub fn start_model_observation_verification(VerifiedModelCapture, @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], ModelObservationVerificationLimits) -> Result[ModelObservationVerification, ModelExecutionIssue]
 
@@ -119,10 +133,26 @@ pub fn verified_model_capture_call_count(VerifiedModelCapture) -> Int?
 
 pub fn verified_model_capture_outcome(VerifiedModelCapture, Int) -> String?
 
+pub fn verify_model_execution_attempt_evidence(ModelExecution, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[Unit, ModelExecutionIssue]
+
 // Errors
 
 // Types and methods
 type CaptureExportState
+
+pub struct ModelAttemptEvidence {
+  attempt : @run_publication.RunEvidenceValue
+  accounting : @run_publication.RunEvidenceValue
+  outcome : @run_publication.RunEvidenceValue
+  authority : @run_publication.RunEvidenceValue
+}
+
+pub(all) struct ModelAttemptRecords {
+  attempt : @run_publication.RunEvidenceValue
+  accounting : @run_publication.RunEvidenceValue
+  outcome : @run_publication.RunEvidenceValue
+  authority : @run_publication.RunEvidenceValue
+}
 
 pub(all) struct ModelCaptureBundle {
   task_cid : String
@@ -169,6 +199,7 @@ pub(all) enum ModelExecutionIssue {
   WorkLimit
   RequestLimit
   InvocationEvidence(@run_publication.RunEvidenceValueIssue)
+  Authorization(@run_publication_host.ClientInferDispatchIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct ModelExecutionLimits {

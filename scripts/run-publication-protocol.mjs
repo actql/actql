@@ -59,6 +59,9 @@ const selected = Object.freeze({
   model_slot_capture: Object.freeze({
     schema: 'model_slot_capture', identity: 'self_cid', registry: 'stage',
   }),
+  ...Object.fromEntries(['model_dispatch_authority', 'model_call_attempt',
+    'model_attempt_accounting', 'model_attempt_outcome'].map(schema =>
+    [schema, Object.freeze({schema, identity: 'self_cid'})])),
   run_receipt: Object.freeze({
     schema: 'run_receipt',
     identity: 'receipt_identity_cid',

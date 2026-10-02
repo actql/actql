@@ -1444,6 +1444,28 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/model-call-slot-identity.observation-slot-captures",
+      "statement_sha256": "1bc469bdc86250ec3452471d0d70edee4102cd11d3af49068dd1659b2aaed074",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify complete adopted-slot matching and public Host capture/replay with independent evidence.",
+      "source": {
+        "anchor": "model-call-slot-identity",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-attempt-evidence.owner",
+      "statement_sha256": "60e1dcab7d769dbad4bfeb75745acbafabc9f316022b143ba134985f68ac1f33",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-attempt-evidence",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/compilation-identities.actql-compiled-plan",
       "statement_sha256": "083bbc1261ce70bb01b5c0253948a7d4ab82ed716780403226d7525e36a51906",
       "status": "pending",
@@ -1742,24 +1764,13 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "14cac16274f31731495a792857844db35144d99abf1087454f7d2707d2b821ab",
+      "statement_sha256": "6f8cf2b3841944661e76afa14bcfa37c2e568d036af9e3332e74520571686ea3",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
       "source": {
         "anchor": "machine-contracts",
         "kind": "law"
-      }
-    },
-    {
-      "requirement_id": "actql.protocol.contracts/model-call-slot-identity.observation-slot-captures",
-      "statement_sha256": "1bc469bdc86250ec3452471d0d70edee4102cd11d3af49068dd1659b2aaed074",
-      "status": "pending",
-      "reason": "implementation_evidence_required",
-      "next_action": "Verify complete adopted-slot matching and public Host capture/replay with independent evidence.",
-      "source": {
-        "anchor": "model-call-slot-identity",
-        "kind": "prose"
       }
     }
   ]

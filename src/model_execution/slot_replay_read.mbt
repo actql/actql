@@ -5,6 +5,9 @@ struct ModelSlotReplayStorage {
   mut records : Array[@publication.RunEvidenceValue]
   count : Int
   max_slot_wire_units : Int
+  mut proofs : Array[ModelAttemptRecords]?
+  mut saved_admission : @publication.RunPublicationAdmission?
+  mut saved_definition : @publication.PublicationContract?
   mut uses : Int
 }
 
@@ -52,10 +55,51 @@ pub fn read_model_slot_replay(
       records,
       count,
       max_slot_wire_units,
+      proofs: None,
+      saved_admission: None,
+      saved_definition: None,
       uses: 1,
     },
     released: false,
   })
+}
+
+///|
+/// Stored leaves are observations, not grants. Their exact chain is checked
+/// per slot by the shared verifier before fresh bounded replay adopts it.
+pub(all) struct ModelAttemptRecords {
+  attempt : @publication.RunEvidenceValue
+  accounting : @publication.RunEvidenceValue
+  outcome : @publication.RunEvidenceValue
+  authority : @publication.RunEvidenceValue
+}
+
+///|
+pub fn read_verified_model_slot_replay(
+  observation : @publication.RunEvidenceValue,
+  records : Array[@publication.RunEvidenceValue],
+  bundle : @publication.ModelCaptureBundleRead,
+  proofs : Array[ModelAttemptRecords],
+  saved_admission : @publication.RunPublicationAdmission,
+  saved_definition : @publication.PublicationContract,
+  max_slots : Int,
+  max_slot_wire_units : Int,
+) -> Result[ModelSlotReplayRead, ModelExecutionIssue] {
+  if proofs.length() != records.length() {
+    return Err(OutputIdentity)
+  }
+  let read = match
+    read_model_slot_replay(
+      observation, records, bundle, max_slots, max_slot_wire_units,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let storage = read.storage
+  storage.proofs = Some(proofs)
+  storage.saved_admission = Some(saved_admission)
+  storage.saved_definition = Some(saved_definition)
+  Ok(read)
 }
 
 ///|
@@ -96,6 +140,9 @@ pub fn release_model_slot_replay(read : ModelSlotReplayRead) -> Bool {
     read.storage.observation = None
     // Do not clear an array belonging to the caller or another Store owner.
     read.storage.records = []
+    read.storage.proofs = None
+    read.storage.saved_admission = None
+    read.storage.saved_definition = None
   }
   true
 }
@@ -123,7 +170,37 @@ fn restored_slot_binding(
       ),
     )
   }
-  @publication.bind_model_slot_capture(call, record).map_err(issue => {
-    InvocationEvidence(issue)
-  })
+  let binding = match @publication.bind_model_slot_capture(call, record) {
+    Ok(value) => value
+    Err(issue) => return Err(InvocationEvidence(issue))
+  }
+  if read.storage.proofs is Some(proofs) {
+    guard proofs.length() == read.storage.count &&
+      proofs.get(index) is Some(proof) &&
+      read.storage.saved_admission is Some(admission) &&
+      read.storage.saved_definition is Some(definition) else {
+      return Err(OutputIdentity)
+    }
+    for
+      leaf in [proof.attempt, proof.accounting, proof.outcome, proof.authority] {
+      if @publication.run_evidence_value_json(leaf).length() >
+        read.storage.max_slot_wire_units {
+        return Err(RequestLimit)
+      }
+    }
+    match
+      @publication.bind_model_slot_attempt_evidence(
+        binding,
+        proof.attempt,
+        proof.accounting,
+        proof.outcome,
+        proof.authority,
+        admission,
+        definition,
+      ) {
+      Err(issue) => return Err(InvocationEvidence(issue))
+      Ok(_) => ()
+    }
+  }
+  Ok(binding)
 }

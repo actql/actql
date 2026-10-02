@@ -19,10 +19,74 @@ keyed outcomes, replays mixed success/failure observations without dispatch,
 and retains strict-failure observations through private stopped-execution
 reads. Saved success/failure component replay also authenticates individual
 slot holdings in the real encrypted Store and reconstructs the ordinary input
-in a fresh process. Formal adoption/authority/accounting evidence, installed
-policy/dependency admission and the public Host-to-Named-Result connection are
-still incomplete. The units below must not be substituted for those remaining
-acceptance conditions.
+in a fresh process. The common owner now issues and verifies the initial 0.1
+attempt, accounting, dispatch-authority and outcome bodies described below.
+Installed policy/dependency admission and the public Host-to-Named-Result
+connection are still incomplete. The units below must not be substituted for
+those remaining acceptance conditions.
+
+### Common attempt evidence and authenticated stored replay
+
+The four new artifact bodies are `model_call_attempt`,
+`model_attempt_accounting`, `model_dispatch_authority` and
+`model_attempt_outcome`. Their schemas, registry pins, generated parser and
+independent vectors move together on the initial 0.1 baseline. Existing
+non-INFER evidence preimages are unchanged. An attempt references its slot,
+Run Definition, fixed request, ModelTask and existing authority; it never
+references its future response, accounting, outcome or capture.
+
+`execution_authorization/dispatch_binding.mbt` binds the existing account
+decision to its exact tuple, activation boundary, request and execution
+context. Deny cannot be overridden. Delegate requires the existing opaque
+Host permit, including its satisfied claims. The Run publication Host owner
+issues the authority body; Node supplies account and clock observations,
+not authority JSON. Immediately before physical model I/O, the common owner
+re-reads both observations and refuses a changed configuration or expired
+admission after bounded prefix progress.
+
+`model_execution/attempt_evidence.mbt` retains actual attempt observations.
+Failure and cancellation preserve cumulative work and uncertain transport
+usage. Unobserved token, cost and duration usage is NULL, not zero. Proof
+storage is reserved before dispatch in the existing physical ledger.
+`issued_slot_capture.mbt` binds adopted results to those actual leaves;
+strict failure or cancellation does not fabricate an adopted call inventory.
+Already issued immutable diagnostics remain readable after cleanup, but
+cleanup cannot encode new evidence against a returned reservation.
+
+`run_publication/model_attempt_binding.mbt` validates the original saved
+proof chain against the exact saved compiled Run. The verified replay reader
+checks each slot before adoption and has no provider argument. The Node
+regression stores an actually issued failed-slot record, all four proof
+leaves and the separate success-only bundle in the real encrypted Store.
+A fresh process authenticates and confirms their exact holdings, rebuilds
+the ordinary input and replays the failure row without dispatch. Directory
+sync failure retains custody; final retirement releases every holding.
+
+This is a component and private Store boundary, not the public handoff.
+`embedded-local.mjs` and the existing `client-dispatch-owner.mjs` still need
+the installed ModelTask route. ObservationSet/Invocation issuance must come
+from a common owner, and actual capture holdings and completed output must
+reach the existing committed Result publisher. Retry/backoff, classification,
+region/media and token/cost/duration preflight dependencies remain explicit;
+account evidence alone does not discharge those obligations. No new Run
+state machine, ledger or automatic retry is introduced here.
+
+Local verification of this unit used the pinned `0.10.12+1634b282e` toolchain:
+
+- JS, Wasm and native: 828 tests passed per target across `canonical_json`,
+  `client_infer_host`, `model_execution`, `run_publication`,
+  `run_publication_host` and `execution_authorization`.
+- Node: 116 tests passed across the Infer owner, attempt vectors, protocol
+  generator and real publication Store suites. The stored failed-slot case
+  executes its authenticated replay in a fresh process and leaves the
+  original provider call count at one.
+- `npm run check:spec` passed, including canonical fixture freshness. The
+  standard generator added the four new artifact-schema vectors; existing
+  canonical expectations were not replaced by observed product output.
+
+These are local component checks, not Linux CI or a public Host acceptance
+result. The fixed source commit is reported in the working conversation;
+there is no adoptable public INFER handoff SHA yet.
 
 The common execution also retains its exact compiled Run and Run Definition
 before the first advance. Its accepted all-slot verification can bind a

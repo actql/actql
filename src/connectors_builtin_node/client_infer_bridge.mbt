@@ -136,6 +136,90 @@ pub fn client_program_bind_infer_run(
 }
 
 ///|
+/// Expose the admitted account token, never adapter-authored authority JSON.
+#export_name("clientProgramIssueInferDispatchAdmission")
+pub fn client_program_issue_infer_dispatch_admission(
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  account : AuthorizationAccount,
+  principal : String,
+  at : String,
+  delegated : AuthorizationDecision?,
+  observe_account : () -> AuthorizationAccount,
+  observe_at : () -> String,
+) -> Result[
+  @publication_host.ClientInferDispatchAdmission,
+  @publication_host.ClientInferDispatchIssue,
+] {
+  guard account.state is @authorization.Admitted(configuration) else {
+    return Err(@publication_host.Authorization(@authorization.Denied))
+  }
+  let observe_current : () -> Result[
+    (@authorization.AdmittedAccountConfiguration, String),
+    @publication_host.ClientInferDispatchIssue,
+  ] = () => {
+    guard observe_account().state is @authorization.Admitted(current) else {
+      return Err(@publication_host.Authorization(@authorization.Denied))
+    }
+    Ok((current, observe_at()))
+  }
+  @publication_host.issue_client_infer_dispatch_admission(
+    compiled,
+    definition,
+    configuration,
+    principal,
+    at,
+    delegated_action=match delegated {
+      Some(value) => value.action
+      None => None
+    },
+    observe_current~,
+  )
+}
+
+///|
+#export_name("clientProgramBindInferDispatchAdmission")
+pub fn client_program_bind_infer_dispatch_admission(
+  active : @infer_host.Execution,
+  admission : @publication_host.ClientInferDispatchAdmission,
+) -> Result[Unit, @infer_host.InvocationBindingIssue] {
+  @infer_host.bind_dispatch_admission(active, admission)
+}
+
+///|
+#export_name("clientProgramInferAttemptEvidence")
+pub fn client_program_infer_attempt_evidence(
+  active : @infer_host.Execution,
+  slot : Int,
+) -> Result[@model.ModelAttemptEvidence, @model.ModelExecutionIssue] {
+  @infer_host.attempt_evidence(active, slot)
+}
+
+///|
+#export_name("clientProgramInferAttemptLeaf")
+pub fn client_program_infer_attempt_leaf(
+  value : @model.ModelAttemptEvidence,
+  kind : String,
+) -> @publication.RunEvidenceValue? {
+  match kind {
+    "attempt" => Some(@model.model_attempt_identity(value))
+    "accounting" => Some(@model.model_attempt_accounting(value))
+    "outcome" => Some(@model.model_attempt_outcome(value))
+    "authority" => Some(@model.model_attempt_authority(value))
+    _ => None
+  }
+}
+
+///|
+#export_name("clientProgramIssueInferSlotCapture")
+pub fn client_program_issue_infer_slot_capture(
+  active : @infer_host.Execution,
+  slot : Int,
+) -> Result[@publication.RunEvidenceValue, @model.ModelExecutionIssue] {
+  @infer_host.issued_slot_capture(active, slot)
+}
+
+///|
 #export_name("clientProgramBindInferInvocation")
 pub fn client_program_bind_infer_invocation(
   active : @infer_host.Execution,
@@ -329,6 +413,48 @@ pub fn client_program_read_infer_slot_replay(
 ) -> Result[@model.ModelSlotReplayRead, @model.ModelExecutionIssue] {
   @model.read_model_slot_replay(
     observation, records, bundle, max_slots, max_slot_wire_units,
+  )
+}
+
+///|
+/// Imported leaves are observations, not a newly issued proof or grant.
+#export_name("clientProgramInferAttemptRecords")
+pub fn client_program_infer_attempt_records(
+  attempt : @publication.RunEvidenceValue,
+  accounting : @publication.RunEvidenceValue,
+  outcome : @publication.RunEvidenceValue,
+  authority : @publication.RunEvidenceValue,
+) -> @model.ModelAttemptRecords {
+  { attempt, accounting, outcome, authority, }
+}
+
+///|
+/// The installing Store owner authenticates the saved holdings first. Replay
+/// verifies the original admitted Run and complete leaf chain per slot.
+#export_name("clientProgramReadVerifiedInferSlotReplay")
+pub fn client_program_read_verified_infer_slot_replay(
+  observation : @publication.RunEvidenceValue,
+  records : Array[@publication.RunEvidenceValue],
+  bundle : @publication.ModelCaptureBundleRead,
+  proofs : Array[@model.ModelAttemptRecords],
+  saved : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  max_slots : Int,
+  max_slot_wire_units : Int,
+) -> Result[@model.ModelSlotReplayRead, @model.ModelExecutionIssue] {
+  if @publication_host.check_client_compiled_run_definition(saved, definition)
+    is Err(_) {
+    return Err(@model.OutputIdentity)
+  }
+  @model.read_verified_model_slot_replay(
+    observation,
+    records,
+    bundle,
+    proofs,
+    @publication_host.client_compiled_run_admission(saved),
+    definition,
+    max_slots,
+    max_slot_wire_units,
   )
 }
 

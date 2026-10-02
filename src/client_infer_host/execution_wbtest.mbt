@@ -102,8 +102,8 @@ fn fixture_start(
 }
 
 ///|
-fn fixture_finish(active : Execution) -> Poll raise {
-  let mut last = 0L
+fn fixture_finish(active : Execution, initial_work? : Int64 = 0L) -> Poll raise {
+  let mut last = initial_work
   for _ in 0..<2000 {
     let poll = advance(active, 1).unwrap()
     let work = match poll {

@@ -81,6 +81,17 @@ pub fn bind_verified_model_slot_capture(
     Ok(value) => value
     Err(issue) => return Err(InvocationEvidence(issue))
   }
+  if capture.owner.state.dispatch_admission is Some(_) {
+    let issued = match
+      model_execution_issued_slot_capture(capture.owner, slot) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    if @publication.run_evidence_value_identity(issued) !=
+      @publication.run_evidence_value_identity(record) {
+      return Err(OutputIdentity)
+    }
+  }
   let verified = match outcome {
     Success(index) => {
       guard capture.owner.state.invocation_evidence.get(index)

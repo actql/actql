@@ -87,6 +87,7 @@ pub struct Execution {
   mut child_work : Int64
   mut output_uses : Int
   mut run_binding : ExecutionRunBinding?
+  mut dispatch_admission : @publication_host.ClientInferDispatchAdmission?
 }
 
 ///|
@@ -370,6 +371,7 @@ fn start_owned(
     child_work: 0L,
     output_uses: 0,
     run_binding: None,
+    dispatch_admission: None,
   })
 }
 
@@ -416,6 +418,7 @@ fn begin_model(active : Execution) -> Poll {
         active.fixed_request_cid,
         active.limits.model,
         call_scope=active.call_scope,
+        dispatch_admission=active.dispatch_admission,
       )
     Replay(capture) => {
       guard active.call_scope is Some(scope) else {

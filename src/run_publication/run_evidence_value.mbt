@@ -38,6 +38,10 @@ fn run_evidence_identity_field(name : String) -> String? {
     "model_invocation_evidence" => Some("model_invocation_evidence_cid")
     "model_capture_bundle" => Some("bundle_cid")
     "model_slot_capture" => Some("self_cid")
+    "model_dispatch_authority"
+    | "model_call_attempt"
+    | "model_attempt_accounting"
+    | "model_attempt_outcome" => Some("self_cid")
     "model_effective_inputs" => Some("effective_inputs_cid")
     "model_input_artifact" => Some("input_artifact_cid")
     "model_input_key" => Some("input_key_cid")

@@ -31,6 +31,13 @@ fn accept_failed_model_slot(
     return @bounded.Failed(Provider(failure), 1, 1)
   }
   state.outcomes.push(NoResponseFailure(failure))
+  if state.attempts.get(state.next_slot) is Some(trace) {
+    trace.category = "provider_failure"
+    trace.failure = model_failure_outcome(failure).map(value => {
+      value[7:].to_owned()
+    })
+    trace.work = state.work
+  }
   state.next_slot += 1
   state.phase = DispatchSlot
   if @infer.result_mode(@relation.prepared_infer_rows_owner(state.rows)) is Fail {
