@@ -2,7 +2,9 @@
 // acceptance commands, not a replacement acceptance oracle.
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {readFileSync} from 'node:fs';
+import {mkdtempSync, readFileSync, rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {parse} from 'yaml';
@@ -73,10 +75,7 @@ test('one producer uploads only manifest and tarballs; consumers select its immu
       'artifact-id': '${{ needs.client-packages.outputs.artifact-id }}',
       path: '${{ runner.temp }}/actql-client-packages',
     });
-    assert.deepEqual(jobs[name].env, {
-      ACTQL_PACKED_CLIENT_PACKAGES: '${{ runner.temp }}/actql-client-packages',
-      ACTQL_TEST_NPM_CACHE: '${{ runner.temp }}/actql-npm-cache',
-    });
+    assert.equal(jobs[name].env, undefined, 'runner context is unavailable in job-level env');
     assert(!jobs[name].steps.some(step => /cache@/.test(step.uses ?? '')));
   }
 });
@@ -138,7 +137,7 @@ test('local commands remain available for each independently retryable group', (
 test('download fails closed before the action for empty, malformed or multiple IDs', () => {
   const action = parse(readFileSync(new URL('../.github/actions/download-client-packages/action.yml', import.meta.url), 'utf8'));
   assert.equal(action.runs.using, 'composite');
-  assert.equal(action.runs.steps.length, 2);
+  assert.equal(action.runs.steps.length, 3);
   const [guard, download] = action.runs.steps;
   assert.equal(guard.env.ARTIFACT_ID, '${{ inputs.artifact-id }}');
   assert.equal(guard['continue-on-error'], undefined);
@@ -150,5 +149,25 @@ test('download fails closed before the action for empty, malformed or multiple I
   }
   for (const attempt of ['1', '2']) {
     assert.equal(run(guard.run, {ARTIFACT_ID: '987654321', GITHUB_RUN_ATTEMPT: attempt}).status, 0);
+  }
+});
+
+test('runner-private package/cache environment is set only after successful download', t => {
+  const action = parse(readFileSync(new URL('../.github/actions/download-client-packages/action.yml', import.meta.url), 'utf8'));
+  const step = action.runs.steps[2];
+  assert.equal(step.if, undefined);
+  assert.equal(step['continue-on-error'], undefined);
+  assert.equal(step.env.PACKAGES_PATH, '${{ inputs.path }}');
+  const scratch = mkdtempSync(join(tmpdir(), 'client-ci-env-'));
+  t.after(() => rmSync(scratch, {recursive: true, force: true}));
+  const environment = join(scratch, 'github-env');
+  const packages = join(scratch, 'artifact');
+  assert.equal(run(step.run, {PACKAGES_PATH: packages, GITHUB_ENV: environment, RUNNER_TEMP: scratch}).status, 0);
+  assert.equal(readFileSync(environment, 'utf8'),
+    `ACTQL_PACKED_CLIENT_PACKAGES=${packages}\nACTQL_TEST_NPM_CACHE=${scratch}/actql-npm-cache\n`);
+  for (const job of Object.values(jobs)) {
+    for (const value of Object.values(job.env ?? {})) {
+      assert(!/\$\{\{[^}]*\brunner\./u.test(String(value)), 'runner context cannot be resolved before assigning a job runner');
+    }
   }
 });

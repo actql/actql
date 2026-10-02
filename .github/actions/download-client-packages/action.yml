@@ -26,3 +26,10 @@ runs:
         artifact-ids: ${{ inputs.artifact-id }}
         path: ${{ inputs.path }}
         merge-multiple: true
+    - name: Use verified Client inputs in subsequent acceptance steps
+      shell: bash
+      env:
+        PACKAGES_PATH: ${{ inputs.path }}
+      run: |
+        printf 'ACTQL_PACKED_CLIENT_PACKAGES=%s\n' "$PACKAGES_PATH" >> "$GITHUB_ENV"
+        printf 'ACTQL_TEST_NPM_CACHE=%s/actql-npm-cache\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
