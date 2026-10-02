@@ -132,6 +132,36 @@ Main was fetched again and remains
 edits overlapped this gate. The latest focused results do not discharge spec,
 fresh packed or final-SHA required CI.
 
+At source `d5e2b5b491d0e14b70c8dc8ca41cde13a24805ec`, four additional
+upper-pipeline files retain ordered/repeated constructor operands, MATCH
+identity rows, shared preflight budgets and TRAIL selector custody. The empty
+selector's exact zero bound is derived from empty VALUES -> current constructor
+-> MATCH; its nonnullable JSON identity field is verified. Supported TRAIL
+paths retain the physical checked selector, source locations, copied indexed
+reads and exact/one-short budgets. Traversed-node output, shortest, subgraph
+and union must issue explicit typed refusals rather than legacy obligations.
+Aggregate call provenance and every non-Graph case remain executable. The four
+original files are byte-identical inert archives from
+`6d137b83ad7459d142f44e4acc98ebad95f8b92d`.
+
+Focused regressions pass **12/12 on each JS, Wasm and native**. Native log:
+`/private/tmp/property-graph-pipeline-constructor-custody-native-20261002.log`.
+Initial authored fixtures failed on invalid label configuration, prohibited
+JSON VALUES, empty MATCH IDs, zero TAKE and a property/binding collision.
+The final fixtures use the existing constructor/MATCH contracts; none of those
+admission rules was relaxed. A one-short limit can propagate a nested owner
+budget issue rather than only the pipeline's outer issue; the original
+requirement remains exact-limit acceptance and one-short rejection.
+
+The complete pipeline package at the clean committed source above remains red:
+**343 total, 308 passed, 35 failed**, exit 2. Log:
+`/private/tmp/property-graph-pipeline-d5e2b5b49-20261002.log`.
+The prior 41 pipeline failures are reduced by six migrations, not skipped.
+Remaining files still require individual treatment of supported MATCH/TRAIL,
+generic ownership evidence and withdrawn algorithm-positive fixtures. This
+checkpoint does not claim aggregate Core, spec, fresh packed or final-SHA CI
+success. Main was fetched again and remains `5bb95908901ba57ae4a83ff119d9d9a3f68cf154`.
+
 Main's new foundation composition validator rejects eight reachable historical
 #164 commits that changed the immutable #148 reuse baseline. Restoring current
 bytes cannot change those ancestors. The old global current-foundation record
