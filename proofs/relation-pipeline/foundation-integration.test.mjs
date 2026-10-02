@@ -1,38 +1,28 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { checkFoundation } from './history.mjs';
+import { checkFoundation, currentFoundation } from './history.mjs';
+import { hash } from './inventory.mjs';
 
-test('integrated foundation remains byte-pinned without rewriting the original experiment', () => {
+test('current Graph integration preserves frozen evidence and independently declares its actual foundation', () => {
   const root = fileURLToPath(new URL('../../', import.meta.url));
-  const baseline = JSON.parse(readFileSync(join(root, 'proofs/relation-pipeline/reuse-baseline.json')));
+  const path = 'proofs/relation-pipeline/reuse-baseline.json';
+  const historical = execFileSync('git',
+    ['show', `0aa3bc921362b53536d5bf9d541a889e09ccc24b:${path}`], { cwd: root });
+  assert.deepEqual(readFileSync(`${root}/${path}`), historical);
+  const baseline = checkFoundation(root);
   assert.equal(baseline.originalExperiment.foundationRevision, '489f3c4ad38eece09de9674eae7a1b0ddeab1969');
   assert.equal(baseline.originalExperiment.verifiedRegistrationRevision, 'e73411cc068c853314b6a771dbd6b27680499115');
   assert.equal(Object.keys(baseline.common).length, 57);
-  assert.equal(baseline.propertyGraphVerificationIntegration.unchangedCommonFiles, 56);
-  checkFoundation(root);
-
-  // Nested fixture remains under the same Git history, but owns its file copies.
-  mkdirSync(join(root, '_build'), { recursive: true });
-  const fixture = mkdtempSync(join(root, '_build/foundation-pin-'));
-  try {
-    for (const file of Object.keys(baseline.common)) {
-      mkdirSync(dirname(join(fixture, file)), { recursive: true });
-      copyFileSync(join(root, file), join(fixture, file));
-    }
-    const manifest = join(fixture, 'proofs/relation-pipeline/reuse-baseline.json');
-    const integration = baseline.propertyGraphVerificationIntegration;
-    const previous = { ...baseline, revision: integration.priorRevision,
-      common: { ...baseline.common, [integration.path]: integration.priorDigest } };
-    writeFileSync(manifest, JSON.stringify(previous));
-    assert.throws(() => checkFoundation(fixture), /Changed common foundation package.json/);
-    writeFileSync(manifest, JSON.stringify(baseline));
-    assert.doesNotThrow(() => checkFoundation(fixture));
-    writeFileSync(join(fixture, 'package.json'), `${readFileSync(join(fixture, 'package.json'), 'utf8')}\n`);
-    assert.throws(() => checkFoundation(fixture), /Changed common foundation package.json/);
-  } finally {
-    rmSync(fixture, { recursive: true });
-  }
+  const current = currentFoundation(root);
+  const head = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+  assert.equal(current.sourceRevision, head);
+  const registration = current.files.find(file => file.path === 'package.json');
+  assert(registration, 'Missing current verification registration');
+  assert.equal(registration.digest, hash(readFileSync(`${root}/package.json`)));
+  // Negative provenance cases belong to the real-Git foundation/history tests:
+  // they retain immutable bytes, exact parents, missing declarations and guards.
+  // A directory of copied files is not a substitute Git foundation owner.
 });
