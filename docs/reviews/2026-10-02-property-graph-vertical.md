@@ -168,11 +168,12 @@ bytes cannot change those ancestors. The old global current-foundation record
 is preserved as inert historical text, and main's frozen records/validator are
 unchanged. Log:
 `/private/tmp/property-graph-current-foundation-predeclaration-20261002.log`.
-Reconstruction of the PR on current main, with its old history preserved and
-new independent declarations, requires explicit authorization before replacing
-the published branch. No history rewrite, force-push, guard relaxation or
-reuse of earlier CI success has occurred. The historical integration test also
-needs migration to the new declaration contract; it is not a current guarantee.
+The user has approved preserving the old branch and reconstructing changes
+and independent declarations on current main. Before replacing the published
+branch, the exact preservation ref, old/new SHAs and force-with-lease condition
+will be announced. No history rewrite, force-push, guard relaxation or reuse
+of earlier CI success has occurred. The historical integration test also needs
+migration to the new declaration contract; it is not a current guarantee.
 
 The published PR remains a separate older checkpoint, Draft and not GO.
 Full Core/spec migration, provenance reconstruction and required CI on the

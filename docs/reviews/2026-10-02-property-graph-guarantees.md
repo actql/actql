@@ -95,5 +95,22 @@ the required node-MATCH predicate. Those fixture errors were corrected without
 changing admission or capacity rules.
 
 Latest fetched main is `0fd6332757176b88e8c4071e4a2cd0be3d6254e3` (#185/#188).
-It has not yet been integrated into these local source checks. The published
-#164 remains `125a186ae9396fbfc7865641922e8e8a4ffc87d9`, Draft and not GO.
+The preflight runs above predate its integration. It is now integrated at
+`5608b2eeed5432a1e2b511a23ace7cb66163a209`. The single textual conflict in
+`client-dispatch-owner.mjs` retains main's `sourceAccess` presence check and
+this branch's local snapshot configuration. All other main source-custody
+changes are retained; no independent carrier-task edit was made. Syntax
+validation passes, but integrated Host acceptance must still run.
+
+The old constructor admission body is removed from the public pipeline check:
+the retired key is refused before operand resolution or compatibility-operation
+creation. Current constructor, Graph and keyed-constructor fixtures pass
+**13/13 JS** after integration:
+`/private/tmp/property-graph-retired-constructor-boundary-20261002.log`.
+An unused `GraphConstruction` variant warning exposes remaining retired type
+and lowering scaffolding. It is a removal task, not a warning exemption or a
+claim that implementation unification is complete. The old Carrier factory
+and other obsolete branches remain on the explicit removal inventory.
+
+The published #164 remains `125a186ae9396fbfc7865641922e8e8a4ffc87d9`,
+Draft and not GO. Historical evidence does not require an executable adapter.
