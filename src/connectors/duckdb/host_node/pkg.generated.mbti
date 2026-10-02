@@ -2,6 +2,8 @@
 package "actql/actql/connectors/duckdb/host_node"
 
 import {
+  "actql/actql/client_local_host",
+  "actql/actql/connector_sdk",
   "actql/actql/connectors/duckdb/acquisition",
   "actql/actql/connectors/duckdb/adapter",
   "actql/actql/connectors/duckdb/compute",
@@ -21,13 +23,15 @@ pub fn broad_host_abort(BroadNodeRun) -> Unit
 
 pub fn broad_host_accept(BroadNodeRun, Int, String) -> Unit raise NodeHostFailure
 
+pub fn broad_host_advance_residual(BroadNodeRun, Int) -> Bool raise NodeHostFailure
+
 pub fn broad_host_attempt(BroadNodeRun) -> @acquisition.DuckDBBroadAttempt
 
 pub fn broad_host_begin(BroadNodeRun, String) -> Unit raise NodeHostFailure
 
 pub fn broad_host_bind(BroadNodeRun, @acquisition.DuckDBBroadObservation, @lowering_relation.BoundPrepared, Int) -> @execution_relation.BoundProducerInput raise NodeHostFailure
 
-pub fn broad_host_close(BroadNodeRun) -> Unit
+pub fn broad_host_close(BroadNodeRun) -> Unit raise NodeHostFailure
 
 pub fn broad_host_complete(BroadNodeRun) -> @acquisition.DuckDBBroadObservation raise NodeHostFailure
 
@@ -43,6 +47,8 @@ pub fn broad_host_open(@host.BroadHostConfiguration, String, (@acquisition.DuckD
 
 pub fn broad_host_parameter(BroadNodeRun, Int) -> String raise NodeHostFailure
 
+pub fn broad_host_residual_stopped(BroadNodeRun) -> Bool
+
 pub fn broad_host_source_capture(BroadNodeRun, @acquisition.DuckDBBroadObservation) -> @host.BroadHostSourceCapture raise NodeHostFailure
 
 pub fn broad_host_source_capture_identity_matches(@host.BroadHostSourceCapture, @execution_query.CapturedSourceRelationIdentity) -> Bool
@@ -52,6 +58,8 @@ pub fn broad_host_source_capture_source(@host.BroadHostSourceCapture) -> @execut
 pub fn broad_host_source_capture_source_ref(@host.BroadHostSourceCapture) -> String?
 
 pub fn broad_host_sql(BroadNodeRun, Bool) -> String
+
+pub fn broad_host_start_residual(BroadNodeRun) -> Unit raise NodeHostFailure
 
 pub fn compute_host_abort(ComputeNodeRun) -> Unit
 
@@ -479,6 +487,9 @@ pub fn retained_frames_prepare(Int, Int, Int, Int, Int) -> @run_publication.Dura
 
 // Errors
 pub(all) suberror NodeHostFailure {
+  Residual(@client_local_host.ClientQueryResidualIssue)
+  Local(@connector_sdk.FixedComputeIssue)
+  ResidualStopped
   SourceEvidence(@host.NativeSourceEvidenceIssue)
   Host(@host.NativeHostIssue)
   Broad(@host.BroadHostIssue)

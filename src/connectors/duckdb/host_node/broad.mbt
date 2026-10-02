@@ -2,6 +2,7 @@
 struct BroadNodeRun {
   host : @acquisition_host.BroadHostRun
   limits : @acquisition_host.BroadHostLimits
+  mut residual : @client_local.ClientBroadResidual?
 }
 
 ///|
@@ -76,7 +77,11 @@ pub fn broad_host_open(
 ) -> BroadNodeRun raise NodeHostFailure {
   match @acquisition_host.start_configured_broad_host(setup, nonce, verify) {
     Ok(host) =>
-      { host, limits: @acquisition_host.configured_broad_host_limits(setup), }
+      {
+        host,
+        limits: @acquisition_host.configured_broad_host_limits(setup),
+        residual: None,
+      }
     Err(issue) => raise Broad(issue)
   }
 }
@@ -192,6 +197,12 @@ pub fn broad_host_finish(run : BroadNodeRun) -> Unit raise NodeHostFailure {
 pub fn broad_host_complete(
   run : BroadNodeRun,
 ) -> @duckdb_query.DuckDBBroadObservation raise NodeHostFailure {
+  if run.residual is Some(owner) {
+    return match @client_local.complete_client_broad_residual(owner) {
+      Ok(value) => value
+      Err(issue) => raise Broad(issue)
+    }
+  }
   match @acquisition_host.complete_broad_host(run.host) {
     Ok(value) => value
     Err(issue) => raise Broad(issue)
@@ -231,11 +242,75 @@ pub fn broad_host_document(
 ///|
 #export_name("broadHostAbort")
 pub fn broad_host_abort(run : BroadNodeRun) -> Unit {
+  if run.residual is Some(owner) {
+    @local.cancel_managed_provider(
+      @client_local.client_broad_residual_execution(owner),
+    )
+    |> ignore
+    return
+  }
   @acquisition_host.abort_broad_host(run.host)
 }
 
 ///|
 #export_name("broadHostClose")
-pub fn broad_host_close(run : BroadNodeRun) -> Unit {
+pub fn broad_host_close(run : BroadNodeRun) -> Unit raise NodeHostFailure {
+  if run.residual is Some(owner) {
+    match @client_local.cleanup_client_broad_residual(owner) {
+      Ok(true) => return
+      Ok(false) => raise Broad(InvalidState)
+      Err(issue) => raise Local(issue)
+    }
+  }
   @acquisition_host.close_broad_host(run.host)
+}
+
+///|
+#export_name("broadHostStartResidual")
+pub fn broad_host_start_residual(
+  run : BroadNodeRun,
+) -> Unit raise NodeHostFailure {
+  if run.residual is Some(_) {
+    raise Broad(InvalidState)
+  }
+  match
+    @client_local.prepare_client_broad_residual(
+      run.host,
+      run.limits.completion.records.max_bytes,
+    ) {
+    Ok(owner) => run.residual = Some(owner)
+    Err(issue) => raise Residual(issue)
+  }
+}
+
+///|
+#export_name("broadHostAdvanceResidual")
+pub fn broad_host_advance_residual(
+  run : BroadNodeRun,
+  quantum : Int,
+) -> Bool raise NodeHostFailure {
+  guard run.residual is Some(owner) else { raise Broad(InvalidState) }
+  match
+    @local.advance_managed_provider(
+      @client_local.client_broad_residual_execution(owner),
+      quantum,
+    ) {
+    Ok(Continue(..)) => false
+    Ok(Complete(_, ..)) => true
+    Ok(Stopped(..)) => raise ResidualStopped
+    Ok(Failed(issue, ..)) | Err(issue) => raise Local(issue)
+    Ok(CarrierComplete(_, ..)) => raise Local(ComputeUnsupported)
+  }
+}
+
+///|
+#export_name("broadHostResidualStopped")
+pub fn broad_host_residual_stopped(run : BroadNodeRun) -> Bool {
+  match run.residual {
+    None => true
+    Some(owner) =>
+      @local.managed_provider_stopped(
+        @client_local.client_broad_residual_execution(owner),
+      )
+  }
 }

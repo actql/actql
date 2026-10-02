@@ -58,6 +58,11 @@ pub fn execute_query_receipt_guarded(
   if !physical_equal(prepared, receipt.owner) {
     return Err(ForeignReceipt)
   }
+  // The guarded legacy driver also executes the whole checked owner. An
+  // admitted acquisition prefix must use bounded execution, not this driver.
+  if !query_has_complete_synchronous_shape(prepared) {
+    return Err(Execution(UnsupportedExecutionShape))
+  }
   match
     @execution.execute_fixed_input_guarded(
       prepared.generated,

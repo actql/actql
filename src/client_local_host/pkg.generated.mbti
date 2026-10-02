@@ -3,6 +3,7 @@ package "actql/actql/client_local_host"
 
 import {
   "actql/actql/connector_sdk",
+  "actql/actql/connectors/duckdb/acquisition",
   "actql/actql/connectors/duckdb/host",
   "actql/actql/connectors/local",
   "actql/actql/connectors/local/driver",
@@ -21,11 +22,23 @@ pub fn advance_client_infer_input(ClientInferInputExecution, Int) -> Result[Clie
 
 pub fn cancel_client_infer_input(ClientInferInputExecution) -> Bool
 
+pub fn cleanup_client_broad_residual(ClientBroadResidual) -> Result[Bool, @connector_sdk.FixedComputeIssue]
+
 pub fn cleanup_client_infer_input(ClientInferInputExecution) -> Result[Bool, ClientInferInputIssue]
+
+pub fn client_broad_residual_execution(ClientBroadResidual) -> @local.ManagedProviderExecution
 
 pub fn client_infer_completed_input(ClientInferInputExecution) -> @execution_relation.CompletedOutput?
 
 pub fn client_infer_completion_preparation(ClientInferInputExecution, @execution_relation.PreparedInferRows) -> @execution_relation.CompletionPreparation?
+
+pub fn client_query_residual_execution(ClientQueryResidual) -> @local.ManagedProviderExecution
+
+pub fn client_query_residual_output(ClientQueryResidual, @execution_query.QuerySequence, @execution_query.QueryReceipt, Int, Int) -> @execution_relation.CompletedOutput?
+
+pub fn complete_client_broad_query_residual(ClientQueryResidual, @acquisition.DuckDBQueryIssuer, @acquisition.DuckDBBroadAttempt, @acquisition.DuckDBBroadCompletionLimits) -> Result[@acquisition.DuckDBBroadObservation, @acquisition.DuckDBEvidenceIssue]
+
+pub fn complete_client_broad_residual(ClientBroadResidual) -> Result[@acquisition.DuckDBBroadObservation, @host.BroadHostIssue]
 
 pub fn execute_source_free_values(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
 
@@ -41,6 +54,8 @@ pub fn open_source_free_local_host(@run_publication_host.PreparedClientProgram, 
 
 pub fn open_source_free_local_retained_host(@run_publication_host.PreparedClientProgram, String, String, Int64, Int64, Int64, Int64, fragment_body? : String?, ordered_body? : String?, provider_factory? : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
+pub fn prepare_client_broad_residual(@host.BroadHostRun, Int) -> Result[ClientBroadResidual, ClientQueryResidualIssue]
+
 pub fn prepare_client_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String, String, String) -> Result[@host.NativeHostConfiguration, ClientDuckDBAcquisitionIssue]
 
 pub fn prepare_client_duckdb_broad_acquisition(@query_planning.QueryRequirement, String, String, String, String, String) -> Result[@host.BroadHostConfiguration, ClientDuckDBAcquisitionIssue]
@@ -53,19 +68,27 @@ pub fn prepare_client_infer_suffix(@run_publication_host.PreparedClientProgram, 
 
 pub fn prepare_client_local_sequences(@run_publication_host.PreparedClientProgram, String, String, String?, String?, task_count? : Int?) -> Array[@execution_relation.GeneratedSequence]?
 
+pub fn prepare_client_query_residual(@execution_query.QuerySequence, @execution_query.QueryReceipt, () -> Bool, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, Int, max_name_bytes~ : Int) -> Result[ClientQueryResidual, ClientQueryResidualIssue]
+
 pub fn prepare_effect_local_query_requirement(@run_publication_host.PreparedClientEffectComputation, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, ClientLocalQueryIssue]
 
 pub fn prepare_local_query_requirement(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, ClientLocalQueryIssue]
 
 pub fn retry_local_values_execution_failure_cleanup(LocalValuesExecutionFailure) -> Bool
 
+pub fn start_client_acquired_infer_input(@run_publication_host.PreparedClientProgram, Int, Int, @execution_query.CapturedInputSource, String, String, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.InferPreparationLimits, fragment_body? : String?, ordered_body? : String?) -> Result[ClientInferInputExecution, ClientInferInputIssue]
+
 pub fn start_client_infer_input(@run_publication_host.PreparedClientProgram, Int, Int, String, String, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.InferPreparationLimits, fragment_body? : String?, ordered_body? : String?) -> Result[ClientInferInputExecution, ClientInferInputIssue]
 
 pub fn start_client_infer_suffix(@execution_relation.GeneratedSequence, Array[@execution_relation.CompletedOutput], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> Result[@local.ManagedProviderExecution, ClientInferInputIssue]
 
+pub fn start_client_query_residual(@execution_query.QuerySequence, @execution_query.QueryReceipt, () -> Bool, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, Int, Int, max_name_bytes~ : Int) -> Result[@local.ManagedProviderExecution, ClientQueryResidualIssue]
+
 // Errors
 
 // Types and methods
+type ClientBroadResidual
+
 pub(all) enum ClientDuckDBAcquisitionIssue {
   InvalidSource
   InvalidContracts
@@ -84,6 +107,7 @@ pub(all) enum ClientInferInputIssue {
   Local(@connector_sdk.FixedComputeIssue)
   Mapping(@execution_relation.InferPreparationIssue)
   ProducerRead(@execution_relation.ProducerReadIssue)
+  Capture(@execution_query.CapturedSourceIssue)
 }
 
 pub enum ClientInferInputPoll {
@@ -97,6 +121,19 @@ pub(all) enum ClientLocalQueryIssue {
   Sequences
   MissingStage
   Requirement(@run_publication_host.ClientQueryRequirementIssue)
+}
+
+type ClientQueryResidual
+
+pub(all) enum ClientQueryResidualIssue {
+  InvalidLimits
+  ForeignReceipt
+  InputUnavailable
+  UnsupportedProgram
+  Local(@connector_sdk.FixedComputeIssue)
+  Input(@execution_relation.ProducerReadIssue)
+  Guard(@execution_relation.FixedInputGuardIssue)
+  Acquisition(@host.BroadHostIssue)
 }
 
 pub struct LocalValuesExecution {
