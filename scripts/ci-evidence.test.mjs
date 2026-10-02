@@ -792,3 +792,6 @@ test('offline retained artifact selection is exclusive and needs no live collect
     assert.throws(() => parseArguments(['actql/actql', '--artifacts', 'saved.json', ...extra]));
   }
 });
+
+// Read-only scheduling diagnostics share the existing CI reporting fixture gate.
+import './verification-actions.test.mjs';
