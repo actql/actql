@@ -7,7 +7,7 @@ import { fixedCorpus } from '../corpus.mjs';
 import { registry } from '../registry.mjs';
 import { registrations } from '../obligations.mjs';
 import { program, candidates, oracle, generate } from '../engine.mjs';
-import { body, payload, inputVariable } from '../fixture.mjs';
+import { auditFixture, payload, inputVariable } from '../fixture.mjs';
 import { compareSemantics } from '../evidence.mjs';
 import { mutations, replacements, instrument, workspaceOverlay, generatedObservers } from './instrument.mjs';
 import { admitClaim, inspectEvents, violation, workspaceBound, inputs } from './model.mjs';
@@ -47,7 +47,6 @@ export function validate(report, current, targets, read) {
     assert.equal(run.inputVariable, inputVariable);
     assert.equal(run.inputDigest, hash(payload(run.cases, run.correspondence)));
     assert.equal(read(run.inputPath).toString(), payload(run.cases, run.correspondence));
-    assert.equal(run.fixtureDigest, hash(body)); assert.equal(read(run.fixturePath).toString(), body);
     assert.equal(run.compiler, report.toolchain.moonc); assert.equal(run.exit, 0);
     assert.deepEqual(run.command, ['moon', 'test', 'src/query_integration/relation_pipeline_batch_wbtest.mbt', '--target', run.target, '--deny-warn']);
     assert(targets.includes(run.target));
@@ -67,6 +66,8 @@ export function validate(report, current, targets, read) {
     }
     assert.deepEqual(source.sources, expected, 'Unknown observation or mutation source');
     const log = read(run.logPath).toString(); assert.equal(hash(log), run.logDigest);
+    auditFixture(run, read(run.fixturePath), log, run.target);
+    assert.equal(run.boundary.role, 'normal', 'Capacity evidence requires the instrumented primary workspace');
     const recorded = []; let id; let faults;
     for (const line of log.split('\n')) {
       if (line.startsWith('ACTQL_PIPELINE_CASE:')) { id = JSON.parse(line.slice(20)); faults = []; }
