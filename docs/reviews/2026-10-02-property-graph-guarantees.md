@@ -575,3 +575,52 @@ was changed into a refusal. The narrow storage/runtime/selector run passes
 23/23. Remaining Carrier convenience APIs and old typed/fixture scaffolding,
 full Core/spec, strict resource inventory and final public snapshot/CI remain
 open. No compatibility owner or fallback was introduced.
+
+The tuple mutation API removal is committed as
+`4060dedd675e3e77d0c9ff5fc15cefa2cc95bfe6`. The official tracked API check passes:
+`/private/tmp/property-graph-tuple-builder-api-retirement-api-committed-20261002.log`.
+
+## Aggregate diagnostic after kernel retirement
+
+Full Core JS at committed source
+`4060dedd675e3e77d0c9ff5fc15cefa2cc95bfe6` is **7,404 total / 7,243 passed /
+161 failed**, exit 2. Evidence:
+`/private/tmp/property-graph-core-js-after-kernel-retirement-20261002.log`.
+Named failure groups are capacity_program_step 12, pipeline_check_context 18,
+pipeline_typing 7, program_check 37, query_integration 80 and query_program 7.
+The capacity union failure uses the expect-test reporter without a colon;
+counting only `failed:` lines would incorrectly report 160 failures. No
+Local SGA failure remains. This is still red aggregate verification.
+
+These failures are not blanket retired: upper bound/owner and supported
+MATCH/TRAIL/Host positives require migration; delta/structural algorithm
+claims are unsupported; typed old-constructor fixtures require separate
+classification. Frontend Graph lowering/source-definition binding remains a
+specific open boundary, not assumed fixed by runtime kernel removal.
+
+## Keyed MATCH row-law migration
+
+`capacity_program_step/graph_rows_test.mbt` now retains the original positive
+quantity-law assertions through valid keyed node/edge definitions. For counts
+0, 1 and 3, independently authored distinct keys produce explicit self-loop
+edge identities. TRUE/FALSE node MATCH and FALSE edge MATCH derive the row
+upper bound from the original node/edge premise rather than an observed
+filtered result. Exact input-owner identity, value mismatch, entity-unit
+substitution, wrong-law substitution and application collection remain tested.
+Degree/components and scalar-ID selection formulas are not claimed migrated.
+
+The keyed constructor checks its single premise in five bounded operand
+passes, unlike the removed tuple unary rule. The initial fixture supplied the
+old zero allowance and correctly failed `OperandWorkLimit`. The fixture now
+admits exactly five and separately requires failure at four; no product limit
+or validator is relaxed. Temporary Debug/Show diagnostics also failed before
+correction and are not successful checks. Their logs remain under
+`/private/tmp/property-graph-match-row-law-migration-*-20261003.log`.
+
+The migrated row law and existing repeated/mixed-definition quantity evidence
+pass **3/3 on each JS, Wasm and native**:
+`/private/tmp/property-graph-match-row-law-focused-{js,wasm,native}-20261003.log`.
+The preceding 161-failure aggregate predates this migration; no new aggregate
+success or computed reduction is asserted. Remaining upper fixtures, Carrier
+API retirement, supported/refused route inventory, fresh public snapshot and
+fixed submitted-SHA CI remain open.
