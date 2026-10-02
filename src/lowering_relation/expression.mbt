@@ -17,6 +17,7 @@ pub enum ExpressionBody {
   TypedNull
   Object(Array[(String, Expression)])
   Property(Expression, String, Int)
+  Cast(Expression)
   Unary(UnaryOperator, Expression)
   Binary(BinaryOperator, Expression, Expression)
   VectorScore(VectorMetric, Expression, Expression)
@@ -126,6 +127,7 @@ pub fn expression_view_entries(value : Expression) -> Int {
     | Literal(_)
     | TypedNull
     | Property(_, _, _)
+    | Cast(_)
     | Unary(_, _)
     | Binary(_, _, _)
     | VectorScore(_, _, _)
@@ -198,6 +200,7 @@ fn expression_tag(
     | "concat_strict"
     | "vector_score"
     | "vector_concat"
+    | "cast"
     | "if"
     | "case" => ()
     "object" | "property" => ()
@@ -226,6 +229,10 @@ fn expression_children(
       children
     }
     "literal" | "field" | "$param" => []
+    "cast" => {
+      let obj = @decode.open_object(body).unwrap()
+      [@decode.lookup(obj, "value").unwrap()]
+    }
     "negate"
     | "not"
     | "is_null"
@@ -785,6 +792,7 @@ fn lower_typed_expression_measured(
           }
         }
         "negate" => Unary(Negate, args[0])
+        "cast" => Cast(args[0])
         "not" => Unary(Not, args[0])
         "is_null" => Unary(IsNull, args[0])
         "not_null" => Unary(NotNull, args[0])
@@ -863,6 +871,7 @@ fn lower_typed_expression_measured(
           Unary(_, child) => child.uses_veca
           Property(child, _, _) => child.uses_veca
           Object(fields) => fields.any(field => field.1.uses_veca)
+          Cast(child) => child.uses_veca
           Binary(_, left, right) => left.uses_veca || right.uses_veca
           Many(_, children) => children.any(child => child.uses_veca)
           Conditional(condition, yes, no) =>

@@ -479,7 +479,7 @@ A configuration MUST use one canonical spelling: entries in strictly
 ascending `entry_id` order, each `any_of` array in strictly ascending order, and
 each `exclusions` array in strictly ascending order of its tuples' canonical JSON
 text, with UTF-16 code-unit ordering throughout. Order, equality and identity are
-decided over admitted text values, which are NFC-normalized as in canonical JSON;
+decided over admitted identifiers, whose separate contract requires NFC-plus-LF text;
 two values equal after normalization are duplicates. Its identity is the CID of the
 complete canonical document; evidence and Checkpoints bind that CID. A
 principal, connection, resource or operation identifier MUST match only by

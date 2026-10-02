@@ -370,7 +370,27 @@ fn ExpressionParser::expression(
         let t = self.advance()
         frames.push(Tail(-1, minimum, depth))
         match t.value {
-          Text(value) => result = self.add(StringLiteral(value), t.start, t.end)
+          Text(value) => {
+            let chunks = StringBuilder()
+            chunks.write_string(value)
+            let mut end = t.end
+            while self.peek().value is Text(next) {
+              let token = self.peek()
+              // GoogleSQL chunks need intervening whitespace or a comment.
+              // Identifiers and Graph annotation tokens never concatenate.
+              if token.start == end {
+                raise ExpressionAbort(
+                  "Literal chunks require separation",
+                  token.start,
+                )
+              }
+              self.spend()
+              ignore(self.advance())
+              chunks.write_string(next)
+              end = token.end
+            }
+            result = self.add(StringLiteral(chunks.to_string()), t.start, end)
+          }
           Numeric(value) => result = self.add(Number(value), t.start, t.end)
           Parameter(name) =>
             result = self.add(ParameterReference(name), t.start, t.end)

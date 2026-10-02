@@ -77,8 +77,7 @@ fn check_backend_capabilities(
       let body = @lower.expression_body(expression)
       let edges = match body {
         Field(_, _) | Literal(_) | TypedNull => 0
-        Unary(_, _) => 1
-        Property(_, _, _) => 1
+        Unary(_, _) | Cast(_) | Property(_, _, _) => 1
         Object(fields) => fields.length()
         Binary(_, _, _) => 2
         VectorScore(_, _, _) => 2
@@ -104,6 +103,7 @@ fn check_backend_capabilities(
           for j = fields.length() - 1; j >= 0; j = j - 1 {
             pending.push(fields[j].1)
           }
+        Cast(child) => pending.push(child)
         Binary(op, left, right) => {
           match op {
             Equal

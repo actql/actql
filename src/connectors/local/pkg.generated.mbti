@@ -6,6 +6,7 @@ import {
   "actql/actql/execution_relation",
   "actql/actql/managed_carrier_runtime",
   "actql/actql/physical_cost",
+  "moonbitlang/core/debug",
 }
 
 // Values
@@ -60,6 +61,8 @@ pub fn[T] local_managed_fixed_compute_candidate(@connector_sdk.CapabilityRegistr
 pub fn local_managed_sequence_supported(@execution_relation.GeneratedSequence) -> Bool
 
 pub fn local_materializing_completed_output(LocalMaterializingAttempt) -> @execution_relation.CompletedOutput?
+
+pub fn local_materializing_cumulative_work(LocalMaterializingAttempt) -> Result[Int64, ManagedProviderWorkIssue]
 
 pub fn local_materializing_guard_usage(LocalMaterializingAttempt) -> (Int, Int, Int)?
 
@@ -132,6 +135,8 @@ pub fn managed_provider_carrier_input(@managed_carrier_runtime.ProducerView) -> 
 pub fn managed_provider_complete(@execution_relation.CompletedOutput, Int64, Int64) -> ManagedProviderPoll
 
 pub fn managed_provider_continue(Int64, Int64) -> ManagedProviderPoll
+
+pub fn managed_provider_cumulative_work(ManagedProviderExecution) -> Result[Int64, ManagedProviderWorkIssue]
 
 pub fn managed_provider_execution((Int) -> Result[ManagedProviderPoll, @connector_sdk.FixedComputeIssue], () -> Bool, () -> Bool, () -> Result[Bool, @connector_sdk.FixedComputeIssue]) -> ManagedProviderExecution
 
@@ -257,6 +262,11 @@ pub enum ManagedProviderPoll {
   Failed(@connector_sdk.FixedComputeIssue, progress~ : Int64, work~ : Int64)
   Stopped(progress~ : Int64, work~ : Int64)
 }
+
+pub(all) enum ManagedProviderWorkIssue {
+  InvalidReport
+  CounterOverflow
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 

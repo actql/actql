@@ -3,12 +3,12 @@
 ///|
 test "parameter identity: ordinary-values" {
   let value = identity_ready("{\"s\":{\"type\":\"string\"},\"b\":{\"type\":\"boolean\"},\"n\":{\"type\":\"number\"},\"a\":{\"type\":\"array\",\"items\":{\"type\":\"number\"}},\"o\":{\"type\":\"object\",\"fields\":{}}}", "{\"o\":{},\"a\":[1,2],\"n\":1e+21,\"b\":true,\"s\":\"\u{e9}\\r\\n\u{1f600}\"}")
-  assert_eq(@parameter_binding.stringify_values(value, 102, 10, 3), "{\"values\":{\"a\":[1,2],\"b\":true,\"n\":1e+21,\"o\":{},\"s\":\"\u{e9}\\n\u{1f600}\"},\"version\":\"actql-parameter-values/0.1\"}")
-  assert_eq(@parameter_binding.parameter_values_cid(value, 102, 10, 3), "sha256:5ba75bd322aac2d2605fe5e6d4194f33125a34ea4c9e46b851f39edaab0635e5")
-  assert_eq(@parameter_binding.measure_values(value, 102, 10, 3), 102)
-  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 101, 10, 3)); false } catch { @encode.OutputLimit => true; _ => false })
-  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 102, 9, 3)); false } catch { @encode.OutputLimit => true; _ => false })
-  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 102, 10, 2)); false } catch { @encode.OutputLimit => true; _ => false })
+  assert_eq(@parameter_binding.stringify_values(value, 104, 10, 3), "{\"values\":{\"a\":[1,2],\"b\":true,\"n\":1e+21,\"o\":{},\"s\":\"\u{e9}\\r\\n\u{1f600}\"},\"version\":\"actql-parameter-values/0.1\"}")
+  assert_eq(@parameter_binding.parameter_values_cid(value, 104, 10, 3), "sha256:9430ca7bf991b6418a01a714a748a9a7332635b34faaf75ff820a38bb08834d2")
+  assert_eq(@parameter_binding.measure_values(value, 104, 10, 3), 104)
+  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 103, 10, 3)); false } catch { @encode.OutputLimit => true; _ => false })
+  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 104, 9, 3)); false } catch { @encode.OutputLimit => true; _ => false })
+  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 104, 10, 2)); false } catch { @encode.OutputLimit => true; _ => false })
 }
 
 ///|
@@ -223,12 +223,12 @@ test "parameter identity: escape-cannot-spoof-decimal" {
 ///|
 test "parameter identity: utf16-field-order" {
   let value = identity_ready("{\"v\":{\"type\":\"object\",\"fields\":{\"\u{1f600}\":{\"type\":\"string\",\"format\":\"duration\"},\"\u{e000}\":{\"type\":\"string\"},\"e\u{301}\":{\"type\":\"string\"}}}}", "{\"v\":{\"\u{e000}\":\"x\",\"\u{1f600}\":\"1s\",\"e\u{301}\":\"a\\r\\nb\"}}")
-  assert_eq(@parameter_binding.stringify_values(value, 121, 10, 5), "{\"values\":{\"v\":{\"\u{e9}\":\"a\\nb\",\"\u{1f600}\":{\"$actql_value\":[\"duration\",1000]},\"\u{e000}\":\"x\"}},\"version\":\"actql-parameter-values/0.1\"}")
-  assert_eq(@parameter_binding.parameter_values_cid(value, 121, 10, 5), "sha256:9206dafe34032f0ddfc42d7a97bf69836e3201057eb71bcdb2e52443a2edf7ca")
-  assert_eq(@parameter_binding.measure_values(value, 121, 10, 5), 121)
-  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 120, 10, 5)); false } catch { @encode.OutputLimit => true; _ => false })
-  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 121, 9, 5)); false } catch { @encode.OutputLimit => true; _ => false })
-  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 121, 10, 4)); false } catch { @encode.OutputLimit => true; _ => false })
+  assert_eq(@parameter_binding.stringify_values(value, 123, 10, 5), "{\"values\":{\"v\":{\"\u{e9}\":\"a\\r\\nb\",\"\u{1f600}\":{\"$actql_value\":[\"duration\",1000]},\"\u{e000}\":\"x\"}},\"version\":\"actql-parameter-values/0.1\"}")
+  assert_eq(@parameter_binding.parameter_values_cid(value, 123, 10, 5), "sha256:b588f88ceb61b23d362efda21cef5581cdfaad65adce3ba560cac56eabf3961f")
+  assert_eq(@parameter_binding.measure_values(value, 123, 10, 5), 123)
+  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 122, 10, 5)); false } catch { @encode.OutputLimit => true; _ => false })
+  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 123, 9, 5)); false } catch { @encode.OutputLimit => true; _ => false })
+  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 123, 10, 4)); false } catch { @encode.OutputLimit => true; _ => false })
 }
 
 ///|
@@ -284,4 +284,70 @@ test "parameter identity: escaped-utf16-field-order" {
   assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 281, 29, 9)); false } catch { @encode.OutputLimit => true; _ => false })
   assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 282, 28, 9)); false } catch { @encode.OutputLimit => true; _ => false })
   assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 282, 29, 8)); false } catch { @encode.OutputLimit => true; _ => false })
+}
+
+///|
+test "parameter identity: preserved-string-CR" {
+  let value = identity_ready("{\"s\":{\"type\":\"string\"}}", "{\"s\":\"\\r\"}")
+  assert_eq(@parameter_binding.stringify_values(value, 60, 4, 2), "{\"values\":{\"s\":\"\\r\"},\"version\":\"actql-parameter-values/0.1\"}")
+  assert_eq(@parameter_binding.parameter_values_cid(value, 60, 4, 2), "sha256:139d12cde166532e23568de1ddb0134d21dc75a72a5aaa04e30aa3e493b72f1e")
+  assert_eq(@parameter_binding.measure_values(value, 60, 4, 2), 60)
+  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 59, 4, 2)); false } catch { @encode.OutputLimit => true; _ => false })
+  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 60, 3, 2)); false } catch { @encode.OutputLimit => true; _ => false })
+  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 60, 4, 1)); false } catch { @encode.OutputLimit => true; _ => false })
+}
+
+///|
+test "parameter identity: preserved-string-LF" {
+  let value = identity_ready("{\"s\":{\"type\":\"string\"}}", "{\"s\":\"\\n\"}")
+  assert_eq(@parameter_binding.stringify_values(value, 60, 4, 2), "{\"values\":{\"s\":\"\\n\"},\"version\":\"actql-parameter-values/0.1\"}")
+  assert_eq(@parameter_binding.parameter_values_cid(value, 60, 4, 2), "sha256:6786d043a392d955353cfcc5e276e049c821d67f49b91ba5a6e0c4fdc910cec4")
+  assert_eq(@parameter_binding.measure_values(value, 60, 4, 2), 60)
+  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 59, 4, 2)); false } catch { @encode.OutputLimit => true; _ => false })
+  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 60, 3, 2)); false } catch { @encode.OutputLimit => true; _ => false })
+  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 60, 4, 1)); false } catch { @encode.OutputLimit => true; _ => false })
+}
+
+///|
+test "parameter identity: preserved-string-CRLF" {
+  let value = identity_ready("{\"s\":{\"type\":\"string\"}}", "{\"s\":\"\\r\\n\"}")
+  assert_eq(@parameter_binding.stringify_values(value, 62, 4, 2), "{\"values\":{\"s\":\"\\r\\n\"},\"version\":\"actql-parameter-values/0.1\"}")
+  assert_eq(@parameter_binding.parameter_values_cid(value, 62, 4, 2), "sha256:76c4e14adb6506c78dc60e0ccb75ce096f61839aa32c42f29e2751ee504661ae")
+  assert_eq(@parameter_binding.measure_values(value, 62, 4, 2), 62)
+  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 61, 4, 2)); false } catch { @encode.OutputLimit => true; _ => false })
+  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 62, 3, 2)); false } catch { @encode.OutputLimit => true; _ => false })
+  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 62, 4, 1)); false } catch { @encode.OutputLimit => true; _ => false })
+}
+
+///|
+test "parameter identity: preserved-string-composed" {
+  let value = identity_ready("{\"s\":{\"type\":\"string\"}}", "{\"s\":\"\u{e9}\"}")
+  assert_eq(@parameter_binding.stringify_values(value, 60, 4, 2), "{\"values\":{\"s\":\"\u{e9}\"},\"version\":\"actql-parameter-values/0.1\"}")
+  assert_eq(@parameter_binding.parameter_values_cid(value, 60, 4, 2), "sha256:a79143e63850f1d58fe733697832e01d035186390de8750d8fc6a963e22d5b3b")
+  assert_eq(@parameter_binding.measure_values(value, 60, 4, 2), 60)
+  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 59, 4, 2)); false } catch { @encode.OutputLimit => true; _ => false })
+  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 60, 3, 2)); false } catch { @encode.OutputLimit => true; _ => false })
+  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 60, 4, 1)); false } catch { @encode.OutputLimit => true; _ => false })
+}
+
+///|
+test "parameter identity: preserved-string-decomposed" {
+  let value = identity_ready("{\"s\":{\"type\":\"string\"}}", "{\"s\":\"e\u{301}\"}")
+  assert_eq(@parameter_binding.stringify_values(value, 61, 4, 2), "{\"values\":{\"s\":\"e\u{301}\"},\"version\":\"actql-parameter-values/0.1\"}")
+  assert_eq(@parameter_binding.parameter_values_cid(value, 61, 4, 2), "sha256:c203f099c700348dab4c9803e226d2ee784116f06e9bf8518316e86f7784dfca")
+  assert_eq(@parameter_binding.measure_values(value, 61, 4, 2), 61)
+  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 60, 4, 2)); false } catch { @encode.OutputLimit => true; _ => false })
+  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 61, 3, 2)); false } catch { @encode.OutputLimit => true; _ => false })
+  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 61, 4, 1)); false } catch { @encode.OutputLimit => true; _ => false })
+}
+
+///|
+test "parameter identity: preserved-string-backslash-n" {
+  let value = identity_ready("{\"s\":{\"type\":\"string\"}}", "{\"s\":\"\\\\n\"}")
+  assert_eq(@parameter_binding.stringify_values(value, 61, 4, 2), "{\"values\":{\"s\":\"\\\\n\"},\"version\":\"actql-parameter-values/0.1\"}")
+  assert_eq(@parameter_binding.parameter_values_cid(value, 61, 4, 2), "sha256:d15f2356492e90b5d2c945c22e7173674480e2a68b3ef0a9529da8379d86a216")
+  assert_eq(@parameter_binding.measure_values(value, 61, 4, 2), 61)
+  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 60, 4, 2)); false } catch { @encode.OutputLimit => true; _ => false })
+  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 61, 3, 2)); false } catch { @encode.OutputLimit => true; _ => false })
+  assert_true(try { ignore(@parameter_binding.parameter_values_cid(value, 61, 4, 1)); false } catch { @encode.OutputLimit => true; _ => false })
 }

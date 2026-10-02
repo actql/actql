@@ -1,0 +1,524 @@
+{
+  "version": "actql-parameter-identity-vectors/0.1",
+  "cases": [
+    {
+      "id": "ordinary-values",
+      "declarations": {
+        "s": {
+          "type": "string"
+        },
+        "b": {
+          "type": "boolean"
+        },
+        "n": {
+          "type": "number"
+        },
+        "a": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "o": {
+          "type": "object",
+          "fields": {}
+        }
+      },
+      "supplied": {
+        "o": {},
+        "a": [
+          1,
+          2
+        ],
+        "n": 1e+21,
+        "b": true,
+        "s": "é\r\n😀"
+      },
+      "expected_canonical_json": "{\"values\":{\"a\":[1,2],\"b\":true,\"n\":1e+21,\"o\":{},\"s\":\"é\\n😀\"},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:5ba75bd322aac2d2605fe5e6d4194f33125a34ea4c9e46b851f39edaab0635e5"
+    },
+    {
+      "id": "duration-1s",
+      "declarations": {
+        "t": {
+          "type": "string",
+          "format": "duration"
+        }
+      },
+      "supplied": {
+        "t": "1s"
+      },
+      "expected_canonical_json": "{\"values\":{\"t\":{\"$actql_value\":[\"duration\",1000]}},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:a88c5f19ee81b56c908c91c4423714e8d7c8df421de69fe1687d8bf6096da401"
+    },
+    {
+      "id": "duration-1S",
+      "declarations": {
+        "t": {
+          "type": "string",
+          "format": "duration"
+        }
+      },
+      "supplied": {
+        "t": "1S"
+      },
+      "expected_canonical_json": "{\"values\":{\"t\":{\"$actql_value\":[\"duration\",1000]}},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:a88c5f19ee81b56c908c91c4423714e8d7c8df421de69fe1687d8bf6096da401"
+    },
+    {
+      "id": "duration-01s",
+      "declarations": {
+        "t": {
+          "type": "string",
+          "format": "duration"
+        }
+      },
+      "supplied": {
+        "t": "01s"
+      },
+      "expected_canonical_json": "{\"values\":{\"t\":{\"$actql_value\":[\"duration\",1000]}},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:a88c5f19ee81b56c908c91c4423714e8d7c8df421de69fe1687d8bf6096da401"
+    },
+    {
+      "id": "duration-1000ms",
+      "declarations": {
+        "t": {
+          "type": "string",
+          "format": "duration"
+        }
+      },
+      "supplied": {
+        "t": "1000ms"
+      },
+      "expected_canonical_json": "{\"values\":{\"t\":{\"$actql_value\":[\"duration\",1000]}},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:a88c5f19ee81b56c908c91c4423714e8d7c8df421de69fe1687d8bf6096da401"
+    },
+    {
+      "id": "duration-different",
+      "declarations": {
+        "t": {
+          "type": "string",
+          "format": "duration"
+        }
+      },
+      "supplied": {
+        "t": "1001ms"
+      },
+      "expected_canonical_json": "{\"values\":{\"t\":{\"$actql_value\":[\"duration\",1001]}},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:a42c1a8ceeb7b7aacef60dab020801820c8008939fb0501ec0fc7b22fdae8593"
+    },
+    {
+      "id": "duration-default",
+      "declarations": {
+        "t": {
+          "type": "string",
+          "format": "duration",
+          "default": "01S",
+          "meta": {
+            "note": "not identity"
+          }
+        }
+      },
+      "supplied": {},
+      "expected_canonical_json": "{\"values\":{\"t\":{\"$actql_value\":[\"duration\",1000]}},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:a88c5f19ee81b56c908c91c4423714e8d7c8df421de69fe1687d8bf6096da401"
+    },
+    {
+      "id": "duration-max",
+      "declarations": {
+        "t": {
+          "type": "string",
+          "format": "duration"
+        }
+      },
+      "supplied": {
+        "t": "9007199254740991ms"
+      },
+      "expected_canonical_json": "{\"values\":{\"t\":{\"$actql_value\":[\"duration\",9007199254740991]}},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:584304fe14b0ff25ae0597c8a64066fb88f95112a22f645fc3ed68d43d09d13a"
+    },
+    {
+      "id": "duration-null",
+      "declarations": {
+        "t": {
+          "type": "string",
+          "format": "duration",
+          "nullable": true
+        }
+      },
+      "supplied": {
+        "t": null
+      },
+      "expected_canonical_json": "{\"values\":{\"t\":null},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:b05f4086a30df32ecd52979e6090a1b86950b8d5886a96aaf3f099c34f30ed02"
+    },
+    {
+      "id": "ordinary-duration-text",
+      "declarations": {
+        "t": {
+          "type": "string"
+        }
+      },
+      "supplied": {
+        "t": "1s"
+      },
+      "expected_canonical_json": "{\"values\":{\"t\":\"1s\"},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:b73348b50038f5326c352eea7e382c446a390df154422fad9038451e902a8348"
+    },
+    {
+      "id": "ordinary-milliseconds",
+      "declarations": {
+        "t": {
+          "type": "number"
+        }
+      },
+      "supplied": {
+        "t": 1000
+      },
+      "expected_canonical_json": "{\"values\":{\"t\":1000},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:2e33d046db3f3f9bb05a0fb14650841925247fd1ccf4ff9a71d8034c086897e3"
+    },
+    {
+      "id": "decimal-basic",
+      "declarations": {
+        "d": {
+          "type": "decimal",
+          "precision": 4,
+          "scale": 2
+        }
+      },
+      "supplied": {
+        "d": "19.90"
+      },
+      "expected_canonical_json": "{\"values\":{\"d\":{\"$actql_value\":[\"decimal\",{\"coefficient\":\"1990\",\"precision\":4,\"scale\":2,\"version\":\"aoa-decimal-value/0.1\"}]}},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:f5c4acc1b2593cd48b2bf81e25ac748408610b7e2c29a393de8db86ea7710daa"
+    },
+    {
+      "id": "decimal-precision",
+      "declarations": {
+        "d": {
+          "type": "decimal",
+          "precision": 5,
+          "scale": 2
+        }
+      },
+      "supplied": {
+        "d": "19.90"
+      },
+      "expected_canonical_json": "{\"values\":{\"d\":{\"$actql_value\":[\"decimal\",{\"coefficient\":\"1990\",\"precision\":5,\"scale\":2,\"version\":\"aoa-decimal-value/0.1\"}]}},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:aa54e2904fb1df0ee8c0b542819ad3403c1b7612c4feac489c55ce2cd9250aa4"
+    },
+    {
+      "id": "decimal-scale",
+      "declarations": {
+        "d": {
+          "type": "decimal",
+          "precision": 5,
+          "scale": 3
+        }
+      },
+      "supplied": {
+        "d": "19.900"
+      },
+      "expected_canonical_json": "{\"values\":{\"d\":{\"$actql_value\":[\"decimal\",{\"coefficient\":\"19900\",\"precision\":5,\"scale\":3,\"version\":\"aoa-decimal-value/0.1\"}]}},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:df81ebde9eb955f0905f06c8b908379b0da089a6b562510bb60b5a84d1b9ce88"
+    },
+    {
+      "id": "decimal-negative-38",
+      "declarations": {
+        "d": {
+          "type": "decimal",
+          "precision": 38,
+          "scale": 0
+        }
+      },
+      "supplied": {
+        "d": "-99999999999999999999999999999999999999"
+      },
+      "expected_canonical_json": "{\"values\":{\"d\":{\"$actql_value\":[\"decimal\",{\"coefficient\":\"-99999999999999999999999999999999999999\",\"precision\":38,\"scale\":0,\"version\":\"aoa-decimal-value/0.1\"}]}},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:29d157ba8ece2767925aaf9a92a0d1da9c10ed81b8c293e1ef6c64671af5b5d5"
+    },
+    {
+      "id": "decimal-zero",
+      "declarations": {
+        "d": {
+          "type": "decimal",
+          "precision": 4,
+          "scale": 3
+        }
+      },
+      "supplied": {
+        "d": "0.000"
+      },
+      "expected_canonical_json": "{\"values\":{\"d\":{\"$actql_value\":[\"decimal\",{\"coefficient\":\"0\",\"precision\":4,\"scale\":3,\"version\":\"aoa-decimal-value/0.1\"}]}},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:333001cd469b9e89f8b19a484753c4a55cf4400b5ac7097da31f728497ecc834"
+    },
+    {
+      "id": "nested-domains",
+      "declarations": {
+        "v": {
+          "type": "object",
+          "fields": {
+            "times": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "duration",
+                "nullable": true
+              }
+            },
+            "prices": {
+              "type": "array",
+              "items": {
+                "type": "decimal",
+                "precision": 4,
+                "scale": 2
+              }
+            },
+            "empty": {
+              "type": "array",
+              "items": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      },
+      "supplied": {
+        "v": {
+          "times": [
+            "1M",
+            null
+          ],
+          "prices": [
+            "19.90",
+            "0.00"
+          ],
+          "empty": []
+        }
+      },
+      "expected_canonical_json": "{\"values\":{\"v\":{\"empty\":[],\"prices\":[{\"$actql_value\":[\"decimal\",{\"coefficient\":\"1990\",\"precision\":4,\"scale\":2,\"version\":\"aoa-decimal-value/0.1\"}]},{\"$actql_value\":[\"decimal\",{\"coefficient\":\"0\",\"precision\":4,\"scale\":2,\"version\":\"aoa-decimal-value/0.1\"}]}],\"times\":[{\"$actql_value\":[\"duration\",60000]},null]}},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:6a5a346fafca5cc85a02f4371bc9468781fb6ebc8968004423e615cf9a5caf5b"
+    },
+    {
+      "id": "escape-marker",
+      "declarations": {
+        "v": {
+          "type": "object",
+          "fields": {
+            "$actql_value": {
+              "type": "string"
+            },
+            "other": {
+              "type": "number"
+            }
+          }
+        }
+      },
+      "supplied": {
+        "v": {
+          "other": 123,
+          "$actql_value": "business"
+        }
+      },
+      "expected_canonical_json": "{\"values\":{\"v\":{\"$actql_value\":[\"object\",[[\"$actql_value\",\"business\"],[\"other\",123]]]}},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:1652093623b43139ba201e64af83c19626fdd8e7590dac789970359361a1725a"
+    },
+    {
+      "id": "escape-recursive",
+      "declarations": {
+        "v": {
+          "type": "object",
+          "fields": {
+            "$actql_value": {
+              "type": "object",
+              "fields": {
+                "$actql_value": {
+                  "type": "string",
+                  "format": "duration"
+                }
+              }
+            }
+          }
+        }
+      },
+      "supplied": {
+        "v": {
+          "$actql_value": {
+            "$actql_value": "01s"
+          }
+        }
+      },
+      "expected_canonical_json": "{\"values\":{\"v\":{\"$actql_value\":[\"object\",[[\"$actql_value\",{\"$actql_value\":[\"object\",[[\"$actql_value\",{\"$actql_value\":[\"duration\",1000]}]]]}]]]}},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:40be3f1244cfacdceb0284787035960d62e619e3f297682b723046f4834b86cb"
+    },
+    {
+      "id": "escape-cannot-spoof-decimal",
+      "declarations": {
+        "v": {
+          "type": "object",
+          "fields": {
+            "$actql_value": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "supplied": {
+        "v": {
+          "$actql_value": "decimal"
+        }
+      },
+      "expected_canonical_json": "{\"values\":{\"v\":{\"$actql_value\":[\"object\",[[\"$actql_value\",\"decimal\"]]]}},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:a4ea2e0feeb8c753333b561c9bbe13e00c517250bd035775f8f1abe9f328bb0c"
+    },
+    {
+      "id": "utf16-field-order",
+      "declarations": {
+        "v": {
+          "type": "object",
+          "fields": {
+            "😀": {
+              "type": "string",
+              "format": "duration"
+            },
+            "": {
+              "type": "string"
+            },
+            "é": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "supplied": {
+        "v": {
+          "": "x",
+          "😀": "1s",
+          "é": "a\r\nb"
+        }
+      },
+      "expected_canonical_json": "{\"values\":{\"v\":{\"é\":\"a\\nb\",\"😀\":{\"$actql_value\":[\"duration\",1000]},\"\":\"x\"}},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:9206dafe34032f0ddfc42d7a97bf69836e3201057eb71bcdb2e52443a2edf7ca"
+    },
+    {
+      "id": "dates-remain-text",
+      "declarations": {
+        "d": {
+          "type": "date"
+        },
+        "t": {
+          "type": "timestamp"
+        }
+      },
+      "supplied": {
+        "d": "0000-02-29",
+        "t": "2000-02-29T12:34:56.789Z"
+      },
+      "expected_canonical_json": "{\"values\":{\"d\":\"0000-02-29\",\"t\":\"2000-02-29T12:34:56.789Z\"},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:41c934789b8b2e878d5cfb1da6a784e5cc06a714e501b8e24c18d54d16436a67"
+    },
+    {
+      "id": "constraints-default-origin",
+      "declarations": {
+        "n": {
+          "type": "number",
+          "integer": true,
+          "minimum": 1,
+          "maximum": 5,
+          "nullable": true,
+          "default": 2,
+          "meta": {
+            "note": "x"
+          }
+        }
+      },
+      "supplied": {},
+      "expected_canonical_json": "{\"values\":{\"n\":2},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:1304688593f0f3e9917621856ffd73242e3c000fa8696f1a49e19db361d74436"
+    },
+    {
+      "id": "constraints-supplied",
+      "declarations": {
+        "n": {
+          "type": "number"
+        }
+      },
+      "supplied": {
+        "n": 2
+      },
+      "expected_canonical_json": "{\"values\":{\"n\":2},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:1304688593f0f3e9917621856ffd73242e3c000fa8696f1a49e19db361d74436"
+    },
+    {
+      "id": "business-identity-fields",
+      "declarations": {
+        "v": {
+          "type": "object",
+          "fields": {
+            "cid": {
+              "type": "string"
+            },
+            "identity_cid": {
+              "type": "string"
+            },
+            "meta": {
+              "type": "object",
+              "fields": {
+                "note": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "supplied": {
+        "v": {
+          "cid": "business-cid",
+          "identity_cid": "business-identity",
+          "meta": {
+            "note": "kept"
+          }
+        }
+      },
+      "expected_canonical_json": "{\"values\":{\"v\":{\"cid\":\"business-cid\",\"identity_cid\":\"business-identity\",\"meta\":{\"note\":\"kept\"}}},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:f712b42da3941f0c4f925d5a97e827afc41adc6b1e53ac2929a90de317c4a2ac"
+    },
+    {
+      "id": "escaped-utf16-field-order",
+      "declarations": {
+        "v": {
+          "type": "object",
+          "fields": {
+            "!first": {
+              "type": "number"
+            },
+            "$actql_value": {
+              "type": "string"
+            },
+            "😀": {
+              "type": "string",
+              "format": "duration"
+            },
+            "": {
+              "type": "decimal",
+              "precision": 2,
+              "scale": 1
+            }
+          }
+        }
+      },
+      "supplied": {
+        "v": {
+          "": "1.2",
+          "😀": "1S",
+          "$actql_value": "data",
+          "!first": 7
+        }
+      },
+      "expected_canonical_json": "{\"values\":{\"v\":{\"$actql_value\":[\"object\",[[\"!first\",7],[\"$actql_value\",\"data\"],[\"😀\",{\"$actql_value\":[\"duration\",1000]}],[\"\",{\"$actql_value\":[\"decimal\",{\"coefficient\":\"12\",\"precision\":2,\"scale\":1,\"version\":\"aoa-decimal-value/0.1\"}]}]]]}},\"version\":\"actql-parameter-values/0.1\"}",
+      "expected_cid": "sha256:06091873311e70b5c62e57e7b7546d5cd38573be05506cb866a313163288d039"
+    }
+  ]
+}

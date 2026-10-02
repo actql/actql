@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
+import {assertTestExecution} from './test-execution.mjs';
 import {mkdir, mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -32,11 +33,12 @@ os.close(descriptor)
 
 const runProbe = (mode, filter = '*cross-process root ownership*',
   extraEnv = {}) => new Promise((resolve, reject) => {
-  const child = spawn(moon, [
+  const args = [
     'test', '--target', 'native',
     'src/platform_native/publication_store',
     '--filter', filter,
-  ], {
+  ];
+  const child = spawn(moon, args, {
     cwd: repositoryRoot,
     env: {
       ...process.env,
@@ -52,14 +54,14 @@ const runProbe = (mode, filter = '*cross-process root ownership*',
   child.stdout.on('data', chunk => stdout.push(chunk));
   child.stderr.on('data', chunk => stderr.push(chunk));
   child.on('error', reject);
-  child.on('exit', (code, signal) => {
-    if (code === 0 && signal === null) {
+  child.on('close', (status, signal) => {
+    const result = {status, signal, stdout: Buffer.concat(stdout).toString(),
+      stderr: Buffer.concat(stderr).toString()};
+    try {
+      assertTestExecution('moon', moon, args, result);
       resolve();
-    } else {
-      reject(new Error(
-        `publication lock probe failed (${code ?? signal})\n` +
-        Buffer.concat(stdout).toString() + Buffer.concat(stderr).toString(),
-      ));
+    } catch (error) {
+      reject(error);
     }
   });
 });

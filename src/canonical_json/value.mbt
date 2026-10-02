@@ -50,11 +50,18 @@ priv struct InputBudget {
 fn normalize(
   text : String,
   budget : InputBudget,
+  identifier? : Bool = true,
 ) -> String raise CanonicalFailure {
   if text.length() > budget.units {
     raise InputLimit
   }
   budget.units -= text.length()
+  if !identifier {
+    return match @value.validate_scalar_text(text) {
+      Ok(_) => text
+      Err(UnpairedSurrogate(offset)) => raise InvalidUnicode(offset)
+    }
+  }
   match @value.normalize_nfc_lf(text) {
     Ok(value) => value
     Err(UnpairedSurrogate(offset)) => raise InvalidUnicode(offset)
@@ -111,7 +118,8 @@ pub fn from_json(
             }
             result = Number(number)
           }
-          String(text) => result = String(normalize(text, budget))
+          String(text) =>
+            result = String(normalize(text, budget, identifier=false))
           Array(items) => {
             if depth >= budget.depth {
               raise InputLimit
@@ -191,7 +199,7 @@ fn from_source_visit(
       }
       Number(value)
     }
-    String(value) => String(normalize(value, budget))
+    String(value) => String(normalize(value, budget, identifier=false))
     Array(items) => {
       if depth >= budget.depth || items.length() > budget.nodes {
         raise InputLimit

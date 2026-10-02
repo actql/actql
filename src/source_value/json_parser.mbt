@@ -125,7 +125,7 @@ fn Parser::document(self : Parser) -> Node raise ParseAbort {
     match frame.container {
       ArrayItems(items) => self.path.push(Index(items.length()))
       ObjectFields(_, keys) => {
-        let (key, key_span) = self.parse_string(self.path)
+        let (key, key_span) = self.parse_string(self.path, key=true)
         self.path.push(Key(key))
         if !@shape.admit_key(keys, key) {
           raise ParseAbort({

@@ -47,6 +47,7 @@ priv enum Continuation {
   Unary(@lower.Expression, @lower.UnaryOperator)
   Property(@lower.Expression, String, Int)
   Object(ObjectExpressionState)
+  Cast(@lower.Expression, @lower.Expression)
   Left(@lower.Expression, @lower.BinaryOperator, @lower.Expression)
   Right(@lower.Expression, @lower.BinaryOperator, Value, ExpressionRootLease?)
   VectorLeft(@lower.Expression, @lower.VectorMetric, @lower.Expression)
@@ -406,6 +407,7 @@ fn advance_expression_frame_impl(
           Unary(_, _)
           | Object(_)
           | Property(_, _, _)
+          | Cast(_)
           | Binary(_, _, _)
           | VectorScore(_, _, _)
           | VectorConcat(_)
@@ -482,6 +484,10 @@ fn advance_expression_frame_impl(
                 index: 0,
               }),
             )
+            frame.state = Enter(child)
+          }
+          Cast(child) => {
+            frame.stack.push(Cast(expr, child))
             frame.state = Enter(child)
           }
           Unary(op, child) => {
@@ -730,6 +736,23 @@ fn advance_expression_frame_impl(
               }
               Err(e) => return Err({ kind: Scalar(e), expression: expr, })
             }
+          }
+          Cast(expr, child) => {
+            release_slots(workspace, 1)
+            frame.active = expr
+            if charge_value(value, frame.current_root) is Some(issue) {
+              return Err({ kind: LogicalValue(issue), expression: expr, })
+            }
+            let converted = match
+              cast_expression_value(expr, child, value, budget) {
+              Ok(value) => value
+              Err(issue) => return Err(issue)
+            }
+            if release(frame.current_root) is Some(issue) {
+              return Err({ kind: LogicalValue(issue), expression: expr, })
+            }
+            frame.current_root = None
+            frame.state = Return(converted)
           }
           Left(expr, op, right) => {
             frame.stack.push(Right(expr, op, value, frame.current_root))

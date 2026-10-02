@@ -33,6 +33,13 @@ decisions, conditions, delivery units and explicit case mappings. Its
 are requirement associations, not claims that a case covers every surface.
 Missing cases are recorded in `additional_fixture_requirements`.
 
+The principle `machine_program_semantics_preserved` means equivalence under the
+applicable pinned checked contracts, not permanent preservation of historical
+semantics. Adopted standard-alignment decisions can require coordinated common
+contract changes. The [standard-profile ledger](../../docs/design/frontend-standard-profiles.md)
+records provenance and boundaries without changing this frozen baseline or
+marking imported cases executed.
+
 The adopted follow-on Pipe scope correction supersedes two imported
 requirements without rewriting the imported source bytes or digest history.
 NEAREST's surface takes the current query rows and an explicitly named

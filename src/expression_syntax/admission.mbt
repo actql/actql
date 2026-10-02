@@ -304,7 +304,6 @@ fn read(root : @decode.Cursor, limits : Limits) -> Expression raise Stop {
               }
               @decode.TextValue(text) => {
                 charge(text, cursor, origin, budget)
-                canonical(text, cursor, origin)
                 @map.String(text)
               }
               _ => invalid(cursor, origin, InvalidArguments)

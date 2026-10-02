@@ -56,11 +56,43 @@ checks as CI with explicit targets:
 ```sh
 for target in js wasm native; do
   moon check --target "$target" --deny-warn
-  moon test --target "$target" --deny-warn
+  if [ "$target" = native ]; then
+    node scripts/test-native-core.mjs --deny-warn
+  else
+    moon test --target "$target" --deny-warn
+  fi
 done
 node scripts/check-moonbit-api.mjs
 node --test scripts/moonbit-environment.test.mjs
 ```
+
+Native core verification uses `scripts/test-native-core.mjs`, including
+`node scripts/local-checks.mjs run core --target native`. Each invocation
+creates a fresh `native-*` SQLite namespace with the existing owned-scratch
+helper, then runs `moon test --target native` with the remaining arguments.
+For the narrow trusted-clock regression, use:
+
+```sh
+node scripts/test-native-core.mjs --deny-warn -p platform_native/trusted_clock
+```
+
+`ACTQL_TEST_NATIVE_SQLITE_ROOT`, when supplied to this wrapper, is a **parent**
+for the newly owned namespace, not an existing database root to reuse or
+remove. Relative parents resolve from the caller's working directory. The
+default parent is `$RUNNER_TEMP/core-sqlite`, or the system temporary directory's
+`core-sqlite` when `RUNNER_TEMP` is unset. Existing DB/WAL/SHM files in that parent
+remain untouched. Only the child receives the new namespace; the fixture still
+reopens its same `trusted-clock.sqlite` within the invocation and checks the
+unchanged 1000/1002 monotonicity assertions. The native HTTP harness already
+creates its own invocation root and is unchanged.
+
+The wrapper defaults the SQLite library to the supported platform's system
+library; `ACTQL_TEST_NATIVE_SQLITE_LIBRARY` can override it. After a successful,
+stopped child, owned scratch is removed and checked absent. Failure, a signal,
+spawn failure, or `ACTQL_TEST_PRESERVE_SCRATCH=1` retains evidence and reports its
+path; cleanup failure remains a failed command. Raw `moon test` does not acquire
+this namespace for callers: use the wrapper when testing native SQLite fixtures,
+and do not point an unwrapped test at a previous run's database.
 
 Use `moon info` to regenerate `.mbti` files and review and commit them when the
 public API intentionally changes. The API guard rejects cross-target differences,
@@ -124,6 +156,158 @@ Case definitions contain expectations, not execution results. Execution evidence
 belongs in separate reports tied to case IDs and the implementation revision.
 YAML parsing does not establish ActQL semantic validity. The MoonBit checker and
 runtime must verify these same fixtures as implementation becomes available.
+
+## Focused test execution
+
+Use the existing local verification tool when a selected test must actually run:
+
+```sh
+node scripts/local-checks.mjs test node -- --test-name-pattern 'selected name' scripts/example.test.mjs
+node scripts/local-checks.mjs test moon -- --target js -p query_integration --filter '*selected name*'
+```
+
+Replace the example file/package/filter with the intended selection. `changed`
+prints guarded commands for the affected test files and MoonBit packages.
+The small reusable guard in `scripts/test-execution.mjs` also covers successful
+Node selections in `test-acquired-effect-computation-probe.mjs`, the recovery
+phase of `test-effect-capture-host-crash.mjs`, the focused Node/MoonBit checks in
+`check-connector-addition.mjs`, and every MoonBit selection in
+`test-native-publication-store-lock.mjs`.
+
+The guard requires at least one passed executable case and no failed/cancelled
+cases. Zero discovery, unmatched selections, skip-only and todo-only results
+fail with the command/selection and observed counts. Mixed passed/skipped Node
+cases can pass; suite headings and synthetic passing test-file records do not
+count. Original nonzero process statuses remain failures; the local-checks
+command preserves the exit code (or the usual 128 + signal number). Missing,
+malformed or contradictory summaries fail closed with counts unavailable.
+
+Node uses a TAP reporter that additionally retains structured `test:summary`
+events. Only per-file case counts are added; the final process summary is
+required for completeness but can falsely count an unmatched file as one pass.
+This is tested with the CI Node 22.22.0 pin. Reporter overrides, watch mode and
+nondefault isolation are unsupported by this focused path. Moon's pinned
+0.1.20260904 tool emits `Total tests: N, passed: P, failed: F.` even with
+`--output-json`; that complete line is the parsed format. It excludes `#skip`
+cases, so skipped/cancelled/todo counts are unknown (`null`), never inferred as
+zero. Each emitted target total must contain a pass. Recheck these fixtures and
+live-tool tests when updating toolchains.
+
+This does not wrap raw `node`/`moon` commands, every npm script, benchmarks,
+compiled test executables, or all commands in `local-checks run`. Intentional
+process-crash preparation remains an expected failure verified by its original
+exit/custody assertions, not a passing-test claim. Existing optional CI jobs
+retain their conditions: a sanctioned job/test skip is still a skip, not
+successful execution. No general allow-empty switch or mandatory optional job
+is introduced. Run the guard regressions with
+`node --test scripts/test-execution.test.mjs` (the pinned MoonBit toolchain must
+be on PATH).
+
+## CI evidence by source revision
+
+Use the read-only GitHub CLI helper to inspect this repository or another
+GitHub.com repository, including `actql/actql-cloud`. It needs Node.js 22 or
+newer and an installed `gh` with read access to the repository and Actions.
+Policy inspection additionally needs access to classic branch protection;
+if that policy is unavailable, required checks remain **unknown**.
+
+```sh
+node scripts/ci-evidence.mjs actql/actql --pr PR_NUMBER
+node scripts/ci-evidence.mjs actql/actql-cloud --sha FULL_40_CHARACTER_SHA --json
+node scripts/ci-evidence.mjs actql/actql-cloud --sha FULL_40_CHARACTER_SHA --branch main
+node --test scripts/ci-evidence.test.mjs
+```
+
+The text and JSON reports preserve each workflow run, event, source SHA and
+attempt, including earlier failed attempts. Jobs retain their actual status
+and conclusion: `queued`/`in_progress`, `failure`, `cancelled`, `skipped`,
+`neutral` and `success` are different evidence. A conditional skip is not
+successful execution. No successful jobs are combined across runs or attempts,
+and a green push run never substitutes for a red or stale PR run.
+
+PR inspection discovers exact-head runs and branch-history candidates, plus
+runs associated with the current merge/test-ref SHA. Branch names can collide
+across forks or be reused, so unassociated older branch runs are explicitly
+labelled `stale-or-unrelated-branch-run`. GitHub's run-reported `head_sha`,
+associated PR head/base SHAs and current `refs/pull/N/merge` are separate fields.
+Today's PR merge SHA is not historical checkout evidence: the helper reports
+the tested checkout SHA as unknown because jobs can customize checkout and
+the run API does not prove it. Closed PRs have no current test-ref claim.
+Commit check runs and status history are also shown by SHA, separately from
+Actions evidence because those endpoints do not attribute a workflow event or
+attempt. Absence of checks is reported as absence, not success.
+
+Named required status checks come only from classic branch protection and
+active repository/organization branch rules, retaining the expected app IDs.
+An inaccessible, missing or ambiguous policy (including unsupported workflow,
+scanning or quality rules) leaves the overall requirement set unknown. A bare SHA has no implied
+target branch; supply `--branch` to inspect its policy. No merge, deployment
+or real Preview acceptance verdict is produced, even when requirements are
+known and all visible jobs passed.
+
+Collection requests use `gh api --paginate --slurp`. The report marks missing
+pages/counts, API/permission errors, identity mismatches and the filtered
+workflow-run API's 1,000-result cap as incomplete. GitHub also bounds commit
+check-run history to the latest 1,000 check suites; this API limit is disclosed
+even when the returned collection fits on one page. It is a non-atomic snapshot;
+runs may change during collection. Exit code `0` means retrieval completed
+(failed or skipped CI is still data), `1` means incomplete retrieval, and `2`
+means invalid arguments. Policy can intentionally remain unknown for a bare
+SHA or unsupported policy even after retrieval. JSON output retains partial
+evidence and diagnostics for automation. The helper only makes GET requests;
+it never reruns jobs, updates PRs, merges, deploys or prints authentication
+credentials or raw `gh` diagnostics. Offline tests use fixed response fixtures
+and a temporary fake `gh`, with no live network or credentials required.
+
+### Attempt-bound timing and explicit comparisons
+
+The same report now includes job and step execution durations, raw timestamps,
+runner labels and exact API endpoint/field boundaries in text and JSON. Run
+`created_at`, `run_started_at` and `updated_at` remain separate observations:
+`updated_at` is not a completion timestamp. Attempt execution is an **observed
+job wall span**, from the earliest executed job start to the latest completion,
+only when all non-skipped job intervals and the attempt are complete. Parallel
+jobs are never summed into elapsed time; no dependency critical path is claimed.
+The ten longest valid job and step execution intervals retain their source SHA,
+workflow, event, run, attempt, runner labels and actual outcomes.
+
+Job `created_at` to `started_at` and attempt start to job start are observed
+pre-start intervals. They can include dependencies and other waits; neither is
+proven runner queue time. Retry admission is unavailable, so the original run
+creation time is not used for a retry's pre-start duration. Missing, malformed,
+backwards, unfinished and skipped intervals are explicit unknowns, never zero.
+Running durations are not extrapolated to observation time or counted as
+completed samples. Missing steps and incomplete/API-denied evidence stay visible.
+Timing does not change check conclusions, retrieval exit semantics or readiness
+uncertainty, and cache state remains unknown.
+
+Select fixed run IDs instead of a PR/SHA to avoid moving discovery results. All
+attempts of those runs are still fetched; selecting a successful retry does not
+hide the earlier failed attempt. Statistics are opt-in with exact run:attempt
+pairs; unavailable selections are reported, not silently replaced:
+
+```sh
+node scripts/ci-evidence.mjs actql/actql --runs 36863741235,36874358135
+node scripts/ci-evidence.mjs actql/actql --runs 36863741235,36874358135 --compare 36863741235:1,36874358135:1 --json
+```
+
+Each comparison group gives selected count, completed sample count, omitted
+count/reasons, median and maximum seconds. Groups separate source SHA, workflow,
+event, attempt number, run/job/step outcomes, evidence/timing completeness and
+observed configuration (workflow identity, associated PR bases, job/step shape,
+runner labels/groups). Missing configuration and unobserved dispatch inputs
+isolate runs rather than pooling them. A matching observed group is not proof
+of identical checkout, runner image, resolved actions/dependencies or cache hits.
+Cross-revision results remain separate groups, with full source SHAs available
+for deliberate inspection. Skips, failures and cancellations are never relabelled
+as successful test evidence. `--compare` can also restrict a PR/SHA report's
+statistics without narrowing the original evidence report.
+
+The fixed OSS run IDs above are reproducible read-only examples, not speed
+acceptance targets. They have different source SHAs and are intentionally not
+pooled as equivalent samples. A full authenticated CLI fetch needs `gh` access;
+a saved API observation can be projected with the exported `collectEvidence`
+request adapter, but such a replay is not a fresh network/permission check.
 
 ## Updating specification metadata
 
@@ -261,3 +445,59 @@ the remaining 48 operations, shared Carrier/evidence work and completion gates.
 `check:aoa` also checks fixed pure-operation law examples with independent small
 oracles. Those examples and their law pins are specification checks, not proof
 that the product executes graph, vector or temporal profiles.
+
+
+## Read-only worktree inventory
+
+Run this opt-in development command with every worktree whose borrowed
+links should be considered, using explicit paths (quote paths with spaces):
+
+```sh
+npm run inventory:worktrees -- -- "/path/to/owner tree" "/path/to/borrower tree"
+node scripts/worktree-inventory.mjs --json -- "/path/to/owner tree" "/path/to/borrower tree"
+```
+
+It prints a timestamp, resolved roots, Git changes, largest generated-output
+candidates, allocated bytes, dependency/symbolic-link real paths and reverse
+references in the declared scope, and visible live file/cwd references. JSON
+uses the same information as the readable report. It does not read credential
+or other file contents, delete anything, change worktrees, terminate inspected
+processes, make network requests, or install dependencies. Git optional locks
+and fsmonitor are disabled. The supported live-process interface is `lsof` on
+Linux/macOS, with name/port lookups and device-cache writes disabled; `ps` is
+never used. Missing `lsof`, warnings, permissions, command failure, timeouts,
+and unsupported platforms are recorded as failed checks with unknown visibility.
+
+No absence of observed references certifies a path unused. Other users,
+containers/namespaces, closed files that will be opened later, concurrent
+changes, undeclared worktrees, and excluded paths remain outside that evidence.
+A present live reference is `active`; otherwise usage remains `unknown`.
+A borrowed link is independently reported even when its borrower is not running.
+The report is evidence for review, never global deletion authorization.
+
+Tracked source and dirty/untracked paths are separate from candidates. Known
+credential, database/WAL, evidence, runtime-journal and recovery names are
+protected without traversing their contents. Generated-looking directories
+containing such paths move to `protectedOutputs`. Compiler source modules
+named `journal` are classified as source rather than runtime data. These are
+conservative metadata/name classifications, not a complete data-type detector.
+A failed Git check leaves protection knowledge explicitly unknown.
+
+Defaults bound the scan to 20,000 entries, depth 6, dependency depth 2, and
+10 seconds/4 MiB per child command. `node_modules` package contents are not
+fully traversed by default. Nested and scoped links are resolved, including
+links through other links; cycles and broken links are reported as unknown.
+Targets are never traversed through a link; declare their worktree separately
+to inventory them. Increase only the needed bound with `--max-depth N`,
+`--max-entries N`, `--dependency-depth N`, or `--timeout-ms N`. Excluded paths,
+partial measurements and failed checks are part of both output formats.
+Allocated bytes use filesystem block counts with hardlinks deduplicated within
+each candidate. Partial sizes are lower bounds. Even complete observed sizes
+are not guaranteed reclaimable bytes (shared blocks, other hardlinks and races
+are not ruled out). Roots may overlap; totals must not be added together.
+
+CI runs only synthetic regression fixtures, not a scan of CI worktrees:
+
+```sh
+node --test scripts/worktree-inventory.test.mjs
+```

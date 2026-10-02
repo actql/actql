@@ -81,7 +81,7 @@ test "query source clauses reject partial and unsupported input" {
     text in [
       "SELECT a FROM", "SELECT a FROM t WHERE", "SELECT a FROM t ORDER BY", "SELECT a FROM t LIMIT -1",
       "SELECT a FROM t LIMIT 1.5", "SELECT a FROM t ORDER BY a; SELECT b FROM t",
-      "FROM t |> DELETE a",
+      "FROM t |> DELETE a", "SELECT 1 AS x JOIN t ON TRUE",
     ] {
     assert_true(parse_query(text, query_limits()) is Err(_), msg=text)
   }
@@ -262,10 +262,7 @@ test "Pipe set inputs are parenthesized and retain final ordering" {
   let part = set_part_at(parsed, 0).unwrap()
   assert_eq((part.kind, part.duplicates, part.by_name), ("union", "all", false))
   assert_eq(final_operation_count(parsed), 2)
-  for
-    text in [
-      "FROM left_rows |> UNION ALL SELECT c, d FROM right_rows", "FROM left_rows |> UNION ALL (SELECT c, d FROM right_rows) |> WHERE a > 1",
-    ] {
+  for text in ["FROM left_rows |> UNION ALL SELECT c, d FROM right_rows"] {
     assert_true(parse_query(text, query_limits()) is Err(_), msg=text)
   }
 }
@@ -393,5 +390,18 @@ test "nonrecursive CTE names retain declaration order and bounds" {
       "WITH RECURSIVE c AS (SELECT a FROM c) SELECT a FROM c", "WITH c AS (SELECT a FROM left_rows), c AS (SELECT a FROM left_rows) SELECT a FROM c",
     ] {
     assert_true(parse_query(text, query_limits()) is Err(_), msg=text)
+  }
+}
+
+///|
+test "standard SELECT can omit FROM and use ordinary Pipe tail" {
+  for
+    text in [
+      "SELECT 1 AS x", "SELECT 1 AS x |> WHERE x = 1 |> SELECT x", "WITH seed AS (SELECT 1 AS x) FROM seed |> SELECT x",
+    ] {
+    let query = parse_query(text, query_limits()).unwrap()
+    if cte_count(query) == 0 {
+      assert_true(relation(query).is_empty())
+    }
   }
 }

@@ -30,7 +30,7 @@ test "normalized source emission preserves unbound references and opaque literal
           #|{"literal":{"":2,"😀":1,"é":"é\r\n"}}
         ),
         (
-          #|{"literal":{"é":"é\n","😀":1,"":2}}
+          #|{"literal":{"é":"é\r\n","😀":1,"":2}}
         ),
       ),
       (

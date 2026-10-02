@@ -110,7 +110,10 @@ fn text(
   let c = @decode.required(obj, key).unwrap()
   let name = @decode.text(c).unwrap()
   charge(b, name.length(), Some(c))
-  name
+  match @unicode.normalize_nfc_lf(name) {
+    Ok(name) => name
+    Err(_) => fail(InvalidSourceReference, Some(c))
+  }
 }
 
 ///|

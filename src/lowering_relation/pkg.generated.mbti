@@ -1217,6 +1217,7 @@ pub enum ExpressionBody {
   TypedNull
   Object(Array[(String, Expression)])
   Property(Expression, String, Int)
+  Cast(Expression)
   Unary(UnaryOperator, Expression)
   Binary(BinaryOperator, Expression, Expression)
   VectorScore(VectorMetric, Expression, Expression)

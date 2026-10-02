@@ -1,5 +1,5 @@
 ///|
-test "preserving JSON decode keeps external text distinct from source text" {
+test "JSON value preservation is shared while the external decoder also preserves keys" {
   let body =
     #|{"e\u0301":"line\r\nend"}
   let bytes = @utf8.encode(body)
@@ -11,7 +11,7 @@ test "preserving JSON decode keeps external text distinct from source text" {
   assert_eq(raw_fields[0].key, "e\u0301")
   assert_true(raw_fields[0].value.value is String("line\r\nend"))
   assert_eq(source_fields[0].key, "é")
-  assert_true(source_fields[0].value.value is String("line\nend"))
+  assert_true(source_fields[0].value.value is String("line\r\nend"))
 }
 
 ///|

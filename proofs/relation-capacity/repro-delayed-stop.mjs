@@ -1,5 +1,5 @@
-// Keep an executable counterexample separate from accepted capacity evidence.
-// Compile/assertion errors unrelated to the exact expected failure are errors.
+// Keep the corrected delayed-stop regression separate from capacity evidence.
+// The historical counterexample was parent=3, child=4; no claim is broadened.
 import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -30,15 +30,18 @@ try {
 const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
 writeFileSync(join(directory, 'delayed-stop-repro.log'), output);
 const match = output.match(/DELAYED_STOP_RECEIPT parent=(\d+) child=(\d+) stop_polls=(\d+)/);
-if (result.error || result.status === 0 || !match || !/Total tests: 1, passed: 0, failed: 1/.test(output) ||
-    /Error: \[\d+\]/.test(output) || match[1] !== '3' || match[2] !== '4' || match[3] !== '3') {
-  throw result.error ?? new Error(`Expected counterexample changed; review contract and evidence, do not bless a new result\n${output}`);
+if (result.error || result.status !== 0 || !match || !/Total tests: 1, passed: 1, failed: 0/.test(output) ||
+    /Error: \[\d+\]/.test(output) || match[1] !== '4' || match[2] !== '4' || match[3] !== '3') {
+  throw result.error ?? new Error(`Delayed-stop accounting regression failed\n${output}`);
 }
 if (snapshot(root).digest !== before.digest) throw new Error('Reproduction did not restore source tree');
 writeFileSync(join(directory, 'delayed-stop-repro.json'), `${JSON.stringify({
-  kind: 'counterexample', capacityEvidence: false, source: before, fixture,
+  kind: 'runtime-regression', capacityEvidence: false, source: before, fixture,
   fixtureDigest: createHash('sha256').update(body).digest('hex'), executionPath: path,
-  target: 'js', expectedFailure: true, parentWork: 3, childWork: 4, configuredComputeBudget: 1,
-  stopPolls: 3, computeCalls: 1, unresolved: 'admissible stop work and its budget classification require a separate contract/fix unit',
+  target: 'js', expectedFailure: false, parentWork: 4, childWork: 4, configuredComputeBudget: 1,
+  stopPolls: 3, computeCalls: 1,
+  historicalCounterexample: {parentWork: 3, childWork: 4},
+  contract: 'max_work admits Compute/handoff; mandatory stop deltas remain accounted without reopening admission',
+  unresolved: 'arbitrary delayed-stop provider liveness and allocation bounds are not certified by this regression',
 }, null, 2)}\n`);
-console.log('Registered delayed-stop counterexample reproduced: parent=3, child=4, Compute=1; excluded from capacity proof');
+console.log('Registered delayed-stop regression passed: parent=4, child=4, Compute=1; excluded from capacity proof');

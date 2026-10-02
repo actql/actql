@@ -56,6 +56,8 @@ pub fn relation(Query) -> Array[NamePart]
 
 pub fn relation_alias(Query) -> NamePart?
 
+pub fn same_relation_name(NamePart, NamePart) -> Bool
+
 pub fn set_part_at(Query, Int) -> SetPart?
 
 pub fn set_part_count(Query) -> Int
@@ -241,7 +243,6 @@ pub(all) enum Lexeme {
   Word(String)
   QuotedName(String)
   Text(String)
-  JsonText(String)
   Numeric(String)
   Parameter(String)
   Operator(String)
@@ -307,6 +308,7 @@ pub(all) struct QueryLimits {
 pub(all) enum QueryOperation {
   Infer(InferClause)
   Nearest(NearestClause)
+  RetainResult(NamePart)
   Where(Expression)
   Extend(Array[Projection])
   Set(Array[(NamePart, Expression)])
@@ -344,6 +346,7 @@ pub struct Token {
   value : Lexeme
   start : Int
   end : Int
+  annotation_compatible : Bool
 } derive(Eq, @debug.Debug)
 
 type Tokens

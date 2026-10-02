@@ -5,6 +5,7 @@ import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {spawnSync} from 'node:child_process';
+import {assertTestExecution, nodeTestArguments} from './test-execution.mjs';
 import {checkComputeAssembly} from './connector-compute-bundles.mjs';
 import {checkNodeAssembly} from './connector-node-bundles.mjs';
 import {assertClientWireDependency} from
@@ -113,6 +114,8 @@ function inventory(directory, prefix = '') {
   return result;
 }
 function run(label, args, executable = 'moon') {
+  const testKind = args[0] === 'test' ? 'moon' : args.includes('--test') ? 'node' : null;
+  if (testKind === 'node') args = nodeTestArguments(args);
   console.log(JSON.stringify({phase: label, command: [executable, ...args], isolated}));
   const result = spawnSync(executable, args, {
     cwd: isolated, env: process.env, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024,
@@ -122,6 +125,7 @@ function run(label, args, executable = 'moon') {
     process.stderr.write((result.stdout ?? '') + (result.stderr ?? ''));
     throw result.error ?? new Error(`${label} failed: ${result.status}`);
   }
+  if (testKind) assertTestExecution(testKind, executable, args, result);
   const totals = result.stdout.match(/Total tests: [^\n]+/g) ?? [];
   console.log(JSON.stringify({phase: label, success: true, totals}));
   return totals;

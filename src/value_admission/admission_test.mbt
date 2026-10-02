@@ -212,15 +212,17 @@ test "nullable values preserve their root contract" {
 }
 
 ///|
-test "source normalization is separate from raw cursor rejection" {
+test "authored and raw string values keep the same scalar sequence" {
   let c = simple("string")
   assert_true(
-    accept(c, "\"e\\u0301\\r\\n\"").value is @value_admission.Text("é\n"),
+    accept(c, "\"e\\u0301\\r\\n\"").value
+    is @value_admission.Text("e\u0301\r\n"),
   )
   for text in ["e\u0301", "a\r\nb", "\u0344"] {
-    assert_eq(
-      outcome(@value_admission.admit(c, raw(@source.String(text)), limits())),
-      "NonCanonicalText",
+    assert_true(
+      @value_admission.admit(c, raw(@source.String(text)), limits()).unwrap().value
+      is @value_admission.Text(value) &&
+      value == text,
     )
   }
   assert_true(
@@ -378,7 +380,7 @@ test "calendar validation includes year zero and Gregorian century boundaries" {
 }
 
 ///|
-test "checked string constraints count normalized scalars and UTF8 bytes" {
+test "checked string constraints count retained scalars and UTF8 bytes" {
   let c = @contract.read_checked(
     owned(
       parsed(
@@ -388,7 +390,7 @@ test "checked string constraints count normalized scalars and UTF8 bytes" {
     { max_nodes: 100, max_depth: 10, max_text_bytes: 1000, },
   ).unwrap()
   assert_true(accept(c, "\"😀\"").value is @value_admission.Text("😀"))
-  for input in ["\"\"", "\"ab\"", "\"\\u0344\""] {
+  for input in ["\"\"", "\"ab\"", "\"\\u0308\\u0301\""] {
     assert_eq(
       outcome(@value_admission.admit(c, owned(parsed(input)), limits())),
       "StringConstraint",
@@ -406,7 +408,11 @@ test "checked string constraints count normalized scalars and UTF8 bytes" {
   )
   assert_eq(
     outcome(
-      @value_admission.admit(bytes, owned(parsed("\"\\u0344\"")), limits()),
+      @value_admission.admit(
+        bytes,
+        owned(parsed("\"\\u0308\\u0301\"")),
+        limits(),
+      ),
     ),
     "StringConstraint",
   )
@@ -663,7 +669,7 @@ test "generic JSON validates every descendant without treating business tags as 
     is @value_admission.Object(_),
   )
   let span = parsed("null").span
-  for value in [@source.Number(-0.0), @source.String("e\u0301")] {
+  for value in [@source.Number(-0.0)] {
     let cursor = raw(@source.Array([{ value, span, }]))
     assert_true(@value_admission.admit(c, cursor, limits()) is Err(_))
   }

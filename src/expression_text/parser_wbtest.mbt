@@ -253,7 +253,9 @@ test "literal-only function fields and profile-neutral syntax" {
 
 ///|
 test "SQL-style quoting, normalization and literal opacity" {
-  assert_tree("'e\u0301\r\n''$hidden'", "{\"literal\":\"é\\n'$hidden\"}")
+  assert_tree(
+    "'e\u0301\r\n''$hidden'", "{\"literal\":\"e\u0301\\r\\n'$hidden\"}",
+  )
   assert_tree("\"e\u0301\rname\"", "{\"field\":\"é\\nname\"}")
   assert_tree("'a\\nb'", "{\"literal\":\"a\\\\nb\"}")
   assert_tree("\"a\"\"b\"", "{\"field\":\"a\\\"b\"}")

@@ -4,15 +4,26 @@
 // never evaluates accounts or holds a key.
 const encoder = new TextEncoder();
 
+function wellFormed(value) {
+  for (let i = 0; i < value.length; i++) {
+    const unit = value.charCodeAt(i);
+    if (unit >= 0xd800 && unit <= 0xdbff) {
+      const next = value.charCodeAt(++i);
+      if (!(next >= 0xdc00 && next <= 0xdfff)) return false;
+    } else if (unit >= 0xdc00 && unit <= 0xdfff) return false;
+  }
+  return true;
+}
+
 function normalized(value) {
-  if (typeof value.isWellFormed === 'function' && !value.isWellFormed()) {
+  if (!wellFormed(value)) {
     throw new TypeError('InvalidCanonicalText');
   }
-  return value.normalize('NFC');
+  return value.normalize('NFC').replace(/\r\n?/gu, '\n');
 }
 
 // Canonical JSON of the pinned Checkpoint artifacts: sorted keys, no
-// whitespace, NFC text, finite numbers only.
+// whitespace, NFC/LF object member names, preserved data strings, finite numbers.
 export function canonicalJson(value) {
   if (value === null || typeof value === 'boolean') return JSON.stringify(value);
   if (typeof value === 'number') {
@@ -21,7 +32,10 @@ export function canonicalJson(value) {
     }
     return JSON.stringify(value);
   }
-  if (typeof value === 'string') return JSON.stringify(normalized(value));
+  if (typeof value === 'string') {
+    if (!wellFormed(value)) throw new TypeError('InvalidCanonicalText');
+    return JSON.stringify(value);
+  }
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
   if (typeof value !== 'object' ||
       Object.getPrototypeOf(value) !== Object.prototype) {
@@ -30,6 +44,9 @@ export function canonicalJson(value) {
   const entries = Object.entries(value)
     .filter(([, item]) => item !== undefined)
     .map(([key, item]) => [normalized(key), item]);
+  if (new Set(entries.map(([key]) => key)).size !== entries.length) {
+    throw new TypeError('CanonicalKeyCollision');
+  }
   entries.sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0);
   return `{${entries.map(([key, item]) =>
     `${JSON.stringify(key)}:${canonicalJson(item)}`).join(',')}}`;

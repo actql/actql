@@ -133,7 +133,7 @@ pub fn prepare_ordered_references(
               entries.push({ at: path, target, })
             }
             Literal(_) | TypedNull => ()
-            Property(child, _, _) => {
+            Property(child, _, _) | Cast(child) => {
               guard append_path(path, "/body/value") is Some(child_path) else {
                 return Err(ReferenceLimit)
               }

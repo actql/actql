@@ -119,6 +119,10 @@ pub struct LocalManagedDispatchOperations[T] {
   advance : (Int) -> Result[LocalManagedAdvance, LocalDispatchIssue]
   request_cancel : () -> Bool
   execution_stopped : () -> Bool
+  cumulative_provider_work : () -> Result[
+    Int64,
+    @local.ManagedProviderWorkIssue,
+  ]
   prepare_finalization : (T, Int64, () -> Bool) -> Result[
     Unit,
     LocalDispatchIssue,
@@ -973,7 +977,12 @@ pub fn[T] start_local_managed_dispatch(
             started
           }
         }
-        match @local.advance_managed_provider(active, quantum) {
+        let poll = @local.advance_managed_provider(active, quantum)
+        if @local.managed_provider_cumulative_work(active) is Err(_) {
+          live.val = false
+          return Err(Configuration(InvalidLimits))
+        }
+        match poll {
           Err(issue) => Err(Configuration(issue))
           Ok(@local.Continue(progress~, work~)) =>
             if progress < 0L || work <= 0L || work > quantum.to_int64() {
@@ -1070,6 +1079,12 @@ pub fn[T] start_local_managed_dispatch(
       Ok(())
     },
     advance,
+    cumulative_provider_work: fn() {
+      match provider_execution.val {
+        Some(active) => @local.managed_provider_cumulative_work(active)
+        None => Ok(0L)
+      }
+    },
     request_cancel: fn() {
       let changed = live.val
       live.val = false
