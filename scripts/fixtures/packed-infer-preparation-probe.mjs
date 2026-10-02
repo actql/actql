@@ -13,7 +13,7 @@ import {canonicalJson, contentCid} from
 
 const fixture = JSON.parse(await readFile('infer-acceptance.json', 'utf8'));
 const configuration = await openInferTestHost({mode: 'local', fixture});
-const base = await readFile('base-environment.json', 'utf8');
+const base = (await readFile('base-environment.json', 'utf8')).trimEnd();
 let wire = installedModelEnvironment(moon, base,
   composeInstalledCheckEnvironment(moon, base), configuration.modelInstallation);
 const {evidence_bundle_cid: ignored, ...body} = JSON.parse(wire);
