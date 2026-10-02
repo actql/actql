@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
+import {copyFileSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -72,7 +72,7 @@ function put(directory, path, contents) {
 }
 
 function run(t, requested, {fail, wrapper, version} = {}) {
-  const directory = mkdtempSync(join(tmpdir(), 'runtime-build-check-'));
+  const directory = realpathSync(mkdtempSync(join(tmpdir(), 'runtime-build-check-')));
   t.after(() => rmSync(directory, {recursive: true, force: true}));
   mkdirSync(join(directory, 'scripts'));
   for (const name of ['build-runtime-packages', 'check-owned-contract-versions',
