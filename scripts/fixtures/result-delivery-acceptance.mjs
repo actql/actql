@@ -13,6 +13,7 @@ const instant = seconds => `2026-10-01T00:00:${String(seconds).padStart(2, '0')}
 // All contract admission, binding, grants, records, receipts and serialization
 // use the actual portable owner through the public package API.
 function fixture(api, control, options = {}) {
+  const rows = options.rows ?? ['{"value":7}'];
   const contracts = new Map();
   const retain = (name, field, body) => {
     const identity = `sha256:${createHash('sha256')
@@ -31,7 +32,7 @@ function fixture(api, control, options = {}) {
   const artifact = retain('result_artifact', 'result_artifact_cid', {
     version: 'actql-result-artifact/0.1', result_definition_cid: cid('1'),
     invocation_cid: cid('2'), logical_result_cid: cid('3'), result_schema_cid: cid('4'),
-    ordering_evidence_cid: cid('5'), actual_row_count: 1, actual_completeness: 'complete',
+    ordering_evidence_cid: cid('5'), actual_row_count: rows.length, actual_completeness: 'complete',
     effective_data_policy_cid: cid('a'), effective_retention_policy_cid: retention.identity,
     provenance_evidence_cids: [cid('8')],
   });
@@ -100,8 +101,11 @@ function fixture(api, control, options = {}) {
       state.readers++;
       return use({durableResultBindingCid: cid('d'), logicalResultCid: cid('3'),
         resultSchemaCid: cid('4'), resultSchemaWire: '{"value":{"nullable":false,"type":"integer"}}',
-        resultFields: ['value'], rowCount: 1, payloadBytes: 13},
-      async accept => { await accept('{"value":7}'); });
+        resultFields: ['value'], rowCount: rows.length,
+        payloadBytes: Buffer.byteLength(rows.join('\n'))},
+      options.readRows ?? (async accept => {
+        for (const row of rows) await accept(row);
+      }));
     },
   };
   const authority = api.installResultAccessAuthority({
@@ -122,7 +126,7 @@ function fixture(api, control, options = {}) {
       return {update: bytes => digest.update(bytes), finish: () => digest.digest('hex')};
     },
   });
-  return {state, deliver: () => api.deliverAuthorizedResult(service, {
+  return {state, service, deliver: () => api.deliverAuthorizedResult(service, {
     indexKey: {namespaceId: 'namespace', authorityScopeCid: cid('a'), runDefinitionCid: cid('9')},
     principalId: 'principal', purpose: 'download', resultName: 'answer', format: 'json',
     attemptId: 'same-logical-attempt',
@@ -131,6 +135,8 @@ function fixture(api, control, options = {}) {
     return {confirmedBytes: bytes.byteLength};
   }, async finish() { state.finishes++; return {confirmed: true}; }})};
 }
+
+export {fixture as createResultDeliveryFixture};
 
 export const deliveryAcceptanceCases = {
   async 'advanced-time replay uses the retained attempt without another reader'(api, control) {

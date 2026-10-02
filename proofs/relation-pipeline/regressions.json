@@ -161,5 +161,169 @@
       "output": "k",
       "row": "different"
     }
+  },
+  {
+    "name": "distinct-first-column-only",
+    "testCase": {
+      "id": "distinct-boundaries",
+      "rows": [
+        {
+          "id": "a",
+          "values": {
+            "extra": 1,
+            "k": null,
+            "tag": 0
+          }
+        },
+        {
+          "id": "b",
+          "values": {
+            "extra": 1,
+            "k": 2,
+            "tag": 0
+          }
+        },
+        {
+          "id": "last",
+          "values": {
+            "extra": 1,
+            "k": null,
+            "tag": 0
+          }
+        }
+      ],
+      "steps": [
+        {
+          "id": "distinct",
+          "op": "distinct",
+          "args": {}
+        },
+        {
+          "id": "take",
+          "op": "take",
+          "args": {
+            "count": 2,
+            "offset": 0
+          }
+        }
+      ]
+    },
+    "anchor": {
+      "kind": "distinct compares only first column",
+      "step": "distinct",
+      "field": "extra",
+      "rows": [
+        "a",
+        "b"
+      ]
+    }
+  },
+  {
+    "name": "distinct-reversed-survivors",
+    "testCase": {
+      "id": "distinct-boundaries",
+      "rows": [
+        {
+          "id": "a",
+          "values": {
+            "extra": 1,
+            "k": null,
+            "tag": 0
+          }
+        },
+        {
+          "id": "b",
+          "values": {
+            "extra": 1,
+            "k": 2,
+            "tag": 0
+          }
+        },
+        {
+          "id": "last",
+          "values": {
+            "extra": 1,
+            "k": null,
+            "tag": 0
+          }
+        }
+      ],
+      "steps": [
+        {
+          "id": "distinct",
+          "op": "distinct",
+          "args": {}
+        },
+        {
+          "id": "take",
+          "op": "take",
+          "args": {
+            "count": 2,
+            "offset": 0
+          }
+        }
+      ]
+    },
+    "anchor": {
+      "kind": "distinct reverses surviving row order",
+      "step": "distinct",
+      "field": "extra",
+      "rows": [
+        "a",
+        "b"
+      ]
+    }
+  },
+  {
+    "name": "distinct-handoff-wrong-port",
+    "testCase": {
+      "id": "distinct-boundaries",
+      "rows": [
+        {
+          "id": "a",
+          "values": {
+            "extra": 1,
+            "k": null,
+            "tag": 0
+          }
+        },
+        {
+          "id": "b",
+          "values": {
+            "extra": 1,
+            "k": 2,
+            "tag": 0
+          }
+        },
+        {
+          "id": "last",
+          "values": {
+            "extra": 1,
+            "k": null,
+            "tag": 0
+          }
+        }
+      ],
+      "steps": [
+        {
+          "id": "distinct",
+          "op": "distinct",
+          "args": {}
+        },
+        {
+          "id": "take",
+          "op": "take",
+          "args": {
+            "count": 2,
+            "offset": 0
+          }
+        }
+      ]
+    },
+    "anchor": {
+      "kind": "wrong checked handoff port",
+      "producer": "distinct",
+      "consumer": "take"
+    }
   }
 ]

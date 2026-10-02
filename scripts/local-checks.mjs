@@ -3,6 +3,7 @@
 // check never drifts from CI; `changed` lists the narrow checks and the CI
 // jobs that relate to the files changed since a base.
 //
+//   node scripts/local-checks.mjs test node|moon -- <test arguments>
 //   node scripts/local-checks.mjs list
 //   node scripts/local-checks.mjs changed [--base origin/main]
 //   node scripts/local-checks.mjs run <job> [--target js|wasm|native] [--dry-run]
@@ -11,6 +12,7 @@ import {existsSync, mkdirSync, readFileSync} from 'node:fs';
 import {dirname, join, relative} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {parse} from 'yaml';
+import {runFocusedTests} from './test-execution.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const workflow = parse(readFileSync(join(root, '.github/workflows/ci.yml'),
@@ -134,11 +136,11 @@ function changed() {
       packages.add(dirname(file));
     }
     if (/\.test\.mjs$/u.test(file) && existsSync(join(root, file))) {
-      narrow.add(`node --test ${file}`);
+      narrow.add(`node scripts/local-checks.mjs test node -- ${file}`);
     } else if (/\.mjs$/u.test(file) && existsSync(join(root, file))) {
       narrow.add(`node --check ${file}`);
       const test = file.replace(/\.mjs$/u, '.test.mjs');
-      if (existsSync(join(root, test))) narrow.add(`node --test ${test}`);
+      if (existsSync(join(root, test))) narrow.add(`node scripts/local-checks.mjs test node -- ${test}`);
     }
     for (const [pattern, names] of areas) {
       if (pattern.test(file)) names.forEach(name => related.add(name));
@@ -148,7 +150,7 @@ function changed() {
     narrow.add('moon fmt --check');
     for (const directory of [...packages].sort()) {
       narrow.add(`moon check --target js ${directory}`);
-      narrow.add(`moon test --target js -p ${relative('src', directory)}`);
+      narrow.add(`node scripts/local-checks.mjs test moon -- --target js -p ${relative('src', directory)}`);
     }
   }
   console.log(`Changed since ${base}: ${unique.length} files\n`);
@@ -174,11 +176,13 @@ if (command === 'list') {
       console.log(`  - ${step.name ?? step.run.split('\n')[0]}`);
     }
   }
+} else if (command === 'test' && ['node', 'moon'].includes(argument) && process.argv[4] === '--') {
+  process.exitCode = runFocusedTests(argument, process.argv.slice(5), {cwd: root});
 } else if (command === 'changed') {
   changed();
 } else if (command === 'run' && argument) {
   runJob(argument);
 } else {
-  fail('Usage: local-checks.mjs list | changed [--base <ref>] | ' +
+  fail('Usage: local-checks.mjs test node|moon -- <test arguments> | list | changed [--base <ref>] | ' +
     'run <job> [--target js|wasm|native] [--dry-run]');
 }
