@@ -127,7 +127,7 @@ pub fn start_model_capture_export(VerifiedModelCapture, ModelCaptureExportLimits
 
 pub fn start_model_capture_replay(@execution_relation.PreparedInferRows, @run_publication_host.ClientInferCallScope, VerifiedModelCapture, ModelExecutionLimits) -> Result[ModelExecution, ModelExecutionIssue]
 
-pub fn start_model_execution(@execution_relation.PreparedInferRows, ModelProvider, String, ModelExecutionLimits, call_scope? : @run_publication_host.ClientInferCallScope?, dispatch_admission? : @run_publication_host.ClientInferDispatchAdmission?, quantity_capacity? : ModelQuantityCapacity?, physical_preflight? : ((ModelRequest) -> Result[ModelRequestPreflight, ModelExecutionIssue])?) -> Result[ModelExecution, ModelExecutionIssue]
+pub fn start_model_execution(@execution_relation.PreparedInferRows, ModelProvider, String, ModelExecutionLimits, call_scope? : @run_publication_host.ClientInferCallScope?, dispatch_admission? : @run_publication_host.ClientInferDispatchAdmission?, quantity_capacity? : ModelQuantityCapacity?, physical_preflight? : ((ModelRequest) -> Result[ModelRequestPreflight, ModelExecutionIssue])?, egress_admission? : @run_publication_host.ClientInferEgressAdmission?) -> Result[ModelExecution, ModelExecutionIssue]
 
 pub fn start_model_observation_verification(VerifiedModelCapture, @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], ModelObservationVerificationLimits) -> Result[ModelObservationVerification, ModelExecutionIssue]
 
@@ -218,6 +218,7 @@ pub(all) enum ModelExecutionIssue {
   RequestLimit
   InvocationEvidence(@run_publication.RunEvidenceValueIssue)
   Authorization(@run_publication_host.ClientInferDispatchIssue)
+  Egress(@run_publication_host.ClientInferEgressIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct ModelExecutionLimits {

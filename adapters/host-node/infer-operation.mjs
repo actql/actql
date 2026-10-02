@@ -12,7 +12,7 @@ const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
 // Exactly one physical provider or already Store-confirmed saved read is used.
 export function openNodeInferOperation({moon, preparedProgram, step, graph,
   registry, values, provider, savedCapture, savedSlots, quantityCapacity,
-  physicalPreflight, signal, quantum = 256}) {
+  physicalPreflight, egressAdmission, signal, quantum = 256}) {
   if (!Number.isSafeInteger(quantum) || quantum < 1 || quantum > 2147483647 ||
       [provider, savedCapture, savedSlots].filter(value => value !== undefined)
         .length !== 1) {
@@ -22,6 +22,9 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       (typeof physicalPreflight !== 'function' || provider === undefined ||
         quantityCapacity === undefined)) {
     throw new TypeError('InvalidInstalledInferPhysicalPreflight');
+  }
+  if (egressAdmission !== undefined && provider === undefined) {
+    throw new TypeError('InvalidInstalledInferEgress');
   }
   if (quantityCapacity !== undefined && (provider === undefined ||
       quantityCapacity === null ||
@@ -64,9 +67,13 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       checked(bound);
     }
   }
-  if (physicalPreflight !== undefined) {
-    const bound = moon.clientProgramBindInferPhysicalPreflight(active,
-      physicalPreflight);
+  for (const bind of [
+    ...(physicalPreflight === undefined ? [] :
+      [() => moon.clientProgramBindInferPhysicalPreflight(active, physicalPreflight)]),
+    ...(egressAdmission === undefined ? [] :
+      [() => moon.clientProgramBindInferEgress(active, egressAdmission)]),
+  ]) {
+    const bound = bind();
     if (bound?.$tag !== 1) {
       requestStop();
       const stopped = checked(moon.clientProgramAdvanceInferExecution(active, 1));

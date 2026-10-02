@@ -93,3 +93,29 @@ pub fn execution_quantity_usage(
     None => active.final_quantity_usage
   }
 }
+
+///|
+pub fn bind_egress_admission(
+  active : Execution,
+  admission : @publication_host.ClientInferEgressAdmission,
+) -> Result[Unit, Issue] {
+  if active.reclaimed ||
+    active.cancelled ||
+    active.advancing ||
+    !(active.source is Physical(_)) ||
+    !(active.phase is Input) ||
+    active.work != 0L ||
+    active.egress_admission is Some(_) {
+    return Err(InvalidAdvance)
+  }
+  guard active.plan is Some(plan) &&
+    @publication_host.client_infer_egress_matches(
+      admission,
+      active.prepared,
+      plan,
+    ) else {
+    return Err(Model(@model.Egress(@publication_host.ForeignOwner)))
+  }
+  active.egress_admission = Some(admission)
+  Ok(())
+}

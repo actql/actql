@@ -1815,3 +1815,34 @@ preflight. The installed public path must explicitly bind it before its guard
 can be removed. No canonical body or non-INFER preimage changes in this unit.
 No complete specification gate, pushed-SHA CI or public execution completion
 is claimed by these targeted checks.
+
+## Current egress observations at dispatch
+
+The source-free Infer owner now admits Host observations of classification,
+region, provider retention and training use against the exact checked
+ModelTask. Author minimum classification can only strengthen the observed
+classification. Unknown classification is refused. The retained admission is
+bound to the original prepared owner, occurrence and execution contract; it
+is not transferable to another preparation or a replay operation.
+
+The common execution rechecks the observation after current account/clock
+admission and before physical I/O. A changed or missing observation requires
+fresh admission even if its replacement could independently be allowed.
+Refusal preserves the ordinary cleanup owner and does not mark unused
+request quantities as unknown dispatched usage. Acquired input policies are
+not added by this source-free connection.
+
+Portable regressions cover incompatible observations, foreign-owner binding,
+normal dispatch and changed observations after all physical preparation.
+They assert zero calls on refusal, unavailable output/capture, and released
+reservations after cleanup. The client Infer package passes 79 tests on each
+of JS, Wasm and native. After rebuilding `local-node` and `run-host-core`, the
+two targeted Node tests for egress and current account/clock observations
+pass. The Node connector package also passes its JS compilation check.
+
+These are common-owner and adapter checks, not public submit acceptance.
+`embedded-local.mjs` still rejects the otherwise admitted single-attempt
+Program at `InstalledInferDispatchNotConnected`. Installed dispatch, private
+capture custody, public fresh-process replay and the B handoff remain open.
+No additional canonical body, retry behavior or non-INFER preimage is changed
+by this unit. No pushed-SHA CI result is claimed.

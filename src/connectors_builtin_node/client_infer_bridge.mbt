@@ -1061,6 +1061,64 @@ pub fn client_program_infer_plan_graph(
 }
 
 ///|
+#export_name("clientProgramAdmitInferEgress")
+pub fn client_program_admit_infer_egress(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  execution : @check_environment.ModelExecutionContract,
+  observe : () -> (String, String, Bool, Bool)?,
+) -> Result[
+  @publication_host.ClientInferEgressAdmission,
+  @publication_host.ClientInferEgressIssue,
+] {
+  @publication_host.admit_prepared_client_infer_egress(
+    prepared,
+    step,
+    execution,
+    () => {
+      guard observe() is Some((name, region, provider_retention, training_use)) else {
+        return None
+      }
+      let classification = match name {
+        "public" => @check_environment.Public
+        "internal" => @check_environment.Internal
+        "confidential" => @check_environment.Confidential
+        "restricted" => @check_environment.Restricted
+        "unknown" => @check_environment.Unknown
+        _ => return None
+      }
+      Some({ classification, region, provider_retention, training_use, })
+    },
+  )
+}
+
+///|
+#export_name("clientProgramBindInferEgress")
+pub fn client_program_bind_infer_egress(
+  active : @infer_host.Execution,
+  admission : @publication_host.ClientInferEgressAdmission,
+) -> Result[Unit, @infer_host.Issue] {
+  @infer_host.bind_egress_admission(active, admission)
+}
+
+///|
+#export_name("clientProgramInferEgressIssueKind")
+pub fn client_program_infer_egress_issue_kind(
+  issue : @publication_host.ClientInferEgressIssue,
+) -> String {
+  match issue {
+    @publication_host.ForeignOwner => "foreign_owner"
+    @publication_host.MissingObservation => "missing_observation"
+    @publication_host.UnknownClassification => "unknown_classification"
+    @publication_host.ClassificationDenied => "classification_denied"
+    @publication_host.RegionDenied => "region_denied"
+    @publication_host.RetentionDenied => "retention_denied"
+    @publication_host.TrainingDenied => "training_denied"
+    @publication_host.ChangedObservation => "changed_observation"
+  }
+}
+
+///|
 #export_name("clientProgramInferPlanGraphWire")
 pub fn client_program_infer_plan_graph_wire(
   value : @publication_host.ClientInferPlanGraph,

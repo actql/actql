@@ -87,6 +87,7 @@ pub(all) enum ModelExecutionIssue {
   RequestLimit
   InvocationEvidence(@publication.RunEvidenceValueIssue)
   Authorization(@publication_host.ClientInferDispatchIssue)
+  Egress(@publication_host.ClientInferEgressIssue)
 } derive(Eq, Debug)
 
 ///|
@@ -165,6 +166,7 @@ struct ModelState {
   quantity_capacity : ModelQuantityCapacity?
   call_scope : @publication_host.ClientInferCallScope?
   dispatch_admission : @publication_host.ClientInferDispatchAdmission?
+  egress_admission : @publication_host.ClientInferEgressAdmission?
   attempts : Array[ModelAttemptTrace]
   ledger : @resources.Ledger
   reservations : Array[@resources.Reservation]
@@ -428,6 +430,12 @@ fn advance_model(
   } else {
     None
   }
+  if state.egress_admission is Some(admission) {
+    match @publication_host.check_client_infer_egress_current(admission) {
+      Err(issue) => return @bounded.Failed(Egress(issue), 1, 1)
+      Ok(_) => ()
+    }
+  }
   if @bounded.stop_requested(reader) is Some(reason) {
     return @bounded.Stopped(reason, 1, 1)
   }
@@ -539,6 +547,7 @@ pub fn start_model_execution(
   dispatch_admission? : @publication_host.ClientInferDispatchAdmission? = None,
   quantity_capacity? : ModelQuantityCapacity? = None,
   physical_preflight? : ModelPhysicalPreflight? = None,
+  egress_admission? : @publication_host.ClientInferEgressAdmission? = None,
 ) -> Result[ModelExecution, ModelExecutionIssue] {
   start_model_owned(
     rows,
@@ -549,6 +558,7 @@ pub fn start_model_execution(
     dispatch_admission~,
     quantity_capacity~,
     physical_preflight~,
+    egress_admission~,
   )
 }
 
@@ -562,7 +572,13 @@ fn start_model_owned(
   dispatch_admission? : @publication_host.ClientInferDispatchAdmission? = None,
   quantity_capacity? : ModelQuantityCapacity? = None,
   physical_preflight? : ModelPhysicalPreflight? = None,
+  egress_admission? : @publication_host.ClientInferEgressAdmission? = None,
 ) -> Result[ModelExecution, ModelExecutionIssue] {
+  if egress_admission is Some(admission) &&
+    !(call_scope is Some(scope) &&
+    @publication_host.client_infer_egress_matches_scope(admission, scope)) {
+    return Err(Egress(@publication_host.ForeignOwner))
+  }
   if physical_preflight is Some(_) &&
     (!(source is Provider(_)) || quantity_capacity is None) {
     return Err(InvalidLimits)
@@ -647,6 +663,7 @@ fn start_model_owned(
     quantity_capacity,
     call_scope,
     dispatch_admission,
+    egress_admission,
     attempts: [],
     ledger,
     reservations,

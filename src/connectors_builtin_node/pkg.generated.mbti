@@ -70,6 +70,8 @@ pub fn client_program_admit_effect_publication(@run_publication_host.PreparedCli
 
 pub fn client_program_admit_effect_risk_acceptance_body(String, Int, Int, Int) -> Result[@effect_application.EffectRiskAcceptanceBody, @effect_application.EffectRiskAcceptanceIssue]
 
+pub fn client_program_admit_infer_egress(@run_publication_host.PreparedClientProgram, Int, @check_environment.ModelExecutionContract, () -> (String, String, Bool, Bool)?) -> Result[@run_publication_host.ClientInferEgressAdmission, @run_publication_host.ClientInferEgressIssue]
+
 pub fn client_program_admit_local_effect_source_evidence(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @run_publication_host.ClientEffectLocalManifest, @run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, Int, Int, Int) -> Result[@run_publication.CapturedLocalEffectSourceEvidence, @run_publication.CapturedLocalEffectSourceIssue]
 
 pub fn client_program_admit_local_values_aoa_identity(@run_publication_host.PreparedClientProgram, Int, String, String) -> Result[Unit, @run_publication_host.ClientValuesAoAAdmissionIssue]
@@ -131,6 +133,8 @@ pub fn client_program_bind_effect_preview_inputs(ClientLocalEffectHost, @physica
 pub fn client_program_bind_effect_run(@run_publication_host.PreparedClientEffectComputation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> @run_publication_host.PreparedClientEffectRun?
 
 pub fn client_program_bind_infer_dispatch_admission(@client_infer_host.Execution, @run_publication_host.ClientInferDispatchAdmission) -> Result[Unit, @client_infer_host.InvocationBindingIssue]
+
+pub fn client_program_bind_infer_egress(@client_infer_host.Execution, @run_publication_host.ClientInferEgressAdmission) -> Result[Unit, @client_infer_host.Issue]
 
 pub fn client_program_bind_infer_invocation(@client_infer_host.Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @model_execution.ModelObservationVerification, @run_publication.PublicationContract, String) -> Result[@client_infer_host.InvocationBinding, @client_infer_host.InvocationBindingIssue]
 
@@ -491,6 +495,8 @@ pub fn client_program_infer_capture_export_response_pending(@model_execution.Mod
 pub fn client_program_infer_capture_outcome(@model_execution.VerifiedModelCapture, Int) -> String?
 
 pub fn client_program_infer_dependency_references(@check_environment.ModelExecutionContract) -> (String, String, String)
+
+pub fn client_program_infer_egress_issue_kind(@run_publication_host.ClientInferEgressIssue) -> String
 
 pub fn client_program_infer_execution_capture(@client_infer_host.Execution) -> @model_execution.ModelCaptureBundle?
 

@@ -29,6 +29,8 @@ pub fn attempt_evidence(Execution, Int) -> Result[@model_execution.ModelAttemptE
 
 pub fn bind_dispatch_admission(Execution, @run_publication_host.ClientInferDispatchAdmission) -> Result[Unit, InvocationBindingIssue]
 
+pub fn bind_egress_admission(Execution, @run_publication_host.ClientInferEgressAdmission) -> Result[Unit, Issue]
+
 pub fn bind_invocation(Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @model_execution.ModelObservationVerification, @run_publication.PublicationContract, String) -> Result[InvocationBinding, InvocationBindingIssue]
 
 pub fn bind_issued_invocation(Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, ObservationIssuance) -> Result[InvocationBinding, InvocationBindingIssue]
@@ -142,6 +144,7 @@ pub struct Execution {
   mut dispatch_admission : @run_publication_host.ClientInferDispatchAdmission?
   mut quantity_capacity : @model_execution.ModelQuantityCapacity?
   mut physical_preflight : ((@model_execution.ModelRequest) -> Result[@model_execution.ModelRequestPreflight, @model_execution.ModelExecutionIssue])?
+  mut egress_admission : @run_publication_host.ClientInferEgressAdmission?
   mut final_quantity_usage : @physical_resources.QuantityUsage?
 }
 

@@ -90,6 +90,7 @@ pub struct Execution {
   mut dispatch_admission : @publication_host.ClientInferDispatchAdmission?
   mut quantity_capacity : @model.ModelQuantityCapacity?
   mut physical_preflight : @model.ModelPhysicalPreflight?
+  mut egress_admission : @publication_host.ClientInferEgressAdmission?
   mut final_quantity_usage : @resources.QuantityUsage?
 }
 
@@ -377,6 +378,7 @@ fn start_owned(
     dispatch_admission: None,
     quantity_capacity: None,
     physical_preflight: None,
+    egress_admission: None,
     final_quantity_usage: None,
   })
 }
@@ -427,6 +429,7 @@ fn begin_model(active : Execution) -> Poll {
         dispatch_admission=active.dispatch_admission,
         quantity_capacity=active.quantity_capacity,
         physical_preflight=active.physical_preflight,
+        egress_admission=active.egress_admission,
       )
     Replay(capture) => {
       guard active.call_scope is Some(scope) else {

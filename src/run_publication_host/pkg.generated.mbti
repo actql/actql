@@ -46,6 +46,8 @@ pub fn admit_prepared_client_effect_run_publication(PreparedClientEffectComputat
 
 pub fn admit_prepared_client_effect_values_fragment(PreparedClientEffectComputation, Int, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesFragmentNode, ClientValuesFragmentAdmissionIssue]
 
+pub fn admit_prepared_client_infer_egress(PreparedClientProgram, Int, @check_environment.ModelExecutionContract, () -> ClientInferEgressObservation?) -> Result[ClientInferEgressAdmission, ClientInferEgressIssue]
+
 pub fn admit_prepared_client_infer_execution_material(PreparedClientProgram, ClientInferPlanGraph, String, ClientCompilationManifests, Int, Int, Int) -> Result[ClientExecutionMaterial, ClientExecutionMaterialAdmissionIssue]
 
 pub fn admit_prepared_client_publication_binding(PreparedClientProgram, Int, Int, ClientPublicationLimitScope, String, Int, Int, Int) -> Result[Unit, ClientPublicationBindingAdmissionIssue]
@@ -93,6 +95,8 @@ pub fn bind_source_free_client_values_run(PreparedClientProgram, ClientValuesCom
 pub fn check_client_compiled_run_definition(ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, ClientCompiledRunIssue]
 
 pub fn check_client_infer_dispatch_current(ClientInferDispatchAdmission) -> Result[Unit, ClientInferDispatchIssue]
+
+pub fn check_client_infer_egress_current(ClientInferEgressAdmission) -> Result[Unit, ClientInferEgressIssue]
 
 pub fn check_client_infer_saved_observation_scope(ClientInferCallScope, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.RunEvidenceValue) -> Result[Unit, @run_publication.RunEvidenceValueIssue]
 
@@ -227,6 +231,10 @@ pub fn client_infer_dispatch_matches_run(ClientInferDispatchAdmission, ClientCom
 pub fn client_infer_dispatch_matches_scope(ClientInferDispatchAdmission, ClientInferCallScope) -> Bool
 
 pub fn client_infer_dispatch_run_cid(ClientInferDispatchAdmission) -> String
+
+pub fn client_infer_egress_matches(ClientInferEgressAdmission, PreparedClientProgram, ClientInferPlanGraph) -> Bool
+
+pub fn client_infer_egress_matches_scope(ClientInferEgressAdmission, ClientInferCallScope) -> Bool
 
 pub fn client_infer_plan_graph_barrier_cid(ClientInferPlanGraph) -> String
 
@@ -952,6 +960,32 @@ pub(all) enum ClientInferDispatchIssue {
   Authorization(@execution_authorization.DispatchBindingIssue)
   Evidence(@run_publication.RunEvidenceValueIssue)
   Encoding
+} derive(Eq, @debug.Debug)
+
+pub struct ClientInferEgressAdmission {
+  owner : PreparedClientProgram
+  step : Int
+  execution : @check_environment.ModelExecutionContract
+  observed : ClientInferEgressObservation
+  current : () -> ClientInferEgressObservation?
+}
+
+pub(all) enum ClientInferEgressIssue {
+  ForeignOwner
+  MissingObservation
+  UnknownClassification
+  ClassificationDenied
+  RegionDenied
+  RetentionDenied
+  TrainingDenied
+  ChangedObservation
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ClientInferEgressObservation {
+  classification : @check_environment.DataClassification
+  region : String
+  provider_retention : Bool
+  training_use : Bool
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ClientInferHostCapacityIssue {

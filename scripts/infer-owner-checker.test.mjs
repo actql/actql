@@ -299,7 +299,8 @@ async function acceptedModel() {
   return {prepared, input, rows, active, calls: () => calls};
 }
 
-function scopedInferGraph(prepared, installedTask = task, capacity = {}) {
+function scopedInferGraph(prepared, installedTask = task, capacity = {},
+  retainExecution) {
   // Admit a two-request envelope: 2 * (1000 + 65536). Retry/backoff pins
   // still exercise binding only, not executable policy/egress admission.
   const body = {version: 'actql-model-execution-contract/0.1',
@@ -313,6 +314,7 @@ function scopedInferGraph(prepared, installedTask = task, capacity = {}) {
   const identity = cid(body);
   const execution = checked(moon.clientProgramReadInferModelExecution(
     prepared, 2, canonicalText({...body, self_cid: identity}), identity));
+  retainExecution?.(execution);
   return checked(moon.clientProgramInferPlanGraph(prepared, 2,
     execution, `sha256:${'b'.repeat(64)}`, `sha256:${'c'.repeat(64)}`));
 }
@@ -632,7 +634,7 @@ async function inferExportRows(prepared, completed) {
 }
 
 function supervisedInferFixture(signal, onInvoke, responseBody = '{"reason":null,"risk":"high"}',
-  source = program(), quantityCapacity, physicalPreflight) {
+  source = program(), quantityCapacity, physicalPreflight, observeEgress) {
   const preparation = prepare(source, environment());
   const prepared = moon.clientProgramPreparationReady(preparation);
   assert.ok(prepared, inspect(preparation));
@@ -646,12 +648,46 @@ function supervisedInferFixture(signal, onInvoke, responseBody = '{"reason":null
         responseBody, 'fixture-risk-model', 'request-1',
         1n, 2n, '2026-10-01T00:00:00.000Z');
     });
-  const graph = scopedInferGraph(prepared);
+  let egressAdmission;
+  const graph = scopedInferGraph(prepared, task, {}, execution => {
+    if (observeEgress !== undefined) {
+      egressAdmission = checked(moon.clientProgramAdmitInferEgress(
+        prepared, 2, execution, observeEgress));
+    }
+  });
   const operation = openNodeInferOperation({moon, preparedProgram: prepared,
     step: 2, graph, registry, values, provider,
-    signal, quantum: 1, quantityCapacity, physicalPreflight});
+    signal, quantum: 1, quantityCapacity, physicalPreflight, egressAdmission});
   return {prepared, graph, operation, calls: () => calls};
 }
+
+test('Node Infer rechecks the retained Host egress observation before I/O', async () => {
+  for (const changed of [false, true]) {
+    let observations = 0;
+    const fixture = supervisedInferFixture(undefined, undefined, undefined,
+      undefined, undefined, undefined, () => ({
+        _0: 'public',
+        _1: ++observations > 1 && changed ? 'changed-region' : 'fixture-region',
+        _2: false, _3: false,
+      }));
+    try {
+      if (changed) {
+        await assert.rejects(fixture.operation.run(), error =>
+          error.code === 'MoonBitHostFailure' && error.cause !== undefined);
+        assert.equal(fixture.operation.acquireOutput(), undefined);
+        assert.equal(fixture.operation.acquireCapture(), undefined);
+      } else {
+        assert.ok(await fixture.operation.run());
+      }
+      assert.equal(observations, 2);
+      assert.equal(fixture.calls(), changed ? 0 : 1);
+    } finally {
+      await fixture.operation.close();
+      assert.equal(fixture.operation.cleanup(), true);
+    }
+    assert.equal(fixture.calls(), changed ? 0 : 1);
+  }
+});
 
 test('Node Infer yields during exact physical preparation and uses its retained plan', async () => {
   let advances = 0, calls = 0, cleanups = 0;
