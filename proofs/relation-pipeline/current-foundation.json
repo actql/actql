@@ -6,15 +6,15 @@
     "digest": "48bdedbe48ab335694a725defa7fe9e7f07cdf776e4aa8f233b3935585a352c1",
     "foundationRevision": "fe0dbb424792ba7ccd4ae5517a74530b56a15f3c"
   },
-  "revision": "6f92df536235819e17afe411f4ded08a00b3c813",
-  "proposal": "https://github.com/actql/actql/tree/6f92df536235819e17afe411f4ded08a00b3c813/proofs/relation-pipeline/capacity",
-  "meaning": "Separate structural capacity/custody validation foundation; the historical DISTINCT registration comparison is unchanged. Records Git provenance, not human approval or an unconditional allocation-byte bound.",
+  "revision": "985dbbba27895e049a99a40185f59214f3e4fce1",
+  "proposal": "https://github.com/actql/actql/tree/985dbbba27895e049a99a40185f59214f3e4fce1/proofs/relation-pipeline/capacity",
+  "meaning": "Current Array-slot correspondence extends the conditional structural capacity foundation; the historical DISTINCT registration comparison is unchanged. Git provenance is not human approval, an implementation-wide proof or an unconditional allocation-byte bound.",
   "changedCommon": [
     {
       "path": ".github/workflows/ci.yml",
       "beforeDigest": "60b5752abc492be508fcf7a6bb2acd944b3883443bd100b82ea422c713c93d61",
-      "afterDigest": "ba0d74e9894af43d6f7258fd41c90c937828a862791f15c022703876b5b94128",
-      "reason": "Retain the integrated #149 orchestration and add conditional structural capacity/custody execution and independent target/claim audits."
+      "afterDigest": "9e4d00a3acf8373ed1f20983bee128303e191f5c2ccbcae32a6269a0e86557dd",
+      "reason": "Retain the integrated #149 orchestration and structural capacity campaign; add current-Array source and target-admission tests, core probes, and independent backing execution audits."
     },
     {
       "path": "proofs/relation-pipeline/harness.mbt",
