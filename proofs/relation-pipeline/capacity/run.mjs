@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync } from
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { execute, executions, root, toolchain } from '../execute.mjs';
+import { finishCapacityCampaign } from './finish.mjs';
 import { hash, snapshot } from '../inventory.mjs';
 import { generate, shrink, candidates } from '../engine.mjs';
 import { fixedCorpus } from '../corpus.mjs';
@@ -153,6 +154,9 @@ try {
     console.log(`${variant.name}: fresh JS detection/shrink, same-resource minimum, ${targets.length} mutated/restored targets`);
   }
 } finally { restore(); }
+// Save receipts and close this executor before either child verification uses
+// the same checkout. The children retain their own independent ownership.
+finishCapacityCampaign(report, targets);
 const custody = spawnSync(process.execPath,
   ['proofs/relation-pipeline/capacity/parent-control/custody-check.mjs', targets.length === 1 ? 'js' : 'all'],
   { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });

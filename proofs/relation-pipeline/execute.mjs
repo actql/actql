@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, unlinkSync, mkdirSync, existsSync, copyFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, unlinkSync, mkdirSync, existsSync, copyFileSync, lstatSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -21,18 +21,36 @@ let serial = 0;
 const invocation = `${Date.now()}-${process.pid}`;
 export const executions = [];
 let ownedFixture = false;
-process.on('exit', () => {
-  if (ownedFixture && existsSync(join(root, fixture))) {
-    if (readFileSync(join(root, fixture), 'utf8') !== body) throw new Error('Owned fixture was changed');
-    unlinkSync(join(root, fixture));
+let fixtureIdentity;
+let closed = false;
+// Terminal, idempotent close of this executor only. A matching foreign file
+// is still foreign. Receipts and archived fixture/artifact bytes are retained.
+// #190 exposes this same boundary as createExecutor().close per workspace.
+export function closeExecutor() {
+  if (ownedFixture) {
+    const path = join(root, fixture);
+    if (!existsSync(path)) throw new Error('Owned fixture was removed');
+    const current = lstatSync(path);
+    if (!current.isFile() || current.dev !== fixtureIdentity.dev || current.ino !== fixtureIdentity.ino)
+      throw new Error('Owned fixture was replaced');
+    if (readFileSync(path, 'utf8') !== body) throw new Error('Owned fixture was changed');
+    unlinkSync(path);
+    ownedFixture = false;
   }
-});
+  closed = true;
+  process.removeListener('exit', closeExecutor);
+}
+process.once('exit', closeExecutor);
 export function execute(cases, registry, target, correspondence = false, label = 'probe') {
+  if (closed) throw new Error('Execution workspace is closed');
   if (!['js', 'wasm', 'native'].includes(target) || !cases.length) throw new Error('Bad execution request');
   const path = join(root, fixture);
   if (existsSync(path)) {
     if (!ownedFixture || readFileSync(path, 'utf8') !== body) throw new Error('Another pipeline batch owns the temporary fixture');
-  } else { writeFileSync(path, body); ownedFixture = true; }
+  } else {
+    writeFileSync(path, body, { flag: 'wx' });
+    fixtureIdentity = lstatSync(path); ownedFixture = true;
+  }
   const entries = cases.map((testCase, i) => ({ testCase, id: `${serial}:${i}:${testCase.id}`, program: program(testCase, registry) }));
   const source = snapshot(root);
   const inputs = payload(entries, correspondence);
