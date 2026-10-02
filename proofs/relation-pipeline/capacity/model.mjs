@@ -32,6 +32,7 @@ export function inputs(testCase, registry) {
 }
 export function violation(event) {
   if (event.kind !== 'capacity observation') return null;
+  if (event.mapCapacity && event.mapCapacity.inputOrdinals !== 8) return 'Map buckets exceed the admitted constructor bound';
   if (event.event === 'commit' && !event.sharedCapture) return 'output custody lost';
   if (event.event === 'output-transfer' && !event.sharedOutput) return 'output custody lost';
   if (event.event === 'input-view' && !event.sharedBacking) return 'borrowed backing was replaced';
