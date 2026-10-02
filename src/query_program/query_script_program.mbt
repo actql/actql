@@ -42,14 +42,41 @@ fn lower_script_relation(
   output : String,
   retained? : Array[RetainedResult]? = None,
 ) -> Input raise Abort {
+  if @query.set_part_count(query) > 0 {
+    return lower_script_set_relation(
+      construction, query, known, context, limits, steps, reserved, output,
+    )
+  }
+  lower_script_relation_term(
+    construction,
+    query,
+    known,
+    context,
+    limits,
+    steps,
+    reserved,
+    output,
+    retained~,
+  )
+}
+
+///|
+fn lower_script_relation_term(
+  construction : Construction,
+  query : @query.Query,
+  known : Array[Input],
+  context : Context,
+  limits : Limits,
+  steps : Array[@builder.Node],
+  reserved : Array[String],
+  output : String,
+  retained? : Array[RetainedResult]? = None,
+) -> Input raise Abort {
   if @query.graph_query(query) is Some(_) {
     raise Abort(UnsupportedGraph)
   }
   if @query.cte_count(query) > 0 {
     raise Abort(UnsupportedCte)
-  }
-  if @query.set_part_count(query) > 0 {
-    raise Abort(UnsupportedSet)
   }
   if @query.join_part_count(query) > 0 {
     raise Abort(UnsupportedJoin)
