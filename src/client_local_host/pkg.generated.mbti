@@ -11,6 +11,7 @@ import {
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
+  "actql/actql/physical_cost",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
   "actql/actql/query_planning",
@@ -28,6 +29,14 @@ pub fn cleanup_client_broad_residual(ClientBroadResidual) -> Result[Bool, @conne
 pub fn cleanup_client_infer_input(ClientInferInputExecution) -> Result[Bool, ClientInferInputIssue]
 
 pub fn client_broad_residual_execution(ClientBroadResidual) -> @local.ManagedProviderExecution
+
+pub fn client_duckdb_acquisition_estimate(Array[Array[Int]], Array[Int64?], Array[Int64?]) -> Result[ClientDuckDBAcquisitionEstimate, ClientDuckDBAcquisitionIssue]
+
+pub fn client_duckdb_selection_broad(ClientDuckDBAcquisitionSelection) -> @host.BroadHostConfiguration?
+
+pub fn client_duckdb_selection_document(ClientDuckDBAcquisitionSelection) -> String
+
+pub fn client_duckdb_selection_native(ClientDuckDBAcquisitionSelection) -> @host.NativeHostConfiguration?
 
 pub fn client_infer_completed_input(ClientInferInputExecution) -> @execution_relation.CompletedOutput?
 
@@ -85,6 +94,8 @@ pub fn prepare_multi_captured_local_ledger(@run_publication_host.PreparedClientP
 
 pub fn retry_local_values_execution_failure_cleanup(LocalValuesExecutionFailure) -> Bool
 
+pub fn select_client_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String, String, String, ClientDuckDBAcquisitionEstimate, ClientDuckDBAcquisitionEstimate, host_priority? : Array[String]?) -> Result[ClientDuckDBAcquisitionSelection, ClientDuckDBAcquisitionIssue]
+
 pub fn start_client_acquired_infer_input(@run_publication_host.PreparedClientProgram, Int, Int, @execution_query.CapturedInputSource, String, String, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.InferPreparationLimits, fragment_body? : String?, ordered_body? : String?) -> Result[ClientInferInputExecution, ClientInferInputIssue]
 
 pub fn start_client_infer_input(@run_publication_host.PreparedClientProgram, Int, Int, String, String, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.InferPreparationLimits, fragment_body? : String?, ordered_body? : String?) -> Result[ClientInferInputExecution, ClientInferInputIssue]
@@ -98,6 +109,11 @@ pub fn start_client_query_residual(@execution_query.QuerySequence, @execution_qu
 // Types and methods
 type ClientBroadResidual
 
+pub(all) struct ClientDuckDBAcquisitionEstimate {
+  estimates : Array[@physical_cost.SerialEstimateLine]
+  quantities : @connector_sdk.QueryQuantities
+}
+
 pub(all) enum ClientDuckDBAcquisitionIssue {
   InvalidSource
   InvalidContracts
@@ -106,6 +122,8 @@ pub(all) enum ClientDuckDBAcquisitionIssue {
   Candidate
   Selection
 }
+
+type ClientDuckDBAcquisitionSelection
 
 type ClientInferInputExecution
 

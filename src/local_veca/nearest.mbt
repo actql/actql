@@ -1436,39 +1436,6 @@ pub fn start_nearest_inputs_with_relations_control_work_limit(
 }
 
 ///|
-/// Compatibility entry point for the established Relation/Relation path.
-pub fn start_nearest_relations(
-  control : @bounded.Control,
-  preparation : @execution.CompletionPreparation,
-  sequence : @lower.PreparedSequence,
-  step : Int,
-  candidates : @execution.ProducerRead,
-  queries : @execution.ProducerRead,
-  max_rows : Int,
-  limits : @execution.ValueLimits,
-  max_workspace_slots : Int,
-  max_entries : Int,
-  max_name_bytes : Int,
-  inputs : Array[@execution.ProducerRead],
-) -> Result[NearestExecution, NearestIssue] {
-  start_nearest_producers(
-    control,
-    preparation,
-    sequence,
-    step,
-    nearest_relation_producer(candidates),
-    nearest_relation_producer(queries),
-    max_rows,
-    limits,
-    limits.max_work,
-    max_workspace_slots,
-    max_entries,
-    max_name_bytes,
-    inputs.map(@execution.trusted_output_relation_input),
-  )
-}
-
-///|
 pub fn nearest_max_noninterruptible_value_nodes(
   value : NearestExecution,
 ) -> Int {

@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "issue-180-invalid-version-fixture",
+  "kind": "change",
+  "revision": "cfeea098e875386f1394b06e4ff20d85cd65527e",
+  "parents": [
+    "3ec84ac678baa07565713522a97e52b5a975f446"
+  ],
+  "changes": [
+    {
+      "path": "proofs/relation-pipeline/foundation.test.mjs",
+      "before": [
+        {
+          "revision": "3ec84ac678baa07565713522a97e52b5a975f446",
+          "digest": "987ccdfc42556bc61ba6ce802036b5e63e053f6c573ec13a51547610fdb449b6",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "4f509e7e5d2d3f923952763cec3458611fdbeaf2bb92de72dd54e69133bf0a8b",
+      "afterMode": "100644",
+      "reason": "Construct the same invalid schema version at runtime so the owned-contract scanner does not mistake a deliberately rejected fixture for an actual version advance; retain the negative assertion unchanged."
+    }
+  ]
+}

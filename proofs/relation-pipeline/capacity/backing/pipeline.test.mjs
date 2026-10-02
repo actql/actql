@@ -5,6 +5,7 @@ import { fixedCorpus } from '../../corpus.mjs';
 import { registry } from '../../registry.mjs';
 import { registrations } from '../../obligations.mjs';
 import { mapBounds } from './maps.mjs';
+import { nativeUnitFixture } from './native-unit-fixture.mjs';
 const cases = fixedCorpus(registry, registrations).filter(c => c.steps.filter(s => s.op === 'distinct').length === 1);
 function observation(c, target) {
   const b = pipelineBounds(c, registry, target);
@@ -12,6 +13,7 @@ function observation(c, target) {
   const maps = mapBounds(c, registry);
   return { faults: [{ kind: 'capacity observation', event: 'checkpoint', arrayCapacity,
     mapCapacity: maps.capacity, mapEntries: maps.entries,
+    ...(target === 'native' ? { nativeMaps: nativeUnitFixture(maps) } : {}),
     mapAliases: { inputBinding: false, inputProjection: false, bindingProjection: false },
     keep: arrayCapacity.keep, terms: arrayCapacity.terms,
     outputRows: arrayCapacity.outputRows, outputCells: arrayCapacity.outputCells }] };

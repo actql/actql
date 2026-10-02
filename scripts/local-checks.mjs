@@ -23,6 +23,7 @@ const ciOnly = new Map([
   ['native-separated-network', 'needs root network namespaces'],
   ['performance-matrix', 'registered performance runs'],
   ['check', 'aggregates the other jobs'],
+  ['client', 'aggregates client-packages, client-distribution, client-packed and client-salesforce'],
 ]);
 const jobs = Object.entries(workflow.jobs)
   .filter(([, job]) => Array.isArray(job.steps));
@@ -98,17 +99,18 @@ function runJob(name) {
 // are what to run before pushing, and Linux CI remains the full check.
 const areas = [
   [/^proofs\/relation-pipeline\//u, ['pipeline-evidence']],
+  [/^scripts\/packed-client-packages/u, ['client-packages', 'client-distribution', 'client-packed']],
   [/^scripts\/(build-runtime-packages|test-runtime-package-build|build-local-node|build-run-host-core|build-remote-(coordinator|transfer)-package)|^packages\/(run-host-core|coordinator-core|transfer-core)\//u, ['host']],
   [/^\.github\/|^scripts\/local-checks\.mjs$/u, ['lint']],
   [/^src\//u, ['lint', 'core']],
   [/^(spec|docs)\/|\.md$/u, ['spec']],
-  [/^adapters\/connectors\/salesforce\//u, ['client']],
+  [/^adapters\/connectors\/salesforce\//u, ['client-distribution', 'client-packed', 'client-salesforce']],
   [/^adapters\/connectors\/duckdb\/node\//u, ['duckdb-node']],
   [/^adapters\/workers\/|workers/u, ['workers']],
   [/^packages\/(sdk|client-wire|node|local-node)\/|^scripts\/test-(packed(?!-resident-materials)|node-client|native-client)/u,
-    ['client']],
+    ['client-distribution', 'client-packed', 'client-salesforce']],
   [/^adapters\/host-node\/(client|embedded-local|remote|captured|installed)/u,
-    ['client', 'host']],
+    ['client-distribution', 'client-packed', 'client-salesforce', 'host']],
   [/^adapters\/(host-common|host-node|store-local|site-node|local-node)\//u,
     ['host']],
   [/^(src\/cmd|src\/platform_native)\/|^scripts\/test-native|^scripts\/test-packed-resident-materials/u, ['native']],

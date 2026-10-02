@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "adopt-343a5565c1ac",
+  "kind": "change",
+  "revision": "343a5565c1acb2a229064834f53c5df3341ab297",
+  "parents": [
+    "eb2e5c6abd1b8364f0243ff91521715b758a932f"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "eb2e5c6abd1b8364f0243ff91521715b758a932f",
+          "digest": "45cef4006676ea0e55adb36edb56759aae12ade2d422e075a29fe56bf6532e2c",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "3b4aafd0a3694bb3d14f5b1c775c82e22113a5d6665fe2908ad6827b9fb06d03",
+      "afterMode": "100644",
+      "reason": "Retain packed single-INFER capture/replay execution and its exact-source evidence upload from #178."
+    }
+  ]
+}

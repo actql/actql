@@ -42,7 +42,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       throw new TypeError('ClientSourceCaptureAlreadyRetained');
     }
     const captureStartedAt = now();
-    await step('acquisition_started', {ref: entry.ref});
+    await step('acquisition_started', {ref: entry.ref,
+      ...(preparedSource?.selection === undefined ? {} : {selection: preparedSource.selection})});
     entry.physicalStarted = true;
     entry.physicalWorkMayHaveStarted = true;
     const acquisition = acquisitionEndHandoff();
@@ -62,7 +63,9 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       throw error;
     }
     const captureCompletedAt = now();
-    await step('acquisition_completed', {ref: entry.ref});
+    await step('acquisition_completed', {ref: entry.ref,
+      ...(entry.sourceCapture.acquisition === undefined ? {} :
+        {acquisition: entry.sourceCapture.acquisition})});
     const sourceEvidenceWire = await entry.sourceCapture.issueSourceEvidence({
       authorityScopeCid,
       effectiveDataPolicyCid: entry.sourceCapture.checkedSource.sourceDataPolicyCid});

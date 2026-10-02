@@ -1,0 +1,90 @@
+{
+  "version": "actql-native-map-layout-profile/0.1",
+  "compiler": "v0.10.12+1634b282e (2026-09-07)",
+  "archives": {
+    "darwin-arm64": {
+      "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-darwin-aarch64.tar.gz",
+      "sha256": "6ddad0d536e85d22e23d69567211e9dbc6534fa9366cee5d276a37275917e07e"
+    },
+    "linux-x64": {
+      "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-linux-x86_64.tar.gz",
+      "sha256": "9bbda7d342fa39654a65c23805e5ff5a3915a26b36627a2565a6b1a99d099e01"
+    }
+  },
+  "sources": {
+    "include/moonbit.h": "c713a6a0f3f5f73508099bc5678ca3c1171ea988da01fb8463cfd98469a7fd8d",
+    "include/moonbit_runtime.h": "965b08c86c2d1fe40cf5c6ec0f42a0d3897f19f5212c840cf63af52c71d5dffb",
+    "lib/runtime/runtime.c": "1f4e1bc297835605be01298370f1bff7d0f8ec2a23c86371bb20db89356e2369"
+  },
+  "supported": [
+    "darwin-arm64",
+    "linux-x64"
+  ],
+  "units": "MoonBit header plus requested object payload extent",
+  "derived": {
+    "headerBytes": 8,
+    "pointerBytes": 8,
+    "mapBytes": 48,
+    "tableSlotBytes": 8,
+    "entryBytes": 48
+  },
+  "excluded": [
+    "Borrowed key strings and transitive values",
+    "malloc allocator metadata, fragmentation and arenas",
+    "collector work buffers and cycle-root arrays",
+    "Wasm and JavaScript representation",
+    "Parent 256-byte allowance and reservation lifetime"
+  ],
+  "declaredFieldLayouts": {
+    "map": {
+      "kinds": [
+        "ref",
+        "i32",
+        "i32",
+        "i32",
+        "i32",
+        "ref",
+        "i32"
+      ],
+      "offsets": [
+        0,
+        8,
+        12,
+        16,
+        20,
+        24,
+        32
+      ],
+      "payloadBytes": 40
+    },
+    "entry": {
+      "kinds": [
+        "i32",
+        "ref",
+        "i32",
+        "i32",
+        "ref",
+        "i32"
+      ],
+      "offsets": [
+        0,
+        8,
+        16,
+        20,
+        24,
+        32
+      ],
+      "payloadBytes": 40
+    }
+  },
+  "platformBinaries": {
+    "darwin-arm64": {
+      "bin/moonc": "28e6884086ef5d8c48d7f5c72d8d142f340a31e70fd751faea4078559ba1a77c",
+      "bin/moon": "c7b628ac125b9fb478566fa789837fe1d689c5e5c56199df00fd7657ead9e243"
+    },
+    "linux-x64": {
+      "bin/moonc": "a1fe6384cda566b33addc2082ab55845a712bd6b5f8a74244371a92b8afa7b36",
+      "bin/moon": "ebf6f42b9c1667cbd1e3bff5cf7fb091f1250a3eea417724e5b1a80de49783a9"
+    }
+  }
+}

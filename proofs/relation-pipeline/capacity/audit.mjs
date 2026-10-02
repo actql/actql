@@ -7,9 +7,9 @@ import { fixedCorpus } from '../corpus.mjs';
 import { registry } from '../registry.mjs';
 import { registrations } from '../obligations.mjs';
 import { program, candidates, oracle, generate } from '../engine.mjs';
-import { body, payload, inputVariable } from '../fixture.mjs';
+import { auditFixture, payload, inputVariable } from '../fixture.mjs';
 import { compareSemantics } from '../evidence.mjs';
-import { mutations, replacements, instrument, workspaceOverlay } from './instrument.mjs';
+import { mutations, replacements, instrument, workspaceOverlay, generatedObservers } from './instrument.mjs';
 import { admitClaim, inspectEvents, violation, workspaceBound, inputs } from './model.mjs';
 import { checkCensus } from './census.mjs';
 import { auditCoreProbe } from './backing/core-probe.mjs';
@@ -24,6 +24,7 @@ export function validate(report, current, targets, read) {
   assert.equal(hash(read(report.backingModel.logPath)), report.backingModel.logDigest);
   assert(read(report.backingModel.logPath).toString().includes('6 array backing model propositions checked'));
   assert(read(report.backingModel.logPath).toString().includes('4 restricted Map model propositions checked'));
+  assert(read(report.backingModel.logPath).toString().includes('4 conditional native Map extent propositions checked'));
   admitClaim(report.claim);
   const corpus = fixedCorpus(registry, registrations).filter(c => c.steps.filter(s => s.op === 'distinct').length === 1);
   assert.deepEqual(report.corpus, corpus, 'Scope must come from the reviewed corpus, not caller labels');
@@ -34,6 +35,11 @@ export function validate(report, current, targets, read) {
   assert.equal(hash(read(report.model.logPath)), report.model.logDigest);
   assert(read(report.model.logPath).toString().includes('8 structural model propositions checked'));
   const byObservation = new Map();
+  const generatedHashes = Object.fromEntries(Object.entries(generatedObservers).map(([p, code]) => [p, hash(code)]));
+  assert.deepEqual(report.overlays, {
+    ...Object.fromEntries(Object.keys(replacements).map(p => [p, hash(instrument(p, read(p).toString()))])),
+    ...generatedHashes,
+  }, 'Unknown capacity observer source');
   for (const execution of report.executions) {
     const run = execution.receipt;
     assert.deepEqual(JSON.parse(read(execution.path)), run, 'Report differs from independent receipt');
@@ -41,13 +47,12 @@ export function validate(report, current, targets, read) {
     assert.equal(run.inputVariable, inputVariable);
     assert.equal(run.inputDigest, hash(payload(run.cases, run.correspondence)));
     assert.equal(read(run.inputPath).toString(), payload(run.cases, run.correspondence));
-    assert.equal(run.fixtureDigest, hash(body)); assert.equal(read(run.fixturePath).toString(), body);
     assert.equal(run.compiler, report.toolchain.moonc); assert.equal(run.exit, 0);
     assert.deepEqual(run.command, ['moon', 'test', 'src/query_integration/relation_pipeline_batch_wbtest.mbt', '--target', run.target, '--deny-warn']);
     assert(targets.includes(run.target));
     const source = JSON.parse(read(run.sourcePath));
     assert.equal(source.digest, run.sourceDigest); assert.equal(source.digest, hash(JSON.stringify(source.sources)));
-    const expected = { ...current.sources };
+    const expected = { ...current.sources, ...generatedHashes };
     const variant = mutations.find(m => run.logPath.includes(`capacity-${m.name}-`) && !run.logPath.includes('-restored-'));
     const boundary = [-1, 0, 1].find(n => run.logPath.includes(`capacity-boundary-${n}-`));
     for (const path of Object.keys(replacements)) {
@@ -61,6 +66,8 @@ export function validate(report, current, targets, read) {
     }
     assert.deepEqual(source.sources, expected, 'Unknown observation or mutation source');
     const log = read(run.logPath).toString(); assert.equal(hash(log), run.logDigest);
+    auditFixture(run, read(run.fixturePath), log, run.target);
+    assert.equal(run.boundary.role, 'normal', 'Capacity evidence requires the instrumented primary workspace');
     const recorded = []; let id; let faults;
     for (const line of log.split('\n')) {
       if (line.startsWith('ACTQL_PIPELINE_CASE:')) { id = JSON.parse(line.slice(20)); faults = []; }

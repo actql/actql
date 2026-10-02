@@ -98,7 +98,8 @@ export async function twoSourceCaptureFixture(t, {equalContent = false} = {}) {
         resource: {any_of: [database]}, operation: {any_of: ['read']}, exclusions: []}],
     });
     await writeFile(profilePath, JSON.stringify({
-      version: 'actql-installed-duckdb-source/0.1', database,
+      acquisitionPlanning: {policy: 'priority', priority: ['nativeQuery', 'broadQuery']},
+    version: 'actql-installed-duckdb-source/0.1', database,
       schema: 'main', table: 'records', sourceRef, accountConfigurationWire,
       checkEnvironmentWire: canonicalJson(JSON.parse(await read(`${side}.environment.json`))),
     }));

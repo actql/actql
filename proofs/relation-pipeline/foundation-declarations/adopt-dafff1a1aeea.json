@@ -1,0 +1,35 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "adopt-dafff1a1aeea",
+  "kind": "resolution",
+  "revision": "dafff1a1aeeaa8dd3168e9d9ba1b571455ba5f35",
+  "parents": [
+    "8f906009fd3d64b5873f227bc24ec993938023be",
+    "df3ffb5e059e50c139d18228688da5b1eed6769d"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "8f906009fd3d64b5873f227bc24ec993938023be",
+          "digest": "c85826b67599582e59441e4842354f291d6d6c986df76a4a3cc8adc15dc9ca9d",
+          "mode": "100644"
+        },
+        {
+          "revision": "df3ffb5e059e50c139d18228688da5b1eed6769d",
+          "digest": "9e4d00a3acf8373ed1f20983bee128303e191f5c2ccbcae32a6269a0e86557dd",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "ecea48a0b7c94c50367b87e2ef02fc67a50a2b9972fd2b29effa01ecd4ce1523",
+      "afterMode": "100644",
+      "reason": "Preserve the original #178/#181 workflow integration with both packed INFER evidence and backing-capacity regressions; no gate is removed or attributed to a new implementation."
+    }
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-343a5565c1ac",
+    "adopt-985dbbba2789"
+  ]
+}

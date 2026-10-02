@@ -63,8 +63,10 @@ mock.module('node:child_process', { namedExports: { spawnSync: (command, args) =
   if (command !== 'git') throw new Error('Unexpected command');
   if (args[0] === 'merge-base') return { status: scenario === 'non-ancestor' ? 1 : 0 };
   if (args[0] !== 'show') throw new Error('Unexpected Git command');
-  const value = blobs.get(args[1]);
+  let value = blobs.get(args[1]);
+  if (value === undefined && args[1].startsWith('HEAD:') && args[1] !== `HEAD:${currentPath}`) value = blobs.get(args[1].replace('HEAD:', `${revision}:`));
   return { status: value === undefined ? 128 : 0, stdout: Buffer.from(value ?? '') };
 } } });
-const { checkFoundation } = await import('../history.mjs');
-checkFoundation(root);
+// Preserve the old representation's negative cases at the frozen checkpoint.
+const { checkLegacyFoundation } = await import('../history.mjs');
+checkLegacyFoundation(root);

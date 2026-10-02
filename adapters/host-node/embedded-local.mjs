@@ -1,5 +1,6 @@
 // One installed Local Host for the current OS user. The Client talks to the
 // Host in process; the journal and publication Store own durable physical I/O.
+import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';
 import {createHash, createPublicKey, randomBytes} from 'node:crypto';
 import {mkdir, readFile, stat} from 'node:fs/promises';
 import {homedir, userInfo} from 'node:os';
@@ -707,14 +708,29 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     }
     return {requested, resultNames, acquired, acquisitionCount, effectful: false};
   };
-  const prepareAcquisition = (preparedProgram, sourceAccess,
+  const prepareAcquisition = async (preparedProgram, sourceAccess,
     occurrence = {stage: 0, input: 0, task: 0}) => {
     const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(
       preparedProgram, occurrence.stage, occurrence.input, registry, values, fragment, ordered));
     const adapter = installedSourceFor(sourceProfile,
       moon.clientProgramQueryRequirementSourceRef(requirement));
-    return adapter.prepare({preparedProgram, registry, values, fragment, ordered,
-      sourceAccess: sourceAccess ?? adapter.sourceAccess, occurrence});
+    try {
+      const prepared = await adapter.prepare({preparedProgram, registry, values, fragment, ordered,
+        sourceAccess: sourceAccess ?? adapter.sourceAccess, occurrence});
+      if (prepared.selection !== undefined) diagnostic('acquisition_selection',
+        {task: occurrence.task, selection: prepared.selection});
+      return prepared;
+    } catch (cause) {
+      if (cause instanceof ExecutionAuthorizationError) {
+        throw clientOperationError(cause.runtimeCode ?? 'ACTQL_E_DELEGATION_UNAVAILABLE', cause);
+      }
+      if (cause?.selection !== undefined) {
+        diagnostic('acquisition_selection', {task: occurrence.task, selection: cause.selection});
+        throw clientOperationError(cause.selection.status === 'deferred'
+          ? 'ClientProgramRejected' : 'ClientProgramUnsupported', cause);
+      }
+      throw cause;
+    }
   };
   const prepareAcquisitions = async preparedProgram => {
     const result = [];

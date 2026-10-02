@@ -1,7 +1,9 @@
 supported_targets = "+js+wasm+native"
 
 options(
+  "native-stub": [ "layout_stub.c" ],
   targets: {
+    "abi_native_wbtest.mbt": [ "native" ],
     "backend_js_wbtest.mbt": [ "js" ],
     "backend_native_wbtest.mbt": [ "native" ],
     "backend_wasm_wbtest.mbt": [ "wasm" ],
