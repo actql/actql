@@ -793,7 +793,8 @@ pub fn[T] start_local_managed_dispatch(
       analytic_envelopes=setup.analytic_envelopes,
       // This is an observation, not a cleanup poll. Task settlement/disposal
       // can ask more than once; it must not consume the provider's retries.
-      // Only explicit cleanup_refresh drives cleanup and drops this reference.
+      // Output commit and explicit cleanup_refresh drive cleanup; a false/error
+      // result preserves this reference and its scratch reservation for retry.
       scratch_released=fn() { provider_execution.val is None },
     ) {
     Ok(value) => value
