@@ -213,6 +213,7 @@ if that policy is unavailable, required checks remain **unknown**.
 
 ```sh
 node scripts/ci-evidence.mjs actql/actql --pr PR_NUMBER
+node scripts/ci-evidence.mjs actql/actql --pr PR_NUMBER --integration main --dependencies 189,191
 node scripts/ci-evidence.mjs actql/actql-cloud --sha FULL_40_CHARACTER_SHA --json
 node scripts/ci-evidence.mjs actql/actql-cloud --sha FULL_40_CHARACTER_SHA --branch main
 node --test scripts/ci-evidence.test.mjs
@@ -236,6 +237,39 @@ the run API does not prove it. Closed PRs have no current test-ref claim.
 Commit check runs and status history are also shown by SHA, separately from
 Actions evidence because those endpoints do not attribute a workflow event or
 attempt. Absence of checks is reported as absence, not success.
+
+PR reports also record draft/mergeability (including unknown), the current
+merge-test tree and its ordered base/head parents, and reviews with their
+original commit binding. Stale approvals remain stale observations; review
+and code-owner policy is not inferred. The last API read re-reads the selected
+PR after rechecking dependency PRs, the integration branch and merge/test ref.
+Changed HEAD/base/state or an unavailable boundary makes the report incomplete;
+`stable-observed` means only that those sequential reads agreed, not an atomic
+snapshot or a guarantee that nothing can change afterward.
+
+The intended integration branch defaults to the repository's reported default
+branch; `--integration` overrides it explicitly. Dependencies are same-repository
+PRs whose head branch matches the selected PR's current base, plus any explicit
+`--dependencies` numbers. This is one-hop discovery, not a transitive stack
+solver. Every subject reports full HEAD/base SHAs and a merged PR's destination.
+Ancestry comparisons use the pinned integration SHA. Exact source ancestry,
+whole-tree equality, and reachability of a recorded merge result are separate
+facts. A squash can preserve a whole tree without preserving original commits;
+different trees leave content correspondence unverified. A merge into a feature
+branch whose result is absent from the integration branch identifies that
+missing integration step. The tool never retargets, rebases, pushes or merges.
+
+Each named requirement has separate HEAD and merge-test observations, including
+missing/pending, cancelled, skipped and duplicate observations. A check is linked
+to an Actions attempt only through its exact check-run URL, check-suite identity
+and source SHA, never a matching job name. Older attempts stay visible and are
+marked superseded; same-named jobs from other workflows, events or stale SHAs
+remain separate. External checks or incomplete attribution keep the attempt
+unknown. These are observations, not a GitHub requirement-satisfaction verdict:
+status/check collisions, event eligibility and merge-ref precedence are not
+collapsed into a green result. A conditional skip or neutral result can satisfy
+GitHub policy but does not prove successful execution. See GitHub's
+[required-check troubleshooting](https://docs.github.com/en/pull-requests/how-tos/merge-and-close-pull-requests/troubleshooting-required-status-checks).
 
 Named required status checks come only from classic branch protection and
 active repository/organization branch rules, retaining the expected app IDs.
