@@ -1,0 +1,24 @@
+# Historical Graph fixtures (not executable compatibility)
+
+These `.txt` files preserve the previous tuple-profile fixtures and coverage
+claims. They are evidence at their original source, not MoonBit inputs or a
+fallback that accepts old Graph bodies or snapshot profiles.
+
+- `graph-expression-scope-pre-property-graph.mbt.txt`: original scope fixture
+  before the definition-selected MATCH migration, source `446d9cc84500122db08b8a1504c99219717dfe8d`.
+- `local-family-coverage-pre-property-graph.json.txt`: original coverage
+  inventory, source `5b317a6ee111e5b4ea3694e3db7da9d2042a4160`. Its tuple-profile
+  completion claims are not valid for the new Graph representation.
+- `graph-typing-*-pre-property-graph.mbt.txt`: seventeen original typing
+  fixture files, source `adaa9832e`. Each archived file was compared byte for
+  byte with `git show` before the retirement commit. Twelve unsupported
+  tuple-consumer test files are no longer executable; five supported fixture
+  files are replaced with current typed identities, scoped predicates,
+  explicit TRAIL and independent path identity contracts.
+
+The current typing package checks unsupported consumers as typed refusals,
+and tests the supported subset's exact/one-short budgets, repeated identity
+occurrences, qualified Relation selection, projection order, copied indexed
+reads and diagnostic locations. It does not claim that old consumer algorithms
+are connected to the new Graph. Resource/cancellation, configured-Store public
+snapshot and aggregate Core acceptance remain separately required.

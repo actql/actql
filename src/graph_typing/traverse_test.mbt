@@ -1,85 +1,78 @@
 ///|
-test "traversal checks homogeneous and patterned forms under shared budgets" {
-  let g = match_graph()
+test "current TRAIL admits bounded and patterned forms under shared budgets" {
+  let graph = current_scope_graph()
   for
-    text in [
-      "{\"start\":{\"ids\":[2]},\"direction\":\"both\",\"min_hops\":0,\"max_hops\":3,\"emit\":\"paths\",\"edge_types\":[\"owns\",\"owns\"],\"max_output_rows\":10}",
-      "{\"start\":{\"where\":\"active\"},\"hops\":[{\"direction\":\"in\",\"edge_where\":\"active\",\"node_where\":\"active\"},{\"direction\":\"out\",\"edge_types\":[]}],\"emit\":\"nodes\"}",
+    body in [
+      "{\"start\":{\"ids\":[" +
+      current_node_identity(2) +
+      "]},\"direction\":\"both\",\"min_hops\":0,\"max_hops\":3,\"path_mode\":\"trail\",\"emit\":\"paths\",\"edge_types\":[\"Edge\",\"Edge\"],\"max_output_rows\":10}",
+      "{\"start\":{\"ids\":[" +
+      current_node_identity(2) +
+      "]},\"hops\":[{\"direction\":\"in\"},{\"direction\":\"out\",\"edge_types\":[]}],\"path_mode\":\"trail\",\"emit\":\"paths\"}",
     ] {
-    let source = cursor(text)
-    let c = @graph_typing.check_traverse(
+    let source = cursor(body)
+    let checked = @graph_typing.check_traverse(
       source,
-      g,
+      graph,
       None,
       None,
       predicate_limits(),
     ).unwrap()
-    let u = @graph_typing.traverse_usage(c)
+    assert_eq(@graph_typing.traverse_property_path_mode(checked), Some(Trail))
+    let usage = @graph_typing.traverse_usage(checked)
     let exact = {
       ..predicate_limits(),
-      max_work: u.work,
-      max_nodes: u.nodes,
-      max_text_bytes: u.text_bytes,
-      max_tokens: u.tokens,
+      max_work: usage.work,
+      max_nodes: usage.nodes,
+      max_text_bytes: usage.text_bytes,
+      max_tokens: usage.tokens,
     }
     assert_true(
-      @graph_typing.check_traverse(source, g, None, None, exact) is Ok(_),
+      @graph_typing.check_traverse(source, graph, None, None, exact) is Ok(_),
     )
     for
       cap in [
-        { ..exact, max_work: u.work - 1, },
-        { ..exact, max_nodes: u.nodes - 1, },
-        { ..exact, max_text_bytes: u.text_bytes - 1, },
+        { ..exact, max_work: usage.work - 1, },
+        { ..exact, max_nodes: usage.nodes - 1, },
+        { ..exact, max_text_bytes: usage.text_bytes - 1, },
       ] {
       assert_true(
-        @graph_typing.check_traverse(source, g, None, None, cap) is Err(_),
+        @graph_typing.check_traverse(source, graph, None, None, cap) is Err(_),
       )
     }
-    if @graph_typing.traverse_patterned(c) {
-      assert_eq(@graph_typing.traverse_bounds(c), (2.0, 2.0))
-      assert_eq(@graph_typing.traverse_hop_count(c), 2)
-      assert_true(
-        @graph_typing.check_traverse(source, g, None, None, {
-          ..exact,
-          max_tokens: u.tokens - 1,
-        })
-        is Err(_),
-      )
+    assert_false(
+      @graph_typing.traverse_pending(checked).contains(EnumerateSimplePaths),
+    )
+    if @graph_typing.traverse_patterned(checked) {
+      assert_eq(@graph_typing.traverse_bounds(checked), (2.0, 2.0))
+      assert_eq(@graph_typing.traverse_hop_count(checked), 2)
     } else {
-      assert_eq(@graph_typing.traverse_bounds(c), (0.0, 3.0))
-      let hop = @graph_typing.traverse_hop_at(c, 0).unwrap()
-      assert_eq(@graph_typing.hop_types(hop), Some(["owns", "owns"]))
-      assert_eq(@graph_typing.hop_type_count(hop), Some(2))
+      assert_eq(@graph_typing.traverse_bounds(checked), (0.0, 3.0))
+      let hop = @graph_typing.traverse_hop_at(checked, 0).unwrap()
       let copy = @graph_typing.hop_types(hop).unwrap()
       copy.clear()
       assert_eq(@graph_typing.hop_type_count(hop), Some(2))
-      assert_eq(@graph_typing.hop_types(hop).unwrap().length(), 2)
-      assert_true(
-        indexed_obligation_copy(
-          @graph_typing.traverse_pending(c),
-          @graph_typing.traverse_pending_count(c),
-          i => @graph_typing.traverse_pending_at(c, i),
-          (a, b) => a == b,
-        ).contains(EnumerateSimplePaths),
-      )
     }
   }
 }
 
 ///|
-test "traversal rejects mixed modes missing directions and undeclared edge labels" {
+test "current TRAIL rejects ambiguous modes and unconnected definition-free predicates" {
+  let graph = current_scope_graph()
+  let start = "{\"start\":{\"ids\":[" + current_node_identity(2) + "]},"
   for
-    text in [
-      "{\"start\":{\"ids\":[2]},\"hops\":[],\"emit\":\"nodes\"}", "{\"start\":{\"ids\":[2]},\"hops\":[{\"direction\":\"in\"}],\"direction\":\"out\",\"emit\":\"nodes\"}",
-      "{\"start\":{\"ids\":[2]},\"min_hops\":0,\"max_hops\":3,\"emit\":\"nodes\"}",
-      "{\"start\":{\"ids\":[2]},\"direction\":\"out\",\"min_hops\":4,\"max_hops\":3,\"emit\":\"nodes\"}",
-      "{\"start\":{\"ids\":[2]},\"hops\":[{\"direction\":\"in\",\"node_where\":{\"literal\":1}}],\"emit\":\"nodes\"}",
-      "{\"start\":{\"ids\":[2]},\"hops\":[{\"direction\":\"in\"}],\"emit\":\"nodes\",\"max_paths\":10}",
+    suffix in [
+      "\"hops\":[],\"emit\":\"paths\",\"path_mode\":\"trail\"}", "\"hops\":[{\"direction\":\"in\"}],\"direction\":\"out\",\"emit\":\"paths\",\"path_mode\":\"trail\"}",
+      "\"min_hops\":0,\"max_hops\":3,\"emit\":\"paths\",\"path_mode\":\"trail\"}",
+      "\"direction\":\"out\",\"min_hops\":4,\"max_hops\":3,\"emit\":\"paths\",\"path_mode\":\"trail\"}",
+      "\"hops\":[{\"direction\":\"in\",\"node_where\":{\"literal\":true}}],\"emit\":\"paths\",\"path_mode\":\"trail\"}",
+      "\"hops\":[{\"direction\":\"in\"}],\"emit\":\"nodes\",\"path_mode\":\"trail\"}",
+      "\"hops\":[{\"direction\":\"in\"}],\"emit\":\"paths\"}",
     ] {
     assert_true(
       @graph_typing.check_traverse(
-        cursor(text),
-        match_graph(),
+        cursor(start + suffix),
+        graph,
         None,
         None,
         predicate_limits(),
@@ -87,19 +80,4 @@ test "traversal rejects mixed modes missing directions and undeclared edge label
       is Err(_),
     )
   }
-  let g = complete_graph(
-    @contract.primitive(NumberType, nullable=false),
-    @contract.primitive(BooleanType, nullable=false),
-    "owns",
-  )
-  let e = @graph_typing.check_traverse(
-    cursor(
-      "{\"start\":{\"ids\":[2]},\"hops\":[{\"direction\":\"in\",\"edge_types\":[]}],\"emit\":\"nodes\"}",
-    ),
-    g,
-    None,
-    None,
-    predicate_limits(),
-  )
-  assert_true(e is Err(MatchStructure({ kind: MissingEdgeLabel, .. })))
 }

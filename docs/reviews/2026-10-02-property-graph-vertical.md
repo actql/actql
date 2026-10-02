@@ -474,6 +474,20 @@ suite evidence or delete the current profile. This correction does not satisfy
 or weaken the strict resource gate: open entries remain open and the old
 production-route inventory still requires migration with current evidence.
 
+The full typing package at the inventory checkpoint was **62 total, 19 passed,
+43 failed**. Its old tuple-consumer successes are now inert historical fixture
+text, not skipped tests or a retained execution profile. Seventeen original
+files were preserved byte for byte; twelve unconnected/retired-consumer files
+were removed from executable tests. Supported MATCH, selectors, predicates,
+TRAIL and path-shape fixtures were migrated, retaining independent full
+composite identities, repeated occurrences, qualified input columns, indexed
+copy isolation, exact/one-short budgets and original diagnostic locations.
+Explicit current structural/shortest/apply refusals replace old positive
+assumptions. The complete current typing package passes **27/27 on JS, Wasm and
+native**. The initial migrated fixture compile lacked two qualified enum names;
+the fixture spelling was corrected without changing product code. No full Core
+or public snapshot success follows from this package result.
+
 ## Deliberately not claimed
 
 Full SGA, external producer-definition provenance, a durable Graph catalog and
