@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:65df5377cf3c848fe20a232bc37215d6c3352ddb9be18f1b22bb5cea6f87885d",
+  "artifact_registry_cid": "sha256:aa6b68cf8e9b412ac0eeab8d27be85cb1ca9a055237b9e1b1829efb289028c9a",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10709,7 +10709,10 @@
     "model_dispatch_authority": "sha256:b00aae86b12bae22d8ef3f62d98d1a192fa9253371407fde016fc23a28117d09",
     "model_call_attempt": "sha256:c80b4873ed75130e12006eb5f00154d77b74a85394eb1a7dbf517078d4db2741",
     "model_attempt_accounting": "sha256:64060e2b23925f0d7be708240f504df312f7e46706e2a5fefd7c46d8d421430f",
-    "model_attempt_outcome": "sha256:90afd9fed54246784afb4b8922a0ec228c048d50e75f53598702a4c5ca0770b7"
+    "model_attempt_outcome": "sha256:90afd9fed54246784afb4b8922a0ec228c048d50e75f53598702a4c5ca0770b7",
+    "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
+    "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
+    "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -74129,6 +74132,84 @@
               "type": "null"
             }
           ]
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "model_prompt": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "payload",
+        "self_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-model-prompt/0.1"
+        },
+        "payload": {},
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "model_retry_policy": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "retryable_failures",
+        "self_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-model-retry-policy/0.1"
+        },
+        "retryable_failures": {
+          "type": "array",
+          "uniqueItems": true,
+          "maxItems": 3,
+          "items": {
+            "enum": [
+              "rate_limit",
+              "timeout",
+              "provider_error"
+            ]
+          }
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "model_backoff": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "delays_ms",
+        "self_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-model-backoff/0.1"
+        },
+        "delays_ms": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
         },
         "self_cid": {
           "type": "string",

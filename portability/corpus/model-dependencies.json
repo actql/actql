@@ -1,0 +1,292 @@
+{
+  "version": "actql-model-dependency-vectors/0.1",
+  "cases": [
+    {
+      "id": "prompt object",
+      "kind": "ModelPrompt",
+      "body": {
+        "version": "actql-model-prompt/0.1",
+        "payload": {
+          "format": "fixture-risk/0.1",
+          "instructions": "Classify the text."
+        }
+      },
+      "accepted": true,
+      "expected_cid": "sha256:224ba600372e391b8752faea22afb647ff659fec52b6709b4fea4f3e2fccb268",
+      "expected_canonical_bytes": "{\"payload\":{\"format\":\"fixture-risk/0.1\",\"instructions\":\"Classify the text.\"},\"version\":\"actql-model-prompt/0.1\"}",
+      "wire": "{\"payload\":{\"format\":\"fixture-risk/0.1\",\"instructions\":\"Classify the text.\"},\"self_cid\":\"sha256:224ba600372e391b8752faea22afb647ff659fec52b6709b4fea4f3e2fccb268\",\"version\":\"actql-model-prompt/0.1\"}",
+      "expected_work": 709,
+      "expected_nodes": 6
+    },
+    {
+      "id": "prompt null",
+      "kind": "ModelPrompt",
+      "body": {
+        "version": "actql-model-prompt/0.1",
+        "payload": null
+      },
+      "accepted": true,
+      "expected_cid": "sha256:eb8a48012a361caa2a0dbb0925570b04bc732255bf2ebb4cbfe3665dfa6f1c56",
+      "expected_canonical_bytes": "{\"payload\":null,\"version\":\"actql-model-prompt/0.1\"}",
+      "wire": "{\"payload\":null,\"self_cid\":\"sha256:eb8a48012a361caa2a0dbb0925570b04bc732255bf2ebb4cbfe3665dfa6f1c56\",\"version\":\"actql-model-prompt/0.1\"}",
+      "expected_work": 526,
+      "expected_nodes": 4
+    },
+    {
+      "id": "nested self is payload",
+      "kind": "ModelPrompt",
+      "body": {
+        "version": "actql-model-prompt/0.1",
+        "payload": {
+          "self_cid": "ordinary business data"
+        }
+      },
+      "accepted": true,
+      "expected_cid": "sha256:62e485910119957d4537cf74663e9653120f26460f5ee3d771d49e2a6e737469",
+      "expected_canonical_bytes": "{\"payload\":{\"self_cid\":\"ordinary business data\"},\"version\":\"actql-model-prompt/0.1\"}",
+      "wire": "{\"payload\":{\"self_cid\":\"ordinary business data\"},\"self_cid\":\"sha256:62e485910119957d4537cf74663e9653120f26460f5ee3d771d49e2a6e737469\",\"version\":\"actql-model-prompt/0.1\"}",
+      "expected_work": 625,
+      "expected_nodes": 5
+    },
+    {
+      "id": "no retries",
+      "kind": "ModelRetryPolicy",
+      "body": {
+        "version": "actql-model-retry-policy/0.1",
+        "retryable_failures": []
+      },
+      "accepted": true,
+      "expected_cid": "sha256:0c53e62a9c01afcf23a2036a06dd0b5e47653e943cae76d48bee1c84c11efb90",
+      "expected_canonical_bytes": "{\"retryable_failures\":[],\"version\":\"actql-model-retry-policy/0.1\"}",
+      "wire": "{\"retryable_failures\":[],\"self_cid\":\"sha256:0c53e62a9c01afcf23a2036a06dd0b5e47653e943cae76d48bee1c84c11efb90\",\"version\":\"actql-model-retry-policy/0.1\"}",
+      "expected_work": 588,
+      "expected_nodes": 4
+    },
+    {
+      "id": "ordered transient classes",
+      "kind": "ModelRetryPolicy",
+      "body": {
+        "version": "actql-model-retry-policy/0.1",
+        "retryable_failures": [
+          "rate_limit",
+          "timeout",
+          "provider_error"
+        ]
+      },
+      "accepted": true,
+      "expected_cid": "sha256:cf9220e9c88bf3cc1b512b56d05580506cded222e330af22acdc8e84978ddbf6",
+      "expected_canonical_bytes": "{\"retryable_failures\":[\"rate_limit\",\"timeout\",\"provider_error\"],\"version\":\"actql-model-retry-policy/0.1\"}",
+      "wire": "{\"retryable_failures\":[\"rate_limit\",\"timeout\",\"provider_error\"],\"self_cid\":\"sha256:cf9220e9c88bf3cc1b512b56d05580506cded222e330af22acdc8e84978ddbf6\",\"version\":\"actql-model-retry-policy/0.1\"}",
+      "expected_work": 739,
+      "expected_nodes": 7
+    },
+    {
+      "id": "no backoff",
+      "kind": "ModelBackoff",
+      "body": {
+        "version": "actql-model-backoff/0.1",
+        "delays_ms": []
+      },
+      "accepted": true,
+      "expected_cid": "sha256:739f886f72a9d0393470b92ccc3eb6a3a00f0616ed2d6f61df714f429de99d56",
+      "expected_canonical_bytes": "{\"delays_ms\":[],\"version\":\"actql-model-backoff/0.1\"}",
+      "wire": "{\"delays_ms\":[],\"self_cid\":\"sha256:739f886f72a9d0393470b92ccc3eb6a3a00f0616ed2d6f61df714f429de99d56\",\"version\":\"actql-model-backoff/0.1\"}",
+      "expected_work": 532,
+      "expected_nodes": 4
+    },
+    {
+      "id": "finite backoff",
+      "kind": "ModelBackoff",
+      "body": {
+        "version": "actql-model-backoff/0.1",
+        "delays_ms": [
+          0,
+          125,
+          9007199254740991
+        ]
+      },
+      "accepted": true,
+      "expected_cid": "sha256:9c45eb3fb51ccec7834fbebd0f4f18873b68eeec7f6cc588b3deb59f35221d0a",
+      "expected_canonical_bytes": "{\"delays_ms\":[0,125,9007199254740991],\"version\":\"actql-model-backoff/0.1\"}",
+      "wire": "{\"delays_ms\":[0,125,9007199254740991],\"self_cid\":\"sha256:9c45eb3fb51ccec7834fbebd0f4f18873b68eeec7f6cc588b3deb59f35221d0a\",\"version\":\"actql-model-backoff/0.1\"}",
+      "expected_work": 604,
+      "expected_nodes": 7
+    },
+    {
+      "id": "unknown envelope member",
+      "kind": "ModelPrompt",
+      "body": {
+        "version": "actql-model-prompt/0.1",
+        "payload": {
+          "format": "fixture-risk/0.1",
+          "instructions": "Classify the text."
+        },
+        "extra": null
+      },
+      "accepted": false,
+      "expected_cid": "sha256:5096324d8bfccdc931254185fd64b8741d978df19b310c1a1e9cc498771131bb",
+      "expected_canonical_bytes": "{\"extra\":null,\"payload\":{\"format\":\"fixture-risk/0.1\",\"instructions\":\"Classify the text.\"},\"version\":\"actql-model-prompt/0.1\"}",
+      "wire": "{\"extra\":null,\"payload\":{\"format\":\"fixture-risk/0.1\",\"instructions\":\"Classify the text.\"},\"self_cid\":\"sha256:5096324d8bfccdc931254185fd64b8741d978df19b310c1a1e9cc498771131bb\",\"version\":\"actql-model-prompt/0.1\"}",
+      "expected_work": null,
+      "expected_nodes": 7
+    },
+    {
+      "id": "unknown version",
+      "kind": "ModelPrompt",
+      "body": {
+        "version": "actql-model-prompt/9.9",
+        "payload": {
+          "format": "fixture-risk/0.1",
+          "instructions": "Classify the text."
+        }
+      },
+      "accepted": false,
+      "expected_cid": "sha256:ec656c0f83640564da7e268337170d453495f38a5a1a6e481c3f1c9ada3f16a1",
+      "expected_canonical_bytes": "{\"payload\":{\"format\":\"fixture-risk/0.1\",\"instructions\":\"Classify the text.\"},\"version\":\"actql-model-prompt/9.9\"}",
+      "wire": "{\"payload\":{\"format\":\"fixture-risk/0.1\",\"instructions\":\"Classify the text.\"},\"self_cid\":\"sha256:ec656c0f83640564da7e268337170d453495f38a5a1a6e481c3f1c9ada3f16a1\",\"version\":\"actql-model-prompt/9.9\"}",
+      "expected_work": null,
+      "expected_nodes": 6
+    },
+    {
+      "id": "missing payload",
+      "kind": "ModelPrompt",
+      "body": {
+        "version": "actql-model-prompt/0.1"
+      },
+      "accepted": false,
+      "expected_cid": "sha256:593039eb06459fd14ef73579612880a1d8d2554c684bd6d69b646ba66b95c5cb",
+      "expected_canonical_bytes": "{\"version\":\"actql-model-prompt/0.1\"}",
+      "wire": "{\"self_cid\":\"sha256:593039eb06459fd14ef73579612880a1d8d2554c684bd6d69b646ba66b95c5cb\",\"version\":\"actql-model-prompt/0.1\"}",
+      "expected_work": null,
+      "expected_nodes": 3
+    },
+    {
+      "id": "unknown retry class",
+      "kind": "ModelRetryPolicy",
+      "body": {
+        "version": "actql-model-retry-policy/0.1",
+        "retryable_failures": [
+          "schema_invalid"
+        ]
+      },
+      "accepted": false,
+      "expected_cid": "sha256:783af78ec5634194cba3f1a7677787f6b42998b8592832daa831c19a0a19e3b3",
+      "expected_canonical_bytes": "{\"retryable_failures\":[\"schema_invalid\"],\"version\":\"actql-model-retry-policy/0.1\"}",
+      "wire": "{\"retryable_failures\":[\"schema_invalid\"],\"self_cid\":\"sha256:783af78ec5634194cba3f1a7677787f6b42998b8592832daa831c19a0a19e3b3\",\"version\":\"actql-model-retry-policy/0.1\"}",
+      "expected_work": null,
+      "expected_nodes": 5
+    },
+    {
+      "id": "duplicate retry class",
+      "kind": "ModelRetryPolicy",
+      "body": {
+        "version": "actql-model-retry-policy/0.1",
+        "retryable_failures": [
+          "timeout",
+          "timeout"
+        ]
+      },
+      "accepted": false,
+      "expected_cid": "sha256:4c895bda30bb0c70cb4a718d29ba96544637184e25e658635d3455d48e86d69c",
+      "expected_canonical_bytes": "{\"retryable_failures\":[\"timeout\",\"timeout\"],\"version\":\"actql-model-retry-policy/0.1\"}",
+      "wire": "{\"retryable_failures\":[\"timeout\",\"timeout\"],\"self_cid\":\"sha256:4c895bda30bb0c70cb4a718d29ba96544637184e25e658635d3455d48e86d69c\",\"version\":\"actql-model-retry-policy/0.1\"}",
+      "expected_work": null,
+      "expected_nodes": 6
+    },
+    {
+      "id": "retry order violation",
+      "kind": "ModelRetryPolicy",
+      "body": {
+        "version": "actql-model-retry-policy/0.1",
+        "retryable_failures": [
+          "timeout",
+          "rate_limit"
+        ]
+      },
+      "accepted": false,
+      "expected_cid": "sha256:b319ce875eeb6e70e32ec1feb7ff94d7803d0e5c10ef706bd2a323637a13a52e",
+      "expected_canonical_bytes": "{\"retryable_failures\":[\"timeout\",\"rate_limit\"],\"version\":\"actql-model-retry-policy/0.1\"}",
+      "wire": "{\"retryable_failures\":[\"timeout\",\"rate_limit\"],\"self_cid\":\"sha256:b319ce875eeb6e70e32ec1feb7ff94d7803d0e5c10ef706bd2a323637a13a52e\",\"version\":\"actql-model-retry-policy/0.1\"}",
+      "expected_work": null,
+      "expected_nodes": 6
+    },
+    {
+      "id": "negative delay",
+      "kind": "ModelBackoff",
+      "body": {
+        "version": "actql-model-backoff/0.1",
+        "delays_ms": [
+          -1
+        ]
+      },
+      "accepted": false,
+      "expected_cid": "sha256:d954af173d08bf71a1660276aba0319fa7782e90a89ac8d57fd939c3ff73d473",
+      "expected_canonical_bytes": "{\"delays_ms\":[-1],\"version\":\"actql-model-backoff/0.1\"}",
+      "wire": "{\"delays_ms\":[-1],\"self_cid\":\"sha256:d954af173d08bf71a1660276aba0319fa7782e90a89ac8d57fd939c3ff73d473\",\"version\":\"actql-model-backoff/0.1\"}",
+      "expected_work": null,
+      "expected_nodes": 5
+    },
+    {
+      "id": "fractional delay",
+      "kind": "ModelBackoff",
+      "body": {
+        "version": "actql-model-backoff/0.1",
+        "delays_ms": [
+          0.5
+        ]
+      },
+      "accepted": false,
+      "expected_cid": "sha256:755de3dd163d61c57df58c8a211b60805f4048b17d00b2541f40bb51a759af7f",
+      "expected_canonical_bytes": "{\"delays_ms\":[0.5],\"version\":\"actql-model-backoff/0.1\"}",
+      "wire": "{\"delays_ms\":[0.5],\"self_cid\":\"sha256:755de3dd163d61c57df58c8a211b60805f4048b17d00b2541f40bb51a759af7f\",\"version\":\"actql-model-backoff/0.1\"}",
+      "expected_work": null,
+      "expected_nodes": 5
+    },
+    {
+      "id": "unsafe delay",
+      "kind": "ModelBackoff",
+      "body": {
+        "version": "actql-model-backoff/0.1",
+        "delays_ms": [
+          9007199254740992
+        ]
+      },
+      "accepted": false,
+      "expected_cid": "sha256:dae89659e96e673dff9653003469773a6493811c14d4834858a3f1de6708166e",
+      "expected_canonical_bytes": "{\"delays_ms\":[9007199254740992],\"version\":\"actql-model-backoff/0.1\"}",
+      "wire": "{\"delays_ms\":[9007199254740992],\"self_cid\":\"sha256:dae89659e96e673dff9653003469773a6493811c14d4834858a3f1de6708166e\",\"version\":\"actql-model-backoff/0.1\"}",
+      "expected_work": null,
+      "expected_nodes": 5
+    },
+    {
+      "id": "NULL delay",
+      "kind": "ModelBackoff",
+      "body": {
+        "version": "actql-model-backoff/0.1",
+        "delays_ms": [
+          null
+        ]
+      },
+      "accepted": false,
+      "expected_cid": "sha256:d54109ce26a9b5b8f79f9e72f9fa64b8800da47e4a801da2a9c8346b51906af3",
+      "expected_canonical_bytes": "{\"delays_ms\":[null],\"version\":\"actql-model-backoff/0.1\"}",
+      "wire": "{\"delays_ms\":[null],\"self_cid\":\"sha256:d54109ce26a9b5b8f79f9e72f9fa64b8800da47e4a801da2a9c8346b51906af3\",\"version\":\"actql-model-backoff/0.1\"}",
+      "expected_work": null,
+      "expected_nodes": 5
+    },
+    {
+      "id": "wrong role",
+      "kind": "ModelPrompt",
+      "body": {
+        "version": "actql-model-retry-policy/0.1",
+        "retryable_failures": []
+      },
+      "accepted": false,
+      "expected_cid": "sha256:0c53e62a9c01afcf23a2036a06dd0b5e47653e943cae76d48bee1c84c11efb90",
+      "expected_canonical_bytes": "{\"retryable_failures\":[],\"version\":\"actql-model-retry-policy/0.1\"}",
+      "wire": "{\"retryable_failures\":[],\"self_cid\":\"sha256:0c53e62a9c01afcf23a2036a06dd0b5e47653e943cae76d48bee1c84c11efb90\",\"version\":\"actql-model-retry-policy/0.1\"}",
+      "expected_work": null,
+      "expected_nodes": 4
+    }
+  ]
+}

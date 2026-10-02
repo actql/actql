@@ -3429,6 +3429,36 @@ test "contract spec/contracts/actql-protocol-schemas.json#/artifact_schemas/mode
 }
 
 ///|
+test "contract spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_prompt" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"payload\",\"self_cid\"],\"properties\":{\"version\":{\"const\":\"actql-model-prompt/0.1\"},\"payload\":{},\"self_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 15, 3, 283)
+  assert_eq(@canonical_json.cid_value(value, 283, 15, 3), "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204")
+  assert_eq(@canonical_json.measure_value(value, 283, 15, 3), 283)
+}
+
+///|
+test "contract spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_retry_policy" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"retryable_failures\",\"self_cid\"],\"properties\":{\"version\":{\"const\":\"actql-model-retry-policy/0.1\"},\"retryable_failures\":{\"type\":\"array\",\"uniqueItems\":true,\"maxItems\":3,\"items\":{\"enum\":[\"rate_limit\",\"timeout\",\"provider_error\"]}},\"self_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 23, 5, 416)
+  assert_eq(@canonical_json.cid_value(value, 416, 23, 5), "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c")
+  assert_eq(@canonical_json.measure_value(value, 416, 23, 5), 416)
+}
+
+///|
+test "contract spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_backoff" {
+  let input = @json.parse([
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"delays_ms\",\"self_cid\"],\"properties\":{\"version\":{\"const\":\"actql-model-backoff/0.1\"},\"delays_ms\":{\"type\":\"array\",\"items\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991}},\"self_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}}}",
+  ].join(""))
+  let value = @canonical_json.from_json(input, 20, 4, 368)
+  assert_eq(@canonical_json.cid_value(value, 368, 20, 4), "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55")
+  assert_eq(@canonical_json.measure_value(value, 368, 20, 4), 368)
+}
+
+///|
 test "contract spec/contracts/actql-protocol-schemas.json#/schemas/hydration_evidence" {
   let input = @json.parse([
     "{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"resource_ref_cid\",\"connector_id\",\"connection_revision\",\"boundary_cid\",\"source_evidence_cid\",\"authority_scope_cid\",\"hydration_evidence_cid\"],\"properties\":{\"version\":{\"const\":\"actql-resource-hydration/0.1\"},\"resource_ref_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"connector_id\":{\"type\":\"string\",\"minLength\":1},\"connection_revision\":{\"type\":\"string\",\"minLength\":1},\"boundary_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"source_evidence_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"authority_scope_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"hydration_evidence_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}}}",

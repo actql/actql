@@ -1654,3 +1654,37 @@ No full local gate rerun or Linux CI is claimed for this connection.
 Public dispatch, Named Result success and public fresh-process replay remain
 unverified. The component capture replay tests do not replace this acceptance.
 No public INFER PR, CI success or B handoff is claimed by this entry.
+# Installed dependency admission
+
+The ordinary public SDK-to-HTTP submit route now reads prompt, retry and
+backoff bodies against references from its original checked ModelTask and
+ModelExecutionContract. The common reader checks closed canonical envelopes,
+all three CID subjects, and cumulative byte/node/work limits. The independent
+vectors include exact and one-short boundaries, payload NULL and nested
+`self_cid` data, unknown fields/versions, invalid delays, and retry ordering.
+Nonempty policies remain structurally valid but are unsupported by the initial
+installed single-attempt profile before Run admission.
+
+Registered providers validate payload shape and meaning under a common owner
+bound to the exact selected provider, Task and execution contract. This token
+is capability admission, not execution authority or an attempt observation.
+An equal independently admitted execution cannot substitute for that owner.
+
+Public HTTP regression: 16 tests passed. Invalid bodies, identity substitution,
+unsupported policies and unsupported payloads created zero Runs and invoked
+zero physical providers. The valid case reached selected-provider validation
+and then the explicit `InstalledInferDispatchNotConnected` refusal. This is
+not successful public INFER dispatch or a B-ready handoff. The suite is wired
+into the existing Client job, rather than recorded as a standalone test only.
+
+Common targeted checks passed: Check Environment 222 tests on JS; Model
+Execution plus Run Publication 205 tests on JS; all three packages 427 tests
+on each of Wasm and native. Interfaces were regenerated on all three targets.
+The normative/schema change still requires the complete specification gate;
+no pushed-SHA Linux CI or public capture-to-Result acceptance is claimed here.
+
+Next connection: retain the admitted provider/dependencies in the selected
+Infer plan, supply current account/egress and exact physical preflight to the
+existing common dispatch owner, then persist its issued capture before the
+ordinary Named Result publication. Fresh-process replay and unknown-outcome
+non-redispatch remain required, not deferred out of scope.

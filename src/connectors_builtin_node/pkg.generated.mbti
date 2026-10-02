@@ -78,6 +78,8 @@ pub fn client_program_admit_local_values_fragment(@run_publication_host.Prepared
 
 pub fn client_program_admit_local_values_plan_graph(@run_publication_host.PreparedClientProgram, String) -> Result[@run_publication_host.ClientValuesPlanGraph, @run_publication_host.ClientValuesPlanGraphAdmissionIssue]
 
+pub fn client_program_admit_model_provider(@model_execution.ModelProvider, @check_environment.ModelExecutionContract, @check_environment.SingleAttemptModelDependencies, (String, String, String) -> Bool) -> Result[@model_execution.AdmittedModelProvider, @model_execution.ModelProviderAdmissionIssue]
+
 pub fn client_program_admit_publication(@run_publication_host.PreparedClientProgram, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> @run_publication.RunPublicationAdmission?
 
 pub fn client_program_admit_publication_binding_set(@run_publication_host.PreparedClientProgram, Array[String]) -> Result[Unit, @run_publication_host.ClientPublicationBindingSetIssue]
@@ -95,6 +97,8 @@ pub fn client_program_admit_publication_witnesses(@run_publication_host.Prepared
 pub fn client_program_admit_result_plan(@run_publication_host.PreparedClientProgram, Int, String) -> Result[@run_publication_host.ClientResultPlanIdentity, @run_publication_host.ClientResultPlanAdmissionIssue]
 
 pub fn client_program_admit_task_plan_graph(@run_publication_host.PreparedClientProgram, String) -> Result[@run_publication_host.ClientTaskPlanGraph, @run_publication_host.ClientTaskPlanGraphAdmissionIssue]
+
+pub fn client_program_admitted_model_provider(@model_execution.AdmittedModelProvider, @check_environment.ModelExecutionContract) -> @model_execution.ModelProvider?
 
 pub fn client_program_advance_infer_capture_export(@model_execution.ModelCaptureExport, Int) -> Result[(Bool, String, Int64), @model_execution.ModelExecutionIssue]
 
@@ -484,6 +488,8 @@ pub fn client_program_infer_capture_export_response_pending(@model_execution.Mod
 
 pub fn client_program_infer_capture_outcome(@model_execution.VerifiedModelCapture, Int) -> String?
 
+pub fn client_program_infer_dependency_references(@check_environment.ModelExecutionContract) -> (String, String, String)
+
 pub fn client_program_infer_execution_capture(@client_infer_host.Execution) -> @model_execution.ModelCaptureBundle?
 
 pub fn client_program_infer_execution_handoff_pending(@client_infer_host.Execution) -> Bool
@@ -516,6 +522,8 @@ pub fn client_program_infer_invocation_binding_output(@client_infer_host.Invocat
 
 pub fn client_program_infer_invocation_evidence(@client_infer_host.Execution, Int) -> @run_publication.RunEvidenceValue?
 
+pub fn client_program_infer_model_dependency_issue_kind(@check_environment.ModelDependencyIssue) -> String
+
 pub fn client_program_infer_model_execution_issue_kind(@run_publication_host.ClientInferPlanGraphIssue) -> String
 
 pub fn client_program_infer_model_task_cid(@run_publication_host.PreparedClientProgram, Int) -> String?
@@ -539,6 +547,8 @@ pub fn client_program_infer_plan_graph_wire(@run_publication_host.ClientInferPla
 pub fn client_program_infer_plan_request_wire(@run_publication_host.ClientInferPlanGraph) -> String
 
 pub fn client_program_infer_prefix_fragment(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[@run_publication_host.ClientTaskFragmentNode, @run_publication_host.ClientTaskFragmentIssue]
+
+pub fn client_program_infer_provider_id(@check_environment.ModelExecutionContract) -> String
 
 pub fn client_program_infer_publication_advance(@client_infer_host.ResultPublication, Int) -> Result[(Bool, Int), @client_infer_host.ResultPublicationIssue]
 
@@ -740,6 +750,8 @@ pub fn client_program_model_capture(@model_execution.ModelObservation) -> @model
 
 pub fn client_program_model_capture_json(@model_execution.ModelCaptureBundle) -> String?
 
+pub fn client_program_model_provider_admission_issue_kind(@model_execution.ModelProviderAdmissionIssue) -> String
+
 pub fn client_program_model_request_input(@model_execution.ModelRequest, String) -> String?
 
 pub fn client_program_model_response(@model_execution.ModelRequest, String, String, String, Int64, Int64, String) -> @model_execution.ModelResponse?
@@ -823,6 +835,8 @@ pub fn client_program_query_requirement_source_evidence_facts(@query_planning.Qu
 pub fn client_program_query_requirement_source_ref(@query_planning.QueryRequirement) -> String
 
 pub fn client_program_read_infer_capture_bundle(String, String) -> Result[@run_publication.ModelCaptureBundleRead, @run_publication.RunEvidenceValueIssue]
+
+pub fn client_program_read_infer_model_dependencies(@check_environment.ModelExecutionContract, String?, String?, String?) -> Result[@check_environment.SingleAttemptModelDependencies, @check_environment.ModelDependencyIssue]
 
 pub fn client_program_read_infer_model_execution(@run_publication_host.PreparedClientProgram, Int, String, String) -> Result[@check_environment.ModelExecutionContract, @run_publication_host.ClientInferPlanGraphIssue]
 

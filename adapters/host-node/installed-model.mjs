@@ -8,7 +8,7 @@ function checkInstallation(installation) {
   if (installation === null || typeof installation !== 'object' ||
       Array.isArray(installation) ||
       Object.keys(installation).some(key =>
-        !['environmentWire', 'executionContracts'].includes(key)) ||
+        !['environmentWire', 'executionContracts', 'dependencyBodies'].includes(key)) ||
       typeof installation.environmentWire !== 'string') {
     throw new TypeError('InvalidInstalledModelConfiguration');
   }
@@ -28,7 +28,75 @@ function checkInstallation(installation) {
     }
     tasks.add(entry.modelTaskCid);
   }
+  const bodies = installation.dependencyBodies ?? [];
+  if (!Array.isArray(bodies) || bodies.length > 384) {
+    throw new TypeError('InvalidInstalledModelDependencyConfiguration');
+  }
+  const references = new Set();
+  for (const entry of bodies) {
+    if (entry === null || typeof entry !== 'object' || Array.isArray(entry) ||
+        Object.keys(entry).sort().join(',') !== 'bodyWire,cid' ||
+        typeof entry.bodyWire !== 'string' || typeof entry.cid !== 'string' ||
+        references.has(entry.cid)) {
+      throw new TypeError('InvalidInstalledModelDependencyConfiguration');
+    }
+    references.add(entry.cid);
+  }
   return entries;
+}
+
+// Registration remains physical Host capability. The common admission owner
+// subsequently binds the selected callback to its exact Task and prompt.
+export function installModelProviders(moon, register) {
+  if (register === undefined) return new Map();
+  if (typeof register !== 'function') {
+    throw new TypeError('InvalidInstalledModelProviderRegistration');
+  }
+  const entries = register(moon);
+  if (!Array.isArray(entries) || entries.length > 128) {
+    throw new TypeError('InvalidInstalledModelProviderRegistration');
+  }
+  const result = new Map();
+  for (const entry of entries) {
+    if (entry === null || typeof entry !== 'object' || Array.isArray(entry) ||
+        Object.keys(entry).sort().join(',') !== 'invoke,providerId,validatePrompt' ||
+        typeof entry.providerId !== 'string' ||
+        typeof entry.invoke !== 'function' ||
+        typeof entry.validatePrompt !== 'function' ||
+        result.has(entry.providerId)) {
+      throw new TypeError('InvalidInstalledModelProviderRegistration');
+    }
+    const provider = moon.clientProgramInstallModelProvider(entry.providerId,
+      entry.invoke);
+    if (provider === undefined) {
+      throw new TypeError('InvalidInstalledModelProviderRegistration');
+    }
+    const validatePrompt = entry.validatePrompt;
+    result.set(entry.providerId, Object.freeze({provider,
+      validatePrompt: (...args) => validatePrompt(...args) === true}));
+  }
+  return result;
+}
+
+export function readInstalledModelDependencies(moon, execution, installation) {
+  checkInstallation(installation);
+  const references = moon.clientProgramInferDependencyReferences(execution);
+  const bodies = new Map((installation.dependencyBodies ?? [])
+    .map(entry => [entry.cid, entry.bodyWire]));
+  return checked(moon.clientProgramReadInferModelDependencies(execution,
+    bodies.get(references._0), bodies.get(references._1),
+    bodies.get(references._2)));
+}
+
+export function admitInstalledModelProvider(moon, execution, dependencies,
+  providers) {
+  const selected = providers.get(moon.clientProgramInferProviderId(execution));
+  if (selected === undefined) {
+    throw Object.assign(new Error('InstalledInferModelProviderUnavailable'),
+      {code: 'InstalledInferModelProviderUnavailable'});
+  }
+  return checked(moon.clientProgramAdmitModelProvider(selected.provider,
+    execution, dependencies, selected.validatePrompt));
 }
 
 export function installedModelEnvironment(moon, baseWire, currentWire,

@@ -11740,6 +11740,83 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/model-dependencies.envelope",
+      "statement_sha256": "4fd72075f29856ed838a87d3a46c77a0675f7221bb49b7ce82c2af3b6dfcd48e",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-dependencies",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-dependencies.identity",
+      "statement_sha256": "747c885b574e9dc3a1f13c46f9faeb68c35ab4e93132c0bda05a4b556a5ae61c",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-dependencies",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-dependencies.prompt-provider",
+      "statement_sha256": "7bfa9e7d45381cb336c3ab5ae152bf4fa271bc48c7d5155c3da244620c92a001",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-dependencies",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-dependencies.retry-order",
+      "statement_sha256": "912fe86b6ec9dbd5b460a1de9baf588a0e9e0ee5c07835143b287b48e6aceef1",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-dependencies",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-dependencies.retry-owner",
+      "statement_sha256": "8fdd8e2a6cbf3f2485c3721756bf519112acb7ed23144ccf4d66a588bebc5076",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-dependencies",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-dependencies.backoff",
+      "statement_sha256": "2bcbe2a455a8fb0d10b6424de3b3f90760666fa6ec5f2d2371fdfdad0d2679f1",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-dependencies",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.contracts/model-dependencies.single-attempt",
+      "statement_sha256": "82e92bb4c6acbcc2096faf82a1d6693d904b1c4e66b585afa30d1de5f749dbe6",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-dependencies",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/model-attempt-evidence.owner",
       "statement_sha256": "60e1dcab7d769dbad4bfeb75745acbafabc9f316022b143ba134985f68ac1f33",
       "status": "pending",
@@ -12060,7 +12137,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "7882195f7792f31671890d4b2c1c9b4b805661c16d38e0af17d99de35e24351c",
+      "statement_sha256": "dba262b386076952bfe6d3f9f199467c4742f0396a7228efbd8a8c064569eb87",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

@@ -168,7 +168,8 @@ for (const variant of ['valid', 'wrong-self-cid', 'foreign-task']) {
       const observed = observations[0];
       if (variant === 'valid') {
         assert.equal(observed.boundary, 'model_dependencies');
-        assert.equal(observed.code, 'InstalledInferDependenciesNotConnected');
+        assert.equal(observed.code, 'MoonBitHostFailure');
+        assert.equal(observed.typedCause, 'missing_body');
       } else {
         assert.equal(observed.boundary, 'model_execution');
         assert.equal(observed.code, 'MoonBitHostFailure');
@@ -176,6 +177,105 @@ for (const variant of ['valid', 'wrong-self-cid', 'foreign-task']) {
         assert.equal(observed.typedCause, variant === 'wrong-self-cid' ?
           'identity_mismatch' : 'reference_mismatch');
       }
+      assertNoAcceptedRun(root, physicalStarts);
+    });
+}
+
+async function installedDependencyConfiguration(variant) {
+  const {task, installation} = await modelConfiguration();
+  const prompt = {version: 'actql-model-prompt/0.1',
+    payload: variant === 'unsupported-payload' ? null :
+      {format: 'fixture-risk/0.1', instructions: 'Classify the text.'}};
+  if (variant === 'unknown-field') prompt.extra = true;
+  if (variant === 'unknown-version') prompt.version = 'actql-model-prompt/9.9';
+  const retry = {version: 'actql-model-retry-policy/0.1',
+    retryable_failures: variant === 'nonempty-retry' ? ['timeout'] :
+      variant === 'duplicate-retry' ? ['timeout', 'timeout'] :
+        variant === 'reordered-retry' ? ['timeout', 'rate_limit'] : []};
+  const backoff = {version: 'actql-model-backoff/0.1',
+    delays_ms: variant === 'nonempty-backoff' ? [0] :
+      variant === 'invalid-number' ? [-1] : []};
+  const bodies = [prompt, retry, backoff].map(body => ({
+    cid: contentCid(body), bodyWire: canonicalJson({...body,
+      self_cid: contentCid(body)})}));
+  if (variant === 'substituted-body') {
+    bodies[0].bodyWire = bodies[0].bodyWire.replace('Classify', 'Ignore');
+  }
+  if (variant === 'wrong-self-cid') {
+    bodies[0].bodyWire = canonicalJson({...prompt,
+      self_cid: `sha256:${'f'.repeat(64)}`});
+  }
+  const {contract_cid: ignoredTask, ...taskBody} = task;
+  void ignoredTask;
+  taskBody.prompt_template_cid = bodies[0].cid;
+  const taskCid = contentCid(taskBody);
+  const {evidence_bundle_cid: ignoredEnvironment, ...environment} =
+    JSON.parse(installation.environmentWire);
+  void ignoredEnvironment;
+  environment.model_task_contracts = [{...taskBody, contract_cid: taskCid}];
+  installation.environmentWire = canonicalJson({...environment,
+    evidence_bundle_cid: contentCid(environment)});
+  const execution = {version: 'actql-model-execution-contract/0.1',
+    model_task_contract_cid: taskCid,
+    retry_classification_contract_cid: bodies[1].cid,
+    backoff_contract_cid: bodies[2].cid,
+    max_attempts_per_slot: 1, max_total_attempts: 1,
+    max_total_cost_units: 0, max_total_duration_ms: 500,
+    max_total_wire_bytes: 66536, max_total_token_reservation: 33,
+    media_input_contracts: {}, default_publication: 'outcomes'};
+  installation.executionContracts = [{modelTaskCid: taskCid,
+    cid: contentCid(execution), bodyWire: canonicalJson({...execution,
+      self_cid: contentCid(execution)})}];
+  installation.dependencyBodies = bodies;
+  return {installation, taskCid};
+}
+
+for (const [variant, boundary, typedCause] of [
+  ['valid', 'model_dispatch', undefined],
+  ['unknown-field', 'model_dependencies', 'invalid_body'],
+  ['unknown-version', 'model_dependencies', 'invalid_body'],
+  ['invalid-number', 'model_dependencies', 'invalid_body'],
+  ['duplicate-retry', 'model_dependencies', 'invalid_body'],
+  ['reordered-retry', 'model_dependencies', 'invalid_body'],
+  ['wrong-self-cid', 'model_dependencies', 'identity_mismatch'],
+  ['substituted-body', 'model_dependencies', 'identity_mismatch'],
+  ['nonempty-retry', 'model_dependencies', 'unsupported_policy'],
+  ['nonempty-backoff', 'model_dependencies', 'unsupported_policy'],
+  ['unsupported-payload', 'model_provider', 'unsupported_prompt'],
+]) {
+  test(`public INFER checks dependency bodies and selected provider before accepting a Run: ${variant}`,
+    async t => {
+      const {installation, taskCid} = await installedDependencyConfiguration(variant);
+      const observations = [];
+      let validations = 0, calls = 0;
+      const {client, root, physicalStarts} = await installedHost(t, {
+        modelInstallation: installation,
+        registerModelProviders: () => [{providerId: 'models/fixture',
+          invoke() { calls++; throw new Error('UnexpectedProviderDispatch'); },
+          validatePrompt(actualTask, selector, wire) {
+            validations++;
+            assert.equal(actualTask, taskCid);
+            assert.equal(selector, 'fixture-risk-model');
+            const payload = JSON.parse(wire);
+            return payload !== null &&
+              Object.keys(payload).sort().join(',') === 'format,instructions' &&
+              payload.format === 'fixture-risk/0.1' &&
+              payload.instructions === 'Classify the text.';
+          }}],
+        authorization: diagnosticAuthorization((name, detail) => {
+          if (name === 'infer_preparation_rejected') observations.push(detail);
+        }),
+      });
+      await assert.rejects(client.start(oneRowInfer(),
+        {requestId: `dependencies-${variant}`}), {code: 'ClientProgramUnsupported'});
+      assert.equal(observations.length, 1);
+      assert.equal(observations[0].boundary, boundary);
+      assert.equal(observations[0].typedCause, typedCause);
+      if (variant === 'valid') {
+        assert.equal(observations[0].code, 'InstalledInferDispatchNotConnected');
+      }
+      assert.equal(validations, ['valid', 'unsupported-payload'].includes(variant) ? 1 : 0);
+      assert.equal(calls, 0);
       assertNoAcceptedRun(root, physicalStarts);
     });
 }

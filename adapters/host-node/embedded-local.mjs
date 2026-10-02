@@ -20,7 +20,9 @@ import {retireCompletedEffectfulCapture} from
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
 import {sourceAliasPublication} from './source-alias-publication.mjs';
-import {installedModelEnvironment, readInstalledModelExecution} from
+import {installedModelEnvironment, readInstalledModelExecution,
+  readInstalledModelDependencies, installModelProviders,
+  admitInstalledModelProvider} from
   './installed-model.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {issueInstalledRunControlObservation,
@@ -112,6 +114,7 @@ async function embeddedInstallationIdentity(root, installation) {
   return Object.freeze({identity, callbacks: Object.freeze({
     resolveSourceSecret: installation?.resolveSourceSecret,
     resolveEffectSecret: installation?.resolveEffectSecret,
+    registerModelProviders: installation?.registerModelProviders,
     decide: authorization?.decide, observe: authorization?.observe,
     faultInjection: authorization?.faultInjection})});
 }
@@ -138,7 +141,7 @@ const REALIZATION_KEY = 'source-free-values';
 async function openInstalledHost({root, mode = 'local', beforeDispatch,
   authorization, sourceProfilePath, resolveSourceSecret,
   effectProfilePath, resolveEffectSecret, effectInstallation,
-  modelInstallation}) {
+  modelInstallation, registerModelProviders}) {
   const selectedSourcePath = sourceProfilePath ??
     process.env.ACTQL_LOCAL_SOURCE_PROFILE;
   const selectedEffectPath = effectProfilePath ??
@@ -149,6 +152,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   await admitHostRootFormat(root);
   const moon = await import(runtimeUrl.href);
   const control = runtimeCore(moon).publicationControl;
+  const modelProviders = installModelProviders(moon, registerModelProviders);
   const principalId = userInfo().username;
   const baseEnvironmentWire = (await readFile(join(packageRoot,
     'spec/local-check-environment.json'), 'utf8')).trimEnd();
@@ -585,8 +589,10 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     // installed dependency/dispatch route is present, refuse before admitting
     // a Run rather than sending this acquisition into a Values fallback.
     if (moon.clientProgramTerminalInferStep(preparedProgram) !== undefined) {
+      let execution;
       try {
-        readInstalledModelExecution(moon, preparedProgram, modelInstallation);
+        ({execution} = readInstalledModelExecution(moon, preparedProgram,
+          modelInstallation));
       } catch (cause) {
         diagnostic('infer_preparation_rejected', {boundary: 'model_execution',
           code: cause.code, cause: cause.cause ?? cause,
@@ -595,10 +601,34 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
             undefined});
         throw clientOperationError('ClientProgramUnsupported', cause);
       }
-      diagnostic('infer_preparation_rejected', {boundary: 'model_dependencies',
-        code: 'InstalledInferDependenciesNotConnected'});
+      let dependencies;
+      try {
+        dependencies = readInstalledModelDependencies(moon, execution,
+          modelInstallation);
+      } catch (cause) {
+        diagnostic('infer_preparation_rejected', {boundary: 'model_dependencies',
+          code: cause.code, cause: cause.cause ?? cause,
+          typedCause: cause.code === 'MoonBitHostFailure' ?
+            moon.clientProgramInferModelDependencyIssueKind(cause.cause) :
+            undefined});
+        throw clientOperationError('ClientProgramUnsupported', cause);
+      }
+      try {
+        admitInstalledModelProvider(moon, execution, dependencies,
+          modelProviders);
+      } catch (cause) {
+        diagnostic('infer_preparation_rejected', {boundary: 'model_provider',
+          code: cause.code, cause: cause.cause ?? cause,
+          typedCause: cause.code === 'MoonBitHostFailure' ?
+            moon.clientProgramModelProviderAdmissionIssueKind(cause.cause) :
+            undefined});
+        throw clientOperationError('ClientProgramUnsupported', cause);
+      }
+      // Dependency and payload admission are not current egress authority.
+      diagnostic('infer_preparation_rejected', {boundary: 'model_dispatch',
+        code: 'InstalledInferDispatchNotConnected'});
       throw clientOperationError('ClientProgramUnsupported',
-        new Error('InstalledInferDependenciesNotConnected'));
+        new Error('InstalledInferDispatchNotConnected'));
     }
     const requested = moon.clientProgramRequestIdentity(preparedProgram,
       authorityScopeCid, requestId,
@@ -1365,7 +1395,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
 export async function openInstalledRemoteHttpHost({directory,
   authenticate, beforeDispatch, authorization, sourceProfilePath,
   resolveSourceSecret, effectProfilePath, resolveEffectSecret,
-  effectInstallation, modelInstallation}) {
+  effectInstallation, modelInstallation, registerModelProviders}) {
   if (typeof directory !== 'string' || !directory ||
       typeof authenticate !== 'function' ||
       beforeDispatch !== undefined && typeof beforeDispatch !== 'function') {
@@ -1374,7 +1404,7 @@ export async function openInstalledRemoteHttpHost({directory,
   const host = await openInstalledHost({root: resolve(directory), mode: 'remote',
     beforeDispatch, authorization, sourceProfilePath, resolveSourceSecret,
     effectProfilePath, resolveEffectSecret, effectInstallation,
-    modelInstallation});
+    modelInstallation, registerModelProviders});
   const handle = createClientHttpHandler({
     ...host.hostOperations, authenticate, maxRequestBytes: 65536,
   });
@@ -1474,7 +1504,8 @@ export async function connectEmbeddedLocal(options) {
         resolveSourceSecret: installation?.resolveSourceSecret,
         effectProfilePath: installation?.effectProfilePath,
         resolveEffectSecret: installation?.resolveEffectSecret,
-        modelInstallation: installation?.modelInstallation})});
+        modelInstallation: installation?.modelInstallation,
+        registerModelProviders: installation?.registerModelProviders})});
     profiles.set(root, opened);
     opened.host.catch(() => {
       if (profiles.get(root) === opened) profiles.delete(root);

@@ -868,6 +868,114 @@ pub fn client_program_infer_model_execution_issue_kind(
 }
 
 ///|
+#export_name("clientProgramReadInferModelDependencies")
+pub fn client_program_read_infer_model_dependencies(
+  execution : @check_environment.ModelExecutionContract,
+  prompt : String?,
+  retry : String?,
+  backoff : String?,
+) -> Result[
+  @check_environment.SingleAttemptModelDependencies,
+  @check_environment.ModelDependencyIssue,
+] {
+  @check_environment.read_single_attempt_model_dependencies(
+    execution,
+    prompt.map(value => @utf8.encode(value)),
+    retry.map(value => @utf8.encode(value)),
+    backoff.map(value => @utf8.encode(value)),
+    { max_bytes: 100000, max_nodes: 10000, max_depth: 100, max_members: 10000, },
+    1000000,
+  )
+}
+
+///|
+#export_name("clientProgramInferDependencyReferences")
+pub fn client_program_infer_dependency_references(
+  execution : @check_environment.ModelExecutionContract,
+) -> (String, String, String) {
+  (
+    @check_environment.model_task_prompt_cid(
+      @check_environment.model_execution_task(execution),
+    ),
+    @check_environment.model_execution_retry_cid(execution),
+    @check_environment.model_execution_backoff_cid(execution),
+  )
+}
+
+///|
+#export_name("clientProgramInferProviderId")
+pub fn client_program_infer_provider_id(
+  execution : @check_environment.ModelExecutionContract,
+) -> String {
+  @check_environment.model_task_connector(
+    @check_environment.model_execution_task(execution),
+  )
+}
+
+///|
+#export_name("clientProgramInferModelDependencyIssueKind")
+pub fn client_program_infer_model_dependency_issue_kind(
+  issue : @check_environment.ModelDependencyIssue,
+) -> String {
+  match issue {
+    @check_environment.Missing(_) => "missing_body"
+    @check_environment.UnsupportedPolicy(_) => "unsupported_policy"
+    @check_environment.Body(_, failure) =>
+      match failure.kind {
+        @check_environment.IdentityMismatch => "identity_mismatch"
+        @check_environment.InvalidBody => "invalid_body"
+        @check_environment.BodyLimit | @check_environment.WorkLimit => "limit"
+        _ => "invalid_dependency"
+      }
+  }
+}
+
+///|
+/// Provider registration supplies the interpretation; common owners bind it
+/// to the selected Task and dependencies before Run or physical dispatch.
+#export_name("clientProgramAdmitModelProvider")
+pub fn client_program_admit_model_provider(
+  provider : @model.ModelProvider,
+  execution : @check_environment.ModelExecutionContract,
+  dependencies : @check_environment.SingleAttemptModelDependencies,
+  validate : (String, String, String) -> Bool,
+) -> Result[@model.AdmittedModelProvider, @model.ModelProviderAdmissionIssue] {
+  @model.admit_model_provider(provider, execution, dependencies, (task, prompt) => {
+    let writer = @encode.writer(100000, 10000, 100) catch { _ => return false }
+    let emitted = @check_environment.emit_model_prompt_payload(prompt, writer) catch {
+      _ => return false
+    }
+    if !emitted {
+      return false
+    }
+    let wire = @encode.finish(writer) catch { _ => return false }
+    let (_, _, task_cid) = @check_environment.model_task_identity(task)
+    validate(task_cid, @check_environment.model_task_model_selector(task), wire)
+  })
+}
+
+///|
+#export_name("clientProgramModelProviderAdmissionIssueKind")
+pub fn client_program_model_provider_admission_issue_kind(
+  issue : @model.ModelProviderAdmissionIssue,
+) -> String {
+  match issue {
+    @model.ForeignDependencies => "foreign_dependencies"
+    @model.ForeignProvider => "foreign_provider"
+    @model.UnsupportedPrompt => "unsupported_prompt"
+  }
+}
+
+///|
+#export_name("clientProgramAdmittedModelProvider")
+pub fn client_program_admitted_model_provider(
+  value : @model.AdmittedModelProvider,
+  execution : @check_environment.ModelExecutionContract,
+) -> @model.ModelProvider? {
+  @model.admitted_model_provider_for(value, execution)
+}
+
+///|
 /// The graph binds references but does not authorize a Run or a model call.
 #export_name("clientProgramInferPlanGraph")
 pub fn client_program_infer_plan_graph(

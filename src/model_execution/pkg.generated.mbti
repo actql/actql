@@ -17,6 +17,10 @@ pub fn acquire_model_outcomes(ModelExecution) -> ModelOutcomeRead?
 
 pub fn acquire_verified_model_capture(ModelExecution) -> VerifiedModelCapture?
 
+pub fn admit_model_provider(ModelProvider, @check_environment.ModelExecutionContract, @check_environment.SingleAttemptModelDependencies, (@check_environment.ModelTaskContract, @check_environment.ModelDependency) -> Bool) -> Result[AdmittedModelProvider, ModelProviderAdmissionIssue]
+
+pub fn admitted_model_provider_for(AdmittedModelProvider, @check_environment.ModelExecutionContract) -> ModelProvider?
+
 pub fn advance_model_capture_export(ModelCaptureExport, Int) -> Result[(Bool, String, Int64), ModelExecutionIssue]
 
 pub fn advance_model_execution(ModelExecution, Int) -> Result[ModelObservation, ModelExecutionIssue]
@@ -144,6 +148,12 @@ pub fn verify_model_execution_attempt_evidence(ModelExecution, Int, @run_publica
 // Errors
 
 // Types and methods
+pub struct AdmittedModelProvider {
+  provider : ModelProvider
+  execution : @check_environment.ModelExecutionContract
+  dependencies : @check_environment.SingleAttemptModelDependencies
+}
+
 type CaptureExportState
 
 pub struct ModelAttemptEvidence {
@@ -252,6 +262,12 @@ pub(all) struct ModelProvider {
   invoke : (ModelRequest) -> Result[ModelResponse, ModelProviderFailure]
   provider_id : String
 }
+
+pub(all) enum ModelProviderAdmissionIssue {
+  ForeignDependencies
+  ForeignProvider
+  UnsupportedPrompt
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ModelProviderFailure {
   RateLimit

@@ -1452,6 +1452,63 @@ preimage. The schema field is optional only because non-INFER observations
 share that envelope. Capture integrity and custody do not confer dispatch or
 publication authority.
 
+<a id="model-dependencies"></a>
+
+### Model dependency bodies
+
+<!-- requirement-block: model-dependencies.envelope -->
+Each Model prompt, retry policy or backoff dependency MUST be a closed 0.1
+envelope with exactly `version`, its role-specific value, and `self_cid`.
+Prompt uses `version: "actql-model-prompt/0.1"` and `payload`, an arbitrary
+canonical JSON value; retry uses `version: "actql-model-retry-policy/0.1"`
+and `retryable_failures`; backoff uses `version: "actql-model-backoff/0.1"`
+and `delays_ms`. Unknown fields and versions are invalid. Parsing, canonical
+validation and semantic inspection have finite byte, node, depth and work
+bounds; admission does not repair a noncanonical supplied encoding.
+
+<!-- requirement-block: model-dependencies.identity -->
+Admission MUST match the referenced CID, the body's `self_cid`, and SHA-256
+over canonical JSON UTF-8 excluding only that root `self_cid` member.
+Nested members with the same name remain ordinary payload data. The checked
+ModelTask supplies the prompt reference; the checked ModelExecutionContract
+supplies retry and backoff references. A body from another role or contract
+does not substitute, even when another caller supplies its matching hash.
+
+<!-- requirement-block: model-dependencies.prompt-provider -->
+Before dispatch, the registered provider MUST validate the admitted prompt
+payload's supported shape and meaning against the selected provider and exact
+checked ModelTask. Canonical JSON integrity alone is not executability.
+Payload interpretation belongs to that provider, not a new Frontend syntax.
+This validation neither grants authority nor replaces current account,
+classification, region, attachment and physical-capacity admission.
+
+<!-- requirement-block: model-dependencies.retry-order -->
+`retryable_failures` MUST contain a duplicate-free subset of `rate_limit`,
+`timeout`, `provider_error`, in precisely that relative order.
+An empty list permits no retries. Refusal, schema invalidity, safety rejection
+and truncation are not members of this policy's eligible classes.
+
+<!-- requirement-block: model-dependencies.retry-owner -->
+A retry decision MUST use the common owner's classified failure and current
+admission, never an HTTP status alone or a provider-text guess.
+The execution contract's attempt and total ceilings remain upper bounds, not
+a requirement to spend every permitted attempt.
+
+<!-- requirement-block: model-dependencies.backoff -->
+`delays_ms` MUST be an ordered array of nonnegative safe integers.
+Element `i` is the delay between attempt `i + 1` and attempt `i + 2`, with
+zero-based indexing; zero means no additional delay, not an unbounded poll.
+The list does not grant retry eligibility or widen any duration ceiling.
+
+<!-- requirement-block: model-dependencies.single-attempt -->
+The initial installed single-attempt profile MUST accept only empty retry
+and backoff lists and reject a nonempty supported-policy body with a typed
+unsupported-policy cause before Run admission and provider access.
+Malformed bodies remain invalid, rather than being reclassified as an
+implementation limitation. This profile does not narrow the language's
+contract-bounded retry semantics. Unknown outcomes retain accounting and
+capture responsibility; replay cannot silently invoke the provider again.
+
 <a id="model-attempt-evidence"></a>
 
 ### Model attempt evidence
@@ -1799,6 +1856,9 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_input_artifact sha256:86e9e2c7b59634e8235b80a12b241a26f4f32f913dd30064aed36dfaecaf318c
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_input_key sha256:103b8c1515bb65f7ccd9f6963d798fcd20ce598cb7b266e09f2b32fac5831af0
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_call_slot sha256:a83e0af3e07986b5655463e0d39da3eb6c74cbefb327e65525de4be0035eac2b
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_prompt sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_retry_policy sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_backoff sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_dispatch_authority sha256:b00aae86b12bae22d8ef3f62d98d1a192fa9253371407fde016fc23a28117d09
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_call_attempt sha256:c80b4873ed75130e12006eb5f00154d77b74a85394eb1a7dbf517078d4db2741
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_attempt_accounting sha256:64060e2b23925f0d7be708240f504df312f7e46706e2a5fefd7c46d8d421430f
