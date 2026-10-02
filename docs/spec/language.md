@@ -5258,6 +5258,15 @@ columns, including key columns. An explicit empty label list has no labels.
 Property aliases remain property mappings, never semantic label roles.
 Conflicting aliases, unknown columns and incomplete types reject admission.
 
+Property value types are compatible across all definitions under a
+case-insensitive property name, even when labels differ or one definition is
+a node and the other an edge. Nullability remains declaration-local rather
+than making otherwise compatible value types conflict. Independently, a
+shared case-insensitive label must expose a compatible complete property set
+across both node and edge definitions. Construction and external snapshot
+admission enforce both obligations; neither label separation nor absent rows
+can bypass them.
+
 Identity is the admitted constructor-definition domain, element definition
 name, ordered semantic key types and complete non-null key tuple. Edge keys
 are independent of endpoints: different keys retain parallel edges and

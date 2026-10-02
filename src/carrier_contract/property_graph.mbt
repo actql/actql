@@ -36,6 +36,7 @@ pub(all) enum PropertyGraphIssue {
   DuplicateDefinition
   UnknownEndpointDefinition
   LabelPropertyConflict
+  PropertyTypeConflict
   LimitExceeded
   InvalidDomain
 } derive(Eq, Debug)
@@ -334,10 +335,10 @@ pub fn property_graph_usage(
       return Err(UnknownEndpointDefinition)
     }
   }
-  // A repeated label has one compatible exposed property schema. Node and
-  // edge label namespaces are checked separately.
+  // One label namespace spans both element families. Its exposed property set
+  // is a separate obligation from graph-wide value-type compatibility below.
+  let known : Map[String, Knowledge] = Map([])
   for kind in 0..<2 {
-    let known : Map[String, Knowledge] = Map([])
     let selected = if kind == 0 {
       nodes
     } else {
@@ -389,6 +390,44 @@ pub fn property_graph_usage(
               }
             }
           }
+        }
+      }
+    }
+  }
+  // Property names have graph-wide value types, even under different labels.
+  // Joining checks existing value compatibility without replacing any
+  // definition's declared nullability or creating a homogeneous Graph schema.
+  let property_types : Map[String, @value.Contract] = Map([])
+  for kind in 0..<2 {
+    let selected = if kind == 0 {
+      nodes
+    } else {
+      edges.map(edge => edge.element)
+    }
+    for definition in selected {
+      for index in 0..<field_count(definition.properties) {
+        if work == 0 {
+          return Err(LimitExceeded)
+        }
+        work -= 1
+        let field = field_at(definition.properties, index).unwrap()
+        let folded = property_name_key(@row.reference_name(field.name))
+        let contract = field.contract.unwrap()
+        match property_types.get(folded) {
+          None => property_types[folded] = contract
+          Some(previous) =>
+            try {
+              let (joined, used) = @value.join_nullability_usage(
+                previous, contract, work,
+              )
+              work -= used
+              guard joined is Some(joined) else {
+                return Err(PropertyTypeConflict)
+              }
+              property_types[folded] = joined
+            } catch {
+              _ => return Err(LimitExceeded)
+            }
         }
       }
     }

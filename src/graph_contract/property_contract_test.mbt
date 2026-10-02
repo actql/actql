@@ -6,6 +6,44 @@ fn property_body() -> String {
 }
 
 ///|
+test "external Property Graph admission checks graph wide types and shared node edge label sets" {
+  let wrong_type = property_body().replace(
+    old="\"properties\":{}",
+    new="\"properties\":{\"NAME\":{\"nullable\":false,\"type\":\"number\"}}",
+  )
+  assert_true(
+    @graph_contract.read_property_graph_cursor(read_source(wrong_type), caps())
+    is Err(InvalidStructure),
+  )
+  let wrong_label = property_body()
+    .replace(
+      old="\"labels\":{\"R\":[]}",
+      new="\"labels\":{\"NODE\":[\"NAME\",\"score\"]}",
+    )
+    .replace(
+      old="\"properties\":{}",
+      new="\"properties\":{\"NAME\":{\"nullable\":false,\"type\":\"string\"},\"score\":{\"nullable\":false,\"type\":\"number\"}}",
+    )
+  assert_true(
+    @graph_contract.read_property_graph_cursor(read_source(wrong_label), caps())
+    is Err(InvalidStructure),
+  )
+  let compatible = property_body()
+    .replace(
+      old="\"labels\":{\"R\":[]}",
+      new="\"labels\":{\"NODE\":[\"NAME\"]}",
+    )
+    .replace(
+      old="\"properties\":{}",
+      new="\"properties\":{\"NAME\":{\"nullable\":false,\"type\":\"string\"}}",
+    )
+  assert_true(
+    @graph_contract.read_property_graph_cursor(read_source(compatible), caps())
+    is Ok(_),
+  )
+}
+
+///|
 test "separate property graph contract preserves an independently authored body and CID" {
   let read = @graph_contract.read_property_graph_cursor(
     read_source(property_body()),
