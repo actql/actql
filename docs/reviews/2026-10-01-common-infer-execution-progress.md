@@ -2034,7 +2034,13 @@ The installed public fixture passes 25 tests; four focused dispatch-owner,
 stop and failure-cleanup regressions also pass. The attempt inventory API
 passes seven related tests on each of JS, Wasm and native, including a
 cancelled dispatched attempt and an admission refusal without a call.
-Public cancellation before accepted completion still needs its own retained
-evidence assertion. Abrupt process loss before persistence remains an unknown
+The public cancellation fixture now waits for a Continue boundary after the
+actual provider call, sends `run.cancel()` through HTTPS, and requires a
+cancelled Run without a Result. After Host shutdown and encrypted Store
+reopen, input/output usage remains 1/2 and the common outcome is `cancelled`.
+The provider count remains one. This observes a real execution boundary,
+not a fixed sleep or cancellation before dispatch.
+
+Abrupt process loss before persistence remains an unknown
 response with no automatic redispatch; these tests do not claim to recover
 usage that was never saved.

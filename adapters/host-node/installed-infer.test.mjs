@@ -242,7 +242,7 @@ async function installedDependencyConfiguration(variant) {
 }
 
 for (const boundary of ['success', 'private-write-failure',
-  'usage-overflow', 'usage-overflow-write-failure',
+  'usage-overflow', 'usage-overflow-write-failure', 'cancel-after-dispatch',
   'observation-step-failure', 'observation-complete-failure',
   'cancel-before-publication', 'restart-after-capture', 'restart-before-capture']) {
 test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
@@ -252,9 +252,12 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
     let failedWrite = false;
     let failedObservation = false;
     let observationSteps = 0;
+    let cancelledDuringExecution = false;
     const injectedFailure = boundary.endsWith('-failure');
     const restarting = boundary.startsWith('restart-');
-    const failedBeforeCapture = boundary.startsWith('usage-overflow');
+    const cancelledBeforeCapture = boundary === 'cancel-after-dispatch';
+    const failedBeforeCapture = boundary.startsWith('usage-overflow') ||
+      cancelledBeforeCapture;
     let run;
     let started;
     const startedRun = new Promise(resolve => { started = resolve; });
@@ -268,6 +271,12 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
         operation: {all: true}, exclusions: []}],
     })};
     authorization.faultInjection = async (name, detail) => {
+      if (cancelledBeforeCapture && !cancelledDuringExecution && calls === 1 &&
+          name === 'infer_execution_advanced') {
+        cancelledDuringExecution = true;
+        await startedRun;
+        await run.cancel();
+      }
       if (name === 'infer_observation_advanced') {
         observationSteps++;
         if (!failedObservation &&
@@ -387,7 +396,9 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
       }
       const successful = boundary === 'success' || boundary === 'restart-after-capture';
       assert.equal(terminal.status, successful
-        ? 'succeeded' : injectedFailure || failedBeforeCapture ? 'failed' : 'cancelled');
+        ? 'succeeded' : cancelledBeforeCapture ? 'cancelled' :
+          injectedFailure || failedBeforeCapture ? 'failed' : 'cancelled');
+      assert.equal(cancelledDuringExecution, cancelledBeforeCapture);
       assert.equal(failedWrite, boundary === 'private-write-failure' ||
         boundary === 'usage-overflow-write-failure');
       assert.equal(failedObservation, boundary.startsWith('observation-'));
@@ -446,13 +457,15 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
                 holdingCid)));
             if (role === 'model_attempt_accounting') {
               assert.equal(body.input_tokens, 1);
-              assert.equal(body.output_tokens, 1000);
+              assert.equal(body.output_tokens, cancelledBeforeCapture ? 2 : 1000);
               assert.equal(body.cost_units, null);
               assert.equal(body.duration_ms, null);
               assert.ok(body.cumulative_work > 0);
             } else {
-              assert.equal(body.category, 'contract_violation');
-              assert.equal(body.failure, 'budget_exceeded');
+              assert.equal(body.category, cancelledBeforeCapture ? 'cancelled' :
+                'contract_violation');
+              assert.equal(body.failure, cancelledBeforeCapture ? 'cancelled' :
+                'budget_exceeded');
             }
           }
         } finally { await evidenceStore.close(); }

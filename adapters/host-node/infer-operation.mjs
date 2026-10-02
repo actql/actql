@@ -12,7 +12,7 @@ const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
 // Exactly one physical provider or already Store-confirmed saved read is used.
 export function openNodeInferOperation({moon, preparedProgram, step, graph,
   registry, values, provider, savedCapture, savedSlots, quantityCapacity,
-  physicalPreflight, egressAdmission, signal, quantum = 256}) {
+  physicalPreflight, egressAdmission, signal, quantum = 256, observeProgress}) {
   if (!Number.isSafeInteger(quantum) || quantum < 1 || quantum > 2147483647 ||
       [provider, savedCapture, savedSlots].filter(value => value !== undefined)
         .length !== 1) {
@@ -118,6 +118,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
           {code: 'InferExecutionStopped'});
       }
       if (kind !== 'continue') throw new Error('InvalidInferExecutionPoll');
+      await observeProgress?.();
       // A macrotask delivers timer/I/O cancellation; a resolved Promise does
       // not. MoonBit owns work, progress, phase changes and safe stop checks.
       await yieldEventLoop();
