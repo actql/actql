@@ -22,6 +22,10 @@ const joinOnly = process.env.ACTQL_TEST_JOIN_ORDER_ONLY === '1';
 const compositionOnly = process.env.ACTQL_TEST_QUERY_COMPOSITION_ONLY === '1';
 const resultOnly = process.env.ACTQL_TEST_PIPE_RESULT_ONLY === '1';
 const graphSourceOnly = process.env.ACTQL_TEST_PROPERTY_GRAPH_SOURCE_ONLY === '1';
+const selectedQueryMode = process.env.ACTQL_TEST_QUERY_MODE ?? 'both';
+if (!['local', 'http', 'both'].includes(selectedQueryMode)) {
+  throw new TypeError('InvalidPackedQueryMode');
+}
 const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || inferOnly || joinOnly || sourceFreeOnly || compositionOnly || resultOnly || graphSourceOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const scope = JSON.parse(await readFile('pipe-scope-cases.json', 'utf8'));
@@ -225,6 +229,7 @@ const retainedStrings = {};
 const recordString = mode => item => {
   if (item.name === 'exact-string-values') retainedStrings[mode] = item;
 };
+if (selectedQueryMode !== 'http') {
 await exercisePublicQueryInput(connect, {mode: 'local', owner: 'local',
   durability: 'durable', installation: {directory: resolve('local-state'),
     sourceProfilePath}}, {requestPrefix: 'packed-local',
@@ -235,6 +240,7 @@ console.log('packed raw SQL/Pipe Embedded Local acceptance passed');
 await exerciseSga('local', {ACTQL_LOCAL_STATE_DIR: resolve('sga-local-state'),
   ACTQL_TEST_LOCAL_SOURCE_PROFILE: sourceProfilePath});
 if (!scopeOnly) assert.equal(observe('sga-local-state')().acceptedRuns, expectedSgaRuns);
+}
 const beforeRemote = sourceIo;
 const host = await openInstalledRemoteHttpHost({
   directory: resolve('remote-state'), sourceProfilePath,
@@ -245,6 +251,7 @@ const server = createServer({key: await readFile('remote.key'),
   cert: await readFile('remote.crt')}, host.handler);
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 try {
+  if (selectedQueryMode !== 'local') {
   await exercisePublicQueryInput(connect, {mode: 'remote',
     endpoint: `https://127.0.0.1:${server.address().port}/`,
     token: 'fixture-token', durability: 'durable'},
@@ -261,6 +268,7 @@ try {
   assert.equal(afterSga.acceptedRuns - beforeSga.acceptedRuns,
     scopeOnly ? 0 : expectedSgaRuns);
   assert.equal(afterSga.sourceIo, beforeSga.sourceIo);
+  }
 } finally {
   server.closeAllConnections();
   await new Promise(resolve => server.close(resolve));

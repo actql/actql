@@ -9,6 +9,11 @@ import {packedClientPackage, packedNpmCache} from './packed-client-packages.mjs'
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const scratch = join(repository, '..', '.codex-scratch');
+const selectedMode = process.argv.indexOf('--mode');
+const mode = selectedMode < 0 ? 'both' : process.argv[selectedMode + 1];
+if (!['local', 'http', 'both'].includes(mode)) {
+  throw new TypeError('InvalidPackedQueryMode');
+}
 const revision = spawnSync('git', ['rev-parse', 'HEAD'], {cwd: repository,
   encoding: 'utf8'});
 if (revision.status !== 0) throw new Error('PackedQueryRevisionUnavailable');
@@ -67,6 +72,7 @@ run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
   '-subj', '/CN=localhost',
   '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1']);
 const runtimeEnvironment = {...environment,
+  ACTQL_TEST_QUERY_MODE: mode,
   PATH: `${dirname(process.execPath)}:/usr/bin:/bin`,
   NODE_EXTRA_CA_CERTS: join(root, 'remote.crt')};
 const selectedCase = process.argv.indexOf('--case');
