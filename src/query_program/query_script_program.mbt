@@ -40,6 +40,7 @@ fn lower_script_relation(
   steps : Array[@builder.Node],
   reserved : Array[String],
   output : String,
+  retained? : Array[RetainedResult]? = None,
 ) -> Input raise Abort {
   if @query.graph_query(query) is Some(_) {
     raise Abort(UnsupportedGraph)
@@ -78,6 +79,7 @@ fn lower_script_relation(
     0,
     false,
     output,
+    retained~,
   )
   steps.append(body)
   let name = if body.is_empty() { input.name } else { output }
@@ -93,7 +95,7 @@ fn lower_script_relation(
 ///|
 // Compose producer references in one existing pipeline. DATA does not add
 // Stage Results, Artifact boundaries or physical task requests.
-fn compile_query_script(
+pub fn compile_query_script(
   script : @query.QueryScript,
   context : Context,
   limits : Limits,
@@ -115,6 +117,7 @@ fn compile_query_script(
   try {
     let steps : Array[@builder.Node] = []
     let mut known = context.inputs.copy()
+    let mut graphs : Array[ScriptGraph] = []
     let reserved = known.map(input => input.name)
     for index in 0..<@query.data_declaration_count(script) {
       let declaration = @query.data_declaration_at(script, index).unwrap()
@@ -132,50 +135,79 @@ fn compile_query_script(
             same_name(input.relation[0], declaration.name))
           })
           known.push({ ..bound, relation: [declaration.name], })
+          graphs = graphs.filter(graph => {
+            !same_name(graph.name, declaration.name)
+          })
         }
         PropertyGraph(mapping) => {
           steps.push(
             lower_property_graph_step(construction, mapping, known, output),
           )
-          // Graph-query consumer adaptation follows this mapping boundary.
-          // A Graph is never masqueraded as a Relation binding.
-          raise Abort(UnsupportedGraph)
+          graphs = graphs.filter(graph => {
+            !same_name(graph.name, declaration.name)
+          })
+          graphs.push({
+            name: declaration.name,
+            producer: output,
+            mapping,
+            inputs: known.copy(),
+          })
+          // A Graph has its own Carrier, never a fabricated Relation binding.
+          known = known.filter(input => {
+            !(input.relation.length() == 1 &&
+            same_name(input.relation[0], declaration.name))
+          })
         }
       }
     }
-    let result = lower_script_relation(
-      construction,
-      @query.script_query(script),
-      known,
-      context,
-      limits,
-      steps,
-      reserved,
-      "aql_script_result",
-    )
+    let retained : Array[RetainedResult] = []
+    let query = @query.script_query(script)
+    let result = if @query.graph_query(query) is Some(_) {
+      lower_script_keyed_graph_query(
+        construction, query, graphs, limits, steps, reserved, "aql_script_result",
+        retained,
+      )
+    } else {
+      lower_script_relation(
+        construction,
+        query,
+        known,
+        context,
+        limits,
+        steps,
+        reserved,
+        "aql_script_result",
+        retained=Some(retained),
+      )
+    }
     let stage = construction.object([
       ("id", construction.text(context.stage_id)),
       ("inputs", construction.object([])),
       ("steps", construction.array(steps)),
       (
         "results",
-        construction.object([
-          (
-            context.stage_result,
-            construction.object([
-              ("from", construction.text(result.name)),
-              (
-                "fields",
-                construction.array(
-                  result.visible_fields.map(field => construction.text(field)),
-                ),
+        retained_stage_results(
+          construction,
+          context.stage_result,
+          construction.object([
+            ("from", construction.text(result.name)),
+            (
+              "fields",
+              construction.array(
+                result.visible_fields.map(field => construction.text(field)),
               ),
-            ]),
-          ),
-        ]),
+            ),
+          ]),
+          retained,
+        ),
       ),
     ])
-    let root = program_root(construction, context, [stage])
+    let root = program_root(
+      construction,
+      context,
+      [stage],
+      result_exports=retained_result_exports(context, retained),
+    )
     let source = match @builder.finish(builder, root) {
       Ok(source) => source
       Err(issue) => raise Abort(Construction(issue))

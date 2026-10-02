@@ -13,6 +13,8 @@ import {
 // Values
 pub fn compile(@query_syntax.Query, Context, Limits) -> Result[@stage_syntax.Program, Issue]
 
+pub fn compile_query_script(@query_syntax.QueryScript, Context, Limits) -> Result[@stage_syntax.Program, Issue]
+
 pub fn same_relation_path(Array[@query_syntax.NamePart], Array[@query_syntax.NamePart]) -> Bool
 
 // Errors
@@ -40,6 +42,7 @@ pub(all) struct GraphBinding {
 
 pub(all) enum GraphBindingKind {
   Node
+  PropertyNode(String)
   Edge
   Path
 }
