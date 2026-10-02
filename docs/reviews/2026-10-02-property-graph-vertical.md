@@ -315,12 +315,16 @@ these were corrected to test the actual current contract and distinguish
 incomplete Graph input from an unsupported operation. No relaxed legacy
 fallback was used to pass them.
 
-Three-target interface generation has completed; shared Graph interfaces do
-not diverge. The official tracked-interface check is still to be run after the
-generated interfaces are committed. The current Relation pipeline foundation
+Three-target interface generation and the official tracked-interface check
+passed after commit `172ec7378`. Shared Graph interfaces do not diverge.
+The current Relation pipeline foundation
 explicitly records the integrated `dfb1c51318a7faa306548c213bf1888d92ff7fce`
 source and its added Graph acceptance commands. The immutable historical #148
-baseline and its oracle digests are unchanged. This provenance update does not
+baseline and its oracle digests are restored byte-for-byte. The first foundation
+check exposed a prior #164 edit of the historical baseline; that edit is removed
+rather than updating the historical expectation or bypassing the guard. The
+rerun passed **28/28**, including all mutation/refusal tests and the actual
+repository reference. This provenance update does not
 extend the conditional Relation theorem to Property Graph providers.
 
 Full Core, spec, fresh packed public snapshot acceptance and required CI have

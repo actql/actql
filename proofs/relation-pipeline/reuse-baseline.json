@@ -1,12 +1,12 @@
 {
   "version": "actql-relation-pipeline-reuse-baseline/0.1",
-  "revision": "5cbe43c7bb251da0ea7d85affaa5f6916b3397ed",
+  "revision": "fe0dbb424792ba7ccd4ae5517a74530b56a15f3c",
   "comparison": "existing whole-row distinct registration; initial frozen rename experiment and subsequent upstream integration are separate",
   "common": {
     ".github/workflows/ci.yml": "60b5752abc492be508fcf7a6bb2acd944b3883443bd100b82ea422c713c93d61",
     "moon.mod": "25a486222e1c9dc52d6a64e8e0ecc52ba7f9aa9e8c0c7d2d1bdc82bfa37689b9",
     "package-lock.json": "a642fafc496ba9288c8ce4ca0fa68b6c934fff413046f191f06aefec49b7167d",
-    "package.json": "1d54308872396fddbe2fb61c3049cf89240ef45c9b03ff15d83f4f04bc858dfd",
+    "package.json": "78c15ac34fbe375959bf166c3d236ce06a2a6a0d4d2f4b2d7f7f094e844a8a15",
     "proofs/bounded-session/Claims.lean": "70084213e510d49a17797e52509c8e2b3b0d5231519322665f686ba1f151fdd1",
     "proofs/bounded-session/README.md": "0d26b308eca8fa79d75b8faa658e52f0a9390f394fd6cbb827fcb5d11e7f6b30",
     "proofs/bounded-session/Session.lean": "d5a9f5e62e5a360b52d5cf0d886f6832c38a00088737c3378b01dff6b6b1a434",
@@ -101,17 +101,6 @@
     ],
     "unchangedFromOriginal": 53,
     "attribution": "upstream changes only; no generator, shrinking coordinator, oracle framework or common theorem changes by this registration"
-  },
-  "propertyGraphVerificationIntegration": {
-    "revision": "5cbe43c7bb251da0ea7d85affaa5f6916b3397ed",
-    "priorRevision": "fe0dbb424792ba7ccd4ae5517a74530b56a15f3c",
-    "path": "package.json",
-    "priorDigest": "78c15ac34fbe375959bf166c3d236ce06a2a6a0d4d2f4b2d7f7f094e844a8a15",
-    "integratedDigest": "1d54308872396fddbe2fb61c3049cf89240ef45c9b03ff15d83f4f04bc858dfd",
-    "unchangedCommonFiles": 56,
-    "change": "Add definition-keyed Property Graph registration, public Host and packed acceptance commands; no generator, oracle, mutation, theorem, audit implementation or checked pipeline obligation changes",
-    "reason": "CI run 36956692142 completed replay stages but correctly rejected the changed package.json at its final fixed-foundation audit",
-    "originalExperiment": "preserved unchanged; this integrated source is not the original no-common-change experiment"
   },
   "verificationCorrection": {
     "revision": "fe0dbb424792ba7ccd4ae5517a74530b56a15f3c",
