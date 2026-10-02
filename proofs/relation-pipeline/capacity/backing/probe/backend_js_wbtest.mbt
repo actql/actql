@@ -1,0 +1,4 @@
+///|
+fn backend() -> String {
+  "js"
+}
