@@ -215,7 +215,7 @@ if that policy is unavailable, required checks remain **unknown**.
 node scripts/ci-evidence.mjs actql/actql --pr PR_NUMBER
 node scripts/ci-evidence.mjs actql/actql-cloud --sha FULL_40_CHARACTER_SHA --json
 node scripts/ci-evidence.mjs actql/actql-cloud --sha FULL_40_CHARACTER_SHA --branch main
-node --test scripts/ci-evidence.test.mjs
+node --test scripts/ci-evidence.test.mjs scripts/ci-timing.test.mjs
 ```
 
 The text and JSON reports preserve each workflow run, event, source SHA and
@@ -258,6 +258,56 @@ evidence and diagnostics for automation. The helper only makes GET requests;
 it never reruns jobs, updates PRs, merges, deploys or prints authentication
 credentials or raw `gh` diagnostics. Offline tests use fixed response fixtures
 and a temporary fake `gh`, with no live network or credentials required.
+
+### Attempt-bound timing and explicit comparisons
+
+The same report now includes job and step execution durations, raw timestamps,
+runner labels and exact API endpoint/field boundaries in text and JSON. Run
+`created_at`, `run_started_at` and `updated_at` remain separate observations:
+`updated_at` is not a completion timestamp. Attempt execution is an **observed
+job wall span**, from the earliest executed job start to the latest completion,
+only when all non-skipped job intervals and the attempt are complete. Parallel
+jobs are never summed into elapsed time; no dependency critical path is claimed.
+The ten longest valid job and step execution intervals retain their source SHA,
+workflow, event, run, attempt, runner labels and actual outcomes.
+
+Job `created_at` to `started_at` and attempt start to job start are observed
+pre-start intervals. They can include dependencies and other waits; neither is
+proven runner queue time. Retry admission is unavailable, so the original run
+creation time is not used for a retry's pre-start duration. Missing, malformed,
+backwards, unfinished and skipped intervals are explicit unknowns, never zero.
+Running durations are not extrapolated to observation time or counted as
+completed samples. Missing steps and incomplete/API-denied evidence stay visible.
+Timing does not change check conclusions, retrieval exit semantics or readiness
+uncertainty, and cache state remains unknown.
+
+Select fixed run IDs instead of a PR/SHA to avoid moving discovery results. All
+attempts of those runs are still fetched; selecting a successful retry does not
+hide the earlier failed attempt. Statistics are opt-in with exact run:attempt
+pairs; unavailable selections are reported, not silently replaced:
+
+```sh
+node scripts/ci-evidence.mjs actql/actql --runs 36863741235,36874358135
+node scripts/ci-evidence.mjs actql/actql --runs 36863741235,36874358135 --compare 36863741235:1,36874358135:1 --json
+```
+
+Each comparison group gives selected count, completed sample count, omitted
+count/reasons, median and maximum seconds. Groups separate source SHA, workflow,
+event, attempt number, run/job/step outcomes, evidence/timing completeness and
+observed configuration (workflow identity, associated PR bases, job/step shape,
+runner labels/groups). Missing configuration and unobserved dispatch inputs
+isolate runs rather than pooling them. A matching observed group is not proof
+of identical checkout, runner image, resolved actions/dependencies or cache hits.
+Cross-revision results remain separate groups, with full source SHAs available
+for deliberate inspection. Skips, failures and cancellations are never relabelled
+as successful test evidence. `--compare` can also restrict a PR/SHA report's
+statistics without narrowing the original evidence report.
+
+The fixed OSS run IDs above are reproducible read-only examples, not speed
+acceptance targets. They have different source SHAs and are intentionally not
+pooled as equivalent samples. A full authenticated CLI fetch needs `gh` access;
+a saved API observation can be projected with the exported `collectEvidence`
+request adapter, but such a replay is not a fresh network/permission check.
 
 ## Updating specification metadata
 

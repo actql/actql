@@ -330,3 +330,16 @@ test('subprocess API failures preserve partial JSON, numeric HTTP errors and nev
   assert.ok(report.errors.some(item => item.message === 'gh API returned invalid JSON'));
   assert.doesNotMatch(result.stdout + result.stderr, /secret-test-token/u);
 });
+
+
+test('fixed-run CLI remains GET-only and keeps all attempts outside the selected comparison', t => {
+  const data = fixture();
+  data[`${prefix}/actions/runs/13`] = data[attemptPath(13, 2)];
+  const fake = fakeGh(t, data);
+  const result = fake.invoke(['--runs', '13', '--compare', '13:2', '--json']);
+  assert.equal(result.status, 0, result.stderr);
+  const report = JSON.parse(result.stdout);
+  assert.deepEqual(report.runs[0].attempts.map(attempt => attempt.conclusion), ['failure', 'success']);
+  assert.deepEqual(report.timing.comparison.selection, ['13:2']);
+  for (const args of fake.calls()) assert.equal(args[args.indexOf('--method') + 1], 'GET');
+});
