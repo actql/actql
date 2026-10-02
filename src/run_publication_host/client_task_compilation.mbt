@@ -5,6 +5,7 @@ pub struct ClientTaskCompilation {
   template : @publication.RunEvidenceValue
   compiled_plan : @publication.PublicationContract
   result_names : Array[String]
+  infer : ClientInferPlanGraph?
 }
 
 ///|
@@ -15,6 +16,7 @@ pub(all) enum ClientTaskCompilationIssue {
   Template(@publication.RunEvidenceValueIssue)
   CompiledPlan(@publication.PublicationContractIssue)
   Encoding
+  ForeignInferOwner
 }
 
 ///|
@@ -107,6 +109,7 @@ fn finish_client_task_compilation(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  infer? : ClientInferPlanGraph? = None,
 ) -> Result[ClientTaskCompilation, ClientTaskCompilationIssue] {
   guard parse_plan_identity_value(
       graph.wire,
@@ -117,10 +120,15 @@ fn finish_client_task_compilation(
     is Some(graph_value) else {
     return Err(Encoding)
   }
-  let aoa_logical_cid = @canonical.cid_value(
-    graph_value, max_wire_bytes, max_nodes, max_depth,
-  ) catch {
-    _ => return Err(Encoding)
+  let aoa_logical_cid = match infer {
+    // The model acquisition is not an AoA operation. The complete mixed
+    // graph, Result transformations and barrier are bound by the Executable
+    // Plan; the pure input computation retains its own AoA identity.
+    Some(value) => value.input_fragment_cid
+    None =>
+      @canonical.cid_value(graph_value, max_wire_bytes, max_nodes, max_depth) catch {
+        _ => return Err(Encoding)
+      }
   }
   let identity = prepared_client_identity(value)
   let body = "{\"version\":\"actql-compiled-plan/0.1\"," +
@@ -153,5 +161,14 @@ fn finish_client_task_compilation(
     }
     result_names.push(name)
   }
-  Ok({ owner: value, plan, template, compiled_plan, result_names, })
+  Ok({ owner: value, plan, template, compiled_plan, result_names, infer, })
+}
+
+///|
+/// Retain the exact checked model barrier, not a caller-supplied selector or
+/// a replacement Program owner. This is compilation material only.
+pub fn client_task_compilation_infer(
+  value : ClientTaskCompilation,
+) -> ClientInferPlanGraph? {
+  value.infer
 }

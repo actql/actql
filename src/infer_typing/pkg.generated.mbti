@@ -1,0 +1,72 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/infer_typing"
+
+import {
+  "actql/actql/carrier_contract",
+  "actql/actql/check_environment",
+  "actql/actql/decode_core",
+  "actql/actql/parameter_binding",
+  "actql/actql/relation_evidence",
+  "actql/actql/relation_schema",
+  "actql/actql/relation_typing",
+}
+
+// Values
+pub fn check(@decode_core.Cursor, @carrier_contract.Carrier, @relation_evidence.KeySet?, @check_environment.ModelTasks, @parameter_binding.Declarations?, @relation_evidence.InferLimits) -> Result[@relation_evidence.CheckedInfer, @relation_evidence.InferIssue]
+
+pub fn input_binding_at(@relation_evidence.CheckedInfer, Int) -> @relation_evidence.InferInputBinding?
+
+pub fn input_binding_count(@relation_evidence.CheckedInfer) -> Int
+
+pub fn input_binding_role(@relation_evidence.InferInputBinding) -> String
+
+pub fn input_records(@relation_evidence.CheckedInfer) -> @carrier_contract.Knowledge
+
+pub fn input_schema(@relation_evidence.CheckedInfer) -> @relation_schema.Schema
+
+pub fn key_at(@relation_evidence.CheckedInfer, Int) -> @relation_evidence.InferKeyBinding?
+
+pub fn key_count(@relation_evidence.CheckedInfer) -> Int
+
+pub fn key_witness(@relation_evidence.CheckedInfer) -> @relation_evidence.KeyedRelation
+
+pub fn max_items_guard(@relation_evidence.CheckedInfer) -> @relation_typing.CheckedCountValue?
+
+pub fn minimum_classification(@relation_evidence.CheckedInfer) -> @check_environment.DataClassification?
+
+pub fn model_task(@relation_evidence.CheckedInfer) -> @check_environment.ModelTaskContract
+
+pub fn output_schema(@relation_evidence.CheckedInfer) -> @relation_schema.Schema
+
+pub fn parameters(@relation_evidence.CheckedInfer) -> @parameter_binding.Declarations?
+
+pub fn result_keys(@relation_evidence.CheckedInfer, @relation_evidence.TransferLimits) -> Result[@relation_evidence.KeySetTransfer, @relation_evidence.Issue]
+
+pub fn result_mode(@relation_evidence.CheckedInfer) -> @relation_evidence.InferResultMode
+
+pub fn source(@relation_evidence.CheckedInfer) -> @decode_core.Cursor
+
+pub fn usage(@relation_evidence.CheckedInfer) -> @relation_evidence.InferUsage
+
+// Errors
+
+// Types and methods
+
+// Type aliases
+pub using @relation_evidence {type CheckedInfer}
+
+pub using @relation_evidence {type InferInputBinding as InputBinding}
+
+pub using @relation_evidence {type InferIssue as Issue}
+
+pub using @relation_evidence {type InferIssueKind as IssueKind}
+
+pub using @relation_evidence {type InferKeyBinding as KeyBinding}
+
+pub using @relation_evidence {type InferLimits as Limits}
+
+pub using @relation_evidence {type InferResultMode as ResultMode}
+
+pub using @relation_evidence {type InferUsage as Usage}
+
+// Traits

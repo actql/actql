@@ -425,7 +425,37 @@ pub fn emit_prepared_client_task_pipeline(
     @lower.node_at(@lower.bound_preparation(owner), end_step) is Some(output) else {
     return Err(MissingOutput)
   }
-  let sequence = match @lower.prepare_sequence(owner, limits) {
+  emit_client_task_pipeline_prefix(
+    owner, end_step, output, selected, prefix_end, false, limits, max_wire_bytes,
+    max_nodes, max_depth,
+  )
+}
+
+///|
+/// The caller chooses a checked output before preparing pure computation.
+/// Acquisition steps after that output must not enter its AoA fragment.
+fn emit_client_task_pipeline_prefix(
+  owner : @lower.BoundPrepared,
+  end_step : Int,
+  output : @lower.PreparedNode,
+  selected : Int?,
+  prefix_end : Int?,
+  acquisition_prefix : Bool,
+  limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  infer_boundary? : Int? = None,
+) -> Result[String, ClientTaskPipelineIssue] {
+  let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
+  let prepared_sequence = if infer_boundary is Some(step) {
+    @lower.prepare_sequence_with_infer_boundary(owner, step, limits)
+  } else if acquisition_prefix {
+    @lower.prepare_sequence_prefix(owner, end_step, limits)
+  } else {
+    @lower.prepare_sequence(owner, limits)
+  }
+  let sequence = match prepared_sequence {
     Ok(value) => value
     Err(issue) => return Err(Sequence(issue))
   }
@@ -451,7 +481,12 @@ pub fn emit_prepared_client_task_pipeline(
     }
     @encode.end_object(writer)
     @encode.key(writer, "steps")
-    @lower.emit_sequence_steps(sequence, writer)
+    if infer_boundary is Some(_) {
+      guard selected is Some(step) else { return Err(Encoding) }
+      @lower.emit_sequence_step_range(sequence, step, step + 1, writer)
+    } else {
+      @lower.emit_sequence_steps(sequence, writer)
+    }
     @encode.key(writer, "version")
     @encode.string_value(writer, "aoa-pipeline/0.1")
     @encode.end_object(writer)
@@ -1109,6 +1144,7 @@ pub fn prepare_effect_free_client_program(
       owners,
       limits.max_tasks,
       limits.max_graph_work,
+      captured_prefix=client_program_acquisition_prefix(checked),
       source_free_root=owners.length() > 0 &&
         @pipeline.starts_with_values(
           @lower.pipeline(@lower.bound_preparation(owners[0])),
@@ -1121,5 +1157,30 @@ pub fn prepare_effect_free_client_program(
         source: parsed,
       })
     Err(issue) => Err(Graph(issue))
+  }
+}
+
+///|
+/// Infer only the admitted two-acquisition prefix from checked requests.
+/// The graph owner still validates independence, coverage, and topology.
+fn client_program_acquisition_prefix(program : @checked.CheckedProgram) -> Int {
+  if @checked.unit_count(program) < 3 {
+    return 1
+  }
+  let acquisitions = [0, 0]
+  for index in 0..<@checked.source_execution_count(program) {
+    let check = @checked.source_execution_at(program, index).unwrap()
+    let subject = @checked.source_execution_subject(check)
+    if subject.stage < 0 || subject.stage > 1 {
+      return 1
+    }
+    if @checked.source_execution_kind(check) is @checked.HostCombination {
+      acquisitions[subject.stage] += 1
+    }
+  }
+  if acquisitions == [1, 1] {
+    2
+  } else {
+    1
   }
 }

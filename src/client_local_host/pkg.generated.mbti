@@ -2,12 +2,16 @@
 package "actql/actql/client_local_host"
 
 import {
+  "actql/actql/connector_sdk",
   "actql/actql/connectors/duckdb/host",
   "actql/actql/connectors/local",
   "actql/actql/connectors/local/driver",
   "actql/actql/connectors_builtin",
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
+  "actql/actql/lowering_relation",
+  "actql/actql/physical_cost",
+  "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
   "actql/actql/query_planning",
   "actql/actql/run_publication_host",
@@ -15,6 +19,24 @@ import {
 }
 
 // Values
+pub fn advance_client_infer_input(ClientInferInputExecution, Int) -> Result[ClientInferInputPoll, ClientInferInputIssue]
+
+pub fn cancel_client_infer_input(ClientInferInputExecution) -> Bool
+
+pub fn cleanup_client_infer_input(ClientInferInputExecution) -> Result[Bool, ClientInferInputIssue]
+
+pub fn client_duckdb_acquisition_estimate(Array[Array[Int]], Array[Int64?], Array[Int64?]) -> Result[ClientDuckDBAcquisitionEstimate, ClientDuckDBAcquisitionIssue]
+
+pub fn client_duckdb_selection_broad(ClientDuckDBAcquisitionSelection) -> @host.BroadHostConfiguration?
+
+pub fn client_duckdb_selection_document(ClientDuckDBAcquisitionSelection) -> String
+
+pub fn client_duckdb_selection_native(ClientDuckDBAcquisitionSelection) -> @host.NativeHostConfiguration?
+
+pub fn client_infer_completed_input(ClientInferInputExecution) -> @execution_relation.CompletedOutput?
+
+pub fn client_infer_completion_preparation(ClientInferInputExecution, @execution_relation.PreparedInferRows) -> @execution_relation.CompletionPreparation?
+
 pub fn execute_source_free_values(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
 
 pub fn local_values_execution_failure_cleanup_pending(LocalValuesExecutionFailure) -> Bool
@@ -24,6 +46,8 @@ pub fn local_values_execution_failure_issue(LocalValuesExecutionFailure) -> Loca
 pub fn open_captured_local_host(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, String, String, Int64, Int64, Int64, Int64, fragment_body? : String?, ordered_body? : String?, provider_factory? : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
 pub fn open_captured_local_retained_host(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, String, String, Int64, Int64, Int64, Int64, fragment_body? : String?, ordered_body? : String?, provider_factory? : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
+
+pub fn open_multi_captured_local_host(@run_publication_host.PreparedClientProgram, Array[(Int, @execution_query.CapturedInputSource)], @physical_resources.Ledger, String, String, String?, String?, provider_factory? : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
 pub fn open_source_free_local_host(@run_publication_host.PreparedClientProgram, String, String, Int64, Int64, Int64, Int64, fragment_body? : String?, ordered_body? : String?, provider_factory? : (@execution_relation.ExecutionCapacity) -> Array[@local.ManagedProvider]) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
@@ -35,17 +59,34 @@ pub fn prepare_client_duckdb_broad_acquisition(@query_planning.QueryRequirement,
 
 pub fn prepare_client_effect_local_sequences(@run_publication_host.PreparedClientEffectComputation, String, String, String?, String?, task_count? : Int?) -> Array[@execution_relation.GeneratedSequence]?
 
+pub fn prepare_client_infer_prefix(@run_publication_host.PreparedClientProgram, Int, Int, String, String, fragment_body? : String?, ordered_body? : String?) -> @execution_relation.GeneratedSequence?
+
+pub fn prepare_client_infer_suffix(@run_publication_host.PreparedClientProgram, Int, String, String, fragment_body? : String?, ordered_body? : String?) -> @execution_relation.GeneratedSequence?
+
 pub fn prepare_client_local_sequences(@run_publication_host.PreparedClientProgram, String, String, String?, String?, task_count? : Int?) -> Array[@execution_relation.GeneratedSequence]?
 
 pub fn prepare_effect_local_query_requirement(@run_publication_host.PreparedClientEffectComputation, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, ClientLocalQueryIssue]
 
 pub fn prepare_local_query_requirement(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, ClientLocalQueryIssue]
 
+pub fn prepare_multi_captured_local_ledger(@run_publication_host.PreparedClientProgram, Array[@host.NativeHostConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
+
 pub fn retry_local_values_execution_failure_cleanup(LocalValuesExecutionFailure) -> Bool
+
+pub fn select_client_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String, String, String, ClientDuckDBAcquisitionEstimate, ClientDuckDBAcquisitionEstimate, host_priority? : Array[String]?) -> Result[ClientDuckDBAcquisitionSelection, ClientDuckDBAcquisitionIssue]
+
+pub fn start_client_infer_input(@run_publication_host.PreparedClientProgram, Int, Int, String, String, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.InferPreparationLimits, fragment_body? : String?, ordered_body? : String?) -> Result[ClientInferInputExecution, ClientInferInputIssue]
+
+pub fn start_client_infer_suffix(@execution_relation.GeneratedSequence, Array[@execution_relation.CompletedOutput], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> Result[@local.ManagedProviderExecution, ClientInferInputIssue]
 
 // Errors
 
 // Types and methods
+pub(all) struct ClientDuckDBAcquisitionEstimate {
+  estimates : Array[@physical_cost.SerialEstimateLine]
+  quantities : @connector_sdk.QueryQuantities
+}
+
 pub(all) enum ClientDuckDBAcquisitionIssue {
   InvalidSource
   InvalidContracts
@@ -53,6 +94,26 @@ pub(all) enum ClientDuckDBAcquisitionIssue {
   Registration
   Candidate
   Selection
+}
+
+type ClientDuckDBAcquisitionSelection
+
+type ClientInferInputExecution
+
+pub(all) enum ClientInferInputIssue {
+  UnsupportedProgram
+  InvalidLimits
+  Preparation(@lowering_relation.InferInputIssue)
+  Local(@connector_sdk.FixedComputeIssue)
+  Mapping(@execution_relation.InferPreparationIssue)
+  ProducerRead(@execution_relation.ProducerReadIssue)
+}
+
+pub enum ClientInferInputPoll {
+  Continue(work~ : Int64)
+  Complete(@execution_relation.PreparedInferRows, work~ : Int64)
+  Stopped(work~ : Int64)
+  Failed(ClientInferInputIssue, work~ : Int64)
 }
 
 pub(all) enum ClientLocalQueryIssue {

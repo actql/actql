@@ -1,0 +1,4 @@
+///|
+fn capacity_native_map_fields(_state : BoundedBindingRowsState) -> String {
+  ""
+}

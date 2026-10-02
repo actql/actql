@@ -38,7 +38,7 @@ test('observation overlays bind uniquely to real production sites without storin
   for (const path of Object.keys(replacements)) {
     const original = readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
     const changed = instrument(path, original);
-    assert(changed.includes('ACTQL_PIPELINE_FAULT:'));
+    assert(changed.includes(path.endsWith('moon.pkg') ? 'native-stub' : 'ACTQL_PIPELINE_FAULT:'));
     assert.throws(() => instrument(path, original + original));
   }
   const observer = readFileSync(new URL('./capacity/observer.mbt.txt', import.meta.url), 'utf8');

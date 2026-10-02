@@ -30,6 +30,8 @@ struct Ledger {
   mut delegated_planning : Int
   mut delegated_attempts : Int
   mut delegated_holdings : Int
+  mut quantity_limits : QuantityAmounts?
+  mut quantity_usage : QuantityUsage
 }
 
 ///|
@@ -41,6 +43,9 @@ struct Reservation {
   mut execution : Int64
   mut open : Bool
   mut cleanup_pending : Bool
+  mut quantities : QuantityAmounts?
+  mut uncertain_quantities : QuantityAmounts?
+  mut observed_quantities : (Bool, Bool, Bool)
 }
 
 ///|
@@ -65,6 +70,9 @@ pub(all) enum LedgerIssue {
   ClosedReservation
   ClosedHolding
   InvalidCharge
+  TokenLimit
+  CostLimit
+  DurationLimit
 } derive(Eq, Debug)
 
 ///|
@@ -82,6 +90,12 @@ pub fn create_ledger(limits : LedgerLimits) -> Result[Ledger, LedgerIssue] {
     delegated_planning: 0,
     delegated_attempts: 0,
     delegated_holdings: 0,
+    quantity_limits: None,
+    quantity_usage: {
+      reserved: zero_quantities(),
+      uncertain: zero_quantities(),
+      consumed: zero_quantities(),
+    },
     usage: {
       planning_work: 0,
       attempts: 0,
@@ -131,6 +145,7 @@ pub fn reserve_attempt(
   transfer_bytes : Int64,
   retained_bytes : Int64,
   execution_bytes : Int64,
+  quantities? : QuantityAmounts? = None,
 ) -> Result[Reservation, LedgerIssue] {
   if transfer_bytes < 0L || retained_bytes < 0L || execution_bytes < 0L {
     return Err(InvalidCharge)
@@ -154,6 +169,10 @@ pub fn reserve_attempt(
     ledger.limits.execution_bytes - u.reserved_execution_bytes {
     return Err(ExecutionLimit)
   }
+  match check_quantity_reservation(ledger, quantities) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   let retained = u.held_bytes + u.reserved_retention_bytes + retained_bytes
   ledger.usage = {
     ..u,
@@ -167,6 +186,12 @@ pub fn reserve_attempt(
       u.peak_retention_bytes
     },
   }
+  if quantities is Some(amount) {
+    ledger.quantity_usage = {
+      ..ledger.quantity_usage,
+      reserved: add_quantities(ledger.quantity_usage.reserved, amount),
+    }
+  }
   Ok({
     owner: ledger,
     serial: u.attempts,
@@ -175,6 +200,9 @@ pub fn reserve_attempt(
     execution: execution_bytes,
     open: true,
     cleanup_pending: false,
+    quantities,
+    uncertain_quantities: None,
+    observed_quantities: (false, false, false),
   })
 }
 
@@ -216,6 +244,35 @@ pub fn charge_transfer(
     ..u,
     transferred_bytes: u.transferred_bytes + bytes,
     reserved_transfer_bytes: u.reserved_transfer_bytes - bytes,
+  }
+  Ok(())
+}
+
+///|
+/// A dispatched operation has no confirmed byte observation. Preserve its
+/// reserved upper bound as uncertain usage even after physical cleanup. This
+/// is not an exact transfer charge or evidence that no request was sent.
+pub fn mark_transfer_uncertain(
+  ledger : Ledger,
+  reservation : Reservation,
+  bytes : Int64,
+) -> Result[Unit, LedgerIssue] {
+  match reservation_check(ledger, reservation) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if bytes < 0L {
+    return Err(InvalidCharge)
+  }
+  if bytes > reservation.transfer {
+    return Err(TransferLimit)
+  }
+  reservation.transfer -= bytes
+  let usage = ledger.usage
+  ledger.usage = {
+    ..usage,
+    uncertain_transfer_bytes: usage.uncertain_transfer_bytes + bytes,
+    reserved_transfer_bytes: usage.reserved_transfer_bytes - bytes,
   }
   Ok(())
 }
@@ -316,6 +373,13 @@ pub fn settle_reservation(
     reserved_transfer_bytes: u.reserved_transfer_bytes - reservation.transfer,
     reserved_retention_bytes: u.reserved_retention_bytes - reservation.retention,
     reserved_execution_bytes: u.reserved_execution_bytes - reservation.execution,
+  }
+  if reservation.quantities is Some(amount) {
+    ledger.quantity_usage = {
+      ..ledger.quantity_usage,
+      reserved: subtract_quantities(ledger.quantity_usage.reserved, amount),
+    }
+    reservation.quantities = None
   }
   reservation.open = false
   Ok(())

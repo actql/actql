@@ -3,6 +3,7 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {machineCid} from './actql-spec-family.mjs';
+import {verifyInferenceBarrierSchema} from './inference-barrier-contract.mjs';
 import {expectedCompilationManifests,
   verifyCompilationManifests} from './compilation-manifests.mjs';
 
@@ -100,4 +101,27 @@ test('pinned manifests close over their source contracts and exact schemas', () 
     expected.barrier);
   assert.deepEqual(read('spec/contracts/actql-compilation-manifests.json'),
     expected.contract);
+});
+
+test('inference barrier binds the existing model Plan and adjacent fragment', () => {
+  const {schema, cid} = verifyInferenceBarrierSchema();
+  const modelPlan = read('spec/contracts/actql-stage-contracts.json').schemas.inference_plan;
+  assert.equal(cid,
+    'sha256:34f1a37cbaea973964f4cf84ca3806b2492df545b718042ad8057604c95cb6dd');
+  assert.equal(schema.additionalProperties, false);
+  assert.deepEqual(new Set(schema.required), new Set([
+    ...modelPlan.required.filter(key => key !== 'self_cid'),
+    'input_fragment_cid', 'barrier_cid',
+  ]));
+  assert.ok(!Object.hasOwn(schema.properties, 'self_cid'));
+  for (const [name, property] of Object.entries(modelPlan.properties)) {
+    if (name !== 'version' && name !== 'self_cid') {
+      assert.deepEqual(schema.properties[name], property);
+    }
+  }
+  assert.deepEqual(schema.properties.version,
+    {const: 'actql-inference-barrier/0.1'});
+  const barrier = expectedCompilationManifests().barrier;
+  assert.deepEqual(barrier.contracts.find(entry => entry.name === 'inference_barrier'),
+    {name: 'inference_barrier', contract_cid: cid});
 });

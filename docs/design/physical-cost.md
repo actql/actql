@@ -69,3 +69,95 @@ Representation and evaluator choices remain separate from this accounting
 helper. The default row representation and the accepted evaluator/completion
 boundaries are unchanged. Their recorded performance limitations are not
 reclassified as a passed performance gate by adding a planner helper.
+
+## Installed DuckDB acquisition
+
+The installed Host connects two existing implementations for one checked
+`QueryRequirement`: DuckDB's native validation/query receipts, and a broad
+DuckDB receipt followed by the Local residual. They share one requirement and
+capability registry. The Host excludes a missing source capability contract or
+unsupported native compilation before calling `choose_acquisition_candidate`.
+The exact selected `PreparedAcquisition` is retained by the existing physical
+configuration; an equal name, requirement CID or recreated candidate cannot
+replace its payload. Execution failure never selects another implementation.
+
+Every `actql-installed-duckdb-source/0.1` profile now requires an explicit
+`acquisitionPlanning` field. There is no compatibility 10 ms estimate:
+
+- `{ "policy": "estimatedLatency", "candidates": { ... } }` supplies optional
+  evidence under the fixed `nativeQuery` and `broadQuery` keys. With two
+  eligible candidates, missing comparable durations produce `Deferred` and
+  no acquisition I/O. The diagnostic lists missing evidence, mismatched input
+  conditions and unknown/missing work-slot durations.
+- `{ "policy": "priority", "priority": ["nativeQuery", "broadQuery"] }`
+  explicitly requests that order among eligible candidates. The reversed
+  order is also valid. Both names occur exactly once. This profile contains
+  no latency evidence and the existing chooser reports `HostPreferred`,
+  never an estimated-fastest claim or an implicit missing-estimate fallback.
+- A sole eligible candidate requires no relative cost comparison. The Host
+  supplies the existing singleton priority when its duration is unknown and
+  reports `selectionBasis: "onlyEligible"`. Missing mandatory resource limits
+  still refuse the preparation; a sole candidate is not permission to run.
+
+A provided candidate-evidence object has exactly these fields:
+
+- `inputConditions`: `requirementCid` and `source`, whose `database`, `schema`,
+  `table` and `sourceRef` must equal the installed physical source exactly.
+  The requirement CID binds the checked request, parameter values, contracts
+  and logical guards. Physical source names are compared as exact strings,
+  not after canonical text normalization. Foreign conditions leave the
+  candidate's duration and quantities unknown.
+- `unit`: exactly `"milliseconds"`.
+- `basis`: nonempty Host-supplied provenance, at most 1024 characters. This is
+  an attributed estimate basis, not a claim that the Host measured or verified
+  the predicted latency.
+- `estimates`: the existing disjoint serial lines, spelled
+  `{ "workSlots": [...], "milliseconds": <integer or null> }`. Numeric values
+  are nonnegative safe integers. Missing slots or `null` remain unknown;
+  duplicate/out-of-range slots and malformed inputs are refused.
+- `quantities`: `transferBytes`, `retainedBytes` and `moneyUnits`, each a
+  nonnegative safe integer or `null`. They remain optional estimate facts,
+  separate from the latency score, physical receipts and required limits.
+
+The native work inventory is, in order: session/catalog, validation scan,
+validation transfer, validation admission, SQL filter/select, native transfer,
+native admission, demand measurement, observation capture, retention and
+cleanup (slots 0–10). Broad acquisition uses session/catalog, source scan,
+receipt transfer, receipt conversion, Local residual, observation capture,
+retention and cleanup (slots 0–7). A line spanning all slots is one bundled
+estimate, not a per-slot charge. An empty `candidates` object is a legitimate
+unknown estimate inventory, not a zero-cost assertion.
+
+Before comparison the installed adapter checks the current source-read gate
+and the existing mandatory transport/capacity limits. A delegated read keeps
+its structural preparation for the existing Checkpoint owner and postpones
+selection until resumed read authority is available. The provider rechecks
+current authority immediately before its session opens. No cost, capability
+or priority grants access or substitutes for a reservation or physical limit.
+The existing capacity allowances are unchanged and are not measured heap
+bounds. Preparation owns an immutable validated transport-limit snapshot;
+opening it with changed limits is refused before I/O, even when the caller
+mutated the original object. A different policy needs a fresh preparation.
+
+The existing Host diagnostic callback receives `acquisition_selection`, then
+the selected owner in `acquisition_started`, and the actual completed capture
+document in `acquisition_completed`. Candidate names identify these two
+realizations; comparison indices are local addresses, not new canonical
+identities. The checked requirement CID, exact live candidate custody and
+actual receipt/observation identities remain distinct. Int64 diagnostic
+durations and quantities use decimal strings; unknowns use `null`.
+
+The current public Local/HTTP submit-error envelope is code-only. It does not
+carry a structured `Deferred` outcome or the missing-item list. This connection
+uses the existing `ClientProgramRejected` preparation refusal for insufficient
+comparison evidence, with no admitted Run; `ClientProgramUnsupported` is
+reserved here for an empty eligible inventory. The common planner/Host
+diagnostic exposes the precise `Deferred` reason and missing items. Providing
+that detail directly to an ordinary SDK caller remains a Client-Host protocol,
+schema/pin and SDK change; the operator diagnostic must not be described as
+full public Deferred support.
+
+The bounded two-source installation remains Native-only. Each acquisition has
+one eligible implementation in that profile; it retains the original shared
+ledger and capture/cleanup owners. This connection does not add plural broad
+acquisition, a new cost objective, a new execution ledger or statistics I/O.

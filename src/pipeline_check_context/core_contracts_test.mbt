@@ -119,6 +119,8 @@ test "core contract collection preserves owned occurrences and shares dependency
   for i in 0..<core_contract_root_count(inventory) {
     let root = core_contract_root_at(inventory, i).unwrap()
     match root.site {
+      OperationModelContract(_, _, _, _) =>
+        fail("this fixture has no model acquisition")
       OperationJoinCountRules(_, _, _) => assert_eq(root.body, JoinCountRules)
       OperationIntervalSearchRules(_, _, _) =>
         assert_eq(root.body, IntervalSearchRules)

@@ -7,7 +7,8 @@ import { shrink } from './engine.mjs';
 import { fixedCorpus } from './corpus.mjs';
 import { registrations } from './obligations.mjs';
 import { registry } from './registry.mjs';
-import { execute, executions, root, toolchain } from './execute.mjs';
+import { createExecutor, executions, root, toolchain } from './execute.mjs';
+import { mutationWorkspaces } from './workspaces.mjs';
 import { hash, snapshot, checkBaseline } from './inventory.mjs';
 import { compareSemantics } from './evidence.mjs';
 import { decision } from './exploration-impact.mjs';
@@ -29,11 +30,16 @@ checkBaseline(root);
 const cases = fixedCorpus(registry, registrations);
 const regressions = JSON.parse(readFileSync(join(root, 'proofs/relation-pipeline/regressions.json')));
 assert.deepEqual(regressions.map(r => r.name), variants.map(v => v.name));
+const workspaces = await mutationWorkspaces(root);
+const mutatedExecutor = createExecutor(workspaces.mutable);
+const pristineExecutor = createExecutor(workspaces.pristine);
+const execute = mutatedExecutor.execute;
 const results = Object.fromEntries(modes.map(mode => [mode, []]));
+try {
 for (const variant of variants) {
-  const path = join(root, variant.path);
-  const original = readFileSync(path, 'utf8');
-  const mutated = applyMutation(original, variant);
+  const path = join(workspaces.mutable.root, variant.path);
+  const original = readFileSync(path);
+  const mutated = applyMutation(original.toString('utf8'), variant);
   const witnesses = [];
   const preserves = (c, o, a) => variant.eligible(c) && variant.preserves(c, o, a, registry);
   try {
@@ -74,13 +80,14 @@ for (const variant of variants) {
         timing.mutatedReplayMs[target] = performance.now() - began;
       }
       const witness = { name: variant.name, site: variant.path, originalDigest: hash(original), mutatedDigest: hash(mutated),
-        source: snapshot(root), anchor: chosen.anchor, ...minimized, replay, killed: true,
+        source: snapshot(workspaces.mutable.root), anchor: chosen.anchor, ...minimized, replay, killed: true,
         executions: executions.slice(start) };
       witnesses.push({ selectedMode, witness, timing });
     }
   } finally {
     writeFileSync(path, original);
-    assert.equal(snapshot(root).digest, source.digest, 'Source not restored exactly');
+    assert.deepEqual(workspaces.mutable.check(), source, 'Source not restored exactly');
+    assert.deepEqual(snapshot(root), source, 'Original source changed');
   }
   for (const { selectedMode, witness, timing } of witnesses) {
     const exploratory = selectedMode === 'explore';
@@ -89,7 +96,7 @@ for (const variant of variants) {
     const healthyStart = executions.length;
     for (const target of ['js', 'wasm', 'native']) {
       const began = performance.now();
-      const actual = execute([witness.minimal], registry, target, true, `${variant.name}-restored`)[0];
+      const actual = pristineExecutor.execute([witness.minimal], registry, target, true, `${variant.name}-restored`)[0];
       compareSemantics(witness.minimal, actual, registry);
       assert(!preserves(witness.minimal, actual, witness.anchor));
       healthy[target] = actual;
@@ -99,10 +106,15 @@ for (const variant of variants) {
     console.log(`${variant.name}: ${exploratory ? 'fresh JS search and local-minimum shrink' : 'fixed regression replay; no fresh search/minimality claim'}; actual mutated/restored replay on 3 targets`);
   }
 }
+} finally {
+  mutatedExecutor.close();
+  pristineExecutor.close();
+}
+workspaces.passed();
 for (const selectedMode of modes) {
   const exploratory = selectedMode === 'explore';
   writeFileSync(join(root, `.artifacts/relation-pipeline/${exploratory ? 'mutations' : 'fixed-mutations'}.json`), JSON.stringify({
-    version: 'actql-relation-pipeline-mutations/0.1', source, revision: impact.revision, toolchain,
+    version: 'actql-relation-pipeline-mutations/0.1', source, workspaces: workspaces.evidence, revision: impact.revision, toolchain,
     mode: exploratory ? 'explore' : 'fixed', decision: impact, seed: exploratory ? 105106 : null,
     explorationTarget: exploratory ? 'js' : null, searchDomain: 'fixed typed corpus filtered by reviewed mutation eligibility',
     meaning: 'known-site anchored mismatches; local minimum only under enumerated reductions and same anchor', results: results[selectedMode],

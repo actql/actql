@@ -33,7 +33,7 @@ const program = {version: 'actql/0.1', id: 'client-values',
   stages: [{id: 'source', inputs: {}, steps: [{as: 'selected', values: {schema, rows}}],
     results: {rows: {fields: ['id'], from: 'selected'}}}],
   results: {answer: {from: {stage: 'source', result: 'rows'}}}};
-function vector(grammar, aoa, unit = oldUnit) {
+function vector(grammar, aoa, unit = oldUnit, barrierCid = barrier) {
   const proof = cid({version: 'actql-bound-proof/0.1', inputs: [],
     law_id: 'actql.bound.values', semantic_ref: `unit:${unit}#/steps/0`, unit: 'rows', value: 2});
   if (unit === oldUnit) assert.equal(proof, oldProof);
@@ -67,13 +67,13 @@ const facts = limits.map(value => ({kind: 'resolved_limit', value}));
 const factManifest = cid({plan_facts: facts, version: 'actql-plan-fact-manifest/0.1'});
 
   const template = seal({version: 'actql-bound-invocation-template/0.1',
-    barrier_contract_manifest_cid: barrier, check_environment_cid: environment,
+    barrier_contract_manifest_cid: barrierCid, check_environment_cid: environment,
     grammar_manifest_cid: grammar, invocation_bindings_cid: bindings,
     parameter_values_cid: parameterValues, program_definition_cid: programCid,
     required_profile_contracts: [], source_evidence: 'unbound'}, 'bound_invocation_template_cid');
   const executable = seal({version: 'actql-executable-plan/0.1',
     bound_witnesses: [upper, rowCeiling, byteCeiling], data_edges: [],
-    execution_material: {aoa_contract_cid: aoa, barrier_contract_manifest_cid: barrier,
+    execution_material: {aoa_contract_cid: aoa, barrier_contract_manifest_cid: barrierCid,
       check_environment_cid: environment, effect_plan_logical_cids: {},
       grammar_manifest_cid: grammar, invocation_binding_names: [],
       invocation_bindings_cid: bindings, invocation_template_cid: template.bound_invocation_template_cid,
@@ -119,7 +119,11 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(valuesUnitIdentity(program, true), oldUnit);
   const currentUnit = valuesUnitIdentity(program);
   assert.equal(currentUnit, pin('0ec8026865253c45b26d8eb0b9df6e4cb63b64bf7ae19590e6f1fc2aff10879c'));
-  const current = vector(grammarCid, cid(aoaContract), currentUnit);
+  const barrierManifest = JSON.parse(readFileSync(
+    'spec/manifests/actql-barrier-contracts-0.1.json', 'utf8'));
+  const {barrier_contract_manifest_cid: barrierCid, ...barrierPreimage} = barrierManifest;
+  assert.equal(cid(barrierPreimage), barrierCid);
+  const current = vector(grammarCid, cid(aoaContract), currentUnit, barrierCid);
   // Preserve the prior WITH/Pipe vector; the new policy changes no Values body.
   assert.equal(vector(pin('a8f1bbabb5eeda9287716c651b398d1c0954201c985b5c70ccb78d96a9ed1416'),
     pin('bfb017e25670c872293a2a4eec302b7d1217c3cb1adf74637c2339286d5c39ea')).run.run_definition_cid,
@@ -167,8 +171,16 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('5fb2cacd6bbea4c6aa32de0f9a157f072723eb96d251d4f09b8a86513001b976'),
     cid(aoaContract), currentUnit).run.run_definition_cid,
     pin('8574f5eb487efe877f5d11cda228d63ba737c3ef8821f7cd20ce804b964b3810'));
-  assert.equal(current.run.run_definition_cid,
+  // Preserve main before adding the Infer barrier; this isolates that change.
+  assert.equal(vector(grammarCid, cid(aoaContract), currentUnit).run.run_definition_cid,
     pin('857742abdfaf8e4e90e07c4f60f37b771ea62ef44e41f0bdb078bf3d0134069b'));
+  // Preserve the Infer predecessor with its original grammar, AoA and Unit.
+  assert.equal(vector(pin('8fc336e2b475104366fea9024c38d171a3d18743a63f05b254272e14bedd886d'),
+    pin('bfb017e25670c872293a2a4eec302b7d1217c3cb1adf74637c2339286d5c39ea'),
+    oldUnit, barrierCid).run.run_definition_cid,
+    pin('7c8730fc4b50e0ae4b5d5b0494d64b6e5b8fe85fe2d3f41c36735642317d0d6c'));
+  assert.equal(current.run.run_definition_cid,
+    pin('be53b8665c7381ddaad2edddf62c211ae07b9eddefa07ec743ce57ea108cac18'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
 

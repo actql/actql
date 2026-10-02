@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "bounded-session-action-input-timing",
+  "kind": "change",
+  "revision": "b92eb4f4ba21c3b5f2cde349b3c5f8637e064649",
+  "parents": [
+    "542cb8b285c4695772300c94bb410d256d8315ec"
+  ],
+  "changes": [
+    {
+      "path": "proofs/bounded-session/run.mjs",
+      "before": [
+        {
+          "revision": "542cb8b285c4695772300c94bb410d256d8315ec",
+          "digest": "492c0dc78b7be34a57d397f983449d39f0882ffddb9aee1fc5f35928961c0107",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "8e7f98a7a0c9674ac0ad8917c117e99c93d5cb525ba2c7ceb2a9a0f63984190c",
+      "afterMode": "100644",
+      "reason": "Measure inventory wall time and entry count in stdout only, outside the deterministic input manifest/key, without skipping or replacing verification."
+    }
+  ]
+}

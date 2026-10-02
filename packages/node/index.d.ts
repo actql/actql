@@ -8,6 +8,7 @@ export type {Client, Execution, Result, Reader, RunReference,
 export type EmbeddedHostInstallation = Readonly<{
   directory?: string;
   sourceProfilePath?: string;
+  sourceProfilePaths?: readonly [string, string];
   resolveSourceSecret?: (...args: any[]) => any;
   effectProfilePath?: string;
   resolveEffectSecret?: (...args: any[]) => any;

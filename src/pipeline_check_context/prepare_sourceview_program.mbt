@@ -22,11 +22,19 @@ pub fn prepare_sourceview_program(
   locals : @local_inputs.ProgramEnvironmentInputs,
   limits : @stage_results.LocalProgramLimits,
   calendar? : @environment.SelectedCalendarProfile? = None,
+  model_tasks? : @environment.ModelTasks? = None,
 ) -> Result[
   (@stage_results.ResultWiring, @stage_results.LocalProgramUsage),
   SourceViewProgramIssue,
 ] {
-  match prepare_sourceview_program_internal(views, locals, limits, calendar~) {
+  match
+    prepare_sourceview_program_internal(
+      views,
+      locals,
+      limits,
+      calendar~,
+      model_tasks~,
+    ) {
     Ok((wiring, usage, _)) => Ok((wiring, usage))
     Err(e) => Err(e)
   }
@@ -40,6 +48,7 @@ fn prepare_sourceview_program_internal(
   locals : @local_inputs.ProgramEnvironmentInputs,
   limits : @stage_results.LocalProgramLimits,
   calendar? : @environment.SelectedCalendarProfile? = None,
+  model_tasks? : @environment.ModelTasks? = None,
 ) -> Result[
   (@stage_results.ResultWiring, @stage_results.LocalProgramUsage, Int),
   SourceViewProgramIssue,
@@ -138,6 +147,7 @@ fn prepare_sourceview_program_internal(
       environment=Some(locals),
       sourceview_registrations=Some(registrations),
       calendar_profile=calendar.map(@environment.selected_calendar_profile),
+      model_tasks~,
     ) {
     Ok(v) => v
     Err(Pipeline(stage, issue)) if issue.kind

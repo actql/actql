@@ -36,6 +36,18 @@ pub fn client_compiled_run_matches(
 }
 
 ///|
+/// The shared Run owner retains the selected model barrier through admission.
+/// None denotes another compilation path, not permission to synthesize one.
+pub fn client_compiled_run_infer(
+  value : ClientCompiledRun,
+) -> ClientInferPlanGraph? {
+  match value.compilation {
+    Values(_) => None
+    Tasks(compilation) => compilation.infer
+  }
+}
+
+///|
 /// Retrieve the exact checked selection retained by compilation. None means
 /// a direct Result, not permission to accept a foreign or missing occurrence.
 pub fn client_compiled_run_result_transformation(
@@ -313,6 +325,50 @@ pub fn issue_client_compiled_task_invocation(
         input_logical_wire,
         source_ref,
         source_contract_cid,
+        authority_scope_cid,
+        data_policy_cid,
+        capture_started_at,
+        capture_completed_at,
+        max_wire_bytes,
+        max_nodes,
+        max_depth,
+      )
+    Values(_) => Err(@publication.RunEvidenceReferenceMismatch("task_run"))
+  }
+}
+
+///|
+pub fn issue_client_compiled_multi_task_invocation(
+  value : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  captures : Array[@query.CapturedInputSource],
+  identities : Array[@query.CapturedSourceRelationIdentity],
+  requirements : Array[@planning.QueryRequirement],
+  source_evidence_wires : Array[String],
+  input_logical_wires : Array[String],
+  authority_scope_cid : String,
+  data_policy_cid : String,
+  capture_started_at : String,
+  capture_completed_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.PublicationContract),
+  @publication.RunEvidenceValueIssue,
+] {
+  match value.compilation {
+    Tasks(compilation) =>
+      issue_client_multi_task_invocation(
+        value.owner,
+        compilation,
+        value.admission,
+        definition,
+        captures,
+        identities,
+        requirements,
+        source_evidence_wires,
+        input_logical_wires,
         authority_scope_cid,
         data_policy_cid,
         capture_started_at,

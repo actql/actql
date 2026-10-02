@@ -3,7 +3,9 @@
 // their existing authority; this owner does not decide whether to retry.
 import {CapturedRunPublicationError,
   runPublishedCapturedStrategy} from './entry.mjs';
-import {acquiredTaskPublicationPlan} from './local-values-plan.mjs';
+import {acquiredTaskPublicationPlan, acquiredMultiTaskPublicationPlan} from './local-values-plan.mjs';
+import {installedSourceFor} from './installed-source.mjs';
+import {capturedDuckDBNativeConfiguration, capturedDuckDBPhysicalCapacity} from './captured-duckdb-source.mjs';
 import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 
@@ -11,7 +13,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   store, checkpoints, startRun, hostConnection, beforeDispatch, observed,
   prepareAcquisition, planFor, sourceProfile, registry, values, fragment,
   ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
-  faultInjection,
+  faultInjection, runInfer,
   runPublished = runPublishedCapturedStrategy}) {
   const entries = new Map();
   const diagnostic = diagnosticObserver(observed);
@@ -21,6 +23,14 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   };
   const keyOf = ref => ref.runDefinitionCid;
   const current = ref => entries.get(keyOf(ref));
+  const resourceUsage = ledger => {
+    const usage = moon.clientProgramMultiCapturedLedgerUsage(ledger);
+    return Object.freeze(Object.fromEntries([
+      'planningWork', 'attempts', 'holdings', 'transferredBytes',
+      'reservedTransferBytes', 'heldBytes', 'reservedRetentionBytes',
+      'reservedExecutionBytes', 'uncertainTransferBytes',
+    ].map((name, index) => [name, usage[index].toString()])));
+  };
   const cancel = ref => current(ref)?.abort.abort(
     new Error('ClientRunCancellationRequested'));
   const live = ref => current(ref)?.settled === false;
@@ -29,7 +39,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   function retire(entry) {
     if (entry.settled && entry.cleanupOwner === undefined &&
         entry.cleanupHandle === undefined && !entry.unresolvedCleanup &&
-        entry.sourceCapture === undefined &&
+        entry.sourceCapture === undefined && entry.pendingSetup === undefined &&
         !entry.stopObservationPending &&
         !entry.failureObservationPending && !entry.finishPending &&
         !entry.releasePending &&
@@ -60,8 +70,38 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     entry.stopObserved = true;
   }
 
+  async function settleCleanupHandle(entry) {
+    if (entry.cleanupHandle === undefined) return;
+    const handle = entry.cleanupHandle;
+    if (handle.status()?.pending === true) await handle.retry();
+    if (handle.status()?.pending !== false) {
+      throw new Error('ClientDispatchCleanupPending');
+    }
+    entry.cleanupHandle = undefined;
+  }
+
   async function settleCleanup(entry) {
     const execution = entry.cleanupOwner;
+    if (entry.multiSources && entry.sourceCapture !== undefined) {
+      // Stop Compute before closing any borrowed native input. The same
+      // NativePhysical issuer must confirm close before the DAG can release
+      // its transferred holding. A failed close retains these exact owners.
+      if (execution !== undefined) {
+        try { await execution.close(); } catch (failure) { entry.closeFailure ??= failure; }
+      }
+      if (entry.pendingSetup !== undefined) moon.strategyHostStop(entry.pendingSetup);
+      await entry.sourceCapture.close();
+      entry.sourceCapture = undefined;
+      if (!entry.computeStartAttempted && !entry.unresolvedCleanup) entry.stopObservationPending = true;
+    }
+    if (entry.pendingSetup !== undefined) {
+      moon.strategyHostStop(entry.pendingSetup);
+      moon.strategyHostCloseOutputs(entry.pendingSetup);
+      if (moon.strategyHostUsage(entry.pendingSetup).slice(4).some(value => value !== 0n)) {
+        throw new Error('ClientDispatchCleanupPending');
+      }
+      entry.pendingSetup = undefined;
+    }
     if (execution !== undefined) {
       if (typeof execution.close !== 'function' ||
           typeof execution.cleanup !== 'function' ||
@@ -72,6 +112,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       // owned by cleanup, not by invoking close again or repeating Compute.
       try { await execution.close(); }
       catch (failure) { entry.closeFailure ??= failure; }
+      // A failed Store consumer can still pin the completed output. Ask the
+      // retained Store owner to settle before retrying the execution's
+      // reclamation; cancellation alone still grants neither release.
+      await settleCleanupHandle(entry);
       const recovered = await execution.cleanup();
       if (recovered === false || execution.cleanupPending() !== false) {
         throw new Error('ClientDispatchCleanupPending');
@@ -88,15 +132,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       if (!entry.computeStartAttempted) entry.stopObservationPending = true;
     }
     if (entry.stopObservationPending) await observeStop(entry);
-    if (entry.cleanupHandle !== undefined) {
-      const handle = entry.cleanupHandle;
-      const status = handle.status();
-      if (status?.pending === true) await handle.retry();
-      if (handle.status()?.pending !== false) {
-        throw new Error('ClientDispatchCleanupPending');
-      }
-      entry.cleanupHandle = undefined;
-    }
+    await settleCleanupHandle(entry);
     if (entry.unresolvedCleanup) {
       throw new Error('ClientDispatchCleanupOwnerMissing');
     }
@@ -107,6 +143,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     if (entry.physicalStarted && !entry.stopObserved &&
         entry.physicalWorkMayHaveStarted) {
       throw new Error('ClientDispatchStopUnknown');
+    }
+    if (entry.acquisitionLedger !== undefined) {
+      diagnostic('dispatch_cleanup_completed', {ref: entry.ref,
+        resourceUsage: resourceUsage(entry.acquisitionLedger)});
     }
   }
 
@@ -164,10 +204,30 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         held.plan = planFor(submission, accepted.runDefinition.wire);
       }
       const acquiring = sourceProfile !== undefined &&
-        moon.clientProgramPrepareQueryAcquisition(preparedProgram, 0, 0)
-          ?.$tag === 1;
+        moon.clientProgramAcquisitionCount(preparedProgram) > 0;
+      const inferring = held.plan.kind === 'infer';
+      // A checked model barrier is not a Values task. The installed Model
+      // connection must consume this exact plan and transfer physical custody
+      // before advancing; this supervisor still owns the one Run-start claim.
+      if (inferring && (acquiring || typeof runInfer !== 'function')) {
+        throw new Error('InstalledInferDispatchUnavailable');
+      }
+      const multiple = held.preparedSources?.length === 2;
+      const installedSource = acquiring && !multiple
+        ? installedSourceFor(sourceProfile, held.preparedSource.checkedSource.sourceRef) : undefined;
+      let ledger;
+      if (multiple) {
+        const capacities = held.preparedSources.map(source => capturedDuckDBPhysicalCapacity(source.prepared));
+        ledger = moon.clientProgramPrepareMultiCapturedLocalLedger(preparedProgram,
+          held.preparedSources.map(source => capturedDuckDBNativeConfiguration(source.prepared)),
+          capacities.map(capacity => capacity.transferBytes),
+          capacities.map(capacity => capacity.executionBytes),
+          registry, values, fragment, ordered);
+        if (ledger === undefined) throw new Error('InstalledMultiSourceLedgerUnavailable');
+        entry.acquisitionLedger = ledger;
+      }
       let setup;
-      if (!acquiring) {
+      if (!acquiring && !inferring) {
         setup = moon.clientProgramOpenSourceFreeLocalHost(
           preparedProgram, registry, values, 1n, 0n, 0n, 0n,
           fragment, ordered);
@@ -193,16 +253,90 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       reached('started');
       await step('physical_start_reserved', {ref: accepted.ref});
       const sourceAccess = checkpoints?.acquisitionAccess(
-        submission.requestId, sourceProfile?.sourceAccess) ??
-        sourceProfile?.sourceAccess;
-      if (acquiring) {
+        submission.requestId, installedSource?.sourceAccess) ??
+        installedSource?.sourceAccess;
+      if (multiple) {
+        entry.multiSources = true;
+        const captures = [];
+        const closed = new Set();
+        entry.sourceCapture = Object.freeze({async close() {
+          const failures = [];
+          for (const capture of captures) {
+            if (closed.has(capture)) continue;
+            try {
+              await step('acquisition_cleanup_started', {ref: accepted.ref,
+                task: capture.occurrence.task, resourceUsage: resourceUsage(ledger)});
+              await capture.close();
+              closed.add(capture);
+              diagnostic('acquisition_cleanup_completed', {ref: accepted.ref,
+                task: capture.occurrence.task, resourceUsage: resourceUsage(ledger)});
+            }
+            catch (error) { failures.push(error); }
+          }
+          if (failures.length) throw new AggregateError(failures, 'ClientSourceCleanupPending');
+        }});
+        const captureStartedAt = now();
+        const sources = [];
+        for (const source of held.preparedSources) {
+          entry.abort.signal.throwIfAborted();
+          const occurrence = {...source.occurrence,
+            checkedSource: source.prepared.checkedSource,
+            readTuple: source.prepared.readTuple, physicalBinding: source.prepared.physicalBinding};
+          const access = checkpoints?.acquisitionAccess(submission.requestId,
+            source.sourceAccess, occurrence) ?? source.sourceAccess;
+          const preparedSource = access === source.sourceAccess ? source.prepared :
+            await prepareAcquisition(preparedProgram, access, source.occurrence);
+          await step('acquisition_started', {ref: accepted.ref, task: source.occurrence.task,
+            resourceUsage: resourceUsage(ledger)});
+          entry.physicalWorkMayHaveStarted = true;
+          const acquisition = acquisitionEndHandoff();
+          let captured;
+          try {
+            captured = await source.adapter.open({preparedProgram, registry, values,
+              fragment, ordered, sourceAccess: access, signal: entry.abort.signal,
+              preparedSource, occurrence: source.occurrence, ledger,
+              reportAcquisitionFailure: acquisition.retain});
+          } catch (error) {
+            const ended = acquisition.outcome(error);
+            if (ended.outcome === 'not_started' || ended.outcome === 'stopped') {
+              entry.stopObservationPending = true;
+            } else if (ended.recovery !== undefined) {
+              entry.cleanupOwner = ended.recovery;
+            } else {
+              // Earlier captures settling proves nothing about an unknown
+              // current acquisition that handed back no physical owner.
+              entry.unresolvedCleanup = true;
+            }
+            throw error;
+          }
+          captures.push(captured);
+          await step('acquisition_completed', {ref: accepted.ref, task: source.occurrence.task,
+            resourceUsage: resourceUsage(ledger)});
+          const sourceEvidenceWire = await captured.issueSourceEvidence({authorityScopeCid,
+            effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid});
+          sources.push({captured, sourceEvidenceWire});
+        }
+        const captureCompletedAt = now();
+        const effectiveDataPolicyCid = moon.clientProgramPublicationDataPolicyCid(preparedProgram);
+        if (effectiveDataPolicyCid === undefined) throw new Error('InstalledMultiSourcePolicyUnavailable');
+        held.plan = acquiredMultiTaskPublicationPlan({moon, control, acquired: held.plan,
+          preparedProgram, sources, authorityScopeCid, effectiveDataPolicyCid,
+          captureStartedAt, captureCompletedAt, namespaceId, storeAuthorityCid, now});
+        setup = moon.clientProgramOpenMultiCapturedLocalHost(preparedProgram,
+          captures.map(value => value.capture.source()), ledger, registry, values, fragment, ordered);
+        if (setup === undefined) throw new Error('InstalledMultiSourceHostUnavailable');
+        entry.pendingSetup = setup;
+        const dag = moon.strategyHostRun(setup);
+        for (const [task, captured] of captures.entries()) captured.capture.retainTask(dag, task);
+      } else if (acquiring) {
         if (held.preparedSourceAccess !== sourceAccess) {
           held.preparedSource = await prepareAcquisition(preparedProgram,
             sourceAccess);
           held.preparedSourceAccess = sourceAccess;
         }
         const captureStartedAt = now();
-        await step('acquisition_started', {ref: accepted.ref});
+        await step('acquisition_started', {ref: accepted.ref,
+          ...(held.preparedSource?.selection === undefined ? {} : {selection: held.preparedSource.selection})});
         entry.physicalWorkMayHaveStarted = true;
         const acquisition = acquisitionEndHandoff();
         // The installed source's adapter owns the physical read; the
@@ -211,7 +345,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         // observed as this Run's stop; an unknown end stays with its
         // recovery owner, or unresolved, and is never inferred.
         try {
-          entry.sourceCapture = await sourceProfile.open({preparedProgram,
+          entry.sourceCapture = await installedSource.open({preparedProgram,
             registry, values, fragment, ordered, sourceAccess,
             signal: entry.abort.signal,
             preparedSource: held.preparedSource,
@@ -227,7 +361,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           throw error;
         }
         const captureCompletedAt = now();
-        await step('acquisition_completed', {ref: accepted.ref});
+        await step('acquisition_completed', {ref: accepted.ref,
+          ...(entry.sourceCapture.acquisition === undefined ? {} : {acquisition: entry.sourceCapture.acquisition})});
         const sourceEvidenceWire =
           await entry.sourceCapture.issueSourceEvidence({
             authorityScopeCid,
@@ -246,12 +381,40 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       entry.abort.signal.throwIfAborted();
       entry.physicalWorkMayHaveStarted = true;
       entry.computeStartAttempted = true;
+      if (inferring) {
+        await runInfer({preparedProgram, plan: held.plan, store,
+          principalId: actual, signal: entry.abort.signal,
+          retainExecution(execution) {
+            if (entry.cleanupOwner !== undefined &&
+                entry.cleanupOwner !== execution) {
+              throw new TypeError('ClientDispatchCleanupOwnerAlreadyRetained');
+            }
+            if (typeof execution?.close !== 'function' ||
+                typeof execution?.cleanup !== 'function' ||
+                typeof execution?.cleanupPending !== 'function') {
+              throw new TypeError('ClientDispatchCleanupOwnerInvalid');
+            }
+            entry.cleanupOwner = execution;
+          }});
+        // Success is the existing Store's committed index, not merely a
+        // returned model value or a completed private capture.
+        if (entry.cleanupOwner === undefined ||
+            await store.confirmCommittedIndex(entry.ref) === undefined) {
+          throw new Error('InstalledInferPublicationIncomplete');
+        }
+        entry.publicationCommitted = true;
+        await step('computed', {ref: accepted.ref});
+        await settleCleanup(entry);
+        await finishRun(entry);
+        return;
+      }
       const published = await runPublished(setup,
         {store, plan: held.plan},
-        sourceProfile === undefined ? {} :
+        sourceAccess === undefined ? {} :
           {authorization: sourceAccess.authorization},
         entry.abort.signal, undefined, execution => {
           entry.cleanupOwner = execution;
+          entry.pendingSetup = undefined;
         });
       entry.cleanupOwner = published;
       entry.publicationCommitted = true;
@@ -259,6 +422,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       await settleCleanup(entry);
       await finishRun(entry);
     }).catch(async cause => {
+      diagnostic('dispatch_failed', {ref: accepted.ref,
+        code: cause?.code ?? cause?.message ?? 'ClientDispatchFailed'});
       entry.primaryFailure = cause;
       const failedExecution = cause instanceof CapturedRunPublicationError
         ? cause.execution : undefined;

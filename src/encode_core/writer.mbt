@@ -146,6 +146,22 @@ pub fn drain_hash_output(w : Writer) -> String raise EncodeFailure {
 }
 
 ///|
+/// Discard provisional text and frames after the physical emitter stops.
+/// Idempotent, including failed writers; cancellation cannot finalize output.
+pub fn cancel_writer(w : Writer) -> Unit {
+  w.closed = true
+  w.frames.clear()
+  match w.output {
+    TextOutput(text) => text.reset()
+    BufferedHashOutput(buffer) => {
+      buffer.text.reset()
+      buffer.bytes = 0
+    }
+    MeasureOutput | HashOutput(_) => ()
+  }
+}
+
+///|
 fn reserve_buffer(w : Writer, bytes : Int) -> Unit raise EncodeFailure {
   if w.output is BufferedHashOutput(buffer) {
     if bytes > buffer.limit - buffer.bytes {

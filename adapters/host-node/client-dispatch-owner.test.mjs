@@ -1,6 +1,173 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
+// Reuse the existing distribution-client gate for bounded two-source owners.
+import './two-source-capture-boundaries.test.mjs';
+import './two-source-public-host.test.mjs';
+
+function inferDispatchFixture(runInfer) {
+  const ref = {runDefinitionCid: 'infer-dispatch-owner'};
+  const preparedProgram = {};
+  const plan = {kind: 'infer', runDefinition: {wire: 'definition'}};
+  const stopped = [];
+  let claims = 0, committed = false;
+  const owner = installNodeClientDispatchOwner({
+    moon: {clientProgramOpenSourceFreeLocalHost() {
+      assert.fail('A model barrier must not open the Values fallback');
+    }}, control: {},
+    journal: {reservePhysicalStart() { claims++; return true; },
+      markPhysicalClose: (...args) => stopped.push(args),
+      markPreDispatchFailure: () => stopped.push([ref, 'not_started'])},
+    store: {confirmCommittedIndex: async () => committed ? {} : undefined},
+    startRun: async () => ({kind: 'reserved', ref}),
+    hostConnection: () => true, planFor: () => plan,
+    runPublished() { assert.fail('INFER must not use Relation dispatch'); },
+    runInfer, namespaceId: 'namespace-a',
+  });
+  const submission = {preparedProgram, principalId: 'owner', connection: {},
+    requestId: 'infer-request'};
+  const accepted = {ref, runDefinition: plan.runDefinition,
+    dispatchReserved: false, cancellationRequested: false};
+  return {owner, ref, preparedProgram, plan, stopped,
+    claims: () => claims, commit: () => { committed = true; },
+    start: () => owner.start(submission, {}, accepted, {})};
+}
+
+test('model dispatch consumes its original plan and shares physical Run custody',
+  async () => {
+    let calls = 0, closes = 0;
+    const physical = {async close() { closes++; }, cleanup: () => true,
+      cleanupPending: () => false};
+    const fixture = inferDispatchFixture(async context => {
+      calls++;
+      assert.equal(context.preparedProgram, fixture.preparedProgram);
+      assert.equal(context.plan, fixture.plan);
+      context.retainExecution(physical);
+      fixture.commit();
+    });
+    assert.equal(await fixture.start(), 'started');
+    await fixture.owner.drain();
+    assert.equal(calls, 1);
+    assert.equal(closes, 1);
+    assert.equal(fixture.claims(), 1);
+    assert.deepEqual(fixture.stopped, [[fixture.ref, null]]);
+  });
+
+test('model capture alone is not public success and cleanup never redispatches',
+  async () => {
+    let calls = 0, released = false;
+    const failure = new Error('CaptureStoreFailed');
+    const fixture = inferDispatchFixture(async ({retainExecution}) => {
+      calls++;
+      retainExecution({async close() { throw new Error('CleanupPending'); },
+        cleanup: () => released, cleanupPending: () => !released});
+      throw failure;
+    });
+    assert.equal(await fixture.start(), 'started');
+    await fixture.owner.operation(fixture.ref);
+    await assert.rejects(fixture.owner.drain(), error => {
+      assert.equal(error.code, 'ClientDispatchCleanupPending');
+      assert.equal(error.failures[0].primary, failure);
+      return true;
+    });
+    assert.equal(await fixture.start(), 'not_started');
+    assert.deepEqual(fixture.stopped, []);
+    released = true;
+    await fixture.owner.drain();
+    assert.equal(calls, 1);
+    assert.equal(fixture.claims(), 1);
+    assert.deepEqual(fixture.stopped, [[fixture.ref, 'failed']]);
+  });
+
+test('model dispatch cannot report private completion as a published Result',
+  async () => {
+    const fixture = inferDispatchFixture(async ({retainExecution}) => {
+      retainExecution({async close() {}, cleanup: () => true,
+        cleanupPending: () => false});
+    });
+    assert.equal(await fixture.start(), 'started');
+    await fixture.owner.drain();
+    assert.deepEqual(fixture.stopped, [[fixture.ref, 'failed']]);
+  });
+
+test('failed model Result Store cleanup releases its pin before execution reclamation',
+  async () => {
+    let calls = 0, storePending = true, recover = false, released = false;
+    const events = [];
+    const fixture = inferDispatchFixture(async ({retainExecution}) => {
+      calls++;
+      retainExecution({async close() {
+        events.push('close');
+        if (storePending) throw new Error('OutputStillPinned');
+      }, cleanup() {
+        events.push('reclaim');
+        released = !storePending;
+        return released;
+      }, cleanupPending: () => !released});
+      throw Object.assign(new Error('StoreResultFailure'), {
+        cleanupPending: true,
+        cleanupHandle: {status: () => ({pending: storePending}),
+          async retry() {
+            events.push('store');
+            if (!recover) throw new Error('StoreStillStopping');
+            storePending = false;
+          }},
+      });
+    });
+    await fixture.start();
+    await fixture.owner.operation(fixture.ref);
+    assert.deepEqual(events, ['close', 'store']);
+    assert.deepEqual(fixture.stopped, []);
+    recover = true;
+    await fixture.owner.drain();
+    assert.deepEqual(events, ['close', 'store', 'close', 'store', 'reclaim']);
+    assert.deepEqual(fixture.stopped, [[fixture.ref, 'failed']]);
+    assert.equal(calls, 1);
+  });
+
+test('missing model connection refuses before the physical start claim',
+  async () => {
+    const fixture = inferDispatchFixture(undefined);
+    assert.equal(await fixture.start(), 'not_started');
+    await fixture.owner.drain();
+    assert.equal(fixture.claims(), 0);
+    assert.deepEqual(fixture.stopped, [[fixture.ref, 'not_started']]);
+  });
+
+test('model dispatch delivers cancellation and retains custody until physical stop',
+  async () => {
+    let entered, stopped, calls = 0, cleanupCalls = 0;
+    const started = new Promise(resolve => { entered = resolve; });
+    const stop = new Promise(resolve => { stopped = resolve; });
+    let physicallyStopped = false, aborted = false;
+    const fixture = inferDispatchFixture(async ({retainExecution, signal}) => {
+      calls++;
+      retainExecution({async close() {
+        await stop;
+        physicallyStopped = true;
+      }, cleanup() {
+        cleanupCalls++;
+        assert.equal(physicallyStopped, true);
+        return true;
+      }, cleanupPending: () => !physicallyStopped});
+      signal.addEventListener('abort', () => { aborted = true; }, {once: true});
+      entered();
+      await stop;
+      signal.throwIfAborted();
+    });
+    assert.equal(await fixture.start(), 'started');
+    await started;
+    fixture.owner.cancel(fixture.ref);
+    assert.equal(aborted, true);
+    assert.equal(cleanupCalls, 0);
+    assert.deepEqual(fixture.stopped, []);
+    assert.equal(await fixture.start(), 'not_started');
+    stopped();
+    await fixture.owner.drain();
+    assert.equal(calls, 1);
+    assert.equal(cleanupCalls, 1);
+    assert.deepEqual(fixture.stopped, [[fixture.ref, 'cancelled']]);
+  });
 
 test('diagnostic failure cannot stop Compute or bypass required ownership',
   async () => {
@@ -327,7 +494,7 @@ function acquiringOwner(open) {
   let computes = 0;
   const access = {authorization: {}};
   const owner = installNodeClientDispatchOwner({
-    moon: {clientProgramPrepareQueryAcquisition: () => ({$tag: 1})},
+    moon: {clientProgramAcquisitionCount: () => 1},
     control: {},
     journal: {reservePhysicalStart: () => true,
       markPhysicalClose: (...args) => stopped.push(args)},
@@ -336,7 +503,7 @@ function acquiringOwner(open) {
     hostConnection: () => true,
     observed: async () => {},
     planFor: () => ({runDefinition: {wire: 'definition'}}),
-    sourceProfile: {sourceAccess: access, open},
+    sourceProfile: {sourceAccess: access, admitsSource: source => source === 'fixture-source', open},
     runPublished: async () => { computes++; },
     now: () => '2026-09-28T00:00:00.000Z',
     namespaceId: 'namespace-a',
@@ -346,7 +513,7 @@ function acquiringOwner(open) {
       dispatchReserved: false, cancellationRequested: false};
     assert.equal(await owner.start({preparedProgram: {}, principalId: 'owner',
       connection: {}, requestId: 'acquiring-request'}, {}, accepted,
-    {preparedSourceAccess: access, preparedSource: {}}), 'started');
+    {preparedSourceAccess: access, preparedSource: {checkedSource: {sourceRef: 'fixture-source'}}}), 'started');
     await owner.operation(ref);
   };
   return {owner, ref, stopped, run, computes: () => computes};

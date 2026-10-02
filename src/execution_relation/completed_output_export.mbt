@@ -755,6 +755,19 @@ pub fn completed_relation_export_field_names(
 }
 
 ///|
+/// An export receipt attests only to its exact immutable completed source.
+/// Equal content or an independently reconstructed completion is insufficient.
+/// Upstream liveness is not rechecked after completion.
+pub fn completed_relation_export_matches_output(
+  value : CompletedRelationExportReceipt,
+  output : CompletedOutput,
+) -> Bool {
+  completed_output_available(output) &&
+  value.rows.source is Some(source) &&
+  completed_output_same_occurrence(source, output)
+}
+
+///|
 /// Return an independent snapshot of the exact successful export
 /// measurement. Mutating the returned arrays cannot alter the receipt.
 pub fn completed_relation_export_measurement(

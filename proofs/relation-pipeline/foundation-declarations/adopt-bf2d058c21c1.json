@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "adopt-bf2d058c21c1",
+  "kind": "change",
+  "revision": "bf2d058c21c170cb9fa15cad96b5edc09cb223c0",
+  "parents": [
+    "fb5b893320a04f8ca88e3ee674cf9ad66157f682"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "fb5b893320a04f8ca88e3ee674cf9ad66157f682",
+          "digest": "830828d77efb331483cbe74a138f18395df5aa5b3c85dcd5c2e3145f2c663bc9",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "b2a2e9d89062492329be9f67f81ab0f3b6d8bd656df6525055736a6af3f7fd78",
+      "afterMode": "100644",
+      "reason": "Retain adopted model-slot observation contract generation and tests from #178."
+    }
+  ]
+}

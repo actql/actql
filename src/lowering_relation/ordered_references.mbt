@@ -31,6 +31,7 @@ priv enum ReferenceFrame {
   Visit(Expression, String)
   Children(Array[Expression], Int, String)
   Clauses(Array[(Expression, Expression)], Int, String)
+  ObjectFields(Array[(String, Expression)], Int, String)
 }
 
 ///|
@@ -72,13 +73,31 @@ pub fn prepare_ordered_references(
   let pending : Array[ReferenceFrame] = []
   let mut work = limits.max_work
   let mut bytes = limits.max_pointer_bytes
-  // Bound pointer construction before concatenation. Paths are ASCII only.
+  // Object field segments may be Unicode; charge actual UTF-8 pointer bytes.
   fn append_path(base : String, suffix : String) -> String? {
-    if base.length() > work || suffix.length() > work - base.length() {
+    guard @scalar.admit_utf8_length(base, work) is Ok(base_bytes) &&
+      @scalar.admit_utf8_length(suffix, work - base_bytes) is Ok(suffix_bytes) else {
       return None
     }
-    work -= base.length() + suffix.length()
+    work -= base_bytes + suffix_bytes
     Some(base + suffix)
+  }
+  fn field_segment(name : String) -> String? {
+    guard @scalar.admit_utf8_length(name, work / 2) is Ok(size) else {
+      return None
+    }
+    work -= size * 2
+    let builder = StringBuilder()
+    for ch in name.to_array() {
+      if ch == '~' {
+        builder.write_string("~0")
+      } else if ch == '/' {
+        builder.write_string("~1")
+      } else {
+        builder.write_char(ch)
+      }
+    }
+    Some(builder.to_string())
   }
   fn push(frame : ReferenceFrame) -> Bool {
     if pending.length() >= limits.max_frames {
@@ -107,18 +126,26 @@ pub fn prepare_ordered_references(
           match expr.body {
             Field(_, target) => {
               if entries.length() == limits.max_references ||
-                path.length() > bytes {
+                @scalar.admit_utf8_length(path, bytes) is Err(_) {
                 return Err(ReferenceLimit)
               }
-              bytes -= path.length()
+              bytes -= @scalar.admit_utf8_length(path, bytes).unwrap()
               entries.push({ at: path, target, })
             }
             Literal(_) | TypedNull => ()
-            Cast(child) => {
+            Property(child, _, _) | Cast(child) => {
               guard append_path(path, "/body/value") is Some(child_path) else {
                 return Err(ReferenceLimit)
               }
               if !push(Visit(child, child_path)) {
+                return Err(ReferenceLimit)
+              }
+            }
+            Object(fields) => {
+              guard append_path(path, "/body") is Some(body) else {
+                return Err(ReferenceLimit)
+              }
+              if !push(ObjectFields(fields, 0, body)) {
                 return Err(ReferenceLimit)
               }
             }
@@ -191,6 +218,17 @@ pub fn prepare_ordered_references(
               return Err(ReferenceLimit)
             }
             if !push(Children(children, i + 1, path)) ||
+              !push(Visit(child, child_path)) {
+              return Err(ReferenceLimit)
+            }
+          }
+        ObjectFields(fields, i, path) =>
+          if fields.get(i) is Some((name, child)) {
+            guard field_segment(name) is Some(segment) &&
+              append_path(path, "/" + segment) is Some(child_path) else {
+              return Err(ReferenceLimit)
+            }
+            if !push(ObjectFields(fields, i + 1, path)) ||
               !push(Visit(child, child_path)) {
               return Err(ReferenceLimit)
             }

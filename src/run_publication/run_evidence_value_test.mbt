@@ -88,6 +88,25 @@ test "embedded Run evidence has one closed identity owner" {
 }
 
 ///|
+test "embedded evidence document enforces the caller's serialization ceiling" {
+  let template = evidence_test_template(evidence_test_cid("1"))
+  let wire = run_evidence_value_json(template)
+  // The fixed ASCII fixture has one byte per character, independently of
+  // the document serializer's reported measurement.
+  let document = run_evidence_value_document(template, wire.length(), 128, 8)
+  assert_eq(@encode.document_text(document), wire)
+  assert_eq(@encode.document_bytes(document), wire.length())
+  let rejected = try {
+    run_evidence_value_document(template, wire.length() - 1, 128, 8) |> ignore
+    false
+  } catch {
+    _ => true
+  }
+  assert_true(rejected)
+  assert_eq(run_evidence_value_json(template), wire)
+}
+
+///|
 test "Run Invocation binds the exact admitted ObservationSet" {
   let template = evidence_test_template(evidence_test_cid("1"))
   let observation = evidence_test_observation(template)

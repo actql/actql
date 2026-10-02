@@ -42,6 +42,7 @@ fn core_contract_site_stage(
     | OperationGraphCountRules(stage, _, _)
     | OperationRankingCountRules(stage, _, _)
     | OperationSeriesCountRules(stage, _, _)
+    | OperationModelContract(stage, _, _, _)
     | NumericAggregateProfile(stage, _, _, _)
     | NumericAggregateSlotRules(stage, _, _, _)
     | CatalogReference(stage, _, _)

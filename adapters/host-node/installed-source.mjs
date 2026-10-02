@@ -1,4 +1,4 @@
-// The standard Host's installed source: one source per Host, selected by the
+// The standard Host's installed source binding, selected by the
 // Host profile's version. Each installation adapter keeps its own physical
 // I/O, grants and cleanup; the Host's Run, Checkpoint and dispatch owners
 // stay the same for every adapter.
@@ -23,6 +23,9 @@ import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
+import {composeInstalledCheckEnvironment, verifyInstalledConnectorBindings} from
+  './installed-check-environment.mjs';
+import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {splitSourceAliasProfile} from './source-alias-publication.mjs';
 import {INSTALLED_DUCKDB_SOURCE_VERSION, installDuckDBSourceProfile} from
   './installed-duckdb-source.mjs';
@@ -77,7 +80,7 @@ export async function installedSourceIdentity(path) {
 
 function duckdbAdapter(profile, moon, {root, principalId}) {
   const common = {moon, database: profile.database, schema: profile.schema,
-    table: profile.table};
+    table: profile.table, acquisitionPlanning: profile.acquisitionPlanning};
   const catalogIds = JSON.parse(profile.environmentWire).connector_catalogs
     .map(catalog => catalog.connector_id);
   return Object.freeze({
@@ -94,15 +97,15 @@ function duckdbAdapter(profile, moon, {root, principalId}) {
     sourceAccess: profile.sourceAccess,
     admitsSource: sourceRef => sourceRef === profile.sourceRef,
     prepare: ({preparedProgram, preparedEffect, registry, values, fragment, ordered,
-      sourceAccess}) => prepareCapturedDuckDBSource({...common,
+      sourceAccess, occurrence}) => prepareCapturedDuckDBSource({...common,
       preparedProgram, preparedEffect, registry, values, fragment, ordered,
-      sourceAccess}),
+      sourceAccess, occurrence, transportLimits: profile.transportLimits}),
     open: ({preparedProgram, preparedEffect, registry, values, fragment, ordered,
-      sourceAccess, signal, preparedSource, reportAcquisitionFailure}) =>
+      sourceAccess, signal, preparedSource, reportAcquisitionFailure, occurrence, ledger}) =>
       openCapturedDuckDBSource({
       ...common, preparedProgram, preparedEffect, registry, values, fragment, ordered,
       sourceAccess, transportLimits: profile.transportLimits, signal,
-      preparedSource, reportAcquisitionFailure}),
+      preparedSource, reportAcquisitionFailure, occurrence, ledger}),
     close: () => {},
   });
 }
@@ -176,4 +179,71 @@ export async function loadInstalledSource(path, {root, principalId, moon,
   }
   throw Object.assign(new TypeError('InvalidInstalledSourceProfile'),
     {code: 'InvalidInstalledSourceProfile'});
+}
+
+// Installation inventory is bounded and inert. Only a checked acquisition
+// occurrence selects a member later; installing a binding never reads it.
+export function installedSourcePaths({sourceProfilePath, sourceProfilePaths} = {},
+  fallback = process.env.ACTQL_LOCAL_SOURCE_PROFILE) {
+  if (sourceProfilePaths !== undefined) {
+    if (sourceProfilePath !== undefined || fallback !== undefined ||
+        !Array.isArray(sourceProfilePaths) || sourceProfilePaths.length !== 2 ||
+        sourceProfilePaths.some(path => typeof path !== 'string' || !isAbsolute(path)) ||
+        new Set(sourceProfilePaths).size !== sourceProfilePaths.length) {
+      throw new TypeError('InvalidInstalledSourceProfiles');
+    }
+    return Object.freeze([...sourceProfilePaths]);
+  }
+  const path = sourceProfilePath ?? fallback;
+  return path === undefined ? Object.freeze([]) : Object.freeze([path]);
+}
+
+export async function loadInstalledSources(paths, options) {
+  if (paths.length < 2) return loadInstalledSource(paths[0], options);
+  const sources = [];
+  const closed = new Set();
+  const close = async () => {
+    const failures = [];
+    for (const source of sources) {
+      if (closed.has(source)) continue;
+      try { await source.close(); closed.add(source); }
+      catch (error) { failures.push(error); }
+    }
+    if (failures.length) throw new AggregateError(failures, 'InstalledSourceCleanupPending');
+  };
+  try {
+    for (const path of paths) {
+      const source = await loadInstalledSource(path, options);
+      sources.push(source);
+      // This first public multi-input profile is two independent DuckDB
+      // acquisitions. Other providers retain their existing singular path.
+      if (source.realizationKey !== 'duckdb-acquired') {
+        throw new TypeError('InstalledMultiSourceUnsupported');
+      }
+    }
+    verifyInstalledConnectorBindings(sources[0], sources[1]);
+    const environmentWire = composeInstalledCheckEnvironment(options.moon,
+      options.baseEnvironmentWire, sources[0].environmentWire, sources[1].environmentWire);
+    const refs = sources.map(source => source.sourceAccess.sourceRef);
+    if (new Set(refs).size !== refs.length) {
+      throw new TypeError('InstalledSourceBindingAmbiguous');
+    }
+    return Object.freeze({
+      realizationKey: 'duckdb-acquired', environmentWire,
+      sources: Object.freeze(sources),
+      connectorBindings: Object.freeze(sources.flatMap(source => source.connectorBindings)),
+      queryAliases: Object.freeze(sources.flatMap(source => source.queryAliases ?? [])),
+      admitsSource: ref => sources.some(source => source.admitsSource(ref)),
+      close,
+    });
+  } catch (cause) {
+    throw await retainInstalledHostInitializationFailure(cause, {sourceProfile: {close}});
+  }
+}
+
+export function installedSourceFor(profile, sourceRef) {
+  const matches = (profile?.sources ?? (profile === undefined ? [] : [profile]))
+    .filter(source => source.admitsSource(sourceRef));
+  if (matches.length !== 1) throw new Error('InstalledSourceProgramMismatch');
+  return matches[0];
 }

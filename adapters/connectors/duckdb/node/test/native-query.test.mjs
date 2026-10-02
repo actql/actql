@@ -153,7 +153,7 @@ test('native coordinator requires both exact settled receipts and revokes failed
       let computes = 0;
       const access = {};
       const owner = installNodeClientDispatchOwner({
-        moon: {clientProgramPrepareQueryAcquisition: () => ({$tag: 1})},
+        moon: {clientProgramAcquisitionCount: () => 1},
         control: {},
         journal: {reservePhysicalStart: () => true,
           markPhysicalClose: (...args) => stopped.push(args)},
@@ -161,7 +161,8 @@ test('native coordinator requires both exact settled receipts and revokes failed
         startRun: async () => ({kind: 'reserved', ref}),
         hostConnection: () => true, observed: () => {},
         planFor: () => ({runDefinition: {wire: 'definition'}}),
-        sourceProfile: {sourceAccess: access, async open(options) {
+        sourceProfile: {sourceAccess: access,
+          admitsSource: source => source === 'fixture-source', async open(options) {
           try { return await open(options); }
           catch (error) { options.reportAcquisitionFailure(error); throw error; }
         }},
@@ -170,10 +171,11 @@ test('native coordinator requires both exact settled receipts and revokes failed
       });
       return {owner, ref, stopped, computes: () => computes,
         async start() {
-          await owner.start({preparedProgram: {}, principalId: 'owner',
+          assert.equal(await owner.start({preparedProgram: {}, principalId: 'owner',
             connection: {}, requestId: 'source-cleanup'}, {},
           {ref, runDefinition: {wire: 'definition'}, dispatchReserved: false},
-          {preparedSourceAccess: access, preparedSource: {}});
+          {preparedSourceAccess: access,
+            preparedSource: {checkedSource: {sourceRef: 'fixture-source'}}}), 'started');
           return owner.operation(ref);
         }};
     };

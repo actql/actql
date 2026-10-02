@@ -553,6 +553,9 @@ fn prepare_publication_source_policy(
         let step = @pipeline.step_at(unit.pipeline, index).unwrap()
         let mut keyed_right = false
         let expected = match step.operation {
+          // Model policy and captured issuer provenance need their own closure.
+          // Do not classify acquisition as a pure transfer from source rows.
+          @pipeline.Infer(_) => raise UnsupportedStaticPath(step.source)
           @pipeline.Values(_) | @pipeline.TimeSeries(_) => {
             identity_charge(budget, 1)
             generators.push({ step: index, operation: step.operation, })
