@@ -24,6 +24,8 @@ pub fn admit_usage(@value_contract.Contract, @decode_core.Cursor, Limits) -> Res
 
 pub fn advance_bounded_key_comparison(BoundedKeyComparison, Int) -> Result[BoundedKeyComparisonPoll, KeyOrderIssue]
 
+pub fn advance_canonical_conversion(CanonicalConversion) -> CanonicalConversionPoll
+
 pub fn advance_complete_equality(CompleteEquality, Int) -> CompleteEqualityPoll
 
 pub fn advance_recheck_runtime_value(RecheckCursor) -> RecheckPoll
@@ -45,6 +47,8 @@ pub fn bind_reference_reissuer((@value_contract.Contract, String) -> ReferenceVa
 pub fn boolean_value(Bool) -> Value
 
 pub fn cancel_array_value(ArrayBuilder) -> Bool
+
+pub fn cancel_canonical_conversion(CanonicalConversion) -> Unit
 
 pub fn cancel_object_value(ObjectBuilder) -> Bool
 
@@ -134,6 +138,8 @@ pub fn start_bounded_key_comparison(CheckedValue, CheckedValue) -> Result[Bounde
 
 pub fn start_bounded_present_key_comparison(CheckedValue, CheckedValue) -> Result[BoundedKeyComparison, KeyOrderIssue]
 
+pub fn start_canonical_conversion(@canonical_json.CanonicalValue, Limits, contract? : @value_contract.Contract?) -> CanonicalConversion?
+
 pub fn start_complete_equality(CheckedValue, CheckedValue, Limits) -> Result[CompleteEquality, CompleteEqualityIssue]
 
 pub fn start_recheck_runtime_value(Value, @value_contract.Contract, Limits) -> RecheckCursor?
@@ -156,6 +162,14 @@ type BoundedKeyComparison
 pub enum BoundedKeyComparisonPoll {
   KeyComparisonContinue(work~ : Int)
   KeyComparisonComplete(order~ : Int, work~ : Int)
+}
+
+type CanonicalConversion
+
+pub enum CanonicalConversionPoll {
+  CanonicalConversionContinue
+  CanonicalConversionComplete(Value)
+  CanonicalConversionFailed
 }
 
 pub struct CheckedValue {

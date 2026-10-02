@@ -120,6 +120,11 @@ fn export_relation_all(
 test "publication export separates ordered rows from logical Relation identity" {
   let source = export_fixture(capture_fixture())
   let (receipt, text) = export_relation_all(source)
+  assert_true(completed_relation_export_matches_output(receipt, source))
+  let equal_foreign_source = export_fixture(capture_fixture())
+  assert_true(
+    !completed_relation_export_matches_output(receipt, equal_foreign_source),
+  )
   assert_eq(text, "[{\"n\":1,\"s\":\"é\"},{\"n\":2,\"s\":\"😀\"}]")
   let content = completed_relation_export_content(receipt)
   let relation = completed_relation_export_identity(receipt)

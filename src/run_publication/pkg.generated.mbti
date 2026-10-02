@@ -3,6 +3,7 @@ package "actql/actql/run_publication"
 
 import {
   "actql/actql/canonical_json",
+  "actql/actql/encode_core",
   "moonbitlang/core/debug",
 }
 
@@ -73,6 +74,14 @@ pub fn begin_result_delivery(ResultDeliverySerializer) -> Result[String, Deliver
 
 pub fn begin_result_material_holds(String, String) -> Result[ResultMaterialHolds, ResultMaterialHoldIssue]
 
+pub fn bind_model_slot_attempt_evidence(BoundModelSlotCapture, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunPublicationAdmission, PublicationContract) -> Result[BoundModelAttemptEvidence, RunEvidenceValueIssue]
+
+pub fn bind_model_slot_capture(RunEvidenceValue, RunEvidenceValue) -> Result[BoundModelSlotCapture, RunEvidenceValueIssue]
+
+pub fn bound_model_slot_capture_outcome(BoundModelSlotCapture) -> String?
+
+pub fn bound_model_slot_capture_value(BoundModelSlotCapture) -> RunEvidenceValue
+
 pub fn cancel_durable_result_row_frames(DurableResultRowFrames) -> Unit
 
 pub fn canonical_effect_preview_draft_wire(String, Int, Int, Int) -> Result[String, PublicationContractIssue]
@@ -103,7 +112,15 @@ pub fn check_effect_preview_row_outcome(EffectPreviewIdentity, Int, Int, String,
 
 pub fn check_effect_preview_run_binding(RunPublicationAdmission, PublicationContract, PublicationContract, EffectPreviewIdentity) -> Result[Unit, EffectPreviewRunBindingIssue]
 
+pub fn check_model_slot_capture_policy(BoundModelSlotCapture, String) -> Result[Unit, RunEvidenceValueIssue]
+
 pub fn check_run_publication_program_binding(RunPublicationAdmission, PublicationContract, String, String, String) -> Result[Unit, RunProgramBindingIssue]
+
+pub fn check_saved_source_free_model_observation(RunPublicationAdmission, PublicationContract, RunEvidenceValue, RunEvidenceValue, String, String, String, String) -> Result[Unit, RunEvidenceValueIssue]
+
+pub fn check_source_free_model_invocation_binding(RunEvidenceValue, RunEvidenceValue, PublicationContract, RunEvidenceValue, String) -> Result[Unit, RunEvidenceValueIssue]
+
+pub fn check_source_free_model_observation_binding(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, String) -> Result[Unit, RunEvidenceValueIssue]
 
 pub fn checked_publication_inventory_count(CheckedPublicationInventory) -> Int
 
@@ -297,6 +314,8 @@ pub fn issue_local_result_occurrence_evidence(String, String, String, String, Ar
 
 pub fn issue_manifest_read_grant(PublicationContract, PublicationContract, String, String, String, Int, Int, String, String, Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
 
+pub fn issue_model_run_invocation(RunEvidenceValue, RunEvidenceValue, Array[BoundModelSlotCapture], Int, Int, Int) -> Result[PublicationContract, RunEvidenceValueIssue]
+
 pub fn issue_public_index_entry(PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, Array[PublicationContract], PublicationContract, PublicationContract, String, Int, Int, Int) -> Result[PublicationContract, PublicationCommitIssuanceIssue]
 
 pub fn issue_publication_attempt(PublicationContract, PublicationContract, String, String, String?, String, Int, Int, Int) -> Result[PublicationContract, PublicationCommitIssuanceIssue]
@@ -334,6 +353,26 @@ pub fn manifest_read_grant_valid_at(PublicationContract, String) -> Bool
 pub fn manifest_result_names(PublicationContract) -> Result[Array[String], DeliveryIssuanceIssue]
 
 pub fn manifest_result_names_json(PublicationContract, Int, Int, Int) -> Result[String, DeliveryIssuanceIssue]
+
+pub fn model_capture_bundle_count(ModelCaptureBundleRead) -> Int
+
+pub fn model_capture_bundle_identity(ModelCaptureBundleRead) -> String?
+
+pub fn model_capture_bundle_record(ModelCaptureBundleRead, Int) -> Result[ModelCaptureRecordRead, RunEvidenceValueIssue]
+
+pub fn model_capture_record_evidence(ModelCaptureRecordRead) -> RunEvidenceValue
+
+pub fn model_capture_record_response(ModelCaptureRecordRead) -> @canonical_json.CanonicalValue
+
+pub fn model_capture_record_text(ModelCaptureRecordRead, String) -> String?
+
+pub fn model_capture_record_tokens(ModelCaptureRecordRead) -> (Int64, Int64)?
+
+pub fn model_observation_slot_at(RunEvidenceValue, Int) -> String?
+
+pub fn model_observation_slot_count(RunEvidenceValue) -> Int?
+
+pub fn model_private_holding_cid(PublicationContract, String, String, Int) -> String?
 
 pub fn next_result_delivery_row(ResultDeliverySerializer, String) -> Result[String, DeliverySerializationIssue]
 
@@ -431,6 +470,8 @@ pub fn publication_snapshot_state_text(PublicationSnapshot) -> String
 
 pub fn publication_unknown_retry_action_code(PublicationUnknownRetryAction) -> Int
 
+pub fn read_model_capture_bundle(String, String, Int, Int, Int) -> Result[ModelCaptureBundleRead, RunEvidenceValueIssue]
+
 pub fn record_result_access_grant(ResultAccessProgress, Bool) -> Result[Unit, ResultAccessProgressIssue]
 
 pub fn record_result_access_initial_availability(ResultAccessProgress, Bool) -> Result[Unit, ResultAccessProgressIssue]
@@ -440,6 +481,8 @@ pub fn record_result_access_read_admission(ResultAccessProgress, Bool) -> Result
 pub fn record_result_access_request_authorization(ResultAccessProgress, Bool) -> Result[Unit, ResultAccessProgressIssue]
 
 pub fn record_result_access_resolution(ResultAccessProgress, Bool) -> Result[Unit, ResultAccessProgressIssue]
+
+pub fn release_model_capture_bundle_read(ModelCaptureBundleRead) -> Bool
 
 pub fn resolve_run_local_result_evidence_refs(RunPublicationAdmission, PublicationContract, PublicationContract, RunEvidenceValue, PublicationContract) -> Result[(String, String, String), RunLocalResultEvidenceIssue]
 
@@ -495,9 +538,13 @@ pub fn result_retention_intervals_valid(PublicationContract) -> Bool
 
 pub fn result_serialization_contract_cid(String, Int, Int, Int) -> Result[String, DeliveryIssuanceIssue]
 
+pub fn retain_model_capture_bundle_read(ModelCaptureBundleRead) -> ModelCaptureBundleRead?
+
 pub fn run_definition_has_empty_initial_input_artifact_set(PublicationContract) -> Bool
 
 pub fn run_definition_run_id(PublicationContract) -> Result[String, DeliveryIssuanceIssue]
+
+pub fn run_evidence_value_document(RunEvidenceValue, Int, Int, Int) -> @encode_core.EncodedDocument raise @encode_core.EncodeFailure
 
 pub fn run_evidence_value_identity(RunEvidenceValue) -> String
 
@@ -508,6 +555,10 @@ pub fn run_evidence_value_name(RunEvidenceValue) -> String
 pub fn run_publication_authorization(RunPublicationAdmission) -> RunEvidenceValue
 
 pub fn run_publication_compiled_plan_cid(RunPublicationAdmission) -> String
+
+pub fn run_publication_execution_context(RunPublicationAdmission) -> String
+
+pub fn run_publication_host_policy(RunPublicationAdmission) -> String
 
 pub fn run_publication_prepared(RunPublicationAdmission) -> RunEvidenceValue
 
@@ -563,6 +614,14 @@ pub fn validate_run_publication_chain(PublicationContract, PublicationContract, 
 
 pub fn validate_run_state(RunOutcomeStatus, Array[String], Array[ResultAvailability], Bool, RunNextAction, Bool) -> Result[Unit, RunStateIssue]
 
+pub fn verify_model_observation_slots(RunEvidenceValue, Array[BoundModelSlotCapture]) -> Result[Unit, RunEvidenceValueIssue]
+
+pub fn verify_model_slot_capture_bundle(Array[BoundModelSlotCapture], ModelCaptureBundleRead) -> Result[Unit, RunEvidenceValueIssue]
+
+pub fn verify_model_slot_no_response_failure(BoundModelSlotCapture, String) -> Result[Unit, RunEvidenceValueIssue]
+
+pub fn verify_model_slot_success_observation(BoundModelSlotCapture, RunEvidenceValue) -> Result[Unit, RunEvidenceValueIssue]
+
 // Errors
 
 // Types and methods
@@ -573,6 +632,19 @@ pub(all) enum AcquisitionRelationIssue {
   Encoding
   Contract(PublicationContractIssue)
 } derive(Eq, @debug.Debug)
+
+pub struct BoundModelAttemptEvidence {
+  slot : BoundModelSlotCapture
+  attempt : RunEvidenceValue
+  accounting : RunEvidenceValue
+  outcome : RunEvidenceValue
+  authority : RunEvidenceValue
+}
+
+pub struct BoundModelSlotCapture {
+  call : RunEvidenceValue
+  capture : RunEvidenceValue
+}
 
 type CapturedEffectDependencyBody
 
@@ -962,6 +1034,18 @@ pub(all) enum ExistingDeliveryAttemptAction {
   DeliveryRejectTerminalAttempt
   ExistingDeliveryAttemptInvalid
 } derive(Eq, @debug.Debug)
+
+pub struct ModelCaptureBundleRead {
+  storage : ModelCaptureStorage
+  mut released : Bool
+}
+
+pub struct ModelCaptureRecordRead {
+  evidence : RunEvidenceValue
+  response : @canonical_json.CanonicalValue
+}
+
+type ModelCaptureStorage
 
 type PendingSourceStateAdvance
 

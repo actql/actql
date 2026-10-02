@@ -26,11 +26,15 @@ import {
   "actql/actql/vector_numeric" @vector,
   "actql/actql/managed_carrier_runtime" @managed_carrier,
   "actql/actql/carrier_contract" @carrier,
+  "actql/actql/check_environment" @model_environment,
   "moonbitlang/core/json",
   "moonbitlang/core/bigint",
 }
 
 import {
+  "actql/actql/infer_typing" @infer,
+  "actql/actql/sha256" @sha,
+  "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/bench",
   "moonbitlang/core/env",
   "actql/actql/parameter_binding" @parameter,

@@ -145,7 +145,7 @@ const limit = (measure, candidates, maximum, unit) => seal({version: 'actql-reso
   author_guard_binding: 'absent', breach: 'fail', candidates, effective_max: maximum,
   enforcement: 'engine_atomic', subject_ref: `unit:${unit}#/results/rows/${measure}`,
   unit: measure}, 'resolved_limit_cid');
-function vector(grammar, aoa, dependencies=priorDependencies) {
+function vector(grammar, aoa, dependencies=priorDependencies, barrierCid=barrier) {
   const {unit,proof,resultPlan} = dependencies;
   const upper = seal({version: 'actql-bound-witness/0.1', dependencies: [proof],
     derivation: {op: 'source'}, law_id: 'actql.bound.values', role: 'proven_upper_bound',
@@ -160,13 +160,13 @@ function vector(grammar, aoa, dependencies=priorDependencies) {
   const facts = limits.map(value => ({kind: 'resolved_limit', value}));
   const factManifest = cid({plan_facts: facts, version: 'actql-plan-fact-manifest/0.1'});
   const template = seal({version: 'actql-bound-invocation-template/0.1',
-    barrier_contract_manifest_cid: barrier, check_environment_cid: environment,
+    barrier_contract_manifest_cid: barrierCid, check_environment_cid: environment,
     grammar_manifest_cid: grammar, invocation_bindings_cid: bindings,
     parameter_values_cid: parameterValues, program_definition_cid: programCid,
     required_profile_contracts: [], source_evidence: 'unbound'}, 'bound_invocation_template_cid');
   const executable = seal({version: 'actql-executable-plan/0.1',
     bound_witnesses: [upper, rowCeiling, byteCeiling], data_edges: [],
-    execution_material: {aoa_contract_cid: aoa, barrier_contract_manifest_cid: barrier,
+    execution_material: {aoa_contract_cid: aoa, barrier_contract_manifest_cid: barrierCid,
       check_environment_cid: environment, effect_plan_logical_cids: {},
       grammar_manifest_cid: grammar, invocation_binding_names: [],
       invocation_bindings_cid: bindings, invocation_template_cid: template.bound_invocation_template_cid,
@@ -216,7 +216,10 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(priorDependencies.resultPlan,
     pin('8d2ad95f6f8b7be42c550d922d0614e68be2700bba05d7af2c7e03a4fcbbcc38'));
   const dependencies = valuesDependencyOracle();
-  const current = vector(grammarCid, cid(aoaContract), dependencies);
+  const barrierManifest = JSON.parse(readFileSync('spec/manifests/actql-barrier-contracts-0.1.json', 'utf8'));
+  const {barrier_contract_manifest_cid: barrierCid, ...barrierPreimage} = barrierManifest;
+  assert.equal(cid(barrierPreimage), barrierCid);
+  const current = vector(grammarCid, cid(aoaContract), dependencies, barrierCid);
   // Preserve the prior WITH/Pipe vector; the new policy changes no Values body.
   assert.equal(vector(pin('a8f1bbabb5eeda9287716c651b398d1c0954201c985b5c70ccb78d96a9ed1416'),
     priorAoA).run.run_definition_cid,
@@ -231,8 +234,36 @@ test('baseline preimages and changed normative pins independently determine the 
   // Grammar, transfer classification, Check environment and the selected
   // Property Graph law change the Unit closure even for a Values-only Run.
   // Rebuild the proof, publication bindings and Result Plan independently.
-  assert.equal(current.run.run_definition_cid,
+  assert.equal(vector(grammarCid, cid(aoaContract), dependencies).run.run_definition_cid,
     pin('838a90f1bb3ee17c4e8a25db56d1756c5201897f7a1128498832796ff8c18a90'));
+  assert.equal(current.run.run_definition_cid,
+    pin('f2b1556c0f99714896e7ea77c817f174797d3a5e66b3a8c593315ad4365ed77a'));
+
+  // Preserve the independent INFER predecessor with its original dependency closure.
+  assert.equal(vector(pin('8fc336e2b475104366fea9024c38d171a3d18743a63f05b254272e14bedd886d'),
+    priorAoA, priorDependencies, barrierCid).run.run_definition_cid,
+    pin('7c8730fc4b50e0ae4b5d5b0494d64b6e5b8fe85fe2d3f41c36735642317d0d6c'));
+  // Preserve merged main's independently derived INFER vector as history,
+  // rather than treating its pre-Property-Graph Unit as a current authority.
+  const predecessorUnit = pin('0ec8026865253c45b26d8eb0b9df6e4cb63b64bf7ae19590e6f1fc2aff10879c');
+  const predecessorDependencies = {
+    unit: predecessorUnit,
+    proof: cid({version: 'actql-bound-proof/0.1', inputs: [],
+      law_id: 'actql.bound.values', semantic_ref: `unit:${predecessorUnit}#/steps/0`,
+      unit: 'rows', value: 2}),
+    resultPlan: cid({version: 'actql-result-plan/0.1',
+      order: {strategy: 'inherited', terms: []},
+      projection: [{input: 'id', output: 'id',
+        value_contract_cid: pin('8a7be765d273ccfa06d916976f27fcb0404d814371e72c058502335b51b9bd3d')}],
+      result_name: 'answer', unit_definition_cid: predecessorUnit,
+      unit_result_name: 'rows', unit_result_ordinal: 0,
+      typed_output_port: {carrier: 'relation', name: 'rows',
+        row_contract_cid: pin('999395be222d44c0d3dafb4eb4e306cc6f0329a2096af1aeb380341d4cfa588c')}}),
+  };
+  assert.equal(vector(pin('b176b995f5dc309487656b334cb34e21409f6a9f67f8a10b89ac9c5d6e5db7c2'),
+    pin('ce0e1e8935e1c65b8992f2fb0272da80b192d54616c546efd80a0cad87bd4ec4'),
+    predecessorDependencies, barrierCid).run.run_definition_cid,
+    pin('be53b8665c7381ddaad2edddf62c211ae07b9eddefa07ec743ce57ea108cac18'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');

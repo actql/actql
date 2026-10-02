@@ -1906,13 +1906,18 @@ function publicationControl(moon) {
       }
       return inspectAdmission(admission);
     },
-    prepareCheckedClientCompiledRun(checkedProgram, kind, policy) {
-      if (!['values', 'tasks'].includes(kind)) {
+    prepareCheckedClientCompiledRun(checkedProgram, kind, policy, inferGraph) {
+      if (!['values', 'tasks', 'infer'].includes(kind)) {
         throw new TypeError('Invalid Client compilation profile');
+      }
+      if ((kind === 'infer') !== (inferGraph !== undefined)) {
+        throw new TypeError('Infer compilation requires its checked graph');
       }
       const compilation = compiledRunResult(kind === 'values'
         ? moon.clientProgramCompileLocalValues(checkedProgram)
-        : moon.clientProgramCompileLocalTasks(checkedProgram),
+        : kind === 'infer'
+          ? moon.clientProgramCompileLocalInfer(checkedProgram, inferGraph)
+          : moon.clientProgramCompileLocalTasks(checkedProgram),
       kind === 'values' ? 'RunHostCompilationRejected'
         : 'RunHostTaskCompilationRejected');
       const value = compiledRunResult(kind === 'values'
@@ -1962,7 +1967,7 @@ function publicationControl(moon) {
         ? moon.clientProgramIssueCompiledRunDefinition(value,
           namespaceId, runId, createdAt, validUntil)
         : moon.clientProgramAdmitCompiledRunDefinition(value,
-          retainedDefinitionWire), compiled.kind === 'tasks'
+          retainedDefinitionWire), compiled.kind !== 'values'
         ? 'RunHostTaskDefinitionRejected'
         : retainedDefinitionWire === undefined
           ? 'RunHostSourceFreeDefinitionRejected'
@@ -1976,7 +1981,7 @@ function publicationControl(moon) {
       }
       issuanceLimits(limits, 'Client Run Invocation');
       const issued = compiledRunResult(source === undefined
-        ? (compiled.kind === 'tasks'
+        ? (compiled.kind !== 'values'
           ? moon.clientProgramIssueCompiledSourceFreeTaskInvocation(value,
             token(definition), dataPolicyCid,
             limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
@@ -1993,6 +1998,71 @@ function publicationControl(moon) {
         : 'RunHostTaskInvocationRejected');
       return Object.freeze({observation: inspectEvidence(issued._0),
         invocation: inspect(issued._1), owner: issued._1});
+    },
+    // Reuse the compiled owner retained at Run admission. The physical
+    // adapter supplies its opaque execution and bounded verification owner;
+    // this does not adopt external attempts or grant publication authority.
+    modelPrivateHoldingCid(definition, storeAuthorityCid, role, slot) {
+      const identity = moon.clientProgramModelPrivateHoldingCid(
+        token(definition), storeAuthorityCid, role, slot);
+      if (identity === undefined) throw new TypeError('InvalidModelPrivateHolding');
+      return identity;
+    },
+    bindCheckedClientInferRun(compiled, execution, definition) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer Run');
+      }
+      return checked(moon.clientProgramBindInferRun(execution,
+        value, token(definition)));
+    },
+    bindCheckedClientInferDispatch(compiled, execution, definition,
+      {account, principalId, at, delegated, observeAccount, observeAt}) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer Run');
+      }
+      if (typeof observeAccount !== 'function' ||
+          typeof observeAt !== 'function') {
+        throw new TypeError('Missing current Infer dispatch observations');
+      }
+      const admitted = checked(moon.clientProgramIssueInferDispatchAdmission(
+        value, token(definition), account, principalId, at, delegated,
+        observeAccount, observeAt));
+      return checked(moon.clientProgramBindInferDispatchAdmission(execution,
+        admitted));
+    },
+    bindCheckedClientInferInvocation(compiled, execution, definition,
+      verified, invocation, dataPolicyCid) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer Run');
+      }
+      return checked(moon.clientProgramBindInferInvocation(execution,
+        value, token(definition), verified, token(invocation), dataPolicyCid));
+    },
+    bindIssuedClientInferInvocation(compiled, execution, definition, issued) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer Run');
+      }
+      const binding = checked(moon.clientProgramBindIssuedInferInvocation(
+        execution, value, token(definition), issued));
+      return Object.freeze({binding,
+        observation: inspectEvidence(
+          moon.clientProgramInferInvocationBindingObservation(binding)),
+        invocation: inspect(
+          moon.clientProgramInferInvocationBindingInvocation(binding))});
+    },
+    readCheckedClientInferSlotReplay(compiled, definition, observation,
+      records, bundle, proofs, {maxSlots, maxSlotWireUnits}) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer Run');
+      }
+      return checked(moon.clientProgramReadVerifiedInferSlotReplay(
+        evidenceToken(observation), records, bundle, proofs, value, token(definition),
+        maxSlots, maxSlotWireUnits));
     },
     checkClientRunDefinitionBinding(checkedProgram, admission, definition) {
       if (typeof moon.clientProgramCheckRunBinding !== 'function' ||

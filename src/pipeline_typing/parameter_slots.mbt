@@ -152,6 +152,10 @@ pub fn collect_parameter_slots(
     for step in 0..<pipeline.steps.length() {
       operand_tick(c)
       match pipeline.steps[step].operation {
+        Infer(operation) =>
+          operand_fields(c, step, @evidence.infer_source(operation), [
+            "max_items",
+          ])
         Unary(op) | WindowGroup(op) => relation_operands(c, step, op)
         Join(checked~, ..) =>
           operand_fields(c, step, @join.source(checked), ["max_output_rows"])

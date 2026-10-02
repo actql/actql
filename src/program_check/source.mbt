@@ -89,6 +89,7 @@ fn prepare_catalog_source(
   limits : SourceLimits,
   calendar? : @environment.SelectedCalendarProfile? = None,
   capacity_inputs? : @context.ProgramCapacityInputs? = None,
+  model_tasks? : @environment.ModelTasks? = None,
   derived_capacity_limits? : @wire.Limits? = None,
   property_graph? : Bool = false,
 ) -> @context.ProgramSourceIdentity raise SourceFailure {
@@ -132,6 +133,7 @@ fn prepare_catalog_source(
       limits.context,
       calendar~,
       capacity_inputs~,
+      model_tasks~,
       derived_capacity_limits~,
     ) {
     Ok(v) => v

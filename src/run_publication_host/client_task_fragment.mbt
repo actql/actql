@@ -227,6 +227,130 @@ pub fn issue_prepared_client_task_fragment(
     Ok(wire) => wire
     Err(issue) => return Err(Pipeline(issue))
   }
+  guard @strategy.graph_task_owner(value.graph, task) is Some(owner) &&
+    client_task_output_step(
+      value.graph,
+      task,
+      @pipeline.step_count(@lower.pipeline(@lower.bound_preparation(owner))),
+    )
+    is Some(last) else {
+    return Err(MissingTask)
+  }
+  issue_client_task_fragment_body(
+    owner,
+    last,
+    @strategy.graph_task_selected_step(value.graph, task),
+    "task_" + task.to_string(),
+    pipeline_wire,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// Seal only the pure prefix that supplies an Infer acquisition. This is
+/// adjacent computation, not an Infer Plan or an execution authorization.
+pub fn issue_prepared_client_infer_prefix_fragment(
+  value : PreparedClientProgram,
+  task : Int,
+  infer_step : Int,
+  sequence_limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientTaskFragmentNode, ClientTaskFragmentIssue] {
+  if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
+    return Err(InvalidLimits)
+  }
+  guard client_infer_prefix_owner(value, task, infer_step) is Some(owner) &&
+    @lower.node_at(@lower.bound_preparation(owner), infer_step - 1)
+    is Some(output) else {
+    return Err(MissingOutput)
+  }
+  let pipeline_wire = match
+    emit_client_task_pipeline_prefix(
+      owner,
+      infer_step - 1,
+      output,
+      None,
+      Some(infer_step - 1),
+      true,
+      sequence_limits,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(wire) => wire
+    Err(issue) => return Err(Pipeline(issue))
+  }
+  issue_client_task_fragment_body(
+    owner,
+    infer_step - 1,
+    None,
+    "task_" + task.to_string() + "_before_infer_" + infer_step.to_string(),
+    pipeline_wire,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn issue_client_infer_compute_fragment(
+  value : PreparedClientProgram,
+  infer_step : Int,
+  step : Int,
+  sequence_limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientTaskFragmentNode, ClientTaskFragmentIssue] {
+  guard step > infer_step &&
+    client_infer_prefix_owner(value, 0, infer_step) is Some(owner) &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(output) else {
+    return Err(MissingOutput)
+  }
+  let pipeline_wire = match
+    emit_client_task_pipeline_prefix(
+      owner,
+      step,
+      output,
+      Some(step),
+      None,
+      false,
+      sequence_limits,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      infer_boundary=Some(infer_step),
+    ) {
+    Ok(wire) => wire
+    Err(issue) => return Err(Pipeline(issue))
+  }
+  issue_client_task_fragment_body(
+    owner,
+    step,
+    Some(step),
+    "task_0_after_infer_" + step.to_string(),
+    pipeline_wire,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn issue_client_task_fragment_body(
+  owner : @lower.BoundPrepared,
+  last : Int,
+  selected : Int?,
+  node_id : String,
+  pipeline_wire : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientTaskFragmentNode, ClientTaskFragmentIssue] {
   guard parse_plan_identity_value(
       pipeline_wire, max_wire_bytes, max_nodes, max_depth,
     )
@@ -238,22 +362,12 @@ pub fn issue_prepared_client_task_fragment(
   ) catch {
     _ => return Err(Encoding)
   }
-  guard @strategy.graph_task_owner(value.graph, task) is Some(owner) else {
-    return Err(MissingTask)
-  }
   let prepared = @lower.bound_preparation(owner)
   let checked = @lower.pipeline(prepared)
-  guard client_task_output_step(
-      value.graph,
-      task,
-      @pipeline.step_count(checked),
-    )
-    is Some(last) &&
-    @lower.node_at(prepared, last) is Some(output) else {
+  guard @lower.node_at(prepared, last) is Some(output) else {
     return Err(MissingOutput)
   }
   let output_port = @lower.node_id(output)
-  let node_id = "task_" + task.to_string()
   guard @canonical.object_field(pipeline, "output")
     is Some(@canonical.String(actual_output)) &&
     actual_output == output_port else {
@@ -276,7 +390,6 @@ pub fn issue_prepared_client_task_fragment(
     @encode.begin_object(writer)
     @encode.key(writer, "input_contracts")
     @encode.begin_object(writer)
-    let selected = @strategy.graph_task_selected_step(value.graph, task)
     let input_count = if selected is Some(step) {
       @lower.node_at(prepared, step).map(@lower.node_input_count).unwrap_or(0)
     } else {

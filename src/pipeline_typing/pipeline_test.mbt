@@ -239,7 +239,7 @@ test "closed envelopes reject unknown operations and unavailable or duplicate na
       is Err({ kind: UnknownName("x"), .. }),
     )
   }
-  for source in ["[{\"infer\":{}}]", "[{\"search_candidates\":{}}]"] {
+  for source in ["[{\"unknown_operation\":{}}]", "[{\"search_candidates\":{}}]"] {
     assert_true(
       @pipeline_typing.check(cursor(source), [], None, None, limits())
       is Err({ kind: UnsupportedOperation(_), .. }),

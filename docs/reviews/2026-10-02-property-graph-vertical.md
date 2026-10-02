@@ -408,6 +408,36 @@ charge reported save/reload work once, reserve serializer/reload workspace
 before I/O, verify the exact stored CID, and confirm physical temporary-body
 release. Internal roundtrip does not substitute for that connection.
 
+## Integration of current main after the key-evidence checkpoints
+
+Main `9fe3e2d738b541c17414a5eb09cd759c3e99adb4` adds installed INFER and
+the current Array/Map foundation. The eighteen content conflicts are resolved
+without restoring an executable tuple Graph profile or dropping model tasks,
+barrier contracts or INFER acceptance commands. Public interfaces are generated
+from the merged sources rather than selecting either conflicting interface.
+
+The independent Values preimages preserve both the earlier Graph vector and
+main's INFER predecessors. The new barrier manifest changes the Run to
+`sha256:f2b1556c0f99714896e7ea77c817f174797d3a5e66b3a8c593315ad4365ed77a`;
+the Unit, bound proof and Result Plan above remain unchanged. Node independent
+vector tests pass **2/2**. The actual Values issuer/admitter, current Graph
+Pipeline key/projection/audit checks, model execution contract and model closure
+pass **14/14 on each of JS, Wasm and native** from the merged working source.
+These focused checks do not replace aggregate Core, spec, fresh packed or CI.
+
+Initial protocol generation lacked `moonfmt` on PATH; the pinned toolchain
+rerun succeeded. An initial `-f` invocation selected no test names, and two
+attempts named nonexistent test files. None is counted as passing acceptance;
+the reported fourteen checks use actual file-path selection.
+The added main-predecessor vector initially rebound its historical AoA registry
+to the current Graph registry and failed. Pinning its original normative body
+restored that historical vector without changing the expected CID.
+
+The current-foundation record still needs its separately committed integrated
+source reference and exact package digest. Historical #148 evidence remains
+immutable. This is provenance registration, not approval or an extension of
+the Relation proof to Graph.
+
 ## Deliberately not claimed
 
 Full SGA, external producer-definition provenance, a durable Graph catalog and

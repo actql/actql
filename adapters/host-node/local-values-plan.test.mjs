@@ -25,9 +25,9 @@ const cid = digit => `sha256:${digit.repeat(64)}`;
 const hash = body => `sha256:${createHash('sha256')
   .update(canonicalText(body)).digest('hex')}`;
 // Retained pre-change preimages, verified against the existing compatibility
-// CIDs. Rebind normative Grammar/AoA roots and independently derive the Unit,
+// CIDs. Rebind grammar, barrier and AoA roots and independently derive Unit,
 // proof, publication bounds and Result Plan dependencies. Expectations never
-// come from the new compiler's output; the historical fixtures stay unchanged.
+// come from compiler output; historical fixtures stay unchanged.
 const baselinePlanCids = {
   values: 'sha256:fc6cc72f2fe207114444c9663f5ba41ca4b3298e0e91984aa6d4252fbced6cde',
   tasks: 'sha256:ac6d5874836c84421dff22cf3b67d5f06f03dab92ffc445c868ca8bfb1c2ab7f',
@@ -36,6 +36,8 @@ const read = path => readFile(new URL(path, import.meta.url), 'utf8');
 const grammar = JSON.parse(await read('../../spec/manifests/actql-grammar-0.1.json'));
 const aoa = hash(JSON.parse(await read('../../spec/contracts/actql-aoa.json')));
 const seal = (body, field) => ({...body, [field]: hash(body)});
+const barriers = JSON.parse(await read(
+  '../../spec/manifests/actql-barrier-contracts-0.1.json'));
 const expectedPlans = {};
 const rebound = (value, substitutions) => {
   if (typeof value === 'string') {
@@ -111,6 +113,8 @@ for (const kind of ['values', 'tasks']) {
   executable.plan_fact_manifest_cid = hash({version: 'actql-plan-fact-manifest/0.1',
     plan_facts: executable.plan_facts});
   template.grammar_manifest_cid = grammar.grammar_manifest_cid;
+  template.barrier_contract_manifest_cid = barriers.barrier_contract_manifest_cid;
+  executable.execution_material.barrier_contract_manifest_cid = barriers.barrier_contract_manifest_cid;
   executable.execution_material.aoa_contract_cid = aoa;
   executable.execution_material.grammar_manifest_cid = grammar.grammar_manifest_cid;
   executable.execution_material.invocation_template_cid = hash(template);

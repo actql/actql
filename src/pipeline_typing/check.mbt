@@ -64,6 +64,7 @@ fn check_impl(
   ranked_inputs : Array[@vector.RankingInput?],
   produced_inputs : Array[ProducedInput?],
   input_contracts : Array[InputContract],
+  model_tasks : @model_environment.ModelTasks?,
 ) -> CheckedPipeline raise Stop {
   if limits.max_steps < 0 ||
     limits.max_work < 0 ||
@@ -679,6 +680,7 @@ fn check_impl(
       | "node_rows"
       | "edge_rows"
       | "window_events" => None
+      "infer" => None
       _ => fail(@decode.lookup(object, key).unwrap(), UnsupportedOperation(key))
     }
     let selected = match @decode.lookup(object, "from") {
@@ -729,6 +731,58 @@ fn check_impl(
     let meta = @decode.lookup(object, "meta")
     if meta is Some(cursor) {
       metadata(b, cursor)
+    }
+    if key == "infer" {
+      if binding_name is None {
+        fail(body, InferRequiresAlias)
+      }
+      let tasks = match model_tasks {
+        Some(tasks) => tasks
+        None => fail(operation_body, MissingModelTasks)
+      }
+      let checked = match
+        @evidence.check_infer(
+          operation_body,
+          carrier(input, inputs, steps),
+          key_at(input, keyed_inputs, keyed_steps),
+          tasks,
+          parameters,
+          {
+            max_work: b.work,
+            max_nodes: b.nodes,
+            max_depth: limits.max_depth,
+            max_text_bytes: b.text,
+            max_tokens: b.tokens,
+            max_key_fields: b.nodes.min(b.work),
+            max_input_roles: b.nodes.min(b.work),
+          },
+        ) {
+        Ok(checked) => checked
+        Err(issue) => fail(issue.source, Infer(issue.kind))
+      }
+      let used = @evidence.infer_usage(checked)
+      b.work -= used.work
+      b.nodes -= used.nodes
+      b.text -= used.text_bytes
+      b.tokens -= used.tokens
+      let target = Step(steps.length())
+      steps.push({
+        source: body,
+        input: Some(input),
+        binding_name,
+        metadata: meta,
+        operation: Infer(checked),
+        output: @carrier.relation(
+          @carrier.typed_rows(@evidence.infer_output_schema(checked)),
+        ),
+        connections: { entries: [{ role: Primary, target: input, }], },
+        window: None,
+      })
+      if binding_name is Some(name) {
+        names[name] = target
+      }
+      current = Some(target)
+      continue
     }
     if key == "sequence" {
       let checked = match
@@ -2190,6 +2244,7 @@ fn check_impl(
           entries
         }
         Unary(_)
+        | Infer(_)
         | Window(_)
         | WindowGroup(_)
         | Projection(_)
@@ -2308,6 +2363,7 @@ pub fn check(
   delta_contracts? : Array[
     (String, @schema.FieldName, @graph_contract.CheckedContract),
   ] = [],
+  model_tasks? : @model_environment.ModelTasks? = None,
 ) -> Result[CheckedPipeline, Issue] {
   check_carriers(
     source,
@@ -2318,6 +2374,7 @@ pub fn check(
     calendar_profile~,
     text_rank_profile~,
     delta_contracts~,
+    model_tasks~,
   )
 }
 
@@ -2335,6 +2392,7 @@ pub fn check_carriers(
   delta_contracts? : Array[
     (String, @schema.FieldName, @graph_contract.CheckedContract),
   ] = [],
+  model_tasks? : @model_environment.ModelTasks? = None,
 ) -> Result[CheckedPipeline, Issue] {
   Ok(
     check_impl(
@@ -2350,6 +2408,7 @@ pub fn check_carriers(
       inputs.map(_ => None),
       inputs.map(_ => None),
       inputs.map(pair => CarrierInput(pair.1)),
+      model_tasks,
     ),
   ) catch {
     Stop(issue) => Err(issue)
@@ -2369,6 +2428,7 @@ pub fn check_with_evidence(
   delta_contracts? : Array[
     (String, @schema.FieldName, @graph_contract.CheckedContract),
   ] = [],
+  model_tasks? : @model_environment.ModelTasks? = None,
 ) -> Result[CheckedPipeline, Issue] {
   let carriers = inputs.map(pair => {
     (
@@ -2419,6 +2479,7 @@ pub fn check_with_evidence(
         }
       }),
       inputs.map(pair => pair.1),
+      model_tasks,
     ),
   ) catch {
     Stop(issue) => Err(issue)

@@ -20,9 +20,10 @@ fn expression_event_consume(
   logical : LogicalBudget?,
   value : Value,
   expr : @lower.Expression,
+  root? : ExpressionRootLease? = None,
 ) -> Result[Unit, EvalIssue] {
   if logical is Some(b) {
-    match charge_logical_value(b, value) {
+    match consume_expression_value(b, value, root) {
       Err(issue) => return Err({ kind: LogicalValue(issue), expression: expr, })
       Ok(_) => ()
     }
@@ -43,7 +44,8 @@ fn expression_event_result(
       Ok(root) => Ok(Some(root))
     }
   } else {
-    match expression_event_consume(scope.map(s => s.budget), value, expr) {
+    match
+      expression_event_consume(scope.map(s => s.budget), value, expr, root~) {
       Err(issue) => Err(issue)
       Ok(_) => Ok(root)
     }
@@ -89,11 +91,11 @@ fn expression_event_binary(
   right : Value,
   right_root : ExpressionRootLease?,
 ) -> Result[Value, EvalIssue] {
-  match expression_event_consume(logical, left, expr) {
+  match expression_event_consume(logical, left, expr, root=left_root) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  match expression_event_consume(logical, right, expr) {
+  match expression_event_consume(logical, right, expr, root=right_root) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -126,7 +128,7 @@ fn expression_event_choice(
   value : Value,
   root : ExpressionRootLease?,
 ) -> Result[Bool, EvalIssue] {
-  match expression_event_consume(logical, value, expr) {
+  match expression_event_consume(logical, value, expr, root~) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }

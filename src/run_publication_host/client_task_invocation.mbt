@@ -20,6 +20,9 @@ pub fn issue_client_task_invocation(
   (@publication.RunEvidenceValue, @publication.PublicationContract),
   @publication.RunEvidenceValueIssue,
 ] {
+  if compilation.infer is Some(_) {
+    return Err(@publication.RunEvidenceReferenceMismatch("model_capture"))
+  }
   if bind_client_task_run(prepared, compilation, admission, run_definition)
     is Err(_) {
     return Err(

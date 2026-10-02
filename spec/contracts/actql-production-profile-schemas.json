@@ -23,7 +23,8 @@
     "run_graph_run": "sha256:285ddce81ff649877f0b715549fe24554c7aa688fcacf2197c858a3bff49e7a2",
     "run_graph_receipt": "sha256:6a868ac5d876ee1c54c4e0d96b8a86e08dfb097afa0cfe37bf8c03be32d41aed",
     "control_token_contract": "sha256:9598f3a03a80d05513d05a5d57e6860b4cc7c82d3867c4e520825288eb084a5f",
-    "control_token": "sha256:2a388b541a648dab8799ed93530d5a0b7fcca2c0cf84db69d18b5dca60bc9f3b"
+    "control_token": "sha256:2a388b541a648dab8799ed93530d5a0b7fcca2c0cf84db69d18b5dca60bc9f3b",
+    "inference_barrier": "sha256:34f1a37cbaea973964f4cf84ca3806b2492df545b718042ad8057604c95cb6dd"
   },
   "schemas": {
     "lookup_source": {
@@ -6977,7 +6978,90 @@
           "pattern": "^sha256:[a-f0-9]{64}$"
         }
       }
+    },
+    "inference_barrier": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-inference-barrier-0.1.json",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "model_execution_contract_cid",
+        "model_task_contract_cid",
+        "request_fragment_cid",
+        "input_contract_cid",
+        "output_contract_cid",
+        "key_fields",
+        "input_roles",
+        "on_non_success",
+        "limits_cid",
+        "egress_requirements_cid",
+        "input_fragment_cid",
+        "barrier_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-inference-barrier/0.1"
+        },
+        "model_execution_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "model_task_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "request_fragment_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "input_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "output_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "key_fields": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1
+        },
+        "input_roles": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "on_non_success": {
+          "enum": [
+            "outcomes",
+            "fail"
+          ]
+        },
+        "limits_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "egress_requirements_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "input_fragment_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "barrier_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
     }
   },
-  "registry_cid": "sha256:bbb13c6fc3d4dbaa674cb62dbe7b464be59fbdd7ff8e4213669941d812b59abd"
+  "registry_cid": "sha256:abb3d0a2e0c6ba074eaa52c47f3f47dc984572979641212dc41cf5548dea3b7e"
 }

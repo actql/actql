@@ -34,6 +34,9 @@ pub(all) enum IssueKind {
   UnknownName(String)
   MissingCurrent
   MissingKeyEvidence
+  MissingModelTasks
+  InferRequiresAlias
+  Infer(@evidence.InferIssueKind)
   UnresolvedOrder
   KeyEvidence(@evidence.IssueKind)
   WrongCarrier(@carrier.Kind)
@@ -133,6 +136,7 @@ pub fn step_schema(step : CheckedStep) -> @schema.Schema? {
 ///|
 /// Main input is stored on CheckedStep; binary operations retain their right input.
 pub enum CheckedOperation {
+  Infer(@evidence.CheckedInfer)
   Unary(@relation.CheckedOperation)
   Join(right~ : Target, checked~ : @join.CheckedJoin)
   Append(right~ : Target, checked~ : @append.CheckedAppend)

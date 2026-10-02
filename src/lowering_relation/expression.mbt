@@ -15,6 +15,8 @@ pub enum ExpressionBody {
   Field(String, @relation.ReferenceTarget)
   Literal(@value.CheckedValue)
   TypedNull
+  Object(Array[(String, Expression)])
+  Property(Expression, String, Int)
   Cast(Expression)
   Unary(UnaryOperator, Expression)
   Binary(BinaryOperator, Expression, Expression)
@@ -105,6 +107,7 @@ priv suberror ExpressionStop {
 ///|
 pub fn expression_body(value : Expression) -> ExpressionBody {
   match value.body {
+    Object(fields) => Object(fields.copy())
     VectorConcat(children) => VectorConcat(children.copy())
     Many(op, children) => Many(op, children.copy())
     Case(clauses, otherwise) => Case(clauses.copy(), otherwise)
@@ -116,12 +119,14 @@ pub fn expression_body(value : Expression) -> ExpressionBody {
 /// O(1), allocation-free number of entries copied by expression_body.
 pub fn expression_view_entries(value : Expression) -> Int {
   match value.body {
+    Object(fields) => fields.length()
     VectorConcat(children) => children.length()
     Many(_, children) => children.length()
     Case(clauses, _) => clauses.length()
     Field(_, _)
     | Literal(_)
     | TypedNull
+    | Property(_, _, _)
     | Cast(_)
     | Unary(_, _)
     | Binary(_, _, _)
@@ -198,6 +203,7 @@ fn expression_tag(
     | "cast"
     | "if"
     | "case" => ()
+    "object" | "property" => ()
     other => expression_fail(source, ExpressionNotImplemented(other))
   }
 }
@@ -209,6 +215,19 @@ fn expression_children(
   max_nodes : Int,
 ) -> Array[@decode.Cursor] raise ExpressionStop {
   match tag {
+    "property" =>
+      [@decode.lookup(@decode.open_object(body).unwrap(), "value").unwrap()]
+    "object" => {
+      let count = @decode.object_length(body).unwrap()
+      if count > max_nodes {
+        expression_fail(body, ExpressionBudgetExceeded)
+      }
+      let children = []
+      for i in 0..<count {
+        children.push(@decode.field_at(body, i).unwrap().1)
+      }
+      children
+    }
     "literal" | "field" | "$param" => []
     "cast" => {
       let obj = @decode.open_object(body).unwrap()
@@ -436,6 +455,7 @@ fn lower_expression_measured(
       expression_fail(source, MissingCheckedBinding)
     }
     let (typed, resolved_fields) = match step.payload {
+      Infer(_) => expression_fail(step.source, MissingCheckedBinding)
       Derive(op)
       | Where(op)
       | CountGroup(op)
@@ -596,6 +616,29 @@ fn lower_expression_measured(
       | CarrierProjection(_) =>
         expression_fail(step.source, MissingCheckedBinding)
     }
+    lower_typed_expression_measured(
+      typed,
+      resolved_fields,
+      bound.by_name,
+      profile => expression_profile_admitted(bound, profile),
+      limits,
+    )
+  } catch {
+    ExpressionStop(issue) => Err(issue)
+  }
+}
+
+///|
+/// One lowering implementation for checked Relation and acquisition bindings.
+/// Callers retain their own exact checked owner and declaration association.
+fn lower_typed_expression_measured(
+  typed : @typing.TypedExpression,
+  resolved_fields : Array[(String, @relation.ReferenceTarget)],
+  parameters : Map[String, @value.CheckedValue],
+  profile_admitted : (String) -> Bool,
+  limits : ExpressionLimits,
+) -> Result[(Expression, ExpressionBudget), ExpressionIssue] {
+  try {
     let syntax = @typing.expression(typed)
     let root = @syntax.tree(syntax)
     let budget : ExpressionBudget = {
@@ -627,8 +670,7 @@ fn lower_expression_measured(
     }
     for obligation in @typing.pending_validations(typed) {
       let admitted = match obligation.kind {
-        @typing.ProfileAdmission(profile) =>
-          expression_profile_admitted(bound, profile)
+        @typing.ProfileAdmission(profile) => profile_admitted(profile)
         @typing.PatternValidation(_) | @typing.HostEnvelope => false
       }
       if !admitted {
@@ -675,6 +717,45 @@ fn lower_expression_measured(
         completed.get(@decode.tree_index(root, c).unwrap()).unwrap()
       })
       let lowered = match tag {
+        "object" => {
+          guard contract.shape is @contract.Object(contracts) else {
+            expression_fail(cursor, MissingTypeAnnotation)
+          }
+          let fields = []
+          let object = @decode.open_object(body).unwrap()
+          for i in 0..<@contract.field_count(contracts) {
+            expression_spend(budget, cursor)
+            let name = @contract.field_at(contracts, i).unwrap().name
+            let child = @decode.lookup(object, name).unwrap()
+            fields.push(
+              (
+                name,
+                completed.get(@decode.tree_index(root, child).unwrap()).unwrap(),
+              ),
+            )
+          }
+          // Checked syntax fixes canonical field evaluation order.
+          Object(fields)
+        }
+        "property" => {
+          let name = @decode.text(
+            @decode.lookup(@decode.open_object(body).unwrap(), "name").unwrap(),
+          ).unwrap()
+          guard args[0].contract.shape is @contract.Object(fields) else {
+            expression_fail(cursor, MissingTypeAnnotation)
+          }
+          let mut ordinal = -1
+          for i in 0..<@contract.field_count(fields) {
+            expression_spend(budget, cursor)
+            if @contract.field_at(fields, i).unwrap().name == name {
+              ordinal = i
+            }
+          }
+          if ordinal < 0 {
+            expression_fail(cursor, MissingResolvedField(name))
+          }
+          Property(args[0], name, ordinal)
+        }
         "field" => {
           let name = @decode.text(body).unwrap()
           guard fields.get(name) is Some(target) else {
@@ -701,7 +782,7 @@ fn lower_expression_measured(
         }
         "$param" => {
           let name = @decode.text(body).unwrap()
-          guard bound.by_name.get(name) is Some(value) else {
+          guard parameters.get(name) is Some(value) else {
             expression_fail(cursor, MissingParameter(name))
           }
           charge_bound_literal(budget, cursor, value.value)
@@ -789,6 +870,8 @@ fn lower_expression_measured(
         uses_veca: match lowered {
           VectorScore(_, _, _) | VectorConcat(_) => true
           Unary(_, child) => child.uses_veca
+          Property(child, _, _) => child.uses_veca
+          Object(fields) => fields.any(field => field.1.uses_veca)
           Cast(child) => child.uses_veca
           Binary(_, left, right) => left.uses_veca || right.uses_veca
           Many(_, children) => children.any(child => child.uses_veca)

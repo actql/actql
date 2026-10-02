@@ -11,6 +11,60 @@ fn test_limits() -> LedgerLimits {
 }
 
 ///|
+test "unknown dispatch transfer survives cleanup and retains capacity" {
+  let ledger = create_ledger(test_limits()).unwrap()
+  let reservation = reserve_attempt(ledger, 9L, 4L, 5L).unwrap()
+  charge_transfer(ledger, reservation, 2L).unwrap()
+  mark_transfer_uncertain(ledger, reservation, 7L).unwrap()
+  assert_eq(ledger_usage(ledger).transferred_bytes, 2L)
+  assert_eq(ledger_usage(ledger).uncertain_transfer_bytes, 7L)
+  assert_eq(ledger_usage(ledger).reserved_transfer_bytes, 0L)
+  settle_reservation(ledger, reservation).unwrap()
+  let usage = ledger_usage(ledger)
+  assert_eq(usage.uncertain_transfer_bytes, 7L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_true(reserve_attempt(ledger, 4L, 0L, 0L) is Err(TransferLimit))
+  // The remaining three bytes are independently known from the 12-byte cap.
+  let remaining = reserve_attempt(ledger, 3L, 0L, 0L).unwrap()
+  charge_transfer(ledger, remaining, 3L).unwrap()
+  settle_reservation(ledger, remaining).unwrap()
+  assert_eq(ledger_usage(ledger).transferred_bytes, 5L)
+  assert_eq(ledger_usage(ledger).uncertain_transfer_bytes, 7L)
+}
+
+///|
+test "unknown transfer admission rejects without mutating usage" {
+  let ledger = create_ledger(test_limits()).unwrap()
+  let foreign = create_ledger(test_limits()).unwrap()
+  let reservation = reserve_attempt(ledger, 5L, 0L, 0L).unwrap()
+  let before = ledger_usage(ledger)
+  assert_true(
+    mark_transfer_uncertain(ledger, reservation, -1L) is Err(InvalidCharge),
+  )
+  assert_true(
+    mark_transfer_uncertain(ledger, reservation, 6L) is Err(TransferLimit),
+  )
+  assert_true(
+    mark_transfer_uncertain(foreign, reservation, 5L) is Err(ForeignOwner),
+  )
+  assert_eq(ledger_usage(ledger), before)
+  assert_eq(ledger_usage(foreign).uncertain_transfer_bytes, 0L)
+  mark_transfer_uncertain(ledger, reservation, 5L).unwrap()
+  let marked = ledger_usage(ledger)
+  assert_true(
+    mark_transfer_uncertain(ledger, reservation, 1L) is Err(TransferLimit),
+  )
+  assert_eq(ledger_usage(ledger), marked)
+  settle_reservation(ledger, reservation).unwrap()
+  let settled = ledger_usage(ledger)
+  assert_true(
+    mark_transfer_uncertain(ledger, reservation, 0L) is Err(ClosedReservation),
+  )
+  assert_eq(ledger_usage(ledger), settled)
+}
+
+///|
 test "opaque resource readers distinguish ownership from current availability" {
   let ledger = create_ledger(test_limits()).unwrap()
   let foreign = create_ledger(test_limits()).unwrap()

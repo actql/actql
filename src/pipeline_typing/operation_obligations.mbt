@@ -324,6 +324,9 @@ pub fn operation_obligations_at(
 /// shortest endpoint has no selector group; selected endpoints retain their side.
 pub fn operation_obligation_group_count(operation : CheckedOperation) -> Int {
   match operation {
+    // Acquisition closure and call-slot preflight belong to the model owner,
+    // not the pure operation obligation inventory.
+    Infer(_) => 0
     Sequence(_) | Subgraph(..) | Traverse(..) => 2
     Shortest(checked~, ..) => {
       let mut n = 1
@@ -379,6 +382,7 @@ pub fn operation_obligation_group_at(
   }
   Some(
     match operation {
+      Infer(_) => return None
       Unary(c) | WindowGroup(c) => { scope: Body, owner: RelationOwner(c), }
       Join(checked=c, ..) => { scope: Body, owner: JoinOwner(c), }
       Append(checked=c, ..) => { scope: Body, owner: AppendOwner(c), }
