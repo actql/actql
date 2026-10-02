@@ -157,27 +157,16 @@ test "MATCH identity survives aliases but disappears when its last projection is
 }
 
 ///|
-test "endpoints properties and historical row aliases cannot fabricate an independent edge key" {
-  let original = property_query_graph()
-  guard original is @carrier.GraphValue(graph) else { abort("Graph") }
-  let names = @carrier.graph_row_names(
-    Unqualified("score"),
-    Unqualified("src"),
-    Unqualified("dst"),
-    Some(Unqualified("score")),
-    max_name_bytes=100,
-  ).unwrap()
-  for graph in [original, @carrier.with_graph_names(graph, Some(names))] {
-    for fields in ["[\"src\",\"dst\"]", "[\"src\",\"dst\",\"score\"]"] {
-      let p = @pipeline.check_carriers(
-        cursor("[" + property_query_body(true, fields) + "]"),
-        [("g", graph)],
-        None,
-        None,
-        ranking_limits(),
-      ).unwrap()
-      assert_true(@pipeline.candidate_key(p, Step(0)) is None)
-    }
+test "endpoint and property fields cannot fabricate an independent edge key" {
+  for fields in ["[\"src\",\"dst\"]", "[\"src\",\"dst\",\"score\"]"] {
+    let p = @pipeline.check_carriers(
+      cursor("[" + property_query_body(true, fields) + "]"),
+      [("g", property_query_graph())],
+      None,
+      None,
+      ranking_limits(),
+    ).unwrap()
+    assert_true(@pipeline.candidate_key(p, Step(0)) is None)
   }
 }
 

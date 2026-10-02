@@ -498,6 +498,35 @@ fn carrier(
 }
 
 ///|
+fn property_definition_preflight(
+  b : Budget,
+  source : @decode.Cursor,
+  value : @carrier.PropertyNodeDefinition,
+) -> Unit raise Stop {
+  spend(b, source, 1)
+  charge(b, source, @carrier.property_definition_name(value))
+  let keys = @carrier.property_definition_key_count(value)
+  spend(b, source, keys)
+  for index in 0..<keys {
+    preflight(
+      b,
+      source,
+      @carrier.property_definition_key_at(value, index).unwrap(),
+    )
+  }
+  rows_preflight(b, source, @carrier.property_definition_properties(value))
+  let labels = @carrier.property_definition_label_count(value)
+  spend(b, source, labels)
+  for index in 0..<labels {
+    let (label, properties) = @carrier.property_definition_label_at(
+      value, index,
+    ).unwrap()
+    charge(b, source, label)
+    rows_preflight(b, source, properties)
+  }
+}
+
+///|
 fn carrier_preflight(
   b : Budget,
   source : @decode.Cursor,
@@ -509,27 +538,30 @@ fn carrier_preflight(
     @carrier.GraphValue(graph) => {
       spend(b, source, 1)
       preflight(b, source, @carrier.graph_identity(graph))
-      if @carrier.graph_label_contract(graph) is Some(c) {
-        preflight(b, source, c)
+      let definition = @carrier.graph_property_definition(graph)
+      charge(b, source, @carrier.property_graph_domain(definition))
+      let nodes = @carrier.property_graph_node_count(definition)
+      let edges = @carrier.property_graph_edge_count(definition)
+      spend(b, source, nodes)
+      spend(b, source, edges)
+      for index in 0..<nodes {
+        property_definition_preflight(
+          b,
+          source,
+          @carrier.property_graph_node_at(definition, index).unwrap(),
+        )
       }
-      rows_preflight(b, source, @carrier.graph_node_properties(graph))
-      rows_preflight(b, source, @carrier.graph_edge_properties(graph))
-      if @carrier.graph_names(graph) is Some(names) {
-        let (node, src, dst, label) = @carrier.graph_row_fields(names)
-        let fields = [node, src, dst]
-        if label is Some(label) {
-          fields.push(label)
-        }
-        spend(b, source, fields.length())
-        for field in fields {
-          charge(b, source, @schema.reference_name(field))
-        }
-      }
-      if @carrier.graph_labels(graph) is Some(labels) {
-        spend(b, source, labels.length())
-        for label in labels {
-          charge(b, source, label)
-        }
+      for index in 0..<edges {
+        let edge = @carrier.property_graph_edge_at(definition, index).unwrap()
+        property_definition_preflight(
+          b,
+          source,
+          @carrier.property_edge_element(edge),
+        )
+        let (from, to) = @carrier.property_edge_endpoints(edge)
+        spend(b, source, 2)
+        charge(b, source, from)
+        charge(b, source, to)
       }
     }
     @carrier.EventValue(events) => {

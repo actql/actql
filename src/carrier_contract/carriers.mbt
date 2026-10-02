@@ -23,13 +23,7 @@ pub(all) enum Issue {
 ///|
 struct Graph {
   property_graph : PropertyGraphDefinition
-  semantic_label : @value.Contract?
-  row_names : GraphRowNames?
   identity : @value.Contract
-  node_properties : Knowledge
-  edge_properties : Knowledge
-  // None means no closed label domain, not proof that a label role exists.
-  labels : Array[String]?
 }
 
 ///|
@@ -120,38 +114,9 @@ fn typed_role(
 }
 
 ///|
-pub fn graph_labels(graph : Graph) -> Array[String]? {
-  graph.labels.map(labels => labels.copy())
-}
-
-///|
-/// Known semantic label-role type, distinct from its closed value domain.
-pub fn graph_label_contract(graph : Graph) -> @value.Contract? {
-  graph.semantic_label
-}
-
-///|
 /// Rewrap an already admitted opaque Graph without copying its domains.
 pub fn graph_carrier(graph : Graph) -> Carrier {
   GraphValue(graph)
-}
-
-///|
-pub fn graph_label_count(graph : Graph) -> Int? {
-  graph.labels.map(labels => labels.length())
-}
-
-///|
-pub fn graph_label_at(graph : Graph, index : Int) -> String? {
-  match graph.labels {
-    Some(labels) =>
-      if index < 0 || index >= labels.length() {
-        None
-      } else {
-        Some(labels[index])
-      }
-    None => None
-  }
 }
 
 ///|
@@ -271,16 +236,6 @@ pub fn vector_identity_at(vector : Vectors, index : Int) -> Field? {
 ///|
 pub fn graph_identity(graph : Graph) -> @value.Contract {
   graph.identity
-}
-
-///|
-pub fn graph_node_properties(graph : Graph) -> Knowledge {
-  graph.node_properties
-}
-
-///|
-pub fn graph_edge_properties(graph : Graph) -> Knowledge {
-  graph.edge_properties
 }
 
 ///|

@@ -1331,3 +1331,42 @@ it was removed, not waived. Generated API removals are intentional.
 Carrier metadata/preflight, unreachable checked predicate/profile fields,
 external Source declarations, remaining aggregate fixture migrations and
 published-SHA public snapshot/fresh packed/required CI are still pending.
+
+## Sole definition metadata and bounded input preflight
+
+The homogeneous Graph property/label fields, row-role alias owner and public
+compatibility getters are deleted. Graph metadata now retains only its admitted
+Property Graph definition and full typed identity contract. The endpoint/
+property non-key regression stays positive on current MATCH; attaching retired
+row aliases is no longer a product operation.
+
+The previous common preflight inspected the retired unknown homogeneous schemas
+and missed current definitions altogether. Two independent regressions fail on
+that implementation: nested unused node/edge property contracts evade the
+depth ceiling, and six added array levels consume zero additional preflight
+work. Current preflight visits the domain, every node/edge definition name,
+every composite key type, complete and label-specific property schema, static
+label and endpoint-definition reference within the same budget. Indexed reads
+of the same opaque definition owner avoid copying uncharged arrays. No input
+Artifact, Run identity or property value is inserted into the static domain.
+
+The regression independently counts the six array levels twice (complete and
+label-exposed schemas), one additional key slot/type as two work units, a label
+with empty exposed properties as two units/four text bytes, and a minimal edge
+definition plus its endpoint references as seven units/three text bytes.
+Exact and one-short shared work/text limits and nested-depth refusal pass.
+
+The complete surrounding regression passes **1,045/1,045 on each JS, Wasm and
+native**, with `--deny-warn`. Logs are
+`/private/tmp/property-graph-metadata-preflight-{js-full-pass,wasm,native}-20261003.log`.
+The before-fix failure log is
+`/private/tmp/property-graph-metadata-preflight-before-20261003.log`.
+An initial expanded run caught invalid Eq assertions on opaque contracts in
+the new indexed-reader test; explicit shape/absence assertions corrected the
+test without changing product admission. Generated API changes are the intended
+retired getters/alias removal and three bounded indexed definition reads.
+
+Unreachable checked predicate/profile fields, stored scalar-label/tuple reader
+scaffolding, external Source declarations and the aggregate migration/strict
+inventory/public snapshot/fresh packed/submitted CI remain open. Historical
+proof sources are unchanged. No #164 GO or B completion handoff is implied.

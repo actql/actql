@@ -30,27 +30,9 @@ pub fn fields(Knowledge) -> Array[Field]
 
 pub fn graph_carrier(Graph) -> Carrier
 
-pub fn graph_edge_properties(Graph) -> Knowledge
-
 pub fn graph_identity(Graph) -> @value_contract.Contract
 
-pub fn graph_label_at(Graph, Int) -> String?
-
-pub fn graph_label_contract(Graph) -> @value_contract.Contract?
-
-pub fn graph_label_count(Graph) -> Int?
-
-pub fn graph_labels(Graph) -> Array[String]?
-
-pub fn graph_names(Graph) -> GraphRowNames?
-
-pub fn graph_node_properties(Graph) -> Knowledge
-
 pub fn graph_property_definition(Graph) -> PropertyGraphDefinition
-
-pub fn graph_row_fields(GraphRowNames) -> (@relation_schema.FieldName, @relation_schema.FieldName, @relation_schema.FieldName, @relation_schema.FieldName?)
-
-pub fn graph_row_names(@relation_schema.FieldName, @relation_schema.FieldName, @relation_schema.FieldName, @relation_schema.FieldName?, max_name_bytes~ : Int) -> Result[GraphRowNames, @relation_schema.Issue]
 
 pub fn kind(Carrier) -> Kind
 
@@ -58,9 +40,15 @@ pub fn lookup(Knowledge, @relation_schema.FieldName) -> Lookup
 
 pub fn property_definition_has_label(PropertyNodeDefinition, String) -> Bool
 
+pub fn property_definition_key_at(PropertyNodeDefinition, Int) -> @value_contract.Contract?
+
 pub fn property_definition_key_count(PropertyNodeDefinition) -> Int
 
 pub fn property_definition_keys(PropertyNodeDefinition) -> Array[@value_contract.Contract]
+
+pub fn property_definition_label_at(PropertyNodeDefinition, Int) -> (String, Knowledge)?
+
+pub fn property_definition_label_count(PropertyNodeDefinition) -> Int
 
 pub fn property_definition_label_properties(PropertyNodeDefinition) -> Array[(String, Knowledge)]
 
@@ -128,8 +116,6 @@ pub fn vector_records(Vectors) -> Knowledge
 
 pub fn vectors(Knowledge, ids~ : Array[@relation_schema.FieldName], components~ : @relation_schema.FieldName, max_identity_fields~ : Int) -> Result[Carrier, Issue]
 
-pub fn with_graph_names(Graph, GraphRowNames?) -> Carrier
-
 // Errors
 
 // Types and methods
@@ -164,8 +150,6 @@ pub(all) enum FieldSet {
 } derive(Eq, @debug.Debug)
 
 type Graph
-
-type GraphRowNames
 
 pub(all) enum Issue {
   InvalidLimits

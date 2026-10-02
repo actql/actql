@@ -444,13 +444,6 @@ pub fn property_graph_usage(
           edge_names,
         },
         identity: json,
-        // There is no homogeneous property schema. Legacy consumers must not
-        // mistake one representative definition for the complete new graph.
-        node_properties: unknown_rows(),
-        edge_properties: unknown_rows(),
-        semantic_label: None,
-        row_names: None,
-        labels: None,
       }),
       max_contract_work - work,
     ),
@@ -535,6 +528,29 @@ pub fn property_definition_name(value : PropertyNodeDefinition) -> String {
 ///|
 pub fn property_definition_key_count(value : PropertyNodeDefinition) -> Int {
   value.key_contracts.length()
+}
+
+///|
+/// Indexed reads let consumers charge a shared budget before visiting entries.
+pub fn property_definition_key_at(
+  value : PropertyNodeDefinition,
+  index : Int,
+) -> @value.Contract? {
+  value.key_contracts.get(index)
+}
+
+///|
+pub fn property_definition_label_count(value : PropertyNodeDefinition) -> Int {
+  value.label_properties.length()
+}
+
+///|
+/// Static label and its exact admitted public property schema, without copying.
+pub fn property_definition_label_at(
+  value : PropertyNodeDefinition,
+  index : Int,
+) -> (String, Knowledge)? {
+  value.label_properties.get(index)
 }
 
 ///|
