@@ -224,6 +224,7 @@ pub fn starts_query(
         keyword(first, "SELECT") ||
         keyword(first, "WITH") ||
         keyword(first, "FROM") ||
+        keyword(first, "DATA") ||
         first.value == Symbol(40),
       )
     }
@@ -1359,10 +1360,9 @@ fn QueryParser::pipe_tail(
       match graph {
         Some(current) if current.pattern is None => {
           let pattern = self.graph_match()
-          if current.label_field is None &&
-            pattern.nodes.any(node => node.label is Some(_)) {
-            raise QueryAbort("GRAPH_NODE_LABEL_MAPPING_REQUIRED", pattern.start)
-          }
+          // Syntax preserves a label. Its owner is resolved by lowering:
+          // property graphs carry label membership themselves; the legacy
+          // property-mapping profile requires its explicit annotation.
           graph = Some({ ..current, pattern: Some(pattern), })
         }
         Some(_) =>

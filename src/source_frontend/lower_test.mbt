@@ -76,7 +76,6 @@ test "retired structural envelopes reject without context or a fallback" {
     document in [
       "AQL '0.1'; PROGRAM 'old' { STAGE s { STEP {}; } }", "-- retired\n /* prefix */ aQl '0.1'; PROGRAM 'old' {}",
       "PROGRAM 'old' {}", "STAGE main { STEP {}; }", "STEP {\"values\":{}};", "OP values {};",
-      "DATA same = FROM g |> graphs_equal(with: g);",
     ] {
     let formats : Array[Format] = [Text, Sql]
     for format in formats {
@@ -174,7 +173,7 @@ test "published query names bind one environment generation" {
 }
 
 ///|
-test "public Graph lowering rejects private star before Program preparation" {
+test "unified source dependency refuses legacy Graph inputs before Program preparation" {
   let source = @wire.admit(
     @source.parse_json("{\"connector\":\"crm/main\",\"resource\":\"graph\"}", {
       max_input_bytes: 1024,
@@ -202,14 +201,17 @@ test "public Graph lowering rejects private star before Program preparation" {
       },
     ],
   }
-  assert_true(
-    lower(
-      "FROM GRAPH g |> MATCH WALK (a)-[]->(b) |> SELECT *",
-      Text,
-      Some(context),
+  for
+    document in [
+      "FROM GRAPH g |> MATCH WALK (a)-[]->(b) |> SELECT *", "FROM GRAPH g |> MATCH WALK (a) |> SELECT a.id",
+      "FROM GRAPH g LABELS {\"node\":{\"field\":\"name\"}} |> MATCH WALK (a:Person) |> SELECT a.id",
+    ] {
+    assert_true(
+      lower(document, Text, Some(context))
+      is Err(QueryLowering(@query.UnsupportedGraph)),
+      msg=document,
     )
-    is Err(QueryLowering(@query.UnsupportedProjection)),
-  )
+  }
 }
 
 ///|

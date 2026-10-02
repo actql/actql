@@ -1,6 +1,32 @@
 (* GoogleSQL-derived ActQL query surface. Semantic restrictions are in
    docs/spec/query-text.md. This grammar does not define GoogleSQL as a whole. *)
+script        = { data_declaration }, query ;
+data_declaration = "DATA", identifier, "=",
+                   ( relational_body | property_graph_constructor ), ";" ;
 query         = [ with_clause ], ( sql_query | pipe_query ), [ ";" ] ;
+(* The pure constructor wrapper is an ActQL extension. Its table mapping
+   follows the selected GoogleSQL/SQL-PGQ profile, not ISO GQL CREATE. *)
+property_graph_constructor = "PROPERTY", "GRAPH", "(",
+                   "NODE", "TABLES", "(", node_definition,
+                     { ",", node_definition }, ")",
+                   [ "EDGE", "TABLES", "(", edge_definition,
+                     { ",", edge_definition }, ")" ], ")" ;
+node_definition = path, [ "AS", identifier ], "KEY", key_columns,
+                  [ element_labels ] ;
+edge_definition = path, [ "AS", identifier ], "KEY", key_columns,
+                  "SOURCE", "KEY", key_columns, "REFERENCES", identifier,
+                    [ key_columns ],
+                  "DESTINATION", "KEY", key_columns, "REFERENCES", identifier,
+                    [ key_columns ], [ element_labels ] ;
+key_columns   = "(", identifier, { ",", identifier }, ")" ;
+element_labels = property_selection | label_clause, { label_clause } ;
+label_clause  = ( "LABEL", identifier | "DEFAULT", "LABEL" ),
+                [ property_selection ] ;
+property_selection = "NO", "PROPERTIES"
+                   | "PROPERTIES", [ "ARE" ],
+                     ( "ALL", "COLUMNS", [ "EXCEPT", key_columns ]
+                     | "(", property_column, { ",", property_column }, ")" ) ;
+property_column = identifier, [ "AS", identifier ] ;
 sql_query     = sql_operand, { set_part },
                 [ order_clause ], [ limit_clause ], { "|>", pipe_item } ;
 with_clause   = "WITH", cte, { ",", cte } ;

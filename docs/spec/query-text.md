@@ -284,6 +284,35 @@ language restrictions. Object/property execution is a separate common-owner
 dependency; source construction and type checking do not claim packed Host
 execution or successful publication.
 
+## Logical DATA and pure Property Graph construction
+
+The AQL-text source grammar admits logical `DATA name = expression;`
+bindings followed by a query; SQL format retains its query-only entry.
+DATA names reference producers and do not create acquisition, storage,
+placement or physical task boundaries. Bodies resolve before the declared
+name becomes visible. Duplicate, recursive and forward references are
+rejected. A Graph producer is not a Relation alias. RESULT and INFER are
+not permitted in a DATA query body; final queries retain explicit Results.
+
+`DATA g = PROPERTY GRAPH (...)` is an ActQL pure-value extension using the
+[selected GoogleSQL/SQL-PGQ mapping profile](../design/frontend-standard-profiles.md#property-graph-mapping-and-element-identity).
+It does not create a Catalog object or claim ISO GQL constructor syntax.
+Relation producers, element-definition names and labels are separate.
+REFERENCES resolves the element definition and its ordered KEY columns.
+Typed keys, independently keyed parallel edges, Graph-owned label sets,
+Graph-wide property types and same-label property sets belong to the
+common Graph contract. The Frontend cannot issue those checked facts,
+replace static labels with property predicates or discard edge identity.
+
+The current independent Frontend checkpoint parses mappings and retains
+lowering fixtures. **Public preparation explicitly refuses the constructor
+until the unified common Graph owner is adopted.** Neither parser success
+nor independent source construction establishes execution or snapshot
+support. No conversion to the old simple-Graph contract is permitted.
+Supported Relation DATA uses existing query-expression lowering; captured
+DATA sources and DATA CTE/JOIN bodies remain explicit implementation gaps.
+These are support limits, not permanent restrictions of the target language.
+
 ## Graph pattern source
 
 `FROM GRAPH name` selects an existing Graph value. `MATCH` requires an explicit

@@ -172,15 +172,20 @@ test('baseline preimages and changed normative pins independently determine the 
     cid(aoaContract), currentUnit).run.run_definition_cid,
     pin('8574f5eb487efe877f5d11cda228d63ba737c3ef8821f7cd20ce804b964b3810'));
   // Preserve main before adding the Infer barrier; this isolates that change.
-  assert.equal(vector(grammarCid, cid(aoaContract), currentUnit).run.run_definition_cid,
+  assert.equal(vector(pin('b176b995f5dc309487656b334cb34e21409f6a9f67f8a10b89ac9c5d6e5db7c2'), cid(aoaContract), currentUnit).run.run_definition_cid,
     pin('857742abdfaf8e4e90e07c4f60f37b771ea62ef44e41f0bdb078bf3d0134069b'));
   // Preserve the Infer predecessor with its original grammar, AoA and Unit.
   assert.equal(vector(pin('8fc336e2b475104366fea9024c38d171a3d18743a63f05b254272e14bedd886d'),
     pin('bfb017e25670c872293a2a4eec302b7d1217c3cb1adf74637c2339286d5c39ea'),
     oldUnit, barrierCid).run.run_definition_cid,
     pin('7c8730fc4b50e0ae4b5d5b0494d64b6e5b8fe85fe2d3f41c36735642317d0d6c'));
-  assert.equal(current.run.run_definition_cid,
+  // Preserve the current-main preimage before logical DATA/keyed source is
+  // added. Only the Grammar Manifest dependency changes in this checkpoint.
+  assert.equal(vector(pin('b176b995f5dc309487656b334cb34e21409f6a9f67f8a10b89ac9c5d6e5db7c2'),
+    cid(aoaContract), currentUnit, barrierCid).run.run_definition_cid,
     pin('be53b8665c7381ddaad2edddf62c211ae07b9eddefa07ec743ce57ea108cac18'));
+  assert.equal(current.run.run_definition_cid,
+    pin('6e124bb879d2de1400c1113a68f77416134c941de8edd29337ff74839069e631'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
 
