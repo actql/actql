@@ -338,7 +338,6 @@ fn prepare_kernel_measured(
     | AppendRows(_)
     | SetRows(_)
     | NestRows(_)
-    | BasicGraph(_)
     | GraphMatchRows(_)
     | GraphTraverseRows(_)
     | PropertyGraphConstructionValue(_)

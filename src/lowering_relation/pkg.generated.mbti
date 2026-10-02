@@ -293,14 +293,6 @@ pub fn fragment_request_row_limits(FragmentRequest) -> FragmentRowLimits?
 
 pub fn fragment_row_limits_valid(FragmentRowLimits) -> Bool
 
-pub fn graph_basic_bounds(PreparedGraphBasic) -> (Int64?, Int64?, Int64?)?
-
-pub fn graph_basic_component_max_output_rows(PreparedGraphBasic) -> Int64?
-
-pub fn graph_basic_kind(PreparedGraphBasic) -> GraphBasicKind
-
-pub fn graph_basic_output_schema(PreparedGraphBasic) -> @relation_schema.Schema
-
 pub fn graph_match_field_at(PreparedGraphMatch, Int) -> @relation_schema.FieldName?
 
 pub fn graph_match_field_count(PreparedGraphMatch) -> Int
@@ -1192,24 +1184,6 @@ pub(all) struct FragmentRowLimits {
   max_work : Int64
 }
 
-pub(all) enum GraphBasicIssue {
-  InvalidGraphBasicLimits
-  InvalidGraphBasicWiring
-  GraphBasicPreparationLimit
-  MissingGraphBasicParameter(String)
-  InvalidGraphBasicParameter(String)
-} derive(Eq, @debug.Debug)
-
-pub(all) enum GraphBasicKind {
-  NormalizeBasic
-  DegreeIncomingBasic
-  DegreeOutgoingBasic
-  DegreeBothBasic
-  ComponentsWeakBasic
-  ComponentsStrongBasic
-  BoundsBasic
-} derive(Eq, @debug.Debug)
-
 pub(all) enum GraphConstructionIssue {
   InvalidPropertyGraphConstruction
 } derive(Eq, @debug.Debug)
@@ -1417,7 +1391,6 @@ pub enum Payload {
   AppendRows(@relation_append.CheckedAppend)
   SetRows(@relation_set.CheckedSet)
   NestRows(@relation_nest.CheckedNest)
-  BasicGraph(@graph_typing.CheckedGraph)
   GraphMatchRows(@graph_typing.CheckedMatch)
   GraphTraverseRows(@graph_typing.CheckedTraverse)
   PropertyGraphConstructionValue(@graph_typing.CheckedPropertyConstruction)
@@ -1489,8 +1462,6 @@ pub(all) enum PreparedFrameBoundary {
   PreparedFollowing(Int64)
   PreparedUnboundedFollowing
 } derive(Eq, @debug.Debug)
-
-type PreparedGraphBasic
 
 type PreparedGraphMatch
 
@@ -1565,7 +1536,6 @@ pub enum PreparedStep {
   AppendStep(PreparedAppendKernel)
   SetStep(PreparedSetKernel)
   NestStep(PreparedNestKernel)
-  GraphBasicStep(PreparedGraphBasic)
   GraphMatchStep(PreparedGraphMatch)
   GraphTraverseStep(PreparedGraphTraverse)
   PropertyGraphConstructionStep(PreparedPropertyGraphConstruction)
@@ -1655,7 +1625,6 @@ pub(all) enum SequenceIssue {
   AppendFailure(Int, AppendIssue)
   SetFailure(Int, SetIssue)
   NestFailure(Int, NestIssue)
-  GraphBasicFailure(Int, GraphBasicIssue)
   GraphMatchFailure(Int, GraphMatchIssue)
   GraphTraverseFailure(Int, GraphTraverseIssue)
   GraphConstructionFailure(Int, GraphConstructionIssue)

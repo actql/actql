@@ -178,10 +178,6 @@ fn check_resolution_index(
         execution += 1
         assert_true(physical_equal(check.site, site))
       }
-      Execution(GraphResources(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
       Execution(GraphMatchExecution(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))
@@ -210,19 +206,11 @@ fn check_resolution_index(
         execution += 1
         assert_true(physical_equal(check.site, site))
       }
-      Execution(ComponentsLimits(check) | ComponentsOutputGuard(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
       Execution(TraversalLimits(check) | TraversalOutputGuard(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))
       }
       Execution(TraversalExecution(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
-      Execution(GraphExecution(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))
       }

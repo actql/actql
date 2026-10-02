@@ -151,7 +151,6 @@ pub enum CheckedOperation {
   Calendar(@calendar.CheckedCalendar)
   Window(@window.CheckedWindow)
   Projection(@projection.CheckedProjection)
-  Graph(@graph.CheckedGraph)
   GraphMatch(@graph.CheckedMatch)
   Traverse(selector~ : Target?, checked~ : @graph.CheckedTraverse)
   PropertyGraphConstruction(

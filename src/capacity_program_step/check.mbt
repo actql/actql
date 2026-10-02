@@ -147,33 +147,6 @@ fn operation_rule(
         ("actql.bound.traverse-nodes", GraphQuery(traversal_bound(checked))),
       )
     }
-    @pipeline.Graph(op) =>
-      match @graph.operation(op) {
-        @graph.Degree =>
-          return Ok(
-            (
-              "actql.bound.graph-degree",
-              GraphMeasure(@arithmetic.Rows, @arithmetic.Nodes, 0, 1L),
-            ),
-          )
-        @graph.Components => {
-          if unit == @arithmetic.Nodes {
-            return Ok(
-              (
-                "actql.bound.components-input-nodes",
-                GraphMeasure(unit, unit, 0, 1L),
-              ),
-            )
-          }
-          return Ok(
-            (
-              "actql.bound.components-nodes",
-              GraphMeasure(@arithmetic.Rows, @arithmetic.Nodes, 0, 1L),
-            ),
-          )
-        }
-        _ => ()
-      }
     @pipeline.GraphMatch(op) => {
       let (law, input_unit) = if @graph.match_entity(op) == @graph.Nodes {
         ("actql.bound.match-nodes", @arithmetic.Nodes)
@@ -365,8 +338,6 @@ fn forwarded_input(
 ) -> @pipeline.Target? {
   if unit == @arithmetic.Nodes || unit == @arithmetic.Edges {
     return match step.operation {
-      @pipeline.Graph(op) if @graph.operation(op) == @graph.NormalizeGraph =>
-        step.input
       _ => None
     }
   }

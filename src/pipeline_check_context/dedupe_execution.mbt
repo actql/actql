@@ -21,13 +21,9 @@ pub(all) enum OperationExecutionCheck {
   PoolExecution(PoolCheck)
   RankingExecution(RankingCheck)
   TextRankExecution(TextRankCheck)
-  GraphResources(GraphResourcesCheck)
-  ComponentsLimits(ComponentsLimitsCheck)
-  ComponentsOutputGuard(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
   TraversalOutputGuard(TraversalLimitsCheck)
   TraversalExecution(TraversalCheck)
-  GraphExecution(GraphExecutionCheck)
   PropertyGraphConstructionExecution(PropertyGraphConstructionCheck)
   GraphProjection(GraphProjectionCheck)
   GraphProjectionOutput(GraphProjectionEnvelope)
@@ -174,11 +170,7 @@ pub fn operation_execution_phase(
         | OrderPoolGroupsByIdentity
         | ValidatePositiveSafeMemberCounts => BeforeOperationOutput
       }
-    ComponentsLimits(_)
-    | ComponentsOutputGuard(_)
-    | TraversalLimits(_)
-    | TraversalOutputGuard(_)
-    | GraphResources(_) => BeforeOperationOutput
+    TraversalLimits(_) | TraversalOutputGuard(_) => BeforeOperationOutput
     TraversalExecution(v) =>
       match v.rule {
         AdmitInputGraph => BeforeOperationInputUse
@@ -189,11 +181,6 @@ pub fn operation_execution_phase(
         | EnumeratePropertyPaths
         | DeduplicatePathIdentities
         | OrderTraversalRows => BeforeOperationOutput
-      }
-    GraphExecution(v) =>
-      match v.rule {
-        AdmitGraphData => BeforeOperationInputUse
-        OrderComponentIdentities | OrderBoundsReport => BeforeOperationOutput
       }
     PropertyGraphConstructionExecution(v) =>
       match v.rule {
@@ -308,14 +295,10 @@ pub fn operation_execution_failure(
     | PoolExecution(_)
     | RankingExecution(_)
     | TextRankExecution(_)
-    | GraphResources(_)
-    | ComponentsLimits(_)
-    | ComponentsOutputGuard(_)
     | TraversalLimits(_)
     | TraversalOutputGuard(_)
     | TraversalExecution(_)
     | GraphProjection(_)
-    | GraphExecution(_)
     | GraphProjectionOutput(_)
     | PropertyGraphConstructionExecution(_) => RejectOperationOutput
     AsOfExecution(_) => RejectOperationOutput

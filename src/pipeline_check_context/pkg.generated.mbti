@@ -1297,8 +1297,6 @@ pub enum CapacityStageIssue {
   MissingJoinCeiling(Int)
   ResolvedTraversalLimits(Int, Int, @capacity_host_witness.ResolvedLimitIssue)
   MissingTraversalCeiling(Int, String)
-  ResolvedComponentsLimits(Int, Int, @capacity_host_witness.ResolvedLimitIssue)
-  MissingComponentsCeiling(Int)
   StageCount
   VisitCount(Int)
   BudgetExceeded
@@ -1319,14 +1317,7 @@ pub(all) struct CapacityStageLimits {
 pub(all) enum CapacityUse {
   Sequence(step~ : Int, matches~ : @capacity_witness.LimitClaim, output~ : @capacity_witness.LimitClaim)
   Join(step~ : Int, output~ : @capacity_witness.LimitClaim)
-  Components(step~ : Int, nodes~ : @capacity_witness.LimitClaim, output~ : @capacity_witness.LimitClaim)
   Traversal(step~ : Int, paths~ : @capacity_witness.LimitClaim, output~ : @capacity_witness.LimitClaim)
-}
-
-pub struct ComponentsLimitsCheck {
-  site : OperationRequirementSite
-  step : @pipeline_typing.CheckedStep
-  limits : @capacity_program_step.ComponentsLimits
 }
 
 pub(all) enum CoreContractBody {
@@ -1591,20 +1582,6 @@ pub struct GraphConstructionEnvelope {
   output_edges : @capacity_policy.Ceiling
 }
 
-pub struct GraphExecutionCheck {
-  site : OperationRequirementSite
-  step : @pipeline_typing.CheckedStep
-  input : @pipeline_typing.Target
-  operation : @graph_typing.CheckedGraph
-  rule : GraphExecutionRule
-}
-
-pub(all) enum GraphExecutionRule {
-  AdmitGraphData
-  OrderComponentIdentities
-  OrderBoundsReport
-} derive(Eq, @debug.Debug)
-
 pub struct GraphMatchCheck {
   site : OperationRequirementSite
   step : @pipeline_typing.CheckedStep
@@ -1646,20 +1623,6 @@ pub(all) enum GraphProjectionRule {
   RejectColumnCollisions
   RestoreIdentityNames
 } derive(Eq, @debug.Debug)
-
-pub(all) enum GraphResourceScope {
-  PreserveGraph
-  RelationRows(@capacity_policy.Ceiling)
-}
-
-pub struct GraphResourcesCheck {
-  site : OperationRequirementSite
-  step : @pipeline_typing.CheckedStep
-  input : @pipeline_typing.Target
-  operation : @graph_typing.CheckedGraph
-  policy : @capacity_policy.Policy
-  scope : GraphResourceScope
-}
 
 pub(all) enum GraphSelectionResource {
   SelectorWork
@@ -2205,13 +2168,9 @@ pub(all) enum OperationExecutionCheck {
   PoolExecution(PoolCheck)
   RankingExecution(RankingCheck)
   TextRankExecution(TextRankCheck)
-  GraphResources(GraphResourcesCheck)
-  ComponentsLimits(ComponentsLimitsCheck)
-  ComponentsOutputGuard(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
   TraversalOutputGuard(TraversalLimitsCheck)
   TraversalExecution(TraversalCheck)
-  GraphExecution(GraphExecutionCheck)
   PropertyGraphConstructionExecution(PropertyGraphConstructionCheck)
   GraphProjection(GraphProjectionCheck)
   GraphProjectionOutput(GraphProjectionEnvelope)

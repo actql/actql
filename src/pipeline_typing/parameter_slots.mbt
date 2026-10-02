@@ -185,10 +185,6 @@ pub fn collect_parameter_slots(
           operand_fields(c, step, @series.source(op), ["start", "end", "step"])
         Calendar(op) =>
           operand_fields(c, step, @calendar.source(op), ["start", "end"])
-        Graph(op) =>
-          operand_fields(c, step, @graph.source(op), [
-            "max_nodes", "max_edges", "max_degree", "max_output_rows",
-          ])
         Traverse(checked~, ..) =>
           operand_fields(c, step, @graph.traverse_source(checked), [
             "max_output_rows",

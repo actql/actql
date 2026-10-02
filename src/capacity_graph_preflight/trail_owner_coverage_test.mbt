@@ -1,9 +1,9 @@
 ///|
-fn component_limit_artifact(
+fn graph_consumer_limit_artifact(
   candidates : Array[@wire.WireWitness],
   unit : String,
   suffix : String,
-  operation? : String = "components",
+  operation~ : String,
 ) -> (Bytes, String) raise {
   let sorted = candidates.copy()
   sorted.sort_by((a, b) => @wire.cid(a).compare(@wire.cid(b)))
@@ -74,8 +74,18 @@ test "TRAIL ledger covers unused branches and binds retained MATCH input ownersh
     proofs=[rows],
     extra_wires=[host_wire, paths],
     extra_limits=[
-      component_limit_artifact([paths], "paths", ":paths", operation="traverse"),
-      component_limit_artifact([host_wire], "rows", "", operation="traverse"),
+      graph_consumer_limit_artifact(
+        [paths],
+        "paths",
+        ":paths",
+        operation="traverse",
+      ),
+      graph_consumer_limit_artifact(
+        [host_wire],
+        "rows",
+        "",
+        operation="traverse",
+      ),
     ],
   )
   let graph = @input.check(p, sources, policy, caps()).unwrap()

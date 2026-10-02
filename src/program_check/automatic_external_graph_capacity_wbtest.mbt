@@ -307,7 +307,6 @@ test "imported Graph limit scope requires retained source admission and bounded 
     ),
     @capacity.consumer_coverage_sequence(consumers),
     joins=@capacity.consumer_coverage_joins(consumers),
-    components=@capacity.consumer_coverage_components(consumers),
     traversals=@capacity.consumer_coverage_traversals(consumers),
     max_work=100000,
   ).unwrap()

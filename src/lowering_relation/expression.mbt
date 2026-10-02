@@ -550,7 +550,6 @@ fn lower_expression_measured(
       | AppendRows(_)
       | SetRows(_)
       | NestRows(_)
-      | BasicGraph(_)
       | PropertyGraphConstructionValue(_)
       | VectorValue(_)
       | NearestValue(_)

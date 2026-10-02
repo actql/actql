@@ -108,7 +108,10 @@ fn issued_fixture_checked(
       ),
     ]
   } else if components {
-    [components_fixture_capacity(environment, "graph", rows=components_rows)]
+    // This historical authoring probe has no current execution grant.
+    // The sole Property Graph admission refuses its retired constructor.
+    let _ = components_rows
+    []
   } else if reach {
     [reach_fixture_capacity(environment, "graph")]
   } else if shortest {

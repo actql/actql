@@ -164,39 +164,6 @@ test "path profile boundaries reject omission reinterpretation and unsupported m
 }
 
 ///|
-test "unconnected graph operators refuse current and historical inputs without fallback" {
-  for
-    (operation, body) in [
-      (@graph_typing.NormalizeGraph, "true"),
-      (@graph_typing.Degree, "{\"direction\":\"out\"}"),
-      (@graph_typing.Components, "{\"kind\":\"weak\"}"),
-      (@graph_typing.GraphBounds, "{\"max_nodes\":1}"),
-    ] {
-    guard @graph_typing.check(
-        operation,
-        cursor(body),
-        keyed_profile(),
-        None,
-        limits(),
-      )
-      is Err(issue) else {
-      abort("unsupported keyed operator was accepted")
-    }
-    assert_eq(issue.kind, @graph_typing.UnsupportedGraphOperation)
-    assert_true(
-      @graph_typing.check(
-        operation,
-        cursor(body),
-        @carrier.unknown_carrier(GraphKind),
-        None,
-        limits(),
-      )
-      is Err({ kind: @graph_typing.IncompleteGraph, .. }),
-    )
-  }
-}
-
-///|
 test "legacy property and path schemas never erase keyed graph structure" {
   for entity in [@graph_typing.Nodes, @graph_typing.Edges] {
     guard @graph_typing.check_scope(

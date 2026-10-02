@@ -74,8 +74,6 @@ fn graph_key_operation(
   operation : CheckedOperation,
 ) -> @evidence.GraphKeyOperation? {
   match operation {
-    Graph(op) if @graph.operation(op) != NormalizeGraph =>
-      Some(GraphOperation(op))
     GraphMatch(op) => Some(MatchOperation(op))
     Traverse(checked~, ..) => Some(TraverseOperation(checked))
     _ => None

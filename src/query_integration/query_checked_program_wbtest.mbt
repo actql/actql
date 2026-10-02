@@ -667,9 +667,6 @@ fn query_checked_program_fixture(
     environment
   }
   let evidence = if local_carrier_graph_chain &&
-    local_carrier_graph_variant.has_prefix("components_") {
-    [components_capacity_material(environment, "graph")]
-  } else if local_carrier_graph_chain &&
     local_carrier_graph_variant.has_prefix("reach_") {
     [traversal_capacity_material(environment, "graph", "reach")]
   } else if local_carrier_graph_chain &&

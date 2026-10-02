@@ -61,7 +61,6 @@ pub enum Payload {
   AppendRows(@append.CheckedAppend)
   SetRows(@set.CheckedSet)
   NestRows(@nest.CheckedNest)
-  BasicGraph(@graph.CheckedGraph)
   GraphMatchRows(@graph.CheckedMatch)
   GraphTraverseRows(@graph.CheckedTraverse)
   PropertyGraphConstructionValue(@graph.CheckedPropertyConstruction)
@@ -210,13 +209,6 @@ pub fn operation(value : PreparedNode) -> String {
     // Nest lowers to a registered multi-node expansion whose final node is a
     // projection. There is no REL.nest operation in the AoA registry.
     NestRows(_) => "REL.select"
-    BasicGraph(value) =>
-      match @graph.operation(value) {
-        @graph.NormalizeGraph => "SGA.normalize"
-        @graph.Degree => "SGA.degree_metrics"
-        @graph.Components => "SGA.components"
-        @graph.GraphBounds => "SGA.bounds_check"
-      }
     GraphMatchRows(value) =>
       match @graph.match_entity(value) {
         @graph.Nodes => "SGA.match_nodes"
@@ -294,13 +286,6 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     Sequence(value) => Some(SequenceRows(value))
     Calendar(_) => None
     Projection(value) => Some(CarrierProjection(value))
-    Graph(value) =>
-      match @graph.operation(value) {
-        @graph.NormalizeGraph
-        | @graph.Degree
-        | @graph.Components
-        | @graph.GraphBounds => Some(BasicGraph(value))
-      }
     GraphMatch(value) => Some(GraphMatchRows(value))
     Traverse(checked~, ..) => Some(GraphTraverseRows(checked))
     Pool(value) => Some(PoolValue(value))
@@ -419,16 +404,6 @@ pub fn prepare(
       CrossJoinRows(_) => ("cross_join", 2)
       AppendRows(_) => ("append", 2)
       NestRows(_) => ("nest", 2)
-      BasicGraph(value) =>
-        (
-          match @graph.operation(value) {
-            @graph.NormalizeGraph => "normalize_graph"
-            @graph.Degree => "degree"
-            @graph.Components => "components"
-            @graph.GraphBounds => "graph_bounds"
-          },
-          1,
-        )
       GraphMatchRows(value) =>
         (
           match @graph.match_entity(value) {
@@ -642,7 +617,6 @@ pub fn prepare(
       SetRows(_) => None
       CrossJoinRows(_) => None
       NestRows(_) => None
-      BasicGraph(_) => None
       GraphMatchRows(_) => None
       GraphTraverseRows(_) => None
       PropertyGraphConstructionValue(_) => None

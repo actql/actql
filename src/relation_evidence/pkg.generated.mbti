@@ -543,7 +543,6 @@ type CheckedTextRank
 type DeclaredScore
 
 pub(all) enum GraphKeyOperation {
-  GraphOperation(@graph_typing.CheckedGraph)
   MatchOperation(@graph_typing.CheckedMatch)
   TraverseOperation(@graph_typing.CheckedTraverse)
 }

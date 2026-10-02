@@ -30,8 +30,8 @@ pub fn check_scope(
     if @carrier.kind(input) != @carrier.GraphKind {
       fail(source, WrongCarrier(@carrier.kind(input)))
     }
-    if input is @carrier.GraphValue(graph) {
-      reject_unconnected_graph_operation(graph, source)
+    if input is @carrier.GraphValue(_) {
+      fail(source, UnsupportedGraphOperation)
     }
     fail(source, IncompleteGraph)
   } catch {

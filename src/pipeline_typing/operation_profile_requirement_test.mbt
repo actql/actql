@@ -1,14 +1,6 @@
 ///|
 test "profile obligations map to their declared module without discharging other requirements" {
   assert_eq(
-    operation_profile_requirement(GraphRequirement(ResolveSgaProfile)),
-    Some(SGA),
-  )
-  assert_eq(
-    operation_profile_requirement(GraphRequirement(ValidateGraphData)),
-    None,
-  )
-  assert_eq(
     operation_profile_requirement(MatchRequirement(ResolveMatchProfile)),
     Some(SGA),
   )

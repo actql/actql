@@ -21,7 +21,6 @@ test "capacity uses retain exact admitted limits and repeated operand roles" {
   let uses : Array[CapacityUse] = [
     Sequence(step=0, matches=a, output=b),
     Join(step=0, output=b),
-    Components(step=0, nodes=a, output=b),
     Traversal(step=0, paths=b, output=b),
   ]
   let entries = [{ stage: "s", sources, uses, }]
@@ -30,7 +29,6 @@ test "capacity uses retain exact admitted limits and repeated operand roles" {
   assert_eq(inputs.materials[0].consumers, [
     @capacity.Sequence(step=0, matches=0, output=1),
     @capacity.Join(step=0, output=1),
-    @capacity.Components(step=0, nodes=0, output=1),
     @capacity.Traversal(step=0, paths=1, output=1),
   ])
   assert_true(bind_capacity_inputs(program, entries, inputs.work) is Ok(_))
@@ -39,7 +37,7 @@ test "capacity uses retain exact admitted limits and repeated operand roles" {
     is Err(BudgetExceeded),
   )
   uses.clear()
-  assert_eq(inputs.materials[0].consumers.length(), 4)
+  assert_eq(inputs.materials[0].consumers.length(), 3)
   let foreign_sources = sequence_limit_sources()
   let foreign = @wire.mixed_limit_at(
     @wire.program_claim_mixed(@host.source_claims(foreign_sources)).unwrap(),

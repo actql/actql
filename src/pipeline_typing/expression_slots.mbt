@@ -298,7 +298,6 @@ pub fn collect_expression_slots(
         | Calendar(_)
         | Window(_)
         | Projection(_)
-        | Graph(_)
         | PropertyGraphConstruction(..)
         | Vector(_)
         | Nearest(..)

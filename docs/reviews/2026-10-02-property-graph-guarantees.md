@@ -1119,3 +1119,49 @@ Four generated interfaces contain only intentional retired subgraph removals.
 Basic/components, homogeneous metadata/projection routes, external Source/Host
 guarantees, strict inventories and submitted-SHA public snapshot/fresh packed/CI
 acceptance remain open. Local narrow success is not the final #164 acceptance.
+
+## Retired basic/components checked-pipeline removal
+
+The old basic Graph checked type, checker, obligation owner, lowering payload,
+emitter, driver arms, operation resolution phases and dedicated components
+capacity applications are removed. Their Program conversion, guard conversion,
+automatic claim selection and preflight coverage branches are removed together,
+not retained behind a profile rejection. The authored unsupported operations
+still refuse current Graphs explicitly, distinguish incomplete Graph knowledge
+and wrong Carrier families, and do not create a checked execution grant.
+
+Pure components algorithm and claim-conversion fixtures are withdrawn with the
+unsupported algorithm. Its canonical grouping, degree/bounds diagnostic schema
+and diagnostic-cardinality law are not claimed migrated. Declared historical
+capacity/guard law metadata is not an execution route. The components fixture
+claim issuer is removed from DuckDB and projected Node/Workers conformance;
+generated copies are refreshed from their source, not patched independently.
+Historical authoring probes still cannot obtain a current execution grant.
+
+The generic guarantees have supported positive replacements: current TRAIL
+retains guard ownership, independent search/output scopes, all candidates,
+foreign owner rejection and exact/one-short work/byte/node conversion budgets;
+the complete preflight suite retains unused-branch, missing/duplicate claim,
+input owner, imported closure and limit-consumption checks. Formal current
+Property Graph construction now additionally proves that both imported Results
+retain the exact original constructor step and capacity policy through three
+visits (one producer and two imports), for empty/nonempty inputs and two Host
+ceilings. The original unresolved-envelope refusal remains a separate test.
+The old external Source publication-policy case is not replaced by these
+VALUES fixtures: admitted external producer definitions remain an open boundary.
+
+The final surrounding regression suite, including the complete preflight
+package, passes **125/125 on each JS, Wasm and native**. Logs are
+`/private/tmp/property-graph-basic-final-preflight-{js,wasm,native}-20261003.log`.
+Initial runs found a stale diagnostic-helper test, a nonexistent input-filter
+filename and the old four-item assertion after removal of the components use;
+those obsolete references were corrected. The retained collection still checks
+all three actual consumer roles, exact/one-short work, caller-array retention
+and foreign equal-CID limit rejection. No capacity validator, ACK or limit was
+relaxed. Initial logs remain under `property-graph-basic-*-20261003.log`.
+
+Homogeneous Carrier metadata/projection scaffolding, node-emission bound paths,
+external Source/Host guarantees, strict inventories and submitted-SHA public
+snapshot/fresh packed/required CI acceptance remain open. The earlier aggregate
+Core failures are not reclassified as passing by this narrow result. Public
+#164 remains unchanged and is not yet ready for adoption.

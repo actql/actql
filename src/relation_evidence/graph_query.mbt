@@ -1,6 +1,5 @@
 ///|
 pub(all) enum GraphKeyOperation {
-  GraphOperation(@graph.CheckedGraph)
   MatchOperation(@graph.CheckedMatch)
   TraverseOperation(@graph.CheckedTraverse)
 }
@@ -12,8 +11,6 @@ pub fn graph_query_keys(
   limits : TransferLimits,
 ) -> Result[KeySetTransfer, Issue] {
   let (source, input, output) = match operation {
-    GraphOperation(op) =>
-      (@graph.source(op), @graph.input(op), @graph.output(op))
     MatchOperation(op) =>
       (@graph.match_source(op), @graph.match_input(op), @graph.match_output(op))
     TraverseOperation(op) =>
@@ -38,16 +35,6 @@ pub fn graph_query_keys(
     let names : Array[@row.FieldName] = []
     if input is @carrier.GraphValue(_) {
       match operation {
-        GraphOperation(op) =>
-          match @graph.operation(op) {
-            Degree => names.push(Unqualified("node"))
-            Components => names.push(Unqualified("node_id"))
-            GraphBounds => {
-              names.push(Unqualified("kind"))
-              names.push(Unqualified("node_id"))
-            }
-            NormalizeGraph => ()
-          }
         MatchOperation(op) =>
           // The checked definition owns the complete typed element identity.
           // Endpoints and labels cannot identify independent parallel edges.

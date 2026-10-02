@@ -132,16 +132,6 @@ pub fn checking_environment_wire(CheckEnvironment) -> @check_environment.WireEnv
 
 pub fn close_effect_computation_static(EffectComputationCandidate, @check_environment.MappingContractShapes, @stage_results.EffectStaticCandidateLimits) -> Result[EffectProgramStaticCandidate, @stage_results.EffectStaticCandidateIssue]
 
-pub fn components_limit_claim(ComponentsLimit, @capacity_program_step.ComponentsScope) -> @capacity_witness.LimitClaim
-
-pub fn components_limit_proof_at(ComponentsLimit, Int) -> ReidentifiedStep?
-
-pub fn components_limit_proof_count(ComponentsLimit) -> Int
-
-pub fn components_limit_selection(ComponentsLimit) -> @pipeline_check_context.ComponentsLimitsCheck
-
-pub fn components_limit_source(ComponentsLimit) -> UnitOperationSource
-
 pub fn contract_inventory(CheckedProgram) -> @pipeline_check_context.CoreContractInventory
 
 pub fn diagnostic_alternative_at(CheckDiagnostic, Int) -> (@stage_syntax.Format, DiagnosticLocation)?
@@ -572,10 +562,6 @@ pub fn unit_asof_search_limit_count(CheckedProgram, Int) -> Int?
 
 pub fn unit_completeness_requirement(CheckedProgram, Int, @pipeline_typing.Target) -> UnitCompletenessRequirement?
 
-pub fn unit_components_limit_at(CheckedProgram, Int, Int) -> ComponentsLimit?
-
-pub fn unit_components_limit_count(CheckedProgram, Int) -> Int?
-
 pub fn unit_contract_at(CheckedProgram, Int, Int) -> (String, @pipeline_check_context.CoreContractBody)?
 
 pub fn unit_contract_count(CheckedProgram, Int) -> Int?
@@ -847,8 +833,6 @@ pub(all) struct CompileValueLimits {
   depth : Int
   text_bytes : Int
 } derive(Eq, @debug.Debug)
-
-type ComponentsLimit
 
 pub(all) enum DiagnosticCategory {
   InvalidInput

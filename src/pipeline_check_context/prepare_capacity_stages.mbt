@@ -25,8 +25,6 @@ pub enum CapacityStageIssue {
   MissingJoinCeiling(Int)
   ResolvedTraversalLimits(Int, Int, @host.ResolvedLimitIssue)
   MissingTraversalCeiling(Int, String)
-  ResolvedComponentsLimits(Int, Int, @host.ResolvedLimitIssue)
-  MissingComponentsCeiling(Int)
   StageCount
   VisitCount(Int)
   BudgetExceeded
@@ -205,13 +203,6 @@ fn prepare_local_stage_contexts_owned(
           @pipeline.step_at(pipeline, step) is Some(checked) &&
           checked.operation is @pipeline.Traverse(checked=operation, ..) &&
           @graph.traverse_output_guard(operation) is Some(_) {
-          needs_guards = true
-        }
-        if request is @capacity.Components(step~, ..) &&
-          @pipeline.step_at(pipeline, step) is Some(checked) &&
-          checked.operation is @pipeline.Graph(operation) &&
-          @graph.options(operation)
-          is @graph.ComponentOptions(_, max_output_rows=Some(_)) {
           needs_guards = true
         }
         if request is @capacity.Join(step~, ..) &&

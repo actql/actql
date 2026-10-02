@@ -65,7 +65,6 @@ pub fn operation_order_demand(v : OperationObligation) -> OperationOrderDemand? 
     | CalendarRequirement(_)
     | WindowRequirement(_)
     | ProjectionRequirement(_)
-    | GraphRequirement(_)
     | MatchRequirement(_)
     | TraverseRequirement(_)
     | SelectorRequirement(_)

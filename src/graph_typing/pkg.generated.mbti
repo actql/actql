@@ -18,8 +18,6 @@ import {
 }
 
 // Values
-pub fn check(Operation, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedGraph, Issue]
-
 pub fn check_match(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedMatch, MatchIssue]
 
 pub fn check_mean_options(@decode_core.Cursor, Limits) -> Result[CheckedMeanOptions, Issue]
@@ -45,8 +43,6 @@ pub fn hop_type_at(TraversalHop, Int) -> String?
 pub fn hop_type_count(TraversalHop) -> Int?
 
 pub fn hop_types(TraversalHop) -> Array[String]?
-
-pub fn input(CheckedGraph) -> @carrier_contract.Carrier
 
 pub fn match_diagnostic(MatchIssue, @decode_core.Cursor) -> MatchDiagnostic
 
@@ -116,21 +112,9 @@ pub fn mean_weight_at(CheckedMeanOptions, Int) -> Double?
 
 pub fn mean_weights(CheckedMeanOptions) -> Array[Double]
 
-pub fn operation(CheckedGraph) -> Operation
-
-pub fn options(CheckedGraph) -> Options
-
-pub fn output(CheckedGraph) -> @carrier_contract.Carrier
-
 pub fn path_output(CheckedPathContract) -> @carrier_contract.Carrier
 
 pub fn path_usage(CheckedPathContract) -> Usage
-
-pub fn pending_validation_at(CheckedGraph, Int) -> Obligation?
-
-pub fn pending_validation_count(CheckedGraph) -> Int
-
-pub fn pending_validations(CheckedGraph) -> Array[Obligation]
 
 pub fn predicate_expression(CheckedPredicate) -> @expression_typing.TypedExpression
 
@@ -200,8 +184,6 @@ pub fn selector_source(CheckedSelector) -> @decode_core.Cursor
 
 pub fn selector_usage(CheckedSelector) -> PredicateUsage
 
-pub fn source(CheckedGraph) -> @decode_core.Cursor
-
 pub fn traverse_bounds(CheckedTraverse) -> (Double, Double)
 
 pub fn traverse_emission(CheckedTraverse) -> PathOutput
@@ -232,13 +214,9 @@ pub fn traverse_start(CheckedTraverse) -> CheckedSelector
 
 pub fn traverse_usage(CheckedTraverse) -> PredicateUsage
 
-pub fn usage(CheckedGraph) -> Usage
-
 // Errors
 
 // Types and methods
-type CheckedGraph
-
 type CheckedMatch
 
 type CheckedMeanOptions
@@ -254,11 +232,6 @@ type CheckedScope
 type CheckedSelector
 
 type CheckedTraverse
-
-pub(all) enum ComponentKind {
-  Weak
-  Strong
-} derive(Eq, @debug.Debug)
 
 pub(all) enum ConstructionObligation {
   AdmitGraphInputRows
@@ -384,31 +357,6 @@ pub(all) enum NullMeanValue {
   ZeroNull
   FailNull
 } derive(Eq, @debug.Debug)
-
-pub(all) enum Obligation {
-  ValidateGraphData
-  ResolveSgaProfile
-  ResolveGraphResources
-  ComponentIdentityOrder
-  BindPositiveCount(String)
-  BindNonnegativeCount(String)
-  BoundsReportOrder
-  EnforceOutputGuard
-} derive(Eq, @debug.Debug)
-
-pub(all) enum Operation {
-  NormalizeGraph
-  Degree
-  Components
-  GraphBounds
-} derive(Eq, @debug.Debug)
-
-pub enum Options {
-  Normalize
-  DegreeOptions(Direction)
-  ComponentOptions(ComponentKind, max_output_rows~ : Count?)
-  BoundsOptions(max_nodes~ : Count?, max_edges~ : Count?, max_degree~ : Count?)
-}
 
 pub(all) enum PathOutput {
   TraversedNodes

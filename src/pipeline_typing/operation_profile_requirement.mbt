@@ -5,17 +5,6 @@ pub fn operation_profile_requirement(
   v : OperationObligation,
 ) -> OperationProfile? {
   match v {
-    GraphRequirement(o) =>
-      match o {
-        ResolveSgaProfile => Some(SGA)
-        ValidateGraphData
-        | ResolveGraphResources
-        | ComponentIdentityOrder
-        | BindPositiveCount(_, ..)
-        | BindNonnegativeCount(_, ..)
-        | BoundsReportOrder
-        | EnforceOutputGuard => None
-      }
     MatchRequirement(o) =>
       match o {
         ResolveMatchProfile => Some(SGA)

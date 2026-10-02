@@ -6,7 +6,6 @@ test "classified operation counts enforce exact domains without claiming guard e
     @pipeline.IntervalJoinRequirement(BindGuard("n")),
     @pipeline.AsOfRequirement(BindGuard("n")),
     @pipeline.NestRequirement(BindGuard("n")),
-    @pipeline.GraphRequirement(BindPositiveCount("n")),
     @pipeline.TraverseRequirement(BindTraversalOutputGuard("n")),
   ]
   for requirement in positive {
@@ -23,9 +22,7 @@ test "classified operation counts enforce exact domains without claiming guard e
       assert_true(operation_scalar_number(n, demand) is None)
     }
   }
-  let report = @pipeline.operation_scalar_demand(
-    @pipeline.GraphRequirement(BindNonnegativeCount("n")),
-  ).unwrap()
+  let report = @pipeline.SafeInteger("n", minimum=0L)
   assert_eq(operation_scalar_number(0.0, report), Some(Integer(0L)))
   for n in [-1.0, -0.0, 0.5, 9007199254740992.0] {
     assert_true(operation_scalar_number(n, report) is None)

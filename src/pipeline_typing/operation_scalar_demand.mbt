@@ -142,17 +142,6 @@ pub fn operation_scalar_demand(
         | AtomicMatchLimits
         | TeaProfile => None
       }
-    GraphRequirement(v) =>
-      match v {
-        BindPositiveCount(name) => Some(SafeInteger(name, minimum=1L))
-        BindNonnegativeCount(name) => Some(SafeInteger(name, minimum=0L))
-        ValidateGraphData
-        | ResolveSgaProfile
-        | ResolveGraphResources
-        | ComponentIdentityOrder
-        | BoundsReportOrder
-        | EnforceOutputGuard => None
-      }
     TraverseRequirement(v) =>
       match v {
         BindTraversalOutputGuard(name) => Some(SafeInteger(name, minimum=1L))

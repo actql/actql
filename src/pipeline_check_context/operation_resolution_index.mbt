@@ -380,11 +380,6 @@ pub fn index_program_operation_resolutions(
     }
     let candidate = match candidate {
       Ok(None) =>
-        components_limits_candidate(requirements, requirements.entries[i])
-      other => other
-    }
-    let candidate = match candidate {
-      Ok(None) =>
         traversal_limits_candidate(requirements, requirements.entries[i])
       other => other
     }

@@ -37,7 +37,7 @@ test "traversal consumption binds separate search and output scopes including un
       []
     } else {
       [
-        component_limit_artifact(
+        graph_consumer_limit_artifact(
           [if mode == 3 { row_host } else { path_host }],
           if mode == 3 {
             "rows"
@@ -47,7 +47,7 @@ test "traversal consumption binds separate search and output scopes including un
           ":paths",
           operation=if mode == 4 { "components" } else { "traverse" },
         ),
-        component_limit_artifact(
+        graph_consumer_limit_artifact(
           row_candidates,
           "rows",
           "",

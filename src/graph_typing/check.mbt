@@ -1,12 +1,4 @@
 ///|
-pub(all) enum Operation {
-  NormalizeGraph
-  Degree
-  Components
-  GraphBounds
-} derive(Eq, Debug)
-
-///|
 pub(all) enum Direction {
   Incoming
   Outgoing
@@ -14,36 +6,10 @@ pub(all) enum Direction {
 } derive(Eq, Debug)
 
 ///|
-pub(all) enum ComponentKind {
-  Weak
-  Strong
-} derive(Eq, Debug)
-
-///|
 pub enum Count {
   Literal(Int64)
   Parameter(String)
 }
-
-///|
-pub enum Options {
-  Normalize
-  DegreeOptions(Direction)
-  ComponentOptions(ComponentKind, max_output_rows~ : Count?)
-  BoundsOptions(max_nodes~ : Count?, max_edges~ : Count?, max_degree~ : Count?)
-}
-
-///|
-pub(all) enum Obligation {
-  ValidateGraphData
-  ResolveSgaProfile
-  ResolveGraphResources
-  ComponentIdentityOrder
-  BindPositiveCount(String)
-  BindNonnegativeCount(String)
-  BoundsReportOrder
-  EnforceOutputGuard
-} derive(Eq, Debug)
 
 ///|
 pub(all) enum IssueKind {
@@ -101,17 +67,6 @@ pub(all) struct Usage {
 } derive(Eq, Debug)
 
 ///|
-struct CheckedGraph {
-  source : @decode.Cursor
-  operation : Operation
-  options : Options
-  input : @carrier.Carrier
-  output : @carrier.Carrier
-  pending : Array[Obligation]
-  usage : Usage
-}
-
-///|
 priv struct Budget {
   limits : Limits
   mut work : Int
@@ -131,16 +86,6 @@ fn[T] fail(c : @decode.Cursor, kind : IssueKind) -> T raise Stop {
     path: @decode.cursor_path(c),
     span: @decode.cursor_span(c),
   })
-}
-
-///|
-// Unconnected consumers are unsupported under the sole current Graph contract.
-// Historical homogeneous inputs must not unlock an alternative implementation.
-fn reject_unconnected_graph_operation(
-  _graph : @carrier.Graph,
-  source : @decode.Cursor,
-) -> Unit raise Stop {
-  fail(source, UnsupportedGraphOperation)
 }
 
 ///|
@@ -224,233 +169,4 @@ fn count(
     fail(c, IncompatibleParameter(name))
   }
   Parameter(name)
-}
-
-///|
-/// Static checking only; child contracts are admitted and shared, not re-created.
-pub fn check(
-  operation : Operation,
-  source : @decode.Cursor,
-  input : @carrier.Carrier,
-  parameters : @parameter.Declarations?,
-  limits : Limits,
-) -> Result[CheckedGraph, Issue] {
-  try {
-    if limits.max_work < 0 ||
-      limits.max_nodes < 0 ||
-      limits.max_depth < 0 ||
-      limits.max_text_bytes < 0 {
-      fail(source, InvalidLimits)
-    }
-    let b : Budget = {
-      limits,
-      work: limits.max_work,
-      nodes: limits.max_nodes,
-      text: limits.max_text_bytes,
-    }
-    scan(b, source)
-    if @carrier.kind(input) != @carrier.GraphKind {
-      fail(source, WrongCarrier(@carrier.kind(input)))
-    }
-    guard input is @carrier.GraphValue(graph) else {
-      fail(source, IncompleteGraph)
-    }
-    reject_unconnected_graph_operation(graph, source)
-    let params : Map[String, @contract.Contract] = Map([])
-    if parameters is Some(ds) {
-      let n = @parameter.declaration_count(ds)
-      spend(b, source, n)
-      for i in 0..<n {
-        let d = @parameter.declaration_at(ds, i).unwrap()
-        charge(b, source, d.name)
-        params[d.name] = d.parameter_type.contract
-      }
-    }
-    let pending : Array[Obligation] = [
-      ValidateGraphData,
-      ResolveSgaProfile,
-      ResolveGraphResources,
-    ]
-    let options = match operation {
-      NormalizeGraph => {
-        if @decode.boolean(source) != Ok(true) {
-          fail(source, InvalidBody)
-        }
-        Normalize
-      }
-      Degree => {
-        let object = decoded(@decode.closed_object(source, ["direction"]))
-        let c = decoded(@decode.required(object, "direction"))
-        let direction = match decoded(@decode.text(c)) {
-          "in" => Incoming
-          "out" => Outgoing
-          "both" => Both
-          _ => fail(c, InvalidBody)
-        }
-        DegreeOptions(direction)
-      }
-      Components => {
-        let object = decoded(
-          @decode.closed_object(source, ["kind", "max_output_rows"]),
-        )
-        let c = decoded(@decode.required(object, "kind"))
-        let kind = match decoded(@decode.text(c)) {
-          "weak" => Weak
-          "strong" => Strong
-          _ => fail(c, InvalidBody)
-        }
-        let bound = match @decode.lookup(object, "max_output_rows") {
-          None => None
-          Some(c) => {
-            let bound = count(c, params)
-            pending.push(EnforceOutputGuard)
-            if bound is Parameter(name) {
-              pending.push(BindPositiveCount(name))
-            }
-            Some(bound)
-          }
-        }
-        pending.push(ComponentIdentityOrder)
-        ComponentOptions(kind, max_output_rows=bound)
-      }
-      GraphBounds => {
-        let object = decoded(
-          @decode.closed_object(source, ["max_nodes", "max_edges", "max_degree"]),
-        )
-        let bounds : Array[Count?] = []
-        for key in ["max_nodes", "max_edges", "max_degree"] {
-          bounds.push(
-            match @decode.lookup(object, key) {
-              None => None
-              Some(c) => {
-                let bound = count(c, params, minimum=0L)
-                if bound is Parameter(name) {
-                  pending.push(BindNonnegativeCount(name))
-                }
-                Some(bound)
-              }
-            },
-          )
-        }
-        if bounds.all(v => v is None) {
-          fail(source, InvalidBody)
-        }
-        pending.push(BoundsReportOrder)
-        BoundsOptions(
-          max_nodes=bounds[0],
-          max_edges=bounds[1],
-          max_degree=bounds[2],
-        )
-      }
-    }
-    let output = if operation == NormalizeGraph {
-      input
-    } else {
-      let id = match input {
-        @carrier.GraphValue(g) => Some(@carrier.graph_identity(g))
-        _ => None
-      }
-      let number = Some(@contract.primitive(NumberType, nullable=false))
-      let fields : Array[(@row.FieldName, @contract.Contract?)] = if operation ==
-        Degree {
-        [(Unqualified("node"), id), (Unqualified("degree"), number)]
-      } else if operation == GraphBounds {
-        [
-          (
-            Unqualified("kind"),
-            Some(@contract.primitive(StringType, nullable=false)),
-          ),
-          (
-            Unqualified("node_id"),
-            id.map(c => @contract.with_nullability(c, true)),
-          ),
-          (Unqualified("actual"), number),
-          (Unqualified("max"), number),
-        ]
-      } else {
-        [
-          (Unqualified("node_id"), id),
-          (Unqualified("component_id"), id),
-          (Unqualified("component_size"), number),
-        ]
-      }
-      spend(b, source, fields.length())
-      for (field, _) in fields {
-        charge(b, source, @row.reference_name(field))
-      }
-      let rows = match
-        @carrier.rows(
-          fields,
-          field_set=Closed,
-          max_fields=fields.length(),
-          max_name_bytes=limits.max_text_bytes,
-        ) {
-        Ok(rows) => rows
-        Err(_) => fail(source, BudgetExceeded)
-      }
-      @carrier.relation(rows)
-    }
-    Ok({
-      source,
-      operation,
-      options,
-      input,
-      output,
-      pending,
-      usage: {
-        work: limits.max_work - b.work,
-        nodes: limits.max_nodes - b.nodes,
-        text_bytes: limits.max_text_bytes - b.text,
-      },
-    })
-  } catch {
-    Stop(e) => Err(e)
-  }
-}
-
-///|
-pub fn source(value : CheckedGraph) -> @decode.Cursor {
-  value.source
-}
-
-///|
-pub fn operation(value : CheckedGraph) -> Operation {
-  value.operation
-}
-
-///|
-pub fn options(value : CheckedGraph) -> Options {
-  value.options
-}
-
-///|
-pub fn input(value : CheckedGraph) -> @carrier.Carrier {
-  value.input
-}
-
-///|
-pub fn output(value : CheckedGraph) -> @carrier.Carrier {
-  value.output
-}
-
-///|
-pub fn pending_validations(value : CheckedGraph) -> Array[Obligation] {
-  value.pending.copy()
-}
-
-///|
-/// O(1), without materializing the obligation array.
-pub fn pending_validation_count(value : CheckedGraph) -> Int {
-  value.pending.length()
-}
-
-///|
-/// O(1); invalid indices return None. Retains authored obligation order.
-pub fn pending_validation_at(value : CheckedGraph, index : Int) -> Obligation? {
-  value.pending.get(index)
-}
-
-///|
-pub fn usage(value : CheckedGraph) -> Usage {
-  value.usage
 }

@@ -1037,55 +1037,14 @@ fn check_impl(
       key == "degree" ||
       key == "components" ||
       key == "graph_bounds" {
-      let operation = match key {
-        "degree" => @graph.Degree
-        "components" => @graph.Components
-        "graph_bounds" => @graph.GraphBounds
-        _ => @graph.NormalizeGraph
+      match carrier(input, inputs, steps) {
+        @carrier.GraphValue(_) =>
+          fail(operation_body, Graph(@graph.UnsupportedGraphOperation))
+        @carrier.Opaque(GraphKind) =>
+          fail(operation_body, Graph(@graph.IncompleteGraph))
+        other =>
+          fail(operation_body, Graph(@graph.WrongCarrier(@carrier.kind(other))))
       }
-      let checked = match
-        @graph.check(
-          operation,
-          operation_body,
-          carrier(input, inputs, steps),
-          parameters,
-          {
-            max_work: b.work,
-            max_nodes: b.nodes,
-            max_depth: limits.max_depth,
-            max_text_bytes: b.text,
-          },
-        ) {
-        Ok(value) => value
-        Err(e) =>
-          raise Stop({
-            kind: Graph(e.kind),
-            source: operation_body,
-            path: e.path.copy(),
-            span: e.span,
-            range: None,
-          })
-      }
-      let used = @graph.usage(checked)
-      b.work -= used.work
-      b.nodes -= used.nodes
-      b.text -= used.text_bytes
-      let target = Step(steps.length())
-      steps.push({
-        source: body,
-        input: Some(input),
-        binding_name,
-        metadata: meta,
-        operation: Graph(checked),
-        output: @graph.output(checked),
-        connections: { entries: [{ role: Primary, target: input, }], },
-        window: None,
-      })
-      if binding_name is Some(name) {
-        names[name] = target
-      }
-      current = Some(target)
-      continue
     }
     if key == "text_rank" {
       let options = vector_result(
@@ -1844,7 +1803,6 @@ fn check_impl(
         | Window(_)
         | WindowGroup(_)
         | Projection(_)
-        | Graph(_)
         | GraphMatch(_)
         | Event(_)
         | Sequence(_)

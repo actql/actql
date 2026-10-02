@@ -21,7 +21,6 @@ pub enum PreparedStep {
   AppendStep(PreparedAppendKernel)
   SetStep(PreparedSetKernel)
   NestStep(PreparedNestKernel)
-  GraphBasicStep(PreparedGraphBasic)
   GraphMatchStep(PreparedGraphMatch)
   GraphTraverseStep(PreparedGraphTraverse)
   PropertyGraphConstructionStep(PreparedPropertyGraphConstruction)
@@ -56,7 +55,6 @@ pub(all) enum SequenceIssue {
   AppendFailure(Int, AppendIssue)
   SetFailure(Int, SetIssue)
   NestFailure(Int, NestIssue)
-  GraphBasicFailure(Int, GraphBasicIssue)
   GraphMatchFailure(Int, GraphMatchIssue)
   GraphTraverseFailure(Int, GraphTraverseIssue)
   GraphConstructionFailure(Int, GraphConstructionIssue)
@@ -371,26 +369,6 @@ fn prepare_sequence_count(
         }
         CarrierProjectionStep(prepared)
       }
-      BasicGraph(_) => {
-        let (prepared, used_bindings, used_names, used_work) = match
-          prepare_graph_basic_node(
-            owner,
-            owner.prepared.nodes[i],
-            max_bindings=bindings,
-            max_name_bytes=names,
-            max_work=expressions.max_work,
-          ) {
-          Ok(value) => value
-          Err(issue) => return Err(GraphBasicFailure(i, issue))
-        }
-        bindings -= used_bindings
-        names -= used_names
-        expressions = {
-          ..expressions,
-          max_work: expressions.max_work - used_work,
-        }
-        GraphBasicStep(prepared)
-      }
       Values(values) => {
         let prepared = match
           prepare_values_node(owner, i, max_rows=rows, max_cells=cells) {
@@ -527,7 +505,6 @@ pub fn emit_sequence_step_range(
       AppendStep(v) => emit_append_kernel(v, out)
       SetStep(v) => emit_set_kernel(v, out)
       NestStep(v) => emit_nest_kernel(v, out)
-      GraphBasicStep(v) => emit_graph_basic_node(v, out)
       GraphMatchStep(v) => emit_graph_match_node(v, out)
       GraphTraverseStep(v) => emit_graph_traverse_node(v, out)
       PropertyGraphConstructionStep(v) =>

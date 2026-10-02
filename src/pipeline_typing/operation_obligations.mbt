@@ -26,7 +26,6 @@ pub(all) enum OperationObligation {
   CalendarRequirement(@calendar.Obligation)
   WindowRequirement(@window.Obligation)
   ProjectionRequirement(@projection.GraphObligation)
-  GraphRequirement(@graph.Obligation)
   MatchRequirement(@graph.MatchObligation)
   TraverseRequirement(@graph.TraverseObligation)
   SelectorRequirement(@graph.SelectorObligation)
@@ -56,7 +55,6 @@ priv enum ObligationOwner {
   CalendarOwner(@calendar.CheckedCalendar)
   WindowOwner(@window.CheckedWindow)
   ProjectionOwner(@projection.CheckedProjection)
-  GraphOwner(@graph.CheckedGraph)
   MatchOwner(@graph.CheckedMatch)
   TraverseOwner(@graph.CheckedTraverse)
   SelectorOwner(@graph.CheckedSelector)
@@ -101,7 +99,6 @@ pub fn operation_obligations_source(v : OperationObligations) -> @decode.Cursor 
     CalendarOwner(c) => @calendar.source(c)
     WindowOwner(c) => @window.source(c)
     ProjectionOwner(c) => @projection.source(c)
-    GraphOwner(c) => @graph.source(c)
     MatchOwner(c) => @graph.match_source(c)
     TraverseOwner(c) => @graph.traverse_source(c)
     SelectorOwner(c) => @graph.selector_source(c)
@@ -188,7 +185,6 @@ pub fn operation_obligations_count(v : OperationObligations) -> Int {
     CalendarOwner(c) => @calendar.pending_validation_count(c)
     WindowOwner(c) => @window.pending_validation_count(c)
     ProjectionOwner(c) => @projection.graph_pending_count(c)
-    GraphOwner(c) => @graph.pending_validation_count(c)
     MatchOwner(c) => @graph.match_pending_count(c)
     TraverseOwner(c) => @graph.traverse_pending_count(c)
     SelectorOwner(c) => @graph.selector_pending_count(c)
@@ -245,8 +241,6 @@ pub fn operation_obligations_at(
       @window.pending_validation_at(c, index).map(x => WindowRequirement(x))
     ProjectionOwner(c) =>
       @projection.graph_pending_at(c, index).map(x => ProjectionRequirement(x))
-    GraphOwner(c) =>
-      @graph.pending_validation_at(c, index).map(x => GraphRequirement(x))
     MatchOwner(c) =>
       @graph.match_pending_at(c, index).map(x => MatchRequirement(x))
     TraverseOwner(c) =>
@@ -294,7 +288,6 @@ pub fn operation_obligation_group_count(operation : CheckedOperation) -> Int {
     | Calendar(_)
     | Window(_)
     | Projection(_)
-    | Graph(_)
     | GraphMatch(_)
     | PropertyGraphConstruction(..)
     | Vector(_)
@@ -331,7 +324,6 @@ pub fn operation_obligation_group_at(
       Calendar(c) => { scope: Body, owner: CalendarOwner(c), }
       Window(c) => { scope: Body, owner: WindowOwner(c), }
       Projection(c) => { scope: Body, owner: ProjectionOwner(c), }
-      Graph(c) => { scope: Body, owner: GraphOwner(c), }
       GraphMatch(c) => { scope: Body, owner: MatchOwner(c), }
       PropertyGraphConstruction(checked=c, ..) =>
         { scope: Body, owner: PropertyConstructionOwner(c), }

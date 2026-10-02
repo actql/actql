@@ -214,17 +214,6 @@ pub fn collect_author_guards(
             "max_output_rows",
           )
         }
-        Graph(checked) =>
-          match @graph.options(checked) {
-            ComponentOptions(_, max_output_rows~) =>
-              add(
-                ComponentOutputRows,
-                graph_guard(max_output_rows),
-                @graph.source(checked),
-                "max_output_rows",
-              )
-            _ => ()
-          }
         Traverse(checked~, ..) =>
           add(
             TraverseOutputRows,

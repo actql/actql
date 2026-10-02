@@ -42,7 +42,6 @@ fn checked_direct_program_fixture(
   property_graph? : Bool = false,
   graph_right? : Bool = false,
   graph_resources? : Bool = true,
-  graph_components? : Bool = false,
   graph_traversal? : String = "",
   graph_traversal_step? : Int = 3,
   series_steps? : String = "",
@@ -430,8 +429,6 @@ fn checked_direct_program_fixture(
       operation_name=graph_traversal,
       step=graph_traversal_step,
     )
-  } else if graph_components {
-    local_components_capacity_fixture(environment, 1)
   } else if vector_steps != "" {
     local_join_capacity_fixture(environment, 1000, 1)
   } else if sequence_body != "" {
@@ -481,8 +478,6 @@ fn checked_direct_program_fixture(
                   output=1,
                 ),
               ]
-            } else if graph_components {
-              [@capacity.Components(step=3, nodes=0, output=1)]
             } else if vector_steps != "" {
               [@capacity.Join(step=1, output=0)]
             } else if sequence_body != "" {

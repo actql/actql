@@ -31,7 +31,6 @@ pub fn prepare_fragment_pipeline(
     | AppendStep(_)
     | SetStep(_)
     | NestStep(_)
-    | GraphBasicStep(_)
     | GraphMatchStep(_)
     | GraphTraverseStep(_)
     | PropertyGraphConstructionStep(_)

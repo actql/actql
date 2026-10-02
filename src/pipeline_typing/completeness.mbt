@@ -97,7 +97,6 @@ pub fn completeness_scope(v : CompletenessRequirement) -> CompletenessScope {
         | TimeSeries(_)
         | Calendar(_)
         | Projection(_)
-        | Graph(_)
         | GraphMatch(_)
         | Traverse(..)
         | PropertyGraphConstruction(..)

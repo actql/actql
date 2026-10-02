@@ -4,7 +4,6 @@ struct CheckedProgram {
   keyed_input_proofs : Array[KeyedInputProof]
   nest_limits : Array[Array[NestLimits]]
   traversal_limits : Array[Array[TraversalLimit]]
-  components_limits : Array[Array[ComponentsLimit]]
   sequence_limits : Array[Array[SequenceLimit]]
   interval_search_limits : Array[Array[IntervalSearchLimit]]
   asof_search_limits : Array[Array[AsOfSearchLimit]]
@@ -228,14 +227,6 @@ fn check(
   ) catch {
     error => raise Units(error)
   }
-  let components_limits = prepare_program_components_limits(
-    units,
-    requirements,
-    budget,
-    conversion~,
-  ) catch {
-    error => raise Units(error)
-  }
   let traversal_limits = prepare_program_traversal_limits(
     units,
     requirements,
@@ -306,7 +297,6 @@ fn check(
     keyed_input_proofs,
     nest_limits,
     traversal_limits,
-    components_limits,
     sequence_limits,
     interval_search_limits,
     asof_search_limits,

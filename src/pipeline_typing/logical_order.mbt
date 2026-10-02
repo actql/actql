@@ -214,9 +214,6 @@ fn derive_logical_orders(
       | AsOfJoin(..) => true
       Pool(_) => true
       GraphMatch(_) | Traverse(..) => true
-      Graph(op) =>
-        @graph.operation(op) == @graph.Components ||
-        @graph.operation(op) == @graph.GraphBounds
       Vector(op) => @vector.operation(op) == @vector.ScoreVectors
       Unary(op) | WindowGroup(op) =>
         match @relation.operation(op) {

@@ -27,8 +27,13 @@ test "Property Graph TRAIL output bounds retain ownership through downstream res
     proofs=[output, downstream],
     extra_wires=[host, paths],
     extra_limits=[
-      component_limit_artifact([paths], "paths", ":paths", operation="traverse"),
-      component_limit_artifact([host], "rows", "", operation="traverse"),
+      graph_consumer_limit_artifact(
+        [paths],
+        "paths",
+        ":paths",
+        operation="traverse",
+      ),
+      graph_consumer_limit_artifact([host], "rows", "", operation="traverse"),
     ],
   )
   let graph = @input.check(p, source, policy, caps()).unwrap()
