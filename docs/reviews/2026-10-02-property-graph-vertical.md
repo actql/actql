@@ -975,3 +975,40 @@ This is local fixture-migration evidence at the fused-input fix, not final
 integrated-source Core/spec/packed acceptance or pushed-SHA Linux CI. Latest
 fetched main is `52ca17c4645a10d8010da616410fdd5f2bf4a13b`; integration and
 the final published #164/B handoff remain required.
+
+### Integrated selected Relation guarantee migration (2026-10-03)
+
+Main advanced during the fetch/integration interval. The actual merged parent
+is `a32d8c94404c3f6be52d1fcfb73aab21cbf7093c`, integrated at
+`b2180c826a0115b0f2a611efb77d25dc2cdb39ad`. The one package-script conflict
+retains both Property Graph acceptance and main's cancellation-response-loss
+regression. Official tracked three-target API verification passes at that
+clean integration.
+
+The integrated spec job initially fails in the existing resource regression
+suite: **176 total / 173 passed / 3 failed**. Six selected Relation Host
+evidence references still named deleted tuple normalize/row-prefix cases.
+This is a missing guarantee migration, not a reason to delete the references
+or mark supported Relation operations refused. The corrected cases run the
+sole typed constructor -> MATCH -> filter/select/take/sort/assert/unique.
+They retain delivered cancellation after positive work, exact task identity,
+confirmed physical stop, original input custody and zero held/reserved
+capacity after cleanup. The wide sort keeps seven keys, 660-byte text and
+cancellation after 70 advances reporting work 70. Its measured timing is
+diagnostic, not a new latency guarantee or billing authorization.
+
+The complete real `standard-host` test passes **1/1, no skips** with these
+six cases inside the existing test, and the previously failing resource
+regressions pass **3/3, no skips**. Evidence:
+`/private/tmp/property-graph-host-relation-guarantees-b2180c826-20261003.log`
+and `/private/tmp/property-graph-resource-migration-regression-20261003.log`.
+The former is integration plus the recorded uncommitted fixture migration,
+not clean-source final-SHA evidence. Its run emits no FileHandle warning; that
+does not establish the cause of the prior run's warning. The failed spec log
+is retained at `/private/tmp/property-graph-spec-b2180c826-20261003.log`.
+The existing resource gate and its expected strict scope are unchanged;
+only the six evidence pointers move to real current positive cases.
+
+Complete spec/Core, fresh packed snapshot and pushed-SHA required CI are
+still outstanding. The first failed aggregate is not overwritten by these
+narrow successes.

@@ -4082,6 +4082,12 @@ async function exerciseStrategyGraph(
   const stressSortTextBytes = 660;
   const stressSortText = '𠮷' + 'x'.repeat(stressSortTextBytes - 4);
   assert.equal(Buffer.byteLength(stressSortText, 'utf8'), stressSortTextBytes);
+  // Preserve the selected Relation cancellation obligations after the sole
+  // current Graph constructor/MATCH prefix; no retired normalize/row adapter.
+  const matchedRelationSteps = (step, fields = ['id', 'node_name']) => [{
+    from: 'g', match_nodes: {definition: 'N', where: 'true', fields},
+    as: 'projected',
+  }, {from: 'projected', ...step, as: 'out'}];
   const graphCancellationCases = [{
     name:'property-construction-in-flight',
     selectedStructural:true,
@@ -4113,6 +4119,52 @@ async function exerciseStrategyGraph(
     step:{from:'g',match_edges:{definition:'E',where:'weight > 10',
       fields:['src','dst','weight']},as:'out'},
     fields:['src','dst','weight'],
+  }, {
+    name: 'property-match-filter',
+    rows: 40, advanceQuantum: 1,
+    cancelOnManagedStart: 4, managedStarts: 4, cancelTask: 4,
+    completedTasks: [1, 2, 3],
+    steps: matchedRelationSteps({filter: 'id > 0'}),
+    fields: ['id', 'node_name'],
+  }, {
+    name: 'property-match-select',
+    rows: 40, advanceQuantum: 1,
+    cancelOnManagedStart: 4, managedStarts: 4, cancelTask: 4,
+    completedTasks: [1, 2, 3],
+    steps: matchedRelationSteps({select: ['id', 'node_name']}),
+    fields: ['id', 'node_name'],
+  }, {
+    name: 'property-match-take',
+    rows: 40, advanceQuantum: 1,
+    cancelOnManagedStart: 4, managedStarts: 4, cancelTask: 4,
+    completedTasks: [1, 2, 3],
+    steps: matchedRelationSteps({take: {count: 1, offset: 0}}),
+    fields: ['id', 'node_name'],
+  }, {
+    name: 'property-match-sort-wide-comparison',
+    rows: 2, sortStress: true, cancelAfterSortAdvances: 70,
+    advanceQuantum: 1, managedStarts: 4, cancelTask: 4,
+    completedTasks: [1, 2, 3],
+    steps: matchedRelationSteps({sort: [
+      {node_name: 'asc'},
+      ...stressSortKeys.map(key => ({[key]: 'asc'})),
+      {id: 'asc'},
+    ]}, ['id', 'node_name', ...stressSortKeys]),
+    fields: ['id', 'node_name', ...stressSortKeys],
+  }, {
+    name: 'property-match-assert',
+    rows: 40, advanceQuantum: 1,
+    cancelOnManagedStart: 4, managedStarts: 4, cancelTask: 4,
+    completedTasks: [1, 2, 3],
+    steps: matchedRelationSteps({assert_rows: {where: 'id > 0'}}),
+    fields: ['id', 'node_name'],
+  }, {
+    name: 'property-match-assert-unique',
+    rows: 40, advanceQuantum: 1,
+    cancelOnManagedStart: 4, managedStarts: 4, cancelTask: 4,
+    completedTasks: [1, 2, 3],
+    steps: matchedRelationSteps({assert_rows: {unique_by: ['id']}}),
+    fields: ['id', 'node_name'],
   }, {
     name: 'to-events-bridge',
     family: 'tea',
@@ -5323,6 +5375,19 @@ async function exerciseStrategyGraph(
           weight: index + 1,
         }));
     }
+    if (graphFamily && cancellationCase.sortStress) {
+      const valueStep = graphCancellationProgram.stages[1].steps[0].values;
+      for (const key of stressSortKeys) {
+        valueStep.schema[key] = {type: 'string', nullable: false};
+      }
+      for (const row of valueStep.rows) {
+        row.node_name = stressSortText;
+        for (const key of stressSortKeys) row[key] = stressSortText;
+      }
+      graphCancellationProgram.stages[1].results.r.fields.push(...stressSortKeys);
+      // Both definition labels already expose all_columns from this exact
+      // input; no tuple-only Graph field list needs extending.
+    }
     if (graphFamily) {
       graphCancellationProgram.stages[graphStageIndex].steps.splice(
         1,
@@ -5535,7 +5600,7 @@ async function exerciseStrategyGraph(
                   const selectedQuantum = cancellationCase.advanceQuantum ??
                     quantum;
                   const resumeStartedAt = cancellationCase.sortStress &&
-                    start === 5
+                    start === expectedManagedStarts
                     ? performance.now() : 0;
                   const result = operation.advance(selectedQuantum);
                   const observation = checked(result);
@@ -5550,7 +5615,7 @@ async function exerciseStrategyGraph(
                   if (cancellationCase.fusedNearest && start === 3) {
                     fusedNearestBridgeRows += observation?.progress ?? 0n;
                   }
-                  if (cancellationCase.sortStress && start === 5) {
+                  if (cancellationCase.sortStress && start === expectedManagedStarts) {
                     maxSortResumeMs = Math.max(
                       maxSortResumeMs,
                       performance.now() - resumeStartedAt,
@@ -5559,7 +5624,7 @@ async function exerciseStrategyGraph(
                     selectedSortReportedWork += observation?.work ?? 0n;
                   }
                   if (cancellationCase.cancelAfterSortAdvances !== undefined &&
-                      start === 5 && observation?.complete === false &&
+                      start === expectedManagedStarts && observation?.complete === false &&
                       selectedSortAdvances >=
                         cancellationCase.cancelAfterSortAdvances &&
                       !cancellationScheduled) {
@@ -5621,8 +5686,10 @@ async function exerciseStrategyGraph(
         }, (_, value) => typeof value === 'bigint' ? value.toString() : value)}`,
       );
       if (cancellationCase.cancelTask !== undefined) {
+        const cancelledStart = cancellationCase.cancelOnManagedStart ??
+          expectedManagedStarts;
         assert.equal(
-          managedTaskByStart[cancellationCase.cancelOnManagedStart],
+          managedTaskByStart[cancelledStart],
           cancellationCase.cancelTask,
           `${cancellationCase.name}: ${JSON.stringify({
             managedTaskByStart,
@@ -5631,7 +5698,7 @@ async function exerciseStrategyGraph(
               representation:value.outputRepresentation,
             })),
             firstPoll:advanceObservations.find(value =>
-              value.start === cancellationCase.cancelOnManagedStart),
+              value.start === cancelledStart),
           }, (_, value) => typeof value === 'bigint' ? value.toString() : value)}`,
         );
       }

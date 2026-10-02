@@ -270,7 +270,7 @@
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "normalize-filter"
+          "fixture": "property-match-filter"
         },
         {
           "role": "ordinary_filter_in_flight_host_timer",
@@ -628,7 +628,7 @@
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "normalize-select"
+          "fixture": "property-match-select"
         },
         {
           "role": "ordinary_select_in_flight_host_timer",
@@ -1200,7 +1200,7 @@
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "normalize-sort-wide-comparison"
+          "fixture": "property-match-sort-wide-comparison"
         },
         {
           "role": "ordinary_sort_in_flight_host_timer",
@@ -1412,7 +1412,7 @@
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "normalize-take"
+          "fixture": "property-match-take"
         },
         {
           "role": "ordinary_take_in_flight_host_timer",
@@ -4897,14 +4897,14 @@
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "normalize-assert"
+          "fixture": "property-match-assert"
         },
         {
           "role": "assert_unique_in_flight_host_timer",
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "normalize-assert-unique"
+          "fixture": "property-match-assert-unique"
         }
       ],
       "path_assurance": {
