@@ -1141,6 +1141,7 @@ fn compile_graph_query(
       visible_fields,
       graph_bindings,
     }
+    let retained : Array[RetainedResult] = []
     let (steps, output) = compile_steps(
       construction,
       query,
@@ -1153,6 +1154,7 @@ fn compile_graph_query(
       false,
       "aql_graph_result_0",
       graph_bindings_only=!pattern.edges.is_empty(),
+      retained=Some(retained),
     )
     let result_alias = if steps.is_empty() {
       relation_alias
@@ -1165,23 +1167,26 @@ fn compile_graph_query(
       ("steps", construction.array(seed + steps)),
       (
         "results",
-        construction.object([
-          (
-            context.stage_result,
-            construction.object([
-              ("from", construction.text(result_alias)),
-              (
-                "fields",
-                construction.array(
-                  output.map(field => construction.text(field)),
-                ),
-              ),
-            ]),
-          ),
-        ]),
+        retained_stage_results(
+          construction,
+          context.stage_result,
+          construction.object([
+            ("from", construction.text(result_alias)),
+            (
+              "fields",
+              construction.array(output.map(field => construction.text(field))),
+            ),
+          ]),
+          retained,
+        ),
       ),
     ])
-    let root = program_root(construction, context, [stage])
+    let root = program_root(
+      construction,
+      context,
+      [stage],
+      result_exports=retained_result_exports(context, retained),
+    )
     let source = match @builder.finish(builder, root) {
       Ok(source) => source
       Err(issue) => raise Abort(Construction(issue))

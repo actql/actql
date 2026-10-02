@@ -10,6 +10,68 @@ export const sourceRows = [
 const declarations = {minimum: {type: 'number'}};
 const relationNumber = (name, nullable = false) => ({name,
   contract: {type: 'number', nullable}});
+// Hand-authored tap expectations: each Result retains the Relation at its
+// own point, including duplicates, NULLs and declared column order.
+const sourceColumns = [relationNumber('id'), relationNumber('amount', true)];
+export const pipeResultSuccesses = [
+  {name: 'result-before-limit', format: 'aql-text',
+    text: 'FROM records |> ORDER BY id |> RESULT original |> LIMIT 1',
+    results: {
+      original: {rows: [{id: 1, amount: null}, {id: 2, amount: 20}, {id: 3, amount: 30}, {id: 3, amount: 30}], columns: sourceColumns},
+      answer: {rows: [{id: 1, amount: null}], columns: sourceColumns},
+    }, sourceReadSessionCount: 1},
+  {name: 'terminal-result', format: 'sql',
+    text: 'SELECT amount, id FROM records ORDER BY id |> RESULT complete',
+    results: {complete: {rows: [{amount: null, id: 1}, {amount: 20, id: 2}, {amount: 30, id: 3}, {amount: 30, id: 3}],
+      columns: [relationNumber('amount', true), relationNumber('id')]}}, sourceReadSessionCount: 1},
+  {name: 'result-before-filter', format: 'aql-text',
+    text: 'FROM records |> ORDER BY id |> RESULT original |> WHERE amount IS NOT NULL |> SELECT id |> RESULT active',
+    results: {
+      original: {rows: [{id: 1, amount: null}, {id: 2, amount: 20}, {id: 3, amount: 30}, {id: 3, amount: 30}], columns: sourceColumns},
+      active: {rows: [{id: 2}, {id: 3}, {id: 3}], columns: [relationNumber('id')]},
+    }, sourceReadSessionCount: 1},
+  {name: 'result-after-set', format: 'aql-text',
+    text: 'FROM records AS old |> SET id = id + 10 |> RESULT changed |> SELECT old.id AS original, id AS current |> ORDER BY original |> RESULT final',
+    results: {
+      changed: {rows: [{id: 13, amount: 30}, {id: 11, amount: null}, {id: 12, amount: 20}, {id: 13, amount: 30}], columns: sourceColumns, unordered: true},
+      final: {rows: [{original: 1, current: 11}, {original: 2, current: 12}, {original: 3, current: 13}, {original: 3, current: 13}], columns: [relationNumber('original'), relationNumber('current')]},
+    }, sourceReadSessionCount: 1},
+  {name: 'result-after-drop', format: 'aql-text',
+    text: 'FROM records AS old |> DROP amount |> RESULT ids |> SELECT old.amount AS previous, id |> ORDER BY id |> RESULT final',
+    results: {
+      ids: {rows: [{id: 3}, {id: 1}, {id: 2}, {id: 3}], columns: [relationNumber('id')], unordered: true},
+      final: {rows: [{previous: null, id: 1}, {previous: 20, id: 2}, {previous: 30, id: 3}, {previous: 30, id: 3}], columns: [relationNumber('previous', true), relationNumber('id')]},
+    }, sourceReadSessionCount: 1},
+  {name: 'result-cte', format: 'aql-text',
+    text: 'WITH base AS (SELECT amount, id FROM records ORDER BY id) FROM base |> RESULT original |> WHERE id = 1 |> RESULT selected',
+    results: {
+      original: {rows: [{amount: null, id: 1}, {amount: 20, id: 2}, {amount: 30, id: 3}, {amount: 30, id: 3}], columns: [relationNumber('amount', true), relationNumber('id')]},
+      selected: {rows: [{amount: null, id: 1}], columns: [relationNumber('amount', true), relationNumber('id')]},
+    }, sourceReadSessionCount: 1},
+  {name: 'result-cte-join', format: 'sql',
+    text: 'WITH base AS (SELECT id FROM records) SELECT l.id AS id FROM base l JOIN base r ON l.id = r.id ORDER BY id |> RESULT joined |> LIMIT 1 |> RESULT limited',
+    results: {
+      joined: {rows: [{id: 1}, {id: 2}, {id: 3}, {id: 3}, {id: 3}, {id: 3}], columns: [relationNumber('id')]},
+      limited: {rows: [{id: 1}], columns: [relationNumber('id')]},
+    }, sourceReadSessionCount: 1},
+  {name: 'result-empty', format: 'sql',
+    text: 'SELECT amount, id FROM records WHERE amount > 100 |> RESULT empty |> LIMIT 1 |> RESULT final',
+    results: {empty: {rows: [], columns: [relationNumber('amount', true), relationNumber('id')]},
+      final: {rows: [], columns: [relationNumber('amount', true), relationNumber('id')]}}, sourceReadSessionCount: 1},
+  {name: 'result-source-free', format: 'sql',
+    text: 'SELECT 2 AS x |> RESULT original |> SET x = x + 1 |> RESULT updated',
+    results: {original: {rows: [{x: 2}], columns: [relationNumber('x')]},
+      updated: {rows: [{x: 3}], columns: [relationNumber('x')]}}, sourceReadCount: 0},
+];
+export const pipeResultRefusals = [
+  {name: 'result-duplicate', format: 'aql-text', text: 'FROM records |> RESULT saved |> RESULT saved'},
+  {name: 'result-case-duplicate', format: 'aql-text', text: 'FROM records |> RESULT Saved |> RESULT `SAVED`'},
+  {name: 'result-primary-collision', format: 'aql-text', text: 'FROM records |> RESULT answer |> LIMIT 1'},
+  {name: 'result-cte-body', format: 'sql', text: 'WITH base AS (FROM records |> RESULT saved) SELECT id FROM base'},
+  {name: 'result-derived-body', format: 'sql', text: 'SELECT id FROM (FROM records |> RESULT saved) AS base'},
+  {name: 'result-missing-name', format: 'aql-text', text: 'FROM records |> RESULT'},
+  {name: 'result-removed-range', format: 'aql-text', text: 'FROM records AS old |> AS current |> RESULT saved |> SELECT old.id'},
+];
 export const queryCompositionSuccesses = [
   {name: 'set-output-alias-expression', format: 'sql',
     text: 'SELECT id AS amount FROM records UNION ALL SELECT id AS other FROM records ORDER BY 0 - amount, 0 - amount DESC LIMIT 3',
@@ -244,7 +306,7 @@ export async function exercisePublicQueryInput(connect, options,
   };
   const client = await connect(options);
   try {
-    for (const {name, text, expected, columns, sourceRows, sourceReadCount, sourceReadSessionCount, ...input} of successes) {
+    for (const {name, text, expected, columns, results, sourceRows, sourceReadCount, sourceReadSessionCount, ...input} of successes) {
       await prepareCase?.(sourceRows);
       const requestId = requestPrefix + '-' + name;
       const beforeSubmit = await counters();
@@ -262,13 +324,25 @@ export async function exercisePublicQueryInput(connect, options,
           sourceReadSessionCount, 'one acquisition session per authored source: ' +
             JSON.stringify((await observe()).sourceReadCommands));
       }
-      assert.deepEqual(await execution.result('answer').all(), expected);
-      if (columns !== undefined) {
-        assert.deepEqual((await execution.result('answer').describe()).columns,
-          columns, 'retained column order and contracts match the authored fixture');
+      const expectedResults = results ?? {answer: {rows: expected, columns}};
+      const compare = (actual, expected, unordered) => {
+        // An unordered SQL Relation is compared as a multiset. Sorting this
+        // test copy preserves duplicates and never changes the product output.
+        if (unordered) assert.deepEqual(actual.map(row => JSON.stringify(row)).sort(),
+          expected.map(row => JSON.stringify(row)).sort());
+        else assert.deepEqual(actual, expected);
+      };
+      for (const [resultName, result] of Object.entries(expectedResults)) {
+        compare(await execution.result(resultName).all(), result.rows, result.unordered);
+        if (result.columns !== undefined) {
+          assert.deepEqual((await execution.result(resultName).describe()).columns,
+            result.columns, 'retained column order and contracts match the authored fixture');
+        }
       }
       const attached = await client.attach(execution.ref);
-      assert.deepEqual(await attached.result('answer').all(), expected);
+      for (const [resultName, result] of Object.entries(expectedResults)) {
+        compare(await attached.result(resultName).all(), result.rows, result.unordered);
+      }
       const resent = await client.aql(text, {...input, requestId});
       assert.deepEqual(resent.ref, execution.ref);
       assert.deepEqual((await client.lookupRequest(requestId)).ref, execution.ref);

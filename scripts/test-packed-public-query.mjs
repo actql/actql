@@ -73,6 +73,9 @@ if (process.argv.includes('--source-free-only')) {
 if (process.argv.includes('--query-composition-only')) {
   runtimeEnvironment.ACTQL_TEST_QUERY_COMPOSITION_ONLY = '1';
 }
+if (process.argv.includes('--pipe-result-only')) {
+  runtimeEnvironment.ACTQL_TEST_PIPE_RESULT_ONLY = '1';
+}
 if (process.argv.includes('--join-order-only')) {
   runtimeEnvironment.ACTQL_TEST_JOIN_ORDER_ONLY = '1';
 }
@@ -96,6 +99,7 @@ const output = run(process.execPath, ['acceptance.mjs'], root,
 console.log(output.trimEnd());
 if (process.argv.includes('--source-free-only') ||
   process.argv.includes('--query-composition-only') ||
+  process.argv.includes('--pipe-result-only') ||
   process.argv.includes('--alias-scope-only') ||
   process.argv.includes('--infer-refusal-only') ||
   process.argv.includes('--join-order-only')) return;

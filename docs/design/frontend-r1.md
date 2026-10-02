@@ -89,6 +89,22 @@ No second Run API, SQL engine, retry mechanism or Effect scheduler is needed.
 
 ## Query profiles and remaining adoption work
 
+The statement-level `|> RESULT name` extension refers to the complete current
+Relation through ordinary named step producers and Stage/Program Results. A
+continuing Pipe consumes the same carrier, while each named Result retains its
+own visible schema, duplicates and existing evidence at that point. A terminal
+RESULT supplies the configured primary output without a duplicate export.
+When immutable range snapshots occupy private slots, a separate ordinary
+projection exposes current columns and the continuing Pipe resumes the full
+producer. This preserves valid old-value references without publishing helper
+slots. No additional source acquisition or execution owner is introduced.
+
+RESULT declarations are forbidden inside pure CTE/derived-query bodies and set
+operands. A top-level pipeline may consume their evaluated Relation and retain
+it. Graph pattern output needs an explicit Relation projection; its occurrence
+slots are not an implicit public schema. Adopted statement sequencing,
+`RESULT(name)` source references and BRANCH integration remain distinct work.
+
 Query, Pipe and limited graph patterns lower into the same Program. The
 profile registry records their
 preconditions and rejection reasons. Restricted syntax is not expanded by

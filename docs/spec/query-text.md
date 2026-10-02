@@ -89,7 +89,8 @@ are ASCII case-insensitive, including backtick-quoted names. This is distinct
 from published Source View path resolution. This is lexical producer binding,
 not SQL rewriting or repeated execution. Each body ends at its
 own closing parenthesis; a statement terminator is allowed only after the
-complete query. INFER is excluded from CTE bodies. Recursive declarations,
+complete query. INFER and RESULT declarations are excluded from CTE bodies.
+Recursive declarations,
 forward references and references to a displaced range variable remain
 invalid. Parsing shares the existing syntax-node, CTE-count and work budgets.
 
@@ -126,6 +127,41 @@ restrictions on INFER and top-level lifecycle declarations. A set or CTE form
 not yet implemented is reported as an implementation gap rather than a
 permanent language restriction. Anonymous output expression labels remain a
 separate profile gap; authored examples give their output expressions aliases.
+
+## Named intermediate Results
+
+`|> RESULT name` registers the complete current Relation as a named Result
+and passes that same Relation to the continuing Pipe. This is an ActQL
+publication/retention extension, not a GoogleSQL relational operator.
+It does not grant access, write a business table, choose a physical location,
+or require another Stage or process. Ordinary Result owners enforce retention,
+publication, current authorization, resource limits and cleanup.
+
+Each Result retains the rows, duplicates, visible columns in declaration order,
+types/nullability and existing key/order evidence at that point. A later WHERE,
+SELECT or LIMIT cannot change its content, schema, required acquisition or
+validation. No partial successful Result is published on resource failure.
+Compiler-private slots and immutable range snapshots are excluded from the
+public Result while remaining available to subsequent valid Pipe references.
+
+Multiple names are permitted; redefinition is rejected after ASCII
+case-insensitive name resolution, including backtick-quoted names. Authored
+spelling is retained for the public Result name. Names must also be distinct
+from the configured primary export when that export is needed. If the last
+operator is `RESULT x`, the primary output references that same `x`; no second
+anonymous export is constructed. Otherwise the continuing Relation uses the
+existing configured primary export.
+
+RESULT declarations belong at statement level (and adopted BRANCH bodies), not
+inside CTEs, derived queries or set operands. The separate adopted `RESULT(name)`
+source reference is not a declaration and has its own preceding-statement
+rules; listing it here does not assert its implementation. The current Graph
+query profile requires an explicit public Relation projection before RESULT,
+so graph occurrence slots cannot become public columns.
+
+Lowering uses ordinary named step producers and Stage/Program Result
+definitions. It does not expand a producer or re-acquire its Source. Keeping a
+prefix Result can require bounded retention and is not a cost-free alias.
 
 ## INFER KEEP source projection
 
