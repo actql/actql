@@ -1709,8 +1709,12 @@ pub fn client_program_effect_captured_source_matches(
 fn captured_source_matches_graph(
   graph : @strategy.CheckedDAG,
   source : @query.CapturedInputSource,
+  task? : Int = 0,
 ) -> Bool {
-  guard @strategy.graph_task_owner(graph, 0) is Some(owner) else {
+  if task < 0 || task >= @strategy.graph_captured_prefix(graph) {
+    return false
+  }
+  guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
     return false
   }
   @query.captured_source_matches(
@@ -1949,15 +1953,27 @@ fn issue_captured_source_logical_graph(
   source : @query.CapturedInputSource,
   identity : @query.CapturedSourceRelationIdentity,
   requirement : @planning.QueryRequirement,
+  task? : Int = 0,
 ) -> Result[@publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue] {
   let program = @program_check.source_identity(@strategy.graph_program(graph))
-  if !captured_source_matches_graph(graph, source) {
+  if !captured_source_matches_graph(graph, source, task~) {
     return Err(ForeignPrepared)
   }
   if !@query.captured_source_relation_identity_matches_source(identity, source) {
     return Err(ForeignIdentity)
   }
-  if !physical_equal(@planning.query_requirement_program(requirement), program) {
+  guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
+    return Err(ForeignPrepared)
+  }
+  if !physical_equal(@planning.query_requirement_program(requirement), program) ||
+    !physical_equal(
+      @query.query_sequence_owner(
+        @planning.query_material_owner(
+          @planning.query_requirement_material(requirement),
+        ),
+      ),
+      owner,
+    ) {
     return Err(ForeignRequirement)
   }
   let rows = @query.captured_source_relation_logical_cid(identity)

@@ -1354,12 +1354,14 @@ async function runHostNativeQuery(grant, setup, limits, signal, ledger, retained
     evidence,
     storageUsage: () => store?.status(),
     cleanupHandle: retained ? retainedCleanup : undefined,
+    source: () => checked(moon.nativeHostSourceCaptureSource(
+      retainedSourceCapture())),
     ...(capacity === undefined ? {
       output,
-      source: () => checked(moon.nativeHostSourceCaptureSource(
-        retainedSourceCapture())),
     } : {
       openDAG: graph => checked(moon.nativeHostOpenDAG(liveRun(), graph, captured.observation)),
+      retainTask: (dag, task) => checked(moon.nativeHostRetainCapturedTask(
+        liveRun(), dag, task, captured.observation)),
     }),
     close() {
       if (captureReleased) return;
@@ -1368,30 +1370,32 @@ async function runHostNativeQuery(grant, setup, limits, signal, ledger, retained
       body?.close();
       store?.close();
       captured.close();
+      // Drop cached source custody only after the original issuer confirms
+      // close. Failed close retries retain that same owner; the weak entry's
+      // liveRun guard preserves the established closed-evidence failure.
+      sourceCapture = undefined;
       captureReleased = true;
     },
   });
-  if (capacity === undefined) {
-    ownedSourceCaptures.set(result, Object.freeze({
-      issue: ({context, identity, logicalInput, authorityScopeCid,
-        effectiveDataPolicyCid, signal: issuanceSignal}) => {
-        const held = retainedSourceCapture();
-        const sourceRef = moon.nativeHostSourceCaptureSourceRef(held);
-        if (sourceRef === undefined) {
-          throw new DuckDBTransportError('ClosedSourceCapture');
-        }
-        return withCurrentSourceEvidenceRead(grant, sourceRef, () => {
-          liveRun();
-          return checked(moon.nativeHostIssueSourceEvidence(held, context, identity,
-            logicalInput, authorityScopeCid, effectiveDataPolicyCid,
-            observedAt));
-        }, issuanceSignal);
-      },
-      matches: identity => !closed &&
-        moon.nativeHostSourceCaptureIdentityMatches(
-          retainedSourceCapture(), identity),
-    }));
-  }
+  ownedSourceCaptures.set(result, Object.freeze({
+    issue: ({context, identity, logicalInput, authorityScopeCid,
+      effectiveDataPolicyCid, signal: issuanceSignal}) => {
+      const held = retainedSourceCapture();
+      const sourceRef = moon.nativeHostSourceCaptureSourceRef(held);
+      if (sourceRef === undefined) {
+        throw new DuckDBTransportError('ClosedSourceCapture');
+      }
+      return withCurrentSourceEvidenceRead(grant, sourceRef, () => {
+        liveRun();
+        return checked(moon.nativeHostIssueSourceEvidence(held, context, identity,
+          logicalInput, authorityScopeCid, effectiveDataPolicyCid,
+          observedAt));
+      }, issuanceSignal);
+    },
+    matches: identity => !closed &&
+      moon.nativeHostSourceCaptureIdentityMatches(
+        retainedSourceCapture(), identity),
+  }));
   return result;
 }
 

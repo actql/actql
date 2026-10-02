@@ -1,0 +1,78 @@
+{
+  "version": "actql/0.1",
+  "id": "fixture.right-only",
+  "stages": [
+    {
+      "id": "acquire_right",
+      "inputs": {
+        "remote": {
+          "connector": "crm/right",
+          "resource": "r"
+        }
+      },
+      "steps": [
+        {
+          "filter": "id >= 0",
+          "as": "filtered"
+        },
+        {
+          "select": [
+            "id",
+            "amount"
+          ],
+          "as": "captured"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "captured",
+          "fields": [
+            "id",
+            "amount"
+          ]
+        }
+      }
+    },
+    {
+      "id": "ordered_result",
+      "inputs": {
+        "rows": {
+          "result": {
+            "stage": "acquire_right",
+            "result": "rows"
+          }
+        }
+      },
+      "steps": [
+        {
+          "sort": [
+            {
+              "id": "asc"
+            },
+            {
+              "amount": "asc"
+            }
+          ],
+          "as": "ordered"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "ordered",
+          "fields": [
+            "id",
+            "amount"
+          ]
+        }
+      }
+    }
+  ],
+  "results": {
+    "single_source": {
+      "from": {
+        "stage": "ordered_result",
+        "result": "rows"
+      }
+    }
+  }
+}

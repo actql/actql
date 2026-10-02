@@ -355,3 +355,41 @@ export function acquiredTaskPublicationPlan({moon, control, acquired,
     now, resultCount: moon.clientProgramResultCount(preparedProgram),
     compiled: acquired.compiled, preparedProgram});
 }
+
+
+// The existing checked publication owner receives the complete occurrence
+// inventory. Each source evidence retains its own read policy; the final
+// publication policy is the checker's join of exact Result contributors.
+export function acquiredMultiTaskPublicationPlan({moon, control, acquired,
+  preparedProgram, sources, authorityScopeCid, effectiveDataPolicyCid,
+  captureStartedAt, captureCompletedAt, namespaceId, storeAuthorityCid, now}) {
+  control.checkClientCompiledRunOwner(acquired.compiled, preparedProgram);
+  if (!Array.isArray(sources) || sources.length !== 2 ||
+      moon.clientProgramPublicationDataPolicyCid(preparedProgram) !== effectiveDataPolicyCid ||
+      sources.some(({captured, sourceEvidenceWire}, task) =>
+        typeof sourceEvidenceWire !== 'string' || captured?.logicalInput === undefined ||
+        captured?.identity === undefined || captured?.requirement === undefined ||
+        !moon.clientProgramCapturedTaskSourceMatches(preparedProgram, captured.capture.source(), task))) {
+    throw new TypeError('InvalidAcquiredTaskPublication');
+  }
+  const observed = sources.map(source => ({...source,
+    inputLogicalWire: moon.strategyRunEvidenceJson(source.captured.logicalInput)}));
+  const {observation, invocation} = control.issueCheckedClientCompiledMultiInvocation(
+    acquired.compiled, acquired.runDefinition, {sources: observed, authorityScopeCid,
+      dataPolicyCid: effectiveDataPolicyCid, captureStartedAt, captureCompletedAt}, limits);
+  return localPublicationPlan({control, admission: acquired.admission,
+    runDefinition: acquired.runDefinition, invocation, observation,
+    compiledPlanCid: acquired.compiledPlan.identity,
+    programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
+    // Result derivation records a unique set of logical content dependencies.
+    // Equal content does not coalesce the occurrence-owned captures or either
+    // Source Evidence entry retained above in the Observation Set.
+    inputRelationCids: [...new Set(sources.map(source =>
+      moon.clientProgramCapturedSourceLogicalCid(source.captured.identity)))],
+    sourceEvidence: sources.map(source => control.admitRunEvidence('source_evidence',
+      source.sourceEvidenceWire, limits)),
+    authorityScopeCid, namespaceId, storeAuthorityCid,
+    dataPolicyCid: effectiveDataPolicyCid, createdAt: acquired.createdAt,
+    now, resultCount: moon.clientProgramResultCount(preparedProgram),
+    compiled: acquired.compiled, preparedProgram});
+}

@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
+// Reuse the existing distribution-client gate for bounded two-source owners.
+import './two-source-capture-boundaries.test.mjs';
+import './two-source-public-host.test.mjs';
 
 test('diagnostic failure cannot stop Compute or bypass required ownership',
   async () => {
@@ -327,7 +330,7 @@ function acquiringOwner(open) {
   let computes = 0;
   const access = {authorization: {}};
   const owner = installNodeClientDispatchOwner({
-    moon: {clientProgramPrepareQueryAcquisition: () => ({$tag: 1})},
+    moon: {clientProgramAcquisitionCount: () => 1},
     control: {},
     journal: {reservePhysicalStart: () => true,
       markPhysicalClose: (...args) => stopped.push(args)},
@@ -336,7 +339,7 @@ function acquiringOwner(open) {
     hostConnection: () => true,
     observed: async () => {},
     planFor: () => ({runDefinition: {wire: 'definition'}}),
-    sourceProfile: {sourceAccess: access, open},
+    sourceProfile: {sourceAccess: access, admitsSource: source => source === 'fixture-source', open},
     runPublished: async () => { computes++; },
     now: () => '2026-09-28T00:00:00.000Z',
     namespaceId: 'namespace-a',
@@ -346,7 +349,7 @@ function acquiringOwner(open) {
       dispatchReserved: false, cancellationRequested: false};
     assert.equal(await owner.start({preparedProgram: {}, principalId: 'owner',
       connection: {}, requestId: 'acquiring-request'}, {}, accepted,
-    {preparedSourceAccess: access, preparedSource: {}}), 'started');
+    {preparedSourceAccess: access, preparedSource: {checkedSource: {sourceRef: 'fixture-source'}}}), 'started');
     await owner.operation(ref);
   };
   return {owner, ref, stopped, run, computes: () => computes};

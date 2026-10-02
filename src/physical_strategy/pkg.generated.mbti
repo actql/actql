@@ -272,6 +272,8 @@ pub fn captured_task_join_output_limit(CapturedDAG, Int, Int) -> Int64?
 
 pub fn captured_task_output(CapturedDAG, Int, @pipeline_typing.Target) -> @execution_relation.CompletedOutput?
 
+pub fn captured_task_source_matches(CapturedDAG, Int, @execution_query.CapturedInputSource) -> Bool
+
 pub fn captured_task_target(CapturedDAG, Int) -> @pipeline_typing.Target?
 
 pub fn charge_captured_managed_transfer(CapturedDAG, ManagedTransfer, Int64) -> Result[Unit, @physical_resources.LedgerIssue]
@@ -394,6 +396,8 @@ pub fn finish_captured_effect_plan_verifier(CapturedEffectPlanVerifier) -> Resul
 
 pub fn finish_captured_effect_proposal_plan(CapturedEffectProposalPlan, Int) -> Result[Unit, CapturedEffectProposalIssue]
 
+pub fn graph_captured_prefix(CheckedDAG) -> Int
+
 pub fn graph_control_at(CheckedDAG, Int) -> ControlEdge?
 
 pub fn graph_control_count(CheckedDAG) -> Int
@@ -466,6 +470,8 @@ pub fn open_captured_dag(CheckedDAG, @execution_query.CapturedInputSource, @phys
 
 pub fn open_captured_effect_run_dag(CheckedEffectRunDAG, @execution_query.CapturedInputSource, @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedEffectRunDAG, RunIssue]
 
+pub fn open_multi_captured_dag(CheckedDAG, Array[(Int, @execution_query.CapturedInputSource)], @physical_resources.Ledger, supplied? : Array[@execution_relation.CapturedRows]) -> Result[CapturedDAG, RunIssue]
+
 pub fn open_source_free_dag(CheckedDAG, @physical_resources.Ledger) -> Result[CapturedDAG, RunIssue]
 
 pub fn open_source_free_effect_run_dag(CheckedEffectRunDAG, @physical_resources.Ledger) -> Result[CapturedEffectRunDAG, RunIssue]
@@ -492,7 +498,7 @@ pub fn prepare_captured_effect_plan_verifier(CapturedEffectPreviewInputs, Int, I
 
 pub fn prepare_captured_effect_proposal_plan(CapturedEffectInputs, Int, Int, Int) -> Result[CapturedEffectProposalPlan, CapturedEffectProposalIssue]
 
-pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int, source_free_root? : Bool) -> Result[CheckedDAG, GraphIssue]
+pub fn prepare_checked_dag(@program_check.CheckedProgram, Array[@lowering_relation.BoundPrepared], Int, Int, source_free_root? : Bool, captured_prefix? : Int) -> Result[CheckedDAG, GraphIssue]
 
 pub fn prepare_checked_effect_computation_dag(@program_check.EffectProgramStaticCandidate, Array[@lowering_relation.BoundPrepared], Int, Int, source_free_root? : Bool) -> Result[CheckedEffectComputationDAG, GraphIssue]
 
