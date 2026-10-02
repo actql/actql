@@ -1562,3 +1562,33 @@ Wasm and native** with `--deny-warn`. Logs:
 Latest main is `bcbf77049fe4991c9b0f1a18541ac7a7952b01ad`, already an ancestor.
 The aggregate Core/spec migration, fresh public snapshot acceptance and
 published-SHA required CI remain unfinished; this is not B's completed handoff.
+
+## Source-backed MATCH policy migration (2026-10-03)
+
+`graph_match_policy_wbtest.mbt` no longer constructs a tuple Graph. All seven
+original policy cases remain positive current Graph cases: repeated explicit
+identities, a field-only predicate, a predicate with a literal, edge MATCH,
+empty label selection, repeated static labels and a literal edge predicate.
+Node and edge definitions share the retained SourceView producer but keep
+independent key roles and ordered constructor occurrences. Property `id` is
+projected separately from the complete typed element identity; a numeric
+endpoint is not passed off as the new identity.
+
+Each case keeps the original Source count, unknown-value provenance expectation,
+exact checked MATCH owner, original input occurrence and the admission/resource
+execution checks (including the three resource scopes and original 1,000-row
+ceiling). None was replaced with an unsupported-input expectation.
+
+The repeated typed node selector uses independently derived domain
+`sha256:e95f67084a112ecd81cf96752d7dcffc731922c81ee7946fcf8ab2ef11a5b4a5`.
+Its preimage uses the Source projection above twice, a node N with key `[id]`
+and Node/all_columns, and an edge E with independent key `[id]`, N/[id] source,
+N/[extra] target and R/all_columns. Ordered input occurrences are N=0, E=1.
+Node's canonical SHA-256 calculation was performed before the product test.
+
+The focused policy regression comprises ten tests on each target. Acceptance
+is rerun after formatting has finished at the committed source; the first
+preflight overlapped formatting's lock and is not used as the final run.
+Public API consistency and frozen historical foundation verification passed
+for the preceding Source owner commit. Full Core/spec, fresh packed public
+snapshot and pushed-SHA CI are still required for #164 as a whole.
