@@ -51,8 +51,12 @@ function assertSourceGate(source) {
   const members = [...gate[1].matchAll(/"([a-z_]+)"/g)].map(match => match[1]);
   assert.equal(new Set(members).size, members.length, 'Duplicate source gate member');
   const metadata = ['from', 'as', 'meta'];
+  // INFER is admitted by its checked ModelTask owner, not by the pure-operation
+  // checker. Its registration must not expand the pure acceptance inventory.
+  const barriers = ['infer'];
   assert.deepEqual(members.toSorted(), [
-    ...metadata, ...publicOperations.filter(name => !excluded.includes(name)),
+    ...metadata, ...barriers,
+    ...publicOperations.filter(name => !excluded.includes(name)),
   ].toSorted());
   // This checks dispatch completeness only. It cannot replace the formal-entry
   // tests for Carrier alternatives, ownership, evidence and runtime obligations.
@@ -64,7 +68,7 @@ test('formal Program source gate covers the agreed operation domain without impl
 
 test('source gate audit detects omissions, unsupported additions and duplicate registrations', () => {
   const source = read('src/program_check/check.mbt');
-  for (const replacement of ['', '| "infer"', '| "sequence" | "sequence"']) {
+  for (const replacement of ['', '| "serialize"', '| "sequence" | "sequence"']) {
     const changed = source.replace('| "sequence"', replacement);
     assert.notEqual(changed, source);
     assert.throws(() => assertSourceGate(changed));

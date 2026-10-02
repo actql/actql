@@ -1,0 +1,115 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "issue-180-foundation-composition",
+  "kind": "change",
+  "revision": "28f7a9887b740eb83e0d6de8b7d5611972bb0a49",
+  "parents": [
+    "16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a",
+          "digest": "ba0d74e9894af43d6f7258fd41c90c937828a862791f15c022703876b5b94128",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "b3945aa267d98ac5228eff6f4cfd4bffe697b72d6dd09edefe82d3fd97dc652a",
+      "afterMode": "100644",
+      "reason": "Generate and archive the deterministic exact-source foundation manifest before the unchanged pipeline, mutation, capacity and oracle gates."
+    },
+    {
+      "path": "proofs/relation-pipeline/current-foundation.md",
+      "before": [
+        {
+          "revision": "16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a",
+          "digest": "0b8cac2626f1d562b34d2e8ab8549f2a92157ed843c392418f86a953c2ded0c0",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "9a38041ed3616afee11f08c85d702f8fca13cc6ab0db9e43bc513bd85b7c040b",
+      "afterMode": "100644",
+      "reason": "Document immutable migration inputs, independent declarations, exact Git-DAG coverage and reviewed overlap resolution without shared-manifest edits."
+    },
+    {
+      "path": "proofs/relation-pipeline/fixtures/foundation-repository.mjs",
+      "before": [
+        {
+          "revision": "16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a",
+          "digest": null,
+          "mode": null
+        }
+      ],
+      "afterDigest": "8d536778ed0f56a49a20ebf4ff443dfd43d274a4cb1c410eada9f058b9895ab0",
+      "afterMode": "100644",
+      "reason": "Build independent real-Git integration fixtures for #172/#173/#175-shaped changes, old forks and exact merged registration/rationale preservation."
+    },
+    {
+      "path": "proofs/relation-pipeline/fixtures/history-driver.mjs",
+      "before": [
+        {
+          "revision": "16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a",
+          "digest": "fa99e61292ebf53d375b479cf1ddb68c922d8390aa82b5a871c2eeff47f7d06e",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "ec5c6174fcbaa6d16c970d782afba08e5ff26515a8b60645ba783ae52b31b3cd",
+      "afterMode": "100644",
+      "reason": "Exercise the existing historical rejection cases against the frozen legacy checkpoint rather than a mutable current record."
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation.mjs",
+      "before": [
+        {
+          "revision": "16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a",
+          "digest": null,
+          "mode": null
+        }
+      ],
+      "afterDigest": "33239e0e1fddda2b05666cbf6c09b2ad2dfa8c6a01f10c31a22f572c3a3428c0",
+      "afterMode": "100644",
+      "reason": "Validate every protected transition in the full Git DAG, immutable declaration/record history, actual merged bytes and explicit complete overlap resolution without weakening provenance."
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation.test.mjs",
+      "before": [
+        {
+          "revision": "16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a",
+          "digest": null,
+          "mode": null
+        }
+      ],
+      "afterDigest": "987ccdfc42556bc61ba6ce802036b5e63e053f6c573ec13a51547610fdb449b6",
+      "afterMode": "100644",
+      "reason": "Add real-Git acceptance and adversarial coverage for deterministic composition, independent and overlapping branches, historical pins and undeclared or uncommitted drift."
+    },
+    {
+      "path": "proofs/relation-pipeline/history.mjs",
+      "before": [
+        {
+          "revision": "16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a",
+          "digest": "2a00338e67189acc2d3944c7485b88837ab6832ec18b2e423725f54b37c83c00",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "142e57dae208b6445ba027bdf6b9521ac6de21ecf84991c09aafb3e07c8be62a",
+      "afterMode": "100644",
+      "reason": "Preserve all historical pins and frozen #175 migration checks, compose exact current declarations and generate only the ignored source-bound aggregate."
+    },
+    {
+      "path": "proofs/relation-pipeline/history.test.mjs",
+      "before": [
+        {
+          "revision": "16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a",
+          "digest": "2812756d385f41f3cd0dd1478103a2d9160174879eb9278e5a866658f0e99c7a",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "dbf2df2705c675f65c1f9ed05334ebe0ddaf3b19173df6531c2de3598bfcc1dd",
+      "afterMode": "100644",
+      "reason": "Retain historical negative cases and require exact-source repository composition with repeated byte-identical aggregate output."
+    }
+  ]
+}

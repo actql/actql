@@ -279,7 +279,9 @@ fn relation_chain_step_inputs(
   max_value_bytes : Int,
 ) -> Result[Array[ManagedProviderInput], @connector.FixedComputeIssue] {
   let owner = @execution.generated_sequence_owner(sequence)
-  guard @execution.generated_sequence_step_index_at(sequence, position)
+  guard @execution.generated_sequence_step_index_at(sequence, 0)
+    is Some(first_step) &&
+    @execution.generated_sequence_step_index_at(sequence, position)
     is Some(step) &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) else {
     return Err(@connector.Execution(@execution.InputSet))
@@ -291,33 +293,40 @@ fn relation_chain_step_inputs(
   }
   let selected : Array[ManagedProviderInput] = []
   for port in 0..<@lower.node_input_count(node) {
-    match @lower.node_input_target(node, port) {
-      Some(@pipeline.Input(_)) => {
-        let mut matched : ManagedProviderInput? = None
-        for input in inputs {
-          let exact = match input {
-            RelationInput(read) =>
-              @execution.producer_read_matches_operation_input(
-                read, owner, step, port,
-              )
-            SuppliedRelationInput(read) =>
-              @execution.supplied_relation_read_matches_operation_input(
-                read, owner, step, port,
-              )
-            CarrierInput(_) => false
-          }
-          if exact {
-            if matched is Some(_) {
-              return Err(@connector.Execution(@execution.InputSet))
-            }
-            matched = Some(input)
-          }
+    let target = @lower.node_input_target(node, port)
+    let external = match target {
+      Some(@pipeline.Input(_)) => true
+      Some(@pipeline.Step(producer)) => producer < first_step
+      None => false
+    }
+    if external {
+      let mut matched : ManagedProviderInput? = None
+      for input in inputs {
+        let exact = match input {
+          RelationInput(read) =>
+            @execution.producer_read_matches_operation_input(
+              read, owner, step, port,
+            )
+          SuppliedRelationInput(read) =>
+            @execution.supplied_relation_read_matches_operation_input(
+              read, owner, step, port,
+            )
+          CarrierInput(_) => false
         }
-        guard matched is Some(input) else {
-          return Err(@connector.Execution(@execution.InputSet))
+        if exact {
+          if matched is Some(_) {
+            return Err(@connector.Execution(@execution.InputSet))
+          }
+          matched = Some(input)
         }
-        selected.push(input)
       }
+      guard matched is Some(input) else {
+        return Err(@connector.Execution(@execution.InputSet))
+      }
+      selected.push(input)
+      continue
+    }
+    match target {
       Some(@pipeline.Step(producer_step)) => {
         guard prior == Some(producer_step) && previous is Some(output) else {
           return Err(@connector.Execution(@execution.InputSet))
@@ -338,7 +347,7 @@ fn relation_chain_step_inputs(
         }
         selected.push(RelationInput(read))
       }
-      None => return Err(@connector.Execution(@execution.InputSet))
+      _ => return Err(@connector.Execution(@execution.InputSet))
     }
   }
   Ok(selected)
@@ -794,6 +803,12 @@ fn selected_relation_provider(
                   return false
                 }
               Some(@pipeline.Step(producer_step)) => {
+                let first_step = @execution.generated_sequence_step_index_at(
+                  sequence, 0,
+                ).unwrap()
+                if producer_step < first_step {
+                  continue
+                }
                 if previous != Some(producer_step) {
                   return false
                 }

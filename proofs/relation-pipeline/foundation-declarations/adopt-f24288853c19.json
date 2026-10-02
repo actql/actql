@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "adopt-f24288853c19",
+  "kind": "change",
+  "revision": "f24288853c1958ba1cd7d6cad9309aed41d63961",
+  "parents": [
+    "7427f7f09276e5210c2b830a72ed60aab97337a9"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "7427f7f09276e5210c2b830a72ed60aab97337a9",
+          "digest": "6eb1ec485ae3dc81a00083795cbac8e55ce481f9483a9e6417ac24d7c008de13",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "830828d77efb331483cbe74a138f18395df5aa5b3c85dcd5c2e3145f2c663bc9",
+      "afterMode": "100644",
+      "reason": "Retain the model call-slot contract generation and independent canonical identity tests from #178."
+    }
+  ]
+}

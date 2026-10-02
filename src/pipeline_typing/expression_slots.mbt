@@ -16,6 +16,7 @@ pub(all) enum ExpressionConsumer {
   TraverseEdges(Int)
   TraverseNodes(Int)
   ShortestEndpoint(@schema.Side)
+  InferInput(Int)
 } derive(Eq, Debug)
 
 ///|
@@ -239,6 +240,11 @@ pub fn collect_expression_slots(
     for step in 0..<pipeline.steps.length() {
       slot_tick(c)
       match pipeline.steps[step].operation {
+        Infer(operation) =>
+          for i in 0..<@evidence.infer_input_binding_count(operation) {
+            let binding = @evidence.infer_input_binding_at(operation, i).unwrap()
+            slot_add(c, step, Some(binding.expression), InferInput(i))
+          }
         Unary(operation) | WindowGroup(operation) =>
           slot_relation(c, step, operation)
         Sequence(operation) =>

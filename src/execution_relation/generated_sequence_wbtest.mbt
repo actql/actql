@@ -31,6 +31,28 @@ test "generated composition owns its selection and contexts and reuses no counte
     2,
   )
   assert_true(select_generated_sequence_prefix(generated, 3) is None)
+  let suffix = select_generated_sequence_range(generated, 2, 3).unwrap()
+  assert_eq(generated_sequence_step_count(suffix), 2)
+  assert_eq(generated_sequence_step_index_at(suffix, 0), Some(2))
+  assert_eq(generated_sequence_step_index_at(suffix, 1), Some(3))
+  assert_true(generated_sequence_step_index_at(suffix, 2) is None)
+  assert_true(
+    physical_equal(
+      generated_sequence_owner(suffix),
+      generated_sequence_owner(generated),
+    ),
+  )
+  assert_eq(
+    completion_preparation_terminal_step(
+      generated_completion_preparation(suffix),
+    ),
+    3,
+  )
+  assert_true(select_generated_sequence_range(prefix, 1, 2) is None)
+  assert_true(select_generated_sequence_range(suffix, 2, 3) is None)
+  assert_true(select_generated_sequence_range(generated, -1, 2) is None)
+  assert_true(select_generated_sequence_range(generated, 3, 2) is None)
+  assert_true(select_generated_sequence_range(generated, 0, 4) is None)
   let limits : SequenceExecutionLimits = {
     rows: run_limits(),
     max_work: 100000,
@@ -41,6 +63,7 @@ test "generated composition owns its selection and contexts and reuses no counte
     is Err(_),
   )
   assert_true(execute_generated_sequence(prefix, [], limits) is Err(InputSet))
+  assert_true(execute_generated_sequence(suffix, [], limits) is Err(InputSet))
   for _i = 0; _i < 2; _i = _i + 1 {
     let completed = execute_generated_sequence(generated, [], limits).unwrap()
     let output = test_row_output(completed_output(completed, Step(3)).unwrap())

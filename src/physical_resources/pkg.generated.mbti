@@ -16,6 +16,8 @@ pub fn charge_transfer(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
 
 pub fn close_shared_capacity(SharedCapacity) -> Result[Unit, LedgerIssue]
 
+pub fn configure_quantities(Ledger, QuantityAmounts) -> Result[Unit, LedgerIssue]
+
 pub fn create_ledger(LedgerLimits) -> Result[Ledger, LedgerIssue]
 
 pub fn execution_delegation_limits(ExecutionDelegation) -> LedgerLimits
@@ -34,6 +36,14 @@ pub fn ledger_usage(Ledger) -> LedgerUsage
 
 pub fn mark_cleanup_pending(Ledger, Reservation) -> Result[Unit, LedgerIssue]
 
+pub fn mark_quantities_uncertain(Ledger, Reservation) -> Result[Unit, LedgerIssue]
+
+pub fn mark_transfer_uncertain(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
+
+pub fn observe_quantities(Ledger, Reservation, tokens? : Int64?, cost_units? : Int64?, duration_ms? : Int64?) -> Result[Unit, LedgerIssue]
+
+pub fn quantity_usage(Ledger) -> QuantityUsage
+
 pub fn release_allocation(Ledger, Holding) -> Result[Unit, LedgerIssue]
 
 pub fn release_shared_capacity(SharedAllocation) -> Result[Unit, LedgerIssue]
@@ -46,7 +56,7 @@ pub fn reservation_pending(Reservation) -> Bool
 
 pub fn reservation_serial(Reservation) -> Int
 
-pub fn reserve_attempt(Ledger, Int64, Int64, Int64) -> Result[Reservation, LedgerIssue]
+pub fn reserve_attempt(Ledger, Int64, Int64, Int64, quantities? : QuantityAmounts?) -> Result[Reservation, LedgerIssue]
 
 pub fn reserve_execution_delegation(Ledger, LedgerLimits, Int64, Int64) -> Result[ExecutionDelegation, LedgerIssue]
 
@@ -91,6 +101,9 @@ pub(all) enum LedgerIssue {
   ClosedReservation
   ClosedHolding
   InvalidCharge
+  TokenLimit
+  CostLimit
+  DurationLimit
 } derive(Eq, @debug.Debug)
 
 pub(all) struct LedgerLimits {
@@ -113,6 +126,18 @@ pub(all) struct LedgerUsage {
   reserved_retention_bytes : Int64
   reserved_execution_bytes : Int64
   peak_retention_bytes : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct QuantityAmounts {
+  tokens : Int64
+  cost_units : Int64
+  duration_ms : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) struct QuantityUsage {
+  reserved : QuantityAmounts
+  uncertain : QuantityAmounts
+  consumed : QuantityAmounts
 } derive(Eq, @debug.Debug)
 
 type Reservation

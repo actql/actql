@@ -203,7 +203,10 @@ fn derive_logical_orders(
       _ => false
     }
     let establishes = match step.operation {
-      Values(_)
+      // Model completion order is irrelevant. The acquisition owner must emit
+      // captured outcomes in canonical typed key order.
+      Infer(_)
+      | Values(_)
       | TimeSeries(_)
       | Nearest(..)
       | Ranking(_)

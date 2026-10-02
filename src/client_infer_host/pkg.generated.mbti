@@ -1,0 +1,257 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/client_infer_host"
+
+import {
+  "actql/actql/bounded_execution",
+  "actql/actql/client_local_host",
+  "actql/actql/connectors/local",
+  "actql/actql/execution_relation",
+  "actql/actql/model_execution",
+  "actql/actql/physical_resources",
+  "actql/actql/run_publication",
+  "actql/actql/run_publication_host",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn acquire_capture(Execution) -> @model_execution.VerifiedModelCapture?
+
+pub fn acquire_outcomes(Execution) -> @model_execution.ModelOutcomeRead?
+
+pub fn acquire_output(Execution) -> OutputUse?
+
+pub fn advance(Execution, Int) -> Result[Poll, Issue]
+
+pub fn advance_observation_issuance(ObservationIssuance, Int) -> Result[(Bool, Int64), Issue]
+
+pub fn advance_result_publication(ResultPublication, Int) -> Result[(Bool, Int), ResultPublicationIssue]
+
+pub fn attempt_evidence(Execution, Int) -> Result[@model_execution.ModelAttemptEvidence, @model_execution.ModelExecutionIssue]
+
+pub fn bind_compute_suffix(Execution, @execution_relation.GeneratedSequence) -> Result[Unit, Issue]
+
+pub fn bind_dispatch_admission(Execution, @run_publication_host.ClientInferDispatchAdmission) -> Result[Unit, InvocationBindingIssue]
+
+pub fn bind_egress_admission(Execution, @run_publication_host.ClientInferEgressAdmission) -> Result[Unit, Issue]
+
+pub fn bind_invocation(Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @model_execution.ModelObservationVerification, @run_publication.PublicationContract, String) -> Result[InvocationBinding, InvocationBindingIssue]
+
+pub fn bind_issued_invocation(Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, ObservationIssuance) -> Result[InvocationBinding, InvocationBindingIssue]
+
+pub fn bind_physical_preflight(Execution, (@model_execution.ModelRequest) -> Result[@model_execution.ModelRequestPreflight, @model_execution.ModelExecutionIssue]) -> Result[Unit, Issue]
+
+pub fn bind_quantity_capacity(Execution, @model_execution.ModelQuantityCapacity) -> Result[Unit, Issue]
+
+pub fn bind_run(Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, InvocationBindingIssue]
+
+pub fn call_scope(Execution) -> @run_publication_host.ClientInferCallScope?
+
+pub fn cancel(Execution) -> Bool
+
+pub fn cancel_observation_issuance(ObservationIssuance) -> Bool
+
+pub fn cancel_result_publication(ResultPublication) -> Bool
+
+pub fn capture(Execution) -> @model_execution.ModelCaptureBundle?
+
+pub fn cleanup(Execution) -> Result[Bool, Issue]
+
+pub fn cleanup_observation_issuance(ObservationIssuance) -> Result[Bool, Issue]
+
+pub fn completed(Poll) -> @execution_relation.CompletedOutput?
+
+pub fn execution_quantity_usage(Execution) -> @physical_resources.QuantityUsage?
+
+pub fn execution_stopped(Execution) -> Bool
+
+pub fn finish_result_publication(ResultPublication) -> Result[@run_publication_host.PublicationOutputExport, ResultPublicationIssue]
+
+pub fn handoff_pending(Execution) -> Bool
+
+pub fn identity_pending(Execution) -> Bool
+
+pub fn invocation_binding_invocation(InvocationBinding) -> @run_publication.PublicationContract?
+
+pub fn invocation_binding_observation(InvocationBinding) -> @run_publication.RunEvidenceValue?
+
+pub fn invocation_binding_output(InvocationBinding) -> @execution_relation.CompletedOutput?
+
+pub fn invocation_evidence(Execution, Int) -> @run_publication.RunEvidenceValue?
+
+pub fn issued_slot_capture(Execution, Int) -> Result[@run_publication.RunEvidenceValue, @model_execution.ModelExecutionIssue]
+
+pub fn matches(Execution, @run_publication_host.PreparedClientProgram) -> Bool
+
+pub fn observation_issuance_value(ObservationIssuance) -> (@run_publication.RunEvidenceValue, @run_publication.PublicationContract)?
+
+pub fn output(OutputUse) -> @execution_relation.CompletedOutput?
+
+pub fn poll_issue(Poll) -> Issue?
+
+pub fn poll_kind(Poll) -> String
+
+pub fn release_invocation_binding(InvocationBinding) -> Bool
+
+pub fn release_output(OutputUse) -> Bool
+
+pub fn release_result_publication(ResultPublication) -> Bool
+
+pub fn request_preflight_pending(Execution) -> Bool
+
+pub fn restoring(Execution) -> Bool
+
+pub fn result_publication_selection(ResultPublication) -> @run_publication_host.ClientResultTransformation?
+
+pub fn sealing_observation(Execution) -> Bool
+
+pub fn standard_limits() -> Limits
+
+pub fn start(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelProvider, String, Limits, plan? : @run_publication_host.ClientInferPlanGraph?) -> Result[Execution, Issue]
+
+pub fn start_observation_issuance(Execution, @physical_resources.Ledger, ObservationIssuanceLimits) -> Result[ObservationIssuance, Issue]
+
+pub fn start_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.VerifiedModelCapture, Limits, @run_publication_host.ClientInferPlanGraph) -> Result[Execution, Issue]
+
+pub fn start_restored_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @run_publication.ModelCaptureBundleRead, Limits, @run_publication_host.ClientInferPlanGraph) -> Result[Execution, Issue]
+
+pub fn start_restored_slot_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelSlotReplayRead, Limits, @run_publication_host.ClientInferPlanGraph) -> Result[Execution, Issue]
+
+pub fn start_result_publication(InvocationBinding, Int, @run_publication_host.PublicationOutputExportLimits) -> Result[ResultPublication, ResultPublicationIssue]
+
+pub fn stopped_attempt_count(Execution) -> Int?
+
+// Errors
+
+// Types and methods
+pub struct Execution {
+  prepared : @run_publication_host.PreparedClientProgram
+  input : @client_local_host.ClientInferInputExecution
+  source : Source
+  fixed_request_cid : String
+  step : Int
+  plan : @run_publication_host.ClientInferPlanGraph?
+  limits : Limits
+  mut rows : @execution_relation.PreparedInferRows?
+  mut identity : @execution_relation.CompletedRelationIdentityScan?
+  mut call_scope : @run_publication_host.ClientInferCallScope?
+  mut model : @model_execution.ModelExecution?
+  mut capture : @model_execution.ModelCaptureBundle?
+  mut output : @model_execution.ModelOutputPreparation?
+  mut suffix_sequence : @execution_relation.GeneratedSequence?
+  mut suffix : @local.ManagedProviderExecution?
+  mut completed : @execution_relation.CompletedOutput?
+  mut phase : Phase
+  mut cancelled : Bool
+  mut advancing : Bool
+  mut reclaimed : Bool
+  mut work : Int64
+  mut child_work : Int64
+  mut output_uses : Int
+  mut run_binding : ExecutionRunBinding?
+  mut dispatch_admission : @run_publication_host.ClientInferDispatchAdmission?
+  mut quantity_capacity : @model_execution.ModelQuantityCapacity?
+  mut physical_preflight : ((@model_execution.ModelRequest) -> Result[@model_execution.ModelRequestPreflight, @model_execution.ModelExecutionIssue])?
+  mut egress_admission : @run_publication_host.ClientInferEgressAdmission?
+  mut final_quantity_usage : @physical_resources.QuantityUsage?
+}
+
+type ExecutionRunBinding
+
+pub(all) struct IdentityLimits {
+  rows : Int
+  wire : @execution_relation.RowWireLimits
+  logical_wire : @execution_relation.RowWireLimits
+  schema : @execution_relation.RelationSchemaIdentityLimits
+  work : Int
+  workspace : Int
+}
+
+pub struct InvocationBinding {
+  output_use : OutputUse
+  observation : @run_publication.RunEvidenceValue
+  invocation : @run_publication.PublicationContract
+  issuance : ObservationIssuance?
+}
+
+pub(all) enum InvocationBindingIssue {
+  ForeignRun
+  IncompleteExecution
+  UnverifiedSlots
+  Evidence(@run_publication.RunEvidenceValueIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Issue {
+  InvalidAdvance
+  Input(@client_local_host.ClientInferInputIssue)
+  Model(@model_execution.ModelExecutionIssue)
+  Capacity(@run_publication_host.ClientInferHostCapacityIssue)
+  IdentityExport(@execution_relation.CompletedExportIssue)
+  CallScope(@run_publication_host.ClientInferCallScopeIssue)
+}
+
+pub(all) struct Limits {
+  input : @execution_relation.SequenceExecutionLimits
+  measurement : @execution_relation.FixedInputGuardMeasureLimits
+  mapping : @execution_relation.InferPreparationLimits
+  model : @model_execution.ModelExecutionLimits
+  output_rows : Int
+  output_values : @execution_relation.ValueLimits
+  output_work : Int
+  output_workspace : Int
+  identity : IdentityLimits
+}
+
+pub struct ObservationIssuance {
+  state : ObservationIssuanceState
+  session : @bounded_execution.Session[ObservationIssuanceState, Unit, Issue]
+  control : @bounded_execution.Control
+  mut token : @bounded_execution.Token
+  mut accepted : Bool
+  mut reclaimed : Bool
+  mut uses : Int
+}
+
+pub(all) struct ObservationIssuanceLimits {
+  max_slots : Int
+  max_wire_bytes : Int
+  max_work : Int
+}
+
+type ObservationIssuanceState
+
+pub struct OutputUse {
+  owner : Execution
+  output : @execution_relation.CompletedOutput
+  mut released : Bool
+}
+
+type Phase
+
+pub enum Poll {
+  Continue(work~ : Int64)
+  Complete(@execution_relation.CompletedOutput, work~ : Int64)
+  Failed(Issue, work~ : Int64)
+  Stopped(work~ : Int64)
+}
+
+pub struct ResultPublication {
+  binding : InvocationBinding
+  selection : @run_publication_host.ClientResultTransformation
+  preparation : @run_publication_host.ClientResultTransformationPreparation
+  mut exported : @run_publication_host.PublicationOutputExport?
+  mut ready : Bool
+  mut cancelled : Bool
+  mut released : Bool
+}
+
+pub(all) enum ResultPublicationIssue {
+  Binding(InvocationBindingIssue)
+  Transformation(@run_publication_host.ClientResultTransformationIssue)
+  InvalidState
+}
+
+type Source
+
+// Type aliases
+
+// Traits

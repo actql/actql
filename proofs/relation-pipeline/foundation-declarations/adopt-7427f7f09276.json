@@ -1,0 +1,33 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "adopt-7427f7f09276",
+  "kind": "resolution",
+  "revision": "7427f7f09276e5210c2b830a72ed60aab97337a9",
+  "parents": [
+    "9f3b8bf520c6a0c82be0c95fc273f8b1429afba9",
+    "d07968af22fc0f9069812244a0a0ab1bd4b6c938"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "9f3b8bf520c6a0c82be0c95fc273f8b1429afba9",
+          "digest": "9d2efc7eff5b84b7d268937f526b50b5f46c4c543dc31caeaf252a43932f9e20",
+          "mode": "100644"
+        },
+        {
+          "revision": "d07968af22fc0f9069812244a0a0ab1bd4b6c938",
+          "digest": "96f84b8ba78071944fc4c6710479730e4d643d14a3c03e7a94c9a7250c95f64a",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "6eb1ec485ae3dc81a00083795cbac8e55ce481f9483a9e6417ac24d7c008de13",
+      "afterMode": "100644",
+      "reason": "Preserve the original #178 merge of its INFER registration with then-current frontend/Host gate registrations; bind both parent files and the actual integrated result."
+    }
+  ],
+  "inputs": [
+    "adopt-b480cffb6e6d"
+  ]
+}
