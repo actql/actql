@@ -93,7 +93,8 @@ async function prepareCase(rows = sourceRows) {
 const view = environment.source_views[0];
 const sourceProfilePath = resolve('source-profile.json');
 await writeFile(sourceProfilePath, canonical({
-  version: 'actql-installed-duckdb-source/0.1', database,
+  acquisitionPlanning: {policy: 'priority', priority: ['nativeQuery', 'broadQuery']},
+    version: 'actql-installed-duckdb-source/0.1', database,
   schema: 'main', table: 'records', sourceRef: 'connector://crm/main/r#v',
   queryAliases: [{name: 'records', sourceRef: 'connector://crm/main/r#v',
     sourceViewContractCid: view.contract_cid,

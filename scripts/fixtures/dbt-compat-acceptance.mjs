@@ -72,7 +72,8 @@ await installRows(source.rows);
 const view = environment.source_views[0];
 const sourceProfilePath = resolve('source-profile.json');
 await writeFile(sourceProfilePath, canonical({
-  version: 'actql-installed-duckdb-source/0.1', database,
+  acquisitionPlanning: {policy: 'priority', priority: ['nativeQuery', 'broadQuery']},
+    version: 'actql-installed-duckdb-source/0.1', database,
   schema: 'main', table: source.table, sourceRef: 'connector://crm/main/r#v',
   // The exact relation name dbt rendered for ref('stg_orders').
   queryAliases: [{name: source.relation, sourceRef: 'connector://crm/main/r#v',

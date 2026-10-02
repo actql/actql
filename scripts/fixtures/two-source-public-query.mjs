@@ -47,7 +47,8 @@ export async function installTwoSourceFixtures({root, fixture, duckdb}) {
     const environment = fixture.environments[source], database = databases[databaseName];
     profiles[name] = resolve(root, `${name}.profile.json`);
     await writeFile(profiles[name], canonical({
-      version: 'actql-installed-duckdb-source/0.1', database, schema: 'main',
+      acquisitionPlanning: {policy: 'priority', priority: ['nativeQuery', 'broadQuery']},
+    version: 'actql-installed-duckdb-source/0.1', database, schema: 'main',
       table: name === 'right_missing' ? 'missing_records' : 'records',
       sourceRef: environment.schema_snapshots[0].source_ref,
       checkEnvironmentWire: canonical(environment),

@@ -957,7 +957,8 @@ try {
 }
 const sourceProfilePath = join(root, 'source-profile.json');
 await writeFile(sourceProfilePath, JSON.stringify({
-  version: 'actql-installed-duckdb-source/0.1',
+  acquisitionPlanning: {policy: 'priority', priority: ['nativeQuery', 'broadQuery']},
+    version: 'actql-installed-duckdb-source/0.1',
   database: databasePath, schema: 'main', table: 'records',
   sourceRef: sourceSelector.source_ref,
   checkEnvironmentWire: canonicalText(sourceEnvironment),

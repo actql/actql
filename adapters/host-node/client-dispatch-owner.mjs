@@ -335,7 +335,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           held.preparedSourceAccess = sourceAccess;
         }
         const captureStartedAt = now();
-        await step('acquisition_started', {ref: accepted.ref});
+        await step('acquisition_started', {ref: accepted.ref,
+          ...(held.preparedSource?.selection === undefined ? {} : {selection: held.preparedSource.selection})});
         entry.physicalWorkMayHaveStarted = true;
         const acquisition = acquisitionEndHandoff();
         // The installed source's adapter owns the physical read; the
@@ -360,7 +361,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           throw error;
         }
         const captureCompletedAt = now();
-        await step('acquisition_completed', {ref: accepted.ref});
+        await step('acquisition_completed', {ref: accepted.ref,
+          ...(entry.sourceCapture.acquisition === undefined ? {} : {acquisition: entry.sourceCapture.acquisition})});
         const sourceEvidenceWire =
           await entry.sourceCapture.issueSourceEvidence({
             authorityScopeCid,

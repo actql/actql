@@ -340,9 +340,15 @@ test('checked acquired source and downstream task emit their input ports',
       {message: 'InstalledSourcePreparationMismatch'});
       assert.equal(handedOff.outcome, 'not_started');
       assert.equal(handedOff.message, 'InstalledSourcePreparationMismatch');
-      await assert.rejects(openCapturedDuckDBSource({...sourceOptions,
-        preparedSource, transportLimits: {...sourceOptions.transportLimits,
-          maxRows: 1},
+      const smallerOptions = {...sourceOptions,
+        transportLimits: {...sourceOptions.transportLimits, maxRows: 1}};
+      await assert.rejects(openCapturedDuckDBSource({...smallerOptions, preparedSource,
+        reportAcquisitionFailure(failure) { handedOff = failure; }}),
+      {message: 'InstalledSourceResourcePolicyMismatch'});
+      assert.equal(handedOff.outcome, 'not_started');
+      const smallerPrepared = await prepareCapturedDuckDBSource(smallerOptions);
+      await assert.rejects(openCapturedDuckDBSource({...smallerOptions,
+        preparedSource: smallerPrepared,
         reportAcquisitionFailure(failure) { handedOff = failure; }}),
       {code: 'Rows'});
       assert.equal(handedOff.outcome, 'stopped');
@@ -380,9 +386,8 @@ test('checked acquired source and downstream task emit their input ports',
         return close.call(this);
       });
       try {
-        await assert.rejects(openCapturedDuckDBSource({...sourceOptions,
-          preparedSource, transportLimits: {...sourceOptions.transportLimits,
-            maxRows: 1},
+        await assert.rejects(openCapturedDuckDBSource({...smallerOptions,
+          preparedSource: smallerPrepared,
           reportAcquisitionFailure(failure) { handedOff = failure; }}),
         {code: 'Rows'});
         assert.equal(handedOff.outcome, 'unknown');
