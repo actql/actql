@@ -41,6 +41,8 @@ for (const [source, destination] of [
   ['scripts/fixtures/string-values-restart.mjs', 'string-values-restart.mjs'],
   ['scripts/fixtures/packed-public-query.mjs', 'acceptance.mjs'],
   ['scripts/fixtures/packed-two-source-public-query.mjs', 'packed-two-source-public-query.mjs'],
+  ['scripts/fixtures/planner-selection-public-query.mjs', 'planner-selection-public-query.mjs'],
+  ['scripts/fixtures/packed-planner-selection.mjs', 'packed-planner-selection.mjs'],
   ['scripts/fixtures/two-source-public-query.mjs', 'two-source-public-query.mjs'],
   ['scripts/fixtures/two-source-restart.mjs', 'two-source-restart.mjs'],
   ['adapters/host-node/fixtures/query-amount-environment.json', 'source-environment.json'],
@@ -140,10 +142,22 @@ if (process.argv.includes('--cancellation-only')) {
     runtimeEnvironment, 120000).trimEnd());
   return;
 }
+const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
+const narrowPublicQuery = process.argv.some(flag => ['--source-free-only',
+  '--query-composition-only', '--pipe-result-only', '--join-order-only',
+  '--alias-scope-only', '--infer-refusal-only', '--two-source-only'].includes(flag));
 try {
-  const output = run(process.execPath, ['acceptance.mjs'], root,
-    runtimeEnvironment, 900_000);
-  console.log(output.trimEnd());
+  if (!plannerSelectionOnly) {
+    const output = run(process.execPath, ['acceptance.mjs'], root,
+      runtimeEnvironment, 900_000);
+    console.log(output.trimEnd());
+  }
+  // The same packed installation executes this bounded candidate corpus once.
+  // Cost inputs go to the Host profile; the public Program never chooses a route.
+  if (plannerSelectionOnly || !narrowPublicQuery) {
+    console.log(run(process.execPath, ['packed-planner-selection.mjs'], root,
+      runtimeEnvironment, 180_000).trimEnd());
+  }
 } finally {
   // Preserve two-source observations beside existing command/tarball evidence
   // before the harness removes its installed consumer, including on failure.
@@ -151,7 +165,12 @@ try {
     await writeFile(join(directory, 'two-source-acceptance.json'),
       await readFile(join(root, 'two-source-packed-report.json')));
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  try {
+    await writeFile(join(directory, 'planner-selection-acceptance.json'),
+      await readFile(join(root, 'planner-selection-packed-report.json')));
+  } catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
+if (plannerSelectionOnly) return;
 // The first Host process has exited: no live Local installation still owns
 // its Store. Restore retained Results in a new process without resubmission.
 // Narrow selections without the String fixture have no retained String Run.

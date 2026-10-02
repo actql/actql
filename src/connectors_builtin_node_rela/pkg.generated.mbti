@@ -194,7 +194,15 @@ pub fn client_program_direct_values_result_root_row_contract_cid(@run_publicatio
 
 pub fn client_program_direct_values_result_root_wire(@run_publication_host.ClientDirectResultRoot) -> String
 
+pub fn client_program_duckdb_acquisition_estimate(Array[Array[Int]], Array[Int64?], Array[Int64?]) -> Result[@client_local_host.ClientDuckDBAcquisitionEstimate, @client_local_host.ClientDuckDBAcquisitionIssue]
+
 pub fn client_program_duckdb_native_candidate_unavailable(Result[@actql/actql/connectors/duckdb/host.NativeHostConfiguration, @client_local_host.ClientDuckDBAcquisitionIssue]) -> Bool
+
+pub fn client_program_duckdb_selection_broad(@client_local_host.ClientDuckDBAcquisitionSelection) -> @actql/actql/connectors/duckdb/host.BroadHostConfiguration?
+
+pub fn client_program_duckdb_selection_document(@client_local_host.ClientDuckDBAcquisitionSelection) -> String
+
+pub fn client_program_duckdb_selection_native(@client_local_host.ClientDuckDBAcquisitionSelection) -> @actql/actql/connectors/duckdb/host.NativeHostConfiguration?
 
 pub fn client_program_effect_apply_capability_from_codes(String, Int, Int, Int, Bool, Bool, Int, Int) -> Result[@effect_application.EffectApplyCapabilityObservation, @effect_application.EffectApplyCapabilityIssue]
 
@@ -721,6 +729,8 @@ pub fn client_program_salesforce_restore_declaration(@client_salesforce_host.Cli
 pub fn client_program_salesforce_site(String, String, String, String, String, String, Int, String) -> Result[@client_salesforce_host.ClientSalesforceSite, @client_salesforce_host.ClientSalesforceIssue]
 
 pub fn client_program_salesforce_source_target(@client_salesforce_host.ClientSalesforceDeclaration, @query_planning.QueryRequirement) -> Result[Array[String], @client_salesforce_host.ClientSalesforceIssue]
+
+pub fn client_program_select_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String, String, String, @client_local_host.ClientDuckDBAcquisitionEstimate, @client_local_host.ClientDuckDBAcquisitionEstimate, Array[String]) -> Result[@client_local_host.ClientDuckDBAcquisitionSelection, @client_local_host.ClientDuckDBAcquisitionIssue]
 
 pub fn client_program_semantic_document_json(@run_publication_host.PreparedClientProgram) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]
 

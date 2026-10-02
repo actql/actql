@@ -80,7 +80,7 @@ export async function installedSourceIdentity(path) {
 
 function duckdbAdapter(profile, moon, {root, principalId}) {
   const common = {moon, database: profile.database, schema: profile.schema,
-    table: profile.table};
+    table: profile.table, acquisitionPlanning: profile.acquisitionPlanning};
   const catalogIds = JSON.parse(profile.environmentWire).connector_catalogs
     .map(catalog => catalog.connector_id);
   return Object.freeze({
