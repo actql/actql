@@ -505,7 +505,7 @@ export async function exercisePublicQueryInput(connect, options,
         assert.equal((await execution.status()).status, 'succeeded');
       }
     }
-    for (const {name, text, resultNames, sourceReadSessionCount, ...input} of executionFailures) {
+    for (const {name, text, resultNames, sourceReadCount, sourceReadSessionCount, ...input} of executionFailures) {
       await prepareCase?.();
       const requestId = requestPrefix + '-execution-failure-' + name;
       const beforeSubmit = await counters();
@@ -514,6 +514,9 @@ export async function exercisePublicQueryInput(connect, options,
       assert.equal(state.status, 'failed', JSON.stringify({name, state}));
       const beforeRead = await counters();
       assert.equal(beforeRead.acceptedRuns - beforeSubmit.acceptedRuns, 1);
+      if (sourceReadCount !== undefined) {
+        assert.equal(beforeRead.sourceReads - beforeSubmit.sourceReads, sourceReadCount);
+      }
       if (sourceReadSessionCount !== undefined) {
         assert.equal(beforeRead.sourceReadSessions - beforeSubmit.sourceReadSessions,
           sourceReadSessionCount);

@@ -69,13 +69,13 @@ export const propertyGraphSourceSuccesses = [
 export const propertyGraphSourceExecutionFailures = [
   {name: 'keyed-duplicate-node-key', format: 'aql-text',
     text: nodeGraph('DATA n = SELECT 1 AS id UNION ALL SELECT 1 AS id;') +
-      'FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.id AS id |> RESULT nodes', resultNames: ['nodes']},
+      'FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.id AS id |> RESULT nodes', resultNames: ['nodes'], sourceReadCount: 0},
   {name: 'keyed-duplicate-edge-key', format: 'aql-text',
     text: edgeGraph('DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 10 AS key, 1 AS src, 1 AS dst;') +
-      'FROM GRAPH g |> MATCH p = WALK (:Node)-[:R]->(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths', resultNames: ['paths']},
+      'FROM GRAPH g |> MATCH p = WALK (:Node)-[:R]->(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths', resultNames: ['paths'], sourceReadCount: 0},
   {name: 'keyed-duplicate-before-endpoint-exclusion', format: 'aql-text',
     text: edgeGraph('DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst UNION ALL SELECT 10 AS key, 2 AS src, 1 AS dst;') +
-      'FROM GRAPH g |> MATCH p = WALK (:Node)-[:R]->(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths', resultNames: ['paths']},
+      'FROM GRAPH g |> MATCH p = WALK (:Node)-[:R]->(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths', resultNames: ['paths'], sourceReadCount: 0},
 ];
 export const propertyGraphSourceRefusals = [
   {name: 'keyed-star', format: 'aql-text', text: nodes + 'FROM GRAPH g |> MATCH WALK (a) |> SELECT *'},
