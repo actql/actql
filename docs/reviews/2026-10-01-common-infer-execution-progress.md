@@ -31,6 +31,13 @@ an independent output use held through publication. This remains a structural
 binding and custody boundary, not external evidence admission or a committed
 public Result.
 
+Dispatched model requests now retain uncertain physical transfer usage before
+the provider callback. Invalid response identity/content and cancellation do
+not refund that usage; undispatched reservations are released at cleanup.
+Typed response content is not treated as an exact transport-byte observation.
+This closes a physical accounting boundary, not formal token/cost/duration
+admission or public inference publication.
+
 Normal Program preparation now retains the installed ModelTask contract and
 its role-specific dependency roots. The runtime input connection uses the
 same checked Program owner to execute `Values -> assert_rows` through the
@@ -1290,3 +1297,47 @@ The test records' external roots remain symbolic. They do not establish
 formal attempt adoption, accounting, policy/egress authority or durable private
 evidence truth. This unit does not change canonical contracts or pins, publish
 a Named Result, provide B an adoption SHA, push a branch or claim Linux CI.
+
+## Dispatched transport usage and rejected responses
+
+The source tree based on `30ed07a5e3ed17c3c0f3a46df47a83b5cb9a0f52` had a
+physical accounting gap: a provider's successful return could fail metadata
+or typed-output validation before transfer accounting. Cleanup then released
+that dispatched request's entire wire reservation. Successful validation also
+reported the request/response ceiling as exact transferred bytes, although
+`ModelResponse` contains no actual transport-byte observation.
+
+The existing model owner now moves the admitted envelope into uncertain
+transfer usage immediately before invoking its provider, using the existing
+`physical_resources.mark_transfer_uncertain` operation. Both successful and
+rejected returns preserve that uncertainty. A cancellation received during the
+callback is checked before response admission. No independent ledger, retry
+owner, new error class or wire contract is added. Exact byte reconciliation
+still requires an authenticated physical observation; typed content alone
+cannot establish it.
+
+The new ordinary-Program regressions independently fix the request ceiling at
+1000 bytes and response ceiling at 65536 bytes. With two prepared keys, an
+invalid response identity, wrong output shape, exhausted response-node limit
+or callback cancellation dispatches only the first request. Each case retains
+66536 uncertain bytes, keeps the second request reserved until cleanup, exposes
+no completion/capture, then releases retention and undispatched wire without
+redispatching. A successful response also reports zero exact transferred bytes
+and retains its uncertain envelope through cleanup. Before the production fix,
+the new failure regression rejected `0 != 66536`.
+
+Local verification passes:
+
+- JS, Wasm and native: `client_infer_host`, `model_execution` and
+  `physical_resources`, 69/69 on each target.
+- Release Node bridge build and the existing inference, dispatch-owner,
+  publication-control, publication-fixture and independent model-slot suites,
+  80/80.
+- MoonBit formatting and whitespace checks.
+
+This is not a public Host handoff or proof of model-wide logical accounting.
+The registered slot capture still requires ordered attempt, adopted attempt,
+accounting, authority, policy and outcome roots. Their current structural
+fixtures use symbolic roots; the installed issuer/verifier connection remains
+unfinished. Existing account/Run authorization cannot be replaced by provider
+registration. No Named Result, Linux CI, push or complete INFER claim is made.

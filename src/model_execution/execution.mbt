@@ -386,20 +386,22 @@ fn advance_model(
     return @bounded.Failed(OutputIdentity, 1, 1)
   }
   let reservation = state.reservations[state.next_slot]
+  // ModelResponse contains typed content and token observations, not exact
+  // transport bytes. Retain the dispatched envelope as uncertain usage before
+  // entering physical I/O: invalid metadata, rejected content or cancellation
+  // must not make that request unused when cleanup settles its reservation.
+  match
+    @resources.mark_transfer_uncertain(
+      state.ledger,
+      reservation,
+      state.limits.max_request_bytes + state.limits.max_response_bytes,
+    ) {
+    Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
+    Ok(_) => ()
+  }
   let response = match (provider.invoke)(request) {
     Ok(value) => value
     Err(issue) => {
-      // No physical byte observation arrived. Cleanup cannot turn the
-      // dispatched request's unknown usage into an unused reservation.
-      match
-        @resources.mark_transfer_uncertain(
-          state.ledger,
-          reservation,
-          state.limits.max_request_bytes + state.limits.max_response_bytes,
-        ) {
-        Err(error) => return @bounded.Failed(Ledger(error), 1, 1)
-        Ok(_) => ()
-      }
       if @bounded.stop_requested(reader) is Some(reason) {
         return @bounded.Stopped(reason, 1, 1)
       }
@@ -408,6 +410,9 @@ fn advance_model(
       }
       return accept_failed_model_slot(state, issue)
     }
+  }
+  if @bounded.stop_requested(reader) is Some(reason) {
+    return @bounded.Stopped(reason, 1, 1)
   }
   let input_key_cid = prepared.key_cid
   if response.provider_model.is_empty() ||
@@ -425,12 +430,6 @@ fn advance_model(
     ) {
     Some(value) => value
     None => return @bounded.Failed(OutputValue, 1, 1)
-  }
-  let transfer = state.limits.max_request_bytes +
-    state.limits.max_response_bytes
-  match @resources.charge_transfer(state.ledger, reservation, transfer) {
-    Ok(_) => ()
-    Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
   }
   state.phase = CheckResponse(request, response, input_key_cid, cursor)
   @bounded.Continue(1, 1)
