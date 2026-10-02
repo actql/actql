@@ -94,8 +94,8 @@ fn source_element_definition(
   index : Int,
   edge~ : Bool,
 ) -> @carrier.PropertyNodeDefinition? {
-  guard @carrier.graph_property_definition(graph) is Some(profile) &&
-    source_property_definition(source, index, edge~) is Some(definition) else {
+  let profile = @carrier.graph_property_definition(graph)
+  guard source_property_definition(source, index, edge~) is Some(definition) else {
     return None
   }
   if edge {

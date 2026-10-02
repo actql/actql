@@ -247,3 +247,37 @@ individual assertions as obsolete:
 
 This checkpoint is not submitted as complete, does not have new required CI,
 and does not supersede the previously recorded public snapshot acceptance.
+
+## Required-definition consumer checkpoint
+
+`Graph` already owns a mandatory `PropertyGraphDefinition`. Its public
+`graph_property_definition` projection now returns that definition directly,
+not an always-present optional compatibility discriminator. This is an
+intentional breaking MoonBit API change; all current callers and the generated
+interface are updated together. It does not alter the current contract bytes,
+domain derivation, typed key identity, snapshot CID or Result wire format.
+
+Storage, structural reader views, snapshot preparation/reload, keyed MATCH,
+TRAIL and the selected provider no longer branch on an impossible absent
+current profile. Actual input availability, exact positioned owner, trusted
+schema, identity validation, capacity and cleanup checks remain. Unsupported
+typing consumers always report `UnsupportedGraphOperation` for a complete
+current Graph. Incomplete Graph knowledge remains a distinct refusal.
+
+Related construction, contract, storage, managed output/view, snapshot,
+provider and unsupported-operation tests pass **95/95 on each of JS, Wasm and
+native**. Logs:
+`/private/tmp/property-graph-required-definition-{js,wasm,native}-20261002.log`.
+Three-target interface generation succeeds. The official tracked-interface
+check initially rejects the expected uncommitted generated API delta; rerun
+it after committing that interface, rather than weakening its comparison.
+Initial compilation also found one shared shortest caller of the narrowed
+private label parser and unused bindings made obsolete by guard removal;
+those were corrected without warning exemptions.
+
+This is not complete implementation unification: retired factory stubs,
+homogeneous Carrier projections, old unsupported checked-operation bodies
+and legacy kernels are still on the removal inventory. Their generic
+resource/custody obligations must be mapped before withdrawing executable
+fixtures. The previous complete Core JS failures and the public snapshot/CI
+acceptance requirements remain open.

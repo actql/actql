@@ -39,7 +39,6 @@ pub fn check_path_contract(
       nodes: limits.max_nodes,
       text: limits.max_text_bytes,
     }
-    require_property_profile(g, source)
     if !property_paths || kind != TraversedPaths {
       fail(source, UnsupportedGraphOperation)
     }

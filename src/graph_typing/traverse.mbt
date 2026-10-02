@@ -60,13 +60,8 @@ fn traversal_direction(c : @decode.Cursor) -> Direction raise Stop {
 fn traversal_types(
   b : Budget,
   at : @decode.Cursor?,
-  g : @carrier.Graph,
 ) -> Array[String]? raise Stop {
   guard at is Some(at) else { return None }
-  if @carrier.graph_label_contract(g) is None &&
-    @carrier.graph_property_definition(g) is None {
-    fail(at, MissingEdgeLabel)
-  }
   let xs = match @decode.view(at) {
     ArrayValue(xs) => xs
     _ => fail(at, InvalidBody)
@@ -120,13 +115,12 @@ pub fn check_traverse(
       text: limits.max_text_bytes,
     }
     scan(b, source)
-    guard input is @carrier.GraphValue(g) else {
+    guard input is @carrier.GraphValue(_) else {
       if @carrier.kind(input) != @carrier.GraphKind {
         fail(source, WrongCarrier(@carrier.kind(input)))
       }
       fail(source, IncompleteGraph)
     }
-    require_property_profile(g, source)
     let root = decoded(
       @decode.closed_object(source, [
         "start", "hops", "direction", "edge_types", "min_hops", "max_hops", "emit",
@@ -204,7 +198,7 @@ pub fn check_traverse(
           let direction = traversal_direction(
             decoded(@decode.required(o, "direction")),
           )
-          let types = traversal_types(b, @decode.lookup(o, "edge_types"), g)
+          let types = traversal_types(b, @decode.lookup(o, "edge_types"))
           let predicates : Array[CheckedPredicate?] = []
           for (key, entity) in [("edge_where", Edges), ("node_where", Nodes)] {
             match @decode.lookup(o, key) {
@@ -253,7 +247,7 @@ pub fn check_traverse(
         if minimum > maximum {
           fail(source, InvalidCount)
         }
-        let types = traversal_types(b, @decode.lookup(root, "edge_types"), g)
+        let types = traversal_types(b, @decode.lookup(root, "edge_types"))
         spend(b, source, 1)
         hops.push({
           direction,

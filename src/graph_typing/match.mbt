@@ -67,7 +67,6 @@ pub fn check_match(
     guard input is @carrier.GraphValue(graph) else {
       fail(source, WrongCarrier(@carrier.kind(input)))
     }
-    require_property_profile(graph, source)
     let root = decoded(
       @decode.closed_object(
         source,

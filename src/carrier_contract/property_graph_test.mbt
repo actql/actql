@@ -45,7 +45,7 @@ test "Property Graph metadata retains heterogeneous definition-scoped composite 
   }
   input_nodes.clear()
   input_edges.clear()
-  let definition = graph_property_definition(graph).unwrap()
+  let definition = graph_property_definition(graph)
   assert_eq(property_graph_domain(definition), "sha256:" + "1".repeat(64))
   assert_eq(property_graph_node_definitions(definition).length(), 2)
   assert_eq(property_graph_edge_definitions(definition).length(), 1)

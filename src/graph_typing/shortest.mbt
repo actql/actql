@@ -165,7 +165,7 @@ pub fn check_shortest(
       decoded(@decode.required(root, "max_hops")),
       1.0,
     )
-    let types = traversal_types(b, @decode.lookup(root, "edge_types"), g)
+    let types = traversal_types(b, @decode.lookup(root, "edge_types"))
     let weight = match @decode.lookup(root, "weight") {
       None => None
       Some(at) => {

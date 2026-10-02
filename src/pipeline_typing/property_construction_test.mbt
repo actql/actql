@@ -35,9 +35,7 @@ fn property_pipeline_domain(
     is Some(@carrier.GraphValue(graph)) else {
     abort("Graph required")
   }
-  @carrier.property_graph_domain(
-    @carrier.graph_property_definition(graph).unwrap(),
-  )
+  @carrier.property_graph_domain(@carrier.graph_property_definition(graph))
 }
 
 ///|

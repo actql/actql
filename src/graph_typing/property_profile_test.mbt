@@ -261,8 +261,7 @@ test "reach has no historical execution alternative under the current graph cont
       is Err(@graph_typing.MatchStructure(issue)) else {
       abort("unconnected reach was accepted")
     }
-    let expected = if input is @carrier.GraphValue(g) &&
-      @carrier.graph_property_definition(g) is Some(_) {
+    let expected = if input is @carrier.GraphValue(_) {
       @graph_typing.UnsupportedGraphOperation
     } else {
       @graph_typing.IncompleteGraph

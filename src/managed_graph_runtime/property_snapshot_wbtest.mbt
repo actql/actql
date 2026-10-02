@@ -196,7 +196,7 @@ test "property snapshot uses the exact managed read schema and preserves handoff
   )
   assert_true(producer_read_available(read))
   assert_eq(@storage.edge_count(storage), 2)
-  let profile = @carrier.graph_property_definition(graph).unwrap()
+  let profile = @carrier.graph_property_definition(graph)
   let foreign = @carrier.property_graph(
     "sha256:" + "1".repeat(64),
     @carrier.property_graph_node_definitions(profile),

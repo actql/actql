@@ -50,7 +50,6 @@ pub fn check_selector(
       fail(source, IncompleteGraph)
     }
     let identity = @carrier.graph_identity(g)
-    require_property_profile(g, source)
     if !property_graph {
       fail(source, UnsupportedGraphOperation)
     }

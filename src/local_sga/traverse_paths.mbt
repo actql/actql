@@ -398,8 +398,8 @@ fn traverse_path_edge_type_matches(
   edge : Int,
   index : Int,
 ) -> Bool {
-  guard @carrier.graph_property_definition(state.graph) is Some(definition) &&
-    @lower.graph_traverse_hop_type_at(
+  let definition = @carrier.graph_property_definition(state.graph)
+  guard @lower.graph_traverse_hop_type_at(
       state.prepared,
       traverse_path_hop(state),
       index,
@@ -1733,7 +1733,6 @@ fn start_traverse_paths_read(
     @lower.node_input_target(node, 0) is Some(target) &&
     @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
     is Some(@carrier.GraphValue(graph)) &&
-    @carrier.graph_property_definition(graph) is Some(_) &&
     @lower.graph_traverse_property_path_mode(prepared) is Some(_) else {
     return Err(InvalidTraversePathsKernel)
   }

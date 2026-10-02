@@ -124,8 +124,7 @@ fn prepare_property_graph_construction_node(
   }
   guard owner.prepared.nodes.get(step) is Some(node) &&
     node.payload is PropertyGraphConstructionValue(checked) &&
-    node.output_carrier is @carrier.GraphValue(graph) &&
-    @carrier.graph_property_definition(graph) is Some(_) else {
+    node.output_carrier is @carrier.GraphValue(_) else {
     return Err(InvalidPropertyGraphConstruction)
   }
   let n = @graph.property_construction_node_count(checked)

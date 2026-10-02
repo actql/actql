@@ -130,9 +130,6 @@ pub fn prepare(
     return Err(InvalidLimits)
   }
   guard contract is @carrier.GraphValue(graph) else { return Err(WrongCarrier) }
-  if @carrier.graph_property_definition(graph) is None {
-    return Err(WrongProfile)
-  }
   if mode == DerivedEndpoints {
     return Err(WrongMode)
   }

@@ -155,8 +155,7 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
     // claim, select the one current Graph representation.
     let current_graph = fn(carrier) {
       match carrier {
-        @carrier.GraphValue(graph) =>
-          @carrier.graph_property_definition(graph) is Some(_)
+        @carrier.GraphValue(_) => true
         _ => false
       }
     }

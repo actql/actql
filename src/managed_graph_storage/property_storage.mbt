@@ -226,9 +226,7 @@ pub fn append_property_node(
   if !builder.open {
     return Err(Closed)
   }
-  guard @carrier.graph_property_definition(builder.graph) is Some(profile) else {
-    return fail(builder, WrongProfile)
-  }
+  let profile = @carrier.graph_property_definition(builder.graph)
   guard @carrier.property_graph_node_at(profile, definition_index)
     is Some(definition) else {
     return fail(builder, InvalidIdentity)
@@ -266,9 +264,7 @@ pub fn append_property_edge(
   if !builder.open {
     return Err(Closed)
   }
-  guard @carrier.graph_property_definition(builder.graph) is Some(profile) else {
-    return fail(builder, WrongProfile)
-  }
+  let profile = @carrier.graph_property_definition(builder.graph)
   guard @carrier.property_graph_edge_at(profile, definition_index) is Some(edge) else {
     return fail(builder, InvalidIdentity)
   }
@@ -482,8 +478,8 @@ fn property_lookup_scope(
   identity : @value.CheckedValue,
   edge~ : Bool,
 ) -> Result[Unit, Issue] {
-  guard @carrier.graph_property_definition(value.graph) is Some(profile) &&
-    identity.value is @value.Object(fields) &&
+  let profile = @carrier.graph_property_definition(value.graph)
+  guard identity.value is @value.Object(fields) &&
     @value.element_count(fields) == 4 &&
     @value.element_at(fields, 0) is Some(("definition", @value.Text(name))) &&
     @value.element_at(fields, 1) is Some(("domain", @value.Text(domain))) &&
@@ -626,9 +622,6 @@ pub fn edge_identity_index(
   value : Storage,
   identity : @value.CheckedValue,
 ) -> Result[Int?, Issue] {
-  if @carrier.graph_property_definition(value.graph) is None {
-    return Err(WrongProfile)
-  }
   match property_lookup_scope(value, identity, edge=true) {
     Err(issue) => return Err(issue)
     Ok(_) => ()

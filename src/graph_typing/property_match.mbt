@@ -18,9 +18,7 @@ fn check_property_match_scope(
   graph : @carrier.Graph,
   b : Budget,
 ) -> PropertyMatchScope raise Stop {
-  guard @carrier.graph_property_definition(graph) is Some(profile) else {
-    fail(source, UnsupportedGraphProfile)
-  }
+  let profile = @carrier.graph_property_definition(graph)
   let name_source = decoded(@decode.required(root, "definition"))
   let name = decoded(@decode.text(name_source))
   let definitions = if entity == Nodes {

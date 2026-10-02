@@ -48,7 +48,7 @@ pub fn graph_names(Graph) -> GraphRowNames?
 
 pub fn graph_node_properties(Graph) -> Knowledge
 
-pub fn graph_property_definition(Graph) -> PropertyGraphDefinition?
+pub fn graph_property_definition(Graph) -> PropertyGraphDefinition
 
 pub fn graph_row_fields(GraphRowNames) -> (@relation_schema.FieldName, @relation_schema.FieldName, @relation_schema.FieldName, @relation_schema.FieldName?)
 

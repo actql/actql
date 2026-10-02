@@ -73,8 +73,8 @@ fn snapshot_definition(
   identity : @decode.Cursor,
   edge~ : Bool,
 ) -> (Int, @carrier.PropertyNodeDefinition) raise PropertySnapshotStop {
-  guard @carrier.graph_property_definition(builder.graph) is Some(profile) &&
-    @decode.object_length(identity) == Some(4) &&
+  let profile = @carrier.graph_property_definition(builder.graph)
+  guard @decode.object_length(identity) == Some(4) &&
     @decode.closed_object(identity, ["definition", "domain", "key", "key_types"])
     is Ok(fields) &&
     @decode.lookup(fields, "definition") is Some(name_cursor) &&

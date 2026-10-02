@@ -67,9 +67,7 @@ fn emit_property_graph(
   graph : @carrier.Graph,
   out : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
-  guard @carrier.graph_property_definition(graph) is Some(profile) else {
-    raise @encode.InvalidStructure
-  }
+  let profile = @carrier.graph_property_definition(graph)
   let nodes = @carrier.property_graph_node_definitions(profile)
   let edges = @carrier.property_graph_edge_definitions(profile)
   nodes.sort_by((a, b) => {
@@ -121,10 +119,8 @@ pub fn admit_property_graph(
   if limits.max_bytes < 0 || limits.max_nodes < 0 || limits.max_depth < 0 {
     return Err(InvalidLimits)
   }
-  guard input is @carrier.GraphValue(graph) &&
-    @carrier.graph_property_definition(graph) is Some(profile) else {
-    return Err(IncompleteGraph)
-  }
+  guard input is @carrier.GraphValue(graph) else { return Err(IncompleteGraph) }
+  let profile = @carrier.graph_property_definition(graph)
   let count = @carrier.property_graph_node_count(profile)
   if count > limits.max_nodes ||
     @carrier.property_graph_edge_count(profile) > limits.max_nodes - count {

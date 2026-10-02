@@ -575,7 +575,7 @@ pub fn start_match_nodes(
   let owner = @lower.sequence_owner(sequence)
   guard @graph.producer_read_matches_operation_input(input, owner, step, 0) &&
     @graph.producer_read_storage(input) is Some(storage) &&
-    @storage.carrier(storage) is @carrier.GraphValue(graph) else {
+    @storage.carrier(storage) is @carrier.GraphValue(_) else {
     return Err(InvalidMatchNodesKernel)
   }
   start_match_nodes_read(
@@ -584,7 +584,6 @@ pub fn start_match_nodes(
     sequence,
     step,
     Stored(input),
-    graph,
     @storage.node_count(storage),
     max_rows,
     limits,
@@ -616,7 +615,7 @@ pub fn start_match_nodes_view(
   guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
     @lower.node_input_target(node, 0) is Some(target) &&
     @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
-    is Some(@carrier.GraphValue(graph)) &&
+    is Some(@carrier.GraphValue(_)) &&
     @lifecycle.producer_view_kind(input) == @carrier.GraphKind &&
     @lifecycle.producer_read_reference_matches_operation_input(
       @lifecycle.producer_view_read_reference(input),
@@ -633,7 +632,6 @@ pub fn start_match_nodes_view(
     sequence,
     step,
     Viewed(input),
-    graph,
     node_count,
     max_rows,
     limits,
@@ -652,7 +650,6 @@ fn start_match_nodes_read(
   sequence : @lower.PreparedSequence,
   step : Int,
   source : GraphReadSource,
-  graph : @carrier.Graph,
   node_count : Int,
   max_rows : Int,
   limits : @execution.ValueLimits,
@@ -671,7 +668,6 @@ fn start_match_nodes_read(
     is Some(@lower.GraphMatchStep(prepared)) &&
     @lower.graph_match_nodes(prepared) &&
     @lower.graph_match_property_definition(prepared) is Some(_) &&
-    @carrier.graph_property_definition(graph) is Some(_) &&
     (
       @lower.graph_match_id_count(prepared) > 0 ||
       @lower.graph_match_has_predicate(prepared)

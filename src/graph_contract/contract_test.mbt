@@ -202,7 +202,7 @@ test "closed label knowledge is semantic and declaration order is not" {
     ),
   )
   let definition = @carrier.property_graph_node_at(
-    @carrier.graph_property_definition(@graph_contract.graph(a)).unwrap(),
+    @carrier.graph_property_definition(@graph_contract.graph(a)),
     0,
   ).unwrap()
   assert_eq(@carrier.property_definition_labels(definition), ["a", "b"])

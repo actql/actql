@@ -442,8 +442,7 @@ pub fn producer_read_view(
   value : ProducerRead,
 ) -> Result[@lifecycle.ProducerView, Issue] {
   guard producer_read_storage(value) is Some(storage) &&
-    @storage.carrier(storage) is @carrier.GraphValue(graph) &&
-    @carrier.graph_property_definition(graph) is Some(_) else {
+    @storage.carrier(storage) is @carrier.GraphValue(_) else {
     return Err(Producer(@lifecycle.ProducerUnavailable))
   }
   let read = producer_read_carrier_reference(value)

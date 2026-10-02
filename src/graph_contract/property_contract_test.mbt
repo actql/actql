@@ -120,7 +120,7 @@ test "separate property graph contract preserves an independently authored body 
   )
   let profile = @carrier.graph_property_definition(
     @graph_contract.property_graph(read),
-  ).unwrap()
+  )
   assert_eq(@carrier.property_graph_node_count(profile), 1)
   assert_eq(@carrier.property_graph_edge_count(profile), 1)
   let node = @carrier.property_graph_node_at(profile, 0).unwrap()

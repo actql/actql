@@ -299,9 +299,9 @@ fn match_edges_step(
             return @bounded.Failed(InvalidMatchEdgesKernel, progress, used)
           }
           ignore(name)
+          let profile = @carrier.graph_property_definition(state.graph)
           if @lower.graph_match_property_definition(state.prepared)
             is Some(definition) &&
-            @carrier.graph_property_definition(state.graph) is Some(profile) &&
             @carrier.property_graph_edge_at(profile, definition)
             is Some(edge_definition) &&
             @carrier.property_definition_has_label(
@@ -664,8 +664,7 @@ fn start_match_edges_read(
     @lower.sequence_step(sequence, step)
     is Some(@lower.GraphMatchStep(prepared)) &&
     !@lower.graph_match_nodes(prepared) &&
-    @lower.graph_match_property_definition(prepared) is Some(_) &&
-    @carrier.graph_property_definition(graph) is Some(_) else {
+    @lower.graph_match_property_definition(prepared) is Some(_) else {
     return Err(InvalidMatchEdgesKernel)
   }
   let select_all = !@lower.graph_match_has_predicate(prepared) ||

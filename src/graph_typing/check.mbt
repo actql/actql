@@ -137,24 +137,10 @@ fn[T] fail(c : @decode.Cursor, kind : IssueKind) -> T raise Stop {
 // Unconnected consumers are unsupported under the sole current Graph contract.
 // Historical homogeneous inputs must not unlock an alternative implementation.
 fn reject_unconnected_graph_operation(
-  graph : @carrier.Graph,
+  _graph : @carrier.Graph,
   source : @decode.Cursor,
 ) -> Unit raise Stop {
-  if @carrier.graph_property_definition(graph) is Some(_) {
-    fail(source, UnsupportedGraphOperation)
-  } else {
-    fail(source, UnsupportedGraphProfile)
-  }
-}
-
-///|
-fn require_property_profile(
-  graph : @carrier.Graph,
-  source : @decode.Cursor,
-) -> Unit raise Stop {
-  if @carrier.graph_property_definition(graph) is None {
-    fail(source, UnsupportedGraphProfile)
-  }
+  fail(source, UnsupportedGraphOperation)
 }
 
 ///|

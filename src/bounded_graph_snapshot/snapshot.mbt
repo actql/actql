@@ -261,7 +261,6 @@ fn prepare_source(
     return Err(InvalidLimits)
   }
   guard source_graph(source) is Some(graph) &&
-    @carrier.graph_property_definition(graph) is Some(_) &&
     required_workspace(source) is Some(required) else {
     return Err(InvalidGraph)
   }

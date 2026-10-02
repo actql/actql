@@ -76,10 +76,10 @@ pub fn prepare_property_graph_producer_view(
   node_identity_order_key : (Int) -> String?,
   edge_identity_order_key : (Int) -> String?,
 ) -> Result[ProducerView, ViewIssue] {
-  guard read.output.binding.carrier is @carrier.GraphValue(graph) &&
-    @carrier.graph_property_definition(graph) is Some(definition) else {
+  guard read.output.binding.carrier is @carrier.GraphValue(graph) else {
     return Err(WrongCarrier)
   }
+  let definition = @carrier.graph_property_definition(graph)
   if nodes < 0 || edges < 0 {
     return Err(InvalidExtent)
   }

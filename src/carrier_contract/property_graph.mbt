@@ -458,8 +458,8 @@ pub fn property_graph_usage(
 }
 
 ///|
-pub fn graph_property_definition(graph : Graph) -> PropertyGraphDefinition? {
-  Some(graph.property_graph)
+pub fn graph_property_definition(graph : Graph) -> PropertyGraphDefinition {
+  graph.property_graph
 }
 
 ///|

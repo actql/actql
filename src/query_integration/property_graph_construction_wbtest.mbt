@@ -219,7 +219,7 @@ test "keyed MATCH reuses typed predicates and retains independent parallel edge 
     fail("Graph schema")
   }
   let domain = @carrier_contract.property_graph_domain(
-    @carrier_contract.graph_property_definition(carrier).unwrap(),
+    @carrier_contract.graph_property_definition(carrier),
   )
   let node_id = "{\"definition\":\"N\",\"domain\":\"" +
     domain +
@@ -635,7 +635,7 @@ fn keyed_path_owner(
     abort("keyed Graph schema missing")
   }
   let domain = @carrier_contract.property_graph_domain(
-    @carrier_contract.graph_property_definition(graph).unwrap(),
+    @carrier_contract.graph_property_definition(graph),
   )
   // Independently authored semantic identity, not copied from runtime output.
   let start = "{\"definition\":\"N\",\"domain\":\"" +
@@ -1524,7 +1524,7 @@ test "common constructor keeps empty keyed definition schemas" {
   guard @graph_storage.carrier(storage) is @carrier_contract.GraphValue(graph) else {
     fail("Graph carrier")
   }
-  let definition = @carrier_contract.graph_property_definition(graph).unwrap()
+  let definition = @carrier_contract.graph_property_definition(graph)
   assert_eq(
     @carrier_contract.property_graph_node_definitions(definition).length(),
     1,

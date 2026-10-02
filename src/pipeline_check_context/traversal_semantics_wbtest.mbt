@@ -4,7 +4,7 @@ test "keyed traversal checks retain explicit mode and never reuse simple-path la
   let graph = @pipeline.carrier_at(producer, @pipeline.Step(1)).unwrap()
   guard graph is @carrier.GraphValue(schema) else { fail("keyed Graph schema") }
   let domain = @carrier.property_graph_domain(
-    @carrier.graph_property_definition(schema).unwrap(),
+    @carrier.graph_property_definition(schema),
   )
   let identity = "{\"definition\":\"N\",\"domain\":\"" +
     domain +

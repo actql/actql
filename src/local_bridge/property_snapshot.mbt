@@ -221,10 +221,10 @@ pub fn start_property_snapshot_reload(
     return Err(GraphSnapshot(@snapshot.SnapshotIdentityMismatch))
   }
   guard @lifecycle.prepare_binding(owner, target) is Ok(binding) &&
-    @lifecycle.binding_carrier(binding) is @carrier.GraphValue(graph) &&
-    @carrier.graph_property_definition(graph) is Some(profile) else {
+    @lifecycle.binding_carrier(binding) is @carrier.GraphValue(graph) else {
     return Err(InvalidGraphKernel)
   }
+  let profile = @carrier.graph_property_definition(graph)
   let header = match
     @snapshot.read_property_header(input, graph, snapshot_limits) {
     Ok(header) => header
