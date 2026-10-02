@@ -59,7 +59,9 @@ as eager. Exact failure and resource behavior belongs in the common contract.
 
 ## Property Graph mapping and element identity
 
-The following is adopted target notation, not currently executable source:
+The following is adopted mapping notation. Supported source profiles and
+executed acceptance are recorded separately; accepting this notation does not
+establish every producer, consumer or storage path:
 
 ```text
 DATA g = PROPERTY GRAPH (
@@ -99,13 +101,21 @@ that distinction. An unadapted consumer must reject the new contract rather
 than collapse it to the historical endpoint/label tuple. Durable identity
 across runs is an ActQL requirement, not an assumption about vendor display IDs.
 
-The Graph algebra model and its operations belong in AoA; mechanized statements
-must name their actual assumptions and proof coverage. ActQL connects that
-model to source mapping, admission, acquisition, capacity, cancellation and
-storage/replay. An old simple-Graph theorem or conformance test does not prove
-the new keyed model or its correspondence to the selected external rules.
-Complete SGA mechanization is not a prerequisite added to the first vertical
-unit. No second Graph engine belongs in the Frontend.
+The Graph model, identity laws and operation implementations are owned by the
+common ActQL modules for this delivery. No external AoA repository, package or
+proof checkout is an implementation, build or acceptance dependency. Historical
+AoA names in the internal representation and pinned reference-law filenames do
+not change that ownership or establish support for the new keyed model.
+
+ActQL connects one common Graph implementation to source mapping, admission,
+acquisition, capacity, cancellation and storage/replay. Existing consumers must
+use the new contract or reject it explicitly; no legacy conversion, fallback or
+parallel-edge collapse is retained for compatibility. Mechanized statements,
+where present, must name their actual assumptions and proof coverage. An old
+simple-Graph theorem or conformance test does not prove the new model or its
+correspondence to the selected external rules. Complete SGA mechanization is
+not a prerequisite added to the first vertical unit. No second Graph engine
+belongs in the Frontend.
 
 ## Independent obligations for the first vertical unit
 
