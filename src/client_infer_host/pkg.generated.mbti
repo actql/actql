@@ -23,6 +23,8 @@ pub fn advance(Execution, Int) -> Result[Poll, Issue]
 
 pub fn advance_observation_issuance(ObservationIssuance, Int) -> Result[(Bool, Int64), Issue]
 
+pub fn advance_result_publication(ResultPublication, Int) -> Result[(Bool, Int), ResultPublicationIssue]
+
 pub fn attempt_evidence(Execution, Int) -> Result[@model_execution.ModelAttemptEvidence, @model_execution.ModelExecutionIssue]
 
 pub fn bind_dispatch_admission(Execution, @run_publication_host.ClientInferDispatchAdmission) -> Result[Unit, InvocationBindingIssue]
@@ -39,6 +41,8 @@ pub fn cancel(Execution) -> Bool
 
 pub fn cancel_observation_issuance(ObservationIssuance) -> Bool
 
+pub fn cancel_result_publication(ResultPublication) -> Bool
+
 pub fn capture(Execution) -> @model_execution.ModelCaptureBundle?
 
 pub fn cleanup(Execution) -> Result[Bool, Issue]
@@ -48,6 +52,8 @@ pub fn cleanup_observation_issuance(ObservationIssuance) -> Result[Bool, Issue]
 pub fn completed(Poll) -> @execution_relation.CompletedOutput?
 
 pub fn execution_stopped(Execution) -> Bool
+
+pub fn finish_result_publication(ResultPublication) -> Result[@run_publication_host.PublicationOutputExport, ResultPublicationIssue]
 
 pub fn handoff_pending(Execution) -> Bool
 
@@ -77,9 +83,13 @@ pub fn release_invocation_binding(InvocationBinding) -> Bool
 
 pub fn release_output(OutputUse) -> Bool
 
+pub fn release_result_publication(ResultPublication) -> Bool
+
 pub fn request_preflight_pending(Execution) -> Bool
 
 pub fn restoring(Execution) -> Bool
+
+pub fn result_publication_selection(ResultPublication) -> @run_publication_host.ClientResultTransformation?
 
 pub fn sealing_observation(Execution) -> Bool
 
@@ -94,6 +104,8 @@ pub fn start_replay(@run_publication_host.PreparedClientProgram, Int, String, St
 pub fn start_restored_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @run_publication.ModelCaptureBundleRead, Limits, @run_publication_host.ClientInferPlanGraph) -> Result[Execution, Issue]
 
 pub fn start_restored_slot_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelSlotReplayRead, Limits, @run_publication_host.ClientInferPlanGraph) -> Result[Execution, Issue]
+
+pub fn start_result_publication(InvocationBinding, Int, @run_publication_host.PublicationOutputExportLimits) -> Result[ResultPublication, ResultPublicationIssue]
 
 // Errors
 
@@ -201,6 +213,22 @@ pub enum Poll {
   Complete(@execution_relation.CompletedOutput, work~ : Int64)
   Failed(Issue, work~ : Int64)
   Stopped(work~ : Int64)
+}
+
+pub struct ResultPublication {
+  binding : InvocationBinding
+  selection : @run_publication_host.ClientResultTransformation
+  preparation : @run_publication_host.ClientResultTransformationPreparation
+  mut exported : @run_publication_host.PublicationOutputExport?
+  mut ready : Bool
+  mut cancelled : Bool
+  mut released : Bool
+}
+
+pub(all) enum ResultPublicationIssue {
+  Binding(InvocationBindingIssue)
+  Transformation(@run_publication_host.ClientResultTransformationIssue)
+  InvalidState
 }
 
 type Source

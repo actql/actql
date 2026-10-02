@@ -1,4 +1,13 @@
 ///|
+/// The installed Host selects the common checked occurrence, not an AST index.
+#export_name("clientProgramTerminalInferStep")
+pub fn client_program_terminal_infer_step(
+  prepared : @publication_host.PreparedClientProgram,
+) -> Int? {
+  @publication_host.prepared_client_terminal_infer_step(prepared)
+}
+
+///|
 /// Compile the retained checked barrier through the existing task Run owner.
 /// Compilation does not grant model egress or attest to captured execution.
 #export_name("clientProgramCompileLocalInfer")
@@ -1260,6 +1269,88 @@ pub fn client_program_cleanup_model_output(
 }
 
 ///|
+/// An issued Invocation, not an adapter-authored output, owns this export.
+#export_name("clientProgramInferPublicationBegin")
+pub fn client_program_infer_publication_begin(
+  binding : @infer_host.InvocationBinding,
+  result : Int,
+) -> Result[@infer_host.ResultPublication, @infer_host.ResultPublicationIssue] {
+  @infer_host.start_result_publication(
+    binding,
+    result,
+    client_infer_result_limits(),
+  )
+}
+
+///|
+#export_name("clientProgramInferPublicationSelection")
+pub fn client_program_infer_publication_selection(
+  value : @infer_host.ResultPublication,
+) -> @publication_host.ClientResultTransformation? {
+  @infer_host.result_publication_selection(value)
+}
+
+///|
+#export_name("clientProgramInferPublicationAdvance")
+pub fn client_program_infer_publication_advance(
+  value : @infer_host.ResultPublication,
+  quantum : Int,
+) -> Result[(Bool, Int), @infer_host.ResultPublicationIssue] {
+  @infer_host.advance_result_publication(value, quantum)
+}
+
+///|
+#export_name("clientProgramInferPublicationFinish")
+pub fn client_program_infer_publication_finish(
+  value : @infer_host.ResultPublication,
+) -> Result[
+  @publication_host.PublicationOutputExport,
+  @infer_host.ResultPublicationIssue,
+] {
+  @infer_host.finish_result_publication(value)
+}
+
+///|
+#export_name("clientProgramInferPublicationCancel")
+pub fn client_program_infer_publication_cancel(
+  value : @infer_host.ResultPublication,
+) -> Bool {
+  @infer_host.cancel_result_publication(value)
+}
+
+///|
+#export_name("clientProgramInferPublicationRelease")
+pub fn client_program_infer_publication_release(
+  value : @infer_host.ResultPublication,
+) -> Bool {
+  @infer_host.release_result_publication(value)
+}
+
+///|
+#export_name("clientProgramInferResultName")
+pub fn client_program_infer_result_name(
+  value : @publication_host.ClientResultTransformation,
+) -> String {
+  @publication_host.client_result_transformation_name(value)
+}
+
+///|
+#export_name("clientProgramInferResultTask")
+pub fn client_program_infer_result_task(
+  value : @publication_host.ClientResultTransformation,
+) -> Int {
+  @publication_host.client_result_transformation_task(value)
+}
+
+///|
+#export_name("clientProgramInferResultDefinition")
+pub fn client_program_infer_result_definition(
+  value : @publication_host.ClientResultTransformation,
+) -> @publication.PublicationContract {
+  @publication_host.client_result_transformation_definition(value)
+}
+
+///|
 /// Select the existing Result transform under the original Program owner.
 /// This is an export, not Run acceptance or a committed Named Result index.
 #export_name("clientProgramInferResultExportBegin")
@@ -1278,6 +1369,17 @@ pub fn client_program_infer_result_export_begin(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  @publication_host.start_client_result_transformation(
+    selection,
+    output,
+    client_infer_result_limits(),
+  )
+}
+
+///|
+/// Shared installed envelope for both existing component exports and issued
+/// Invocation exports. This does not grant permission to commit a Result.
+fn client_infer_result_limits() -> @publication_host.PublicationOutputExportLimits {
   let wire : @execution.RowWireLimits = {
     max_columns: 256,
     max_order_work: 20000000,
@@ -1285,7 +1387,7 @@ pub fn client_program_infer_result_export_begin(
     max_nodes: 20000,
     max_depth: 100,
   }
-  @publication_host.start_client_result_transformation(selection, output, {
+  {
     max_result_fields: 256,
     max_result_mapping_work: 20000000,
     max_result_order_work: 20000000,
@@ -1306,7 +1408,7 @@ pub fn client_program_infer_result_export_begin(
       max_depth: 100,
     },
     max_batch_bytes: 500000,
-  })
+  }
 }
 
 ///|

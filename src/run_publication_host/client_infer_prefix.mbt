@@ -1,4 +1,18 @@
 ///|
+/// Select the supported terminal acquisition from the actual checked graph.
+/// Adapters must not rediscover a source ordinal by inspecting Program JSON.
+pub fn prepared_client_terminal_infer_step(
+  value : PreparedClientProgram,
+) -> Int? {
+  guard @strategy.graph_task_count(value.graph) == 1 &&
+    @strategy.graph_task_target(value.graph, 0) is Some(@pipeline.Step(step)) &&
+    client_infer_prefix_owner(value, 0, step) is Some(_) else {
+    return None
+  }
+  Some(step)
+}
+
+///|
 /// Select the checked Relation owner consumed by the initial source-free
 /// Infer path. Both compilation and execution use this exact selection;
 /// equal source text, row values, or model identities cannot replace it.

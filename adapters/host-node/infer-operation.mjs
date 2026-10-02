@@ -130,5 +130,74 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     bindIssuedInvocation: (control, {compiled, runDefinition, issued}) =>
       control.bindIssuedClientInferInvocation(compiled, active, runDefinition,
         issued),
+    // Store use is awaited to settlement before releasing the common Result
+    // owner. Aborting a writer is not physical stop confirmation.
+    withResult: (binding, result, consume, resultSignal = signal) =>
+      withNodeInferResult({moon, binding, result, consume,
+        signal: resultSignal, quantum}),
   });
+}
+
+// This is physical stepping of the existing checked Result transformer, not
+// another publisher or an adapter-authored publication inventory. The Store
+// callback receives the common selection and ordinary opaque output exporter.
+export async function withNodeInferResult({moon, binding, result, consume,
+  signal, quantum = 256}) {
+  if (typeof consume !== 'function' || !Number.isSafeInteger(result) ||
+      result < 0 || !Number.isSafeInteger(quantum) || quantum < 1 ||
+      quantum > 2147483647) {
+    throw new TypeError('InvalidInstalledInferResult');
+  }
+  signal?.throwIfAborted();
+  const owner = checked(moon.clientProgramInferPublicationBegin(binding,
+    result));
+  const cancel = () => moon.clientProgramInferPublicationCancel(owner);
+  signal?.addEventListener('abort', cancel, {once: true});
+  let custodyTransferred = false;
+  try {
+    for (;;) {
+      signal?.throwIfAborted();
+      const progress = checked(moon.clientProgramInferPublicationAdvance(owner,
+        quantum));
+      if (progress._0) break;
+      await yieldEventLoop();
+    }
+    signal?.throwIfAborted();
+    const selection = moon.clientProgramInferPublicationSelection(owner);
+    const exported = checked(moon.clientProgramInferPublicationFinish(owner));
+    // Do not race this against abort: a rejected/aborted consumer must first
+    // settle its physical I/O and retain any unresolved cleanup responsibility.
+    return await consume({selection, exported, signal});
+  } catch (failure) {
+    if (failure?.cleanupPending === true) {
+      // The existing dispatch supervisor retries this exact Store cleanup
+      // handle. Keep the Result pinned until that handle confirms settlement;
+      // a rejected consumer Promise alone cannot confirm physical stop.
+      const original = failure.cleanupHandle;
+      custodyTransferred = true;
+      const retained = Object.freeze({
+        status: () => ({pending: custodyTransferred}),
+        async retry() {
+          if (!custodyTransferred) return false;
+          if (typeof original?.retry !== 'function' ||
+              typeof original?.status !== 'function') throw pending();
+          if (original.status()?.pending === true) await original.retry();
+          if (original.status()?.pending !== false) throw pending();
+          moon.clientProgramInferPublicationRelease(owner);
+          custodyTransferred = false;
+          return true;
+        },
+      });
+      // Preserve the original typed cause even when its Error is immutable.
+      const held = new Error(failure.message, {cause: failure});
+      held.code = failure.code;
+      held.cleanupPending = true;
+      held.cleanupHandle = retained;
+      throw held;
+    }
+    throw failure;
+  } finally {
+    signal?.removeEventListener('abort', cancel);
+    if (!custodyTransferred) moon.clientProgramInferPublicationRelease(owner);
+  }
 }

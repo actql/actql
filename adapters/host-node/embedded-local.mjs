@@ -20,6 +20,7 @@ import {retireCompletedEffectfulCapture} from
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
 import {sourceAliasPublication} from './source-alias-publication.mjs';
+import {installedModelEnvironment} from './installed-model.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {issueInstalledRunControlObservation,
   issueInstalledUnpublishedRunState} from
@@ -98,6 +99,8 @@ async function embeddedInstallationIdentity(root, installation) {
   const identity = bytesCid(canonicalJson({
     version: 'actql-embedded-installation/0.1', root,
     source, effect, accountIdentity, ordinary,
+    ...(installation?.modelInstallation === undefined ? {} : {
+      modelEnvironment: installation.modelInstallation}),
     hostKey: authorization?.hostKey === undefined ? null : {
       keyId: authorization.hostKey.keyId,
       publicKeyCid: publicKeyCid(authorization.hostKey.privateKey)},
@@ -133,7 +136,8 @@ const REALIZATION_KEY = 'source-free-values';
 
 async function openInstalledHost({root, mode = 'local', beforeDispatch,
   authorization, sourceProfilePath, resolveSourceSecret,
-  effectProfilePath, resolveEffectSecret, effectInstallation}) {
+  effectProfilePath, resolveEffectSecret, effectInstallation,
+  modelInstallation}) {
   const selectedSourcePath = sourceProfilePath ??
     process.env.ACTQL_LOCAL_SOURCE_PROFILE;
   const selectedEffectPath = effectProfilePath ??
@@ -177,6 +181,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     environmentWire = composeInstalledCheckEnvironment(moon,
       baseEnvironmentWire, sourceProfile?.environmentWire,
       effectInstallation?.environmentWire);
+    environmentWire = installedModelEnvironment(moon, baseEnvironmentWire,
+      environmentWire, modelInstallation);
     const {evidence_bundle_cid: ignored, ...body} = JSON.parse(environmentWire);
     void ignored;
     body.host_policy_profile = {...body.host_policy_profile,
@@ -573,6 +579,13 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         throw clientOperationError('ClientProgramUnsupported',
           new Error('InstalledSourceProgramMismatch'));
       }
+    }
+    // Static ModelTask admission cannot authorize a model call. Until the
+    // installed dependency/dispatch route is present, refuse before admitting
+    // a Run rather than sending this acquisition into a Values fallback.
+    if (moon.clientProgramTerminalInferStep(preparedProgram) !== undefined) {
+      throw clientOperationError('ClientProgramUnsupported',
+        new Error('InstalledInferExecutionNotConnected'));
     }
     const requested = moon.clientProgramRequestIdentity(preparedProgram,
       authorityScopeCid, requestId,
@@ -1339,7 +1352,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
 export async function openInstalledRemoteHttpHost({directory,
   authenticate, beforeDispatch, authorization, sourceProfilePath,
   resolveSourceSecret, effectProfilePath, resolveEffectSecret,
-  effectInstallation}) {
+  effectInstallation, modelInstallation}) {
   if (typeof directory !== 'string' || !directory ||
       typeof authenticate !== 'function' ||
       beforeDispatch !== undefined && typeof beforeDispatch !== 'function') {
@@ -1347,7 +1360,8 @@ export async function openInstalledRemoteHttpHost({directory,
   }
   const host = await openInstalledHost({root: resolve(directory), mode: 'remote',
     beforeDispatch, authorization, sourceProfilePath, resolveSourceSecret,
-    effectProfilePath, resolveEffectSecret, effectInstallation});
+    effectProfilePath, resolveEffectSecret, effectInstallation,
+    modelInstallation});
   const handle = createClientHttpHandler({
     ...host.hostOperations, authenticate, maxRequestBytes: 65536,
   });
@@ -1446,7 +1460,8 @@ export async function connectEmbeddedLocal(options) {
         sourceProfilePath: installation?.sourceProfilePath,
         resolveSourceSecret: installation?.resolveSourceSecret,
         effectProfilePath: installation?.effectProfilePath,
-        resolveEffectSecret: installation?.resolveEffectSecret})});
+        resolveEffectSecret: installation?.resolveEffectSecret,
+        modelInstallation: installation?.modelInstallation})});
     profiles.set(root, opened);
     opened.host.catch(() => {
       if (profiles.get(root) === opened) profiles.delete(root);

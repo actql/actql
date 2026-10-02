@@ -534,11 +534,25 @@ pub fn client_program_infer_plan_request_wire(@run_publication_host.ClientInferP
 
 pub fn client_program_infer_prefix_fragment(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[@run_publication_host.ClientTaskFragmentNode, @run_publication_host.ClientTaskFragmentIssue]
 
+pub fn client_program_infer_publication_advance(@client_infer_host.ResultPublication, Int) -> Result[(Bool, Int), @client_infer_host.ResultPublicationIssue]
+
+pub fn client_program_infer_publication_begin(@client_infer_host.InvocationBinding, Int) -> Result[@client_infer_host.ResultPublication, @client_infer_host.ResultPublicationIssue]
+
+pub fn client_program_infer_publication_cancel(@client_infer_host.ResultPublication) -> Bool
+
+pub fn client_program_infer_publication_finish(@client_infer_host.ResultPublication) -> Result[@run_publication_host.PublicationOutputExport, @client_infer_host.ResultPublicationIssue]
+
 pub fn client_program_infer_publication_ledger(Int64, Int) -> Result[@physical_resources.Ledger, @physical_resources.LedgerIssue]
+
+pub fn client_program_infer_publication_release(@client_infer_host.ResultPublication) -> Bool
+
+pub fn client_program_infer_publication_selection(@client_infer_host.ResultPublication) -> @run_publication_host.ClientResultTransformation?
 
 pub fn client_program_infer_publication_usage(@physical_resources.Ledger) -> (Int, Int64)
 
 pub fn client_program_infer_request_preflight_pending(@client_infer_host.Execution) -> Bool
+
+pub fn client_program_infer_result_definition(@run_publication_host.ClientResultTransformation) -> @run_publication.PublicationContract
 
 pub fn client_program_infer_result_export_advance(@run_publication_host.ClientResultTransformationPreparation, Int) -> Result[(Bool, Int), @run_publication_host.ClientResultTransformationIssue]
 
@@ -551,6 +565,10 @@ pub fn client_program_infer_result_export_finish(@run_publication_host.ClientRes
 pub fn client_program_infer_result_export_next(@run_publication_host.PublicationOutputExport) -> Result[String?, @run_publication_host.PublicationOutputExportIssue]
 
 pub fn client_program_infer_result_export_seal(@run_publication_host.PublicationOutputExport) -> Result[String, @run_publication_host.PublicationOutputExportIssue]
+
+pub fn client_program_infer_result_name(@run_publication_host.ClientResultTransformation) -> String
+
+pub fn client_program_infer_result_task(@run_publication_host.ClientResultTransformation) -> Int
 
 pub fn client_program_install_model_provider(String, (@model_execution.ModelRequest) -> @model_execution.ModelResponse?) -> @model_execution.ModelProvider?
 
@@ -945,6 +963,8 @@ pub fn client_program_task_fragment_wire(@run_publication_host.ClientTaskFragmen
 pub fn client_program_task_pipeline_wire(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientTaskPipelineIssue]
 
 pub fn client_program_task_plan_graph_wire(@run_publication_host.ClientTaskPlanGraph) -> String
+
+pub fn client_program_terminal_infer_step(@run_publication_host.PreparedClientProgram) -> Int?
 
 pub fn client_program_uses_graph_carrier(@run_publication_host.PreparedClientProgram) -> Bool
 

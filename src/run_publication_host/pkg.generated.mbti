@@ -292,9 +292,15 @@ pub fn client_result_row_contract_unit_cid(ClientResultRowContractIdentity) -> S
 
 pub fn client_result_row_contract_wire(ClientResultRowContractIdentity) -> String
 
+pub fn client_result_transformation_definition(ClientResultTransformation) -> @run_publication.PublicationContract
+
 pub fn client_result_transformation_matches(ClientResultTransformation, PreparedClientProgram, Int) -> Bool
 
+pub fn client_result_transformation_name(ClientResultTransformation) -> String
+
 pub fn client_result_transformation_plan(ClientResultTransformation) -> ClientResultPlanIdentity
+
+pub fn client_result_transformation_task(ClientResultTransformation) -> Int
 
 pub fn client_standard_program_preparation_limits() -> ClientProgramPreparationLimits
 
@@ -613,6 +619,8 @@ pub fn prepared_client_program_semantics_cid(PreparedClientProgram) -> String
 pub fn prepared_client_result_count(PreparedClientProgram) -> Int
 
 pub fn prepared_client_result_name(PreparedClientProgram, Int) -> String?
+
+pub fn prepared_client_terminal_infer_step(PreparedClientProgram) -> Int?
 
 pub fn prepared_client_uses_graph_carrier(PreparedClientProgram) -> Bool
 

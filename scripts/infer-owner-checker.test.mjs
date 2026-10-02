@@ -772,6 +772,110 @@ test('Node Infer rechecks account and clock observations immediately before mode
   }
 });
 
+test('issued Infer Result custody outlives Store cancellation and cleanup retry', async t => {
+  // Component evidence for the installed adapter boundary, not a claim that
+  // ordinary public submit has already connected its ModelTask installation.
+  const fixture = supervisedInferFixture();
+  const {prepared, graph, operation} = fixture;
+  const control = runtimeCore(moon).publicationControl;
+  const root = cid({fixture: 'infer-result-custody'});
+  const policy = {executionContextCid: root, hostPolicyCid: root,
+    expiresAt: '2099-01-01T00:00:00.000Z'};
+  const compiled = control.prepareCheckedClientCompiledRun(prepared,
+    'infer', policy, graph);
+  const runDefinition = control.defineCheckedClientCompiledRun(compiled,
+    {namespaceId: 'infer-result-test', runId: 'one-row',
+      createdAt: '2026-10-02T00:00:00.000Z', validUntil: policy.expiresAt});
+  const account = moon.executionAuthorizationAdmit(canonicalText({
+    version: 'actql-execution-account-config/0.1', account_id: 'model-account',
+    entries: [{entry_id: 'infer-policy', outcome: 'allow', principal: {all: true},
+      connection: {all: true}, resource: {all: true},
+      operation: {any_of: ['infer']}, exclusions: []}],
+  }));
+  operation.bindRun(control, {compiled, runDefinition});
+  operation.bindDispatch(control, {compiled, runDefinition, account,
+    principalId: 'fixture-principal', at: '2026-10-02T00:00:00.000Z',
+    observeAccount: () => account,
+    observeAt: () => '2026-10-02T00:00:00.000Z'});
+  await operation.run();
+  const issued = await issueOwnedInferObservation(operation, control,
+    compiled, runDefinition);
+  let pendingCleanup;
+  t.after(async () => {
+    await pendingCleanup?.retry();
+    moon.clientProgramReleaseInferInvocationBinding(issued.binding);
+    checked(moon.clientProgramCleanupInferObservationIssuance(issued.active));
+    await operation.close();
+  });
+  await assert.rejects(operation.withResult(issued.binding, 1, () => {
+    assert.fail('unknown Result cannot enter Store');
+  }), /MoonBitHostFailure/u);
+  const cancelled = new AbortController();
+  cancelled.abort(new Error('cancelled before export'));
+  await assert.rejects(operation.withResult(issued.binding, 0, () => {
+    assert.fail('cancelled Result cannot enter Store');
+  }, cancelled.signal), /cancelled before export/u);
+  assert.deepEqual(await operation.withResult(issued.binding, 0,
+    async ({selection, exported}) => {
+      assert.equal(moon.clientProgramInferResultName(selection), 'answer');
+      assert.equal(moon.clientProgramInferResultTask(selection), 0);
+      let wire = '';
+      let chunk;
+      while ((chunk = checked(moon.clientProgramInferResultExportNext(exported)))
+        !== undefined) wire += chunk;
+      wire += checked(moon.clientProgramInferResultExportSeal(exported));
+      return JSON.parse(wire);
+    }), [{id: 'a', outcome: 'ok', value: {reason: null, risk: 'high'}}]);
+
+  let entered;
+  const reached = new Promise(resolve => { entered = resolve; });
+  let settle;
+  const physicalEnd = new Promise(resolve => { settle = resolve; });
+  const stop = new AbortController();
+  let storePending = true;
+  let retryCount = 0;
+  const storeFailure = Object.assign(new Error('Store close failed'), {
+    code: 'EIO', cleanupPending: true,
+    cleanupHandle: {
+      status: () => ({pending: storePending}),
+      async retry() {
+        retryCount++;
+        if (retryCount === 1) throw new Error('temporary cleanup failure');
+        storePending = false;
+        return true;
+      },
+    },
+  });
+  const exporting = operation.withResult(issued.binding, 0, async () => {
+    entered();
+    await physicalEnd;
+    throw storeFailure;
+  }, stop.signal);
+  await reached;
+  moon.clientProgramReleaseInferInvocationBinding(issued.binding);
+  stop.abort(new Error('cancelled Store'));
+  assert.equal(checked(moon.clientProgramCleanupInferObservationIssuance(
+    issued.active)), false, 'abort is not permission to release Store custody');
+  settle();
+  await assert.rejects(exporting, failure => {
+    assert.equal(failure.cause, storeFailure);
+    assert.equal(failure.code, 'EIO');
+    pendingCleanup = failure.cleanupHandle;
+    return true;
+  });
+  assert.equal(pendingCleanup.status().pending, true);
+  await assert.rejects(pendingCleanup.retry(), /temporary cleanup failure/u);
+  assert.equal(checked(moon.clientProgramCleanupInferObservationIssuance(
+    issued.active)), false);
+  assert.equal(fixture.calls(), 1);
+  assert.equal(await pendingCleanup.retry(), true);
+  assert.equal(pendingCleanup.status().pending, false);
+  assert.equal(await pendingCleanup.retry(), false);
+  assert.equal(checked(moon.clientProgramCleanupInferObservationIssuance(
+    issued.active)), true);
+  assert.equal(fixture.calls(), 1, 'Store cleanup never re-enters Model dispatch');
+});
+
 test('physical Infer preflight enforces the selected contract before dispatch', async t => {
   for (const [capacity, ledgerIssue] of [
     [{max_total_attempts: 2, max_total_wire_bytes: 133072}, undefined],

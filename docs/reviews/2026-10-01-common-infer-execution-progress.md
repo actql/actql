@@ -14,6 +14,75 @@ The one-row public Host handoff is **not ready**. The records below describe
 earlier implementation units and their verification, not current acceptance
 of the complete inference path.
 
+### First public submit boundary
+
+The public SDK submits a literal one-row JSON Program through the installed
+HTTPS Host in `adapters/host-node/installed-infer.test.mjs`. With the ordinary
+base installation, preparation refuses `ClientProgramRejected`: that
+environment has no `model-task:risk-score.v1` declaration. No Run row or
+physical start is created. This is a public refusal, not an internal-helper
+success substituted for acceptance.
+
+The Host now composes a `modelInstallation.environmentWire` through the
+existing installed-check-environment/common-checker admission. Embedded
+installation identity includes that metadata, so an already cached Host
+cannot silently reuse another ModelTask configuration. This registration
+does not install a provider or grant model egress. The common checked graph,
+not Program-JSON inspection, selects the terminal INFER occurrence.
+
+The same public Program with its ModelTask installed passes preparation and
+now refuses `ClientProgramUnsupported` before Run admission. The local cause
+is `InstalledInferExecutionNotConnected`; the public HTTP contract exposes
+the existing typed rejection code, not private MoonBit diagnostic objects.
+The test fixes zero admitted Runs and zero physical starts for both cases.
+Successful dispatch, saved replay and Named Result read remain unverified.
+
+| Stage | Connected common owner | Missing input or product connection |
+| --- | --- | --- |
+| ModelTask preparation | Installed checker and `check_environment/model_tasks.mbt` | Metadata registration added; no provider authority inferred |
+| Dependency/policy admission | `client_infer_plan_graph.mbt`, `client_infer_dispatch_admission.mbt`, existing account owner | Actual prompt/retry/backoff/media/egress dependencies; classification, region and token/cost/duration reservations |
+| Physical dispatch | `client_infer_host/execution.mbt`, `model_execution/execution.mbt` | `client-dispatch-owner.mjs` must open the admitted INFER operation, not its Values route |
+| Evidence and stored replay | Common attempt owner, `observation_issuance.mbt`, verified slot replay | Invoke from normal Host; retain authenticated capture holdings under its existing custody |
+| Named Result publication | Checked Result transformation and existing completed-Run publisher | Pass real accepted INFER output and capture evidence to committed publication |
+
+Dependency references in the existing ModelExecutionContract reader are
+explicitly not admission of their bodies. The installed route must not use
+the component fixtures' symbolic dependency roots as verified dependencies.
+There is no permission blocker: these connections remain implementation work.
+
+The new `client_infer_host/result_publication.mbt` retains an independent
+common-issued Invocation binding while the existing bounded Result transform
+and exporter operate. Selecting an unknown Result, limit failure and
+cancellation release only that export's custody. Two exports may read the
+same real output; closing one leaves the other usable. This is a supporting
+owner, not a new task completion or public-success claim.
+
+The Node bridge now exposes that existing owner to the installed physical
+adapter. `infer-operation.mjs` steps the selected Result with macrotask yields
+and passes the common selection and exporter to the Store callback. It waits
+for that callback rather than racing physical settlement against abort. A
+pending Store cleanup retains the Result through the existing cleanup handle;
+a failed retry preserves custody and a confirmed retry releases it without
+re-entering Model dispatch. The regression reads the literal expected row,
+rejects an unknown Result before Store use, cancels before export, and injects
+a pending Store close plus one failed cleanup retry. That injected Store
+boundary is a component test, not a real public Named Result test.
+
+Local validation on the source tree based on
+`21a7b759a33a142706e8eedfb51f23892308a2f4` passed the two public refusal
+cases and five existing installed-environment regressions. The touched common
+`client_infer_host` and `run_publication_host` packages passed 98/98 on each
+of JS, Wasm and native. Runtime and public interfaces were regenerated from
+source. The generated runtime remains ignored. These results do not establish
+Named Result acceptance or Linux CI, and no acceptance PR is claimed yet.
+
+After the Result bridge connection, the pinned local run of
+`scripts/infer-owner-checker.test.mjs`, `installed-infer.test.mjs` and
+`installed-check-environment.test.mjs` passed 49/49. The touched common JS
+packages passed 98/98. Public interface generation checked all three targets,
+and the release Node runtime was rebuilt. No complete core or Host gate was
+repeated for this supporting connection; required CI remains unrun.
+
 The current execution owner now adopts classified no-response failures as
 keyed outcomes, replays mixed success/failure observations without dispatch,
 and retains strict-failure observations through private stopped-execution
