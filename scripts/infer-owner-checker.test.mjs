@@ -632,7 +632,7 @@ async function inferExportRows(prepared, completed) {
 }
 
 function supervisedInferFixture(signal, onInvoke, responseBody = '{"reason":null,"risk":"high"}',
-  source = program(), quantityCapacity) {
+  source = program(), quantityCapacity, physicalPreflight) {
   const preparation = prepare(source, environment());
   const prepared = moon.clientProgramPreparationReady(preparation);
   assert.ok(prepared, inspect(preparation));
@@ -649,9 +649,63 @@ function supervisedInferFixture(signal, onInvoke, responseBody = '{"reason":null
   const graph = scopedInferGraph(prepared);
   const operation = openNodeInferOperation({moon, preparedProgram: prepared,
     step: 2, graph, registry, values, provider,
-    signal, quantum: 1, quantityCapacity});
+    signal, quantum: 1, quantityCapacity, physicalPreflight});
   return {prepared, graph, operation, calls: () => calls};
 }
+
+test('Node Infer yields during exact physical preparation and uses its retained plan', async () => {
+  let advances = 0, calls = 0, cleanups = 0;
+  const fixture = supervisedInferFixture(undefined, () => {
+    assert.fail('physical dispatch must consume the preflighted plan');
+  }, undefined, undefined, {
+    limits: {tokens: 33n, costUnits: 0n, durationMs: 500n},
+    perAttempt: {tokens: 33n, costUnits: 0n, durationMs: 500n},
+  }, request => moon.clientProgramModelRequestPreflight(() => {
+    advances++;
+    if (advances < 3) return {_0: false, _1: undefined};
+    const plan = checked(moon.clientProgramModelPhysicalRequestPlan(request,
+      1000n, 33n, 0n, 500n, () => {
+        calls++;
+        assert.equal(advances, 3);
+        return moon.clientProgramModelResponse(request,
+          '{"reason":null,"risk":"high"}', 'fixture-risk-model',
+          'preflight-request', 1n, 2n, '2026-10-01T00:00:00.000Z');
+      }));
+    return {_0: true, _1: plan};
+  }, () => { cleanups++; return true; }));
+  try {
+    assert.ok(await fixture.operation.run());
+    assert.equal(calls, 1);
+    assert.equal(fixture.calls(), 0);
+  } finally {
+    await fixture.operation.close();
+  }
+  assert.equal(cleanups, 1);
+  assert.equal(calls, 1);
+});
+
+test('Node Infer delivers cancellation between physical preflight units', async () => {
+  const abort = new AbortController();
+  let advances = 0, cleanups = 0;
+  const fixture = supervisedInferFixture(abort.signal, undefined, undefined,
+    undefined, {
+      limits: {tokens: 33n, costUnits: 0n, durationMs: 500n},
+      perAttempt: {tokens: 33n, costUnits: 0n, durationMs: 500n},
+    }, () => moon.clientProgramModelRequestPreflight(() => {
+      advances++;
+      setImmediate(() => abort.abort(new Error('PreflightInterrupted')));
+      return {_0: false, _1: undefined};
+    }, () => { cleanups++; return true; }));
+  await assert.rejects(fixture.operation.run(), /PreflightInterrupted/u);
+  assert.equal(advances, 1);
+  assert.equal(fixture.calls(), 0);
+  assert.equal(fixture.operation.acquireOutput(), undefined);
+  await fixture.operation.close();
+  assert.equal(fixture.operation.physicalStopped(), true);
+  assert.equal(fixture.operation.cleanupPending(), false);
+  assert.equal(cleanups, 1);
+  assert.equal(fixture.calls(), 0);
+});
 
 // Component harness for the common bounded issuer. This is not a replacement
 // for installed Host dispatch, capture custody or committed Result publication.

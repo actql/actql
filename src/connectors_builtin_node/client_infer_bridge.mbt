@@ -40,6 +40,65 @@ pub fn client_program_bind_infer_quantity_capacity(
 }
 
 ///|
+#export_name("clientProgramBindInferPhysicalPreflight")
+pub fn client_program_bind_infer_physical_preflight(
+  active : @infer_host.Execution,
+  prepare : (@model.ModelRequest) -> @model.ModelRequestPreflight?,
+) -> Result[Unit, @infer_host.Issue] {
+  @infer_host.bind_physical_preflight(active, request => {
+    match prepare(request) {
+      Some(cursor) => Ok(cursor)
+      None => Err(@model.InvalidProvider)
+    }
+  })
+}
+
+///|
+/// One bounded physical preparation unit per advance. Invalid terminal
+/// preparation is a barrier refusal, never a fabricated provider outcome.
+#export_name("clientProgramModelRequestPreflight")
+pub fn client_program_model_request_preflight(
+  advance : () -> (Bool, @model.ModelPhysicalRequestPlan?),
+  cleanup : () -> Bool,
+) -> @model.ModelRequestPreflight {
+  {
+    advance: () => {
+      match advance() {
+        (false, None) => Ok(None)
+        (true, Some(plan)) => Ok(Some(plan))
+        _ => Err(@model.InvalidProvider)
+      }
+    },
+    cleanup,
+  }
+}
+
+///|
+/// The payload stays in the installed adapter's closure. MoonBit checks its
+/// exact request owner and its envelope against all pre-reserved slot limits.
+#export_name("clientProgramModelPhysicalRequestPlan")
+pub fn client_program_model_physical_request_plan(
+  request : @model.ModelRequest,
+  wire_bytes : Int64,
+  tokens : Int64,
+  cost_units : Int64,
+  duration_ms : Int64,
+  invoke : () -> @model.ModelResponse?,
+) -> Result[@model.ModelPhysicalRequestPlan, @model.ModelExecutionIssue] {
+  @model.model_physical_request_plan(
+    request,
+    wire_bytes,
+    { tokens, cost_units, duration_ms, },
+    () => {
+      match invoke() {
+        Some(response) => Ok(response)
+        None => Err(@model.ProviderError)
+      }
+    },
+  )
+}
+
+///|
 #export_name("clientProgramInferQuantityUsage")
 pub fn client_program_infer_quantity_usage(
   active : @infer_host.Execution,

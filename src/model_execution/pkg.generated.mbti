@@ -97,6 +97,8 @@ pub fn model_outcomes_invocation_evidence(ModelOutcomeRead, Int) -> @run_publica
 
 pub fn model_outcomes_outcome(ModelOutcomeRead, Int) -> String?
 
+pub fn model_physical_request_plan(ModelRequest, Int64, @physical_resources.QuantityAmounts, () -> Result[ModelResponse, ModelProviderFailure]) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
+
 pub fn model_slot_replay_count(ModelSlotReplayRead) -> Int?
 
 pub fn read_model_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Int, Int) -> Result[ModelSlotReplayRead, ModelExecutionIssue]
@@ -125,7 +127,7 @@ pub fn start_model_capture_export(VerifiedModelCapture, ModelCaptureExportLimits
 
 pub fn start_model_capture_replay(@execution_relation.PreparedInferRows, @run_publication_host.ClientInferCallScope, VerifiedModelCapture, ModelExecutionLimits) -> Result[ModelExecution, ModelExecutionIssue]
 
-pub fn start_model_execution(@execution_relation.PreparedInferRows, ModelProvider, String, ModelExecutionLimits, call_scope? : @run_publication_host.ClientInferCallScope?, dispatch_admission? : @run_publication_host.ClientInferDispatchAdmission?, quantity_capacity? : ModelQuantityCapacity?) -> Result[ModelExecution, ModelExecutionIssue]
+pub fn start_model_execution(@execution_relation.PreparedInferRows, ModelProvider, String, ModelExecutionLimits, call_scope? : @run_publication_host.ClientInferCallScope?, dispatch_admission? : @run_publication_host.ClientInferDispatchAdmission?, quantity_capacity? : ModelQuantityCapacity?, physical_preflight? : ((ModelRequest) -> Result[ModelRequestPreflight, ModelExecutionIssue])?) -> Result[ModelExecution, ModelExecutionIssue]
 
 pub fn start_model_observation_verification(VerifiedModelCapture, @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], ModelObservationVerificationLimits) -> Result[ModelObservationVerification, ModelExecutionIssue]
 
@@ -258,6 +260,13 @@ pub struct ModelOutcomeRead {
 
 type ModelOutputPreparation
 
+pub struct ModelPhysicalRequestPlan {
+  request : ModelRequest
+  wire_bytes : Int64
+  quantities : @physical_resources.QuantityAmounts
+  invoke : () -> Result[ModelResponse, ModelProviderFailure]
+}
+
 pub(all) struct ModelProvider {
   invoke : (ModelRequest) -> Result[ModelResponse, ModelProviderFailure]
   provider_id : String
@@ -292,6 +301,11 @@ pub(all) struct ModelRequest {
   fixed_request_cid : String
   key : Array[@value_admission.CheckedValue]
   inputs : Array[(String, @value_admission.CheckedValue)]
+}
+
+pub(all) struct ModelRequestPreflight {
+  advance : () -> Result[ModelPhysicalRequestPlan?, ModelExecutionIssue]
+  cleanup : () -> Bool
 }
 
 pub(all) struct ModelResponse {
@@ -332,5 +346,6 @@ pub struct VerifiedModelCapture {
 }
 
 // Type aliases
+pub type ModelPhysicalPreflight = (ModelRequest) -> Result[ModelRequestPreflight, ModelExecutionIssue]
 
 // Traits

@@ -63,6 +63,26 @@ pub fn bind_quantity_capacity(
 }
 
 ///|
+/// Retain the installed adapter's bounded physical preparation before any
+/// prefix work. Dispatch still requires the ordinary current authority owner.
+pub fn bind_physical_preflight(
+  active : Execution,
+  prepare : @model.ModelPhysicalPreflight,
+) -> Result[Unit, Issue] {
+  if active.reclaimed ||
+    active.cancelled ||
+    active.advancing ||
+    !(active.source is Physical(_)) ||
+    !(active.phase is Input) ||
+    active.work != 0L ||
+    active.physical_preflight is Some(_) {
+    return Err(InvalidAdvance)
+  }
+  active.physical_preflight = Some(prepare)
+  Ok(())
+}
+
+///|
 /// The actual shared ledger observation remains available after failed or
 /// cancelled cleanup. Reservations for dispatched unknown usage are retained.
 pub fn execution_quantity_usage(

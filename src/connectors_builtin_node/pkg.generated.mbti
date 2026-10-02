@@ -134,6 +134,8 @@ pub fn client_program_bind_infer_dispatch_admission(@client_infer_host.Execution
 
 pub fn client_program_bind_infer_invocation(@client_infer_host.Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @model_execution.ModelObservationVerification, @run_publication.PublicationContract, String) -> Result[@client_infer_host.InvocationBinding, @client_infer_host.InvocationBindingIssue]
 
+pub fn client_program_bind_infer_physical_preflight(@client_infer_host.Execution, (@model_execution.ModelRequest) -> @model_execution.ModelRequestPreflight?) -> Result[Unit, @client_infer_host.Issue]
+
 pub fn client_program_bind_infer_quantity_capacity(@client_infer_host.Execution, Int64, Int64, Int64, Int64, Int64, Int64) -> Result[Unit, @client_infer_host.Issue]
 
 pub fn client_program_bind_infer_run(@client_infer_host.Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, @client_infer_host.InvocationBindingIssue]
@@ -752,9 +754,13 @@ pub fn client_program_model_capture(@model_execution.ModelObservation) -> @model
 
 pub fn client_program_model_capture_json(@model_execution.ModelCaptureBundle) -> String?
 
+pub fn client_program_model_physical_request_plan(@model_execution.ModelRequest, Int64, Int64, Int64, Int64, () -> @model_execution.ModelResponse?) -> Result[@model_execution.ModelPhysicalRequestPlan, @model_execution.ModelExecutionIssue]
+
 pub fn client_program_model_provider_admission_issue_kind(@model_execution.ModelProviderAdmissionIssue) -> String
 
 pub fn client_program_model_request_input(@model_execution.ModelRequest, String) -> String?
+
+pub fn client_program_model_request_preflight(() -> (Bool, @model_execution.ModelPhysicalRequestPlan?), () -> Bool) -> @model_execution.ModelRequestPreflight
 
 pub fn client_program_model_response(@model_execution.ModelRequest, String, String, String, Int64, Int64, String) -> @model_execution.ModelResponse?
 

@@ -134,6 +134,7 @@ pub(all) enum ModelObservation {
 priv enum ModelPhase {
   ReserveSlots
   PrepareRequests
+  PreparePhysicalRequests
   DispatchSlot
   CheckResponse(ModelRequest, ModelResponse, String, @admitted.RecheckCursor)
   RestoreResponse(
@@ -168,6 +169,10 @@ struct ModelState {
   ledger : @resources.Ledger
   reservations : Array[@resources.Reservation]
   requests : Array[PreparedModelRequest]
+  physical_preflight : ModelPhysicalPreflight?
+  physical_cursors : Array[ModelRequestPreflight]
+  physical_plans : Array[ModelPhysicalRequestPlan]
+  mut physical_cleanup_index : Int
   outcomes : Array[AdoptedModelSlot]
   mut request : ModelRequestPreparation?
   captures : Array[ModelSlotCapture]
@@ -295,7 +300,11 @@ fn advance_model(
           state.limits.max_request_bytes +
           state.limits.max_response_bytes +
           (if state.dispatch_admission is Some(_) { 81920L } else { 0L }),
-          0L,
+          if state.physical_preflight is Some(_) {
+            physical_preflight_metadata_bytes
+          } else {
+            0L
+          },
           quantities=state.quantity_capacity.map(value => value.per_attempt),
         ) {
         Ok(value) => state.reservations.push(value)
@@ -312,6 +321,9 @@ fn advance_model(
   }
   if state.phase is PrepareRequests {
     return advance_model_request_preparation(state)
+  }
+  if state.phase is PreparePhysicalRequests {
+    return advance_model_physical_preflight(state)
   }
   if state.next_slot >= @relation.prepared_infer_rows_count(state.rows) {
     return complete_model_slots(state)
@@ -441,7 +453,16 @@ fn advance_model(
       Ok(_) => ()
     }
   }
-  let response = match (provider.invoke)(request) {
+  let invoked = match state.physical_preflight {
+    None => (provider.invoke)(request)
+    Some(_) => {
+      guard state.physical_plans.get(state.next_slot) is Some(plan) else {
+        return @bounded.Failed(RequestIdentity, 1, 1)
+      }
+      (plan.invoke)()
+    }
+  }
+  let response = match invoked {
     Ok(value) => value
     Err(issue) => {
       if @bounded.stop_requested(reader) is Some(reason) {
@@ -517,6 +538,7 @@ pub fn start_model_execution(
   call_scope? : @publication_host.ClientInferCallScope? = None,
   dispatch_admission? : @publication_host.ClientInferDispatchAdmission? = None,
   quantity_capacity? : ModelQuantityCapacity? = None,
+  physical_preflight? : ModelPhysicalPreflight? = None,
 ) -> Result[ModelExecution, ModelExecutionIssue] {
   start_model_owned(
     rows,
@@ -526,6 +548,7 @@ pub fn start_model_execution(
     call_scope,
     dispatch_admission~,
     quantity_capacity~,
+    physical_preflight~,
   )
 }
 
@@ -538,7 +561,12 @@ fn start_model_owned(
   call_scope : @publication_host.ClientInferCallScope?,
   dispatch_admission? : @publication_host.ClientInferDispatchAdmission? = None,
   quantity_capacity? : ModelQuantityCapacity? = None,
+  physical_preflight? : ModelPhysicalPreflight? = None,
 ) -> Result[ModelExecution, ModelExecutionIssue] {
+  if physical_preflight is Some(_) &&
+    (!(source is Provider(_)) || quantity_capacity is None) {
+    return Err(InvalidLimits)
+  }
   if !valid_cid(fixed_request_cid) ||
     limits.max_items < 0 ||
     limits.max_work < 0 ||
@@ -623,6 +651,10 @@ fn start_model_owned(
     ledger,
     reservations,
     requests: [],
+    physical_preflight,
+    physical_cursors: [],
+    physical_plans: [],
+    physical_cleanup_index: 0,
     outcomes: [],
     request: None,
     captures: [],
@@ -642,7 +674,7 @@ fn start_model_owned(
     control,
     state,
     advance_model,
-    _ => true,
+    cleanup_model_physical_preflight,
     _ => true,
   )
   Ok({ session, token, control, state, })
@@ -700,7 +732,10 @@ pub fn model_execution_quantity_usage(
 pub fn model_execution_preflighting(execution : ModelExecution) -> Bool {
   !execution.state.reclaimed &&
   !@bounded.session_stopped(execution.session) &&
-  execution.state.phase is PrepareRequests
+  (
+    execution.state.phase is PrepareRequests ||
+    execution.state.phase is PreparePhysicalRequests
+  )
 }
 
 ///|
@@ -726,6 +761,9 @@ pub fn cleanup_model_execution(
   match @bounded.cleanup(execution.session) {
     Ok(false) => Ok(false)
     Ok(true) => {
+      if @bounded.cleanup_pending(execution.session) {
+        return Ok(false)
+      }
       if execution.state.phase is CheckResponse(_, _, _, cursor) {
         @admitted.cancel_recheck_runtime_value(cursor)
       }
@@ -754,6 +792,8 @@ pub fn cleanup_model_execution(
       execution.state.restored_evidence = None
       execution.state.restored_binding = None
       execution.state.requests.clear()
+      execution.state.physical_plans.clear()
+      execution.state.physical_cursors.clear()
       execution.state.outcomes.clear()
       if execution.state.source is Replay(capture) {
         capture.owner.state.output_uses -= 1

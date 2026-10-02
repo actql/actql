@@ -33,6 +33,8 @@ pub fn bind_invocation(Execution, @run_publication_host.ClientCompiledRun, @run_
 
 pub fn bind_issued_invocation(Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, ObservationIssuance) -> Result[InvocationBinding, InvocationBindingIssue]
 
+pub fn bind_physical_preflight(Execution, (@model_execution.ModelRequest) -> Result[@model_execution.ModelRequestPreflight, @model_execution.ModelExecutionIssue]) -> Result[Unit, Issue]
+
 pub fn bind_quantity_capacity(Execution, @model_execution.ModelQuantityCapacity) -> Result[Unit, Issue]
 
 pub fn bind_run(Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, InvocationBindingIssue]
@@ -139,6 +141,7 @@ pub struct Execution {
   mut run_binding : ExecutionRunBinding?
   mut dispatch_admission : @run_publication_host.ClientInferDispatchAdmission?
   mut quantity_capacity : @model_execution.ModelQuantityCapacity?
+  mut physical_preflight : ((@model_execution.ModelRequest) -> Result[@model_execution.ModelRequestPreflight, @model_execution.ModelExecutionIssue])?
   mut final_quantity_usage : @physical_resources.QuantityUsage?
 }
 

@@ -12,11 +12,16 @@ const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
 // Exactly one physical provider or already Store-confirmed saved read is used.
 export function openNodeInferOperation({moon, preparedProgram, step, graph,
   registry, values, provider, savedCapture, savedSlots, quantityCapacity,
-  signal, quantum = 256}) {
+  physicalPreflight, signal, quantum = 256}) {
   if (!Number.isSafeInteger(quantum) || quantum < 1 || quantum > 2147483647 ||
       [provider, savedCapture, savedSlots].filter(value => value !== undefined)
         .length !== 1) {
     throw new TypeError('InvalidInstalledInferOperation');
+  }
+  if (physicalPreflight !== undefined &&
+      (typeof physicalPreflight !== 'function' || provider === undefined ||
+        quantityCapacity === undefined)) {
+    throw new TypeError('InvalidInstalledInferPhysicalPreflight');
   }
   if (quantityCapacity !== undefined && (provider === undefined ||
       quantityCapacity === null ||
@@ -50,6 +55,19 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     if (bound?.$tag !== 1) {
       // This is still the bounded, pre-dispatch Input phase. Confirm stop and
       // cleanup before propagating the original typed refusal; never run.
+      requestStop();
+      const stopped = checked(moon.clientProgramAdvanceInferExecution(active, 1));
+      if (moon.clientProgramInferExecutionPollKind(stopped) !== 'stopped' ||
+          checked(moon.clientProgramCleanupInferExecution(active)) !== true) {
+        throw pending();
+      }
+      checked(bound);
+    }
+  }
+  if (physicalPreflight !== undefined) {
+    const bound = moon.clientProgramBindInferPhysicalPreflight(active,
+      physicalPreflight);
+    if (bound?.$tag !== 1) {
       requestStop();
       const stopped = checked(moon.clientProgramAdvanceInferExecution(active, 1));
       if (moon.clientProgramInferExecutionPollKind(stopped) !== 'stopped' ||

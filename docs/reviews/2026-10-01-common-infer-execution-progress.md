@@ -1764,3 +1764,54 @@ The installed public submit still stops at dispatch admission. Current egress
 and exact physical request preflight, private capture custody in the ordinary
 Run journal, public fresh-process replay, final specification/CI gates and the
 B handoff remain incomplete. Component publication does not replace them.
+
+## Bounded physical request preflight
+
+The common Model execution now has an optional physical preparation phase
+between mapped-request preparation and dispatch. The installed adapter yields
+one bounded preparation unit per common advance, retains the exact physical
+payload in its plan, and supplies its request-byte and worst-case quantity
+envelopes. The common owner checks the exact request object, the existing
+per-attempt reservations, and the ModelTask output-token floor. All slots must
+finish preparation before the first call. A late preparation failure fails the
+barrier with zero provider calls; it does not fabricate a failed outcome row.
+
+Cursor/plan bookkeeping reserves 256 execution bytes per slot before any
+cursor is created. This is separate from the existing request/response buffer
+retention reservation, not an RSS measurement. Adapters must fit retained
+payload buffers within that envelope rather than make unreserved copies.
+Cleanup releases at most one physical cursor per call and preserves the
+remaining cursors and reservations when release fails. It never prepares or
+invokes a request again. Unknown dispatched usage retains the existing ledger
+and proof behavior.
+
+The Node operation connects the same preparation owner and yields through the
+event loop between units. Regressions cover exact request binding, late-slot
+refusal, exact/one-short byte, token and metadata envelopes, cancellation after
+positive preparation progress, failed cleanup and retry, and dispatch through
+the retained plan rather than the original unprepared callback. The common
+Model/Infer packages pass 79 tests on each of JS, Wasm and native.
+After rebuilding both runtime packages, the combined public HTTP admission
+and owned Infer Node suites pass 61 tests. These include component capture
+reopen/replay and Result publication, not successful public submit/replay.
+
+The public HTTP valid-body case still reaches
+`InstalledInferDispatchNotConnected` after dependency and payload admission.
+This explicit missing-connection guard is not a typed kernel failure. No Run
+or provider call is made, and this revision is not a successful public INFER
+handoff. The remaining connections are concrete:
+
+| Boundary | Existing owner | Remaining installed connection |
+| --- | --- | --- |
+| Task and dependencies | `readInstalledModelExecution`, `readInstalledModelDependencies`, `admitInstalledModelProvider` | Retain the admitted selection in `embedded-local.mjs` instead of its terminal guard. |
+| Current authority and egress | `bindCheckedClientInferDispatch`, checked ModelTask handling rules | Supply current account and Host-owned input classification/region policy before dispatch. |
+| Physical preparation | `bind_physical_preflight`, `openNodeInferOperation` | Register the selected adapter's bounded physical cursor and quantity envelope in the installed Host. |
+| Dispatch and publication | `client-dispatch-owner.mjs`, `inferTaskRunAdmission`, `inferTaskPublicationPlan` | Install `runInfer` and select the Infer plan from the original prepared Program. |
+| Capture and replay | Common slot/attempt issuer and checked replay readers; encrypted Store | Connect private capture confirmation and recovery to existing Run custody; prove fresh-process public replay without dispatch. |
+
+The new low-level preparation hook is additive and does not grant authority.
+Legacy component execution and replay do not implicitly select an adapter
+preflight. The installed public path must explicitly bind it before its guard
+can be removed. No canonical body or non-INFER preimage changes in this unit.
+No complete specification gate, pushed-SHA CI or public execution completion
+is claimed by these targeted checks.
