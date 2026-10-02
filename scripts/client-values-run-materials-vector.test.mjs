@@ -231,13 +231,30 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('ecf842ba6846f2dbac5cb8fa42b5b708c14e0ec170fc14d05043a351c0300582'),
     priorAoA).run.run_definition_cid,
     pin('b8f4539c6741e24dd20bdd1ce77f5dc9d0c0466684c6e151e4441bccaaaaca9c'));
-  // Grammar, transfer classification, Check environment and the selected
-  // Property Graph law change the Unit closure even for a Values-only Run.
-  // Rebuild the proof, publication bindings and Result Plan independently.
-  assert.equal(vector(grammarCid, cid(aoaContract), dependencies).run.run_definition_cid,
+  // Freeze the pre-refresh Property Graph vectors as history. The later
+  // query grammar pin changes compilation/Run identity, not this Values
+  // Unit, cardinality proof or Result Plan. No product issuer is consulted.
+  const preRefreshDependencies = {
+    unit: pin('bd1d8948bb65f17b94e971ec556f43add62bec77e59fdb3723f588cfe7b76810'),
+    proof: pin('b71c7850a144cc4c855e3093c1c198fdcddec92ee8547480e689b74f6e36d563'),
+    resultPlan: pin('457f27fe1a1f226e1ebab73824370e2242c003886619e37e4f18ed866c897d3f'),
+  };
+  const preRefreshGrammar = pin('a008ad4bb4aa68f02a688b00306bc3818de0dae7beae81d977e54e76f156ad5d');
+  const preRefreshContract = pin('b1b5ca9f0cbfee0ec8e9502e7b7eba33c0bddb31d6a0284076ec176ebb9cd73f');
+  assert.equal(vector(preRefreshGrammar, preRefreshContract,
+    preRefreshDependencies).run.run_definition_cid,
     pin('838a90f1bb3ee17c4e8a25db56d1756c5201897f7a1128498832796ff8c18a90'));
-  assert.equal(current.run.run_definition_cid,
+  assert.equal(vector(preRefreshGrammar, preRefreshContract,
+    preRefreshDependencies,
+    pin('8e3203948952a96d5153e9b0300431d29f5c209ce113f14c7f7149d3abac4818')).run.run_definition_cid,
     pin('f2b1556c0f99714896e7ea77c817f174797d3a5e66b3a8c593315ad4365ed77a'));
+  for (const field of ['unit', 'proof', 'resultPlan']) {
+    assert.equal(dependencies[field], preRefreshDependencies[field]);
+  }
+  assert.equal(vector(grammarCid, cid(aoaContract), dependencies).run.run_definition_cid,
+    pin('3e86d58da98d5af468f0cd07aaef40562c46117c099dfa1cb41a2de052f983f3'));
+  assert.equal(current.run.run_definition_cid,
+    pin('6feea7b7aec5bf825c5db7e46123c9b08f72f5fa85e795968e707d4e4d6c16c4'));
 
   // Preserve the independent INFER predecessor with its original dependency closure.
   assert.equal(vector(pin('8fc336e2b475104366fea9024c38d171a3d18743a63f05b254272e14bedd886d'),

@@ -1048,3 +1048,31 @@ only the six evidence pointers move to real current positive cases.
 Complete spec/Core, fresh packed snapshot and pushed-SHA required CI are
 still outstanding. The first failed aggregate is not overwritten by these
 narrow successes.
+
+### Independent Run-vector grammar refresh (2026-10-03)
+
+The Core JS job at `b09b5e69a987d20a90b5c3ecfbc6efaaf1cbd718` passes the
+common `moon check --deny-warn`, then stops at the independent Run identity
+test (**1/2**). The full Core test command has not run in that attempt. Log:
+`/private/tmp/property-graph-core-js-b09b5e69a-20261003.log`.
+
+The independent hand-assembled preimages reproduce both previous Run vectors
+with grammar `sha256:a008ad4bb4aa68f02a688b00306bc3818de0dae7beae81d977e54e76f156ad5d`.
+The current grammar pin
+`sha256:2bf8ef0846b81f91fec96548d10dddd8c7e5a82b7db05444b38eefa316779c11`
+changes invocation-template, compilation and Run identity. Values Unit,
+cardinality proof and Result Plan remain unchanged and are separately asserted.
+The new Run vector with the current barrier manifest is
+`sha256:6feea7b7aec5bf825c5db7e46123c9b08f72f5fa85e795968e707d4e4d6c16c4`;
+the original-barrier vector is
+`sha256:3e86d58da98d5af468f0cd07aaef40562c46117c099dfa1cb41a2de052f983f3`.
+Both old vectors remain frozen tests using their original grammar/contract and
+dependency closure; their historical identities are not rewritten.
+
+No product compiler, issuer or generated output participates in that expected
+calculation. The independent Node tests pass **2/2**, and the real materials
+issuer/admission fixture passes **1/1 on each JS, Wasm and native** with the
+independently derived literal. Target logs are
+`/private/tmp/property-graph-run-vector-refresh-{js,wasm,native}-20261003.log`.
+The complete final-source Core/spec/packed and pushed-SHA checks remain
+required, rather than treating these narrow vectors as full acceptance.
