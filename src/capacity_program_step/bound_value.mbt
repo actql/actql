@@ -11,11 +11,6 @@ fn calculate_bound_value(
   let count = match rule {
     One => 1L
     Constant(n) => n
-    GraphQuery(query) =>
-      match query_bound_value(query, i => @numeric.value(input_value(i))) {
-        Ok(n) => n
-        Err(e) => return Err(e)
-      }
     GraphMeasure(_, _, _, factor) =>
       match @numeric.multiply(input_value(0), @numeric.read(factor).unwrap()) {
         Ok(v) => @numeric.value(v)

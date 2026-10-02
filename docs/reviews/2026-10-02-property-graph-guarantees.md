@@ -1165,3 +1165,45 @@ external Source/Host guarantees, strict inventories and submitted-SHA public
 snapshot/fresh packed/required CI acceptance remain open. The earlier aggregate
 Core failures are not reclassified as passing by this narrow result. Public
 #164 remains unchanged and is not yet ready for adoption.
+
+## Sole current path schema and bound rules
+
+The unreachable `TraversedNodes` and `ShortestPaths` checked output variants,
+their node/depth and weighted-shortest schemas, legacy path-profile switch,
+lowered emission arms and scalar start/node key inference are removed. The
+current path schema keeps full independent identities for both node and edge
+arrays. Its two wrappers, five fields and 39 field-name bytes independently
+fix the seven-work/two-node preparation envelope; exact and each one-short
+boundary remain tested. Authored `emit: nodes` is explicitly refused before a
+checked path grant; unsupported shortest typing remains independently covered.
+
+The retired node-emission query-bound rule, selector-clamping calculator,
+capacity operand/derivation readers and wire emission arm are removed together.
+Current path enumeration still requires its existing resolved search/output
+ceilings; a start/node product cannot prove its row bound. MATCH and constructor
+entity measures retain their original operand units and owners. Shared
+safe-integer, zero and overflow multiplication cases are moved to the existing
+common bound calculator, not a second Graph calculator. The removed
+node-membership product/clamping law is not claimed supported or preserved.
+
+A mixed bound-reader test still authored old constructor/union bytes. Its
+generic ownership/arity portion now uses a current constructor with one node
+and three independent edge definitions, all reading the same original VALUES
+producer. It positively checks the node's original Rows edge and three distinct
+edge-definition Sample occurrences, rather than collapsing repeated uses or
+turning the test into an unsupported-operation refusal. Existing nearest and
+ranking arity/fallback assertions remain unchanged.
+
+The final surrounding suite passes **139/139 on each JS, Wasm and native**:
+`/private/tmp/property-graph-sole-path-regression-{js-pass,wasm,native}-20261003.log`.
+Initial runs exposed that historical fixture, a missing constructor alias and
+an empty authored selector (which correctly fails before emission checking).
+The selector now has an independently authored N/domain/composite typed key;
+the exact unsupported-emission diagnostic is asserted. Product validation and
+capacity expectations were not weakened. Initial logs remain alongside these
+final logs.
+
+Homogeneous metadata/projection and definition-free predicate scaffolding,
+external Source definition admission, strict inventories, aggregate Core and
+submitted-SHA public snapshot/fresh packed/required CI remain open. The public
+PR has not been replaced, pushed or declared GO by these local results.

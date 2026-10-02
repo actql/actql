@@ -8,6 +8,23 @@ fn bound_calculation(
 }
 
 ///|
+test "shared multiplication preserves safe integer and zero boundaries" {
+  // These are arithmetic checks, not an unsupported node-emission path law.
+  let largest = 9007199254740991L
+  for
+    (left, right, expected) in [
+      (largest, 1L, Ok(largest)),
+      (largest, 0L, Ok(0L)),
+      (0L, largest, Ok(0L)),
+      (largest, 2L, Err(BoundOverflow)),
+      (94906265L, 94906265L, Ok(9007199136250225L)),
+      (94906266L, 94906266L, Err(BoundOverflow)),
+    ] {
+    assert_eq(bound_calculation(Multiply(right), [left]), expected)
+  }
+}
+
+///|
 test "bound calculation preserves arithmetic limits and operation-specific empty cases" {
   let maximum = 9007199254740991L
   assert_eq(bound_calculation(One, []), Ok(1L))

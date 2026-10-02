@@ -144,7 +144,6 @@ test "path profile boundaries reject omission reinterpretation and unsupported m
       cursor("true"),
       legacy,
       limits(),
-      property_paths=true,
     )
     is Err({ kind: @graph_typing.IncompleteGraph, .. }),
   )
@@ -164,7 +163,7 @@ test "path profile boundaries reject omission reinterpretation and unsupported m
 }
 
 ///|
-test "legacy property and path schemas never erase keyed graph structure" {
+test "definition free property scope cannot erase keyed graph structure" {
   for entity in [@graph_typing.Nodes, @graph_typing.Edges] {
     guard @graph_typing.check_scope(
         entity,
@@ -174,19 +173,6 @@ test "legacy property and path schemas never erase keyed graph structure" {
       )
       is Err(issue) else {
       abort("legacy homogeneous scope accepted a keyed profile")
-    }
-    assert_eq(issue.kind, @graph_typing.UnsupportedGraphOperation)
-  }
-  for kind in [@graph_typing.TraversedPaths, @graph_typing.ShortestPaths] {
-    guard @graph_typing.check_path_contract(
-        kind,
-        cursor("true"),
-        keyed_profile(),
-        limits(),
-        property_paths=false,
-      )
-      is Err(issue) else {
-      abort("endpoint-tuple path contract accepted independent edge identity")
     }
     assert_eq(issue.kind, @graph_typing.UnsupportedGraphOperation)
   }

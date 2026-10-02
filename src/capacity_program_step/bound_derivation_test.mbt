@@ -147,10 +147,20 @@ test "bound operand readers distinguish query fallback graph measures and rankin
       assert_eq(input.edge, i)
     }
   }
+  let node = "{\"name\":\"N\",\"from\":\"seed\",\"key\":[\"id\"]}"
+  let edges = ["E", "F", "G"].map(name => {
+    "{\"name\":\"" +
+    name +
+    "\",\"from\":\"seed\",\"key\":[\"id\"],\"source\":{\"definition\":\"N\",\"key\":[\"src\"]},\"target\":{\"definition\":\"N\",\"key\":[\"dst\"]}}"
+  })
   let p = graph_measure_pipeline(
     "[" +
-    graph_seed("seed", 1) +
-    ",{\"graph\":{\"source\":\"src\",\"target\":\"dst\"},\"as\":\"g\"},{\"union_graphs\":{\"with\":[\"g\",\"g\"]}}]",
+    keyed_measure_seed("seed", 1) +
+    ",{\"property_graph\":{\"version\":\"actql-property-graph-constructor/0.1\",\"nodes\":[" +
+    node +
+    "],\"edges\":[" +
+    edges.join(",") +
+    "]},\"as\":\"g\"}]",
   )
   let graph = @capacity_program_step.prepare_bound_derivation(
     p,
@@ -158,21 +168,25 @@ test "bound operand readers distinguish query fallback graph measures and rankin
     unit=@arithmetic.Nodes,
   ).unwrap()
   assert_eq(graph.unit, @arithmetic.Nodes)
-  assert_eq(
-    @capacity_program_step.bound_derivation_input_at(graph, 1, 0).unwrap().unit,
-    @arithmetic.Rows,
-  )
-  let union = @capacity_program_step.prepare_bound_derivation(
+  assert_eq(graph.input_count, 1)
+  let node_input = @capacity_program_step.bound_derivation_input_at(graph, 1, 0).unwrap()
+  assert_eq(node_input.unit, @arithmetic.Rows)
+  assert_eq(node_input.target, @pipeline.Step(0))
+  assert_eq(node_input.edge, 0)
+  let edge_definitions = @capacity_program_step.prepare_bound_derivation(
     p,
-    2,
+    1,
     unit=@arithmetic.Edges,
   ).unwrap()
-  assert_eq(union.input_count, 3)
+  assert_eq(edge_definitions.input_count, 3)
   for i in 0..<3 {
-    assert_eq(
-      @capacity_program_step.bound_derivation_input_at(union, 3, i).unwrap().unit,
-      @arithmetic.Edges,
-    )
+    let input = @capacity_program_step.bound_derivation_input_at(
+      edge_definitions, 3, i,
+    ).unwrap()
+    assert_eq(input.unit, @arithmetic.Rows)
+    assert_eq(input.target, @pipeline.Step(0))
+    // Each definition retains its own Sample occurrence, even for one source.
+    assert_eq(input.edge, i + 1)
   }
 }
 

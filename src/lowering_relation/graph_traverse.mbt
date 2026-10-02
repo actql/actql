@@ -375,14 +375,7 @@ fn emit_graph_traverse_node(
     @encode.number_value(out, maximum)
   }
   @encode.key(out, "emit")
-  @encode.string_value(
-    out,
-    match @graph.traverse_emission(prepared.checked) {
-      @graph.TraversedNodes => "nodes"
-      @graph.TraversedPaths => "paths"
-      @graph.ShortestPaths => abort("invalid traverse emission")
-    },
-  )
+  @encode.string_value(out, "paths")
   if prepared.output_guard is Some(value) {
     @encode.key(out, "max_output_rows")
     @encode.number_value(out, value.to_double())

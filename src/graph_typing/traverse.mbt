@@ -165,12 +165,9 @@ pub fn check_traverse(
     let mut tokens = start.usage.tokens
     let at = decoded(@decode.required(root, "emit"))
     let emit = match decoded(@decode.text(at)) {
-      "nodes" => TraversedNodes
+      "nodes" => fail(at, UnsupportedGraphProfile)
       "paths" => TraversedPaths
       _ => fail(at, InvalidBody)
-    }
-    if emit != TraversedPaths {
-      fail(at, UnsupportedGraphProfile)
     }
     let hops = []
     let patterned = @decode.lookup(root, "hops") is Some(_)
@@ -274,18 +271,12 @@ pub fn check_traverse(
       }
     }
     let output = match
-      check_path_contract(
-        emit,
-        source,
-        input,
-        {
-          ..b.limits,
-          max_work: b.work,
-          max_nodes: b.nodes,
-          max_text_bytes: b.text,
-        },
-        property_paths=true,
-      ) {
+      check_path_contract(emit, source, input, {
+        ..b.limits,
+        max_work: b.work,
+        max_nodes: b.nodes,
+        max_text_bytes: b.text,
+      }) {
       Ok(o) => o
       Err(e) => raise Stop(e)
     }

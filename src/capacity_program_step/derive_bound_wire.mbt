@@ -91,7 +91,6 @@ fn emit_derived_rule(
     }
     One
     | Constant(_)
-    | GraphQuery(_)
     | GraphMeasure(_, _, _, _)
     | PropertyGraphMeasure(_, _, _)
     | Join(_)

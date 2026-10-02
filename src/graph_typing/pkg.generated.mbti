@@ -22,7 +22,7 @@ pub fn check_match(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, @
 
 pub fn check_mean_options(@decode_core.Cursor, Limits) -> Result[CheckedMeanOptions, Issue]
 
-pub fn check_path_contract(PathOutput, @decode_core.Cursor, @carrier_contract.Carrier, Limits, property_paths? : Bool) -> Result[CheckedPathContract, Issue]
+pub fn check_path_contract(PathOutput, @decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedPathContract, Issue]
 
 pub fn check_predicate(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedPredicate, PredicateIssue]
 
@@ -359,9 +359,7 @@ pub(all) enum NullMeanValue {
 } derive(Eq, @debug.Debug)
 
 pub(all) enum PathOutput {
-  TraversedNodes
   TraversedPaths
-  ShortestPaths
 } derive(Eq, @debug.Debug)
 
 pub enum PredicateIssue {

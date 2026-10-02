@@ -108,7 +108,6 @@ priv enum Rule {
   Join(@join.Kind)
   GraphMeasure(@arithmetic.BoundUnit, @arithmetic.BoundUnit, Int, Int64)
   PropertyGraphMeasure(@arithmetic.BoundUnit, Int, Int)
-  GraphQuery(QueryBound)
 }
 
 ///|
@@ -139,14 +138,7 @@ fn operation_rule(
         _ => Err(LawMismatch)
       }
     }
-    @pipeline.Traverse(checked~, ..) => {
-      if @graph.traverse_emission(checked) != @graph.TraversedNodes {
-        return Err(UnsupportedOperation)
-      }
-      return Ok(
-        ("actql.bound.traverse-nodes", GraphQuery(traversal_bound(checked))),
-      )
-    }
+    @pipeline.Traverse(..) => return Err(UnsupportedOperation)
     @pipeline.GraphMatch(op) => {
       let (law, input_unit) = if @graph.match_entity(op) == @graph.Nodes {
         ("actql.bound.match-nodes", @arithmetic.Nodes)
@@ -588,7 +580,6 @@ fn check_application(
   match (rule, @wire.derivation(witness)) {
     (One, @wire.SourceValue) => ()
     (Constant(_), @wire.SourceValue) => ()
-    (GraphQuery(_), @wire.SourceValue) => ()
     (GraphMeasure(_, _, _, _), @wire.SourceValue) => ()
     (PropertyGraphMeasure(_, _, _), @wire.SourceValue) => ()
     (Join(_), @wire.SourceValue) => ()

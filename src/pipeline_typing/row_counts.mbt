@@ -404,10 +404,7 @@ fn derive_row_counts(
           result,
           nodes,
         )
-        if @graph.traverse_emission(checked) == TraversedNodes {
-          reduce_count(product_counts(step.source, starts, nodes))
-        } else if starts is Some({ upper: 0L, .. }) ||
-          nodes is Some({ upper: 0L, .. }) {
+        if starts is Some({ upper: 0L, .. }) || nodes is Some({ upper: 0L, .. }) {
           Some(count(0L, true))
         } else {
           None // Path enumeration needs its profile law or an enforced ceiling.

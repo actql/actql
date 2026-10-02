@@ -42,11 +42,9 @@ pub fn graph_query_keys(
             @graph.match_property_binding(op, "identity") is Some(identity) {
             names.push(identity)
           }
-        TraverseOperation(op) =>
-          if @graph.traverse_emission(op) == TraversedNodes {
-            names.push(Unqualified("start_id"))
-            names.push(Unqualified("node_id"))
-          }
+        // Path rows have no scalar identity key. A start/end pair is not
+        // unique across independently keyed parallel edges.
+        TraverseOperation(_) => ()
       }
     }
     let fields : Array[KeyField] = []

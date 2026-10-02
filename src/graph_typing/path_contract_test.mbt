@@ -20,6 +20,8 @@ test "current path contracts retain full independent edge identities and reject 
     assert_false(element.nullable)
   }
   let usage = @graph_typing.path_usage(checked)
+  // Two array wrappers, five fields, and their independently counted names.
+  assert_eq((usage.work, usage.nodes, usage.text_bytes), (7, 2, 39))
   let exact = {
     ..limits(),
     max_work: usage.work,
@@ -42,20 +44,22 @@ test "current path contracts retain full independent edge identities and reject 
       is Err(_),
     )
   }
-  for kind in [@graph_typing.TraversedNodes, @graph_typing.ShortestPaths] {
-    assert_true(
-      @graph_typing.check_path_contract(kind, source, graph, limits())
-      is Err({ kind: UnsupportedGraphOperation, .. }),
-    )
-  }
-  assert_true(
-    @graph_typing.check_path_contract(
-      TraversedPaths,
-      source,
-      graph,
-      limits(),
-      property_paths=false,
-    )
-    is Err({ kind: UnsupportedGraphOperation, .. }),
+}
+
+///|
+test "retired node emission is refused before any checked path grant" {
+  let source = cursor(
+    "{\"start\":{\"ids\":[{\"domain\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"definition\":\"N\",\"key\":[1,\"one\"],\"key_types\":[{\"kind\":\"number\"},{\"kind\":\"string\"}]}]},\"direction\":\"out\",\"min_hops\":0,\"max_hops\":1,\"path_mode\":\"trail\",\"emit\":\"nodes\"}",
+  )
+  let issue = @graph_typing.check_traverse(
+    source,
+    current_scope_graph(),
+    None,
+    None,
+    predicate_limits(),
+  ).unwrap_err()
+  assert_eq(
+    @graph_typing.match_diagnostic(issue, source).kind,
+    Structure(UnsupportedGraphProfile),
   )
 }

@@ -1,8 +1,6 @@
 ///|
 pub(all) enum PathOutput {
-  TraversedNodes
   TraversedPaths
-  ShortestPaths
 } derive(Eq, Debug)
 
 ///|
@@ -14,11 +12,10 @@ struct CheckedPathContract {
 ///|
 /// Current paths retain complete independent node and edge identities.
 pub fn check_path_contract(
-  kind : PathOutput,
+  _kind : PathOutput,
   source : @decode.Cursor,
   input : @carrier.Carrier,
   limits : Limits,
-  property_paths? : Bool = true,
 ) -> Result[CheckedPathContract, Issue] {
   try {
     if limits.max_work < 0 ||
@@ -39,39 +36,23 @@ pub fn check_path_contract(
       nodes: limits.max_nodes,
       text: limits.max_text_bytes,
     }
-    if !property_paths || kind != TraversedPaths {
-      fail(source, UnsupportedGraphOperation)
-    }
     let id = @carrier.graph_identity(g)
     let number = @contract.primitive(NumberType, nullable=false)
     let fields : Array[(@row.FieldName, @contract.Contract?)] = []
-    if kind == TraversedNodes {
-      fields.push((Unqualified("start_id"), Some(id)))
-      fields.push((Unqualified("node_id"), Some(id)))
-      fields.push((Unqualified("depth"), Some(number)))
-    } else {
-      // New array/record wrappers, not the already admitted scalar ID contracts.
-      let wrappers = 2
-      if b.nodes < wrappers || limits.max_depth < 2 {
-        fail(source, BudgetExceeded)
-      }
-      b.nodes -= wrappers
-      spend(b, source, 2)
-      let edge = id
-      let node_ids = @contract.array_contract(id, nullable=false).unwrap()
-      let edge_ids = @contract.array_contract(edge, nullable=false).unwrap()
-      if kind == ShortestPaths {
-        fields.push((Unqualified("source_id"), Some(id)))
-        fields.push((Unqualified("target_id"), Some(id)))
-        fields.push((Unqualified("total_cost"), Some(number)))
-      } else {
-        fields.push((Unqualified("start_id"), Some(id)))
-        fields.push((Unqualified("end_id"), Some(id)))
-      }
-      fields.push((Unqualified("hop_count"), Some(number)))
-      fields.push((Unqualified("node_ids"), Some(node_ids)))
-      fields.push((Unqualified("edge_ids"), Some(edge_ids)))
+    // New array wrappers retain the complete admitted element identity.
+    let wrappers = 2
+    if b.nodes < wrappers || limits.max_depth < 2 {
+      fail(source, BudgetExceeded)
     }
+    b.nodes -= wrappers
+    spend(b, source, 2)
+    let node_ids = @contract.array_contract(id, nullable=false).unwrap()
+    let edge_ids = @contract.array_contract(id, nullable=false).unwrap()
+    fields.push((Unqualified("start_id"), Some(id)))
+    fields.push((Unqualified("end_id"), Some(id)))
+    fields.push((Unqualified("hop_count"), Some(number)))
+    fields.push((Unqualified("node_ids"), Some(node_ids)))
+    fields.push((Unqualified("edge_ids"), Some(edge_ids)))
     spend(b, source, fields.length())
     for (name, _) in fields {
       charge(b, source, @row.reference_name(name))
