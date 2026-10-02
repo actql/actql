@@ -68,6 +68,11 @@ this fix is adopted there and the authored source is separately accepted.
 
 ## Reproduce
 
+The ordinary flag-free packed acceptance includes this independent JSON
+case over both Local and HTTPS, using the Client tarballs already packed
+for the existing CI job. The dedicated flag only narrows the case selection;
+it is not required for coverage. No additional pack or CI job is added.
+
 Use the pinned toolchain for normal prepack:
 
 ```sh

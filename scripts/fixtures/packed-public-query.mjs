@@ -24,7 +24,7 @@ const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || inferOnly ||
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const scope = JSON.parse(await readFile('pipe-scope-cases.json', 'utf8'));
 assert.deepEqual(scope.source_rows, sourceRows);
-const scopeInputs = dataSetStrategyOnly ? {
+const dataSetStrategyInputs = {
   // Independent machine input bypasses the frontend. Values are deliberately
   // opposite to the required order; the internal sort slot must not escape.
   successes: [{name: 'independent-ordered-data-set', format: 'json',
@@ -34,13 +34,15 @@ const scopeInputs = dataSetStrategyOnly ? {
       {name: 'id', contract: {type: 'number', nullable: false}},
     ]}}}],
   refusals: [],
-} : sourceFreeOnly ? {successes: sourceFreeSuccesses, refusals: sourceFreeRefusals}
+};
+const scopeInputs = dataSetStrategyOnly ? dataSetStrategyInputs
+  : sourceFreeOnly ? {successes: sourceFreeSuccesses, refusals: sourceFreeRefusals}
   : resultOnly ? {successes: pipeResultSuccesses, refusals: pipeResultRefusals,
     executionFailures: pipeResultExecutionFailures}
   : compositionOnly ? {successes: queryCompositionSuccesses, refusals: queryCompositionRefusals}
   : inferOnly ? {successes: [querySuccesses[0]], refusals: inferRefusals}
   : joinOnly ? joinOrder : scopeOnly ? {successes: scope.successes,
-  refusals: scope.refusals} : {successes: [...querySuccesses, ...sourceFreeSuccesses, ...queryCompositionSuccesses, ...pipeResultSuccesses, ...scope.successes, ...joinOrder.successes],
+  refusals: scope.refusals} : {successes: [...dataSetStrategyInputs.successes, ...querySuccesses, ...sourceFreeSuccesses, ...queryCompositionSuccesses, ...pipeResultSuccesses, ...scope.successes, ...joinOrder.successes],
   refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals],
   executionFailures: pipeResultExecutionFailures};
 const expectedQueryRuns = scopeInputs.successes.length + (scopeInputs.executionFailures?.length ?? 0);
