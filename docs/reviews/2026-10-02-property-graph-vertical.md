@@ -56,7 +56,7 @@ The complete Core JS run at that same clean source is still red:
 The previous INFER and Graph lifecycle failures are absent. Remaining groups
 are query_integration (173), local_sga (58), pipeline_typing (45), program_check
 (39), lowering_relation (35), pipeline_check_context (20),
-capacity_graph_preflight (17), capacity_program_step (11), query_program (7),
+capacity_graph_preflight (17), capacity_program_step (12), query_program (7),
 managed_graph_storage (5) and bounded_graph_diff (3). These are not all declared
 obsolete or repaired, and no aggregate success follows from focused tests.
 
@@ -117,6 +117,20 @@ All four originals are byte-identical inert archives. Initial fixture failures
 were a missing required generator alias and missing node-MATCH selector, fixed
 to the registered input shape. This is focused validation, not full pipeline
 or aggregate Core success.
+
+At clean source `1ef8f0edd1e43741e551300a386c1491382a8b75`, complete Core JS
+is **7,566 total, 7,199 passed, 367 failed**, exit 2. Log:
+`/private/tmp/property-graph-core-js-1ef8f0edd-20261002.log`.
+Lowering, Storage and diff have no remaining failures in this run. Failure
+groups are query_integration (173), local_sga (58), pipeline_typing (41),
+program_check (39), pipeline_check_context (20), capacity_graph_preflight (17),
+capacity_program_step (12) and query_program (7). Unsupported old positive
+tests, mixed ownership/capacity fixtures and Frontend-owned inputs still need
+individual classification; none is silently skipped or declared harmless.
+Main was fetched again and remains
+`5bb95908901ba57ae4a83ff119d9d9a3f68cf154`. No main integration or source
+edits overlapped this gate. The latest focused results do not discharge spec,
+fresh packed or final-SHA required CI.
 
 Main's new foundation composition validator rejects eight reachable historical
 #164 commits that changed the immutable #148 reuse baseline. Restoring current
