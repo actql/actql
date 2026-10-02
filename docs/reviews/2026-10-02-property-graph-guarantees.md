@@ -182,3 +182,30 @@ only supported fixtures and retain positive owner/capacity assertions.
 The old Carrier factory and other obsolete consumer bodies are still on the
 removal inventory. Preflight resolved-output guarantees, full Core/spec,
 fresh packed public snapshot acceptance and same-SHA required CI remain open.
+
+## Constructor-removal committed checkpoint
+
+The unit is committed as
+`da2a0189d3dbfc5ffd5cdded891670e197b3d68a`
+(`refactor(graph)!: remove retired constructor execution`). Official tracked
+three-target API verification and composed-foundation validation pass at this
+commit. The working tree was clean throughout the subsequent full Core JS run.
+
+Full Core JS is **7,554 total / 7,238 passed / 316 failed**, exit 2:
+`/private/tmp/property-graph-core-js-da2a0189d-20261002.log`.
+The residual failures group as follows; these counts do not classify all
+individual assertions as obsolete:
+
+| Package | Failed tests | Next obligation |
+| --- | ---: | --- |
+| query_integration | 173 | Separate retired algorithms from current constructor, lifecycle and custody guarantees |
+| local_sga | 58 | Remove obsolete kernels/fixtures only after mapping applicable resource guarantees |
+| program_check | 37 | Migrate supported Program/capacity/owner routes; classify unsupported operations separately |
+| pipeline_check_context | 18 | Preserve owner and preflight closure guarantees on current occurrences |
+| capacity_program_step | 11 | Keep valid bound-owner and enforcement proofs; do not manufacture unsupported consumer counts |
+| pipeline_typing | 7 | Old Delta/projection fixtures still require guarantee-by-guarantee disposition |
+| query_program | 7 | Existing Frontend fixtures emit retired Graph forms; coordinate with the Frontend owner rather than restoring fallback |
+| capacity_graph_preflight | 4 | Resolve imported bounds and supported resolved-output/late-candidate custody migration |
+
+This checkpoint is not submitted as complete, does not have new required CI,
+and does not supersede the previously recorded public snapshot acceptance.
