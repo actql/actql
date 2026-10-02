@@ -274,17 +274,17 @@ async function acceptedModel() {
   return {prepared, input, rows, active, calls: () => calls};
 }
 
-function scopedInferGraph(prepared, installedTask = task) {
-  // Identity-only dependency bodies exercise the composed physical owner.
-  // They remain distinct from public Host policy/egress admission.
+function scopedInferGraph(prepared, installedTask = task, capacity = {}) {
+  // Admit a two-request envelope: 2 * (1000 + 65536). Retry/backoff pins
+  // still exercise binding only, not executable policy/egress admission.
   const body = {version: 'actql-model-execution-contract/0.1',
     model_task_contract_cid: installedTask.contract_cid,
     retry_classification_contract_cid: `sha256:${'a'.repeat(64)}`,
     backoff_contract_cid: `sha256:${'a'.repeat(64)}`,
     max_attempts_per_slot: 2, max_total_attempts: 4,
     max_total_cost_units: 0, max_total_duration_ms: 1000,
-    max_total_wire_bytes: 2048, max_total_token_reservation: 128,
-    media_input_contracts: {}, default_publication: 'outcomes'};
+    max_total_wire_bytes: 133072, max_total_token_reservation: 128,
+    media_input_contracts: {}, default_publication: 'outcomes', ...capacity};
   const identity = cid(body);
   const execution = checked(moon.clientProgramReadInferModelExecution(
     prepared, 2, canonicalText({...body, self_cid: identity}), identity));
@@ -627,6 +627,55 @@ function supervisedInferFixture(signal, onInvoke, responseBody = '{"reason":null
     signal, quantum: 1});
   return {prepared, graph, operation, calls: () => calls};
 }
+
+test('physical Infer preflight enforces the selected contract before dispatch', async t => {
+  for (const [capacity, ledgerIssue] of [
+    [{max_total_attempts: 2, max_total_wire_bytes: 133072}, undefined],
+    [{max_total_attempts: 1, max_total_wire_bytes: 133072}, 2],
+    [{max_total_attempts: 2, max_total_wire_bytes: 133071}, 4],
+  ]) {
+    const source = program();
+    source.stages[0].steps[0].values.rows.push({id: 'b', text: 'hello'});
+    const prepared = moon.clientProgramPreparationReady(prepare(source, environment()));
+    assert.ok(prepared);
+    const graph = scopedInferGraph(prepared, task, capacity);
+    let calls = 0;
+    const provider = moon.clientProgramInstallModelProvider('models/fixture', request => {
+      calls++;
+      return moon.clientProgramModelResponse(request,
+        '{"reason":null,"risk":"high"}', 'fixture-risk-model', `response-${calls}`,
+        1n, 2n, '2026-10-02T00:00:00.000Z');
+    });
+    const operation = openNodeInferOperation({moon, preparedProgram: prepared,
+      step: 2, graph, registry, values, provider, quantum: 1});
+    t.after(async () => { if (operation.cleanupPending()) await operation.close(); });
+    if (ledgerIssue === undefined) {
+      const completed = await operation.run();
+      assert.deepEqual(await inferExportRows(prepared, completed), [
+        {id: 'a', outcome: 'ok', value: {reason: null, risk: 'high'}},
+        {id: 'b', outcome: 'ok', value: {reason: null, risk: 'high'}},
+      ]);
+      assert.equal(calls, 2);
+    } else {
+      await assert.rejects(operation.run(), error => {
+        assert.equal(error.code, 'MoonBitHostFailure');
+        assert.equal(error.cause?.$tag, 2, 'Host Model issue');
+        assert.equal(error.cause?._0?.$tag, 9, 'Model Ledger issue');
+        assert.equal(error.cause?._0?._0, ledgerIssue,
+          ledgerIssue === 2 ? 'AttemptLimit' : 'TransferLimit');
+        return true;
+      });
+      assert.equal(calls, 0);
+      assert.equal(operation.acquireOutput(), undefined);
+      assert.equal(operation.acquireCapture(), undefined);
+    }
+    assert.equal(operation.physicalStopped(), true);
+    await operation.close();
+    assert.equal(operation.cleanup(), true);
+    assert.equal(operation.cleanupPending(), false);
+    assert.equal(calls, ledgerIssue === undefined ? 2 : 0);
+  }
+});
 
 test('compiled Run binding retains the actual Infer output without preparing or compiling again', async t => {
   // This checks the normal compiled owner and physical operation boundary,

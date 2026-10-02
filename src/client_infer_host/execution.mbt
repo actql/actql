@@ -298,6 +298,41 @@ fn start_owned(
       ),
     },
   }
+  // The graph's admitted body supplies another ceiling, not permission to
+  // dispatch. Reuse the physical ledger's atomic all-slot reservation path;
+  // a large caller envelope cannot silently widen the selected contract.
+  // Replay consumes existing observations, not another physical allowance.
+  let limits = if source is Physical(_) && plan is Some(graph) {
+    let execution = @publication_host.client_infer_plan_graph_execution_contract(
+      graph,
+    )
+    let ledger = limits.model.ledger
+    {
+      ..limits,
+      model: {
+        ..limits.model,
+        ledger: {
+          ..ledger,
+          attempts: Int64::min(
+            ledger.attempts.to_int64(),
+            @environment.model_execution_ceiling(
+              execution,
+              @environment.TotalAttempts,
+            ),
+          ).to_int(),
+          transfer_bytes: Int64::min(
+            ledger.transfer_bytes,
+            @environment.model_execution_ceiling(
+              execution,
+              @environment.TotalWireBytes,
+            ),
+          ),
+        },
+      },
+    }
+  } else {
+    limits
+  }
   let input = match
     @input.start_client_infer_input(
       prepared,

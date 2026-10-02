@@ -117,6 +117,15 @@ pub fn client_infer_plan_graph_item_limit(
 }
 
 ///|
+/// The exact checked execution contract retained by this selected graph.
+/// Reading it grants neither dependency admission nor provider authority.
+pub fn client_infer_plan_graph_execution_contract(
+  value : ClientInferPlanGraph,
+) -> @environment.ModelExecutionContract {
+  value.execution
+}
+
+///|
 fn client_infer_dependency_cid(value : String) -> Bool {
   if value.length() != 71 || !value.has_prefix("sha256:") {
     return false

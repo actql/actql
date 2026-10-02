@@ -38,6 +38,11 @@ Typed response content is not treated as an exact transport-byte observation.
 This closes a physical accounting boundary, not formal token/cost/duration
 admission or public inference publication.
 
+For selected physical inference, the retained ModelExecutionContract now
+narrows the existing ledger's attempt and wire ceilings. Every slot must
+reserve its envelope before the first provider call. This does not validate
+retry/backoff bodies or establish token, cost, duration or egress evidence.
+
 Normal Program preparation now retains the installed ModelTask contract and
 its role-specific dependency roots. The runtime input connection uses the
 same checked Program owner to execute `Values -> assert_rows` through the
@@ -1341,3 +1346,60 @@ accounting, authority, policy and outcome roots. Their current structural
 fixtures use symbolic roots; the installed issuer/verifier connection remains
 unfinished. Existing account/Run authorization cannot be replaced by provider
 registration. No Named Result, Linux CI, push or complete INFER claim is made.
+
+## Selected execution-contract capacity
+
+The ordinary scoped inference path now reads the exact execution contract
+retained by its selected graph, after matching that graph to the prepared
+Program and saved occurrence. The installed ledger's attempt and transfer
+limits are narrowed to the minimum of Host capacity and the contract's
+`max_total_attempts` / `max_total_wire_bytes`. Negative installed limits are
+not repaired, and wide safe-integer contract ceilings are narrowed before
+conversion to the ledger's attempt-count representation.
+
+No second reservation owner is introduced. The existing model owner reserves
+all slots before request preparation can dispatch any provider call. A
+partial reservation failure retains its original cleanup responsibility and
+typed `AttemptLimit` or `TransferLimit`. Uncertain dispatched usage still
+survives cleanup; unused reservations do not become dispatched consumption.
+Restored/live replay reserves no new physical attempt or transfer budget.
+
+The execution fixtures formerly reused an identity-reader contract capped at
+2048 bytes while installing a physical envelope of 1000 request bytes plus
+65536 response bytes per key. That body was not sufficient for their claimed
+physical scope. The scoped physical fixtures now explicitly declare a
+133072-byte two-key envelope. The independent contract-reader/compilation
+vector retains its 2048-byte cap. This changes fixture inputs, not registered
+identity domains, pins, output expectations or language semantics.
+
+New common regressions exercise two keys with independently fixed exact
+capacity (two attempts, 133072 wire bytes), one missing attempt, one missing
+wire byte and narrower Host limits. Both one-short cases reject before the
+first callback, expose no completed output/capture and release the retained
+partial reservation without dispatching on cleanup. Before the implementation
+change, the selected contract's one-attempt case incorrectly completed.
+
+The Node physical wrapper also exercises exact and both one-short cases at
+quantum one. Exact execution exports literal expected rows for keys `a` and
+`b`; failures preserve the existing typed causes, dispatch zero calls and
+close without redispatch. This uses ordinary Program preparation and the
+existing bounded prefix, not a manually supplied CompletedOutput.
+
+Local verification on the source tree based on
+`3810349d91bb5acf6b1bc931433dcf36a36470f0` passes:
+
+- JS, Wasm and native: `client_infer_host`, `model_execution`,
+  `physical_resources` and `run_publication_host`, 102/102 on each target.
+- Release Node bridge build; targeted physical-preflight regression; combined
+  inference, dispatch-owner, publication-control, publication-fixture and
+  independent model-slot suites.
+- Three-target interface generation, tracked/public interface consistency,
+  Node syntax, formatting and whitespace checks.
+
+The new graph accessor returns its checked retained contract, not a provider
+permit. Token/cost/duration reservation, exact adapter/tokenizer/media plans,
+current classification/egress authority, formal evidence issuance and public
+Host publication remain required. This change does not make symbolic external
+roots trustworthy, supply B a public acceptance SHA, authorize push or prove
+Linux CI. Canonical specification checks and full CI jobs were not rerun for
+this code-only boundary; no shared wire contract changed.

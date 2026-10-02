@@ -88,14 +88,37 @@ fn call_identity_fixture(
 ///|
 fn call_identity_plan(
   prepared : @publication_host.PreparedClientProgram,
+  attempts? : Int = 4,
+  wire_bytes? : Int64 = 133072L,
 ) -> @publication_host.ClientInferPlanGraph {
   let execution_wire =
     #|{"backoff_contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","default_publication":"outcomes","max_attempts_per_slot":2,"max_total_attempts":4,"max_total_cost_units":0,"max_total_duration_ms":1000,"max_total_token_reservation":128,"max_total_wire_bytes":2048,"media_input_contracts":{},"model_task_contract_cid":"sha256:cfb4c49389dd5ecbcd97d4b60276549dcf6fd2ce62584707b5c661d94dce4560","retry_classification_contract_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","self_cid":"sha256:564c77f8cde8da49fda0b61b072ddce8ee598116eada536c71d27457f1b478da","version":"actql-model-execution-contract/0.1"}
+  // Physical fixtures admit a two-request envelope: 2 * (1000 + 65536).
+  // This is input construction, not an oracle derived from execution usage.
+  // The separate contract-reader vector retains its original 2048-byte cap.
+  let unsigned = execution_wire
+    .replace(
+      old="\"self_cid\":\"sha256:564c77f8cde8da49fda0b61b072ddce8ee598116eada536c71d27457f1b478da\",",
+      new="",
+    )
+    .replace(
+      old="\"max_total_attempts\":4",
+      new="\"max_total_attempts\":" + attempts.to_string(),
+    )
+    .replace(
+      old="\"max_total_wire_bytes\":2048",
+      new="\"max_total_wire_bytes\":" + wire_bytes.to_string(),
+    )
+  let identity = "sha256:" + @sha.hex(@utf8.encode(unsigned))
+  let execution_wire = unsigned.replace(
+    old="\"version\":",
+    new="\"self_cid\":\"" + identity + "\",\"version\":",
+  )
   let model_execution = @publication_host.read_prepared_client_infer_model_execution(
     prepared,
     2,
     @utf8.encode(execution_wire),
-    "sha256:564c77f8cde8da49fda0b61b072ddce8ee598116eada536c71d27457f1b478da",
+    identity,
     { max_bytes: 10000, max_nodes: 1000, max_depth: 30, max_members: 1000, },
     100000,
   ).unwrap()

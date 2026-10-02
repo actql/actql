@@ -6,10 +6,10 @@ import {
   "actql/actql/model_execution" @model,
   "actql/actql/execution_relation" @relation,
   "actql/actql/run_publication_host" @publication_host,
+  "actql/actql/check_environment" @environment,
 }
 
 import {
-  "actql/actql/check_environment" @environment,
   "actql/actql/value_admission" @admitted,
   "actql/actql/sha256" @sha,
   "actql/actql/canonical_json" @canonical,
