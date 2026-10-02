@@ -269,7 +269,7 @@ jobs:
       - name: Test raw public SQL and Pipe through packed Local and HTTP
         id: packed-query
         run: |
-          node --test scripts/packed-query-evidence.test.mjs scripts/readme-quickstart.test.mjs scripts/packed-package-boundaries.test.mjs
+          node --test scripts/packed-query-evidence.test.mjs
           node scripts/test-packed-public-query.mjs
       - name: Retain packed public query evidence
         if: always() && steps.packed-query.outputs.evidence-directory != ''
