@@ -169,6 +169,25 @@ fn task_execution_scratch_released(execution : TaskExecution) -> Bool {
 }
 
 ///|
+// Output custody and scratch custody are independent. An accepted holding
+// cannot acknowledge cleanup of the installed provider's retained state.
+fn settle_task_output_reservation(
+  run : CapturedDAG,
+  execution : TaskExecution,
+) -> Unit {
+  if task_execution_scratch_released(execution) {
+    @resources.settle_reservation(run.ledger, execution.reservation) |> ignore
+  } else {
+    @resources.settle_execution_reservation(
+      run.ledger,
+      execution.reservation,
+      remaining_execution=execution.scratch,
+    )
+    |> ignore
+  }
+}
+
+///|
 fn task_execution_released(
   hooks : @connector.ExecutionLifecycleOperations[RunIssue],
 ) -> Unit {
@@ -900,7 +919,7 @@ fn complete_materialized_execution(
         }
         Ok(_) => ()
       }
-      @resources.settle_reservation(run.ledger, execution.reservation) |> ignore
+      settle_task_output_reservation(run, execution)
       run.running = None
       Ok(())
     }

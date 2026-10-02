@@ -199,7 +199,7 @@ pub fn[T] complete_managed_task_execution_with_inputs(
     owned.live = false
   }
   execution.retained_bytes = None
-  @resources.settle_reservation(run.ledger, execution.reservation) |> ignore
+  settle_task_output_reservation(run, execution)
   run.running = None
   Ok(())
 }
@@ -329,7 +329,7 @@ pub fn complete_carrier_managed_task_execution_with_inputs(
     owned.live = false
   }
   execution.retained_bytes = None
-  @resources.settle_reservation(run.ledger, execution.reservation) |> ignore
+  settle_task_output_reservation(run, execution)
   run.running = None
   Ok(())
 }
