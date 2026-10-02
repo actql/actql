@@ -2,6 +2,37 @@
 
 ## Current authority and completion boundary
 
+### Clean public checkpoint and compilation pin refresh (2026-10-03)
+
+Clean source `0deb69e70885f9f51e400f4d8131f3b2ff514d85` passes fresh packed
+Local/HTTPS **2/2**, including the shared refusal matrix (all 17 classified
+consumers, with and without external input). Normal prepack builds all five
+packages; the consumer PATH contains no checkout toolchain. The independent
+fixture verifies physical snapshot save, original source revocation, verified
+reload, typed composite keys, independent parallel edges, labels and exact
+snapshot bytes/CID through public MATCH/TRAIL Named Results. Evidence and all
+five tarball digests are retained in
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/property-graph-package-rvQDA4/acceptance.json`.
+Log: `/private/tmp/property-graph-packed-0deb69e70-20261003.log`.
+
+The subsequent aggregate spec run passes the shared dispatch boundary,
+resource gate and its mutation regressions, then stops at the stale grammar
+manifest. The current query-text rules replace property-inferred labels and
+tuple edge identity with the agreed definition-owned labels and typed keys;
+their source hash must therefore change. The existing manifest generator
+refreshes the grammar JSON and compiled pin together, without modifying its
+checker or the historical foundation. The query-rules digest becomes
+`63cf6ff9f71feba9b5c882a4b0bef83f9c14bdb61e24e46a8bd16239e34dbf32`, and the
+grammar manifest CID becomes
+`sha256:2bf8ef0846b81f91fec96548d10dddd8c7e5a82b7db05444b38eefa316779c11`.
+Canonical manifest/freshness regressions pass **5/5**; the complete common
+check-environment package passes **224/224 on each target**. Logs:
+`/private/tmp/property-graph-manifest-{js,wasm,native}-20261003.log`.
+The packed run predates this pin refresh and is not claimed as final acceptance
+for the later submitted SHA. Aggregate spec log:
+`/private/tmp/property-graph-spec-0deb69e70-20261003.log`; checks after the stale
+manifest failure did not run. Full final-source acceptance remains mandatory.
+
 ### Snapshot composition boundary correction (2026-10-03)
 
 At `155bb335183e28f462614db3aa1c01618b1ff30f`, aggregate `check:spec` fails
