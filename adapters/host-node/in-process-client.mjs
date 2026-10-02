@@ -14,11 +14,12 @@ import {inspectAuthorizedRunState} from
   '../host-common/run-state-access.mjs';
 import {inspectAuthorizedDeliveryAttempt, describeAuthorizedResult} from './result-access.mjs';
 import {authorizedLocalResultFrames} from './in-process-result.mjs';
-import {publicClientErrorCode} from './client-http.mjs';
+import {publicClientErrorCode, publicClientErrorStatus} from './client-http.mjs';
 
 const localErrors = new WeakSet();
 const fail = code => {
-  const error = new ClientError(code);
+  const error = new ClientError(code,
+    {status: publicClientErrorStatus({code})});
   localErrors.add(error);
   throw error;
 };
@@ -196,7 +197,8 @@ export function createNodeInProcessClientHost({
       // public Client errors. A handler-supplied ClientError is not proof
       // that its code is public; classify it like any other Host failure.
       if (localErrors.has(error)) throw error;
-      throw new ClientError(publicClientErrorCode(error), {cause: error});
+      throw new ClientError(publicClientErrorCode(error),
+        {status: publicClientErrorStatus(error), cause: error});
     }
   }});
 }
