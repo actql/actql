@@ -6,7 +6,7 @@
     "digest": "48bdedbe48ab335694a725defa7fe9e7f07cdf776e4aa8f233b3935585a352c1",
     "foundationRevision": "fe0dbb424792ba7ccd4ae5517a74530b56a15f3c"
   },
-  "revision": "12e8c958ee13baf92509b01d35052a76a740281b",
+  "revision": "dafff1a1aeeaa8dd3168e9d9ba1b571455ba5f35",
   "proposal": "https://github.com/actql/actql/pull/178",
   "meaning": "Records integrated single-call INFER, public Check, and current Array/Map capacity validation after merging main. Historical evidence is unchanged; Git provenance is not human approval or an unconditional allocation-byte claim.",
   "changedCommon": [
