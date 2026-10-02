@@ -176,9 +176,9 @@ priv struct SiteEnvironment {
 }
 
 ///|
-/// What the control process uses. It never opens the runtime bundle Store,
-/// which only a holder holds while it executes; the installed runtime and
-/// Connector it delegates are Site configuration.
+/// Ordinary control operations do not open the runtime bundle Store. A
+/// stopped-holder recovery opens it only while holding the exclusive slot.
+/// The installed runtime and delegated Connector are Site configuration.
 priv struct ControlEnvironment {
   sqlite_library : @sqlite.Library
   journal_path : String
@@ -229,6 +229,7 @@ fn open_site_environment(
     Err(_) => stop("resident Site executable identity failed")
   }
   if loaded_component_cid != component_cid {
+    report("setup-failed", [("reason", "executable-identity-mismatch")])
     stop("resident Site executable identity mismatch")
   }
   let sqlite_library = match
@@ -765,6 +766,203 @@ fn reclaim_orphaned_outputs(
 }
 
 ///|
+/// One physical recovery owner, retained across retryable Store failures.
+/// The slot stays held until both Store closure and journal work finish.
+priv struct StoppedReleaseRecovery {
+  slot : @slot.NativeExecutorSlot
+  bundles : @bundle.NativeRuntimeBundleStore
+  journal : @journal.Journal
+  request_identity : String
+  mut bundle_closed : Bool
+}
+
+///|
+/// Cleanup never acquires an execution component or a new runtime holding.
+/// The saved Site binding and signed installed bundle remain authoritative;
+/// a newer maintenance executable is not authority to run the old component.
+fn open_release_recovery(
+  matches : @argparse.Matches,
+  slot : @slot.NativeExecutorSlot,
+  identity : String,
+) -> StoppedReleaseRecovery raise CommandStop {
+  let environment = open_control_environment(matches)
+  guard fresh_journal(environment) is Some(journal) else {
+    stop("release recovery journal unavailable")
+  }
+  let signature_library = match
+    @signature.load_library(required(matches, "crypto-library")) {
+    Ok(value) => value
+    Err(_) => stop("signature library load failed")
+  }
+  let public_key = load_text(
+    required(matches, "bundle-public-key-root"),
+    required(matches, "bundle-public-key-file"),
+    required_int64(matches, "max-file-bytes"),
+  )
+  let bundles = match
+    @bundle.open_runtime_bundle_store(
+      environment.sqlite_library,
+      signature_library,
+      required(matches, "runtime-root"),
+      [
+        {
+          issuer_authority: required(matches, "bundle-issuer"),
+          key_id: required(matches, "bundle-key-id"),
+          public_key_pem: public_key,
+        },
+      ],
+      required(matches, "target-triple"),
+      environment.max_bytes,
+      64,
+      1024,
+      environment.max_record_bytes,
+    ) {
+    Ok(value) => value
+    Err(_) => stop("release recovery bundle Store unavailable")
+  }
+  match bundles.inspect(environment.runtime_bundle_cid) {
+    Ok(Some(_)) => ()
+    _ => {
+      ignore(journal.close())
+      ignore(bundles.close())
+      stop("release recovery saved bundle unavailable")
+    }
+  }
+  { slot, bundles, journal, request_identity: identity, bundle_closed: false, }
+}
+
+///|
+fn close_recovery_bundle(
+  owner : StoppedReleaseRecovery,
+  failures : Ref[Int],
+) -> Bool {
+  if owner.bundle_closed {
+    return true
+  }
+  if failures.val > 0 {
+    failures.val -= 1
+    report("release-recovery-pending", [
+      ("reason", "bundle-close"),
+      ("request_cid", owner.request_identity),
+    ])
+    return false
+  }
+  match owner.bundles.close() {
+    Ok(_) => {
+      owner.bundle_closed = true
+      true
+    }
+    Err(_) => false
+  }
+}
+
+///|
+/// A release for a settled dispatch whose original holder is gone. The slot
+/// fences all holder descendants; durable intents and both exact bundle
+/// holdings are checked before the common owner selects a transition.
+fn recover_stopped_release(
+  matches : @argparse.Matches,
+  request : @remote.DispatchRequest,
+  retained : Ref[StoppedReleaseRecovery?],
+  close_failures : Ref[Int],
+) -> Bool raise CommandStop {
+  let identity = @remote.dispatch_request_identity(request)
+  let owner = match retained.val {
+    Some(value) => value
+    None => {
+      let slot = match
+        @slot.open_native_executor_slot(required(matches, "executor-slot")) {
+        Ok(value) => value
+        Err(_) => return false
+      }
+      if slot.try_acquire() != Ok(true) {
+        ignore(slot.close())
+        return false
+      }
+      // Failure to initialize terminates this control process; no cleanup
+      // transition is written and the durable claim remains for recovery.
+      let value = open_release_recovery(matches, slot, identity)
+      retained.val = Some(value)
+      value
+    }
+  }
+  if owner.request_identity != identity {
+    return false
+  }
+  let record = match owner.journal.require(request) {
+    Ok(value) => value
+    Err(_) => return false
+  }
+  let codes = @remote.dispatch_record_state_codes(record)
+  // Do not infer execution success or cancellation from process death.
+  if codes[0] != 3 ||
+    (codes[2] != 0 && codes[2] != 1 && codes[2] != 2 && codes[2] != 3) {
+    return false
+  }
+  let claimant = match owner.journal.start_claimant(request) {
+    Ok(Some(value)) => value
+    _ => return false
+  }
+  match owner.journal.pending_output_intents() {
+    Ok(values) if values.is_empty() => ()
+    _ => return false
+  }
+  if !owner.bundle_closed {
+    for
+      hold in [
+        "dispatch:" + identity,
+        "runtime-process:resident-holder:" + claimant,
+      ] {
+      match owner.bundles.release(hold) {
+        Ok(_) => () // Absence of this exact holding is idempotent.
+        Err(_) => return false
+      }
+    }
+  }
+  if !close_recovery_bundle(owner, close_failures) {
+    return false
+  }
+  // The exclusive slot proves process-local operations/readers/holdings
+  // are gone. The caller confirmed Store-owned orphan cleanup; exact
+  // persistent runtime holdings have now also been discharged.
+  let custody = @remote.create_remote_runtime_custody()
+  for step_index = 0; step_index < 4; step_index = step_index + 1 {
+    let step = match
+      @remote.prepare_owned_remote_runtime_cleanup(record, custody) {
+      Ok(value) => value
+      Err(_) => return false
+    }
+    match @remote.remote_runtime_step_action_code(step) {
+      4 => {
+        if !owner.journal.close() {
+          stop("release recovery journal close unconfirmed")
+        }
+        if !owner.slot.close() {
+          stop("release recovery slot close unconfirmed")
+        }
+        retained.val = None
+        return true
+      }
+      1 => {
+        let transition = match @remote.remote_runtime_step_transition(step) {
+          Ok(value) => value
+          Err(_) => return false
+        }
+        if owner.journal.commit_transition(transition) is Err(_) {
+          return false
+        }
+        if required(matches, "release-recovery-kill-at") == "after-transition" {
+          report("release-recovery-killed", [("request_cid", identity)])
+          @slot.native_kill_self()
+        }
+      }
+      _ => return false
+    }
+  }
+  false
+}
+
+///|
 /// The exact dispatch request kept for an accepted attempt, read from a
 /// fresh journal view. `failures` is an acceptance test hook: while it is
 /// positive, one read is reported as failed.
@@ -954,6 +1152,10 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   let envelope_read_failures = [
     required_int(matches, "control-envelope-read-failures"),
   ]
+  let recovery : Ref[StoppedReleaseRecovery?] = { val: None, }
+  let recovery_close_failures : Ref[Int] = {
+    val: required_int(matches, "release-recovery-close-failures"),
+  }
   let mut holder : RunningHolder? = None
   // Holder records not yet reported. They are kept and retried, never
   // dropped, and do not hold back new work; a query answered from the
@@ -1214,6 +1416,28 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
           }
           ignore(journal.close())
           continue
+        }
+        if orphan_store is None &&
+          !reclaim_due &&
+          !orphan_reconciliation &&
+          (match journal.require(request) {
+            Ok(record) => {
+              let codes = @remote.dispatch_record_state_codes(record)
+              codes[0] == 3 &&
+              (
+                recovery.val is Some(_) ||
+                codes[2] == 0 ||
+                codes[2] == 1 ||
+                codes[2] == 3
+              )
+            }
+            _ => false
+          }) {
+          if recover_stopped_release(
+              matches, request, recovery, recovery_close_failures,
+            ) {
+            report("release-recovered", [("request_cid", identity)])
+          }
         }
         match
           @client.acknowledge_status(journal, client, observation_url, request) {
@@ -2054,6 +2278,111 @@ fn run_holder(
 }
 
 ///|
+/// One explicitly selected saved dispatch; no poll, materials preparation,
+/// execution claim, or Output replay is reachable from this operation.
+/// Any outstanding publication custody refuses rather than reclaiming other
+/// attempts. An unconfirmed observation can be sent again on the next call.
+fn recover_release_command(
+  matches : @argparse.Matches,
+  child : @argparse.Matches,
+) -> Unit raise CommandStop {
+  let environment = open_control_environment(matches)
+  let request = match
+    accepted_request(environment, required(child, "attempt"), [0]) {
+    Some(value) => value
+    None => stop("release recovery saved dispatch unavailable")
+  }
+  let identity = @remote.dispatch_request_identity(request)
+  if identity != required(child, "expect-dispatch") {
+    report("release-recovery-refused", [("reason", "dispatch-mismatch")])
+    stop("release recovery dispatch mismatch")
+  }
+  if @resident.check_resident_dispatch_delegation(
+      delegation(matches, budget(matches)),
+      request,
+      environment.site_generation,
+    )
+    is Err(_) {
+    stop("release recovery current scope refused")
+  }
+  let slot = match
+    @slot.open_native_executor_slot(required(matches, "executor-slot")) {
+    Ok(value) => value
+    Err(_) => stop("release recovery slot unavailable")
+  }
+  if slot.try_acquire() != Ok(true) {
+    ignore(slot.close())
+    stop("release recovery slot busy")
+  }
+  let owner = open_release_recovery(matches, slot, identity)
+  match owner.journal.pending_output_intents() {
+    Ok(values) if values.is_empty() => ()
+    _ => stop("release recovery Output custody pending")
+  }
+  let mut cursor = ""
+  while true {
+    match owner.journal.output_report_after(cursor) {
+      Ok(Some((key, custody, state))) => {
+        cursor = key
+        if @remote.dispatch_request_identity(
+            @remote.remote_output_report_custody_dispatch(custody),
+          ) ==
+          identity &&
+          !(state is Some(@remote.RemoteOutputReportReply::Accepted)) {
+          stop("release recovery Output acknowledgement pending")
+        }
+      }
+      Ok(None) => break
+      Err(_) => stop("release recovery Output acknowledgement unreadable")
+    }
+  }
+  let store = match
+    @publication_store.open_store(
+      environment.sqlite_library,
+      required(matches, "publication-root"),
+      required(matches, "publication-authority-cid"),
+      required_int64(matches, "publication-capacity-bytes"),
+      required_int(matches, "max-transfers").to_int64(),
+      environment.max_record_bytes,
+    ) {
+    Ok(value) => value
+    Err(_) => stop("release recovery publication Store unavailable")
+  }
+  let empty = match store.capacity_usage() {
+    Ok(value) => value.reserved_bytes == 0L && value.reserved_objects == 0L
+    Err(_) => false
+  }
+  let closed = store.close()
+  if !empty || !(closed is Ok(true)) {
+    stop("release recovery publication custody unconfirmed")
+  }
+  let retained : Ref[StoppedReleaseRecovery?] = { val: Some(owner), }
+  if !recover_stopped_release(matches, request, retained, { val: 0, }) {
+    stop("release recovery pending")
+  }
+  let client = control_client(matches)
+  guard fresh_journal(environment) is Some(journal) else {
+    stop("release recovery observation journal unavailable")
+  }
+  let observed = @client.acknowledge_status(
+    journal,
+    client,
+    required(matches, "observation-url"),
+    request,
+  )
+  let closed = journal.close()
+  ignore(client.close())
+  match observed {
+    Ok(Some(record)) if closed =>
+      report("release-recovery-observed", [
+        ("request_cid", identity),
+        ("revision", @remote.dispatch_record_revision(record).to_string()),
+      ])
+    _ => stop("release recovery observation unconfirmed")
+  }
+}
+
+///|
 fn command() -> @argparse.Command {
   let global = fn(name : String) { @argparse.OptionArg(name, global=true) }
   let defaulted = fn(name : String, value : String) {
@@ -2122,6 +2451,8 @@ fn command() -> @argparse.Command {
       defaulted("holder-pause-ms", "0"),
       // Acceptance test hooks only.
       defaulted("holder-release-failures", "0"),
+      defaulted("release-recovery-close-failures", "0"),
+      defaulted("release-recovery-kill-at", "none"),
       defaulted("holder-result-report-failures", "0"),
       defaulted("holder-kill-at", "none"),
       defaulted("control-report-kill-at", "none"),
@@ -2133,6 +2464,10 @@ fn command() -> @argparse.Command {
     subcommands=[
       @argparse.Command("run"),
       @argparse.Command("output-reports"),
+      @argparse.Command("recover-release", options=[
+        @argparse.OptionArg("attempt", required=true),
+        @argparse.OptionArg("expect-dispatch", required=true),
+      ]),
       @argparse.Command("retry-output-report", options=[
         @argparse.OptionArg("intent-cid", required=true),
       ]),
@@ -2149,6 +2484,7 @@ fn run_command(matches : @argparse.Matches) -> Unit raise CommandStop {
   match matches.subcommand {
     Some(("run", _)) => run_control(matches)
     Some(("execute", child)) => run_holder(matches, child)
+    Some(("recover-release", child)) => recover_release_command(matches, child)
     Some(("output-reports", _)) => {
       let environment = open_control_environment(matches)
       guard fresh_journal(environment) is Some(journal) else {

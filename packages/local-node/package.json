@@ -14,9 +14,10 @@
   },
   "exports": {
     ".": "./index.mjs",
+    "./http-host": "./http-host.mjs",
     "./effect-run": "./adapters/host-node/client-effect-run.mjs",
     "./effect-site": "./adapters/host-node/installed-effect-site.mjs",
     "./runtime": "./_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js"
   },
-  "files": ["index.mjs", "_build/js/release/build", "adapters", "spec", "README.md"]
+  "files": ["index.mjs", "http-host.mjs", "_build/js/release/build", "adapters", "spec", "README.md"]
 }

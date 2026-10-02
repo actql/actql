@@ -1561,6 +1561,465 @@ const schemas = {
       }
     ]
   },
+  "check_outcome": {
+    "oneOf": [
+      {
+        "type": "object",
+        "required": [
+          "outcome",
+          "report",
+          "version"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "outcome": {
+            "const": "completed"
+          },
+          "report": {
+            "type": "object",
+            "required": [
+              "context_ref",
+              "coverage",
+              "reasons",
+              "scope",
+              "verdict"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "context_ref": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9:_-]+$",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "coverage": {
+                "type": "object",
+                "required": [
+                  "limits",
+                  "unresolved"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "limits": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "code"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                        }
+                      }
+                    }
+                  },
+                  "unresolved": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "boundary",
+                        "reason"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "boundary": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                        },
+                        "reason": {
+                          "const": "unresolved_protected"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "reasons": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                    }
+                  }
+                }
+              },
+              "scope": {
+                "type": "object",
+                "required": [
+                  "kind"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "bound_input"
+                  }
+                }
+              },
+              "verdict": {
+                "enum": [
+                  "invalid",
+                  "undetermined",
+                  "verified"
+                ]
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "verdict": {
+                      "const": "verified"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "reasons": {
+                      "type": "array",
+                      "maxItems": 0,
+                      "items": {}
+                    },
+                    "coverage": {
+                      "properties": {
+                        "limits": {
+                          "type": "array",
+                          "maxItems": 0,
+                          "items": {}
+                        },
+                        "unresolved": {
+                          "type": "array",
+                          "maxItems": 0,
+                          "items": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "verdict": {
+                      "const": "invalid"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "reasons": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {}
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "verdict": {
+                      "const": "undetermined"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "reasons": {
+                      "type": "array",
+                      "maxItems": 0,
+                      "items": {}
+                    },
+                    "coverage": {
+                      "not": {
+                        "properties": {
+                          "limits": {
+                            "type": "array",
+                            "maxItems": 0,
+                            "items": {}
+                          },
+                          "unresolved": {
+                            "type": "array",
+                            "maxItems": 0,
+                            "items": {}
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "version": {
+            "const": "actql-check-outcome/0.1"
+          }
+        }
+      },
+      {
+        "type": "object",
+        "required": [
+          "outcome",
+          "problem",
+          "version"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "outcome": {
+            "const": "failed"
+          },
+          "partial_report": {
+            "type": "object",
+            "required": [
+              "context_ref",
+              "coverage",
+              "reasons",
+              "scope",
+              "verdict"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "context_ref": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9:_-]+$",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "coverage": {
+                "type": "object",
+                "required": [
+                  "limits",
+                  "unresolved"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "limits": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "code"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "code": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                        }
+                      }
+                    }
+                  },
+                  "unresolved": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "boundary",
+                        "reason"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "boundary": {
+                          "type": "string",
+                          "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                        },
+                        "reason": {
+                          "const": "unresolved_protected"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "reasons": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "code"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "code": {
+                      "type": "string",
+                      "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                    }
+                  }
+                }
+              },
+              "scope": {
+                "type": "object",
+                "required": [
+                  "kind"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "kind": {
+                    "const": "bound_input"
+                  }
+                }
+              },
+              "verdict": {
+                "enum": [
+                  "invalid",
+                  "undetermined"
+                ]
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "verdict": {
+                      "const": "verified"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "reasons": {
+                      "type": "array",
+                      "maxItems": 0,
+                      "items": {}
+                    },
+                    "coverage": {
+                      "properties": {
+                        "limits": {
+                          "type": "array",
+                          "maxItems": 0,
+                          "items": {}
+                        },
+                        "unresolved": {
+                          "type": "array",
+                          "maxItems": 0,
+                          "items": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "verdict": {
+                      "const": "invalid"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "reasons": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {}
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "verdict": {
+                      "const": "undetermined"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "reasons": {
+                      "type": "array",
+                      "maxItems": 0,
+                      "items": {}
+                    },
+                    "coverage": {
+                      "not": {
+                        "properties": {
+                          "limits": {
+                            "type": "array",
+                            "maxItems": 0,
+                            "items": {}
+                          },
+                          "unresolved": {
+                            "type": "array",
+                            "maxItems": 0,
+                            "items": {}
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "problem": {
+            "type": "object",
+            "required": [
+              "code"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,63}$"
+              }
+            }
+          },
+          "version": {
+            "const": "actql-check-outcome/0.1"
+          }
+        }
+      },
+      {
+        "type": "object",
+        "required": [
+          "correlation_ref",
+          "outcome",
+          "problem",
+          "version"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "correlation_ref": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9:_-]+$",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "outcome": {
+            "const": "unavailable"
+          },
+          "problem": {
+            "type": "object",
+            "required": [
+              "code"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]{0,63}$"
+              }
+            }
+          },
+          "version": {
+            "const": "actql-check-outcome/0.1"
+          }
+        }
+      }
+    ]
+  },
   "value_contract": {
     "oneOf": [
       {
@@ -2499,6 +2958,11 @@ const operationKeys = {
     "input",
     "parameters"
   ],
+  "check": [
+    "connection",
+    "input",
+    "parameters"
+  ],
   "attach": [
     "connection",
     "ref"
@@ -2610,6 +3074,7 @@ function valid(value, schema) {
   if (schema.type === 'boolean') return typeof value === 'boolean';
   if (schema.type === 'array') return Array.isArray(value) &&
     (schema.minItems === undefined || value.length >= schema.minItems) &&
+    (schema.maxItems === undefined || value.length <= schema.maxItems) &&
     value.every(item => valid(item, schema.items)) &&
     (!schema.uniqueItems || new Set(value).size === value.length);
   if (schema.type === 'object' || schema.properties || schema.required) {
@@ -2654,3 +3119,4 @@ export const validResourceInspectionShape = value => valid(value, schemas.resour
 export const validResourcePeekShape = value => valid(value, schemas.resource_peek);
 export const validResultDescriptionShape = value => valid(value, schemas.result_description);
 export const validRunStateShape = value => valid(value, schemas.run_state);
+export const validCheckOutcomeShape = value => valid(value, schemas.check_outcome);

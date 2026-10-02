@@ -13,7 +13,7 @@ import {inspect} from 'node:util';
 import {resolve} from 'node:path';
 import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from
-  './node_modules/@actql/local-node/adapters/host-node/embedded-local.mjs';
+  '@actql/local-node/http-host';
 import {canonical, judge} from './dbt-compat-judge.mjs';
 
 const [casesPath, compiledPath, resultsPath] = process.argv.slice(2);

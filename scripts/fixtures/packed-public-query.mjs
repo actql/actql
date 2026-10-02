@@ -10,7 +10,7 @@ import {resolve} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from
-  './node_modules/@actql/local-node/adapters/host-node/embedded-local.mjs';
+  '@actql/local-node/http-host';
 import {exercisePublicQueryInput, querySuccesses, queryRefusals, inferRefusals, sourceRows, sourceFreeSuccesses, sourceFreeRefusals, queryCompositionSuccesses, queryCompositionRefusals, pipeResultSuccesses, pipeResultRefusals, pipeResultExecutionFailures}
   from './public-query-input.mjs';
 
@@ -205,6 +205,37 @@ async function exerciseSga(mode, extraEnv) {
     }
   }
 }
+// Public check must also work from installed tarballs, without repository imports.
+async function exercisePublicCheck(options) {
+  const client = await connect(options);
+  const first = await client.check('SELECT 1 AS n', {format: 'sql'});
+  assert.equal(first.report.verdict, 'verified');
+  assert.deepEqual(await client.check('SELECT 1 AS n', {format: 'sql'}), first);
+  const invalid = await client.check('SELECT missing AS n', {format: 'sql'});
+  assert.equal(invalid.report.verdict, 'invalid');
+  assert.notEqual(invalid.report.context_ref, first.report.context_ref);
+  for (const pair of [['e\u0301', 'é'], ['\r', '\n']]) {
+    const refs = [];
+    for (const x of pair) {
+      const result = await client.check('SELECT @x AS n', {format: 'sql',
+        parameterDeclarations: {x: {type: 'string'}}, parameters: {x}});
+      assert.equal(result.report.verdict, 'verified');
+      refs.push(result.report.context_ref);
+    }
+    assert.notEqual(refs[0], refs[1]);
+  }
+  const budget = await client.check('SELECT id FROM never_configured', {
+    format: 'sql', parameterDeclarations: {x: {type: 'array', items: {type: 'number'}}},
+    parameters: {x: Array(9000).fill(1)}});
+  assert.equal(budget.report.verdict, 'undetermined');
+  assert.deepEqual(budget.report.reasons, []);
+  assert.deepEqual(budget.report.coverage, {
+    limits: [{code: 'analysis_budget_exhausted'}],
+    unresolved: [{boundary: 'source_resolution', reason: 'unresolved_protected'}]});
+  console.log(`packed public check ${options.mode} passed`);
+}
+await exercisePublicCheck({mode: 'local', owner: 'local', durability: 'durable',
+  installation: {directory: resolve('local-state'), sourceProfilePath}});
 const retainedStrings = {};
 const recordString = mode => item => {
   if (item.name === 'exact-string-values') retainedStrings[mode] = item;
@@ -229,6 +260,8 @@ const server = createServer({key: await readFile('remote.key'),
   cert: await readFile('remote.crt')}, host.handler);
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 try {
+  await exercisePublicCheck({mode: 'remote',
+    endpoint: `https://127.0.0.1:${server.address().port}/`, token: 'fixture-token'});
   await exercisePublicQueryInput(connect, {mode: 'remote',
     endpoint: `https://127.0.0.1:${server.address().port}/`,
     token: 'fixture-token', durability: 'durable'},

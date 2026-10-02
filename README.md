@@ -48,45 +48,53 @@ Because ActQL programs have analyzable semantics, they naturally enable:
 
 ## Quickstart
 
-Install the CLI into your project, and the Skill pack that teaches a coding
-agent the same grammar the CLI accepts:
+This checkout provides source-built `@actql/*` development packages
+(`0.0.0-development`). The commands below test those artifacts; they do not
+install an npm release or require an `actql` CLI. Use Node.js 22.22.0 (the CI
+version), Git, and the pinned MoonBit toolchain from
+[Development](docs/development.md#moonbit). Consumers of the packed artifacts
+need only Node.js; MoonBit is needed to build them.
+
+From a clean checkout, prepare one package set:
 
 ```bash
-npm install @smoothhq/actql
-npx skills add actql/skills
-npx actql doctor
+npm ci
+npm ci --prefix adapters/connectors/duckdb/node --ignore-scripts
+node scripts/packed-client-packages.mjs "$PWD/_build/client-packages"
+export ACTQL_PACKED_CLIENT_PACKAGES="$PWD/_build/client-packages"
 ```
 
-`doctor` checks that the CLI and installed Skill pack agree.
+Create a new empty directory outside the checkout, switch to it, and install
+the package set:
+
+```bash
+npm init -y >/dev/null
+npm install --ignore-scripts --no-save "$ACTQL_PACKED_CLIENT_PACKAGES"/*.tgz
+```
 
 ### Run a query
 
-Save this input as `orders.jsonl`:
-
-```jsonl
-{"id":"o1","customer_id":"c1","status":"open","amount":120}
-{"id":"o2","customer_id":"c1","status":"closed","amount":30}
-{"id":"o3","customer_id":"c2","status":"open","amount":80}
-```
-
-Save this program as `query.aql`:
+Save this program as `query.aql`. Its three orders are explicit Values, so
+this example needs no Connector account or external input registration:
 
 ```yaml
 version: actql/0.1
 id: customer.open_orders
 stages:
   - id: main
-    inputs:
-      orders:
-        carrier: relation
-        schema:
-          id: { type: string, nullable: false }
-          customer_id: { type: string, nullable: false }
-          status: { type: string, nullable: false }
-          amount: { type: number, nullable: false }
-        primary_key: [ id ]
-    from: orders
+    inputs: {}
     steps:
+      - values:
+          schema:
+            id: { type: string, nullable: false }
+            customer_id: { type: string, nullable: false }
+            status: { type: string, nullable: false }
+            amount: { type: number, nullable: false }
+          rows:
+            - { id: o1, customer_id: c1, status: open, amount: 120 }
+            - { id: o2, customer_id: c1, status: closed, amount: 30 }
+            - { id: o3, customer_id: c2, status: open, amount: 80 }
+        as: orders
       - filter: "status = 'open'"
       - group:
           by: [ customer_id ]
@@ -104,30 +112,54 @@ results:
     from: { stage: main, result: main }
 ```
 
-Optionally check it, then run it:
+Save this Client as `quickstart.mjs`:
 
-```bash
-npx actql check query.aql
-npx actql run query.aql \
-  --input orders=orders.jsonl \
-  --output answer.jsonl \
-  --receipt run.json
+```js
+import {readFile, writeFile} from 'node:fs/promises';
+import {resolve} from 'node:path';
+import {connect} from '@actql/node';
+
+const client = await connect({mode: 'local', owner: 'local',
+  durability: 'durable', installation: {directory: resolve('actql-state')}});
+try {
+  const execution = await client.aql(await readFile('query.aql', 'utf8'),
+    {format: 'yaml', requestId: 'customer-open-orders'});
+  const state = await execution.wait({signal: AbortSignal.timeout(60_000)});
+  if (state.status !== 'succeeded') throw new Error(JSON.stringify(state));
+  const rows = await execution.result('main').all();
+  await writeFile('answer.jsonl', rows.map(row => JSON.stringify(row)).join('\n') + '\n');
+  await writeFile('run.json', JSON.stringify(execution.ref) + '\n');
+} finally {
+  client.close();
+}
 ```
 
-`answer.jsonl` contains:
+Run it:
+
+```bash
+node quickstart.mjs
+cat answer.jsonl
+```
+
+`answer.jsonl` contains, in this order:
 
 ```jsonl
 {"customer_id":"c1","order_count":1,"total_amount":120}
 {"customer_id":"c2","order_count":1,"total_amount":80}
 ```
 
-`check` validates the Program against supplied contracts without reading input
-data. It is optional: `run` performs its own checking. Run accepts a Program,
-not a saved Plan.
+Submission checks the Program; `wait()` follows it to termination and
+`result('main').all()` reads the named Result. `run.json` saves the Run
+reference for `client.attach()`. Reusing the same request ID and Program
+returns that Run rather than executing it again. Keep `actql-state` while
+using its retained Results. The consumer directory belongs to this
+example and can be removed when you no longer need its files or Results.
 
 ## A real-world program
 
-That was a local query. Here is the same language across three systems: find
+That was a local query. The following ecosystem example illustrates the same
+language across three systems; this combined integration is not supplied by
+the development packages above. Find
 the largest open Salesforce renewals, enrich them with current product usage
 from Snowflake, update the opportunities at risk, and notify Slack.
 
@@ -257,9 +289,11 @@ safe to repeat. An intentional resend uses a new logical request identity.
 
 ## Approve a change
 
-The packaged local example adds one Effect and exercises one Checkpoint end to
-end without a provider account. It uses the bundled local JSONL Connector and
-sets up a temporary local approval key:
+The CLI workflow below illustrates the intended approval experience. Its
+`@smoothhq/actql` example and commands are not provided by the source-built
+`@actql/*` packages above. For their current executable Checkpoint API, see
+the [Client package](packages/sdk/README.md#held-requests-and-checkpoints). The CLI example adds
+one Effect without a provider account and sets up a local approval key:
 
 ```bash
 cp -R node_modules/@smoothhq/actql/examples/actql/approval-quickstart .

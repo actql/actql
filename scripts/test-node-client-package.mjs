@@ -19,7 +19,7 @@ const projectionOnly = process.argv.includes('--projection-only');
 const build = join(repository, '_build');
 await mkdir(build, {recursive: true});
 // The installation, states and bundles of this run; removed after it passed.
-const scratch = await createOwnedScratch({parent: build,
+const scratch = await createOwnedScratch({parent: join(repository, '..', '.codex-scratch'),
   prefix: 'node-client-package-', label: 'packed Node Client',
   digests: () => readdirSync(root).filter(name => name.endsWith('.tgz'))
     .sort()});
@@ -2536,7 +2536,7 @@ import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import {openInstalledRemoteHttpHost} from
-  './node_modules/@actql/local-node/adapters/host-node/embedded-local.mjs';
+  '@actql/local-node/http-host';
 const host = await openInstalledRemoteHttpHost({
   directory: join(process.cwd(), 'restart-remote-state'),
   authenticate: header => header === 'Bearer packed-test-token'

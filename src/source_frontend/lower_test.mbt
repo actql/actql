@@ -211,3 +211,21 @@ test "public Graph lowering rejects private star before Program preparation" {
     is Err(QueryLowering(@query.UnsupportedProjection)),
   )
 }
+
+///|
+test "query syntax admission is bounded and independent of semantic context" {
+  for format in [Format::Sql, Format::Text] {
+    assert_true(parse_query("SELECT @p AS n", format) is Ok(_))
+    assert_true(parse_query("SELECT missing FROM protected", format) is Ok(_))
+    assert_true(parse_query("SELECT FROM WHERE", format) is Err(QuerySyntax(_)))
+    let many = "SELECT " + Array::make(4200, "1").join(",")
+    assert_true(
+      parse_query(many, format) is Err(QuerySyntax({ issue: Limit(_), .. })),
+    )
+  }
+  assert_true(
+    parse_query("FROM records |> SELECT id", Sql) is Err(WrongQueryForm),
+  )
+  assert_true(parse_query("FROM records |> SELECT id", Text) is Ok(_))
+  assert_true(parse_query("{}", Json) is Err(InvalidFormat))
+}
