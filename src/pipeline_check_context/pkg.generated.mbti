@@ -11,7 +11,6 @@ import {
   "actql/actql/capacity_program_step",
   "actql/actql/capacity_sequence_limit",
   "actql/actql/capacity_witness",
-  "actql/actql/carrier_projection",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
   "actql/actql/encode_core",
@@ -1601,29 +1600,6 @@ pub(all) enum GraphMatchRule {
   EnforceMatchResources
 } derive(Eq, @debug.Debug)
 
-pub struct GraphProjectionCheck {
-  site : OperationRequirementSite
-  step : @pipeline_typing.CheckedStep
-  input : @pipeline_typing.Target
-  operation : @carrier_projection.CheckedProjection
-  rule : GraphProjectionRule
-}
-
-pub struct GraphProjectionEnvelope {
-  site : OperationRequirementSite
-  step : @pipeline_typing.CheckedStep
-  input : @pipeline_typing.Target
-  operation : @carrier_projection.CheckedProjection
-  policy : @capacity_policy.Policy
-  output_rows : @capacity_policy.Ceiling
-}
-
-pub(all) enum GraphProjectionRule {
-  AdmitGraphRecords
-  RejectColumnCollisions
-  RestoreIdentityNames
-} derive(Eq, @debug.Debug)
-
 pub(all) enum GraphSelectionResource {
   SelectorWork
   SelectorBytes
@@ -2172,8 +2148,6 @@ pub(all) enum OperationExecutionCheck {
   TraversalOutputGuard(TraversalLimitsCheck)
   TraversalExecution(TraversalCheck)
   PropertyGraphConstructionExecution(PropertyGraphConstructionCheck)
-  GraphProjection(GraphProjectionCheck)
-  GraphProjectionOutput(GraphProjectionEnvelope)
   SequenceMatch(SequenceMatchCheck)
   SequenceLimits(SequenceLimitsCheck)
   SequenceExecution(SequenceExecutionCheck)

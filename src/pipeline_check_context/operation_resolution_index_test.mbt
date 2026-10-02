@@ -174,10 +174,6 @@ fn check_resolution_index(
         execution += 1
         assert_true(physical_equal(check.site, site))
       }
-      Execution(GraphProjection(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
       Execution(GraphMatchExecution(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))
@@ -211,10 +207,6 @@ fn check_resolution_index(
         assert_true(physical_equal(check.site, site))
       }
       Execution(TraversalExecution(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
-      Execution(GraphProjectionOutput(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))
       }

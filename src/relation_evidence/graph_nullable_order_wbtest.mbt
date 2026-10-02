@@ -81,14 +81,6 @@ test "typed Graph identity evidence cannot grant generic JSON or historical tupl
   assert_eq(key_pending(selected), [ValidateKeyProducer])
   assert_true(key_graph_query_producer(selected) is Some(MatchOperation(_)))
   // Nullable business properties and endpoints are not edge identity components.
-  assert_true(
-    select_graph_order_identity(
-      graph_order_cursor("null"),
-      transfer.keys,
-      limit,
-    ).unwrap().key
-    is None,
-  )
   for usage in [CanonicalOrder, ScalarIdentity] {
     assert_true(
       select_key(graph_order_cursor("null"), transfer.keys, usage, limit).unwrap().key
@@ -96,7 +88,7 @@ test "typed Graph identity evidence cannot grant generic JSON or historical tupl
     )
   }
   assert_true(
-    select_graph_order_identity(graph_order_cursor("null"), transfer.keys, {
+    select_key(graph_order_cursor("null"), transfer.keys, CanonicalOrder, {
       max_work: 0,
       max_name_bytes: 1000,
     })
@@ -108,10 +100,6 @@ test "typed Graph identity evidence cannot grant generic JSON or historical tupl
       { ..selected, origin: InputDeclaration, },
     ] {
     let keys = singleton_key(witness)
-    assert_true(
-      select_graph_order_identity(graph_order_cursor("null"), keys, limit).unwrap().key
-      is None,
-    )
     assert_true(
       select_key(graph_order_cursor("null"), keys, CanonicalOrder, limit).unwrap().key
       is None,

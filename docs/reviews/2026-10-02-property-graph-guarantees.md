@@ -1262,3 +1262,47 @@ Homogeneous metadata/projection and definition-free predicate scaffolding,
 external Source declaration admission, remaining Core fixture migrations,
 strict inventories and submitted-SHA public snapshot/fresh packed/required CI
 remain open. No public branch replacement, push, merge or GO is implied.
+
+## Retired homogeneous Graph projection pipeline removal
+
+The checked `NodeRows`/`EdgeRows` projection variants, their Graph obligation
+owner, lowering payload arms, semantic port capabilities, count/claim
+conversions, execution checks and output envelope are deleted together. The
+old tuple key issuer, producer/origin and nullable-label order-completion
+fallback are also removed. Current Graph identity stays definition-scoped MATCH
+identity; endpoint/label tuples cannot issue independent edge identity.
+Events and Vectors keep their existing projection, key and resource paths.
+
+The authored `node_rows`/`edge_rows` spellings refuse directly at the public
+pipeline checker, before any checked projection or execution grant exists.
+They retain exact malformed-body, unsupported-current-Graph, incomplete-Graph,
+wrong-family and source-path diagnostics. Zero preparation budgets still fail.
+Old direct checker tests cannot keep removed enum variants executable; their
+public refusal cases are now tested at this boundary. Ordinary projection's
+exact/one-short work, node and text budgets remain positive Events/Vectors tests,
+and current MATCH retains its own typed schema/evidence/resource positives.
+
+Typed MATCH identity still cannot become ordinary JSON scalar ordering or use
+nullable business properties/endpoints as key components. Its inherited
+publication order and exact original producer remain tested. The obsolete
+Graph-only fallback selector is removed rather than left as a second ordering
+route. The cross-family test positively retains a Vector projection key and
+checks that it has no Graph query producer; it does not require legitimate
+Vector evidence to disappear.
+
+The complete carrier-projection, capacity-program-step, pipeline-typing,
+pipeline-check-context, relation-evidence, publication-order-policy,
+lowering-relation and Graph-preflight packages, plus current formal TRAIL,
+selector/construction and managed-provider custody regressions, pass
+**972/972 on each JS, Wasm and native** with `--deny-warn`:
+`/private/tmp/property-graph-projection-removal-{js-pass,wasm,native}-20261003.log`.
+Initial logs retain missed dead capacity arms, unused package imports and a
+migration assertion which incorrectly required a legitimate Vector key to be
+absent. Those stale references/assertions were corrected; validators were not
+weakened. Four generated interfaces contain only intentional retired API
+removals, and two package dependencies used solely by that route are removed.
+
+Homogeneous Carrier metadata and definition-free path-predicate scaffolding
+still require removal. External Source declaration admission, remaining Core
+fixtures, strict inventories, current submitted-SHA snapshot/fresh packed and
+required CI remain open. These local results are not public #164 acceptance.

@@ -25,8 +25,6 @@ pub(all) enum OperationExecutionCheck {
   TraversalOutputGuard(TraversalLimitsCheck)
   TraversalExecution(TraversalCheck)
   PropertyGraphConstructionExecution(PropertyGraphConstructionCheck)
-  GraphProjection(GraphProjectionCheck)
-  GraphProjectionOutput(GraphProjectionEnvelope)
   SequenceMatch(SequenceMatchCheck)
   SequenceLimits(SequenceLimitsCheck)
   SequenceExecution(SequenceExecutionCheck)
@@ -189,12 +187,6 @@ pub fn operation_execution_phase(
         | ExcludeNullKeysAndMissingEndpoints
         | EnforcePropertyConstructionEnvelope => BeforeOperationOutput
       }
-    GraphProjectionOutput(_) => BeforeOperationOutput
-    GraphProjection(v) =>
-      match v.rule {
-        AdmitGraphRecords => BeforeOperationInputUse
-        RejectColumnCollisions | RestoreIdentityNames => BeforeOperationOutput
-      }
     SequenceMatch(_) => BeforeOperationOutput
     SequenceLimits(_) => BeforeOperationOutput
     SequenceExecution(_) => BeforeOperationInputUse
@@ -298,8 +290,6 @@ pub fn operation_execution_failure(
     | TraversalLimits(_)
     | TraversalOutputGuard(_)
     | TraversalExecution(_)
-    | GraphProjection(_)
-    | GraphProjectionOutput(_)
     | PropertyGraphConstructionExecution(_) => RejectOperationOutput
     AsOfExecution(_) => RejectOperationOutput
     IntervalExecution(_) => RejectOperationOutput

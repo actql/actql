@@ -694,7 +694,6 @@ pub(all) enum OperationObligation {
   SeriesRequirement(@time_series.Obligation)
   CalendarRequirement(@calendar_typing.Obligation)
   WindowRequirement(@temporal_window.Obligation)
-  ProjectionRequirement(@carrier_projection.GraphObligation)
   MatchRequirement(@graph_typing.MatchObligation)
   TraverseRequirement(@graph_typing.TraverseObligation)
   SelectorRequirement(@graph_typing.SelectorObligation)

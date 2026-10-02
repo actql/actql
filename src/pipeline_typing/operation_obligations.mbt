@@ -25,7 +25,6 @@ pub(all) enum OperationObligation {
   SeriesRequirement(@series.Obligation)
   CalendarRequirement(@calendar.Obligation)
   WindowRequirement(@window.Obligation)
-  ProjectionRequirement(@projection.GraphObligation)
   MatchRequirement(@graph.MatchObligation)
   TraverseRequirement(@graph.TraverseObligation)
   SelectorRequirement(@graph.SelectorObligation)
@@ -54,7 +53,6 @@ priv enum ObligationOwner {
   SeriesOwner(@series.CheckedSeries)
   CalendarOwner(@calendar.CheckedCalendar)
   WindowOwner(@window.CheckedWindow)
-  ProjectionOwner(@projection.CheckedProjection)
   MatchOwner(@graph.CheckedMatch)
   TraverseOwner(@graph.CheckedTraverse)
   SelectorOwner(@graph.CheckedSelector)
@@ -98,7 +96,6 @@ pub fn operation_obligations_source(v : OperationObligations) -> @decode.Cursor 
     SeriesOwner(c) => @series.source(c)
     CalendarOwner(c) => @calendar.source(c)
     WindowOwner(c) => @window.source(c)
-    ProjectionOwner(c) => @projection.source(c)
     MatchOwner(c) => @graph.match_source(c)
     TraverseOwner(c) => @graph.traverse_source(c)
     SelectorOwner(c) => @graph.selector_source(c)
@@ -184,7 +181,6 @@ pub fn operation_obligations_count(v : OperationObligations) -> Int {
     SeriesOwner(c) => @series.pending_validation_count(c)
     CalendarOwner(c) => @calendar.pending_validation_count(c)
     WindowOwner(c) => @window.pending_validation_count(c)
-    ProjectionOwner(c) => @projection.graph_pending_count(c)
     MatchOwner(c) => @graph.match_pending_count(c)
     TraverseOwner(c) => @graph.traverse_pending_count(c)
     SelectorOwner(c) => @graph.selector_pending_count(c)
@@ -239,8 +235,6 @@ pub fn operation_obligations_at(
       @calendar.pending_validation_at(c, index).map(x => CalendarRequirement(x))
     WindowOwner(c) =>
       @window.pending_validation_at(c, index).map(x => WindowRequirement(x))
-    ProjectionOwner(c) =>
-      @projection.graph_pending_at(c, index).map(x => ProjectionRequirement(x))
     MatchOwner(c) =>
       @graph.match_pending_at(c, index).map(x => MatchRequirement(x))
     TraverseOwner(c) =>
@@ -272,7 +266,7 @@ pub fn operation_obligation_group_count(operation : CheckedOperation) -> Int {
   match operation {
     // Acquisition closure and call-slot preflight belong to the model owner,
     // not the pure operation obligation inventory.
-    Infer(_) => 0
+    Infer(_) | Projection(_) => 0
     Sequence(_) | Traverse(..) => 2
     Unary(_)
     | WindowGroup(_)
@@ -287,7 +281,6 @@ pub fn operation_obligation_group_count(operation : CheckedOperation) -> Int {
     | TimeSeries(_)
     | Calendar(_)
     | Window(_)
-    | Projection(_)
     | GraphMatch(_)
     | PropertyGraphConstruction(..)
     | Vector(_)
@@ -309,7 +302,7 @@ pub fn operation_obligation_group_at(
   }
   Some(
     match operation {
-      Infer(_) => return None
+      Infer(_) | Projection(_) => return None
       Unary(c) | WindowGroup(c) => { scope: Body, owner: RelationOwner(c), }
       Join(checked=c, ..) => { scope: Body, owner: JoinOwner(c), }
       Append(checked=c, ..) => { scope: Body, owner: AppendOwner(c), }
@@ -323,7 +316,6 @@ pub fn operation_obligation_group_at(
       TimeSeries(c) => { scope: Body, owner: SeriesOwner(c), }
       Calendar(c) => { scope: Body, owner: CalendarOwner(c), }
       Window(c) => { scope: Body, owner: WindowOwner(c), }
-      Projection(c) => { scope: Body, owner: ProjectionOwner(c), }
       GraphMatch(c) => { scope: Body, owner: MatchOwner(c), }
       PropertyGraphConstruction(checked=c, ..) =>
         { scope: Body, owner: PropertyConstructionOwner(c), }

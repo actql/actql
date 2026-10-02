@@ -310,18 +310,6 @@ fn sync_keys(
             }),
           ),
         )
-      (_, Projection(op)) if @projection.operation(op) == @projection.NodeRows ||
-        @projection.operation(op) == @projection.EdgeRows =>
-        Some(
-          key_result(
-            b,
-            step.source,
-            @evidence.graph_projection_keys(op, {
-              max_work: b.work,
-              max_name_bytes: b.text,
-            }),
-          ),
-        )
       (_, Projection(op)) if @projection.operation(op) == @projection.Vectors =>
         Some(
           key_result(

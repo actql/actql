@@ -177,7 +177,6 @@ pub fn operation_profile_requirement(
     | SeriesRequirement(_)
     | CalendarRequirement(_)
     | WindowRequirement(_)
-    | ProjectionRequirement(_)
     | SelectorRequirement(_) => None
   }
 }

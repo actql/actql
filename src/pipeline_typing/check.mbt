@@ -1391,15 +1391,29 @@ fn check_impl(
       current = Some(target)
       continue
     }
-    if key == "events" ||
-      key == "vectors" ||
-      key == "node_rows" ||
-      key == "edge_rows" {
+    if key == "node_rows" || key == "edge_rows" {
+      if @decode.boolean(operation_body) != Ok(true) {
+        fail(operation_body, Projection(@projection.InvalidBody))
+      }
+      match carrier(input, inputs, steps) {
+        @carrier.GraphValue(_) =>
+          fail(
+            operation_body,
+            Projection(@projection.UnsupportedGraphOperation),
+          )
+        @carrier.Opaque(GraphKind) =>
+          fail(operation_body, Projection(@projection.IncompleteGraph))
+        other =>
+          fail(
+            operation_body,
+            Projection(@projection.WrongCarrier(@carrier.kind(other))),
+          )
+      }
+    }
+    if key == "events" || key == "vectors" {
       let projection = match key {
         "events" => @projection.Events
-        "vectors" => @projection.Vectors
-        "node_rows" => @projection.NodeRows
-        _ => @projection.EdgeRows
+        _ => @projection.Vectors
       }
       let checked = match
         @projection.check(

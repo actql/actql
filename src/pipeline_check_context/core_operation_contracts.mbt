@@ -47,11 +47,7 @@ fn operation_count_contract(
       } else {
         Graph
       }
-    @pipeline.Projection(v) =>
-      match @projection.operation(v) {
-        @projection.NodeRows | @projection.EdgeRows => Graph
-        @projection.Events | @projection.Vectors => ClassificationOnly
-      }
+    @pipeline.Projection(_) => ClassificationOnly
     @pipeline.Nearest(..) | @pipeline.Ranking(_) | @pipeline.TextRank(..) =>
       Ranking
     @pipeline.TimeSeries(_) | @pipeline.Calendar(_) => Series

@@ -149,24 +149,6 @@ fn operation_rule(
       // Do not mistake repeated authored selectors for extra output entities.
       return Ok((law, GraphMeasure(@arithmetic.Rows, input_unit, 0, 1L)))
     }
-    @pipeline.Projection(op) =>
-      match @projection.operation(op) {
-        @projection.NodeRows =>
-          return Ok(
-            (
-              "actql.bound.graph-node-rows",
-              GraphMeasure(@arithmetic.Rows, @arithmetic.Nodes, 0, 1L),
-            ),
-          )
-        @projection.EdgeRows =>
-          return Ok(
-            (
-              "actql.bound.graph-edge-rows",
-              GraphMeasure(@arithmetic.Rows, @arithmetic.Edges, 0, 1L),
-            ),
-          )
-        _ => ()
-      }
     _ => ()
   }
   match step.operation {
@@ -377,11 +359,7 @@ fn forwarded_input(
         @vector.ToVectors | @vector.NormalizeVectors | @vector.ScoreVectors =>
           true
       }
-    @pipeline.Projection(op) =>
-      match @projection.operation(op) {
-        @projection.Events | @projection.Vectors => true
-        _ => false
-      }
+    @pipeline.Projection(_) => true
     _ => false
   }
   if preserves_upper {

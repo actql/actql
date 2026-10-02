@@ -13,12 +13,6 @@ import {
 // Values
 pub fn check(Operation, @decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedProjection, Issue]
 
-pub fn graph_pending(CheckedProjection) -> Array[GraphObligation]
-
-pub fn graph_pending_at(CheckedProjection, Int) -> GraphObligation?
-
-pub fn graph_pending_count(CheckedProjection) -> Int
-
 pub fn input(CheckedProjection) -> @carrier_contract.Carrier
 
 pub fn operation(CheckedProjection) -> Operation
@@ -33,13 +27,6 @@ pub fn usage(CheckedProjection) -> Usage
 
 // Types and methods
 type CheckedProjection
-
-pub(all) enum GraphObligation {
-  ValidateGraphRecords
-  RejectRuntimeColumnCollisions
-  RestoreSemanticIdentityNames
-  ResolveGraphProjectionResources
-} derive(Eq, @debug.Debug)
 
 pub struct Issue {
   kind : IssueKind
@@ -67,8 +54,6 @@ pub(all) struct Limits {
 pub(all) enum Operation {
   Events
   Vectors
-  NodeRows
-  EdgeRows
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {

@@ -161,7 +161,6 @@ pub fn operation_scalar_demand(
     AppendRequirement(_)
     | SetRequirement(_)
     | ValuesRequirement(_)
-    | ProjectionRequirement(_)
     | MatchRequirement(_)
     | SelectorRequirement(_)
     | ConstructionRequirement(_)

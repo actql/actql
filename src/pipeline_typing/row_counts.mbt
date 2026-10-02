@@ -390,12 +390,7 @@ fn derive_row_counts(
         }
       Unary(op) | WindowGroup(op) => unary_count(step.source, input, op)
       Vector(_) | Infer(_) => input
-      Projection(v) =>
-        match @projection.operation(v) {
-          Events | Vectors => input
-          NodeRows => graph_input.bind(v => v.nodes)
-          EdgeRows => graph_input.bind(v => v.edges)
-        }
+      Projection(_) => input
       Traverse(selector~, checked~) => {
         let nodes = graph_input.bind(g => g.nodes)
         let starts = selector_count(

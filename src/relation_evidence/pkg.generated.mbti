@@ -134,8 +134,6 @@ pub fn declared_score_source(DeclaredScore) -> @decode_core.Cursor
 
 pub fn declared_score_usage(DeclaredScore) -> @vector_checking.Usage
 
-pub fn graph_projection_keys(@carrier_projection.CheckedProjection, TransferLimits) -> Result[KeySetTransfer, Issue]
-
 pub fn graph_query_keys(GraphKeyOperation, TransferLimits) -> Result[KeySetTransfer, Issue]
 
 pub fn infer_input_binding_at(CheckedInfer, Int) -> InferInputBinding?
@@ -201,8 +199,6 @@ pub fn key_event_producer(KeyedRelation) -> @event_typing.CheckedEvent?
 pub fn key_field_at(KeyedRelation, Int) -> KeyField?
 
 pub fn key_field_count(KeyedRelation) -> Int
-
-pub fn key_graph_projection_producer(KeyedRelation) -> @carrier_projection.CheckedProjection?
 
 pub fn key_graph_query_producer(KeyedRelation) -> GraphKeyOperation?
 
@@ -436,8 +432,6 @@ pub fn score_contract_normalization(ScoreContract) -> String
 
 pub fn select_covered_key(@decode_core.Cursor, KeySet, Array[@relation_schema.FieldName], TransferLimits) -> Result[KeySelection, Issue]
 
-pub fn select_graph_order_identity(@decode_core.Cursor, KeySet, TransferLimits) -> Result[KeySelection, Issue]
-
 pub fn select_interval_join_key(@relation_join_shape.CheckedIntervalJoin, @relation_schema.Side, KeySet?, TransferLimits) -> Result[KeySelection, Issue]
 
 pub fn select_join_key(@relation_join_shape.CheckedJoin, @relation_schema.Side, KeySet?, TransferLimits) -> Result[KeySelection, Issue]
@@ -643,7 +637,6 @@ pub(all) enum KeyOrigin {
   CalendarSeriesResult
   TimeSeriesResult
   VectorProjectionResult
-  GraphProjectionResult
   WindowMembershipResult
   UnnestResult
   UnpivotResult
