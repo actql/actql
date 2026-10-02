@@ -146,7 +146,7 @@ test "local input source budgets cover all fields together" {
 }
 
 ///|
-test "manual cursors cannot smuggle noncanonical metadata through declarations" {
+test "metadata retains string values but cannot smuggle invalid numbers through declarations" {
   let span = @source.parse_json("null", {
       max_input_bytes: 4,
       max_nodes: 1,
@@ -185,6 +185,9 @@ test "manual cursors cannot smuggle noncanonical metadata through declarations" 
       max_string_bytes: 100,
       max_total_string_bytes: 100,
     }).unwrap()
-    assert_true(read(owned, caps()) is Err(_))
+    match invalid {
+      @source.String(_) => assert_true(read(owned, caps()) is Ok(_))
+      _ => assert_true(read(owned, caps()) is Err(_))
+    }
   }
 }

@@ -89,6 +89,11 @@ export function publicClientErrorCode(error) {
   return responseCode(error) === 500 ? 'ClientHostFailure' : error.code;
 }
 
+// In-process errors retain the same refusal/unknown-outcome classification.
+export function publicClientErrorStatus(error) {
+  return responseCode(error);
+}
+
 function sendError(response, error) {
   if (response.headersSent) {
     response.destroy(error);

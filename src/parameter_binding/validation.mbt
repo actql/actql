@@ -22,18 +22,21 @@ fn charge_text(
   text : String,
   cursor : @decode.Cursor,
   budget : Budget,
+  identifier? : Bool = false,
 ) -> Unit raise Abort {
   match @scalar.admit_utf8_length(text, budget.text) {
     Ok(size) => budget.text -= size
     Err(@scalar.MalformedUtf16(_)) => invalid(cursor, InvalidUnicode)
     Err(_) => invalid(cursor, BudgetExceeded)
   }
-  match @canonical.normalize_nfc_lf(text) {
-    Ok(normalized) =>
-      if normalized != text {
-        invalid(cursor, NonCanonicalText)
-      }
-    Err(_) => invalid(cursor, InvalidUnicode)
+  if identifier {
+    match @canonical.normalize_nfc_lf(text) {
+      Ok(normalized) =>
+        if normalized != text {
+          invalid(cursor, NonCanonicalText)
+        }
+      Err(_) => invalid(cursor, InvalidUnicode)
+    }
   }
 }
 
@@ -44,7 +47,7 @@ fn charge_key(
   object : @decode.Cursor,
   budget : Budget,
 ) -> Unit raise Abort {
-  charge_text(key, object, budget) catch {
+  charge_text(key, object, budget, identifier=true) catch {
     Abort(ParameterIssue(kind, ..)) =>
       match @decode.closed_object(object, names.filter(n => n != key)) {
         Err(location) =>

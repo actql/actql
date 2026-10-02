@@ -48,6 +48,7 @@ fn text_size(
   text : String,
   cursor : @decode.Cursor,
   budget : Budget,
+  identifier? : Bool = false,
 ) -> Int raise Abort {
   let size = match @scalar.admit_utf8_length(text, budget.text) {
     Ok(size) => size
@@ -55,9 +56,11 @@ fn text_size(
     Err(_) => fail(cursor, BudgetExceeded)
   }
   budget.text -= size
-  match @canonical.normalize_nfc_lf(text) {
-    Ok(normalized) => if normalized != text { fail(cursor, NonCanonicalText) }
-    Err(_) => fail(cursor, InvalidUnicode)
+  if identifier {
+    match @canonical.normalize_nfc_lf(text) {
+      Ok(normalized) => if normalized != text { fail(cursor, NonCanonicalText) }
+      Err(_) => fail(cursor, InvalidUnicode)
+    }
   }
   size
 }
@@ -86,7 +89,7 @@ fn key_text(
   child : @decode.Cursor,
   budget : Budget,
 ) -> Unit raise Abort {
-  ignore(text_size(name, child, budget)) catch {
+  ignore(text_size(name, child, budget, identifier=true)) catch {
     Abort(ValueIssue(kind, ..)) =>
       match @decode.closed_object(object, names.filter(n => n != name)) {
         Err(location) =>
@@ -302,7 +305,7 @@ fn run(
 }
 
 ///|
-/// Check normalized source values without coercion, repair or authority claims.
+/// Check exact decoded source values without coercion, repair or authority claims.
 pub fn admit(
   contract : @contract.Contract,
   cursor : @decode.Cursor,

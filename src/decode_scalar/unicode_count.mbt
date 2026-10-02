@@ -1,7 +1,7 @@
 ///|
 /// Count Unicode scalar values without normalization or allocation. Ill-formed
 /// UTF-16 is not text and returns None. The count cannot exceed String.length().
-/// Language string constraints require callers to normalize with NFC then LF first.
+/// Counts the preserved scalar value; identifier normalization is a separate contract.
 pub fn unicode_scalar_count(text : String) -> Int? {
   let mut index = 0
   let mut count = 0

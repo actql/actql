@@ -1,12 +1,17 @@
 # Frontend r1: adopted query surfaces and machine Program input
 
-Frontend r1 adds representations of the existing Program. It does not add an
+Frontend r1 lowers adopted source forms to the common Program. It does not add an
 execution engine, an alternative checker, or authority to acquire inputs or
 apply Effects. The [adopted profile](../../spec/frontend/frontend-profile-r1.json)
 separates accepted, restricted and rejected surfaces from implementation and
 execution evidence. `supported` in the imported design means adoption, not
 installed functionality. The [baseline and acceptance index](../../spec/frontend/README.md)
 record delivery evidence separately.
+
+The [standard-profile ledger](frontend-standard-profiles.md) selects semantic
+references and distinguishes ActQL extensions. Common Program meaning must
+align with adopted rules; historical implementation choices are not fixed
+merely because an existing operation already represents them.
 
 The accepted follow-on [SGA surface design](frontend-sga-surface.md) reuses
 logical DATA bindings and existing Graph operations. It remains separate from
@@ -21,7 +26,8 @@ inputs, explicit steps, Results and Effects. Expression strings inside JSON
 bodies retain the existing expression grammar. Object order is immaterial;
 array order and explicit steps are preserved. Missing optional members and
 explicitly empty permitted members are not conflated. An empty Effect map can
-be represented by `EFFECTS {};`.
+be represented by `EFFECTS {};` in the historical internal fixture language,
+not the current public source language.
 
 In historical fixtures only, `STEP` carries an ordinary JSON step, including its metadata and output name.
 `OP` selects a name from the existing closed operation inventory. The minimum
@@ -75,6 +81,13 @@ pins, dependent artifacts and independent vectors change together with those
 obligations; the Program schema remains unchanged.
 All owned contracts remain on the initial 0.1 baseline.
 
+That schema statement describes structural-text retirement, not a prohibition
+on later coordinated semantic changes. The profile principle
+`machine_program_semantics_preserved` requires lowering equivalence under the
+applicable pins. It does not prohibit correcting the common model to match
+an adopted standard. Such corrections update affected laws, schemas, pins,
+canonical identities and independent vectors together.
+
 Pure checking performs no provider I/O. Execution uses the normal Host and
 existing checked owners, retaining Effect declarations and acquisition
 boundaries. Source translation does not prove backend support for an operation.
@@ -97,6 +110,31 @@ or treating a runtime capability declaration as execution evidence.
 
 Known gaps in the imported acceptance matrix are explicit fixture requirements
 in the registry. They remain work to do; an empty evidence array is never a pass.
+
+### Quoted String profile
+
+The selected lexical reference is
+[GoogleSQL lexical structure at the pinned reference revision](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/lexical.md#string-and-bytes-literals).
+Query strings lower to ordinary String literals. Their decoded scalar values
+are retained by the common value, canonical identity and serialization owners;
+the Frontend does not introduce an alternative String representation.
+
+| Reference form | Frontend and common meaning | Coverage boundary |
+| --- | --- | --- |
+| Single/double quoted String | The same bounded decoder and String expression; either quote may contain the other quote | Raw CR/LF is invalid in these plain forms |
+| Standard simple, octal, hex and Unicode escapes | Decode once to the exact Unicode scalar sequence | Reject malformed escapes, surrogate values and values above U+10FFFF |
+| Backtick identifier | Name resolution, separate from String data | Existing identifier escape subset remains; wider escapes are not implemented |
+| Triple single/double quoted String | Ordinary String after source newline/escape decoding | Three matching unescaped quotes terminate the chunk; physical newlines are permitted |
+| Raw String | Preserve each backslash and following scalar in an ordinary String | Prefix applies only to its immediate chunk; odd trailing backslash and plain-form physical newlines reject |
+| Adjacent String chunks | Concatenate decoded values into one String expression, retaining the original source range | Whitespace/comment separation is required; identifiers and String/bytes mixtures do not concatenate |
+| Bytes literal | Requires the reference's distinct bytes meaning | Not yet implemented; never stringify bytes silently |
+| Graph LABELS annotation | Historical annotation syntax, separate from query literal syntax | Query-only escapes and raw controls do not widen annotation admission |
+
+Independent fixtures compare decoded values and ordinary Programs, including
+CR/LF/CRLF, composed/decomposed Unicode and backslash followed by `n`. The
+packed source fixtures require rows, declaration-order contracts and UTF-8
+extents through the same Local/HTTP Result boundary. Listed fixture obligations
+do not by themselves establish execution success.
 
 ## Shared query vocabulary and scope
 
@@ -161,14 +199,16 @@ accounting. Proof-only tie completion remains the existing compiler's concern.
 
 These name-resolution rules follow [GoogleSQL query syntax](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax)
 and [window function calls](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/window-function-calls).
-The selected ActQL profile still rejects unsupported forms and retains its
-explicit NULL, numeric, acquisition and failure semantics.
+The selected ActQL profile rejects unsupported forms explicitly. NULL,
+numeric and failure behavior must be compared with the selected reference;
+an intentional difference needs a named profile or recorded rationale. Explicit
+acquisition and authority boundaries remain common execution obligations.
 
 | Reference term | Frontend representation | Existing semantic representation | Difference or boundary |
 | --- | --- | --- | --- |
 | SELECT list | Ordered projection expressions | derive and select | Preserve evaluation once and output order; duplicate output names rejected |
 | Range variable / SELECT alias | Separate scope bindings | Resolved field slots | Pipe SET/DROP/RENAME retain prior range slots; Pipe AS replaces all old ranges with the current row; no helper egress |
-| WHERE / HAVING | Pre-/post-aggregate predicate | filter plus existing expression tree | Eager boolean and failure rules remain ActQL's |
+| WHERE / HAVING | Pre-/post-aggregate predicate | filter plus existing expression tree | Three-valued logic and common demand/failure contracts; do not infer mandatory short-circuiting or evaluation order from GoogleSQL AND/OR |
 | GROUP BY / aggregate call | Group keys and aggregate expressions | group | Not an analytic partition; canonical aggregate failure order retained |
 | Analytic partition / window frame | OVER partition, order and ROWS frame | analytic | Not TEA event-time windows; only adopted signatures/frames |
 | Final ORDER BY | Query output ordering | sort | Explicit ASC NULLS FIRST / DESC NULLS LAST; proof-driven tie completion |

@@ -200,10 +200,14 @@ async function exerciseSga(mode, extraEnv) {
     }
   }
 }
+const retainedStrings = {};
+const recordString = mode => item => {
+  if (item.name === 'exact-string-values') retainedStrings[mode] = item;
+};
 await exercisePublicQueryInput(connect, {mode: 'local', owner: 'local',
   durability: 'durable', installation: {directory: resolve('local-state'),
     sourceProfilePath}}, {requestPrefix: 'packed-local',
-  observe: observe('local-state'), prepareCase, ...scopeInputs});
+  observe: observe('local-state'), prepareCase, completedCase: recordString('local'), ...scopeInputs});
 assert.equal(observe('local-state')().acceptedRuns, expectedQueryRuns);
 assert.ok(sourceIo >= expectedSourceReads);
 console.log('packed raw SQL/Pipe Embedded Local acceptance passed');
@@ -223,7 +227,7 @@ try {
   await exercisePublicQueryInput(connect, {mode: 'remote',
     endpoint: `https://127.0.0.1:${server.address().port}/`,
     token: 'fixture-token', durability: 'durable'},
-  {requestPrefix: 'packed-http', observe: observe('remote-state'), prepareCase, ...scopeInputs});
+  {requestPrefix: 'packed-http', observe: observe('remote-state'), prepareCase, completedCase: recordString('remote'), ...scopeInputs});
   assert.equal(observe('remote-state')().acceptedRuns, expectedQueryRuns);
   assert.ok(sourceIo >= beforeRemote + expectedSourceReads);
   console.log('packed raw SQL/Pipe HTTP acceptance passed');
@@ -247,3 +251,8 @@ try {
 // Exercise both transports before rejecting the acceptance run. A failed
 // case remains a failure; the other transport provides independent evidence.
 assert.deepEqual(sgaFailures, [], 'Packed SGA acceptance failures');
+
+if (retainedStrings.local && retainedStrings.remote) {
+  await writeFile('retained-string-results.json', JSON.stringify(retainedStrings));
+
+}

@@ -4040,7 +4040,7 @@
             "native"
           ],
           "path": "src/execution_relation/bounded_global_count_wbtest.mbt",
-          "fixture": "raw row table text still requires canonical admission"
+          "fixture": "raw row table text still requires well-formed Unicode admission"
         },
         {
           "role": "keyed_count_same_stage_work_exact_one_short",

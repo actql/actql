@@ -78,7 +78,16 @@ fn object(
 ///|
 fn name(node : @wire.Cursor) -> String raise Abort {
   match @wire.text(node) {
-    Ok(value) => if value.is_empty() { invalid(node, EmptyName) } else { value }
+    Ok(value) => {
+      if value.is_empty() {
+        invalid(node, EmptyName)
+      }
+      // This slot is a grammar-owned identifier, never row or parameter data.
+      match @canonical.normalize_nfc_lf(value) {
+        Ok(name) => name
+        Err(_) => invalid(node, EmptyName)
+      }
+    }
     Err(issue) => raise Abort(Decode(issue))
   }
 }

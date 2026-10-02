@@ -73,6 +73,11 @@ test "wire decode preserves typed scalars nested values and number extremes" {
     (@contract.with_nullability(number, true), "null"),
     (@contract.primitive(BooleanType, nullable=false), "true"),
     (@contract.primitive(StringType, nullable=false), "\"é😀\""),
+    (@contract.primitive(StringType, nullable=false), "\"e\u{0301}\""),
+    (@contract.primitive(StringType, nullable=false), "\"\\r\\n\""),
+    (@contract.primitive(StringType, nullable=false), "\"\\r\""),
+    (@contract.primitive(StringType, nullable=false), "\"\\n\""),
+    (@contract.primitive(StringType, nullable=false), "\"\\\\n\""),
     (@contract.primitive(DateType, nullable=false), "\"2026-09-16\""),
     (
       @contract.primitive(TimestampType, nullable=false),
@@ -117,8 +122,8 @@ test "wire conversion does not normalize invalid text or accept shape and parse 
   let (source, _) = retained_fixture(owner, Ref(true))
   for
     text in [
-      "{\"n\":1,\"s\":\"e\\u0301\"}", "{\"n\":1,\"s\":\"a\\r\\nb\"}", "{\"n\":-0,\"s\":\"é\"}",
-      "{\"n\":1}", "{\"n\":1,\"s\":\"é\",\"extra\":0}", "{\"n\":1,\"s\":}", "[[[[[]]]]]",
+      "{\"n\":-0,\"s\":\"é\"}", "{\"n\":1}", "{\"n\":1,\"s\":\"é\",\"extra\":0}",
+      "{\"n\":1,\"s\":}", "[[[[[]]]]]",
     ] {
     let conversion = prepare_completed_output_import(
       source,

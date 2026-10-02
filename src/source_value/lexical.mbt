@@ -64,6 +64,7 @@ fn Parser::parse_escape_scalar(
 fn Parser::parse_string(
   self : Parser,
   path : Array[PathSegment],
+  key? : Bool = false,
 ) -> (String, Span) raise ParseAbort {
   let start = self.point()
   if self.peek() != Some(0x22) {
@@ -79,7 +80,7 @@ fn Parser::parse_string(
     if unit == 0x22 {
       ignore(self.advance_scalar(path))
       let text = output.to_string()
-      let decoded = if self.normalize_text {
+      let decoded = if key && self.normalize_text {
         match @canonical.normalize_nfc_lf(text) {
           Ok(value) => value
           Err(_) => self.fail(InvalidUnicodeEscape, path)

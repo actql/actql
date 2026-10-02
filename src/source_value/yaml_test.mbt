@@ -339,15 +339,15 @@ test "YAML Core scalar resolution is not JSON spelling or YAML 1.1 resolution" {
 }
 
 ///|
-test "YAML quoted plain and block scalars normalize after decoding" {
+test "YAML scalar decoding preserves values after YAML folding and escape interpretation" {
   for
     (source, expected) in [
       ("'it''s fine'", "it's fine"),
       (
-        "\"\\0\\a\\b\\t\\n\\v\\f\\r\\e\\ \\\"\\/\\\\\\N\\_\\L\\P\"", "\u0000\u0007\b\t\n\u000b\f\n\u001b \"/\\\u0085\u00a0\u2028\u2029",
+        "\"\\0\\a\\b\\t\\n\\v\\f\\r\\e\\ \\\"\\/\\\\\\N\\_\\L\\P\"", "\u0000\u0007\b\t\n\u000b\f\r\u001b \"/\\\u0085\u00a0\u2028\u2029",
       ),
       ("\"\\x41\\u00E9\\U0001F600\"", "Aé😀"),
-      ("\"e\\u0301\\r\\nX\\r\"", "é\nX\n"),
+      ("\"e\\u0301\\r\\nX\\r\"", "e\u0301\r\nX\r"),
       ("\"one\n  two\"", "one two"),
       ("'one\n\n  two'", "one\ntwo"),
       ("\"one\\\n  two\"", "onetwo"),

@@ -76,13 +76,13 @@ fn preflight(source : @decode.Cursor, limits : Limits) -> Usage raise Stop {
     }
     nodes -= 1
     match @decode.view(at) {
-      TextValue(v) => {
+      TextValue(v) =>
         text -= match @scalar.admit_utf8_length(v, text) {
           Ok(n) => n
           Err(_) => raise Stop(BudgetExceeded)
         }
-        canonical_text(at, v)
-      }
+      // Values retain their admitted scalar sequence; field-name checks
+      // below still enforce the separate identifier contract.
       NumberValue(n) => {
         let _ = unwrap(@decode.finite_number(at))
         if n == 0.0 && 1.0 / n < 0.0 {

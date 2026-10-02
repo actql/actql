@@ -110,7 +110,7 @@ test "append keys require disjoint typed literals and both local witnesses" {
     (left, right, disjoint) in [
       ("\"'crm'\"", "{\"literal\":\"support\"}", true),
       ("{\"literal\":\"crm\"}", "\"'crm'\"", false),
-      ("{\"literal\":\"é\"}", "{\"literal\":\"é\"}", false),
+      ("{\"literal\":\"é\"}", "{\"literal\":\"é\"}", true),
       ("{\"literal\":1}", "{\"literal\":1.0}", false),
       ("{\"literal\":1}", "{\"literal\":2}", true),
       ("{\"literal\":true}", "{\"literal\":false}", true),
