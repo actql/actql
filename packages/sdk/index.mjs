@@ -20,6 +20,9 @@ export class ClientError extends Error {
   }
 }
 const fail = code => { throw new ClientError(code); };
+const readFailure = (cause, attemptId) => new ClientError(
+  typeof cause?.code === 'string' ? cause.code : 'ResultReadUnknown',
+  {attemptId, cause});
 
 // The Host accepted and durably holds the request, but no Run exists yet:
 // it waits on a `prepare_attempt` Checkpoint, is resuming, or ended without
@@ -340,6 +343,7 @@ async function connectSelected(selected, port) {
                     maxRowRetainedValueBytes) fail('ResultRowRetainedLimit');
                 yield structuredClone(frame.value);
               }
+              controller.signal.throwIfAborted();
               state = 'complete';
             } else {
               stream = response.body?.getReader();
@@ -349,6 +353,7 @@ async function connectSelected(selected, port) {
                 line += text;
                 let newline;
                 while ((newline = line.indexOf('\n')) >= 0) {
+                  controller.signal.throwIfAborted();
                   const item = line.slice(0, newline);
                   line = line.slice(newline + 1);
                   if (!item) fail('InvalidResultStream');
@@ -368,7 +373,9 @@ async function connectSelected(selected, port) {
                 }
               };
               while (true) {
+                controller.signal.throwIfAborted();
                 const {done, value} = await stream.read();
+                controller.signal.throwIfAborted();
                 if (done) break;
                 wireBytes += value.byteLength;
                 if (wireBytes > maxWireBytes) fail('ResultWireLimit');
@@ -385,11 +392,9 @@ async function connectSelected(selected, port) {
               state = 'complete';
             }
           } catch (cause) {
-            failure = new ClientError(cause.code ?? 'ResultReadUnknown',
-              {attemptId, cause});
+            failure = readFailure(cause, attemptId);
           } finally {
             options.signal?.removeEventListener('abort', abort);
-            if (state !== 'complete') controller.abort();
             if (stream) {
               try {
                 if (state !== 'complete') await stream.cancel();
@@ -401,8 +406,12 @@ async function connectSelected(selected, port) {
                 stream.releaseLock();
               }
             }
+            // Cancel the reader before aborting its fetch: our own abort
+            // must not turn successful early cleanup into an AbortError.
+            if (state !== 'complete') controller.abort();
+            // A pending iterator.return() skips code after finally.
+            if (failure) throw failure;
           }
-          if (failure) throw failure;
         };
         return Object.freeze({attemptId, state: () => state,
           [Symbol.asyncIterator]: iterate});
@@ -429,8 +438,7 @@ async function connectSelected(selected, port) {
               }
               if (batch.length) yield batch;
             } catch (cause) {
-              throw new ClientError(cause.code ?? 'ResultReadUnknown',
-                {attemptId: reader.attemptId, cause});
+              throw readFailure(cause, reader.attemptId);
             }
           }});
       };
@@ -452,8 +460,7 @@ async function connectSelected(selected, port) {
           }
           return values;
         } catch (cause) {
-          throw new ClientError(cause.code ?? 'ResultReadUnknown',
-            {attemptId: reader.attemptId, cause});
+          throw readFailure(cause, reader.attemptId);
         }
       };
       return Object.freeze({

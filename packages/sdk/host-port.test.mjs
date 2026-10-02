@@ -96,3 +96,42 @@ test('in-process Host rejection does not masquerade as uncertain submit',
     {code: 'ClientRequestIntentConflict'});
     client.close();
   });
+
+
+for (const count of [1, 2]) {
+  test(`typed read abort stays a prefix after the first of ${count} frames`,
+    async () => {
+      const operations = [];
+      let released = 0;
+      const port = {async perform(operation) {
+        operations.push(operation);
+        if (operation === 'connect') return profile;
+        if (operation === 'attach') return admission;
+        if (operation === 'read') return {kind: 'rows',
+          frames: (async function* () {
+            try {
+              for (let n = 1; n <= count; n++) {
+                yield {value: {n}, byteLength: 8};
+              }
+            } finally { released++; }
+          })()};
+        throw new Error(`unexpected ${operation}`);
+      }};
+      const client = await connectInProcess({mode: 'local', owner: 'local'},
+        port);
+      const result = (await client.attach(ref)).result('answer');
+      const controller = new AbortController();
+      const reader = result.rows({signal: controller.signal});
+      const iterator = reader[Symbol.asyncIterator]();
+      assert.deepEqual(await iterator.next(), {done: false, value: {n: 1}});
+      controller.abort();
+      await assert.rejects(iterator.next(), error =>
+        error.code === 'ResultReadUnknown' &&
+        error.attemptId === reader.attemptId &&
+        error.cause?.name === 'AbortError');
+      assert.equal(reader.state(), 'prefix');
+      assert.equal(released, 1);
+      assert.deepEqual(operations, ['connect', 'attach', 'read']);
+      client.close();
+    });
+}

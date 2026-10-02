@@ -16,13 +16,20 @@ export function authorizedLocalResultFrames(service, request, signal,
     async *[Symbol.asyncIterator]() {
       const controller = new AbortController();
       const abort = () => controller.abort(signal.reason);
-      signal?.addEventListener('abort', abort, {once: true});
-      if (signal?.aborted) abort();
-      const channel = new TransformStream(undefined,
+      const channel = new TransformStream({start(stream) {
+        // A paused consumer can leave delivery awaiting backpressure. Abort
+        // the owned channel as well as its signal so that write settles and
+        // the delivery owner can release its physical reader and record its
+        // outcome without requiring another consumer next/return call.
+        controller.signal.addEventListener('abort', () =>
+          stream.error(controller.signal.reason), {once: true});
+      }},
         {highWaterMark: 1, size: bytes => bytes.byteLength},
         {highWaterMark: 1, size: bytes => bytes.byteLength});
       const writer = channel.writable.getWriter();
       const reader = channel.readable.getReader();
+      signal?.addEventListener('abort', abort, {once: true});
+      if (signal?.aborted) abort();
       const outcome = deliverAuthorizedResult(service,
         {...request, format: 'jsonl'}, {
           async write(bytes) {
