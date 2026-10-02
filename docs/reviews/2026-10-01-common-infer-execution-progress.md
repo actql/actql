@@ -2070,8 +2070,10 @@ dispatch. Both paths produce the same expected object.
 Local evidence for these edits: 86 JS tests in `client_infer_host` and the
 generated-sequence test file; all 28 installed public Infer tests; focused
 public object-projection and process-replay acceptance. Runtime assets were
-rebuilt from the edited sources and remain ignored. Wasm/native, affected
-pre-push jobs and final-SHA Linux CI have not yet been run for these edits.
+rebuilt from the edited sources and remain ignored. On source revision
+`eb2e5c6abd1b8364f0243ff91521715b758a932f`, the Wasm Core job passed
+7,496 tests and native Core passed 7,582 tests. Public API comparison also
+passed. Final-SHA Linux CI for these edits remains separate evidence.
 
 This does not establish B's full KEEP/packed Local and HTTP acceptance or
 acquired SourceView inputs. The provider registration remains the existing
@@ -2087,3 +2089,31 @@ fresh-process replay after capture storage pass; the replay makes zero
 additional model calls. This verifies the shared execution connection without
 changing B's golden Program or treating literal uniqueness as key evidence.
 The packed SourceView-based application remains a separate acceptance.
+
+## Packed single-call acceptance
+
+PR #178 remains the single-call INFER completion unit. Broader KEEP and
+SourceView acceptance are not additional merge conditions for this unit.
+Required CI passed on the earlier published revision
+`b7db1288cebedc7e7686c36ea4a3f32898545d9d`; this does not certify later edits.
+
+`scripts/test-packed-single-infer.mjs` packs the public packages and installs
+them outside the checkout. Its application imports only `@actql/node`, Node
+built-ins and the independent application fixture. The runtime PATH excludes
+the MoonBit toolchain. ModelTask, prompt, execution policy, Program and expected
+rows are authored in `scripts/fixtures/installed-infer-fixture.mjs`; none are
+extracted from MoonBit test source or inferred from returned Results.
+
+The five process scenarios pass: success, cancellation after actual dispatch,
+usage-overflow failure, process exit after capture persistence, and replay in
+a fresh process. Success reads the independently expected Named Result.
+Cancellation and failure publish none. Each physical scenario calls the model
+once; replay calls it zero times and returns the same expected row.
+
+The application independently locates all four retained attempt evidence
+holdings. It checks encrypted object bytes against their digest and size,
+decrypts with the installation key, and checks observed token usage, unknown
+cost/duration, positive work and cancellation/budget failure classification.
+The CI Client job runs this acceptance and retains logs and tarball digests,
+not the private Store or installation key. Final Linux CI on the updated
+commit remains required; the local packed run is not its substitute.

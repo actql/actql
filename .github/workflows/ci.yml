@@ -266,6 +266,15 @@ jobs:
         run: npm run check:distribution-client
       - name: Test packed Embedded Local Checkpoint and Named Result
         run: npm run check:packed-embedded-checkpoint
+      - name: Test packed single INFER capture and replay
+        id: packed-infer
+        run: node scripts/test-packed-single-infer.mjs
+      - name: Retain packed single INFER evidence
+        if: always() && steps.packed-infer.outputs.evidence-directory != ''
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.packed-infer.outputs.evidence-directory }}
+          name: packed-single-infer-${{ github.sha }}
       - name: Test raw public SQL and Pipe through packed Local and HTTP
         id: packed-query
         run: |
