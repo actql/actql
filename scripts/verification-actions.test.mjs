@@ -239,11 +239,22 @@ test('workflow expressions remain dynamic even inside single shell quotes', () =
 });
 
 test('literal environment names that match object prototypes are retained and compared', () => {
-  const report = build({a: job('__proto__=before constructor=first node check.mjs'),
-    b: job('__proto__=after constructor=second node check.mjs')});
+  const report = build({a: job('__proto__=before constructor=first toString=left node check.mjs'),
+    b: job('__proto__=after constructor=second toString=right node check.mjs')});
   assert.deepEqual(report.actions.map(action => action.environment.__proto__), ['before', 'after']);
   assert.deepEqual(report.actions.map(action => action.environment.constructor), ['first', 'second']);
+  assert.deepEqual(report.actions.map(action => action.environment.toString), ['left', 'right']);
+  for (const action of report.actions) {
+    assert.equal(Object.getPrototypeOf(action.invocation.env), null);
+    assert.equal(Object.getPrototypeOf(action.environment), Object.prototype);
+    assert(Object.hasOwn(action.environment, '__proto__'));
+    assert.deepEqual(JSON.parse(JSON.stringify(action.environment)), action.environment);
+  }
   assert.equal(pair(report).invocationEquality, 'proven');
   assert.equal(pair(report).equivalence, 'different');
   assert(pair(report).differences.includes('environment'));
+  const same = build({a: job('__proto__=before constructor=first toString=left node check.mjs'),
+    b: job('__proto__=before constructor=first toString=left node check.mjs')});
+  assert.equal(pair(same).equivalence, 'suspected');
+  assert.deepEqual(pair(same).differences, []);
 });
