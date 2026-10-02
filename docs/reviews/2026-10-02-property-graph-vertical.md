@@ -845,6 +845,35 @@ this working unit.
 
 ## Deliberately not claimed
 
+### Current required-gate scope alignment (2026-10-03)
+
+The existing pure-operation evidence index now points blocked Graph entries
+to the shared inventory-driven public refusal test, separately from current
+MATCH/TRAIL execution evidence. Its source-gate audit derives blocked keys
+from the existing family classification and detects adding any of those keys
+back to execution admission. No second support inventory or per-operation
+fixture set is introduced. The current Graph law check requires the owned
+Property Graph law and the sole admission route; it does not demand the
+retired tuple-profile identity pin in executable implementation.
+
+The unchanged historical Graph quantity-law body remains CID-pinned with
+independent arithmetic tests. The current count checker is required to emit
+exactly applicable current laws: keyed construction sums and MATCH quantity
+transfers. Its historical node-emission traversal rule does not apply to
+current TRAIL path emission. Current unsupported Graph laws cannot silently
+re-enter that checker. Other family law-body coverage is unchanged.
+
+The document-metadata generator updated the grammar and normative document
+imports after the current Graph specification changes; requirement identifiers
+and statuses were not rewritten. Non-mutating metadata and family checks
+passed. Focused law/source-index tests passed **10/10**, capacity-law tests
+**17/17**, and the complete existing `check:contracts` command passed after
+the obsolete index and count-emission assertions were corrected. Initial
+failures are preserved in `/private/tmp/property-graph-contracts-current-20261003.log`
+and `/private/tmp/property-graph-contracts-index-current-20261003.log`; the
+successful run is `/private/tmp/property-graph-contracts-index-fixed-20261003.log`.
+These results do not replace final-SHA Core, fresh packed or Linux CI.
+
 Full SGA, external producer-definition provenance, a durable Graph catalog and
 complete mechanized correspondence are not claimed. Remaining fixture and
 consumer migration plus aggregate gates remain required in the current unit;

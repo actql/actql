@@ -27,12 +27,15 @@ test('missing manifests and modified preimages cannot keep their old pins', () =
   }
 });
 
-test('Graph contract implementation pins the published identity and value law body', () => {
+test('sole Graph contract implementation pins the owned Property Graph law without a legacy fallback', () => {
   const {contract} = loadDependencies();
   const implementation = readFileSync(new URL('../src/graph_contract/contract.mbt', import.meta.url), 'utf8');
-  assert.ok(implementation.includes('"' + contract.sga_identity_law_manifest_cid + '"'));
+  assert.match(implementation, /pub fn law_cid\(\) -> String \{\s*property_law_cid\(\)/);
+  assert.match(implementation, /admit_property_graph\(input, limits\)/);
+  assert.ok(!implementation.includes(contract.sga_identity_law_manifest_cid));
   const propertyImplementation = readFileSync(new URL('../src/graph_contract/property_contract.mbt', import.meta.url), 'utf8');
   assert.ok(propertyImplementation.includes('"' + contract.property_graph_law_manifest_cid + '"'));
+  assert.ok(!propertyImplementation.includes(contract.sga_identity_law_manifest_cid));
   assert.notEqual(contract.property_graph_law_manifest_cid, contract.sga_identity_law_manifest_cid);
 });
 

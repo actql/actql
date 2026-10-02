@@ -10,6 +10,14 @@ navigation index and the current Program construction contract.
 Paths below are repository-relative. A row can group operations sharing a test
 suite; grouping does not waive operation-specific or overloaded-Carrier cases.
 
+Current Graph support is classified only by the existing
+[family coverage inventory](../reviews/2026-09-19-sga-veca-tea-local-coverage.json).
+Blocked operations below point to typed refusal evidence, not successful
+execution. The shared public Host test derives its cases from that inventory
+and checks refusal before Run admission, acquisition I/O and dispatch. The
+retired `graph` constructor is refused; its replacement `property_graph` has
+its construction, resource and lifecycle evidence in that same inventory.
+
 | Operations | Operation tests | Pipeline tests | Schema owner |
 | --- | --- | --- | --- |
 | values | src/relation_values/values_test.mbt | src/pipeline_typing/values_test.mbt | scripts/values-schema.mjs |
@@ -29,20 +37,20 @@ suite; grouping does not waive operation-specific or overloaded-Carrier cases.
 | sequence | src/relation_typing/sequence_test.mbt | src/pipeline_typing/sequence_keys_test.mbt | scripts/event-schema.mjs |
 | calendar_bucket, calendar_series | src/calendar_typing/admission_test.mbt | src/pipeline_typing/calendar_test.mbt | scripts/event-schema.mjs |
 | events, vectors | src/carrier_projection/projection_test.mbt | src/pipeline_typing/bridge_audit_test.mbt | scripts/carrier-projection-schema.mjs |
-| node_rows, edge_rows | src/carrier_projection/graph_test.mbt | src/pipeline_typing/bridge_audit_test.mbt | scripts/graph-schema.mjs |
-| graph | src/graph_typing/construction_test.mbt | src/pipeline_typing/construction_test.mbt | scripts/graph-schema.mjs |
-| normalize_graph, components, degree | src/graph_typing/check_test.mbt | src/pipeline_typing/graph_test.mbt | scripts/graph-schema.mjs |
-| graph_bounds | src/graph_typing/bounds_test.mbt | src/pipeline_typing/graph_report_counts_test.mbt | scripts/graph-schema.mjs |
+| node_rows, edge_rows | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
+| graph | src/program_check/property_graph_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
+| normalize_graph, components, degree | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
+| graph_bounds | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
 | match_nodes, match_edges | src/graph_typing/match_test.mbt | src/pipeline_typing/graph_query_keys_test.mbt | scripts/graph-schema.mjs |
-| traverse | src/graph_typing/traverse_test.mbt | src/pipeline_typing/path_counts_test.mbt | scripts/graph-schema.mjs |
-| shortest_path | src/graph_typing/shortest_test.mbt | src/pipeline_typing/path_counts_test.mbt | scripts/graph-schema.mjs |
-| reach | src/graph_typing/reach_test.mbt | src/pipeline_typing/graph_query_keys_test.mbt | scripts/graph-schema.mjs |
-| subgraph | src/graph_typing/subgraph_test.mbt | src/pipeline_typing/graph_query_keys_test.mbt | scripts/graph-schema.mjs |
-| graphs_equal | src/graph_typing/equality_test.mbt | src/pipeline_typing/graph_counts_test.mbt | scripts/graph-schema.mjs |
-| graph_diff | src/graph_typing/diff_test.mbt | src/pipeline_typing/delta_test.mbt | scripts/graph-schema.mjs |
-| apply_graph_delta | src/graph_typing/apply_test.mbt | src/pipeline_typing/delta_test.mbt | scripts/graph-schema.mjs |
-| graft_graph, union_graphs, subtract_graphs | src/graph_typing/structural_test.mbt | src/pipeline_typing/graph_counts_test.mbt | scripts/graph-schema.mjs |
-| mean_graphs | src/graph_typing/mean_test.mbt | src/pipeline_typing/mean_counts_test.mbt | scripts/graph-schema.mjs |
+| traverse | src/graph_typing/traverse_test.mbt | src/program_check/graph_program_wbtest.mbt | scripts/graph-schema.mjs |
+| shortest_path | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
+| reach | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
+| subgraph | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
+| graphs_equal | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
+| graph_diff | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
+| apply_graph_delta | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
+| graft_graph, union_graphs, subtract_graphs | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
+| mean_graphs | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
 | to_vectors | src/vector_typing/bridge_test.mbt | src/pipeline_typing/vector_projection_keys_test.mbt | scripts/vector-schema.mjs |
 | normalize_vectors, score_vectors | src/vector_typing/check_test.mbt | src/pipeline_typing/vector_test.mbt | scripts/vector-schema.mjs |
 | nearest | src/vector_typing/nearest_pair_test.mbt | src/pipeline_typing/nearest_output_keys_test.mbt | scripts/vector-schema.mjs |

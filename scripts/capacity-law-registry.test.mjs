@@ -24,11 +24,26 @@ test('operation count checker law literals have semantic bodies, not only regist
     }
     for (const child of Object.values(value)) visit(child);
   }
-  for (const name of bodies) visit(JSON.parse(readFileSync(new URL(`../spec/contracts/${name}.json`, import.meta.url),'utf8')));
+  for (const name of bodies.filter(name => name !== 'actql-bound-graph-laws')) {
+    visit(JSON.parse(readFileSync(new URL(`../spec/contracts/${name}.json`, import.meta.url),'utf8')));
+  }
+  const graph = JSON.parse(readFileSync(new URL('../spec/contracts/actql-bound-graph-laws.json', import.meta.url),'utf8'));
+  const classification = JSON.parse(readFileSync(new URL(
+    '../docs/reviews/2026-09-19-sga-veca-tea-local-coverage.json', import.meta.url),'utf8')).current_graph_profile.classification;
+  // The historical quantity body remains pinned and independently tested
+  // below. Only definition-selected MATCH retains an applicable rule here.
+  // Current TRAIL emits paths, so the old minimum-depth node-emission bound
+  // is not an applicable law. Construction has its separate keyed body.
+  for (const [operation, status] of Object.entries(classification)) {
+    if (status !== 'partial') continue;
+    const law = `actql.bound.${operation.replaceAll('_', '-')}`;
+    if (graph.law_ids.includes(law)) visit({law_id:law});
+  }
   const source = readFileSync(new URL('../src/capacity_program_step/check.mbt',import.meta.url),'utf8');
   const emitted = new Set([...source.matchAll(/"(actql\.bound\.[a-z.-]+)"/g)].map(m => m[1]));
   assert.ok(emitted.size > 0);
-  assert.deepEqual([...covered].sort(), [...emitted].sort(), 'Update semantic bodies when adding or removing operation count laws');
+  assert.deepEqual([...covered].sort(), [...emitted].sort(),
+    'Current count laws must have semantic bodies; retired Graph rules must not be emitted');
 });
 
 test('ranking and series semantic bodies and independent counts are pinned', () => {
