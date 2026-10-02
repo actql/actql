@@ -6,6 +6,8 @@ import {createRequire} from 'node:module';
 import {join} from 'node:path';
 
 import test from 'node:test';
+import {valuesUnitIdentity, valuesPublicationRowsBinding, valuesResultPlan} from
+  '../../scripts/fixtures/string-contract-identities.mjs';
 import {inspect} from 'node:util';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
@@ -1090,6 +1092,13 @@ test('Node JS bridge derives the checked named Result and request identity', asy
     /^sha256:[0-9a-f]{64}$/u);
   const resultPlan = checked(moon.clientProgramIssueResultPlan(prepared, 0));
   const resultPlanWire = moon.clientProgramResultPlanWire(resultPlan);
+  const source = JSON.parse(document);
+  const oldUnit = valuesUnitIdentity(source, true);
+  assert.equal(oldUnit,
+    'sha256:63464270481cf4518c2fcc0be076d6ec2cc7986d53031f0d919ab8d57772eca9');
+  assert.equal(valuesResultPlan(oldUnit).result_plan_logical_cid,
+    'sha256:8d2ad95f6f8b7be42c550d922d0614e68be2700bba05d7af2c7e03a4fcbbcc38');
+  const expectedPlan = valuesResultPlan(valuesUnitIdentity(source));
   assert.equal(moon.clientProgramResultPlanName(resultPlan), 'answer');
   assert.equal(moon.clientProgramResultPlanCid(resultPlan),
     expected.resultPlan);
@@ -1348,13 +1357,19 @@ test('Node JS bridge derives the checked named Result and request identity', asy
   {code: 'MoonBitHostFailure'});
   const rowsBinding = JSON.parse(rowsBindingBody);
   const bytesBinding = JSON.parse(bytesBindingBody);
+  const oldRows = valuesPublicationRowsBinding(oldUnit, 'rows');
+  const oldBytes = valuesPublicationRowsBinding(oldUnit, 'rows', 'bytes');
   assert.deepEqual([
-    rowsLimit.resolved_limit_cid, bytesLimit.resolved_limit_cid,
-    rowsBinding.binding_cid, bytesBinding.binding_cid,
+    oldRows.resolved_limit_cid, oldBytes.resolved_limit_cid,
+    oldRows.binding_cid, oldBytes.binding_cid,
   ], [
     ...expected.limits.map(limit => limit.resolved_limit_cid),
     ...expected.bindings.map(binding => binding.binding_cid),
   ]);
+  assert.deepEqual(rowsBinding,
+    valuesPublicationRowsBinding(valuesUnitIdentity(source), 'rows'));
+  assert.deepEqual(bytesBinding,
+    valuesPublicationRowsBinding(valuesUnitIdentity(source), 'rows', 'bytes'));
   for (const [binding, limit, measure] of [
     [rowsBinding, rowsLimit, 'rows'],
     [bytesBinding, bytesLimit, 'bytes'],

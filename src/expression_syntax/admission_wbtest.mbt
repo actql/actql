@@ -493,8 +493,6 @@ test "raw owned literals are validated without repairing their values" {
   let span = @decode.cursor_span(source_cursor("null"))
   for
     value in [
-      @source.String("e\u{301}"),
-      @source.String("x\r\n"),
       @source.Number(-0.0),
       @source.Number(0.0 / 0.0),
       @source.Number(1.0 / 0.0),

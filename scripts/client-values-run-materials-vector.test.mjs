@@ -20,6 +20,105 @@ const seal = (body, field) => ({...body, [field]: cid(body)});
 const programCid = pin('f3514c8f22c6d72818a167ca3341b3c945397042351c51a5982d7abc881a298c');
 const semanticsCid = pin('b1f21c4233445f6ba90ee54729213a87322e69b8eccf4318aeba5c5e4798400e');
 const priorDependencies = valuesDependencyOracle({legacy:true});
+test('merged Frontend and exact-String predecessor vectors retain their historical pins', () => {
+  // The previous Unit and containing contract are immutable fixture identities,
+  // not the current installed registry. Rebuild all dependent bodies here.
+  const unit = pin('0ec8026865253c45b26d8eb0b9df6e4cb63b64bf7ae19590e6f1fc2aff10879c');
+  const proof = cid({version: 'actql-bound-proof/0.1', inputs: [],
+    law_id: 'actql.bound.values', semantic_ref: `unit:${unit}#/steps/0`, unit: 'rows', value: 2});
+  const resultPlan = cid({version: 'actql-result-plan/0.1',
+    order: {strategy: 'inherited', terms: []},
+    projection: [{input: 'id', output: 'id',
+      value_contract_cid: pin('8a7be765d273ccfa06d916976f27fcb0404d814371e72c058502335b51b9bd3d')}],
+    result_name: 'answer', typed_output_port: {carrier: 'relation', name: 'rows',
+      row_contract_cid: pin('999395be222d44c0d3dafb4eb4e306cc6f0329a2096af1aeb380341d4cfa588c')},
+    unit_definition_cid: unit, unit_result_name: 'rows', unit_result_ordinal: 0});
+  const predecessors = [
+  [
+    "a8f1bbabb5eeda9287716c651b398d1c0954201c985b5c70ccb78d96a9ed1416",
+    "bfb017e25670c872293a2a4eec302b7d1217c3cb1adf74637c2339286d5c39ea",
+    false,
+    "47752e67dd0f083b491b0110dd181af4fd312905f5ec67952badf7a8adb832fe"
+  ],
+  [
+    "8fc336e2b475104366fea9024c38d171a3d18743a63f05b254272e14bedd886d",
+    "bfb017e25670c872293a2a4eec302b7d1217c3cb1adf74637c2339286d5c39ea",
+    false,
+    "1a7ded9110cb3d2c27f151ccc75f1c6683c3a4e0316fc0570706a3c169934baf"
+  ],
+  [
+    "ecf842ba6846f2dbac5cb8fa42b5b708c14e0ec170fc14d05043a351c0300582",
+    "bfb017e25670c872293a2a4eec302b7d1217c3cb1adf74637c2339286d5c39ea",
+    false,
+    "b8f4539c6741e24dd20bdd1ce77f5dc9d0c0466684c6e151e4441bccaaaaca9c"
+  ],
+  [
+    "3c8ac36faac086564fc41c468477c5ea3bfb2aedd1d86b4996220d43ad337356",
+    "bfb017e25670c872293a2a4eec302b7d1217c3cb1adf74637c2339286d5c39ea",
+    false,
+    "dbbc63ad3aad5cc0f47ccad3112138b9a3e3056d4d8d5e83d7a2781f77cd560d"
+  ],
+  [
+    "72fc89e110c5597c976be9aad63418cb03faf0b1ddeeeb021a124fb5ffd67aa2",
+    "bfb017e25670c872293a2a4eec302b7d1217c3cb1adf74637c2339286d5c39ea",
+    false,
+    "e50e7c8bd772eed517264aa3d946da1696e98328b22879f32a5980172e2b5c7c"
+  ],
+  [
+    "5df79a1521ff009f2a54b8a12e259ac287b048961828c4901f066ad169fac975",
+    "bfb017e25670c872293a2a4eec302b7d1217c3cb1adf74637c2339286d5c39ea",
+    false,
+    "012e0a4567a1a9fb115d6476031e6f635f924f1f3ca9c1aeabb03cd0e06d9e55"
+  ],
+  [
+    "ecf842ba6846f2dbac5cb8fa42b5b708c14e0ec170fc14d05043a351c0300582",
+    "ce0e1e8935e1c65b8992f2fb0272da80b192d54616c546efd80a0cad87bd4ec4",
+    true,
+    "e7c495589dedf6a62557d8594eb50994bfa38e9d61b17f18176d277de484240b"
+  ],
+  [
+    "6b812b128f53bee2b1f0edc8e2c2084a9c12044f0455c502640563ebad1fbf75",
+    "ce0e1e8935e1c65b8992f2fb0272da80b192d54616c546efd80a0cad87bd4ec4",
+    true,
+    "cbbe25f3a540b4c917e555bcbc67875c7a68d8279af8c344e8c950a49b77988f"
+  ],
+  [
+    "69bfc5ff4846f34bf910fcbdbb3a1d8e21750797e1a1c4b578d97571da1afd1f",
+    "ce0e1e8935e1c65b8992f2fb0272da80b192d54616c546efd80a0cad87bd4ec4",
+    true,
+    "f835722f8d8fc55b5f325e101aa38c43b5783bf807161d6d2cb58a3091437dd5"
+  ],
+  [
+    "74823e16a311511bb8078beedb472b6fc8ce0dcda0cceae9432bc0d6da4c3871",
+    "ce0e1e8935e1c65b8992f2fb0272da80b192d54616c546efd80a0cad87bd4ec4",
+    true,
+    "535f3d5b34ee29911cc3d258e9fe2c8324e34a8f75cd4db799f31323fad2d0a3"
+  ],
+  [
+    "03794c261f577cea8c9070af363f74b65e2994bba7152bc57bb2cabfb8a0f7db",
+    "bfb017e25670c872293a2a4eec302b7d1217c3cb1adf74637c2339286d5c39ea",
+    false,
+    "3042e2f2933416c5e4c2c3d99f202d2cab406672e6438454c30f127fe23c5762"
+  ],
+  [
+    "5fb2cacd6bbea4c6aa32de0f9a157f072723eb96d251d4f09b8a86513001b976",
+    "ce0e1e8935e1c65b8992f2fb0272da80b192d54616c546efd80a0cad87bd4ec4",
+    true,
+    "8574f5eb487efe877f5d11cda228d63ba737c3ef8821f7cd20ce804b964b3810"
+  ],
+  [
+    "b176b995f5dc309487656b334cb34e21409f6a9f67f8a10b89ac9c5d6e5db7c2",
+    "ce0e1e8935e1c65b8992f2fb0272da80b192d54616c546efd80a0cad87bd4ec4",
+    true,
+    "857742abdfaf8e4e90e07c4f60f37b771ea62ef44e41f0bdb078bf3d0134069b"
+  ]
+];
+  for (const [grammar, contract, exactString, expected] of predecessors) {
+    assert.equal(vector(pin(grammar), pin(contract),
+      exactString ? {unit, proof, resultPlan} : priorDependencies).run.run_definition_cid,
+    pin(expected));
+  }
+});
 const policy = pin('38a92017de0e3e13901d328ab622696708aab0563dd980b04bfc9a2b6c451853');
 const environment = pin('aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904');
 const parameterValues = pin('c183484727a250f184812053fce437f9b9c90ca889a7a7505a9f9791d84a7b52');
@@ -132,7 +231,7 @@ test('baseline preimages and changed normative pins independently determine the 
   // Grammar and transfer-classification roots also change the local Unit,
   // proof, publication binding and Result Plan. All are independently built.
   assert.equal(current.run.run_definition_cid,
-    pin('f171d251195c262096577393afc6d51390ca7b4b7b63bda8b17c74a13a6d54f6'));
+    pin('563e92035fb13479b59d35bd2c5890fba9cd6827aa800bfe00f06482392e4894'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');

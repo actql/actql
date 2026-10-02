@@ -7,7 +7,7 @@ export const operation = 'BRIDGE.rows.to_property_graph';
 export const pointer = `/execution_contracts/${operation}`;
 const ownerPath = 'spec/contracts/actql-aoa.json';
 const registryPath = 'spec/dependencies/aoa-pipeline-registry.json';
-const lawPath = 'spec/dependencies/aoa-property-graph-laws.json';
+const lawPath = 'spec/dependencies/actql-property-graph-laws.json';
 const valuePath = 'spec/contracts/actql-protocol-schemas.json';
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const closed = properties => ({type: 'object', additionalProperties: false,
@@ -92,6 +92,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   if (process.argv.includes('--write')) {
     const body = executionContract(law, protocol), ref = {pointer, cid: machineCid(body)};
     aoa.execution_contracts[operation] = body;
+    aoa.property_graph_law_manifest_cid = machineCid(law);
     aoa.target_registry_requirements[operation] = {...signature(), execution_contract: ref};
     registry[operation] = {...signature(), execution_contract: {file: ownerPath, ...ref}};
     aoa.pipeline_registry_cid = machineCid(registry);

@@ -276,16 +276,13 @@ pub fn cancel_vector_value(builder : VectorBuilder) -> Bool {
 }
 
 ///|
-/// Recheck Unicode, byte and canonical-text invariants before construction.
+/// Recheck Unicode and exact value-byte bounds without normalizing data.
 pub fn text_value(value : String, max_utf8_bytes : Int) -> Value? {
   if max_utf8_bytes < 0 ||
     @scalar.admit_utf8_length(value, max_utf8_bytes) is Err(_) {
     return None
   }
-  match @canonical.normalize_nfc_lf(value) {
-    Ok(normalized) => if normalized == value { Some(Text(value)) } else { None }
-    Err(_) => None
-  }
+  Some(Text(value))
 }
 
 ///|

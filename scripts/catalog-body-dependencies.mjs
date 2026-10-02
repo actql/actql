@@ -139,7 +139,7 @@ const adopted = [
   ['RelaPrimitive', 'aoa-rela-primitive-laws', 'rela_primitive_law_manifest_cid'],
   ['SgaStructural', 'aoa-sga-structural-laws', 'sga_structural_law_manifest_cid'],
   ['SgaIdentity', 'aoa-sga-identity-laws', 'sga_identity_law_manifest_cid'],
-  ['PropertyGraphLaw', 'aoa-property-graph-laws', 'property_graph_law_manifest_cid'],
+  ['PropertyGraphLaw', 'actql-property-graph-laws', 'property_graph_law_manifest_cid'],
   ['VecaNumeric', 'aoa-veca-numeric-laws', 'veca_numeric_law_manifest_cid'],
 ];
 for (const [, file, pin] of adopted) {

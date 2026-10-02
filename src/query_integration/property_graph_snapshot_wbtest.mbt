@@ -1,7 +1,7 @@
 ///|
 fn snapshot_fixture_schema() -> String {
   (
-    #|{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[{"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"R":[]},"name":"E","properties":{},"source_definition":"N","target_definition":"N"}],"identity_law_cid":"sha256:663bbb3096723cb38face189087f79ab37e9b7d34ec994937b3bff8334c405b1","node_definitions":[{"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":["name"],"Person":[]},"name":"N","properties":{"name":{"nullable":true,"type":"string"}}}],"value_law_cid":"sha256:663bbb3096723cb38face189087f79ab37e9b7d34ec994937b3bff8334c405b1","version":"actql-property-graph-contract/0.1"}
+    #|{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[{"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"R":[]},"name":"E","properties":{},"source_definition":"N","target_definition":"N"}],"identity_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","node_definitions":[{"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":["name"],"Person":[]},"name":"N","properties":{"name":{"nullable":true,"type":"string"}}}],"value_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","version":"actql-property-graph-contract/0.1"}
   )
 }
 
@@ -30,7 +30,7 @@ fn snapshot_fixture_body(keys? : Array[Int] = [10, 11]) -> String {
     node +
     "}"
   })
-  "[\"actql-property-graph-snapshot/0.1\",\"sha256:131ed6d7f9243e5b01d3971234c4da5418d9e69aa6ba2763e3bbfe17e502f427\"," +
+  "[\"actql-property-graph-snapshot/0.1\",\"sha256:3e06c160155f0542561eab6a31c31422a78e7a749490ff5b24fb0ce4c7ff3321\"," +
   snapshot_fixture_schema() +
   ",[{\"id\":" +
   node +
@@ -43,7 +43,7 @@ fn snapshot_fixture_body(keys? : Array[Int] = [10, 11]) -> String {
 fn snapshot_fixture_cid() -> String {
   // SHA-256 of the independently authored canonical fixture, computed with
   // Node crypto separately from the implementation's encoder/hash function.
-  "sha256:6f1a2eba2b79d04258fb4d0811ac208dd38b2c5bb6181202c28e4d1e7a7f9395"
+  "sha256:4d6e1221c4244ab1074b836a651e7b4522fcdfefa86414121b7529a715b60b1a"
 }
 
 ///|

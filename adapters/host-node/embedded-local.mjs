@@ -208,7 +208,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     const numericProfileCid = `sha256:${createHash('sha256')
       .update(canonicalJson(numericProfile)).digest('hex')}`;
     const propertyGraphLaw = JSON.parse(await readFile(join(packageRoot,
-      'spec/dependencies/aoa-property-graph-laws.json'), 'utf8'));
+      'spec/dependencies/actql-property-graph-laws.json'), 'utf8'));
     environment = moon.clientProgramCheckEnvironmentWithPropertyGraphProfile(
       environmentWire, evidenceCid, false, false, true, true, false, false,
       false, numericProfileCid, contentCid(propertyGraphLaw));

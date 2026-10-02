@@ -72,6 +72,10 @@ fn Parser::yaml_key(
       if plain && key == "<<" {
         raise self.failure_at(ForbiddenYamlFeature, self.path, start)
       }
+      let key = match @canonical.normalize_nfc_lf(key) {
+        Ok(key) => key
+        Err(_) => raise self.failure_at(InvalidYamlScalar, self.path, start)
+      }
       (key, span)
     }
     _ => raise self.failure_at(NonStringKey, self.path, start)

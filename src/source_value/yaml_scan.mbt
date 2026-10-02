@@ -188,9 +188,9 @@ fn Parser::yaml_colon(self : Parser, flow : Bool) -> Int? {
 }
 
 ///|
-fn yaml_normalized(chars : Array[Char]) -> String {
+fn yaml_decoded(chars : Array[Char]) -> String {
   // Scalars were checked while reading or decoding escapes.
-  @canonical.normalize_nfc_lf(String::from_array(chars)).unwrap()
+  String::from_array(chars)
 }
 
 ///|
@@ -232,7 +232,7 @@ fn Parser::yaml_quoted(
         trailing_raw_space = 0
         continue
       }
-      return yaml_normalized(chars)
+      return yaml_decoded(chars)
     }
     if yaml_break(unit) {
       if key {

@@ -1,0 +1,183 @@
+{
+  "purpose": "Independent semantic expectations for the adopted first Property Graph unit; not a Program, wire schema, or executed conformance result",
+  "contract_reference": "../../../../docs/design/frontend-standard-profiles.md#property-graph-mapping-and-element-identity",
+  "source_fragment": "DATA g = PROPERTY GRAPH (NODE TABLES (nodes AS N KEY (id) LABEL Node PROPERTIES (id, name)) EDGE TABLES (edges AS E KEY (edge_id) SOURCE KEY (src) REFERENCES N (id) DESTINATION KEY (dst) REFERENCES N (id) LABEL R NO PROPERTIES));",
+  "producers": {
+    "nodes": {
+      "columns": [
+        {
+          "name": "id",
+          "type": "number",
+          "nullable": false
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "nullable": false
+        },
+        {
+          "name": "entity_type",
+          "type": "string",
+          "nullable": false
+        }
+      ],
+      "rows": [
+        {
+          "id": 1,
+          "name": "one",
+          "entity_type": "Company"
+        }
+      ]
+    },
+    "edges": {
+      "columns": [
+        {
+          "name": "edge_id",
+          "type": "number",
+          "nullable": false
+        },
+        {
+          "name": "src",
+          "type": "number",
+          "nullable": false
+        },
+        {
+          "name": "dst",
+          "type": "number",
+          "nullable": false
+        }
+      ],
+      "rows": [
+        {
+          "edge_id": 10,
+          "src": 1,
+          "dst": 1
+        },
+        {
+          "edge_id": 11,
+          "src": 1,
+          "dst": 1
+        }
+      ]
+    }
+  },
+  "expectations": {
+    "node_count": 1,
+    "edge_count": 2,
+    "node_definition": "N",
+    "node_typed_key": [
+      {
+        "type": "number",
+        "value": 1
+      }
+    ],
+    "node_labels": [
+      "Node"
+    ],
+    "node_properties": {
+      "id": 1,
+      "name": "one"
+    },
+    "edge_definition": "E",
+    "edge_typed_keys": [
+      [
+        {
+          "type": "number",
+          "value": 10
+        }
+      ],
+      [
+        {
+          "type": "number",
+          "value": 11
+        }
+      ]
+    ],
+    "edge_labels": [
+      "R"
+    ],
+    "edge_properties": {},
+    "label_matches": {
+      "Node": 1,
+      "Company": 0
+    },
+    "two_hop_edge_key_sequences_as_multisets": {
+      "WALK": [
+        [
+          10,
+          10
+        ],
+        [
+          10,
+          11
+        ],
+        [
+          11,
+          10
+        ],
+        [
+          11,
+          11
+        ]
+      ],
+      "TRAIL": [
+        [
+          10,
+          11
+        ],
+        [
+          11,
+          10
+        ]
+      ],
+      "ACYCLIC": []
+    },
+    "two_hop_projected_rows_as_multisets": {
+      "WALK": [
+        {
+          "start": 1,
+          "end": 1
+        },
+        {
+          "start": 1,
+          "end": 1
+        },
+        {
+          "start": 1,
+          "end": 1
+        },
+        {
+          "start": 1,
+          "end": 1
+        }
+      ],
+      "TRAIL": [
+        {
+          "start": 1,
+          "end": 1
+        },
+        {
+          "start": 1,
+          "end": 1
+        }
+      ],
+      "ACYCLIC": []
+    },
+    "snapshot_reload_must_preserve": [
+      "identity domain",
+      "element definitions and typed keys",
+      "both distinct edges",
+      "endpoints",
+      "static labels",
+      "selected properties",
+      "path multiplicity"
+    ]
+  },
+  "classification": {
+    "expected_values_authored_independently": true,
+    "runtime_executed": false,
+    "common_representation_fixed": false,
+    "no_implicit_result_sort_or_storage": true,
+    "sequence_lists_do_not_declare_result_order": true
+  }
+}

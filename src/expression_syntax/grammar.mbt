@@ -291,6 +291,7 @@ fn template(
         i += 1
       }
       let name = name.to_string()
+      canonical(name, cursor, origin)
       let valid = if name.has_prefix("left.") || name.has_prefix("right.") {
         let parts = name.split(".").to_array()
         parts.length() == 2 && field_name(parts[1].to_owned())

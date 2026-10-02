@@ -1,0 +1,54 @@
+{
+  "version": "actql-relation-pipeline-current-foundation/0.1",
+  "historicalBaseline": {
+    "revision": "0aa3bc921362b53536d5bf9d541a889e09ccc24b",
+    "path": "proofs/relation-pipeline/reuse-baseline.json",
+    "digest": "48bdedbe48ab335694a725defa7fe9e7f07cdf776e4aa8f233b3935585a352c1",
+    "foundationRevision": "fe0dbb424792ba7ccd4ae5517a74530b56a15f3c"
+  },
+  "revision": "7b56b9be340d15aa009b38d50ed1fe0ab6a4fd51",
+  "proposal": "https://github.com/actql/actql/pull/149",
+  "meaning": "Separate common foundation correction; the historical distinct comparison is unchanged. This record supplies Git provenance, not proof of human approval.",
+  "changedCommon": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "beforeDigest": "60b5752abc492be508fcf7a6bb2acd944b3883443bd100b82ea422c713c93d61",
+      "afterDigest": "45cef4006676ea0e55adb36edb56759aae12ade2d422e075a29fe56bf6532e2c",
+      "reason": "Run fixed and required fresh verification together under each mutated source; keep every final audit and the existing 90-minute limit."
+    },
+    {
+      "path": "proofs/relation-pipeline/history.mjs",
+      "beforeDigest": "7893dc5685cf950ec547fcf1faea964f7385c5e2bd292341c222c65f0773d3a2",
+      "afterDigest": "2a00338e67189acc2d3944c7485b88837ab6832ec18b2e423725f54b37c83c00",
+      "reason": "Preserve the immutable historical baseline while validating exact separately committed current foundation blobs and bounded changed paths."
+    },
+    {
+      "path": "proofs/relation-pipeline/mutations.mjs",
+      "beforeDigest": "2e2d16e10a965fac90ddb22b869f28a5c71a14647ed5c0ea2abed9db9f3bc4dd",
+      "afterDigest": "29d4eaf713f65cf3174ca7c68b48619b86be1d072246871716ecc4d3cfd6ecc7",
+      "reason": "Reuse only unchanged incremental builds; fixed and fresh searches, shrinking and mutated/restored target receipts remain independent."
+    }
+  ],
+  "addedFoundation": [
+    {
+      "path": "proofs/relation-pipeline/current-foundation.md",
+      "digest": "0b8cac2626f1d562b34d2e8ab8549f2a92157ed843c392418f86a953c2ded0c0"
+    },
+    {
+      "path": "proofs/relation-pipeline/history.test.mjs",
+      "digest": "2812756d385f41f3cd0dd1478103a2d9160174879eb9278e5a866658f0e99c7a"
+    },
+    {
+      "path": "proofs/relation-pipeline/mutations.test.mjs",
+      "digest": "ff45631446b698dcfd337aef02a01dda6cfd4266c1a61d0d12c607854ccd38e6"
+    },
+    {
+      "path": "proofs/relation-pipeline/fixtures/history-driver.mjs",
+      "digest": "fa99e61292ebf53d375b479cf1ddb68c922d8390aa82b5a871c2eeff47f7d06e"
+    },
+    {
+      "path": "proofs/relation-pipeline/fixtures/mutation-driver.mjs",
+      "digest": "853e5c799050b7029a7cbc2788bf5a9cc390b54c7b51285032b0f6ad9ef8893a"
+    }
+  ]
+}

@@ -466,7 +466,7 @@
     "execution_contract": {
       "file": "spec/contracts/actql-aoa.json",
       "pointer": "/execution_contracts/REL.values",
-      "cid": "sha256:9dec7cf1abedfb23b0af130ec5e25c7442d28c205a94cad0218b2f5982d44b44"
+      "cid": "sha256:9b716536b27d313e93deadae776d9abf21c3d06dcd653d2eb3b74e0c276a182b"
     }
   },
   "ACTQL.expression_fragment/0.1": {
@@ -489,7 +489,7 @@
     "execution_contract": {
       "file": "spec/contracts/actql-aoa.json",
       "pointer": "/execution_contracts/BRIDGE.rows.to_property_graph",
-      "cid": "sha256:6f84b787b55f3a84c6b420046e3f9346ac9019627bc852311fcf8d9f577dec03"
+      "cid": "sha256:abddf7b4088be03fa8df66c62d6ba92d7d15857e617087a61e043d3bd52e5590"
     }
   }
 }

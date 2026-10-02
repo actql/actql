@@ -50,6 +50,17 @@ const roles = [
 ];
 
 function contractCid(file, pointer, legacy) {
+    // Historical fixtures retain pre-String bodies as well as the original
+    // Program grammar and count law. Never rebind old preimages to current laws.
+    if (legacy && file === 'spec/dependencies/aoa-kernel-laws.json') {
+      return 'sha256:5a79d6cb9b012d0c3871c72e496eec7183948ac81d8ebff91b4f7ee6a59ae19d';
+    }
+    if (legacy && file === 'spec/dependencies/aoa-rela-scalar-laws.json') {
+      return 'sha256:a866ed224e15da7e25b45d4e166b25b6bd6749a31bd7dfacb185391ad3f80122';
+    }
+    if (legacy && pointer === '/execution_contracts/REL.values') {
+      return 'sha256:9dec7cf1abedfb23b0af130ec5e25c7442d28c205a94cad0218b2f5982d44b44';
+    }
     if (legacy && file==='spec/contracts/actql-bound-transfer-laws.json') {
       return 'sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911';
     }

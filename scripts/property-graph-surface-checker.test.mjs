@@ -20,7 +20,7 @@ base.host_policy_profile = {...base.host_policy_profile,
     max_graph_construction_nodes: 1000}};
 const environment = canonicalText({...base, evidence_bundle_cid: cid(base)});
 const numericCid = cid(read('spec/contracts/actql-numeric-reduction.json'));
-const lawCid = 'sha256:663bbb3096723cb38face189087f79ab37e9b7d34ec994937b3bff8334c405b1';
+const lawCid = 'sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc';
 const args = [environment, cid(base), false, false, true, true, false, false, false, numericCid];
 const owner = moon.clientProgramCheckEnvironmentWithPropertyGraphProfile(...args, lawCid);
 assert.ok(owner);

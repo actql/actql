@@ -1,11 +1,15 @@
 (* GoogleSQL-derived ActQL query surface. Semantic restrictions are in
    docs/spec/query-text.md. This grammar does not define GoogleSQL as a whole. *)
 query         = [ with_clause ], ( sql_query | pipe_query ), [ ";" ] ;
-sql_query     = select_core, { set_part },
+sql_query     = sql_operand, { set_part },
                 [ order_clause ], [ limit_clause ], { "|>", pipe_item } ;
 with_clause   = "WITH", cte, { ",", cte } ;
-cte           = identifier, "AS", "(", ( select_core, { "|>", cte_pipe_item } | cte_pipe ), ")" ;
-(* CTE bodies use the same relational operators except top-level INFER. *)
+cte           = identifier, "AS", "(", relational_body, ")" ;
+relational_body = [ with_clause ], ( relational_sql | cte_pipe ) ;
+relational_sql = sql_operand, { set_part }, [ order_clause ], [ limit_clause ],
+                 { "|>", cte_pipe_item } ;
+sql_operand   = select_core | "(", relational_body, ")" ;
+(* CTE bodies exclude statement-level INFER and RESULT declarations. *)
 cte_pipe      = "FROM", source, { "|>", cte_pipe_item } ;
 cte_pipe_item = relation_pipe_item | nearest_operator ;
 select_core   = "SELECT", [ "DISTINCT" ], select_list, [ "FROM", source, { join } ],
@@ -32,7 +36,7 @@ graph_constraint = "WHERE", expression
 property_pair = identifier, ":", expression ;
 graph_quantifier = "{", integer, ",", integer, "}" ;
 source        = path, [ source_alias ]
-              | "(", select_core, [ order_clause ], [ limit_clause ], ")",
+              | "(", relational_body, ")",
                 source_alias ;
 source_alias  = [ "AS" ], identifier ;
 join          = [ "INNER" | "LEFT", [ "OUTER" ]
@@ -52,8 +56,10 @@ sort_item     = expression, [ "ASC" | "DESC" ],
 limit_clause  = "LIMIT", integer, [ "OFFSET", integer ] ;
 set_part      = ( "UNION", ( "ALL" | "DISTINCT" )
               | "INTERSECT", "DISTINCT" | "EXCEPT", "DISTINCT" ),
-                [ "BY", "NAME" ], select_core ;
-pipe_item     = relation_pipe_item | infer_operator | nearest_operator ;
+                [ "BY", "NAME" ], sql_operand ;
+pipe_item     = relation_pipe_item | infer_operator | nearest_operator
+              | result_operator ;
+result_operator = "RESULT", identifier ;
 relation_pipe_item = where_clause | "SELECT", [ "DISTINCT" ], select_list
               | "EXTEND", select_list
               | "SET", assignment, { ",", assignment }
@@ -78,11 +84,12 @@ keep_clause   = "KEEP", "(", keep_item, { ",", keep_item }, ")" ;
 keep_item     = path, [ "AS", identifier ] | "*" | path, ".", "*" ;
 pipe_set_part = ( "UNION", ( "ALL" | "DISTINCT" )
               | "INTERSECT", "DISTINCT" | "EXCEPT", "DISTINCT" ),
-                [ "BY", "NAME" ], "(", select_core, ")" ;
+                [ "BY", "NAME" ], "(", relational_body, ")" ;
 assignment    = identifier, "=", expression ;
 rename        = identifier, "AS", identifier ;
 path          = identifier, { ".", identifier } ;
 expression    = ? closed query expression grammar in query-text.md ? ;
 identifier    = ? ASCII identifier or backtick-quoted identifier ? ;
 integer       = ? decimal integer within the adopted exact range ? ;
-json_text     = ? double-quoted JSON string reserved for LABELS ? ;
+query_string  = ? one or more whitespace/comment-separated single-, double- or triple-quoted Unicode scalar string chunks, with per-chunk optional r/R raw prefix and the selected GoogleSQL decoding rules in query-text.md; decoded octal escapes use exactly three digits with first digit 0..3 (maximum \377) ? ;
+json_text     = ? double-quoted string using the separate LABELS annotation escape profile in query-text.md ? ;

@@ -152,5 +152,5 @@ fn Parser::yaml_block_scalar(
   } else {
     raw[:end].to_owned() + "\n"
   }
-  @canonical.normalize_nfc_lf(value).unwrap()
+  value
 }

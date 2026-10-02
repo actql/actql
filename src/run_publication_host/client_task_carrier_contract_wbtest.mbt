@@ -1,7 +1,7 @@
 ///|
 fn keyed_task_contract_body() -> String {
   (
-    #|{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[{"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"R":[]},"name":"E","properties":{},"source_definition":"N","target_definition":"N"}],"identity_law_cid":"sha256:663bbb3096723cb38face189087f79ab37e9b7d34ec994937b3bff8334c405b1","node_definitions":[{"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":["name"],"Person":[]},"name":"N","properties":{"name":{"nullable":true,"type":"string"}}}],"value_law_cid":"sha256:663bbb3096723cb38face189087f79ab37e9b7d34ec994937b3bff8334c405b1","version":"actql-property-graph-contract/0.1"}
+    #|{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[{"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"R":[]},"name":"E","properties":{},"source_definition":"N","target_definition":"N"}],"identity_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","node_definitions":[{"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":["name"],"Person":[]},"name":"N","properties":{"name":{"nullable":true,"type":"string"}}}],"value_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","version":"actql-property-graph-contract/0.1"}
   )
 }
 
@@ -29,7 +29,7 @@ test "task Graph ports explicitly select the new complete property contract and 
     client_task_carrier_contract(carrier, body.length(), 1000, 100),
     Some(
       (
-        "graph", "sha256:131ed6d7f9243e5b01d3971234c4da5418d9e69aa6ba2763e3bbfe17e502f427",
+        "graph", "sha256:3e06c160155f0542561eab6a31c31422a78e7a749490ff5b24fb0ce4c7ff3321",
       ),
     ),
   )

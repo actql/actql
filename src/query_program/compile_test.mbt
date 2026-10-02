@@ -1674,8 +1674,14 @@ test "CTE branches share one checked producer and reject unchecked declarations"
       "WITH bad AS (SELECT a FROM selected), selected AS (SELECT a FROM left_rows) SELECT a FROM selected",
       "WITH chosen AS (SELECT a FROM left_rows), CHOSEN AS (SELECT a FROM left_rows) SELECT a FROM chosen",
     ] {
-    let query = @query.parse_query(text, syntax_limits()).unwrap()
-    assert_true(compile(query, set_context(), construction_limits()) is Err(_))
+    match @query.parse_query(text, syntax_limits()) {
+      Err(_) => ()
+      Ok(query) =>
+        assert_true(
+          compile(query, set_context(), construction_limits()) is Err(_),
+          msg=text,
+        )
+    }
   }
 }
 

@@ -1,5 +1,36 @@
 # Definition-keyed Property Graph: initial vertical
 
+## Current authority and completion boundary
+
+The superseding decision is ActQL-only. `smoothhq/aoa` and its PR #2 are not
+used: no external package, checkout, build, authentication or CI success is a
+completion dependency. The normative law body is owned here as
+`spec/dependencies/actql-property-graph-laws.json` with identifier
+`actql-property-graph-laws/0.1`. It retains the agreed constructor semantics
+and explicitly states graph-wide property type and shared-label consistency.
+The existing ActQL pipeline owner consumes that body; historical `aoa` names
+in unrelated local IR contracts do not import an external implementation.
+
+The current dependency-integration checkpoint combines main
+`a7593bcd7153883d200f125a8e24646001fe5a22` with the prior #164 source. Local
+registration, canonical preimage and spec-family checks pass. The independent
+complete snapshot fixture is
+`portability/corpus/property-graph-owned-snapshot.json`; its records are not
+derived from a Graph encoder or runtime output. A law ownership change has new
+law, contract and snapshot CIDs; historical fixture identities stay frozen.
+
+This is not final acceptance. Executable legacy Graph paths still need to be
+removed, and the public snapshot save/reload boundary described below still
+needs connection to the existing bounded owners. Current-source fresh packed,
+three-target acceptance and final-SHA required CI remain mandatory. No success
+from an earlier checkpoint is reused for that decision.
+
+The remaining sections record the initial additive vertical and its historical
+verification. Their legacy-preservation promises are superseded: the new
+Property Graph is the sole implementation target, without an old-format reader,
+fallback or conversion that collapses parallel edges. Historical records are
+evidence, not a compatibility implementation.
+
 ## Frontend handoff
 
 The common machine constructor is `property_graph`, selected explicitly with

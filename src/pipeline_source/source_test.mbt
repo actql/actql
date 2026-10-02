@@ -94,6 +94,24 @@ test "step source replaces complete expression slots and retains unbound direct 
 }
 
 ///|
+test "producer identifiers normalize independently of literal String values" {
+  let steps = prepare(
+    collected(
+      (
+        #|[{"derive":{"payload":{"literal":"e\u0301\r\n"}},"as":"e\u0301"},{"select":["payload"],"from":"e\u0301"}]
+      ),
+    ),
+    max_work=100000,
+  ).unwrap()
+  assert_eq(
+    rendered(steps),
+    (
+      #|[{"as":"é","derive":{"payload":{"literal":"é\r\n"}}},{"from":"é","select":["payload"]}]
+    ),
+  )
+}
+
+///|
 test "step metadata exclusion does not descend into expression business data" {
   let steps = prepare(
     collected(

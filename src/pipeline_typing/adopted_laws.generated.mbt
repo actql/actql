@@ -4,7 +4,7 @@
 pub fn adopted_operation_law_cid(law : AdoptedOperationLaw) -> String {
   match law {
     RelaScalar =>
-      "sha256:a866ed224e15da7e25b45d4e166b25b6bd6749a31bd7dfacb185391ad3f80122"
+      "sha256:5afa312c0fa9b1e5620bc3556b17aa8da9e50646097ab84a2c04aa8a24575574"
     RelaPrimitive =>
       "sha256:a4ab8487ef731512c3daefa5bed078703336dc52ca268ef4cb7127145f0f2ade"
     SgaStructural =>
@@ -12,7 +12,7 @@ pub fn adopted_operation_law_cid(law : AdoptedOperationLaw) -> String {
     SgaIdentity =>
       "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4"
     PropertyGraphLaw =>
-      "sha256:663bbb3096723cb38face189087f79ab37e9b7d34ec994937b3bff8334c405b1"
+      "sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc"
     VecaNumeric =>
       "sha256:926c086c2ea57e49102ca5dfb724c851fa7fc148370a0bdf8363457fe5fcd004"
   }

@@ -50,6 +50,9 @@ export function executionContract(protocol) {
       business_objects: 'never_reinterpret_param_or_literal_members',
       row_fields: 'exact_declared_set_including_nullable_fields',
       values: 'recursive_declared_type_admission_without_cast_repair_or_rounding',
+      strings: 'preserve_well_formed_unicode_scalar_sequence_without_NFC_or_line_break_repair',
+      object_member_names: 'NFC_then_LF_reject_noncanonical_names_and_collisions',
+      string_extents: 'retained_unicode_scalars_and_UTF8_bytes',
       decimal: 'canonical_fixed_scale_string_under_declared_precision_and_scale',
       empty_rows: 'retain_declared_schema',
       row_order: 'retain_occurrence_order', row_multiplicity: 'retain_all_occurrences',
@@ -94,6 +97,13 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
         pointer: '/execution_contracts/REL.values', cid: machineCid(body),
       },
     };
+    // The selected registry must advertise the exact execution body. Do not
+    // relabel historical registry fixtures or repair incoming registries.
+    const registry = read(aoa.pipeline_registry_file);
+    registry['REL.values'] = {inputs: [], output: 'relation', execution_contract: {
+      file: path, pointer: '/execution_contracts/REL.values', cid: machineCid(body)}};
+    aoa.pipeline_registry_cid = machineCid(registry);
+    writeFileSync(aoa.pipeline_registry_file, JSON.stringify(registry, null, 2) + '\n');
     writeFileSync(path, JSON.stringify(aoa, null, 2) + '\n');
   }
   console.log('REL.values execution contract ' + machineCid(checkExecutionContract(aoa, protocol)));

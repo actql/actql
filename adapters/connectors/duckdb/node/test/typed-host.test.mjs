@@ -18,7 +18,11 @@ const limits = { maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
   memoryBytes: 128 * 1024 * 1024, threads: 1 };
 // Every expected logical value is authored here, never decoded from product output.
 const cases = [
-  ['text', 'VARCHAR', { type: 'string' }, "'日本語'", '日本語', "concat('e', chr(769))"],
+  ['text', 'VARCHAR', { type: 'string' }, "'日本語'", '日本語', null],
+  ['text-decomposed', 'VARCHAR', { type: 'string' },
+    "concat('e', chr(769))", 'e\u0301', null],
+  ['text-crlf', 'VARCHAR', { type: 'string' },
+    'concat(chr(13), chr(10))', '\r\n', null],
   ['boolean', 'BOOLEAN', { type: 'boolean' }, 'TRUE', true, null],
   ['integer', 'BIGINT', { type: 'number' }, '9007199254740992', 9007199254740992, '9007199254740993'],
   ['number', 'DOUBLE', { type: 'number' }, '-1.5', -1.5, "'Infinity'::DOUBLE"],

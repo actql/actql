@@ -35,7 +35,7 @@ test "adopted operation laws retain the existing shared body identities" {
     (law, cid) in [
       (
         @pipeline_typing.RelaScalar,
-        "sha256:a866ed224e15da7e25b45d4e166b25b6bd6749a31bd7dfacb185391ad3f80122",
+        "sha256:5afa312c0fa9b1e5620bc3556b17aa8da9e50646097ab84a2c04aa8a24575574",
       ),
       (
         RelaPrimitive,
@@ -55,7 +55,7 @@ test "adopted operation laws retain the existing shared body identities" {
       ),
       (
         PropertyGraphLaw,
-        "sha256:663bbb3096723cb38face189087f79ab37e9b7d34ec994937b3bff8334c405b1",
+        "sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc",
       ),
     ] {
     assert_eq(@pipeline_typing.adopted_operation_law_cid(law), cid)

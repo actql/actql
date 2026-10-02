@@ -79,7 +79,7 @@ const walk = (directory, prefix = '') => {
 walk(join(destination, 'adapters'));
 for (const path of [
   'spec/dependencies/aoa-pipeline-registry.json',
-  'spec/dependencies/aoa-property-graph-laws.json',
+  'spec/dependencies/actql-property-graph-laws.json',
   'spec/contracts/actql-aoa.json',
   'spec/contracts/actql-numeric-reduction.json',
   'spec/local-check-environment.json',
