@@ -106,6 +106,8 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     Values(_) | InnerJoin(_) | CrossJoinRows(_) | AppendRows(_) | SetRows(_) =>
       true
     GraphConstructionValue(_) => operation(node) == "BRIDGE.rows.to_graph"
+    PropertyGraphConstructionValue(_) =>
+      operation(node) == "BRIDGE.rows.to_property_graph"
     GraphTraverseRows(checked) =>
       operation(node) == "SGA.traverse" &&
       @graph.traverse_emission(checked) == @graph.TraversedPaths &&
@@ -277,6 +279,14 @@ pub fn node_accepts_managed_relation_view(
   node : PreparedNode,
   index : Int,
 ) -> Bool {
+  if node.payload is PropertyGraphConstructionValue(checked) {
+    return operation(node) == "BRIDGE.rows.to_property_graph" &&
+      index >= 0 &&
+      index < node.input_targets.length() &&
+      node.input_targets.length() ==
+      @graph.property_construction_node_count(checked) +
+      @graph.property_construction_edge_count(checked)
+  }
   if node.payload is RankingValue(_) {
     return operation(node) == "VEC.merge_rankings" &&
       index >= 0 &&

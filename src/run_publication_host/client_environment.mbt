@@ -1,6 +1,6 @@
 ///|
 /// Admit the standard Client environment once under the shared Host limits.
-/// Installed ABI profiles must reject unavailable capabilities before calling
+/// Installed Host profiles must reject unavailable capabilities before calling
 /// this helper. Admission does not assert execution support or grant authority.
 pub fn admit_client_check_environment(
   body : String,
@@ -8,6 +8,7 @@ pub fn admit_client_check_environment(
   expressions : @context.ExpressionProfiles,
   operations : @context.PureOperationProfiles,
   numeric_profile_cid? : String? = None,
+  property_graph? : Bool = false,
 ) -> @checked.CheckEnvironment? {
   let numeric = match numeric_profile_cid {
     None => None
@@ -49,6 +50,7 @@ pub fn admit_client_check_environment(
       expressions,
       operations,
       numeric_profile=numeric,
+      property_graph~,
       model_tasks=Some(model_tasks),
     ),
   )

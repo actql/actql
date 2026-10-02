@@ -84,7 +84,10 @@ fn check_graph_pair(
     let graphs : Array[@carrier.Graph] = []
     for (v, at) in [(left, source), (right, target)] {
       match v {
-        @carrier.GraphValue(g) => graphs.push(g)
+        @carrier.GraphValue(g) => {
+          reject_unconnected_graph_operation(g, at)
+          graphs.push(g)
+        }
         @carrier.Opaque(GraphKind) => fail(at, IncompleteGraph)
         _ => fail(at, WrongCarrier(@carrier.kind(v)))
       }

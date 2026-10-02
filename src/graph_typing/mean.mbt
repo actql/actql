@@ -352,7 +352,10 @@ pub fn check_mean(
       let at = occurrences[i]
       spend(b, at, 1)
       let g = match inputs[i] {
-        @carrier.GraphValue(g) => g
+        @carrier.GraphValue(g) => {
+          reject_unconnected_graph_operation(g, at)
+          g
+        }
         @carrier.Opaque(GraphKind) => fail(at, IncompleteGraph)
         v => fail(at, WrongCarrier(@carrier.kind(v)))
       }

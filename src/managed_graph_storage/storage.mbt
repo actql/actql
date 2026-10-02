@@ -37,18 +37,28 @@ pub(all) enum Issue {
   WorkspaceLimit
   DuplicateNodeConflict
   DuplicateEdgeConflict
+  DuplicateNodeKey
+  DuplicateEdgeKey
+  WrongProfile
   MissingEndpoint
   Closed
 } derive(Eq, Debug)
 
 ///|
 priv struct Node {
+  property_definition : Int?
+  identity_order_key : String?
+  typed_key : Array[@value.CheckedValue]?
   identity : @value.CheckedValue
   properties : Array[@value.CheckedValue]
 }
 
 ///|
 priv struct Edge {
+  property_definition : Int?
+  identity_order_key : String?
+  identity : @value.CheckedValue?
+  typed_key : Array[@value.CheckedValue]?
   source : Int
   target : Int
   label : @value.CheckedValue?
@@ -67,6 +77,7 @@ struct Builder {
   node_payloads : Map[String, String]
   edge_keys : Map[String, Int]
   edge_payloads : Map[String, String]
+  excluded_edge_keys : Array[(String, Int)]
   mut input_rows : Int
   mut value_bytes : Int
   mut retained_value_bytes : Int
@@ -110,19 +121,6 @@ fn valid_limits(limits : Limits) -> Bool {
 }
 
 ///|
-fn closed_typed_properties(value : @carrier.Knowledge) -> Bool {
-  if @carrier.field_set(value) != @carrier.Closed {
-    return false
-  }
-  for index in 0..<@carrier.field_count(value) {
-    if @carrier.field_at(value, index).unwrap().contract is None {
-      return false
-    }
-  }
-  true
-}
-
-///|
 pub fn prepare(
   contract : @carrier.Carrier,
   mode : Mode,
@@ -132,13 +130,11 @@ pub fn prepare(
     return Err(InvalidLimits)
   }
   guard contract is @carrier.GraphValue(graph) else { return Err(WrongCarrier) }
-  if !closed_typed_properties(@carrier.graph_node_properties(graph)) ||
-    !closed_typed_properties(@carrier.graph_edge_properties(graph)) {
-    return Err(OpenPropertyContract)
+  if @carrier.graph_property_definition(graph) is None {
+    return Err(WrongProfile)
   }
-  if mode == DerivedEndpoints &&
-    @carrier.field_count(@carrier.graph_node_properties(graph)) != 0 {
-    return Err(InvalidProperties)
+  if mode == DerivedEndpoints {
+    return Err(WrongMode)
   }
   Ok({
     graph,
@@ -150,6 +146,7 @@ pub fn prepare(
     node_payloads: Map([]),
     edge_keys: Map([]),
     edge_payloads: Map([]),
+    excluded_edge_keys: [],
     input_rows: 0,
     value_bytes: 0,
     retained_value_bytes: 0,
@@ -243,53 +240,6 @@ fn encoded_values(
 }
 
 ///|
-fn encoded_edge_identity(
-  builder : Builder,
-  source : @value.CheckedValue,
-  target : @value.CheckedValue,
-  label : @value.CheckedValue?,
-  pending_bytes : Int,
-  pending_work : Int,
-) -> Result[(String, Int, Int), Issue] {
-  if pending_work > builder.limits.max_work - builder.work {
-    return Err(WorkLimit)
-  }
-  let remaining_work = builder.limits.max_work - builder.work - pending_work
-  let node_limit = Int::min(builder.limits.max_value_nodes, remaining_work)
-  if node_limit < 1 {
-    return Err(WorkLimit)
-  }
-  if pending_bytes > builder.limits.max_total_value_bytes - builder.value_bytes {
-    return Err(ValueLimit)
-  }
-  let remaining = builder.limits.max_total_value_bytes -
-    builder.value_bytes -
-    pending_bytes
-  let cap = Int::min(builder.limits.max_value_bytes, remaining)
-  if cap < 0 {
-    return Err(ValueLimit)
-  }
-  try {
-    let out = @encode.writer(cap, node_limit, builder.limits.max_value_depth)
-    @encode.begin_array(out)
-    @value.emit_wire_value(source.value, out)
-    @value.emit_wire_value(target.value, out)
-    match label {
-      Some(value) => @value.emit_wire_value(value.value, out)
-      None => @encode.null_value(out)
-    }
-    @encode.end_array(out)
-    let (text, bytes, nodes, _) = @encode.finish_text_usage(out)
-    Ok((text, bytes, nodes))
-  } catch {
-    _ =>
-      if node_limit < builder.limits.max_value_nodes {
-        Err(WorkLimit)
-      } else {
-        Err(ValueLimit)
-      }
-  }
-}
 
 ///|
 fn reserve(
@@ -342,364 +292,104 @@ fn edge_slots(properties : Int, label : Bool) -> Int {
 ///|
 pub fn append_node(
   builder : Builder,
+  _identity : @value.CheckedValue,
+  _properties : Array[@value.CheckedValue],
+) -> Result[Unit, Issue] {
+  // Retired tuple input is an explicit refusal, never a second builder.
+  fail(builder, WrongProfile)
+}
+
+///|
+fn append_node_record(
+  builder : Builder,
   identity : @value.CheckedValue,
   properties : Array[@value.CheckedValue],
+  property_definition : Int,
+  typed_key : Array[@value.CheckedValue],
+  initial_work : Int,
 ) -> Result[Unit, Issue] {
-  if !builder.open {
-    return Err(Closed)
-  }
-  if builder.mode != DeclaredNodes {
-    return fail(builder, WrongMode)
-  }
-  if !contract_equal(
-      builder,
-      @carrier.graph_identity(builder.graph),
-      identity.contract,
-    ) {
-    return fail(builder, InvalidIdentity)
-  }
-  if !values_match(
-      builder,
-      @carrier.graph_node_properties(builder.graph),
-      properties,
-    ) {
-    return fail(builder, InvalidProperties)
-  }
   let (key, key_bytes, key_work) = match
-    encoded_values(builder, [identity], 0, 1) {
+    encoded_values(builder, [identity], 0, 1 + initial_work) {
     Ok(value) => value
     Err(issue) => return fail(builder, issue)
   }
   let (payload, payload_bytes, payload_work) = match
-    encoded_values(builder, properties, key_bytes, key_work + 1) {
+    encoded_values(builder, properties, key_bytes, key_work + 1 + initial_work) {
     Ok(value) => value
     Err(issue) => return fail(builder, issue)
   }
   let bytes = key_bytes + payload_bytes
   if builder.node_keys.get(key) is Some(_) {
-    if builder.node_payloads.get(key) == Some(payload) {
-      match
-        reserve(builder, 1, 0, 0, bytes, 0, key_work + payload_work + 1, 0) {
-        Some(issue) => return fail(builder, issue)
-        None => {
-          builder.input_rows += 1
-          builder.value_bytes += bytes
-          builder.work += key_work + payload_work + 1
-          return Ok(())
-        }
-      }
-    }
-    return fail(builder, DuplicateNodeConflict)
+    return fail(builder, DuplicateNodeKey)
   }
-  let slots = node_slots(properties.length())
-  match
-    reserve(builder, 1, 1, 0, bytes, bytes, key_work + payload_work + 1, slots) {
+  let slots = node_slots(properties.length()) + typed_key.length() + 1
+  let work = key_work + payload_work + 1 + initial_work
+  match reserve(builder, 1, 1, 0, bytes, bytes, work, slots) {
     Some(issue) => return fail(builder, issue)
     None => ()
   }
   let index = builder.nodes.length()
-  builder.nodes.push({ identity, properties: properties.copy(), })
+  builder.nodes.push({
+    identity,
+    properties: properties.copy(),
+    property_definition: Some(property_definition),
+    identity_order_key: Some(key),
+    typed_key: Some(typed_key.copy()),
+  })
   builder.node_keys[key] = index
   builder.node_payloads[key] = payload
   builder.input_rows += 1
   builder.value_bytes += bytes
   builder.retained_value_bytes += bytes
-  builder.work += key_work + payload_work + 1
-  builder.workspace_slots += slots
-  Ok(())
-}
-
-///|
-/// Account for a validated node occurrence whose identity is already retained.
-/// Structural folds use this for later operand occurrences without exposing a
-/// second record or changing the retained payload.
-pub fn observe_node(
-  builder : Builder,
-  identity : @value.CheckedValue,
-  properties : Array[@value.CheckedValue],
-) -> Result[Unit, Issue] {
-  if !builder.open {
-    return Err(Closed)
-  }
-  if !contract_equal(
-      builder,
-      @carrier.graph_identity(builder.graph),
-      identity.contract,
-    ) ||
-    !values_match(
-      builder,
-      @carrier.graph_node_properties(builder.graph),
-      properties,
-    ) {
-    return fail(builder, InvalidProperties)
-  }
-  let (_, key_bytes, key_work) = match
-    encoded_values(builder, [identity], 0, 1) {
-    Ok(value) => value
-    Err(issue) => return fail(builder, issue)
-  }
-  let (_, payload_bytes, payload_work) = match
-    encoded_values(builder, properties, key_bytes, key_work + 1) {
-    Ok(value) => value
-    Err(issue) => return fail(builder, issue)
-  }
-  let bytes = key_bytes + payload_bytes
-  let work = key_work + payload_work + 1
-  match reserve(builder, 1, 0, 0, bytes, 0, work, 0) {
-    Some(issue) => fail(builder, issue)
-    None => {
-      builder.input_rows += 1
-      builder.value_bytes += bytes
-      builder.work += work
-      Ok(())
-    }
-  }
-}
-
-///|
-fn checked_label(builder : Builder, label : @value.CheckedValue?) -> Bool {
-  match (@carrier.graph_label_contract(builder.graph), label) {
-    (None, None) => true
-    (Some(expected), Some(actual)) =>
-      contract_equal(builder, expected, actual.contract)
-    _ => false
-  }
-}
-
-///|
-/// Checks one endpoint against the declared node universe without admitting an
-/// edge. Explicit Graph construction uses this before committing either
-/// endpoint closure. The lookup does not mutate builder accounting.
-pub fn contains_declared_node(
-  builder : Builder,
-  identity : @value.CheckedValue,
-) -> Result[Bool, Issue] {
-  if !builder.open {
-    return Err(Closed)
-  }
-  if builder.mode != DeclaredNodes {
-    return Err(WrongMode)
-  }
-  if !contract_equal(
-      builder,
-      @carrier.graph_identity(builder.graph),
-      identity.contract,
-    ) {
-    return Err(InvalidIdentity)
-  }
-  let (key, _, _) = match encoded_values(builder, [identity], 0, 1) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  Ok(builder.node_keys.get(key) is Some(_))
-}
-
-///|
-pub fn append_edge(
-  builder : Builder,
-  source : @value.CheckedValue,
-  target : @value.CheckedValue,
-  label : @value.CheckedValue?,
-  properties : Array[@value.CheckedValue],
-) -> Result[Unit, Issue] {
-  if !builder.open {
-    return Err(Closed)
-  }
-  let identity_contract = @carrier.graph_identity(builder.graph)
-  if !contract_equal(builder, identity_contract, source.contract) ||
-    !contract_equal(builder, identity_contract, target.contract) {
-    return fail(builder, InvalidIdentity)
-  }
-  if !checked_label(builder, label) {
-    return fail(builder, InvalidLabel)
-  }
-  if !values_match(
-      builder,
-      @carrier.graph_edge_properties(builder.graph),
-      properties,
-    ) {
-    return fail(builder, InvalidProperties)
-  }
-  let (source_key, source_bytes, source_work) = match
-    encoded_values(builder, [source], 0, 1) {
-    Ok(value) => value
-    Err(issue) => return fail(builder, issue)
-  }
-  let (target_key, target_bytes, target_work) = match
-    encoded_values(builder, [target], source_bytes, source_work + 1) {
-    Ok(value) => value
-    Err(issue) => return fail(builder, issue)
-  }
-  let (edge_key, edge_key_bytes, edge_key_work) = match
-    encoded_edge_identity(
-      builder,
-      source,
-      target,
-      label,
-      source_bytes + target_bytes,
-      source_work + target_work + 1,
-    ) {
-    Ok(value) => value
-    Err(issue) => return fail(builder, issue)
-  }
-  let prior_bytes = source_bytes + target_bytes + edge_key_bytes
-  let prior_work = source_work + target_work + edge_key_work
-  let (payload, payload_bytes, payload_work) = match
-    encoded_values(builder, properties, prior_bytes, prior_work + 1) {
-    Ok(value) => value
-    Err(issue) => return fail(builder, issue)
-  }
-  let bytes = prior_bytes + payload_bytes
-  let work = source_work + target_work + edge_key_work + payload_work + 1
-  if builder.edge_keys.get(edge_key) is Some(_) {
-    if builder.edge_payloads.get(edge_key) == Some(payload) {
-      match reserve(builder, 1, 0, 0, bytes, 0, work, 0) {
-        Some(issue) => return fail(builder, issue)
-        None => {
-          builder.input_rows += 1
-          builder.value_bytes += bytes
-          builder.work += work
-          return Ok(())
-        }
-      }
-    }
-    return fail(builder, DuplicateEdgeConflict)
-  }
-  let source_index = builder.node_keys.get(source_key)
-  let target_index = builder.node_keys.get(target_key)
-  if builder.mode == DeclaredNodes &&
-    (source_index is None || target_index is None) {
-    return fail(builder, MissingEndpoint)
-  }
-  let mut added_nodes = 0
-  if source_index is None {
-    added_nodes += 1
-  }
-  if target_index is None && source_key != target_key {
-    added_nodes += 1
-  }
-  let node_slot_count = added_nodes * node_slots(0)
-  let slots = node_slot_count +
-    edge_slots(properties.length(), label is Some(_))
-  let retained_bytes = edge_key_bytes +
-    payload_bytes +
-    (if source_index is None { source_bytes + 2 } else { 0 }) +
-    (if target_index is None && source_key != target_key {
-      target_bytes + 2
-    } else {
-      0
-    })
-  match
-    reserve(builder, 1, added_nodes, 1, bytes, retained_bytes, work, slots) {
-    Some(issue) => return fail(builder, issue)
-    None => ()
-  }
-  let empty : Array[@value.CheckedValue] = []
-  let actual_source = match source_index {
-    Some(index) => index
-    None => {
-      let index = builder.nodes.length()
-      builder.nodes.push({ identity: source, properties: empty, })
-      builder.node_keys[source_key] = index
-      builder.node_payloads[source_key] = "[]"
-      index
-    }
-  }
-  let actual_target = match target_index {
-    Some(index) => index
-    None =>
-      match builder.node_keys.get(target_key) {
-        Some(index) => index
-        None => {
-          let index = builder.nodes.length()
-          builder.nodes.push({ identity: target, properties: empty, })
-          builder.node_keys[target_key] = index
-          builder.node_payloads[target_key] = "[]"
-          index
-        }
-      }
-  }
-  let edge_index = builder.edges.length()
-  builder.edges.push({
-    source: actual_source,
-    target: actual_target,
-    label,
-    properties: properties.copy(),
-  })
-  builder.edge_keys[edge_key] = edge_index
-  builder.edge_payloads[edge_key] = payload
-  builder.input_rows += 1
-  builder.value_bytes += bytes
-  builder.retained_value_bytes += retained_bytes
   builder.work += work
   builder.workspace_slots += slots
   Ok(())
 }
 
 ///|
-/// Account for a validated edge occurrence already represented by a retained
-/// structural-fold result.
+/// Refuse the retired tuple structural-fold entry; it cannot mutate a current
+/// definition-keyed builder or manufacture a duplicate occurrence.
+pub fn observe_node(
+  builder : Builder,
+  _identity : @value.CheckedValue,
+  _properties : Array[@value.CheckedValue],
+) -> Result[Unit, Issue] {
+  fail(builder, WrongProfile)
+}
+
+///|
+
+///|
+/// Refuse definition-free endpoint lookup without changing builder accounting.
+pub fn contains_declared_node(
+  _builder : Builder,
+  _identity : @value.CheckedValue,
+) -> Result[Bool, Issue] {
+  Err(WrongProfile)
+}
+
+///|
+pub fn append_edge(
+  builder : Builder,
+  _source : @value.CheckedValue,
+  _target : @value.CheckedValue,
+  _label : @value.CheckedValue?,
+  _properties : Array[@value.CheckedValue],
+) -> Result[Unit, Issue] {
+  fail(builder, WrongProfile)
+}
+
+///|
+/// Refuse endpoint-tuple occurrence accounting. Independent edge identity is
+/// required by the current constructor, and no old fold can synthesize it.
 pub fn observe_edge(
   builder : Builder,
-  source : @value.CheckedValue,
-  target : @value.CheckedValue,
-  label : @value.CheckedValue?,
-  properties : Array[@value.CheckedValue],
+  _source : @value.CheckedValue,
+  _target : @value.CheckedValue,
+  _label : @value.CheckedValue?,
+  _properties : Array[@value.CheckedValue],
 ) -> Result[Unit, Issue] {
-  if !builder.open {
-    return Err(Closed)
-  }
-  let identity_contract = @carrier.graph_identity(builder.graph)
-  if !contract_equal(builder, identity_contract, source.contract) ||
-    !contract_equal(builder, identity_contract, target.contract) ||
-    !checked_label(builder, label) ||
-    !values_match(
-      builder,
-      @carrier.graph_edge_properties(builder.graph),
-      properties,
-    ) {
-    return fail(builder, InvalidProperties)
-  }
-  let (_, source_bytes, source_work) = match
-    encoded_values(builder, [source], 0, 1) {
-    Ok(value) => value
-    Err(issue) => return fail(builder, issue)
-  }
-  let (_, target_bytes, target_work) = match
-    encoded_values(builder, [target], source_bytes, source_work + 1) {
-    Ok(value) => value
-    Err(issue) => return fail(builder, issue)
-  }
-  let (_, edge_key_bytes, edge_key_work) = match
-    encoded_edge_identity(
-      builder,
-      source,
-      target,
-      label,
-      source_bytes + target_bytes,
-      source_work + target_work + 1,
-    ) {
-    Ok(value) => value
-    Err(issue) => return fail(builder, issue)
-  }
-  let prior_bytes = source_bytes + target_bytes + edge_key_bytes
-  let prior_work = source_work + target_work + edge_key_work
-  let (_, payload_bytes, payload_work) = match
-    encoded_values(builder, properties, prior_bytes, prior_work + 1) {
-    Ok(value) => value
-    Err(issue) => return fail(builder, issue)
-  }
-  let bytes = prior_bytes + payload_bytes
-  let work = source_work + target_work + edge_key_work + payload_work + 1
-  match reserve(builder, 1, 0, 0, bytes, 0, work, 0) {
-    Some(issue) => fail(builder, issue)
-    None => {
-      builder.input_rows += 1
-      builder.value_bytes += bytes
-      builder.work += work
-      Ok(())
-    }
-  }
+  fail(builder, WrongProfile)
 }
 
 ///|
@@ -709,6 +399,12 @@ pub fn finish(builder : Builder) -> Result[Storage, Issue] {
   }
   builder.open = false
   builder.owns_private = false
+  for (key, bytes) in builder.excluded_edge_keys {
+    builder.edge_keys.remove(key) |> ignore
+    builder.retained_value_bytes -= bytes
+    builder.workspace_slots -= 3
+  }
+  builder.excluded_edge_keys.clear()
   Ok({
     graph: builder.graph,
     mode: builder.mode,
@@ -738,6 +434,7 @@ pub fn cancel(builder : Builder) -> Bool {
   builder.node_payloads.clear()
   builder.edge_keys.clear()
   builder.edge_payloads.clear()
+  builder.excluded_edge_keys.clear()
   builder.retained_value_bytes = 0
   builder.workspace_slots = 0
   true
@@ -835,6 +532,10 @@ pub fn node_index(
   value : Storage,
   identity : @value.CheckedValue,
 ) -> Result[Int?, Issue] {
+  match property_lookup_scope(value, identity, edge=false) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   let expected = @carrier.graph_identity(value.graph)
   let same = @contract.type_equal(
     expected,
@@ -862,67 +563,16 @@ pub fn node_index(
 }
 
 ///|
-/// Resolve an admitted edge identity through the immutable construction
-/// index. The lookup preserves the typed source, target, and optional label;
-/// it does not compare payload properties or scan the edge array.
+/// Refuse endpoint-tuple edge lookup; use edge_identity_index with an admitted
+/// independent typed identity instead.
 pub fn edge_index(
-  value : Storage,
-  source : @value.CheckedValue,
-  target : @value.CheckedValue,
-  label : @value.CheckedValue?,
+  _value : Storage,
+  _source : @value.CheckedValue,
+  _target : @value.CheckedValue,
+  _label : @value.CheckedValue?,
 ) -> Result[Int?, Issue] {
-  let expected = @carrier.graph_identity(value.graph)
-  let same_source = @contract.type_equal(
-    expected,
-    source.contract,
-    value.limits.max_contract_work,
-  ) catch {
-    _ => false
-  }
-  let same_target = @contract.type_equal(
-    expected,
-    target.contract,
-    value.limits.max_contract_work,
-  ) catch {
-    _ => false
-  }
-  if !same_source || !same_target {
-    return Err(InvalidIdentity)
-  }
-  match (@carrier.graph_label_contract(value.graph), label) {
-    (None, None) => ()
-    (Some(expected), Some(actual)) => {
-      let same = @contract.type_equal(
-        expected,
-        actual.contract,
-        value.limits.max_contract_work,
-      ) catch {
-        _ => false
-      }
-      if !same {
-        return Err(InvalidLabel)
-      }
-    }
-    _ => return Err(InvalidLabel)
-  }
-  try {
-    let out = @encode.writer(
-      value.limits.max_value_bytes,
-      value.limits.max_value_nodes,
-      value.limits.max_value_depth,
-    )
-    @encode.begin_array(out)
-    @value.emit_wire_value(source.value, out)
-    @value.emit_wire_value(target.value, out)
-    match label {
-      Some(actual) => @value.emit_wire_value(actual.value, out)
-      None => @encode.null_value(out)
-    }
-    @encode.end_array(out)
-    Ok(value.edge_keys.get(@encode.finish(out)))
-  } catch {
-    _ => Err(ValueLimit)
-  }
+  // Only independent typed edge keys can select an edge.
+  Err(WrongProfile)
 }
 
 ///|

@@ -22,7 +22,9 @@ fn graph_capacity(
 test "capacity closure registers imported Graph bounds without detaching their preflights" {
   let base = input_bound_pipeline("[]")
   let root = @pipeline.check_with_evidence(
-    closure_cursor("[{\"node_rows\":true}]"),
+    closure_cursor(
+      "[{\"match_nodes\":{\"definition\":\"N\",\"bindings\":{\"identity\":\"element\"},\"where\":\"true\",\"fields\":[\"element\"]}}]",
+    ),
     [
       (
         "g",
@@ -48,7 +50,7 @@ test "capacity closure registers imported Graph bounds without detaching their p
     @input.bound_witness(@input.input_bound(initial, 0, Nodes).unwrap()),
   )
   let proof = graph_proof(
-    "actql.bound.graph-node-rows",
+    "actql.bound.match-nodes",
     1L,
     "{\"op\":\"source\"}",
     inputs=[id],
@@ -171,14 +173,16 @@ test "capacity closure registers imported Graph bounds without detaching their p
 
 ///|
 test "capacity closure retains the exact local Graph input check" {
-  let p = input_bound_pipeline("[{\"node_rows\":true}]")
+  let p = input_bound_pipeline(
+    "[{\"match_nodes\":{\"definition\":\"N\",\"bindings\":{\"identity\":\"element\"},\"where\":\"true\",\"fields\":[\"element\"]}}]",
+  )
   let policy = policy(false)
   let first = @input.check(p, sources(0, policy), policy, caps()).unwrap()
   let id = @wire.cid(
     @input.bound_witness(@input.input_bound(first, 0, Nodes).unwrap()),
   )
   let proof = graph_proof(
-    "actql.bound.graph-node-rows",
+    "actql.bound.match-nodes",
     1L,
     "{\"op\":\"source\"}",
     inputs=[id],

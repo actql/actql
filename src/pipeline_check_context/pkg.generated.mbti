@@ -129,7 +129,7 @@ pub fn check_expression_profiles(ExpressionValidationContext, ExpressionProfiles
 
 pub fn check_like_patterns(ExpressionValidationContext, LikePatternLimits) -> Result[LikePatternChecks, LikePatternIssue]
 
-pub fn check_operation_profiles(ProgramPreparation, PureOperationProfiles, Int) -> Result[OperationProfileChecks, OperationProfilesIssue]
+pub fn check_operation_profiles(ProgramPreparation, PureOperationProfiles, Int, property_graph? : Bool) -> Result[OperationProfileChecks, OperationProfilesIssue]
 
 pub fn check_parameter_bindings(PipelineContext, max_work~ : Int, max_text_bytes~ : Int) -> Result[BoundParameters, ParameterIssue]
 
@@ -619,6 +619,8 @@ pub fn operation_profiles_diagnostic(OperationProfilesIssue) -> String?
 
 pub fn operation_profiles_preparation(OperationProfileChecks) -> ProgramPreparation
 
+pub fn operation_profiles_property_graph(OperationProfileChecks) -> Bool
+
 pub fn operation_profiles_work(OperationProfileChecks) -> Int
 
 pub fn operation_queries_count(ProgramOperationQueries) -> Int
@@ -741,7 +743,7 @@ pub fn prepare_nest_value_envelope(NestItemLimit, Int, Int) -> Result[NestValueE
 
 pub fn prepare_program_analytic_numeric_slots(ProgramOperationRequirements, @numeric_reduction.Profile, Int, Int) -> Result[ProgramAnalyticNumericSlots, NumericSlotsIssue]
 
-pub fn prepare_program_checks(SourceProducerContext, ExpressionProfiles, PureOperationProfiles, PreparationBudget, max_policy_depth~ : Int, max_requirements~ : Int, max_regex_depth~ : Int) -> Result[OperationProfileChecks, PrepareChecksIssue]
+pub fn prepare_program_checks(SourceProducerContext, ExpressionProfiles, PureOperationProfiles, PreparationBudget, max_policy_depth~ : Int, max_requirements~ : Int, max_regex_depth~ : Int, property_graph? : Bool) -> Result[OperationProfileChecks, PrepareChecksIssue]
 
 pub fn prepare_program_incoming_gates(ProgramIncomingLinks, IncomingGateLimits) -> Result[ProgramIncomingGates, ProgramIncomingGatesIssue]
 
@@ -1375,6 +1377,7 @@ pub(all) enum CoreContractBody {
   AsOfSearchRules
   WindowCountRules
   GraphCountRules
+  PropertyGraphCountRules
   RankingCountRules
   SeriesCountRules
   LocalSnapshotRules
@@ -2401,6 +2404,7 @@ pub(all) enum OperationExecutionCheck {
   ShortestExecution(ShortestCheck)
   GraphExecution(GraphExecutionCheck)
   GraphConstructionExecution(GraphConstructionCheck)
+  PropertyGraphConstructionExecution(PropertyGraphConstructionCheck)
   GraphProjection(GraphProjectionCheck)
   GraphProjectionOutput(GraphProjectionEnvelope)
   SequenceMatch(SequenceMatchCheck)
@@ -2928,6 +2932,21 @@ pub(all) enum ProgramSourcesIssue {
   ForeignRequestSlots
   ForeignPreparation
   BudgetExceeded
+} derive(Eq, @debug.Debug)
+
+pub struct PropertyGraphConstructionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  operation : @graph_typing.CheckedPropertyConstruction
+  rule : PropertyGraphConstructionRule
+  envelope : GraphConstructionEnvelope?
+}
+
+pub(all) enum PropertyGraphConstructionRule {
+  AdmitPropertyInputRows
+  RejectDuplicateKeys
+  ExcludeNullKeysAndMissingEndpoints
+  EnforcePropertyConstructionEnvelope
 } derive(Eq, @debug.Debug)
 
 pub enum PublicationClosureIssue {
@@ -3601,6 +3620,7 @@ pub(all) enum TraversalRule {
   EvaluateHopConditions
   EmitMinimumDepth
   EnumerateSimplePaths
+  EnumeratePropertyPaths
   DeduplicatePathIdentities
   OrderTraversalRows
 } derive(Eq, @debug.Debug)

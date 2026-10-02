@@ -15,6 +15,10 @@
     {
       "path": "actql/actql/client_salesforce_host",
       "alias": "client_salesforce_host"
+    },
+    {
+      "path": "actql/actql/graph_contract",
+      "alias": "graph_contract"
     }
   ]
 }

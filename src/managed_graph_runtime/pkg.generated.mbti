@@ -2,6 +2,7 @@
 package "actql/actql/managed_graph_runtime"
 
 import {
+  "actql/actql/decode_core",
   "actql/actql/lowering_relation",
   "actql/actql/managed_carrier_runtime",
   "actql/actql/managed_graph_storage",
@@ -15,6 +16,14 @@ pub fn append_edge(OutputBuilder, @value_admission.CheckedValue, @value_admissio
 
 pub fn append_node(OutputBuilder, @value_admission.CheckedValue, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
 
+pub fn append_property_edge(OutputBuilder, Int, Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
+
+pub fn append_property_node(OutputBuilder, Int, Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
+
+pub fn append_property_snapshot_edge(OutputBuilder, @decode_core.Cursor, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, Issue]
+
+pub fn append_property_snapshot_node(OutputBuilder, @decode_core.Cursor, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, Issue]
+
 pub fn cancel_output(OutputBuilder) -> Bool
 
 pub fn completed_available(Completed) -> Bool
@@ -23,7 +32,7 @@ pub fn completed_carrier_reference(Completed) -> @managed_carrier_runtime.Comple
 
 pub fn completed_evidence(Completed) -> Evidence?
 
-pub fn completed_material(Completed) -> Result[@managed_carrier_runtime.Material, Issue]
+pub fn completed_material(Completed, snapshot_factory? : @managed_carrier_runtime.SnapshotFactory?) -> Result[@managed_carrier_runtime.Material, Issue]
 
 pub fn completed_measure(Completed) -> @managed_carrier_runtime.Measure
 

@@ -249,6 +249,8 @@ pub fn operation_obligations_at(OperationObligations, Int) -> OperationObligatio
 
 pub fn operation_obligations_count(OperationObligations) -> Int
 
+pub fn operation_obligations_property_construction(OperationObligations) -> @graph_typing.CheckedPropertyConstruction?
+
 pub fn operation_obligations_scope(OperationObligations) -> OperationObligationScope
 
 pub fn operation_obligations_selector(OperationObligations) -> @graph_typing.CheckedSelector?
@@ -413,6 +415,7 @@ pub(all) enum AdoptedOperationLaw {
   RelaPrimitive
   SgaStructural
   SgaIdentity
+  PropertyGraphLaw
   VecaNumeric
 } derive(Eq, @debug.Debug)
 
@@ -457,6 +460,7 @@ pub enum CheckedOperation {
   GraphUnion(@graph_typing.CheckedUnion)
   GraphMean(@graph_typing.CheckedMean)
   GraphConstruction(nodes~ : Target?, edges~ : Target, checked~ : @graph_typing.CheckedConstruction)
+  PropertyGraphConstruction(inputs~ : Array[Target], checked~ : @graph_typing.CheckedPropertyConstruction)
   Vector(@vector_typing.CheckedVector)
   Nearest(queries~ : Target, checked~ : @relation_evidence.CheckedNearest)
   Pool(@vector_typing.CheckedPool)
@@ -644,6 +648,7 @@ pub(all) enum IssueKind {
   MissingGuardBinding(String)
   InvalidGuardValue(String)
   UnsupportedOperation(String)
+  MissingPropertyProducerDefinition
   InvalidMetadata
   ReservedMetadataKey(String)
   Operation(@relation_typing.IssueKind)
@@ -749,6 +754,7 @@ pub(all) enum OperationOrderDemand {
 pub(all) enum OperationProfile {
   RelA
   SGA
+  PropertyGraph
   TEA
   VecA
   CalendarProfile

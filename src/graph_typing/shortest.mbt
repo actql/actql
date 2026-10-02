@@ -121,6 +121,7 @@ pub fn check_shortest(
       }
       fail(source, IncompleteGraph)
     }
+    reject_unconnected_graph_operation(g, source)
     let root = decoded(
       @decode.closed_object(source, [
         "source", "target", "selection", "direction", "max_hops", "weight", "edge_types",

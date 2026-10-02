@@ -46,6 +46,10 @@ pub fn check_subgraph(
       text: limits.max_text_bytes,
     }
     scan(b, source)
+    guard graph is @carrier.GraphValue(admitted) else {
+      fail(source, WrongCarrier(@carrier.kind(graph)))
+    }
+    reject_unconnected_graph_operation(admitted, source)
     let root = decoded(@decode.closed_object(source, ["nodes", "edges"]))
     let at = decoded(@decode.required(root, "nodes"))
     let nodes = match

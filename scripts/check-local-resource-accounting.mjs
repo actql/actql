@@ -827,6 +827,8 @@ for (const [index, route] of routeEntries.entries()) {
         'adapters/connectors/duckdb/node/test/standard-host.test.mjs',
       'node:duckdb_retained_values_chain':
         'adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs',
+      'node:property_graph_surface_checker':
+        'scripts/property-graph-surface-checker.test.mjs',
     }[item.suite];
     if (!suitePath || item.path !== suitePath ||
       JSON.stringify(item.targets) !== JSON.stringify(['node']) ||
@@ -1042,6 +1044,17 @@ for (const [index, route] of routeEntries.entries()) {
     (!environmentRoles.has('same_stage_distinct_timer_cancel_cleanup') ||
       !environmentRoles.has('ordinary_distinct_in_flight_host_timer'))) {
     fail(`${label}: both distinct timer paths need executable evidence`);
+  }
+  if (route.family === 'Bridge' && route.operation === 'property_graph') {
+    if (dispatch.marker !== '@bridge.start_rows_to_property_graph(' ||
+      entrypoint.symbol !== 'start_rows_to_property_graph' ||
+      !boundaryRoles.has('property_graph_control_work_workspace_exact_one_short') ||
+      !boundaryRoles.has('property_graph_private_capacity_cancel_cleanup') ||
+      !environmentRoles.has('property_graph_host_in_flight_cancel_cleanup') ||
+      route.path_assurance?.entrypoint === undefined ||
+      route.resource_assurance?.entrypoint === undefined) {
+      fail(`${label}: keyed production work/workspace and Host cancellation evidence are required`);
+    }
   }
   const validateAssurance = (scope, boundaryAssurance, rolePrefix) => {
     if (boundaryAssurance === undefined) return;

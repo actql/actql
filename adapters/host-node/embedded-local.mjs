@@ -57,6 +57,8 @@ import {installRunStateAuthority, installRunStateService,
   inspectAuthorizedRunState} from '../host-common/run-state-access.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
+import {createLocalRetainedStore} from '../store-local/files.mjs';
+import {installLocalSnapshotStore} from '../local-node/retained-store.mjs';
 import {installRemoteCheckpoints} from './client-checkpoints.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {localContractLimits, localOutputLimits,
@@ -221,9 +223,11 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       'spec/contracts/actql-numeric-reduction.json'), 'utf8'));
     const numericProfileCid = `sha256:${createHash('sha256')
       .update(canonicalJson(numericProfile)).digest('hex')}`;
-    environment = moon.clientProgramCheckEnvironmentWithNumericProfile(
+    const propertyGraphLaw = JSON.parse(await readFile(join(packageRoot,
+      'spec/dependencies/actql-property-graph-laws.json'), 'utf8'));
+    environment = moon.clientProgramCheckEnvironmentWithPropertyGraphProfile(
       environmentWire, evidenceCid, false, false, true, true, false, false,
-      false, numericProfileCid);
+      false, numericProfileCid, contentCid(propertyGraphLaw));
     if (environment !== undefined) {
       sourcePublication = sourceAliasPublication(moon, environment,
         sourceProfile?.queryAliases ?? []);
@@ -253,6 +257,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   let checkpoints;
   let dispatchOwner;
   let diagnostic;
+  let localSnapshotConfiguration;
   try {
     diagnostic = createDiagnosticObserver(authorization?.observe);
     registry = await readFile(join(packageRoot,
@@ -264,6 +269,14 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
     ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
     await mkdir(journalDirectory, {recursive: true, mode: 0o700});
+    const snapshotDirectory = join(root, 'carrier-snapshots');
+    await mkdir(snapshotDirectory, {recursive:true,mode:0o700});
+    // Installed physical wiring, never Program settings. Allocation occurs
+    // only after the common driver has reserved work/capacity and captured
+    // the snapshot cleanup owner. Relation execution remains memory-backed.
+    localSnapshotConfiguration = installLocalSnapshotStore((_key, bytes, frame) =>
+      createLocalRetainedStore({parentDirectory:snapshotDirectory,
+        capacityBytes:bytes,maxFrameBytes:frame,maxEntries:1}));
     journal = openClientRequestJournal(journalDirectory);
     if ((effectInstallation !== undefined || modelInstallation !== undefined) &&
         effectInstallation?.privateEvidenceKey === undefined) {
@@ -804,7 +817,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     observed, prepareAcquisition, planFor, sourceProfile, registry, values,
     faultInjection: authorization?.faultInjection,
     fragment, ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
-    runInfer});
+    runInfer, localSnapshotConfiguration});
   const startDispatch = dispatchOwner.start;
   const recoverEffectCapture = (ref, signal) => {
     const retained = journal.lookupRunDefinition(ref, moon, control);

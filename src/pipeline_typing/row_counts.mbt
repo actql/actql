@@ -504,6 +504,23 @@ fn derive_row_counts(
         }
         Some({ nodes: reduce_count(nodes), edges: reduce_count(edges), })
       }
+      PropertyGraphConstruction(inputs~, checked~) => {
+        let node_count = @graph.property_construction_node_count(checked)
+        let mut nodes = Some(count(0L, true))
+        let mut edges = Some(count(0L, true))
+        for index, target in inputs {
+          spend(b, step.source, 1)
+          if index < node_count {
+            nodes = sum_counts(step.source, nodes, count_at(target, result))
+          } else if !(nodes is Some({ upper: 0L, .. })) {
+            // Node operands precede edge operands. An exactly empty declared
+            // universe excludes every edge, even when its input has rows.
+            // Still debit each operand; no execution work is inferred here.
+            edges = sum_counts(step.source, edges, count_at(target, result))
+          }
+        }
+        Some({ nodes: reduce_count(nodes), edges: reduce_count(edges), })
+      }
       GraphConstruction(nodes~, edges~, ..) => {
         let edges = reduce_count(count_at(edges, result))
         let nodes = match nodes {
@@ -600,7 +617,7 @@ fn derive_row_counts(
           nodes is Some({ upper: 0L, .. }) {
           Some(count(0L, true))
         } else {
-          None // Simple-path enumeration needs a separate law or enforced ceiling.
+          None // Path enumeration needs its profile law or an enforced ceiling.
         }
       }
       Shortest(source_selector~, target_selector~, checked~) => {

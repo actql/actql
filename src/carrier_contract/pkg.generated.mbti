@@ -48,6 +48,8 @@ pub fn graph_names(Graph) -> GraphRowNames?
 
 pub fn graph_node_properties(Graph) -> Knowledge
 
+pub fn graph_property_definition(Graph) -> PropertyGraphDefinition?
+
 pub fn graph_row_fields(GraphRowNames) -> (@relation_schema.FieldName, @relation_schema.FieldName, @relation_schema.FieldName, @relation_schema.FieldName?)
 
 pub fn graph_row_names(@relation_schema.FieldName, @relation_schema.FieldName, @relation_schema.FieldName, @relation_schema.FieldName?, max_name_bytes~ : Int) -> Result[GraphRowNames, @relation_schema.Issue]
@@ -55,6 +57,52 @@ pub fn graph_row_names(@relation_schema.FieldName, @relation_schema.FieldName, @
 pub fn kind(Carrier) -> Kind
 
 pub fn lookup(Knowledge, @relation_schema.FieldName) -> Lookup
+
+pub fn property_definition_has_label(PropertyNodeDefinition, String) -> Bool
+
+pub fn property_definition_key_count(PropertyNodeDefinition) -> Int
+
+pub fn property_definition_keys(PropertyNodeDefinition) -> Array[@value_contract.Contract]
+
+pub fn property_definition_label_properties(PropertyNodeDefinition) -> Array[(String, Knowledge)]
+
+pub fn property_definition_labels(PropertyNodeDefinition) -> Array[String]
+
+pub fn property_definition_name(PropertyNodeDefinition) -> String
+
+pub fn property_definition_properties(PropertyNodeDefinition) -> Knowledge
+
+pub fn property_edge_definition(PropertyNodeDefinition, String, String) -> Result[PropertyEdgeDefinition, PropertyGraphIssue]
+
+pub fn property_edge_element(PropertyEdgeDefinition) -> PropertyNodeDefinition
+
+pub fn property_edge_endpoints(PropertyEdgeDefinition) -> (String, String)
+
+pub fn property_graph(String, Array[PropertyNodeDefinition], Array[PropertyEdgeDefinition], max_definitions~ : Int, max_contract_work~ : Int) -> Result[Carrier, PropertyGraphIssue]
+
+pub fn property_graph_domain(PropertyGraphDefinition) -> String
+
+pub fn property_graph_edge_at(PropertyGraphDefinition, Int) -> PropertyEdgeDefinition?
+
+pub fn property_graph_edge_count(PropertyGraphDefinition) -> Int
+
+pub fn property_graph_edge_definitions(PropertyGraphDefinition) -> Array[PropertyEdgeDefinition]
+
+pub fn property_graph_edge_named(PropertyGraphDefinition, String) -> PropertyEdgeDefinition?
+
+pub fn property_graph_node_at(PropertyGraphDefinition, Int) -> PropertyNodeDefinition?
+
+pub fn property_graph_node_count(PropertyGraphDefinition) -> Int
+
+pub fn property_graph_node_definitions(PropertyGraphDefinition) -> Array[PropertyNodeDefinition]
+
+pub fn property_graph_node_named(PropertyGraphDefinition, String) -> PropertyNodeDefinition?
+
+pub fn property_graph_usage(String, Array[PropertyNodeDefinition], Array[PropertyEdgeDefinition], max_definitions~ : Int, max_contract_work~ : Int) -> Result[(Carrier, Int), PropertyGraphIssue]
+
+pub fn property_node_definition(String, Array[@value_contract.Contract], Knowledge, Array[String], max_fields~ : Int, max_name_bytes~ : Int, label_properties? : Array[(String, Knowledge)], max_contract_work? : Int) -> Result[PropertyNodeDefinition, PropertyGraphIssue]
+
+pub fn property_node_definition_usage(String, Array[@value_contract.Contract], Knowledge, Array[String], max_fields~ : Int, max_name_bytes~ : Int, label_properties? : Array[(String, Knowledge)], max_contract_work? : Int) -> Result[(PropertyNodeDefinition, Int), PropertyGraphIssue]
 
 pub fn relation(Knowledge) -> Carrier
 
@@ -131,6 +179,7 @@ pub(all) enum Issue {
   InvalidProperties
   InvalidLabel(String)
   DuplicateLabel(String)
+  UnsupportedGraphProfile
 } derive(Eq, @debug.Debug)
 
 pub(all) enum Kind {
@@ -147,6 +196,27 @@ pub enum Lookup {
   Absent
   Present(Field)
 }
+
+type PropertyEdgeDefinition
+
+type PropertyGraphDefinition
+
+pub(all) enum PropertyGraphIssue {
+  InvalidLimits
+  InvalidName
+  InvalidKey
+  IncompleteProperties
+  InvalidLabel
+  DuplicateLabel
+  DuplicateDefinition
+  UnknownEndpointDefinition
+  LabelPropertyConflict
+  PropertyTypeConflict
+  LimitExceeded
+  InvalidDomain
+} derive(Eq, @debug.Debug)
+
+type PropertyNodeDefinition
 
 type Vectors
 

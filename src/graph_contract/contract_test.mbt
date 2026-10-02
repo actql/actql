@@ -4,32 +4,63 @@ fn caps() -> @graph_contract.Limits {
 }
 
 ///|
-fn graph(labels : Array[String]?) -> @carrier.Carrier {
+fn graph(labels : Array[String]?) -> @carrier.Carrier raise {
   let empty = @carrier.rows(
     [],
     field_set=Closed,
     max_fields=0,
     max_name_bytes=0,
   ).unwrap()
-  @carrier.graph(
-    @value.primitive(NumberType, nullable=false),
-    empty,
-    empty,
-    labels~,
-    max_labels=10,
-    max_label_bytes=100,
-  ).unwrap()
+  assert_true(
+    @carrier.graph(
+      @value.primitive(NumberType, nullable=false),
+      empty,
+      empty,
+      labels~,
+      max_labels=10,
+      max_label_bytes=100,
+    )
+    is Err(UnsupportedGraphProfile),
+  )
+  @carrier.unknown_carrier(GraphKind)
 }
 
 ///|
 fn with_properties(rows : @carrier.Knowledge) -> @carrier.Carrier {
-  @carrier.graph(
-    @value.primitive(NumberType, nullable=false),
+  with_labels(rows, [])
+}
+
+///|
+fn with_labels(
+  rows : @carrier.Knowledge,
+  labels : Array[String],
+) -> @carrier.Carrier {
+  let node = @carrier.property_node_definition(
+    "N",
+    [@value.primitive(NumberType, nullable=false)],
     rows,
-    rows,
-    labels=None,
-    max_labels=0,
-    max_label_bytes=0,
+    labels,
+    max_fields=100,
+    max_name_bytes=1000,
+  ).unwrap()
+  let edge = @carrier.property_edge_definition(
+    @carrier.property_node_definition(
+      "E",
+      [@value.primitive(NumberType, nullable=false)],
+      rows,
+      [],
+      max_fields=100,
+      max_name_bytes=1000,
+    ).unwrap(),
+    "N",
+    "N",
+  ).unwrap()
+  @carrier.property_graph(
+    "sha256:" + "0".repeat(64),
+    [node],
+    [edge],
+    max_definitions=2,
+    max_contract_work=100000,
   ).unwrap()
 }
 
@@ -68,15 +99,23 @@ test "complete property types participate independently of enumeration order" {
     @graph_contract.cid(c) !=
     @graph_contract.cid(@graph_contract.admit(changed, caps()).unwrap()),
   )
-  let incomplete = with_properties(
-    @carrier.rows(
-      [(Unqualified("a"), None)],
-      field_set=Closed,
+  let incomplete = @carrier.rows(
+    [(Unqualified("a"), None)],
+    field_set=Closed,
+    max_fields=1,
+    max_name_bytes=1,
+  ).unwrap()
+  assert_true(
+    @carrier.property_node_definition(
+      "N",
+      [number],
+      incomplete,
+      [],
       max_fields=1,
       max_name_bytes=1,
-    ).unwrap(),
+    )
+    is Err(IncompleteProperties),
   )
-  assert_true(@graph_contract.admit(incomplete, caps()) is Err(IncompleteGraph))
 }
 
 ///|
@@ -110,56 +149,63 @@ test "nested contracts are emitted iteratively with depth and node bounds" {
 
 ///|
 test "graph contract identity matches independently fixed canonical preimage" {
-  let c = @graph_contract.admit(graph(None), caps()).unwrap()
+  let g = @carrier.graph_carrier(
+    @graph_contract.graph(
+      @graph_contract.read_cursor(read_source(property_body()), caps()).unwrap(),
+    ),
+  )
+  let c = @graph_contract.admit(g, caps()).unwrap()
   // Node canonicalText + crypto SHA-256, independently computed from this body.
   assert_eq(
     @graph_contract.cid(c),
-    "sha256:2d338ba9310e353b1891ca91079d3e3fa894afb3f561d97cc444d55698e53e91",
+    "sha256:3e06c160155f0542561eab6a31c31422a78e7a749490ff5b24fb0ce4c7ff3321",
   )
   let text = @graph_contract.stringify(c, caps())
   assert_eq(@graph_contract.bytes(c), text.length())
   assert_true(@graph_contract.nodes(c) > 0)
   let exact = { ..caps(), max_nodes: @graph_contract.nodes(c), }
-  assert_true(@graph_contract.admit(graph(None), exact) is Ok(_))
+  assert_true(@graph_contract.admit(g, exact) is Ok(_))
   assert_true(
-    @graph_contract.admit(graph(None), {
-      ..exact,
-      max_nodes: exact.max_nodes - 1,
-    })
+    @graph_contract.admit(g, { ..exact, max_nodes: exact.max_nodes - 1, })
     is Err(BudgetExceeded),
   )
-  let canonical = @canonical.from_json(@json.parse(text), 100, 10, 10000)
-  assert_eq(@canonical.stringify_value(canonical, 10000, 100, 10), text)
+  let canonical = @canonical.from_json(@json.parse(text), 1000, 100, 10000)
+  assert_eq(@canonical.stringify_value(canonical, 10000, 1000, 100), text)
   assert_eq(
-    @canonical.cid_value(canonical, 10000, 100, 10),
+    @canonical.cid_value(canonical, 10000, 1000, 100),
     @graph_contract.cid(c),
   )
   assert_true(
-    @graph_contract.admit(graph(None), { ..caps(), max_bytes: text.length(), })
-    is Ok(_),
+    @graph_contract.admit(g, { ..caps(), max_bytes: text.length(), }) is Ok(_),
   )
   assert_true(
-    @graph_contract.admit(graph(None), {
-      ..caps(),
-      max_bytes: text.length() - 1,
-    })
+    @graph_contract.admit(g, { ..caps(), max_bytes: text.length() - 1, })
     is Err(BudgetExceeded),
   )
 }
 
 ///|
 test "closed label knowledge is semantic and declaration order is not" {
-  let a = @graph_contract.admit(graph(Some(["b", "a"])), caps()).unwrap()
-  let b = @graph_contract.admit(graph(Some(["a", "b"])), caps()).unwrap()
+  let empty = @carrier.rows(
+    [],
+    field_set=Closed,
+    max_fields=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let a = @graph_contract.admit(with_labels(empty, ["b", "a"]), caps()).unwrap()
+  let b = @graph_contract.admit(with_labels(empty, ["a", "b"]), caps()).unwrap()
   assert_eq(@graph_contract.cid(a), @graph_contract.cid(b))
   assert_true(
-    @graph_contract.cid(@graph_contract.admit(graph(None), caps()).unwrap()) !=
-    @graph_contract.cid(@graph_contract.admit(graph(Some([])), caps()).unwrap()),
+    @graph_contract.cid(a) !=
+    @graph_contract.cid(
+      @graph_contract.admit(with_labels(empty, []), caps()).unwrap(),
+    ),
   )
-  assert_eq(@carrier.graph_label_count(@graph_contract.graph(a)), Some(2))
-  assert_eq(@carrier.graph_label_at(@graph_contract.graph(a), 0), Some("a"))
-  assert_true(@carrier.graph_label_at(@graph_contract.graph(a), -1) is None)
-  assert_true(@carrier.graph_label_at(@graph_contract.graph(a), 2) is None)
+  let definition = @carrier.property_graph_node_at(
+    @carrier.graph_property_definition(@graph_contract.graph(a)).unwrap(),
+    0,
+  ).unwrap()
+  assert_eq(@carrier.property_definition_labels(definition), ["a", "b"])
 }
 
 ///|
@@ -169,25 +215,30 @@ test "incomplete graph evidence cannot become a pinned contract" {
     is Err(IncompleteGraph),
   )
   let unknown = @carrier.unknown_rows()
-  let g = @carrier.graph(
-    @value.primitive(NumberType, nullable=false),
-    unknown,
-    unknown,
-    labels=None,
-    max_labels=0,
-    max_label_bytes=0,
-  ).unwrap()
-  assert_true(@graph_contract.admit(g, caps()) is Err(IncompleteGraph))
+  assert_true(
+    @carrier.graph(
+      @value.primitive(NumberType, nullable=false),
+      unknown,
+      unknown,
+      labels=None,
+      max_labels=0,
+      max_label_bytes=0,
+    )
+    is Err(UnsupportedGraphProfile),
+  )
+  let current = with_properties(
+    @carrier.rows([], field_set=Closed, max_fields=0, max_name_bytes=0).unwrap(),
+  )
   for
     c in [
       { ..caps(), max_nodes: 0, },
       { ..caps(), max_depth: 0, },
       { ..caps(), max_bytes: 0, },
     ] {
-    assert_true(@graph_contract.admit(graph(None), c) is Err(BudgetExceeded))
+    assert_true(@graph_contract.admit(current, c) is Err(BudgetExceeded))
   }
   assert_true(
-    @graph_contract.admit(graph(None), { ..caps(), max_nodes: -1, })
+    @graph_contract.admit(current, { ..caps(), max_nodes: -1, })
     is Err(InvalidLimits),
   )
 }

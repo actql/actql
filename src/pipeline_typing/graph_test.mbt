@@ -1,144 +1,101 @@
 ///|
-test "mean generator preserves repeated graph samples and supports explicit bridges" {
-  let empty = @carrier.rows(
-    [],
-    field_set=Closed,
-    max_fields=0,
-    max_name_bytes=0,
-  ).unwrap()
-  let g = @carrier.graph(
-    @contract.primitive(NumberType, nullable=false),
-    empty,
-    empty,
-    labels=None,
-    max_labels=0,
-    max_label_bytes=0,
-  ).unwrap()
-  let body = "\"mean_graphs\":{\"with\":[\"g\",\"g\"],\"weights\":[1,0],\"support\":{\"nodes\":1,\"edges\":1},\"properties\":{\"nodes\":{},\"edges\":{}}}"
-  let source = cursor("[{" + body + ",\"as\":\"m\"},{\"node_rows\":true}]")
-  let inputs = [("g", g), ("unused", @carrier.relation(empty))]
-  let p = @pipeline_typing.check_carriers(source, inputs, None, None, limits()).unwrap()
-  assert_operation_profiles(p, [[SGA], [SGA]])
-  let step = @pipeline_typing.step_at(p, 0).unwrap()
-  assert_true(step.input is None)
-  assert_true(step.operation is GraphMean(_))
-  let occurrences = @pipeline_typing.input_occurrences(step)
-  assert_eq(occurrences.length(), 2)
-  assert_eq(occurrences[0].role, Sample(0))
-  assert_eq(occurrences[1].role, Sample(1))
-  assert_eq(occurrences[0].target, occurrences[1].target)
-  assert_true(@pipeline_typing.output_schema(p) is Some(_))
-  assert_true(
-    @pipeline_typing.check_carriers(
-      cursor("[{" + body + "}]"),
-      inputs,
-      None,
-      None,
-      limits(),
-    )
-    is Err({ kind: GeneratorRequiresAlias, .. }),
-  )
-  assert_true(
-    @pipeline_typing.check_carriers(
-      cursor("[{" + body + ",\"as\":\"m\",\"from\":\"g\"}]"),
-      inputs,
-      None,
-      None,
-      limits(),
-    )
-    is Err({ kind: GeneratorFrom, .. }),
-  )
-  let u = @pipeline_typing.usage(p)
-  let exact = {
-    ..limits(),
-    max_work: u.work,
-    max_nodes: u.nodes,
-    max_text_bytes: u.text_bytes,
-  }
-  assert_true(
-    @pipeline_typing.check_carriers(source, inputs, None, None, exact) is Ok(_),
-  )
-  for
-    cap in [
-      { ..exact, max_work: u.work - 1, },
-      { ..exact, max_nodes: u.nodes - 1, },
-      { ..exact, max_text_bytes: u.text_bytes - 1, },
-    ] {
-    assert_true(
-      @pipeline_typing.check_carriers(source, inputs, None, None, cap) is Err(_),
-    )
-  }
-}
-
-///|
 fn graph_input() -> @carrier.Carrier {
-  @carrier.graph(
-    @contract.decimal_contract(38, 9, nullable=false).unwrap(),
-    @carrier.unknown_rows(),
-    @carrier.unknown_rows(),
-    labels=None,
-    max_labels=0,
-    max_label_bytes=0,
+  query_property_graph()
+}
+
+///|
+fn graph_property_scope_input() -> @carrier.Carrier {
+  let props = @carrier.rows(
+    [
+      (
+        Unqualified("active"),
+        Some(@contract.primitive(BooleanType, nullable=true)),
+      ),
+    ],
+    field_set=Closed,
+    max_fields=1,
+    max_name_bytes=6,
+  ).unwrap()
+  let node = @carrier.property_node_definition(
+    "N",
+    [@contract.primitive(NumberType, nullable=false)],
+    props,
+    ["Node"],
+    max_fields=1,
+    max_name_bytes=100,
+  ).unwrap()
+  let edge = @carrier.property_edge_definition(
+    @carrier.property_node_definition(
+      "E",
+      [@contract.primitive(NumberType, nullable=false)],
+      props,
+      ["Link"],
+      max_fields=1,
+      max_name_bytes=100,
+    ).unwrap(),
+    "N",
+    "N",
+  ).unwrap()
+  @carrier.property_graph(
+    "sha256:" + "0".repeat(64),
+    [node],
+    [edge],
+    max_definitions=2,
+    max_contract_work=1000,
   ).unwrap()
 }
 
 ///|
-test "shortest paths preserve repeated selector Relation roles and typed output" {
-  let empty = @carrier.rows(
-    [],
-    field_set=Closed,
-    max_fields=0,
-    max_name_bytes=0,
-  ).unwrap()
-  let number = @contract.primitive(NumberType, nullable=false)
-  let g = @carrier.graph(
-    number,
-    empty,
-    empty,
-    labels=None,
-    max_labels=0,
-    max_label_bytes=0,
-  ).unwrap()
+test "current TRAIL retains selector inputs and complete independent identity arrays through projection" {
+  let g = graph_input()
   let r = @carrier.relation(
     @carrier.rows(
-      [(Unqualified("id"), Some(number))],
+      [(Unqualified("id"), Some(@contract.primitive(JsonType, nullable=false)))],
       field_set=Closed,
       max_fields=1,
       max_name_bytes=2,
     ).unwrap(),
   )
   let source = cursor(
-    "[{\"from\":\"g\",\"shortest_path\":{\"source\":{\"from\":\"r\",\"id\":\"id\"},\"target\":{\"from\":\"r\",\"id\":\"id\"},\"selection\":\"each_pair\",\"direction\":\"both\",\"max_hops\":2}},{\"select\":[\"source_id\",\"target_id\",\"total_cost\"]}]",
+    "[{\"from\":\"g\",\"traverse\":{\"start\":{\"from\":\"r\",\"id\":\"id\"},\"direction\":\"out\",\"min_hops\":0,\"max_hops\":2,\"path_mode\":\"trail\",\"emit\":\"paths\"}},{\"select\":[\"start_id\",\"edge_ids\"]}]",
   )
-  let p = @pipeline_typing.check_carriers(
-    source,
-    [("g", g), ("r", r)],
-    None,
-    None,
-    limits(),
-  ).unwrap()
-  let step = @pipeline_typing.step_at(p, 0).unwrap()
-  assert_true(
-    step.operation
-    is Shortest(
-      source_selector=Some(Input(1)),
-      target_selector=Some(Input(1)),
-      ..
+  let p = graph_count_checked(
+    @pipeline_typing.check_carriers(
+      source,
+      [("g", g), ("r", r)],
+      None,
+      None,
+      limits(),
     ),
   )
+  let step = @pipeline_typing.step_at(p, 0).unwrap()
+  guard step.operation is Traverse(selector=Some(Input(1)), checked~) else {
+    fail("current TRAIL")
+  }
+  assert_eq(@graph.traverse_property_path_mode(checked), Some(Trail))
+  assert_true(physical_equal(@graph.traverse_input(checked), g))
   let edges = @pipeline_typing.input_occurrences(step)
-  assert_eq(edges.length(), 3)
-  assert_eq(edges[0].role, Primary)
-  assert_eq(edges[1].role, Left)
-  assert_eq(edges[2].role, Right)
-  assert_eq(edges[1].target, edges[2].target)
-  assert_eq(@schema.field_count(@pipeline_typing.output_schema(p).unwrap()), 3)
+  assert_eq(edges.length(), 2)
+  assert_eq(edges[0].target, Input(0))
+  assert_eq(edges[1].target, Input(1))
+  let schema = @pipeline_typing.output_schema(p).unwrap()
+  let start = @schema.lookup(schema, Unqualified("start_id")).unwrap()
+  assert_false(start.nullable)
+  assert_true(start.shape is Json)
+  let array = @schema.lookup(schema, Unqualified("edge_ids")).unwrap()
+  assert_false(array.nullable)
+  guard array.shape is @contract.Array(item, ..) else {
+    fail("independent edge identity array")
+  }
+  assert_false(item.nullable)
+  assert_true(item.shape is Json)
   let u = @pipeline_typing.usage(p)
   let exact = {
     ..limits(),
     max_work: u.work,
     max_nodes: u.nodes,
     max_text_bytes: u.text_bytes,
+    max_tokens: u.tokens,
   }
   assert_true(
     @pipeline_typing.check_carriers(
@@ -167,317 +124,41 @@ test "shortest paths preserve repeated selector Relation roles and typed output"
       is Err(_),
     )
   }
-  assert_true(
-    @pipeline_typing.check_carriers(
-      cursor(
-        "[{\"shortest_path\":{\"source\":2,\"target\":{\"from\":\"later\",\"id\":\"id\"},\"direction\":\"in\",\"max_hops\":1,\"selection\":\"each_pair\"},\"as\":\"later\"}]",
-      ),
-      [("g", g)],
-      None,
-      None,
-      limits(),
-    )
-    is Err({ kind: UnknownName("later"), .. }),
-  )
 }
 
 ///|
-test "traverse retains selector inputs and feeds typed path arrays to projection" {
-  let empty = @carrier.rows(
-    [],
-    field_set=Closed,
-    max_fields=0,
-    max_name_bytes=0,
-  ).unwrap()
-  let number = @contract.primitive(NumberType, nullable=false)
-  let g = @carrier.graph(
-    number,
-    empty,
-    empty,
-    labels=None,
-    max_labels=0,
-    max_label_bytes=0,
-  ).unwrap()
-  let r = @carrier.relation(
-    @carrier.rows(
-      [(Unqualified("id"), Some(number))],
-      field_set=Closed,
-      max_fields=1,
-      max_name_bytes=2,
-    ).unwrap(),
-  )
-  let source = cursor(
-    "[{\"from\":\"g\",\"traverse\":{\"start\":{\"from\":\"r\",\"id\":\"id\"},\"direction\":\"out\",\"min_hops\":0,\"max_hops\":2,\"emit\":\"paths\"}},{\"select\":[\"start_id\",\"edge_ids\"]}]",
-  )
-  let p = @pipeline_typing.check_carriers(
-    source,
-    [("g", g), ("r", r)],
-    None,
-    None,
-    limits(),
-  ).unwrap()
-  let step = @pipeline_typing.step_at(p, 0).unwrap()
-  assert_true(step.operation is Traverse(selector=Some(Input(1)), ..))
-  let edges = @pipeline_typing.input_occurrences(step)
-  assert_eq(edges.length(), 2)
-  assert_eq(edges[0].target, Input(0))
-  assert_eq(edges[1].target, Input(1))
-  guard @schema.lookup(
-      @pipeline_typing.output_schema(p).unwrap(),
-      Unqualified("edge_ids"),
-    ).unwrap().shape
-    is @contract.Array(item, ..) else {
-    abort("missing typed path")
-  }
-  assert_true(item.shape is Object(_))
-  let u = @pipeline_typing.usage(p)
-  let exact = {
-    ..limits(),
-    max_work: u.work,
-    max_nodes: u.nodes,
-    max_text_bytes: u.text_bytes,
-    max_tokens: u.tokens,
-  }
-  assert_true(
-    @pipeline_typing.check_carriers(
-      source,
-      [("g", g), ("r", r)],
-      None,
-      None,
-      exact,
-    )
-    is Ok(_),
-  )
-  assert_true(
-    @pipeline_typing.check_carriers(source, [("g", g), ("r", r)], None, None, {
-      ..exact,
-      max_work: u.work - 1,
-    })
-    is Err(_),
-  )
-}
-
-///|
-test "reach preserves semantic aliases through pipeline Relation consumers" {
-  let empty = @carrier.rows(
-    [],
-    field_set=Closed,
-    max_fields=0,
-    max_name_bytes=0,
-  ).unwrap()
-  let number = @contract.primitive(NumberType, nullable=false)
-  let names = @carrier.graph_row_names(
-    Unqualified("customer"),
-    Unqualified("source"),
-    Unqualified("target"),
-    None,
-    max_name_bytes=100,
-  ).unwrap()
-  let g = @carrier.graph(
-    number,
-    empty,
-    empty,
-    labels=None,
-    max_labels=0,
-    max_label_bytes=0,
-    row_names=Some(names),
-  ).unwrap()
-  let body = cursor(
-    "[{\"reach\":{\"start\":2,\"direction\":\"out\",\"max_depth\":3}},{\"select\":[\"customer\",\"depth\"]}]",
-  )
-  let p = @pipeline_typing.check_carriers(
-    body,
-    [("g", g)],
-    None,
-    None,
-    limits(),
-  ).unwrap()
-  let step = @pipeline_typing.step_at(p, 0).unwrap()
-  assert_true(step.operation is Reach(_))
-  assert_eq(@pipeline_typing.input_occurrences(step).length(), 1)
-  assert_eq(@schema.field_count(@pipeline_typing.step_schema(step).unwrap()), 4)
-  assert_true(
-    @schema.lookup(
-      @pipeline_typing.output_schema(p).unwrap(),
-      Unqualified("customer"),
-    ).unwrap().shape
-    is Number,
-  )
-  let u = @pipeline_typing.usage(p)
-  let exact = {
-    ..limits(),
-    max_work: u.work,
-    max_nodes: u.nodes,
-    max_text_bytes: u.text_bytes,
-  }
-  assert_true(
-    @pipeline_typing.check_carriers(body, [("g", g)], None, None, exact)
-    is Ok(_),
-  )
-  assert_true(
-    @pipeline_typing.check_carriers(body, [("g", g)], None, None, {
-      ..exact,
-      max_work: u.work - 1,
-    })
-    is Err(_),
-  )
-}
-
-///|
-test "subgraph resolves selector Relation edges and preserves graph contracts" {
-  let empty = @carrier.rows(
-    [],
-    field_set=Closed,
-    max_fields=0,
-    max_name_bytes=0,
-  ).unwrap()
-  let number = @contract.primitive(NumberType, nullable=false)
-  let g = @carrier.graph(
-    number,
-    empty,
-    empty,
-    labels=None,
-    max_labels=0,
-    max_label_bytes=0,
-  ).unwrap()
-  let relation = @carrier.relation(
-    @carrier.rows(
-      [(Unqualified("chosen"), Some(number))],
-      field_set=Closed,
-      max_fields=1,
-      max_name_bytes=6,
-    ).unwrap(),
-  )
-  let body = cursor(
-    "[{\"from\":\"g\",\"subgraph\":{\"nodes\":{\"from\":\"r\",\"id\":\"chosen\"}},\"as\":\"subset\"},{\"node_rows\":true},{\"select\":[\"id\"]}]",
-  )
-  let p = @pipeline_typing.check_carriers(
-    body,
-    [("g", g), ("r", relation)],
-    None,
-    None,
-    limits(),
-  ).unwrap()
-  let step = @pipeline_typing.step_at(p, 0).unwrap()
-  assert_true(step.operation is Subgraph(selector=Some(Input(1)), ..))
-  let edges = @pipeline_typing.input_occurrences(step)
-  assert_eq(edges.length(), 2)
-  assert_eq(edges[0].target, Input(0))
-  assert_eq(edges[1].target, Input(1))
-  assert_eq(edges[1].role, Right)
-  assert_true(
-    @schema.lookup(
-      @pipeline_typing.output_schema(p).unwrap(),
-      Unqualified("id"),
-    ).unwrap().shape
-    is Number,
-  )
-  let u = @pipeline_typing.usage(p)
-  let exact = {
-    ..limits(),
-    max_work: u.work,
-    max_nodes: u.nodes,
-    max_text_bytes: u.text_bytes,
-  }
-  assert_true(
-    @pipeline_typing.check_carriers(
-      body,
-      [("g", g), ("r", relation)],
-      None,
-      None,
-      exact,
-    )
-    is Ok(_),
-  )
-  assert_true(
-    @pipeline_typing.check_carriers(
-      body,
-      [("g", g), ("r", relation)],
-      None,
-      None,
-      { ..exact, max_work: u.work - 1, },
-    )
-    is Err(_),
-  )
-  let c = @pipeline_typing.check_carriers(
-    cursor("[{\"subgraph\":{\"nodes\":{\"ids\":[2]}}}]"),
-    [("g", g)],
-    None,
-    None,
-    limits(),
-  ).unwrap()
-  assert_eq(
-    @pipeline_typing.input_occurrences(@pipeline_typing.step_at(c, 0).unwrap()).length(),
-    1,
-  )
-  assert_true(
-    @pipeline_typing.check_carriers(
-      cursor(
-        "[{\"subgraph\":{\"nodes\":{\"from\":\"future\",\"id\":\"chosen\"}},\"as\":\"future\"}]",
-      ),
-      [("g", g)],
-      None,
-      None,
-      limits(),
-    )
-    is Err({ kind: UnknownName("future"), .. }),
-  )
-}
-
-///|
-test "graph property matches connect relation consumers and preserve predicate ranges" {
-  let boolean = @contract.primitive(BooleanType, nullable=true)
-  let props = @carrier.rows(
-    [(Unqualified("active"), Some(boolean))],
-    field_set=Closed,
-    max_fields=1,
-    max_name_bytes=6,
-  ).unwrap()
-  let names = @carrier.graph_row_names(
-    Unqualified("node_id"),
-    Unqualified("source_id"),
-    Unqualified("target_id"),
-    None,
-    max_name_bytes=100,
-  ).unwrap()
-  let g = @carrier.graph(
-    @contract.primitive(NumberType, nullable=false),
-    props,
-    props,
-    labels=None,
-    max_labels=0,
-    max_label_bytes=0,
-    row_names=Some(names),
-  ).unwrap()
-  for (op, field) in [("match_nodes", "node_id"), ("match_edges", "source_id")] {
+test "definition-scoped property MATCH connects Relation consumers and preserves predicate diagnostics" {
+  let graph = graph_property_scope_input()
+  for (op, definition) in [("match_nodes", "N"), ("match_edges", "E")] {
     let body = cursor(
       "[{\"" +
       op +
-      "\":{\"where\":\"active\",\"fields\":[\"" +
-      field +
-      "\",\"active\"]},\"as\":\"matched\"},{\"filter\":\"active\"},{\"select\":[\"" +
-      field +
-      "\"]}]",
+      "\":{\"definition\":\"" +
+      definition +
+      "\",\"bindings\":{\"identity\":\"element\"},\"where\":\"active\",\"fields\":[\"element\",\"active\"]},\"as\":\"matched\"},{\"filter\":\"active\"},{\"select\":[\"element\"]}]",
     )
-    let p = @pipeline_typing.check_carriers(
-      body,
-      [("g", g)],
-      None,
-      None,
-      limits(),
-    ).unwrap()
+    let p = graph_count_checked(
+      @pipeline_typing.check_carriers(
+        body,
+        [("g", graph)],
+        None,
+        None,
+        limits(),
+      ),
+    )
     let step = @pipeline_typing.step_at(p, 0).unwrap()
-    assert_true(step.operation is GraphMatch(_))
+    guard step.operation is GraphMatch(checked) else { fail("scoped MATCH") }
+    assert_true(physical_equal(@graph.match_input(checked), graph))
+    assert_eq(@graph.match_property_definition_name(checked), Some(definition))
     let edges = @pipeline_typing.input_occurrences(step)
     assert_eq(edges.length(), 1)
     assert_eq(edges[0].target, Input(0))
-    assert_true(
-      @schema.lookup(
-        @pipeline_typing.output_schema(p).unwrap(),
-        Unqualified(field),
-      ).unwrap().shape
-      is Number,
-    )
+    let element = @schema.lookup(
+      @pipeline_typing.output_schema(p).unwrap(),
+      Unqualified("element"),
+    ).unwrap()
+    assert_false(element.nullable)
+    assert_true(element.shape is Json)
     let u = @pipeline_typing.usage(p)
     let exact = {
       ..limits(),
@@ -487,7 +168,7 @@ test "graph property matches connect relation consumers and preserve predicate r
       max_tokens: u.tokens,
     }
     assert_true(
-      @pipeline_typing.check_carriers(body, [("g", g)], None, None, exact)
+      @pipeline_typing.check_carriers(body, [("g", graph)], None, None, exact)
       is Ok(_),
     )
     for
@@ -498,282 +179,149 @@ test "graph property matches connect relation consumers and preserve predicate r
         { ..exact, max_tokens: u.tokens - 1, },
       ] {
       assert_true(
-        @pipeline_typing.check_carriers(body, [("g", g)], None, None, cap)
+        @pipeline_typing.check_carriers(body, [("g", graph)], None, None, cap)
         is Err(_),
       )
     }
-  }
-  for (op, field) in [("match_nodes", "node_id"), ("match_edges", "source_id")] {
-    let e = @pipeline_typing.check_carriers(
+    let issue = @pipeline_typing.check_carriers(
       cursor(
         "[{\"" +
         op +
-        "\":{\"where\":\"active AND missing\",\"fields\":[\"" +
-        field +
-        "\"]}}]",
+        "\":{\"definition\":\"" +
+        definition +
+        "\",\"bindings\":{\"identity\":\"element\"},\"where\":\"active AND missing\",\"fields\":[\"element\"]}}]",
       ),
-      [("g", g)],
+      [("g", graph)],
       None,
       None,
       limits(),
     ).unwrap_err()
-    assert_true(e.kind is GraphMatch(UnknownField("missing")))
-    assert_eq(e.path, [@source.Index(0), @source.Key(op), @source.Key("where")])
-    assert_true(e.range is Some(_))
+    assert_true(issue.kind is GraphMatch(UnknownField("missing")))
+    assert_eq(issue.path, [Index(0), Key(op), Key("where")])
+    assert_true(issue.range is Some(_))
   }
 }
 
 ///|
-test "structural graph composition retains repeated operands and feeds row consumers" {
-  let empty = @carrier.rows(
-    [],
-    field_set=Closed,
-    max_fields=0,
-    max_name_bytes=0,
-  ).unwrap()
-  let g = @carrier.graph(
-    @contract.primitive(NumberType, nullable=false),
-    empty,
-    empty,
-    labels=None,
-    max_labels=0,
-    max_label_bytes=0,
-  ).unwrap()
-  for name in ["graft_graph", "union_graphs", "subtract_graphs"] {
-    let body = cursor(
-      "[{\"" +
-      name +
-      "\":{\"with\":\"g\"},\"as\":\"composed\"},{\"node_rows\":true},{\"select\":[\"id\"]}]",
-    )
-    let p = @pipeline_typing.check_carriers(
-      body,
-      [("g", g)],
-      None,
-      None,
-      limits(),
-    ).unwrap()
-    let step = @pipeline_typing.step_at(p, 0).unwrap()
-    assert_true(step.operation is GraphStructural(right=Input(0), ..))
-    let edges = @pipeline_typing.input_occurrences(step)
-    assert_eq(edges.length(), 2)
-    assert_eq(edges[0].role, Left)
-    assert_eq(edges[1].role, Right)
-    assert_eq(edges[0].target, Input(0))
-    assert_eq(edges[1].target, Input(0))
-    assert_true(
-      @schema.lookup(
-        @pipeline_typing.output_schema(p).unwrap(),
-        Unqualified("id"),
-      ).unwrap().shape
-      is Number,
-    )
-    let u = @pipeline_typing.usage(p)
-    let exact = {
-      ..limits(),
-      max_work: u.work,
-      max_nodes: u.nodes,
-      max_text_bytes: u.text_bytes,
-    }
-    assert_true(
-      @pipeline_typing.check_carriers(body, [("g", g)], None, None, exact)
-      is Ok(_),
-    )
-    for
-      cap in [
-        { ..exact, max_work: u.work - 1, },
-        { ..exact, max_nodes: u.nodes - 1, },
-        { ..exact, max_text_bytes: u.text_bytes - 1, },
-      ] {
-      assert_true(
-        @pipeline_typing.check_carriers(body, [("g", g)], None, None, cap)
-        is Err(_),
-      )
-    }
-  }
-}
-
-///|
-test "graph diff exposes typed delta rows and retains binary connections" {
-  let empty = @carrier.rows(
-    [],
-    field_set=Closed,
-    max_fields=0,
-    max_name_bytes=0,
-  ).unwrap()
-  let g = @carrier.graph(
-    @contract.primitive(StringType, nullable=false),
-    empty,
-    empty,
-    labels=Some([]),
-    max_labels=0,
-    max_label_bytes=0,
-  ).unwrap()
-  let p = @pipeline_typing.check_carriers(
-    cursor(
-      "[{\"graph_diff\":{\"with\":\"b\"},\"from\":\"a\",\"as\":\"changes\"},{\"select\":[\"delta\"]}]",
-    ),
-    [("a", g), ("b", g)],
-    None,
-    None,
-    limits(),
-  ).unwrap()
-  let step = @pipeline_typing.step_at(p, 0).unwrap()
-  assert_true(step.operation is GraphDiff(right=Input(1), ..))
-  assert_eq(@pipeline_typing.input_occurrences(step).length(), 2)
-  assert_true(
-    @schema.lookup(
-      @pipeline_typing.output_schema(p).unwrap(),
-      Unqualified("delta"),
-    ).unwrap().shape
-    is Object(_),
-  )
-}
-
-///|
-test "graph equality resolves both inputs and feeds boolean relation consumers" {
-  let empty = @carrier.rows(
-    [],
-    field_set=Closed,
-    max_fields=0,
-    max_name_bytes=0,
-  ).unwrap()
-  let g = @carrier.graph(
-    @contract.primitive(NumberType, nullable=false),
-    empty,
-    empty,
-    labels=None,
-    max_labels=0,
-    max_label_bytes=0,
-  ).unwrap()
-  let p = @pipeline_typing.check_carriers(
-    cursor(
-      "[{\"graphs_equal\":{\"with\":\"b\"},\"from\":\"a\",\"as\":\"comparison\"},{\"filter\":\"equal\"}]",
-    ),
-    [("a", g), ("b", g)],
-    None,
-    None,
-    limits(),
-  ).unwrap()
-  let step = @pipeline_typing.step_at(p, 0).unwrap()
-  assert_true(step.operation is GraphEquality(right=Input(1), ..))
-  let edges = @pipeline_typing.input_occurrences(step)
-  assert_eq(edges.length(), 2)
-  assert_eq(edges[0].role, Left)
-  assert_eq(edges[0].target, Input(0))
-  assert_eq(edges[1].target, Input(1))
-  assert_eq(@schema.field_count(@pipeline_typing.output_schema(p).unwrap()), 1)
-  assert_true(
-    @pipeline_typing.check_carriers(
-      cursor("[{\"graphs_equal\":{\"with\":\"future\"},\"as\":\"future\"}]"),
-      [("a", g)],
-      None,
-      None,
-      limits(),
-    )
-    is Err({ kind: UnknownName("future"), .. }),
-  )
-}
-
-///|
-test "graph checking connects normalization components and relation projection" {
-  let p = @pipeline_typing.check_carriers(
-    cursor(
-      "[{\"normalize_graph\":true,\"as\":\"normalized\"},{\"components\":{\"kind\":\"strong\"},\"as\":\"membership\"},{\"select\":[\"component_id\"]},{\"degree\":{\"direction\":\"both\"},\"from\":\"normalized\",\"as\":\"degrees\"}]",
-    ),
-    [("g", graph_input())],
-    None,
-    None,
-    limits(),
-  ).unwrap()
-  let graph = @pipeline_typing.step_at(p, 0).unwrap()
-  assert_true(graph.output is GraphValue(_))
-  assert_true(graph.operation is Graph(_))
-  assert_eq(@pipeline_typing.input_occurrences(graph)[0].target, Input(0))
-  assert_eq(
-    @pipeline_typing.input_occurrences(@pipeline_typing.step_at(p, 3).unwrap())[0].target,
-    Step(0),
-  )
-  assert_eq(@pipeline_typing.lookup(p, "membership"), Some(Step(1)))
-  let schema = @pipeline_typing.output_schema(p).unwrap()
-  assert_eq(@schema.field_count(schema), 2)
-  assert_true(
-    @contract.type_equal(
-      @schema.lookup(schema, Unqualified("node")).unwrap(),
-      @contract.decimal_contract(38, 9, nullable=false).unwrap(),
-      10,
-    ),
-  )
-  assert_true(@pipeline_typing.window_evidence(graph) is None)
-}
-
-///|
-test "unknown graph identity remains unknown across fixed-role relation output" {
-  let p = @pipeline_typing.check_carriers(
-    cursor("[{\"degree\":{\"direction\":\"out\"}}]"),
-    [("g", @carrier.unknown_carrier(GraphKind))],
-    None,
-    None,
-    limits(),
-  ).unwrap()
-  let output = @carrier.relation_rows(
-    @pipeline_typing.output_carrier(p).unwrap(),
-  ).unwrap()
-  assert_eq(@carrier.field_count(output), 2)
-  assert_true(@pipeline_typing.output_schema(p) is None)
-  guard @carrier.lookup(output, Unqualified("node")) is Present(node) else {
-    fail("node role missing")
-  }
-  assert_true(node.contract is None)
+test "missing or wrong Graph evidence cannot fabricate current MATCH rows" {
+  let body = cursor("[" + query_match_body(false, "[\"element\"]") + "]")
   let issue = @pipeline_typing.check_carriers(
-    cursor("[{\"degree\":{\"direction\":\"out\"}},{\"select\":[\"node\"]}]"),
-    [("g", @carrier.unknown_carrier(GraphKind))],
-    None,
-    None,
-    limits(),
-  ).unwrap_err()
-  assert_eq(issue.kind, IncompleteSchema)
-}
-
-///|
-test "graph operations share pipeline budgets and preserve option diagnostics" {
-  let body = cursor(
-    "[{\"normalize_graph\":true},{\"degree\":{\"direction\":\"in\"}}]",
-  )
-  let p = @pipeline_typing.check_carriers(
     body,
-    [("g", graph_input())],
-    None,
-    None,
-    limits(),
-  ).unwrap()
-  let used = @pipeline_typing.usage(p)
-  let cap = limits()
-  assert_true(
-    @pipeline_typing.check_carriers(body, [("g", graph_input())], None, None, {
-      ..cap,
-      max_work: used.work,
-      max_nodes: used.nodes,
-      max_text_bytes: used.text_bytes,
-    })
-    is Ok(_),
-  )
-  assert_true(
-    @pipeline_typing.check_carriers(body, [("g", graph_input())], None, None, {
-      ..cap,
-      max_work: used.work - 1,
-    })
-    is Err(_),
-  )
-  let issue = @pipeline_typing.check_carriers(
-    cursor("[{\"degree\":{\"direction\":\"up\"}}]"),
-    [("g", graph_input())],
+    [("g", @carrier.unknown_carrier(GraphKind))],
     None,
     None,
     limits(),
   ).unwrap_err()
-  assert_eq(issue.path, [
-    @source.Index(0),
-    @source.Key("degree"),
-    @source.Key("direction"),
-  ])
+  assert_eq(
+    issue.kind,
+    GraphMatch(@graph.Structure(@graph.WrongCarrier(GraphKind))),
+  )
+  assert_eq(issue.path, [Index(0), Key("match_nodes")])
+  let kinds : Array[@carrier.Kind] = [RelationKind, EventsKind, VectorsKind]
+  for kind in kinds {
+    let issue = @pipeline_typing.check_carriers(
+      body,
+      [("g", @carrier.unknown_carrier(kind))],
+      None,
+      None,
+      limits(),
+    ).unwrap_err()
+    assert_eq(
+      issue.kind,
+      GraphMatch(@graph.Structure(@graph.WrongCarrier(kind))),
+    )
+    assert_eq(issue.path, [Index(0), Key("match_nodes")])
+  }
+}
+
+///|
+test "unsupported current Graph consumers cannot manufacture a legacy checked pipeline" {
+  let identity = "{\"definition\":\"N\",\"domain\":\"sha256:" +
+    "0".repeat(64) +
+    "\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}"
+  for
+    (name, body) in [
+      ("normalize_graph", "true"),
+      ("degree", "{\"direction\":\"both\"}"),
+      ("components", "{\"kind\":\"strong\"}"),
+      ("graph_bounds", "{\"max_nodes\":1}"),
+      (
+        "reach",
+        "{\"start\":{\"ids\":[" +
+        identity +
+        "]},\"direction\":\"out\",\"max_depth\":1}",
+      ),
+      (
+        "shortest_path",
+        "{\"source\":{\"ids\":[" +
+        identity +
+        "]},\"target\":{\"ids\":[" +
+        identity +
+        "]},\"direction\":\"out\",\"max_hops\":1}",
+      ),
+      ("subgraph", "{\"nodes\":{\"where\":\"active\"},\"edges\":\"active\"}"),
+      ("graphs_equal", "{\"with\":\"peer\"}"),
+      ("graph_diff", "{\"with\":\"peer\"}"),
+      ("graft_graph", "{\"with\":\"peer\"}"),
+      ("subtract_graphs", "{\"with\":\"peer\"}"),
+      ("union_graphs", "{\"with\":[\"peer\",\"g\",\"peer\"]}"),
+      (
+        "mean_graphs", "{\"with\":[\"peer\",\"g\"],\"weights\":[1,1],\"support\":{\"nodes\":1,\"edges\":1},\"properties\":{\"nodes\":{},\"edges\":{}}}",
+      ),
+    ] {
+    let issue = @pipeline_typing.check_carriers(
+      cursor(
+        "[{" +
+        (if name == "mean_graphs" {
+          "\"as\":\"mean\","
+        } else {
+          "\"from\":\"g\","
+        }) +
+        "\"" +
+        name +
+        "\":" +
+        body +
+        "}]",
+      ),
+      [
+        ("g", graph_property_scope_input()),
+        ("peer", graph_property_scope_input()),
+      ],
+      None,
+      None,
+      limits(),
+    ).unwrap_err()
+    assert_true(
+      issue.kind is Graph(@graph.UnsupportedGraphOperation) ||
+      issue.kind
+      is GraphMatch(@graph.Structure(@graph.UnsupportedGraphOperation)),
+    )
+    assert_eq(
+      issue.path,
+      if name == "mean_graphs" {
+        [Index(0), Key(name), Key("with"), Index(0)]
+      } else {
+        [Index(0), Key(name)]
+      },
+    )
+  }
+}
+
+///|
+test "unsupported mean generator keeps required alias and conflicting from diagnostics" {
+  let body = "\"mean_graphs\":{\"with\":[\"g\",\"g\"],\"weights\":[1,0],\"support\":{\"nodes\":1,\"edges\":1},\"properties\":{\"nodes\":{},\"edges\":{}}}"
+  for
+    (extra, expected) in [
+      ("", @pipeline_typing.GeneratorRequiresAlias),
+      (",\"as\":\"mean\",\"from\":\"g\"", GeneratorFrom),
+    ] {
+    let issue = @pipeline_typing.check_carriers(
+      cursor("[{" + body + extra + "}]"),
+      [("g", graph_input())],
+      None,
+      None,
+      limits(),
+    ).unwrap_err()
+    assert_eq(issue.kind, expected)
+  }
 }

@@ -351,6 +351,7 @@ fn prepare_kernel_measured(
     | GraphDiffRows(_)
     | GraphApplyValue(_)
     | GraphConstructionValue(_)
+    | PropertyGraphConstructionValue(_)
     | VectorValue(_)
     | NearestValue(_)
     | PoolValue(_)

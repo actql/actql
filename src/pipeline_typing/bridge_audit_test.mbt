@@ -36,6 +36,22 @@ test "all explicit row bridges reject wrong Carriers at the original operation s
           assert_eq(error.span, @decode.cursor_span(error.source))
           continue
         }
+        if kind == @carrier.GraphKind {
+          let error = checked.unwrap_err()
+          assert_eq(
+            error.kind,
+            Projection(
+              if unknown {
+                @projection.IncompleteGraph
+              } else {
+                @projection.UnsupportedGraphOperation
+              },
+            ),
+          )
+          assert_eq(error.path, [Index(0), Key(name)])
+          assert_eq(error.span, @decode.cursor_span(error.source))
+          continue
+        }
         let p = checked.unwrap()
         let step = @pipeline_typing.step_at(p, 0).unwrap()
         assert_eq(@carrier.kind(step.output), RelationKind)
@@ -119,13 +135,20 @@ test "all explicit row bridges require true and do not select an implicit source
       ).unwrap_err()
       assert_eq(error.kind, MissingCurrent)
     }
-    let p = @pipeline_typing.check_carriers(
+    let checked = @pipeline_typing.check_carriers(
       cursor("[{\"" + name + "\":true,\"from\":\"b\"}]"),
       [("a", carrier), ("b", carrier)],
       None,
       None,
       limits(),
-    ).unwrap()
+    )
+    if @carrier.kind(carrier) == GraphKind {
+      let error = checked.unwrap_err()
+      assert_eq(error.kind, Projection(@projection.UnsupportedGraphOperation))
+      assert_eq(error.path, [Index(0), Key(name)])
+      continue
+    }
+    let p = checked.unwrap()
     assert_eq(
       @pipeline_typing.input_occurrences(
         @pipeline_typing.step_at(p, 0).unwrap(),

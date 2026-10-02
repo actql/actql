@@ -1006,6 +1006,15 @@ fn prepare_publication_source_policy(
               1
             }
           }
+          @pipeline.PropertyGraphConstruction(inputs~, ..) => {
+            identity_charge(budget, 1)
+            carrier_steps.push({
+              step: index,
+              operation: step.operation,
+              unknown_provenance: false,
+            })
+            inputs.length()
+          }
           @pipeline.Vector(operation) => {
             identity_charge(budget, 1)
             let missing = match @vector.operation(operation) {

@@ -144,6 +144,8 @@ pub fn client_program_check_environment_cid(@run_publication_host.PreparedClient
 
 pub fn client_program_check_environment_with_numeric_profile(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, String) -> @program_check.CheckEnvironment?
 
+pub fn client_program_check_environment_with_property_graph_profile(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, String, String) -> @program_check.CheckEnvironment?
+
 pub fn client_program_check_plan_fact_manifest_identity(String, String) -> Result[String, @run_publication_host.PlanFactManifestIdentityIssue]
 
 pub fn client_program_check_recovered_effect_apply_semantics(@run_publication.EffectPreviewIdentity, @effect_application.RecoveredEffectTargetGuards, Array[String], Array[String], Array[String], Array[String], Array[String], Array[String], Array[@effect_application.EffectApplyCapabilityObservation], @effect_application.EffectRiskAcceptanceBody?, Bool, String, String, String, String, String, String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int, Int) -> Result[Unit, @physical_strategy.CapturedEffectApplyPreflightIssue]

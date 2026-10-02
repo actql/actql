@@ -75,6 +75,7 @@ pub enum Payload {
   GraphDiffRows(@graph.CheckedDiff)
   GraphApplyValue(@graph.CheckedApply)
   GraphConstructionValue(@graph.CheckedConstruction)
+  PropertyGraphConstructionValue(@graph.CheckedPropertyConstruction)
   VectorValue(@vector.CheckedVector)
   NearestValue(@vector.CheckedNearest)
   PoolValue(@vector.CheckedPool)
@@ -248,6 +249,7 @@ pub fn operation(value : PreparedNode) -> String {
     GraphDiffRows(_) => "SGA.diff"
     GraphApplyValue(_) => "SGA.apply_delta"
     GraphConstructionValue(_) => "BRIDGE.rows.to_graph"
+    PropertyGraphConstructionValue(_) => "BRIDGE.rows.to_property_graph"
     VectorValue(value) =>
       match @vector.operation(value) {
         @vector.ToVectors => "BRIDGE.rows.to_vectors"
@@ -340,6 +342,8 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     Nearest(checked~, ..) => Some(NearestValue(checked))
     Ranking(value) => Some(RankingValue(value))
     GraphConstruction(checked~, ..) => Some(GraphConstructionValue(checked))
+    PropertyGraphConstruction(checked~, ..) =>
+      Some(PropertyGraphConstructionValue(checked))
     TextRank(..) => None
     Vector(value) => Some(VectorValue(value))
     Event(value) =>
@@ -535,6 +539,12 @@ pub fn prepare(
           } else {
             1
           },
+        )
+      PropertyGraphConstructionValue(checked) =>
+        (
+          "property_graph",
+          @graph.property_construction_node_count(checked) +
+          @graph.property_construction_edge_count(checked),
         )
       VectorValue(value) =>
         (
@@ -781,6 +791,7 @@ pub fn prepare(
       GraphDiffRows(_) => None
       GraphApplyValue(_) => None
       GraphConstructionValue(_) => None
+      PropertyGraphConstructionValue(_) => None
       VectorValue(_) => None
       NearestValue(_) => None
       PoolValue(_) => None

@@ -12,12 +12,13 @@ struct CheckedPathContract {
 }
 
 ///|
-/// Typed edge identities follow the pinned SGA tuple law, never an invented CID.
+/// Current paths retain complete independent node and edge identities.
 pub fn check_path_contract(
   kind : PathOutput,
   source : @decode.Cursor,
   input : @carrier.Carrier,
   limits : Limits,
+  property_paths? : Bool = true,
 ) -> Result[CheckedPathContract, Issue] {
   try {
     if limits.max_work < 0 ||
@@ -38,6 +39,10 @@ pub fn check_path_contract(
       nodes: limits.max_nodes,
       text: limits.max_text_bytes,
     }
+    require_property_profile(g, source)
+    if !property_paths || kind != TraversedPaths {
+      fail(source, UnsupportedGraphOperation)
+    }
     let id = @carrier.graph_identity(g)
     let number = @contract.primitive(NumberType, nullable=false)
     let fields : Array[(@row.FieldName, @contract.Contract?)] = []
@@ -47,24 +52,13 @@ pub fn check_path_contract(
       fields.push((Unqualified("depth"), Some(number)))
     } else {
       // New array/record wrappers, not the already admitted scalar ID contracts.
-      if b.nodes < 3 || limits.max_depth < 2 {
+      let wrappers = 2
+      if b.nodes < wrappers || limits.max_depth < 2 {
         fail(source, BudgetExceeded)
       }
-      b.nodes -= 3
-      spend(b, source, 6)
-      for name in ["src", "dst", "rel"] {
-        charge(b, source, name)
-      }
-      let edge = @contract.object_contract(
-        [
-          ("src", id),
-          ("dst", id),
-          ("rel", @contract.primitive(StringType, nullable=true)),
-        ],
-        nullable=false,
-        max_fields=3,
-        max_name_bytes=9,
-      ).unwrap()
+      b.nodes -= wrappers
+      spend(b, source, 2)
+      let edge = id
       let node_ids = @contract.array_contract(id, nullable=false).unwrap()
       let edge_ids = @contract.array_contract(edge, nullable=false).unwrap()
       if kind == ShortestPaths {

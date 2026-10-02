@@ -161,11 +161,13 @@ pub fn operation_scalar_demand(
         | EvaluateTraversalHopPredicates
         | EmitMinimumNodeDepth
         | EnumerateSimplePaths
+        | EnumeratePropertyPaths
         | DeduplicateExactPaths
         | CanonicalTraversalOrder
         | EnforceTraversalOutputGuard
         | ResolveTraversalResources
-        | ResolveTraversalProfile => None
+        | ResolveTraversalProfile
+        | ResolvePropertyGraphTraversalProfile => None
       }
     ShortestRequirement(v) =>
       match v {

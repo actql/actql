@@ -1,103 +1,117 @@
 ///|
-test "empty typed selector Relations remain valid operands for traversal and shortest paths" {
-  let graph = mean_audit_graph(@contract.primitive(NumberType, nullable=false))
+// The exact zero bound comes from empty VALUES -> constructor -> MATCH,
+// not from an invented JSON VALUES row or an unsupported zero TAKE.
+fn empty_identity_selector_prefix() -> String {
+  "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[]},\"as\":\"nodes\"},{\"property_graph\":{\"version\":\"actql-property-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"nodes\",\"key\":[\"id\"]}],\"edges\":[]},\"as\":\"emptyGraph\"},{\"match_nodes\":{\"definition\":\"N\",\"bindings\":{\"identity\":\"element\"},\"where\":\"true\",\"fields\":[\"element\"]},\"as\":\"empty\"},"
+}
+
+///|
+test "empty typed identity selector Relations retain TRAIL custody and exact zero bounds" {
+  let graph = query_property_graph()
   for direction in ["in", "out", "both"] {
-    let operations = []
-    for emit in ["nodes", "paths"] {
-      operations.push(
-        (
-          "\"traverse\":{\"start\":{\"from\":\"empty\",\"id\":\"id\"},\"direction\":\"" +
-          direction +
-          "\",\"min_hops\":0,\"max_hops\":2,\"emit\":\"" +
-          emit +
-          "\"}",
-          2,
-          "start_id",
-        ),
+    let source = cursor(
+      empty_identity_selector_prefix() +
+      "{\"from\":\"g\",\"traverse\":{\"start\":{\"from\":\"empty\",\"id\":\"element\"},\"direction\":\"" +
+      direction +
+      "\",\"min_hops\":0,\"max_hops\":2,\"path_mode\":\"trail\",\"emit\":\"paths\"}},{\"select\":[\"start_id\"]}]",
+    )
+    let p = @pipeline_typing.check_carriers(
+      source,
+      [("g", graph)],
+      None,
+      None,
+      limits(),
+    ).unwrap()
+    let step = @pipeline_typing.step_at(p, 3).unwrap()
+    let edges = @pipeline_typing.input_occurrences(step)
+    assert_eq(edges.length(), 2)
+    assert_eq(edges[0].target, Input(0))
+    assert_eq(edges[1].target, Step(2))
+    guard step.operation is Traverse(selector=Some(Step(2)), checked~) else {
+      fail("current checked TRAIL and selector")
+    }
+    assert_true(physical_equal(@graph.traverse_input(checked), graph))
+    let selector_schema = @pipeline_typing.schema_at(p, Step(2)).unwrap()
+    let identity = @schema.field_contract(
+      @schema.field_at(selector_schema, 0).unwrap(),
+    )
+    assert_false(identity.nullable)
+    assert_true(identity.shape is @contract.Json)
+    assert_true(
+      @graph.selector_form(@graph.traverse_start(checked))
+      is RelationIds(from="empty", ..),
+    )
+    assert_eq(
+      @schema.field_count(@pipeline_typing.output_schema(p).unwrap()),
+      1,
+    )
+    assert_count(p, 2, 0L, true)
+    assert_count(p, 3, 0L, true)
+    assert_count(p, 4, 0L, true)
+    let u = @pipeline_typing.usage(p)
+    let exact = {
+      ..limits(),
+      max_work: u.work,
+      max_nodes: u.nodes,
+      max_text_bytes: u.text_bytes,
+      max_tokens: u.tokens,
+    }
+    assert_true(
+      @pipeline_typing.check_carriers(source, [("g", graph)], None, None, exact)
+      is Ok(_),
+    )
+    for
+      cap in [
+        { ..exact, max_work: u.work - 1, },
+        { ..exact, max_nodes: u.nodes - 1, },
+        { ..exact, max_text_bytes: u.text_bytes - 1, },
+      ] {
+      assert_true(
+        @pipeline_typing.check_carriers(source, [("g", graph)], None, None, cap)
+        is Err(_),
       )
     }
+  }
+}
+
+///|
+test "empty selectors do not enable unsupported traversed-node or shortest-path consumers" {
+  for direction in ["in", "out", "both"] {
+    let operation = "{\"traverse\":{\"start\":{\"from\":\"empty\",\"id\":\"element\"},\"direction\":\"" +
+      direction +
+      "\",\"min_hops\":0,\"max_hops\":2,\"path_mode\":\"trail\",\"emit\":\"nodes\"},\"from\":\"g\"}"
+    let issue = @pipeline_typing.check_carriers(
+      cursor(empty_identity_selector_prefix() + operation + "]"),
+      [("g", query_property_graph())],
+      None,
+      None,
+      limits(),
+    ).unwrap_err()
+    assert_eq(
+      issue.kind,
+      GraphMatch(@graph.Structure(@graph.UnsupportedGraphProfile)),
+    )
+    assert_eq(issue.path, [Index(3), Key("traverse"), Key("emit")])
     for selection in ["each_pair", "nearest_per_source", "nearest_pair"] {
-      operations.push(
-        (
-          "\"shortest_path\":{\"source\":{\"from\":\"empty\",\"id\":\"id\"},\"target\":{\"from\":\"empty\",\"id\":\"id\"},\"direction\":\"" +
+      let issue = @pipeline_typing.check_carriers(
+        cursor(
+          empty_identity_selector_prefix() +
+          "{\"shortest_path\":{\"source\":{\"from\":\"empty\",\"id\":\"element\"},\"target\":{\"from\":\"empty\",\"id\":\"element\"},\"direction\":\"" +
           direction +
           "\",\"max_hops\":2,\"selection\":\"" +
           selection +
-          "\"}",
-          3,
-          "source_id",
+          "\"},\"from\":\"g\"}]",
         ),
-      )
-    }
-    for (operation, edge_count, field) in operations {
-      let source = cursor(
-        "[" +
-        count_values(0, "empty") +
-        ",{\"from\":\"g\"," +
-        operation +
-        "},{\"select\":[\"" +
-        field +
-        "\"]}]",
-      )
-      let p = @pipeline_typing.check_carriers(
-        source,
-        [("g", graph)],
+        [("g", query_property_graph())],
         None,
         None,
         limits(),
-      ).unwrap()
-      let step = @pipeline_typing.step_at(p, 1).unwrap()
-      let edges = @pipeline_typing.input_occurrences(step)
-      assert_eq(edges.length(), edge_count)
-      assert_eq(edges[0].target, Input(0))
-      for i in 1..<edges.length() {
-        assert_eq(edges[i].target, Step(0))
-      }
-      if edge_count == 3 {
-        assert_eq(edges[1].role, Left)
-        assert_eq(edges[2].role, Right)
-      }
+      ).unwrap_err()
       assert_eq(
-        @schema.field_count(@pipeline_typing.output_schema(p).unwrap()),
-        1,
+        issue.kind,
+        GraphMatch(@graph.Structure(@graph.UnsupportedGraphOperation)),
       )
-      assert_count(p, 1, 0L, true)
-      assert_count(p, 2, 0L, true)
-      let u = @pipeline_typing.usage(p)
-      let exact = {
-        ..limits(),
-        max_work: u.work,
-        max_nodes: u.nodes,
-        max_text_bytes: u.text_bytes,
-        max_tokens: u.tokens,
-      }
-      assert_true(
-        @pipeline_typing.check_carriers(
-          source,
-          [("g", graph)],
-          None,
-          None,
-          exact,
-        )
-        is Ok(_),
-      )
-      for
-        cap in [
-          { ..exact, max_work: u.work - 1, },
-          { ..exact, max_nodes: u.nodes - 1, },
-          { ..exact, max_text_bytes: u.text_bytes - 1, },
-        ] {
-        assert_true(
-          @pipeline_typing.check_carriers(
-            source,
-            [("g", graph)],
-            None,
-            None,
-            cap,
-          )
-          is Err(_),
-        )
-      }
+      assert_eq(issue.path, [Index(3), Key("shortest_path")])
     }
   }
 }

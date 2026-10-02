@@ -1,5 +1,6 @@
 ///|
 fn graph_match_carrier() -> @carrier.Carrier {
+  let number = @contract.primitive(NumberType, nullable=false)
   let boolean = @contract.primitive(BooleanType, nullable=true)
   let properties = @carrier.rows(
     [(@schema.Unqualified("active"), Some(boolean))],
@@ -7,23 +8,45 @@ fn graph_match_carrier() -> @carrier.Carrier {
     max_fields=1,
     max_name_bytes=6,
   ).unwrap()
-  let names = @carrier.graph_row_names(
-    @schema.Unqualified("node_id"),
-    @schema.Unqualified("source_id"),
-    @schema.Unqualified("target_id"),
-    Some(@schema.Unqualified("edge_type")),
+  let node = @carrier.property_node_definition(
+    "N",
+    [number],
+    properties,
+    ["Node"],
+    max_fields=2,
     max_name_bytes=100,
   ).unwrap()
-  @carrier.graph(
-    @contract.primitive(NumberType, nullable=false),
+  let edge = @carrier.property_node_definition(
+    "E",
+    [number],
     properties,
-    properties,
-    labels=None,
-    max_labels=0,
-    max_label_bytes=0,
-    row_names=Some(names),
-    label_contract=Some(@contract.primitive(StringType, nullable=true)),
+    ["owns"],
+    max_fields=2,
+    max_name_bytes=100,
   ).unwrap()
+  @carrier.property_graph(
+    "sha256:" + "0".repeat(64),
+    [node],
+    [@carrier.property_edge_definition(edge, "N", "N").unwrap()],
+    max_definitions=2,
+    max_contract_work=1000,
+  ).unwrap()
+}
+
+///|
+fn graph_match_identity(key : Int) -> String {
+  "{\"definition\":\"N\",\"domain\":\"sha256:" +
+  "0".repeat(64) +
+  "\",\"key\":[" +
+  key.to_string() +
+  "],\"key_types\":[{\"kind\":\"number\"}]}"
+}
+
+///|
+fn graph_match_checked_value_wire(value : @value.CheckedValue) -> String raise {
+  let writer = @encode.writer(10000, 1000, 100)
+  @value.emit_checked_wire_value(value, writer)
+  @encode.finish(writer)
 }
 
 ///|
@@ -62,29 +85,58 @@ fn graph_match_wire(source : String) -> String raise {
 }
 
 ///|
-test "Graph node match retains repeated typed IDs and projection order" {
+test "definition-selected node MATCH retains repeated typed IDs and projection order" {
+  let ids = "[" +
+    graph_match_identity(2) +
+    "," +
+    graph_match_identity(10) +
+    "," +
+    graph_match_identity(2) +
+    "]"
   assert_eq(
     graph_match_wire(
-      "[{\"from\":\"g\",\"match_nodes\":{\"ids\":[2,10,2],\"fields\":[\"node_id\",\"active\"]}}]",
+      "[{\"from\":\"g\",\"match_nodes\":{\"definition\":\"N\",\"label\":\"Node\",\"bindings\":{\"identity\":\"node_id\"},\"ids\":" +
+      ids +
+      ",\"fields\":[\"node_id\",\"active\"]}}]",
     ),
-    "[{\"id\":\"match_nodes_0\",\"in\":[\"input_0\"],\"op\":\"SGA.match_nodes\",\"params\":{\"fields\":[\"node_id\",\"active\"],\"ids\":[2,10,2]}}]",
+    "[{\"id\":\"match_nodes_0\",\"in\":[\"input_0\"],\"op\":\"SGA.match_nodes\",\"params\":{\"definition\":\"N\",\"label\":\"Node\",\"bindings\":{\"identity\":\"node_id\"},\"fields\":[\"node_id\",\"active\"],\"ids\":" +
+    ids +
+    "}}]",
   )
 }
 
 ///|
-test "Graph match exposes one checked typed kernel view" {
+test "current MATCH exposes one checked definition scope and typed kernel view" {
+  let ids = "[" +
+    graph_match_identity(2) +
+    "," +
+    graph_match_identity(10) +
+    "," +
+    graph_match_identity(2) +
+    "]"
   let sequence = @lowering_relation.prepare_sequence(
     graph_match_owner(
-      "[{\"from\":\"g\",\"match_nodes\":{\"ids\":[2,10,2],\"fields\":[\"node_id\",\"active\"]}}]",
+      "[{\"from\":\"g\",\"match_nodes\":{\"definition\":\"N\",\"bindings\":{\"identity\":\"node_id\"},\"ids\":" +
+      ids +
+      ",\"fields\":[\"node_id\",\"active\"]}}]",
     ),
     sequence_limits(),
   ).unwrap()
   guard @lowering_relation.sequence_step(sequence, 0)
     is Some(@lowering_relation.GraphMatchStep(view)) else {
-    fail("expected prepared graph match")
+    fail("expected prepared keyed MATCH")
   }
   assert_true(@lowering_relation.graph_match_nodes(view))
   assert_false(@lowering_relation.graph_match_has_predicate(view))
+  assert_eq(@lowering_relation.graph_match_property_definition(view), Some(0))
+  assert_eq(
+    @lowering_relation.graph_match_property_binding(view, "identity"),
+    Some(@schema.Unqualified("node_id")),
+  )
+  assert_eq(
+    @lowering_relation.graph_match_property_binding(view, "source"),
+    None,
+  )
   assert_eq(@lowering_relation.graph_match_field_count(view), 2)
   assert_eq(
     @lowering_relation.graph_match_field_at(view, 0),
@@ -95,46 +147,71 @@ test "Graph match exposes one checked typed kernel view" {
     Some(@schema.Unqualified("active")),
   )
   assert_eq(@lowering_relation.graph_match_id_count(view), 3)
-  assert_true(
-    @lowering_relation.graph_match_id_at(view, 0).unwrap().value
-    is @value.Number(2.0),
+  assert_eq(
+    graph_match_checked_value_wire(
+      @lowering_relation.graph_match_id_at(view, 0).unwrap(),
+    ),
+    graph_match_identity(2),
   )
-  assert_true(
-    @lowering_relation.graph_match_id_at(view, 2).unwrap().value
-    is @value.Number(2.0),
+  assert_eq(
+    graph_match_checked_value_wire(
+      @lowering_relation.graph_match_id_at(view, 2).unwrap(),
+    ),
+    graph_match_identity(2),
   )
   let schema = @lowering_relation.graph_match_output_schema(view)
   assert_eq(@schema.field_count(schema), 2)
-  assert_true(@schema.lookup(schema, @schema.Unqualified("node_id")) is Some(_))
+  guard @schema.lookup(schema, @schema.Unqualified("node_id")) is Some(identity) else {
+    fail("identity contract")
+  }
+  assert_true(identity.shape is @contract.Json)
+  assert_false(identity.nullable)
   assert_true(@schema.lookup(schema, @schema.Unqualified("active")) is Some(_))
+  assert_true(@schema.lookup(schema, @schema.Unqualified("Node")) is None)
 }
 
 ///|
-test "Graph edge match lowers checked predicate references" {
+test "definition-selected edge MATCH lowers business predicates separately from label and identity" {
   assert_eq(
     graph_match_wire(
-      "[{\"from\":\"g\",\"match_edges\":{\"types\":[\"owns\",\"owns\"],\"where\":\"active\",\"fields\":[\"source_id\",\"edge_type\"]}}]",
+      "[{\"from\":\"g\",\"match_edges\":{\"definition\":\"E\",\"label\":\"owns\",\"bindings\":{\"identity\":\"edge_id\",\"source\":\"source_id\"},\"types\":[\"owns\",\"owns\"],\"where\":\"active\",\"fields\":[\"source_id\",\"edge_id\",\"active\"]}}]",
     ),
-    "[{\"id\":\"match_edges_0\",\"in\":[\"input_0\"],\"op\":\"SGA.match_edges\",\"params\":{\"fields\":[\"source_id\",\"edge_type\"],\"types\":[\"owns\",\"owns\"],\"where\":{\"body\":\"active\",\"op\":\"field\"}}}]",
+    "[{\"id\":\"match_edges_0\",\"in\":[\"input_0\"],\"op\":\"SGA.match_edges\",\"params\":{\"definition\":\"E\",\"label\":\"owns\",\"bindings\":{\"identity\":\"edge_id\",\"source\":\"source_id\"},\"fields\":[\"source_id\",\"edge_id\",\"active\"],\"types\":[\"owns\",\"owns\"],\"where\":{\"body\":\"active\",\"op\":\"field\"}}}]",
   )
 }
 
 ///|
-test "Graph match preparation enforces field and type name budgets" {
+test "current MATCH preparation enforces definition label binding and field name budgets" {
   let owner = graph_match_owner(
-    "[{\"from\":\"g\",\"match_edges\":{\"types\":[\"owns\"],\"fields\":[\"source_id\"]}}]",
+    "[{\"from\":\"g\",\"match_edges\":{\"definition\":\"E\",\"label\":\"owns\",\"bindings\":{\"source\":\"source_id\"},\"fields\":[\"source_id\"]}}]",
   )
+  // E (1) + owns (4) + binding source_id (9) + projected source_id (9).
   assert_true(
     @lowering_relation.prepare_sequence(owner, {
       ..sequence_limits(),
-      max_name_bytes: 13,
+      max_bindings: 4,
+      max_name_bytes: 23,
     })
     is Ok(_),
   )
   assert_true(
     @lowering_relation.prepare_sequence(owner, {
       ..sequence_limits(),
-      max_name_bytes: 12,
+      max_bindings: 4,
+      max_name_bytes: 22,
+    })
+    is Err(
+      @lowering_relation.GraphMatchFailure(
+        0,
+        @lowering_relation.GraphMatchPreparationLimit
+      )
+    ),
+  )
+  assert_true(
+    @lowering_relation.prepare_sequence(owner, {
+      ..sequence_limits(),
+      max_bindings: 3,
+      max_name_bytes: 23,
     })
     is Err(
       @lowering_relation.GraphMatchFailure(

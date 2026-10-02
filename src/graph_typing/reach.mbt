@@ -56,6 +56,7 @@ pub fn check_reach(
       }
       fail(source, IncompleteGraph)
     }
+    reject_unconnected_graph_operation(g, source)
     let root = decoded(
       @decode.closed_object(source, ["start", "direction", "max_depth"]),
     )

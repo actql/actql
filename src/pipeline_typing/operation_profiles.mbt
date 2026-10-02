@@ -4,6 +4,7 @@
 pub(all) enum OperationProfile {
   RelA
   SGA
+  PropertyGraph
   TEA
   VecA
   CalendarProfile
@@ -15,6 +16,7 @@ pub fn operation_profile_id(profile : OperationProfile) -> String {
   match profile {
     RelA => "actql-rela/0.1"
     SGA => "actql-sga/0.1"
+    PropertyGraph => "actql-property-graph/0.1"
     TEA => "actql-tea/0.1"
     VecA => "actql-veca/0.1"
     CalendarProfile => "actql-calendar/0.1"
@@ -78,10 +80,8 @@ fn primary_operation_profile(operation : CheckedOperation) -> OperationProfile? 
           NodeRows | EdgeRows => SGA
         }
       Graph(_)
-      | GraphMatch(_)
       | Reach(_)
       | Subgraph(..)
-      | Traverse(..)
       | Shortest(..)
       | GraphEquality(..)
       | GraphDiff(..)
@@ -90,6 +90,19 @@ fn primary_operation_profile(operation : CheckedOperation) -> OperationProfile? 
       | GraphUnion(_)
       | GraphMean(_)
       | GraphConstruction(..) => SGA
+      PropertyGraphConstruction(..) => PropertyGraph
+      GraphMatch(checked) =>
+        if @graph.match_property_definition(checked) is Some(_) {
+          PropertyGraph
+        } else {
+          SGA
+        }
+      Traverse(checked~, ..) =>
+        if @graph.traverse_property_path_mode(checked) is Some(_) {
+          PropertyGraph
+        } else {
+          SGA
+        }
       Vector(_) | Nearest(..) | Pool(_) | Ranking(_) => VecA
       TextRank(..) => TextRankProfile
     },

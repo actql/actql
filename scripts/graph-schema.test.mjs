@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {readFileSync} from 'node:fs';
-import {graphSchemas, checkGraphSchemas} from './graph-schema.mjs';
+import {graphSchemas, legacyGraphSchemas, checkGraphSchemas} from './graph-schema.mjs';
 import {parameterPrograms} from './parameter-schema.mjs';
 
 test('graph bodies preserve literal options and optional positive component guards', () => {
-  const s = graphSchemas();
+  const s = legacyGraphSchemas();
   assert.equal(s.mean_graphs.additionalProperties, false);
   assert.deepEqual(s.mean_graphs.required, ['with','weights','support','properties']);
   assert.equal(s.mean_graphs.properties.with.uniqueItems, undefined);
@@ -76,6 +76,45 @@ test('graph bodies preserve literal options and optional positive component guar
     assert.equal(s.graph_bounds.properties[name].oneOf[0].minimum, 0);
     assert.equal(s.graph_bounds.properties[name].oneOf[0].maximum, 9007199254740991);
   }
+});
+
+test('keyed schemas are explicit closed alternatives and preserve complete legacy branches', () => {
+  const legacy = legacyGraphSchemas(), current = graphSchemas();
+  for (const name of Object.keys(legacy)) {
+    if (['match_nodes','match_edges','traverse'].includes(name)) {
+      assert.equal(current[name].oneOf.length, 2);
+      assert.deepEqual(current[name].oneOf[0], legacy[name]);
+      const keyed = current[name].oneOf[1];
+      assert.equal(keyed.additionalProperties, false);
+      assert.ok(keyed.required.includes(name === 'traverse' ? 'path_mode' : 'definition'));
+      assert.equal(legacy[name].properties.definition, undefined);
+      assert.equal(legacy[name].properties.path_mode, undefined);
+    } else assert.deepEqual(current[name], legacy[name]);
+  }
+  const c = current.property_graph;
+  assert.equal(c.additionalProperties, false);
+  assert.deepEqual(c.required, ['version','nodes','edges']);
+  assert.equal(c.properties.version.const, 'actql-property-graph-constructor/0.1');
+  assert.equal(c.properties.domain, undefined);
+  for (const kind of ['nodes','edges']) {
+    const element = c.properties[kind].items;
+    assert.equal(element.additionalProperties, false);
+    assert.equal(element.properties.key.minItems, 1);
+    assert.equal(element.properties.key.uniqueItems, true);
+    assert.equal(element.properties.labels.items.properties.properties.oneOf.length, 4);
+    for (const selector of element.properties.labels.items.properties.properties.oneOf) {
+      assert.equal(selector.additionalProperties, false);
+    }
+  }
+  assert.deepEqual(c.properties.edges.items.required, ['name','from','key','source','target']);
+  for (const role of ['source','target']) {
+    assert.equal(c.properties.edges.items.properties[role].additionalProperties, false);
+    assert.deepEqual(c.properties.edges.items.properties[role].required, ['definition','key']);
+  }
+  const paths = current.traverse.oneOf[1];
+  assert.deepEqual(paths.properties.path_mode.enum, ['walk','trail','acyclic']);
+  assert.deepEqual(paths.properties.emit, {const:'paths'});
+  assert.deepEqual(paths.oneOf, legacy.traverse.oneOf);
 });
 
 test('embedded graph schemas and pins reject drift', () => {

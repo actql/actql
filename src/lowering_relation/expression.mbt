@@ -607,6 +607,7 @@ fn lower_expression_measured(
       | GraphDiffRows(_)
       | GraphApplyValue(_)
       | GraphConstructionValue(_)
+      | PropertyGraphConstructionValue(_)
       | VectorValue(_)
       | NearestValue(_)
       | PoolValue(_)
