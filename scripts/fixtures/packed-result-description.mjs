@@ -7,7 +7,7 @@ import {resolve} from 'node:path';
 import {userInfo} from 'node:os';
 import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from
-  './node_modules/@actql/local-node/adapters/host-node/embedded-local.mjs';
+  '@actql/local-node/http-host';
 
 // Advance the installed Host's trusted wall clock, rather than altering its
 // persisted publication or retention evidence. No payload is synthesized.

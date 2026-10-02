@@ -5,8 +5,10 @@
 compiler and runtime, the built-in Local Host adapters, and DuckDB assets.
 Connected Remote mode imports only the lightweight SDK path.
 
-The installed source-free profile accepts an Effect-free JSON or YAML AQL
-Program with one checked Values task and one named Result. It binds the
+The installed source-free profile accepts supported SQL/Pipe query text and
+Effect-free JSON or YAML AQL Programs with Values computation and named
+Results. Query composition and Pipe Result taps share the checked Program
+owner. It binds the
 initial empty captured Artifact set through the shared MoonBit Run owner, durably
 records the request, executes the real Local Site, commits formal publication,
 and serves Result rows in process. A repeated request ID with the same intent
@@ -36,6 +38,18 @@ Preparation, compilation, and Run evidence issuance retain the same checked
 owner in the installed runtime. Local does not load a second Run Host Core
 runtime or recompile the Program to compare CIDs. The separately distributed
 `@actql/run-host-core` keeps its standalone API and private handle custody.
+
+## HTTP Host
+
+`import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host'`
+opens the same installed Host through its HTTP handler. Pass an owned
+`directory` and an `authenticate` callback that maps the Authorization header
+to the authenticated principal (or returns `undefined` to refuse it). Optional
+installation fields match the Embedded Local profile above. Attach
+`host.handler` to a Node HTTPS server; close the server and await
+`host.close()` when finished. Authentication and TLS configuration belong to
+the embedding application. Clients use `@actql/node` or `@actql/sdk` with
+`{mode: 'remote', endpoint, token, durability: 'durable'}`.
 
 The physical journal and publication Store live under
 `~/.local/share/actql`. Set `ACTQL_LOCAL_STATE_DIR` before process start to
