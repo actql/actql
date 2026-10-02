@@ -272,23 +272,45 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
       return Some(-1)
     }
     guard @lower.node_at(prepared, 0) is Some(first) else { return None }
-    if @lower.node_input_count(first) == 1 &&
-      @lower.node_accepts_managed_relation_view(first, 0) &&
-      @lower.node_input_target(first, 0) is Some(@pipeline.Input(source)) {
-      for edge in graph.data {
-        if edge.consumer == stage &&
-          edge.input == source &&
-          edge.producer >= 0 &&
-          edge.producer < graph.owners.length() {
-          let predecessor = @lower.bound_preparation(
-            graph.owners[edge.producer],
-          )
-          if @lower.preparation_carrier_at(predecessor, edge.target)
-            is Some(carrier) &&
-            @carrier.kind(carrier) == @carrier.RelationKind {
-            return Some(-1)
+    // A registered unary consumer or binary JOIN can start from retained
+    // Relation ports. Prove every input separately, including two references
+    // to the same producer; one valid port cannot authorize the other.
+    let input_count = @lower.node_input_count(first)
+    if input_count == 1 || input_count == 2 {
+      let mut complete_inputs = true
+      for input in 0..<input_count {
+        if !@lower.node_accepts_managed_relation_view(first, input) {
+          complete_inputs = false
+          break
+        }
+        guard @lower.node_input_target(first, input)
+          is Some(@pipeline.Input(source)) else {
+          complete_inputs = false
+          break
+        }
+        let mut retained_relation = false
+        for edge in graph.data {
+          if edge.consumer == stage &&
+            edge.input == source &&
+            edge.producer >= 0 &&
+            edge.producer < graph.owners.length() {
+            let predecessor = @lower.bound_preparation(
+              graph.owners[edge.producer],
+            )
+            if @lower.preparation_carrier_at(predecessor, edge.target)
+              is Some(carrier) &&
+              @carrier.kind(carrier) == @carrier.RelationKind {
+              retained_relation = true
+            }
           }
         }
+        if !retained_relation {
+          complete_inputs = false
+          break
+        }
+      }
+      if complete_inputs {
+        return Some(-1)
       }
     }
   }
