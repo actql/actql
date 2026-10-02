@@ -20,7 +20,8 @@ import {retireCompletedEffectfulCapture} from
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
 import {sourceAliasPublication} from './source-alias-publication.mjs';
-import {installedModelEnvironment} from './installed-model.mjs';
+import {installedModelEnvironment, readInstalledModelExecution} from
+  './installed-model.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {issueInstalledRunControlObservation,
   issueInstalledUnpublishedRunState} from
@@ -584,8 +585,20 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     // installed dependency/dispatch route is present, refuse before admitting
     // a Run rather than sending this acquisition into a Values fallback.
     if (moon.clientProgramTerminalInferStep(preparedProgram) !== undefined) {
+      try {
+        readInstalledModelExecution(moon, preparedProgram, modelInstallation);
+      } catch (cause) {
+        diagnostic('infer_preparation_rejected', {boundary: 'model_execution',
+          code: cause.code, cause: cause.cause ?? cause,
+          typedCause: cause.code === 'MoonBitHostFailure' ?
+            moon.clientProgramInferModelExecutionIssueKind(cause.cause) :
+            undefined});
+        throw clientOperationError('ClientProgramUnsupported', cause);
+      }
+      diagnostic('infer_preparation_rejected', {boundary: 'model_dependencies',
+        code: 'InstalledInferDependenciesNotConnected'});
       throw clientOperationError('ClientProgramUnsupported',
-        new Error('InstalledInferExecutionNotConnected'));
+        new Error('InstalledInferDependenciesNotConnected'));
     }
     const requested = moon.clientProgramRequestIdentity(preparedProgram,
       authorityScopeCid, requestId,

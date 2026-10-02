@@ -25,6 +25,14 @@ fn client_infer_graph_test_execution(
 ///|
 test "Infer graph binds the exact prefix model contract and Result port" {
   let prepared = client_infer_prefix_test_program()
+  assert_eq(
+    prepared_client_infer_model_task_cid(prepared, 2),
+    Some(
+      "sha256:cfb4c49389dd5ecbcd97d4b60276549dcf6fd2ce62584707b5c661d94dce4560",
+    ),
+  )
+  assert_eq(prepared_client_infer_model_task_cid(prepared, 1), None)
+  assert_eq(prepared_client_infer_model_task_cid(prepared, 3), None)
   let execution = client_infer_graph_test_execution(prepared)
   let issued = issue_prepared_client_infer_plan_graph(
     prepared,

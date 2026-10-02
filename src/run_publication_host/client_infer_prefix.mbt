@@ -13,6 +13,21 @@ pub fn prepared_client_terminal_infer_step(
 }
 
 ///|
+/// Installation selects by the checked task identity, not Program JSON or
+/// an adapter's source ordinal. This is metadata, never dispatch authority.
+pub fn prepared_client_infer_model_task_cid(
+  value : PreparedClientProgram,
+  step : Int,
+) -> String? {
+  guard client_infer_prefix_owner(value, 0, step) is Some(owner) &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.payload(node) is @lower.Infer(infer) else {
+    return None
+  }
+  Some(@environment.model_task_identity(@infer.model_task(infer)).2)
+}
+
+///|
 /// Select the checked Relation owner consumed by the initial source-free
 /// Infer path. Both compilation and execution use this exact selection;
 /// equal source text, row values, or model identities cannot replace it.

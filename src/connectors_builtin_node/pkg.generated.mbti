@@ -516,6 +516,10 @@ pub fn client_program_infer_invocation_binding_output(@client_infer_host.Invocat
 
 pub fn client_program_infer_invocation_evidence(@client_infer_host.Execution, Int) -> @run_publication.RunEvidenceValue?
 
+pub fn client_program_infer_model_execution_issue_kind(@run_publication_host.ClientInferPlanGraphIssue) -> String
+
+pub fn client_program_infer_model_task_cid(@run_publication_host.PreparedClientProgram, Int) -> String?
+
 pub fn client_program_infer_observation_pending(@client_infer_host.Execution) -> Bool
 
 pub fn client_program_infer_outcomes_accepted(@model_execution.ModelOutcomeRead) -> Bool

@@ -1612,3 +1612,45 @@ Verification on the working tree based on
 This closes a physical accounting component, not public INFER acceptance. The
 ordinary HTTPS submit still refuses installed INFER before Run admission;
 there is no accepted Named Result or B-ready execution SHA yet.
+
+## Ordinary submit execution-contract admission
+
+The original public refusal was the unconditional
+`InstalledInferExecutionNotConnected` guard. Normal HTTPS Client preparation
+and submit now select the installed execution body by the checked ModelTask
+CID, using the original prepared Program owner. The common execution reader
+validates canonical bytes, self-CID, Task binding and explicit ceilings before
+any Run is recorded. No adapter-authored proof or second compiler is used.
+
+The five public regressions pass: missing Task, missing execution body, valid
+execution body with unavailable dependencies, wrong self-CID and foreign Task.
+The last two retain common typed `IdentityMismatch` and `ReferenceMismatch`
+causes in bounded Host diagnostics. All refusal cases assert zero accepted
+requests and zero physical starts. A valid execution body reaches the separate
+`InstalledInferDependenciesNotConnected` refusal; it grants no permission.
+
+| Stage | Connected common owner | Missing input / connection | Change location |
+| --- | --- | --- | --- |
+| Installed Task and execution | `check_environment/model_tasks.mbt`, `model_execution.mbt`; public submit now uses their reader | None for this static body check; this is not execution admission | `installed-model.mjs`, `embedded-local.mjs` |
+| Dependency and egress admission | Typed Task data handling and existing checked Host policy | Admitted prompt/retry/backoff bodies, exact adapter/tokenizer plan and current classification/region checks | Common Model dependency admission, then installed composition |
+| Physical dispatch | `client_infer_dispatch_admission.mbt`, bounded `client_infer_host.Execution`, existing Client dispatch supervisor | Pass admitted installation and current account/clock observations from normal Run start | `client-dispatch-owner.mjs`, `infer-operation.mjs` |
+| Capture and Invocation issuance | `model_execution/attempt_evidence.mbt`, `issued_slot_capture.mbt`, `client_infer_host/observation_issuance.mbt` | Store-confirm actual issued leaves/capture and retain the original compiled Run | Installed inference continuation and existing private Store custody |
+| Named Result and replay | `client_infer_host/result_publication.mbt`, existing durable Result writer and verified slot replay | Connect issued Invocation to normal publication; reopen saved capture under ordinary preparation in a new process | Existing publication plan/dispatch/Store composition |
+
+The request for dependency-body definitions identifies a real contract gap:
+the execution schema names retry and backoff CIDs, but registers no referent
+body schema or validator. CID syntax is not semantic admission. The closed
+0.1 prompt/retry/backoff body proposal is now approved, including provider
+payload validation before dispatch and exact reference/self/hash matching.
+Schema registration and the common verifier are the next implementation unit.
+The first supported physical profile is single-attempt, with empty retry
+classification and backoff lists. Other profiles must fail before Run
+admission until their runtime is supported, without restricting the language.
+
+The affected `run_publication_host` tests pass on JS, Wasm and native (31 on
+each); both Node runtime builds and the public HTTPS suite (5 tests) pass.
+No full local gate rerun or Linux CI is claimed for this connection.
+
+Public dispatch, Named Result success and public fresh-process replay remain
+unverified. The component capture replay tests do not replace this acceptance.
+No public INFER PR, CI success or B handoff is claimed by this entry.

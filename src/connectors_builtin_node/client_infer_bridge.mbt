@@ -8,6 +8,15 @@ pub fn client_program_terminal_infer_step(
 }
 
 ///|
+#export_name("clientProgramInferModelTaskCid")
+pub fn client_program_infer_model_task_cid(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+) -> String? {
+  @publication_host.prepared_client_infer_model_task_cid(prepared, step)
+}
+
+///|
 /// Physical capacity cannot grant dispatch permission. The common execution
 /// Contract clamps each installed ceiling before any bounded prefix work.
 #export_name("clientProgramBindInferQuantityCapacity")
@@ -836,6 +845,26 @@ pub fn client_program_read_infer_model_execution(
     { max_bytes: 100000, max_nodes: 10000, max_depth: 100, max_members: 10000, },
     1000000,
   )
+}
+
+///|
+/// Diagnostic reader only. Preserve the original typed issue as the cause;
+/// this label is neither an evidence body nor a new public failure category.
+#export_name("clientProgramInferModelExecutionIssueKind")
+pub fn client_program_infer_model_execution_issue_kind(
+  issue : @publication_host.ClientInferPlanGraphIssue,
+) -> String {
+  match issue {
+    @publication_host.Execution(failure) =>
+      match failure.kind {
+        @check_environment.IdentityMismatch => "identity_mismatch"
+        @check_environment.ReferenceMismatch => "reference_mismatch"
+        @check_environment.InvalidBody => "invalid_body"
+        @check_environment.BodyLimit | @check_environment.WorkLimit => "limit"
+        _ => "invalid_execution"
+      }
+    _ => "unsupported_program"
+  }
 }
 
 ///|
