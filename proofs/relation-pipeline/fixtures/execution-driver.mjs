@@ -15,7 +15,7 @@ const modules = ['proofs/relation-pipeline/execute.mjs', 'proofs/relation-pipeli
   'proofs/bounded-session/nest-obligations.json', 'scripts/owned-scratch.mjs', 'scripts/ar', 'toolchain.json'];
 
 const fakeMoon = String.raw`import assert from 'node:assert/strict';
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 const args = process.argv.slice(2);
 assert.deepEqual(args.slice(0, 2), ['test', 'src/query_integration/relation_pipeline_batch_wbtest.mbt']);
@@ -62,6 +62,7 @@ if (settings.mode !== 'no-observations') for (const input of inputs) {
 }
 if (settings.mutateSource) writeFileSync('src/query_integration/source.mbt', settings.mutateSource);
 if (settings.mutateFixture) writeFileSync(args[1], fixture + '// changed while executing\n');
+if (settings.replaceFixture) { renameSync(args[1], '.saved-owned-fixture'); writeFileSync(args[1], fixture); }
 if (settings.mode !== 'no-test-summary') console.log('Total tests: 1, passed: 1, failed: 0');
 `;
 
@@ -127,7 +128,7 @@ import assert from 'node:assert/strict';
 import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync,
   renameSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { createExecutor, execute, executions, fixture, root, digest } from ${url('execute.mjs')};
+import { createExecutor, execute, closeExecutor, executions, fixture, root, digest } from ${url('execute.mjs')};
 import { mutationWorkspaces, workspaceIdentity } from ${url('workspaces.mjs')};
 import { snapshot } from ${url('inventory.mjs')};
 import { take } from ${url('take.mjs')};

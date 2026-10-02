@@ -1,4 +1,4 @@
-import { accessSync, constants, readFileSync, readdirSync, statSync, realpathSync, writeFileSync, unlinkSync, mkdirSync, existsSync, copyFileSync } from 'node:fs';
+import { accessSync, constants, readFileSync, readdirSync, statSync, lstatSync, realpathSync, writeFileSync, unlinkSync, mkdirSync, existsSync, copyFileSync } from 'node:fs';
 import { join, dirname, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -26,6 +26,7 @@ export function createExecutor(workspace = workspaceIdentity(root, 'normal')) {
   const workspaceRoot = workspace.root;
   const built = new Map();
   let ownedFixture = null;
+  let fixtureIdentity;
   let closed = false;
   const path = join(workspaceRoot, fixture);
   const resolveTool = name => {
@@ -53,10 +54,18 @@ export function createExecutor(workspace = workspaceIdentity(root, 'normal')) {
   };
   const expectedTools = toolIdentity();
   const environmentDigest = digest(JSON.stringify(Object.entries(environment).sort(([a], [b]) => a.localeCompare(b))));
+  const assertOwnedFixture = () => {
+    assert(existsSync(path), 'Owned fixture was removed');
+    const current = lstatSync(path);
+    assert(current.isFile() && current.dev === fixtureIdentity.dev && current.ino === fixtureIdentity.ino,
+      'Owned fixture was replaced');
+    assert.equal(readFileSync(path, 'utf8'), ownedFixture, 'Owned fixture was changed');
+  };
+  // Physical identity and exact bytes belong to this executor, not a matching
+  // file another owner placed at the same path. Close is terminal/idempotent.
   const close = () => {
     if (ownedFixture !== null) {
-      assert(existsSync(path), 'Owned fixture was removed');
-      assert.equal(readFileSync(path, 'utf8'), ownedFixture, 'Owned fixture was changed');
+      assertOwnedFixture();
       unlinkSync(path);
       assert(!existsSync(path), 'Owned fixture cleanup failed');
       ownedFixture = null;
@@ -75,9 +84,12 @@ export function createExecutor(workspace = workspaceIdentity(root, 'normal')) {
       toolchainDigest: expectedTools, environmentDigest, fixtureDigest: digest(body), target, command: executionCommand(target) };
     const buildIdentity = digest(JSON.stringify(boundary));
     const fixtureBody = boundFixture(boundary);
-    if (existsSync(path)) {
-      assert(ownedFixture !== null && readFileSync(path, 'utf8') === ownedFixture,
-        'Another pipeline batch owns the temporary fixture');
+    if (ownedFixture !== null) assertOwnedFixture();
+    else {
+      assert(!existsSync(path), 'Another pipeline batch owns the temporary fixture');
+      writeFileSync(path, fixtureBody, { flag: 'wx' });
+      fixtureIdentity = lstatSync(path);
+      ownedFixture = fixtureBody;
     }
     if (ownedFixture !== fixtureBody) { writeFileSync(path, fixtureBody); ownedFixture = fixtureBody; }
     const prior = built.get(target);
@@ -105,7 +117,7 @@ export function createExecutor(workspace = workspaceIdentity(root, 'normal')) {
       throw result.error ?? new Error(`Generated observation execution failed: ${prefix}`);
     }
     assert.equal(toolIdentity(), expectedTools, 'Execution toolchain changed');
-    assert.equal(readFileSync(path, 'utf8'), fixtureBody, 'Execution fixture changed');
+    assertOwnedFixture();
     const markers = output.split('\n').filter(line => line.startsWith('ACTQL_PIPELINE_BUILD:'));
     assert.deepEqual(markers, [`ACTQL_PIPELINE_BUILD:${buildIdentity}`], 'Executed binary/source/workspace identity mismatch');
     assert.match(output, /Total tests: 1, passed: 1, failed: 0/, 'Observation fixture did not pass exactly once');
@@ -159,3 +171,4 @@ export function createExecutor(workspace = workspaceIdentity(root, 'normal')) {
 }
 const normal = createExecutor();
 export const execute = normal.execute;
+export const closeExecutor = normal.close;

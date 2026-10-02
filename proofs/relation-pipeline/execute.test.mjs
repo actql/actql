@@ -253,11 +253,55 @@ test('fixture source tampering during execution cannot publish a successful rece
   successful(runDriver(minimalRepository(t), String.raw`
 const executor = createExecutor();
 configure({ mutateFixture: true });
-assert.throws(() => executor.execute([makeCase()], registry, 'js'), /Execution fixture changed/);
+assert.throws(() => executor.execute([makeCase()], registry, 'js'), /Owned fixture was changed/);
 assert.equal(executions.length, 0);
 const directory = join(root, '.artifacts/relation-pipeline');
 const archived = readdirSync(directory).find(path => path.endsWith('.fixture.mbt'));
 copyFileSync(join(directory, archived), join(root, fixture));
 executor.close();
 `));
+});
+
+test('default close alias is terminal, idempotent and preserves archived evidence', t => {
+  const root = minimalRepository(t);
+  successful(runDriver(root, `
+    execute([makeCase()], registry, 'js');
+    const receipt = executions.at(-1);
+    const fixtureBytes = readFileSync(join(root, fixture));
+    closeExecutor(); closeExecutor();
+    assert(!existsSync(join(root, fixture)));
+    assert.deepEqual(JSON.parse(readFileSync(join(root, receipt.path))), receipt.receipt);
+    assert.deepEqual(readFileSync(join(root, receipt.receipt.fixturePath)), fixtureBytes);
+    assert.throws(() => execute([makeCase()], registry, 'js'), /Execution workspace is closed/);
+    writeFileSync(join(root, fixture), fixtureBytes);
+    closeExecutor();
+    assert.deepEqual(readFileSync(join(root, fixture)), fixtureBytes, 'Closed executor never adopts a new foreign fixture');
+  `));
+});
+for (const operation of ['execute', 'close']) test(`same-byte fixture replacement is preserved and rejected by ${operation}`, t => {
+  const root = minimalRepository(t);
+  successful(runDriver(root, `
+    const executor = createExecutor();
+    executor.execute([makeCase()], registry, 'js');
+    const path = join(root, fixture), saved = join(root, '.saved-owned-fixture');
+    const bytes = readFileSync(path);
+    renameSync(path, saved); writeFileSync(path, bytes);
+    const count = calls().length;
+    assert.throws(() => ${operation === 'execute' ? "executor.execute([makeCase()], registry, 'js')" : 'executor.close()'}, /Owned fixture was replaced/);
+    assert.equal(calls().length, count);
+    assert.deepEqual(readFileSync(path), bytes);
+    unlinkSync(path); renameSync(saved, path); executor.close();
+  `));
+});
+test('same-byte replacement during execution cannot publish a receipt', t => {
+  const root = minimalRepository(t);
+  successful(runDriver(root, `
+    const executor = createExecutor();
+    configure({ replaceFixture: true });
+    assert.throws(() => executor.execute([makeCase()], registry, 'js'), /Owned fixture was replaced/);
+    assert.equal(executions.length, 0);
+    const path = join(root, fixture);
+    assert(existsSync(path)); unlinkSync(path);
+    renameSync(join(root, '.saved-owned-fixture'), path); executor.close();
+  `));
 });
