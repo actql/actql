@@ -6,27 +6,27 @@
     "digest": "48bdedbe48ab335694a725defa7fe9e7f07cdf776e4aa8f233b3935585a352c1",
     "foundationRevision": "fe0dbb424792ba7ccd4ae5517a74530b56a15f3c"
   },
-  "revision": "8f7e3db0e499dc01cc7ef9fd982364349af1f8d8",
-  "proposal": "https://github.com/actql/actql/pull/175",
-  "meaning": "Retains the integrated common foundation and conditional structural capacity/custody validation. Historical comparison evidence is unchanged; this record supplies Git provenance, not human approval or an unconditional allocation-byte bound.",
+  "revision": "dafff1a1aeeaa8dd3168e9d9ba1b571455ba5f35",
+  "proposal": "https://github.com/actql/actql/pull/178",
+  "meaning": "Records integrated single-call INFER, public Check, and current Array/Map capacity validation after merging main. Historical evidence is unchanged; Git provenance is not human approval or an unconditional allocation-byte claim.",
   "changedCommon": [
     {
       "path": ".github/workflows/ci.yml",
       "beforeDigest": "60b5752abc492be508fcf7a6bb2acd944b3883443bd100b82ea422c713c93d61",
-      "afterDigest": "ba0d74e9894af43d6f7258fd41c90c937828a862791f15c022703876b5b94128",
-      "reason": "Retain the integrated #149 orchestration and add conditional structural capacity/custody execution and independent target/claim audits."
+      "afterDigest": "ecea48a0b7c94c50367b87e2ef02fc67a50a2b9972fd2b29effa01ecd4ce1523",
+      "reason": "Retain the integrated #149 orchestration and structural capacity campaign; add current-Array source and target-admission tests, core probes, and independent backing execution audits. Retain main conditional structural capacity and custody checks, and add packed single-call INFER acceptance with safe evidence uploads to the Client job."
+    },
+    {
+      "path": "package.json",
+      "beforeDigest": "78c15ac34fbe375959bf166c3d236ce06a2a6a0d4d2f4b2d7f7f094e844a8a15",
+      "afterDigest": "28aa357d16dcf7079b020150dff2783473bb9f6ce6b010cba94388702c570716",
+      "reason": "Retain the public check contract and Local/HTTP acceptance registrations from main together with the native release-recovery regression; all historical evidence and existing gate commands remain intact. Retain main public Check and native release-recovery registrations together with INFER capture and model contract checks; existing pipeline gates are unchanged."
     },
     {
       "path": "proofs/relation-pipeline/harness.mbt",
       "beforeDigest": "bfd22317b2827e80542f8abd5c773a6150a0017b488c496148fbc452ab811cf1",
       "afterDigest": "bd0d8ae904ceaf3042ec68775c4b5c34e565ab66b7470340ef690183ae290645",
       "reason": "Reject early cleanup and inspect accepted output after repeated cleanup without claiming physical deallocation; capacity observations stay in proof-only source overlays."
-    },
-    {
-      "path": "package.json",
-      "beforeDigest": "78c15ac34fbe375959bf166c3d236ce06a2a6a0d4d2f4b2d7f7f094e844a8a15",
-      "afterDigest": "17d239ce960452949ff61e2b72f772677165cd230f0c98621820f1f992950e52",
-      "reason": "Retain the public check contract and Local/HTTP acceptance registrations from main together with the native release-recovery regression; all historical evidence and existing gate commands remain intact."
     },
     {
       "path": "proofs/relation-pipeline/history.mjs",

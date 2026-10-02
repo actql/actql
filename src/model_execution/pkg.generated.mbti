@@ -1,0 +1,354 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/model_execution"
+
+import {
+  "actql/actql/bounded_execution",
+  "actql/actql/check_environment",
+  "actql/actql/execution_relation",
+  "actql/actql/physical_resources",
+  "actql/actql/run_publication",
+  "actql/actql/run_publication_host",
+  "actql/actql/value_admission",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn acquire_model_outcomes(ModelExecution) -> ModelOutcomeRead?
+
+pub fn acquire_verified_model_capture(ModelExecution) -> VerifiedModelCapture?
+
+pub fn admit_model_provider(ModelProvider, @check_environment.ModelExecutionContract, @check_environment.SingleAttemptModelDependencies, (@check_environment.ModelTaskContract, @check_environment.ModelDependency) -> Bool) -> Result[AdmittedModelProvider, ModelProviderAdmissionIssue]
+
+pub fn admitted_model_provider_for(AdmittedModelProvider, @check_environment.ModelExecutionContract) -> ModelProvider?
+
+pub fn advance_model_capture_export(ModelCaptureExport, Int) -> Result[(Bool, String, Int64), ModelExecutionIssue]
+
+pub fn advance_model_execution(ModelExecution, Int) -> Result[ModelObservation, ModelExecutionIssue]
+
+pub fn advance_model_observation_verification(ModelObservationVerification, Int) -> Result[(Bool, Int64), ModelExecutionIssue]
+
+pub fn advance_model_output_preparation(ModelOutputPreparation, Int) -> Result[@execution_relation.AdmittedOutputPoll, ModelExecutionIssue]
+
+pub fn bind_verified_model_slot_capture(VerifiedModelCapture, Int, @run_publication.RunEvidenceValue) -> Result[@run_publication.BoundModelSlotCapture, ModelExecutionIssue]
+
+pub fn cancel_model_capture_export(ModelCaptureExport) -> Bool
+
+pub fn cancel_model_observation_verification(ModelObservationVerification) -> Bool
+
+pub fn cancel_model_output_preparation(ModelOutputPreparation) -> Bool
+
+pub fn cleanup_model_capture_export(ModelCaptureExport) -> Result[Bool, ModelExecutionIssue]
+
+pub fn cleanup_model_execution(ModelExecution) -> Result[Bool, ModelExecutionIssue]
+
+pub fn cleanup_model_observation_verification(ModelObservationVerification) -> Result[Bool, ModelExecutionIssue]
+
+pub fn cleanup_model_output_preparation(ModelOutputPreparation) -> Result[Bool, ModelExecutionIssue]
+
+pub fn complete_model_output(ModelOutputPreparation) -> Result[@execution_relation.CompletedOutput, ModelExecutionIssue]
+
+pub fn install_model_provider(String, (ModelRequest) -> Result[ModelResponse, ModelProviderFailure]) -> Result[ModelProvider, ModelExecutionIssue]
+
+pub fn model_attempt_accounting(ModelAttemptEvidence) -> @run_publication.RunEvidenceValue
+
+pub fn model_attempt_authority(ModelAttemptEvidence) -> @run_publication.RunEvidenceValue
+
+pub fn model_attempt_identity(ModelAttemptEvidence) -> @run_publication.RunEvidenceValue
+
+pub fn model_attempt_outcome(ModelAttemptEvidence) -> @run_publication.RunEvidenceValue
+
+pub fn model_capture_bundle_json(ModelCaptureBundle, Int, Int, Int) -> String?
+
+pub fn model_capture_export_identity(ModelCaptureExport) -> String?
+
+pub fn model_capture_export_response_pending(ModelCaptureExport) -> Bool
+
+pub fn model_execution_attempt_evidence(ModelExecution, Int) -> Result[ModelAttemptEvidence, ModelExecutionIssue]
+
+pub fn model_execution_has_adopted_evidence(ModelExecution) -> Bool
+
+pub fn model_execution_invocation_evidence(ModelExecution, Int) -> @run_publication.RunEvidenceValue?
+
+pub fn model_execution_issued_slot_capture(ModelExecution, Int) -> Result[@run_publication.RunEvidenceValue, ModelExecutionIssue]
+
+pub fn model_execution_preflighting(ModelExecution) -> Bool
+
+pub fn model_execution_prepared_request_bytes(ModelExecution, Int) -> Int64?
+
+pub fn model_execution_quantity_usage(ModelExecution) -> @physical_resources.QuantityUsage
+
+pub fn model_execution_resource_usage(ModelExecution) -> @physical_resources.LedgerUsage
+
+pub fn model_execution_restoring(ModelExecution) -> Bool
+
+pub fn model_execution_sealing_observation(ModelExecution) -> Bool
+
+pub fn model_observation_verification_matches(ModelObservationVerification, ModelExecution) -> Bool
+
+pub fn model_observation_verification_value(ModelObservationVerification) -> @run_publication.RunEvidenceValue?
+
+pub fn model_outcomes_accepted(ModelOutcomeRead) -> Bool
+
+pub fn model_outcomes_call_at(ModelOutcomeRead, Int) -> @run_publication.RunEvidenceValue?
+
+pub fn model_outcomes_count(ModelOutcomeRead) -> Int?
+
+pub fn model_outcomes_invocation_evidence(ModelOutcomeRead, Int) -> @run_publication.RunEvidenceValue?
+
+pub fn model_outcomes_outcome(ModelOutcomeRead, Int) -> String?
+
+pub fn model_physical_request_plan(ModelRequest, Int64, @physical_resources.QuantityAmounts, () -> Result[ModelResponse, ModelProviderFailure]) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
+
+pub fn model_slot_replay_count(ModelSlotReplayRead) -> Int?
+
+pub fn read_model_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Int, Int) -> Result[ModelSlotReplayRead, ModelExecutionIssue]
+
+pub fn read_verified_model_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Array[ModelAttemptRecords], @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int) -> Result[ModelSlotReplayRead, ModelExecutionIssue]
+
+pub fn release_model_outcomes(ModelOutcomeRead) -> Bool
+
+pub fn release_model_slot_replay(ModelSlotReplayRead) -> Bool
+
+pub fn release_verified_model_capture(VerifiedModelCapture) -> Bool
+
+pub fn replay_model_capture(@check_environment.ModelTaskContract, String, ModelCaptureBundle) -> Result[Array[@value_admission.CheckedValue], ModelExecutionIssue]
+
+pub fn replay_model_capture_rows(@execution_relation.PreparedInferRows, String, ModelCaptureBundle) -> Result[Array[@value_admission.CheckedValue], ModelExecutionIssue]
+
+pub fn request_model_cancel(ModelExecution) -> Bool
+
+pub fn retain_model_outcomes(ModelOutcomeRead) -> ModelOutcomeRead?
+
+pub fn retain_model_slot_replay(ModelSlotReplayRead) -> ModelSlotReplayRead?
+
+pub fn retain_verified_model_capture(VerifiedModelCapture) -> VerifiedModelCapture?
+
+pub fn start_model_capture_export(VerifiedModelCapture, ModelCaptureExportLimits) -> Result[ModelCaptureExport, ModelExecutionIssue]
+
+pub fn start_model_capture_replay(@execution_relation.PreparedInferRows, @run_publication_host.ClientInferCallScope, VerifiedModelCapture, ModelExecutionLimits) -> Result[ModelExecution, ModelExecutionIssue]
+
+pub fn start_model_execution(@execution_relation.PreparedInferRows, ModelProvider, String, ModelExecutionLimits, call_scope? : @run_publication_host.ClientInferCallScope?, dispatch_admission? : @run_publication_host.ClientInferDispatchAdmission?, quantity_capacity? : ModelQuantityCapacity?, physical_preflight? : ((ModelRequest) -> Result[ModelRequestPreflight, ModelExecutionIssue])?, egress_admission? : @run_publication_host.ClientInferEgressAdmission?) -> Result[ModelExecution, ModelExecutionIssue]
+
+pub fn start_model_observation_verification(VerifiedModelCapture, @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], ModelObservationVerificationLimits) -> Result[ModelObservationVerification, ModelExecutionIssue]
+
+pub fn start_model_output_preparation(ModelExecution, @execution_relation.CompletionPreparation, Int, @execution_relation.ValueLimits, Int, Int) -> Result[ModelOutputPreparation, ModelExecutionIssue]
+
+pub fn start_restored_model_capture_replay(@execution_relation.PreparedInferRows, @run_publication_host.ClientInferCallScope, @run_publication.ModelCaptureBundleRead, String, ModelExecutionLimits) -> Result[ModelExecution, ModelExecutionIssue]
+
+pub fn start_restored_model_slot_replay(@execution_relation.PreparedInferRows, @run_publication_host.ClientInferCallScope, ModelSlotReplayRead, String, ModelExecutionLimits) -> Result[ModelExecution, ModelExecutionIssue]
+
+pub fn stopped_model_attempt_count(ModelExecution) -> Int?
+
+pub fn verified_model_capture_call_at(VerifiedModelCapture, Int) -> @run_publication.RunEvidenceValue?
+
+pub fn verified_model_capture_call_count(VerifiedModelCapture) -> Int?
+
+pub fn verified_model_capture_outcome(VerifiedModelCapture, Int) -> String?
+
+pub fn verified_model_capture_owned_slot(VerifiedModelCapture, Int) -> Result[@run_publication.RunEvidenceValue, ModelExecutionIssue]
+
+pub fn verify_model_execution_attempt_evidence(ModelExecution, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[Unit, ModelExecutionIssue]
+
+// Errors
+
+// Types and methods
+pub struct AdmittedModelProvider {
+  provider : ModelProvider
+  execution : @check_environment.ModelExecutionContract
+  dependencies : @check_environment.SingleAttemptModelDependencies
+}
+
+type CaptureExportState
+
+pub struct ModelAttemptEvidence {
+  attempt : @run_publication.RunEvidenceValue
+  accounting : @run_publication.RunEvidenceValue
+  outcome : @run_publication.RunEvidenceValue
+  authority : @run_publication.RunEvidenceValue
+}
+
+pub(all) struct ModelAttemptRecords {
+  attempt : @run_publication.RunEvidenceValue
+  accounting : @run_publication.RunEvidenceValue
+  outcome : @run_publication.RunEvidenceValue
+  authority : @run_publication.RunEvidenceValue
+}
+
+pub(all) struct ModelCaptureBundle {
+  task_cid : String
+  fixed_request_cid : String
+  captures : Array[ModelSlotCapture]
+}
+
+pub struct ModelCaptureExport {
+  state : CaptureExportState
+  session : @bounded_execution.Session[CaptureExportState, String, ModelExecutionIssue]
+  control : @bounded_execution.Control
+  mut token : @bounded_execution.Token
+  mut accepted : Bool
+  mut reclaimed : Bool
+}
+
+pub(all) struct ModelCaptureExportLimits {
+  max_bytes : Int
+  max_nodes : Int
+  max_depth : Int
+  max_chunk_bytes : Int
+  max_work : Int
+}
+
+pub struct ModelExecution {
+  session : @bounded_execution.Session[ModelState, ModelCaptureBundle, ModelExecutionIssue]
+  mut token : @bounded_execution.Token
+  control : @bounded_execution.Control
+  state : ModelState
+}
+
+pub(all) enum ModelExecutionIssue {
+  InvalidLimits
+  InvalidProvider
+  ItemLimit
+  RequestIdentity
+  Provider(ModelProviderFailure)
+  OutputValue
+  OutputIdentity
+  Cancelled
+  Deadline
+  Ledger(@physical_resources.LedgerIssue)
+  Session(@bounded_execution.Issue)
+  WorkLimit
+  RequestLimit
+  InvocationEvidence(@run_publication.RunEvidenceValueIssue)
+  Authorization(@run_publication_host.ClientInferDispatchIssue)
+  Egress(@run_publication_host.ClientInferEgressIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ModelExecutionLimits {
+  max_items : Int
+  max_work : Int
+  max_request_bytes : Int64
+  max_response_bytes : Int64
+  value_limits : @value_admission.Limits
+  ledger : @physical_resources.LedgerLimits
+}
+
+pub(all) enum ModelObservation {
+  Continue(Int64, Int64)
+  Completed(ModelCaptureBundle, Int64, Int64)
+  Failed(ModelExecutionIssue, Int64, Int64)
+  Stopped(@bounded_execution.StopReason, Int64, Int64)
+}
+
+pub struct ModelObservationVerification {
+  state : ModelObservationVerificationState
+  session : @bounded_execution.Session[ModelObservationVerificationState, Unit, ModelExecutionIssue]
+  control : @bounded_execution.Control
+  mut token : @bounded_execution.Token
+  mut accepted : Bool
+  mut reclaimed : Bool
+}
+
+pub(all) struct ModelObservationVerificationLimits {
+  max_slots : Int
+  max_slot_wire_units : Int
+  max_work : Int
+}
+
+type ModelObservationVerificationState
+
+pub struct ModelOutcomeRead {
+  owner : ModelExecution
+  mut released : Bool
+}
+
+type ModelOutputPreparation
+
+pub struct ModelPhysicalRequestPlan {
+  request : ModelRequest
+  wire_bytes : Int64
+  quantities : @physical_resources.QuantityAmounts
+  invoke : () -> Result[ModelResponse, ModelProviderFailure]
+}
+
+pub(all) struct ModelProvider {
+  invoke : (ModelRequest) -> Result[ModelResponse, ModelProviderFailure]
+  provider_id : String
+}
+
+pub(all) enum ModelProviderAdmissionIssue {
+  ForeignDependencies
+  ForeignProvider
+  UnsupportedPrompt
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ModelProviderFailure {
+  RateLimit
+  Timeout
+  ProviderError
+  Refusal
+  SchemaInvalid
+  SafetyRejected
+  Truncated
+  Cancelled
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ModelQuantityCapacity {
+  limits : @physical_resources.QuantityAmounts
+  per_attempt : @physical_resources.QuantityAmounts
+}
+
+pub(all) struct ModelRequest {
+  task : @check_environment.ModelTaskContract
+  slot : Int
+  slot_cid : String
+  fixed_request_cid : String
+  key : Array[@value_admission.CheckedValue]
+  inputs : Array[(String, @value_admission.CheckedValue)]
+}
+
+pub(all) struct ModelRequestPreflight {
+  advance : () -> Result[ModelPhysicalRequestPlan?, ModelExecutionIssue]
+  cleanup : () -> Bool
+}
+
+pub(all) struct ModelResponse {
+  value : @value_admission.Value
+  provider_model : String
+  provider_request_id : String
+  input_tokens : Int64
+  output_tokens : Int64
+  observed_at : String
+}
+
+pub(all) struct ModelSlotCapture {
+  slot : Int
+  slot_cid : String
+  input_key_cid : String
+  fixed_request_cid : String
+  provider_id : String
+  provider_model : String
+  provider_request_id : String
+  value : @value_admission.CheckedValue
+  input_tokens : Int64
+  output_tokens : Int64
+  observed_at : String
+}
+
+pub struct ModelSlotReplayRead {
+  storage : ModelSlotReplayStorage
+  mut released : Bool
+}
+
+type ModelSlotReplayStorage
+
+type ModelState
+
+pub struct VerifiedModelCapture {
+  owner : ModelExecution
+  mut released : Bool
+}
+
+// Type aliases
+pub type ModelPhysicalPreflight = (ModelRequest) -> Result[ModelRequestPreflight, ModelExecutionIssue]
+
+// Traits

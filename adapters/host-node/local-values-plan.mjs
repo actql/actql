@@ -50,7 +50,8 @@ function buildLocalPublicationPlan({control, admission, runDefinition, invocatio
   observation, compiledPlanCid, programDefinitionCid, inputRelationCids,
   sourceEvidence, authorityScopeCid, namespaceId, storeAuthorityCid,
   dataPolicyCid, createdAt, now, resultCount, retainUntil,
-  compiled, preparedProgram, effectCompilation, preparedEffect, moon}) {
+  compiled, preparedProgram, effectCompilation, preparedEffect, moon,
+  modelEvidence = []}) {
   const at = Date.parse(now());
   const availableAt = retainUntil === undefined ? at + 60 * 60 * 1000
     : Math.max(at + 60 * 60 * 1000, Date.parse(retainUntil));
@@ -94,9 +95,9 @@ function buildLocalPublicationPlan({control, admission, runDefinition, invocatio
       })});
     })),
     receiptEvidence: Object.freeze({bindings: [], sourceEvidence,
-      modelEvidence: [], barrierAttemptReceiptCids: []}),
+      modelEvidence: Object.freeze([...modelEvidence]), barrierAttemptReceiptCids: []}),
     captureEvidence: Object.freeze({pendingSourceStateAdvances: [],
-      modelEvidence: []}),
+      modelEvidence: Object.freeze([...modelEvidence])}),
     request: Object.freeze({namespaceId, authorityScopeCid,
       publicationPolicyCid: policyCid('local-publication'),
       publicationTargetCid: storeAuthorityCid, requestedAt: createdAt}),
@@ -272,8 +273,55 @@ export function sourceFreeValuesPlan({moon, control, preparedProgram,
 // same portable Run owner used by the installed source-free profile. Physical
 // acquisition and Source Evidence must still be established before this Run
 // can be published; this admission alone never authorizes provider I/O.
-export function acquiredTaskRunAdmission({moon, control, preparedProgram,
-  authorityScopeCid, namespaceId, now, retainedDefinitionWire}) {
+export function acquiredTaskRunAdmission(options) {
+  return checkedTaskRunAdmission(options, 'tasks');
+}
+
+// The model graph belongs to the original prepared Program. Compilation
+// verifies that ownership; no source-free Observation Set is issued for a
+// model barrier. Capture and its common issuer must supply it after dispatch.
+export function inferTaskRunAdmission(options) {
+  if (options.inferGraph === undefined) {
+    throw new TypeError('MissingInstalledInferGraph');
+  }
+  return checkedTaskRunAdmission(options, 'infer');
+}
+
+// Only the common issuer can attach a model observation to this exact Run.
+// Retention and Result evidence reuse the ordinary publication plan. The
+// caller owns the returned binding until all Store users have settled.
+export function inferTaskPublicationPlan({moon, control, preparedProgram,
+  admitted, operation, issuance, modelEvidence, authorityScopeCid, namespaceId,
+  storeAuthorityCid, now}) {
+  control.checkClientCompiledRunOwner(admitted.compiled, preparedProgram);
+  if (admitted.kind !== 'infer' || !Array.isArray(modelEvidence)) {
+    throw new TypeError('InvalidInferPublicationAdmission');
+  }
+  const issued = operation.bindIssuedInvocation(control, {
+    compiled: admitted.compiled, runDefinition: admitted.runDefinition,
+    issued: issuance});
+  try {
+    const observation = JSON.parse(issued.observation.wire);
+    const plan = localPublicationPlan({control,
+      admission: admitted.admission, runDefinition: admitted.runDefinition,
+      invocation: issued.invocation, observation: issued.observation,
+      compiledPlanCid: admitted.compiledPlan.identity,
+      programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
+      inputRelationCids: observation.captured_input_artifact_cids,
+      sourceEvidence: [], modelEvidence, authorityScopeCid, namespaceId,
+      storeAuthorityCid, dataPolicyCid: observation.data_policy_cid,
+      createdAt: admitted.createdAt, now,
+      resultCount: moon.clientProgramResultCount(preparedProgram),
+      compiled: admitted.compiled, preparedProgram});
+    return Object.freeze({plan, ...issued});
+  } catch (error) {
+    moon.clientProgramReleaseInferInvocationBinding(issued.binding);
+    throw error;
+  }
+}
+
+function checkedTaskRunAdmission({control, preparedProgram, inferGraph,
+  authorityScopeCid, namespaceId, now, retainedDefinitionWire}, kind) {
   const at = Date.parse(now());
   if (!Number.isFinite(at)) throw new TypeError('InvalidLocalClock');
   const retained = retainedDefinitionWire === undefined ? undefined :
@@ -284,14 +332,16 @@ export function acquiredTaskRunAdmission({moon, control, preparedProgram,
   const contextCid = cid({version: 'actql-installed-local-context/0.1',
     authority_scope_cid: authorityScopeCid});
   const compiled = control.prepareCheckedClientCompiledRun(preparedProgram,
-    'tasks', {executionContextCid: contextCid,
-      hostPolicyCid: policyCid('checked-tasks'), expiresAt: validUntil});
+    kind, {executionContextCid: contextCid,
+      hostPolicyCid: policyCid(kind === 'infer' ? 'checked-infer' : 'checked-tasks'),
+      expiresAt: validUntil}, inferGraph);
   const {admission, compiledPlan} = compiled;
   const runDefinition = control.defineCheckedClientCompiledRun(compiled, {
     namespaceId, runId: randomUUID(), createdAt, validUntil,
     retainedDefinitionWire,
   });
-  return Object.freeze({...compiled, compiled, runDefinition, createdAt});
+  return Object.freeze({...compiled, compiled, runDefinition, createdAt,
+    ...(kind === 'infer' ? {inferGraph} : {})});
 }
 
 // Multi-task source-free Programs use the common task compiler and the same

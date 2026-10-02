@@ -192,7 +192,8 @@ pub fn prepare_kernel_roots(
     | GraphConstructionStep(_)
     | VectorStep(_)
     | EventStep(_)
-    | CarrierProjectionStep(_) => return Err(NotExpressionKernel)
+    | CarrierProjectionStep(_)
+    | InferBoundary(_) => return Err(NotExpressionKernel)
     RowStep(kernel) =>
       match kernel.body {
         Select(_)
@@ -265,7 +266,8 @@ fn prepare_root_range(
       | GraphConstructionStep(_)
       | VectorStep(_)
       | EventStep(_)
-      | CarrierProjectionStep(_) => continue
+      | CarrierProjectionStep(_)
+      | InferBoundary(_) => continue
       SequenceMatchStep(sequence_match) => {
         for index in 0..<sequence_match.predicates.length() {
           let pointer = "/pattern/" + index.to_string() + "/where"

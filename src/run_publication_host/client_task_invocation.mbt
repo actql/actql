@@ -20,6 +20,9 @@ pub fn issue_client_task_invocation(
   (@publication.RunEvidenceValue, @publication.PublicationContract),
   @publication.RunEvidenceValueIssue,
 ] {
+  if compilation.infer is Some(_) {
+    return Err(@publication.RunEvidenceReferenceMismatch("model_capture"))
+  }
   if prepared_client_acquisition_count(prepared) != 1 ||
     bind_client_task_run(prepared, compilation, admission, run_definition)
     is Err(_) {
@@ -270,6 +273,10 @@ pub fn issue_client_multi_task_invocation(
   (@publication.RunEvidenceValue, @publication.PublicationContract),
   @publication.RunEvidenceValueIssue,
 ] {
+  // Source observations cannot discharge the model capture custody boundary.
+  if compilation.infer is Some(_) {
+    return Err(@publication.RunEvidenceReferenceMismatch("model_capture"))
+  }
   if bind_client_task_run(prepared, compilation, admission, run_definition)
     is Err(_) {
     return Err(@publication.RunEvidenceReferenceMismatch("task_run"))

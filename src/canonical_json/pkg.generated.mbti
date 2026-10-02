@@ -8,6 +8,10 @@ import {
 }
 
 // Values
+pub fn[T] array_at(FrozenArray[T], Int) -> T?
+
+pub fn[T] array_count(FrozenArray[T]) -> Int
+
 pub fn[T] array_values(FrozenArray[T]) -> Array[T]
 
 pub fn cid_value(CanonicalValue, Int, Int, Int) -> String raise @encode_core.EncodeFailure

@@ -285,9 +285,9 @@ pub fn prepare_effect_plan_terminal(EffectMappingRuleBinding, Int) -> Result[Eff
 
 pub fn prepare_effect_static_candidate(@stage_syntax.EffectHeaders, Checked, @check_environment.WireEnvironment, @check_environment.MappingContractShapes, @check_environment.CatalogReferences, EffectStaticCandidateLimits) -> Result[EffectStaticCandidate, EffectStaticCandidateIssue]
 
-pub fn prepare_local_program(@stage_parameters.Source, LocalProgramLimits, environment? : @stage_local_inputs.ProgramEnvironmentInputs?, sourceview_registrations? : Array[Array[(String, @pipeline_typing.InputContract)]]?, calendar_profile? : @calendar_profile.Profile?) -> Result[(ResultWiring, LocalProgramUsage), LocalProgramIssue]
+pub fn prepare_local_program(@stage_parameters.Source, LocalProgramLimits, environment? : @stage_local_inputs.ProgramEnvironmentInputs?, sourceview_registrations? : Array[Array[(String, @pipeline_typing.InputContract)]]?, calendar_profile? : @calendar_profile.Profile?, model_tasks? : @check_environment.ModelTasks?) -> Result[(ResultWiring, LocalProgramUsage), LocalProgramIssue]
 
-pub fn prepare_local_source(@stage_syntax.Program, @decode_core.Cursor?, max_parameters~ : Int, LocalProgramLimits, environment? : @check_environment.WireEnvironment?, calendar_profile? : @calendar_profile.Profile?) -> Result[PreparedLocalSource, LocalSourceIssue]
+pub fn prepare_local_source(@stage_syntax.Program, @decode_core.Cursor?, max_parameters~ : Int, LocalProgramLimits, environment? : @check_environment.WireEnvironment?, calendar_profile? : @calendar_profile.Profile?, model_tasks? : @check_environment.ModelTasks?) -> Result[PreparedLocalSource, LocalSourceIssue]
 
 pub fn project_effect_plan_row(EffectPlanTerminal, @canonical_json.CanonicalValue, Int, Int, Int) -> Result[EffectPlanRow, EffectPlanRowIssue]
 
@@ -719,6 +719,7 @@ pub enum LocalProgramIssue {
   InvalidLimits
   BudgetExceeded
   ForeignEnvironmentSource
+  ForeignModelEnvironment
   SourceViewStageCount
   MissingSourceViewRegistrations(Int)
   InvalidSourceViewRegistration(Int, String)

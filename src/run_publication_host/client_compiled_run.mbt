@@ -36,6 +36,18 @@ pub fn client_compiled_run_matches(
 }
 
 ///|
+/// The shared Run owner retains the selected model barrier through admission.
+/// None denotes another compilation path, not permission to synthesize one.
+pub fn client_compiled_run_infer(
+  value : ClientCompiledRun,
+) -> ClientInferPlanGraph? {
+  match value.compilation {
+    Values(_) => None
+    Tasks(compilation) => compilation.infer
+  }
+}
+
+///|
 /// Retrieve the exact checked selection retained by compilation. None means
 /// a direct Result, not permission to accept a foreign or missing occurrence.
 pub fn client_compiled_run_result_transformation(

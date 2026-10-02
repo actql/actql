@@ -57,6 +57,29 @@ pub fn client_result_transformation_plan(
 }
 
 ///|
+/// Publication inventory readers preserve the actual checked Result selection.
+/// A caller-supplied name or task number cannot replace this occurrence.
+pub fn client_result_transformation_name(
+  value : ClientResultTransformation,
+) -> String {
+  @execution.managed_result_occurrence_name(value.occurrence)
+}
+
+///|
+pub fn client_result_transformation_task(
+  value : ClientResultTransformation,
+) -> Int {
+  @strategy.graph_result_task(value.owner.graph, value.result).unwrap()
+}
+
+///|
+pub fn client_result_transformation_definition(
+  value : ClientResultTransformation,
+) -> @publication.PublicationContract {
+  value.definition
+}
+
+///|
 pub fn client_result_transformation_matches(
   value : ClientResultTransformation,
   owner : PreparedClientProgram,

@@ -13,7 +13,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   store, checkpoints, startRun, hostConnection, beforeDispatch, observed,
   prepareAcquisition, planFor, sourceProfile, registry, values, fragment,
   ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
-  faultInjection,
+  faultInjection, runInfer,
   runPublished = runPublishedCapturedStrategy}) {
   const entries = new Map();
   const diagnostic = diagnosticObserver(observed);
@@ -70,6 +70,16 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     entry.stopObserved = true;
   }
 
+  async function settleCleanupHandle(entry) {
+    if (entry.cleanupHandle === undefined) return;
+    const handle = entry.cleanupHandle;
+    if (handle.status()?.pending === true) await handle.retry();
+    if (handle.status()?.pending !== false) {
+      throw new Error('ClientDispatchCleanupPending');
+    }
+    entry.cleanupHandle = undefined;
+  }
+
   async function settleCleanup(entry) {
     const execution = entry.cleanupOwner;
     if (entry.multiSources && entry.sourceCapture !== undefined) {
@@ -102,6 +112,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       // owned by cleanup, not by invoking close again or repeating Compute.
       try { await execution.close(); }
       catch (failure) { entry.closeFailure ??= failure; }
+      // A failed Store consumer can still pin the completed output. Ask the
+      // retained Store owner to settle before retrying the execution's
+      // reclamation; cancellation alone still grants neither release.
+      await settleCleanupHandle(entry);
       const recovered = await execution.cleanup();
       if (recovered === false || execution.cleanupPending() !== false) {
         throw new Error('ClientDispatchCleanupPending');
@@ -118,15 +132,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       if (!entry.computeStartAttempted) entry.stopObservationPending = true;
     }
     if (entry.stopObservationPending) await observeStop(entry);
-    if (entry.cleanupHandle !== undefined) {
-      const handle = entry.cleanupHandle;
-      const status = handle.status();
-      if (status?.pending === true) await handle.retry();
-      if (handle.status()?.pending !== false) {
-        throw new Error('ClientDispatchCleanupPending');
-      }
-      entry.cleanupHandle = undefined;
-    }
+    await settleCleanupHandle(entry);
     if (entry.unresolvedCleanup) {
       throw new Error('ClientDispatchCleanupOwnerMissing');
     }
@@ -199,6 +205,13 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       }
       const acquiring = sourceProfile !== undefined &&
         moon.clientProgramAcquisitionCount(preparedProgram) > 0;
+      const inferring = held.plan.kind === 'infer';
+      // A checked model barrier is not a Values task. The installed Model
+      // connection must consume this exact plan and transfer physical custody
+      // before advancing; this supervisor still owns the one Run-start claim.
+      if (inferring && (acquiring || typeof runInfer !== 'function')) {
+        throw new Error('InstalledInferDispatchUnavailable');
+      }
       const multiple = held.preparedSources?.length === 2;
       const installedSource = acquiring && !multiple
         ? installedSourceFor(sourceProfile, held.preparedSource.checkedSource.sourceRef) : undefined;
@@ -214,7 +227,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         entry.acquisitionLedger = ledger;
       }
       let setup;
-      if (!acquiring) {
+      if (!acquiring && !inferring) {
         setup = moon.clientProgramOpenSourceFreeLocalHost(
           preparedProgram, registry, values, 1n, 0n, 0n, 0n,
           fragment, ordered);
@@ -366,6 +379,33 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       entry.abort.signal.throwIfAborted();
       entry.physicalWorkMayHaveStarted = true;
       entry.computeStartAttempted = true;
+      if (inferring) {
+        await runInfer({preparedProgram, plan: held.plan, store,
+          principalId: actual, signal: entry.abort.signal,
+          retainExecution(execution) {
+            if (entry.cleanupOwner !== undefined &&
+                entry.cleanupOwner !== execution) {
+              throw new TypeError('ClientDispatchCleanupOwnerAlreadyRetained');
+            }
+            if (typeof execution?.close !== 'function' ||
+                typeof execution?.cleanup !== 'function' ||
+                typeof execution?.cleanupPending !== 'function') {
+              throw new TypeError('ClientDispatchCleanupOwnerInvalid');
+            }
+            entry.cleanupOwner = execution;
+          }});
+        // Success is the existing Store's committed index, not merely a
+        // returned model value or a completed private capture.
+        if (entry.cleanupOwner === undefined ||
+            await store.confirmCommittedIndex(entry.ref) === undefined) {
+          throw new Error('InstalledInferPublicationIncomplete');
+        }
+        entry.publicationCommitted = true;
+        await step('computed', {ref: accepted.ref});
+        await settleCleanup(entry);
+        await finishRun(entry);
+        return;
+      }
       const published = await runPublished(setup,
         {store, plan: held.plan},
         sourceAccess === undefined ? {} :

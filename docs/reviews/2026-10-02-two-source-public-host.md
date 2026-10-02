@@ -1,7 +1,7 @@
 # Two-source public Host, 2026-10-02
 
-Integration baseline: `16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a`, including
-merged #172, #173, #175, #176 and #177.
+Integration baseline: `9fe3e2d738b541c17414a5eb09cd759c3e99adb4`, including
+merged #172, #173, #175, #176, #177, #178, #179 and #181.
 
 This unit connects an ordinary JSON Program with two independently configured
 DuckDB acquisition-prefix stages to the existing relational JOIN, explicitly
@@ -55,6 +55,13 @@ Effects, INFER, new providers, arbitrary interleaved acquisitions and Cloud
 execution are outside this unit. #170 separately concerns single-input native
 versus broad/residual acquisition competition; this report makes no additional
 plural-broad commitment.
+
+The merged single-call, source-free INFER implementation retains its own
+admission, capture-only replay and cleanup owners. Already-started source Runs
+return before rebuilding their physical preparations; INFER continues to its
+existing saved-capture replay path. Both acquired invocation issuers reject an
+INFER compilation rather than treating its model custody as Source Evidence.
+Incoming canonical contracts and proof declarations are preserved unchanged.
 
 ## Ownership and evidence
 
@@ -120,13 +127,15 @@ Focused source verification uses pinned Node 22.22.0 and MoonBit
 0.10.12+1634b282e. The fixtures use actual independent DuckDB databases and
 existing capability admission; expected rows are authored independently.
 
-- Common publication and physical strategy packages: 51 tests passed on each
+- Common publication and physical strategy packages: 62 tests passed on each
   of JS, wasm and native, including exact two-source policy coverage and
   ObservationSet encoding
-- Native capture custody: 7 tests passed, including final cache-release hygiene
-- Post-integration focused Host compatibility: 211 tests passed, including
+- Native capture custody and coordinator: 8 tests passed, including final
+  cache-release hygiene and the actual checked dispatch boundary
+- Post-integration focused Host compatibility: 278 tests passed, including
   existing single-source Checkpoint initialization cleanup, public check and
-  disclosure, Effect acquisition, and the suites below
+  disclosure, Effect acquisition, INFER saved-capture replay/Store pin cleanup,
+  and the suites below
 - Request journal and two-source Checkpoint suite: 93 tests passed, covering
   immutable admission, racing/restarted inventory, corruption, strict UTF-8,
   two held approvals, expiration, current configuration, cancellation and

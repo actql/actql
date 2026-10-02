@@ -167,6 +167,20 @@ pub fn run_publication_authorization(
 }
 
 ///|
+pub fn run_publication_execution_context(
+  admission : RunPublicationAdmission,
+) -> String {
+  admission.authorization_context_cid
+}
+
+///|
+pub fn run_publication_host_policy(
+  admission : RunPublicationAdmission,
+) -> String {
+  contract_string_from_value(admission.prepared.value, "host_policy_cid").unwrap()
+}
+
+///|
 pub fn run_publication_compiled_plan_cid(
   admission : RunPublicationAdmission,
 ) -> String {

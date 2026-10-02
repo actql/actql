@@ -21,6 +21,11 @@ import {retireCompletedEffectfulCapture} from
 import {installNodeClientProgramPreparation} from
   './client-program-preparation.mjs';
 import {sourceAliasPublication} from './source-alias-publication.mjs';
+import {installedModelEnvironment, readInstalledModelExecution,
+  readInstalledModelDependencies, installModelProviders,
+  admitInstalledModelProvider, observeInstalledModelAccount} from
+  './installed-model.mjs';
+import {installNodeInferRun} from './installed-infer-run.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {issueInstalledRunControlObservation,
@@ -57,7 +62,7 @@ import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {localContractLimits, localOutputLimits,
   sourceFreeValuesPlan, sourceFreeTaskPlan,
   sourceFreeEffectPublicationPlan, acquiredEffectPublicationAdmission,
-  acquiredTaskRunAdmission} from
+  acquiredTaskRunAdmission, inferTaskRunAdmission} from
   './local-values-plan.mjs';
 
 const packageRoot = fileURLToPath(new URL('../../', import.meta.url));
@@ -100,6 +105,8 @@ async function embeddedInstallationIdentity(root, installation) {
   const identity = bytesCid(canonicalJson({
     version: 'actql-embedded-installation/0.1', root,
     source, effect, accountIdentity, ordinary,
+    ...(installation?.modelInstallation === undefined ? {} : {
+      modelEnvironment: installation.modelInstallation}),
     hostKey: authorization?.hostKey === undefined ? null : {
       keyId: authorization.hostKey.keyId,
       publicKeyCid: publicKeyCid(authorization.hostKey.privateKey)},
@@ -110,6 +117,7 @@ async function embeddedInstallationIdentity(root, installation) {
   return Object.freeze({identity, callbacks: Object.freeze({
     resolveSourceSecret: installation?.resolveSourceSecret,
     resolveEffectSecret: installation?.resolveEffectSecret,
+    registerModelProviders: installation?.registerModelProviders,
     decide: authorization?.decide, observe: authorization?.observe,
     faultInjection: authorization?.faultInjection})});
 }
@@ -135,7 +143,8 @@ const REALIZATION_KEY = 'source-free-values';
 
 async function openInstalledHost({root, mode = 'local', beforeDispatch,
   authorization, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
-  effectProfilePath, resolveEffectSecret, effectInstallation}) {
+  effectProfilePath, resolveEffectSecret, effectInstallation,
+  modelInstallation, registerModelProviders}) {
   const selectedSourcePaths = installedSourcePaths({sourceProfilePath, sourceProfilePaths});
   const selectedEffectPath = effectProfilePath ??
     process.env.ACTQL_LOCAL_EFFECT_PROFILE;
@@ -145,6 +154,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   await admitHostRootFormat(root);
   const moon = await import(runtimeUrl.href);
   const control = runtimeCore(moon).publicationControl;
+  const modelProviders = installModelProviders(moon, registerModelProviders);
+  const inferSelections = new WeakMap();
   const principalId = userInfo().username;
   const baseEnvironmentWire = (await readFile(join(packageRoot,
     'spec/local-check-environment.json'), 'utf8')).trimEnd();
@@ -178,6 +189,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     environmentWire = composeInstalledCheckEnvironment(moon,
       baseEnvironmentWire, sourceProfile?.environmentWire,
       effectInstallation?.environmentWire);
+    environmentWire = installedModelEnvironment(moon, baseEnvironmentWire,
+      environmentWire, modelInstallation);
     const {evidence_bundle_cid: ignored, ...body} = JSON.parse(environmentWire);
     void ignored;
     body.host_policy_profile = {...body.host_policy_profile,
@@ -252,8 +265,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
     await mkdir(journalDirectory, {recursive: true, mode: 0o700});
     journal = openClientRequestJournal(journalDirectory);
-    if (effectInstallation !== undefined &&
-        effectInstallation.privateEvidenceKey === undefined) {
+    if ((effectInstallation !== undefined || modelInstallation !== undefined) &&
+        effectInstallation?.privateEvidenceKey === undefined) {
       const keyDirectory = join(root, 'checkpoints');
       try {
         effectEvidenceKey = await loadPrivateEvidenceKey(keyDirectory);
@@ -273,8 +286,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       maxObjectBytes: localOutputLimits.maxWireBytes,
       maxObjects: 10000, maxContractNodes: 10000,
       maxContractDepth: 64,
-      ...(effectInstallation === undefined ? {} : {
-        privateEvidenceKey: effectInstallation.privateEvidenceKey ??
+      ...(effectInstallation === undefined && modelInstallation === undefined ? {} : {
+        privateEvidenceKey: effectInstallation?.privateEvidenceKey ??
           effectEvidenceKey?.key}),
     }, control);
     effectEvidenceKey?.key.fill(0);
@@ -597,6 +610,86 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       }
     }
     if (selectedAdapters.size !== acquisitionCount) throw clientOperationError('ClientProgramUnsupported');
+    // Static ModelTask admission cannot authorize a model call. Until the
+    // installed dependency/dispatch route is present, refuse before admitting
+    // a Run rather than sending this acquisition into a Values fallback.
+    if (moon.clientProgramSelectedInferStep(preparedProgram) !== undefined) {
+      let execution;
+      try {
+        ({execution} = readInstalledModelExecution(moon, preparedProgram,
+          modelInstallation));
+      } catch (cause) {
+        diagnostic('infer_preparation_rejected', {boundary: 'model_execution',
+          code: cause.code, cause: cause.cause ?? cause,
+          typedCause: cause.code === 'MoonBitHostFailure' ?
+            moon.clientProgramInferModelExecutionIssueKind(cause.cause) :
+            undefined});
+        throw clientOperationError('ClientProgramUnsupported', cause);
+      }
+      let dependencies;
+      try {
+        dependencies = readInstalledModelDependencies(moon, execution,
+          modelInstallation);
+      } catch (cause) {
+        diagnostic('infer_preparation_rejected', {boundary: 'model_dependencies',
+          code: cause.code, cause: cause.cause ?? cause,
+          typedCause: cause.code === 'MoonBitHostFailure' ?
+            moon.clientProgramInferModelDependencyIssueKind(cause.cause) :
+            undefined});
+        throw clientOperationError('ClientProgramUnsupported', cause);
+      }
+      let admittedProvider;
+      try {
+        admittedProvider = admitInstalledModelProvider(moon, execution, dependencies,
+          modelProviders);
+      } catch (cause) {
+        diagnostic('infer_preparation_rejected', {boundary: 'model_provider',
+          code: cause.code, cause: cause.cause ?? cause,
+          typedCause: cause.code === 'MoonBitHostFailure' ?
+            moon.clientProgramModelProviderAdmissionIssueKind(cause.cause) :
+            undefined});
+        throw clientOperationError('ClientProgramUnsupported', cause);
+      }
+      const physical = modelProviders.get(moon.clientProgramInferProviderId(execution));
+      // Legacy registrations only validate payloads. They cannot implicitly
+      // opt into physical preparation or invent an egress observation.
+      if (typeof physical?.physicalPreflight !== 'function' ||
+          typeof physical?.observeEgress !== 'function' ||
+          physical?.quantityCapacity === undefined) {
+        diagnostic('infer_preparation_rejected', {boundary: 'model_dispatch',
+          code: 'InstalledInferDispatchNotConnected'});
+        throw clientOperationError('ClientProgramUnsupported',
+          new Error('InstalledInferDispatchNotConnected'));
+      }
+      try {
+        const step = moon.clientProgramSelectedInferStep(preparedProgram);
+        const computeSuffix = checked(moon.clientProgramPrepareInferComputeSuffix(
+          preparedProgram, step, registry, values, fragment, ordered));
+        const egressAdmission = checked(moon.clientProgramAdmitInferEgress(
+          preparedProgram, step, execution, physical.observeEgress));
+        const observeAccount = () => observeInstalledModelAccount(moon, authorization);
+        const account = observeAccount();
+        const decision = moon.executionAuthorizationEvaluate(account, principalId,
+          moon.clientProgramInferProviderId(execution),
+          moon.clientProgramInferModelTaskCid(preparedProgram, step), 'infer');
+        const outcome = JSON.parse(moon.executionAuthorizationEvaluationJson(decision));
+        if (outcome.outcome !== 'allow') {
+          throw Object.assign(new Error('InstalledInferAuthorityUnavailable'),
+            {code: 'InstalledInferAuthorityUnavailable', cause: outcome});
+        }
+        const graph = checked(moon.clientProgramInstalledInferPlanGraph(
+          preparedProgram, step, execution));
+        inferSelections.set(preparedProgram, Object.freeze({step, graph, computeSuffix,
+          provider: moon.clientProgramAdmittedModelProvider(admittedProvider, execution),
+          egressAdmission, account, observeAccount,
+          physicalPreflight: physical.physicalPreflight,
+          quantityCapacity: physical.quantityCapacity}));
+      } catch (cause) {
+        diagnostic('infer_preparation_rejected', {boundary: 'model_admission',
+          code: cause.code, cause: cause.cause ?? cause});
+        throw clientOperationError('ClientProgramUnsupported', cause);
+      }
+    }
     const requested = moon.clientProgramRequestIdentity(preparedProgram,
       authorityScopeCid, requestId,
       moon.clientProgramSourceFreeInputIntentCid());
@@ -662,6 +755,10 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       authorityScopeCid, namespaceId, requestId, storeAuthorityCid, now,
       ...(retainedDefinitionWire === undefined ? {} :
         {retainedDefinitionWire})};
+    const infer = inferSelections.get(preparedProgram);
+    if (infer !== undefined) {
+      return inferTaskRunAdmission({...common, inferGraph: infer.graph});
+    }
     return sourceProfile !== undefined &&
       moon.clientProgramPrepareQueryAcquisition(preparedProgram, 0, 0)?.$tag ===
         1
@@ -699,11 +796,15 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   // Composition installs one owner for dispatch, cancellation, stop, and
   // cleanup. Checkpoint and HTTP paths share this owner.
   const observed = diagnostic;
+  const runInfer = installNodeInferRun({moon, core: runtimeCore(moon),
+    registry, values, selections: inferSelections, namespaceId, authorityScopeCid,
+    storeAuthorityCid, now, faultInjection: authorization?.faultInjection});
   dispatchOwner = installNodeClientDispatchOwner({moon, control,
     journal, store, checkpoints, startRun, hostConnection, beforeDispatch,
     observed, prepareAcquisition, planFor, sourceProfile, registry, values,
     faultInjection: authorization?.faultInjection,
-    fragment, ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now});
+    fragment, ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
+    runInfer});
   const startDispatch = dispatchOwner.start;
   const recoverEffectCapture = (ref, signal) => {
     const retained = journal.lookupRunDefinition(ref, moon, control);
@@ -867,8 +968,10 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     }
     // A reserved physical start can only be reconciled from its original
     // durable Run. Do this before rebuilding physical source preparations.
+    // INFER continues to its existing saved-capture replay owner below.
     const retainedStart = journal.resolveDefinition(requested, {namespaceId}, moon, control);
-    if (retainedStart?.physicalStartReserved === true) {
+    if (retainedStart?.physicalStartReserved === true &&
+        !inferSelections.has(submission.preparedProgram)) {
       return {ref: retainedStart.ref, durability: retainedStart.durability,
         revision: retainedStart.revision};
     }
@@ -935,6 +1038,38 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         installedSourceFor(sourceProfile, preparedSource.checkedSource.sourceRef).sourceAccess};
     const accepted = await admitDefinition(submission, requested,
       resultNames, held);
+    if (inferSelections.has(submission.preparedProgram) &&
+        accepted.physicalStartReserved === true &&
+        accepted.observedTerminalOutcome === null &&
+        !accepted.cancellationRequested &&
+        dispatchOwner.operation(accepted.ref) === undefined &&
+        await store.confirmCommittedIndex(accepted.ref) === undefined) {
+      // Re-submission of the exact accepted request may reopen its saved
+      // evidence, never reserve another provider dispatch. Missing evidence
+      // leaves the original unknown Run intact.
+      const flight = dispatchOwner.track(accepted.ref, {
+        run: async ({signal, retainExecution, beginPhysicalWork}) => {
+          const current = journal.lookupRunDefinition(accepted.ref, moon, control);
+          if (current === undefined || current.cancellationRequested ||
+              current.observedTerminalOutcome !== null) return;
+          const plan = planFor(submission, current.runDefinition.wire);
+          await runInfer({preparedProgram: submission.preparedProgram, plan,
+            store, principalId: actual, signal, retainExecution,
+            beginPhysicalWork, replay: true});
+        },
+        observeStopped: async () => {
+          // Only the existing publication owner can make recovery successful.
+          // A reader refusal does not resolve the original physical outcome.
+          if (await store.confirmCommittedIndex(accepted.ref) !== undefined) {
+            journal.markPhysicalClose(accepted.ref, null);
+          }
+        },
+      });
+      void flight.catch(error => diagnostic('infer_replay_failed', {
+        ref: accepted.ref, code: error?.code ?? error?.message}));
+      return {ref: accepted.ref, durability: accepted.durability,
+        revision: accepted.revision};
+    }
     // A resumed request's journal Run (if any) ends with its dispatch.
     startDispatch(submission, requested, accepted, held,
       checkpoints === undefined ? undefined : status =>
@@ -1419,7 +1554,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
 export async function openInstalledRemoteHttpHost({directory,
   authenticate, beforeDispatch, authorization, sourceProfilePath, sourceProfilePaths,
   resolveSourceSecret, effectProfilePath, resolveEffectSecret,
-  effectInstallation}) {
+  effectInstallation, modelInstallation, registerModelProviders}) {
   if (typeof directory !== 'string' || !directory ||
       typeof authenticate !== 'function' ||
       beforeDispatch !== undefined && typeof beforeDispatch !== 'function') {
@@ -1427,7 +1562,8 @@ export async function openInstalledRemoteHttpHost({directory,
   }
   const host = await openInstalledHost({root: resolve(directory), mode: 'remote',
     beforeDispatch, authorization, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
-    effectProfilePath, resolveEffectSecret, effectInstallation});
+    effectProfilePath, resolveEffectSecret, effectInstallation,
+    modelInstallation, registerModelProviders});
   const handle = createClientHttpHandler({
     ...host.hostOperations, authenticate, maxRequestBytes: 65536,
   });
@@ -1529,7 +1665,9 @@ export async function connectEmbeddedLocal(options) {
         sourceProfilePaths: installation?.sourceProfilePaths,
         resolveSourceSecret: installation?.resolveSourceSecret,
         effectProfilePath: installation?.effectProfilePath,
-        resolveEffectSecret: installation?.resolveEffectSecret})});
+        resolveEffectSecret: installation?.resolveEffectSecret,
+        modelInstallation: installation?.modelInstallation,
+        registerModelProviders: installation?.registerModelProviders})});
     profiles.set(root, opened);
     opened.host.catch(() => {
       if (profiles.get(root) === opened) profiles.delete(root);
