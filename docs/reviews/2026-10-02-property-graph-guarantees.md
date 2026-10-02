@@ -515,3 +515,33 @@ The narrow construction/selector suite also passes 20/20. Obsolete homogeneous
 node traversal fixtures are not evidence for current support. Other retired
 consumer kernels and typed/storage APIs still need removal; no final acceptance
 or public-source replacement is claimed here.
+
+## Remaining Local consumer kernel retirement
+
+The old scalar/weighted shortest, endpoint-tuple equality, delta generation
+and delta application execution kernels and public handles are deleted. The
+Local SGA package now contains only current MATCH, keyed path execution and
+their exact stored/viewed read adapter; it no longer imports a delta/snapshot
+execution fallback. The unused definition-free edge-index reader is removed.
+
+The mixed integration fixture withdraws 19 old shortest tests, 14 old
+equality/diff/apply tests and their private helpers. A pure obsolete delta
+resource fixture is also removed. Historical bodies remain in Git. Weighted
+path selection, equality alignment, tuple delta actions and their exact work
+formulas are not current guarantees or current supported algorithms. They
+remain explicitly refused at the typed boundary. Generic exact producer
+binding, retained input lifetime, two consumers, empty outputs, one-short
+admission, cancellation and private reclamation remain positive in the current
+storage/runtime, constructor, MATCH, TRAIL selector and snapshot suites.
+
+After integrating main `bcbf77049fe4991c9b0f1a18541ac7a7952b01ad`, the foundation
+history validator passes without changing any frozen hash or validation rule:
+`/private/tmp/property-graph-current-main-foundation-20261002.log`. The five
+bound-fixture audit regressions pass; this is not the full pipeline evidence
+gate. Related Graph suites pass **99/99 each on JS, Wasm and native**:
+`/private/tmp/property-graph-remaining-consumer-retirement-focused-{js,wasm,native}-20261002.log`.
+
+Old Carrier constructor/getters, obsolete storage/runtime entry points and
+mixed old fixture scaffolding still need removal. Full Core/spec and strict
+resource-route inventory, plus fresh public snapshot and submitted-SHA CI,
+remain required. No final handoff or merge is authorized by this local result.

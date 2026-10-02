@@ -209,22 +209,3 @@ fn graph_read_edge_property(
       @lifecycle.producer_view_edge_property(view, edge, property).to_option()
   }
 }
-
-///|
-fn graph_read_edge_index(
-  source : GraphReadSource,
-  from : @value.CheckedValue,
-  to : @value.CheckedValue,
-  label : @value.CheckedValue?,
-) -> Result[Int?, Unit] {
-  match source {
-    Stored(read) =>
-      match @graph.producer_read_storage(read) {
-        Some(storage) =>
-          @storage.edge_index(storage, from, to, label).map_err(_ => ())
-        None => Err(())
-      }
-    Viewed(view) =>
-      @lifecycle.producer_view_edge_index(view, from, to, label).map_err(_ => ())
-  }
-}
