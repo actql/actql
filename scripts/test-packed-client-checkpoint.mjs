@@ -117,7 +117,7 @@ import {appendFileSync, existsSync, readFileSync, writeFileSync} from
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {openInstalledRemoteHttpHost} from
-  './node_modules/@actql/local-node/adapters/host-node/embedded-local.mjs';
+  '@actql/local-node/http-host';
 const log = event => appendFileSync(process.env.EVENTS, event + '\\n');
 const outcome = process.env.OUTCOME;
 const canonical = value => Array.isArray(value)
