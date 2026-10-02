@@ -25,7 +25,8 @@ test('integrated foundation remains byte-pinned without rewriting the original e
       mkdirSync(dirname(join(fixture, file)), { recursive: true });
       copyFileSync(join(root, file), join(fixture, file));
     }
-    for (const file of ['proofs/relation-pipeline/current-foundation.json',
+    for (const file of ['proofs/relation-pipeline/reuse-baseline.json',
+      'proofs/relation-pipeline/current-foundation.json',
       ...current.addedFoundation.map(entry => entry.path)]) {
       mkdirSync(dirname(join(fixture, file)), { recursive: true });
       copyFileSync(join(root, file), join(fixture, file));
