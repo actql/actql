@@ -13,6 +13,7 @@ pub struct InvocationBinding {
   output_use : OutputUse
   observation : @publication.RunEvidenceValue
   invocation : @publication.PublicationContract
+  issuance : ObservationIssuance?
 }
 
 ///|
@@ -160,7 +161,7 @@ pub fn bind_invocation(
   guard acquire_output(active) is Some(output_use) else {
     return Err(IncompleteExecution)
   }
-  Ok({ output_use, observation, invocation, })
+  Ok({ output_use, observation, invocation, issuance: None, })
 }
 
 ///|
@@ -195,5 +196,11 @@ pub fn invocation_binding_invocation(
 
 ///|
 pub fn release_invocation_binding(binding : InvocationBinding) -> Bool {
-  release_output(binding.output_use)
+  if !release_output(binding.output_use) {
+    return false
+  }
+  if binding.issuance is Some(issued) {
+    issued.uses -= 1
+  }
+  true
 }

@@ -61,6 +61,8 @@ pub fn model_capture_export_response_pending(ModelCaptureExport) -> Bool
 
 pub fn model_execution_attempt_evidence(ModelExecution, Int) -> Result[ModelAttemptEvidence, ModelExecutionIssue]
 
+pub fn model_execution_has_adopted_evidence(ModelExecution) -> Bool
+
 pub fn model_execution_invocation_evidence(ModelExecution, Int) -> @run_publication.RunEvidenceValue?
 
 pub fn model_execution_issued_slot_capture(ModelExecution, Int) -> Result[@run_publication.RunEvidenceValue, ModelExecutionIssue]
@@ -132,6 +134,8 @@ pub fn verified_model_capture_call_at(VerifiedModelCapture, Int) -> @run_publica
 pub fn verified_model_capture_call_count(VerifiedModelCapture) -> Int?
 
 pub fn verified_model_capture_outcome(VerifiedModelCapture, Int) -> String?
+
+pub fn verified_model_capture_owned_slot(VerifiedModelCapture, Int) -> Result[@run_publication.RunEvidenceValue, ModelExecutionIssue]
 
 pub fn verify_model_execution_attempt_evidence(ModelExecution, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[Unit, ModelExecutionIssue]
 

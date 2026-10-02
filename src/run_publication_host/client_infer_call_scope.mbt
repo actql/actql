@@ -131,6 +131,29 @@ pub fn client_infer_call_scope_artifact(
 }
 
 ///|
+/// Saved replay matches the actual input even when its logical slot inventory
+/// is empty. This validates original evidence, never fresh dispatch authority.
+pub fn check_client_infer_saved_observation_scope(
+  scope : ClientInferCallScope,
+  admission : @publication.RunPublicationAdmission,
+  definition : @publication.PublicationContract,
+  observation : @publication.RunEvidenceValue,
+) -> Result[Unit, @publication.RunEvidenceValueIssue] {
+  @publication.check_saved_source_free_model_observation(
+    admission,
+    definition,
+    observation,
+    scope.artifact,
+    prepared_client_identity(scope.owner).program_definition_cid,
+    prepared_client_program_semantics_cid(scope.owner),
+    prepared_client_check_environment_cid(scope.owner),
+    @environment.model_task_data_handling_cid(
+      @environment.model_execution_task(scope.plan.execution),
+    ),
+  )
+}
+
+///|
 pub fn client_infer_call_scope_matches_rows(
   value : ClientInferCallScope,
   rows : @execution.PreparedInferRows,

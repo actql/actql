@@ -124,5 +124,11 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     bindInvocation: (control, {compiled, runDefinition, verification,
       invocation, dataPolicyCid}) => control.bindCheckedClientInferInvocation(
       compiled, active, runDefinition, verification, invocation, dataPolicyCid),
+    startObservation: ({ledger, maxSlots, maxWireBytes, maxWork}) => checked(
+      moon.clientProgramStartInferObservationIssuance(active, ledger,
+        maxSlots, maxWireBytes, maxWork)),
+    bindIssuedInvocation: (control, {compiled, runDefinition, issued}) =>
+      control.bindIssuedClientInferInvocation(compiled, active, runDefinition,
+        issued),
   });
 }

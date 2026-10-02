@@ -7,6 +7,9 @@ import {
   "actql/actql/execution_relation" @relation,
   "actql/actql/run_publication_host" @publication_host,
   "actql/actql/check_environment" @environment,
+  "actql/actql/bounded_execution" @bounded,
+  "actql/actql/encode_core" @encode,
+  "actql/actql/physical_resources" @resources,
 }
 
 import {

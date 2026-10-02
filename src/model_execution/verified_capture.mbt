@@ -131,6 +131,54 @@ pub fn retain_verified_model_capture(
 }
 
 ///|
+/// Obtain the actual adopted proof record for physical execution or verified
+/// saved replay. Legacy structural reads cannot become publication evidence.
+pub fn verified_model_capture_owned_slot(
+  capture : VerifiedModelCapture,
+  slot : Int,
+) -> Result[@publication.RunEvidenceValue, ModelExecutionIssue] {
+  guard verified_model_capture_call_at(capture, slot) is Some(call) else {
+    return Err(OutputIdentity)
+  }
+  let state = capture.owner.state
+  if state.dispatch_admission is Some(_) {
+    return model_execution_issued_slot_capture(capture.owner, slot)
+  }
+  guard state.source is RestoredSlots(read) && read.storage.proofs is Some(_) else {
+    return Err(OutputIdentity)
+  }
+  let binding = match
+    restored_slot_binding(
+      read,
+      slot,
+      call,
+      @environment.model_task_data_handling_cid(state.task),
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let record = @publication.bound_model_slot_capture_value(binding)
+  bind_verified_model_slot_capture(capture, slot, record).map(_ => record)
+}
+
+///|
+/// Zero-key publication needs the same checked source mode as nonempty input;
+/// it cannot promote a legacy structural replay merely by visiting no slots.
+pub fn model_execution_has_adopted_evidence(execution : ModelExecution) -> Bool {
+  let state = execution.state
+  if !state.accepted || state.reclaimed {
+    return false
+  }
+  if state.dispatch_admission is Some(_) {
+    return true
+  }
+  state.source is RestoredSlots(read) &&
+  read.storage.proofs is Some(_) &&
+  read.storage.saved_admission is Some(_) &&
+  read.storage.saved_definition is Some(_)
+}
+
+///|
 /// The ordinary input must be prepared again under its new exact owner. Only
 /// its canonical binding may match the saved call; physical owner equality
 /// would incorrectly reject a reconstruction. No provider argument exists.

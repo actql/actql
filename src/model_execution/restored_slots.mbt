@@ -12,6 +12,20 @@ pub fn start_restored_model_slot_replay(
     Some(@relation.prepared_infer_rows_count(rows)) {
     return Err(OutputIdentity)
   }
+  if read.storage.proofs is Some(_) {
+    guard read.storage.observation is Some(observation) &&
+      read.storage.saved_admission is Some(admission) &&
+      read.storage.saved_definition is Some(definition) else {
+      return Err(OutputIdentity)
+    }
+    match
+      @publication_host.check_client_infer_saved_observation_scope(
+        scope, admission, definition, observation,
+      ) {
+      Err(issue) => return Err(InvocationEvidence(issue))
+      Ok(_) => ()
+    }
+  }
   guard retain_model_slot_replay(read) is Some(retained) else {
     return Err(OutputIdentity)
   }
@@ -51,7 +65,13 @@ fn begin_restored_model_slot(
   guard prepared.call is Some(call) else {
     return @bounded.Failed(OutputIdentity, 1, 1)
   }
-  let binding = match restored_slot_binding(read, state.next_slot, call) {
+  let binding = match
+    restored_slot_binding(
+      read,
+      state.next_slot,
+      call,
+      @environment.model_task_data_handling_cid(state.task),
+    ) {
     Err(issue) => return @bounded.Failed(issue, 1, 1)
     Ok(value) => value
   }

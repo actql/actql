@@ -80,6 +80,86 @@ pub fn client_program_acquire_infer_capture(
 }
 
 ///|
+/// The installing publication owner supplies this physical metadata envelope.
+/// It is distinct from model attempts, usage observations and logical budgets;
+/// creating capacity grants neither dispatch nor publication authority.
+#export_name("clientProgramInferPublicationLedger")
+pub fn client_program_infer_publication_ledger(
+  retained_bytes : Int64,
+  planning_work : Int,
+) -> Result[@resources.Ledger, @resources.LedgerIssue] {
+  @resources.create_ledger({
+    retained_bytes,
+    planning_work,
+    attempts: 1,
+    holdings: 0,
+    transfer_bytes: 0L,
+    execution_bytes: 0L,
+  })
+}
+
+///|
+#export_name("clientProgramInferPublicationUsage")
+pub fn client_program_infer_publication_usage(
+  ledger : @resources.Ledger,
+) -> (Int, Int64) {
+  let usage = @resources.ledger_usage(ledger)
+  (usage.planning_work, usage.reserved_retention_bytes)
+}
+
+///|
+#export_name("clientProgramStartInferObservationIssuance")
+pub fn client_program_start_infer_observation_issuance(
+  active : @infer_host.Execution,
+  ledger : @resources.Ledger,
+  max_slots : Int,
+  max_wire_bytes : Int,
+  max_work : Int,
+) -> Result[@infer_host.ObservationIssuance, @infer_host.Issue] {
+  @infer_host.start_observation_issuance(active, ledger, {
+    max_slots,
+    max_wire_bytes,
+    max_work,
+  })
+}
+
+///|
+#export_name("clientProgramAdvanceInferObservationIssuance")
+pub fn client_program_advance_infer_observation_issuance(
+  active : @infer_host.ObservationIssuance,
+  quantum : Int,
+) -> Result[(Bool, Int64), @infer_host.Issue] {
+  @infer_host.advance_observation_issuance(active, quantum)
+}
+
+///|
+#export_name("clientProgramCancelInferObservationIssuance")
+pub fn client_program_cancel_infer_observation_issuance(
+  active : @infer_host.ObservationIssuance,
+) -> Bool {
+  @infer_host.cancel_observation_issuance(active)
+}
+
+///|
+#export_name("clientProgramCleanupInferObservationIssuance")
+pub fn client_program_cleanup_infer_observation_issuance(
+  active : @infer_host.ObservationIssuance,
+) -> Result[Bool, @infer_host.Issue] {
+  @infer_host.cleanup_observation_issuance(active)
+}
+
+///|
+#export_name("clientProgramBindIssuedInferInvocation")
+pub fn client_program_bind_issued_infer_invocation(
+  execution : @infer_host.Execution,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  issued : @infer_host.ObservationIssuance,
+) -> Result[@infer_host.InvocationBinding, @infer_host.InvocationBindingIssue] {
+  @infer_host.bind_issued_invocation(execution, compiled, definition, issued)
+}
+
+///|
 /// Existing bounded all-slot verification. External evidence and Store
 /// confirmation remain the installing capture owner's responsibilities.
 #export_name("clientProgramStartInferObservationVerification")

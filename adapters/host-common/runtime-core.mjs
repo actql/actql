@@ -2035,6 +2035,19 @@ function publicationControl(moon) {
       return checked(moon.clientProgramBindInferInvocation(execution,
         value, token(definition), verified, token(invocation), dataPolicyCid));
     },
+    bindIssuedClientInferInvocation(compiled, execution, definition, issued) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer Run');
+      }
+      const binding = checked(moon.clientProgramBindIssuedInferInvocation(
+        execution, value, token(definition), issued));
+      return Object.freeze({binding,
+        observation: inspectEvidence(
+          moon.clientProgramInferInvocationBindingObservation(binding)),
+        invocation: inspect(
+          moon.clientProgramInferInvocationBindingInvocation(binding))});
+    },
     readCheckedClientInferSlotReplay(compiled, definition, observation,
       records, bundle, proofs, {maxSlots, maxSlotWireUnits}) {
       const value = compiledRunTokens.get(compiled);

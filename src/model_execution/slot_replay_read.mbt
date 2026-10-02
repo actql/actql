@@ -152,6 +152,7 @@ fn restored_slot_binding(
   read : ModelSlotReplayRead,
   index : Int,
   call : @publication.RunEvidenceValue,
+  policy_cid : String,
 ) -> Result[@publication.BoundModelSlotCapture, ModelExecutionIssue] {
   guard model_slot_replay_count(read) is Some(_) &&
     read.storage.observation is Some(observation) &&
@@ -175,6 +176,10 @@ fn restored_slot_binding(
     Err(issue) => return Err(InvocationEvidence(issue))
   }
   if read.storage.proofs is Some(proofs) {
+    match @publication.check_model_slot_capture_policy(binding, policy_cid) {
+      Err(issue) => return Err(InvocationEvidence(issue))
+      Ok(_) => ()
+    }
     guard proofs.length() == read.storage.count &&
       proofs.get(index) is Some(proof) &&
       read.storage.saved_admission is Some(admission) &&

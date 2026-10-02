@@ -21,6 +21,7 @@ import {
   "actql/actql/model_execution",
   "actql/actql/physical_host",
   "actql/actql/physical_manifest",
+  "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
   "actql/actql/pipeline_check_context",
   "actql/actql/platform_native/remote_standard_host",
@@ -101,6 +102,8 @@ pub fn client_program_advance_infer_execution(@client_infer_host.Execution, Int)
 
 pub fn client_program_advance_infer_input(@client_local_host.ClientInferInputExecution, Int) -> Result[@client_local_host.ClientInferInputPoll, @client_local_host.ClientInferInputIssue]
 
+pub fn client_program_advance_infer_observation_issuance(@client_infer_host.ObservationIssuance, Int) -> Result[(Bool, Int64), @client_infer_host.Issue]
+
 pub fn client_program_advance_infer_observation_verification(@model_execution.ModelObservationVerification, Int) -> Result[(Bool, Int64), @model_execution.ModelExecutionIssue]
 
 pub fn client_program_advance_model_execution(@model_execution.ModelExecution, Int) -> Result[@model_execution.ModelObservation, @model_execution.ModelExecutionIssue]
@@ -131,6 +134,8 @@ pub fn client_program_bind_infer_run(@client_infer_host.Execution, @run_publicat
 
 pub fn client_program_bind_infer_slot_capture(@model_execution.VerifiedModelCapture, Int, @run_publication.RunEvidenceValue) -> Result[@run_publication.BoundModelSlotCapture, @model_execution.ModelExecutionIssue]
 
+pub fn client_program_bind_issued_infer_invocation(@client_infer_host.Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @client_infer_host.ObservationIssuance) -> Result[@client_infer_host.InvocationBinding, @client_infer_host.InvocationBindingIssue]
+
 pub fn client_program_cancel_captured_source_identity_scan(@execution_query.CapturedSourceIdentityScan) -> Bool
 
 pub fn client_program_cancel_infer_capture_export(@model_execution.ModelCaptureExport) -> Bool
@@ -138,6 +143,8 @@ pub fn client_program_cancel_infer_capture_export(@model_execution.ModelCaptureE
 pub fn client_program_cancel_infer_execution(@client_infer_host.Execution) -> Bool
 
 pub fn client_program_cancel_infer_input(@client_local_host.ClientInferInputExecution) -> Bool
+
+pub fn client_program_cancel_infer_observation_issuance(@client_infer_host.ObservationIssuance) -> Bool
 
 pub fn client_program_cancel_infer_observation_verification(@model_execution.ModelObservationVerification) -> Bool
 
@@ -196,6 +203,8 @@ pub fn client_program_cleanup_infer_capture_export(@model_execution.ModelCapture
 pub fn client_program_cleanup_infer_execution(@client_infer_host.Execution) -> Result[Bool, @client_infer_host.Issue]
 
 pub fn client_program_cleanup_infer_input(@client_local_host.ClientInferInputExecution) -> Result[Bool, @client_local_host.ClientInferInputIssue]
+
+pub fn client_program_cleanup_infer_observation_issuance(@client_infer_host.ObservationIssuance) -> Result[Bool, @client_infer_host.Issue]
 
 pub fn client_program_cleanup_infer_observation_verification(@model_execution.ModelObservationVerification) -> Result[Bool, @model_execution.ModelExecutionIssue]
 
@@ -524,6 +533,10 @@ pub fn client_program_infer_plan_graph_wire(@run_publication_host.ClientInferPla
 pub fn client_program_infer_plan_request_wire(@run_publication_host.ClientInferPlanGraph) -> String
 
 pub fn client_program_infer_prefix_fragment(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[@run_publication_host.ClientTaskFragmentNode, @run_publication_host.ClientTaskFragmentIssue]
+
+pub fn client_program_infer_publication_ledger(Int64, Int) -> Result[@physical_resources.Ledger, @physical_resources.LedgerIssue]
+
+pub fn client_program_infer_publication_usage(@physical_resources.Ledger) -> (Int, Int64)
 
 pub fn client_program_infer_request_preflight_pending(@client_infer_host.Execution) -> Bool
 
@@ -900,6 +913,8 @@ pub fn client_program_start_infer_capture_export(@model_execution.VerifiedModelC
 pub fn client_program_start_infer_execution(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelProvider, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
 pub fn client_program_start_infer_input(@run_publication_host.PreparedClientProgram, String, String, Int) -> @client_local_host.ClientInferInputExecution?
+
+pub fn client_program_start_infer_observation_issuance(@client_infer_host.Execution, @physical_resources.Ledger, Int, Int, Int) -> Result[@client_infer_host.ObservationIssuance, @client_infer_host.Issue]
 
 pub fn client_program_start_infer_observation_verification(@model_execution.VerifiedModelCapture, @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], Int, Int, Int) -> Result[@model_execution.ModelObservationVerification, @model_execution.ModelExecutionIssue]
 

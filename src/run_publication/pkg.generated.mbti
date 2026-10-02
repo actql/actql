@@ -112,9 +112,15 @@ pub fn check_effect_preview_row_outcome(EffectPreviewIdentity, Int, Int, String,
 
 pub fn check_effect_preview_run_binding(RunPublicationAdmission, PublicationContract, PublicationContract, EffectPreviewIdentity) -> Result[Unit, EffectPreviewRunBindingIssue]
 
+pub fn check_model_slot_capture_policy(BoundModelSlotCapture, String) -> Result[Unit, RunEvidenceValueIssue]
+
 pub fn check_run_publication_program_binding(RunPublicationAdmission, PublicationContract, String, String, String) -> Result[Unit, RunProgramBindingIssue]
 
+pub fn check_saved_source_free_model_observation(RunPublicationAdmission, PublicationContract, RunEvidenceValue, RunEvidenceValue, String, String, String, String) -> Result[Unit, RunEvidenceValueIssue]
+
 pub fn check_source_free_model_invocation_binding(RunEvidenceValue, RunEvidenceValue, PublicationContract, RunEvidenceValue, String) -> Result[Unit, RunEvidenceValueIssue]
+
+pub fn check_source_free_model_observation_binding(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, String) -> Result[Unit, RunEvidenceValueIssue]
 
 pub fn checked_publication_inventory_count(CheckedPublicationInventory) -> Int
 

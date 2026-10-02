@@ -2,9 +2,11 @@
 package "actql/actql/client_infer_host"
 
 import {
+  "actql/actql/bounded_execution",
   "actql/actql/client_local_host",
   "actql/actql/execution_relation",
   "actql/actql/model_execution",
+  "actql/actql/physical_resources",
   "actql/actql/run_publication",
   "actql/actql/run_publication_host",
   "moonbitlang/core/debug",
@@ -19,11 +21,15 @@ pub fn acquire_output(Execution) -> OutputUse?
 
 pub fn advance(Execution, Int) -> Result[Poll, Issue]
 
+pub fn advance_observation_issuance(ObservationIssuance, Int) -> Result[(Bool, Int64), Issue]
+
 pub fn attempt_evidence(Execution, Int) -> Result[@model_execution.ModelAttemptEvidence, @model_execution.ModelExecutionIssue]
 
 pub fn bind_dispatch_admission(Execution, @run_publication_host.ClientInferDispatchAdmission) -> Result[Unit, InvocationBindingIssue]
 
 pub fn bind_invocation(Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @model_execution.ModelObservationVerification, @run_publication.PublicationContract, String) -> Result[InvocationBinding, InvocationBindingIssue]
+
+pub fn bind_issued_invocation(Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, ObservationIssuance) -> Result[InvocationBinding, InvocationBindingIssue]
 
 pub fn bind_run(Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, InvocationBindingIssue]
 
@@ -31,9 +37,13 @@ pub fn call_scope(Execution) -> @run_publication_host.ClientInferCallScope?
 
 pub fn cancel(Execution) -> Bool
 
+pub fn cancel_observation_issuance(ObservationIssuance) -> Bool
+
 pub fn capture(Execution) -> @model_execution.ModelCaptureBundle?
 
 pub fn cleanup(Execution) -> Result[Bool, Issue]
+
+pub fn cleanup_observation_issuance(ObservationIssuance) -> Result[Bool, Issue]
 
 pub fn completed(Poll) -> @execution_relation.CompletedOutput?
 
@@ -55,6 +65,8 @@ pub fn issued_slot_capture(Execution, Int) -> Result[@run_publication.RunEvidenc
 
 pub fn matches(Execution, @run_publication_host.PreparedClientProgram) -> Bool
 
+pub fn observation_issuance_value(ObservationIssuance) -> (@run_publication.RunEvidenceValue, @run_publication.PublicationContract)?
+
 pub fn output(OutputUse) -> @execution_relation.CompletedOutput?
 
 pub fn poll_issue(Poll) -> Issue?
@@ -74,6 +86,8 @@ pub fn sealing_observation(Execution) -> Bool
 pub fn standard_limits() -> Limits
 
 pub fn start(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelProvider, String, Limits, plan? : @run_publication_host.ClientInferPlanGraph?) -> Result[Execution, Issue]
+
+pub fn start_observation_issuance(Execution, @physical_resources.Ledger, ObservationIssuanceLimits) -> Result[ObservationIssuance, Issue]
 
 pub fn start_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.VerifiedModelCapture, Limits, @run_publication_host.ClientInferPlanGraph) -> Result[Execution, Issue]
 
@@ -125,6 +139,7 @@ pub struct InvocationBinding {
   output_use : OutputUse
   observation : @run_publication.RunEvidenceValue
   invocation : @run_publication.PublicationContract
+  issuance : ObservationIssuance?
 }
 
 pub(all) enum InvocationBindingIssue {
@@ -154,6 +169,24 @@ pub(all) struct Limits {
   output_workspace : Int
   identity : IdentityLimits
 }
+
+pub struct ObservationIssuance {
+  state : ObservationIssuanceState
+  session : @bounded_execution.Session[ObservationIssuanceState, Unit, Issue]
+  control : @bounded_execution.Control
+  mut token : @bounded_execution.Token
+  mut accepted : Bool
+  mut reclaimed : Bool
+  mut uses : Int
+}
+
+pub(all) struct ObservationIssuanceLimits {
+  max_slots : Int
+  max_wire_bytes : Int
+  max_work : Int
+}
+
+type ObservationIssuanceState
 
 pub struct OutputUse {
   owner : Execution

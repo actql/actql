@@ -344,8 +344,8 @@ test "stored attempt leaves replay without a provider and reject proof substitut
     20,
   ).unwrap()
   assert_true(cleanup(original).unwrap())
-  for altered in [false, true] {
-    let outcome = if altered {
+  for altered in ["none", "outcome", "policy"] {
+    let outcome = if altered == "outcome" {
       let unsigned = @publication.run_evidence_value_json(records.outcome)
         .replace(
           old="\"failure\":\"timeout\"",
@@ -363,9 +363,52 @@ test "stored attempt leaves replay without a provider and reject proof substitut
     } else {
       records.outcome
     }
+    let selected = if altered == "policy" {
+      let policy = @environment.model_task_data_handling_cid(
+        @environment.model_execution_task(
+          @publication_host.client_infer_plan_graph_execution_contract(
+            original.plan.unwrap(),
+          ),
+        ),
+      )
+      let unsigned = @publication.run_evidence_value_json(slot)
+        .replace(
+          old="\"policy_cid\":\"" + policy + "\"",
+          new="\"policy_cid\":\"sha256:" + "b".repeat(64) + "\"",
+        )
+        .replace(
+          old=",\"self_cid\":\"" +
+            @publication.run_evidence_value_identity(slot) +
+            "\"",
+          new="",
+        )
+      @publication.seal_run_evidence_value(
+        "model_slot_capture", unsigned, 16384, 1024, 20,
+      ).unwrap()
+    } else {
+      slot
+    }
+    let selected_observation = if altered == "policy" {
+      let unsigned = @publication.run_evidence_value_json(observation)
+        .replace(
+          old=@publication.run_evidence_value_identity(slot),
+          new=@publication.run_evidence_value_identity(selected),
+        )
+        .replace(
+          old=",\"observation_set_cid\":\"" +
+            @publication.run_evidence_value_identity(observation) +
+            "\"",
+          new="",
+        )
+      @publication.seal_run_evidence_value(
+        "observation_set", unsigned, 16384, 1024, 20,
+      ).unwrap()
+    } else {
+      observation
+    }
     let read = @model.read_verified_model_slot_replay(
-      observation,
-      [slot],
+      selected_observation,
+      [selected],
       bundle,
       [{ ..records, outcome, }],
       @publication_host.client_compiled_run_admission(compiled),
@@ -374,21 +417,30 @@ test "stored attempt leaves replay without a provider and reject proof substitut
       16384,
     ).unwrap()
     let replay = restored_slots_start(read)
+    let (replay_compiled, replay_definition) = invocation_fixture_compiled(
+      replay,
+    )
     assert_true(@model.release_model_slot_replay(read))
     let terminal = fixture_finish(replay)
-    if altered {
-      assert_true(
-        terminal
+    if altered != "none" {
+      guard terminal
         is Failed(
           Model(
             @model.InvocationEvidence(
-              @publication.RunEvidenceReferenceMismatch(
-                "model_attempt_evidence"
-              )
+              @publication.RunEvidenceReferenceMismatch(field)
             )
           ),
           ..
-        ),
+        ) else {
+        abort("substituted evidence did not fail with its exact cause")
+      }
+      assert_eq(
+        field,
+        if altered == "policy" {
+          "model_slot_capture.policy_cid"
+        } else {
+          "model_attempt_evidence"
+        },
       )
       assert_true(acquire_output(replay) is None)
     } else {
@@ -402,6 +454,24 @@ test "stored attempt leaves replay without a provider and reject proof substitut
       assert_true(
         @relation.completed_cell(result, 0, 2) is Some(@relation.Null),
       )
+      let ledger = issuance_ledger(65664L)
+      let issued = start_observation_issuance(
+        replay,
+        ledger,
+        issuance_limits(work=3),
+      ).unwrap()
+      issuance_finish(issued)
+      let (issued_observation, _) = observation_issuance_value(issued).unwrap()
+      assert_eq(
+        @publication.model_observation_slot_at(issued_observation, 0),
+        Some(@publication.run_evidence_value_identity(slot)),
+      )
+      let binding = bind_issued_invocation(
+        replay, replay_compiled, replay_definition, issued,
+      ).unwrap()
+      assert_true(!cleanup_observation_issuance(issued).unwrap())
+      assert_true(release_invocation_binding(binding))
+      assert_true(cleanup_observation_issuance(issued).unwrap())
     }
     assert_true(cleanup(replay).unwrap())
     assert_eq(calls.val, 1)

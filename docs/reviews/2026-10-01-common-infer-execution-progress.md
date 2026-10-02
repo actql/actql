@@ -64,8 +64,8 @@ sync failure retains custody; final retirement releases every holding.
 
 This is a component and private Store boundary, not the public handoff.
 `embedded-local.mjs` and the existing `client-dispatch-owner.mjs` still need
-the installed ModelTask route. ObservationSet/Invocation issuance must come
-from a common owner, and actual capture holdings and completed output must
+the installed ModelTask route. The following unit now owns ObservationSet and
+Invocation issuance; actual capture holdings and completed output must still
 reach the existing committed Result publisher. Retry/backoff, classification,
 region/media and token/cost/duration preflight dependencies remain explicit;
 account evidence alone does not discharge those obligations. No new Run
@@ -87,6 +87,50 @@ Local verification of this unit used the pinned `0.10.12+1634b282e` toolchain:
 These are local component checks, not Linux CI or a public Host acceptance
 result. The fixed source commit is reported in the working conversation;
 there is no adoptable public INFER handoff SHA yet.
+
+### Observation issuance and exact restored scope
+
+On top of `63b114ad524b934cf809b96d37d0d81ea215815c`,
+`client_infer_host/observation_issuance.mbt` derives the ObservationSet and
+Invocation from the accepted execution, its original compiled Run, actual
+input Artifact, installed ModelTask policy and every adopted slot. Adapters
+receive opaque common owners, not an evidence-JSON construction interface.
+The slot array follows the accepted inventory and explicitly emits `[]` for
+zero keys. Structural test captures cannot acquire publication evidence.
+
+The existing physical ledger reserves metadata before writer or binding-table
+allocation. Installed metadata envelopes are limited to 128 slots and 16 KiB
+wire, not a restriction on the INFER language. Issuance charges each bounded
+step and retains independent output and capture uses. Two live Invocation
+bindings prevent premature cleanup; releasing them returns the reservation
+without refunding consumed work or dispatching again. One-short workspace,
+one-short work and cancellation after positive progress retain typed causes
+and cleanup responsibility.
+
+Verified stored replay now checks the actual input Artifact, original Run
+Template and ModelTask policy even when there are no slots to visit. Each
+restored slot additionally checks its policy and original attempt proof chain.
+A coherent foreign-policy record and a substituted outcome proof are refused.
+The existing encrypted Store accepts the commonly issued ObservationSet and
+Invocation through its authenticated holding path. The fresh-process test
+reads those holdings, reconstructs the same identities from verified replay,
+and leaves the original provider call count at one.
+
+Local checks of this code-only unit passed:
+
+- `client_infer_host`, `model_execution`, `run_publication` and
+  `run_publication_host`: 295/295 each on JS, Wasm and native.
+- Infer-owner and publication-Store Node suites: 107 cases passed in the
+  combined run. Its remaining fixture check failed only because that repeat
+  omitted `MOON_HOME`; the isolated check passed with the pinned environment.
+- Release Node bridge build, three-target interface generation and MoonBit
+  formatting passed. No canonical schema or preimage changed in this unit;
+  the specification gate belongs to the preceding contract commit above.
+
+This still uses a component operation and private Store, not an ordinary
+installed Host submit followed by committed Named Result lookup. Installed
+ModelTask dispatch, dependency admission and the Result publication connection
+remain unfinished. No public handoff SHA, push or Linux CI result is claimed.
 
 The common execution also retains its exact compiled Run and Run Definition
 before the first advance. Its accepted all-slot verification can bind a

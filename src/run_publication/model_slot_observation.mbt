@@ -115,6 +115,21 @@ pub fn bound_model_slot_capture_outcome(
 }
 
 ///|
+/// Policy identity is independent of response or attempt identity. Restoring
+/// owners must match it to the actual checked ModelTask, not a supplied root.
+pub fn check_model_slot_capture_policy(
+  value : BoundModelSlotCapture,
+  expected : String,
+) -> Result[Unit, RunEvidenceValueIssue] {
+  if contract_string_from_value(value.capture.value, "policy_cid") !=
+    Some(expected) {
+    Err(model_slot_reference_error("policy_cid"))
+  } else {
+    Ok(())
+  }
+}
+
+///|
 /// Indexed structural readers for the installing capture owner's bounded
 /// verifier. An absent field is distinct from the explicit zero-key array.
 pub fn model_observation_slot_count(observation : RunEvidenceValue) -> Int? {
