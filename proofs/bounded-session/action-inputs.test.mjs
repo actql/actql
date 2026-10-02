@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, copyFileSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
@@ -10,7 +10,7 @@ import { compareManifests, domain, encode, inventoryAction, keyForInputs, parseM
 const directory = fileURLToPath(new URL('.', import.meta.url));
 const revisionA = '1'.repeat(40), revisionB = '2'.repeat(40);
 function fixture(t) {
-  const root = mkdtempSync(join(tmpdir(), 'actql-action-inputs-'));
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-action-inputs-')));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const model = join(root, 'proofs/bounded-session'), distribution = join(root, 'lean-4.30.0-rc1-linux');
   mkdirSync(model, { recursive: true }); mkdirSync(join(distribution, 'bin'), { recursive: true });
