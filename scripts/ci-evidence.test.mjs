@@ -539,3 +539,6 @@ test('fixed-run CLI remains GET-only and keeps all attempts outside the selected
     assert.equal(group.maximumSeconds, 50);
   });
 }
+
+// Read-only scheduling diagnostics share the existing CI reporting fixture gate.
+import './verification-actions.test.mjs';
