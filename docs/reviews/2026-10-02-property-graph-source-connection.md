@@ -130,7 +130,7 @@ DAG has no strategy revision. `StrategyNotComplete` during publication is a
 secondary error, not the first failing boundary.
 
 The same emitted Program fails when submitted as JSON, bypassing Frontend.
-An [independently authored smaller JSON Program](../../../spec/frontend/fixtures/data-set-strategy/repro-program.json)
+An [independently authored smaller JSON Program](../../spec/frontend/fixtures/data-set-strategy/repro-program.json)
 also fails there. Single sort terms and visible sort fields are failing
 controls; removing duplicate ordering terms does not solve it. This establishes
 a common strategy-selection boundary, without claiming which candidate,
