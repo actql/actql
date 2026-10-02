@@ -883,17 +883,6 @@ fn prepare_publication_source_policy(
             (if source_selector is Some(_) { 1 } else { 0 }) +
             (if target_selector is Some(_) { 1 } else { 0 })
           }
-          @pipeline.Reach(_) => {
-            identity_charge(budget, 1)
-            carrier_steps.push({
-              step: index,
-              operation: step.operation,
-              unknown_provenance: true,
-            })
-            // The explicit start identity and depth are authored values.
-            unknown = true
-            1
-          }
           @pipeline.Subgraph(selector~, checked=operation) => {
             identity_charge(budget, 1)
             let nodes = @graph.subgraph_nodes(operation)

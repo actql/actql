@@ -24,8 +24,8 @@ pub(all) enum TraversalLimitIssue {
 ///|
 /// Both local limits retain their source and application owners. This does not
 /// discharge runtime enforcement or the enclosing pipeline's remaining limits.
-/// Covers authored traverse and reach's bounded traversal expansion; operation
-/// subjects remain distinct and reach does not acquire an authored output guard.
+/// Covers only checked traversal operations; unsupported authored consumers
+/// cannot acquire an application or runtime permission.
 struct TraversalLimits {
   pipeline : @pipeline.CheckedPipeline
   step : Int
@@ -68,7 +68,6 @@ pub fn check_traversal_limits(
         Some("actql.bound.traverse-nodes"),
         Some(@pipeline.TraverseOutputRows),
       )
-    @pipeline.Reach(_) => ("reach", None, None, None)
     @pipeline.Shortest(checked=op, ..) =>
       (
         "shortest_path",

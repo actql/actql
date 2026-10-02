@@ -58,7 +58,6 @@ fn operation_count_contract(
       Ranking
     @pipeline.TimeSeries(_) | @pipeline.Calendar(_) => Series
     @pipeline.Sequence(_)
-    | @pipeline.Reach(_)
     | @pipeline.Vector(_)
     | @pipeline.Pool(_)
     | @pipeline.Event(_) => ClassificationOnly

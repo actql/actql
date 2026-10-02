@@ -331,22 +331,6 @@ pub fn graph_match_type_at(PreparedGraphMatch, Int) -> String?
 
 pub fn graph_match_type_count(PreparedGraphMatch) -> Int?
 
-pub fn graph_reach_direction(PreparedGraphReach) -> @graph_typing.Direction
-
-pub fn graph_reach_max_depth(PreparedGraphReach) -> Int?
-
-pub fn graph_reach_output_schema(PreparedGraphReach) -> @relation_schema.Schema
-
-pub fn graph_reach_start(PreparedGraphReach) -> @graph_typing.ReachStart
-
-pub fn graph_reach_start_id_at(PreparedGraphReach, Int) -> @value_admission.CheckedValue?
-
-pub fn graph_reach_start_id_count(PreparedGraphReach) -> Int
-
-pub fn graph_reach_start_predicate(PreparedGraphReach) -> Expression?
-
-pub fn graph_reach_start_relation_field(PreparedGraphReach) -> @relation_schema.FieldName?
-
 pub fn graph_shortest_direction(PreparedGraphShortest) -> @graph_typing.Direction
 
 pub fn graph_shortest_endpoint_id_at(PreparedGraphShortest, @relation_schema.Side, Int) -> @value_admission.CheckedValue?
@@ -1285,12 +1269,6 @@ pub(all) enum GraphMatchLiteralSelection {
   SelectAllEntities
 } derive(Eq, @debug.Debug)
 
-pub(all) enum GraphReachIssue {
-  InvalidGraphReachLimits
-  InvalidGraphReachWiring
-  GraphReachPreparationLimit
-} derive(Eq, @debug.Debug)
-
 pub(all) enum GraphShortestIssue {
   InvalidGraphShortestLimits
   InvalidGraphShortestWiring
@@ -1499,7 +1477,6 @@ pub enum Payload {
   NestRows(@relation_nest.CheckedNest)
   BasicGraph(@graph_typing.CheckedGraph)
   GraphMatchRows(@graph_typing.CheckedMatch)
-  GraphReachRows(@graph_typing.CheckedReach)
   GraphSubgraphValue(@graph_typing.CheckedSubgraph)
   GraphTraverseRows(@graph_typing.CheckedTraverse)
   GraphShortestRows(@graph_typing.CheckedShortest)
@@ -1576,8 +1553,6 @@ pub(all) enum PreparedFrameBoundary {
 type PreparedGraphBasic
 
 type PreparedGraphMatch
-
-type PreparedGraphReach
 
 type PreparedGraphShortest
 
@@ -1656,7 +1631,6 @@ pub enum PreparedStep {
   NestStep(PreparedNestKernel)
   GraphBasicStep(PreparedGraphBasic)
   GraphMatchStep(PreparedGraphMatch)
-  GraphReachStep(PreparedGraphReach)
   GraphSubgraphStep(PreparedGraphSubgraph)
   GraphTraverseStep(PreparedGraphTraverse)
   GraphShortestStep(PreparedGraphShortest)
@@ -1749,7 +1723,6 @@ pub(all) enum SequenceIssue {
   NestFailure(Int, NestIssue)
   GraphBasicFailure(Int, GraphBasicIssue)
   GraphMatchFailure(Int, GraphMatchIssue)
-  GraphReachFailure(Int, GraphReachIssue)
   GraphSubgraphFailure(Int, GraphSubgraphIssue)
   GraphTraverseFailure(Int, GraphTraverseIssue)
   GraphShortestFailure(Int, GraphShortestIssue)

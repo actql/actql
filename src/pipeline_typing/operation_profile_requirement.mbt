@@ -27,16 +27,6 @@ pub fn operation_profile_requirement(
         | CanonicalMatchOrder
         | ResolveMatchResources => None
       }
-    ReachRequirement(o) =>
-      match o {
-        ResolveReachProfile => Some(SGA)
-        AdmitReachGraph
-        | RequireReachStartMembership
-        | JournalReachExpansion
-        | BoundedMinimumDepthTraversal
-        | CanonicalReachOrder
-        | ResolveReachResources => None
-      }
     SubgraphRequirement(o) =>
       match o {
         ResolveSubgraphProfile => Some(SGA)

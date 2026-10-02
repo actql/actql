@@ -953,3 +953,59 @@ cancellation and typed task-port positives remain executable. Other homogeneous
 metadata getters and unsupported checked consumer branches, mixed Host/Source
 fixtures, strict inventories and final submitted-SHA packed/CI acceptance remain
 open. This local result does not authorize a final B handoff or merge.
+
+## Retired reach removal and current TRAIL resource migration
+
+The unsupported reach checker, checked operation, obligation owner, prepared
+node/emitter, expansion/resource/semantic bindings and driver branches are
+deleted. The authored pipeline boundary retains closed-body and reference
+checks, then explicitly rejects a current Graph with
+`UnsupportedGraphOperation`. Incomplete knowledge and wrong Carrier kinds
+remain separate refusals. No checked reach can issue an executable tuple
+output or runtime permission. The direction emitter is retained separately
+because current keyed TRAIL lowering uses it.
+
+The former reach resource/import and publication-owner tests are migrated
+to positive current TRAIL tests, not replaced by blanket refusals. Formal
+Program construction retains independent search-path and output-row ceilings,
+the producer Unit's application and original policy owner through three visits,
+and the checked TRAIL operation through publication. Three direction choices
+and ordinary/over-Int hop bounds are covered. Missing applications specifically
+fail as `TraversalCollection(MissingApplication(3))`; a differently scoped
+claim specifically fails as `Traversal(0, SubjectMismatch(SearchPaths))`.
+Neither case can seal a partial checked Program.
+
+The authored selector uses typed key `N/[number:1]` in domain
+`sha256:3c07a675d79b8ca20df7ccce6bf1282b0ac34059bfbbaec8a8cd102f5027a5c3`.
+Its independent canonical SHA-256 preimage is:
+
+```json
+{"constructor":{"edges":[],"nodes":[{"input_occurrence":0,"key":["id"],"name":"N"}],"version":"actql-property-graph-constructor/0.1"},"producer_definitions":[{"body":{"values":{"rows":[{"id":1},{"id":2}],"schema":{"id":{"nullable":false,"type":"number"}}}},"dependencies":[]}],"version":"actql-property-graph-definition/0.1"}
+```
+
+The literal is compared with the checked constructor domain; it is not copied
+from compiler output. The shared upper-capacity fixture also now constructs
+current typed Graph and explicit TRAIL, retaining exact/one-short work,
+foreign pipeline/policy/guard rejection, independent path/output ceilings and
+Parameter binding custody. Unsupported node emission and shortest/reach
+algorithms are not claimed supported.
+
+The publication fixture uses an admitted Values definition. It specifically
+retains zero borrowed provenance from its unused external Source. The old
+external Source-dependent case is **not** claimed migrated by that success:
+external producer-definition admission remains an open boundary in the
+aggregate diagnostic and must be closed separately.
+
+Initial product checks exposed remaining deleted-type references in exhaustive
+dispatch arms; those were removed, not converted to fallback. The first narrow
+run also rejected an empty `ids` selector as `InvalidBody`. It was replaced
+with the independently derived valid identity above, without relaxing the
+selector or the capacity assertions. The resulting current resource/custody
+and surrounding regression suite passes **31/31 on each JS, Wasm and native**:
+`/private/tmp/property-graph-reach-retirement-{js,wasm,native}-20261003.log`.
+
+Basic/subgraph/shortest checked implementations, homogeneous metadata and
+projection routes, external Source/Host fixtures, strict inventories and
+published-SHA fresh packed/CI acceptance remain open. These local results do
+not make the old public #164 HEAD adoptable and do not close the previous
+full-Core diagnostic.

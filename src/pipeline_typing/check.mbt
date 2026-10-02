@@ -914,57 +914,17 @@ fn check_impl(
         }
         _ => None
       }
-      let checked = match
-        @graph.check_reach(
-          operation_body,
-          carrier(input, inputs, steps),
-          {
-            max_work: b.work,
-            max_nodes: b.nodes,
-            max_depth: limits.max_depth,
-            max_text_bytes: b.text,
-          },
-          selector_relation=selector.map(t => carrier(t, inputs, steps)),
-          parameters~,
-          max_tokens=b.tokens,
-        ) {
-        Ok(c) => c
-        Err(e) => {
-          let d = @graph.match_diagnostic(e, operation_body)
-          raise Stop({
-            kind: GraphMatch(d.kind),
-            source: operation_body,
-            path: d.path.copy(),
-            span: d.span,
-            range: d.range,
-          })
-        }
+      // A bounded authored reference is checked above, but reach has no
+      // implementation under the sole keyed Property Graph contract.
+      ignore(selector)
+      match carrier(input, inputs, steps) {
+        @carrier.GraphValue(_) =>
+          fail(operation_body, Graph(@graph.UnsupportedGraphOperation))
+        @carrier.Opaque(GraphKind) =>
+          fail(operation_body, Graph(@graph.IncompleteGraph))
+        other =>
+          fail(operation_body, Graph(@graph.WrongCarrier(@carrier.kind(other))))
       }
-      let u = @graph.reach_usage(checked)
-      b.work -= u.work
-      b.nodes -= u.nodes
-      b.text -= u.text_bytes
-      b.tokens -= u.tokens
-      let entries = [{ role: Primary, target: input, }]
-      if selector is Some(t) {
-        entries.push({ role: Right, target: t, })
-      }
-      let target = Step(steps.length())
-      steps.push({
-        source: body,
-        input: Some(input),
-        binding_name,
-        metadata: meta,
-        operation: Reach(checked),
-        output: @graph.reach_output(checked),
-        connections: { entries, },
-        window: None,
-      })
-      if binding_name is Some(name) {
-        names[name] = target
-      }
-      current = Some(target)
-      continue
     }
     if key == "subgraph" || key == "traverse" {
       let root = match
@@ -1952,7 +1912,6 @@ fn check_impl(
         | Projection(_)
         | Graph(_)
         | GraphMatch(_)
-        | Reach(_)
         | Event(_)
         | Sequence(_)
         | Vector(_) => [{ role: Primary, target: input, }]

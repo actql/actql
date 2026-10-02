@@ -451,7 +451,6 @@ pub enum CheckedOperation {
   Projection(@carrier_projection.CheckedProjection)
   Graph(@graph_typing.CheckedGraph)
   GraphMatch(@graph_typing.CheckedMatch)
-  Reach(@graph_typing.CheckedReach)
   Subgraph(selector~ : Target?, checked~ : @graph_typing.CheckedSubgraph)
   Traverse(selector~ : Target?, checked~ : @graph_typing.CheckedTraverse)
   Shortest(source_selector~ : Target?, target_selector~ : Target?, checked~ : @graph_typing.CheckedShortest)
@@ -524,7 +523,6 @@ pub(all) enum ExpressionConsumer {
   AnalyticArgument(String)
   SequencePredicate(Int)
   GraphMatchPredicate
-  ReachStart
   SubgraphNodes
   SubgraphEdges
   TraverseStart
@@ -705,7 +703,6 @@ pub(all) enum OperationObligation {
   ProjectionRequirement(@carrier_projection.GraphObligation)
   GraphRequirement(@graph_typing.Obligation)
   MatchRequirement(@graph_typing.MatchObligation)
-  ReachRequirement(@graph_typing.ReachObligation)
   SubgraphRequirement(@graph_typing.SubgraphObligation)
   TraverseRequirement(@graph_typing.TraverseObligation)
   ShortestRequirement(@graph_typing.ShortestObligation)

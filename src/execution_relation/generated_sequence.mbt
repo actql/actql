@@ -767,7 +767,6 @@ pub fn generated_sequence_all_row_kernels(
       | @lower.NestStep(_)
       | @lower.GraphBasicStep(_)
       | @lower.GraphMatchStep(_)
-      | @lower.GraphReachStep(_)
       | @lower.GraphSubgraphStep(_)
       | @lower.GraphTraverseStep(_)
       | @lower.GraphShortestStep(_)

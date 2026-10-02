@@ -153,7 +153,6 @@ pub enum CheckedOperation {
   Projection(@projection.CheckedProjection)
   Graph(@graph.CheckedGraph)
   GraphMatch(@graph.CheckedMatch)
-  Reach(@graph.CheckedReach)
   Subgraph(selector~ : Target?, checked~ : @graph.CheckedSubgraph)
   Traverse(selector~ : Target?, checked~ : @graph.CheckedTraverse)
   Shortest(

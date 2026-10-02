@@ -975,7 +975,6 @@ fn[T : RelationRows] run_sequence_steps(
       }
       @lower.GraphBasicStep(_) => return Err(InputSet)
       @lower.GraphMatchStep(_) => return Err(InputSet)
-      @lower.GraphReachStep(_) => return Err(InputSet)
       @lower.GraphSubgraphStep(_) => return Err(InputSet)
       @lower.GraphTraverseStep(_) => return Err(InputSet)
       @lower.GraphShortestStep(_) => return Err(InputSet)

@@ -31,7 +31,6 @@ pub(all) enum OperationObligation {
   ProjectionRequirement(@projection.GraphObligation)
   GraphRequirement(@graph.Obligation)
   MatchRequirement(@graph.MatchObligation)
-  ReachRequirement(@graph.ReachObligation)
   SubgraphRequirement(@graph.SubgraphObligation)
   TraverseRequirement(@graph.TraverseObligation)
   ShortestRequirement(@graph.ShortestObligation)
@@ -64,7 +63,6 @@ priv enum ObligationOwner {
   ProjectionOwner(@projection.CheckedProjection)
   GraphOwner(@graph.CheckedGraph)
   MatchOwner(@graph.CheckedMatch)
-  ReachOwner(@graph.CheckedReach)
   SubgraphOwner(@graph.CheckedSubgraph)
   TraverseOwner(@graph.CheckedTraverse)
   ShortestOwner(@graph.CheckedShortest)
@@ -112,7 +110,6 @@ pub fn operation_obligations_source(v : OperationObligations) -> @decode.Cursor 
     ProjectionOwner(c) => @projection.source(c)
     GraphOwner(c) => @graph.source(c)
     MatchOwner(c) => @graph.match_source(c)
-    ReachOwner(c) => @graph.reach_source(c)
     SubgraphOwner(c) => @graph.subgraph_source(c)
     TraverseOwner(c) => @graph.traverse_source(c)
     ShortestOwner(c) => @graph.shortest_source(c)
@@ -202,7 +199,6 @@ pub fn operation_obligations_count(v : OperationObligations) -> Int {
     ProjectionOwner(c) => @projection.graph_pending_count(c)
     GraphOwner(c) => @graph.pending_validation_count(c)
     MatchOwner(c) => @graph.match_pending_count(c)
-    ReachOwner(c) => @graph.reach_pending_count(c)
     SubgraphOwner(c) => @graph.subgraph_pending_count(c)
     TraverseOwner(c) => @graph.traverse_pending_count(c)
     ShortestOwner(c) => @graph.shortest_pending_count(c)
@@ -264,8 +260,6 @@ pub fn operation_obligations_at(
       @graph.pending_validation_at(c, index).map(x => GraphRequirement(x))
     MatchOwner(c) =>
       @graph.match_pending_at(c, index).map(x => MatchRequirement(x))
-    ReachOwner(c) =>
-      @graph.reach_pending_at(c, index).map(x => ReachRequirement(x))
     SubgraphOwner(c) =>
       @graph.subgraph_pending_at(c, index).map(x => SubgraphRequirement(x))
     TraverseOwner(c) =>
@@ -328,7 +322,6 @@ pub fn operation_obligation_group_count(operation : CheckedOperation) -> Int {
     | Projection(_)
     | Graph(_)
     | GraphMatch(_)
-    | Reach(_)
     | PropertyGraphConstruction(..)
     | Vector(_)
     | Nearest(checked=_, ..)
@@ -366,7 +359,6 @@ pub fn operation_obligation_group_at(
       Projection(c) => { scope: Body, owner: ProjectionOwner(c), }
       Graph(c) => { scope: Body, owner: GraphOwner(c), }
       GraphMatch(c) => { scope: Body, owner: MatchOwner(c), }
-      Reach(c) => { scope: Body, owner: ReachOwner(c), }
       PropertyGraphConstruction(checked=c, ..) =>
         { scope: Body, owner: PropertyConstructionOwner(c), }
       Vector(c) => { scope: Body, owner: VectorOwner(c), }

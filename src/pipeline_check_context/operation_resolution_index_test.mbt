@@ -221,7 +221,6 @@ fn check_resolution_index(
       Execution(
         TraversalLimits(check)
         | TraversalOutputGuard(check)
-        | ReachLimits(check)
         | ShortestLimits(check)
         | ShortestOutputGuard(check)
       ) => {
@@ -229,10 +228,6 @@ fn check_resolution_index(
         assert_true(physical_equal(check.site, site))
       }
       Execution(TraversalExecution(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
-      Execution(ReachExecution(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))
       }
@@ -265,7 +260,6 @@ fn check_resolution_index(
       Resolved(v) => {
         resolved += 1
         let (position, owner, kind) = match v {
-          ReachExpansion(_) => abort("reach expansion has dedicated tests")
           AsOfCompletion(_) => abort("as-of completion has dedicated tests")
           RankingEnvelope(_) => abort("ranking envelopes have dedicated tests")
           WindowPublication(_) =>
@@ -352,7 +346,6 @@ fn check_resolution_index(
   for i in 0..<count {
     let kind = fn(v : OperationResolutionState) {
       match v {
-        Resolved(ReachExpansion(_)) => 14
         Resolved(RankingEnvelope(_)) => 15
         Resolved(AsOfCompletion(_)) => 13
         Resolved(WindowPublication(_)) => 12

@@ -2216,12 +2216,10 @@ pub(all) enum OperationExecutionCheck {
   ComponentsLimits(ComponentsLimitsCheck)
   ComponentsOutputGuard(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
-  ReachLimits(TraversalLimitsCheck)
   ShortestLimits(TraversalLimitsCheck)
   ShortestOutputGuard(TraversalLimitsCheck)
   TraversalOutputGuard(TraversalLimitsCheck)
   TraversalExecution(TraversalCheck)
-  ReachExecution(ReachCheck)
   ShortestExecution(ShortestCheck)
   GraphExecution(GraphExecutionCheck)
   PropertyGraphConstructionExecution(PropertyGraphConstructionCheck)
@@ -2405,7 +2403,6 @@ pub(all) enum OperationRequirementsIssue {
 } derive(Eq, @debug.Debug)
 
 pub(all) enum OperationResolution {
-  ReachExpansion(ReachExpansion)
   AsOfCompletion(AsOfKeyCompletion)
   WindowPublication(WindowPublicationResources)
   Order(OperationOrderLink)
@@ -2847,34 +2844,6 @@ pub struct RankingScoreEnvelope {
   minimum : Double
   maximum : Double
 }
-
-pub struct ReachCheck {
-  site : OperationRequirementSite
-  step : @pipeline_typing.CheckedStep
-  input : @pipeline_typing.Target
-  operation : @graph_typing.CheckedReach
-  rule : ReachRule
-}
-
-pub struct ReachExpansion {
-  requirement_index : Int
-  site : OperationRequirementSite
-  step : @pipeline_typing.CheckedStep
-  input : @pipeline_typing.Target
-  operation : @graph_typing.CheckedReach
-  start : @graph_typing.ReachStart
-  direction : @graph_typing.Direction
-  minimum_hops : Double
-  maximum_hops : Double
-  emission : @graph_typing.PathOutput
-}
-
-pub(all) enum ReachRule {
-  AdmitInputGraph
-  RequireStartMembership
-  EmitBoundedMinimumDepth
-  OrderReachRows
-} derive(Eq, @debug.Debug)
 
 type ReconciledContexts
 

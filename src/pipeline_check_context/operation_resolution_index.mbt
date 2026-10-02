@@ -1,6 +1,5 @@
 ///|
 pub(all) enum OperationResolution {
-  ReachExpansion(ReachExpansion)
   AsOfCompletion(AsOfKeyCompletion)
   WindowPublication(WindowPublicationResources)
   Order(OperationOrderLink)
@@ -51,7 +50,6 @@ fn resolution_occurrence(
   v : OperationResolution,
 ) -> (Int, OperationRequirementSite) {
   match v {
-    ReachExpansion(r) => (r.requirement_index, r.site)
     AsOfCompletion(r) => (r.requirement_index, r.site)
     WindowPublication(r) => (r.requirement_index, r.site)
     Order(r) => (r.requirement_index, r.site)
@@ -214,14 +212,6 @@ pub fn index_program_operation_resolutions(
           }
         }
       }
-    }
-    match reach_expansion(requirements.entries[i], i) {
-      Ok(Some(expansion)) =>
-        if attach(ReachExpansion(expansion)) is Some(error) {
-          return Err(error)
-        }
-      Ok(None) => ()
-      Err(error) => return Err(error)
     }
     match asof_key_completion(requirements.entries[i], i) {
       Ok(Some(completion)) =>

@@ -63,7 +63,6 @@ pub enum Payload {
   NestRows(@nest.CheckedNest)
   BasicGraph(@graph.CheckedGraph)
   GraphMatchRows(@graph.CheckedMatch)
-  GraphReachRows(@graph.CheckedReach)
   GraphSubgraphValue(@graph.CheckedSubgraph)
   GraphTraverseRows(@graph.CheckedTraverse)
   GraphShortestRows(@graph.CheckedShortest)
@@ -225,7 +224,6 @@ pub fn operation(value : PreparedNode) -> String {
         @graph.Nodes => "SGA.match_nodes"
         @graph.Edges => "SGA.match_edges"
       }
-    GraphReachRows(_) => "SGA.reachable"
     GraphSubgraphValue(_) => "SGA.subgraph"
     GraphTraverseRows(_) => "SGA.traverse"
     GraphShortestRows(_) => "SGA.shortest_path"
@@ -308,7 +306,6 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
         | @graph.GraphBounds => Some(BasicGraph(value))
       }
     GraphMatch(value) => Some(GraphMatchRows(value))
-    Reach(value) => Some(GraphReachRows(value))
     Subgraph(checked~, ..) => Some(GraphSubgraphValue(checked))
     Traverse(checked~, ..) => Some(GraphTraverseRows(checked))
     Shortest(checked~, ..) => Some(GraphShortestRows(checked))
@@ -445,16 +442,6 @@ pub fn prepare(
             @graph.Edges => "match_edges"
           },
           1,
-        )
-      GraphReachRows(checked) =>
-        (
-          "reach",
-          if @graph.reach_start(checked) is @graph.SelectedReachStarts(selector) &&
-            @graph.selector_form(selector) is @graph.RelationIds(..) {
-            2
-          } else {
-            1
-          },
         )
       GraphSubgraphValue(checked) =>
         (
@@ -686,7 +673,6 @@ pub fn prepare(
       NestRows(_) => None
       BasicGraph(_) => None
       GraphMatchRows(_) => None
-      GraphReachRows(_) => None
       GraphSubgraphValue(_) => None
       GraphTraverseRows(_) => None
       GraphShortestRows(_) => None

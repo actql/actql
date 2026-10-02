@@ -17,11 +17,13 @@ test "profile obligations map to their declared module without discharging other
     None,
   )
   assert_eq(
-    operation_profile_requirement(ReachRequirement(ResolveReachProfile)),
-    Some(SGA),
+    operation_profile_requirement(
+      TraverseRequirement(ResolvePropertyGraphTraversalProfile),
+    ),
+    Some(PropertyGraph),
   )
   assert_eq(
-    operation_profile_requirement(ReachRequirement(AdmitReachGraph)),
+    operation_profile_requirement(TraverseRequirement(EnumeratePropertyPaths)),
     None,
   )
   assert_eq(

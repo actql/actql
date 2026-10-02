@@ -26,12 +26,10 @@ pub(all) enum OperationExecutionCheck {
   ComponentsLimits(ComponentsLimitsCheck)
   ComponentsOutputGuard(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
-  ReachLimits(TraversalLimitsCheck)
   ShortestLimits(TraversalLimitsCheck)
   ShortestOutputGuard(TraversalLimitsCheck)
   TraversalOutputGuard(TraversalLimitsCheck)
   TraversalExecution(TraversalCheck)
-  ReachExecution(ReachCheck)
   ShortestExecution(ShortestCheck)
   GraphExecution(GraphExecutionCheck)
   PropertyGraphConstructionExecution(PropertyGraphConstructionCheck)
@@ -192,7 +190,6 @@ pub fn operation_execution_phase(
     ComponentsLimits(_)
     | ComponentsOutputGuard(_)
     | TraversalLimits(_)
-    | ReachLimits(_)
     | ShortestLimits(_)
     | ShortestOutputGuard(_)
     | TraversalOutputGuard(_)
@@ -206,11 +203,6 @@ pub fn operation_execution_phase(
         | SelectSimpleBoundedPaths
         | ApplyPathTieBreaks
         | OrderOutputRows => BeforeOperationOutput
-      }
-    ReachExecution(v) =>
-      match v.rule {
-        AdmitInputGraph | RequireStartMembership => BeforeOperationInputUse
-        EmitBoundedMinimumDepth | OrderReachRows => BeforeOperationOutput
       }
     TraversalExecution(v) =>
       match v.rule {
@@ -346,12 +338,10 @@ pub fn operation_execution_failure(
     | ComponentsLimits(_)
     | ComponentsOutputGuard(_)
     | TraversalLimits(_)
-    | ReachLimits(_)
     | ShortestLimits(_)
     | ShortestOutputGuard(_)
     | TraversalOutputGuard(_)
     | TraversalExecution(_)
-    | ReachExecution(_)
     | ShortestExecution(_)
     | GraphProjection(_)
     | GraphExecution(_)

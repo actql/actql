@@ -112,10 +112,6 @@ fn direct_execution_candidate(
     Ok(None) => ()
     other => return other
   }
-  match reach_execution_check(site) {
-    Ok(None) => ()
-    other => return other
-  }
   match shortest_execution_check(site) {
     Ok(None) => ()
     other => return other

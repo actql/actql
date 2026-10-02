@@ -172,7 +172,8 @@ pub struct LocalManagedDispatchOperations[T] {
   material : () -> @execution.ManagedRetainedOutput[T]?
   carrier_material : () -> @carrier_runtime.Material?
   prepare_carrier_snapshot : (() -> Bool) -> Result[
-    LocalManagedSnapshot?, LocalDispatchIssue,
+    LocalManagedSnapshot?,
+    LocalDispatchIssue,
   ]
   storage_bytes : Int64
   close : () -> Unit
@@ -793,7 +794,9 @@ pub fn[T] start_local_managed_dispatch(
                 old_carriers_released = false
               }
             }
-            relation_released && carrier_released && old_carriers_released &&
+            relation_released &&
+            carrier_released &&
+            old_carriers_released &&
             snapshot_storage_released.val.map(check => check()).unwrap_or(true)
           },
           released: fn() { () },
@@ -1727,9 +1730,13 @@ pub fn[T] start_local_managed_dispatch(
     material: fn() { retained.val },
     carrier_material: fn() { carrier.val },
     prepare_carrier_snapshot: fn(storage_released) {
-      guard live.val && execution_finished.val && execution_failure.val is None &&
-        !snapshot_attempted.val && carrier.val is Some(source) &&
-        carrier_completed.val is None && output_target is Some(target) &&
+      guard live.val &&
+        execution_finished.val &&
+        execution_failure.val is None &&
+        !snapshot_attempted.val &&
+        carrier.val is Some(source) &&
+        carrier_completed.val is None &&
+        output_target is Some(target) &&
         provider_execution.val is Some(active) else {
         return Err(Configuration(InvalidLimits))
       }
@@ -1742,7 +1749,8 @@ pub fn[T] start_local_managed_dispatch(
       snapshot_ready.val = false
       snapshot_storage_released.val = Some(storage_released)
       if operation.workspace_bytes > setup.capacity.execution_bytes ||
-        operation.maximum_bytes < 1 || operation.maximum_frame_bytes < 1 {
+        operation.maximum_bytes < 1 ||
+        operation.maximum_frame_bytes < 1 {
         return Err(Configuration(InvalidLimits))
       }
       let owner = @execution.generated_sequence_owner(setup.sequence)
@@ -1758,7 +1766,9 @@ pub fn[T] start_local_managed_dispatch(
       let save_progress = Ref(0L)
       let reload_progress = Ref(0L)
       let advance_stage = fn(quantum, reloading) {
-        if !live.val || execution_failure.val is Some(_) || quantum <= 0 ||
+        if !live.val ||
+          execution_failure.val is Some(_) ||
+          quantum <= 0 ||
           phase.val != (if reloading { Reloading } else { Saving }) {
           return Err(Configuration(InvalidLimits))
         }
@@ -1769,9 +1779,15 @@ pub fn[T] start_local_managed_dispatch(
         }
         let allowed = if remaining.val < quantum.to_int64() {
           remaining.val.to_int()
-        } else { quantum }
+        } else {
+          quantum
+        }
         let observation = match
-          (if reloading { operation.advance_reload } else { operation.advance_save })(allowed) {
+          (if reloading {
+            operation.advance_reload
+          } else {
+            operation.advance_save
+          })(allowed) {
           Ok(value) => value
           Err(issue) => {
             phase.val = Failed
@@ -1780,7 +1796,11 @@ pub fn[T] start_local_managed_dispatch(
           }
         }
         let work_cursor = if reloading { reload_work } else { save_work }
-        let progress_cursor = if reloading { reload_progress } else { save_progress }
+        let progress_cursor = if reloading {
+          reload_progress
+        } else {
+          save_progress
+        }
         if observation.work < work_cursor.val ||
           observation.progress < progress_cursor.val {
           @local.managed_provider_record_handoff_work(active, -1L) |> ignore
@@ -1816,69 +1836,84 @@ pub fn[T] start_local_managed_dispatch(
         if observation.complete {
           phase.val = if reloading { Restored } else { Saved }
         }
-        Ok({ complete: observation.complete, progress: observation.progress, work: delta, })
+        Ok({
+          complete: observation.complete,
+          progress: observation.progress,
+          work: delta,
+        })
       }
-      Ok(Some({
-        key: "task-" + setup.task.to_string(),
-        maximum_bytes: operation.maximum_bytes,
-        maximum_frame_bytes: operation.maximum_frame_bytes,
-        advance_save: quantum => advance_stage(quantum, false),
-        take_output: () => {
-          if phase.val != Saving && phase.val != Saved {
-            return Err(Configuration(InvalidLimits))
-          }
-          (operation.take_output)().map_err(issue => CarrierSnapshot(issue))
-        },
-        content: () => {
-          if phase.val != Saved { return Err(Configuration(InvalidLimits)) }
-          (operation.content)().map_err(issue => CarrierSnapshot(issue))
-        },
-        release_source: cid => {
-          if !live.val || phase.val != Saved { return Err(Configuration(InvalidLimits)) }
-          match (operation.release_source)(cid) {
-            Ok(_) => ()
-            Err(issue) => return Err(CarrierSnapshot(issue))
-          }
-          phase.val = Released
-          Ok(())
-        },
-        begin_reload: (text, available) => {
-          if !live.val || phase.val != Released { return Err(Configuration(InvalidLimits)) }
-          match (operation.begin_reload)(text, available) {
-            Ok(_) => ()
-            Err(issue) => return Err(CarrierSnapshot(issue))
-          }
-          phase.val = Reloading
-          Ok(())
-        },
-        advance_reload: quantum => advance_stage(quantum, true),
-        finish: () => {
-          if !live.val || phase.val != Restored || !storage_released() {
-            return Err(Configuration(InvalidLimits))
-          }
-          let restored = match (operation.take_material)() {
-            Ok(value) => value
-            Err(issue) => return Err(CarrierSnapshot(issue))
-          }
-          // Keep the old operation handle through its cleanup confirmation;
-          // revoking its source alone does not end snapshot custody.
-          retired_carriers.push(source)
-          carrier.val = Some(restored)
-          if !@carrier_runtime.completion_reference_matches_port(
-              @carrier_runtime.material_reference(restored), owner, target,
-            ) || !@carrier_runtime.material_available(restored) {
-            phase.val = Failed
-            return Err(Configuration(InputUnavailable))
-          }
-          @carrier_runtime.reclaim_material(source) |> ignore
-          if @carrier_runtime.material_cleanup_pending(source) {
-            return Err(Configuration(InputUnavailable))
-          }
-          phase.val = Finished
-          snapshot_ready.val = true
-          Ok(())
-        },
-      }))
+      Ok(
+        Some({
+          key: "task-" + setup.task.to_string(),
+          maximum_bytes: operation.maximum_bytes,
+          maximum_frame_bytes: operation.maximum_frame_bytes,
+          advance_save: quantum => advance_stage(quantum, false),
+          take_output: () => {
+            if phase.val != Saving && phase.val != Saved {
+              return Err(Configuration(InvalidLimits))
+            }
+            (operation.take_output)().map_err(issue => CarrierSnapshot(issue))
+          },
+          content: () => {
+            if phase.val != Saved {
+              return Err(Configuration(InvalidLimits))
+            }
+            (operation.content)().map_err(issue => CarrierSnapshot(issue))
+          },
+          release_source: cid => {
+            if !live.val || phase.val != Saved {
+              return Err(Configuration(InvalidLimits))
+            }
+            match (operation.release_source)(cid) {
+              Ok(_) => ()
+              Err(issue) => return Err(CarrierSnapshot(issue))
+            }
+            phase.val = Released
+            Ok(())
+          },
+          begin_reload: (text, available) => {
+            if !live.val || phase.val != Released {
+              return Err(Configuration(InvalidLimits))
+            }
+            match (operation.begin_reload)(text, available) {
+              Ok(_) => ()
+              Err(issue) => return Err(CarrierSnapshot(issue))
+            }
+            phase.val = Reloading
+            Ok(())
+          },
+          advance_reload: quantum => advance_stage(quantum, true),
+          finish: () => {
+            if !live.val || phase.val != Restored || !storage_released() {
+              return Err(Configuration(InvalidLimits))
+            }
+            let restored = match (operation.take_material)() {
+              Ok(value) => value
+              Err(issue) => return Err(CarrierSnapshot(issue))
+            }
+            // Keep the old operation handle through its cleanup confirmation;
+            // revoking its source alone does not end snapshot custody.
+            retired_carriers.push(source)
+            carrier.val = Some(restored)
+            if !@carrier_runtime.completion_reference_matches_port(
+                @carrier_runtime.material_reference(restored),
+                owner,
+                target,
+              ) ||
+              !@carrier_runtime.material_available(restored) {
+              phase.val = Failed
+              return Err(Configuration(InputUnavailable))
+            }
+            @carrier_runtime.reclaim_material(source) |> ignore
+            if @carrier_runtime.material_cleanup_pending(source) {
+              return Err(Configuration(InputUnavailable))
+            }
+            phase.val = Finished
+            snapshot_ready.val = true
+            Ok(())
+          },
+        }),
+      )
     },
     storage_bytes: setup.capacity.retained_bytes,
     close: fn() {
@@ -1920,7 +1955,9 @@ pub fn[T] start_local_managed_dispatch(
       }
       for material in retired_carriers {
         @carrier_runtime.reclaim_material(material) |> ignore
-        if @carrier_runtime.material_cleanup_pending(material) { return false }
+        if @carrier_runtime.material_cleanup_pending(material) {
+          return false
+        }
       }
       if !snapshot_storage_released.val.map(check => check()).unwrap_or(true) {
         return false

@@ -30,8 +30,6 @@ pub fn check_predicate(EntityKind, @decode_core.Cursor, @carrier_contract.Carrie
 
 pub fn check_property_construction(@decode_core.Cursor, Array[(String, @carrier_contract.Carrier)], String, Limits) -> Result[CheckedPropertyConstruction, Issue]
 
-pub fn check_reach(@decode_core.Cursor, @carrier_contract.Carrier, Limits, selector_relation? : @carrier_contract.Carrier?, parameters? : @parameter_binding.Declarations?, max_tokens? : Int) -> Result[CheckedReach, MatchIssue]
-
 pub fn check_scope(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedScope, Issue]
 
 pub fn check_selector(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits, property_graph? : Bool) -> Result[CheckedSelector, MatchIssue]
@@ -180,26 +178,6 @@ pub fn property_element_keys(PropertyElement) -> Array[@relation_schema.FieldNam
 
 pub fn property_element_properties(PropertyElement) -> Array[(@relation_schema.FieldName, @relation_schema.FieldName)]
 
-pub fn reach_direction(CheckedReach) -> Direction
-
-pub fn reach_input(CheckedReach) -> @carrier_contract.Carrier
-
-pub fn reach_max_depth(CheckedReach) -> Double
-
-pub fn reach_output(CheckedReach) -> @carrier_contract.Carrier
-
-pub fn reach_pending(CheckedReach) -> Array[ReachObligation]
-
-pub fn reach_pending_at(CheckedReach, Int) -> ReachObligation?
-
-pub fn reach_pending_count(CheckedReach) -> Int
-
-pub fn reach_source(CheckedReach) -> @decode_core.Cursor
-
-pub fn reach_start(CheckedReach) -> ReachStart
-
-pub fn reach_usage(CheckedReach) -> PredicateUsage
-
 pub fn scope_fields(CheckedScope) -> @carrier_contract.Knowledge
 
 pub fn scope_usage(CheckedScope) -> Usage
@@ -322,8 +300,6 @@ type CheckedPathContract
 type CheckedPredicate
 
 type CheckedPropertyConstruction
-
-type CheckedReach
 
 type CheckedScope
 
@@ -542,21 +518,6 @@ pub(all) enum PropertyPathMode {
   Trail
   Acyclic
 } derive(Eq, @debug.Debug)
-
-pub(all) enum ReachObligation {
-  AdmitReachGraph
-  RequireReachStartMembership
-  JournalReachExpansion
-  BoundedMinimumDepthTraversal
-  CanonicalReachOrder
-  ResolveReachResources
-  ResolveReachProfile
-} derive(Eq, @debug.Debug)
-
-pub(all) enum ReachStart {
-  SingleReachStart(@value_admission.CheckedValue)
-  SelectedReachStarts(CheckedSelector)
-}
 
 pub enum SelectorForm {
   ExplicitIds

@@ -189,7 +189,6 @@ pub fn operation_scalar_demand(
     | ValuesRequirement(_)
     | ProjectionRequirement(_)
     | MatchRequirement(_)
-    | ReachRequirement(_)
     | SubgraphRequirement(_)
     | SelectorRequirement(_)
     | ConstructionRequirement(_)

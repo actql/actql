@@ -251,26 +251,6 @@ test "unsupported structural Graph consumers refuse keyed inputs before executio
 }
 
 ///|
-test "reach has no historical execution alternative under the current graph contract" {
-  for input in [keyed_profile(), @carrier.unknown_carrier(GraphKind)] {
-    guard @graph_typing.check_reach(
-        cursor("{\"start\":1,\"direction\":\"out\",\"max_depth\":1}"),
-        input,
-        limits(),
-      )
-      is Err(@graph_typing.MatchStructure(issue)) else {
-      abort("unconnected reach was accepted")
-    }
-    let expected = if input is @carrier.GraphValue(_) {
-      @graph_typing.UnsupportedGraphOperation
-    } else {
-      @graph_typing.IncompleteGraph
-    }
-    assert_eq(issue.kind, expected)
-  }
-}
-
-///|
 test "unconnected subgraph is an explicit refusal" {
   assert_true(
     @graph_typing.check_subgraph(

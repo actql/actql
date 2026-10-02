@@ -42,16 +42,6 @@ fn traversal_limits_check(
       }
     }
     (
-      @pipeline.ReachRequirement(ResolveReachResources),
-      @pipeline.Reach(operation),
-    ) =>
-      if @graph.reach_pending_at(operation, site.index) ==
-        Some(ResolveReachResources) {
-        Ok(ReachLimits(check))
-      } else {
-        Err(ForeignOccurrence(site.step))
-      }
-    (
       @pipeline.TraverseRequirement(requirement),
       @pipeline.Traverse(checked=operation, ..),
     ) => {
@@ -83,7 +73,6 @@ fn traversal_limits_candidate(
       ResolveTraversalResources
       | EnforceTraversalOutputGuard
     )
-    | @pipeline.ReachRequirement(ResolveReachResources)
     | @pipeline.ShortestRequirement(
       ResolveShortestResources
       | EnforceShortestOutputGuard
