@@ -1,6 +1,8 @@
+import { distinctAcceptance } from './distinct-acceptance.mjs';
 import { canonicalFields } from './engine.mjs';
 const stage = (trace, op, predicate) => trace.expected.stages.some((s, i) => s.operation === op && predicate(s, i, trace));
 export const registrations = {
+  distinct: distinctAcceptance,
   filter: { variant: 'numeric gt or constant', route: 'Filter', obligations: [
     { id: 'NULL predicate drops NULL', holds: t => stage(t, 'filter', s => s.args.mode === 'gt' &&
       s.input.some(r => r.values[s.args.field] === null) && s.input.some(r => r.values[s.args.field] !== null && r.values[s.args.field] > s.args.threshold) &&
