@@ -95,38 +95,33 @@ test "keyed traversal checks retain explicit mode and never reuse simple-path la
 }
 
 ///|
-test "traversal semantic bindings preserve mode predicates input roles and unresolved guards" {
-  let fields = @carrier.rows(
-    [],
-    field_set=Closed,
-    max_fields=0,
-    max_name_bytes=0,
-  ).unwrap()
-  let number = @contract.primitive(NumberType, nullable=false)
-  let graph = @carrier.graph(
-    number,
-    fields,
-    fields,
-    labels=None,
-    max_labels=0,
-    max_label_bytes=0,
-  ).unwrap()
+test "current TRAIL bindings preserve mode input roles custody and unresolved guards" {
+  let producer = property_execution_pipeline()
+  let graph = @pipeline.carrier_at(producer, @pipeline.Step(1)).unwrap()
+  guard graph is @carrier.GraphValue(schema) else { fail("current Graph") }
+  let domain = @carrier.property_graph_domain(
+    @carrier.graph_property_definition(schema),
+  )
+  let identity = "{\"definition\":\"N\",\"domain\":\"" +
+    domain +
+    "\",\"key\":[2],\"key_types\":[{\"kind\":\"number\"}]}"
   let rows = @carrier.relation(
     @carrier.rows(
-      [(Unqualified("id"), Some(number))],
+      [(Qualified(Left, "element"), Some(@carrier.graph_identity(schema)))],
       field_set=Closed,
       max_fields=1,
-      max_name_bytes=10,
+      max_name_bytes=100,
     ).unwrap(),
   )
   for
     start in [
-      "{\"ids\":[2,2]}", "{\"from\":\"r\",\"id\":\"id\"}", "{\"where\":{\"literal\":false}}",
+      "{\"ids\":[" + identity + "," + identity + "]}",
+      "{\"from\":\"r\",\"id\":\"left.element\"}",
     ] {
     for patterned in [false, true] {
-      for emission in ["nodes", "paths"] {
+      for emission in ["paths"] {
         let mode = if patterned {
-          "\"hops\":[{\"direction\":\"out\",\"edge_where\":{\"literal\":false}},{\"direction\":\"in\",\"node_where\":{\"literal\":true}}]"
+          "\"hops\":[{\"direction\":\"out\"},{\"direction\":\"in\"}]"
         } else {
           "\"direction\":\"both\",\"min_hops\":0,\"max_hops\":9007199254740992"
         }
@@ -138,7 +133,7 @@ test "traversal semantic bindings preserve mode predicates input roles and unres
             mode +
             ",\"emit\":\"" +
             emission +
-            "\",\"max_output_rows\":1}}]",
+            "\",\"path_mode\":\"trail\",\"max_output_rows\":1}}]",
           ),
           [("g", graph), ("r", rows)],
           None,
@@ -163,12 +158,8 @@ test "traversal semantic bindings preserve mode predicates input roles and unres
           EvaluateHopConditions,
           OrderTraversalRows,
         ]
-        if emission == "nodes" {
-          expected.push(EmitMinimumDepth)
-        } else {
-          expected.push(EnumerateSimplePaths)
-          expected.push(DeduplicatePathIdentities)
-        }
+        expected.push(EnumeratePropertyPaths)
+        expected.push(DeduplicatePathIdentities)
         let actual : Array[TraversalRule] = []
         let mut unresolved = 0
         for index in 0..<@pipeline.operation_obligations_count(body) {
@@ -188,7 +179,7 @@ test "traversal semantic bindings preserve mode predicates input roles and unres
                 site.requirement
                 is @pipeline.TraverseRequirement(
                   ResolveTraversalResources
-                  | ResolveTraversalProfile
+                  | ResolvePropertyGraphTraversalProfile
                   | EnforceTraversalOutputGuard
                 ),
               )
@@ -223,12 +214,8 @@ test "traversal semantic bindings preserve mode predicates input roles and unres
                 let second = @graph.traverse_hop_at(check.operation, 1).unwrap()
                 assert_eq(@graph.hop_direction(first), @graph.Outgoing)
                 assert_eq(@graph.hop_direction(second), @graph.Incoming)
-                assert_true(
-                  @graph.hop_predicate(first, @graph.Edges) is Some(_),
-                )
-                assert_true(
-                  @graph.hop_predicate(second, @graph.Nodes) is Some(_),
-                )
+                assert_true(@graph.hop_predicate(first, @graph.Edges) is None)
+                assert_true(@graph.hop_predicate(second, @graph.Nodes) is None)
               }
               assert_eq(
                 operation_execution_phase(TraversalExecution(check)),

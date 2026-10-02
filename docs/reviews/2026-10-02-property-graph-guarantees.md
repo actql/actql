@@ -872,3 +872,28 @@ Three-target interface generation completes. These are focused local results,
 not an inferred full-Core pass or final published snapshot/CI evidence. The old
 Carrier factory stub and other unconnected consumer types still need removal;
 mixed upper/Host fixtures and the strict resource inventory remain open.
+
+## Current TRAIL selector and upper binding custody
+
+The mixed upper-driver selector and traversal fixtures now construct the
+current Graph through its admitted producer. Literal selectors use complete
+definition/domain/typed-key identities, and Relation selectors use the exact
+Graph identity contract on a qualified field. Successful cases retain repeated
+literal occurrences, the original checked step, operation, policy and site,
+primary/selector input roles, and refusal of foreign pipeline/group/index
+owners. Explicit TRAIL is tested with patterned and bounded unpatterned hops,
+canonical path obligations and the original unresolved output guard.
+
+The former subgraph/shortest endpoint-role and homogeneous node/simple-path
+cases are not represented as supported execution. Definition-free start/hop
+property predicates are also not claimed migrated: current per-definition
+MATCH predicates are supported, but these traversal predicates still need a
+contract connection before they can be offered. The current test does not
+pretend its absent predicates prove their evaluation.
+
+The first narrow run passes 3/3 JS. Including current constructor/MATCH owner
+checks, selector custody and selector/traverse typing, the migrated suite
+passes **10/10 on each JS, Wasm and native**:
+`/private/tmp/property-graph-trail-owner-migration-{js,wasm,native}-20261003.log`.
+This preserves applicable upper custody checks as positive current-contract
+tests, rather than converting them all into unsupported-operation assertions.
