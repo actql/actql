@@ -11,7 +11,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   store, checkpoints, startRun, hostConnection, beforeDispatch, observed,
   prepareAcquisition, planFor, sourceProfile, registry, values, fragment,
   ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
-  faultInjection,
+  faultInjection, runInfer,
   runPublished = runPublishedCapturedStrategy}) {
   const entries = new Map();
   const diagnostic = diagnosticObserver(observed);
@@ -166,8 +166,15 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       const acquiring = sourceProfile !== undefined &&
         moon.clientProgramPrepareQueryAcquisition(preparedProgram, 0, 0)
           ?.$tag === 1;
+      const inferring = held.plan.kind === 'infer';
+      // A checked model barrier is not a Values task. The installed Model
+      // connection must consume this exact plan and transfer physical custody
+      // before advancing; this supervisor still owns the one Run-start claim.
+      if (inferring && (acquiring || typeof runInfer !== 'function')) {
+        throw new Error('InstalledInferDispatchUnavailable');
+      }
       let setup;
-      if (!acquiring) {
+      if (!acquiring && !inferring) {
         setup = moon.clientProgramOpenSourceFreeLocalHost(
           preparedProgram, registry, values, 1n, 0n, 0n, 0n,
           fragment, ordered);
@@ -246,6 +253,33 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       entry.abort.signal.throwIfAborted();
       entry.physicalWorkMayHaveStarted = true;
       entry.computeStartAttempted = true;
+      if (inferring) {
+        await runInfer({preparedProgram, plan: held.plan, store,
+          principalId: actual, signal: entry.abort.signal,
+          retainExecution(execution) {
+            if (entry.cleanupOwner !== undefined &&
+                entry.cleanupOwner !== execution) {
+              throw new TypeError('ClientDispatchCleanupOwnerAlreadyRetained');
+            }
+            if (typeof execution?.close !== 'function' ||
+                typeof execution?.cleanup !== 'function' ||
+                typeof execution?.cleanupPending !== 'function') {
+              throw new TypeError('ClientDispatchCleanupOwnerInvalid');
+            }
+            entry.cleanupOwner = execution;
+          }});
+        // Success is the existing Store's committed index, not merely a
+        // returned model value or a completed private capture.
+        if (entry.cleanupOwner === undefined ||
+            await store.confirmCommittedIndex(entry.ref) === undefined) {
+          throw new Error('InstalledInferPublicationIncomplete');
+        }
+        entry.publicationCommitted = true;
+        await step('computed', {ref: accepted.ref});
+        await settleCleanup(entry);
+        await finishRun(entry);
+        return;
+      }
       const published = await runPublished(setup,
         {store, plan: held.plan},
         sourceProfile === undefined ? {} :

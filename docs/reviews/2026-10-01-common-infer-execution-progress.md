@@ -1688,3 +1688,28 @@ Infer plan, supply current account/egress and exact physical preflight to the
 existing common dispatch owner, then persist its issued capture before the
 ordinary Named Result publication. Fresh-process replay and unknown-outcome
 non-redispatch remain required, not deferred out of scope.
+
+## Model dispatch custody in the existing Client supervisor
+
+The installed Client dispatch supervisor now accepts a selected Infer plan
+without opening the source-free Values executor. It preserves the existing
+Run-start claim, physical-start reservation, cancellation signal and cleanup
+entry. The installed model connection must transfer its execution owner before
+advancing. A private model completion is not publication: the supervisor checks
+the existing Store's committed index before recording successful completion.
+
+The dispatch-owner suite passes 18 tests. Five new component cases check exact
+prepared-plan handoff, missing-connection refusal before physical start,
+private-completion refusal, cleanup retry without a second invocation, and
+cancellation while the physical operation has not yet confirmed stop. These
+are supervisor tests, not public ModelTask or Named Result acceptance.
+
+The public submit guard remains in place until current policy and physical
+request preflight are connected to the installed model operation. Consequently
+this change is not a B-ready execution handoff. Public capture, publication
+and fresh-process replay remain the next required vertical acceptance.
+
+The specification gate at `db0c58aa953540870c10a9055012cf3333ff5de3`
+passed its version, Relation, generator and coverage checks before being
+interrupted during the resource-accounting suite to resume implementation.
+It is incomplete, not a successful gate. No Linux CI result is claimed.
