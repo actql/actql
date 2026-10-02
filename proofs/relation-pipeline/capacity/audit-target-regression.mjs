@@ -8,6 +8,14 @@ const path = join(root, '.artifacts/relation-pipeline/capacity/all.json');
 const original = JSON.parse(readFileSync(path));
 const directory = join(root, '.artifacts/relation-pipeline/capacity/target-substitution');
 mkdirSync(directory, { recursive: true });
+const reasons = {
+  js: 'Requested target/case differs from independent execution',
+  wasm: 'Requested target/case differs from independent execution',
+  bytes: 'Missing runtime evidence for unconditional byte claims',
+  edge: 'Missing checked handoff edge',
+  history: 'Shrink choice differs from real resource observations',
+  compiler: 'Unpinned compiler declaration',
+};
 for (const slot of ['healthy', 'js', 'wasm', 'bytes', 'edge', 'history', 'compiler']) {
   const report = structuredClone(original);
   if (slot === 'bytes') report.claim.unconditionalAllocationBytes = true;
@@ -25,8 +33,12 @@ for (const slot of ['healthy', 'js', 'wasm', 'bytes', 'edge', 'history', 'compil
   }
   const fixture = join(directory, `${slot}.json`);
   writeFileSync(fixture, JSON.stringify(report) + '\n');
-  const result = spawnSync(process.execPath, ['proofs/relation-pipeline/capacity/audit.mjs', fixture], { cwd: root, encoding: 'utf8' });
+  const result = spawnSync(process.execPath, ['proofs/relation-pipeline/capacity/audit.mjs', fixture],
+    { cwd: root, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 });
   writeFileSync(join(directory, `${slot}.log`), `${result.stdout ?? ''}${result.stderr ?? ''}`);
+  assert.ifError(result.error);
+  assert(Number.isInteger(result.status), 'Audit did not finish normally');
   assert.equal(result.status === 0, slot === 'healthy', `Actual capacity audit admitted ${slot} substitution`);
+  if (slot !== 'healthy') assert(result.stderr.includes(reasons[slot]), 'Substitution failed for an unrelated reason');
 }
 console.log('Actual audit accepts healthy 3-target records and refuses target/byte/edge/shrink/compiler substitutions');

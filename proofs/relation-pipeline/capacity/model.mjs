@@ -90,6 +90,6 @@ export function admitClaim(claim) {
   assert.equal(claim.kind, 'structural-model-and-finite-correspondence');
   assert.deepEqual(claim.unresolved, [...unresolved]);
   assert.equal(claim.units, 'filled entries and numeric content octets');
-  assert.equal(claim.unconditionalAllocationBytes, false);
+  assert.equal(claim.unconditionalAllocationBytes, false, 'Missing runtime evidence for unconditional byte claims');
   return claim;
 }
