@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "remove-duplicate-runtime-package-checks",
+  "kind": "change",
+  "revision": "7a021fee6d9d72dd0cadcc4c8d5b8f2386f2ee72",
+  "parents": [
+    "629042c9581046f78af0f3c47899db8444ff98dc"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "629042c9581046f78af0f3c47899db8444ff98dc",
+          "digest": "b559af7ef2b305b47c26f6171b315b5acae04dd2767f5cf080b8776ca92b55a6",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "946a8de4938e3f11af16540b994ea97fd277be254154a0203a5097df4461f416",
+      "afterMode": "100644",
+      "reason": "Remove only five immediate builder --check invocations already performed with the same inputs by build-runtime-packages.mjs. Retain its generation, internal validation, tracked-wrapper refusal and contract-version gate, every existing build/type/unit/packed test, and all four package prepack hooks. Independent orchestration regressions run before the unchanged cold-pack checks. No proof campaign, historical pin, validator or result reuse changes."
+    }
+  ]
+}
