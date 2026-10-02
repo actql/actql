@@ -1,5 +1,5 @@
 // Generated from the registered Client–Host machine contract.
-export type ClientHostOperation = "connect" | "submit" | "attach" | "lookup-request" | "status" | "wait" | "cancel" | "reconcile" | "read" | "result-describe" | "delivery-attempt" | "checkpoints" | "checkpoint-review" | "resolve" | "cancel-request" | "resources" | "resource-inspect" | "resource-peek";
+export type ClientHostOperation = "connect" | "submit" | "check" | "attach" | "lookup-request" | "status" | "wait" | "cancel" | "reconcile" | "read" | "result-describe" | "delivery-attempt" | "checkpoints" | "checkpoint-review" | "resolve" | "cancel-request" | "resources" | "resource-inspect" | "resource-peek";
 export type WireValueContractShape = Readonly<{
   type: "decimal";
   nullable: boolean;
@@ -288,4 +288,59 @@ export type WireRunStateShape = Readonly<{
   cancellation_requested: boolean;
   physical_stop: "unknown" | "confirmed";
 }>;
+}>;
+export type WireCheckOutcomeShape = Readonly<{
+  outcome: "completed";
+  report: Readonly<{
+  context_ref: string;
+  coverage: Readonly<{
+  limits: readonly Readonly<{
+  code: string;
+}>[];
+  unresolved: readonly Readonly<{
+  boundary: string;
+  reason: "unresolved_protected";
+}>[];
+}>;
+  reasons: readonly Readonly<{
+  code: string;
+}>[];
+  scope: Readonly<{
+  kind: "bound_input";
+}>;
+  verdict: "invalid" | "undetermined" | "verified";
+}>;
+  version: "actql-check-outcome/0.1";
+}> | Readonly<{
+  outcome: "failed";
+  partial_report?: Readonly<{
+  context_ref: string;
+  coverage: Readonly<{
+  limits: readonly Readonly<{
+  code: string;
+}>[];
+  unresolved: readonly Readonly<{
+  boundary: string;
+  reason: "unresolved_protected";
+}>[];
+}>;
+  reasons: readonly Readonly<{
+  code: string;
+}>[];
+  scope: Readonly<{
+  kind: "bound_input";
+}>;
+  verdict: "invalid" | "undetermined";
+}>;
+  problem: Readonly<{
+  code: string;
+}>;
+  version: "actql-check-outcome/0.1";
+}> | Readonly<{
+  correlation_ref: string;
+  outcome: "unavailable";
+  problem: Readonly<{
+  code: string;
+}>;
+  version: "actql-check-outcome/0.1";
 }>;

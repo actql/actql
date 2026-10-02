@@ -90,6 +90,7 @@ pub(all) enum Issue {
   UnsupportedGraph
   UnsupportedInfer
   UnsupportedNearest
+  UnsupportedResult
   Construction(@program_source_builder.Issue)
   Expression(@query_expression.Diagnostic)
   Admission(@stage_syntax.SyntaxError)

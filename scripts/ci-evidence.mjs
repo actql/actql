@@ -1,9 +1,11 @@
 // Read-only GitHub Actions evidence. No aggregate green/merge-ready verdict.
 import {spawnSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
+import {addTimingEvidence, formatTiming} from './ci-timing.mjs';
 
 const usage = 'Usage: node scripts/ci-evidence.mjs OWNER/REPO ' +
-  '(--pr NUMBER | --sha FULL_SHA) [--branch BASE_BRANCH] [--json]';
+  '(--pr NUMBER | --sha FULL_SHA | --runs ID,ID) [--branch BASE_BRANCH] ' +
+  '[--compare RUN:ATTEMPT,RUN:ATTEMPT] [--json]';
 const fullSha = value => typeof value === 'string' && /^[a-f0-9]{40}$/iu.test(value);
 const positive = value => Number.isSafeInteger(value) && value > 0;
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -18,7 +20,7 @@ export function parseArguments(args) {
   const seen = new Set();
   for (let index = 0; index < rest.length; index++) {
     const flag = rest[index];
-    if (!['--pr', '--sha', '--branch', '--json'].includes(flag) || seen.has(flag)) {
+    if (!['--pr', '--sha', '--runs', '--compare', '--branch', '--json'].includes(flag) || seen.has(flag)) {
       throw new Error(usage);
     }
     seen.add(flag);
@@ -29,13 +31,20 @@ export function parseArguments(args) {
       options[flag.slice(2)] = value;
     }
   }
-  if (Boolean(options.pr) === Boolean(options.sha) ||
+  if ([options.pr, options.sha, options.runs].filter(Boolean).length !== 1 ||
       (options.pr && (!/^[1-9][0-9]*$/u.test(options.pr) || !positive(Number(options.pr)))) ||
       (options.sha && !fullSha(options.sha)) || (options.pr && options.branch)) {
     throw new Error(usage);
   }
   if (options.pr) options.pr = Number(options.pr);
   if (options.sha) options.sha = options.sha.toLowerCase();
+  for (const [key, pattern] of [['runs', /^[1-9][0-9]*$/u], ['compare', /^[1-9][0-9]*:[1-9][0-9]*$/u]]) {
+    if (!options[key]) continue;
+    const values = options[key].split(',');
+    if (new Set(values).size !== values.length || values.some(value =>
+      !pattern.test(value) || value.split(':').some(part => !positive(Number(part))))) throw new Error(usage);
+    options[key] = key === 'runs' ? values.map(Number) : values;
+  }
   return options;
 }
 
@@ -203,12 +212,19 @@ export async function collectEvidence(options, request = ghRequest) {
     }
   }
 
-  const queries = [`${prefix}/actions/runs?head_sha=${report.target.headSha}&per_page=100`];
+  const queries = options.runs ? [] : [`${prefix}/actions/runs?head_sha=${report.target.headSha}&per_page=100`];
   if (pr) queries.push(`${prefix}/actions/runs?branch=${encodeURIComponent(pr.head.ref)}&per_page=100`);
   if (report.target.currentMergeTestSha) {
     queries.push(`${prefix}/actions/runs?head_sha=${report.target.currentMergeTestSha}&per_page=100`);
   }
   const runs = new Map();
+  for (const id of options.runs ?? []) {
+    const endpoint = `${prefix}/actions/runs/${id}`;
+    const run = await read(endpoint);
+    report.discovery.push({endpoint, count: run ? 1 : null});
+    if (run?.id === id) runs.set(id, run);
+    else if (run) issue(endpoint, 'Selected run ID mismatched');
+  }
   for (const endpoint of queries) {
     const found = await list(endpoint, 'workflow_runs', true);
     report.discovery.push({endpoint, count: found?.length ?? null});
@@ -221,6 +237,7 @@ export async function collectEvidence(options, request = ghRequest) {
   }
   const sourceMatch = run => {
     if (!fullSha(run.head_sha)) return 'unknown';
+    if (options.runs) return 'not-selected';
     if (run.head_sha === report.target.headSha) return 'exact-head';
     if (run.head_sha === report.target.currentMergeTestSha) return 'current-merge-test-ref';
     const associated = Array.isArray(run.pull_requests) ?
@@ -239,11 +256,16 @@ export async function collectEvidence(options, request = ghRequest) {
     report.runs.push(entry);
     for (let number = 1; number <= run.run_attempt; number++) {
       const endpoint = `${prefix}/actions/runs/${run.id}/attempts/${number}`;
+      const errorsBefore = report.errors.length;
       const attempt = await read(endpoint);
       const result = {number, available: attempt !== null, jobs: []};
       entry.attempts.push(result);
       if (!attempt) continue;
       Object.assign(result, {
+        endpoint, workflow: attempt.name ?? null, workflowPath: attempt.path ?? null,
+        workflowId: attempt.workflow_id ?? null,
+        createdAt: attempt.created_at ?? null, startedAt: attempt.run_started_at ?? null,
+        updatedAt: attempt.updated_at ?? null,
         event: attempt.event ?? null, headSha: attempt.head_sha ?? null,
         headBranch: attempt.head_branch ?? null, sourceMatch: sourceMatch(attempt),
         status: attempt.status ?? null, conclusion: valueOrNull(attempt.conclusion),
@@ -272,13 +294,24 @@ export async function collectEvidence(options, request = ghRequest) {
         const identityMatches = job.run_id === run.id && job.run_attempt === number && job.head_sha === attempt.head_sha;
         result.jobs.push({id: job.id ?? null, name: job.name ?? null, url: job.html_url ?? null,
           runId: job.run_id ?? null, attempt: job.run_attempt ?? null, headSha: job.head_sha ?? null,
-          status: job.status ?? null, conclusion: valueOrNull(job.conclusion), identityMatches});
+          status: job.status ?? null, conclusion: valueOrNull(job.conclusion), identityMatches,
+          endpoint: jobsEndpoint, createdAt: job.created_at ?? null,
+          startedAt: job.started_at ?? null, completedAt: job.completed_at ?? null,
+          runnerLabels: Array.isArray(job.labels) && job.labels.every(string) ? job.labels : null,
+          runnerName: job.runner_name ?? null, runnerGroupId: job.runner_group_id ?? null,
+          runnerGroupName: job.runner_group_name ?? null,
+          steps: Array.isArray(job.steps) && job.steps.every(object) ? job.steps.map(step => ({
+            number: step.number ?? null, name: step.name ?? null, status: step.status ?? null,
+            conclusion: valueOrNull(step.conclusion), startedAt: step.started_at ?? null,
+            completedAt: step.completed_at ?? null,
+          })) : null});
         if (!identityMatches || !positive(job.id) || seen.has(job.id) || !string(job.name) ||
             !string(job.status) || !Object.hasOwn(job, 'conclusion')) {
           issue(jobsEndpoint, 'Job identity/status missing, duplicated or mismatched; do not combine this evidence');
         }
         seen.add(job.id);
       }
+      result.evidenceComplete = report.errors.length === errorsBefore;
     }
   }
 
@@ -306,6 +339,7 @@ export async function collectEvidence(options, request = ghRequest) {
       issue(statusesEndpoint, 'Commit-status identity/state missing');
     }
   }
+  addTimingEvidence(report, options.compare);
   return report;
 }
 
@@ -349,6 +383,7 @@ export function formatHuman(report) {
     if (!group.statuses.length) lines.push(`  statuses: ${group.statusesAvailable ? 'absent' : 'unavailable'}`);
     for (const status of group.statuses) lines.push(`  ${status.context}: ${status.state} at ${status.createdAt ?? 'unknown'} | ${status.url ?? 'URL unknown'}`);
   }
+  if (report.timing) lines.push(...formatTiming(report.timing));
   for (const error of report.errors) lines.push(`ERROR ${error.endpoint}: ${error.message}`);
   lines.push('', ...report.limits);
   return lines.map(clean).join('\n');

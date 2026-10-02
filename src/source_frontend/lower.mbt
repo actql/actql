@@ -207,6 +207,40 @@ fn emit(program : @program.Program) -> Result[Lowered, Issue] {
 }
 
 ///|
+/// Parse a selected query language without declarations or a Catalog context.
+/// This is the same bounded syntax admission used by lowering; syntax success
+/// alone says nothing about name resolution, bindings or Program checking.
+pub fn parse_query(
+  document : String,
+  format : Format,
+  source_path? : String = "<source>",
+) -> Result[@syntax.Query, Issue] {
+  match format {
+    Text | Sql => ()
+    Json | Yaml => return Err(InvalidFormat)
+  }
+  let query_form = match
+    @syntax.starts_query(document, syntax_limits().lexical, source_path~) {
+    Ok(value) => value
+    Err(issue) => return Err(QuerySyntax(issue))
+  }
+  if !query_form {
+    return Err(WrongQueryForm)
+  }
+  if format == Sql {
+    match @syntax.starts_sql(document, syntax_limits().lexical, source_path~) {
+      Ok(true) => ()
+      Ok(false) => return Err(WrongQueryForm)
+      Err(issue) => return Err(QuerySyntax(issue))
+    }
+  }
+  match @syntax.parse_query(document, syntax_limits(), source_path~) {
+    Ok(value) => Ok(value)
+    Err(issue) => Err(QuerySyntax(issue))
+  }
+}
+
+///|
 /// Lower only the selected query language. No structural text fallback or
 /// compatibility parser is available. The Host checks the resulting Program normally.
 pub fn lower(
@@ -219,37 +253,16 @@ pub fn lower(
     Json => Ok({ document, format: @program.Json, })
     Yaml => Ok({ document, format: @program.Yaml, })
     Text | Sql => {
-      let query_form = match
-        @syntax.starts_query(document, syntax_limits().lexical, source_path~) {
+      let parsed = match parse_query(document, format, source_path~) {
         Ok(value) => value
-        Err(issue) => return Err(QuerySyntax(issue))
+        Err(issue) => return Err(issue)
       }
-      if !query_form {
-        return Err(WrongQueryForm)
+      guard context is Some(context) else { return Err(MissingQueryContext) }
+      let program = match @query.compile(parsed, context, query_limits()) {
+        Ok(value) => value
+        Err(issue) => return Err(QueryLowering(issue))
       }
-      if format == Sql {
-        match
-          @syntax.starts_sql(document, syntax_limits().lexical, source_path~) {
-          Ok(true) => ()
-          Ok(false) => return Err(WrongQueryForm)
-          Err(issue) => return Err(QuerySyntax(issue))
-        }
-      }
-      if query_form {
-        guard context is Some(context) else { return Err(MissingQueryContext) }
-        let parsed = match
-          @syntax.parse_query(document, syntax_limits(), source_path~) {
-          Ok(value) => value
-          Err(issue) => return Err(QuerySyntax(issue))
-        }
-        let program = match @query.compile(parsed, context, query_limits()) {
-          Ok(value) => value
-          Err(issue) => return Err(QueryLowering(issue))
-        }
-        emit(program)
-      } else {
-        Err(WrongQueryForm)
-      }
+      emit(program)
     }
   }
 }

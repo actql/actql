@@ -308,6 +308,7 @@ pub(all) struct QueryLimits {
 pub(all) enum QueryOperation {
   Infer(InferClause)
   Nearest(NearestClause)
+  RetainResult(NamePart)
   Where(Expression)
   Extend(Array[Projection])
   Set(Array[(NamePart, Expression)])

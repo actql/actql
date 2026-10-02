@@ -65,6 +65,7 @@ pub(all) struct SortTerm {
 pub(all) enum QueryOperation {
   Infer(InferClause)
   Nearest(NearestClause)
+  RetainResult(NamePart)
   Where(Expression)
   Extend(Array[Projection])
   Set(Array[(NamePart, Expression)])
@@ -356,6 +357,7 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
     Drop(xs) => Some(Drop(xs.copy()))
     Rename(xs) => Some(Rename(xs.copy()))
     Alias(name) => Some(Alias(name))
+    RetainResult(name) => Some(RetainResult(name))
     Group(keys, projections) => Some(Group(keys.copy(), projections.copy()))
     Having(e) => Some(Having(e))
     Analytic(projections) => Some(Analytic(projections.copy()))
@@ -1557,6 +1559,9 @@ fn QueryParser::pipe_tail(
       } else {
         final_operations.push(operation)
       }
+    } else if self.has("RESULT") {
+      self.keyword("RESULT")
+      operations.push(RetainResult(self.name()))
     } else if self.has("INFER") {
       if cte_body {
         raise QueryAbort(

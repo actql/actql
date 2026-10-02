@@ -10,26 +10,31 @@ import {resolve} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from
-  './node_modules/@actql/local-node/adapters/host-node/embedded-local.mjs';
-import {exercisePublicQueryInput, querySuccesses, queryRefusals, inferRefusals, sourceRows, sourceFreeSuccesses, sourceFreeRefusals, queryCompositionSuccesses, queryCompositionRefusals}
+  '@actql/local-node/http-host';
+import {exercisePublicQueryInput, querySuccesses, queryRefusals, inferRefusals, sourceRows, sourceFreeSuccesses, sourceFreeRefusals, queryCompositionSuccesses, queryCompositionRefusals, pipeResultSuccesses, pipeResultRefusals, pipeResultExecutionFailures}
   from './public-query-input.mjs';
 
 const sourceFreeOnly = process.env.ACTQL_TEST_SOURCE_FREE_ONLY === '1';
 const inferOnly = process.env.ACTQL_TEST_INFER_REFUSAL_ONLY === '1';
 const joinOnly = process.env.ACTQL_TEST_JOIN_ORDER_ONLY === '1';
 const compositionOnly = process.env.ACTQL_TEST_QUERY_COMPOSITION_ONLY === '1';
-const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || inferOnly || joinOnly || sourceFreeOnly || compositionOnly;
+const resultOnly = process.env.ACTQL_TEST_PIPE_RESULT_ONLY === '1';
+const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || inferOnly || joinOnly || sourceFreeOnly || compositionOnly || resultOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const scope = JSON.parse(await readFile('pipe-scope-cases.json', 'utf8'));
 assert.deepEqual(scope.source_rows, sourceRows);
 const scopeInputs = sourceFreeOnly ? {successes: sourceFreeSuccesses, refusals: sourceFreeRefusals}
+  : resultOnly ? {successes: pipeResultSuccesses, refusals: pipeResultRefusals,
+    executionFailures: pipeResultExecutionFailures}
   : compositionOnly ? {successes: queryCompositionSuccesses, refusals: queryCompositionRefusals}
   : inferOnly ? {successes: [querySuccesses[0]], refusals: inferRefusals}
   : joinOnly ? joinOrder : scopeOnly ? {successes: scope.successes,
-  refusals: scope.refusals} : {successes: [...querySuccesses, ...sourceFreeSuccesses, ...queryCompositionSuccesses, ...scope.successes, ...joinOrder.successes],
-  refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals]};
-const expectedQueryRuns = scopeInputs.successes.length;
-const expectedSourceReads = scopeInputs.successes.reduce((count, item) => count + (item.sourceReadCount ?? item.sourceReadSessionCount ?? 1), 0);
+  refusals: scope.refusals} : {successes: [...querySuccesses, ...sourceFreeSuccesses, ...queryCompositionSuccesses, ...pipeResultSuccesses, ...scope.successes, ...joinOrder.successes],
+  refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals],
+  executionFailures: pipeResultExecutionFailures};
+const expectedQueryRuns = scopeInputs.successes.length + (scopeInputs.executionFailures?.length ?? 0);
+const expectedSourceReads = [...scopeInputs.successes, ...(scopeInputs.executionFailures ?? [])]
+  .reduce((count, item) => count + (item.sourceReadCount ?? item.sourceReadSessionCount ?? 1), 0);
 
 assert.equal(spawnSync('moon', ['version']).error?.code, 'ENOENT');
 const canonical = value => Array.isArray(value)
@@ -200,6 +205,37 @@ async function exerciseSga(mode, extraEnv) {
     }
   }
 }
+// Public check must also work from installed tarballs, without repository imports.
+async function exercisePublicCheck(options) {
+  const client = await connect(options);
+  const first = await client.check('SELECT 1 AS n', {format: 'sql'});
+  assert.equal(first.report.verdict, 'verified');
+  assert.deepEqual(await client.check('SELECT 1 AS n', {format: 'sql'}), first);
+  const invalid = await client.check('SELECT missing AS n', {format: 'sql'});
+  assert.equal(invalid.report.verdict, 'invalid');
+  assert.notEqual(invalid.report.context_ref, first.report.context_ref);
+  for (const pair of [['e\u0301', 'é'], ['\r', '\n']]) {
+    const refs = [];
+    for (const x of pair) {
+      const result = await client.check('SELECT @x AS n', {format: 'sql',
+        parameterDeclarations: {x: {type: 'string'}}, parameters: {x}});
+      assert.equal(result.report.verdict, 'verified');
+      refs.push(result.report.context_ref);
+    }
+    assert.notEqual(refs[0], refs[1]);
+  }
+  const budget = await client.check('SELECT id FROM never_configured', {
+    format: 'sql', parameterDeclarations: {x: {type: 'array', items: {type: 'number'}}},
+    parameters: {x: Array(9000).fill(1)}});
+  assert.equal(budget.report.verdict, 'undetermined');
+  assert.deepEqual(budget.report.reasons, []);
+  assert.deepEqual(budget.report.coverage, {
+    limits: [{code: 'analysis_budget_exhausted'}],
+    unresolved: [{boundary: 'source_resolution', reason: 'unresolved_protected'}]});
+  console.log(`packed public check ${options.mode} passed`);
+}
+await exercisePublicCheck({mode: 'local', owner: 'local', durability: 'durable',
+  installation: {directory: resolve('local-state'), sourceProfilePath}});
 const retainedStrings = {};
 const recordString = mode => item => {
   if (item.name === 'exact-string-values') retainedStrings[mode] = item;
@@ -224,6 +260,8 @@ const server = createServer({key: await readFile('remote.key'),
   cert: await readFile('remote.crt')}, host.handler);
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 try {
+  await exercisePublicCheck({mode: 'remote',
+    endpoint: `https://127.0.0.1:${server.address().port}/`, token: 'fixture-token'});
   await exercisePublicQueryInput(connect, {mode: 'remote',
     endpoint: `https://127.0.0.1:${server.address().port}/`,
     token: 'fixture-token', durability: 'durable'},
