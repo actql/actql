@@ -29,6 +29,10 @@ pub(all) enum InputSource {
   Captured(@wire.Cursor)
   GeneratedValues(@wire.Cursor)
   StageResult(String, String)
+  // A logical producer already emitted in the current Program pipeline.
+  // Only script composition can consume it; standalone query compilation
+  // rejects it rather than fabricating a source or retained Stage Result.
+  StepReference
 }
 
 ///|
@@ -314,9 +318,26 @@ fn selected_relation(
   relation : Array[@query.NamePart],
   context : Context,
 ) -> Input raise Abort {
+  resolve_relation_input(relation, context.inputs)
+}
+
+///|
+// DATA/CTE producer aliases and published relation paths retain their
+// respective rules at every query and constructor entry.
+fn resolve_relation_input(
+  relation : Array[@query.NamePart],
+  inputs : Array[Input],
+) -> Input raise Abort {
   let mut found : Input? = None
-  for input in context.inputs {
-    if same_relation_path(relation, input.relation) {
+  for input in inputs {
+    let matches = if input.source is StepReference &&
+      relation.length() == 1 &&
+      input.relation.length() == 1 {
+      same_name(relation[0], input.relation[0])
+    } else {
+      same_relation_path(relation, input.relation)
+    }
+    if matches {
       if found is Some(_) {
         raise Abort(AmbiguousRelation)
       }
@@ -331,7 +352,7 @@ fn selected_relation(
 
 ///|
 fn columns(input : Input) -> Array[String] raise Abort {
-  if input.source is StageResult(_, _) {
+  if input.source is StageResult(_, _) || input.source is StepReference {
     return input.visible_fields.copy()
   }
   let source = match input.source {
@@ -357,7 +378,7 @@ fn columns(input : Input) -> Array[String] raise Abort {
         None => raise Abort(InvalidContext)
       }
     }
-    StageResult(_, _) => raise Abort(InvalidContext)
+    StageResult(_, _) | StepReference => raise Abort(InvalidContext)
   }
   let declaration = match @wire.open_object(source) {
     Ok(object) => object
@@ -2472,7 +2493,7 @@ pub fn compile(
     let fragment = match input.source {
       Captured(declaration) => declaration
       GeneratedValues(step) => step
-      StageResult(_, _) => raise Abort(InvalidContext)
+      StageResult(_, _) | StepReference => raise Abort(InvalidContext)
     }
     let imported = match @builder.import_cursor(builder, fragment, generated) {
       Ok(node) => node
@@ -2517,7 +2538,7 @@ pub fn compile(
         }
         ([], [imported], None)
       }
-      StageResult(_, _) => raise Abort(InvalidContext)
+      StageResult(_, _) | StepReference => raise Abort(InvalidContext)
     }
     let capture_stages = match capture_stage {
       Some(stage) => [stage]
@@ -2562,7 +2583,7 @@ pub fn compile(
             }
           }
         }
-        StageResult(_, _) => raise Abort(UnsupportedNearest)
+        StageResult(_, _) | StepReference => raise Abort(UnsupportedNearest)
       }
     }
     let (steps, output) = compile_steps(
@@ -3130,6 +3151,7 @@ fn compile_cte_stage(
       }
       ([], [imported])
     }
+    StepReference => raise Abort(InvalidContext)
     StageResult(producer, result) => {
       let source_ref = construction.object([
         (
@@ -3786,6 +3808,7 @@ fn compile_set_stages(
         (capture_stage, "source")
       }
       StageResult(producer, result) => (producer, result)
+      StepReference => raise Abort(InvalidContext)
     }
     let term_stage = prefix + "aql_set_term_" + index.to_string()
     if context.inputs.any(other => other.name == term_stage) {

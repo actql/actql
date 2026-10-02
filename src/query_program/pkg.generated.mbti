@@ -69,6 +69,7 @@ pub(all) enum InputSource {
   Captured(@decode_core.Cursor)
   GeneratedValues(@decode_core.Cursor)
   StageResult(String, String)
+  StepReference
 }
 
 pub(all) enum Issue {
