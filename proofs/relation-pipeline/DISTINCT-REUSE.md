@@ -57,8 +57,10 @@ completed the replay stages but failed the final fixed-foundation audit because
 `package.json` now connects the additive Property Graph registration, public
 Host and packed acceptance tests. All other **56 of 57** frozen common files
 are byte-identical to the preceding `fe0dbb424792ba7ccd4ae5517a74530b56a15f3c`
-baseline. The integration record pins the actual Git revision and both package
-digests; the audit continues checking all 57 hashes against Git and disk.
+baseline. `current-foundation.json` records this package change separately,
+including the source revision, both digests and rationale. The historical
+`reuse-baseline.json` stays byte-identical to its fixed registration. The audit
+continues checking all 57 hashes against Git and disk.
 
 No generator, oracle, mutation, theorem, audit implementation or verification
 obligation changes. This metadata correction is separate from the original

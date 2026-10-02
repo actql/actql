@@ -218,6 +218,15 @@ export function valuesUnitIdentity(program, old = false) {
   let contracts = valuesContractCids();
   if (old) {
     const reverse = new Map([...stringPinReplacements()].map(([a,b]) => [b,a]));
+    // The historical pre-exact-string Unit also predates the coordinated
+    // bounded-transfer and embedded Program schema changes. Freeze those
+    // roles as well; a historical vector must not read their current bodies.
+    const read = path => JSON.parse(readFileSync(new URL('../../' + path, import.meta.url)));
+    reverse.set(independentCid(read('spec/contracts/actql-bound-transfer-laws.json')),
+      'sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911');
+    reverse.set(independentCid(read('spec/contracts/actql-protocol-schemas.json')
+      .artifact_schemas.executable_plan.properties.execution_material.properties.program),
+      'sha256:a6bfc4b6c00d89f521ccee9e99e1dbbd7385675fd55478f1536f36f860b1ef0a');
     contracts = contracts.map(c => reverse.get(c) ?? c).sort();
   }
   return independentCid({version: 'actql-local-unit-dependencies/0.1',

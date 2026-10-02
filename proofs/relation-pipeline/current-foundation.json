@@ -6,7 +6,7 @@
     "digest": "48bdedbe48ab335694a725defa7fe9e7f07cdf776e4aa8f233b3935585a352c1",
     "foundationRevision": "fe0dbb424792ba7ccd4ae5517a74530b56a15f3c"
   },
-  "revision": "7b56b9be340d15aa009b38d50ed1fe0ab6a4fd51",
+  "revision": "37f9020f25779b1e0c3d96a80f3f540eaf1f87cc",
   "proposal": "https://github.com/actql/actql/pull/149",
   "meaning": "Separate common foundation correction; the historical distinct comparison is unchanged. This record supplies Git provenance, not proof of human approval.",
   "changedCommon": [
@@ -27,6 +27,12 @@
       "beforeDigest": "2e2d16e10a965fac90ddb22b869f28a5c71a14647ed5c0ea2abed9db9f3bc4dd",
       "afterDigest": "29d4eaf713f65cf3174ca7c68b48619b86be1d072246871716ecc4d3cfd6ecc7",
       "reason": "Reuse only unchanged incremental builds; fixed and fresh searches, shrinking and mutated/restored target receipts remain independent."
+    },
+    {
+      "path": "package.json",
+      "beforeDigest": "78c15ac34fbe375959bf166c3d236ce06a2a6a0d4d2f4b2d7f7f094e844a8a15",
+      "afterDigest": "1d54308872396fddbe2fb61c3049cf89240ef45c9b03ff15d83f4f04bc858dfd",
+      "reason": "Add Property Graph registration, Host and packed acceptance commands; retain the frozen experiment baseline and all generator, oracle, mutation and theorem checks."
     }
   ],
   "addedFoundation": [

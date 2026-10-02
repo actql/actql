@@ -88,10 +88,11 @@ test "formal Property Graph Plan retains typed graph ports and keyed parallel-ed
       compilation.unwrap(),
     ),
   )
-  // The current contract is a pinned machine preimage, not a product-generated expectation.
+  // SHA-256 of canonical spec/contracts/actql-aoa.json, calculated
+  // independently of the compiler's generated contract accessor.
   assert_true(
     compiled.contains(
-      "\"aoa_contract_cid\":\"sha256:072c1c6e630f683e41a1c814b3a000d0544506ae25c5d89210fa8982ff73c5ff\"",
+      "\"aoa_contract_cid\":\"sha256:2a06d014da3ce71fc643f995bf0d0acc2b296fdbeb9016dca935539b6cbe8ade\"",
     ),
   )
   assert_eq(
