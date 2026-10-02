@@ -160,6 +160,9 @@ async function resolveReceipts(campaigns, zip) {
       if (!targets.includes(receipt.target) || !Array.isArray(receipt.command) || !Array.isArray(receipt.cases)) {
         errors.push({path, reason: 'malformed-receipt'}); continue;
       }
+      if (!receipt.cases.length) {
+        errors.push({path, reason: 'empty-receipt-cases'}); continue;
+      }
       const targetFlag = receipt.command.indexOf('--target');
       if (targetFlag >= 0 && receipt.command[targetFlag + 1] !== receipt.target) errors.push({path, reason: 'receipt-command-target-mismatch'});
       if (receipt.exit !== 0) errors.push({path, reason: 'nonzero-or-missing-receipt-exit'});

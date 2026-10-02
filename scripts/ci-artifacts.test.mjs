@@ -1,3 +1,5 @@
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import {mkdtemp, writeFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -162,7 +164,7 @@ test('selection manifest is bounded before content reading', async t => {
   await assert.rejects(collectArtifactEvidence({artifacts: directory, repository: 'actql/actql'}), /bounded regular file/);
 });
 test('duplicate embedded receipts and archive substitutions are validated per occurrence', async () => {
-  const receipt = {target: 'js', command: ['moon'], compiler: 'fixture', exit: 0, cases: []};
+  const receipt = {target: 'js', command: ['moon'], compiler: 'fixture', exit: 0, cases: [{}]};
   const first = {path: 'receipt.json', digest: hash(receipt), receipt, capacityArchives: {x: 'original.exe'}};
   for (const second of [{...first, receipt: {...receipt, command: ['other']}}, {...first, capacityArchives: {x: 'substitute.exe'}}]) {
     const data = campaign(); data.results[0].executions = [first, second];
@@ -174,7 +176,7 @@ test('duplicate embedded receipts and archive substitutions are validated per oc
 });
 
 
-test('complete selected evidence requires each phase receipt and all completeness dimensions', async () => {
+function completeFixture() {
   const receipt = {target: 'js', command: ['moon', '--target', 'js'], compiler: 'fixture', exit: 0, cases: [{}],
     sourcePath: 'sources.json', sourceDigest: hash({a: 'b'}), fixturePath: 'fixture.mbt', fixtureDigest: sha('fixture'),
     inputPath: 'input.json', inputDigest: sha('{}'), logPath: 'log.log', logDigest: sha('log'), artifacts: {}};
@@ -184,9 +186,16 @@ test('complete selected evidence requires each phase receipt and all completenes
   const executions = ['search', 'shrink', 'minimal', 'restored'].map(phase => ({path: `one-${phase}-js.json`, digest: hash(receipt), receipt}));
   data.results[0].executions = executions.slice(0, 3); data.results[0].healthyExecutions = executions.slice(3);
   const sample = selected(); sample.reports = {fresh: 'report.json'}; sample.expectedInventory = {fresh: ['one'], targets: ['js']};
-  const check = async () => analyzeArtifactSelection(select([sample]), 'actql/actql', async () => fakeZip({
-    'report.json': data, ...Object.fromEntries(executions.map(e => [e.path, receipt])), 'sources.json': {sources: {a: 'b'}},
-    'fixture.mbt': 'fixture', 'input.json': '{}', 'log.log': 'log'}));
+  const entries = () => ({
+    'report.json': data, ...Object.fromEntries(executions.map(e => [e.path, e.receipt])), 'sources.json': {sources: {a: 'b'}},
+    'fixture.mbt': 'fixture', 'input.json': '{}', 'log.log': 'log'});
+  const check = () => analyzeArtifactSelection(select([sample]), 'actql/actql', async () => fakeZip(entries()));
+  return {data, sample, executions, entries, check};
+
+}
+
+test('complete selected evidence requires each phase receipt and all completeness dimensions', async () => {
+  const {data, sample, executions, check} = completeFixture();
   assert.equal((await check()).complete, true);
   data.results[0].executions.splice(1, 1);
   let report = await check();
@@ -202,4 +211,101 @@ test('optional wall-clock evidence must match the selected immutable attempt ide
   selection.timingEvidence = {repository: 'actql/actql', runs: [{id: 10, attempts: [{number: 1, headSha: 'f'.repeat(40)}]}]};
   await assert.rejects(analyzeArtifactSelection(selection, 'actql/actql', async () => fakeZip({
     'relation-pipeline/fixed.json': {...campaign(), mode: 'fixed'}, 'relation-pipeline/fresh.json': campaign()})), /Timing attempt identity/);
+});
+
+function emptyReceipt(execution) {
+  execution.receipt = {...execution.receipt, cases: []};
+  execution.digest = hash(execution.receipt);
+}
+
+test('each required phase receipt needs observations even when the other phases are nonempty', async () => {
+  for (const emptyIndexes of [[0, 1, 2, 3], [0], [1], [2], [3]]) {
+    const {executions, check} = completeFixture();
+    const valid = await check();
+    assert.equal(valid.complete, true);
+    assert.equal(valid.samples[0].selectedEvidenceComplete, true);
+    assert.equal(valid.samples[0].receipts.caseObservations, 4);
+    for (const index of emptyIndexes) emptyReceipt(executions[index]);
+    const report = await check(), sample = report.samples[0];
+    assert.equal(report.complete, false);
+    assert.equal(sample.selectedEvidenceComplete, false);
+    assert.equal(sample.receipts.caseObservations, 4 - emptyIndexes.length);
+    assert.deepEqual(sample.receipts.errors, emptyIndexes.map(index => ({
+      path: executions[index].path, reason: 'empty-receipt-cases',
+    })));
+    for (const [index, phase] of sample.campaigns[0].phases.entries()) {
+      assert.equal(phase.receiptCoverage.state, emptyIndexes.includes(index) ?
+        'unverified-or-unavailable' : 'verified-retained-receipts');
+    }
+  }
+});
+
+test('a nonempty receipt in the same phase cannot mask an empty receipt', async () => {
+  const {data, executions, check} = completeFixture();
+  const extra = {...executions[0], path: 'one-search-extra-js.json'};
+  data.results[0].executions.push(extra); executions.push(extra);
+  assert.equal((await check()).complete, true);
+  emptyReceipt(extra);
+  const report = await check(), sample = report.samples[0];
+  assert.equal(sample.receipts.caseObservations, 4);
+  assert.equal(report.complete, false);
+  assert.equal(sample.selectedEvidenceComplete, false);
+  assert.deepEqual(sample.receipts.errors, [{path: extra.path, reason: 'empty-receipt-cases'}]);
+  assert.deepEqual(sample.campaigns[0].phases[0].receiptCoverage,
+    {verifiedCount: 1, state: 'unverified-or-unavailable'});
+});
+
+// Independent stored-ZIP fixture for exercising the real offline CLI and its
+// archive/receipt hashes, rather than only the in-memory projection boundary.
+function storedZip(entries) {
+  const locals = [], centrals = [];
+  let offset = 0;
+  for (const [path, value] of Object.entries(entries)) {
+    const name = Buffer.from(path), data = Buffer.from(typeof value === 'string' ? value : JSON.stringify(value));
+    let crc = 0xffffffff;
+    for (const byte of data) {
+      crc ^= byte;
+      for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ ((crc & 1) ? 0xedb88320 : 0);
+    }
+    crc = (crc ^ 0xffffffff) >>> 0;
+    const local = Buffer.alloc(30), central = Buffer.alloc(46);
+    local.writeUInt32LE(0x04034b50); local.writeUInt16LE(20, 4);
+    local.writeUInt32LE(crc, 14); local.writeUInt32LE(data.length, 18); local.writeUInt32LE(data.length, 22);
+    local.writeUInt16LE(name.length, 26);
+    central.writeUInt32LE(0x02014b50); central.writeUInt16LE(20, 4); central.writeUInt16LE(20, 6);
+    central.writeUInt32LE(crc, 16); central.writeUInt32LE(data.length, 20); central.writeUInt32LE(data.length, 24);
+    central.writeUInt16LE(name.length, 28); central.writeUInt32LE(offset, 42);
+    locals.push(local, name, data); centrals.push(central, name);
+    offset += local.length + name.length + data.length;
+  }
+  const directory = Buffer.concat(centrals), end = Buffer.alloc(22), count = Object.keys(entries).length;
+  end.writeUInt32LE(0x06054b50); end.writeUInt16LE(count, 8); end.writeUInt16LE(count, 10);
+  end.writeUInt32LE(directory.length, 12); end.writeUInt32LE(offset, 16);
+  return Buffer.concat([...locals, directory, end]);
+}
+
+test('offline CLI exits nonzero for all-empty or one-empty phase receipts with recomputed hashes', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'ci-artifact-empty-cases-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const script = fileURLToPath(new URL('./ci-evidence.mjs', import.meta.url));
+  for (const emptyIndexes of [[], [0, 1, 2, 3], [1]]) {
+    const {sample, executions, entries} = completeFixture();
+    for (const index of emptyIndexes) emptyReceipt(executions[index]);
+    const archive = storedZip(entries());
+    sample.provenance.artifact.sha256 = sha(archive);
+    sample.provenance.artifact.compressedBytes = archive.length;
+    const manifest = join(directory, 'selection.json');
+    await writeFile(join(directory, sample.archive), archive);
+    await writeFile(manifest, JSON.stringify(select([sample])));
+    const result = spawnSync(process.execPath, [script, 'actql/actql', '--artifacts', manifest, '--json'], {encoding: 'utf8'});
+    assert.equal(result.error, undefined); assert.equal(result.stderr, '');
+    assert.equal(result.status, emptyIndexes.length ? 1 : 0);
+    const report = JSON.parse(result.stdout), evidence = report.samples[0];
+    assert.equal(report.complete, emptyIndexes.length === 0);
+    assert.equal(evidence.selectedEvidenceComplete, emptyIndexes.length === 0);
+    assert.equal(evidence.receipts.caseObservations, 4 - emptyIndexes.length);
+    assert.deepEqual(evidence.receipts.errors, emptyIndexes.map(index => ({
+      path: executions[index].path, reason: 'empty-receipt-cases',
+    })));
+  }
 });
