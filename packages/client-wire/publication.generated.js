@@ -278,6 +278,7 @@ function valid(value, schema) {
   if (schema.type === 'boolean') return typeof value === 'boolean';
   if (schema.type === 'array') return Array.isArray(value) &&
     (schema.minItems === undefined || value.length >= schema.minItems) &&
+    (schema.maxItems === undefined || value.length <= schema.maxItems) &&
     value.every(item => valid(item, schema.items)) &&
     (!schema.uniqueItems || new Set(value).size === value.length);
   if (schema.type === 'object' || schema.properties || schema.required) {

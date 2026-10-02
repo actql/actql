@@ -10,24 +10,31 @@ import {resolve} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from
-  './node_modules/@actql/local-node/adapters/host-node/embedded-local.mjs';
-import {exercisePublicQueryInput, querySuccesses, queryRefusals, inferRefusals, sourceRows, sourceFreeSuccesses, sourceFreeRefusals}
+  '@actql/local-node/http-host';
+import {exercisePublicQueryInput, querySuccesses, queryRefusals, inferRefusals, sourceRows, sourceFreeSuccesses, sourceFreeRefusals, queryCompositionSuccesses, queryCompositionRefusals, pipeResultSuccesses, pipeResultRefusals, pipeResultExecutionFailures}
   from './public-query-input.mjs';
 
 const sourceFreeOnly = process.env.ACTQL_TEST_SOURCE_FREE_ONLY === '1';
 const inferOnly = process.env.ACTQL_TEST_INFER_REFUSAL_ONLY === '1';
 const joinOnly = process.env.ACTQL_TEST_JOIN_ORDER_ONLY === '1';
-const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || inferOnly || joinOnly || sourceFreeOnly;
+const compositionOnly = process.env.ACTQL_TEST_QUERY_COMPOSITION_ONLY === '1';
+const resultOnly = process.env.ACTQL_TEST_PIPE_RESULT_ONLY === '1';
+const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || inferOnly || joinOnly || sourceFreeOnly || compositionOnly || resultOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const scope = JSON.parse(await readFile('pipe-scope-cases.json', 'utf8'));
 assert.deepEqual(scope.source_rows, sourceRows);
 const scopeInputs = sourceFreeOnly ? {successes: sourceFreeSuccesses, refusals: sourceFreeRefusals}
+  : resultOnly ? {successes: pipeResultSuccesses, refusals: pipeResultRefusals,
+    executionFailures: pipeResultExecutionFailures}
+  : compositionOnly ? {successes: queryCompositionSuccesses, refusals: queryCompositionRefusals}
   : inferOnly ? {successes: [querySuccesses[0]], refusals: inferRefusals}
   : joinOnly ? joinOrder : scopeOnly ? {successes: scope.successes,
-  refusals: scope.refusals} : {successes: [...querySuccesses, ...sourceFreeSuccesses, ...scope.successes, ...joinOrder.successes],
-  refusals: [...queryRefusals, ...sourceFreeRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals]};
-const expectedQueryRuns = scopeInputs.successes.length;
-const expectedSourceReads = scopeInputs.successes.reduce((count, item) => count + (item.sourceReadCount ?? 1), 0);
+  refusals: scope.refusals} : {successes: [...querySuccesses, ...sourceFreeSuccesses, ...queryCompositionSuccesses, ...pipeResultSuccesses, ...scope.successes, ...joinOrder.successes],
+  refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals],
+  executionFailures: pipeResultExecutionFailures};
+const expectedQueryRuns = scopeInputs.successes.length + (scopeInputs.executionFailures?.length ?? 0);
+const expectedSourceReads = [...scopeInputs.successes, ...(scopeInputs.executionFailures ?? [])]
+  .reduce((count, item) => count + (item.sourceReadCount ?? item.sourceReadSessionCount ?? 1), 0);
 
 assert.equal(spawnSync('moon', ['version']).error?.code, 'ENOENT');
 const canonical = value => Array.isArray(value)
@@ -96,19 +103,23 @@ await writeFile(sourceProfilePath, canonical({
       operation: {any_of: ['read']}, exclusions: []}]}),
 }));
 // Observe actual native execution, never a diagnostic notification.
-let sourceIo = 0, sourceReads = 0;
+let sourceIo = 0, sourceReads = 0, sourceReadSessions = 0;
 const sourceReadCommands = [];
 const extractedSql = new WeakMap(), preparedSql = new WeakMap();
+const extractedConnection = new WeakMap(), preparedConnection = new WeakMap();
+const readSessions = new WeakMap();
 const extract = DuckDBConnection.prototype.extractStatements;
 const prepare = DuckDBExtractedStatements.prototype.prepare;
 DuckDBConnection.prototype.extractStatements = async function(sql) {
   const statements = await Reflect.apply(extract, this, [sql]);
   extractedSql.set(statements, sql);
+  extractedConnection.set(statements, this);
   return statements;
 };
 DuckDBExtractedStatements.prototype.prepare = async function(index) {
   const statement = await Reflect.apply(prepare, this, [index]);
   preparedSql.set(statement, extractedSql.get(this));
+  preparedConnection.set(statement, extractedConnection.get(this));
   return statement;
 };
 const stream = DuckDBPreparedStatement.prototype.stream;
@@ -118,7 +129,14 @@ DuckDBPreparedStatement.prototype.stream = function(...args) {
   // and Local resident computation. This observes emitted physical SQL only.
   if (/\bFROM\s+(?:"main"\.)?"records"(?=\s|$)/iu.test(preparedSql.get(this) ?? '')) {
     sourceReads++;
-    sourceReadCommands.push({sql: preparedSql.get(this),
+    // withSourceAcquisition opens one private connection/read view per owner.
+    // Native acquisition intentionally uses two row receipts in that same
+    // connection (validation_scan and native_result); count those transfers
+    // separately from repeated acquisition sessions.
+    const connection = preparedConnection.get(this);
+    assert.ok(connection, 'source statement retains its actual native connection');
+    if (!readSessions.has(connection)) readSessions.set(connection, ++sourceReadSessions);
+    sourceReadCommands.push({session: readSessions.get(connection), sql: preparedSql.get(this),
       columns: Array.from({length: this.columnCount}, (_, index) => this.columnName(index))});
   }
   return Reflect.apply(stream, this, args);
@@ -127,7 +145,7 @@ const observe = directory => () => {
   const journal = new DatabaseSync(resolve(directory, 'requests',
     'client-requests.sqlite3'), {readOnly: true});
   try {
-    return {sourceIo, sourceReads, sourceReadCommands, acceptedRuns: journal.prepare(
+    return {sourceIo, sourceReads, sourceReadSessions, sourceReadCommands, acceptedRuns: journal.prepare(
       'SELECT COUNT(*) AS count FROM client_requests').get().count};
   } finally { journal.close(); }
 };
@@ -187,6 +205,37 @@ async function exerciseSga(mode, extraEnv) {
     }
   }
 }
+// Public check must also work from installed tarballs, without repository imports.
+async function exercisePublicCheck(options) {
+  const client = await connect(options);
+  const first = await client.check('SELECT 1 AS n', {format: 'sql'});
+  assert.equal(first.report.verdict, 'verified');
+  assert.deepEqual(await client.check('SELECT 1 AS n', {format: 'sql'}), first);
+  const invalid = await client.check('SELECT missing AS n', {format: 'sql'});
+  assert.equal(invalid.report.verdict, 'invalid');
+  assert.notEqual(invalid.report.context_ref, first.report.context_ref);
+  for (const pair of [['e\u0301', 'é'], ['\r', '\n']]) {
+    const refs = [];
+    for (const x of pair) {
+      const result = await client.check('SELECT @x AS n', {format: 'sql',
+        parameterDeclarations: {x: {type: 'string'}}, parameters: {x}});
+      assert.equal(result.report.verdict, 'verified');
+      refs.push(result.report.context_ref);
+    }
+    assert.notEqual(refs[0], refs[1]);
+  }
+  const budget = await client.check('SELECT id FROM never_configured', {
+    format: 'sql', parameterDeclarations: {x: {type: 'array', items: {type: 'number'}}},
+    parameters: {x: Array(9000).fill(1)}});
+  assert.equal(budget.report.verdict, 'undetermined');
+  assert.deepEqual(budget.report.reasons, []);
+  assert.deepEqual(budget.report.coverage, {
+    limits: [{code: 'analysis_budget_exhausted'}],
+    unresolved: [{boundary: 'source_resolution', reason: 'unresolved_protected'}]});
+  console.log(`packed public check ${options.mode} passed`);
+}
+await exercisePublicCheck({mode: 'local', owner: 'local', durability: 'durable',
+  installation: {directory: resolve('local-state'), sourceProfilePath}});
 const retainedStrings = {};
 const recordString = mode => item => {
   if (item.name === 'exact-string-values') retainedStrings[mode] = item;
@@ -211,6 +260,8 @@ const server = createServer({key: await readFile('remote.key'),
   cert: await readFile('remote.crt')}, host.handler);
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 try {
+  await exercisePublicCheck({mode: 'remote',
+    endpoint: `https://127.0.0.1:${server.address().port}/`, token: 'fixture-token'});
   await exercisePublicQueryInput(connect, {mode: 'remote',
     endpoint: `https://127.0.0.1:${server.address().port}/`,
     token: 'fixture-token', durability: 'durable'},

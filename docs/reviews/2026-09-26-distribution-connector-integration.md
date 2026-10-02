@@ -1,5 +1,11 @@
 # Distribution and Connector integration
 
+Historical integration record: the fixed-input gaps and validation below are
+not the current product checklist. Later public acquisition, Effect and
+Frontend evidence is indexed in the
+[current implementation map](current-product-status.md). No original result
+or fixed input is changed by that supersession.
+
 ## Fixed inputs and ownership
 
 - Distribution: `7dd5df6e6e69ac0593673083cfae4c1e30192624`.

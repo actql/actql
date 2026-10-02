@@ -8,7 +8,7 @@ import {validCheckpointPage, validCheckpointReview, validClientAdmission,
   validClientBody, validClientProfile, validDeliveryAttemptLookup,
   validRequestCancellation, validRequestLookup, validResolveResults,
   validResourceInspection, validResourceListing, validResourcePeek,
-  validRunState, validResultDescription} from
+  validRunState, validResultDescription, validCheckOutcome} from
   '../../packages/client-wire/index.mjs';
 import {inspectAuthorizedRunState} from
   '../host-common/run-state-access.mjs';
@@ -28,7 +28,7 @@ export function createNodeInProcessClientHost({
   authenticate, authorizeConnection, negotiate, prepareSubmit, submit,
   attach, lookupRequest, stateService, resultService, observeRun, wait,
   cancel, cancelRequest, reconcile, checkpoints, checkpointReview, resolve,
-  resources, inspectResource, peekResource, maxRowBytes, observe,
+  resources, inspectResource, peekResource, check, maxRowBytes, observe,
 }) {
   if (typeof authenticate !== 'function' ||
       typeof authorizeConnection !== 'function' ||
@@ -141,6 +141,12 @@ export function createNodeInProcessClientHost({
           fail('InvalidClientHostRequestCancellation');
         }
         return cancelled;
+      }
+      // The same Host check owner and outcome validation as HTTP ingress.
+      if (operation === 'check') {
+        const outcome = await invoke(check);
+        if (!validCheckOutcome(outcome)) fail('InvalidClientHostCheckOutcome');
+        return outcome;
       }
       // Discovery shares the HTTP ingress's handlers and reply validation.
       if (operation === 'resources' || operation === 'resource-inspect' ||

@@ -12,7 +12,7 @@ const sources = [
 const allowed = new Set(['$schema', '$id', '$ref', 'title', 'type',
   'additionalProperties', 'required', 'properties', 'items', 'uniqueItems',
   'const', 'enum', 'pattern', 'minLength', 'maxLength', 'minimum', 'maximum', 'allOf',
-  'if', 'then', 'not', 'oneOf', 'minItems', 'minProperties', 'propertyNames']);
+  'if', 'then', 'not', 'oneOf', 'minItems', 'maxItems', 'minProperties', 'propertyNames']);
 
 export function project(schema) {
   if (schema === null || typeof schema !== 'object' || Array.isArray(schema)) {
@@ -37,7 +37,7 @@ export function project(schema) {
   }
   for (const key of ['type', 'required',
     'uniqueItems', 'const', 'enum', 'pattern', 'minLength', 'maxLength', 'minimum',
-    'maximum', 'minItems', 'minProperties']) {
+    'maximum', 'minItems', 'maxItems', 'minProperties']) {
     if (Object.hasOwn(schema, key)) result[key] = schema[key];
   }
   if (Object.hasOwn(schema, 'additionalProperties')) {
@@ -106,6 +106,7 @@ export function structuralValidatorSource() {
 `  if (schema.type === 'boolean') return typeof value === 'boolean';\n` +
 `  if (schema.type === 'array') return Array.isArray(value) &&\n` +
 `    (schema.minItems === undefined || value.length >= schema.minItems) &&\n` +
+`    (schema.maxItems === undefined || value.length <= schema.maxItems) &&\n` +
 `    value.every(item => valid(item, schema.items)) &&\n` +
 `    (!schema.uniqueItems || new Set(value).size === value.length);\n` +
 `  if (schema.type === 'object' || schema.properties || schema.required) {\n` +

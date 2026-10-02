@@ -23,6 +23,12 @@
       "reason": "Reject early cleanup and inspect accepted output after repeated cleanup without claiming physical deallocation; capacity observations stay in proof-only source overlays."
     },
     {
+      "path": "package.json",
+      "beforeDigest": "78c15ac34fbe375959bf166c3d236ce06a2a6a0d4d2f4b2d7f7f094e844a8a15",
+      "afterDigest": "17d239ce960452949ff61e2b72f772677165cd230f0c98621820f1f992950e52",
+      "reason": "Retain the public check contract and Local/HTTP acceptance registrations from main together with the native release-recovery regression; all historical evidence and existing gate commands remain intact."
+    },
+    {
       "path": "proofs/relation-pipeline/history.mjs",
       "beforeDigest": "7893dc5685cf950ec547fcf1faea964f7385c5e2bd292341c222c65f0773d3a2",
       "afterDigest": "2a00338e67189acc2d3944c7485b88837ab6832ec18b2e423725f54b37c83c00",
