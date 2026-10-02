@@ -40,3 +40,16 @@ snapshot and aggregate Core acceptance remain separately required.
   withdrawn rather than reinterpreted as independent-key Graph semantics.
   Current executable tests require typed refusal before snapshot allocation;
   they do not claim delta support or its old capacity/completion guarantees.
+
+- `lowering-graph-*-pre-property-graph.mbt.txt` and
+  `lowering-carrier-projection-pre-property-graph.mbt.txt`: eleven original
+  files from `ff364752f462185fb1c41d32cb82b2f438a9e10e`, verified byte-for-byte
+  against the committed originals. Current executable MATCH and TRAIL tests
+  retain definition-scoped identities, ordered/repeated selectors, predicates,
+  copied indexed views and finite preparation limits. The current constructor
+  preserves repeated producer roles, an independent edge key, shared endpoint
+  roles and finite preparation without tuple expansion. Mixed Vectors tests
+  remain executable. Twenty positive tests for unsupported Graph algorithms
+  are historical only: current executable regressions require typed refusal
+  for thirteen structural/query operations and both unconnected projections,
+  not successful execution or their former completion/capacity claims.

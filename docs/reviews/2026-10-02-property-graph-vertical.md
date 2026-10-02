@@ -76,6 +76,32 @@ before execution; the ceiling was corrected without changing admission.
 Log: `/private/tmp/property-graph-storage-diff-retirement-final-20261002.log`.
 This source update has not had another aggregate Core or fresh packed run.
 
+The subsequent lowering fixture migration retains the supported constructor,
+MATCH and TRAIL as current executable regressions. The constructor has one
+canonical `BRIDGE.rows.to_property_graph` occurrence, separate ordered producer
+roles, an independent edge key, both shared endpoint bindings and finite
+preparation. MATCH retains projection order, typed identity repetitions,
+definition/label bindings and exact/one-short name and entry budgets. TRAIL
+retains ordered hops, repeated typed start IDs and Relation selector ports;
+unconnected definition-free predicates are explicitly rejected. The mixed
+Vectors projection remains an unchanged positive obligation. Thirteen
+unconnected Graph operations and two projections must fail with the exact
+typed unsupported issue and operation path. Twenty old positive algorithm
+tests are archived, not claimed as implemented; eleven original files are
+verified byte-identical to `ff364752f462185fb1c41d32cb82b2f438a9e10e`.
+
+The complete lowering package passes **207/207 on each of JS, Wasm and native**
+with the pinned toolchain. Native log:
+`/private/tmp/property-graph-lowering-native-20261002.log`.
+Initial fixtures failed before execution because shortest/reach selectors,
+the mean generator alias and constructor label/property shapes were not the
+registered input forms. They were corrected to the existing contracts, not
+accepted by weakening refusal checks. A `-f` invocation matched no test names
+and ran 0 tests; it is not counted. File-path selections and then the complete
+package ran the stated regressions. Formatting and `git diff --check` pass.
+This checkpoint changes test inputs and preserves the withdrawn tests as inert
+evidence; it has not had a new aggregate Core, spec or fresh packed run.
+
 Main's new foundation composition validator rejects eight reachable historical
 #164 commits that changed the immutable #148 reuse baseline. Restoring current
 bytes cannot change those ancestors. The old global current-foundation record
