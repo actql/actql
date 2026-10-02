@@ -1,186 +1,160 @@
 ///|
-test "Graph matching requires all edge identity components and reach retains its semantic alias" {
+fn query_property_graph() -> @carrier.Carrier {
   let empty = @carrier.rows(
     [],
     field_set=Closed,
     max_fields=0,
     max_name_bytes=0,
   ).unwrap()
-  let names = @carrier.graph_row_names(
-    Unqualified("node"),
-    Unqualified("source"),
-    Unqualified("target"),
-    Some(Unqualified("label")),
+  let node = @carrier.property_node_definition(
+    "N",
+    [@contract.primitive(NumberType, nullable=false)],
+    empty,
+    ["Node"],
+    max_fields=1,
     max_name_bytes=100,
   ).unwrap()
-  let graph = @carrier.graph(
-    @contract.primitive(NumberType, nullable=false),
-    empty,
-    empty,
-    labels=None,
-    max_labels=0,
-    max_label_bytes=0,
-    row_names=Some(names),
-    label_contract=Some(@contract.primitive(StringType, nullable=true)),
+  let edge = @carrier.property_edge_definition(
+    @carrier.property_node_definition(
+      "E",
+      [@contract.primitive(NumberType, nullable=false)],
+      empty,
+      ["Link"],
+      max_fields=1,
+      max_name_bytes=100,
+    ).unwrap(),
+    "N",
+    "N",
   ).unwrap()
+  @carrier.property_graph(
+    "sha256:" + "0".repeat(64),
+    [node],
+    [edge],
+    max_definitions=2,
+    max_contract_work=1000,
+  ).unwrap()
+}
+
+///|
+fn query_match_body(edges : Bool, fields : String) -> String {
+  let definition = if edges { "E" } else { "N" }
+  let operation = if edges { "match_edges" } else { "match_nodes" }
+  let bindings = if edges {
+    "{\"identity\":\"element\",\"source\":\"src\",\"target\":\"dst\"}"
+  } else {
+    "{\"identity\":\"element\"}"
+  }
+  "{\"" +
+  operation +
+  "\":{\"definition\":\"" +
+  definition +
+  "\",\"bindings\":" +
+  bindings +
+  ",\"where\":\"true\",\"fields\":" +
+  fields +
+  "}}"
+}
+
+///|
+test "current Graph matching requires the independent element identity not endpoint tuple" {
   for
-    (fields, expected) in [
-      ("[\"source\",\"target\",\"label\"]", 1),
-      ("[\"source\",\"target\"]", 0),
+    (edges, fields, expected) in [
+      (false, "[\"element\"]", 1),
+      (true, "[\"element\",\"src\",\"dst\"]", 1),
+      (true, "[\"src\",\"dst\"]", 0),
     ] {
-    let p = graph_count_checked(
-      @pipeline_typing.check_carriers(
-        cursor(
-          "[{\"match_edges\":{\"where\":\"true\",\"fields\":" + fields + "}}]",
-        ),
-        [("g", graph)],
-        None,
-        None,
-        limits(),
-      ),
-    )
+    let p = @pipeline_typing.check_carriers(
+      cursor("[" + query_match_body(edges, fields) + "]"),
+      [("g", query_property_graph())],
+      None,
+      None,
+      limits(),
+    ).unwrap()
     let keys = @pipeline_typing.candidate_keys(p, Step(0)).unwrap()
     assert_eq(@evidence.key_witness_count(keys), expected)
     if expected == 1 {
       let key = @evidence.key_witness_at(keys, 0).unwrap()
-      assert_eq(@evidence.key_field_count(key), 3)
-      assert_true(
-        @evidence.key_field_at(key, 2).unwrap().contract.unwrap().nullable,
+      assert_eq(@evidence.key_field_count(key), 1)
+      assert_eq(
+        @evidence.key_field_at(key, 0).unwrap().name,
+        Unqualified("element"),
+      )
+      assert_false(
+        @evidence.key_field_at(key, 0).unwrap().contract.unwrap().nullable,
       )
     }
   }
-  let p = graph_count_checked(
-    @pipeline_typing.check_carriers(
-      cursor(
-        "[{\"reach\":{\"start\":1,\"direction\":\"both\",\"max_depth\":2}},{\"drop\":[\"node_id\"]}]",
-      ),
-      [("g", graph)],
-      None,
-      None,
-      limits(),
-    ),
-  )
-  let key = @pipeline_typing.candidate_key(p, Step(1)).unwrap()
-  assert_eq(@evidence.key_field_at(key, 0).unwrap().name, Unqualified("node"))
-  assert_eq(
-    @evidence.declared_key_field_at(key, 0).unwrap().name,
-    Unqualified("node_id"),
-  )
-  assert_true(
-    @evidence.key_graph_query_producer(key) is Some(ReachOperation(_)),
-  )
 }
 
 ///|
-test "Graph query keys retain producer and complete identity through projections" {
-  let cases = [
-    ("\"degree\":{\"direction\":\"both\"}", ["node"]),
-    ("\"components\":{\"kind\":\"weak\"}", ["node_id"]),
-    ("\"graph_bounds\":{\"max_nodes\":0,\"max_degree\":0}", ["kind", "node_id"]),
-    (
-      "\"match_nodes\":{\"where\":\"true\",\"fields\":[\"node_id\"]}",
-      ["node_id"],
-    ),
-    (
-      "\"reach\":{\"start\":1,\"direction\":\"both\",\"max_depth\":3}",
-      ["node_id"],
-    ),
-    (
-      "\"traverse\":{\"start\":{\"ids\":[1,1,2]},\"direction\":\"both\",\"min_hops\":0,\"max_hops\":3,\"emit\":\"nodes\"}",
-      ["start_id", "node_id"],
-    ),
-    (
-      "\"shortest_path\":{\"source\":{\"ids\":[1,2]},\"target\":{\"ids\":[1,2]},\"direction\":\"both\",\"max_hops\":3,\"selection\":\"each_pair\"}",
-      ["source_id", "target_id"],
-    ),
-    (
-      "\"shortest_path\":{\"source\":{\"ids\":[1,2]},\"target\":{\"ids\":[1,2]},\"direction\":\"both\",\"max_hops\":3,\"selection\":\"nearest_per_source\"}",
-      ["source_id"],
-    ),
-    (
-      "\"shortest_path\":{\"source\":{\"ids\":[1]},\"target\":{\"ids\":[2]},\"direction\":\"both\",\"max_hops\":3,\"selection\":\"nearest_pair\"}",
-      ["source_id"],
-    ),
-  ]
-  for (operation, names) in cases {
-    let projection = [
-      "{\"a\":\"" + names[0] + "\"}",
-      "{\"b\":\"" + names[0] + "\"}",
-    ]
-    for i in 1..<names.length() {
-      projection.push("\"" + names[i] + "\"")
-    }
+test "current Graph query aliases retain actual checked producer and exact transfer budgets" {
+  for edges in [false, true] {
+    let graph = query_property_graph()
     let source = cursor(
       "[" +
-      graph_count_seed(3) +
-      ",{\"graph\":{\"source\":\"src\",\"target\":\"dst\"},\"as\":\"g\"},{" +
-      operation +
-      "},{\"select\":[" +
-      projection.join(",") +
-      "]},{\"drop\":[\"a\"]}]",
+      query_match_body(edges, "[\"element\"]") +
+      ",{\"select\":[{\"a\":\"element\"},{\"b\":\"element\"}]},{\"drop\":[\"a\"]}]",
     )
-    let p = graph_count_checked(
-      @pipeline_typing.check_carriers(source, [], None, None, limits()),
-    )
-    let key = @pipeline_typing.candidate_key(p, Step(2)).unwrap()
+    let inputs = [("g", graph)]
+    let p = @pipeline_typing.check_carriers(
+      source,
+      inputs,
+      None,
+      None,
+      limits(),
+    ).unwrap()
+    let key = @pipeline_typing.candidate_key(p, Step(0)).unwrap()
     assert_eq(@evidence.key_origin(key), GraphQueryResult)
-    assert_eq(@evidence.key_field_count(key), names.length())
-    for i, name in names {
-      assert_eq(@evidence.key_field_at(key, i).unwrap().name, Unqualified(name))
-    }
-    let output = @pipeline_typing.candidate_key(p, Step(4)).unwrap()
+    let output = @pipeline_typing.candidate_key(p, Step(2)).unwrap()
+    assert_eq(@evidence.key_field_count(output), 1)
     assert_eq(@evidence.key_field_at(output, 0).unwrap().name, Unqualified("b"))
     assert_eq(
       @evidence.declared_key_field_at(output, 0).unwrap().name,
-      Unqualified(names[0]),
+      Unqualified("element"),
     )
     assert_eq(@evidence.key_pending(output), [ValidateKeyProducer])
-    let producer = @evidence.key_graph_query_producer(output).unwrap()
-    let actual = match producer {
-      GraphOperation(op) => @graph.input(op)
-      MatchOperation(op) => @graph.match_input(op)
-      ReachOperation(op) => @graph.reach_input(op)
-      TraverseOperation(op) => @graph.traverse_input(op)
-      ShortestOperation(op) => @graph.shortest_input(op)
+    guard @evidence.key_graph_query_producer(output) is Some(MatchOperation(op)) else {
+      abort("checked MATCH producer")
     }
-    assert_true(
-      physical_equal(actual, @pipeline_typing.carrier_at(p, Step(1)).unwrap()),
-    )
-    let t = @evidence.graph_query_keys(producer, {
+    assert_true(physical_equal(@graph.match_input(op), graph))
+    let transfer = @evidence.graph_query_keys(MatchOperation(op), {
       max_work: 100,
       max_name_bytes: 1000,
     }).unwrap()
     let exact : @evidence.TransferLimits = {
-      max_work: t.work,
-      max_name_bytes: t.name_bytes,
+      max_work: transfer.work,
+      max_name_bytes: transfer.name_bytes,
     }
-    assert_true(@evidence.graph_query_keys(producer, exact) is Ok(_))
+    assert_true(@evidence.graph_query_keys(MatchOperation(op), exact) is Ok(_))
     assert_true(
-      @evidence.graph_query_keys(producer, { ..exact, max_work: t.work - 1, })
-      is Err(_),
-    )
-    assert_true(
-      @evidence.graph_query_keys(producer, {
+      @evidence.graph_query_keys(MatchOperation(op), {
         ..exact,
-        max_name_bytes: t.name_bytes - 1,
+        max_work: exact.max_work - 1,
       })
       is Err(_),
     )
-    let u = @pipeline_typing.usage(p)
+    assert_true(
+      @evidence.graph_query_keys(MatchOperation(op), {
+        ..exact,
+        max_name_bytes: exact.max_name_bytes - 1,
+      })
+      is Err(_),
+    )
+    let used = @pipeline_typing.usage(p)
     let cap = {
       ..limits(),
-      max_work: u.work,
-      max_nodes: u.nodes,
-      max_tokens: u.tokens,
-      max_text_bytes: u.text_bytes,
+      max_work: used.work,
+      max_nodes: used.nodes,
+      max_tokens: used.tokens,
+      max_text_bytes: used.text_bytes,
     }
     assert_true(
-      @pipeline_typing.check_carriers(source, [], None, None, cap) is Ok(_),
+      @pipeline_typing.check_carriers(source, inputs, None, None, cap) is Ok(_),
     )
     assert_true(
-      @pipeline_typing.check_carriers(source, [], None, None, {
+      @pipeline_typing.check_carriers(source, inputs, None, None, {
         ..cap,
-        max_work: u.work - 1,
+        max_work: cap.max_work - 1,
       })
       is Err(_),
     )
@@ -188,54 +162,51 @@ test "Graph query keys retain producer and complete identity through projections
 }
 
 ///|
-test "Graph query projection loss and path enumeration do not invent keys" {
-  for
-    operation in [
-      "\"traverse\":{\"start\":{\"ids\":[1,2]},\"direction\":\"both\",\"min_hops\":0,\"max_hops\":3,\"emit\":\"paths\"}",
-      "\"match_edges\":{\"where\":\"true\",\"fields\":[\"src\"]}",
-    ] {
-    let p = graph_count_checked(
-      @pipeline_typing.check_carriers(
-        cursor(
-          "[" +
-          graph_count_seed(3) +
-          ",{\"graph\":{\"source\":\"src\",\"target\":\"dst\"},\"as\":\"g\"},{" +
-          operation +
-          "}]",
-        ),
-        [],
-        None,
-        None,
-        limits(),
-      ),
-    )
-    assert_eq(
-      @evidence.key_witness_count(
-        @pipeline_typing.candidate_keys(p, Step(2)).unwrap(),
-      ),
-      0,
-    )
-  }
-  let p = graph_count_checked(
-    @pipeline_typing.check_carriers(
-      cursor(
-        "[" +
-        graph_count_seed(3) +
-        ",{\"graph\":{\"source\":\"src\",\"target\":\"dst\"},\"as\":\"g\"},{\"traverse\":{\"start\":{\"ids\":[1,2]},\"direction\":\"out\",\"min_hops\":0,\"max_hops\":3,\"emit\":\"nodes\"}},{\"drop\":[\"start_id\"]}]",
-      ),
-      [],
-      None,
-      None,
-      limits(),
+test "current identity projection loss and TRAIL enumeration do not fabricate Relation keys" {
+  let graph = query_property_graph()
+  let p = @pipeline_typing.check_carriers(
+    cursor(
+      "[" +
+      query_match_body(true, "[\"element\",\"src\",\"dst\"]") +
+      ",{\"drop\":[\"element\"]}]",
     ),
-  )
-  assert_true(@pipeline_typing.candidate_key(p, Step(3)) is None)
-  let unknown = @pipeline_typing.check_carriers(
-    cursor("[{\"degree\":{\"direction\":\"both\"}}]"),
-    [("g", @carrier.unknown_carrier(GraphKind))],
+    [("g", graph)],
     None,
     None,
     limits(),
   ).unwrap()
-  assert_true(@pipeline_typing.candidate_key(unknown, Step(0)) is None)
+  assert_true(@pipeline_typing.candidate_key(p, Step(1)) is None)
+  let identity = "{\"definition\":\"N\",\"domain\":\"sha256:" +
+    "0".repeat(64) +
+    "\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}"
+  let trail = @pipeline_typing.check_carriers(
+    cursor(
+      "[{\"traverse\":{\"start\":{\"ids\":[" +
+      identity +
+      "]},\"hops\":[{\"direction\":\"out\"}],\"path_mode\":\"trail\",\"emit\":\"paths\"}}]",
+    ),
+    [("g", graph)],
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  assert_true(@pipeline_typing.candidate_key(trail, Step(0)) is None)
+  for
+    operation in [
+      "\"degree\":{\"direction\":\"both\"}", "\"components\":{\"kind\":\"weak\"}",
+      "\"graph_bounds\":{\"max_nodes\":0,\"max_degree\":0}", "\"shortest_path\":{\"source\":1,\"target\":2,\"direction\":\"out\",\"max_hops\":3}",
+    ] {
+    let issue = @pipeline_typing.check_carriers(
+      cursor("[{" + operation + "}]"),
+      [("g", graph)],
+      None,
+      None,
+      limits(),
+    ).unwrap_err()
+    assert_true(
+      issue.kind is Graph(@graph.UnsupportedGraphOperation) ||
+      issue.kind
+      is GraphMatch(@graph.Structure(@graph.UnsupportedGraphOperation)),
+    )
+  }
 }

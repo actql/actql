@@ -393,6 +393,13 @@ singleton publication evidence. The full `src/relation_results` package passed
 102/103 because a test authored `direction` instead of the specified `dir`;
 the fixture spelling was corrected, without changing parser or expectations.
 
+Pipeline key/bridge audit migration passed **8/8 on each target**. The current
+MATCH identity and alias budget checks retain their exact/one-short limits;
+TRAIL enumeration does not invent a Relation key. Retired tuple projections
+refuse even with historical role aliases. The cross-family audit still checks
+Events/Vectors success, wrong-carrier origin, body validation and explicit input
+selection. Current Graph refusal preserves the operation path and span.
+
 Remaining work includes other legacy-positive consumer inventories, the real
 configured-Store public snapshot save/reload route, aggregate Core/spec,
 current-source fresh packed acceptance and required CI on the submitted SHA.
