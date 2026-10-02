@@ -2117,3 +2117,26 @@ cost/duration, positive work and cancellation/budget failure classification.
 The CI Client job runs this acceptance and retains logs and tarball digests,
 not the private Store or installation key. Final Linux CI on the updated
 commit remains required; the local packed run is not its substitute.
+
+### Integration with public Check
+
+Merge revision `12e8c958ee13baf92509b01d35052a76a740281b` incorporates main
+`16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a` without rewriting feature history.
+Host imports and Client test registration preserve both public Check and
+INFER. Check Outcome and Model artifact schemas coexist; their combined
+registry CID and document metadata were regenerated, not selected from one
+side of the merge. Runtime packages were rebuilt and remain untracked.
+
+Integrated-source checks passed: 68 public Check/INFER/capture tests, the five
+packed process scenarios, 34 canonical contract tests, schema/pin checks and
+three-target generated interface comparison. The first direct Node attempt
+resolved an old borrowed Client wire package; a worktree-local SDK dependency
+link corrected resolution without modifying the borrowed installation. The
+first canonical test attempt lacked `moonfmt` on PATH; the pinned-toolchain
+rerun passed. Neither failed attempt is counted as successful evidence.
+
+The current foundation record separately references the integration commit
+and its exact common-file digests. It preserves historical evidence and
+does not weaken the foundation checker. Full integrated-SHA CI remains the
+merge-readiness check; complete local Core suites were not repeated solely
+for the merge.
