@@ -56,10 +56,13 @@ envelope withdraws its *text path*, not the common Graph operation.
 | VecA/TEA OP forms | Their adopted domain vocabulary and existing logical operators | Remaining surface productions and lowering | Independent Program/result cases; never approximate with SQL scalar functions |
 
 Source-free Relation examples use the adopted FROM-optional SELECT and set
-syntax. Graph construction still needs a concrete spelling proposal and its
-expected machine Program before implementing a new surface. Do not preserve
-OP merely because those spellings are unfinished. An installed Graph source and
-a source-free constructed Graph are distinct input obligations.
+syntax. The adopted [Property Graph mapping](frontend-standard-profiles.md#property-graph-mapping-and-element-identity)
+uses NODE TABLES, EDGE TABLES, independent KEYs, REFERENCES and static label
+sets inside an explicit pure ActQL constructor. It requires a coordinated
+common Graph representation and independently authored expected Programs;
+the historical simple-Graph operation cannot faithfully represent it. Do not
+preserve OP while that implementation is unfinished. An installed Graph source
+and a source-free constructed Graph are distinct input obligations.
 
 ## Named SGA migration inventory
 
