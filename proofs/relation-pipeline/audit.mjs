@@ -11,7 +11,7 @@ import { candidates, program } from './engine.mjs';
 import { registry, baseRegistry } from './registry.mjs';
 import { hash, snapshot, checkBaseline } from './inventory.mjs';
 import { validate, compareSemantics } from './evidence.mjs';
-import { body, boundFixture, payload, inputVariable } from './fixture.mjs';
+import { auditFixture, payload, inputVariable } from './fixture.mjs';
 import { applyMutation } from './sites.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const directory = resolve(process.argv[2] ?? join(root, '.artifacts/relation-pipeline'));
@@ -39,13 +39,6 @@ function auditExecution(execution, selected, expectedTarget = execution.receipt.
   const source = read(artifact(run.sourcePath));
   assert.equal(hash(JSON.stringify(source.sources)), source.digest);
   assert.equal(source.digest, run.sourceDigest);
-  assert.equal(run.boundary.version, 'actql-pipeline-execution-boundary/0.1');
-  assert.equal(run.boundary.sourceDigest, run.sourceDigest);
-  assert.equal(run.boundary.target, expectedTarget, 'Compiled target boundary differs');
-  assert.deepEqual(run.boundary.command, run.command, 'Compiled command boundary differs');
-  assert.equal(run.boundary.fixtureDigest, hash(body));
-  assert.equal(run.buildIdentity, hash(JSON.stringify(run.boundary)));
-  assert(['normal', 'pristine', 'mutable'].includes(run.boundary.role));
   if (workspace) {
     assert.equal(run.boundary.workspace, workspace.id, 'Execution workspace identity mismatch');
     assert.equal(run.boundary.root, workspace.root, 'Execution workspace root mismatch');
@@ -71,14 +64,9 @@ function auditExecution(execution, selected, expectedTarget = execution.receipt.
   const inputs = payload(run.cases, run.correspondence);
   assert.equal(readFileSync(artifact(run.inputPath), 'utf8'), inputs);
   assert.equal(hash(inputs), run.inputDigest);
-  const expectedFixture = boundFixture(run.boundary);
-  assert.equal(readFileSync(artifact(run.fixturePath), 'utf8'), expectedFixture);
-  assert.equal(hash(expectedFixture), run.fixtureDigest);
   const log = readFileSync(artifact(run.logPath), 'utf8');
   assert.equal(hash(log), run.logDigest);
-  assert.deepEqual(log.split('\n').filter(line => line.startsWith('ACTQL_PIPELINE_BUILD:')),
-    [`ACTQL_PIPELINE_BUILD:${run.buildIdentity}`], 'Executed binary boundary differs');
-  assert.match(log, /Total tests: 1, passed: 1, failed: 0/);
+  auditFixture(run, readFileSync(artifact(run.fixturePath)), log, expectedTarget);
   let id; let faults = []; const observations = [];
   for (const line of log.split('\n')) {
     if (line.startsWith('ACTQL_PIPELINE_CASE:')) { id = JSON.parse(line.slice(20)); faults = []; }
