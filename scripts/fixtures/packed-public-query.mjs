@@ -14,6 +14,9 @@ import {openInstalledRemoteHttpHost} from
 import {exercisePublicQueryInput, querySuccesses, queryRefusals, inferRefusals, sourceRows, sourceFreeSuccesses, sourceFreeRefusals, queryCompositionSuccesses, queryCompositionRefusals, pipeResultSuccesses, pipeResultRefusals, pipeResultExecutionFailures}
   from './public-query-input.mjs';
 
+if (process.env.ACTQL_TEST_TWO_SOURCE_ONLY === '1') {
+  await import('./packed-two-source-public-query.mjs');
+} else {
 const sourceFreeOnly = process.env.ACTQL_TEST_SOURCE_FREE_ONLY === '1';
 const inferOnly = process.env.ACTQL_TEST_INFER_REFUSAL_ONLY === '1';
 const joinOnly = process.env.ACTQL_TEST_JOIN_ORDER_ONLY === '1';
@@ -90,7 +93,8 @@ async function prepareCase(rows = sourceRows) {
 const view = environment.source_views[0];
 const sourceProfilePath = resolve('source-profile.json');
 await writeFile(sourceProfilePath, canonical({
-  version: 'actql-installed-duckdb-source/0.1', database,
+  acquisitionPlanning: {policy: 'priority', priority: ['nativeQuery', 'broadQuery']},
+    version: 'actql-installed-duckdb-source/0.1', database,
   schema: 'main', table: 'records', sourceRef: 'connector://crm/main/r#v',
   queryAliases: [{name: 'records', sourceRef: 'connector://crm/main/r#v',
     sourceViewContractCid: view.contract_cid,
@@ -293,4 +297,6 @@ assert.deepEqual(sgaFailures, [], 'Packed SGA acceptance failures');
 if (retainedStrings.local && retainedStrings.remote) {
   await writeFile('retained-string-results.json', JSON.stringify(retainedStrings));
 
+}
+if (!scopeOnly) await import('./packed-two-source-public-query.mjs');
 }

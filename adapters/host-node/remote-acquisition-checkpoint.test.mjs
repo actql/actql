@@ -79,6 +79,7 @@ async function installedSource(root, readOutcome) {
   }
   const path = join(root, 'source-profile.json');
   const write = (outcome, target = {}) => writeFile(path, JSON.stringify({
+    acquisitionPlanning: {policy: 'priority', priority: ['nativeQuery', 'broadQuery']},
     version: 'actql-installed-duckdb-source/0.1',
     database, schema: 'main', table: 'records', ...target,
     sourceRef: 'connector://crm/main/r#v',

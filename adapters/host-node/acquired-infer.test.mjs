@@ -116,6 +116,8 @@ async function runAcquiredInfer({authored, boundary}, t) {
     await writeFile(sourceProfilePath, canonical({
       version: 'actql-installed-duckdb-source/0.1', database,
       schema: 'main', table: 'records', sourceRef: 'connector://crm/main/r#v',
+      acquisitionPlanning: {policy: 'priority',
+        priority: ['nativeQuery', 'broadQuery']},
       checkEnvironmentWire: canonical(source),
       accountConfigurationWire: accountConfiguration,
     }));

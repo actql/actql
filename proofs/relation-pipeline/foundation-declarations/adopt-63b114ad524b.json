@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "adopt-63b114ad524b",
+  "kind": "change",
+  "revision": "63b114ad524b934cf809b96d37d0d81ea215815c",
+  "parents": [
+    "1d9492d99f60ed9361e4b1e7e9b0f173eba25cbe"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "1d9492d99f60ed9361e4b1e7e9b0f173eba25cbe",
+          "digest": "b2a2e9d89062492329be9f67f81ab0f3b6d8bd656df6525055736a6af3f7fd78",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "227c2fcb42df515554d897a418b7ec1ae6fddc02f43a04d8c46d53780a229e2f",
+      "afterMode": "100644",
+      "reason": "Retain model-attempt evidence contract generation and tests from #178."
+    }
+  ]
+}

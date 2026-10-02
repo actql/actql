@@ -1,6 +1,7 @@
 // One installed Local Host for the current OS user. The Client talks to the
 // Host in process; the journal and publication Store own durable physical I/O.
-import {createHash, createPublicKey} from 'node:crypto';
+import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';
+import {createHash, createPublicKey, randomBytes} from 'node:crypto';
 import {mkdir, readFile, stat} from 'node:fs/promises';
 import {homedir, userInfo} from 'node:os';
 import {join, resolve} from 'node:path';
@@ -14,6 +15,7 @@ import {installNodeClientRunStart} from './client-run-start.mjs';
 import {installNodeClientEffectRun} from './client-effect-run.mjs';
 import {runCapturedEffectComputation} from './entry.mjs';
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
+import {capturedDuckDBNativeConfiguration} from './captured-duckdb-source.mjs';
 import {recoverAdmittedEffectRun} from './effect-run-recovery.mjs';
 import {retireCompletedEffectfulCapture} from
   '../host-common/completed-run-publication.mjs';
@@ -36,7 +38,7 @@ import {installedEffectIdentity, loadInstalledEffect,
 import {createInstalledEffectSite} from './installed-effect-site.mjs';
 import {createPrivateEvidenceKey, loadPrivateEvidenceKey} from
   './local-continuation-evidence.mjs';
-import {installedSourceIdentity, loadInstalledSource,
+import {installedSourceIdentity, installedSourcePaths, loadInstalledSources, installedSourceFor,
   publishInstalledSourceProfile} from
   './installed-source.mjs';
 import {createDiagnosticObserver} from
@@ -82,12 +84,12 @@ const publicKeyCid = value => bytesCid(createPublicKey(value).export({
   type: 'spki', format: 'der'}));
 
 async function embeddedInstallationIdentity(root, installation) {
-  const sourcePath = installation?.sourceProfilePath ??
-    process.env.ACTQL_LOCAL_SOURCE_PROFILE;
+  const sourcePaths = installedSourcePaths(installation);
   const effectPath = installation?.effectProfilePath ??
     process.env.ACTQL_LOCAL_EFFECT_PROFILE;
-  const source = sourcePath === undefined ? null :
-    await installedSourceIdentity(sourcePath);
+  const identities = await Promise.all(sourcePaths.map(installedSourceIdentity));
+  const source = identities.length === 0 ? null : identities.length === 1
+    ? identities[0] : {version: 'actql-installed-source-inventory/0.1', identities};
   const effect = effectPath === undefined ? null :
     await installedEffectIdentity(effectPath);
   const authorization = installation?.authorization;
@@ -141,11 +143,10 @@ function localStateRoot() {
 const REALIZATION_KEY = 'source-free-values';
 
 async function openInstalledHost({root, mode = 'local', beforeDispatch,
-  authorization, sourceProfilePath, resolveSourceSecret,
+  authorization, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
   effectProfilePath, resolveEffectSecret, effectInstallation,
   modelInstallation, registerModelProviders}) {
-  const selectedSourcePath = sourceProfilePath ??
-    process.env.ACTQL_LOCAL_SOURCE_PROFILE;
+  const selectedSourcePaths = installedSourcePaths({sourceProfilePath, sourceProfilePaths});
   const selectedEffectPath = effectProfilePath ??
     process.env.ACTQL_LOCAL_EFFECT_PROFILE;
   if (effectInstallation !== undefined && selectedEffectPath !== undefined) {
@@ -165,7 +166,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   let installedEffect;
   let environmentWire;
   try {
-    sourceProfile = await loadInstalledSource(selectedSourcePath,
+    sourceProfile = await loadInstalledSources(selectedSourcePaths,
       {root, principalId, moon, runtimeUrl, baseEnvironmentWire,
         resolveSecret: resolveSourceSecret});
     installedEffect = selectedEffectPath === undefined ? undefined :
@@ -356,6 +357,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     if (!hostConnection({principalId: actual, connection})) {
       throw clientOperationError('ClientConnectionDenied');
     }
+    // The current disclosure adapter has one source authorization owner.
+    // Do not use either installation's decision to disclose the other.
+    if (sourceProfile?.sources !== undefined) {
+      return JSON.parse(moon.clientProgramCheckUnavailable(
+        `corr:${randomBytes(16).toString('hex')}`));
+    }
     return checkSource({principalId: actual, input, parameters, signal});
   };
     checkpoints = await installRemoteCheckpoints({root, namespaceId,
@@ -366,7 +373,10 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       contractControl: control,
       authorization: authorization == null ? authorization :
         {...authorization, observe: diagnostic},
-      source: sourceProfile?.readAuthorization});
+      ...(sourceProfile?.sources === undefined
+        ? {source: sourceProfile?.readAuthorization}
+        : {sources: sourceProfile.sources.map(source => ({
+          sourceRef: source.sourceAccess.sourceRef, ...source.readAuthorization}))})});
   const observeRun = async ({ref, principalId: actual}) => {
     if (actual !== principalId || ref.namespaceId !== namespaceId ||
         ref.authorityScopeCid !== authorityScopeCid) {
@@ -537,6 +547,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   const requestOf = ({preparedProgram, requestId}) => {
     prepareSubmit.assertOwned(preparedProgram);
     if (prepareSubmit.kindOf(preparedProgram) === 'effectful') {
+      if (sourceProfile?.sources !== undefined) {
+        throw clientOperationError('InstalledMultiSourceEffectUnsupported');
+      }
       const acquired = moon.clientProgramEffectPrepareQueryAcquisition(
         preparedProgram, 0, 0)?.$tag === 1;
       if (acquired) {
@@ -576,29 +589,28 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       }
       return {requested, resultNames, acquired, effectful: true};
     }
-    const acquisition = moon.clientProgramPrepareQueryAcquisition(
-      preparedProgram, 0, 0);
-    const acquired = acquisition?.$tag === 1;
+    const acquisitionCount = moon.clientProgramAcquisitionCount(preparedProgram);
+    const acquired = acquisitionCount > 0;
+    const selectedAdapters = new Set();
     if (acquired) {
-      if (sourceProfile === undefined) {
-        throw clientOperationError('ClientProgramNeedsInputs');
+      if (sourceProfile === undefined) throw clientOperationError('ClientProgramNeedsInputs');
+      if (acquisitionCount > 2 || acquisitionCount === 2 && sourceProfile.sources?.length !== 2) {
+        throw clientOperationError('ClientProgramUnsupported');
       }
-      // A checked acquisition the local planner cannot generate is an
-      // unsupported Program: refused before any Run exists.
-      let requirement;
-      try {
-        requirement = checked(
-          moon.clientProgramPrepareLocalQueryRequirement(preparedProgram,
-            0, 0, registry, values, fragment, ordered));
-      } catch (cause) {
-        throw clientOperationError('ClientProgramUnsupported', cause);
-      }
-      if (!sourceProfile.admitsSource(
-        moon.clientProgramQueryRequirementSourceRef(requirement))) {
-        throw clientOperationError('ClientProgramUnsupported',
-          new Error('InstalledSourceProgramMismatch'));
+      // Every occurrence is selected by its checked requirement before any I/O.
+      for (let task = 0; task < acquisitionCount; task++) {
+        try {
+          const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(
+            preparedProgram, task, 0, registry, values, fragment, ordered));
+          const adapter = installedSourceFor(sourceProfile,
+            moon.clientProgramQueryRequirementSourceRef(requirement));
+          selectedAdapters.add(adapter);
+        } catch (cause) {
+          throw clientOperationError('ClientProgramUnsupported', cause);
+        }
       }
     }
+    if (selectedAdapters.size !== acquisitionCount) throw clientOperationError('ClientProgramUnsupported');
     // Static ModelTask admission cannot authorize a model call. Until the
     // installed dependency/dispatch route is present, refuse before admitting
     // a Run rather than sending this acquisition into a Values fallback.
@@ -692,12 +704,66 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       if (name === undefined) throw new Error('ClientProgramResultMissing');
       resultNames.push(name);
     }
-    return {requested, resultNames, acquired, effectful: false};
+    return {requested, resultNames, acquired, acquisitionCount, effectful: false};
   };
-  const prepareAcquisition = (preparedProgram,
-    sourceAccess = sourceProfile.sourceAccess) =>
-    sourceProfile.prepare({preparedProgram, registry, values, fragment,
-      ordered, sourceAccess});
+  const prepareAcquisition = async (preparedProgram, sourceAccess,
+    occurrence = {stage: 0, input: 0, task: 0}) => {
+    const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(
+      preparedProgram, occurrence.stage, occurrence.input, registry, values, fragment, ordered));
+    const adapter = installedSourceFor(sourceProfile,
+      moon.clientProgramQueryRequirementSourceRef(requirement));
+    try {
+      const prepared = await adapter.prepare({preparedProgram, registry, values, fragment, ordered,
+        sourceAccess: sourceAccess ?? adapter.sourceAccess, occurrence});
+      if (prepared.selection !== undefined) diagnostic('acquisition_selection',
+        {task: occurrence.task, selection: prepared.selection});
+      return prepared;
+    } catch (cause) {
+      if (cause instanceof ExecutionAuthorizationError) {
+        throw clientOperationError(cause.runtimeCode ?? 'ACTQL_E_DELEGATION_UNAVAILABLE', cause);
+      }
+      if (cause?.selection !== undefined) {
+        diagnostic('acquisition_selection', {task: occurrence.task, selection: cause.selection});
+        throw clientOperationError(cause.selection.status === 'deferred'
+          ? 'ClientProgramRejected' : 'ClientProgramUnsupported', cause);
+      }
+      throw cause;
+    }
+  };
+  const prepareAcquisitions = async preparedProgram => {
+    const result = [];
+    for (let task = 0; task < moon.clientProgramAcquisitionCount(preparedProgram); task++) {
+      const occurrence = Object.freeze({stage: task, input: 0, task});
+      const prepared = await prepareAcquisition(preparedProgram, undefined, occurrence);
+      try {
+        capturedDuckDBNativeConfiguration(prepared);
+      } catch (cause) {
+        if (cause?.message === 'InstalledMultiSourceNativeAcquisitionRequired') {
+          throw clientOperationError('ClientProgramUnsupported', cause);
+        }
+        throw cause;
+      }
+      const adapter = installedSourceFor(sourceProfile, prepared.checkedSource.sourceRef);
+      result.push(Object.freeze({occurrence, prepared, adapter, sourceAccess: adapter.sourceAccess}));
+    }
+    return Object.freeze(result);
+  };
+  const acquisitionDescriptor = prepared => ({checkedSource: prepared.checkedSource,
+    readTuple: prepared.readTuple, physicalBinding: prepared.physicalBinding});
+  const sourceDescriptors = sources => sources.map(({occurrence, prepared}) =>
+    ({...occurrence, ...acquisitionDescriptor(prepared)}));
+  const sourceInventory = sources => sources?.length === 2 ? canonicalJson({
+    version: 'actql-client-source-inventory/0.1', environmentCid: evidenceCid,
+    acquisitions: sourceDescriptors(sources)}) : undefined;
+  const captureSubmission = (submission, resultNames, preparedSource, preparedSources) => ({
+    version: preparedSources?.length === 2
+      ? 'actql-remote-multi-source-submission/0.1' : 'actql-remote-captured-submission/0.1',
+    requestId: submission.requestId, principalId: submission.principalId,
+    connection: submission.connection, kind: submission.kind, input: submission.input,
+    parameters: submission.parameters, resultNames,
+    ...(preparedSources?.length === 2 ? {acquisitions: sourceDescriptors(preparedSources)}
+      : preparedSource === undefined ? {} : {acquisition: acquisitionDescriptor(preparedSource)}),
+  });
   const planFor = ({preparedProgram, requestId},
     retainedDefinitionWire) => {
     prepareSubmit.assertOwned(preparedProgram);
@@ -723,12 +789,24 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     held) => {
     const accepted = await journal.admitOrLookupDefinition(requested, {
       namespaceId, lookupExpiresAt: plus(now(), 7 * 24 * 60 * 60 * 1000),
-      resultNames,
+      resultNames, sourceInventory: sourceInventory(held.preparedSources),
       issueDefinition: () => {
         held.plan = planFor(submission);
+        if (held.preparedSources?.length === 2) return {
+          runDefinition: held.plan.runDefinition,
+          runAdmissionEvidence: {prepared: held.plan.preparedEvidence.wire,
+            authorization: held.plan.authorization.wire,
+            sourceInventory: sourceInventory(held.preparedSources)}};
         return held.plan.runDefinition;
       },
-    }, moon, control);
+    }, moon, control).catch(cause => {
+      if (cause?.code === 'ClientRequestSourceInventoryMismatch') {
+        // Caller input identity is unchanged. This Host cannot start the
+        // retained Run against a different physical acquisition inventory.
+        throw clientOperationError('ClientRunStartDenied', cause);
+      }
+      throw cause;
+    });
     return accepted;
   };
   // Composition installs one owner for dispatch, cancellation, stop, and
@@ -899,12 +977,23 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     if (!hostConnection({principalId: actual, connection})) {
       throw clientOperationError('ClientConnectionDenied');
     }
-    const {requested, resultNames, acquired, effectful} =
+    const {requested, resultNames, acquired, acquisitionCount, effectful} =
       requestOf(submission);
     if (effectful) {
       return submitEffect(submission, requested, resultNames);
     }
-    const preparedSource = acquired
+    // A reserved physical start can only be reconciled from its original
+    // durable Run. Do this before rebuilding physical source preparations.
+    // INFER continues to its existing saved-capture replay owner below.
+    const retainedStart = journal.resolveDefinition(requested, {namespaceId}, moon, control);
+    if (retainedStart?.physicalStartReserved === true &&
+        !inferSelections.has(submission.preparedProgram)) {
+      return {ref: retainedStart.ref, durability: retainedStart.durability,
+        revision: retainedStart.revision};
+    }
+    const preparedSources = acquisitionCount === 2
+      ? await prepareAcquisitions(submission.preparedProgram) : undefined;
+    const preparedSource = acquired && acquisitionCount !== 2
       ? await prepareAcquisition(submission.preparedProgram) : undefined;
     // Run acceptance on the protected Site is decided before any Run
     // Definition exists. A request that was held is never started from here:
@@ -919,6 +1008,11 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       const existing = journal.resolveDefinition(requested, {namespaceId}, moon,
         control);
       if (existing !== undefined) {
+        if (existing.physicalStartReserved !== true &&
+            existing.runAdmissionEvidence?.sourceInventory !== sourceInventory(preparedSources)) {
+          throw clientOperationError('ClientRunStartDenied',
+            clientOperationError('ClientRequestSourceInventoryMismatch'));
+        }
         void checkpoints.sweep();
         return {ref: existing.ref, durability: existing.durability,
           revision: existing.revision};
@@ -932,13 +1026,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         logicalRequestScopeCid: moon.clientRequestScopeCid(requested),
         intentFingerprintCid: moon.clientRequestIntentCid(requested),
       };
-      const captured = {version: 'actql-remote-captured-submission/0.1',
-        requestId, principalId: actual, connection, kind, input,
-        parameters, resultNames,
-        ...(preparedSource === undefined ? {} : {acquisition: {
-          checkedSource: preparedSource.checkedSource,
-          readTuple: preparedSource.readTuple,
-          physicalBinding: preparedSource.physicalBinding}})};
+      const captured = captureSubmission(submission, resultNames, preparedSource, preparedSources);
       let decided = await checkpoints.acceptRun({requested: requestedFacts,
         captured});
       // Run acceptance allowed or permitted: a Program that reads the
@@ -961,8 +1049,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           revision: existing.revision};
       }
     }
-    const held = {preparedSource,
-      preparedSourceAccess: sourceProfile?.sourceAccess};
+    const held = {preparedSource, preparedSources,
+      preparedSourceAccess: preparedSource === undefined ? undefined :
+        installedSourceFor(sourceProfile, preparedSource.checkedSource.sourceRef).sourceAccess};
     const accepted = await admitDefinition(submission, requested,
       resultNames, held);
     if (inferSelections.has(submission.preparedProgram) &&
@@ -1036,25 +1125,20 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       kind: captured.kind, input: captured.input,
       parameters: captured.parameters};
     submission.preparedProgram = await prepareSubmit(submission);
-    const {requested, resultNames, acquired, effectful} =
-      requestOf(submission);
-    const preparedSource = acquired
+    const {requested, resultNames, acquired, acquisitionCount, effectful} = requestOf(submission);
+    const preparedSources = acquisitionCount === 2
+      ? await prepareAcquisitions(submission.preparedProgram) : undefined;
+    const preparedSource = acquired && acquisitionCount !== 2
       ? await prepareAcquisition(submission.preparedProgram) : undefined;
-    const acquisition = preparedSource === undefined ? undefined : {
-      checkedSource: preparedSource.checkedSource,
-      readTuple: preparedSource.readTuple,
-      physicalBinding: preparedSource.physicalBinding};
-    // Compared as canonical JSON: the held submission is stored in its
-    // canonical form, so key order carries no meaning here.
-    if (canonicalJson(acquisition ?? null) !==
-        canonicalJson(captured.acquisition ?? null)) {
+    const reproduced = captureSubmission(submission, resultNames, preparedSource, preparedSources);
+    if (canonicalJson(reproduced) !== canonicalJson(captured)) {
       throw new Error('HeldAcquisitionChanged');
     }
     if (JSON.stringify(resultNames) !==
         JSON.stringify(captured.resultNames)) {
       throw new Error('HeldRequestChanged');
     }
-    return {submission, requested, resultNames, preparedSource, effectful};
+    return {submission, requested, resultNames, preparedSource, preparedSources, effectful};
   };
   const definitionOf = captured => journal.lookupDefinition({namespaceId,
     authorityScopeCid, requestId: captured.requestId}, moon, control);
@@ -1090,7 +1174,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   // dispatch), `started` (reserved: running, or unknown after a crash) or
   // `terminal`.
   const inspectHeld = async captured => {
-    const acquisition = captured.acquisition === undefined ? undefined :
+    const acquisition = captured.acquisition === undefined && captured.acquisitions === undefined ? undefined :
       await inspectAcquisition({requestId: captured.requestId,
         principalId: captured.principalId, connection: captured.connection});
     const accepted = definitionOf(captured);
@@ -1159,7 +1243,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       }
       throw error;
     }
-    const {submission, requested, resultNames, preparedSource,
+    const {submission, requested, resultNames, preparedSource, preparedSources,
       effectful} = resolved;
     if (effectful) {
       effectRun.checkSupported(submission.preparedProgram);
@@ -1199,8 +1283,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           ref: accepted.ref, code: error?.code ?? error?.message}));
       return observedStart;
     }
-    const held = {preparedSource,
-      preparedSourceAccess: sourceProfile?.sourceAccess};
+    const held = {preparedSource, preparedSources,
+      preparedSourceAccess: preparedSource === undefined ? undefined :
+        installedSourceFor(sourceProfile, preparedSource.checkedSource.sourceRef).sourceAccess};
     const accepted = await admitDefinition(submission, requested,
       resultNames, held);
     await step('definition_admitted', {ref: accepted.ref});
@@ -1505,7 +1590,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
 // `beforeDispatch` remains a required execution barrier. Without a
 // configuration the Missing account denies every request; nothing allows it.
 export async function openInstalledRemoteHttpHost({directory,
-  authenticate, beforeDispatch, authorization, sourceProfilePath,
+  authenticate, beforeDispatch, authorization, sourceProfilePath, sourceProfilePaths,
   resolveSourceSecret, effectProfilePath, resolveEffectSecret,
   effectInstallation, modelInstallation, registerModelProviders}) {
   if (typeof directory !== 'string' || !directory ||
@@ -1514,7 +1599,7 @@ export async function openInstalledRemoteHttpHost({directory,
     throw new TypeError('InvalidInstalledRemoteHost');
   }
   const host = await openInstalledHost({root: resolve(directory), mode: 'remote',
-    beforeDispatch, authorization, sourceProfilePath, resolveSourceSecret,
+    beforeDispatch, authorization, sourceProfilePath, sourceProfilePaths, resolveSourceSecret,
     effectProfilePath, resolveEffectSecret, effectInstallation,
     modelInstallation, registerModelProviders});
   const handle = createClientHttpHandler({
@@ -1555,11 +1640,13 @@ export async function openInstalledRemoteHttpHost({directory,
     // owner. Returns what remains for the next owner instead of hiding it.
     async close() {
       closing = true;
-      host.diagnostic.close();
       while (handling.size > 0) {
         await Promise.allSettled([...handling]);
       }
       const result = await shutdown.close();
+      // Failed shutdown still owns retryable physical cleanup. Keep its
+      // bounded observation alive until those owners confirm final release.
+      host.diagnostic.close();
       return Object.freeze({...result,
         diagnosticDeliveryPending: host.diagnostic.status().active !== 0});
     },
@@ -1613,6 +1700,7 @@ export async function connectEmbeddedLocal(options) {
     opened = Object.freeze({identity,
       host: openInstalledHost({root, authorization: installation?.authorization,
         sourceProfilePath: installation?.sourceProfilePath,
+        sourceProfilePaths: installation?.sourceProfilePaths,
         resolveSourceSecret: installation?.resolveSourceSecret,
         effectProfilePath: installation?.effectProfilePath,
         resolveEffectSecret: installation?.resolveEffectSecret,

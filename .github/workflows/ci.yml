@@ -66,6 +66,8 @@ jobs:
         run: node --test scripts/moonbit-environment.test.mjs
       - name: Test native SQLite namespace ownership
         run: node --test scripts/test-native-core.test.mjs
+      - name: Test Client CI partition and aggregate requirements
+        run: node --test scripts/client-ci.test.mjs
       - name: Test read-only CI evidence reporting
         run: node --test scripts/ci-evidence.test.mjs
       - name: Test portable dependency inspection and injected violations
@@ -174,7 +176,9 @@ jobs:
           node proofs/bounded-session/setup-lean.mjs
           echo "$GITHUB_WORKSPACE/.toolchains/lean-4.30.0-rc1-linux/bin" >> "$GITHUB_PATH"
       - name: Reject invalid pipeline scopes and shrinking substitutions
-        run: node --test proofs/relation-pipeline/*.test.mjs
+        run: node --test proofs/relation-pipeline/*.test.mjs proofs/relation-pipeline/capacity/backing/*.test.mjs
+      - name: Compose and archive the exact-source foundation declarations
+        run: node proofs/relation-pipeline/history.mjs --write
       - name: Verify the three-operation baseline at this same source
         run: node proofs/relation-pipeline/run.mjs js base
       - name: Verify fixed and required fresh mutations with distinct target evidence
@@ -246,9 +250,40 @@ jobs:
         run: node scripts/test-runtime-package-build.mjs
       - name: Test packed Local runtime assets
         run: npm run check:local-node-assets
-  # Public Client, packed distribution and the Salesforce Site.
-  client:
+  # Share only clean-checkout tarballs and their source/digest manifest.
+  # Consumers retain fresh installs and private target/native build outputs.
+  client-packages:
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      artifact-id: ${{ steps.packages.outputs.artifact-id }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          python: 'true'
+      - name: Pack the Client packages once for these jobs
+        run: node scripts/packed-client-packages.mjs "$RUNNER_TEMP/actql-client-packages"
+      - name: Retain immutable Client package inputs
+        id: packages
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: actql-client-packages-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/actql-client-packages/packed-client-packages.json
+            ${{ runner.temp }}/actql-client-packages/actql-client-wire-0.0.0-development.tgz
+            ${{ runner.temp }}/actql-client-packages/actql-sdk-0.0.0-development.tgz
+            ${{ runner.temp }}/actql-client-packages/actql-run-host-core-0.0.0-development.tgz
+            ${{ runner.temp }}/actql-client-packages/actql-local-node-0.0.0-development.tgz
+            ${{ runner.temp }}/actql-client-packages/actql-node-0.0.0-development.tgz
+          if-no-files-found: error
+          retention-days: 7
+  client-distribution:
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    needs: [client-packages]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -258,18 +293,32 @@ jobs:
       - uses: ./.github/actions/setup-toolchain
         with:
           python: 'true'
-      # The packed acceptance scripts below install the same Client tarballs.
-      # Pack them once (each pack runs the package's prepack build) and share
-      # one npm cache; every script still installs into its own clean root.
-      - name: Pack the Client packages once for this job
-        run: |
-          node scripts/packed-client-packages.mjs "$RUNNER_TEMP/actql-client-packages"
-          echo "ACTQL_PACKED_CLIENT_PACKAGES=$RUNNER_TEMP/actql-client-packages" >> "$GITHUB_ENV"
-          echo "ACTQL_TEST_NPM_CACHE=$RUNNER_TEMP/actql-npm-cache" >> "$GITHUB_ENV"
+      - name: Download the exact Client package artifact
+        uses: ./.github/actions/download-client-packages
+        with:
+          artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
+          path: ${{ runner.temp }}/actql-client-packages
       - name: Test distribution Client wire, Host and packed Node assembly
         env:
           TMPDIR: ${{ github.workspace }}/_build
         run: npm run check:distribution-client
+  client-packed:
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    needs: [client-packages]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          python: 'true'
+      - name: Download the exact Client package artifact
+        uses: ./.github/actions/download-client-packages
+        with:
+          artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
+          path: ${{ runner.temp }}/actql-client-packages
       - name: Test packed Embedded Local Checkpoint and Named Result
         run: npm run check:packed-embedded-checkpoint
       - name: Test packed single INFER capture and replay
@@ -312,6 +361,22 @@ jobs:
         with:
           directory: ${{ steps.packed-result-description.outputs.evidence-directory }}
           name: packed-result-description-${{ github.sha }}
+  # These source-backed checks need no packed artifact or other Client job.
+  client-salesforce:
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-toolchain
+        with:
+          python: 'true'
+      # Recovery imports source runtime bridges previously warmed by packing.
+      # Rebuild them in this runner rather than sharing another job's _build.
+      - name: Build private runtime prerequisites for recovery
+        run: node scripts/build-runtime-packages.mjs local-node
       - name: Test Salesforce Site Catalog and bounded query acquisition
         run: npm run check:salesforce-site
       - name: Count actual Effect Compute calls across recovery
@@ -326,6 +391,29 @@ jobs:
           for boundary in effect-source effect-capture publication-private; do
             node scripts/test-effect-capture-crash.mjs "$boundary"
           done
+  # Preserve the existing required Client result, including failed, cancelled
+  # or unexpectedly skipped producers/consumers. No acceptance runs here.
+  client:
+    if: ${{ always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    needs: [client-packages, client-distribution, client-packed, client-salesforce]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Require every Client job
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          node -e '
+            const results = JSON.parse(process.env.RESULTS);
+            let failed = false;
+            for (const job of ["client-packages", "client-distribution", "client-packed", "client-salesforce"]) {
+              const result = results[job]?.result;
+              const ok = result === "success";
+              console.log(`${ok ? "ok  " : "FAIL"} ${job}: ${result}`);
+              if (!ok) failed = true;
+            }
+            if (failed) process.exit(1);
+          '
   # Native storage, publication and control, and the Native retained path.
   native:
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}

@@ -23,6 +23,7 @@ test('combined verification preserves every fixed/fresh and restored target exec
   assert.equal(result.status, 0, result.stderr);
   const { calls, reports, source } = result.state;
   assert.equal(source, 'healthy');
+  assert.equal(result.state.mutable, 'healthy');
   for (const variant of ['first', 'second']) {
     const actual = calls.filter(call => call.variant === variant);
     assert.deepEqual(actual.map(call => call.label), [
@@ -31,8 +32,8 @@ test('combined verification preserves every fixed/fresh and restored target exec
       `${variant}-minimal`, `${variant}-minimal`, `${variant}-minimal`,
       ...Array(6).fill(`${variant}-restored`),
     ]);
-    assert(actual.slice(0, 8).every(call => call.source === variant));
-    assert(actual.slice(8).every(call => call.source === 'healthy'));
+    assert(actual.slice(0, 8).every(call => call.source === variant && call.workspace === 'mutable'));
+    assert(actual.slice(8).every(call => call.source === 'healthy' && call.workspace === 'pristine'));
     for (const label of ['fixed', 'minimal']) {
       assert.deepEqual(actual.filter(call => call.label === `${variant}-${label}`).map(call => call.target),
         ['js', 'wasm', 'native']);
@@ -81,7 +82,18 @@ for (const fail of ['first-fixed:wasm', 'first-search:js', 'first-shrink:js', 'f
     const result = run('verify', { fail });
     assert.notEqual(result.status, 0);
     assert.equal(result.state.source, 'healthy');
+    assert.equal(result.state.mutable, 'healthy');
     assert.deepEqual(result.state.reports, {});
     assert(result.state.calls.every(call => call.variant === 'first'));
   });
 }
+
+test('source restoration failure stops before healthy replay or success reports', () => {
+  const result = run('verify', { fail: 'source-restore' });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Source not restored exactly/);
+  assert.equal(result.state.source, 'healthy');
+  assert.equal(result.state.mutable, 'healthy');
+  assert(result.state.calls.every(call => call.workspace === 'mutable' && call.variant === 'first'));
+  assert.deepEqual(result.state.reports, {});
+});

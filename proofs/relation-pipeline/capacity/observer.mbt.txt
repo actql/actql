@@ -10,12 +10,25 @@ fn capacity_observe(state : BoundedBindingRowsState, event : String) -> Unit {
   if state.sort_execution is Some(_) { index = n * 2 }
   let mut output_rows = 0
   let mut output_cells = 0
+  let mut output_capacity = 0
+  let mut output_cell_capacity : Int64 = 0
+  let mut output_max_row_capacity = 0
   if state.output is Some(output) {
     output_rows = output.buffer.rows.length()
-    for row in output.buffer.rows { output_cells += row.length() }
+    output_capacity = output.buffer.rows.capacity()
+    for row in output.buffer.rows {
+      output_cells += row.length()
+      output_cell_capacity += row.capacity().to_int64()
+      output_max_row_capacity = Int::max(output_max_row_capacity, row.capacity())
+    }
   } else if state.rows.val is Some(rows) {
     output_rows = rows.rows.length()
-    for row in rows.rows { output_cells += row.length() }
+    output_capacity = rows.rows.capacity()
+    for row in rows.rows {
+      output_cells += row.length()
+      output_cell_capacity += row.capacity().to_int64()
+      output_max_row_capacity = Int::max(output_max_row_capacity, row.capacity())
+    }
   }
   let metadata = state.input_names.length() + state.output_names.length() +
     state.input_ordinals.length() + state.binding_ordinals.length() +
@@ -45,5 +58,29 @@ fn capacity_observe(state : BoundedBindingRowsState, event : String) -> Unit {
     ",\"roots\":" + state.input_roots.length().to_string() +
     ",\"rowTemporary\":" + temporary.to_string() +
     ",\"measureFrames\":" + measure_frames.to_string() +
-    ",\"unmodeledEntries\":" + unmodeled.to_string() + "}")
+    ",\"unmodeledEntries\":" + unmodeled.to_string() +
+    ",\"arrayCapacity\":{\"inputNames\":" + state.input_names.capacity().to_string() +
+    ",\"outputNames\":" + state.output_names.capacity().to_string() +
+    ",\"keep\":" + state.distinct_keep.capacity().to_string() +
+    ",\"terms\":" + state.sort_orders.capacity().to_string() +
+    ",\"sortedIndices\":" + state.sorted_indices.map(a => a.capacity()).unwrap_or(0).to_string() +
+    ",\"outputRows\":" + output_capacity.to_string() +
+    ",\"outputCells\":" + output_cell_capacity.to_string() +
+    ",\"outputMaxRow\":" + output_max_row_capacity.to_string() +
+    ",\"values\":" + state.values.capacity().to_string() +
+    ",\"slotRoots\":" + state.slot_roots.capacity().to_string() +
+    ",\"outputRow\":" + state.output_row.capacity().to_string() +
+    ",\"checkedRow\":" + state.checked_row.capacity().to_string() +
+    ",\"captureRow\":" + state.capture_row.capacity().to_string() +
+    "},\"mapCapacity\":{\"inputOrdinals\":" + state.input_ordinals.capacity().to_string() +
+    ",\"bindingOrdinals\":" + state.binding_ordinals.capacity().to_string() +
+    ",\"projectionOrdinals\":" + state.projection_ordinals.map(m => m.capacity()).unwrap_or(0).to_string() +
+    ",\"snapshot\":" + state.snapshot.capacity().to_string() +
+    "},\"mapEntries\":{\"inputOrdinals\":" + state.input_ordinals.length().to_string() +
+    ",\"bindingOrdinals\":" + state.binding_ordinals.length().to_string() +
+    ",\"projectionOrdinals\":" + state.projection_ordinals.map(m => m.length()).unwrap_or(0).to_string() +
+    ",\"snapshot\":" + state.snapshot.length().to_string() +
+    "},\"mapAliases\":{\"inputBinding\":" + physical_equal(state.input_ordinals, state.binding_ordinals).to_string() +
+    ",\"inputProjection\":" + state.projection_ordinals.map(m => physical_equal(state.input_ordinals, m)).unwrap_or(false).to_string() +
+    ",\"bindingProjection\":" + state.projection_ordinals.map(m => physical_equal(state.binding_ordinals, m)).unwrap_or(false).to_string() + "}" + capacity_native_map_fields(state) + "}")
 }

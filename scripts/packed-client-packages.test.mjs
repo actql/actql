@@ -114,3 +114,22 @@ test('no manifest is recorded from a dirty checkout or one changed while packing
     await assert.rejects(readFile(join(destination,
       'packed-client-packages.json')), {code: 'ENOENT'});
   });
+
+test('separate same-revision checkouts reuse artifact bytes into independent consumers', async t => {
+  const {base, repository, shared} = await fixture(t);
+  const second = join(base, 'second-checkout');
+  git(base, 'clone', '--quiet', repository, second);
+  for (const [index, checkout] of [repository, second].entries()) {
+    const destination = join(base, `consumer-${index}`);
+    await mkdir(destination);
+    await packedClientPackage({repository: checkout, name: 'sdk', destination,
+      pack: () => assert.fail('the consumer repacked shared packages')});
+  }
+  await appendFile(join(base, 'consumer-0', tarball('sdk')), 'consumer mutation\n');
+  assert.equal(await readFile(join(base, 'consumer-1', tarball('sdk')), 'utf8'), 'sdk packed\n');
+  assert.equal(await readFile(join(shared, tarball('sdk')), 'utf8'), 'sdk packed\n');
+  await appendFile(join(second, 'src/core.mbt'), 'consumer source change\n');
+  await assert.rejects(packedClientPackage({repository: second, name: 'sdk',
+    destination: join(base, 'consumer-1'), pack: () => assert.fail('repacked')}),
+  /build inputs changed/u);
+});
