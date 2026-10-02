@@ -18,6 +18,12 @@ import {createPublicationContractControlFixture} from
 import {openNodeInferOperation} from '../adapters/host-node/infer-operation.mjs';
 import {installNodeClientDispatchOwner} from
   '../adapters/host-node/client-dispatch-owner.mjs';
+import {inferTaskRunAdmission, inferTaskPublicationPlan} from
+  '../adapters/host-node/local-values-plan.mjs';
+import {inferPublicationExecution} from
+  '../adapters/host-node/infer-result-publication.mjs';
+import {publishCompletedEffectFreeRun} from
+  '../adapters/host-common/completed-run-publication.mjs';
 
 // Reuse the independently hashed typing vector, not an execution result.
 const taskSource = readFileSync(new URL(
@@ -191,6 +197,25 @@ test('normal Program emits a model barrier without pretending it is pure AoA', (
     foreign, 'infer', policy, compiled), /RunHostTaskCompilationRejected/u);
   assert.throws(() => control.prepareCheckedClientCompiledRun(
     prepared, 'tasks', policy, compiled), /requires its checked graph/u);
+  const options = {control, preparedProgram: prepared, inferGraph: compiled,
+    authorityScopeCid: `sha256:${'d'.repeat(64)}`,
+    namespaceId: 'infer-compilation',
+    now: () => '2026-10-01T00:00:00.000Z'};
+  const admitted = inferTaskRunAdmission(options);
+  assert.equal(admitted.kind, 'infer');
+  assert.equal(admitted.inferGraph, compiled);
+  assert.equal(admitted.compiledPlan.identity, run.compiledPlan.identity);
+  assert.equal(admitted.observation, undefined);
+  assert.equal(admitted.invocation, undefined);
+  control.checkClientCompiledRunOwner(admitted.compiled, prepared);
+  const restored = inferTaskRunAdmission({...options,
+    now: () => '2026-10-01T00:05:00.000Z',
+    retainedDefinitionWire: admitted.runDefinition.wire});
+  assert.equal(restored.runDefinition.identity, admitted.runDefinition.identity);
+  assert.throws(() => inferTaskRunAdmission({...options,
+    preparedProgram: foreign}), /RunHostTaskCompilationRejected/u);
+  assert.throws(() => inferTaskRunAdmission({...options,
+    inferGraph: undefined}), /MissingInstalledInferGraph/u);
 });
 
 test('Infer compilation retains the same pure prefix as bounded execution', () => {
@@ -655,6 +680,94 @@ async function issueOwnedInferObservation(operation, control, compiled,
     throw error;
   }
 }
+
+test('issued INFER output uses the ordinary retained Result exporter', async t => {
+  const fixture = supervisedInferFixture();
+  const {prepared, graph, operation} = fixture;
+  const core = runtimeCore(moon);
+  const control = core.publicationControl;
+  const scope = cid({fixture: 'retained-infer-output'});
+  const now = () => '2026-10-02T00:00:00.000Z';
+  const options = {moon, control, preparedProgram: prepared, inferGraph: graph,
+    namespaceId: 'infer-store', authorityScopeCid: scope,
+    storeAuthorityCid: scope, now};
+  const admitted = inferTaskRunAdmission(options);
+  const account = moon.executionAuthorizationAdmit(canonicalText({
+    version: 'actql-execution-account-config/0.1', account_id: 'model-account',
+    entries: [{entry_id: 'infer-policy', outcome: 'allow', principal: {all: true},
+      connection: {all: true}, resource: {all: true},
+      operation: {any_of: ['infer']}, exclusions: []}],
+  }));
+  const directory = await mkdtemp(join(tmpdir(), 'actql-infer-result-'));
+  let issued, publication, store, stored;
+  try {
+    operation.bindRun(control, admitted);
+    operation.bindDispatch(control, {...admitted, account,
+      principalId: 'fixture-principal', at: now(),
+      observeAccount: () => account, observeAt: now});
+    await operation.run();
+    issued = await issueOwnedInferObservation(operation, control,
+      admitted.compiled, admitted.runDefinition);
+    const evidence = control.admitRunEvidence('model_invocation_evidence',
+      moon.strategyRunEvidenceJson(operation.invocationEvidence(0)),
+      {maxWireBytes: 16384, maxNodes: 1024, maxDepth: 20});
+    publication = inferTaskPublicationPlan({...options, admitted, operation,
+      issuance: issued.active, modelEvidence: [evidence]});
+    const execution = inferPublicationExecution({moon, core, operation,
+      binding: publication.binding, compiled: admitted.compiled,
+      preparedProgram: prepared});
+    assert.deepEqual(execution.resultInventory.map(item => item.name), ['answer']);
+    store = await openLocalPublicationStore({directory, storeAuthorityCid: scope,
+      capacityBytes: 20 * 1024 * 1024, maxObjectBytes: 10000000, maxObjects: 100,
+      maxContractNodes: 100000, maxContractDepth: 100}, control);
+    const plan = publication.plan;
+    stored = await execution.storePublicationResult(0, store, {
+      ...plan.results[0], outputLimits: plan.outputLimits,
+      contractLimits: plan.contractLimits, runDefinition: plan.runDefinition,
+      invocation: plan.invocation});
+    let text = '';
+    await store.consumeObject(stored.physical.cid, chunk => {
+      text += Buffer.from(chunk).toString('utf8');
+    });
+    assert.deepEqual(JSON.parse(text),
+      [{id: 'a', outcome: 'ok', value: {reason: null, risk: 'high'}}]);
+    assert.equal(stored.occurrence.name, 'answer');
+    assert.equal(stored.publication.artifact.name, 'result_artifact');
+    await stored.prepared.release();
+    stored = undefined;
+    const published = await publishCompletedEffectFreeRun({
+      ...plan, execution, store, control, signal: undefined});
+    assert.equal(published.results.length, 1);
+    const key = {namespaceId: 'infer-store', authorityScopeCid: scope,
+      runDefinitionCid: admitted.runDefinition.identity};
+    assert.notEqual(await store.confirmCommittedIndex(key), undefined);
+    const definitionCid = published.evidence.definitions[0].identity;
+    const chunks = [];
+    const consumed = await store.consumeCommittedResult(key, definitionCid,
+      request => request.runDefinitionCid === key.runDefinitionCid &&
+        request.resultDefinitionCid === definitionCid,
+      chunk => chunks.push(Buffer.from(chunk)));
+    assert.equal(consumed.rowCount, 1);
+    assert.deepEqual(JSON.parse(Buffer.concat(chunks).toString('utf8')),
+      [{id: 'a', outcome: 'ok', value: {reason: null, risk: 'high'}}]);
+    assert.equal(fixture.calls(), 1);
+  } catch (error) {
+    t.diagnostic(inspect(error, {depth: 5}));
+    await error.cleanupHandle?.retry();
+    throw error;
+  } finally {
+    await stored?.prepared.release();
+    if (publication) moon.clientProgramReleaseInferInvocationBinding(publication.binding);
+    if (issued) {
+      moon.clientProgramReleaseInferInvocationBinding(issued.binding);
+      assert.equal(checked(moon.clientProgramCleanupInferObservationIssuance(
+        issued.active)), true);
+    }
+    await operation.close();
+    await store?.close();
+    await rm(directory, {recursive: true, force: true});
+  }
+});
 
 test('Node Infer binds existing account authority and reads common issued attempt proofs', async () => {
   for (const outcome of ['allow', 'deny']) {

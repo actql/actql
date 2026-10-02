@@ -21,7 +21,7 @@ const cid = digit => `sha256:${digit.repeat(64)}`;
 const hash = body => `sha256:${createHash('sha256')
   .update(canonicalText(body)).digest('hex')}`;
 // Retained pre-change preimages, verified against the existing compatibility
-// CIDs. Rebind only the normative Grammar Manifest and its dependent bodies;
+// CIDs. Rebind the normative grammar/barrier manifests and dependent bodies;
 // expectations never come from the new compiler's output.
 const baselinePlanCids = {
   values: 'sha256:fc6cc72f2fe207114444c9663f5ba41ca4b3298e0e91984aa6d4252fbced6cde',
@@ -29,6 +29,8 @@ const baselinePlanCids = {
 };
 const read = path => readFile(new URL(path, import.meta.url), 'utf8');
 const grammar = JSON.parse(await read('../../spec/manifests/actql-grammar-0.1.json'));
+const barriers = JSON.parse(await read(
+  '../../spec/manifests/actql-barrier-contracts-0.1.json'));
 const expectedPlans = {};
 for (const kind of ['values', 'tasks']) {
   const baseline = JSON.parse(await read(`./fixtures/${kind}-compiled-plan-baseline.json`));
@@ -45,7 +47,10 @@ for (const kind of ['values', 'tasks']) {
   assert.equal(executable.execution_material.invocation_template_cid,
     baseline.boundTemplate.bound_invocation_template_cid);
   template.grammar_manifest_cid = grammar.grammar_manifest_cid;
+  template.barrier_contract_manifest_cid = barriers.barrier_contract_manifest_cid;
   executable.execution_material.grammar_manifest_cid = grammar.grammar_manifest_cid;
+  executable.execution_material.barrier_contract_manifest_cid =
+    barriers.barrier_contract_manifest_cid;
   executable.execution_material.invocation_template_cid = hash(template);
   compiled.executable_plan_cid = hash(executable);
   expectedPlans[kind] = {...compiled, compiled_plan_cid: hash(compiled)};

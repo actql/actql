@@ -60,6 +60,16 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     entry.stopObserved = true;
   }
 
+  async function settleCleanupHandle(entry) {
+    if (entry.cleanupHandle === undefined) return;
+    const handle = entry.cleanupHandle;
+    if (handle.status()?.pending === true) await handle.retry();
+    if (handle.status()?.pending !== false) {
+      throw new Error('ClientDispatchCleanupPending');
+    }
+    entry.cleanupHandle = undefined;
+  }
+
   async function settleCleanup(entry) {
     const execution = entry.cleanupOwner;
     if (execution !== undefined) {
@@ -72,6 +82,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       // owned by cleanup, not by invoking close again or repeating Compute.
       try { await execution.close(); }
       catch (failure) { entry.closeFailure ??= failure; }
+      // A failed Store consumer can still pin the completed output. Ask the
+      // retained Store owner to settle before retrying the execution's
+      // reclamation; cancellation alone still grants neither release.
+      await settleCleanupHandle(entry);
       const recovered = await execution.cleanup();
       if (recovered === false || execution.cleanupPending() !== false) {
         throw new Error('ClientDispatchCleanupPending');
@@ -88,15 +102,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       if (!entry.computeStartAttempted) entry.stopObservationPending = true;
     }
     if (entry.stopObservationPending) await observeStop(entry);
-    if (entry.cleanupHandle !== undefined) {
-      const handle = entry.cleanupHandle;
-      const status = handle.status();
-      if (status?.pending === true) await handle.retry();
-      if (handle.status()?.pending !== false) {
-        throw new Error('ClientDispatchCleanupPending');
-      }
-      entry.cleanupHandle = undefined;
-    }
+    await settleCleanupHandle(entry);
     if (entry.unresolvedCleanup) {
       throw new Error('ClientDispatchCleanupOwnerMissing');
     }

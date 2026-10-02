@@ -1713,3 +1713,54 @@ The specification gate at `db0c58aa953540870c10a9055012cf3333ff5de3`
 passed its version, Relation, generator and coverage checks before being
 interrupted during the resource-accounting suite to resume implementation.
 It is incomplete, not a successful gate. No Linux CI result is claimed.
+
+## Inference Run plans and retained Named Result exports
+
+`inferTaskRunAdmission` now uses the existing checked Run compiler with the
+original prepared Program and checked model graph. It retains that graph for
+dispatch and can re-admit the saved Run Definition without changing identity.
+It does not issue an empty source-free Observation Set for a model barrier.
+
+`inferTaskPublicationPlan` binds the common observation issuer to the exact
+compiled Run. The existing retention and Result publication plan carries the
+issued model evidence. `inferPublicationExecution` projects common-owned
+Result selections into the ordinary completed-Run publisher. Its Store bridge
+wraps the same MoonBit output exporter; it does not reconstruct rows or use a
+different serializer. Direct Results correctly use the binding-owned Result
+selection even when there is no optional compiled transformation.
+
+The new component regression runs a checked one-row Program through the real
+Model owner, publishes through the real local Store, resolves the committed
+Result, and reads exactly
+`[{"id":"a","outcome":"ok","value":{"reason":null,"risk":"high"}}]`.
+The provider is invoked once. This is not public submit acceptance: the test
+binds the component Run/dispatch owners explicitly and does not demonstrate
+private capture persistence through the installed Run journal.
+
+Store cleanup can retain a Result pin after its writer fails. The existing
+dispatch supervisor now requests execution close, retries the retained Store
+cleanup handle, and then retries execution reclamation. This avoids waiting
+forever for an output pin that only the Store owner can release. The new
+regression confirms no stop observation or reclamation before recovery, and
+no second Compute invocation.
+
+Verification:
+
+- Built `local-node` and `run-host-core` from the integrated source.
+- The combined Node run passed 81 of 82 tests; the sole failure was the
+  fixture checker missing `MOON_HOME` in that shell. That exact fixture test
+  then passed with the pinned toolchain environment.
+- The final dispatch-owner suite passed all 19 tests after the Store-pin
+  cleanup ordering change.
+- The five Values/task plan tests pass. Their retained baseline preimages
+  now rebind both the grammar and barrier manifest from pinned source data.
+  The prior failure came from the changed barrier manifest, not a substituted
+  measured Plan CID; the original baseline hashes remain independently
+  checked, and standalone/installed compiler identities remain equal.
+- MoonBit interfaces were regenerated on JS, Wasm and native; the Node-only
+  Store bridge format and JavaScript syntax checks pass.
+
+The installed public submit still stops at dispatch admission. Current egress
+and exact physical request preflight, private capture custody in the ordinary
+Run journal, public fresh-process replay, final specification/CI gates and the
+B handoff remain incomplete. Component publication does not replace them.

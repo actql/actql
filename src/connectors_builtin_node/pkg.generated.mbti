@@ -564,6 +564,8 @@ pub fn client_program_infer_publication_release(@client_infer_host.ResultPublica
 
 pub fn client_program_infer_publication_selection(@client_infer_host.ResultPublication) -> @run_publication_host.ClientResultTransformation?
 
+pub fn client_program_infer_publication_store_export(@client_infer_host.ResultPublication) -> Result[StrategyHostOutputExport, @client_infer_host.ResultPublicationIssue]
+
 pub fn client_program_infer_publication_usage(@physical_resources.Ledger) -> (Int, Int64)
 
 pub fn client_program_infer_quantity_usage(@client_infer_host.Execution) -> @physical_resources.QuantityUsage?

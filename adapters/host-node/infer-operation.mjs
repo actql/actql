@@ -200,7 +200,9 @@ export async function withNodeInferResult({moon, binding, result, consume,
     const exported = checked(moon.clientProgramInferPublicationFinish(owner));
     // Do not race this against abort: a rejected/aborted consumer must first
     // settle its physical I/O and retain any unresolved cleanup responsibility.
-    return await consume({selection, exported, signal});
+    return await consume({selection, exported, signal,
+      storeExport: () => checked(
+        moon.clientProgramInferPublicationStoreExport(owner))});
   } catch (failure) {
     if (failure?.cleanupPending === true) {
       // The existing dispatch supervisor retries this exact Store cleanup

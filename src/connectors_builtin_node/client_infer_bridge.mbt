@@ -1479,6 +1479,20 @@ pub fn client_program_infer_publication_finish(
 }
 
 ///|
+/// Reuse the standard Store export bridge without reconstructing output rows.
+/// The ResultPublication owner retains the underlying export until Store I/O
+/// and any cleanup retry have settled.
+#export_name("clientProgramInferPublicationStoreExport")
+pub fn client_program_infer_publication_store_export(
+  value : @infer_host.ResultPublication,
+) -> Result[StrategyHostOutputExport, @infer_host.ResultPublicationIssue] {
+  @infer_host.finish_result_publication(value).map(core => {
+    core,
+    managed_import: None,
+  })
+}
+
+///|
 #export_name("clientProgramInferPublicationCancel")
 pub fn client_program_infer_publication_cancel(
   value : @infer_host.ResultPublication,

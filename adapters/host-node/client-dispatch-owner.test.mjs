@@ -87,6 +87,41 @@ test('model dispatch cannot report private completion as a published Result',
     assert.deepEqual(fixture.stopped, [[fixture.ref, 'failed']]);
   });
 
+test('failed model Result Store cleanup releases its pin before execution reclamation',
+  async () => {
+    let calls = 0, storePending = true, recover = false, released = false;
+    const events = [];
+    const fixture = inferDispatchFixture(async ({retainExecution}) => {
+      calls++;
+      retainExecution({async close() {
+        events.push('close');
+        if (storePending) throw new Error('OutputStillPinned');
+      }, cleanup() {
+        events.push('reclaim');
+        released = !storePending;
+        return released;
+      }, cleanupPending: () => !released});
+      throw Object.assign(new Error('StoreResultFailure'), {
+        cleanupPending: true,
+        cleanupHandle: {status: () => ({pending: storePending}),
+          async retry() {
+            events.push('store');
+            if (!recover) throw new Error('StoreStillStopping');
+            storePending = false;
+          }},
+      });
+    });
+    await fixture.start();
+    await fixture.owner.operation(fixture.ref);
+    assert.deepEqual(events, ['close', 'store']);
+    assert.deepEqual(fixture.stopped, []);
+    recover = true;
+    await fixture.owner.drain();
+    assert.deepEqual(events, ['close', 'store', 'close', 'store', 'reclaim']);
+    assert.deepEqual(fixture.stopped, [[fixture.ref, 'failed']]);
+    assert.equal(calls, 1);
+  });
+
 test('missing model connection refuses before the physical start claim',
   async () => {
     const fixture = inferDispatchFixture(undefined);
