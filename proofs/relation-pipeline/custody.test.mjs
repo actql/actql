@@ -21,7 +21,8 @@ function fixture(target = 'js', mode = 'normal') {
   const child = '"event":"before-cleanup"\n"event":"after-cleanup"\n';
   const stage = mode === 'success' ? 'ACTQL_CUSTODY_STAGE:after-completion-before-cleanup\n' :
     'ACTQL_CUSTODY_STAGE:after-settlement-before-cleanup\n';
-  const log = 'ACTQL_CUSTODY_CHAIN:started\n' + stage + (mode !== 'pending' ? child :
+  const log = 'ACTQL_CUSTODY_CHAIN:started\n' +
+    (mode === 'success' ? 'ACTQL_CUSTODY_COMMIT_CLEANUP:pending\n' : '') + stage + (mode !== 'pending' ? child :
     'ACTQL_CUSTODY_RETRY:false\nACTQL_CUSTODY_RETRY:error\n' + child) +
     `ACTQL_CUSTODY:${JSON.stringify(observation)}\nTotal tests: 1, passed: 1, failed: 0.\n`;
   const binary = Buffer.from(`synthetic audit-unit-test artifact for ${target}`), digest = hash(binary);

@@ -172,11 +172,13 @@ Output acceptance and provider scratch release are independent acknowledgements.
 The common completion boundary preserves the execution reservation when the
 installed scratch-release condition is false, even after output retention has
 moved to a holding. An execution without an installed condition retains the
-existing synchronous completion behavior. The existing cleanup path retires
-scratch after the condition confirms cleanup; no new owner or ledger is used.
+existing synchronous completion behavior. The Local output commit tries the existing provider cleanup once before
+common completion; false/error keeps the provider and its reservation for
+explicit retry. The existing cleanup path retires scratch after confirmation; no new owner or ledger is used.
 
 The custody diagnostic reuses the typed `distinct → filter` corpus entry and
-registered Local driver. Its success mode runs all three children, finalizes an
+registered Local driver. Its success mode defers the commit-time cleanup attempt
+once with an exact audited overlay, runs all three children, finalizes an
 accepted Int payload through the real completion/ledger boundary, checks the
 scratch reservation before explicit cleanup, then closes the output and verifies
 cleanup and repeated cleanup without Compute restart or work loss. The Int
