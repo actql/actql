@@ -131,14 +131,22 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
     let mut values_source = false
     let mut carrier_construction = false
     let mut carrier_relation_consumer = false
+    let mut relation_only = true
+    let mut values_roots = 0
     for step in 0..<count {
       guard @lower.node_at(prepared, step) is Some(node) else { return None }
       match @lower.operation(node) {
-        "REL.values" => values_source = true
+        "REL.values" => {
+          values_source = true
+          if @lower.node_input_count(node) == 0 {
+            values_roots += 1
+          }
+        }
         _ => ()
       }
       if @carrier.kind(@lower.node_output_carrier(node)) !=
         @carrier.RelationKind {
+        relation_only = false
         for input in 0..<@lower.node_input_count(node) {
           if @lower.node_input_target(node, input)
             is Some(@pipeline.Step(producer)) &&
@@ -168,12 +176,21 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
         }
       }
     }
+    // Independent Values roots cannot be realized as one linear pipeline.
+    // Let a Relation-only DAG reach the existing selected-provider and exact
+    // per-edge checks below; root count alone never authorizes a split.
+    let independent_relations = relation_only && values_roots > 1
     // A source-free Carrier prefix needs segmentation when a later typed
     // Carrier-to-Relation step or an intermediate Result needs independent
     // ownership. Carrier-only prefixes without either retain fused execution.
     if !values_source ||
-      (!carrier_construction && !intermediate_result) ||
-      (!carrier_relation_consumer && !intermediate_result) {
+      (
+        !independent_relations &&
+        (
+          (!carrier_construction && !intermediate_result) ||
+          (!carrier_relation_consumer && !intermediate_result)
+        )
+      ) {
       return None
     }
   }
