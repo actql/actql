@@ -76,8 +76,20 @@ dependencies and an insecure endpoint were corrected with pinned dependencies
 and real synthetic-CA HTTPS, not relaxed policies. A stale route-count negative
 fixture was updated for the additive route. Full spec then passed its Local
 coverage/resource checks but stopped at the required `MOON_HOME` environment
-check; it is being rerun with the pinned toolchain directory. Final complete
-gates and Linux CI must be reported against the submitted SHA in the PR.
+check. The pinned rerun exposed a generated Program-schema pin and a legacy
+coverage-set assertion that had not distinguished the additive constructor;
+both are corrected without changing the frozen legacy profile.
+
+The new normative grammar/classification roots propagate through the Values
+fixture's local Unit contract closure, proof, publication limits, Result Plan
+and Run identity. `scripts/client-values-dependency-oracle.mjs` independently
+authors these preimages from normative role bodies and the synthetic input;
+it imports no compiler or issuer. Historical vectors retain their original
+pins and literal CIDs. The new Run fixture is independently derived as
+`sha256:f171d251195c262096577393afc6d51390ca7b4b7b63bda8b17c74a13a6d54f6`.
+This global dependency impact does not change legacy Graph contract bodies,
+tuple identities or snapshot framing. Final complete gates and Linux CI must
+be reported against the submitted SHA in the PR.
 
 ## Deliberately not claimed
 

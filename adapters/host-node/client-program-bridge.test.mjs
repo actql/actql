@@ -70,6 +70,7 @@ import {authorizeLocalDatabase, revokeLocalDatabase} from
   '../connectors/duckdb/node/session.mjs';
 import {machineCid} from '../../scripts/actql-spec-family.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
+import {valuesPublicationOracle} from '../../scripts/client-values-dependency-oracle.mjs';
 
 const {DuckDBInstance} = createRequire(new URL(
   '../connectors/duckdb/node/package.json', import.meta.url))(
@@ -726,6 +727,7 @@ test('private Plan binding uses the escaped checked Unit Result name', async () 
   const body = checked(
     moon.clientProgramPublicationRowsBindingJson(prepared, 0, 0));
   const binding = JSON.parse(body);
+  const expected = valuesPublicationOracle({resultName: 'a~/b'});
   assert.deepEqual([
     binding.target.unit_definition_cid,
     binding.target.result_name,
@@ -733,11 +735,11 @@ test('private Plan binding uses the escaped checked Unit Result name', async () 
     binding.resolved_limit_cid,
     binding.binding_cid,
   ], [
-    'sha256:87fbe52e6d002927b0ef3808c1e34b64cc05f5fe72636a7b3e3b1bc26b4c55d0',
+    expected.unit,
     'a~/b',
-    'unit:sha256:87fbe52e6d002927b0ef3808c1e34b64cc05f5fe72636a7b3e3b1bc26b4c55d0#/results/a~0~1b/rows',
-    'sha256:af61d9586bf003fcbc3b11b9ae73618a17eba72f93fa05a858fa83a9d5df949c',
-    'sha256:ecc6be2770eb2454dae19082be8a632b494dfa296af148a884752232698c81fa',
+    `unit:${expected.unit}#/results/a~0~1b/rows`,
+    expected.limits[0].resolved_limit_cid,
+    expected.bindings[0].binding_cid,
   ]);
   assert.equal(binding.binding_cid,
     hashWithoutSelf(binding, 'binding_cid'));
@@ -1010,6 +1012,7 @@ function checkedValuesPublicationPlan(prepared, control,
 
 test('Node JS bridge derives the checked named Result and request identity', async () => {
   const {document, environment} = await checkedFixture();
+  const expected = valuesPublicationOracle();
   const prepared = moon.clientProgramPrepareEffectFree(
     document, 'json', environment);
   assert.ok(prepared);
@@ -1089,7 +1092,7 @@ test('Node JS bridge derives the checked named Result and request identity', asy
   const resultPlanWire = moon.clientProgramResultPlanWire(resultPlan);
   assert.equal(moon.clientProgramResultPlanName(resultPlan), 'answer');
   assert.equal(moon.clientProgramResultPlanCid(resultPlan),
-    'sha256:8d2ad95f6f8b7be42c550d922d0614e68be2700bba05d7af2c7e03a4fcbbcc38');
+    expected.resultPlan);
   assert.equal(moon.clientProgramResultPlanCid(resultPlan),
     canonicalHashWithoutSelf(JSON.parse(resultPlanWire),
       'result_plan_logical_cid'));
@@ -1097,8 +1100,7 @@ test('Node JS bridge derives the checked named Result and request identity', asy
     moon.clientProgramResultRowContractCid(resultRow));
   assert.deepEqual(JSON.parse(resultPlanWire), {
     version: 'actql-result-plan/0.1', result_name: 'answer',
-    unit_definition_cid:
-      'sha256:63464270481cf4518c2fcc0be076d6ec2cc7986d53031f0d919ab8d57772eca9',
+    unit_definition_cid: expected.unit,
     unit_result_name: 'rows', unit_result_ordinal: 0,
     projection: [{input: 'id', output: 'id', value_contract_cid:
       'sha256:8a7be765d273ccfa06d916976f27fcb0404d814371e72c058502335b51b9bd3d'}],
@@ -1309,8 +1311,7 @@ test('Node JS bridge derives the checked named Result and request identity', asy
     moon.clientProgramPublicationBytesLimitJson(prepared, 0, 0));
   const rowsLimit = JSON.parse(rowsLimitBody);
   const bytesLimit = JSON.parse(bytesLimitBody);
-  const unit =
-    'unit:sha256:63464270481cf4518c2fcc0be076d6ec2cc7986d53031f0d919ab8d57772eca9';
+  const unit = `unit:${expected.unit}`;
   assert.deepEqual([rowsLimit.subject_ref, bytesLimit.subject_ref],
     [`${unit}#/results/rows/rows`, `${unit}#/results/rows/bytes`]);
   assert.deepEqual([rowsLimit.unit, rowsLimit.effective_max,
@@ -1351,10 +1352,8 @@ test('Node JS bridge derives the checked named Result and request identity', asy
     rowsLimit.resolved_limit_cid, bytesLimit.resolved_limit_cid,
     rowsBinding.binding_cid, bytesBinding.binding_cid,
   ], [
-    'sha256:d1b8cac20c88b332522c591586126319f5bd20393c081fb0bc9a27d38eece4d1',
-    'sha256:1d01310da1218b834d27dbcd7363f3c4a46f9b38a87173474e7ef45e0fede8da',
-    'sha256:cd90e6f813ff852cb0b453e2d862ee91e8051802217323fa950862e6d09edd51',
-    'sha256:82ab94c9ff4d94f6b11d7c9e27ddbcfd2a4b1c7b7312f062690a1c1963a581b7',
+    ...expected.limits.map(limit => limit.resolved_limit_cid),
+    ...expected.bindings.map(binding => binding.binding_cid),
   ]);
   for (const [binding, limit, measure] of [
     [rowsBinding, rowsLimit, 'rows'],
