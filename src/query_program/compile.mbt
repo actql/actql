@@ -73,6 +73,7 @@ pub(all) enum Issue {
   UnsupportedGraph
   UnsupportedInfer
   UnsupportedNearest
+  UnsupportedResult
   Construction(@builder.Issue)
   Expression(@expression.Diagnostic)
   Admission(@program.SyntaxError)
@@ -129,10 +130,87 @@ fn Construction::array(
 }
 
 ///|
+priv struct RetainedResult {
+  name : String
+  port : String
+  from : String
+  fields : Array[String]
+  terminal : Bool
+}
+
+///|
+fn retained_result_port(default_port : String, port : String) -> String {
+  if port == default_port {
+    port + "_retained"
+  } else {
+    port
+  }
+}
+
+///|
+fn retained_result_exports(
+  context : Context,
+  retained : Array[RetainedResult],
+) -> Array[(String, String)]? raise Abort {
+  if retained.is_empty() {
+    return None
+  }
+  let exports = retained.map(result => {
+    (
+      result.name,
+      if result.terminal {
+        context.stage_result
+      } else {
+        retained_result_port(context.stage_result, result.port)
+      },
+    )
+  })
+  if !retained[retained.length() - 1].terminal {
+    if retained.any(result => {
+        ascii_upper(result.name) == ascii_upper(context.result_name)
+      }) {
+      raise Abort(DuplicateOutput)
+    }
+    exports.push((context.result_name, context.stage_result))
+  }
+  Some(exports)
+}
+
+///|
+fn retained_stage_results(
+  construction : Construction,
+  default_port : String,
+  final_result : @builder.Node,
+  retained : Array[RetainedResult],
+) -> @builder.Node raise Abort {
+  let definitions = [(default_port, final_result)]
+  for result in retained {
+    if !result.terminal {
+      definitions.push(
+        (
+          retained_result_port(default_port, result.port),
+          construction.object([
+            ("from", construction.text(result.from)),
+            (
+              "fields",
+              construction.array(
+                result.fields.map(field => construction.text(field)),
+              ),
+            ),
+          ]),
+        ),
+      )
+    }
+  }
+  construction.object(definitions)
+}
+
+///|
 fn program_root(
   construction : Construction,
   context : Context,
   stages : Array[@builder.Node],
+  result_exports? : Array[(String, String)]? = None,
 ) -> @builder.Node raise Abort {
   let entries = [
     ("version", construction.text("actql/0.1")),
@@ -140,20 +218,24 @@ fn program_root(
     ("stages", construction.array(stages)),
     (
       "results",
-      construction.object([
-        (
-          context.result_name,
-          construction.object([
-            (
-              "from",
-              construction.object([
-                ("stage", construction.text(context.stage_id)),
-                ("result", construction.text(context.stage_result)),
-              ]),
-            ),
-          ]),
-        ),
-      ]),
+      construction.object(
+        result_exports
+        .unwrap_or([(context.result_name, context.stage_result)])
+        .map(pair => {
+          (
+            pair.0,
+            construction.object([
+              (
+                "from",
+                construction.object([
+                  ("stage", construction.text(context.stage_id)),
+                  ("result", construction.text(pair.1)),
+                ]),
+              ),
+            ]),
+          )
+        }),
+      ),
     ),
   ]
   if context.parameter_declarations is Some(declarations) {
@@ -185,6 +267,16 @@ fn ascii_upper(value : String) -> String {
     )
   }
   out.to_string()
+}
+
+///|
+fn has_retained_result(query : @query.Query) -> Bool {
+  for index in 0..<@query.operation_count(query) {
+    if @query.operation_at(query, index) is Some(RetainResult(_)) {
+      return true
+    }
+  }
+  false
 }
 
 ///|
@@ -1225,6 +1317,8 @@ fn compile_steps(
   final_alias : String,
   graph_bindings_only? : Bool = false,
   nearest_inputs? : Array[Input] = [],
+  retained? : Array[RetainedResult]? = None,
+  projected_input? : Bool = false,
 ) -> (Array[@builder.Node], Array[String]) raise Abort {
   let step_entries : Array[Array[(String, @builder.Node)]] = []
   let mut output = fields.copy()
@@ -1233,6 +1327,8 @@ fn compile_steps(
   let mut grouped = false
   let grouped_keys : Array[(@query.Expression, String)] = []
   let mut first = true
+  let mut input_from = input.name
+  let mut terminal_result = false
   let mut pending_select : Array[(String, @builder.Node)]? = None
   let mut pending_bindings : Array[(String, String)] = []
   let mut selected_expressions : Array[(@query.Expression, String)] = []
@@ -1240,12 +1336,16 @@ fn compile_steps(
   let mut selected_output_slots : Array[(String, String)] = []
   let mut pipe_visible = fields.map(field => (field, field))
   let initial_range = query_range_name(query)
-  let mut pipe_ranges = [(initial_range, pipe_visible.copy())]
+  let mut pipe_ranges = if projected_input {
+    []
+  } else {
+    [(initial_range, pipe_visible.copy())]
+  }
   let mut pipe_changed = false
   // Materializing a SELECT resets private slots, not the replacement of
   // range variables. Never resolve subsequent operators through the source
   // alias again after Pipe AS has established a new scope.
-  let mut pipe_rebound = false
+  let mut pipe_rebound = projected_input
   let mut pipe_selected = false
   for i in start_at..<@query.operation_count(query) {
     let operation = @query.operation_at(query, i).unwrap()
@@ -1258,7 +1358,10 @@ fn compile_steps(
       }
       requires_graph_projection = false
     }
-    if pipe_selected && !(operation is Order(_) || operation is Limit(_, _)) {
+    if pipe_selected &&
+      !(operation is Order(_) ||
+      operation is Limit(_, _) ||
+      operation is RetainResult(_)) {
       // SELECT has materialized its output. Later operators consume that
       // Relation, irrespective of whether SET introduced private slots.
       pipe_selected = false
@@ -1268,10 +1371,93 @@ fn compile_steps(
     let mut deferred = false
     let mut add_distinct = false
     if first {
-      entries.push(("from", construction.text(input.name)))
+      entries.push(("from", construction.text(input_from)))
       first = false
     }
     match operation {
+      RetainResult(name) => {
+        guard retained is Some(retained) else { raise Abort(UnsupportedResult) }
+        if requires_graph_projection {
+          raise Abort(UnsupportedResult)
+        }
+        if retained.any(result => {
+            ascii_upper(result.name) == ascii_upper(name.value)
+          }) {
+          raise Abort(DuplicateOutput)
+        }
+        terminal_result = i == @query.operation_count(query) - 1
+        let needs_view = active_fields.length() != pipe_visible.length() ||
+          pipe_visible.any(pair => pair.0 != pair.1)
+        let checkpoint = if terminal_result && !needs_view {
+          final_alias
+        } else {
+          let mut proposed = "aql_result_checkpoint_" + i.to_string()
+          while proposed == input.name ||
+                proposed == final_alias ||
+                nearest_inputs.any(other => other.name == proposed) {
+            proposed += "_generated"
+          }
+          proposed
+        }
+        entries.push(
+          (
+            "select",
+            construction.array(
+              active_fields.map(field => construction.text(field)),
+            ),
+          ),
+        )
+        entries.push(("as", construction.text(checkpoint)))
+        step_entries.push(entries)
+        input_from = checkpoint
+        let from = if needs_view {
+          let view = if terminal_result {
+            final_alias
+          } else {
+            let mut proposed = "aql_result_view_" + i.to_string()
+            while proposed == input.name ||
+                  proposed == final_alias ||
+                  nearest_inputs.any(other => other.name == proposed) {
+              proposed += "_generated"
+            }
+            proposed
+          }
+          step_entries.push([
+            ("from", construction.text(checkpoint)),
+            (
+              "select",
+              construction.array(
+                pipe_visible.map(pair => {
+                  if pair.0 == pair.1 {
+                    construction.text(pair.1)
+                  } else {
+                    construction.object([(pair.0, construction.text(pair.1))])
+                  }
+                }),
+              ),
+            ),
+            ("as", construction.text(view)),
+          ])
+          // A public projection cannot remove the immutable range snapshots
+          // still visible to the continuing Pipe. Resume the original carrier.
+          input_from = checkpoint
+          first = true
+          view
+        } else {
+          checkpoint
+        }
+        retained.push({
+          name: name.value,
+          port: "aql_retained_result_" + retained.length().to_string(),
+          from,
+          fields: pipe_visible.map(pair => pair.0),
+          terminal: terminal_result,
+        })
+        if terminal_result {
+          output = pipe_visible.map(pair => pair.0)
+        }
+        deferred = true
+      }
       Nearest(clause) => {
         let matches = nearest_inputs.filter(candidate => {
           same_relation_path(candidate.relation, clause.relation)
@@ -2332,7 +2518,7 @@ fn compile_steps(
       }
     }
   }
-  if pipe_changed {
+  if pipe_changed && !terminal_result {
     let selected : Array[@builder.Node] = []
     for field in pipe_visible {
       selected.push(
@@ -2345,7 +2531,7 @@ fn compile_steps(
     }
     let entries : Array[(String, @builder.Node)] = []
     if first {
-      entries.push(("from", construction.text(input.name)))
+      entries.push(("from", construction.text(input_from)))
     }
     entries.push(("select", construction.array(selected)))
     step_entries.push(entries)
@@ -2356,9 +2542,22 @@ fn compile_steps(
   }
   // The last step supplies a stable named stage result for ordinary routing.
   // This is a structural step alias, not a SQL range alias.
-  step_entries[step_entries.length() - 1].push(
-    ("as", construction.text(final_alias)),
-  )
+  if !terminal_result {
+    if step_entries[step_entries.length() - 1].any(entry => entry.0 == "as") {
+      // A scope-only tail must not overwrite the retained checkpoint's name.
+      // Give the continuing primary output its own identity projection.
+      step_entries.push([
+        ("from", construction.text(input_from)),
+        (
+          "select",
+          construction.array(output.map(field => construction.text(field))),
+        ),
+      ])
+    }
+    step_entries[step_entries.length() - 1].push(
+      ("as", construction.text(final_alias)),
+    )
+  }
   (step_entries.map(entries => construction.object(entries)), output)
 }
 
@@ -2565,6 +2764,7 @@ pub fn compile(
         StageResult(_, _) => raise Abort(UnsupportedNearest)
       }
     }
+    let retained : Array[RetainedResult] = []
     let (steps, output) = compile_steps(
       construction,
       query,
@@ -2578,6 +2778,7 @@ pub fn compile(
       "aql_gen_0",
       nearest_inputs=[input] +
         dependencies.filter(other => other.name != input.name),
+      retained=Some(retained),
     )
     let all_steps = seed_steps + steps
     let result_source = if steps.is_empty() { input.name } else { "aql_gen_0" }
@@ -2592,10 +2793,23 @@ pub fn compile(
       ("id", construction.text(context.stage_id)),
       ("inputs", construction.object(input_entries)),
       ("steps", construction.array(all_steps)),
-      ("results", construction.object([(context.stage_result, result)])),
+      (
+        "results",
+        retained_stage_results(
+          construction,
+          context.stage_result,
+          result,
+          retained,
+        ),
+      ),
     ])
     let stages = capture_stages + [stage]
-    let root = program_root(construction, context, stages)
+    let root = program_root(
+      construction,
+      context,
+      stages,
+      result_exports=retained_result_exports(context, retained),
+    )
     let source = match @builder.finish(builder, root) {
       Ok(source) => source
       Err(issue) => raise Abort(Construction(issue))
@@ -2657,6 +2871,13 @@ fn compile_cte_query(
       }
     }
     let body = cte.query
+    // RESULT is a statement-level publication obligation. A CTE or a
+    // derived-table body cannot add externally visible exports.
+    for operation_index in 0..<@query.operation_count(body) {
+      if @query.operation_at(body, operation_index) is Some(RetainResult(_)) {
+        return Err(UnsupportedResult)
+      }
+    }
     if @query.cte_count(body) != 0 || @query.join_part_count(body) > 1 {
       return Err(UnsupportedCte)
     }
@@ -2753,6 +2974,7 @@ fn compile_cte_query(
     let used_stage_names : Array[String] = []
     let mut known = context.inputs.copy()
     let cte_inputs : Array[Input] = []
+    let retained : Array[RetainedResult] = []
     let mut captured_owner = false
     for index in 0..<@query.cte_count(query) {
       let cte = @query.cte_at(query, index).unwrap()
@@ -2952,6 +3174,7 @@ fn compile_cte_query(
           part.relation[0],
           right_input.visible_fields,
           limits,
+          retained=Some(retained),
         )
         (steps, fields, [("l", cte_ref), ("r", right_ref)], final_from)
       } else {
@@ -2966,6 +3189,7 @@ fn compile_cte_query(
           0,
           false,
           "aql_gen_0",
+          retained=Some(retained),
         )
         let from = if steps.is_empty() { cte_input.name } else { "aql_gen_0" }
         (steps, fields, [(cte_input.name, cte_ref)], from)
@@ -2976,25 +3200,30 @@ fn compile_cte_query(
         ("steps", construction.array(outer_steps)),
         (
           "results",
-          construction.object([
-            (
-              context.stage_result,
-              construction.object([
-                ("from", construction.text(outer_from)),
-                (
-                  "fields",
-                  construction.array(
-                    output.map(field => construction.text(field)),
-                  ),
+          retained_stage_results(
+            construction,
+            context.stage_result,
+            construction.object([
+              ("from", construction.text(outer_from)),
+              (
+                "fields",
+                construction.array(
+                  output.map(field => construction.text(field)),
                 ),
-              ]),
-            ),
-          ]),
+              ),
+            ]),
+            retained,
+          ),
         ),
       ])
       stages.push(stage)
     }
-    let root = program_root(construction, context, stages)
+    let root = program_root(
+      construction,
+      context,
+      stages,
+      result_exports=retained_result_exports(context, retained),
+    )
     let source = match @builder.finish(builder, root) {
       Ok(value) => value
       Err(issue) => raise Abort(Construction(issue))
@@ -3221,9 +3450,10 @@ fn compile_cte_join_steps(
   right_name : @query.NamePart,
   right_fields : Array[String],
   limits : Limits,
+  retained? : Array[RetainedResult]? = None,
 ) -> (Array[@builder.Node], Array[String], String) raise Abort {
   if @query.operation_count(query) < 1 ||
-    @query.operation_count(query) > 4 ||
+    (@query.operation_count(query) > 4 && !has_retained_result(query)) ||
     limits.max_join_output_rows < 1L ||
     limits.max_join_output_rows > 9007199254740991L {
     raise Abort(UnsupportedCte)
@@ -3369,10 +3599,11 @@ fn compile_cte_join_steps(
         "aql_join_output"
       },
       next,
+      result_tail=retained.map(results => (limits, results)),
     )
     return (steps, visible_names, final_from)
   }
-  if @query.operation_count(query) != select_index + 1 {
+  if @query.operation_count(query) != select_index + 1 && retained is None {
     raise Abort(UnsupportedCte)
   }
   if predicate is Some(_) {
@@ -3550,7 +3781,22 @@ fn compile_cte_join_steps(
       ]),
     )
   }
-  (steps, output, if distinct { "aql_join_unique" } else { "aql_join_output" })
+  let from = append_join_order_steps(
+    construction,
+    query,
+    steps,
+    [],
+    output,
+    output.length(),
+    if distinct {
+      "aql_join_unique"
+    } else {
+      "aql_join_output"
+    },
+    select_index + 1,
+    result_tail=retained.map(results => (limits, results)),
+  )
+  (steps, output, from)
 }
 
 ///|
@@ -4937,6 +5183,7 @@ fn append_join_order_steps(
   projected_count : Int,
   initial_from : String,
   next_operation : Int,
+  result_tail? : (Limits, Array[RetainedResult])? = None,
 ) -> String raise Abort {
   let mut result_from = initial_from
   if !order_fields.is_empty() {
@@ -4980,9 +5227,6 @@ fn append_join_order_steps(
     }
     _ => ()
   }
-  if next != @query.operation_count(query) {
-    raise Abort(UnsupportedJoin)
-  }
   if projected_count != visible_names.length() {
     steps.push(
       construction.object([
@@ -4996,6 +5240,43 @@ fn append_join_order_steps(
     )
     result_from = "aql_join_visible"
   }
+  if next != @query.operation_count(query) {
+    guard result_tail is Some((limits, retained)) && has_retained_result(query) else {
+      raise Abort(UnsupportedJoin)
+    }
+    // The JOIN projection is already evaluated. Continue from its actual
+    // output using the shared Pipe lowerer; do not recover operand ranges
+    // or expand SELECT expressions a second time.
+    let input : Input = {
+      relation: @query.relation(query),
+      name: result_from,
+      source: StageResult("unused", "unused"),
+      visible_fields: visible_names,
+      graph_bindings: [],
+    }
+    let (tail, output) = compile_steps(
+      construction,
+      query,
+      input,
+      visible_names,
+      limits.max_expression_work,
+      limits.max_collection_items,
+      limits.max_collection_bytes,
+      next,
+      false,
+      "aql_join_result",
+      retained=Some(retained),
+      projected_input=true,
+    )
+    if output != visible_names {
+      // Caller output is shared so that the public Result definition follows
+      // the continuing Pipe's final columns, not the initial JOIN schema.
+      visible_names.clear()
+      visible_names.append(output)
+    }
+    steps.append(tail)
+    result_from = "aql_join_result"
+  }
   result_from
 }
 
@@ -5007,7 +5288,7 @@ fn compile_join_query(
 ) -> Result[@program.Program, Issue] {
   if @query.join_part_count(query) != 1 ||
     @query.operation_count(query) < 1 ||
-    @query.operation_count(query) > 4 ||
+    (@query.operation_count(query) > 4 && !has_retained_result(query)) ||
     context.captured_stage is Some(_) ||
     context.program_id == "" ||
     context.stage_id == "" ||
@@ -5082,6 +5363,7 @@ fn compile_join_query(
         ]),
       )
     }
+    let retained : Array[RetainedResult] = []
     let result_from = append_join_order_steps(
       construction,
       query,
@@ -5095,6 +5377,7 @@ fn compile_join_query(
         "aql_join_output"
       },
       next,
+      result_tail=Some((limits, retained)),
     )
     let left_rows = join_values_rows(left).to_int64()
     let right_rows = join_values_rows(right).to_int64()
@@ -5194,43 +5477,48 @@ fn compile_join_query(
       ),
       (
         "results",
-        construction.object([
-          (
-            context.stage_result,
-            construction.object([
-              ("from", construction.text(result_from)),
-              (
-                "fields",
-                construction.array(
-                  visible_names.map(name => construction.text(name)),
-                ),
+        retained_stage_results(
+          construction,
+          context.stage_result,
+          construction.object([
+            ("from", construction.text(result_from)),
+            (
+              "fields",
+              construction.array(
+                visible_names.map(name => construction.text(name)),
               ),
-            ]),
-          ),
-        ]),
+            ),
+          ]),
+          retained,
+        ),
       ),
     ])
-    let root = program_root(construction, context, [
-      join_seed_stage(
-        construction,
-        left,
-        left_fields,
-        left_stage,
-        query,
-        part.pre_join_filter,
-        limits.max_expression_work,
-      ),
-      join_seed_stage(
-        construction,
-        right,
-        right_fields,
-        right_stage,
-        query,
-        None,
-        limits.max_expression_work,
-      ),
-      stage,
-    ])
+    let root = program_root(
+      construction,
+      context,
+      [
+        join_seed_stage(
+          construction,
+          left,
+          left_fields,
+          left_stage,
+          query,
+          part.pre_join_filter,
+          limits.max_expression_work,
+        ),
+        join_seed_stage(
+          construction,
+          right,
+          right_fields,
+          right_stage,
+          query,
+          None,
+          limits.max_expression_work,
+        ),
+        stage,
+      ],
+      result_exports=retained_result_exports(context, retained),
+    )
     let source = match @builder.finish(builder, root) {
       Ok(value) => value
       Err(issue) => raise Abort(Construction(issue))

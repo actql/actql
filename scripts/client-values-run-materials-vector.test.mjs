@@ -159,8 +159,16 @@ test('baseline preimages and changed normative pins independently determine the 
     pin('f835722f8d8fc55b5f325e101aa38c43b5783bf807161d6d2cb58a3091437dd5'));
   assert.equal(vector(pin('74823e16a311511bb8078beedb472b6fc8ce0dcda0cceae9432bc0d6da4c3871'), cid(aoaContract), currentUnit).run.run_definition_cid,
     pin('535f3d5b34ee29911cc3d258e9fe2c8324e34a8f75cd4db799f31323fad2d0a3'));
+  // Preserve the original RESULT vector with its pre-String laws and Unit.
+  assert.equal(vector(pin('03794c261f577cea8c9070af363f74b65e2994bba7152bc57bb2cabfb8a0f7db'),
+    pin('bfb017e25670c872293a2a4eec302b7d1217c3cb1adf74637c2339286d5c39ea')).run.run_definition_cid,
+    pin('3042e2f2933416c5e4c2c3d99f202d2cab406672e6438454c30f127fe23c5762'));
+  // Preserve the integrated composition/String vector before RESULT is added.
+  assert.equal(vector(pin('5fb2cacd6bbea4c6aa32de0f9a157f072723eb96d251d4f09b8a86513001b976'),
+    cid(aoaContract), currentUnit).run.run_definition_cid,
+    pin('8574f5eb487efe877f5d11cda228d63ba737c3ef8821f7cd20ce804b964b3810'));
   assert.equal(current.run.run_definition_cid,
-    pin("8574f5eb487efe877f5d11cda228d63ba737c3ef8821f7cd20ce804b964b3810"));
+    pin('857742abdfaf8e4e90e07c4f60f37b771ea62ef44e41f0bdb078bf3d0134069b'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
 
