@@ -2191,7 +2191,19 @@ These focused runs do not certify every affected package on those targets.
 
 This is not a final SHA or release verdict. Full affected Node jobs,
 remaining portable execution coverage and Linux CI remain to be recorded.
-The external packed acquired-input acceptance is not yet run.
+The external packed acquired-input acceptance now runs through
+`scripts/test-packed-acquired-infer.mjs`. It packs and installs the five public
+Client/Host packages outside the checkout, then executes an independently
+authored acquired-input ModelTask and expected result using only the installed
+`@actql/node` export. The installed application's PATH excludes MoonBit.
+Success reads the exact Named Result; post-dispatch cancellation publishes no
+Result. After a separate capture process exits at persistence, a fresh process
+replays the same expected row without another provider call. Provider calls
+were one per physical scenario and zero on replay. The application also
+authenticates four private evidence holdings and checks SourceEvidence,
+observed usage, positive work, unknown cost, and the cancelled outcome. The
+local packed run passed at the working revision; final-SHA CI remains pending.
+
 Broad KEEP, multiple SourceViews and immediate capture-to-INFER without a
 post-capture Local step are not claimed supported. Acquisition retention
 identity measurement still uses its existing synchronous completion path;
