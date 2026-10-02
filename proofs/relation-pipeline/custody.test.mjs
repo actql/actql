@@ -16,11 +16,11 @@ function fixture(target = 'js', mode = 'normal') {
   const overlays = Object.fromEntries(Object.entries({ ...generatedObservers, ...overlay }).map(([p, code]) => [p, hash(code)]));
   const sources = { ...current.sources, ...overlays };
   const exact = Object.fromEntries(Object.keys(sources).sort().map(p => [p, sources[p]]));
-  const observation = { executionCapacity: 100, before: 100, after: mode === 'normal' ? 0 : 100, workBefore: 6, workAfter: 6 };
+  const observation = { executionCapacity: 100, before: 100, after: 100, workBefore: 6, workAfter: 6 };
   const child = '"event":"before-cleanup"\n"event":"after-cleanup"\n';
   const stage = 'ACTQL_CUSTODY_STAGE:after-settlement-before-cleanup\n';
-  const log = 'ACTQL_CUSTODY_CHAIN:started\n' + (mode === 'normal' ? child + stage :
-    'ACTQL_CUSTODY_RETRY:false\nACTQL_CUSTODY_RETRY:error\n' + stage + child) +
+  const log = 'ACTQL_CUSTODY_CHAIN:started\n' + stage + (mode === 'normal' ? child :
+    'ACTQL_CUSTODY_RETRY:false\nACTQL_CUSTODY_RETRY:error\n' + child) +
     `ACTQL_CUSTODY:${JSON.stringify(observation)}\nTotal tests: 1, passed: 1, failed: 0.\n`;
   const binary = Buffer.from(`synthetic audit-unit-test artifact for ${target}`), digest = hash(binary);
   const artifact = `_build/${target}/debug/test/query_integration/query_integration.whitebox_test.${{ js: 'js', wasm: 'wasm', native: 'exe' }[target]}`;
@@ -56,6 +56,12 @@ test('custody auditor rejects a normal record requested for false/error cleanup'
 });
 for (const [name, mutate] of [
   ['unconditional byte claim', f => { f.report.completeAllocationUpper = true; }],
+  ['cleanup polled during settlement', f => {
+    const stage = 'ACTQL_CUSTODY_STAGE:after-settlement-before-cleanup\n';
+    const child = '"event":"before-cleanup"\n"event":"after-cleanup"\n';
+    const log = f.read('test.log').toString().replace(stage + child, child + stage);
+    f.entries.set('test.log', Buffer.from(log)); f.report.logDigest = hash(log);
+  }],
   ['missing actual chain', f => {
     const log = f.read('test.log').toString().replace('ACTQL_CUSTODY_CHAIN:started\n', '');
     f.entries.set('test.log', Buffer.from(log)); f.report.logDigest = hash(log);

@@ -791,7 +791,10 @@ pub fn[T] start_local_managed_dispatch(
       },
       aggregate_output_ceilings=setup.aggregate_output_ceilings,
       analytic_envelopes=setup.analytic_envelopes,
-      scratch_released=release_provider_scratch,
+      // This is an observation, not a cleanup poll. Task settlement/disposal
+      // can ask more than once; it must not consume the provider's retries.
+      // Only explicit cleanup_refresh drives cleanup and drops this reference.
+      scratch_released=fn() { provider_execution.val is None },
     ) {
     Ok(value) => value
     Err(issue) => return Err(Configuration(issue))

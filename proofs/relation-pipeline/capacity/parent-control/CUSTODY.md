@@ -12,6 +12,11 @@ Other implementations preserve their existing synchronous-disposal default.
 Local uses its real provider cleanup callback, caches the provider owner's final
 cumulative work, and drops its driver reference only after successful cleanup.
 False/error results keep the reservation; retry does not restart Compute.
+The installed condition only observes whether that reference has been dropped.
+Settlement/disposal may ask repeatedly and must not consume cleanup retries.
+Explicit `cleanup_refresh` alone drives provider cleanup; even an immediate
+cleanup provider retains scratch until that poll confirms release. Existing
+Host false-then-success cleanup regressions remain unchanged.
 There is no new accounting owner or ledger, and no allocation-byte formula change.
 
 ## Actual execution boundary

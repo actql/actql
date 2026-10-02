@@ -76,6 +76,14 @@ test "generated serial capacity custody diagnostic" {
     ",\"before\":" + before.to_string() + ",\"after\":" + after.to_string() +
     ",\"workBefore\":" + work_before.to_string() + ",\"workAfter\":" + work_after.to_string() + "}")
   // No capacity-safety assertion is weakened to match this diagnostic.
+  if pending {
+    assert_false((operations.cleanup_refresh)())
+    assert_eq(@resources.ledger_usage(@strategy.captured_dag_ledger(run)).reserved_execution_bytes, before)
+    assert_false((operations.cleanup_refresh)())
+    assert_eq(@resources.ledger_usage(@strategy.captured_dag_ledger(run)).reserved_execution_bytes, before)
+    assert_eq((operations.cumulative_provider_work)().unwrap(), work_before)
+    assert_eq(@local_connector.custody_child_start_count(), 2)
+  }
   assert_true((operations.cleanup_refresh)())
   let final_usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run)).reserved_execution_bytes
   assert_eq(final_usage, before - execution_capacity)

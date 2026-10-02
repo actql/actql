@@ -119,15 +119,16 @@ export function auditCustody(receipt, target, mode, current, read) {
   const cleanup = log.indexOf('"event":"before-cleanup"');
   const cleaned = log.indexOf('"event":"after-cleanup"');
   assert(after >= 0 && cleanup >= 0 && cleaned > cleanup);
+  assert.equal(o.after, o.before, 'Settlement lost scratch before explicit cleanup');
+  assert(cleanup > after, 'Settlement/disposal must not poll child cleanup');
   if (mode === 'normal') {
-    assert.equal(o.after, 0); assert(cleaned < after, 'Capacity credited before synchronous cleanup');
     assert(!log.includes('ACTQL_CUSTODY_RETRY:'));
   } else {
     assert.equal(o.after, o.before, 'Pending cleanup lost reservation');
     assert(cleanup > after, 'Actual child cleanup did not remain pending');
     const no = log.indexOf('ACTQL_CUSTODY_RETRY:false');
     const error = log.indexOf('ACTQL_CUSTODY_RETRY:error');
-    assert(no >= 0 && error > no && error < after, 'Missing actual false/error cleanup path');
+    assert(no > after && error > no && cleanup > error, 'Missing explicit false/error/retry cleanup path');
   }
   assert(Object.keys(receipt.artifacts).length > 0);
   assert.deepEqual(Object.keys(receipt.archives).sort(), Object.keys(receipt.artifacts).sort());

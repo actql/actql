@@ -50,7 +50,9 @@ try {
     BigInt(observed.executionCapacity) && cleanup > after;
   if (process.argv[3]) {
     assert.equal(prematureReleaseCandidate, false, 'Scratch credited before child cleanup');
-    if (mode === 'normal') assert(cleaned < after, 'Synchronous cleanup must finish before capacity is credited');
+    assert(cleanup > after, 'Settlement/disposal must not poll child cleanup');
+    assert.equal(observed.after, observed.before, 'Settlement lost scratch before explicit cleanup');
+    if (mode === 'normal') assert(!log.includes('ACTQL_CUSTODY_RETRY:'));
     else {
       assert(cleaned > after, 'Pending child cleanup was not exercised');
       assert(log.includes('ACTQL_CUSTODY_RETRY:false') && log.includes('ACTQL_CUSTODY_RETRY:error'));
