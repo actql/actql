@@ -71,5 +71,16 @@ fn capacity_observe(state : BoundedBindingRowsState, event : String) -> Unit {
     ",\"slotRoots\":" + state.slot_roots.capacity().to_string() +
     ",\"outputRow\":" + state.output_row.capacity().to_string() +
     ",\"checkedRow\":" + state.checked_row.capacity().to_string() +
-    ",\"captureRow\":" + state.capture_row.capacity().to_string() + "}}")
+    ",\"captureRow\":" + state.capture_row.capacity().to_string() +
+    "},\"mapCapacity\":{\"inputOrdinals\":" + state.input_ordinals.capacity().to_string() +
+    ",\"bindingOrdinals\":" + state.binding_ordinals.capacity().to_string() +
+    ",\"projectionOrdinals\":" + state.projection_ordinals.map(m => m.capacity()).unwrap_or(0).to_string() +
+    ",\"snapshot\":" + state.snapshot.capacity().to_string() +
+    "},\"mapEntries\":{\"inputOrdinals\":" + state.input_ordinals.length().to_string() +
+    ",\"bindingOrdinals\":" + state.binding_ordinals.length().to_string() +
+    ",\"projectionOrdinals\":" + state.projection_ordinals.map(m => m.length()).unwrap_or(0).to_string() +
+    ",\"snapshot\":" + state.snapshot.length().to_string() +
+    "},\"mapAliases\":{\"inputBinding\":" + physical_equal(state.input_ordinals, state.binding_ordinals).to_string() +
+    ",\"inputProjection\":" + state.projection_ordinals.map(m => physical_equal(state.input_ordinals, m)).unwrap_or(false).to_string() +
+    ",\"bindingProjection\":" + state.projection_ordinals.map(m => physical_equal(state.binding_ordinals, m)).unwrap_or(false).to_string() + "}}")
 }

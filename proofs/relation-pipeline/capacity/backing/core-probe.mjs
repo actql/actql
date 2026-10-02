@@ -22,13 +22,14 @@ function facts(log) {
   return log.split('\n').filter(line => line.startsWith(prefix)).map(line => JSON.parse(line.slice(prefix.length)));
 }
 function checkFacts(target, observed) {
-  assert.deepEqual(observed.map(o => o.case), ['clear', 'growth']);
+  assert.deepEqual(observed.map(o => o.case), ['clear', 'growth', 'map']);
   assert(observed.every(o => o.target === target), 'Core fixture target differs from requested target');
-  const [clear, growth] = observed;
+  const [clear, growth, map] = observed;
   assert.deepEqual(clear, { target, case: 'clear', before: target === 'js' ? 17 : 32,
     after: target === 'js' ? 0 : 32 });
   assert.deepEqual(growth, { target, case: 'growth', prior: target === 'js' ? 9 : 16,
     current: target === 'js' ? 17 : 32 });
+  assert.deepEqual(map, { target, case: 'map', default: 8, threeKeys: 8, seventhKey: 16, cleared: 16 });
 }
 export function auditCoreProbe(report, targets, read = path => readFileSync(join(root, path))) {
   assert.equal(report.version, 'actql-array-core-probe/0.1');
@@ -45,7 +46,7 @@ export function auditCoreProbe(report, targets, read = path => readFileSync(join
     assert.deepEqual(run.sources, report.sources);
     assert.equal(run.logPath, `${directory}/${target}.log`);
     const log = read(run.logPath).toString(); assert.equal(hash(log), run.logDigest);
-    assert(/Total tests: 3, passed: 3, failed: 0\./.test(log), 'Incomplete core fixture');
+    assert(/Total tests: 4, passed: 4, failed: 0\./.test(log), 'Incomplete core fixture');
     assert.deepEqual(run.facts, facts(log)); checkFacts(target, run.facts);
     assert(Object.keys(run.artifacts).length > 0);
     for (const [path, digest] of Object.entries(run.artifacts)) {
@@ -90,7 +91,7 @@ export function runCoreProbe(targets) {
     report.runs[target] = { target, compiler: compiler.stdout.trim(), exit: result.status,
       command: ['moon', ...command], cwd: installed, sources: report.sources,
       facts: facts(log), logPath, logDigest: hash(log), artifacts: archives };
-    console.log(`${target}: 3 pinned-core backing and explicit-holder checks`);
+    console.log(`${target}: 4 pinned-core Array/Map backing and explicit-holder checks`);
   }
   auditCoreProbe(report, targets);
   writeFileSync(join(root, directory, targets.length === 3 ? 'all.json' : `${targets[0]}.json`), JSON.stringify(report, null, 2) + '\n');

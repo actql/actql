@@ -8,7 +8,8 @@
   "sources": {
     "builtin/array.mbt": "cad203117268520071eff16b3ab7979b91abb66cb5c9546ce45ea53f049c77d5",
     "builtin/arraycore_js.mbt": "7759c4527d66d86ede682ef62b6d47e0c4816440f4b59c691d5aa64cbc8dab8d",
-    "builtin/arraycore_nonjs.mbt": "5e88d612d2bb93a401fde9a7012db5af26da2999c3daa1bccc461cf5b7039183"
+    "builtin/arraycore_nonjs.mbt": "5e88d612d2bb93a401fde9a7012db5af26da2999c3daa1bccc461cf5b7039183",
+    "builtin/linked_hash_map.mbt": "79dc35a34946d5a59431e007155a357bb46ebe0049ce8deb90ef9ef0c706f38d"
   },
   "capacityMeaning": {
     "js": "visible length; not JavaScript engine backing capacity",
@@ -22,7 +23,7 @@
   },
   "excluded": [
     "JavaScript engine backing capacity and object layouts",
-    "Map bucket capacity and management bytes",
+    "Map bucket allocation bytes and Entry representation bytes",
     "MoonBit wrapper, object header and element representation bytes",
     "previous backings retained by an ArrayView or another holder",
     "chain parent 256-byte allowance and final reservation handoff"

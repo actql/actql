@@ -33,6 +33,8 @@ test('source correspondence requires the installed core, not just a compiler ver
   const core = process.env.MOON_HOME && process.env.MOON_HOME + '/lib/core';
   assert(core, 'Use the repository-pinned MOON_HOME');
   checkCore(core, pin);
-  assert.throws(() => checkCore(core, pin, path => path.endsWith('arraycore_nonjs.mbt')
-    ? Buffer.from('unreviewed growth rule') : readFileSync(path)));
+  for (const changed of ['arraycore_nonjs.mbt', 'linked_hash_map.mbt']) {
+    assert.throws(() => checkCore(core, pin, path => path.endsWith(changed)
+      ? Buffer.from('unreviewed growth rule') : readFileSync(path)));
+  }
 });

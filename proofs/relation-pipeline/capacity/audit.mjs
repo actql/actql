@@ -23,6 +23,7 @@ export function validate(report, current, targets, read) {
   assert.equal(report.backingModel.exit, 0); assert.equal(report.backingModel.sourceDigest, current.digest);
   assert.equal(hash(read(report.backingModel.logPath)), report.backingModel.logDigest);
   assert(read(report.backingModel.logPath).toString().includes('6 array backing model propositions checked'));
+  assert(read(report.backingModel.logPath).toString().includes('4 restricted Map model propositions checked'));
   admitClaim(report.claim);
   const corpus = fixedCorpus(registry, registrations).filter(c => c.steps.filter(s => s.op === 'distinct').length === 1);
   assert.deepEqual(report.corpus, corpus, 'Scope must come from the reviewed corpus, not caller labels');

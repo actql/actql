@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { inputs } from '../model.mjs';
 import { currentSlotsCeiling } from './model.mjs';
+import { inspectPipelineMaps } from './maps.mjs';
 // Dimensions come from the independent oracle applied to the executed case.
 // Each bound concerns a current container, not a sum of unique allocations.
 export function pipelineBounds(testCase, registry, target) {
@@ -20,6 +21,7 @@ export function pipelineBounds(testCase, registry, target) {
 }
 export function inspectPipelineBacking(testCase, observation, registry, requestedTarget, executionTarget) {
   assert.equal(executionTarget, requestedTarget, 'Backing execution belongs to another target');
+  inspectPipelineMaps(testCase, observation, registry, requestedTarget, executionTarget);
   const bounds = pipelineBounds(testCase, registry, requestedTarget);
   const events = observation.faults.filter(e => e.kind === 'capacity observation' &&
     ['start', 'checkpoint', 'before-cleanup', 'after-cleanup'].includes(e.event));

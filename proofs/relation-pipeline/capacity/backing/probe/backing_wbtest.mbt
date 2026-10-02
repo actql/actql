@@ -71,3 +71,37 @@ test "initial reservation is separate from visible high-water length" {
   values.clear()
   assert_eq(values.capacity(), if backend() == "js" { 0 } else { 32 })
 }
+
+///|
+test "Map table slots survive empty and cleared contents" {
+  let fields : Map[String, Int] = Map([])
+  assert_eq(fields.capacity(), 8)
+  for i, name in ["k", "extra", "tag"] {
+    fields[name] = i
+  }
+  assert_eq(fields.length(), 3)
+  assert_eq(fields.capacity(), 8)
+  fields["k"] = 42
+  assert_eq(fields.length(), 3)
+  assert_eq(fields.capacity(), 8)
+  assert_eq(fields.get("k"), Some(42))
+  fields.clear()
+  assert_eq(fields.length(), 0)
+  assert_eq(fields.capacity(), 8)
+  // The no-grow premise is meaningful: a seventh genuine insertion grows.
+  for i in 0..<7 {
+    fields[i.to_string()] = i
+  }
+  assert_eq(fields.length(), 7)
+  assert_eq(fields.capacity(), 16)
+  fields.clear()
+  assert_eq(fields.length(), 0)
+  assert_eq(fields.capacity(), 16)
+  println(
+    "ACTQL_BACKING_CORE:{\"target\":\"" +
+    backend() +
+    "\",\"case\":\"map\",\"default\":8,\"threeKeys\":8,\"seventhKey\":16,\"cleared\":" +
+    fields.capacity().to_string() +
+    "}",
+  )
+}

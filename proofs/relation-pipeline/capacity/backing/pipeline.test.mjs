@@ -4,11 +4,15 @@ import { pipelineBounds, inspectPipelineBacking } from './pipeline.mjs';
 import { fixedCorpus } from '../../corpus.mjs';
 import { registry } from '../../registry.mjs';
 import { registrations } from '../../obligations.mjs';
+import { mapBounds } from './maps.mjs';
 const cases = fixedCorpus(registry, registrations).filter(c => c.steps.filter(s => s.op === 'distinct').length === 1);
 function observation(c, target) {
   const b = pipelineBounds(c, registry, target);
   const arrayCapacity = Object.fromEntries(Object.entries(b).map(([k, v]) => [k, Number(v)]));
+  const maps = mapBounds(c, registry);
   return { faults: [{ kind: 'capacity observation', event: 'checkpoint', arrayCapacity,
+    mapCapacity: maps.capacity, mapEntries: maps.entries,
+    mapAliases: { inputBinding: false, inputProjection: false, bindingProjection: false },
     keep: arrayCapacity.keep, terms: arrayCapacity.terms,
     outputRows: arrayCapacity.outputRows, outputCells: arrayCapacity.outputCells }] };
 }
