@@ -1561,6 +1561,19 @@ differ, but their structured facts MUST agree.
 
 <a id="ranked-search-contract"></a>
 
+### Public check outcome
+
+<!-- requirement-block: check-outcome.check-must-not-be-relabelled check-outcome.exactly-one-outcome check-outcome.verdict-must-carry-scope-and-context check-outcome.partial-report-must-not-verify check-outcome.unavailable-must-omit-report-fields check-outcome.absent-and-inaccessible-must-match check-outcome.hidden-source-must-not-hide-violations check-outcome.limits-must-not-be-invalid check-outcome.context-ref-must-not-hash-values -->
+The public `check` operation returns `actql-check-outcome/0.1`, which MUST NOT be relabelled as `actql-diagnostics/0.1` or `actql-plan-result/0.1`; those contracts keep their own schemas, codes, payloads and identities.
+A check outcome MUST be exactly one of `completed` (a report), `failed` (a problem with an optional partial report) or `unavailable` (a problem and an opaque correlation reference).
+A verdict MUST be serialized with the report's requested `scope` and its opaque, Host-issued `context_ref`; `invalid` means a disclosable proven violation, `verified` means every obligation in the scope is publicly discharged, and `undetermined` covers everything else.
+A `failed` outcome's partial report MUST NOT have the verdict `verified`.
+An `unavailable` outcome MUST NOT carry a verdict, report, scope or context field; it is used when the audience-bound scope and context cannot be established safely.
+A source that is absent and a source the caller cannot access MUST produce the same public outcome, including the outcome variant, verdict, coverage and reasons: both are an `unresolved_protected` coverage boundary, never a proven violation, a candidate name or a count derived from the hidden source.
+A hidden source MUST NOT hide a disclosable violation in the caller's own input, such as a supplied value that does not satisfy its declaration; that violation still makes the verdict `invalid`.
+An analysis budget or an implementation limit MUST NOT yield `invalid`; it yields `undetermined`, and a reporting failure yields `failed`.
+`context_ref` binds the audience, the disclosure-policy revision, the checking environment, the audience-visible source set, the supplied bindings and the projection revision, and it MUST NOT be a public hash of supplied values or grant any access.
+
 ### Ranked candidate acquisition contract
 
 A SourceView admitted for `search_candidates` publishes a closed ranked-search
@@ -1649,6 +1662,7 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/normalization_journal sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:6d77f736215cbf1379db11e4d793e66e19715bb28b8a6e737fae3bdd62590bbc
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_result sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_outcome sha256:bf6d18db11d182ca204f47d5744e9ccbb435952b99c793b091004471789148a5
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_source sha256:6730fdb00f7b0f21ae796bd55f686fb984cddac5b8da5325cec2114b82a37e1c
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_barrier sha256:587bfea69fbab0d23d200ac65ffc20c373142c4843820d37db6e0c617f10206a
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_evaluation_envelope sha256:168fa3b40dd267423f0cbf0b350e9fbab589f094afb400f9f83a2dad22171ba9
