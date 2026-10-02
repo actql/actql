@@ -383,6 +383,16 @@ The corrected evidence package and current Result consumers passed **27/27 on
 each of JS, Wasm and native**. Retired degree, reach, structural operations and
 row bridges are tested as typed refusals, not silently skipped or redirected.
 
+The remaining Result-order fixtures now use current MATCH and explicit TRAIL,
+including composite typed starting identities, retained sequence after take,
+nullable business properties, authored primary order with retained-sequence
+ties, aliasing and identity removal. Copying only the output shape cannot
+manufacture the producer sequence. Unsupported diff/equality cannot issue
+singleton publication evidence. The full `src/relation_results` package passed
+**103/103 on each of JS, Wasm and native**. The initial migrated JS test run was
+102/103 because a test authored `direction` instead of the specified `dir`;
+the fixture spelling was corrected, without changing parser or expectations.
+
 Remaining work includes other legacy-positive consumer inventories, the real
 configured-Store public snapshot save/reload route, aggregate Core/spec,
 current-source fresh packed acceptance and required CI on the submitted SHA.
