@@ -2,6 +2,42 @@
 
 ## Current authority and completion boundary
 
+### Integrated implementation checkpoint (2026-10-03)
+
+The current implementation checkpoint is
+`5cae69a164b7bc26ee66bff0b14eb2284b6c4674`, including main
+`a32d8c94404c3f6be52d1fcfb73aab21cbf7093c`. The complete CI-equivalent
+local spec job passes at that clean SHA: `check:spec`, strict resource
+completion, independent execution-authorization vectors, non-writing metadata
+verification and the final tracked-diff check. Resource regressions are
+**176/176**. The scope remains **52 executable routes plus 17 typed
+pre-execution refusals**, not complete SGA. Log:
+`/private/tmp/property-graph-spec-5cae69a16-20261003.log`.
+
+The sole current representation reaches constructor, scoped MATCH, TRAIL and
+bounded snapshot persistence/reload through the existing owners. Tuple
+construction, readers, storage/profile branches, unsupported algorithm kernels
+and execution fallbacks are removed. Supported generic capacity, ownership,
+delivered cancellation and cleanup obligations have current positive fixtures;
+unsupported algorithm-specific guarantees are withdrawn, not reported as
+execution success. The guarantee ledger's current table maps these separately.
+The real Host matrix and its selected Relation guarantee migration are
+recorded below, including the initial failures and their corrections.
+
+Final-source three-target Core/API, fresh packed public snapshot acceptance and
+same-submitted-SHA required CI remain mandatory. The older packed successes
+below are not substitutes. Published #164 is still the old Draft HEAD; no B
+adoption GO or main merge is claimed.
+
+Both original source histories are now preserved remotely at
+`archive/pr164-published-125a186-20261002` (full SHA
+`125a186ae9396fbfc7865641922e8e8a4ffc87d9`) and
+`archive/pr164-pre-reconstruction-b88d27bb3-20261002` (full SHA
+`b88d27bb30b4d38bd046ce5912bdf29e6b78d418`). Replacing the PR branch remains
+a separate, explicitly announced lease-protected operation.
+
+## Earlier checkpoints (results belong to their recorded source)
+
 ### Clean public checkpoint and compilation pin refresh (2026-10-03)
 
 Clean source `0deb69e70885f9f51e400f4d8131f3b2ff514d85` passes fresh packed
