@@ -893,6 +893,17 @@ capacity and lifecycle obligations still require the broader native Host
 fixture migration; retiring this tuple-only preparation suite does not waive
 them or establish final acceptance.
 
+Resuming the existing spec commands after the link stage passed examples,
+documentation tests, nest, Unicode and encoding, then correctly rejected stale
+generated canonical vectors. The existing independent generator changes only
+the grammar-manifest preimage and its outer CID, matching the previously
+refreshed normative import. Its **366** fixed identities pass freshness, and
+the generated MoonBit tests pass **366/366 on JS, Wasm and native**. The
+failure log is `/private/tmp/property-graph-spec-tail-c17158ae9-20261003.log`;
+the three-target result is
+`/private/tmp/property-graph-canonical-targets-20261003.log`. This staged
+diagnostic run is not reported as a complete final-SHA spec success.
+
 Full SGA, external producer-definition provenance, a durable Graph catalog and
 complete mechanized correspondence are not claimed. Remaining fixture and
 consumer migration plus aggregate gates remain required in the current unit;
