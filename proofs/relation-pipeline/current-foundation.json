@@ -6,9 +6,9 @@
     "digest": "48bdedbe48ab335694a725defa7fe9e7f07cdf776e4aa8f233b3935585a352c1",
     "foundationRevision": "fe0dbb424792ba7ccd4ae5517a74530b56a15f3c"
   },
-  "revision": "985dbbba27895e049a99a40185f59214f3e4fce1",
-  "proposal": "https://github.com/actql/actql/tree/985dbbba27895e049a99a40185f59214f3e4fce1/proofs/relation-pipeline/capacity",
-  "meaning": "Current Array-slot correspondence extends the conditional structural capacity foundation; the historical DISTINCT registration comparison is unchanged. Git provenance is not human approval, an implementation-wide proof or an unconditional allocation-byte bound.",
+  "revision": "b30d7d93d79a5c74a4857e5925c20503d3296c56",
+  "proposal": "https://github.com/actql/actql/pull/179",
+  "meaning": "Current Array-slot correspondence extends the integrated conditional structural capacity foundation; the historical DISTINCT registration comparison is unchanged. Git provenance is not human approval, an implementation-wide proof or an unconditional allocation-byte bound.",
   "changedCommon": [
     {
       "path": ".github/workflows/ci.yml",
