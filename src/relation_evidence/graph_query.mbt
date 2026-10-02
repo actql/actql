@@ -60,15 +60,11 @@ pub fn graph_query_keys(
             NormalizeGraph => ()
           }
         MatchOperation(op) =>
-          if @carrier.graph_names(graph) is Some(roles) {
-            let (node, src, dst, label) = @carrier.graph_row_fields(roles)
-            if @graph.match_entity(op) == Nodes {
-              names.push(node)
-            } else if label is Some(label) {
-              names.push(src)
-              names.push(dst)
-              names.push(label)
-            }
+          // The checked definition owns the complete typed element identity.
+          // Endpoints and labels cannot identify independent parallel edges.
+          if @graph.match_property_definition(op) is Some(_) &&
+            @graph.match_property_binding(op, "identity") is Some(identity) {
+            names.push(identity)
           }
         ReachOperation(_) => {
           let node = @row.Unqualified("node_id")

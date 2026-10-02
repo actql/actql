@@ -297,3 +297,39 @@ test "retired tuple construction and unconnected subgraph are explicit refusals"
     ),
   )
 }
+
+///|
+test "definition free scope and predicate cannot revive an opaque tuple Graph" {
+  for entity in [@graph_typing.Nodes, @graph_typing.Edges] {
+    assert_true(
+      @graph_typing.check_scope(
+        entity,
+        cursor("true"),
+        @carrier.unknown_carrier(GraphKind),
+        limits(),
+      )
+      is Err({ kind: @graph_typing.IncompleteGraph, .. }),
+    )
+    assert_true(
+      @graph_typing.check_predicate(
+        entity,
+        cursor("true"),
+        @carrier.unknown_carrier(GraphKind),
+        None,
+        predicate_limits(),
+      )
+      is Err(
+        @graph_typing.ScopeIssue({ kind: @graph_typing.IncompleteGraph, .. })
+      ),
+    )
+    assert_true(
+      @graph_typing.check_scope(
+        entity,
+        cursor("true"),
+        keyed_profile(),
+        limits(),
+      )
+      is Err({ kind: @graph_typing.UnsupportedGraphOperation, .. }),
+    )
+  }
+}

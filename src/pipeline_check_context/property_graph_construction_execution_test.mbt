@@ -170,11 +170,12 @@ test "keyed construction index and contract inventory keep distinct law roots an
   assert_true(law_roots > 0)
   assert_eq(count_roots, law_roots)
   assert_true(!stage_has_contract(inventory, 0, GraphCountRules))
-  // The unchanged catalog grammar still depends on the legacy Graph law.
-  // That dependency is not an operation-profile root for the new constructor;
-  // the exact per-operation roots above select the distinct Property Graph
-  // law and quantity contracts, never legacy GraphCountRules.
+  // Both constructor operation roots and current Catalog semantics select the
+  // owned Property Graph law. Historical SGA identity is not a current root.
   assert_true(
+    stage_has_contract(inventory, 0, AdoptedBody(@pipeline.PropertyGraphLaw)),
+  )
+  assert_false(
     stage_has_contract(inventory, 0, AdoptedBody(@pipeline.SgaIdentity)),
   )
 }

@@ -58,15 +58,28 @@ test "public task ports do not fall back to the retired endpoint-tuple Graph con
     max_fields=0,
     max_name_bytes=0,
   ).unwrap()
-  let old_carrier = @carrier.graph(
-    @contract.primitive(@contract.NumberType, nullable=false),
-    properties,
-    properties,
-    labels=Some([]),
-    max_labels=0,
-    max_label_bytes=0,
-  ).unwrap()
-  assert_eq(client_task_carrier_contract(old_carrier, 10000, 1000, 100), None)
+  assert_true(
+    @carrier.graph(
+      @contract.primitive(@contract.NumberType, nullable=false),
+      properties,
+      properties,
+      labels=Some([]),
+      max_labels=0,
+      max_label_bytes=0,
+    )
+    is Err(@carrier.UnsupportedGraphProfile),
+  )
+  // Incomplete historical knowledge cannot obtain a publication contract;
+  // this refusal fixture does not issue an executable legacy generation.
+  assert_eq(
+    client_task_carrier_contract(
+      @carrier.unknown_carrier(@carrier.GraphKind),
+      10000,
+      1000,
+      100,
+    ),
+    None,
+  )
 }
 
 ///|

@@ -28,7 +28,7 @@ test "endpoint-tuple projections explicitly reject definition-keyed Graphs" {
   ).unwrap()
   for operation in [@carrier_projection.NodeRows, @carrier_projection.EdgeRows] {
     let rejected = @carrier_projection.check(operation, body, graph, limits()).unwrap_err()
-    assert_eq(rejected.kind, @carrier_projection.UnsupportedGraphProfile)
+    assert_eq(rejected.kind, @carrier_projection.UnsupportedGraphOperation)
     assert_eq(rejected.path, [@source.Key("projection")])
     assert_eq(rejected.span, @decode.cursor_span(body))
   }

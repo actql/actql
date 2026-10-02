@@ -16,48 +16,85 @@ fn graph_order_cursor(text : String) -> @decode.Cursor {
 }
 
 ///|
-test "nullable Graph edge labels are not Relation ordering keys" {
-  let graph = @carrier.graph(
-    @contract.primitive(StringType, nullable=false),
-    @carrier.unknown_rows(),
-    @carrier.unknown_rows(),
-    labels=None,
-    max_labels=0,
-    max_label_bytes=0,
+test "typed Graph identity evidence cannot grant generic JSON or historical tuple ordering" {
+  let props = @carrier.rows(
+    [
+      (
+        @row.Unqualified("label"),
+        Some(@contract.primitive(StringType, nullable=true)),
+      ),
+    ],
+    field_set=Closed,
+    max_fields=1,
+    max_name_bytes=100,
   ).unwrap()
-  let projection = @projection.check(
-    @projection.EdgeRows,
-    graph_order_cursor("true"),
+  let node = @carrier.property_node_definition(
+    "N",
+    [@contract.primitive(StringType, nullable=false)],
+    props,
+    ["Node"],
+    max_fields=1,
+    max_name_bytes=100,
+  ).unwrap()
+  let edge = @carrier.property_edge_definition(
+    @carrier.property_node_definition(
+      "E",
+      [@contract.primitive(StringType, nullable=false)],
+      props,
+      ["Link"],
+      max_fields=1,
+      max_name_bytes=100,
+    ).unwrap(),
+    "N",
+    "N",
+  ).unwrap()
+  let graph = @carrier.property_graph(
+    "sha256:" + "0".repeat(64),
+    [node],
+    [edge],
+    max_definitions=2,
+    max_contract_work=1000,
+  ).unwrap()
+  let matched = @graph.check_match(
+    @graph.Edges,
+    graph_order_cursor(
+      "{\"definition\":\"E\",\"bindings\":{\"identity\":\"element\",\"source\":\"src\",\"target\":\"dst\"},\"where\":\"true\",\"fields\":[\"element\",\"src\",\"dst\",\"label\"]}",
+    ),
     graph,
-    { max_work: 100, max_nodes: 100, max_depth: 20, max_text_bytes: 1000, },
+    None,
+    {
+      max_work: 10000,
+      max_nodes: 100,
+      max_depth: 20,
+      max_text_bytes: 1000,
+      max_tokens: 1000,
+    },
   ).unwrap()
-  let transfer = graph_projection_keys(projection, {
-    max_work: 100,
-    max_name_bytes: 1000,
-  }).unwrap()
   let limit : TransferLimits = { max_work: 100, max_name_bytes: 1000, }
+  let transfer = graph_query_keys(MatchOperation(matched), limit).unwrap()
   let selected = key_witness_at(transfer.keys, 0).unwrap()
+  assert_eq(selected.origin, GraphQueryResult)
+  assert_eq(selected.fields.length(), 1)
+  assert_eq(selected.fields[0].name, @row.Unqualified("element"))
+  assert_true(selected.fields[0].contract.unwrap().shape is @contract.Json)
+  assert_false(selected.fields[0].contract.unwrap().nullable)
+  assert_eq(key_pending(selected), [ValidateKeyProducer])
+  assert_true(key_graph_query_producer(selected) is Some(MatchOperation(_)))
+  // Nullable business properties and endpoints are not edge identity components.
   assert_true(
-    select_key(graph_order_cursor("null"), transfer.keys, CanonicalOrder, limit).unwrap().key
+    select_graph_order_identity(
+      graph_order_cursor("null"),
+      transfer.keys,
+      limit,
+    ).unwrap().key
     is None,
   )
-  assert_eq(selected.origin, GraphProjectionResult)
-  assert_eq(selected.fields.length(), 3)
-  let mut saw_nullable_label = false
-  for field in selected.fields {
-    if field.name == @row.Unqualified("rel") {
-      saw_nullable_label = field.contract.unwrap().nullable
-    }
+  for usage in [CanonicalOrder, ScalarIdentity] {
+    assert_true(
+      select_key(graph_order_cursor("null"), transfer.keys, usage, limit).unwrap().key
+      is None,
+    )
   }
-  assert_true(saw_nullable_label)
-  let ordered = select_graph_order_identity(
-    graph_order_cursor("null"),
-    transfer.keys,
-    limit,
-  ).unwrap().key.unwrap()
-  assert_eq(key_pending(ordered), [ValidateKeyProducer])
-  assert_eq(ordered.fields.length(), 3)
-  assert_true(key_graph_projection_producer(ordered) is Some(_))
   assert_true(
     select_graph_order_identity(graph_order_cursor("null"), transfer.keys, {
       max_work: 0,
@@ -65,22 +102,11 @@ test "nullable Graph edge labels are not Relation ordering keys" {
     })
     is Err(_),
   )
-  assert_true(
-    select_key(graph_order_cursor("null"), transfer.keys, ScalarIdentity, limit).unwrap().key
-    is None,
-  )
-  assert_true(
-    select_key(
-      graph_order_cursor("null"),
-      singleton_key(selected),
-      CanonicalOrder,
-      limit,
-    ).unwrap().key
-    is None,
-  )
-  let forged = { ..selected, producer: None, }
-  let unrelated = { ..selected, origin: InputDeclaration, }
-  for witness in [forged, unrelated] {
+  for
+    witness in [
+      { ..selected, producer: None, },
+      { ..selected, origin: InputDeclaration, },
+    ] {
     let keys = singleton_key(witness)
     assert_true(
       select_graph_order_identity(graph_order_cursor("null"), keys, limit).unwrap().key

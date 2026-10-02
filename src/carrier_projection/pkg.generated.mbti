@@ -52,7 +52,8 @@ pub(all) enum IssueKind {
   BudgetExceeded
   InvalidBody
   WrongCarrier(@carrier_contract.Kind)
-  UnsupportedGraphProfile
+  IncompleteGraph
+  UnsupportedGraphOperation
   OutputCollision(@relation_schema.FieldName)
 } derive(Eq, @debug.Debug)
 

@@ -228,10 +228,11 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('ecf842ba6846f2dbac5cb8fa42b5b708c14e0ec170fc14d05043a351c0300582'),
     priorAoA).run.run_definition_cid,
     pin('b8f4539c6741e24dd20bdd1ce77f5dc9d0c0466684c6e151e4441bccaaaaca9c'));
-  // Grammar and transfer-classification roots also change the local Unit,
-  // proof, publication binding and Result Plan. All are independently built.
+  // Grammar, transfer classification, Check environment and the selected
+  // Property Graph law change the Unit closure even for a Values-only Run.
+  // Rebuild the proof, publication bindings and Result Plan independently.
   assert.equal(current.run.run_definition_cid,
-    pin('563e92035fb13479b59d35bd2c5890fba9cd6827aa800bfe00f06482392e4894'));
+    pin('838a90f1bb3ee17c4e8a25db56d1756c5201897f7a1128498832796ff8c18a90'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');

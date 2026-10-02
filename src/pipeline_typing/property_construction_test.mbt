@@ -196,7 +196,7 @@ test "a bare external carrier is not sufficient producer definition provenance" 
     )
     is Err({ kind: MissingPropertyProducerDefinition, .. }),
   )
-  // An old constructor is still accepted on the same declared input.
+  // Retired construction does not provide a provenance-free escape route.
   assert_true(
     @pipeline_typing.check_carriers(
       cursor("[{\"graph\":{\"source\":\"src_id\",\"target\":\"dst_id\"}}]"),
@@ -205,7 +205,7 @@ test "a bare external carrier is not sufficient producer definition provenance" 
       None,
       limits(),
     )
-    is Ok(_),
+    is Err({ kind: Graph(@graph.UnsupportedGraphOperation), .. }),
   )
 }
 

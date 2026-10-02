@@ -50,6 +50,12 @@ const roles = [
 ];
 
 function contractCid(file, pointer, legacy) {
+    // The current Catalog selects the owned Property Graph law even when the
+    // fixture itself uses only Relation values. Keep the historical role/body
+    // for predecessor vectors; do not silently repin those preimages.
+    if (!legacy && file === 'spec/dependencies/aoa-sga-identity-laws.json') {
+      return hash(body('spec/dependencies/actql-property-graph-laws.json'));
+    }
     // Historical fixtures retain pre-String bodies as well as the original
     // Program grammar and count law. Never rebind old preimages to current laws.
     if (legacy && file === 'spec/dependencies/aoa-kernel-laws.json') {
@@ -66,6 +72,10 @@ function contractCid(file, pointer, legacy) {
     }
     if (legacy && pointer?.endsWith('/properties/program')) {
       return 'sha256:a6bfc4b6c00d89f521ccee9e99e1dbbd7385675fd55478f1536f36f860b1ef0a';
+    }
+    if (legacy && file === 'spec/contracts/actql-check-environment.json') {
+      // Pre-Property-Graph body, independently hashed from main 16d93c2.
+      return 'sha256:50a14e0c2454d439df53fc4be570d6e008299ba1005cc442838a985337cb3dd8';
     }
     return hash(body(file,pointer));
 }

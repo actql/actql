@@ -333,6 +333,64 @@ roundtrip and physical Store release tests do not prove the public save/reload
 route. The PR remains incomplete until that route and the remaining consumer
 migration are validated on one submitted SHA.
 
+## Current consumer and key-evidence corrections
+
+The first full JS Core run at `843d95bada7a41e8c0eb25dd983902ac2d47e1c3`
+reported **7,356 total, 6,860 passed, 496 failed**. Its original log remains at
+`/private/tmp/property-graph-core-js-retirement-20261002.log`. The failure count
+is not classified wholesale as obsolete: it includes real current-consumer
+connections and dependency-vector corrections as well as retired positive
+fixtures. The aggregate is still not green.
+
+Definition-free scope and tuple row projection can no longer manufacture a
+Graph schema from opaque input. Complete current Graphs receive an explicit
+unsupported-operation refusal at these unconnected entries; incomplete Graphs
+receive an incomplete-input refusal. Definition-scoped MATCH retains its actual
+typed scope. The SourceView corpus is regenerated from the current independent
+`empty-property-graph` input, rather than retaining the retired tuple fixture.
+The existing #133 wrong-carrier work-custody regression now uses an actual
+current Graph material; rejection still preserves child/parent work and cannot
+start its successor.
+
+The independent Values oracle selects the owned Property Graph law for the
+current Catalog closure. The historical Check Environment role is frozen to
+its normative predecessor bytes, independently hashing to
+`sha256:50a14e0c2454d439df53fc4be570d6e008299ba1005cc442838a985337cb3dd8`.
+This repairs a missing historical role pin, not a historical CID expectation.
+Every predecessor golden CID remains unchanged. Current preimages are authored
+without importing a compiler, issuer or runtime and independently yield:
+
+- Unit: `sha256:bd1d8948bb65f17b94e971ec556f43add62bec77e59fdb3723f588cfe7b76810`.
+- Proof: `sha256:b71c7850a144cc4c855e3093c1c198fdcddec92ee8547480e689b74f6e36d563`.
+- Result Plan: `sha256:457f27fe1a1f226e1ebab73824370e2242c003886619e37e4f18ed866c897d3f`.
+- Run: `sha256:838a90f1bb3ee17c4e8a25db56d1756c5201897f7a1128498832796ff8c18a90`.
+
+The scoped SourceView/projection/admission/constructor/Plan/Values/#133
+corrections passed **200/200 on Wasm and native**. JS passed the same selected
+groups as **173/173 plus 27/27**. The independent Node Values oracle passed
+**2/2**. These are focused results, not complete Core or final packed evidence.
+
+A further current MATCH connection defect was independently reproduced before
+the correction: **3 of 4** new regressions failed. The checked identity binding
+was dropped, while historical row aliases could fabricate an endpoint/property
+tuple key. MATCH key evidence now uses only the checked definition's complete
+typed identity binding. It retains the original CheckedMatch producer and its
+validation obligation. Endpoints, properties and labels never replace an
+independent edge key. Projection aliases preserve that witness; dropping the
+last identity projection loses it. Generic JSON scalar-key/order eligibility
+is unchanged, and inherited MATCH Result order is retained independently.
+The corrected evidence package and current Result consumers passed **27/27 on
+each of JS, Wasm and native**. Retired degree, reach, structural operations and
+row bridges are tested as typed refusals, not silently skipped or redirected.
+
+Remaining work includes other legacy-positive consumer inventories, the real
+configured-Store public snapshot save/reload route, aggregate Core/spec,
+current-source fresh packed acceptance and required CI on the submitted SHA.
+The snapshot route must preserve its family operation and cleanup handle,
+charge reported save/reload work once, reserve serializer/reload workspace
+before I/O, verify the exact stored CID, and confirm physical temporary-body
+release. Internal roundtrip does not substitute for that connection.
+
 ## Deliberately not claimed
 
 Full SGA, external producer-definition provenance, a durable Graph catalog and
