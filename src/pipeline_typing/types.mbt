@@ -161,11 +161,6 @@ pub enum CheckedOperation {
     target_selector~ : Target?,
     checked~ : @graph.CheckedShortest
   )
-  GraphEquality(right~ : Target, checked~ : @graph.CheckedEquality)
-  GraphDiff(right~ : Target, checked~ : @graph.CheckedDiff)
-  GraphApply(right~ : Target, checked~ : @graph.CheckedApply)
-  GraphStructural(right~ : Target, checked~ : @graph.CheckedStructural)
-  GraphUnion(@graph.CheckedUnion)
   PropertyGraphConstruction(
     inputs~ : Array[Target],
     checked~ : @graph.CheckedPropertyConstruction

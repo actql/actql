@@ -49,40 +49,6 @@ test "profile obligations map to their declared module without discharging other
     None,
   )
   assert_eq(
-    operation_profile_requirement(EqualityRequirement(ResolveSgaProfile)),
-    Some(SGA),
-  )
-  assert_eq(
-    operation_profile_requirement(EqualityRequirement(AdmitBothGraphs)),
-    None,
-  )
-  assert_eq(
-    operation_profile_requirement(DiffRequirement(ResolveSgaProfile)),
-    Some(SGA),
-  )
-  assert_eq(
-    operation_profile_requirement(DiffRequirement(EmitDeltaVersion)),
-    None,
-  )
-  assert_eq(
-    operation_profile_requirement(ApplyRequirement(ResolveSgaProfile)),
-    Some(SGA),
-  )
-  assert_eq(
-    operation_profile_requirement(ApplyRequirement(RequireExactlyOneDeltaRow)),
-    None,
-  )
-  assert_eq(
-    operation_profile_requirement(StructuralRequirement(ResolveSgaProfile)),
-    Some(SGA),
-  )
-  assert_eq(
-    operation_profile_requirement(
-      StructuralRequirement(AdmitGraphsUnderCommonContract),
-    ),
-    None,
-  )
-  assert_eq(
     operation_profile_requirement(
       ConstructionRequirement(ResolvePropertyGraphProfile),
     ),

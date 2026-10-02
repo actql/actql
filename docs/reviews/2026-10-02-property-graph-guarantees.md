@@ -829,3 +829,46 @@ is run separately. These are local focused checks, not the final published-SHA
 public snapshot acceptance or required CI. Other old Carrier constructor and
 unsupported consumer branches, mixed old fixtures and the strict resource
 inventory remain open.
+
+## Retired structural and comparison pipeline removal
+
+Equality, diff, delta application, union, graft and subtraction no longer have
+checked executable operation types, profiles, obligations, lowering payloads,
+sequence steps or driver dispatch branches. Their homogeneous output factories
+and the `GraphCombine` quantity rule are deleted. The public authored boundary
+still checks bounded option structure, references and names before explicitly
+refusing these unimplemented current-contract consumers. The independent apply
+refusal uses a valid current Graph and an explicitly bound current contract,
+not a missing input or malformed operation. No comparison or Delta permission
+is issued, and there is no tuple fallback.
+
+Two shared facilities were extracted rather than deleted: bounded selector
+schema alignment and MATCH's `GraphComparisonResource` checks. Their existing
+owners, limits and custody rules are unchanged; neither is an old Graph
+executor. The old operation-specific execution and Program tests are withdrawn
+with their implementations. They do not prove current-contract diff, patch,
+merge, source-policy or algorithmic work formulas.
+
+Applicable arithmetic and ownership guarantees are positive current tests:
+33 node definitions consume the same checked producer 33 times, retain each
+original operand owner, require exactly 165 operand work units and reject 164.
+Safe-integer overflow is an explicit `BoundOverflow`, never a successful zero
+or saturated proof. Current `PropertyGraphMeasure` also retains the empty and
+directional operand-sum cases in the bounded arithmetic unit tests. Constructor,
+MATCH, snapshot, private cancellation and retained-output custody remain in the
+executed current suite; explicit contract expectation forwarding remains in
+the complete pipeline-typing suite.
+
+The first product check exposed a shared resource type in a deleted file and
+an unused import. The resource type/helper were moved into MATCH and the import
+removed, not warning-exempted. An initial test command named a nonexistent test
+path and executed no acceptance; the corrected suite passes **483/483 on each
+JS, Wasm and native** at
+`/private/tmp/property-graph-binary-retirement-{corrected-js,wasm,native}-20261003.log`.
+The added repeated-operand/overflow migration and arithmetic unit tests pass
+**3/3 on each target** at
+`/private/tmp/property-graph-repeated-arithmetic-{js,wasm,native}-20261003.log`.
+Three-target interface generation completes. These are focused local results,
+not an inferred full-Core pass or final published snapshot/CI evidence. The old
+Carrier factory stub and other unconnected consumer types still need removal;
+mixed upper/Host fixtures and the strict resource inventory remain open.

@@ -116,15 +116,11 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
       operation(node) == "SGA.match_edges"
     GraphReachRows(_) => operation(node) == "SGA.reachable"
     GraphShortestRows(_) => operation(node) == "SGA.shortest_path"
-    GraphEqualityRows(_) => operation(node) == "SGA.equal"
-    GraphDiffRows(_) => operation(node) == "SGA.diff"
-    GraphApplyValue(_) => operation(node) == "SGA.apply_delta"
     BasicGraph(_) =>
       operation(node) == "SGA.normalize" ||
       operation(node) == "SGA.bounds_check" ||
       operation(node) == "SGA.degree_metrics" ||
       operation(node) == "SGA.components"
-    StructuralGraph(_) | GraphUnion(_) => true
     GraphSubgraphValue(_) => operation(node) == "SGA.subgraph"
     VectorValue(_) =>
       operation(node) == "BRIDGE.rows.to_vectors" ||
@@ -246,11 +242,7 @@ pub fn node_prefers_fused_without_relation_consumer(
       operation(node) == "SGA.bounds_check" ||
       operation(node) == "SGA.degree_metrics" ||
       operation(node) == "SGA.components"
-    StructuralGraph(_) | GraphUnion(_) => true
     GraphSubgraphValue(_) => operation(node) == "SGA.subgraph"
-    GraphEqualityRows(_) => operation(node) == "SGA.equal"
-    GraphDiffRows(_) => operation(node) == "SGA.diff"
-    GraphApplyValue(_) => operation(node) == "SGA.apply_delta"
     GraphMatchRows(_) =>
       operation(node) == "SGA.match_nodes" ||
       operation(node) == "SGA.match_edges"
@@ -296,7 +288,6 @@ pub fn node_accepts_managed_relation_view(
       GraphReachRows(_) => index == 1 && operation(node) == "SGA.reachable"
       GraphTraverseRows(_) => index == 1 && operation(node) == "SGA.traverse"
       GraphSubgraphValue(_) => index == 1 && operation(node) == "SGA.subgraph"
-      GraphApplyValue(_) => index == 1 && operation(node) == "SGA.apply_delta"
       InnerJoin(_)
       | CrossJoinRows(_)
       | AppendRows(_)

@@ -34,11 +34,8 @@ fn operation_count_contract(
     | @pipeline.IntervalJoin(..)
     | @pipeline.AsOfJoin(..) => Join
     @pipeline.Window(_) => Window
-    @pipeline.Graph(_)
-    | @pipeline.Subgraph(..)
-    | @pipeline.Shortest(..)
-    | @pipeline.GraphStructural(..)
-    | @pipeline.GraphUnion(_) => Graph
+    @pipeline.Graph(_) | @pipeline.Subgraph(..) | @pipeline.Shortest(..) =>
+      Graph
     @pipeline.PropertyGraphConstruction(..) => PropertyGraph
     @pipeline.GraphMatch(checked) =>
       if @graph.match_property_definition(checked) is Some(_) {
@@ -62,9 +59,6 @@ fn operation_count_contract(
     @pipeline.TimeSeries(_) | @pipeline.Calendar(_) => Series
     @pipeline.Sequence(_)
     | @pipeline.Reach(_)
-    | @pipeline.GraphEquality(..)
-    | @pipeline.GraphDiff(..)
-    | @pipeline.GraphApply(..)
     | @pipeline.Vector(_)
     | @pipeline.Pool(_)
     | @pipeline.Event(_) => ClassificationOnly

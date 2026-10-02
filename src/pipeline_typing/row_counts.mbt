@@ -434,33 +434,6 @@ fn derive_row_counts(
     let input = step.input.bind(t => count_at(t, result))
     let graph_input = step.input.bind(t => graph_count_at(t, graphs))
     let graph_output = match step.operation {
-      GraphUnion(_) => {
-        spend(b, step.source, step.connections.entries.length())
-        let mut known_nodes = true
-        let mut known_edges = true
-        for entry in step.connections.entries {
-          let other = graph_count_at(entry.target, graphs)
-          if other.bind(v => v.nodes) is None {
-            known_nodes = false
-          }
-          if other.bind(v => v.edges) is None {
-            known_edges = false
-          }
-        }
-        let mut nodes = if known_nodes { Some(count(0L, true)) } else { None }
-        let mut edges = if known_edges { Some(count(0L, true)) } else { None }
-        spend(b, step.source, step.connections.entries.length())
-        for entry in step.connections.entries {
-          let other = graph_count_at(entry.target, graphs)
-          if known_nodes {
-            nodes = sum_counts(step.source, nodes, other.bind(v => v.nodes))
-          }
-          if known_edges {
-            edges = sum_counts(step.source, edges, other.bind(v => v.edges))
-          }
-        }
-        Some({ nodes: reduce_count(nodes), edges: reduce_count(edges), })
-      }
       PropertyGraphConstruction(inputs~, checked~) => {
         let node_count = @graph.property_construction_node_count(checked)
         let mut nodes = Some(count(0L, true))
@@ -489,31 +462,6 @@ fn derive_row_counts(
           nodes: reduce_count(v.nodes),
           edges: reduce_count(v.edges),
         })
-      GraphStructural(right~, checked~) =>
-        if @graph.structural_operation(checked) == Subtract {
-          graph_input.map(v => {
-            nodes: reduce_count(v.nodes),
-            edges: reduce_count(v.edges),
-          })
-        } else {
-          let other = graph_count_at(right, graphs)
-          Some({
-            nodes: reduce_count(
-              sum_counts(
-                step.source,
-                graph_input.bind(v => v.nodes),
-                other.bind(v => v.nodes),
-              ),
-            ),
-            edges: reduce_count(
-              sum_counts(
-                step.source,
-                graph_input.bind(v => v.edges),
-                other.bind(v => v.edges),
-              ),
-            ),
-          })
-        }
       _ => None
     }
     let next = match step.operation {
@@ -538,7 +486,6 @@ fn derive_row_counts(
           GraphBounds => graph_report_count(step.source, graph_input, v)
           _ => None
         }
-      GraphEquality(_) | GraphDiff(_) => Some(count(1L, true))
       Reach(checked) =>
         if @graph.reach_start(checked) is @graph.SingleReachStart(_) {
           reduce_count(graph_input.bind(g => g.nodes))

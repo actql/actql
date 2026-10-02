@@ -357,3 +357,25 @@ test "unsupported mean validates authored options without issuing Graph work" {
     assert_eq(issue.path, path)
   }
 }
+
+///|
+test "current Graph refuses Delta application without issuing a tuple output or permission" {
+  let graph = graph_property_scope_input()
+  let contract = @graph_contract.admit(graph, {
+    max_bytes: 10000,
+    max_nodes: 1000,
+    max_depth: 100,
+  }).unwrap()
+  let issue = @pipeline_typing.check_carriers(
+    cursor(
+      "[{\"apply_graph_delta\":{\"with\":\"d\",\"field\":\"delta\"},\"from\":\"g\"}]",
+    ),
+    [("g", graph), ("d", delta_rows())],
+    None,
+    None,
+    limits(),
+    delta_contracts=[("d", Unqualified("delta"), contract)],
+  ).unwrap_err()
+  assert_eq(issue.kind, Graph(@graph.UnsupportedGraphOperation))
+  assert_eq(issue.path, [Index(0), Key("apply_graph_delta")])
+}

@@ -894,23 +894,6 @@ fn prepare_publication_source_policy(
             unknown = true
             1
           }
-          @pipeline.GraphEquality(..)
-          | @pipeline.GraphDiff(..)
-          | @pipeline.GraphApply(..)
-          | @pipeline.GraphStructural(..)
-          | @pipeline.GraphUnion(_) => {
-            identity_charge(budget, 1)
-            carrier_steps.push({
-              step: index,
-              operation: step.operation,
-              unknown_provenance: false,
-            })
-            match step.operation {
-              @pipeline.GraphUnion(operation) =>
-                @graph.union_count(operation) + 1
-              _ => 2
-            }
-          }
           @pipeline.Subgraph(selector~, checked=operation) => {
             identity_charge(budget, 1)
             let nodes = @graph.subgraph_nodes(operation)

@@ -78,56 +78,6 @@ pub fn operation_profile_requirement(
         | BindShortestOutputGuard(_, ..)
         | ResolveShortestResources => None
       }
-    EqualityRequirement(o) =>
-      match o {
-        ResolveSgaProfile => Some(SGA)
-        AdmitBothGraphs
-        | CompareTypedCanonicalGraphs
-        | ResolveComparisonResources => None
-      }
-    DiffRequirement(o) =>
-      match o {
-        ResolveSgaProfile => Some(SGA)
-        EmitDeltaVersion
-        | AdmitSnapshotsUnderCommonContract
-        | EmitGraphContractIdentity
-        | BindBaseAndTargetIdentities
-        | EmitCompleteBeforeAfterRecords
-        | SortUniqueActionIdentities
-        | ResolveDeltaResources => None
-      }
-    ApplyRequirement(o) =>
-      match o {
-        ResolveSgaProfile => Some(SGA)
-        RequireExactlyOneDeltaRow
-        | ValidateDeltaVersionAndClosedShape
-        | MatchPinnedGraphContract
-        | AdmitBaseUnderPinnedContract
-        | MatchExactBaseIdentity
-        | ValidateOrderedUniqueActions
-        | ValidateExactBeforeRecords
-        | ValidateAddRemoveUpdateExistence
-        | ApplyNodeAndEdgeChangesTogether
-        | ValidateResultEndpointsAndContract
-        | MatchExactTargetIdentity
-        | PreserveGraphPolicyDependencies
-        | ResolveApplyResources => None
-      }
-    StructuralRequirement(o) =>
-      match o {
-        ResolveSgaProfile => Some(SGA)
-        AdmitGraphsUnderCommonContract
-        | CompareCompleteIdentityPayloads
-        | RejectUnspecifiedConflicts
-        | ApplyEveryAuthoredStrategy
-        | KeepCompleteOneSidedUnionRecords
-        | KeepOnlyLeftSubtractionRecords
-        | CloseSubtractionEndpoints
-        | ValidateCanonicalSetOperations
-        | ValidateFiniteNumericResults
-        | PreservePolicyDependencies
-        | ResolveStructuralResources => None
-      }
     ConstructionRequirement(o) =>
       match o {
         ResolvePropertyGraphProfile => Some(PropertyGraph)

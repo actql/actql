@@ -36,10 +36,6 @@ pub(all) enum OperationObligation {
   TraverseRequirement(@graph.TraverseObligation)
   ShortestRequirement(@graph.ShortestObligation)
   SelectorRequirement(@graph.SelectorObligation)
-  EqualityRequirement(@graph.EqualityObligation)
-  DiffRequirement(@graph.DeltaObligation)
-  ApplyRequirement(@graph.ApplyObligation)
-  StructuralRequirement(@graph.StructuralObligation)
   ConstructionRequirement(@graph.ConstructionObligation)
   VectorRequirement(@vector.Obligation)
   NearestRequirement(@vector.NearestObligation)
@@ -73,10 +69,6 @@ priv enum ObligationOwner {
   TraverseOwner(@graph.CheckedTraverse)
   ShortestOwner(@graph.CheckedShortest)
   SelectorOwner(@graph.CheckedSelector)
-  EqualityOwner(@graph.CheckedEquality)
-  DiffOwner(@graph.CheckedDiff)
-  ApplyOwner(@graph.CheckedApply)
-  StructuralOwner(@graph.CheckedStructural)
   PropertyConstructionOwner(@graph.CheckedPropertyConstruction)
   VectorOwner(@vector.CheckedVector)
   NearestOwner(@vector.CheckedNearest)
@@ -125,10 +117,6 @@ pub fn operation_obligations_source(v : OperationObligations) -> @decode.Cursor 
     TraverseOwner(c) => @graph.traverse_source(c)
     ShortestOwner(c) => @graph.shortest_source(c)
     SelectorOwner(c) => @graph.selector_source(c)
-    EqualityOwner(c) => @graph.equality_source(c)
-    DiffOwner(c) => @graph.diff_source(c)
-    ApplyOwner(c) => @graph.apply_source(c)
-    StructuralOwner(c) => @graph.structural_source(c)
     PropertyConstructionOwner(c) => @graph.property_construction_source(c)
     VectorOwner(c) => @vector.source(c)
     NearestOwner(c) =>
@@ -219,10 +207,6 @@ pub fn operation_obligations_count(v : OperationObligations) -> Int {
     TraverseOwner(c) => @graph.traverse_pending_count(c)
     ShortestOwner(c) => @graph.shortest_pending_count(c)
     SelectorOwner(c) => @graph.selector_pending_count(c)
-    EqualityOwner(c) => @graph.equality_pending_count(c)
-    DiffOwner(c) => @graph.diff_pending_count(c)
-    ApplyOwner(c) => @graph.apply_pending_count(c)
-    StructuralOwner(c) => @graph.structural_pending_count(c)
     PropertyConstructionOwner(c) =>
       @graph.property_construction_pending_count(c)
     VectorOwner(c) => @vector.pending_validation_count(c)
@@ -290,14 +274,6 @@ pub fn operation_obligations_at(
       @graph.shortest_pending_at(c, index).map(x => ShortestRequirement(x))
     SelectorOwner(c) =>
       @graph.selector_pending_at(c, index).map(x => SelectorRequirement(x))
-    EqualityOwner(c) =>
-      @graph.equality_pending_at(c, index).map(x => EqualityRequirement(x))
-    DiffOwner(c) =>
-      @graph.diff_pending_at(c, index).map(x => DiffRequirement(x))
-    ApplyOwner(c) =>
-      @graph.apply_pending_at(c, index).map(x => ApplyRequirement(x))
-    StructuralOwner(c) =>
-      @graph.structural_pending_at(c, index).map(x => StructuralRequirement(x))
     PropertyConstructionOwner(c) =>
       @graph.property_construction_pending_at(c, index).map(x => {
         ConstructionRequirement(x)
@@ -336,7 +312,6 @@ pub fn operation_obligation_group_count(operation : CheckedOperation) -> Int {
       }
       n
     }
-    GraphUnion(c) => @graph.union_count(c)
     Unary(_)
     | WindowGroup(_)
     | Join(checked=_, ..)
@@ -354,10 +329,6 @@ pub fn operation_obligation_group_count(operation : CheckedOperation) -> Int {
     | Graph(_)
     | GraphMatch(_)
     | Reach(_)
-    | GraphEquality(checked=_, ..)
-    | GraphDiff(checked=_, ..)
-    | GraphApply(checked=_, ..)
-    | GraphStructural(checked=_, ..)
     | PropertyGraphConstruction(..)
     | Vector(_)
     | Nearest(checked=_, ..)
@@ -396,11 +367,6 @@ pub fn operation_obligation_group_at(
       Graph(c) => { scope: Body, owner: GraphOwner(c), }
       GraphMatch(c) => { scope: Body, owner: MatchOwner(c), }
       Reach(c) => { scope: Body, owner: ReachOwner(c), }
-      GraphEquality(checked=c, ..) => { scope: Body, owner: EqualityOwner(c), }
-      GraphDiff(checked=c, ..) => { scope: Body, owner: DiffOwner(c), }
-      GraphApply(checked=c, ..) => { scope: Body, owner: ApplyOwner(c), }
-      GraphStructural(checked=c, ..) =>
-        { scope: Body, owner: StructuralOwner(c), }
       PropertyGraphConstruction(checked=c, ..) =>
         { scope: Body, owner: PropertyConstructionOwner(c), }
       Vector(c) => { scope: Body, owner: VectorOwner(c), }
@@ -447,10 +413,6 @@ pub fn operation_obligation_group_at(
             _ => return None
           }
         }
-      GraphUnion(c) => {
-        let fold = @graph.union_fold_at(c, index).unwrap()
-        { scope: UnionFold(index), owner: StructuralOwner(fold), }
-      }
     },
   )
 }

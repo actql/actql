@@ -182,18 +182,6 @@ fn check_resolution_index(
         execution += 1
         assert_true(physical_equal(check.site, site))
       }
-      Execution(GraphEqualityExecution(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
-      Execution(GraphDiffExecution(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
-      Execution(GraphApplyExecution(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
       Execution(GraphMatchExecution(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))
@@ -203,10 +191,6 @@ fn check_resolution_index(
         assert_true(physical_equal(check.site, site))
       }
       Execution(SubgraphExecution(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
-      Execution(GraphStructuralExecution(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))
       }

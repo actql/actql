@@ -17,10 +17,6 @@ pub(all) enum OperationExecutionCheck {
   GraphSelectorExecution(GraphSelectorCheck)
   SubgraphExecution(SubgraphCheck)
   GraphMatchExecution(GraphMatchCheck)
-  GraphApplyExecution(GraphApplyCheck)
-  GraphDiffExecution(GraphDiffCheck)
-  GraphEqualityExecution(GraphEqualityCheck)
-  GraphStructuralExecution(GraphStructuralCheck)
   VectorExecution(VectorCheck)
   NearestExecution(NearestCheck)
   PoolExecution(PoolCheck)
@@ -119,49 +115,6 @@ pub fn operation_execution_phase(
         | FilterEdgeTypes
         | EvaluatePredicate
         | OrderMatches => BeforeOperationOutput
-      }
-    GraphApplyExecution(v) =>
-      match v.rule {
-        ApplyChangesAtomically | AdmitResultGraph | MatchTargetIdentity =>
-          BeforeOperationOutput
-        RequireSingleDeltaRow
-        | AdmitDeltaShapeAndVersion
-        | MatchGraphContract
-        | AdmitBaseGraph
-        | MatchBaseIdentity
-        | ValidateUniqueOrderedActions
-        | MatchBeforeRecords
-        | CheckActionExistence
-        | PreservePolicyDependencies
-        | RequireApplicationResources => BeforeOperationInputUse
-      }
-    GraphDiffExecution(v) =>
-      match v.rule {
-        AdmitCommonSnapshots | RequireDeltaResources => BeforeOperationInputUse
-        EmitVersion
-        | EmitContractIdentity
-        | BindSnapshotIdentities
-        | EmitCompleteRecords
-        | OrderUniqueActions => BeforeOperationOutput
-      }
-    GraphEqualityExecution(v) =>
-      match v.rule {
-        AdmitOperands | RequireComparisonResources => BeforeOperationInputUse
-        CompareCanonicalGraphs => BeforeOperationOutput
-      }
-    GraphStructuralExecution(v) =>
-      match v.rule {
-        AdmitStructuralInputs | RequireStructuralResources =>
-          BeforeOperationInputUse
-        CompareIdentityRecords
-        | RequirePropertyEquality
-        | ApplyPropertyStrategies
-        | RetainOneSidedRecords
-        | SubtractMatchingRecords
-        | CloseResultEndpoints
-        | ValidateSetResults
-        | ValidateNumericResults
-        | PreserveOperandPolicies => BeforeOperationOutput
       }
     VectorExecution(v) =>
       match v.rule {
@@ -384,10 +337,6 @@ pub fn operation_execution_failure(
     GraphSelectorExecution(_)
     | SubgraphExecution(_)
     | GraphMatchExecution(_)
-    | GraphApplyExecution(_)
-    | GraphDiffExecution(_)
-    | GraphEqualityExecution(_)
-    | GraphStructuralExecution(_)
     | VectorExecution(_)
     | NearestExecution(_)
     | PoolExecution(_)

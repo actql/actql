@@ -1,3 +1,23 @@
+// MATCH retains ordering comparison work, state and temporary-byte requirements.
+// These resources do not authorize the retired binary Graph equality consumer.
+
+///|
+pub(all) enum GraphComparisonResource {
+  ComparisonWork
+  RetainedComparisonState
+  InputAndTemporaryBytes
+} derive(Eq, Debug)
+
+///|
+fn graph_comparison_resource(index : Int) -> GraphComparisonResource? {
+  match index {
+    0 => Some(ComparisonWork)
+    1 => Some(RetainedComparisonState)
+    2 => Some(InputAndTemporaryBytes)
+    _ => None
+  }
+}
+
 ///|
 pub(all) enum GraphMatchRule {
   AdmitGraph

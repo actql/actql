@@ -228,32 +228,6 @@ test "legacy property and path schemas never erase keyed graph structure" {
 ///|
 test "unsupported structural Graph consumers refuse keyed inputs before execution" {
   let graph = keyed_profile()
-  for
-    operation in [
-      @graph_typing.Graft,
-      @graph_typing.Union,
-      @graph_typing.Subtract,
-    ] {
-    assert_true(
-      @graph_typing.check_structural(
-        operation,
-        cursor("{\"with\":\"peer\"}"),
-        graph,
-        graph,
-        limits(),
-      )
-      is Err({ kind: @graph_typing.UnsupportedGraphOperation, .. }),
-    )
-  }
-  assert_true(
-    @graph_typing.check_union(
-      cursor("{\"with\":[\"peer\",\"peer\"]}"),
-      graph,
-      [graph, graph],
-      limits(),
-    )
-    is Err({ kind: @graph_typing.UnsupportedGraphOperation, .. }),
-  )
   let mean = cursor(
     "{\"with\":[\"peer\"],\"weights\":[1],\"support\":{\"nodes\":1,\"edges\":1},\"properties\":{\"nodes\":{},\"edges\":{}}}",
   )
@@ -274,31 +248,6 @@ test "unsupported structural Graph consumers refuse keyed inputs before executio
       )
     ),
   )
-}
-
-///|
-test "legacy equality refuses either keyed operand instead of fabricating a common simple graph" {
-  let legacy = @carrier.unknown_carrier(GraphKind)
-  for
-    (left, right) in [
-      (keyed_profile(), legacy),
-      (legacy, keyed_profile()),
-      (keyed_profile(), keyed_profile()),
-    ] {
-    guard @graph_typing.check_equality(
-        cursor("{\"with\":\"peer\"}"),
-        left,
-        right,
-        limits(),
-      )
-      is Err(issue) else {
-      abort("incompatible profiles were compared")
-    }
-    assert_true(
-      issue.kind == @graph_typing.UnsupportedGraphOperation ||
-      issue.kind == @graph_typing.IncompleteGraph,
-    )
-  }
 }
 
 ///|

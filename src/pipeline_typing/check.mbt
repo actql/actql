@@ -755,7 +755,7 @@ fn check_impl(
       key == "union_graphs" ||
       key == "subtract_graphs" ||
       key == "apply_graph_delta" {
-      let o = match
+      let object = match
         @decode.closed_object(
           operation_body,
           if key == "apply_graph_delta" {
@@ -766,191 +766,43 @@ fn check_impl(
             ["with"]
           },
         ) {
-        Ok(o) => o
+        Ok(object) => object
         Err(_) => fail(operation_body, InvalidBody)
       }
-      let at = match @decode.required(o, "with") {
-        Ok(c) => c
+      let at = match @decode.required(object, "with") {
+        Ok(at) => at
         Err(_) => fail(operation_body, InvalidBody)
       }
-      if key == "union_graphs" && @decode.array_length(at) is Some(n) {
-        if n == 0 {
+      if key == "union_graphs" && @decode.array_length(at) is Some(count) {
+        if count == 0 {
           fail(at, InvalidBody)
         }
-        spend(b, at, n)
-        let occurrences = [{ role: Left, target: input, }]
-        let operands = []
-        for i in 0..<n {
-          let target = resolve_target(
-            b,
-            @decode.element_at(at, i).unwrap(),
-            names,
+        spend(b, at, count)
+        for index in 0..<count {
+          ignore(
+            resolve_target(b, @decode.element_at(at, index).unwrap(), names),
           )
-          occurrences.push({ role: Sample(i), target, })
-          operands.push(carrier(target, inputs, steps))
         }
-        let checked = match
-          @graph.check_union(
-            operation_body,
-            carrier(input, inputs, steps),
-            operands,
-            {
-              max_work: b.work,
-              max_nodes: b.nodes,
-              max_depth: limits.max_depth,
-              max_text_bytes: b.text,
-            },
-          ) {
-          Ok(c) => c
-          Err(e) =>
-            raise Stop({
-              kind: Graph(e.kind),
-              source: operation_body,
-              path: e.path.copy(),
-              span: e.span,
-              range: None,
-            })
-        }
-        let u = @graph.union_usage(checked)
-        b.work -= u.work
-        b.nodes -= u.nodes
-        b.text -= u.text_bytes
-        let target = Step(steps.length())
-        steps.push({
-          source: body,
-          input: Some(input),
-          binding_name,
-          metadata: meta,
-          operation: GraphUnion(checked),
-          output: @graph.union_output(checked),
-          connections: { entries: occurrences, },
-          window: None,
-        })
-        if binding_name is Some(name) {
-          names[name] = target
-        }
-        current = Some(target)
-        continue
+      } else {
+        ignore(resolve_target(b, at, names))
       }
-      let right = resolve_target(b, at, names)
-      let caps : @graph.Limits = {
-        max_work: b.work,
-        max_nodes: b.nodes,
-        max_depth: limits.max_depth,
-        max_text_bytes: b.text,
-      }
-      let result : Result[
-        (CheckedOperation, @carrier.Carrier, @graph.Usage),
-        @graph.Issue,
-      ] = if key == "graft_graph" ||
-        key == "union_graphs" ||
-        key == "subtract_graphs" {
-        let operation = if key == "graft_graph" {
-          @graph.Graft
-        } else if key == "union_graphs" {
-          @graph.Union
-        } else {
-          @graph.Subtract
-        }
-        @graph.check_structural(
-          operation,
-          operation_body,
-          carrier(input, inputs, steps),
-          carrier(right, inputs, steps),
-          caps,
-        ).map(c => {
-          (
-            GraphStructural(right~, checked=c),
-            @graph.structural_output(c),
-            @graph.structural_usage(c),
-          )
-        })
-      } else if key == "apply_graph_delta" {
-        let field_source = match @decode.required(o, "field") {
-          Ok(c) => c
+      if key == "apply_graph_delta" {
+        let field = match @decode.required(object, "field") {
+          Ok(field) => field
           Err(_) => fail(operation_body, InvalidBody)
         }
-        let field = read_name(b, field_source)
-        let expected = match
-          delta_at(right, delta_inputs, delta_steps).fields.get(field) {
-          Some(c) => c
-          None => fail(field_source, MissingDeltaContract)
-        }
-        @graph.check_apply(
-          operation_body,
-          carrier(input, inputs, steps),
-          carrier(right, inputs, steps),
-          expected,
-          { ..caps, max_work: b.work, max_text_bytes: b.text, },
-        ).map(c => {
-          (
-            GraphApply(right~, checked=c),
-            @graph.apply_output(c),
-            @graph.apply_usage(c),
-          )
-        })
-      } else if key == "graph_diff" {
-        @graph.check_diff(
-          operation_body,
-          carrier(input, inputs, steps),
-          carrier(right, inputs, steps),
-          caps,
-        ).map(c => {
-          (
-            GraphDiff(right~, checked=c),
-            @graph.diff_output(c),
-            @graph.diff_usage(c),
-          )
-        })
-      } else {
-        @graph.check_equality(
-          operation_body,
-          carrier(input, inputs, steps),
-          carrier(right, inputs, steps),
-          caps,
-        ).map(c => {
-          (
-            GraphEquality(right~, checked=c),
-            @graph.equality_output(c),
-            @graph.equality_usage(c),
-          )
-        })
+        ignore(read_name(b, field))
       }
-      let (operation, output, u) = match result {
-        Ok(v) => v
-        Err(e) =>
-          raise Stop({
-            kind: Graph(e.kind),
-            source: operation_body,
-            path: e.path.copy(),
-            span: e.span,
-            range: None,
-          })
+      // The sole Graph is keyed. These consumers have no current implementation,
+      // and cannot issue an old tuple output, comparison or Delta permission.
+      match carrier(input, inputs, steps) {
+        @carrier.GraphValue(_) =>
+          fail(operation_body, Graph(@graph.UnsupportedGraphOperation))
+        @carrier.Opaque(GraphKind) =>
+          fail(operation_body, Graph(@graph.IncompleteGraph))
+        other =>
+          fail(operation_body, Graph(@graph.WrongCarrier(@carrier.kind(other))))
       }
-      b.work -= u.work
-      b.nodes -= u.nodes
-      b.text -= u.text_bytes
-      let target = Step(steps.length())
-      steps.push({
-        source: body,
-        input: Some(input),
-        binding_name,
-        metadata: meta,
-        operation,
-        output,
-        connections: {
-          entries: [
-            { role: Left, target: input, },
-            { role: Right, target: right, },
-          ],
-        },
-        window: None,
-      })
-      if binding_name is Some(name) {
-        names[name] = target
-      }
-      current = Some(target)
-      continue
     }
     if key == "shortest_path" {
       let root = match
@@ -2073,7 +1925,7 @@ fn check_impl(
       entries: match checked {
         PropertyGraphConstruction(inputs~, ..) =>
           inputs.mapi((index, target) => { role: Sample(index), target, })
-        Values(_) | TimeSeries(_) | GraphUnion(_) => []
+        Values(_) | TimeSeries(_) => []
         Calendar(_) | Pool(_) | Ranking(_) =>
           [{ role: Primary, target: input, }]
         Shortest(source_selector~, target_selector~, ..) => {
@@ -2112,10 +1964,6 @@ fn check_impl(
         | Set(right~, ..)
         | CrossJoin(right~, ..)
         | IntervalJoin(right~, ..)
-        | GraphEquality(right~, ..)
-        | GraphDiff(right~, ..)
-        | GraphApply(right~, ..)
-        | GraphStructural(right~, ..)
         | AsOfJoin(right~, ..) =>
           [{ role: Left, target: input, }, { role: Right, target: right, }]
       },

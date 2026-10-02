@@ -7,7 +7,6 @@ import {
   "actql/actql/expression_syntax",
   "actql/actql/expression_text",
   "actql/actql/expression_typing",
-  "actql/actql/graph_contract",
   "actql/actql/parameter_binding",
   "actql/actql/relation_append",
   "actql/actql/relation_schema",
@@ -19,33 +18,7 @@ import {
 }
 
 // Values
-pub fn apply_delta_contract(CheckedApply) -> @value_contract.Contract
-
-pub fn apply_field(CheckedApply) -> String
-
-pub fn apply_graph_contract(CheckedApply) -> @graph_contract.CheckedContract
-
-pub fn apply_output(CheckedApply) -> @carrier_contract.Carrier
-
-pub fn apply_pending(CheckedApply) -> Array[ApplyObligation]
-
-pub fn apply_pending_at(CheckedApply, Int) -> ApplyObligation?
-
-pub fn apply_pending_count(CheckedApply) -> Int
-
-pub fn apply_source(CheckedApply) -> @decode_core.Cursor
-
-pub fn apply_usage(CheckedApply) -> Usage
-
-pub fn apply_with_name(CheckedApply) -> String
-
 pub fn check(Operation, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedGraph, Issue]
-
-pub fn check_apply(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, @graph_contract.CheckedContract, Limits) -> Result[CheckedApply, Issue]
-
-pub fn check_diff(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedDiff, Issue]
-
-pub fn check_equality(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedEquality, Issue]
 
 pub fn check_match(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedMatch, MatchIssue]
 
@@ -65,49 +38,9 @@ pub fn check_selector(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_c
 
 pub fn check_shortest(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedShortest, MatchIssue]
 
-pub fn check_structural(StructuralOperation, @decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedStructural, Issue]
-
 pub fn check_subgraph(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSubgraph, MatchIssue]
 
 pub fn check_traverse(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedTraverse, MatchIssue]
-
-pub fn check_union(@decode_core.Cursor, @carrier_contract.Carrier, Array[@carrier_contract.Carrier], Limits) -> Result[CheckedUnion, Issue]
-
-pub fn diff_common_graph(CheckedDiff) -> @carrier_contract.Graph
-
-pub fn diff_contract(CheckedDiff) -> @value_contract.Contract
-
-pub fn diff_graph_contract(CheckedDiff) -> @graph_contract.CheckedContract
-
-pub fn diff_output(CheckedDiff) -> @carrier_contract.Carrier
-
-pub fn diff_pending(CheckedDiff) -> Array[DeltaObligation]
-
-pub fn diff_pending_at(CheckedDiff, Int) -> DeltaObligation?
-
-pub fn diff_pending_count(CheckedDiff) -> Int
-
-pub fn diff_source(CheckedDiff) -> @decode_core.Cursor
-
-pub fn diff_usage(CheckedDiff) -> Usage
-
-pub fn diff_with_name(CheckedDiff) -> String
-
-pub fn equality_input(CheckedEquality, @relation_schema.Side) -> @carrier_contract.Graph
-
-pub fn equality_output(CheckedEquality) -> @carrier_contract.Carrier
-
-pub fn equality_pending(CheckedEquality) -> Array[EqualityObligation]
-
-pub fn equality_pending_at(CheckedEquality, Int) -> EqualityObligation?
-
-pub fn equality_pending_count(CheckedEquality) -> Int
-
-pub fn equality_source(CheckedEquality) -> @decode_core.Cursor
-
-pub fn equality_usage(CheckedEquality) -> Usage
-
-pub fn equality_with_name(CheckedEquality) -> String
 
 pub fn hop_direction(TraversalHop) -> Direction
 
@@ -247,10 +180,6 @@ pub fn property_element_keys(PropertyElement) -> Array[@relation_schema.FieldNam
 
 pub fn property_element_properties(PropertyElement) -> Array[(@relation_schema.FieldName, @relation_schema.FieldName)]
 
-pub fn property_strategy_kind(PropertyStrategy) -> FieldStrategy
-
-pub fn property_strategy_name(PropertyStrategy) -> String
-
 pub fn reach_direction(CheckedReach) -> Direction
 
 pub fn reach_input(CheckedReach) -> @carrier_contract.Carrier
@@ -331,28 +260,6 @@ pub fn shortest_weight(CheckedShortest) -> @relation_schema.FieldName?
 
 pub fn source(CheckedGraph) -> @decode_core.Cursor
 
-pub fn structural_operation(CheckedStructural) -> StructuralOperation
-
-pub fn structural_output(CheckedStructural) -> @carrier_contract.Carrier
-
-pub fn structural_pending(CheckedStructural) -> Array[StructuralObligation]
-
-pub fn structural_pending_at(CheckedStructural, Int) -> StructuralObligation?
-
-pub fn structural_pending_count(CheckedStructural) -> Int
-
-pub fn structural_source(CheckedStructural) -> @decode_core.Cursor
-
-pub fn structural_strategies(CheckedStructural, @relation_schema.Side) -> Array[PropertyStrategy]
-
-pub fn structural_strategy_at(CheckedStructural, @relation_schema.Side, Int) -> PropertyStrategy?
-
-pub fn structural_strategy_count(CheckedStructural, @relation_schema.Side) -> Int
-
-pub fn structural_usage(CheckedStructural) -> Usage
-
-pub fn structural_with_name(CheckedStructural) -> String
-
 pub fn subgraph_edges(CheckedSubgraph) -> CheckedPredicate?
 
 pub fn subgraph_nodes(CheckedSubgraph) -> CheckedSelector
@@ -399,48 +306,11 @@ pub fn traverse_start(CheckedTraverse) -> CheckedSelector
 
 pub fn traverse_usage(CheckedTraverse) -> PredicateUsage
 
-pub fn union_count(CheckedUnion) -> Int
-
-pub fn union_fold_at(CheckedUnion, Int) -> CheckedStructural?
-
-pub fn union_input(CheckedUnion) -> @carrier_contract.Carrier
-
-pub fn union_operand_at(CheckedUnion, Int) -> @carrier_contract.Carrier?
-
-pub fn union_output(CheckedUnion) -> @carrier_contract.Carrier
-
-pub fn union_source(CheckedUnion) -> @decode_core.Cursor
-
-pub fn union_usage(CheckedUnion) -> Usage
-
 pub fn usage(CheckedGraph) -> Usage
 
 // Errors
 
 // Types and methods
-pub(all) enum ApplyObligation {
-  RequireExactlyOneDeltaRow
-  ValidateDeltaVersionAndClosedShape
-  MatchPinnedGraphContract
-  AdmitBaseUnderPinnedContract
-  MatchExactBaseIdentity
-  ValidateOrderedUniqueActions
-  ValidateExactBeforeRecords
-  ValidateAddRemoveUpdateExistence
-  ApplyNodeAndEdgeChangesTogether
-  ValidateResultEndpointsAndContract
-  MatchExactTargetIdentity
-  PreserveGraphPolicyDependencies
-  ResolveApplyResources
-  ResolveSgaProfile
-} derive(Eq, @debug.Debug)
-
-type CheckedApply
-
-type CheckedDiff
-
-type CheckedEquality
-
 type CheckedGraph
 
 type CheckedMatch
@@ -461,13 +331,9 @@ type CheckedSelector
 
 type CheckedShortest
 
-type CheckedStructural
-
 type CheckedSubgraph
 
 type CheckedTraverse
-
-type CheckedUnion
 
 pub(all) enum ComponentKind {
   Weak
@@ -487,17 +353,6 @@ pub enum Count {
   Parameter(String)
 }
 
-pub(all) enum DeltaObligation {
-  EmitDeltaVersion
-  AdmitSnapshotsUnderCommonContract
-  EmitGraphContractIdentity
-  BindBaseAndTargetIdentities
-  EmitCompleteBeforeAfterRecords
-  SortUniqueActionIdentities
-  ResolveDeltaResources
-  ResolveSgaProfile
-} derive(Eq, @debug.Debug)
-
 pub(all) enum Direction {
   Incoming
   Outgoing
@@ -507,23 +362,6 @@ pub(all) enum Direction {
 pub(all) enum EntityKind {
   Nodes
   Edges
-} derive(Eq, @debug.Debug)
-
-pub(all) enum EqualityObligation {
-  AdmitBothGraphs
-  CompareTypedCanonicalGraphs
-  ResolveComparisonResources
-  ResolveSgaProfile
-} derive(Eq, @debug.Debug)
-
-pub(all) enum FieldStrategy {
-  ExactEqual
-  SetUnion
-  SetDifference
-  NumberSum
-  NumberMean
-  NumberMin
-  NumberMax
 } derive(Eq, @debug.Debug)
 
 pub struct Issue {
@@ -705,11 +543,6 @@ pub(all) enum PropertyPathMode {
   Acyclic
 } derive(Eq, @debug.Debug)
 
-pub struct PropertyStrategy {
-  name : String
-  strategy : FieldStrategy
-}
-
 pub(all) enum ReachObligation {
   AdmitReachGraph
   RequireReachStartMembership
@@ -753,27 +586,6 @@ pub(all) enum ShortestObligation {
   BindShortestOutputGuard(String)
   ResolveShortestResources
   ResolveShortestProfile
-} derive(Eq, @debug.Debug)
-
-pub(all) enum StructuralObligation {
-  AdmitGraphsUnderCommonContract
-  CompareCompleteIdentityPayloads
-  RejectUnspecifiedConflicts
-  ApplyEveryAuthoredStrategy
-  KeepCompleteOneSidedUnionRecords
-  KeepOnlyLeftSubtractionRecords
-  CloseSubtractionEndpoints
-  ValidateCanonicalSetOperations
-  ValidateFiniteNumericResults
-  PreservePolicyDependencies
-  ResolveStructuralResources
-  ResolveSgaProfile
-} derive(Eq, @debug.Debug)
-
-pub(all) enum StructuralOperation {
-  Graft
-  Union
-  Subtract
 } derive(Eq, @debug.Debug)
 
 pub(all) enum SubgraphObligation {

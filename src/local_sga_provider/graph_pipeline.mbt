@@ -460,18 +460,13 @@ fn advance_execution(
         }
       }
       StartProjection => {
-        let relation_step = match
-          @lower.sequence_step(value.sequence, value.projection_step) {
-          Some(@lower.GraphRelationStep(_)) => true
-          _ => false
-        }
         let direct_view = if value.graph is None &&
           value.carrier_inputs.length() == 1 {
           Some(value.carrier_inputs[0])
         } else {
           None
         }
-        let input = if relation_step || direct_view is Some(_) {
+        let input = if direct_view is Some(_) {
           None
         } else {
           guard value.graph is Some(output) else {

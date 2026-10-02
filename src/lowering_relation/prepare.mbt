@@ -62,16 +62,11 @@ pub enum Payload {
   SetRows(@set.CheckedSet)
   NestRows(@nest.CheckedNest)
   BasicGraph(@graph.CheckedGraph)
-  StructuralGraph(@graph.CheckedStructural)
-  GraphUnion(@graph.CheckedUnion)
   GraphMatchRows(@graph.CheckedMatch)
   GraphReachRows(@graph.CheckedReach)
   GraphSubgraphValue(@graph.CheckedSubgraph)
   GraphTraverseRows(@graph.CheckedTraverse)
   GraphShortestRows(@graph.CheckedShortest)
-  GraphEqualityRows(@graph.CheckedEquality)
-  GraphDiffRows(@graph.CheckedDiff)
-  GraphApplyValue(@graph.CheckedApply)
   PropertyGraphConstructionValue(@graph.CheckedPropertyConstruction)
   VectorValue(@vector.CheckedVector)
   NearestValue(@vector.CheckedNearest)
@@ -225,13 +220,6 @@ pub fn operation(value : PreparedNode) -> String {
         @graph.Components => "SGA.components"
         @graph.GraphBounds => "SGA.bounds_check"
       }
-    StructuralGraph(value) =>
-      match @graph.structural_operation(value) {
-        @graph.Graft => "SGA.graft"
-        @graph.Union => "SGA.union_structural"
-        @graph.Subtract => "SGA.diff_structural"
-      }
-    GraphUnion(_) => "SGA.union_structural"
     GraphMatchRows(value) =>
       match @graph.match_entity(value) {
         @graph.Nodes => "SGA.match_nodes"
@@ -241,9 +229,6 @@ pub fn operation(value : PreparedNode) -> String {
     GraphSubgraphValue(_) => "SGA.subgraph"
     GraphTraverseRows(_) => "SGA.traverse"
     GraphShortestRows(_) => "SGA.shortest_path"
-    GraphEqualityRows(_) => "SGA.equal"
-    GraphDiffRows(_) => "SGA.diff"
-    GraphApplyValue(_) => "SGA.apply_delta"
     PropertyGraphConstructionValue(_) => "BRIDGE.rows.to_property_graph"
     VectorValue(value) =>
       match @vector.operation(value) {
@@ -327,11 +312,6 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     Subgraph(checked~, ..) => Some(GraphSubgraphValue(checked))
     Traverse(checked~, ..) => Some(GraphTraverseRows(checked))
     Shortest(checked~, ..) => Some(GraphShortestRows(checked))
-    GraphEquality(checked~, ..) => Some(GraphEqualityRows(checked))
-    GraphDiff(checked~, ..) => Some(GraphDiffRows(checked))
-    GraphApply(checked~, ..) => Some(GraphApplyValue(checked))
-    GraphStructural(checked~, ..) => Some(StructuralGraph(checked))
-    GraphUnion(v) => Some(GraphUnion(v))
     Pool(value) => Some(PoolValue(value))
     Nearest(checked~, ..) => Some(NearestValue(checked))
     Ranking(value) => Some(RankingValue(value))
@@ -458,16 +438,6 @@ pub fn prepare(
           },
           1,
         )
-      StructuralGraph(value) =>
-        (
-          match @graph.structural_operation(value) {
-            @graph.Graft => "graft_graph"
-            @graph.Union => "union_graphs"
-            @graph.Subtract => "subtract_graphs"
-          },
-          2,
-        )
-      GraphUnion(value) => ("union_graphs", 1 + @graph.union_count(value))
       GraphMatchRows(value) =>
         (
           match @graph.match_entity(value) {
@@ -519,9 +489,6 @@ pub fn prepare(
         }
         ("shortest_path", 1 + relations)
       }
-      GraphEqualityRows(_) => ("graphs_equal", 2)
-      GraphDiffRows(_) => ("graph_diff", 2)
-      GraphApplyValue(_) => ("apply_graph_delta", 2)
       PropertyGraphConstructionValue(checked) =>
         (
           "property_graph",
@@ -718,16 +685,11 @@ pub fn prepare(
       CrossJoinRows(_) => None
       NestRows(_) => None
       BasicGraph(_) => None
-      StructuralGraph(_) => None
-      GraphUnion(_) => None
       GraphMatchRows(_) => None
       GraphReachRows(_) => None
       GraphSubgraphValue(_) => None
       GraphTraverseRows(_) => None
       GraphShortestRows(_) => None
-      GraphEqualityRows(_) => None
-      GraphDiffRows(_) => None
-      GraphApplyValue(_) => None
       PropertyGraphConstructionValue(_) => None
       VectorValue(_) => None
       NearestValue(_) => None

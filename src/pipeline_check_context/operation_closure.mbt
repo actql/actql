@@ -61,10 +61,6 @@ pub fn close_program_operations(
           GraphSelectorExecution(v) => v.site
           SubgraphExecution(v) => v.site
           GraphMatchExecution(v) => v.site
-          GraphApplyExecution(v) => v.site
-          GraphDiffExecution(v) => v.site
-          GraphEqualityExecution(v) => v.site
-          GraphStructuralExecution(v) => v.site
           VectorExecution(v) => v.site
           NearestExecution(v) => v.site
           PoolExecution(v) => v.site

@@ -96,18 +96,6 @@ fn direct_execution_candidate(
     Ok(None) => ()
     other => return other
   }
-  match graph_equality_execution_check(site, policy) {
-    Ok(None) => ()
-    other => return other
-  }
-  match graph_diff_execution_check(site, policy) {
-    Ok(None) => ()
-    other => return other
-  }
-  match graph_apply_execution_check(site, policy) {
-    Ok(None) => ()
-    other => return other
-  }
   match graph_match_execution_check(site, policy) {
     Ok(None) => ()
     other => return other
@@ -129,10 +117,6 @@ fn direct_execution_candidate(
     other => return other
   }
   match shortest_execution_check(site) {
-    Ok(None) => ()
-    other => return other
-  }
-  match graph_structural_execution_check(site, policy) {
     Ok(None) => ()
     other => return other
   }
