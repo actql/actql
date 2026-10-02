@@ -98,4 +98,6 @@ Store Graph catalog publication and complete mechanized correspondence are
 outside this initial retained-VALUES vertical. The additive AoA model/laws use
 their distinct initial identifiers; executable conformance is not represented
 as a proof of the entire implementation. A/B task splitting, carrier tasks and
-provider implementation are not changed by this unit.
+Frontend implementation are not changed by this unit. The existing Graph
+provider dispatch gains the checked constructor connection while retaining its
+bounded sessions and owners; no parallel provider is introduced.
