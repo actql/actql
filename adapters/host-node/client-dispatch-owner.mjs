@@ -6,6 +6,7 @@ import {CapturedRunPublicationError,
 import {acquiredTaskPublicationPlan} from './local-values-plan.mjs';
 import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
 
 export function installNodeClientDispatchOwner({moon, control, journal,
   store, checkpoints, startRun, hostConnection, beforeDispatch, observed,
@@ -25,6 +26,38 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     new Error('ClientRunCancellationRequested'));
   const live = ref => current(ref)?.settled === false;
   const operation = ref => current(ref)?.promise;
+
+  async function acquireSource(entry, preparedProgram, preparedSource, sourceAccess) {
+    if (entry.sourceCapture !== undefined) {
+      throw new TypeError('ClientSourceCaptureAlreadyRetained');
+    }
+    const captureStartedAt = now();
+    await step('acquisition_started', {ref: entry.ref});
+    entry.physicalStarted = true;
+    entry.physicalWorkMayHaveStarted = true;
+    const acquisition = acquisitionEndHandoff();
+    try {
+      entry.sourceCapture = await sourceProfile.open({preparedProgram,
+        registry, values, fragment, ordered, sourceAccess,
+        signal: entry.abort.signal, preparedSource,
+        reportAcquisitionFailure: acquisition.retain});
+    } catch (error) {
+      const ended = acquisition.outcome(error);
+      if (ended.outcome === 'not_started' || ended.outcome === 'stopped') {
+        entry.stopObservationPending = true;
+      } else if (ended.recovery !== undefined) {
+        entry.cleanupOwner = ended.recovery;
+      }
+      throw error;
+    }
+    const captureCompletedAt = now();
+    await step('acquisition_completed', {ref: entry.ref});
+    const sourceEvidenceWire = await entry.sourceCapture.issueSourceEvidence({
+      authorityScopeCid,
+      effectiveDataPolicyCid: entry.sourceCapture.checkedSource.sourceDataPolicyCid});
+    return {captured: entry.sourceCapture, captureStartedAt, captureCompletedAt,
+      sourceEvidenceWire};
+  }
 
   function retire(entry) {
     if (entry.settled && entry.cleanupOwner === undefined &&
@@ -176,10 +209,11 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       // A checked model barrier is not a Values task. The installed Model
       // connection must consume this exact plan and transfer physical custody
       // before advancing; this supervisor still owns the one Run-start claim.
-      if (inferring && (acquiring || typeof runInfer !== 'function')) {
+      if (inferring && typeof runInfer !== 'function') {
         throw new Error('InstalledInferDispatchUnavailable');
       }
       let setup;
+      let acquiredInfer;
       if (!acquiring && !inferring) {
         setup = moon.clientProgramOpenSourceFreeLocalHost(
           preparedProgram, registry, values, 1n, 0n, 0n, 0n,
@@ -214,39 +248,21 @@ export function installNodeClientDispatchOwner({moon, control, journal,
             sourceAccess);
           held.preparedSourceAccess = sourceAccess;
         }
-        const captureStartedAt = now();
-        await step('acquisition_started', {ref: accepted.ref});
-        entry.physicalWorkMayHaveStarted = true;
-        const acquisition = acquisitionEndHandoff();
-        // The installed source's adapter owns the physical read; the
-        // returned capture is this entry's to close. When it returns none,
-        // only the adapter's confirmed end (not started, or stopped) is
-        // observed as this Run's stop; an unknown end stays with its
-        // recovery owner, or unresolved, and is never inferred.
-        try {
-          entry.sourceCapture = await sourceProfile.open({preparedProgram,
-            registry, values, fragment, ordered, sourceAccess,
-            signal: entry.abort.signal,
-            preparedSource: held.preparedSource,
-            reportAcquisitionFailure: acquisition.retain});
-        } catch (error) {
-          const ended = acquisition.outcome(error);
-          if (ended.outcome === 'not_started' ||
-              ended.outcome === 'stopped') {
-            entry.stopObservationPending = true;
-          } else if (ended.recovery !== undefined) {
-            entry.cleanupOwner = ended.recovery;
-          }
-          throw error;
-        }
-        const captureCompletedAt = now();
-        await step('acquisition_completed', {ref: accepted.ref});
-        const sourceEvidenceWire =
-          await entry.sourceCapture.issueSourceEvidence({
-            authorityScopeCid,
-            effectiveDataPolicyCid:
-              entry.sourceCapture.checkedSource.sourceDataPolicyCid});
-        held.plan = acquiredTaskPublicationPlan({moon, control,
+        const {captureStartedAt, captureCompletedAt, sourceEvidenceWire} =
+          await acquireSource(entry, preparedProgram, held.preparedSource, sourceAccess);
+        if (inferring) {
+          const captured = entry.sourceCapture;
+          const input = checked(moon.clientProgramAdmitInferCapturedInput(
+            preparedProgram, captured.inferStep, captured.capturedSource,
+            captured.identity, captured.requirement, captured.logicalInput,
+            sourceEvidenceWire, authorityScopeCid,
+            captured.checkedSource.sourceDataPolicyCid,
+            captureStartedAt, captureCompletedAt));
+          acquiredInfer = {input, sourceEvidence: control.admitRunEvidence(
+            'source_evidence', sourceEvidenceWire,
+            {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100})};
+        } else {
+          held.plan = acquiredTaskPublicationPlan({moon, control,
           acquired: held.plan, preparedProgram,
           captured: entry.sourceCapture, sourceEvidenceWire,
           authorityScopeCid,
@@ -254,6 +270,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
             entry.sourceCapture.checkedSource.sourceDataPolicyCid,
           captureStartedAt, captureCompletedAt, namespaceId,
           requestId: submission.requestId, storeAuthorityCid, now});
+        }
         setup = entry.sourceCapture.setup;
       }
       entry.abort.signal.throwIfAborted();
@@ -261,6 +278,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       entry.computeStartAttempted = true;
       if (inferring) {
         await runInfer({preparedProgram, plan: held.plan, store,
+          acquiredInfer,
           principalId: actual, signal: entry.abort.signal,
           retainExecution(execution) {
             if (entry.cleanupOwner !== undefined &&
@@ -361,6 +379,9 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       entry.runInvoked = true;
       return run(Object.freeze({
       signal: entry.abort.signal,
+      acquireSource({preparedProgram, preparedSource, sourceAccess}) {
+        return acquireSource(entry, preparedProgram, preparedSource, sourceAccess);
+      },
       beginPhysicalWork() {
         entry.physicalStarted = true;
         entry.physicalWorkMayHaveStarted = true;

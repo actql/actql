@@ -175,15 +175,17 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
         capturedSource, identity, requirement));
     // An Effect Run is opened only after durable Run admission. Acquisition
     // cannot mint that owner or begin its computation as a read-only Run.
-    const setup = owner.effectful ? undefined :
+    const inferStep = owner.effectful ? undefined :
+      moon.clientProgramSelectedInferStep(owner.checkedOwner);
+    const setup = owner.effectful || inferStep !== undefined ? undefined :
       moon.clientProgramOpenCapturedLocalHost(owner.checkedOwner,
         capturedSource, registry, values, 1n, 0n, 0n, 0n,
         fragment, ordered);
-    if (!owner.effectful && setup === undefined) {
+    if (!owner.effectful && inferStep === undefined && setup === undefined) {
       throw new Error('InstalledSourceHostUnavailable');
     }
     return Object.freeze({capture, identity, logicalInput, requirement,
-      checkedSource, setup,
+      checkedSource, setup, inferStep, capturedSource,
       issueSourceEvidence: options => issueNativeSourceEvidence(capture,
         {...options, context: evidenceContext, identity, logicalInput}),
       close: () => capture.close()});
