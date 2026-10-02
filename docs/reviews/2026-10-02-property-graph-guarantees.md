@@ -494,3 +494,24 @@ Current related suites pass **99/99 each on JS, Wasm and native**:
 `/private/tmp/property-graph-reach-retirement-focused-{js,wasm,native}-20261002.log`.
 No warning exemption or fallback is introduced. Full Core/spec, fresh public
 snapshot and required CI on a submitted SHA remain open.
+
+The Reach retirement is committed as
+`cc1c78ebc` (see Git for its full SHA). The committed official API check passes:
+`/private/tmp/property-graph-reach-retirement-api-committed-20261002.log`.
+
+## Path owner node-emission removal
+
+The remaining homogeneous node-depth initialization, node endpoint sorting,
+node row emission and their scratch state are removed from the shared path
+owner. There is no `emit_nodes` flag or alternate node kernel. Both stored and
+viewed traversal dispatch require an explicit current path mode and path
+emission, as does the installed provider. Path frontier reservation, work,
+value limits, typed identities and cancellation are unchanged.
+
+The same independent MATCH/TRAIL, snapshot, storage and custody suite passes
+**99/99 on JS, Wasm and native** after removal:
+`/private/tmp/property-graph-node-emission-retirement-focused-{js,wasm,native}-20261002.log`.
+The narrow construction/selector suite also passes 20/20. Obsolete homogeneous
+node traversal fixtures are not evidence for current support. Other retired
+consumer kernels and typed/storage APIs still need removal; no final acceptance
+or public-source replacement is claimed here.

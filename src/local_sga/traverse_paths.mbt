@@ -20,7 +20,6 @@ priv enum TraversePathsPhase {
   CollectStarts
   SortStarts
   BeginStart
-  InitializeNodeDepths
   SeedStart
   BeginDepth
   ScanEdge
@@ -38,11 +37,6 @@ priv enum TraversePathsPhase {
   ComparePathNodes
   ComparePathEdges
   EmitPath
-  SortNodeBegin
-  SortNodeRun
-  SortNodeChoose
-  SortNodeWrite
-  EmitNode
   ReadField
   BuildNodeIds
   BuildEdgeIds
@@ -57,7 +51,6 @@ priv struct TraversePathsState {
   graph : @carrier.Graph
   schema : @schema.Schema
   prepared : @lower.PreparedGraphTraverse
-  emit_nodes : Bool
   starts : TraversePathStarts
   direction : @graph_type.Direction
   minimum_depth : Int
@@ -109,17 +102,6 @@ priv struct TraversePathsState {
   mut row_value_slots : Int
   value_item_attempts : Ref[Int]
   mut emitted : Int
-  mut node_depths : Array[Int]
-  mut node_order : Array[Int]
-  mut node_scratch : Array[Int]
-  mut node_sort_width : Int
-  mut node_sort_run : Int
-  mut node_sort_middle : Int
-  mut node_sort_end : Int
-  mut node_sort_left : Int
-  mut node_sort_right : Int
-  mut node_sort_write : Int
-  mut node_sort_choose_left : Bool
   mut workspace_slots : Int
   mut workspace_peak : Int
   mut control_work_remaining : Int
@@ -507,41 +489,6 @@ fn traverse_path_value(
 }
 
 ///|
-fn traverse_node_value(
-  state : TraversePathsState,
-  node : Int,
-  field : @schema.Field,
-) -> @value.CheckedValue? {
-  match field.name {
-    @schema.Unqualified("start_id") =>
-      graph_read_node_identity(
-        state.source,
-        state.start_nodes[state.start_scan],
-      ).bind(identity => {
-        @value.recheck_runtime_value(
-          identity.value,
-          field.contract,
-          state.value_limits,
-        )
-      })
-    @schema.Unqualified("node_id") =>
-      graph_read_node_identity(state.source, node).bind(identity => {
-        @value.recheck_runtime_value(
-          identity.value,
-          field.contract,
-          state.value_limits,
-        )
-      })
-    @schema.Unqualified("depth") =>
-      @value.checked_number_value(
-        state.node_depths[node].to_double(),
-        field.contract,
-      )
-    _ => None
-  }
-}
-
-///|
 fn traverse_paths_step(
   state : TraversePathsState,
   quantum : Int,
@@ -771,28 +718,6 @@ fn traverse_paths_step(
       BeginStart =>
         if state.start_scan >= state.start_nodes.length() {
           state.phase = Finish
-        } else if state.emit_nodes {
-          let nodes = graph_read_node_count(state.source).unwrap_or(-1)
-          if nodes > state.max_workspace_slots - state.workspace_slots {
-            return @bounded.Failed(TraversePathsWorkspaceLimit, progress, used)
-          }
-          state.workspace_slots += nodes
-          state.workspace_peak = Int::max(
-            state.workspace_peak,
-            state.workspace_slots,
-          )
-          state.node_depths = []
-          state.node_order = []
-          state.node_scratch = []
-          state.phase = InitializeNodeDepths
-        } else {
-          state.phase = SeedStart
-        }
-      InitializeNodeDepths =>
-        if state.node_depths.length() <
-          graph_read_node_count(state.source).unwrap_or(-1) {
-          state.node_depths.push(-1)
-          used += 1
         } else {
           state.phase = SeedStart
         }
@@ -805,16 +730,6 @@ fn traverse_paths_step(
         if state.minimum_depth == 0 && state.emitted >= state.max_rows {
           return @bounded.Failed(TraversePathsOutputLimit, progress, used)
         }
-        if state.emit_nodes && state.minimum_depth == 0 {
-          if state.max_workspace_slots - state.workspace_slots < slots + 2 {
-            return @bounded.Failed(TraversePathsWorkspaceLimit, progress, used)
-          }
-          let start = state.start_nodes[state.start_scan]
-          state.node_depths[start] = 0
-          state.node_order.push(start)
-          state.node_scratch.push(-1)
-          state.workspace_slots += 2
-        }
         state.workspace_slots += slots
         state.workspace_peak = Int::max(
           state.workspace_peak,
@@ -822,14 +737,12 @@ fn traverse_paths_step(
         )
         state.frontier_slots = slots
         state.frontier.push(path)
-        if !state.emit_nodes {
-          state.start_scan += 1
-        }
+        state.start_scan += 1
         state.depth = 0
         state.path_index = 0
         state.edge_occurrence = 0
         state.emit_index = 0
-        state.phase = if state.minimum_depth == 0 && !state.emit_nodes {
+        state.phase = if state.minimum_depth == 0 {
           EmitPath
         } else {
           BeginDepth
@@ -840,12 +753,7 @@ fn traverse_paths_step(
           state.workspace_slots -= state.frontier_slots
           state.frontier = []
           state.frontier_slots = 0
-          if state.emit_nodes {
-            state.node_sort_width = 1
-            state.phase = SortNodeBegin
-          } else {
-            state.phase = BeginStart
-          }
+          state.phase = BeginStart
         } else {
           state.path_index = 0
           state.edge_occurrence = 0
@@ -1096,8 +1004,7 @@ fn traverse_paths_step(
         if next_slots > state.max_workspace_slots - state.workspace_slots {
           return @bounded.Failed(TraversePathsWorkspaceLimit, progress, used)
         }
-        if !state.emit_nodes &&
-          state.depth + 1 >= state.minimum_depth &&
+        if state.depth + 1 >= state.minimum_depth &&
           state.emitted + state.next_frontier.length() >= state.max_rows {
           return @bounded.Failed(TraversePathsOutputLimit, progress, used)
         }
@@ -1141,24 +1048,6 @@ fn traverse_paths_step(
       }
       CommitPath => {
         used += 1
-        if state.emit_nodes &&
-          state.depth + 1 >= state.minimum_depth &&
-          state.node_depths[state.candidate_node] < 0 {
-          if state.emitted + state.node_order.length() >= state.max_rows {
-            return @bounded.Failed(TraversePathsOutputLimit, progress, used)
-          }
-          if state.max_workspace_slots - state.workspace_slots < 2 {
-            return @bounded.Failed(TraversePathsWorkspaceLimit, progress, used)
-          }
-          state.node_depths[state.candidate_node] = state.depth + 1
-          state.node_order.push(state.candidate_node)
-          state.node_scratch.push(-1)
-          state.workspace_slots += 2
-          state.workspace_peak = Int::max(
-            state.workspace_peak,
-            state.workspace_slots,
-          )
-        }
         let nodes = state.pending_nodes
         let edges = state.pending_edges
         state.pending_nodes = []
@@ -1177,8 +1066,7 @@ fn traverse_paths_step(
           state.next_frontier_slots = 0
           state.depth += 1
           state.emit_index = 0
-          state.phase = if state.depth >= state.minimum_depth &&
-            !state.emit_nodes {
+          state.phase = if state.depth >= state.minimum_depth {
             EmitPath
           } else {
             BeginDepth
@@ -1283,117 +1171,6 @@ fn traverse_paths_step(
           state.values = []
           state.phase = ReadField
         }
-      SortNodeBegin =>
-        if state.node_sort_width >= state.node_order.length() {
-          state.emit_index = 0
-          state.phase = EmitNode
-        } else {
-          state.node_sort_run = 0
-          state.phase = SortNodeRun
-        }
-      SortNodeRun =>
-        if state.node_sort_run >= state.node_order.length() {
-          let prior = state.node_order
-          state.node_order = state.node_scratch
-          state.node_scratch = prior
-          state.node_sort_width = if state.node_sort_width >
-            state.node_order.length() / 2 {
-            state.node_order.length()
-          } else {
-            state.node_sort_width * 2
-          }
-          state.phase = SortNodeBegin
-        } else {
-          state.node_sort_middle = state.node_sort_run +
-            Int::min(
-              state.node_sort_width,
-              state.node_order.length() - state.node_sort_run,
-            )
-          state.node_sort_end = state.node_sort_middle +
-            Int::min(
-              state.node_sort_width,
-              state.node_order.length() - state.node_sort_middle,
-            )
-          state.node_sort_left = state.node_sort_run
-          state.node_sort_right = state.node_sort_middle
-          state.node_sort_write = state.node_sort_run
-          state.phase = SortNodeChoose
-        }
-      SortNodeChoose =>
-        if state.node_sort_write >= state.node_sort_end {
-          state.node_sort_run = state.node_sort_end
-          state.phase = SortNodeRun
-        } else if state.node_sort_left >= state.node_sort_middle {
-          state.node_sort_choose_left = false
-          state.phase = SortNodeWrite
-        } else if state.node_sort_right >= state.node_sort_end {
-          state.node_sort_choose_left = true
-          state.phase = SortNodeWrite
-        } else {
-          used += 1
-          guard graph_read_node_identity(
-              state.source,
-              state.node_order[state.node_sort_left],
-            )
-            is Some(left) &&
-            graph_read_node_identity(
-              state.source,
-              state.node_order[state.node_sort_right],
-            )
-            is Some(right) else {
-            return @bounded.Failed(
-              TraversePathsInputUnavailable,
-              progress,
-              used,
-            )
-          }
-          let order = match
-            compare_traversal_node_ids(
-              state,
-              left,
-              right,
-              state.node_order[state.node_sort_left],
-              state.node_order[state.node_sort_right],
-            ) {
-            Ok(value) => value
-            Err(issue) =>
-              return @bounded.Failed(
-                TraversePathsKeyOrder(issue),
-                progress,
-                used,
-              )
-          }
-          state.node_sort_choose_left = order <= 0
-          state.phase = SortNodeWrite
-        }
-      SortNodeWrite => {
-        used += 1
-        state.node_scratch[state.node_sort_write] = if state.node_sort_choose_left {
-          let selected = state.node_order[state.node_sort_left]
-          state.node_sort_left += 1
-          selected
-        } else {
-          let selected = state.node_order[state.node_sort_right]
-          state.node_sort_right += 1
-          selected
-        }
-        state.node_sort_write += 1
-        state.phase = SortNodeChoose
-      }
-      EmitNode =>
-        if state.emit_index >= state.node_order.length() {
-          state.workspace_slots -= state.node_depths.length() +
-            state.node_order.length() * 2
-          state.node_depths = []
-          state.node_order = []
-          state.node_scratch = []
-          state.start_scan += 1
-          state.phase = BeginStart
-        } else {
-          state.column = 0
-          state.values = []
-          state.phase = ReadField
-        }
       ReadField =>
         if state.column < @schema.field_count(state.schema) {
           guard @schema.field_at(state.schema, state.column) is Some(field) else {
@@ -1482,17 +1259,9 @@ fn traverse_paths_step(
             }
             _ => {
               used += 1
-              let value = if state.emit_nodes {
-                traverse_node_value(
-                  state,
-                  state.node_order[state.emit_index],
-                  field,
-                )
-              } else {
-                state.frontier
+              let value = state.frontier
                 .get(state.emit_index)
                 .bind(path => traverse_path_value(state, path, field))
-              }
               guard value is Some(value) else {
                 return @bounded.Failed(
                   TraversePathsInputUnavailable,
@@ -1578,7 +1347,7 @@ fn traverse_paths_step(
             state.emitted += 1
             state.emit_index += 1
             progress += 1
-            state.phase = if state.emit_nodes { EmitNode } else { EmitPath }
+            state.phase = EmitPath
           }
           Err(issue) =>
             return @bounded.Failed(TraversePathsOutput(issue), progress, used)
@@ -1624,9 +1393,6 @@ fn cleanup_traverse_paths_state(state : TraversePathsState) -> Bool {
   }
   state.start_selected.clear()
   state.start_nodes.clear()
-  state.node_depths.clear()
-  state.node_order.clear()
-  state.node_scratch.clear()
   state.frontier.clear()
   state.next_frontier.clear()
   state.pending_nodes.clear()
@@ -1642,9 +1408,6 @@ fn cleanup_traverse_paths_state(state : TraversePathsState) -> Bool {
 fn traverse_paths_private_entries(state : TraversePathsState) -> Int {
   let mut count = state.start_selected.length() +
     state.start_nodes.length() +
-    state.node_depths.length() +
-    state.node_order.length() +
-    state.node_scratch.length() +
     state.pending_nodes.length() +
     state.pending_edges.length() +
     state.values.length()
@@ -1733,7 +1496,8 @@ fn start_traverse_paths_read(
     @lower.node_input_target(node, 0) is Some(target) &&
     @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
     is Some(@carrier.GraphValue(graph)) &&
-    @lower.graph_traverse_property_path_mode(prepared) is Some(_) else {
+    @lower.graph_traverse_property_path_mode(prepared) is Some(_) &&
+    @lower.graph_traverse_emits_paths(prepared) else {
     return Err(InvalidTraversePathsKernel)
   }
   let starts = match
@@ -1890,7 +1654,6 @@ fn start_traverse_paths_read(
     graph,
     schema: @lower.graph_traverse_output_schema(prepared),
     prepared,
-    emit_nodes: !@lower.graph_traverse_emits_paths(prepared),
     starts,
     direction,
     minimum_depth: minimum.to_int(),
@@ -1948,17 +1711,6 @@ fn start_traverse_paths_read(
     row_value_slots: 0,
     value_item_attempts,
     emitted: 0,
-    node_depths: [],
-    node_order: [],
-    node_scratch: [],
-    node_sort_width: 1,
-    node_sort_run: 0,
-    node_sort_middle: 0,
-    node_sort_end: 0,
-    node_sort_left: 0,
-    node_sort_right: 0,
-    node_sort_write: 0,
-    node_sort_choose_left: false,
     workspace_slots: node_count + predicate_workspace_width,
     workspace_peak: node_count + predicate_workspace_width,
     control_work_remaining: limits.max_work,

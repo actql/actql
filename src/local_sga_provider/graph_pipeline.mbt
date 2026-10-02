@@ -107,6 +107,8 @@ fn accepts_traverse(value : @lower.PreparedGraphTraverse) -> Bool {
   } else {
     @lower.graph_traverse_bounds(value)
   }
+  @lower.graph_traverse_emits_paths(value) &&
+  @lower.graph_traverse_property_path_mode(value) is Some(_) &&
   bounds is Some((minimum, maximum)) &&
   minimum <= 2147483647L &&
   maximum <= 2147483647L &&
@@ -116,12 +118,6 @@ fn accepts_traverse(value : @lower.PreparedGraphTraverse) -> Bool {
     @lower.graph_traverse_start_predicate(value) is Some(_)
   ) &&
   hop_count > 0 &&
-  (
-    !@lower.graph_traverse_emits_paths(value) ||
-    @lower.graph_traverse_start_id_count(value) > 0 ||
-    @lower.graph_traverse_start_relation_field(value) is Some(_) ||
-    @lower.graph_traverse_start_predicate(value) is Some(_)
-  ) &&
   ({
     let mut valid = true
     for hop in 0..<hop_count {
