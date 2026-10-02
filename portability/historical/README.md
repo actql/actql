@@ -62,3 +62,17 @@ snapshot and aggregate Core acceptance remain separately required.
   limits; TRAIL's row guard remains separate from its hop ceiling. Time-series
   and all non-Graph cases remain executable. Unsupported Graph guard/slot
   branches do not become fabricated accepted operations.
+
+- `pipeline-{construction,carriers,empty-selector}-pre-property-graph.mbt.txt`:
+  original fixtures from `6d137b83ad7459d142f44e4acc98ebad95f8b92d`.
+  Current executable fixtures retain constructor operand ordering/repetition,
+  MATCH row identity, shared preflight budgets and an exactly empty typed
+  selector through current Graph construction and MATCH. TRAIL paths remain
+  supported; traversed-node output and shortest paths require explicit refusal.
+  These archived positives do not claim current support for those consumers.
+
+- `pipeline-operation-obligations-pre-property-graph.mbt.txt`: original mixed
+  provenance fixture from the same checkpoint. Aggregate call provenance is
+  unchanged. Current TRAIL retains literal/repeated and Relation selector
+  owners, indexed boundary checks and source locations; unsupported subgraph,
+  shortest and union cannot manufacture historical selector/fold obligations.
