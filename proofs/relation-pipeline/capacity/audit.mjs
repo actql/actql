@@ -14,6 +14,8 @@ import { admitClaim, inspectEvents, violation, workspaceBound, inputs } from './
 import { checkCensus } from './census.mjs';
 import { auditCoreProbe } from './backing/core-probe.mjs';
 import { inspectPipelineBacking } from './backing/pipeline.mjs';
+import { auditParentStartup } from './parent-control/audit.mjs';
+import { rejectParentSubstitutions } from './parent-control/regression.mjs';
 export function validate(report, current, targets, read) {
   assert.equal(report.version, 'actql-relation-pipeline-structure/0.1');
   assert.deepEqual(report.source, current, 'Stale capacity source');
@@ -27,6 +29,10 @@ export function validate(report, current, targets, read) {
   assert(read(report.backingModel.logPath).toString().includes('4 conditional native Map extent propositions checked'));
   assert(read(report.backingModel.logPath).toString().includes('3 selected native Array extent propositions checked'));
   admitClaim(report.claim);
+  if (targets.includes('native')) {
+    auditParentStartup(report.parentStartup, current, read);
+    rejectParentSubstitutions(report.parentStartup, current, read);
+  } else assert.equal(report.parentStartup, undefined, 'Native parent evidence cannot apply to a portable-only campaign');
   const corpus = fixedCorpus(registry, registrations).filter(c => c.steps.filter(s => s.op === 'distinct').length === 1);
   assert.deepEqual(report.corpus, corpus, 'Scope must come from the reviewed corpus, not caller labels');
   assert.equal(report.seed, 148256);
