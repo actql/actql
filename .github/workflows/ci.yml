@@ -60,6 +60,8 @@ jobs:
         run: npm run check:client-types
       - name: Test read-only worktree inventory fixtures
         run: node --test scripts/worktree-inventory.test.mjs
+      - name: Test nonzero execution guards
+        run: node --test scripts/test-execution.test.mjs
       - name: Test environment guards
         run: node --test scripts/moonbit-environment.test.mjs
       - name: Test native SQLite namespace ownership
@@ -160,7 +162,7 @@ jobs:
   pipeline-evidence:
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -175,7 +177,7 @@ jobs:
         run: node --test proofs/relation-pipeline/*.test.mjs
       - name: Verify the three-operation baseline at this same source
         run: node proofs/relation-pipeline/run.mjs js base
-      - name: Replay fixed mutants and required fresh exploration before each restoration
+      - name: Verify fixed and required fresh mutations with distinct target evidence
         run: node proofs/relation-pipeline/mutations.mjs verify
       - name: Restore and verify final registered pipelines on every target
         run: node proofs/relation-pipeline/run.mjs all

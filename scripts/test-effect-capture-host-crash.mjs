@@ -2,6 +2,7 @@
 // graceful close or simulated provider failure substitutes for the stop.
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
+import {assertTestExecution, nodeTestArguments} from './test-execution.mjs';
 import {generateKeyPairSync} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
@@ -26,7 +27,7 @@ const environment = {...process.env,
   ACTQL_TEST_EFFECT_ENTRY: new URL('../adapters/host-node/entry.mjs', import.meta.url).href,
   ACTQL_TEST_ACQUIRED_SOURCE_ENTRY: new URL('../adapters/host-node/captured-duckdb-source.mjs', import.meta.url).href,
   ACTQL_TEST_EFFECT_CALL_LOG: log};
-const run = phase => spawnSync(process.execPath, [
+const args = phase => nodeTestArguments([
   '--experimental-test-module-mocks',
   '--import', new URL('./fixtures/effect-computation-probe-preload.mjs', import.meta.url).href,
   ...(phase === 'prepare' ? ['--import',
@@ -34,7 +35,8 @@ const run = phase => spawnSync(process.execPath, [
   '--test', '--test-name-pattern',
   '^acquired Effect waits durably and resumes through the public Host$',
   'adapters/host-node/remote-checkpoint-host.test.mjs',
-], {cwd: new URL('../', import.meta.url), encoding: 'utf8', timeout: 120_000,
+]);
+const run = phase => spawnSync(process.execPath, args(phase), {cwd: new URL('../', import.meta.url), encoding: 'utf8', timeout: 120_000,
   env: {...environment, ACTQL_TEST_HOST_CRASH_PHASE: phase,
     ...(phase === 'prepare' ? {ACTQL_TEST_CAPTURE_CRASH_BOUNDARY: boundary,
       ACTQL_TEST_CAPTURE_CRASH_RECORD: join(root, 'capture.json')} : {})}});
@@ -47,7 +49,7 @@ const before = await calls();
 assert.equal(before.split('\n').filter(line => line === 'compute').length, 1);
 assert.equal(before.split('\n').filter(line => line === 'source').length, 1);
 const recovery = run('recover');
-assert.equal(recovery.status, 0, recovery.stdout + recovery.stderr);
+assertTestExecution('node', process.execPath, args('recover'), recovery);
 const after = await calls();
 assert.equal(after.split('\n').filter(line => line === 'compute').length, 1);
 assert.equal(after.split('\n').filter(line => line === 'source').length, 1);
