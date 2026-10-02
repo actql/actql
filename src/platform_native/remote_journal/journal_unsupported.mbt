@@ -238,3 +238,11 @@ pub fn Journal::complete_output_intent(
 ) -> Result[Unit, NativeRemoteJournalIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+pub fn Journal::start_claimant(
+  _self : Journal,
+  _request : @remote.DispatchRequest,
+) -> Result[String?, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}

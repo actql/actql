@@ -558,7 +558,92 @@ try {
   };
   let expectedEntries = 0;
 
-  if (process.argv.includes('--output-report-only')) {
+  if (process.argv.includes('--release-recovery-only')) {
+    // The same physical Site and journals must discharge release after a
+    // bounded failure, a lost control reply, and loss of the live holder.
+    for (const [index, mode] of ['release-failure', 'lost-release', 'holder-exit', 'recovery-interrupted'].entries()) {
+      let lostRelease = false;
+      if (mode === 'lost-release') {
+        ackLossProxy = await observationAckLossProxy({origin: gateway.origin,
+          key: await readFile(join(root, 'server.key')),
+          cert: await readFile(join(root, 'server.crt')),
+          ca: await readFile(join(root, 'ca.crt')),
+          loseAck: () => false, allowDispatch: () => true, onAckLost: () => {},
+          transformReply: (_body, upstream) => {
+            if (!lostRelease && upstream.status === 200 &&
+                JSON.parse(upstream.body.toString('utf8')).version === 'actql-remote-poll-release/0.1') {
+              lostRelease = true;
+              return {status: 204, body: ''};
+            }
+            return upstream;
+          }});
+      }
+      let site = startSite(mode === 'release-failure' ? ['--holder-release-failures', '3'] :
+        mode === 'holder-exit' ? ['--holder-kill-at', 'report-handoff', '--release-recovery-close-failures', '1'] :
+          mode === 'recovery-interrupted' ? ['--holder-kill-at', 'report-handoff', '--release-recovery-kill-at', 'after-transition'] : [],
+      {controlOrigin: mode === 'lost-release' ? ackLossProxy.origin : gateway.origin});
+      currentSite = site;
+      const dispatch = dispatchFor(`resident-release-recovery-${mode}`, 200 + index);
+      await within(gateway.dispatch({dispatch, inputBindingBody: '{}',
+        dispatchEnvelope: materialsEnvelope(dispatch)}), `${mode} dispatch`);
+      await waitFor(async () => (await entries()).length === index + 1, `${mode} entry`);
+      const terminal = await settledQuery(dispatch, mode);
+      await within(requestOutput(dispatch, await planOutput(dispatch, terminal, mode)), `${mode} output`);
+      let released = gateway.release({dispatch}).catch(error => error);
+      if (mode === 'holder-exit' || mode === 'recovery-interrupted') {
+        await waitFor(() => site.lines.some(line => line.kind === 'holder-killed'), 'holder exit');
+        await waitFor(() => pendingIntents().length === 0 && reservedPayloadBytes() === 0,
+          'orphan physical cleanup');
+      }
+      if (mode === 'lost-release') {
+        await waitFor(() => lostRelease, 'lost release response');
+        gateway.withdraw({dispatch});
+        await released;
+        released = gateway.release({dispatch});
+      }
+      await within(released, `${mode} release`);
+      if (mode === 'holder-exit') {
+        const pending = await within(gateway.release({dispatch}), 'recovery close failure');
+        assert.equal(pending.state[2], 0, 'close failure must not publish Released');
+        await within(gateway.release({dispatch}), 'recover stopped holder release');
+      }
+      if (mode === 'recovery-interrupted') {
+        const interrupted = gateway.release({dispatch}).catch(error => error);
+        assert.deepEqual(await within(site.exited, 'recovery interrupted after durable transition'), [null, 'SIGKILL']);
+        assert(site.lines.some(line => line.kind === 'release-recovery-killed'));
+        gateway.withdraw({dispatch});
+        await interrupted;
+        site = startSite();
+        currentSite = site;
+        await within(gateway.release({dispatch}), 'resumed recovery');
+      }
+      const observed = await within(gateway.query({dispatch}), `${mode} cleanup observation`);
+      assert.equal(observed.state[2], 2, `${mode}: physical cleanup must have a formal Released observation`);
+      assert(Number.isSafeInteger(observed.revision), 'the durable revision must be present');
+      await waitFor(() => reservedPayloadBytes() === 0 && pendingIntents().length === 0,
+        `${mode} resource zero`);
+      for (let retry = 0; retry < 2; retry++) {
+        const repeated = await within(gateway.release({dispatch}), `${mode} repeated release`);
+        assert.equal(repeated.state[2], 2);
+        assert.equal(repeated.revision, observed.revision, 'release retry must not advance the durable revision');
+        assert.equal((await entries()).length, index + 1);
+        assert.equal(reservedPayloadBytes(), 0);
+        assert.equal(pendingIntents().length, 0);
+      }
+      const bundles = new DatabaseSync(join(runtimeRoot, '.actql-runtime-bundle.sqlite3'), {readOnly: true});
+      try {
+        const catalog = JSON.parse(Buffer.from(bundles.prepare(
+          'SELECT body FROM actql_records WHERE namespace=? AND record_key=?').get('runtime_bundle', 'catalog').body).toString('utf8'));
+        assert.deepEqual(catalog.entries.flatMap(entry => entry.holds), [], 'no dispatch, holder, or recovery bundle holding remains');
+      } finally { bundles.close(); }
+      console.log(JSON.stringify({kind: 'resident-release-case', mode,
+        dispatchCid: siteControl.identity(dispatch), executorEntries: index + 1,
+        cleanup: observed.state[2], pendingIntents: 0, reservedPayloadBytes: 0}));
+      site.child.kill('SIGTERM');
+      await site.exited;
+      if (ackLossProxy) { await ackLossProxy.close(); ackLossProxy = undefined; }
+    }
+  } else if (process.argv.includes('--output-report-only')) {
     // Exercise the complete report path with the real native holder and the
     // existing Coordinator/SQLite owner. The proxy drops only the first
     // typed ACK; no receipt map or synthetic result is used.
