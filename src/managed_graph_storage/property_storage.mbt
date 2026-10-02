@@ -249,12 +249,7 @@ pub fn append_property_node(
     None => exclude_property_row(builder, [..keys, ..properties], work)
     Some(identity) =>
       append_node_record(
-        builder,
-        identity,
-        properties,
-        Some(definition_index),
-        Some(keys),
-        work,
+        builder, identity, properties, definition_index, keys, work,
       )
   }
 }

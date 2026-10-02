@@ -28,3 +28,15 @@ occurrences, qualified Relation selection, projection order, copied indexed
 reads and diagnostic locations. It does not claim that old consumer algorithms
 are connected to the new Graph. Resource/cancellation, configured-Store public
 snapshot and aggregate Core acceptance remain separately required.
+
+- `managed-graph-storage-pre-property-graph.mbt.txt`: original five tuple
+  storage fixtures from `d1d7c9abf57ef1ac08817279ac0dd161890e88ac`. All five
+  obligations have current executable counterparts: parallel keyed edges,
+  admitted indexed lookup and revocation, refusal of endpoint synthesis,
+  atomic key/capacity/work/cancellation boundaries, and independently counted
+  UTF-8 byte limits. Duplicate nodes now reject even identical content.
+- `bounded-graph-diff-pre-property-graph.mbt.txt`: original three tuple delta
+  tests from the same checkpoint. The endpoint-tuple delta implementation is
+  withdrawn rather than reinterpreted as independent-key Graph semantics.
+  Current executable tests require typed refusal before snapshot allocation;
+  they do not claim delta support or its old capacity/completion guarantees.

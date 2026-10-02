@@ -11,7 +11,7 @@ and explicitly states graph-wide property type and shared-label consistency.
 The existing ActQL pipeline owner consumes that body; historical `aoa` names
 in unrelated local IR contracts do not import an external implementation.
 
-The current dependency-integration checkpoint combines main
+The original dependency-integration checkpoint combined main
 `16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a` with the prior #164 source at
 `dfb1c51318a7faa306548c213bf1888d92ff7fce`. Local
 registration, canonical preimage and spec-family checks pass. The independent
@@ -20,13 +20,78 @@ complete snapshot fixture is
 derived from a Graph encoder or runtime output. A law ownership change has new
 law, contract and snapshot CIDs; historical fixture identities stay frozen.
 
-This is not final acceptance. The common Graph now requires definition-scoped
+This is not final acceptance. The common Graph requires definition-scoped
 metadata; the retired tuple constructor cannot issue a second Graph profile.
-Remaining obsolete consumers, positive fixtures and coverage inventories still
-need source migration, and the public snapshot save/reload boundary below still
-needs connection to the existing bounded owners. Current-source fresh packed,
-three-target acceptance and final-SHA required CI remain mandatory. No success
-from an earlier checkpoint is reused for that decision.
+The latest checkpoint below connects public snapshot save/reload through the
+existing bounded owners and passes fresh packed acceptance. Remaining obsolete
+consumers, positive fixtures and coverage inventories still need source
+migration. Complete Core/spec and final-SHA required CI remain mandatory. No
+success from an earlier checkpoint is reused for that decision.
+
+### Latest verified integration and remaining blockers
+
+Clean source `d1d7c9abf57ef1ac08817279ac0dd161890e88ac` integrates main
+`5bb95908901ba57ae4a83ff119d9d9a3f68cf154` and the public snapshot connection.
+Fresh packages built by normal prepack pass **2/2 Local/HTTPS** through the
+actual public Program -> Host -> Named Result path. The driver physically
+saves the independently expected snapshot, revokes the source generation,
+completes verified reading before reload, and executes MATCH/TRAIL on the
+restored generation. Composite typed node/edge keys, independent parallel
+edges, label sets, exact snapshot CID/bytes and physical temporary-body
+reclamation are checked. Result reattach is a separate assertion, not the
+roundtrip evidence. There is no new public Graph catalog or SDK save API.
+
+Packed evidence is retained at
+`/Users/t14i/workspace/20260822/worktrees/.codex-scratch/property-graph-package-UkPcwp`:
+`acceptance.json` records the clean full source SHA and all five public package
+digests; pack/install/test logs and Host state are preserved. The command used
+Node 24.21.0 with the pinned MoonBit toolchain for packing, not for the external
+consumer. Source-level focused common regressions passed **34/34 on each target**
+and Node driver/surface/cleanup regressions passed **49/49** before this clean
+checkpoint. Official tracked API verification passed after main integration.
+
+The complete Core JS run at that same clean source is still red:
+**7,584 total, 7,170 passed, 414 failed**, exit 2. Log:
+`/private/tmp/property-graph-core-js-d1d7c9abf-20261002.log`.
+The previous INFER and Graph lifecycle failures are absent. Remaining groups
+are query_integration (173), local_sga (58), pipeline_typing (45), program_check
+(39), lowering_relation (35), pipeline_check_context (20),
+capacity_graph_preflight (17), capacity_program_step (11), query_program (7),
+managed_graph_storage (5) and bounded_graph_diff (3). These are not all declared
+obsolete or repaired, and no aggregate success follows from focused tests.
+
+The subsequent Storage/diff migration removes 1,500+ lines of unreachable
+endpoint-tuple execution rather than enabling an old profile. Storage's five
+regressions remain executable with current definition-keyed inputs; parallel
+edge retention, indexed lookup/revocation, refusal of endpoint synthesis,
+atomic capacity/work/cancellation and independent UTF-8 byte counting are
+retained. Node construction requires a definition and key, and duplicate
+content cannot restore tuple-style collapse. Old tuple delta completion tests
+are archived as inert text; current tests require explicit unsupported refusal
+without consuming parallel edges and retain pure limit validation. Complete
+Storage and diff packages pass **12/12 and 3/3 respectively on each of JS,
+Wasm and native**. Official API verification passes. The expanded diff fixture
+initially supplied a zero field ceiling for its one-key definition and failed
+before execution; the ceiling was corrected without changing admission.
+Log: `/private/tmp/property-graph-storage-diff-retirement-final-20261002.log`.
+This source update has not had another aggregate Core or fresh packed run.
+
+Main's new foundation composition validator rejects eight reachable historical
+#164 commits that changed the immutable #148 reuse baseline. Restoring current
+bytes cannot change those ancestors. The old global current-foundation record
+is preserved as inert historical text, and main's frozen records/validator are
+unchanged. Log:
+`/private/tmp/property-graph-current-foundation-predeclaration-20261002.log`.
+Reconstruction of the PR on current main, with its old history preserved and
+new independent declarations, requires explicit authorization before replacing
+the published branch. No history rewrite, force-push, guard relaxation or
+reuse of earlier CI success has occurred. The historical integration test also
+needs migration to the new declaration contract; it is not a current guarantee.
+
+The published PR remains a separate older checkpoint, Draft and not GO.
+Full Core/spec migration, provenance reconstruction and required CI on the
+submitted source remain open. No external AoA work or Graph Frontend edits
+are part of these checkpoints.
 
 The remaining sections record the initial additive vertical and its historical
 verification. Their legacy-preservation promises are superseded: the new
