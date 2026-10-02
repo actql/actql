@@ -277,6 +277,28 @@ if (hasLocalCarrierBridge) {
     'carrier_runtime',
   );
 }
+const executionDependencies = join(root, 'src', bridgePackage,
+  'client-execution-dependencies.json');
+if (existsSync(executionDependencies)) {
+  const manifest = JSON.parse(readFileSync(executionDependencies, 'utf8'));
+  if (Object.keys(manifest).join() !== 'imports' ||
+      !Array.isArray(manifest.imports)) {
+    throw new Error(`Invalid Client execution dependencies: ${executionDependencies}`);
+  }
+  for (const entry of manifest.imports) {
+    if (entry === null || typeof entry !== 'object' ||
+        Object.keys(entry).sort().join() !== 'alias,path' ||
+        typeof entry.path !== 'string' ||
+        !/^actql\/actql\/[a-z0-9_/]+$/.test(entry.path) ||
+        typeof entry.alias !== 'string' ||
+        !/^[a-z][a-z0-9_]*$/.test(entry.alias) ||
+        dependencies.has(entry.path) ||
+        [...dependencies.values()].includes(entry.alias)) {
+      throw new Error(`Invalid Client execution dependency: ${executionDependencies}`);
+    }
+    dependencies.set(entry.path, entry.alias);
+  }
+}
 // The handwritten execution-authorization adapter lets the Host gate and the
 // activation grant share one runtime, so an evaluated dispatch action reaches
 // the captured Run without a second evaluation.

@@ -2204,6 +2204,14 @@ authenticates four private evidence holdings and checks SourceEvidence,
 observed usage, positive work, unknown cost, and the cancelled outcome. The
 local packed run passed at the working revision; final-SHA CI remains pending.
 
+The final dependency check found that the DuckDB transport bridge imported
+the Local residual owner. That residual now remains in the selected Client
+composition package; the connector bridge supplies only its owned acquisition
+handle and completion limit. The installed Host injects its selected runtime,
+so the product path stays bounded without making the connector import Local.
+The connector dependency regression, broad transport tests, public acquired
+Host tests and packed acceptance passed after this correction.
+
 Broad KEEP, multiple SourceViews and immediate capture-to-INFER without a
 post-capture Local step are not claimed supported. Acquisition retention
 identity measurement still uses its existing synchronous completion path;

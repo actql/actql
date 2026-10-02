@@ -146,7 +146,7 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
   try {
     const acquire = owner.broad ? runBroadHostQuery : runNativeHostQuery;
     capture = await acquire(grant, acquisition, transportLimits,
-      signal);
+      signal, moon);
   } catch (cause) {
     const ended = acquisitionOutcome(cause);
     failAcquisition(cause, cause instanceof
