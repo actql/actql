@@ -1,15 +1,12 @@
 ///|
 priv struct PreparedGraphTraverseHop {
   checked : @graph.TraversalHop
-  edge_predicate : Expression?
-  node_predicate : Expression?
 }
 
 ///|
 struct PreparedGraphTraverse {
   node : PreparedNode
   checked : @graph.CheckedTraverse
-  start_predicate : Expression?
   hops : Array[PreparedGraphTraverseHop]
   output_guard : Int64?
 }
@@ -77,14 +74,6 @@ pub fn graph_traverse_start_id_at(
 }
 
 ///|
-/// The lowered start predicate, if the selector uses a predicate.
-pub fn graph_traverse_start_predicate(
-  value : PreparedGraphTraverse,
-) -> Expression? {
-  value.start_predicate
-}
-
-///|
 /// The selected field for a Relation-backed start selector.
 pub fn graph_traverse_start_relation_field(
   value : PreparedGraphTraverse,
@@ -129,24 +118,6 @@ pub fn graph_traverse_hop_type_at(
   value.hops
   .get(hop_index)
   .bind(hop => @graph.hop_type_at(hop.checked, type_index))
-}
-
-///|
-/// The lowered edge predicate for one patterned hop.
-pub fn graph_traverse_hop_edge_predicate(
-  value : PreparedGraphTraverse,
-  index : Int,
-) -> Expression? {
-  value.hops.get(index).bind(hop => hop.edge_predicate)
-}
-
-///|
-/// The lowered destination-node predicate for one patterned hop.
-pub fn graph_traverse_hop_node_predicate(
-  value : PreparedGraphTraverse,
-  index : Int,
-) -> Expression? {
-  value.hops.get(index).bind(hop => hop.node_predicate)
 }
 
 ///|
@@ -217,51 +188,9 @@ fn prepare_graph_traverse_node(
       name_bytes += bytes
     }
   }
-  let mut remaining = expressions
-  let lower = fn(index : Int) -> Result[Expression, GraphTraverseIssue] {
-    let (expression, usage) = match
-      lower_expression_measured(owner, step_index, index, remaining) {
-      Ok(value) => value
-      Err(issue) => return Err(GraphTraverseExpression(issue))
-    }
-    remaining = {
-      ..remaining,
-      max_nodes: remaining.max_nodes - usage.nodes,
-      max_work: remaining.max_work - usage.work,
-      max_literal_nodes: remaining.max_literal_nodes - usage.literal_nodes,
-      max_literal_text_bytes: remaining.max_literal_text_bytes -
-      usage.literal_bytes,
-    }
-    Ok(expression)
-  }
-  let start_predicate = match @graph.selector_predicate(start) {
-    None => None
-    Some(_) =>
-      match lower(0) {
-        Ok(value) => Some(value)
-        Err(issue) => return Err(issue)
-      }
-  }
   let hops : Array[PreparedGraphTraverseHop] = []
   for index in 0..<hop_count {
-    let hop = @graph.traverse_hop_at(checked, index).unwrap()
-    let edge_predicate = match @graph.hop_predicate(hop, @graph.Edges) {
-      None => None
-      Some(_) =>
-        match lower(1 + index * 2) {
-          Ok(value) => Some(value)
-          Err(issue) => return Err(issue)
-        }
-    }
-    let node_predicate = match @graph.hop_predicate(hop, @graph.Nodes) {
-      None => None
-      Some(_) =>
-        match lower(2 + index * 2) {
-          Ok(value) => Some(value)
-          Err(issue) => return Err(issue)
-        }
-    }
-    hops.push({ checked: hop, edge_predicate, node_predicate, })
+    hops.push({ checked: @graph.traverse_hop_at(checked, index).unwrap(), })
   }
   let output_guard = match @graph.traverse_output_guard(checked) {
     None => None
@@ -284,14 +213,7 @@ fn prepare_graph_traverse_node(
       Some(integer)
     }
   }
-  Ok(
-    (
-      { node, checked, start_predicate, hops, output_guard, },
-      entries,
-      name_bytes,
-      remaining,
-    ),
-  )
+  Ok(({ node, checked, hops, output_guard, }, entries, name_bytes, expressions))
 }
 
 ///|
@@ -328,11 +250,7 @@ fn emit_graph_traverse_node(
   @encode.key(out, "params")
   @encode.begin_object(out)
   @encode.key(out, "start")
-  emit_graph_selector(
-    @graph.traverse_start(prepared.checked),
-    prepared.start_predicate,
-    out,
-  )
+  emit_graph_selector(@graph.traverse_start(prepared.checked), None, out)
   if graph_traverse_property_path_mode(prepared) is Some(mode) {
     @encode.key(out, "path_mode")
     @encode.string_value(
@@ -352,14 +270,6 @@ fn emit_graph_traverse_node(
       @encode.key(out, "direction")
       emit_graph_direction(@graph.hop_direction(hop.checked), out)
       emit_graph_types(hop.checked, out)
-      if hop.edge_predicate is Some(predicate) {
-        @encode.key(out, "edge_where")
-        emit_expression(predicate, out)
-      }
-      if hop.node_predicate is Some(predicate) {
-        @encode.key(out, "node_where")
-        emit_expression(predicate, out)
-      }
       @encode.end_object(out)
     }
     @encode.end_array(out)

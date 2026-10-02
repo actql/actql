@@ -96,20 +96,6 @@ fn graph_read_edge_endpoints(
 }
 
 ///|
-fn graph_read_edge_label(
-  source : GraphReadSource,
-  edge : Int,
-) -> @value.CheckedValue?? {
-  match source {
-    Stored(read) =>
-      @graph.producer_read_storage(read).bind(storage => {
-        @storage.edge_label(storage, edge)
-      })
-    Viewed(view) => @lifecycle.producer_view_edge_label(view, edge).to_option()
-  }
-}
-
-///|
 fn graph_read_edge_identity(
   source : GraphReadSource,
   edge : Int,

@@ -1306,3 +1306,28 @@ Homogeneous Carrier metadata and definition-free path-predicate scaffolding
 still require removal. External Source declaration admission, remaining Core
 fixtures, strict inventories, current submitted-SHA snapshot/fresh packed and
 required CI remain open. These local results are not public #164 acceptance.
+
+## Retired homogeneous path-predicate execution removal
+
+The definition-free start/edge/node predicate lowering views, homogeneous
+binding reader and evaluator phases are removed. Current checked paths already
+refuse these unsupported authored predicates; exact typed refusal tests now
+cover all three entry points. No fallback schema is synthesized. Definition-
+scoped MATCH continues to use the shared expression checker and evaluator.
+
+Supported literal and Relation-backed starts, per-hop static label selection,
+path identity, input-owner checks, capacity, cancellation and final cleanup are
+retained. Removing the unreachable predicate phases does not introduce work
+for cleanup or change the actual path work: their no-predicate transitions
+previously charged no work. Initial workspace admission retains the exact
+node-selection requirement and cancels its unpublished output on refusal.
+
+Graph typing/lowering and current construction, selector and provider custody
+regressions pass **253/253 on each JS, Wasm and native** with `--deny-warn`.
+Logs: `/private/tmp/property-graph-predicate-removal-{js-pass,wasm,native}-20261003.log`.
+The first JS check exposed the now-unused historical scalar edge-label reader;
+it was removed, not waived. Generated API removals are intentional.
+
+Carrier metadata/preflight, unreachable checked predicate/profile fields,
+external Source declarations, remaining aggregate fixture migrations and
+published-SHA public snapshot/fresh packed/required CI are still pending.

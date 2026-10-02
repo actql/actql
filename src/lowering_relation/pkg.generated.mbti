@@ -331,10 +331,6 @@ pub fn graph_traverse_hop_count(PreparedGraphTraverse) -> Int
 
 pub fn graph_traverse_hop_direction(PreparedGraphTraverse, Int) -> @graph_typing.Direction?
 
-pub fn graph_traverse_hop_edge_predicate(PreparedGraphTraverse, Int) -> Expression?
-
-pub fn graph_traverse_hop_node_predicate(PreparedGraphTraverse, Int) -> Expression?
-
 pub fn graph_traverse_hop_type_at(PreparedGraphTraverse, Int, Int) -> String?
 
 pub fn graph_traverse_hop_type_count(PreparedGraphTraverse, Int) -> Int?
@@ -350,8 +346,6 @@ pub fn graph_traverse_property_path_mode(PreparedGraphTraverse) -> @graph_typing
 pub fn graph_traverse_start_id_at(PreparedGraphTraverse, Int) -> @value_admission.CheckedValue?
 
 pub fn graph_traverse_start_id_count(PreparedGraphTraverse) -> Int
-
-pub fn graph_traverse_start_predicate(PreparedGraphTraverse) -> Expression?
 
 pub fn graph_traverse_start_relation_field(PreparedGraphTraverse) -> @relation_schema.FieldName?
 

@@ -56,7 +56,6 @@ test "current TRAIL exposes a complete homogeneous kernel view and keyed path sc
     id,
   )
   assert_eq(@lowering_relation.graph_traverse_start_relation_field(view), None)
-  assert_true(@lowering_relation.graph_traverse_start_predicate(view) is None)
   assert_eq(@lowering_relation.graph_traverse_hop_count(view), 1)
   assert_eq(
     @lowering_relation.graph_traverse_hop_direction(view, 0),
@@ -115,12 +114,6 @@ test "current TRAIL exposes a patterned keyed selector and refuses definition-fr
   assert_eq(
     @lowering_relation.graph_traverse_start_relation_field(view),
     Some(@schema.Unqualified("key")),
-  )
-  assert_true(
-    @lowering_relation.graph_traverse_hop_edge_predicate(view, 0) is None,
-  )
-  assert_true(
-    @lowering_relation.graph_traverse_hop_node_predicate(view, 0) is None,
   )
   assert_eq(
     @lowering_relation.graph_traverse_hop_direction(view, 0),

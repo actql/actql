@@ -57,6 +57,42 @@ test "current TRAIL admits bounded and patterned forms under shared budgets" {
 }
 
 ///|
+test "current path predicates refuse before any homogeneous execution can be prepared" {
+  let graph = current_scope_graph()
+  let identity = current_node_identity(2)
+  for key in ["edge_where", "node_where"] {
+    let body = "{\"start\":{\"ids\":[" +
+      identity +
+      "]},\"hops\":[{\"direction\":\"out\",\"" +
+      key +
+      "\":\"true\"}],\"path_mode\":\"trail\",\"emit\":\"paths\"}"
+    assert_true(
+      @graph_typing.check_traverse(
+        cursor(body),
+        graph,
+        None,
+        None,
+        predicate_limits(),
+      )
+      is Err(
+        MatchPredicate(ScopeIssue({ kind: UnsupportedGraphOperation, .. }))
+      ),
+    )
+  }
+  let body = "{\"start\":{\"where\":\"true\"},\"hops\":[{\"direction\":\"out\"}],\"path_mode\":\"trail\",\"emit\":\"paths\"}"
+  assert_true(
+    @graph_typing.check_traverse(
+      cursor(body),
+      graph,
+      None,
+      None,
+      predicate_limits(),
+    )
+    is Err(MatchPredicate(ScopeIssue({ kind: UnsupportedGraphOperation, .. }))),
+  )
+}
+
+///|
 test "current TRAIL rejects ambiguous modes and unconnected definition-free predicates" {
   let graph = current_scope_graph()
   let start = "{\"start\":{\"ids\":[" + current_node_identity(2) + "]},"

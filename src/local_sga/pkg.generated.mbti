@@ -130,7 +130,6 @@ pub(all) enum TraversePathsIssue {
   TraversePathsOutputLimit
   TraversePathsWorkspaceLimit
   TraversePathsWorkLimit
-  TraversePathsPredicate(@execution_relation.EvalIssueKind)
   TraversePathsKeyOrder(@value_admission.KeyOrderIssue)
   TraversePathsOutput(@execution_relation.CaptureIssue)
   TraversePathsCompletion(@execution_relation.TrustedOutputIssue)
