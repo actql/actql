@@ -13,7 +13,6 @@ pub(all) enum MatchObligation {
   EvaluateMatchPredicate
   CanonicalMatchOrder
   ResolveMatchResources
-  ResolveMatchProfile
   ResolvePropertyGraphMatchProfile
 } derive(Eq, Debug)
 
@@ -28,7 +27,7 @@ struct CheckedMatch {
   ids : Array[@value.CheckedValue]
   types : Array[String]?
   usage : PredicateUsage
-  property_scope : PropertyMatchScope?
+  property_scope : PropertyMatchScope
 }
 
 ///|
@@ -83,7 +82,7 @@ pub fn check_match(
       fail(source, InvalidBody)
     }
     let scope = check_property_match_scope(entity, source, root, graph, b)
-    let property_scope = Some(scope)
+    let property_scope = scope
     let scoped = scope.scope
     b.work -= scoped.usage.work
     b.text -= scoped.usage.text_bytes
@@ -310,13 +309,7 @@ fn match_pending_each(
   emit(AdmitMatchGraphData)
   emit(CanonicalMatchOrder)
   emit(ResolveMatchResources)
-  emit(
-    if c.property_scope is Some(_) {
-      ResolvePropertyGraphMatchProfile
-    } else {
-      ResolveMatchProfile
-    },
-  )
+  emit(ResolvePropertyGraphMatchProfile)
   if !c.ids.is_empty() {
     emit(ValidateSelectedIdentityMembership)
   }

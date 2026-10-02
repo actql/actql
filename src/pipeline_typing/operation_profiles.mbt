@@ -79,18 +79,7 @@ fn primary_operation_profile(operation : CheckedOperation) -> OperationProfile? 
           Vectors => VecA
         }
       PropertyGraphConstruction(..) => PropertyGraph
-      GraphMatch(checked) =>
-        if @graph.match_property_definition(checked) is Some(_) {
-          PropertyGraph
-        } else {
-          SGA
-        }
-      Traverse(checked~, ..) =>
-        if @graph.traverse_property_path_mode(checked) is Some(_) {
-          PropertyGraph
-        } else {
-          SGA
-        }
+      GraphMatch(_) | Traverse(..) => PropertyGraph
       Vector(_) | Nearest(..) | Pool(_) | Ranking(_) => VecA
       TextRank(..) => TextRankProfile
     },

@@ -12,21 +12,21 @@ pub fn graph_match_nodes(value : PreparedGraphMatch) -> Bool {
 }
 
 ///|
-pub fn graph_match_property_definition(value : PreparedGraphMatch) -> Int? {
+pub fn graph_match_property_definition(value : PreparedGraphMatch) -> Int {
   @graph.match_property_definition(value.checked)
 }
 
 ///|
 pub fn graph_match_property_schema(
   value : PreparedGraphMatch,
-) -> @carrier.Knowledge? {
+) -> @carrier.Knowledge {
   @graph.match_property_schema(value.checked)
 }
 
 ///|
 pub fn graph_match_property_scope_fields(
   value : PreparedGraphMatch,
-) -> @carrier.Knowledge? {
+) -> @carrier.Knowledge {
   @graph.match_property_scope_fields(value.checked)
 }
 
@@ -163,16 +163,13 @@ fn prepare_graph_match_node(
   let fields = @graph.match_field_count(checked)
   let ids = @graph.match_id_count(checked)
   let types = @graph.match_type_count(checked).unwrap_or(0)
-  let mut scope_entries = 0
-  if @graph.match_property_definition_name(checked) is Some(_) {
+  let mut scope_entries = 1
+  if @graph.match_property_label(checked) is Some(_) {
     scope_entries += 1
-    if @graph.match_property_label(checked) is Some(_) {
+  }
+  for role in ["identity", "source", "target"] {
+    if @graph.match_property_binding(checked, role) is Some(_) {
       scope_entries += 1
-    }
-    for role in ["identity", "source", "target"] {
-      if @graph.match_property_binding(checked, role) is Some(_) {
-        scope_entries += 1
-      }
     }
   }
   let entries = fields + ids + types + scope_entries
@@ -192,8 +189,7 @@ fn prepare_graph_match_node(
       true
     }
   }
-  if @graph.match_property_definition_name(checked) is Some(name) &&
-    !charge_name(name) {
+  if !charge_name(@graph.match_property_definition_name(checked)) {
     return Err(GraphMatchPreparationLimit)
   }
   if @graph.match_property_label(checked) is Some(name) && !charge_name(name) {
@@ -261,23 +257,24 @@ fn emit_graph_match_node(
   @encode.string_value(out, operation(prepared.node))
   @encode.key(out, "params")
   @encode.begin_object(out)
-  if @graph.match_property_definition_name(prepared.checked) is Some(name) {
-    @encode.key(out, "definition")
-    @encode.string_value(out, name)
-    if @graph.match_property_label(prepared.checked) is Some(label) {
-      @encode.key(out, "label")
-      @encode.string_value(out, label)
-    }
-    @encode.key(out, "bindings")
-    @encode.begin_object(out)
-    for role in ["identity", "source", "target"] {
-      if @graph.match_property_binding(prepared.checked, role) is Some(name) {
-        @encode.key(out, role)
-        @encode.string_value(out, @schema.reference_name(name))
-      }
-    }
-    @encode.end_object(out)
+  @encode.key(out, "definition")
+  @encode.string_value(
+    out,
+    @graph.match_property_definition_name(prepared.checked),
+  )
+  if @graph.match_property_label(prepared.checked) is Some(label) {
+    @encode.key(out, "label")
+    @encode.string_value(out, label)
   }
+  @encode.key(out, "bindings")
+  @encode.begin_object(out)
+  for role in ["identity", "source", "target"] {
+    if @graph.match_property_binding(prepared.checked, role) is Some(name) {
+      @encode.key(out, role)
+      @encode.string_value(out, @schema.reference_name(name))
+    }
+  }
+  @encode.end_object(out)
   @encode.key(out, "fields")
   @encode.begin_array(out)
   for index in 0..<@graph.match_field_count(prepared.checked) {

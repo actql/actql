@@ -11,7 +11,16 @@ test "keyed match scopes retain definition typing and never reinterpret the lega
     None,
     predicate_limits(),
   ).unwrap()
-  assert_eq(@graph_typing.match_property_definition(checked), Some(0))
+  assert_eq(@graph_typing.match_property_definition(checked), 0)
+  assert_eq(@graph_typing.match_property_definition_name(checked), "N")
+  assert_eq(
+    @carrier.field_count(@graph_typing.match_property_schema(checked)),
+    0,
+  )
+  assert_eq(
+    @carrier.field_count(@graph_typing.match_property_scope_fields(checked)),
+    1,
+  )
   assert_eq(
     @graph_typing.match_property_binding(checked, "identity"),
     Some(@row.Unqualified("element")),
@@ -21,11 +30,23 @@ test "keyed match scopes retain definition typing and never reinterpret the lega
       @graph_typing.ResolvePropertyGraphMatchProfile,
     ),
   )
-  assert_false(
-    @graph_typing.match_pending(checked).contains(
-      @graph_typing.ResolveMatchProfile,
-    ),
-  )
+  let pending = @graph_typing.match_pending(checked)
+  assert_eq(pending, [
+    @graph_typing.AdmitMatchGraphData,
+    @graph_typing.CanonicalMatchOrder,
+    @graph_typing.ResolveMatchResources,
+    @graph_typing.ResolvePropertyGraphMatchProfile,
+    @graph_typing.EvaluateMatchPredicate,
+  ])
+  assert_eq(@graph_typing.match_pending_count(checked), pending.length())
+  for index in 0..<pending.length() {
+    assert_eq(
+      @graph_typing.match_pending_at(checked, index),
+      Some(pending[index]),
+    )
+  }
+  assert_eq(@graph_typing.match_pending_at(checked, -1), None)
+  assert_eq(@graph_typing.match_pending_at(checked, pending.length()), None)
   assert_true(
     @graph_typing.check_match(
       @graph_typing.Nodes,

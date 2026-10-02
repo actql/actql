@@ -174,8 +174,6 @@ pub fn operation_execution_phase(
         AdmitInputGraph => BeforeOperationInputUse
         RespectAuthoredHops
         | EvaluateHopConditions
-        | EmitMinimumDepth
-        | EnumerateSimplePaths
         | EnumeratePropertyPaths
         | DeduplicatePathIdentities
         | OrderTraversalRows => BeforeOperationOutput

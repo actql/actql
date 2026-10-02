@@ -3285,8 +3285,6 @@ pub(all) enum TraversalRule {
   AdmitInputGraph
   RespectAuthoredHops
   EvaluateHopConditions
-  EmitMinimumDepth
-  EnumerateSimplePaths
   EnumeratePropertyPaths
   DeduplicatePathIdentities
   OrderTraversalRows

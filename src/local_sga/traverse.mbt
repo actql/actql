@@ -36,8 +36,7 @@ pub fn start_traverse(
 ) -> Result[TraverseExecution, TraverseIssue] {
   guard @lower.sequence_step(sequence, step)
     is Some(@lower.GraphTraverseStep(prepared)) &&
-    @lower.graph_traverse_emits_paths(prepared) &&
-    @lower.graph_traverse_property_path_mode(prepared) is Some(_) else {
+    @lower.graph_traverse_emits_paths(prepared) else {
     return Err(UnsupportedTraverseKernel)
   }
   start_traverse_paths(
@@ -67,7 +66,6 @@ pub fn start_traverse_view(
   guard @lower.sequence_step(sequence, step)
     is Some(@lower.GraphTraverseStep(prepared)) &&
     @lower.graph_traverse_emits_paths(prepared) &&
-    @lower.graph_traverse_property_path_mode(prepared) is Some(_) &&
     @lifecycle.producer_view_kind(view) == @carrier.GraphKind &&
     @lifecycle.producer_read_reference_matches_operation_input(
       @lifecycle.producer_view_read_reference(view),

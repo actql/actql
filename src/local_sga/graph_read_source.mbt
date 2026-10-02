@@ -169,9 +169,7 @@ fn property_match_field_index(
   prepared : @lower.PreparedGraphMatch,
   field : @schema.FieldName,
 ) -> Int? {
-  guard @lower.graph_match_property_schema(prepared) is Some(properties) else {
-    return None
-  }
+  let properties = @lower.graph_match_property_schema(prepared)
   for index in 0..<@carrier.field_count(properties) {
     if @carrier.field_at(properties, index).unwrap().name == field {
       return Some(index)

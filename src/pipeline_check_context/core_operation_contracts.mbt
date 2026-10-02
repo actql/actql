@@ -7,7 +7,6 @@ priv enum OperationCountContract {
   Relation
   Join
   Window
-  Graph
   PropertyGraph
   Ranking
   Series
@@ -35,18 +34,7 @@ fn operation_count_contract(
     | @pipeline.AsOfJoin(..) => Join
     @pipeline.Window(_) => Window
     @pipeline.PropertyGraphConstruction(..) => PropertyGraph
-    @pipeline.GraphMatch(checked) =>
-      if @graph.match_property_definition(checked) is Some(_) {
-        PropertyGraph
-      } else {
-        Graph
-      }
-    @pipeline.Traverse(checked~, ..) =>
-      if @graph.traverse_property_path_mode(checked) is Some(_) {
-        PropertyGraph
-      } else {
-        Graph
-      }
+    @pipeline.GraphMatch(_) | @pipeline.Traverse(..) => PropertyGraph
     @pipeline.Projection(_) => ClassificationOnly
     @pipeline.Nearest(..) | @pipeline.Ranking(_) | @pipeline.TextRank(..) =>
       Ranking
@@ -131,7 +119,6 @@ fn core_operation_count_root(
       (OperationJoinCountRules(stage, visit, step), JoinCountRules)
     }
     Window => (OperationWindowCountRules(stage, visit, step), WindowCountRules)
-    Graph => (OperationGraphCountRules(stage, visit, step), GraphCountRules)
     // The multi-definition keyed sum is in the distinct adopted contract,
     // not the legacy two-operand/derived-endpoint Graph count body.
     PropertyGraph =>

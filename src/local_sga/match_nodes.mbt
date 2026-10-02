@@ -139,8 +139,8 @@ fn node_predicate_binding(
   node : Int,
   index : Int,
 ) -> (String, @execution.Value)? {
-  guard @lower.graph_match_property_scope_fields(state.prepared) is Some(fields) &&
-    @carrier.field_at(fields, index) is Some(field) &&
+  let fields = @lower.graph_match_property_scope_fields(state.prepared)
+  guard @carrier.field_at(fields, index) is Some(field) &&
     field.contract is Some(contract) &&
     match_node_value(state, node, field.name, contract) is Some(value) else {
     return None
@@ -273,12 +273,10 @@ fn match_nodes_step(
         progress += 1
       }
       ResolveIdentities =>
-        if @lower.graph_match_property_definition(state.prepared)
-          is Some(definition) &&
-          (state.predicate is Some(_) || state.select_all_nodes is Some(_)) &&
+        if (state.predicate is Some(_) || state.select_all_nodes is Some(_)) &&
           state.identity_index < state.node_count &&
           graph_read_node_definition(state.source, state.identity_index) !=
-          Some(definition) {
+          Some(@lower.graph_match_property_definition(state.prepared)) {
           state.identity_index += 1
           used += 1
         } else if state.predicate is Some(_) {
@@ -311,10 +309,8 @@ fn match_nodes_step(
           }
           match graph_read_node_index(state.source, identity) {
             Ok(Some(node)) => {
-              if @lower.graph_match_property_definition(state.prepared)
-                is Some(definition) &&
-                graph_read_node_definition(state.source, node) !=
-                Some(definition) {
+              if graph_read_node_definition(state.source, node) !=
+                Some(@lower.graph_match_property_definition(state.prepared)) {
                 return @bounded.Failed(InvalidMatchNodesKernel, progress, used)
               }
               state.selected.push(node)
@@ -667,7 +663,6 @@ fn start_match_nodes_read(
     @lower.sequence_step(sequence, step)
     is Some(@lower.GraphMatchStep(prepared)) &&
     @lower.graph_match_nodes(prepared) &&
-    @lower.graph_match_property_definition(prepared) is Some(_) &&
     (
       @lower.graph_match_id_count(prepared) > 0 ||
       @lower.graph_match_has_predicate(prepared)
@@ -698,10 +693,7 @@ fn start_match_nodes_read(
   let schema = @lower.graph_match_output_schema(prepared)
   let width = @schema.field_count(schema)
   let predicate_fields = if predicate is Some(_) {
-    match @lower.graph_match_property_scope_fields(prepared) {
-      Some(fields) => @carrier.field_count(fields)
-      None => return Err(InvalidMatchNodesKernel)
-    }
+    @carrier.field_count(@lower.graph_match_property_scope_fields(prepared))
   } else {
     0
   }
@@ -732,8 +724,7 @@ fn start_match_nodes_read(
   let accepted = Ref(false)
   let scratch_slots = Ref(0)
   let port_result = match source {
-    Stored(read) if @lower.graph_match_property_definition(prepared) is Some(_) &&
-      @lifecycle.producer_read_reference_matches_input(
+    Stored(read) if @lifecycle.producer_read_reference_matches_input(
         @graph.producer_read_carrier_reference(read),
         owner,
         0,

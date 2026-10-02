@@ -125,23 +125,23 @@ fn check_property_match_scope(
 }
 
 ///|
-pub fn match_property_definition(c : CheckedMatch) -> Int? {
-  c.property_scope.map(scope => scope.definition)
+pub fn match_property_definition(c : CheckedMatch) -> Int {
+  c.property_scope.definition
 }
 
 ///|
-pub fn match_property_definition_name(c : CheckedMatch) -> String? {
-  c.property_scope.map(scope => scope.name)
+pub fn match_property_definition_name(c : CheckedMatch) -> String {
+  c.property_scope.name
 }
 
 ///|
 pub fn match_property_label(c : CheckedMatch) -> String? {
-  c.property_scope.bind(scope => scope.label)
+  c.property_scope.label
 }
 
 ///|
-pub fn match_property_schema(c : CheckedMatch) -> @carrier.Knowledge? {
-  c.property_scope.map(scope => scope.properties)
+pub fn match_property_schema(c : CheckedMatch) -> @carrier.Knowledge {
+  c.property_scope.properties
 }
 
 ///|
@@ -149,8 +149,7 @@ pub fn match_property_binding(
   c : CheckedMatch,
   role : String,
 ) -> @row.FieldName? {
-  guard c.property_scope is Some(scope) else { return None }
-  for (candidate, name) in scope.bindings {
+  for (candidate, name) in c.property_scope.bindings {
     if candidate == role {
       return Some(name)
     }
@@ -159,6 +158,6 @@ pub fn match_property_binding(
 }
 
 ///|
-pub fn match_property_scope_fields(c : CheckedMatch) -> @carrier.Knowledge? {
-  c.property_scope.map(scope => scope.scope.fields)
+pub fn match_property_scope_fields(c : CheckedMatch) -> @carrier.Knowledge {
+  c.property_scope.scope.fields
 }

@@ -3,8 +3,6 @@ pub(all) enum TraversalRule {
   AdmitInputGraph
   RespectAuthoredHops
   EvaluateHopConditions
-  EmitMinimumDepth
-  EnumerateSimplePaths
   EnumeratePropertyPaths
   DeduplicatePathIdentities
   OrderTraversalRows
@@ -33,13 +31,10 @@ fn traversal_execution_check(
     AdmitTraversalGraph => TraversalRule::AdmitInputGraph
     RespectTraversalHopBounds => RespectAuthoredHops
     EvaluateTraversalHopPredicates => EvaluateHopConditions
-    EmitMinimumNodeDepth => EmitMinimumDepth
-    EnumerateSimplePaths => EnumerateSimplePaths
     EnumeratePropertyPaths => EnumeratePropertyPaths
     DeduplicateExactPaths => DeduplicatePathIdentities
     CanonicalTraversalOrder => OrderTraversalRows
     ResolveTraversalResources
-    | ResolveTraversalProfile
     | ResolvePropertyGraphTraversalProfile
     | EnforceTraversalOutputGuard
     | BindTraversalOutputGuard(_) => return Ok(None)

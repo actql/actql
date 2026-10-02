@@ -51,14 +51,34 @@ test "keyed traversal has explicit modes full edge identities and separate profi
       None,
       predicate_limits(),
     ).unwrap()
-    assert_eq(@graph_typing.traverse_property_path_mode(checked), Some(mode))
+    assert_eq(@graph_typing.traverse_property_path_mode(checked), mode)
     let pending = @graph_typing.traverse_pending(checked)
     assert_true(pending.contains(@graph_typing.EnumeratePropertyPaths))
     assert_true(
       pending.contains(@graph_typing.ResolvePropertyGraphTraversalProfile),
     )
-    assert_false(pending.contains(@graph_typing.EnumerateSimplePaths))
-    assert_false(pending.contains(@graph_typing.ResolveTraversalProfile))
+    assert_eq(pending, [
+      @graph_typing.AdmitTraversalGraph,
+      @graph_typing.RespectTraversalHopBounds,
+      @graph_typing.EvaluateTraversalHopPredicates,
+      @graph_typing.CanonicalTraversalOrder,
+      @graph_typing.ResolveTraversalResources,
+      @graph_typing.ResolvePropertyGraphTraversalProfile,
+      @graph_typing.EnumeratePropertyPaths,
+      @graph_typing.DeduplicateExactPaths,
+    ])
+    assert_eq(@graph_typing.traverse_pending_count(checked), pending.length())
+    for index in 0..<pending.length() {
+      assert_eq(
+        @graph_typing.traverse_pending_at(checked, index),
+        Some(pending[index]),
+      )
+    }
+    assert_eq(@graph_typing.traverse_pending_at(checked, -1), None)
+    assert_eq(
+      @graph_typing.traverse_pending_at(checked, pending.length()),
+      None,
+    )
     let rows = @carrier.complete_schema(
       @carrier.relation_rows(@graph_typing.traverse_output(checked)).unwrap(),
     ).unwrap()

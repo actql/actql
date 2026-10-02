@@ -71,10 +71,14 @@ test "formal Property Graph matches retain definition labels selectors and resou
         assert_true(physical_equal(check.site.pipeline, producer))
         assert_eq(check.site.step, 3)
         assert_eq(check.input, @pipeline.Step(2))
-        assert_eq(@graph.match_property_definition(check.operation), Some(0))
+        assert_eq(@graph.match_property_definition(check.operation), 0)
         assert_eq(
           @graph.match_property_definition_name(check.operation),
-          Some(if node { "N" } else { "E" }),
+          if node {
+            "N"
+          } else {
+            "E"
+          },
         )
         assert_eq(@graph.match_id_count(check.operation), 0)
         assert_true(@graph.match_id_at(check.operation, -1) is None)

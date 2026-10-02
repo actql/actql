@@ -61,10 +61,7 @@ test "keyed traversal checks retain explicit mode and never reuse simple-path la
       match traversal_execution_check(site).unwrap() {
         Some(TraversalExecution(check)) => {
           assert_true(physical_equal(check.step, step))
-          assert_eq(
-            @graph.traverse_property_path_mode(check.operation),
-            Some(mode),
-          )
+          assert_eq(@graph.traverse_property_path_mode(check.operation), mode)
           assert_eq(check.input, @pipeline.Input(0))
           assert_true(check.selector_relation is None)
           rules.push(check.rule)

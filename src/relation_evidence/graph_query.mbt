@@ -38,8 +38,7 @@ pub fn graph_query_keys(
         MatchOperation(op) =>
           // The checked definition owns the complete typed element identity.
           // Endpoints and labels cannot identify independent parallel edges.
-          if @graph.match_property_definition(op) is Some(_) &&
-            @graph.match_property_binding(op, "identity") is Some(identity) {
+          if @graph.match_property_binding(op, "identity") is Some(identity) {
             names.push(identity)
           }
         // Path rows have no scalar identity key. A start/end pair is not

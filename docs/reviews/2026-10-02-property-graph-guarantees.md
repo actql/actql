@@ -1435,3 +1435,35 @@ endpoint, label and malformed snapshot tests remain active.
 Remaining checked profile/predicate scaffolding, Source declaration ownership,
 aggregate fixture migration, strict inventories and published-SHA public
 snapshot/fresh packed/required CI still prevent #164 completion.
+
+## Mandatory checked MATCH scope and path mode
+
+Checked MATCH now requires one admitted definition scope; checked traversal
+requires one explicit current path mode. The corresponding lowering getters
+return that retained metadata directly rather than an optional old/new profile.
+Only genuinely optional label selection and role bindings remain optional.
+Consumers use these same checked owners and preserve exact input-reference,
+completion-owner, membership, workspace, work and output checks.
+
+Retired homogeneous MATCH/traversal profile obligations, minimum-depth node
+emission and simple-path enumeration are removed from the executable obligation
+and resolution types. Current operations always select the Property Graph
+profile and its count contract. Neither missing definition metadata nor a
+missing path mode can select a historical SGA contract. Existing current
+lowered bytes and authored path modes are unchanged; the public MoonBit getter
+return-type changes are intentional breaking changes in the sole implementation.
+
+Independent literal lowering expectations still pass. Additional assertions
+fix the complete current obligation order and compare indexed enumeration with
+the same owner, including invalid-index refusal. Typed-key MATCH and all
+WALK/TRAIL/ACYCLIC modes retain their positive shared-budget admission tests.
+The surrounding checking/lowering/evidence/preflight/storage/runtime packages,
+current constructor, managed-provider/selector custody and snapshot regression
+pass **1,100/1,100 on each JS, Wasm and native**, with `--deny-warn`:
+`/private/tmp/property-graph-mandatory-scope-{js,wasm,native}-20261003.log`.
+
+This checkpoint does not supersede the red aggregate result above. Unreachable
+definition-free predicate scaffolding, external Source declaration ownership,
+old fixture guarantee migration, strict inventories and published-SHA public
+snapshot/fresh packed/required CI remain open. No public branch replacement,
+AoA change, merge or completed B handoff has occurred.

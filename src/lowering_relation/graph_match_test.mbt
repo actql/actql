@@ -128,7 +128,7 @@ test "current MATCH exposes one checked definition scope and typed kernel view" 
   }
   assert_true(@lowering_relation.graph_match_nodes(view))
   assert_false(@lowering_relation.graph_match_has_predicate(view))
-  assert_eq(@lowering_relation.graph_match_property_definition(view), Some(0))
+  assert_eq(@lowering_relation.graph_match_property_definition(view), 0)
   assert_eq(
     @lowering_relation.graph_match_property_binding(view, "identity"),
     Some(@schema.Unqualified("node_id")),

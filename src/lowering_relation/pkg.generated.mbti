@@ -313,11 +313,11 @@ pub fn graph_match_predicate(PreparedGraphMatch) -> Expression?
 
 pub fn graph_match_property_binding(PreparedGraphMatch, String) -> @relation_schema.FieldName?
 
-pub fn graph_match_property_definition(PreparedGraphMatch) -> Int?
+pub fn graph_match_property_definition(PreparedGraphMatch) -> Int
 
-pub fn graph_match_property_schema(PreparedGraphMatch) -> @carrier_contract.Knowledge?
+pub fn graph_match_property_schema(PreparedGraphMatch) -> @carrier_contract.Knowledge
 
-pub fn graph_match_property_scope_fields(PreparedGraphMatch) -> @carrier_contract.Knowledge?
+pub fn graph_match_property_scope_fields(PreparedGraphMatch) -> @carrier_contract.Knowledge
 
 pub fn graph_match_type_at(PreparedGraphMatch, Int) -> String?
 
@@ -341,7 +341,7 @@ pub fn graph_traverse_output_schema(PreparedGraphTraverse) -> @relation_schema.S
 
 pub fn graph_traverse_patterned(PreparedGraphTraverse) -> Bool
 
-pub fn graph_traverse_property_path_mode(PreparedGraphTraverse) -> @graph_typing.PropertyPathMode?
+pub fn graph_traverse_property_path_mode(PreparedGraphTraverse) -> @graph_typing.PropertyPathMode
 
 pub fn graph_traverse_start_id_at(PreparedGraphTraverse, Int) -> @value_admission.CheckedValue?
 

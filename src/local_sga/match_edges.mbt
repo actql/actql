@@ -144,8 +144,8 @@ fn edge_predicate_binding(
   edge : Int,
   index : Int,
 ) -> (String, @execution.Value)? {
-  guard @lower.graph_match_property_scope_fields(state.prepared) is Some(fields) &&
-    @carrier.field_at(fields, index) is Some(field) &&
+  let fields = @lower.graph_match_property_scope_fields(state.prepared)
+  guard @carrier.field_at(fields, index) is Some(field) &&
     field.contract is Some(contract) &&
     match_edge_value(state, edge, field.name, contract) is Some(value) else {
     return None
@@ -210,9 +210,8 @@ fn compare_selected_edges_step(
 ///|
 fn edge_matches_types(state : MatchEdgesState, edge : Int) -> Bool {
   state.type_probes.val += 1
-  guard @lower.graph_match_property_definition(state.prepared)
-    is Some(definition) &&
-    graph_read_edge_definition(state.source, edge) == Some(definition) else {
+  let definition = @lower.graph_match_property_definition(state.prepared)
+  guard graph_read_edge_definition(state.source, edge) == Some(definition) else {
     return false
   }
   match state.type_count {
@@ -300,9 +299,10 @@ fn match_edges_step(
           }
           ignore(name)
           let profile = @carrier.graph_property_definition(state.graph)
-          if @lower.graph_match_property_definition(state.prepared)
-            is Some(definition) &&
-            @carrier.property_graph_edge_at(profile, definition)
+          let definition = @lower.graph_match_property_definition(
+            state.prepared,
+          )
+          if @carrier.property_graph_edge_at(profile, definition)
             is Some(edge_definition) &&
             @carrier.property_definition_has_label(
               @carrier.property_edge_element(edge_definition),
@@ -663,8 +663,7 @@ fn start_match_edges_read(
     ) &&
     @lower.sequence_step(sequence, step)
     is Some(@lower.GraphMatchStep(prepared)) &&
-    !@lower.graph_match_nodes(prepared) &&
-    @lower.graph_match_property_definition(prepared) is Some(_) else {
+    !@lower.graph_match_nodes(prepared) else {
     return Err(InvalidMatchEdgesKernel)
   }
   let select_all = !@lower.graph_match_has_predicate(prepared) ||
@@ -680,10 +679,7 @@ fn start_match_edges_read(
   let schema = @lower.graph_match_output_schema(prepared)
   let width = @schema.field_count(schema)
   let predicate_fields = if predicate is Some(_) {
-    match @lower.graph_match_property_scope_fields(prepared) {
-      Some(fields) => @carrier.field_count(fields)
-      None => return Err(InvalidMatchEdgesKernel)
-    }
+    @carrier.field_count(@lower.graph_match_property_scope_fields(prepared))
   } else {
     0
   }
@@ -720,8 +716,7 @@ fn start_match_edges_read(
   let scratch_slots = Ref(0)
   let type_probes = Ref(0)
   let port_result = match source {
-    Stored(read) if @lower.graph_match_property_definition(prepared) is Some(_) &&
-      @lifecycle.producer_read_reference_matches_input(
+    Stored(read) if @lifecycle.producer_read_reference_matches_input(
         @graph.producer_read_carrier_reference(read),
         owner,
         0,

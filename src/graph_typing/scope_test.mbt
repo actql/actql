@@ -60,7 +60,7 @@ test "definition-selected MATCH scopes keep independent identities and business 
       None,
       predicate_limits(),
     ).unwrap()
-    let scope = @graph_typing.match_property_scope_fields(checked).unwrap()
+    let scope = @graph_typing.match_property_scope_fields(checked)
     assert_eq(@carrier.field_count(scope), names.length())
     for name in names {
       assert_true(@carrier.lookup(scope, Unqualified(name)) is Present(_))

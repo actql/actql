@@ -36,7 +36,7 @@ test "current TRAIL exposes a complete homogeneous kernel view and keyed path sc
   }
   assert_eq(
     @lowering_relation.graph_traverse_property_path_mode(view),
-    Some(@graph.Trail),
+    @graph.Trail,
   )
   assert_false(@lowering_relation.graph_traverse_patterned(view))
   assert_true(@lowering_relation.graph_traverse_emits_paths(view))
@@ -109,7 +109,7 @@ test "current TRAIL exposes a patterned keyed selector and refuses definition-fr
   assert_eq(@lowering_relation.graph_traverse_bounds(view), None)
   assert_eq(
     @lowering_relation.graph_traverse_property_path_mode(view),
-    Some(@graph.Trail),
+    @graph.Trail,
   )
   assert_eq(
     @lowering_relation.graph_traverse_start_relation_field(view),

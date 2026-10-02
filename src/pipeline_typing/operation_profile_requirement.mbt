@@ -7,7 +7,6 @@ pub fn operation_profile_requirement(
   match v {
     MatchRequirement(o) =>
       match o {
-        ResolveMatchProfile => Some(SGA)
         ResolvePropertyGraphMatchProfile => Some(PropertyGraph)
         AdmitMatchGraphData
         | ValidateSelectedIdentityMembership
@@ -18,13 +17,10 @@ pub fn operation_profile_requirement(
       }
     TraverseRequirement(o) =>
       match o {
-        ResolveTraversalProfile => Some(SGA)
         ResolvePropertyGraphTraversalProfile => Some(PropertyGraph)
         AdmitTraversalGraph
         | RespectTraversalHopBounds
         | EvaluateTraversalHopPredicates
-        | EmitMinimumNodeDepth
-        | EnumerateSimplePaths
         | EnumeratePropertyPaths
         | DeduplicateExactPaths
         | CanonicalTraversalOrder

@@ -659,12 +659,12 @@ fn traverse_paths_step(
           return @bounded.Failed(TraversePathsInputUnavailable, progress, used)
         }
         let mode = @lower.graph_traverse_property_path_mode(state.prepared)
-        let members = if mode == Some(@graph_type.Trail) {
+        let members = if mode == @graph_type.Trail {
           path.edges.length()
         } else {
           path.nodes.length()
         }
-        if mode == Some(@graph_type.Walk) {
+        if mode == @graph_type.Walk {
           used += 1
           prepare_traverse_path_candidate(
             state,
@@ -673,7 +673,7 @@ fn traverse_paths_step(
           )
         } else if state.member_index < members {
           used += 1
-          let repeated = if mode == Some(@graph_type.Trail) {
+          let repeated = if mode == @graph_type.Trail {
             path.edges[state.member_index] == state.candidate_edge
           } else {
             path.nodes[state.member_index] == state.candidate_node
@@ -1198,7 +1198,6 @@ fn start_traverse_paths_read(
     @lower.node_input_target(node, 0) is Some(target) &&
     @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
     is Some(@carrier.GraphValue(graph)) &&
-    @lower.graph_traverse_property_path_mode(prepared) is Some(_) &&
     @lower.graph_traverse_emits_paths(prepared) else {
     return Err(InvalidTraversePathsKernel)
   }

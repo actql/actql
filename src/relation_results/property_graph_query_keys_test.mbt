@@ -88,7 +88,11 @@ test "Property Graph MATCH key evidence retains the independent typed identity a
     assert_true(physical_equal(@graph.match_input(op), graph))
     assert_eq(
       @graph.match_property_definition_name(op),
-      Some(if edges { "E" } else { "N" }),
+      if edges {
+        "E"
+      } else {
+        "N"
+      },
     )
     // Semantic Graph identity is not a generic JSON scalar key or authored order.
     for usage in [@evidence.CanonicalOrder, @evidence.ScalarIdentity] {

@@ -108,7 +108,6 @@ fn accepts_traverse(value : @lower.PreparedGraphTraverse) -> Bool {
     @lower.graph_traverse_bounds(value)
   }
   @lower.graph_traverse_emits_paths(value) &&
-  @lower.graph_traverse_property_path_mode(value) is Some(_) &&
   bounds is Some((minimum, maximum)) &&
   minimum <= 2147483647L &&
   maximum <= 2147483647L &&
@@ -164,7 +163,6 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
           return false
         }
         current_graph(carrier) &&
-        @lower.graph_match_property_definition(matched) is Some(_) &&
         @lower.operation(node) ==
         (if @lower.graph_match_nodes(matched) {
           "SGA.match_nodes"
@@ -179,7 +177,6 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         }
         current_graph(carrier) &&
         @lower.operation(node) == "SGA.traverse" &&
-        @lower.graph_traverse_property_path_mode(traverse) is Some(_) &&
         @lower.graph_traverse_emits_paths(traverse) &&
         accepts_traverse(traverse)
       }
@@ -844,10 +841,7 @@ pub fn provider(
           @execution.generated_prepared_sequence(sequence),
           selected_step.unwrap_or(0),
         ) {
-        Some(@lower.GraphTraverseStep(traverse)) if @lower.graph_traverse_property_path_mode(
-            traverse,
-          )
-          is Some(_) =>
+        Some(@lower.GraphTraverseStep(traverse)) =>
           if @lower.graph_traverse_start_relation_field(traverse) is Some(_) {
             1
           } else {

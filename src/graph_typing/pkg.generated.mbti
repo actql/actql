@@ -72,15 +72,15 @@ pub fn match_predicate(CheckedMatch) -> CheckedPredicate?
 
 pub fn match_property_binding(CheckedMatch, String) -> @relation_schema.FieldName?
 
-pub fn match_property_definition(CheckedMatch) -> Int?
+pub fn match_property_definition(CheckedMatch) -> Int
 
-pub fn match_property_definition_name(CheckedMatch) -> String?
+pub fn match_property_definition_name(CheckedMatch) -> String
 
 pub fn match_property_label(CheckedMatch) -> String?
 
-pub fn match_property_schema(CheckedMatch) -> @carrier_contract.Knowledge?
+pub fn match_property_schema(CheckedMatch) -> @carrier_contract.Knowledge
 
-pub fn match_property_scope_fields(CheckedMatch) -> @carrier_contract.Knowledge?
+pub fn match_property_scope_fields(CheckedMatch) -> @carrier_contract.Knowledge
 
 pub fn match_source(CheckedMatch) -> @decode_core.Cursor
 
@@ -206,7 +206,7 @@ pub fn traverse_pending_at(CheckedTraverse, Int) -> TraverseObligation?
 
 pub fn traverse_pending_count(CheckedTraverse) -> Int
 
-pub fn traverse_property_path_mode(CheckedTraverse) -> PropertyPathMode?
+pub fn traverse_property_path_mode(CheckedTraverse) -> PropertyPathMode
 
 pub fn traverse_source(CheckedTraverse) -> @decode_core.Cursor
 
@@ -333,7 +333,6 @@ pub(all) enum MatchObligation {
   EvaluateMatchPredicate
   CanonicalMatchOrder
   ResolveMatchResources
-  ResolveMatchProfile
   ResolvePropertyGraphMatchProfile
 } derive(Eq, @debug.Debug)
 
@@ -419,15 +418,12 @@ pub(all) enum TraverseObligation {
   AdmitTraversalGraph
   RespectTraversalHopBounds
   EvaluateTraversalHopPredicates
-  EmitMinimumNodeDepth
-  EnumerateSimplePaths
   EnumeratePropertyPaths
   DeduplicateExactPaths
   CanonicalTraversalOrder
   EnforceTraversalOutputGuard
   BindTraversalOutputGuard(String)
   ResolveTraversalResources
-  ResolveTraversalProfile
   ResolvePropertyGraphTraversalProfile
 } derive(Eq, @debug.Debug)
 

@@ -148,14 +148,11 @@ pub fn operation_scalar_demand(
         AdmitTraversalGraph
         | RespectTraversalHopBounds
         | EvaluateTraversalHopPredicates
-        | EmitMinimumNodeDepth
-        | EnumerateSimplePaths
         | EnumeratePropertyPaths
         | DeduplicateExactPaths
         | CanonicalTraversalOrder
         | EnforceTraversalOutputGuard
         | ResolveTraversalResources
-        | ResolveTraversalProfile
         | ResolvePropertyGraphTraversalProfile => None
       }
     AppendRequirement(_)

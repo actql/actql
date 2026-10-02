@@ -1,8 +1,10 @@
 ///|
 test "profile obligations map to their declared module without discharging other requirements" {
   assert_eq(
-    operation_profile_requirement(MatchRequirement(ResolveMatchProfile)),
-    Some(SGA),
+    operation_profile_requirement(
+      MatchRequirement(ResolvePropertyGraphMatchProfile),
+    ),
+    Some(PropertyGraph),
   )
   assert_eq(
     operation_profile_requirement(MatchRequirement(AdmitMatchGraphData)),
@@ -17,10 +19,6 @@ test "profile obligations map to their declared module without discharging other
   assert_eq(
     operation_profile_requirement(TraverseRequirement(EnumeratePropertyPaths)),
     None,
-  )
-  assert_eq(
-    operation_profile_requirement(TraverseRequirement(ResolveTraversalProfile)),
-    Some(SGA),
   )
   assert_eq(
     operation_profile_requirement(TraverseRequirement(AdmitTraversalGraph)),

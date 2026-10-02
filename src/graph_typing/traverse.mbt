@@ -18,15 +18,12 @@ pub(all) enum TraverseObligation {
   AdmitTraversalGraph
   RespectTraversalHopBounds
   EvaluateTraversalHopPredicates
-  EmitMinimumNodeDepth
-  EnumerateSimplePaths
   EnumeratePropertyPaths
   DeduplicateExactPaths
   CanonicalTraversalOrder
   EnforceTraversalOutputGuard
   BindTraversalOutputGuard(String)
   ResolveTraversalResources
-  ResolveTraversalProfile
   ResolvePropertyGraphTraversalProfile
 } derive(Eq, Debug)
 
@@ -43,7 +40,7 @@ struct CheckedTraverse {
   guard_rows : Count?
   output : @carrier.Carrier
   usage : PredicateUsage
-  property_mode : PropertyPathMode?
+  property_mode : PropertyPathMode
 }
 
 ///|
@@ -132,14 +129,12 @@ pub fn check_traverse(
       guard @decode.lookup(root, "path_mode") is Some(at) else {
         fail(source, UnsupportedGraphProfile)
       }
-      Some(
-        match decoded(@decode.text(at)) {
-          "walk" => Walk
-          "trail" => Trail
-          "acyclic" => Acyclic
-          _ => fail(at, InvalidBody)
-        },
-      )
+      match decoded(@decode.text(at)) {
+        "walk" => Walk
+        "trail" => Trail
+        "acyclic" => Acyclic
+        _ => fail(at, InvalidBody)
+      }
     }
     let at = decoded(@decode.required(root, "start"))
     let start = match
@@ -315,7 +310,7 @@ pub fn traverse_source(c : CheckedTraverse) -> @decode.Cursor {
 }
 
 ///|
-pub fn traverse_property_path_mode(c : CheckedTraverse) -> PropertyPathMode? {
+pub fn traverse_property_path_mode(c : CheckedTraverse) -> PropertyPathMode {
   c.property_mode
 }
 
@@ -417,25 +412,9 @@ fn traverse_pending_each(
   emit(EvaluateTraversalHopPredicates)
   emit(CanonicalTraversalOrder)
   emit(ResolveTraversalResources)
-  emit(
-    if c.property_mode is Some(_) {
-      ResolvePropertyGraphTraversalProfile
-    } else {
-      ResolveTraversalProfile
-    },
-  )
-  if c.emit == TraversedPaths {
-    emit(
-      if c.property_mode is Some(_) {
-        EnumeratePropertyPaths
-      } else {
-        EnumerateSimplePaths
-      },
-    )
-    emit(DeduplicateExactPaths)
-  } else {
-    emit(EmitMinimumNodeDepth)
-  }
+  emit(ResolvePropertyGraphTraversalProfile)
+  emit(EnumeratePropertyPaths)
+  emit(DeduplicateExactPaths)
   if c.guard_rows is Some(bound) {
     emit(EnforceTraversalOutputGuard)
     if bound is Parameter(name) {

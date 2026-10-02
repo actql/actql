@@ -18,7 +18,7 @@ test "current TRAIL admits bounded and patterned forms under shared budgets" {
       None,
       predicate_limits(),
     ).unwrap()
-    assert_eq(@graph_typing.traverse_property_path_mode(checked), Some(Trail))
+    assert_eq(@graph_typing.traverse_property_path_mode(checked), Trail)
     let usage = @graph_typing.traverse_usage(checked)
     let exact = {
       ..predicate_limits(),
@@ -40,8 +40,8 @@ test "current TRAIL admits bounded and patterned forms under shared budgets" {
         @graph_typing.check_traverse(source, graph, None, None, cap) is Err(_),
       )
     }
-    assert_false(
-      @graph_typing.traverse_pending(checked).contains(EnumerateSimplePaths),
+    assert_true(
+      @graph_typing.traverse_pending(checked).contains(EnumeratePropertyPaths),
     )
     if @graph_typing.traverse_patterned(checked) {
       assert_eq(@graph_typing.traverse_bounds(checked), (2.0, 2.0))

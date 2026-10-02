@@ -72,7 +72,7 @@ test "current TRAIL retains selector inputs and complete independent identity ar
   guard step.operation is Traverse(selector=Some(Input(1)), checked~) else {
     fail("current TRAIL")
   }
-  assert_eq(@graph.traverse_property_path_mode(checked), Some(Trail))
+  assert_eq(@graph.traverse_property_path_mode(checked), Trail)
   assert_true(physical_equal(@graph.traverse_input(checked), g))
   let edges = @pipeline_typing.input_occurrences(step)
   assert_eq(edges.length(), 2)
@@ -149,7 +149,7 @@ test "definition-scoped property MATCH connects Relation consumers and preserves
     let step = @pipeline_typing.step_at(p, 0).unwrap()
     guard step.operation is GraphMatch(checked) else { fail("scoped MATCH") }
     assert_true(physical_equal(@graph.match_input(checked), graph))
-    assert_eq(@graph.match_property_definition_name(checked), Some(definition))
+    assert_eq(@graph.match_property_definition_name(checked), definition)
     let edges = @pipeline_typing.input_occurrences(step)
     assert_eq(edges.length(), 1)
     assert_eq(edges[0].target, Input(0))
