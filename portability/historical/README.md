@@ -15,6 +15,12 @@ fallback that accepts old Graph bodies or snapshot profiles.
   tuple-consumer test files are no longer executable; five supported fixture
   files are replaced with current typed identities, scoped predicates,
   explicit TRAIL and independent path identity contracts.
+- `managed-graph-runtime-output-pre-property-graph.mbt.txt`: the original
+  tuple retention/consumer fixtures, source
+  `bf02dc660463bcb72bf8f171a9a408020f442b2b`. All seven lifecycle obligations
+  remain executable on the current profile: independent typed identities,
+  exact consumer/owner bindings, source revocation, atomic failure and final
+  reclamation. These internal port tests do not claim public snapshot I/O.
 
 The current typing package checks unsupported consumers as typed refusals,
 and tests the supported subset's exact/one-short budgets, repeated identity

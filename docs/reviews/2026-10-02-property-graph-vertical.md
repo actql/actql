@@ -488,6 +488,41 @@ native**. The initial migrated fixture compile lacked two qualified enum names;
 the fixture spelling was corrected without changing product code. No full Core
 or public snapshot success follows from this package result.
 
+### Integrated Core diagnosis at `bf02dc660463bcb72bf8f171a9a408020f442b2b`
+
+The full Core JS run exited **2**: **7581 total, 7079 passed, 502 failed**.
+The protected log is
+`/private/tmp/property-graph-core-js-bf02dc660-20261002.log`.
+This is not an all-legacy failure classification: **81 failures** were in the
+newly integrated `client_infer_host` package. Its generated admission fixture
+still contained the predecessor registry. The existing non-mutating generator
+check independently rejected that fixture before any update. Regenerating it
+from the current normative registry with `scripts/infer-host-fixtures.mjs
+--write` changed only admission input, not expected rows, accounting boundaries,
+model behavior or Run assertions. The complete package then passed **82/82 on
+JS, Wasm and native**. The original full-Core failure remains recorded; these
+narrow successes do not supply a new aggregate Core result.
+
+The other **421 failures** span Graph preflight, typing, lowering, runtime,
+Program checking and Host integration. They remain subject to individual
+current-profile migration or product diagnosis. Historical positive fixtures
+do not justify reintroducing the tuple runtime, and they must not be removed
+wholesale where current custody, work or resource regressions can be preserved.
+
+The seven `managed_graph_runtime/output_wbtest.mbt` lifecycle regressions now
+use the current property Graph and definition-selected MATCH ports instead of
+unsupported normalize/tuple ports. The original file is preserved byte for
+byte at the integrated source above. None of these regressions was skipped:
+two exact consumers, operation-port/foreign-owner rejection, source revocation,
+duplicate-key failure, cancellation and idempotent final reclamation remain
+checked. The complete runtime package passed **11/11 on each target**.
+An initial migration tried scalar key ordering on a structured Graph identity
+and was correctly refused; the assertion now uses bounded complete equality
+against an independently authored typed/domain identity. An enum pattern typo
+also failed compilation before correction. These are fixture corrections, not
+permission to admit structured keys as scalar order values. Internal lifecycle
+success is still not public snapshot roundtrip acceptance.
+
 ## Deliberately not claimed
 
 Full SGA, external producer-definition provenance, a durable Graph catalog and
