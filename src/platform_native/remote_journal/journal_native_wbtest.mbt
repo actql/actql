@@ -994,7 +994,10 @@ test "native start claim lets exactly one executor begin an attempt" {
     test_capability(second_site),
   ).unwrap()
   // Both transitions have identical bodies; only the claim decides.
+  assert_eq(first.start_claimant(request).unwrap(), None)
   assert_eq(first.claim_start(first_start, "executor-a").unwrap(), Won)
+  assert_eq(first.start_claimant(request).unwrap(), Some("executor-a"))
+  assert_eq(second.start_claimant(request).unwrap(), Some("executor-a"))
   assert_eq(
     second.claim_start(second_start, "executor-b").unwrap(),
     LostTo("executor-a"),
@@ -1032,6 +1035,73 @@ test "native start claim lets exactly one executor begin an attempt" {
   )
   assert_true(first.close())
   assert_true(second.close())
+}
+
+///|
+test "native claimant recovery rejects corrupt or foreign durable claims" {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY") is Some(path) else {
+    return
+  }
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT") is Some(root) else {
+    return
+  }
+  let library = @sqlite.load_library(path).unwrap()
+  let database_path = root +
+    "/claimant-recovery-" +
+    @env.now().to_string() +
+    ".sqlite3"
+  let site = test_site()
+  let journal = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(site),
+  ).unwrap()
+  let request = test_request("claimant-recovery")
+  let (_, record) = journal.accept(request).unwrap()
+  assert_eq(journal.start_claimant(request).unwrap(), None)
+  journal
+  .claim_start(
+    @remote.prepare_begin_provisioning(record, test_capability(site)).unwrap(),
+    "holder-original",
+  )
+  .unwrap()
+  |> ignore
+  assert_true(journal.close())
+  assert_true(journal.start_claimant(request) is Err(Closed))
+  let reopened = open_journal(
+    library,
+    database_path,
+    262144L,
+    test_control(test_site()),
+  ).unwrap()
+  assert_eq(reopened.start_claimant(request).unwrap(), Some("holder-original"))
+  let key = @remote.dispatch_request_attempt_identity(request).unwrap()
+  for
+    body in [
+      "{",
+      start_claim_body(
+        "holder-original",
+        @remote.dispatch_request_identity(test_request("foreign")),
+      ),
+      start_claim_body(
+        "invalid claimant",
+        @remote.dispatch_request_identity(request),
+      ),
+    ] {
+    let saved = reopened.database.read("site_start_claim", key).unwrap()
+    reopened.database
+    .compare_exchange(
+      "site_start_claim",
+      key,
+      saved.revision,
+      @utf8.encode(body),
+    )
+    .unwrap()
+    |> ignore
+    assert_true(reopened.start_claimant(request) is Err(StateCollision))
+  }
+  assert_true(reopened.close())
 }
 
 ///|

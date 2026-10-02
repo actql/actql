@@ -166,7 +166,7 @@ export function installedModelEnvironment(moon, baseWire, currentWire,
 // not admit a body: MoonBit checks canonical bytes, self-CID, exact Task and
 // ceilings. Returning this contract does not admit prompt/retry/egress policy.
 export function readInstalledModelExecution(moon, prepared, installation) {
-  const step = moon.clientProgramTerminalInferStep(prepared);
+  const step = moon.clientProgramSelectedInferStep(prepared);
   if (step === undefined) return undefined;
   const taskCid = moon.clientProgramInferModelTaskCid(prepared, step);
   const entry = installation === undefined ? undefined :

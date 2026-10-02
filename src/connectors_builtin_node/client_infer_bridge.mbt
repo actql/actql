@@ -8,6 +8,61 @@ pub fn client_program_terminal_infer_step(
 }
 
 ///|
+#export_name("clientProgramSelectedInferStep")
+pub fn client_program_selected_infer_step(
+  prepared : @publication_host.PreparedClientProgram,
+) -> Int? {
+  @publication_host.prepared_client_infer_step(prepared)
+}
+
+///|
+#export_name("clientProgramPrepareInferComputeSuffix")
+pub fn client_program_prepare_infer_compute_suffix(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  registry : String,
+  values : String,
+  fragment : String,
+  ordered : String,
+) -> Result[@execution.GeneratedSequence?, @infer_host.Issue] {
+  if @publication_host.prepared_client_terminal_infer_step(prepared) ==
+    Some(step) {
+    return Ok(None)
+  }
+  guard @publication_host.prepared_client_infer_step(prepared) == Some(step) &&
+    @client_local_host.prepare_client_infer_suffix(
+      prepared,
+      step,
+      registry,
+      values,
+      fragment_body=Some(fragment),
+      ordered_body=Some(ordered),
+    )
+    is Some(sequence) else {
+    return Err(@infer_host.InvalidAdvance)
+  }
+  let limits = @infer_host.standard_limits()
+  guard @local.local_bounded_relation_provider(
+      limits.input,
+      limits.measurement,
+      sequence,
+    )
+    is Some(_) else {
+    return Err(@infer_host.InvalidAdvance)
+  }
+  Ok(Some(sequence))
+}
+
+///|
+#export_name("clientProgramBindInferComputeSuffix")
+pub fn client_program_bind_infer_compute_suffix(
+  active : @infer_host.Execution,
+  sequence : @execution.GeneratedSequence,
+) -> Result[Unit, @infer_host.Issue] {
+  @infer_host.bind_compute_suffix(active, sequence)
+}
+
+///|
 #export_name("clientProgramInferModelTaskCid")
 pub fn client_program_infer_model_task_cid(
   prepared : @publication_host.PreparedClientProgram,
@@ -381,6 +436,14 @@ pub fn client_program_infer_attempt_evidence(
   slot : Int,
 ) -> Result[@model.ModelAttemptEvidence, @model.ModelExecutionIssue] {
   @infer_host.attempt_evidence(active, slot)
+}
+
+///|
+#export_name("clientProgramInferStoppedAttemptCount")
+pub fn client_program_infer_stopped_attempt_count(
+  active : @infer_host.Execution,
+) -> Int? {
+  @infer_host.stopped_attempt_count(active)
 }
 
 ///|

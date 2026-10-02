@@ -321,6 +321,7 @@ fn relation_pipeline_observe(
     Step(i) => "step:" + i.to_string()
   }
   let active = relation_pipeline_start(sequence, [input])
+  assert_false(@local_connector.cleanup_managed_provider(active).unwrap())
   let mut work = 0L
   let mut output = None
   let mut terminal = false
@@ -376,6 +377,12 @@ fn relation_pipeline_observe(
   assert_true(@local_connector.advance_managed_provider(active, 1) is Err(_))
   assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
   assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
+  if output is Some(value) {
+    // Existing output ownership remains observable after Session cleanup.
+    // This is a retained reference check, never a GC/deallocation assertion.
+    assert_eq(relation_pipeline_rows(value), rows)
+    assert_eq(relation_pipeline_wire(value), wire)
+  }
   println(
     "ACTQL_PIPELINE:" +
     "{\"id\":" +

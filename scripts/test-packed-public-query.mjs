@@ -1,9 +1,12 @@
 // Install outside the checkout, then run B's unchanged public acceptance
 // against Embedded Local and HTTP without a MoonBit toolchain at runtime.
+import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {mkdir, readFile, writeFile} from 'node:fs/promises';
+import {mkdir, readFile, rename, writeFile} from 'node:fs/promises';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {readmeQuickstart} from './readme-quickstart.mjs';
+import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {withPackedQueryEvidence} from './packed-query-evidence.mjs';
 import {packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
 
@@ -29,10 +32,11 @@ for (const name of packages) {
       join(repository, 'packages', name))});
   recordTarball(join(root, `actql-${name}-0.0.0-development.tgz`));
 }
-await writeFile(join(root, 'package.json'), '{"private":true,"type":"module"}\n');
-run('npm', ['install', '--ignore-scripts', '--no-save', ...packages.map(name =>
-  join(root, `actql-${name}-0.0.0-development.tgz`))]);
+const quickstart = readmeQuickstart(await readFile(join(repository, 'README.md'), 'utf8'));
+run('bash', ['-eu', '-c', quickstart.install], root,
+  {...environment, ACTQL_PACKED_CLIENT_PACKAGES: root});
 for (const [source, destination] of [
+  ['scripts/fixtures/packed-readme-quickstart.mjs', 'readme-acceptance.mjs'],
   ['scripts/fixtures/public-query-input.mjs', 'public-query-input.mjs'],
   ['scripts/fixtures/string-values-restart.mjs', 'string-values-restart.mjs'],
   ['scripts/fixtures/packed-public-query.mjs', 'acceptance.mjs'],
@@ -65,6 +69,10 @@ run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
   '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1',
   '-subj', '/CN=localhost',
   '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1']);
+auditPackedPackages(root, packages);
+run('npm', ['ls', '--omit=dev', '--all']);
+await writeFile(join(root, 'query.aql'), quickstart.program);
+await writeFile(join(root, 'quickstart.mjs'), quickstart.client);
 const runtimeEnvironment = {...environment,
   PATH: `${dirname(process.execPath)}:/usr/bin:/bin`,
   NODE_EXTRA_CA_CERTS: join(root, 'remote.crt')};
@@ -86,10 +94,34 @@ if (process.argv.includes('--alias-scope-only')) {
 if (process.argv.includes('--infer-refusal-only')) {
   runtimeEnvironment.ACTQL_TEST_INFER_REFUSAL_ONLY = '1';
 }
-for (const name of ['MOON_HOME', 'ACTQL_LOCAL_SOURCE_PROFILE',
+for (const name of ['NODE_PATH', 'NODE_OPTIONS', 'MOON_HOME', 'ACTQL_LOCAL_SOURCE_PROFILE',
   'ACTQL_LOCAL_EFFECT_PROFILE', 'ACTQL_LOCAL_STATE_DIR']) {
   delete runtimeEnvironment[name];
 }
+// Execute the README's literal runtime commands, then the same Program through
+// the existing public Client acceptance helper on HTTPS. No second pack/build.
+console.log(run('bash', ['-eu', '-c', quickstart.run], root, runtimeEnvironment).trimEnd());
+assert.equal(await readFile(join(root, 'answer.jsonl'), 'utf8'), quickstart.expected);
+console.log(run(process.execPath, ['readme-acceptance.mjs'], root,
+  runtimeEnvironment).trimEnd());
+// A fresh process must fail for a real missing generated wire asset; module
+// caches and the checkout's dependency graph must not rescue this install.
+const asset = join(root, 'node_modules/@actql/client-wire/publication.generated.js');
+await rename(asset, asset + '.omitted');
+try {
+  const negative = spawnSync(process.execPath, ['--input-type=module', '-e',
+    "await import('@actql/node')"], {cwd: root, env: runtimeEnvironment,
+    encoding: 'utf8', timeout: 30_000});
+  await writeFile(join(directory, 'missing-generated-asset.json'), JSON.stringify({
+    status: negative.status, signal: negative.signal, stderr: negative.stderr,
+    error: negative.error?.code ?? null}, null, 2) + '\n');
+  assert.equal(negative.error, undefined);
+  assert.notEqual(negative.status, 0, 'Missing packaged asset must fail at runtime');
+  assert.match(negative.stderr, /ERR_MODULE_NOT_FOUND/u);
+  assert.match(negative.stderr, /publication\.generated\.js/u);
+  console.log('Packed missing generated asset: child failed as expected');
+} finally { await rename(asset + '.omitted', asset); }
+if (process.argv.includes('--quickstart-only')) return;
 if (process.argv.includes('--cancellation-only')) {
   console.log(run(process.execPath, ['sga-cancellation.mjs'], root,
     runtimeEnvironment, 120000).trimEnd());

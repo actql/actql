@@ -8,6 +8,7 @@ struct PreparedSequence {
 
 ///|
 pub enum PreparedStep {
+  InferBoundary(Int)
   ValuesStep(PreparedValues)
   TimeSeriesStep(PreparedTimeSeries)
   WindowStep(PreparedWindow)
@@ -115,10 +116,31 @@ pub fn prepare_sequence_prefix(
 }
 
 ///|
+/// Retain one installed acquisition boundary while preparing its surrounding
+/// Compute operations. The marker has no evaluator or AoA Compute encoding;
+/// its output must come from the separate checked ModelTask owner.
+pub fn prepare_sequence_with_infer_boundary(
+  owner : BoundPrepared,
+  step : Int,
+  limits : SequenceLimits,
+) -> Result[PreparedSequence, SequenceIssue] {
+  guard owner.prepared.nodes.get(step) is Some(node) && node.payload is Infer(_) else {
+    return Err(KernelFailure(step, MissingKernelNode))
+  }
+  prepare_sequence_count(
+    owner,
+    owner.prepared.nodes.length(),
+    limits,
+    infer_boundary=Some(step),
+  )
+}
+
+///|
 fn prepare_sequence_count(
   owner : BoundPrepared,
   count : Int,
   limits : SequenceLimits,
+  infer_boundary? : Int? = None,
 ) -> Result[PreparedSequence, SequenceIssue] {
   let e = limits.expressions
   if limits.max_steps < 0 ||
@@ -144,7 +166,12 @@ fn prepare_sequence_count(
   let mut expressions = limits.expressions
   for i = 0; i < count; i = i + 1 {
     let step = match owner.prepared.nodes[i].payload {
-      Infer(_) => return Err(KernelFailure(i, MissingKernelNode))
+      Infer(_) => {
+        guard infer_boundary == Some(i) else {
+          return Err(KernelFailure(i, MissingKernelNode))
+        }
+        InferBoundary(i)
+      }
       InnerJoin(_) => {
         let kernel = match prepare_join_kernel(owner, i, bindings, names) {
           Ok(v) => v
@@ -584,9 +611,26 @@ pub fn emit_sequence_steps(
   value : PreparedSequence,
   out : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
+  emit_sequence_step_range(value, 0, value.steps.length(), out)
+}
+
+///|
+/// Encode a checked half-open Compute segment. An acquisition boundary inside
+/// the segment is rejected, never silently dropped from the logical identity.
+pub fn emit_sequence_step_range(
+  value : PreparedSequence,
+  first : Int,
+  end : Int,
+  out : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  if first < 0 || end < first || end > value.steps.length() {
+    raise @encode.InvalidStructure
+  }
   @encode.begin_array(out)
-  for step in value.steps {
+  for index in first..<end {
+    let step = value.steps[index]
     match step {
+      InferBoundary(_) => raise @encode.InvalidStructure
       ValuesStep(v) => emit_values_node(v, out)
       TimeSeriesStep(v) => emit_time_series_node(v, out)
       WindowStep(v) => emit_window_node(v, out)

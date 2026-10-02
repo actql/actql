@@ -25,6 +25,7 @@ import {installedModelEnvironment, readInstalledModelExecution,
   admitInstalledModelProvider, observeInstalledModelAccount} from
   './installed-model.mjs';
 import {installNodeInferRun} from './installed-infer-run.mjs';
+import {installNodeClientCheck} from './client-check.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {issueInstalledRunControlObservation,
   issueInstalledUnpublishedRunState} from
@@ -346,6 +347,17 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   const prepareSubmit = installNodeClientProgramPreparation({moon,
     environment, sourcePublication,
     allowEffects: effectInstallation !== undefined});
+  const checkSource = installNodeClientCheck({moon, environment,
+    publication: sourcePublication, sourceAccess: sourceProfile?.sourceAccess});
+  // Checking dispatches nothing and reads no source rows; the audience is
+  // the authenticated caller this connection admits.
+  const check = async ({principalId: actual, connection, input, parameters,
+    signal}) => {
+    if (!hostConnection({principalId: actual, connection})) {
+      throw clientOperationError('ClientConnectionDenied');
+    }
+    return checkSource({principalId: actual, input, parameters, signal});
+  };
     checkpoints = await installRemoteCheckpoints({root, namespaceId,
       authorityScopeCid, ownerPrincipal: principalId,
       siteKey: authorization?.siteKey ?? 'actql-remote-host',
@@ -590,7 +602,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     // Static ModelTask admission cannot authorize a model call. Until the
     // installed dependency/dispatch route is present, refuse before admitting
     // a Run rather than sending this acquisition into a Values fallback.
-    if (moon.clientProgramTerminalInferStep(preparedProgram) !== undefined) {
+    if (moon.clientProgramSelectedInferStep(preparedProgram) !== undefined) {
       let execution;
       try {
         ({execution} = readInstalledModelExecution(moon, preparedProgram,
@@ -639,7 +651,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           new Error('InstalledInferDispatchNotConnected'));
       }
       try {
-        const step = moon.clientProgramTerminalInferStep(preparedProgram);
+        const step = moon.clientProgramSelectedInferStep(preparedProgram);
+        const computeSuffix = checked(moon.clientProgramPrepareInferComputeSuffix(
+          preparedProgram, step, registry, values, fragment, ordered));
         const egressAdmission = checked(moon.clientProgramAdmitInferEgress(
           preparedProgram, step, execution, physical.observeEgress));
         const observeAccount = () => observeInstalledModelAccount(moon, authorization);
@@ -654,7 +668,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         }
         const graph = checked(moon.clientProgramInstalledInferPlanGraph(
           preparedProgram, step, execution));
-        inferSelections.set(preparedProgram, Object.freeze({step, graph,
+        inferSelections.set(preparedProgram, Object.freeze({step, graph, computeSuffix,
           provider: moon.clientProgramAdmittedModelProvider(admittedProvider, execution),
           egressAdmission, account, observeAccount,
           physicalPreflight: physical.physicalPreflight,
@@ -1422,7 +1436,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       ? checkpointConnection(value)
       : hostConnection(value) || value.operation === 'connect' &&
         checkpointConnection(value),
-    negotiate, prepareSubmit, submit, attach, lookupRequest: lookupHeld,
+    negotiate, prepareSubmit, submit, check, attach,
+    lookupRequest: lookupHeld,
     stateService, resultService, observeRun, wait, cancel, cancelRequest,
     ...checkpointOperations,
     // Discovery of the installed source, when its adapter serves it.

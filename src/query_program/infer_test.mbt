@@ -67,12 +67,11 @@ test "INFER rejects duplicate keys, output collisions and unresolved input roles
 }
 
 ///|
-test "INFER requires a ModelTask from the checking environment" {
+test "INFER requires an installed model task after Program construction" {
   let program = infer_program(
     "FROM pair |> INFER score ITEM KEY (x) INPUT (n = y) AS assessment",
   ).unwrap()
-  // This environment declares no ModelTask. Syntax admission cannot supply
-  // one, even though the common infer checker is now implemented.
+  // Frontend construction cannot grant a missing ModelTask installation.
   let environment = check_environment()
   assert_true(@check.checking_environment_model_tasks(environment) is None)
   match @check.check_parsed(program, environment, None, check_limits()) {
@@ -80,11 +79,11 @@ test "INFER requires a ModelTask from the checking environment" {
       assert_eq(@check.diagnostic_category(error), @check.InvalidInput)
       match @check.diagnostic_cause(error) {
         Source(SourceView(Program(Program(Pipeline(_, issue))))) =>
-          assert_true(issue.kind is MissingModelTasks)
+          assert_eq(issue.kind, MissingModelTasks)
         other => raise other
       }
     }
-    _ => fail("an undeclared ModelTask must not issue a checked owner")
+    _ => fail("an uninstalled model task was admitted")
   }
 }
 

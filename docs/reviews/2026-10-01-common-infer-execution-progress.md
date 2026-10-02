@@ -2011,3 +2011,132 @@ not certified by the one-row example. Model delegation and durable custody
 for failures before accepted completion remain open. Missing capture after
 an unknown response stays `needs_reconciliation` with no Result and no
 automatic provider call; it is not reported as successful replay.
+
+## Attempt custody before failed execution reclamation
+
+The installed owner now separates `operation.stop()` from `operation.cleanup()`.
+After physical stop, executions without an accepted capture enumerate the
+common owner's retained attempts and persist their attempt, accounting,
+outcome and authority evidence before releasing that owner. An interrupted
+private write retains the same holding; cleanup retries persistence, not
+Compute or model dispatch. No success bundle, adopted slot or ObservationSet
+is invented for an incomplete execution.
+
+Public HTTPS tests report token usage above the reserved allowance. They
+verify a failed Run, unavailable Named Result, one model call, and all four
+private evidence holdings. A second case interrupts accounting persistence
+and verifies cleanup retry. After Host shutdown and Store reopen, the tests
+read the encrypted evidence and assert input/output usage of 1/1000,
+unknown cost/duration as NULL, positive work, and the common
+`contract_violation` / `budget_exceeded` classification.
+
+The installed public fixture passes 25 tests; four focused dispatch-owner,
+stop and failure-cleanup regressions also pass. The attempt inventory API
+passes seven related tests on each of JS, Wasm and native, including a
+cancelled dispatched attempt and an admission refusal without a call.
+The public cancellation fixture now waits for a Continue boundary after the
+actual provider call, sends `run.cancel()` through HTTPS, and requires a
+cancelled Run without a Result. After Host shutdown and encrypted Store
+reopen, input/output usage remains 1/2 and the common outcome is `cancelled`.
+The provider count remains one. This observes a real execution boundary,
+not a fixed sleep or cancellation before dispatch.
+
+Abrupt process loss before persistence remains an unknown
+response with no automatic redispatch; these tests do not claim to recover
+usage that was never saved.
+
+## Post-INFER Compute and public object projection
+
+The installed public Host now selects a single checked Infer occurrence even
+when bounded Relation operations follow it in the same task. Preparation admits
+the suffix provider before accepting the Run. Plan nodes retain the actual
+post-acquisition Compute operations and exact edges instead of connecting the
+Result directly to the inference barrier.
+
+The common execution owner retains model output while the existing Relation
+chain executes. It accumulates work across child transitions, observes suffix
+cancellation, and reclaims the suffix before releasing model output and input.
+An Infer boundary has no Compute evaluator or AoA Compute encoding. External
+reads retain exact operation-port bindings; selecting a range does not rerun
+its prefix or issue acquisition evidence.
+
+The ordinary HTTPS Program now supports a nested `assessment` object built by
+`derive` and projected by `select` after Infer. The public test reads the Named
+Result and compares its complete contents with independently written rows.
+A separate-process case stops after capture storage and before publication,
+then reconstructs the Host and runs the same Program with no additional model
+dispatch. Both paths produce the same expected object.
+
+Local evidence for these edits: 86 JS tests in `client_infer_host` and the
+generated-sequence test file; all 28 installed public Infer tests; focused
+public object-projection and process-replay acceptance. Runtime assets were
+rebuilt from the edited sources and remain ignored. On source revision
+`eb2e5c6abd1b8364f0243ff91521715b758a932f`, the Wasm Core job passed
+7,496 tests and native Core passed 7,582 tests. Public API comparison also
+passed. Final-SHA Linux CI for these edits remains separate evidence.
+
+This does not establish B's full KEEP/packed Local and HTTP acceptance or
+acquired SourceView inputs. The provider registration remains the existing
+installed ModelTask registration documented above; no new adapter scheduler,
+capture ledger or proof-JSON issuer was added.
+
+The same public harness also exercises a KEEP-shaped Program over the
+validated source-free input: a one-to-one join with the retained pre-Infer
+Relation, object construction, nested-property filtering, and a final
+`id`/`note`/`risk` projection. Its independent expected row is
+`{"id":"a","note":"hello","risk":"high"}`. Both initial execution and
+fresh-process replay after capture storage pass; the replay makes zero
+additional model calls. This verifies the shared execution connection without
+changing B's golden Program or treating literal uniqueness as key evidence.
+The packed SourceView-based application remains a separate acceptance.
+
+## Packed single-call acceptance
+
+PR #178 remains the single-call INFER completion unit. Broader KEEP and
+SourceView acceptance are not additional merge conditions for this unit.
+Required CI passed on the earlier published revision
+`b7db1288cebedc7e7686c36ea4a3f32898545d9d`; this does not certify later edits.
+
+`scripts/test-packed-single-infer.mjs` packs the public packages and installs
+them outside the checkout. Its application imports only `@actql/node`, Node
+built-ins and the independent application fixture. The runtime PATH excludes
+the MoonBit toolchain. ModelTask, prompt, execution policy, Program and expected
+rows are authored in `scripts/fixtures/installed-infer-fixture.mjs`; none are
+extracted from MoonBit test source or inferred from returned Results.
+
+The five process scenarios pass: success, cancellation after actual dispatch,
+usage-overflow failure, process exit after capture persistence, and replay in
+a fresh process. Success reads the independently expected Named Result.
+Cancellation and failure publish none. Each physical scenario calls the model
+once; replay calls it zero times and returns the same expected row.
+
+The application independently locates all four retained attempt evidence
+holdings. It checks encrypted object bytes against their digest and size,
+decrypts with the installation key, and checks observed token usage, unknown
+cost/duration, positive work and cancellation/budget failure classification.
+The CI Client job runs this acceptance and retains logs and tarball digests,
+not the private Store or installation key. Final Linux CI on the updated
+commit remains required; the local packed run is not its substitute.
+
+### Integration with public Check
+
+Merge revision `12e8c958ee13baf92509b01d35052a76a740281b` incorporates main
+`16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a` without rewriting feature history.
+Host imports and Client test registration preserve both public Check and
+INFER. Check Outcome and Model artifact schemas coexist; their combined
+registry CID and document metadata were regenerated, not selected from one
+side of the merge. Runtime packages were rebuilt and remain untracked.
+
+Integrated-source checks passed: 68 public Check/INFER/capture tests, the five
+packed process scenarios, 34 canonical contract tests, schema/pin checks and
+three-target generated interface comparison. The first direct Node attempt
+resolved an old borrowed Client wire package; a worktree-local SDK dependency
+link corrected resolution without modifying the borrowed installation. The
+first canonical test attempt lacked `moonfmt` on PATH; the pinned-toolchain
+rerun passed. Neither failed attempt is counted as successful evidence.
+
+The current foundation record separately references the integration commit
+and its exact common-file digests. It preserves historical evidence and
+does not weaken the foundation checker. Full integrated-SHA CI remains the
+merge-readiness check; complete local Core suites were not repeated solely
+for the merge.

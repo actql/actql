@@ -207,6 +207,7 @@ test "model dispatch rechecks current account and lifetime after prefix progress
       )
     }
     assert_eq(calls.val, 0)
+    assert_eq(stopped_attempt_count(active), Some(0))
     assert_true(acquire_capture(active) is None)
     assert_true(cleanup(active).unwrap())
     assert_eq(calls.val, 0)
@@ -222,7 +223,9 @@ test "cancelled dispatched attempt retains proof without adopting a slot" {
     cancel_after_failure=true,
   )
   evidence_authorize(active)
+  assert_eq(stopped_attempt_count(active), None)
   assert_true(fixture_finish(active) is Stopped(_))
+  assert_eq(stopped_attempt_count(active), Some(1))
   assert_eq(calls.val, 1)
   let model = active.model.unwrap()
   let proof = @model.model_execution_attempt_evidence(model, 0).unwrap()
@@ -239,6 +242,7 @@ test "cancelled dispatched attempt retains proof without adopting a slot" {
   assert_true(@model.model_execution_issued_slot_capture(model, 0) is Err(_))
   assert_true(acquire_capture(active) is None)
   assert_true(cleanup(active).unwrap())
+  assert_eq(stopped_attempt_count(active), None)
   assert_true(@model.model_execution_attempt_evidence(model, 0) is Ok(_))
   assert_eq(calls.val, 1)
 }

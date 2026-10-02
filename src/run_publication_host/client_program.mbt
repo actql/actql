@@ -445,9 +445,12 @@ fn emit_client_task_pipeline_prefix(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  infer_boundary? : Int? = None,
 ) -> Result[String, ClientTaskPipelineIssue] {
   let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
-  let prepared_sequence = if acquisition_prefix {
+  let prepared_sequence = if infer_boundary is Some(step) {
+    @lower.prepare_sequence_with_infer_boundary(owner, step, limits)
+  } else if acquisition_prefix {
     @lower.prepare_sequence_prefix(owner, end_step, limits)
   } else {
     @lower.prepare_sequence(owner, limits)
@@ -478,7 +481,12 @@ fn emit_client_task_pipeline_prefix(
     }
     @encode.end_object(writer)
     @encode.key(writer, "steps")
-    @lower.emit_sequence_steps(sequence, writer)
+    if infer_boundary is Some(_) {
+      guard selected is Some(step) else { return Err(Encoding) }
+      @lower.emit_sequence_step_range(sequence, step, step + 1, writer)
+    } else {
+      @lower.emit_sequence_steps(sequence, writer)
+    }
     @encode.key(writer, "version")
     @encode.string_value(writer, "aoa-pipeline/0.1")
     @encode.end_object(writer)

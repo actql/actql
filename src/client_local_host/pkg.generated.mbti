@@ -49,6 +49,8 @@ pub fn prepare_client_effect_local_sequences(@run_publication_host.PreparedClien
 
 pub fn prepare_client_infer_prefix(@run_publication_host.PreparedClientProgram, Int, Int, String, String, fragment_body? : String?, ordered_body? : String?) -> @execution_relation.GeneratedSequence?
 
+pub fn prepare_client_infer_suffix(@run_publication_host.PreparedClientProgram, Int, String, String, fragment_body? : String?, ordered_body? : String?) -> @execution_relation.GeneratedSequence?
+
 pub fn prepare_client_local_sequences(@run_publication_host.PreparedClientProgram, String, String, String?, String?, task_count? : Int?) -> Array[@execution_relation.GeneratedSequence]?
 
 pub fn prepare_effect_local_query_requirement(@run_publication_host.PreparedClientEffectComputation, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, ClientLocalQueryIssue]
@@ -58,6 +60,8 @@ pub fn prepare_local_query_requirement(@run_publication_host.PreparedClientProgr
 pub fn retry_local_values_execution_failure_cleanup(LocalValuesExecutionFailure) -> Bool
 
 pub fn start_client_infer_input(@run_publication_host.PreparedClientProgram, Int, Int, String, String, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.InferPreparationLimits, fragment_body? : String?, ordered_body? : String?) -> Result[ClientInferInputExecution, ClientInferInputIssue]
+
+pub fn start_client_infer_suffix(@execution_relation.GeneratedSequence, Array[@execution_relation.CompletedOutput], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits) -> Result[@local.ManagedProviderExecution, ClientInferInputIssue]
 
 // Errors
 
@@ -79,6 +83,7 @@ pub(all) enum ClientInferInputIssue {
   Preparation(@lowering_relation.InferInputIssue)
   Local(@connector_sdk.FixedComputeIssue)
   Mapping(@execution_relation.InferPreparationIssue)
+  ProducerRead(@execution_relation.ProducerReadIssue)
 }
 
 pub enum ClientInferInputPoll {

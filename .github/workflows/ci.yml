@@ -179,6 +179,12 @@ jobs:
         run: node proofs/relation-pipeline/run.mjs js base
       - name: Verify fixed and required fresh mutations with distinct target evidence
         run: node proofs/relation-pipeline/mutations.mjs verify
+      - name: Verify conditional structural capacity, custody and same-resource shrinking on all targets
+        run: node proofs/relation-pipeline/capacity/run.mjs all
+      - name: Audit structural capacity evidence and reject target or unconditional-byte substitution
+        run: |
+          node proofs/relation-pipeline/capacity/audit.mjs
+          node proofs/relation-pipeline/capacity/audit-target-regression.mjs
       - name: Restore and verify final registered pipelines on every target
         run: node proofs/relation-pipeline/run.mjs all
       - name: Audit independent execution records, shrink minima and marginal registration
@@ -266,6 +272,15 @@ jobs:
         run: npm run check:distribution-client
       - name: Test packed Embedded Local Checkpoint and Named Result
         run: npm run check:packed-embedded-checkpoint
+      - name: Test packed single INFER capture and replay
+        id: packed-infer
+        run: node scripts/test-packed-single-infer.mjs
+      - name: Retain packed single INFER evidence
+        if: always() && steps.packed-infer.outputs.evidence-directory != ''
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.packed-infer.outputs.evidence-directory }}
+          name: packed-single-infer-${{ github.sha }}
       - name: Test raw public SQL and Pipe through packed Local and HTTP
         id: packed-query
         run: |

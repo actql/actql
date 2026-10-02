@@ -3,6 +3,7 @@ import {execFile} from 'node:child_process';
 import {createHash, randomUUID} from 'node:crypto';
 import {readFile, readdir, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
+import {createRequire} from 'node:module';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
@@ -24,8 +25,9 @@ if (cases.length === 0 || new Set(cases).size !== cases.length ||
     cases.some(name => !availableCases.includes(name))) {
   throw new Error('Invalid selected native SGA acceptance cases');
 }
-const {openInstalledRemoteHttpHost} = await import(pathToFileURL(join(
-  installation, 'node_modules/@actql/local-node/adapters/host-node/embedded-local.mjs')));
+const requireInstalled = createRequire(join(installation, 'package.json'));
+const {openInstalledRemoteHttpHost} = await import(pathToFileURL(
+  requireInstalled.resolve('@actql/local-node/http-host')));
 const host = await openInstalledRemoteHttpHost({
   directory: join(installation, 'sga-native-state'),
   sourceProfilePath: join(installation, 'source-profile.json'),

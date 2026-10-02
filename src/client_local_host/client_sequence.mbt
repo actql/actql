@@ -75,6 +75,33 @@ pub fn prepare_client_infer_prefix(
 }
 
 ///|
+/// Prepare only the Compute suffix for the same installed Infer occurrence.
+/// The acquisition marker is retained for coordinates, never selected for
+/// execution. Its completed output must be supplied through exact bindings.
+pub fn prepare_client_infer_suffix(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  registry_body : String,
+  values_body : String,
+  fragment_body? : String? = None,
+  ordered_body? : String? = None,
+) -> @execution.GeneratedSequence? {
+  guard @publication_host.client_infer_prefix_owner(prepared, 0, step)
+    is Some(_) else {
+    return None
+  }
+  prepare_client_local_sequences_owned(
+    Pure(prepared),
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+    task_count=Some(1),
+    infer_suffix=Some(step),
+  ).bind(sequences => sequences.get(0))
+}
+
+///|
 fn prepare_client_local_sequences_owned(
   prepared : ClientLocalSequenceOwner,
   registry_body : String,
@@ -83,6 +110,7 @@ fn prepare_client_local_sequences_owned(
   ordered_body : String?,
   task_count? : Int? = None,
   infer_prefix? : (Int, Int)? = None,
+  infer_suffix? : Int? = None,
 ) -> Array[@execution.GeneratedSequence]? {
   if registry_body.length() > 100000 || values_body.length() > 100000 {
     return None
@@ -182,10 +210,19 @@ fn prepare_client_local_sequences_owned(
             @publication_host.client_standard_values_sequence_limits(),
           )
         _ =>
-          @lower.prepare_sequence(
-            owner,
-            @publication_host.client_standard_values_sequence_limits(),
-          )
+          match infer_suffix {
+            Some(step) =>
+              @lower.prepare_sequence_with_infer_boundary(
+                owner,
+                step,
+                @publication_host.client_standard_values_sequence_limits(),
+              )
+            None =>
+              @lower.prepare_sequence(
+                owner,
+                @publication_host.client_standard_values_sequence_limits(),
+              )
+          }
       }) {
       Ok(value) => value
       Err(_) => return None
@@ -282,7 +319,23 @@ fn prepare_client_local_sequences_owned(
         _ => ()
       }
     }
-    let outcome = if infer_prefix is Some((prefix_task, terminal)) &&
+    let outcome = if infer_suffix is Some(boundary) {
+      let last = @lower.sequence_count(sequence) - 1
+      guard last > boundary &&
+        @lower.node_at(@lower.bound_preparation(owner), last) is Some(node) else {
+        return None
+      }
+      @execution.prepare_generated_sequence(
+        contracts,
+        sequence,
+        contexts,
+        [@lower.node_id(node)],
+        100000,
+        10000,
+      ).map_err(issue => {
+        @publication_host.ClientTaskSequenceIssue::Generated(issue)
+      })
+    } else if infer_prefix is Some((prefix_task, terminal)) &&
       task == prefix_task {
       guard @lower.node_at(@lower.bound_preparation(owner), terminal)
         is Some(node) else {
@@ -327,6 +380,19 @@ fn prepare_client_local_sequences_owned(
     let sequence = match outcome {
       Ok(value) => value
       Err(_) => return None
+    }
+    let sequence = if infer_suffix is Some(boundary) {
+      guard @execution.select_generated_sequence_range(
+          sequence,
+          boundary + 1,
+          @execution.generated_sequence_step_count(sequence) - 1,
+        )
+        is Some(selected) else {
+        return None
+      }
+      selected
+    } else {
+      sequence
     }
     generated.push(sequence)
   }

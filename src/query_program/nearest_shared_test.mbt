@@ -77,7 +77,7 @@ test "nearest produces a pair key rather than query-only uniqueness" {
 }
 
 ///|
-test "nearest named object projection lowers through common expressions" {
+test "nearest named object projection retains nested typed key fields" {
   let checked = match
     @check.check_parsed(
       nearest_shared_program(true),
@@ -102,16 +102,33 @@ test "nearest named object projection lowers through common expressions" {
     max_parameters=0,
     max_name_bytes=1000,
   ).unwrap()
-  assert_true(
-    @lower.lower_expression(bound, 5, 0, {
-      max_nodes: 1000,
-      max_work: 10000,
-      max_depth: 100,
-      max_literal_nodes: 1000,
-      max_literal_text_bytes: 10000,
-    })
-    is Ok(_),
-  )
+  let expression = @lower.lower_expression(bound, 5, 0, {
+    max_nodes: 1000,
+    max_work: 10000,
+    max_depth: 100,
+    max_literal_nodes: 1000,
+    max_literal_text_bytes: 10000,
+  }).unwrap()
+  guard @lower.expression_body(expression) is Object(fields) else {
+    fail("expected a typed object projection")
+  }
+  assert_eq(fields.map(field => field.0), [
+    "candidate_key", "query_key", "rank", "score",
+  ])
+  for
+    (index, key, source) in [
+      (0, "item_id", "candidate_id"),
+      (1, "request_id", "query_id"),
+    ] {
+    guard @lower.expression_body(fields[index].1) is Object(nested) else {
+      fail("expected a nested typed identity")
+    }
+    assert_eq(nested.length(), 1)
+    assert_eq(nested[0].0, key)
+    assert_true(
+      @lower.expression_body(nested[0].1) is Field(name, _) && name == source,
+    )
+  }
 }
 
 ///|

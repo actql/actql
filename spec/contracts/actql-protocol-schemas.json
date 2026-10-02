@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:aa6b68cf8e9b412ac0eeab8d27be85cb1ca9a055237b9e1b1829efb289028c9a",
+  "artifact_registry_cid": "sha256:c5205fed9ce8001b5e29b50c5c450369b0261a86322018ab1581ac38fb0117c3",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10712,7 +10712,8 @@
     "model_attempt_outcome": "sha256:90afd9fed54246784afb4b8922a0ec228c048d50e75f53598702a4c5ca0770b7",
     "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
-    "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55"
+    "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
+    "check_outcome": "sha256:cb331c9b0f67e49072f0dbcd677e60bd4ecfb522e354346ab7cc61678b0eec66"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -74216,6 +74217,468 @@
           "pattern": "^sha256:[0-9a-f]{64}$"
         }
       }
+    },
+    "check_outcome": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-check-outcome-0.1.json",
+      "title": "actql-check-outcome-0.1",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "outcome",
+            "report",
+            "version"
+          ],
+          "properties": {
+            "outcome": {
+              "const": "completed"
+            },
+            "report": {
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "verdict": {
+                        "const": "verified"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "reasons": {
+                        "type": "array",
+                        "items": {},
+                        "maxItems": 0
+                      },
+                      "coverage": {
+                        "properties": {
+                          "limits": {
+                            "type": "array",
+                            "items": {},
+                            "maxItems": 0
+                          },
+                          "unresolved": {
+                            "type": "array",
+                            "items": {},
+                            "maxItems": 0
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "verdict": {
+                        "const": "invalid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "reasons": {
+                        "type": "array",
+                        "items": {},
+                        "minItems": 1
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "verdict": {
+                        "const": "undetermined"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "reasons": {
+                        "type": "array",
+                        "items": {},
+                        "maxItems": 0
+                      },
+                      "coverage": {
+                        "not": {
+                          "properties": {
+                            "limits": {
+                              "type": "array",
+                              "items": {},
+                              "maxItems": 0
+                            },
+                            "unresolved": {
+                              "type": "array",
+                              "items": {},
+                              "maxItems": 0
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "context_ref",
+                "coverage",
+                "reasons",
+                "scope",
+                "verdict"
+              ],
+              "properties": {
+                "context_ref": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^[A-Za-z0-9:_-]+$"
+                },
+                "coverage": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "limits",
+                    "unresolved"
+                  ],
+                  "properties": {
+                    "limits": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "code"
+                        ],
+                        "properties": {
+                          "code": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                          }
+                        }
+                      }
+                    },
+                    "unresolved": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "boundary",
+                          "reason"
+                        ],
+                        "properties": {
+                          "boundary": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                          },
+                          "reason": {
+                            "const": "unresolved_protected"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "reasons": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "code"
+                    ],
+                    "properties": {
+                      "code": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                      }
+                    }
+                  }
+                },
+                "scope": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "bound_input"
+                    }
+                  }
+                },
+                "verdict": {
+                  "enum": [
+                    "invalid",
+                    "undetermined",
+                    "verified"
+                  ]
+                }
+              }
+            },
+            "version": {
+              "const": "actql-check-outcome/0.1"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "outcome",
+            "problem",
+            "version"
+          ],
+          "properties": {
+            "outcome": {
+              "const": "failed"
+            },
+            "partial_report": {
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "verdict": {
+                        "const": "verified"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "reasons": {
+                        "type": "array",
+                        "items": {},
+                        "maxItems": 0
+                      },
+                      "coverage": {
+                        "properties": {
+                          "limits": {
+                            "type": "array",
+                            "items": {},
+                            "maxItems": 0
+                          },
+                          "unresolved": {
+                            "type": "array",
+                            "items": {},
+                            "maxItems": 0
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "verdict": {
+                        "const": "invalid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "reasons": {
+                        "type": "array",
+                        "items": {},
+                        "minItems": 1
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "verdict": {
+                        "const": "undetermined"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "reasons": {
+                        "type": "array",
+                        "items": {},
+                        "maxItems": 0
+                      },
+                      "coverage": {
+                        "not": {
+                          "properties": {
+                            "limits": {
+                              "type": "array",
+                              "items": {},
+                              "maxItems": 0
+                            },
+                            "unresolved": {
+                              "type": "array",
+                              "items": {},
+                              "maxItems": 0
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "context_ref",
+                "coverage",
+                "reasons",
+                "scope",
+                "verdict"
+              ],
+              "properties": {
+                "context_ref": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128,
+                  "pattern": "^[A-Za-z0-9:_-]+$"
+                },
+                "coverage": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "limits",
+                    "unresolved"
+                  ],
+                  "properties": {
+                    "limits": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "code"
+                        ],
+                        "properties": {
+                          "code": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                          }
+                        }
+                      }
+                    },
+                    "unresolved": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "boundary",
+                          "reason"
+                        ],
+                        "properties": {
+                          "boundary": {
+                            "type": "string",
+                            "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                          },
+                          "reason": {
+                            "const": "unresolved_protected"
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "reasons": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "code"
+                    ],
+                    "properties": {
+                      "code": {
+                        "type": "string",
+                        "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                      }
+                    }
+                  }
+                },
+                "scope": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "kind"
+                  ],
+                  "properties": {
+                    "kind": {
+                      "const": "bound_input"
+                    }
+                  }
+                },
+                "verdict": {
+                  "enum": [
+                    "invalid",
+                    "undetermined"
+                  ]
+                }
+              }
+            },
+            "problem": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "code"
+              ],
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                }
+              }
+            },
+            "version": {
+              "const": "actql-check-outcome/0.1"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "correlation_ref",
+            "outcome",
+            "problem",
+            "version"
+          ],
+          "properties": {
+            "correlation_ref": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9:_-]+$"
+            },
+            "outcome": {
+              "const": "unavailable"
+            },
+            "problem": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "code"
+              ],
+              "properties": {
+                "code": {
+                  "type": "string",
+                  "pattern": "^[a-z][a-z0-9_]{0,63}$"
+                }
+              }
+            },
+            "version": {
+              "const": "actql-check-outcome/0.1"
+            }
+          }
+        }
+      ]
     }
   }
 }

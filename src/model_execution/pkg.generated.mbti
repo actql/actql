@@ -137,6 +137,8 @@ pub fn start_restored_model_capture_replay(@execution_relation.PreparedInferRows
 
 pub fn start_restored_model_slot_replay(@execution_relation.PreparedInferRows, @run_publication_host.ClientInferCallScope, ModelSlotReplayRead, String, ModelExecutionLimits) -> Result[ModelExecution, ModelExecutionIssue]
 
+pub fn stopped_model_attempt_count(ModelExecution) -> Int?
+
 pub fn verified_model_capture_call_at(VerifiedModelCapture, Int) -> @run_publication.RunEvidenceValue?
 
 pub fn verified_model_capture_call_count(VerifiedModelCapture) -> Int?
