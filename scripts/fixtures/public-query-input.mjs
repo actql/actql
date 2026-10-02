@@ -12,7 +12,10 @@ const relationNumber = (name, nullable = false) => ({name,
   contract: {type: 'number', nullable}});
 // Hand-authored tap expectations: each Result retains the Relation at its
 // own point, including duplicates, NULLs and declared column order.
-const sourceColumns = [relationNumber('id'), relationNumber('amount', true)];
+// The pinned carrier_schema in query-amount-environment.json declares
+// amount before id. Plain FROM retains that order, independently of the
+// insertion order of keys in the sourceRows objects above.
+const sourceColumns = [relationNumber('amount', true), relationNumber('id')];
 export const pipeResultSuccesses = [
   {name: 'result-before-limit', format: 'aql-text',
     text: 'FROM records |> ORDER BY id |> RESULT original |> LIMIT 1',
@@ -328,8 +331,14 @@ export async function exercisePublicQueryInput(connect, options,
       const compare = (actual, expected, unordered) => {
         // An unordered SQL Relation is compared as a multiset. Sorting this
         // test copy preserves duplicates and never changes the product output.
-        if (unordered) assert.deepEqual(actual.map(row => JSON.stringify(row)).sort(),
-          expected.map(row => JSON.stringify(row)).sort());
+        const canonicalRow = value => Array.isArray(value)
+          ? '[' + value.map(canonicalRow).join(',') + ']'
+          : value !== null && typeof value === 'object'
+            ? '{' + Object.keys(value).sort().map(key =>
+              JSON.stringify(key) + ':' + canonicalRow(value[key])).join(',') + '}'
+            : JSON.stringify(value);
+        if (unordered) assert.deepEqual(actual.map(canonicalRow).sort(),
+          expected.map(canonicalRow).sort());
         else assert.deepEqual(actual, expected);
       };
       for (const [resultName, result] of Object.entries(expectedResults)) {
