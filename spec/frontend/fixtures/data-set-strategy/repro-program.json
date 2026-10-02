@@ -1,0 +1,19 @@
+{
+  "version": "actql/0.1",
+  "id": "independent-data-set",
+  "stages": [{
+    "id": "main",
+    "inputs": {},
+    "steps": [
+      {"as": "left", "values": {"schema": {"id": {"type": "number", "nullable": false}}, "rows": [{"id": 2}]}},
+      {"as": "right", "values": {"schema": {"id": {"type": "number", "nullable": false}}, "rows": [{"id": 1}]}},
+      {"from": "left", "append": {"with": "right"}, "as": "combined"},
+      {"from": "combined", "derive": {"sort_slot": {"add": [{"field": "id"}, {"literal": 1}]}}, "as": "derived"},
+      {"from": "derived", "sort": [{"field": "sort_slot", "dir": "asc", "nulls": "first"}], "as": "ordered"},
+      {"from": "ordered", "select": ["id"], "as": "projected"},
+      {"from": "projected", "take": {"count": 1, "offset": 0}, "as": "limited"}
+    ],
+    "results": {"rows": {"from": "limited", "fields": ["id"]}}
+  }],
+  "results": {"nodes": {"from": {"stage": "main", "result": "rows"}}}
+}

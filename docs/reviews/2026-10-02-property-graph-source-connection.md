@@ -79,3 +79,75 @@ Local and HTTPS, obtains Named Results and real descriptions, checks refusal
 before admission/provider I/O and confirms same-request resend/reattach does
 not rerun work. A separate source SHA and tarball digest record accompanies
 each execution; pending cases remain pending until that run passes.
+
+## Observed acceptance and remaining strategy boundary
+
+The package set below has identical bytes at source SHAs
+`37f9020f25779b1e0c3d96a80f3f540eaf1f87cc`,
+`89bb4e0dce54a0b8d27df41fcca05880b36dbc3b` and
+`60190950c75a980c744fa6aae5a6ec3005020308`. The intervening changes correct
+test pins/history and acceptance selection/counting, with no product change.
+
+| Package | Tarball SHA-256 |
+| --- | --- |
+| client-wire | `c9882e6300c184e7086e86a56cc70b1be3f65e059d0b97364ea49b379eac3a86` |
+| sdk | `90e09482027f878bc8e755825afa6090c8c5c10efd8ea428cc010992c20cfe97` |
+| run-host-core | `9991551a82acf4e05f8ece9c9d5c732bec8a3d35320a1522b61a4e5130e5df76` |
+| local-node | `cfba0b19b4bba681f91766dfa24e2e171750a4f511fc72fd3c39d6be71b0824d` |
+| node | `5ee3b433edde987b6007f337aafe71af71c565135a16cae3de1debdebc4f1d67` |
+
+- At `37f9020f2`, the external Embedded Local app completed 16 successful
+  source cases, including same-definition parallel edges (WALK/TRAIL/ACYCLIC
+  4/2/0), composite node/edge keys, NULL exclusions, static label sets and
+  typed empty output. The subsequent DATA ordered-set case failed; this was
+  not a successful complete acceptance run.
+- At `89bb4e0dc`, those 16 cases completed through HTTPS with the same
+  independent rows and real Result descriptions. Three duplicate-key cases
+  and nine preparation refusals also completed, but the final aggregate
+  incorrectly assumed one source read for each source-free failure case.
+  That overall run is retained as failed, not relabeled as successful.
+- At `60190950c`, a focused run of those three execution failures and nine
+  preparation refusals passed in **both** Embedded Local and HTTPS. Each
+  execution failure admits one Run, publishes no Result and does not acquire
+  a source; attach/retry does not recompute. Preparation refusals admit no Run
+  and perform no provider I/O. The 16 successful cases were not needlessly
+  repeated after a test-count-only correction.
+
+The remaining DATA set example is:
+
+```aql
+DATA n = SELECT 2 AS id UNION ALL SELECT 1 AS other
+  ORDER BY id + 1, id + 1 DESC LIMIT 1;
+FROM n |> SELECT id |> RESULT nodes
+```
+
+Its required result is `[{"id":1}]`, with one nonnullable number column `id`
+and no internal sort field. Lowering and the ordinary checker pass. The
+installed execution has no completed task and fails at
+`physical_host.prepare_next_compute_task` →
+`prepare_next_installed_task` → `Dispatch(NoStrategy)` because the captured
+DAG has no strategy revision. `StrategyNotComplete` during publication is a
+secondary error, not the first failing boundary.
+
+The same emitted Program fails when submitted as JSON, bypassing Frontend.
+An [independently authored smaller JSON Program](../../../spec/frontend/fixtures/data-set-strategy/repro-program.json)
+also fails there. Single sort terms and visible sort fields are failing
+controls; removing duplicate ordering terms does not solve it. This establishes
+a common strategy-selection boundary, without claiming which candidate,
+resource or provider rule is responsible. C/A should trace that existing
+selection; B has not changed the shared dispatch, provider or capacity owners.
+No order clause, capacity requirement or Result validation was removed to make
+the source case pass.
+
+Reproduce the source failure alone with:
+
+```sh
+node scripts/test-packed-public-query.mjs --property-graph-source-only \
+  --case data-set-order-reuses-hidden-slot
+```
+
+Use `--mode local` or `--mode http` to limit transport, and `--keep-artifacts`
+only when inspecting the retained installation/Store. These are test-driver
+options, not new execution APIs. The public snapshot boundary, acquired
+definition provenance, richer pattern bindings, remaining SGA consumers and
+formal INFER handoff remain incomplete independently of this evidence.
