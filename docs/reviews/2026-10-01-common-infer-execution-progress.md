@@ -1908,3 +1908,106 @@ for executions that fail or stop before yielding an accepted completion.
 The response-before-save fixture proves non-reexecution, not recovery of
 usage that was never durably saved. This is not a declaration of complete
 INFER or complete Local Compute coverage.
+
+## Public INFER adoption checkpoint
+
+Source checkpoint: `08e87475c4cabbd52927b91ee89b6792d5fcf635`.
+PR: [#178](https://github.com/actql/actql/pull/178). This is an initial
+integration checkpoint, not merge-ready evidence. The required CI for this
+source is [run 36980415257](https://github.com/actql/actql/actions/runs/36980415257);
+its result was pending when this checkpoint was recorded.
+
+The public path is `connect` -> `client.start` -> checked preparation ->
+installed ModelTask dispatch -> private capture -> `run.result('answer').all()`.
+No test constructs a prepared execution ticket to bypass that path. The model
+provider is deterministic test code; it does not call an external service.
+
+### Smallest executable acceptance
+
+Use the pinned toolchain and root dependencies described in `AGENTS.md`.
+Rebuild the ignored runtime packages from the adopted source before direct
+imports, then run only the public success and fresh-process replay cases:
+
+```sh
+npm run build:runtime-packages -- local-node run-host-core
+node scripts/local-checks.mjs test node -- \
+  --test-name-pattern='^ordinary public INFER dispatch and capture custody: (success|restart-after-capture)$' \
+  adapters/host-node/installed-infer.test.mjs
+```
+
+The same file contains the complete ordinary JSON Program in `oneRowInfer`,
+the installed bodies in `installedDependencyConfiguration('valid')`, and
+HTTPS startup in `installedHost`. These are fixture setup, not product
+exports. For an independent acceptance Program, retain the installed bodies,
+exact Task CID and registration below, and replace the authored Program.
+The fixture installation uses a single-attempt execution contract and empty
+retry/backoff arrays. Each referenced dependency is admitted by the common
+validator; valid JSON alone is insufficient.
+
+### Host and provider registration
+
+`installation` is the admitted configuration produced by the fixture above;
+`taskCid` is its exact ModelTask CID. `authorization` supplies the existing
+Host key and current account configuration. The broad `allow` fixture is
+test-only, not a suggested deployment authorization policy. `authenticate`
+must return the principal covered by that policy. The registration is:
+
+```js
+const registerModelProviders = moon => [{
+  providerId: 'models/fixture',
+  invoke() { throw new Error('UnpreparedProviderCall'); },
+  validatePrompt(actualTask, selector, wire) {
+    return actualTask === taskCid && selector === 'fixture-risk-model' &&
+      JSON.parse(wire).format === 'fixture-risk/0.1';
+  },
+  quantityCapacity: {
+    limits: {tokens: 33n, costUnits: 0n, durationMs: 500n},
+    perAttempt: {tokens: 33n, costUnits: 0n, durationMs: 500n},
+  },
+  observeEgress: () => ({_0: 'public', _1: 'fixture-region',
+    _2: false, _3: false}),
+  physicalPreflight: request => moon.clientProgramModelRequestPreflight(
+    () => ({_0: true, _1: checked(moon.clientProgramModelPhysicalRequestPlan(
+      request, 1000n, 33n, 0n, 500n, () => {
+        calls++;
+        return moon.clientProgramModelResponse(request,
+          '{"reason":null,"risk":"high"}', 'fixture-risk-model',
+          'installed-request', 1n, 2n, new Date().toISOString());
+      }))}), () => true),
+}];
+const host = await openInstalledRemoteHttpHost({directory, authenticate,
+  authorization, modelInstallation: installation, registerModelProviders});
+const server = createServer({key, cert}, host.handler);
+await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+const client = await connect({mode: 'remote',
+  endpoint: `https://127.0.0.1:${server.address().port}/`,
+  token, durability: 'durable'});
+const run = await client.start(program, {requestId: 'public-infer'});
+const terminal = await run.wait();
+const rows = await run.result('answer').all();
+```
+
+Imports, temporary TLS trust, server shutdown and directory cleanup are shown
+in `installedHost`. `checked` is the existing runtime-result adapter; it does
+not manufacture evidence. Initialize `calls = 0`. The success fixture requires
+`terminal.status === 'succeeded'`, the independent row shown above, and
+`calls === 1`. The replay fixture exits a separate process after durable
+capture but before publication, reopens the same Store and journal, resubmits
+the same Program/request ID, and requires the same row with zero new calls.
+
+### Evidence and remaining acceptance
+
+The public success/replay cases passed on the integrated source before the
+test-only corrections in this checkpoint. Those corrections passed focused
+checks: 34 managed-group JS tests, one INFER fixture freshness test and 28
+foundation provenance tests. The previous CI failures were the incomplete
+resource-error test match, stale generated admission input and unrecorded
+`package.json` foundation change; the new full CI remains separate evidence.
+
+B must still run its own Programs and independent expected rows through
+packed Local and HTTP. This checkpoint does not claim that those cases ran.
+KEEP preparation has earlier coverage, but the broader public KEEP path is
+not certified by the one-row example. Model delegation and durable custody
+for failures before accepted completion remain open. Missing capture after
+an unknown response stays `needs_reconciliation` with no Result and no
+automatic provider call; it is not reported as successful replay.
