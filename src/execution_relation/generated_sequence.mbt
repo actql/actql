@@ -648,6 +648,41 @@ pub fn select_generated_sequence_prefix(
 }
 
 ///|
+/// Select a contiguous checked execution segment without renumbering its
+/// occurrences. External inputs still require exact operation-port bindings;
+/// selecting a segment neither executes its prefix nor grants input custody.
+pub fn select_generated_sequence_range(
+  generated : GeneratedSequence,
+  first : Int,
+  last : Int,
+) -> GeneratedSequence? {
+  guard generated.selected_steps is None &&
+    generated.selected_prefix_end is None &&
+    first >= 0 &&
+    last >= first &&
+    last < @lower.sequence_count(generated.sequence) &&
+    @lower.node_at(
+      @lower.bound_preparation(@lower.sequence_owner(generated.sequence)),
+      last,
+    )
+    is Some(node) else {
+    return None
+  }
+  let steps : Array[Int] = []
+  for step in first..<(last + 1) {
+    guard @lower.sequence_step(generated.sequence, step) is Some(_) else {
+      return None
+    }
+    steps.push(step)
+  }
+  Some({
+    ..generated,
+    selected_steps: Some(steps),
+    retained_ids: [@lower.node_id(node)],
+  })
+}
+
+///|
 pub fn generated_sequence_step_count(generated : GeneratedSequence) -> Int {
   if generated.selected_prefix_end is Some(last) {
     return last + 1
@@ -743,7 +778,8 @@ pub fn generated_sequence_all_row_kernels(
       | @lower.GraphConstructionStep(_)
       | @lower.VectorStep(_)
       | @lower.EventStep(_)
-      | @lower.CarrierProjectionStep(_) => false
+      | @lower.CarrierProjectionStep(_)
+      | @lower.InferBoundary(_) => false
     }
   })
 }

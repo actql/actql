@@ -659,6 +659,20 @@ pub fn local_module_bounded_nest_obligation(
 ///|
 /// The bounded provider owning `sequence`: a registered family provider first,
 /// then the built-in relation providers bound to the module limits.
+
+///|
+/// Select the same installed bounded implementation for an acquisition's
+/// checked Relation prefix. This grants no task or acquisition authority.
+/// Unsupported prefixes return None; there is no synchronous fallback.
+pub fn local_bounded_relation_provider(
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  sequence : @execution.GeneratedSequence,
+) -> ManagedProvider? {
+  local_managed_provider_for([], execution, measurement, sequence)
+}
+
+///|
 fn local_managed_provider_for(
   family : Array[ManagedProvider],
   execution : @execution.SequenceExecutionLimits,

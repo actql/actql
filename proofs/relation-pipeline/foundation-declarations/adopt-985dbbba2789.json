@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "adopt-985dbbba2789",
+  "kind": "change",
+  "revision": "985dbbba27895e049a99a40185f59214f3e4fce1",
+  "parents": [
+    "854d02796d3e0c38bf7b5e498cd050281cbfb043"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "854d02796d3e0c38bf7b5e498cd050281cbfb043",
+          "digest": "ba0d74e9894af43d6f7258fd41c90c937828a862791f15c022703876b5b94128",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "9e4d00a3acf8373ed1f20983bee128303e191f5c2ccbcae32a6269a0e86557dd",
+      "afterMode": "100644",
+      "reason": "Retain the existing Array/backing Node regressions alongside pipeline tests, as introduced in #179 and merged through #181."
+    }
+  ]
+}

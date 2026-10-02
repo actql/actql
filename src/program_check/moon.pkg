@@ -51,6 +51,7 @@ import {
   "actql/actql/decode_core" @decode,
   "actql/actql/sourceview_resolution" @sourceviews,
   "actql/actql/relation_typing" @relation,
+  "actql/actql/relation_evidence" @evidence,
   "actql/actql/expression_typing" @typing,
   "actql/actql/expression_text",
   "actql/actql/stage_parameters" @stages,
@@ -74,7 +75,6 @@ import {
   "actql/actql/local_relation_snapshot" @snapshot,
   "actql/actql/source_request_slots" @slots,
   "actql/actql/carrier_contract" @carrier,
-  "actql/actql/relation_evidence" @evidence,
   "moonbitlang/core/debug",
   "actql/actql/sha256" @sha,
 } for "wbtest"

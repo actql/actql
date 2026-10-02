@@ -25,6 +25,7 @@ pub enum LocalProgramIssue {
   InvalidLimits
   BudgetExceeded
   ForeignEnvironmentSource
+  ForeignModelEnvironment
   SourceViewStageCount
   MissingSourceViewRegistrations(Int)
   InvalidSourceViewRegistration(Int, String)
@@ -50,6 +51,7 @@ pub fn prepare_local_program(
   environment? : @local.ProgramEnvironmentInputs? = None,
   sourceview_registrations? : Array[Array[(String, @pipeline.InputContract)]]? = None,
   calendar_profile? : @calendar_profile.Profile? = None,
+  model_tasks? : @environment.ModelTasks? = None,
 ) -> Result[(ResultWiring, LocalProgramUsage), LocalProgramIssue] {
   if limits.max_stages < 0 ||
     limits.max_steps < 0 ||
@@ -76,6 +78,13 @@ pub fn prepare_local_program(
   let mut steps = limits.max_steps
   let mut results = limits.max_results
   if environment is Some(inputs) {
+    if model_tasks is Some(tasks) &&
+      !physical_equal(
+        @environment.model_tasks_environment(tasks),
+        @local.program_environment(inputs),
+      ) {
+      return Err(ForeignModelEnvironment)
+    }
     if !physical_equal(@local.environment_program(inputs), source) {
       return Err(ForeignEnvironmentSource)
     }
@@ -214,6 +223,7 @@ pub fn prepare_local_program(
           max_depth: limits.max_depth,
         },
         calendar_profile~,
+        model_tasks~,
       ) {
       Err(e) => return Err(Pipeline(i, e))
       Ok(v) => v

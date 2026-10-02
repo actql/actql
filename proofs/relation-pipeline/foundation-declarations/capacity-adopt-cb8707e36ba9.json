@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "capacity-adopt-cb8707e36ba9",
+  "kind": "change",
+  "revision": "cb8707e36ba987442fc4158fea752eddf005632e",
+  "parents": [
+    "66e0108a6d3308c7ab1809c7473f4e821302df5c"
+  ],
+  "changes": [
+    {
+      "path": "proofs/relation-pipeline/history.mjs",
+      "before": [
+        {
+          "revision": "66e0108a6d3308c7ab1809c7473f4e821302df5c",
+          "digest": "142e57dae208b6445ba027bdf6b9521ac6de21ecf84991c09aafb3e07c8be62a",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "68e98629c27f3aaf519246baa902f5d84a1c527356c0217b049e897e84f89ec2",
+      "afterMode": "100644",
+      "reason": "Preserve the original source change: fix(proofs): protect executor finish boundary in foundation history. Bind this protected path to its actual source and parent; retain existing semantic, mutation and target obligations."
+    }
+  ]
+}

@@ -42,11 +42,35 @@ pub fn bind_parameters(
   },
 ) -> Result[BoundPrepared, BindingIssue] {
   let source = @pipeline.source(prepared.owner)
+  resolve_expression_bindings(
+    source,
+    @pipeline.parameters(prepared.owner),
+    bindings,
+    max_parameters,
+    max_name_bytes,
+  ).map(resolved => {
+    prepared,
+    bindings,
+    by_name: resolved.0,
+    expression_profiles,
+  })
+}
+
+///|
+/// Shared exact declaration binding; this is not execution admission.
+fn resolve_expression_bindings(
+  source : @decode.Cursor,
+  declared : @parameter.Declarations?,
+  bindings : @parameter.BoundValues?,
+  max_parameters : Int,
+  max_name_bytes : Int,
+) -> Result[(Map[String, @value.CheckedValue], Int, Int), BindingIssue] {
   if max_parameters < 0 || max_name_bytes < 0 {
     return Err({ kind: InvalidBindingLimits, source, })
   }
-  let declared = @pipeline.parameters(prepared.owner)
   let by_name : Map[String, @value.CheckedValue] = Map([])
+  let mut count = 0
+  let mut remaining = max_name_bytes
   match bindings {
     None =>
       if declared is Some(d) && @parameter.declaration_count(d) > 0 {
@@ -57,11 +81,10 @@ pub fn bind_parameters(
         physical_equal(d, @parameter.bound_declarations(bound)) else {
         return Err({ kind: BindingOwnerMismatch, source, })
       }
-      let count = @parameter.bound_value_count(bound)
+      count = @parameter.bound_value_count(bound)
       if count > max_parameters {
         return Err({ kind: BindingBudgetExceeded, source, })
       }
-      let mut remaining = max_name_bytes
       for i = 0; i < count; i = i + 1 {
         // BoundValues is opaque and only built by parameter_binding.bind.
         let parameter = @parameter.bound_value_at(bound, i).unwrap()
@@ -79,14 +102,22 @@ pub fn bind_parameters(
       }
     }
   }
-  Ok({ prepared, bindings, by_name, expression_profiles, })
+  Ok((by_name, count, max_name_bytes - remaining))
 }
 
 ///|
 fn expression_profile_admitted(value : BoundPrepared, profile : String) -> Bool {
+  selected_expression_profile_admitted(value.expression_profiles, profile)
+}
+
+///|
+fn selected_expression_profile_admitted(
+  value : ExpressionProfileAdmission,
+  profile : String,
+) -> Bool {
   match profile {
-    "actql-text-time/0.1" => value.expression_profiles.text_time
-    "actql-veca/0.1" => value.expression_profiles.veca
+    "actql-text-time/0.1" => value.text_time
+    "actql-veca/0.1" => value.veca
     _ => false
   }
 }

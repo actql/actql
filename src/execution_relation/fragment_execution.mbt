@@ -38,6 +38,7 @@ fn attach_fragment_budgets(
       return Err(InputLimit)
     }
     match @lower.sequence_step(sequence, i).unwrap() {
+      @lower.InferBoundary(_) => ()
       @lower.ValuesStep(_) => ()
       @lower.TimeSeriesStep(_) => ()
       @lower.WindowStep(_) => ()

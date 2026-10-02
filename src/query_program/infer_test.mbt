@@ -67,19 +67,22 @@ test "INFER rejects duplicate keys, output collisions and unresolved input roles
 }
 
 ///|
-test "INFER Program admission is not common checker or execution support" {
+test "INFER requires an installed model task after Program construction" {
   let program = infer_program(
     "FROM pair |> INFER score ITEM KEY (x) INPUT (n = y) AS assessment",
   ).unwrap()
-  // No checked owner is manufactured while the shared infer checker is absent.
+  // Frontend construction cannot grant a missing ModelTask installation.
   match
     @check.check_parsed(program, check_environment(), None, check_limits()) {
-    Rejected(error) =>
-      assert_eq(
-        @check.diagnostic_category(error),
-        @check.UnsupportedImplementation,
-      )
-    _ => fail("the common infer owner is not implemented")
+    Rejected(error) => {
+      assert_eq(@check.diagnostic_category(error), @check.InvalidInput)
+      match @check.diagnostic_cause(error) {
+        Source(SourceView(Program(Program(Pipeline(_, issue))))) =>
+          assert_eq(issue.kind, MissingModelTasks)
+        other => raise other
+      }
+    }
+    _ => fail("an uninstalled model task was admitted")
   }
 }
 

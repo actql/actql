@@ -12,7 +12,7 @@ function run(scenario) {
       fileURLToPath(new URL('./fixtures/history-driver.mjs', import.meta.url)), root, scenario], { encoding: 'utf8' });
   } finally { rmSync(root, { recursive: true, force: true }); }
 }
-test('current foundation checks exact historical, committed and working-tree bytes', () => {
+test('frozen migration checks exact historical, committed and working-tree bytes', () => {
   const result = run('valid');
   assert.equal(result.status, 0, result.stderr);
 });
@@ -22,14 +22,20 @@ for (const scenario of ['historical-edit', 'historical-remove-entry', 'historica
   'unknown-change', 'fake-before', 'fake-after', 'record-and-source-edit', 'wrong-anchor',
   'wrong-baseline-digest', 'wrong-baseline-revision', 'missing-addition', 'duplicate-addition',
   'changed-addition', 'missing-addition-object', 'uncommitted-record', 'missing-record', 'non-ancestor']) {
-  test(`current foundation rejects ${scenario}`, () => {
+  test(`frozen migration rejects ${scenario}`, () => {
     const result = run(scenario);
     assert.notEqual(result.status, 0, 'Invalid foundation was accepted');
     assert.match(result.stderr, /AssertionError|ENOENT/);
   });
 }
 
-test('repository current foundation matches the committed validation reference', async () => {
-  const { checkFoundation } = await import('./history.mjs');
-  checkFoundation(fileURLToPath(new URL('../../', import.meta.url)));
+test('repository foundation composes exact declared source at HEAD', async () => {
+  const { checkFoundation, currentFoundation } = await import('./history.mjs');
+  const root = fileURLToPath(new URL('../../', import.meta.url));
+  checkFoundation(root);
+  const first = currentFoundation(root);
+  assert.equal(JSON.stringify(first), JSON.stringify(currentFoundation(root)), 'Nondeterministic repository foundation');
+  const head = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' });
+  assert.equal(head.status, 0);
+  assert.equal(first.sourceRevision, head.stdout.trim());
 });

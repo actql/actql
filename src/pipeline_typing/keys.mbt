@@ -127,6 +127,17 @@ fn sync_keys(
       _ => None
     }
     let next = match (previous, step.operation) {
+      (_, Infer(checked)) =>
+        Some(
+          key_result(
+            b,
+            step.source,
+            @evidence.infer_result_keys(checked, {
+              max_work: b.work,
+              max_name_bytes: b.text,
+            }),
+          ),
+        )
       (previous, Append(right~, checked~)) =>
         Some(
           key_result(

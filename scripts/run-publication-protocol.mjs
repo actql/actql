@@ -9,6 +9,8 @@ const output = join(
   root, 'src/run_publication/protocol_schema.generated.mbt',
 );
 const document = JSON.parse(readFileSync(source, 'utf8'));
+const stage = JSON.parse(readFileSync(join(root,
+  'spec/contracts/actql-stage-contracts.json'), 'utf8'));
 const selected = Object.freeze({
   result_plan: Object.freeze({
     schema: 'result_plan',
@@ -50,6 +52,17 @@ const selected = Object.freeze({
     schema: 'model_invocation_evidence',
     identity: 'model_invocation_evidence_cid',
   }),
+  model_capture_bundle: Object.freeze({
+    schema: 'model_capture_bundle',
+    identity: 'bundle_cid',
+  }),
+  model_slot_capture: Object.freeze({
+    schema: 'model_slot_capture', identity: 'self_cid', registry: 'stage',
+  }),
+  ...Object.fromEntries(['model_dispatch_authority', 'model_call_attempt',
+    'model_attempt_accounting', 'model_attempt_outcome', 'model_prompt',
+    'model_retry_policy', 'model_backoff'].map(schema =>
+    [schema, Object.freeze({schema, identity: 'self_cid'})])),
   run_receipt: Object.freeze({
     schema: 'run_receipt',
     identity: 'receipt_identity_cid',
@@ -89,6 +102,18 @@ const selected = Object.freeze({
   invocation_bindings: Object.freeze({
     schema: 'invocation_bindings',
     identity: 'invocation_bindings_cid',
+  }),
+  model_effective_inputs: Object.freeze({
+    schema: 'model_effective_inputs', identity: 'effective_inputs_cid',
+  }),
+  model_input_artifact: Object.freeze({
+    schema: 'model_input_artifact', identity: 'input_artifact_cid',
+  }),
+  model_input_key: Object.freeze({
+    schema: 'model_input_key', identity: 'input_key_cid',
+  }),
+  model_call_slot: Object.freeze({
+    schema: 'model_call_slot', identity: 'model_call_slot_cid',
   }),
 });
 
@@ -399,7 +424,8 @@ function omitRequiredProperty(schema, field) {
 
 for (const [name, selection] of Object.entries(selected)) {
   const complete = structuredClone(
-    document.artifact_schemas[selection.schema],
+    selection.registry === 'stage' ? stage.schemas[selection.schema]
+      : document.artifact_schemas[selection.schema],
   );
   if (complete === undefined) {
     throw new Error(`Missing publication schema: ${selection.schema}`);

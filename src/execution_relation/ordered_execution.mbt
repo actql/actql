@@ -88,6 +88,7 @@ fn prepare_ordered_budgets(
       @lower.VectorStep(_) => return Err(InputSet)
       @lower.EventStep(_) => return Err(InputSet)
       @lower.CarrierProjectionStep(_) => return Err(InputSet)
+      @lower.InferBoundary(_) => return Err(InputSet)
       @lower.RowStep(kernel) => {
         let entries = @lower.kernel_view_entries(kernel)
         if !spend_control(control, entries) || !reserve_slots(metadata, entries) {
