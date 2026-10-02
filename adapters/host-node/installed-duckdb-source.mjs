@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {createNodeAuthorizationGate} from './authorization.mjs';
-import {checkDuckDBAcquisitionPlanning} from './duckdb-acquisition-planning.mjs';
+import {checkDuckDBAcquisitionPlanning} from '../connectors/duckdb/node/acquisition-planning.mjs';
 
 const sourceLimits = Object.freeze({
   maxRows: 10000, maxCells: 100000, maxTransportBytes: 10000000,

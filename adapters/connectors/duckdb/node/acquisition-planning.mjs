@@ -1,7 +1,7 @@
 // Trusted installation evidence for the existing acquisition planner. This
 // module neither chooses a winner nor grants provider access. Estimates are
 // assertions scoped to exact input conditions, never measured resource limits.
-import {checked} from '../host-common/runtime-result.mjs';
+import {checked} from '../../../host-common/runtime-result.mjs';
 
 const names = Object.freeze(['nativeQuery', 'broadQuery']);
 const sourceKeys = Object.freeze(['database', 'schema', 'sourceRef', 'table']);

@@ -3,7 +3,7 @@
 // this adapter supplies only the approved database grant and bounded I/O.
 import {readFile} from 'node:fs/promises';
 import {validateLimits} from '../connectors/duckdb/node/configuration.mjs';
-import {checkDuckDBAcquisitionPlanning, freezeAcquisitionDiagnostic, selectInstalledDuckDBAcquisition} from './duckdb-acquisition-planning.mjs';
+import {checkDuckDBAcquisitionPlanning, freezeAcquisitionDiagnostic, selectInstalledDuckDBAcquisition} from '../connectors/duckdb/node/acquisition-planning.mjs';
 import {computePhysicalCapacity} from '../connectors/duckdb/node/physical-capacity.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {acquisitionFailure, acquisitionOutcome} from '../host-common/acquisition-outcome.mjs';

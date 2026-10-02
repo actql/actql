@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {checkDuckDBAcquisitionPlanning} from './duckdb-acquisition-planning.mjs';
+import {checkDuckDBAcquisitionPlanning} from '../acquisition-planning.mjs';
 
 const evidence = () => ({inputConditions: {requirementCid: 'sha256:' + 'a'.repeat(64),
   source: {database: '/fixture/source.duckdb', schema: 'main', table: 'records',
