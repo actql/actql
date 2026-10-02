@@ -798,7 +798,7 @@ fn captured_graph_fixture(
   local_carrier_events_chain? : Bool = false,
   local_carrier_events_variant? : String = "watermark",
   local_carrier_graph_chain? : Bool = false,
-  local_carrier_graph_variant? : String = "projection",
+  local_carrier_graph_variant? : String = "current_filter",
   local_time_series_chain? : Bool = false,
   local_carrier_vectors_chain? : Bool = false,
   local_carrier_vectors_variant? : String = "normalize",

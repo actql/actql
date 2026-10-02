@@ -1687,3 +1687,42 @@ The legacy mixed integration fixtures are still to be retired after their
 remaining applicable guarantees are mapped. Aggregate Core/spec, fresh public
 snapshot and submitted-SHA CI remain open; these narrow successes do not make
 the currently published #164 checkpoint adoptable.
+
+## Mixed tuple integration fixture retirement (2026-10-03)
+
+`local_carrier_graph_wbtest.mbt` is removed from the executable suite. Only its
+seven shared, representation-neutral helpers are retained in
+`property_graph_fixture_helpers_wbtest.mbt`; the Program factory now delegates
+exclusively to the current keyed constructor/MATCH fixture. The query fixture
+no longer enables the retired profile, selects old apply stages, or issues
+reach/shortest/predicate/emission proof material. The unused legacy traversal
+proof helper is removed. The old tests and helper implementations remain in Git.
+
+The retirement is not a blanket conversion of successes to refusals:
+
+| Former integration obligation | Current positive evidence / explicit limit |
+| --- | --- |
+| Typed/literal predicates, identity selection, canonical sorting and duplicate removal | Current node/edge MATCH construction tests; typed current empty MATCH; current path selector deduplication |
+| Missing selected identity fails before publication | New same-domain composite-key MATCH membership test, stored and viewed reads; exact `MissingMatchNodeIdentity` and retained original input |
+| Long-key comparisons yield and can stop | Current text-key MATCH/TRAIL regression and the preceding charged comparison repair |
+| Exact work/workspace, one-short refusal, every private stop point | Current node/edge MATCH and constructor tests; stored/viewed TRAIL selector work/workspace tests |
+| Relation selector exact owner, empty selector, repeated use and foreign owner | Current selector custody tests; checking/lowering revalidate typed identity/nullability; no legacy scalar selector is admitted |
+| Path arrays reject oversized output without allocating all items | New typed output ceiling test: early minimum failure has zero item attempts; two authored two-hop TRAIL rows require exactly 150 nodes and 149 fails atomically with the existing capture owner |
+| Start-major/depth order, duplicate starts, physical edge permutations and direction | New independently authored current TRAIL test covers in/out/both, two reversed/duplicated starts, both edge orders, stored/viewed reads and resume quanta 1/7/1024 |
+| Independent parallel-edge identity, path-mode eligibility and zero-hop output | Current parallel self-loop WALK/TRAIL/ACYCLIC tests and long-text zero/one-hop TRAIL rows; no endpoint-tuple collapse |
+| Graph retention across consumers, cancellation, final reclaim | Current managed output lifecycle and provider custody tests; current Host two-consumer composition and cancellation return all Site reservations/held bytes to zero |
+| Generic Relation filter/select/derive/take/sort/assertion composition and physical input/task ceilings | Current Host/DAG tests; ordinary Relation owners remain in use |
+| Minimum-depth node emission, definition-free hop/start predicates, graft/union/mean/subtraction | Unsupported consumer obligations are explicitly withdrawn, not migrated to a false current algorithm/count proof; checked-boundary refusal tests remain |
+
+The exact output count above is an independent calculation from the authored
+typed identities: each row has root 1 + hop count 1 + two 11-node endpoint
+identities + a 34-node node array + a 17-node edge array = 75 nodes. It is
+different from the retired scalar/endpoint-tuple fixture's limit. Output
+admission counts both rows, so 150 is exact; no existing capacity rule is relaxed.
+
+After retirement, the related current-owner/policy/Host/DAG suite passes
+**95/95 on each JS, Wasm and native** with `--deny-warn`:
+`/private/tmp/property-graph-retired-integration-{js,wasm,native}-20261003.log`.
+The strict resource route inventory still needs its explicit current-source
+registration; frozen historical references must not be overwritten. Aggregate
+Core/spec, fresh public snapshot and pushed-SHA CI remain acceptance tasks.
