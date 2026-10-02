@@ -6,9 +6,9 @@
     "digest": "48bdedbe48ab335694a725defa7fe9e7f07cdf776e4aa8f233b3935585a352c1",
     "foundationRevision": "fe0dbb424792ba7ccd4ae5517a74530b56a15f3c"
   },
-  "revision": "dafff1a1aeeaa8dd3168e9d9ba1b571455ba5f35",
-  "proposal": "https://github.com/actql/actql/pull/178",
-  "meaning": "Records integrated single-call INFER, public Check, and current Array/Map capacity validation after merging main. Historical evidence is unchanged; Git provenance is not human approval or an unconditional allocation-byte claim.",
+  "revision": "ed122c01c6be379f2e5943b89cfb041ad833599e",
+  "proposal": "https://github.com/actql/actql/pull/164",
+  "meaning": "Records integrated installed INFER, public Check, current Array/Map validation and ActQL-owned Property Graph acceptance commands. Historical #148 evidence is unchanged; exact Git provenance is not human approval, a Property Graph theorem or an unconditional allocation-byte claim.",
   "changedCommon": [
     {
       "path": ".github/workflows/ci.yml",
@@ -19,8 +19,8 @@
     {
       "path": "package.json",
       "beforeDigest": "78c15ac34fbe375959bf166c3d236ce06a2a6a0d4d2f4b2d7f7f094e844a8a15",
-      "afterDigest": "28aa357d16dcf7079b020150dff2783473bb9f6ce6b010cba94388702c570716",
-      "reason": "Retain the public check contract and Local/HTTP acceptance registrations from main together with the native release-recovery regression; all historical evidence and existing gate commands remain intact. Retain main public Check and native release-recovery registrations together with INFER capture and model contract checks; existing pipeline gates are unchanged."
+      "afterDigest": "8e8dabdce560d67a9dee0b8c3e689494c28d4a994d3c88ae6bd42072c571c55e",
+      "reason": "Retain the public check contract and Local/HTTP acceptance registrations from main together with the native release-recovery regression; all historical evidence and existing gate commands remain intact. Retain main public Check and native release-recovery registrations together with INFER capture and model contract checks; existing pipeline gates are unchanged. Explicitly retain the owned Property Graph contract, surface, public Host and packed acceptance alongside INFER commands. No historical oracle, mutation, theorem or baseline digest is replaced."
     },
     {
       "path": "proofs/relation-pipeline/harness.mbt",

@@ -433,10 +433,11 @@ The added main-predecessor vector initially rebound its historical AoA registry
 to the current Graph registry and failed. Pinning its original normative body
 restored that historical vector without changing the expected CID.
 
-The current-foundation record still needs its separately committed integrated
-source reference and exact package digest. Historical #148 evidence remains
-immutable. This is provenance registration, not approval or an extension of
-the Relation proof to Graph.
+The current-foundation record separately references integrated source
+`ed122c01c6be379f2e5943b89cfb041ad833599e`, including the exact merged package
+digest and both Graph and INFER acceptance commands. Historical #148 evidence
+remains immutable. This is provenance registration, not approval or an
+extension of the Relation proof to Graph.
 
 ## Deliberately not claimed
 
