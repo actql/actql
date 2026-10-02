@@ -874,6 +874,25 @@ and `/private/tmp/property-graph-contracts-index-current-20261003.log`; the
 successful run is `/private/tmp/property-graph-contracts-index-fixed-20261003.log`.
 These results do not replace final-SHA Core, fresh packed or Linux CI.
 
+The full spec run at `3b0fd3bba2d68de450ab9d1750d9a6ed88c5a0f6`
+passed the required resource mutation checks and contracts, then failed at the
+document-link stage on a removed tuple-Graph integration test. The current
+design now distinguishes that historical reference from the new constructor
+and TRAIL resource suites. The non-mutating link check passes **1,259 links**;
+checks after the failed link stage were not executed by that aggregate run.
+
+The old source-free SGA checker suite's tuple-only execution cases are retired,
+not converted into claims of successful current SGA execution. The same
+distribution command keeps a real current-profile rejection of the retired
+constructor and runs the existing current Property Graph Plan/Host suite,
+including **22/22** successful lifecycle/snapshot/cancellation checks. The
+refusal case passes separately **1/1**. An initial edit used the wrong law-body
+directory and failed with ENOENT before its test ran; correcting the fixture
+path to the existing owned dependency body restored that test. The old
+capacity and lifecycle obligations still require the broader native Host
+fixture migration; retiring this tuple-only preparation suite does not waive
+them or establish final acceptance.
+
 Full SGA, external producer-definition provenance, a durable Graph catalog and
 complete mechanized correspondence are not claimed. Remaining fixture and
 consumer migration plus aggregate gates remain required in the current unit;

@@ -42,7 +42,7 @@ its construction, resource and lifecycle evidence in that same inventory.
 | normalize_graph, components, degree | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
 | graph_bounds | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
 | match_nodes, match_edges | src/graph_typing/match_test.mbt | src/pipeline_typing/graph_query_keys_test.mbt | scripts/graph-schema.mjs |
-| traverse | src/graph_typing/traverse_test.mbt | src/program_check/graph_program_wbtest.mbt | scripts/graph-schema.mjs |
+| traverse | src/graph_typing/traverse_test.mbt | src/pipeline_typing/graph_test.mbt | scripts/graph-schema.mjs |
 | shortest_path | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
 | reach | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
 | subgraph | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
