@@ -147,21 +147,7 @@ test "bound operand readers distinguish query fallback graph measures and rankin
       assert_eq(input.edge, i)
     }
   }
-  let node = "{\"name\":\"N\",\"from\":\"seed\",\"key\":[\"id\"]}"
-  let edges = ["E", "F", "G"].map(name => {
-    "{\"name\":\"" +
-    name +
-    "\",\"from\":\"seed\",\"key\":[\"id\"],\"source\":{\"definition\":\"N\",\"key\":[\"src\"]},\"target\":{\"definition\":\"N\",\"key\":[\"dst\"]}}"
-  })
-  let p = graph_measure_pipeline(
-    "[" +
-    keyed_measure_seed("seed", 1) +
-    ",{\"property_graph\":{\"version\":\"actql-property-graph-constructor/0.1\",\"nodes\":[" +
-    node +
-    "],\"edges\":[" +
-    edges.join(",") +
-    "]},\"as\":\"g\"}]",
-  )
+  let p = keyed_repeated_measure_pipeline()
   let graph = @capacity_program_step.prepare_bound_derivation(
     p,
     1,

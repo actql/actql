@@ -107,10 +107,7 @@ test "empty selectors do not enable unsupported traversed-node or shortest-path 
         None,
         limits(),
       ).unwrap_err()
-      assert_eq(
-        issue.kind,
-        GraphMatch(@graph.Structure(@graph.UnsupportedGraphOperation)),
-      )
+      assert_eq(issue.kind, Graph(@graph.UnsupportedGraphOperation))
       assert_eq(issue.path, [Index(3), Key("shortest_path")])
     }
   }

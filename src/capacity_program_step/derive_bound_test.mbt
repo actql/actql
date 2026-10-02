@@ -312,27 +312,23 @@ test "compiler derived bounds preserve imported edges under cumulative work limi
 
 ///|
 test "compiler derived graph measures preserve units and repeated structural operands" {
-  let p = graph_measure_pipeline(
-    "[" +
-    graph_seed("seed", 1) +
-    ",{\"graph\":{\"source\":\"src\",\"target\":\"dst\"},\"as\":\"g\"},{\"union_graphs\":{\"with\":[\"g\",\"g\"]}}]",
-  )
+  let p = keyed_repeated_measure_pipeline()
   let seed = @capacity_program_step.derive_bound(p, 0, [], derive_limits()).unwrap().bound
-  let edge = @capacity_program_step.derive_bound(
+  let node = @capacity_program_step.derive_bound(
       p,
       1,
       [StepInput(seed)],
       derive_limits(),
-      unit=@arithmetic.Edges,
+      unit=@arithmetic.Nodes,
     ).unwrap().bound
   let inputs = [
-    @capacity_program_step.StepInput(edge),
-    StepInput(edge),
-    StepInput(edge),
+    @capacity_program_step.StepInput(seed),
+    StepInput(seed),
+    StepInput(seed),
   ]
   let result = @capacity_program_step.derive_bound(
     p,
-    2,
+    1,
     inputs,
     { ..derive_limits(), max_operand_work: 15, },
     unit=@arithmetic.Edges,
@@ -344,7 +340,7 @@ test "compiler derived graph measures preserve units and repeated structural ope
   assert_true(
     @capacity_program_step.check_with_sources(
       p,
-      2,
+      1,
       claim,
       inputs,
       max_operand_work=15,
@@ -354,7 +350,7 @@ test "compiler derived graph measures preserve units and repeated structural ope
   assert_true(
     @capacity_program_step.derive_bound(
       p,
-      2,
+      1,
       inputs,
       { ..derive_limits(), max_operand_work: 14, },
       unit=@arithmetic.Edges,
@@ -364,8 +360,8 @@ test "compiler derived graph measures preserve units and repeated structural ope
   assert_true(
     @capacity_program_step.derive_bound(
       p,
-      2,
-      [StepInput(seed), StepInput(seed), StepInput(seed)],
+      1,
+      [StepInput(node), StepInput(node), StepInput(node)],
       derive_limits(),
       unit=@arithmetic.Edges,
     )

@@ -71,6 +71,28 @@ fn keyed_measure_match(unit : String) -> String {
 }
 
 ///|
+fn keyed_repeated_measure_pipeline() -> @pipeline.CheckedPipeline {
+  graph_measure_pipeline(keyed_repeated_measure_steps())
+}
+
+///|
+fn keyed_repeated_measure_steps() -> String {
+  let node = "{\"name\":\"N\",\"from\":\"seed\",\"key\":[\"id\"]}"
+  let edges = ["E", "F", "G"].map(name => {
+    "{\"name\":\"" +
+    name +
+    "\",\"from\":\"seed\",\"key\":[\"id\"],\"source\":{\"definition\":\"N\",\"key\":[\"src\"]},\"target\":{\"definition\":\"N\",\"key\":[\"dst\"]}}"
+  })
+  "[" +
+  keyed_measure_seed("seed", 1) +
+  ",{\"property_graph\":{\"version\":\"actql-property-graph-constructor/0.1\",\"nodes\":[" +
+  node +
+  "],\"edges\":[" +
+  edges.join(",") +
+  "]},\"as\":\"g\"}]"
+}
+
+///|
 test "keyed Graph measures bind distinct units and original inputs through MATCH" {
   for n in [0, 1, 3] {
     for m in [0, 1, 3] {

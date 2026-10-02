@@ -12,7 +12,7 @@ test "unconnected structural Graph operations refuse before Result publication" 
       ),
       (
         "\"reach\":{\"start\":1,\"direction\":\"both\",\"max_depth\":2}",
-        @pipeline.GraphMatch(@graph.Structure(@graph.UnsupportedGraphOperation)),
+        @pipeline.Graph(@graph.UnsupportedGraphOperation),
       ),
     ] {
     assert_eq(

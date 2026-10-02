@@ -1207,3 +1207,58 @@ Homogeneous metadata/projection and definition-free predicate scaffolding,
 external Source definition admission, strict inventories, aggregate Core and
 submitted-SHA public snapshot/fresh packed/required CI remain open. The public
 PR has not been replaced, pushed or declared GO by these local results.
+
+## Current constructor capacity and profile fixture migration
+
+The clean `49e83ac3a8f3e2e398773fb0c4b62115d43b5ec3` checkpoint passes
+Core JS compilation with `--deny-warn`, but its aggregate test result is
+**7,363 total / 7,264 passed / 99 failed**. The logs are
+`/private/tmp/property-graph-current-core-check-js-49e83ac-20261003.log` and
+`/private/tmp/property-graph-current-core-js-49e83ac-20261003.log`.
+That aggregate remains red, not replaced by the narrower results below.
+
+Generic capacity fixtures now use current constructors and definition-scoped
+MATCH. The same original row owner supplies three independent edge-definition
+occurrences; derivation preserves all three inputs, the Edges unit, a bound of
+three, exact operand work 15 and one-short rejection at 14. Supplying the same
+constructor's Nodes proof instead of Rows still fails `InputUnitMismatch`.
+The ordinary preparation path separately retains two node rows and one edge
+row, distinct Nodes/Edges proofs and MATCH Rows conversions, in both consumer
+orders. Generated claims are re-admitted through the existing capacity owner;
+exact total preparation work succeeds and one-short fails.
+
+Counts alone still cannot authenticate capacity claims: zero, the conservative
+upper bound and an overclaim all fail without original proof inputs. MATCH E
+selects one definition semantically, while the existing static row-count rule
+keeps the conservative whole-Graph edge upper bound of three. This fixture
+does not equate that upper bound with actual result cardinality. The initial
+migration mistakenly asserted a tighter per-definition bound and failed;
+no bound rule or validator was changed to satisfy it.
+
+The former derived reach/shortest/node-emission fixture is now a supported
+TRAIL positive, for empty and nonempty constructors. It retains independently
+fixed definition domains, separate search/output subjects, the original Host
+ceiling of seven, swapped-subject rejection and exact/one-short preparation
+work. Domain preimages are independently authored in
+`/private/tmp/property-graph-capacity-domain-independent-20261003.mjs`;
+no product-generated domain is copied into the expected identities.
+
+Repeated producer profile visits retain the current constructor's single
+Property Graph law, not retired SGA law grants. Unsupported reach, subgraph and
+shortest inputs assert their exact public refusal and source path after their
+checked owners have been removed. The current unsupported node-emission
+diagnostic remains distinct. The pure retired node-emission product-bound
+fixture is withdrawn; its generic arithmetic boundaries were already migrated
+to the common bound calculator, not granted to current path enumeration.
+
+The whole capacity-program-step package and touched context/refusal fixtures
+pass **102/102 on each JS, Wasm and native**. Final logs are
+`/private/tmp/property-graph-quantity-migration-{js-pass,wasm,native}-20261003.log`.
+Initial logs retain the old union fixture failure and the conservative-upper-
+bound mismatch. The old union fixture's count-versus-admission guarantee has
+been positively migrated, not discarded with the unsupported union algorithm.
+
+Homogeneous metadata/projection and definition-free predicate scaffolding,
+external Source declaration admission, remaining Core fixture migrations,
+strict inventories and submitted-SHA public snapshot/fresh packed/required CI
+remain open. No public branch replacement, push, merge or GO is implied.

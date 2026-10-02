@@ -1,44 +1,28 @@
 ///|
-test "derived path limits retain exact subjects and Host ceilings" {
-  for operation in ["reach", "traverse", "traverse_nodes", "shortest_path"] {
+test "derived TRAIL limits retain exact subjects and Host ceilings" {
+  for empty in [false, true] {
     let selected_policy = sequence_limit_policy(false)
-    let traversal = if operation == "reach" {
-      (
-        #|{"reach":{"start":1,"direction":"out","max_depth":2},"as":"out"}
-      )
-    } else if operation == "shortest_path" {
-      (
-        #|{"shortest_path":{"source":1,"target":2,"direction":"out","max_hops":2},"as":"out"}
-      )
-    } else if operation == "traverse_nodes" {
-      (
-        #|{"traverse":{"start":{"ids":[1]},"direction":"out","min_hops":0,"max_hops":2,"emit":"nodes"},"as":"out"}
-      )
+    let rows = if empty { "[]" } else { "[{\"id\":1},{\"id\":2}]" }
+    // The producer definition/domain is independently fixed for each authored
+    // VALUES fixture, including the empty producer definition.
+    let definition = if empty {
+      "sha256:a54566c84a113a6a6d3a9e3e4386a10a6346712c53f78ebce62c48ff63cd0fbc"
     } else {
-      (
-        #|{"traverse":{"start":{"ids":[1]},"direction":"out","min_hops":0,"max_hops":2,"emit":"paths"},"as":"out"}
-      )
+      "sha256:3c07a675d79b8ca20df7ccce6bf1282b0ac34059bfbbaec8a8cd102f5027a5c3"
     }
-    let result_field = if operation == "shortest_path" {
-      "source_id"
-    } else {
-      "start_id"
-    }
-    let subject_name = if operation == "traverse_nodes" {
-      "traverse"
-    } else {
-      operation
-    }
+    let identity = "{\"definition\":\"N\",\"domain\":\"" +
+      definition +
+      "\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}"
     let text = (
-        #|{"version":"actql/0.1","id":"derived-reach","stages":[{"id":"s","inputs":{},"steps":[{"values":{"schema":{"src":{"type":"number","nullable":false},"dst":{"type":"number","nullable":false}},"rows":[{"src":1,"dst":2}]},"as":"seed"},{"graph":{"source":"src","target":"dst"},"as":"g"},
+        #|{"version":"actql/0.1","id":"derived-trail","stages":[{"id":"s","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":
       ) +
-      traversal +
+      rows +
       (
-        #|],"results":{"answer":{"from":"out","fields":["
+        #|},"as":"seed"},{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"seed","key":["id"]}],"edges":[]},"as":"g"},{"traverse":{"start":{"ids":[
       ) +
-      result_field +
+      identity +
       (
-        #|"]}}}],"results":{"answer":{"from":{"stage":"s","result":"answer"}}}}
+        #|]},"direction":"out","min_hops":0,"max_hops":2,"path_mode":"trail","emit":"paths"},"as":"out"}],"results":{"answer":{"from":"out","fields":["start_id"]}}}],"results":{"answer":{"from":{"stage":"s","result":"answer"}}}}
       )
     let program = @syntax.parse(
       text,
@@ -124,18 +108,11 @@ test "derived path limits retain exact subjects and Host ceilings" {
             @wire.limit_subject(
               @step_bounds.traversal_limit_claim(limits, scope),
             ),
-            subject_name + ":checked-step:2" + suffix,
+            "traverse:checked-step:2" + suffix,
           )
           assert_eq(
             @step_bounds.traversal_limit_effective_maximum(limits, scope),
-            if operation == "shortest_path" && scope == @step_bounds.OutputRows {
-              1L
-            } else if operation == "traverse_nodes" &&
-              scope == @step_bounds.OutputRows {
-              2L
-            } else {
-              7L
-            },
+            7L,
           )
         }
         assert_true(

@@ -159,15 +159,14 @@ test "current TRAIL obligations retain typed selector ownership and source prove
 ///|
 test "unsupported Graph consumers cannot issue legacy selector or structural fold obligations" {
   for
-    (body, key, matched) in [
-      ("{\"subgraph\":{\"nodes\":{\"ids\":[]}}}", "subgraph", true),
+    (body, key) in [
+      ("{\"subgraph\":{\"nodes\":{\"ids\":[]}}}", "subgraph"),
       (
         "{\"shortest_path\":{\"source\":{\"ids\":[]},\"target\":{\"ids\":[]},\"selection\":\"each_pair\",\"direction\":\"both\",\"max_hops\":2}}",
-        "shortest_path", true,
+        "shortest_path",
       ),
       (
         "{\"from\":\"g\",\"union_graphs\":{\"with\":[\"g\",\"g\",\"g\"]}}", "union_graphs",
-        false,
       ),
     ] {
     let issue = @pipeline_typing.check_carriers(
@@ -177,14 +176,7 @@ test "unsupported Graph consumers cannot issue legacy selector or structural fol
       None,
       limits(),
     ).unwrap_err()
-    if matched {
-      assert_eq(
-        issue.kind,
-        GraphMatch(@graph.Structure(@graph.UnsupportedGraphOperation)),
-      )
-    } else {
-      assert_eq(issue.kind, Graph(@graph.UnsupportedGraphOperation))
-    }
+    assert_eq(issue.kind, Graph(@graph.UnsupportedGraphOperation))
     assert_eq(issue.path, [Index(0), Key(key)])
   }
 }
