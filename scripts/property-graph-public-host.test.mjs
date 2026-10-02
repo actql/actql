@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import {createHash} from 'node:crypto';
-import {mkdir, mkdtemp, readFile} from 'node:fs/promises';
+import {createHash, generateKeyPairSync} from 'node:crypto';
+import {mkdir, mkdtemp, readFile, readdir} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
@@ -33,17 +33,62 @@ const expectedDomain = cid({constructor,
     .map(step => ({body:{values:step.values},dependencies:[]})),
   version:'actql-property-graph-definition/0.1'});
 const identity = (definition, key) => ({definition,domain:expectedDomain,
-  key:[key],key_types:[{kind:'number'}]});
+  key:['a',key],key_types:[{kind:'string'},{kind:'number'}]});
+// Independent canonical snapshot oracle: the constructor definition fixes
+// the schema/domain; input rows fix two distinct edge identities. No product
+// encoder output is copied into an expected value.
+const number = {type:'number',nullable:false};
+const string = {type:'string',nullable:false};
+const lawCid = 'sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc';
+const graphContract = {version:'actql-property-graph-contract/0.1',domain:expectedDomain,
+  identity_law_cid:lawCid,value_law_cid:lawCid,
+  node_definitions:[{name:'N',key_contracts:[string,number],
+    labels:{Node:['id','tenant'],Person:[]},properties:{id:number,tenant:string}}],
+  edge_definitions:[{name:'E',key_contracts:[string,number],labels:{Link:[],R:['dst','key','src','tenant']},
+    properties:{dst:number,key:number,src:number,tenant:string},source_definition:'N',target_definition:'N'}]};
+const expectedSnapshot = canonicalText(['actql-property-graph-snapshot/0.1',cid(graphContract),graphContract,
+  [{id:identity('N',1),key:['a',1],props:{id:1,tenant:'a'}}],
+  [10,11].map(key => ({id:identity('E',key),key:['a',key],props:{key,src:1,dst:1,tenant:'a'},
+    src:identity('N',1),dst:identity('N',1)}))]);
+const snapshotCid = 'sha256:' + createHash('sha256').update(expectedSnapshot).digest('hex');
 
 for (const mode of ['local','remote']) {
   test(`keyed constructor and TRAIL reach public Named Results through ${mode}`, {timeout:60_000}, async t => {
     const directory = await mkdtemp(new URL(`${mode}-`, scratch));
     t.diagnostic(`Retained Host regression evidence: ${directory}`);
+    const snapshots = new Map();
+    const snapshotWaiters = new Map();
+    const keys = generateKeyPairSync('ed25519');
+    const authorization = {accountConfiguration:canonicalText({
+      version:'actql-execution-account-config/0.1',account_id:'graph-test-owner',
+      entries:[{entry_id:'graph-test-allow',outcome:'allow',principal:{all:true},
+        connection:{all:true},resource:{all:true},operation:{all:true},exclusions:[]}]}),
+      hostKey:{keyId:'graph-test-host',
+      privateKey:keys.privateKey.export({type:'pkcs8',format:'pem'})},
+      reviewers:[{keyId:'graph-test-reviewer',reviewerId:'graph-test-reviewer',
+        principalId:userInfo().username,
+        publicKey:keys.publicKey.export({type:'spki',format:'pem'})}],
+      faultInjection(name, detail) {
+      if (name === 'computed') {
+        snapshots.set(detail.ref.runDefinitionCid, detail.carrierSnapshots);
+        snapshotWaiters.get(detail.ref.runDefinitionCid)?.();
+      }
+    }};
+    const assertSnapshot = async run => {
+      // This awaited installed fault hook observes the completed physical
+      // route, not an SDK-created diagnostic or a new execution authority.
+      if (!snapshots.has(run.ref.runDefinitionCid)) await new Promise(resolve =>
+        snapshotWaiters.set(run.ref.runDefinitionCid,resolve));
+      assert.deepEqual(snapshots.get(run.ref.runDefinitionCid), [{task:2,cid:snapshotCid,
+        bytes:Buffer.byteLength(expectedSnapshot),verifiedReadBytes:Buffer.byteLength(expectedSnapshot),
+        sourceReleased:true,restored:true,temporaryBodyReclaimed:true}]);
+      assert.deepEqual(await readdir(`${directory}/carrier-snapshots`), []);
+    };
     let host, server, client;
     if (mode === 'local') {
-      client = await connectEmbeddedLocal({mode,owner:'local',installation:{directory}});
+      client = await connectEmbeddedLocal({mode,owner:'local',installation:{directory,authorization}});
     } else {
-      host = await openInstalledRemoteHttpHost({directory,
+      host = await openInstalledRemoteHttpHost({directory,authorization,
         authenticate:header=>header === 'Bearer synthetic-test-token' ? userInfo().username : undefined});
       t.after(async () => { await host.close(); });
       let material;
@@ -72,6 +117,7 @@ for (const mode of ['local','remote']) {
     const description = await result.describe();
     assert.deepEqual(description.columns,[{name:'key',contract:{type:'number',nullable:false}}]);
     assert.deepEqual(await result.all(),[{key:10},{key:11}]);
+    await assertSnapshot(run);
     assert.deepEqual(await (await client.attach(run.ref)).result('answer').all(),[{key:10},{key:11}]);
 
     const trail = structuredClone(fixture);
@@ -89,5 +135,6 @@ for (const mode of ['local','remote']) {
     const expected = [[10,11],[11,10]].map(keys => ({start_id:identity('N',1),end_id:identity('N',1),
       hop_count:2,node_ids:[identity('N',1),identity('N',1),identity('N',1)],edge_ids:keys.map(key=>identity('E',key))}));
     assert.deepEqual(rows.map(canonicalText).sort(),expected.map(canonicalText).sort());
+    await assertSnapshot(paths);
   });
 }

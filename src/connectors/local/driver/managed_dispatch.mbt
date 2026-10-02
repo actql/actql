@@ -112,6 +112,33 @@ pub(all) struct LocalManagedAdvance {
 }
 
 ///|
+/// Primitive Host-facing operations on the same family-owned snapshot handle.
+/// File custody remains with the installed Store; no Graph payload is exposed.
+pub struct LocalManagedSnapshot {
+  key : String
+  maximum_bytes : Int
+  maximum_frame_bytes : Int
+  advance_save : (Int) -> Result[LocalManagedAdvance, LocalDispatchIssue]
+  take_output : () -> Result[String, LocalDispatchIssue]
+  content : () -> Result[@carrier_runtime.SnapshotContent, LocalDispatchIssue]
+  release_source : (String) -> Result[Unit, LocalDispatchIssue]
+  begin_reload : (String, () -> Bool) -> Result[Unit, LocalDispatchIssue]
+  advance_reload : (Int) -> Result[LocalManagedAdvance, LocalDispatchIssue]
+  finish : () -> Result[Unit, LocalDispatchIssue]
+}
+
+///|
+priv enum SnapshotPhase {
+  Saving
+  Saved
+  Released
+  Reloading
+  Restored
+  Finished
+  Failed
+} derive(Eq)
+
+///|
 pub struct LocalManagedDispatchOperations[T] {
   inputs : Array[LocalManagedInputTransfer[T]]
   retained_inputs : Array[LocalInputTransfer]
@@ -144,6 +171,9 @@ pub struct LocalManagedDispatchOperations[T] {
   output_row : (Int) -> Result[String, LocalDispatchIssue]
   material : () -> @execution.ManagedRetainedOutput[T]?
   carrier_material : () -> @carrier_runtime.Material?
+  prepare_carrier_snapshot : (() -> Bool) -> Result[
+    LocalManagedSnapshot?, LocalDispatchIssue,
+  ]
   storage_bytes : Int64
   close : () -> Unit
   cleanup_refresh : () -> Bool
@@ -598,6 +628,10 @@ pub fn[T] start_local_managed_dispatch(
     None,
   )
   let provider_execution : Ref[@local.ManagedProviderExecution?] = Ref(None)
+  let retired_carriers : Array[@carrier_runtime.Material] = []
+  let snapshot_attempted = Ref(false)
+  let snapshot_ready = Ref(true)
+  let snapshot_storage_released : Ref[(() -> Bool)?] = Ref(None)
   let execution_finished = Ref(false)
   let execution_failure : Ref[LocalDispatchIssue?] = Ref(None)
   let request = @connector.managed_fixed_compute_candidate_request(
@@ -753,7 +787,14 @@ pub fn[T] start_local_managed_dispatch(
               carrier.val
               .map(value => !@carrier_runtime.material_cleanup_pending(value))
               .unwrap()
-            relation_released && carrier_released
+            let mut old_carriers_released = true
+            for material in retired_carriers {
+              if @carrier_runtime.material_cleanup_pending(material) {
+                old_carriers_released = false
+              }
+            }
+            relation_released && carrier_released && old_carriers_released &&
+            snapshot_storage_released.val.map(check => check()).unwrap_or(true)
           },
           released: fn() { () },
           ready: fn() {
@@ -1552,7 +1593,8 @@ pub fn[T] start_local_managed_dispatch(
         !finalization_ready.val &&
         !finalization_cancelled.val &&
         !failed_or_stopped
-      if relation_pending {
+      if relation_pending ||
+        (!failed_or_stopped && carrier.val is Some(_) && !snapshot_ready.val) {
         return Err(Configuration(InvalidLimits))
       }
       @strategy.settle_task_execution(setup.run, execution, true).map_err(issue => {
@@ -1603,6 +1645,7 @@ pub fn[T] start_local_managed_dispatch(
         ordinary.val is None &&
         carrier.val is Some(material) &&
         carrier_completed.val is None &&
+        snapshot_ready.val &&
         output_target is Some(target) &&
         @carrier_runtime.material_available(material) &&
         @carrier_runtime.material_storage_bytes(material) is Some(storage_bytes) &&
@@ -1683,11 +1726,168 @@ pub fn[T] start_local_managed_dispatch(
     },
     material: fn() { retained.val },
     carrier_material: fn() { carrier.val },
+    prepare_carrier_snapshot: fn(storage_released) {
+      guard live.val && execution_finished.val && execution_failure.val is None &&
+        !snapshot_attempted.val && carrier.val is Some(source) &&
+        carrier_completed.val is None && output_target is Some(target) &&
+        provider_execution.val is Some(active) else {
+        return Err(Configuration(InvalidLimits))
+      }
+      snapshot_attempted.val = true
+      let operation = match @carrier_runtime.material_prepare_snapshot(source) {
+        Err(issue) => return Err(CarrierSnapshot(issue))
+        Ok(None) => return Ok(None)
+        Ok(Some(operation)) => operation
+      }
+      snapshot_ready.val = false
+      snapshot_storage_released.val = Some(storage_released)
+      if operation.workspace_bytes > setup.capacity.execution_bytes ||
+        operation.maximum_bytes < 1 || operation.maximum_frame_bytes < 1 {
+        return Err(Configuration(InvalidLimits))
+      }
+      let owner = @execution.generated_sequence_owner(setup.sequence)
+      let remaining = Ref(0L)
+      match @local.managed_provider_cumulative_work(active) {
+        Ok(work) if work >= 0L && work <= setup.execution.max_work.to_int64() =>
+          remaining.val = setup.execution.max_work.to_int64() - work
+        _ => return Err(Configuration(InvalidLimits))
+      }
+      let phase = Ref(SnapshotPhase::Saving)
+      let save_work = Ref(0L)
+      let reload_work = Ref(0L)
+      let save_progress = Ref(0L)
+      let reload_progress = Ref(0L)
+      let advance_stage = fn(quantum, reloading) {
+        if !live.val || execution_failure.val is Some(_) || quantum <= 0 ||
+          phase.val != (if reloading { Reloading } else { Saving }) {
+          return Err(Configuration(InvalidLimits))
+        }
+        if remaining.val <= 0L {
+          phase.val = Failed
+          execution_failure.val = Some(Configuration(InvalidLimits))
+          return Err(Configuration(InvalidLimits))
+        }
+        let allowed = if remaining.val < quantum.to_int64() {
+          remaining.val.to_int()
+        } else { quantum }
+        let observation = match
+          (if reloading { operation.advance_reload } else { operation.advance_save })(allowed) {
+          Ok(value) => value
+          Err(issue) => {
+            phase.val = Failed
+            execution_failure.val = Some(CarrierSnapshot(issue))
+            return Err(CarrierSnapshot(issue))
+          }
+        }
+        let work_cursor = if reloading { reload_work } else { save_work }
+        let progress_cursor = if reloading { reload_progress } else { save_progress }
+        if observation.work < work_cursor.val ||
+          observation.progress < progress_cursor.val {
+          @local.managed_provider_record_handoff_work(active, -1L) |> ignore
+          phase.val = Failed
+          execution_failure.val = Some(Configuration(InvalidLimits))
+          return Err(Configuration(InvalidLimits))
+        }
+        let delta = observation.work - work_cursor.val
+        if delta < 0L ||
+          delta > allowed.to_int64() ||
+          (!observation.complete && observation.issue is None && delta == 0L) {
+          @local.managed_provider_record_handoff_work(active, -1L) |> ignore
+          phase.val = Failed
+          execution_failure.val = Some(Configuration(InvalidLimits))
+          return Err(Configuration(InvalidLimits))
+        }
+        match @local.managed_provider_record_handoff_work(active, delta) {
+          Ok(_) => ()
+          Err(_) => {
+            phase.val = Failed
+            execution_failure.val = Some(Configuration(InvalidLimits))
+            return Err(Configuration(InvalidLimits))
+          }
+        }
+        work_cursor.val = observation.work
+        progress_cursor.val = observation.progress
+        remaining.val -= delta
+        if observation.issue is Some(issue) {
+          phase.val = Failed
+          execution_failure.val = Some(CarrierSnapshot(issue))
+          return Err(CarrierSnapshot(issue))
+        }
+        if observation.complete {
+          phase.val = if reloading { Restored } else { Saved }
+        }
+        Ok({ complete: observation.complete, progress: observation.progress, work: delta, })
+      }
+      Ok(Some({
+        key: "task-" + setup.task.to_string(),
+        maximum_bytes: operation.maximum_bytes,
+        maximum_frame_bytes: operation.maximum_frame_bytes,
+        advance_save: quantum => advance_stage(quantum, false),
+        take_output: () => {
+          if phase.val != Saving && phase.val != Saved {
+            return Err(Configuration(InvalidLimits))
+          }
+          (operation.take_output)().map_err(issue => CarrierSnapshot(issue))
+        },
+        content: () => {
+          if phase.val != Saved { return Err(Configuration(InvalidLimits)) }
+          (operation.content)().map_err(issue => CarrierSnapshot(issue))
+        },
+        release_source: cid => {
+          if !live.val || phase.val != Saved { return Err(Configuration(InvalidLimits)) }
+          match (operation.release_source)(cid) {
+            Ok(_) => ()
+            Err(issue) => return Err(CarrierSnapshot(issue))
+          }
+          phase.val = Released
+          Ok(())
+        },
+        begin_reload: (text, available) => {
+          if !live.val || phase.val != Released { return Err(Configuration(InvalidLimits)) }
+          match (operation.begin_reload)(text, available) {
+            Ok(_) => ()
+            Err(issue) => return Err(CarrierSnapshot(issue))
+          }
+          phase.val = Reloading
+          Ok(())
+        },
+        advance_reload: quantum => advance_stage(quantum, true),
+        finish: () => {
+          if !live.val || phase.val != Restored || !storage_released() {
+            return Err(Configuration(InvalidLimits))
+          }
+          let restored = match (operation.take_material)() {
+            Ok(value) => value
+            Err(issue) => return Err(CarrierSnapshot(issue))
+          }
+          // Keep the old operation handle through its cleanup confirmation;
+          // revoking its source alone does not end snapshot custody.
+          retired_carriers.push(source)
+          carrier.val = Some(restored)
+          if !@carrier_runtime.completion_reference_matches_port(
+              @carrier_runtime.material_reference(restored), owner, target,
+            ) || !@carrier_runtime.material_available(restored) {
+            phase.val = Failed
+            return Err(Configuration(InputUnavailable))
+          }
+          @carrier_runtime.reclaim_material(source) |> ignore
+          if @carrier_runtime.material_cleanup_pending(source) {
+            return Err(Configuration(InputUnavailable))
+          }
+          phase.val = Finished
+          snapshot_ready.val = true
+          Ok(())
+        },
+      }))
+    },
     storage_bytes: setup.capacity.retained_bytes,
     close: fn() {
       live.val = false
       cancel_finalization()
       if carrier.val is Some(material) {
+        @carrier_runtime.reclaim_material(material) |> ignore
+      }
+      for material in retired_carriers {
         @carrier_runtime.reclaim_material(material) |> ignore
       }
       @strategy.close_task_execution(setup.run, execution)
@@ -1716,6 +1916,13 @@ pub fn[T] start_local_managed_dispatch(
           }
       }
       if !carrier_reclaimed {
+        return false
+      }
+      for material in retired_carriers {
+        @carrier_runtime.reclaim_material(material) |> ignore
+        if @carrier_runtime.material_cleanup_pending(material) { return false }
+      }
+      if !snapshot_storage_released.val.map(check => check()).unwrap_or(true) {
         return false
       }
       @strategy.refresh_task_execution_cleanup(setup.run, execution).unwrap_or(

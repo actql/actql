@@ -31,6 +31,7 @@ priv struct Execution {
   control : @bounded.Control
   limits : @storage.Limits
   storage_bytes : Int64
+  snapshot_policy : SnapshotPolicy?
   max_rows : Int
   max_value_bytes : Int
   selected_step : Int?
@@ -44,6 +45,53 @@ priv struct Execution {
   mut stage_work : Int64
   mut terminal : Bool
   mut reclaimed : Bool
+}
+
+///|
+/// Installed serialization/read bounds and advertised private workspace.
+/// They are not supplied by a Program or a persisted header and do not claim
+/// a machine-independent heap-size theorem for the Graph implementation.
+pub(all) struct SnapshotPolicy {
+  serialization : @snapshot.Limits
+  read : @decode.Limits
+  maximum_bytes : Int
+  maximum_frame_bytes : Int
+  workspace_bytes : Int64
+}
+
+///|
+fn valid_snapshot_policy(value : SnapshotPolicy) -> Bool {
+  value.maximum_bytes > 0 &&
+  value.maximum_frame_bytes > 0 &&
+  value.maximum_frame_bytes <= value.maximum_bytes &&
+  value.maximum_frame_bytes <= 16777216 &&
+  value.workspace_bytes >= value.maximum_bytes.to_int64() * 4L &&
+  value.serialization.max_workspace_slots >= 0 &&
+  value.serialization.max_identity_bytes >= 0 &&
+  value.serialization.max_identity_nodes >= 0 &&
+  value.serialization.max_identity_depth >= 0 &&
+  value.serialization.value_limits.max_nodes >= 0 &&
+  value.serialization.value_limits.max_depth >= 0 &&
+  value.serialization.value_limits.max_text_bytes >= 0 &&
+  value.read.max_nodes > 0 &&
+  value.read.max_depth > 0 &&
+  value.read.max_string_bytes >= 0 &&
+  value.read.max_total_string_bytes >= 0
+}
+
+///|
+fn constructor_material(sequence : @execution.GeneratedSequence) -> Bool {
+  let selected = @execution.completion_preparation_selected_step(
+    @execution.generated_completion_preparation(sequence),
+  )
+  if selected is None && @execution.generated_sequence_step_count(sequence) != 1 {
+    return false
+  }
+  @lower.sequence_step(
+    @execution.generated_prepared_sequence(sequence),
+    selected.unwrap_or(0),
+  )
+  is Some(@lower.PropertyGraphConstructionStep(_))
 }
 
 ///|
@@ -361,7 +409,24 @@ fn advance_execution(
                 @graph.discard_completed(output) |> ignore
                 return fail_execution(value)
               }
-              let material = match @graph.completed_material(output) {
+              let prepared_material = match value.snapshot_policy {
+                None => @graph.completed_material(output).map_err(_ => issue())
+                Some(policy) =>
+                  @bridge.completed_property_snapshot_material(
+                    value.control,
+                    @execution.generated_sequence_owner(value.generated),
+                    @pipeline.Step(value.selected_step.unwrap_or(0)),
+                    output,
+                    value.limits,
+                    policy.serialization,
+                    policy.read,
+                    policy.maximum_bytes,
+                    policy.maximum_frame_bytes,
+                    policy.workspace_bytes,
+                    () => !value.reclaimed,
+                  ).map_err(_ => issue())
+              }
+              let material = match prepared_material {
                 Ok(value) => value
                 Err(_) => {
                   @graph.discard_completed(output) |> ignore
@@ -730,25 +795,36 @@ pub fn provider(
   limits : @storage.Limits,
   storage_bytes : Int64,
   capacity : @execution.ExecutionCapacity,
+  snapshot_policy? : SnapshotPolicy? = None,
 ) -> @local.ManagedProvider {
   @local.managed_provider_with_inputs(
     accepts,
     sequence => {
-      if accepts(sequence) {
+      if accepts(sequence) &&
+        (
+          snapshot_policy is None ||
+          (snapshot_policy is Some(policy) && valid_snapshot_policy(policy))
+        ) {
         provider_capacity(
           capacity,
           storage_bytes,
           @lower.sequence_count(
             @execution.generated_prepared_sequence(sequence),
           ),
-          0L,
+          if constructor_material(sequence) {
+            snapshot_policy.map(policy => policy.workspace_bytes).unwrap_or(0L)
+          } else {
+            0L
+          },
         )
       } else {
         None
       }
     },
     fn(sequence, inputs, max_rows, max_value_bytes, _execution) {
-      if !accepts(sequence) || storage_bytes < 0L {
+      if !accepts(sequence) ||
+        storage_bytes < 0L ||
+        (snapshot_policy is Some(policy) && !valid_snapshot_policy(policy)) {
         return Err(@connector.InvalidLimits)
       }
       let relations = []
@@ -832,6 +908,11 @@ pub fn provider(
         control: @bounded.control(),
         limits,
         storage_bytes,
+        snapshot_policy: if constructor_material(sequence) {
+          snapshot_policy
+        } else {
+          None
+        },
         max_rows,
         max_value_bytes,
         selected_step,

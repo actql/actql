@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
+import {mkdir, mkdtemp, readdir} from 'node:fs/promises';
 import test from 'node:test';
 import * as moon from '../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {canonicalText} from './check-canonical-json.mjs';
@@ -9,6 +10,8 @@ import {runCapturedStrategy} from '../adapters/host-node/entry.mjs';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
 import {runInstalledStrategy} from '../adapters/host-common/strategy.mjs';
 import {localStrategyContribution} from '../adapters/local-node/strategy-bundle.mjs';
+import {installLocalSnapshotStore} from '../adapters/local-node/retained-store.mjs';
+import {createLocalRetainedStore} from '../adapters/store-local/files.mjs';
 
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const cid = value => 'sha256:' + createHash('sha256').update(canonicalText(value)).digest('hex');
@@ -96,6 +99,95 @@ test('existing installed Local providers execute the keyed constructor and MATCH
     assert.equal(execution.cleanupPending(), false);
   }
 });
+
+for (const boundary of ['success','cleanup-failure','snapshot-cancel']) {
+  test(`common driver snapshot handoff charges deltas once and retains custody: ${boundary}`, async () => {
+    const ready = moon.clientProgramPreparationReady(prepare(owner));
+    const aoa = read('spec/contracts/actql-aoa.json');
+    const setup = moon.clientProgramOpenSourceFreeLocalHost(ready,
+      JSON.stringify(read(aoa.pipeline_registry_file)),JSON.stringify(aoa.execution_contracts['REL.values']),
+      1n,0n,0n,0n,JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+      JSON.stringify(aoa.execution_contracts['REL.derive.ordered']));
+    assert.ok(setup);
+    assert.equal(moon.strategyHostConfigureManagedIdentity(setup,true,false,false,false),true);
+    const parent = new URL('../_build/property-graph-driver-snapshot/', import.meta.url);
+    await mkdir(parent,{recursive:true});
+    const directory = await mkdtemp(new URL('case-',parent));
+    const controller = new AbortController();
+    let graphOperations, baseline, total = 0n, saveCalls = 0, reloadCalls = 0, leases = 0;
+    let source, restored, store, failedCleanup = false, afterGraphCompute = false, consumerStarted = false;
+    const configuration = installLocalSnapshotStore(async (_key, bytes, frame) => {
+      leases++;
+      store = await createLocalRetainedStore({parentDirectory:directory,
+        capacityBytes:bytes,maxFrameBytes:frame,maxEntries:1});
+      return {...store, async cleanup() {
+        if (boundary === 'cleanup-failure' && !failedCleanup) {
+          failedCleanup = true; throw new Error('InjectedDriverSnapshotCleanup');
+        }
+        return store.cleanup();
+      }};
+    });
+    const observed = new Proxy(moon,{get(target,name,receiver) {
+      if (name !== 'strategyModule_local_ManagedStart') return Reflect.get(target,name,receiver);
+      return active => {
+        const task = target.strategyHostNextTask(setup);
+        const result = target.strategyModule_local_ManagedStart(active);
+        if (task === 3) consumerStarted = true;
+        if (task !== 2) return result;
+        graphOperations = checked(result);
+        const wrapper = new Proxy(graphOperations,{get(operations,member,opReceiver) {
+          if (member === 'advance') return quantum => {
+            if (baseline !== undefined) afterGraphCompute = true;
+            return operations.advance(quantum);
+          };
+          if (member !== 'prepare_carrier_snapshot') return Reflect.get(operations,member,opReceiver);
+          return released => {
+            baseline = checked(operations.cumulative_provider_work());
+            source = operations.carrier_material();
+            const snapshot = checked(operations.prepare_carrier_snapshot(released));
+            assert.ok(snapshot);
+            return {$tag:1,_0:new Proxy(snapshot,{get(operation,action,actionReceiver) {
+              if (action === 'finish') return () => {
+                const result = operation.finish();
+                restored = operations.carrier_material();
+                assert.notEqual(restored,source);
+                return result;
+              };
+              if (!['advance_save','advance_reload'].includes(action)) return Reflect.get(operation,action,actionReceiver);
+              return quantum => {
+                const result = operation[action](quantum);
+                const observation = checked(result);
+                total += observation.work;
+                assert.equal(checked(operations.cumulative_provider_work()),baseline + total);
+                if (action === 'advance_save') {
+                  saveCalls++;
+                  if (boundary === 'snapshot-cancel') controller.abort(new Error('DriverSnapshotCancelled'));
+                } else reloadCalls++;
+                return result;
+              };
+            }})};
+          };
+        }});
+        return {$tag:1,_0:wrapper};
+      };
+    }});
+    const execution = await runInstalledStrategy(setup,runtimeCore(moon),
+      [localStrategyContribution(observed,setup,checked,configuration)],controller.signal);
+    assert.equal(leases,1); assert(saveCalls > 0); assert(total > 0n);
+    assert.equal(afterGraphCompute,false);
+    assert.equal(execution.status,boundary === 'success' ? 'host-tasks-completed' : 'host-tasks-failed');
+    assert.equal(consumerStarted,boundary === 'success');
+    assert.equal(restored !== undefined,boundary === 'success');
+    if (boundary === 'success') assert(reloadCalls > 0);
+    if (boundary === 'snapshot-cancel') assert.equal(reloadCalls,0);
+    await execution.close();
+    await execution.cleanup(); await execution.cleanup();
+    assert.equal(execution.cleanupPending(),false);
+    assert.equal(checked(graphOperations.cumulative_provider_work()),baseline + total);
+    assert.equal(store.status().reservedBytes,0);
+    assert.deepEqual(await readdir(directory),[]);
+  });
+}
 
 test('keyed constructor Host in-flight cancellation never publishes partial Graph and closes custody', async () => {
   const ready = moon.clientProgramPreparationReady(prepare(owner));

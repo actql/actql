@@ -523,12 +523,74 @@ also failed compilation before correction. These are fixture corrections, not
 permission to admit structured keys as scalar order values. Internal lifecycle
 success is still not public snapshot roundtrip acceptance.
 
+## Public Store snapshot connection (2026-10-02, working unit)
+
+The selected constructor provider attaches the existing lazy family snapshot
+factory. Installed serialization/read limits and a 64 MiB private workspace
+envelope are included in candidate capacity before input access. These are
+installation limits, not a machine-independent allocation-byte theorem. The
+same Local driver validates cumulative stage reports and charges their deltas
+to its existing provider work owner. Exhaustion is sticky: no new Compute or
+handoff is authorized; failure cleanup remains possible.
+
+The installed public Host now supplies snapshot-only physical Store wiring.
+It does not change Relation tasks to file-backed execution. Previously, the
+public MATCH/TRAIL checks passed without calling snapshot I/O because that
+configuration was absent. The new route uses the existing Local file Store:
+save and independently seal bytes, revoke the source generation, verify the
+entire physical read, reload through family admission, reclaim the temporary
+body, then expose the restored checked completion. Process-backed callers
+require the parent's typed release confirmation; local close or zero local
+usage is not physical reclamation. The common failure progression keeps both
+family and file cleanup handles. No second Graph, storage, or accounting owner
+is introduced.
+
+The public oracle now covers compound String/Number keys and multiple label
+sets. Its canonical schema, records, domain and snapshot CID are authored
+independently from the constructor definition and input rows. Both public
+Local and real HTTPS paths saved/reloaded before MATCH and TRAIL; their saved
+CID/byte count matched that oracle and their temporary directories were empty.
+An installed awaited diagnostic hook observes this completed route; it grants
+no execution or completion authority. Result reattach is retained as a
+separate publication assertion, not used as snapshot evidence.
+
+Focused results in this unit:
+
+- Common constructor/snapshot/provider accounting: **34/34 on each of JS,
+  Wasm and native**.
+- Real-file transport: **5/5**, including changed sealed bytes, cancellation,
+  cleanup failure/retry and delayed parent release.
+- Driver/Host adapter regressions: **49/49**, including snapshot cumulative
+  work, no Compute re-entry and cleanup retry without another allocation.
+- Public Local/HTTPS: **2/2**, each checking MATCH and TRAIL after verified
+  physical reload, compound identity and label-set preservation.
+
+The first source public run stopped before execution because the borrowed
+node_modules held an older client-wire without validCheckOutcome. The source
+rerun explicitly resolved the same checkout's packages using a test loader;
+it is not a fresh-packed result. Two initial diagnostic fixtures lacked the
+required reviewer/account installation and were refused before dispatch;
+the corrected fixture installs real synthetic keys and an explicit admitted
+test account, without weakening authentication. A common capacity fixture
+initially required Eq/Debug on the opaque capacity type and then mistook a
+reclaim request's Boolean for authoritative cleanup completion. The corrected
+test compares capacity fields and the existing Material cleanup-pending
+status, including the already-disposed source case.
+
+Evidence logs are preserved under /private/tmp/property-graph-public-snapshot-*
+and the public Host state/DBs under this worktree's
+_build/property-graph-public-host/. Full Core/spec, fresh packed, latest-main
+integration and final-SHA required CI are still outstanding. The published
+125a186ae revision failed multiple CI jobs and became conflicting after main
+advanced; neither its CI nor previous historical successes is approval for
+this working unit.
+
 ## Deliberately not claimed
 
 Full SGA, external producer-definition provenance, a durable Graph catalog and
-complete mechanized correspondence are not claimed. Legacy execution removal
-and a real public snapshot save/reload route remain required in the current
-unit; they are not waived by these historical results. The current laws and
+complete mechanized correspondence are not claimed. Remaining fixture and
+consumer migration plus aggregate gates remain required in the current unit;
+they are not waived by these focused results. The current laws and
 independent fixtures are ActQL-owned. Executable conformance is not represented
 as a proof of the entire implementation. A/B task splitting, carrier tasks and
 Frontend implementation are not changed by this unit. The existing Graph

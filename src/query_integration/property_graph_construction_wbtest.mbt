@@ -1075,6 +1075,110 @@ test "existing selected Graph provider executes keyed TRAIL from one exact Carri
 }
 
 ///|
+test "snapshot policy is installed and charged before constructor input access" {
+  let nodes = keyed_node_source()
+  let edges = keyed_edge_source()
+  let owner = keyed_bridge_owner(nodes, edges)
+  let generated = @execution.select_generated_sequence_step(
+    task_test_generated(owner),
+    0,
+  ).unwrap()
+  let base = @execution.generated_sequence_capacity(
+    generated,
+    dispatch_test_limits().local_execution,
+    dispatch_test_limits().guards,
+  ).unwrap()
+  let policy : @local_sga_provider.SnapshotPolicy = {
+    serialization: snapshot_caps(),
+    read: {
+      max_nodes: 10000,
+      max_depth: 100,
+      max_string_bytes: 100000,
+      max_total_string_bytes: 100000,
+    },
+    maximum_bytes: 100000,
+    maximum_frame_bytes: 100000,
+    workspace_bytes: 1000000L,
+  }
+  let memory = @local_sga_provider.provider(
+    carrier_graph_storage_limits(),
+    4096L,
+    base,
+  )
+  let persistent = @local_sga_provider.provider(
+    carrier_graph_storage_limits(),
+    4096L,
+    base,
+    snapshot_policy=Some(policy),
+  )
+  let before = @local_connector.managed_provider_capacity(memory, generated).unwrap()
+  let after = @local_connector.managed_provider_capacity(persistent, generated).unwrap()
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(after),
+    @execution.execution_capacity_execution_bytes(before) + 1000000L,
+  )
+  assert_eq(
+    @execution.execution_capacity_retained_bytes(after),
+    @execution.execution_capacity_retained_bytes(before),
+  )
+  let invalid = @local_sga_provider.provider(
+    carrier_graph_storage_limits(),
+    4096L,
+    base,
+    snapshot_policy=Some({ ..policy, maximum_frame_bytes: 100001, }),
+  )
+  assert_true(
+    @local_connector.managed_provider_capacity(invalid, generated) is None,
+  )
+  assert_true(
+    @local_connector.start_managed_provider_with_inputs(
+      invalid,
+      generated,
+      [],
+      10,
+      1000,
+    )
+    is Err(_),
+  )
+  let active = @local_connector.start_managed_provider_with_inputs(
+    persistent,
+    generated,
+    keyed_bridge_inputs(owner, nodes, edges).map(
+      @local_connector.managed_provider_relation_input,
+    ),
+    10,
+    1000,
+  ).unwrap()
+  let mut material = None
+  for _ in 0..<1000 {
+    match @local_connector.advance_managed_provider(active, 1).unwrap() {
+      @local_connector.Continue(..) => ()
+      @local_connector.CarrierComplete(value, ..) => {
+        material = Some(value)
+        break
+      }
+      _ => fail("installed snapshot policy prevented constructor completion")
+    }
+  }
+  let material = material.unwrap()
+  let snapshot = @carrier_runtime.material_prepare_snapshot(material)
+    .unwrap()
+    .unwrap()
+  assert_eq(snapshot.workspace_bytes, 1000000L)
+  assert_eq(snapshot.maximum_bytes, 100000)
+  assert_eq(snapshot.maximum_frame_bytes, 100000)
+  assert_true(
+    @carrier_runtime.material_prepare_snapshot(material)
+    is Err(@carrier_runtime.SnapshotAlreadyClaimed),
+  )
+  // The operation may already dispose its source. Completion is the same
+  // Material's custody status, not whether this request changed that source.
+  @carrier_runtime.reclaim_material(material) |> ignore
+  assert_false(@carrier_runtime.material_cleanup_pending(material))
+  assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
+}
+
+///|
 test "existing Graph provider retains keyed constructor material and cleanup custody" {
   let nodes = keyed_node_source()
   let edges = keyed_edge_source()

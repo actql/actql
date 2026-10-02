@@ -11,7 +11,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
   store, checkpoints, startRun, hostConnection, beforeDispatch, observed,
   prepareAcquisition, planFor, sourceProfile, registry, values, fragment,
   ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
-  faultInjection, runInfer,
+  faultInjection, runInfer, localSnapshotConfiguration,
   runPublished = runPublishedCapturedStrategy}) {
   const entries = new Map();
   const diagnostic = diagnosticObserver(observed);
@@ -288,14 +288,19 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       }
       const published = await runPublished(setup,
         {store, plan: held.plan},
-        sourceProfile === undefined ? {} :
-          {authorization: sourceAccess.authorization},
+        { ...(sourceProfile === undefined ? {} :
+            {authorization: sourceAccess.authorization}),
+          ...(localSnapshotConfiguration === undefined ? {} :
+            {local:localSnapshotConfiguration}) },
         entry.abort.signal, undefined, execution => {
           entry.cleanupOwner = execution;
         });
       entry.cleanupOwner = published;
       entry.publicationCommitted = true;
-      await step('computed', {ref: accepted.ref});
+      await step('computed', {ref: accepted.ref,
+        carrierSnapshots: (published.execution?.completed ?? [])
+          .filter(task => task.snapshot !== undefined)
+          .map(task => ({task:task.task,...task.snapshot}))});
       await settleCleanup(entry);
       await finishRun(entry);
     }).catch(async cause => {

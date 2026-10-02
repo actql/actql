@@ -5,10 +5,11 @@ import {copyFile, mkdir, readFile, writeFile} from 'node:fs/promises';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
-import {CLIENT_PACKAGES, packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
+import {CLIENT_PACKAGES, checkoutState, packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
 import {certificates} from '../adapters/site-node/https-agent-harness.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
+const source = checkoutState(repository);
 const scratch = await createOwnedScratch({
   parent:join(repository, '..', '.codex-scratch'),
   prefix:'property-graph-package-',label:'packed Property Graph',
@@ -45,9 +46,13 @@ for (const name of CLIENT_PACKAGES) {
 }
 await writeFile(join(root,'acceptance.json'),JSON.stringify({
   version:'property-graph-packed-acceptance/0.1',node:process.version,
+  source,
   packages:digests,paths:['embedded-local','remote-https'],
   independentFixture:'fixtures/property-graph-parallel.program.json',
-  assertions:['typed MATCH Named Result','independent-key TRAIL identities'],
+  assertions:['typed MATCH Named Result','independent-key TRAIL identities',
+    'composite keys and label sets','independent snapshot bytes and CID',
+    'physical save, source revocation and verified reload',
+    'temporary body reclaimed before restored completion'],
 },null,2)+'\n');
 console.log(output);
 console.log(`Packed Property Graph evidence: ${root}`);

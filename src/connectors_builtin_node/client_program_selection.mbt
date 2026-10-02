@@ -47,12 +47,41 @@ fn selected_record_limits() -> @record_storage.Limits {
 }
 
 ///|
+/// Snapshot buffers are installed resource ceilings, not persisted authority.
+/// The provider adds the complete private envelope before task selection.
+fn selected_graph_snapshot_policy() -> @local_sga_provider.SnapshotPolicy {
+  {
+    serialization: {
+      max_workspace_slots: 10000,
+      max_identity_bytes: 1048576,
+      max_identity_nodes: 100000,
+      max_identity_depth: 100,
+      value_limits: { max_nodes: 10000, max_depth: 100, max_text_bytes: 10000, },
+    },
+    read: {
+      max_nodes: 100000,
+      max_depth: 100,
+      max_string_bytes: 1048576,
+      max_total_string_bytes: 1048576,
+    },
+    maximum_bytes: 1048576,
+    maximum_frame_bytes: 1048576,
+    workspace_bytes: 67108864L,
+  }
+}
+
+///|
 fn installed_client_family_providers(
   capacity : @execution.ExecutionCapacity,
 ) -> Array[@local.ManagedProvider] {
   let records = selected_record_limits()
   [
-    @local_sga_provider.provider(selected_graph_limits(), 10000L, capacity),
+    @local_sga_provider.provider(
+      selected_graph_limits(),
+      10000L,
+      capacity,
+      snapshot_policy=Some(selected_graph_snapshot_policy()),
+    ),
     @local_tea_provider.provider(records, 100000L, capacity),
     @local_tea_provider.time_series_provider(records, capacity),
     @local_tea_provider.interval_join_provider(records, capacity),
@@ -97,6 +126,7 @@ fn selected_client_sga_providers(
           selected_graph_limits(),
           10000L,
           sequence_capacity,
+          snapshot_policy=Some(selected_graph_snapshot_policy()),
         ),
       ])
     None => None
