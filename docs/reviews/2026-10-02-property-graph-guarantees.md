@@ -545,3 +545,33 @@ Old Carrier constructor/getters, obsolete storage/runtime entry points and
 mixed old fixture scaffolding still need removal. Full Core/spec and strict
 resource-route inventory, plus fresh public snapshot and submitted-SHA CI,
 remain required. No final handoff or merge is authorized by this local result.
+
+The Local consumer removal is committed as
+`6b414308c360cfea1502ace54c2731deb8becf13`. Its official committed API check passes
+at `/private/tmp/property-graph-remaining-consumer-retirement-api-committed-20261002.log`.
+The 139 retained declaration blocks in the mixed integration fixture remain
+byte-identical; 51 obsolete blocks were removed, not rewritten into refusals.
+
+## Tuple mutation API removal
+
+Storage and managed output no longer expose `append_node`, `append_edge`,
+`observe_node`, `observe_edge` or definition-free `contains_declared_node`.
+The retired `DerivedEndpoints` builder mode is deleted, leaving explicit keyed
+node declarations. Current `append_property_node`/`append_property_edge`, their
+private reservation and existing retention owner are unchanged.
+
+The two tests of removed compatibility APIs are not retained as product
+execution. Opaque Graph knowledge still has its explicit allocation refusal;
+all keyed storage capacity, duplicate keys, missing endpoints, failed builder,
+cancellation, retained bytes and lifecycle owner positives remain. Eight
+obsolete tuple mutation/provider structural tests and their unreachable
+scaffolding are removed. Their former algorithm support is not claimed current.
+
+Related current suites pass **98/98 each on JS, Wasm and native**:
+`/private/tmp/property-graph-tuple-builder-api-retirement-focused-{js,wasm,native}-20261002.log`.
+This count decreases by one because the withdrawn tuple-mutation test is no
+longer a current operation, not because a keyed capacity or custody positive
+was changed into a refusal. The narrow storage/runtime/selector run passes
+23/23. Remaining Carrier convenience APIs and old typed/fixture scaffolding,
+full Core/spec, strict resource inventory and final public snapshot/CI remain
+open. No compatibility owner or fallback was introduced.

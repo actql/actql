@@ -12,10 +12,6 @@ import {
 }
 
 // Values
-pub fn append_edge(OutputBuilder, @value_admission.CheckedValue, @value_admission.CheckedValue, @value_admission.CheckedValue?, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
-
-pub fn append_node(OutputBuilder, @value_admission.CheckedValue, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
-
 pub fn append_property_edge(OutputBuilder, Int, Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
 
 pub fn append_property_node(OutputBuilder, Int, Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
@@ -44,8 +40,6 @@ pub fn completed_storage(Completed) -> @managed_graph_storage.Storage?
 
 pub fn completed_storage_bytes(Completed) -> Int64?
 
-pub fn contains_declared_node(OutputBuilder, @value_admission.CheckedValue) -> Result[Bool, Issue]
-
 pub fn discard_completed(Completed) -> Bool
 
 pub fn evidence_construction_work(Evidence) -> Int
@@ -61,10 +55,6 @@ pub fn evidence_retained_value_bytes(Evidence) -> Int
 pub fn evidence_workspace_slots(Evidence) -> Int
 
 pub fn finish_output(OutputBuilder) -> Result[Completed, Issue]
-
-pub fn observe_edge(OutputBuilder, @value_admission.CheckedValue, @value_admission.CheckedValue, @value_admission.CheckedValue?, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
-
-pub fn observe_node(OutputBuilder, @value_admission.CheckedValue, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
 
 pub fn output_workspace_slots(OutputBuilder) -> Int
 

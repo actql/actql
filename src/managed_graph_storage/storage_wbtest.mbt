@@ -167,24 +167,6 @@ test "completed keyed graph reuses its admitted identity index and revokes it on
 }
 
 ///|
-test "keyed graph refuses endpoint synthesis and tuple mutation before allocating records" {
-  assert_true(
-    prepare(graph_fixture(), DerivedEndpoints, limits()) is Err(WrongMode),
-  )
-  let builder = prepare(graph_fixture(), DeclaredNodes, limits()).unwrap()
-  assert_true(contains_declared_node(builder, number(1)) is Err(WrongProfile))
-  assert_true(
-    append_edge(builder, number(1), number(2), None, [number(3)])
-    is Err(WrongProfile),
-  )
-  assert_eq(builder_node_count(builder), 0)
-  assert_eq(builder_edge_count(builder), 0)
-  assert_true(finish(builder) is Err(Closed))
-  assert_true(cancel(builder))
-  assert_false(cancel(builder))
-}
-
-///|
 test "keyed graph keeps atomic key conflict capacity work and cancellation boundaries" {
   let conflict = prepare(graph_fixture(), DeclaredNodes, limits()).unwrap()
   append_property_node(conflict, 0, [number(1)], [text("a")]).unwrap()

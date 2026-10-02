@@ -9,10 +9,6 @@ import {
 }
 
 // Values
-pub fn append_edge(Builder, @value_admission.CheckedValue, @value_admission.CheckedValue, @value_admission.CheckedValue?, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
-
-pub fn append_node(Builder, @value_admission.CheckedValue, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
-
 pub fn append_property_edge(Builder, Int, Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
 
 pub fn append_property_node(Builder, Int, Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
@@ -38,8 +34,6 @@ pub fn cancel(Builder) -> Bool
 pub fn carrier(Storage) -> @carrier_contract.Carrier
 
 pub fn construction_work(Storage) -> Int
-
-pub fn contains_declared_node(Builder, @value_admission.CheckedValue) -> Result[Bool, Issue]
 
 pub fn discard(Storage) -> Unit
 
@@ -88,10 +82,6 @@ pub fn node_property(Storage, Int, Int) -> @value_admission.CheckedValue?
 pub fn node_typed_key(Storage, Int) -> Array[@value_admission.CheckedValue]?
 
 pub fn node_typed_key_at(Storage, Int, Int) -> @value_admission.CheckedValue?
-
-pub fn observe_edge(Builder, @value_admission.CheckedValue, @value_admission.CheckedValue, @value_admission.CheckedValue?, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
-
-pub fn observe_node(Builder, @value_admission.CheckedValue, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
 
 pub fn prepare(@carrier_contract.Carrier, Mode, Limits) -> Result[Builder, Issue]
 
@@ -144,7 +134,6 @@ pub(all) struct Limits {
 
 pub(all) enum Mode {
   DeclaredNodes
-  DerivedEndpoints
 } derive(Eq, @debug.Debug)
 
 type Storage

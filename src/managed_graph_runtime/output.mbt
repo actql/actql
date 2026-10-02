@@ -99,23 +99,7 @@ pub fn prepare_output(
 }
 
 ///|
-pub fn append_node(
-  output : OutputBuilder,
-  identity : @value.CheckedValue,
-  properties : Array[@value.CheckedValue],
-) -> Result[Unit, Issue] {
-  if !output.open {
-    return Err(Closed)
-  }
-  @storage.append_node(output.graph, identity, properties).map_err(issue => {
-    output.open = false
-    @lifecycle.cancel_retention_port(output.retention) |> ignore
-    Storage(issue)
-  })
-}
-
-///|
-/// New key/profile inputs share the same private storage and retention port.
+/// Definition-keyed inputs use the existing private storage and retention port.
 pub fn append_property_node(
   output : OutputBuilder,
   definition_index : Int,
@@ -159,73 +143,6 @@ pub fn append_property_edge(
   ).map_err(issue => {
     output.open = false
     @lifecycle.cancel_retention_port(output.retention) |> ignore
-    Storage(issue)
-  })
-}
-
-///|
-pub fn observe_node(
-  output : OutputBuilder,
-  identity : @value.CheckedValue,
-  properties : Array[@value.CheckedValue],
-) -> Result[Unit, Issue] {
-  if !output.open {
-    return Err(Closed)
-  }
-  @storage.observe_node(output.graph, identity, properties).map_err(issue => {
-    output.open = false
-    @lifecycle.cancel_retention_port(output.retention) |> ignore
-    Storage(issue)
-  })
-}
-
-///|
-pub fn append_edge(
-  output : OutputBuilder,
-  source : @value.CheckedValue,
-  target : @value.CheckedValue,
-  label : @value.CheckedValue?,
-  properties : Array[@value.CheckedValue],
-) -> Result[Unit, Issue] {
-  if !output.open {
-    return Err(Closed)
-  }
-  @storage.append_edge(output.graph, source, target, label, properties).map_err(issue => {
-      output.open = false
-      @lifecycle.cancel_retention_port(output.retention) |> ignore
-      Storage(issue)
-    },
-  )
-}
-
-///|
-pub fn observe_edge(
-  output : OutputBuilder,
-  source : @value.CheckedValue,
-  target : @value.CheckedValue,
-  label : @value.CheckedValue?,
-  properties : Array[@value.CheckedValue],
-) -> Result[Unit, Issue] {
-  if !output.open {
-    return Err(Closed)
-  }
-  @storage.observe_edge(output.graph, source, target, label, properties).map_err(issue => {
-      output.open = false
-      @lifecycle.cancel_retention_port(output.retention) |> ignore
-      Storage(issue)
-    },
-  )
-}
-
-///|
-pub fn contains_declared_node(
-  output : OutputBuilder,
-  identity : @value.CheckedValue,
-) -> Result[Bool, Issue] {
-  if !output.open {
-    return Err(Closed)
-  }
-  @storage.contains_declared_node(output.graph, identity).map_err(issue => {
     Storage(issue)
   })
 }

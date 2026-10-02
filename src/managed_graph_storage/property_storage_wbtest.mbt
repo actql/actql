@@ -318,16 +318,9 @@ test "keyed graph limits and cancellation do not hand off partial graph material
 }
 
 ///|
-test "new keyed input is not accepted by legacy builder methods or converse" {
-  let builder = prepare(property_fixture(), DeclaredNodes, property_limits()).unwrap()
-  assert_eq(append_node(builder, number(1), []), Err(WrongProfile))
-  assert_true(cancel(builder))
+test "opaque Graph knowledge cannot allocate keyed material" {
   assert_true(
     prepare(@carrier.unknown_carrier(GraphKind), DeclaredNodes, limits())
     is Err(WrongCarrier),
-  )
-  assert_true(
-    prepare(property_fixture(), DerivedEndpoints, property_limits())
-    is Err(WrongMode),
   )
 }

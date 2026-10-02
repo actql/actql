@@ -1,7 +1,6 @@
 ///|
 pub(all) enum Mode {
   DeclaredNodes
-  DerivedEndpoints
 } derive(Eq, Debug)
 
 ///|
@@ -130,9 +129,6 @@ pub fn prepare(
     return Err(InvalidLimits)
   }
   guard contract is @carrier.GraphValue(graph) else { return Err(WrongCarrier) }
-  if mode == DerivedEndpoints {
-    return Err(WrongMode)
-  }
   Ok({
     graph,
     mode,
@@ -287,16 +283,6 @@ fn edge_slots(properties : Int, label : Bool) -> Int {
 }
 
 ///|
-pub fn append_node(
-  builder : Builder,
-  _identity : @value.CheckedValue,
-  _properties : Array[@value.CheckedValue],
-) -> Result[Unit, Issue] {
-  // Retired tuple input is an explicit refusal, never a second builder.
-  fail(builder, WrongProfile)
-}
-
-///|
 fn append_node_record(
   builder : Builder,
   identity : @value.CheckedValue,
@@ -344,50 +330,6 @@ fn append_node_record(
 }
 
 ///|
-/// Refuse the retired tuple structural-fold entry; it cannot mutate a current
-/// definition-keyed builder or manufacture a duplicate occurrence.
-pub fn observe_node(
-  builder : Builder,
-  _identity : @value.CheckedValue,
-  _properties : Array[@value.CheckedValue],
-) -> Result[Unit, Issue] {
-  fail(builder, WrongProfile)
-}
-
-///|
-
-///|
-/// Refuse definition-free endpoint lookup without changing builder accounting.
-pub fn contains_declared_node(
-  _builder : Builder,
-  _identity : @value.CheckedValue,
-) -> Result[Bool, Issue] {
-  Err(WrongProfile)
-}
-
-///|
-pub fn append_edge(
-  builder : Builder,
-  _source : @value.CheckedValue,
-  _target : @value.CheckedValue,
-  _label : @value.CheckedValue?,
-  _properties : Array[@value.CheckedValue],
-) -> Result[Unit, Issue] {
-  fail(builder, WrongProfile)
-}
-
-///|
-/// Refuse endpoint-tuple occurrence accounting. Independent edge identity is
-/// required by the current constructor, and no old fold can synthesize it.
-pub fn observe_edge(
-  builder : Builder,
-  _source : @value.CheckedValue,
-  _target : @value.CheckedValue,
-  _label : @value.CheckedValue?,
-  _properties : Array[@value.CheckedValue],
-) -> Result[Unit, Issue] {
-  fail(builder, WrongProfile)
-}
 
 ///|
 pub fn finish(builder : Builder) -> Result[Storage, Issue] {
