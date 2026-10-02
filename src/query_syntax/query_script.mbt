@@ -4,6 +4,7 @@
 pub(all) enum DataExpression {
   RelationQuery(Query)
   PropertyGraph(PropertyGraphConstructor)
+  NamedGraphCall(SgaCall)
 }
 
 ///|
@@ -93,6 +94,8 @@ pub fn parse_query_script(
       parser.symbol(61)
       let value = if parser.has("PROPERTY") {
         DataExpression::PropertyGraph(parser.property_graph())
+      } else if sga_call_head(parser.peek()) {
+        DataExpression::NamedGraphCall(parser.sga_call())
       } else {
         // Use the same query-expression parser and original token stream.
         // A retained declaration is not an externally exported Result.

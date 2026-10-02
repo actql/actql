@@ -49,6 +49,44 @@ fn sga_operation(name : String) -> Bool {
 }
 
 ///|
+fn sga_call_head(token : Token) -> Bool {
+  match token.value {
+    Word(name) => sga_operation(ascii_upper(name).to_lower())
+    _ => false
+  }
+}
+
+///|
+fn copy_sga_argument(argument : SgaArgument) -> SgaArgument {
+  match argument {
+    ObjectValue(fields) =>
+      ObjectValue(fields.map(field => (field.0, copy_sga_argument(field.1))))
+    ListValue(items) => ListValue(items.map(copy_sga_argument))
+    other => other
+  }
+}
+
+///|
+fn copy_sga_call(call : SgaCall) -> SgaCall {
+  {
+    ..call,
+    arguments: call.arguments.map(field => (field.0, copy_sga_argument(field.1))),
+  }
+}
+
+///|
+/// Consume a lowered Graph prefix exactly once. Relational compilation cannot
+/// silently ignore a Graph call; the caller must first emit every prefix step.
+pub fn after_graph_calls(query : Query) -> Query {
+  let mut count = 0
+  while count < query.operations.length() &&
+        query.operations[count] is GraphCall(_) {
+    count += 1
+  }
+  { ..query, operations: query.operations[count:].to_owned(), }
+}
+
+///|
 // A role comes from the existing logical operation contract. For example,
 // reach.start.from is a Relation producer, while reach.start is an ID value.
 fn sga_producer_argument(operation : String, path : Array[String]) -> Bool {
@@ -207,7 +245,7 @@ fn QueryParser::sga_call(self : QueryParser) -> SgaCall raise QueryAbort {
 ///|
 /// Parse one adopted named call using the same bounded token and query parser.
 /// This syntax entry does not admit a Program or authorize/execute a provider.
-/// Public script routing remains unavailable until its Graph consumer is wired.
+/// Public script lowering and common consumer support are separate obligations.
 pub fn parse_sga_call(
   text : String,
   limits : QueryLimits,

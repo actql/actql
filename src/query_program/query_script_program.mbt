@@ -152,6 +152,24 @@ pub fn compile_query_script(
       reserved.push(output)
       match declaration.value {
         RelationQuery(query) => {
+          let graph = script_graph_input(query, graphs)
+          if graph is Some(graph) {
+            let bound = lower_script_graph_calls(
+              construction, query, graph, steps, reserved,
+            )
+            if @query.operation_count(@query.after_graph_calls(query)) != 0 {
+              raise Abort(UnsupportedGraph)
+            }
+            graphs = graphs.filter(graph => {
+              !same_name(graph.name, declaration.name)
+            })
+            graphs.push({ ..bound, name: declaration.name, })
+            known = known.filter(input => {
+              !(input.relation.length() == 1 &&
+              same_name(input.relation[0], declaration.name))
+            })
+            continue
+          }
           let bound = lower_script_relation(
             construction, query, known, context, limits, steps, reserved, output,
           )
@@ -185,6 +203,10 @@ pub fn compile_query_script(
             same_name(input.relation[0], declaration.name))
           })
         }
+        NamedGraphCall(_) =>
+          // Explicit Graph-list construction has no adapted output contract
+          // yet. Never add the current Graph or reinterpret it as a Relation.
+          raise Abort(UnsupportedGraph)
       }
     }
     let retained : Array[RetainedResult] = []

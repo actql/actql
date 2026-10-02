@@ -1397,6 +1397,7 @@ fn compile_steps(
       first = false
     }
     match operation {
+      GraphCall(_) => raise Abort(UnsupportedGraph)
       RetainResult(name) => {
         guard retained is Some(retained) else { raise Abort(UnsupportedResult) }
         if requires_graph_projection {

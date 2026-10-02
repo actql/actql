@@ -114,9 +114,13 @@ fn lower_script_keyed_graph_query(
   }
   let relation = @query.relation(query)
   guard relation.length() == 1 else { raise Abort(UnknownRelation) }
-  let matches = graphs.filter(graph => same_name(graph.name, relation[0]))
-  guard matches.length() == 1 else { raise Abort(UnknownRelation) }
-  let graph = matches[0]
+  guard script_graph_input(query, graphs) is Some(input_graph) else {
+    raise Abort(UnknownRelation)
+  }
+  let graph = lower_script_graph_calls(
+    construction, query, input_graph, steps, reserved,
+  )
+  let query = @query.after_graph_calls(query)
   let mut projected = false
   for index in 0..<@query.operation_count(query) {
     if @query.operation_at(query, index) is Some(Select(_, _)) {

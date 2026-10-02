@@ -8,6 +8,8 @@ import {
 }
 
 // Values
+pub fn after_graph_calls(Query) -> Query
+
 pub fn cte_at(Query, Int) -> CtePart?
 
 pub fn cte_count(Query) -> Int
@@ -145,6 +147,7 @@ pub(all) struct DataDeclaration {
 pub(all) enum DataExpression {
   RelationQuery(Query)
   PropertyGraph(PropertyGraphConstructor)
+  NamedGraphCall(SgaCall)
 }
 
 pub(all) struct Diagnostic {
@@ -375,6 +378,7 @@ pub(all) struct QueryLimits {
 }
 
 pub(all) enum QueryOperation {
+  GraphCall(SgaCall)
   Infer(InferClause)
   Nearest(NearestClause)
   RetainResult(NamePart)

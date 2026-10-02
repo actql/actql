@@ -63,6 +63,7 @@ pub(all) struct SortTerm {
 
 ///|
 pub(all) enum QueryOperation {
+  GraphCall(SgaCall)
   Infer(InferClause)
   Nearest(NearestClause)
   RetainResult(NamePart)
@@ -333,6 +334,7 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
     return None
   }
   match query.operations[index] {
+    GraphCall(call) => Some(GraphCall(copy_sga_call(call)))
     Nearest(clause) =>
       Some(
         Nearest({
@@ -1356,7 +1358,15 @@ fn QueryParser::pipe_tail(
     }
     ignore(self.advance())
     self.node()
-    if self.has("MATCH") {
+    if sga_call_head(self.peek()) {
+      if graph is Some(current) && current.pattern is Some(_) {
+        raise QueryAbort(
+          "SGA call requires a Graph input before MATCH",
+          self.peek().start,
+        )
+      }
+      operations.push(GraphCall(self.sga_call()))
+    } else if self.has("MATCH") {
       match graph {
         Some(current) if current.pattern is None => {
           let pattern = self.graph_match()

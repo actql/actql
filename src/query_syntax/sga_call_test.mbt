@@ -178,3 +178,51 @@ test "SGA parser shares work node depth and original source position limits" {
     )
   }
 }
+
+///|
+test "SGA query and DATA composition share their original token stream" {
+  let script = parse_query_script(
+    "DATA averaged = mean_graphs(with: [first, second]); DATA normalized = FROM averaged |> normalize_graph(); FROM GRAPH normalized |> normalize_graph() |> MATCH WALK (a:Node) |> SELECT a.id",
+    query_limits(),
+  ).unwrap()
+  assert_true(
+    data_declaration_at(script, 0).unwrap().value is NamedGraphCall(_),
+  )
+  guard data_declaration_at(script, 1).unwrap().value is RelationQuery(body) else {
+    fail("expected a query over a retained Graph producer")
+  }
+  assert_true(operation_at(body, 0) is Some(GraphCall(_)))
+  assert_eq(operation_count(after_graph_calls(body)), 0)
+  let terminal = script_query(script)
+  assert_true(operation_at(terminal, 0) is Some(GraphCall(_)))
+  assert_true(
+    operation_at(after_graph_calls(terminal), 0) is Some(Select(_, _)),
+  )
+  assert_true(graph_query(after_graph_calls(terminal)) is Some(_))
+}
+
+///|
+test "SGA call accessors preserve parsed nested arguments after caller mutation" {
+  let query = parse_query(
+    "FROM first |> mean_graphs(with: [first, second])",
+    query_limits(),
+  ).unwrap()
+  guard operation_at(query, 0) is Some(GraphCall(call)) &&
+    call.arguments[0].1 is ListValue(items) else {
+    fail("expected a Graph list")
+  }
+  items.clear()
+  call.arguments.clear()
+  guard operation_at(query, 0) is Some(GraphCall(original)) &&
+    original.arguments[0].1 is ListValue(retained) else {
+    fail("expected retained original arguments")
+  }
+  assert_eq(retained.length(), 2)
+  assert_true(
+    parse_query(
+      "FROM GRAPH g |> MATCH WALK (a) |> normalize_graph()",
+      query_limits(),
+    )
+    is Err(_),
+  )
+}

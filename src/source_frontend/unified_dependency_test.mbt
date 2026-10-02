@@ -34,8 +34,28 @@ test "unified dependency checkpoint has no retired constructor fallback" {
   for
     source in [
       "DATA g = graph(nodes: n); FROM GRAPH g |> MATCH WALK (a) |> SELECT a.id",
-      "DATA g = OP graph {}; FROM GRAPH g |> MATCH WALK (a) |> SELECT a.id", "DATA same = FROM g |> graphs_equal(with: g);",
+      "DATA g = OP graph {}; FROM GRAPH g |> MATCH WALK (a) |> SELECT a.id",
     ] {
     assert_true(lower(source, Text, Some(context)) is Err(QuerySyntax(_)))
+  }
+}
+
+///|
+test "unified dependency refuses SGA Graph source without legacy dispatch" {
+  let context = { ..test_context(), inputs: [], captured_stage: None, }
+  let prefix = "DATA n = SELECT 1 AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node PROPERTIES (id))); "
+  for
+    source in [
+      prefix +
+      "FROM GRAPH g |> normalize_graph() |> MATCH WALK (a:Node) |> SELECT a.id",
+      prefix +
+      "DATA same = FROM g |> graphs_equal(with: g); FROM same |> SELECT equal",
+      prefix +
+      "DATA combined = mean_graphs(with: [g, g]); FROM GRAPH combined |> MATCH WALK (a:Node) |> SELECT a.id",
+    ] {
+    assert_true(
+      lower(source, Text, Some(context))
+      is Err(QueryLowering(@query.UnsupportedGraph)),
+    )
   }
 }
