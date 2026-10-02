@@ -6,8 +6,8 @@
     "digest": "48bdedbe48ab335694a725defa7fe9e7f07cdf776e4aa8f233b3935585a352c1",
     "foundationRevision": "fe0dbb424792ba7ccd4ae5517a74530b56a15f3c"
   },
-  "revision": "6a54b456075538cc5562ca64e56b118027210449",
-  "proposal": "https://github.com/actql/actql/tree/6a54b456075538cc5562ca64e56b118027210449/proofs/relation-pipeline/capacity",
+  "revision": "6f92df536235819e17afe411f4ded08a00b3c813",
+  "proposal": "https://github.com/actql/actql/tree/6f92df536235819e17afe411f4ded08a00b3c813/proofs/relation-pipeline/capacity",
   "meaning": "Separate structural capacity/custody validation foundation; the historical DISTINCT registration comparison is unchanged. Records Git provenance, not human approval or an unconditional allocation-byte bound.",
   "changedCommon": [
     {
@@ -19,8 +19,8 @@
     {
       "path": "proofs/relation-pipeline/harness.mbt",
       "beforeDigest": "bfd22317b2827e80542f8abd5c773a6150a0017b488c496148fbc452ab811cf1",
-      "afterDigest": "e9b8bb50189ad9005072539cf4404e5e54a5ff4244ec9371b1fc78a6155fec93",
-      "reason": "Bind declared allowances to the exact started provider; reject early cleanup and inspect accepted output after repeated cleanup without claiming physical deallocation."
+      "afterDigest": "bd0d8ae904ceaf3042ec68775c4b5c34e565ab66b7470340ef690183ae290645",
+      "reason": "Reject early cleanup and inspect accepted output after repeated cleanup without claiming physical deallocation; capacity observations stay in proof-only source overlays."
     },
     {
       "path": "proofs/relation-pipeline/history.mjs",
