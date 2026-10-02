@@ -54,6 +54,8 @@ pub fn parse_query_script(String, QueryLimits, source_path? : String) -> Result[
 
 pub fn parse_relation_path(String, LexicalLimits, source_path? : String) -> Result[Array[NamePart], Diagnostic]
 
+pub fn parse_sga_call(String, QueryLimits, source_path? : String) -> Result[SgaCall, Diagnostic]
+
 pub fn query_document(Query) -> @frontend_source_map.Document
 
 pub fn query_source(Query) -> Tokens
@@ -404,6 +406,24 @@ pub(all) struct SetPart {
   by_name : Bool
   right : Query
 }
+
+pub(all) enum SgaArgument {
+  Producer(NamePart)
+  TextValue(String)
+  NumberValue(String)
+  BooleanValue(Bool)
+  NullValue
+  ParameterValue(String)
+  ObjectValue(Array[(String, SgaArgument)])
+  ListValue(Array[SgaArgument])
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SgaCall {
+  operation : String
+  arguments : Array[(String, SgaArgument)]
+  start : Int
+  end : Int
+} derive(Eq, @debug.Debug)
 
 pub(all) struct SortTerm {
   expression : Expression
