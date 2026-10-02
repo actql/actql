@@ -6,9 +6,9 @@
     "digest": "48bdedbe48ab335694a725defa7fe9e7f07cdf776e4aa8f233b3935585a352c1",
     "foundationRevision": "fe0dbb424792ba7ccd4ae5517a74530b56a15f3c"
   },
-  "revision": "6f92df536235819e17afe411f4ded08a00b3c813",
-  "proposal": "https://github.com/actql/actql/tree/6f92df536235819e17afe411f4ded08a00b3c813/proofs/relation-pipeline/capacity",
-  "meaning": "Separate structural capacity/custody validation foundation; the historical DISTINCT registration comparison is unchanged. Records Git provenance, not human approval or an unconditional allocation-byte bound.",
+  "revision": "8f7e3db0e499dc01cc7ef9fd982364349af1f8d8",
+  "proposal": "https://github.com/actql/actql/pull/175",
+  "meaning": "Retains the integrated common foundation and conditional structural capacity/custody validation. Historical comparison evidence is unchanged; this record supplies Git provenance, not human approval or an unconditional allocation-byte bound.",
   "changedCommon": [
     {
       "path": ".github/workflows/ci.yml",
