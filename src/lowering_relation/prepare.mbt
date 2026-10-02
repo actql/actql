@@ -63,7 +63,6 @@ pub enum Payload {
   NestRows(@nest.CheckedNest)
   BasicGraph(@graph.CheckedGraph)
   GraphMatchRows(@graph.CheckedMatch)
-  GraphSubgraphValue(@graph.CheckedSubgraph)
   GraphTraverseRows(@graph.CheckedTraverse)
   PropertyGraphConstructionValue(@graph.CheckedPropertyConstruction)
   VectorValue(@vector.CheckedVector)
@@ -223,7 +222,6 @@ pub fn operation(value : PreparedNode) -> String {
         @graph.Nodes => "SGA.match_nodes"
         @graph.Edges => "SGA.match_edges"
       }
-    GraphSubgraphValue(_) => "SGA.subgraph"
     GraphTraverseRows(_) => "SGA.traverse"
     PropertyGraphConstructionValue(_) => "BRIDGE.rows.to_property_graph"
     VectorValue(value) =>
@@ -304,7 +302,6 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
         | @graph.GraphBounds => Some(BasicGraph(value))
       }
     GraphMatch(value) => Some(GraphMatchRows(value))
-    Subgraph(checked~, ..) => Some(GraphSubgraphValue(checked))
     Traverse(checked~, ..) => Some(GraphTraverseRows(checked))
     Pool(value) => Some(PoolValue(value))
     Nearest(checked~, ..) => Some(NearestValue(checked))
@@ -439,16 +436,6 @@ pub fn prepare(
             @graph.Edges => "match_edges"
           },
           1,
-        )
-      GraphSubgraphValue(checked) =>
-        (
-          "subgraph",
-          if @graph.selector_form(@graph.subgraph_nodes(checked))
-            is @graph.RelationIds(..) {
-            2
-          } else {
-            1
-          },
         )
       GraphTraverseRows(checked) =>
         (
@@ -657,7 +644,6 @@ pub fn prepare(
       NestRows(_) => None
       BasicGraph(_) => None
       GraphMatchRows(_) => None
-      GraphSubgraphValue(_) => None
       GraphTraverseRows(_) => None
       PropertyGraphConstructionValue(_) => None
       VectorValue(_) => None

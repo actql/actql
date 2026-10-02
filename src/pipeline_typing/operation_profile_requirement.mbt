@@ -27,16 +27,6 @@ pub fn operation_profile_requirement(
         | CanonicalMatchOrder
         | ResolveMatchResources => None
       }
-    SubgraphRequirement(o) =>
-      match o {
-        ResolveSubgraphProfile => Some(SGA)
-        AdmitSubgraphInput
-        | InduceSelectedEndpoints
-        | FilterInducedEdges
-        | PreserveSubgraphIdentitiesAndProperties
-        | PreserveSubgraphPolicyAndScope
-        | ResolveSubgraphResources => None
-      }
     TraverseRequirement(o) =>
       match o {
         ResolveTraversalProfile => Some(SGA)

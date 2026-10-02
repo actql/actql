@@ -99,7 +99,6 @@ pub fn completeness_scope(v : CompletenessRequirement) -> CompletenessScope {
         | Projection(_)
         | Graph(_)
         | GraphMatch(_)
-        | Subgraph(..)
         | Traverse(..)
         | PropertyGraphConstruction(..)
         | Vector(_)

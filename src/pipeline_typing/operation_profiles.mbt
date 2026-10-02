@@ -79,7 +79,7 @@ fn primary_operation_profile(operation : CheckedOperation) -> OperationProfile? 
           Vectors => VecA
           NodeRows | EdgeRows => SGA
         }
-      Graph(_) | Subgraph(..) => SGA
+      Graph(_) => SGA
       PropertyGraphConstruction(..) => PropertyGraph
       GraphMatch(checked) =>
         if @graph.match_property_definition(checked) is Some(_) {

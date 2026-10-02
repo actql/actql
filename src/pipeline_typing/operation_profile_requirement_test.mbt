@@ -27,14 +27,6 @@ test "profile obligations map to their declared module without discharging other
     None,
   )
   assert_eq(
-    operation_profile_requirement(SubgraphRequirement(ResolveSubgraphProfile)),
-    Some(SGA),
-  )
-  assert_eq(
-    operation_profile_requirement(SubgraphRequirement(AdmitSubgraphInput)),
-    None,
-  )
-  assert_eq(
     operation_profile_requirement(TraverseRequirement(ResolveTraversalProfile)),
     Some(SGA),
   )

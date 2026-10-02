@@ -174,7 +174,6 @@ pub fn operation_scalar_demand(
     | ValuesRequirement(_)
     | ProjectionRequirement(_)
     | MatchRequirement(_)
-    | SubgraphRequirement(_)
     | SelectorRequirement(_)
     | ConstructionRequirement(_)
     | VectorRequirement(_)

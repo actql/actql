@@ -190,10 +190,6 @@ fn check_resolution_index(
         execution += 1
         assert_true(physical_equal(check.site, site))
       }
-      Execution(SubgraphExecution(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
       Execution(VectorExecution(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))

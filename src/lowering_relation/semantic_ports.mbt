@@ -88,7 +88,6 @@ pub fn node_accepts_managed_carrier_view(
     "SGA.apply_delta" => index == 0
     "TEA.join.asof" => index == 0
     "SGA.reachable" => index == 0
-    "SGA.subgraph" => index == 0
     "SGA.traverse" => index == 0
     "SGA.match_nodes" | "SGA.match_edges" => index == 0
     "VEC.knn_join" => true
@@ -118,7 +117,6 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
       operation(node) == "SGA.bounds_check" ||
       operation(node) == "SGA.degree_metrics" ||
       operation(node) == "SGA.components"
-    GraphSubgraphValue(_) => operation(node) == "SGA.subgraph"
     VectorValue(_) =>
       operation(node) == "BRIDGE.rows.to_vectors" ||
       operation(node) == "VEC.normalize_l2" ||
@@ -239,7 +237,6 @@ pub fn node_prefers_fused_without_relation_consumer(
       operation(node) == "SGA.bounds_check" ||
       operation(node) == "SGA.degree_metrics" ||
       operation(node) == "SGA.components"
-    GraphSubgraphValue(_) => operation(node) == "SGA.subgraph"
     GraphMatchRows(_) =>
       operation(node) == "SGA.match_nodes" ||
       operation(node) == "SGA.match_edges"
@@ -283,7 +280,6 @@ pub fn node_accepts_managed_relation_view(
   if node.input_targets.length() == 2 && index >= 0 && index < 2 {
     return match node.payload {
       GraphTraverseRows(_) => index == 1 && operation(node) == "SGA.traverse"
-      GraphSubgraphValue(_) => index == 1 && operation(node) == "SGA.subgraph"
       InnerJoin(_)
       | CrossJoinRows(_)
       | AppendRows(_)

@@ -34,7 +34,7 @@ fn operation_count_contract(
     | @pipeline.IntervalJoin(..)
     | @pipeline.AsOfJoin(..) => Join
     @pipeline.Window(_) => Window
-    @pipeline.Graph(_) | @pipeline.Subgraph(..) => Graph
+    @pipeline.Graph(_) => Graph
     @pipeline.PropertyGraphConstruction(..) => PropertyGraph
     @pipeline.GraphMatch(checked) =>
       if @graph.match_property_definition(checked) is Some(_) {

@@ -873,31 +873,44 @@ fn check_impl(
           fail(operation_body, Graph(@graph.WrongCarrier(@carrier.kind(other))))
       }
     }
-    if key == "subgraph" || key == "traverse" {
+    if key == "subgraph" {
       let root = match
-        @decode.closed_object(
-          operation_body,
-          if key == "subgraph" {
-            ["nodes", "edges"]
-          } else {
-            [
-              "start", "hops", "direction", "edge_types", "min_hops", "max_hops",
-              "emit", "max_output_rows", "path_mode",
-            ]
-          },
-        ) {
+        @decode.closed_object(operation_body, ["nodes", "edges"]) {
+        Ok(value) => value
+        Err(_) => fail(operation_body, InvalidBody)
+      }
+      let at = match @decode.required(root, "nodes") {
+        Ok(value) => value
+        Err(_) => fail(operation_body, InvalidBody)
+      }
+      let selector = match
+        @decode.closed_object(at, ["ids", "from", "id", "where"]) {
+        Ok(value) => value
+        Err(_) => fail(at, InvalidBody)
+      }
+      if @decode.lookup(selector, "from") is Some(reference) {
+        ignore(resolve_target(b, reference, names))
+      }
+      // No induced-subgraph implementation is connected to the current contract.
+      match carrier(input, inputs, steps) {
+        @carrier.GraphValue(_) =>
+          fail(operation_body, Graph(@graph.UnsupportedGraphOperation))
+        @carrier.Opaque(GraphKind) =>
+          fail(operation_body, Graph(@graph.IncompleteGraph))
+        other =>
+          fail(operation_body, Graph(@graph.WrongCarrier(@carrier.kind(other))))
+      }
+    }
+    if key == "traverse" {
+      let root = match
+        @decode.closed_object(operation_body, [
+          "start", "hops", "direction", "edge_types", "min_hops", "max_hops", "emit",
+          "max_output_rows", "path_mode",
+        ]) {
         Ok(o) => o
         Err(_) => fail(operation_body, InvalidBody)
       }
-      let at = match
-        @decode.required(
-          root,
-          if key == "subgraph" {
-            "nodes"
-          } else {
-            "start"
-          },
-        ) {
+      let at = match @decode.required(root, "start") {
         Ok(c) => c
         Err(_) => fail(operation_body, InvalidBody)
       }
@@ -916,35 +929,19 @@ fn check_impl(
         max_text_bytes: b.text,
         max_tokens: b.tokens,
       }
-      let checked = if key == "subgraph" {
-        @graph.check_subgraph(
-          operation_body,
-          carrier(input, inputs, steps),
-          selector.map(t => carrier(t, inputs, steps)),
-          parameters,
-          caps,
-        ).map(c => {
-          (
-            Subgraph(selector~, checked=c),
-            @graph.subgraph_output(c),
-            @graph.subgraph_usage(c),
-          )
-        })
-      } else {
-        @graph.check_traverse(
-          operation_body,
-          carrier(input, inputs, steps),
-          selector.map(t => carrier(t, inputs, steps)),
-          parameters,
-          caps,
-        ).map(c => {
-          (
-            Traverse(selector~, checked=c),
-            @graph.traverse_output(c),
-            @graph.traverse_usage(c),
-          )
-        })
-      }
+      let checked = @graph.check_traverse(
+        operation_body,
+        carrier(input, inputs, steps),
+        selector.map(t => carrier(t, inputs, steps)),
+        parameters,
+        caps,
+      ).map(c => {
+        (
+          Traverse(selector~, checked=c),
+          @graph.traverse_output(c),
+          @graph.traverse_usage(c),
+        )
+      })
       let (operation, output, used) = match checked {
         Ok(c) => c
         Err(e) => {
@@ -1835,7 +1832,7 @@ fn check_impl(
         Values(_) | TimeSeries(_) => []
         Calendar(_) | Pool(_) | Ranking(_) =>
           [{ role: Primary, target: input, }]
-        Subgraph(selector~, ..) | Traverse(selector~, ..) => {
+        Traverse(selector~, ..) => {
           let entries = [{ role: Primary, target: input, }]
           if selector is Some(t) {
             entries.push({ role: Right, target: t, })

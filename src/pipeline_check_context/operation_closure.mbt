@@ -59,7 +59,6 @@ pub fn close_program_operations(
           NestItems(v) => v.site
           NestExecution(v) => v.site
           GraphSelectorExecution(v) => v.site
-          SubgraphExecution(v) => v.site
           GraphMatchExecution(v) => v.site
           VectorExecution(v) => v.site
           NearestExecution(v) => v.site

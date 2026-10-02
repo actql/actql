@@ -5,7 +5,6 @@ pub(all) enum OperationObligationScope {
   SequenceRows
   SequenceSemantics
   UnionFold(Int)
-  NodeSelector
   StartSelector
 } derive(Eq, Debug)
 
@@ -29,7 +28,6 @@ pub(all) enum OperationObligation {
   ProjectionRequirement(@projection.GraphObligation)
   GraphRequirement(@graph.Obligation)
   MatchRequirement(@graph.MatchObligation)
-  SubgraphRequirement(@graph.SubgraphObligation)
   TraverseRequirement(@graph.TraverseObligation)
   SelectorRequirement(@graph.SelectorObligation)
   ConstructionRequirement(@graph.ConstructionObligation)
@@ -60,7 +58,6 @@ priv enum ObligationOwner {
   ProjectionOwner(@projection.CheckedProjection)
   GraphOwner(@graph.CheckedGraph)
   MatchOwner(@graph.CheckedMatch)
-  SubgraphOwner(@graph.CheckedSubgraph)
   TraverseOwner(@graph.CheckedTraverse)
   SelectorOwner(@graph.CheckedSelector)
   PropertyConstructionOwner(@graph.CheckedPropertyConstruction)
@@ -106,7 +103,6 @@ pub fn operation_obligations_source(v : OperationObligations) -> @decode.Cursor 
     ProjectionOwner(c) => @projection.source(c)
     GraphOwner(c) => @graph.source(c)
     MatchOwner(c) => @graph.match_source(c)
-    SubgraphOwner(c) => @graph.subgraph_source(c)
     TraverseOwner(c) => @graph.traverse_source(c)
     SelectorOwner(c) => @graph.selector_source(c)
     PropertyConstructionOwner(c) => @graph.property_construction_source(c)
@@ -194,7 +190,6 @@ pub fn operation_obligations_count(v : OperationObligations) -> Int {
     ProjectionOwner(c) => @projection.graph_pending_count(c)
     GraphOwner(c) => @graph.pending_validation_count(c)
     MatchOwner(c) => @graph.match_pending_count(c)
-    SubgraphOwner(c) => @graph.subgraph_pending_count(c)
     TraverseOwner(c) => @graph.traverse_pending_count(c)
     SelectorOwner(c) => @graph.selector_pending_count(c)
     PropertyConstructionOwner(c) =>
@@ -254,8 +249,6 @@ pub fn operation_obligations_at(
       @graph.pending_validation_at(c, index).map(x => GraphRequirement(x))
     MatchOwner(c) =>
       @graph.match_pending_at(c, index).map(x => MatchRequirement(x))
-    SubgraphOwner(c) =>
-      @graph.subgraph_pending_at(c, index).map(x => SubgraphRequirement(x))
     TraverseOwner(c) =>
       @graph.traverse_pending_at(c, index).map(x => TraverseRequirement(x))
     SelectorOwner(c) =>
@@ -286,7 +279,7 @@ pub fn operation_obligation_group_count(operation : CheckedOperation) -> Int {
     // Acquisition closure and call-slot preflight belong to the model owner,
     // not the pure operation obligation inventory.
     Infer(_) => 0
-    Sequence(_) | Subgraph(..) | Traverse(..) => 2
+    Sequence(_) | Traverse(..) => 2
     Unary(_)
     | WindowGroup(_)
     | Join(checked=_, ..)
@@ -353,15 +346,6 @@ pub fn operation_obligation_group_at(
           { scope: SequenceRows, owner: SequenceRowsOwner(c), }
         } else {
           { scope: SequenceSemantics, owner: SequenceOwner(c), }
-        }
-      Subgraph(checked=c, ..) =>
-        if index == 0 {
-          { scope: Body, owner: SubgraphOwner(c), }
-        } else {
-          {
-            scope: NodeSelector,
-            owner: SelectorOwner(@graph.subgraph_nodes(c)),
-          }
         }
       Traverse(checked=c, ..) =>
         if index == 0 {

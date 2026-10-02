@@ -23,7 +23,6 @@ pub enum PreparedStep {
   NestStep(PreparedNestKernel)
   GraphBasicStep(PreparedGraphBasic)
   GraphMatchStep(PreparedGraphMatch)
-  GraphSubgraphStep(PreparedGraphSubgraph)
   GraphTraverseStep(PreparedGraphTraverse)
   PropertyGraphConstructionStep(PreparedPropertyGraphConstruction)
   VectorStep(PreparedVector)
@@ -59,7 +58,6 @@ pub(all) enum SequenceIssue {
   NestFailure(Int, NestIssue)
   GraphBasicFailure(Int, GraphBasicIssue)
   GraphMatchFailure(Int, GraphMatchIssue)
-  GraphSubgraphFailure(Int, GraphSubgraphIssue)
   GraphTraverseFailure(Int, GraphTraverseIssue)
   GraphConstructionFailure(Int, GraphConstructionIssue)
   VectorFailure(Int, VectorIssue)
@@ -285,23 +283,6 @@ fn prepare_sequence_count(
         names -= used_names
         expressions = remaining
         GraphMatchStep(prepared)
-      }
-      GraphSubgraphValue(_) => {
-        let (prepared, used_entries, used_names, remaining) = match
-          prepare_graph_subgraph_node(
-            owner,
-            i,
-            max_entries=bindings,
-            max_name_bytes=names,
-            expressions~,
-          ) {
-          Ok(value) => value
-          Err(issue) => return Err(GraphSubgraphFailure(i, issue))
-        }
-        bindings -= used_entries
-        names -= used_names
-        expressions = remaining
-        GraphSubgraphStep(prepared)
       }
       GraphTraverseRows(_) => {
         let (prepared, used_entries, used_names, remaining) = match
@@ -548,7 +529,6 @@ pub fn emit_sequence_step_range(
       NestStep(v) => emit_nest_kernel(v, out)
       GraphBasicStep(v) => emit_graph_basic_node(v, out)
       GraphMatchStep(v) => emit_graph_match_node(v, out)
-      GraphSubgraphStep(v) => emit_graph_subgraph_node(v, out)
       GraphTraverseStep(v) => emit_graph_traverse_node(v, out)
       PropertyGraphConstructionStep(v) =>
         emit_property_graph_construction_node(v, out)

@@ -67,7 +67,6 @@ pub fn operation_order_demand(v : OperationObligation) -> OperationOrderDemand? 
     | ProjectionRequirement(_)
     | GraphRequirement(_)
     | MatchRequirement(_)
-    | SubgraphRequirement(_)
     | TraverseRequirement(_)
     | SelectorRequirement(_)
     | ConstructionRequirement(_)

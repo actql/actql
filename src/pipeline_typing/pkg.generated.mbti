@@ -451,7 +451,6 @@ pub enum CheckedOperation {
   Projection(@carrier_projection.CheckedProjection)
   Graph(@graph_typing.CheckedGraph)
   GraphMatch(@graph_typing.CheckedMatch)
-  Subgraph(selector~ : Target?, checked~ : @graph_typing.CheckedSubgraph)
   Traverse(selector~ : Target?, checked~ : @graph_typing.CheckedTraverse)
   PropertyGraphConstruction(inputs~ : Array[Target], checked~ : @graph_typing.CheckedPropertyConstruction)
   Vector(@vector_typing.CheckedVector)
@@ -522,8 +521,6 @@ pub(all) enum ExpressionConsumer {
   AnalyticArgument(String)
   SequencePredicate(Int)
   GraphMatchPredicate
-  SubgraphNodes
-  SubgraphEdges
   TraverseStart
   TraverseEdges(Int)
   TraverseNodes(Int)
@@ -701,7 +698,6 @@ pub(all) enum OperationObligation {
   ProjectionRequirement(@carrier_projection.GraphObligation)
   GraphRequirement(@graph_typing.Obligation)
   MatchRequirement(@graph_typing.MatchObligation)
-  SubgraphRequirement(@graph_typing.SubgraphObligation)
   TraverseRequirement(@graph_typing.TraverseObligation)
   SelectorRequirement(@graph_typing.SelectorObligation)
   ConstructionRequirement(@graph_typing.ConstructionObligation)
@@ -718,7 +714,6 @@ pub(all) enum OperationObligationScope {
   SequenceRows
   SequenceSemantics
   UnionFold(Int)
-  NodeSelector
   StartSelector
 } derive(Eq, @debug.Debug)
 

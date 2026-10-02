@@ -483,20 +483,6 @@ fn lower_expression_measured(
         }
         (@graph.predicate_expression(predicate), references)
       }
-      GraphSubgraphValue(checked) => {
-        let predicate = match binding_index {
-          0 => @graph.selector_predicate(@graph.subgraph_nodes(checked))
-          1 => @graph.subgraph_edges(checked)
-          _ => None
-        }
-        guard predicate is Some(predicate) else {
-          expression_fail(step.source, MissingCheckedBinding)
-        }
-        guard graph_predicate_fields(predicate) is Some(references) else {
-          expression_fail(step.source, MissingResolvedField(""))
-        }
-        (@graph.predicate_expression(predicate), references)
-      }
       GraphTraverseRows(checked) => {
         let predicate = if binding_index == 0 {
           @graph.selector_predicate(@graph.traverse_start(checked))

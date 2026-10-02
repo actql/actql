@@ -1071,3 +1071,51 @@ external Source/Host fixtures, strict inventories and submitted-SHA public
 snapshot/fresh packed/CI acceptance remain open. The earlier aggregate Core
 diagnostic is not replaced by this narrow success, and public #164 is not yet
 adoptable.
+
+## Retired subgraph removal and current selector custody
+
+The retired subgraph checker, checked type, obligation owner, prepared kernel,
+emitter, resource closure and every lowering/driver arm are removed. The public
+authored operation retains closed-body and selector-reference checking and
+explicitly refuses the unconnected operation. Current Graph, incomplete Graph
+knowledge and wrong Carrier kinds have distinct diagnostics. The existing
+selector emitter is extracted unchanged into `lowering_relation/graph_selector.mbt`;
+current TRAIL keeps its existing checker and selector owner, not a second owner.
+
+The former formal selector/resource checks are migrated to current TRAIL with
+the independent typed N identity above. Duplicate literal identities and an
+independently wired Relation selector from definition-scoped MATCH are both
+positive cases. Three imported visits retain the exact original pipeline,
+Graph target, selector target, group, StartSelector scope, checked selector,
+before-input/before-output phases, rejection behavior and work/byte resources.
+Negative resource indexes remain rejected. The shared capacity fixture now
+accepts the actual traversal step so the MATCH-producing variant has an exact
+step-4 claim rather than borrowing the old step-3 occurrence. Its seven-step
+direct Program has an explicitly declared seven-step test budget; product
+limits are unchanged.
+
+A separate formal SourceView program checks publication custody: the original
+TRAIL operation and its Primary/Right edges remain retained, and the unused
+external Source lends no provenance to the VALUES definition. This is **not**
+a replacement for the old external Source-dependent constructor/publication
+case. That admitted producer-definition boundary remains open. Subgraph-only
+induced-edge/filter/materialization tests are withdrawn with their unsupported
+algorithm; definition-free node predicates are not relabelled as supported.
+
+The first new fixture runs exposed a missing required MATCH selector, a
+hard-coded capacity step and a six-step budget for a seven-step direct Program.
+Those fixture coordinates were corrected without relaxing product validation.
+A policy check incorrectly attempted to read a non-published producer port;
+it now checks a separate actually published direct Program and its original
+owner. All initial logs are retained under
+`/private/tmp/property-graph-subgraph-*-20261003.log`.
+
+The surrounding regressions pass 61/61 on JS and Wasm, with the 22 existing
+shared-fixture tests separately passing on each; native passes the combined
+83/83. Logs are `property-graph-subgraph-regression-{js-final,wasm,native}`
+and `property-graph-subgraph-fixture-{js,wasm}`, with the same date suffix.
+Four generated interfaces contain only intentional retired subgraph removals.
+
+Basic/components, homogeneous metadata/projection routes, external Source/Host
+guarantees, strict inventories and submitted-SHA public snapshot/fresh packed/CI
+acceptance remain open. Local narrow success is not the final #164 acceptance.

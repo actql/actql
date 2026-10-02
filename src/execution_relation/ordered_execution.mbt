@@ -76,7 +76,6 @@ fn prepare_ordered_budgets(
       | @lower.NestStep(_) => ()
       @lower.GraphBasicStep(_) => return Err(InputSet)
       @lower.GraphMatchStep(_) => return Err(InputSet)
-      @lower.GraphSubgraphStep(_) => return Err(InputSet)
       @lower.GraphTraverseStep(_) => return Err(InputSet)
       @lower.PropertyGraphConstructionStep(_) => return Err(InputSet)
       @lower.VectorStep(_) => return Err(InputSet)

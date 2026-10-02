@@ -1045,10 +1045,6 @@ pub fn stage_results(StageContexts) -> @stage_results.Checked
 
 pub fn stage_usage(StageContexts) -> (Int, Int)
 
-pub fn subgraph_resource_at(SubgraphCheck, Int) -> GraphSelectionResource?
-
-pub fn subgraph_resource_count(SubgraphCheck) -> Int
-
 pub fn text_bound_at(TextBoundsChecks, Int) -> TextBoundResolution?
 
 pub fn text_bound_count(TextBoundsChecks) -> Int
@@ -1668,8 +1664,6 @@ pub struct GraphResourcesCheck {
 pub(all) enum GraphSelectionResource {
   SelectorWork
   SelectorBytes
-  MaterializationWork
-  MaterializationBytes
 } derive(Eq, @debug.Debug)
 
 pub struct GraphSelectorCheck {
@@ -2205,7 +2199,6 @@ pub(all) enum OperationExecutionCheck {
   NestItems(NestItemLimit)
   NestExecution(NestExecutionCheck)
   GraphSelectorExecution(GraphSelectorCheck)
-  SubgraphExecution(SubgraphCheck)
   GraphMatchExecution(GraphMatchCheck)
   VectorExecution(VectorCheck)
   NearestExecution(NearestCheck)
@@ -3236,25 +3229,6 @@ pub enum StatisticalLaw {
   PopulationStandardDeviation
   SampleStandardDeviation
 }
-
-pub struct SubgraphCheck {
-  site : OperationRequirementSite
-  step : @pipeline_typing.CheckedStep
-  input : @pipeline_typing.Target
-  selector_relation : @pipeline_typing.Target?
-  operation : @graph_typing.CheckedSubgraph
-  rule : SubgraphRule
-  policy : @capacity_policy.Policy
-}
-
-pub(all) enum SubgraphRule {
-  AdmitInputGraph
-  InduceBothEndpoints
-  FilterInducedEdges
-  PreserveIdentitiesAndProperties
-  PreservePolicyAndScope
-  RequireMaterializationResources
-} derive(Eq, @debug.Debug)
 
 type TextBoundResolution
 

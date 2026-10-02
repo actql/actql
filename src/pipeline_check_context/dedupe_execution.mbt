@@ -15,7 +15,6 @@ pub(all) enum OperationExecutionCheck {
   NestItems(NestItemLimit)
   NestExecution(NestExecutionCheck)
   GraphSelectorExecution(GraphSelectorCheck)
-  SubgraphExecution(SubgraphCheck)
   GraphMatchExecution(GraphMatchCheck)
   VectorExecution(VectorCheck)
   NearestExecution(NearestCheck)
@@ -93,15 +92,6 @@ pub fn operation_execution_phase(
           BeforeOperationInputUse
         DeduplicateIdentities | RequireMembership | EvaluateNodePredicate =>
           BeforeOperationOutput
-      }
-    SubgraphExecution(v) =>
-      match v.rule {
-        AdmitInputGraph | RequireMaterializationResources =>
-          BeforeOperationInputUse
-        InduceBothEndpoints
-        | FilterInducedEdges
-        | PreserveIdentitiesAndProperties
-        | PreservePolicyAndScope => BeforeOperationOutput
       }
     GraphMatchExecution(v) =>
       match v.rule {
@@ -312,7 +302,6 @@ pub fn operation_execution_failure(
     NestItems(_) => RejectOperationOutput
     NestExecution(_) => RejectOperationOutput
     GraphSelectorExecution(_)
-    | SubgraphExecution(_)
     | GraphMatchExecution(_)
     | VectorExecution(_)
     | NearestExecution(_)

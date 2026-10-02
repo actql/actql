@@ -210,7 +210,6 @@ pub fn collect_parameter_slots(
         | Set(..)
         | Projection(_)
         | GraphMatch(_)
-        | Subgraph(..)
         | PropertyGraphConstruction(..)
         | Nearest(..)
         | Pool(_)

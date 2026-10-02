@@ -443,11 +443,6 @@ fn derive_row_counts(
         } else {
           None
         }
-      Subgraph(_) =>
-        graph_input.map(v => {
-          nodes: reduce_count(v.nodes),
-          edges: reduce_count(v.edges),
-        })
       _ => None
     }
     let next = match step.operation {

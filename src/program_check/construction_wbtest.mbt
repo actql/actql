@@ -46,6 +46,7 @@ fn local_construction_fixture(
   components_capacity_rows? : Int? = None,
   traversal_capacity? : Bool = false,
   traversal_kind? : String = "traverse",
+  traversal_step? : Int = 3,
   traversal_proofs? : Array[@wire.ProgramProofClaim] = [],
   graph_output_limit? : Int? = None,
   graph_input_limit? : Int? = None,
@@ -381,6 +382,7 @@ fn local_construction_fixture(
       local_traversal_capacity_fixture(
         environment,
         operation_name=traversal_kind,
+        step=traversal_step,
         proofs=traversal_proofs,
       ) catch {
         _ => abort("invalid traversal test material")
@@ -398,7 +400,9 @@ fn local_construction_fixture(
         traversal_sources is Some(sources) {
         @context.CapacityMaterial::{
           sources,
-          consumers: [@capacity.Traversal(step=3, paths=0, output=1)],
+          consumers: [
+            @capacity.Traversal(step=traversal_step, paths=0, output=1),
+          ],
         }
       } else if (stage == 0 || (stage == 1 && visit > 0)) &&
         components_sources is Some(sources) {

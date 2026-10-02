@@ -340,7 +340,6 @@ fn prepare_kernel_measured(
     | NestRows(_)
     | BasicGraph(_)
     | GraphMatchRows(_)
-    | GraphSubgraphValue(_)
     | GraphTraverseRows(_)
     | PropertyGraphConstructionValue(_)
     | VectorValue(_)

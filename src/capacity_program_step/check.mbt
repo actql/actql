@@ -367,7 +367,6 @@ fn forwarded_input(
     return match step.operation {
       @pipeline.Graph(op) if @graph.operation(op) == @graph.NormalizeGraph =>
         step.input
-      @pipeline.Subgraph(..) => step.input
       _ => None
     }
   }

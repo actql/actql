@@ -9,8 +9,6 @@ pub(all) enum ExpressionConsumer {
   AnalyticArgument(String)
   SequencePredicate(Int)
   GraphMatchPredicate
-  SubgraphNodes
-  SubgraphEdges
   TraverseStart
   TraverseEdges(Int)
   TraverseNodes(Int)
@@ -263,15 +261,6 @@ pub fn collect_expression_slots(
             @graph.match_predicate(operation),
             GraphMatchPredicate,
           )
-        Subgraph(checked~, ..) => {
-          slot_predicate(
-            c,
-            step,
-            @graph.selector_predicate(@graph.subgraph_nodes(checked)),
-            SubgraphNodes,
-          )
-          slot_predicate(c, step, @graph.subgraph_edges(checked), SubgraphEdges)
-        }
         Traverse(checked~, ..) => {
           slot_predicate(
             c,

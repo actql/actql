@@ -2,6 +2,7 @@
 fn local_traversal_capacity_fixture(
   environment : @environment.WireEnvironment,
   operation_name? : String = "traverse",
+  step? : Int = 3,
   proofs? : Array[@wire.ProgramProofClaim] = [],
 ) -> @host.HostSources raise @encode.EncodeFailure {
   let policy = @environment.capacity_policy(
@@ -54,7 +55,8 @@ fn local_traversal_capacity_fixture(
       maximum.to_string() +
       ",\"enforcement\":\"engine_atomic\",\"subject_ref\":\"" +
       operation_name +
-      ":checked-step:3" +
+      ":checked-step:" +
+      step.to_string() +
       suffix +
       "\",\"unit\":\"" +
       unit +

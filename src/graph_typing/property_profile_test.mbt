@@ -226,49 +226,6 @@ test "legacy property and path schemas never erase keyed graph structure" {
 }
 
 ///|
-test "unsupported structural Graph consumers refuse keyed inputs before execution" {
-  let graph = keyed_profile()
-  let mean = cursor(
-    "{\"with\":[\"peer\"],\"weights\":[1],\"support\":{\"nodes\":1,\"edges\":1},\"properties\":{\"nodes\":{},\"edges\":{}}}",
-  )
-  // Options are valid; refusal must identify the unconnected consumer rather
-  // than relying on malformed syntax or incomplete historical schema.
-  assert_true(@graph_typing.check_mean_options(mean, limits()) is Ok(_))
-  assert_true(
-    @graph_typing.check_subgraph(
-      cursor("{\"nodes\":{\"ids\":[1]}}"),
-      graph,
-      None,
-      None,
-      predicate_limits(),
-    )
-    is Err(
-      @graph_typing.MatchStructure(
-        { kind: @graph_typing.UnsupportedGraphOperation, .. }
-      )
-    ),
-  )
-}
-
-///|
-test "unconnected subgraph is an explicit refusal" {
-  assert_true(
-    @graph_typing.check_subgraph(
-      cursor("{\"nodes\":{\"ids\":[]}}"),
-      keyed_profile(),
-      None,
-      None,
-      predicate_limits(),
-    )
-    is Err(
-      @graph_typing.MatchStructure(
-        { kind: @graph_typing.UnsupportedGraphOperation, .. }
-      )
-    ),
-  )
-}
-
-///|
 test "definition free scope and predicate cannot revive an opaque tuple Graph" {
   for entity in [@graph_typing.Nodes, @graph_typing.Edges] {
     assert_true(
