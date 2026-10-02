@@ -2,10 +2,13 @@ import type {ClientSourceFormat, WireCancellation, WireCheckpointSummary, WireCl
   WireRequestCancellation,
   WireDeliveryAttemptLookup, WireHeldRequest, WireRequestLookup,
   WireResolveItem, WireResolveResult, WireRunRef,
-  WireRunState, WireResultDescription} from '@actql/client-wire';
+  WireRunState, WireResultDescription, WireCheckOutcome} from
+  '@actql/client-wire';
 
 export type Durability = 'volatile' | 'durable';
 export type RunReference = WireRunRef;
+/** actql-check-outcome/0.1. */
+export type CheckOutcome = WireCheckOutcome;
 
 type ConnectedEndpoint = Readonly<{
   endpoint: string;
@@ -130,6 +133,17 @@ export interface Client {
     requestId?: string;
     signal?: AbortSignal;
   }): Promise<Execution>;
+  /**
+   * Check authored source without starting anything. Completed, failed and
+   * unavailable are all returned outcomes; a verdict is always bound to its
+   * scope and context reference.
+   */
+  check(text: string, options: {
+    format: 'aql-text' | 'sql';
+    parameterDeclarations?: Record<string, unknown>;
+    parameters?: Record<string, unknown> | null;
+    signal?: AbortSignal;
+  }): Promise<CheckOutcome>;
   start(program: Record<string, unknown>, options?: {
     parameters?: unknown;
     requestId?: string;

@@ -6,7 +6,7 @@ import {checkpointLimits, clientSourceFormats, isClientSubmitRejection, validCan
   validResolveItem, validResolveResults, validRunRef, validRunState,
   validSubmitReply, validClientBody, validResourceInspection,
   validResourceListing, validResourcePeek, resultDescriptionLimits,
-  validResultDescription} from
+  validResultDescription, validCheckOutcome} from
   '@actql/client-wire';
 import {bytesCid, contentCid, checkedSigner, signedAnswer} from './checkpoints.mjs';
 const positive = value => Number.isSafeInteger(value) && value > 0;
@@ -615,6 +615,27 @@ async function connectSelected(selected, port) {
       return submit('aql', {text, format: options.format,
         ...(options.parameterDeclarations === undefined ? {} :
           {parameterDeclarations: options.parameterDeclarations})}, options);
+    },
+    // Check authored source without starting anything. The outcome is the
+    // Host's actql-check-outcome/0.1 value: a report bound to its scope and
+    // context, a failure, or unavailable. None of them is a thrown error.
+    check: async (text, options = {}) => {
+      const input = {text, format: options.format,
+        ...(options.parameterDeclarations === undefined ? {} :
+          {parameterDeclarations: options.parameterDeclarations})};
+      const body = {input, parameters: options.parameters ?? null};
+      if (!validClientBody('check', {connection: selected.wire, ...body})) {
+        fail('InvalidCheckRequest');
+      }
+      let outcome;
+      try { outcome = await controlValue(await exchange('check', body,
+        options.signal)); }
+      catch (cause) {
+        if (cause instanceof ClientError) throw cause;
+        throw new ClientError('InvalidHostCheckOutcome', {cause});
+      }
+      if (!validCheckOutcome(outcome)) fail('InvalidHostCheckOutcome');
+      return outcome;
     },
     start: (program, options = {}) => {
       if (program === null || typeof program !== 'object' ||
