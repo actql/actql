@@ -1607,6 +1607,9 @@ pub fn[T] start_local_managed_dispatch(
         Ok(value) => value
         Err(issue) => return Err(Execution(Physical(issue)))
       }
+      // Output ownership has been prepared independently. Try the existing
+      // provider cleanup once; false/error keeps scratch reserved for retry.
+      release_provider_scratch() |> ignore
       match
         @strategy.complete_managed_task_execution_with_inputs(
           setup.run,
@@ -1675,6 +1678,9 @@ pub fn[T] start_local_managed_dispatch(
         Ok(value) => value
         Err(issue) => return Err(Execution(Physical(issue)))
       }
+      // Output ownership has been prepared independently. Try the existing
+      // provider cleanup once; false/error keeps scratch reserved for retry.
+      release_provider_scratch() |> ignore
       match
         @strategy.complete_carrier_managed_task_execution_with_inputs(
           setup.run,
