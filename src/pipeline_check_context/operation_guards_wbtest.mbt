@@ -8,7 +8,6 @@ test "classified operation counts enforce exact domains without claiming guard e
     @pipeline.NestRequirement(BindGuard("n")),
     @pipeline.GraphRequirement(BindPositiveCount("n")),
     @pipeline.TraverseRequirement(BindTraversalOutputGuard("n")),
-    @pipeline.ShortestRequirement(BindShortestOutputGuard("n")),
   ]
   for requirement in positive {
     let demand = @pipeline.operation_scalar_demand(requirement).unwrap()

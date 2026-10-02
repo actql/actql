@@ -1,14 +1,13 @@
 ///|
-test "shortest capacity retains dedicated subjects guard scope and independent path ceiling" {
+test "current TRAIL capacity retains dedicated subjects guard scope and independent path ceiling" {
   for value in [1, 7, 20] {
     let (pipeline, limits) = traversal_checked_fixture(
       "paths",
-      shortest=true,
       guard_text=",\"max_output_rows\":" + value.to_string(),
     )
     assert_true(
       @pipeline.step_at(pipeline, 2).unwrap().operation
-      is @pipeline.Shortest(..),
+      is @pipeline.Traverse(..),
     )
     let guards = @step_bounds.traversal_limit_guards(limits).unwrap()
     let occurrence = @pipeline.author_guard_at(
@@ -17,7 +16,7 @@ test "shortest capacity retains dedicated subjects guard scope and independent p
     ).unwrap()
     assert_eq(
       @pipeline.author_guard_scope(occurrence),
-      @pipeline.ShortestOutputRows,
+      @pipeline.TraverseOutputRows,
     )
     assert_eq(@pipeline.author_guard_step(occurrence), 2)
     assert_true(
@@ -34,7 +33,7 @@ test "shortest capacity retains dedicated subjects guard scope and independent p
       ] {
       assert_eq(
         @wire.limit_subject(@step_bounds.traversal_limit_claim(limits, scope)),
-        "shortest_path:checked-step:2" + suffix,
+        "traverse:checked-step:2" + suffix,
       )
       assert_eq(
         @step_bounds.traversal_limit_effective_maximum(limits, scope),
@@ -62,7 +61,6 @@ test "shortest capacity retains dedicated subjects guard scope and independent p
     assert_true(check(None, 7) is Err(UnresolvedAuthorSource))
     let (_, foreign) = traversal_checked_fixture(
       "paths",
-      shortest=true,
       guard_text=",\"max_output_rows\":" + value.to_string(),
     )
     assert_true(

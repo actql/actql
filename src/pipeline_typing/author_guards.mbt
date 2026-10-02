@@ -232,13 +232,6 @@ pub fn collect_author_guards(
             @graph.traverse_source(checked),
             "max_output_rows",
           )
-        Shortest(checked~, ..) =>
-          add(
-            ShortestOutputRows,
-            graph_guard(@graph.shortest_output_guard(checked)),
-            @graph.shortest_source(checked),
-            "max_output_rows",
-          )
         Unary(op) | WindowGroup(op) => {
           if @relation.group(op) is Some(group) {
             spend(b, @relation.source(op), @relation.aggregate_count(group))

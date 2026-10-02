@@ -26,11 +26,8 @@ pub(all) enum OperationExecutionCheck {
   ComponentsLimits(ComponentsLimitsCheck)
   ComponentsOutputGuard(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
-  ShortestLimits(TraversalLimitsCheck)
-  ShortestOutputGuard(TraversalLimitsCheck)
   TraversalOutputGuard(TraversalLimitsCheck)
   TraversalExecution(TraversalCheck)
-  ShortestExecution(ShortestCheck)
   GraphExecution(GraphExecutionCheck)
   PropertyGraphConstructionExecution(PropertyGraphConstructionCheck)
   GraphProjection(GraphProjectionCheck)
@@ -190,20 +187,8 @@ pub fn operation_execution_phase(
     ComponentsLimits(_)
     | ComponentsOutputGuard(_)
     | TraversalLimits(_)
-    | ShortestLimits(_)
-    | ShortestOutputGuard(_)
     | TraversalOutputGuard(_)
     | GraphResources(_) => BeforeOperationOutput
-    ShortestExecution(v) =>
-      match v.rule {
-        AdmitShortestInput | RequireEndpoints | ValidateAllWeights =>
-          BeforeOperationInputUse
-        FoldCostsWithOverrange
-        | RejectSelectedOverrange
-        | SelectSimpleBoundedPaths
-        | ApplyPathTieBreaks
-        | OrderOutputRows => BeforeOperationOutput
-      }
     TraversalExecution(v) =>
       match v.rule {
         AdmitInputGraph => BeforeOperationInputUse
@@ -338,11 +323,8 @@ pub fn operation_execution_failure(
     | ComponentsLimits(_)
     | ComponentsOutputGuard(_)
     | TraversalLimits(_)
-    | ShortestLimits(_)
-    | ShortestOutputGuard(_)
     | TraversalOutputGuard(_)
     | TraversalExecution(_)
-    | ShortestExecution(_)
     | GraphProjection(_)
     | GraphExecution(_)
     | GraphProjectionOutput(_)

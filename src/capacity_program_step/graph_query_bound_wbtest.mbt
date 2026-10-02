@@ -14,20 +14,9 @@ test "query count products preserve safe integer and zero boundaries" {
       inputs: [],
       left: LiteralCount(left),
       right: LiteralCount(right),
-      selection: @graph.EachPair,
       clamp_left_to_right: false,
     }
     assert_eq(query_bound_value(query, _ => 0L), expected)
-    assert_eq(
-      query_bound_value({ ..query, selection: @graph.NearestPerSource, }, _ => {
-        0L
-      }),
-      Ok(left),
-    )
-    assert_eq(
-      query_bound_value({ ..query, selection: @graph.NearestPair, }, _ => 0L),
-      Ok(1L),
-    )
   }
   // Selector membership bounds the distinct starts by graph extent before the
   // multiplication; an oversized relation does not cause false overflow.
@@ -35,7 +24,6 @@ test "query count products preserve safe integer and zero boundaries" {
     inputs: [],
     left: LiteralCount(largest),
     right: LiteralCount(2L),
-    selection: @graph.EachPair,
     clamp_left_to_right: true,
   }
   assert_eq(query_bound_value(traversal, _ => 0L), Ok(4L))

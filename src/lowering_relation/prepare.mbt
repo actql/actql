@@ -65,7 +65,6 @@ pub enum Payload {
   GraphMatchRows(@graph.CheckedMatch)
   GraphSubgraphValue(@graph.CheckedSubgraph)
   GraphTraverseRows(@graph.CheckedTraverse)
-  GraphShortestRows(@graph.CheckedShortest)
   PropertyGraphConstructionValue(@graph.CheckedPropertyConstruction)
   VectorValue(@vector.CheckedVector)
   NearestValue(@vector.CheckedNearest)
@@ -226,7 +225,6 @@ pub fn operation(value : PreparedNode) -> String {
       }
     GraphSubgraphValue(_) => "SGA.subgraph"
     GraphTraverseRows(_) => "SGA.traverse"
-    GraphShortestRows(_) => "SGA.shortest_path"
     PropertyGraphConstructionValue(_) => "BRIDGE.rows.to_property_graph"
     VectorValue(value) =>
       match @vector.operation(value) {
@@ -308,7 +306,6 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     GraphMatch(value) => Some(GraphMatchRows(value))
     Subgraph(checked~, ..) => Some(GraphSubgraphValue(checked))
     Traverse(checked~, ..) => Some(GraphTraverseRows(checked))
-    Shortest(checked~, ..) => Some(GraphShortestRows(checked))
     Pool(value) => Some(PoolValue(value))
     Nearest(checked~, ..) => Some(NearestValue(checked))
     Ranking(value) => Some(RankingValue(value))
@@ -463,19 +460,6 @@ pub fn prepare(
             1
           },
         )
-      GraphShortestRows(checked) => {
-        let mut relations = 0
-        for side in [@schema.Left, @schema.Right] {
-          match @graph.shortest_endpoint(checked, side) {
-            @graph.Selected(selector) =>
-              if @graph.selector_form(selector) is @graph.RelationIds(..) {
-                relations += 1
-              }
-            @graph.Single(_) => ()
-          }
-        }
-        ("shortest_path", 1 + relations)
-      }
       PropertyGraphConstructionValue(checked) =>
         (
           "property_graph",
@@ -675,7 +659,6 @@ pub fn prepare(
       GraphMatchRows(_) => None
       GraphSubgraphValue(_) => None
       GraphTraverseRows(_) => None
-      GraphShortestRows(_) => None
       PropertyGraphConstructionValue(_) => None
       VectorValue(_) => None
       NearestValue(_) => None

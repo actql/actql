@@ -1,7 +1,6 @@
 ///|
 fn traversal_checked_fixture(
   emission : String,
-  shortest? : Bool = false,
   guard_text? : String = "",
   parameters? : @parameter.Declarations? = None,
   bindings? : @parameter.BoundValues? = None,
@@ -24,15 +23,11 @@ fn traversal_checked_fixture(
     asof_test_cursor(
       producer_prefix +
       "," +
-      (if shortest {
-        "{\"shortest_path\":{\"source\":1,\"target\":1,\"direction\":\"out\",\"max_hops\":3"
-      } else {
-        "{\"traverse\":{\"start\":{\"ids\":[" +
-        identity +
-        "]},\"direction\":\"out\",\"min_hops\":0,\"max_hops\":3,\"path_mode\":\"trail\",\"emit\":\"" +
-        emission +
-        "\""
-      }) +
+      "{\"traverse\":{\"start\":{\"ids\":[" +
+      identity +
+      "]},\"direction\":\"out\",\"min_hops\":0,\"max_hops\":3,\"path_mode\":\"trail\",\"emit\":\"" +
+      emission +
+      "\"" +
       guard_text +
       "}}]",
     ),
@@ -77,7 +72,7 @@ fn traversal_checked_fixture(
       text +
       "],\"effective_max\":7,\"enforcement\":\"engine_atomic\""
     let tail = ",\"subject_ref\":\"" +
-      (if shortest { "shortest_path" } else { "traverse" }) +
+      "traverse" +
       ":checked-step:2" +
       suffix +
       "\",\"unit\":\"" +

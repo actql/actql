@@ -213,7 +213,7 @@ fn derive_logical_orders(
       | TextRank(..)
       | AsOfJoin(..) => true
       Pool(_) => true
-      GraphMatch(_) | Traverse(..) | Shortest(..) => true
+      GraphMatch(_) | Traverse(..) => true
       Graph(op) =>
         @graph.operation(op) == @graph.Components ||
         @graph.operation(op) == @graph.GraphBounds

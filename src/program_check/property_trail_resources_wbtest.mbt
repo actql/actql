@@ -6,13 +6,18 @@ fn current_trail_guarantee_identity() -> String {
 }
 
 ///|
-fn current_trail_resources_suffix(direction : String, depth : String) -> String {
+fn current_trail_resources_suffix(
+  direction : String,
+  depth : String,
+  guard_text? : String = "",
+) -> String {
   ",{\"property_graph\":{\"version\":\"actql-property-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"seed\",\"key\":[\"id\"]}],\"edges\":[]},\"as\":\"g\"},{\"traverse\":{\"start\":{\"ids\":[" +
   current_trail_guarantee_identity() +
   "]},\"path_mode\":\"trail\",\"emit\":\"paths\",\"min_hops\":0,\"direction\":\"" +
   direction +
   "\",\"max_hops\":" +
   depth +
+  guard_text +
   "}},{\"select\":[{\"id\":\"hop_count\"},{\"value\":\"hop_count\"}],\"as\":\"projected\"}"
 }
 

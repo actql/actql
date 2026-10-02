@@ -68,13 +68,6 @@ pub fn check_traversal_limits(
         Some("actql.bound.traverse-nodes"),
         Some(@pipeline.TraverseOutputRows),
       )
-    @pipeline.Shortest(checked=op, ..) =>
-      (
-        "shortest_path",
-        @graph.shortest_output_guard(op),
-        Some("actql.bound.shortest-path"),
-        Some(@pipeline.ShortestOutputRows),
-      )
     _ => return Err(WrongOperation)
   }
   if guards is None && authored_guard is Some(_) {

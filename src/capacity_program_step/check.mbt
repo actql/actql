@@ -147,13 +147,6 @@ fn operation_rule(
         ("actql.bound.traverse-nodes", GraphQuery(traversal_bound(checked))),
       )
     }
-    @pipeline.Shortest(source_selector~, checked~, ..) =>
-      return Ok(
-        (
-          "actql.bound.shortest-path",
-          GraphQuery(shortest_bound(checked, source_selector is Some(_))),
-        ),
-      )
     @pipeline.Graph(op) =>
       match @graph.operation(op) {
         @graph.Degree =>

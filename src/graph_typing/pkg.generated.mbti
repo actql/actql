@@ -34,8 +34,6 @@ pub fn check_scope(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, L
 
 pub fn check_selector(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits, property_graph? : Bool) -> Result[CheckedSelector, MatchIssue]
 
-pub fn check_shortest(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedShortest, MatchIssue]
-
 pub fn check_subgraph(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSubgraph, MatchIssue]
 
 pub fn check_traverse(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedTraverse, MatchIssue]
@@ -204,38 +202,6 @@ pub fn selector_source(CheckedSelector) -> @decode_core.Cursor
 
 pub fn selector_usage(CheckedSelector) -> PredicateUsage
 
-pub fn shortest_direction(CheckedShortest) -> Direction
-
-pub fn shortest_endpoint(CheckedShortest, @relation_schema.Side) -> PathEndpoint
-
-pub fn shortest_input(CheckedShortest) -> @carrier_contract.Carrier
-
-pub fn shortest_max_hops(CheckedShortest) -> Double
-
-pub fn shortest_output(CheckedShortest) -> @carrier_contract.Carrier
-
-pub fn shortest_output_guard(CheckedShortest) -> Count?
-
-pub fn shortest_pending(CheckedShortest) -> Array[ShortestObligation]
-
-pub fn shortest_pending_at(CheckedShortest, Int) -> ShortestObligation?
-
-pub fn shortest_pending_count(CheckedShortest) -> Int
-
-pub fn shortest_selection(CheckedShortest) -> PathSelection
-
-pub fn shortest_source(CheckedShortest) -> @decode_core.Cursor
-
-pub fn shortest_type_at(CheckedShortest, Int) -> String?
-
-pub fn shortest_type_count(CheckedShortest) -> Int?
-
-pub fn shortest_types(CheckedShortest) -> Array[String]?
-
-pub fn shortest_usage(CheckedShortest) -> PredicateUsage
-
-pub fn shortest_weight(CheckedShortest) -> @relation_schema.FieldName?
-
 pub fn source(CheckedGraph) -> @decode_core.Cursor
 
 pub fn subgraph_edges(CheckedSubgraph) -> CheckedPredicate?
@@ -304,8 +270,6 @@ type CheckedPropertyConstruction
 type CheckedScope
 
 type CheckedSelector
-
-type CheckedShortest
 
 type CheckedSubgraph
 
@@ -466,21 +430,10 @@ pub enum Options {
   BoundsOptions(max_nodes~ : Count?, max_edges~ : Count?, max_degree~ : Count?)
 }
 
-pub enum PathEndpoint {
-  Single(@value_admission.CheckedValue)
-  Selected(CheckedSelector)
-}
-
 pub(all) enum PathOutput {
   TraversedNodes
   TraversedPaths
   ShortestPaths
-} derive(Eq, @debug.Debug)
-
-pub(all) enum PathSelection {
-  EachPair
-  NearestPerSource
-  NearestPair
 } derive(Eq, @debug.Debug)
 
 pub enum PredicateIssue {
@@ -532,21 +485,6 @@ pub(all) enum SelectorObligation {
   RequireSelectorMembership
   EvaluateSelectorPredicate
   ResolveSelectorResources
-} derive(Eq, @debug.Debug)
-
-pub(all) enum ShortestObligation {
-  AdmitShortestGraph
-  RequireEndpointMembership
-  ValidateAllNonnegativeFiniteWeights
-  FoldPathCostsWithOverrange
-  RejectSelectedOverrangeAtomically
-  SelectSimpleHopBoundedPaths
-  ApplyCanonicalPathTieBreaks
-  CanonicalShortestOutputOrder
-  EnforceShortestOutputGuard
-  BindShortestOutputGuard(String)
-  ResolveShortestResources
-  ResolveShortestProfile
 } derive(Eq, @debug.Debug)
 
 pub(all) enum SubgraphObligation {

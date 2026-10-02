@@ -400,20 +400,6 @@ fn selector_count(
 }
 
 ///|
-fn endpoint_count(
-  endpoint : @graph.PathEndpoint,
-  target : Target?,
-  rows : CountTable[RowCount],
-  nodes : RowCount?,
-) -> RowCount? {
-  match endpoint {
-    Single(_) =>
-      Some(count(if nodes is Some({ upper: 0L, .. }) { 0L } else { 1L }, false))
-    Selected(s) => selector_count(s, target, rows, nodes)
-  }
-}
-
-///|
 // Single forward pass over already checked, ordered operand occurrences.
 fn derive_row_counts(
   b : Budget,
@@ -501,42 +487,6 @@ fn derive_row_counts(
           Some(count(0L, true))
         } else {
           None // Path enumeration needs its profile law or an enforced ceiling.
-        }
-      }
-      Shortest(source_selector~, target_selector~, checked~) => {
-        let nodes = graph_input.bind(g => g.nodes)
-        let left = endpoint_count(
-          @graph.shortest_endpoint(checked, Left),
-          source_selector,
-          result,
-          nodes,
-        )
-        let right = endpoint_count(
-          @graph.shortest_endpoint(checked, Right),
-          target_selector,
-          result,
-          nodes,
-        )
-        match @graph.shortest_selection(checked) {
-          EachPair => reduce_count(product_counts(step.source, left, right))
-          NearestPerSource =>
-            if right is Some({ upper: 0L, .. }) {
-              Some(count(0L, true))
-            } else {
-              reduce_count(left)
-            }
-          NearestPair =>
-            Some(
-              count(
-                if left is Some({ upper: 0L, .. }) ||
-                  right is Some({ upper: 0L, .. }) {
-                  0L
-                } else {
-                  1L
-                },
-                false,
-              ),
-            )
         }
       }
       GraphMatch(v) =>

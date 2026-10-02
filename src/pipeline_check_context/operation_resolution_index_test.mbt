@@ -218,20 +218,11 @@ fn check_resolution_index(
         execution += 1
         assert_true(physical_equal(check.site, site))
       }
-      Execution(
-        TraversalLimits(check)
-        | TraversalOutputGuard(check)
-        | ShortestLimits(check)
-        | ShortestOutputGuard(check)
-      ) => {
+      Execution(TraversalLimits(check) | TraversalOutputGuard(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))
       }
       Execution(TraversalExecution(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
-      Execution(ShortestExecution(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))
       }

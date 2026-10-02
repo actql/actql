@@ -44,12 +44,6 @@ test "guard domains distinguish positive counts nonnegative reports and temporal
         ),
         @pipeline_typing.SafeInteger("n", minimum=1L),
       ),
-      (
-        @pipeline_typing.ShortestRequirement(
-          @graph.BindShortestOutputGuard("n"),
-        ),
-        @pipeline_typing.SafeInteger("n", minimum=1L),
-      ),
     ] {
     assert_eq(
       @pipeline_typing.operation_scalar_demand(obligation),
@@ -64,7 +58,6 @@ test "guard domains distinguish positive counts nonnegative reports and temporal
       @pipeline_typing.SequenceRequirement(@relation.AtomicMatchLimits),
       @pipeline_typing.GraphRequirement(@graph.EnforceOutputGuard),
       @pipeline_typing.TraverseRequirement(@graph.EnforceTraversalOutputGuard),
-      @pipeline_typing.ShortestRequirement(@graph.EnforceShortestOutputGuard),
     ] {
     assert_true(@pipeline_typing.operation_scalar_demand(obligation) is None)
   }

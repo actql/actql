@@ -546,7 +546,6 @@ pub(all) enum GraphKeyOperation {
   GraphOperation(@graph_typing.CheckedGraph)
   MatchOperation(@graph_typing.CheckedMatch)
   TraverseOperation(@graph_typing.CheckedTraverse)
-  ShortestOperation(@graph_typing.CheckedShortest)
 }
 
 pub struct InferInputBinding {

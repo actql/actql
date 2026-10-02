@@ -2216,11 +2216,8 @@ pub(all) enum OperationExecutionCheck {
   ComponentsLimits(ComponentsLimitsCheck)
   ComponentsOutputGuard(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
-  ShortestLimits(TraversalLimitsCheck)
-  ShortestOutputGuard(TraversalLimitsCheck)
   TraversalOutputGuard(TraversalLimitsCheck)
   TraversalExecution(TraversalCheck)
-  ShortestExecution(ShortestCheck)
   GraphExecution(GraphExecutionCheck)
   PropertyGraphConstructionExecution(PropertyGraphConstructionCheck)
   GraphProjection(GraphProjectionCheck)
@@ -3036,27 +3033,6 @@ pub(all) enum SetRowsRule {
   BoundOutputByLeftInput
   RetainIdentityAndCompleteness
   RequireComparisonResources
-} derive(Eq, @debug.Debug)
-
-pub struct ShortestCheck {
-  site : OperationRequirementSite
-  step : @pipeline_typing.CheckedStep
-  input : @pipeline_typing.Target
-  source_relation : @pipeline_typing.Target?
-  target_relation : @pipeline_typing.Target?
-  operation : @graph_typing.CheckedShortest
-  rule : ShortestRule
-}
-
-pub(all) enum ShortestRule {
-  AdmitShortestInput
-  RequireEndpoints
-  ValidateAllWeights
-  FoldCostsWithOverrange
-  RejectSelectedOverrange
-  SelectSimpleBoundedPaths
-  ApplyPathTieBreaks
-  OrderOutputRows
 } derive(Eq, @debug.Debug)
 
 type SourceBindingRequirements

@@ -88,7 +88,6 @@ pub fn node_accepts_managed_carrier_view(
     "SGA.apply_delta" => index == 0
     "TEA.join.asof" => index == 0
     "SGA.reachable" => index == 0
-    "SGA.shortest_path" => index == 0
     "SGA.subgraph" => index == 0
     "SGA.traverse" => index == 0
     "SGA.match_nodes" | "SGA.match_edges" => index == 0
@@ -114,7 +113,6 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     GraphMatchRows(_) =>
       operation(node) == "SGA.match_nodes" ||
       operation(node) == "SGA.match_edges"
-    GraphShortestRows(_) => operation(node) == "SGA.shortest_path"
     BasicGraph(_) =>
       operation(node) == "SGA.normalize" ||
       operation(node) == "SGA.bounds_check" ||

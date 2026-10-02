@@ -78,7 +78,6 @@ fn graph_key_operation(
       Some(GraphOperation(op))
     GraphMatch(op) => Some(MatchOperation(op))
     Traverse(checked~, ..) => Some(TraverseOperation(checked))
-    Shortest(checked~, ..) => Some(ShortestOperation(checked))
     _ => None
   }
 }

@@ -3,7 +3,6 @@ pub(all) enum GraphKeyOperation {
   GraphOperation(@graph.CheckedGraph)
   MatchOperation(@graph.CheckedMatch)
   TraverseOperation(@graph.CheckedTraverse)
-  ShortestOperation(@graph.CheckedShortest)
 }
 
 ///|
@@ -22,12 +21,6 @@ pub fn graph_query_keys(
         @graph.traverse_source(op),
         @graph.traverse_input(op),
         @graph.traverse_output(op),
-      )
-    ShortestOperation(op) =>
-      (
-        @graph.shortest_source(op),
-        @graph.shortest_input(op),
-        @graph.shortest_output(op),
       )
   }
   try {
@@ -67,12 +60,6 @@ pub fn graph_query_keys(
             names.push(Unqualified("start_id"))
             names.push(Unqualified("node_id"))
           }
-        ShortestOperation(op) => {
-          names.push(Unqualified("source_id"))
-          if @graph.shortest_selection(op) == EachPair {
-            names.push(Unqualified("target_id"))
-          }
-        }
       }
     }
     let fields : Array[KeyField] = []

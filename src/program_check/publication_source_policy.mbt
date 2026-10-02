@@ -846,43 +846,6 @@ fn prepare_publication_source_policy(
               1
             }
           }
-          @pipeline.Shortest(
-            source_selector~,
-            target_selector~,
-            checked=operation
-          ) => {
-            identity_charge(budget, 1)
-            for side in 0..<2 {
-              identity_charge(budget, 1)
-              if @graph.shortest_endpoint(
-                  operation,
-                  if side == 0 {
-                    Left
-                  } else {
-                    Right
-                  },
-                )
-                is @graph.Selected(selector) {
-                if @graph.selector_predicate(selector) is Some(predicate) {
-                  let _ = publication_expression_unknown(
-                    @graph.predicate_expression(predicate),
-                    budget,
-                  )
-                }
-              }
-            }
-            // The explicit hop bound contributes authored value provenance;
-            // endpoint predicates still consume their complete traversal budget.
-            carrier_steps.push({
-              step: index,
-              operation: step.operation,
-              unknown_provenance: true,
-            })
-            unknown = true
-            1 +
-            (if source_selector is Some(_) { 1 } else { 0 }) +
-            (if target_selector is Some(_) { 1 } else { 0 })
-          }
           @pipeline.Subgraph(selector~, checked=operation) => {
             identity_charge(budget, 1)
             let nodes = @graph.subgraph_nodes(operation)

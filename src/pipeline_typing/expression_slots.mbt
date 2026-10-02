@@ -14,7 +14,6 @@ pub(all) enum ExpressionConsumer {
   TraverseStart
   TraverseEdges(Int)
   TraverseNodes(Int)
-  ShortestEndpoint(@schema.Side)
   InferInput(Int)
 } derive(Eq, Debug)
 
@@ -296,14 +295,6 @@ pub fn collect_expression_slots(
             )
           }
         }
-        Shortest(checked~, ..) =>
-          for side in [@schema.Left, @schema.Right] {
-            let predicate = match @graph.shortest_endpoint(checked, side) {
-              @graph.Single(_) => None
-              @graph.Selected(selector) => @graph.selector_predicate(selector)
-            }
-            slot_predicate(c, step, predicate, ShortestEndpoint(side))
-          }
         // These checked forms retain scalar/cell operands or field selectors,
         // not general Expression roots. Do not use a catch-all here.
         Join(..)

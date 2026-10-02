@@ -101,7 +101,6 @@ pub fn completeness_scope(v : CompletenessRequirement) -> CompletenessScope {
         | GraphMatch(_)
         | Subgraph(..)
         | Traverse(..)
-        | Shortest(..)
         | PropertyGraphConstruction(..)
         | Vector(_)
         | Nearest(..)

@@ -9,7 +9,6 @@ priv struct QueryBound {
   inputs : Array[(@arithmetic.BoundUnit, Int)]
   left : QueryCount
   right : QueryCount
-  selection : @graph.PathSelection
   clamp_left_to_right : Bool
 }
 
@@ -43,63 +42,10 @@ fn query_selector(
 }
 
 ///|
-fn query_endpoint(
-  endpoint : @graph.PathEndpoint,
-  edge : Int,
-  inputs : Array[(@arithmetic.BoundUnit, Int)],
-) -> QueryCount {
-  match endpoint {
-    @graph.Single(_) => LiteralCount(1L)
-    @graph.Selected(selector) => query_selector(selector, edge, inputs)
-  }
-}
-
-///|
 fn traversal_bound(op : @graph.CheckedTraverse) -> QueryBound {
   let inputs = [(@arithmetic.Nodes, 0)]
   let left = query_selector(@graph.traverse_start(op), 1, inputs)
-  {
-    inputs,
-    left,
-    right: InputCount(0),
-    selection: @graph.EachPair,
-    clamp_left_to_right: true,
-  }
-}
-
-///|
-fn shortest_bound(
-  op : @graph.CheckedShortest,
-  source_relation : Bool,
-) -> QueryBound {
-  let selection = @graph.shortest_selection(op)
-  let inputs = []
-  // Nearest-pair returns at most one row independently of endpoint extent.
-  if selection == @graph.NearestPair {
-    return {
-      inputs,
-      left: LiteralCount(1L),
-      right: LiteralCount(1L),
-      selection,
-      clamp_left_to_right: false,
-    }
-  }
-  let left = query_endpoint(@graph.shortest_endpoint(op, Left), 1, inputs)
-  // Nearest-per-source does not need a target count to prove this upper bound.
-  let right = if selection == @graph.NearestPerSource {
-    LiteralCount(1L)
-  } else {
-    query_endpoint(
-      @graph.shortest_endpoint(op, Right),
-      if source_relation {
-        2
-      } else {
-        1
-      },
-      inputs,
-    )
-  }
-  { inputs, left, right, selection, clamp_left_to_right: false, }
+  { inputs, left, right: InputCount(0), clamp_left_to_right: true, }
 }
 
 ///|
@@ -120,17 +66,12 @@ fn query_bound_value(
   } else {
     raw_left
   }
-  match query.selection {
-    @graph.NearestPair => Ok(1L)
-    @graph.NearestPerSource => Ok(left)
-    @graph.EachPair =>
-      match
-        @numeric.multiply(
-          @numeric.read(left).unwrap(),
-          @numeric.read(right).unwrap(),
-        ) {
-        Ok(n) => Ok(@numeric.value(n))
-        Err(_) => Err(BoundOverflow)
-      }
+  match
+    @numeric.multiply(
+      @numeric.read(left).unwrap(),
+      @numeric.read(right).unwrap(),
+    ) {
+    Ok(n) => Ok(@numeric.value(n))
+    Err(_) => Err(BoundOverflow)
   }
 }

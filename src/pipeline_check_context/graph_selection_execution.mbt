@@ -71,24 +71,9 @@ fn graph_selector_execution_check(
     @graph.selector_pending_at(selector, site.index) == Some(pending) else {
     return Err(ForeignOccurrence(site.step))
   }
-  let scope = @pipeline.operation_obligations_scope(group)
   let (relation, role, index) = match step.operation {
     Subgraph(selector=target, ..) | Traverse(selector=target, ..) =>
       (target, @pipeline.Right, 1)
-    Shortest(source_selector~, target_selector~, ..) =>
-      if scope == @pipeline.SourceSelector {
-        (source_selector, @pipeline.Left, 1)
-      } else {
-        (
-          target_selector,
-          @pipeline.Right,
-          if source_selector is Some(_) {
-            2
-          } else {
-            1
-          },
-        )
-      }
     _ => return Err(ForeignOccurrence(site.step))
   }
   guard @pipeline.input_occurrence_at(step, 0) is Some(primary) &&

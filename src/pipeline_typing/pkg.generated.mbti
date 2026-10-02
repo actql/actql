@@ -453,7 +453,6 @@ pub enum CheckedOperation {
   GraphMatch(@graph_typing.CheckedMatch)
   Subgraph(selector~ : Target?, checked~ : @graph_typing.CheckedSubgraph)
   Traverse(selector~ : Target?, checked~ : @graph_typing.CheckedTraverse)
-  Shortest(source_selector~ : Target?, target_selector~ : Target?, checked~ : @graph_typing.CheckedShortest)
   PropertyGraphConstruction(inputs~ : Array[Target], checked~ : @graph_typing.CheckedPropertyConstruction)
   Vector(@vector_typing.CheckedVector)
   Nearest(queries~ : Target, checked~ : @relation_evidence.CheckedNearest)
@@ -528,7 +527,6 @@ pub(all) enum ExpressionConsumer {
   TraverseStart
   TraverseEdges(Int)
   TraverseNodes(Int)
-  ShortestEndpoint(@relation_schema.Side)
   InferInput(Int)
 } derive(Eq, @debug.Debug)
 
@@ -705,7 +703,6 @@ pub(all) enum OperationObligation {
   MatchRequirement(@graph_typing.MatchObligation)
   SubgraphRequirement(@graph_typing.SubgraphObligation)
   TraverseRequirement(@graph_typing.TraverseObligation)
-  ShortestRequirement(@graph_typing.ShortestObligation)
   SelectorRequirement(@graph_typing.SelectorObligation)
   ConstructionRequirement(@graph_typing.ConstructionObligation)
   VectorRequirement(@vector_typing.Obligation)
@@ -723,8 +720,6 @@ pub(all) enum OperationObligationScope {
   UnionFold(Int)
   NodeSelector
   StartSelector
-  SourceSelector
-  TargetSelector
 } derive(Eq, @debug.Debug)
 
 type OperationObligations

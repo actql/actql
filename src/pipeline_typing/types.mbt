@@ -155,11 +155,6 @@ pub enum CheckedOperation {
   GraphMatch(@graph.CheckedMatch)
   Subgraph(selector~ : Target?, checked~ : @graph.CheckedSubgraph)
   Traverse(selector~ : Target?, checked~ : @graph.CheckedTraverse)
-  Shortest(
-    source_selector~ : Target?,
-    target_selector~ : Target?,
-    checked~ : @graph.CheckedShortest
-  )
   PropertyGraphConstruction(
     inputs~ : Array[Target],
     checked~ : @graph.CheckedPropertyConstruction

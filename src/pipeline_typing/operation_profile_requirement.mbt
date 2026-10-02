@@ -53,21 +53,6 @@ pub fn operation_profile_requirement(
         | BindTraversalOutputGuard(_, ..)
         | ResolveTraversalResources => None
       }
-    ShortestRequirement(o) =>
-      match o {
-        ResolveShortestProfile => Some(SGA)
-        AdmitShortestGraph
-        | RequireEndpointMembership
-        | ValidateAllNonnegativeFiniteWeights
-        | FoldPathCostsWithOverrange
-        | RejectSelectedOverrangeAtomically
-        | SelectSimpleHopBoundedPaths
-        | ApplyCanonicalPathTieBreaks
-        | CanonicalShortestOutputOrder
-        | EnforceShortestOutputGuard
-        | BindShortestOutputGuard(_, ..)
-        | ResolveShortestResources => None
-      }
     ConstructionRequirement(o) =>
       match o {
         ResolvePropertyGraphProfile => Some(PropertyGraph)

@@ -25,7 +25,6 @@ pub enum PreparedStep {
   GraphMatchStep(PreparedGraphMatch)
   GraphSubgraphStep(PreparedGraphSubgraph)
   GraphTraverseStep(PreparedGraphTraverse)
-  GraphShortestStep(PreparedGraphShortest)
   PropertyGraphConstructionStep(PreparedPropertyGraphConstruction)
   VectorStep(PreparedVector)
   EventStep(PreparedEvent)
@@ -62,7 +61,6 @@ pub(all) enum SequenceIssue {
   GraphMatchFailure(Int, GraphMatchIssue)
   GraphSubgraphFailure(Int, GraphSubgraphIssue)
   GraphTraverseFailure(Int, GraphTraverseIssue)
-  GraphShortestFailure(Int, GraphShortestIssue)
   GraphConstructionFailure(Int, GraphConstructionIssue)
   VectorFailure(Int, VectorIssue)
   EventFailure(Int, EventIssue)
@@ -322,23 +320,6 @@ fn prepare_sequence_count(
         expressions = remaining
         GraphTraverseStep(prepared)
       }
-      GraphShortestRows(_) => {
-        let (prepared, used_entries, used_names, remaining) = match
-          prepare_graph_shortest_node(
-            owner,
-            i,
-            max_entries=bindings,
-            max_name_bytes=names,
-            expressions~,
-          ) {
-          Ok(value) => value
-          Err(issue) => return Err(GraphShortestFailure(i, issue))
-        }
-        bindings -= used_entries
-        names -= used_names
-        expressions = remaining
-        GraphShortestStep(prepared)
-      }
       PropertyGraphConstructionValue(_) => {
         let (prepared, used_entries, used_names, used_work) = match
           prepare_property_graph_construction_node(
@@ -569,7 +550,6 @@ pub fn emit_sequence_step_range(
       GraphMatchStep(v) => emit_graph_match_node(v, out)
       GraphSubgraphStep(v) => emit_graph_subgraph_node(v, out)
       GraphTraverseStep(v) => emit_graph_traverse_node(v, out)
-      GraphShortestStep(v) => emit_graph_shortest_node(v, out)
       PropertyGraphConstructionStep(v) =>
         emit_property_graph_construction_node(v, out)
       VectorStep(v) => emit_vector_node(v, out)

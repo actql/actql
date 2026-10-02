@@ -69,7 +69,6 @@ pub fn operation_order_demand(v : OperationObligation) -> OperationOrderDemand? 
     | MatchRequirement(_)
     | SubgraphRequirement(_)
     | TraverseRequirement(_)
-    | ShortestRequirement(_)
     | SelectorRequirement(_)
     | ConstructionRequirement(_)
     | VectorRequirement(_)

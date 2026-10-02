@@ -70,11 +70,8 @@ pub fn close_program_operations(
           ComponentsLimits(v) => v.site
           ComponentsOutputGuard(v) => v.site
           TraversalLimits(v) => v.site
-          ShortestLimits(v) => v.site
-          ShortestOutputGuard(v) => v.site
           TraversalOutputGuard(v) => v.site
           TraversalExecution(v) => v.site
-          ShortestExecution(v) => v.site
           GraphExecution(v) => v.site
           PropertyGraphConstructionExecution(v) => v.site
           GraphProjection(v) => v.site

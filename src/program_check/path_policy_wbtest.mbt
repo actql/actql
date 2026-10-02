@@ -56,8 +56,6 @@ test "Graph path policy retains selectors and independent search limits" {
         match (retained.operation, step.operation) {
           (Traverse(checked=a, ..), Traverse(checked=b, ..)) =>
             assert_true(physical_equal(a, b))
-          (Shortest(checked=a, ..), Shortest(checked=b, ..)) =>
-            assert_true(physical_equal(a, b))
           _ => fail("path operation lost")
         }
         let mut edges = 0

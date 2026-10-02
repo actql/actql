@@ -7,8 +7,6 @@ pub(all) enum OperationObligationScope {
   UnionFold(Int)
   NodeSelector
   StartSelector
-  SourceSelector
-  TargetSelector
 } derive(Eq, Debug)
 
 ///|
@@ -33,7 +31,6 @@ pub(all) enum OperationObligation {
   MatchRequirement(@graph.MatchObligation)
   SubgraphRequirement(@graph.SubgraphObligation)
   TraverseRequirement(@graph.TraverseObligation)
-  ShortestRequirement(@graph.ShortestObligation)
   SelectorRequirement(@graph.SelectorObligation)
   ConstructionRequirement(@graph.ConstructionObligation)
   VectorRequirement(@vector.Obligation)
@@ -65,7 +62,6 @@ priv enum ObligationOwner {
   MatchOwner(@graph.CheckedMatch)
   SubgraphOwner(@graph.CheckedSubgraph)
   TraverseOwner(@graph.CheckedTraverse)
-  ShortestOwner(@graph.CheckedShortest)
   SelectorOwner(@graph.CheckedSelector)
   PropertyConstructionOwner(@graph.CheckedPropertyConstruction)
   VectorOwner(@vector.CheckedVector)
@@ -112,7 +108,6 @@ pub fn operation_obligations_source(v : OperationObligations) -> @decode.Cursor 
     MatchOwner(c) => @graph.match_source(c)
     SubgraphOwner(c) => @graph.subgraph_source(c)
     TraverseOwner(c) => @graph.traverse_source(c)
-    ShortestOwner(c) => @graph.shortest_source(c)
     SelectorOwner(c) => @graph.selector_source(c)
     PropertyConstructionOwner(c) => @graph.property_construction_source(c)
     VectorOwner(c) => @vector.source(c)
@@ -201,7 +196,6 @@ pub fn operation_obligations_count(v : OperationObligations) -> Int {
     MatchOwner(c) => @graph.match_pending_count(c)
     SubgraphOwner(c) => @graph.subgraph_pending_count(c)
     TraverseOwner(c) => @graph.traverse_pending_count(c)
-    ShortestOwner(c) => @graph.shortest_pending_count(c)
     SelectorOwner(c) => @graph.selector_pending_count(c)
     PropertyConstructionOwner(c) =>
       @graph.property_construction_pending_count(c)
@@ -264,8 +258,6 @@ pub fn operation_obligations_at(
       @graph.subgraph_pending_at(c, index).map(x => SubgraphRequirement(x))
     TraverseOwner(c) =>
       @graph.traverse_pending_at(c, index).map(x => TraverseRequirement(x))
-    ShortestOwner(c) =>
-      @graph.shortest_pending_at(c, index).map(x => ShortestRequirement(x))
     SelectorOwner(c) =>
       @graph.selector_pending_at(c, index).map(x => SelectorRequirement(x))
     PropertyConstructionOwner(c) =>
@@ -288,24 +280,13 @@ pub fn operation_obligations_at(
 }
 
 ///|
-/// No nested owner is flattened into an unbounded temporary array. A single
-/// shortest endpoint has no selector group; selected endpoints retain their side.
+/// Nested selector owners are retained without an unbounded temporary array.
 pub fn operation_obligation_group_count(operation : CheckedOperation) -> Int {
   match operation {
     // Acquisition closure and call-slot preflight belong to the model owner,
     // not the pure operation obligation inventory.
     Infer(_) => 0
     Sequence(_) | Subgraph(..) | Traverse(..) => 2
-    Shortest(checked~, ..) => {
-      let mut n = 1
-      if @graph.shortest_endpoint(checked, Left) is Selected(_) {
-        n += 1
-      }
-      if @graph.shortest_endpoint(checked, Right) is Selected(_) {
-        n += 1
-      }
-      n
-    }
     Unary(_)
     | WindowGroup(_)
     | Join(checked=_, ..)
@@ -389,20 +370,6 @@ pub fn operation_obligation_group_at(
           {
             scope: StartSelector,
             owner: SelectorOwner(@graph.traverse_start(c)),
-          }
-        }
-      Shortest(checked=c, ..) =>
-        if index == 0 {
-          { scope: Body, owner: ShortestOwner(c), }
-        } else {
-          let left = @graph.shortest_endpoint(c, Left)
-          let right = @graph.shortest_endpoint(c, Right)
-          match (left, right, index) {
-            (Selected(s), _, 1) =>
-              { scope: SourceSelector, owner: SelectorOwner(s), }
-            (_, Selected(s), _) =>
-              { scope: TargetSelector, owner: SelectorOwner(s), }
-            _ => return None
           }
         }
     },

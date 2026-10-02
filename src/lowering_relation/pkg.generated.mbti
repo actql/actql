@@ -331,34 +331,6 @@ pub fn graph_match_type_at(PreparedGraphMatch, Int) -> String?
 
 pub fn graph_match_type_count(PreparedGraphMatch) -> Int?
 
-pub fn graph_shortest_direction(PreparedGraphShortest) -> @graph_typing.Direction
-
-pub fn graph_shortest_endpoint_id_at(PreparedGraphShortest, @relation_schema.Side, Int) -> @value_admission.CheckedValue?
-
-pub fn graph_shortest_endpoint_id_count(PreparedGraphShortest, @relation_schema.Side) -> Int
-
-pub fn graph_shortest_endpoint_input_port(PreparedGraphShortest, @relation_schema.Side) -> Int?
-
-pub fn graph_shortest_endpoint_predicate(PreparedGraphShortest, @relation_schema.Side) -> Expression?
-
-pub fn graph_shortest_endpoint_relation_field(PreparedGraphShortest, @relation_schema.Side) -> @relation_schema.FieldName?
-
-pub fn graph_shortest_endpoint_single(PreparedGraphShortest, @relation_schema.Side) -> @value_admission.CheckedValue?
-
-pub fn graph_shortest_max_hops(PreparedGraphShortest) -> Int?
-
-pub fn graph_shortest_output_guard(PreparedGraphShortest) -> Int64?
-
-pub fn graph_shortest_output_schema(PreparedGraphShortest) -> @relation_schema.Schema
-
-pub fn graph_shortest_selection(PreparedGraphShortest) -> @graph_typing.PathSelection
-
-pub fn graph_shortest_type_at(PreparedGraphShortest, Int) -> String?
-
-pub fn graph_shortest_type_count(PreparedGraphShortest) -> Int?
-
-pub fn graph_shortest_weight(PreparedGraphShortest) -> @relation_schema.FieldName?
-
 pub fn graph_subgraph_edge_predicate(PreparedGraphSubgraph) -> Expression?
 
 pub fn graph_subgraph_has_edge_predicate(PreparedGraphSubgraph) -> Bool
@@ -1269,15 +1241,6 @@ pub(all) enum GraphMatchLiteralSelection {
   SelectAllEntities
 } derive(Eq, @debug.Debug)
 
-pub(all) enum GraphShortestIssue {
-  InvalidGraphShortestLimits
-  InvalidGraphShortestWiring
-  GraphShortestPreparationLimit
-  MissingGraphShortestParameter(String)
-  InvalidGraphShortestParameter(String)
-  GraphShortestExpression(ExpressionIssue)
-}
-
 pub(all) enum GraphSubgraphIssue {
   InvalidGraphSubgraphLimits
   InvalidGraphSubgraphWiring
@@ -1479,7 +1442,6 @@ pub enum Payload {
   GraphMatchRows(@graph_typing.CheckedMatch)
   GraphSubgraphValue(@graph_typing.CheckedSubgraph)
   GraphTraverseRows(@graph_typing.CheckedTraverse)
-  GraphShortestRows(@graph_typing.CheckedShortest)
   PropertyGraphConstructionValue(@graph_typing.CheckedPropertyConstruction)
   VectorValue(@vector_typing.CheckedVector)
   NearestValue(@relation_evidence.CheckedNearest)
@@ -1553,8 +1515,6 @@ pub(all) enum PreparedFrameBoundary {
 type PreparedGraphBasic
 
 type PreparedGraphMatch
-
-type PreparedGraphShortest
 
 type PreparedGraphSubgraph
 
@@ -1633,7 +1593,6 @@ pub enum PreparedStep {
   GraphMatchStep(PreparedGraphMatch)
   GraphSubgraphStep(PreparedGraphSubgraph)
   GraphTraverseStep(PreparedGraphTraverse)
-  GraphShortestStep(PreparedGraphShortest)
   PropertyGraphConstructionStep(PreparedPropertyGraphConstruction)
   VectorStep(PreparedVector)
   EventStep(PreparedEvent)
@@ -1725,7 +1684,6 @@ pub(all) enum SequenceIssue {
   GraphMatchFailure(Int, GraphMatchIssue)
   GraphSubgraphFailure(Int, GraphSubgraphIssue)
   GraphTraverseFailure(Int, GraphTraverseIssue)
-  GraphShortestFailure(Int, GraphShortestIssue)
   GraphConstructionFailure(Int, GraphConstructionIssue)
   VectorFailure(Int, VectorIssue)
   EventFailure(Int, EventIssue)

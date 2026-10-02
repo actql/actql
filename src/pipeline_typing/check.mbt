@@ -813,13 +813,12 @@ fn check_impl(
         Ok(o) => o
         Err(_) => fail(operation_body, InvalidBody)
       }
-      let selectors : Array[Target?] = []
       for name in ["source", "target"] {
         let at = match @decode.required(root, name) {
           Ok(c) => c
           Err(_) => fail(operation_body, InvalidBody)
         }
-        let selector = if @decode.view(at) is ObjectValue(_) {
+        let _ = if @decode.view(at) is ObjectValue(_) {
           let o = match
             @decode.closed_object(at, ["ids", "from", "id", "where"]) {
             Ok(o) => o
@@ -829,67 +828,15 @@ fn check_impl(
         } else {
           None
         }
-        selectors.push(selector)
       }
-      let checked = match
-        @graph.check_shortest(
-          operation_body,
-          carrier(input, inputs, steps),
-          selectors[0].map(t => carrier(t, inputs, steps)),
-          selectors[1].map(t => carrier(t, inputs, steps)),
-          parameters,
-          {
-            max_work: b.work,
-            max_nodes: b.nodes,
-            max_depth: limits.max_depth,
-            max_text_bytes: b.text,
-            max_tokens: b.tokens,
-          },
-        ) {
-        Ok(c) => c
-        Err(e) => {
-          let d = @graph.match_diagnostic(e, operation_body)
-          raise Stop({
-            kind: GraphMatch(d.kind),
-            source: operation_body,
-            path: d.path.copy(),
-            span: d.span,
-            range: d.range,
-          })
-        }
+      match carrier(input, inputs, steps) {
+        @carrier.GraphValue(_) =>
+          fail(operation_body, Graph(@graph.UnsupportedGraphOperation))
+        @carrier.Opaque(GraphKind) =>
+          fail(operation_body, Graph(@graph.IncompleteGraph))
+        other =>
+          fail(operation_body, Graph(@graph.WrongCarrier(@carrier.kind(other))))
       }
-      let u = @graph.shortest_usage(checked)
-      b.work -= u.work
-      b.nodes -= u.nodes
-      b.text -= u.text_bytes
-      b.tokens -= u.tokens
-      let entries = [{ role: Primary, target: input, }]
-      if selectors[0] is Some(t) {
-        entries.push({ role: Left, target: t, })
-      }
-      if selectors[1] is Some(t) {
-        entries.push({ role: Right, target: t, })
-      }
-      let target = Step(steps.length())
-      steps.push({
-        source: body,
-        input: Some(input),
-        binding_name,
-        metadata: meta,
-        operation: Shortest(
-          source_selector=selectors[0],
-          target_selector=selectors[1],
-          checked~,
-        ),
-        output: @graph.shortest_output(checked),
-        connections: { entries, },
-        window: None,
-      })
-      if binding_name is Some(name) {
-        names[name] = target
-      }
-      current = Some(target)
-      continue
     }
     if key == "reach" {
       let root = match
@@ -1888,16 +1835,6 @@ fn check_impl(
         Values(_) | TimeSeries(_) => []
         Calendar(_) | Pool(_) | Ranking(_) =>
           [{ role: Primary, target: input, }]
-        Shortest(source_selector~, target_selector~, ..) => {
-          let entries = [{ role: Primary, target: input, }]
-          if source_selector is Some(t) {
-            entries.push({ role: Left, target: t, })
-          }
-          if target_selector is Some(t) {
-            entries.push({ role: Right, target: t, })
-          }
-          entries
-        }
         Subgraph(selector~, ..) | Traverse(selector~, ..) => {
           let entries = [{ role: Primary, target: input, }]
           if selector is Some(t) {

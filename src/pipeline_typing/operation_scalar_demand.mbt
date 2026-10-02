@@ -169,21 +169,6 @@ pub fn operation_scalar_demand(
         | ResolveTraversalProfile
         | ResolvePropertyGraphTraversalProfile => None
       }
-    ShortestRequirement(v) =>
-      match v {
-        BindShortestOutputGuard(name) => Some(SafeInteger(name, minimum=1L))
-        AdmitShortestGraph
-        | RequireEndpointMembership
-        | ValidateAllNonnegativeFiniteWeights
-        | FoldPathCostsWithOverrange
-        | RejectSelectedOverrangeAtomically
-        | SelectSimpleHopBoundedPaths
-        | ApplyCanonicalPathTieBreaks
-        | CanonicalShortestOutputOrder
-        | EnforceShortestOutputGuard
-        | ResolveShortestResources
-        | ResolveShortestProfile => None
-      }
     AppendRequirement(_)
     | SetRequirement(_)
     | ValuesRequirement(_)

@@ -1009,3 +1009,65 @@ projection routes, external Source/Host fixtures, strict inventories and
 published-SHA fresh packed/CI acceptance remain open. These local results do
 not make the old public #164 HEAD adoptable and do not close the previous
 full-Core diagnostic.
+
+## Retired shortest-path removal and current TRAIL guard custody
+
+The old shortest checker/type, endpoint/selection types, obligation owner and
+groups, prepared node/emitter, resource/semantic closure and all lowering and
+driver arms are removed. The public authored operation still performs bounded
+closed-body and endpoint-reference checks. A current Graph is explicitly
+rejected with `UnsupportedGraphOperation`; missing Graph knowledge and wrong
+Carrier kinds remain distinguishable. A nonexistent selector is not silently
+accepted. No checked shortest operation can issue executable output.
+
+The former dedicated capacity test now uses current TRAIL. It retains the exact
+seven-unit checking boundary, one-short rejection, separate search/output
+ceilings, original guard occurrence/pipeline/policy custody, foreign guard
+rejection and complete-application coverage. Guard values 1, 7 and 20 do not
+change the independent path ceiling. The shared upper fixture no longer has an
+old shortest-construction switch.
+
+The formal guard and Unit conversion tests also now construct the current
+typed Graph and TRAIL with the independently derived N identity above.
+Positive literal and Parameter guards, three imported visits, before-output
+enforcement custody, two distinct synthetic Unit namespaces, exact/one-short
+work/byte/node conversion budgets and foreign occurrence rejection remain
+executable. The existing expected limit CIDs were retained, not updated from
+product output: the policy and traversal scope preimages did not change.
+
+An independent Node SHA-256 calculation constructs the fixed policy fields
+(all ceilings 1000, except the selected output ceiling), Host and author-guard
+witnesses, sorted candidate lists and Unit-scoped resolved limits without
+importing ActQL. It verifies all four namespace/output-ceiling pairs and the
+three guarded literals. The fixed policy CIDs are
+`sha256:2708864ce4629856aca01376b7f6641f6c177484e4afa8cbb5a2e67082b5f5e8`
+(output ceiling 1) and
+`sha256:b2c843e5b5c83761dae40dc6afe9a364864c3f683a1c20e4e5ed4bd538d904a9`
+(output ceiling 1000).
+The independent reproduction and complete preimages are preserved at
+`/private/tmp/property-graph-trail-limit-independent-20261003.mjs` and
+`/private/tmp/property-graph-trail-limit-independent-20261003.jsonl`.
+
+Shortest-specific endpoint pairing, weighting and tie-break tests are
+withdrawn with their implementation, not relabelled as current support.
+Shared checked multiplication still retains safe-integer/zero/overflow
+regressions; nearest-selection shortcuts are removed. The bound-law registry's
+declared law metadata is unchanged and does not grant a shortest execution
+route. External Source-dependent publication custody and the remaining
+unconnected node-emission bound path are still open; the positive Values
+fixture does not claim to close them.
+
+The first narrow run exposed an extra closing brace in the removal patch,
+which was corrected. The first wider invocation named a nonexistent order
+test file; the corrected invocation then exposed missing test-only IssueKind
+annotations. Explicit annotations were added without changing product
+classification or weakening expectations. The final surrounding regression
+suite passes **53/53 on each JS, Wasm and native**:
+`/private/tmp/property-graph-shortest-regression-{js-final,wasm,native}-20261003.log`.
+Intentional interface removals were generated on all three targets.
+
+Basic/subgraph checked consumers, homogeneous metadata/projection routes,
+external Source/Host fixtures, strict inventories and submitted-SHA public
+snapshot/fresh packed/CI acceptance remain open. The earlier aggregate Core
+diagnostic is not replaced by this narrow success, and public #164 is not yet
+adoptable.

@@ -62,8 +62,6 @@ fn derive_traversal_limits(
         @pipeline.step_at(pipeline, step).unwrap().operation {
         @pipeline.Traverse(..) =>
           ("traverse", Some("actql.bound.traverse-nodes"))
-        @pipeline.Shortest(..) =>
-          ("shortest_path", Some("actql.bound.shortest-path"))
         _ => continue
       }
       let subject = operation + ":checked-step:" + step.to_string()
