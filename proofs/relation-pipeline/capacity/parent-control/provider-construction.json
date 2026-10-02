@@ -1,0 +1,85 @@
+{
+  "version": "actql-native-provider-construction/0.1",
+  "providers": [
+    {
+      "name": "selected_relation_provider",
+      "path": "src/connectors/local/selected_relation_provider.mbt",
+      "sourceDigest": "ce24eedf13170a1fd5e63a71d8d19e673f76c969b1c9e8613e9402d6f7a44a50",
+      "binding": "managed_provider_with_numeric"
+    },
+    {
+      "name": "cross_join_provider",
+      "path": "src/connectors/local/cross_join_provider.mbt",
+      "sourceDigest": "5e97a162cbdfd269f080e307ee8d83acea6d3dd8dc45109111bc0ba3038a8504",
+      "binding": "managed_provider"
+    },
+    {
+      "name": "append_provider",
+      "path": "src/connectors/local/append_provider.mbt",
+      "sourceDigest": "bab2e85f63fc65be964d947a7711fdec8f2cfffb7475b40732b9c022a7a65e0f",
+      "binding": "managed_provider"
+    },
+    {
+      "name": "set_provider",
+      "path": "src/connectors/local/set_provider.mbt",
+      "sourceDigest": "8f97716b1ab6daa3319b8171e553f0b9d6f6fa4e14f6102e247b5c1d6da959f6",
+      "binding": "managed_provider"
+    },
+    {
+      "name": "nest_provider",
+      "path": "src/connectors/local/nest_provider.mbt",
+      "sourceDigest": "31a31d52d9d2b19a98d88143ce29246f06bf504ce7a1ccc9556c6b0e0166c1eb",
+      "binding": "managed_provider"
+    },
+    {
+      "name": "global_count_provider",
+      "path": "src/connectors/local/global_count_provider.mbt",
+      "sourceDigest": "0bea3843025c495c8b292e463aa5659af155ce86c50f6425b0f5edbc4c86edbc",
+      "binding": "managed_provider_with_inputs"
+    },
+    {
+      "name": "group_provider",
+      "path": "src/connectors/local/group_provider.mbt",
+      "sourceDigest": "d9450f48ff2fa87f42e496e0fc8385f8e384d5327cbf71fae62afd9930504a40",
+      "binding": "managed_provider_with_numeric"
+    },
+    {
+      "name": "row_window_provider",
+      "path": "src/connectors/local/row_window_provider.mbt",
+      "sourceDigest": "e59f475513cade43547c45f990c29126a5e55ee5643c92b0d30f74ed6770de1b",
+      "binding": "managed_provider_with_inputs"
+    },
+    {
+      "name": "unpivot_provider",
+      "path": "src/connectors/local/unpivot_provider.mbt",
+      "sourceDigest": "8022ae1076ac075dd7ed061ab8b3f1008b31c9dfcf11a2e65eff2070b50aee20",
+      "binding": "managed_provider_with_inputs"
+    },
+    {
+      "name": "unnest_provider",
+      "path": "src/connectors/local/unnest_provider.mbt",
+      "sourceDigest": "1c4054924f8db5bb0a4c8a9613ac2e7e283ffa657722fe1902be1c233872d65a",
+      "binding": "managed_provider_with_inputs"
+    },
+    {
+      "name": "values_provider",
+      "path": "src/connectors/local/values_provider.mbt",
+      "sourceDigest": "1cd214806cd6692fbe502b42a94c8d730b6b033c5db6adf957f63e0ffcf39d8f",
+      "binding": "managed_provider"
+    }
+  ],
+  "sourcePremises": {
+    "src/connectors/local/managed_provider.mbt": "8d00f3fb875d1523796a13ae5ac67906fb16f9ee64f67cd85205bc0544ca3f2e",
+    "src/execution_relation/generated_sequence.mbt": "3a2c83c19c767b0f160afde6b85fe84ab87e3a0a391dc95a52be98edae760981"
+  },
+  "bounds": {
+    "providerRecords": 11,
+    "callbacksPerProvider": 4,
+    "callbackReferenceCaptures": 3,
+    "defaultFamilyArrays": 1,
+    "candidateArraySlots": 11
+  },
+  "scope": "one simultaneous eleven-candidate Relation selection construction; borrowed configuration and callback execution excluded",
+  "completeParentUpper": false,
+  "completePipelineUpper": false
+}

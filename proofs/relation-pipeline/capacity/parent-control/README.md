@@ -124,10 +124,59 @@ Current phase identities establish point-in-time sharing only, not allocation
 epochs or a complete lifetime union across possible address reuse.
 
 The implementation correspondence is deliberately incomplete for the whole
-parent. In particular, the driver keeps its provider handle after cleanup, so
-immutable parent callbacks and Refs can remain reachable. Cleanup success does
-not establish physical destruction or correct retirement of their reservation.
-That custody/retirement correspondence remains a separate unresolved role.
+parent. The separate scratch-custody change keeps the reservation through
+pending/error cleanup and drops the stopped provider after successful cleanup.
+Its real-chain probe is documented in [CUSTODY.md](CUSTODY.md); the core snapshots
+above do not prove that change. Accepted-output last-holder custody remains
+unresolved. Cleanup success does not establish physical destruction.
+
+### Conditional candidate-construction component
+
+The selection loop evaluates all eleven provider factories before testing the
+first candidate. `provider-construction.json` pins their source, order and
+compatibility wrappers independently of execution observations. Under the
+declared native representation/capture premises, one batch has this upper bound:
+
+| Source-owned group | Requested bytes |
+| --- | ---: |
+| Eleven four-reference provider records | `11 * 40` |
+| At most four callbacks per provider, including compatibility wrappers | `44 * 40` |
+| Eleven-slot literal Array owner and backing | `24 + 8 + 11 * 8 = 120` |
+| One default empty family Array owner; static empty backing | `24` |
+| Conditional batch envelope | **2344** |
+
+A callback includes an eight-byte code pointer and at most three pointer-sized
+captures, plus the eight-byte header. Static callbacks contribute no new
+allocation; shared callback identities are counted once. Optional callbacks
+must use the pinned nullable representation without another allocated wrapper.
+Limits, measurement and caller configuration are borrowed and remain charged
+to their original owners; their own transitive allocations are not discharged
+by this component. New callback execution state is also outside this batch.
+
+The borrowed C reader visits the actual candidate container, distinct records,
+callback capture graph and default family Array. It rejects unfamiliar dynamic
+captures, and records scalar callback counts separately: their request size is
+not encoded by the GC descriptor. It stores identities only on the synchronous C stack and adds
+no RC or persistent holder. The overlay names the existing literal before the
+same acceptance loop; it does not reconstruct a parallel set of providers.
+Its log and executed binary are covered by the same independent receipt as the
+parent probe. The largest observed batch is supporting finite evidence, not
+the definition of the 2344 bound. The dynamic scalar callback payload ceiling
+is an explicit source/compiler premise. Read-only Darwin AOT inspection of the
+cross-join constructor confirms two code-pointer-only eight-byte requests; it
+does not establish every constructor or Linux allocation site. Until that
+correspondence is complete, `completeConstructorByteCorrespondence` and
+`scalarPayloadBytesObserved` remain false. Scalar objects remain in the bound's
+scope; they are not removed to make the observed subtotal fit.
+
+`ProviderConstruction.lean` proves the conditional component sum and reuses
+`RelationCapacity.charge_union` to compose it with the retained core. A unique
+allocation registry and the actual live predicates count a shared identity once;
+component coverage and sizes remain explicit premises. It does not establish that the same bounds cover
+all constructor lifetimes or simultaneous child, binding and poll allocations.
+This source/ABI-conditional native claim cannot be reused as a JS/Wasm byte
+bound or a complete parent/pipeline guarantee. Changed source, detached recipe,
+missing observations and an unsupported unconditional claim are rejected.
 
 The 616 subtotal is a lower bound, not the measured maximum reused as an upper
 bound. A replacement sizing rule still needs a source-derived upper bound for
