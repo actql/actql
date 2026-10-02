@@ -30,7 +30,12 @@ fields in its options object. The profile contains credential references, not
 access tokens. Reconnecting an embedded Host root with an equivalent profile,
 generation and account configuration reuses its owner; a changed installation
 is refused instead of silently attaching to the old Host. The installed
-Effect and installed source profiles cannot be selected together in 0.1.
+Source and Effect profiles can be selected together after both publications
+are installed in the same Host root; shared connector bindings must match and
+read/commit authorization remains separate. The bounded acquired
+Read→Compute→Effect profile also supports approval and restart, with an
+immediate read decision and one installed Source. See the
+[installation and recovery evidence](../../docs/reviews/current-product-status.md#source-and-effect-installation).
 
 Preparation, compilation, and Run evidence issuance retain the same checked
 owner in the installed runtime. Local does not load a second Run Host Core
