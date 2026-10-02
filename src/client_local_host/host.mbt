@@ -158,6 +158,8 @@ fn open_checked_local_host(
     @local.ManagedProvider,
   ] = _ => [],
   retained_output? : Bool = false,
+  captured_sources? : Array[(Int, @query.CapturedInputSource)] = [],
+  acquisition_ledger? : @resources.Ledger? = None,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   if registry_body.length() > 100000 ||
     values_body.length() > 100000 ||
@@ -183,37 +185,23 @@ fn open_checked_local_host(
     Some(value) => value
     None => return None
   }
-  let first_compute = if source is None { 0 } else { 1 }
+  let first_compute = if !captured_sources.is_empty() {
+    if source is Some(_) ||
+      captured_sources.length() != 2 ||
+      acquisition_ledger is None {
+      return None
+    }
+    2
+  } else if source is None {
+    0
+  } else {
+    1
+  }
   let compute_sequences : Array[@execution.GeneratedSequence] = []
   for task in first_compute..<generated.length() {
     compute_sequences.push(generated[task])
   }
-  // Value budgets over one task input: the text one acquisition captures
-  // (500 KB) and a value node for every cell of 100 rows by 100 columns.
-  let values : @execution.ValueLimits = {
-    max_nodes: 20000,
-    max_text_bytes: 500000,
-    max_depth: 100,
-    max_work: 20000000,
-  }
-  let execution : @execution.SequenceExecutionLimits = {
-    rows: {
-      max_rows: 100,
-      metadata_entries: 10000,
-      retained_entries: 10000,
-      operation_entries: 10000,
-      input_values: values,
-      output_values: values,
-    },
-    max_work: values.max_work,
-    max_frames: 100,
-  }
-  let measurement : @execution.FixedInputGuardMeasureLimits = {
-    max_work: values.max_work,
-    max_bytes: values.max_text_bytes,
-    max_nodes: values.max_nodes,
-    max_depth: values.max_depth,
-  }
+  let (values, execution, measurement) = client_local_execution_limits()
   let mut retained_bytes = 0L
   let mut execution_bytes = 0L
   let mut total_retained_bytes = 0L
@@ -254,13 +242,21 @@ fn open_checked_local_host(
     // envelope and cap concurrent execution reservations at 512 MiB.
     execution_bytes: 536870912L,
   }
-  let opened = match source {
-    None =>
-      @publication_host.open_prepared_source_free_client_run(prepared, limits)
-    Some(captured) =>
-      @publication_host.open_prepared_captured_client_run(
-        prepared, captured, limits,
-      )
+  let opened = if captured_sources.length() == 2 {
+    @strategy.open_multi_captured_dag(
+      @publication_host.prepared_client_graph(prepared),
+      captured_sources,
+      acquisition_ledger.unwrap(),
+    ).map_err(issue => @publication_host.ClientRunOpenIssue::Run(issue))
+  } else {
+    match source {
+      None =>
+        @publication_host.open_prepared_source_free_client_run(prepared, limits)
+      Some(captured) =>
+        @publication_host.open_prepared_captured_client_run(
+          prepared, captured, limits,
+        )
+    }
   }
   let run = match opened {
     Ok(value) => value
@@ -424,9 +420,9 @@ fn open_checked_local_host(
       modules, registry, capacity, 100, 10000, 1,
     ) {
     Ok(value) => {
-      if source is Some(_) {
+      if first_compute == 1 {
         let fractions = Array::make(
-          @strategy.graph_task_count(graph) - 1,
+          @strategy.graph_task_count(graph) - first_compute,
           Some(1000),
         )
         match
@@ -444,11 +440,12 @@ fn open_checked_local_host(
           Ok(_) => ()
           Err(_) => return reject_client_local_run(run)
         }
-      } else if retained_output {
-        // The root has no observed Acquisition statistics. Use installed
-        // offers with unknown quantities and existing common selection.
+      } else if retained_output || first_compute == 2 {
+        // Source-free and bounded multiple-root Hosts use the existing
+        // installed offers and common selection. Do not pretend that one
+        // capture's statistics describe all independent input roots.
         let offers = []
-        for task in 0..<task_count {
+        for task in first_compute..<task_count {
           let proposed = match
             @local_driver.estimate_local_installed_offers(installed, task, {
               rows: None,
@@ -489,4 +486,36 @@ fn open_checked_local_host(
     }
     Err(_) => reject_client_local_run(run)
   }
+}
+
+///|
+/// Two independent captures enter the same existing Local Compute owner.
+/// Their exact NativePhysical holdings remain in the supplied Run ledger.
+pub fn open_multi_captured_local_host(
+  prepared : @publication_host.PreparedClientProgram,
+  sources : Array[(Int, @query.CapturedInputSource)],
+  ledger : @resources.Ledger,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  provider_factory? : (@execution.ExecutionCapacity) -> Array[
+    @local.ManagedProvider,
+  ] = _ => [],
+) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
+  open_checked_local_host(
+    prepared,
+    None,
+    registry_body,
+    values_body,
+    1L,
+    0L,
+    0L,
+    0L,
+    fragment_body~,
+    ordered_body~,
+    provider_factory~,
+    captured_sources=sources,
+    acquisition_ledger=Some(ledger),
+  )
 }

@@ -32,6 +32,7 @@ const MAX_PAGE = 100;
 const PAGE = 100;
 const LOOKUP_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const TERMINAL_RUNS = new Set(['succeeded', 'failed', 'cancelled']);
+const MULTI_SOURCE_SUBMISSION = 'actql-remote-multi-source-submission/0.1';
 
 function coded(code, detail) {
   return Object.assign(new Error(code, detail === undefined ? undefined
@@ -41,6 +42,32 @@ const fail = (code, detail) => { throw coded(code, detail); };
 const without = (value, ...keys) => Object.fromEntries(
   Object.entries(value).filter(([key]) => !keys.includes(key)));
 const hex = value => createHash('sha256').update(value).digest('hex');
+
+// This is an installed Host-private bounded capture, not a new Run schema.
+// A plural capture is never inferred by reinterpreting the singular field.
+function acquisitionsOf(captured) {
+  if (captured.version !== MULTI_SOURCE_SUBMISSION) {
+    if (captured.acquisitions !== undefined) fail('HeldAcquisitionChanged');
+    return captured.acquisition === undefined ? [] : [captured.acquisition];
+  }
+  if (captured.acquisition !== undefined ||
+      !Array.isArray(captured.acquisitions) ||
+      captured.acquisitions.length !== 2 ||
+      captured.acquisitions.some((item, index) =>
+        item?.stage !== index || item.input !== 0 || item.task !== index ||
+        typeof item.checkedSource?.requirementCid !== 'string' ||
+        typeof item.checkedSource?.sourceRef !== 'string' ||
+        item.readTuple?.operation !== 'read' ||
+        item.physicalBinding === undefined)) {
+    fail('HeldAcquisitionChanged');
+  }
+  return captured.acquisitions;
+}
+const occurrenceIdentity = occurrence => ({stage: occurrence.stage,
+  input: occurrence.input, task: occurrence.task,
+  requirement_cid: occurrence.checkedSource.requirementCid});
+const occurrenceKey = occurrence => occurrence.stage === undefined
+  ? 'singular' : canonicalJson(occurrenceIdentity(occurrence));
 
 function trustedReviewers(reviewers) {
   if (!Array.isArray(reviewers) || reviewers.length === 0) {
@@ -78,13 +105,22 @@ function principals(values, code) {
 // {accountConfiguration, context}. With it, a request whose Program acquires
 // that source is decided for the Host-resolved read tuple before any Run or
 // provider I/O exists, and a delegated read is held like Run acceptance.
+// `sources` is the plural installation alternative: sourceRef selects only
+// authorization configuration; captured reads remain occurrence/task-bound.
 export async function installRemoteCheckpoints({root, namespaceId,
   authorityScopeCid, ownerPrincipal, siteKey, realizationKey,
-  environmentCid, contractControl, authorization, source,
+  environmentCid, contractControl, authorization, source, sources,
   now = () => Date.now()}) {
   if (authorization === undefined) return undefined;
   if (authorization === null || typeof authorization !== 'object') {
     fail('InvalidRemoteHostAuthorization');
+  }
+  if (sources !== undefined && (source !== undefined ||
+      !Array.isArray(sources) || sources.length < 1 || sources.length > 2 ||
+      sources.some(item => typeof item?.sourceRef !== 'string' ||
+        item.sourceRef.length === 0) ||
+      new Set(sources.map(item => item.sourceRef)).size !== sources.length)) {
+    fail('InvalidRemoteHostSources');
   }
   const {accountConfig, accountConfiguration, reviewers, reviewReaders,
     hostKey, decide, answeringAuthorities, effectRequiredClaims = [],
@@ -139,16 +175,53 @@ export async function installRemoteCheckpoints({root, namespaceId,
   // configuration and context (the same one its adapter rechecks before
   // provider I/O). Without a decision function or deferral a delegated read
   // is unsupported here, so this gate is also the current-authority check.
-  const sourceGate = source === undefined ? undefined :
-    await createLocalAuthorizationGate({
-      accountConfiguration: source.accountConfiguration,
-      context: source.context, ...decisionOptions});
+  const installedSources = [];
+  for (const installed of sources ?? (source === undefined ? [] : [source])) {
+    // Preserve the singular installation owner's original validation and
+    // journal-custody ordering. The new plural inventory is copied once.
+    const context = sources === undefined ? undefined : installed.context;
+    const configuration = sources === undefined ? installed : Object.freeze({
+      sourceRef: installed.sourceRef,
+      accountConfiguration: installed.accountConfiguration,
+      ...(context === undefined ? {} : {context: Object.freeze({...context})}),
+    });
+    installedSources.push({configuration,
+      gate: await createLocalAuthorizationGate({
+        accountConfiguration: configuration.accountConfiguration,
+        context: configuration.context, ...decisionOptions})});
+  }
+  const sourceGate = sources === undefined ? installedSources[0]?.gate
+    : undefined;
+  function installedSource(occurrence) {
+    const installed = sources === undefined ? installedSources[0]
+      : installedSources.find(item => item.configuration.sourceRef ===
+        occurrence.checkedSource.sourceRef);
+    if (installed === undefined) fail('HeldAcquisitionChanged');
+    return installed;
+  }
+  function captureInventory(captured) {
+    const inventory = acquisitionsOf(captured);
+    if (captured.version === MULTI_SOURCE_SUBMISSION && sources === undefined) {
+      fail('HeldAcquisitionChanged');
+    }
+    if (installedSources.length > 0) {
+      for (const occurrence of inventory) installedSource(occurrence);
+    }
+    return inventory;
+  }
   const binding = Object.freeze({
     authorizationContextCid: contentCid({principal: ownerPrincipal,
       account_id: gate.accountId ?? null,
       configuration_cid: gate.configurationCid ?? 'missing',
       // A changed source configuration also revalidates held requests.
-      source_configuration_cid: sourceGate?.configurationCid ?? null}),
+      source_configuration_cid: sourceGate?.configurationCid ?? null,
+      ...(sources === undefined ? {} : {source_authorization_bindings:
+        installedSources.map(({configuration, gate: read}) => ({
+          source_ref: configuration.sourceRef,
+          configuration_cid: read.configurationCid ?? null,
+          context_cid: read.contextCid,
+        })).sort((left, right) => left.source_ref < right.source_ref ? -1 : 1)}),
+    }),
     environmentBindingCid: contentCid({version:
       'actql-remote-run-acceptance-environment/0.1', site_key: siteKey,
     realization_key: realizationKey, environment_cid: environmentCid,
@@ -265,12 +338,13 @@ export async function installRemoteCheckpoints({root, namespaceId,
     deferral: {journal,
       authorities, binding,
       describe() { fail('ResumeDoesNotDefer'); }}});
-  const readResumeGate = source === undefined ? undefined :
-    await createLocalAuthorizationGate({
-      accountConfiguration: source.accountConfiguration,
-      context: source.context, ...decisionOptions,
+  for (const installed of installedSources) {
+    installed.resumeGate = await createLocalAuthorizationGate({
+      accountConfiguration: installed.configuration.accountConfiguration,
+      context: installed.configuration.context, ...decisionOptions,
       deferral: {journal, authorities, binding,
         describe() { fail('ResumeDoesNotDefer'); }}});
+  }
   // The read approval admitted immediately before a held request's physical
   // start, for the source adapter's current-authority check that follows in
   // the same process (after a restart a started acquisition is only
@@ -393,13 +467,17 @@ export async function installRemoteCheckpoints({root, namespaceId,
   // captured submission, the Host-checked source and the Host-resolved read
   // tuple. It is not a Prepared Invocation: the formal invocation depends on
   // the later source observation and is issued by its owner after it.
-  const acquisitionIntent = (requestCid, captured) => ({
-    version: 'actql-remote-acquisition-intent/0.1',
+  const acquisitionIntent = (requestCid, captured, occurrence) => ({
+    version: captured.version === MULTI_SOURCE_SUBMISSION
+      ? 'actql-remote-multi-source-acquisition-intent/0.1'
+      : 'actql-remote-acquisition-intent/0.1',
     request_cid: requestCid,
     captured_submission_cid: contentCid(captured),
-    checked_source: captured.acquisition.checkedSource,
-    read_tuple: captured.acquisition.readTuple,
-    physical_binding: captured.acquisition.physicalBinding,
+    ...(captured.version === MULTI_SOURCE_SUBMISSION
+      ? {occurrence: occurrenceIdentity(occurrence)} : {}),
+    checked_source: occurrence.checkedSource,
+    read_tuple: occurrence.readTuple,
+    physical_binding: occurrence.physicalBinding,
   });
 
   // The durable deferral of a request's source read (`read_access`,
@@ -408,21 +486,22 @@ export async function installRemoteCheckpoints({root, namespaceId,
   // `earlier` names the approvals this attempt already holds (checked again
   // on their own before the start).
   function readDeferralFor({prepareAttemptId, request, requestCid, captured,
-    answering, port, earlier = []}) {
+    occurrence, answering, port, earlier = []}) {
+    const {gate: readGate} = installedSource(occurrence);
     return {
       journal: port,
       authorities,
       binding,
       async describe(view) {
-        const intent = acquisitionIntent(requestCid, captured);
+        const intent = acquisitionIntent(requestCid, captured, occurrence);
         const intentCid = contentCid(intent);
         const created = now();
         const expiresAt = new Date(created + checkpointTtlMs).toISOString();
         const projection = {
           version: 'actql-run-review-projection/0.1',
           prepared_invocation_cid: intentCid,
-          execution_context_cid: sourceGate.contextCid,
-          host_policy_cid: sourceGate.configurationCid,
+          execution_context_cid: readGate.contextCid,
+          host_policy_cid: readGate.configurationCid,
           approval_claims: ['invocation_scope_approved'],
           authoring_context_cid: contentCid({principal: captured.principalId,
             request_id: captured.requestId}),
@@ -439,9 +518,11 @@ export async function installRemoteCheckpoints({root, namespaceId,
             document: captured.kind === 'aql' ? captured.input.text
               : captured.input,
             parameters: captured.parameters,
-            source: captured.acquisition.checkedSource,
-            read_tuple: captured.acquisition.readTuple,
-            physical_binding: captured.acquisition.physicalBinding,
+            source: occurrence.checkedSource,
+            read_tuple: occurrence.readTuple,
+            physical_binding: occurrence.physicalBinding,
+            ...(captured.version === MULTI_SOURCE_SUBMISSION
+              ? {occurrence: occurrenceIdentity(occurrence)} : {}),
           },
           displayed_authoring_context: [{principal: captured.principalId}],
         };
@@ -469,6 +550,8 @@ export async function installRemoteCheckpoints({root, namespaceId,
           delegated_subject: JSON.parse(JSON.stringify(view.subject)),
           answering_authorities: [...answering],
           earlier_approvals: [...earlier],
+          ...(captured.version === MULTI_SOURCE_SUBMISSION
+            ? {acquisition_occurrence: occurrenceIdentity(occurrence)} : {}),
           evidence: items.map(({name, wire}) =>
             evidence.reference(prepareAttemptId, name, wire)),
         };
@@ -481,7 +564,9 @@ export async function installRemoteCheckpoints({root, namespaceId,
           declaredResults: [...captured.resultNames],
           binding,
           body: {
-            checkpoint_id: `${prepareAttemptId}-acquisition`,
+            checkpoint_id: `${prepareAttemptId}-acquisition` +
+              (captured.version === MULTI_SOURCE_SUBMISSION
+                ? `-${hex(occurrenceKey(occurrence)).slice(0, 20)}` : ''),
             continuation_state_cid: continuationCid,
             subject: {kind: 'prepare_attempt',
               prepare_attempt_id: prepareAttemptId, continuation: 'start_run'},
@@ -489,7 +574,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
             required_artifact: {artifact_type: 'read_scope',
               artifact_cid: intentCid},
             review_projection_cid: reviewCid,
-            human_summary: `Read ${captured.acquisition.checkedSource.sourceRef}` +
+            human_summary: `Read ${occurrence.checkedSource.sourceRef}` +
               ` for request ${captured.requestId}`,
             created_at: new Date(created).toISOString(),
             expires_at: expiresAt,
@@ -503,20 +588,40 @@ export async function installRemoteCheckpoints({root, namespaceId,
   // account allows, denies or delegates; a delegated read is answered by the
   // Host's decision function or held through `port`.
   async function decideRead({prepareAttemptId, request, requestCid,
-    captured, port, earlier, signal}) {
+    captured, occurrence, port, earlier, signal}) {
+    const {configuration} = installedSource(occurrence);
     const answering = answeringAuthorities ??
       authorities.map(item => item.reviewerId);
-    const intentCid = contentCid(acquisitionIntent(requestCid, captured));
+    const intentCid = contentCid(acquisitionIntent(requestCid, captured,
+      occurrence));
     const deferring = await createLocalAuthorizationGate({
-      accountConfiguration: source.accountConfiguration,
-      context: source.context, ...decisionOptions, decide,
+      accountConfiguration: configuration.accountConfiguration,
+      context: configuration.context, ...decisionOptions, decide,
       answeringAuthorities: decide === undefined ? undefined : answering,
       deferral: readDeferralFor({prepareAttemptId, request, requestCid,
-        captured, answering, port, earlier})});
+        captured, occurrence, answering, port, earlier})});
     try {
       return await deferring.authorize('acquisition',
-        captured.acquisition.readTuple, {subjectCid: intentCid, signal});
+        occurrence.readTuple, {subjectCid: intentCid, signal});
     } finally { deferring.close(); }
+  }
+
+  function continuedOccurrence(captured, continuation) {
+    const inventory = captureInventory(captured);
+    if (captured.version !== MULTI_SOURCE_SUBMISSION) return inventory[0];
+    const identity = continuation.acquisition_occurrence;
+    const occurrence = identity === undefined ? undefined : inventory.find(
+      item => canonicalJson(occurrenceIdentity(item)) === canonicalJson(identity));
+    if (occurrence === undefined) fail('HeldAcquisitionChanged');
+    return occurrence;
+  }
+
+  function admittedRead(captured, occurrence, {checkpointCid,
+    earlier = [], prepareAttemptId} = {}) {
+    return Object.freeze({checkpointCid,
+      readTuple: occurrence.readTuple, acquisition: occurrence,
+      principalId: captured.principalId, earlier: [...earlier],
+      prepareAttemptId});
   }
 
   // The exact held evidence of one prepare attempt, from its ledger: the
@@ -546,7 +651,40 @@ export async function installRemoteCheckpoints({root, namespaceId,
         continuation.prepare_attempt_id !== prepareAttemptId) {
       fail('ArtifactIntegrityFailed');
     }
+    captureInventory(captured);
+    if (continuation.boundary === 'acquisition') {
+      const occurrence = continuedOccurrence(captured, continuation);
+      if (occurrence === undefined || contentCid(acquisitionIntent(
+        opened.requestCid, captured, occurrence)) !== contentCid(invocation)) {
+        fail('HeldAcquisitionChanged');
+      }
+    }
     return {continuation, captured, request};
+  }
+
+  // A later read Checkpoint retains the whole earlier approval chain in the
+  // same continuation evidence. Reconstruct occurrence grants from exact
+  // held records, never from a sourceRef cache or from the last answer alone.
+  async function earlierReadApprovals(prepareAttemptId, captured, earlier) {
+    const approved = new Map();
+    for (const checkpointCid of earlier) {
+      const view = journal.inspect(checkpointCid);
+      if (view?.prepareAttemptId !== prepareAttemptId) {
+        fail('HeldAcquisitionChanged');
+      }
+      if (view.kind !== 'read_access') continue;
+      const prior = await continuationOf(prepareAttemptId,
+        view.continuationStateCid);
+      if (contentCid(prior.captured) !== contentCid(captured)) {
+        fail('HeldAcquisitionChanged');
+      }
+      const occurrence = continuedOccurrence(captured, prior.continuation);
+      const key = occurrenceKey(occurrence);
+      if (approved.has(key)) fail('HeldAcquisitionChanged');
+      approved.set(key, admittedRead(captured, occurrence, {checkpointCid,
+        earlier, prepareAttemptId}));
+    }
+    return approved;
   }
   async function heldRequestId(prepareAttemptId) {
     const indexed = await indexedRequestId(prepareAttemptId);
@@ -736,16 +874,20 @@ export async function installRemoteCheckpoints({root, namespaceId,
     // source read (`read_access`), each decided for its own tuple.
     const resumedKind = journal.inspect(claimed.checkpointCid)?.kind;
     const readHeld = resumedKind === 'read_access';
-    if (readHeld && (readResumeGate === undefined ||
-        captured.acquisition === undefined)) {
+    const inventory = captureInventory(captured);
+    const resumedOccurrence = readHeld
+      ? continuedOccurrence(captured, continuation) : undefined;
+    if (readHeld && (installedSources.length === 0 ||
+        resumedOccurrence === undefined)) {
       await host.abandon(captured);
       end('failed');
       return 'done';
     }
-    // Approvals this attempt answered earlier (Run acceptance before a read)
-    // are each checked on their own at the Host trusted time.
+    // Every earlier approval is still required, including Run acceptance and
+    // the other source occurrence, at this Host's trusted time.
+    const earlier = [...(continuation.earlier_approvals ?? [])];
     const earlierCurrent = () => {
-      for (const checkpointCid of continuation.earlier_approvals ?? []) {
+      for (const checkpointCid of earlier) {
         if (journal.committedApprovalAt(checkpointCid).current !== true) {
           throw Object.assign(new Error('ApprovalExpired'),
             {code: 'ApprovalExpired'});
@@ -753,8 +895,8 @@ export async function installRemoteCheckpoints({root, namespaceId,
       }
     };
     const decision = readHeld
-      ? await readResumeGate.resume('acquisition',
-        captured.acquisition.readTuple, {
+      ? await installedSource(resumedOccurrence).resumeGate.resume('acquisition',
+        resumedOccurrence.readTuple, {
           subjectCid: continuation.invocation_cid,
           sealedSubjectCid: continuation.invocation_cid,
           resumption: {claim: {checkpointCid: claimed.checkpointCid, claim}},
@@ -774,24 +916,28 @@ export async function installRemoteCheckpoints({root, namespaceId,
       end('failed');
       return 'done';
     }
-    // Run acceptance approved for a Program that reads the installed
-    // source: its read is decided now, before any Run or provider I/O. A
-    // delegated read is held as this attempt's next Checkpoint (under the
-    // current claim) and resumes later on its own approval. An immediate
-    // Host permit is kept for this attempt's start, as for a new request.
-    let readPermit = false;
-    if (!readHeld && captured.acquisition !== undefined &&
-        sourceGate !== undefined) {
-      // The read decision gets a full lease; a claim that lapses meanwhile
-      // persists nothing and the next claim decides the read again.
+    const readApprovals = await earlierReadApprovals(prepareAttemptId,
+      captured, earlier);
+    const allApprovals = [...earlier, claimed.checkpointCid];
+    if (readHeld) {
+      readApprovals.set(occurrenceKey(resumedOccurrence), admittedRead(
+        captured, resumedOccurrence, {checkpointCid: claimed.checkpointCid,
+          earlier, prepareAttemptId}));
+    }
+    // Decide the complete ordered inventory before any provider I/O. A new
+    // delegated occurrence replaces this resume intent with its own durable
+    // Checkpoint in the existing journal. Ephemeral Host permits are decided
+    // again after restart; only actual held approvals are reconstructed.
+    if (installedSources.length > 0) for (const occurrence of inventory) {
+      if (readApprovals.has(occurrenceKey(occurrence))) continue;
       try { journal.renewResume(claim, leaseMs); }
       catch (error) {
         if (error?.code === 'ResumeClaimStale') return 'busy';
         throw error;
       }
       const read = await decideRead({prepareAttemptId, request,
-        requestCid: contentCid(request), captured,
-        earlier: [claimed.checkpointCid],
+        requestCid: contentCid(request), captured, occurrence,
+        earlier: allApprovals,
         port: {
           persistCheckpoint: ({body, authorities: reviewers, binding: bound,
             decisionSubjectCid, requestedClaims, configurationCid}) =>
@@ -801,8 +947,6 @@ export async function installRemoteCheckpoints({root, namespaceId,
           submitResolution: item => journal.submitResolution(item),
         }});
       if (read.action === 'waiting') return 'done';
-      // A lapsed or superseded claim sends nothing and ends nothing: the
-      // read Checkpoint was not persisted, and the intent is retried.
       if (read.error?.code === 'ResumeClaimStale' ||
           read.detail === 'ResumeClaimStale') return 'busy';
       if (read.action !== 'dispatch') {
@@ -810,7 +954,10 @@ export async function installRemoteCheckpoints({root, namespaceId,
         end('failed');
         return 'done';
       }
-      readPermit = read.basis === 'host_permit';
+      if (read.basis === 'host_permit') {
+        readApprovals.set(occurrenceKey(occurrence), admittedRead(captured,
+          occurrence, {earlier: allApprovals, prepareAttemptId}));
+      }
     }
     const admission = decision.admission;
     const identity = request.subject.logical_request_scope_cid;
@@ -837,27 +984,13 @@ export async function installRemoteCheckpoints({root, namespaceId,
           if (error?.code !== 'PriorAdmissionUnresolved') throw error;
           admission.reconcile(identity);
         }
-        // The source adapter's current-authority check right after the
-        // start reservation accepts this exact admitted read approval.
-        if (readHeld) {
-          admittedReads.set(captured.requestId, Object.freeze({
-            checkpointCid: claimed.checkpointCid,
-            readTuple: captured.acquisition.readTuple,
-            acquisition: captured.acquisition,
-            principalId: captured.principalId,
-            earlier: [...(continuation.earlier_approvals ?? [])],
-            prepareAttemptId}));
-        } else if (readPermit) {
-          // The Host's immediate read permit for this attempt: it holds
-          // only while the Run acceptance approval is current and the
-          // request is not cancelled, and ends with the dispatch.
-          admittedReads.set(captured.requestId, Object.freeze({
-            readTuple: captured.acquisition.readTuple,
-            acquisition: captured.acquisition,
-            principalId: captured.principalId,
-            earlier: [claimed.checkpointCid,
-              ...(continuation.earlier_approvals ?? [])],
-            prepareAttemptId}));
+        // Each adapter receives only its exact occurrence grant, bound to
+        // the complete captured pair and every still-current approval.
+        if (readApprovals.size > 0) {
+          admittedReads.set(captured.requestId, new Map([...readApprovals]
+            .map(([key, value]) => [key, Object.freeze({...value,
+              earlier: allApprovals.filter(cid => cid !== value.checkpointCid),
+            })])));
         }
       },
       // The intent completes with the Run right after its physical start is
@@ -1083,6 +1216,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     // definition exists. `dispatch`: continue; `held`: the durable held
     // reply; refusals throw with their ACTQL runtime code and record nothing.
     async acceptRun({requested, captured, signal}) {
+      captureInventory(captured);
       const prepareAttemptId = prepareAttemptIdOf(captured.requestId);
       const subject = requestSubject(requested);
       const request = {version: 'actql-remote-invocation-request/0.1',
@@ -1098,6 +1232,21 @@ export async function installRemoteCheckpoints({root, namespaceId,
         catch (error) { fail('HeldRequestEvidenceUnavailable', error); }
         if (ledger.requestCid !== requestCid) {
           fail('ClientRequestIntentConflict');
+        }
+        // The public request fingerprint does not describe Host-installed
+        // physical source bindings. A held plural request also matches its
+        // exact private acquisition inventory. Its original full capture
+        // remains authoritative; equivalent Program text is not a new intent.
+        if (['waiting_checkpoint', 'resuming'].includes(existing.status)) {
+          const captures = ledger.held('captured_input');
+          if (captures.length !== 1) fail('HeldAcquisitionChanged');
+          const original = await ledger.record('captured_input', captures[0]);
+          if ((captured.version === MULTI_SOURCE_SUBMISSION ||
+              original.version === MULTI_SOURCE_SUBMISSION) &&
+              contentCid(acquisitionsOf(original)) !==
+                contentCid(acquisitionsOf(captured))) {
+            fail('HeldAcquisitionChanged');
+          }
         }
         const reply = held(prepareAttemptId, captured.requestId);
         return reply === undefined ? {kind: 'run_created'}
@@ -1146,7 +1295,8 @@ export async function installRemoteCheckpoints({root, namespaceId,
     // delegated read is held as a `read_access` `prepare_attempt`
     // Checkpoint (the held reply); refusals throw and record nothing.
     async acceptAcquisition({requested, captured, signal}) {
-      if (captured.acquisition === undefined || sourceGate === undefined) {
+      const inventory = captureInventory(captured);
+      if (inventory.length === 0 || installedSources.length === 0) {
         return {kind: 'dispatch'};
       }
       const prepareAttemptId = prepareAttemptIdOf(captured.requestId);
@@ -1154,26 +1304,33 @@ export async function installRemoteCheckpoints({root, namespaceId,
       const request = {version: 'actql-remote-invocation-request/0.1',
         subject, subject_cid: contentCid(subject)};
       const requestCid = contentCid(request);
-      const decision = await decideRead({prepareAttemptId, request,
-        requestCid, captured, port: journal, signal});
-      if (decision.action === 'dispatch') {
-        // An immediate Host permit (not an account allow) is this request's
-        // one-time read grant for the adapter's current-authority check in
-        // this process; it is never persisted or reused elsewhere.
-        if (decision.basis === 'host_permit') {
-          admittedReads.set(captured.requestId, Object.freeze({
-            readTuple: captured.acquisition.readTuple,
-            acquisition: captured.acquisition,
-            principalId: captured.principalId, earlier: []}));
+      // Resolve every installed authorization before deciding any member.
+      // The Host's acquisition owner durably reserves the captured inventory
+      // before physical I/O when no Checkpoint is needed.
+      for (const occurrence of inventory) installedSource(occurrence);
+      const permits = new Map();
+      admittedReads.delete(captured.requestId);
+      for (const occurrence of inventory) {
+        const decision = await decideRead({prepareAttemptId, request,
+          requestCid, captured, occurrence, port: journal, signal});
+        if (decision.action === 'dispatch') {
+          // A Host permit is process-local and occurrence-specific. Never
+          // retain a partial pair if a later decision holds or refuses.
+          if (decision.basis === 'host_permit') {
+            permits.set(occurrenceKey(occurrence), admittedRead(captured,
+              occurrence));
+          }
+          continue;
         }
-        return {kind: 'dispatch'};
+        if (decision.action === 'waiting') {
+          return {kind: 'held', held: held(prepareAttemptId,
+            captured.requestId)};
+        }
+        await evidence.abandon(prepareAttemptId);
+        throw refusal(decision);
       }
-      if (decision.action === 'waiting') {
-        return {kind: 'held', held: held(prepareAttemptId,
-          captured.requestId)};
-      }
-      await evidence.abandon(prepareAttemptId);
-      throw refusal(decision);
+      if (permits.size > 0) admittedReads.set(captured.requestId, permits);
+      return {kind: 'dispatch'};
     },
 
     // The source access a request's acquisition uses. For a request whose
@@ -1182,9 +1339,11 @@ export async function installRemoteCheckpoints({root, namespaceId,
     // admitted approval while it is still current and the request is not
     // cancelled; deny and allow are the source account's own. Every other
     // request uses the installed access unchanged.
-    acquisitionAccess(requestId, base) {
-      const admitted = admittedReads.get(requestId);
-      if (admitted === undefined || sourceGate === undefined) return base;
+    acquisitionAccess(requestId, base, occurrence) {
+      const admitted = admittedReads.get(requestId)?.get(occurrence === undefined
+        ? 'singular' : occurrenceKey(occurrence));
+      if (admitted === undefined || occurrence !== undefined &&
+          contentCid(occurrence) !== contentCid(admitted.acquisition)) return base;
       const same = scope => ['connection', 'resource', 'operation'].every(
         key => scope?.[key] === admitted.readTuple[key]);
       const authorization = Object.freeze({
@@ -1213,6 +1372,8 @@ export async function installRemoteCheckpoints({root, namespaceId,
             readTuple: admitted.readTuple,
             physicalBinding: admitted.acquisition?.physicalBinding,
             checkedSource: admitted.acquisition?.checkedSource,
+            ...(admitted.acquisition?.stage === undefined ? {} :
+              {occurrence: occurrenceIdentity(admitted.acquisition)}),
             principalId: admitted.principalId}) : current;
         },
       });
@@ -1367,6 +1528,13 @@ export async function installRemoteCheckpoints({root, namespaceId,
     // the next owner (retention that could not complete yet).
     async close() {
       await stop();
+      admittedReads.clear();
+      gate.close();
+      resumeGate.close();
+      for (const installed of installedSources) {
+        installed.gate.close();
+        installed.resumeGate.close();
+      }
       decisionBudget.close();
       let retention;
       try { retention = await evidence.settle(); }

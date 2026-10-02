@@ -1144,6 +1144,7 @@ pub fn prepare_effect_free_client_program(
       owners,
       limits.max_tasks,
       limits.max_graph_work,
+      captured_prefix=client_program_acquisition_prefix(checked),
       source_free_root=owners.length() > 0 &&
         @pipeline.starts_with_values(
           @lower.pipeline(@lower.bound_preparation(owners[0])),
@@ -1156,5 +1157,30 @@ pub fn prepare_effect_free_client_program(
         source: parsed,
       })
     Err(issue) => Err(Graph(issue))
+  }
+}
+
+///|
+/// Infer only the admitted two-acquisition prefix from checked requests.
+/// The graph owner still validates independence, coverage, and topology.
+fn client_program_acquisition_prefix(program : @checked.CheckedProgram) -> Int {
+  if @checked.unit_count(program) < 3 {
+    return 1
+  }
+  let acquisitions = [0, 0]
+  for index in 0..<@checked.source_execution_count(program) {
+    let check = @checked.source_execution_at(program, index).unwrap()
+    let subject = @checked.source_execution_subject(check)
+    if subject.stage < 0 || subject.stage > 1 {
+      return 1
+    }
+    if @checked.source_execution_kind(check) is @checked.HostCombination {
+      acquisitions[subject.stage] += 1
+    }
+  }
+  if acquisitions == [1, 1] {
+    2
+  } else {
+    1
   }
 }

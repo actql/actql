@@ -1,0 +1,138 @@
+{
+  "version": "actql/0.1",
+  "id": "fixture.two-independent-duckdb-join",
+  "stages": [
+    {
+      "id": "acquire_left",
+      "inputs": {
+        "remote": {
+          "connector": "crm/main",
+          "resource": "r"
+        }
+      },
+      "steps": [
+        {
+          "filter": "id >= 0",
+          "as": "filtered"
+        },
+        {
+          "select": [
+            "id",
+            "amount"
+          ],
+          "as": "captured"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "captured",
+          "fields": [
+            "id",
+            "amount"
+          ]
+        }
+      }
+    },
+    {
+      "id": "acquire_right",
+      "inputs": {
+        "remote": {
+          "connector": "crm/right",
+          "resource": "r"
+        }
+      },
+      "steps": [
+        {
+          "filter": "id >= 0",
+          "as": "filtered"
+        },
+        {
+          "select": [
+            "id",
+            "amount"
+          ],
+          "as": "captured"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "captured",
+          "fields": [
+            "id",
+            "amount"
+          ]
+        }
+      }
+    },
+    {
+      "id": "join_sources",
+      "inputs": {
+        "left_rows": {
+          "result": {
+            "stage": "acquire_left",
+            "result": "rows"
+          }
+        },
+        "right_rows": {
+          "result": {
+            "stage": "acquire_right",
+            "result": "rows"
+          }
+        }
+      },
+      "steps": [
+        {
+          "from": "left_rows",
+          "join": {
+            "with": "right_rows",
+            "kind": "inner",
+            "on": [
+              {
+                "left": "id",
+                "right": "id"
+              }
+            ],
+            "max_output_rows": 100,
+            "select": {
+              "id": "left.id",
+              "left_amount": "left.amount",
+              "right_amount": "right.amount"
+            }
+          }
+        },
+        {
+          "sort": [
+            {
+              "id": "asc"
+            },
+            {
+              "left_amount": "asc"
+            },
+            {
+              "right_amount": "asc"
+            }
+          ],
+          "as": "ordered"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "ordered",
+          "fields": [
+            "id",
+            "left_amount",
+            "right_amount"
+          ]
+        }
+      }
+    }
+  ],
+  "results": {
+    "joined": {
+      "from": {
+        "stage": "join_sources",
+        "result": "rows"
+      }
+    }
+  }
+}

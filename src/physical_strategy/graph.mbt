@@ -30,6 +30,7 @@ priv struct LocalInputSlot {
 struct CheckedDAG {
   program : @checked.CheckedProgram
   source_free_root : Bool
+  captured_prefix : Int
   owners : Array[@lower.BoundPrepared]
   stage_tasks : Array[Array[Int]]
   targets : Array[@pipeline.Target?]
@@ -332,6 +333,7 @@ pub fn prepare_checked_dag(
   max_tasks : Int,
   max_work : Int,
   source_free_root? : Bool = false,
+  captured_prefix? : Int = 1,
 ) -> Result[CheckedDAG, GraphIssue] {
   if @checked.checked_program_has_effects(program) {
     return Err(EffectGraphOwnerRequired)
@@ -342,6 +344,7 @@ pub fn prepare_checked_dag(
     max_tasks,
     max_work,
     source_free_root~,
+    captured_prefix~,
   )
 }
 
@@ -354,11 +357,19 @@ fn prepare_checked_dag_owned(
   max_tasks : Int,
   max_work : Int,
   source_free_root? : Bool = false,
+  captured_prefix? : Int = 1,
 ) -> Result[CheckedDAG, GraphIssue] {
   if max_tasks < 0 || max_work < 0 {
     return Err(InvalidLimits)
   }
   let count = @checked.unit_count(program)
+  if captured_prefix != 1 && captured_prefix != 2 {
+    return Err(InvalidLimits)
+  }
+  if source_free_root && captured_prefix != 1 {
+    return Err(InvalidLimits)
+  }
+  let captured_prefix = if source_free_root { 0 } else { captured_prefix }
   if count > max_tasks || owners.length() != count {
     return Err(TaskLimit)
   }
@@ -550,6 +561,46 @@ fn prepare_checked_dag_owned(
       }
     }
   }
+  // This bounded increment admits exactly two independent acquisition Stages
+  // at the beginning. It does not schedule acquisition/Compute interleaving.
+  // Ordinary checked Stage-success ordering is preserved: the Host acquires
+  // in prefix order, so source zero succeeds before source one may start.
+  if captured_prefix == 2 {
+    if count < 3 ||
+      data.any(edge => edge.consumer < captured_prefix) ||
+      supplied_slots.any(slot => slot.consumer < captured_prefix) {
+      return Err(UnsupportedIncoming(0))
+    }
+    let source_checks = @checked.source_execution_count(program)
+    if source_checks > work {
+      return Err(WorkLimit)
+    }
+    work -= source_checks
+    let acquisitions = Array::make(captured_prefix, 0)
+    for index in 0..<source_checks {
+      let check = @checked.source_execution_at(program, index).unwrap()
+      let subject = @checked.source_execution_subject(check)
+      if subject.stage < 0 || subject.stage >= captured_prefix {
+        return Err(UnsupportedIncoming(subject.stage))
+      }
+      match @checked.source_execution_kind(check) {
+        @checked.HostCombination => acquisitions[subject.stage] += 1
+        @checked.KeyedRequest(_)
+        | @checked.KeyedEgress(_)
+        | @checked.KeyedResources(_)
+        | @checked.KeyedResponse(_) =>
+          return Err(UnsupportedIncoming(subject.stage))
+        _ => ()
+      }
+    }
+    for stage in 0..<captured_prefix {
+      if acquisitions[stage] != 1 ||
+        @pipeline.input_count(@checked.unit_pipeline(program, stage).unwrap()) !=
+        1 {
+        return Err(UnsupportedIncoming(stage))
+      }
+    }
+  }
   // Charge the snapshot copy before allocating; later caller array edits cannot
   // substitute another preparation for a validated unit.
   if count > work {
@@ -705,11 +756,12 @@ fn prepare_checked_dag_owned(
   let logical : CheckedDAG = {
     program,
     source_free_root,
+    captured_prefix,
     owners: owners.copy(),
     stage_tasks: Array::makei(count, stage => [stage]),
     targets: Array::makei(count, task => {
       let pipeline = @lower.pipeline(@lower.bound_preparation(owners[task]))
-      if (task == 0 && !source_free_root) || @pipeline.step_count(pipeline) == 0 {
+      if task < captured_prefix || @pipeline.step_count(pipeline) == 0 {
         None
       } else {
         Some(@pipeline.Step(@pipeline.step_count(pipeline) - 1))
@@ -970,4 +1022,11 @@ pub fn graph_stage_target_task(
     return None
   }
   Some(task)
+}
+
+///|
+/// Number of checked acquisition tasks preceding all Compute tasks.
+/// The two-source profile never expands or interleaves its acquisition Stages.
+pub fn graph_captured_prefix(graph : CheckedDAG) -> Int {
+  graph.captured_prefix
 }

@@ -377,6 +377,8 @@ pub fn native_host_receipt_document(@acquisition.DuckDBNativeObservation, Int) -
 
 pub fn native_host_record_document(@acquisition.DuckDBNativeObservation, Int) -> String raise NodeHostFailure
 
+pub fn native_host_retain_captured_task(NativeNodeRun, @physical_strategy.CapturedDAG, Int, @acquisition.DuckDBNativeObservation) -> Unit raise NodeHostFailure
+
 pub fn native_host_source_capture(NativeNodeRun, @acquisition.DuckDBNativeObservation) -> @host.NativeHostSourceCapture raise NodeHostFailure
 
 pub fn native_host_source_capture_identity_matches(@host.NativeHostSourceCapture, @execution_query.CapturedSourceRelationIdentity) -> Bool

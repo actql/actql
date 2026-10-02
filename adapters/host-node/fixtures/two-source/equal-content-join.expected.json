@@ -1,0 +1,36 @@
+{
+  "resultName": "joined",
+  "rows": [
+    {
+      "id": 1,
+      "left_amount": null,
+      "right_amount": null
+    },
+    {
+      "id": 2,
+      "left_amount": 20,
+      "right_amount": 20
+    },
+    {
+      "id": 3,
+      "left_amount": 30,
+      "right_amount": 30
+    },
+    {
+      "id": 3,
+      "left_amount": 30,
+      "right_amount": 30
+    },
+    {
+      "id": 3,
+      "left_amount": 30,
+      "right_amount": 30
+    },
+    {
+      "id": 3,
+      "left_amount": 30,
+      "right_amount": 30
+    }
+  ],
+  "requirement": "Equal rows do not authorize binding or capture substitution"
+}

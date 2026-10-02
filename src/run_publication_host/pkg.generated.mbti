@@ -418,6 +418,8 @@ pub fn issue_captured_client_effect_local_result_definition(PreparedClientEffect
 
 pub fn issue_client_allowed_run_evidence(@run_publication.RunEvidenceValue, @run_publication.PublicationContract, String, String, String) -> Result[(@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue), ClientAllowedRunEvidenceIssue]
 
+pub fn issue_client_compiled_multi_task_invocation(ClientCompiledRun, @run_publication.PublicationContract, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[String], Array[String], String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
+
 pub fn issue_client_compiled_run_definition(ClientCompiledRun, String, String, String, String) -> Result[@run_publication.PublicationContract, ClientCompiledRunIssue]
 
 pub fn issue_client_compiled_source_free_task_invocation(ClientCompiledRun, @run_publication.PublicationContract, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
@@ -447,6 +449,8 @@ pub fn issue_client_effect_source_free_invocation(ClientEffectCompilation, Strin
 pub fn issue_client_infer_call_slot(ClientInferCallScope, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientInferCallScopeIssue]
 
 pub fn issue_client_infer_dispatch_admission(ClientCompiledRun, @run_publication.PublicationContract, @execution_authorization.AdmittedAccountConfiguration, String, String, delegated_action? : @execution_authorization.RuntimeAction?, observe_current~ : () -> Result[(@execution_authorization.AdmittedAccountConfiguration, String), ClientInferDispatchIssue]) -> Result[ClientInferDispatchAdmission, ClientInferDispatchIssue]
+
+pub fn issue_client_multi_task_invocation(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[String], Array[String], String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
 pub fn issue_client_task_compiled_run(PreparedClientProgram, ClientTaskCompilation, String, String, String) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
 
@@ -590,6 +594,10 @@ pub fn prepare_source_free_client_request_identity(PreparedClientProgram, String
 
 pub fn prepare_source_free_client_values_dispatch(ClientValuesRunBinding, ClientRequestIdentity, Int, String, ClientValuesSiteSelection) -> Result[@remote_site_protocol.DispatchRequest, ClientValuesDispatchIssue]
 
+pub fn prepared_client_acquisition_count(PreparedClientProgram) -> Int
+
+pub fn prepared_client_captured_task_source_matches(PreparedClientProgram, @execution_query.CapturedInputSource, Int) -> Bool
+
 pub fn prepared_client_check_environment_cid(PreparedClientProgram) -> String
 
 pub fn prepared_client_effect_computation_candidate(PreparedClientEffectComputation) -> @program_check.EffectProgramStaticCandidate
@@ -629,6 +637,8 @@ pub fn prepared_client_infer_model_task_cid(PreparedClientProgram, Int) -> Strin
 pub fn prepared_client_infer_step(PreparedClientProgram) -> Int?
 
 pub fn prepared_client_program_semantics_cid(PreparedClientProgram) -> String
+
+pub fn prepared_client_publication_data_policy_cid(PreparedClientProgram) -> String?
 
 pub fn prepared_client_result_count(PreparedClientProgram) -> Int
 
