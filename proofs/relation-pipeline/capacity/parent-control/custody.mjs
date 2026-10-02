@@ -23,7 +23,7 @@ export function custodyInput() {
   return { case: case_, program: input };
 }
 export function custodyOverlay(read, mode) {
-  assert(['normal', 'pending'].includes(mode));
+  assert(['normal', 'pending', 'success'].includes(mode));
   const query = 'src/query_integration/query_checked_program_wbtest.mbt';
   const selected = 'src/connectors/local/selected_relation_provider.mbt';
   const fixture = 'src/query_integration/relation_pipeline_custody_wbtest.mbt';
@@ -75,7 +75,7 @@ ${before}`);
 // cannot broaden its scope by changing both its own labels and observations.
 export function auditCustody(receipt, target, mode, current, read) {
   assert(['js', 'wasm', 'native'].includes(target));
-  assert(['normal', 'pending'].includes(mode));
+  assert(['normal', 'pending', 'success'].includes(mode));
   assert.equal(receipt.version, 'actql-relation-custody/0.1');
   assert.equal(receipt.target, target, 'Requested custody target differs from execution');
   assert.equal(receipt.mode, mode, 'Requested cleanup mode differs from execution');
@@ -115,14 +115,20 @@ export function auditCustody(receipt, target, mode, current, read) {
   assert(o.executionCapacity > 0 && o.workBefore > 0);
   assert.equal(o.before, o.executionCapacity);
   assert.equal(o.workAfter, o.workBefore, 'Cleanup lost cumulative work');
-  const after = log.indexOf('ACTQL_CUSTODY_STAGE:after-settlement-before-cleanup');
+  const after = log.indexOf(mode === 'success' ?
+    'ACTQL_CUSTODY_STAGE:after-completion-before-cleanup' :
+    'ACTQL_CUSTODY_STAGE:after-settlement-before-cleanup');
   const cleanup = log.indexOf('"event":"before-cleanup"');
   const cleaned = log.indexOf('"event":"after-cleanup"');
   assert(after >= 0 && cleanup >= 0 && cleaned > cleanup);
   assert.equal(o.after, o.before, 'Settlement lost scratch before explicit cleanup');
   assert(cleanup > after, 'Settlement/disposal must not poll child cleanup');
-  if (mode === 'normal') {
+  if (mode !== 'pending') {
     assert(!log.includes('ACTQL_CUSTODY_RETRY:'));
+    if (mode === 'success') {
+      assert(Number.isSafeInteger(o.heldAtCompletion) && o.heldAtCompletion > 0,
+        'Missing accepted output holding at completion');
+    }
   } else {
     assert.equal(o.after, o.before, 'Pending cleanup lost reservation');
     assert(cleanup > after, 'Actual child cleanup did not remain pending');

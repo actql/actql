@@ -2,7 +2,8 @@
 // Diagnostic only: reuse the registered Local driver and existing DAG fixture.
 // The serial operation list and input values come from the typed corpus.
 test "generated serial capacity custody diagnostic" {
-  let pending = @env.get_env_var("ACTQL_RELATION_PIPELINE_CUSTODY_MODE").unwrap() == "pending"
+  let mode = @env.get_env_var("ACTQL_RELATION_PIPELINE_CUSTODY_MODE").unwrap()
+  let pending = mode == "pending"
   let checked = query_checked_program_fixture(
     local_values_unary_chain=Some("capacity-custody-probe"),
     parameter_json="{}",
@@ -49,6 +50,50 @@ test "generated serial capacity custody diagnostic" {
   let (_, execution_capacity) = @local_driver.local_managed_dispatch_site_capacity(setup).unwrap()
   let operations = @local_driver.start_local_managed_dispatch_node(setup).unwrap()
   assert_eq(operations.inputs.length(), 0)
+  if mode == "success" {
+    (operations.execute)().unwrap()
+    assert_eq(@local_connector.custody_child_start_count(), 3)
+    assert_true((operations.execution_stopped)())
+    let available = Ref(true)
+    (operations.prepare_finalization)(1, operations.storage_bytes, fn() {
+      available.val
+    }).unwrap()
+    let mut finalization_polls = 0
+    while !(operations.advance_finalization)(1).unwrap().complete {
+      finalization_polls += 1
+      assert_true(finalization_polls < 1000)
+    }
+    (operations.settle)().unwrap()
+    let before = @resources.ledger_usage(ledger).reserved_execution_bytes
+    let work_before = (operations.cumulative_provider_work)().unwrap()
+    let output = (operations.complete)(1, operations.storage_bytes, fn() {
+      available.val
+    }).unwrap()
+    assert_true(@strategy.captured_task_completed(run, 0))
+    assert_true(@execution.managed_completed_output_available(output))
+    let usage = @resources.ledger_usage(ledger)
+    assert_eq(usage.held_bytes, operations.storage_bytes)
+    println("ACTQL_CUSTODY_STAGE:after-completion-before-cleanup")
+    println("ACTQL_CUSTODY:{\"executionCapacity\":" + execution_capacity.to_string() +
+      ",\"before\":" + before.to_string() + ",\"after\":" + usage.reserved_execution_bytes.to_string() +
+      ",\"workBefore\":" + work_before.to_string() + ",\"workAfter\":" +
+      (operations.cumulative_provider_work)().unwrap().to_string() +
+      ",\"heldAtCompletion\":" + usage.held_bytes.to_string() + "}")
+    // This accepted Int payload exercises the real completion/ledger route,
+    // not a claim about physical output backing or multiple consumers.
+    available.val = false
+    @strategy.close_captured_task_output(run, 0)
+    (operations.close)()
+    assert_true((operations.cleanup_refresh)())
+    assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
+    assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+    assert_eq((operations.cumulative_provider_work)().unwrap(), work_before)
+    assert_eq(@local_connector.custody_child_start_count(), 3)
+    assert_true((operations.cleanup_refresh)())
+    @strategy.stop_captured_dag(run)
+    @strategy.refresh_captured_retention(run)
+    return
+  }
   let mut polls = 0
   while @local_connector.custody_child_start_count() < 2 {
     assert_false((operations.advance)(1).unwrap().complete)
