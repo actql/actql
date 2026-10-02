@@ -6,7 +6,7 @@
     "digest": "48bdedbe48ab335694a725defa7fe9e7f07cdf776e4aa8f233b3935585a352c1",
     "foundationRevision": "fe0dbb424792ba7ccd4ae5517a74530b56a15f3c"
   },
-  "revision": "258cb92f05c8080bb516aaf7b193c11027482f4e",
+  "revision": "39fc6c481c445c4c6cccd5ae551fd65422681b89",
   "proposal": "https://github.com/actql/actql/pull/149",
   "meaning": "Separate common foundation correction; the historical distinct comparison is unchanged. This record supplies Git provenance, not proof of human approval.",
   "changedCommon": [
