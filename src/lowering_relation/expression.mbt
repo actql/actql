@@ -602,7 +602,6 @@ fn lower_expression_measured(
       | BasicGraph(_)
       | StructuralGraph(_)
       | GraphUnion(_)
-      | GraphMeanValue(_)
       | GraphEqualityRows(_)
       | GraphDiffRows(_)
       | GraphApplyValue(_)

@@ -83,14 +83,6 @@ test "profile obligations map to their declared module without discharging other
     None,
   )
   assert_eq(
-    operation_profile_requirement(MeanRequirement(ResolveMeanProfile)),
-    Some(SGA),
-  )
-  assert_eq(
-    operation_profile_requirement(MeanRequirement(AdmitEveryMeanSample)),
-    None,
-  )
-  assert_eq(
     operation_profile_requirement(
       ConstructionRequirement(ResolvePropertyGraphProfile),
     ),

@@ -128,20 +128,6 @@ pub fn operation_profile_requirement(
         | PreservePolicyDependencies
         | ResolveStructuralResources => None
       }
-    MeanRequirement(o) =>
-      match o {
-        ResolveMeanProfile => Some(SGA)
-        AdmitEveryMeanSample
-        | CompareExactRationalSupport
-        | RetainSupportedNodesBeforeEdges
-        | RequirePositiveWeightLabelAgreement
-        | ApplyEveryMeanPropertyPolicy
-        | RoundExactWeightedMeansOnce
-        | RejectNonfiniteMeanResults
-        | CanonicalMeanIdentityOrder
-        | PreserveMeanObservationAndPolicy
-        | ResolveMeanResources => None
-      }
     ConstructionRequirement(o) =>
       match o {
         ResolvePropertyGraphProfile => Some(PropertyGraph)

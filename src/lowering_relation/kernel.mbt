@@ -341,7 +341,6 @@ fn prepare_kernel_measured(
     | BasicGraph(_)
     | StructuralGraph(_)
     | GraphUnion(_)
-    | GraphMeanValue(_)
     | GraphMatchRows(_)
     | GraphReachRows(_)
     | GraphSubgraphValue(_)

@@ -261,10 +261,6 @@ test "unsupported structural Graph consumers refuse keyed inputs before executio
   // than relying on malformed syntax or incomplete historical schema.
   assert_true(@graph_typing.check_mean_options(mean, limits()) is Ok(_))
   assert_true(
-    @graph_typing.check_mean(mean, [graph], limits())
-    is Err({ kind: @graph_typing.UnsupportedGraphOperation, .. }),
-  )
-  assert_true(
     @graph_typing.check_subgraph(
       cursor("{\"nodes\":{\"ids\":[1]}}"),
       graph,

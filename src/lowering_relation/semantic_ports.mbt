@@ -124,7 +124,7 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
       operation(node) == "SGA.bounds_check" ||
       operation(node) == "SGA.degree_metrics" ||
       operation(node) == "SGA.components"
-    StructuralGraph(_) | GraphUnion(_) | GraphMeanValue(_) => true
+    StructuralGraph(_) | GraphUnion(_) => true
     GraphSubgraphValue(_) => operation(node) == "SGA.subgraph"
     VectorValue(_) =>
       operation(node) == "BRIDGE.rows.to_vectors" ||
@@ -246,7 +246,7 @@ pub fn node_prefers_fused_without_relation_consumer(
       operation(node) == "SGA.bounds_check" ||
       operation(node) == "SGA.degree_metrics" ||
       operation(node) == "SGA.components"
-    StructuralGraph(_) | GraphUnion(_) | GraphMeanValue(_) => true
+    StructuralGraph(_) | GraphUnion(_) => true
     GraphSubgraphValue(_) => operation(node) == "SGA.subgraph"
     GraphEqualityRows(_) => operation(node) == "SGA.equal"
     GraphDiffRows(_) => operation(node) == "SGA.diff"

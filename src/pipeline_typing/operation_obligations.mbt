@@ -40,7 +40,6 @@ pub(all) enum OperationObligation {
   DiffRequirement(@graph.DeltaObligation)
   ApplyRequirement(@graph.ApplyObligation)
   StructuralRequirement(@graph.StructuralObligation)
-  MeanRequirement(@graph.MeanObligation)
   ConstructionRequirement(@graph.ConstructionObligation)
   VectorRequirement(@vector.Obligation)
   NearestRequirement(@vector.NearestObligation)
@@ -78,7 +77,6 @@ priv enum ObligationOwner {
   DiffOwner(@graph.CheckedDiff)
   ApplyOwner(@graph.CheckedApply)
   StructuralOwner(@graph.CheckedStructural)
-  MeanOwner(@graph.CheckedMean)
   PropertyConstructionOwner(@graph.CheckedPropertyConstruction)
   VectorOwner(@vector.CheckedVector)
   NearestOwner(@vector.CheckedNearest)
@@ -131,7 +129,6 @@ pub fn operation_obligations_source(v : OperationObligations) -> @decode.Cursor 
     DiffOwner(c) => @graph.diff_source(c)
     ApplyOwner(c) => @graph.apply_source(c)
     StructuralOwner(c) => @graph.structural_source(c)
-    MeanOwner(c) => @graph.mean_options_source(@graph.mean_options(c))
     PropertyConstructionOwner(c) => @graph.property_construction_source(c)
     VectorOwner(c) => @vector.source(c)
     NearestOwner(c) =>
@@ -226,7 +223,6 @@ pub fn operation_obligations_count(v : OperationObligations) -> Int {
     DiffOwner(c) => @graph.diff_pending_count(c)
     ApplyOwner(c) => @graph.apply_pending_count(c)
     StructuralOwner(c) => @graph.structural_pending_count(c)
-    MeanOwner(c) => @graph.mean_pending_count(c)
     PropertyConstructionOwner(c) =>
       @graph.property_construction_pending_count(c)
     VectorOwner(c) => @vector.pending_validation_count(c)
@@ -302,8 +298,6 @@ pub fn operation_obligations_at(
       @graph.apply_pending_at(c, index).map(x => ApplyRequirement(x))
     StructuralOwner(c) =>
       @graph.structural_pending_at(c, index).map(x => StructuralRequirement(x))
-    MeanOwner(c) =>
-      @graph.mean_pending_at(c, index).map(x => MeanRequirement(x))
     PropertyConstructionOwner(c) =>
       @graph.property_construction_pending_at(c, index).map(x => {
         ConstructionRequirement(x)
@@ -364,7 +358,6 @@ pub fn operation_obligation_group_count(operation : CheckedOperation) -> Int {
     | GraphDiff(checked=_, ..)
     | GraphApply(checked=_, ..)
     | GraphStructural(checked=_, ..)
-    | GraphMean(_)
     | PropertyGraphConstruction(..)
     | Vector(_)
     | Nearest(checked=_, ..)
@@ -408,7 +401,6 @@ pub fn operation_obligation_group_at(
       GraphApply(checked=c, ..) => { scope: Body, owner: ApplyOwner(c), }
       GraphStructural(checked=c, ..) =>
         { scope: Body, owner: StructuralOwner(c), }
-      GraphMean(c) => { scope: Body, owner: MeanOwner(c), }
       PropertyGraphConstruction(checked=c, ..) =>
         { scope: Body, owner: PropertyConstructionOwner(c), }
       Vector(c) => { scope: Body, owner: VectorOwner(c), }

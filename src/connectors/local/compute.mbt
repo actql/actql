@@ -302,7 +302,6 @@ pub fn local_managed_sequence_supported(
       @lower.GraphBasicStep(_) => false
       @lower.GraphStructuralStep(_) => false
       @lower.GraphUnionStep(_) => false
-      @lower.GraphMeanStep(_) => false
       @lower.GraphMatchStep(_) => false
       @lower.GraphReachStep(_) => false
       @lower.GraphSubgraphStep(_) => false

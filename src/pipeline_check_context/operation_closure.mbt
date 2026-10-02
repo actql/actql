@@ -65,7 +65,6 @@ pub fn close_program_operations(
           GraphDiffExecution(v) => v.site
           GraphEqualityExecution(v) => v.site
           GraphStructuralExecution(v) => v.site
-          GraphMeanExecution(v) => v.site
           VectorExecution(v) => v.site
           NearestExecution(v) => v.site
           PoolExecution(v) => v.site

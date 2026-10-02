@@ -49,8 +49,6 @@ pub fn check_equality(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_c
 
 pub fn check_match(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedMatch, MatchIssue]
 
-pub fn check_mean(@decode_core.Cursor, Array[@carrier_contract.Carrier], Limits) -> Result[CheckedMean, Issue]
-
 pub fn check_mean_options(@decode_core.Cursor, Limits) -> Result[CheckedMeanOptions, Issue]
 
 pub fn check_path_contract(PathOutput, @decode_core.Cursor, @carrier_contract.Carrier, Limits, property_paths? : Bool) -> Result[CheckedPathContract, Issue]
@@ -173,19 +171,9 @@ pub fn match_usage(CheckedMatch) -> PredicateUsage
 
 pub fn mean_input_names(CheckedMeanOptions) -> Array[String]
 
-pub fn mean_options(CheckedMean) -> CheckedMeanOptions
-
 pub fn mean_options_source(CheckedMeanOptions) -> @decode_core.Cursor
 
 pub fn mean_options_usage(CheckedMeanOptions) -> Usage
-
-pub fn mean_output(CheckedMean) -> @carrier_contract.Carrier
-
-pub fn mean_pending(CheckedMean) -> Array[MeanObligation]
-
-pub fn mean_pending_at(CheckedMean, Int) -> MeanObligation?
-
-pub fn mean_pending_count(CheckedMean) -> Int
 
 pub fn mean_properties(CheckedMeanOptions, EntityKind) -> Array[MeanProperty]
 
@@ -196,8 +184,6 @@ pub fn mean_property_count(CheckedMeanOptions, EntityKind) -> Int
 pub fn mean_sample_count(CheckedMeanOptions) -> Int
 
 pub fn mean_support(CheckedMeanOptions, EntityKind) -> Double
-
-pub fn mean_usage(CheckedMean) -> Usage
 
 pub fn mean_weight_at(CheckedMeanOptions, Int) -> Double?
 
@@ -459,8 +445,6 @@ type CheckedGraph
 
 type CheckedMatch
 
-type CheckedMean
-
 type CheckedMeanOptions
 
 type CheckedPathContract
@@ -620,20 +604,6 @@ pub(all) enum MatchObligation {
   ResolveMatchResources
   ResolveMatchProfile
   ResolvePropertyGraphMatchProfile
-} derive(Eq, @debug.Debug)
-
-pub(all) enum MeanObligation {
-  AdmitEveryMeanSample
-  CompareExactRationalSupport
-  RetainSupportedNodesBeforeEdges
-  RequirePositiveWeightLabelAgreement
-  ApplyEveryMeanPropertyPolicy
-  RoundExactWeightedMeansOnce
-  RejectNonfiniteMeanResults
-  CanonicalMeanIdentityOrder
-  PreserveMeanObservationAndPolicy
-  ResolveMeanResources
-  ResolveMeanProfile
 } derive(Eq, @debug.Debug)
 
 pub struct MeanProperty {

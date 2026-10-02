@@ -24,7 +24,6 @@ pub enum PreparedStep {
   GraphBasicStep(PreparedGraphBasic)
   GraphStructuralStep(PreparedGraphStructural)
   GraphUnionStep(PreparedGraphUnion)
-  GraphMeanStep(PreparedGraphMean)
   GraphMatchStep(PreparedGraphMatch)
   GraphReachStep(PreparedGraphReach)
   GraphSubgraphStep(PreparedGraphSubgraph)
@@ -64,7 +63,6 @@ pub(all) enum SequenceIssue {
   SetFailure(Int, SetIssue)
   NestFailure(Int, NestIssue)
   GraphBasicFailure(Int, GraphBasicIssue)
-  GraphMeanFailure(Int, GraphMeanIssue)
   GraphMatchFailure(Int, GraphMatchIssue)
   GraphReachFailure(Int, GraphReachIssue)
   GraphSubgraphFailure(Int, GraphSubgraphIssue)
@@ -285,25 +283,6 @@ fn prepare_sequence_count(
           Err(issue) => return Err(issue)
         }
         GraphUnionStep(prepared)
-      }
-      GraphMeanValue(_) => {
-        let (prepared, used_entries, used_names, used_work) = match
-          prepare_graph_mean_node(
-            owner.prepared.nodes[i],
-            max_entries=bindings,
-            max_name_bytes=names,
-            max_work=expressions.max_work,
-          ) {
-          Ok(value) => value
-          Err(issue) => return Err(GraphMeanFailure(i, issue))
-        }
-        bindings -= used_entries
-        names -= used_names
-        expressions = {
-          ..expressions,
-          max_work: expressions.max_work - used_work,
-        }
-        GraphMeanStep(prepared)
       }
       GraphMatchRows(_) => {
         let (prepared, used_entries, used_names, remaining) = match
@@ -646,7 +625,6 @@ pub fn emit_sequence_step_range(
       GraphBasicStep(v) => emit_graph_basic_node(v, out)
       GraphStructuralStep(v) => emit_graph_structural_node(v, out)
       GraphUnionStep(v) => emit_graph_union_node(v, out)
-      GraphMeanStep(v) => emit_graph_mean_node(v, out)
       GraphMatchStep(v) => emit_graph_match_node(v, out)
       GraphReachStep(v) => emit_graph_reach_node(v, out)
       GraphSubgraphStep(v) => emit_graph_subgraph_node(v, out)

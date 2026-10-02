@@ -77,7 +77,6 @@ fn prepare_ordered_budgets(
       @lower.GraphBasicStep(_) => return Err(InputSet)
       @lower.GraphStructuralStep(_) => return Err(InputSet)
       @lower.GraphUnionStep(_) => return Err(InputSet)
-      @lower.GraphMeanStep(_) => return Err(InputSet)
       @lower.GraphMatchStep(_) => return Err(InputSet)
       @lower.GraphReachStep(_) => return Err(InputSet)
       @lower.GraphSubgraphStep(_) => return Err(InputSet)

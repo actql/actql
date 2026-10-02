@@ -734,3 +734,43 @@ JS, Wasm and native**:
 This is focused evidence, not full Core/spec or published-SHA acceptance.
 Old Carrier constructor/getters, unsupported typed consumer branches, mixed
 upper/Host fixtures and the strict resource-route inventory remain open.
+
+## Retired mean consumer removal
+
+The unconnected `mean_graphs` consumer no longer has an executable checked
+Graph type, operation/obligation variant, profile requirement, row-count law,
+execution binding, publication-policy arm or lowering payload. Its old Carrier
+factory call and homogeneous merge/output schema path are deleted, together
+with the obsolete mean execution and Program fixtures. Shared execution
+dispatches no longer contain mean branches. This is a breaking removal, not a
+compatibility adapter or a new mean implementation.
+
+The authored option checker remains bounded and validates weights, support and
+property strategies, but cannot issue an executable Graph. The public pipeline
+boundary preserves alias/from/name/metadata validation and refuses a valid mean
+with `UnsupportedGraphOperation` at the operation body. Independent invalid
+weight and strategy cases retain their specific diagnostic paths. This does
+not promise new-contract mean arithmetic, weighted samples, numeric rounding,
+support thresholds or merge semantics; those historical guarantees are
+withdrawn rather than renamed as refusal coverage.
+
+Applicable non-mean guarantees remain positive in the new contract: the formal
+constructor/MATCH Result-import case in `graph_branches_wbtest.mbt` retains
+repeated positional input occurrences, exact producer and obligation owners,
+resource enforcement and all three publication visits. Current construction
+and MATCH execution tests retain shared policy ceilings and foreign owner
+rejection. New Graph capacity, private cancellation, scratch cleanup, snapshot
+and retained-output tests remain in the executed suite; no success assertion is
+replaced by a generic old-format rejection.
+
+The first narrow test attempt found missing namespace qualification in the new
+diagnostic fixture. After correction, 22/23 passed and exposed the removal of
+the existing alias-required check; the check is restored, not its expectation
+relaxed. The corrected narrow suite passes 23/23 JS. The combined current Graph
+and refusal/owner suite passes **112/112 on each JS, Wasm and native**:
+`/private/tmp/property-graph-mean-current-{js,wasm,native}-20261003.log`.
+Three-target interface generation completes; the official committed API gate
+is run separately. These are local focused checks, not the final published-SHA
+public snapshot acceptance or required CI. Other old Carrier constructor and
+unsupported consumer branches, mixed old fixtures and the strict resource
+inventory remain open.

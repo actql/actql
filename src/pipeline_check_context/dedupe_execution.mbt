@@ -21,7 +21,6 @@ pub(all) enum OperationExecutionCheck {
   GraphDiffExecution(GraphDiffCheck)
   GraphEqualityExecution(GraphEqualityCheck)
   GraphStructuralExecution(GraphStructuralCheck)
-  GraphMeanExecution(GraphMeanCheck)
   VectorExecution(VectorCheck)
   NearestExecution(NearestCheck)
   PoolExecution(PoolCheck)
@@ -163,18 +162,6 @@ pub fn operation_execution_phase(
         | ValidateSetResults
         | ValidateNumericResults
         | PreserveOperandPolicies => BeforeOperationOutput
-      }
-    GraphMeanExecution(v) =>
-      match v.rule {
-        AdmitMeanSamples | RequireMeanResources => BeforeOperationInputUse
-        CompareMeanSupport
-        | CloseMeanEndpoints
-        | CheckMeanLabels
-        | ApplyMeanProperties
-        | RoundMeanOnce
-        | ValidateMeanFiniteResults
-        | OrderMeanIdentities
-        | PreserveMeanDependencies => BeforeOperationOutput
       }
     VectorExecution(v) =>
       match v.rule {
@@ -401,7 +388,6 @@ pub fn operation_execution_failure(
     | GraphDiffExecution(_)
     | GraphEqualityExecution(_)
     | GraphStructuralExecution(_)
-    | GraphMeanExecution(_)
     | VectorExecution(_)
     | NearestExecution(_)
     | PoolExecution(_)

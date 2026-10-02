@@ -34,7 +34,6 @@ pub fn prepare_fragment_pipeline(
     | GraphBasicStep(_)
     | GraphStructuralStep(_)
     | GraphUnionStep(_)
-    | GraphMeanStep(_)
     | GraphMatchStep(_)
     | GraphReachStep(_)
     | GraphSubgraphStep(_)

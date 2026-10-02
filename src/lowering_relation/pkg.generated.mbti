@@ -331,22 +331,6 @@ pub fn graph_match_type_at(PreparedGraphMatch, Int) -> String?
 
 pub fn graph_match_type_count(PreparedGraphMatch) -> Int?
 
-pub fn graph_mean_input_count(PreparedGraphMean) -> Int
-
-pub fn graph_mean_input_step(PreparedGraphMean, Int) -> Int?
-
-pub fn graph_mean_input_target(PreparedGraphMean, Int) -> @pipeline_typing.Target?
-
-pub fn graph_mean_property_count(PreparedGraphMean, @graph_typing.EntityKind) -> Int
-
-pub fn graph_mean_property_name(PreparedGraphMean, @graph_typing.EntityKind, Int) -> String?
-
-pub fn graph_mean_property_strategy(PreparedGraphMean, @graph_typing.EntityKind, Int) -> @graph_typing.MeanStrategy?
-
-pub fn graph_mean_support(PreparedGraphMean, @graph_typing.EntityKind) -> Double
-
-pub fn graph_mean_weight(PreparedGraphMean, Int) -> Double?
-
 pub fn graph_reach_direction(PreparedGraphReach) -> @graph_typing.Direction
 
 pub fn graph_reach_max_depth(PreparedGraphReach) -> Int?
@@ -1343,12 +1327,6 @@ pub(all) enum GraphMatchLiteralSelection {
   SelectAllEntities
 } derive(Eq, @debug.Debug)
 
-pub(all) enum GraphMeanIssue {
-  InvalidGraphMeanLimits
-  InvalidGraphMeanWiring
-  GraphMeanPreparationLimit
-} derive(Eq, @debug.Debug)
-
 pub(all) enum GraphReachIssue {
   InvalidGraphReachLimits
   InvalidGraphReachWiring
@@ -1576,7 +1554,6 @@ pub enum Payload {
   BasicGraph(@graph_typing.CheckedGraph)
   StructuralGraph(@graph_typing.CheckedStructural)
   GraphUnion(@graph_typing.CheckedUnion)
-  GraphMeanValue(@graph_typing.CheckedMean)
   GraphMatchRows(@graph_typing.CheckedMatch)
   GraphReachRows(@graph_typing.CheckedReach)
   GraphSubgraphValue(@graph_typing.CheckedSubgraph)
@@ -1658,8 +1635,6 @@ pub(all) enum PreparedFrameBoundary {
 type PreparedGraphBasic
 
 type PreparedGraphMatch
-
-type PreparedGraphMean
 
 type PreparedGraphReach
 
@@ -1747,7 +1722,6 @@ pub enum PreparedStep {
   GraphBasicStep(PreparedGraphBasic)
   GraphStructuralStep(PreparedGraphStructural)
   GraphUnionStep(PreparedGraphUnion)
-  GraphMeanStep(PreparedGraphMean)
   GraphMatchStep(PreparedGraphMatch)
   GraphReachStep(PreparedGraphReach)
   GraphSubgraphStep(PreparedGraphSubgraph)
@@ -1842,7 +1816,6 @@ pub(all) enum SequenceIssue {
   SetFailure(Int, SetIssue)
   NestFailure(Int, NestIssue)
   GraphBasicFailure(Int, GraphBasicIssue)
-  GraphMeanFailure(Int, GraphMeanIssue)
   GraphMatchFailure(Int, GraphMatchIssue)
   GraphReachFailure(Int, GraphReachIssue)
   GraphSubgraphFailure(Int, GraphSubgraphIssue)

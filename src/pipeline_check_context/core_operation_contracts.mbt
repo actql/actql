@@ -65,7 +65,6 @@ fn operation_count_contract(
     | @pipeline.GraphEquality(..)
     | @pipeline.GraphDiff(..)
     | @pipeline.GraphApply(..)
-    | @pipeline.GraphMean(_)
     | @pipeline.Vector(_)
     | @pipeline.Pool(_)
     | @pipeline.Event(_) => ClassificationOnly

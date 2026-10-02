@@ -196,7 +196,6 @@ pub fn operation_scalar_demand(
     | DiffRequirement(_)
     | ApplyRequirement(_)
     | StructuralRequirement(_)
-    | MeanRequirement(_)
     | ConstructionRequirement(_)
     | VectorRequirement(_)
     | NearestRequirement(_)

@@ -76,7 +76,6 @@ pub fn operation_order_demand(v : OperationObligation) -> OperationOrderDemand? 
     | DiffRequirement(_)
     | ApplyRequirement(_)
     | StructuralRequirement(_)
-    | MeanRequirement(_)
     | ConstructionRequirement(_)
     | VectorRequirement(_)
     | NearestRequirement(_)

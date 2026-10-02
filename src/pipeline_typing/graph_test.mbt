@@ -296,14 +296,7 @@ test "unsupported current Graph consumers cannot manufacture a legacy checked pi
       issue.kind
       is GraphMatch(@graph.Structure(@graph.UnsupportedGraphOperation)),
     )
-    assert_eq(
-      issue.path,
-      if name == "mean_graphs" {
-        [Index(0), Key(name), Key("with"), Index(0)]
-      } else {
-        [Index(0), Key(name)]
-      },
-    )
+    assert_eq(issue.path, [Index(0), Key(name)])
   }
 }
 
@@ -323,5 +316,44 @@ test "unsupported mean generator keeps required alias and conflicting from diagn
       limits(),
     ).unwrap_err()
     assert_eq(issue.kind, expected)
+  }
+}
+
+///|
+test "unsupported mean validates authored options without issuing Graph work" {
+  let valid = "{\"with\":[\"g\",\"g\"],\"weights\":[1,0],\"support\":{\"nodes\":1,\"edges\":1},\"properties\":{\"nodes\":{},\"edges\":{}}}"
+  for
+    (body, kind, path) in [
+      (
+        valid,
+        @graph.UnsupportedGraphOperation,
+        [@source.Index(0), @source.Key("mean_graphs")],
+      ),
+      (
+        valid.replace(old="[1,0]", new="[0,0]"),
+        @graph.InvalidWeight,
+        [@source.Index(0), @source.Key("mean_graphs"), @source.Key("weights")],
+      ),
+      (
+        valid.replace(old="\"nodes\":{}", new="\"nodes\":{\"score\":\"bogus\"}"),
+        @graph.InvalidPropertyStrategy("bogus"),
+        [
+          @source.Index(0),
+          @source.Key("mean_graphs"),
+          @source.Key("properties"),
+          @source.Key("nodes"),
+          @source.Key("score"),
+        ],
+      ),
+    ] {
+    let issue = @pipeline_typing.check_carriers(
+      cursor("[{\"as\":\"mean\",\"mean_graphs\":" + body + "}]"),
+      [("g", graph_property_scope_input())],
+      None,
+      None,
+      limits(),
+    ).unwrap_err()
+    assert_eq(issue.kind, Graph(kind))
+    assert_eq(issue.path, path)
   }
 }

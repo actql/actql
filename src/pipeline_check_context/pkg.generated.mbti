@@ -307,14 +307,6 @@ pub fn graph_match_resource_at(GraphMatchCheck, Int) -> GraphComparisonResource?
 
 pub fn graph_match_resource_count(GraphMatchCheck) -> Int
 
-pub fn graph_mean_resource_at(GraphMeanCheck, Int) -> GraphMeanResource?
-
-pub fn graph_mean_resource_count(GraphMeanCheck) -> Int
-
-pub fn graph_mean_sample_at(GraphMeanCheck, Int) -> (@pipeline_typing.InputOccurrence, Double)?
-
-pub fn graph_mean_sample_count(GraphMeanCheck) -> Int
-
 pub fn graph_selector_resource_at(GraphSelectorCheck, Int) -> GraphSelectionResource?
 
 pub fn graph_selector_resource_count(GraphSelectorCheck) -> Int
@@ -1723,34 +1715,6 @@ pub(all) enum GraphMatchRule {
   EnforceMatchResources
 } derive(Eq, @debug.Debug)
 
-pub struct GraphMeanCheck {
-  site : OperationRequirementSite
-  step : @pipeline_typing.CheckedStep
-  operation : @graph_typing.CheckedMean
-  rule : GraphMeanRule
-  policy : @capacity_policy.Policy
-}
-
-pub(all) enum GraphMeanResource {
-  SampleWork
-  ExactArithmeticWork
-  ValueAndTemporaryBytes
-  RetainedMeanState
-} derive(Eq, @debug.Debug)
-
-pub(all) enum GraphMeanRule {
-  AdmitMeanSamples
-  CompareMeanSupport
-  CloseMeanEndpoints
-  CheckMeanLabels
-  ApplyMeanProperties
-  RoundMeanOnce
-  ValidateMeanFiniteResults
-  OrderMeanIdentities
-  PreserveMeanDependencies
-  RequireMeanResources
-} derive(Eq, @debug.Debug)
-
 pub struct GraphProjectionCheck {
   site : OperationRequirementSite
   step : @pipeline_typing.CheckedStep
@@ -2364,7 +2328,6 @@ pub(all) enum OperationExecutionCheck {
   GraphDiffExecution(GraphDiffCheck)
   GraphEqualityExecution(GraphEqualityCheck)
   GraphStructuralExecution(GraphStructuralCheck)
-  GraphMeanExecution(GraphMeanCheck)
   VectorExecution(VectorCheck)
   NearestExecution(NearestCheck)
   PoolExecution(PoolCheck)

@@ -64,7 +64,6 @@ pub enum Payload {
   BasicGraph(@graph.CheckedGraph)
   StructuralGraph(@graph.CheckedStructural)
   GraphUnion(@graph.CheckedUnion)
-  GraphMeanValue(@graph.CheckedMean)
   GraphMatchRows(@graph.CheckedMatch)
   GraphReachRows(@graph.CheckedReach)
   GraphSubgraphValue(@graph.CheckedSubgraph)
@@ -233,7 +232,6 @@ pub fn operation(value : PreparedNode) -> String {
         @graph.Subtract => "SGA.diff_structural"
       }
     GraphUnion(_) => "SGA.union_structural"
-    GraphMeanValue(_) => "SGA.mean_structural"
     GraphMatchRows(value) =>
       match @graph.match_entity(value) {
         @graph.Nodes => "SGA.match_nodes"
@@ -334,7 +332,6 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     GraphApply(checked~, ..) => Some(GraphApplyValue(checked))
     GraphStructural(checked~, ..) => Some(StructuralGraph(checked))
     GraphUnion(v) => Some(GraphUnion(v))
-    GraphMean(value) => Some(GraphMeanValue(value))
     Pool(value) => Some(PoolValue(value))
     Nearest(checked~, ..) => Some(NearestValue(checked))
     Ranking(value) => Some(RankingValue(value))
@@ -471,8 +468,6 @@ pub fn prepare(
           2,
         )
       GraphUnion(value) => ("union_graphs", 1 + @graph.union_count(value))
-      GraphMeanValue(value) =>
-        ("mean_graphs", @graph.mean_sample_count(@graph.mean_options(value)))
       GraphMatchRows(value) =>
         (
           match @graph.match_entity(value) {
@@ -725,7 +720,6 @@ pub fn prepare(
       BasicGraph(_) => None
       StructuralGraph(_) => None
       GraphUnion(_) => None
-      GraphMeanValue(_) => None
       GraphMatchRows(_) => None
       GraphReachRows(_) => None
       GraphSubgraphValue(_) => None

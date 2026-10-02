@@ -19,13 +19,6 @@ test "unconnected structural consumers reject the current definition domain with
       contract,
       limits(),
     ).map(_ => ()),
-    @graph_typing.check_mean(
-      cursor(
-        "{\"with\":[\"peer\"],\"weights\":[1],\"support\":{\"nodes\":1,\"edges\":1},\"properties\":{\"nodes\":{},\"edges\":{}}}",
-      ),
-      [graph],
-      limits(),
-    ).map(_ => ()),
   ]
   for result in results {
     assert_true(result is Err({ kind: UnsupportedGraphOperation, .. }))
