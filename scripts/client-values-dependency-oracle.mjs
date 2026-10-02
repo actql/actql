@@ -49,8 +49,7 @@ const roles = [
   ['spec/contracts/actql-production-profile-schemas.json','/schemas/regex_replacement_ast'],
 ];
 
-export function valuesDependencyOracle({legacy=false,resultName='rows'}={}) {
-  const contracts = roles.map(([file,pointer])=> {
+function contractCid(file, pointer, legacy) {
     if (legacy && file==='spec/contracts/actql-bound-transfer-laws.json') {
       return 'sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911';
     }
@@ -58,7 +57,28 @@ export function valuesDependencyOracle({legacy=false,resultName='rows'}={}) {
       return 'sha256:a6bfc4b6c00d89f521ccee9e99e1dbbd7385675fd55478f1536f36f860b1ef0a';
     }
     return hash(body(file,pointer));
-  }).sort();
+}
+
+// The fixed acquired Relation fixture uses the same foundational roles, but
+// filter/select do not depend on the Values execution or cardinality laws.
+export function relationFixtureContracts({legacy=false,acquired=false}={}) {
+  const relationRoles = roles.filter(([file,pointer]) =>
+    !file.endsWith('actql-bound-values-law.json') &&
+    !file.endsWith('actql-bound-values-wire-law.json') &&
+    pointer !== '/execution_contracts/REL.values');
+  relationRoles.push(['spec/contracts/actql-bound-relation-laws.json']);
+  relationRoles.push(...(acquired ? [
+    ['spec/contracts/actql-source-response-policy.json'],
+    ['spec/contracts/actql-effective-data-policy.json'],
+  ] : [
+    ['spec/contracts/actql-stage-contracts.json','/schemas/gate_requirement'],
+    ['spec/contracts/actql-stage-contracts.json','/schemas/result_import_interface'],
+  ]));
+  return relationRoles.map(([file,pointer])=>contractCid(file,pointer,legacy));
+}
+
+export function valuesDependencyOracle({legacy=false,resultName='rows'}={}) {
+  const contracts = roles.map(([file,pointer])=>contractCid(file,pointer,legacy)).sort();
   const local = {version:'actql-stage-semantics/0.1',binding_references:[],
     bindings:{},parameter_references:[],parameters:{},
     expression_contract_cid:hash(body('spec/contracts/actql-expressions.json')),
