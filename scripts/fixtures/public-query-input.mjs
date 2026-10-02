@@ -17,6 +17,33 @@ const relationNumber = (name, nullable = false) => ({name,
 // insertion order of keys in the sourceRows objects above.
 const sourceColumns = [relationNumber('amount', true), relationNumber('id')];
 export const pipeResultSuccesses = [
+  {name: 'result-before-count', format: 'aql-text',
+    text: 'FROM records |> RESULT original |> AGGREGATE COUNT(*) AS n |> RESULT summary',
+    results: {
+      original: {rows: sourceRows, columns: sourceColumns, unordered: true},
+      summary: {rows: [{n: 4}], columns: [relationNumber('n')]},
+    }, sourceReadSessionCount: 1},
+  {name: 'result-before-grouped-count', format: 'aql-text',
+    text: 'FROM records |> RESULT original |> AGGREGATE COUNT(*) AS n GROUP BY amount |> ORDER BY amount |> RESULT summary',
+    results: {
+      original: {rows: sourceRows, columns: sourceColumns, unordered: true},
+      summary: {rows: [{amount: null, n: 1}, {amount: 20, n: 1}, {amount: 30, n: 2}],
+        columns: [relationNumber('amount', true), relationNumber('n')]},
+    }, sourceReadSessionCount: 1},
+  {name: 'result-empty-before-count', format: 'aql-text',
+    text: 'FROM records |> RESULT original |> AGGREGATE COUNT(*) AS n |> RESULT summary',
+    sourceRows: [],
+    results: {
+      original: {rows: [], columns: sourceColumns},
+      summary: {rows: [{n: 0}], columns: [relationNumber('n')]},
+    }, sourceReadSessionCount: 1},
+  {name: 'result-before-distinct', format: 'aql-text',
+    text: 'FROM records |> RESULT original |> SELECT DISTINCT amount |> ORDER BY amount |> RESULT unique_amounts',
+    results: {
+      original: {rows: sourceRows, columns: sourceColumns, unordered: true},
+      unique_amounts: {rows: [{amount: null}, {amount: 20}, {amount: 30}],
+        columns: [relationNumber('amount', true)]},
+    }, sourceReadSessionCount: 1},
   {name: 'result-before-limit', format: 'aql-text',
     text: 'FROM records |> ORDER BY id |> RESULT original |> LIMIT 1',
     results: {

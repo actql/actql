@@ -47,6 +47,34 @@ test "RESULT lowers the full prefix and terminal name through existing Program R
 }
 
 ///|
+test "RESULT before aggregation preserves an independently authored prefix Program" {
+  let program = compile(
+    @query.parse_query(
+      "FROM pair |> RESULT original |> AGGREGATE COUNT(*) AS n |> RESULT summary",
+      syntax_limits(),
+    ).unwrap(),
+    pair_context(),
+    construction_limits(),
+  ).unwrap()
+  // The prefix has its original columns, while COUNT has a single new
+  // non-null output. The expected Program does not call the query lowerer.
+  let expected = @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.pipe_slots","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":false}},"rows":[{"x":7,"y":9}]},"as":"pair"},{"from":"pair","select":["x","y"],"as":"aql_result_checkpoint_0"},{"group":{"by":[],"aggregates":{"n":{"fn":"count"}}}},{"select":["n"],"as":"aql_gen_0"}],"results":{"rows":{"from":"aql_gen_0","fields":["n"]},"aql_retained_result_0":{"from":"aql_result_checkpoint_0","fields":["x","y"]}}}],"results":{"original":{"from":{"stage":"main","result":"aql_retained_result_0"}},"summary":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+  assert_eq(semantic(program), semantic(expected))
+  match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+    _ => fail("retained prefix and aggregate use the ordinary checker")
+  }
+}
+
+///|
 test "top level RESULT consumes evaluated CTE and JOIN output through the shared lowerer" {
   for
     (text, context) in [
