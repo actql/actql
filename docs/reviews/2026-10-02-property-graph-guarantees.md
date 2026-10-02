@@ -428,3 +428,26 @@ Neither retirement unit is pushed. Their sources and retired fixtures remain
 recoverable from Git; neither dependency installations nor evidence logs were
 deleted. The current public #164 revision is still the unadoptable historical
 checkpoint, not this local verification result.
+
+## Retired subgraph kernel removal checkpoint
+
+The old Local subgraph kernel and its private tuple-copy helper are removed.
+No other production kernel called that helper. Five old selected/Host
+subgraph integration tests and their sole owner factory are withdrawn from
+execution; their historical source remains in Git. Subgraph-specific induced
+edge selection, scalar selectors and tuple projection semantics are
+unsupported, not claimed transferred to keyed MATCH.
+
+Generic input preservation, two-consumer lifetime and final reclamation stay
+positive in current managed Graph output tests. The keyed MATCH test covers
+every private yield before handoff, and keyed constructor/provider tests keep
+input cardinality, foreign owner, failure and partial-material cleanup.
+Current snapshot handoff tests preserve exact completion/input ownership after
+saving and revoking the original. Typed subgraph admission still requires the
+explicit unsupported-operation error; no old converter or provider is used.
+
+The related current suite passes **98/98 on JS, Wasm and native**:
+`/private/tmp/property-graph-subgraph-retirement-{js,wasm,native}-20261002.log`.
+This does not claim final Host/public snapshot acceptance or full Core/spec/CI
+at a submitted revision. Other obsolete product paths and the strict resource
+inventory remain open.

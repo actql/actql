@@ -7533,51 +7533,6 @@ fn carrier_subtract_owner(
 }
 
 ///|
-fn carrier_selected_subgraph_owner(
-  source : @lower.BoundPrepared,
-) -> @lower.BoundPrepared {
-  let checked = @pipeline.check_with_evidence(
-    input_cursor(
-      "[{\"from\":\"g\",\"subgraph\":{\"nodes\":{\"ids\":[1]}}," +
-      "\"as\":\"selected\"},{\"from\":\"selected\"," +
-      "\"node_rows\":true,\"as\":\"out\"}]",
-    ),
-    [
-      (
-        "g",
-        @pipeline.ProducedInput(
-          @pipeline.produced_input(
-            @lower.pipeline(@lower.bound_preparation(source)),
-            @pipeline.Step(0),
-          ).unwrap(),
-        ),
-      ),
-    ],
-    None,
-    None,
-    {
-      max_steps: 10,
-      max_work: 10000,
-      max_text_bytes: 10000,
-      max_nodes: 1000,
-      max_tokens: 1000,
-      max_depth: 100,
-    },
-  ).unwrap()
-  @lower.bind_parameters(
-    @lower.prepare(checked, {
-      max_nodes: 100,
-      max_references: 100,
-      max_work: 1000,
-      max_identifier_bytes: 1000,
-    }).unwrap(),
-    None,
-    max_parameters=0,
-    max_name_bytes=0,
-  ).unwrap()
-}
-
-///|
 fn carrier_union_owner(
   left : @lower.BoundPrepared,
   right : @lower.BoundPrepared,
@@ -8312,140 +8267,6 @@ test "selected Graph union stops at every pre-handoff yield" {
   assert_true(checked_yields > 9)
   assert_true(@carrier_runtime.reclaim_material(left_material))
   assert_true(@carrier_runtime.reclaim_material(right_material))
-}
-
-///|
-test "selected subgraph retains its Graph through the formal Bridge" {
-  let source_owner = carrier_graft_source_owner()
-  let owner = carrier_selected_subgraph_owner(source_owner)
-  let generated = task_test_generated(owner)
-  let source_material = @graphs.completed_material(
-    carrier_graft_graph(source_owner, 1.0, "left"),
-  ).unwrap()
-  let provider = @local_sga_provider.provider(
-    carrier_graph_storage_limits(),
-    4096L,
-    @execution.generated_sequence_capacity(
-      generated,
-      dispatch_test_limits().local_execution,
-      dispatch_test_limits().guards,
-    ).unwrap(),
-  )
-  let subgraph_sequence = @execution.select_generated_sequence_step(
-    generated, 0,
-  ).unwrap()
-  assert_true(
-    @local_connector.managed_provider_accepts(provider, subgraph_sequence),
-  )
-  let input = @carrier_runtime.material_prepare_view(
-    source_material, owner, 0, source_owner,
-  ).unwrap()
-  let execution = @local_connector.start_managed_provider_with_inputs(
-    provider,
-    subgraph_sequence,
-    [@local_connector.managed_provider_carrier_input(input)],
-    10,
-    1000,
-  ).unwrap()
-  let mut graph = None
-  while graph is None {
-    match @local_connector.advance_managed_provider(execution, 1).unwrap() {
-      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
-      @local_connector.CarrierComplete(material, ..) => graph = Some(material)
-      _ => fail("selected subgraph did not complete")
-    }
-  }
-  let graph = graph.unwrap()
-  assert_true(@local_connector.cleanup_managed_provider(execution).unwrap())
-  assert_true(@carrier_runtime.material_available(graph))
-  let projection = @execution.select_generated_sequence_step(generated, 1).unwrap()
-  let read = @carrier_runtime.material_prepare_operation_view(
-    graph, owner, 1, 0, owner,
-  ).unwrap()
-  let projected = @local_connector.start_managed_provider_with_inputs(
-    provider,
-    projection,
-    [@local_connector.managed_provider_carrier_input(read)],
-    10,
-    1000,
-  ).unwrap()
-  let mut rows = None
-  while rows is None {
-    match @local_connector.advance_managed_provider(projected, 1).unwrap() {
-      @local_connector.Continue(work~, ..) => assert_true(work > 0L)
-      @local_connector.Complete(output, ..) => rows = Some(output)
-      _ => fail("selected subgraph Bridge did not complete")
-    }
-  }
-  assert_eq(@execution.completed_row_count(rows.unwrap()), 1)
-  assert_true(
-    @execution.completed_cell(rows.unwrap(), 0, 1) is Some(Text("left")),
-  )
-  assert_true(@local_connector.cleanup_managed_provider(projected).unwrap())
-  assert_true(@carrier_runtime.reclaim_material(graph))
-  assert_true(@carrier_runtime.reclaim_material(source_material))
-}
-
-///|
-test "selected subgraph stops at every pre-handoff yield" {
-  let source_owner = carrier_graft_source_owner()
-  let owner = carrier_selected_subgraph_owner(source_owner)
-  let generated = task_test_generated(owner)
-  let source_material = @graphs.completed_material(
-    carrier_graft_graph(source_owner, 1.0, "left"),
-  ).unwrap()
-  let provider = @local_sga_provider.provider(
-    carrier_graph_storage_limits(),
-    4096L,
-    @execution.generated_sequence_capacity(
-      generated,
-      dispatch_test_limits().local_execution,
-      dispatch_test_limits().guards,
-    ).unwrap(),
-  )
-  let sequence = @execution.select_generated_sequence_step(generated, 0).unwrap()
-  let mut checked_yields = 0
-  let mut reached_handoff = false
-  for cut in 0..<100 {
-    let input = @carrier_runtime.material_prepare_view(
-      source_material, owner, 0, source_owner,
-    ).unwrap()
-    let execution = @local_connector.start_managed_provider_with_inputs(
-      provider,
-      sequence,
-      [@local_connector.managed_provider_carrier_input(input)],
-      10,
-      1000,
-    ).unwrap()
-    let mut completed_before_cut = false
-    for _ in 0..<cut {
-      match @local_connector.advance_managed_provider(execution, 1).unwrap() {
-        @local_connector.Continue(work~, ..) => assert_true(work > 0L)
-        @local_connector.CarrierComplete(material, ..) => {
-          assert_true(@carrier_runtime.reclaim_material(material))
-          completed_before_cut = true
-          break
-        }
-        _ => fail("subgraph reached unexpected terminal before cancellation")
-      }
-    }
-    if completed_before_cut {
-      assert_true(@local_connector.cleanup_managed_provider(execution).unwrap())
-      reached_handoff = true
-      break
-    }
-    assert_true(@local_connector.cancel_managed_provider(execution))
-    assert_true(
-      @local_connector.advance_managed_provider(execution, 1).unwrap()
-      is @local_connector.Stopped(..),
-    )
-    assert_true(@local_connector.cleanup_managed_provider(execution).unwrap())
-    assert_true(@carrier_runtime.material_available(source_material))
-    checked_yields += 1
-  }
-  assert_true(reached_handoff)
-  assert_true(checked_yields > 0)
-  assert_true(@carrier_runtime.reclaim_material(source_material))
 }
 
 ///|
@@ -11562,11 +11383,6 @@ test "standard Host suppresses rows after a Graph projection and false filter" {
 }
 
 ///|
-test "standard Host selects subgraph before Relation filter and two consumers" {
-  run_standard_host_mixed_graph_relation_path(variant="subgraph_filter")
-}
-
-///|
 test "standard Host composes Graph edge projection and Relation filter" {
   run_standard_host_mixed_graph_relation_path(variant="edge_projection_filter")
 }
@@ -12191,36 +12007,6 @@ test "standard Host preserves inbound Graph traversal" {
 ///|
 test "standard Host preserves bidirectional Graph traversal" {
   run_standard_host_graph_relation_path("traverse_both", publication=true)
-}
-
-///|
-test "standard Host selects a literal Graph subgraph" {
-  run_standard_host_graph_relation_path("subgraph_ids", publication=true)
-  run_standard_host_graph_relation_path("subgraph_shared", publication=true)
-  run_standard_host_graph_relation_path(
-    "subgraph_edges_false",
-    publication=true,
-  )
-  run_standard_host_graph_relation_path(
-    "subgraph_node_predicate",
-    publication=true,
-  )
-  run_standard_host_graph_relation_path(
-    "subgraph_edge_predicate",
-    publication=true,
-  )
-}
-
-///|
-test "standard Host selects a Graph subgraph from a Relation" {
-  run_standard_host_graph_relation_path(
-    "subgraph_relation_selector",
-    publication=true,
-  )
-  run_standard_host_graph_relation_path(
-    "subgraph_relation_selector_nullable",
-    publication=true,
-  )
 }
 
 ///|
