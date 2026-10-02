@@ -25,8 +25,6 @@ pub fn advance_match_edges(MatchEdgesExecution, Int) -> Result[MatchEdgesPoll, M
 
 pub fn advance_match_nodes(MatchNodesExecution, Int) -> Result[MatchNodesPoll, MatchNodesIssue]
 
-pub fn advance_reach(ReachExecution, Int) -> Result[ReachPoll, ReachIssue]
-
 pub fn advance_shortest(ShortestExecution, Int) -> Result[ShortestPoll, ShortestIssue]
 
 pub fn advance_traverse(TraverseExecution, Int) -> Result[TraversePoll, TraverseIssue]
@@ -40,8 +38,6 @@ pub fn cleanup_graphs_equal(GraphsEqualExecution) -> Result[Bool, GraphsEqualIss
 pub fn cleanup_match_edges(MatchEdgesExecution) -> Result[Bool, MatchEdgesIssue]
 
 pub fn cleanup_match_nodes(MatchNodesExecution) -> Result[Bool, MatchNodesIssue]
-
-pub fn cleanup_reach(ReachExecution) -> Result[Bool, ReachIssue]
 
 pub fn cleanup_shortest(ShortestExecution) -> Result[Bool, ShortestIssue]
 
@@ -95,14 +91,6 @@ pub fn match_nodes_scratch_slots(MatchNodesExecution) -> Int
 
 pub fn match_nodes_stopped(MatchNodesExecution) -> Bool
 
-pub fn reach_cleanup_pending(ReachExecution) -> Bool
-
-pub fn reach_max_noninterruptible_value_bytes(ReachExecution) -> Int
-
-pub fn reach_max_noninterruptible_value_nodes(ReachExecution) -> Int
-
-pub fn reach_stopped(ReachExecution) -> Bool
-
 pub fn shortest_cleanup_pending(ShortestExecution) -> Bool
 
 pub fn shortest_max_noninterruptible_value_bytes(ShortestExecution) -> Int
@@ -132,10 +120,6 @@ pub fn start_match_edges_view(@bounded_execution.Control, @execution_relation.Co
 pub fn start_match_nodes(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[MatchNodesExecution, MatchNodesIssue]
 
 pub fn start_match_nodes_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[MatchNodesExecution, MatchNodesIssue]
-
-pub fn start_reach(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[ReachExecution, ReachIssue]
-
-pub fn start_reach_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[ReachExecution, ReachIssue]
 
 pub fn start_shortest(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[ShortestExecution, ShortestIssue]
 
@@ -267,30 +251,6 @@ pub enum MatchNodesPoll {
   MatchNodesStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
 
-type ReachExecution
-
-pub(all) enum ReachIssue {
-  InvalidReachKernel
-  ReachInputUnavailable
-  ReachStartMissing
-  ReachOutputLimit
-  ReachWorkspaceLimit
-  ReachWorkLimit
-  ReachPredicate(@execution_relation.EvalIssueKind)
-  ReachKeyOrder(@value_admission.KeyOrderIssue)
-  ReachGraph(@managed_graph_storage.Issue)
-  ReachOutput(@execution_relation.CaptureIssue)
-  ReachCompletion(@execution_relation.TrustedOutputIssue)
-  ReachExecutionIssue(@bounded_execution.Issue)
-} derive(Eq, @debug.Debug)
-
-pub enum ReachPoll {
-  ReachContinue(progress~ : Int64, work~ : Int64)
-  ReachComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
-  ReachFailed(ReachIssue, progress~ : Int64, work~ : Int64)
-  ReachStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
-}
-
 type ShortestExecution
 
 pub(all) enum ShortestIssue {
@@ -321,7 +281,6 @@ type TraverseExecution
 
 pub(all) enum TraverseIssue {
   UnsupportedTraverseKernel
-  TraverseReachIssue(ReachIssue)
   TraversePathIssue(TraversePathsIssue)
 } derive(Eq, @debug.Debug)
 

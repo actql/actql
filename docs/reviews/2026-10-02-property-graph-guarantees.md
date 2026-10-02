@@ -451,3 +451,46 @@ The related current suite passes **98/98 on JS, Wasm and native**:
 This does not claim final Host/public snapshot acceptance or full Core/spec/CI
 at a submitted revision. Other obsolete product paths and the strict resource
 inventory remain open.
+
+The subgraph removal is committed as
+`7dd8c80797f788649a00af038f0c7aea2a16943d`. Its official committed API check
+passes at `/private/tmp/property-graph-subgraph-retirement-api-committed-20261002.log`.
+
+## Retired Reach kernel and current Relation selector custody
+
+The homogeneous Reach kernel, public handles and the traversal adapter's node
+fallback are removed. Four pure retired Reach/traversal fixture files and
+eleven obsolete tests in the mixed integration fixture are withdrawn; their
+source remains in Git. Scalar node depth, old shortest/simple-node emission,
+Reach predicates and their algorithm-specific work formulas are unsupported,
+not claimed migrated. The common typed boundary still refuses unsupported
+consumers. Path-owner node-emission internals and other retired kernels remain
+separate unfinished removals; this checkpoint is not complete unification.
+
+The new positive `property_graph_selector_custody_wbtest.mbt` obtains its JSON
+typed identity selector from actual keyed MATCH, then uses the existing bounded
+APPEND with two exact retained occurrences. It does not fabricate a trusted
+completion or permit unsupported JSON VALUES. Independent constructor keys
+determine the two parallel-edge TRAIL results, including their order; repeated
+selector rows do not multiply paths. Stored and viewed Graph reads preserve
+both retained inputs, reject a missing/foreign selector and clean up stopped
+private state idempotently without revoking the original inputs.
+
+An empty selector on the one-node fixture independently requires one initial
+selection slot and three control units (initialize, collect, Finish). Exact
+limits pass; workspace zero is refused and work two fails without output.
+Cancellation at all three private prefixes preserves the reported cumulative
+work, both input owners and zero private entries after cleanup. This is a
+current TRAIL guarantee, not restoration of an unsupported Reach algorithm.
+
+Initial test failures are preserved: JSON VALUES were rejected by the existing
+checker, so the fixture was replaced with real MATCH/APPEND. The added stop
+assertion initially treated cumulative poll work as a delta; it was corrected
+to the existing bounded-session contract, without changing the product budget.
+Logs: `/private/tmp/property-graph-selector-custody-exact-js-20261002.log` and
+`/private/tmp/property-graph-selector-custody-exact-corrected-js-20261002.log`.
+
+Current related suites pass **99/99 each on JS, Wasm and native**:
+`/private/tmp/property-graph-reach-retirement-focused-{js,wasm,native}-20261002.log`.
+No warning exemption or fallback is introduced. Full Core/spec, fresh public
+snapshot and required CI on a submitted SHA remain open.
