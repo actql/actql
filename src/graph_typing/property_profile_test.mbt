@@ -60,7 +60,7 @@ test "keyed traversal has explicit modes full edge identities and separate profi
     assert_eq(pending, [
       @graph_typing.AdmitTraversalGraph,
       @graph_typing.RespectTraversalHopBounds,
-      @graph_typing.EvaluateTraversalHopPredicates,
+      @graph_typing.FilterTraversalLabels,
       @graph_typing.CanonicalTraversalOrder,
       @graph_typing.ResolveTraversalResources,
       @graph_typing.ResolvePropertyGraphTraversalProfile,
@@ -174,62 +174,9 @@ test "path profile boundaries reject omission reinterpretation and unsupported m
       None,
       None,
       predicate_limits(),
-      property_graph=true,
     )
     is Err(
       @graph_typing.MatchStructure({ kind: @graph_typing.IncompleteGraph, .. })
     ),
   )
-}
-
-///|
-test "definition free property scope cannot erase keyed graph structure" {
-  for entity in [@graph_typing.Nodes, @graph_typing.Edges] {
-    guard @graph_typing.check_scope(
-        entity,
-        cursor("true"),
-        keyed_profile(),
-        limits(),
-      )
-      is Err(issue) else {
-      abort("legacy homogeneous scope accepted a keyed profile")
-    }
-    assert_eq(issue.kind, @graph_typing.UnsupportedGraphOperation)
-  }
-}
-
-///|
-test "definition free scope and predicate cannot revive an opaque tuple Graph" {
-  for entity in [@graph_typing.Nodes, @graph_typing.Edges] {
-    assert_true(
-      @graph_typing.check_scope(
-        entity,
-        cursor("true"),
-        @carrier.unknown_carrier(GraphKind),
-        limits(),
-      )
-      is Err({ kind: @graph_typing.IncompleteGraph, .. }),
-    )
-    assert_true(
-      @graph_typing.check_predicate(
-        entity,
-        cursor("true"),
-        @carrier.unknown_carrier(GraphKind),
-        None,
-        predicate_limits(),
-      )
-      is Err(
-        @graph_typing.ScopeIssue({ kind: @graph_typing.IncompleteGraph, .. })
-      ),
-    )
-    assert_true(
-      @graph_typing.check_scope(
-        entity,
-        cursor("true"),
-        keyed_profile(),
-        limits(),
-      )
-      is Err({ kind: @graph_typing.UnsupportedGraphOperation, .. }),
-    )
-  }
 }

@@ -24,19 +24,13 @@ pub fn check_mean_options(@decode_core.Cursor, Limits) -> Result[CheckedMeanOpti
 
 pub fn check_path_contract(PathOutput, @decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedPathContract, Issue]
 
-pub fn check_predicate(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedPredicate, PredicateIssue]
-
 pub fn check_property_construction(@decode_core.Cursor, Array[(String, @carrier_contract.Carrier)], String, Limits) -> Result[CheckedPropertyConstruction, Issue]
 
-pub fn check_scope(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedScope, Issue]
-
-pub fn check_selector(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits, property_graph? : Bool) -> Result[CheckedSelector, MatchIssue]
+pub fn check_selector(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSelector, MatchIssue]
 
 pub fn check_traverse(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedTraverse, MatchIssue]
 
 pub fn hop_direction(TraversalHop) -> Direction
-
-pub fn hop_predicate(TraversalHop, EntityKind) -> CheckedPredicate?
 
 pub fn hop_type_at(TraversalHop, Int) -> String?
 
@@ -158,10 +152,6 @@ pub fn property_element_keys(PropertyElement) -> Array[@relation_schema.FieldNam
 
 pub fn property_element_properties(PropertyElement) -> Array[(@relation_schema.FieldName, @relation_schema.FieldName)]
 
-pub fn scope_fields(CheckedScope) -> @carrier_contract.Knowledge
-
-pub fn scope_usage(CheckedScope) -> Usage
-
 pub fn selector_form(CheckedSelector) -> SelectorForm
 
 pub fn selector_id_at(CheckedSelector, Int) -> @value_admission.CheckedValue?
@@ -177,8 +167,6 @@ pub fn selector_pending(CheckedSelector) -> Array[SelectorObligation]
 pub fn selector_pending_at(CheckedSelector, Int) -> SelectorObligation?
 
 pub fn selector_pending_count(CheckedSelector) -> Int
-
-pub fn selector_predicate(CheckedSelector) -> CheckedPredicate?
 
 pub fn selector_source(CheckedSelector) -> @decode_core.Cursor
 
@@ -226,8 +214,6 @@ type CheckedPathContract
 type CheckedPredicate
 
 type CheckedPropertyConstruction
-
-type CheckedScope
 
 type CheckedSelector
 
@@ -362,9 +348,7 @@ pub(all) enum PathOutput {
 } derive(Eq, @debug.Debug)
 
 pub enum PredicateIssue {
-  InvalidPredicateLimits
   PredicateBudget(@decode_core.Cursor)
-  ScopeIssue(Issue)
   SyntaxIssue(@expression_syntax.Issue)
   TypingIssue(@expression_typing.Issue)
   UnknownPredicateField(@expression_syntax.FieldReference)
@@ -400,7 +384,6 @@ pub(all) enum PropertyPathMode {
 pub enum SelectorForm {
   ExplicitIds
   RelationIds(from~ : String, field~ : @relation_schema.FieldName)
-  PredicateNodes
 }
 
 pub(all) enum SelectorObligation {
@@ -408,7 +391,6 @@ pub(all) enum SelectorObligation {
   RevalidateSelectorReferences
   DeduplicateSelectorIdentities
   RequireSelectorMembership
-  EvaluateSelectorPredicate
   ResolveSelectorResources
 } derive(Eq, @debug.Debug)
 
@@ -417,7 +399,7 @@ type TraversalHop
 pub(all) enum TraverseObligation {
   AdmitTraversalGraph
   RespectTraversalHopBounds
-  EvaluateTraversalHopPredicates
+  FilterTraversalLabels
   EnumeratePropertyPaths
   DeduplicateExactPaths
   CanonicalTraversalOrder

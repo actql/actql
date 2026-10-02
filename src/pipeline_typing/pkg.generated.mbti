@@ -520,9 +520,6 @@ pub(all) enum ExpressionConsumer {
   AnalyticArgument(String)
   SequencePredicate(Int)
   GraphMatchPredicate
-  TraverseStart
-  TraverseEdges(Int)
-  TraverseNodes(Int)
   InferInput(Int)
 } derive(Eq, @debug.Debug)
 

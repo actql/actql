@@ -1620,7 +1620,6 @@ pub(all) enum GraphSelectorRule {
   RevalidateReferences
   DeduplicateIdentities
   RequireMembership
-  EvaluateNodePredicate
   RequireSelectorResources
 } derive(Eq, @debug.Debug)
 
@@ -3284,7 +3283,7 @@ pub struct TraversalLimitsCheck {
 pub(all) enum TraversalRule {
   AdmitInputGraph
   RespectAuthoredHops
-  EvaluateHopConditions
+  FilterAuthoredLabels
   EnumeratePropertyPaths
   DeduplicatePathIdentities
   OrderTraversalRows

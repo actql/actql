@@ -1,7 +1,6 @@
 ///|
 fn emit_graph_selector(
   selector : @graph.CheckedSelector,
-  predicate : Expression?,
   out : @encode.Writer,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(out)
@@ -22,13 +21,6 @@ fn emit_graph_selector(
       @encode.number_value(out, 1.0)
       @encode.key(out, "id")
       @encode.string_value(out, @schema.reference_name(field))
-    }
-    @graph.PredicateNodes => {
-      guard predicate is Some(expression) else {
-        abort("missing prepared graph selector predicate")
-      }
-      @encode.key(out, "where")
-      emit_expression(expression, out)
     }
   }
   @encode.end_object(out)

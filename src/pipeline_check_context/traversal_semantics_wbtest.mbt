@@ -82,7 +82,7 @@ test "keyed traversal checks retain explicit mode and never reuse simple-path la
     assert_eq(rules, [
       AdmitInputGraph,
       RespectAuthoredHops,
-      EvaluateHopConditions,
+      FilterAuthoredLabels,
       OrderTraversalRows,
       EnumeratePropertyPaths,
       DeduplicatePathIdentities,
@@ -152,7 +152,7 @@ test "current TRAIL bindings preserve mode input roles custody and unresolved gu
         let expected : Array[TraversalRule] = [
           AdmitInputGraph,
           RespectAuthoredHops,
-          EvaluateHopConditions,
+          FilterAuthoredLabels,
           OrderTraversalRows,
         ]
         expected.push(EnumeratePropertyPaths)
@@ -211,8 +211,6 @@ test "current TRAIL bindings preserve mode input roles custody and unresolved gu
                 let second = @graph.traverse_hop_at(check.operation, 1).unwrap()
                 assert_eq(@graph.hop_direction(first), @graph.Outgoing)
                 assert_eq(@graph.hop_direction(second), @graph.Incoming)
-                assert_true(@graph.hop_predicate(first, @graph.Edges) is None)
-                assert_true(@graph.hop_predicate(second, @graph.Nodes) is None)
               }
               assert_eq(
                 operation_execution_phase(TraversalExecution(check)),

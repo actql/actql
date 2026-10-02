@@ -9,9 +9,6 @@ pub(all) enum ExpressionConsumer {
   AnalyticArgument(String)
   SequencePredicate(Int)
   GraphMatchPredicate
-  TraverseStart
-  TraverseEdges(Int)
-  TraverseNodes(Int)
   InferInput(Int)
 } derive(Eq, Debug)
 
@@ -261,32 +258,10 @@ pub fn collect_expression_slots(
             @graph.match_predicate(operation),
             GraphMatchPredicate,
           )
-        Traverse(checked~, ..) => {
-          slot_predicate(
-            c,
-            step,
-            @graph.selector_predicate(@graph.traverse_start(checked)),
-            TraverseStart,
-          )
-          for i in 0..<@graph.traverse_hop_count(checked) {
-            let hop = @graph.traverse_hop_at(checked, i).unwrap()
-            slot_predicate(
-              c,
-              step,
-              @graph.hop_predicate(hop, @graph.Edges),
-              TraverseEdges(i),
-            )
-            slot_predicate(
-              c,
-              step,
-              @graph.hop_predicate(hop, @graph.Nodes),
-              TraverseNodes(i),
-            )
-          }
-        }
         // These checked forms retain scalar/cell operands or field selectors,
         // not general Expression roots. Do not use a catch-all here.
-        Join(..)
+        Traverse(..)
+        | Join(..)
         | Append(..)
         | Nest(..)
         | Set(..)

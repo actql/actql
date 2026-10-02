@@ -2,8 +2,6 @@
 struct TraversalHop {
   direction : Direction
   types : Array[String]?
-  edge_predicate : CheckedPredicate?
-  node_predicate : CheckedPredicate?
 }
 
 ///|
@@ -17,7 +15,7 @@ pub(all) enum PropertyPathMode {
 pub(all) enum TraverseObligation {
   AdmitTraversalGraph
   RespectTraversalHopBounds
-  EvaluateTraversalHopPredicates
+  FilterTraversalLabels
   EnumeratePropertyPaths
   DeduplicateExactPaths
   CanonicalTraversalOrder
@@ -138,26 +136,18 @@ pub fn check_traverse(
     }
     let at = decoded(@decode.required(root, "start"))
     let start = match
-      check_selector(
-        at,
-        input,
-        selector_relation,
-        parameters,
-        {
-          ..limits,
-          max_work: b.work,
-          max_nodes: b.nodes,
-          max_text_bytes: b.text,
-        },
-        property_graph=true,
-      ) {
+      check_selector(at, input, selector_relation, parameters, {
+        ..limits,
+        max_work: b.work,
+        max_nodes: b.nodes,
+        max_text_bytes: b.text,
+      }) {
       Ok(s) => s
       Err(e) => raise MatchStop(e)
     }
     b.work -= start.usage.work
     b.nodes -= start.usage.nodes
     b.text -= start.usage.text_bytes
-    let mut tokens = start.usage.tokens
     let at = decoded(@decode.required(root, "emit"))
     let emit = match decoded(@decode.text(at)) {
       "nodes" => fail(at, UnsupportedGraphProfile)
@@ -191,36 +181,12 @@ pub fn check_traverse(
             decoded(@decode.required(o, "direction")),
           )
           let types = traversal_types(b, @decode.lookup(o, "edge_types"))
-          let predicates : Array[CheckedPredicate?] = []
-          for (key, entity) in [("edge_where", Edges), ("node_where", Nodes)] {
-            match @decode.lookup(o, key) {
-              None => predicates.push(None)
-              Some(c) => {
-                let p = match
-                  check_predicate(entity, c, input, parameters, {
-                    ..limits,
-                    max_work: b.work,
-                    max_nodes: b.nodes,
-                    max_text_bytes: b.text,
-                    max_tokens: limits.max_tokens - tokens,
-                  }) {
-                  Ok(p) => p
-                  Err(e) => raise MatchStop(MatchPredicate(e))
-                }
-                b.work -= p.usage.work
-                b.nodes -= p.usage.nodes
-                b.text -= p.usage.text_bytes
-                tokens += p.usage.tokens
-                predicates.push(Some(p))
-              }
+          for key in ["edge_where", "node_where"] {
+            if @decode.lookup(o, key) is Some(at) {
+              fail(at, UnsupportedGraphOperation)
             }
           }
-          hops.push({
-            direction,
-            types,
-            edge_predicate: predicates[0],
-            node_predicate: predicates[1],
-          })
+          hops.push({ direction, types, })
         }
         (xs.length().to_double(), xs.length().to_double())
       }
@@ -241,12 +207,7 @@ pub fn check_traverse(
         }
         let types = traversal_types(b, @decode.lookup(root, "edge_types"))
         spend(b, source, 1)
-        hops.push({
-          direction,
-          types,
-          edge_predicate: None,
-          node_predicate: None,
-        })
+        hops.push({ direction, types, })
         (minimum, maximum)
       }
     }
@@ -294,7 +255,7 @@ pub fn check_traverse(
         work: limits.max_work - b.work,
         nodes: limits.max_nodes - b.nodes,
         text_bytes: limits.max_text_bytes - b.text,
-        tokens,
+        tokens: 0,
       },
     })
   } catch {
@@ -363,18 +324,6 @@ pub fn hop_type_at(h : TraversalHop, index : Int) -> String? {
 }
 
 ///|
-pub fn hop_predicate(
-  h : TraversalHop,
-  entity : EntityKind,
-) -> CheckedPredicate? {
-  if entity == Nodes {
-    h.node_predicate
-  } else {
-    h.edge_predicate
-  }
-}
-
-///|
 pub fn traverse_output(c : CheckedTraverse) -> @carrier.Carrier {
   c.output
 }
@@ -409,7 +358,7 @@ fn traverse_pending_each(
 ) -> Unit {
   emit(AdmitTraversalGraph)
   emit(RespectTraversalHopBounds)
-  emit(EvaluateTraversalHopPredicates)
+  emit(FilterTraversalLabels)
   emit(CanonicalTraversalOrder)
   emit(ResolveTraversalResources)
   emit(ResolvePropertyGraphTraversalProfile)

@@ -808,30 +808,11 @@ fn prepare_publication_source_policy(
             let mut missing = !@graph.traverse_patterned(operation) ||
               @graph.selector_id_count(start) > 0 ||
               @graph.traverse_output_guard(operation) is Some(_)
-            if @graph.selector_predicate(start) is Some(predicate) {
-              if publication_expression_unknown(
-                  @graph.predicate_expression(predicate),
-                  budget,
-                ) {
-                missing = true
-              }
-            }
             for hop in 0..<@graph.traverse_hop_count(operation) {
               identity_charge(budget, 1)
               let hop = @graph.traverse_hop_at(operation, hop).unwrap()
               if @graph.hop_type_count(hop).unwrap_or(0) > 0 {
                 missing = true
-              }
-              for entity in [@graph.Nodes, @graph.Edges] {
-                identity_charge(budget, 1)
-                if @graph.hop_predicate(hop, entity) is Some(predicate) {
-                  if publication_expression_unknown(
-                      @graph.predicate_expression(predicate),
-                      budget,
-                    ) {
-                    missing = true
-                  }
-                }
               }
             }
             carrier_steps.push({

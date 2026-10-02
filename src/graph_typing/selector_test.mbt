@@ -1,4 +1,34 @@
 ///|
+test "definition-free selectors refuse with an exact public diagnostic before preparing predicates" {
+  let source = cursor("{\"where\":\"true\"}")
+  let issue = @graph_typing.check_selector(
+    source,
+    current_scope_graph(),
+    None,
+    None,
+    predicate_limits(),
+  ).unwrap_err()
+  let diagnostic = @graph_typing.match_diagnostic(issue, source)
+  assert_eq(
+    diagnostic.kind,
+    @graph_typing.Structure(@graph_typing.UnsupportedGraphOperation),
+  )
+  assert_eq(diagnostic.path, [@source.Key("where")])
+  assert_true(diagnostic.range is None)
+  let invalid_limits = @graph_typing.check_selector(
+    source,
+    current_scope_graph(),
+    None,
+    None,
+    { ..predicate_limits(), max_work: -1, },
+  ).unwrap_err()
+  assert_eq(
+    @graph_typing.match_diagnostic(invalid_limits, source).kind,
+    @graph_typing.Structure(@graph_typing.InvalidLimits),
+  )
+}
+
+///|
 test "current Graph Relation selectors retain qualified full identity contracts" {
   let graph = current_scope_graph()
   guard graph is @carrier.GraphValue(value) else { fail("Graph") }

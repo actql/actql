@@ -250,7 +250,7 @@ fn emit_graph_traverse_node(
   @encode.key(out, "params")
   @encode.begin_object(out)
   @encode.key(out, "start")
-  emit_graph_selector(@graph.traverse_start(prepared.checked), None, out)
+  emit_graph_selector(@graph.traverse_start(prepared.checked), out)
   @encode.key(out, "path_mode")
   @encode.string_value(
     out,

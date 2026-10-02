@@ -10,7 +10,6 @@ pub(all) enum GraphSelectorRule {
   RevalidateReferences
   DeduplicateIdentities
   RequireMembership
-  EvaluateNodePredicate
   RequireSelectorResources
 } derive(Eq, Debug)
 
@@ -93,7 +92,6 @@ fn graph_selector_execution_check(
     RevalidateSelectorReferences => RevalidateReferences
     DeduplicateSelectorIdentities => DeduplicateIdentities
     RequireSelectorMembership => RequireMembership
-    EvaluateSelectorPredicate => EvaluateNodePredicate
     ResolveSelectorResources => RequireSelectorResources
   }
   Ok(

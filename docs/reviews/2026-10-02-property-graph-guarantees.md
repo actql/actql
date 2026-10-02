@@ -1467,3 +1467,50 @@ definition-free predicate scaffolding, external Source declaration ownership,
 old fixture guarantee migration, strict inventories and published-SHA public
 snapshot/fresh packed/required CI remain open. No public branch replacement,
 AoA change, merge or completed B handoff has occurred.
+
+## Retired definition-free predicate owners
+
+The old public homogeneous scope/predicate admission APIs and their refusal-only
+fixtures are deleted. The scope used by current MATCH is private and must be
+created from its retained admitted definition. Current MATCH continues to use
+the common expression checker, lowering and evaluator, including structured
+reference diagnostics and exact work/text/token limits.
+
+Selectors retain only full typed literal identities or an exact Relation input.
+The optional old-profile flag, predicate selector variant/getter and predicate
+resolution rule are removed. Traversal hops retain direction and static label
+selection, not unreachable predicate owners. Definition-free start/hop predicates
+are explicitly refused at the authored field before any executable checked
+form is returned. The published diagnostic code/path remains specific; a new
+direct-selector regression checks both unsupported operation and invalid limits.
+
+The dead traversal expression consumer variants, lowering branches and source
+policy predicate scans are removed. Literal/bound/label provenance and selector
+input ownership remain active in source policy. The traversal obligation now
+states its implemented duty, `FilterTraversalLabels`, with
+`FilterAuthoredLabels` at resolution. Copied/indexed obligation order tests still
+agree. Current serialized MATCH/path steps and static identity domains are not
+changed by these internal representation/API removals.
+
+Expression-slot collection now charges one visit for a checked traversal step
+instead of visiting empty start/hop predicate slots. This is preparation work,
+not a reinterpretation of runtime `max_work` or an invented cleanup charge.
+An independent positive Relation-selector regression fixes that one-unit cost;
+MATCH still owns its common expression slot and costs two units. Exact work and
+one-short refusal remain tested. The initial expanded JS run failed one old
+six-unit empty-slot expectation, retained in
+`/private/tmp/property-graph-selector-retirement-js-20261003.log`; it was corrected
+to the actual one-step traversal rather than relaxing its work-limit test.
+
+The surrounding regression passes **1,099/1,099 on JS, Wasm and native** with
+`--deny-warn`:
+`/private/tmp/property-graph-selector-retirement-{js-pass,wasm,native}-20261003.log`.
+Three tests of the removed scope APIs were withdrawn; two current selector/slot
+regressions were added. Existing positive MATCH, path capacity/stop/cleanup,
+selector ownership and snapshot regressions remain active.
+
+The earlier aggregate Core result remains red until the documented legacy
+fixture migrations and external Source-definition ownership are finished.
+Strict inventories and published-SHA snapshot/fresh packed/required CI are still
+pending. No public branch replacement, AoA write, merge or completed B handoff
+is implied by this narrower checkpoint.

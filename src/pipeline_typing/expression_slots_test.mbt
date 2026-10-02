@@ -153,7 +153,8 @@ test "current Graph expression slots retain scoped MATCH and literal TRAIL witho
         identity +
         "]},\"hops\":[{\"direction\":\"in\"},{\"direction\":\"out\"}],\"path_mode\":\"trail\",\"emit\":\"paths\"}}]",
         0,
-        6,
+        // One checked step, with no fabricated start/hop predicate slots.
+        1,
       ),
     ] {
     let p = @pipeline_typing.check_carriers(

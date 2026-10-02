@@ -84,8 +84,7 @@ pub fn operation_execution_phase(
       match v.rule {
         AdmitIdentities | RevalidateReferences | RequireSelectorResources =>
           BeforeOperationInputUse
-        DeduplicateIdentities | RequireMembership | EvaluateNodePredicate =>
-          BeforeOperationOutput
+        DeduplicateIdentities | RequireMembership => BeforeOperationOutput
       }
     GraphMatchExecution(v) =>
       match v.rule {
@@ -173,7 +172,7 @@ pub fn operation_execution_phase(
       match v.rule {
         AdmitInputGraph => BeforeOperationInputUse
         RespectAuthoredHops
-        | EvaluateHopConditions
+        | FilterAuthoredLabels
         | EnumeratePropertyPaths
         | DeduplicatePathIdentities
         | OrderTraversalRows => BeforeOperationOutput

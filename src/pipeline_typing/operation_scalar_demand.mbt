@@ -147,7 +147,7 @@ pub fn operation_scalar_demand(
         BindTraversalOutputGuard(name) => Some(SafeInteger(name, minimum=1L))
         AdmitTraversalGraph
         | RespectTraversalHopBounds
-        | EvaluateTraversalHopPredicates
+        | FilterTraversalLabels
         | EnumeratePropertyPaths
         | DeduplicateExactPaths
         | CanonicalTraversalOrder

@@ -102,36 +102,3 @@ test "definition-selected MATCH scopes keep independent identities and business 
     }
   }
 }
-
-///|
-test "definition-free scopes reject current and opaque Graphs rather than synthesizing old roles" {
-  for entity in [@graph_typing.Nodes, @graph_typing.Edges] {
-    assert_true(
-      @graph_typing.check_scope(
-        entity,
-        cursor("true"),
-        current_scope_graph(),
-        limits(),
-      )
-      is Err({ kind: @graph_typing.UnsupportedGraphOperation, .. }),
-    )
-    assert_true(
-      @graph_typing.check_scope(
-        entity,
-        cursor("true"),
-        @carrier.unknown_carrier(GraphKind),
-        limits(),
-      )
-      is Err({ kind: @graph_typing.IncompleteGraph, .. }),
-    )
-    assert_true(
-      @graph_typing.check_scope(
-        entity,
-        cursor("true"),
-        @carrier.unknown_carrier(RelationKind),
-        limits(),
-      )
-      is Err({ kind: @graph_typing.WrongCarrier(RelationKind), .. }),
-    )
-  }
-}

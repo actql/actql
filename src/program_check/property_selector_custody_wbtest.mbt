@@ -120,7 +120,7 @@ test "formal current TRAIL retains selector identity and resource scopes through
     }
     assert_eq(edges, if relation { 2 } else { 1 })
     let checks = @context.stage_requirement_operations(requirements(program))
-    let counts = Array::make(6, 0)
+    let counts = Array::make(5, 0)
     for i in 0..<@context.operation_closure_count(checks) {
       if @context.operation_closure_at(checks, i)
         is Some(ExecutionCheck(GraphSelectorExecution(check))) {
@@ -154,19 +154,17 @@ test "formal current TRAIL retains selector identity and resource scopes through
             2
           },
         )
-        assert_true(@graph.selector_predicate(check.selector) is None)
         let index = match check.rule {
           AdmitIdentities => 0
           RevalidateReferences => 1
           DeduplicateIdentities => 2
           RequireMembership => 3
-          EvaluateNodePredicate => 4
-          RequireSelectorResources => 5
+          RequireSelectorResources => 4
         }
         counts[index] += 1
         assert_eq(
           @context.operation_execution_phase(GraphSelectorExecution(check)),
-          if index == 0 || index == 1 || index == 5 {
+          if index == 0 || index == 1 || index == 4 {
             BeforeOperationInputUse
           } else {
             BeforeOperationOutput
@@ -178,7 +176,7 @@ test "formal current TRAIL retains selector identity and resource scopes through
         )
         assert_eq(
           @context.graph_selector_resource_count(check),
-          if index == 5 {
+          if index == 4 {
             2
           } else {
             0
@@ -186,7 +184,7 @@ test "formal current TRAIL retains selector identity and resource scopes through
         )
         assert_true(@context.graph_selector_resource_at(check, -1) is None)
         assert_true(@context.graph_selector_resource_at(check, 2) is None)
-        if index == 5 {
+        if index == 4 {
           assert_eq(
             @context.graph_selector_resource_at(check, 0),
             Some(SelectorWork),
@@ -198,14 +196,7 @@ test "formal current TRAIL retains selector identity and resource scopes through
         }
       }
     }
-    assert_eq(
-      counts,
-      if relation {
-        [3, 3, 3, 3, 0, 3]
-      } else {
-        [3, 0, 3, 3, 0, 3]
-      },
-    )
+    assert_eq(counts, if relation { [3, 3, 3, 3, 3] } else { [3, 0, 3, 3, 3] })
     assert_true(unit_publication_at(program, 1, 0) is Some(_))
   }
 }

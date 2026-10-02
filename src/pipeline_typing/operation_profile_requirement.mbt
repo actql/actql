@@ -20,7 +20,7 @@ pub fn operation_profile_requirement(
         ResolvePropertyGraphTraversalProfile => Some(PropertyGraph)
         AdmitTraversalGraph
         | RespectTraversalHopBounds
-        | EvaluateTraversalHopPredicates
+        | FilterTraversalLabels
         | EnumeratePropertyPaths
         | DeduplicateExactPaths
         | CanonicalTraversalOrder

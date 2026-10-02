@@ -74,9 +74,7 @@ test "current path predicates refuse before any homogeneous execution can be pre
         None,
         predicate_limits(),
       )
-      is Err(
-        MatchPredicate(ScopeIssue({ kind: UnsupportedGraphOperation, .. }))
-      ),
+      is Err(MatchStructure({ kind: UnsupportedGraphOperation, .. })),
     )
   }
   let body = "{\"start\":{\"where\":\"true\"},\"hops\":[{\"direction\":\"out\"}],\"path_mode\":\"trail\",\"emit\":\"paths\"}"
@@ -88,7 +86,7 @@ test "current path predicates refuse before any homogeneous execution can be pre
       None,
       predicate_limits(),
     )
-    is Err(MatchPredicate(ScopeIssue({ kind: UnsupportedGraphOperation, .. }))),
+    is Err(MatchStructure({ kind: UnsupportedGraphOperation, .. })),
   )
 }
 

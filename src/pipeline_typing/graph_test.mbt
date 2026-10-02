@@ -46,6 +46,65 @@ fn graph_property_scope_input() -> @carrier.Carrier {
 }
 
 ///|
+test "current TRAIL has no predicate slots while definition-scoped MATCH keeps the common expression owner" {
+  let graph = graph_property_scope_input()
+  let relation = @carrier.relation(
+    @carrier.rows(
+      [(Unqualified("id"), Some(@contract.primitive(JsonType, nullable=false)))],
+      field_set=Closed,
+      max_fields=1,
+      max_name_bytes=2,
+    ).unwrap(),
+  )
+  for
+    (body, expected_slots, expected_work) in [
+      (
+        "[{\"from\":\"g\",\"traverse\":{\"start\":{\"from\":\"r\",\"id\":\"id\"},\"hops\":[{\"direction\":\"out\",\"edge_types\":[\"Link\"]}],\"path_mode\":\"trail\",\"emit\":\"paths\"}}]",
+        0, 1,
+      ),
+      (
+        "[{\"from\":\"g\",\"match_nodes\":{\"definition\":\"N\",\"where\":\"active\",\"fields\":[\"active\"]}}]",
+        1, 2,
+      ),
+    ] {
+    let pipeline = @pipeline_typing.check_carriers(
+      cursor(body),
+      [("g", graph), ("r", relation)],
+      None,
+      None,
+      limits(),
+    ).unwrap()
+    let slots = collect_expression_slots(
+      pipeline,
+      max_work=expected_work,
+      max_slots=expected_slots,
+    ).unwrap()
+    assert_true(physical_equal(expression_slots_pipeline(slots), pipeline))
+    assert_eq(expression_slots_work(slots), expected_work)
+    assert_eq(expression_slot_count(slots), expected_slots)
+    assert_true(
+      collect_expression_slots(
+        pipeline,
+        max_work=expected_work - 1,
+        max_slots=expected_slots,
+      )
+      is Err(WorkLimit),
+    )
+    assert_true(expression_slot_at(slots, -1) is None)
+    assert_true(expression_slot_at(slots, expected_slots) is None)
+    if expected_slots == 1 {
+      let slot = expression_slot_at(slots, 0).unwrap()
+      assert_eq(slot.consumer, GraphMatchPredicate)
+      assert_eq(slot.step, 0)
+      assert_true(
+        collect_expression_slots(pipeline, max_work=expected_work, max_slots=0)
+        is Err(SlotLimit),
+      )
+    }
+  }
+}
+
+///|
 test "current TRAIL retains selector inputs and complete independent identity arrays through projection" {
   let g = graph_input()
   let r = @carrier.relation(

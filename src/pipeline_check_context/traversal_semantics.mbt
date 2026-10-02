@@ -2,7 +2,7 @@
 pub(all) enum TraversalRule {
   AdmitInputGraph
   RespectAuthoredHops
-  EvaluateHopConditions
+  FilterAuthoredLabels
   EnumeratePropertyPaths
   DeduplicatePathIdentities
   OrderTraversalRows
@@ -30,7 +30,7 @@ fn traversal_execution_check(
   let rule : TraversalRule = match pending {
     AdmitTraversalGraph => TraversalRule::AdmitInputGraph
     RespectTraversalHopBounds => RespectAuthoredHops
-    EvaluateTraversalHopPredicates => EvaluateHopConditions
+    FilterTraversalLabels => FilterAuthoredLabels
     EnumeratePropertyPaths => EnumeratePropertyPaths
     DeduplicateExactPaths => DeduplicatePathIdentities
     CanonicalTraversalOrder => OrderTraversalRows
