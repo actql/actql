@@ -227,6 +227,13 @@ struct CheckedPipeline {
 /// A key declaration retains its own Relation contract and admission obligations.
 pub(all) enum InputContract {
   ProducedInput(ProducedInput)
+  // Retained static declaration and selected Catalog owner, not execution authority.
+  SourceViewInput(
+    @stage.Stage,
+    String,
+    @decode.Cursor,
+    @model_environment.SourceViewCarrier
+  )
   CarrierInput(@carrier.Carrier)
   KeyedInput(@evidence.KeyedRelation)
   CandidateKeysInput(@evidence.KeySet)

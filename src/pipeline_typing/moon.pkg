@@ -3,6 +3,7 @@ supported_targets = "+js+wasm+native"
 import {
   "actql/actql/encode_core" @encode,
   "actql/actql/check_environment" @model_environment,
+  "actql/actql/stage_syntax" @stage,
   "actql/actql/publication_order_policy" @publication,
   "actql/actql/capacity_law" @law,
   "actql/actql/capacity_derivation" @derivation,

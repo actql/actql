@@ -28,6 +28,7 @@ import {
   "actql/actql/relation_values",
   "actql/actql/source_span",
   "actql/actql/source_value",
+  "actql/actql/stage_syntax",
   "actql/actql/temporal_window",
   "actql/actql/text_rank_profile",
   "actql/actql/time_series",
@@ -567,6 +568,7 @@ pub(all) enum GuardScope {
 
 pub(all) enum InputContract {
   ProducedInput(ProducedInput)
+  SourceViewInput(@stage_syntax.Stage, String, @decode_core.Cursor, @check_environment.SourceViewCarrier)
   CarrierInput(@carrier_contract.Carrier)
   KeyedInput(@relation_evidence.KeyedRelation)
   CandidateKeysInput(@relation_evidence.KeySet)

@@ -1514,3 +1514,51 @@ fixture migrations and external Source-definition ownership are finished.
 Strict inventories and published-SHA snapshot/fresh packed/required CI are still
 pending. No public branch replacement, AoA write, merge or completed B handoff
 is implied by this narrower checkpoint.
+
+## Original SourceView definition custody (2026-10-03)
+
+SourceView registration previously reduced a resolved input to `CarrierInput`.
+That lost its original declaration and selected Catalog owner; a current Graph
+constructor correctly refused to invent producer provenance from the row schema.
+`SourceViewInput` now retains the original Stage, declared input name, exact
+declaration Cursor and existing opaque `SourceViewCarrier`. The common checker
+requires the original steps and declaration; SourceView attachment requires
+the same Stage, declaration and selected Catalog owner. Same-shaped foreign
+Catalog inputs, foreign Programs and foreign declaration Cursors are refused.
+The declaration table scan is charged before lookup, and domain issuance uses
+the retained Cursor rather than repeatedly reopening uncharged input tables.
+
+The domain projection keeps unbound Source syntax, the static Carrier schema
+body CID and the selected SourceView member body CID. It excludes the DATA
+alias, Program ID, enclosing Environment bundle, bound Artifact, actual
+Parameter values and Run/Invocation identity. It follows the existing retained
+producer chain through transformations/imports. No second request-admission,
+authorization, acquisition or execution owner is introduced. Bare Carrier
+registrations still refuse `MissingPropertyProducerDefinition`.
+
+The two new formal Program regressions exercise Source → constructor → MATCH,
+original publication-source policy, alias-invariant domain and changed producer
+definition. Restoring the old registration/attachment connection makes **0/2**
+pass: `/private/tmp/property-graph-source-owner-ablation-20261003.log`. This is
+a connection ablation, not a claim that the complete old SHA was rebuilt.
+
+Independent canonical preimage for the fixed Source fixture:
+
+```json
+{"constructor":{"edges":[],"nodes":[{"input_occurrence":0,"key":["id"],"labels":[{"name":"Node","properties":{"columns":[{"from":"id","to":"id"}],"mode":"columns"}}],"name":"N"}],"version":"actql-property-graph-constructor/0.1"},"producer_definitions":[{"source_view":{"carrier_schema":"sha256:dfdd25f9d1e53aa575aa8b5ad61d1247761d11cc67859c8d5c4e811d99c293d8","declaration":{"connector":"crm/main","request":{"id":1,"tenant":null},"resource":"r"},"selected_view":"sha256:5d7ab8ccf736b60aa69eda9669f3cd77b7d1a234377375fefe9a8105ff566a11"}}],"version":"actql-property-graph-definition/0.1"}
+```
+
+Node's SHA-256 of those UTF-8 bytes independently gives
+`sha256:4e99c7ad4487c68499e66d81ddef818b42053f8b6f439ca65dcfcd975a850cc3`.
+The schema and selected member hashes were calculated from the authored input
+fixture in `program_check/remote_wbtest.mbt`, not compiler output. An initial
+oracle used the SourceView's self-declared contract CID instead of the full
+member body CID; the mismatch exposed that distinction and the corrected
+preimage above independently establishes the literal expectation.
+
+The surrounding owner/admission/Graph regression is **1,369/1,369 on JS,
+Wasm and native** with `--deny-warn`. Logs:
+`/private/tmp/property-graph-source-owner-{js,wasm,native}-20261003.log`.
+Latest main is `bcbf77049fe4991c9b0f1a18541ac7a7952b01ad`, already an ancestor.
+The aggregate Core/spec migration, fresh public snapshot acceptance and
+published-SHA required CI remain unfinished; this is not B's completed handoff.

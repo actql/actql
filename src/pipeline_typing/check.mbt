@@ -94,6 +94,27 @@ fn check_impl(
   for i in 0..<inputs.length() {
     let (key, schema) = inputs[i]
     name(b, source, key)
+    if input_contracts[i] is SourceViewInput(stage, declared, retained, _) {
+      let body = @decode.open_object(@stage.stage_body(stage)).unwrap()
+      let steps = @decode.required(body, "steps").unwrap()
+      let declarations = @decode.required(body, "inputs").unwrap()
+      // Opening a declaration table is part of the same bounded check. A
+      // retained syntax owner is not a license to scan uncharged source.
+      let count = @decode.object_length(declarations).unwrap()
+      spend(b, source, count)
+      for index in 0..<count {
+        charge(b, source, @decode.field_at(declarations, index).unwrap().0)
+      }
+      let original = @decode.open_object(declarations).bind(object => {
+        @decode.required(object, declared)
+      })
+      if declared != key ||
+        @decode.tree_index(steps, source) != @decode.tree_index(steps, steps) ||
+        !(original is Ok(value) &&
+        @decode.tree_index(value, retained) == @decode.tree_index(value, value)) {
+        fail(source, KeyEvidence(InputContractMismatch))
+      }
+    }
     if names.contains(key) {
       fail(source, DuplicateName(key))
     }
@@ -217,6 +238,7 @@ fn check_impl(
         object,
         names,
         inputs,
+        input_contracts,
         produced_inputs,
         steps,
         b,
@@ -1998,6 +2020,10 @@ pub fn check_with_evidence(
       pair.0,
       match pair.1 {
         ProducedInput(p) => p.carrier
+        SourceViewInput(_, _, _, owner) =>
+          @model_environment.carrier_schema_value(
+            @model_environment.source_view_carrier_schema(owner),
+          )
         CarrierInput(c) => c
         KeyedInput(k) => @carrier.relation(@evidence.keyed_records(k))
         CandidateKeysInput(k) => @carrier.relation(@evidence.key_set_records(k))
@@ -2009,7 +2035,7 @@ pub fn check_with_evidence(
   let keys = inputs.map(pair => {
     match pair.1 {
       ProducedInput(p) => p.keys
-      CarrierInput(_) | RankingInput(_) => None
+      SourceViewInput(_, _, _, _) | CarrierInput(_) | RankingInput(_) => None
       KeyedInput(k) => Some(@evidence.singleton_key(k))
       CandidateKeysInput(k) => Some(k)
       RelationEvidenceInput(e) => Some(e.keys)

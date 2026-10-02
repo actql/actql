@@ -72,6 +72,7 @@ fn property_definition_value(
 priv enum PropertyProducerFrame {
   Target(
     Array[(String, @carrier.Carrier)],
+    Array[InputContract],
     Array[ProducedInput?],
     Array[CheckedStep],
     Target,
@@ -79,6 +80,7 @@ priv enum PropertyProducerFrame {
   )
   Dependencies(
     Array[(String, @carrier.Carrier)],
+    Array[InputContract],
     Array[ProducedInput?],
     Array[CheckedStep],
     Array[InputOccurrence],
@@ -92,6 +94,7 @@ priv enum PropertyProducerFrame {
 ///|
 fn property_definition_target(
   inputs : Array[(String, @carrier.Carrier)],
+  contracts : Array[InputContract],
   produced : Array[ProducedInput?],
   steps : Array[CheckedStep],
   target : Target,
@@ -101,7 +104,9 @@ fn property_definition_target(
   depth : Int,
 ) -> Unit raise {
   let pending = [
-    PropertyProducerFrame::Target(inputs, produced, steps, target, depth),
+    PropertyProducerFrame::Target(
+      inputs, contracts, produced, steps, target, depth,
+    ),
   ]
   while pending.pop() is Some(frame) {
     match frame {
@@ -120,18 +125,33 @@ fn property_definition_target(
             )
         }
       }
-      Dependencies(inputs, produced, steps, entries, index, depth) =>
+      Dependencies(inputs, contracts, produced, steps, entries, index, depth) =>
         if index == entries.length() {
           @encode.end_array(out)
         } else {
           pending.push(
-            Dependencies(inputs, produced, steps, entries, index + 1, depth),
+            Dependencies(
+              inputs,
+              contracts,
+              produced,
+              steps,
+              entries,
+              index + 1,
+              depth,
+            ),
           )
           pending.push(
-            Target(inputs, produced, steps, entries[index].target, depth),
+            Target(
+              inputs,
+              contracts,
+              produced,
+              steps,
+              entries[index].target,
+              depth,
+            ),
           )
         }
-      Target(inputs, produced, steps, target, depth) => {
+      Target(inputs, contracts, produced, steps, target, depth) => {
         if depth > b.limits.max_depth {
           fail(at, BudgetExceeded)
         }
@@ -149,12 +169,36 @@ fn property_definition_target(
               pending.push(
                 Target(
                   owner.pipeline.inputs,
+                  owner.pipeline.input_contracts,
                   owner.pipeline.produced_inputs,
                   owner.pipeline.steps,
                   owner.target,
                   depth + 1,
                 ),
               )
+            } else if contracts.get(index)
+              is Some(SourceViewInput(_, _, declaration, owner)) {
+              @encode.key(out, "source_view")
+              @encode.begin_object(out)
+              @encode.key(out, "carrier_schema")
+              @encode.string_value(
+                out,
+                @model_environment.carrier_schema_body_cid(
+                  @model_environment.source_view_carrier_schema(owner),
+                ),
+              )
+              @encode.key(out, "declaration")
+              property_definition_value(declaration, out, b, depth + 2, false)
+              @encode.key(out, "selected_view")
+              @encode.string_value(
+                out,
+                @model_environment.member_cid(
+                  @model_environment.reference_member(
+                    @model_environment.source_view_carrier_reference(owner),
+                  ),
+                ),
+              )
+              @encode.end_object(out)
             } else {
               // A name plus a row schema is not the external producer's admitted
               // definition. Do not fabricate provenance or hash the bound Artifact.
@@ -173,6 +217,7 @@ fn property_definition_target(
             pending.push(
               Dependencies(
                 inputs,
+                contracts,
                 produced,
                 steps,
                 step.connections.entries,
@@ -248,6 +293,7 @@ fn property_definition_constructor(
 fn property_definition_domain(
   source : @decode.Cursor,
   inputs : Array[(String, @carrier.Carrier)],
+  contracts : Array[InputContract],
   produced : Array[ProducedInput?],
   steps : Array[CheckedStep],
   targets : Array[Target],
@@ -262,7 +308,7 @@ fn property_definition_domain(
     @encode.begin_array(out)
     for target in targets {
       property_definition_target(
-        inputs, produced, steps, target, source, out, b, 0,
+        inputs, contracts, produced, steps, target, source, out, b, 0,
       )
     }
     @encode.end_array(out)
@@ -287,6 +333,7 @@ fn check_property_graph_step(
   object : @decode.ObjectView,
   names : Map[String, Target],
   inputs : Array[(String, @carrier.Carrier)],
+  contracts : Array[InputContract],
   produced : Array[ProducedInput?],
   steps : Array[CheckedStep],
   b : Budget,
@@ -337,7 +384,7 @@ fn check_property_graph_step(
     }
   }
   let domain = property_definition_domain(
-    at, inputs, produced, steps, targets, b,
+    at, inputs, contracts, produced, steps, targets, b,
   )
   let checked = match
     @graph.check_property_construction(at, schemas, domain, {

@@ -5291,9 +5291,16 @@ CIDs, parameter values, Run/Invocation CIDs nor Graph content enters the
 domain. Editing inline VALUES or semantic mapping defines a different domain;
 cross-domain comparison has no implicit compatibility mapping. Within one
 admitted domain and typed key, changed properties, labels or endpoints change
-snapshot content, not element identity. A bare external Carrier/name is not
-producer-definition provenance; the initial retained-VALUES path rejects that
-unsupported provenance rather than inventing a domain.
+snapshot content, not element identity. SourceView inputs retain the original
+Stage declaration and the selected Catalog Carrier owner. Their domain
+projection includes the unbound Source declaration, the canonical static
+Carrier schema body CID and the selected SourceView member body CID; it does
+not include the enclosing Program ID, DATA alias or Environment bundle CID.
+The common checker requires the original Stage's steps and registered input,
+and SourceView attachment requires the exact selected Catalog owner. This
+retention is not acquisition or execution permission: the existing request,
+policy and runtime admission still apply. A bare external Carrier/name is not
+producer-definition provenance and is rejected rather than inventing a domain.
 
 Definition-scoped `match_nodes` and `match_edges` select a required
 `definition`, optional static `label`, existing predicate/projection fields and
