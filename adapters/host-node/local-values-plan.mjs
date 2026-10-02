@@ -237,6 +237,81 @@ export function acquiredEffectPublicationPlan({acquired, captured,
       runInvocation: invocation, observation})});
 }
 
+// Both acquired tuples remain checked by the common Effect owner. Source
+// input retention carries each original policy; derived publication carries
+// the checked combined policy with exactly the same custody/time bounds.
+export function acquiredMultiEffectPublicationPlan({acquired, sources,
+  captureStartedAt, captureCompletedAt}) {
+  const {moon, control, prepared, compilation, definition, admission,
+    runDefinition, compiledPlan, authorityScopeCid,
+    namespaceId, storeAuthorityCid, now} = acquired;
+  if (!Array.isArray(sources) || sources.length !== 2) {
+    throw new TypeError('IncompleteAcquiredEffectSources');
+  }
+  const dataPolicyCid = moon.clientProgramEffectPublicationDataPolicyCid(prepared);
+  if (typeof dataPolicyCid !== 'string') {
+    throw new TypeError('UnavailableAcquiredEffectPolicy');
+  }
+  const {observation, invocation, owner: invocationOwner} =
+    control.issueCheckedClientEffectMultiCapturedInvocation(
+      prepared, compilation, admission, definition, sources,
+      {authorityScopeCid, dataPolicyCid, captureStartedAt, captureCompletedAt},
+      limits);
+  const sourceEvidence = sources.map(source => control.admitRunEvidence(
+    'source_evidence', source.sourceEvidenceWire, limits));
+  const run = JSON.parse(runDefinition.wire);
+  const {plan, retention, retentionDependencies} = buildLocalPublicationPlan({
+    control, admission, runDefinition, invocation, observation,
+    compiledPlanCid: compiledPlan.identity,
+    programDefinitionCid: moon.clientProgramEffectDefinitionCid(prepared),
+    inputRelationCids: sources.map(({captured}) =>
+      moon.clientProgramCapturedSourceLogicalCid(captured.identity)),
+    sourceEvidence, authorityScopeCid, namespaceId, storeAuthorityCid,
+    dataPolicyCid, createdAt: run.created_at, now,
+    resultCount: moon.clientProgramEffectCompilationResultNames(compilation).length,
+    retainUntil: run.valid_until,
+    moon, effectCompilation: compilation, preparedEffect: prepared});
+  const acquisitionDependencies = [];
+  const acquiredEvidenceByUnit = sources.map(({captured}, unit) => {
+    const body = JSON.parse(retention.wire);
+    delete body.effective_retention_policy_cid;
+    body.effective_data_policy_cid = captured.checkedSource.sourceDataPolicyCid;
+    const sourceRetention = control.seal('result_retention_policy',
+      JSON.stringify(body), limits);
+    const evidence = control.issueCheckedAcquiredEffectEvidence(
+      prepared, captured.capture.source(), captured.identity,
+      captured.requirement, captured.logicalInput, sourceEvidence[unit],
+      authorityScopeCid, captured.checkedSource.sourceDataPolicyCid,
+      sourceRetention, limits, unit, retention);
+    const bodies = moon.clientProgramCapturedSourceDependencyBodies(
+      captured.identity, captured.capture.source());
+    if (typeof bodies?._0 !== 'string' || typeof bodies?._1 !== 'string') {
+      throw new Error('MissingCapturedEffectSourceBodies');
+    }
+    acquisitionDependencies.push(
+      Object.freeze({kind: 'relation_value',
+        cid: moon.clientProgramCapturedSourceLogicalCid(captured.identity),
+        wire: bodies._0}),
+      Object.freeze({kind: 'relation_schema',
+        cid: moon.clientProgramCapturedSourceSchemaCid(captured.identity),
+        wire: bodies._1}));
+    return evidence;
+  });
+  return Object.freeze({...plan, invocationOwner,
+    localEvidenceContext: Object.freeze({admission, runDefinition,
+      acquiredEvidence: acquiredEvidenceByUnit[0],
+      acquiredEvidenceByUnit: Object.freeze(acquiredEvidenceByUnit),
+      acquiredCatalogBodies: Object.freeze([
+        ...acquiredEvidenceByUnit.flatMap(value => value.catalogBodies),
+        ...checked(moon.clientProgramEffectPublicationPolicyBodies(prepared,
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth)).map(body =>
+          Object.freeze({kind: body._0, cid: body._1, wire: body._2})),
+      ]),
+      retentionDependencies,
+      acquisitionDependencies: Object.freeze(acquisitionDependencies),
+      runInvocation: invocation, observation})});
+}
+
 export function sourceFreeValuesPlan({moon, control, preparedProgram,
   authorityScopeCid, namespaceId, storeAuthorityCid, now,
   retainedDefinitionWire}) {

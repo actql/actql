@@ -164,6 +164,8 @@ pub fn client_effect_imported_invocation(ClientEffectImportedEvidence) -> Client
 
 pub fn client_effect_imported_relation_bodies(ClientEffectImportedEvidence) -> Array[String]
 
+pub fn client_effect_imported_scope_json(ClientEffectImportedEvidence) -> String
+
 pub fn client_effect_local_artifact_definition_cid(ClientEffectLocalResultArtifact) -> String
 
 pub fn client_effect_local_artifact_invocation_cid(ClientEffectLocalResultArtifact) -> String
@@ -410,7 +412,7 @@ pub fn emit_prepared_client_values_unit_source(PreparedClientProgram, Int, @lowe
 
 pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanFactManifestIdentity, PlanFactManifestIdentityIssue]
 
-pub fn issue_acquired_client_effect_local_invocation(PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, Int, Int, Int) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue]
+pub fn issue_acquired_client_effect_local_invocation(PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, Int, Int, Int, unit? : Int) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue]
 
 pub fn issue_acquired_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectLocalResultExport, ClientEffectAcquiredEvidence, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
 
@@ -428,7 +430,7 @@ pub fn issue_client_compiled_task_invocation(ClientCompiledRun, @run_publication
 
 pub fn issue_client_compiled_values_invocation(ClientCompiledRun, @run_publication.PublicationContract, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
-pub fn issue_client_effect_acquired_evidence(PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, @run_publication.PublicationContract, Int, Int, Int) -> Result[ClientEffectAcquiredEvidence, ClientEffectAcquiredEvidenceIssue]
+pub fn issue_client_effect_acquired_evidence(PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, @run_publication.PublicationContract, Int, Int, Int, unit? : Int, publication_retention? : @run_publication.PublicationContract?) -> Result[ClientEffectAcquiredEvidence, ClientEffectAcquiredEvidenceIssue]
 
 pub fn issue_client_effect_allowed_run(ClientEffectCompilation, String, String, String) -> Result[ClientEffectAllowedRun, ClientEffectCompiledRunIssue]
 
@@ -439,6 +441,8 @@ pub fn issue_client_effect_imported_evidence(PreparedClientEffectComputation, @p
 pub fn issue_client_effect_local_manifest(PreparedClientEffectComputation, ClientEffectLocalInvocation, Array[ClientEffectLocalResultArtifact], Int, Int, Int) -> Result[ClientEffectLocalManifest, ClientEffectLocalManifestIssue]
 
 pub fn issue_client_effect_local_result_definition(PreparedClientEffectComputation, Int, String, Int, Int, Int) -> Result[ClientEffectLocalResultDefinition, ClientEffectLocalResultDefinitionIssue]
+
+pub fn issue_client_effect_multi_captured_invocation(PreparedClientEffectComputation, ClientEffectCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[String], Array[String], String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
 pub fn issue_client_effect_result_import_observation(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectResultImport, ClientEffectLocalManifest, ClientEffectLocalResultArtifact, Int, Int, Int) -> Result[ClientEffectResultImportObservation, ClientEffectResultImportIssue]
 
@@ -542,6 +546,8 @@ pub fn open_prepared_captured_client_effect_run(PreparedClientEffectRun, @execut
 
 pub fn open_prepared_captured_client_run(PreparedClientProgram, @execution_query.CapturedInputSource, @physical_resources.LedgerLimits) -> Result[@physical_strategy.CapturedDAG, ClientRunOpenIssue]
 
+pub fn open_prepared_multi_captured_client_effect_run(PreparedClientEffectRun, Array[(Int, @execution_query.CapturedInputSource)], @physical_resources.Ledger) -> Result[@physical_strategy.CapturedEffectRunDAG, ClientRunOpenIssue]
+
 pub fn open_prepared_source_free_client_effect_run(PreparedClientEffectRun, @physical_resources.LedgerLimits) -> Result[@physical_strategy.CapturedEffectRunDAG, ClientRunOpenIssue]
 
 pub fn open_prepared_source_free_client_run(PreparedClientProgram, @physical_resources.LedgerLimits) -> Result[@physical_strategy.CapturedDAG, ClientRunOpenIssue]
@@ -613,6 +619,10 @@ pub fn prepared_client_effect_computation_semantics_cid(PreparedClientEffectComp
 pub fn prepared_client_effect_computation_source(PreparedClientEffectComputation) -> @stage_syntax.Program
 
 pub fn prepared_client_effect_identity(PreparedClientEffectComputation) -> ClientProgramIdentity
+
+pub fn prepared_client_effect_publication_data_policy_cid(PreparedClientEffectComputation) -> String?
+
+pub fn prepared_client_effect_publication_policy_bodies(PreparedClientEffectComputation, Int, Int, Int) -> Result[Array[(String, String, String)], @program_check.LocalDependencyBodyIssue]
 
 pub fn prepared_client_effect_request_scope(PreparedClientEffectComputation, ClientRequestIdentity) -> Result[@logical_request_scope.LogicalRequestScope, ClientRequestIdentityIssue]
 

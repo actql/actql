@@ -118,10 +118,9 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         // Common captured_task_input checks the exact completed predecessor,
         // operation binding, and live retained representation. It also covers
         // a preceding row-file task without inventing a managed output.
-        return (createLease == null ? producer === 0 :
-          producer >= 0 &&
+        return (producer >= 0 && (createLease == null ||
           moon.strategyModule_local_PredecessorIsCarrier?.(setup, producer) ===
-            false) ? Object.freeze({
+            false)) ? Object.freeze({
           task: producer,
           capturedRelation: true,
         }) : undefined;

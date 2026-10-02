@@ -278,6 +278,8 @@ pub fn issue_captured_effect_dependency_inventory(Array[CapturedEffectDependency
 
 pub fn issue_captured_source_input_relation(RunEvidenceValue, RunEvidenceValue, String, Int, PublicationContract, Int, Int, Int) -> Result[(PublicationContract, PublicationContract, PublicationContract), AcquisitionRelationIssue]
 
+pub fn issue_combined_acquisition_scope(Array[PublicationContract], Int, Int, Int) -> Result[PublicationContract, AcquisitionRelationIssue]
+
 pub fn issue_complete_local_result_artifact(String, String, ResultOrderingEvidence, PublicationContract, Int, Int, Int, Int) -> Result[PublicationContract, ResultArtifactIssuanceIssue]
 
 pub fn issue_complete_result_artifact(PublicationContract, PublicationContract, ResultOrderingEvidence, PublicationContract, Int, Int, Int, Int) -> Result[PublicationContract, ResultArtifactIssuanceIssue]
@@ -531,6 +533,8 @@ pub fn result_read_grant_allows_bytes(PublicationContract, Int) -> Bool
 pub fn result_read_grant_valid_at(PublicationContract, String) -> Bool
 
 pub fn result_read_retention_policy_cid(PublicationContract, String) -> Result[String, DeliveryIssuanceIssue]
+
+pub fn result_retention_bounds_equal(PublicationContract, PublicationContract) -> Bool
 
 pub fn result_retention_clock_contract_cid(PublicationContract) -> Result[String, DeliveryIssuanceIssue]
 

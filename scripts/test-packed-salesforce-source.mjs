@@ -11,6 +11,12 @@ import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {createRequire} from 'node:module';
+import {loadTwoSourceFixtures, installTwoSourceFixtures} from
+  './fixtures/two-source-public-query.mjs';
+import {databaseRows, expectedUpdates, expectedWrites, expectedModelInputs,
+  publicFixtureEnvironment, modelConfiguration} from
+  './fixtures/composed-infer-effect-input.mjs';
 import {canonicalJson} from '../adapters/host-node/local-account-config.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
@@ -20,6 +26,9 @@ await mkdir(build, {recursive: true});
 const externalScratch = join(repository, '..', '.codex-scratch');
 await mkdir(externalScratch, {recursive: true});
 const root = await mkdtemp(join(externalScratch, 'actql-packed-salesforce-'));
+const inferEnabled = process.argv.includes('--composed-infer');
+const twoSourceEffect = process.argv.includes('--two-source-effect');
+const composed = inferEnabled || twoSourceEffect;
 const orgId = '00D000000000001EAA';
 const token = 'packed-test-only-token';
 
@@ -131,6 +140,7 @@ const server = await (async () => {
     close: () => new Promise(resolve => https.close(resolve))};
 })();
 
+let passed = false;
 try {
   const artifacts = [];
   for (const name of ['client-wire', 'sdk', 'local-node', 'node']) {
@@ -265,9 +275,17 @@ try {
   const host = generateKeyPairSync('ed25519');
   await writeFile(join(root, 'reviewer.key'), reviewer.privateKey.export({
     type: 'pkcs8', format: 'pem'}), {mode: 0o600});
+  const composedModel = composed ? await modelConfiguration(JSON.parse(
+    await readFile(join(repository, 'spec/local-check-environment.json'),
+      'utf8'))) : undefined;
   const effectAccount = canonicalJson({
     version: 'actql-execution-account-config/0.1',
     account_id: 'packed-effect-account', entries: [
+      ...(composed ? [{entry_id: 'a-fixture-model', outcome: 'allow',
+        exclusions: [], principal: {all: true},
+        connection: {any_of: ['models/composition']},
+        resource: {any_of: [composedModel.taskCid]},
+        operation: {any_of: ['infer']}}] : []),
       {entry_id: 'effect-commit', outcome: 'delegate', exclusions: [],
         principal: {all: true},
         connection: {any_of: [`salesforce:${orgId}`]},
@@ -345,19 +363,56 @@ console.log(JSON.stringify(published.mappings.map(mapping =>
     [['key-1', 'record-1'], ['key-3', 'record-3']]);
   console.log('packed Local Host coinstalled Source and Effect read passed');
 
+  for (const name of ['composed-infer-effect-input.mjs',
+    'installed-infer-fixture.mjs', 'two-source-public-query.mjs',
+    'public-query-input.mjs']) {
+    await writeFile(join(root, name), await readFile(join(repository,
+      'scripts/fixtures', name)));
+  }
+  await writeFile(join(root, 'base-environment.json'), await readFile(
+    join(repository, 'spec/local-check-environment.json')));
+  if (composed) {
+    const fixture = await loadTwoSourceFixtures(join(repository,
+      'adapters/host-node/fixtures/two-source'));
+    fixture.rows = {...databaseRows, equal_content: databaseRows.left};
+    for (const name of ['left', 'right']) {
+      fixture.environments[name] = await publicFixtureEnvironment(
+        fixture.environments[name]);
+    }
+    const duckdb = createRequire(join(root,
+      'node_modules/@actql/local-node/package.json'))('@duckdb/node-api');
+    const installed = await installTwoSourceFixtures({root: join(root,
+      'composition-sources'), fixture, duckdb});
+    await writeFile(join(root, 'composition-profiles.json'), JSON.stringify([
+      installed.profiles.left, installed.profiles.right]));
+    await writeFile(join(root, 'model-calls.jsonl'), '');
+    await writeFile(join(root, 'source-calls.jsonl'), '');
+    await writeFile(join(root, 'composition-databases.json'),
+      JSON.stringify(installed.databases));
+  }
+
   // Every step runs in a fresh process with only the installed tarballs.
   // The same public @actql/node connect() path handles submission, review,
   // recovery and the Named Result without a MoonBit toolchain.
   await writeFile(join(root, 'effect-run.mjs'), `
 import assert from 'node:assert/strict';
 import {createPrivateKey, sign} from 'node:crypto';
-import {readFileSync, writeFileSync} from 'node:fs';
+import {appendFileSync, readFileSync, writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {createServer} from 'node:https';
+import {createRequire} from 'node:module';
+import {observeTwoSourceProvider} from './two-source-public-query.mjs';
 import {userInfo} from 'node:os';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 import {connect} from '@actql/node';
+import {compositionProgram, twoSourceEffectProgram, modelConfiguration, registerCompositionModel,
+  expectedClassified, classifiedColumns, expectedUpdates} from
+  './composed-infer-effect-input.mjs';
+const composed = process.env.PACKED_COMPOSED_INFER === '1';
+const twoSourceEffect = process.env.PACKED_TWO_SOURCE_EFFECT === '1';
 const authorization = JSON.parse(readFileSync('authorization.json', 'utf8'));
+if (composed) authorization.observe = (name, detail) =>
+  console.error('packed-composition-diagnostic', name, detail);
 authorization.resumeAfterAnswer = process.argv[2] === 'resume';
 const installation = {
   directory: process.env.ACTQL_LOCAL_STATE_DIR,
@@ -365,6 +420,22 @@ const installation = {
   effectProfilePath: process.env.ACTQL_LOCAL_EFFECT_PROFILE,
   authorization,
 };
+let sourceObservation;
+if (composed) {
+  sourceObservation = observeTwoSourceProvider(createRequire(
+    new URL('./node_modules/@actql/local-node/package.json', import.meta.url))(
+      '@duckdb/node-api'), JSON.parse(readFileSync(
+        'composition-databases.json', 'utf8')));
+  delete installation.sourceProfilePath;
+  installation.sourceProfilePaths = JSON.parse(readFileSync(
+    'composition-profiles.json', 'utf8'));
+  const model = await modelConfiguration(JSON.parse(readFileSync(
+    'base-environment.json', 'utf8')));
+  installation.modelInstallation = model.installation;
+  installation.registerModelProviders = moon => registerCompositionModel(
+    moon, model.taskCid, score => appendFileSync('model-calls.jsonl',
+      JSON.stringify({score}) + '\\n'));
+}
 let remoteHost;
 let remoteServer;
 let connection = {mode: 'local', owner: 'local',
@@ -430,8 +501,11 @@ try {
     }], results: {answer: {from: {stage: 'source', result: 'rows'}}}};
     const execution = await client.aql(JSON.stringify(program), {
       format: 'json', requestId: 'packed-effect-1'});
-    await waitFor(async () => (await execution.status()).status ===
-      'waiting_checkpoint');
+    await waitFor(async () => {
+      const status = await execution.status();
+      if (status.status === 'failed') throw new Error('PackedEffectFailed: ' + JSON.stringify(status));
+      return status.status === 'waiting_checkpoint';
+    });
     writeFileSync('effect-ref.json', JSON.stringify(execution.ref));
     console.log('held');
   } else if (step === 'answer') {
@@ -453,7 +527,9 @@ try {
       'utf8'));
     const mapping = generation.mappings.find(entry =>
       entry.write.resource === 'Test_Record__c');
-    const program = {version: 'actql/0.1', id: 'packed-rce', stages: [
+    const program = composed ? (twoSourceEffect ? twoSourceEffectProgram
+      : compositionProgram)(mapping.mapping_ref)
+      : {version: 'actql/0.1', id: 'packed-rce', stages: [
       {id: 'acquire',
         inputs: {remote: {connector: 'crm-main', resource: 'Test_Record__c'}},
         steps: [{filter: "Name <> 'record-2'", as: 'filtered'},
@@ -481,8 +557,7 @@ try {
       }
       throw error;
     }
-    await waitFor(async () => (await execution.status()).status ===
-      'waiting_checkpoint');
+    assert.equal((await execution.wait()).status, 'waiting_checkpoint');
     writeFileSync('effect-ref.json', JSON.stringify(execution.ref));
     writeFileSync('rce-request.txt', 'packed-rce-' + process.argv[3]);
     console.log('held');
@@ -499,7 +574,14 @@ try {
       return ['succeeded', 'failed', 'needs_reconciliation', 'cancelled']
         .includes(current.status) ? current : undefined;
     });
-    if (state.status === 'succeeded') {
+    if (state.status === 'succeeded' && composed) {
+      if (!twoSourceEffect) {
+      assert.deepEqual(await execution.result('classified').all(), expectedClassified);
+      assert.deepEqual((await execution.result('classified').describe()).columns,
+        classifiedColumns);
+      }
+      assert.deepEqual(await execution.result('updates').all(), expectedUpdates);
+    } else if (state.status === 'succeeded') {
       assert.deepEqual((await execution.result('updates').describe()).columns, [
         {name: 'Id', contract: {type: 'string', nullable: false}},
         {name: 'next_name', contract: {type: 'string', nullable: false}},
@@ -528,6 +610,11 @@ try {
     remoteServer.closeAllConnections();
     await new Promise(resolve => remoteServer.close(resolve));
     await remoteHost.close();
+  }
+  if (sourceObservation) {
+    appendFileSync('source-calls.jsonl', JSON.stringify(
+      sourceObservation.snapshot()) + '\\n');
+    sourceObservation.restore();
   }
 }
 `);
@@ -567,8 +654,11 @@ try {
     server.target.name = 'prior-name';
     const rceEnvironment = {...effectEnvironment,
       PACKED_RCE_TRANSPORT: transport,
+      PACKED_COMPOSED_INFER: composed ? '1' : '0',
+      PACKED_TWO_SOURCE_EFFECT: twoSourceEffect ? '1' : '0',
       NODE_EXTRA_CA_CERTS: join(root, 'org.crt'),
       ACTQL_LOCAL_STATE_DIR: join(root, 'rce-' + transport)};
+    if (composed) delete rceEnvironment.ACTQL_LOCAL_SOURCE_PROFILE;
     const rce = async (steps, id) => {
       const readsBefore = queries();
       const held = (await runChild('effect-run.mjs', rceEnvironment,
@@ -579,15 +669,19 @@ try {
         {code: 'ReadComputeEffectNotConnected'});
       }
       assert.equal(held, 'held');
-      assert.equal(queries(), readsBefore + 1);
+      if (!composed) assert.equal(queries(), readsBefore + 1);
       await steps();
-      assert.equal(queries(), readsBefore + 1,
+      if (!composed) assert.equal(queries(), readsBefore + 1,
         'recovery must use captured Source rows without another query');
     };
     const writesBefore = server.seen.filter(item => item.method === 'PATCH')
       .length;
     const patches = () => server.seen.filter(item => item.method === 'PATCH')
       .slice(writesBefore);
+    const sourceCallsBefore = composed ? (await readFile(join(root,
+      'source-calls.jsonl'), 'utf8')).trim().split('\n').filter(Boolean).length : 0;
+    const modelCallsBefore = composed ? (await readFile(join(root,
+      'model-calls.jsonl'), 'utf8')).trim().split('\n').filter(Boolean).length : 0;
     await rce(async () => {
       assert.equal(patches().length, 0);
       assert.equal((await runChild('effect-run.mjs', rceEnvironment,
@@ -596,6 +690,11 @@ try {
       const done = JSON.parse((await runChild('effect-run.mjs',
         rceEnvironment, ['rce-resume'])).trim());
       assert.equal(done.status, 'succeeded');
+      if (composed) {
+        assert.deepEqual(done.rows, expectedUpdates);
+        assert.deepEqual(patches().map(item => ({id: item.path.split('/').at(-1),
+          body: JSON.parse(item.body)})), expectedWrites);
+      } else {
       assert.deepEqual([...done.rows].sort((a, b) => a.Id < b.Id ? -1 : 1), [
         {Id: 'a00000000000001', next_name: 'key-1-processed'},
         {Id: 'a00000000000003', next_name: 'key-3-processed'}]);
@@ -603,10 +702,23 @@ try {
         item.body]).sort(), [
         ['a00000000000001', '{"Name":"key-1-processed"}'],
         ['a00000000000003', '{"Name":"key-3-processed"}']]);
+      }
       assert.equal(JSON.parse((await runChild('effect-run.mjs',
         rceEnvironment, ['rce-resume'])).trim()).status, 'succeeded');
-      assert.equal(patches().length, 2);
+      assert.equal(patches().length, composed ? 1 : 2);
     }, 'success');
+    if (composed) {
+      const calls = (await readFile(join(root, 'model-calls.jsonl'), 'utf8'))
+        .trim().split('\n').filter(Boolean).map(line => JSON.parse(line).score);
+      const sourceCalls = (await readFile(join(root, 'source-calls.jsonl'), 'utf8'))
+        .trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
+      assert.deepEqual(sourceCalls.slice(sourceCallsBefore).map(item =>
+        item.sourceReadSessions), [2, 0, 0, 0],
+      'only submission acquires the two Sources; recovery uses captured inputs');
+      assert.deepEqual(calls.slice(modelCallsBefore).sort((a, b) => a - b),
+        inferEnabled ? expectedModelInputs : [],
+        'saved Model results must not be replayed physically');
+    }
     await rce(async () => {
       server.target.name = 'changed-after-preview';
       assert.equal((await runChild('effect-run.mjs', rceEnvironment,
@@ -614,13 +726,15 @@ try {
       const done = JSON.parse((await runChild('effect-run.mjs',
         rceEnvironment, ['rce-resume'])).trim());
       assert.equal(done.status, 'failed');
-      assert.equal(patches().length, 2);
+      assert.equal(patches().length, composed ? 1 : 2);
     }, 'stale');
     console.log('packed ' + transport +
       ' Read→Compute→Effect recovery passed');
   }
   console.log('packed public Client Read→Compute→Effect passed');
+  passed = true;
 } finally {
   await server.close();
-  await rm(root, {recursive: true, force: true});
+  if (passed) await rm(root, {recursive: true, force: true});
+  else console.error('Preserved failed packed composition at ' + root);
 }

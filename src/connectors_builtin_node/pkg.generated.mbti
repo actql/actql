@@ -282,6 +282,8 @@ pub fn client_program_direct_values_result_root_wire(@run_publication_host.Clien
 
 pub fn client_program_duckdb_native_candidate_unavailable(Result[@actql/actql/connectors/duckdb/host.NativeHostConfiguration, @client_local_host.ClientDuckDBAcquisitionIssue]) -> Bool
 
+pub fn client_program_effect_acquisition_count(@run_publication_host.PreparedClientEffectComputation) -> Int
+
 pub fn client_program_effect_apply_capability_from_codes(String, Int, Int, Int, Bool, Bool, Int, Int) -> Result[@effect_application.EffectApplyCapabilityObservation, @effect_application.EffectApplyCapabilityIssue]
 
 pub fn client_program_effect_apply_capability_idempotency_mode(@effect_application.EffectApplyCapabilityObservation) -> String
@@ -295,6 +297,8 @@ pub fn client_program_effect_apply_subject_cid(@physical_strategy.CapturedEffect
 pub fn client_program_effect_capture_result_import(@physical_strategy.CapturedEffectInputs, Int, Int, Int) -> Result[@physical_strategy.CapturedEffectResultImport, @physical_strategy.RunIssue]
 
 pub fn client_program_effect_captured_source_matches(@run_publication_host.PreparedClientEffectComputation, @execution_query.CapturedInputSource) -> Bool
+
+pub fn client_program_effect_captured_source_matches_at(@run_publication_host.PreparedClientEffectComputation, @execution_query.CapturedInputSource, Int) -> Bool
 
 pub fn client_program_effect_compilation_compiled_plan_wire(@run_publication_host.ClientEffectCompilation) -> String
 
@@ -363,6 +367,8 @@ pub fn client_program_effect_input_task(@physical_strategy.CapturedEffectInput) 
 pub fn client_program_effect_inputs_share_view(@physical_strategy.CapturedEffectInputs, Int, Int) -> Bool
 
 pub fn client_program_effect_issue_captured_source_logical(@run_publication_host.PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement) -> Result[@run_publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue]
+
+pub fn client_program_effect_issue_captured_source_logical_at(@run_publication_host.PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, Int) -> Result[@run_publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue]
 
 pub fn client_program_effect_local_dependency_body(@run_publication_host.PreparedClientEffectComputation, Int, String, Int, Int, Int, Int) -> Result[@program_check.CheckedLocalDependencyBody, @program_check.LocalDependencyBodyIssue]
 
@@ -454,6 +460,10 @@ pub fn client_program_effect_proposal_finish(@physical_strategy.CapturedEffectPr
 
 pub fn client_program_effect_proposal_row(@physical_strategy.CapturedEffectProposalPlan, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int, Int) -> Result[(String, String), @physical_strategy.CapturedEffectProposalIssue]
 
+pub fn client_program_effect_publication_data_policy_cid(@run_publication_host.PreparedClientEffectComputation) -> String?
+
+pub fn client_program_effect_publication_policy_bodies(@run_publication_host.PreparedClientEffectComputation, Int, Int, Int) -> Result[Array[(String, String, String)], @program_check.LocalDependencyBodyIssue]
+
 pub fn client_program_effect_request_authority(@logical_request_scope.LogicalRequestScope) -> String
 
 pub fn client_program_effect_request_identity(@run_publication_host.PreparedClientEffectComputation, String, String, String) -> @run_publication_host.ClientRequestIdentity?
@@ -489,6 +499,8 @@ pub fn client_program_identify_captured_source_relation(@execution_query.Capture
 pub fn client_program_imported_effect_invocation(@run_publication_host.ClientEffectImportedEvidence) -> @run_publication_host.ClientEffectLocalInvocation
 
 pub fn client_program_imported_effect_relation_bodies(@run_publication_host.ClientEffectImportedEvidence) -> Array[String]
+
+pub fn client_program_imported_effect_scope_json(@run_publication_host.ClientEffectImportedEvidence) -> String
 
 pub fn client_program_infer_attempt_evidence(@client_infer_host.Execution, Int) -> Result[@model_execution.ModelAttemptEvidence, @model_execution.ModelExecutionIssue]
 
@@ -618,6 +630,8 @@ pub fn client_program_installed_infer_plan_graph(@run_publication_host.PreparedC
 
 pub fn client_program_issue_acquired_effect_evidence(@run_publication_host.PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication_host.ClientEffectAcquiredEvidence, @run_publication_host.ClientEffectAcquiredEvidenceIssue]
 
+pub fn client_program_issue_acquired_effect_evidence_at(@run_publication_host.PreparedClientEffectComputation, Int, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int) -> Result[@run_publication_host.ClientEffectAcquiredEvidence, @run_publication_host.ClientEffectAcquiredEvidenceIssue]
+
 pub fn client_program_issue_acquired_effect_local_result_artifact(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectLocalResultExport, @run_publication_host.ClientEffectAcquiredEvidence, @run_publication_host.ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalResultArtifactIssue]
 
 pub fn client_program_issue_acquired_local_effect_invocation(@run_publication_host.PreparedClientEffectComputation, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalInvocationIssue]
@@ -651,6 +665,8 @@ pub fn client_program_issue_direct_values_result_root(@run_publication_host.Prep
 pub fn client_program_issue_effect_captured_invocation(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @execution_query.CapturedInputSource, String, String, String, String, String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
 pub fn client_program_issue_effect_dependency_inventory(Array[@run_publication.CapturedEffectDependencyBody], Array[@run_publication_host.ClientEffectLocalResultArtifact], Int, Int, Int) -> Result[String, @run_publication.CapturedEffectDependencyIssue]
+
+pub fn client_program_issue_effect_multi_captured_invocation(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[String], Array[String], String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
 pub fn client_program_issue_effect_result_import_observation(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectResultImport, @run_publication_host.ClientEffectLocalManifest, @run_publication_host.ClientEffectLocalResultArtifact, Int, Int, Int) -> Result[@run_publication_host.ClientEffectResultImportObservation, @run_publication_host.ClientEffectResultImportIssue]
 
@@ -800,6 +816,8 @@ pub fn client_program_open_captured_local_host(@run_publication_host.PreparedCli
 
 pub fn client_program_open_captured_local_retained_host(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, String, String, Int64, Int64, Int64, Int64, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
+pub fn client_program_open_multi_captured_local_effect_host(@run_publication_host.PreparedClientEffectRun, Array[@execution_query.CapturedInputSource], @physical_resources.Ledger, String, String, String?, String?) -> ClientLocalEffectHost?
+
 pub fn client_program_open_multi_captured_local_host(@run_publication_host.PreparedClientProgram, Array[@execution_query.CapturedInputSource], @physical_resources.Ledger, String, String, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
 pub fn client_program_open_source_free_local_effect_host(@run_publication_host.PreparedClientEffectRun, String, String, Int64, Int64, Int64, Int64) -> ClientLocalEffectHost?
@@ -837,6 +855,8 @@ pub fn client_program_prepare_effect_free_with_parameters(String, String, @progr
 pub fn client_program_prepare_infer_compute_suffix(@run_publication_host.PreparedClientProgram, Int, String, String, String, String) -> Result[@execution_relation.GeneratedSequence?, @client_infer_host.Issue]
 
 pub fn client_program_prepare_local_query_requirement(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, @client_local_host.ClientLocalQueryIssue]
+
+pub fn client_program_prepare_multi_captured_effect_local_ledger(@run_publication_host.PreparedClientEffectComputation, Array[@actql/actql/connectors/duckdb/host.NativeHostConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn client_program_prepare_multi_captured_local_ledger(@run_publication_host.PreparedClientProgram, Array[@actql/actql/connectors/duckdb/host.NativeHostConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 

@@ -28,6 +28,8 @@ pub fn client_infer_completed_input(ClientInferInputExecution) -> @execution_rel
 
 pub fn client_infer_completion_preparation(ClientInferInputExecution, @execution_relation.PreparedInferRows) -> @execution_relation.CompletionPreparation?
 
+pub fn client_local_import_limits(@connector_sdk.FixedComputeCapacity, @execution_relation.ValueLimits) -> @local.LocalImportLimits
+
 pub fn execute_source_free_values(@connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue], Int, Int) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
 
 pub fn local_values_execution_failure_cleanup_pending(LocalValuesExecutionFailure) -> Bool
@@ -59,6 +61,8 @@ pub fn prepare_client_local_sequences(@run_publication_host.PreparedClientProgra
 pub fn prepare_effect_local_query_requirement(@run_publication_host.PreparedClientEffectComputation, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, ClientLocalQueryIssue]
 
 pub fn prepare_local_query_requirement(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, ClientLocalQueryIssue]
+
+pub fn prepare_multi_captured_effect_local_ledger(@run_publication_host.PreparedClientEffectComputation, Array[@host.NativeHostConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn prepare_multi_captured_local_ledger(@run_publication_host.PreparedClientProgram, Array[@host.NativeHostConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 

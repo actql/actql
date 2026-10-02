@@ -47,7 +47,61 @@ pub fn prepare_multi_captured_local_ledger(
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
-  let graph = @publication_host.prepared_client_graph(prepared)
+  prepare_multi_captured_local_ledger_owned(
+    Pure(prepared),
+    acquisitions,
+    transport_bytes,
+    transport_execution_bytes,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+  )
+}
+
+///|
+/// Use the same capacity and ledger owner while retaining the checked Effect
+/// computation. Neither Source capture is copied or silently re-accounted.
+pub fn prepare_multi_captured_effect_local_ledger(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  acquisitions : Array[@duckdb_host.NativeHostConfiguration],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.Ledger? {
+  prepare_multi_captured_local_ledger_owned(
+    Effect(prepared),
+    acquisitions,
+    transport_bytes,
+    transport_execution_bytes,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+  )
+}
+
+///|
+fn prepare_multi_captured_local_ledger_owned(
+  owner : ClientLocalSequenceOwner,
+  acquisitions : Array[@duckdb_host.NativeHostConfiguration],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.Ledger? {
+  let graph = match owner {
+    Pure(prepared) => @publication_host.prepared_client_graph(prepared)
+    Effect(prepared) =>
+      @strategy.checked_effect_computation_graph(
+        @publication_host.prepared_client_effect_computation_graph(prepared),
+      )
+  }
   let count = @strategy.graph_task_count(graph)
   if @strategy.graph_captured_prefix(graph) != 2 ||
     acquisitions.length() != 2 ||
@@ -57,8 +111,8 @@ pub fn prepare_multi_captured_local_ledger(
     transport_execution_bytes.length() != 2 {
     return None
   }
-  guard prepare_client_local_sequences(
-      prepared, registry_body, values_body, fragment_body, ordered_body,
+  guard prepare_client_local_sequences_owned(
+      owner, registry_body, values_body, fragment_body, ordered_body,
     )
     is Some(sequences) else {
     return None

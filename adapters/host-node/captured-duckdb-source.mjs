@@ -169,8 +169,10 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
   try {
     const capturedSource = capture.source();
     if ((owner.effectful
-      ? moon.clientProgramEffectCapturedSourceMatches(owner.checkedOwner,
-        capturedSource)
+      ? (owner.occurrence.task === 0
+        ? moon.clientProgramEffectCapturedSourceMatches(owner.checkedOwner, capturedSource)
+        : moon.clientProgramEffectCapturedSourceMatchesAt(owner.checkedOwner,
+          capturedSource, owner.occurrence.task))
       : moon.clientProgramCapturedTaskSourceMatches(owner.checkedOwner,
         capturedSource, owner.occurrence.task)) !== true) {
       throw new Error('InstalledSourceProgramMismatch');
@@ -182,8 +184,11 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
       throw new Error('InstalledSourceObservationMismatch');
     }
     const logicalInput = checked(owner.effectful
-      ? moon.clientProgramEffectIssueCapturedSourceLogical(owner.checkedOwner,
-        capturedSource, identity, requirement)
+      ? (owner.occurrence.task === 0
+        ? moon.clientProgramEffectIssueCapturedSourceLogical(owner.checkedOwner,
+          capturedSource, identity, requirement)
+        : moon.clientProgramEffectIssueCapturedSourceLogicalAt(owner.checkedOwner,
+          capturedSource, identity, requirement, owner.occurrence.task))
       : moon.clientProgramIssueCapturedTaskSourceLogical(owner.checkedOwner,
         capturedSource, identity, requirement, owner.occurrence.task));
     // An Effect Run is opened only after durable Run admission. Acquisition
@@ -224,7 +229,7 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
 // manufacture a configuration or bypass the occurrence owner.
 export function capturedDuckDBNativeConfiguration(prepared) {
   const owner = preparations.get(prepared);
-  if (owner === undefined || owner.broad || owner.effectful) {
+  if (owner === undefined || owner.broad) {
     throw new TypeError('InstalledMultiSourceNativeAcquisitionRequired');
   }
   return owner.acquisition;

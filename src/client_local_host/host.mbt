@@ -1,4 +1,31 @@
 ///|
+/// Shared Local row transport bounds for Pure and Effect computation.
+/// The checked Run still admits each exact input and charges its resources.
+pub fn client_local_import_limits(
+  capacity : @connector.FixedComputeCapacity,
+  values : @execution.ValueLimits,
+) -> @local.LocalImportLimits {
+  {
+    max_rows: capacity.max_rows,
+    values,
+    wire: {
+      max_columns: 100,
+      max_order_work: 1000000,
+      max_bytes: 1000000,
+      max_nodes: 100000,
+      max_depth: 64,
+    },
+    row: {
+      max_bytes: 65536,
+      max_nodes: 10000,
+      max_depth: 64,
+      max_text_bytes: 65536,
+    },
+    max_batch_bytes: 65536,
+  }
+}
+
+///|
 fn reject_client_local_run(
   run : @strategy.CapturedDAG,
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
@@ -339,24 +366,7 @@ fn open_checked_local_host(
   match
     @local_driver.configure_local_retained_inputs(
       installed,
-      {
-        max_rows: capacity.max_rows,
-        values,
-        wire: {
-          max_columns: 100,
-          max_order_work: 1000000,
-          max_bytes: 1000000,
-          max_nodes: 100000,
-          max_depth: 64,
-        },
-        row: {
-          max_bytes: 65536,
-          max_nodes: 10000,
-          max_depth: 64,
-          max_text_bytes: 65536,
-        },
-        max_batch_bytes: 65536,
-      },
+      client_local_import_limits(capacity, values),
       Some(0L),
     ) {
     Ok(_) => ()

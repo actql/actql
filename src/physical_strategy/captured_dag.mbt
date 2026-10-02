@@ -317,6 +317,35 @@ pub fn open_captured_effect_run_dag(
   ledger : @resources.Ledger,
   supplied? : Array[@execution.CapturedRows] = [],
 ) -> Result[CapturedEffectRunDAG, RunIssue] {
+  if checked.computation.graph.captured_prefix != 1 {
+    return Err(UnsupportedGraph)
+  }
+  open_effect_run_captures(checked, [(0, source)], ledger, supplied)
+}
+
+///|
+/// Keep both original acquisition holdings on their existing ledger while
+/// opening the same admitted Effect Run. The common DAG owner checks each
+/// source's task coordinate, identity and retained holdings before Compute.
+pub fn open_multi_captured_effect_run_dag(
+  checked : CheckedEffectRunDAG,
+  sources : Array[(Int, @query.CapturedInputSource)],
+  ledger : @resources.Ledger,
+  supplied? : Array[@execution.CapturedRows] = [],
+) -> Result[CapturedEffectRunDAG, RunIssue] {
+  if checked.computation.graph.captured_prefix != 2 {
+    return Err(UnsupportedGraph)
+  }
+  open_effect_run_captures(checked, sources, ledger, supplied)
+}
+
+///|
+fn open_effect_run_captures(
+  checked : CheckedEffectRunDAG,
+  sources : Array[(Int, @query.CapturedInputSource)],
+  ledger : @resources.Ledger,
+  supplied : Array[@execution.CapturedRows],
+) -> Result[CapturedEffectRunDAG, RunIssue] {
   if checked.computation.graph.source_free_root {
     return Err(UnsupportedGraph)
   }
@@ -326,7 +355,7 @@ pub fn open_captured_effect_run_dag(
     Err(issue) => return Err(issue)
   }
   let captured = match
-    open_checked_dag(checked.computation.graph, [(0, source)], ledger, supplied) {
+    open_checked_dag(checked.computation.graph, sources, ledger, supplied) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

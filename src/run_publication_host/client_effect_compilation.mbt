@@ -78,9 +78,9 @@ pub fn client_effect_compilation_result_transformation(
 }
 
 ///|
-/// Compile a Values Effect Unit or an acquired root feeding one Effect Unit.
-/// Existing task lowering owns the supported Relation operations. Command
-/// Effects and other multi-Unit plans are rejected explicitly.
+/// Compile a Values Effect Unit or independent acquired roots feeding Local
+/// computation and a final Effect Unit. Existing task lowering and the checked
+/// graph own supported operations and input edges. Command Effects are refused.
 pub fn issue_prepared_client_effect_compilation(
   owner : PreparedClientEffectComputation,
   manifests : ClientCompilationManifests,
@@ -95,7 +95,7 @@ pub fn issue_prepared_client_effect_compilation(
   let headers = @checked.effect_program_static_headers(owner.candidate)
   let count = @syntax.effect_header_count(headers)
   let units = @checked.unit_count(@strategy.graph_program(graph))
-  if (units != 1 && units != 2) ||
+  if units < 1 ||
     count == 0 ||
     count > max_nodes ||
     @strategy.checked_effect_source_count(owner.graph) != count {
@@ -115,10 +115,23 @@ pub fn issue_prepared_client_effect_compilation(
     @pipeline.starts_with_values(
       @lower.pipeline(@lower.bound_preparation(first)),
     )
-  let acquired = units == 2 &&
-    @pipeline.input_count(pipeline) == 1 &&
-    prepare_client_query_acquisition(client_effect_program_view(owner), 0, 0)
-    is Ok(_)
+  let prefix = @strategy.graph_captured_prefix(graph)
+  // Preserve the existing single-acquisition shape. The plural increment
+  // may contain downstream Local Units after the independently checked pair.
+  let mut acquired = (prefix == 1 && units == 2) || (prefix == 2 && units > 2)
+  if acquired {
+    for stage in 0..<prefix {
+      if prepare_client_query_acquisition(
+          client_effect_program_view(owner),
+          stage,
+          0,
+        )
+        is Err(_) {
+        acquired = false
+        break
+      }
+    }
+  }
   if !source_free && !acquired {
     return Err(UnsupportedProgram)
   }

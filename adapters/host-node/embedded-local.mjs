@@ -546,28 +546,30 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   const requestOf = ({preparedProgram, requestId}) => {
     prepareSubmit.assertOwned(preparedProgram);
     if (prepareSubmit.kindOf(preparedProgram) === 'effectful') {
-      if (sourceProfile?.sources !== undefined) {
-        throw clientOperationError('InstalledMultiSourceEffectUnsupported');
-      }
-      const acquired = moon.clientProgramEffectPrepareQueryAcquisition(
-        preparedProgram, 0, 0)?.$tag === 1;
-      if (acquired) {
-        if (sourceProfile === undefined) {
-          throw clientOperationError('ClientProgramNeedsInputs');
+      const count = moon.clientProgramEffectAcquisitionCount(preparedProgram);
+      const acquired = count > 0;
+      if (count > 0) {
+        if (sourceProfile === undefined) throw clientOperationError('ClientProgramNeedsInputs');
+        if (count > 2 || count === 2 && sourceProfile.sources?.length !== 2 ||
+            count === 1 && sourceProfile.sources !== undefined) {
+          throw clientOperationError('ClientProgramUnsupported');
         }
-        let requirement;
-        try {
-          requirement = checked(
-            moon.clientProgramEffectPrepareLocalQueryRequirement(
-              preparedProgram, 0, 0, registry, values, fragment, ordered));
-        } catch (cause) {
-          throw clientOperationError('ClientProgramUnsupported', cause);
+        const selected = new Set();
+        for (let task = 0; task < count; task++) {
+          try {
+            const requirement = checked(moon.clientProgramEffectPrepareLocalQueryRequirement(
+              preparedProgram, task, 0, registry, values, fragment, ordered));
+            const adapter = installedSourceFor(sourceProfile,
+              moon.clientProgramQueryRequirementSourceRef(requirement));
+            if (count === 2 && adapter.realizationKey !== 'duckdb-acquired') {
+              throw new Error('UnsupportedEffectSourceRealization');
+            }
+            selected.add(adapter);
+          } catch (cause) {
+            throw clientOperationError('ClientProgramUnsupported', cause);
+          }
         }
-        if (!sourceProfile.admitsSource(
-          moon.clientProgramQueryRequirementSourceRef(requirement))) {
-          throw clientOperationError('ClientProgramUnsupported',
-            new Error('InstalledSourceProgramMismatch'));
-        }
+        if (selected.size !== count) throw clientOperationError('ClientProgramUnsupported');
       }
       const requested = moon.clientProgramEffectRequestIdentity(
         preparedProgram, authorityScopeCid, requestId,
