@@ -1007,6 +1007,8 @@ pub fn runtime_fragment_failure_stage(RuntimeFragmentIssue) -> RuntimeFragmentFa
 
 pub fn select_generated_sequence_prefix(GeneratedSequence, Int) -> GeneratedSequence?
 
+pub fn select_generated_sequence_range(GeneratedSequence, Int, Int) -> GeneratedSequence?
+
 pub fn select_generated_sequence_step(GeneratedSequence, Int) -> GeneratedSequence?
 
 pub fn selected_managed_execution_profile() -> ManagedExecutionProfile

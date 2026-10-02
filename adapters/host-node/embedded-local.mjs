@@ -590,7 +590,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     // Static ModelTask admission cannot authorize a model call. Until the
     // installed dependency/dispatch route is present, refuse before admitting
     // a Run rather than sending this acquisition into a Values fallback.
-    if (moon.clientProgramTerminalInferStep(preparedProgram) !== undefined) {
+    if (moon.clientProgramSelectedInferStep(preparedProgram) !== undefined) {
       let execution;
       try {
         ({execution} = readInstalledModelExecution(moon, preparedProgram,
@@ -639,7 +639,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           new Error('InstalledInferDispatchNotConnected'));
       }
       try {
-        const step = moon.clientProgramTerminalInferStep(preparedProgram);
+        const step = moon.clientProgramSelectedInferStep(preparedProgram);
+        const computeSuffix = checked(moon.clientProgramPrepareInferComputeSuffix(
+          preparedProgram, step, registry, values, fragment, ordered));
         const egressAdmission = checked(moon.clientProgramAdmitInferEgress(
           preparedProgram, step, execution, physical.observeEgress));
         const observeAccount = () => observeInstalledModelAccount(moon, authorization);
@@ -654,7 +656,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         }
         const graph = checked(moon.clientProgramInstalledInferPlanGraph(
           preparedProgram, step, execution));
-        inferSelections.set(preparedProgram, Object.freeze({step, graph,
+        inferSelections.set(preparedProgram, Object.freeze({step, graph, computeSuffix,
           provider: moon.clientProgramAdmittedModelProvider(admittedProvider, execution),
           egressAdmission, account, observeAccount,
           physicalPreflight: physical.physicalPreflight,

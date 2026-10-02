@@ -2044,3 +2044,36 @@ not a fixed sleep or cancellation before dispatch.
 Abrupt process loss before persistence remains an unknown
 response with no automatic redispatch; these tests do not claim to recover
 usage that was never saved.
+
+## Post-INFER Compute and public object projection
+
+The installed public Host now selects a single checked Infer occurrence even
+when bounded Relation operations follow it in the same task. Preparation admits
+the suffix provider before accepting the Run. Plan nodes retain the actual
+post-acquisition Compute operations and exact edges instead of connecting the
+Result directly to the inference barrier.
+
+The common execution owner retains model output while the existing Relation
+chain executes. It accumulates work across child transitions, observes suffix
+cancellation, and reclaims the suffix before releasing model output and input.
+An Infer boundary has no Compute evaluator or AoA Compute encoding. External
+reads retain exact operation-port bindings; selecting a range does not rerun
+its prefix or issue acquisition evidence.
+
+The ordinary HTTPS Program now supports a nested `assessment` object built by
+`derive` and projected by `select` after Infer. The public test reads the Named
+Result and compares its complete contents with independently written rows.
+A separate-process case stops after capture storage and before publication,
+then reconstructs the Host and runs the same Program with no additional model
+dispatch. Both paths produce the same expected object.
+
+Local evidence for these edits: 86 JS tests in `client_infer_host` and the
+generated-sequence test file; all 28 installed public Infer tests; focused
+public object-projection and process-replay acceptance. Runtime assets were
+rebuilt from the edited sources and remain ignored. Wasm/native, affected
+pre-push jobs and final-SHA Linux CI have not yet been run for these edits.
+
+This does not establish B's full KEEP/packed Local and HTTP acceptance or
+acquired SourceView inputs. The provider registration remains the existing
+installed ModelTask registration documented above; no new adapter scheduler,
+capture ledger or proof-JSON issuer was added.

@@ -40,6 +40,7 @@ enum Phase {
   Identity
   Model
   Output
+  Compute
   Handoff
   Terminal
 }
@@ -78,6 +79,8 @@ pub struct Execution {
   mut model : @model.ModelExecution?
   mut capture : @model.ModelCaptureBundle?
   mut output : @model.ModelOutputPreparation?
+  mut suffix_sequence : @relation.GeneratedSequence?
+  mut suffix : @local.ManagedProviderExecution?
   mut completed : @relation.CompletedOutput?
   mut phase : Phase
   mut cancelled : Bool
@@ -366,6 +369,8 @@ fn start_owned(
     model: None,
     capture: None,
     output: None,
+    suffix_sequence: None,
+    suffix: None,
     completed: None,
     phase: Phase::Input,
     cancelled: false,
@@ -400,6 +405,47 @@ fn account(active : Execution, child_work : Int64) -> Bool {
   active.work += child_work - active.child_work
   active.child_work = child_work
   true
+}
+
+///|
+/// Install the checked post-acquisition Compute segment before any progress.
+/// This is not permission to dispatch: existing Run and model admissions
+/// remain mandatory. Equal source text cannot substitute another owner.
+pub fn bind_compute_suffix(
+  active : Execution,
+  sequence : @relation.GeneratedSequence,
+) -> Result[Unit, Issue] {
+  guard !active.reclaimed &&
+    !active.advancing &&
+    !active.cancelled &&
+    active.phase is Input &&
+    active.work == 0L &&
+    active.suffix_sequence is None &&
+    @publication_host.client_infer_prefix_owner(active.prepared, 0, active.step)
+    is Some(owner) &&
+    physical_equal(owner, @relation.generated_sequence_owner(sequence)) else {
+    return Err(InvalidAdvance)
+  }
+  let full = @relation.generated_prepared_sequence(sequence)
+  let count = @relation.generated_sequence_step_count(sequence)
+  if count < 1 ||
+    count != @lower.sequence_count(full) - active.step - 1 ||
+    @local.local_bounded_relation_provider(
+      active.limits.input,
+      active.limits.measurement,
+      sequence,
+    )
+    is None {
+    return Err(Input(@input.UnsupportedProgram))
+  }
+  for position in 0..<count {
+    if @relation.generated_sequence_step_index_at(sequence, position) !=
+      Some(active.step + 1 + position) {
+      return Err(Input(@input.UnsupportedProgram))
+    }
+  }
+  active.suffix_sequence = Some(sequence)
+  Ok(())
 }
 
 ///|
@@ -661,6 +707,34 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
             Ok(value) => Some(value)
             Err(issue) => return fail(active, Model(issue))
           }
+          if active.suffix_sequence is Some(sequence) {
+            let remaining = active.limits.input.max_work.to_int64() -
+              active.work
+            if remaining < 0L {
+              return fail(
+                active,
+                Input(@input.Local(@connector.Execution(@relation.InputLimit))),
+              )
+            }
+            let outputs = [active.completed.unwrap()]
+            if @input.client_infer_completed_input(active.input) is Some(prefix) {
+              outputs.push(prefix)
+            }
+            active.suffix = match
+              @input.start_client_infer_suffix(
+                sequence,
+                outputs,
+                { ..active.limits.input, max_work: remaining.to_int(), },
+                active.limits.measurement,
+              ) {
+              Ok(child) => Some(child)
+              Err(issue) => return fail(active, Input(issue))
+            }
+            active.completed = None
+            active.child_work = 0L
+            active.phase = Compute
+            return Continue(work=active.work)
+          }
           active.phase = Handoff
           Continue(work=active.work)
         }
@@ -672,6 +746,41 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
           account(active, work) |> ignore
           stopped(active)
         }
+      }
+    }
+    Compute => {
+      guard active.suffix is Some(child) else {
+        return fail(active, InvalidAdvance)
+      }
+      let poll = match @local.advance_managed_provider(child, quantum) {
+        Ok(poll) => poll
+        Err(issue) => return fail(active, Input(@input.Local(issue)))
+      }
+      let work = match poll {
+        @local.Continue(work~, ..)
+        | @local.Complete(_, work~, ..)
+        | @local.Failed(_, work~, ..)
+        | @local.Stopped(work~, ..)
+        | @local.CarrierComplete(_, work~, ..) => work
+      }
+      if work < 0L ||
+        work > 9223372036854775807L - active.child_work ||
+        !account(active, active.child_work + work) {
+        return fail(active, InvalidAdvance)
+      }
+      match poll {
+        @local.Continue(..) => Continue(work=active.work)
+        @local.Complete(output, ..) => {
+          if active.cancelled {
+            return stopped(active)
+          }
+          active.completed = Some(output)
+          active.phase = Handoff
+          Continue(work=active.work)
+        }
+        @local.Failed(issue, ..) => fail(active, Input(@input.Local(issue)))
+        @local.Stopped(..) => stopped(active)
+        @local.CarrierComplete(_, ..) => fail(active, InvalidAdvance)
       }
     }
     Handoff => {
@@ -723,6 +832,10 @@ pub fn cancel(active : Execution) -> Bool {
     Output =>
       if active.output is Some(output) {
         @model.cancel_model_output_preparation(output) |> ignore
+      }
+    Compute =>
+      if active.suffix is Some(child) {
+        @local.cancel_managed_provider(child) |> ignore
       }
     Handoff | Terminal => ()
   }
@@ -980,6 +1093,15 @@ pub fn cleanup(active : Execution) -> Result[Bool, Issue] {
   }
   if active.advancing || !(active.phase is Terminal) || active.output_uses > 0 {
     return Ok(false)
+  }
+  if active.suffix is Some(child) {
+    match @local.cleanup_managed_provider(child) {
+      Ok(true) => ()
+      Ok(false) => return Ok(false)
+      Err(issue) => return Err(Input(@input.Local(issue)))
+    }
+    active.suffix = None
+    active.completed = None
   }
   if active.output is Some(output) {
     match @model.cleanup_model_output_preparation(output) {

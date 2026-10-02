@@ -4,6 +4,7 @@ package "actql/actql/client_infer_host"
 import {
   "actql/actql/bounded_execution",
   "actql/actql/client_local_host",
+  "actql/actql/connectors/local",
   "actql/actql/execution_relation",
   "actql/actql/model_execution",
   "actql/actql/physical_resources",
@@ -26,6 +27,8 @@ pub fn advance_observation_issuance(ObservationIssuance, Int) -> Result[(Bool, I
 pub fn advance_result_publication(ResultPublication, Int) -> Result[(Bool, Int), ResultPublicationIssue]
 
 pub fn attempt_evidence(Execution, Int) -> Result[@model_execution.ModelAttemptEvidence, @model_execution.ModelExecutionIssue]
+
+pub fn bind_compute_suffix(Execution, @execution_relation.GeneratedSequence) -> Result[Unit, Issue]
 
 pub fn bind_dispatch_admission(Execution, @run_publication_host.ClientInferDispatchAdmission) -> Result[Unit, InvocationBindingIssue]
 
@@ -134,6 +137,8 @@ pub struct Execution {
   mut model : @model_execution.ModelExecution?
   mut capture : @model_execution.ModelCaptureBundle?
   mut output : @model_execution.ModelOutputPreparation?
+  mut suffix_sequence : @execution_relation.GeneratedSequence?
+  mut suffix : @local.ManagedProviderExecution?
   mut completed : @execution_relation.CompletedOutput?
   mut phase : Phase
   mut cancelled : Bool

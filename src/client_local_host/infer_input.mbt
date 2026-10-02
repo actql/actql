@@ -28,6 +28,7 @@ pub(all) enum ClientInferInputIssue {
   Preparation(@lower.InferInputIssue)
   Local(@connector.FixedComputeIssue)
   Mapping(@execution.InferPreparationIssue)
+  ProducerRead(@execution.ProducerReadIssue)
 }
 
 ///|

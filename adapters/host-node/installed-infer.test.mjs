@@ -18,7 +18,8 @@ import {createPublicationContractControlFixture} from
   '../host-common/publication-contract-control.fixture.mjs';
 import {loadPrivateEvidenceKey} from './local-continuation-evidence.mjs';
 
-const oneRowInfer = () => ({version: 'actql/0.1', id: 'installed-infer',
+const oneRowInfer = (objectProjection = false) => {
+  const program = {version: 'actql/0.1', id: 'installed-infer',
   stages: [{id: 'main', inputs: {}, steps: [
     {values: {schema: {id: {type: 'string', nullable: false},
       text: {type: 'string', nullable: true}},
@@ -28,7 +29,19 @@ const oneRowInfer = () => ({version: 'actql/0.1', id: 'installed-infer',
       input: {text: {field: 'text'}}}, as: 'captured'},
   ], results: {captured: {from: 'captured',
     fields: ['id', 'outcome', 'value']}}}],
-  results: {answer: {from: {stage: 'main', result: 'captured'}}}});
+  results: {answer: {from: {stage: 'main', result: 'captured'}}}};
+  if (objectProjection) {
+    program.stages[0].steps.push(
+      {derive: {assessment: {object: {
+        input_key: {object: {id: {field: 'id'}}},
+        outcome: {field: 'outcome'}, value: {field: 'value'},
+      }}}},
+      {select: ['assessment'], as: 'wrapped'},
+    );
+    program.stages[0].results.captured = {from: 'wrapped', fields: ['assessment']};
+  }
+  return program;
+};
 
 async function modelConfiguration() {
   const base = JSON.parse(await readFile(new URL(
@@ -241,10 +254,11 @@ async function installedDependencyConfiguration(variant) {
   return {installation, taskCid};
 }
 
-for (const boundary of ['success', 'private-write-failure',
+for (const boundary of ['success', 'object-projection', 'private-write-failure',
   'usage-overflow', 'usage-overflow-write-failure', 'cancel-after-dispatch',
   'observation-step-failure', 'observation-complete-failure',
-  'cancel-before-publication', 'restart-after-capture', 'restart-before-capture']) {
+  'cancel-before-publication', 'restart-after-capture',
+  'restart-after-capture-object-projection', 'restart-before-capture']) {
 test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
   {timeout: 60000}, async t => {
     const {installation, taskCid} = await installedDependencyConfiguration('valid');
@@ -255,6 +269,7 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
     let cancelledDuringExecution = false;
     const injectedFailure = boundary.endsWith('-failure');
     const restarting = boundary.startsWith('restart-');
+    const objectProjection = boundary.includes('object-projection');
     const cancelledBeforeCapture = boundary === 'cancel-after-dispatch';
     const failedBeforeCapture = boundary.startsWith('usage-overflow') ||
       cancelledBeforeCapture;
@@ -346,7 +361,7 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
           let calls = 0;
           const registerModelProviders = ${registerModelProviders.toString()};
           authorization.faultInjection = name => {
-            if (name === (boundary === 'restart-after-capture'
+            if (name === (boundary.startsWith('restart-after-capture')
               ? 'infer_capture_committed' : 'infer_private_holding_commit')) {
               assert.equal(calls, 1);
               process.stdout.write('capture-stop\\n', () => process.exit(0));
@@ -364,7 +379,8 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
           const client = await connect({mode: 'remote',
             endpoint: 'https://127.0.0.1:' + server.address().port + '/',
             token: 'fixture-owner', durability: 'durable'});
-          const run = await client.start(oneRowInfer(), {requestId: 'public-infer'});
+          const run = await client.start(oneRowInfer(boundary.includes('object-projection')),
+            {requestId: 'public-infer'});
           await run.wait();
           throw new Error('CaptureStopNotReached');
         `;
@@ -376,7 +392,8 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
       },
     });
     try {
-      run = await client.start(oneRowInfer(), {requestId: 'public-infer'});
+      run = await client.start(oneRowInfer(objectProjection),
+        {requestId: 'public-infer'});
       started();
       let terminal = await run.wait();
       if (boundary === 'restart-before-capture') {
@@ -394,7 +411,8 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
         await new Promise(resolve => setImmediate(resolve));
         terminal = await run.wait();
       }
-      const successful = boundary === 'success' || boundary === 'restart-after-capture';
+      const successful = boundary === 'success' ||
+        boundary.startsWith('restart-after-capture') || objectProjection;
       assert.equal(terminal.status, successful
         ? 'succeeded' : cancelledBeforeCapture ? 'cancelled' :
           injectedFailure || failedBeforeCapture ? 'failed' : 'cancelled');
@@ -407,7 +425,10 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
       assert.equal(observationSteps, failedBeforeCapture ? 0 : 3);
       if (successful) {
         assert.deepEqual(await run.result('answer').all(),
-          [{id: 'a', outcome: 'ok', value: {reason: null, risk: 'high'}}]);
+          objectProjection
+            ? [{assessment: {input_key: {id: 'a'}, outcome: 'ok',
+              value: {reason: null, risk: 'high'}}}]
+            : [{id: 'a', outcome: 'ok', value: {reason: null, risk: 'high'}}]);
       } else {
         await assert.rejects(run.result('answer').all());
       }

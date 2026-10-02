@@ -626,6 +626,8 @@ pub fn prepared_client_infer_host_request_ceiling(PreparedClientProgram, Int) ->
 
 pub fn prepared_client_infer_model_task_cid(PreparedClientProgram, Int) -> String?
 
+pub fn prepared_client_infer_step(PreparedClientProgram) -> Int?
+
 pub fn prepared_client_program_semantics_cid(PreparedClientProgram) -> String
 
 pub fn prepared_client_result_count(PreparedClientProgram) -> Int

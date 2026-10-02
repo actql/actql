@@ -185,7 +185,9 @@ pub fn issue_prepared_client_infer_plan_graph(
   capacity_work? : Int = 1000000,
 ) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue] {
   guard client_infer_prefix_owner(value, 0, step) is Some(owner) &&
-    @strategy.graph_task_target(value.graph, 0) == Some(@pipeline.Step(step)) &&
+    @strategy.graph_task_target(value.graph, 0)
+    is Some(@pipeline.Step(terminal)) &&
+    terminal >= step &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
     @lower.payload(node) is @lower.Infer(infer) else {
     return Err(UnsupportedProgram)
@@ -405,10 +407,94 @@ pub fn issue_prepared_client_infer_plan_graph(
       return Err(Encoding)
     }
     edges.push(edge)
+    let producers : Array[(Int, String, String, String)] = [
+      (step - 1, prefix.node_id, prefix.output_port, prefix.output_contract_cid),
+      (step, barrier_id, output_port, output_contract_cid),
+    ]
+    let mut result_node = barrier_id
+    let mut result_port = output_port
+    let mut result_contract = output_contract_cid
+    for next in (step + 1)..<(terminal + 1) {
+      let fragment = match
+        issue_client_infer_compute_fragment(
+          value, step, next, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+        ) {
+        Ok(fragment) => fragment
+        Err(issue) => return Err(Input(issue))
+      }
+      guard parse_plan_identity_value(
+          fragment.wire,
+          max_wire_bytes,
+          max_nodes,
+          max_depth,
+        )
+        is Some(fragment_node) &&
+        @lower.node_at(@lower.bound_preparation(owner), next) is Some(consumer) else {
+        return Err(Encoding)
+      }
+      nodes.push(fragment_node)
+      for port in 0..<@lower.node_input_count(consumer) {
+        guard @lower.node_input_target(consumer, port)
+          is Some(@pipeline.Step(source)) else {
+          return Err(UnsupportedProgram)
+        }
+        let mut producer : (Int, String, String, String)? = None
+        for candidate in producers {
+          if candidate.0 == source {
+            producer = Some(candidate)
+          }
+        }
+        guard producer is Some((_, from_node, from_port, contract)) else {
+          return Err(UnsupportedProgram)
+        }
+        let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
+        @encode.begin_object(writer)
+        @encode.key(writer, "carrier")
+        @encode.string_value(writer, "relation")
+        @encode.key(writer, "contract_cid")
+        @encode.string_value(writer, contract)
+        @encode.key(writer, "from")
+        @encode.begin_object(writer)
+        @encode.key(writer, "node_id")
+        @encode.string_value(writer, from_node)
+        @encode.key(writer, "port")
+        @encode.string_value(writer, from_port)
+        @encode.end_object(writer)
+        @encode.key(writer, "to")
+        @encode.begin_object(writer)
+        @encode.key(writer, "node_id")
+        @encode.string_value(writer, fragment.node_id)
+        @encode.key(writer, "port")
+        @encode.string_value(writer, "input_" + port.to_string())
+        @encode.end_object(writer)
+        @encode.end_object(writer)
+        guard parse_plan_identity_value(
+            @encode.finish(writer),
+            max_wire_bytes,
+            max_nodes,
+            max_depth,
+          )
+          is Some(edge) else {
+          return Err(Encoding)
+        }
+        edges.push(edge)
+      }
+      producers.push(
+        (
+          next,
+          fragment.node_id,
+          fragment.output_port,
+          fragment.output_contract_cid,
+        ),
+      )
+      result_node = fragment.node_id
+      result_port = fragment.output_port
+      result_contract = fragment.output_contract_cid
+    }
     for result in 0..<@strategy.graph_result_count(value.graph) {
       let parts = match
         issue_client_result_plan_parts(
-          value, result, barrier_id, output_port, output_contract_cid, max_wire_bytes,
+          value, result, result_node, result_port, result_contract, max_wire_bytes,
           max_nodes, max_depth,
         ) {
         Ok(parts) => parts

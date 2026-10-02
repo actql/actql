@@ -13,6 +13,31 @@ pub fn prepared_client_terminal_infer_step(
 }
 
 ///|
+/// Select one acquisition in a checked task, retaining any following Compute
+/// occurrences. Their provider and input admission remain separate checks.
+pub fn prepared_client_infer_step(value : PreparedClientProgram) -> Int? {
+  guard @strategy.graph_task_count(value.graph) == 1 &&
+    @strategy.graph_task_target(value.graph, 0) is Some(@pipeline.Step(last)) &&
+    @strategy.graph_task_owner(value.graph, 0) is Some(owner) else {
+    return None
+  }
+  let mut selected = None
+  for step in 0..<(last + 1) {
+    guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) else {
+      return None
+    }
+    if @lower.payload(node) is @lower.Infer(_) {
+      if selected is Some(_) ||
+        client_infer_prefix_owner(value, 0, step) is None {
+        return None
+      }
+      selected = Some(step)
+    }
+  }
+  selected
+}
+
+///|
 /// Installation selects by the checked task identity, not Program JSON or
 /// an adapter's source ordinal. This is metadata, never dispatch authority.
 pub fn prepared_client_infer_model_task_cid(

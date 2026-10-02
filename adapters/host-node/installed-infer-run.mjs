@@ -30,6 +30,7 @@ export function installNodeInferRun({moon, core, registry, values, selections,
     try {
       operation = openNodeInferOperation({moon, preparedProgram,
         step: selected.step, graph: selected.graph, registry, values, signal,
+        computeSuffix: selected.computeSuffix,
         observeProgress: () => faultInjection?.('infer_execution_advanced', {}),
         ...(replay ? {savedSlots} : {provider: selected.provider,
           quantityCapacity: selected.quantityCapacity,

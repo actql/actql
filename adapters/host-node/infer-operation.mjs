@@ -12,7 +12,7 @@ const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
 // Exactly one physical provider or already Store-confirmed saved read is used.
 export function openNodeInferOperation({moon, preparedProgram, step, graph,
   registry, values, provider, savedCapture, savedSlots, quantityCapacity,
-  physicalPreflight, egressAdmission, signal, quantum = 256, observeProgress}) {
+  physicalPreflight, egressAdmission, computeSuffix, signal, quantum = 256, observeProgress}) {
   if (!Number.isSafeInteger(quantum) || quantum < 1 || quantum > 2147483647 ||
       [provider, savedCapture, savedSlots].filter(value => value !== undefined)
         .length !== 1) {
@@ -68,6 +68,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     }
   }
   for (const bind of [
+    ...(computeSuffix === undefined ? [] :
+      [() => moon.clientProgramBindInferComputeSuffix(active, computeSuffix)]),
     ...(physicalPreflight === undefined ? [] :
       [() => moon.clientProgramBindInferPhysicalPreflight(active, physicalPreflight)]),
     ...(egressAdmission === undefined ? [] :

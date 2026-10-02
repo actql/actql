@@ -295,6 +295,50 @@ pub fn issue_prepared_client_infer_prefix_fragment(
 }
 
 ///|
+fn issue_client_infer_compute_fragment(
+  value : PreparedClientProgram,
+  infer_step : Int,
+  step : Int,
+  sequence_limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientTaskFragmentNode, ClientTaskFragmentIssue] {
+  guard step > infer_step &&
+    client_infer_prefix_owner(value, 0, infer_step) is Some(owner) &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(output) else {
+    return Err(MissingOutput)
+  }
+  let pipeline_wire = match
+    emit_client_task_pipeline_prefix(
+      owner,
+      step,
+      output,
+      Some(step),
+      None,
+      false,
+      sequence_limits,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      infer_boundary=Some(infer_step),
+    ) {
+    Ok(wire) => wire
+    Err(issue) => return Err(Pipeline(issue))
+  }
+  issue_client_task_fragment_body(
+    owner,
+    step,
+    Some(step),
+    "task_0_after_infer_" + step.to_string(),
+    pipeline_wire,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
 fn issue_client_task_fragment_body(
   owner : @lower.BoundPrepared,
   last : Int,

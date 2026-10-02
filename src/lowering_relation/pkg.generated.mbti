@@ -227,6 +227,8 @@ pub fn emit_root_evidence(RootEvidence, @encode_core.Writer) -> Unit raise @enco
 
 pub fn emit_root_source(ExpressionRoot, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_sequence_step_range(PreparedSequence, Int, Int, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_sequence_steps(PreparedSequence, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_set_kernel(PreparedSetKernel, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
@@ -860,6 +862,8 @@ pub fn prepare_sequence(BoundPrepared, SequenceLimits) -> Result[PreparedSequenc
 pub fn prepare_sequence_prefix(BoundPrepared, Int, SequenceLimits) -> Result[PreparedSequence, SequenceIssue]
 
 pub fn prepare_sequence_requirements(PreparedSequence, Array[FragmentEnforcement], Array[(Int, Int64)], Int) -> Result[SequenceRequirements, SequenceRequirementsIssue]
+
+pub fn prepare_sequence_with_infer_boundary(BoundPrepared, Int, SequenceLimits) -> Result[PreparedSequence, SequenceIssue]
 
 pub fn prepare_set_kernel(BoundPrepared, Int, Int, Int) -> Result[PreparedSetKernel, SetIssue]
 
@@ -1715,6 +1719,7 @@ type PreparedSequenceMatch
 type PreparedSetKernel
 
 pub enum PreparedStep {
+  InferBoundary(Int)
   ValuesStep(PreparedValues)
   TimeSeriesStep(PreparedTimeSeries)
   WindowStep(PreparedWindow)

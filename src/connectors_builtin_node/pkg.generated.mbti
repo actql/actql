@@ -132,6 +132,8 @@ pub fn client_program_bind_effect_preview_inputs(ClientLocalEffectHost, @physica
 
 pub fn client_program_bind_effect_run(@run_publication_host.PreparedClientEffectComputation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> @run_publication_host.PreparedClientEffectRun?
 
+pub fn client_program_bind_infer_compute_suffix(@client_infer_host.Execution, @execution_relation.GeneratedSequence) -> Result[Unit, @client_infer_host.Issue]
+
 pub fn client_program_bind_infer_dispatch_admission(@client_infer_host.Execution, @run_publication_host.ClientInferDispatchAdmission) -> Result[Unit, @client_infer_host.InvocationBindingIssue]
 
 pub fn client_program_bind_infer_egress(@client_infer_host.Execution, @run_publication_host.ClientInferEgressAdmission) -> Result[Unit, @client_infer_host.Issue]
@@ -814,6 +816,8 @@ pub fn client_program_prepare_effect_free(String, String, @program_check.CheckEn
 
 pub fn client_program_prepare_effect_free_with_parameters(String, String, @program_check.CheckEnvironment, String?) -> ClientProgramBridgeOutcome
 
+pub fn client_program_prepare_infer_compute_suffix(@run_publication_host.PreparedClientProgram, Int, String, String, String, String) -> Result[@execution_relation.GeneratedSequence?, @client_infer_host.Issue]
+
 pub fn client_program_prepare_local_query_requirement(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, @client_local_host.ClientLocalQueryIssue]
 
 pub fn client_program_prepare_query_acquisition(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[@sourceview_resolution.QueryAcquisition, @run_publication_host.ClientAcquisitionIssue]
@@ -955,6 +959,8 @@ pub fn client_program_salesforce_restore_declaration(@client_salesforce_host.Cli
 pub fn client_program_salesforce_site(String, String, String, String, String, String, Int, String) -> Result[@client_salesforce_host.ClientSalesforceSite, @client_salesforce_host.ClientSalesforceIssue]
 
 pub fn client_program_salesforce_source_target(@client_salesforce_host.ClientSalesforceDeclaration, @query_planning.QueryRequirement) -> Result[Array[String], @client_salesforce_host.ClientSalesforceIssue]
+
+pub fn client_program_selected_infer_step(@run_publication_host.PreparedClientProgram) -> Int?
 
 pub fn client_program_semantic_document_json(@run_publication_host.PreparedClientProgram) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]
 
