@@ -6,9 +6,9 @@
     "digest": "48bdedbe48ab335694a725defa7fe9e7f07cdf776e4aa8f233b3935585a352c1",
     "foundationRevision": "fe0dbb424792ba7ccd4ae5517a74530b56a15f3c"
   },
-  "revision": "39fc6c481c445c4c6cccd5ae551fd65422681b89",
-  "proposal": "https://github.com/actql/actql/pull/149",
-  "meaning": "Separate common foundation correction; the historical distinct comparison is unchanged. This record supplies Git provenance, not proof of human approval.",
+  "revision": "8bac56941e203acad024cd4c3b06b5d87893180e",
+  "proposal": "https://github.com/actql/actql/pull/173",
+  "meaning": "Retains the common foundation corrections from main and the native release-recovery test registration. Historical comparison evidence is unchanged; this record supplies provenance, not proof of human approval.",
   "changedCommon": [
     {
       "path": ".github/workflows/ci.yml",
@@ -19,8 +19,8 @@
     {
       "path": "package.json",
       "beforeDigest": "78c15ac34fbe375959bf166c3d236ce06a2a6a0d4d2f4b2d7f7f094e844a8a15",
-      "afterDigest": "681455cffec35494ab0aa4e590c77f9fb41a35153a1b205338880671bd6271af",
-      "reason": "Register the check outcome contract check and the public Local/HTTP check acceptance in the existing client gate; all historical evidence and gate commands remain intact."
+      "afterDigest": "17d239ce960452949ff61e2b72f772677165cd230f0c98621820f1f992950e52",
+      "reason": "Retain the public check contract and Local/HTTP acceptance registrations from main together with the native release-recovery regression; all historical evidence and existing gate commands remain intact."
     },
     {
       "path": "proofs/relation-pipeline/history.mjs",
