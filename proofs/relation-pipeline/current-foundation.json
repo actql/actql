@@ -6,7 +6,7 @@
     "digest": "48bdedbe48ab335694a725defa7fe9e7f07cdf776e4aa8f233b3935585a352c1",
     "foundationRevision": "fe0dbb424792ba7ccd4ae5517a74530b56a15f3c"
   },
-  "revision": "7b56b9be340d15aa009b38d50ed1fe0ab6a4fd51",
+  "revision": "0677d3040d770009895c50fdc660c40a27cca090",
   "proposal": "https://github.com/actql/actql/pull/149",
   "meaning": "Separate common foundation correction; the historical distinct comparison is unchanged. This record supplies Git provenance, not proof of human approval.",
   "changedCommon": [
@@ -15,6 +15,12 @@
       "beforeDigest": "60b5752abc492be508fcf7a6bb2acd944b3883443bd100b82ea422c713c93d61",
       "afterDigest": "45cef4006676ea0e55adb36edb56759aae12ade2d422e075a29fe56bf6532e2c",
       "reason": "Run fixed and required fresh verification together under each mutated source; keep every final audit and the existing 90-minute limit."
+    },
+    {
+      "path": "package.json",
+      "beforeDigest": "78c15ac34fbe375959bf166c3d236ce06a2a6a0d4d2f4b2d7f7f094e844a8a15",
+      "afterDigest": "6b2b05d27a88d44c65fe5cf12231975cbed15272aaf0ee4de3ec15ebbdd40e0f",
+      "reason": "Run the actql-check-outcome/0.1 contract check in check:contracts beside the other protocol schema checks; one added command, no relation pipeline semantics, mutation scheduling or CI limit change."
     },
     {
       "path": "proofs/relation-pipeline/history.mjs",
