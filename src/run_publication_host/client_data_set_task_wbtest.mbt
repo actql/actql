@@ -27,6 +27,11 @@ test "independent ordered DATA machine Program owns every bounded Relation step"
       Some(@pipeline.Step(task)),
     )
   }
+  assert_eq(@strategy.graph_data_count(graph), 6)
+  let input_counts = [0, 0, 2, 1, 1, 1, 1]
+  for task, inputs in input_counts {
+    assert_eq(@strategy.graph_task_input_count(graph, task), Some(inputs))
+  }
   let result_task = @strategy.graph_result_task(graph, 0).unwrap()
   assert_eq(
     @strategy.graph_task_target(graph, result_task),
@@ -50,4 +55,26 @@ test "independent ordered DATA machine Program owns every bounded Relation step"
     })
     is Err(Graph(TaskLimit)),
   )
+}
+
+///|
+test "multiple Values roots do not authorize an unregistered selected aggregate" {
+  // Distinct COUNT is accepted by the ordinary checker but is not a selected
+  // count profile. Having two roots must not bypass that capability boundary.
+  let document =
+    #|{"version":"actql/0.1","id":"unselected-multi-root","stages":[{"id":"main","inputs":{},"steps":[{"as":"left","values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":2}]}},{"as":"right","values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]}},{"from":"left","append":{"with":"right"},"as":"combined"},{"from":"combined","group":{"by":[],"aggregates":{"total":{"fn":"count","field":"id","distinct":true}}},"as":"summed"}],"results":{"rows":{"from":"summed","fields":["total"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+  let environment = admit_client_check_environment(
+    run_materials_environment_wire,
+    run_materials_environment_cid,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let prepared = prepare_effect_free_client_program(
+    document,
+    Json,
+    environment,
+    None,
+    run_materials_limits().preparation,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(prepared_client_graph(prepared)), 1)
 }
