@@ -51,6 +51,19 @@ module claim is insufficient. No implicit migration or cross-domain mapping is
 provided. Public Local/HTTPS Result publication is tested after MATCH/TRAIL;
 that is not a claim that a durable Store Graph snapshot catalog is implemented.
 
+Review correction: the adopted **public** snapshot roundtrip acceptance remains
+incomplete. Internal save uses `bounded_graph_snapshot.prepare_property` and
+`take_property_output`; internal reload uses
+`local_bridge.start_property_snapshot_reload`, with full typed identity/domain,
+label and content admission before handoff. Its callers outside the bridge are
+whitebox tests. The public Graph provider currently connects constructor and
+MATCH/TRAIL but not saved-snapshot input admission. The SDK exports no Graph
+save/reload operation; Run Host `CapturedResultSnapshot` covers Result
+publication, not Graph restoration. Public Result reattach is not a snapshot
+roundtrip. The Frontend handoff is therefore limited to the tested constructor,
+MATCH/TRAIL and Named Result paths. No new catalog, implicit conversion or
+constructor re-execution is introduced to stand in for this missing boundary.
+
 ## Executed regression evidence
 
 Implementation checkpoint: `dc111614df6aadca1d58ae6eaef4893dc7fca421`.

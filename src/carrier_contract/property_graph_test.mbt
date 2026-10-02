@@ -239,3 +239,137 @@ test "legacy Graph metadata remains a separate unchanged profile" {
   assert_true(graph_property_definition(value) is None)
   assert_eq(graph_labels(value), Some(["R"]))
 }
+
+///|
+fn scored_property_fixture(
+  name : String,
+  label : String,
+  property : String,
+  contract : @value.Contract,
+) -> PropertyNodeDefinition {
+  property_fixture(
+    name,
+    [@value.primitive(NumberType, nullable=false)],
+    labels=[label],
+    properties=rows(
+      [(@row.Unqualified(property), Some(contract))],
+      field_set=Closed,
+      max_fields=10,
+      max_name_bytes=100,
+    ).unwrap(),
+  )
+}
+
+///|
+test "Graph wide property type compatibility crosses distinct labels and node edge definitions" {
+  let number = @value.primitive(NumberType, nullable=false)
+  let text = @value.primitive(StringType, nullable=false)
+  let first = scored_property_fixture("N", "Person", "score", number)
+  let incompatible = scored_property_fixture("M", "Company", "SCORE", text)
+  assert_eq(
+    property_graph(
+      "sha256:" + "1".repeat(64),
+      [first, incompatible],
+      [],
+      max_definitions=3,
+      max_contract_work=1000,
+    ).unwrap_err(),
+    PropertyTypeConflict,
+  )
+  let edge = property_edge_definition(
+    scored_property_fixture("E", "Relationship", "SCORE", text),
+    "N",
+    "N",
+  ).unwrap()
+  assert_eq(
+    property_graph(
+      "sha256:" + "1".repeat(64),
+      [first],
+      [edge],
+      max_definitions=3,
+      max_contract_work=1000,
+    ).unwrap_err(),
+    PropertyTypeConflict,
+  )
+}
+
+///|
+test "Shared label property sets cross node edge definitions even with compatible value types" {
+  let number = @value.primitive(NumberType, nullable=false)
+  let text = @value.primitive(StringType, nullable=false)
+  let node = scored_property_fixture("N", "Person", "name", text)
+  let element = property_fixture(
+    "E",
+    [number],
+    labels=["PERSON"],
+    properties=rows(
+      [
+        (@row.Unqualified("NAME"), Some(@value.with_nullability(text, true))),
+        (@row.Unqualified("score"), Some(number)),
+      ],
+      field_set=Closed,
+      max_fields=10,
+      max_name_bytes=100,
+    ).unwrap(),
+  )
+  let edge = property_edge_definition(element, "N", "N").unwrap()
+  assert_eq(
+    property_graph(
+      "sha256:" + "1".repeat(64),
+      [node],
+      [edge],
+      max_definitions=3,
+      max_contract_work=1000,
+    ).unwrap_err(),
+    LabelPropertyConflict,
+  )
+}
+
+///|
+test "Compatible global property values preserve per definition nullability and bounded work" {
+  let number = @value.primitive(NumberType, nullable=false)
+  let nullable = @value.with_nullability(number, true)
+  let first = scored_property_fixture("N", "Person", "score", number)
+  let second = scored_property_fixture("M", "Company", "SCORE", nullable)
+  let edge = property_edge_definition(
+    scored_property_fixture("E", "PERSON", "SCORE", nullable),
+    "N",
+    "M",
+  ).unwrap()
+  let (carrier, used) = property_graph_usage(
+    "sha256:" + "1".repeat(64),
+    [first, second],
+    [edge],
+    max_definitions=3,
+    max_contract_work=1000,
+  ).unwrap()
+  assert_true(carrier is GraphValue(_))
+  assert_true(
+    field_at(property_definition_properties(first), 0).unwrap().contract
+    is Some({ nullable: false, .. }),
+  )
+  assert_true(
+    field_at(property_definition_properties(second), 0).unwrap().contract
+    is Some({ nullable: true, .. }),
+  )
+  assert_true(
+    property_graph(
+      "sha256:" + "1".repeat(64),
+      [first, second],
+      [edge],
+      max_definitions=3,
+      max_contract_work=used,
+    )
+    is Ok(_),
+  )
+  assert_eq(
+    property_graph(
+      "sha256:" + "1".repeat(64),
+      [first, second],
+      [edge],
+      max_definitions=3,
+      max_contract_work=used - 1,
+    ).unwrap_err(),
+    LimitExceeded,
+  )
+}
