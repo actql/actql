@@ -121,7 +121,7 @@ export async function openInferTestHost({mode, fixture}) {
   if (mode === 'local') {
     return {options: {mode, owner: 'local', durability: 'durable',
       installation: {directory, modelInstallation, registerModelProviders,
-        authorization}}, observe, observations, assertCapture,
+        authorization}}, observe, observations, assertCapture, modelInstallation,
     async close() {}};
   }
   const host = await openInstalledRemoteHttpHost({directory,
