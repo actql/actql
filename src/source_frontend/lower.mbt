@@ -207,6 +207,30 @@ fn emit(program : @program.Program) -> Result[Lowered, Issue] {
 }
 
 ///|
+// The query lowerer preserves ordered DATA set semantics, but the current
+// public Relation-only Host cannot select its multi-source task strategy.
+// Refuse that execution profile before a Run is admitted. A Graph consumer
+// uses the existing typed Carrier split, so do not reject its DATA producers.
+fn unavailable_ordered_data_set(script : @syntax.QueryScript) -> Bool {
+  if @syntax.graph_query(@syntax.script_query(script)) is Some(_) {
+    return false
+  }
+  for index in 0..<@syntax.data_declaration_count(script) {
+    let declaration = @syntax.data_declaration_at(script, index).unwrap()
+    match declaration.value {
+      RelationQuery(query) if @syntax.set_part_count(query) > 0 =>
+        for operation in 0..<@syntax.final_operation_count(query) {
+          if @syntax.final_operation_at(query, operation) is Some(Order(_)) {
+            return true
+          }
+        }
+      _ => ()
+    }
+  }
+  false
+}
+
+///|
 /// Lower only the selected query language. No structural text fallback or
 /// compatibility parser is available. The Host checks the resulting Program normally.
 pub fn lower(
@@ -242,6 +266,9 @@ pub fn lower(
             @syntax.parse_query_script(document, syntax_limits(), source_path~) {
             Ok(value) => value
             Err(issue) => return Err(QuerySyntax(issue))
+          }
+          if unavailable_ordered_data_set(script) {
+            return Err(QueryLowering(@query.UnsupportedSet))
           }
           let program = if @syntax.data_declaration_count(script) > 0 {
             match @query.compile_query_script(script, context, query_limits()) {

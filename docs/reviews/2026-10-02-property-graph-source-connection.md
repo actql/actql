@@ -133,11 +133,46 @@ The same emitted Program fails when submitted as JSON, bypassing Frontend.
 An [independently authored smaller JSON Program](../../spec/frontend/fixtures/data-set-strategy/repro-program.json)
 also fails there. Single sort terms and visible sort fields are failing
 controls; removing duplicate ordering terms does not solve it. This establishes
-a common strategy-selection boundary, without claiming which candidate,
-resource or provider rule is responsible. C/A should trace that existing
-selection; B has not changed the shared dispatch, provider or capacity owners.
+a common strategy-selection boundary. B owns closing this reproduction and
+its public acceptance; it is not an unassigned C/A wait. B has not changed
+the shared dispatch, provider or capacity owners.
 No order clause, capacity requirement or Result validation was removed to make
 the source case pass.
+
+### Current preparation refusal and separate strategy follow-up
+
+The public source route now returns the existing typed
+`ClientProgramUnsupported` for an ordered DATA set whose final query is
+Relation-only. This is a temporary installed-profile limitation, not invalid
+GoogleSQL ordering or a change to the adopted DATA meaning. The common query
+lowerer and independent JSON reproduction retain the original ordered Program
+and expected `[{"id":1}]`. Ordinary SQL set queries and DATA producers consumed
+by a typed Graph query are not covered by this refusal.
+
+The packed fixture classifies `data-set-order-reuses-hidden-slot` as a
+preparation refusal, with the exact error code, unchanged Run/admission and
+source-I/O counters, and request lookup returning `not_found`. It is no longer
+listed as a successful execution case. The 16 successful Graph/DATA source
+cases above remain separate historical execution evidence; neither a known
+NoStrategy failure nor the new refusal proves ordered-set execution.
+
+Source inspection isolates the next common selection check to
+`physical_strategy/carrier_tasks.mbt::carrier_segment_prefix_end`: its stage-0
+guard returns before the later multi-source Relation split conditions when
+there is no Carrier construction or intermediate Result. The saved JSON has
+two independent Values roots followed by append, derive, sort, projection and
+take. Those occurrences advertise selected managed execution, but the early
+guard keeps them fused. The installed Local candidate then has no usable
+strategy revision. This narrows the proposed adjustment; it is not a tested
+common fix or permission to accept an unchecked split. B will coordinate that
+small selection change separately and require the exact JSON/source output
+`[{"id":1}]` through packed Local/HTTP before removing the refusal.
+
+C dependency `321684933dce17afb0edc40f8877d2d7460c3da2` remains provisional.
+The newer public `402e6ea04e5ae65aba23a20b90233c9ee3e490b9` is not an offered
+unification-complete SHA and is not adopted as one. Updating #174 requires C's
+complete fixed SHA, changed common boundaries, public snapshot acceptance and
+that SHA's CI evidence. B does not implement C's Graph unification.
 
 Reproduce the source failure alone with:
 

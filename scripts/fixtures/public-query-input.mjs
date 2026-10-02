@@ -535,12 +535,13 @@ export async function exercisePublicQueryInput(connect, options,
         'failed Result reads, attach and resubmit must not recompute or acquire');
       console.log(`Public query execution failure passed: ${requestPrefix}/${name}`);
     }
-    for (const {name, text, ...input} of refusals) {
+    for (const {name, text, errorCode, ...input} of refusals) {
       await prepareCase?.();
       const requestId = requestPrefix + '-reject-' + name;
       const before = await counters();
       await assert.rejects(client.aql(text, {...input, requestId}), error => {
         assert.ok(inputCodes.has(error.code), String(error.code));
+        if (errorCode !== undefined) assert.equal(error.code, errorCode, name);
         assert.ok(!String(error.message).includes('secret-value'));
         return true;
       });

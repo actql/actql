@@ -62,9 +62,6 @@ export const propertyGraphSourceSuccesses = [
   {name: 'keyed-static-label-set', format: 'aql-text',
     text: 'DATA n = SELECT 1 AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (id) LABEL Account PROPERTIES (id))); FROM GRAPH g |> MATCH WALK (a:account) |> SELECT a.id AS id |> RESULT nodes',
     results: {nodes: {rows: [{id: 1}], columns: [number('id')]}}, sourceReadCount: 0},
-  {name: 'data-set-order-reuses-hidden-slot', format: 'aql-text',
-    text: 'DATA n = SELECT 2 AS id UNION ALL SELECT 1 AS other ORDER BY id + 1, id + 1 DESC LIMIT 1; FROM n |> SELECT id |> RESULT nodes',
-    results: {nodes: {rows: [{id: 1}], columns: [number('id')]}}, sourceReadCount: 0},
 ];
 export const propertyGraphSourceExecutionFailures = [
   {name: 'keyed-duplicate-node-key', format: 'aql-text',
@@ -78,6 +75,12 @@ export const propertyGraphSourceExecutionFailures = [
       'FROM GRAPH g |> MATCH p = WALK (:Node)-[:R]->(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths', resultNames: ['paths'], sourceReadCount: 0},
 ];
 export const propertyGraphSourceRefusals = [
+  // The required result remains [{id: 1}] in the independent strategy repro.
+  // Until the common Relation-only task selection is fixed, this public
+  // profile must refuse preparation instead of admitting a failing Run.
+  {name: 'data-set-order-reuses-hidden-slot', format: 'aql-text',
+    text: 'DATA n = SELECT 2 AS id UNION ALL SELECT 1 AS other ORDER BY id + 1, id + 1 DESC LIMIT 1; FROM n |> SELECT id |> RESULT nodes',
+    errorCode: 'ClientProgramUnsupported'},
   {name: 'keyed-star', format: 'aql-text', text: nodes + 'FROM GRAPH g |> MATCH WALK (a) |> SELECT *'},
   {name: 'keyed-implicit-element-export', format: 'aql-text', text: nodes + 'FROM GRAPH g |> MATCH WALK (a)'},
   {name: 'keyed-missing-binding', format: 'aql-text', text: nodes + 'FROM GRAPH missing |> MATCH WALK (a) |> SELECT a.id'},
