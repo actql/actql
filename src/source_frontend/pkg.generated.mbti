@@ -14,6 +14,8 @@ pub fn bind_query_context(Array[PublishedAlias], String, program_id? : String, p
 
 pub fn lower(String, Format, @query_program.Context?, source_path? : String) -> Result[Lowered, Issue]
 
+pub fn parse_query(String, Format, source_path? : String) -> Result[@query_syntax.Query, Issue]
+
 pub fn select_format(String) -> Result[Format, Issue]
 
 // Errors

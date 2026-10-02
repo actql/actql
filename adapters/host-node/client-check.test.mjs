@@ -335,6 +335,32 @@ for (const [entrance, open] of Object.entries(entrances)) {
         await ordered({y: pair.y, x: pair.x}, {y: 'b', x: 'a'}));
     });
 
+  for (const format of ['sql', 'aql-text']) {
+    test(`${entrance}: declaration exhaustion still permits bounded syntax checking (${format})`,
+      async t => {
+        const client = await open(t, configurations.absent);
+        const parameterDeclarations = Object.fromEntries(Array.from(
+          {length: 1100}, (_, index) => [`p${index}`, {type: 'number'}]));
+        const expected = (verdict, reasons) => ({
+          context_ref: '<ctx>', scope: {kind: 'bound_input'}, verdict, reasons,
+          coverage: {limits: [{code: 'analysis_budget_exhausted'}], unresolved: []}});
+        const run = async text => withoutContext(await client.check(text, {
+          format, parameterDeclarations, parameters: null})).report;
+        // Syntax success cannot discharge the unadmitted declarations or
+        // turn their parameters/columns into semantic violations.
+        for (const text of ['SELECT 1 AS n', 'SELECT @p0 AS n',
+          'SELECT missing AS n', 'SELECT id FROM records']) {
+          assert.deepEqual(await run(text), expected('undetermined', []));
+        }
+        assert.deepEqual(await run('SELECT FROM WHERE'),
+          expected('invalid', [{code: 'query_syntax_invalid'}]));
+        // A separate parser token budget is finite too: never blame input
+        // merely because both admission and syntax checking exhaust budgets.
+        assert.deepEqual(await run('SELECT ' + Array(4200).fill('1').join(',')),
+          expected('undetermined', []));
+      });
+  }
+
   test(`${entrance}: parameter budgets are limits, never violations`,
     async t => {
       const client = await open(t, configurations.absent);

@@ -107,6 +107,16 @@ fn check_source_findings(
         Ok(_) => ()
         Err(Budget) => {
           findings.push(Limit("analysis_budget_exhausted"))
+          // Declarations are unavailable, but syntax is independent of them.
+          // Reuse the frontend's bounded parser without inventing a context
+          // or attempting name resolution against unadmitted declarations.
+          match @source_frontend.parse_query(document, selected) {
+            Ok(_) => ()
+            Err(QuerySyntax({ issue: Limit(_), .. })) => ()
+            Err(QuerySyntax(_) | WrongQueryForm) =>
+              findings.push(Violation("query_syntax_invalid"))
+            Err(_) => return Failed("check_internal")
+          }
           return Report
         }
         Err(Invalid) => {
