@@ -19,7 +19,8 @@ function fixture(t) {
   const bin = join(root, 'bin');
   for (const path of [join(checkout, 'scripts'),
     join(checkout, '.github/workflows'), parent, bin]) mkdirSync(path, {recursive: true});
-  for (const name of ['test-native-core.mjs', 'owned-scratch.mjs', 'local-checks.mjs']) {
+  for (const name of ['test-native-core.mjs', 'owned-scratch.mjs',
+    'local-checks.mjs', 'test-execution.mjs']) {
     copyFileSync(new URL(name, import.meta.url), join(checkout, 'scripts', name));
   }
   symlinkSync(new URL('../node_modules', import.meta.url), join(checkout, 'node_modules'), 'dir');
