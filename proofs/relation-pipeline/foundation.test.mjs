@@ -164,7 +164,7 @@ const invalidDeclarations = [
   ['empty changes', input => { input.changes = []; }],
   ['empty rationale', input => { input.changes[0].reason = '  \n'; }],
   ['invalid declaration ID', input => { input.id = 'INVALID_ID'; }],
-  ['unknown schema version', input => { input.version = 'actql-foundation-declaration/999'; }],
+  ['unknown schema version', input => { input.version = input.version.replace('/0.1', '/999'); }],
   ['unknown schema field', input => { input.approved = true; }],
   ['unknown change field', input => { input.changes[0].approved = true; }],
   ['change with resolution inputs', input => { input.inputs = []; }],
