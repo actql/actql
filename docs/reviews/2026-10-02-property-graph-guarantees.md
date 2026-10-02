@@ -281,3 +281,54 @@ and legacy kernels are still on the removal inventory. Their generic
 resource/custody obligations must be mapped before withdrawing executable
 fixtures. The previous complete Core JS failures and the public snapshot/CI
 acceptance requirements remain open.
+
+The required-definition unit is committed as
+`69656810ff0e4dbbacbb0e9441ccf6d7b20c56a0`. Its official tracked three-target
+API check passes after commit:
+`/private/tmp/property-graph-required-definition-api-committed-20261002.log`.
+
+## Retired structural kernel removal checkpoint
+
+The old Local `normalize`, `graft` (including finite-list union/subtraction)
+and `mean` kernels and their public execution handles are removed. Production
+references to these entrypoints were checked before removal; the current
+selected Graph provider does not dispatch to them. Five retired whitebox
+fixture files (`normalize`, `graft`, `mean`, `structural_merge_resource`,
+`subgraph`) are withdrawn from execution. The subgraph fixture shared helper
+code from the withdrawn normalize/graft fixtures; the unconnected subgraph
+product body is separately still on the removal inventory. Original source
+is preserved by Git, not copied into a compatibility owner.
+
+Applicable obligations are mapped to current positive tests as follows. This
+does **not** claim support for the retired algorithms or their count laws.
+
+| Retired fixture obligation | Current positive evidence |
+| --- | --- |
+| Work/workspace admission, exact/one-short ceilings | `keyed constructor admits exact control work and workspace and refuses one short`; keyed storage atomic capacity/work boundaries |
+| Exact positioned input, ordered/repeated operands, input availability | `keyed constructor rejects foreign input custody and bounds preparation and control work`; repeated producer definition test; provider surplus-input/custody tests |
+| Output budget breach never publishes partial material | Keyed constructor capacity/cancellation test, MATCH failure/cancellation test, TRAIL capacity/cancellation test |
+| Stop before reclaiming partial output; cleanup remains possible after failure | Managed Graph cancellation, failed/revoked/unavailable output lifecycle cases; corrupted/interrupted/cancelled snapshot handoff cases |
+| Two downstream consumers and final release owner | `managed Graph completion supports two exact downstream consumers`; `managed Graph material owns final reclamation` |
+| Structural numeric/set folds, support weighting, endpoint merging, algorithm-specific sorting complexity | Unsupported under current contract; former algorithm proofs are withdrawn, not renamed to current resource evidence |
+
+New typed-boundary tests use valid structural/mean options and complete keyed
+inputs to require `UnsupportedGraphOperation` for graft/union/subtraction,
+mean and subgraph. A syntax error is not accepted as the unsupported-consumer
+evidence. They do not substitute for the positives in the table.
+
+The related contract, construction, storage, lifecycle, snapshot and provider
+suite passes **96/96 on JS, Wasm and native**:
+`/private/tmp/property-graph-structural-kernel-removal-{js,wasm,native}-20261002.log`.
+Unused imports found by the first check were removed, not suppressed. Current
+generated interfaces no longer export the deleted handles.
+
+The common `sga_graph` resource profile now points to those current source and
+fixture owners and explicitly limits its evidence to constructor/MATCH/TRAIL.
+It makes no resource-completeness claim for blocked operators. However, the
+separate production-route inventory still contains obsolete kernel references.
+The unchanged strict validator correctly fails on those references and on
+incomplete family layers:
+`/private/tmp/property-graph-structural-kernel-removal-resource-gate-20261002.log`.
+Neither validator expectations nor the frozen provenance foundation were
+changed. Aligning the route inventory and current supported/refused contract
+is still required before aggregate spec/CI can be called successful.
