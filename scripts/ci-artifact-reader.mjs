@@ -260,20 +260,30 @@ export async function openArtifactZip(filename, {expectedSha256, limits: overrid
       const digest = retain ? undefined : createHash('sha256');
       let bytes = 0;
       let crc = 0xffffffff;
+      let validationError;
       const input = streamRange(handle, entry.dataOffset, entry.compressedBytes);
       const inflater = entry.method === 8 ? createInflateRaw({chunkSize: chunkBytes}) : undefined;
       const sink = async output => {
         for await (const chunk of output) {
           bytes += chunk.length;
           // Check before retaining anything: declarations cannot bypass the bound.
-          if (bytes > entry.bytes || bytes > limits.maxMemberBytes) fail('inflated member exceeds declared size or limit');
+          if (bytes > entry.bytes || bytes > limits.maxMemberBytes) {
+            validationError = new Error('Invalid artifact ZIP: inflated member exceeds declared size or limit');
+            throw validationError;
+          }
           crc = crcUpdate(crc, chunk);
           if (retain) chunks.push(chunk);
           else digest.update(chunk);
         }
       };
-      if (inflater) await pipeline(input, inflater, sink);
-      else await pipeline(input, sink);
+      try {
+        if (inflater) await pipeline(input, inflater, sink);
+        else await pipeline(input, sink);
+      } catch (error) {
+        // Node 22 may surface async-iterator teardown's AbortError instead of
+        // the sink's original bound violation. Preserve that precise failure.
+        throw validationError ?? error;
+      }
       if (bytes !== entry.bytes) fail('member logical byte count mismatch');
       if (((crc ^ 0xffffffff) >>> 0) !== entry.crc) fail('member CRC mismatch');
       if (inflater && inflater.bytesWritten !== entry.compressedBytes) fail('trailing bytes in deflated member');
