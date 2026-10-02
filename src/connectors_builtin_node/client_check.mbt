@@ -142,11 +142,40 @@ fn check_source_findings(
           | UnsupportedGraph
           | UnsupportedInfer
           | UnsupportedNearest
+          | UnsupportedResult
         ) => findings.push(Limit("implementation_limit"))
         // Resolved against visible relations only: a disclosable fact.
-        QueryLowering(_) => findings.push(Violation("query_invalid"))
-        InvalidFormat | MissingQueryContext | Encoding =>
-          return Failed("check_internal")
+        QueryLowering(
+          AmbiguousRelation
+          | UnknownColumn
+          | AmbiguousColumn
+          | DuplicateOutput
+          | Expression(_)
+        ) => findings.push(Violation("query_invalid"))
+        // Host query context, not the caller's input.
+        QueryLowering(InvalidContext) => return Failed("check_context_invalid")
+        // A construction budget of this check: undetermined, never invalid.
+        QueryLowering(
+          Construction(
+            InputLimit
+            | NodeLimit
+            | DepthLimit
+            | StringLimit
+            | OriginLimit
+            | OutputLimit
+            | Admission({ kind: BudgetExceeded, .. })
+          )
+          | Admission(
+            Structure(StageLimit, ..)
+            | RetentionLimit(_, ..)
+            | Decode({ kind: BudgetExceeded, .. })
+          )
+        ) => findings.push(Limit("analysis_budget_exhausted"))
+        // The Program built from accepted source: never blamed on the author.
+        QueryLowering(Construction(_) | Admission(_))
+        | InvalidFormat
+        | MissingQueryContext
+        | Encoding => return Failed("check_internal")
       }
       return Report
     }

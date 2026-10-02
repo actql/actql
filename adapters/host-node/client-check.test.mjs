@@ -225,6 +225,37 @@ for (const [entrance, open] of Object.entries(entrances)) {
           coverage: {limits: [], unresolved: []}});
     });
 
+  test(`${entrance}: verified binds the supplied values it was checked with`,
+    async t => {
+      const client = await open(t, configurations.allowed);
+      // Without the declared value the same source is never verified: there
+      // is no template-scope verdict to reuse for a bound input.
+      const unbound = await check(client, 'missing');
+      assert.deepEqual(withoutContext(unbound).report, {context_ref: '<ctx>',
+        scope: {kind: 'bound_input'}, verdict: 'undetermined', reasons: [],
+        coverage: {limits: [{code: 'bound_values_missing'}],
+          unresolved: []}});
+      const bound = await check(client, 'satisfied');
+      assert.equal(bound.report.verdict, 'verified');
+      const rebound = await client.check(query, {format: 'sql',
+        parameterDeclarations: declarations, parameters: {minimum: 30}});
+      assert.equal(rebound.report.verdict, 'verified');
+      // Each verdict names its own bindings; none stands for another.
+      assert.equal(new Set([unbound, bound, rebound].map(outcome =>
+        outcome.report.context_ref)).size, 3);
+    });
+
+  test(`${entrance}: an exhausted analysis budget is undetermined, ` +
+    'not invalid or failed', async t => {
+    const client = await open(t, configurations.allowed);
+    const outcome = await client.check('SELECT id FROM records' +
+      ' UNION ALL SELECT id FROM records'.repeat(50), {format: 'sql'});
+    assert.deepEqual(withoutContext(outcome).report, {context_ref: '<ctx>',
+      scope: {kind: 'bound_input'}, verdict: 'undetermined', reasons: [],
+      coverage: {limits: [{code: 'analysis_budget_exhausted'}],
+        unresolved: []}});
+  });
+
   test(`${entrance}: undecidable visibility is unavailable without a report`,
     async t => {
       const client = await open(t, configurations.undecidable);

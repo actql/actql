@@ -21,6 +21,9 @@ const mutations = [
     '    "invalid"',
     'if findings.iter().any(finding => !(finding is Limit(_))) {\n' +
     '    "invalid"'],
+  ['an exhausted construction budget is reported as a failure',
+    '          )\n        ) => findings.push(Limit("analysis_budget_exhausted"))',
+    '          )\n        ) => return Failed("check_internal")'],
   ['a missing value is reported as a violation',
     'Ok(NeedsBindings(_)) => findings.push(Limit("bound_values_missing"))',
     'Ok(NeedsBindings(_)) => findings.push(Violation("bound_values_missing"))'],
