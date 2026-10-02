@@ -203,6 +203,66 @@ is introduced. Run the guard regressions with
 `node --test scripts/test-execution.test.mjs` (the pinned MoonBit toolchain must
 be on PATH).
 
+### Retained command attempts
+
+The focused wrapper retains each invocation under
+`_build/focused-evidence/focused-test-*` and prints its exact directory. The
+programmatic `evidenceScratch` option selects another parent directory. An
+explicit rerun creates a new directory: a passing attempt cannot overwrite a
+failure. No automatic retry or timeout increase is introduced.
+
+Focused and packed verification share the existing `packed-query-evidence.mjs`
+recorder and `actql-command-evidence/0.1` diagnostic format. `summary.json` is the
+latest observation; numbered `*.summary.json` snapshots and per-command
+`*.started.json` / `*.result.json` records retain earlier observations. Each
+command records redacted arguments, canonical working-directory/device/inode
+identity, actual Git HEAD and dirty indication, UTC start/end timestamps,
+elapsed time, raw exit code or signal, and verification status separately.
+Git source identity is read from the recorder's repository cwd; the child cwd
+is recorded separately because packed consumers execute outside the source
+checkout. Unavailable Git identity/dirty state remains `null`. The supplied packed
+`revision` and GitHub event SHA do not replace the observed checkout SHA.
+
+Streams are bounded by the existing limits: 8 MiB for packed commands and
+64 MiB for focused commands. Buffer overflow remains a failed attempt with
+`outputComplete: false`; persisted streams are bounded too. No environment is
+serialized. Secret-labelled environment values and recognizable authorization,
+credential URL/query and private-key forms are masked in diagnostics. These
+helpers are for repository-owned test diagnostics, not arbitrary private buffers;
+masking cannot prove arbitrary application output is free of secrets.
+
+A failed, timed-out or interrupted invocation has `complete: false`; cleanup
+errors also retain a failed/incomplete summary without changing the raw child exit. A command's
+raw exit observation, its test-count verification, and invocation completeness
+are independent fields. Evidence-write errors are reported and cannot turn a
+failure green; a passing test with failed evidence persistence also exits
+nonzero. The original nonzero status remains authoritative. Files/directories
+replaced by links or different filesystem objects are not overwritten or cleaned.
+
+The existing CI uploader retains only summaries, command receipts and bounded
+stdout/stderr, for seven days. Names include GitHub run ID and attempt, while
+summaries carry both event and observed checkout identities. Callers retain their
+`always()` collection condition. Upload failure fails the collection step and
+is reported separately; upload success establishes neither test success nor
+completeness. Tarballs, installed dependencies and other scratch payloads are
+never uploaded. Missing command result receipts remain missing.
+
+A start record is persisted before each child. If the parent process is killed,
+its last persisted snapshots remain partial, but `spawnSync`'s in-memory output
+and unobserved child exit cannot be reconstructed. If the runner disappears,
+the job is cancelled before collection, or GitHub terminates the entire job,
+`always()` cannot guarantee an upload. A child timeout handled by the recorder
+retains its observed output and failure normally. No fabricated receipt or
+successful completion is substituted for any of these gaps.
+
+The existing `packed_query_evidence_probe` CI dispatch option runs only tiny
+nonzero, timeout, interrupted-parent and upload-failure probes (the last uses
+a deliberately invalid artifact name). Every probe job
+is intentionally failed; later assertions check that collection does not alter
+that result. The regular `packed-query-evidence.test.mjs` gate exercises local
+capture, partial selection, ownership guards and the action's exact upload-status
+shell without rerunning packed product acceptance or a mutation campaign.
+
 ## CI evidence by source revision
 
 Use the read-only GitHub CLI helper to inspect this repository or another
