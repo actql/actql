@@ -122,16 +122,16 @@ FROM n |> SELECT id |> RESULT nodes
 ```
 
 Its required result is `[{"id":1}]`, with one nonnullable number column `id`
-and no internal sort field. Lowering and the ordinary checker pass. The
-installed execution has no completed task and fails at
+and no internal sort field. Before the strategy correction below, lowering and
+the ordinary checker passed, but installed execution completed no task and failed at
 `physical_host.prepare_next_compute_task` →
 `prepare_next_installed_task` → `Dispatch(NoStrategy)` because the captured
 DAG has no strategy revision. `StrategyNotComplete` during publication is a
 secondary error, not the first failing boundary.
 
-The same emitted Program fails when submitted as JSON, bypassing Frontend.
+Before that correction, the same emitted Program failed when submitted as JSON, bypassing Frontend.
 An [independently authored smaller JSON Program](../../spec/frontend/fixtures/data-set-strategy/repro-program.json)
-also fails there. Single sort terms and visible sort fields are failing
+also failed there. Single sort terms and visible sort fields were failing
 controls; removing duplicate ordering terms does not solve it. This establishes
 a common strategy-selection boundary. B owns closing this reproduction and
 its public acceptance; it is not an unassigned C/A wait. B has not changed
@@ -139,20 +139,20 @@ the shared dispatch, provider or capacity owners.
 No order clause, capacity requirement or Result validation was removed to make
 the source case pass.
 
-### Current preparation refusal and separate strategy follow-up
+### Historical preparation refusal and completed DATA source reacceptance
 
-The public source route now returns the existing typed
-`ClientProgramUnsupported` for an ordered DATA set whose final query is
-Relation-only. This is a temporary installed-profile limitation, not invalid
+At `326c93159428fd8ffc6a8028d99e1180b5692c8f`, the public source route returned
+the existing typed `ClientProgramUnsupported` for an ordered DATA set whose
+final query is Relation-only. That was a temporary installed-profile limitation, not invalid
 GoogleSQL ordering or a change to the adopted DATA meaning. The common query
 lowerer and independent JSON reproduction retain the original ordered Program
 and expected `[{"id":1}]`. Ordinary SQL set queries and DATA producers consumed
 by a typed Graph query are not covered by this refusal.
 
-The packed fixture classifies `data-set-order-reuses-hidden-slot` as a
+At that SHA the packed fixture classified `data-set-order-reuses-hidden-slot` as a
 preparation refusal, with the exact error code, unchanged Run/admission and
-source-I/O counters, and request lookup returning `not_found`. It is no longer
-listed as a successful execution case. The 16 successful Graph/DATA source
+source-I/O counters, and request lookup returning `not_found`. It was excluded
+from successful execution cases until the common strategy was fixed. The 16 successful Graph/DATA source
 cases above remain separate historical execution evidence; neither a known
 NoStrategy failure nor the new refusal proves ordered-set execution.
 
@@ -175,17 +175,50 @@ The external installation was reclaimed after preserving command logs,
 source SHA, package digests and results. These two selected cases do not
 claim a rerun of all 16 historical successful cases or public snapshot acceptance.
 
-Source inspection isolates the next common selection check to
+Source inspection isolated the common selection check to
 `physical_strategy/carrier_tasks.mbt::carrier_segment_prefix_end`: its stage-0
 guard returns before the later multi-source Relation split conditions when
 there is no Carrier construction or intermediate Result. The saved JSON has
 two independent Values roots followed by append, derive, sort, projection and
 take. Those occurrences advertise selected managed execution, but the early
-guard keeps them fused. The installed Local candidate then has no usable
-strategy revision. This narrows the proposed adjustment; it is not a tested
-common fix or permission to accept an unchecked split. B will coordinate that
-small selection change separately and require the exact JSON/source output
-`[{"id":1}]` through packed Local/HTTP before removing the refusal.
+guard kept them fused and the installed Local candidate had no usable strategy
+revision. The independent common fix is [PR #184](https://github.com/actql/actql/pull/184),
+whose source `607a1eb5f0d7691e6ea0b0a65e73c0ac403d3467` passes the independent
+JSON Program through packed Local/HTTPS. Its core commit
+`6685718f86b0e18518e2c53258f5129f0875447a` is adopted here with recorded
+cherry-pick provenance. It permits a multi-root Relation shape to reach the
+existing registered-capability, schema and retained-port checks; it does not
+bypass them or alter provider/Run ownership.
+
+At fixed source `2886d249d7a22114538895528e027f574b3b257d`, the temporary
+source refusal was removed and the following focused external packed cases
+passed in both Embedded Local and HTTPS:
+
+- The original `data-set-order-reuses-hidden-slot` source produces exactly
+  `nodes = [{"id":1}]`, retaining both ORDER BY terms and LIMIT. Actual
+  `Result.describe()` contains only the nonnullable number column `id`.
+- `data-quoted-set-order` produces `[{"id":1},{"id":2}]` with the same public
+  column contract. Neither case exposes an internal sort field.
+- `keyed-parallel-one-definition-trail` still produces the two independently
+  expected paths and actual description. This is a Graph regression case,
+  separate from the two Relation DATA successes.
+- `keyed-private-slot` and `data-forward-reference` remain preparation refusals
+  with no Run admission/provider I/O and request lookup `not_found`.
+- Attach, reread and same-request resubmit do not accept or acquire again.
+  Frontend tests pass 9/9 and task/result boundary tests pass 4/4 on JS.
+
+Normal prepack at that SHA keeps the client-wire, SDK and node digests in the
+historical table. The updated packages are:
+
+| Package | Tarball SHA-256 |
+| --- | --- |
+| run-host-core | `67c4f3d761baf0aea829505f7f2998118483f36cd3a0ab70b9e2f88c02b36f16` |
+| local-node | `ac7a3464fe5ccc201e867daf4567e770ec604560b0e0871016bb9c3f59747078` |
+
+The installation was reclaimed after preserving logs, source SHA, digests and
+results. The selected run establishes these three successes and two refusals,
+not a rerun of every historical Graph case or public snapshot acceptance. The
+full local Core/spec/Client jobs were not repeated; final-SHA CI remains separate.
 
 C dependency `321684933dce17afb0edc40f8877d2d7460c3da2` remains provisional.
 The newer public `402e6ea04e5ae65aba23a20b90233c9ee3e490b9` is not an offered
@@ -193,7 +226,7 @@ unification-complete SHA and is not adopted as one. Updating #174 requires C's
 complete fixed SHA, changed common boundaries, public snapshot acceptance and
 that SHA's CI evidence. B does not implement C's Graph unification.
 
-Reproduce the preparation refusal alone with:
+Reproduce the repaired DATA source alone with:
 
 ```sh
 node scripts/test-packed-public-query.mjs --property-graph-source-only \
