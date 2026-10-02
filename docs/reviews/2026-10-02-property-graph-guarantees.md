@@ -34,7 +34,7 @@ public snapshot and required CI at the same submitted SHA.
 | Distinct node/edge extents, producer owner and no fabricated row proof | Required guarantee | `pipeline_typing/produced_input_test.mbt`, `graph_counts_test.mbt`; current MATCH node/edge cases | Empty declared node universe exposed a real upper-bound regression; minimal `row_counts.mbt` fix preserves zero edges while still debiting every operand |
 | MATCH predicate types, typed identity rows, downstream Relation consumers | Required guarantee | `pipeline_typing/graph_test.mbt`; `lowering_relation/graph_match_test.mbt` | Migrate Program and query integration inputs without Frontend-specific evaluation |
 | TRAIL selector owner, bounded preparation, empty selector counts, row guard vs proof | Required guarantee | `pipeline_typing/graph_test.mbt`, `graph_report_counts_test.mbt`, `graph_empty_selector_audit_test.mbt`, `author_guards_test.mbt` | Retain current paths positives and exact/one-short tests |
-| Graph input bound owner, foreign dependency rejection, imported closure, limit consumption | Required guarantee | `capacity_graph_preflight` now uses a definition-keyed Graph schema and scoped MATCH; original owner/unit/collection/exact-limit assertions remain | Four algorithm-dependent fixtures remain unresolved; no aggregate success claimed |
+| Graph input bound owner, foreign dependency rejection, imported closure, limit consumption | Required guarantee | `capacity_graph_preflight` uses scoped MATCH and TRAIL; downstream resolved ownership, foreign collection rejection, limit consumption and exact/one-short assertions remain | Current preflight migration passes focused JS; complete Core/spec and final submitted-SHA acceptance remain open |
 | Diff/apply, union/graft/subtract/mean, structural counts, report bounds, reach/shortest | Unsupported consumer | Current typing/lowering and diff refusal tests; legacy algorithm implementation is not a fallback | Remove remaining obsolete execution branches. Old algorithm-specific count/schema proofs are not claimed preserved. Keep generic projection/owner guarantees in supported fixtures |
 | Consumer coverage and strict resource inventory | Required guarantee + unsupported consumers | Inventory distinguishes connected partial Graph routes from blocked routes | Aggregate spec remains red; do not remove checks or silently retain old completion claims |
 
@@ -60,6 +60,44 @@ been rerun for this unit. The previous full pipeline at `d5e2b5b49` remains
 343 total / 308 passed / 35 failed; it is not this unit's result.
 
 ## Preflight owner migration
+
+### Supported-path replacement checkpoint
+
+The four previously failing fixtures below now have supported-path evidence.
+The complete `capacity_graph_preflight` package and the existing
+`capacity_program_step/{join_resolution,property_graph}_test.mbt` files pass
+**34/34 on JS, Wasm and native**. Logs are
+`/private/tmp/property-graph-preflight-migration-{js,wasm,native}-20261002.log`.
+This is a focused result, not a new complete Core or CI result.
+
+- `resolved_output_test.mbt` uses TRAIL paths → TAKE. It retains the exact
+  physical output owner, rejects reconstructed foreign collections, validates
+  downstream dependency order, duplicate/missing applications and exact/one-
+  short work, and retains resolved output after caller-array mutation.
+- `trail_owner_coverage_test.mbt` replaces the retired components ledger with
+  TRAIL plus a retained MATCH branch. Foreign Graph inputs/programs, missing
+  dependencies, limit consumption, unused branches, collection custody and
+  exact/one-short budgets remain positive/rejection pairs.
+- `input_bounds_test.mbt` follows node/edge MATCH through SELECT and DERIVE
+  into TAKE. It retains the original row-bound owner and rejects substituting
+  an equal-valued Graph measure. Existing imported-closure tests remain.
+- Dead traversed-node scaffolding and its duplicate path mode were removed
+  from `traversal_coverage_test.mbt`; all distinct current TRAIL scopes remain.
+
+The old union/normalize/subgraph algorithms are unsupported, not restored.
+Their algorithm-specific claims are withdrawn, not reported as migrated.
+Repeated definition operands and mixed premise order remain positively tested
+by `capacity_program_step/property_graph_test.mbt`. Late candidate final
+revalidation remains tested by the supported JOIN resolver: an initially valid
+host-only minimum rejects a candidate added later to the same complete table.
+It would be invalid to admit the retired traverse-nodes proof against a TRAIL
+path result just to retain that old test shape.
+
+Initial migration compilation caught two stale ledger variable names and a
+string-concatenation line break. Both were corrected before the three-target
+runs. No capacity validator, owner or acceptance expectation was weakened.
+
+### Earlier migration evidence
 
 The shared current input has independent N/E key definitions and an explicit
 identity domain. Graph-to-Relation proofs now use the existing

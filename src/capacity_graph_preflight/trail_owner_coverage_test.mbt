@@ -28,10 +28,9 @@ fn component_limit_artifact(
 }
 
 ///|
-test "components ledger covers every step and integrates both limits with Graph preflight" {
-  // Components is deliberately not the final current branch.
+test "TRAIL ledger covers unused branches and binds retained MATCH input ownership" {
   let p = input_bound_pipeline(
-    "[{\"components\":{\"kind\":\"weak\"},\"as\":\"unused\"},{\"node_rows\":true,\"from\":\"g\"}]",
+    "[{\"traverse\":{\"start\":{\"ids\":[{\"domain\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"definition\":\"N\",\"key\":[\"a\"]}]},\"direction\":\"out\",\"min_hops\":0,\"max_hops\":2,\"path_mode\":\"trail\",\"emit\":\"paths\"},\"as\":\"unused\"},{\"match_nodes\":{\"definition\":\"N\",\"bindings\":{\"identity\":\"element\"},\"where\":\"true\",\"fields\":[\"element\"]},\"from\":\"g\"}]",
   )
   let policy = policy(false)
   let initial = sources(0, policy)
@@ -55,51 +54,28 @@ test "components ledger covers every step and integrates both limits with Graph 
       empty_sequence,
       max_work=100,
     )
-    is Err(MissingComponentsApplications(0)),
+    is Err(MissingTraversalApplications(0)),
   )
   let id = @wire.cid(
     @input.bound_witness(@input.input_bound(initial_graph, 0, Nodes).unwrap()),
   )
-  let nodes = graph_proof(
-    "actql.bound.components-input-nodes",
-    1L,
-    "{\"op\":\"source\"}",
-    unit="nodes",
-    inputs=[id],
-  )
   let rows = graph_proof(
-    "actql.bound.components-nodes",
+    "actql.bound.match-nodes",
     1L,
     "{\"op\":\"source\"}",
+    reference="checked-step:1",
     inputs=[id],
   )
-  let host = @host.create(
-    @policy.ceiling(policy, "max_graph_output_rows").unwrap(),
-    { max_bytes: 4096, max_nodes: 100, max_depth: 10, },
-  ).unwrap()
-  let writer = @encode.writer(4096, 100, 10)
-  @host.emit(host, writer)
-  let host_wire = @wire.admit(
-    @utf8.encode(@encode.finish(writer)),
-    @host.cid(host),
-    { max_bytes: 4096, max_nodes: 100, max_depth: 10, },
-  ).unwrap()
+  let paths = graph_host_wire(policy, "max_graph_paths")
+  let host_wire = graph_host_wire(policy, "max_graph_output_rows")
   let sources = sources(
     0,
     policy,
-    proofs=[nodes, rows],
-    extra_wires=[host_wire],
+    proofs=[rows],
+    extra_wires=[host_wire, paths],
     extra_limits=[
-      component_limit_artifact(
-        [@wire.program_proof_witness(nodes)],
-        "nodes",
-        ":nodes",
-      ),
-      component_limit_artifact(
-        [host_wire, @wire.program_proof_witness(rows)],
-        "rows",
-        "",
-      ),
+      component_limit_artifact([paths], "paths", ":paths", operation="traverse"),
+      component_limit_artifact([host_wire], "rows", "", operation="traverse"),
     ],
   )
   let graph = @input.check(p, sources, policy, caps()).unwrap()
@@ -135,15 +111,15 @@ test "components ledger covers every step and integrates both limits with Graph 
     is Err(ForeignGraphInputs),
   )
   let input = @program.GraphInput(@input.input_bound(graph, 0, Nodes).unwrap())
-  let apps = [nodes, rows].map(proof => {
-    @program.check_with_sources(p, 0, proof, [input]).unwrap()
+  let apps = [rows].map(proof => {
+    @program.check_with_sources(p, 1, proof, [input]).unwrap()
   })
   let program = @program.check_applications(
     @host.source_claims(sources),
     apps,
     max_work=100,
   ).unwrap()
-  let limit = @program.check_components_limits(
+  let limit = @program.check_traversal_limits(
     p,
     0,
     sources,
@@ -155,7 +131,7 @@ test "components ledger covers every step and integrates both limits with Graph 
   ).unwrap()
   let list = [limit]
   let prepared = prepared_coverage(p, sources, [
-    Components(step=0, nodes=2, output=3),
+    Traversal(step=0, paths=2, output=3),
   ])
   let prepared_program = @capacity_graph_preflight.source_coverage_program(
     @capacity_graph_preflight.application_coverage_sources(prepared),
@@ -166,7 +142,7 @@ test "components ledger covers every step and integrates both limits with Graph 
       @host.source_claims(sources),
     ),
   )
-  let components = @program.check_components_applications(
+  let traversals = @program.check_traversal_applications(
     p,
     sources,
     program,
@@ -177,16 +153,16 @@ test "components ledger covers every step and integrates both limits with Graph 
   list.clear()
   assert_true(
     physical_equal(
-      @program.components_application_at(components, 0).unwrap(),
+      @program.traversal_application_at(traversals, 0).unwrap(),
       limit,
     ),
   )
-  assert_true(@program.components_application_at(components, -1) is None)
-  assert_eq(@program.components_unconsumed_limit_count(components), 2)
-  let work = @program.components_application_work(components)
+  assert_true(@program.traversal_application_at(traversals, -1) is None)
+  assert_eq(@program.traversal_unconsumed_limit_count(traversals), 2)
+  let work = @program.traversal_application_work(traversals)
   assert_eq(work, 11)
   assert_true(
-    @program.check_components_applications(
+    @program.check_traversal_applications(
       p,
       sources,
       program,
@@ -197,7 +173,7 @@ test "components ledger covers every step and integrates both limits with Graph 
     is Ok(_),
   )
   assert_true(
-    @program.check_components_applications(
+    @program.check_traversal_applications(
       p,
       sources,
       program,
@@ -208,7 +184,7 @@ test "components ledger covers every step and integrates both limits with Graph 
     is Err(WorkLimit),
   )
   assert_true(
-    @program.check_components_applications(
+    @program.check_traversal_applications(
       p,
       sources,
       program,
@@ -219,7 +195,7 @@ test "components ledger covers every step and integrates both limits with Graph 
     is Err(MissingApplication(0)),
   )
   assert_true(
-    @program.check_components_applications(
+    @program.check_traversal_applications(
       p,
       sources,
       program,
@@ -230,7 +206,7 @@ test "components ledger covers every step and integrates both limits with Graph 
     is Err(DuplicateApplication(1)),
   )
   assert_true(
-    @program.check_components_complete(
+    @program.check_traversal_complete(
       p,
       sources,
       program,
@@ -246,7 +222,7 @@ test "components ledger covers every step and integrates both limits with Graph 
     max_work=100,
   ).unwrap()
   assert_true(
-    @program.check_components_applications(
+    @program.check_traversal_applications(
       p,
       sources,
       other_program,
@@ -270,14 +246,14 @@ test "components ledger covers every step and integrates both limits with Graph 
       sequence,
       max_work=100,
     )
-    is Err(MissingComponentsApplications(0)),
+    is Err(MissingTraversalApplications(0)),
   )
   assert_true(
     @capacity_graph_preflight.check_application_coverage(
       graph,
       other_program,
       sequence,
-      components=Some(components),
+      traversals=Some(traversals),
       max_work=100,
     )
     is Err(ForeignProgram),
@@ -286,7 +262,7 @@ test "components ledger covers every step and integrates both limits with Graph 
     graph,
     program,
     sequence,
-    components=Some(components),
+    traversals=Some(traversals),
     max_work=100,
   ).unwrap()
   let exact = @capacity_graph_preflight.application_coverage_work(covered)
@@ -295,7 +271,7 @@ test "components ledger covers every step and integrates both limits with Graph 
       graph,
       program,
       sequence,
-      components=Some(components),
+      traversals=Some(traversals),
       max_work=exact,
     )
     is Ok(_),
@@ -305,17 +281,17 @@ test "components ledger covers every step and integrates both limits with Graph 
       graph,
       program,
       sequence,
-      components=Some(components),
+      traversals=Some(traversals),
       max_work=exact - 1,
     )
     is Err(Consumer(WorkLimit)),
   )
   assert_true(
     physical_equal(
-      @capacity_graph_preflight.consumer_coverage_components(
+      @capacity_graph_preflight.consumer_coverage_traversals(
         @capacity_graph_preflight.application_coverage_consumers(covered),
       ).unwrap(),
-      components,
+      traversals,
     ),
   )
 }
