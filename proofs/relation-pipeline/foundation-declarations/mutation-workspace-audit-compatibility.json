@@ -1,0 +1,63 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "mutation-workspace-audit-compatibility",
+  "kind": "change",
+  "revision": "f412a9af3d50d081d8b20a172daaa42d58a8f1b9",
+  "parents": [
+    "927723e241ad750ce52b6c859d666cc194abb8b4"
+  ],
+  "changes": [
+    {
+      "path": "proofs/relation-pipeline/audit.mjs",
+      "before": [
+        {
+          "revision": "927723e241ad750ce52b6c859d666cc194abb8b4",
+          "digest": "e5a4f16082c70a36dd0da144a44c6d43ba04da356f219199761f050bc6d61746",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "b2e5a5c6ccb94ae53ea5c3654925ceede8c29f17bb661df57f0e6a713e77d970",
+      "afterMode": "100644",
+      "reason": "Use the shared strict compiled-fixture audit without weakening source, input, observation, target or archive checks."
+    },
+    {
+      "path": "proofs/relation-pipeline/fixture.mjs",
+      "before": [
+        {
+          "revision": "927723e241ad750ce52b6c859d666cc194abb8b4",
+          "digest": "a267f0ff81932df5654167eb8e01f655838e6eafefc37a5dfc02f8a72042141d",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "a365a348c7dbab19cf4498b011a198b6588cabbfe3bd187c9d2b49af789d6450",
+      "afterMode": "100644",
+      "reason": "Define one strict compiled source/target/command/workspace boundary audit for both normal pipeline and structural-capacity receipts; reject raw legacy bytes and wrong markers."
+    },
+    {
+      "path": "proofs/relation-pipeline/fixture.test.mjs",
+      "before": [
+        {
+          "revision": "927723e241ad750ce52b6c859d666cc194abb8b4",
+          "digest": null,
+          "mode": null
+        }
+      ],
+      "afterDigest": "4362179f875066d5b19475e973dde6e07c5472c49b2cd1fd40f2e8b5fff96a9a",
+      "afterMode": "100644",
+      "reason": "Directly reject missing, duplicated or substituted markers, wrong source/target/command/workspace bindings, stale fixture digests and failed execution."
+    },
+    {
+      "path": "proofs/relation-pipeline/history.mjs",
+      "before": [
+        {
+          "revision": "927723e241ad750ce52b6c859d666cc194abb8b4",
+          "digest": "74fa43d6c83dc92ac3ed32b69ca2beaf9625b609cf8caf74f5d50a329345bd8c",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "5a7441a7740f0389c282fa82ff9cb91e1af99074128514d35f87cfa961662d5b",
+      "afterMode": "100644",
+      "reason": "Include the new shared fixture-audit regression tests in the explicit protected foundation scope."
+    }
+  ]
+}
