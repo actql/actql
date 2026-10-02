@@ -116,7 +116,8 @@ test('baseline preimages and changed normative pins independently determine the 
     pin('22eca16bd792feacf027e5c5e60463882ad90ad4ac88d19b77719dc174292609'));
   assert.equal(priorDependencies.resultPlan,
     pin('8d2ad95f6f8b7be42c550d922d0614e68be2700bba05d7af2c7e03a4fcbbcc38'));
-  const current = vector(grammarCid, cid(aoaContract), valuesDependencyOracle());
+  const dependencies = valuesDependencyOracle();
+  const current = vector(grammarCid, cid(aoaContract), dependencies);
   // Preserve the prior WITH/Pipe vector; the new policy changes no Values body.
   assert.equal(vector(pin('a8f1bbabb5eeda9287716c651b398d1c0954201c985b5c70ccb78d96a9ed1416'),
     priorAoA).run.run_definition_cid,
@@ -134,4 +135,7 @@ test('baseline preimages and changed normative pins independently determine the 
     pin('f171d251195c262096577393afc6d51390ca7b4b7b63bda8b17c74a13a6d54f6'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
+  const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');
+  assert.ok(resultSource.includes(dependencies.unit));
+  assert.ok(resultSource.includes(dependencies.resultPlan), 'MoonBit fixed Result Plan must follow independent preimage');
 });
