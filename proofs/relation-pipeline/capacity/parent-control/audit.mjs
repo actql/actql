@@ -10,6 +10,7 @@ import { compareSemantics } from '../../evidence.mjs';
 import { nativeProfile } from '../backing/source.mjs';
 import { inspectParentStartup } from '../backing/parent-layout.mjs';
 import { parentOverlay } from './overlay.mjs';
+import { checkParentCensus, inspectParentCorePhases } from './bounds.mjs';
 export const directory = '.artifacts/relation-pipeline/capacity/parent-control-probe';
 const pin = JSON.parse(readFileSync(new URL('../../../../toolchain.json', import.meta.url)));
 export function parentCase() {
@@ -22,6 +23,15 @@ export function auditParentStartup(report, current, read) {
   assert.equal(report.target, 'native', 'Requested parent probe target differs from execution');
   assert.equal(report.unconditionalAllocationBytes, false, 'Startup lower evidence cannot issue an unconditional capacity guarantee');
   assert.deepEqual(report.source, current, 'Stale parent source');
+  checkParentCensus(read);
+  const { receiptPath, ...model } = report.model;
+  assert.deepEqual(JSON.parse(read(receiptPath)), model, 'Parent model differs from independent execution receipt');
+  assert.equal(receiptPath, `${directory}/models/${hash(JSON.stringify(model))}.json`);
+  assert.deepEqual(model.command, ['node', 'proofs/relation-pipeline/capacity/parent-control/check.mjs']);
+  assert.equal(model.exit, 0); assert.equal(model.sourceDigest, current.digest);
+  assert.equal(model.logPath, `${directory}/models/${model.logDigest}.log`);
+  assert.equal(hash(read(model.logPath)), model.logDigest);
+  assert(read(model.logPath).toString().includes('3 conditional retained parent-core propositions checked'));
   assert.deepEqual(report.toolchain, pin);
   const runtime = report.nativeRuntime;
   assert(nativeProfile.supported.includes(runtime.platform));
@@ -86,5 +96,8 @@ export function auditParentStartup(report, current, read) {
   }
   const facts = entry.observation.faults.filter(f => f.kind === 'parent control investigation');
   assert.equal(facts.length, 1);
-  return { kind: 'finite native startup correspondence', ...inspectParentStartup(facts[0], run.target) };
+  const core = inspectParentCorePhases(report.case, facts[0],
+    entry.observation.faults.filter(f => f.kind === 'parent core observation'), run.target);
+  assert.deepEqual(report.retainedCore, core, 'Retained-core recipe differs from independent input/source/observations');
+  return { kind: 'finite native startup and retained-core correspondence', ...inspectParentStartup(facts[0], run.target), retainedCore: core };
 }
