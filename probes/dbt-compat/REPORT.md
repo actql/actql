@@ -16,7 +16,7 @@ npm run probe:dbt-compat
 
 The run needs Python 3.13 (`ACTQL_PROBE_PYTHON`, default `python3.13`), network
 access for the wheel installation, a MoonBit toolchain to pack the Client
-packages, and `openssl`.
+packages, `tar` and `openssl`.
 
 Evidence goes to `_build/dbt-compat-evidence/<time>-<id>/`. It is written before
 the disposable environment is removed. The environment holds the Python venv,
@@ -24,6 +24,40 @@ the dbt project copies and the ActQL installation, about 357 MiB.
 
 A failed run keeps both the evidence and the environment. Setting
 `ACTQL_TEST_PRESERVE_SCRATCH=1` keeps the environment after a successful run.
+
+## Machine-readable scope
+
+`summary.json` retains `actql-dbt-compat-evidence/0.1` with additive evidence
+fields. Run the probe from a clean, committed checkout. A report is written
+for setup, compile, packaging and acceptance failures as well as successes;
+its `status` is the probe verdict, not a general dbt compatibility claim.
+
+- `scope.dbtCompile` and `scope.queryExecution` record tested or not-attempted
+  status, observed outcome and command IDs. Submission refusals are listed
+  separately by case, transport and public error code as unsupported findings
+- `scope.dbtRun`, `scope.materialization` and `scope.catalogUpdates` remain
+  explicitly `not-attempted`, with reasons. Synthetic DuckDB fixture setup is
+  not evidence of dbt materialization or catalog support
+- `dbt` contains versions read from the installed Python distributions and
+  the requirements digest. `actql` contains before/after source identity,
+  tarball digests and independently read packed/installed package payload
+  identities, including file bytes rather than just package versions
+- `compiled` names retained SQL files and their UTF-8 byte counts and SHA-256
+  digests. Each outcome records the exact submitted input identity, format,
+  resolved installed public module, entry point, stage and assertion results
+- `commands` retains argument vectors, working directory, raw status, signal
+  and spawn error. Command stdout/stderr logs and `commands.json` remain beside
+  the summary. Missing tool execution is a failure, never successful coverage
+- `expectedResults` identifies the retained, independently authored
+  `cases.json`. The parent rejudges observations against those expectations;
+  JSON comparisons also use authored rows rather than copying a prior result
+
+A successful report requires every expected observation on both Local and
+HTTP, successful version/install/compile/acceptance commands, exact input and
+installed payload identities, unchanged clean source and matching assertions.
+Empty/partial observations, altered SQL, stale packages, failed commands and
+unrecorded faults fail the report. The pure reporting fixtures do not run dbt
+or establish compatibility for any unobserved version or adapter.
 
 ## What these results cover
 
