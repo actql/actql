@@ -425,7 +425,37 @@ pub fn emit_prepared_client_task_pipeline(
     @lower.node_at(@lower.bound_preparation(owner), end_step) is Some(output) else {
     return Err(MissingOutput)
   }
-  let sequence = match @lower.prepare_sequence(owner, limits) {
+  emit_client_task_pipeline_prefix(
+    owner, end_step, output, selected, prefix_end, false, limits, max_wire_bytes,
+    max_nodes, max_depth,
+  )
+}
+
+///|
+/// The caller chooses a checked output before preparing pure computation.
+/// Acquisition steps after that output must not enter its AoA fragment.
+fn emit_client_task_pipeline_prefix(
+  owner : @lower.BoundPrepared,
+  end_step : Int,
+  output : @lower.PreparedNode,
+  selected : Int?,
+  prefix_end : Int?,
+  acquisition_prefix : Bool,
+  limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  infer_boundary? : Int? = None,
+) -> Result[String, ClientTaskPipelineIssue] {
+  let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
+  let prepared_sequence = if infer_boundary is Some(step) {
+    @lower.prepare_sequence_with_infer_boundary(owner, step, limits)
+  } else if acquisition_prefix {
+    @lower.prepare_sequence_prefix(owner, end_step, limits)
+  } else {
+    @lower.prepare_sequence(owner, limits)
+  }
+  let sequence = match prepared_sequence {
     Ok(value) => value
     Err(issue) => return Err(Sequence(issue))
   }
@@ -451,7 +481,12 @@ pub fn emit_prepared_client_task_pipeline(
     }
     @encode.end_object(writer)
     @encode.key(writer, "steps")
-    @lower.emit_sequence_steps(sequence, writer)
+    if infer_boundary is Some(_) {
+      guard selected is Some(step) else { return Err(Encoding) }
+      @lower.emit_sequence_step_range(sequence, step, step + 1, writer)
+    } else {
+      @lower.emit_sequence_steps(sequence, writer)
+    }
     @encode.key(writer, "version")
     @encode.string_value(writer, "aoa-pipeline/0.1")
     @encode.end_object(writer)

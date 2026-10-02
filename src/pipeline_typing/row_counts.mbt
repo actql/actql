@@ -566,7 +566,7 @@ fn derive_row_counts(
           AtMost(n) => Some(count(n.to_int64(), false))
         }
       Unary(op) | WindowGroup(op) => unary_count(step.source, input, op)
-      Vector(_) => input
+      Vector(_) | Infer(_) => input
       Projection(v) =>
         match @projection.operation(v) {
           Events | Vectors => input

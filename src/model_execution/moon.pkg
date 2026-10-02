@@ -1,0 +1,22 @@
+supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/bounded_execution" @bounded,
+  "actql/actql/check_environment" @environment,
+  "actql/actql/execution_relation" @relation,
+  "actql/actql/infer_typing" @infer,
+  "actql/actql/value_admission" @admitted,
+  "actql/actql/physical_resources" @resources,
+  "actql/actql/encode_core" @encode,
+  "actql/actql/relation_schema" @schema,
+  "actql/actql/pipeline_typing" @pipeline,
+  "actql/actql/run_publication_host" @publication_host,
+  "actql/actql/run_publication" @publication,
+  "actql/actql/value_contract" @contract,
+}
+
+import {
+  "actql/actql/value_admission" @admitted,
+  "actql/actql/sha256" @sha,
+  "moonbitlang/core/encoding/utf8",
+} for "wbtest"

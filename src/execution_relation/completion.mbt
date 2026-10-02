@@ -141,6 +141,15 @@ pub fn completed_output(
       None
     }
   }
+  // An acquisition completion retains one exact checked target outside its
+  // adjacent pure fragment. Do not expose any other target through that store.
+  if store is ImportedStore(_, retained_target, table) {
+    return if target == retained_target {
+      Some({ completion, target, table: Some(table), representation: None, })
+    } else {
+      None
+    }
+  }
   let slot = match target {
     Input(i) => {
       if i < 0 || i >= store.input_count() {

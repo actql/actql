@@ -77,6 +77,10 @@ export const mutations = [
     binding: 'if bound.consumer_step is Some(_) { { ..bound, output: copy_completed_output_independent(bound.output, completed_row_count(bound.output), completed_column_count(bound.output)).unwrap(), } } else { bound }',
     after: '  Ok({ bound: if bound.consumer_step is Some(_) { { ..bound, output: copy_completed_output_independent(bound.output, completed_row_count(bound.output), completed_column_count(bound.output)).unwrap(), } } else { bound }, schema, columns, max_entries, max_name_bytes, })',
     fault: 'borrowed backing was replaced', event: 'input-view', resource: 'checked handoff backing ownership', edge: true },
+  { name: 'oversized-metadata-map', path: rows,
+    before: '  let input_ordinals : Map[String, Int] = Map([])',
+    after: '  let input_ordinals : Map[String, Int] = Map([], capacity=16)',
+    fault: 'Map buckets exceed the admitted constructor bound', event: 'start', resource: 'input ordinal Map table slots' },
 ];
 export function workspaceOverlay(original, offset) {
   const before = '  let workspace = row_workspace(max_entries)';

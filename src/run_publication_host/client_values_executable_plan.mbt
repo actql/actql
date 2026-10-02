@@ -220,6 +220,7 @@ fn issue_prepared_client_executable_plan_with_parts(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  required_profiles? : Array[(String, String)] = [],
 ) -> Result[ClientValuesExecutablePlan, ClientValuesExecutablePlanIssue] {
   let facts = match
     issue_prepared_client_publication_plan_facts(
@@ -310,6 +311,14 @@ fn issue_prepared_client_executable_plan_with_parts(
     client_plan_emit_array(writer, fact_values)
     @encode.key(writer, "required_profiles")
     @encode.begin_array(writer)
+    for (profile_id, contract_cid) in required_profiles {
+      @encode.begin_object(writer)
+      @encode.key(writer, "contract_cid")
+      @encode.string_value(writer, contract_cid)
+      @encode.key(writer, "profile_id")
+      @encode.string_value(writer, profile_id)
+      @encode.end_object(writer)
+    }
     @encode.end_array(writer)
     @encode.key(writer, "resolved_limits")
     client_plan_emit_array(writer, limit_values)

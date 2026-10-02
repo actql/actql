@@ -84,7 +84,8 @@ pub fn completeness_scope(v : CompletenessRequirement) -> CompletenessScope {
             | WatermarkRows => OperationResult
           }
         Window(_) | WindowGroup(_) => WindowResult
-        Join(..)
+        Infer(_)
+        | Join(..)
         | Append(..)
         | Nest(..)
         | Set(..)

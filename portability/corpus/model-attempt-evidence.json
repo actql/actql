@@ -1,0 +1,154 @@
+{
+  "version": "actql-model-attempt-evidence-vectors/0.1",
+  "cases": [
+    {
+      "kind": "model_dispatch_authority",
+      "body": {
+        "version": "actql-model-dispatch-authority/0.1",
+        "program_definition_cid": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "run_definition_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "run_authorization_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+        "account_configuration_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+        "model_task_cid": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "fixed_request_cid": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "execution_context_cid": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+        "host_policy_cid": "sha256:8888888888888888888888888888888888888888888888888888888888888888",
+        "principal": "fixture-principal",
+        "connection": "models/fixture",
+        "resource": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "operation": "infer",
+        "entry_id": "model-policy",
+        "basis": "account_allow",
+        "answering_authority": null,
+        "satisfied_claims": []
+      },
+      "expected_canonical_bytes": "{\"account_configuration_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"answering_authority\":null,\"basis\":\"account_allow\",\"connection\":\"models/fixture\",\"entry_id\":\"model-policy\",\"execution_context_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"fixed_request_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"host_policy_cid\":\"sha256:8888888888888888888888888888888888888888888888888888888888888888\",\"model_task_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"operation\":\"infer\",\"principal\":\"fixture-principal\",\"program_definition_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"resource\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"run_authorization_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"run_definition_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"satisfied_claims\":[],\"version\":\"actql-model-dispatch-authority/0.1\"}",
+      "expected_cid": "sha256:f1c9ce8f0fbef3942dfaa59025898a8843aeecb8e8d3a7d85181f1b399159c6a"
+    },
+    {
+      "kind": "model_call_attempt",
+      "body": {
+        "version": "actql-model-call-attempt/0.1",
+        "slot_cid": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "run_definition_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+        "model_task_cid": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
+        "fixed_request_cid": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+        "authority_evidence_cid": "sha256:f1c9ce8f0fbef3942dfaa59025898a8843aeecb8e8d3a7d85181f1b399159c6a",
+        "attempt": 1,
+        "provider_id": "models/fixture"
+      },
+      "expected_canonical_bytes": "{\"attempt\":1,\"authority_evidence_cid\":\"sha256:f1c9ce8f0fbef3942dfaa59025898a8843aeecb8e8d3a7d85181f1b399159c6a\",\"fixed_request_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"model_task_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"provider_id\":\"models/fixture\",\"run_definition_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"version\":\"actql-model-call-attempt/0.1\"}",
+      "expected_cid": "sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c"
+    },
+    {
+      "kind": "model_attempt_accounting",
+      "body": {
+        "version": "actql-model-attempt-accounting/0.1",
+        "attempt_cid": "sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c",
+        "slot_cid": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "cumulative_work": 23,
+        "uncertain_wire_bytes": 66536,
+        "input_tokens": null,
+        "output_tokens": null,
+        "cost_units": null,
+        "duration_ms": null
+      },
+      "expected_canonical_bytes": "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"cost_units\":null,\"cumulative_work\":23,\"duration_ms\":null,\"input_tokens\":null,\"output_tokens\":null,\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"uncertain_wire_bytes\":66536,\"version\":\"actql-model-attempt-accounting/0.1\"}",
+      "expected_cid": "sha256:ccabd20a0bc525e511c6f022da4e05a054b64e68c64ea7e4789364e9f2987875"
+    },
+    {
+      "kind": "model_attempt_outcome",
+      "body": {
+        "version": "actql-model-attempt-outcome/0.1",
+        "attempt_cid": "sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c",
+        "slot_cid": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "category": "provider_failure",
+        "failure": "timeout"
+      },
+      "expected_canonical_bytes": "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"category\":\"provider_failure\",\"failure\":\"timeout\",\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"version\":\"actql-model-attempt-outcome/0.1\"}",
+      "expected_cid": "sha256:252250c410302b88f632283cdb7de42c8afbcedb84105a0b01c1b3ddc86666d1"
+    },
+    {
+      "kind": "model_attempt_outcome",
+      "body": {
+        "version": "actql-model-attempt-outcome/0.1",
+        "attempt_cid": "sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c",
+        "slot_cid": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "category": "cancelled",
+        "failure": "cancelled"
+      },
+      "expected_canonical_bytes": "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"category\":\"cancelled\",\"failure\":\"cancelled\",\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"version\":\"actql-model-attempt-outcome/0.1\"}",
+      "expected_cid": "sha256:e5fca8b0f42cc39cc3bb09f7e8bbb13be343eaed92424a7e9baa895def392148"
+    },
+    {
+      "kind": "model_attempt_accounting",
+      "body": {
+        "version": "actql-model-attempt-accounting/0.1",
+        "attempt_cid": "sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c",
+        "slot_cid": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "cumulative_work": 23,
+        "uncertain_wire_bytes": 66536,
+        "input_tokens": 1,
+        "output_tokens": 2,
+        "cost_units": null,
+        "duration_ms": null
+      },
+      "expected_canonical_bytes": "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"cost_units\":null,\"cumulative_work\":23,\"duration_ms\":null,\"input_tokens\":1,\"output_tokens\":2,\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"uncertain_wire_bytes\":66536,\"version\":\"actql-model-attempt-accounting/0.1\"}",
+      "expected_cid": "sha256:5780758d79752eb86fd36c7ff11f96e7832bb4f91e17aa04c9bacdec7a517ce3"
+    },
+    {
+      "kind": "model_attempt_accounting",
+      "body": {
+        "version": "actql-model-attempt-accounting/0.1",
+        "attempt_cid": "sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c",
+        "slot_cid": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "cumulative_work": 23,
+        "uncertain_wire_bytes": 66536,
+        "input_tokens": null,
+        "output_tokens": null,
+        "cost_units": null,
+        "duration_ms": null,
+        "reservation": {
+          "tokens": 33,
+          "cost_units": 7,
+          "duration_ms": 19
+        }
+      },
+      "expected_canonical_bytes": "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"cost_units\":null,\"cumulative_work\":23,\"duration_ms\":null,\"input_tokens\":null,\"output_tokens\":null,\"reservation\":{\"cost_units\":7,\"duration_ms\":19,\"tokens\":33},\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"uncertain_wire_bytes\":66536,\"version\":\"actql-model-attempt-accounting/0.1\"}",
+      "expected_cid": "sha256:5a6d1eaeb0cfd8578eb425fd4a4706b4c472d658f8e48288c3d108073b9dd887"
+    },
+    {
+      "kind": "model_attempt_accounting",
+      "body": {
+        "version": "actql-model-attempt-accounting/0.1",
+        "attempt_cid": "sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c",
+        "slot_cid": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "cumulative_work": 23,
+        "uncertain_wire_bytes": 66536,
+        "input_tokens": 1,
+        "output_tokens": 2,
+        "cost_units": null,
+        "duration_ms": null,
+        "reservation": {
+          "tokens": 33,
+          "cost_units": 7,
+          "duration_ms": 19
+        }
+      },
+      "expected_canonical_bytes": "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"cost_units\":null,\"cumulative_work\":23,\"duration_ms\":null,\"input_tokens\":1,\"output_tokens\":2,\"reservation\":{\"cost_units\":7,\"duration_ms\":19,\"tokens\":33},\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"uncertain_wire_bytes\":66536,\"version\":\"actql-model-attempt-accounting/0.1\"}",
+      "expected_cid": "sha256:2b21c2aa6d74db1db05d7bd7ddcc56a84c46f1ae1115356ed0fd47c6848d0951"
+    },
+    {
+      "kind": "model_attempt_outcome",
+      "body": {
+        "version": "actql-model-attempt-outcome/0.1",
+        "attempt_cid": "sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c",
+        "slot_cid": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "category": "contract_violation",
+        "failure": "budget_exceeded"
+      },
+      "expected_canonical_bytes": "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"category\":\"contract_violation\",\"failure\":\"budget_exceeded\",\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"version\":\"actql-model-attempt-outcome/0.1\"}",
+      "expected_cid": "sha256:b5738bbd95eaaec73222e004087888fc3231d799410687d031745d6683d13a2d"
+    }
+  ]
+}

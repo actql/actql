@@ -30,7 +30,7 @@ fn track_expression_root(
   }
   let root = if produced {
     match retain_logical_value(scope.budget, value) {
-      Ok(r) => r
+      Ok(root) => root
       Err(e) => return Err(e)
     }
   } else {
@@ -52,8 +52,11 @@ fn track_expression_root(
       }
     }
     match reserve_logical_bytes(b, m.wire_bytes.to_int64()) {
-      Ok(r) => r
-      Err(e) => return Err(e)
+      Ok(root) => {
+        root.measurement = Some(m)
+        root
+      }
+      Err(issue) => return Err(issue)
     }
   }
   register_scope_root(scope, root)
@@ -85,6 +88,82 @@ fn register_scope_root(
     }
   }
   Ok({ scope, slot, root, })
+}
+
+///|
+/// Immutable expression results can reuse their exact measurement, but every
+/// semantic consumption still pays its full weight. A revoked/foreign lease
+/// cannot supply a proof for another root or budget.
+fn consume_expression_value(
+  budget : LogicalBudget,
+  value : Value,
+  root : ExpressionRootLease?,
+) -> Result[LogicalValueMeasure, LogicalBudgetIssue] {
+  if root is Some(root) && root.root.measurement is Some(measurement) {
+    guard physical_equal(root.scope.budget, budget) &&
+      !root.root.released &&
+      root.scope.slots.get(root.slot) is Some(Some(live)) &&
+      physical_equal(live, root.root) else {
+      budget.failed = true
+      return Err(InvalidRootLifetime)
+    }
+    if budget.failed {
+      return Err(FailedLogicalBudget)
+    }
+    if measurement.weight > budget.limits.max_work - budget.work {
+      budget.failed = true
+      return Err(ValueMeasure(LogicalWorkLimit))
+    }
+    budget.work += measurement.weight
+    Ok(measurement)
+  } else {
+    charge_logical_value(budget, value)
+  }
+}
+
+///|
+/// A private object accumulator grows within the same root owner. It is not
+/// exposed as a Value or completion and cannot bypass per-value/live ceilings.
+fn grow_object_root(
+  root : ExpressionRootLease,
+  bytes : Int64,
+) -> Result[Unit, LogicalBudgetIssue] {
+  let budget = root.scope.budget
+  let limit = Int64::min(
+    budget.limits.max_value_bytes,
+    budget.host_bytes.to_int64(),
+  )
+  if budget.failed {
+    return Err(FailedLogicalBudget)
+  }
+  guard physical_equal(root.root.owner, budget) &&
+    root.scope.slots.get(root.slot) is Some(Some(live)) &&
+    physical_equal(live, root.root) &&
+    !root.root.released else {
+    budget.failed = true
+    return Err(InvalidRootLifetime)
+  }
+  if root.root.released ||
+    root.root.measurement is Some(_) ||
+    bytes < 0L ||
+    bytes > limit - root.root.bytes {
+    budget.failed = true
+    return Err(ValueMeasure(WireMeasureFailure))
+  }
+  if bytes > budget.limits.max_live_value_bytes - budget.live {
+    budget.failed = true
+    return Err(LiveValueLimit)
+  }
+  if budget.all_expression_roots &&
+    budget.root_result_bytes is Some(ceiling) &&
+    bytes > ceiling - root.root.bytes {
+    budget.failed = true
+    return Err(ValueMeasure(WireMeasureFailure))
+  }
+  root.root.bytes += bytes
+  budget.live += bytes
+  budget.peak = Int64::max(budget.peak, budget.live)
+  Ok(())
 }
 
 ///|

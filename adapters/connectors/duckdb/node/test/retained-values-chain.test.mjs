@@ -85,6 +85,51 @@ function capturedProgram(filter = 'id >= 2', sort = true) {
   return JSON.stringify(document);
 }
 
+// This is the post-capture projection from the independent INFER KEEP
+// fixture. Values supplies already captured outcomes; it is not evidence of
+// model dispatch, acquisition capture, or replay.
+function objectPropertyProgram(filtered) {
+  const document = JSON.parse(program([]));
+  document.id = 'retained-object-property';
+  const field = name => ({field: name});
+  const property = (value, name) => ({property: {value, name}});
+  const assessment = field('assessment');
+  const fields = filtered ? ['id', 'risk'] : ['id', 'note', 'assessment'];
+  document.stages[0].steps = [
+    {values: {schema: {
+      id: {type: 'string', nullable: false},
+      text: {type: 'string', nullable: true},
+      outcome: {type: 'string', nullable: false},
+      value: {type: 'object', nullable: true, fields: {
+        risk: {type: 'string', nullable: false},
+        reason: {type: 'string', nullable: true},
+      }},
+    }, rows: [
+      {id: 'a', text: 'urgent', outcome: 'ok', value: {risk: 'high', reason: null}},
+      {id: 'b', text: null, outcome: 'failed:refusal', value: null},
+    ]}, as: 'captured'},
+    {from: 'captured', derive: {assessment: {object: {
+      input_key: {object: {id: field('id')}},
+      outcome: field('outcome'), value: field('value'),
+    }}, note: field('text')}, as: 'kept'},
+    ...(filtered ? [
+      {from: 'kept', filter: {and: [
+        {eq: [property(assessment, 'outcome'), {literal: 'ok'}]},
+        {eq: [property(property(assessment, 'value'), 'risk'), {literal: 'high'}]},
+      ]}, as: 'accepted'},
+      {from: 'accepted', derive: {risk:
+        property(property(assessment, 'value'), 'risk')}, as: 'risk_rows'},
+    ] : []),
+    {from: filtered ? 'risk_rows' : 'kept', select: fields, as: 'selected'},
+  ];
+  document.stages[0].results.out.fields = fields;
+  for (const consumer of document.stages.slice(1)) {
+    consumer.steps[0].select = fields;
+    consumer.results.out.fields = fields;
+  }
+  return JSON.stringify(document);
+}
+
 function familyProgram(family, filter = 'id >= 1') {
   const document = JSON.parse(program([]));
   document.id = `retained-installed-${family}`;
@@ -459,6 +504,23 @@ async function retainedRun(document, use, mode = 'success', budgets, captureRows
       }
     }
   }
+}
+
+for (const filtered of [false, true]) {
+  test(`retained object projection publishes nullable outcomes${filtered ? ' after property filtering' : ''}`,
+    async () => retainedRun(objectPropertyProgram(filtered),
+      async ({run, plan, publication, observations}) => {
+        const owner = await run();
+        assert.equal(owner.status, 'published');
+        assert.equal(observations().dispatches, 3);
+        await assertPublishedRows(publication, plan, owner.execution,
+          filtered ? [{id: 'a', risk: 'high'}] : [
+            {id: 'a', note: 'urgent', assessment: {input_key: {id: 'a'},
+              outcome: 'ok', value: {risk: 'high', reason: null}}},
+            {id: 'b', note: null, assessment: {input_key: {id: 'b'},
+              outcome: 'failed:refusal', value: null}},
+          ]);
+      }));
 }
 
 for (const {family, name} of [

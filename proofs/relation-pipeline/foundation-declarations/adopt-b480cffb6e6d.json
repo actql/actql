@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "adopt-b480cffb6e6d",
+  "kind": "change",
+  "revision": "b480cffb6e6d805c58efc4e8b4edb4aec42bbfe1",
+  "parents": [
+    "27c93c33b7de9557eb2fdbd8974e9165b61e8f18"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "27c93c33b7de9557eb2fdbd8974e9165b61e8f18",
+          "digest": "4193b7724e3125f3d4e9a404b882187bd525034bba612bdc7a1da13390df0356",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "9d2efc7eff5b84b7d268937f526b50b5f46c4c543dc31caeaf252a43932f9e20",
+      "afterMode": "100644",
+      "reason": "Retain the installed model acquisition ownership checker registration from #178."
+    }
+  ]
+}
