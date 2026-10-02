@@ -156,6 +156,25 @@ listed as a successful execution case. The 16 successful Graph/DATA source
 cases above remain separate historical execution evidence; neither a known
 NoStrategy failure nor the new refusal proves ordered-set execution.
 
+At fixed source `326c93159428fd8ffc6a8028d99e1180b5692c8f`, the focused packed
+check passed in both Embedded Local and HTTPS:
+
+- `keyed-parallel-one-definition-trail` reached its Named Result, with the
+  independently authored rows and actual `Result.describe()` contract.
+- `data-set-order-reuses-hidden-slot` returned exactly
+  `ClientProgramUnsupported`; no Run was accepted, no provider I/O occurred,
+  and request lookup returned `not_found`.
+- The changed `source_frontend` package tests passed 9/9 on JS. MoonBit
+  formatting, JavaScript syntax and diff whitespace checks passed. Full local
+  Core/spec/Client jobs were not repeated for this narrow source-profile change.
+
+Normal prepack produced the same client-wire, SDK, Run Host core and node
+digests as the table above. The changed local-node package digest is
+`4c2ed77c9ab456bd742ce9cb41d1a1b9b64a4c138fac3227252ede686e82cb1b`.
+The external installation was reclaimed after preserving command logs,
+source SHA, package digests and results. These two selected cases do not
+claim a rerun of all 16 historical successful cases or public snapshot acceptance.
+
 Source inspection isolates the next common selection check to
 `physical_strategy/carrier_tasks.mbt::carrier_segment_prefix_end`: its stage-0
 guard returns before the later multi-source Relation split conditions when
@@ -174,7 +193,7 @@ unification-complete SHA and is not adopted as one. Updating #174 requires C's
 complete fixed SHA, changed common boundaries, public snapshot acceptance and
 that SHA's CI evidence. B does not implement C's Graph unification.
 
-Reproduce the source failure alone with:
+Reproduce the preparation refusal alone with:
 
 ```sh
 node scripts/test-packed-public-query.mjs --property-graph-source-only \
