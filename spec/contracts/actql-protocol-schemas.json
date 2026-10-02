@@ -10658,7 +10658,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:551751e147175e0a7bd48b1b643c2e7d0d415a7eabb3d0ded01cb114fff859ef",
+  "artifact_registry_cid": "sha256:07da437bb83f7a0c70f452b1c07dbd358a3ddb1e2a7c59683ebc324c819f501a",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -10702,7 +10702,7 @@
     "source_input_logical": "sha256:1b11bde1c1081b782d14ffe080ad5c511144724e8c8fd2d0c1c772828d1c09ea",
     "effect_row_outcome_receipt": "sha256:2a748936a4d4069cc1b801c8b3c5a179f64a538d77affeb5e68f6e53da42eb27",
     "effect_source_artifact": "sha256:e11e51e73d3153c62314315f7f20682778e51c7a46791e87ee2bb5ac7f3f99ee",
-    "check_outcome": "sha256:bf6d18db11d182ca204f47d5744e9ccbb435952b99c793b091004471789148a5"
+    "check_outcome": "sha256:cb331c9b0f67e49072f0dbcd677e60bd4ecfb522e354346ab7cc61678b0eec66"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -73566,6 +73566,92 @@
               "const": "completed"
             },
             "report": {
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "verdict": {
+                        "const": "verified"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "reasons": {
+                        "type": "array",
+                        "items": {},
+                        "maxItems": 0
+                      },
+                      "coverage": {
+                        "properties": {
+                          "limits": {
+                            "type": "array",
+                            "items": {},
+                            "maxItems": 0
+                          },
+                          "unresolved": {
+                            "type": "array",
+                            "items": {},
+                            "maxItems": 0
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "verdict": {
+                        "const": "invalid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "reasons": {
+                        "type": "array",
+                        "items": {},
+                        "minItems": 1
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "verdict": {
+                        "const": "undetermined"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "reasons": {
+                        "type": "array",
+                        "items": {},
+                        "maxItems": 0
+                      },
+                      "coverage": {
+                        "not": {
+                          "properties": {
+                            "limits": {
+                              "type": "array",
+                              "items": {},
+                              "maxItems": 0
+                            },
+                            "unresolved": {
+                              "type": "array",
+                              "items": {},
+                              "maxItems": 0
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
               "type": "object",
               "additionalProperties": false,
               "required": [
@@ -73683,6 +73769,92 @@
               "const": "failed"
             },
             "partial_report": {
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "verdict": {
+                        "const": "verified"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "reasons": {
+                        "type": "array",
+                        "items": {},
+                        "maxItems": 0
+                      },
+                      "coverage": {
+                        "properties": {
+                          "limits": {
+                            "type": "array",
+                            "items": {},
+                            "maxItems": 0
+                          },
+                          "unresolved": {
+                            "type": "array",
+                            "items": {},
+                            "maxItems": 0
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "verdict": {
+                        "const": "invalid"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "reasons": {
+                        "type": "array",
+                        "items": {},
+                        "minItems": 1
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "verdict": {
+                        "const": "undetermined"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "reasons": {
+                        "type": "array",
+                        "items": {},
+                        "maxItems": 0
+                      },
+                      "coverage": {
+                        "not": {
+                          "properties": {
+                            "limits": {
+                              "type": "array",
+                              "items": {},
+                              "maxItems": 0
+                            },
+                            "unresolved": {
+                              "type": "array",
+                              "items": {},
+                              "maxItems": 0
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
               "type": "object",
               "additionalProperties": false,
               "required": [

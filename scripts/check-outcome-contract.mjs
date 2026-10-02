@@ -11,7 +11,18 @@ const opaqueRef = {type: 'string', minLength: 1, maxLength: 128,
   pattern: '^[A-Za-z0-9:_-]+$'};
 
 function report(verdicts) {
+  const empty = {type: 'array', items: {}, maxItems: 0};
+  const emptyCoverage = {properties: {limits: empty, unresolved: empty}};
   return {
+    allOf: [
+      {if: {properties: {verdict: {const: 'verified'}}},
+        then: {properties: {reasons: empty, coverage: emptyCoverage}}},
+      {if: {properties: {verdict: {const: 'invalid'}}},
+        then: {properties: {reasons: {type: 'array', items: {}, minItems: 1}}}},
+      {if: {properties: {verdict: {const: 'undetermined'}}},
+        then: {properties: {reasons: empty,
+          coverage: {not: emptyCoverage}}}},
+    ],
     type: 'object', additionalProperties: false,
     required: ['context_ref', 'coverage', 'reasons', 'scope', 'verdict'],
     properties: {

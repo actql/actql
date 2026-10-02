@@ -106,7 +106,7 @@ async function localClient(t, configuration) {
     installation: {directory: join(root, 'state'), sourceProfilePath}});
 }
 
-async function httpClient(t, configuration) {
+async function httpClient(t, configuration, mutateCheckReply) {
   const root = await mkdtemp(join(scratch, 'http-'));
   const sourceProfilePath = await installedSource(root, configuration);
   const host = await openInstalledRemoteHttpHost({
@@ -116,7 +116,14 @@ async function httpClient(t, configuration) {
     sourceProfilePath,
   });
   const server = createServer({key: tlsKey, cert: tlsCertificate},
-    host.handler);
+    (request, response) => {
+      if (mutateCheckReply && request.url.endsWith('/check')) {
+        const end = response.end.bind(response);
+        response.end = body => end(JSON.stringify(
+          mutateCheckReply(JSON.parse(body))));
+      }
+      return host.handler(request, response);
+    });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
   t.after(async () => {
     server.closeAllConnections?.();
@@ -564,3 +571,26 @@ for (const [name, [from, to]] of Object.entries(mutations)) {
       assert.AssertionError);
   });
 }
+
+
+test('http: SDK rejects contradictory evidence injected into a real verified reply',
+  async t => {
+    let mutation = value => value;
+    const client = await httpClient(t, configurations.allowed, value => {
+      assert.equal(value.report.verdict, 'verified');
+      return mutation(value);
+    });
+    const check = () => client.check('SELECT 1 AS n', {format: 'sql'});
+    assert.equal((await check()).report.verdict, 'verified');
+    for (const coverage of [
+      {limits: [{code: 'analysis_budget_exhausted'}], unresolved: []},
+      {limits: [], unresolved: [{boundary: 'source_resolution',
+        reason: 'unresolved_protected'}]},
+    ]) {
+      mutation = value => ({...value, report: {...value.report, coverage}});
+      await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'});
+    }
+    mutation = value => ({version: value.version, outcome: 'failed',
+      problem: {code: 'check_internal'}, partial_report: value.report});
+    await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'});
+  });

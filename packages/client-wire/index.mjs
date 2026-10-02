@@ -117,27 +117,10 @@ export function validRunState(value) {
   return validRunStateShape(value);
 }
 
-// A verdict must agree with the evidence it carries: verified has no
-// violation, limit or unresolved obligation; invalid names a violation;
-// undetermined has no violation and names what stayed open. Codes are not
-// enumerated here, so later codes stay admissible.
-function consistentCheckReport(report) {
-  const {verdict, reasons, coverage: {limits, unresolved}} = report;
-  if (verdict === 'verified') {
-    return reasons.length === 0 && limits.length === 0 &&
-      unresolved.length === 0;
-  }
-  if (verdict === 'invalid') return reasons.length > 0;
-  return reasons.length === 0 && limits.length + unresolved.length > 0;
-}
-
-// actql-check-outcome/0.1: a completed report, a failure, or an unavailable
-// outcome without any verdict, report, scope or context field.
+// The registered contract and generated validator enforce verdict/coverage
+// consistency as well as shape, without enumerating reason codes.
 export function validCheckOutcome(value) {
-  if (!validCheckOutcomeShape(value)) return false;
-  const report = value.outcome === 'completed' ? value.report
-    : value.partial_report;
-  return report === undefined || consistentCheckReport(report);
+  return validCheckOutcomeShape(value);
 }
 
 export function validSubmitPreparationError(value) {

@@ -1673,7 +1673,93 @@ const schemas = {
                   "verified"
                 ]
               }
-            }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "verdict": {
+                      "const": "verified"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "reasons": {
+                      "type": "array",
+                      "maxItems": 0,
+                      "items": {}
+                    },
+                    "coverage": {
+                      "properties": {
+                        "limits": {
+                          "type": "array",
+                          "maxItems": 0,
+                          "items": {}
+                        },
+                        "unresolved": {
+                          "type": "array",
+                          "maxItems": 0,
+                          "items": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "verdict": {
+                      "const": "invalid"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "reasons": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {}
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "verdict": {
+                      "const": "undetermined"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "reasons": {
+                      "type": "array",
+                      "maxItems": 0,
+                      "items": {}
+                    },
+                    "coverage": {
+                      "not": {
+                        "properties": {
+                          "limits": {
+                            "type": "array",
+                            "maxItems": 0,
+                            "items": {}
+                          },
+                          "unresolved": {
+                            "type": "array",
+                            "maxItems": 0,
+                            "items": {}
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -1789,7 +1875,93 @@ const schemas = {
                   "undetermined"
                 ]
               }
-            }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "verdict": {
+                      "const": "verified"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "reasons": {
+                      "type": "array",
+                      "maxItems": 0,
+                      "items": {}
+                    },
+                    "coverage": {
+                      "properties": {
+                        "limits": {
+                          "type": "array",
+                          "maxItems": 0,
+                          "items": {}
+                        },
+                        "unresolved": {
+                          "type": "array",
+                          "maxItems": 0,
+                          "items": {}
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "verdict": {
+                      "const": "invalid"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "reasons": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {}
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "verdict": {
+                      "const": "undetermined"
+                    }
+                  }
+                },
+                "then": {
+                  "properties": {
+                    "reasons": {
+                      "type": "array",
+                      "maxItems": 0,
+                      "items": {}
+                    },
+                    "coverage": {
+                      "not": {
+                        "properties": {
+                          "limits": {
+                            "type": "array",
+                            "maxItems": 0,
+                            "items": {}
+                          },
+                          "unresolved": {
+                            "type": "array",
+                            "maxItems": 0,
+                            "items": {}
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ]
           },
           "problem": {
             "type": "object",
@@ -2902,6 +3074,7 @@ function valid(value, schema) {
   if (schema.type === 'boolean') return typeof value === 'boolean';
   if (schema.type === 'array') return Array.isArray(value) &&
     (schema.minItems === undefined || value.length >= schema.minItems) &&
+    (schema.maxItems === undefined || value.length <= schema.maxItems) &&
     value.every(item => valid(item, schema.items)) &&
     (!schema.uniqueItems || new Set(value).size === value.length);
   if (schema.type === 'object' || schema.properties || schema.required) {
