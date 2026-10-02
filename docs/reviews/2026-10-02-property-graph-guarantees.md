@@ -1370,3 +1370,33 @@ Unreachable checked predicate/profile fields, stored scalar-label/tuple reader
 scaffolding, external Source declarations and the aggregate migration/strict
 inventory/public snapshot/fresh packed/submitted CI remain open. Historical
 proof sources are unchanged. No #164 GO or B completion handoff is implied.
+
+### Aggregate checkpoint after metadata migration
+
+Product source `e66b9b5034e6309feee7536770a87a1a038b7e3f` passes the official
+public API check across targets and the historical foundation verifier:
+`/private/tmp/property-graph-metadata-api-committed-20261003.log` and
+`/private/tmp/property-graph-metadata-foundation-20261003.json`.
+Fetched `origin/main` remains `bcbf77049fe4991c9b0f1a18541ac7a7952b01ad`, already
+an ancestor of the reconstructed branch; no main integration was pending.
+
+Full Core JS completes with **7,361 total / 7,271 passed / 90 failed**, exit 2:
+`/private/tmp/property-graph-current-core-js-e66b9b503-20261003.log`.
+All 90 failure records are counted; this is not green Core acceptance.
+
+| Remaining fixture boundary | Failures | Required handling |
+| --- | ---: | --- |
+| Program structural SGA | 4 | Old reach/diff/mean/equality setup; distinguish retired operation semantics from imported ownership before withdrawing any fixture |
+| Program traversal and reach-limit fixtures | 3 | Migrate producer/limit custody and atomic admission to current TRAIL, not blanket refusal |
+| Program Source policy fixtures | 2 | Admit the exact static Source owner for current definitions and retain selector/search policy provenance |
+| Mixed malformed later-step fixture | 1 | Preserve whole-Program refusal and source diagnostic; investigate independently of the retired Graph setup |
+| Physical Graph fixtures | 2 | Migrate supported Carrier/Relation task edges; do not modify task splitting or retain unsupported subgraph |
+| Local Carrier Graph fixture | 71 | Mixed retired homogeneous constructor/algorithm and generic MATCH/TRAIL/Host guarantees; map every retained guarantee to positive current tests before withdrawal |
+| Frontend Graph compile fixture | 7 | Still authors historical constructor metadata; coordinate current definition-scoped public inputs/fixtures with B, not an old fallback |
+
+The former capacity-program-step, pipeline-typing and pipeline-check-context
+failure groups are absent at this checkpoint. The 71 Local cases include work,
+workspace, quantum, cancellation, cleanup, exact input ownership and repeated
+consumer guarantees that cannot be discarded with their old setup. Public
+snapshot and submitted required CI remain incomplete; no branch replacement,
+push, merge or completed B handoff has occurred.
