@@ -11,7 +11,7 @@ import {DatabaseSync} from 'node:sqlite';
 import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from
   './node_modules/@actql/local-node/adapters/host-node/embedded-local.mjs';
-import {exercisePublicQueryInput, querySuccesses, queryRefusals, inferRefusals, sourceRows, sourceFreeSuccesses, sourceFreeRefusals, queryCompositionSuccesses, queryCompositionRefusals, pipeResultSuccesses, pipeResultRefusals}
+import {exercisePublicQueryInput, querySuccesses, queryRefusals, inferRefusals, sourceRows, sourceFreeSuccesses, sourceFreeRefusals, queryCompositionSuccesses, queryCompositionRefusals, pipeResultSuccesses, pipeResultRefusals, pipeResultExecutionFailures}
   from './public-query-input.mjs';
 
 const sourceFreeOnly = process.env.ACTQL_TEST_SOURCE_FREE_ONLY === '1';
@@ -24,14 +24,17 @@ const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const scope = JSON.parse(await readFile('pipe-scope-cases.json', 'utf8'));
 assert.deepEqual(scope.source_rows, sourceRows);
 const scopeInputs = sourceFreeOnly ? {successes: sourceFreeSuccesses, refusals: sourceFreeRefusals}
-  : resultOnly ? {successes: pipeResultSuccesses, refusals: pipeResultRefusals}
+  : resultOnly ? {successes: pipeResultSuccesses, refusals: pipeResultRefusals,
+    executionFailures: pipeResultExecutionFailures}
   : compositionOnly ? {successes: queryCompositionSuccesses, refusals: queryCompositionRefusals}
   : inferOnly ? {successes: [querySuccesses[0]], refusals: inferRefusals}
   : joinOnly ? joinOrder : scopeOnly ? {successes: scope.successes,
   refusals: scope.refusals} : {successes: [...querySuccesses, ...sourceFreeSuccesses, ...queryCompositionSuccesses, ...pipeResultSuccesses, ...scope.successes, ...joinOrder.successes],
-  refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals]};
-const expectedQueryRuns = scopeInputs.successes.length;
-const expectedSourceReads = scopeInputs.successes.reduce((count, item) => count + (item.sourceReadCount ?? item.sourceReadSessionCount ?? 1), 0);
+  refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals],
+  executionFailures: pipeResultExecutionFailures};
+const expectedQueryRuns = scopeInputs.successes.length + (scopeInputs.executionFailures?.length ?? 0);
+const expectedSourceReads = [...scopeInputs.successes, ...(scopeInputs.executionFailures ?? [])]
+  .reduce((count, item) => count + (item.sourceReadCount ?? item.sourceReadSessionCount ?? 1), 0);
 
 assert.equal(spawnSync('moon', ['version']).error?.code, 'ENOENT');
 const canonical = value => Array.isArray(value)

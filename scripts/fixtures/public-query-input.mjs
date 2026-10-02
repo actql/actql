@@ -102,6 +102,13 @@ export const pipeResultRefusals = [
   {name: 'result-missing-name', format: 'aql-text', text: 'FROM records |> RESULT'},
   {name: 'result-removed-range', format: 'aql-text', text: 'FROM records AS old |> AS current |> RESULT saved |> SELECT old.id'},
 ];
+// The retained prefix is only a candidate until the ordinary Run owner
+// commits publication. A downstream expression failure must not expose it.
+export const pipeResultExecutionFailures = [
+  {name: 'result-before-division-failure', format: 'aql-text',
+    text: 'FROM records |> RESULT original |> SET id = id / (id - id) |> RESULT invalid',
+    resultNames: ['original', 'invalid'], sourceReadSessionCount: 1},
+];
 export const queryCompositionSuccesses = [
   {name: 'set-output-alias-expression', format: 'sql',
     text: 'SELECT id AS amount FROM records UNION ALL SELECT id AS other FROM records ORDER BY 0 - amount, 0 - amount DESC LIMIT 3',
@@ -324,7 +331,7 @@ const inputCodes = new Set(['ClientProgramInvalidInput',
 // does not lower source, manufacture schema, or call a test compiler bridge.
 export async function exercisePublicQueryInput(connect, options,
   {requestPrefix, observe, successes = querySuccesses,
-    refusals = queryRefusals, prepareCase}) {
+    refusals = queryRefusals, executionFailures = [], prepareCase}) {
   assert.equal(typeof observe, 'function');
   const counters = async () => {
     const current = await observe();
@@ -392,6 +399,33 @@ export async function exercisePublicQueryInput(connect, options,
           parameters: {minimum: 21}}), {code: 'ClientRequestIntentConflict'});
         assert.equal((await execution.status()).status, 'succeeded');
       }
+    }
+    for (const {name, text, resultNames, sourceReadSessionCount, ...input} of executionFailures) {
+      await prepareCase?.();
+      const requestId = requestPrefix + '-execution-failure-' + name;
+      const beforeSubmit = await counters();
+      const execution = await client.aql(text, {...input, requestId});
+      const state = await execution.wait({signal: AbortSignal.timeout(60_000)});
+      assert.equal(state.status, 'failed', JSON.stringify({name, state}));
+      const beforeRead = await counters();
+      assert.equal(beforeRead.acceptedRuns - beforeSubmit.acceptedRuns, 1);
+      if (sourceReadSessionCount !== undefined) {
+        assert.equal(beforeRead.sourceReadSessions - beforeSubmit.sourceReadSessions,
+          sourceReadSessionCount);
+      }
+      for (const resultName of resultNames) {
+        await assert.rejects(execution.result(resultName).all(), {code: 'ResultAccessDenied'});
+        await assert.rejects(execution.result(resultName).describe(), {code: 'ResultAccessDenied'});
+      }
+      const attached = await client.attach(execution.ref);
+      assert.equal((await attached.status()).status, 'failed');
+      const resent = await client.aql(text, {...input, requestId});
+      assert.deepEqual(resent.ref, execution.ref);
+      assert.equal((await resent.status()).status, 'failed');
+      assert.deepEqual((await client.lookupRequest(requestId)).ref, execution.ref);
+      assert.deepEqual(await counters(), beforeRead,
+        'failed Result reads, attach and resubmit must not recompute or acquire');
+      console.log(`Public query execution failure passed: ${requestPrefix}/${name}`);
     }
     for (const {name, text, ...input} of refusals) {
       await prepareCase?.();
