@@ -23,13 +23,15 @@ test "traversal consumption binds separate search and output scopes including un
   let path_host = graph_host_wire(policy, "max_graph_paths")
   let row_host = graph_host_wire(policy, "max_graph_output_rows")
   let unrelated = graph_host_wire(policy, "max_relation_output_rows")
-  for emission in ["nodes", "paths"] {
+  for emission in ["paths"] {
     for mode in 0..<7 {
-      let body = "[{\"traverse\":{\"start\":{\"ids\":[\"a\"]},\"direction\":\"out\",\"min_hops\":0,\"max_hops\":2,\"emit\":\"" +
+      let body = "[{\"traverse\":{\"start\":{\"ids\":[{\"domain\":\"sha256:" +
+        "0".repeat(64) +
+        "\",\"definition\":\"N\",\"key\":[\"a\"]}]},\"direction\":\"out\",\"min_hops\":0,\"max_hops\":2,\"path_mode\":\"trail\",\"emit\":\"" +
         emission +
         "\"" +
         (if mode == 6 { ",\"max_output_rows\":1" } else { "" }) +
-        "},\"as\":\"unused\"},{\"node_rows\":true,\"from\":\"g\"}]"
+        "},\"as\":\"unused\"},{\"match_nodes\":{\"definition\":\"N\",\"bindings\":{\"identity\":\"element\"},\"where\":\"true\",\"fields\":[\"element\"]},\"from\":\"g\"}]"
       let p = input_bound_pipeline(body)
       let base_sources = sources(0, policy)
       let base_graph = @input.check(p, base_sources, policy, caps()).unwrap()

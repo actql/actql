@@ -1,23 +1,6 @@
 ///|
 fn input_bound_pipeline(body : String) -> @pipeline.CheckedPipeline {
-  let rows = @carrier.typed_rows(
-    @schema.from_object(
-      @contract.object_contract(
-        [],
-        nullable=false,
-        max_fields=0,
-        max_name_bytes=0,
-      ).unwrap(),
-    ).unwrap(),
-  )
-  let graph = @carrier.graph(
-    @contract.primitive(StringType, nullable=false),
-    rows,
-    rows,
-    labels=None,
-    max_labels=0,
-    max_label_bytes=0,
-  ).unwrap()
+  let graph = current_graph_input()
   @pipeline.check_carriers(closure_cursor(body), [("g", graph)], None, None, {
     max_steps: 20,
     max_work: 10000,
@@ -32,11 +15,16 @@ fn input_bound_pipeline(body : String) -> @pipeline.CheckedPipeline {
 test "Graph input bounds retain exact preflight owners and enforce measure roles" {
   let policy = policy(false)
   for
-    (op, measure, law) in [
-      ("node_rows", @input.Nodes, "actql.bound.graph-node-rows"),
-      ("edge_rows", @input.Edges, "actql.bound.graph-edge-rows"),
+    (op, definition, measure, law) in [
+      ("match_nodes", "N", @input.Nodes, "actql.bound.match-nodes"),
+      ("match_edges", "E", @input.Edges, "actql.bound.match-edges"),
     ] {
-    let pipeline = input_bound_pipeline("[{\"" + op + "\":true}]")
+    let body = "[{\"" +
+      op +
+      "\":{\"definition\":\"" +
+      definition +
+      "\",\"bindings\":{\"identity\":\"element\"},\"where\":\"true\",\"fields\":[\"element\"]}}]"
+    let pipeline = input_bound_pipeline(body)
     let standalone = sources(0, policy)
     let first = @input.check(pipeline, standalone, policy, caps()).unwrap()
     let original = @input.input_bound(first, 0, measure).unwrap()
@@ -106,7 +94,7 @@ test "Graph input bounds retain exact preflight owners and enforce measure roles
       ])
       is Err(InputUnitMismatch(0)),
     )
-    let other = input_bound_pipeline("[{\"" + op + "\":true}]")
+    let other = input_bound_pipeline(body)
     assert_true(
       @program.check_with_sources(
         other,
@@ -282,7 +270,9 @@ test "Graph preflight bounds follow actual imported owners under cumulative trav
     @pipeline.produced_input(base, Input(0)).unwrap(),
   )
   let receiver = @pipeline.check_with_evidence(
-    closure_cursor("[{\"node_rows\":true}]"),
+    closure_cursor(
+      "[{\"match_nodes\":{\"definition\":\"N\",\"bindings\":{\"identity\":\"element\"},\"where\":\"true\",\"fields\":[\"element\"]}}]",
+    ),
     [("imported", input)],
     None,
     None,
@@ -296,7 +286,7 @@ test "Graph preflight bounds follow actual imported owners under cumulative trav
     },
   ).unwrap()
   let proof = graph_proof(
-    "actql.bound.graph-node-rows",
+    "actql.bound.match-nodes",
     1L,
     "{\"op\":\"source\"}",
     inputs=[@wire.cid(@input.bound_witness(bound))],

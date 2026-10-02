@@ -34,7 +34,7 @@ public snapshot and required CI at the same submitted SHA.
 | Distinct node/edge extents, producer owner and no fabricated row proof | Required guarantee | `pipeline_typing/produced_input_test.mbt`, `graph_counts_test.mbt`; current MATCH node/edge cases | Empty declared node universe exposed a real upper-bound regression; minimal `row_counts.mbt` fix preserves zero edges while still debiting every operand |
 | MATCH predicate types, typed identity rows, downstream Relation consumers | Required guarantee | `pipeline_typing/graph_test.mbt`; `lowering_relation/graph_match_test.mbt` | Migrate Program and query integration inputs without Frontend-specific evaluation |
 | TRAIL selector owner, bounded preparation, empty selector counts, row guard vs proof | Required guarantee | `pipeline_typing/graph_test.mbt`, `graph_report_counts_test.mbt`, `graph_empty_selector_audit_test.mbt`, `author_guards_test.mbt` | Retain current paths positives and exact/one-short tests |
-| Graph input bound owner, foreign dependency rejection, imported closure, limit consumption | Required guarantee | Existing `capacity_graph_preflight` positives still use retired construction in shared helpers | **Not migrated yet.** Replace helper inputs/connected MATCH forms and preserve the owner, unit, collection and exact-limit assertions |
+| Graph input bound owner, foreign dependency rejection, imported closure, limit consumption | Required guarantee | `capacity_graph_preflight` now uses a definition-keyed Graph schema and scoped MATCH; original owner/unit/collection/exact-limit assertions remain | Four algorithm-dependent fixtures remain unresolved; no aggregate success claimed |
 | Diff/apply, union/graft/subtract/mean, structural counts, report bounds, reach/shortest | Unsupported consumer | Current typing/lowering and diff refusal tests; legacy algorithm implementation is not a fallback | Remove remaining obsolete execution branches. Old algorithm-specific count/schema proofs are not claimed preserved. Keep generic projection/owner guarantees in supported fixtures |
 | Consumer coverage and strict resource inventory | Required guarantee + unsupported consumers | Inventory distinguishes connected partial Graph routes from blocked routes | Aggregate spec remains red; do not remove checks or silently retain old completion claims |
 
@@ -58,3 +58,42 @@ Non-Graph positives in mixed files remain executable.
 Full pipeline, Core, spec, fresh packed acceptance and required CI have not
 been rerun for this unit. The previous full pipeline at `d5e2b5b49` remains
 343 total / 308 passed / 35 failed; it is not this unit's result.
+
+## Preflight owner migration
+
+The shared current input has independent N/E key definitions and an explicit
+identity domain. Graph-to-Relation proofs now use the existing
+`actql.bound.match-nodes` / `actql.bound.match-edges` laws; bound witnesses still
+come from the original input owner. Imported input closures retain exact owner
+registrations, reject foreign or missing dependencies, copy caller arrays and
+enforce cumulative input/application work. No capacity owner or proof checker
+is replaced or weakened.
+
+The supported TRAIL fixture retains separate search-path/output-row scopes,
+missing/foreign candidate and subject rejection, unused-branch coverage,
+caller-array retention, missing/duplicate application rejection and
+exact/one-short budgets. Its typed start belongs to the declared N/domain;
+the retired traversed-node output is not claimed supported.
+
+Focused native evidence is **14/14 plus 1/1 plus 1/1**:
+`/private/tmp/property-graph-preflight-supported-native-20261002.log`,
+`/private/tmp/property-graph-preflight-bound-owner-native-20261002.log`, and
+`/private/tmp/property-graph-preflight-import-owner-native-20261002.log`.
+The current complete Wasm package is **32 total / 28 passed / 4 failed**:
+`/private/tmp/property-graph-preflight-current-trail-wasm-20261002.log`.
+JS's preceding package run was **32 / 27 / 5**, followed by the migrated
+TRAIL file **1/1**; that is not a new aggregate JS result. An attempted full
+native package aborted at the still-obsolete `resolved_output` fixture with
+SIGABRT; only the explicit focused native runs above are counted.
+
+The remaining four cases are the old union composition, normalize/subgraph
+bound forwarding, components ledger, and resolved components/traversed-node
+output chain. The resolved-output guarantee still needs a supported positive
+counterpart; it must not disappear under a blanket refusal. Initial migration
+fixtures had a zero field ceiling despite a one-component key and omitted
+the required node-MATCH predicate. Those fixture errors were corrected without
+changing admission or capacity rules.
+
+Latest fetched main is `0fd6332757176b88e8c4071e4a2cd0be3d6254e3` (#185/#188).
+It has not yet been integrated into these local source checks. The published
+#164 remains `125a186ae9396fbfc7865641922e8e8a4ffc87d9`, Draft and not GO.
