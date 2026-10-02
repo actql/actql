@@ -1,113 +1,24 @@
 ///|
-fn delta_graph() -> @carrier.Carrier {
-  let empty = @carrier.rows(
-    [],
-    field_set=Closed,
-    max_fields=0,
-    max_name_bytes=0,
-  ).unwrap()
-  @carrier.graph(
-    @contract.primitive(NumberType, nullable=false),
-    empty,
-    empty,
-    labels=None,
-    max_labels=0,
-    max_label_bytes=0,
-  ).unwrap()
-}
-
-///|
-test "diff aliases survive independent projections and feed apply with binary roles" {
-  let g = delta_graph()
-  let p = @pipeline_typing.check_carriers(
-    cursor(
-      (
-        #|[{"graph_diff":{"with":"b"},"from":"a","as":"diff"},
-        #| {"select":[{"first":"delta"},{"second":"delta"}]},
-        #| {"drop":["first"]},{"rename":{"second":"kept"},"as":"changes"},
-        #| {"apply_graph_delta":{"with":"changes","field":"kept"},"from":"a","as":"restored"},
-        #| {"graphs_equal":{"with":"b"}}]
-      ),
-    ),
-    [("a", g), ("b", g)],
-    None,
-    None,
-    limits(),
-  ).unwrap()
-  let c = @pipeline_typing.expected_delta_contract(
-    p,
-    Step(3),
-    Unqualified("kept"),
-  ).unwrap()
-  assert_true(
-    @pipeline_typing.expected_delta_contract(p, Step(2), Unqualified("first"))
-    is None,
-  )
-  let step = @pipeline_typing.step_at(p, 4).unwrap()
-  guard step.operation is GraphApply(right=Step(3), checked~) else {
-    fail("apply expected")
-  }
-  assert_eq(
-    @graph_contract.cid(@graph.apply_graph_contract(checked)),
-    @graph_contract.cid(c),
-  )
-  let edges = @pipeline_typing.input_occurrences(step)
-  assert_true(edges[0] is { role: Left, target: Input(0), })
-  assert_true(edges[1] is { role: Right, target: Step(3), })
-  assert_true(@graph.apply_pending(checked).contains(MatchExactBaseIdentity))
-  assert_true(@pipeline_typing.output_schema(p) is Some(_))
-}
-
-///|
-test "value-preserving row operations keep expectations but overwriting derives lose them" {
-  let g = delta_graph()
-  for
-    text in [
-      (
-        #|[{"graph_diff":{"with":"b"},"from":"a"},{"sort":[],"as":"d"},{"apply_graph_delta":{"with":"d","field":"delta"},"from":"a"}]
-      ),
-      (
-        #|[{"graph_diff":{"with":"b"},"from":"a"},{"filter":"TRUE","as":"d"},{"apply_graph_delta":{"with":"d","field":"delta"},"from":"a"}]
-      ),
-      (
-        #|[{"graph_diff":{"with":"b"},"from":"a"},{"derive":{},"as":"d"},{"apply_graph_delta":{"with":"d","field":"delta"},"from":"a"}]
-      ),
-    ] {
-    let checked = @pipeline_typing.check_carriers(
-      cursor(text),
-      [("a", g), ("b", g)],
-      None,
-      None,
-      limits(),
-    )
-    if checked is Err(e) {
-      fail(text + " => " + @debug.to_string(e.kind))
-    }
-  }
-  let result = @pipeline_typing.check_carriers(
-    cursor(
-      (
-        #|[{"graph_diff":{"with":"b"},"from":"a"},{"derive":[{"delta":"1"}],"as":"d"},{"apply_graph_delta":{"with":"d","field":"delta"},"from":"a"}]
-      ),
-    ),
-    [("a", g), ("b", g)],
-    None,
-    None,
-    limits(),
-  )
-  guard result is Err(e) else { fail("overwritten expectation survived") }
-  assert_eq(e.kind, @pipeline_typing.MissingDeltaContract)
-}
-
-///|
-test "external Delta contracts are explicit expectations not structural inference" {
-  let g = delta_graph()
-  let c = @graph_contract.admit(g, {
+/// Independent current Graph contract; no diff result or product-emitted bytes.
+fn delta_contract() -> @graph_contract.CheckedContract raise {
+  let body =
+    #|{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[],"identity_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","node_definitions":[{"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":[]},"name":"N","properties":{}}],"value_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","version":"actql-property-graph-contract/0.1"}
+  let contract = @graph_contract.read_cursor(cursor(body), {
     max_bytes: 10000,
     max_nodes: 1000,
     max_depth: 100,
   }).unwrap()
-  let r = @carrier.relation(
+  // Node crypto SHA-256 of the authored canonical body, independently computed.
+  assert_eq(
+    @graph_contract.cid(contract),
+    "sha256:78b5e6a56288c04737f3a13a4b1ad9c653892cd22c060225f990e12406b45d1e",
+  )
+  contract
+}
+
+///|
+fn delta_rows() -> @carrier.Carrier {
+  @carrier.relation(
     @carrier.rows(
       [
         (
@@ -120,13 +31,135 @@ test "external Delta contracts are explicit expectations not structural inferenc
       max_name_bytes=5,
     ).unwrap(),
   )
-  let source = cursor(
-    "[{\"apply_graph_delta\":{\"with\":\"d\",\"field\":\"delta\"},\"from\":\"g\"}]",
-  )
-  let inputs = [("g", g), ("d", r)]
+}
+
+///|
+test "explicit current Graph expectations survive independent projection aliases" {
+  let c = delta_contract()
+  let p = @pipeline_typing.check_carriers(
+    cursor(
+      (
+        #|[{"select":[{"first":"delta"},{"second":"delta"}],"from":"d"},
+        #| {"drop":["first"]},{"rename":{"second":"kept"},"as":"changes"}]
+      ),
+    ),
+    [("d", delta_rows())],
+    None,
+    None,
+    limits(),
+    delta_contracts=[("d", Unqualified("delta"), c)],
+  ).unwrap()
+  for
+    (target, field) in [
+      (@pipeline_typing.Input(0), "delta"),
+      (@pipeline_typing.Step(0), "first"),
+      (@pipeline_typing.Step(0), "second"),
+      (@pipeline_typing.Step(1), "second"),
+      (@pipeline_typing.Step(2), "kept"),
+    ] {
+    assert_true(
+      physical_equal(
+        @pipeline_typing.expected_delta_contract(p, target, Unqualified(field)).unwrap(),
+        c,
+      ),
+    )
+  }
   assert_true(
-    @pipeline_typing.check_carriers(source, inputs, None, None, limits())
-    is Err({ kind: MissingDeltaContract, .. }),
+    @pipeline_typing.expected_delta_contract(p, Step(1), Unqualified("first"))
+    is None,
+  )
+  assert_true(
+    @pipeline_typing.expected_delta_contract(p, Step(2), Unqualified("second"))
+    is None,
+  )
+  guard @pipeline_typing.output_schema(p) is Some(rows) else {
+    fail("Relation output")
+  }
+  assert_eq(@schema.field_count(rows), 1)
+  assert_eq(@schema.field_at(rows, 0).unwrap().name, Unqualified("kept"))
+}
+
+///|
+test "value preserving rows retain an explicit expectation but overwritten values do not" {
+  let c = delta_contract()
+  for
+    source in [
+      "[{\"sort\":[]}]", "[{\"filter\":\"TRUE\"}]", "[{\"derive\":{}}]",
+    ] {
+    let checked = @pipeline_typing.check_carriers(
+      cursor(source),
+      [("d", delta_rows())],
+      None,
+      None,
+      limits(),
+      delta_contracts=[("d", Unqualified("delta"), c)],
+    ).unwrap()
+    assert_true(
+      physical_equal(
+        @pipeline_typing.expected_delta_contract(
+          checked,
+          Step(0),
+          Unqualified("delta"),
+        ).unwrap(),
+        c,
+      ),
+    )
+  }
+  let overwritten = @pipeline_typing.check_carriers(
+    cursor("[{\"derive\":[{\"delta\":\"1\"}],\"as\":\"changed\"}]"),
+    [("d", delta_rows())],
+    None,
+    None,
+    limits(),
+    delta_contracts=[("d", Unqualified("delta"), c)],
+  ).unwrap()
+  assert_true(
+    @pipeline_typing.expected_delta_contract(
+      overwritten,
+      Step(0),
+      Unqualified("delta"),
+    )
+    is None,
+  )
+  assert_true(
+    physical_equal(
+      @pipeline_typing.expected_delta_contract(
+        overwritten,
+        Input(0),
+        Unqualified("delta"),
+      ).unwrap(),
+      c,
+    ),
+  )
+}
+
+///|
+test "external current Graph expectations remain explicit and bounded rather than inferred from JSON" {
+  let c = delta_contract()
+  let source = cursor("[{\"filter\":\"TRUE\"}]")
+  let inputs = [("d", delta_rows())]
+  let unbound = @pipeline_typing.check_carriers(
+    source,
+    inputs,
+    None,
+    None,
+    limits(),
+  ).unwrap()
+  assert_true(
+    @pipeline_typing.expected_delta_contract(
+      unbound,
+      Input(0),
+      Unqualified("delta"),
+    )
+    is None,
+  )
+  assert_true(
+    @pipeline_typing.expected_delta_contract(
+      unbound,
+      Step(0),
+      Unqualified("delta"),
+    )
+    is None,
   )
   let binding = ("d", @schema.Unqualified("delta"), c)
   let p = @pipeline_typing.check_carriers(
@@ -137,6 +170,18 @@ test "external Delta contracts are explicit expectations not structural inferenc
     limits(),
     delta_contracts=[binding],
   ).unwrap()
+  for target in [@pipeline_typing.Input(0), @pipeline_typing.Step(0)] {
+    assert_true(
+      physical_equal(
+        @pipeline_typing.expected_delta_contract(
+          p,
+          target,
+          Unqualified("delta"),
+        ).unwrap(),
+        c,
+      ),
+    )
+  }
   let u = @pipeline_typing.usage(p)
   let exact = {
     ..limits(),
@@ -164,18 +209,24 @@ test "external Delta contracts are explicit expectations not structural inferenc
       is Err(_),
     )
   }
-  assert_true(
-    @pipeline_typing.check_carriers(source, inputs, None, None, limits(), delta_contracts=[
-      binding, binding,
-    ])
-    is Err({ kind: InvalidDeltaContractBinding, .. }),
-  )
-  assert_true(
-    @pipeline_typing.check_carriers(source, inputs, None, None, limits(), delta_contracts=[
-      ("unknown", Unqualified("delta"), c),
-    ])
-    is Err({ kind: InvalidDeltaContractBinding, .. }),
-  )
+  for
+    bindings in [
+      [binding, binding],
+      [("unknown", Unqualified("delta"), c)],
+      [("d", Unqualified("absent"), c)],
+    ] {
+    assert_true(
+      @pipeline_typing.check_carriers(
+        source,
+        inputs,
+        None,
+        None,
+        limits(),
+        delta_contracts=bindings,
+      )
+      is Err({ kind: InvalidDeltaContractBinding, .. }),
+    )
+  }
   assert_true(
     @pipeline_typing.expected_delta_contract(p, Step(99), Unqualified("delta"))
     is None,

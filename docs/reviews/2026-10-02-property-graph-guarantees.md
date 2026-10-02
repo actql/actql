@@ -479,6 +479,34 @@ No required gate is weakened or bypassed. The final published snapshot
 save/revoke/reload acceptance, aggregate checks and required CI remain pending;
 the public PR still points to its previous archived source.
 
+## Current Graph contract expectation custody
+
+The seven failing Delta setup cases in `pipeline_typing` are migrated to an
+independently authored current Graph contract and explicit input expectations.
+Its canonical body has the independently computed SHA-256 literal
+`78b5e6a56288c04737f3a13a4b1ad9c653892cd22c060225f990e12406b45d1e`.
+No retired Carrier constructor or diff-generated contract supplies this fixture.
+
+Positive obligations remain: independent SELECT aliases, DROP/RENAME transfer,
+value-preserving filters/sorts/empty derives, loss of an overwritten field's
+expectation, exact retained input contract and producer, duplicate/unknown field
+binding refusal, exact and one-short work/node/text accounting, immutable
+extension of imported evidence, projected producer ownership and 2,000 ancestry
+forwarding steps without recursive traversal. Bare but text-identical JSON rows
+remain valid rows, without acquiring the separately retained expectation.
+Former diff/apply execution, binary roles and exact-base identity obligations
+are not claimed supported by these expectation tests.
+
+Initial fixture compilation catches missing target qualification, the schema
+Field accessor and the helper's raising assertion signature; each is corrected
+without changing the bound checker or its expectations. The corrected narrow
+suite passes 10/10 JS. The complete `pipeline_typing` package then passes
+**327/327 on each JS, Wasm and native**:
+`/private/tmp/property-graph-delta-pipeline-{js,wasm,native}-20261003.log`.
+The preceding aggregate failure count remains the diagnostic for its recorded
+SHA, not a new whole-Core result. Other unsupported typed Graph branches and
+generic guarantee migrations remain open.
+
 The subgraph removal is committed as
 `7dd8c80797f788649a00af038f0c7aea2a16943d`. Its official committed API check
 passes at `/private/tmp/property-graph-subgraph-retirement-api-committed-20261002.log`.
