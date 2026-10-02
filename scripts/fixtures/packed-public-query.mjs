@@ -38,9 +38,9 @@ let scopeInputs = graphSourceOnly ? {successes: propertyGraphSourceSuccesses, re
   : compositionOnly ? {successes: queryCompositionSuccesses, refusals: queryCompositionRefusals}
   : inferOnly ? {successes: [querySuccesses[0]], refusals: inferRefusals}
   : joinOnly ? joinOrder : scopeOnly ? {successes: scope.successes,
-  refusals: scope.refusals} : {successes: [...querySuccesses, ...sourceFreeSuccesses, ...queryCompositionSuccesses, ...pipeResultSuccesses, ...scope.successes, ...joinOrder.successes],
-  refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals],
-  executionFailures: pipeResultExecutionFailures};
+  refusals: scope.refusals} : {successes: [...querySuccesses, ...sourceFreeSuccesses, ...queryCompositionSuccesses, ...pipeResultSuccesses, ...scope.successes, ...joinOrder.successes, ...propertyGraphSourceSuccesses],
+  refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals, ...propertyGraphSourceRefusals],
+  executionFailures: [...pipeResultExecutionFailures, ...propertyGraphSourceExecutionFailures]};
 if (process.env.ACTQL_TEST_QUERY_CASES !== undefined) {
   const names = process.env.ACTQL_TEST_QUERY_CASES.split(',');
   const available = [...scopeInputs.successes, ...scopeInputs.refusals,

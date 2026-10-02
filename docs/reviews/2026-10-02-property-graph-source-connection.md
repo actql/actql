@@ -220,6 +220,18 @@ results. The selected run establishes these three successes and two refusals,
 not a rerun of every historical Graph case or public snapshot acceptance. The
 full local Core/spec/Client jobs were not repeated; final-SHA CI remains separate.
 
+The flag-free packed Client acceptance now includes all 18 authored DATA/keyed
+source positives, nine preparation refusals and three execution failures. The
+dedicated `--property-graph-source-only` flag only narrows that same fixture
+selection; it no longer enables coverage absent from the ordinary CI command.
+It reuses the existing installation and packed package bytes, with no extra
+pack, Host adapter or CI job. A focused selection probe failed on the old
+default list and passed after this correction; it also checked that existing
+SQL examples and focused case selection remain intact. That probe establishes
+selection, not runtime conformance. Actual execution on the new submitted SHA
+must be confirmed from its Client logs rather than inferred from earlier green
+CI or the historical 16-case record.
+
 C dependency `321684933dce17afb0edc40f8877d2d7460c3da2` remains provisional.
 The newer public `402e6ea04e5ae65aba23a20b90233c9ee3e490b9` is not an offered
 unification-complete SHA and is not adopted as one. Updating #174 requires C's
