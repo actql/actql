@@ -1759,3 +1759,51 @@ The old generator's product boundary and the disposition of its applicable
 positive lowering obligations still require an explicit current-path decision.
 This checkpoint is not complete Core, public packed snapshot, or required CI
 acceptance, and is not a B-ready handoff.
+
+## Retired query tuple adapter removal (2026-10-03)
+
+The obsolete query generator is removed, rather than restored to satisfy its
+seven old aggregate positives. `query_program.GraphInputSource`, `GraphInput`,
+`Context.graph_inputs`, `source_frontend.AliasInput.Graph` and the test-only
+`compileGeneratedGraphQueryJson` export are removed together with the scalar
+endpoint join, tuple edge deduplication, implicit sort and property-as-label
+adapter. Generated three-target public interfaces reflect this intentional
+breaking change. Ordinary Relation Context inputs and SQL/Pipe lowering are
+unchanged. A query-only Context without an admitted current constructor now
+refuses Graph lowering explicitly with `UnsupportedGraph`; it never returns
+an executable legacy Program. Program constructor/MATCH/TRAIL remain the
+current common implementation.
+
+The retired tests cover that removed input API and its algorithm-specific
+Frontend bindings. They are not a substitute for current Frontend acceptance.
+Applicable common identity, parallel-edge, typed label/property, bounded-path,
+capacity, input-owner, cancellation, cleanup and publication positives remain
+in the current Graph suites. The packed Node Client runner now authors the
+current keyed Program and positively checks parallel edges, typed Result
+metadata, stream completion and the two independently expected TRAIL
+permutations through both installed Hosts. The dedicated public snapshot
+runner remains registered separately. Neither runner's new acceptance is
+claimed before execution.
+
+The complete query and source-frontend packages pass **127/127 on each JS,
+Wasm and native** with `--deny-warn`. The built JS test bridge and its remaining
+independent SQL/Pipe, Values, scopes, ORDER, INFER and source-CTE Node tests
+pass **6/6**, without skips. Logs:
+`/private/tmp/property-graph-query-adapter-removal-{js,wasm,native,node}-20261003.log`.
+Initial compilation identified a now-unused SHA test import and a Graph RESULT
+fixture borrowing the removed tuple helper; both are retired, while ordinary
+RESULT scope/retention positives stay executable. Interface generation and
+formatting succeed; the official tracked interface check runs after commit.
+
+B integration boundary, checked against clean #174 source
+`d144e25567313168558750fa17d02cc20e55dcf6`: keep its new ScriptGraph constructor
+and `lower_script_keyed_graph_query`; do not restore `compile_graph_query` or
+the removed Context/alias inputs. Its `PropertyNode(identity)` macro case
+applies to the retained `graph_macro_value` function. Its new keyed predicate
+lowering currently calls the removed tuple generator's `graph_node_predicate`;
+that generic expression-to-predicate projection must be placed with the new
+Frontend lowering, without restoring the property-label annotation or a
+legacy Graph input API. Remove empty `graph_inputs` fields from B's Context
+fixtures. This concrete Frontend adoption delta is not reported as completed
+or as a current #174 compatibility guarantee. No A task-split/provider file
+or B worktree was edited.

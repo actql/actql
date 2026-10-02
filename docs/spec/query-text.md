@@ -292,29 +292,37 @@ silently construct a Graph from a Relation, attach to an ambient Graph, or
 introduce a second implicit Graph input. One Graph source admits one MATCH;
 another pattern needs a separate source and an explicit Relation join.
 
-`LABELS {"node":{"field":"entity_type"}}` is a query-local annotation. A
-node label such as `(a:Account)` expands to equality on that declared string
-field; a null field value does not match. A node label without this annotation
-is rejected. The annotation neither changes Graph identity nor grants entity
-authority. Edge labels use the Graph's semantic edge-label evidence, never an
-arbitrary property with a similar name.
+Labels belong to the admitted Property Graph definition, separately from
+properties. A node label such as `(a:Account)` tests membership in that label
+set; it is not equality on an `entity_type` property. Edge labels likewise
+come from their definition's label set. The retired `LABELS` property
+annotation does not establish a current Graph definition or grant authority.
 
 A fixed directed path retains each authored node and edge occurrence. Its
 local predicates are evaluated at their demanded prefix: the starting node
 over the initial node scope, then each reached edge and node after the
 corresponding hop. WALK permits revisits, TRAIL excludes reuse of the same
-typed edge tuple, and ACYCLIC excludes node revisits. Separate paths with
+definition-scoped typed edge key, and ACYCLIC excludes node revisits. Separate paths with
 the same endpoints remain separate rows unless the query requests DISTINCT.
 Graph variables are compile-time binding names. They do not create new
 runtime Node, Edge, or Path value types.
 
-The only quantified shape is one homogeneous directed ACYCLIC edge with
-literal closed `{m,n}` bounds, where `0 <= m <= n` and `n > 0`. An open bound,
-internal quantified edge variable, nested pattern, optional match, or
-unbounded repetition is rejected. A missing property-selected start gives an
-empty match, while an explicit native traversal ID selector retains its
-existing membership-failure rule. Graph and Relation resource ceilings remain
-separate and partial path output is never published as a Result.
+Finite traversal bounds, selector ownership and definition-scoped identities
+are checked by the common MATCH/TRAIL owner. Graph and Relation resource
+ceilings remain separate and partial path output is never published as a
+Result. A missing property-selected start gives an empty match, while an
+explicit typed identity selector retains its membership-failure rule.
+
+Implementation boundary: the query-only `query_program.Context` carries
+Relation inputs, not a constructor definition. It therefore returns
+`UnsupportedGraph` for `FROM GRAPH`; the former `GeneratedGraph` /
+`CapturedGraph`, `graph_inputs`, and tuple `node_rows` / `edge_rows` generator
+are removed. The common current path is an ordinary Program containing the
+admitted `property_graph` constructor and definition-scoped MATCH/TRAIL. The
+Script frontend's connection to that path is reviewed separately; syntax
+admission alone does not establish that a pattern is executable. Unsupported
+pattern bindings or consumers must be refused, not lowered through the
+retired representation.
 
 ## Bounds, source positions and identity
 

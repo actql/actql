@@ -26,7 +26,6 @@ pub(all) struct Context {
   captured_stage : String?
   parameter_declarations : @parameter_binding.Declarations?
   inputs : Array[Input]
-  graph_inputs : Array[GraphInput]
 }
 
 pub(all) struct GraphBinding {
@@ -42,19 +41,6 @@ pub(all) enum GraphBindingKind {
   Node
   Edge
   Path
-}
-
-pub(all) struct GraphInput {
-  relation : Array[@query_syntax.NamePart]
-  name : String
-  source : GraphInputSource
-  node_fields : Array[String]
-  edge_fields : Array[String]
-}
-
-pub(all) enum GraphInputSource {
-  CapturedGraph(@decode_core.Cursor)
-  GeneratedGraph(Array[@decode_core.Cursor])
 }
 
 pub(all) struct Input {
