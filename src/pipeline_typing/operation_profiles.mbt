@@ -88,8 +88,7 @@ fn primary_operation_profile(operation : CheckedOperation) -> OperationProfile? 
       | GraphApply(..)
       | GraphStructural(..)
       | GraphUnion(_)
-      | GraphMean(_)
-      | GraphConstruction(..) => SGA
+      | GraphMean(_) => SGA
       PropertyGraphConstruction(..) => PropertyGraph
       GraphMatch(checked) =>
         if @graph.match_property_definition(checked) is Some(_) {

@@ -31,7 +31,6 @@ pub enum PreparedStep {
   GraphTraverseStep(PreparedGraphTraverse)
   GraphShortestStep(PreparedGraphShortest)
   GraphRelationStep(PreparedGraphRelation)
-  GraphConstructionStep(PreparedGraphConstruction)
   PropertyGraphConstructionStep(PreparedPropertyGraphConstruction)
   VectorStep(PreparedVector)
   EventStep(PreparedEvent)
@@ -431,26 +430,6 @@ fn prepare_sequence_count(
         }
         PropertyGraphConstructionStep(prepared)
       }
-      GraphConstructionValue(_) => {
-        let (prepared, used_entries, used_names, used_work) = match
-          prepare_graph_construction_node(
-            owner.prepared.nodes[i],
-            step=i,
-            max_entries=bindings,
-            max_name_bytes=names,
-            max_work=expressions.max_work,
-          ) {
-          Ok(value) => value
-          Err(issue) => return Err(GraphConstructionFailure(i, issue))
-        }
-        bindings -= used_entries
-        names -= used_names
-        expressions = {
-          ..expressions,
-          max_work: expressions.max_work - used_work,
-        }
-        GraphConstructionStep(prepared)
-      }
       VectorValue(_) | NearestValue(_) | PoolValue(_) | RankingValue(_) => {
         let (prepared, used_bindings, used_names, used_work) = match
           prepare_vector_node(
@@ -674,7 +653,6 @@ pub fn emit_sequence_step_range(
       GraphTraverseStep(v) => emit_graph_traverse_node(v, out)
       GraphShortestStep(v) => emit_graph_shortest_node(v, out)
       GraphRelationStep(v) => emit_graph_relation_node(v, out)
-      GraphConstructionStep(v) => emit_graph_construction_node(v, out)
       PropertyGraphConstructionStep(v) =>
         emit_property_graph_construction_node(v, out)
       VectorStep(v) => emit_vector_node(v, out)

@@ -83,7 +83,6 @@ pub fn close_program_operations(
           ReachExecution(v) => v.site
           ShortestExecution(v) => v.site
           GraphExecution(v) => v.site
-          GraphConstructionExecution(v) => v.site
           PropertyGraphConstructionExecution(v) => v.site
           GraphProjection(v) => v.site
           GraphProjectionOutput(v) => v.site

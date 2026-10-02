@@ -41,7 +41,6 @@ pub fn prepare_fragment_pipeline(
     | GraphTraverseStep(_)
     | GraphShortestStep(_)
     | GraphRelationStep(_)
-    | GraphConstructionStep(_)
     | PropertyGraphConstructionStep(_)
     | VectorStep(_)
     | EventStep(_)

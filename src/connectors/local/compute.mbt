@@ -309,7 +309,6 @@ pub fn local_managed_sequence_supported(
       @lower.GraphTraverseStep(_) => false
       @lower.GraphShortestStep(_) => false
       @lower.GraphRelationStep(_) => false
-      @lower.GraphConstructionStep(_) => false
       @lower.PropertyGraphConstructionStep(_) => false
       @lower.VectorStep(_) => false
       @lower.EventStep(_) => false

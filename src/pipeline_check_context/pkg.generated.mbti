@@ -1638,33 +1638,12 @@ pub(all) enum GraphComparisonResource {
   InputAndTemporaryBytes
 } derive(Eq, @debug.Debug)
 
-pub struct GraphConstructionCheck {
-  site : OperationRequirementSite
-  step : @pipeline_typing.CheckedStep
-  nodes : @pipeline_typing.Target?
-  edges : @pipeline_typing.Target
-  operation : @graph_typing.CheckedConstruction
-  rule : GraphConstructionRule
-  envelope : GraphConstructionEnvelope?
-}
-
 pub struct GraphConstructionEnvelope {
   policy : @capacity_policy.Policy
   input_rows : @capacity_policy.Ceiling
   output_nodes : @capacity_policy.Ceiling
   output_edges : @capacity_policy.Ceiling
 }
-
-pub(all) enum GraphConstructionRule {
-  AdmitInputRows
-  CloseDeclaredEndpoints
-  DeriveEndpointNodes
-  JournalEndpoints
-  JournalLabels
-  CollapseEqualPayloads
-  RejectPayloadConflicts
-  EnforceConstructionEnvelope
-} derive(Eq, @debug.Debug)
 
 pub(all) enum GraphDeltaResource {
   GraphNodes
@@ -2403,7 +2382,6 @@ pub(all) enum OperationExecutionCheck {
   ReachExecution(ReachCheck)
   ShortestExecution(ShortestCheck)
   GraphExecution(GraphExecutionCheck)
-  GraphConstructionExecution(GraphConstructionCheck)
   PropertyGraphConstructionExecution(PropertyGraphConstructionCheck)
   GraphProjection(GraphProjectionCheck)
   GraphProjectionOutput(GraphProjectionEnvelope)

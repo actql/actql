@@ -91,8 +91,10 @@ test "profile obligations map to their declared module without discharging other
     None,
   )
   assert_eq(
-    operation_profile_requirement(ConstructionRequirement(ResolveSgaProfile)),
-    Some(SGA),
+    operation_profile_requirement(
+      ConstructionRequirement(ResolvePropertyGraphProfile),
+    ),
+    Some(PropertyGraph),
   )
   assert_eq(
     operation_profile_requirement(ConstructionRequirement(AdmitGraphInputRows)),

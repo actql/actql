@@ -114,3 +114,71 @@ and other obsolete branches remain on the explicit removal inventory.
 
 The published #164 remains `125a186ae9396fbfc7865641922e8e8a4ffc87d9`,
 Draft and not GO. Historical evidence does not require an executable adapter.
+
+## Current-main reconstruction
+
+The old source is preserved by local refs, not executable compatibility code:
+
+- `archive/pr164-published-125a186-20261002` retains the published checkpoint.
+- `archive/pr164-pre-reconstruction-b88d27bb3-20261002` retains
+  `b88d27bb30b4d38bd046ce5912bdf29e6b78d418`.
+
+The source was reconstructed on main
+`0fd6332757176b88e8c4071e4a2cd0be3d6254e3` at
+`81ef098cb8a588f0ebb9eca2ae7f95ec972d55d3`. Its tree equals the preserved
+source tree (`ce291321393d62d38f5095f36a3e8384c7421961`). The subsequent
+`a55b5d92a2bf23db19b64e810c0c0b71308eb7a8` declares the exact package
+verification registration without changing the frozen baseline or validators.
+History, foundation and integration tests pass **113/113** at that checkpoint:
+`/private/tmp/property-graph-reconstructed-foundation-tests-20261002.log`.
+This does not prove later source changes or the final PR CI. Public branch
+replacement has not occurred; preservation refs, full old/new SHAs and the
+exact lease will be announced before that operation.
+
+## Retired constructor implementation removal
+
+The old `CheckedConstruction`, checked-pipeline `GraphConstruction`,
+`ConstructionOwner`, lowering payload/step/expansion, legacy construction
+execution candidate and their downstream switch arms are removed. Obsolete
+endpoint-completion/collapse obligations are removed from the constructor
+contract. The current keyed constructor keeps its existing exact-occurrence
+owner, duplicate-key/endpoint-exclusion rules and resource envelope. Common
+field parsing and wire-node emission helpers still used by the keyed
+constructor are not compatibility implementations.
+
+The retired construction-rule whitebox test is removed. Its applicable owner,
+ordered/repeated-input, foreign-occurrence, execution-phase and shared-capacity
+obligations are tested by
+`property_graph_construction_execution_wbtest.mbt`. Core contract inventory
+tests now retain the current constructor and scoped MATCH owners, with the
+same exact/one-short collection budget assertions. Publication-policy tests
+retain shared/distinct producer occurrences, original checked owners and
+mandatory construction ceilings on the new constructor/MATCH path.
+
+These eight files pass **15/15 on JS, Wasm and native**:
+`/private/tmp/property-graph-constructor-removal-{js,wasm,native}-20261002.log`.
+The interface regeneration succeeds for all three targets; its reported
+backend differences concern native-only packages and require the normal API
+checker after the interface changes are committed. No unused constructor
+warning is suppressed.
+
+One migration limitation is explicit: a directly bound external Source still
+lacks its admitted producer-definition projection at the constructor boundary
+and is refused with `MissingPropertyProducerDefinition`. A row schema/name or
+bound Artifact CID is not substituted for that definition. The current
+publication test uses retained Values producers and verifies that an unused
+external Source lends them no provenance. This is **not** a replacement proof
+of the old direct-Source constructor guarantee. Result-import producer custody
+is tested separately by `graph_branches_wbtest.mbt`; direct external-definition
+admission remains unconnected.
+
+Initial migrated fixtures failed because node-MATCH omitted/non-emptied its
+required projected fields and because the direct external definition was not
+available. Those failures are not classified as successful gates. A diagnostic
+attempt using Debug on non-Debug issue wrappers also failed to compile; that
+temporary diagnostic code was removed. The successful narrow runs above use
+only supported fixtures and retain positive owner/capacity assertions.
+
+The old Carrier factory and other obsolete consumer bodies are still on the
+removal inventory. Preflight resolved-output guarantees, full Core/spec,
+fresh packed public snapshot acceptance and same-SHA required CI remain open.

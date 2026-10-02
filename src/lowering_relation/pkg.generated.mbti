@@ -301,26 +301,6 @@ pub fn graph_basic_kind(PreparedGraphBasic) -> GraphBasicKind
 
 pub fn graph_basic_output_schema(PreparedGraphBasic) -> @relation_schema.Schema
 
-pub fn graph_construction_derives_nodes(PreparedGraphConstruction) -> Bool
-
-pub fn graph_construction_edge_label(PreparedGraphConstruction) -> @relation_schema.FieldName?
-
-pub fn graph_construction_edge_property_at(PreparedGraphConstruction, Int) -> @relation_schema.FieldName?
-
-pub fn graph_construction_edge_property_count(PreparedGraphConstruction) -> Int
-
-pub fn graph_construction_edge_source(PreparedGraphConstruction) -> @relation_schema.FieldName
-
-pub fn graph_construction_edge_target(PreparedGraphConstruction) -> @relation_schema.FieldName
-
-pub fn graph_construction_node_identity(PreparedGraphConstruction) -> @relation_schema.FieldName
-
-pub fn graph_construction_node_property_at(PreparedGraphConstruction, Int) -> @relation_schema.FieldName?
-
-pub fn graph_construction_node_property_count(PreparedGraphConstruction) -> Int
-
-pub fn graph_construction_output_carrier(PreparedGraphConstruction) -> @carrier_contract.Carrier
-
 pub fn graph_match_field_at(PreparedGraphMatch, Int) -> @relation_schema.FieldName?
 
 pub fn graph_match_field_count(PreparedGraphMatch) -> Int
@@ -1347,7 +1327,6 @@ pub(all) enum GraphBasicKind {
 } derive(Eq, @debug.Debug)
 
 pub(all) enum GraphConstructionIssue {
-  InvalidGraphConstruction
   InvalidPropertyGraphConstruction
 } derive(Eq, @debug.Debug)
 
@@ -1606,7 +1585,6 @@ pub enum Payload {
   GraphEqualityRows(@graph_typing.CheckedEquality)
   GraphDiffRows(@graph_typing.CheckedDiff)
   GraphApplyValue(@graph_typing.CheckedApply)
-  GraphConstructionValue(@graph_typing.CheckedConstruction)
   PropertyGraphConstructionValue(@graph_typing.CheckedPropertyConstruction)
   VectorValue(@vector_typing.CheckedVector)
   NearestValue(@relation_evidence.CheckedNearest)
@@ -1678,8 +1656,6 @@ pub(all) enum PreparedFrameBoundary {
 } derive(Eq, @debug.Debug)
 
 type PreparedGraphBasic
-
-type PreparedGraphConstruction
 
 type PreparedGraphMatch
 
@@ -1778,7 +1754,6 @@ pub enum PreparedStep {
   GraphTraverseStep(PreparedGraphTraverse)
   GraphShortestStep(PreparedGraphShortest)
   GraphRelationStep(PreparedGraphRelation)
-  GraphConstructionStep(PreparedGraphConstruction)
   PropertyGraphConstructionStep(PreparedPropertyGraphConstruction)
   VectorStep(PreparedVector)
   EventStep(PreparedEvent)

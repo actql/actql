@@ -212,43 +212,6 @@ fn operation_rule(
       // Do not mistake repeated authored selectors for extra output entities.
       return Ok((law, GraphMeasure(@arithmetic.Rows, input_unit, 0, 1L)))
     }
-    @pipeline.GraphConstruction(nodes~, ..) => {
-      if unit == @arithmetic.Nodes {
-        return Ok(
-          (
-            "actql.bound.graph-nodes",
-            GraphMeasure(
-              unit,
-              @arithmetic.Rows,
-              0,
-              if nodes is Some(_) {
-                1L
-              } else {
-                2L
-              },
-            ),
-          ),
-        )
-      }
-      if unit == @arithmetic.Edges {
-        return Ok(
-          (
-            "actql.bound.graph-edges",
-            GraphMeasure(
-              unit,
-              @arithmetic.Rows,
-              if nodes is Some(_) {
-                1
-              } else {
-                0
-              },
-              1L,
-            ),
-          ),
-        )
-      }
-      return Err(LawMismatch)
-    }
     @pipeline.Projection(op) =>
       match @projection.operation(op) {
         @projection.NodeRows =>

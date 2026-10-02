@@ -459,7 +459,6 @@ pub enum CheckedOperation {
   GraphStructural(right~ : Target, checked~ : @graph_typing.CheckedStructural)
   GraphUnion(@graph_typing.CheckedUnion)
   GraphMean(@graph_typing.CheckedMean)
-  GraphConstruction(nodes~ : Target?, edges~ : Target, checked~ : @graph_typing.CheckedConstruction)
   PropertyGraphConstruction(inputs~ : Array[Target], checked~ : @graph_typing.CheckedPropertyConstruction)
   Vector(@vector_typing.CheckedVector)
   Nearest(queries~ : Target, checked~ : @relation_evidence.CheckedNearest)

@@ -43,8 +43,6 @@ pub fn check(Operation, @decode_core.Cursor, @carrier_contract.Carrier, @paramet
 
 pub fn check_apply(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, @graph_contract.CheckedContract, Limits) -> Result[CheckedApply, Issue]
 
-pub fn check_construction(@decode_core.Cursor, @carrier_contract.Carrier?, @carrier_contract.Carrier, Limits) -> Result[CheckedConstruction, Issue]
-
 pub fn check_diff(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedDiff, Issue]
 
 pub fn check_equality(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedEquality, Issue]
@@ -76,22 +74,6 @@ pub fn check_subgraph(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_c
 pub fn check_traverse(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedTraverse, MatchIssue]
 
 pub fn check_union(@decode_core.Cursor, @carrier_contract.Carrier, Array[@carrier_contract.Carrier], Limits) -> Result[CheckedUnion, Issue]
-
-pub fn construction_edges_name(CheckedConstruction) -> String?
-
-pub fn construction_nodes_name(CheckedConstruction) -> String?
-
-pub fn construction_output(CheckedConstruction) -> @carrier_contract.Carrier
-
-pub fn construction_pending(CheckedConstruction) -> Array[ConstructionObligation]
-
-pub fn construction_pending_at(CheckedConstruction, Int) -> ConstructionObligation?
-
-pub fn construction_pending_count(CheckedConstruction) -> Int
-
-pub fn construction_source(CheckedConstruction) -> @decode_core.Cursor
-
-pub fn construction_usage(CheckedConstruction) -> Usage
 
 pub fn diff_common_graph(CheckedDiff) -> @carrier_contract.Graph
 
@@ -469,8 +451,6 @@ pub(all) enum ApplyObligation {
 
 type CheckedApply
 
-type CheckedConstruction
-
 type CheckedDiff
 
 type CheckedEquality
@@ -512,16 +492,9 @@ pub(all) enum ComponentKind {
 
 pub(all) enum ConstructionObligation {
   AdmitGraphInputRows
-  CloseBothEndpointsAgainstDeclaredNodes
-  DeriveDistinctEndpointNodes
-  JournalEndpointCompletion
-  JournalLabelCompletion
-  CollapseEqualIdentityPayloads
-  RejectConflictingIdentityPayloads
   RejectDuplicateDefinitionKeys
   ExcludeNullKeysAndMissingEndpoints
   ResolveGraphConstructionResources
-  ResolveSgaProfile
   ResolvePropertyGraphProfile
 } derive(Eq, @debug.Debug)
 

@@ -105,7 +105,6 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
   match node.payload {
     Values(_) | InnerJoin(_) | CrossJoinRows(_) | AppendRows(_) | SetRows(_) =>
       true
-    GraphConstructionValue(_) => operation(node) == "BRIDGE.rows.to_graph"
     PropertyGraphConstructionValue(_) =>
       operation(node) == "BRIDGE.rows.to_property_graph"
     GraphTraverseRows(checked) =>
@@ -294,7 +293,6 @@ pub fn node_accepts_managed_relation_view(
   }
   if node.input_targets.length() == 2 && index >= 0 && index < 2 {
     return match node.payload {
-      GraphConstructionValue(_) => operation(node) == "BRIDGE.rows.to_graph"
       GraphReachRows(_) => index == 1 && operation(node) == "SGA.reachable"
       GraphTraverseRows(_) => index == 1 && operation(node) == "SGA.traverse"
       GraphSubgraphValue(_) => index == 1 && operation(node) == "SGA.subgraph"

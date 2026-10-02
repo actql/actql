@@ -521,21 +521,6 @@ fn derive_row_counts(
         }
         Some({ nodes: reduce_count(nodes), edges: reduce_count(edges), })
       }
-      GraphConstruction(nodes~, edges~, ..) => {
-        let edges = reduce_count(count_at(edges, result))
-        let nodes = match nodes {
-          Some(t) => reduce_count(count_at(t, result))
-          None => product_counts(step.source, edges, Some(count(2L, true)))
-        }
-        Some({
-          nodes,
-          edges: if nodes is Some({ upper: 0L, .. }) {
-            Some(count(0L, true))
-          } else {
-            edges
-          },
-        })
-      }
       Graph(v) =>
         if @graph.operation(v) == NormalizeGraph {
           graph_input

@@ -2113,12 +2113,6 @@ fn check_impl(
       entries: match checked {
         PropertyGraphConstruction(inputs~, ..) =>
           inputs.mapi((index, target) => { role: Sample(index), target, })
-        GraphConstruction(nodes~, edges~, ..) =>
-          match nodes {
-            Some(t) =>
-              [{ role: Left, target: t, }, { role: Right, target: edges, }]
-            None => [{ role: Primary, target: edges, }]
-          }
         Values(_) | TimeSeries(_) | GraphMean(_) | GraphUnion(_) => []
         Calendar(_) | Pool(_) | Ranking(_) =>
           [{ role: Primary, target: input, }]

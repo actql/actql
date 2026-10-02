@@ -18,7 +18,6 @@ struct PreparedNode {
   aggregation_id : String?
   nest_expansion : Array[PreparedNestExpansionNode]?
   vector_expansion : Array[PreparedVectorExpansionNode]?
-  graph_construction_expansion : Array[PreparedGraphConstructionExpansionNode]?
   payload : Payload
   inputs : Array[String]
   input_targets : Array[@pipeline.Target]
@@ -74,7 +73,6 @@ pub enum Payload {
   GraphEqualityRows(@graph.CheckedEquality)
   GraphDiffRows(@graph.CheckedDiff)
   GraphApplyValue(@graph.CheckedApply)
-  GraphConstructionValue(@graph.CheckedConstruction)
   PropertyGraphConstructionValue(@graph.CheckedPropertyConstruction)
   VectorValue(@vector.CheckedVector)
   NearestValue(@vector.CheckedNearest)
@@ -248,7 +246,6 @@ pub fn operation(value : PreparedNode) -> String {
     GraphEqualityRows(_) => "SGA.equal"
     GraphDiffRows(_) => "SGA.diff"
     GraphApplyValue(_) => "SGA.apply_delta"
-    GraphConstructionValue(_) => "BRIDGE.rows.to_graph"
     PropertyGraphConstructionValue(_) => "BRIDGE.rows.to_property_graph"
     VectorValue(value) =>
       match @vector.operation(value) {
@@ -341,7 +338,6 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     Pool(value) => Some(PoolValue(value))
     Nearest(checked~, ..) => Some(NearestValue(checked))
     Ranking(value) => Some(RankingValue(value))
-    GraphConstruction(checked~, ..) => Some(GraphConstructionValue(checked))
     PropertyGraphConstruction(checked~, ..) =>
       Some(PropertyGraphConstructionValue(checked))
     TextRank(..) => None
@@ -531,15 +527,6 @@ pub fn prepare(
       GraphEqualityRows(_) => ("graphs_equal", 2)
       GraphDiffRows(_) => ("graph_diff", 2)
       GraphApplyValue(_) => ("apply_graph_delta", 2)
-      GraphConstructionValue(checked) =>
-        (
-          "graph",
-          if @graph.construction_nodes_name(checked) is Some(_) {
-            2
-          } else {
-            1
-          },
-        )
       PropertyGraphConstructionValue(checked) =>
         (
           "property_graph",
@@ -598,15 +585,6 @@ pub fn prepare(
       PoolValue(pool) => Some(prepare_pool_expansion(pool))
       _ => None
     }
-    let graph_construction_expansion = match payload {
-      GraphConstructionValue(checked) =>
-        Some(
-          prepare_graph_construction_expansion(
-            @graph.construction_nodes_name(checked) is Some(_),
-          ),
-        )
-      _ => None
-    }
     if nest_expansion is Some(expansion) {
       let expanded_nodes = expansion.length()
       let expanded_references = nest_expansion_reference_count(expansion)
@@ -652,40 +630,6 @@ pub fn prepare(
           continue
         }
         let generated = vector_generated_role_id(i, expansion_node.role)
-        if used.contains(generated) || generated == id {
-          return Err({ kind: IdentifierCollision, source: step.source, })
-        }
-        if generated.length() > limits.max_identifier_bytes - bytes {
-          return Err({ kind: BudgetExceeded, source: step.source, })
-        }
-        bytes += generated.length()
-        used[generated] = true
-      }
-      expansions += added_nodes
-      references += added_references
-      work += added_nodes + added_references
-    }
-    if graph_construction_expansion is Some(expansion) {
-      let expanded_nodes = expansion.length()
-      let expanded_references = graph_construction_expansion_reference_count(
-        expansion,
-      )
-      let added_nodes = expanded_nodes - 1
-      let added_references = expanded_references - arity
-      if added_nodes > limits.max_nodes - count - inputs - expansions ||
-        added_references > limits.max_references - references ||
-        added_nodes > limits.max_work - work ||
-        added_references > limits.max_work - work - added_nodes {
-        return Err({ kind: BudgetExceeded, source: step.source, })
-      }
-      for expansion_node in expansion {
-        if expansion_node.source_node {
-          continue
-        }
-        let generated = graph_construction_generated_role_id(
-          i,
-          expansion_node.role,
-        )
         if used.contains(generated) || generated == id {
           return Err({ kind: IdentifierCollision, source: step.source, })
         }
@@ -790,7 +734,6 @@ pub fn prepare(
       GraphEqualityRows(_) => None
       GraphDiffRows(_) => None
       GraphApplyValue(_) => None
-      GraphConstructionValue(_) => None
       PropertyGraphConstructionValue(_) => None
       VectorValue(_) => None
       NearestValue(_) => None
@@ -887,7 +830,6 @@ pub fn prepare(
       aggregation_id,
       nest_expansion,
       vector_expansion,
-      graph_construction_expansion,
       payload,
       inputs: refs,
       input_targets,

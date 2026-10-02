@@ -350,7 +350,6 @@ fn prepare_kernel_measured(
     | GraphEqualityRows(_)
     | GraphDiffRows(_)
     | GraphApplyValue(_)
-    | GraphConstructionValue(_)
     | PropertyGraphConstructionValue(_)
     | VectorValue(_)
     | NearestValue(_)

@@ -264,10 +264,6 @@ fn check_resolution_index(
         execution += 1
         assert_true(physical_equal(check.site, site))
       }
-      Execution(GraphConstructionExecution(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
       Execution(GraphProjectionOutput(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))

@@ -144,15 +144,8 @@ pub fn operation_profile_requirement(
       }
     ConstructionRequirement(o) =>
       match o {
-        ResolveSgaProfile => Some(SGA)
         ResolvePropertyGraphProfile => Some(PropertyGraph)
         AdmitGraphInputRows
-        | CloseBothEndpointsAgainstDeclaredNodes
-        | DeriveDistinctEndpointNodes
-        | JournalEndpointCompletion
-        | JournalLabelCompletion
-        | CollapseEqualIdentityPayloads
-        | RejectConflictingIdentityPayloads
         | RejectDuplicateDefinitionKeys
         | ExcludeNullKeysAndMissingEndpoints
         | ResolveGraphConstructionResources => None

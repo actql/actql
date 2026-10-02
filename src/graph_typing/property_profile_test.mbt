@@ -272,16 +272,7 @@ test "reach has no historical execution alternative under the current graph cont
 }
 
 ///|
-test "retired tuple construction and unconnected subgraph are explicit refusals" {
-  assert_true(
-    @graph_typing.check_construction(
-      cursor("{\"source\":\"src\",\"target\":\"dst\"}"),
-      None,
-      @carrier.relation(@carrier.unknown_rows()),
-      limits(),
-    )
-    is Err({ kind: @graph_typing.UnsupportedGraphOperation, .. }),
-  )
+test "unconnected subgraph is an explicit refusal" {
   assert_true(
     @graph_typing.check_subgraph(
       cursor("{\"nodes\":{\"ids\":[]}}"),

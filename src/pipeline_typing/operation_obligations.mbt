@@ -79,7 +79,6 @@ priv enum ObligationOwner {
   ApplyOwner(@graph.CheckedApply)
   StructuralOwner(@graph.CheckedStructural)
   MeanOwner(@graph.CheckedMean)
-  ConstructionOwner(@graph.CheckedConstruction)
   PropertyConstructionOwner(@graph.CheckedPropertyConstruction)
   VectorOwner(@vector.CheckedVector)
   NearestOwner(@vector.CheckedNearest)
@@ -133,7 +132,6 @@ pub fn operation_obligations_source(v : OperationObligations) -> @decode.Cursor 
     ApplyOwner(c) => @graph.apply_source(c)
     StructuralOwner(c) => @graph.structural_source(c)
     MeanOwner(c) => @graph.mean_options_source(@graph.mean_options(c))
-    ConstructionOwner(c) => @graph.construction_source(c)
     PropertyConstructionOwner(c) => @graph.property_construction_source(c)
     VectorOwner(c) => @vector.source(c)
     NearestOwner(c) =>
@@ -218,7 +216,6 @@ pub fn operation_obligations_count(v : OperationObligations) -> Int {
     ApplyOwner(c) => @graph.apply_pending_count(c)
     StructuralOwner(c) => @graph.structural_pending_count(c)
     MeanOwner(c) => @graph.mean_pending_count(c)
-    ConstructionOwner(c) => @graph.construction_pending_count(c)
     PropertyConstructionOwner(c) =>
       @graph.property_construction_pending_count(c)
     VectorOwner(c) => @vector.pending_validation_count(c)
@@ -296,10 +293,6 @@ pub fn operation_obligations_at(
       @graph.structural_pending_at(c, index).map(x => StructuralRequirement(x))
     MeanOwner(c) =>
       @graph.mean_pending_at(c, index).map(x => MeanRequirement(x))
-    ConstructionOwner(c) =>
-      @graph.construction_pending_at(c, index).map(x => {
-        ConstructionRequirement(x)
-      })
     PropertyConstructionOwner(c) =>
       @graph.property_construction_pending_at(c, index).map(x => {
         ConstructionRequirement(x)
@@ -361,7 +354,6 @@ pub fn operation_obligation_group_count(operation : CheckedOperation) -> Int {
     | GraphApply(checked=_, ..)
     | GraphStructural(checked=_, ..)
     | GraphMean(_)
-    | GraphConstruction(checked=_, ..)
     | PropertyGraphConstruction(..)
     | Vector(_)
     | Nearest(checked=_, ..)
@@ -406,8 +398,6 @@ pub fn operation_obligation_group_at(
       GraphStructural(checked=c, ..) =>
         { scope: Body, owner: StructuralOwner(c), }
       GraphMean(c) => { scope: Body, owner: MeanOwner(c), }
-      GraphConstruction(checked=c, ..) =>
-        { scope: Body, owner: ConstructionOwner(c), }
       PropertyGraphConstruction(checked=c, ..) =>
         { scope: Body, owner: PropertyConstructionOwner(c), }
       Vector(c) => { scope: Body, owner: VectorOwner(c), }

@@ -39,7 +39,6 @@ pub(all) enum OperationExecutionCheck {
   ReachExecution(ReachCheck)
   ShortestExecution(ShortestCheck)
   GraphExecution(GraphExecutionCheck)
-  GraphConstructionExecution(GraphConstructionCheck)
   PropertyGraphConstructionExecution(PropertyGraphConstructionCheck)
   GraphProjection(GraphProjectionCheck)
   GraphProjectionOutput(GraphProjectionEnvelope)
@@ -289,17 +288,6 @@ pub fn operation_execution_phase(
         AdmitGraphData => BeforeOperationInputUse
         OrderComponentIdentities | OrderBoundsReport => BeforeOperationOutput
       }
-    GraphConstructionExecution(v) =>
-      match v.rule {
-        AdmitInputRows => BeforeOperationInputUse
-        CloseDeclaredEndpoints
-        | DeriveEndpointNodes
-        | JournalEndpoints
-        | JournalLabels
-        | CollapseEqualPayloads
-        | EnforceConstructionEnvelope
-        | RejectPayloadConflicts => BeforeOperationOutput
-      }
     PropertyGraphConstructionExecution(v) =>
       match v.rule {
         AdmitPropertyInputRows => BeforeOperationInputUse
@@ -433,7 +421,6 @@ pub fn operation_execution_failure(
     | GraphProjection(_)
     | GraphExecution(_)
     | GraphProjectionOutput(_)
-    | GraphConstructionExecution(_)
     | PropertyGraphConstructionExecution(_) => RejectOperationOutput
     AsOfExecution(_) => RejectOperationOutput
     IntervalExecution(_) => RejectOperationOutput

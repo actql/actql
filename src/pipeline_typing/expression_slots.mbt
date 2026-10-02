@@ -337,7 +337,6 @@ pub fn collect_expression_slots(
         | GraphStructural(..)
         | GraphUnion(_)
         | GraphMean(_)
-        | GraphConstruction(..)
         | PropertyGraphConstruction(..)
         | Vector(_)
         | Nearest(..)

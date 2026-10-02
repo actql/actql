@@ -38,8 +38,7 @@ fn operation_count_contract(
     | @pipeline.Subgraph(..)
     | @pipeline.Shortest(..)
     | @pipeline.GraphStructural(..)
-    | @pipeline.GraphUnion(_)
-    | @pipeline.GraphConstruction(..) => Graph
+    | @pipeline.GraphUnion(_) => Graph
     @pipeline.PropertyGraphConstruction(..) => PropertyGraph
     @pipeline.GraphMatch(checked) =>
       if @graph.match_property_definition(checked) is Some(_) {

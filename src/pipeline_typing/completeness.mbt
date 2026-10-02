@@ -109,7 +109,6 @@ pub fn completeness_scope(v : CompletenessRequirement) -> CompletenessScope {
         | GraphStructural(..)
         | GraphUnion(_)
         | GraphMean(_)
-        | GraphConstruction(..)
         | PropertyGraphConstruction(..)
         | Vector(_)
         | Nearest(..)

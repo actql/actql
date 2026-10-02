@@ -993,19 +993,6 @@ fn prepare_publication_source_policy(
             unknown = unknown || missing
             1
           }
-          @pipeline.GraphConstruction(nodes~, ..) => {
-            identity_charge(budget, 1)
-            carrier_steps.push({
-              step: index,
-              operation: step.operation,
-              unknown_provenance: false,
-            })
-            if nodes is Some(_) {
-              2
-            } else {
-              1
-            }
-          }
           @pipeline.PropertyGraphConstruction(inputs~, ..) => {
             identity_charge(budget, 1)
             carrier_steps.push({

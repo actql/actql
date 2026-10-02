@@ -167,11 +167,6 @@ pub enum CheckedOperation {
   GraphStructural(right~ : Target, checked~ : @graph.CheckedStructural)
   GraphUnion(@graph.CheckedUnion)
   GraphMean(@graph.CheckedMean)
-  GraphConstruction(
-    nodes~ : Target?,
-    edges~ : Target,
-    checked~ : @graph.CheckedConstruction
-  )
   PropertyGraphConstruction(
     inputs~ : Array[Target],
     checked~ : @graph.CheckedPropertyConstruction

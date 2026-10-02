@@ -31,13 +31,6 @@ fn property_graph_construction_execution_check(
     ExcludeNullKeysAndMissingEndpoints => ExcludeNullKeysAndMissingEndpoints
     ResolveGraphConstructionResources => EnforcePropertyConstructionEnvelope
     ResolvePropertyGraphProfile => return Ok(None)
-    CloseBothEndpointsAgainstDeclaredNodes
-    | DeriveDistinctEndpointNodes
-    | JournalEndpointCompletion
-    | JournalLabelCompletion
-    | CollapseEqualIdentityPayloads
-    | RejectConflictingIdentityPayloads
-    | ResolveSgaProfile => return Err(ForeignOccurrence(site.step))
   }
   guard @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
     step.operation
