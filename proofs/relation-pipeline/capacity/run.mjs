@@ -10,7 +10,8 @@ import { registrations } from '../obligations.mjs';
 import { registry } from '../registry.mjs';
 import { compareSemantics } from '../evidence.mjs';
 import { applyMutation } from '../sites.mjs';
-import { replacements, instrument, mutations, workspaceOverlay } from './instrument.mjs';
+import { replacements, instrument, mutations, workspaceOverlay, generatedObservers,
+  installGeneratedObservers, restoreGeneratedObservers } from './instrument.mjs';
 import { inspectEvents, violation, admitClaim, subject, unresolved, inputs, workspaceBound } from './model.mjs';
 import { checkCensus } from './census.mjs';
 import { runCoreProbe } from './backing/core-probe.mjs';
@@ -23,6 +24,7 @@ checkCensus(root);
 const originals = Object.fromEntries(Object.keys(replacements).map(path => [path, readFileSync(join(root, path), 'utf8')]));
 const overlays = Object.fromEntries(Object.entries(originals).map(([path, code]) => [path, instrument(path, code)]));
 function install(variant, boundary) {
+  installGeneratedObservers(root);
   for (const [path, code] of Object.entries(originals)) {
     let changed = variant?.path === path ? applyMutation(code, variant) : code;
     if (boundary !== undefined && path.endsWith('bounded_binding_rows.mbt')) changed = workspaceOverlay(changed, boundary);
@@ -31,6 +33,7 @@ function install(variant, boundary) {
 }
 function restore() {
   for (const [path, code] of Object.entries(originals)) writeFileSync(join(root, path), code);
+  restoreGeneratedObservers(root);
   assert.equal(snapshot(root).digest, source.digest, 'Capacity observer/mutation was not restored');
 }
 function eligible(c) { return c.steps.filter(s => s.op === 'distinct').length === 1; }
@@ -58,7 +61,7 @@ const search = generate(registry, 148256, 24).filter(eligible);
 const report = { version: 'actql-relation-pipeline-structure/0.1', revision, source, toolchain,
   claim: admitClaim({ subject, kind: 'structural-model-and-finite-correspondence',
     units: 'filled entries and numeric content octets', unresolved: [...unresolved], unconditionalAllocationBytes: false }),
-  overlays: Object.fromEntries(Object.entries(overlays).map(([p, c]) => [p, hash(c)])),
+  overlays: Object.fromEntries(Object.entries({ ...overlays, ...generatedObservers }).map(([p, c]) => [p, hash(c)])),
   corpus, normal: {}, boundaries: {}, mutations: [], seed: 148256, search,
   shrinkMeaning: 'local minimum under existing typed reductions, same DISTINCT operation occurrence and accounting resource fault',
   timings: { boundaries: {} } };

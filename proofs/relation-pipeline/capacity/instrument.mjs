@@ -1,10 +1,46 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'node:fs';
+import { join } from 'node:path';
 const rows = 'src/execution_relation/bounded_binding_rows.mbt';
 const sort = 'src/execution_relation/bounded_index_sort.mbt';
 const reads = 'src/execution_relation/producer_read.mbt';
 const providers = 'src/connectors/local/managed_provider.mbt';
+const packagePath = 'src/execution_relation/moon.pkg';
+export const generatedObservers = {
+  'src/execution_relation/capacity_map_probe_stub.c': readFileSync(new URL('./backing/probe/layout_stub.c', import.meta.url), 'utf8'),
+  'src/execution_relation/capacity_map_probe_native.mbt': readFileSync(new URL('./backing/observer_native.mbt.txt', import.meta.url), 'utf8'),
+  'src/execution_relation/capacity_map_probe_portable.mbt': readFileSync(new URL('./backing/observer_portable.mbt.txt', import.meta.url), 'utf8'),
+};
+const ownedObservers = new Set();
+export function installGeneratedObservers(root) {
+  for (const [path, code] of Object.entries(generatedObservers)) {
+    const full = join(root, path);
+    if (ownedObservers.has(full)) {
+      assert.equal(readFileSync(full, 'utf8'), code, 'Owned observer was changed');
+    } else {
+      assert(!existsSync(full), 'Another task owns the temporary native observer');
+      writeFileSync(full, code, { flag: 'wx' }); ownedObservers.add(full);
+    }
+  }
+}
+export function restoreGeneratedObservers(root) {
+  for (const [path, code] of Object.entries(generatedObservers)) {
+    const full = join(root, path);
+    if (!ownedObservers.has(full)) continue;
+    assert.equal(readFileSync(full, 'utf8'), code, 'Owned observer was changed');
+    unlinkSync(full); ownedObservers.delete(full);
+  }
+}
 export const replacements = {
+  [packagePath]: [['supported_targets = "+js+wasm+native"', `supported_targets = "+js+wasm+native"
+
+options(
+  "native-stub": [ "capacity_map_probe_stub.c" ],
+  targets: {
+    "capacity_map_probe_native.mbt": [ "native" ],
+    "capacity_map_probe_portable.mbt": [ "not", "native" ],
+  },
+)`]],
   [providers]: [
     ['  (provider.start)(\n    sequence,\n    inputs.map(input => RelationInput(input)),',
       `  let declared = managed_provider_capacity(provider, sequence).unwrap()
