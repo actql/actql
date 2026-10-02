@@ -1548,6 +1548,122 @@ test "snapshot policy is installed and charged before constructor input access" 
 }
 
 ///|
+test "fused keyed definitions reuse one exact pipeline input without duplicating handles" {
+  let source = keyed_node_source()
+  let checked = @pipeline.check_with_evidence(
+    input_cursor(
+      (
+        #|[{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"rows","key":["tenant","id"],"labels":[{"name":"Node","properties":{"mode":"columns","columns":[{"from":"name","to":"display"}]}}]}],"edges":[{"name":"E","from":"rows","key":["tenant","id"],"source":{"definition":"N","key":["tenant","id"]},"target":{"definition":"N","key":["tenant","id"]},"labels":[{"name":"R","properties":{"mode":"no_properties"}}]}]},"as":"g"},{"from":"g","match_nodes":{"definition":"N","where":"true","fields":["display"]},"as":"out"}]
+      ),
+    ),
+    [
+      (
+        "rows",
+        @pipeline.ProducedInput(
+          @pipeline.produced_input(
+            @lower.pipeline(@lower.bound_preparation(source)),
+            @pipeline.Step(0),
+          ).unwrap(),
+        ),
+      ),
+    ],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 100000,
+      max_text_bytes: 100000,
+      max_nodes: 10000,
+      max_tokens: 10000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  let owner = @lower.bind_parameters(
+    @lower.prepare(checked, {
+      max_nodes: 1000,
+      max_references: 1000,
+      max_work: 100000,
+      max_identifier_bytes: 100000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let output = carrier_events_source_output(source)
+  let input = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, source, output).unwrap(),
+    1000,
+    10000,
+  ).unwrap()
+  assert_true(
+    @execution.producer_read_matches_operation_input(input, owner, 0, 0),
+  )
+  assert_true(
+    @execution.producer_read_matches_operation_input(input, owner, 0, 1),
+  )
+  for prefix in [false, true] {
+    let generated = if prefix {
+      @execution.select_generated_sequence_prefix(task_test_generated(owner), 0).unwrap()
+    } else {
+      task_test_generated(owner)
+    }
+    let provider = @local_sga_provider.provider(
+      carrier_graph_storage_limits(),
+      4096L,
+      @execution.generated_sequence_capacity(
+        generated,
+        dispatch_test_limits().local_execution,
+        dispatch_test_limits().guards,
+      ).unwrap(),
+    )
+    let inputs = [@local_connector.managed_provider_relation_input(input)]
+    assert_true(
+      @local_connector.start_managed_provider_with_inputs(
+        provider,
+        generated,
+        [..inputs, ..inputs],
+        10,
+        1000,
+      )
+      is Err(_),
+    )
+    let active = @local_connector.start_managed_provider_with_inputs(
+      provider, generated, inputs, 10, 1000,
+    ).unwrap()
+    let mut completed = false
+    for _ in 0..<10000 {
+      match @local_connector.advance_managed_provider(active, 1).unwrap() {
+        @local_connector.Continue(work~, ..) => assert_true(work > 0L)
+        @local_connector.CarrierComplete(material, ..) => {
+          assert_true(prefix)
+          assert_true(@carrier_runtime.material_available(material))
+          completed = true
+          break
+        }
+        @local_connector.Complete(rows, ..) => {
+          assert_false(prefix)
+          assert_eq(@execution.completed_row_count(rows), 1)
+          assert_true(
+            @execution.completed_cell(rows, 0, 0) is Some(Text("one")),
+          )
+          completed = true
+          break
+        }
+        _ =>
+          fail(
+            "fused constructor/MATCH must finish without another input handle",
+          )
+      }
+    }
+    assert_true(completed)
+    assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
+    assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
+    assert_true(@execution.producer_read_available(input))
+  }
+}
+
+///|
 test "existing Graph provider retains keyed constructor material and cleanup custody" {
   let nodes = keyed_node_source()
   let edges = keyed_edge_source()

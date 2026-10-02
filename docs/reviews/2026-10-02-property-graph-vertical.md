@@ -904,6 +904,36 @@ the three-target result is
 `/private/tmp/property-graph-canonical-targets-20261003.log`. This staged
 diagnostic run is not reported as a complete final-SHA spec success.
 
+### Fused construction input custody regression (2026-10-03)
+
+Migrating the existing real DuckDB Host publication matrix exposed a current
+provider failure before publication: a fused constructor/MATCH with one
+pipeline input used by both node and edge definitions was rejected as InputSet.
+The provider incorrectly required the selected-task occurrence count even for
+the fused pipeline input set. Selected tasks continue to require every ordered
+operation occurrence. Fused tasks use the checked pipeline input count, and
+input_at still checks every exact operation edge and live producer owner. A
+constructor-only prefix also uses the existing constructor_material projection
+to finish as Graph rather than attempting to project a consumer outside that
+prefix. No task graph generation, selection rules or provider owner is added.
+
+The new common regression checks a shared composite-key input, NULL exclusion,
+both fused MATCH and constructor-only prefix, surplus-handle rejection and
+repeated cleanup. Removing the input-count fix makes it fail (0/1); the fixed
+construction suite passes **21/21 on each of JS, Wasm and native**, with
+--deny-warn. Evidence is in
+`/private/tmp/property-graph-fused-regression-without-fix-20261003.log` and
+`/private/tmp/property-graph-fused-regression-fixed-{js,wasm,native}-20261003.log`.
+An initial diagnostic invocation used mutually exclusive Moon test arguments;
+it did not run tests. That command error is kept separately in
+`/private/tmp/property-graph-fused-regression-js-20261003.log`.
+
+The existing spec tail also passed from the canonical freshness stage through
+the final events check at the current grammar pin; its log is
+`/private/tmp/property-graph-spec-tail-canonical-current-20261003.log`. This is
+still staged evidence, not an aggregate final-SHA spec or CI success. Host
+guarantee migration and final integration acceptance remain unfinished.
+
 Full SGA, external producer-definition provenance, a durable Graph catalog and
 complete mechanized correspondence are not claimed. Remaining fixture and
 consumer migration plus aggregate gates remain required in the current unit;

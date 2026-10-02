@@ -389,11 +389,7 @@ fn advance_execution(
             return Ok(poll)
           }
           Ok(@bridge.Complete(output, progress~, work~)) => {
-            if value.selected_step is Some(_) ||
-              (
-                value.construction_steps == 1 &&
-                @lower.sequence_count(value.sequence) == 1
-              ) {
+            if constructor_material(value.generated) {
               guard delta(progress, value.stage_progress)
                 is Some(progress_delta) &&
                 delta(work, value.stage_work) is Some(work_delta) else {
@@ -870,7 +866,20 @@ pub fn provider(
         _ => None
       }
       if property_inputs is Some(count) {
-        if relations.length() != count || !carriers.is_empty() {
+        // A selected task has one read per checked operation occurrence. A
+        // fused prefix instead has one read per pipeline input, which can be
+        // reused by several definitions. Construction still checks every
+        // occurrence through input_at; no producer identity is inferred.
+        let expected = if selected_step is Some(_) {
+          count
+        } else {
+          @lower.preparation_input_count(
+            @lower.bound_preparation(
+              @execution.generated_sequence_owner(sequence),
+            ),
+          )
+        }
+        if relations.length() != expected || !carriers.is_empty() {
           return Err(@connector.Execution(@execution.InputSet))
         }
       } else if direct_match || direct_traverse {
