@@ -1326,10 +1326,15 @@ test('Node JS bridge derives the checked named Result and request identity', asy
   assert.deepEqual([rowsLimit.unit, rowsLimit.effective_max,
     bytesLimit.unit, bytesLimit.effective_max],
   ['rows', 2, 'bytes', 1000]);
-  assert.deepEqual(rowsLimit.candidates.map(candidate => candidate.role),
+  // Roles are present independently of their canonical witness-CID order.
+  assert.deepEqual(rowsLimit.candidates.map(candidate => candidate.role).sort(),
     ['host_ceiling', 'proven_upper_bound']);
   for (const limit of [rowsLimit, bytesLimit]) {
     assert.equal(limit.version, 'actql-resolved-limit/0.1');
+    // The resolved-limit contract orders witnesses by CID, not by role.
+    // A changed Unit preimage can reverse role order without losing a bound.
+    const witnessCids = limit.candidates.map(candidate => candidate.witness_cid);
+    assert.deepEqual(witnessCids, [...witnessCids].sort());
     assert.equal(limit.resolved_limit_cid,
       hashWithoutSelf(limit, 'resolved_limit_cid'));
     for (const witness of limit.candidates) {
