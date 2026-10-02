@@ -6,6 +6,8 @@ import {createRequire} from 'node:module';
 import {join} from 'node:path';
 
 import test from 'node:test';
+import {valuesUnitIdentity, valuesPublicationRowsBinding, valuesResultPlan} from
+  '../../scripts/fixtures/string-contract-identities.mjs';
 import {inspect} from 'node:util';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
@@ -726,19 +728,16 @@ test('private Plan binding uses the escaped checked Unit Result name', async () 
   const body = checked(
     moon.clientProgramPublicationRowsBindingJson(prepared, 0, 0));
   const binding = JSON.parse(body);
-  assert.deepEqual([
-    binding.target.unit_definition_cid,
-    binding.target.result_name,
-    binding.subject_ref,
-    binding.resolved_limit_cid,
-    binding.binding_cid,
-  ], [
-    'sha256:87fbe52e6d002927b0ef3808c1e34b64cc05f5fe72636a7b3e3b1bc26b4c55d0',
-    'a~/b',
-    'unit:sha256:87fbe52e6d002927b0ef3808c1e34b64cc05f5fe72636a7b3e3b1bc26b4c55d0#/results/a~0~1b/rows',
-    'sha256:af61d9586bf003fcbc3b11b9ae73618a17eba72f93fa05a858fa83a9d5df949c',
-    'sha256:ecc6be2770eb2454dae19082be8a632b494dfa296af148a884752232698c81fa',
-  ]);
+  const oldUnit = valuesUnitIdentity(renamed, true);
+  assert.equal(oldUnit,
+    'sha256:87fbe52e6d002927b0ef3808c1e34b64cc05f5fe72636a7b3e3b1bc26b4c55d0');
+  const oldBinding = valuesPublicationRowsBinding(oldUnit, 'a~/b');
+  assert.equal(oldBinding.resolved_limit_cid,
+    'sha256:af61d9586bf003fcbc3b11b9ae73618a17eba72f93fa05a858fa83a9d5df949c');
+  assert.equal(oldBinding.binding_cid,
+    'sha256:ecc6be2770eb2454dae19082be8a632b494dfa296af148a884752232698c81fa');
+  assert.deepEqual(binding,
+    valuesPublicationRowsBinding(valuesUnitIdentity(renamed), 'a~/b'));
   assert.equal(binding.binding_cid,
     hashWithoutSelf(binding, 'binding_cid'));
   assert.doesNotThrow(() => checked(
@@ -1087,26 +1086,22 @@ test('Node JS bridge derives the checked named Result and request identity', asy
     /^sha256:[0-9a-f]{64}$/u);
   const resultPlan = checked(moon.clientProgramIssueResultPlan(prepared, 0));
   const resultPlanWire = moon.clientProgramResultPlanWire(resultPlan);
+  const source = JSON.parse(document);
+  const oldUnit = valuesUnitIdentity(source, true);
+  assert.equal(oldUnit,
+    'sha256:63464270481cf4518c2fcc0be076d6ec2cc7986d53031f0d919ab8d57772eca9');
+  assert.equal(valuesResultPlan(oldUnit).result_plan_logical_cid,
+    'sha256:8d2ad95f6f8b7be42c550d922d0614e68be2700bba05d7af2c7e03a4fcbbcc38');
+  const expectedPlan = valuesResultPlan(valuesUnitIdentity(source));
   assert.equal(moon.clientProgramResultPlanName(resultPlan), 'answer');
   assert.equal(moon.clientProgramResultPlanCid(resultPlan),
-    'sha256:8d2ad95f6f8b7be42c550d922d0614e68be2700bba05d7af2c7e03a4fcbbcc38');
+    expectedPlan.result_plan_logical_cid);
   assert.equal(moon.clientProgramResultPlanCid(resultPlan),
     canonicalHashWithoutSelf(JSON.parse(resultPlanWire),
       'result_plan_logical_cid'));
   assert.equal(moon.clientProgramResultPlanRowContractCid(resultPlan),
     moon.clientProgramResultRowContractCid(resultRow));
-  assert.deepEqual(JSON.parse(resultPlanWire), {
-    version: 'actql-result-plan/0.1', result_name: 'answer',
-    unit_definition_cid:
-      'sha256:63464270481cf4518c2fcc0be076d6ec2cc7986d53031f0d919ab8d57772eca9',
-    unit_result_name: 'rows', unit_result_ordinal: 0,
-    projection: [{input: 'id', output: 'id', value_contract_cid:
-      'sha256:8a7be765d273ccfa06d916976f27fcb0404d814371e72c058502335b51b9bd3d'}],
-    order: {strategy: 'inherited', terms: []},
-    typed_output_port: {carrier: 'relation', name: 'rows',
-      row_contract_cid: moon.clientProgramResultRowContractCid(resultRow)},
-    result_plan_logical_cid: moon.clientProgramResultPlanCid(resultPlan),
-  });
+  assert.deepEqual(JSON.parse(resultPlanWire), expectedPlan);
   assert.equal(moon.clientProgramResultPlanWire(checked(
     moon.clientProgramAdmitResultPlan(prepared, 0, resultPlanWire))),
   resultPlanWire);
@@ -1309,8 +1304,7 @@ test('Node JS bridge derives the checked named Result and request identity', asy
     moon.clientProgramPublicationBytesLimitJson(prepared, 0, 0));
   const rowsLimit = JSON.parse(rowsLimitBody);
   const bytesLimit = JSON.parse(bytesLimitBody);
-  const unit =
-    'unit:sha256:63464270481cf4518c2fcc0be076d6ec2cc7986d53031f0d919ab8d57772eca9';
+  const unit = `unit:${valuesUnitIdentity(source)}`;
   assert.deepEqual([rowsLimit.subject_ref, bytesLimit.subject_ref],
     [`${unit}#/results/rows/rows`, `${unit}#/results/rows/bytes`]);
   assert.deepEqual([rowsLimit.unit, rowsLimit.effective_max,
@@ -1347,15 +1341,21 @@ test('Node JS bridge derives the checked named Result and request identity', asy
   {code: 'MoonBitHostFailure'});
   const rowsBinding = JSON.parse(rowsBindingBody);
   const bytesBinding = JSON.parse(bytesBindingBody);
+  const oldRows = valuesPublicationRowsBinding(oldUnit, 'rows');
+  const oldBytes = valuesPublicationRowsBinding(oldUnit, 'rows', 'bytes');
   assert.deepEqual([
-    rowsLimit.resolved_limit_cid, bytesLimit.resolved_limit_cid,
-    rowsBinding.binding_cid, bytesBinding.binding_cid,
+    oldRows.resolved_limit_cid, oldBytes.resolved_limit_cid,
+    oldRows.binding_cid, oldBytes.binding_cid,
   ], [
     'sha256:d1b8cac20c88b332522c591586126319f5bd20393c081fb0bc9a27d38eece4d1',
     'sha256:1d01310da1218b834d27dbcd7363f3c4a46f9b38a87173474e7ef45e0fede8da',
     'sha256:cd90e6f813ff852cb0b453e2d862ee91e8051802217323fa950862e6d09edd51',
     'sha256:82ab94c9ff4d94f6b11d7c9e27ddbcfd2a4b1c7b7312f062690a1c1963a581b7',
   ]);
+  assert.deepEqual(rowsBinding,
+    valuesPublicationRowsBinding(valuesUnitIdentity(source), 'rows'));
+  assert.deepEqual(bytesBinding,
+    valuesPublicationRowsBinding(valuesUnitIdentity(source), 'rows', 'bytes'));
   for (const [binding, limit, measure] of [
     [rowsBinding, rowsLimit, 'rows'],
     [bytesBinding, bytesLimit, 'bytes'],

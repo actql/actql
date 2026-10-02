@@ -12,6 +12,8 @@ pub fn normalize_nfc(String) -> Result[String, TextNormalizationError]
 
 pub fn normalize_nfc_lf(String) -> Result[String, TextNormalizationError]
 
+pub fn validate_scalar_text(String) -> Result[Unit, TextNormalizationError]
+
 // Errors
 
 // Types and methods

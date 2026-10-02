@@ -132,6 +132,7 @@ fn normalized(
   builder : Builder,
   text : String,
   remaining : Int,
+  identifier? : Bool = true,
 ) -> (String, Int) raise Failure {
   let allowance = builder.limits.tree.max_string_bytes.min(remaining)
   // Bound normalization input as well as its retained output.
@@ -144,9 +145,13 @@ fn normalized(
     Err(_) => raise Failure(StringLimit)
     Ok(_) => ()
   }
-  let text = match @canonical.normalize_nfc_lf(text) {
-    Ok(text) => text
-    Err(_) => raise Failure(InvalidScalar)
+  let text = if identifier {
+    match @canonical.normalize_nfc_lf(text) {
+      Ok(text) => text
+      Err(_) => raise Failure(InvalidScalar)
+    }
+  } else {
+    text
   }
   match @scalar.admit_utf8_length(text, allowance) {
     Ok(size) => (text, size)
@@ -265,6 +270,7 @@ fn build(
         builder,
         s,
         text_limit - builder.allocated_text,
+        identifier=false,
       )
       text_bytes = size
       own_text = size

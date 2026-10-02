@@ -94,7 +94,8 @@ fn parse_bytes_input(
 }
 
 ///|
-/// Read one JSON value with NFC then LF normalization and explicit input limits.
+/// Read bounded JSON, preserving decoded string values and normalizing object
+/// keys to NFC then LF. Domain readers admit identifier-valued members.
 pub fn parse_json(
   source : String,
   limits : ParseLimits,
@@ -116,7 +117,7 @@ pub fn parse_json_bytes(
 }
 
 ///|
-/// Decode strict bounded JSON without authoring-source text normalization.
+/// Decode strict bounded JSON without object-key normalization.
 /// This preserves decoded external values and keys; consumers must perform
 /// domain admission or an explicitly declared provider conversion.
 pub fn parse_json_bytes_preserving(

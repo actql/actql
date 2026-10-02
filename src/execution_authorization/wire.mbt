@@ -38,11 +38,21 @@ fn wire_shape(cursor : @decode.Cursor) -> WireStop {
 }
 
 ///|
+// These account configuration positions contain identifiers, never data strings.
+fn wire_identifier(cursor : @decode.Cursor) -> String raise WireStop {
+  let raw = wire_decoded(@decode.text(cursor))
+  match @canonical.normalize_nfc_lf(raw) {
+    Ok(value) => value
+    Err(_) => raise wire_shape(cursor)
+  }
+}
+
+///|
 fn wire_text(
   object : @decode.ObjectView,
   name : String,
 ) -> String raise WireStop {
-  wire_decoded(@decode.text(wire_decoded(@decode.required(object, name))))
+  wire_identifier(wire_decoded(@decode.required(object, name)))
 }
 
 ///|
@@ -58,7 +68,7 @@ fn wire_selector(cursor : @decode.Cursor) -> Selector raise WireStop {
     (None, Some(values)) => {
       let result = []
       for value in wire_decoded(@decode.elements(values)) {
-        result.push(wire_decoded(@decode.text(value)))
+        result.push(wire_identifier(value))
       }
       AnyOf(result)
     }

@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
+import {valuesUnitIdentity, acquiredUnitIdentities} from
+  '../../scripts/fixtures/string-contract-identities.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import * as runtime from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
@@ -21,7 +23,7 @@ const cid = digit => `sha256:${digit.repeat(64)}`;
 const hash = body => `sha256:${createHash('sha256')
   .update(canonicalText(body)).digest('hex')}`;
 // Retained pre-change preimages, verified against the existing compatibility
-// CIDs. Rebind only the normative Grammar Manifest and its dependent bodies;
+// CIDs. Rebind the normative Grammar Manifest and AoA contract and their dependent bodies;
 // expectations never come from the new compiler's output.
 const baselinePlanCids = {
   values: 'sha256:fc6cc72f2fe207114444c9663f5ba41ca4b3298e0e91984aa6d4252fbced6cde',
@@ -30,6 +32,25 @@ const baselinePlanCids = {
 const read = path => readFile(new URL(path, import.meta.url), 'utf8');
 const grammar = JSON.parse(await read('../../spec/manifests/actql-grammar-0.1.json'));
 const expectedPlans = {};
+const rebound = (value, substitutions) => {
+  if (typeof value === 'string') {
+    for (const [old, next] of substitutions) value = value.replaceAll(old, next);
+    return value;
+  }
+  if (Array.isArray(value)) return value.map(v => rebound(v, substitutions));
+  if (!value || typeof value !== 'object') return value;
+  const result = Object.fromEntries(Object.entries(value).map(([k,v]) =>
+    [k, rebound(v, substitutions)]));
+  const self = { 'actql-bound-witness/0.1': 'witness_cid',
+    'actql-resolved-limit/0.1': 'resolved_limit_cid',
+    'actql-execution-limit-binding/0.1': 'binding_cid' }[value.version];
+  if (self) {
+    const {[self]: ignored, ...body} = result;
+    result[self] = hash(body);
+    substitutions.set(value[self], result[self]);
+  }
+  return result;
+};
 for (const kind of ['values', 'tasks']) {
   const baseline = JSON.parse(await read(`./fixtures/${kind}-compiled-plan-baseline.json`));
   const verify = (body, field) => {
@@ -44,10 +65,51 @@ for (const kind of ['values', 'tasks']) {
   assert.equal(compiled.executable_plan_cid, baseline.executablePlan.executable_plan_cid);
   assert.equal(executable.execution_material.invocation_template_cid,
     baseline.boundTemplate.bound_invocation_template_cid);
+  const program = executable.execution_material.program;
+  const environment = JSON.parse(await read('./fixtures/query-amount-environment.json'));
+  const oldUnits = kind === 'values' ? new Map([['source', valuesUnitIdentity(program, true)]])
+    : acquiredUnitIdentities(program, environment, true);
+  const nextUnits = kind === 'values' ? new Map([['source', valuesUnitIdentity(program)]])
+    : acquiredUnitIdentities(program, environment);
+  const substitutions = new Map([...oldUnits].map(([name, old]) => [old, nextUnits.get(name)]));
+  for (const witness of executable.bound_witnesses) {
+    if (witness.source.kind !== 'program') continue;
+    assert.deepEqual(witness.derivation, {op: 'source'});
+    const proof = {version: 'actql-bound-proof/0.1', inputs: [],
+      law_id: witness.law_id, semantic_ref: witness.source.semantic_ref,
+      unit: witness.unit, value: witness.value};
+    assert.equal(hash(proof), witness.source.proof_cid);
+    substitutions.set(witness.source.proof_cid, hash(rebound(proof, substitutions)));
+  }
+  // Assemble each direct Result plan independently from the fixture declaration.
+  for (const [name, result] of Object.entries(program.results)) {
+    const stage = program.stages.find(stage => stage.id === result.from.stage);
+    const unitResult = stage.results[result.from.result];
+    assert.deepEqual(unitResult.fields, ['id']);
+    const plan = {version: 'actql-result-plan/0.1', result_name: name,
+      order: {strategy: 'inherited', terms: []},
+      projection: [{input: 'id', output: 'id', value_contract_cid:
+        hash({type: 'number', nullable: false})}],
+      typed_output_port: {carrier: 'relation', name: result.from.result,
+        row_contract_cid: hash({type: 'object', nullable: false,
+          additional_properties: false, fields: {id: {type: 'number', nullable: false}}})},
+      unit_definition_cid: oldUnits.get(stage.id),
+      unit_result_name: result.from.result, unit_result_ordinal: 0};
+    assert.equal(hash(plan), executable.execution_material.result_plan_logical_cids[name]);
+    substitutions.set(hash(plan), hash(rebound(plan, substitutions)));
+  }
+  let changed = rebound(executable, substitutions);
+  // Limit bindings and their referenced resolved limits are repeated in plan facts.
+  changed = rebound(executable, substitutions);
+  changed.plan_fact_manifest_cid = hash({version: 'actql-plan-fact-manifest/0.1',
+    plan_facts: changed.plan_facts});
   template.grammar_manifest_cid = grammar.grammar_manifest_cid;
-  executable.execution_material.grammar_manifest_cid = grammar.grammar_manifest_cid;
-  executable.execution_material.invocation_template_cid = hash(template);
-  compiled.executable_plan_cid = hash(executable);
+  changed.execution_material.grammar_manifest_cid = grammar.grammar_manifest_cid;
+  changed.execution_material.invocation_template_cid = hash(template);
+  const aoa = JSON.parse(await read('../../spec/contracts/actql-aoa.json'));
+  compiled.aoa_contract_cid = hash(aoa);
+  changed.execution_material.aoa_contract_cid = hash(aoa);
+  compiled.executable_plan_cid = hash(changed);
   expectedPlans[kind] = {...compiled, compiled_plan_cid: hash(compiled)};
 }
 const planCids = Object.fromEntries(Object.entries(expectedPlans)

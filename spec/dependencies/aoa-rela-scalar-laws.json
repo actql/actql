@@ -69,13 +69,14 @@
   },
   "unicode": {
     "data_version": "16.0",
-    "normalization": "NFC",
-    "ordering": "utf16-code-unit",
+    "normalization": "none_for_string_values",
+    "ordering": "preserved-value-utf16-code-unit",
     "length": "unicode-scalar-count",
     "trim": "ascii-whitespace",
     "contains": "case-sensitive",
     "like": "case-sensitive-percent-underscore-backslash-escape",
-    "replace": "non-overlapping-left-to-right-empty-pattern-no-op"
+    "replace": "non-overlapping-left-to-right-empty-pattern-no-op",
+    "identifier_normalization": "NFC_then_CRLF_or_CR_to_LF"
   },
   "conversion_truth_table": {
     "to_number": {

@@ -260,7 +260,7 @@ test "query page admits typed cells and preserves nullable missing values" {
 }
 
 ///|
-test "query value admission rejects type changes and noncanonical text" {
+test "query value admission rejects type changes and preserves String scalars" {
   let plan = query_test_typed_plan(["Id", "Name", "Active__c"]).unwrap()
   let wrong_type =
     #|{"totalSize":1,"done":true,"records":[{"Id":"001A","Active__c":"true"}]}
@@ -275,19 +275,14 @@ test "query value admission rejects type changes and noncanonical text" {
   )
   let noncanonical =
     #|{"totalSize":1,"done":true,"records":[{"Id":"001A","Name":"e\u0301","Active__c":true}]}
+  let page = project_query_page(
+    @utf8.encode(noncanonical),
+    plan,
+    "v62.0",
+    query_test_limits(),
+  ).unwrap()
   assert_true(
-    project_query_page(
-      @utf8.encode(noncanonical),
-      plan,
-      "v62.0",
-      query_test_limits(),
-    )
-    is Err(
-      ValueAdmission(
-        "Name",
-        @admitted.ValueIssue(@admitted.NonCanonicalText, ..)
-      )
-    ),
+    query_page_cell(page, 0, 1).unwrap().value is @admitted.Text("e\u{0301}"),
   )
   assert_true(
     query_test_typed_plan(["Amount__c"])

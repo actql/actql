@@ -37,7 +37,7 @@ test "type diagnostics retain original Program slots and decoded scalar ranges" 
       None,
     ),
     ("\"1 + \\u0054RUE\"", [], Some({ start: 4, end: 8, })),
-    ("\"1 +\\r\\nTRUE\"", [], Some({ start: 4, end: 8, })),
+    ("\"1 +\\r\\nTRUE\"", [], Some({ start: 5, end: 9, })),
   ]
   for (text, suffix, range) in cases {
     let root = cursor(

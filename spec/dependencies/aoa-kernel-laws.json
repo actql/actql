@@ -5,6 +5,15 @@
     "cid-sha256-over-canonical-json-utf8",
     "cid-zero-identity",
     "cid-sort-determinism",
-    "cid-number-normalization-stability"
-  ]
+    "cid-number-normalization-stability",
+    "canonical-json-preserves-string-scalar-sequence",
+    "canonical-json-nfc-lf-object-member-names"
+  ],
+  "text": {
+    "values": "preserve_well_formed_unicode_scalar_sequence_without_normalization",
+    "object_member_names": "NFC_then_CRLF_or_CR_to_LF_reject_collisions",
+    "identifier_members": "admit_by_grammar_owned_identifier_contract_not_generic_string_normalization",
+    "encoding": "minimal_JSON_escaping_after_source_escape_decoding",
+    "limits": "retained_unicode_scalar_count_and_UTF8_bytes"
+  }
 }

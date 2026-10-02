@@ -32,6 +32,15 @@ export const querySuccesses = [
 // available in the Host, but none of these Programs acquires them.
 const numberColumn = name => ({name, contract: {type: 'number', nullable: false}});
 export const sourceFreeSuccesses = [
+  {name: 'exact-string-values', format: 'sql',
+    // SQL escapes and direct decomposed text are decoded once. Expected values
+    // below are authored independently, including a literal backslash plus n.
+    text: "SELECT '\\r' AS cr, '\\n' AS lf, '\\r\\n' AS crlf, 'é' AS composed, 'e\u0301' AS decomposed, '\\\\n' AS slash_n",
+    expected: [{cr: '\r', lf: '\n', crlf: '\r\n', composed: 'é', decomposed: 'e\u0301', slash_n: '\\n'}],
+    columns: [['cr', 1], ['lf', 1], ['crlf', 2], ['composed', 2],
+      ['decomposed', 3], ['slash_n', 2]].map(([name, bytes]) => ({name,
+        contract: {type: 'string', nullable: false, max_utf8_bytes: bytes}})),
+    sourceReadCount: 0},
   {name: 'literal-values', format: 'sql',
     text: "SELECT 1 AS id, 'hello' AS label",
     expected: [{id: 1, label: 'hello'}], sourceReadCount: 0,
@@ -116,7 +125,7 @@ const inputCodes = new Set(['ClientProgramInvalidInput',
 // does not lower source, manufacture schema, or call a test compiler bridge.
 export async function exercisePublicQueryInput(connect, options,
   {requestPrefix, observe, successes = querySuccesses,
-    refusals = queryRefusals, prepareCase}) {
+    refusals = queryRefusals, prepareCase, completedCase}) {
   assert.equal(typeof observe, 'function');
   const counters = async () => {
     const current = await observe();
@@ -152,6 +161,7 @@ export async function exercisePublicQueryInput(connect, options,
       assert.deepEqual((await client.lookupRequest(requestId)).ref, execution.ref);
       assert.deepEqual(await counters(), beforeRead,
         'reading, attaching and resending must not accept or acquire again');
+      await completedCase?.({name, ref: execution.ref, expected, columns});
       console.log(`Public query passed: ${requestPrefix}/${name}`);
       if (name === 'sql') {
         await assert.rejects(execution.result('answer').all({maxRows: 1}),

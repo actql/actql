@@ -22,7 +22,7 @@ pub fn compiler_barrier_contract_manifest_wire() -> String {
 
 ///|
 pub fn compiler_aoa_contract_cid() -> String {
-  "sha256:bfb017e25670c872293a2a4eec302b7d1217c3cb1adf74637c2339286d5c39ea"
+  "sha256:ce0e1e8935e1c65b8992f2fb0272da80b192d54616c546efd80a0cad87bd4ec4"
 }
 
 ///|
