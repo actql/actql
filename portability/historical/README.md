@@ -53,3 +53,12 @@ snapshot and aggregate Core acceptance remain separately required.
   are historical only: current executable regressions require typed refusal
   for thirteen structural/query operations and both unconnected projections,
   not successful execution or their former completion/capacity claims.
+
+- `pipeline-{produced-input,parameter-slots,expression-slots,author-guards}-pre-property-graph.mbt.txt`:
+  original mixed fixtures from `36a5271609368f0aac7d5553667b55839033bbdd`.
+  Current producer tests retain the exact owner and keep Graph node/edge
+  bounds distinct from MATCH row bounds. Scoped MATCH expression roots and
+  literal TRAIL preserve source coordinates and exact/one-short collector
+  limits; TRAIL's row guard remains separate from its hop ceiling. Time-series
+  and all non-Graph cases remain executable. Unsupported Graph guard/slot
+  branches do not become fabricated accepted operations.

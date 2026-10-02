@@ -92,24 +92,7 @@ test "non-expression parameters retain count window aggregate and frame position
 }
 
 ///|
-test "graph bounds component guards and time-series steps retain direct parameter slots" {
-  let graph = mean_audit_graph(@contract.primitive(NumberType, nullable=false))
-  let p = @pipeline_typing.check_carriers(
-    cursor(
-      (
-        #|[{"graph_bounds":{"max_nodes":{"$param":"n"},"max_degree":{"$param":"n"}}},{"components":{"kind":"weak","max_output_rows":{"$param":"n"}},"from":"g"}]
-      ),
-    ),
-    [("g", graph)],
-    Some(operand_parameters()),
-    None,
-    limits(),
-  ).unwrap()
-  let slots = collect_parameter_slots(p, max_work=100, max_slots=3).unwrap()
-  assert_eq(parameter_slot_count(slots), 3)
-  for i in 0..<3 {
-    assert_eq(parameter_slot_at(slots, i).unwrap().name, "n")
-  }
+test "time-series steps retain direct parameter slots" {
   let p = @pipeline_typing.check(
     cursor(
       (
@@ -128,6 +111,29 @@ test "graph bounds component guards and time-series steps retain direct paramete
     @source.Key("time_series"),
     @source.Key("step"),
   ])
+}
+
+///|
+test "parameterized unconnected Graph consumers refuse before issuing parameter slots" {
+  for
+    (operation, body) in [
+      (
+        "graph_bounds", "{\"max_nodes\":{\"$param\":\"n\"},\"max_degree\":{\"$param\":\"n\"}}",
+      ),
+      (
+        "components", "{\"kind\":\"weak\",\"max_output_rows\":{\"$param\":\"n\"}}",
+      ),
+    ] {
+    let issue = @pipeline_typing.check_carriers(
+      cursor("[{\"from\":\"g\",\"" + operation + "\":" + body + "}]"),
+      [("g", query_property_graph())],
+      Some(operand_parameters()),
+      None,
+      limits(),
+    ).unwrap_err()
+    assert_true(issue.kind is Graph(@graph.UnsupportedGraphOperation))
+    assert_true(issue.path.contains(@source.Key(operation)))
+  }
 }
 
 ///|

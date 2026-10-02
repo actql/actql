@@ -140,84 +140,37 @@ test "sequence expression slots retain all pattern predicates" {
 }
 
 ///|
-test "graph expression slots cover matches selectors hops and endpoints" {
-  let empty = @carrier.rows(
-    [],
-    field_set=Closed,
-    max_fields=0,
-    max_name_bytes=0,
-  ).unwrap()
-  let names = @carrier.graph_row_names(
-    Unqualified("node_id"),
-    Unqualified("source_id"),
-    Unqualified("target_id"),
-    None,
-    max_name_bytes=100,
-  ).unwrap()
-  let graph = @carrier.graph(
-    @contract.primitive(NumberType, nullable=false),
-    empty,
-    empty,
-    labels=None,
-    max_labels=0,
-    max_label_bytes=0,
-    row_names=Some(names),
-  ).unwrap()
+test "current Graph expression slots retain scoped MATCH and literal TRAIL without fabricated predicates" {
+  let identity = "{\"definition\":\"N\",\"domain\":\"sha256:" +
+    "0".repeat(64) +
+    "\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}"
   for
     (steps, count, work) in [
+      ("[" + query_match_body(false, "[\"element\"]") + "]", 1, 2),
+      ("[" + query_match_body(true, "[\"element\"]") + "]", 1, 2),
       (
-        (
-          #|[{"match_nodes":{"where":"true","fields":["node_id"]}}]
-        ),
-        1,
-        2,
-      ),
-      (
-        (
-          #|[{"subgraph":{"nodes":{"where":"true"},"edges":"false"}}]
-        ),
-        2,
-        3,
-      ),
-      (
-        (
-          #|[{"traverse":{"start":{"where":"true"},"hops":[{"direction":"in","edge_where":"true","node_where":"false"},{"direction":"out"}],"emit":"nodes"}}]
-        ),
-        3,
+        "[{\"traverse\":{\"start\":{\"ids\":[" +
+        identity +
+        "]},\"hops\":[{\"direction\":\"in\"},{\"direction\":\"out\"}],\"path_mode\":\"trail\",\"emit\":\"paths\"}}]",
+        0,
         6,
       ),
-      (
-        (
-          #|[{"shortest_path":{"source":{"where":"true"},"target":{"where":"false"},"direction":"both","max_hops":3,"selection":"each_pair"}}]
-        ),
-        2,
-        3,
-      ),
-      (
-        (
-          #|[{"shortest_path":{"source":1,"target":2,"direction":"both","max_hops":3}}]
-        ),
-        0,
-        3,
-      ),
     ] {
-    let checked = @pipeline_typing.check_carriers(
+    let p = @pipeline_typing.check_carriers(
       cursor(steps),
-      [("g", graph)],
+      [("g", query_property_graph())],
       None,
       None,
       limits(),
-    )
-    let p = match checked {
-      Ok(p) => p
-      Err(issue) => fail(steps + ": " + @debug.to_string(issue.kind))
-    }
+    ).unwrap()
     let slots = collect_expression_slots(p, max_work=work, max_slots=count).unwrap()
+    assert_true(physical_equal(expression_slots_pipeline(slots), p))
     assert_eq(expression_slot_count(slots), count)
     assert_eq(expression_slots_work(slots), work)
     for i in 0..<count {
       let slot = expression_slot_at(slots, i).unwrap()
       assert_eq(slot.step, 0)
+      assert_true(slot.consumer is GraphMatchPredicate)
       let expression = @typing.expression(slot.expression)
       let origin = @expression.origin(expression, @expression.tree(expression)).unwrap()
       assert_true(
@@ -228,5 +181,11 @@ test "graph expression slots cover matches selectors hops and endpoints" {
       collect_expression_slots(p, max_work=work - 1, max_slots=count)
       is Err(WorkLimit),
     )
+    if count > 0 {
+      assert_true(
+        collect_expression_slots(p, max_work=work, max_slots=count - 1)
+        is Err(SlotLimit),
+      )
+    }
   }
 }

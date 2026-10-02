@@ -102,6 +102,22 @@ package ran the stated regressions. Formatting and `git diff --check` pass.
 This checkpoint changes test inputs and preserves the withdrawn tests as inert
 evidence; it has not had a new aggregate Core, spec or fresh packed run.
 
+Four mixed upper-pipeline fixtures are subsequently migrated without dropping
+their non-Graph cases. Produced Graphs retain the exact checked producer owner
+and separate node/edge upper bounds through current MATCH; row counts are not
+substituted for Graph measures. Scoped MATCH expressions and literal TRAIL
+retain source correspondence, exact/one-short collector work and slot bounds,
+without manufacturing predicates for unsupported operations. The TRAIL output
+guard is distinct from its hop ceiling and retains exact owner/source and
+finite collection limits. Time-series parameter slots remain positive; current
+parameterized Graph bounds/components are explicitly refused before slots.
+The four files pass **18/18 on each target**; native log:
+`/private/tmp/property-graph-pipeline-custody-native-20261002.log`.
+All four originals are byte-identical inert archives. Initial fixture failures
+were a missing required generator alias and missing node-MATCH selector, fixed
+to the registered input shape. This is focused validation, not full pipeline
+or aggregate Core success.
+
 Main's new foundation composition validator rejects eight reachable historical
 #164 commits that changed the immutable #148 reuse baseline. Restoring current
 bytes cannot change those ancestors. The old global current-foundation record
