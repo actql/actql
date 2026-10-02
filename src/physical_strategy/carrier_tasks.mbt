@@ -113,6 +113,17 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
   let prepared = @lower.bound_preparation(graph.owners[stage])
   let pipeline = @lower.pipeline(prepared)
   let count = @pipeline.step_count(pipeline)
+  let mut intermediate_result = false
+  for result in graph.results {
+    if result.task == stage &&
+      @ports.port_target(
+        @execution.managed_result_occurrence_port(result.occurrence),
+      )
+      is @pipeline.Step(step) &&
+      step < count - 1 {
+      intermediate_result = true
+    }
+  }
   if stage == 0 {
     if !graph.source_free_root {
       return None
@@ -120,7 +131,6 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
     let mut values_source = false
     let mut carrier_construction = false
     let mut carrier_relation_consumer = false
-    let mut intermediate_result = false
     for step in 0..<count {
       guard @lower.node_at(prepared, step) is Some(node) else { return None }
       match @lower.operation(node) {
@@ -158,21 +168,11 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
         }
       }
     }
-    for result in graph.results {
-      if result.task == stage &&
-        @ports.port_target(
-          @execution.managed_result_occurrence_port(result.occurrence),
-        )
-        is @pipeline.Step(step) &&
-        step < count - 1 {
-        intermediate_result = true
-      }
-    }
     // A source-free Carrier prefix needs segmentation when a later typed
     // Carrier-to-Relation step or an intermediate Result needs independent
     // ownership. Carrier-only prefixes without either retain fused execution.
     if !values_source ||
-      !carrier_construction ||
+      (!carrier_construction && !intermediate_result) ||
       (!carrier_relation_consumer && !intermediate_result) {
       return None
     }
@@ -261,6 +261,36 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
     found_carrier &&
     (!prefer_fused_without_relation || found_relation) {
     return Some(-1)
+  }
+  // A retained intermediate Relation Result needs its own exact output.
+  // Use the same checked managed-view handoff as Carrier consumers, only
+  // when every occurrence has a registered selected execution capability.
+  // A captured predecessor is already an owned Result; splitting its
+  // consumer does not split or repeat the physical source acquisition.
+  if intermediate_result && all_selected && found_relation && !found_carrier {
+    if found_zero_input && !found_external_input {
+      return Some(-1)
+    }
+    guard @lower.node_at(prepared, 0) is Some(first) else { return None }
+    if @lower.node_input_count(first) == 1 &&
+      @lower.node_accepts_managed_relation_view(first, 0) &&
+      @lower.node_input_target(first, 0) is Some(@pipeline.Input(source)) {
+      for edge in graph.data {
+        if edge.consumer == stage &&
+          edge.input == source &&
+          edge.producer >= 0 &&
+          edge.producer < graph.owners.length() {
+          let predecessor = @lower.bound_preparation(
+            graph.owners[edge.producer],
+          )
+          if @lower.preparation_carrier_at(predecessor, edge.target)
+            is Some(carrier) &&
+            @carrier.kind(carrier) == @carrier.RelationKind {
+            return Some(-1)
+          }
+        }
+      }
+    }
   }
   // A checked multi-source Relation DAG can use the same per-edge handoff
   // when every zero-input producer and binary consumer has a bounded provider.
