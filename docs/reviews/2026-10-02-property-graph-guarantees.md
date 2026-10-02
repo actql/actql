@@ -1726,3 +1726,36 @@ After retirement, the related current-owner/policy/Host/DAG suite passes
 The strict resource route inventory still needs its explicit current-source
 registration; frozen historical references must not be overwritten. Aggregate
 Core/spec, fresh public snapshot and pushed-SHA CI remain acceptance tasks.
+
+## Aggregate checkpoint and Program refusal classification (2026-10-03)
+
+At `27709cfc228065a01cb0ccfcefea0936459c9b10`, the complete Core JS suite
+with `--deny-warn` reports **7,296 total / 7,284 passed / 12 failed**:
+`/private/tmp/property-graph-current-core-js-27709cfc2-20261003.log`.
+Four failures are named STEP/OP fixtures for the retired tuple constructor,
+reach/subgraph, diff/apply, mean and equality. Their executable fixture file
+is withdrawn, not converted into a claim that those consumers work on the
+current Graph. The repeated-input and foreign-input owner obligations remain
+positive in the current constructor/occurrence tests; current MATCH/TRAIL
+Host composition and resource tests remain executable. Git retains the old
+surface/algorithm-specific tests.
+
+The fifth failure is the whole-Program malformed/unsupported-step diagnostic
+test. Retired Graph operations now require the existing typed unsupported
+static-path refusal, whereas malformed implemented TRAIL still requires the
+source diagnostic. The test retains both exact categories and rejects a
+partially checked result; no arbitrary exception is accepted. Its four tests
+pass on each JS, Wasm and native with `--deny-warn`:
+`/private/tmp/property-graph-program-refusals-{js,wasm,native}-20261003.log`.
+An initial erroneous classification of malformed TRAIL as unsupported failed
+and was corrected before these runs.
+
+The other seven aggregate failures are Frontend `GeneratedGraph` fixtures
+that emit removed `node_rows`/`edge_rows` adapters. They are not fixed by
+restoring those adapters. B's actual #174 worktree is clean at
+`d144e25567313168558750fa17d02cc20e55dcf6`; its new ScriptGraph/Property Graph
+lowering is a separate path and does not migrate these seven old fixtures.
+The old generator's product boundary and the disposition of its applicable
+positive lowering obligations still require an explicit current-path decision.
+This checkpoint is not complete Core, public packed snapshot, or required CI
+acceptance, and is not a B-ready handoff.
