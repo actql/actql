@@ -419,3 +419,12 @@ No warning exemption, owner substitution or successful unsupported-operator
 expectation is used. This remains local work, not final Core/spec/public
 snapshot/CI acceptance; reach/shortest/diff/apply/traverse-nodes and old
 Carrier/reader removals and the strict route inventory remain open.
+
+The components removal is committed as
+`06930c874e30c8fc1aa63d72c9efe4e912b90c6a`. The official committed three-target
+API check passes:
+`/private/tmp/property-graph-components-retirement-api-committed-20261002.log`.
+Neither retirement unit is pushed. Their sources and retired fixtures remain
+recoverable from Git; neither dependency installations nor evidence logs were
+deleted. The current public #164 revision is still the unadoptable historical
+checkpoint, not this local verification result.
