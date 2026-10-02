@@ -1093,6 +1093,38 @@ pub fn client_program_admit_infer_egress(
 }
 
 ///|
+#export_name("clientProgramInstalledInferPlanGraph")
+pub fn client_program_installed_infer_plan_graph(
+  prepared : @publication_host.PreparedClientProgram,
+  step : Int,
+  execution : @check_environment.ModelExecutionContract,
+) -> Result[
+  @publication_host.ClientInferPlanGraph,
+  @publication_host.ClientInferPlanGraphIssue,
+] {
+  @publication_host.issue_installed_client_infer_plan_graph(
+    prepared,
+    step,
+    execution,
+    @publication_host.client_standard_values_sequence_limits(),
+    100000,
+    10000,
+    100,
+  )
+}
+
+///|
+#export_name("clientProgramModelPrivateHoldingCid")
+pub fn client_program_model_private_holding_cid(
+  definition : @publication.PublicationContract,
+  store : String,
+  role : String,
+  slot : Int,
+) -> String? {
+  @publication.model_private_holding_cid(definition, store, role, slot)
+}
+
+///|
 #export_name("clientProgramBindInferEgress")
 pub fn client_program_bind_infer_egress(
   active : @infer_host.Execution,

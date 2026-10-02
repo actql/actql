@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {generateKeyPairSync} from 'node:crypto';
+import {createHash, generateKeyPairSync} from 'node:crypto';
 import {mkdtemp, readFile, rm} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {tmpdir, userInfo} from 'node:os';
@@ -12,6 +12,7 @@ import {inspect} from 'node:util';
 import {connect} from '../../packages/sdk/index.mjs';
 import {openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
 
 const oneRowInfer = () => ({version: 'actql/0.1', id: 'installed-infer',
   stages: [{id: 'main', inputs: {}, steps: [
@@ -59,6 +60,7 @@ function assertNoAcceptedRun(root, physicalStarts) {
 }
 
 async function installedHost(t, options = {}) {
+  const {initializeRoot, ...hostOptions} = options;
   const root = await mkdtemp(join(tmpdir(), 'actql-installed-infer-'));
   const priorCertificates = getCACertificates('default');
   execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
@@ -83,9 +85,10 @@ async function installedHost(t, options = {}) {
   setDefaultCACertificates([...priorCertificates, certificate.toString()]);
   let physicalStarts = 0;
   try {
+    await initializeRoot?.(join(root, 'state'));
     host = await openInstalledRemoteHttpHost({directory: join(root, 'state'),
       authenticate: () => userInfo().username,
-      beforeDispatch: () => { physicalStarts++; }, ...options});
+      beforeDispatch: () => { physicalStarts++; }, ...hostOptions});
   } catch (cause) {
     t.diagnostic(inspect(cause, {depth: 4}));
     throw cause;
@@ -228,6 +231,196 @@ async function installedDependencyConfiguration(variant) {
       self_cid: contentCid(execution)})}];
   installation.dependencyBodies = bodies;
   return {installation, taskCid};
+}
+
+for (const boundary of ['success', 'private-write-failure',
+  'observation-step-failure', 'observation-complete-failure',
+  'cancel-before-publication', 'restart-after-capture', 'restart-before-capture']) {
+test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
+  {timeout: 60000}, async t => {
+    const {installation, taskCid} = await installedDependencyConfiguration('valid');
+    let calls = 0;
+    let failedWrite = false;
+    let failedObservation = false;
+    let observationSteps = 0;
+    const injectedFailure = boundary.endsWith('-failure');
+    const restarting = boundary.startsWith('restart-');
+    let run;
+    let started;
+    const startedRun = new Promise(resolve => { started = resolve; });
+    const observations = [];
+    const authorization = {...diagnosticAuthorization((name, detail) => {
+      observations.push({name, detail});
+    }), accountConfiguration: canonicalJson({
+      version: 'actql-execution-account-config/0.1', account_id: 'infer-owner',
+      entries: [{entry_id: 'installed-allow', outcome: 'allow',
+        principal: {all: true}, connection: {all: true}, resource: {all: true},
+        operation: {all: true}, exclusions: []}],
+    })};
+    authorization.faultInjection = async (name, detail) => {
+      if (name === 'infer_observation_advanced') {
+        observationSteps++;
+        if (!failedObservation &&
+            ((boundary === 'observation-step-failure' && !detail.complete) ||
+             (boundary === 'observation-complete-failure' && detail.complete))) {
+          failedObservation = true;
+          throw new Error('InjectedObservationBoundaryFailure');
+        }
+      }
+      if (boundary === 'private-write-failure' && !failedWrite &&
+          name === 'infer_private_holding_commit' &&
+          detail.role === 'model_slot_capture') {
+        failedWrite = true;
+        throw new Error('InjectedPrivateCaptureWriteFailure');
+      }
+      if (boundary === 'cancel-before-publication' &&
+          name === 'infer_capture_committed') {
+        await startedRun;
+        await run.cancel();
+      }
+    };
+    const registerModelProviders = moon => [{providerId: 'models/fixture',
+        invoke() { throw new Error('UnpreparedProviderCall'); },
+        validatePrompt(actualTask, selector, wire) {
+          return actualTask === taskCid && selector === 'fixture-risk-model' &&
+            JSON.parse(wire).format === 'fixture-risk/0.1';
+        },
+        quantityCapacity: {
+          limits: {tokens: 33n, costUnits: 0n, durationMs: 500n},
+          perAttempt: {tokens: 33n, costUnits: 0n, durationMs: 500n},
+        },
+        observeEgress: () => ({_0: 'public', _1: 'fixture-region',
+          _2: false, _3: false}),
+        physicalPreflight: request => moon.clientProgramModelRequestPreflight(
+          () => ({_0: true, _1: checked(moon.clientProgramModelPhysicalRequestPlan(
+            request, 1000n, 33n, 0n, 500n, () => {
+              calls++;
+              assert.equal(moon.clientProgramModelRequestInput(request, 'text'),
+                '"hello"');
+              return moon.clientProgramModelResponse(request,
+                '{"reason":null,"risk":"high"}', 'fixture-risk-model',
+                'installed-request', 1n, 2n, new Date().toISOString());
+            }))}), () => true),
+      }];
+    const {client, root, physicalStarts} = await installedHost(t, {
+      modelInstallation: installation, authorization, registerModelProviders,
+      initializeRoot: !restarting ? undefined : directory => {
+        // A separate process uses the real public HTTPS entry, then exits
+        // after durable capture and before Result publication or cleanup.
+        const source = `
+          import assert from 'node:assert/strict';
+          import {readFileSync} from 'node:fs';
+          import {createServer} from 'node:https';
+          import {dirname, join} from 'node:path';
+          import {userInfo} from 'node:os';
+          import {setDefaultCACertificates} from 'node:tls';
+          import {connect} from ${JSON.stringify(new URL('../../packages/sdk/index.mjs', import.meta.url).href)};
+          import {openInstalledRemoteHttpHost} from ${JSON.stringify(new URL('./embedded-local.mjs', import.meta.url).href)};
+          const input = JSON.parse(readFileSync(0, 'utf8'));
+          const {directory, installation, taskCid, authorization, boundary} = input;
+          const checked = ${checked.toString()};
+          const oneRowInfer = ${oneRowInfer.toString()};
+          let calls = 0;
+          const registerModelProviders = ${registerModelProviders.toString()};
+          authorization.faultInjection = name => {
+            if (name === (boundary === 'restart-after-capture'
+              ? 'infer_capture_committed' : 'infer_private_holding_commit')) {
+              assert.equal(calls, 1);
+              process.stdout.write('capture-stop\\n', () => process.exit(0));
+              return new Promise(() => {});
+            }
+          };
+          const host = await openInstalledRemoteHttpHost({directory,
+            authenticate: () => userInfo().username, authorization,
+            modelInstallation: installation, registerModelProviders});
+          const certificate = readFileSync(join(dirname(directory), 'host.crt'));
+          setDefaultCACertificates([certificate.toString()]);
+          const server = createServer({cert: certificate,
+            key: readFileSync(join(dirname(directory), 'host.key'))}, host.handler);
+          await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+          const client = await connect({mode: 'remote',
+            endpoint: 'https://127.0.0.1:' + server.address().port + '/',
+            token: 'fixture-owner', durability: 'durable'});
+          const run = await client.start(oneRowInfer(), {requestId: 'public-infer'});
+          await run.wait();
+          throw new Error('CaptureStopNotReached');
+        `;
+        const output = execFileSync(process.execPath,
+          ['--input-type=module', '-e', source], {encoding: 'utf8', timeout: 30000,
+            input: JSON.stringify({directory, installation, taskCid, authorization,
+              boundary})});
+        assert.match(output, /capture-stop/);
+      },
+    });
+    try {
+      run = await client.start(oneRowInfer(), {requestId: 'public-infer'});
+      started();
+      let terminal = await run.wait();
+      if (boundary === 'restart-before-capture') {
+        assert.equal(terminal.status, 'needs_reconciliation');
+        await assert.rejects(run.result('answer').all());
+        assert.equal(calls, 0, 'unknown response custody cannot redispatch');
+        assert.equal(observationSteps, 0);
+        return;
+      }
+      // A failed private write can be observed before retained cleanup has
+      // confirmed physical close. Do not confuse that honest unknown state
+      // with a stopped failure; wait for the actual owner observation.
+      for (let poll = 0; injectedFailure &&
+        terminal.status === 'needs_reconciliation' && poll < 100; poll++) {
+        await new Promise(resolve => setImmediate(resolve));
+        terminal = await run.wait();
+      }
+      const successful = boundary === 'success' || boundary === 'restart-after-capture';
+      assert.equal(terminal.status, successful
+        ? 'succeeded' : injectedFailure ? 'failed' : 'cancelled');
+      assert.equal(failedWrite, boundary === 'private-write-failure');
+      assert.equal(failedObservation, boundary.startsWith('observation-'));
+      // Begin, one slot, and finalize: retries retain the issuer
+      // rather than starting another observation or advancing a terminal one.
+      assert.equal(observationSteps, 3);
+      if (successful) {
+        assert.deepEqual(await run.result('answer').all(),
+          [{id: 'a', outcome: 'ok', value: {reason: null, risk: 'high'}}]);
+      } else {
+        await assert.rejects(run.result('answer').all());
+      }
+      assert.equal(calls, restarting ? 0 : 1);
+      assert.equal(physicalStarts(), 1);
+      // Independent custody preimages: no product holding helper is used to
+      // discover the expected cells. Successful response and all slot proofs
+      // remain retained even when publication is cancelled or a write retries.
+      const storeCid = `sha256:${createHash('sha256').update(JSON.stringify({
+        version: 'actql-local-store-owner/0.1', root: join(root, 'state'),
+        principalId: userInfo().username})).digest('hex')}`;
+      for (const [role, slot] of [
+        ['model_capture_bundle', -1], ['observation_set', -1],
+        ['run_invocation', -1], ['model_slot_capture', 0],
+        ['model_call_attempt', 0], ['model_attempt_accounting', 0],
+        ['model_attempt_outcome', 0], ['model_dispatch_authority', 0],
+      ]) {
+        const identity = contentCid({role, slot,
+          run_definition_cid: run.ref.runDefinitionCid,
+          store_authority_cid: storeCid,
+          version: 'actql-model-private-holding/0.1'});
+        const record = JSON.parse(await readFile(join(root, 'state', 'publication',
+          'physical-holdings', `${identity.slice(7)}.json`), 'utf8'));
+        assert.equal(record.holding_cid, identity);
+        assert.equal(record.namespace, 'publication-private');
+        assert.equal(record.objects.length, 1);
+      }
+    } catch (error) {
+      const journal = new DatabaseSync(join(root, 'state', 'requests',
+        'client-requests.sqlite3'), {readOnly: true});
+      try {
+        t.diagnostic(inspect(journal.prepare('SELECT physical_start_reserved, ' +
+          'physical_close_confirmed, observed_terminal_outcome FROM client_requests')
+          .all()));
+      } finally { journal.close(); }
+      t.diagnostic(inspect(observations, {depth: 6}));
+      throw error;
+    }
+  });
 }
 
 for (const [variant, boundary, typedCause] of [

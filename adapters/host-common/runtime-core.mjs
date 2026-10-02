@@ -2002,6 +2002,12 @@ function publicationControl(moon) {
     // Reuse the compiled owner retained at Run admission. The physical
     // adapter supplies its opaque execution and bounded verification owner;
     // this does not adopt external attempts or grant publication authority.
+    modelPrivateHoldingCid(definition, storeAuthorityCid, role, slot) {
+      const identity = moon.clientProgramModelPrivateHoldingCid(
+        token(definition), storeAuthorityCid, role, slot);
+      if (identity === undefined) throw new TypeError('InvalidModelPrivateHolding');
+      return identity;
+    },
     bindCheckedClientInferRun(compiled, execution, definition) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined || compiled.kind !== 'infer') {

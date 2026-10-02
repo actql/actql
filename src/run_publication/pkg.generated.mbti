@@ -372,6 +372,8 @@ pub fn model_observation_slot_at(RunEvidenceValue, Int) -> String?
 
 pub fn model_observation_slot_count(RunEvidenceValue) -> Int?
 
+pub fn model_private_holding_cid(PublicationContract, String, String, Int) -> String?
+
 pub fn next_result_delivery_row(ResultDeliverySerializer, String) -> Result[String, DeliverySerializationIssue]
 
 pub fn parse_effect_outcome_shape(String, Int, Int, Int) -> Result[@canonical_json.CanonicalValue, PublicationContractIssue]

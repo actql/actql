@@ -126,6 +126,35 @@ pub fn client_infer_plan_graph_execution_contract(
 }
 
 ///|
+/// Installed source-free compilation uses already admitted dependency bodies.
+/// The checking environment owns the Host capacities; the exact ModelTask
+/// owns its data-handling requirements. These references do not grant egress
+/// permission: the current Host observation and account are admitted separately.
+pub fn issue_installed_client_infer_plan_graph(
+  value : PreparedClientProgram,
+  step : Int,
+  execution : @environment.ModelExecutionContract,
+  sequence_limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue] {
+  issue_prepared_client_infer_plan_graph(
+    value,
+    step,
+    execution,
+    prepared_client_check_environment_cid(value),
+    @environment.model_task_identity(
+      @environment.model_execution_task(execution),
+    ).2,
+    sequence_limits,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
 fn client_infer_dependency_cid(value : String) -> Bool {
   if value.length() != 71 || !value.has_prefix("sha256:") {
     return false

@@ -1846,3 +1846,65 @@ Program at `InstalledInferDispatchNotConnected`. Installed dispatch, private
 capture custody, public fresh-process replay and the B handoff remain open.
 No additional canonical body, retry behavior or non-INFER preimage is changed
 by this unit. No pushed-SHA CI result is claimed.
+
+## Installed public single-row execution and saved replay
+
+This section supersedes the earlier installed-dispatch gap for registrations
+that provide physical preflight, quantity capacity, and egress observations.
+Legacy registrations still receive the explicit unsupported diagnosis.
+
+The ordinary HTTPS Client prepares and submits a source-free Program with
+Values, `assert_rows`, and INFER. The installed Host retains the exact checked
+selection, uses the existing dispatch owner, and publishes `answer` through
+the ordinary Store publication owner. The independent expected row is:
+
+```json
+[{"id":"a","outcome":"ok","value":{"reason":null,"risk":"high"}}]
+```
+
+`installed-infer-run.mjs` confirms each common-issued attempt, accounting,
+outcome, authority and adopted slot record, then the success bundle,
+ObservationSet and Invocation, in encrypted private holdings. Stable holding
+keys bind the admitted Run, Store, role and slot; these keys are custody
+identities, not execution authority. A retained output use protects the
+completed Relation while failed private persistence is retried. Observation
+issuance keeps the same owner and progress across retries.
+
+The installed plan references the admitted check environment for its limits
+dependency and the exact ModelTask for its handling requirements. Actual
+account, quantity, payload and egress admission remain separate checks; those
+references do not grant permission.
+
+The public restart fixture exits a separate Host process immediately after
+capture confirmation, before publication and cleanup. Re-submitting the same
+request to a new Host reconstructs the checked preparation, verifies saved
+slot and attempt evidence with the common replay reader, and publishes the
+expected row with zero additional model calls. The existing dispatch owner
+supervises replay custody; no physical model start claim is reset.
+
+A second process-exit fixture stops after the response and before the first
+private holding commit. The restarted Host leaves the Run in
+`needs_reconciliation`, calls no model, and exposes no Result. A missing
+capture is not permission to redispatch. Cancelled or terminal failed Runs
+are not reopened by this path.
+
+Focused public tests also cover private-write failure, observation issuance
+interruption before and after completion, and cancellation before publication.
+They retain all eight private evidence roles, keep one original model call,
+and reject Result reads on failure. The separate failed-slot Store/replay
+component test now uses the installed capture reader in its fresh process.
+That component evidence is distinct from the public successful-row fixture.
+
+The executable registration and startup example is in
+`adapters/host-node/installed-infer.test.mjs`, under
+`ordinary public INFER dispatch and capture custody`. It uses
+`openInstalledRemoteHttpHost`, `registerModelProviders`, physical preflight,
+current account/egress observations, and the public remote Client. The model
+is a fixture provider, not an external paid service.
+
+Remaining work includes fixed-SHA handoff and required CI, installed Model
+delegation, broader KEEP/output-key acceptance, and durable accounting custody
+for executions that fail or stop before yielding an accepted completion.
+The response-before-save fixture proves non-reexecution, not recovery of
+usage that was never durably saved. This is not a declaration of complete
+INFER or complete Local Compute coverage.

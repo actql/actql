@@ -1572,7 +1572,12 @@ test('failed slot custody survives encrypted Store reopen and replays without di
           kind], wire, body.self_cid]),
     ]) {
       const prepared = await store.preparePrivateEvidence(name, wire, semanticCid);
-      const holdingCid = cid({fixture: 'saved-slot-holding', name, semanticCid});
+      const holdingCid = cid({role: name,
+        run_definition_cid: runDefinition.identity,
+        slot: ['model_capture_bundle', 'observation_set', 'run_invocation']
+          .includes(name) ? -1 : 0,
+        store_authority_cid: configuration.storeAuthorityCid,
+        version: 'actql-model-private-holding/0.1'});
       await store.commitPhysicalHolding({
         version: 'actql-local-physical-holding/0.1', namespace: 'publication-private',
         holding_cid: holdingCid, manifest_cid: semanticCid,
@@ -1683,9 +1688,14 @@ test('failed slot custody survives encrypted Store reopen and replays without di
         const proofs = [moon.clientProgramInferAttemptRecords(
           leaves.model_call_attempt, leaves.model_attempt_accounting,
           leaves.model_attempt_outcome, leaves.model_dispatch_authority)];
-        const read = control.readCheckedClientInferSlotReplay(compiled,
-          definition, observation, records, bundle, proofs,
-          {maxSlots: 1, maxSlotWireUnits: 16384});
+        // Reopen through the installed reader, not an adapter-assembled
+        // replay token. The reader resolves independently keyed custody and
+        // sends every saved proof through the common verification owner.
+        const {readInstalledInferCapture} = await import(${JSON.stringify(new URL(
+          '../adapters/host-node/installed-infer-capture.mjs', import.meta.url).href)});
+        const read = await readInstalledInferCapture({moon, control, store,
+          compiled, runDefinition: definition,
+          storeAuthorityCid: fixture.configuration.storeAuthorityCid});
         assert.equal(moon.clientProgramReleaseInferCaptureBundle(bundle), true);
         const replay = openNodeInferOperation({moon, preparedProgram: prepared,
           step: 2, graph, registry, values,
