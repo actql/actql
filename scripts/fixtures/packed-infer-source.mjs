@@ -90,6 +90,8 @@ try {
   const run = await client.aql(source, {format: 'aql-text', requestId});
   const signal = AbortSignal.timeout(60_000);
   const terminal = await run.wait({signal});
+  console.log(JSON.stringify({transport, phase, observation: 'first-wait',
+    state: terminal, calls}));
   assert.equal(terminal.status, 'succeeded');
   assert.notEqual(phase, 'capture', 'capture exit boundary was not reached');
   const result = run.result('answer');
