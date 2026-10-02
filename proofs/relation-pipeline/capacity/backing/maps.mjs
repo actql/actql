@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { inputs } from '../model.mjs';
+import { distinctMapExtent } from './native-extent.mjs';
 // The actual constructor is Map([]); the admitted schema has at most 3 keys.
 // Eight slots, including at zero entries, remain allocated after clear.
 // This is table-slot structure, not Map/Entry/engine allocation bytes.
@@ -27,5 +28,16 @@ export function inspectPipelineMaps(testCase, observation, registry, requestedTa
   }
   return { target: requestedTarget, observations: events.length,
     units: 'Map table slots and live entries', allocationBytes: false,
-    physicalBackingIdentityVerified: false, replacementOverlapObserved: false };
+    physicalBackingIdentityVerified: false, replacementOverlapObserved: false,
+    ...(requestedTarget === 'native' ? { conditionalNativeRequestedExtent: {
+      currentBound: distinctMapExtent(b.entries.inputOrdinals).toString(),
+      replacementBound: distinctMapExtent(b.entries.inputOrdinals, true).toString(),
+      units: 'native Map leaf requested bytes',
+      // Descriptor/identity correspondence was checked on core objects, not
+      // independently on every private table in the executing child state.
+      remainingPremises: ['native ABI field-layout correspondence for the child instance',
+        'actual pipeline table identities and replacement lifetime',
+        'borrowed referents and remaining runtime allocations', 'reservation custody'],
+      unconditionalAllocationBytes: false,
+    } } : {}) };
 }

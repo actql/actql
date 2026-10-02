@@ -21,7 +21,7 @@ export function pipelineBounds(testCase, registry, target) {
 }
 export function inspectPipelineBacking(testCase, observation, registry, requestedTarget, executionTarget) {
   assert.equal(executionTarget, requestedTarget, 'Backing execution belongs to another target');
-  inspectPipelineMaps(testCase, observation, registry, requestedTarget, executionTarget);
+  const maps = inspectPipelineMaps(testCase, observation, registry, requestedTarget, executionTarget);
   const bounds = pipelineBounds(testCase, registry, requestedTarget);
   const events = observation.faults.filter(e => e.kind === 'capacity observation' &&
     ['start', 'checkpoint', 'before-cleanup', 'after-cleanup'].includes(e.event));
@@ -47,5 +47,8 @@ export function inspectPipelineBacking(testCase, observation, registry, requeste
   }
   return { target: requestedTarget, observations: events.length,
     units: requestedTarget === 'js' ? 'visible elements' : 'current fixed-buffer slots',
-    uniqueAllocationSum: false, allocationBytes: false };
+    uniqueAllocationSum: false, allocationBytes: false,
+    ...(maps.conditionalNativeRequestedExtent ? {
+      conditionalNativeRequestedExtent: maps.conditionalNativeRequestedExtent,
+    } : {}) };
 }

@@ -70,6 +70,39 @@ replacement allocation overlap and GC disposal are not claimed verified. This
 conditional source connection must not be upgraded into a physical byte union.
 No separate test ledger replaces actual state observations.
 
+## Conditional native requested extents
+
+`native-profile.json` separately pins the native object headers and runtime
+sources to both official compiler archives. The admitted platforms are Darwin
+arm64 and Linux x64, with eight-byte pointers. The probe's C stub borrows a real
+Map, reads its compiler-generated GC layout descriptor, locates the actual
+reference-array table, and visits its distinct current Entry pointers. It stores
+no object pointer, allocates nothing and never adjusts reference counts. The
+reader checks descriptor shape and offsets; it does not cast an invented Map
+struct or treat the public capacity counter as a backing identity.
+
+Declared field order matters. Entry's `prev` at offset zero is followed by
+padding before `next` at eight, then `psl` at 16, `hash` at 20, `key` at 24 and
+`value` at 32. Tail padding yields a 40-byte payload; the object header adds
+eight bytes. Summing field widths without internal padding gives the wrong
+bound. Map has a 40-byte payload too. Its eight-pointer table requests 72 bytes
+including its header. Thus the conditional current Map leaf extent is
+`120 + 48 * keys`; the admitted three-key bound is 264 bytes.
+
+`NativeMapExtent.lean` proves the arithmetic upper bound and conditional
+four-map totals `480 + 96 * width`, or `600 + 96 * width` with an additional
+empty snapshot table and wrapper. These are source/ABI-dependent requested
+extents. The core probe confirms finite instances, distinct actual table
+identities, retained identity after clear, and two explicitly held replacement
+objects. Its deliberate holder is test behavior, not an observer holder.
+
+This is not yet the native pipeline's unique live allocation union. Borrowed
+key Strings/transitive values, allocator bookkeeping/arenas, collector buffers,
+other state objects and reservation custody remain obligations. JS and Wasm
+must not receive this native byte evidence; the independent core audit checks
+native runtime provenance and rejects target substitution. The unconditional
+capacity-claim gate remains closed, including the parent 256-byte allowance.
+
 The new `oversized-metadata-map` mutation changes the real constructor to
 `Map([], capacity=16)` without changing the data result. The existing search,
 typed shrinker and target replay must preserve its constructor-bound violation.
@@ -86,7 +119,9 @@ admitted as byte claims. The parent byte guarantee therefore remains conditional
 CI runs these additions through the existing capacity campaign and retains
 receipts below `.artifacts/relation-pipeline/capacity/backing-core/`. For a local
 change use the touched backing Node tests, `backing/check.mjs` for the Lean model,
-and `core-probe.mjs js` for the four small core tests. The runner copies the
+and `core-probe.mjs js` for the four small core tests. Native layout changes use
+`core-probe.mjs native` for five small tests, rather than the full campaign.
+The runner copies the
 reviewed templates to `_build/array-backing-probe/`; run Moon formatting there,
 not inside the source template directory. Generated files in the template
 directory are rejected before execution or audit. Complete target and

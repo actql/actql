@@ -19,6 +19,13 @@ test('empty and nonempty DISTINCT inputs retain the constructor table bound', ()
     for (const target of ['js', 'wasm', 'native']) {
       const result = inspectPipelineMaps(c, observation(c), registry, target, target);
       assert.equal(result.allocationBytes, false); assert.equal(result.physicalBackingIdentityVerified, false);
+      if (target === 'native') {
+        const width = b.entries.inputOrdinals;
+        assert.equal(result.conditionalNativeRequestedExtent.currentBound, String(480 + 96 * width));
+        assert.equal(result.conditionalNativeRequestedExtent.replacementBound, String(600 + 96 * width));
+        assert.equal(result.conditionalNativeRequestedExtent.unconditionalAllocationBytes, false);
+        assert(result.conditionalNativeRequestedExtent.remainingPremises.length > 0);
+      } else assert.equal(result.conditionalNativeRequestedExtent, undefined);
     }
   }
 });
