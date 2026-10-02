@@ -18,6 +18,7 @@ import {
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/bounded_execution" @bounded,
   "actql/actql/query_planning" @planning,
+  "actql/actql/sourceview_resolution" @sourceviews,
   "actql/actql/connectors/duckdb/acquisition" @duckdb_query,
   "actql/actql/connectors/duckdb/host" @duckdb_host,
   "moonbitlang/core/json",

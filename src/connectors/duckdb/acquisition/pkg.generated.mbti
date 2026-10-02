@@ -39,9 +39,13 @@ pub fn capture_duckdb_broad_query(DuckDBQueryIssuer, DuckDBBroadAttempt, DuckDBB
 
 pub fn capture_duckdb_native_query(DuckDBNativeIssuer, DuckDBNativeAttempt, DuckDBNativeRecords, @query_planning.QueryEvidenceLimits) -> Result[DuckDBNativeObservation, DuckDBEvidenceIssue]
 
+pub fn cleanup_duckdb_broad_residual(DuckDBBroadAttempt) -> Result[Bool, @connector_sdk.FixedComputeIssue]
+
 pub fn close_duckdb_native_issuer(DuckDBNativeIssuer) -> Unit
 
 pub fn close_duckdb_query_issuer(DuckDBQueryIssuer) -> Unit
+
+pub fn complete_duckdb_broad_bounded_capture(DuckDBQueryIssuer, DuckDBBroadAttempt, @execution_query.QueryReceipt, (@execution_query.QuerySequence, @execution_query.QueryReceipt, @query_planning.QueryLogicalGuards, DuckDBBroadCompletionLimits) -> @execution_relation.CompletedOutput?, () -> Result[Bool, @connector_sdk.FixedComputeIssue], DuckDBBroadCompletionLimits) -> Result[DuckDBBroadObservation, DuckDBEvidenceIssue]
 
 pub fn complete_duckdb_broad_capture(DuckDBQueryIssuer, DuckDBBroadAttempt, DuckDBBroadCompletionLimits) -> Result[DuckDBBroadObservation, DuckDBEvidenceIssue]
 
@@ -58,6 +62,8 @@ pub fn duckdb_broad_attempt_identity(DuckDBBroadAttempt) -> (String, String)?
 pub fn duckdb_broad_attempt_row_count(DuckDBBroadAttempt) -> Int?
 
 pub fn duckdb_broad_candidate(@connector_sdk.CapabilityRegistration, DuckDBQueryPreparation, Array[@physical_cost.SerialEstimateLine], @connector_sdk.QueryQuantities, Int) -> Result[@query_planning.PreparedAcquisition[DuckDBQueryPreparation], @query_planning.QueryPlanningIssue]
+
+pub fn duckdb_broad_capture_input_live(DuckDBQueryIssuer, DuckDBBroadAttempt, @execution_query.QueryReceipt) -> Bool
 
 pub fn duckdb_broad_observation_cid(DuckDBBroadObservation) -> String
 
@@ -140,6 +146,8 @@ pub fn native_captured_source(DuckDBNativeOutput, Int, Int) -> Result[@execution
 pub fn native_retained_captured_source(DuckDBNativeIssuer, DuckDBNativeAttempt, DuckDBNativeObservation, Int, Int) -> Result[@execution_query.CapturedInputSource, @execution_query.CapturedSourceIssue]
 
 pub fn prepare_duckdb_broad_attempt(DuckDBQueryPreparation) -> DuckDBBroadAttempt
+
+pub fn prepare_duckdb_broad_capture_input(DuckDBQueryIssuer, DuckDBBroadAttempt) -> Result[@execution_query.QueryReceipt, DuckDBEvidenceIssue]
 
 pub fn prepare_duckdb_native_attempt(@query_planning.AcquisitionChoice, @query_planning.PreparedAcquisition[DuckDBNativePreparation], @adapter.PhysicalResultLimits, Int, @execution_relation.FixedInputGuardMeasureLimits) -> Result[DuckDBNativeAttempt, DuckDBNativeAttemptIssue]
 
