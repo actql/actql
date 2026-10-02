@@ -2,6 +2,7 @@ import test, {mock} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createHash} from 'node:crypto';
+import {createServer} from 'node:http';
 import {connect, ClientError} from './index.mjs';
 
 const ref = Object.freeze({namespaceId: 'namespace-a',
@@ -775,3 +776,122 @@ test('cancel validates the response and exact requested Run', async t => {
     await assert.rejects(execution.cancel(), {code: 'InvalidHostCancellation'});
   }
 });
+
+
+for (const [count, stop] of [[1, 'abort'], [2, 'abort'],
+  [1, 'return'], [2, 'return']]) {
+  test(`${stop} stops real HTTP delivery after the first of ${count} rows`,
+    async t => {
+      const requests = [];
+      const server = createServer(async (request, response) => {
+        for await (const _ of request) { /* Consume the request body. */ }
+        const operation = request.url.split('/').at(-1);
+        requests.push(operation);
+        const localProfile = {...profile, mode: 'local', owner: 'local'};
+        response.writeHead(200, {'content-type': operation === 'read'
+          ? 'application/x-ndjson' : 'application/json'});
+        response.end(operation === 'connect' ? JSON.stringify(localProfile)
+          : operation === 'attach' ? JSON.stringify(admission)
+            : Array.from({length: count}, (_, n) =>
+              JSON.stringify({n: n + 1}) + '\n').join('') + '\x1e');
+      });
+      await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+      t.after(async () => {
+        server.closeAllConnections();
+        await new Promise(resolve => server.close(resolve));
+      });
+      const client = await connect({mode: 'local', owner: 'local',
+        endpoint: `http://127.0.0.1:${server.address().port}/`,
+        token: 'test-token'});
+      t.after(() => client.close());
+      const result = (await client.attach(ref)).result('answer');
+      const controller = new AbortController();
+      const reader = result.rows({signal: controller.signal});
+      const iterator = reader[Symbol.asyncIterator]();
+      assert.deepEqual(await iterator.next(), {done: false, value: {n: 1}});
+      if (stop === 'abort') {
+        controller.abort();
+        await assert.rejects(iterator.next(), error =>
+          error instanceof ClientError && error.code === 'ResultReadUnknown' &&
+          error.attemptId === reader.attemptId &&
+          error.cause?.name === 'AbortError');
+      } else {
+        assert.deepEqual(await iterator.return(),
+          {done: true, value: undefined});
+      }
+      assert.equal(reader.state(), 'prefix');
+      assert.deepEqual(requests, ['connect', 'attach', 'read']);
+    });
+}
+
+for (const text of ['{"n":1}\n\x1e', '{"n":1}\n{"n":2}\n\x1e']) {
+  test(`abort prevents buffered Response completion: ${JSON.stringify(text)}`,
+    async t => {
+      const requests = [];
+      mock.method(globalThis, 'fetch', async url => {
+        const operation = url.pathname.split('/').at(-1);
+        requests.push(operation);
+        if (operation === 'connect') return Response.json(profile);
+        if (operation === 'attach') return Response.json(admission);
+        if (operation === 'read') return new Response(text);
+        throw new Error(`unexpected ${operation}`);
+      });
+      t.after(() => mock.restoreAll());
+      const result = (await (await connect(options)).attach(ref)).result('answer');
+      const controller = new AbortController();
+      const reader = result.rows({signal: controller.signal});
+      const iterator = reader[Symbol.asyncIterator]();
+      assert.deepEqual(await iterator.next(), {done: false, value: {n: 1}});
+      controller.abort();
+      await assert.rejects(iterator.next(), error =>
+        error.code === 'ResultReadUnknown' &&
+        error.attemptId === reader.attemptId &&
+        error.cause?.name === 'AbortError');
+      assert.equal(reader.state(), 'prefix');
+      assert.deepEqual(requests, ['connect', 'attach', 'read']);
+    });
+}
+
+for (const stop of ['return', 'break']) {
+  test(`early ${stop} reports a failed Result stream cleanup`, async t => {
+    const requests = [];
+    const cleanupError = new Error('physical cleanup failed');
+    let cancellations = 0, body;
+    mock.method(globalThis, 'fetch', async url => {
+      const operation = url.pathname.split('/').at(-1);
+      requests.push(operation);
+      if (operation === 'connect') return Response.json(profile);
+      if (operation === 'attach') return Response.json(admission);
+      if (operation === 'read') {
+        body = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode('{"n":1}\n'));
+          },
+          cancel() { cancellations++; throw cleanupError; },
+        });
+        return new Response(body);
+      }
+      throw new Error(`unexpected ${operation}`);
+    });
+    t.after(() => mock.restoreAll());
+    const result = (await (await connect(options)).attach(ref)).result('answer');
+    const reader = result.rows();
+    await assert.rejects(async () => {
+      if (stop === 'return') {
+        const iterator = reader[Symbol.asyncIterator]();
+        assert.deepEqual(await iterator.next(), {done: false, value: {n: 1}});
+        await iterator.return();
+      } else {
+        for await (const row of reader) {
+          assert.deepEqual(row, {n: 1});
+          break;
+        }
+      }
+    }, error => error.code === 'ResultReadCleanupUnknown' &&
+      error.attemptId === reader.attemptId && error.cause === cleanupError);
+    assert.equal(reader.state(), 'prefix');
+    assert.equal(cancellations, 1);
+    assert.equal(body.locked, false);
+    assert.deepEqual(requests, ['connect', 'attach', 'read']);
+  });
+}
