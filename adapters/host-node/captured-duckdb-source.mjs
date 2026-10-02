@@ -2,6 +2,8 @@
 // Program and MoonBit acquisition planner own the source request and query;
 // this adapter supplies only the approved database grant and bounded I/O.
 import {readFile} from 'node:fs/promises';
+import {validateLimits} from '../connectors/duckdb/node/configuration.mjs';
+import {checkDuckDBAcquisitionPlanning, freezeAcquisitionDiagnostic, selectInstalledDuckDBAcquisition} from './duckdb-acquisition-planning.mjs';
 import {computePhysicalCapacity} from '../connectors/duckdb/node/physical-capacity.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {acquisitionFailure, acquisitionOutcome} from '../host-common/acquisition-outcome.mjs';
@@ -20,6 +22,37 @@ const contractFiles = [
   'actql-query-two-receipt.json',
 ];
 const preparations = new WeakMap();
+const transportLimitKeys = Object.freeze(['maxRows', 'maxCells', 'maxTransportBytes',
+  'maxSqlBytes', 'maxParameters', 'maxColumns', 'memoryBytes', 'threads',
+  'cancelWaitMs', 'maxChunkRows', 'maxChunkBytes']);
+function admittedTransportPolicy(limits) {
+  const validated = validateLimits(limits);
+  computePhysicalCapacity(validated);
+  return Object.freeze(Object.fromEntries(transportLimitKeys.map(key => [key, validated[key]])));
+}
+
+// This pure authorization check precedes comparison. The provider still
+// checks the current gate again immediately before opening its read session.
+async function currentReadDecision(database, access, signal) {
+  if (typeof access?.authorization?.authorize !== 'function') {
+    return {action: 'deny', basis: 'account', reason: 'configuration_missing'};
+  }
+  return access.authorization.authorize('acquisition', {
+    connection: access.connection ?? 'local-database',
+    resource: access.resource ?? database, operation: 'read',
+  }, {subjectCid: access.subjectCid, signal});
+}
+
+function selectAcquisition(inputs) {
+  const chosen = selectInstalledDuckDBAcquisition(inputs);
+  if (chosen.native === undefined && chosen.broad === undefined) {
+    const code = chosen.selection.status === 'deferred'
+      ? 'InstalledSourceSelectionDeferred' : 'InstalledSourceNoEligibleCandidate';
+    throw Object.assign(new Error(code), {code, selection: chosen.selection});
+  }
+  return {acquisition: chosen.native ?? chosen.broad,
+    broad: chosen.native === undefined, selection: chosen.selection};
+}
 
 // Checked preparation for the Host's acquisition Checkpoint. It does not
 // open the database or infer authority from the source CID. The returned
@@ -27,7 +60,7 @@ const preparations = new WeakMap();
 export async function prepareCapturedDuckDBSource({moon, preparedProgram,
   preparedEffect,
   registry, values, fragment, ordered, database, schema, table,
-  sourceAccess, transportLimits, occurrence = {stage: 0, input: 0, task: 0}}) {
+  sourceAccess, transportLimits, acquisitionPlanning, occurrence = {stage: 0, input: 0, task: 0}}) {
   if (typeof database !== 'string' || typeof schema !== 'string' ||
       typeof table !== 'string' || typeof registry !== 'string' ||
       typeof values !== 'string' || typeof fragment !== 'string' ||
@@ -78,19 +111,41 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
     moon.clientProgramPrepareDuckDBSourceEvidenceContext(requirement));
   const contracts = await Promise.all(contractFiles.map(name =>
     readFile(new URL(name, contractRoot), 'utf8')));
-  const native = moon.clientProgramPrepareDuckDBAcquisition(
-    requirement, schema, table, ...contracts);
-  const broad = moon.clientProgramDuckDBNativeCandidateUnavailable(native);
-  const acquisition = checked(broad
-    ? moon.clientProgramPrepareDuckDBBroadAcquisition(
-      requirement, schema, table, ...contracts) : native);
+  // Mandatory physical limits are actual Host policy, independent of all
+  // optional cost/quantity evidence. Validate them before any comparison.
+  const admittedLimits = admittedTransportPolicy(transportLimits);
+  const single = effectful || moon.clientProgramAcquisitionCount(checkedOwner) === 1;
+  const planning = acquisitionPlanning === undefined ? undefined
+    : checkDuckDBAcquisitionPlanning(acquisitionPlanning);
+  const selectionInputs = {moon, requirement, schema, table, contracts,
+    source: {database, schema, table, sourceRef}, planning};
+  let acquisition, broad = false, selection;
+  if (single) {
+    const decision = await currentReadDecision(database, sourceAccess);
+    if (decision.action === 'dispatch') {
+      ({acquisition, broad, selection} = selectAcquisition(selectionInputs));
+    } else if (decision.action === 'deny') {
+      throw new ExecutionAuthorizationError(decision);
+    }
+    // A delegated/held read has no execution authority yet. Its existing
+    // Checkpoint owner handles approval; comparison waits for resumed access.
+  } else {
+    // The separately bounded plural-Native path keeps its existing
+    // sole-candidate preparation and custody. No made-up cost remains.
+    const native = moon.clientProgramPrepareDuckDBAcquisition(
+      requirement, schema, table, ...contracts);
+    broad = moon.clientProgramDuckDBNativeCandidateUnavailable(native);
+    acquisition = checked(broad
+      ? moon.clientProgramPrepareDuckDBBroadAcquisition(
+        requirement, schema, table, ...contracts) : native);
+  }
   // The Host-resolved physical target is part of what an approval covers:
   // the same checked source read from another schema or table is another
   // read. Physical names are bound by their exact UTF-8 bytes (hex): the
   // database distinguishes names that ActQL's logical text normalization
   // treats as equal. The readable names are display only.
   const exact = name => Buffer.from(name, 'utf8').toString('hex');
-  const prepared = Object.freeze({checkedSource,
+  const prepared = Object.freeze({checkedSource, selection,
     occurrence: Object.freeze({...occurrence}),
     readTuple: Object.freeze({connection: sourceAccess.connection ??
       'local-database', resource: sourceAccess.resource ?? database,
@@ -101,7 +156,8 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
         schema: exact(schema), table: exact(table)})})});
   preparations.set(prepared, Object.freeze({moon, checkedOwner, effectful, registry,
     values, fragment, ordered, database, schema, table, sourceAccess,
-    requirement, evidenceContext, acquisition, broad, transportLimits, occurrence: prepared.occurrence}));
+    requirement, evidenceContext, acquisition, broad, selection, single, selectionInputs,
+    transportLimits: admittedLimits, acquisitionPlanning, occurrence: prepared.occurrence}));
   return prepared;
 }
 
@@ -112,7 +168,7 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
 export async function openCapturedDuckDBSource({moon, preparedProgram,
   preparedEffect,
   registry, values, fragment, ordered, database, schema, table,
-  sourceAccess, transportLimits, signal, preparedSource,
+  sourceAccess, transportLimits, acquisitionPlanning, signal, preparedSource,
   reportAcquisitionFailure, occurrence = {stage: 0, input: 0, task: 0}, ledger}) {
   if (reportAcquisitionFailure !== undefined &&
       typeof reportAcquisitionFailure !== 'function') {
@@ -126,10 +182,11 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
   let owner;
   let prepared;
   let grant;
+  let authorizedSelection;
   try {
     prepared = preparedSource ?? await prepareCapturedDuckDBSource({moon,
       preparedProgram, preparedEffect, registry, values, fragment, ordered,
-      database, schema, table, sourceAccess, occurrence});
+      database, schema, table, sourceAccess, transportLimits, acquisitionPlanning, occurrence});
     owner = preparations.get(prepared);
     const effectful = preparedEffect !== undefined;
     if (owner === undefined || owner.moon !== moon ||
@@ -141,25 +198,38 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
         owner.registry !== registry || owner.values !== values ||
         owner.fragment !== fragment || owner.ordered !== ordered ||
         owner.database !== database || owner.schema !== schema ||
-        owner.table !== table || owner.sourceAccess !== sourceAccess) {
+        owner.table !== table || owner.sourceAccess !== sourceAccess ||
+        owner.acquisitionPlanning !== acquisitionPlanning) {
       throw new Error('InstalledSourcePreparationMismatch');
+    }
+    const currentLimits = admittedTransportPolicy(transportLimits);
+    if (transportLimitKeys.some(key => currentLimits[key] !== owner.transportLimits[key])) {
+      throw new Error('InstalledSourceResourcePolicyMismatch');
+    }
+    if (owner.single) {
+      const decision = await currentReadDecision(database, sourceAccess, signal);
+      if (decision.action !== 'dispatch') throw new ExecutionAuthorizationError(decision);
+      if (owner.acquisition === undefined) {
+        authorizedSelection = selectAcquisition(owner.selectionInputs);
+      }
     }
     grant = await authorizeLocalDatabase(database, sourceAccess);
   } catch (cause) {
     failAcquisition(cause, 'not_started');
   }
   const {checkedSource} = prepared;
-  const {requirement, evidenceContext, acquisition} = owner;
+  const {requirement, evidenceContext} = owner;
+  const {acquisition, broad, selection} = authorizedSelection ?? owner;
   let capture;
   try {
-    if (ledger !== undefined && owner.broad) {
+    if (ledger !== undefined && broad) {
       throw new Error('InstalledMultiSourceNativeAcquisitionRequired');
     }
     capture = ledger === undefined
-      ? await (owner.broad ? runBroadHostQuery : runNativeHostQuery)(
-        grant, acquisition, transportLimits, signal)
+      ? await (broad ? runBroadHostQuery : runNativeHostQuery)(
+        grant, acquisition, owner.transportLimits, signal)
       : await runStrategyNativeHostQuery(grant, acquisition, ledger,
-        transportLimits, signal);
+        owner.transportLimits, signal);
   } catch (cause) {
     const ended = acquisitionOutcome(cause);
     failAcquisition(cause, cause instanceof
@@ -197,6 +267,8 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
     }
     return Object.freeze({capture, identity, logicalInput, requirement,
       checkedSource, setup, occurrence: owner.occurrence,
+      acquisition: selection === undefined ? undefined : freezeAcquisitionDiagnostic({
+        selection, observation: JSON.parse(capture.document())}),
       issueSourceEvidence: options => issueNativeSourceEvidence(capture,
         {...options, context: evidenceContext, identity, logicalInput}),
       close: () => capture.close()});
@@ -224,7 +296,7 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
 // manufacture a configuration or bypass the occurrence owner.
 export function capturedDuckDBNativeConfiguration(prepared) {
   const owner = preparations.get(prepared);
-  if (owner === undefined || owner.broad || owner.effectful) {
+  if (owner === undefined || owner.broad || owner.effectful || owner.acquisition === undefined) {
     throw new TypeError('InstalledMultiSourceNativeAcquisitionRequired');
   }
   return owner.acquisition;

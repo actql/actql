@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {isAbsolute} from 'node:path';
 import {createNodeAuthorizationGate} from './authorization.mjs';
+import {checkDuckDBAcquisitionPlanning} from './duckdb-acquisition-planning.mjs';
 
 const sourceLimits = Object.freeze({
   maxRows: 10000, maxCells: 100000, maxTransportBytes: 10000000,
@@ -34,7 +35,7 @@ export async function installDuckDBSourceProfile(profile, {root,
   if (profile === null || typeof profile !== 'object' ||
       Array.isArray(profile) ||
       Object.keys(profile).sort().join('\0') !==
-        ['accountConfigurationWire', 'checkEnvironmentWire', 'database',
+        ['accountConfigurationWire', 'acquisitionPlanning', 'checkEnvironmentWire', 'database',
           'schema', 'sourceRef', 'table', 'version'].join('\0') ||
       profile.version !== 'actql-installed-duckdb-source/0.1' ||
       typeof profile.database !== 'string' ||
@@ -44,6 +45,7 @@ export async function installDuckDBSourceProfile(profile, {root,
         typeof profile[key] === 'string' && profile[key].length > 0)) {
     throw new TypeError('InvalidInstalledSourceProfile');
   }
+  const acquisitionPlanning = checkDuckDBAcquisitionPlanning(profile.acquisitionPlanning);
   const context = Object.freeze({principal: principalId,
     contextCid: cid({version: 'actql-installed-source-context/0.1',
       root, principalId})});
@@ -62,6 +64,6 @@ export async function installDuckDBSourceProfile(profile, {root,
     sourceAccess: Object.freeze({authorization,
       connection: 'local-database', resource: profile.database,
       sourceRef: profile.sourceRef}),
-    transportLimits: sourceLimits,
+    transportLimits: sourceLimits, acquisitionPlanning,
   });
 }
