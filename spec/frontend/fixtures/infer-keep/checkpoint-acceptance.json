@@ -134,21 +134,21 @@
   "control_columns": [
     {
       "name": "id",
-      "type": {
+      "contract": {
         "type": "string",
         "nullable": false
       }
     },
     {
       "name": "outcome",
-      "type": {
+      "contract": {
         "type": "string",
         "nullable": false
       }
     },
     {
       "name": "value",
-      "type": {
+      "contract": {
         "type": "object",
         "nullable": true,
         "additional_properties": false,
@@ -175,12 +175,13 @@
       }
     }
   ],
-  "source": "SELECT 'a' AS id, 'hello' AS text |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (text = text) AS assessment",
+  "source": "SELECT DISTINCT 'a' AS id, 'hello' AS text |> INFER `model-task:risk-score.v1` ITEM KEY (id, text) INPUT (text = text) AS assessment",
   "source_rows": [
     {
       "assessment": {
         "input_key": {
-          "id": "a"
+          "id": "a",
+          "text": "hello"
         },
         "outcome": "ok",
         "value": {
@@ -286,5 +287,19 @@
         }
       }
     }
-  }
+  },
+  "projected_rows": [
+    {
+      "assessment": {
+        "input_key": {
+          "id": "a"
+        },
+        "outcome": "ok",
+        "value": {
+          "reason": null,
+          "risk": "high"
+        }
+      }
+    }
+  ]
 }

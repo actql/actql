@@ -29,7 +29,8 @@ for (const mode of ['local', 'remote']) {
           assert.deepEqual(description.columns, fixture.control_columns);
         }
         const expected = name === 'json-control'
-          ? fixture.control_rows : fixture.source_rows;
+          ? fixture.control_rows : name === 'json-projected'
+            ? fixture.projected_rows : fixture.source_rows;
         assert.deepEqual(await result.all({signal}), expected);
         await host.assertCapture(run);
         const after = host.observe();

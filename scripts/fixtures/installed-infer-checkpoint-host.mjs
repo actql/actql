@@ -2,7 +2,7 @@
 // Canonical bodies below are fixture inputs, not expected runtime outputs.
 import assert from 'node:assert/strict';
 import {createHash, generateKeyPairSync} from 'node:crypto';
-import {mkdir, readFile} from 'node:fs/promises';
+import {mkdtemp, readFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {resolve} from 'node:path';
@@ -26,8 +26,7 @@ const checked = result => {
 };
 
 export async function openInferTestHost({mode, fixture}) {
-  const directory = resolve(`infer-${mode}-state`);
-  await mkdir(directory, {recursive: true});
+  const directory = await mkdtemp(resolve(`infer-${mode}-state-`));
   const dependencies = [
     {version: 'actql-model-prompt/0.1', payload: {
       format: 'fixture-risk/0.1', instructions: 'Classify the text.'}},
