@@ -54,6 +54,7 @@ pub(all) enum IssueKind {
   WrongCarrier(@carrier.Kind)
   InvalidCount
   IncompleteGraph
+  UnsupportedGraphProfile
   UnknownDeltaField(String)
   UntypedDeltaField(String)
   InvalidDeltaType
@@ -129,6 +130,19 @@ fn[T] fail(c : @decode.Cursor, kind : IssueKind) -> T raise Stop {
     path: @decode.cursor_path(c),
     span: @decode.cursor_span(c),
   })
+}
+
+///|
+// Legacy operators must not silently read scoped identities as endpoint IDs.
+// New-profile support removes this guard only from the deliberately connected
+// operator, not from every Graph-shaped consumer.
+fn require_legacy_profile(
+  graph : @carrier.Graph,
+  source : @decode.Cursor,
+) -> Unit raise Stop {
+  if @carrier.graph_property_definition(graph) is Some(_) {
+    fail(source, UnsupportedGraphProfile)
+  }
 }
 
 ///|
@@ -239,6 +253,9 @@ pub fn check(
     scan(b, source)
     if @carrier.kind(input) != @carrier.GraphKind {
       fail(source, WrongCarrier(@carrier.kind(input)))
+    }
+    if input is @carrier.GraphValue(graph) {
+      require_legacy_profile(graph, source)
     }
     let params : Map[String, @contract.Contract] = Map([])
     if parameters is Some(ds) {

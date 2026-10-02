@@ -100,6 +100,7 @@ fn check_supported_source(
               | "sequence"
               | "events"
               | "graph"
+              | "property_graph"
               | "normalize_graph"
               | "degree"
               | "components"
@@ -160,6 +161,7 @@ fn check(
   text_rank? : @environment.SelectedTextRankProfile? = None,
   capacity_inputs? : @context.ProgramCapacityInputs? = None,
   effect_headers? : @syntax.EffectHeaders? = None,
+  property_graph? : Bool = false,
 ) -> CheckedProgram raise LocalConstructionFailure {
   if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
     raise InvalidLimits
@@ -189,6 +191,7 @@ fn check(
     references_out=Some(references),
     capacity_inputs~,
     effect_headers~,
+    property_graph~,
   )
   let conversion = Some(conversions[0])
   audit_source_execution(contracts, units[0].source_execution, budget) catch {

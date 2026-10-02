@@ -2358,7 +2358,7 @@
     },
     {
       "requirement_id": "actql.language/operation-inventory.family-operation-input-output",
-      "statement_sha256": "117cee600061a4b2e6c77897a1022d6b1c1f39c45308447f38e1fa7af6579adc",
+      "statement_sha256": "d81aea146e88b9d26ed11d765673728a3f6a435060979bb3f9c9173a4bf75654",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -7066,7 +7066,7 @@
     },
     {
       "requirement_id": "actql.language/algebra-lowering.actql-surface-form-canonical-aoa-registry-operation",
-      "statement_sha256": "fe4b4ae09ab87546b28b6cbbd970d40cb996df3e43a359aac1b57cdc989628a0",
+      "statement_sha256": "c6485d80e405f6b2fe2fc275527ef199427b6182cc0e4dc3d5e398599f31f764",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -8089,7 +8089,7 @@
     },
     {
       "requirement_id": "actql.language/machine-contracts.exact-artifacts",
-      "statement_sha256": "13ca9bdc6716dbf9d6b4ab822552c39bc6bd58ca80528d3048dd3906b4a43d35",
+      "statement_sha256": "9486d33459f9b7fdf45e3012f2fd9c744b81652cfe0e8afe8b8445f48862f028",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

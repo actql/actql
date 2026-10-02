@@ -54,6 +54,7 @@ fn attach_fragment_budgets(
       @lower.GraphShortestStep(_) => ()
       @lower.GraphRelationStep(_) => ()
       @lower.GraphConstructionStep(_) => ()
+      @lower.PropertyGraphConstructionStep(_) => ()
       @lower.VectorStep(_) => ()
       @lower.EventStep(_) => ()
       @lower.CarrierProjectionStep(_) => ()

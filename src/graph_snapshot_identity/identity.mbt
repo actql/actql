@@ -31,6 +31,7 @@ priv enum Phase {
 struct Builder {
   writer : @encode.Writer
   limits : Limits
+  property_profile : Bool
   mut phase : Phase
   mut previous_node : String?
   mut previous_edge : (String, String, String)?
@@ -136,6 +137,7 @@ pub fn prepare(
     Ok({
       writer,
       limits,
+      property_profile: false,
       phase: Nodes,
       previous_node: None,
       previous_edge: None,
@@ -153,7 +155,7 @@ pub fn begin_node(
   builder : Builder,
   identity : @value.CheckedValue,
 ) -> Result[Unit, Issue] {
-  if builder.phase != Nodes {
+  if builder.property_profile || builder.phase != Nodes {
     return Err(InvalidPhase)
   }
   let key = match order_key(identity, builder.limits.value_limits) {
@@ -245,7 +247,7 @@ pub fn begin_edge(
   target : @value.CheckedValue,
   label : @value.CheckedValue?,
 ) -> Result[Unit, Issue] {
-  if builder.phase != Edges {
+  if builder.property_profile || builder.phase != Edges {
     return Err(InvalidPhase)
   }
   let source_key = match order_key(source, builder.limits.value_limits) {
@@ -290,7 +292,8 @@ pub fn begin_edge(
 
 ///|
 pub fn end_edge(builder : Builder) -> Result[Unit, Issue] {
-  if builder.phase != EdgeProperties ||
+  if builder.property_profile ||
+    builder.phase != EdgeProperties ||
     builder.edge_source is None ||
     builder.edge_label is None {
     return Err(InvalidPhase)
@@ -319,7 +322,7 @@ pub fn end_edge(builder : Builder) -> Result[Unit, Issue] {
 
 ///|
 pub fn finish(builder : Builder) -> Result[String, Issue] {
-  if builder.phase != Edges {
+  if builder.property_profile || builder.phase != Edges {
     return Err(InvalidPhase)
   }
   builder.phase = Finished

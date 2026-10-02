@@ -57,6 +57,7 @@ pub(all) enum IssueKind {
   MissingGuardBinding(String)
   InvalidGuardValue(String)
   UnsupportedOperation(String)
+  MissingPropertyProducerDefinition
   InvalidMetadata
   ReservedMetadataKey(String)
   Operation(@relation.IssueKind)
@@ -166,6 +167,10 @@ pub enum CheckedOperation {
     nodes~ : Target?,
     edges~ : Target,
     checked~ : @graph.CheckedConstruction
+  )
+  PropertyGraphConstruction(
+    inputs~ : Array[Target],
+    checked~ : @graph.CheckedPropertyConstruction
   )
   Vector(@vector.CheckedVector)
   Nearest(queries~ : Target, checked~ : @vector.CheckedNearest)

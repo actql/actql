@@ -58,7 +58,7 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
   const directories = [];
   const observe = directory => directories.push(directory);
   assert.match(run(undefined, undefined, [], undefined, observe),
-    /68 operations, 5 implementation profiles/u);
+    /69 operations, 5 implementation profiles/u);
   assert.match(run(manifest => { manifest.operations = []; },
     undefined, [], undefined, observe), /operation/u);
   assert.throws(() => run(undefined,
@@ -71,7 +71,28 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
 });
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 68 production routes mapped, 68 with operation-specific boundary records, 68 with four-role boundary evidence, 68 with full work\/workspace assurance, 121 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /69 operations, 5 implementation profiles, 69 production routes mapped, 69 with operation-specific boundary records, 69 with four-role boundary evidence, 69 with full work\/workspace assurance, 122 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+});
+
+test('keyed property constructor cannot borrow legacy boundary or cancellation evidence', () => {
+  for (const field of ['path_assurance','resource_assurance']) {
+    assert.match(run(undefined, value => {
+      delete value.routes.find(route=>route.operation==='property_graph')[field].entrypoint;
+    }), /Bridge property_graph: keyed production work\/workspace and Host cancellation evidence are required/u);
+  }
+  for (const role of ['property_graph_control_work_workspace_exact_one_short',
+    'property_graph_private_capacity_cancel_cleanup']) {
+    assert.match(run(undefined, value => {
+      const route = value.routes.find(route=>route.operation==='property_graph');
+      route.boundary_tests = route.boundary_tests.filter(item=>item.role!==role);
+    }), /Bridge property_graph: keyed production work\/workspace and Host cancellation evidence are required/u);
+  }
+  assert.match(run(undefined, value => {
+    value.routes.find(route=>route.operation==='property_graph').environment_tests=[];
+  }), /Bridge property_graph: keyed production work\/workspace and Host cancellation evidence are required/u);
+  assert.match(run(undefined, value => {
+    value.routes.find(route=>route.operation==='property_graph').dispatch.marker='@bridge.start_rows_to_graph(';
+  }), /Bridge property_graph: keyed production work\/workspace and Host cancellation evidence are required/u);
 });
 
 test('retained source-free Values requires exact admission and Host evidence', () => {
@@ -1102,7 +1123,7 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 121 |',
+    '| Path-scoped work/workspace assurance | 122 |',
     '| Path-scoped work/workspace assurance | 52 |',
   );
   assert.notEqual(stale, gaps);
@@ -2349,7 +2370,7 @@ test('resource completion rejects every unassured operation', () => {
 
 test('strict resource completion accepts every assured route', () => {
   assert.match(run(undefined, undefined, ['--require-boundary-complete']),
-    /68 with four-role boundary evidence, 68 with full work\/workspace assurance/);
+    /69 with four-role boundary evidence, 69 with full work\/workspace assurance/);
 });
 
 test('whole-sequence take owes both keyed and unkeyed resource branches', () => {

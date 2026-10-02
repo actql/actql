@@ -40,6 +40,7 @@ pub(all) enum OperationExecutionCheck {
   ShortestExecution(ShortestCheck)
   GraphExecution(GraphExecutionCheck)
   GraphConstructionExecution(GraphConstructionCheck)
+  PropertyGraphConstructionExecution(PropertyGraphConstructionCheck)
   GraphProjection(GraphProjectionCheck)
   GraphProjectionOutput(GraphProjectionEnvelope)
   SequenceMatch(SequenceMatchCheck)
@@ -279,6 +280,7 @@ pub fn operation_execution_phase(
         | EvaluateHopConditions
         | EmitMinimumDepth
         | EnumerateSimplePaths
+        | EnumeratePropertyPaths
         | DeduplicatePathIdentities
         | OrderTraversalRows => BeforeOperationOutput
       }
@@ -297,6 +299,13 @@ pub fn operation_execution_phase(
         | CollapseEqualPayloads
         | EnforceConstructionEnvelope
         | RejectPayloadConflicts => BeforeOperationOutput
+      }
+    PropertyGraphConstructionExecution(v) =>
+      match v.rule {
+        AdmitPropertyInputRows => BeforeOperationInputUse
+        RejectDuplicateKeys
+        | ExcludeNullKeysAndMissingEndpoints
+        | EnforcePropertyConstructionEnvelope => BeforeOperationOutput
       }
     GraphProjectionOutput(_) => BeforeOperationOutput
     GraphProjection(v) =>
@@ -424,7 +433,8 @@ pub fn operation_execution_failure(
     | GraphProjection(_)
     | GraphExecution(_)
     | GraphProjectionOutput(_)
-    | GraphConstructionExecution(_) => RejectOperationOutput
+    | GraphConstructionExecution(_)
+    | PropertyGraphConstructionExecution(_) => RejectOperationOutput
     AsOfExecution(_) => RejectOperationOutput
     IntervalExecution(_) => RejectOperationOutput
     IntervalSearch(_) => RejectOperationOutput

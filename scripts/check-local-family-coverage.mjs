@@ -87,7 +87,7 @@ const expectedFamilies = new Map([
   ["SGA", 17],
   ["TEA", 8],
   ["VecA", 5],
-  ["Bridge", 7],
+  ["Bridge", 8],
   ["VecAExpression", 2],
 ]);
 const normative = new Map();

@@ -115,6 +115,55 @@ pub fn append_node(
 }
 
 ///|
+/// New key/profile inputs share the same private storage and retention port.
+pub fn append_property_node(
+  output : OutputBuilder,
+  definition_index : Int,
+  keys : Array[@value.CheckedValue],
+  properties : Array[@value.CheckedValue],
+) -> Result[Unit, Issue] {
+  if !output.open {
+    return Err(Closed)
+  }
+  @storage.append_property_node(
+    output.graph,
+    definition_index,
+    keys,
+    properties,
+  ).map_err(issue => {
+    output.open = false
+    @lifecycle.cancel_retention_port(output.retention) |> ignore
+    Storage(issue)
+  })
+}
+
+///|
+pub fn append_property_edge(
+  output : OutputBuilder,
+  definition_index : Int,
+  keys : Array[@value.CheckedValue],
+  source_keys : Array[@value.CheckedValue],
+  target_keys : Array[@value.CheckedValue],
+  properties : Array[@value.CheckedValue],
+) -> Result[Unit, Issue] {
+  if !output.open {
+    return Err(Closed)
+  }
+  @storage.append_property_edge(
+    output.graph,
+    definition_index,
+    keys,
+    source_keys,
+    target_keys,
+    properties,
+  ).map_err(issue => {
+    output.open = false
+    @lifecycle.cancel_retention_port(output.retention) |> ignore
+    Storage(issue)
+  })
+}
+
+///|
 pub fn observe_node(
   output : OutputBuilder,
   identity : @value.CheckedValue,
@@ -396,30 +445,69 @@ pub fn producer_read_view(
     @storage.carrier(storage) is @carrier.GraphValue(graph) else {
     return Err(Producer(@lifecycle.ProducerUnavailable))
   }
-  @lifecycle.prepare_graph_producer_view(
-    producer_read_carrier_reference(value),
-    @storage.node_count(storage),
-    @storage.edge_count(storage),
-    @carrier.field_count(@carrier.graph_node_properties(graph)),
-    @carrier.field_count(@carrier.graph_edge_properties(graph)),
-    node => @storage.node_identity(storage, node),
-    (node, property) => @storage.node_property(storage, node, property),
-    identity => {
-      match @storage.node_index(storage, identity) {
-        Ok(index) => Some(index)
-        Err(_) => None
-      }
-    },
-    edge => @storage.edge_endpoints(storage, edge),
-    edge => @storage.edge_label(storage, edge),
-    (edge, property) => @storage.edge_property(storage, edge, property),
-    (source, target, label) => {
-      match @storage.edge_index(storage, source, target, label) {
-        Ok(index) => Some(index)
-        Err(_) => None
-      }
-    },
-  ).map_err(issue => {
+  let read = producer_read_carrier_reference(value)
+  let nodes = @storage.node_count(storage)
+  let edges = @storage.edge_count(storage)
+  let node_identity = node => @storage.node_identity(storage, node)
+  let node_property = (node, property) => {
+    @storage.node_property(storage, node, property)
+  }
+  let node_index = identity => {
+    match @storage.node_index(storage, identity) {
+      Ok(index) => Some(index)
+      Err(_) => None
+    }
+  }
+  let edge_endpoints = edge => @storage.edge_endpoints(storage, edge)
+  let edge_property = (edge, property) => {
+    @storage.edge_property(storage, edge, property)
+  }
+  let view = if @carrier.graph_property_definition(graph) is Some(_) {
+    @lifecycle.prepare_property_graph_producer_view(
+      read,
+      nodes,
+      edges,
+      node_identity,
+      node_property,
+      node_index,
+      edge_endpoints,
+      edge_property,
+      node => @storage.node_definition_index(storage, node),
+      edge => @storage.edge_definition_index(storage, edge),
+      edge => @storage.edge_identity(storage, edge),
+      identity => {
+        match @storage.edge_identity_index(storage, identity) {
+          Ok(index) => Some(index)
+          Err(_) => None
+        }
+      },
+      (node, component) => @storage.node_typed_key_at(storage, node, component),
+      (edge, component) => @storage.edge_typed_key_at(storage, edge, component),
+      node => @storage.node_identity_order_key(storage, node),
+      edge => @storage.edge_identity_order_key(storage, edge),
+    )
+  } else {
+    @lifecycle.prepare_graph_producer_view(
+      read,
+      nodes,
+      edges,
+      @carrier.field_count(@carrier.graph_node_properties(graph)),
+      @carrier.field_count(@carrier.graph_edge_properties(graph)),
+      node_identity,
+      node_property,
+      node_index,
+      edge_endpoints,
+      edge => @storage.edge_label(storage, edge),
+      edge_property,
+      (source, target, label) => {
+        match @storage.edge_index(storage, source, target, label) {
+          Ok(index) => Some(index)
+          Err(_) => None
+        }
+      },
+    )
+  }
+  view.map_err(issue => {
     Lifecycle(
       match issue {
         @lifecycle.WrongCarrier => @lifecycle.WrongCarrier

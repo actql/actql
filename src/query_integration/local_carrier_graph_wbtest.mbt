@@ -2463,6 +2463,8 @@ fn finish_graph_to_rows(
           @local_bridge.GraphRelationOutput(_) => abort("graph relation output")
           @local_bridge.GraphCompletion(_) => abort("graph completion")
           @local_bridge.GraphExecution(_) => abort("graph execution")
+          @local_bridge.GraphSnapshot(_) => abort("graph snapshot")
+          @local_bridge.GraphSnapshotOutput(_) => abort("graph snapshot output")
         }
       @local_bridge.Stopped(_, ..) => abort("graph-to-rows stopped")
     }

@@ -60,6 +60,22 @@ pub fn check_predicate(
     Ok(s) => s
     Err(e) => return Err(ScopeIssue(e))
   }
+  check_predicate_in_scope(scope, source, parameters, limits)
+}
+
+///|
+// The match checker supplies the exact admitted definition scope. This is the
+// same expression checker and evaluator, not a Graph-specific expression engine.
+fn check_predicate_in_scope(
+  scope : CheckedScope,
+  source : @decode.Cursor,
+  parameters : @parameter.Declarations?,
+  limits : PredicateLimits,
+) -> Result[CheckedPredicate, PredicateIssue] {
+  if scope.usage.work > limits.max_work ||
+    scope.usage.text_bytes > limits.max_text_bytes {
+    return Err(PredicateBudget(source))
+  }
   let mut work = limits.max_work - scope.usage.work
   let mut nodes = limits.max_nodes
   let mut text = limits.max_text_bytes - scope.usage.text_bytes

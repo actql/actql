@@ -2782,6 +2782,25 @@
     },
     {
       "family": "Bridge",
+      "operation": "property_graph",
+      "input": "finite ordered relation occurrences",
+      "output": "keyed property graph",
+      "canonical": ["BRIDGE.rows.to_property_graph"],
+      "variants": ["definition-scoped typed composite keys", "independent edge keys", "static label property scopes", "NULL-key and missing-endpoint exclusion", "duplicate-key rejection", "repeated producer occurrences", "empty definition families"],
+      "status": "complete",
+      "owner": "local-bridge",
+      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "three_targets", "publication"],
+      "layer_evidence": [
+        "src/query_integration/property_graph_construction_wbtest.mbt",
+        "src/query_integration/property_graph_plan_wbtest.mbt",
+        "src/query_integration/property_graph_snapshot_wbtest.mbt",
+        "scripts/property-graph-public-host.test.mjs",
+        "scripts/test-packed-property-graph.mjs"
+      ],
+      "scope": "Initial new-profile constructor, typed MATCH/TRAIL and bounded snapshot save/reload only. This does not claim all SGA operators, external declaration provenance, legacy migration or executable mechanized correspondence."
+    },
+    {
+      "family": "Bridge",
       "operation": "graph",
       "input": "relation, relation",
       "output": "graph",
@@ -3347,6 +3366,36 @@
     }
   ],
   "evidence": [
+    {
+      "operation": "property_graph",
+      "sha": "dc111614df6aadca1d58ae6eaef4893dc7fca421",
+      "suites": [
+        {
+          "path": "src/query_integration/property_graph_construction_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed",
+          "scope": "Executed with domain, Plan, snapshot and legacy integration regressions: 38/38 each target. Constructor file includes private capacity/cancel cleanup, independently calculated exact/one-short control work and workspace under quanta 1 and 7."
+        },
+        {
+          "path": "src/query_integration/property_graph_snapshot_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed",
+          "scope": "Same fixed-SHA 38-case sweep: independent fixed snapshot bytes/CID, canonical reload, release of original before restored MATCH/TRAIL, empty types and refusal/cancellation cleanup."
+        },
+        {
+          "path": "scripts/property-graph-surface-checker.test.mjs",
+          "targets": ["node"],
+          "result": "passed",
+          "scope": "Same fixed-SHA 7-case Node run with public Local/HTTPS and legacy RelA. Four surface cases include constructor-positive-work timer cancellation and repeated close without pending custody."
+        },
+        {
+          "path": "scripts/property-graph-public-host.test.mjs",
+          "targets": ["node"],
+          "result": "passed",
+          "scope": "Same fixed-SHA 7-case run: actual public Local/HTTPS Named Result values, schema, reread and independent TRAIL identities."
+        }
+      ]
+    },
     {
       "operation": "normalize_graph",
       "sha": "1905ea74",

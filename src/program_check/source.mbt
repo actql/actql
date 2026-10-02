@@ -90,6 +90,7 @@ fn prepare_catalog_source(
   calendar? : @environment.SelectedCalendarProfile? = None,
   capacity_inputs? : @context.ProgramCapacityInputs? = None,
   derived_capacity_limits? : @wire.Limits? = None,
+  property_graph? : Bool = false,
 ) -> @context.ProgramSourceIdentity raise SourceFailure {
   let source = match
     @stages.prepare(program, {
@@ -137,7 +138,12 @@ fn prepare_catalog_source(
     Err(e) => raise SourceView(e)
   }
   prepare_selected_source(
-    selected, locations, expression_profiles, operation_profiles, limits,
+    selected,
+    locations,
+    expression_profiles,
+    operation_profiles,
+    limits,
+    property_graph~,
   )
 }
 
@@ -148,6 +154,7 @@ fn prepare_selected_source(
   expression_profiles : @context.ExpressionProfiles,
   operation_profiles : @context.PureOperationProfiles,
   limits : SourceLimits,
+  property_graph? : Bool = false,
 ) -> @context.ProgramSourceIdentity raise SourceFailure {
   let (generated_bytes, generated_nodes) = @context.selected_capacity_metadata_usage(
     selected,
@@ -198,6 +205,7 @@ fn prepare_selected_source(
       max_policy_depth=limits.max_policy_depth,
       max_requirements=limits.max_requirements,
       max_regex_depth=limits.max_regex_depth,
+      property_graph~,
     ) {
     Ok(v) => v
     Err(e) => raise Checks(e)

@@ -2,6 +2,7 @@
 package "actql/actql/managed_graph_runtime"
 
 import {
+  "actql/actql/decode_core",
   "actql/actql/lowering_relation",
   "actql/actql/managed_carrier_runtime",
   "actql/actql/managed_graph_storage",
@@ -14,6 +15,14 @@ import {
 pub fn append_edge(OutputBuilder, @value_admission.CheckedValue, @value_admission.CheckedValue, @value_admission.CheckedValue?, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
 
 pub fn append_node(OutputBuilder, @value_admission.CheckedValue, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
+
+pub fn append_property_edge(OutputBuilder, Int, Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
+
+pub fn append_property_node(OutputBuilder, Int, Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
+
+pub fn append_property_snapshot_edge(OutputBuilder, @decode_core.Cursor, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, Issue]
+
+pub fn append_property_snapshot_node(OutputBuilder, @decode_core.Cursor, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, Issue]
 
 pub fn cancel_output(OutputBuilder) -> Bool
 

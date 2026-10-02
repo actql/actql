@@ -219,6 +219,7 @@ pub fn collect_parameter_slots(
         | GraphUnion(_)
         | GraphMean(_)
         | GraphConstruction(..)
+        | PropertyGraphConstruction(..)
         | Nearest(..)
         | Pool(_)
         | Ranking(_)

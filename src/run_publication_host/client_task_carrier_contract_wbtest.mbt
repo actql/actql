@@ -1,4 +1,56 @@
 ///|
+fn keyed_task_contract_body() -> String {
+  (
+    #|{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[{"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"R":[]},"name":"E","properties":{},"source_definition":"N","target_definition":"N"}],"identity_law_cid":"sha256:663bbb3096723cb38face189087f79ab37e9b7d34ec994937b3bff8334c405b1","node_definitions":[{"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":["name"],"Person":[]},"name":"N","properties":{"name":{"nullable":true,"type":"string"}}}],"value_law_cid":"sha256:663bbb3096723cb38face189087f79ab37e9b7d34ec994937b3bff8334c405b1","version":"actql-property-graph-contract/0.1"}
+  )
+}
+
+///|
+test "task Graph ports explicitly select the new complete property contract and preserve byte budgets" {
+  let body = keyed_task_contract_body()
+  let source = @source.parse_json(body, {
+    max_input_bytes: 10000,
+    max_nodes: 1000,
+    max_depth: 100,
+  }).unwrap()
+  let cursor = @decode.admit(source, {
+    max_nodes: 1000,
+    max_depth: 100,
+    max_string_bytes: 10000,
+    max_total_string_bytes: 10000,
+  }).unwrap()
+  let profile = @graph_contract.read_property_graph_cursor(cursor, {
+    max_bytes: 10000,
+    max_nodes: 1000,
+    max_depth: 100,
+  }).unwrap()
+  let carrier = @carrier.graph_carrier(@graph_contract.property_graph(profile))
+  assert_eq(
+    client_task_carrier_contract(carrier, body.length(), 1000, 100),
+    Some(
+      (
+        "graph", "sha256:131ed6d7f9243e5b01d3971234c4da5418d9e69aa6ba2763e3bbfe17e502f427",
+      ),
+    ),
+  )
+  assert_eq(
+    client_task_carrier_contract(carrier, body.length() - 1, 1000, 100),
+    None,
+  )
+  assert_eq(client_task_carrier_contract(carrier, body.length(), 1, 100), None)
+  assert_eq(client_task_carrier_contract(carrier, body.length(), 1000, 1), None)
+  assert_eq(
+    client_task_carrier_contract(
+      @carrier.unknown_carrier(GraphKind),
+      10000,
+      1000,
+      100,
+    ),
+    None,
+  )
+}
+
+///|
 test "task Events contracts preserve roles and exact canonical byte limits" {
   let number = @contract.primitive(@contract.NumberType, nullable=false)
   let records = @carrier.rows(

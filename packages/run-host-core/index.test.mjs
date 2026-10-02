@@ -3,6 +3,7 @@ import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
+import {valuesDependencyOracle} from '../../scripts/client-values-dependency-oracle.mjs';
 import {validRunState} from '../client-wire/index.mjs';
 import {admitDispatchJson, dispatchCid, createJournal, prepareIntent,
   admissionDurableJson, admitDurableJson, commitIntent, admitResponseJson,
@@ -824,7 +825,7 @@ test('portable Host package compiles the ordinary Values Program', () => {
   assert.deepEqual(plan.plan_facts, facts.plan_facts);
   assert.deepEqual(plan.root_refs.map(root => root.name), ['answer']);
   assert.deepEqual(plan.execution_material.result_plan_logical_cids,
-    {answer: 'sha256:8d2ad95f6f8b7be42c550d922d0614e68be2700bba05d7af2c7e03a4fcbbcc38'});
+    {answer: valuesDependencyOracle().resultPlan});
   assert.equal(template.bound_invocation_template_cid,
     without(template, 'bound_invocation_template_cid'));
   assert.equal(compiled.compiled_plan_cid,

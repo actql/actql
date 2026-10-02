@@ -39,6 +39,14 @@ fn graph_construction_execution_check(
   guard site.requirement is @pipeline.ConstructionRequirement(pending) else {
     return Ok(None)
   }
+  // The exact occurrence still owns all rules. Do not reinterpret new keyed
+  // construction as the legacy endpoint-tuple contract.
+  guard @pipeline.step_at(site.pipeline, site.step) is Some(owned_step) else {
+    return Err(ForeignOccurrence(site.step))
+  }
+  if owned_step.operation is @pipeline.PropertyGraphConstruction(..) {
+    return property_graph_construction_execution_check(site, policy)
+  }
   let rule = match pending {
     AdmitGraphInputRows => AdmitInputRows
     CloseBothEndpointsAgainstDeclaredNodes => CloseDeclaredEndpoints
@@ -47,8 +55,10 @@ fn graph_construction_execution_check(
     JournalLabelCompletion => JournalLabels
     CollapseEqualIdentityPayloads => CollapseEqualPayloads
     RejectConflictingIdentityPayloads => RejectPayloadConflicts
+    RejectDuplicateDefinitionKeys | ExcludeNullKeysAndMissingEndpoints =>
+      return Ok(None)
     ResolveGraphConstructionResources => EnforceConstructionEnvelope
-    ResolveSgaProfile => return Ok(None)
+    ResolveSgaProfile | ResolvePropertyGraphProfile => return Ok(None)
   }
   guard @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
     step.operation

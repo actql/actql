@@ -4,6 +4,7 @@ package "actql/actql/bounded_graph_snapshot"
 import {
   "actql/actql/bounded_tuple_sort",
   "actql/actql/carrier_contract",
+  "actql/actql/decode_core",
   "actql/actql/graph_snapshot_identity",
   "actql/actql/managed_carrier_runtime",
   "actql/actql/managed_graph_storage",
@@ -34,7 +35,25 @@ pub fn node_key_at(Snapshot, Int) -> String?
 
 pub fn prepare(@managed_graph_storage.Storage, String, Limits) -> Result[Preparation, Issue]
 
+pub fn prepare_property(@managed_graph_storage.Storage, Limits) -> Result[Preparation, Issue]
+
+pub fn prepare_property_view(@managed_carrier_runtime.ProducerView, @carrier_contract.Graph, Limits) -> Result[Preparation, Issue]
+
 pub fn prepare_view(@managed_carrier_runtime.ProducerView, @carrier_contract.Graph, String, Limits) -> Result[Preparation, Issue]
+
+pub fn property_edge_key_at(Snapshot, Int) -> String?
+
+pub fn property_header_edge_at(PropertyHeader, Int) -> @decode_core.Cursor?
+
+pub fn property_header_edge_count(PropertyHeader) -> Int
+
+pub fn property_header_node_at(PropertyHeader, Int) -> @decode_core.Cursor?
+
+pub fn property_header_node_count(PropertyHeader) -> Int
+
+pub fn read_property_header(@decode_core.Cursor, @carrier_contract.Graph, Limits) -> Result[PropertyHeader, Issue]
+
+pub fn take_property_output(Preparation) -> Result[String, Issue]
 
 pub fn workspace_slots(@managed_graph_storage.Storage) -> Int?
 
@@ -46,6 +65,9 @@ pub fn workspace_slots_view(@managed_carrier_runtime.ProducerView, @carrier_cont
 pub(all) enum Issue {
   InvalidLimits
   InvalidGraph
+  InvalidSnapshotBody
+  SnapshotContractMismatch
+  SnapshotIdentityMismatch
   WorkspaceLimit
   KeyOrder(@value_admission.KeyOrderIssue)
   Sort(@bounded_tuple_sort.Issue)
@@ -67,6 +89,8 @@ pub enum Poll {
 }
 
 type Preparation
+
+type PropertyHeader
 
 type Snapshot
 

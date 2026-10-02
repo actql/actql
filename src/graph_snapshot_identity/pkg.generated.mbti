@@ -2,6 +2,7 @@
 package "actql/actql/graph_snapshot_identity"
 
 import {
+  "actql/actql/graph_contract",
   "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
@@ -13,15 +14,27 @@ pub fn begin_edge(Builder, @value_admission.CheckedValue, @value_admission.Check
 
 pub fn begin_node(Builder, @value_admission.CheckedValue) -> Result[Unit, Issue]
 
+pub fn begin_property_edge(Builder, @value_admission.CheckedValue, Array[@value_admission.CheckedValue], @value_admission.CheckedValue, @value_admission.CheckedValue) -> Result[Unit, Issue]
+
+pub fn begin_property_node(Builder, @value_admission.CheckedValue, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
+
+pub fn drain_property_output(Builder) -> Result[String, Issue]
+
 pub fn end_edge(Builder) -> Result[Unit, Issue]
 
 pub fn end_node(Builder) -> Result[Unit, Issue]
 
 pub fn end_nodes(Builder) -> Result[Unit, Issue]
 
+pub fn end_property_edge(Builder) -> Result[Unit, Issue]
+
 pub fn finish(Builder) -> Result[String, Issue]
 
+pub fn finish_property(Builder) -> Result[(String, String), Issue]
+
 pub fn prepare(String, Limits) -> Result[Builder, Issue]
+
+pub fn prepare_property(@graph_contract.CheckedPropertyContract, Limits) -> Result[Builder, Issue]
 
 // Errors
 

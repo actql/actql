@@ -238,6 +238,8 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         )
       @lower.GraphConstructionStep(_) =>
         @lower.operation(node) == "BRIDGE.rows.to_graph"
+      @lower.PropertyGraphConstructionStep(_) =>
+        @lower.operation(node) == "BRIDGE.rows.to_property_graph"
       @lower.GraphBasicStep(basic) =>
         (
           @lower.operation(node) == "SGA.normalize" &&
@@ -320,6 +322,8 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
     match (current, step) {
       (0, @lower.GraphConstructionStep(_)) if count == 1 =>
         @lower.operation(node) == "BRIDGE.rows.to_graph"
+      (0, @lower.PropertyGraphConstructionStep(_)) if count == 1 =>
+        @lower.operation(node) == "BRIDGE.rows.to_property_graph"
       (current, @lower.GraphConstructionStep(_)) if !direct_structural &&
         current < count - 1 => @lower.operation(node) == "BRIDGE.rows.to_graph"
       (0, @lower.GraphStructuralStep(_)) if direct_structural =>
@@ -608,31 +612,59 @@ fn advance_execution(
         if value.selected_step is None && step >= value.construction_steps {
           return fail_execution(value)
         }
-        guard @lower.sequence_step(value.sequence, step)
-          is Some(@lower.GraphConstructionStep(graph)) &&
-          input_at(value, step, 0) is Some(first) else {
-          return fail_execution(value)
-        }
-        let inputs = if @lower.graph_construction_derives_nodes(graph) {
-          [first]
-        } else {
-          guard input_at(value, step, 1) is Some(second) else {
-            return fail_execution(value)
+        // Both contracts use the existing bounded construction session. Only
+        // their checked input shape differs; completion and cleanup stay owned
+        // by the same provider and material lifecycle below.
+        let started = match @lower.sequence_step(value.sequence, step) {
+          Some(@lower.GraphConstructionStep(graph)) => {
+            guard input_at(value, step, 0) is Some(first) else {
+              return fail_execution(value)
+            }
+            let inputs = if @lower.graph_construction_derives_nodes(graph) {
+              [first]
+            } else {
+              guard input_at(value, step, 1) is Some(second) else {
+                return fail_execution(value)
+              }
+              [first, second]
+            }
+            @bridge.start_rows_to_graph(
+              value.control,
+              value.sequence,
+              step,
+              inputs,
+              value.limits,
+              value.storage_bytes,
+              value.limits.max_workspace_slots,
+              fn() { true },
+              control_work_limit=Some(value.limits.max_work),
+            )
           }
-          [first, second]
+          Some(@lower.PropertyGraphConstructionStep(graph)) => {
+            let count = @lower.property_graph_construction_node_count(graph) +
+              @lower.property_graph_construction_edge_count(graph)
+            let inputs = []
+            for edge in 0..<count {
+              guard input_at(value, step, edge) is Some(input) else {
+                return fail_execution(value)
+              }
+              inputs.push(input)
+            }
+            @bridge.start_rows_to_property_graph(
+              value.control,
+              value.sequence,
+              step,
+              inputs,
+              value.limits,
+              value.storage_bytes,
+              value.limits.max_workspace_slots,
+              fn() { true },
+              control_work_limit=Some(value.limits.max_work),
+            )
+          }
+          _ => return fail_execution(value)
         }
-        let started = match
-          @bridge.start_rows_to_graph(
-            value.control,
-            value.sequence,
-            step,
-            inputs,
-            value.limits,
-            value.storage_bytes,
-            value.limits.max_workspace_slots,
-            fn() { true },
-            control_work_limit=Some(value.limits.max_work),
-          ) {
+        let started = match started {
           Ok(execution) => execution
           Err(_) => return fail_execution(value)
         }
@@ -2332,6 +2364,22 @@ pub fn provider(
           @lower.graph_traverse_emits_paths(traverse)
         _ => false
       }
+      let direct_traverse_relation_count = match
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          selected_step.unwrap_or(0),
+        ) {
+        Some(@lower.GraphTraverseStep(traverse)) if @lower.graph_traverse_property_path_mode(
+            traverse,
+          )
+          is Some(_) =>
+          if @lower.graph_traverse_start_relation_field(traverse) is Some(_) {
+            1
+          } else {
+            0
+          }
+        _ => 1
+      }
       let direct_match = match
         @lower.sequence_step(
           @execution.generated_prepared_sequence(sequence),
@@ -2339,6 +2387,18 @@ pub fn provider(
         ) {
         Some(@lower.GraphMatchStep(_)) => selected_step is Some(_)
         _ => false
+      }
+      let property_inputs = match
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          selected_step.unwrap_or(0),
+        ) {
+        Some(@lower.PropertyGraphConstructionStep(graph)) =>
+          Some(
+            @lower.property_graph_construction_node_count(graph) +
+            @lower.property_graph_construction_edge_count(graph),
+          )
+        _ => None
       }
       let direct_structural_inputs = if selected_step is Some(_) {
         direct_structural_input_count(sequence).unwrap_or(-1)
@@ -2350,6 +2410,10 @@ pub fn provider(
         )
       }
       if (
+          property_inputs is Some(count) &&
+          (relations.length() != count || carriers.length() != 0)
+        ) ||
+        (
           direct_structural &&
           (
             relations.length() != 0 ||
@@ -2381,7 +2445,13 @@ pub fn provider(
             carriers.length() != 1
           )
         ) ||
-        (direct_traverse && (relations.length() != 1 || carriers.length() != 1)) ||
+        (
+          direct_traverse &&
+          (
+            relations.length() != direct_traverse_relation_count ||
+            carriers.length() != 1
+          )
+        ) ||
         (direct_match && (relations.length() != 0 || carriers.length() != 1)) ||
         (
           direct_shortest &&
@@ -2421,7 +2491,8 @@ pub fn provider(
               @execution.generated_prepared_sequence(sequence),
               count,
             ) {
-            Some(@lower.GraphConstructionStep(_)) => count += 1
+            Some(@lower.GraphConstructionStep(_))
+            | Some(@lower.PropertyGraphConstructionStep(_)) => count += 1
             _ => break
           }
         }

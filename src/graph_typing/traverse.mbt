@@ -7,18 +7,27 @@ struct TraversalHop {
 }
 
 ///|
+pub(all) enum PropertyPathMode {
+  Walk
+  Trail
+  Acyclic
+} derive(Eq, Debug)
+
+///|
 pub(all) enum TraverseObligation {
   AdmitTraversalGraph
   RespectTraversalHopBounds
   EvaluateTraversalHopPredicates
   EmitMinimumNodeDepth
   EnumerateSimplePaths
+  EnumeratePropertyPaths
   DeduplicateExactPaths
   CanonicalTraversalOrder
   EnforceTraversalOutputGuard
   BindTraversalOutputGuard(String)
   ResolveTraversalResources
   ResolveTraversalProfile
+  ResolvePropertyGraphTraversalProfile
 } derive(Eq, Debug)
 
 ///|
@@ -34,6 +43,7 @@ struct CheckedTraverse {
   guard_rows : Count?
   output : @carrier.Carrier
   usage : PredicateUsage
+  property_mode : PropertyPathMode?
 }
 
 ///|
@@ -53,7 +63,8 @@ fn traversal_types(
   g : @carrier.Graph,
 ) -> Array[String]? raise Stop {
   guard at is Some(at) else { return None }
-  if @carrier.graph_label_contract(g) is None {
+  if @carrier.graph_label_contract(g) is None &&
+    @carrier.graph_property_definition(g) is None {
     fail(at, MissingEdgeLabel)
   }
   let xs = match @decode.view(at) {
@@ -115,20 +126,55 @@ pub fn check_traverse(
       }
       fail(source, IncompleteGraph)
     }
+    let property_graph = @carrier.graph_property_definition(g) is Some(_)
     let root = decoded(
-      @decode.closed_object(source, [
-        "start", "hops", "direction", "edge_types", "min_hops", "max_hops", "emit",
-        "max_output_rows",
-      ]),
+      @decode.closed_object(
+        source,
+        if property_graph {
+          [
+            "start", "hops", "direction", "edge_types", "min_hops", "max_hops", "emit",
+            "max_output_rows", "path_mode",
+          ]
+        } else {
+          [
+            "start", "hops", "direction", "edge_types", "min_hops", "max_hops", "emit",
+            "max_output_rows",
+          ]
+        },
+      ),
     )
+    let property_mode = if property_graph {
+      // An explicit new-profile mode cannot be silently interpreted by the
+      // historical simple-path contract.
+      guard @decode.lookup(root, "path_mode") is Some(at) else {
+        fail(source, UnsupportedGraphProfile)
+      }
+      Some(
+        match decoded(@decode.text(at)) {
+          "walk" => Walk
+          "trail" => Trail
+          "acyclic" => Acyclic
+          _ => fail(at, InvalidBody)
+        },
+      )
+    } else {
+      None
+    }
     let at = decoded(@decode.required(root, "start"))
     let start = match
-      check_selector(at, input, selector_relation, parameters, {
-        ..limits,
-        max_work: b.work,
-        max_nodes: b.nodes,
-        max_text_bytes: b.text,
-      }) {
+      check_selector(
+        at,
+        input,
+        selector_relation,
+        parameters,
+        {
+          ..limits,
+          max_work: b.work,
+          max_nodes: b.nodes,
+          max_text_bytes: b.text,
+        },
+        property_graph~,
+      ) {
       Ok(s) => s
       Err(e) => raise MatchStop(e)
     }
@@ -141,6 +187,9 @@ pub fn check_traverse(
       "nodes" => TraversedNodes
       "paths" => TraversedPaths
       _ => fail(at, InvalidBody)
+    }
+    if property_graph && emit != TraversedPaths {
+      fail(at, UnsupportedGraphProfile)
     }
     let hops = []
     let patterned = @decode.lookup(root, "hops") is Some(_)
@@ -244,12 +293,18 @@ pub fn check_traverse(
       }
     }
     let output = match
-      check_path_contract(emit, source, input, {
-        ..b.limits,
-        max_work: b.work,
-        max_nodes: b.nodes,
-        max_text_bytes: b.text,
-      }) {
+      check_path_contract(
+        emit,
+        source,
+        input,
+        {
+          ..b.limits,
+          max_work: b.work,
+          max_nodes: b.nodes,
+          max_text_bytes: b.text,
+        },
+        property_paths=property_graph,
+      ) {
       Ok(o) => o
       Err(e) => raise Stop(e)
     }
@@ -267,6 +322,7 @@ pub fn check_traverse(
       emit,
       guard_rows,
       output: output.output,
+      property_mode,
       usage: {
         work: limits.max_work - b.work,
         nodes: limits.max_nodes - b.nodes,
@@ -284,6 +340,11 @@ pub fn check_traverse(
 ///|
 pub fn traverse_source(c : CheckedTraverse) -> @decode.Cursor {
   c.source
+}
+
+///|
+pub fn traverse_property_path_mode(c : CheckedTraverse) -> PropertyPathMode? {
+  c.property_mode
 }
 
 ///|
@@ -384,9 +445,21 @@ fn traverse_pending_each(
   emit(EvaluateTraversalHopPredicates)
   emit(CanonicalTraversalOrder)
   emit(ResolveTraversalResources)
-  emit(ResolveTraversalProfile)
+  emit(
+    if c.property_mode is Some(_) {
+      ResolvePropertyGraphTraversalProfile
+    } else {
+      ResolveTraversalProfile
+    },
+  )
   if c.emit == TraversedPaths {
-    emit(EnumerateSimplePaths)
+    emit(
+      if c.property_mode is Some(_) {
+        EnumeratePropertyPaths
+      } else {
+        EnumerateSimplePaths
+      },
+    )
     emit(DeduplicateExactPaths)
   } else {
     emit(EmitMinimumNodeDepth)

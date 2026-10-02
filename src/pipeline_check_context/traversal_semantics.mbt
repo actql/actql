@@ -5,6 +5,7 @@ pub(all) enum TraversalRule {
   EvaluateHopConditions
   EmitMinimumDepth
   EnumerateSimplePaths
+  EnumeratePropertyPaths
   DeduplicatePathIdentities
   OrderTraversalRows
 } derive(Eq, Debug)
@@ -34,10 +35,12 @@ fn traversal_execution_check(
     EvaluateTraversalHopPredicates => EvaluateHopConditions
     EmitMinimumNodeDepth => EmitMinimumDepth
     EnumerateSimplePaths => EnumerateSimplePaths
+    EnumeratePropertyPaths => EnumeratePropertyPaths
     DeduplicateExactPaths => DeduplicatePathIdentities
     CanonicalTraversalOrder => OrderTraversalRows
     ResolveTraversalResources
     | ResolveTraversalProfile
+    | ResolvePropertyGraphTraversalProfile
     | EnforceTraversalOutputGuard
     | BindTraversalOutputGuard(_) => return Ok(None)
   }

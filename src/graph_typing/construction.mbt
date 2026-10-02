@@ -7,8 +7,11 @@ pub(all) enum ConstructionObligation {
   JournalLabelCompletion
   CollapseEqualIdentityPayloads
   RejectConflictingIdentityPayloads
+  RejectDuplicateDefinitionKeys
+  ExcludeNullKeysAndMissingEndpoints
   ResolveGraphConstructionResources
   ResolveSgaProfile
+  ResolvePropertyGraphProfile
 } derive(Eq, Debug)
 
 ///|

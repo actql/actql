@@ -3,6 +3,8 @@ import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
+import {valuesPublicationOracle} from '../../scripts/client-values-dependency-oracle.mjs';
+import {tasksDependencyOracle} from '../../scripts/client-tasks-dependency-oracle.mjs';
 import * as runtime from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
@@ -21,14 +23,17 @@ const cid = digit => `sha256:${digit.repeat(64)}`;
 const hash = body => `sha256:${createHash('sha256')
   .update(canonicalText(body)).digest('hex')}`;
 // Retained pre-change preimages, verified against the existing compatibility
-// CIDs. Rebind only the normative Grammar Manifest and its dependent bodies;
-// expectations never come from the new compiler's output.
+// CIDs. Rebind normative Grammar/AoA roots and independently derive the Unit,
+// proof, publication bounds and Result Plan dependencies. Expectations never
+// come from the new compiler's output; the historical fixtures stay unchanged.
 const baselinePlanCids = {
   values: 'sha256:fc6cc72f2fe207114444c9663f5ba41ca4b3298e0e91984aa6d4252fbced6cde',
   tasks: 'sha256:ac6d5874836c84421dff22cf3b67d5f06f03dab92ffc445c868ca8bfb1c2ab7f',
 };
 const read = path => readFile(new URL(path, import.meta.url), 'utf8');
 const grammar = JSON.parse(await read('../../spec/manifests/actql-grammar-0.1.json'));
+const aoa = hash(JSON.parse(await read('../../spec/contracts/actql-aoa.json')));
+const seal = (body, field) => ({...body, [field]: hash(body)});
 const expectedPlans = {};
 for (const kind of ['values', 'tasks']) {
   const baseline = JSON.parse(await read(`./fixtures/${kind}-compiled-plan-baseline.json`));
@@ -44,10 +49,48 @@ for (const kind of ['values', 'tasks']) {
   assert.equal(compiled.executable_plan_cid, baseline.executablePlan.executable_plan_cid);
   assert.equal(executable.execution_material.invocation_template_cid,
     baseline.boundTemplate.bound_invocation_template_cid);
+  if (kind === 'values') {
+    const prior = valuesPublicationOracle({legacy: true});
+    const current = valuesPublicationOracle();
+    assert.deepEqual(executable.resolved_limits, prior.limits);
+    assert.deepEqual(executable.limit_bindings, prior.bindings);
+    assert.equal(executable.execution_material.result_plan_logical_cids.answer,
+      prior.resultPlan);
+    executable.resolved_limits = current.limits;
+    executable.limit_bindings = current.bindings;
+    executable.bound_witnesses = [current.limits[0].candidates[1],
+      current.limits[0].candidates[0], current.limits[1].candidates[0]];
+    executable.execution_material.result_plan_logical_cids = {answer: current.resultPlan};
+  } else {
+    const prior = tasksDependencyOracle({legacy: true});
+    const current = tasksDependencyOracle();
+    assert.deepEqual(executable.execution_material.result_plan_logical_cids, prior.resultPlans);
+    const unitMap = new Map(prior.units.map((unit, index) => [unit, current.units[index]]));
+    // Two limits per declared Result, in stage order. Verify the independently
+    // derived historical Unit preimages before substituting the current pins.
+    executable.resolved_limits = executable.resolved_limits.map((limit, index) => {
+      const {resolved_limit_cid: oldCid, ...body} = limit;
+      assert.equal(oldCid, hash(body));
+      assert.equal(body.subject_ref, `unit:${prior.units[Math.floor(index / 2)]}#/results/r/${body.unit}`);
+      body.subject_ref = `unit:${unitMap.get(prior.units[Math.floor(index / 2)])}#/results/r/${body.unit}`;
+      return seal(body, 'resolved_limit_cid');
+    });
+    executable.limit_bindings = executable.resolved_limits.map((limit, index) =>
+      seal({version: 'actql-execution-limit-binding/0.1', effective_max: limit.effective_max,
+        resolved_limit_cid: limit.resolved_limit_cid, subject_ref: limit.subject_ref,
+        target: {kind: 'result_publication', measure: limit.unit, result_name: 'r',
+          unit_definition_cid: current.units[Math.floor(index / 2)]}, unit: limit.unit}, 'binding_cid'));
+    executable.execution_material.result_plan_logical_cids = current.resultPlans;
+  }
+  executable.plan_facts = executable.resolved_limits.map(value => ({kind: 'resolved_limit', value}));
+  executable.plan_fact_manifest_cid = hash({version: 'actql-plan-fact-manifest/0.1',
+    plan_facts: executable.plan_facts});
   template.grammar_manifest_cid = grammar.grammar_manifest_cid;
+  executable.execution_material.aoa_contract_cid = aoa;
   executable.execution_material.grammar_manifest_cid = grammar.grammar_manifest_cid;
   executable.execution_material.invocation_template_cid = hash(template);
   compiled.executable_plan_cid = hash(executable);
+  compiled.aoa_contract_cid = aoa;
   expectedPlans[kind] = {...compiled, compiled_plan_cid: hash(compiled)};
 }
 const planCids = Object.fromEntries(Object.entries(expectedPlans)

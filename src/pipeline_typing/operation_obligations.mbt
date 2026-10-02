@@ -80,6 +80,7 @@ priv enum ObligationOwner {
   StructuralOwner(@graph.CheckedStructural)
   MeanOwner(@graph.CheckedMean)
   ConstructionOwner(@graph.CheckedConstruction)
+  PropertyConstructionOwner(@graph.CheckedPropertyConstruction)
   VectorOwner(@vector.CheckedVector)
   NearestOwner(@vector.CheckedNearest)
   PoolOwner(@vector.CheckedPool)
@@ -133,6 +134,7 @@ pub fn operation_obligations_source(v : OperationObligations) -> @decode.Cursor 
     StructuralOwner(c) => @graph.structural_source(c)
     MeanOwner(c) => @graph.mean_options_source(@graph.mean_options(c))
     ConstructionOwner(c) => @graph.construction_source(c)
+    PropertyConstructionOwner(c) => @graph.property_construction_source(c)
     VectorOwner(c) => @vector.source(c)
     NearestOwner(c) =>
       @vector.nearest_source(
@@ -175,6 +177,17 @@ pub fn operation_obligations_selector(
 }
 
 ///|
+/// Retain the exact admitted keyed constructor, not a structurally equal body.
+pub fn operation_obligations_property_construction(
+  v : OperationObligations,
+) -> @graph.CheckedPropertyConstruction? {
+  match v.owner {
+    PropertyConstructionOwner(construction) => Some(construction)
+    _ => None
+  }
+}
+
+///|
 /// O(1) reads; callers can charge before visiting or retaining each entry.
 pub fn operation_obligations_count(v : OperationObligations) -> Int {
   match v.owner {
@@ -206,6 +219,8 @@ pub fn operation_obligations_count(v : OperationObligations) -> Int {
     StructuralOwner(c) => @graph.structural_pending_count(c)
     MeanOwner(c) => @graph.mean_pending_count(c)
     ConstructionOwner(c) => @graph.construction_pending_count(c)
+    PropertyConstructionOwner(c) =>
+      @graph.property_construction_pending_count(c)
     VectorOwner(c) => @vector.pending_validation_count(c)
     NearestOwner(c) => @vector.nearest_pending_count(c)
     PoolOwner(c) => @vector.pool_pending_count(c)
@@ -285,6 +300,10 @@ pub fn operation_obligations_at(
       @graph.construction_pending_at(c, index).map(x => {
         ConstructionRequirement(x)
       })
+    PropertyConstructionOwner(c) =>
+      @graph.property_construction_pending_at(c, index).map(x => {
+        ConstructionRequirement(x)
+      })
     VectorOwner(c) =>
       @vector.pending_validation_at(c, index).map(x => VectorRequirement(x))
     NearestOwner(c) =>
@@ -340,6 +359,7 @@ pub fn operation_obligation_group_count(operation : CheckedOperation) -> Int {
     | GraphStructural(checked=_, ..)
     | GraphMean(_)
     | GraphConstruction(checked=_, ..)
+    | PropertyGraphConstruction(..)
     | Vector(_)
     | Nearest(checked=_, ..)
     | Pool(_)
@@ -384,6 +404,8 @@ pub fn operation_obligation_group_at(
       GraphMean(c) => { scope: Body, owner: MeanOwner(c), }
       GraphConstruction(checked=c, ..) =>
         { scope: Body, owner: ConstructionOwner(c), }
+      PropertyGraphConstruction(checked=c, ..) =>
+        { scope: Body, owner: PropertyConstructionOwner(c), }
       Vector(c) => { scope: Body, owner: VectorOwner(c), }
       Nearest(checked=c, ..) => { scope: Body, owner: NearestOwner(c), }
       Pool(c) => { scope: Body, owner: PoolOwner(c), }

@@ -55,15 +55,17 @@ pub fn check_mean(@decode_core.Cursor, Array[@carrier_contract.Carrier], Limits)
 
 pub fn check_mean_options(@decode_core.Cursor, Limits) -> Result[CheckedMeanOptions, Issue]
 
-pub fn check_path_contract(PathOutput, @decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedPathContract, Issue]
+pub fn check_path_contract(PathOutput, @decode_core.Cursor, @carrier_contract.Carrier, Limits, property_paths? : Bool) -> Result[CheckedPathContract, Issue]
 
 pub fn check_predicate(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedPredicate, PredicateIssue]
+
+pub fn check_property_construction(@decode_core.Cursor, Array[(String, @carrier_contract.Carrier)], String, Limits) -> Result[CheckedPropertyConstruction, Issue]
 
 pub fn check_reach(@decode_core.Cursor, @carrier_contract.Carrier, Limits, selector_relation? : @carrier_contract.Carrier?, parameters? : @parameter_binding.Declarations?, max_tokens? : Int) -> Result[CheckedReach, MatchIssue]
 
 pub fn check_scope(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedScope, Issue]
 
-pub fn check_selector(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSelector, MatchIssue]
+pub fn check_selector(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits, property_graph? : Bool) -> Result[CheckedSelector, MatchIssue]
 
 pub fn check_shortest(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedShortest, MatchIssue]
 
@@ -165,6 +167,18 @@ pub fn match_pending_count(CheckedMatch) -> Int
 
 pub fn match_predicate(CheckedMatch) -> CheckedPredicate?
 
+pub fn match_property_binding(CheckedMatch, String) -> @relation_schema.FieldName?
+
+pub fn match_property_definition(CheckedMatch) -> Int?
+
+pub fn match_property_definition_name(CheckedMatch) -> String?
+
+pub fn match_property_label(CheckedMatch) -> String?
+
+pub fn match_property_schema(CheckedMatch) -> @carrier_contract.Knowledge?
+
+pub fn match_property_scope_fields(CheckedMatch) -> @carrier_contract.Knowledge?
+
 pub fn match_source(CheckedMatch) -> @decode_core.Cursor
 
 pub fn match_type_at(CheckedMatch, Int) -> String?
@@ -232,6 +246,38 @@ pub fn predicate_reference_field(CheckedPredicate, Int) -> @relation_schema.Fiel
 pub fn predicate_reference_name(CheckedPredicate, Int) -> String?
 
 pub fn predicate_usage(CheckedPredicate) -> PredicateUsage
+
+pub fn property_construction_edge_at(CheckedPropertyConstruction, Int) -> PropertyEdge?
+
+pub fn property_construction_edge_count(CheckedPropertyConstruction) -> Int
+
+pub fn property_construction_node_at(CheckedPropertyConstruction, Int) -> PropertyElement?
+
+pub fn property_construction_node_count(CheckedPropertyConstruction) -> Int
+
+pub fn property_construction_output(CheckedPropertyConstruction) -> @carrier_contract.Carrier
+
+pub fn property_construction_pending_at(CheckedPropertyConstruction, Int) -> ConstructionObligation?
+
+pub fn property_construction_pending_count(CheckedPropertyConstruction) -> Int
+
+pub fn property_construction_source(CheckedPropertyConstruction) -> @decode_core.Cursor
+
+pub fn property_construction_usage(CheckedPropertyConstruction) -> Usage
+
+pub fn property_edge_definitions(PropertyEdge) -> (String, String)
+
+pub fn property_edge_element(PropertyEdge) -> PropertyElement
+
+pub fn property_edge_keys(PropertyEdge) -> (Array[@relation_schema.FieldName], Array[@relation_schema.FieldName])
+
+pub fn property_element_definition(PropertyElement) -> @carrier_contract.PropertyNodeDefinition
+
+pub fn property_element_input(PropertyElement) -> String
+
+pub fn property_element_keys(PropertyElement) -> Array[@relation_schema.FieldName]
+
+pub fn property_element_properties(PropertyElement) -> Array[(@relation_schema.FieldName, @relation_schema.FieldName)]
 
 pub fn property_strategy_kind(PropertyStrategy) -> FieldStrategy
 
@@ -377,6 +423,8 @@ pub fn traverse_pending_at(CheckedTraverse, Int) -> TraverseObligation?
 
 pub fn traverse_pending_count(CheckedTraverse) -> Int
 
+pub fn traverse_property_path_mode(CheckedTraverse) -> PropertyPathMode?
+
 pub fn traverse_source(CheckedTraverse) -> @decode_core.Cursor
 
 pub fn traverse_start(CheckedTraverse) -> CheckedSelector
@@ -439,6 +487,8 @@ type CheckedPathContract
 
 type CheckedPredicate
 
+type CheckedPropertyConstruction
+
 type CheckedReach
 
 type CheckedScope
@@ -468,8 +518,11 @@ pub(all) enum ConstructionObligation {
   JournalLabelCompletion
   CollapseEqualIdentityPayloads
   RejectConflictingIdentityPayloads
+  RejectDuplicateDefinitionKeys
+  ExcludeNullKeysAndMissingEndpoints
   ResolveGraphConstructionResources
   ResolveSgaProfile
+  ResolvePropertyGraphProfile
 } derive(Eq, @debug.Debug)
 
 pub enum Count {
@@ -530,6 +583,7 @@ pub(all) enum IssueKind {
   WrongCarrier(@carrier_contract.Kind)
   InvalidCount
   IncompleteGraph
+  UnsupportedGraphProfile
   UnknownDeltaField(String)
   UntypedDeltaField(String)
   InvalidDeltaType
@@ -591,6 +645,7 @@ pub(all) enum MatchObligation {
   CanonicalMatchOrder
   ResolveMatchResources
   ResolveMatchProfile
+  ResolvePropertyGraphMatchProfile
 } derive(Eq, @debug.Debug)
 
 pub(all) enum MeanObligation {
@@ -696,6 +751,16 @@ pub(all) struct PredicateUsage {
   tokens : Int
 }
 
+type PropertyEdge
+
+type PropertyElement
+
+pub(all) enum PropertyPathMode {
+  Walk
+  Trail
+  Acyclic
+} derive(Eq, @debug.Debug)
+
 pub struct PropertyStrategy {
   name : String
   strategy : FieldStrategy
@@ -785,12 +850,14 @@ pub(all) enum TraverseObligation {
   EvaluateTraversalHopPredicates
   EmitMinimumNodeDepth
   EnumerateSimplePaths
+  EnumeratePropertyPaths
   DeduplicateExactPaths
   CanonicalTraversalOrder
   EnforceTraversalOutputGuard
   BindTraversalOutputGuard(String)
   ResolveTraversalResources
   ResolveTraversalProfile
+  ResolvePropertyGraphTraversalProfile
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {

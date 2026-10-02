@@ -11,6 +11,9 @@ pub(all) struct Limits {
 pub(all) enum Issue {
   InvalidLimits
   InvalidGraph
+  InvalidSnapshotBody
+  SnapshotContractMismatch
+  SnapshotIdentityMismatch
   WorkspaceLimit
   KeyOrder(@value.KeyOrderIssue)
   Sort(@sort.Issue)
@@ -51,7 +54,9 @@ priv enum SnapshotSource {
 struct Preparation {
   source : SnapshotSource
   limits : Limits
-  builder : @identity.Builder
+  mut builder : @identity.Builder?
+  property_profile : Bool
+  mut output_tail : String?
   node_keys : Array[Array[String]]
   edge_keys : Array[Array[String]]
   mut node_sort : @sort.Sort?
@@ -64,6 +69,7 @@ struct Preparation {
 ///|
 struct Snapshot {
   cid : String
+  property_profile : Bool
   node_sort : @sort.Sort
   edge_sort : @sort.Sort
 }
@@ -264,41 +270,64 @@ pub fn prepare_view(
 }
 
 ///|
+fn valid_snapshot_limits(limits : Limits) -> Bool {
+  limits.max_workspace_slots >= 0 &&
+  limits.max_identity_bytes >= 0 &&
+  limits.max_identity_nodes >= 0 &&
+  limits.max_identity_depth >= 0 &&
+  limits.value_limits.max_nodes >= 0 &&
+  limits.value_limits.max_depth >= 0 &&
+  limits.value_limits.max_text_bytes >= 0
+}
+
+///|
 fn prepare_source(
   source : SnapshotSource,
   graph_contract_cid : String,
   limits : Limits,
+  property_profile? : Bool = false,
 ) -> Result[Preparation, Issue] {
-  if limits.max_workspace_slots < 0 ||
-    limits.max_identity_bytes < 0 ||
-    limits.max_identity_nodes < 0 ||
-    limits.max_identity_depth < 0 ||
-    limits.value_limits.max_nodes < 0 ||
-    limits.value_limits.max_depth < 0 ||
-    limits.value_limits.max_text_bytes < 0 {
+  if !valid_snapshot_limits(limits) {
     return Err(InvalidLimits)
   }
-  guard source_graph(source) is Some(_) &&
+  guard source_graph(source) is Some(graph) &&
+    (@carrier.graph_property_definition(graph) is Some(_)) == property_profile &&
     required_workspace(source) is Some(required) else {
     return Err(InvalidGraph)
   }
   if required > limits.max_workspace_slots {
     return Err(WorkspaceLimit)
   }
-  let builder = match
-    @identity.prepare(graph_contract_cid, {
-      max_bytes: limits.max_identity_bytes,
-      max_nodes: limits.max_identity_nodes,
-      max_depth: limits.max_identity_depth,
-      value_limits: limits.value_limits,
-    }) {
+  let identity_limits : @identity.Limits = {
+    max_bytes: limits.max_identity_bytes,
+    max_nodes: limits.max_identity_nodes,
+    max_depth: limits.max_identity_depth,
+    value_limits: limits.value_limits,
+  }
+  let prepared = if property_profile {
+    let checked = match
+      @contract_graph.admit_property_graph(@carrier.graph_carrier(graph), {
+        max_bytes: limits.max_identity_bytes,
+        max_nodes: limits.max_identity_nodes,
+        max_depth: limits.max_identity_depth,
+      }) {
+      Ok(value) => value
+      Err(_) => return Err(InvalidGraph)
+    }
+    @identity.prepare_property(checked, identity_limits)
+  } else {
+    @identity.prepare(graph_contract_cid, identity_limits)
+  }
+  let builder = match prepared {
     Ok(value) => value
     Err(issue) => return Err(Identity(issue))
   }
   Ok({
     source,
     limits,
-    builder,
+    builder: Some(builder),
+    property_profile,
+    output_tail: None,
     node_keys: [],
     edge_keys: [],
     node_sort: None,
@@ -346,6 +375,7 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
   if value.phase == Finished {
     return Err(Terminal)
   }
+  guard value.builder is Some(builder) else { return Err(Terminal) }
   guard source_graph(value.source) is Some(graph) &&
     source_node_count(value.source) is Some(node_count) &&
     source_edge_count(value.source) is Some(edge_count) else {
@@ -368,7 +398,12 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
         guard source_node_identity(value.source, value.cursor) is Some(identity) else {
           return Err(InvalidGraph)
         }
-        let key = match order_key(identity, value.limits.value_limits) {
+        let key = match
+          (if value.property_profile {
+            source_property_order_key(value.source, value.cursor, edge=false)
+          } else {
+            order_key(identity, value.limits.value_limits)
+          }) {
           Ok(key) => key
           Err(issue) => return Err(issue)
         }
@@ -399,7 +434,17 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
           source_node_identity(value.source, node) is Some(identity) else {
           return Err(InvalidGraph)
         }
-        match @identity.begin_node(value.builder, identity) {
+        let begin = if value.property_profile {
+          let keys = match
+            source_property_keys(value.source, graph, node, edge=false) {
+            Ok(keys) => keys
+            Err(issue) => return Err(issue)
+          }
+          @identity.begin_property_node(builder, identity, keys)
+        } else {
+          @identity.begin_node(builder, identity)
+        }
+        match begin {
           Ok(_) => ()
           Err(issue) => return Err(Identity(issue))
         }
@@ -409,24 +454,25 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
         progress += 1
       }
       HashNodeProperties => {
-        let count = @carrier.field_count(@carrier.graph_node_properties(graph))
+        guard sorted_node(value) is Some(node) &&
+          source_properties(value.source, graph, node, edge=false)
+          is Some(properties) else {
+          return Err(InvalidGraph)
+        }
+        let count = @carrier.field_count(properties)
         if value.property >= count {
           value.phase = HashNodeEnd
           continue
         }
         guard sorted_node(value) is Some(node) &&
-          @carrier.field_at(
-            @carrier.graph_node_properties(graph),
-            value.property,
-          )
-          is Some(field) &&
+          @carrier.field_at(properties, value.property) is Some(field) &&
           source_node_property(value.source, node, value.property)
           is Some(property) else {
           return Err(InvalidGraph)
         }
         match
           @identity.append_property(
-            value.builder,
+            builder,
             @schema.reference_name(field.name),
             property,
           ) {
@@ -438,7 +484,7 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
         progress += 1
       }
       HashNodeEnd => {
-        match @identity.end_node(value.builder) {
+        match @identity.end_node(builder) {
           Ok(_) => ()
           Err(issue) => return Err(Identity(issue))
         }
@@ -448,7 +494,7 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
         progress += 1
       }
       EndNodes => {
-        match @identity.end_nodes(value.builder) {
+        match @identity.end_nodes(builder) {
           Ok(_) => ()
           Err(issue) => return Err(Identity(issue))
         }
@@ -465,6 +511,18 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
             Err(issue) => return Err(Sort(issue))
           }
           value.phase = SortEdges
+          continue
+        }
+        if value.property_profile {
+          let key = match
+            source_property_order_key(value.source, value.cursor, edge=true) {
+            Ok(key) => key
+            Err(issue) => return Err(issue)
+          }
+          value.edge_keys.push([key])
+          value.cursor += 1
+          used += 1
+          progress += 1
           continue
         }
         guard source_edge_endpoints(value.source, value.cursor)
@@ -513,11 +571,29 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
         guard sorted_edge(value) is Some(edge) &&
           source_edge_endpoints(value.source, edge) is Some((source, target)) &&
           source_node_identity(value.source, source) is Some(source_id) &&
-          source_node_identity(value.source, target) is Some(target_id) &&
-          source_edge_label(value.source, edge) is Some(label) else {
+          source_node_identity(value.source, target) is Some(target_id) else {
           return Err(InvalidGraph)
         }
-        match @identity.begin_edge(value.builder, source_id, target_id, label) {
+        let begin = if value.property_profile {
+          guard source_property_edge_identity(value.source, edge)
+            is Some(identity) else {
+            return Err(InvalidGraph)
+          }
+          let keys = match
+            source_property_keys(value.source, graph, edge, edge=true) {
+            Ok(keys) => keys
+            Err(issue) => return Err(issue)
+          }
+          @identity.begin_property_edge(
+            builder, identity, keys, source_id, target_id,
+          )
+        } else {
+          guard source_edge_label(value.source, edge) is Some(label) else {
+            return Err(InvalidGraph)
+          }
+          @identity.begin_edge(builder, source_id, target_id, label)
+        }
+        match begin {
           Ok(_) => ()
           Err(issue) => return Err(Identity(issue))
         }
@@ -527,24 +603,25 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
         progress += 1
       }
       HashEdgeProperties => {
-        let count = @carrier.field_count(@carrier.graph_edge_properties(graph))
+        guard sorted_edge(value) is Some(edge) &&
+          source_properties(value.source, graph, edge, edge=true)
+          is Some(properties) else {
+          return Err(InvalidGraph)
+        }
+        let count = @carrier.field_count(properties)
         if value.property >= count {
           value.phase = HashEdgeEnd
           continue
         }
         guard sorted_edge(value) is Some(edge) &&
-          @carrier.field_at(
-            @carrier.graph_edge_properties(graph),
-            value.property,
-          )
-          is Some(field) &&
+          @carrier.field_at(properties, value.property) is Some(field) &&
           source_edge_property(value.source, edge, value.property)
           is Some(property) else {
           return Err(InvalidGraph)
         }
         match
           @identity.append_property(
-            value.builder,
+            builder,
             @schema.reference_name(field.name),
             property,
           ) {
@@ -556,7 +633,12 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
         progress += 1
       }
       HashEdgeEnd => {
-        match @identity.end_edge(value.builder) {
+        match
+          (if value.property_profile {
+            @identity.end_property_edge(builder)
+          } else {
+            @identity.end_edge(builder)
+          }) {
           Ok(_) => ()
           Err(issue) => return Err(Identity(issue))
         }
@@ -566,7 +648,12 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
         progress += 1
       }
       Finish => {
-        let cid = match @identity.finish(value.builder) {
+        let finished = if value.property_profile {
+          @identity.finish_property(builder)
+        } else {
+          @identity.finish(builder).map(cid => (cid, ""))
+        }
+        let (cid, tail) = match finished {
           Ok(cid) => cid
           Err(issue) => return Err(Identity(issue))
         }
@@ -575,11 +662,20 @@ pub fn advance(value : Preparation, quantum : Int) -> Result[Poll, Issue] {
           return Err(InvalidGraph)
         }
         value.phase = Finished
+        value.builder = None
+        if value.property_profile {
+          value.output_tail = Some(tail)
+        }
         used += 1
         progress += 1
         return Ok(
           Complete(
-            { cid, node_sort, edge_sort, },
+            {
+              cid,
+              property_profile: value.property_profile,
+              node_sort,
+              edge_sort,
+            },
             progress=progress.to_int64(),
             work=used.to_int64(),
           ),
@@ -623,6 +719,9 @@ pub fn edge_at(value : Snapshot, index : Int) -> Int? {
 
 ///|
 pub fn edge_key_at(value : Snapshot, index : Int) -> (String, String, String)? {
+  if value.property_profile {
+    return None
+  }
   guard @sort.key_component_at(value.edge_sort, index, 0) is Some(source) &&
     @sort.key_component_at(value.edge_sort, index, 1) is Some(target) &&
     @sort.key_component_at(value.edge_sort, index, 2) is Some(label) else {
@@ -638,6 +737,8 @@ pub fn cleanup(value : Snapshot) -> Bool {
 
 ///|
 pub fn cancel(value : Preparation) -> Bool {
+  value.builder = None
+  value.output_tail = None
   value.node_keys.clear()
   value.edge_keys.clear()
   if value.node_sort is Some(sort) {

@@ -94,6 +94,7 @@ fn emit_derived_rule(
     | GraphQuery(_)
     | GraphMeasure(_, _, _, _)
     | GraphCombine(_, _)
+    | PropertyGraphMeasure(_, _, _)
     | Join(_)
     | Ranking(_, _) => {
       @encode.key(out, "op")
