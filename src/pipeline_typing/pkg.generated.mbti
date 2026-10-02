@@ -249,6 +249,8 @@ pub fn operation_obligations_at(OperationObligations, Int) -> OperationObligatio
 
 pub fn operation_obligations_count(OperationObligations) -> Int
 
+pub fn operation_obligations_match(OperationObligations) -> @graph_typing.CheckedMatch?
+
 pub fn operation_obligations_property_construction(OperationObligations) -> @graph_typing.CheckedPropertyConstruction?
 
 pub fn operation_obligations_scope(OperationObligations) -> OperationObligationScope

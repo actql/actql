@@ -186,6 +186,17 @@ pub fn operation_obligations_property_construction(
 }
 
 ///|
+/// Retain the exact checked MATCH owner; equal text is not owner identity.
+pub fn operation_obligations_match(
+  v : OperationObligations,
+) -> @graph.CheckedMatch? {
+  match v.owner {
+    MatchOwner(operation) => Some(operation)
+    _ => None
+  }
+}
+
+///|
 /// O(1) reads; callers can charge before visiting or retaining each entry.
 pub fn operation_obligations_count(v : OperationObligations) -> Int {
   match v.owner {

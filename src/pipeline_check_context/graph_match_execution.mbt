@@ -59,7 +59,11 @@ fn graph_match_execution_check(
   guard @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
     step.operation is @pipeline.GraphMatch(operation) &&
     step.input is Some(input) &&
+    site.group == 0 &&
     @pipeline.operation_obligations_scope(site.obligations) == @pipeline.Body &&
+    @pipeline.operation_obligations_match(site.obligations)
+    is Some(obligation_owner) &&
+    physical_equal(obligation_owner, operation) &&
     @graph.match_pending_at(operation, site.index) == Some(pending) &&
     @pipeline.input_occurrence_count(step) == 1 else {
     return Err(ForeignOccurrence(site.step))

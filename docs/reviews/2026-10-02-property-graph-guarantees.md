@@ -648,3 +648,39 @@ The measure fixtures, row-law fixture and existing keyed proof fixtures pass
 The initial narrow JS run also passes 5/5. This is not a new aggregate Core,
 packed or required CI result. Remaining old Carrier/typed branches, supported
 upper fixtures, inventory and final public snapshot acceptance are still open.
+
+## Program preflight and MATCH obligation ownership
+
+The Program conversion fixture now binds a declared definition-scoped Graph
+and MATCH, rather than the retired factory/node-row projection. It retains
+preflight enforcement, exact original Graph input, foreign pipeline rejection
+without budget mutation, independent canonical proof preimages and the closed
+three-claim publication set. Existing literal converted witness/limit CIDs
+remain unchanged; no expected product CID was copied. The input conversion
+itself remains the same owner-controlled boundary.
+
+The old projection execution fixture is replaced by
+`pipeline_check_context/graph_match_execution_wbtest.mbt`. Node and edge MATCH
+retain admission/order/predicate/resource obligations, the exact checked
+operation and input, shared policy ceilings and the current phase/failure
+contract. Separate but text-identical checked owners must not substitute for
+one another. Profile obligations remain unresolved, not treated as permission.
+
+The migrated test exposed a real common MATCH boundary defect: group 1 could
+substitute for the operation's sole body group. The handler also lacked an
+exact obligation-owner check. The regression fails before correction:
+`/private/tmp/property-graph-match-custody-before-js-20261003.log` (0/1).
+The minimal correction exposes the retained MATCH owner from the existing
+obligation handle and checks group 0 and physical owner identity. It adds no
+new execution or accounting owner. Invalid index/step/group, foreign pipeline
+and foreign obligation owner are rejected; distinct valid policy owners retain
+their own ceilings. The retired projection's homogeneous restoration rules
+are not claimed as current MATCH algorithms.
+
+These migrated cases plus keyed construction, imported producer custody and
+the existing operation-resolution-index tests pass **9/9 on JS, Wasm and
+native** at `/private/tmp/property-graph-upper-custody-{js,wasm,native}-20261003.log`.
+The Program-only initial run passes 1/1; the corrected first combined run
+passes 3/3. The test path in those logs predates the rename to MATCH.
+Full Core/spec, old typed branch/API removal and final submitted public
+snapshot/packed/CI verification remain open.
