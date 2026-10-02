@@ -70,6 +70,20 @@ pub fn client_program_check_unavailable(correlation_ref : String) -> String {
 }
 
 ///|
+/// The compiler contracts a check applies, for the Host's context binding:
+/// the grammar and barrier contract manifests and the compiler version.
+#export_name("clientProgramCheckCompilerIdentity")
+pub fn client_program_check_compiler_identity() -> String {
+  "{\"barrier_contract_manifest_cid\":\"" +
+  @check_environment.compiler_barrier_contract_manifest_cid() +
+  "\",\"compiler_version\":\"" +
+  @check_environment.compiler_version_token() +
+  "\",\"grammar_manifest_cid\":\"" +
+  @check_environment.compiler_grammar_manifest_cid() +
+  "\"}"
+}
+
+///|
 fn check_source_findings(
   findings : Array[CheckFinding],
   document : String,
@@ -84,24 +98,57 @@ fn check_source_findings(
     Ok(Sql) => @source_frontend.Sql
     _ => return Failed("check_format_unsupported")
   }
+  // The caller's declaration document is admitted here, with the limits of
+  // source preparation, so that its budget is told apart from an invalid
+  // declaration before the shared context is built.
+  match declarations {
+    Some(body) =>
+      match check_declarations(body) {
+        Ok(_) => ()
+        Err(Budget) => {
+          findings.push(Limit("analysis_budget_exhausted"))
+          return Report
+        }
+        Err(Invalid) => {
+          findings.push(Violation("parameter_declarations_invalid"))
+          return Report
+        }
+        Err(Internal) => return Failed("check_internal")
+      }
+    None => ()
+  }
   let context = client_source_context(
     environment, visible_publication, declarations,
   ) catch {
-    // The caller's own declaration document is a disclosable input fact.
-    ClientSourceStop(Declarations) => {
-      findings.push(Violation("parameter_declarations_invalid"))
-      return Report
-    }
+    // Admitted above with the same limits.
+    ClientSourceStop(Declarations) => return Failed("check_internal")
     // Host installation metadata: not the caller's input.
     ClientSourceStop(_) => return Failed("check_context_invalid")
   }
   // Supplied values are bound against the caller's declarations before and
   // independently of relation resolution: an inaccessible source must not
-  // hide a definite supplied-value violation.
+  // hide a definite supplied-value violation. A budget of this check is a
+  // limit, never a violation of the caller's input.
   match context.parameter_declarations {
     Some(declared) =>
       match client_program_input("json", parameters) {
-        Err(_) => findings.push(Violation("supplied_parameters_invalid"))
+        Err(SuppliedSyntax({ issue, .. })) =>
+          findings.push(
+            if check_parse_budget(issue) {
+              Limit("analysis_budget_exhausted")
+            } else {
+              Violation("supplied_parameters_invalid")
+            },
+          )
+        Err(SuppliedAdmission(issue)) =>
+          findings.push(
+            if issue.kind is BudgetExceeded {
+              Limit("analysis_budget_exhausted")
+            } else {
+              Violation("supplied_parameters_invalid")
+            },
+          )
+        Err(_) => return Failed("check_internal")
         Ok((_, supplied)) =>
           match
             @parameter_binding.bind(declared, supplied, {
@@ -111,7 +158,12 @@ fn check_source_findings(
             }) {
             Ok(NeedsBindings(_)) => findings.push(Limit("bound_values_missing"))
             Ok(Ready(_)) => ()
-            Err(_) => findings.push(Violation("supplied_value_invalid"))
+            Err(issue) =>
+              match check_binding_fault(issue) {
+                Budget => findings.push(Limit("analysis_budget_exhausted"))
+                Invalid => findings.push(Violation("supplied_value_invalid"))
+                Internal => return Failed("check_internal")
+              }
           }
       }
     None => ()
@@ -191,25 +243,137 @@ fn check_source_findings(
   )
   match outcome {
     Prepared(_) => ()
-    Rejected(issue) =>
-      match client_program_preparation_issue_code(outcome) {
-        Some("check_invalid_input") =>
-          findings.push(Violation("program_invalid"))
-        Some("supplied_syntax") | Some("supplied_admission") =>
-          findings.push(Violation("supplied_parameters_invalid"))
-        Some("needs_inputs") | Some("check_missing_input") =>
-          findings.push(Limit("bound_values_missing"))
-        Some("check_unsupported") | Some("effect_not_supported") =>
+    Rejected(SuppliedSyntax({ issue, .. })) =>
+      findings.push(
+        if check_parse_budget(issue) {
+          Limit("analysis_budget_exhausted")
+        } else {
+          Violation("supplied_parameters_invalid")
+        },
+      )
+    Rejected(SuppliedAdmission(issue)) =>
+      findings.push(
+        if issue.kind is BudgetExceeded {
+          Limit("analysis_budget_exhausted")
+        } else {
+          Violation("supplied_parameters_invalid")
+        },
+      )
+    Rejected(Preparation(NeedsInputs(_))) =>
+      findings.push(Limit("bound_values_missing"))
+    Rejected(Preparation(EffectNotSupported(_))) =>
+      findings.push(Limit("implementation_limit"))
+    Rejected(Preparation(Check(diagnostic))) =>
+      match @program_check.diagnostic_category(diagnostic) {
+        InvalidInput => findings.push(Violation("program_invalid"))
+        MissingInput => findings.push(Limit("bound_values_missing"))
+        UnsupportedImplementation =>
           findings.push(Limit("implementation_limit"))
-        Some("check_compile_limit") =>
-          findings.push(Limit("analysis_budget_exhausted"))
-        _ => {
-          ignore(issue)
-          return Failed("check_internal")
-        }
+        CompileLimit => findings.push(Limit("analysis_budget_exhausted"))
+        // The checker makes no claim about the input or configuration.
+        UnclassifiedFailure => findings.push(Limit("check_unclassified"))
+        InvalidConfiguration => return Failed("check_context_invalid")
       }
+    Rejected(Preparation(Binding({ kind: BindingBudgetExceeded, .. }))) =>
+      findings.push(Limit("analysis_budget_exhausted"))
+    Rejected(Preparation(Binding({ kind: MissingBindings, .. }))) =>
+      findings.push(Limit("bound_values_missing"))
+    Rejected(
+      Preparation(
+        Binding(_)
+        | Syntax(_)
+        | MissingCheckedStage(_)
+        | MissingStageIdentity(_)
+        | Lowering(_)
+        | Graph(_)
+      )
+      | InvalidFormat
+      | SourcePreparation(_)
+    ) => return Failed("check_internal")
   }
   Report
+}
+
+///|
+/// Why one stage did not admit the caller's input.
+priv enum CheckInputFault {
+  // This check's own budget, not a fact about the input.
+  Budget
+  // A disclosable violation of the caller's own input.
+  Invalid
+  // The check itself is misconfigured.
+  Internal
+}
+
+///|
+fn check_parse_budget(issue : @source.ParseIssue) -> Bool {
+  issue is (InputLimit | NodeLimit | DepthLimit)
+}
+
+///|
+fn check_decode_fault(issue : @decode.Issue) -> CheckInputFault {
+  match issue.kind {
+    BudgetExceeded => Budget
+    InvalidLimits => Internal
+    _ => Invalid
+  }
+}
+
+///|
+fn check_binding_fault(issue : @parameter_binding.Issue) -> CheckInputFault {
+  match issue {
+    BindingInput(_, issue) => check_binding_fault(issue)
+    Decode(issue) | Contract(Decode(issue)) | Value(Decode(issue)) =>
+      check_decode_fault(issue)
+    Contract(ContractIssue(BudgetExceeded, ..))
+    | Value(ValueIssue(BudgetExceeded, ..))
+    | ParameterIssue(BudgetExceeded | ParameterLimit, ..) => Budget
+    InvalidLimits
+    | Contract(InvalidLimits)
+    | Value(ValueIssue(InvalidLimits, ..))
+    | ParameterIssue(InvalidLimits, ..) => Internal
+    Contract(ContractIssue(_, ..))
+    | Value(ValueIssue(_, ..))
+    | ParameterIssue(_, ..) => Invalid
+  }
+}
+
+///|
+/// Admit the caller's declaration document with the limits of source
+/// preparation, keeping budget and violation apart.
+fn check_declarations(
+  body : String,
+) -> Result[@parameter_binding.Declarations, CheckInputFault] {
+  let node = match
+    @source.parse_json_bytes(@utf8.encode(body), {
+      max_input_bytes: 1048576,
+      max_nodes: 16384,
+      max_depth: 32,
+    }) {
+    Ok(node) => node
+    Err({ issue, .. }) =>
+      return Err(if check_parse_budget(issue) { Budget } else { Invalid })
+  }
+  let cursor = match
+    @decode.admit(node, {
+      max_nodes: 16384,
+      max_depth: 32,
+      max_string_bytes: 65536,
+      max_total_string_bytes: 1048576,
+    }) {
+    Ok(cursor) => cursor
+    Err(issue) => return Err(check_decode_fault(issue))
+  }
+  match
+    @parameter_binding.read_declarations(Some(cursor), {
+      max_parameters: 1024,
+      max_nodes: 8192,
+      max_depth: 64,
+      max_text_bytes: 65536,
+    }) {
+    Ok(declared) => Ok(declared)
+    Err(issue) => Err(check_binding_fault(issue))
+  }
 }
 
 ///|

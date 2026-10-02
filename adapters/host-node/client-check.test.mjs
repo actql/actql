@@ -256,27 +256,122 @@ for (const [entrance, open] of Object.entries(entrances)) {
         unresolved: []}});
   });
 
-  test(`${entrance}: undecidable visibility is unavailable without a report`,
+  test(`${entrance}: an undecided source is hidden exactly like an absent ` +
+    'one and withholds nothing else', async t => {
+    const seen = {};
+    for (const name of ['absent', 'undecidable']) {
+      const client = await open(t, configurations[name]);
+      seen[name] = {
+        // A violation that does not depend on the source at all.
+        unrelated: withoutContext(await client.check('SELECT missing AS n',
+          {format: 'sql'})),
+        // The protected source referenced beside a definite violation.
+        violation: withoutContext(await check(client, 'violation')),
+        satisfied: withoutContext(await check(client, 'satisfied')),
+      };
+    }
+    assert.deepEqual(seen.undecidable, seen.absent);
+    assert.deepEqual(seen.undecidable.unrelated.report, {context_ref: '<ctx>',
+      scope: {kind: 'bound_input'}, verdict: 'invalid',
+      reasons: [{code: 'query_invalid'}],
+      coverage: {limits: [], unresolved: []}});
+    assert.deepEqual(seen.undecidable.violation.report, {context_ref: '<ctx>',
+      scope: {kind: 'bound_input'}, verdict: 'invalid',
+      reasons: [{code: 'supplied_value_invalid'}],
+      coverage: {limits: [], unresolved: protectedSource}});
+  });
+
+  test(`${entrance}: a verdict is bound to the exact source it checked`,
     async t => {
-      const client = await open(t, configurations.undecidable);
-      const outcomes = [await check(client, 'violation'),
-        await check(client, 'satisfied'),
-        await client.check('SELECT id FROM accounts', {format: 'sql'})];
-      for (const outcome of outcomes) {
-        assert.equal(validCheckOutcome(outcome), true);
-        assert.deepEqual(Object.keys(outcome).sort(),
-          ['correlation_ref', 'outcome', 'problem', 'version']);
-        assert.equal(outcome.outcome, 'unavailable');
-        assert.deepEqual(outcome.problem, {code: 'check_unavailable'});
-      }
-      // A correlation reference identifies one answer, not the request.
-      assert.equal(new Set(outcomes.map(item => item.correlation_ref)).size,
-        outcomes.length);
-      if (entrance === 'http') {
-        const response = await client.post({input: {text: query,
-          format: 'sql'}, parameters: null});
-        assert.equal(response.status, 200);
-        assert.equal((await response.json()).outcome, 'unavailable');
+      const client = await open(t, configurations.allowed);
+      const ref = async (text, format = 'sql') =>
+        (await client.check(text, {format})).report.context_ref;
+      const first = await client.check('SELECT 1 AS n', {format: 'sql'});
+      assert.equal(first.report.verdict, 'verified');
+      // The same source again is the same context.
+      assert.deepEqual(await client.check('SELECT 1 AS n', {format: 'sql'}),
+        first);
+      // Another source, or the same text in another format or with other
+      // line endings, is another context.
+      const other = await client.check('SELECT missing AS n', {format: 'sql'});
+      assert.equal(other.report.verdict, 'invalid');
+      const refs = [first.report.context_ref, other.report.context_ref,
+        await ref('SELECT 1 AS n', 'aql-text'), await ref('SELECT 1 AS n\n'),
+        await ref('SELECT 1 AS n\r\n')];
+      assert.equal(new Set(refs).size, refs.length);
+    });
+
+  test(`${entrance}: distinct supplied values give distinct contexts`,
+    async t => {
+      const client = await open(t, configurations.allowed);
+      const valueRef = async (parameters, declared = {x: {type: 'string'}}) => {
+        const outcome = await client.check('SELECT @x AS value', {
+          format: 'sql', parameterDeclarations: declared, parameters});
+        assert.equal(outcome.report.verdict, 'verified');
+        return outcome.report.context_ref;
+      };
+      // String values stay exact: composed and decomposed, CR, LF and CRLF
+      // are different values.
+      const refs = [await valueRef({x: '\u00e9'}), await valueRef({x: 'e\u0301'}),
+        await valueRef({x: '\r'}), await valueRef({x: '\n'}),
+        await valueRef({x: '\r\n'}),
+        // So are declared defaults.
+        await valueRef({}, {x: {type: 'string', default: '\u00e9'}}),
+        await valueRef({}, {x: {type: 'string', default: 'e\u0301'}})];
+      assert.equal(new Set(refs).size, refs.length);
+      // Member order is not part of a value.
+      const pair = {x: {type: 'string'}, y: {type: 'string'}};
+      const ordered = async (declared, parameters) =>
+        (await client.check('SELECT @x AS a, @y AS b', {format: 'sql',
+          parameterDeclarations: declared, parameters})).report.context_ref;
+      assert.equal(await ordered(pair, {x: 'a', y: 'b'}),
+        await ordered({y: pair.y, x: pair.x}, {y: 'b', x: 'a'}));
+    });
+
+  test(`${entrance}: parameter budgets are limits, never violations`,
+    async t => {
+      const client = await open(t, configurations.absent);
+      const numbers = {xs: {type: 'array', items: {type: 'number'}}};
+      const nested = depth => depth === 0 ? 1 : [nested(depth - 1)];
+      const run = (text, parameterDeclarations, parameters) =>
+        client.check(text, {format: 'sql', parameterDeclarations, parameters})
+          .then(outcome => withoutContext(outcome).report);
+      const budget = [{code: 'analysis_budget_exhausted'}];
+      const expected = (verdict, reasons, limits, unresolved) => ({
+        context_ref: '<ctx>', scope: {kind: 'bound_input'}, verdict, reasons,
+        coverage: {limits, unresolved}});
+      const read = 'SELECT id FROM records';
+      assert.deepEqual(await run(read, numbers, {xs: Array(10).fill(1)}),
+        expected('undetermined', [], [], protectedSource));
+      // Node budget of a valid value (about 18 KB of JSON).
+      assert.deepEqual(await run(read, numbers, {xs: Array(9000).fill(1)}),
+        expected('undetermined', [], budget, protectedSource));
+      // Depth budget.
+      assert.deepEqual(await run(read,
+        {xs: {type: 'array', items: {type: 'array', items: {type: 'number'}}}},
+        {xs: nested(70)}), expected('undetermined', [], budget,
+        protectedSource));
+      // A definite violation elsewhere is kept, and so is the budget.
+      assert.deepEqual(await run('SELECT FROM WHERE', numbers,
+        {xs: Array(9000).fill(1)}),
+      expected('invalid', [{code: 'query_syntax_invalid'}], budget, []));
+      // Declaration budget: more parameters than this check admits.
+      assert.deepEqual(await run('SELECT 1 AS n', Object.fromEntries(
+        Array.from({length: 1100}, (_, index) => [`p${index}`,
+          {type: 'number'}])), null), expected('undetermined', [], budget, []));
+      // Text budget: one string value longer than this check admits. HTTP
+      // refuses such a body before checking.
+      if (entrance === 'local') {
+        assert.deepEqual(await run('SELECT @s AS v', {s: {type: 'string'}},
+          {s: 'a'.repeat(70000)}), expected('undetermined', [], budget, []));
+        // Binding budget: a declared default and a supplied value that are
+        // each admissible, but not together.
+        const pair = {a: {type: 'string', default: 'a'.repeat(40000)},
+          b: {type: 'string'}};
+        assert.deepEqual(await run('SELECT @a AS a, @b AS b', pair,
+          {b: 'b'.repeat(40000)}), expected('undetermined', [], budget, []));
+        assert.deepEqual(await run('SELECT @a AS a, @b AS b', pair,
+          {b: 'b'.repeat(20000)}), expected('verified', [], [], []));
       }
     });
 }
@@ -303,10 +398,13 @@ const environment = moon.clientProgramCheckEnvironment(
   false, false, true, true, false, false, false);
 const contextKey = new Uint8Array(32).fill(7);
 
-async function installation(install, {readOutcome, aliases}) {
+async function installation(install, {readOutcome, aliases},
+  {closed = false} = {}) {
   const authorization = await createNodeAuthorizationGate({
     configuration: account(readOutcome),
     context: {principal: owner, contextCid: `sha256:${'3'.repeat(64)}`}});
+  // A closed decision owner cannot be consulted for any name.
+  if (closed) authorization.close();
   return install({moon, environment, contextKey,
     publication: sourceAliasPublication(moon, environment, aliases),
     sourceAccess: {authorization, connection: 'local-database',
@@ -317,28 +415,62 @@ const ownerRequest = (name, principalId = owner) => ({principalId,
   input: {text: requests[name].text, format: 'sql',
     parameterDeclarations: declarations},
   parameters: requests[name].parameters});
+const sourceRequest = (text, parameters = null, parameterDeclarations) => ({
+  principalId: owner, input: {text, format: 'sql',
+    ...(parameterDeclarations === undefined ? {} : {parameterDeclarations})},
+  parameters});
 
 async function acceptDisclosure(install) {
   const absent = await installation(install, configurations.absent);
-  const denied = await installation(install, configurations.denied);
-  for (const name of ['violation', 'satisfied']) {
-    const left = await absent(ownerRequest(name));
-    const right = await denied(ownerRequest(name));
-    assert.equal(canonicalJson(left), canonicalJson(right), name);
-    assert.equal(left.outcome, 'completed', name);
-    assert.deepEqual(left.report.coverage.unresolved, protectedSource, name);
-    assert.equal(left.report.verdict,
-      name === 'violation' ? 'invalid' : 'undetermined', name);
-    assert.deepEqual(left.report.reasons, name === 'violation'
-      ? [{code: 'supplied_value_invalid'}] : [], name);
+  const hidden = {denied: await installation(install, configurations.denied),
+    undecidable: await installation(install, configurations.undecidable)};
+  for (const [variant, check] of Object.entries(hidden)) {
+    for (const name of ['violation', 'satisfied']) {
+      const left = await absent(ownerRequest(name));
+      const right = await check(ownerRequest(name));
+      assert.equal(canonicalJson(left), canonicalJson(right),
+        `${variant} ${name}`);
+      assert.equal(left.outcome, 'completed', name);
+      assert.deepEqual(left.report.coverage.unresolved, protectedSource, name);
+      assert.equal(left.report.verdict,
+        name === 'violation' ? 'invalid' : 'undetermined', name);
+      assert.deepEqual(left.report.reasons, name === 'violation'
+        ? [{code: 'supplied_value_invalid'}] : [], name);
+    }
+    // A violation that does not depend on any source is reported as is.
+    const unrelated = await check(sourceRequest('SELECT missing AS n'));
+    assert.equal(canonicalJson(unrelated),
+      canonicalJson(await absent(sourceRequest('SELECT missing AS n'))));
+    assert.equal(unrelated.report?.verdict, 'invalid', variant);
   }
-  // A reference is never reused for another audience.
-  assert.notEqual((await denied(ownerRequest('violation', 'other')))
-    .report.context_ref, (await denied(ownerRequest('violation')))
-    .report.context_ref);
+  // A reference is never reused for another audience, another source or
+  // another exact value.
+  const denied = hidden.denied;
+  const refOf = async request => (await denied(request)).report.context_ref;
+  assert.notEqual(await refOf(ownerRequest('violation', 'other')),
+    await refOf(ownerRequest('violation')));
+  assert.notEqual(await refOf(sourceRequest('SELECT 1 AS n')),
+    await refOf(sourceRequest('SELECT 2 AS n')));
+  const text = {x: {type: 'string'}};
+  assert.notEqual(
+    await refOf(sourceRequest('SELECT @x AS v', {x: '\u00e9'}, text)),
+    await refOf(sourceRequest('SELECT @x AS v', {x: 'e\u0301'}, text)));
+  // When the decision owner itself cannot be consulted, the absent and the
+  // denied installation are both unavailable, with nothing else to compare.
+  const unavailable = [];
+  for (const configuration of [configurations.absent, configurations.denied]) {
+    const check = await installation(install, configuration, {closed: true});
+    const outcome = await check(ownerRequest('violation'));
+    assert.deepEqual(Object.keys(outcome).sort(),
+      ['correlation_ref', 'outcome', 'problem', 'version']);
+    unavailable.push({...outcome, correlation_ref: '<corr>'});
+  }
+  assert.deepEqual(unavailable[0], unavailable[1]);
+  assert.equal(unavailable[0].outcome, 'unavailable');
 }
 
-test('fixed-key owners give byte-equal outcomes for absent and denied',
+test('fixed-key owners give byte-equal outcomes for absent, denied and ' +
+  'undecided sources',
   () => acceptDisclosure(installNodeClientCheck));
 
 test('an unsupported format is a failure without a verdict', async () => {
@@ -355,7 +487,8 @@ test('the public outcome contract keeps verdicts bound and partial ' +
   'reports unverified', () => {
   const report = {context_ref: 'ctx:a', scope: {kind: 'bound_input'},
     verdict: 'undetermined', reasons: [],
-    coverage: {limits: [], unresolved: []}};
+    coverage: {limits: [{code: 'analysis_budget_exhausted'}],
+      unresolved: []}};
   const version = 'actql-check-outcome/0.1';
   assert.equal(validCheckOutcome({outcome: 'completed', report, version}),
     true);
@@ -365,10 +498,12 @@ test('the public outcome contract keeps verdicts bound and partial ' +
       version}), false, key);
   }
   assert.equal(validCheckOutcome({outcome: 'failed',
-    partial_report: {...report, verdict: 'invalid'},
+    partial_report: {...report, verdict: 'invalid',
+      reasons: [{code: 'supplied_value_invalid'}]},
     problem: {code: 'check_internal'}, version}), true);
   assert.equal(validCheckOutcome({outcome: 'failed',
-    partial_report: {...report, verdict: 'verified'},
+    partial_report: {...report, verdict: 'verified',
+      coverage: {limits: [], unresolved: []}},
     problem: {code: 'check_internal'}, version}), false);
   assert.equal(validCheckOutcome({outcome: 'unavailable',
     correlation_ref: 'corr:a', problem: {code: 'check_unavailable'},
@@ -382,19 +517,37 @@ const ownerSource = await readFile(new URL('./client-check.mjs',
 const mutations = Object.freeze({
   // A denied name becomes unavailable while an absent one completes.
   'denied changes the outcome kind': [
-    "else if (decision.action !== 'deny') return undefined;",
-    'else return undefined;'],
-  // A denied name is checked as if it were visible.
-  'denied source is checked as visible': [
+    "if (decision?.action !== 'dispatch') return [];",
+    "if (decision?.action === 'deny') return undefined;\n" +
+    "    if (decision?.action !== 'dispatch') return [];"],
+  // An undecided source withholds the whole check, unrelated violations
+  // included.
+  'an undecided source withholds the check': [
+    "if (decision?.action !== 'dispatch') return [];",
+    "if (!['dispatch', 'deny'].includes(decision?.action)) return undefined;\n" +
+    "    if (decision?.action !== 'dispatch') return [];"],
+  // Whether the decision owner is consulted depends on the published names.
+  'unavailability depends on the published names': [
+    'if (!readTuple) return [];',
+    'if (!readTuple || aliases.length === 0) return [];'],
+  // A hidden name is checked as if it were visible.
+  'hidden source is checked as visible': [
     'JSON.stringify({environmentCid, aliases: visible})',
     'JSON.stringify({environmentCid, aliases})'],
   // The context reference names the private source set.
   'context binds the private source set': [
-    'visible_aliases: visible,', 'visible_aliases: aliases,'],
+    'visible_aliases: visible};', 'visible_aliases: aliases};'],
   // A reference is reused across audiences.
   'context omits the audience': [
     'version: contextVersion, audience: principalId,',
     'version: contextVersion,'],
+  // A reference is reused across sources.
+  'context omits the source': [
+    'source: {format: input.format, text: input.text},', ''],
+  // A reference normalizes distinct String values together.
+  'context normalizes String values': [
+    "from '../../packages/sdk/checkpoints.mjs';",
+    "from './local-account-config.mjs';"],
 });
 
 for (const [name, [from, to]] of Object.entries(mutations)) {
