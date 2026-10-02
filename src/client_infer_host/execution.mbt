@@ -86,6 +86,7 @@ pub struct Execution {
   mut work : Int64
   mut child_work : Int64
   mut output_uses : Int
+  mut run_binding : ExecutionRunBinding?
 }
 
 ///|
@@ -333,6 +334,7 @@ fn start_owned(
     work: 0L,
     child_work: 0L,
     output_uses: 0,
+    run_binding: None,
   })
 }
 

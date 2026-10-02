@@ -7,6 +7,7 @@ import {
   "actql/actql/model_execution",
   "actql/actql/run_publication",
   "actql/actql/run_publication_host",
+  "moonbitlang/core/debug",
 }
 
 // Values
@@ -17,6 +18,10 @@ pub fn acquire_outcomes(Execution) -> @model_execution.ModelOutcomeRead?
 pub fn acquire_output(Execution) -> OutputUse?
 
 pub fn advance(Execution, Int) -> Result[Poll, Issue]
+
+pub fn bind_invocation(Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @model_execution.ModelObservationVerification, @run_publication.PublicationContract, String) -> Result[InvocationBinding, InvocationBindingIssue]
+
+pub fn bind_run(Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, InvocationBindingIssue]
 
 pub fn call_scope(Execution) -> @run_publication_host.ClientInferCallScope?
 
@@ -34,6 +39,12 @@ pub fn handoff_pending(Execution) -> Bool
 
 pub fn identity_pending(Execution) -> Bool
 
+pub fn invocation_binding_invocation(InvocationBinding) -> @run_publication.PublicationContract?
+
+pub fn invocation_binding_observation(InvocationBinding) -> @run_publication.RunEvidenceValue?
+
+pub fn invocation_binding_output(InvocationBinding) -> @execution_relation.CompletedOutput?
+
 pub fn invocation_evidence(Execution, Int) -> @run_publication.RunEvidenceValue?
 
 pub fn matches(Execution, @run_publication_host.PreparedClientProgram) -> Bool
@@ -43,6 +54,8 @@ pub fn output(OutputUse) -> @execution_relation.CompletedOutput?
 pub fn poll_issue(Poll) -> Issue?
 
 pub fn poll_kind(Poll) -> String
+
+pub fn release_invocation_binding(InvocationBinding) -> Bool
 
 pub fn release_output(OutputUse) -> Bool
 
@@ -87,7 +100,10 @@ pub struct Execution {
   mut work : Int64
   mut child_work : Int64
   mut output_uses : Int
+  mut run_binding : ExecutionRunBinding?
 }
+
+type ExecutionRunBinding
 
 pub(all) struct IdentityLimits {
   rows : Int
@@ -97,6 +113,19 @@ pub(all) struct IdentityLimits {
   work : Int
   workspace : Int
 }
+
+pub struct InvocationBinding {
+  output_use : OutputUse
+  observation : @run_publication.RunEvidenceValue
+  invocation : @run_publication.PublicationContract
+}
+
+pub(all) enum InvocationBindingIssue {
+  ForeignRun
+  IncompleteExecution
+  UnverifiedSlots
+  Evidence(@run_publication.RunEvidenceValueIssue)
+} derive(Eq, @debug.Debug)
 
 pub(all) enum Issue {
   InvalidAdvance

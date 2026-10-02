@@ -63,6 +63,8 @@ pub fn model_execution_restoring(ModelExecution) -> Bool
 
 pub fn model_execution_sealing_observation(ModelExecution) -> Bool
 
+pub fn model_observation_verification_matches(ModelObservationVerification, ModelExecution) -> Bool
+
 pub fn model_observation_verification_value(ModelObservationVerification) -> @run_publication.RunEvidenceValue?
 
 pub fn model_outcomes_accepted(ModelOutcomeRead) -> Bool

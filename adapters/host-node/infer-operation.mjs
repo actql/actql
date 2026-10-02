@@ -110,5 +110,12 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     acquireOutcomes: () => moon.clientProgramAcquireInferOutcomes(active),
     invocationEvidence: slot => moon.clientProgramInferInvocationEvidence(active,
       slot),
+    // The ordinary publication control owns compilation and contract tokens.
+    // It passes the original owner to MoonBit, never recompiling this Program.
+    bindRun: (control, {compiled, runDefinition}) =>
+      control.bindCheckedClientInferRun(compiled, active, runDefinition),
+    bindInvocation: (control, {compiled, runDefinition, verification,
+      invocation, dataPolicyCid}) => control.bindCheckedClientInferInvocation(
+      compiled, active, runDefinition, verification, invocation, dataPolicyCid),
   });
 }

@@ -24,6 +24,13 @@ policy/dependency admission and the public Host-to-Named-Result connection are
 still incomplete. The units below must not be substituted for those remaining
 acceptance conditions.
 
+The common execution also retains its exact compiled Run and Run Definition
+before the first advance. Its accepted all-slot verification can bind a
+completed Invocation to that same execution and actual input Artifact, with
+an independent output use held through publication. This remains a structural
+binding and custody boundary, not external evidence admission or a committed
+public Result.
+
 Normal Program preparation now retains the installed ModelTask contract and
 its role-specific dependency roots. The runtime input connection uses the
 same checked Program owner to execute `Values -> assert_rows` through the
@@ -1208,3 +1215,78 @@ branch in `planFor`, and verified all-slot evidence supplied to the existing
 publication owner rather than the empty model evidence currently supplied by
 `buildLocalPublicationPlan`. No public adoption SHA, startup example, push or
 Linux CI success is claimed for this component unit.
+
+## Exact Run and completed inference invocation binding
+
+The physical inference operation now accepts the existing compiled Run owner
+and its admitted Run Definition before its first advance. The common owner
+rejects a foreign prepared Program, a different checked inference graph, a
+different compiled owner or a different Run Definition. Repeating the same
+binding is idempotent; binding after progress or after reclamation is rejected.
+Already completed component work cannot be retroactively adopted by a Run.
+
+After bounded full-slot verification, the same owner checks that verification
+against the actual model execution, not an equal Program or call CID from a
+second execution. It then checks the containing template, ObservationSet,
+Invocation, installed data-policy reference and actual completed input Artifact.
+This initial source-free route admits one actual input Artifact and no source
+evidence; source-acquiring routes still need their own owners. Zero-key INFER
+retains an explicit empty slot array and its actual empty input Artifact.
+
+Only a completed, uncancelled execution can acquire the invocation binding.
+Rejection acquires no output use. Success retains an independent output use,
+so cleaning the verification or releasing a different consumer does not permit
+premature execution/input cleanup. Releasing the binding revokes its views but
+leaves another consumer alive. Final cleanup neither computes nor dispatches
+again. No whole slot list is traversed or copied by this final binding.
+
+The Node physical wrapper and existing runtime publication control expose this
+boundary without exposing the private compiled token or preparing/compiling
+another Program. The connection order for the installing dispatch owner is:
+
+```js
+const compiled = control.prepareCheckedClientCompiledRun(
+  preparedProgram, 'infer', installedPolicy, inferGraph);
+const runDefinition = control.defineCheckedClientCompiledRun(
+  compiled, admittedRunDefinition);
+const operation = openNodeInferOperation(installedOperation);
+// Transfer operation custody to the existing dispatch owner before advancing.
+operation.bindRun(control, {compiled, runDefinition});
+await operation.run();
+// The capture owner must first authenticate, admit and confirm all evidence.
+const binding = operation.bindInvocation(control, {
+  compiled, runDefinition, verification, invocation, dataPolicyCid,
+});
+// Retain binding until publication settles; release it before final cleanup.
+moon.clientProgramReleaseInferInvocationBinding(binding);
+```
+
+This is a component connection sketch, not an installed public Host startup
+example. `installedPolicy`, the exact inference graph, capture verification,
+model dependencies and physical authority cannot be replaced with symbolic
+roots to claim public acceptance. The ordinary Host still needs the inference
+dispatch branch and verified evidence supplied to its publication owner.
+
+Local verification on the source tree based on
+`007e0ceec9ff9d4af57ac229c2a47ee4e880aa9a` passes:
+
+- JS, Wasm and native: `client_infer_host`, `model_execution` and
+  `run_publication`, 239/239 on each target, including five new common tests.
+- Node inference, dispatch-owner, publication-control, publication fixture
+  and independent model-slot contract suites, 80/80.
+- Release Node bridge build, three-target interface generation, MoonBit
+  public interface consistency, formatting, Node syntax checks and whitespace
+  checks.
+
+The Node test binds before dispatch, verifies successful and failed output
+against literal rows, observes one compile and one provider call, rejects an
+unverified observation and a cloned compiled token, then exercises independent
+binding/consumer release and final cleanup. Common tests also reject another
+execution's verification, a different graph or Run, late Run adoption, changed
+input Artifact, missing/extra inputs, extra source evidence, wrong data policy
+and an Invocation that references a different ObservationSet.
+
+The test records' external roots remain symbolic. They do not establish
+formal attempt adoption, accounting, policy/egress authority or durable private
+evidence truth. This unit does not change canonical contracts or pins, publish
+a Named Result, provide B an adoption SHA, push a branch or claim Linux CI.

@@ -101,6 +101,8 @@ pub fn client_program_advance_infer_execution(@client_infer_host.Execution, Int)
 
 pub fn client_program_advance_infer_input(@client_local_host.ClientInferInputExecution, Int) -> Result[@client_local_host.ClientInferInputPoll, @client_local_host.ClientInferInputIssue]
 
+pub fn client_program_advance_infer_observation_verification(@model_execution.ModelObservationVerification, Int) -> Result[(Bool, Int64), @model_execution.ModelExecutionIssue]
+
 pub fn client_program_advance_model_execution(@model_execution.ModelExecution, Int) -> Result[@model_execution.ModelObservation, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_advance_model_output(@model_execution.ModelOutputPreparation, Int) -> Result[@execution_relation.AdmittedOutputPoll, @model_execution.ModelExecutionIssue]
@@ -121,6 +123,10 @@ pub fn client_program_bind_effect_preview_inputs(ClientLocalEffectHost, @physica
 
 pub fn client_program_bind_effect_run(@run_publication_host.PreparedClientEffectComputation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> @run_publication_host.PreparedClientEffectRun?
 
+pub fn client_program_bind_infer_invocation(@client_infer_host.Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @model_execution.ModelObservationVerification, @run_publication.PublicationContract, String) -> Result[@client_infer_host.InvocationBinding, @client_infer_host.InvocationBindingIssue]
+
+pub fn client_program_bind_infer_run(@client_infer_host.Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, @client_infer_host.InvocationBindingIssue]
+
 pub fn client_program_bind_infer_slot_capture(@model_execution.VerifiedModelCapture, Int, @run_publication.RunEvidenceValue) -> Result[@run_publication.BoundModelSlotCapture, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_cancel_captured_source_identity_scan(@execution_query.CapturedSourceIdentityScan) -> Bool
@@ -130,6 +136,8 @@ pub fn client_program_cancel_infer_capture_export(@model_execution.ModelCaptureE
 pub fn client_program_cancel_infer_execution(@client_infer_host.Execution) -> Bool
 
 pub fn client_program_cancel_infer_input(@client_local_host.ClientInferInputExecution) -> Bool
+
+pub fn client_program_cancel_infer_observation_verification(@model_execution.ModelObservationVerification) -> Bool
 
 pub fn client_program_cancel_model_execution(@model_execution.ModelExecution) -> Bool
 
@@ -186,6 +194,8 @@ pub fn client_program_cleanup_infer_capture_export(@model_execution.ModelCapture
 pub fn client_program_cleanup_infer_execution(@client_infer_host.Execution) -> Result[Bool, @client_infer_host.Issue]
 
 pub fn client_program_cleanup_infer_input(@client_local_host.ClientInferInputExecution) -> Result[Bool, @client_local_host.ClientInferInputIssue]
+
+pub fn client_program_cleanup_infer_observation_verification(@model_execution.ModelObservationVerification) -> Result[Bool, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_cleanup_model_execution(@model_execution.ModelExecution) -> Result[Bool, @model_execution.ModelExecutionIssue]
 
@@ -479,6 +489,12 @@ pub fn client_program_infer_identity_pending(@client_infer_host.Execution) -> Bo
 
 pub fn client_program_infer_input_rows(@client_local_host.ClientInferInputPoll) -> @execution_relation.PreparedInferRows?
 
+pub fn client_program_infer_invocation_binding_invocation(@client_infer_host.InvocationBinding) -> @run_publication.PublicationContract?
+
+pub fn client_program_infer_invocation_binding_observation(@client_infer_host.InvocationBinding) -> @run_publication.RunEvidenceValue?
+
+pub fn client_program_infer_invocation_binding_output(@client_infer_host.InvocationBinding) -> @execution_relation.CompletedOutput?
+
 pub fn client_program_infer_invocation_evidence(@client_infer_host.Execution, Int) -> @run_publication.RunEvidenceValue?
 
 pub fn client_program_infer_observation_pending(@client_infer_host.Execution) -> Bool
@@ -771,6 +787,8 @@ pub fn client_program_release_infer_capture(@model_execution.VerifiedModelCaptur
 
 pub fn client_program_release_infer_capture_bundle(@run_publication.ModelCaptureBundleRead) -> Bool
 
+pub fn client_program_release_infer_invocation_binding(@client_infer_host.InvocationBinding) -> Bool
+
 pub fn client_program_release_infer_outcomes(@model_execution.ModelOutcomeRead) -> Bool
 
 pub fn client_program_release_infer_output(@client_infer_host.OutputUse) -> Bool
@@ -868,6 +886,8 @@ pub fn client_program_start_infer_capture_export(@model_execution.VerifiedModelC
 pub fn client_program_start_infer_execution(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelProvider, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
 pub fn client_program_start_infer_input(@run_publication_host.PreparedClientProgram, String, String, Int) -> @client_local_host.ClientInferInputExecution?
+
+pub fn client_program_start_infer_observation_verification(@model_execution.VerifiedModelCapture, @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], Int, Int, Int) -> Result[@model_execution.ModelObservationVerification, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_start_infer_replay(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.VerifiedModelCapture) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 

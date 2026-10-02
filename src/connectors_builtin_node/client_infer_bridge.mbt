@@ -80,6 +80,109 @@ pub fn client_program_acquire_infer_capture(
 }
 
 ///|
+/// Existing bounded all-slot verification. External evidence and Store
+/// confirmation remain the installing capture owner's responsibilities.
+#export_name("clientProgramStartInferObservationVerification")
+pub fn client_program_start_infer_observation_verification(
+  capture : @model.VerifiedModelCapture,
+  observation : @publication.RunEvidenceValue,
+  records : Array[@publication.RunEvidenceValue],
+  max_slots : Int,
+  max_slot_wire_units : Int,
+  max_work : Int,
+) -> Result[@model.ModelObservationVerification, @model.ModelExecutionIssue] {
+  @model.start_model_observation_verification(capture, observation, records, {
+    max_slots,
+    max_slot_wire_units,
+    max_work,
+  })
+}
+
+///|
+#export_name("clientProgramAdvanceInferObservationVerification")
+pub fn client_program_advance_infer_observation_verification(
+  active : @model.ModelObservationVerification,
+  quantum : Int,
+) -> Result[(Bool, Int64), @model.ModelExecutionIssue] {
+  @model.advance_model_observation_verification(active, quantum)
+}
+
+///|
+#export_name("clientProgramCancelInferObservationVerification")
+pub fn client_program_cancel_infer_observation_verification(
+  active : @model.ModelObservationVerification,
+) -> Bool {
+  @model.cancel_model_observation_verification(active)
+}
+
+///|
+#export_name("clientProgramCleanupInferObservationVerification")
+pub fn client_program_cleanup_infer_observation_verification(
+  active : @model.ModelObservationVerification,
+) -> Result[Bool, @model.ModelExecutionIssue] {
+  @model.cleanup_model_observation_verification(active)
+}
+
+///|
+/// Bind to the admitted compiled owner without preparing or compiling again.
+/// This retains output custody, not authority to commit a public Result.
+#export_name("clientProgramBindInferRun")
+pub fn client_program_bind_infer_run(
+  active : @infer_host.Execution,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Result[Unit, @infer_host.InvocationBindingIssue] {
+  @infer_host.bind_run(active, compiled, definition)
+}
+
+///|
+#export_name("clientProgramBindInferInvocation")
+pub fn client_program_bind_infer_invocation(
+  active : @infer_host.Execution,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  verified : @model.ModelObservationVerification,
+  invocation : @publication.PublicationContract,
+  data_policy_cid : String,
+) -> Result[@infer_host.InvocationBinding, @infer_host.InvocationBindingIssue] {
+  @infer_host.bind_invocation(
+    active, compiled, definition, verified, invocation, data_policy_cid,
+  )
+}
+
+///|
+#export_name("clientProgramInferInvocationBindingOutput")
+pub fn client_program_infer_invocation_binding_output(
+  binding : @infer_host.InvocationBinding,
+) -> @execution.CompletedOutput? {
+  @infer_host.invocation_binding_output(binding)
+}
+
+///|
+#export_name("clientProgramInferInvocationBindingObservation")
+pub fn client_program_infer_invocation_binding_observation(
+  binding : @infer_host.InvocationBinding,
+) -> @publication.RunEvidenceValue? {
+  @infer_host.invocation_binding_observation(binding)
+}
+
+///|
+#export_name("clientProgramInferInvocationBindingInvocation")
+pub fn client_program_infer_invocation_binding_invocation(
+  binding : @infer_host.InvocationBinding,
+) -> @publication.PublicationContract? {
+  @infer_host.invocation_binding_invocation(binding)
+}
+
+///|
+#export_name("clientProgramReleaseInferInvocationBinding")
+pub fn client_program_release_infer_invocation_binding(
+  binding : @infer_host.InvocationBinding,
+) -> Bool {
+  @infer_host.release_invocation_binding(binding)
+}
+
+///|
 #export_name("clientProgramAcquireInferOutcomes")
 pub fn client_program_acquire_infer_outcomes(
   active : @infer_host.Execution,

@@ -165,6 +165,22 @@ pub fn model_observation_verification_value(
 }
 
 ///|
+/// Match an accepted structural observation to its actual execution owner.
+/// Equal Program, input or slot CIDs from another execution cannot substitute.
+/// This is not verification of external attempt or authorization records.
+pub fn model_observation_verification_matches(
+  active : ModelObservationVerification,
+  execution : ModelExecution,
+) -> Bool {
+  active.accepted &&
+  !active.reclaimed &&
+  !active.state.capture.released &&
+  physical_equal(active.state.capture.owner, execution) &&
+  execution.state.accepted &&
+  !execution.state.reclaimed
+}
+
+///|
 pub fn cancel_model_observation_verification(
   active : ModelObservationVerification,
 ) -> Bool {

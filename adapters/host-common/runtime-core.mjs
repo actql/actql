@@ -1999,6 +1999,26 @@ function publicationControl(moon) {
       return Object.freeze({observation: inspectEvidence(issued._0),
         invocation: inspect(issued._1), owner: issued._1});
     },
+    // Reuse the compiled owner retained at Run admission. The physical
+    // adapter supplies its opaque execution and bounded verification owner;
+    // this does not adopt external attempts or grant publication authority.
+    bindCheckedClientInferRun(compiled, execution, definition) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer Run');
+      }
+      return checked(moon.clientProgramBindInferRun(execution,
+        value, token(definition)));
+    },
+    bindCheckedClientInferInvocation(compiled, execution, definition,
+      verified, invocation, dataPolicyCid) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer Run');
+      }
+      return checked(moon.clientProgramBindInferInvocation(execution,
+        value, token(definition), verified, token(invocation), dataPolicyCid));
+    },
     checkClientRunDefinitionBinding(checkedProgram, admission, definition) {
       if (typeof moon.clientProgramCheckRunBinding !== 'function' ||
           !moon.clientProgramCheckRunBinding(checkedProgram,

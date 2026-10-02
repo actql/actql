@@ -621,11 +621,133 @@ function supervisedInferFixture(signal, onInvoke, responseBody = '{"reason":null
         responseBody, 'fixture-risk-model', 'request-1',
         1n, 2n, '2026-10-01T00:00:00.000Z');
     });
+  const graph = scopedInferGraph(prepared);
   const operation = openNodeInferOperation({moon, preparedProgram: prepared,
-    step: 2, graph: scopedInferGraph(prepared), registry, values, provider,
+    step: 2, graph, registry, values, provider,
     signal, quantum: 1});
-  return {prepared, operation, calls: () => calls};
+  return {prepared, graph, operation, calls: () => calls};
 }
+
+test('compiled Run binding retains the actual Infer output without preparing or compiling again', async t => {
+  // This checks the normal compiled owner and physical operation boundary,
+  // not external authority/accounting admission or a public Named Result.
+  for (const failed of [false, true]) {
+    const fixture = supervisedInferFixture(undefined, undefined, failed
+      ? '{"reason":null,"risk":123}' : '{"reason":null,"risk":"high"}');
+    const {operation, prepared, graph} = fixture;
+    let compiles = 0;
+    const control = runtimeCore({...moon,
+      clientProgramCompileLocalInfer(...args) {
+        compiles++;
+        return moon.clientProgramCompileLocalInfer(...args);
+      },
+    }).publicationControl;
+    const root = cid({fixture: 'symbolic-invocation-external-root'});
+    const policy = {executionContextCid: root, hostPolicyCid: root,
+      expiresAt: '2099-01-01T00:00:00.000Z'};
+    const compiled = control.prepareCheckedClientCompiledRun(prepared,
+      'infer', policy, graph);
+    const runDefinition = control.defineCheckedClientCompiledRun(compiled,
+      {namespaceId: 'infer-compilation', runId: failed ? 'failure' : 'success',
+        createdAt: '2026-10-02T00:00:00.000Z', validUntil: policy.expiresAt});
+    operation.bindRun(control, {compiled, runDefinition});
+    operation.bindRun(control, {compiled, runDefinition});
+    const completed = await operation.run();
+    const capture = operation.acquireCapture();
+    let verification, binding, consumer;
+    t.after(async () => {
+      if (verification !== undefined) {
+        moon.clientProgramCancelInferObservationVerification(verification);
+        // Cleanup cannot release a still-running verification session.
+        try { checked(moon.clientProgramAdvanceInferObservationVerification(
+          verification, 1)); } catch { /* Already terminal or stopped. */ }
+        checked(moon.clientProgramCleanupInferObservationVerification(verification));
+      }
+      moon.clientProgramReleaseInferCapture(capture);
+      if (binding !== undefined) moon.clientProgramReleaseInferInvocationBinding(binding);
+      if (consumer !== undefined) moon.clientProgramReleaseInferOutput(consumer);
+      if (operation.cleanupPending()) await operation.close();
+    });
+    const call = JSON.parse(moon.strategyRunEvidenceJson(
+      moon.clientProgramInferCaptureCall(capture, 0)));
+    const success = failed ? undefined : JSON.parse(moon.strategyRunEvidenceJson(
+      operation.invocationEvidence(0)));
+    const slotBody = {
+      version: 'actql-model-slot-capture/0.1',
+      slot_cid: call.model_call_slot_cid, model_task_cid: call.model_task_cid,
+      fixed_request_cid: call.fixed_request_cid,
+      input_artifact_cid: call.input_artifact_cid,
+      input_key_cid: call.input_key_cid,
+      ordered_attempt_cids: [root], adopted_attempt_cid: root,
+      outcome: failed ? 'failed:provider_error' : 'ok',
+      typed_value_artifact_cid: success?.validated_structured_output_cid ?? null,
+      accounting_evidence_cid: root, authority_evidence_cid: root,
+      policy_cid: root, outcome_evidence_cid: root,
+      response_artifact_cid: success?.structured_response_artifact_cid ?? null,
+      response_issuer_evidence_cid: failed ? null : root,
+      attachment_admission_cids: [],
+    };
+    const slotCid = cid(slotBody);
+    const slot = checked(moon.strategyRunEvidenceAdmit('model_slot_capture',
+      canonicalText({...slotBody, self_cid: slotCid}), 16384, 1024, 20));
+    const observationBody = {
+      version: 'actql-observation-set/0.1',
+      invocation_template_cid: compiled.template.identity,
+      captured_input_artifact_cids: [call.input_artifact_cid],
+      source_evidence_cids: [], data_policy_cid: root,
+      consistency: 'independent_snapshots',
+      capture_started_at: '2026-10-02T00:00:00.000Z',
+      capture_completed_at: '2026-10-02T00:00:00.000Z',
+      replayability: {materialized: false, availability_evidence_cids: []},
+      model_slot_capture_cids: [slotCid],
+    };
+    const observationCid = cid(observationBody);
+    const observation = checked(moon.strategyRunEvidenceAdmit('observation_set',
+      canonicalText({...observationBody, observation_set_cid: observationCid}),
+      16384, 1024, 20));
+    // The common binding checks an already admitted Invocation. This fixture
+    // issues identity bytes only, not authority to publish those bytes.
+    const invocationBody = {version: 'actql-run-invocation/0.1',
+      invocation_template_cid: compiled.template.identity,
+      observation_set_cid: observationCid};
+    const invocation = control.seal('run_invocation',
+      canonicalText(invocationBody), {maxWireBytes: 16384, maxNodes: 1024,
+        maxDepth: 20});
+    assert.equal(invocation.identity, cid(invocationBody));
+    verification = checked(moon.clientProgramStartInferObservationVerification(
+      capture, observation, [slot], 1, 16384, 2));
+    const args = {compiled, runDefinition, verification, invocation,
+      dataPolicyCid: root};
+    assert.throws(() => operation.bindInvocation(control, args), error =>
+      error.code === 'MoonBitHostFailure' && error.cause?.$tag === 2);
+    assert.equal(checked(moon.clientProgramAdvanceInferObservationVerification(
+      verification, 1))._0, false);
+    assert.equal(checked(moon.clientProgramAdvanceInferObservationVerification(
+      verification, 1))._0, true);
+    assert.throws(() => operation.bindInvocation(control,
+      {...args, compiled: {...compiled}}), /Foreign Client compiled Infer Run/u);
+    binding = operation.bindInvocation(control, args);
+    consumer = operation.acquireOutput();
+    assert.equal(moon.clientProgramInferInvocationBindingOutput(binding), completed);
+    assert.equal(checked(moon.clientProgramCleanupInferObservationVerification(
+      verification)), true);
+    assert.equal(moon.clientProgramReleaseInferCapture(capture), true);
+    assert.equal(operation.cleanup(), false);
+    assert.deepEqual(await inferExportRows(prepared,
+      moon.clientProgramInferInvocationBindingOutput(binding)), failed
+      ? [{id: 'a', outcome: 'failed:provider_error', value: null}]
+      : [{id: 'a', outcome: 'ok', value: {reason: null, risk: 'high'}}]);
+    assert.equal(moon.clientProgramReleaseInferInvocationBinding(binding), true);
+    assert.equal(moon.clientProgramInferInvocationBindingOutput(binding), undefined);
+    assert.equal(operation.cleanup(), false);
+    assert.equal(moon.clientProgramInferOutputUse(consumer), completed);
+    assert.equal(moon.clientProgramReleaseInferOutput(consumer), true);
+    await operation.close();
+    assert.equal(operation.cleanupPending(), false);
+    assert.equal(fixture.calls(), 1);
+    assert.equal(compiles, 1);
+  }
+});
 
 test('the existing Host dispatch owner retains Infer custody and never reruns cleanup', async () => {
   const supervisor = installNodeClientDispatchOwner({});
