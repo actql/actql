@@ -1,5 +1,11 @@
 # Source and Effect co-installation
 
+Historical scope: this report records co-installation of separate Programs.
+Its combined acquired-Effect exclusion is superseded by the later
+[Read→Compute→Effect acceptance](2026-09-29-salesforce-read-compute-effect.md#current-status).
+Keep the original outcomes below at their recorded scope; see the
+[current implementation map](current-product-status.md) for the reconciled baseline.
+
 The standard Host can restore a published Source and a published Effect from
 one state root. A read Program and a separate Values-origin Effect Program
 can each be submitted through the public Client and publish Named Results.

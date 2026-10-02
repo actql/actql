@@ -56,6 +56,51 @@ test('review wire budget covers maximum base64 without relaxing body limits',
       {maxBytes: maximum}), {code: 'InvalidHostCheckpointReview'});
   });
 
+test('check refuses a Host verdict that contradicts its own evidence',
+  async t => {
+    const version = 'actql-check-outcome/0.1';
+    const report = (verdict, reasons, limits, unresolved) => ({version,
+      outcome: 'completed', report: {context_ref: 'ctx:a',
+        scope: {kind: 'bound_input'}, verdict, reasons,
+        coverage: {limits, unresolved}}});
+    const limit = [{code: 'analysis_budget_exhausted'}];
+    const open = [{boundary: 'source_resolution',
+      reason: 'unresolved_protected'}];
+    const violation = [{code: 'supplied_value_invalid'}];
+    let reply;
+    mock.method(globalThis, 'fetch', async url =>
+      url.pathname.endsWith('/connect') ? Response.json(profile)
+        : Response.json(reply));
+    t.after(() => mock.restoreAll());
+    const client = await connect(options);
+    const check = () => client.check('SELECT 1 AS n', {format: 'sql'});
+    for (const inconsistent of [
+      report('verified', [], limit, open),
+      report('verified', [], limit, []),
+      report('verified', [], [], open),
+      report('verified', violation, [], []),
+      report('invalid', [], limit, []),
+      report('undetermined', violation, limit, []),
+      report('undetermined', [], [], []),
+      {version, outcome: 'failed', problem: {code: 'check_internal'},
+        partial_report: report('invalid', [], [], open).report},
+    ]) {
+      reply = inconsistent;
+      await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'},
+        JSON.stringify(inconsistent));
+    }
+    // Consistent outcomes are admitted, including codes this Client does not
+    // know yet.
+    for (const consistent of [
+      report('verified', [], [], []),
+      report('invalid', [{code: 'later_violation'}], limit, open),
+      report('undetermined', [], [{code: 'later_limit'}], []),
+    ]) {
+      reply = consistent;
+      assert.deepEqual(await check(), consistent);
+    }
+  });
+
 test('peek bounds decoded JSON independently of escaped wire size', async t => {
   const maximum = 4 * 1024 * 1024;
   const prefix = JSON.stringify([{value: '\\"日本語'.repeat(120000)}]);

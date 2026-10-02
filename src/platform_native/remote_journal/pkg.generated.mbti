@@ -70,6 +70,7 @@ pub fn Journal::retain_dispatch_envelope(Self, @remote_site_protocol.DispatchReq
 pub fn Journal::retain_output_intent(Self, String, String) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::retain_output_report(Self, @remote_site_protocol.RemoteOutputReportCustody) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::retry_output_report(Self, String) -> Result[Unit, NativeRemoteJournalIssue]
+pub fn Journal::start_claimant(Self, @remote_site_protocol.DispatchRequest) -> Result[String?, NativeRemoteJournalIssue]
 
 pub(all) enum NativeRemoteJournalIssue {
   UnsupportedTarget

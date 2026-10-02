@@ -1,5 +1,12 @@
 # Source-to-Effect Run ownership boundary
 
+Historical handoff: the intermediate missing connections and failed gates below
+are retained as recorded. The later
+[Read→Compute→Effect acceptance](2026-09-29-salesforce-read-compute-effect.md#current-status)
+records the fixed common dependency and bounded public/packed recovery results.
+See the [current implementation map](current-product-status.md); this handoff is
+not a current assignment of owners or a list of all remaining gaps.
+
 Baseline: `4e5e5fea3de3902610b385e10f89a4539c4da706` (`origin/main`).
 This is the C-to-D integration boundary, not a new execution contract.
 The first product profile has one installed Source, one installed Effect,

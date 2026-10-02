@@ -633,6 +633,42 @@ fn start_claimant_of(body : Bytes) -> String {
 }
 
 ///|
+/// Read the exact durable claimant without acquiring execution authority.
+/// Recovery uses this identity to retire only the stopped holder's bundle
+/// holding. A missing or corrupt claim cannot prove that holding absent.
+pub fn Journal::start_claimant(
+  self : Journal,
+  request : @remote.DispatchRequest,
+) -> Result[String?, NativeRemoteJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  match self.require(request) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let key = match @remote.dispatch_request_attempt_identity(request) {
+    Ok(value) => value
+    Err(issue) => return Err(Protocol(issue))
+  }
+  match self.database.read("site_start_claim", key) {
+    Err(@sqlite.NotFound) => Ok(None)
+    Err(issue) => Err(Physical(issue))
+    Ok(value) => {
+      let claimant = start_claimant_of(value.body)
+      if !valid_start_claimant(claimant) ||
+        value.body !=
+        @utf8.encode(
+          start_claim_body(claimant, @remote.dispatch_request_identity(request)),
+        ) {
+        return Err(StateCollision)
+      }
+      Ok(Some(claimant))
+    }
+  }
+}
+
+///|
 /// Exclusively claim the start of one dispatch attempt. The Accepted to
 /// Provisioning transition and a start-claim record naming `claimant` are
 /// written in one transaction fenced by the current Site binding. This is
