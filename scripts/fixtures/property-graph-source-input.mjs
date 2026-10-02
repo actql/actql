@@ -11,6 +11,12 @@ const nodeGraph = data => data + ' DATA g = PROPERTY GRAPH (NODE TABLES (n AS N 
 const edgeGraph = data => 'DATA n = SELECT 1 AS id; ' + data +
   ' DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); ';
 export const propertyGraphSourceSuccesses = [
+  {name: 'data-set-order-reuses-hidden-slot', format: 'aql-text',
+    text: 'DATA n = SELECT 2 AS id UNION ALL SELECT 1 AS other ORDER BY id + 1, id + 1 DESC LIMIT 1; FROM n |> SELECT id |> RESULT nodes',
+    results: {nodes: {rows: [{id: 1}], columns: [number('id')]}}, sourceReadCount: 0},
+  {name: 'data-quoted-set-order', format: 'aql-text',
+    text: 'DATA `n` = SELECT 2 AS id UNION ALL SELECT 1 AS other ORDER BY id; FROM `n` |> SELECT id |> RESULT nodes',
+    results: {nodes: {rows: [{id: 1}, {id: 2}], columns: [number('id')]}}, sourceReadCount: 0},
   {name: 'data-retained-results', format: 'aql-text',
     text: 'DATA n = SELECT 2 AS id; FROM n |> RESULT original |> WHERE id > 0 |> RESULT active',
     results: {original: {rows: [{id: 2}], columns: [number('id')]},
@@ -75,12 +81,6 @@ export const propertyGraphSourceExecutionFailures = [
       'FROM GRAPH g |> MATCH p = WALK (:Node)-[:R]->(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths', resultNames: ['paths'], sourceReadCount: 0},
 ];
 export const propertyGraphSourceRefusals = [
-  // The required result remains [{id: 1}] in the independent strategy repro.
-  // Until the common Relation-only task selection is fixed, this public
-  // profile must refuse preparation instead of admitting a failing Run.
-  {name: 'data-set-order-reuses-hidden-slot', format: 'aql-text',
-    text: 'DATA n = SELECT 2 AS id UNION ALL SELECT 1 AS other ORDER BY id + 1, id + 1 DESC LIMIT 1; FROM n |> SELECT id |> RESULT nodes',
-    errorCode: 'ClientProgramUnsupported'},
   {name: 'keyed-star', format: 'aql-text', text: nodes + 'FROM GRAPH g |> MATCH WALK (a) |> SELECT *'},
   {name: 'keyed-implicit-element-export', format: 'aql-text', text: nodes + 'FROM GRAPH g |> MATCH WALK (a)'},
   {name: 'keyed-missing-binding', format: 'aql-text', text: nodes + 'FROM GRAPH missing |> MATCH WALK (a) |> SELECT a.id'},

@@ -59,21 +59,17 @@ test "public DATA routing has no retired constructor fallback" {
 }
 
 ///|
-test "public ordered DATA set refuses the unavailable Relation strategy before admission" {
+test "public ordered DATA set uses the ordinary checked Relation strategy" {
   let context = { ..test_context(), inputs: [], captured_stage: None, }
   for
     text in [
       "DATA n = SELECT 2 AS id UNION ALL SELECT 1 AS other ORDER BY id + 1, id + 1 DESC LIMIT 1; FROM n |> SELECT id |> RESULT nodes",
       "DATA `n` = SELECT 2 AS id UNION ALL SELECT 1 AS other ORDER BY id; FROM `n` |> SELECT id",
     ] {
-    assert_true(
-      lower(text, Text, Some(context))
-      is Err(QueryLowering(@query.UnsupportedSet)),
-      msg=text,
-    )
+    assert_true(lower(text, Text, Some(context)) is Ok(_), msg=text)
   }
-  // Ordinary SQL set queries keep their established Stage strategy; this is
-  // an execution-profile refusal, not a change to ORDER BY or set semantics.
+  // Ordinary SQL sets and DATA producers feeding Graphs still use the same
+  // query semantics and checked task selection.
   assert_true(
     lower(
       "SELECT 2 AS id UNION ALL SELECT 1 AS other ORDER BY id + 1 LIMIT 1",
@@ -82,8 +78,6 @@ test "public ordered DATA set refuses the unavailable Relation strategy before a
     )
     is Ok(_),
   )
-  // Do not classify all ordered DATA sets as invalid: a typed Graph consumer
-  // already supplies the existing Carrier segmentation boundary.
   assert_true(
     lower(
       "DATA n = SELECT 2 AS id UNION ALL SELECT 1 AS id ORDER BY id LIMIT 1; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node PROPERTIES (id))); FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.id AS id |> RESULT nodes",
