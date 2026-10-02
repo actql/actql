@@ -59,7 +59,11 @@ test "current TRAIL retains producer resource scopes and runtime checks through 
       let program = programs[0]
       assert_eq(unit_traversal_limit_count(program, 0), Some(1))
       assert_eq(unit_traversal_limit_count(program, 1), Some(0))
+      assert_eq(unit_traversal_limit_count(program, -1), None)
+      assert_true(unit_traversal_limit_at(program, 0, -1) is None)
+      assert_true(unit_traversal_limit_at(program, 0, 1) is None)
       let limit = unit_traversal_limit_at(program, 0, 0).unwrap()
+      assert_eq(traversal_limit_proof_count(limit), 0)
       let selected = traversal_limit_selection(limit)
       assert_true(selected.step.operation is @pipeline.Traverse(..))
       guard selected.step.operation is @pipeline.Traverse(checked=operation, ..) &&
@@ -86,6 +90,24 @@ test "current TRAIL retains producer resource scopes and runtime checks through 
           suffix,
         )
         assert_eq(@derivation.minimum_value(@wire.limit_minimum(claim)), 1000L)
+        let original = @step_bounds.traversal_limit_claim(
+          selected.limits,
+          scope,
+        )
+        assert_true(@wire.limit_cid(claim) != @wire.limit_cid(original))
+        assert_eq(
+          @derivation.minimum_value(@wire.limit_minimum(claim)),
+          @derivation.minimum_value(@wire.limit_minimum(original)),
+        )
+        assert_eq(
+          @wire.cid(@wire.claim_at(@wire.limit_claims(claim), 0).unwrap()),
+          @wire.cid(
+            @wire.claim_at(
+              @wire.limit_claims(original),
+              @derivation.minimum_candidate_at(@wire.limit_minimum(original), 0).unwrap().node,
+            ).unwrap(),
+          ),
+        )
       }
       let closure = @context.stage_requirement_operations(program.requirements)
       let mut resources = 0
@@ -161,4 +183,32 @@ test "current TRAIL rejects missing or differently scoped capacity without parti
     }
     assert_eq(programs.length(), 0)
   }
+}
+
+///|
+test "current TRAIL cannot return a partial Program after a later imported consumer fails" {
+  let programs : Array[CheckedProgram] = []
+  try
+    local_construction_fixture(
+      { work: 100000000, bytes: 10000000, nodes: 1000000, depth: 100, },
+      through_check=true,
+      checked_results=programs,
+      second_stage=true,
+      property_graph=true,
+      graph_construction_limit=Some(1000),
+      traversal_capacity=true,
+      generated_rows=Some("[{\"id\":1},{\"id\":2}]"),
+      producer_expression="id",
+      producer_suffix=current_trail_resources_suffix("out", "1"),
+      producer_result_from="projected",
+      extra_step_budget=3,
+      second_steps="[{\"select\":[\"missing\"]}]",
+    )
+  catch {
+    LocalConstructionFailure::Source(_) => ()
+    _ => fail("the invalid consumer must fail source-driven preparation")
+  } noraise {
+    _ => fail("valid producer cannot make an invalid whole Program succeed")
+  }
+  assert_eq(programs.length(), 0)
 }

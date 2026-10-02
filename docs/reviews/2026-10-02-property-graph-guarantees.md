@@ -1610,3 +1610,36 @@ in this unit; its remaining tuple fixtures are not claimed migrated or green.
 The old name occurs only in the frozen September production-route evidence
 and a negative resource-inventory test that deliberately selects an invalid
 marker. Neither is a current callable product adapter.
+
+## Source-backed TRAIL and retired duplicate fixtures (2026-10-03)
+
+The former path-policy fixture now admits the current Source-backed constructor
+and positive TRAIL cases: an independent typed literal identity, a scoped MATCH
+Relation selector from N, and a selector from M backed by the second original
+Source. Finite-depth and authored static-label hop cases retain the exact
+checked traversal owner, primary/selector input occurrences, original one/two
+Source policy and independent 1,000-path / 1,000-output limits. Bound/label and
+literal identity provenance remains unknown; removed definition-free predicates
+do not lend these operations a false provenance proof. Unsupported shortest
+paths and predicate hops remain explicit refusals, not hidden legacy execution.
+
+The old traversal fixture's positive Unit-limit ownership guarantees are
+retained in `property_trail_resources_wbtest.mbt`, strengthened with invalid
+indices, no fabricated proofs, converted/original claim CID distinction and
+unchanged minimum/candidate identity. A later invalid imported consumer still
+rejects the whole Program and exposes no partially checked producer.
+`traversal_limit_identity_wbtest.mbt` already preserves the old reach conversion
+fixture's independent Unit namespaces, exact work/bytes/nodes, one-short and
+foreign-occurrence refusal under the implemented TRAIL contract. Only the
+retired reach CID and minimum-depth/node-emission semantics are withdrawn.
+The old duplicate traversal/reach executable tests are removed; their source
+and historical identities remain available in Git. The existing capacity
+fixture helper is retained because current resource owners use it.
+
+The surrounding policy/selector/Unit-limit regression passes **18/18 on each
+JS, Wasm and native** with `--deny-warn`:
+`/private/tmp/property-graph-source-trail-{js,wasm,native}-20261003.log`.
+The early narrow run exposed an authored hop field typo (`types` instead of
+`edge_types`) and an assumption about policy traversal order; the final test
+selects the unique exact operation occurrence, not an arbitrary list index.
+This is not the unfinished whole-Core or published-SHA packed/CI acceptance.
