@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "actql/actql/infer_typing" @infer,
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/relation_typing" @relation,
   "actql/actql/relation_join_shape" @join,

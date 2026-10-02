@@ -307,6 +307,7 @@ fn prepare_kernel_measured(
     return Err(MissingKernelNode)
   }
   let checked = match node.payload {
+    Infer(_) => return Err(MissingKernelNode)
     Derive(op)
     | Where(op)
     | Select(op)

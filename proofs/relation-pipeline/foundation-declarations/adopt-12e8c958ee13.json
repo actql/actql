@@ -1,0 +1,59 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "adopt-12e8c958ee13",
+  "kind": "resolution",
+  "revision": "12e8c958ee13baf92509b01d35052a76a740281b",
+  "parents": [
+    "343a5565c1acb2a229064834f53c5df3341ab297",
+    "16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "343a5565c1acb2a229064834f53c5df3341ab297",
+          "digest": "3b4aafd0a3694bb3d14f5b1c775c82e22113a5d6665fe2908ad6827b9fb06d03",
+          "mode": "100644"
+        },
+        {
+          "revision": "16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a",
+          "digest": "ba0d74e9894af43d6f7258fd41c90c937828a862791f15c022703876b5b94128",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "c85826b67599582e59441e4842354f291d6d6c986df76a4a3cc8adc15dc9ca9d",
+      "afterMode": "100644",
+      "reason": "Preserve the original #178 integration of packed INFER verification with main public-check, native-release and capacity validation; retain both original parent identities and registrations."
+    },
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "343a5565c1acb2a229064834f53c5df3341ab297",
+          "digest": "0270aa455dc0fedc8a394f6e4637f1e8812f95da839ee76c33a58edba30a110f",
+          "mode": "100644"
+        },
+        {
+          "revision": "16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a",
+          "digest": "17d239ce960452949ff61e2b72f772677165cd230f0c98621820f1f992950e52",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "28aa357d16dcf7079b020150dff2783473bb9f6ce6b010cba94388702c570716",
+      "afterMode": "100644",
+      "reason": "Preserve the original #178 integration of packed INFER verification with main public-check, native-release and capacity validation; retain both original parent identities and registrations."
+    }
+  ],
+  "inputs": [
+    "adopt-343a5565c1ac",
+    "adopt-3877b637406b",
+    "adopt-63b114ad524b",
+    "adopt-678626b010b4",
+    "adopt-7427f7f09276",
+    "adopt-9a7c592a8ed9",
+    "adopt-b480cffb6e6d",
+    "adopt-bf2d058c21c1",
+    "adopt-f24288853c19"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "adopt-9a7c592a8ed9",
+  "kind": "change",
+  "revision": "9a7c592a8ed942aee7e39d3b8a52684c1e1190e1",
+  "parents": [
+    "f89bcc5bcecee9f8d037564a50f3db70169a868a"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "f89bcc5bcecee9f8d037564a50f3db70169a868a",
+          "digest": "17f9008869fdbf738c229401430f068a494ffc9aa151e1cf610ba804de1fb3e5",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "bfff96de4de52f706d54fc43c99436a6b5271facb84c9a1bfad743fcf9b5171c",
+      "afterMode": "100644",
+      "reason": "Retain installed model-capture recovery tests in the distribution Client gate from #178."
+    }
+  ]
+}

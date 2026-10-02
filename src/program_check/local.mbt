@@ -28,6 +28,7 @@ fn construct_local(
   references_out? : Array[@environment.CatalogReferences]? = None,
   capacity_inputs? : @context.ProgramCapacityInputs? = None,
   effect_headers? : @syntax.EffectHeaders? = None,
+  model_tasks? : @environment.ModelTasks? = None,
 ) -> (
   @context.ProgramSourceIdentity,
   @context.StageRequirementClosure,
@@ -118,6 +119,7 @@ fn construct_local(
     limits,
     calendar~,
     capacity_inputs~,
+    model_tasks~,
     derived_capacity_limits=if capacity_inputs is Some(_) {
       Some({
         max_bytes: limits.identity.identity.max_hash_bytes,

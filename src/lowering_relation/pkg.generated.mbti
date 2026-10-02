@@ -227,6 +227,8 @@ pub fn emit_root_evidence(RootEvidence, @encode_core.Writer) -> Unit raise @enco
 
 pub fn emit_root_source(ExpressionRoot, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_sequence_step_range(PreparedSequence, Int, Int, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_sequence_steps(PreparedSequence, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_set_kernel(PreparedSetKernel, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
@@ -537,6 +539,20 @@ pub fn group_name_bytes(PreparedGroup) -> Int
 
 pub fn group_output_schema(PreparedGroup) -> @relation_schema.Schema
 
+pub fn infer_input_count(PreparedInferInputs) -> Int
+
+pub fn infer_input_expression_at(PreparedInferInputs, Int) -> Expression?
+
+pub fn infer_input_item_guard(PreparedInferInputs) -> Int64?
+
+pub fn infer_inputs_owner(PreparedInferInputs) -> @relation_evidence.CheckedInfer
+
+pub fn infer_inputs_parameters(PreparedInferInputs) -> @parameter_binding.BoundValues?
+
+pub fn infer_inputs_usage(PreparedInferInputs) -> (Int, Int, Int, Int)
+
+pub fn infer_output_binding(BoundPrepared, Int, @relation_evidence.CheckedInfer, @pipeline_typing.Target) -> String?
+
 pub fn inner_join_assertion(PreparedInnerJoin) -> @relation_join_shape.Cardinality?
 
 pub fn inner_join_checked(PreparedInnerJoin) -> @relation_join_shape.CheckedJoin
@@ -821,6 +837,8 @@ pub fn prepare_fragment_request(FragmentPipeline, Int64, Int64, row_limits? : Fr
 
 pub fn prepare_group(BoundPrepared, Int, Int, Int, ExpressionLimits) -> Result[(PreparedGroup, ExpressionLimits), GroupIssue]
 
+pub fn prepare_infer_inputs(@relation_evidence.CheckedInfer, @parameter_binding.BoundValues?, ExpressionLimits, expression_profiles? : ExpressionProfileAdmission) -> Result[PreparedInferInputs, InferInputIssue]
+
 pub fn prepare_inner_join(@relation_join_shape.CheckedJoin, Int, Int) -> Result[PreparedInnerJoin, InnerJoinIssue]
 
 pub fn prepare_join_kernel(BoundPrepared, Int, Int, Int) -> Result[PreparedJoinKernel, InnerJoinIssue]
@@ -841,7 +859,11 @@ pub fn prepare_roots(PreparedSequence, RootLimits) -> Result[RootIndex, RootIssu
 
 pub fn prepare_sequence(BoundPrepared, SequenceLimits) -> Result[PreparedSequence, SequenceIssue]
 
+pub fn prepare_sequence_prefix(BoundPrepared, Int, SequenceLimits) -> Result[PreparedSequence, SequenceIssue]
+
 pub fn prepare_sequence_requirements(PreparedSequence, Array[FragmentEnforcement], Array[(Int, Int64)], Int) -> Result[SequenceRequirements, SequenceRequirementsIssue]
+
+pub fn prepare_sequence_with_infer_boundary(BoundPrepared, Int, SequenceLimits) -> Result[PreparedSequence, SequenceIssue]
 
 pub fn prepare_set_kernel(BoundPrepared, Int, Int, Int) -> Result[PreparedSetKernel, SetIssue]
 
@@ -1197,6 +1219,8 @@ pub enum ExpressionBody {
   Field(String, @relation_typing.ReferenceTarget)
   Literal(@value_admission.CheckedValue)
   TypedNull
+  Object(Array[(String, Expression)])
+  Property(Expression, String, Int)
   Cast(Expression)
   Unary(UnaryOperator, Expression)
   Binary(BinaryOperator, Expression, Expression)
@@ -1366,6 +1390,22 @@ pub(all) enum GroupIssue {
   InvalidCheckedAggregate(Int)
 }
 
+pub struct InferInputIssue {
+  kind : InferInputIssueKind
+  source : @decode_core.Cursor
+}
+
+pub(all) enum InferInputIssueKind {
+  InvalidLimits
+  BudgetExceeded
+  Binding(BindingIssueKind)
+  MissingCheckedInput
+  MissingResolvedField(String)
+  MissingItemGuard(String)
+  InvalidItemGuard(String)
+  Expression(ExpressionIssueKind)
+}
+
 pub struct InnerJoinField {
   output : @relation_schema.FieldName
   input : @relation_schema.FieldName
@@ -1490,6 +1530,7 @@ pub(all) struct OrderedReferenceLimits {
 type OrderedReferences
 
 pub enum Payload {
+  Infer(@relation_evidence.CheckedInfer)
   Values(@relation_values.CheckedValues)
   TimeSeriesValue(@time_series.CheckedSeries)
   RowWindow(@temporal_window.CheckedWindow)
@@ -1626,6 +1667,8 @@ type PreparedGraphUnion
 
 type PreparedGroup
 
+type PreparedInferInputs
+
 type PreparedInnerJoin
 
 type PreparedIntervalJoin
@@ -1676,6 +1719,7 @@ type PreparedSequenceMatch
 type PreparedSetKernel
 
 pub enum PreparedStep {
+  InferBoundary(Int)
   ValuesStep(PreparedValues)
   TimeSeriesStep(PreparedTimeSeries)
   WindowStep(PreparedWindow)

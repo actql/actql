@@ -54,5 +54,6 @@ fn construct_parsed(
     text_rank=environment.text_rank,
     capacity_inputs=Some(inputs),
     effect_headers~,
+    model_tasks=environment.model_tasks,
   )
 }

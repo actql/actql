@@ -20,7 +20,8 @@ priv struct LogicalBudget {
 ///|
 priv struct LogicalRoot {
   owner : LogicalBudget
-  bytes : Int64
+  mut bytes : Int64
+  mut measurement : LogicalValueMeasure?
   mut released : Bool
 }
 
@@ -156,7 +157,13 @@ fn retain_logical_value(
     Err(e) => return Err(e)
   }
   let bytes = m.wire_bytes.to_int64()
-  reserve_logical_bytes(b, bytes)
+  match reserve_logical_bytes(b, bytes) {
+    Ok(root) => {
+      root.measurement = Some(m)
+      Ok(root)
+    }
+    Err(issue) => Err(issue)
+  }
 }
 
 ///|
@@ -173,7 +180,7 @@ fn reserve_logical_bytes(
   }
   b.live += bytes
   b.peak = Int64::max(b.peak, b.live)
-  Ok({ owner: b, bytes, released: false, })
+  Ok({ owner: b, bytes, released: false, measurement: None, })
 }
 
 ///|

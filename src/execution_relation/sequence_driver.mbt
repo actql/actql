@@ -987,6 +987,7 @@ fn[T : RelationRows] run_sequence_steps(
       @lower.VectorStep(_) => return Err(InputSet)
       @lower.EventStep(_) => return Err(InputSet)
       @lower.CarrierProjectionStep(_) => return Err(InputSet)
+      @lower.InferBoundary(_) => return Err(InputSet)
       @lower.RowStep(kernel) => {
         let route = store.wiring.routes[i]
         if route.length() != 1 {

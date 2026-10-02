@@ -87,9 +87,23 @@ pub fn binding_expression_at(CheckedOperation, Int) -> @expression_typing.TypedE
 
 pub fn check(Operation, @decode_core.Cursor, @relation_schema.Schema, @parameter_binding.Declarations?, Limits) -> Result[CheckedOperation, Issue]
 
+pub fn check_count_value(@decode_core.Cursor, Int64, @parameter_binding.Declarations?, Limits) -> Result[CheckedCountValue, Issue]
+
 pub fn check_group_with_prefix(@decode_core.Cursor, @relation_schema.Schema, Array[@relation_schema.FieldName], @parameter_binding.Declarations?, Limits) -> Result[CheckedOperation, Issue]
 
 pub fn check_sequence(@decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedSequence, Issue]
+
+pub fn count_value(CheckedCountValue) -> CountValue
+
+pub fn count_value_parameters(CheckedCountValue) -> @parameter_binding.Declarations?
+
+pub fn count_value_pending_at(CheckedCountValue, Int) -> PendingValidation?
+
+pub fn count_value_pending_count(CheckedCountValue) -> Int
+
+pub fn count_value_source(CheckedCountValue) -> @decode_core.Cursor
+
+pub fn count_value_usage(CheckedCountValue) -> (Int, Int)
 
 pub fn dedupe_key_at(CheckedOperation, Int) -> KeyField?
 
@@ -313,6 +327,8 @@ pub struct Binding {
 type CheckedAggregate
 
 type CheckedAnalytic
+
+type CheckedCountValue
 
 type CheckedGroup
 

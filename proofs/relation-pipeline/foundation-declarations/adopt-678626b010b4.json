@@ -1,0 +1,39 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "adopt-678626b010b4",
+  "kind": "resolution",
+  "revision": "678626b010b4ce10dffebe0ecec210a52b0c5941",
+  "parents": [
+    "9a7c592a8ed942aee7e39d3b8a52684c1e1190e1",
+    "50fcc1ccd7e1cfb4ac379687f95a19043fdc113f"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "9a7c592a8ed942aee7e39d3b8a52684c1e1190e1",
+          "digest": "bfff96de4de52f706d54fc43c99436a6b5271facb84c9a1bfad743fcf9b5171c",
+          "mode": "100644"
+        },
+        {
+          "revision": "50fcc1ccd7e1cfb4ac379687f95a19043fdc113f",
+          "digest": "78c15ac34fbe375959bf166c3d236ce06a2a6a0d4d2f4b2d7f7f094e844a8a15",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "0270aa455dc0fedc8a394f6e4637f1e8812f95da839ee76c33a58edba30a110f",
+      "afterMode": "100644",
+      "reason": "Preserve the original #178 merge of model execution/capture tests with current main gate registrations; retain all earlier source declarations and the actual integrated result."
+    }
+  ],
+  "inputs": [
+    "adopt-3877b637406b",
+    "adopt-63b114ad524b",
+    "adopt-7427f7f09276",
+    "adopt-9a7c592a8ed9",
+    "adopt-b480cffb6e6d",
+    "adopt-bf2d058c21c1",
+    "adopt-f24288853c19"
+  ]
+}

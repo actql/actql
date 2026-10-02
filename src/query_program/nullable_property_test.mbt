@@ -1,5 +1,5 @@
 ///|
-test "nullable object projection reaches the common expression lowering gap without infer" {
+test "nullable object projection reaches checked common property lowering without infer" {
   let seed = @wire.admit(
     @source.parse_json(
       (
@@ -48,17 +48,15 @@ test "nullable object projection reaches the common expression lowering gap with
     max_parameters=0,
     max_name_bytes=10000,
   ).unwrap()
-  match
-    @lower.lower_expression(bound, 1, 0, {
-      max_nodes: 1000,
-      max_work: 10000,
-      max_depth: 100,
-      max_literal_nodes: 1000,
-      max_literal_text_bytes: 10000,
-    }) {
-    Err(error) =>
-      assert_eq(error.kind, @lower.ExpressionNotImplemented("property"))
-    Ok(_) =>
-      fail("replace this probe with execution acceptance after the common fix")
-  }
+  let expression = @lower.lower_expression(bound, 1, 0, {
+    max_nodes: 1000,
+    max_work: 10000,
+    max_depth: 100,
+    max_literal_nodes: 1000,
+    max_literal_text_bytes: 10000,
+  }).unwrap()
+  assert_true(
+    @lower.expression_body(expression) is @lower.Property(_, "risk", 1),
+  )
+  assert_true(@lower.expression_contract(expression).nullable)
 }
