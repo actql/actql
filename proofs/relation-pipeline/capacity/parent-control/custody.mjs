@@ -149,3 +149,32 @@ export function auditCustody(receipt, target, mode, current, read) {
   return { kind: 'finite actual chain custody correspondence', target, mode,
     physicalGcCompletion: false, completeAllocationUpper: false };
 }
+
+// Reconstruct the reviewed product mutation independently of the report labels.
+export function auditCustodyMutations(records, current, read) {
+  const site = 'src/physical_strategy/task_execution.mbt';
+  const code = read(site).toString();
+  const variants = [
+    { name: 'drop-installed-scratch-release-condition', mode: 'normal',
+      before: 'scratch_released: @connector.prepared_managed_execution_scratch_release_condition(\n          prepared,\n        ),',
+      after: 'scratch_released: None,' },
+    { name: 'settle-success-before-scratch-release', mode: 'success',
+      before: 'if task_execution_scratch_released(execution) {', after: 'if true {' },
+  ];
+  assert.deepEqual(records.map(({ name, mode }) => ({ name, mode })),
+    variants.map(({ name, mode }) => ({ name, mode })), 'Incomplete custody mutations');
+  for (const [index, record] of records.entries()) {
+    const variant = variants[index];
+    assert.equal(record.target, 'js');
+    assert.equal(record.site, site);
+    assert.equal(record.beforeDigest, hash(code));
+    assert.equal(code.split(variant.before).length, 2, 'Ambiguous custody mutation source');
+    const sources = { ...current.sources, [site]: hash(code.replace(variant.before, variant.after)) };
+    assert.deepEqual(record.source.sources, sources);
+    assert.equal(record.source.digest, hash(JSON.stringify(sources)));
+    assert(Number.isInteger(record.exit) && record.exit > 0, 'Mutation did not exit with a detected failure');
+    const log = read(record.logPath).toString();
+    assert.equal(hash(log), record.logDigest);
+    assert(log.includes('Scratch credited before child cleanup'), 'Mutation failed for a different reason');
+  }
+}

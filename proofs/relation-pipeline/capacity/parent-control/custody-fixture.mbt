@@ -9,14 +9,22 @@ test "generated serial capacity custody diagnostic" {
     parameter_json="{}",
   )
   let graph = @strategy.prepare_checked_dag(
-    checked, physical_graph_owners(checked), 10, 10000, source_free_root=true,
+    checked,
+    physical_graph_owners(checked),
+    10,
+    10000,
+    source_free_root=true,
   ).unwrap()
   assert_eq(@strategy.graph_task_count(graph), 1)
   assert_eq(@strategy.graph_task_selected_step(graph, 0), None)
   assert_eq(@strategy.graph_task_prefix_end(graph, 0), None)
   let ledger = @resources.create_ledger({
-    planning_work: 10000, attempts: 10, holdings: 10, transfer_bytes: 300000L,
-    retained_bytes: 32000000L, execution_bytes: 134217728L,
+    planning_work: 10000,
+    attempts: 10,
+    holdings: 10,
+    transfer_bytes: 300000L,
+    retained_bytes: 32000000L,
+    execution_bytes: 134217728L,
   }).unwrap()
   let run = @strategy.open_source_free_dag(graph, ledger).unwrap()
   let registry = search_registry()
@@ -43,11 +51,21 @@ test "generated serial capacity custody diagnostic" {
     None,
   ).unwrap()
   let setup = @local_driver.prepare_local_managed_dispatch(
-    installed, [], @execution.process_managed_obligations(owner), 0L,
-  ).unwrap().unwrap()
+      installed,
+      [],
+      @execution.process_managed_obligations(owner),
+      0L,
+    )
+    .unwrap()
+    .unwrap()
   assert_true(@local_driver.local_managed_dispatch_uses_provider(setup))
-  assert_eq(@execution.generated_sequence_step_count(task_test_generated(owner)), 3)
-  let (_, execution_capacity) = @local_driver.local_managed_dispatch_site_capacity(setup).unwrap()
+  assert_eq(
+    @execution.generated_sequence_step_count(task_test_generated(owner)),
+    3,
+  )
+  let (_, execution_capacity) = @local_driver.local_managed_dispatch_site_capacity(
+    setup,
+  ).unwrap()
   let operations = @local_driver.start_local_managed_dispatch_node(setup).unwrap()
   assert_eq(operations.inputs.length(), 0)
   if mode == "success" {
@@ -74,11 +92,21 @@ test "generated serial capacity custody diagnostic" {
     let usage = @resources.ledger_usage(ledger)
     assert_eq(usage.held_bytes, operations.storage_bytes)
     println("ACTQL_CUSTODY_STAGE:after-completion-before-cleanup")
-    println("ACTQL_CUSTODY:{\"executionCapacity\":" + execution_capacity.to_string() +
-      ",\"before\":" + before.to_string() + ",\"after\":" + usage.reserved_execution_bytes.to_string() +
-      ",\"workBefore\":" + work_before.to_string() + ",\"workAfter\":" +
+    println(
+      "ACTQL_CUSTODY:{\"executionCapacity\":" +
+      execution_capacity.to_string() +
+      ",\"before\":" +
+      before.to_string() +
+      ",\"after\":" +
+      usage.reserved_execution_bytes.to_string() +
+      ",\"workBefore\":" +
+      work_before.to_string() +
+      ",\"workAfter\":" +
       (operations.cumulative_provider_work)().unwrap().to_string() +
-      ",\"heldAtCompletion\":" + usage.held_bytes.to_string() + "}")
+      ",\"heldAtCompletion\":" +
+      usage.held_bytes.to_string() +
+      "}",
+    )
     // This accepted Int payload exercises the real completion/ledger route,
     // not a claim about physical output backing or multiple consumers.
     available.val = false
@@ -117,15 +145,31 @@ test "generated serial capacity custody diagnostic" {
     assert_eq(after, before)
   }
   println("ACTQL_CUSTODY_STAGE:after-settlement-before-cleanup")
-  println("ACTQL_CUSTODY:{\"executionCapacity\":" + execution_capacity.to_string() +
-    ",\"before\":" + before.to_string() + ",\"after\":" + after.to_string() +
-    ",\"workBefore\":" + work_before.to_string() + ",\"workAfter\":" + work_after.to_string() + "}")
+  println(
+    "ACTQL_CUSTODY:{\"executionCapacity\":" +
+    execution_capacity.to_string() +
+    ",\"before\":" +
+    before.to_string() +
+    ",\"after\":" +
+    after.to_string() +
+    ",\"workBefore\":" +
+    work_before.to_string() +
+    ",\"workAfter\":" +
+    work_after.to_string() +
+    "}",
+  )
   // No capacity-safety assertion is weakened to match this diagnostic.
   if pending {
     assert_false((operations.cleanup_refresh)())
-    assert_eq(@resources.ledger_usage(@strategy.captured_dag_ledger(run)).reserved_execution_bytes, before)
+    assert_eq(
+      @resources.ledger_usage(@strategy.captured_dag_ledger(run)).reserved_execution_bytes,
+      before,
+    )
     assert_false((operations.cleanup_refresh)())
-    assert_eq(@resources.ledger_usage(@strategy.captured_dag_ledger(run)).reserved_execution_bytes, before)
+    assert_eq(
+      @resources.ledger_usage(@strategy.captured_dag_ledger(run)).reserved_execution_bytes,
+      before,
+    )
     assert_eq((operations.cumulative_provider_work)().unwrap(), work_before)
     assert_eq(@local_connector.custody_child_start_count(), 2)
   }
@@ -135,7 +179,10 @@ test "generated serial capacity custody diagnostic" {
   assert_eq((operations.cumulative_provider_work)().unwrap(), work_before)
   assert_eq(@local_connector.custody_child_start_count(), 2)
   assert_true((operations.cleanup_refresh)())
-  assert_eq(@resources.ledger_usage(@strategy.captured_dag_ledger(run)).reserved_execution_bytes, final_usage)
+  assert_eq(
+    @resources.ledger_usage(@strategy.captured_dag_ledger(run)).reserved_execution_bytes,
+    final_usage,
+  )
   assert_true((operations.advance)(1) is Err(_))
   assert_eq(@local_connector.custody_child_start_count(), 2)
   assert_eq((operations.cumulative_provider_work)().unwrap(), work_before)
