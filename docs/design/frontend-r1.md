@@ -111,6 +111,31 @@ or treating a runtime capability declaration as execution evidence.
 Known gaps in the imported acceptance matrix are explicit fixture requirements
 in the registry. They remain work to do; an empty evidence array is never a pass.
 
+### Quoted String profile
+
+The selected lexical reference is
+[GoogleSQL lexical structure at the pinned reference revision](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/lexical.md#string-and-bytes-literals).
+Query strings lower to ordinary String literals. Their decoded scalar values
+are retained by the common value, canonical identity and serialization owners;
+the Frontend does not introduce an alternative String representation.
+
+| Reference form | Frontend and common meaning | Coverage boundary |
+| --- | --- | --- |
+| Single/double quoted String | The same bounded decoder and String expression; either quote may contain the other quote | Raw CR/LF is invalid in these plain forms |
+| Standard simple, octal, hex and Unicode escapes | Decode once to the exact Unicode scalar sequence | Reject malformed escapes, surrogate values and values above U+10FFFF |
+| Backtick identifier | Name resolution, separate from String data | Existing identifier escape subset remains; wider escapes are not implemented |
+| Triple single/double quoted String | Ordinary String after source newline/escape decoding | Three matching unescaped quotes terminate the chunk; physical newlines are permitted |
+| Raw String | Preserve each backslash and following scalar in an ordinary String | Prefix applies only to its immediate chunk; odd trailing backslash and plain-form physical newlines reject |
+| Adjacent String chunks | Concatenate decoded values into one String expression, retaining the original source range | Whitespace/comment separation is required; identifiers and String/bytes mixtures do not concatenate |
+| Bytes literal | Requires the reference's distinct bytes meaning | Not yet implemented; never stringify bytes silently |
+| Graph LABELS annotation | Historical annotation syntax, separate from query literal syntax | Query-only escapes and raw controls do not widen annotation admission |
+
+Independent fixtures compare decoded values and ordinary Programs, including
+CR/LF/CRLF, composed/decomposed Unicode and backslash followed by `n`. The
+packed source fixtures require rows, declaration-order contracts and UTF-8
+extents through the same Local/HTTP Result boundary. Listed fixture obligations
+do not by themselves establish execution success.
+
 ## Shared query vocabulary and scope
 
 SQL and Pipe use the adopted GoogleSQL vocabulary and one query expression

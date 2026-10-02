@@ -128,8 +128,21 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('8fc336e2b475104366fea9024c38d171a3d18743a63f05b254272e14bedd886d'),
     pin('bfb017e25670c872293a2a4eec302b7d1217c3cb1adf74637c2339286d5c39ea')).run.run_definition_cid,
     pin('1a7ded9110cb3d2c27f151ccc75f1c6683c3a4e0316fc0570706a3c169934baf'));
-  assert.equal(current.run.run_definition_cid,
+  // Retain the exact-String predecessor's independent Run preimage.
+  assert.equal(vector(pin('ecf842ba6846f2dbac5cb8fa42b5b708c14e0ec170fc14d05043a351c0300582'),
+    cid(aoaContract), currentUnit).run.run_definition_cid,
     pin('e7c495589dedf6a62557d8594eb50994bfa38e9d61b17f18176d277de484240b'));
+  // Keep the plain single/double-quoted grammar as an independent predecessor.
+  assert.equal(vector(pin('6b812b128f53bee2b1f0edc8e2c2084a9c12044f0455c502640563ebad1fbf75'),
+    cid(aoaContract), currentUnit).run.run_definition_cid,
+    pin('cbbe25f3a540b4c917e555bcbc67875c7a68d8279af8c344e8c950a49b77988f'));
+  // Preserve the prior raw/triple/chunk grammar vector. The octal bound
+  // correction changes only the normative Grammar Manifest dependency.
+  assert.equal(vector(pin('69bfc5ff4846f34bf910fcbdbb3a1d8e21750797e1a1c4b578d97571da1afd1f'),
+    cid(aoaContract), currentUnit).run.run_definition_cid,
+    pin('f835722f8d8fc55b5f325e101aa38c43b5783bf807161d6d2cb58a3091437dd5'));
+  assert.equal(current.run.run_definition_cid,
+    pin('535f3d5b34ee29911cc3d258e9fe2c8324e34a8f75cd4db799f31323fad2d0a3'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
 

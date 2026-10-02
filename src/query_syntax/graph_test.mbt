@@ -96,6 +96,26 @@ test "Graph MATCH uses the shared bounded query budget" {
 }
 
 ///|
-test "Graph JSON strings do not become SQL expression strings" {
-  assert_true(parse_query("SELECT \"id\" FROM rows", query_limits()) is Err(_))
+test "Graph annotations retain their own bounded escape profile" {
+  assert_true(parse_query("SELECT \"id\" FROM rows", query_limits()) is Ok(_))
+  for
+    source in [
+      "FROM GRAPH g LABELS {\"node\":{\"field\":\"entity_type\"}} |> MATCH WALK (a:Person)",
+      "FROM GRAPH g LABELS {\"node\":{\"field\":\"entity_\\u0074ype\"}} |> MATCH WALK (a:Person)",
+    ] {
+    assert_true(parse_query(source, query_limits()) is Ok(_), msg=source)
+  }
+  assert_true(
+    parse_query(
+      "FROM GRAPH g LABELS {\"node\":{\"field\":\"entity_\\x74ype\"}} |> MATCH WALK (a:Person)",
+      query_limits(),
+    )
+    is Err(_),
+  )
+  for
+    source in [
+      "SELECT id AS \"name\" FROM rows", "SELECT id FROM \"rows\"", "SELECT \"memory\".\"main\".\"rows\" FROM rows",
+    ] {
+    assert_true(parse_query(source, query_limits()) is Err(_), msg=source)
+  }
 }

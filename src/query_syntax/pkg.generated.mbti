@@ -241,7 +241,6 @@ pub(all) enum Lexeme {
   Word(String)
   QuotedName(String)
   Text(String)
-  JsonText(String)
   Numeric(String)
   Parameter(String)
   Operator(String)
@@ -344,6 +343,7 @@ pub struct Token {
   value : Lexeme
   start : Int
   end : Int
+  annotation_compatible : Bool
 } derive(Eq, @debug.Debug)
 
 type Tokens
