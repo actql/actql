@@ -63,13 +63,13 @@ for (const name of ['database-rows.json', 'two-source-join.program.json',
   await writeFile(join(root, 'two-source-fixtures', name), await readFile(join(repository,
     'adapters/host-node/fixtures/two-source', name)));
 }
-await mkdir(join(root, 'two-source-example'));
-for (const name of ['README.md', 'setup-example.mjs', 'run-example.mjs',
-  'database-rows.json', 'two-source-join.program.json', 'two-source-join.expected.json',
-  'left.environment.json', 'right.environment.json']) {
-  await writeFile(join(root, 'two-source-example', name), await readFile(join(repository,
-    'adapters/host-node/fixtures/two-source', name)));
-}
+// Copy the exact documented example and its shared JSON fixtures.
+const exampleReadme = await readFile(join(repository,
+  'examples/two-source-join/README.md'), 'utf8');
+const exampleCommands = [...exampleReadme.matchAll(/```bash\n([\s\S]*?)\n```/gu)];
+assert.equal(exampleCommands.length, 2);
+run('bash', ['-eu', '-c', exampleCommands[0][1]], root,
+  {...environment, ACTQL_CHECKOUT: repository});
 await mkdir(join(root, 'sga-source-fixtures'));
 for (const name of ['normalize-rows', 'mean-graphs', 'traverse-paths',
   'shortest-path',

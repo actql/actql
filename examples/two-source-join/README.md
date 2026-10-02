@@ -8,12 +8,13 @@ the Result. It does not fetch the inputs or implement the JOIN.
 ## Run the example
 
 Prepare and install the five development tarballs in a fresh directory outside
-the checkout using the [Quickstart](../../../../README.md#quickstart).
+the checkout using the [Quickstart](../../README.md#quickstart).
 Before leaving the checkout, set `ACTQL_CHECKOUT` to its absolute path. From the
 consumer directory, copy this example:
 
 ```bash
-cp -R "$ACTQL_CHECKOUT/adapters/host-node/fixtures/two-source" two-source-example
+cp -R "$ACTQL_CHECKOUT/examples/two-source-join" two-source-example
+cp "$ACTQL_CHECKOUT"/adapters/host-node/fixtures/two-source/*.json two-source-example/
 ```
 
 Then run these commands in that consumer directory:
@@ -25,7 +26,7 @@ cat joined.jsonl
 ```
 
 The setup creates two small local databases from
-[`database-rows.json`](database-rows.json), with separate source references,
+[`database-rows.json`](../../adapters/host-node/fixtures/two-source/database-rows.json), with separate source references,
 physical paths and read grants. It does not download data or need credentials.
 Run setup once in a fresh directory; it will not replace an existing table.
 The installed `@duckdb/node-api` dependency is used only for this setup.
@@ -43,8 +44,8 @@ Expected rows, including both duplicate occurrences, are:
 `joined.schema.json` contains the actual Result description: `id` is a
 non-nullable number; `left_amount` and `right_amount` are nullable numbers, in
 that column order. The independently authored
-[`two-source-join.expected.json`](two-source-join.expected.json) specifies both
-rows and column contracts. [`two-source-join.program.json`](two-source-join.program.json)
+[`two-source-join.expected.json`](../../adapters/host-node/fixtures/two-source/two-source-join.expected.json) specifies both
+rows and column contracts. [`two-source-join.program.json`](../../adapters/host-node/fixtures/two-source/two-source-join.program.json)
 owns the JOIN and its output ordering.
 
 `joined.run.json` retains the Run reference. Running only `run-example.mjs` again
@@ -66,7 +67,7 @@ supported by this profile.
 
 This is not SQL/Pipe two-source or INFER composition, and does not provide a
 live Salesforce or warehouse integration. It reuses the capability described in
-[the two-source Host boundary](../../../../docs/reviews/2026-10-02-two-source-public-host.md).
+[the two-source Host boundary](../../docs/reviews/2026-10-02-two-source-public-host.md).
 The existing packed acceptance executes these exact files through both Embedded
 Local and HTTPS using one shared tarball set; it also verifies Result schema,
 stream completion and request reuse. HTTPS accepts an explicit connection file
