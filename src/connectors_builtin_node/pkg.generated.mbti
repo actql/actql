@@ -598,6 +598,8 @@ pub fn client_program_infer_result_name(@run_publication_host.ClientResultTransf
 
 pub fn client_program_infer_result_task(@run_publication_host.ClientResultTransformation) -> Int
 
+pub fn client_program_infer_stopped_attempt_count(@client_infer_host.Execution) -> Int?
+
 pub fn client_program_install_model_provider(String, (@model_execution.ModelRequest) -> @model_execution.ModelResponse?) -> @model_execution.ModelProvider?
 
 pub fn client_program_installed_infer_plan_graph(@run_publication_host.PreparedClientProgram, Int, @check_environment.ModelExecutionContract) -> Result[@run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferPlanGraphIssue]

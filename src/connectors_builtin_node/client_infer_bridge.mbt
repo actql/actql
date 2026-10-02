@@ -384,6 +384,14 @@ pub fn client_program_infer_attempt_evidence(
 }
 
 ///|
+#export_name("clientProgramInferStoppedAttemptCount")
+pub fn client_program_infer_stopped_attempt_count(
+  active : @infer_host.Execution,
+) -> Int? {
+  @infer_host.stopped_attempt_count(active)
+}
+
+///|
 #export_name("clientProgramInferAttemptLeaf")
 pub fn client_program_infer_attempt_leaf(
   value : @model.ModelAttemptEvidence,

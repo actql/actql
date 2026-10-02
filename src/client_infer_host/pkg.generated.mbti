@@ -115,6 +115,8 @@ pub fn start_restored_slot_replay(@run_publication_host.PreparedClientProgram, I
 
 pub fn start_result_publication(InvocationBinding, Int, @run_publication_host.PublicationOutputExportLimits) -> Result[ResultPublication, ResultPublicationIssue]
 
+pub fn stopped_attempt_count(Execution) -> Int?
+
 // Errors
 
 // Types and methods

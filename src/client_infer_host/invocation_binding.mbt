@@ -90,6 +90,17 @@ pub fn bind_dispatch_admission(
 }
 
 ///|
+pub fn stopped_attempt_count(active : Execution) -> Int? {
+  if active.reclaimed || !(active.phase is Terminal) {
+    return None
+  }
+  match active.model {
+    Some(model) => @model.stopped_model_attempt_count(model)
+    None => Some(0)
+  }
+}
+
+///|
 pub fn attempt_evidence(
   active : Execution,
   slot : Int,

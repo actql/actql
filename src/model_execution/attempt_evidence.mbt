@@ -146,6 +146,16 @@ fn emit_optional_usage(
 }
 
 ///|
+/// Enumerate retained physical attempt traces only after confirmed stop.
+/// Reclaimed executions cannot be mistaken for an empty evidence inventory.
+pub fn stopped_model_attempt_count(execution : ModelExecution) -> Int? {
+  if !@bounded.session_stopped(execution.session) || execution.state.reclaimed {
+    return None
+  }
+  Some(execution.state.attempts.length())
+}
+
+///|
 /// A fixed-size proof per physically entered attempt. Unknown token, cost and
 /// duration observations remain NULL, never fictitious zero measurements.
 pub fn model_execution_attempt_evidence(
