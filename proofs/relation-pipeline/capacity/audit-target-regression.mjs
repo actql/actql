@@ -15,13 +15,16 @@ const reasons = {
   edge: 'Missing checked handoff edge',
   history: 'Shrink choice differs from real resource observations',
   compiler: 'Unpinned compiler declaration',
+  'core-js': 'Requested core probe target differs from execution',
+  'core-wasm': 'Requested core probe target differs from execution',
 };
-for (const slot of ['healthy', 'js', 'wasm', 'bytes', 'edge', 'history', 'compiler']) {
+for (const slot of ['healthy', 'js', 'wasm', 'bytes', 'edge', 'history', 'compiler', 'core-js', 'core-wasm']) {
   const report = structuredClone(original);
   if (slot === 'bytes') report.claim.unconditionalAllocationBytes = true;
   else if (slot === 'edge') delete report.mutations.find(m => m.name === 'handoff-copy-without-accounting').anchor.receiver;
   else if (slot === 'history') report.mutations[0].history[0].accepted = -2;
   else if (slot === 'compiler') report.toolchain.version += '-unreviewed';
+  else if (slot.startsWith('core-')) report.backingCore.runs[slot.slice(5)] = structuredClone(report.backingCore.runs.native);
   else if (slot !== 'healthy') {
     // Keep every native receipt, source, artifact and log internally valid.
     report.normal[slot] = report.normal.native;
