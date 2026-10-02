@@ -12,10 +12,18 @@ import { compareSemantics } from '../evidence.mjs';
 import { mutations, replacements, instrument, workspaceOverlay } from './instrument.mjs';
 import { admitClaim, inspectEvents, violation, workspaceBound, inputs } from './model.mjs';
 import { checkCensus } from './census.mjs';
+import { auditCoreProbe } from './backing/core-probe.mjs';
+import { inspectPipelineBacking } from './backing/pipeline.mjs';
 export function validate(report, current, targets, read) {
   assert.equal(report.version, 'actql-relation-pipeline-structure/0.1');
   assert.deepEqual(report.source, current, 'Stale capacity source');
   assert.deepEqual(report.toolchain, JSON.parse(read('toolchain.json')), 'Unpinned compiler declaration');
+  auditCoreProbe(report.backingCore, targets, read);
+  assert.deepEqual(report.backingModel.command, ['node', 'proofs/relation-pipeline/capacity/backing/check.mjs']);
+  assert.equal(report.backingModel.exit, 0); assert.equal(report.backingModel.sourceDigest, current.digest);
+  assert.equal(hash(read(report.backingModel.logPath)), report.backingModel.logDigest);
+  assert(read(report.backingModel.logPath).toString().includes('6 array backing model propositions checked'));
+  assert(read(report.backingModel.logPath).toString().includes('4 restricted Map model propositions checked'));
   admitClaim(report.claim);
   const corpus = fixedCorpus(registry, registrations).filter(c => c.steps.filter(s => s.op === 'distinct').length === 1);
   assert.deepEqual(report.corpus, corpus, 'Scope must come from the reviewed corpus, not caller labels');
@@ -79,13 +87,19 @@ export function validate(report, current, targets, read) {
     }
   }
   function observed(o, target, testCase) {
-    assert.deepEqual(byObservation.get(JSON.stringify(o)), { target, testCase }, 'Requested target/case differs from independent execution');
+    const execution = byObservation.get(JSON.stringify(o));
+    assert.deepEqual(execution, { target, testCase }, 'Requested target/case differs from independent execution');
+    return execution.target;
+  }
+  function backing(o, target, testCase) {
+    inspectPipelineBacking(testCase, o, registry, target, observed(o, target, testCase));
   }
   for (const target of targets) {
     assert.equal(report.normal[target].length, corpus.length);
     report.normal[target].forEach((o, i) => {
       observed(o, target, corpus[i]); assert.equal(o.correspondence, true);
       compareSemantics(corpus[i], o, registry); inspectEvents(corpus[i], o, registry);
+      backing(o, target, corpus[i]);
     });
     for (const offset of [-1, 0, 1]) {
       assert.equal(report.boundaries[offset][target].length, corpus.length);
@@ -94,7 +108,7 @@ export function validate(report, current, targets, read) {
         const b = inputs(corpus[i], registry)[0], start = o.faults.find(e => e.event === 'start');
         assert.equal(start.limit, workspaceBound(b.rows, b.width) + offset);
         if (offset < 0) assert.equal(o.kind, 'failed');
-        else { compareSemantics(corpus[i], o, registry); inspectEvents(corpus[i], o, registry); }
+        else { compareSemantics(corpus[i], o, registry); inspectEvents(corpus[i], o, registry); backing(o, target, corpus[i]); }
       });
     }
   }
@@ -144,6 +158,7 @@ export function validate(report, current, targets, read) {
       observed(m.healthy[target], target, m.minimal); assert(!preserves(m.minimal, m.healthy[target]));
       assert(m.healthy[target].correspondence);
       compareSemantics(m.minimal, m.healthy[target], registry); inspectEvents(m.minimal, m.healthy[target], registry);
+      backing(m.healthy[target], target, m.minimal);
     }
   }
   const distinctInputs = corpus.flatMap(c => oracle(c, registry).stages.filter(s => s.operation === 'distinct').map(s => s.input));
