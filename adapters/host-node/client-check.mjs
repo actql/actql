@@ -8,7 +8,7 @@ import {createHmac, randomBytes} from 'node:crypto';
 import {validCheckOutcome} from '../../packages/client-wire/index.mjs';
 // The common value encoding: String values stay exact (CR, LF and composed
 // or decomposed spellings differ); only object member names are canonical.
-import {canonicalJson} from '../../packages/sdk/checkpoints.mjs';
+import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 
 const version = 'actql-check-outcome/0.1';
 // Revisions bound into every context reference. A change to what an audience

@@ -553,7 +553,7 @@ const mutations = Object.freeze({
     'source: {format: input.format, text: input.text},', ''],
   // A reference normalizes distinct String values together.
   'context normalizes String values': [
-    "from '../../packages/sdk/checkpoints.mjs';",
+    "from '../../packages/sdk/host-port.mjs';",
     "from './local-account-config.mjs';"],
 });
 
