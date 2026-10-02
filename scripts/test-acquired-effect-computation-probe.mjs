@@ -2,6 +2,7 @@
 // Source I/O is local DuckDB; Effect dispatch is a reference Site, not an org.
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
+import {assertTestExecution, nodeTestArguments} from './test-execution.mjs';
 import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -21,20 +22,20 @@ const cases = [
 for (const [index, name] of cases.entries()) {
 const log = join(root, `calls-${index}.txt`);
 await writeFile(log, '');
-const result = spawnSync(process.execPath, [
+const args = nodeTestArguments([
   '--experimental-test-module-mocks', '--import',
   new URL('./fixtures/effect-computation-probe-preload.mjs', import.meta.url).href,
   '--test', '--test-name-pattern', `^${name}$`,
   'adapters/host-node/remote-checkpoint-host.test.mjs',
-], {cwd: repository, encoding: 'utf8', timeout: 120_000,
+]);
+const result = spawnSync(process.execPath, args, {cwd: repository, encoding: 'utf8', timeout: 120_000,
   env: {...process.env,
     ACTQL_TEST_EFFECT_ENTRY:
       new URL('../adapters/host-node/entry.mjs', import.meta.url).href,
     ACTQL_TEST_ACQUIRED_SOURCE_ENTRY:
       new URL('../adapters/host-node/captured-duckdb-source.mjs', import.meta.url).href,
     ACTQL_TEST_EFFECT_CALL_LOG: log}});
-assert.equal(result.status, 0,
-  `${result.error ?? ''}\n${result.stdout}\n${result.stderr}`);
+assertTestExecution('node', process.execPath, args, result);
 const events = (await readFile(log, 'utf8')).trim().split('\n');
 assert.ok(events.includes('probe'), 'the actual Host entry must be wrapped');
 assert.ok(events.includes('source-probe'), 'the actual Source entry must be wrapped');

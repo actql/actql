@@ -1,0 +1,114 @@
+{
+  "version": "actql-relation-pipeline-reuse-baseline/0.1",
+  "revision": "fe0dbb424792ba7ccd4ae5517a74530b56a15f3c",
+  "comparison": "existing whole-row distinct registration; initial frozen rename experiment and subsequent upstream integration are separate",
+  "common": {
+    ".github/workflows/ci.yml": "60b5752abc492be508fcf7a6bb2acd944b3883443bd100b82ea422c713c93d61",
+    "moon.mod": "25a486222e1c9dc52d6a64e8e0ecc52ba7f9aa9e8c0c7d2d1bdc82bfa37689b9",
+    "package-lock.json": "a642fafc496ba9288c8ce4ca0fa68b6c934fff413046f191f06aefec49b7167d",
+    "package.json": "78c15ac34fbe375959bf166c3d236ce06a2a6a0d4d2f4b2d7f7f094e844a8a15",
+    "proofs/bounded-session/Claims.lean": "70084213e510d49a17797e52509c8e2b3b0d5231519322665f686ba1f151fdd1",
+    "proofs/bounded-session/README.md": "0d26b308eca8fa79d75b8faa658e52f0a9390f394fd6cbb827fcb5d11e7f6b30",
+    "proofs/bounded-session/Session.lean": "d5a9f5e62e5a360b52d5cf0d886f6832c38a00088737c3378b01dff6b6b1a434",
+    "proofs/bounded-session/bindings.json": "fe4b71186bdf9ac0e682de24f5dbfacfeb10b0f549aea4bde35482527f05706c",
+    "proofs/bounded-session/check.mjs": "32b0fe354922e5b89870e19aef05a00fbc5679bdc960717bb6ffce392b33392a",
+    "proofs/bounded-session/evidence.mjs": "32f291a06d8f3b9bbd784d34f13af784c09754502c0d10aaba5e72ef6164e278",
+    "proofs/bounded-session/evidence.test.mjs": "25fa7ee21066f1eafc73122e882e982d96b6c6e784c759cfe2ca59541f1f92eb",
+    "proofs/bounded-session/lean-toolchain": "1098ca8368e0db12138f33b070187e1f6527984ae0451a587b20e3e661f96a76",
+    "proofs/bounded-session/mutations.mjs": "befd0441fd1816443ba2731e5597c5b42da148a8c672acab41c752090e0c5434",
+    "proofs/bounded-session/nest-obligations.json": "f56b1e81097cdb7928cb4f3b0865d8e72242effa37a5e6df39dda54533dcbcb2",
+    "proofs/bounded-session/probe-moon-prove.mjs": "6d7a160f4cce3cc8077a82e8fa307f6c182446179d026059b46f132cd3b3a607",
+    "proofs/bounded-session/proof-check.test.mjs": "333487b035111fb195c919906cc1a879adb8f9ff9e7957adcfe983ad1a64c015",
+    "proofs/bounded-session/retirements.json": "438e090a8c2f6692feb7446d700d16c459d552a1c6825cc3e830cedb2a086083",
+    "proofs/bounded-session/run.mjs": "474081c3338a1fea85a87549d7866e97c467dae38b05a3863304db1747835e59",
+    "proofs/bounded-session/setup-lean.mjs": "30c1ddca64e445af944770438f4c5634c7249af9bf7862a8f5d6b975e32e413a",
+    "proofs/relation-chain/Chain.lean": "9246eec44f86fd3af52c9f7f9db3689a5728d8ec0a28c4b9b3ec1c8524ad1661",
+    "proofs/relation-chain/Claims.lean": "94947cc1ea5d6d5b7818ef81843dfa1f2888837790013797ca5148de82c95edc",
+    "proofs/relation-chain/README.md": "4c953c6f0a53ba6734e154b36d09265568bd29b8d29e4166d37b76a0b9e84901",
+    "proofs/relation-chain/check.mjs": "abac294b2005149066e11305c4422f1c5f619bec5a657e74a78cd8fe0c37da6c",
+    "proofs/relation-chain/evidence.mjs": "1646ffb719b9e3651c224f6b22d6978052ab0d5b5e27061501ecdadf8b4ba207",
+    "proofs/relation-chain/evidence.test.mjs": "5ac2e97b35824cdf33e7c040169ffe2e32e811eef23c20f6e37feaf2548e1dcd",
+    "proofs/relation-chain/lean-toolchain": "1098ca8368e0db12138f33b070187e1f6527984ae0451a587b20e3e661f96a76",
+    "proofs/relation-chain/mutations.mjs": "55ea570bd786864ae87a49f6ca5b303d1d09b70ac33e4d6a7da35a8a2a758c96",
+    "proofs/relation-chain/proof-check.test.mjs": "3e630637e253d09bc918e5b185aaf2c5800893facb8ae82469d4acd00441908a",
+    "proofs/relation-chain/run.mjs": "feb77e06a44d9448da53e437f6c11685743b75c48204661f27b6831c8ff2b9a9",
+    "proofs/relation-pipeline/audit-target-regression.mjs": "0dbb3351c92ab271ad2149244161ff4222e2483017b7f82e2d62ca14ed99f48d",
+    "proofs/relation-pipeline/audit.mjs": "61cb9fc9412b7cc254e62c47a7b773e2801f1d5632dc6fbb194f7daa37ee2b19",
+    "proofs/relation-pipeline/corpus.mjs": "6953fb91c721c7efc84e02e2da2e24f654443c927dc3f91879f9fdda3202de87",
+    "proofs/relation-pipeline/corpus.test.mjs": "e75936c930820892454e3915a6e8da6e5c8f72215bbc7bcfa9d3d9660d0e5bcf",
+    "proofs/relation-pipeline/engine.mjs": "2f010a0dfe7f40e3a4b7fafd36208464ffdbeae9ebf7eac28b55b5f856556c06",
+    "proofs/relation-pipeline/engine.test.mjs": "cae0d3e71f8b44e654c51b0c0c55e98306c24b6ce396bdd1e0a673d83e4f5dad",
+    "proofs/relation-pipeline/evidence.mjs": "22ff35f892165543914125d8de24c8a4fd09d7a259f585c97c038bea5a3c697e",
+    "proofs/relation-pipeline/evidence.test.mjs": "38e66941499c621bddffa3a675a97e6913a548e434431af83d2689f6ba5f16cb",
+    "proofs/relation-pipeline/execute.mjs": "0a248c882d978e40b443f05e2f61cd32bd34849cba80e90c8fcf2318a02e7eba",
+    "proofs/relation-pipeline/exploration-impact.mjs": "7e9bb284153b9877fdaa7fe8e68202c954c29cc15461c1f2d3885bb4b8ef0540",
+    "proofs/relation-pipeline/extension.test.mjs": "dd09271e10dd6279373ad78d65a20f7b1a3f5bc8f7df279871a86d2eb4f6af6a",
+    "proofs/relation-pipeline/filter.mjs": "d97b221ef9c40bc7de9cc805c701c378050d1c97f279d6ad797aa5834ec32a1f",
+    "proofs/relation-pipeline/fixture.mjs": "0f24f57ff4ebed236f069d9c24ef501a991af4d960f2f962744cc2b65028c42d",
+    "proofs/relation-pipeline/harness.mbt": "bfd22317b2827e80542f8abd5c773a6150a0017b488c496148fbc452ab811cf1",
+    "proofs/relation-pipeline/history.mjs": "7893dc5685cf950ec547fcf1faea964f7385c5e2bd292341c222c65f0773d3a2",
+    "proofs/relation-pipeline/inventory.mjs": "ba853ebb183304022bb1bcf857919c101b7f7bf6cc3ac2750c14d6759029f9c7",
+    "proofs/relation-pipeline/mismatch.mjs": "88bb4f692b372080e7715745ba0ce75c70e83d7767fb389c3c8ac156d674e473",
+    "proofs/relation-pipeline/mutations.mjs": "2e2d16e10a965fac90ddb22b869f28a5c71a14647ed5c0ea2abed9db9f3bc4dd",
+    "proofs/relation-pipeline/rename-mutations.mjs": "6420db1a64039206f46322d06c2ab4feb7e3e3b4ed0c11a24e55eb2c5d5377ab",
+    "proofs/relation-pipeline/rename.mjs": "ad1aa2899a0163d7a40f43356e4f185af93f7506c6768c4802a15e83f20f5ee7",
+    "proofs/relation-pipeline/rename.test.mjs": "d9f9f7074594f2797abaeaf3131f799042342c1ffcd59ddbc7e94f3c81ed90f9",
+    "proofs/relation-pipeline/run.mjs": "212ae2eccc368d6e14d6dcddb40cd4b2ffa9f92144a65a984453dfe752edd45f",
+    "proofs/relation-pipeline/select.mjs": "d379ec6eae288e20756b43dae6eeeed9c2b8a98c70060ab2940863eea0aaedbe",
+    "proofs/relation-pipeline/sites.mjs": "0c6c09d17e642755968fe5a209e3b4b63512ddba0d216bbbbdc9e8b7acd2296d",
+    "proofs/relation-pipeline/sort.mjs": "ee5546e8f486ed9858e805bd40c39aa024360165c32000bbace16a8a7bc48271",
+    "proofs/relation-pipeline/take.mjs": "443827acf024454f8de4056c0aa416e41a843b2c321fe32f59931cd7e5a28a3d",
+    "scripts/local-checks.mjs": "bcab6e27f3cdb094eec5b818c81b5aecbe13a2fd281f9f2502f2f302c7eded0b",
+    "toolchain.json": "8a3a1396f02ba4d5d780382960d1bcf95ccc8d6b97c3da446c0899b98874819a"
+  },
+  "registrationChanges": [
+    "proofs/relation-pipeline/registry.mjs",
+    "proofs/relation-pipeline/obligations.mjs",
+    "proofs/relation-pipeline/mutation-registry.mjs",
+    "proofs/relation-pipeline/regressions.json"
+  ],
+  "handwrittenOrdinaryCombinationFixturesAdded": 0,
+  "testsRetired": 0,
+  "originalExperiment": {
+    "foundationRevision": "489f3c4ad38eece09de9674eae7a1b0ddeab1969",
+    "verifiedRegistrationRevision": "e73411cc068c853314b6a771dbd6b27680499115",
+    "commonFilesUnchanged": 57,
+    "verification": "complete local pipeline-evidence passed; the first CI was cancelled after merge-source pin rejection was independently reproduced"
+  },
+  "upstreamIntegration": {
+    "revision": "9fa0cab091aefb52454d06501bd38aa7e2176d82",
+    "changedCommon": [
+      {
+        "path": ".github/workflows/ci.yml",
+        "originalDigest": "d596cf233de53b3723d289cc058574a9c38c540a4d5e2de281d862e9d60d3f8a",
+        "integratedDigest": "274c17e2a6da81ccd73d398f97c4fe5549272ad69686a82efbe84e27ba075c32"
+      },
+      {
+        "path": "package.json",
+        "originalDigest": "96f84b8ba78071944fc4c6710479730e4d643d14a3c03e7a94c9a7250c95f64a",
+        "integratedDigest": "78c15ac34fbe375959bf166c3d236ce06a2a6a0d4d2f4b2d7f7f094e844a8a15"
+      },
+      {
+        "path": "proofs/relation-chain/README.md",
+        "originalDigest": "a7717a0cbacbb29ad81e5d5eec827d0b5e6df3acb541dedbe3934d777af04c47",
+        "integratedDigest": "4c953c6f0a53ba6734e154b36d09265568bd29b8d29e4166d37b76a0b9e84901"
+      },
+      {
+        "path": "scripts/local-checks.mjs",
+        "originalDigest": "30042a8ac1451c823be4831b1020dfcd8672b5c65d2b9247fd74dd7fef7cf878",
+        "integratedDigest": "bcab6e27f3cdb094eec5b818c81b5aecbe13a2fd281f9f2502f2f302c7eded0b"
+      }
+    ],
+    "unchangedFromOriginal": 53,
+    "attribution": "upstream changes only; no generator, shrinking coordinator, oracle framework or common theorem changes by this registration"
+  },
+  "verificationCorrection": {
+    "revision": "fe0dbb424792ba7ccd4ae5517a74530b56a15f3c",
+    "path": ".github/workflows/ci.yml",
+    "priorDigest": "274c17e2a6da81ccd73d398f97c4fe5549272ad69686a82efbe84e27ba075c32",
+    "correctedDigest": "60b5752abc492be508fcf7a6bb2acd944b3883443bd100b82ea422c713c93d61",
+    "change": "pipeline-evidence timeout 40 -> 90 minutes; all verification steps and obligations retained",
+    "reason": "CI run 36932112609 exceeded 40 minutes after all eight fixed replays and four fresh mutation replays completed",
+    "originalNoCommonChangeCompleteCI": "not achieved; original local frozen-source experiment remains separate"
+  }
+}
