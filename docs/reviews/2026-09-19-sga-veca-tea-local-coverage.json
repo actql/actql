@@ -90,7 +90,7 @@
       "node_rows": "blocked",
       "edge_rows": "blocked"
     },
-    "completion_rule": "Historical tuple-profile suites do not discharge current Graph coverage. Partial means the bounded keyed subset exists, not complete resource or snapshot acceptance; blocked means explicit refusal before execution."
+    "completion_rule": "Historical tuple-profile suites do not discharge current Graph coverage. Partial resource/cancellation layers apply only to the initial constructor and definition-selected MATCH/TRAIL scope recorded below; they do not establish all normative variants or all SGA execution. Blocked means typed refusal before Run admission, acquisition I/O and dispatch."
   },
   "operations": [
     {
@@ -134,13 +134,48 @@
       "operation": "match_nodes",
       "input": "graph",
       "output": "relation",
-      "canonical": ["SGA.match_nodes"],
-      "variants": ["identity list", "literal predicate", "typed property predicate", "missing property", "projection order"],
+      "canonical": [
+        "SGA.match_nodes"
+      ],
+      "variants": [
+        "identity list",
+        "literal predicate",
+        "typed property predicate",
+        "missing property",
+        "projection order"
+      ],
       "status": "partial",
       "owner": "local-sga",
-      "current_gap": "The current keyed constructor and definition-selected MATCH/TRAIL subset is implemented. Aggregate Core, current-source public snapshot, resource and fresh packed acceptance remain open; historical tuple-profile evidence is not current completion.",
-      "completed_layers": ["contract"],
-      "layer_evidence": [],
+      "current_gap": "Initial constructor and definition-selected MATCH/TRAIL resource/cancellation regressions pass on JS, Wasm and native. Aggregate Core, final-source public snapshot and fresh packed acceptance remain open. Nonempty-hop predicate/resource variants and unconnected SGA consumers are not counted as execution success.",
+      "completed_layers": [
+        "contract",
+        "resources",
+        "cancellation"
+      ],
+      "layer_evidence": [
+        {
+          "scope": "initial_current_graph_resource_and_stop_custody_only",
+          "layers": [
+            "resources",
+            "cancellation"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "evidence": [
+            "src/query_integration/property_graph_construction_wbtest.mbt",
+            "src/query_integration/property_graph_predicate_custody_wbtest.mbt",
+            "src/query_integration/property_graph_trail_resource_wbtest.mbt",
+            "src/query_integration/property_graph_selector_custody_wbtest.mbt",
+            "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+            "src/query_integration/property_graph_host_custody_wbtest.mbt",
+            "scripts/property-graph-surface-checker.test.mjs"
+          ],
+          "verification": "26 resource regressions per target; 15 installed Host scenarios on Node. Final committed/pushed SHA verification remains required."
+        }
+      ],
       "historical_implementation_evidence": [
         {
           "scope": "managed_relation_named_result_publication_and_retrieval",
@@ -149,7 +184,11 @@
             "consumer_lifetime",
             "publication"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "9aff9c59",
           "evidence": [
             "adapters/host-common/strategy.test.mjs",
@@ -167,7 +206,11 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "b5898232",
           "evidence": [
             "src/lowering_relation/graph_match.mbt",
@@ -188,7 +231,11 @@
             "cancellation",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "39b54d9b",
           "evidence": [
             "src/execution_relation/predicate_expression.mbt",
@@ -206,13 +253,48 @@
       "operation": "match_edges",
       "input": "graph",
       "output": "relation",
-      "canonical": ["SGA.match_edges"],
-      "variants": ["absent/empty/repeated type filters", "literal predicate", "typed property predicate", "missing property", "projection order"],
+      "canonical": [
+        "SGA.match_edges"
+      ],
+      "variants": [
+        "absent/empty/repeated type filters",
+        "literal predicate",
+        "typed property predicate",
+        "missing property",
+        "projection order"
+      ],
       "status": "partial",
       "owner": "local-sga",
-      "current_gap": "The current keyed constructor and definition-selected MATCH/TRAIL subset is implemented. Aggregate Core, current-source public snapshot, resource and fresh packed acceptance remain open; historical tuple-profile evidence is not current completion.",
-      "completed_layers": ["contract"],
-      "layer_evidence": [],
+      "current_gap": "Initial constructor and definition-selected MATCH/TRAIL resource/cancellation regressions pass on JS, Wasm and native. Aggregate Core, final-source public snapshot and fresh packed acceptance remain open. Nonempty-hop predicate/resource variants and unconnected SGA consumers are not counted as execution success.",
+      "completed_layers": [
+        "contract",
+        "resources",
+        "cancellation"
+      ],
+      "layer_evidence": [
+        {
+          "scope": "initial_current_graph_resource_and_stop_custody_only",
+          "layers": [
+            "resources",
+            "cancellation"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "evidence": [
+            "src/query_integration/property_graph_construction_wbtest.mbt",
+            "src/query_integration/property_graph_predicate_custody_wbtest.mbt",
+            "src/query_integration/property_graph_trail_resource_wbtest.mbt",
+            "src/query_integration/property_graph_selector_custody_wbtest.mbt",
+            "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+            "src/query_integration/property_graph_host_custody_wbtest.mbt",
+            "scripts/property-graph-surface-checker.test.mjs"
+          ],
+          "verification": "26 resource regressions per target; 15 installed Host scenarios on Node. Final committed/pushed SHA verification remains required."
+        }
+      ],
       "historical_implementation_evidence": [
         {
           "scope": "edge_type_and_literal_filter_standard_host_execution",
@@ -224,7 +306,11 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "c9c41e20",
           "evidence": [
             "src/lowering_relation/graph_match.mbt",
@@ -235,8 +321,15 @@
         },
         {
           "scope": "publication_and_environment_cancellation",
-          "layers": ["publication", "cancellation"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "publication",
+            "cancellation"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "8f35730f",
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
@@ -255,7 +348,11 @@
             "cancellation",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "935913a4",
           "evidence": [
             "src/execution_relation/predicate_expression.mbt",
@@ -273,12 +370,25 @@
       "operation": "traverse",
       "input": "graph plus optional selector relation",
       "output": "relation",
-      "canonical": ["SGA.traverse"],
-      "variants": ["selector ids/relation/predicate", "direction", "repeated hop", "hop pattern", "nodes/paths output", "guard"],
+      "canonical": [
+        "SGA.traverse"
+      ],
+      "variants": [
+        "selector ids/relation/predicate",
+        "direction",
+        "repeated hop",
+        "hop pattern",
+        "nodes/paths output",
+        "guard"
+      ],
       "status": "partial",
       "owner": "local-sga",
-      "current_gap": "The current keyed constructor and definition-selected MATCH/TRAIL subset is implemented. Aggregate Core, current-source public snapshot, resource and fresh packed acceptance remain open; historical tuple-profile evidence is not current completion.",
-      "completed_layers": ["contract"],
+      "current_gap": "Initial constructor and definition-selected MATCH/TRAIL resource/cancellation regressions pass on JS, Wasm and native. Aggregate Core, final-source public snapshot and fresh packed acceptance remain open. Nonempty-hop predicate/resource variants and unconnected SGA consumers are not counted as execution success.",
+      "completed_layers": [
+        "contract",
+        "resources",
+        "cancellation"
+      ],
       "historical_implementation_evidence": [
         {
           "scope": "literal_start_set_membership_and_order",
@@ -306,8 +416,19 @@
         },
         {
           "scope": "bounded_edge_type_list_matching",
-          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "resources", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "ccc3d25b",
           "evidence": [
             "src/local_sga/reach.mbt",
@@ -318,8 +439,19 @@
         },
         {
           "scope": "explicit_empty_edge_type_set",
-          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "resources", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "e528eda0",
           "evidence": [
             "src/local_sga/reach.mbt",
@@ -330,8 +462,20 @@
         },
         {
           "scope": "single_edge_type_traversal",
-          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "publication", "resources", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "77cb1ff2",
           "evidence": [
             "src/local_sga/reach.mbt",
@@ -342,8 +486,16 @@
         },
         {
           "scope": "inbound_and_bidirectional_traversal",
-          "layers": ["standard_host", "consumer_lifetime", "publication"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "d08a946c",
           "evidence": [
             "src/query_integration/local_carrier_graph_wbtest.mbt"
@@ -351,8 +503,20 @@
         },
         {
           "scope": "homogeneous_literal_node_traversal_standard_host_path",
-          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "publication", "resources", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "235f8b41",
           "evidence": [
             "src/local_sga/traverse.mbt",
@@ -363,8 +527,12 @@
         },
         {
           "scope": "homogeneous_literal_node_traversal_environment_cancellation",
-          "layers": ["cancellation"],
-          "targets": ["js"],
+          "layers": [
+            "cancellation"
+          ],
+          "targets": [
+            "js"
+          ],
           "sha": "4a72ee83",
           "evidence": [
             "src/connectors/duckdb/conformance/reach_capacity_fixture.mbt",
@@ -374,8 +542,17 @@
         },
         {
           "scope": "relation_backed_start_selection",
-          "layers": ["kernel", "managed", "resources", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "managed",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "20a3d337",
           "evidence": [
             "src/local_sga/reach.mbt",
@@ -386,8 +563,17 @@
         },
         {
           "scope": "typed_predicate_start_selection",
-          "layers": ["kernel", "managed", "resources", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "managed",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "b066dad6",
           "evidence": [
             "src/local_sga/reach.mbt",
@@ -404,7 +590,12 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native", "node"],
+          "targets": [
+            "js",
+            "wasm",
+            "native",
+            "node"
+          ],
           "sha": "ff2a6410",
           "evidence": [
             "src/query_integration/local_carrier_graph_wbtest.mbt",
@@ -420,7 +611,12 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native", "node"],
+          "targets": [
+            "js",
+            "wasm",
+            "native",
+            "node"
+          ],
           "sha": "bf33b6e8",
           "evidence": [
             "src/query_integration/join_graph_capacity_wbtest.mbt",
@@ -439,7 +635,12 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native", "node"],
+          "targets": [
+            "js",
+            "wasm",
+            "native",
+            "node"
+          ],
           "sha": "a4392c06",
           "evidence": [
             "src/local_sga/traverse.mbt",
@@ -458,7 +659,12 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native", "node"],
+          "targets": [
+            "js",
+            "wasm",
+            "native",
+            "node"
+          ],
           "sha": "7e4c2f06",
           "evidence": [
             "src/local_sga/reach.mbt",
@@ -495,8 +701,16 @@
         },
         {
           "scope": "output_ceiling_applies_to_emitted_rows",
-          "layers": ["kernel", "resources", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "5d95e21e",
           "evidence": [
             "src/local_sga/reach.mbt",
@@ -512,7 +726,11 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "0cd04f72",
           "evidence": [
             "src/local_sga/reach.mbt",
@@ -522,8 +740,16 @@
         },
         {
           "scope": "homogeneous_literal_simple_path_kernel",
-          "layers": ["kernel", "resources", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "c3059ed0",
           "evidence": [
             "src/local_sga/traverse_paths.mbt",
@@ -542,7 +768,11 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "e9cab711",
           "evidence": [
             "src/query_integration/join_graph_capacity_wbtest.mbt",
@@ -552,8 +782,15 @@
         },
         {
           "scope": "homogeneous_literal_simple_path_environment_cancellation",
-          "layers": ["cancellation"],
-          "targets": ["js", "wasm", "native", "node"],
+          "layers": [
+            "cancellation"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native",
+            "node"
+          ],
           "sha": "7e0bd409",
           "evidence": [
             "src/connectors/duckdb/conformance/reach_capacity_fixture.mbt",
@@ -574,7 +811,11 @@
             "cancellation",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "6ee11a18",
           "evidence": [
             "src/local_sga/traverse_paths.mbt",
@@ -595,7 +836,11 @@
             "cancellation",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "09b723e4",
           "evidence": [
             "src/local_sga/traverse_paths.mbt",
@@ -616,7 +861,11 @@
             "cancellation",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "46ba53ff",
           "evidence": [
             "src/local_sga/traverse_paths.mbt",
@@ -634,7 +883,11 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "0ae4b508",
           "evidence": [
             "src/query_integration/query_checked_program_wbtest.mbt",
@@ -653,13 +906,41 @@
             "cancellation",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "5b91dc2c7",
           "evidence": [
             "src/local_sga/traverse.mbt",
             "src/local_sga/traverse_paths.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt"
           ]
+        }
+      ],
+      "layer_evidence": [
+        {
+          "scope": "initial_current_graph_resource_and_stop_custody_only",
+          "layers": [
+            "resources",
+            "cancellation"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "evidence": [
+            "src/query_integration/property_graph_construction_wbtest.mbt",
+            "src/query_integration/property_graph_predicate_custody_wbtest.mbt",
+            "src/query_integration/property_graph_trail_resource_wbtest.mbt",
+            "src/query_integration/property_graph_selector_custody_wbtest.mbt",
+            "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+            "src/query_integration/property_graph_host_custody_wbtest.mbt",
+            "scripts/property-graph-surface-checker.test.mjs"
+          ],
+          "verification": "26 resource regressions per target; 15 installed Host scenarios on Node. Final committed/pushed SHA verification remains required."
         }
       ]
     },
@@ -2547,13 +2828,51 @@
       "operation": "property_graph",
       "input": "finite ordered relation occurrences",
       "output": "keyed property graph",
-      "canonical": ["BRIDGE.rows.to_property_graph"],
-      "variants": ["definition-scoped typed composite keys", "independent edge keys", "static label property scopes", "NULL-key and missing-endpoint exclusion", "duplicate-key rejection", "repeated producer occurrences", "empty definition families"],
+      "canonical": [
+        "BRIDGE.rows.to_property_graph"
+      ],
+      "variants": [
+        "definition-scoped typed composite keys",
+        "independent edge keys",
+        "static label property scopes",
+        "NULL-key and missing-endpoint exclusion",
+        "duplicate-key rejection",
+        "repeated producer occurrences",
+        "empty definition families"
+      ],
       "status": "partial",
       "owner": "local-bridge",
-      "current_gap": "The current keyed constructor and definition-selected MATCH/TRAIL subset is implemented. Aggregate Core, current-source public snapshot, resource and fresh packed acceptance remain open; historical tuple-profile evidence is not current completion.",
-      "completed_layers": ["contract"],
-      "scope": "Initial new-profile constructor, typed MATCH/TRAIL and bounded snapshot save/reload only. This does not claim all SGA operators, external declaration provenance, legacy migration or executable mechanized correspondence."
+      "current_gap": "Initial constructor and definition-selected MATCH/TRAIL resource/cancellation regressions pass on JS, Wasm and native. Aggregate Core, final-source public snapshot and fresh packed acceptance remain open. Nonempty-hop predicate/resource variants and unconnected SGA consumers are not counted as execution success.",
+      "completed_layers": [
+        "contract",
+        "resources",
+        "cancellation"
+      ],
+      "scope": "Initial new-profile constructor, typed MATCH/TRAIL and bounded snapshot save/reload only. This does not claim all SGA operators, external declaration provenance, legacy migration or executable mechanized correspondence.",
+      "layer_evidence": [
+        {
+          "scope": "initial_current_graph_resource_and_stop_custody_only",
+          "layers": [
+            "resources",
+            "cancellation"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "evidence": [
+            "src/query_integration/property_graph_construction_wbtest.mbt",
+            "src/query_integration/property_graph_predicate_custody_wbtest.mbt",
+            "src/query_integration/property_graph_trail_resource_wbtest.mbt",
+            "src/query_integration/property_graph_selector_custody_wbtest.mbt",
+            "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+            "src/query_integration/property_graph_host_custody_wbtest.mbt",
+            "scripts/property-graph-surface-checker.test.mjs"
+          ],
+          "verification": "26 resource regressions per target; 15 installed Host scenarios on Node. Final committed/pushed SHA verification remains required."
+        }
+      ]
     },
     {
       "family": "Bridge",

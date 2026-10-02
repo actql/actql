@@ -71,7 +71,28 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
 });
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /69 operations, 5 implementation profiles, 69 production routes mapped, 69 with operation-specific boundary records, 69 with four-role boundary evidence, 69 with full work\/workspace assurance, 122 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /69 operations, 5 implementation profiles, 52 production routes mapped, 17 typed pre-execution refusals \(not execution success\), 52 with operation-specific boundary records, 52 with four-role boundary evidence, 52 with full work\/workspace assurance, 98 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+});
+
+test('unsupported Graph routes require one shared public refusal boundary and cannot claim execution', () => {
+  const coverage = JSON.parse(readFileSync(join(root,
+    'docs/reviews/2026-09-19-sga-veca-tea-local-coverage.json'), 'utf8'));
+  const refused = Object.entries(coverage.current_graph_profile.classification)
+    .filter(([, status]) => status === 'blocked').map(([operation]) => operation);
+  assert.ok(refused.length > 0);
+  for (const operation of refused) {
+    for (const field of ['entrypoint', 'resource_assurance', 'path_assurance']) {
+      assert.match(run(undefined, routes => {
+        routes.routes.find(route => route.operation === operation)[field] = {};
+      }, ['--require-boundary-complete']),
+      /refused consumer must not claim an executable or resource-assured route/u);
+    }
+  }
+  for (const field of ['suite', 'path', 'fixture', 'targets']) {
+    assert.match(run(undefined, routes => { delete routes.refusal_boundary[field]; },
+      ['--require-boundary-complete']),
+    /current Graph refusals lack the shared required public pre-execution boundary/u);
+  }
 });
 
 test('keyed property constructor cannot borrow legacy boundary or cancellation evidence', () => {
@@ -126,7 +147,6 @@ test('retained source-free Values requires exact admission and Host evidence', (
 
 test('installed retained families require actual product Host fault evidence', () => {
   for (const [family, operation, roles] of [
-    ['SGA', 'normalize_graph', ['installed_retained_graph_named_results']],
     ['TEA', 'watermark_events', [
       'installed_retained_events_named_results',
       'installed_retained_events_kernel_cancel',
@@ -253,41 +273,7 @@ test('standalone Relation pooling requires registered limits and retained stop e
   }), /VecA pool_vectors: relation_entrypoint in_flight_cancel lacks an executable fixture/u);
 });
 
-test('selected Graph diagnostics require their own route and boundary proof', () => {
-  for (const [operation, role] of [
-    ['graph_bounds', 'graph_bounds_selected_exact_one_short_and_cancel'],
-    ['degree', 'degree_selected_exact_one_short_and_cancel'],
-    ['components', 'components_selected_exact_one_short_and_cancel'],
-    ['reach', 'reach_selected_exact_one_short_cancel_binding'],
-    ['shortest_path', 'shortest_selected_exact_one_short_cancel_binding'],
-    ['graphs_equal', 'graphs_equal_selected_exact_one_short_cancel'],
-  ]) {
-    const graphRoute = routes => routes.routes.find(entry =>
-      entry.family === 'SGA' && entry.operation === operation);
-    assert.match(run(undefined, routes => {
-      delete graphRoute(routes).selected_entrypoint;
-    }), new RegExp(`SGA ${operation}: selected Graph operation does not reach its view kernel`, 'u'));
-    assert.match(run(undefined, routes => {
-      graphRoute(routes).boundary_tests = graphRoute(routes).boundary_tests
-        .filter(item => item.role !== role);
-    }), new RegExp(`SGA ${operation}: selected_entrypoint exact_limit lacks an executable fixture`, 'u'));
-  }
-});
 
-test('selected Graph path queries require a delivered Host stop', () => {
-  for (const [operation, role] of [
-    ['reach', 'reach_selected_host_in_flight_cancel'],
-    ['shortest_path', 'shortest_selected_host_in_flight_cancel'],
-    ['graphs_equal', 'graphs_equal_selected_host_in_flight_cancel'],
-  ]) {
-    assert.match(run(undefined, routes => {
-      const route = routes.routes.find(entry =>
-        entry.family === 'SGA' && entry.operation === operation);
-      route.environment_tests = route.environment_tests.filter(item =>
-        item.role !== role);
-    }), new RegExp(`SGA ${operation}: selected_entrypoint in_flight_cancel lacks an executable fixture`, 'u'));
-  }
-});
 
 test('same-stage equality join requires its bounded route and evidence', () => {
   const joinRoute = routes => routes.routes.find(entry =>
@@ -320,22 +306,6 @@ test('same-stage equality join requires its bounded route and evidence', () => {
   }
 });
 
-test('Graph equality route requires exact limits and delivered cancellation', () => {
-  const graphEqual = routes => routes.routes.find(entry =>
-    entry.family === 'SGA' && entry.operation === 'graphs_equal');
-  assert.match(run(undefined, routes => {
-    graphEqual(routes).boundary_tests = graphEqual(routes).boundary_tests
-      .filter(item =>
-        item.role !== 'graphs_equal_control_work_exact_one_short_and_cancel');
-  }), /SGA graphs_equal: entrypoint exact_limit lacks an executable fixture/u);
-  assert.match(run(undefined, routes => {
-    graphEqual(routes).environment_tests = graphEqual(routes).environment_tests
-      .filter(item => item.role !== 'graphs_equal_host_in_flight_cancel');
-  }), /SGA graphs_equal: entrypoint in_flight_cancel lacks an executable fixture/u);
-  assert.match(run(undefined, routes => {
-    delete graphEqual(routes).resource_assurance.entrypoint.workspace;
-  }), /SGA graphs_equal: entrypoint operation needs work and workspace assurance/u);
-});
 
 test('global count assurance requires its bounded product path and proofs', () => {
   for (const role of [
@@ -798,33 +768,7 @@ test('reshape and window routes reject missing pre-admission evidence', () => {
   }
 });
 
-test('rows-to-Graph Bridge loses its boundary when either fixture is removed', () => {
-  for (const role of [
-    'graph_bridge_work_workspace_exact_one_short_and_kernel_cancel_cleanup',
-    'graph_bridge_two_consumer_lifetime',
-  ]) {
-    assert.match(run(undefined, routes => {
-      const route = routes.routes.find(entry => entry.family === 'Bridge' &&
-        entry.operation === 'graph');
-      route.boundary_tests = route.boundary_tests.filter(item =>
-        item.role !== role);
-    }), /Bridge graph: rows-to-Graph Bridge boundary evidence is missing/u);
-  }
-});
 
-test('rows-to-Graph Bridge requires delivered stop and exact route proofs', () => {
-  for (const remove of [
-    route => { route.environment_tests = []; },
-    route => { delete route.path_assurance; },
-    route => { delete route.resource_assurance; },
-  ]) {
-    assert.match(run(undefined, routes => {
-      const route = routes.routes.find(entry => entry.family === 'Bridge' &&
-        entry.operation === 'graph');
-      remove(route);
-    }), /Bridge graph: rows-to-Graph Bridge Host\/resource assurance is missing/u);
-  }
-});
 
 test('vector expressions lose their operation boundary when evidence is removed', () => {
   for (const operation of ['vector_score', 'vector_concat']) {
@@ -881,61 +825,9 @@ test('graph matching loses control work evidence when either fixture is removed'
   }
 });
 
-test('components cancellation proof reaches the Host cancellation suite', () => {
-  assert.match(run(undefined, routes => {
-    const route = routes.routes.find(entry => entry.family === 'SGA' &&
-      entry.operation === 'components');
-    route.environment_tests = [];
-  }), /SGA components: delivered components cancellation fixture is missing/u);
-});
 
-test('components loses assurance without its nonempty exact boundary', () => {
-  assert.match(run(undefined, routes => {
-    const components = routes.routes.find(entry =>
-      entry.family === 'SGA' && entry.operation === 'components');
-    components.boundary_tests = components.boundary_tests.filter(item =>
-      item.role !== 'components_nonempty_exact_work_workspace');
-  }), /SGA components: entrypoint exact_limit lacks an executable fixture/u);
-});
 
-test('reach assurance requires exact limits and delivered Host cancellation', () => {
-  assert.match(run(undefined, routes => {
-    const reach = routes.routes.find(entry =>
-      entry.family === 'SGA' && entry.operation === 'reach');
-    reach.boundary_tests = reach.boundary_tests.filter(item =>
-      item.role !== 'reach_nonempty_exact_work_workspace');
-  }), /SGA reach: reach control-work evidence is missing/u);
-  assert.match(run(undefined, routes => {
-    const reach = routes.routes.find(entry =>
-      entry.family === 'SGA' && entry.operation === 'reach');
-    reach.environment_tests = [];
-  }), /SGA reach: reach control-work evidence is missing/u);
-  assert.match(run(undefined, routes => {
-    const reach = routes.routes.find(entry =>
-      entry.family === 'SGA' && entry.operation === 'reach');
-    delete reach.resource_assurance.entrypoint.workspace;
-  }), /SGA reach: entrypoint operation needs work and workspace assurance/u);
-});
 
-test('shortest path retains its fixed scalar control-work boundary', () => {
-  assert.match(run(undefined, routes => {
-    const shortest = routes.routes.find(entry =>
-      entry.family === 'SGA' && entry.operation === 'shortest_path');
-    shortest.boundary_tests = shortest.boundary_tests.filter(item =>
-      item.role !== 'shortest_scalar_control_work_exact_one_short');
-  }), /SGA shortest_path: scalar shortest control-work evidence is missing/u);
-  assert.match(run(undefined, routes => {
-    const shortest = routes.routes.find(entry =>
-      entry.family === 'SGA' && entry.operation === 'shortest_path');
-    shortest.boundary_tests = shortest.boundary_tests.filter(item =>
-      item.role !== 'shortest_scalar_pipeline_work_exact_one_short');
-  }), /SGA shortest_path: scalar shortest control-work evidence is missing/u);
-  assert.match(run(undefined, routes => {
-    const shortest = routes.routes.find(entry =>
-      entry.family === 'SGA' && entry.operation === 'shortest_path');
-    shortest.dispatch.marker = '@sga.start_traverse(';
-  }), /SGA shortest_path: shortest provider loses its cumulative work limit/u);
-});
 
 test('graph matcher assurance requires its exact bounded provider call', () => {
   for (const operation of ['match_nodes', 'match_edges']) {
@@ -1036,43 +928,15 @@ test('edge matching loses bounded type-index evidence without its fixture', () =
   }), /SGA match_edges: bounded type-index evidence is missing/u);
 });
 
-test('Graph equality requires its work and long-comparison fixtures', () => {
-  for (const role of [
-    'graphs_equal_control_work_exact_one_short_and_cancel',
-    'graphs_equal_nested_value_work_ceiling',
-    'graphs_equal_long_text_quantum_cancel_cleanup',
-  ]) {
-    assert.match(run(undefined, routes => {
-      const route = routes.routes.find(entry => entry.family === 'SGA' &&
-        entry.operation === 'graphs_equal');
-      route.boundary_tests = route.boundary_tests.filter(item =>
-        item.role !== role);
-    }), /SGA graphs_equal: Graph equality control-work evidence is missing/u);
-  }
-});
 
-test('components requires empty, nonempty, and long-key boundary fixtures', () => {
-  for (const role of [
-    'components_empty_exact_work_workspace_cancel_cleanup',
-    'components_nonempty_work_ceiling_and_active_cancel',
-    'components_long_text_minimum_cancel_cleanup',
-  ]) {
-    assert.match(run(undefined, routes => {
-      const route = routes.routes.find(entry => entry.family === 'SGA' &&
-        entry.operation === 'components');
-      route.boundary_tests = route.boundary_tests.filter(item =>
-        item.role !== role);
-    }), /SGA components: components boundary evidence is missing/u);
-  }
-});
 
-test('reach and node traversal require shared control-work evidence', () => {
+test('current TRAIL variants require work workspace and stop custody evidence', () => {
   for (const [operation, role, diagnostic] of [
-    ['reach', 'reach_prefix_work_workspace_active_cancel',
-      /SGA reach: reach control-work evidence is missing/u],
-    ['reach', 'reach_long_text_sort_cancel_cleanup',
-      /SGA reach: reach control-work evidence is missing/u],
-    ['traverse', 'node_emit_control_work_ceiling',
+    ['traverse', 'traverse_variant_work_exact_one_short',
+      /SGA traverse: traversal work evidence is missing/u],
+    ['traverse', 'traverse_variant_workspace_exact_one_short',
+      /SGA traverse: traversal work evidence is missing/u],
+    ['traverse', 'traverse_variant_cancel_cleanup',
       /SGA traverse: traversal work evidence is missing/u],
     ['traverse', 'path_emit_control_work_ceiling',
       /SGA traverse: traversal work evidence is missing/u],
@@ -1086,44 +950,15 @@ test('reach and node traversal require shared control-work evidence', () => {
   }
 });
 
-test('Graph diff requires the output-tail work fixture', () => {
-  assert.match(run(undefined, routes => {
-    const route = routes.routes.find(entry => entry.family === 'SGA' &&
-      entry.operation === 'graph_diff');
-    route.boundary_tests = [];
-  }), /SGA graph_diff: Graph diff tail-work evidence is missing/u);
-});
 
-test('Graph mean requires its cumulative-work fixture', () => {
-  for (const role of [
-    'mean_empty_work_exact_one_short_and_cleanup',
-    'mean_long_text_sort_cancel_cleanup',
-  ]) {
-    assert.match(run(undefined, routes => {
-      const route = routes.routes.find(entry => entry.family === 'SGA' &&
-        entry.operation === 'mean_graphs');
-      route.boundary_tests = route.boundary_tests.filter(item =>
-        item.role !== role);
-    }), /SGA mean_graphs: Graph mean cumulative-work evidence is missing/u);
-  }
-});
 
-test('structural Graph modes each require a reached work fixture', () => {
-  for (const operation of ['graft_graph', 'union_graphs', 'subtract_graphs']) {
-    assert.match(run(undefined, routes => {
-      const route = routes.routes.find(entry => entry.family === 'SGA' &&
-        entry.operation === operation);
-      route.boundary_tests = [];
-    }), new RegExp(`SGA ${operation}: structural Graph cumulative-work evidence is missing`, 'u'));
-  }
-});
 
 test('resource summary rejects stale route counts', () => {
   const gaps = readFileSync(join(
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 122 |',
+    '| Path-scoped work/workspace assurance | 98 |',
     '| Path-scoped work/workspace assurance | 52 |',
   );
   assert.notEqual(stale, gaps);
@@ -1503,43 +1338,8 @@ test('global top-k loses its bounded ordinary evidence when removed', () => {
   }), /RelA top_k: ordinary_entrypoint in_flight_cancel lacks an executable fixture/);
 });
 
-test('subgraph literal control-work evidence must remain executable', () => {
-  assert.match(run(undefined, routes => {
-    const subgraph = routes.routes.find(entry => entry.family === 'SGA' &&
-      entry.operation === 'subgraph');
-    subgraph.boundary_tests.find(item =>
-      item.role === 'subgraph_literal_control_work_exact_one_short').fixture =
-      'missing-subgraph-control-work';
-  }), /SGA subgraph: missing operation boundary fixture missing-subgraph-control-work/);
-});
 
-test('subgraph false-edge bounds must remain bound to its route', () => {
-  assert.match(run(undefined, routes => {
-    const subgraph = routes.routes.find(entry => entry.family === 'SGA' &&
-      entry.operation === 'subgraph');
-    subgraph.boundary_tests = subgraph.boundary_tests.filter(item =>
-      item.role !== 'subgraph_false_edge_work_workspace_exact_one_short');
-  }), /SGA subgraph: false-edge work\/workspace fixture is missing/);
-});
 
-test('subgraph product resource proof cannot be silently unbound', () => {
-  for (const dimension of ['work', 'workspace']) {
-    for (const limit of ['exact_limit', 'one_short_limit']) {
-      assert.match(run(undefined, routes => {
-        const subgraph = routes.routes.find(entry =>
-          entry.family === 'SGA' && entry.operation === 'subgraph');
-        delete subgraph.resource_assurance.entrypoint[dimension][limit];
-      }), new RegExp(
-        `SGA subgraph: entrypoint operation ${dimension} needs exact and one-short proofs`,
-      ));
-    }
-  }
-  assert.match(run(manifest => {
-    manifest.assured_production_paths = manifest.assured_production_paths
-      .filter(claim => claim.family !== 'SGA' ||
-        claim.operation !== 'subgraph');
-  }), /assured production claims differ from resource-assured routes/);
-});
 
 test('vector normalization retains its bounded production evidence', () => {
   for (const role of [
@@ -1739,7 +1539,7 @@ test('nearest retains its fused Relation production entrypoint', () => {
   }), /VecA nearest: fused Relation resource assurance is missing/);
 });
 
-for (const operation of ['node_rows', 'edge_rows', 'to_events', 'to_vectors']) {
+for (const operation of ['to_events', 'to_vectors']) {
   test(`${operation} loses its Bridge boundary record when removed`, () => {
     assert.match(run(undefined, routes => {
       const route = routes.routes.find(entry => entry.family === 'Bridge' &&
@@ -2102,7 +1902,7 @@ test('assured path claims reject duplicate or invented routes', () => {
 test('mixed-path gate rejects missing delivered prefix cancellation', () => {
   assert.match(run(undefined, value => {
     value.mixed_paths[0].in_flight_cancel.fixture = 'missing-prefix-case';
-  }), /mixed path graph_subgraph_node_rows_filter: missing delivered prefix cancellation fixture/);
+  }), /mixed path graph_constructor_match_nodes_filter: missing delivered prefix cancellation fixture/);
 });
 
 test('mixed-path gate rejects missing selected Relation cancellation', () => {
@@ -2117,7 +1917,7 @@ test('mixed-path gate rejects missing selected Relation cancellation', () => {
 test('mixed-path gate preserves Carrier, Bridge, and Relation roles', () => {
   assert.match(run(undefined, value => {
     value.mixed_paths[0].operations = ['subgraph', 'degree', 'filter'];
-  }), /mixed path graph_subgraph_node_rows_filter: Carrier, formal Bridge, and Relation roles differ/);
+  }), /mixed path graph_constructor_match_nodes_filter: Carrier, formal Bridge, and Relation roles differ/);
 });
 
 test('resource completion requires each typed Carrier prefix', () => {
@@ -2133,97 +1933,34 @@ test('resource completion requires each typed Carrier prefix', () => {
 test('resource completion requires work and workspace proof independently', () => {
   assert.match(run(undefined, routes => {
     const normalize = routes.routes.find(entry => entry.family === 'SGA' &&
-      entry.operation === 'normalize_graph');
+      entry.operation === 'match_nodes');
     delete normalize.resource_assurance.entrypoint;
   }, ['--require-boundary-complete']),
-    /SGA normalize_graph: entrypoint work\/workspace assurance is missing/);
+    /SGA match_nodes: entrypoint work\/workspace assurance is missing/);
 });
 
-test('normalize requires work and workspace evidence for both paths', () => {
+test('MATCH requires work and workspace evidence for both paths', () => {
   for (const path of ['entrypoint', 'selected_entrypoint']) {
     assert.match(run(undefined, routes => {
       const normalize = routes.routes.find(entry => entry.family === 'SGA' &&
-        entry.operation === 'normalize_graph');
+        entry.operation === 'match_nodes');
       delete normalize.resource_assurance[path].work.one_short_limit;
-    }), new RegExp(`SGA normalize_graph: ${path} operation work needs exact and one-short proofs`));
+    }), new RegExp(`SGA match_nodes: ${path} operation work needs exact and one-short proofs`));
     assert.match(run(undefined, routes => {
       const normalize = routes.routes.find(entry => entry.family === 'SGA' &&
-        entry.operation === 'normalize_graph');
+        entry.operation === 'match_nodes');
       delete normalize.resource_assurance[path].workspace;
-    }), new RegExp(`SGA normalize_graph: ${path} operation needs work and workspace assurance`));
+    }), new RegExp(`SGA match_nodes: ${path} operation needs work and workspace assurance`));
   }
 });
 
-test('graph bounds retains both exact resource dimensions', () => {
-  assert.match(run(undefined, routes => {
-    const bounds = routes.routes.find(entry => entry.family === 'SGA' &&
-      entry.operation === 'graph_bounds');
-    delete bounds.resource_assurance.entrypoint.workspace;
-  }), /SGA graph_bounds: entrypoint operation needs work and workspace assurance/);
-});
 
-test('graph bounds work evidence cannot disappear from its route', () => {
-  assert.match(run(undefined, routes => {
-    const bounds = routes.routes.find(entry => entry.family === 'SGA' &&
-      entry.operation === 'graph_bounds');
-    bounds.boundary_tests = bounds.boundary_tests.filter(item =>
-      item.role !== 'graph_bounds_work_exact_one_short');
-  }), /SGA graph_bounds: exact work boundary fixture is missing/);
-});
 
-test('graph bounds requires bounded identity ordering evidence', () => {
-  assert.match(run(undefined, routes => {
-    const route = routes.routes.find(entry => entry.family === 'SGA' &&
-      entry.operation === 'graph_bounds');
-    route.boundary_tests = route.boundary_tests.filter(item =>
-      item.role !== 'graph_bounds_long_text_compare_cancel_cleanup');
-  }), /SGA graph_bounds: bounded identity ordering evidence is missing/u);
-});
 
-test('degree control-work evidence cannot disappear from its route', () => {
-  assert.match(run(undefined, routes => {
-    const degree = routes.routes.find(entry => entry.family === 'SGA' &&
-      entry.operation === 'degree');
-    degree.boundary_tests = degree.boundary_tests.filter(item =>
-      item.role !== 'degree_control_work_exact_one_short');
-  }), /SGA degree: exact control-work boundary fixture is missing/);
-});
 
-test('degree value-work evidence cannot disappear from its route', () => {
-  assert.match(run(undefined, routes => {
-    const degree = routes.routes.find(entry => entry.family === 'SGA' &&
-      entry.operation === 'degree');
-    degree.boundary_tests = degree.boundary_tests.filter(item =>
-      item.role !== 'degree_work_exact_one_short');
-  }), /SGA degree: entrypoint operation work lacks an executable fixture/);
-});
 
-test('shortest path cannot lose its kernel cancellation evidence', () => {
-  assert.match(run(undefined, routes => {
-    const shortest = routes.routes.find(entry => entry.family === 'SGA' &&
-      entry.operation === 'shortest_path');
-    shortest.boundary_tests = shortest.boundary_tests.filter(item =>
-      item.role !== 'shortest_kernel_cancel_cleanup');
-  }), /SGA shortest_path: reviewed shortest_kernel_cancel_cleanup fixture is missing/);
-});
 
-test('shortest path cannot lose long-key cancellation evidence', () => {
-  assert.match(run(undefined, routes => {
-    const shortest = routes.routes.find(entry => entry.family === 'SGA' &&
-      entry.operation === 'shortest_path');
-    shortest.boundary_tests = shortest.boundary_tests.filter(item =>
-      item.role !== 'shortest_long_typed_identity_cancel_cleanup');
-  }), /SGA shortest_path: reviewed shortest_long_typed_identity_cancel_cleanup fixture is missing/);
-});
 
-test('shortest path cannot lose Host-delivered cancellation evidence', () => {
-  assert.match(run(undefined, routes => {
-    const shortest = routes.routes.find(entry => entry.family === 'SGA' &&
-      entry.operation === 'shortest_path');
-    shortest.environment_tests = shortest.environment_tests.filter(item =>
-      item.role !== 'shortest_host_in_flight_cancel_cleanup');
-  }), /SGA shortest_path: shortest Host cancellation fixture is missing/);
-});
 
 test('managed dispatch has no synchronous providerless lane', () => {
   const result = run(undefined, undefined, ['--require-boundary-complete']);
@@ -2320,7 +2057,7 @@ test('selected take rejects a borrowed resource role', () => {
 test('resource gate rejects a borrowed work fixture', () => {
   assert.match(run(undefined, value => {
     const bounds = value.routes.find(entry => entry.family === 'SGA' &&
-      entry.operation === 'graph_bounds');
+      entry.operation === 'match_nodes');
     bounds.resource_assurance = {
       entrypoint: {
         work: {
@@ -2328,12 +2065,12 @@ test('resource gate rejects a borrowed work fixture', () => {
           one_short_limit: 'product_work_workspace_exact_one_short',
         },
         workspace: {
-          exact_limit: 'graph_bounds_workspace_exact_one_short',
-          one_short_limit: 'graph_bounds_workspace_exact_one_short',
+          exact_limit: 'match_nodes_identity_workspace_exact_one_short',
+          one_short_limit: 'match_nodes_identity_workspace_exact_one_short',
         },
       },
     };
-  }), /SGA graph_bounds: entrypoint operation work lacks an executable fixture/);
+  }), /SGA match_nodes: entrypoint operation work lacks an executable fixture/);
 });
 
 test('resource gate keeps assertion work proofs variant-specific', () => {
@@ -2370,7 +2107,7 @@ test('resource completion rejects every unassured operation', () => {
 
 test('strict resource completion accepts every assured route', () => {
   assert.match(run(undefined, undefined, ['--require-boundary-complete']),
-    /69 with four-role boundary evidence, 69 with full work\/workspace assurance/);
+    /52 with four-role boundary evidence, 52 with full work\/workspace assurance/);
 });
 
 test('whole-sequence take owes both keyed and unkeyed resource branches', () => {
@@ -2394,10 +2131,10 @@ test('whole-sequence filter proof reuse needs its shared entrypoint grant', () =
 test('resource completion also rejects an unassured SGA route', () => {
   assert.match(run(undefined, value => {
     const route = value.routes.find(entry => entry.family === 'SGA' &&
-      entry.operation === 'shortest_path');
+      entry.operation === 'match_nodes');
     delete route.path_assurance.entrypoint;
   }, ['--require-boundary-complete']),
-  /SGA shortest_path: entrypoint boundary assurance is missing/);
+  /SGA match_nodes: entrypoint boundary assurance is missing/);
 });
 
 test('resource completion requires the selected sort proof set', () => {
@@ -2421,7 +2158,7 @@ test('resource completion requires the selected take proof set', () => {
 test('resource completion rejects borrowed proof roles on another route', () => {
   assert.match(run(undefined, value => {
     const path = value.routes.find(entry => entry.family === 'SGA' &&
-      entry.operation === 'shortest_path');
+      entry.operation === 'match_nodes');
     path.path_assurance = {
       entrypoint: {
         exact_limit: 'select_input_exact',
@@ -2431,7 +2168,7 @@ test('resource completion rejects borrowed proof roles on another route', () => 
       },
     };
   }, ['--require-boundary-complete']),
-  /SGA shortest_path: entrypoint exact_limit lacks an executable fixture/);
+  /SGA match_nodes: entrypoint exact_limit lacks an executable fixture/);
 });
 
 test('resource completion requires every registered selection path', () => {
@@ -2576,90 +2313,38 @@ test('resource gate rejects an operation without a production route', () => {
 
 test('resource gate rejects a foreign production entrypoint', () => {
   assert.match(run(undefined, value => {
-    value.routes.find(entry => entry.operation === 'shortest_path')
+    value.routes.find(entry => entry.operation === 'match_nodes')
       .entrypoint.symbol = 'missing_shortest_entrypoint';
-  }), /SGA shortest_path: production entrypoint symbol is missing/);
+  }), /SGA match_nodes: production entrypoint symbol is missing/);
 });
 
 test('resource gate rejects a bypassed provider call', () => {
   assert.match(run(undefined, value => {
-    value.routes.find(entry => entry.operation === 'shortest_path')
+    value.routes.find(entry => entry.operation === 'match_nodes')
       .dispatch.marker = '@sga.start_shortest_bypass(';
-  }), /SGA shortest_path: dispatch marker does not reach production source/);
+  }), /SGA match_nodes: dispatch marker does not reach production source/);
 });
 
 test('resource gate refuses a test fixture as the production entrypoint', () => {
   assert.match(run(undefined, value => {
-    value.routes.find(entry => entry.operation === 'shortest_path')
-      .entrypoint.path = 'src/query_integration/local_carrier_graph_wbtest.mbt';
-  }), /SGA shortest_path: entrypoint must bind a production source/);
+    value.routes.find(entry => entry.operation === 'match_nodes')
+      .entrypoint.path = 'src/query_integration/property_graph_construction_wbtest.mbt';
+  }), /SGA match_nodes: entrypoint must bind a production source/);
 });
 
 test('resource gate rejects a reviewed operation without its exact boundary fixture', () => {
   assert.match(run(undefined, value => {
-    value.routes.find(entry => entry.operation === 'apply_graph_delta')
-      .boundary_tests.shift();
-  }), /SGA apply_graph_delta: reviewed exact\/cancel boundary fixture is missing/);
+    value.routes.find(entry => entry.operation === 'match_nodes')
+      .boundary_tests[0].fixture = 'missing exact boundary';
+  }), /SGA match_nodes: missing operation boundary fixture/);
 });
 
-test('resource gate rejects missing SGA normalization boundary evidence', () => {
-  assert.match(run(undefined, value => {
-    const normalization = value.routes.find(entry =>
-      entry.family === 'SGA' && entry.operation === 'normalize_graph');
-    normalization.boundary_tests[0].fixture = 'missing exact node capacity';
-  }), /SGA normalize_graph: missing operation boundary fixture/);
-});
 
-test('resource gate rejects a removed SGA normalization proof role', () => {
-  assert.match(run(undefined, value => {
-    const normalization = value.routes.find(entry =>
-      entry.family === 'SGA' && entry.operation === 'normalize_graph');
-    normalization.boundary_tests = normalization.boundary_tests.filter(item =>
-      item.role !== 'normalize_one_short_node_capacity');
-  }), /SGA normalize_graph: reviewed normalize_one_short_node_capacity fixture is missing/);
-});
 
-test('resource gate rejects a missing normalization edge limit', () => {
-  assert.match(run(undefined, value => {
-    const normalization = value.routes.find(entry =>
-      entry.family === 'SGA' && entry.operation === 'normalize_graph');
-    normalization.boundary_tests = normalization.boundary_tests.filter(item =>
-      item.role !== 'normalize_view_one_short_edge_capacity');
-  }), /SGA normalize_graph: reviewed normalize_view_one_short_edge_capacity fixture is missing/);
-});
 
-test('resource gate requires the normalization managed-view route', () => {
-  assert.match(run(undefined, value => {
-    const normalization = value.routes.find(entry =>
-      entry.family === 'SGA' && entry.operation === 'normalize_graph');
-    delete normalization.selected_entrypoint;
-  }), /SGA normalize_graph: managed-view production route is missing/);
-});
 
-test('resource gate rejects normalization without its Host timer', () => {
-  assert.match(run(undefined, value => {
-    const normalization = value.routes.find(entry =>
-      entry.family === 'SGA' && entry.operation === 'normalize_graph');
-    normalization.environment_tests = [];
-  }), /SGA normalize_graph: selected_entrypoint in_flight_cancel lacks an executable fixture/);
-});
 
-test('resource gate rejects normalization without fused Host cancellation', () => {
-  assert.match(run(undefined, value => {
-    const normalization = value.routes.find(entry =>
-      entry.family === 'SGA' && entry.operation === 'normalize_graph');
-    normalization.environment_tests = normalization.environment_tests.filter(
-      item => item.role !== 'normalize_fused_in_flight_host_timer');
-  }), /SGA normalize_graph: entrypoint in_flight_cancel lacks an executable fixture/);
-});
 
-test('resource gate rejects graph diagnostics without Host cancellation', () => {
-  assert.match(run(undefined, value => {
-    const bounds = value.routes.find(entry => entry.family === 'SGA' &&
-      entry.operation === 'graph_bounds');
-    bounds.environment_tests = [];
-  }), /SGA graph_bounds: entrypoint in_flight_cancel lacks an executable fixture/);
-});
 
 test('resource gate rejects an ordered take without its cancellation fixture', () => {
   assert.match(run(undefined, value => {

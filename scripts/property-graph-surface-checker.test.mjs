@@ -247,3 +247,108 @@ test('keyed constructor Host in-flight cancellation never publishes partial Grap
     assert.equal(execution.cleanupPending(),false);
   }
 });
+
+// All variants use the same admitted current constructor and existing Host.
+// These are execution/custody checks, not refusals standing in for execution.
+for (const scenario of [
+  {name: 'current-match-nodes-literal', op:'match_nodes', where:'true', field:'id', expected:1},
+  {name: 'current-match-nodes-predicate', op:'match_nodes', where:'id > 0', field:'id', expected:1},
+  {name: 'current-match-edges-literal', op:'match_edges', where:'true', field:'key', expected:2},
+  {name: 'current-match-edges-predicate', op:'match_edges', where:'key > 0', field:'key', expected:2},
+  {name: 'current-trail', op:'traverse', field:'hop_count', expected:2},
+]) {
+  for (const cancel of [false,true,'relation']) {
+    test(`current MATCH Host keeps two consumers or cancels private work: ${scenario.name}/${cancel}`, async () => {
+      const value=structuredClone(program);
+      const match={from:'g', [scenario.op]:{
+        definition:scenario.op==='match_nodes' ? 'N' : 'E',
+        where:scenario.where, fields:[scenario.field],
+      }, as:'matched'};
+      if(scenario.op==='traverse'){
+        value.stages[0].steps.splice(3,1,
+          {from:'g',match_nodes:{definition:'N',bindings:{identity:'element'},where:'true',fields:['element']},as:'seeds'},
+          {from:'g',traverse:{start:{from:'seeds',id:'element'},direction:'out',min_hops:2,max_hops:2,path_mode:'trail',emit:'paths'},as:'matched'});
+      }else value.stages[0].steps[3]=match;
+      value.stages[0].steps.push(
+        {from:'matched', filter:{literal:true}, as:'left'},
+        {from:'matched', select:[scenario.field], as:'right'},
+      );
+      value.stages[0].results={
+        left:{from:'left',fields:[scenario.field]},
+        right:{from:'right',fields:[scenario.field]},
+      };
+      value.results={
+        left:{from:{stage:'source',result:'left'}},
+        right:{from:{stage:'source',result:'right'}},
+      };
+      const ready=moon.clientProgramPreparationReady(
+        moon.clientProgramPrepareEffectFreeWithParameters(canonicalText(value),'json',owner,undefined));
+      assert.ok(ready);
+      const compilation=checked(moon.clientProgramCompileLocalTasks(ready));
+      const plan=JSON.parse(moon.clientProgramTaskCompilationPlanWire(compilation));
+      const matchTask=plan.nodes.findIndex(node=>node.pipeline.steps.some(step=>
+        step.op=== `SGA.${scenario.op}`));
+      assert(matchTask>=0,'the formal Plan must select the current MATCH provider');
+      const aoa=read('spec/contracts/actql-aoa.json');
+      const setup=moon.clientProgramOpenSourceFreeLocalHost(ready,
+        JSON.stringify(read(aoa.pipeline_registry_file)),JSON.stringify(aoa.execution_contracts['REL.values']),
+        1n,0n,0n,0n,JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+        JSON.stringify(aoa.execution_contracts['REL.derive.ordered']));
+      assert.ok(setup);
+      assert.equal(moon.strategyHostConfigureManagedIdentity(setup,true,false,false,false),true);
+      const controller=new AbortController();
+      let sawPrivateWork=false, matchCompleted=false;
+      const targetTask=cancel==='relation' ? matchTask+1 : matchTask;
+      const started=[];
+      const observed=new Proxy(moon,{get(target,name,receiver){
+        if(name!=='strategyModule_local_ManagedStart')return Reflect.get(target,name,receiver);
+        return configuration=>{
+          const task=target.strategyHostNextTask(setup);
+          started.push(task);
+          const result=target.strategyModule_local_ManagedStart(configuration);
+          if(task!==matchTask && task!==targetTask)return result;
+          const operations=checked(result);
+          // Result::Ok uses the pinned MoonBit compiler's JS representation.
+          return {$tag:1,_0:new Proxy(operations,{get(operation,member,opReceiver){
+            if(member!=='advance')return Reflect.get(operation,member,opReceiver);
+            return ()=>{
+              const polled=operation.advance(1);
+              const report=checked(polled);
+              if(task===matchTask)matchCompleted ||= report.complete;
+              if(task===targetTask && !report.complete && report.work>0n && !sawPrivateWork){
+                sawPrivateWork=true;
+                if(cancel)setTimeout(()=>controller.abort(),0);
+              }
+              return polled;
+            };
+          }})};
+        };
+      }});
+      const execution=await runInstalledStrategy(setup,runtimeCore(moon),
+        [localStrategyContribution(observed,setup,checked)],controller.signal);
+      try{
+        assert.equal(sawPrivateWork,true);
+        if(cancel){
+          assert.equal(controller.signal.aborted,true);
+          assert.equal(matchCompleted,cancel==='relation');
+          assert.equal(execution.status,'host-tasks-failed');
+          assert.equal(execution.failure?.name,'AbortError');
+          assert(started.every(task=>task<=targetTask),'no later Relation consumer may start');
+        }else{
+          assert.equal(execution.status,'host-tasks-completed');
+          assert.equal(matchCompleted,true);
+          assert.deepEqual(execution.resultInventory.map(result=>result.name),['left','right']);
+          assert.equal(execution.completed.at(-1).outputRows,scenario.expected);
+          assert.equal(execution.completed.at(-2).outputRows,scenario.expected);
+        }
+      }finally{
+        await execution.close();
+        await execution.cleanup();
+        await execution.close();
+        assert.equal(execution.cleanupPending(),false);
+        for(const field of ['heldBytes','reservedExecutionBytes','reservedRetentionBytes','reservedTransferBytes'])
+          assert.equal(execution.usage()[field],0n,field);
+      }
+    });
+  }
+}

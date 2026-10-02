@@ -9,14 +9,19 @@ Its completed SGA/Graph-bridge claims do not apply to the new representation.
 The current manifest records four partial operations (constructor, two MATCH
 forms and explicit TRAIL) and seventeen blocked old/unconnected routes. These
 are implementation gaps, not permanent language exclusions. Existing non-Graph
-coverage is unchanged. Current snapshot/consumer/resource and aggregate
+coverage is unchanged. Current-source snapshot, fresh packed and aggregate
 acceptance remain open; three-target focused tests do not certify full coverage.
 
-The strict resource gate is intentionally not weakened to accept these open
-entries. Its old production-route records must be reconciled with current
-supported/refused routes using independent admission and lifecycle evidence;
-no tuple fallback may be reinstated to satisfy an obsolete dispatch marker.
-See `docs/reviews/2026-10-02-property-graph-vertical.md` for actual failed gates.
+The existing strict resource gate now distinguishes executable routes from
+typed pre-execution refusals using this same inventory. Initial constructor,
+definition-selected MATCH and explicit TRAIL retain exact/one-short work and
+workspace, private-stop custody and installed Host cancellation evidence.
+The shared public refusal test exercises both source-free and external-input
+Programs and requires refusal before Run admission, input I/O and dispatch.
+Refused routes cannot claim execution/resource assurance, and no tuple fallback
+may satisfy an obsolete dispatch marker. Nonempty-hop predicate/resource variants
+and the other SGA consumers remain open; gate success is not all-SGA completion.
+See `docs/reviews/2026-10-02-property-graph-vertical.md` for checkpoint evidence.
 
 ## Status interpretation (2026-09-28)
 
@@ -494,11 +499,13 @@ and checked by `check:local-resource-accounting`.
 <!-- local-resource-accounting-summary:start -->
 | Resource boundary evidence | Count |
 |---|---:|
-| Production routes | 69 |
-| Operation-specific boundary records | 69 |
-| Four-role lifecycle assurance | 69 |
-| Full route work/workspace assurance | 69 |
-| Path-scoped work/workspace assurance | 122 |
+| Registered operations | 69 |
+| Executable production routes | 52 |
+| Typed pre-execution refusals (not execution success) | 17 |
+| Operation-specific boundary records | 52 |
+| Four-role lifecycle assurance | 52 |
+| Full route work/workspace assurance | 52 |
+| Path-scoped work/workspace assurance | 98 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -2629,8 +2636,8 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | `managed` | 19/40 |
 | `standard_host` | 19/40 |
 | `consumer_lifetime` | 19/40 |
-| `resources` | 19/40 |
-| `cancellation` | 19/40 |
+| `resources` | 23/40 |
+| `cancellation` | 23/40 |
 | `publication` | 19/40 |
 | `three_targets` | 19/40 |
 | complete operations | 19/40 |

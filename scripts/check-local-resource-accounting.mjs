@@ -36,6 +36,19 @@ const rela = fs.existsSync(relaPath) ? readJson(relaPath) : {operations: []};
 const families = fs.existsSync(familyPath)
   ? readJson(familyPath)
   : {operations: []};
+// The existing profile-specific inventory is the sole classification. A
+// refused consumer owes public pre-execution evidence, not fictitious
+// execution-resource completion from the retired tuple implementation.
+const graphProfile = families.current_graph_profile;
+const graphClassification = graphProfile?.classification ?? {};
+const graphRefusals = new Set(families.operations.filter(entry =>
+  graphClassification[entry.operation] === 'blocked').map(entry => entry.operation));
+if (graphProfile?.contract !== 'actql-property-graph-contract/0.1' ||
+    graphRefusals.size === 0 || families.operations.some(entry =>
+      graphClassification[entry.operation] !== undefined &&
+      graphClassification[entry.operation] !== entry.status)) {
+  fail('current Graph resource scope must match the authoritative family classification');
+}
 const assertionVariants = new Set(
   rela.operations.find(entry => entry.operation === 'assert_rows')
     ?.variant_scope ?? [],
@@ -187,6 +200,29 @@ if (routes.version !== 'actql-local-resource-production-routes/0.1') {
   fail(`unexpected production route version: ${routes.version}`);
 }
 const routeEntries = routes.routes ?? [];
+const refusal = routes.refusal_boundary;
+const publicRefusalPath = 'scripts/property-graph-public-host.test.mjs';
+const publicRefusal = fs.readFileSync(path.join(root, publicRefusalPath), 'utf8');
+const sourceCheck = fs.readFileSync(path.join(root, 'src/program_check/check.mbt'), 'utf8');
+const checkStart = sourceCheck.indexOf('fn check_supported_source(');
+const checkEnd = sourceCheck.indexOf('///|', checkStart);
+const check = sourceCheck.slice(checkStart, checkEnd);
+const packageScripts = readJson(path.join(root, 'package.json')).scripts;
+if (refusal?.suite !== 'node:property_graph_public_host' ||
+    refusal.path !== publicRefusalPath ||
+    refusal.fixture !== 'keyed constructor and TRAIL reach public Named Results through' ||
+    JSON.stringify(refusal.targets) !== JSON.stringify(['node']) ||
+    checkStart < 0 || !check.includes('raise UnitBuildFailure::UnsupportedStaticPath(step)') ||
+    [...graphRefusals].some(operation => check.includes(`"${operation}"`)) ||
+    !publicRefusal.includes('coverage.current_graph_profile.classification[entry.operation]') ||
+    !publicRefusal.includes("error instanceof ClientError && error.code === 'ClientProgramUnsupported'") ||
+    !publicRefusal.includes("{kind:'not_found'}") ||
+    !publicRefusal.includes('physicalSteps.slice(before), []') ||
+    !publicRefusal.includes('for (const externalInput of [false,true])') ||
+    !packageScripts['check:distribution-client']?.includes(publicRefusalPath) ||
+    !packageScripts['check:distribution-client']?.includes('scripts/test-packed-property-graph.mjs')) {
+  fail('current Graph refusals lack the shared required public pre-execution boundary');
+}
 const routeKeys = routeEntries.map(
   entry => `${entry.inventory}:${entry.family}:${entry.operation}`,
 );
@@ -268,10 +304,20 @@ if (!Array.isArray(mixedPaths)) {
       }[mixed.carrier];
       const entryFor = operation => actual.find(entry =>
         entry.operation === operation);
-      if (entryFor(mixed.operations[0])?.family !== family ||
-        !mixed.operations.slice(1, -1).some(operation =>
-          bridge.includes(operation) &&
-          entryFor(operation)?.family === 'Bridge') ||
+      // The sole Graph prefix is now Relation -> current constructor -> MATCH
+      // -> Relation. Retired Graph -> node_rows/edge_rows is not an alternative.
+      const validPrefix = mixed.carrier === 'Graph'
+        ? entryFor(mixed.operations[0])?.family === 'Bridge' &&
+          graphClassification[mixed.operations[0]] === 'partial' &&
+          mixed.operations.slice(1, -1).some(operation =>
+            entryFor(operation)?.family === 'SGA' &&
+            graphClassification[operation] === 'partial' &&
+            families.operations.find(entry=>entry.operation===operation)?.output === 'relation')
+        : entryFor(mixed.operations[0])?.family === family &&
+          mixed.operations.slice(1, -1).some(operation =>
+            bridge.includes(operation) &&
+            entryFor(operation)?.family === 'Bridge');
+      if (!validPrefix || mixed.operations.some(operation=>graphRefusals.has(operation)) ||
         entryFor(mixed.operations.at(-1))?.family !== 'RelA') {
         fail(`${label}: Carrier, formal Bridge, and Relation roles differ`);
       }
@@ -289,13 +335,17 @@ if (!Array.isArray(mixedPaths)) {
         .includes(`test "${host.fixture}"`)) {
       fail(`${label}: missing three-target standard Host consumer fixture`);
     }
-    const nodeHost = 'adapters/connectors/duckdb/node/test/standard-host.test.mjs';
+    const nodeHost = mixed.carrier === 'Graph'
+      ? publicRefusalPath.replace('public-host','surface-checker')
+      : 'adapters/connectors/duckdb/node/test/standard-host.test.mjs';
+    const nodeSuite = mixed.carrier === 'Graph'
+      ? 'node:property_graph_surface_checker' : 'node:duckdb_standard_host';
     for (const [scope, field] of [
       ['prefix', 'in_flight_cancel'],
       ['selected Relation', 'selected_in_flight_cancel'],
     ]) {
       const cancellation = mixed[field] ?? {};
-      if (cancellation.suite !== 'node:duckdb_standard_host' ||
+      if (cancellation.suite !== nodeSuite ||
         JSON.stringify(cancellation.targets) !== JSON.stringify(['node']) ||
         cancellation.path !== nodeHost ||
         typeof cancellation.fixture !== 'string' ||
@@ -318,6 +368,13 @@ for (const [index, route] of routeEntries.entries()) {
   const label = `${route.family} ${route.operation}`;
   if (binding?.profile !== route.profile || !profiles[route.profile]) {
     fail(`${label}: production route profile differs from binding`);
+  }
+  if (graphRefusals.has(route.operation)) {
+    const keys = Object.keys(route).sort();
+    if (JSON.stringify(keys) !== JSON.stringify(['family','inventory','operation','profile'])) {
+      fail(`${label}: refused consumer must not claim an executable or resource-assured route`);
+    }
+    continue;
   }
   const dispatch = route.dispatch ?? {};
   const entrypoint = route.entrypoint ?? {};
@@ -1907,8 +1964,10 @@ for (const [index, route] of routeEntries.entries()) {
     }
   }
   if (route.family === 'SGA' && route.operation === 'traverse' &&
-    (!boundaryRoles.has('node_emit_control_work_ceiling') ||
-      !boundaryRoles.has('path_emit_control_work_ceiling'))) {
+    (!boundaryRoles.has('path_emit_control_work_ceiling') ||
+      !boundaryRoles.has('traverse_variant_work_exact_one_short') ||
+      !boundaryRoles.has('traverse_variant_workspace_exact_one_short') ||
+      !boundaryRoles.has('traverse_variant_cancel_cleanup'))) {
     fail(`${label}: traversal work evidence is missing`);
   }
   if (route.family === 'SGA' && route.operation === 'graph_diff' &&
@@ -2058,7 +2117,15 @@ for (const entry of rela.operations) {
 }
 for (const entry of families.operations) {
   const layers = new Set(entry.completed_layers ?? []);
-  if (entry.status !== 'complete' || !layers.has('resources') ||
+  if (graphRefusals.has(entry.operation)) {
+    if (entry.status !== 'blocked' || layers.has('resources') ||
+        layers.has('cancellation')) {
+      fail(`${entry.family} ${entry.operation}: refusal is not execution completion`);
+    }
+    continue;
+  }
+  const scopedGraph = graphClassification[entry.operation] === 'partial';
+  if ((!scopedGraph && entry.status !== 'complete') || !layers.has('resources') ||
     !layers.has('cancellation')) {
     fail(`${entry.family} ${entry.operation}: resource layers are incomplete`);
   }
@@ -2066,14 +2133,15 @@ for (const entry of families.operations) {
 
 const boundaryRoutes = routeEntries.filter(route =>
   (route.boundary_tests ?? []).length > 0).length;
-const assuredRoutes = routeEntries.filter(route => [
+const executionRoutes = routeEntries.filter(route => !graphRefusals.has(route.operation));
+const assuredRoutes = executionRoutes.filter(route => [
   'entrypoint',
   ...(route.ordinary_entrypoint ? ['ordinary_entrypoint'] : []),
   ...(route.selected_entrypoint ? ['selected_entrypoint'] : []),
   ...(route.relation_entrypoint ? ['relation_entrypoint'] : []),
   ...(route.view_entrypoint ? ['view_entrypoint'] : []),
 ].every(pathName => route.path_assurance?.[pathName] !== undefined)).length;
-const fullyAssuredRoutes = routeEntries.filter(route => [
+const fullyAssuredRoutes = executionRoutes.filter(route => [
   'entrypoint',
   ...(route.ordinary_entrypoint ? ['ordinary_entrypoint'] : []),
   ...(route.selected_entrypoint ? ['selected_entrypoint'] : []),
@@ -2092,7 +2160,9 @@ const summary = [
   summaryStart,
   '| Resource boundary evidence | Count |',
   '|---|---:|',
-  `| Production routes | ${routeEntries.length} |`,
+  `| Registered operations | ${routeEntries.length} |`,
+  `| Executable production routes | ${executionRoutes.length} |`,
+  `| Typed pre-execution refusals (not execution success) | ${graphRefusals.size} |`,
   `| Operation-specific boundary records | ${boundaryRoutes} |`,
   `| Four-role lifecycle assurance | ${assuredRoutes} |`,
   `| Full route work/workspace assurance | ${fullyAssuredRoutes} |`,
@@ -2134,7 +2204,8 @@ if (errors.length > 0) {
   console.log(
     `Local resource accounting: ${actual.length} operations, ` +
     `${Object.keys(profiles).length} implementation profiles, ` +
-    `${routeEntries.length} production routes mapped, ` +
+    `${executionRoutes.length} production routes mapped, ` +
+    `${graphRefusals.size} typed pre-execution refusals (not execution success), ` +
     `${boundaryRoutes} with operation-specific boundary records, ` +
     `${assuredRoutes} with four-role boundary evidence, ` +
     `${fullyAssuredRoutes} with full work/workspace assurance, ` +

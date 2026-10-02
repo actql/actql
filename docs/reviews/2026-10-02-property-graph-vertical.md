@@ -2,6 +2,56 @@
 
 ## Current authority and completion boundary
 
+### Initial-scope resource gate checkpoint (2026-10-03)
+
+On top of `caa5932bce615c1b6d46f392575033c24e71500f`, the existing resource
+gate uses the existing current-profile family classification as its only scope
+authority. It maps 52 executable routes and 17 typed pre-execution refusals;
+refusals are not execution success. One shared public fixture checks every
+refused operation in source-free and external-input Programs, before Run
+admission, acquisition I/O or physical dispatch. No per-operator refusal
+fixture, parallel capability list, additional gate or legacy conversion is
+introduced. Executable non-Graph obligations and common resource-owner checks
+remain strict.
+
+The initial constructor/MATCH/TRAIL boundary records now point to current
+definition-keyed regressions, not retired tuple fixtures. Six resource files
+pass **26/26 on each of JS, Wasm and native**, with exact/one-short work and
+workspace, private-stop custody, repeated typed selectors and long text/key
+handling. The MATCH predicate oracle independently counts expression transitions
+and binary-frame/binding workspace. The edge oracle charges each authored label
+entry, including repeated case-insensitive labels. The path oracle distinguishes
+physical adjacency scans from once-per-self-loop candidates and verifies empty
+hop filters, zero-hop output and every private stop for walk/trail/acyclic in
+both stored and viewed paths. This does not cover every nonempty-hop predicate
+variant or certify unimplemented SGA consumers.
+
+The installed Host matrix passes **15/15 on Node**: literal and typed-property
+node/edge MATCH plus explicit TRAIL, each with success, prefix cancellation and
+following Relation cancellation. Two downstream consumers, no later consumer
+start after cancellation, repeated close and all four retained/reserved capacity
+counters returning to zero are verified. Existing snapshot failure/cancellation
+and resource-owner tests are not replaced by unsupported refusals.
+
+The existing strict resource gate and coverage summary check pass. Their own
+mutation regressions pass **184/184**, no skips. The first resource-gate test run
+had seven obsolete assertions: six still treated retired node/edge projection
+routes as executable and one used the historical summary count. These assertions
+were replaced by the inventory-driven refusal obligation/current summary;
+supported MATCH/TRAIL and non-Graph proof-removal checks remained strict.
+The complete touched Node surface/driver suite also passes **22/22**, including
+snapshot handoff success, cleanup retry, snapshot cancellation and constructor
+in-flight cancellation. Formatting, JavaScript syntax and diff checks pass.
+
+Logs: `/private/tmp/property-graph-resource-subset-{js,wasm,native}-20261003.log`
+and `/private/tmp/property-graph-resource-gate-tests-20261003.log`. These are
+working-tree checkpoint results, not pushed-SHA acceptance. Remaining obsolete
+Node Host fixtures still require guarantee-preserving migration. Final-source
+public snapshot, fresh packed acceptance, aggregate Core/spec/API and required
+CI remain open. The four initial operations remain partial and the other Graph
+operations remain blocked. No all-SGA completion or broader mechanized guarantee
+follows from this checkpoint.
+
 The superseding decision is ActQL-only. `smoothhq/aoa` and its PR #2 are not
 used: no external package, checkout, build, authentication or CI success is a
 completion dependency. The normative law body is owned here as
