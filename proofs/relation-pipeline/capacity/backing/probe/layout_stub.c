@@ -4,6 +4,8 @@
 #include <assert.h>
 #include <stdint.h>
 #include <string.h>
+#include <inttypes.h>
+#include <stdio.h>
 
 extern const uint32_t *moonbit_layout_table;
 
@@ -73,6 +75,33 @@ uint64_t actql_proof_map_layout(void *map, int32_t selector) {
                    (uint64_t)slots * sizeof(void *) + entry_bytes;
     case 7: return sizeof(struct moonbit_object);
     case 8: return sizeof(void *);
+    case 9: return (uint64_t)(uintptr_t)map;
     default: assert(0); return 0;
   }
+}
+
+/* Formatting allocation belongs to the observer, not the measured Map leaves.
+ * Every Map argument is borrowed; only numeric identity/extent facts escape. */
+moonbit_string_t actql_proof_map_json(void *input, void *binding,
+                                    void *projection, void *snapshot) {
+  void *maps[4] = {input, binding, projection, snapshot};
+  const char *names[4] = {"inputOrdinals", "bindingOrdinals", "projectionOrdinals", "snapshot"};
+  char buffer[2048];
+  size_t used = (size_t)snprintf(buffer, sizeof buffer, ",\"nativeMaps\":{");
+  for (int i = 0; i < 4; i++) {
+    int written = snprintf(buffer + used, sizeof buffer - used,
+      "%s\"%s\":{\"owner\":\"%" PRIu64 "\",\"table\":\"%" PRIu64
+      "\",\"slots\":%" PRIu64 ",\"entries\":%" PRIu64
+      ",\"requestedBytes\":\"%" PRIu64 "\"}",
+      i ? "," : "", names[i], actql_proof_map_layout(maps[i], 9),
+      actql_proof_map_layout(maps[i], 1), actql_proof_map_layout(maps[i], 2),
+      actql_proof_map_layout(maps[i], 4), actql_proof_map_layout(maps[i], 6));
+    assert(written > 0 && (size_t)written < sizeof buffer - used);
+    used += (size_t)written;
+  }
+  assert(used + 1 < sizeof buffer);
+  buffer[used++] = '}';
+  moonbit_string_t result = moonbit_make_string_raw((int32_t)used);
+  for (size_t i = 0; i < used; i++) result[i] = (uint16_t)(unsigned char)buffer[i];
+  return result;
 }

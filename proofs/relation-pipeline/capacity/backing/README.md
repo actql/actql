@@ -65,8 +65,10 @@ The scalar overlay reads actual Map capacity, length and same-type owner alias
 relationships. Capacity is the real Map's table-capacity field, with its equality
 to `entries.length()` depending on the pinned core constructor/growth invariant;
 the observer does not independently expose its private FixedArray identity.
-Three metadata Map owners are checked not to alias. Cross-type table identity,
-replacement allocation overlap and GC disposal are not claimed verified. This
+Three metadata Map owners are checked not to alias. Those portable scalar
+observations do not expose cross-type table identity; native descriptors below
+add current-point correspondence. Replacement overlap and GC disposal remain
+unverified in the production pipeline. This
 conditional source connection must not be upgraded into a physical byte union.
 No separate test ledger replaces actual state observations.
 
@@ -80,6 +82,23 @@ reference-array table, and visits its distinct current Entry pointers. It stores
 no object pointer, allocates nothing and never adjusts reference counts. The
 reader checks descriptor shape and offsets; it does not cast an invented Map
 struct or treat the public capacity counter as a backing identity.
+
+Native child-state overlays now pass the actual input, binding, projection and
+snapshot Maps to that reader with all four FFI arguments explicitly borrowed.
+They emit decimal owner/table identity tokens and requested extents at the
+existing observation points. Admission checks distinct simultaneous identities,
+independent key/slot counts and input-derived extent bounds. Tokens are not
+global allocation generations and are never used to infer survival between
+observations; reused addresses after release must not be conflated.
+The portable overlay emits no native descriptor. The real registered pipeline
+campaign and its independent receipts must validate these observations on CI.
+
+The C descriptor reader is allocation-free. Its JSON formatting wrapper creates
+only an observer String; formatting/log storage is instrumentation, outside the
+measured production Map leaves. No Map pointer or holding reference survives
+the synchronous borrowed observation. Temporary source files are exclusively
+owned by one runner, checked before reuse/removal and restored with the package
+overlay. The audit independently reconstructs their exact source hashes.
 
 Declared field order matters. Entry's `prev` at offset zero is followed by
 padding before `next` at eight, then `psl` at 16, `hash` at 20, `key` at 24 and
@@ -96,10 +115,10 @@ extents. The core probe confirms finite instances, distinct actual table
 identities, retained identity after clear, and two explicitly held replacement
 objects. Its deliberate holder is test behavior, not an observer holder.
 
-This is not yet the native pipeline's unique live allocation union. Borrowed
+This is not yet the native pipeline's complete live allocation union. Borrowed
 key Strings/transitive values, allocator bookkeeping/arenas, collector buffers,
 other state objects and reservation custody remain obligations. JS and Wasm
-must not receive this native byte evidence; the independent core audit checks
+must not receive this native byte evidence; the independent core and child-state audits check
 native runtime provenance and rejects target substitution. The unconditional
 capacity-claim gate remains closed, including the parent 256-byte allowance.
 

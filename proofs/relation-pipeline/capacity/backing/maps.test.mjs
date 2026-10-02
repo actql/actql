@@ -5,11 +5,13 @@ import { fixedCorpus } from '../../corpus.mjs';
 import { registry } from '../../registry.mjs';
 import { registrations } from '../../obligations.mjs';
 import { violation } from '../model.mjs';
+import { nativeUnitFixture } from './native-unit-fixture.mjs';
 const cases = fixedCorpus(registry, registrations).filter(c => c.steps.filter(s => s.op === 'distinct').length === 1);
-function observation(c) {
+function observation(c, target = 'js') {
   const b = mapBounds(c, registry);
   return { faults: [{ kind: 'capacity observation', event: 'start',
     mapCapacity: b.capacity, mapEntries: b.entries,
+    ...(target === 'native' ? { nativeMaps: nativeUnitFixture(b) } : {}),
     mapAliases: { inputBinding: false, inputProjection: false, bindingProjection: false } }] };
 }
 test('empty and nonempty DISTINCT inputs retain the constructor table bound', () => {
@@ -17,8 +19,8 @@ test('empty and nonempty DISTINCT inputs retain the constructor table bound', ()
   for (const c of cases) {
     const b = mapBounds(c, registry); assert.equal(b.currentTableSlots, 32); assert.equal(b.replacementOverlapTableSlots, 40);
     for (const target of ['js', 'wasm', 'native']) {
-      const result = inspectPipelineMaps(c, observation(c), registry, target, target);
-      assert.equal(result.allocationBytes, false); assert.equal(result.physicalBackingIdentityVerified, false);
+      const result = inspectPipelineMaps(c, observation(c, target), registry, target, target);
+      assert.equal(result.allocationBytes, false); assert.equal(result.physicalBackingIdentityVerified, target === 'native');
       if (target === 'native') {
         const width = b.entries.inputOrdinals;
         assert.equal(result.conditionalNativeRequestedExtent.currentBound, String(480 + 96 * width));
@@ -28,6 +30,16 @@ test('empty and nonempty DISTINCT inputs retain the constructor table bound', ()
       } else assert.equal(result.conditionalNativeRequestedExtent, undefined);
     }
   }
+});
+test('actual native descriptor admission refuses missing backing identity, aliasing and byte relabeling', () => {
+  const c = cases[0];
+  for (const change of [e => delete e.nativeMaps,
+    e => e.nativeMaps.inputOrdinals.table = e.nativeMaps.bindingOrdinals.table,
+    e => e.nativeMaps.snapshot.requestedBytes = '0']) {
+    const o = observation(c, 'native'); change(o.faults[0]);
+    assert.throws(() => inspectPipelineMaps(c, o, registry, 'native', 'native'));
+  }
+  assert.throws(() => inspectPipelineMaps(c, observation(c, 'native'), registry, 'js', 'js'), /another target/);
 });
 test('allocation expansion, forbidden contents and shared metadata owners fail admission', () => {
   const c = cases[0];

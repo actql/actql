@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { inputs } from '../model.mjs';
-import { distinctMapExtent } from './native-extent.mjs';
+import { distinctMapExtent, mapRequestedExtent } from './native-extent.mjs';
 // The actual constructor is Map([]); the admitted schema has at most 3 keys.
 // Eight slots, including at zero entries, remain allocated after clear.
 // This is table-slot structure, not Map/Entry/engine allocation bytes.
@@ -25,18 +25,33 @@ export function inspectPipelineMaps(testCase, observation, registry, requestedTa
     assert.deepEqual(e.mapEntries, b.entries, 'Map contents differ from the independent DISTINCT contract');
     assert.deepEqual(e.mapAliases, { inputBinding: false, inputProjection: false, bindingProjection: false },
       'Independent metadata Map owners unexpectedly alias');
+    if (requestedTarget === 'native') {
+      assert.deepEqual(Object.keys(e.nativeMaps ?? {}).sort(), Object.keys(b.capacity).sort(), 'Missing actual native Map descriptors');
+      const identities = new Set(); let extent = 0n;
+      for (const name of Object.keys(b.capacity)) {
+        const actual = e.nativeMaps[name];
+        assert.deepEqual(Object.keys(actual).sort(), ['owner', 'table', 'slots', 'entries', 'requestedBytes'].sort());
+        for (const key of ['owner', 'table']) {
+          assert(typeof actual[key] === 'string' && /^[1-9][0-9]*$/.test(actual[key]));
+          assert(BigInt(actual[key]) <= 18446744073709551615n);
+          assert(!identities.has(actual[key]), 'Independent native Map allocations alias');
+          identities.add(actual[key]);
+        }
+        assert.equal(actual.slots, b.capacity[name]); assert.equal(actual.entries, b.entries[name]);
+        assert.equal(actual.requestedBytes, mapRequestedExtent(actual.slots, actual.entries).toString(), 'Native descriptor differs from independently derived extent');
+        extent += BigInt(actual.requestedBytes);
+      }
+      assert(extent <= distinctMapExtent(b.entries.inputOrdinals), 'Current native Map leaves exceed their input-derived bound');
+    } else assert.equal(e.nativeMaps, undefined, 'Native descriptors belong to another target');
   }
   return { target: requestedTarget, observations: events.length,
     units: 'Map table slots and live entries', allocationBytes: false,
-    physicalBackingIdentityVerified: false, replacementOverlapObserved: false,
+    physicalBackingIdentityVerified: requestedTarget === 'native', replacementOverlapObserved: false,
     ...(requestedTarget === 'native' ? { conditionalNativeRequestedExtent: {
       currentBound: distinctMapExtent(b.entries.inputOrdinals).toString(),
       replacementBound: distinctMapExtent(b.entries.inputOrdinals, true).toString(),
       units: 'native Map leaf requested bytes',
-      // Descriptor/identity correspondence was checked on core objects, not
-      // independently on every private table in the executing child state.
-      remainingPremises: ['native ABI field-layout correspondence for the child instance',
-        'actual pipeline table identities and replacement lifetime',
+      remainingPremises: ['unobserved allocation/assignment overlap and complete lifetime union',
         'borrowed referents and remaining runtime allocations', 'reservation custody'],
       unconditionalAllocationBytes: false,
     } } : {}) };

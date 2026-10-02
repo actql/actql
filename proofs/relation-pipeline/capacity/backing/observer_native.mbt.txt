@@ -1,0 +1,12 @@
+///|
+#borrow(input, binding, projection, snapshot)
+extern "C" fn capacity_native_map_json(input : Map[String, Int], binding : Map[String, Int], projection : Map[String, Int], snapshot : Map[String, Value]) -> String = "actql_proof_map_json"
+
+///|
+fn capacity_native_map_fields(state : BoundedBindingRowsState) -> String {
+  if state.projection_ordinals is Some(projection) {
+    capacity_native_map_json(state.input_ordinals, state.binding_ordinals, projection, state.snapshot)
+  } else {
+    ""
+  }
+}
