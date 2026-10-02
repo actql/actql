@@ -44,8 +44,8 @@ Metadata contributes `4w`; sort adds `w + 2n`; output construction retains the
 the nonempty peaks. This is the existing `RowWorkspace` entry contract, separate
 from `ExecutionCapacity`'s declared byte reservation. Generated runs use exactly
 one DISTINCT occurrence; this is not acceptance of other value domains.
-The harness records `retained_bytes` and `execution_bytes` from the exact
-registered provider passed to start. These are declared allowances, not measured
+The capacity-only start overlay records `retained_bytes` and `execution_bytes`
+from the exact registered provider passed to start. These are declared allowances, not measured
 allocation bytes; the distinct observer separately records workspace entries.
 
 ## Sharing, retention and release

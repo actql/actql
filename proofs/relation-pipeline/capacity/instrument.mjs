@@ -3,7 +3,16 @@ import { readFileSync } from 'node:fs';
 const rows = 'src/execution_relation/bounded_binding_rows.mbt';
 const sort = 'src/execution_relation/bounded_index_sort.mbt';
 const reads = 'src/execution_relation/producer_read.mbt';
+const providers = 'src/connectors/local/managed_provider.mbt';
 export const replacements = {
+  [providers]: [
+    ['  (provider.start)(\n    sequence,\n    inputs.map(input => RelationInput(input)),',
+      `  let declared = managed_provider_capacity(provider, sequence).unwrap()
+  println("ACTQL_PIPELINE_FAULT:{\\"kind\\":\\"capacity declaration\\",\\"steps\\":" + @execution.generated_sequence_step_count(sequence).to_string() + ",\\"retainedBytes\\":" + declared.retained_bytes.to_string() + ",\\"executionBytes\\":" + declared.execution_bytes.to_string() + "}")
+  (provider.start)(
+    sequence,
+    inputs.map(input => RelationInput(input)),`],
+  ],
   [rows]: [
     ['  let (session, token) = @bounded.start(\n    engine,', '  capacity_observe(state, "start")\n  let (session, token) = @bounded.start(\n    engine,'],
     ['    match state.phase {\n      PrepareDistinctTerms', '    capacity_observe(state, "checkpoint")\n    match state.phase {\n      PrepareDistinctTerms'],

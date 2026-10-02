@@ -150,16 +150,8 @@ fn relation_pipeline_start(
   sequence : @execution.GeneratedSequence,
   reads : Array[@execution.ProducerRead],
 ) -> @local_connector.ManagedProviderExecution {
-  let provider = relation_pipeline_provider(sequence)
-  let declared = @local_connector.managed_provider_capacity(provider, sequence).unwrap()
-  println(
-    "ACTQL_PIPELINE_FAULT:{\"kind\":\"capacity declaration\",\"steps\":" +
-    @execution.generated_sequence_step_count(sequence).to_string() +
-    ",\"retainedBytes\":" + declared.retained_bytes.to_string() +
-    ",\"executionBytes\":" + declared.execution_bytes.to_string() + "}",
-  )
   @local_connector.start_managed_provider_with_execution(
-    provider,
+    relation_pipeline_provider(sequence),
     sequence,
     reads,
     100,
