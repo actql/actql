@@ -11,6 +11,53 @@ fn sequence_limits() -> @lowering_relation.SequenceLimits {
 }
 
 ///|
+test "checked prefix preserves its owner and shares finite preparation limits" {
+  let owner = expression_pipeline(
+    ",{\"derive\":{\"x\":\"1\"}},{\"derive\":{\"y\":\"2\"}}",
+  )
+  let limits = {
+    ..sequence_limits(),
+    max_steps: 2,
+    expressions: { ..expression_limits(), max_nodes: 1, },
+  }
+  let prefix = @lowering_relation.prepare_sequence_prefix(owner, 1, limits).unwrap()
+  assert_true(physical_equal(@lowering_relation.sequence_owner(prefix), owner))
+  assert_eq(@lowering_relation.sequence_count(prefix), 2)
+  assert_true(@lowering_relation.sequence_step(prefix, 2) is None)
+  assert_true(
+    @lowering_relation.prepare_sequence(owner, limits)
+    is Err(@lowering_relation.SequenceLimit),
+  )
+  assert_true(
+    @lowering_relation.prepare_sequence_prefix(owner, -1, limits)
+    is Err(@lowering_relation.SequenceLimit),
+  )
+  assert_true(
+    @lowering_relation.prepare_sequence_prefix(owner, 3, limits)
+    is Err(@lowering_relation.SequenceLimit),
+  )
+  assert_true(
+    @lowering_relation.prepare_sequence_prefix(owner, 1, {
+      ..limits,
+      max_steps: 1,
+    })
+    is Err(@lowering_relation.SequenceLimit),
+  )
+  assert_true(
+    @lowering_relation.prepare_sequence_prefix(owner, 1, {
+      ..limits,
+      expressions: { ..limits.expressions, max_nodes: 0, },
+    })
+    is Err(
+      @lowering_relation.KernelFailure(
+        1,
+        @lowering_relation.ExpressionFailure(_)
+      )
+    ),
+  )
+}
+
+///|
 test "source-free Values emits one complete AoA pipeline" {
   let one = @lowering_relation.prepare_sequence(
     expression_pipeline(""),

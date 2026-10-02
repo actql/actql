@@ -1085,6 +1085,17 @@ alone does not prove exactly-once.
 
 ### ModelTask outcomes and attachments
 
+<!-- machine-import: ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/inference_barrier sha256:34f1a37cbaea973964f4cf84ca3806b2492df545b718042ad8057604c95cb6dd -->
+
+The declared `actql-inference-barrier/0.1` body closes the existing
+model-outcome Plan fields under the barrier version. It additionally binds
+the adjacent input AoA fragment CID. Its `barrier_cid` hashes the canonical
+body with that field omitted. The `actql-infer/0.1` Plan profile contract is
+this registered barrier schema CID; a task contract CID is not a substitute
+for it. Execution, request-fragment, limits and egress references still need
+their checked/admitted bodies. Neither a valid barrier CID nor a schema
+reference authorizes model access or supplies future observations.
+
 ModelTask contracts MUST fix finite retry classification and ceilings, immutable
 slot request/model/prompt/generation/output contracts, data handling and typed
 attachment roles. Outcome classes and strict publication are defined by
@@ -1291,7 +1302,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
 <!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:7d41ef4af0200653d50efd72766716cdb0048285dbe66eae25b6982cbfe04f56 -->
-<!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:ae28ef802697bf58df5d343f5a6f457bbcc0e7f814636086a640e12a1a1163e3 -->
+<!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:8d2b0da02c425402474f281cbe9ab15d5bdc6fed061e40005d2ebc13353904c7 -->
 
 <a id="parameter-value-projection"></a>
 
@@ -1353,6 +1364,207 @@ admitted declarations remain semantic validation requirements. Invalid or
 incomplete bindings do not produce a Parameter Values CID. Hashing the raw
 binding strings, stripping arbitrary metadata-shaped business fields, or
 interpreting supplied tags as proof of admission is not an alternative.
+
+<a id="model-call-slot-identity"></a>
+
+### Model call-slot identity
+
+The four closed `actql-model-*/0.1` identity envelopes distinguish call
+identity from captured execution evidence. Each CID hashes the entire canonical
+JSON body excluding only its own registered identity field. None grants read,
+egress, dispatch, replay or publication authority.
+
+<!-- requirement-block: model-call-slot-identity.preimage -->
+<!-- normative-code: envelope -->
+```text
+{version:"actql-model-effective-inputs/0.1", parameter_values_cid,
+ invocation_bindings_cid, input_artifacts, effective_inputs_cid}
+{version:"actql-model-input-artifact/0.1", program_definition_cid,
+ unit_definition_cid, source_ordinal, effective_inputs_cid,
+ input_fragment_cid, logical_relation_cid, relation_schema_cid,
+ ordered_rows_cid, completeness:"complete", input_artifact_cid}
+{version:"actql-model-input-key/0.1",
+ components:[{field, value_contract_cid, value_cid}], input_key_cid}
+{version:"actql-model-call-slot/0.1", program_definition_cid,
+ unit_definition_cid, source_ordinal, effective_inputs_cid,
+ input_artifact_cid, input_key_cid, model_task_cid, fixed_request_cid,
+ model_call_slot_cid}
+```
+
+<!-- requirement-block: model-call-slot-identity.binding -->
+The call-slot owner MUST bind the saved Program Definition, owning Unit
+Definition and zero-based logical source-step ordinal of the INFER occurrence;
+the ordinal is independent of row position, execution order, lowering visits,
+worker placement and retry count. The input artifact identifies the actual
+completed pre-INFER Relation, its canonical logical rows, exact schema and
+registered ordered-row identity, and the exact typed AoA input fragment. That
+ordered-row identity binds actual enumeration without inventing a candidate key
+or a final Result publication-order witness. It is not the final
+Result artifact of the Stage containing this call. Effective inputs bind the
+checked Parameter Values and Invocation Bindings and a map from resolved
+Stage input names to their actual, complete upstream artifacts. An explicit
+empty map denotes a source-free input, not a missing or NULL map. A typed key
+has one component per authored key field in tuple order, with distinct field
+names and exact admitted value-contract CIDs. Each `value_cid` hashes that
+component's canonical typed wire value; for a Ref it hashes the verified
+reference identity CID as a canonical JSON string rather than transport or
+permission metadata. Keys are non-NULL KeyComparable values; missing and NULL
+are rejected, never normalized to an empty tuple. The fixed request identifies
+the checked, parameter-bound request-mapping fragment, while the separately
+bound ModelTask CID fixes its prompt, schemas and generation settings.
+
+<!-- requirement-block: model-call-slot-identity.acyclic -->
+The call-slot owner MUST verify an acyclic closure of interpreted identity
+references before dispatch. Neither the body nor any transitive dependency can
+refer to this slot, its response, captured attempt, adopted outcome, or its
+containing Stage Invocation. Upstream completed observations are allowed only
+when their dependency closure precedes this occurrence. CID-looking business
+strings are not interpreted references. Response and capture evidence enter
+the ObservationSet after dispatch, and that set then enters the Stage
+Invocation; no reverse dependency is introduced.
+
+<!-- requirement-block: model-call-slot-identity.reconstruction -->
+Reconstruction MUST reproduce the same slot for the same saved occurrence,
+effective inputs, actual input artifact, typed key, ModelTask and fixed request.
+A change to any of those identity-bearing values creates a different slot.
+CID equality is not execution evidence: replay consumes only a capture record
+validated by the existing capture owner against these bindings. A dispatch with
+unknown outcome is reconciled under that owner's existing policy, not
+automatically replaced by a fresh model call. Stopping after a response but
+before durable capture leaves an unresolved dispatch responsibility; stopping
+after capture but before publication retains the capture for replay without
+re-dispatch. Publication remains a separate admitted operation.
+
+<!-- requirement-block: model-call-slot-identity.observation-slot-captures -->
+An INFER-containing ObservationSet MUST contain `model_slot_capture_cids`, an
+ordered array of the admitted `actql-model-slot-capture/0.1` identities for
+every call slot's adopted outcome, including failures. Occurrences are ordered
+by their saved Program position; within an occurrence, slots use canonical
+typed-key order, not CID or JSON text order. The capture owner checks exact
+call, ModelTask, fixed request, actual input Artifact and typed-key bindings,
+the ordered attempts, adoption and referenced accounting, authority, policy,
+outcome and response evidence. Missing, duplicate, additional or reordered
+captures are rejected, as are records inconsistent with the retained input or
+successful-response bundle. A successful-response `model_capture_bundle` is
+not a substitute for slot captures. Zero-key INFER explicitly includes the
+empty array; a non-INFER ObservationSet omits the field, preserving its prior
+preimage. The schema field is optional only because non-INFER observations
+share that envelope. Capture integrity and custody do not confer dispatch or
+publication authority.
+
+<a id="model-dependencies"></a>
+
+### Model dependency bodies
+
+<!-- requirement-block: model-dependencies.envelope -->
+Each Model prompt, retry policy or backoff dependency MUST be a closed 0.1
+envelope with exactly `version`, its role-specific value, and `self_cid`.
+Prompt uses `version: "actql-model-prompt/0.1"` and `payload`, an arbitrary
+canonical JSON value; retry uses `version: "actql-model-retry-policy/0.1"`
+and `retryable_failures`; backoff uses `version: "actql-model-backoff/0.1"`
+and `delays_ms`. Unknown fields and versions are invalid. Parsing, canonical
+validation and semantic inspection have finite byte, node, depth and work
+bounds; admission does not repair a noncanonical supplied encoding.
+
+<!-- requirement-block: model-dependencies.identity -->
+Admission MUST match the referenced CID, the body's `self_cid`, and SHA-256
+over canonical JSON UTF-8 excluding only that root `self_cid` member.
+Nested members with the same name remain ordinary payload data. The checked
+ModelTask supplies the prompt reference; the checked ModelExecutionContract
+supplies retry and backoff references. A body from another role or contract
+does not substitute, even when another caller supplies its matching hash.
+
+<!-- requirement-block: model-dependencies.prompt-provider -->
+Before dispatch, the registered provider MUST validate the admitted prompt
+payload's supported shape and meaning against the selected provider and exact
+checked ModelTask. Canonical JSON integrity alone is not executability.
+Payload interpretation belongs to that provider, not a new Frontend syntax.
+This validation neither grants authority nor replaces current account,
+classification, region, attachment and physical-capacity admission.
+
+<!-- requirement-block: model-dependencies.retry-order -->
+`retryable_failures` MUST contain a duplicate-free subset of `rate_limit`,
+`timeout`, `provider_error`, in precisely that relative order.
+An empty list permits no retries. Refusal, schema invalidity, safety rejection
+and truncation are not members of this policy's eligible classes.
+
+<!-- requirement-block: model-dependencies.retry-owner -->
+A retry decision MUST use the common owner's classified failure and current
+admission, never an HTTP status alone or a provider-text guess.
+The execution contract's attempt and total ceilings remain upper bounds, not
+a requirement to spend every permitted attempt.
+
+<!-- requirement-block: model-dependencies.backoff -->
+`delays_ms` MUST be an ordered array of nonnegative safe integers.
+Element `i` is the delay between attempt `i + 1` and attempt `i + 2`, with
+zero-based indexing; zero means no additional delay, not an unbounded poll.
+The list does not grant retry eligibility or widen any duration ceiling.
+
+<!-- requirement-block: model-dependencies.single-attempt -->
+The initial installed single-attempt profile MUST accept only empty retry
+and backoff lists and reject a nonempty supported-policy body with a typed
+unsupported-policy cause before Run admission and provider access.
+Malformed bodies remain invalid, rather than being reclassified as an
+implementation limitation. This profile does not narrow the language's
+contract-bounded retry semantics. Unknown outcomes retain accounting and
+capture responsibility; replay cannot silently invoke the provider again.
+
+<a id="model-attempt-evidence"></a>
+
+### Model attempt evidence
+
+<!-- requirement-block: model-attempt-evidence.owner -->
+The common execution owner MUST issue and verify attempt, accounting,
+authority and outcome evidence from its actual dispatch observations and
+previously admitted execution authority. Adapters supply authenticated
+observations and existing decisions, not self-authored evidence JSON.
+
+`actql-model-dispatch-authority/0.1` references the exact Run Definition,
+Run Authorization, Program, current account configuration, execution context,
+Host policy, ModelTask and fixed request. The tuple retains its principal,
+connection, resource, operation and allow/delegate basis. A delegate basis
+retains its authenticated answering authority and exact satisfied claims;
+account allow has no answering authority and an empty claims array. This record
+references an existing decision and never grants new
+permission or overrides account denial. Classification, region and media
+admission remain separate pre-dispatch obligations.
+
+`actql-model-call-attempt/0.1` binds the slot, Run Definition, ModelTask,
+fixed request, authority evidence, installed provider and positive attempt
+ordinal. The Run Definition binds the physical Run identity. A reconstructed
+capture preserves its original attempt records rather than issuing attempts
+for replay. The current single-attempt provider does not silently retry;
+support for retries requires admission of the complete ordered attempt history.
+
+`actql-model-attempt-accounting/0.1` binds an actual attempt and slot,
+reported cumulative work, uncertain wire usage and observed token, cost and
+duration amounts. An unavailable amount is explicitly NULL, not zero. The
+uncertain wire amount records the admitted dispatched envelope retained by the
+existing resource owner; it is not an exact transport-byte measurement. This
+observation does not replace pre-dispatch reservation of every required budget.
+Failure and cancellation retain the original accounting evidence.
+
+<!-- requirement-block: model-attempt-evidence.quantity-reservation -->
+An installed metered Model profile MUST include `reservation`, containing
+the exact pre-dispatch `tokens`, `cost_units` and `duration_ms` upper bounds
+for that attempt. These bounds are not observed consumption. A NULL usage
+retains its dispatched bound as uncertain even after physical cleanup; an
+actual observation replaces only that unit's uncertain bound. Undispatched
+reservations may be returned after confirmed cleanup. The common owner records
+a provider overrun before failing the barrier with `budget_exceeded`; it does
+not turn a capacity violation into a provider-failure row. Bodies without this
+optional field preserve their prior preimage, but omission does not discharge
+the production obligation to reserve every required budget.
+
+`actql-model-attempt-outcome/0.1` binds the attempt and slot to success,
+provider failure, contract violation, cancellation or unknown result. Only
+the existing seven provider-failure classifications can produce ordinary
+failed slot rows. Contract violations, cancellation and unknown result cannot
+be relabelled as an adopted successful slot. Attempt identity precedes its
+accounting and outcome records; slot capture references those leaves and then
+enters the ObservationSet. No leaf refers back to the slot capture,
+ObservationSet or Stage Invocation, including through an interpreted dependency.
+Non-INFER bodies and their identity preimages are unchanged.
 
 <a id="compilation-identities"></a>
 
@@ -1657,6 +1869,17 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/authoring_context sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/parameter_values sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/invocation_bindings sha256:6471878465e3cf6c4af4bd7d2c161d578ab861770ec6a893c7e0de116dadbd41
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_effective_inputs sha256:b44b64433d41470d143efa8deac6692201804a5714380694a84d66759819a727
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_input_artifact sha256:86e9e2c7b59634e8235b80a12b241a26f4f32f913dd30064aed36dfaecaf318c
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_input_key sha256:103b8c1515bb65f7ccd9f6963d798fcd20ce598cb7b266e09f2b32fac5831af0
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_call_slot sha256:a83e0af3e07986b5655463e0d39da3eb6c74cbefb327e65525de4be0035eac2b
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_prompt sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_retry_policy sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_backoff sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_dispatch_authority sha256:b00aae86b12bae22d8ef3f62d98d1a192fa9253371407fde016fc23a28117d09
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_call_attempt sha256:c80b4873ed75130e12006eb5f00154d77b74a85394eb1a7dbf517078d4db2741
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_attempt_accounting sha256:64060e2b23925f0d7be708240f504df312f7e46706e2a5fefd7c46d8d421430f
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_attempt_outcome sha256:90afd9fed54246784afb4b8922a0ec228c048d50e75f53598702a4c5ca0770b7
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/caller_input_intent sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/initial_input_artifact_set sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/bound_invocation_template sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7

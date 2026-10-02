@@ -12,6 +12,8 @@ priv enum ExpressionFrame {
   Clauses(Array[(Expression, Expression)], Int)
   ClauseWhen(Expression)
   VectorScoreRest(VectorMetric, Expression)
+  ObjectExpressions(Array[(String, Expression)], Int)
+  PropertyValue(Expression)
 }
 
 ///|
@@ -107,6 +109,19 @@ fn emit_frames(
             @contract.emit_checked(expr.contract, output)
             @encode.end_object(output)
           }
+          Object(fields) => {
+            pending.push(Op("object"))
+            @encode.begin_object(output)
+            pending.push(ObjectExpressions(fields, 0))
+          }
+          Property(value, name, _) => {
+            pending.push(Op("property"))
+            @encode.begin_object(output)
+            @encode.key(output, "name")
+            @encode.string_value(output, name)
+            pending.push(EndObject)
+            pending.push(PropertyValue(value))
+          }
           Cast(child) => {
             pending.push(Op("cast"))
             @encode.begin_object(output)
@@ -186,6 +201,18 @@ fn emit_frames(
           pending.push(Expr(value))
         } else {
           @encode.end_array(output)
+        }
+      PropertyValue(value) => {
+        @encode.key(output, "value")
+        pending.push(Expr(value))
+      }
+      ObjectExpressions(fields, index) =>
+        if fields.get(index) is Some((name, value)) {
+          @encode.key(output, name)
+          pending.push(ObjectExpressions(fields, index + 1))
+          pending.push(Expr(value))
+        } else {
+          @encode.end_object(output)
         }
       CaseWhen(clauses) => {
         @encode.key(output, "when")

@@ -122,6 +122,8 @@ pub fn check_mapping_conversions(MappingContractShape, Int) -> Result[MappingCon
 
 pub fn check_mapping_row_fields(MappingContractShape, Int) -> Result[MappingRowFields, MappingRowFieldsIssue]
 
+pub fn check_model_tasks(WireEnvironment, ModelTaskLimits) -> Result[ModelTasks, ModelTaskIssue]
+
 pub fn check_protocol_value_contracts(SourceDataPolicies, ValueContractLimits) -> Result[ProtocolValueContracts, ValueContractIssue]
 
 pub fn check_pushdown_body_dependencies(PushdownContracts, ContractEnvelope) -> Result[CatalogBodyDependencies, BodyDependencyIssue]
@@ -159,6 +161,8 @@ pub fn compiler_barrier_contract_manifest_wire() -> String
 pub fn compiler_grammar_manifest_cid() -> String
 
 pub fn compiler_grammar_manifest_wire() -> String
+
+pub fn compiler_inference_barrier_contract_cid() -> String
 
 pub fn compiler_version_token() -> String
 
@@ -205,6 +209,8 @@ pub fn default_read_mode(SourceViewModes) -> SourceReadMode
 pub fn emit(WireEnvironment, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_member(Member, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
+pub fn emit_model_prompt_payload(ModelDependency, @encode_core.Writer) -> Bool raise @encode_core.EncodeFailure
 
 pub fn expression_contract_body(String) -> ExpressionContractBody?
 
@@ -344,6 +350,70 @@ pub fn member_section(Member) -> Section
 
 pub fn member_usage(Member) -> (Int, Int)
 
+pub fn model_dependency_identity(ModelDependency) -> String
+
+pub fn model_dependency_payload(ModelDependency) -> @decode_core.Cursor?
+
+pub fn model_dependency_source(ModelDependency) -> @decode_core.Cursor
+
+pub fn model_dependency_usage(ModelDependency) -> (Int, Int, Int)
+
+pub fn model_execution_backoff_cid(ModelExecutionContract) -> String
+
+pub fn model_execution_ceiling(ModelExecutionContract, ModelExecutionCeiling) -> Int64
+
+pub fn model_execution_cid(ModelExecutionContract) -> String
+
+pub fn model_execution_media_at(ModelExecutionContract, Int) -> (String, String)?
+
+pub fn model_execution_media_count(ModelExecutionContract) -> Int
+
+pub fn model_execution_retry_cid(ModelExecutionContract) -> String
+
+pub fn model_execution_source(ModelExecutionContract) -> @decode_core.Cursor
+
+pub fn model_execution_task(ModelExecutionContract) -> ModelTaskContract
+
+pub fn model_execution_usage(ModelExecutionContract) -> (Int, Int, Int)
+
+pub fn model_task_accepts_classification(ModelTaskContract, DataClassification) -> Bool
+
+pub fn model_task_at(ModelTasks, Int) -> ModelTaskContract?
+
+pub fn model_task_connector(ModelTaskContract) -> String
+
+pub fn model_task_data_handling_cid(ModelTaskContract) -> String
+
+pub fn model_task_for(ModelTasks, Member) -> ModelTaskContract?
+
+pub fn model_task_generation_config(ModelTaskContract) -> ModelGeneration
+
+pub fn model_task_identity(ModelTaskContract) -> (String, String, String)
+
+pub fn model_task_input(ModelTaskContract) -> @value_contract.Contract
+
+pub fn model_task_max_items(ModelTaskContract) -> Int64?
+
+pub fn model_task_member(ModelTaskContract) -> Member
+
+pub fn model_task_model_selector(ModelTaskContract) -> String
+
+pub fn model_task_output(ModelTaskContract) -> @value_contract.Contract
+
+pub fn model_task_prompt_cid(ModelTaskContract) -> String
+
+pub fn model_task_provider_retention(ModelTaskContract) -> Bool
+
+pub fn model_task_region_at(ModelTaskContract, Int) -> String?
+
+pub fn model_task_region_count(ModelTaskContract) -> Int
+
+pub fn model_task_schema_cids(ModelTaskContract) -> (String, String)
+
+pub fn model_tasks_environment(ModelTasks) -> WireEnvironment
+
+pub fn model_tasks_usage(ModelTasks) -> (Int, Int, Int, Int, Int, Int)
+
 pub fn program_source_grammar_cid() -> String
 
 pub fn protocol_value_at(ProtocolValueContracts, Int) -> ProtocolValueContract?
@@ -396,6 +466,12 @@ pub fn read_mode_usage(SourceReadModes) -> (Int, Int)
 
 pub fn read_mode_view_at(SourceReadModes, Int) -> SourceViewModes?
 
+pub fn read_model_dependency(ModelDependencyKind, Bytes, String, Limits, Int) -> Result[ModelDependency, ModelTaskIssue]
+
+pub fn read_model_execution_contract(ModelTaskContract, Bytes, String, Limits, Int) -> Result[ModelExecutionContract, ModelTaskIssue]
+
+pub fn read_single_attempt_model_dependencies(ModelExecutionContract, Bytes?, Bytes?, Bytes?, Limits, Int) -> Result[SingleAttemptModelDependencies, ModelDependencyIssue]
+
 pub fn read_text_rank_selection(WireEnvironment, Int) -> Result[TextRankSelection, TextRankSelectionIssue]
 
 pub fn read_text_time(WireEnvironment, @text_time_policy.Limits) -> Result[TextTime, TextTimeIssue]
@@ -416,6 +492,8 @@ pub fn resolve_catalog_contract(Catalog, String, String, String, String) -> Resu
 
 pub fn resolve_contract(ContractRegistry, String, String, String, String) -> Result[ContractEnvelope, ContractIssue]
 
+pub fn resolve_model_task(ModelTasks, String) -> Result[ModelTaskContract, ModelTaskIssue]
+
 pub fn select_command_target(CatalogContents, String, Int) -> Result[CommandTarget, CommandTargetIssue]
 
 pub fn select_connector_source_evidence_members(WireEnvironment, ConnectorSourceEvidenceSelector) -> Result[ConnectorSourceEvidenceMembers, SourceEvidenceMemberIssue]
@@ -429,6 +507,10 @@ pub fn selected_calendar_selection(SelectedCalendarProfile) -> CalendarSelection
 pub fn selected_text_rank_profile(SelectedTextRankProfile) -> @text_rank_profile.Profile
 
 pub fn selected_text_rank_selection(SelectedTextRankProfile) -> TextRankSelection
+
+pub fn single_attempt_model_dependencies_match(SingleAttemptModelDependencies, ModelExecutionContract) -> Bool
+
+pub fn single_attempt_model_prompt(SingleAttemptModelDependencies) -> ModelDependency
 
 pub fn source_batching_contract(SourceBatching, SourceBatchRole) -> ProtocolValueContract
 
@@ -925,6 +1007,78 @@ pub(all) enum MappingShapeIssue {
 
 type Member
 
+pub struct ModelDependency {
+  kind : ModelDependencyKind
+  source : @decode_core.Cursor
+  cid : String
+  payload : @decode_core.Cursor?
+  count : Int
+  bytes : Int
+  nodes : Int
+  work : Int
+}
+
+pub(all) enum ModelDependencyIssue {
+  Missing(ModelDependencyKind)
+  Body(ModelDependencyKind, ModelTaskIssue)
+  UnsupportedPolicy(ModelDependencyKind)
+}
+
+pub(all) enum ModelDependencyKind {
+  ModelPrompt
+  ModelRetryPolicy
+  ModelBackoff
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ModelExecutionCeiling {
+  AttemptsPerSlot
+  TotalAttempts
+  TotalCostUnits
+  TotalDurationMs
+  TotalWireBytes
+  TotalTokenReservation
+} derive(Eq, @debug.Debug)
+
+type ModelExecutionContract
+
+pub struct ModelGeneration {
+  temperature : Double
+  top_p : Double
+  max_output_tokens : Int64
+  seed_requested : Int64?
+}
+
+type ModelTaskContract
+
+pub(all) struct ModelTaskIssue {
+  kind : ModelTaskIssueKind
+  source : @decode_core.Cursor?
+}
+
+pub(all) enum ModelTaskIssueKind {
+  InvalidLimits
+  TaskLimit
+  BodyLimit
+  WorkLimit
+  InvalidBody
+  IdentityMismatch
+  InputSchemaMismatch
+  OutputSchemaMismatch
+  InvalidValueContract(@value_contract.AdmissionError)
+  InvalidObjectContract
+  DuplicateSelector(String)
+  UnknownSelector(String)
+  ReferenceMismatch
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ModelTaskLimits {
+  bodies : Limits
+  contracts : @value_contract.Limits
+  max_work : Int
+}
+
+type ModelTasks
+
 type ProtocolValueContract
 
 type ProtocolValueContracts
@@ -985,6 +1139,13 @@ pub(all) enum Section {
 type SelectedCalendarProfile
 
 type SelectedTextRankProfile
+
+pub struct SingleAttemptModelDependencies {
+  execution : ModelExecutionContract
+  prompt : ModelDependency
+  retry : ModelDependency
+  backoff : ModelDependency
+}
 
 pub(all) enum SourceBatchRole {
   RequestKey

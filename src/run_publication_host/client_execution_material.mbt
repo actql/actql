@@ -8,6 +8,34 @@ pub(all) enum ClientExecutionMaterialIssue {
   ResultPlan(ClientResultPlanIssue)
   DuplicateResultName
   Encoding
+  InferTemplate(ClientInferBoundTemplateIssue)
+}
+
+///|
+/// Retain an Infer-aware template and the existing checked Result/material
+/// identities. Physical limits, egress, call slots and captured observations
+/// still have to be admitted before the Host may issue an executable Run.
+pub fn issue_prepared_client_infer_execution_material(
+  value : PreparedClientProgram,
+  graph : ClientInferPlanGraph,
+  manifests : ClientCompilationManifests,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientExecutionMaterial, ClientExecutionMaterialIssue] {
+  if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
+    return Err(InvalidLimits)
+  }
+  let template = match
+    issue_prepared_client_infer_bound_template(
+      value, graph, manifests, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(InferTemplate(issue))
+  }
+  issue_prepared_client_execution_material_with_template(
+    value, manifests, template, max_wire_bytes, max_nodes, max_depth,
+  )
 }
 
 ///|
@@ -17,8 +45,8 @@ pub(all) enum ClientExecutionMaterialAdmissionIssue {
 }
 
 ///|
-/// Private compilation material for a checked source-free Values Program.
-/// This is only one required member of an Executable Plan.
+/// Private compilation material for a checked Program. This is only one
+/// required member of an Executable Plan, never execution authority itself.
 pub struct ClientExecutionMaterial {
   wire : String
   invocation_template_cid : String
@@ -236,6 +264,32 @@ pub fn admit_prepared_client_values_execution_material(
       value, manifests, sequence_limits, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(material) => material
+    Err(issue) => return Err(Issue(issue))
+  }
+  if saved_wire != issued.wire {
+    return Err(MismatchedMaterial)
+  }
+  Ok(issued)
+}
+
+///|
+/// Rebuild the Infer-aware material under the same prepared Program and
+/// current compiler manifests; saved profile or Result maps are not trusted.
+/// This does not admit the graph's unresolved execution dependencies.
+pub fn admit_prepared_client_infer_execution_material(
+  value : PreparedClientProgram,
+  graph : ClientInferPlanGraph,
+  saved_wire : String,
+  manifests : ClientCompilationManifests,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientExecutionMaterial, ClientExecutionMaterialAdmissionIssue] {
+  let issued = match
+    issue_prepared_client_infer_execution_material(
+      value, graph, manifests, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
     Err(issue) => return Err(Issue(issue))
   }
   if saved_wire != issued.wire {

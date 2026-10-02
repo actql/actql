@@ -11,6 +11,47 @@ pub(all) enum ClientTaskBoundTemplateIssue {
   Graph(ClientTaskPlanGraphIssue)
   OpaqueBindings(ClientEmptyInvocationBindingsIssue)
   Evidence(@publication.RunEvidenceValueIssue)
+  Encoding
+}
+
+///|
+pub(all) enum ClientInferBoundTemplateIssue {
+  InvalidLimits
+  ForeignGraph
+  Template(ClientTaskBoundTemplateIssue)
+}
+
+///|
+/// Bind the existing Infer profile to the actual prepared Program. This is
+/// compilation material, not executable admission or model-egress authority.
+/// The graph's unresolved physical dependencies remain explicit.
+pub fn issue_prepared_client_infer_bound_template(
+  value : PreparedClientProgram,
+  graph : ClientInferPlanGraph,
+  manifests : ClientCompilationManifests,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.RunEvidenceValue, ClientInferBoundTemplateIssue] {
+  if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
+    return Err(InvalidLimits)
+  }
+  if !physical_equal(value, graph.owner) {
+    return Err(ForeignGraph)
+  }
+  issue_client_task_bound_template(
+    value,
+    manifests,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    required_profiles=[
+      (
+        "actql-infer/0.1",
+        @environment.compiler_inference_barrier_contract_cid(),
+      ),
+    ],
+  ).map_err(issue => Template(issue))
 }
 
 ///|
@@ -44,6 +85,7 @@ fn issue_client_task_bound_template(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  required_profiles? : Array[(String, String)] = [],
 ) -> Result[@publication.RunEvidenceValue, ClientTaskBoundTemplateIssue] {
   let bindings = match
     issue_prepared_client_empty_invocation_bindings(
@@ -51,6 +93,22 @@ fn issue_client_task_bound_template(
     ) {
     Ok(bindings) => bindings
     Err(issue) => return Err(OpaqueBindings(issue))
+  }
+  let profiles = try {
+    let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth)
+    @encode.begin_array(writer)
+    for (profile_id, contract_cid) in required_profiles {
+      @encode.begin_object(writer)
+      @encode.key(writer, "contract_cid")
+      @encode.string_value(writer, contract_cid)
+      @encode.key(writer, "profile_id")
+      @encode.string_value(writer, profile_id)
+      @encode.end_object(writer)
+    }
+    @encode.end_array(writer)
+    @encode.finish(writer)
+  } catch {
+    _ => return Err(Encoding)
   }
   let identity = prepared_client_identity(value)
   let body = "{\"version\":\"actql-bound-invocation-template/0.1\"," +
@@ -64,7 +122,9 @@ fn issue_client_task_bound_template(
     prepared_client_check_environment_cid(value) +
     "\",\"grammar_manifest_cid\":\"" +
     manifests.grammar_manifest_cid +
-    "\",\"required_profile_contracts\":[]," +
+    "\",\"required_profile_contracts\":" +
+    profiles +
+    "," +
     "\"barrier_contract_manifest_cid\":\"" +
     manifests.barrier_contract_manifest_cid +
     "\",\"source_evidence\":\"unbound\"}"

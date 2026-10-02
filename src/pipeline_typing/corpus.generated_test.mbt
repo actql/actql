@@ -72,7 +72,7 @@ test "pipeline corpus: duplicate-as" {
 
 ///|
 test "pipeline corpus: unsupported" {
-  corpus_rejected("[{\"infer\":{}}]", ["rows"], None, "UnsupportedOperation")
+  corpus_rejected("[{\"unknown_operation\":{}}]", ["rows"], None, "UnsupportedOperation")
 }
 
 ///|

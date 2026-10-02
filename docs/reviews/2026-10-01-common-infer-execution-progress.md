@@ -1,0 +1,2142 @@
+# Common inference execution: implementation boundary
+
+Branch: `feat/common-infer-execution`.
+Base: `373764e0bd0c100451575cdb0b1a4e90f4e8ce43`.
+
+This is an implementation record, not an inference completion declaration.
+The independent acceptance Program and outcomes remain those in
+[B's handoff](2026-10-01-infer-keep-handoff.md). No frontend evaluator,
+alternative Run owner, model cache, or new wire version is introduced.
+
+## Current handoff status
+
+The one-row public Host handoff is **not ready**. The records below describe
+earlier implementation units and their verification, not current acceptance
+of the complete inference path.
+
+### First public submit boundary
+
+The public SDK submits a literal one-row JSON Program through the installed
+HTTPS Host in `adapters/host-node/installed-infer.test.mjs`. With the ordinary
+base installation, preparation refuses `ClientProgramRejected`: that
+environment has no `model-task:risk-score.v1` declaration. No Run row or
+physical start is created. This is a public refusal, not an internal-helper
+success substituted for acceptance.
+
+The Host now composes a `modelInstallation.environmentWire` through the
+existing installed-check-environment/common-checker admission. Embedded
+installation identity includes that metadata, so an already cached Host
+cannot silently reuse another ModelTask configuration. This registration
+does not install a provider or grant model egress. The common checked graph,
+not Program-JSON inspection, selects the terminal INFER occurrence.
+
+The same public Program with its ModelTask installed passes preparation and
+now refuses `ClientProgramUnsupported` before Run admission. The local cause
+is `InstalledInferExecutionNotConnected`; the public HTTP contract exposes
+the existing typed rejection code, not private MoonBit diagnostic objects.
+The test fixes zero admitted Runs and zero physical starts for both cases.
+Successful dispatch, saved replay and Named Result read remain unverified.
+
+| Stage | Connected common owner | Missing input or product connection |
+| --- | --- | --- |
+| ModelTask preparation | Installed checker and `check_environment/model_tasks.mbt` | Metadata registration added; no provider authority inferred |
+| Dependency/policy admission | `client_infer_plan_graph.mbt`, `client_infer_dispatch_admission.mbt`, existing account owner | Actual prompt/retry/backoff/media/egress dependencies; classification, region and token/cost/duration reservations |
+| Physical dispatch | `client_infer_host/execution.mbt`, `model_execution/execution.mbt` | `client-dispatch-owner.mjs` must open the admitted INFER operation, not its Values route |
+| Evidence and stored replay | Common attempt owner, `observation_issuance.mbt`, verified slot replay | Invoke from normal Host; retain authenticated capture holdings under its existing custody |
+| Named Result publication | Checked Result transformation and existing completed-Run publisher | Pass real accepted INFER output and capture evidence to committed publication |
+
+Dependency references in the existing ModelExecutionContract reader are
+explicitly not admission of their bodies. The installed route must not use
+the component fixtures' symbolic dependency roots as verified dependencies.
+There is no permission blocker: these connections remain implementation work.
+
+The new `client_infer_host/result_publication.mbt` retains an independent
+common-issued Invocation binding while the existing bounded Result transform
+and exporter operate. Selecting an unknown Result, limit failure and
+cancellation release only that export's custody. Two exports may read the
+same real output; closing one leaves the other usable. This is a supporting
+owner, not a new task completion or public-success claim.
+
+The Node bridge now exposes that existing owner to the installed physical
+adapter. `infer-operation.mjs` steps the selected Result with macrotask yields
+and passes the common selection and exporter to the Store callback. It waits
+for that callback rather than racing physical settlement against abort. A
+pending Store cleanup retains the Result through the existing cleanup handle;
+a failed retry preserves custody and a confirmed retry releases it without
+re-entering Model dispatch. The regression reads the literal expected row,
+rejects an unknown Result before Store use, cancels before export, and injects
+a pending Store close plus one failed cleanup retry. That injected Store
+boundary is a component test, not a real public Named Result test.
+
+Local validation on the source tree based on
+`21a7b759a33a142706e8eedfb51f23892308a2f4` passed the two public refusal
+cases and five existing installed-environment regressions. The touched common
+`client_infer_host` and `run_publication_host` packages passed 98/98 on each
+of JS, Wasm and native. Runtime and public interfaces were regenerated from
+source. The generated runtime remains ignored. These results do not establish
+Named Result acceptance or Linux CI, and no acceptance PR is claimed yet.
+
+After the Result bridge connection, the pinned local run of
+`scripts/infer-owner-checker.test.mjs`, `installed-infer.test.mjs` and
+`installed-check-environment.test.mjs` passed 49/49. The touched common JS
+packages passed 98/98. Public interface generation checked all three targets,
+and the release Node runtime was rebuilt. No complete core or Host gate was
+repeated for this supporting connection; required CI remains unrun.
+
+The current execution owner now adopts classified no-response failures as
+keyed outcomes, replays mixed success/failure observations without dispatch,
+and retains strict-failure observations through private stopped-execution
+reads. Saved success/failure component replay also authenticates individual
+slot holdings in the real encrypted Store and reconstructs the ordinary input
+in a fresh process. The common owner now issues and verifies the initial 0.1
+attempt, accounting, dispatch-authority and outcome bodies described below.
+Installed policy/dependency admission and the public Host-to-Named-Result
+connection are still incomplete. The units below must not be substituted for
+those remaining acceptance conditions.
+
+### Common attempt evidence and authenticated stored replay
+
+The four new artifact bodies are `model_call_attempt`,
+`model_attempt_accounting`, `model_dispatch_authority` and
+`model_attempt_outcome`. Their schemas, registry pins, generated parser and
+independent vectors move together on the initial 0.1 baseline. Existing
+non-INFER evidence preimages are unchanged. An attempt references its slot,
+Run Definition, fixed request, ModelTask and existing authority; it never
+references its future response, accounting, outcome or capture.
+
+`execution_authorization/dispatch_binding.mbt` binds the existing account
+decision to its exact tuple, activation boundary, request and execution
+context. Deny cannot be overridden. Delegate requires the existing opaque
+Host permit, including its satisfied claims. The Run publication Host owner
+issues the authority body; Node supplies account and clock observations,
+not authority JSON. Immediately before physical model I/O, the common owner
+re-reads both observations and refuses a changed configuration or expired
+admission after bounded prefix progress.
+
+`model_execution/attempt_evidence.mbt` retains actual attempt observations.
+Failure and cancellation preserve cumulative work and uncertain transport
+usage. Unobserved token, cost and duration usage is NULL, not zero. Proof
+storage is reserved before dispatch in the existing physical ledger.
+`issued_slot_capture.mbt` binds adopted results to those actual leaves;
+strict failure or cancellation does not fabricate an adopted call inventory.
+Already issued immutable diagnostics remain readable after cleanup, but
+cleanup cannot encode new evidence against a returned reservation.
+
+`run_publication/model_attempt_binding.mbt` validates the original saved
+proof chain against the exact saved compiled Run. The verified replay reader
+checks each slot before adoption and has no provider argument. The Node
+regression stores an actually issued failed-slot record, all four proof
+leaves and the separate success-only bundle in the real encrypted Store.
+A fresh process authenticates and confirms their exact holdings, rebuilds
+the ordinary input and replays the failure row without dispatch. Directory
+sync failure retains custody; final retirement releases every holding.
+
+This is a component and private Store boundary, not the public handoff.
+`embedded-local.mjs` and the existing `client-dispatch-owner.mjs` still need
+the installed ModelTask route. The following unit now owns ObservationSet and
+Invocation issuance; actual capture holdings and completed output must still
+reach the existing committed Result publisher. Retry/backoff, classification,
+region/media and token/cost/duration preflight dependencies remain explicit;
+account evidence alone does not discharge those obligations. No new Run
+state machine, ledger or automatic retry is introduced here.
+
+Local verification of this unit used the pinned `0.10.12+1634b282e` toolchain:
+
+- JS, Wasm and native: 828 tests passed per target across `canonical_json`,
+  `client_infer_host`, `model_execution`, `run_publication`,
+  `run_publication_host` and `execution_authorization`.
+- Node: 116 tests passed across the Infer owner, attempt vectors, protocol
+  generator and real publication Store suites. The stored failed-slot case
+  executes its authenticated replay in a fresh process and leaves the
+  original provider call count at one.
+- `npm run check:spec` passed, including canonical fixture freshness. The
+  standard generator added the four new artifact-schema vectors; existing
+  canonical expectations were not replaced by observed product output.
+
+These are local component checks, not Linux CI or a public Host acceptance
+result. The fixed source commit is reported in the working conversation;
+there is no adoptable public INFER handoff SHA yet.
+
+### Observation issuance and exact restored scope
+
+On top of `63b114ad524b934cf809b96d37d0d81ea215815c`,
+`client_infer_host/observation_issuance.mbt` derives the ObservationSet and
+Invocation from the accepted execution, its original compiled Run, actual
+input Artifact, installed ModelTask policy and every adopted slot. Adapters
+receive opaque common owners, not an evidence-JSON construction interface.
+The slot array follows the accepted inventory and explicitly emits `[]` for
+zero keys. Structural test captures cannot acquire publication evidence.
+
+The existing physical ledger reserves metadata before writer or binding-table
+allocation. Installed metadata envelopes are limited to 128 slots and 16 KiB
+wire, not a restriction on the INFER language. Issuance charges each bounded
+step and retains independent output and capture uses. Two live Invocation
+bindings prevent premature cleanup; releasing them returns the reservation
+without refunding consumed work or dispatching again. One-short workspace,
+one-short work and cancellation after positive progress retain typed causes
+and cleanup responsibility.
+
+Verified stored replay now checks the actual input Artifact, original Run
+Template and ModelTask policy even when there are no slots to visit. Each
+restored slot additionally checks its policy and original attempt proof chain.
+A coherent foreign-policy record and a substituted outcome proof are refused.
+The existing encrypted Store accepts the commonly issued ObservationSet and
+Invocation through its authenticated holding path. The fresh-process test
+reads those holdings, reconstructs the same identities from verified replay,
+and leaves the original provider call count at one.
+
+Local checks of this code-only unit passed:
+
+- `client_infer_host`, `model_execution`, `run_publication` and
+  `run_publication_host`: 295/295 each on JS, Wasm and native.
+- Infer-owner and publication-Store Node suites: 107 cases passed in the
+  combined run. Its remaining fixture check failed only because that repeat
+  omitted `MOON_HOME`; the isolated check passed with the pinned environment.
+- Release Node bridge build, three-target interface generation and MoonBit
+  formatting passed. No canonical schema or preimage changed in this unit;
+  the specification gate belongs to the preceding contract commit above.
+
+This still uses a component operation and private Store, not an ordinary
+installed Host submit followed by committed Named Result lookup. Installed
+ModelTask dispatch, dependency admission and the Result publication connection
+remain unfinished. No public handoff SHA, push or Linux CI result is claimed.
+
+The common execution also retains its exact compiled Run and Run Definition
+before the first advance. Its accepted all-slot verification can bind a
+completed Invocation to that same execution and actual input Artifact, with
+an independent output use held through publication. This remains a structural
+binding and custody boundary, not external evidence admission or a committed
+public Result.
+
+Dispatched model requests now retain uncertain physical transfer usage before
+the provider callback. Invalid response identity/content and cancellation do
+not refund that usage; undispatched reservations are released at cleanup.
+Typed response content is not treated as an exact transport-byte observation.
+This closes a physical accounting boundary, not formal token/cost/duration
+admission or public inference publication.
+
+For selected physical inference, the retained ModelExecutionContract now
+narrows the existing ledger's attempt and wire ceilings. Every slot must
+reserve its envelope before the first provider call. This does not validate
+retry/backoff bodies or establish token, cost, duration or egress evidence.
+
+Normal Program preparation now retains the installed ModelTask contract and
+its role-specific dependency roots. The runtime input connection uses the
+same checked Program owner to execute `Values -> assert_rows` through the
+existing bounded Local provider. Its actual `CompletedOutput`, not a raw
+Values capture, feeds `bind_infer_completed_input` and bounded INPUT mapping.
+The installed deterministic ModelTask provider receives the mapped `text`
+role, and the successful capture contains `{reason: null, risk: "high"}`.
+
+The accepted execution now owns the output Relation. Its private capture,
+not a caller-authored capture bundle, supplies the checked key, `outcome` and
+nullable `value` cells. Import uses the existing bounded session, incremental
+value admission and measurement cursors. An exact completion contract retains
+the Infer target separately from the adjacent pure prefix; Infer is not added
+to AoA. The original checked Result selection transforms that completed output
+into the existing publication payload:
+
+```json
+[{"id":"a","outcome":"ok","value":{"reason":null,"risk":"high"}}]
+```
+
+The one-row fixture uses `quantum=1` and actual macrotask yields while importing
+and transforming the result. It verifies one provider call, refuses unaccepted
+or foreign-owner output, retains a stable completion identity, and stops during
+admission of the nested model value. Output custody prevents model cleanup;
+model custody prevents mapped-input and prefix cleanup. Cleanup never dispatches
+again. A response returned after cancellation cannot authorize output. Repeated
+cleanup is idempotent, and transferred capture material survives execution cleanup.
+The provisional output importer preserves logical node/text/work charges;
+independent two-row bounds are 26 physical steps, seven live structural slots,
+six value nodes, ten UTF-8 bytes and sixteen logical work units. One-short limits
+reject, and a 4,096-element array can be cancelled during admission before any
+row is sealed. This does not claim incremental Unicode scalar normalization,
+vector recheck, or asynchronous provider I/O beyond their current bounds.
+
+The reproducible narrow check is:
+
+```sh
+moon build --target js --release src/connectors_builtin_node
+node --test scripts/infer-owner-checker.test.mjs
+```
+
+This uses normal Program preparation and the common runtime bridge, not the
+public Embedded Local/HTTP Run entry. The test owns provider registration
+through `clientProgramInstallModelProvider`; it does not assemble internal
+execution state. Calls are one for the successful row and zero for empty
+input, prefix key failure and prefix cancellation. Same-input replay and
+cleanup do not call the provider again. Foreign providers, foreign request
+identities, changed keys and reclaimed input are rejected. Model consumers
+pin mapped rows and the prefix until physical settlement and cleanup.
+
+This internal replay check is not the versioned durable model capture or
+Run replay contract. The fixture's supplied fixed-request CID is likewise
+not evidence that the normal Host has derived and admitted a semantic
+request. No public Result, response Artifact or Run evidence is manufactured
+from this test observation.
+
+The remaining connection belongs to the common inference work:
+
+- Admit the barrier's classification, dependency closure and execution
+  envelope under the installed Host authority. Identity alone grants none of
+  these permissions.
+- Connect that compilation and the model execution to the existing
+  `client-dispatch-owner` and publication owner, retaining stop and cleanup
+  custody. `local-values-plan.mjs` currently supplies empty model evidence.
+- Read the committed Named Result and compare it with the independent row
+  expectation before supplying an adoption SHA or Host startup example to B.
+
+### Current checked compilation and call identity
+
+The 0.1 schemas, pins and independent vectors now define effective inputs,
+the actual completed input Artifact, typed ordered keys and logical call slots.
+The slot excludes responses, captures and its containing Stage Invocation.
+Its occurrence is the saved checked Program step, not execution order or a
+worker/attempt index. The normative indirect-cycle rule still needs production
+dependency-closure admission; the independent cycle oracle is not that owner.
+
+Checked inference compilation now uses the existing Executable Plan, Bound
+Invocation Template and Run Definition owners. It
+retains the registered inference profile and exact acquisition graph while
+keeping the pure input fragment as its AoA identity. This is compilation
+support, not installed ModelTask dispatch authority.
+
+Model-containing compilations now reject both the empty source-free Invocation
+issuer and the source-only issuer. Having no SourceView inputs cannot erase
+the model acquisition. Its final ObservationSet and Invocation must be bound
+to verified capture, not issued in advance using an empty observation.
+
+Scoped physical execution derives the input Artifact from its real bounded
+prefix completion. A stepped scan wraps the existing export/receipt owner,
+preserving its canonical identities and column measurements without retaining
+a row-sized payload. Nested admission and measurement consume quantum before
+ModelTask dispatch. Cancelling the scan cannot revoke its producer's input;
+physical stop and cleanup remain separate. Scalar wire emission and schema
+setup retain their existing bounded ceilings; this does not claim that every
+Unicode leaf or schema operation is character-stepped.
+
+The preceding narrow verification passed on JS, Wasm and native: identity scan
+2/2, completed export 15/15, model execution 2/2, inference Host owner 16/16,
+and Run compilation 31/31 on each target. The Node inference bridge passed
+24/24, including actual
+macrotask cancellation during unused nested input measurement and stable slot
+identity after reconstruction. Independently specified scan bounds are 29
+steps and 47 workspace slots; one-short failures retain no scan allocation.
+The earlier complete specification gate passed; its log is
+`_build/model-call-slot-spec.log`. No Linux CI result is claimed for this unit.
+
+The scoped model execution now issues the registered model-invocation evidence
+from its own checked response, exact input Artifact, typed key and call slot.
+Response and validated-value hashing use bounded wire cursors; each transition
+consumes work before returning. Independent Node expectations bind the actual
+response/value CIDs, input key, provider identity, request ID, token usage and
+observation time. Caller-authored `ModelCaptureBundle` data cannot supply this
+execution's evidence. The unscoped fixture path remains a private observation
+and does not acquire formal evidence authority.
+
+Cancellation is tested after response admission but before observation sealing,
+and after sealing but before output handoff. Neither exposes a completed output;
+the latter retains its private observation until cleanup. Cleanup makes no
+additional provider call. These are in-process observation/custody tests, not
+the required durable-capture stop windows or process-restart replay test.
+
+### Checked observation replay and custody
+
+The common model owner now issues an opaque `VerifiedModelCapture` read only
+after its scoped execution has accepted every checked response and its actual
+invocation evidence. A matching slot CID, a public `ModelCaptureBundle`, or an
+unaccepted execution cannot issue this read. It does not grant egress, durable
+Store custody, or Run publication authority.
+
+`client_infer_host.start_replay` prepares the ordinary Program prefix again,
+scans its actual completed input, and establishes its new exact call scope.
+The shared bounded request-preparation code derives the typed key and formal
+slot exactly as for physical calls. Replay additionally checks the task,
+fixed request, input Artifact and row count against the checked capture owner.
+Changed input and changed ModelTask are rejected with `OutputIdentity` instead
+of falling back to a provider. There is no provider parameter or dispatch
+alternative in the replay API.
+
+The caller's capture read, the prefix execution, the model replay child and
+output consumers have independent custody. Releasing the caller's read after
+starting replay cannot reclaim the captured data during the prefix or model
+phase. Stop confirmation still precedes child cleanup. Final cleanup releases
+the replay read, mapped input and original physical reservations without another
+model invocation. This is a reconstruction under a fresh prepared Program in
+the same process, not restoration of capture from disk after a restart.
+
+The added acceptance fixtures compare transformed output with the independent
+literal row above, reject input and ModelTask changes, reject a released capture,
+and cancel replay both during its ordinary prefix and model preparation. For
+the one-row replay, the independently derived model work boundary is ten:
+one start transition, eight shared request-preparation transitions and one
+accepted-capture transition. Nine fails specifically with `WorkLimit`; no
+output is issued. Replay makes no model attempt or transfer charge, while its
+ordinary prefix, identity traversal and output retain their existing budgets.
+
+Verification of this replay unit passed: `client_infer_host` 20/20 on each of
+JS, Wasm and native; `model_execution` 2/2 on each target; the Node bridge 26/26.
+The JS runtime build, generated interfaces on all three targets, public API
+comparison, `moon fmt --check` and `git diff --check` are the narrow checks for
+this code-only unit. The first Node run omitted the pinned `MOON_HOME` and its
+fixture freshness check rejected that environment; the rerun with the pinned
+toolchain passed all 26 cases. No runtime bundle is committed. No new Linux CI
+or pushed-SHA verification is claimed.
+
+### Bounded capture export and encrypted Store custody
+
+The checked model owner now retains the actual raw structured response beside
+its validated value and invocation evidence. An opaque capture read can export
+the existing `actql-model-capture-bundle/0.1` body through a bounded session.
+The first pass hashes the preimage; the second emits provisional chunks with
+the bundle self-CID. Only accepted terminal output exposes that identity.
+Nested response traversal consumes individual steps and observes cancellation.
+Flat invocation evidence has an explicit 16-KiB/1,024-node serialization bound;
+it cannot conceal an unbounded response subtree in that step.
+
+The exporter retains its own capture read. Stop confirmation precedes cleanup,
+which discards the writer's partial buffer and releases that read exactly once.
+The original model owner cannot reclaim its input or observation while export
+or caller custody remains. This uses the existing bounded execution and capture
+owners, not a second model scheduler or durable execution ledger.
+
+The Node integration independently encodes the expected formal bundle and its
+CID, checks the exact full-wire byte ceiling and one-byte-short rejection,
+and saves the result using the actual Local publication Store's encrypted
+private-evidence and physical-holding APIs. Closing and reopening that Store
+preserves authenticated, exact-bound bytes. A directory-sync failure during
+confirmation retains the capture owner; retry confirms the same holding without
+another model call. A different wire is rejected. A macrotask cancellation
+during a 512-element response export produces no accepted bundle CID.
+
+This unit proves bounded serialization and durable authenticated bytes, not
+restoration into a verified model replay owner after process restart. Store
+confirmation is physical custody, not inference authorization or publication.
+The serializer's own byte/node/work bounds also do not replace admission under
+the global Host execution envelope. Transitive dependency admission, installed
+ModelTask policy, restored replay and public Named Result publication remain
+required before B receives an adoption-ready SHA.
+
+Verification passed on JS, Wasm and native: `client_infer_host` 22/22,
+`encode_core` 37/37, `model_execution` 2/2 and `run_publication` 179/179 on
+each target. The Node inference bridge passed 28/28, and the two existing
+private-evidence Store cases passed. The JS runtime build, generated interfaces,
+public API comparison, formatting and diff checks cover this code-only unit.
+No runtime bundle is committed; no push or Linux CI success is claimed.
+
+The persistence-only unit above did not restore its saved record. The next
+unit below adds authenticated Store restoration and checked component replay.
+Installed public Host registration and committed Named Result retrieval still
+remain unfinished. The fixture execution policy is identity-only material,
+not public policy admission. This branch is not an adoption-ready handoff to B.
+
+### Restored capture validation and component replay
+
+The existing model capture bundle schema is now registered with the common
+generated protocol reader. Its canonical body, version and schema pin are
+unchanged. Structural admission verifies the outer self-CID, and each record
+separately verifies its invocation-evidence self-CID and record references.
+Neither admission nor a matching CID grants model execution authority.
+
+The restoring path prepares the ordinary Program prefix and its actual
+CompletedOutput again, derives the fresh typed key and fixed request, and
+checks ModelTask, input Artifact, slot, request, key and model selector against
+the saved record. Raw response conversion and normal typed recheck advance
+incrementally, including array, object and vector members. Decimal and
+timestamp leaves use the existing scalar admission rules, not a second model
+decoder. The common model owner then recomputes response/value identities and
+invocation evidence; that exact evidence must match the saved record before
+acceptance. There is no provider argument or dispatch fallback in this path.
+
+Saved reads have independent caller, Host and model-child custody. Releasing
+the caller's read cannot invalidate a replay already preparing its prefix.
+Cancellation during nested reconstruction exposes neither output nor capture;
+stop confirmation precedes cleanup, which releases reads and builders without
+another Compute or model invocation. Replay reserves no new model attempt or
+transfer, while its ordinary prefix, validation and output remain charged.
+
+The actual encrypted Local Store test now reclaims the original execution,
+closes the Store, starts a fresh Node process, authenticates and confirms the
+saved physical holding, and prepares and replays the Program there. It compares
+independent literal output rows and the original invocation evidence. No model
+provider is installed in that process. Mutation cases independently reseal the
+outer bundle and reject changed slot, request, task, Artifact, key or response;
+an unsealed inner record is rejected even when the outer CID is valid. A
+512-member response is stopped during incremental reconstruction after real
+macrotask yields. The original physical provider remains at one call.
+
+Verification passed on JS, Wasm and native: `canonical_json` 455/455,
+`value_admission` 135/135, `client_infer_host` 24/24, `model_execution` 2/2,
+and `run_publication` 179/179 on each target. The Node bridge passed 30/30;
+the protocol generator and its six tests passed. Generated public interfaces,
+API comparison, formatting and diff checks cover this implementation unit.
+No runtime bundle is committed. No push or Linux CI result is claimed.
+
+This proves component replay after process restart, not public Run replay or
+Named Result publication. Protocol parsing is a document operation under
+installed byte/node/depth ceilings; this does not claim unbounded incremental
+JSON admission. Scalar text and metadata retain their bounded leaf operations.
+Serialized Ref objects do not mint issuer authority. Production transitive
+dependency admission, installed policy/envelope admission, durable handling of
+unknown physical outcomes and the public Run/publication connection remain.
+
+The normative ObservationSet must bind captured model attempts and adopted
+outcomes. Its current closed machine schema has no model-capture reference
+field. The source-evidence and input-Artifact fields must not be repurposed
+for that distinct identity domain. A coordinated contract correction is needed
+before the final model-containing Invocation can be issued; the existing
+empty/source-only issuers continue to reject it.
+
+### Existing dispatch supervision and physical stepping
+
+`adapters/host-node/infer-operation.mjs` adapts the existing MoonBit execution
+to the installed `client-dispatch-owner` cleanup interface. Opening executes
+no model callback. The dispatch callback retains the physical owner before
+its first advance. One stepping promise drives either the installed provider
+or an authenticated, Store-confirmed saved read; replay has no provider
+alternative. The adapter yields real macrotasks between bounded advances.
+
+MoonBit reports the typed terminal poll and physical stop state. JavaScript
+does not derive completion from row counts, cancellation delivery or absence
+of output. Physical stop and reclamation are separate: independent output
+or capture reads can keep cleanup pending after execution has settled. Close
+retains its first promise, while cleanup retries call only the existing owner
+and never restart inference. Typed model failures remain the cause of the
+existing `MoonBitHostFailure`, without a new public error classifier.
+
+The component integration uses the normal checked one-row Program and actual
+ModelTask callback under the existing dispatch supervisor. Two output readers
+retain the same completed output independently. A held capture makes close
+and drain fail, and releasing it permits drain without a second run or model
+call. A model response schedules cancellation on a real macrotask before
+output handoff; the test verifies no completed output or capture, eventual
+physical stop and final cleanup. Invalid opening and closing before the first
+advance perform no model dispatch. The encrypted Store reopen and fresh-process
+replay tests now drive this same physical adapter as well.
+
+Verification passed: inference Host owner 24/24 on each of JS, Wasm and native;
+Node inference bridge 35/35 and existing dispatch-owner regressions 13/13.
+The release bridge build, regenerated interfaces, API comparison, Node syntax,
+formatting and diff checks cover this unit. No ignored bundle is committed.
+No push, Linux CI or public Named Result acceptance is claimed.
+
+This adapter is not yet installed by `embedded-local.mjs`. Its component
+fixtures use identity-only policy dependencies, not a runnable public policy.
+The pending ObservationSet contract correction, production dependency and
+policy admission, public startup registration, and final Result publication
+remain necessary. The supervisor integration does not supply an adoption SHA
+or a completed public Host startup example to B.
+
+## Checked compilation prefix
+
+### Owned inference template material
+
+The checked Infer acquisition graph now feeds the existing Bound Invocation
+Template and execution-material owners. Its template requires the registered
+`actql-infer/0.1` barrier schema, not the authored ModelTask contract as a
+profile substitute. Program, parameter, environment, opaque-binding and pinned
+compiler identities come from the original prepared owner. The existing
+Result-plan issuer supplies the complete named Result map; no new Result
+identity or publication path is introduced.
+
+An equal serialized Program with a different owner cannot use this graph.
+Saved material is reissued under the checked graph and current manifests;
+changed Template CIDs, missing Result names and changed Program bodies reject.
+Strict mode and empty input still require the Infer profile. Existing pure
+task templates continue to emit their empty profile list.
+
+These are compilation prerequisites, not an admitted executable Plan. The
+private graph's limit and egress references still lack admitted bodies, and
+the template deliberately retains `source_evidence: unbound`. It supplies
+neither future model evidence nor a fabricated call-slot identity. The normal
+Client Run compiler/dispatch/publication connection and B's committed Named
+Result acceptance remain unfinished. The canonical call-slot definition
+requested in the working report is still awaiting approval and unchanged.
+
+The Node bridge exposes this material under the same ordinary Program
+preparation. Its component test independently hashes the template, checks the
+registered profile, original input mapping and Result name, and refuses an
+equal foreign owner. It does not construct internal preparation state or
+claim a public Host startup example.
+
+All 30 `run_publication_host` tests passed on each of JS, Wasm and native,
+including the three new Infer material tests and existing pure compilation
+regressions. The rebuilt Node component bridge passed all 21 tests. Generated
+interfaces were refreshed from the integrated source; formatting, JavaScript
+syntax and whitespace checks passed. Complete CI jobs, Linux CI, packed
+Embedded Local/HTTP acceptance and committed Named Result reading did not run.
+
+### Owned item-capacity compilation
+
+The private Infer graph retains item-capacity material derived from its actual
+checked Program. Applicable input row proofs are reidentified under the same
+Unit owners and bound to the Infer occurrence through the registered
+`actql.bound.infer-distinct-keys` law. Host and installed ModelTask ceilings
+remain distinct candidates. Literal and supplied-parameter guards retain their
+actual declaration owner; the minimum is not inferred from a successful model
+execution or an observed input count.
+
+Preparation uses an explicit work/encoding budget and happens during graph
+compilation, not inside bounded execution start. Foreign Program owners,
+non-Infer steps and insufficient preparation work do not issue this material.
+The normal Program fixtures independently expect one key from one input row,
+two from three rows under the ModelTask ceiling, one under the Host ceiling,
+and zero for empty input. They also check the guard witness and its supplied
+parameter value.
+
+This is not a complete executable inference Plan. Its existing item candidates
+do not admit a language-ceiling body, retry/backoff/media dependencies, the
+physical envelope or current egress authority. In particular, the barrier's
+`limits_cid` is not replaced by the item-limit CID. The private graph retains
+the checked material for subsequent Plan fact and envelope compilation.
+
+The public Host handoff remains unavailable. Formal model evidence requires
+the missing canonical call-slot preimage to be resolved; the current private
+capture must not be relabeled as that evidence. A still owns the remaining
+Plan, common dispatch-owner and publication connection. B cannot start packed
+INFER acceptance from the component bridge or a placeholder evidence CID.
+
+Focused capacity/prefix/graph tests passed 7/7 on JS, Wasm and native. The
+rebuilt Node bridge passed 19/19, including one actual provider call for the
+successful row and zero calls for rejected item limits. The first Node run
+omitted the pinned toolchain environment and failed its fixture precondition;
+the complete rerun with `MOON_HOME` and its `bin` on `PATH` passed. Generated
+interfaces were refreshed from source. These results are not public Host,
+committed Named Result, complete core-gate or Linux CI evidence.
+
+### Bounded mapped-request preflight
+
+The model owner prepares every mapped request before its first provider call.
+Key and private slot encoding, input collection and structured input measurement
+advance through the existing incremental wire cursor. A later row that exceeds
+the byte ceiling rejects the execution with zero calls, even when the earlier
+row fits. The ceiling is read from the same prepared Program's checked Host
+policy; a physical envelope can tighten it but cannot widen it.
+
+Each slot reserves request and response retention together before preflight.
+Cancellation retains mapped-input custody and those reservations until physical
+stop and cleanup. The normal Program test cancels a 1,024-element request from
+an actual JavaScript macrotask during incremental encoding, before any provider
+call, capture or completed output. Cleanup releases retained and reserved
+charges without refunding attempts or dispatching again. Provider callbacks
+observe all requests prepared before the first call.
+
+Independent boundaries are 16 mapped-input JSON bytes for `{"text":"hello"}`,
+48 bytes for `{"text":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]}`,
+and 17 or 50 model transitions respectively for their two-field responses.
+Exact and one-short cases check typed failures, provider counts and custody.
+Nested response work is now `2 * n + 18`, including request preflight. With
+the fixture Host's 1,000-byte request and 65,536-byte response ceilings, the
+one-row reservation is 66,536 bytes. The old response-only bounds below are
+historical results from the preceding implementation unit, not current limits.
+
+Focused checks passed on JS, Wasm and native: twelve `client_infer_host` tests,
+two `model_execution` tests and seven Infer-focused `run_publication_host`
+tests per target. The rebuilt Node bridge passed all 21 tests, including both
+request and response cancellation through actual macrotask delivery.
+
+These measured bytes describe mapped-input JSON, not an exact physical adapter
+request, prompt/tokenizer/media plan, semantic request or model-egress authority.
+The existing scalar encoding and private identity bounds remain unchanged.
+The private slot spelling is not a registered public call-slot identity.
+Executable Plan admission, common Run dispatch, formal captures/replay and
+committed Named Result reading still need their production connection. This
+unit supplies no adoption-ready public Host SHA or Linux CI evidence.
+
+### Historical response-admission boundary
+
+The model owner now reserves one attempt per resume, completes all slot
+reservations before dispatch, and validates a returned value with the existing
+incremental runtime admission cursor. Pending responses remain private and
+owned until validation succeeds or cleanup completes. Each transition consumes
+cumulative work; a one-short work limit cannot accept an incomplete response.
+The actual provider-reported model, request ID, token counts and observation
+time are retained rather than replacing them with the authored selector.
+
+Independent one-row bounds are nine model transitions for the two-field
+response and `2 * n + 10` transitions for a response containing `n` array
+elements. Exact and one-short work/value-node cases preserve one provider call.
+A 4,096-element response stops during child admission after an actual macrotask
+cancellation, before capture or output completion. Cleanup releases the existing
+ledger reservations and input use without dispatching again. A two-row attempt
+limit of one rejects during reservation with zero provider calls and retains
+partial reservations until cleanup. Read-only ledger observations establish
+that transfer, retention, execution and held charges are zero after reclamation;
+the cumulative attempt count is not refunded.
+
+The focused checks passed on JS, Wasm and native: eight `client_infer_host`
+tests and two `model_execution` tests per target. The rebuilt Node bridge passed
+all 19 `infer-owner-checker` tests. Public interfaces were regenerated, and
+formatting and whitespace checks passed. These are component results, not
+public Host or Linux CI acceptance. Provider callbacks, final capture copying
+and scalar admission retain their existing bounds; this change does not prove
+fully asynchronous provider I/O or every possible non-interruptible operation.
+The capture JSON and same-owner replay remain provisional, not formal versioned
+Run evidence or durable replay. The public handoff status above is unchanged.
+
+### Dispatch item admission
+
+The composed execution reads `max_infer_items` from the original prepared
+Program's checked Host capacity policy. An adapter envelope may tighten this
+ceiling, never widen it. INPUT lowering retains literal or parameter-bound
+`max_items` under the exact parameter declaration owner, and the common model
+owner checks that guard after key admission but before attempt reservation or
+provider dispatch. Invalid positive-count bindings retain their typed cause
+and authored guard location.
+
+Normal two-row Programs exercise an independently chosen exact boundary of
+two slots and a one-short boundary of one slot. The short Host ceiling,
+literal guard and bound parameter guard cause `Model(ItemLimit)`, zero
+provider calls, no completed output, and idempotent cleanup. This is physical
+item admission, not the full resolved-limit witness closure, adapter preflight
+or model-egress authority of an executable inference Plan. The public Host
+handoff remains unavailable until those and committed publication are connected.
+
+Focused item-admission checks passed on JS, Wasm and native: four
+`client_infer_host` tests, four `infer_inputs_wbtest` tests and two
+`model_execution` tests per target. The rebuilt Node bridge passed all 18
+`infer-owner-checker` tests. Formatting and whitespace checks passed.
+These results do not cover public Run acceptance, committed Named Results,
+Linux CI or an adoption-ready handoff to the Frontend owner.
+
+### Prefix compilation
+
+Compilation and bounded execution now share
+`run_publication_host.client_infer_prefix_owner`. The initial source-free,
+single-task shape selects an actual Infer's adjacent Relation producer from
+the original bound Program; wrong task, wrong step and non-Relation inputs
+do not select a prefix. The fragment compiler prepares only those pure steps
+and seals their actual Relation output contract. Ordinary task compilation
+retains its existing full-sequence preparation and validation.
+
+`issue_prepared_client_infer_prefix_fragment` does not issue an Executable
+Plan or claim to support the acquisition. The original whole-task compiler
+still rejects Infer as a pure kernel. The narrow fixture compares this
+fragment with an independently prepared pure Program: their pipelines,
+logical CIDs and output contracts agree. Strict versus outcomes mode does
+not change the adjacent AoA fragment. Two prefix steps fit a two-step
+preparation limit; one step fails with `SequenceLimit`. Invalid task/step,
+encoding limits and accidental whole-task AoA compilation are also refused.
+
+The next connection is the acquisition node and its execution envelope, not
+another Relation evaluator. `client_task_plan_graph` currently assumes one
+AoA node per task; executable Plan and invocation-template issuance currently
+emit empty required-profile lists. These sites must bind the installed model
+contract and acquisition inputs before the existing Client dispatch owner
+can start this Program. The pinned barrier manifest now contains the
+inference barrier declared by Language's typed-boundary table; its presence
+does not admit retry, prompt, media or egress dependency bodies. This remains A's
+common integration work, not an external B or C implementation blocker.
+
+The public Host handoff is still not ready. Prefix identity and component
+output-export checks do not prove Run acceptance, committed Named Result
+reading, current egress authority or versioned capture/replay.
+
+Narrow prefix and existing Carrier task-compilation tests pass 4/4 on each
+of JS, Wasm and native. The normal Program/model bridge passes 12/12, including
+the prefix identity comparison, and Node assembly tests pass 8/8. The regular
+and RelA-only assembly freshness checks pass. Public interface regeneration
+is checked separately; complete CI jobs and Linux CI have not run for this
+implementation unit.
+
+These are unfinished integration work, not an unspecified Engine redesign
+or a claim that C must implement a replacement Run state machine. The old
+synchronous fixture helper has been removed: it captured Values directly,
+skipped the real asserted input target and returned observation JSON rather
+than a public Result. Only the full Node bridge imports the model kernel;
+the RelA-only bridge keeps its existing dependency separation.
+
+The preceding input unit passed 19/19 on each target, seven normal Program/model
+bridge tests and eight Node assembly tests. The subsequent output unit is
+verified separately; the committed SHA and commands are recorded in its commit
+and the working report. Output import, original admitted output, completion,
+Infer preparation and model tests passed 22/22 on each target. The additional
+JS exact fixed-input test passed, the normal Program/model bridge passed 11/11,
+and Node assembly tests passed 8/8. Complete CI jobs, Linux CI, durable
+capture/replay and committed Named Result reading are not established by these
+component tests.
+
+## Object and property execution
+
+The existing checked expression forms now reach shared typed lowering and
+Relation evaluation. Object members follow the contract's canonical UTF-16
+field order. Property access carries a checked field ordinal; a nullable
+receiver returns typed NULL without treating missing fields as NULL.
+
+Ordered reference evidence includes every demanded child, with RFC 6901
+escaping and UTF-8 pointer accounting. Closed-object construction uses the
+existing immutable value builder and logical root owner. Temporary byte and
+workspace reservations precede append; partial builders and roots remain
+owned until completion or cleanup. Work is not refunded on cancellation.
+
+Constructed objects and borrowed aggregate operands of object/property
+expressions use the existing resumable measurement cursor. Reusing an exact
+private root measurement avoids rescanning an immutable operand but retains
+its full semantic work charge. This is not a claim that every existing
+expression or scalar string operation has been changed.
+
+The standard retained Host fixtures publish the KEEP-shaped object and its
+filtered property projection, then read all three Named Results through the
+real publication Store. Both consumers use the ordinary checked Relation
+task path. Input rows and expectations are authored independently:
+
+```json
+[
+  {"id":"a","note":"urgent","assessment":{
+    "input_key":{"id":"a"},"outcome":"ok",
+    "value":{"risk":"high","reason":null}}},
+  {"id":"b","note":null,"assessment":{
+    "input_key":{"id":"b"},"outcome":"failed:refusal","value":null}}
+]
+```
+
+Filtering `assessment.outcome = 'ok'` and
+`assessment.value.risk = 'high'` yields `[{"id":"a","risk":"high"}]`.
+Values supplies already captured-shaped rows in these tests. It does not
+stand in for inference dispatch, acquisition capture, or replay evidence.
+
+Minimal common Host regression:
+
+```sh
+moon build --target js --release \
+  src/connectors_builtin_node src/connectors/duckdb/conformance
+node --test --test-name-pattern='retained object projection' \
+  adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs
+```
+
+## Remaining common inference implementation
+
+| Boundary | Current limitation | Required implementation |
+| --- | --- | --- |
+| ModelTask admission | Explicit Program preparation binds the admitted task inventory; dependency and execution preflight remain absent | Resolve prompt, retry, backoff and attachment dependencies before execution |
+| Checked operation | Pipeline and topology preparation retain the typed infer owner, INPUT mappings and produced keys; complete Program execution remains refused | Close acquisition capacities, success refinement and runtime obligations without lowering acquisition as pure computation |
+| Barrier execution | The private bounded owner connects the real checked Relation prefix to a registered ModelTask; standard Host admission has not installed it | Admit fixed request and dependency bodies, adapter plans and egress before dispatch; bind formal slot and attempt evidence |
+| Capture and replay | Existing publication code admits model evidence, but no inference owner produces it | Seal classified slot outcomes and real response/issuer evidence; replay captured observations without provider calls |
+| Public Host | The current dispatch owner opens source-free or SourceView acquisition configurations | Connect the typed inference barrier to the existing Run admission, dispatch and publication owners; do not add a second Host state machine |
+
+A owns the common ModelTask and infer implementation above. B retains parser,
+source construction, independent Programs and packed Local/HTTP acceptance.
+Any necessary Host adapter connection must use C's existing dispatch owner.
+No dependency on an unspecified future Engine redesign is claimed here.
+
+The independent Values fixture declares `key: id`, but Values itself does
+not establish candidate-key evidence in the current checker. Its unique
+literal rows are not a compiler-proven key. Acceptance input needs an
+existing key proof, for example an `assert_rows.unique_by` producer or a
+keyed input declaration. The expected model and Result values stay unchanged;
+neither the frontend nor the infer owner may invent that proof from a name.
+
+`run_publication/captured_run_issuance.mbt:captured_model_evidence` and
+`run_publication/evidence_chain.mbt` already provide model evidence checks;
+they must not be replaced by a new capture ledger. Existing
+`actql.model_task/0.1` and `actql-model-slot-capture/0.1` bodies remain the
+contract baseline. Checker acceptance will not be reported as executable
+inference. The first runtime handoff can cover one real Host-dispatched row
+while the remaining KEEP and replay acceptance is developed in parallel.
+Capture and replay remain requirements for completing the inference unit.
+
+## Bounded physical composition
+
+`client_infer_host` now composes the existing Local prefix, mapped input,
+ModelTask session and incremental output importer under one physical owner.
+It retains the original prepared Program rather than accepting finished
+input rows. Each advance runs one child only, even at a phase transition;
+work accumulates across children and is never reset with a child cursor.
+The package is registered in the full Node bridge only. The RelA-only
+bridge does not import it or the model kernel.
+
+Completion has an explicit final yield before output handoff. Cancellation
+at that yield or during a response callback prevents output acquisition.
+Reentrant advance is rejected, and cleanup waits for physical settlement.
+Two output uses retain independent custody: releasing one cannot invalidate
+the other, and cleanup does not dispatch another model call. This physical
+owner does not replace Run admission, dispatch journaling or publication.
+
+The new normal-Program fixtures pass three tests on each of JS, Wasm and
+native. They cover the actual prefix, one provider invocation, independent
+output uses, prefix cancellation and cancellation at the final yield.
+Node tests also yield through `setImmediate` between advances; they do not
+claim cancellation delivery during a synchronous foreign provider call.
+Admission data is projected from existing independent vectors, formatted
+with the pinned formatter, and checked for freshness by the Node suite.
+Expected values and finite poll ceilings are authored separately.
+
+This remains a component connection. The public Host has not yet derived
+and admitted the fixture's fixed request, produced formal model evidence,
+or committed its Named Result. B must not adopt this commit as the requested
+public Host execution SHA. Durable capture/replay and KEEP acceptance remain
+unfinished; the provisional capture tests do not discharge those contracts.
+
+## Mapped-row preparation
+
+`execution_relation/infer_preflight.mbt` binds captured or cell-readable
+completed rows to the exact checked schema, bound invocation and input target.
+Its shared bounded session prepares all keys before evaluating INPUT mappings.
+It reuses the Relation merge sorter and resumable typed key comparator, rejects
+duplicate and invalid keys, and visits rows in canonical typed key order.
+All mappings share cumulative control, workspace and existing logical root
+budgets. Only declared input roles are returned; unrelated columns are not
+model inputs.
+
+Key scanning, sort initialization, comparisons, snapshots and mapping
+transitions run inside resume. Cancellation preserves the borrowed input;
+accepted mapped rows have separate cleanup custody. The completed-input path
+resolves physical column positions from the existing completion rather than
+assuming that its stored columns are in checked-schema order. A foreign
+invocation, schema or target cannot substitute for the exact binding.
+Detached expression roots remain with preparation during receiving-contract
+validation, then transfer to the accepted mapped-row owner. Failure and
+cancellation release pending roots without refunding work. Preparing a second
+row or role does not reset logical work or live-value accounting.
+
+This is row preparation, not a model dispatch plan. Its `max_items` is a
+preparation capacity ceiling, not the final resolved Contract/Host/author
+limit. It does not yet admit prompt/retry/media dependencies, classification,
+authority, exact adapter requests, tokenizer results or token/cost reservations.
+Expression evaluation enforces intermediate value, live-root and work limits
+through the existing owner. Existing scalar text admission/rechecking
+can scan a scalar synchronously; the long-prefix test establishes bounded key
+comparison, not universal boundedness of all input validation. These gaps must
+not be hidden by treating successful preparation as permission to dispatch.
+
+The affected preparation, mapping, object/property and shared-sort regressions
+passed 24/24 on each of JS, Wasm and native. The complete `execution_relation`
+JS suite passed 1,075/1,075. Tests include duplicate/NULL keys, an independently
+derived one-row work bound of 61 and workspace peak of 13, exact/one-short
+limits, cancellation at four preparation phases and during a long-prefix
+comparison, borrowed-source availability, empty input and final cleanup.
+Additional tests fix two scalar mappings at 16 logical work units and 16
+live encoded bytes, check the one-short limits, and reject a 30-byte demanded
+intermediate object under a 29-byte ceiling even though the final scalar fits.
+These are common-core tests, not timer-delivered Host cancellation or model
+capture/replay. No public Host inference adoption SHA is available yet.
+
+There is not yet a SHA on this branch at which B's entire independent INFER
+Program executes. Its successful packed acceptance remains pending. The
+object/property tests are separate partial evidence, not a completed infer
+unit. No external model service has been called.
+
+## Local verification of the expression change
+
+The pinned MoonBit toolchain and Node 22 were used. The final source passed:
+
+- Object/property execution regressions on JS, Wasm and native: 8/8 each.
+  These include nullable receivers, nested construction, independent exact
+  and one-short work/live/value/workspace bounds, cancellation during
+  construction and measurement, and a large borrowed object under coalesce.
+- Complete `lowering_relation`, `execution_relation` and `query_program`
+  JS tests: 1,366/1,366.
+- Rebuilt standard retained Host object/property tests: 2/2. All three
+  Named Results were read and compared; normal owner cleanup left no retained
+  resources or execution reservations.
+- Public interfaces matched JS/Wasm/native and the regenerated interface.
+- `moon fmt --check` and `git diff --check` passed.
+
+Before the final nested-context adjustment, the same three package suites
+also passed 1,366/1,366 on Wasm and native. The final adjustment was rerun
+through the eight affected execution regressions on all three targets,
+the complete JS package suites, and both Host cases. This earlier broader
+run is not reported as a full final-source Wasm/native suite.
+
+The initial large-object fixture had a missing closed-contract flag and
+used a small test parser limit; correcting fixture admission resolved those
+test setup failures. Full lint/Core/DuckDB jobs, successful packed inference,
+Linux CI and external provider acceptance have not been run for this unit.
+
+## ModelTask contract admission
+
+`check_environment/model_tasks.mbt` now checks every supplied ModelTask,
+including unused declarations. It recomputes the task self-CID and both
+embedded schema CIDs, reads checked non-null closed input/output objects,
+validates generation and data handling, and rejects duplicate task selectors.
+Nullable object members and absent optional limits are preserved. Lookups
+retain the exact admitted environment; a same-CID foreign member is not an
+interchangeable owner. Unknown classification never satisfies the task's
+accepted-classification test. That test is compatibility, not Host authority.
+
+`check_environment/model_execution.mbt` reads the registered
+`actql-model-execution-contract/0.1` body. It checks canonical bytes, self-CID,
+the exact admitted task reference and all six finite execution ceilings.
+Retry-classification, backoff and media contract CIDs remain unresolved
+dependencies. Reading this body does not authorize retry, media access or
+model dispatch. Preparation uses cumulative body, value-contract and work
+limits; subtree hashing and typed reconstruction are charged separately.
+
+The task and execution-contract identity fixtures use independent Node crypto
+vectors. Regression coverage includes missing required fields, stale inner
+CIDs under a freshly hashed environment, duplicate selectors, unsafe or
+invalid settings, exact/one-short preparation limits, closed object contracts,
+nullable success members and foreign environment handles.
+
+This is a foundation for the shared inference owner, not a completed
+acquisition path. The Program checker still refuses `infer` until checked
+execution, capture and replay are connected. No B fixture was marked as a
+successful packed inference, and no external model was called.
+
+The complete `check_environment` package passed 201/201 tests on each of
+JS, Wasm and native after adding the readers and regressions. After the
+final typed-reconstruction precharge, all 201 JS tests and the nine affected
+regressions on Wasm and native passed again. `moon fmt --check` and
+`git diff --check` passed. The generated public interface passed
+`scripts/check-moonbit-api.mjs` across JS, Wasm and native.
+Full affected CI jobs and Linux CI remain unverified for this unit.
+
+## Typed inference binding
+
+The checked inference owner binds the exact admitted ModelTask, complete input
+schema, candidate-key witness and typed INPUT expressions. It requires all
+and only the closed task input roles, checks assignment compatibility and
+retains expression validation obligations. Qualified Relation scopes use the
+existing schema and expression scope rules, not flattened field names.
+
+An explicit key must equal a whole non-null scalar candidate tuple. Subsets,
+supersets and repeated components are rejected. Authored tuple order remains
+a separate sidecar from canonical schema order. Omission requires a unique
+candidate tuple, including alias alternatives; duplicate witnesses for the
+same tuple remain retained rather than creating false ambiguity. Evidence
+from an equal-shaped but independently admitted input is rejected. The
+original witness keeps its producer and pending runtime validation obligations.
+
+The output schema contains only the selected key fields and fixed outcome
+and value roles. The success object retains its original child nullability;
+only the outer value becomes nullable for failure outcomes. This schema alone
+is neither a produced-key proof nor an outcome-dependent refinement proof.
+
+`relation_typing/check_count_value` exposes the existing count rule for the
+infer author guard. It retains the exact parameter declaration owner and
+deferred positive-safe-integer validation. No separate parameter parser,
+resolved limit or Host authority is invented. Authored minimum classification
+and result mode are likewise retained without granting model egress.
+
+The final `infer_typing` suite passed 8/8 on JS, Wasm and native. The unchanged
+`relation_typing` suite, including the new shared count-guard regression,
+passed 274/274 on each target before the final qualified-scope test was added.
+These are typing and admission tests, not model dispatch or packed acceptance.
+Complete Program closure, barrier preflight, call execution, capture, replay and
+the existing Host dispatch connection remain unfinished. No external model
+service has been called.
+
+## Shared INPUT lowering and evaluation
+
+`lowering_relation/prepare_infer_inputs` now prepares each admitted INPUT
+mapping using the existing expression lowerer. Relation and acquisition
+bindings share one implementation, including profile admission, typed object
+fields, checked property ordinals, source locations and cumulative limits.
+No second expression evaluator is added.
+
+The infer owner retains its exact parameter declaration owner. Binding checks
+use the same helper as ordinary Relation preparation: an equal-shaped foreign
+declaration or missing required binding cannot substitute for it. Preparation
+charges input entries, field resolution and expression work against one
+budget rather than resetting the allowance for each role. The returned owner
+does not admit call slots, classification, adapter transport or model access.
+
+The mapped field, nested object/property and nullable parameter fixtures use
+the existing resumable expression execution. Independent expectations cover
+the existing 0.1 expression wire, string and NULL values, exact/one-short
+preparation work, a foreign binding owner, and cancellation without destroying
+the caller-owned input. These are input-expression tests, not a model call,
+all-request preflight, capture or replay.
+
+Verification of this source change:
+
+- Complete `infer_typing`, `lowering_relation` and `execution_relation` JS
+  suites: 1,294/1,294.
+- Affected infer, parameter binding, expression lowering and object/property
+  execution regressions: 38/38 on Wasm and 38/38 on native.
+- Public interfaces regenerated from the integrated sources on all three
+  targets; formatting passed.
+
+## First runtime handoff
+
+B's committed connection audit is
+`0996714dfa283c428d9feb1e77f869ab94f9cd98`,
+`docs/reviews/2026-10-01-infer-owner-connection-readiness.md` on B's branch.
+It was inspected without adopting or modifying B's source or expectations.
+
+The first adoption SHA must run the one-row INFER through the real public
+Host. It will include a reproducible startup and deterministic physical
+provider registration example, exact dependency bodies, input key admission,
+finite limits, and an explicit list of unsupported forms. A standalone typed
+owner or an injected finished Result does not meet that handoff condition.
+
+The four remaining connections are ordinary Program inference admission,
+produced key evidence for KEEP, physical ModelTask dispatch under the current
+Host owner, and capture/replay with no replacement model execution. The first
+Host connection can be handed off before the complete KEEP/replay matrix,
+but those unfinished guarantees must remain visible. There is still no
+adoptable full-Program execution SHA or public model registration example.
+
+## Produced inference key evidence
+
+The checked inference implementation now lives alongside the existing key
+producer owners in `relation_evidence/infer_check.mbt`. `infer_typing` delegates
+to that same opaque owner through a thin facade; it has no second checker.
+Its type aliases expose the underlying shared evidence types. This dependency
+placement allows the output key to retain the exact checked infer producer,
+rather than reconstructing an operation from its source, schema or CID.
+
+`infer_result_keys` preserves only the selected tuple, including its authored
+order, under the existing conditional `ValidateKeyProducer` obligation. The
+original input witness remains an explicit dependency with its physical key
+validation obligations. The output key is neither an input declaration nor
+an assertion that any model calls, captures or publication have completed.
+The eventual execution owner must fulfill the input and producer obligations.
+
+The new KEEP join regression consumes this produced key through the existing
+`select_join_key` boundary. It verifies exact producer and input dependencies,
+fixed field names, exact/one-short metadata budgets, and rejection of the
+original input key or another infer's equal-shaped output key. It does not
+yet execute the ordinary Program or prove a runtime one-to-one join.
+
+The complete `relation_evidence` and `infer_typing` suites, plus the mapped
+input execution regressions, passed 32/32 on each of JS, Wasm and native.
+The first test version incorrectly expected key selection to return the same
+outer witness allocation. Selection legitimately projects a witness; the
+correct regression checks the unchanged exact producer and records owners.
+No production admission check was weakened to resolve that fixture error.
+
+## Ordinary Program topology
+
+Program topology preparation now accepts an explicitly admitted ModelTask
+inventory. INFER retains its exact input edge, unique alias, checked INPUT
+expressions, parameter declarations, source locations and produced key. KEEP
+joins select that evidence through the existing join boundary. The output
+order witness is canonical typed key order, not source or provider order.
+When local environment inputs are supplied, an equal-CID foreign task
+environment is rejected rather than substituted for their owner.
+
+This preparation does not certify full Program execution. INFER has no pure
+operation profile or pure obligations; its acquisition obligations still need
+an execution owner. Pure AoA lowering rejects the infer step explicitly, and
+core contract closure reports `UnclosedModelAcquisition`. Static publication
+policy does not invent model provenance. These refusals remain until real
+dispatch and capture are connected.
+
+The pipeline, stage topology, inference typing and mapped-input execution
+suites passed 415/415 tests on each of JS, Wasm and native. The fixed pipeline
+corpus was regenerated from its source, and its Node tests passed 2/2. These
+are preparation and expression checks, not public Host INFER acceptance.
+
+## KEEP projection connection
+
+B's `infer-keep/kept.expected-program.json` at `0996714df` puts expression
+objects such as `{"join_field":{"side":"right","name":"id"}}` in
+`join.select`. The current common grammar requires qualified field strings
+such as `"right.id"`. A correctly keyed INFER followed by the string form
+passes topology preparation; the expression form reports `Join(InvalidBody)`.
+The regression preserves that grammar rather than widening it for one
+frontend. B owns the source-construction correction; its independent expected
+Result values are unchanged. A first KEEP-free Host example can proceed
+without waiting for that correction.
+
+## Outstanding executable connection
+
+`client-dispatch-owner.mjs` currently opens source-free computation or the
+existing SourceView acquisition path. ModelTask dispatch must join that Run
+owner without impersonating a SourceView. The checked DAG currently owns
+pure prepared task sequences and captured SourceView roots, not a typed
+mid-pipeline model barrier. All mapped requests, keys, finite adapter plans
+and reservations must be ready before the first physical call. The existing
+model capture and publication evidence checks remain authoritative.
+
+There is still no SHA that runs the requested one-row public Host INFER,
+no executable provider registration example, and no capture/replay completion
+claim. The foundation commits are not an adoption handoff for B.
+
+## Inference barrier graph compilation
+
+The compiler now selects the same checked pure prefix used by bounded input
+execution, admits the execution contract against that exact installed
+ModelTask, and emits an `acquisition_barrier` rather than an AoA Infer opcode.
+The new `ClientInferPlanGraph` is private compilation material, not a Run
+admission, ModelTask dispatch ticket, or completed output.
+
+The graph binds the pure input fragment, receiving and producing Relation
+contracts, canonical bound mapping expressions, authored key tuple, outcome
+mode, execution contract, and referenced limits and egress requirements.
+Result roots use the actual model-output port; partial projections reuse the
+existing checked Result transformation. A fresh installation of an equal
+ModelTask CID cannot substitute for the checked owner.
+
+The already-declared inference barrier had no registered machine body. Its
+closed body reuses the existing model-outcome Plan fields, adds the adjacent
+input fragment identity, and uses the barrier self-CID field. This fills a
+structural contract gap on the existing 0.1 baseline; it does not add source
+syntax or change model outcomes. The production registry, compiler manifest,
+normative owner references, generated metadata, and dependent Values Run
+vector move together. The historical Values vector is retained; the current
+Run CID is recomputed from an independent, hand-assembled preimage.
+
+The graph tests intentionally use identity-only retry, limits, and egress
+dependencies. Those pins are not executable Host configuration. Their bodies,
+current classification and authorization, and finite adapter preflight still
+need admission before the compiler material can enter a runnable Plan.
+
+The completion boundary now asks lowering to verify the exact Infer output
+binding instead of traversing a generic frontend payload in the execution
+engine. The backend semantic boundary gate remains unchanged.
+
+The next required connection is the admitted inference profile in the common
+Executable Plan and the existing Client dispatch owner, followed by actual
+model observation evidence and committed Named Result publication. There is
+still no adoption-ready public Host SHA or provider startup example for B.
+The provisional capture/replay tests do not establish durable Run replay.
+
+The barrier, prefix binding, Values identity, ModelTask, and execution-contract
+fixtures pass 14 tests on each of JS, Wasm, and native. The normal Program Node
+bridge passes 13 tests, and the independent manifest/Values vectors pass six.
+The unchanged backend semantic-boundary gate passes 49 tests. Full and
+RelA-only Node assembly freshness checks pass.
+
+The specification gate was interrupted while running the existing resource
+audit mutation suite after the preceding specification and boundary checks
+passed. It has not completed; no full specification-gate or Linux CI success
+is claimed for this compilation unit.
+
+## Adopted model slots in ObservationSet
+
+The approved 0.1 correction adds optional `model_slot_capture_cids` to every
+embedded ObservationSet schema. INFER requires the complete adopted-outcome
+inventory, including failures, in saved logical occurrence order followed by
+canonical typed-key order. Zero-key INFER uses an explicit empty array.
+Non-INFER omits the field and retains its existing canonical preimage.
+Successful-response `model_capture_bundle` identities are not substitutes.
+
+The generated protocol parser now also admits the existing Stage-owned
+`model_slot_capture` schema, without defining a second copy. Structural
+binding checks the exact call, task, request, input artifact and key, ordered
+attempt membership, and outcome/response consistency. Observation matching
+rejects missing, duplicate, extra and reordered references. The generic
+source-only Invocation issuer rejects this dedicated field; the model issuer
+requires exact slot matching, the INFER profile, the exact Invocation Template
+and the call's Program definition. The source-only issuer also rejects an
+INFER template when the dedicated array is absent.
+
+Successful saved-bundle records are matched to the successful subset of all
+slot captures. Missing or additional records, duplicate expected calls, wrong
+input/task/request/slot bindings, and mismatched response/output identities
+are rejected. Failed slots do not fabricate entries in the success bundle.
+This compares structural references; actual response content is still
+validated by the existing bounded restoring owner.
+
+This is structural evidence admission, not an executable capture owner.
+Symbolic accounting, authority, policy and outcome roots in independent wire
+vectors do not prove execution or custody. The installing owner must verify
+those referenced records and supply the complete checked call inventory
+before publication. The executable capture-owner and public Host connection
+remain unfinished. No adoption-ready public Host SHA is available for B yet.
+
+The schema pins, normative imports and independent vectors move together.
+Removing only the optional field reproduces the preceding Run Receipt and
+Captured Run schema pins. The touched publication suite passes 188/188 and
+canonical JSON passes 460/460 on each of JS, Wasm and native. Node schema and
+independent-vector tests pass 3/3; existing publication-contract tests pass
+10/10, and protocol-generator tests pass 6/6. The specification gate completed
+successfully after updating the two changed embedded-schema pins. The final
+structural owner guards were additionally checked with the targeted suites
+and canonical gate. These are local checks, not Linux CI or Named Result
+acceptance.
+
+### Execution-owned call inventory
+
+Request preparation now retains the exact formal call body generated before
+dispatch. An opaque accepted capture exposes its call count and indexed call
+in canonical typed-key order, rather than deriving an inventory from a caller
+list or the successful-response bundle. Acquiring the capture checks that the
+prepared rows, requests, captures, observations and responses have matching
+cardinality. Released reads cannot supply this inventory; an independently
+retained read keeps its execution owner alive until release and cleanup.
+
+Binding a saved successful slot now checks its actual execution-owned call
+and checked response/output observation. Freshly sealed mutations reject with
+the exact typed reference error, not merely an unrelated parsing failure.
+Restored component replay derives the same call without dispatch. Tests also
+cover reverse-authored keys, zero keys, invalid indices and independent reads.
+The Node bridge exposes the same opaque reads to the installed capture owner.
+
+Local verification passes on JS, Wasm and native: `client_infer_host` 27/27,
+`model_execution` 2/2 and `run_publication` 188/188. The release Node bridge
+build and its 35/35 component tests pass, including dispatch-supervisor custody,
+real macrotask cancellation and encrypted Store reopen/replay. Interfaces are
+generated from the integrated source; formatting and whitespace checks pass.
+
+This unit does not issue external attempt, accounting, authority or policy
+evidence. Its binding fixtures use symbolic external roots only. The current
+execution capture accepts successful barriers; failure-outcome adoption and
+durable all-slot capture remain unconnected. Public Host registration and
+committed Named Result retrieval also remain unfinished. These local checks
+do not constitute B's public acceptance SHA, Linux CI or permission to push.
+
+## Execution-owned provider outcomes
+
+The model owner now keeps an adopted slot inventory separate from successful
+response records. Each success points to its checked response and invocation
+evidence; each classified no-response failure retains its actual provider
+classification. Ordinary `outcomes` mode emits one keyed row per adopted slot,
+with a NULL value on failure. Seven classified failures are covered. Provider
+cancellation and cancellation delivered during a callback stop the barrier
+instead of fabricating a provider-failure row. Strict mode rejects output at
+the first failed slot; prepared but unattempted keys are not adopted outcomes.
+
+Successful capture bundle shape and identity remain unchanged. Such a bundle
+contains only the successful response subset and is not the full slot list.
+Live opaque replay prepares the ordinary input and verifies every call/key
+again, then reuses successes and failures in canonical key order without a
+provider. Invocation-evidence lookup uses the logical slot position rather
+than a success-subset index. Stored success-only replay still rejects an
+incomplete key inventory; durable replay of failures remains unfinished.
+
+Private `ModelOutcomeRead` custody can retain an adopted prefix after strict
+failure, including preceding successful evidence. Physical stop is required
+before acquiring it. This read is not accepted-output authority or a completed
+ObservationSet. Independent reads keep the original input and observations
+alive through failed cleanup; releasing the last read permits cleanup without
+another model call. Released reads and unattempted slot positions are rejected.
+
+The existing physical ledger gains `mark_transfer_uncertain`. A dispatched
+call with no confirmed wire observation moves its reserved upper bound to
+uncertain transfer usage. Cleanup releases physical retention/execution but
+does not refund this unknown usage. This is not an exact measured charge and
+does not establish the still-missing token, cost or duration accounting. The
+primitive is shared; no model-specific ledger or Run state machine is added.
+
+Independent one-row bounds cover ten model work transitions and 66,536 bytes
+of request/response retention. Exact limits admit the failed outcome; one-short
+rejects with `WorkLimit` or `Ledger(RetentionLimit)` before the callback. Other
+tests cover all-failure rows, mixed replay, exact typed capture mismatches,
+no-response artifacts, cancellation races and strict-prefix custody. Local
+JS/Wasm/native suites pass: inference owner 34/34, model owner 2/2, publication
+188/188 and physical resources 16/16 on each target. Node bridge integration
+passes 36/36, dispatch-owner regressions 13/13, and contribution generation,
+formatting and whitespace checks pass. Generated interfaces are refreshed.
+
+The Node Option-returning legacy provider still represents an absent decoded
+response as `ProviderError`; it is not a full raw-response classifier. These
+tests do not claim actual error-response issuer evidence, retry/backoff/media
+admission, formal adoption/accounting/authority records, durable all-slot
+capture, installed public startup or committed Named Result retrieval. No
+push or Linux CI success is claimed, and no adoption SHA is supplied to B.
+
+## Bounded observation-to-slot verification
+
+The execution owner now verifies the dedicated ObservationSet array against
+its actual accepted call inventory, not a caller-supplied expected count or
+the successful capture subset. Start rejects missing or extra records before
+retaining a child read. Each bounded transition checks one immutable capture
+against the exact logical call, adopted outcome and successful response when
+present, then checks its CID at the same ObservationSet position. A separate
+terminal transition accepts the observation only after every call is matched.
+
+The closed schema rejects duplicate CIDs. The owner rejects reordered records,
+reordered observation references, absent slots and extra identities. Zero-key
+INFER requires an explicit empty array, with zero model invocations. Existing
+non-INFER omission and its preimage are unchanged. A stopped or work-limited
+verifier cannot expose an accepted observation. Its independently retained
+execution read prevents input cleanup until the verifier itself is cleaned;
+cleanup drops only its reference and never clears the caller's record array.
+
+No second complete record or response inventory is copied at start. Installed
+slot and per-record wire-unit ceilings bound structural admission. The exact
+two-slot work bound is three transitions: two matches and terminal acceptance.
+One-short fails with `WorkLimit`, and removing pending records fails with
+`OutputIdentity` rather than accepting a truncated observation.
+
+Local package tests pass on JS, Wasm and native: inference owner 38/38, model
+owner 2/2 and publication 188/188. The matcher fixtures use symbolic external
+attempt, authority, accounting and policy roots explicitly; they test exact
+reference binding, not issuance or truth of those external records. This is
+not yet durable all-slot capture or public Host publication. The public
+handoff, installed dependency admission, formal evidence owners and Named
+Result retrieval remain open; no Linux CI or push result is claimed.
+
+## Persisted adopted-slot component replay
+
+The common model owner now accepts the dedicated ordered ObservationSet
+inventory together with individual `model_slot_capture` records and the
+separate successful-response bundle. No new wire envelope, model cache,
+ledger, retry state machine or Run owner is introduced. Starting the saved
+read retains existing custody without scanning or copying a full inventory.
+Every bounded replay transition binds a slot record to the freshly prepared
+normal Program call and its exact input Artifact, typed key, task and request.
+
+Logical positions include failures; successful-response positions do not.
+Saved failures preserve their classification and NULL value without invoking
+a provider. Successes use the existing incremental response conversion,
+runtime value admission and independently regenerated invocation evidence.
+Missing or extra responses cannot silently alter the adopted inventory.
+Reordered slot records, missing/extra slots, changed inputs and mutation of a
+pending record array fail before accepting output. Zero-key INFER requires
+the explicit empty slot array and no successful response records.
+
+The existing Node physical wrapper selects exactly one physical provider,
+success-only saved read or complete saved-slot read. Replay has no provider
+fallback. The encrypted Store now confirms the registered `model_slot_capture`
+private evidence name using the same exact holding, semantic CID, namespace,
+wire and directory durability checks as existing private evidence. Store
+confirmation is physical custody, not semantic authority or execution proof.
+
+The component Store test retains the accepted execution capture while slot
+confirmation fails, retries only confirmation, then releases the original
+execution. A fresh process authenticates both holdings, prepares the normal
+Program, and returns the literal expected failure row without model dispatch.
+Mismatched wire, evidence name and holding are rejected. Final retirement
+releases all stored bytes. This is not a committed public Named Result test.
+
+Local verification passes on JS, Wasm and native: `client_infer_host` 44/44,
+`model_execution` 2/2 and `run_publication` 188/188 on each target. Six new
+common tests cover seven failure classifications, both mixed response orders,
+missing/extra responses, cancellation, independent custody, explicit zero-key
+inventory and an independently specified ten-transition failure replay bound
+with a one-short `WorkLimit`. The Node inference, Store, dispatch-owner and
+independent ObservationSet suites pass 120/120. The first aggregate Node run
+lacked the pinned toolchain environment; it was rerun with `MOON_HOME` and
+`PATH` set before Node, with all tests passing.
+Generated public interfaces match across all three targets and tracked files;
+formatting and whitespace checks pass. Ignored runtime bundles stay untracked.
+
+These fixtures use symbolic external attempt, authority, accounting, policy
+and outcome roots. They prove saved structural binding and physical custody,
+not truth or issuance of those records. The public connection still requires
+installed model dependency admission in `openInstalledHost`, an inference
+branch in `planFor`, and verified all-slot evidence supplied to the existing
+publication owner rather than the empty model evidence currently supplied by
+`buildLocalPublicationPlan`. No public adoption SHA, startup example, push or
+Linux CI success is claimed for this component unit.
+
+## Exact Run and completed inference invocation binding
+
+The physical inference operation now accepts the existing compiled Run owner
+and its admitted Run Definition before its first advance. The common owner
+rejects a foreign prepared Program, a different checked inference graph, a
+different compiled owner or a different Run Definition. Repeating the same
+binding is idempotent; binding after progress or after reclamation is rejected.
+Already completed component work cannot be retroactively adopted by a Run.
+
+After bounded full-slot verification, the same owner checks that verification
+against the actual model execution, not an equal Program or call CID from a
+second execution. It then checks the containing template, ObservationSet,
+Invocation, installed data-policy reference and actual completed input Artifact.
+This initial source-free route admits one actual input Artifact and no source
+evidence; source-acquiring routes still need their own owners. Zero-key INFER
+retains an explicit empty slot array and its actual empty input Artifact.
+
+Only a completed, uncancelled execution can acquire the invocation binding.
+Rejection acquires no output use. Success retains an independent output use,
+so cleaning the verification or releasing a different consumer does not permit
+premature execution/input cleanup. Releasing the binding revokes its views but
+leaves another consumer alive. Final cleanup neither computes nor dispatches
+again. No whole slot list is traversed or copied by this final binding.
+
+The Node physical wrapper and existing runtime publication control expose this
+boundary without exposing the private compiled token or preparing/compiling
+another Program. The connection order for the installing dispatch owner is:
+
+```js
+const compiled = control.prepareCheckedClientCompiledRun(
+  preparedProgram, 'infer', installedPolicy, inferGraph);
+const runDefinition = control.defineCheckedClientCompiledRun(
+  compiled, admittedRunDefinition);
+const operation = openNodeInferOperation(installedOperation);
+// Transfer operation custody to the existing dispatch owner before advancing.
+operation.bindRun(control, {compiled, runDefinition});
+await operation.run();
+// The capture owner must first authenticate, admit and confirm all evidence.
+const binding = operation.bindInvocation(control, {
+  compiled, runDefinition, verification, invocation, dataPolicyCid,
+});
+// Retain binding until publication settles; release it before final cleanup.
+moon.clientProgramReleaseInferInvocationBinding(binding);
+```
+
+This is a component connection sketch, not an installed public Host startup
+example. `installedPolicy`, the exact inference graph, capture verification,
+model dependencies and physical authority cannot be replaced with symbolic
+roots to claim public acceptance. The ordinary Host still needs the inference
+dispatch branch and verified evidence supplied to its publication owner.
+
+Local verification on the source tree based on
+`007e0ceec9ff9d4af57ac229c2a47ee4e880aa9a` passes:
+
+- JS, Wasm and native: `client_infer_host`, `model_execution` and
+  `run_publication`, 239/239 on each target, including five new common tests.
+- Node inference, dispatch-owner, publication-control, publication fixture
+  and independent model-slot contract suites, 80/80.
+- Release Node bridge build, three-target interface generation, MoonBit
+  public interface consistency, formatting, Node syntax checks and whitespace
+  checks.
+
+The Node test binds before dispatch, verifies successful and failed output
+against literal rows, observes one compile and one provider call, rejects an
+unverified observation and a cloned compiled token, then exercises independent
+binding/consumer release and final cleanup. Common tests also reject another
+execution's verification, a different graph or Run, late Run adoption, changed
+input Artifact, missing/extra inputs, extra source evidence, wrong data policy
+and an Invocation that references a different ObservationSet.
+
+The test records' external roots remain symbolic. They do not establish
+formal attempt adoption, accounting, policy/egress authority or durable private
+evidence truth. This unit does not change canonical contracts or pins, publish
+a Named Result, provide B an adoption SHA, push a branch or claim Linux CI.
+
+## Dispatched transport usage and rejected responses
+
+The source tree based on `30ed07a5e3ed17c3c0f3a46df47a83b5cb9a0f52` had a
+physical accounting gap: a provider's successful return could fail metadata
+or typed-output validation before transfer accounting. Cleanup then released
+that dispatched request's entire wire reservation. Successful validation also
+reported the request/response ceiling as exact transferred bytes, although
+`ModelResponse` contains no actual transport-byte observation.
+
+The existing model owner now moves the admitted envelope into uncertain
+transfer usage immediately before invoking its provider, using the existing
+`physical_resources.mark_transfer_uncertain` operation. Both successful and
+rejected returns preserve that uncertainty. A cancellation received during the
+callback is checked before response admission. No independent ledger, retry
+owner, new error class or wire contract is added. Exact byte reconciliation
+still requires an authenticated physical observation; typed content alone
+cannot establish it.
+
+The new ordinary-Program regressions independently fix the request ceiling at
+1000 bytes and response ceiling at 65536 bytes. With two prepared keys, an
+invalid response identity, wrong output shape, exhausted response-node limit
+or callback cancellation dispatches only the first request. Each case retains
+66536 uncertain bytes, keeps the second request reserved until cleanup, exposes
+no completion/capture, then releases retention and undispatched wire without
+redispatching. A successful response also reports zero exact transferred bytes
+and retains its uncertain envelope through cleanup. Before the production fix,
+the new failure regression rejected `0 != 66536`.
+
+Local verification passes:
+
+- JS, Wasm and native: `client_infer_host`, `model_execution` and
+  `physical_resources`, 69/69 on each target.
+- Release Node bridge build and the existing inference, dispatch-owner,
+  publication-control, publication-fixture and independent model-slot suites,
+  80/80.
+- MoonBit formatting and whitespace checks.
+
+This is not a public Host handoff or proof of model-wide logical accounting.
+The registered slot capture still requires ordered attempt, adopted attempt,
+accounting, authority, policy and outcome roots. Their current structural
+fixtures use symbolic roots; the installed issuer/verifier connection remains
+unfinished. Existing account/Run authorization cannot be replaced by provider
+registration. No Named Result, Linux CI, push or complete INFER claim is made.
+
+## Selected execution-contract capacity
+
+The ordinary scoped inference path now reads the exact execution contract
+retained by its selected graph, after matching that graph to the prepared
+Program and saved occurrence. The installed ledger's attempt and transfer
+limits are narrowed to the minimum of Host capacity and the contract's
+`max_total_attempts` / `max_total_wire_bytes`. Negative installed limits are
+not repaired, and wide safe-integer contract ceilings are narrowed before
+conversion to the ledger's attempt-count representation.
+
+No second reservation owner is introduced. The existing model owner reserves
+all slots before request preparation can dispatch any provider call. A
+partial reservation failure retains its original cleanup responsibility and
+typed `AttemptLimit` or `TransferLimit`. Uncertain dispatched usage still
+survives cleanup; unused reservations do not become dispatched consumption.
+Restored/live replay reserves no new physical attempt or transfer budget.
+
+The execution fixtures formerly reused an identity-reader contract capped at
+2048 bytes while installing a physical envelope of 1000 request bytes plus
+65536 response bytes per key. That body was not sufficient for their claimed
+physical scope. The scoped physical fixtures now explicitly declare a
+133072-byte two-key envelope. The independent contract-reader/compilation
+vector retains its 2048-byte cap. This changes fixture inputs, not registered
+identity domains, pins, output expectations or language semantics.
+
+New common regressions exercise two keys with independently fixed exact
+capacity (two attempts, 133072 wire bytes), one missing attempt, one missing
+wire byte and narrower Host limits. Both one-short cases reject before the
+first callback, expose no completed output/capture and release the retained
+partial reservation without dispatching on cleanup. Before the implementation
+change, the selected contract's one-attempt case incorrectly completed.
+
+The Node physical wrapper also exercises exact and both one-short cases at
+quantum one. Exact execution exports literal expected rows for keys `a` and
+`b`; failures preserve the existing typed causes, dispatch zero calls and
+close without redispatch. This uses ordinary Program preparation and the
+existing bounded prefix, not a manually supplied CompletedOutput.
+
+Local verification on the source tree based on
+`3810349d91bb5acf6b1bc931433dcf36a36470f0` passes:
+
+- JS, Wasm and native: `client_infer_host`, `model_execution`,
+  `physical_resources` and `run_publication_host`, 102/102 on each target.
+- Release Node bridge build; targeted physical-preflight regression; combined
+  inference, dispatch-owner, publication-control, publication-fixture and
+  independent model-slot suites.
+- Three-target interface generation, tracked/public interface consistency,
+  Node syntax, formatting and whitespace checks.
+
+The new graph accessor returns its checked retained contract, not a provider
+permit. Token/cost/duration reservation, exact adapter/tokenizer/media plans,
+current classification/egress authority, formal evidence issuance and public
+Host publication remain required. This change does not make symbolic external
+roots trustworthy, supply B a public acceptance SHA, authorize push or prove
+Linux CI. Canonical specification checks and full CI jobs were not rerun for
+this code-only boundary; no shared wire contract changed.
+
+## Physical token, cost and duration capacity
+
+The existing physical attempt ledger now reserves these three quantities
+atomically with the attempt and wire envelope. The selected execution contract
+narrows installed capacity before bounded input work. Before provider access,
+the common owner moves the reservation to uncertain usage. Reported token
+usage is reconciled once; unavailable cost and duration observations remain
+unknown, including after failure, cancellation and cleanup. Undispatched
+reservations are returned without erasing dispatched usage.
+
+The optional accounting evidence `reservation` records that original envelope.
+Legacy evidence without the field retains its canonical identity. Schema,
+generated readers, independent vectors and specification pins move together.
+The Node bridge passes installed capacity to the common owner; it does not
+create a ledger or issue accounting JSON.
+
+Verification on the working tree based on
+`5c9dbf2880a4ce04e6bf38c099a98408cdb5152c`:
+
+- `physical_resources`, `model_execution`, `client_infer_host` and
+  `run_publication`: JS, Wasm and native, 295 tests on each target.
+- Release Node bridge build and inference-owner tests: 42 passed.
+- Three-target interface generation, MoonBit formatting and whitespace checks.
+- `check:spec` was interrupted during the Local resource-accounting tests
+  after prolonged silence. It did not finish and is not reported as passed.
+  The preceding version, Engine accounting, Connector boundary and coverage
+  checks passed. Linux CI has not run for this change.
+
+This closes a physical accounting component, not public INFER acceptance. The
+ordinary HTTPS submit still refuses installed INFER before Run admission;
+there is no accepted Named Result or B-ready execution SHA yet.
+
+## Ordinary submit execution-contract admission
+
+The original public refusal was the unconditional
+`InstalledInferExecutionNotConnected` guard. Normal HTTPS Client preparation
+and submit now select the installed execution body by the checked ModelTask
+CID, using the original prepared Program owner. The common execution reader
+validates canonical bytes, self-CID, Task binding and explicit ceilings before
+any Run is recorded. No adapter-authored proof or second compiler is used.
+
+The five public regressions pass: missing Task, missing execution body, valid
+execution body with unavailable dependencies, wrong self-CID and foreign Task.
+The last two retain common typed `IdentityMismatch` and `ReferenceMismatch`
+causes in bounded Host diagnostics. All refusal cases assert zero accepted
+requests and zero physical starts. A valid execution body reaches the separate
+`InstalledInferDependenciesNotConnected` refusal; it grants no permission.
+
+| Stage | Connected common owner | Missing input / connection | Change location |
+| --- | --- | --- | --- |
+| Installed Task and execution | `check_environment/model_tasks.mbt`, `model_execution.mbt`; public submit now uses their reader | None for this static body check; this is not execution admission | `installed-model.mjs`, `embedded-local.mjs` |
+| Dependency and egress admission | Typed Task data handling and existing checked Host policy | Admitted prompt/retry/backoff bodies, exact adapter/tokenizer plan and current classification/region checks | Common Model dependency admission, then installed composition |
+| Physical dispatch | `client_infer_dispatch_admission.mbt`, bounded `client_infer_host.Execution`, existing Client dispatch supervisor | Pass admitted installation and current account/clock observations from normal Run start | `client-dispatch-owner.mjs`, `infer-operation.mjs` |
+| Capture and Invocation issuance | `model_execution/attempt_evidence.mbt`, `issued_slot_capture.mbt`, `client_infer_host/observation_issuance.mbt` | Store-confirm actual issued leaves/capture and retain the original compiled Run | Installed inference continuation and existing private Store custody |
+| Named Result and replay | `client_infer_host/result_publication.mbt`, existing durable Result writer and verified slot replay | Connect issued Invocation to normal publication; reopen saved capture under ordinary preparation in a new process | Existing publication plan/dispatch/Store composition |
+
+The request for dependency-body definitions identifies a real contract gap:
+the execution schema names retry and backoff CIDs, but registers no referent
+body schema or validator. CID syntax is not semantic admission. The closed
+0.1 prompt/retry/backoff body proposal is now approved, including provider
+payload validation before dispatch and exact reference/self/hash matching.
+Schema registration and the common verifier are the next implementation unit.
+The first supported physical profile is single-attempt, with empty retry
+classification and backoff lists. Other profiles must fail before Run
+admission until their runtime is supported, without restricting the language.
+
+The affected `run_publication_host` tests pass on JS, Wasm and native (31 on
+each); both Node runtime builds and the public HTTPS suite (5 tests) pass.
+No full local gate rerun or Linux CI is claimed for this connection.
+
+Public dispatch, Named Result success and public fresh-process replay remain
+unverified. The component capture replay tests do not replace this acceptance.
+No public INFER PR, CI success or B handoff is claimed by this entry.
+# Installed dependency admission
+
+The ordinary public SDK-to-HTTP submit route now reads prompt, retry and
+backoff bodies against references from its original checked ModelTask and
+ModelExecutionContract. The common reader checks closed canonical envelopes,
+all three CID subjects, and cumulative byte/node/work limits. The independent
+vectors include exact and one-short boundaries, payload NULL and nested
+`self_cid` data, unknown fields/versions, invalid delays, and retry ordering.
+Nonempty policies remain structurally valid but are unsupported by the initial
+installed single-attempt profile before Run admission.
+
+Registered providers validate payload shape and meaning under a common owner
+bound to the exact selected provider, Task and execution contract. This token
+is capability admission, not execution authority or an attempt observation.
+An equal independently admitted execution cannot substitute for that owner.
+
+Public HTTP regression: 16 tests passed. Invalid bodies, identity substitution,
+unsupported policies and unsupported payloads created zero Runs and invoked
+zero physical providers. The valid case reached selected-provider validation
+and then the explicit `InstalledInferDispatchNotConnected` refusal. This is
+not successful public INFER dispatch or a B-ready handoff. The suite is wired
+into the existing Client job, rather than recorded as a standalone test only.
+
+Common targeted checks passed: Check Environment 222 tests on JS; Model
+Execution plus Run Publication 205 tests on JS; all three packages 427 tests
+on each of Wasm and native. Interfaces were regenerated on all three targets.
+The normative/schema change still requires the complete specification gate;
+no pushed-SHA Linux CI or public capture-to-Result acceptance is claimed here.
+
+Next connection: retain the admitted provider/dependencies in the selected
+Infer plan, supply current account/egress and exact physical preflight to the
+existing common dispatch owner, then persist its issued capture before the
+ordinary Named Result publication. Fresh-process replay and unknown-outcome
+non-redispatch remain required, not deferred out of scope.
+
+## Model dispatch custody in the existing Client supervisor
+
+The installed Client dispatch supervisor now accepts a selected Infer plan
+without opening the source-free Values executor. It preserves the existing
+Run-start claim, physical-start reservation, cancellation signal and cleanup
+entry. The installed model connection must transfer its execution owner before
+advancing. A private model completion is not publication: the supervisor checks
+the existing Store's committed index before recording successful completion.
+
+The dispatch-owner suite passes 18 tests. Five new component cases check exact
+prepared-plan handoff, missing-connection refusal before physical start,
+private-completion refusal, cleanup retry without a second invocation, and
+cancellation while the physical operation has not yet confirmed stop. These
+are supervisor tests, not public ModelTask or Named Result acceptance.
+
+The public submit guard remains in place until current policy and physical
+request preflight are connected to the installed model operation. Consequently
+this change is not a B-ready execution handoff. Public capture, publication
+and fresh-process replay remain the next required vertical acceptance.
+
+The specification gate at `db0c58aa953540870c10a9055012cf3333ff5de3`
+passed its version, Relation, generator and coverage checks before being
+interrupted during the resource-accounting suite to resume implementation.
+It is incomplete, not a successful gate. No Linux CI result is claimed.
+
+## Inference Run plans and retained Named Result exports
+
+`inferTaskRunAdmission` now uses the existing checked Run compiler with the
+original prepared Program and checked model graph. It retains that graph for
+dispatch and can re-admit the saved Run Definition without changing identity.
+It does not issue an empty source-free Observation Set for a model barrier.
+
+`inferTaskPublicationPlan` binds the common observation issuer to the exact
+compiled Run. The existing retention and Result publication plan carries the
+issued model evidence. `inferPublicationExecution` projects common-owned
+Result selections into the ordinary completed-Run publisher. Its Store bridge
+wraps the same MoonBit output exporter; it does not reconstruct rows or use a
+different serializer. Direct Results correctly use the binding-owned Result
+selection even when there is no optional compiled transformation.
+
+The new component regression runs a checked one-row Program through the real
+Model owner, publishes through the real local Store, resolves the committed
+Result, and reads exactly
+`[{"id":"a","outcome":"ok","value":{"reason":null,"risk":"high"}}]`.
+The provider is invoked once. This is not public submit acceptance: the test
+binds the component Run/dispatch owners explicitly and does not demonstrate
+private capture persistence through the installed Run journal.
+
+Store cleanup can retain a Result pin after its writer fails. The existing
+dispatch supervisor now requests execution close, retries the retained Store
+cleanup handle, and then retries execution reclamation. This avoids waiting
+forever for an output pin that only the Store owner can release. The new
+regression confirms no stop observation or reclamation before recovery, and
+no second Compute invocation.
+
+Verification:
+
+- Built `local-node` and `run-host-core` from the integrated source.
+- The combined Node run passed 81 of 82 tests; the sole failure was the
+  fixture checker missing `MOON_HOME` in that shell. That exact fixture test
+  then passed with the pinned toolchain environment.
+- The final dispatch-owner suite passed all 19 tests after the Store-pin
+  cleanup ordering change.
+- The five Values/task plan tests pass. Their retained baseline preimages
+  now rebind both the grammar and barrier manifest from pinned source data.
+  The prior failure came from the changed barrier manifest, not a substituted
+  measured Plan CID; the original baseline hashes remain independently
+  checked, and standalone/installed compiler identities remain equal.
+- MoonBit interfaces were regenerated on JS, Wasm and native; the Node-only
+  Store bridge format and JavaScript syntax checks pass.
+
+The installed public submit still stops at dispatch admission. Current egress
+and exact physical request preflight, private capture custody in the ordinary
+Run journal, public fresh-process replay, final specification/CI gates and the
+B handoff remain incomplete. Component publication does not replace them.
+
+## Bounded physical request preflight
+
+The common Model execution now has an optional physical preparation phase
+between mapped-request preparation and dispatch. The installed adapter yields
+one bounded preparation unit per common advance, retains the exact physical
+payload in its plan, and supplies its request-byte and worst-case quantity
+envelopes. The common owner checks the exact request object, the existing
+per-attempt reservations, and the ModelTask output-token floor. All slots must
+finish preparation before the first call. A late preparation failure fails the
+barrier with zero provider calls; it does not fabricate a failed outcome row.
+
+Cursor/plan bookkeeping reserves 256 execution bytes per slot before any
+cursor is created. This is separate from the existing request/response buffer
+retention reservation, not an RSS measurement. Adapters must fit retained
+payload buffers within that envelope rather than make unreserved copies.
+Cleanup releases at most one physical cursor per call and preserves the
+remaining cursors and reservations when release fails. It never prepares or
+invokes a request again. Unknown dispatched usage retains the existing ledger
+and proof behavior.
+
+The Node operation connects the same preparation owner and yields through the
+event loop between units. Regressions cover exact request binding, late-slot
+refusal, exact/one-short byte, token and metadata envelopes, cancellation after
+positive preparation progress, failed cleanup and retry, and dispatch through
+the retained plan rather than the original unprepared callback. The common
+Model/Infer packages pass 79 tests on each of JS, Wasm and native.
+After rebuilding both runtime packages, the combined public HTTP admission
+and owned Infer Node suites pass 61 tests. These include component capture
+reopen/replay and Result publication, not successful public submit/replay.
+
+The public HTTP valid-body case still reaches
+`InstalledInferDispatchNotConnected` after dependency and payload admission.
+This explicit missing-connection guard is not a typed kernel failure. No Run
+or provider call is made, and this revision is not a successful public INFER
+handoff. The remaining connections are concrete:
+
+| Boundary | Existing owner | Remaining installed connection |
+| --- | --- | --- |
+| Task and dependencies | `readInstalledModelExecution`, `readInstalledModelDependencies`, `admitInstalledModelProvider` | Retain the admitted selection in `embedded-local.mjs` instead of its terminal guard. |
+| Current authority and egress | `bindCheckedClientInferDispatch`, checked ModelTask handling rules | Supply current account and Host-owned input classification/region policy before dispatch. |
+| Physical preparation | `bind_physical_preflight`, `openNodeInferOperation` | Register the selected adapter's bounded physical cursor and quantity envelope in the installed Host. |
+| Dispatch and publication | `client-dispatch-owner.mjs`, `inferTaskRunAdmission`, `inferTaskPublicationPlan` | Install `runInfer` and select the Infer plan from the original prepared Program. |
+| Capture and replay | Common slot/attempt issuer and checked replay readers; encrypted Store | Connect private capture confirmation and recovery to existing Run custody; prove fresh-process public replay without dispatch. |
+
+The new low-level preparation hook is additive and does not grant authority.
+Legacy component execution and replay do not implicitly select an adapter
+preflight. The installed public path must explicitly bind it before its guard
+can be removed. No canonical body or non-INFER preimage changes in this unit.
+No complete specification gate, pushed-SHA CI or public execution completion
+is claimed by these targeted checks.
+
+## Current egress observations at dispatch
+
+The source-free Infer owner now admits Host observations of classification,
+region, provider retention and training use against the exact checked
+ModelTask. Author minimum classification can only strengthen the observed
+classification. Unknown classification is refused. The retained admission is
+bound to the original prepared owner, occurrence and execution contract; it
+is not transferable to another preparation or a replay operation.
+
+The common execution rechecks the observation after current account/clock
+admission and before physical I/O. A changed or missing observation requires
+fresh admission even if its replacement could independently be allowed.
+Refusal preserves the ordinary cleanup owner and does not mark unused
+request quantities as unknown dispatched usage. Acquired input policies are
+not added by this source-free connection.
+
+Portable regressions cover incompatible observations, foreign-owner binding,
+normal dispatch and changed observations after all physical preparation.
+They assert zero calls on refusal, unavailable output/capture, and released
+reservations after cleanup. The client Infer package passes 79 tests on each
+of JS, Wasm and native. After rebuilding `local-node` and `run-host-core`, the
+two targeted Node tests for egress and current account/clock observations
+pass. The Node connector package also passes its JS compilation check.
+
+These are common-owner and adapter checks, not public submit acceptance.
+`embedded-local.mjs` still rejects the otherwise admitted single-attempt
+Program at `InstalledInferDispatchNotConnected`. Installed dispatch, private
+capture custody, public fresh-process replay and the B handoff remain open.
+No additional canonical body, retry behavior or non-INFER preimage is changed
+by this unit. No pushed-SHA CI result is claimed.
+
+## Installed public single-row execution and saved replay
+
+This section supersedes the earlier installed-dispatch gap for registrations
+that provide physical preflight, quantity capacity, and egress observations.
+Legacy registrations still receive the explicit unsupported diagnosis.
+
+The ordinary HTTPS Client prepares and submits a source-free Program with
+Values, `assert_rows`, and INFER. The installed Host retains the exact checked
+selection, uses the existing dispatch owner, and publishes `answer` through
+the ordinary Store publication owner. The independent expected row is:
+
+```json
+[{"id":"a","outcome":"ok","value":{"reason":null,"risk":"high"}}]
+```
+
+`installed-infer-run.mjs` confirms each common-issued attempt, accounting,
+outcome, authority and adopted slot record, then the success bundle,
+ObservationSet and Invocation, in encrypted private holdings. Stable holding
+keys bind the admitted Run, Store, role and slot; these keys are custody
+identities, not execution authority. A retained output use protects the
+completed Relation while failed private persistence is retried. Observation
+issuance keeps the same owner and progress across retries.
+
+The installed plan references the admitted check environment for its limits
+dependency and the exact ModelTask for its handling requirements. Actual
+account, quantity, payload and egress admission remain separate checks; those
+references do not grant permission.
+
+The public restart fixture exits a separate Host process immediately after
+capture confirmation, before publication and cleanup. Re-submitting the same
+request to a new Host reconstructs the checked preparation, verifies saved
+slot and attempt evidence with the common replay reader, and publishes the
+expected row with zero additional model calls. The existing dispatch owner
+supervises replay custody; no physical model start claim is reset.
+
+A second process-exit fixture stops after the response and before the first
+private holding commit. The restarted Host leaves the Run in
+`needs_reconciliation`, calls no model, and exposes no Result. A missing
+capture is not permission to redispatch. Cancelled or terminal failed Runs
+are not reopened by this path.
+
+Focused public tests also cover private-write failure, observation issuance
+interruption before and after completion, and cancellation before publication.
+They retain all eight private evidence roles, keep one original model call,
+and reject Result reads on failure. The separate failed-slot Store/replay
+component test now uses the installed capture reader in its fresh process.
+That component evidence is distinct from the public successful-row fixture.
+
+The executable registration and startup example is in
+`adapters/host-node/installed-infer.test.mjs`, under
+`ordinary public INFER dispatch and capture custody`. It uses
+`openInstalledRemoteHttpHost`, `registerModelProviders`, physical preflight,
+current account/egress observations, and the public remote Client. The model
+is a fixture provider, not an external paid service.
+
+Remaining work includes fixed-SHA handoff and required CI, installed Model
+delegation, broader KEEP/output-key acceptance, and durable accounting custody
+for executions that fail or stop before yielding an accepted completion.
+The response-before-save fixture proves non-reexecution, not recovery of
+usage that was never durably saved. This is not a declaration of complete
+INFER or complete Local Compute coverage.
+
+## Public INFER adoption checkpoint
+
+Source checkpoint: `08e87475c4cabbd52927b91ee89b6792d5fcf635`.
+PR: [#178](https://github.com/actql/actql/pull/178). This is an initial
+integration checkpoint, not merge-ready evidence. The required CI for this
+source is [run 36980415257](https://github.com/actql/actql/actions/runs/36980415257);
+its result was pending when this checkpoint was recorded.
+
+The public path is `connect` -> `client.start` -> checked preparation ->
+installed ModelTask dispatch -> private capture -> `run.result('answer').all()`.
+No test constructs a prepared execution ticket to bypass that path. The model
+provider is deterministic test code; it does not call an external service.
+
+### Smallest executable acceptance
+
+Use the pinned toolchain and root dependencies described in `AGENTS.md`.
+Rebuild the ignored runtime packages from the adopted source before direct
+imports, then run only the public success and fresh-process replay cases:
+
+```sh
+npm run build:runtime-packages -- local-node run-host-core
+node scripts/local-checks.mjs test node -- \
+  --test-name-pattern='^ordinary public INFER dispatch and capture custody: (success|restart-after-capture)$' \
+  adapters/host-node/installed-infer.test.mjs
+```
+
+The same file contains the complete ordinary JSON Program in `oneRowInfer`,
+the installed bodies in `installedDependencyConfiguration('valid')`, and
+HTTPS startup in `installedHost`. These are fixture setup, not product
+exports. For an independent acceptance Program, retain the installed bodies,
+exact Task CID and registration below, and replace the authored Program.
+The fixture installation uses a single-attempt execution contract and empty
+retry/backoff arrays. Each referenced dependency is admitted by the common
+validator; valid JSON alone is insufficient.
+
+### Host and provider registration
+
+`installation` is the admitted configuration produced by the fixture above;
+`taskCid` is its exact ModelTask CID. `authorization` supplies the existing
+Host key and current account configuration. The broad `allow` fixture is
+test-only, not a suggested deployment authorization policy. `authenticate`
+must return the principal covered by that policy. The registration is:
+
+```js
+const registerModelProviders = moon => [{
+  providerId: 'models/fixture',
+  invoke() { throw new Error('UnpreparedProviderCall'); },
+  validatePrompt(actualTask, selector, wire) {
+    return actualTask === taskCid && selector === 'fixture-risk-model' &&
+      JSON.parse(wire).format === 'fixture-risk/0.1';
+  },
+  quantityCapacity: {
+    limits: {tokens: 33n, costUnits: 0n, durationMs: 500n},
+    perAttempt: {tokens: 33n, costUnits: 0n, durationMs: 500n},
+  },
+  observeEgress: () => ({_0: 'public', _1: 'fixture-region',
+    _2: false, _3: false}),
+  physicalPreflight: request => moon.clientProgramModelRequestPreflight(
+    () => ({_0: true, _1: checked(moon.clientProgramModelPhysicalRequestPlan(
+      request, 1000n, 33n, 0n, 500n, () => {
+        calls++;
+        return moon.clientProgramModelResponse(request,
+          '{"reason":null,"risk":"high"}', 'fixture-risk-model',
+          'installed-request', 1n, 2n, new Date().toISOString());
+      }))}), () => true),
+}];
+const host = await openInstalledRemoteHttpHost({directory, authenticate,
+  authorization, modelInstallation: installation, registerModelProviders});
+const server = createServer({key, cert}, host.handler);
+await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+const client = await connect({mode: 'remote',
+  endpoint: `https://127.0.0.1:${server.address().port}/`,
+  token, durability: 'durable'});
+const run = await client.start(program, {requestId: 'public-infer'});
+const terminal = await run.wait();
+const rows = await run.result('answer').all();
+```
+
+Imports, temporary TLS trust, server shutdown and directory cleanup are shown
+in `installedHost`. `checked` is the existing runtime-result adapter; it does
+not manufacture evidence. Initialize `calls = 0`. The success fixture requires
+`terminal.status === 'succeeded'`, the independent row shown above, and
+`calls === 1`. The replay fixture exits a separate process after durable
+capture but before publication, reopens the same Store and journal, resubmits
+the same Program/request ID, and requires the same row with zero new calls.
+
+### Evidence and remaining acceptance
+
+The public success/replay cases passed on the integrated source before the
+test-only corrections in this checkpoint. Those corrections passed focused
+checks: 34 managed-group JS tests, one INFER fixture freshness test and 28
+foundation provenance tests. The previous CI failures were the incomplete
+resource-error test match, stale generated admission input and unrecorded
+`package.json` foundation change; the new full CI remains separate evidence.
+
+B must still run its own Programs and independent expected rows through
+packed Local and HTTP. This checkpoint does not claim that those cases ran.
+KEEP preparation has earlier coverage, but the broader public KEEP path is
+not certified by the one-row example. Model delegation and durable custody
+for failures before accepted completion remain open. Missing capture after
+an unknown response stays `needs_reconciliation` with no Result and no
+automatic provider call; it is not reported as successful replay.
+
+## Attempt custody before failed execution reclamation
+
+The installed owner now separates `operation.stop()` from `operation.cleanup()`.
+After physical stop, executions without an accepted capture enumerate the
+common owner's retained attempts and persist their attempt, accounting,
+outcome and authority evidence before releasing that owner. An interrupted
+private write retains the same holding; cleanup retries persistence, not
+Compute or model dispatch. No success bundle, adopted slot or ObservationSet
+is invented for an incomplete execution.
+
+Public HTTPS tests report token usage above the reserved allowance. They
+verify a failed Run, unavailable Named Result, one model call, and all four
+private evidence holdings. A second case interrupts accounting persistence
+and verifies cleanup retry. After Host shutdown and Store reopen, the tests
+read the encrypted evidence and assert input/output usage of 1/1000,
+unknown cost/duration as NULL, positive work, and the common
+`contract_violation` / `budget_exceeded` classification.
+
+The installed public fixture passes 25 tests; four focused dispatch-owner,
+stop and failure-cleanup regressions also pass. The attempt inventory API
+passes seven related tests on each of JS, Wasm and native, including a
+cancelled dispatched attempt and an admission refusal without a call.
+The public cancellation fixture now waits for a Continue boundary after the
+actual provider call, sends `run.cancel()` through HTTPS, and requires a
+cancelled Run without a Result. After Host shutdown and encrypted Store
+reopen, input/output usage remains 1/2 and the common outcome is `cancelled`.
+The provider count remains one. This observes a real execution boundary,
+not a fixed sleep or cancellation before dispatch.
+
+Abrupt process loss before persistence remains an unknown
+response with no automatic redispatch; these tests do not claim to recover
+usage that was never saved.
+
+## Post-INFER Compute and public object projection
+
+The installed public Host now selects a single checked Infer occurrence even
+when bounded Relation operations follow it in the same task. Preparation admits
+the suffix provider before accepting the Run. Plan nodes retain the actual
+post-acquisition Compute operations and exact edges instead of connecting the
+Result directly to the inference barrier.
+
+The common execution owner retains model output while the existing Relation
+chain executes. It accumulates work across child transitions, observes suffix
+cancellation, and reclaims the suffix before releasing model output and input.
+An Infer boundary has no Compute evaluator or AoA Compute encoding. External
+reads retain exact operation-port bindings; selecting a range does not rerun
+its prefix or issue acquisition evidence.
+
+The ordinary HTTPS Program now supports a nested `assessment` object built by
+`derive` and projected by `select` after Infer. The public test reads the Named
+Result and compares its complete contents with independently written rows.
+A separate-process case stops after capture storage and before publication,
+then reconstructs the Host and runs the same Program with no additional model
+dispatch. Both paths produce the same expected object.
+
+Local evidence for these edits: 86 JS tests in `client_infer_host` and the
+generated-sequence test file; all 28 installed public Infer tests; focused
+public object-projection and process-replay acceptance. Runtime assets were
+rebuilt from the edited sources and remain ignored. On source revision
+`eb2e5c6abd1b8364f0243ff91521715b758a932f`, the Wasm Core job passed
+7,496 tests and native Core passed 7,582 tests. Public API comparison also
+passed. Final-SHA Linux CI for these edits remains separate evidence.
+
+This does not establish B's full KEEP/packed Local and HTTP acceptance or
+acquired SourceView inputs. The provider registration remains the existing
+installed ModelTask registration documented above; no new adapter scheduler,
+capture ledger or proof-JSON issuer was added.
+
+The same public harness also exercises a KEEP-shaped Program over the
+validated source-free input: a one-to-one join with the retained pre-Infer
+Relation, object construction, nested-property filtering, and a final
+`id`/`note`/`risk` projection. Its independent expected row is
+`{"id":"a","note":"hello","risk":"high"}`. Both initial execution and
+fresh-process replay after capture storage pass; the replay makes zero
+additional model calls. This verifies the shared execution connection without
+changing B's golden Program or treating literal uniqueness as key evidence.
+The packed SourceView-based application remains a separate acceptance.
+
+## Packed single-call acceptance
+
+PR #178 remains the single-call INFER completion unit. Broader KEEP and
+SourceView acceptance are not additional merge conditions for this unit.
+Required CI passed on the earlier published revision
+`b7db1288cebedc7e7686c36ea4a3f32898545d9d`; this does not certify later edits.
+
+`scripts/test-packed-single-infer.mjs` packs the public packages and installs
+them outside the checkout. Its application imports only `@actql/node`, Node
+built-ins and the independent application fixture. The runtime PATH excludes
+the MoonBit toolchain. ModelTask, prompt, execution policy, Program and expected
+rows are authored in `scripts/fixtures/installed-infer-fixture.mjs`; none are
+extracted from MoonBit test source or inferred from returned Results.
+
+The five process scenarios pass: success, cancellation after actual dispatch,
+usage-overflow failure, process exit after capture persistence, and replay in
+a fresh process. Success reads the independently expected Named Result.
+Cancellation and failure publish none. Each physical scenario calls the model
+once; replay calls it zero times and returns the same expected row.
+
+The application independently locates all four retained attempt evidence
+holdings. It checks encrypted object bytes against their digest and size,
+decrypts with the installation key, and checks observed token usage, unknown
+cost/duration, positive work and cancellation/budget failure classification.
+The CI Client job runs this acceptance and retains logs and tarball digests,
+not the private Store or installation key. Final Linux CI on the updated
+commit remains required; the local packed run is not its substitute.
+
+### Integration with public Check
+
+Merge revision `12e8c958ee13baf92509b01d35052a76a740281b` incorporates main
+`16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a` without rewriting feature history.
+Host imports and Client test registration preserve both public Check and
+INFER. Check Outcome and Model artifact schemas coexist; their combined
+registry CID and document metadata were regenerated, not selected from one
+side of the merge. Runtime packages were rebuilt and remain untracked.
+
+Integrated-source checks passed: 68 public Check/INFER/capture tests, the five
+packed process scenarios, 34 canonical contract tests, schema/pin checks and
+three-target generated interface comparison. The first direct Node attempt
+resolved an old borrowed Client wire package; a worktree-local SDK dependency
+link corrected resolution without modifying the borrowed installation. The
+first canonical test attempt lacked `moonfmt` on PATH; the pinned-toolchain
+rerun passed. Neither failed attempt is counted as successful evidence.
+
+The current foundation record separately references the integration commit
+and its exact common-file digests. It preserves historical evidence and
+does not weaken the foundation checker. Full integrated-SHA CI remains the
+merge-readiness check; complete local Core suites were not repeated solely
+for the merge.

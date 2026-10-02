@@ -42,6 +42,8 @@ pub fn admit_host_answer(DecisionRequest, HostAnswer) -> Result[RuntimeAction, A
 
 pub fn bind_bootstrap_adoption(AdmittedAccountConfiguration, BootstrapAdoptionRecord) -> Result[BootstrappedConfiguration, BootstrapIssue]
 
+pub fn bind_dispatch_authorization(AdmittedAccountConfiguration, AccessTuple, DecisionBoundary, String, String, delegated_action? : RuntimeAction?) -> Result[DispatchAuthorization, DispatchBindingIssue]
+
 pub fn configuration_issue_error_code(ConfigurationIssue) -> String
 
 pub fn decision_failure_error_code(DecisionFailureReason) -> String
@@ -51,6 +53,14 @@ pub fn decode_account_configuration_json(String) -> Result[RawAccountConfigurati
 pub fn denial_error_code(Denial) -> String
 
 pub fn deny_reason_error_code(DenyReason) -> String
+
+pub fn dispatch_authorization_basis(DispatchAuthorization) -> DispatchBasis
+
+pub fn dispatch_authorization_configuration(DispatchAuthorization) -> AdmittedAccountConfiguration
+
+pub fn dispatch_authorization_matches(DispatchAuthorization, AdmittedAccountConfiguration, AccessTuple, DecisionBoundary, String, String) -> Bool
+
+pub fn dispatch_authorization_tuple(DispatchAuthorization) -> AccessTuple
 
 pub fn evaluate_account(AdmittedAccountConfiguration, AccessTuple) -> AccountOutcome
 
@@ -206,9 +216,25 @@ pub(all) enum Dimension {
   Operation
 } derive(Eq, @debug.Debug)
 
+pub struct DispatchAuthorization {
+  configuration : AdmittedAccountConfiguration
+  tuple : AccessTuple
+  boundary : DecisionBoundary
+  subject_cid : String
+  context_cid : String
+  basis : DispatchBasis
+}
+
 pub enum DispatchBasis {
   AccountAllow(String)
   HostPermit(DecisionSubject, String, Array[String])
+} derive(Eq, @debug.Debug)
+
+pub(all) enum DispatchBindingIssue {
+  InvalidSubject
+  Denied
+  UnresolvedDelegation
+  ForeignDecision
 } derive(Eq, @debug.Debug)
 
 pub(all) enum HostAnswer {
