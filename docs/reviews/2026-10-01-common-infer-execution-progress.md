@@ -2077,3 +2077,13 @@ This does not establish B's full KEEP/packed Local and HTTP acceptance or
 acquired SourceView inputs. The provider registration remains the existing
 installed ModelTask registration documented above; no new adapter scheduler,
 capture ledger or proof-JSON issuer was added.
+
+The same public harness also exercises a KEEP-shaped Program over the
+validated source-free input: a one-to-one join with the retained pre-Infer
+Relation, object construction, nested-property filtering, and a final
+`id`/`note`/`risk` projection. Its independent expected row is
+`{"id":"a","note":"hello","risk":"high"}`. Both initial execution and
+fresh-process replay after capture storage pass; the replay makes zero
+additional model calls. This verifies the shared execution connection without
+changing B's golden Program or treating literal uniqueness as key evidence.
+The packed SourceView-based application remains a separate acceptance.
