@@ -5,10 +5,11 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { hash } from '../../inventory.mjs';
 import { artifacts } from '../../../bounded-session/evidence.mjs';
-import { checkCore } from './source.mjs';
+import { checkCore, checkNativeRuntime, nativeProfile } from './source.mjs';
 const root = fileURLToPath(new URL('../../../../', import.meta.url));
 const sources = ['moon.mod', 'moon.pkg', 'backing_wbtest.mbt',
-  'backend_js_wbtest.mbt', 'backend_wasm_wbtest.mbt', 'backend_native_wbtest.mbt'];
+  'backend_js_wbtest.mbt', 'backend_wasm_wbtest.mbt', 'backend_native_wbtest.mbt',
+  'abi_native_wbtest.mbt', 'layout_stub.c'];
 const template = 'proofs/relation-pipeline/capacity/backing/probe';
 const installed = '_build/array-backing-probe';
 const directory = '.artifacts/relation-pipeline/capacity/backing-core';
@@ -22,14 +23,21 @@ function facts(log) {
   return log.split('\n').filter(line => line.startsWith(prefix)).map(line => JSON.parse(line.slice(prefix.length)));
 }
 function checkFacts(target, observed) {
-  assert.deepEqual(observed.map(o => o.case), ['clear', 'growth', 'map']);
+  assert.deepEqual(observed.map(o => o.case).sort(),
+    (target === 'native' ? ['clear', 'growth', 'map', 'native-map'] : ['clear', 'growth', 'map']).sort());
   assert(observed.every(o => o.target === target), 'Core fixture target differs from requested target');
-  const [clear, growth, map] = observed;
+  const clear = observed.find(o => o.case === 'clear');
+  const growth = observed.find(o => o.case === 'growth');
+  const map = observed.find(o => o.case === 'map');
   assert.deepEqual(clear, { target, case: 'clear', before: target === 'js' ? 17 : 32,
     after: target === 'js' ? 0 : 32 });
   assert.deepEqual(growth, { target, case: 'growth', prior: target === 'js' ? 9 : 16,
     current: target === 'js' ? 17 : 32 });
   assert.deepEqual(map, { target, case: 'map', default: 8, threeKeys: 8, seventhKey: 16, cleared: 16 });
+  if (target === 'native') assert.deepEqual(observed.find(o => o.case === 'native-map'), {
+    target, case: 'native-map', headerBytes: 8, pointerBytes: 8, mapBytes: 48,
+    tableBytes: 72, entryBytes: 48, emptyBytes: 120, threeKeysBytes: 264, replacementBytes: 240,
+  });
 }
 export function auditCoreProbe(report, targets, read = path => readFileSync(join(root, path))) {
   assert.equal(report.version, 'actql-array-core-probe/0.1');
@@ -46,7 +54,15 @@ export function auditCoreProbe(report, targets, read = path => readFileSync(join
     assert.deepEqual(run.sources, report.sources);
     assert.equal(run.logPath, `${directory}/${target}.log`);
     const log = read(run.logPath).toString(); assert.equal(hash(log), run.logDigest);
-    assert(/Total tests: 4, passed: 4, failed: 0\./.test(log), 'Incomplete core fixture');
+    const count = target === 'native' ? 5 : 4;
+    assert(log.includes(`Total tests: ${count}, passed: ${count}, failed: 0.`), 'Incomplete core fixture');
+    if (target === 'native') {
+      assert(['darwin-arm64', 'linux-x64'].includes(run.nativeRuntime.platform));
+      assert.deepEqual(run.nativeRuntime.sources, { ...nativeProfile.sources,
+        ...nativeProfile.platformBinaries[run.nativeRuntime.platform] });
+      assert.equal(run.nativeRuntime.profileDigest, hash(JSON.stringify(nativeProfile)));
+      assert.deepEqual(run.nativeRuntime.archive, pin.archives[run.nativeRuntime.platform]);
+    } else assert.equal(run.nativeRuntime, undefined, 'Native byte evidence cannot apply to another target');
     assert.deepEqual(run.facts, facts(log)); checkFacts(target, run.facts);
     assert(Object.keys(run.artifacts).length > 0);
     for (const [path, digest] of Object.entries(run.artifacts)) {
@@ -70,6 +86,7 @@ export function runCoreProbe(targets) {
   const report = { version: 'actql-array-core-probe/0.1', toolchain: pin, profile,
     sources: sourceHashes(), runs: {} };
   for (const target of targets) {
+    const nativeRuntime = target === 'native' ? checkNativeRuntime(home, pin) : undefined;
     const command = ['test', '--target', target, '--deny-warn'];
     const result = spawnSync(join(home, 'bin/moon'), command, {
       cwd: join(root, installed), env, encoding: 'utf8', maxBuffer: 1024 * 1024,
@@ -91,13 +108,17 @@ export function runCoreProbe(targets) {
     report.runs[target] = { target, compiler: compiler.stdout.trim(), exit: result.status,
       command: ['moon', ...command], cwd: installed, sources: report.sources,
       facts: facts(log), logPath, logDigest: hash(log), artifacts: archives };
-    console.log(`${target}: 4 pinned-core Array/Map backing and explicit-holder checks`);
+    if (target === 'native') {
+      assert.deepEqual(checkNativeRuntime(home, pin), nativeRuntime, 'Runtime changed during probe');
+      report.runs[target].nativeRuntime = nativeRuntime;
+    }
+    console.log(`${target}: ${target === 'native' ? 5 : 4} pinned-core Array/Map backing and explicit-holder checks`);
   }
   auditCoreProbe(report, targets);
   writeFileSync(join(root, directory, targets.length === 3 ? 'all.json' : `${targets[0]}.json`), JSON.stringify(report, null, 2) + '\n');
   return report;
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const targets = process.argv[2] === 'js' ? ['js'] : ['js', 'wasm', 'native'];
+  const targets = ['js', 'wasm', 'native'].includes(process.argv[2]) ? [process.argv[2]] : ['js', 'wasm', 'native'];
   runCoreProbe(targets);
 }
