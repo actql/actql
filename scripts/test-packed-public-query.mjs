@@ -44,6 +44,7 @@ for (const [source, destination] of [
   ['spec/local-check-environment.json', 'base-environment.json'],
   ['spec/frontend/fixtures/pipe-scope/cases.json', 'pipe-scope-cases.json'],
   ['spec/frontend/fixtures/join-order/cases.json', 'join-order-cases.json'],
+  ['spec/frontend/fixtures/data-set-strategy/repro-program.json', 'data-set-strategy-program.json'],
   ['scripts/accept-sga-public-source.mjs', 'accept-sga-public-source.mjs'],
   ['scripts/reach-selector-capacity-fixture.mjs', 'reach-selector-capacity-fixture.mjs'],
   ['scripts/fixtures/packed-sga-cancellation.mjs', 'sga-cancellation.mjs'],
@@ -78,6 +79,9 @@ const runtimeEnvironment = {...environment,
   NODE_EXTRA_CA_CERTS: join(root, 'remote.crt')};
 if (process.argv.includes('--source-free-only')) {
   runtimeEnvironment.ACTQL_TEST_SOURCE_FREE_ONLY = '1';
+}
+if (process.argv.includes('--data-set-strategy-only')) {
+  runtimeEnvironment.ACTQL_TEST_DATA_SET_STRATEGY_ONLY = '1';
 }
 if (process.argv.includes('--query-composition-only')) {
   runtimeEnvironment.ACTQL_TEST_QUERY_COMPOSITION_ONLY = '1';
@@ -135,11 +139,13 @@ console.log(output.trimEnd());
 // Narrow selections without the String fixture have no retained String Run.
 // Keep restart acceptance for full/source-free selections that create it.
 if (!process.argv.some(flag => ['--alias-scope-only', '--infer-refusal-only',
-  '--join-order-only', '--query-composition-only', '--pipe-result-only'].includes(flag))) {
+  '--join-order-only', '--query-composition-only', '--pipe-result-only',
+  '--data-set-strategy-only'].includes(flag))) {
   console.log(run(process.execPath, ['string-values-restart.mjs'], root,
     runtimeEnvironment, 120000).trimEnd());
 }
 if (process.argv.includes('--source-free-only') ||
+  process.argv.includes('--data-set-strategy-only') ||
   process.argv.includes('--query-composition-only') ||
   process.argv.includes('--pipe-result-only') ||
   process.argv.includes('--alias-scope-only') ||
