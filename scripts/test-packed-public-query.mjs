@@ -69,6 +69,13 @@ run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
 const runtimeEnvironment = {...environment,
   PATH: `${dirname(process.execPath)}:/usr/bin:/bin`,
   NODE_EXTRA_CA_CERTS: join(root, 'remote.crt')};
+const selectedCase = process.argv.indexOf('--case');
+if (selectedCase >= 0) {
+  if (!process.argv[selectedCase + 1] || process.argv[selectedCase + 1].startsWith('--')) {
+    throw new TypeError('PackedQueryCaseRequired');
+  }
+  runtimeEnvironment.ACTQL_TEST_QUERY_CASES = process.argv[selectedCase + 1];
+}
 if (process.argv.includes('--source-free-only')) {
   runtimeEnvironment.ACTQL_TEST_SOURCE_FREE_ONLY = '1';
 }

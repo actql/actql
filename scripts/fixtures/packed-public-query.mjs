@@ -26,7 +26,7 @@ const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || inferOnly ||
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const scope = JSON.parse(await readFile('pipe-scope-cases.json', 'utf8'));
 assert.deepEqual(scope.source_rows, sourceRows);
-const scopeInputs = graphSourceOnly ? {successes: propertyGraphSourceSuccesses, refusals: propertyGraphSourceRefusals,
+let scopeInputs = graphSourceOnly ? {successes: propertyGraphSourceSuccesses, refusals: propertyGraphSourceRefusals,
     executionFailures: propertyGraphSourceExecutionFailures}
   : sourceFreeOnly ? {successes: sourceFreeSuccesses, refusals: sourceFreeRefusals}
   : resultOnly ? {successes: pipeResultSuccesses, refusals: pipeResultRefusals,
@@ -37,6 +37,17 @@ const scopeInputs = graphSourceOnly ? {successes: propertyGraphSourceSuccesses, 
   refusals: scope.refusals} : {successes: [...querySuccesses, ...sourceFreeSuccesses, ...queryCompositionSuccesses, ...pipeResultSuccesses, ...scope.successes, ...joinOrder.successes],
   refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals],
   executionFailures: pipeResultExecutionFailures};
+if (process.env.ACTQL_TEST_QUERY_CASES !== undefined) {
+  const names = process.env.ACTQL_TEST_QUERY_CASES.split(',');
+  const available = [...scopeInputs.successes, ...scopeInputs.refusals,
+    ...(scopeInputs.executionFailures ?? [])];
+  if (names.length === 0 || new Set(names).size !== names.length ||
+      names.some(name => !available.some(item => item.name === name))) {
+    throw new TypeError('InvalidSelectedPublicQueryCases');
+  }
+  scopeInputs = Object.fromEntries(Object.entries(scopeInputs).map(([key, items]) =>
+    [key, items.filter(item => names.includes(item.name))]));
+}
 const expectedQueryRuns = scopeInputs.successes.length + (scopeInputs.executionFailures?.length ?? 0);
 const expectedSourceReads = [...scopeInputs.successes, ...(scopeInputs.executionFailures ?? [])]
   .reduce((count, item) => count + (item.sourceReadCount ?? item.sourceReadSessionCount ?? 1), 0);
