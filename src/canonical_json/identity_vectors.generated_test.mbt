@@ -3411,21 +3411,21 @@ test "contract spec/contracts/actql-protocol-schemas.json#/artifact_schemas/mode
 test "contract spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_attempt_accounting" {
   let input = @json.parse([
     "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"attempt_cid\",\"slot_cid\",\"cumulative_work\",\"uncertain_wire_bytes\",\"input_tokens\",\"output_tokens\",\"cost_units\",\"duration_ms\",\"self_cid\"],\"properties\":{\"version\":{\"const\":\"actql-model-attempt-accounting/0.1\"},\"attempt_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"slot_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"cumulative_work\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},\"uncertain_wire_bytes\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},\"input_tokens\":{\"anyOf\":[{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},{\"type\":\"null\"}]},\"output_tokens\":{\"anyOf\":[{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},{\"type\":\"null\"}]},\"cost_units\":{\"anyOf\":[{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},{\"type\":\"null\"}]},\"duration_ms\":{\"anyOf\":[{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},{\"type\":\"null\"}]},\"sel",
-    "f_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}}}",
+    "f_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"reservation\":{\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"tokens\",\"cost_units\",\"duration_ms\"],\"properties\":{\"tokens\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},\"cost_units\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991},\"duration_ms\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":9007199254740991}}}}}",
   ].join(""))
-  let value = @canonical_json.from_json(input, 67, 5, 1084)
-  assert_eq(@canonical_json.cid_value(value, 1084, 67, 5), "sha256:9dd8efbc085ba24be98f68688d0ff3b8b02201b60d1f99c1e4faebcc3663382f")
-  assert_eq(@canonical_json.measure_value(value, 1084, 67, 5), 1084)
+  let value = @canonical_json.from_json(input, 87, 5, 1419)
+  assert_eq(@canonical_json.cid_value(value, 1419, 87, 5), "sha256:64060e2b23925f0d7be708240f504df312f7e46706e2a5fefd7c46d8d421430f")
+  assert_eq(@canonical_json.measure_value(value, 1419, 87, 5), 1419)
 }
 
 ///|
 test "contract spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_attempt_outcome" {
   let input = @json.parse([
-    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"attempt_cid\",\"slot_cid\",\"category\",\"failure\",\"self_cid\"],\"properties\":{\"version\":{\"const\":\"actql-model-attempt-outcome/0.1\"},\"attempt_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"slot_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"category\":{\"enum\":[\"ok\",\"provider_failure\",\"contract_violation\",\"cancelled\",\"result_unknown\"]},\"failure\":{\"anyOf\":[{\"enum\":[\"rate_limit\",\"timeout\",\"provider_error\",\"refusal\",\"schema_invalid\",\"safety_rejected\",\"truncated\",\"output_identity\",\"output_value\",\"cancelled\",\"deadline\",\"result_unknown\"]},{\"type\":\"null\"}]},\"self_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}}}",
+    "{\"$schema\":\"https://json-schema.org/draft/2020-12/schema\",\"type\":\"object\",\"additionalProperties\":false,\"required\":[\"version\",\"attempt_cid\",\"slot_cid\",\"category\",\"failure\",\"self_cid\"],\"properties\":{\"version\":{\"const\":\"actql-model-attempt-outcome/0.1\"},\"attempt_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"slot_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"},\"category\":{\"enum\":[\"ok\",\"provider_failure\",\"contract_violation\",\"cancelled\",\"result_unknown\"]},\"failure\":{\"anyOf\":[{\"enum\":[\"rate_limit\",\"timeout\",\"provider_error\",\"refusal\",\"schema_invalid\",\"safety_rejected\",\"truncated\",\"output_identity\",\"output_value\",\"cancelled\",\"deadline\",\"result_unknown\",\"budget_exceeded\"]},{\"type\":\"null\"}]},\"self_cid\":{\"type\":\"string\",\"pattern\":\"^sha256:[0-9a-f]{64}$\"}}}",
   ].join(""))
-  let value = @canonical_json.from_json(input, 48, 6, 759)
-  assert_eq(@canonical_json.cid_value(value, 759, 48, 6), "sha256:859480d0f1786ef1493208b75278617bf022b60a6115c1dc4ff06542fe975a5b")
-  assert_eq(@canonical_json.measure_value(value, 759, 48, 6), 759)
+  let value = @canonical_json.from_json(input, 49, 6, 777)
+  assert_eq(@canonical_json.cid_value(value, 777, 49, 6), "sha256:90afd9fed54246784afb4b8922a0ec228c048d50e75f53598702a4c5ca0770b7")
+  assert_eq(@canonical_json.measure_value(value, 777, 49, 6), 777)
 }
 
 ///|

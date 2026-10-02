@@ -88,6 +88,8 @@ pub struct Execution {
   mut output_uses : Int
   mut run_binding : ExecutionRunBinding?
   mut dispatch_admission : @publication_host.ClientInferDispatchAdmission?
+  mut quantity_capacity : @model.ModelQuantityCapacity?
+  mut final_quantity_usage : @resources.QuantityUsage?
 }
 
 ///|
@@ -372,6 +374,8 @@ fn start_owned(
     output_uses: 0,
     run_binding: None,
     dispatch_admission: None,
+    quantity_capacity: None,
+    final_quantity_usage: None,
   })
 }
 
@@ -419,6 +423,7 @@ fn begin_model(active : Execution) -> Poll {
         active.limits.model,
         call_scope=active.call_scope,
         dispatch_admission=active.dispatch_admission,
+        quantity_capacity=active.quantity_capacity,
       )
     Replay(capture) => {
       guard active.call_scope is Some(scope) else {
@@ -985,6 +990,9 @@ pub fn cleanup(active : Execution) -> Result[Bool, Issue] {
       Ok(false) => return Ok(false)
       Err(issue) => return Err(Model(issue))
     }
+    active.final_quantity_usage = Some(
+      @model.model_execution_quantity_usage(model),
+    )
     active.model = None
     active.capture = None
   }

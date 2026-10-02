@@ -63,6 +63,14 @@ pub(all) struct ModelExecutionLimits {
 }
 
 ///|
+/// An installed physical envelope, not authority or a retry policy. The same
+/// shared ledger reserves these units and the request/response byte envelope.
+pub(all) struct ModelQuantityCapacity {
+  limits : @resources.QuantityAmounts
+  per_attempt : @resources.QuantityAmounts
+}
+
+///|
 pub(all) enum ModelExecutionIssue {
   InvalidLimits
   InvalidProvider
@@ -153,6 +161,7 @@ struct ModelState {
   source : ModelSource
   fixed_request_cid : String
   limits : ModelExecutionLimits
+  quantity_capacity : ModelQuantityCapacity?
   call_scope : @publication_host.ClientInferCallScope?
   dispatch_admission : @publication_host.ClientInferDispatchAdmission?
   attempts : Array[ModelAttemptTrace]
@@ -287,6 +296,7 @@ fn advance_model(
           state.limits.max_response_bytes +
           (if state.dispatch_admission is Some(_) { 81920L } else { 0L }),
           0L,
+          quantities=state.quantity_capacity.map(value => value.per_attempt),
         ) {
         Ok(value) => state.reservations.push(value)
         Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
@@ -406,6 +416,9 @@ fn advance_model(
   } else {
     None
   }
+  if @bounded.stop_requested(reader) is Some(reason) {
+    return @bounded.Stopped(reason, 1, 1)
+  }
   // ModelResponse contains typed content and token observations, not exact
   // transport bytes. Retain the dispatched envelope as uncertain usage before
   // entering physical I/O: invalid metadata, rejected content or cancellation
@@ -421,6 +434,12 @@ fn advance_model(
   }
   if attempt is Some(attempt) {
     state.attempts.push(attempt)
+  }
+  if state.quantity_capacity is Some(_) {
+    match @resources.mark_quantities_uncertain(state.ledger, reservation) {
+      Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
+      Ok(_) => ()
+    }
   }
   let response = match (provider.invoke)(request) {
     Ok(value) => value
@@ -444,6 +463,25 @@ fn advance_model(
       Some(response.output_tokens)
     } else {
       None
+    }
+  }
+  // Account the observed tokens even when cancellation arrived during I/O.
+  // Cost and duration are not observed by this response shape and remain
+  // uncertain; cleanup cannot rewrite them as zero or refund that envelope.
+  if state.quantity_capacity is Some(_) &&
+    response.input_tokens >= 0L &&
+    response.output_tokens >= 0L {
+    if response.input_tokens > 9223372036854775807L - response.output_tokens {
+      return @bounded.Failed(OutputIdentity, 1, 1)
+    }
+    match
+      @resources.observe_quantities(
+        state.ledger,
+        reservation,
+        tokens=Some(response.input_tokens + response.output_tokens),
+      ) {
+      Err(issue) => return @bounded.Failed(Ledger(issue), 1, 1)
+      Ok(_) => ()
     }
   }
   if @bounded.stop_requested(reader) is Some(reason) {
@@ -478,6 +516,7 @@ pub fn start_model_execution(
   limits : ModelExecutionLimits,
   call_scope? : @publication_host.ClientInferCallScope? = None,
   dispatch_admission? : @publication_host.ClientInferDispatchAdmission? = None,
+  quantity_capacity? : ModelQuantityCapacity? = None,
 ) -> Result[ModelExecution, ModelExecutionIssue] {
   start_model_owned(
     rows,
@@ -486,6 +525,7 @@ pub fn start_model_execution(
     limits,
     call_scope,
     dispatch_admission~,
+    quantity_capacity~,
   )
 }
 
@@ -497,6 +537,7 @@ fn start_model_owned(
   limits : ModelExecutionLimits,
   call_scope : @publication_host.ClientInferCallScope?,
   dispatch_admission? : @publication_host.ClientInferDispatchAdmission? = None,
+  quantity_capacity? : ModelQuantityCapacity? = None,
 ) -> Result[ModelExecution, ModelExecutionIssue] {
   if !valid_cid(fixed_request_cid) ||
     limits.max_items < 0 ||
@@ -549,6 +590,21 @@ fn start_model_owned(
     Ok(value) => value
     Err(issue) => return Err(Ledger(issue))
   }
+  if quantity_capacity is Some(capacity) {
+    if !(source is Provider(_)) ||
+      capacity.per_attempt.tokens < 0L ||
+      capacity.per_attempt.cost_units < 0L ||
+      capacity.per_attempt.duration_ms < 0L ||
+      capacity.per_attempt.tokens > 9007199254740991L ||
+      capacity.per_attempt.cost_units > 9007199254740991L ||
+      capacity.per_attempt.duration_ms > 9007199254740991L {
+      return Err(InvalidLimits)
+    }
+    match @resources.configure_quantities(ledger, capacity.limits) {
+      Err(issue) => return Err(Ledger(issue))
+      Ok(_) => ()
+    }
+  }
   guard @relation.acquire_prepared_infer_rows(rows) is Some(input_use) else {
     return Err(OutputIdentity)
   }
@@ -560,6 +616,7 @@ fn start_model_owned(
     source,
     fixed_request_cid,
     limits,
+    quantity_capacity,
     call_scope,
     dispatch_admission,
     attempts: [],
@@ -629,6 +686,13 @@ pub fn model_execution_resource_usage(
   execution : ModelExecution,
 ) -> @resources.LedgerUsage {
   @resources.ledger_usage(execution.state.ledger)
+}
+
+///|
+pub fn model_execution_quantity_usage(
+  execution : ModelExecution,
+) -> @resources.QuantityUsage {
+  @resources.quantity_usage(execution.state.ledger)
 }
 
 ///|

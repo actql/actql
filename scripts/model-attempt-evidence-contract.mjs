@@ -16,6 +16,18 @@ const schema = (name, fields) => ({
 });
 
 export function modelAttemptEvidenceSchemas() {
+  const accounting = schema('model_attempt_accounting', {
+    attempt_cid: cid, slot_cid: cid,
+    cumulative_work: count, uncertain_wire_bytes: count,
+    input_tokens: nullableCount, output_tokens: nullableCount,
+    cost_units: nullableCount, duration_ms: nullableCount,
+  });
+  // Existing bodies without a metered installed profile retain their exact
+  // preimage. An installed profile must bind all three reservation units.
+  accounting.properties.reservation = {type: 'object',
+    additionalProperties: false,
+    required: ['tokens', 'cost_units', 'duration_ms'],
+    properties: {tokens: count, cost_units: count, duration_ms: count}};
   return {
     model_dispatch_authority: schema('model_dispatch_authority', {
       program_definition_cid: cid, run_definition_cid: cid,
@@ -33,12 +45,7 @@ export function modelAttemptEvidenceSchemas() {
       fixed_request_cid: cid, authority_evidence_cid: cid,
       attempt: {...count, minimum: 1}, provider_id: text,
     }),
-    model_attempt_accounting: schema('model_attempt_accounting', {
-      attempt_cid: cid, slot_cid: cid,
-      cumulative_work: count, uncertain_wire_bytes: count,
-      input_tokens: nullableCount, output_tokens: nullableCount,
-      cost_units: nullableCount, duration_ms: nullableCount,
-    }),
+    model_attempt_accounting: accounting,
     model_attempt_outcome: schema('model_attempt_outcome', {
       attempt_cid: cid, slot_cid: cid,
       category: {enum: ['ok', 'provider_failure', 'contract_violation',
@@ -46,7 +53,7 @@ export function modelAttemptEvidenceSchemas() {
       failure: {anyOf: [{enum: ['rate_limit', 'timeout', 'provider_error',
         'refusal', 'schema_invalid', 'safety_rejected', 'truncated',
         'output_identity', 'output_value', 'cancelled', 'deadline',
-        'result_unknown']}, {type: 'null'}]},
+        'result_unknown', 'budget_exceeded']}, {type: 'null'}]},
     }),
   };
 }

@@ -3,6 +3,7 @@ priv struct ModelAttemptTrace {
   attempt : @publication.RunEvidenceValue
   call : @publication.RunEvidenceValue
   authority : @publication.RunEvidenceValue
+  reservation : @resources.QuantityAmounts?
   mut input_tokens : Int64?
   mut output_tokens : Int64?
   mut category : String
@@ -77,6 +78,7 @@ fn start_model_attempt(
       attempt,
       call,
       authority,
+      reservation: state.quantity_capacity.map(capacity => capacity.per_attempt),
       input_tokens: None,
       output_tokens: None,
       category: "result_unknown",
@@ -107,6 +109,10 @@ fn finish_model_attempt_failure(
     OutputValue => {
       trace.category = "contract_violation"
       trace.failure = Some("output_value")
+    }
+    Ledger(TokenLimit | CostLimit | DurationLimit) => {
+      trace.category = "contract_violation"
+      trace.failure = Some("budget_exceeded")
     }
     _ => ()
   }
@@ -189,6 +195,20 @@ pub fn model_execution_attempt_evidence(
       ] {
       @encode.key(writer, name)
       emit_optional_usage(writer, value)
+    }
+    if trace.reservation is Some(reservation) {
+      @encode.key(writer, "reservation")
+      @encode.begin_object(writer)
+      for
+        (name, amount) in [
+          ("tokens", reservation.tokens),
+          ("cost_units", reservation.cost_units),
+          ("duration_ms", reservation.duration_ms),
+        ] {
+        @encode.key(writer, name)
+        @encode.decimal_number_value(writer, amount.to_string())
+      }
+      @encode.end_object(writer)
     }
     @encode.end_object(writer)
     let accounting = match

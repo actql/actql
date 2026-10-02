@@ -95,6 +95,60 @@
       },
       "expected_canonical_bytes": "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"cost_units\":null,\"cumulative_work\":23,\"duration_ms\":null,\"input_tokens\":1,\"output_tokens\":2,\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"uncertain_wire_bytes\":66536,\"version\":\"actql-model-attempt-accounting/0.1\"}",
       "expected_cid": "sha256:5780758d79752eb86fd36c7ff11f96e7832bb4f91e17aa04c9bacdec7a517ce3"
+    },
+    {
+      "kind": "model_attempt_accounting",
+      "body": {
+        "version": "actql-model-attempt-accounting/0.1",
+        "attempt_cid": "sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c",
+        "slot_cid": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "cumulative_work": 23,
+        "uncertain_wire_bytes": 66536,
+        "input_tokens": null,
+        "output_tokens": null,
+        "cost_units": null,
+        "duration_ms": null,
+        "reservation": {
+          "tokens": 33,
+          "cost_units": 7,
+          "duration_ms": 19
+        }
+      },
+      "expected_canonical_bytes": "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"cost_units\":null,\"cumulative_work\":23,\"duration_ms\":null,\"input_tokens\":null,\"output_tokens\":null,\"reservation\":{\"cost_units\":7,\"duration_ms\":19,\"tokens\":33},\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"uncertain_wire_bytes\":66536,\"version\":\"actql-model-attempt-accounting/0.1\"}",
+      "expected_cid": "sha256:5a6d1eaeb0cfd8578eb425fd4a4706b4c472d658f8e48288c3d108073b9dd887"
+    },
+    {
+      "kind": "model_attempt_accounting",
+      "body": {
+        "version": "actql-model-attempt-accounting/0.1",
+        "attempt_cid": "sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c",
+        "slot_cid": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "cumulative_work": 23,
+        "uncertain_wire_bytes": 66536,
+        "input_tokens": 1,
+        "output_tokens": 2,
+        "cost_units": null,
+        "duration_ms": null,
+        "reservation": {
+          "tokens": 33,
+          "cost_units": 7,
+          "duration_ms": 19
+        }
+      },
+      "expected_canonical_bytes": "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"cost_units\":null,\"cumulative_work\":23,\"duration_ms\":null,\"input_tokens\":1,\"output_tokens\":2,\"reservation\":{\"cost_units\":7,\"duration_ms\":19,\"tokens\":33},\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"uncertain_wire_bytes\":66536,\"version\":\"actql-model-attempt-accounting/0.1\"}",
+      "expected_cid": "sha256:2b21c2aa6d74db1db05d7bd7ddcc56a84c46f1ae1115356ed0fd47c6848d0951"
+    },
+    {
+      "kind": "model_attempt_outcome",
+      "body": {
+        "version": "actql-model-attempt-outcome/0.1",
+        "attempt_cid": "sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c",
+        "slot_cid": "sha256:9999999999999999999999999999999999999999999999999999999999999999",
+        "category": "contract_violation",
+        "failure": "budget_exceeded"
+      },
+      "expected_canonical_bytes": "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"category\":\"contract_violation\",\"failure\":\"budget_exceeded\",\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"version\":\"actql-model-attempt-outcome/0.1\"}",
+      "expected_cid": "sha256:b5738bbd95eaaec73222e004087888fc3231d799410687d031745d6683d13a2d"
     }
   ]
 }

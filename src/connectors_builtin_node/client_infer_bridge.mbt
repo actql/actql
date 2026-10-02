@@ -8,6 +8,37 @@ pub fn client_program_terminal_infer_step(
 }
 
 ///|
+/// Physical capacity cannot grant dispatch permission. The common execution
+/// Contract clamps each installed ceiling before any bounded prefix work.
+#export_name("clientProgramBindInferQuantityCapacity")
+pub fn client_program_bind_infer_quantity_capacity(
+  active : @infer_host.Execution,
+  tokens : Int64,
+  cost_units : Int64,
+  duration_ms : Int64,
+  per_attempt_tokens : Int64,
+  per_attempt_cost_units : Int64,
+  per_attempt_duration_ms : Int64,
+) -> Result[Unit, @infer_host.Issue] {
+  @infer_host.bind_quantity_capacity(active, {
+    limits: { tokens, cost_units, duration_ms, },
+    per_attempt: {
+      tokens: per_attempt_tokens,
+      cost_units: per_attempt_cost_units,
+      duration_ms: per_attempt_duration_ms,
+    },
+  })
+}
+
+///|
+#export_name("clientProgramInferQuantityUsage")
+pub fn client_program_infer_quantity_usage(
+  active : @infer_host.Execution,
+) -> @resources.QuantityUsage? {
+  @infer_host.execution_quantity_usage(active)
+}
+
+///|
 /// Compile the retained checked barrier through the existing task Run owner.
 /// Compilation does not grant model egress or attest to captured execution.
 #export_name("clientProgramCompileLocalInfer")

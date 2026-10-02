@@ -1487,6 +1487,18 @@ existing resource owner; it is not an exact transport-byte measurement. This
 observation does not replace pre-dispatch reservation of every required budget.
 Failure and cancellation retain the original accounting evidence.
 
+<!-- requirement-block: model-attempt-evidence.quantity-reservation -->
+An installed metered Model profile MUST include `reservation`, containing
+the exact pre-dispatch `tokens`, `cost_units` and `duration_ms` upper bounds
+for that attempt. These bounds are not observed consumption. A NULL usage
+retains its dispatched bound as uncertain even after physical cleanup; an
+actual observation replaces only that unit's uncertain bound. Undispatched
+reservations may be returned after confirmed cleanup. The common owner records
+a provider overrun before failing the barrier with `budget_exceeded`; it does
+not turn a capacity violation into a provider-failure row. Bodies without this
+optional field preserve their prior preimage, but omission does not discharge
+the production obligation to reserve every required budget.
+
 `actql-model-attempt-outcome/0.1` binds the attempt and slot to success,
 provider failure, contract violation, cancellation or unknown result. Only
 the existing seven provider-failure classifications can produce ordinary
@@ -1789,8 +1801,8 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_call_slot sha256:a83e0af3e07986b5655463e0d39da3eb6c74cbefb327e65525de4be0035eac2b
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_dispatch_authority sha256:b00aae86b12bae22d8ef3f62d98d1a192fa9253371407fde016fc23a28117d09
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_call_attempt sha256:c80b4873ed75130e12006eb5f00154d77b74a85394eb1a7dbf517078d4db2741
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_attempt_accounting sha256:9dd8efbc085ba24be98f68688d0ff3b8b02201b60d1f99c1e4faebcc3663382f
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_attempt_outcome sha256:859480d0f1786ef1493208b75278617bf022b60a6115c1dc4ff06542fe975a5b
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_attempt_accounting sha256:64060e2b23925f0d7be708240f504df312f7e46706e2a5fefd7c46d8d421430f
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_attempt_outcome sha256:90afd9fed54246784afb4b8922a0ec228c048d50e75f53598702a4c5ca0770b7
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/caller_input_intent sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/initial_input_artifact_set sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/bound_invocation_template sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7

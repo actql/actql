@@ -139,7 +139,76 @@ test "independent model attempt evidence 5" {
 }
 
 ///|
-test "invalid model attempt evidence model_attempt_accounting" {
+test "independent model attempt evidence 6" {
+  let value = seal_run_evidence_value(
+    "model_attempt_accounting", "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"cost_units\":null,\"cumulative_work\":23,\"duration_ms\":null,\"input_tokens\":null,\"output_tokens\":null,\"reservation\":{\"cost_units\":7,\"duration_ms\":19,\"tokens\":33},\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"uncertain_wire_bytes\":66536,\"version\":\"actql-model-attempt-accounting/0.1\"}",
+    16384, 256, 8,
+  ).unwrap()
+  assert_eq(
+    run_evidence_value_identity(value),
+    "sha256:5a6d1eaeb0cfd8578eb425fd4a4706b4c472d658f8e48288c3d108073b9dd887",
+  )
+  let restored = admit_run_evidence_value(
+    "model_attempt_accounting",
+    run_evidence_value_json(value),
+    16384,
+    256,
+    8,
+  ).unwrap()
+  assert_eq(
+    run_evidence_value_identity(restored),
+    "sha256:5a6d1eaeb0cfd8578eb425fd4a4706b4c472d658f8e48288c3d108073b9dd887",
+  )
+}
+
+///|
+test "independent model attempt evidence 7" {
+  let value = seal_run_evidence_value(
+    "model_attempt_accounting", "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"cost_units\":null,\"cumulative_work\":23,\"duration_ms\":null,\"input_tokens\":1,\"output_tokens\":2,\"reservation\":{\"cost_units\":7,\"duration_ms\":19,\"tokens\":33},\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"uncertain_wire_bytes\":66536,\"version\":\"actql-model-attempt-accounting/0.1\"}",
+    16384, 256, 8,
+  ).unwrap()
+  assert_eq(
+    run_evidence_value_identity(value),
+    "sha256:2b21c2aa6d74db1db05d7bd7ddcc56a84c46f1ae1115356ed0fd47c6848d0951",
+  )
+  let restored = admit_run_evidence_value(
+    "model_attempt_accounting",
+    run_evidence_value_json(value),
+    16384,
+    256,
+    8,
+  ).unwrap()
+  assert_eq(
+    run_evidence_value_identity(restored),
+    "sha256:2b21c2aa6d74db1db05d7bd7ddcc56a84c46f1ae1115356ed0fd47c6848d0951",
+  )
+}
+
+///|
+test "independent model attempt evidence 8" {
+  let value = seal_run_evidence_value(
+    "model_attempt_outcome", "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"category\":\"contract_violation\",\"failure\":\"budget_exceeded\",\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"version\":\"actql-model-attempt-outcome/0.1\"}",
+    16384, 256, 8,
+  ).unwrap()
+  assert_eq(
+    run_evidence_value_identity(value),
+    "sha256:b5738bbd95eaaec73222e004087888fc3231d799410687d031745d6683d13a2d",
+  )
+  let restored = admit_run_evidence_value(
+    "model_attempt_outcome",
+    run_evidence_value_json(value),
+    16384,
+    256,
+    8,
+  ).unwrap()
+  assert_eq(
+    run_evidence_value_identity(restored),
+    "sha256:b5738bbd95eaaec73222e004087888fc3231d799410687d031745d6683d13a2d",
+  )
+}
+
+///|
+test "invalid model attempt evidence model_attempt_accounting 688a91b3" {
   assert_true(
     seal_run_evidence_value(
       "model_attempt_accounting", "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"cost_units\":null,\"cumulative_work\":23,\"duration_ms\":null,\"input_tokens\":-1,\"output_tokens\":null,\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"uncertain_wire_bytes\":66536,\"version\":\"actql-model-attempt-accounting/0.1\"}",
@@ -150,7 +219,7 @@ test "invalid model attempt evidence model_attempt_accounting" {
 }
 
 ///|
-test "invalid model attempt evidence model_call_attempt" {
+test "invalid model attempt evidence model_call_attempt c5c95c9e" {
   assert_true(
     seal_run_evidence_value(
       "model_call_attempt", "{\"attempt\":0,\"authority_evidence_cid\":\"sha256:f1c9ce8f0fbef3942dfaa59025898a8843aeecb8e8d3a7d85181f1b399159c6a\",\"fixed_request_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"model_task_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"provider_id\":\"models/fixture\",\"run_definition_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\",\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"version\":\"actql-model-call-attempt/0.1\"}",
@@ -161,10 +230,32 @@ test "invalid model attempt evidence model_call_attempt" {
 }
 
 ///|
-test "invalid model attempt evidence model_attempt_outcome" {
+test "invalid model attempt evidence model_attempt_outcome 7127dfab" {
   assert_true(
     seal_run_evidence_value(
       "model_attempt_outcome", "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"category\":\"provider_failure\",\"failure\":\"invented\",\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"version\":\"actql-model-attempt-outcome/0.1\"}",
+      16384, 256, 8,
+    )
+    is Err(RunEvidenceInvalidShape),
+  )
+}
+
+///|
+test "invalid model attempt evidence model_attempt_accounting 6d30933a" {
+  assert_true(
+    seal_run_evidence_value(
+      "model_attempt_accounting", "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"cost_units\":null,\"cumulative_work\":23,\"duration_ms\":null,\"input_tokens\":null,\"output_tokens\":null,\"reservation\":{\"cost_units\":7,\"duration_ms\":19,\"tokens\":-1},\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"uncertain_wire_bytes\":66536,\"version\":\"actql-model-attempt-accounting/0.1\"}",
+      16384, 256, 8,
+    )
+    is Err(RunEvidenceInvalidShape),
+  )
+}
+
+///|
+test "invalid model attempt evidence model_attempt_accounting 7f408008" {
+  assert_true(
+    seal_run_evidence_value(
+      "model_attempt_accounting", "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"cost_units\":null,\"cumulative_work\":23,\"duration_ms\":null,\"input_tokens\":null,\"output_tokens\":null,\"reservation\":{\"cost_units\":7,\"tokens\":33},\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"uncertain_wire_bytes\":66536,\"version\":\"actql-model-attempt-accounting/0.1\"}",
       16384, 256, 8,
     )
     is Err(RunEvidenceInvalidShape),

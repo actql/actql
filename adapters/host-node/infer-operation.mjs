@@ -11,11 +11,26 @@ const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
 // object to client-dispatch-owner before calling run, hence before any advance.
 // Exactly one physical provider or already Store-confirmed saved read is used.
 export function openNodeInferOperation({moon, preparedProgram, step, graph,
-  registry, values, provider, savedCapture, savedSlots, signal, quantum = 256}) {
+  registry, values, provider, savedCapture, savedSlots, quantityCapacity,
+  signal, quantum = 256}) {
   if (!Number.isSafeInteger(quantum) || quantum < 1 || quantum > 2147483647 ||
       [provider, savedCapture, savedSlots].filter(value => value !== undefined)
         .length !== 1) {
     throw new TypeError('InvalidInstalledInferOperation');
+  }
+  if (quantityCapacity !== undefined && (provider === undefined ||
+      quantityCapacity === null ||
+      typeof quantityCapacity !== 'object' ||
+      Object.keys(quantityCapacity).sort().join(',') !== 'limits,perAttempt' ||
+      ['limits', 'perAttempt'].some(scope => {
+        const value = quantityCapacity[scope];
+        return value === null || typeof value !== 'object' ||
+          Object.keys(value).sort().join(',') !==
+            'costUnits,durationMs,tokens' ||
+          Object.values(value).some(amount => typeof amount !== 'bigint' ||
+            amount < 0n || amount > BigInt(Number.MAX_SAFE_INTEGER));
+      }))) {
+    throw new TypeError('InvalidInstalledInferQuantityCapacity');
   }
   signal?.throwIfAborted();
   const active = checked(savedSlots !== undefined
@@ -27,6 +42,23 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       : moon.clientProgramStartRestoredInferReplay(preparedProgram, step,
         graph, registry, values, savedCapture));
   const requestStop = () => moon.clientProgramCancelInferExecution(active);
+  if (quantityCapacity !== undefined) {
+    const {limits, perAttempt} = quantityCapacity;
+    const bound = moon.clientProgramBindInferQuantityCapacity(active,
+      limits.tokens, limits.costUnits, limits.durationMs,
+      perAttempt.tokens, perAttempt.costUnits, perAttempt.durationMs);
+    if (bound?.$tag !== 1) {
+      // This is still the bounded, pre-dispatch Input phase. Confirm stop and
+      // cleanup before propagating the original typed refusal; never run.
+      requestStop();
+      const stopped = checked(moon.clientProgramAdvanceInferExecution(active, 1));
+      if (moon.clientProgramInferExecutionPollKind(stopped) !== 'stopped' ||
+          checked(moon.clientProgramCleanupInferExecution(active)) !== true) {
+        throw pending();
+      }
+      checked(bound);
+    }
+  }
   signal?.addEventListener('abort', requestStop, {once: true});
   let flight;
   let closeFlight;
@@ -105,6 +137,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   return Object.freeze({run, close, cleanup,
     cleanupPending: () => !reclaimed,
     physicalStopped: () => moon.clientProgramInferExecutionStopped(active),
+    quantityUsage: () => moon.clientProgramInferQuantityUsage(active),
     acquireOutput: () => moon.clientProgramAcquireInferOutput(active),
     acquireCapture: () => moon.clientProgramAcquireInferCapture(active),
     acquireOutcomes: () => moon.clientProgramAcquireInferOutcomes(active),

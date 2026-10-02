@@ -130,6 +130,8 @@ pub fn client_program_bind_infer_dispatch_admission(@client_infer_host.Execution
 
 pub fn client_program_bind_infer_invocation(@client_infer_host.Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @model_execution.ModelObservationVerification, @run_publication.PublicationContract, String) -> Result[@client_infer_host.InvocationBinding, @client_infer_host.InvocationBindingIssue]
 
+pub fn client_program_bind_infer_quantity_capacity(@client_infer_host.Execution, Int64, Int64, Int64, Int64, Int64, Int64) -> Result[Unit, @client_infer_host.Issue]
+
 pub fn client_program_bind_infer_run(@client_infer_host.Execution, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, @client_infer_host.InvocationBindingIssue]
 
 pub fn client_program_bind_infer_slot_capture(@model_execution.VerifiedModelCapture, Int, @run_publication.RunEvidenceValue) -> Result[@run_publication.BoundModelSlotCapture, @model_execution.ModelExecutionIssue]
@@ -549,6 +551,8 @@ pub fn client_program_infer_publication_release(@client_infer_host.ResultPublica
 pub fn client_program_infer_publication_selection(@client_infer_host.ResultPublication) -> @run_publication_host.ClientResultTransformation?
 
 pub fn client_program_infer_publication_usage(@physical_resources.Ledger) -> (Int, Int64)
+
+pub fn client_program_infer_quantity_usage(@client_infer_host.Execution) -> @physical_resources.QuantityUsage?
 
 pub fn client_program_infer_request_preflight_pending(@client_infer_host.Execution) -> Bool
 

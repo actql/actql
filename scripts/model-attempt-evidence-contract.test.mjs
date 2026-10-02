@@ -31,7 +31,13 @@ const bodies = [['model_dispatch_authority', authority],
   ['model_call_attempt', attempt], ['model_attempt_accounting', accounting],
   ['model_attempt_outcome', outcome],
   ['model_attempt_outcome', {...outcome, category: 'cancelled', failure: 'cancelled'}],
-  ['model_attempt_accounting', {...accounting, input_tokens: 1, output_tokens: 2}]];
+  ['model_attempt_accounting', {...accounting, input_tokens: 1, output_tokens: 2}],
+  ['model_attempt_accounting', {...accounting,
+    reservation: {tokens: 33, cost_units: 7, duration_ms: 19}}],
+  ['model_attempt_accounting', {...accounting, input_tokens: 1, output_tokens: 2,
+    reservation: {tokens: 33, cost_units: 7, duration_ms: 19}}],
+  ['model_attempt_outcome', {...outcome, category: 'contract_violation',
+    failure: 'budget_exceeded'}]];
 const corpus = {version: 'actql-model-attempt-evidence-vectors/0.1',
   cases: bodies.map(([kind, body]) => ({kind, body,
     expected_canonical_bytes: canonicalText(body), expected_cid: machineCid(body)}))};
@@ -50,8 +56,12 @@ for (const [index, fixture] of corpus.cases.entries()) {
 }
 for (const [kind, body] of [['model_attempt_accounting', {...accounting, input_tokens: -1}],
   ['model_call_attempt', {...attempt, attempt: 0}],
-  ['model_attempt_outcome', {...outcome, failure: 'invented'}]]) {
-  moon += `\n///|\ntest ${JSON.stringify('invalid model attempt evidence ' + kind)} {\n` +
+  ['model_attempt_outcome', {...outcome, failure: 'invented'}],
+  ['model_attempt_accounting', {...accounting,
+    reservation: {tokens: -1, cost_units: 7, duration_ms: 19}}],
+  ['model_attempt_accounting', {...accounting,
+    reservation: {tokens: 33, cost_units: 7}}]]) {
+  moon += `\n///|\ntest ${JSON.stringify('invalid model attempt evidence ' + kind + ' ' + machineCid(body).slice(7, 15))} {\n` +
     `  assert_true(seal_run_evidence_value(${JSON.stringify(kind)},\n` +
     `    ${JSON.stringify(canonicalText(body))}, 16384, 256, 8) is Err(RunEvidenceInvalidShape))\n}\n`;
 }

@@ -11751,6 +11751,17 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.contracts/model-attempt-evidence.quantity-reservation",
+      "statement_sha256": "f1b5ff1b9fa30f4c85a26bd3eca9fc51928c26f207398f29f2f6833ad6ab2c80",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "model-attempt-evidence",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.contracts/compilation-identities.actql-compiled-plan",
       "statement_sha256": "083bbc1261ce70bb01b5c0253948a7d4ab82ed716780403226d7525e36a51906",
       "status": "pending",
@@ -12049,7 +12060,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "6f8cf2b3841944661e76afa14bcfa37c2e568d036af9e3332e74520571686ea3",
+      "statement_sha256": "7882195f7792f31671890d4b2c1c9b4b805661c16d38e0af17d99de35e24351c",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

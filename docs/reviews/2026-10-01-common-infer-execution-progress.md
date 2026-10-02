@@ -1580,3 +1580,35 @@ Host publication remain required. This change does not make symbolic external
 roots trustworthy, supply B a public acceptance SHA, authorize push or prove
 Linux CI. Canonical specification checks and full CI jobs were not rerun for
 this code-only boundary; no shared wire contract changed.
+
+## Physical token, cost and duration capacity
+
+The existing physical attempt ledger now reserves these three quantities
+atomically with the attempt and wire envelope. The selected execution contract
+narrows installed capacity before bounded input work. Before provider access,
+the common owner moves the reservation to uncertain usage. Reported token
+usage is reconciled once; unavailable cost and duration observations remain
+unknown, including after failure, cancellation and cleanup. Undispatched
+reservations are returned without erasing dispatched usage.
+
+The optional accounting evidence `reservation` records that original envelope.
+Legacy evidence without the field retains its canonical identity. Schema,
+generated readers, independent vectors and specification pins move together.
+The Node bridge passes installed capacity to the common owner; it does not
+create a ledger or issue accounting JSON.
+
+Verification on the working tree based on
+`5c9dbf2880a4ce04e6bf38c099a98408cdb5152c`:
+
+- `physical_resources`, `model_execution`, `client_infer_host` and
+  `run_publication`: JS, Wasm and native, 295 tests on each target.
+- Release Node bridge build and inference-owner tests: 42 passed.
+- Three-target interface generation, MoonBit formatting and whitespace checks.
+- `check:spec` was interrupted during the Local resource-accounting tests
+  after prolonged silence. It did not finish and is not reported as passed.
+  The preceding version, Engine accounting, Connector boundary and coverage
+  checks passed. Linux CI has not run for this change.
+
+This closes a physical accounting component, not public INFER acceptance. The
+ordinary HTTPS submit still refuses installed INFER before Run admission;
+there is no accepted Named Result or B-ready execution SHA yet.

@@ -607,7 +607,7 @@ async function inferExportRows(prepared, completed) {
 }
 
 function supervisedInferFixture(signal, onInvoke, responseBody = '{"reason":null,"risk":"high"}',
-  source = program()) {
+  source = program(), quantityCapacity) {
   const preparation = prepare(source, environment());
   const prepared = moon.clientProgramPreparationReady(preparation);
   assert.ok(prepared, inspect(preparation));
@@ -624,7 +624,7 @@ function supervisedInferFixture(signal, onInvoke, responseBody = '{"reason":null
   const graph = scopedInferGraph(prepared);
   const operation = openNodeInferOperation({moon, preparedProgram: prepared,
     step: 2, graph, registry, values, provider,
-    signal, quantum: 1});
+    signal, quantum: 1, quantityCapacity});
   return {prepared, graph, operation, calls: () => calls};
 }
 
@@ -658,7 +658,9 @@ async function issueOwnedInferObservation(operation, control, compiled,
 
 test('Node Infer binds existing account authority and reads common issued attempt proofs', async () => {
   for (const outcome of ['allow', 'deny']) {
-    const fixture = supervisedInferFixture();
+    const fixture = supervisedInferFixture(undefined, undefined, undefined,
+      program(), {limits: {tokens: 33n, costUnits: 0n, durationMs: 500n},
+        perAttempt: {tokens: 33n, costUnits: 0n, durationMs: 500n}});
     const {prepared, graph, operation} = fixture;
     const control = runtimeCore(moon).publicationControl;
     const root = cid({fixture: 'infer-component-policy'});
@@ -709,6 +711,8 @@ test('Node Infer binds existing account authority and reads common issued attemp
       assert.equal(leaves.accounting.output_tokens, 2);
       assert.equal(leaves.accounting.cost_units, null);
       assert.equal(leaves.accounting.duration_ms, null);
+      assert.deepEqual(leaves.accounting.reservation,
+        {tokens: 33, cost_units: 0, duration_ms: 500});
       assert.ok(leaves.accounting.cumulative_work > 0);
       assert.equal(leaves.outcome.category, 'ok');
       assert.equal(fixture.calls(), 1);
@@ -717,6 +721,12 @@ test('Node Infer binds existing account authority and reads common issued attemp
       assert.equal(operation.physicalStopped(), true);
       assert.equal(operation.cleanupPending(), false);
       assert.equal(fixture.calls(), outcome === 'allow' ? 1 : 0);
+      if (outcome === 'allow') {
+        const usage = operation.quantityUsage();
+        assert.equal(usage.consumed.tokens, 3n);
+        assert.equal(usage.uncertain.duration_ms, 500n);
+        assert.equal(usage.reserved.tokens, 0n);
+      }
     }
   }
 });
