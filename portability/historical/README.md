@@ -1,5 +1,11 @@
 # Historical Graph fixtures (not executable compatibility)
 
+The current decision requires no compatibility implementation or old-byte
+execution. Git history is sufficient historical authority; these inert copies
+are evidence only. See `docs/reviews/2026-10-02-property-graph-guarantees.md`
+for the distinction between migrated generic guarantees and withdrawn
+algorithm-specific expectations.
+
 These `.txt` files preserve the previous tuple-profile fixtures and coverage
 claims. They are evidence at their original source, not MoonBit inputs or a
 fallback that accepts old Graph bodies or snapshot profiles.
@@ -76,3 +82,11 @@ snapshot and aggregate Core acceptance remain separately required.
   unchanged. Current TRAIL retains literal/repeated and Relation selector
   owners, indexed boundary checks and source locations; unsupported subgraph,
   shortest and union cannot manufacture historical selector/fold obligations.
+
+- `pipeline-{graph,graph-unary-audit,graph-bounds,graph-counts,graph-report-counts,graph-structural-audit,mean-acceptance-audit,mean-counts,path-counts,union-list}-pre-property-graph.mbt.txt`:
+  ten originals from `01c19faf0aa7d9a690ae09c66e98bac43d7e2e28`, compared
+  byte-for-byte. Current MATCH/TRAIL positives retain physical input owners,
+  typed identity results, empty-selector bounds and exact/one-short budgets.
+  An empty declared node universe excludes all edges; no endpoint nodes are
+  fabricated. Nine pure tuple-algorithm positives are withdrawn, not claimed
+  migrated, while unsupported consumers receive typed refusal.

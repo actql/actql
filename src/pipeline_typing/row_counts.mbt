@@ -512,7 +512,10 @@ fn derive_row_counts(
           spend(b, step.source, 1)
           if index < node_count {
             nodes = sum_counts(step.source, nodes, count_at(target, result))
-          } else {
+          } else if !(nodes is Some({ upper: 0L, .. })) {
+            // Node operands precede edge operands. An exactly empty declared
+            // universe excludes every edge, even when its input has rows.
+            // Still debit each operand; no execution work is inferred here.
             edges = sum_counts(step.source, edges, count_at(target, result))
           }
         }
