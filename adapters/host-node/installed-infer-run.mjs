@@ -45,6 +45,7 @@ export function installNodeInferRun({moon, core, registry, values, selections,
     let captureStored = false;
     let issuanceComplete = false;
     let persistCapture;
+    let attemptsStored = false;
     // A failed write retains its exact physical owner. Cleanup retries only
     // that write, never operation.run or the provider.
     const cleanup = async () => {
@@ -54,6 +55,7 @@ export function installNodeInferRun({moon, core, registry, values, selections,
       // merely because a private write failed. Resume persistence of the same
       // common-owned evidence; this never reruns Compute or dispatch.
       if (capture !== undefined && !captureStored) await persistCapture();
+      if (capture === undefined && !replay) await persistStoppedAttempts();
       if (pendingHolding !== undefined) {
         await pendingHolding.commit();
         pendingHolding = undefined;
@@ -94,10 +96,9 @@ export function installNodeInferRun({moon, core, registry, values, selections,
     retainExecution(Object.freeze({cleanup,
       cleanupPending: () => !reclaimed,
       async close() {
-        // Stop precedes all release. A retained publication use may prevent
-        // operation.close from reclaiming; this owner releases it below.
-        try { await operation.close(); }
-        catch (error) { if (error.code !== 'ClientDispatchCleanupPending') throw error; }
+        // Stop without reclaiming: failed executions still own attempt proofs
+        // that must reach private custody before the model owner is released.
+        await operation.stop();
         if (!await cleanup()) throw pending();
       }}));
     beginPhysicalWork();
@@ -117,7 +118,7 @@ export function installNodeInferRun({moon, core, registry, values, selections,
     if (!Number.isInteger(count) || count < 0 || count > 128) {
       throw new Error('InstalledInferCaptureInventoryUnavailable');
     }
-    const hold = async (name, slot, wire, semanticCid) => {
+    async function hold(name, slot, wire, semanticCid) {
       if (pendingHolding !== undefined) {
         await pendingHolding.commit();
         pendingHolding = undefined;
@@ -128,14 +129,35 @@ export function installNodeInferRun({moon, core, registry, values, selections,
       await faultInjection?.('infer_private_holding_commit', {role: name, slot});
       await pendingHolding.commit();
       pendingHolding = undefined;
-    };
-    const holdEvidence = async (name, slot, evidence) => {
+    }
+    async function holdEvidence(name, slot, evidence) {
       const wire = moon.strategyRunEvidenceJson(evidence);
       const admitted = control.admitRunEvidence(name, wire,
         {maxWireBytes: 16384, maxNodes: 1024, maxDepth: 20});
       await hold(name, slot, admitted.wire, admitted.identity);
       return admitted;
-    };
+    }
+    async function persistStoppedAttempts() {
+      if (attemptsStored) return;
+      const attempts = operation.stoppedAttemptCount();
+      if (!Number.isInteger(attempts) || attempts < 0 || attempts > 128) {
+        throw new Error('InstalledInferAttemptInventoryUnavailable');
+      }
+      for (let slot = 0; slot < attempts; slot++) {
+        const proof = operation.attemptEvidence(slot);
+        for (const [kind, name] of [
+          ['attempt', 'model_call_attempt'],
+          ['accounting', 'model_attempt_accounting'],
+          ['outcome', 'model_attempt_outcome'],
+          ['authority', 'model_dispatch_authority'],
+        ]) {
+          await holdEvidence(name, slot,
+            moon.clientProgramInferAttemptLeaf(proof, kind));
+        }
+        await yieldEventLoop();
+      }
+      attemptsStored = true;
+    }
     const modelEvidence = [];
     let wire = '';
     let exportComplete = false;

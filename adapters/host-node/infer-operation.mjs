@@ -137,21 +137,22 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     return flight;
   }
 
+  async function stop() {
+    closing = true;
+    requestStop();
+    if (flight !== undefined) await flight.catch(() => {});
+    if (!moon.clientProgramInferExecutionStopped(active)) {
+      const poll = checked(moon.clientProgramAdvanceInferExecution(active, 1));
+      if (moon.clientProgramInferExecutionPollKind(poll) !== 'stopped' ||
+          !moon.clientProgramInferExecutionStopped(active)) throw pending();
+    }
+  }
+
   function close() {
     if (closeFlight === undefined) {
       closing = true;
       closeFlight = (async () => {
-        requestStop();
-        if (flight !== undefined) {
-          // A primary Compute failure is not a cleanup failure. Retain its
-          // original rejected promise; never invoke run again during cleanup.
-          await flight.catch(() => {});
-        }
-        if (!moon.clientProgramInferExecutionStopped(active)) {
-          const poll = checked(moon.clientProgramAdvanceInferExecution(active, 1));
-          if (moon.clientProgramInferExecutionPollKind(poll) !== 'stopped' ||
-              !moon.clientProgramInferExecutionStopped(active)) throw pending();
-        }
+        await stop();
         if (!cleanup()) throw pending();
       })();
       closeFlight.catch(() => {});
@@ -159,10 +160,11 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     return closeFlight;
   }
 
-  return Object.freeze({run, close, cleanup,
+  return Object.freeze({run, stop, close, cleanup,
     cleanupPending: () => !reclaimed,
     physicalStopped: () => moon.clientProgramInferExecutionStopped(active),
     quantityUsage: () => moon.clientProgramInferQuantityUsage(active),
+    stoppedAttemptCount: () => moon.clientProgramInferStoppedAttemptCount(active),
     acquireOutput: () => moon.clientProgramAcquireInferOutput(active),
     acquireCapture: () => moon.clientProgramAcquireInferCapture(active),
     acquireOutcomes: () => moon.clientProgramAcquireInferOutcomes(active),

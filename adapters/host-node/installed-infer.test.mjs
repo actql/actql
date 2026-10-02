@@ -13,6 +13,10 @@ import {connect} from '../../packages/sdk/index.mjs';
 import {openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
+import {createPublicationContractControlFixture} from
+  '../host-common/publication-contract-control.fixture.mjs';
+import {loadPrivateEvidenceKey} from './local-continuation-evidence.mjs';
 
 const oneRowInfer = () => ({version: 'actql/0.1', id: 'installed-infer',
   stages: [{id: 'main', inputs: {}, steps: [
@@ -99,7 +103,11 @@ async function installedHost(t, options = {}) {
   const client = await connect({mode: 'remote',
     endpoint: `https://127.0.0.1:${server.address().port}/`,
     token: 'fixture-owner', durability: 'durable'});
-  return {client, root, physicalStarts: () => physicalStarts};
+  return {client, root, physicalStarts: () => physicalStarts,
+    async closeHost() {
+      await host?.close();
+      host = undefined;
+    }};
 }
 
 test('ordinary public INFER refuses a missing installed ModelTask before Run admission',
@@ -234,6 +242,7 @@ async function installedDependencyConfiguration(variant) {
 }
 
 for (const boundary of ['success', 'private-write-failure',
+  'usage-overflow', 'usage-overflow-write-failure',
   'observation-step-failure', 'observation-complete-failure',
   'cancel-before-publication', 'restart-after-capture', 'restart-before-capture']) {
 test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
@@ -245,6 +254,7 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
     let observationSteps = 0;
     const injectedFailure = boundary.endsWith('-failure');
     const restarting = boundary.startsWith('restart-');
+    const failedBeforeCapture = boundary.startsWith('usage-overflow');
     let run;
     let started;
     const startedRun = new Promise(resolve => { started = resolve; });
@@ -267,9 +277,11 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
           throw new Error('InjectedObservationBoundaryFailure');
         }
       }
-      if (boundary === 'private-write-failure' && !failedWrite &&
+      if ((boundary === 'private-write-failure' ||
+          boundary === 'usage-overflow-write-failure') && !failedWrite &&
           name === 'infer_private_holding_commit' &&
-          detail.role === 'model_slot_capture') {
+          detail.role === (failedBeforeCapture ? 'model_attempt_accounting' :
+            'model_slot_capture')) {
         failedWrite = true;
         throw new Error('InjectedPrivateCaptureWriteFailure');
       }
@@ -299,10 +311,12 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
                 '"hello"');
               return moon.clientProgramModelResponse(request,
                 '{"reason":null,"risk":"high"}', 'fixture-risk-model',
-                'installed-request', 1n, 2n, new Date().toISOString());
+                'installed-request', 1n,
+                boundary.startsWith('usage-overflow') ? 1000n : 2n,
+                new Date().toISOString());
             }))}), () => true),
       }];
-    const {client, root, physicalStarts} = await installedHost(t, {
+    const {client, root, physicalStarts, closeHost} = await installedHost(t, {
       modelInstallation: installation, authorization, registerModelProviders,
       initializeRoot: !restarting ? undefined : directory => {
         // A separate process uses the real public HTTPS entry, then exits
@@ -373,12 +387,13 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
       }
       const successful = boundary === 'success' || boundary === 'restart-after-capture';
       assert.equal(terminal.status, successful
-        ? 'succeeded' : injectedFailure ? 'failed' : 'cancelled');
-      assert.equal(failedWrite, boundary === 'private-write-failure');
+        ? 'succeeded' : injectedFailure || failedBeforeCapture ? 'failed' : 'cancelled');
+      assert.equal(failedWrite, boundary === 'private-write-failure' ||
+        boundary === 'usage-overflow-write-failure');
       assert.equal(failedObservation, boundary.startsWith('observation-'));
       // Begin, one slot, and finalize: retries retain the issuer
       // rather than starting another observation or advancing a terminal one.
-      assert.equal(observationSteps, 3);
+      assert.equal(observationSteps, failedBeforeCapture ? 0 : 3);
       if (successful) {
         assert.deepEqual(await run.result('answer').all(),
           [{id: 'a', outcome: 'ok', value: {reason: null, risk: 'high'}}]);
@@ -394,8 +409,8 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
         version: 'actql-local-store-owner/0.1', root: join(root, 'state'),
         principalId: userInfo().username})).digest('hex')}`;
       for (const [role, slot] of [
-        ['model_capture_bundle', -1], ['observation_set', -1],
-        ['run_invocation', -1], ['model_slot_capture', 0],
+        ...(!failedBeforeCapture ? [['model_capture_bundle', -1], ['observation_set', -1],
+          ['run_invocation', -1], ['model_slot_capture', 0]] : []),
         ['model_call_attempt', 0], ['model_attempt_accounting', 0],
         ['model_attempt_outcome', 0], ['model_dispatch_authority', 0],
       ]) {
@@ -408,6 +423,40 @@ test(`ordinary public INFER dispatch and capture custody: ${boundary}`,
         assert.equal(record.holding_cid, identity);
         assert.equal(record.namespace, 'publication-private');
         assert.equal(record.objects.length, 1);
+      }
+      if (failedBeforeCapture) {
+        await closeHost();
+        const key = await loadPrivateEvidenceKey(join(root, 'state', 'checkpoints'));
+        const evidenceStore = await openLocalPublicationStore({
+          directory: join(root, 'state', 'publication'), storeAuthorityCid: storeCid,
+          capacityBytes: 512 * 1024 * 1024, maxObjectBytes: 1048576,
+          maxObjects: 10000, maxContractNodes: 10000, maxContractDepth: 64,
+          privateEvidenceKey: key.key,
+        }, createPublicationContractControlFixture());
+        key.key.fill(0);
+        try {
+          for (const role of ['model_attempt_accounting', 'model_attempt_outcome']) {
+            const holdingCid = contentCid({role, slot: 0,
+              run_definition_cid: run.ref.runDefinitionCid,
+              store_authority_cid: storeCid,
+              version: 'actql-model-private-holding/0.1'});
+            const record = await evidenceStore.inspectPhysicalHolding(holdingCid);
+            const body = JSON.parse(new TextDecoder().decode(
+              await evidenceStore.readPrivateEvidence(role, record.manifest_cid,
+                holdingCid)));
+            if (role === 'model_attempt_accounting') {
+              assert.equal(body.input_tokens, 1);
+              assert.equal(body.output_tokens, 1000);
+              assert.equal(body.cost_units, null);
+              assert.equal(body.duration_ms, null);
+              assert.ok(body.cumulative_work > 0);
+            } else {
+              assert.equal(body.category, 'contract_violation');
+              assert.equal(body.failure, 'budget_exceeded');
+            }
+          }
+        } finally { await evidenceStore.close(); }
+        assert.equal(calls, 1, 'failed custody retries must not invoke the model');
       }
     } catch (error) {
       const journal = new DatabaseSync(join(root, 'state', 'requests',

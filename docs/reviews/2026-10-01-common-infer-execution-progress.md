@@ -2011,3 +2011,30 @@ not certified by the one-row example. Model delegation and durable custody
 for failures before accepted completion remain open. Missing capture after
 an unknown response stays `needs_reconciliation` with no Result and no
 automatic provider call; it is not reported as successful replay.
+
+## Attempt custody before failed execution reclamation
+
+The installed owner now separates `operation.stop()` from `operation.cleanup()`.
+After physical stop, executions without an accepted capture enumerate the
+common owner's retained attempts and persist their attempt, accounting,
+outcome and authority evidence before releasing that owner. An interrupted
+private write retains the same holding; cleanup retries persistence, not
+Compute or model dispatch. No success bundle, adopted slot or ObservationSet
+is invented for an incomplete execution.
+
+Public HTTPS tests report token usage above the reserved allowance. They
+verify a failed Run, unavailable Named Result, one model call, and all four
+private evidence holdings. A second case interrupts accounting persistence
+and verifies cleanup retry. After Host shutdown and Store reopen, the tests
+read the encrypted evidence and assert input/output usage of 1/1000,
+unknown cost/duration as NULL, positive work, and the common
+`contract_violation` / `budget_exceeded` classification.
+
+The installed public fixture passes 25 tests; four focused dispatch-owner,
+stop and failure-cleanup regressions also pass. The attempt inventory API
+passes seven related tests on each of JS, Wasm and native, including a
+cancelled dispatched attempt and an admission refusal without a call.
+Public cancellation before accepted completion still needs its own retained
+evidence assertion. Abrupt process loss before persistence remains an unknown
+response with no automatic redispatch; these tests do not claim to recover
+usage that was never saved.
