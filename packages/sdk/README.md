@@ -91,6 +91,25 @@ are `SubmissionUnknown` with the original request ID and lookup context, even
 when the in-process exception is a `ClientError`. A public-looking error code
 is not by itself a refusal contract. Neither transport retries submission.
 
+`execution.cancel()` retains the existing `execution.ref` and sends one Run
+cancellation request. A transport error or Host failure does not establish
+whether cancellation was recorded; the SDK does not automatically resend it
+or start another Run. Keep the original Host connection and Run reference.
+After access is restored, `status()` on that handle, or `attach(ref)` followed
+by `status()`, can observe the same Run. A Host that supplies `control` reports
+its retained `revision`, `cancellation_requested` and `physical_stop`; absence
+of `control` supplies no cancellation observation. Accepted cancellation alone
+never proves physical stop. Current authorization applies to these operations.
+
+This existing Run observation is not a lookup of a distinct cancellation
+operation. `Execution.cancel()` currently has no cancellation-operation ID,
+operation-scoped lookup or dedicated unknown-outcome error carrying recovery
+context. In particular, a later `cancellation_requested: true` does not identify
+which caller's cancellation was recorded. Do not infer automatic retry or
+operation-specific reconciliation from it. The separate `cancelRequest` and
+Checkpoint recovery contracts below remain unchanged. See the
+[bounded write-response-loss inventory](../../docs/reviews/2026-10-02-sdk-write-response-loss.md).
+
 The read limits use separate byte measures:
 
 | Limit | Measure |
