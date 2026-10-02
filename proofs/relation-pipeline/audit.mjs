@@ -11,7 +11,7 @@ import { candidates, program } from './engine.mjs';
 import { registry, baseRegistry } from './registry.mjs';
 import { hash, snapshot, checkBaseline } from './inventory.mjs';
 import { validate, compareSemantics } from './evidence.mjs';
-import { body, payload, inputVariable } from './fixture.mjs';
+import { auditFixture, payload, inputVariable } from './fixture.mjs';
 import { applyMutation } from './sites.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const directory = resolve(process.argv[2] ?? join(root, '.artifacts/relation-pipeline'));
@@ -26,16 +26,26 @@ checkBaseline(root);
 checkFoundation(root);
 const current = snapshot(root);
 const expectedImpact = decision(root);
-function auditExecution(execution, selected, expectedTarget = execution.receipt.target) {
+const receiptPaths = new Set(), observedIds = new Set();
+function auditExecution(execution, selected, expectedTarget = execution.receipt.target, workspace = null) {
+  assert(!receiptPaths.has(execution.path), 'Execution receipt reused across obligations');
+  receiptPaths.add(execution.path);
   const run = execution.receipt;
   assert(['js', 'wasm', 'native'].includes(expectedTarget));
   assert.equal(run.target, expectedTarget, 'Receipt target differs from requested audit target');
+  assert.equal(run.exit, 0, 'Failed execution cannot be mutation evidence');
   assert.equal(hash(JSON.stringify(read(artifact(execution.path)))), execution.digest);
   assert.equal(hash(JSON.stringify(run)), execution.digest);
   const source = read(artifact(run.sourcePath));
   assert.equal(hash(JSON.stringify(source.sources)), source.digest);
   assert.equal(source.digest, run.sourceDigest);
+  if (workspace) {
+    assert.equal(run.boundary.workspace, workspace.id, 'Execution workspace identity mismatch');
+    assert.equal(run.boundary.root, workspace.root, 'Execution workspace root mismatch');
+  } else assert.equal(run.boundary.role, 'normal');
   run.cases.forEach(entry => {
+    assert(!observedIds.has(entry.id), 'Observation identity reused across executions');
+    observedIds.add(entry.id);
     assert.deepEqual(entry.program, program(entry.testCase, selected));
     assert.equal(entry.caseDigest, hash(JSON.stringify(entry.testCase)));
     assert.equal(entry.observation.id, entry.id);
@@ -54,11 +64,9 @@ function auditExecution(execution, selected, expectedTarget = execution.receipt.
   const inputs = payload(run.cases, run.correspondence);
   assert.equal(readFileSync(artifact(run.inputPath), 'utf8'), inputs);
   assert.equal(hash(inputs), run.inputDigest);
-  assert.equal(readFileSync(artifact(run.fixturePath), 'utf8'), body);
-  assert.equal(hash(body), run.fixtureDigest);
   const log = readFileSync(artifact(run.logPath), 'utf8');
   assert.equal(hash(log), run.logDigest);
-  assert.match(log, /Total tests: 1, passed: 1, failed: 0/);
+  auditFixture(run, readFileSync(artifact(run.fixturePath)), log, expectedTarget);
   let id; let faults = []; const observations = [];
   for (const line of log.split('\n')) {
     if (line.startsWith('ACTQL_PIPELINE_CASE:')) { id = JSON.parse(line.slice(20)); faults = []; }
@@ -114,6 +122,8 @@ assert.equal(mutations.mode, mode);
 assert.deepEqual(mutations.decision, impact);
 assert.equal(mutations.revision, impact.revision);
 assert.deepEqual(mutations.source, current);
+assert.notEqual(mutations.workspaces.pristine.id, mutations.workspaces.mutable.id);
+assert.notEqual(mutations.workspaces.pristine.root, mutations.workspaces.mutable.root);
 assert.equal(mutations.explorationTarget, mode === 'explore' ? 'js' : null);
 assert.equal(mutations.seed, mode === 'explore' ? 105106 : null);
 assert.deepEqual(mutations.results.map(r => r.name), variants.map(v => v.name));
@@ -159,7 +169,8 @@ for (const result of mutations.results) {
   }
   const recorded = new Map();
   for (const execution of result.executions) {
-    assert.deepEqual(auditExecution(execution, registry), result.source);
+    assert.equal(execution.receipt.boundary.role, 'mutable');
+    assert.deepEqual(auditExecution(execution, registry, execution.receipt.target, mutations.workspaces.mutable), result.source);
     for (const entry of execution.receipt.cases) recorded.set(JSON.stringify(entry.observation), entry.testCase);
   }
   for (const [i, actual] of (result.finalObservations ?? []).entries()) {
@@ -172,8 +183,11 @@ for (const result of mutations.results) {
     assert(execution); assert.deepEqual(recorded.get(JSON.stringify(actual)), result.minimal);
   }
   const healthy = new Map();
+  assert.equal(result.healthyExecutions.length, 3);
+  assert.deepEqual(result.healthyExecutions.map(e => e.receipt.target), ['js', 'wasm', 'native']);
   for (const execution of result.healthyExecutions) {
-    assert.deepEqual(auditExecution(execution, registry), current);
+    assert.equal(execution.receipt.boundary.role, 'pristine');
+    assert.deepEqual(auditExecution(execution, registry, execution.receipt.target, mutations.workspaces.pristine), current);
     assert(execution.receipt.correspondence);
     execution.receipt.cases.forEach(c => healthy.set(JSON.stringify(c.observation), { target: execution.receipt.target, testCase: c.testCase }));
   }
