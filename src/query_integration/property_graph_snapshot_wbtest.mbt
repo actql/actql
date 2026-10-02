@@ -47,6 +47,434 @@ fn snapshot_fixture_cid() -> String {
 }
 
 ///|
+fn snapshot_material_fixture(
+  control : @bounded.Control,
+  owner : @lower.BoundPrepared,
+  source : @graphs.Completed,
+  maximum_bytes? : Int = 100000,
+  maximum_frame_bytes? : Int = 100000,
+) -> @carrier_runtime.Material {
+  @local_bridge.completed_property_snapshot_material(
+    control,
+    owner,
+    @pipeline.Input(0),
+    source,
+    carrier_graph_storage_limits(),
+    snapshot_caps(),
+    {
+      max_nodes: 10000,
+      max_depth: 100,
+      max_string_bytes: 100000,
+      max_total_string_bytes: 100000,
+    },
+    maximum_bytes,
+    maximum_frame_bytes,
+    1000000L,
+    () => true,
+  ).unwrap()
+}
+
+///|
+test "material snapshot port transfers only the verified restored generation" {
+  let owner = snapshot_fixture_owner()
+  let source = snapshot_handoff_source(owner)
+  let material = snapshot_material_fixture(@bounded.control(), owner, source)
+  let operation = @carrier_runtime.material_prepare_snapshot(material)
+    .unwrap()
+    .unwrap()
+  assert_true(
+    @carrier_runtime.material_prepare_snapshot(material)
+    is Err(@carrier_runtime.SnapshotAlreadyClaimed),
+  )
+  assert_true((operation.content)() is Err(_))
+  let saved = StringBuilder()
+  let mut complete = false
+  for _ in 0..<1000 {
+    let advanced = (operation.advance_save)(1).unwrap()
+    saved.write_string((operation.take_output)().unwrap())
+    if advanced.complete {
+      complete = true
+      break
+    }
+  }
+  assert_true(complete)
+  let content = (operation.content)().unwrap()
+  assert_eq(content.cid, snapshot_fixture_cid())
+  assert_eq(saved.to_string(), snapshot_fixture_body())
+  assert_true((operation.begin_reload)(saved.to_string(), () => true) is Err(_))
+  (operation.release_source)(content.cid).unwrap()
+  assert_false(@carrier_runtime.material_available(material))
+  assert_true(@carrier_runtime.material_cleanup_pending(material))
+  (operation.begin_reload)(saved.to_string(), () => true).unwrap()
+  complete = false
+  for _ in 0..<1000 {
+    if (operation.advance_reload)(1).unwrap().complete {
+      complete = true
+      break
+    }
+  }
+  assert_true(complete)
+  let restored = (operation.take_material)().unwrap()
+  assert_true(@carrier_runtime.material_available(restored))
+  assert_false(
+    @carrier_runtime.completion_reference_same(
+      @carrier_runtime.material_reference(restored),
+      @carrier_runtime.material_reference(material),
+    ),
+  )
+  assert_true((operation.take_material)() is Err(_))
+  @carrier_runtime.reclaim_material(material) |> ignore
+  assert_false(@carrier_runtime.material_cleanup_pending(material))
+  @carrier_runtime.reclaim_material(material) |> ignore
+  assert_true(@carrier_runtime.material_available(restored))
+  assert_true(@carrier_runtime.reclaim_material(restored))
+}
+
+///|
+test "material snapshot byte limit refuses save without completing or dropping custody" {
+  let owner = snapshot_fixture_owner()
+  let source = snapshot_handoff_source(owner)
+  let material = snapshot_material_fixture(
+    @bounded.control(),
+    owner,
+    source,
+    maximum_bytes=1,
+    maximum_frame_bytes=1,
+  )
+  let operation = @carrier_runtime.material_prepare_snapshot(material)
+    .unwrap()
+    .unwrap()
+  (operation.advance_save)(1).unwrap() |> ignore
+  assert_true(
+    (operation.take_output)() is Err(@carrier_runtime.SnapshotByteLimit),
+  )
+  assert_true(
+    (operation.advance_save)(1) is Err(@carrier_runtime.SnapshotByteLimit),
+  )
+  assert_true((operation.content)() is Err(_))
+  assert_true(@graphs.completed_available(source))
+  assert_true(
+    @carrier_runtime.material_prepare_snapshot(material)
+    is Err(@carrier_runtime.SnapshotAlreadyClaimed),
+  )
+  @carrier_runtime.reclaim_material(material) |> ignore
+  assert_false(@carrier_runtime.material_cleanup_pending(material))
+  assert_false(@graphs.completed_available(source))
+  @carrier_runtime.reclaim_material(material) |> ignore
+}
+
+///|
+test "material snapshot terminal failure preserves reported work and cannot publish a partial Graph" {
+  for cancel_save in [true, false] {
+    let owner = snapshot_fixture_owner()
+    let source = snapshot_handoff_source(owner)
+    let control = @bounded.control()
+    let material = snapshot_material_fixture(control, owner, source)
+    let operation = @carrier_runtime.material_prepare_snapshot(material)
+      .unwrap()
+      .unwrap()
+    let first = (operation.advance_save)(1).unwrap()
+    assert_eq(first.work, 1L)
+    assert_true(first.issue is None)
+    let saved = StringBuilder()
+    saved.write_string((operation.take_output)().unwrap())
+    if cancel_save {
+      @bounded.request_cancel(control) |> ignore
+      let stopped = (operation.advance_save)(1).unwrap()
+      assert_eq(stopped.work, first.work)
+      assert_true(stopped.issue is Some(@carrier_runtime.SnapshotUnavailable))
+      assert_false(stopped.complete)
+      assert_true((operation.content)() is Err(_))
+      assert_true((operation.take_material)() is Err(_))
+    } else {
+      let mut saved_complete = false
+      for _ in 0..<1000 {
+        let advanced = (operation.advance_save)(1).unwrap()
+        saved.write_string((operation.take_output)().unwrap())
+        assert_true(advanced.issue is None)
+        if advanced.complete {
+          saved_complete = true
+          break
+        }
+      }
+      assert_true(saved_complete)
+      (operation.release_source)((operation.content)().unwrap().cid).unwrap()
+      (operation.begin_reload)(
+        saved.to_string().replace(old="\"one\"", new="\"two\""),
+        () => true,
+      ).unwrap()
+      let mut last_work = 0L
+      let mut failed = false
+      for _ in 0..<1000 {
+        let advanced = (operation.advance_reload)(1).unwrap()
+        assert_true(advanced.work >= last_work)
+        assert_true(advanced.work - last_work <= 1L)
+        last_work = advanced.work
+        if advanced.issue is Some(@carrier_runtime.SnapshotFamilyFailure(_)) {
+          assert_false(advanced.complete)
+          failed = true
+          break
+        }
+        assert_false(advanced.complete)
+      }
+      assert_true(failed)
+      assert_true(last_work > 0L)
+      assert_true((operation.take_material)() is Err(_))
+    }
+    @carrier_runtime.reclaim_material(material) |> ignore
+    assert_false(@carrier_runtime.material_cleanup_pending(material))
+    @carrier_runtime.reclaim_material(material) |> ignore
+    assert_false(@graphs.completed_available(source))
+  }
+}
+
+///|
+fn snapshot_handoff_source(owner : @lower.BoundPrepared) -> @graphs.Completed {
+  let active = snapshot_start(owner, snapshot_fixture_body()).unwrap()
+  guard snapshot_terminal(active) is @local_bridge.Complete(output, ..) else {
+    abort("initial snapshot fixture")
+  }
+  @local_bridge.cleanup_rows_to_graph(active).unwrap() |> ignore
+  output
+}
+
+///|
+fn snapshot_handoff_save(
+  value : @local_bridge.PropertySnapshotHandoff,
+) -> (String, String) raise {
+  let text = StringBuilder()
+  let mut previous_work = 0L
+  for _ in 0..<1000 {
+    let poll = @local_bridge.advance_property_snapshot_save(value, 1).unwrap()
+    text.write_string(
+      @local_bridge.take_property_snapshot_save_output(value).unwrap(),
+    )
+    match poll {
+      @local_bridge.Saving(work~, ..) => {
+        assert_eq(work - previous_work, 1L)
+        previous_work = work
+      }
+      @local_bridge.Saved(cid, work~, ..) => {
+        assert_eq(work - previous_work, 1L)
+        return (cid, text.to_string())
+      }
+      _ => abort("saving must complete")
+    }
+  }
+  abort("bounded fixture must finish")
+}
+
+///|
+test "snapshot handoff saves exact bytes and revokes the original before restoring a distinct completion" {
+  let owner = snapshot_fixture_owner()
+  let source = snapshot_handoff_source(owner)
+  let old_material = @graphs.completed_material(source).unwrap()
+  let control = @bounded.control()
+  let handoff = @local_bridge.prepare_property_snapshot_handoff(
+    control,
+    owner,
+    @pipeline.Input(0),
+    source,
+    carrier_graph_storage_limits(),
+    snapshot_caps(),
+    1000,
+    () => true,
+  ).unwrap()
+  assert_true(
+    @local_bridge.release_property_snapshot_source(
+      handoff,
+      snapshot_fixture_cid(),
+    )
+    is Err(_),
+  )
+  assert_true(@graphs.completed_available(source))
+  let (cid, body) = snapshot_handoff_save(handoff)
+  assert_eq((cid, body), (snapshot_fixture_cid(), snapshot_fixture_body()))
+  assert_true(
+    @local_bridge.release_property_snapshot_source(
+      handoff,
+      "sha256:" + "1".repeat(64),
+    )
+    is Err(_),
+  )
+  assert_true(@graphs.completed_available(source))
+  @local_bridge.release_property_snapshot_source(handoff, cid).unwrap()
+  assert_false(@graphs.completed_available(source))
+  assert_false(@carrier_runtime.material_available(old_material))
+  assert_true(@graphs.completed_storage(source) is None)
+  assert_true(@local_bridge.take_property_snapshot_restored(handoff) is Err(_))
+  @local_bridge.start_property_snapshot_handoff_reload(
+    handoff,
+    input_cursor(body),
+    () => true,
+  ).unwrap()
+  let mut finished = false
+  for _ in 0..<1000 {
+    match
+      @local_bridge.advance_property_snapshot_handoff_reload(handoff, 1).unwrap() {
+      @local_bridge.Continue(..) => ()
+      @local_bridge.Complete(_, ..) => {
+        finished = true
+        break
+      }
+      _ => fail("restoration")
+    }
+  }
+  assert_true(finished)
+  let restored = @local_bridge.take_property_snapshot_restored(handoff).unwrap()
+  assert_true(@local_bridge.take_property_snapshot_restored(handoff) is Err(_))
+  assert_false(
+    @carrier_runtime.completion_reference_same(
+      @carrier_runtime.material_reference(old_material),
+      @graphs.completed_carrier_reference(restored),
+    ),
+  )
+  assert_eq(
+    snapshot_capture(@graphs.completed_storage(restored).unwrap()),
+    (cid, body),
+  )
+  assert_true(@local_bridge.cleanup_property_snapshot_handoff(handoff).unwrap())
+  assert_false(
+    @local_bridge.cleanup_property_snapshot_handoff(handoff).unwrap(),
+  )
+  assert_true(@graphs.completed_available(restored))
+  // Successful cleanup does not poison the shared bounded control. Subsequent
+  // consumption of the restored generation remains possible under that owner.
+  assert_true(@bounded.request_cancel(control))
+  assert_true(@graphs.discard_completed(restored))
+}
+
+///|
+test "snapshot handoff refuses equal-schema foreign owners and preserves cleanup on cancelled saving" {
+  let owner = snapshot_fixture_owner()
+  let foreign = snapshot_fixture_owner()
+  let source = snapshot_handoff_source(owner)
+  assert_true(
+    @local_bridge.prepare_property_snapshot_handoff(
+      @bounded.control(),
+      foreign,
+      @pipeline.Input(0),
+      source,
+      carrier_graph_storage_limits(),
+      snapshot_caps(),
+      1000,
+      () => true,
+    )
+    is Err(@local_bridge.GraphInputUnavailable),
+  )
+  assert_true(@graphs.completed_available(source))
+  let control = @bounded.control()
+  let handoff = @local_bridge.prepare_property_snapshot_handoff(
+    control,
+    owner,
+    @pipeline.Input(0),
+    source,
+    carrier_graph_storage_limits(),
+    snapshot_caps(),
+    1000,
+    () => true,
+  ).unwrap()
+  assert_true(
+    @local_bridge.advance_property_snapshot_save(handoff, 1).unwrap()
+    is @local_bridge.Saving(work=1L, ..),
+  )
+  @bounded.request_cancel(control) |> ignore
+  assert_true(
+    @local_bridge.advance_property_snapshot_save(handoff, 1).unwrap()
+    is @local_bridge.SaveStopped(@bounded.Cancelled, work=1L, ..),
+  )
+  assert_true(
+    @local_bridge.take_property_snapshot_save_output(handoff) is Err(_),
+  )
+  assert_true(
+    @local_bridge.release_property_snapshot_source(
+      handoff,
+      snapshot_fixture_cid(),
+    )
+    is Err(_),
+  )
+  assert_true(@graphs.completed_available(source))
+  assert_true(@local_bridge.cleanup_property_snapshot_handoff(handoff).unwrap())
+  assert_false(@graphs.completed_available(source))
+  assert_false(
+    @local_bridge.cleanup_property_snapshot_handoff(handoff).unwrap(),
+  )
+}
+
+///|
+test "snapshot handoff keeps trusted schema and never hands off corrupted or interrupted reload" {
+  for corrupted in [false, true] {
+    let owner = snapshot_fixture_owner()
+    let source = snapshot_handoff_source(owner)
+    let control = @bounded.control()
+    let handoff = @local_bridge.prepare_property_snapshot_handoff(
+      control,
+      owner,
+      @pipeline.Input(0),
+      source,
+      carrier_graph_storage_limits(),
+      snapshot_caps(),
+      1000,
+      () => true,
+    ).unwrap()
+    let (cid, body) = snapshot_handoff_save(handoff)
+    @local_bridge.release_property_snapshot_source(handoff, cid).unwrap()
+    assert_true(
+      @local_bridge.start_property_snapshot_handoff_reload(
+        handoff,
+        input_cursor(body.replace(old="\"Person\":[]", new="\"Company\":[]")),
+        () => true,
+      )
+      is Err(@local_bridge.GraphSnapshot(@snapshot.SnapshotContractMismatch)),
+    )
+    @local_bridge.start_property_snapshot_handoff_reload(
+      handoff,
+      input_cursor(
+        if corrupted {
+          body.replace(old="\"one\"", new="\"two\"")
+        } else {
+          body
+        },
+      ),
+      () => true,
+    ).unwrap()
+    if !corrupted {
+      @bounded.request_cancel(control) |> ignore
+    }
+    let mut stopped = false
+    for _ in 0..<1000 {
+      match
+        @local_bridge.advance_property_snapshot_handoff_reload(handoff, 1).unwrap() {
+        @local_bridge.Continue(..) => ()
+        @local_bridge.Failed(
+          @local_bridge.GraphSnapshot(@snapshot.SnapshotIdentityMismatch),
+          ..
+        ) if corrupted => {
+          stopped = true
+          break
+        }
+        @local_bridge.Stopped(@bounded.Cancelled, ..) if !corrupted => {
+          stopped = true
+          break
+        }
+        _ => fail("must reject or stop")
+      }
+    }
+    assert_true(stopped)
+    assert_true(
+      @local_bridge.take_property_snapshot_restored(handoff) is Err(_),
+    )
+    assert_false(@graphs.completed_available(source))
+    assert_true(
+      @local_bridge.cleanup_property_snapshot_handoff(handoff).unwrap(),
+    )
+    assert_false(
+      @local_bridge.cleanup_property_snapshot_handoff(handoff).unwrap(),
+    )
+  }
+}
+
+///|
 fn snapshot_caps() -> @snapshot.Limits {
   {
     max_workspace_slots: 1000,

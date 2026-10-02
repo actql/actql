@@ -870,7 +870,7 @@ fn core_catalog_grammar(body : @environment.CatalogGrammar) -> CoreContractBody 
   match body {
     @environment.ExpressionGrammar(expression) => ExpressionBody(expression)
     @environment.RelationLawBody => AdoptedBody(@pipeline.RelaPrimitive)
-    @environment.GraphLawBody => AdoptedBody(@pipeline.SgaIdentity)
+    @environment.GraphLawBody => AdoptedBody(@pipeline.PropertyGraphLaw)
     @environment.EnvironmentBody
     | @environment.ValueGrammarBody
     | @environment.TextPolicyGrammarBody

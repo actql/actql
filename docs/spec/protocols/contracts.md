@@ -202,8 +202,12 @@ type declarations, not actual values, Ref issuers or execution authority.
 <!-- requirement-block: check-environment.carrier-schema-bodies -->
 Each supplied `carrier_schema` body MUST use exactly one of the following closed
 forms, including unused envelopes. Relation uses the non-null canonical checked
-object value contract, including `fields: {}`. Graph uses the existing
-`actql-graph-contract/0.1` structural body in [Carriers](../language.md#carriers).
+object value contract, including `fields: {}`. Graph uses the ActQL-owned
+`actql-property-graph-contract/0.1` structural body in [Carriers](../language.md#carriers).
+The retired endpoint-tuple body is rejected, not converted or interpreted as
+the keyed contract. Structural admission preserves the declared definition
+domain, typed keys, label sets and independent edge definitions; it does not
+issue producer provenance or authorize execution.
 Events uses `{version: "actql-events-contract/0.1", records, id, time}`; Vectors
 uses `{version: "actql-vectors-contract/0.1", records, ids, components}`.
 `records` is a complete non-null checked object contract. All role names are
@@ -1639,7 +1643,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:50a14e0c2454d439df53fc4be570d6e008299ba1005cc442838a985337cb3dd8
+../../../spec/contracts/actql-check-environment.json# sha256:1c2c612568483e6d2e250907e703bf06568c6c12c49fd37bfb661ffe0566c30c
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:b59aff026e4853a370475e7b25c7fa6ddf0890aacbd57af0a3ec4b7aa14b65b5
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2

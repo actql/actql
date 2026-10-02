@@ -524,6 +524,7 @@ pub fn producer_read_view(
 /// Erase only the storage representation while retaining exact Graph custody.
 pub fn completed_material(
   value : Completed,
+  snapshot_factory? : @lifecycle.SnapshotFactory? = None,
 ) -> Result[@lifecycle.Material, Issue] {
   @lifecycle.prepare_material(
     completed_carrier_reference(value),
@@ -553,6 +554,7 @@ pub fn completed_material(
       }
     },
     fn() { discard_completed(value) },
+    snapshot_factory~,
   ).map_err(issue => Lifecycle(issue))
 }
 

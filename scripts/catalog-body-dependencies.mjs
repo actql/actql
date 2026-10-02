@@ -167,9 +167,9 @@ assert.equal(readFileSync(propertyCountPath, 'utf8'), propertyCountText);
 const grammarReferences = [
   ['ValueGrammarBody', '/value_contract_bodies/schema/cid', contract.value_contract_bodies.schema],
   ['GraphLawBody', '/carrier_contract_bodies/schema/oneOf/1/properties/identity_law_cid/const',
-    {path: 'spec/dependencies/aoa-sga-identity-laws.json', pointer: '', cid: aoa.sga_identity_law_manifest_cid}],
+    {path: 'spec/dependencies/actql-property-graph-laws.json', pointer: '', cid: aoa.property_graph_law_manifest_cid}],
   ['GraphLawBody', '/carrier_contract_bodies/schema/oneOf/1/properties/value_law_cid/const',
-    {path: 'spec/dependencies/aoa-sga-identity-laws.json', pointer: '', cid: aoa.sga_identity_law_manifest_cid}],
+    {path: 'spec/dependencies/actql-property-graph-laws.json', pointer: '', cid: aoa.property_graph_law_manifest_cid}],
   ['RelationLawBody', '/pushdown_contract_bodies/semantic_dependencies/relation_laws/cid', pushdown.semantic_dependencies.relation_laws],
   ['ExpressionGrammar(ExpressionRoot)', '/pushdown_contract_bodies/semantic_dependencies/expression_contract/cid', pushdown.semantic_dependencies.expression_contract],
   ['TextPolicyGrammarBody', '/policy_components/text_time_evaluation/schema/cid', contract.policy_components.text_time_evaluation.schema],

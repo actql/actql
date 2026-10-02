@@ -12,7 +12,7 @@ The existing ActQL pipeline owner consumes that body; historical `aoa` names
 in unrelated local IR contracts do not import an external implementation.
 
 The current dependency-integration checkpoint combines main
-`a7593bcd7153883d200f125a8e24646001fe5a22` with the prior #164 source. Local
+`50fcc1ccd7e1cfb4ac379687f95a19043fdc113f` with the prior #164 source. Local
 registration, canonical preimage and spec-family checks pass. The independent
 complete snapshot fixture is
 `portability/corpus/property-graph-owned-snapshot.json`; its records are not
@@ -30,6 +30,82 @@ verification. Their legacy-preservation promises are superseded: the new
 Property Graph is the sole implementation target, without an old-format reader,
 fallback or conversion that collapses parallel edges. Historical records are
 evidence, not a compatibility implementation.
+
+## ActQL-only consumer migration checkpoint
+
+Normal Program admission rejects the retired constructor and old Graph port
+serialization has no fallback. SourceView Graph schemas now use the owned
+Property Graph law and the new definition-scoped contract. The shared Catalog
+law resolver selects `PropertyGraphLaw`, not a legacy SGA identity law.
+
+An independent SourceView fixture checks the entire schema envelope, view,
+Catalog and Environment CID chain, including the distinct canonical ordering
+rules. Its Environment CID is
+`sha256:daa21d77bc5c20b691c71098c493813e7e63f838be76326fc20d687337d49e63`.
+Expected bytes and identities are authored and hashed independently, not
+copied from a compiler or runtime.
+
+Current-source focused regression evidence (not final acceptance):
+
+- Owned-law/registration, complete snapshot fixture and SourceView CID oracle:
+  Node **10/10**.
+- Graph schema and Environment admission: **209/209 on each of JS, Wasm and
+  native**. Structural JSON
+  nodes and type/label comparison work are separate bounds; the same enclosing
+  admission owner debits comparison work once. Exact limits, one-short limits
+  and a second unused schema exercise the accounting boundary.
+- SourceView Graph MATCH capacity and imported producer ownership: JS **4/4**.
+- Effect closure/physical Result target migration: JS **9/9**.
+- Host Effect consumer migration: Node **3/3**, including independently held
+  Result ports and exact early/final/imported physical producer bindings.
+- Repeated constructor operands and node/edge MATCH through Result imports:
+  JS **1/1**, covering empty inputs and repeated versus distinct producer visits.
+- Current provider/construction/internal-snapshot/Plan vertical: **25/25 on
+  each of JS, Wasm and native**, after withdrawing unused legacy provider
+  start/kernel/cleanup branches. The refusal probe fails at the pre-correction
+  integration checkpoint (1/2), then passes after correction (2/2). The Plan
+  contract literal is independently hashed from the normative machine body.
+- Fresh public packages: **2/2 Local/HTTPS** constructor, MATCH, independent
+  TRAIL and Named Result acceptance, with Node v22.22.0 and no MoonBit lookup
+  path in the repository-external consumer. Evidence, package digests and Host
+  state are retained at
+  `/Users/t14i/workspace/20260822/worktrees/.codex-scratch/property-graph-package-v7gUOq`.
+  This is an uncommitted-source checkpoint, not final-SHA CI and not public
+  snapshot save/reload. An earlier packed attempt was deliberately interrupted
+  (exit 130) because the formatting check was still active; it is not counted
+  as a successful run or a product failure.
+
+The former `graph -> normalize_graph -> node_rows` consumer is replaced by
+`property_graph -> match_nodes`. One fewer physical operation is expected;
+ownership and retained Result inventory assertions are not weakened. Graph
+node bounds count declared nodes rather than invented endpoint nodes.
+
+The initial full current-source Program test run had **298/347** passes and
+**49** failures, mostly positive assertions for the withdrawn tuple Graph
+path. Subsequent full runs reached **307/347** with **40** and then **310/347**
+with **37** old-profile failures. The latter is recorded in
+`/private/tmp/property-graph-program-check-after-provider-retirement.log`.
+There has been no aggregate green run. These failures are not reported as successful final
+verification or worked around by restoring legacy execution.
+
+The current spec run passed engine accounting (1,063 tests), source generators
+and Connector/Host boundary checks, then was stopped during resource-audit
+mutation tests. A separate non-writing production-route check completed with
+exit 1 and specifically detected the withdrawn legacy dispatch markers.
+Current-profile unsupported operations and historical assurance scope must be
+registered explicitly; there is no successful full spec run. The resource
+gate is not removed and historical assurances are not reused as new-profile
+support. `moon fmt --check` and `git diff --check` pass at this checkpoint.
+
+The next narrow public-admission regression covers all 16 currently unsupported
+legacy SGA/projection spellings after an admitted Property Graph constructor,
+even with the old SGA profile claimed. It fails before the correction (0/1),
+then passes alongside both supported public Program cases (3/3 on each of JS,
+Wasm and native). The static integration boundary now returns the existing
+typed `UnsupportedStaticPath` rather than deferring to a legacy selection or
+conversion. This is an implementation subset, not a new restriction on the
+adopted language's operation grammar. The packed run above precedes this latest
+admission change and must not be represented as its final verification.
 
 ## Frontend handoff
 
@@ -76,11 +152,12 @@ introduced. Snapshot framing is separately identified as
 contract, typed identities, endpoint correspondence and content identity.
 Constructor exclusions do not repair an invalid stored snapshot.
 
-Legacy constructor bodies, snapshot framing and tuple edge identity retain
-their meanings and CIDs. Explicit profile selection is required; a legacy
+Historical constructor bodies, snapshot framing and tuple edge identities
+remain immutable evidence only. They are not a promise of an executable
+compatibility path. Explicit installed profile selection is required; a legacy
 module claim is insufficient. No implicit migration or cross-domain mapping is
-provided. Public Local/HTTPS Result publication is tested after MATCH/TRAIL;
-that is not a claim that a durable Store Graph snapshot catalog is implemented.
+provided. Public Local/HTTPS Result publication was tested after MATCH/TRAIL;
+that is not evidence of a durable Store Graph snapshot catalog.
 
 Review correction: the adopted **public** snapshot roundtrip acceptance remains
 incomplete. Internal save uses `bounded_graph_snapshot.prepare_property` and
@@ -94,6 +171,78 @@ publication, not Graph restoration. Public Result reattach is not a snapshot
 roundtrip. The Frontend handoff is therefore limited to the tested constructor,
 MATCH/TRAIL and Named Result paths. No new catalog, implicit conversion or
 constructor re-execution is introduced to stand in for this missing boundary.
+
+### Owner-bound snapshot connection checkpoint
+
+The common Material now supports a lazy, generation-bound snapshot operation.
+It is not a second storage or accounting owner. A foreign factory is refused
+before acquisition; even a defective trusted factory returning a foreign
+operation leaves that operation's cleanup handle under the original Material.
+A claim is once-only across repeated references. Failed preparation cannot
+start another allocation. Cleanup failure or an incomplete cleanup result
+keeps custody for retry, including after the source reference is revoked.
+Local dispatch's retention-release and cleanup-refresh checks use this pending
+custody, not source availability alone.
+
+The Graph family adapter reuses `PropertySnapshotHandoff`, the sole bounded
+snapshot encoder and the existing reload admission. It captures the checked
+owner/port before any received bytes. Exact bytes/CID must be finalized before
+source release; restoration is a distinct completion generation and cannot
+silently keep the old material. Total/frame byte refusal is latched and cannot
+be resumed into a successful save. Terminal stop/failure reports preserve
+actual cumulative work for the driver; diagnostic text is separate from the
+typed common issue. No cleanup work is invented.
+
+Focused current-source evidence is **10/10** common Material/lifecycle tests
+and **14/14** snapshot-selected integration tests on **each of JS, Wasm and
+native**. The latter includes the
+independent canonical fixture, early release, wrong CID, source revocation,
+one-time restored transfer, byte refusal, cancellation and late identity
+failure. Earlier raw handoff tests passed **8/8 on each target**, before this
+latest Material connection. The current logs are
+`/private/tmp/property-graph-material-custody-{js,wasm,native}-20261002.log`
+and `/private/tmp/property-graph-material-snapshot-{js,wasm,native}-20261002.log`.
+These are uncommitted-source tests, not final-SHA CI. Initial adapter compilation errors
+(Debug rendering and Result propagation syntax) were corrected, without
+changing any expected snapshot bytes or weakening assertions.
+The three changed common-package interfaces were regenerated with
+`moon info --target js,wasm,native`; no backend divergence was reported.
+Focused formatting and `git diff --check` also pass. This does not replace the
+full repository API/freshness or final CI gates.
+
+**Still unconnected:** selected provider capacity reservation, driver charging
+and restored-port installation, the Node Store lease/write/seal/verified-read
+path, and actual public Local/HTTPS snapshot acceptance. The family adapter
+tests move bytes in memory; they are not public persistence evidence. Fresh
+packed packages and final-SHA CI must be run after that connection and the
+remaining profile migration/gate work.
+
+The process Store boundary needs explicit physical cleanup verification:
+`process-client.close()` revokes local rights, but is not a report that the
+control-side `process-service` has reclaimed its sealed body. Do not equate
+local `reservedBytes == 0` with physical file deletion or parent Store capacity
+release. The connection must keep the existing parent body's cleanup owner
+through verified read completion and reclamation; a failed or uncertain seal
+must not discard its original lease responsibility.
+
+The first physical connection supplies explicit `release-sealed` on the
+existing process Store, separate from ordinary lease close. The request names
+the exact sealed body and immutable physical report under the installed
+session/Run capability. The parent invokes that body's existing cleanup owner
+and returns a typed reclamation report only after checking its pending state.
+Active reader custody blocks deletion and capacity reuse. Lost/invalid replies
+keep local pending custody and retry the same parent body; released names are
+bounded tombstones under the existing entry ceiling, not new generations.
+Published Result holdings are not implicitly revoked by ordinary lease close.
+
+The three new physical Store cases failed **0/3 before** this connection.
+The first implementation exposed an incorrect assumption that cleanup retry
+returned a status record (it returns a completion boolean); the active-reader
+regression caught the premature ACK, and the adapter now reads the existing
+cleanup owner's status after retry. The initial correction passed **9/9**
+including existing binary and real-process Store tests. Additional seal-loss
+and parallel-release cases are being verified. This is physical Store evidence,
+not yet public Graph snapshot acceptance.
 
 ## Executed regression evidence
 
@@ -137,11 +286,12 @@ be reported against the submitted SHA in the PR.
 
 ## Deliberately not claimed
 
-Full SGA, external producer-definition provenance, legacy migration, durable
-Store Graph catalog publication and complete mechanized correspondence are
-outside this initial retained-VALUES vertical. The additive AoA model/laws use
-their distinct initial identifiers; executable conformance is not represented
+Full SGA, external producer-definition provenance, a durable Graph catalog and
+complete mechanized correspondence are not claimed. Legacy execution removal
+and a real public snapshot save/reload route remain required in the current
+unit; they are not waived by these historical results. The current laws and
+independent fixtures are ActQL-owned. Executable conformance is not represented
 as a proof of the entire implementation. A/B task splitting, carrier tasks and
 Frontend implementation are not changed by this unit. The existing Graph
-provider dispatch gains the checked constructor connection while retaining its
-bounded sessions and owners; no parallel provider is introduced.
+provider dispatch retains its bounded sessions and owners; no parallel
+provider is introduced.

@@ -2,7 +2,7 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/bounded_execution" @bounded,
-  "actql/actql/carrier_projection" @projection,
+  "actql/actql/carrier_contract" @carrier,
   "actql/actql/connector_sdk" @connector,
   "actql/actql/connectors/local",
   "actql/actql/execution_relation" @execution,
@@ -12,6 +12,4 @@ import {
   "actql/actql/managed_carrier_runtime" @lifecycle,
   "actql/actql/managed_graph_runtime" @graph,
   "actql/actql/managed_graph_storage" @storage,
-  "actql/actql/relation_schema" @schema,
-  "actql/actql/pipeline_typing" @pipeline,
 }

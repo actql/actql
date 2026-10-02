@@ -510,7 +510,7 @@
     },
     {
       "requirement_id": "actql.language/carriers.graph-law-body",
-      "statement_sha256": "42d23543974c4566887b344a91265dc587b2c8a3fb9218a259d2395f2083c26a",
+      "statement_sha256": "a6958297cd6fd9121c29897ef4704e29b18e0cd3b4e3b74be846b1a45de4b2d0",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

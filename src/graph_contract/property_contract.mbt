@@ -193,6 +193,7 @@ fn read_property_definition(
   edge : Bool,
   budget : ReadBudget,
   limits : Limits,
+  validation_work : Ref[Int],
 ) -> (@carrier.PropertyNodeDefinition, (String, String)?) raise ReadStop {
   charge_nodes(budget, 1)
   let names = ["name", "key_contracts", "properties", "labels"]
@@ -260,7 +261,10 @@ fn read_property_definition(
       let mut found = None
       // Exact display names are canonical schema references, not values.
       for property in 0..<@carrier.field_count(props) {
-        charge_nodes(budget, 1)
+        if validation_work.val == 0 {
+          stop(BudgetExceeded)
+        }
+        validation_work.val -= 1
         let candidate = @carrier.field_at(props, property).unwrap()
         if @row.reference_name(candidate.name) == name {
           found = Some(candidate)
@@ -283,7 +287,7 @@ fn read_property_definition(
     exposed.push((label, knowledge))
   }
   let definition = match
-    @carrier.property_node_definition(
+    @carrier.property_node_definition_usage(
       name,
       keys,
       props,
@@ -291,9 +295,13 @@ fn read_property_definition(
       label_properties=exposed,
       max_fields=limits.max_nodes,
       max_name_bytes=limits.max_bytes,
-      max_contract_work=budget.nodes,
+      max_contract_work=validation_work.val,
     ) {
-    Ok(value) => value
+    Ok((value, used)) => {
+      validation_work.val -= used
+      value
+    }
+    Err(LimitExceeded) => stop(BudgetExceeded)
     Err(_) => stop(InvalidStructure)
   }
   let endpoints = if edge {
@@ -314,7 +322,25 @@ pub fn read_property_graph_cursor(
   root : @decode.Cursor,
   limits : Limits,
 ) -> Result[CheckedPropertyContract, ReadIssue] {
-  if limits.max_bytes < 0 || limits.max_nodes < 0 || limits.max_depth < 0 {
+  read_property_graph_cursor_usage(
+    root,
+    limits,
+    max_contract_work=limits.max_nodes,
+  ).map(pair => pair.0)
+}
+
+///|
+/// Structural nodes and repeated type/label comparisons are separate bounds.
+/// The enclosing admission owner charges the returned comparison work once.
+pub fn read_property_graph_cursor_usage(
+  root : @decode.Cursor,
+  limits : Limits,
+  max_contract_work~ : Int,
+) -> Result[(CheckedPropertyContract, Int), ReadIssue] {
+  if limits.max_bytes < 0 ||
+    limits.max_nodes < 0 ||
+    limits.max_depth < 0 ||
+    max_contract_work < 0 {
     return Err(InvalidLimits)
   }
   try {
@@ -323,6 +349,7 @@ pub fn read_property_graph_cursor(
       text: limits.max_bytes,
       depth: limits.max_depth,
     }
+    let validation_work = Ref(max_contract_work)
     charge_nodes(budget, 1)
     if @decode.object_length(root) != Some(6) {
       stop(InvalidBody)
@@ -365,6 +392,7 @@ pub fn read_property_graph_cursor(
           edge,
           budget,
           limits,
+          validation_work,
         )
         match endpoints {
           None => nodes.push(definition)
@@ -378,18 +406,22 @@ pub fn read_property_graph_cursor(
       }
     }
     let input = match
-      @carrier.property_graph(
+      @carrier.property_graph_usage(
         domain,
         nodes,
         edges,
         max_definitions=limits.max_nodes,
-        max_contract_work=budget.nodes,
+        max_contract_work=validation_work.val,
       ) {
-      Ok(value) => value
+      Ok((value, used)) => {
+        validation_work.val -= used
+        value
+      }
+      Err(LimitExceeded) => stop(BudgetExceeded)
       Err(_) => stop(InvalidStructure)
     }
     match admit_property_graph(input, limits) {
-      Ok(value) => Ok(value)
+      Ok(value) => Ok((value, max_contract_work - validation_work.val))
       Err(_) => stop(BudgetExceeded)
     }
   } catch {

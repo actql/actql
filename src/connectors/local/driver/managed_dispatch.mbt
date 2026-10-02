@@ -751,7 +751,7 @@ pub fn[T] start_local_managed_dispatch(
               .unwrap()
             let carrier_released = carrier.val is None ||
               carrier.val
-              .map(value => !@carrier_runtime.material_available(value))
+              .map(value => !@carrier_runtime.material_cleanup_pending(value))
               .unwrap()
             relation_released && carrier_released
           },
@@ -1708,8 +1708,12 @@ pub fn[T] start_local_managed_dispatch(
       let carrier_reclaimed = match carrier.val {
         None => true
         Some(material) =>
-          !@carrier_runtime.material_available(material) ||
-          @carrier_runtime.reclaim_material(material)
+          if !@carrier_runtime.material_cleanup_pending(material) {
+            true
+          } else {
+            @carrier_runtime.reclaim_material(material) |> ignore
+            !@carrier_runtime.material_cleanup_pending(material)
+          }
       }
       if !carrier_reclaimed {
         return false

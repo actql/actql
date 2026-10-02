@@ -59,6 +59,13 @@ fn graph_projection(
   input : @carrier.Carrier,
   limits : Limits,
 ) -> Result[CheckedProjection, Issue] {
+  // Endpoint-tuple projections cannot represent definition-scoped keys or
+  // independent edge identities. Never infer a homogeneous schema from a
+  // keyed Graph; MATCH is the admitted definition-selected projection.
+  if input is @carrier.GraphValue(graph) &&
+    @carrier.graph_property_definition(graph) is Some(_) {
+    return Err(issue(source, UnsupportedGraphProfile))
+  }
   let (properties, identity, names) = match input {
     @carrier.GraphValue(g) =>
       (

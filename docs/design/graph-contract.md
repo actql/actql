@@ -1,5 +1,15 @@
 # Graph structural contract identity
 
+The current implementation target is the definition-keyed Property Graph
+profile described below. Its model and law body are owned in ActQL, with no
+dependency on `smoothhq/aoa` or its PR #2. Historical law and snapshot records
+remain immutable evidence, not a compatibility or fallback requirement.
+
+## Historical endpoint-tuple profile
+
+This section records the retired profile and its evidence. Current public
+Program and SourceView admission do not select this profile.
+
 `graph_contract` builds the closed preimage specified by
 [Carriers](../spec/language.md#carriers) from a complete `carrier_contract.Graph`.
 It rejects unknown carriers, open property sets and untyped properties. The
@@ -11,7 +21,7 @@ Property names and closed label domains use canonical UTF-16 order. Unknown
 labels (`null`) and a known empty domain (`[]`) remain different. Source aliases,
 enumeration order and observations are not members of this preimage.
 
-## Law binding decision
+### Historical law binding decision
 
 The existing language contract required exact identity and value law CIDs, but
 the pinned AoA contract only supplied the SGA structural-field law body. The
@@ -25,7 +35,7 @@ The pinned AoA reference uses string IDs and optional/partial graph records.
 Those representations are not substituted for ActQL's complete typed contract
 or complete Delta records. The compatibility gap remains at lowering.
 
-## Allocation and bounds
+### Historical allocation and bounds
 
 `read_cursor` consumes the same closed normative body and returns the existing
 opaque CheckedContract. It reuses checked value-contract admission and Carrier
@@ -67,10 +77,18 @@ Property Graph law manifest binds its identity and value laws. Neither a new
 profile tag nor a self-CID authorizes a received constructor domain: the
 checking context must establish definition provenance independently.
 
-The new profile does not reinterpret the legacy contract or snapshot. Legacy
-inputs, laws and CIDs retain their meaning; neither reader performs an implicit
-conversion. An operation without a checked new-profile implementation rejects
-the new profile rather than applying endpoint-tuple identity rules to it.
+The new profile does not reinterpret historical contract or snapshot bytes.
+Their laws and CIDs stay unchanged as evidence, but old-format admission and
+compatibility readers are not required. Existing consumers move to the keyed
+contract. An operation without a checked keyed implementation explicitly
+rejects it rather than falling back to endpoint-tuple identity.
+
+The current schema reader shares the existing checked value and Carrier
+validators. Structural JSON nodes/text/depth and type/label comparison work
+have separate bounds. `read_property_graph_cursor_usage` returns consumed
+comparison work to the enclosing admission owner, which debits it once across
+all schemas, including unused definitions. No second schema or Graph validator
+is introduced. Successful schema admission is not row or snapshot admission.
 
 ### Construction quantities and checker selection
 
@@ -85,8 +103,9 @@ uses remain separate data-edge occurrences. An empty family has bound zero;
 unknown premises are not zero. Premises retain their quantity, target and
 pipeline owner, with exact safe-integer arithmetic and overflow rejection.
 Definition-local MATCH transfers the applicable graph extent to a row bound.
-Neither calculation authenticates data or discharges resource checks. Legacy
-Graph count bodies and endpoint-derived construction remain unchanged.
+Neither calculation authenticates data or discharges resource checks.
+Historical Graph count bodies remain frozen; current declared-node bounds
+never invent nodes from endpoint values.
 
 ### Snapshot preimage and custody
 
@@ -112,7 +131,8 @@ Each kind is strictly sorted by its full canonical identity token, independently
 of input enumeration and endpoint equality. Independently keyed parallel edges
 therefore retain separate records. Changing a property, label or endpoint changes
 the snapshot contents, not the identity of the same definition-scoped typed key.
-The legacy snapshot keeps its original typed node and endpoint/label order.
+Historical snapshot preimages retain their original identity order as evidence;
+they are not accepted or converted into this framing.
 
 Emission shares the existing bounded snapshot sort, phase and encoding owners.
 The opt-in API drains provisional canonical bytes from the same hashing writer;

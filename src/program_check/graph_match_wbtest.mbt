@@ -1,47 +1,42 @@
 ///|
-test "formal Graph matches retain selector distinctions and resources through imports" {
+test "formal Property Graph matches retain definition labels selectors and resources through imports" {
   for empty in [true, false] {
     for
-      (body, node, ids, types, predicate) in [
+      (body, node, types, predicate) in [
         (
-          "{\"match_nodes\":{\"ids\":[1,1],\"fields\":[\"node_id\"]}}",
+          "{\"match_nodes\":{\"definition\":\"N\",\"label\":\"Node\",\"where\":\"id = id\",\"fields\":[\"id\"]}}",
           true,
-          2,
-          None,
-          false,
-        ),
-        (
-          "{\"match_nodes\":{\"where\":\"node_id > 0\",\"fields\":[\"node_id\"]}}",
-          true,
-          0,
           None,
           true,
         ),
         (
-          "{\"match_edges\":{\"fields\":[\"id\",\"value\"]}}",
+          "{\"match_nodes\":{\"definition\":\"N\",\"where\":\"id > 0\",\"fields\":[\"id\"]}}",
+          true,
+          None,
+          true,
+        ),
+        (
+          "{\"match_edges\":{\"definition\":\"E\",\"label\":\"R\",\"fields\":[\"id\",\"value\"]}}",
           false,
-          0,
           None,
           false,
         ),
         (
-          "{\"match_edges\":{\"types\":[],\"where\":\"id > 0\",\"fields\":[\"id\",\"value\"]}}",
+          "{\"match_edges\":{\"definition\":\"E\",\"types\":[],\"where\":\"id > 0\",\"fields\":[\"id\",\"value\"]}}",
           false,
-          0,
           Some(0),
           true,
         ),
         (
-          "{\"match_edges\":{\"types\":[\"x\",\"x\"],\"fields\":[\"id\",\"value\"]}}",
+          "{\"match_edges\":{\"definition\":\"E\",\"types\":[\"R\",\"R\"],\"fields\":[\"id\",\"value\"]}}",
           false,
-          0,
           Some(2),
           false,
         ),
       ] {
       let programs : Array[CheckedProgram] = []
       let suffix = if node {
-        ",{\"select\":[{\"id\":\"node_id\"},{\"value\":\"node_id\"}],\"as\":\"projected\"}"
+        ",{\"derive\":{\"value\":\"id\"},\"as\":\"projected\"}"
       } else {
         ",{\"select\":[\"id\",\"value\"],\"as\":\"projected\"}"
       }
@@ -50,12 +45,15 @@ test "formal Graph matches retain selector distinctions and resources through im
         through_check=true,
         checked_results=programs,
         second_stage=true,
-        sga=true,
+        property_graph=true,
         graph_construction_limit=Some(1000),
         graph_input_limit=Some(1),
         graph_output_limit=Some(1),
         generated_rows=Some(if empty { "[]" } else { "[{\"id\":1}]" }),
-        producer_suffix=",{\"graph\":{\"source\":\"id\",\"target\":\"value\"}}," +
+        producer_suffix="," +
+          (
+            #|{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"seed","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[{"name":"E","from":"derived","key":["id"],"source":{"definition":"N","key":["id"]},"target":{"definition":"N","key":["id"]},"labels":[{"name":"R","properties":{"mode":"all_columns"}}]}]},"as":"g"},
+          ) +
           body +
           suffix,
         producer_result_from="projected",
@@ -73,18 +71,20 @@ test "formal Graph matches retain selector distinctions and resources through im
         assert_true(physical_equal(check.site.pipeline, producer))
         assert_eq(check.site.step, 3)
         assert_eq(check.input, @pipeline.Step(2))
-        assert_eq(@graph.match_id_count(check.operation), ids)
+        assert_eq(@graph.match_property_definition(check.operation), Some(0))
+        assert_eq(
+          @graph.match_property_definition_name(check.operation),
+          Some(if node { "N" } else { "E" }),
+        )
+        assert_eq(@graph.match_id_count(check.operation), 0)
         assert_true(@graph.match_id_at(check.operation, -1) is None)
-        assert_true(@graph.match_id_at(check.operation, ids) is None)
-        if ids > 0 {
-          assert_true(@graph.match_id_at(check.operation, 0) is Some(_))
-        }
+        assert_true(@graph.match_id_at(check.operation, 0) is None)
         @graph.match_ids(check.operation).clear()
-        assert_eq(@graph.match_id_count(check.operation), ids)
+        assert_eq(@graph.match_id_count(check.operation), 0)
         assert_eq(@graph.match_type_count(check.operation), types)
         if types == Some(2) {
-          assert_eq(@graph.match_type_at(check.operation, 0), Some("x"))
-          assert_eq(@graph.match_type_at(check.operation, 1), Some("x"))
+          assert_eq(@graph.match_type_at(check.operation, 0), Some("R"))
+          assert_eq(@graph.match_type_at(check.operation, 1), Some("R"))
           @graph.match_types(check.operation).unwrap().clear()
           assert_eq(@graph.match_type_count(check.operation), Some(2))
         }
@@ -147,7 +147,7 @@ test "formal Graph matches retain selector distinctions and resources through im
         }
       }
       assert_eq(counts[0], 3)
-      assert_eq(counts[1], if ids > 0 { 3 } else { 0 })
+      assert_eq(counts[1], 0)
       assert_eq(counts[2], if types is Some(_) { 3 } else { 0 })
       assert_eq(counts[3], if predicate { 3 } else { 0 })
       assert_eq(counts[4], 3)

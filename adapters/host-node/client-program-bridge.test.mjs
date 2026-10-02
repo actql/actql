@@ -2413,11 +2413,19 @@ async function effectFixture({splitSource = false,
   }
   environmentDocument.evidence_bundle_cid = canonicalHashWithoutSelf(
     environmentDocument, 'evidence_bundle_cid');
-  const environment = moon.clientProgramCheckEnvironment(
+  const environmentArgs = [
     canonicalJson(environmentDocument),
     environmentDocument.evidence_bundle_cid,
-    false, false, true, splitSource, false, false, false,
-  );
+    false, false, true, false, false, false, false,
+  ];
+  const environment = splitSource
+    ? moon.clientProgramCheckEnvironmentWithPropertyGraphProfile(
+      ...environmentArgs,
+      machineCid(JSON.parse(await readFile(new URL(
+        '../../spec/contracts/actql-numeric-reduction.json', import.meta.url), 'utf8'))),
+      machineCid(JSON.parse(await readFile(new URL(
+        '../../spec/dependencies/actql-property-graph-laws.json', import.meta.url), 'utf8'))))
+    : moon.clientProgramCheckEnvironment(...environmentArgs);
   assert.ok(environment);
   const document = JSON.parse(documentBody);
   if (sourceIds) {
@@ -2441,12 +2449,14 @@ async function effectFixture({splitSource = false,
       id: 'middle',
       inputs: {rows: {result: {stage: 'source', result: 'rows'}}},
       steps: [
-        {graph: {
-          nodes: {from: 'rows', id: 'id', fields: []},
-          edges: {from: 'rows', source: 'id', target: 'id', fields: []},
+        {property_graph: {
+          version: 'actql-property-graph-constructor/0.1',
+          nodes: [{name: 'N', from: 'rows', key: ['id'],
+            labels: [{name: 'Node', properties: {mode: 'all_columns'}}]}],
+          edges: [],
         }, as: 'g'},
-        {from: 'g', normalize_graph: true, as: 'normalized'},
-        {from: 'normalized', node_rows: true, as: 'projected'},
+        {from: 'g', match_nodes: {definition: 'N', label: 'Node',
+          where: 'true', fields: ['id']}, as: 'projected'},
         {from: 'projected', take: 2, as: 'selected'},
       ],
       results: {
@@ -5875,13 +5885,13 @@ async function verifySharedEffectSource({splitSource, expectedTask}) {
 
 test('two Effect members hold one completed Result independently', async () => {
   await verifySharedEffectSource({splitSource: false, expectedTask: 0});
-  await verifySharedEffectSource({splitSource: true, expectedTask: 4});
+  await verifySharedEffectSource({splitSource: true, expectedTask: 3});
 });
 
 test('Effect sources retain exact physical producers across split Stages',
   async () => {
     for (const [splitEffectSource, expectedTask] of [
-      ['consumer', 5], ['middle', 4], ['early', 3],
+      ['consumer', 4], ['middle', 3], ['early', 2],
     ]) {
       const {document, environment} = await effectFixture({
         splitSource: true, splitEffectSource,

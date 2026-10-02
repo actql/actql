@@ -656,28 +656,29 @@ schemas, external Contracts, expressions, and Results.
 ### Carriers
 
 The graph structural contract has the closed canonical body
-`{version: "actql-graph-contract/0.1", node_id_contract, node_properties,
-edge_properties, edge_labels, identity_law_cid, value_law_cid}`.
-Node_id_contract is the complete checked semantic ID value contract;
-node_properties and edge_properties are complete checked property-contract
-maps, including nullability and extents. Edge_labels is null when no closed
-label domain is proven, otherwise the duplicate-free canonical sorted label
-list. Identity_law_cid and value_law_cid resolve the exact graph identity and
-typed value equality laws in the admitted AoA contract. Edge identity is the
-fixed (source ID, target ID, label) tuple, using node_id_contract for endpoints.
+`{version: "actql-property-graph-contract/0.1", domain, node_definitions,
+edge_definitions, identity_law_cid, value_law_cid}`. Each definition retains its
+name, nonempty ordered key contracts, complete property contracts and static
+label-to-property sets. Edge definitions additionally name their source and
+target node definitions. Element identity is the admitted definition domain,
+definition name and complete typed key, not an endpoint tuple. Independently
+keyed parallel edges are retained. Property types and shared label property
+sets obey the graph-wide rules in [Property Graph construction](#property-graph-construction).
 `graph_contract_cid` is the ordinary ActQL CID of exactly this body, without a
 self-CID member. Property-map enumeration, source aliases, observations, graph
 contents, row counts, policy and provider locators are not contract members.
-Diff resolves one common contract using recursive common-type rules over
-compatible input domains; both snapshots are admitted under it. Apply verifies
-the base against that pinned contract. A different contract is not inferred
-from the Delta's payload or from a matching self-CID.
+The retired `actql-graph-contract/0.1` body is not an alternate Graph profile:
+current admission rejects it without conversion. Historical bytes and evidence
+retain their original identity, but do not provide current execution support.
+Operations not connected to this keyed representation must reject explicitly;
+their old tuple-based implementations are not a fallback.
 
 <!-- requirement-block: carriers.graph-law-body -->
 For the 0.1 contract, both graph law CID members MUST equal
-`sga_identity_law_manifest_cid` in the admitted ActQL AoA contract. That pin
-resolves `aoa-sga-identity-laws/0.1`, which contains the semantic identity and
-typed value equality laws together. Computing a structural contract CID proves
+`property_graph_law_manifest_cid` in the owned operation-contract inventory.
+That pin resolves `actql-property-graph-laws/0.1`, maintained inside ActQL,
+which contains the semantic identity and typed value equality laws together.
+Computing a structural contract CID proves
 neither snapshot admission nor base/target content identity.
 
 ActQL source uses four public Carrier names:
@@ -5238,14 +5239,15 @@ traversal/path query are part of SGA 0.1 and do not imply MDM authority.
 
 <a id="property-graph-construction"></a>
 
-#### `property_graph`: separately selected keyed profile
+#### `property_graph`: keyed Graph construction
 
 `actql-property-graph-constructor/0.1` selects the distinct
 `actql-property-graph-contract/0.1` representation. It is not an alias,
-normalization or migration of the legacy `graph` constructor below. The legacy
-constructor, tuple edge identities and snapshot bytes retain their meanings.
-The keyed profile requires explicit installed profile selection; claiming the
-legacy SGA module alone does not enable it.
+normalization or migration of the retired `graph` constructor below. Current
+public Program admission rejects that constructor; no compatibility adapter
+or automatic upgrade is provided. Historical tuple-identity and snapshot bytes
+are not rewritten. The keyed profile requires explicit installed profile
+selection; claiming the legacy SGA module alone does not enable it.
 
 The closed constructor body has `version`, `nodes` and `edges`. Each ordered
 node definition has `name`, `from`, a nonempty ordered `key` column list and
@@ -5312,7 +5314,11 @@ new domain or implicitly interpreting legacy snapshot bytes.
 
 <a id="graph-construction"></a>
 
-#### `graph`
+#### `graph` (retired constructor)
+
+The following describes historical tuple-identity input, retained as a record
+of the breaking change. It is not a current executable constructor, and cannot
+be used to bypass the keyed Property Graph admission rules.
 
 ```yaml
 - graph:

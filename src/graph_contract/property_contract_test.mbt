@@ -6,6 +6,66 @@ fn property_body() -> String {
 }
 
 ///|
+test "measured Graph JSON size does not become the remaining type comparison budget" {
+  let root = read_source(property_body())
+  let baseline = @graph_contract.read_property_graph_cursor(root, caps()).unwrap()
+  let measured = {
+    ..caps(),
+    max_bytes: @graph_contract.property_bytes(baseline),
+    max_nodes: @graph_contract.property_nodes(baseline),
+  }
+  // These are exact structural limits, not permission to reset or omit the
+  // additional graph-wide type/label comparison accounting.
+  let restored = @graph_contract.read_property_graph_cursor(root, measured).unwrap()
+  assert_eq(
+    @graph_contract.property_cid(restored),
+    @graph_contract.property_cid(baseline),
+  )
+  let (admitted, work) = @graph_contract.read_property_graph_cursor_usage(
+    root,
+    measured,
+    max_contract_work=1000,
+  ).unwrap()
+  assert_true(work > 0)
+  assert_eq(
+    @graph_contract.property_cid(admitted),
+    @graph_contract.property_cid(baseline),
+  )
+  assert_true(
+    @graph_contract.read_property_graph_cursor_usage(
+      root,
+      measured,
+      max_contract_work=work,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    @graph_contract.read_property_graph_cursor_usage(
+      root,
+      measured,
+      max_contract_work=work - 1,
+    )
+    is Err(BudgetExceeded),
+  )
+  assert_true(
+    @graph_contract.read_property_graph_cursor_usage(
+      root,
+      { ..measured, max_nodes: measured.max_nodes - 1, },
+      max_contract_work=work,
+    )
+    is Err(BudgetExceeded),
+  )
+  assert_true(
+    @graph_contract.read_property_graph_cursor_usage(
+      root,
+      measured,
+      max_contract_work=-1,
+    )
+    is Err(InvalidLimits),
+  )
+}
+
+///|
 test "external Property Graph admission checks graph wide types and shared node edge label sets" {
   let wrong_type = property_body().replace(
     old="\"properties\":{}",

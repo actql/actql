@@ -42,6 +42,8 @@ pub fn read_cursor(@decode_core.Cursor, Limits) -> Result[CheckedContract, ReadI
 
 pub fn read_property_graph_cursor(@decode_core.Cursor, Limits) -> Result[CheckedPropertyContract, ReadIssue]
 
+pub fn read_property_graph_cursor_usage(@decode_core.Cursor, Limits, max_contract_work~ : Int) -> Result[(CheckedPropertyContract, Int), ReadIssue]
+
 pub fn stringify(CheckedContract, Limits) -> String raise @encode_core.EncodeFailure
 
 pub fn stringify_property_graph(CheckedPropertyContract, Limits) -> String raise @encode_core.EncodeFailure

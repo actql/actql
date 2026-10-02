@@ -1,4 +1,35 @@
 ///|
+test "normal Program admission rejects the retired graph constructor instead of silently upgrading it" {
+  let old_graph =
+    #|{"version":"actql/0.1","id":"retired-graph","stages":[{"id":"source","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"nodes"},{"graph":{"nodes":{"from":"nodes","id":"id","fields":[]},"edges":{"from":"nodes","source":"id","target":"id","fields":[]}},"as":"g"},{"from":"g","node_rows":true,"as":"rows"}],"results":{"out":{"from":"rows","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"source","result":"out"}}}}
+  let (_, _, base, _, limits) = public_input_fixture(
+    generated=true,
+    graph_policy=true,
+  )
+  for sga in [false, true] {
+    let environment = @program_check.checking_environment(
+      @program_check.checking_environment_wire(base),
+      { text_time: false, veca: false, },
+      { rela: true, sga, tea: false, calendar: false, text_rank: false, },
+      property_graph=true,
+    )
+    let rejected = public_rejected(
+      @program_check.check_document(
+        old_graph,
+        environment,
+        None,
+        limits,
+        format=Json,
+      ),
+    )
+    assert_true(
+      @program_check.diagnostic_cause(rejected)
+      is Units(UnsupportedStaticPath(_)),
+    )
+  }
+}
+
+///|
 test "public Property Graph checking derives Result capacity without interpreting the legacy SGA profile" {
   for empty in [false, true] {
     let (text, _, legacy, _, limits) = public_input_fixture(

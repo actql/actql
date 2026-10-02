@@ -12,6 +12,7 @@ pub(all) enum IssueKind {
   BudgetExceeded
   InvalidBody
   WrongCarrier(@carrier.Kind)
+  UnsupportedGraphProfile
   OutputCollision(@row.FieldName)
 } derive(Eq, Debug)
 

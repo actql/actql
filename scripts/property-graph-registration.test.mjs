@@ -59,6 +59,48 @@ test('independent complete snapshot preserves parallel edge keys, scoped identit
   }
 });
 
+test('SourceView Graph fixture owns independent schema and the complete CID chain', () => {
+  const source = readFileSync('src/program_check/external_graph_capacity_fixture_wbtest.mbt', 'utf8');
+  const line = source.split('\n').find(line => line.includes('"{\\"command_contracts\\":'));
+  const environment = JSON.parse(JSON.parse(line.trim().slice(0, -1)));
+  const catalog = environment.connector_catalogs[0];
+  const envelope = catalog.contracts.find(entry => entry.kind === 'carrier_schema');
+  const expected = {
+    domain: 'sha256:' + '0'.repeat(64), edge_definitions: [],
+    identity_law_cid: cid(read('spec/dependencies/actql-property-graph-laws.json')),
+    node_definitions: [{key_contracts: [{nullable: false, type: 'number'}],
+      labels: {Node: ['id']}, name: 'N', properties: {id: {nullable: false, type: 'number'}}}],
+    value_law_cid: cid(read('spec/dependencies/actql-property-graph-laws.json')),
+    version: 'actql-property-graph-contract/0.1',
+  };
+  assert.deepEqual(envelope.body, expected);
+  const without = (value, self) => {
+    const core = {...value}; delete core[self]; return cid(core);
+  };
+  for (const entry of catalog.contracts) assert.equal(entry.cid, without(entry, 'cid'));
+  for (const view of catalog.source_views) {
+    assert.equal(view.output.schema.cid, envelope.cid);
+    assert.equal(view.contract_cid, without(view, 'contract_cid'));
+  }
+  assert.equal(catalog.catalog_cid, without(catalog, 'catalog_cid'));
+  assert.equal(environment.evidence_bundle_cid, without(environment, 'evidence_bundle_cid'));
+  assert.equal(environment.evidence_bundle_cid, 'sha256:daa21d77bc5c20b691c71098c493813e7e63f838be76326fc20d687337d49e63');
+  assert.ok(source.includes('"' + environment.evidence_bundle_cid + '"'));
+  const sorted = entries => [...entries].sort((a, b) => a.id.localeCompare(b.id));
+  assert.deepEqual(sorted(environment.contract_registry), sorted(catalog.contracts));
+  assert.deepEqual(environment.source_views, catalog.source_views);
+  // The wire sorts whole-member hashes; Catalog sorts self-CIDs. They are
+  // distinct integrity rules, neither inferred from product Graph output.
+  for (const name of ['contract_registry', 'source_views', 'connector_catalogs']) {
+    const hashes = environment[name].map(cid);
+    assert.deepEqual(hashes, [...hashes].sort());
+  }
+  for (const [name, self] of [['contracts', 'cid'], ['source_views', 'contract_cid']]) {
+    const hashes = catalog[name].map(entry => entry[self]);
+    assert.deepEqual(hashes, [...hashes].sort());
+  }
+});
+
 test('constructor pins a distinct complete execution contract and exact shared dependencies', () => {
   checkRegistration(aoa, law, protocol, registry);
   assert.equal(cid(body), 'sha256:abddf7b4088be03fa8df66c62d6ba92d7d15857e617087a61e043d3bd52e5590');
