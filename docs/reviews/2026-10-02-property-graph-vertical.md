@@ -439,6 +439,32 @@ digest and both Graph and INFER acceptance commands. Historical #148 evidence
 remains immutable. This is provenance registration, not approval or an
 extension of the Relation proof to Graph.
 
+The committed provenance record passed **40/40** history and mutation checks.
+Before committing that record, the repository guard correctly rejected its
+uncommitted state (**39/40**); the guard was not bypassed.
+
+Current Graph scope fixtures now exercise definition-selected MATCH with
+explicit independent identity/source/target aliases and business properties.
+Labels are not synthesized property columns. Definition-free scopes are typed
+refusals; opaque Graph and wrong-carrier diagnostics remain distinct. The
+original scope fixtures are retained as non-executable historical text in
+`portability/historical/graph-expression-scope-pre-property-graph.mbt.txt`.
+The three scope/profile files passed **11/11 on each target**. An initial JS
+fixture declared only one field for a two-component key and failed two tests;
+correcting that fixture's declared bound restored the tests without changing
+the checker or their independent expectations.
+
+The complete spec command at `446d9cc84500122db08b8a1504c99219717dfe8d`
+exited **1** in the resource-accounting stage: **213 tests, 210 passed, 3 failed**.
+The failures require production dispatch markers for removed tuple Graph routes
+and still treat historical SGA/row-bridge coverage as current assurance. Earlier
+engine-accounting checks passed **1092/1092**. Stages after the resource stage
+did not execute. The protected log is
+`/private/tmp/property-graph-spec-446d9cc84-20261002.log`.
+Neither restoring a tuple fallback nor relaxing accounting assertions is an
+acceptable substitute for reconciling current supported/refused routes and
+their evidence. The spec gate is not reported as green.
+
 ## Deliberately not claimed
 
 Full SGA, external producer-definition provenance, a durable Graph catalog and

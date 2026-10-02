@@ -1,120 +1,137 @@
 ///|
-test "graph expression scopes expose semantic roles without implicit bridge columns" {
+fn current_scope_graph() -> @carrier.Carrier {
   let number = @contract.primitive(NumberType, nullable=false)
   let text = @contract.primitive(StringType, nullable=false)
   let properties = @carrier.rows(
     [(Unqualified("title"), Some(text))],
     field_set=Closed,
-    max_fields=1,
-    max_name_bytes=5,
-  ).unwrap()
-  let names = @carrier.graph_row_names(
-    Unqualified("node_id"),
-    Unqualified("source_id"),
-    Unqualified("target_id"),
-    Some(Unqualified("edge_type")),
+    max_fields=3,
     max_name_bytes=100,
   ).unwrap()
-  let g = @carrier.graph(
-    number,
+  let node = @carrier.property_node_definition(
+    "N",
+    [number, text],
     properties,
-    properties,
-    labels=None,
-    max_labels=0,
-    max_label_bytes=0,
-    row_names=Some(names),
-    label_contract=Some(text),
+    ["Node"],
+    max_fields=3,
+    max_name_bytes=100,
   ).unwrap()
-  let source = cursor("true")
-  let nodes = @graph_typing.check_scope(Nodes, source, g, limits()).unwrap()
-  let n = @graph_typing.scope_fields(nodes)
-  assert_eq(@carrier.field_count(n), 2)
-  assert_true(@carrier.lookup(n, Unqualified("node_id")) is Present(_))
-  assert_true(@carrier.lookup(n, Unqualified("id")) is Absent)
-  let edges = @graph_typing.check_scope(Edges, source, g, limits()).unwrap()
-  let e = @graph_typing.scope_fields(edges)
-  assert_eq(@carrier.field_count(e), 4)
-  for name in ["source_id", "target_id", "edge_type", "title"] {
-    assert_true(@carrier.lookup(e, Unqualified(name)) is Present(_))
-  }
-  for name in ["src", "dst", "rel"] {
-    assert_true(@carrier.lookup(e, Unqualified(name)) is Absent)
-  }
-  let u = @graph_typing.scope_usage(edges)
-  let exact = {
-    ..limits(),
-    max_work: u.work,
-    max_nodes: 0,
-    max_text_bytes: u.text_bytes,
-  }
-  assert_true(@graph_typing.check_scope(Edges, source, g, exact) is Ok(_))
-  assert_true(
-    @graph_typing.check_scope(Edges, source, g, {
-      ..exact,
-      max_work: u.work - 1,
-    })
-    is Err(_),
-  )
-  assert_true(
-    @graph_typing.check_scope(Edges, source, g, {
-      ..exact,
-      max_text_bytes: u.text_bytes - 1,
-    })
-    is Err(_),
-  )
+  let edge_element = @carrier.property_node_definition(
+    "E",
+    [text],
+    properties,
+    ["Edge"],
+    max_fields=3,
+    max_name_bytes=100,
+  ).unwrap()
+  let edge = @carrier.property_edge_definition(edge_element, "N", "N").unwrap()
+  @carrier.property_graph(
+    "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+    [node],
+    [edge],
+    max_definitions=2,
+    max_contract_work=1000,
+  ).unwrap()
 }
 
 ///|
-test "graph expression scopes retain unknown fields and require semantic label evidence" {
-  let source = cursor("true")
-  let unknown = @graph_typing.check_scope(
-    Nodes,
-    source,
-    @carrier.unknown_carrier(GraphKind),
-    limits(),
-  ).unwrap()
-  assert_true(
-    @carrier.lookup(@graph_typing.scope_fields(unknown), Unqualified("id"))
-    is Unknown,
-  )
-  let number = @contract.primitive(NumberType, nullable=false)
-  let names = @carrier.graph_row_names(
-    Unqualified("node"),
-    Unqualified("src_name"),
-    Unqualified("dst_name"),
-    Some(Unqualified("label_name")),
-    max_name_bytes=100,
-  ).unwrap()
-  let empty = @carrier.rows(
-    [],
-    field_set=Closed,
-    max_fields=0,
-    max_name_bytes=0,
-  ).unwrap()
-  let g = @carrier.graph(
-    number,
-    empty,
-    empty,
-    labels=Some(["a"]),
-    max_labels=1,
-    max_label_bytes=1,
-    row_names=Some(names),
-  ).unwrap()
-  let scope = @graph_typing.check_scope(Edges, source, g, limits()).unwrap()
-  assert_true(
-    @carrier.lookup(
-      @graph_typing.scope_fields(scope),
-      Unqualified("label_name"),
-    )
-    is Absent,
-  )
-  assert_true(
-    @graph_typing.check_scope(
-      Nodes,
+test "definition-selected MATCH scopes keep independent identities and business properties" {
+  let graph = current_scope_graph()
+  for
+    (entity, body, names, absent) in [
+      (
+        @graph_typing.Nodes,
+        "{\"definition\":\"N\",\"label\":\"Node\",\"bindings\":{\"identity\":\"node_id\"},\"where\":\"true\",\"fields\":[\"node_id\",\"title\"]}",
+        ["node_id", "title"],
+        ["id", "Node", "edge_type"],
+      ),
+      (
+        @graph_typing.Edges,
+        "{\"definition\":\"E\",\"label\":\"Edge\",\"bindings\":{\"identity\":\"edge_id\",\"source\":\"source_id\",\"target\":\"target_id\"},\"where\":\"true\",\"fields\":[\"edge_id\",\"source_id\",\"target_id\",\"title\"]}",
+        ["edge_id", "source_id", "target_id", "title"],
+        ["src", "dst", "rel", "Edge", "edge_type"],
+      ),
+    ] {
+    let source = cursor(body)
+    let checked = @graph_typing.check_match(
+      entity,
       source,
-      @carrier.unknown_carrier(RelationKind),
-      limits(),
+      graph,
+      None,
+      predicate_limits(),
+    ).unwrap()
+    let scope = @graph_typing.match_property_scope_fields(checked).unwrap()
+    assert_eq(@carrier.field_count(scope), names.length())
+    for name in names {
+      assert_true(@carrier.lookup(scope, Unqualified(name)) is Present(_))
+    }
+    for name in absent {
+      assert_true(@carrier.lookup(scope, Unqualified(name)) is Absent)
+    }
+    // Identity is a typed-domain JSON value; neither endpoints nor label
+    // strings manufacture the independent edge key.
+    let identity = if entity == @graph_typing.Nodes {
+      "node_id"
+    } else {
+      "edge_id"
+    }
+    guard @carrier.lookup(scope, Unqualified(identity)) is Present(field) &&
+      field.contract is Some(contract) else {
+      abort("missing identity binding")
+    }
+    assert_true(contract.shape is @contract.Json)
+    let usage = @graph_typing.match_usage(checked)
+    let exact = {
+      ..predicate_limits(),
+      max_work: usage.work,
+      max_nodes: usage.nodes,
+      max_text_bytes: usage.text_bytes,
+      max_tokens: usage.tokens,
+    }
+    assert_true(
+      @graph_typing.check_match(entity, source, graph, None, exact) is Ok(_),
     )
-    is Err(_),
-  )
+    for
+      cap in [
+        { ..exact, max_work: usage.work - 1, },
+        { ..exact, max_text_bytes: usage.text_bytes - 1, },
+      ] {
+      assert_true(
+        @graph_typing.check_match(entity, source, graph, None, cap) is Err(_),
+      )
+    }
+  }
+}
+
+///|
+test "definition-free scopes reject current and opaque Graphs rather than synthesizing old roles" {
+  for entity in [@graph_typing.Nodes, @graph_typing.Edges] {
+    assert_true(
+      @graph_typing.check_scope(
+        entity,
+        cursor("true"),
+        current_scope_graph(),
+        limits(),
+      )
+      is Err({ kind: @graph_typing.UnsupportedGraphOperation, .. }),
+    )
+    assert_true(
+      @graph_typing.check_scope(
+        entity,
+        cursor("true"),
+        @carrier.unknown_carrier(GraphKind),
+        limits(),
+      )
+      is Err({ kind: @graph_typing.IncompleteGraph, .. }),
+    )
+    assert_true(
+      @graph_typing.check_scope(
+        entity,
+        cursor("true"),
+        @carrier.unknown_carrier(RelationKind),
+        limits(),
+      )
+      is Err({ kind: @graph_typing.WrongCarrier(RelationKind), .. }),
+    )
+  }
 }
