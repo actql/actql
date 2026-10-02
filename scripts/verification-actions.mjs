@@ -76,7 +76,7 @@ export function parseCommands(source) {
 }
 
 function invocation(argv) {
-  const env = {};
+  const env = Object.create(null);
   while (/^[A-Za-z_][A-Za-z_0-9]*=/u.test(argv[0] ?? '')) {
     const assignment = argv.shift(), equal = assignment.indexOf('=');
     env[assignment.slice(0, equal)] = assignment.slice(equal + 1);

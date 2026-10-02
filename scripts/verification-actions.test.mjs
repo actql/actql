@@ -237,3 +237,13 @@ test('workflow expressions remain dynamic even inside single shell quotes', () =
   assert.equal(pair(report).equivalence, 'unknown');
   assert(report.actions[0].unresolved.includes('Unresolved workflow expression'));
 });
+
+test('literal environment names that match object prototypes are retained and compared', () => {
+  const report = build({a: job('__proto__=before constructor=first node check.mjs'),
+    b: job('__proto__=after constructor=second node check.mjs')});
+  assert.deepEqual(report.actions.map(action => action.environment.__proto__), ['before', 'after']);
+  assert.deepEqual(report.actions.map(action => action.environment.constructor), ['first', 'second']);
+  assert.equal(pair(report).invocationEquality, 'proven');
+  assert.equal(pair(report).equivalence, 'different');
+  assert(pair(report).differences.includes('environment'));
+});
