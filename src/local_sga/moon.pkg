@@ -13,5 +13,8 @@ import {
   "actql/actql/relation_schema" @schema,
   "actql/actql/value_admission" @value,
   "actql/actql/value_contract" @contract,
-  "actql/actql/canonical_value" @canonical,
 }
+
+import {
+  "actql/actql/canonical_value" @canonical,
+} for "wbtest"

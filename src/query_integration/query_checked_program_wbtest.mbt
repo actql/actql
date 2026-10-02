@@ -988,7 +988,8 @@ fn query_checked_program_fixture(
         },
         {
           rela: true,
-          sga: local_carrier_graph_chain,
+          sga: local_carrier_graph_chain &&
+          !local_carrier_graph_variant.has_prefix("current_"),
           tea: local_carrier_events_chain ||
           local_time_series_chain ||
           local_values_interval_chain ||
@@ -997,6 +998,8 @@ fn query_checked_program_fixture(
           calendar: false,
           text_rank: false,
         },
+        property_graph=local_carrier_graph_chain &&
+          local_carrier_graph_variant.has_prefix("current_"),
         numeric_profile=if numeric_materializing_group ||
           (
             local_values_group_chain &&

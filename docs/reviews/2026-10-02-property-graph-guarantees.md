@@ -1643,3 +1643,47 @@ The early narrow run exposed an authored hop field typo (`types` instead of
 `edge_types`) and an assumption about policy traversal order; the final test
 selects the unique exact operation occurrence, not an arbitrary list index.
 This is not the unfinished whole-Core or published-SHA packed/CI acceptance.
+
+## Current Host composition and interruptible identity order (2026-10-03)
+
+The current keyed constructor → MATCH → Relation chain retains positive Host
+coverage for filter (including an empty result), edge projection, select,
+derive, ordered TAKE, sort and both row/unique assertions. The same installed
+modules and dispatch owner execute seven physical tasks; no retired normalization
+task is inserted. Two downstream consumers share the original material, and
+closing one does not revoke the other. Normal completion and cancellation
+return execution/retention reservations and held bytes to zero. The DAG checks
+retain exact ordered input occurrences and the adjusted exact/one-short task
+ceiling; the adjustment removes a genuinely absent legacy task, not a capacity
+check. These positives replace the applicable old Host composition obligations,
+not support for retired structural Graph operators.
+
+Migrating the old long-text cancellation obligation exposed a real regression:
+MATCH and TRAIL scanned a whole canonical identity key in one charged control
+transition. Their existing bounded sessions now retain the UTF-16 comparison
+position and advance one code unit per transition. Ordering, typed identities,
+storage ownership and output bytes are unchanged. No extra stop/session owner
+or unreported work is introduced. The comparison cursor is cleared by cleanup.
+Independent UTF-16 cases include prefix, equality, supplementary/BMP ordering
+and a long common prefix. The current integration test verifies yield, cancel,
+idempotent cleanup, live original input and independently authored complete
+MATCH/TRAIL rows after a fresh session finishes.
+
+The regression fails when the charged incremental comparisons are replaced
+by an uninterruptible whole-key loop: MATCH fails at `long node comparison
+must yield`, and the separate TRAIL ablation fails at `long start comparison
+must yield`. Evidence:
+`/private/tmp/property-graph-long-match-ablation-20261003.log` and
+`/private/tmp/property-graph-long-trail-ablation-20261003.log`. Both ablations
+were restored before the final formatted verification. An early TRAIL fixture
+used an invalid zero upper depth; the final fixture uses the supported finite
+range and explicitly checks zero/one-hop self-loop rows.
+
+The combined current construction/selector/snapshot/provider, Source policy,
+Host composition and physical-DAG regression passes **92/92 on each JS, Wasm
+and native** with `--deny-warn`:
+`/private/tmp/property-graph-host-comparison-{js,wasm,native}-20261003.log`.
+The legacy mixed integration fixtures are still to be retired after their
+remaining applicable guarantees are mapped. Aggregate Core/spec, fresh public
+snapshot and submitted-SHA CI remain open; these narrow successes do not make
+the currently published #164 checkpoint adoptable.

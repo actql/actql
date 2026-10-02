@@ -55,6 +55,7 @@ priv struct MatchEdgesState {
   mut right_index : Int
   mut merge_index : Int
   mut copy_index : Int
+  mut comparison_unit : Int
   mut emit_index : Int
   mut column : Int
   mut values : Array[@value.CheckedValue]
@@ -204,7 +205,13 @@ fn compare_selected_edges_step(
     graph_read_edge_identity_order_key(state.source, right) is Some(right_key) else {
     return Err(MatchEdgesInputUnavailable)
   }
-  Ok(Some(@canonical.compare_utf16(left_key, right_key)))
+  let (order, next) = graph_identity_compare_unit(
+    left_key,
+    right_key,
+    state.comparison_unit,
+  )
+  state.comparison_unit = next
+  Ok(order)
 }
 
 ///|
@@ -546,6 +553,7 @@ fn cleanup_match_edges_state(state : MatchEdgesState) -> Bool {
   state.selected = []
   state.scratch = []
   state.scratch_slots.val = 0
+  state.comparison_unit = 0
   state.values = []
   state.predicate_input.clear()
   true
@@ -815,6 +823,7 @@ fn start_match_edges_read(
     right_index: 0,
     merge_index: 0,
     copy_index: 0,
+    comparison_unit: 0,
     emit_index: 0,
     column: 0,
     values: [],

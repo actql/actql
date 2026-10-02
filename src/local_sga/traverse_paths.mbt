@@ -63,6 +63,7 @@ priv struct TraversePathsState {
   mut sort_index : Int
   mut sort_cursor : Int
   mut compare_index : Int
+  mut comparison_unit : Int
   mut member_index : Int
   mut copy_index : Int
   mut frontier : Array[TraversalPath]
@@ -190,12 +191,18 @@ fn compare_traversal_edges(
   state : TraversePathsState,
   left : Int,
   right : Int,
-) -> Result[Int, TraversePathsIssue] {
+) -> Result[Int?, TraversePathsIssue] {
   guard graph_read_edge_identity_order_key(state.source, left) is Some(left) &&
     graph_read_edge_identity_order_key(state.source, right) is Some(right) else {
     return Err(TraversePathsInputUnavailable)
   }
-  Ok(@canonical.compare_utf16(left, right))
+  let (order, next) = graph_identity_compare_unit(
+    left,
+    right,
+    state.comparison_unit,
+  )
+  state.comparison_unit = next
+  Ok(order)
 }
 
 ///|
@@ -205,13 +212,19 @@ fn compare_traversal_node_ids(
   _right : @value.CheckedValue,
   left_index : Int,
   right_index : Int,
-) -> Result[Int, @value.KeyOrderIssue] {
+) -> Result[Int?, @value.KeyOrderIssue] {
   guard graph_read_node_identity_order_key(state.source, left_index)
     is Some(left) &&
     graph_read_node_identity_order_key(state.source, right_index) is Some(right) else {
     return Err(@value.InvalidKey)
   }
-  Ok(@canonical.compare_utf16(left, right))
+  let (order, next) = graph_identity_compare_unit(
+    left,
+    right,
+    state.comparison_unit,
+  )
+  state.comparison_unit = next
+  Ok(order)
 }
 
 ///|
@@ -567,14 +580,16 @@ fn traverse_paths_step(
                 used,
               )
           }
-          if order > 0 {
-            let swap = state.start_nodes[state.sort_cursor - 1]
-            state.start_nodes[state.sort_cursor - 1] = state.start_nodes[state.sort_cursor]
-            state.start_nodes[state.sort_cursor] = swap
-            state.sort_cursor -= 1
-          } else {
-            state.sort_index += 1
-            state.sort_cursor = state.sort_index
+          if order is Some(order) {
+            if order > 0 {
+              let swap = state.start_nodes[state.sort_cursor - 1]
+              state.start_nodes[state.sort_cursor - 1] = state.start_nodes[state.sort_cursor]
+              state.start_nodes[state.sort_cursor] = swap
+              state.sort_cursor -= 1
+            } else {
+              state.sort_index += 1
+              state.sort_cursor = state.sort_index
+            }
           }
         } else {
           state.sort_index += 1
@@ -829,10 +844,12 @@ fn traverse_paths_step(
                 used,
               )
           }
-          if order != 0 {
-            finish_traverse_path_comparison(state, order)
-          } else {
-            state.compare_index += 1
+          if order is Some(order) {
+            if order != 0 {
+              finish_traverse_path_comparison(state, order)
+            } else {
+              state.compare_index += 1
+            }
           }
         } else if left.nodes.length() != right.nodes.length() {
           finish_traverse_path_comparison(
@@ -859,10 +876,12 @@ fn traverse_paths_step(
             Ok(value) => value
             Err(issue) => return @bounded.Failed(issue, progress, used)
           }
-          if order != 0 {
-            finish_traverse_path_comparison(state, order)
-          } else {
-            state.compare_index += 1
+          if order is Some(order) {
+            if order != 0 {
+              finish_traverse_path_comparison(state, order)
+            } else {
+              state.compare_index += 1
+            }
           }
         } else {
           finish_traverse_path_comparison(
@@ -1108,6 +1127,7 @@ fn cleanup_traverse_paths_state(state : TraversePathsState) -> Bool {
   state.pending_edges.clear()
   state.values.clear()
   state.value_items = None
+  state.comparison_unit = 0
   state.workspace_slots = 0
   true
 }
@@ -1343,6 +1363,7 @@ fn start_traverse_paths_read(
     sort_index: 0,
     sort_cursor: 0,
     compare_index: 0,
+    comparison_unit: 0,
     member_index: 0,
     copy_index: 0,
     frontier: [],

@@ -197,6 +197,9 @@ fn local_carrier_graph_apply_program() -> String {
 
 ///|
 fn local_carrier_graph_program(variant? : String = "projection") -> String {
+  if variant.has_prefix("current_") {
+    return current_graph_relation_program(variant)
+  }
   if variant == "graph_apply_changes" {
     return local_carrier_graph_apply_program()
   }
