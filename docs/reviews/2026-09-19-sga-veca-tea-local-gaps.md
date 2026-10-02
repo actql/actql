@@ -1,5 +1,23 @@
 # SGA, VecA, and TEA Local execution gaps
 
+## Current Property Graph migration (2026-10-02)
+
+The new definition-keyed Property Graph is the sole executable Graph contract.
+The previous tuple-profile coverage inventory is retained as inert historical
+text in `portability/historical/local-family-coverage-pre-property-graph.json.txt`.
+Its completed SGA/Graph-bridge claims do not apply to the new representation.
+The current manifest records four partial operations (constructor, two MATCH
+forms and explicit TRAIL) and seventeen blocked old/unconnected routes. These
+are implementation gaps, not permanent language exclusions. Existing non-Graph
+coverage is unchanged. Current snapshot/consumer/resource and aggregate
+acceptance remain open; three-target focused tests do not certify full coverage.
+
+The strict resource gate is intentionally not weakened to accept these open
+entries. Its old production-route records must be reconciled with current
+supported/refused routes using independent admission and lifecycle evidence;
+no tuple fallback may be reinstated to satisfy an obsolete dispatch marker.
+See `docs/reviews/2026-10-02-property-graph-vertical.md` for actual failed gates.
+
 ## Status interpretation (2026-09-28)
 
 This document contains chronological investigation notes as well as later
@@ -2605,18 +2623,18 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | Coverage state | Count |
 |---|---:|
 | `contract` | 40/40 |
-| `checker` | 40/40 |
-| `lowering` | 40/40 |
-| `kernel` | 40/40 |
-| `managed` | 40/40 |
-| `standard_host` | 40/40 |
-| `consumer_lifetime` | 40/40 |
-| `resources` | 40/40 |
-| `cancellation` | 40/40 |
-| `publication` | 40/40 |
-| `three_targets` | 40/40 |
-| complete operations | 40/40 |
-| open operations | 0/40 |
+| `checker` | 19/40 |
+| `lowering` | 19/40 |
+| `kernel` | 19/40 |
+| `managed` | 19/40 |
+| `standard_host` | 19/40 |
+| `consumer_lifetime` | 19/40 |
+| `resources` | 19/40 |
+| `cancellation` | 19/40 |
+| `publication` | 19/40 |
+| `three_targets` | 19/40 |
+| complete operations | 19/40 |
+| open operations | 21/40 |
 <!-- local-family-coverage-summary:end -->
 
 ## Closed normative contract mismatches

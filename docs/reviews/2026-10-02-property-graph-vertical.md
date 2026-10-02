@@ -465,6 +465,15 @@ Neither restoring a tuple fallback nor relaxing accounting assertions is an
 acceptable substitute for reconciling current supported/refused routes and
 their evidence. The spec gate is not reported as green.
 
+The family coverage inventory now separates the prior tuple-profile claims
+from the current implementation: **19 non-Graph operations complete, 4 keyed
+Graph operations partial, 17 retired/unconnected Graph routes blocked**. The
+original inventory is retained as inert historical text. Eight inventory
+regressions pass, including mutations that try to promote `reach` using old
+suite evidence or delete the current profile. This correction does not satisfy
+or weaken the strict resource gate: open entries remain open and the old
+production-route inventory still requires migration with current evidence.
+
 ## Deliberately not claimed
 
 Full SGA, external producer-definition provenance, a durable Graph catalog and

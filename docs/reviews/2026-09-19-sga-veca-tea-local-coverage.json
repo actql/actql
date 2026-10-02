@@ -63,6 +63,35 @@
     "workers_fixture_freshness",
     "family_selective_artifacts"
   ],
+  "current_graph_profile": {
+    "contract": "actql-property-graph-contract/0.1",
+    "source_sha": "5b317a6ee111e5b4ea3694e3db7da9d2042a4160",
+    "historical_inventory": "portability/historical/local-family-coverage-pre-property-graph.json.txt",
+    "classification": {
+      "normalize_graph": "blocked",
+      "match_nodes": "partial",
+      "match_edges": "partial",
+      "traverse": "partial",
+      "shortest_path": "blocked",
+      "components": "blocked",
+      "reach": "blocked",
+      "graph_bounds": "blocked",
+      "degree": "blocked",
+      "graph_diff": "blocked",
+      "graft_graph": "blocked",
+      "union_graphs": "blocked",
+      "subtract_graphs": "blocked",
+      "subgraph": "blocked",
+      "graphs_equal": "blocked",
+      "apply_graph_delta": "blocked",
+      "mean_graphs": "blocked",
+      "property_graph": "partial",
+      "graph": "blocked",
+      "node_rows": "blocked",
+      "edge_rows": "blocked"
+    },
+    "completion_rule": "Historical tuple-profile suites do not discharge current Graph coverage. Partial means the bounded keyed subset exists, not complete resource or snapshot acceptance; blocked means explicit refusal before execution."
+  },
   "operations": [
     {
       "family": "SGA",
@@ -71,28 +100,12 @@
       "output": "graph",
       "canonical": ["SGA.normalize"],
       "variants": ["duplicate policy", "dangling edge policy", "property admission"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "publication",
-        "resources",
-        "cancellation",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_basic_test.mbt",
-        "src/local_sga/normalize_wbtest.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "shared_graph_generation_carrier_and_bridge_consumers",
           "layers": ["standard_host", "consumer_lifetime", "publication"],
@@ -123,28 +136,12 @@
       "output": "relation",
       "canonical": ["SGA.match_nodes"],
       "variants": ["identity list", "literal predicate", "typed property predicate", "missing property", "projection order"],
-      "status": "complete",
+      "status": "partial",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "publication",
-        "resources",
-        "cancellation",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_match_test.mbt",
-        "src/local_sga/match_nodes.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
-      ],
-      "implementation_evidence": [
+      "current_gap": "The current keyed constructor and definition-selected MATCH/TRAIL subset is implemented. Aggregate Core, current-source public snapshot, resource and fresh packed acceptance remain open; historical tuple-profile evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "managed_relation_named_result_publication_and_retrieval",
           "layers": [
@@ -211,29 +208,12 @@
       "output": "relation",
       "canonical": ["SGA.match_edges"],
       "variants": ["absent/empty/repeated type filters", "literal predicate", "typed property predicate", "missing property", "projection order"],
-      "status": "complete",
+      "status": "partial",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "publication",
-        "resources",
-        "cancellation",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_match_test.mbt",
-        "src/local_sga/match_edges.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
-      ],
-      "implementation_evidence": [
+      "current_gap": "The current keyed constructor and definition-selected MATCH/TRAIL subset is implemented. Aggregate Core, current-source public snapshot, resource and fresh packed acceptance remain open; historical tuple-profile evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "edge_type_and_literal_filter_standard_host_execution",
           "layers": [
@@ -295,18 +275,11 @@
       "output": "relation",
       "canonical": ["SGA.traverse"],
       "variants": ["selector ids/relation/predicate", "direction", "repeated hop", "hop pattern", "nodes/paths output", "guard"],
-      "status": "complete",
+      "status": "partial",
       "owner": "local-sga",
-      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "publication", "resources", "cancellation", "three_targets"],
-      "layer_evidence": [
-        "src/lowering_relation/graph_traverse_test.mbt",
-        "src/local_sga/traverse.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "src/query_integration/join_graph_capacity_wbtest.mbt",
-        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
-      ],
-      "implementation_evidence": [
+      "current_gap": "The current keyed constructor and definition-selected MATCH/TRAIL subset is implemented. Aggregate Core, current-source public snapshot, resource and fresh packed acceptance remain open; historical tuple-profile evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "historical_implementation_evidence": [
         {
           "scope": "literal_start_set_membership_and_order",
           "layers": [
@@ -697,29 +670,12 @@
       "output": "relation",
       "canonical": ["SGA.shortest_path"],
       "variants": ["single/selected endpoints", "each_pair/nearest_per_source/nearest_pair", "direction", "weighted/unweighted", "ties"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "publication",
-        "resources",
-        "cancellation",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_shortest_test.mbt",
-        "src/local_sga/shortest.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "src/query_integration/join_graph_capacity_wbtest.mbt"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "scalar_unweighted_each_pair_vertical_slice",
           "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "three_targets"],
@@ -858,30 +814,12 @@
       "output": "relation",
       "canonical": ["SGA.components"],
       "variants": ["weak", "strong", "cycles", "disconnected nodes"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "publication",
-        "resources",
-        "cancellation",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_basic_test.mbt",
-        "src/local_sga/components.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "src/query_integration/join_graph_capacity_wbtest.mbt",
-        "src/query_integration/query_checked_program_wbtest.mbt",
-        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "weak_components_named_result_publication_and_retrieval",
           "layers": ["publication"],
@@ -921,29 +859,12 @@
         "self loops",
         "bounded depth"
       ],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "publication",
-        "resources",
-        "cancellation",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_reach_test.mbt",
-        "src/local_sga/reach.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "bounded_reach_standard_host_and_publication",
           "layers": [
@@ -987,28 +908,12 @@
       "output": "relation",
       "canonical": ["SGA.bounds_check"],
       "variants": ["node bound", "edge bound", "degree bound", "combined bounds"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "publication",
-        "resources",
-        "cancellation",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_basic_test.mbt",
-        "src/local_sga/graph_bounds.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "bounded_graph_diagnostics_standard_host_execution",
           "layers": [
@@ -1058,28 +963,12 @@
       "output": "relation",
       "canonical": ["SGA.degree_metrics"],
       "variants": ["incoming", "outgoing", "both", "typed edges"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "publication",
-        "resources",
-        "cancellation",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_basic_test.mbt",
-        "src/local_sga/graph_bounds.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "directional_degree_standard_host_execution",
           "layers": [
@@ -1128,30 +1017,12 @@
       "output": "relation",
       "canonical": ["SGA.diff"],
       "variants": ["empty diff", "node changes", "edge changes", "graph CID deadlines"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "resources",
-        "cancellation",
-        "publication",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_relation_test.mbt",
-        "src/bounded_graph_snapshot/snapshot_wbtest.mbt",
-        "src/bounded_graph_diff/diff_wbtest.mbt",
-        "src/local_sga/graph_diff.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "canonical_bounded_snapshot_and_delta_construction",
           "layers": ["kernel", "resources", "three_targets"],
@@ -1202,29 +1073,12 @@
       "output": "graph",
       "canonical": ["SGA.graft"],
       "variants": ["conflict laws", "equal semantic ids", "shared storage"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "resources",
-        "cancellation",
-        "publication",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_union_test.mbt",
-        "src/local_sga/graft_wbtest.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "standard_host_consumers_publication_and_cancellation",
           "layers": [
@@ -1250,28 +1104,12 @@
       "output": "graph",
       "canonical": ["SGA.union_structural"],
       "variants": ["singleton", "finite list", "repeated input positions", "property laws"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "resources",
-        "cancellation",
-        "publication",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_union_test.mbt",
-        "src/local_sga/graft.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "no_merge_ordered_finite_list",
           "layers": ["kernel", "managed", "three_targets"],
@@ -1361,29 +1199,12 @@
       "output": "graph",
       "canonical": ["SGA.diff_structural"],
       "variants": ["node removal", "edge removal", "property laws", "no-op"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "resources",
-        "cancellation",
-        "publication",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_union_test.mbt",
-        "src/local_sga/graft.mbt",
-        "src/local_sga/graft_wbtest.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "property_free_node_removal_and_endpoint_closure",
           "layers": [
@@ -1483,17 +1304,11 @@
       "output": "graph",
       "canonical": ["SGA.subgraph"],
       "variants": ["selector forms", "edge predicate absent/present", "induced structure"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "three_targets", "publication"],
-      "layer_evidence": [
-        "src/lowering_relation/graph_subgraph_test.mbt",
-        "src/local_sga/subgraph.mbt",
-        "src/local_sga/subgraph_wbtest.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "historical_implementation_evidence": [
         {
           "scope": "literal_identity_induced_subgraph",
           "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "resources", "three_targets", "publication"],
@@ -1583,29 +1398,12 @@
       "output": "relation",
       "canonical": ["SGA.equal"],
       "variants": ["equal", "not equal", "representation difference"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "resources",
-        "cancellation",
-        "publication",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_relation_test.mbt",
-        "src/local_sga/graphs_equal.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "equal_representation_consumers_and_publication",
           "layers": [
@@ -1658,29 +1456,12 @@
       "output": "graph",
       "canonical": ["SGA.apply_delta"],
       "variants": ["valid delta", "wrong base", "empty delta", "CID validation"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "resources",
-        "cancellation",
-        "publication",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_relation_test.mbt",
-        "src/bounded_graph_snapshot/snapshot.mbt",
-        "src/local_sga/graph_apply.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "atomic_delta_kernel_and_managed_provider",
           "layers": [
@@ -1722,31 +1503,12 @@
       "output": "graph",
       "canonical": ["SGA.mean_structural"],
       "variants": ["equal values", "weighted mean", "missing exclude/zero", "null exclude/zero/fail", "repeated inputs"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "resources",
-        "cancellation",
-        "publication",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_mean_test.mbt",
-        "src/exact_binary64/exact.mbt",
-        "src/exact_binary64/exact_wbtest.mbt",
-        "src/local_sga/mean.mbt",
-        "src/local_sga/mean_wbtest.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "exact_support_property_laws_and_relation_bridge",
           "layers": [
@@ -2787,16 +2549,10 @@
       "output": "keyed property graph",
       "canonical": ["BRIDGE.rows.to_property_graph"],
       "variants": ["definition-scoped typed composite keys", "independent edge keys", "static label property scopes", "NULL-key and missing-endpoint exclusion", "duplicate-key rejection", "repeated producer occurrences", "empty definition families"],
-      "status": "complete",
+      "status": "partial",
       "owner": "local-bridge",
-      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "three_targets", "publication"],
-      "layer_evidence": [
-        "src/query_integration/property_graph_construction_wbtest.mbt",
-        "src/query_integration/property_graph_plan_wbtest.mbt",
-        "src/query_integration/property_graph_snapshot_wbtest.mbt",
-        "scripts/property-graph-public-host.test.mjs",
-        "scripts/test-packed-property-graph.mjs"
-      ],
+      "current_gap": "The current keyed constructor and definition-selected MATCH/TRAIL subset is implemented. Aggregate Core, current-source public snapshot, resource and fresh packed acceptance remain open; historical tuple-profile evidence is not current completion.",
+      "completed_layers": ["contract"],
       "scope": "Initial new-profile constructor, typed MATCH/TRAIL and bounded snapshot save/reload only. This does not claim all SGA operators, external declaration provenance, legacy migration or executable mechanized correspondence."
     },
     {
@@ -2806,30 +2562,12 @@
       "output": "graph",
       "canonical": ["BRIDGE.rows.to_graph"],
       "variants": ["explicit nodes/edges", "concise edge relation", "same relation in both positions"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-bridge",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "resources",
-        "cancellation",
-        "publication",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_construction.mbt",
-        "src/lowering_relation/graph_construction_test.mbt",
-        "src/local_bridge/graph.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "explicit_graph_projection_endpoint_closure_and_finite_expansion",
           "layers": [
@@ -2956,28 +2694,12 @@
       "output": "relation",
       "canonical": ["BRIDGE.graph.to_node_rows"],
       "variants": ["identity restoration", "property columns", "collision failure"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-bridge",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "publication",
-        "resources",
-        "cancellation",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/local_bridge/graph.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "named_result_publication_and_environment_cancellation",
           "layers": ["publication", "cancellation"],
@@ -2997,28 +2719,12 @@
       "output": "relation",
       "canonical": ["BRIDGE.graph.to_edge_rows"],
       "variants": ["identity restoration", "endpoint roles", "collision failure"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-bridge",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "publication",
-        "resources",
-        "cancellation",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/local_bridge/graph.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "named_result_publication_and_environment_cancellation",
           "layers": ["publication", "cancellation"],

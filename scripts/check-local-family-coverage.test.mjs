@@ -68,24 +68,41 @@ test("local family coverage rejects an omitted normative operation", async t => 
 test("local family coverage rejects a completion without suite evidence", async t => {
   const result = await withManifest(t, manifest => {
     manifest.evidence = manifest.evidence.filter(
-      entry => entry.operation !== "graph_diff",
+      entry => entry.operation !== "nearest",
     );
   });
   assert.notEqual(result.status, 0);
   assert.match(
     result.stderr,
-    /complete entry lacks suite evidence: graph_diff/u,
+    /complete entry lacks suite evidence: nearest/u,
   );
 });
 
 test("local family coverage rejects unexecuted suite evidence", async t => {
   const result = await withManifest(t, manifest => {
     manifest.evidence.find(
-      entry => entry.operation === "components",
+      entry => entry.operation === "sequence",
     ).suites[0].result = "not-run";
   });
   assert.notEqual(result.status, 0);
-  assert.match(result.stderr, /suite evidence is not passing: components/u);
+  assert.match(result.stderr, /suite evidence is not passing: sequence/u);
+});
+
+test("current Graph refusal cannot reuse historical completion", async t => {
+  const result = await withManifest(t, manifest => {
+    manifest.operations.find(entry => entry.operation === "reach").status = "complete";
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /current Graph classification differs for reach/u);
+  assert.match(result.stderr, /lacks profile-specific evidence: reach/u);
+});
+
+test("current Graph profile cannot be removed or covered by historical suites", async t => {
+  const result = await withManifest(t, manifest => {
+    delete manifest.current_graph_profile;
+  });
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /current Graph profile must identify its source/u);
 });
 
 test("local family coverage rejects an unclassified variant surface", async t => {

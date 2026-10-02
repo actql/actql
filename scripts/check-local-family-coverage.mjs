@@ -188,6 +188,39 @@ for (const expression of ["vector_score", "vector_concat"]) {
 }
 
 const complete = entries.filter((entry) => entry.status === "complete");
+// Coverage is profile-specific. Retained tuple-profile suite records cannot
+// turn a current typed refusal or a limited keyed implementation into closure.
+const graphProfile = manifest.current_graph_profile;
+const graphEntries = entries.filter(entry => entry.family === "SGA" ||
+  ["property_graph", "graph", "node_rows", "edge_rows"].includes(entry.operation));
+if (graphProfile?.contract !== "actql-property-graph-contract/0.1" ||
+    !/^[a-f0-9]{40}$/u.test(graphProfile?.source_sha ?? "") ||
+    !graphProfile?.historical_inventory?.endsWith(".txt") ||
+    !fs.existsSync(path.join(root, graphProfile?.historical_inventory ?? ""))) {
+  fail("current Graph profile must identify its source and inert historical inventory");
+}
+for (const entry of graphEntries) {
+  const classification = graphProfile?.classification?.[entry.operation];
+  if (!states.has(classification) || entry.status !== classification) {
+    fail(`current Graph classification differs for ${entry.operation}`);
+  }
+  if (entry.status === "partial" && !entry.current_gap) {
+    fail(`partial current Graph entry lacks its gap: ${entry.operation}`);
+  }
+  if (entry.status === "complete") {
+    const current = entry.current_evidence;
+    if (current?.contract !== graphProfile?.contract ||
+        !/^[a-f0-9]{40}$/u.test(current?.sha ?? "") ||
+        !Array.isArray(current?.suites) || current.suites.length === 0) {
+      fail(`complete current Graph entry lacks profile-specific evidence: ${entry.operation}`);
+    }
+  }
+}
+for (const operation of Object.keys(graphProfile?.classification ?? {})) {
+  if (!graphEntries.some(entry => entry.operation === operation)) {
+    fail(`current Graph classification contains an unrelated operation: ${operation}`);
+  }
+}
 const summaryLayers = [
   "contract",
   "checker",
