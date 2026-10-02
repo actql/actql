@@ -781,3 +781,6 @@ test('#198 an app-pinned requirement cannot attribute a legacy status to the req
   assert.equal(required.appId, null);
   assert.equal(required.sourcesAtRevision[0].state, 'status-success');
 });
+
+// Read-only scheduling diagnostics share the existing CI reporting fixture gate.
+import './verification-actions.test.mjs';
