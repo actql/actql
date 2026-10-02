@@ -21,7 +21,9 @@ function evidence() {
     if (target === 'native') facts.push({ target, case: 'native-map', headerBytes: 8,
       pointerBytes: 8, mapBytes: 48, tableBytes: 72, entryBytes: 48,
       emptyBytes: 120, threeKeysBytes: 264, replacementBytes: 240 });
-    const count = target === 'native' ? 5 : 4;
+    if (target === 'native') facts.push({ target, case: 'native-array', ownerBytes: 24,
+      emptyBackingBytes: 8, int8BackingBytes: 40, int16BackingBytes: 72, names3BackingBytes: 32 });
+    const count = target === 'native' ? 6 : 4;
     const log = facts.map(f => 'ACTQL_BACKING_CORE:' + JSON.stringify(f)).join('\n') + `\nTotal tests: ${count}, passed: ${count}, failed: 0.\n`;
     const logPath = `${directory}/${target}.log`, artifact = `${directory}/binaries/${target}/fixture.${target === 'native' ? 'exe' : target}`;
     read.set(logPath, Buffer.from(log)); read.set(artifact, Buffer.from('unit-test artifact'));

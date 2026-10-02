@@ -105,3 +105,53 @@ moonbit_string_t actql_proof_map_json(void *input, void *binding,
   for (size_t i = 0; i < used; i++) result[i] = (uint16_t)(unsigned char)buffer[i];
   return result;
 }
+
+/* Monomorphic callers select Int (1) or reference (2) storage. Scalar-array
+ * headers do not encode element width; it comes from the reviewed typed ABI. */
+uint64_t actql_proof_array_layout(void *array, int32_t element, int32_t selector) {
+  assert(element == 1 || element == 2);
+  const uint32_t *shape = layout(array);
+  assert(shape[0] == 4 && shape[1] == 1 && shape[2] == 0);
+  void *buffer;
+  int32_t length;
+  memcpy(&buffer, array, sizeof buffer);
+  memcpy(&length, (uint8_t *)array + sizeof(void *), sizeof length);
+  assert(buffer);
+  int32_t slots = Moonbit_array_length(buffer);
+  assert(length >= 0 && length <= slots);
+  assert(Moonbit_object_kind(buffer) ==
+    (element == 1 ? moonbit_BLOCK_KIND_VAL_ARRAY : moonbit_BLOCK_KIND_REF_ARRAY));
+  uint64_t width = element == 1 ? sizeof(int32_t) : sizeof(void *);
+  int immortal = Moonbit_rc_count(Moonbit_object_header(buffer)) < 0;
+  assert(immortal == (slots == 0));
+  switch (selector) {
+    case 0: return regular_bytes(array);
+    case 1: return (uint64_t)(uintptr_t)buffer;
+    case 2: return (uint64_t)slots;
+    case 3: return sizeof(struct moonbit_object) + width * (uint64_t)slots;
+    case 4: return (uint64_t)length;
+    case 5: return width;
+    case 6: return (uint64_t)(uintptr_t)array;
+    case 7: return immortal;
+    case 8: return Moonbit_rc_count(Moonbit_object_header(array)) < 0;
+    default: assert(0); return 0;
+  }
+}
+
+moonbit_string_t actql_proof_array_json(void *array, int32_t element) {
+  char buffer[1024];
+  int used = snprintf(buffer, sizeof buffer,
+    "{\"owner\":\"%" PRIu64 "\",\"backing\":\"%" PRIu64 "\",\"slots\":%" PRIu64
+    ",\"length\":%" PRIu64 ",\"elementBytes\":%" PRIu64 ",\"ownerBytes\":\"%" PRIu64
+    "\",\"backingBytes\":\"%" PRIu64 "\",\"ownerStatic\":%s,\"backingStatic\":%s}",
+    actql_proof_array_layout(array, element, 6), actql_proof_array_layout(array, element, 1),
+    actql_proof_array_layout(array, element, 2), actql_proof_array_layout(array, element, 4),
+    actql_proof_array_layout(array, element, 5), actql_proof_array_layout(array, element, 0),
+    actql_proof_array_layout(array, element, 3),
+    actql_proof_array_layout(array, element, 8) ? "true" : "false",
+    actql_proof_array_layout(array, element, 7) ? "true" : "false");
+  assert(used > 0 && (size_t)used < sizeof buffer);
+  moonbit_string_t result = moonbit_make_string_raw(used);
+  for (int i = 0; i < used; i++) result[i] = (uint16_t)(unsigned char)buffer[i];
+  return result;
+}

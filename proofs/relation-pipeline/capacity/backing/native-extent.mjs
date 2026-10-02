@@ -17,6 +17,7 @@ export function checkDeclaredLayouts() {
   for (const [name, kinds] of Object.entries({
     map: ['ref', 'i32', 'i32', 'i32', 'i32', 'ref', 'i32'],
     entry: ['i32', 'ref', 'i32', 'i32', 'ref', 'i32'],
+    array: ['ref', 'i32'],
   })) assert.deepEqual(nativeProfile.declaredFieldLayouts[name], { kinds, ...fieldLayout(kinds) });
   assert.deepEqual(nativeProfile.derived, { headerBytes: 8, pointerBytes: 8,
     mapBytes: 48, tableSlotBytes: 8, entryBytes: 48 });

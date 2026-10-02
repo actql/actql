@@ -11,16 +11,29 @@ assert.equal(version.status, 0); assert.equal(version.stdout.trim(), leanPin.spl
 const arrayModel = readFileSync(new URL('./ArrayBacking.lean', import.meta.url), 'utf8');
 const mapModel = readFileSync(new URL('./MapBacking.lean', import.meta.url), 'utf8');
 const nativeModel = readFileSync(new URL('./NativeMapExtent.lean', import.meta.url), 'utf8');
-const model = arrayModel + '\n' + mapModel + '\n' + nativeModel;
+const nativeArrayModel = readFileSync(new URL('./NativeArrayExtent.lean', import.meta.url), 'utf8');
+const model = arrayModel + '\n' + mapModel + '\n' + nativeModel + '\n' + nativeArrayModel;
 const clean = model.replace(/\/\-[\s\S]*?\-\//g, '').replace(/--[^\n]*/g, '');
 assert(!/\b(sorry|admit|axiom|native_decide|unsafe)\b/.test(clean));
 const names = ['initial_fits', 'push_fits', 'reuse_fits', 'growth_overlap', 'clear_keeps_backing', 'wrapped_doubling_triggers_fallback'];
 const mapNames = ['no_growth', 'clear_keeps_slots', 'finite_trace', 'replacement_overlap'];
+const nativeArrayNames = ['input_bound', 'union_bounded', 'shared_once'];
+assert.deepEqual([...nativeArrayModel.matchAll(/^theorem\s+(\w+)/gm)].map(([, n]) => n), nativeArrayNames);
 const nativeNames = ['table_bound', 'empty_extent', 'current_distinct', 'replacement_distinct'];
 assert.deepEqual([...arrayModel.matchAll(/^theorem\s+(\w+)/gm)].map(([, n]) => n), names);
 assert.deepEqual([...mapModel.matchAll(/^theorem\s+(\w+)/gm)].map(([, n]) => n), mapNames);
 assert.deepEqual([...nativeModel.matchAll(/^theorem\s+(\w+)/gm)].map(([, n]) => n), nativeNames);
 const expected = `
+example (bytes slots maximum : Nat) (capacity : slots ≤ maximum) :
+  NativeArrayExtent.extent bytes slots ≤ NativeArrayExtent.extent bytes maximum :=
+  NativeArrayExtent.input_bound bytes slots maximum capacity
+example (allocations : List NativeArrayExtent.Allocation) (seen : List Nat)
+  (bounded : ∀ a ∈ allocations, a.bytes ≤ a.ceiling) :
+  NativeArrayExtent.unionBytes seen allocations ≤ NativeArrayExtent.totalCeiling allocations :=
+  NativeArrayExtent.union_bounded allocations seen bounded
+example (identity bytes bound : Nat) :
+  NativeArrayExtent.unionBytes [] [{ identity, bytes, ceiling := bound }, { identity, bytes, ceiling := bound }] = bytes :=
+  NativeArrayExtent.shared_once identity bytes bound
 example (i h : Nat) : i ≤ ArrayBacking.ceiling i h := ArrayBacking.initial_fits i h
 example (i h len cap next : Nat) (full : cap = len) (bound : len + 1 ≤ h)
   (growth : next = 8 ∨ next = 2 * cap ∨ next = len + 1) :
@@ -54,7 +67,8 @@ example (w : Nat) : 2 * NativeMapExtent.admitted w + 3 * NativeMapExtent.admitte
 const result = spawnSync('lean', ['-DwarningAsError=true', '--stdin'], { encoding: 'utf8',
   input: model + expected + names.map(n => `\n#print axioms ArrayBacking.${n}`).join('') +
     mapNames.map(n => `\n#print axioms MapBacking.${n}`).join('') +
-    nativeNames.map(n => `\n#print axioms NativeMapExtent.${n}`).join(''), maxBuffer: 1024 * 1024 });
+    nativeNames.map(n => `\n#print axioms NativeMapExtent.${n}`).join('') +
+    nativeArrayNames.map(n => `\n#print axioms NativeArrayExtent.${n}`).join(''), maxBuffer: 1024 * 1024 });
 process.stdout.write(result.stdout ?? ''); process.stderr.write(result.stderr ?? '');
 assert.equal(result.status, 0);
 for (const [, axioms] of result.stdout.matchAll(/depends on axioms: \[([^\]]*)\]/g)) {
@@ -63,3 +77,5 @@ for (const [, axioms] of result.stdout.matchAll(/depends on axioms: \[([^\]]*)\]
 console.log('6 array backing model propositions checked; byte representation and holder census remain separate');
 console.log('4 restricted Map model propositions checked; table slots are not allocation bytes');
 console.log('4 conditional native Map extent propositions checked; allocator and parent obligations remain separate');
+
+console.log('3 selected native Array extent propositions checked; complete lifetime and parent bounds remain separate');
