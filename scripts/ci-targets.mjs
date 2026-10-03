@@ -19,7 +19,6 @@ export const maintenanceFiles = Object.freeze([
   'docs/development.md', 'docs/ci-artifact-analysis.md', 'docs/verification-actions.md',
   'scripts/ci-evidence.mjs', 'scripts/ci-evidence.test.mjs', 'scripts/ci-review.mjs',
   'scripts/ci-timing.mjs', 'scripts/ci-artifacts.mjs', 'scripts/ci-artifacts.test.mjs',
-  'scripts/ci-artifact-reader.mjs', 'scripts/ci-artifact-reader.test.mjs',
   'scripts/verification-actions.mjs', 'scripts/verification-actions.test.mjs',
   'scripts/worktree-inventory.mjs', 'scripts/worktree-inventory.test.mjs',
 ]);
@@ -257,4 +256,3 @@ async function main() {
     `Job profile: ${selected.profile}\n\nCore targets when selected: ${selected.targets.join(', ')}\n\nmacOS: ${selected.macos ? 'required' : 'not applicable for this run'}\n\n${selected.reason}\n\nUnselected families produce no execution evidence. Selected proof campaigns retain all three targets.\n`);
 }
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) await main();
-

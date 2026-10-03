@@ -1,9 +1,10 @@
 # Incremental evidence connection contract
 
-Status: initial G/dot interface for review. This contract alone authorizes no
+Status: comparison implementation for review. This contract alone authorizes no
 skip. G owns the catalog, dependency closure, immutable receipt validation,
-candidate applicability and executable Lean checker. dot owns workflow wiring,
-artifact transport, job scheduling and cost measurement. The implementation
+candidate applicability, executable Lean checker and this family's workflow,
+artifact and final-check wiring. dot's existing CI optimizations remain separate;
+overlapping file sections must be coordinated rather than implemented twice. The implementation
 must use the checker before reuse is enabled; a JS-only shadow verdict is not
 a verified reuse decision.
 
@@ -24,9 +25,9 @@ dependencies even when the test command selects one file.
 
 ## CLI boundary to wire
 
-All files below are relative to the candidate checkout. dot must pin the public
-G revision used for this interface; unpublished worktrees are not dependencies.
-The initial CLI implementation will expose these operations:
+All files below are relative to the candidate checkout. Consumers must pin the
+public revision; unpublished worktrees are not dependencies. The CLI exposes
+these operations (the initial plan always executes, with reuse disabled):
 
 ```text
 node proofs/ci-evidence/cli.mjs catalog
@@ -35,8 +36,9 @@ node proofs/ci-evidence/cli.mjs seal --request EXECUTION.json --out RECEIPT.json
 node proofs/ci-evidence/cli.mjs check --request CHECK.json --out CHECKED.json
 ```
 
-`plan` requests candidate action manifests, keeps every registered obligation,
-and reports `execute` or `reuse` with reasons. It does not execute tests or
+The eventual `plan` keeps every registered obligation and reports `execute` or
+`reuse` with reasons. The comparison implementation reports only `execute`.
+It does not execute tests or
 authorize skip. `seal` verifies actual command output, nonzero counts, source
 restoration where applicable and artifact bytes before emitting a canonical
 receipt. `check` independently reconstructs the expected obligations and
@@ -81,7 +83,7 @@ the candidate. The receipt digest is computed over its complete original bytes.
 An original finite test remains `tested-refinement` after reuse.
 
 Transport carries the original receipt and referenced artifacts in a GitHub
-Actions artifact. dot supplies downloaded archive paths and artifact IDs. G's
+Actions artifact. G wires its upload, download and final required check. The
 checker must compare the archive digest with current Actions metadata, read the
 receipt from that archive, and validate its original run/attempt/job/revision.
 An unpacked receipt plus a caller's assertion that it was downloaded is
