@@ -399,7 +399,7 @@ See the [CLI reference](docs/cli.md) for approval and recovery.
 
 Event sequences, graph traversal, vector search, and model tasks return
 relations, so `filter`, `join`, and Effects work on their results like any other
-step. Excerpts from an incident-response program:
+step. Examples:
 
 **Event sequences.** Detect an alert followed by a remediation, per incident,
 within two hours:
@@ -420,33 +420,44 @@ within two hours:
     as: detected_sequences
 ```
 
-**Graph traversal.** Build a typed dependency graph and expand the downstream
-blast radius from the services that alerted:
+**Property Graph.** Build definition-keyed nodes and edges, then select edge
+properties. Distinct edge keys preserve parallel edges with the same endpoints:
 
 ```yaml
-  - from: services
-    graph:
+  - property_graph:
+      version: actql-property-graph-constructor/0.1
       nodes:
-        from: services
-        id: service_id
-        fields: [service_name, tier]
+        - name: N
+          from: nodes
+          key: [tenant, id]
+          labels:
+            - {name: Node, properties: {mode: all_columns}}
+            - {name: Person, properties: {mode: no_properties}}
       edges:
-        from: dependencies
-        source: upstream_service_id
-        target: downstream_service_id
-        label: dependency_kind
-    as: service_graph
+        - name: E
+          from: edges
+          key: [tenant, key]
+          source: {definition: N, key: [tenant, src]}
+          target: {definition: N, key: [tenant, dst]}
+          labels:
+            - {name: R, properties: {mode: all_columns}}
+            - {name: Link, properties: {mode: no_properties}}
+    as: g
 
-  - from: service_graph
-    traverse:
-      start: {from: impacted_services, id: service_id}
-      edge_types: [calls, publishes]
-      direction: out
-      min_hops: 1
-      max_hops: 3
-      emit: nodes
-    as: blast_radius
+  - match_edges:
+      definition: E
+      label: R
+      where: key > 0
+      fields: [key]
+    as: matched
 ```
+
+The [complete Program](scripts/fixtures/property-graph-parallel.program.json)
+declares the `nodes` and `edges` Relations. Submit it with the public Client
+above using `format: 'json'`; its `answer` Result contains `{key: 10}` and
+`{key: 11}`. The retired `graph` constructor is refused. Other Graph consumers
+without a current keyed implementation are also refused before Run acceptance;
+see the [current Graph contract](docs/design/graph-contract.md#definition-keyed-property-graph-profile).
 
 **Vector search.** Rank active runbooks against the original alert embedding:
 

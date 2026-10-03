@@ -1416,6 +1416,8 @@ test "ordinary values document prepares one named Effect-free result" {
     10000,
   ).unwrap()
   assert_eq(@connector.fixed_compute_request_input_count(request), 0)
+  assert_true(@connector.fixed_compute_request_inputs(request).is_empty())
+  assert_true(@connector.fixed_compute_request_input(request, 0) is None)
   assert_true(
     prepare_effect_free_client_program(
       document.replace(old="actql/0.1", new="actql/9.9"),

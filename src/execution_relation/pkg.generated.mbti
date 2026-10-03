@@ -95,6 +95,8 @@ pub fn analytic_execution_supported(@lowering_relation.PreparedAnalytic) -> Bool
 
 pub fn analytic_execution_supported_with_numeric(@lowering_relation.PreparedAnalytic) -> Bool
 
+pub fn anchor_completed_output_fixed_inputs(CompletedOutput, Int?, Array[FixedRelationRead]) -> CompletedOutput?
+
 pub fn anchor_completed_output_inputs(CompletedOutput, Array[ProducerRead]) -> CompletedOutput?
 
 pub fn anchor_completed_output_operation_inputs(CompletedOutput, Int, Array[ProducerRead]) -> CompletedOutput?
@@ -363,6 +365,8 @@ pub fn completed_output_has_row_table(CompletedOutput) -> Bool
 
 pub fn completed_output_matches_captured_inputs(CompletedOutput, Array[CapturedRows]) -> Bool
 
+pub fn completed_output_matches_fixed_inputs(CompletedOutput, Int?, Array[FixedRelationRead]) -> Bool
+
 pub fn completed_output_matches_inputs(CompletedOutput, Array[ProducerRead]) -> Bool
 
 pub fn completed_output_matches_operation_inputs(CompletedOutput, Int, Array[ProducerRead]) -> Bool
@@ -426,6 +430,8 @@ pub fn constrain_generated_session_output(GeneratedSequence, Int, Int64) -> Resu
 pub fn copy_completed_output_independent(CompletedOutput, Int, Int) -> Result[CompletedOutput, ManagedIndependentOutputIssue]
 
 pub fn discard_managed_output_measurement_index(ManagedOutputValueReceipt) -> Bool
+
+pub fn dispose_managed_output_values_scratch(ManagedOutputValues) -> Unit
 
 pub fn emit_ordered_params(OrderedParams, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
@@ -501,6 +507,8 @@ pub fn finish_retained_producer_scan(RetainedProducerScan) -> Result[VerifiedPro
 
 pub fn finish_retained_storage_scan(RetainedStorageScan) -> Result[VerifiedStorageScan, CompletedImportIssue]
 
+pub fn fixed_completed_relation_read(ProducerRead) -> FixedRelationRead
+
 pub fn fixed_join_validation_matches(FixedJoinValidation, @lowering_relation.BoundPrepared, @lowering_relation.PreparedInnerJoin, Array[ProducerRead]) -> Bool
 
 pub fn fixed_join_validation_usage(FixedJoinValidation) -> (Int, Int)
@@ -514,6 +522,24 @@ pub fn fixed_producer_measurement_usage(FixedProducerMeasuredOutput) -> (Int, In
 pub fn fixed_producer_stream_measurement_matches(FixedProducerStreamMeasuredOutput, Array[ProducerRead], AdmittedOutputStreamReceipt, Int, Int) -> Bool
 
 pub fn fixed_producer_stream_measurement_usage(FixedProducerStreamMeasuredOutput) -> (Int, Int, Int)
+
+pub fn fixed_relation_read_available(FixedRelationRead) -> Bool
+
+pub fn fixed_relation_read_completed(FixedRelationRead) -> ProducerRead?
+
+pub fn fixed_relation_read_matches_input(FixedRelationRead, @lowering_relation.BoundPrepared, Int) -> Bool
+
+pub fn fixed_relation_read_matches_operation_input(FixedRelationRead, @lowering_relation.BoundPrepared, Int, Int) -> Bool
+
+pub fn fixed_relation_read_receiver(FixedRelationRead) -> @lowering_relation.BoundPrepared
+
+pub fn fixed_relation_read_row_count(FixedRelationRead) -> Int
+
+pub fn fixed_relation_read_same(FixedRelationRead, FixedRelationRead) -> Bool
+
+pub fn fixed_relation_read_supplied(FixedRelationRead) -> SuppliedRelationRead?
+
+pub fn fixed_supplied_relation_read(SuppliedRelationRead) -> FixedRelationRead
 
 pub fn generated_asof_search_ceiling(GeneratedSequence, Int) -> Int64?
 
@@ -678,6 +704,8 @@ pub fn managed_output_value_schema(ManagedOutputValueReceipt) -> @relation_schem
 pub fn managed_output_value_usage(ManagedOutputValueReceipt) -> ValueUsage
 
 pub fn managed_output_values_schema(ManagedOutputValues) -> @relation_schema.Schema
+
+pub fn managed_output_values_scratch_released(ManagedOutputValues) -> Bool
 
 pub fn[T] managed_producer_measurement_matches_inputs(ManagedProducerMeasurement, Array[ManagedProducerRead[T]]) -> Bool
 
@@ -1632,6 +1660,11 @@ type FixedProducerMeasurement
 type FixedProducerStreamMeasuredOutput
 
 type FixedRecordGuardScan
+
+pub enum FixedRelationRead {
+  CompletedRelation(ProducerRead)
+  SuppliedRelation(SuppliedRelationRead)
+}
 
 pub(all) enum FragmentAdmissionIssue {
   InvalidContract

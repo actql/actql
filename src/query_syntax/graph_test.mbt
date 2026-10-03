@@ -72,12 +72,25 @@ test "Graph MATCH rejects open, repeated and unowned patterns" {
       "FROM GRAPH g |> MATCH ACYCLIC (a)-[:R]->+(b) |> SELECT a.id", "FROM GRAPH g |> MATCH ACYCLIC (a)-[:R]->{1,}(b) |> SELECT a.id",
       "FROM GRAPH g |> MATCH ACYCLIC (a)-[:R]->{1,1}(b)-[:R]->(c) |> SELECT a.id",
       "FROM GRAPH g |> MATCH ACYCLIC (a)-[e:R]->{1,2}(b) |> SELECT a.id", "FROM GRAPH g |> MATCH WALK (a)-[:R]->{1,2}(b) |> SELECT a.id",
-      "FROM GRAPH g |> MATCH (a) |> SELECT a.id", "FROM GRAPH g |> MATCH WALK (a) |> MATCH WALK (b) |> SELECT a.id",
-      "FROM GRAPH g |> MATCH WALK (a:Account) |> SELECT a.id", "FROM rows |> MATCH WALK (a) |> SELECT a.id",
-      "FROM GRAPH g |> SELECT id",
+      "FROM GRAPH g |> MATCH UNKNOWN (a) |> SELECT a.id", "FROM GRAPH g |> MATCH WALK (a) |> MATCH WALK (b) |> SELECT a.id",
+      "FROM rows |> MATCH WALK (a) |> SELECT a.id", "FROM GRAPH g |> SELECT id",
     ] {
     assert_true(parse_query(text, query_limits()) is Err(_), msg=text)
   }
+}
+
+///|
+test "Graph label syntax preserves membership without choosing a property" {
+  let parsed = parse_query(
+    "FROM GRAPH g |> MATCH WALK (a:Account) |> SELECT a.id",
+    query_limits(),
+  ).unwrap()
+  let graph = graph_query(parsed).unwrap()
+  assert_true(graph.label_field is None)
+  assert_eq(
+    graph.pattern.unwrap().nodes[0].label,
+    Some({ value: "Account", quoted: false, }),
+  )
 }
 
 ///|
@@ -118,4 +131,38 @@ test "Graph annotations retain their own bounded escape profile" {
     ] {
     assert_true(parse_query(source, query_limits()) is Err(_), msg=source)
   }
+}
+
+///|
+test "Graph path mode defaults to WALK without changing shape or source bounds" {
+  for
+    source in [
+      "FROM GRAPH g |> MATCH (a:Node) |> SELECT a.id", "FROM GRAPH g |> MATCH p = (a:Node)-[:R]->(b:Node) |> SELECT PATH_LENGTH(p) AS depth",
+      "FROM GRAPH g |> MATCH (`WALK`:Node) |> SELECT `WALK`.id",
+    ] {
+    let pattern = graph_query(parse_query(source, query_limits()).unwrap()).unwrap().pattern.unwrap()
+    assert_eq(pattern.mode, Walk)
+    assert_true(pattern.start < pattern.end)
+    assert_true(pattern.end <= source.length())
+    assert_true(
+      parse_query(source, { ..query_limits(), max_syntax_nodes: 1, }) is Err(_),
+    )
+  }
+  let path = graph_query(
+    parse_query(
+      "FROM GRAPH g |> MATCH p = (a:Node)-[:R]->(b:Node) |> SELECT PATH_LENGTH(p) AS depth",
+      query_limits(),
+    ).unwrap(),
+  ).unwrap().pattern.unwrap()
+  assert_eq(path.path_name.unwrap().value, "p")
+  assert_eq(path.nodes.length(), 2)
+  assert_eq(path.edges.length(), 1)
+  assert_eq(path.edges[0].direction, "out")
+  assert_true(
+    parse_query(
+      "FROM GRAPH g |> MATCH p = (a)-[:R]->{1,2}(b) |> SELECT PATH_LENGTH(p) AS depth",
+      query_limits(),
+    )
+    is Err(_),
+  )
 }

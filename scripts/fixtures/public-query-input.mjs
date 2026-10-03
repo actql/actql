@@ -16,6 +16,25 @@ const relationNumber = (name, nullable = false) => ({name,
 // amount before id. Plain FROM retains that order, independently of the
 // insertion order of keys in the sourceRows objects above.
 const sourceColumns = [relationNumber('amount', true), relationNumber('id')];
+// The ordered DATA repro has two roots, append, one hidden sort slot and LIMIT.
+// The packed harness reuses main's independently authored JSON control.
+export const relationDataSuccesses = [
+  {name: 'data-set-order-reuses-hidden-slot', format: 'aql-text',
+    text: 'DATA n = SELECT 2 AS id UNION ALL SELECT 1 AS other ORDER BY id + 1, id + 1 DESC LIMIT 1; FROM n |> SELECT id |> RESULT nodes',
+    results: {nodes: {rows: [{id: 1}], columns: [relationNumber('id')]}}, sourceReadCount: 0},
+  {name: 'data-quoted-set-order', format: 'aql-text',
+    text: 'DATA `n` = SELECT 2 AS id UNION ALL SELECT 1 AS other ORDER BY id; FROM `n` |> SELECT id |> RESULT nodes',
+    results: {nodes: {rows: [{id: 1}, {id: 2}], columns: [relationNumber('id')]}}, sourceReadCount: 0},
+  {name: 'data-retained-results', format: 'aql-text',
+    text: 'DATA n = SELECT 2 AS id; FROM n |> RESULT original |> WHERE id > 0 |> RESULT active',
+    results: {original: {rows: [{id: 2}], columns: [relationNumber('id')]},
+      active: {rows: [{id: 2}], columns: [relationNumber('id')]}}, sourceReadCount: 0},
+];
+export const relationDataRefusals = [
+  {name: 'data-forward-reference', format: 'aql-text', text: 'DATA n = FROM later |> SELECT id; DATA later = SELECT 1 AS id; FROM n |> SELECT id'},
+  {name: 'data-duplicate', format: 'aql-text', text: 'DATA n = SELECT 1 AS id; DATA `N` = SELECT 2 AS id; FROM n |> SELECT id'},
+  {name: 'data-sql-format', format: 'sql', text: 'DATA n = SELECT 1 AS id; FROM n |> SELECT id'},
+];
 export const pipeResultSuccesses = [
   {name: 'result-exact-string-prefix', format: 'sql',
     text: "SELECT r'\\n' 'e\\u0301' AS value |> RESULT original |> SET value = '\\r\\néx' |> RESULT updated",
@@ -408,13 +427,13 @@ export const queryRefusals = [
   {name: 'missing-alias', text: 'SELECT id FROM unregistered', format: 'sql'},
   {name: 'wrong-language', text: 'FROM records |> SELECT id', format: 'sql'},
 ];
-// These syntactically valid source forms must remain non-executable until
-// the common infer owner exists. Rejection is not a model outcome.
+// This Host installs no ModelTask. Valid INFER syntax cannot grant a missing
+// installation; scope/name failures are separate pre-admission refusals.
 export const inferRefusals = [
-  {name: 'infer-common-owner', format: 'aql-text',
+  {name: 'infer-missing-model-task', format: 'aql-text',
     text: 'FROM records |> INFER `model-task:risk.v1` ITEM KEY (id) '
       + 'INPUT (n = amount) KEEP (id) AS assessment'},
-  {name: 'infer-omitted-keep', format: 'aql-text',
+  {name: 'infer-omitted-keep-missing-model-task', format: 'aql-text',
     text: 'FROM records |> INFER `model-task:risk.v1` ITEM KEY (id) '
       + 'INPUT (n = amount) AS assessment'},
   {name: 'infer-removed-alias', format: 'aql-text',
@@ -495,7 +514,8 @@ export async function exercisePublicQueryInput(connect, options,
       assert.deepEqual((await client.lookupRequest(requestId)).ref, execution.ref);
       assert.deepEqual(await counters(), beforeRead,
         'reading, attaching and resending must not accept or acquire again');
-      await completedCase?.({name, ref: execution.ref, expected, columns});
+      await completedCase?.({name, ref: execution.ref, execution, expected, columns,
+        beforeSubmit, beforeRead});
       console.log(`Public query passed: ${requestPrefix}/${name}`);
       if (name === 'sql') {
         await assert.rejects(execution.result('answer').all({maxRows: 1}),

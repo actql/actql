@@ -143,13 +143,25 @@ test "fixed join request binds both captured ports through registered Local sele
     physical_equal(@connector.fixed_compute_request_owner(request), receiver),
   )
   assert_eq(@connector.fixed_compute_request_input_count(request), 2)
+  let request_inputs = @connector.fixed_compute_request_inputs(request)
+  assert_eq(request_inputs.length(), 2)
+  for index in 0..<2 {
+    assert_true(
+      @execution.fixed_relation_read_same(
+        request_inputs[index],
+        @execution.fixed_completed_relation_read(inputs[index]),
+      ),
+    )
+  }
   assert_true(@connector.fixed_compute_request_input(request, -1) is None)
   assert_true(@connector.fixed_compute_request_input(request, 2) is None)
   let right = inputs[1]
   inputs[1] = inputs[0]
   assert_true(
     physical_equal(
-      @connector.fixed_compute_request_input(request, 1).unwrap(),
+      @execution.fixed_relation_read_completed(
+        @connector.fixed_compute_request_input(request, 1).unwrap(),
+      ).unwrap(),
       right,
     ),
   )

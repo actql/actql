@@ -206,6 +206,33 @@ pub fn client_values_host_task_result_names(
 }
 
 ///|
+#export_name("clientValuesHostTaskKeys")
+pub fn client_values_host_task_keys(
+  prepared : @host.PreparedClientProgram,
+) -> Result[Array[String], @host.ClientTaskFragmentIssue] {
+  let keys = []
+  for
+    task in 0..<@strategy.graph_task_count(
+      @host.prepared_client_graph(prepared),
+    ) {
+    let fragment = match
+      @host.issue_prepared_client_task_fragment(
+        prepared,
+        task,
+        @host.client_standard_values_sequence_limits(),
+        1000000,
+        100000,
+        100,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+    keys.push(@host.client_task_fragment_node_id(fragment))
+  }
+  Ok(keys)
+}
+
+///|
 #export_name("clientValuesHostPlanWire")
 pub fn client_values_host_plan_wire(
   value : @host.ClientValuesCompilation,
@@ -379,37 +406,13 @@ pub fn client_values_host_task_result_schema(
   prepared : @host.PreparedClientProgram,
   result : Int,
 ) -> Result[Array[String], ClientValuesHostTaskResultSchemaIssue] {
-  let graph = @host.prepared_client_graph(prepared)
-  guard @strategy.graph_result_task(graph, result) is Some(task) else {
-    return Err(MissingResult)
-  }
-  match
-    @host.issue_prepared_client_direct_task_result_root(
-      prepared,
-      result,
-      @host.client_standard_values_sequence_limits(),
-      1000000,
-      100000,
-      100,
-    ) {
-    Ok(_) => ()
-    Err(issue) => return Err(Root(issue))
-  }
   let schema = match
-    @host.issue_prepared_client_task_output_schema(
-      prepared,
-      task,
-      @host.client_standard_values_sequence_limits(),
-      {
-        max_fields: 100,
-        max_bytes: 1000000,
-        max_nodes: 100000,
-        max_depth: 100,
-      },
-      1000000,
-      100000,
-      100,
-    ) {
+    @host.issue_prepared_client_result_schema(prepared, result, {
+      max_fields: 100,
+      max_bytes: 1000000,
+      max_nodes: 100000,
+      max_depth: 100,
+    }) {
     Ok(schema) => schema
     Err(issue) => return Err(Schema(issue))
   }
@@ -421,6 +424,15 @@ pub fn client_values_host_task_result_schema(
     facts.push(field)
   }
   Ok(facts)
+}
+
+///|
+#export_name("clientValuesHostTaskExecutionShape")
+pub fn client_values_host_task_execution_shape(
+  prepared : @host.PreparedClientProgram,
+) -> Array[Int] {
+  let graph = @host.prepared_client_graph(prepared)
+  [@strategy.graph_task_count(graph), @strategy.graph_captured_prefix(graph)]
 }
 
 ///|
@@ -1208,6 +1220,26 @@ pub fn client_values_host_issue_source_free_run_materials(
 }
 
 ///|
+/// Project the original checked task Run without changing authorization,
+/// identity, expiry or physical Source configuration.
+#export_name("clientValuesHostIssueTaskRunMaterials")
+pub fn client_values_host_issue_task_run_materials(
+  prepared : @host.PreparedClientProgram,
+  compilation : @host.ClientTaskCompilation,
+  admission : @publication.RunPublicationAdmission,
+  definition : @publication.PublicationContract,
+  environment : @checked.CheckEnvironment,
+  environment_wire : String,
+  program : String,
+  parameters_wire : String?,
+) -> Result[String, @host.ClientTaskRunMaterialsIssue] {
+  @host.issue_client_task_run_materials(
+    prepared, compilation, admission, definition, environment, environment_wire,
+    program, parameters_wire,
+  )
+}
+
+///|
 pub(all) enum ClientValuesHostTaskAdmissionIssue {
   Contract(@publication.PublicationContractIssue)
   Binding(@host.ClientTaskRunBindingIssue)
@@ -1294,11 +1326,53 @@ pub fn client_values_host_issue_unpublished_run_state_wire(
   cancelled_before_start : Bool,
   execution_unknown : Bool,
 ) -> String? {
+  client_host_unpublished_run_state_wire(
+    definition,
+    @host.client_values_compilation_result_names(compilation),
+    observed_at,
+    dispatch_reserved,
+    pre_dispatch_failure_confirmed,
+    cancelled_before_start,
+    execution_unknown,
+  )
+}
+
+///|
+#export_name("clientValuesHostIssueTaskUnpublishedRunStateWire")
+pub fn client_values_host_issue_task_unpublished_run_state_wire(
+  definition : @publication.PublicationContract,
+  compilation : @host.ClientTaskCompilation,
+  observed_at : String,
+  dispatch_reserved : Bool,
+  pre_dispatch_failure_confirmed : Bool,
+  cancelled_before_start : Bool,
+  execution_unknown : Bool,
+) -> String? {
+  client_host_unpublished_run_state_wire(
+    definition,
+    @host.client_task_compilation_result_names(compilation),
+    observed_at,
+    dispatch_reserved,
+    pre_dispatch_failure_confirmed,
+    cancelled_before_start,
+    execution_unknown,
+  )
+}
+
+///|
+fn client_host_unpublished_run_state_wire(
+  definition : @publication.PublicationContract,
+  names : Array[String],
+  observed_at : String,
+  dispatch_reserved : Bool,
+  pre_dispatch_failure_confirmed : Bool,
+  cancelled_before_start : Bool,
+  execution_unknown : Bool,
+) -> String? {
   let run_id = match @publication.run_definition_run_id(definition) {
     Ok(value) => value
     Err(_) => return None
   }
-  let names = @host.client_values_compilation_result_names(compilation)
   match
     @publication.issue_effect_free_unpublished_run_state_wire(
       run_id,
@@ -1330,22 +1404,57 @@ pub fn client_values_host_issue_succeeded_run_state_wire(
   reasons : Array[String],
   result_observed_at : Array[String],
 ) -> String? {
+  client_host_succeeded_run_state_wire(
+    definition,
+    @host.client_values_compilation_result_names(compilation),
+    observed_at,
+    names,
+    states,
+    reasons,
+    result_observed_at,
+  )
+}
+
+///|
+#export_name("clientValuesHostIssueTaskSucceededRunStateWire")
+pub fn client_values_host_issue_task_succeeded_run_state_wire(
+  definition : @publication.PublicationContract,
+  compilation : @host.ClientTaskCompilation,
+  observed_at : String,
+  names : Array[String],
+  states : Array[String],
+  reasons : Array[String],
+  result_observed_at : Array[String],
+) -> String? {
+  client_host_succeeded_run_state_wire(
+    definition,
+    @host.client_task_compilation_result_names(compilation),
+    observed_at,
+    names,
+    states,
+    reasons,
+    result_observed_at,
+  )
+}
+
+///|
+fn client_host_succeeded_run_state_wire(
+  definition : @publication.PublicationContract,
+  inventory : Array[String],
+  observed_at : String,
+  names : Array[String],
+  states : Array[String],
+  reasons : Array[String],
+  result_observed_at : Array[String],
+) -> String? {
   let run_id = match @publication.run_definition_run_id(definition) {
     Ok(value) => value
     Err(_) => return None
   }
   match
     @publication.issue_succeeded_run_state_wire(
-      run_id,
-      observed_at,
-      @host.client_values_compilation_result_names(compilation),
-      names,
-      states,
-      reasons,
-      result_observed_at,
-      100000,
-      10000,
-      64,
+      run_id, observed_at, inventory, names, states, reasons, result_observed_at,
+      100000, 10000, 64,
     ) {
     Ok(wire) => Some(wire)
     Err(_) => None
@@ -1502,6 +1611,75 @@ pub fn client_values_host_dispatch_wire(
   request : @remote.DispatchRequest,
 ) -> Result[String, @remote.DispatchIssue] {
   @remote.dispatch_request_json(request)
+}
+
+///|
+#export_name("clientValuesHostSourceEvidenceFacts")
+pub fn client_values_host_source_evidence_facts(
+  prepared : @host.PreparedClientProgram,
+  stage : Int,
+  source_index : Int,
+) -> Array[String]? {
+  @host.prepared_client_source_evidence_facts(prepared, stage, source_index).map(
+    @planning.query_source_evidence_fact_values,
+  )
+}
+
+///|
+#export_name("clientValuesHostTaskInputBinding")
+pub fn client_values_host_task_input_binding(
+  prepared : @host.PreparedClientProgram,
+  task : Int,
+) -> Result[String, @host.ClientTaskDispatchIssue] {
+  @host.prepare_client_task_input_binding(prepared, task).map(
+    @remote.remote_input_binding_body,
+  )
+}
+
+///|
+#export_name("clientValuesHostPrepareTaskDispatch")
+pub fn client_values_host_prepare_task_dispatch(
+  prepared : @host.PreparedClientProgram,
+  compilation : @host.ClientTaskCompilation,
+  admission : @publication.RunPublicationAdmission,
+  definition : @publication.PublicationContract,
+  request : @host.ClientRequestIdentity,
+  task : Int,
+  task_attempt : Int,
+  dispatch_id : String,
+  site_key : String,
+  site_generation : Int,
+  runtime_bundle_cid : String,
+  connector_registration : String,
+  connector_revision : String,
+  strategy_revision : String,
+  obligations_cid : String,
+  budget_cid : String,
+  evidence_issuer_capability_cid : String,
+  grant_cid : String,
+) -> Result[@remote.DispatchRequest, @host.ClientTaskDispatchIssue] {
+  @host.prepare_client_task_dispatch(
+    prepared,
+    compilation,
+    admission,
+    definition,
+    request,
+    task,
+    task_attempt,
+    dispatch_id,
+    {
+      site_key,
+      site_generation,
+      runtime_bundle_cid,
+      connector_registration,
+      connector_revision,
+      strategy_revision,
+      obligations_cid,
+      budget_cid,
+      evidence_issuer_capability_cid,
+      grant_cid,
+    },
+  )
 }
 
 ///|
@@ -1986,8 +2164,9 @@ pub fn client_values_host_admit_captured_result_snapshot(
 }
 
 ///|
-/// Source-free capture has no pending source-state advances. Other capture
-/// modes must expose their checked advances through a separate shared API.
+/// Values and read-only snapshot Sources have no pending source-state
+/// advances. The common receipt still validates the acquired inventory.
+/// Other capture modes must expose checked advances through a shared API.
 #export_name("clientValuesHostIssueSourceFreeCapturedRun")
 pub fn client_values_host_issue_source_free_captured_run(
   run_definition : @publication.PublicationContract,
@@ -2036,6 +2215,74 @@ pub fn client_values_host_project_site_run(
   cancellation_requested : Bool,
   physical_start_claimed : Bool,
 ) -> Result[Array[String], Unit] {
+  client_host_project_site_run(
+    definition,
+    @host.client_values_compilation_plan_node_id(compilation),
+    @host.client_values_compilation_result_names(compilation),
+    authority,
+    durable_wire,
+    observed_at,
+    cancellation_requested,
+    physical_start_claimed,
+  )
+}
+
+///|
+/// The initial resident Source profile has one checked acquisition task.
+/// Derive its task key from the same fragment owner that issues dispatch;
+/// projection never infers an extra task from a Result transformation node.
+#export_name("clientValuesHostProjectTaskSiteRun")
+pub fn client_values_host_project_task_site_run(
+  prepared : @host.PreparedClientProgram,
+  compilation : @host.ClientTaskCompilation,
+  admission : @publication.RunPublicationAdmission,
+  definition : @publication.PublicationContract,
+  authority : String,
+  durable_wire : String,
+  observed_at : String,
+  cancellation_requested : Bool,
+  physical_start_claimed : Bool,
+) -> Result[Array[String], Unit] {
+  if @strategy.graph_task_count(@host.prepared_client_graph(prepared)) != 1 ||
+    @host.bind_client_task_run(prepared, compilation, admission, definition)
+    is Err(_) {
+    return Err(())
+  }
+  let fragment = match
+    @host.issue_prepared_client_task_fragment(
+      prepared,
+      0,
+      @host.client_standard_values_sequence_limits(),
+      1000000,
+      100000,
+      100,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(())
+  }
+  client_host_project_site_run(
+    definition,
+    @host.client_task_fragment_node_id(fragment),
+    @host.client_task_compilation_result_names(compilation),
+    authority,
+    durable_wire,
+    observed_at,
+    cancellation_requested,
+    physical_start_claimed,
+  )
+}
+
+///|
+fn client_host_project_site_run(
+  definition : @publication.PublicationContract,
+  task_key : String,
+  result_names : Array[String],
+  authority : String,
+  durable_wire : String,
+  observed_at : String,
+  cancellation_requested : Bool,
+  physical_start_claimed : Bool,
+) -> Result[Array[String], Unit] {
   let durable = match
     @remote.admit_durable_coordinator_dispatch_record(
       @utf8.encode(durable_wire),
@@ -2057,7 +2304,7 @@ pub fn client_values_host_project_site_run(
       record,
       authority,
       @publication.publication_contract_identity(definition),
-      @host.client_values_compilation_plan_node_id(compilation),
+      task_key,
     ) {
     Ok(value) => value
     Err(_) => return Err(())
@@ -2079,7 +2326,7 @@ pub fn client_values_host_project_site_run(
     @publication.issue_effect_free_unpublished_run_state_wire(
       run_id,
       observed_at,
-      @host.client_values_compilation_result_names(compilation),
+      result_names,
       true,
       false,
       100000,

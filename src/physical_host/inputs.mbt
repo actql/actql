@@ -33,31 +33,62 @@ pub fn prepare_dispatch_inputs(
     @strategy.captured_dag_graph(run),
     task,
   ).unwrap()
-  let inputs = []
+  let producers = @strategy.captured_next_managed_producers(run)
+  if count > 0 && producers.length() != count {
+    return Err(StaleTask)
+  }
+  let inputs : Array[@execution.FixedRelationRead] = []
+  let mut supplied = false
   for port in 0..<count {
-    match
-      @strategy.captured_task_input(
-        run,
-        task,
-        max_entries,
-        max_name_bytes,
-        input_index=port,
-      ) {
-      Ok(input) => inputs.push(input)
-      Err(issue) => return Err(Run(issue))
+    if producers[port] == -1 {
+      supplied = true
+      match
+        @strategy.captured_supplied_task_input(run, task, input_index=port) {
+        Ok(input) => inputs.push(@execution.fixed_supplied_relation_read(input))
+        Err(issue) => return Err(Run(issue))
+      }
+    } else {
+      match
+        @strategy.captured_task_input(
+          run,
+          task,
+          max_entries,
+          max_name_bytes,
+          input_index=port,
+        ) {
+        Ok(input) =>
+          inputs.push(@execution.fixed_completed_relation_read(input))
+        Err(issue) => return Err(Run(issue))
+      }
     }
   }
   let prepared = match
     @strategy.graph_task_selected_step(@strategy.captured_dag_graph(run), task) {
     Some(step) =>
-      @connector.prepare_selected_fixed_compute_request(
-        owner, step, inputs, capacity,
-      )
+      if supplied {
+        @connector.prepare_selected_fixed_compute_request_with_inputs(
+          owner, step, inputs, capacity,
+        )
+      } else {
+        @connector.prepare_selected_fixed_compute_request(
+          owner,
+          step,
+          inputs.filter_map(@execution.fixed_relation_read_completed),
+          capacity,
+        )
+      }
     None =>
       if count == 0 {
         @connector.prepare_source_free_fixed_compute_request(owner, capacity)
+      } else if supplied {
+        @connector.prepare_fixed_compute_request_with_inputs(
+          owner, inputs, capacity,
+        )
       } else {
-        @connector.prepare_fixed_compute_request(inputs, capacity)
+        @connector.prepare_fixed_compute_request(
+          inputs.filter_map(@execution.fixed_relation_read_completed),
+          capacity,
+        )
       }
   }
   prepared.map_err(issue => Candidate(issue))

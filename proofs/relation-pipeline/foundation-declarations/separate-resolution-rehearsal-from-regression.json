@@ -1,0 +1,37 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "separate-resolution-rehearsal-from-regression",
+  "kind": "change",
+  "revision": "7f4b82ef4382de73ee3dce24439cf3594070f8de",
+  "parents": [
+    "c70ddc224dbe86af5192c9c683124c9ae3ee90d4"
+  ],
+  "changes": [
+    {
+      "path": "proofs/relation-pipeline/current-foundation.md",
+      "before": [
+        {
+          "revision": "c70ddc224dbe86af5192c9c683124c9ae3ee90d4",
+          "digest": "cf3f3f4d0c39bb0e75fd6fb9024449a5ad2523dbe7d8219f2db21a7808d966cb",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "3d96328a3a6ed0aeb2044e073ec5424c094008a181d2bc0ce9707002fec8cf3f",
+      "afterMode": "100644",
+      "reason": "Separate explicit-SHA historical rehearsal from ordinary real-Git fixture regressions; retain previous declaration bytes and evidence, and check stability after unrelated commits and independently justified supplements."
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation.test.mjs",
+      "before": [
+        {
+          "revision": "c70ddc224dbe86af5192c9c683124c9ae3ee90d4",
+          "digest": "07dfeee98221d64066aeb86b9d889c891fe7fb8f1395f161f63e46c502b374aa",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "fe92caa81246c59ca752149a89e64a659821bbdd9727f2afa194b24714d48159",
+      "afterMode": "100644",
+      "reason": "Separate explicit-SHA historical rehearsal from ordinary real-Git fixture regressions; retain previous declaration bytes and evidence, and check stability after unrelated commits and independently justified supplements."
+    }
+  ]
+}

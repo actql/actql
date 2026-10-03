@@ -12,6 +12,7 @@ import {
   "actql/actql/physical_cost",
   "actql/actql/pipeline_check_context",
   "actql/actql/relation_schema",
+  "actql/actql/sourceview_resolution",
 }
 
 // Values
@@ -60,6 +61,8 @@ pub fn prepare_query_material(@execution_query.QuerySequence, QueryMaterialLimit
 pub fn prepare_query_requirement(QueryMaterial, @pipeline_check_context.ProgramSourceIdentity, QueryLogicalGuards, QueryMaterialLimits) -> Result[QueryRequirement, QueryRequirementIssue]
 
 pub fn[T] prepared_acquisition_candidate(PreparedAcquisition[T]) -> AcquisitionCandidate
+
+pub fn query_acquisition_source_evidence_facts(@sourceview_resolution.QueryAcquisition) -> QuerySourceEvidenceFacts?
 
 pub fn query_artifact_budget(Int, Int, Int, Int) -> QueryMaterialBudget?
 

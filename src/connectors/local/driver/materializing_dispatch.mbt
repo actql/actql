@@ -99,10 +99,10 @@ pub fn[C, E] start_local_dispatch(
         return Err(Execution(ForeignCandidate))
       }
       let inputs = []
-      let mut port = 0
-      while @local.local_materializing_input(attempt, port) is Some(input) {
+      for port in 0..<@local.local_materializing_input_count(attempt) {
         let position = port
-        if @execution.producer_read_retained_material(input) is Some(material) &&
+        if @local.local_materializing_input(attempt, port) is Some(input) &&
+          @execution.producer_read_retained_material(input) is Some(material) &&
           !@execution.producer_read_has_cell_access(input) {
           inputs.push({
             material,
@@ -140,7 +140,6 @@ pub fn[C, E] start_local_dispatch(
             },
           })
         }
-        port += 1
       }
       Ok({
         inputs,

@@ -139,7 +139,11 @@ pub fn execute_numeric_attempt(
   let capacity = @connector.fixed_compute_request_capacity(
     attempt.compute.request,
   )
-  let input = @connector.fixed_compute_request_input(attempt.compute.request, 0).unwrap()
+  guard @connector.fixed_compute_request_input(attempt.compute.request, 0)
+    is Some(@execution.CompletedRelation(input)) else {
+    attempt.closed = true
+    return Err(Unsupported)
+  }
   let limits = attempt.limits
   let result = measure_numeric_output(
     attempt.compute.plan,

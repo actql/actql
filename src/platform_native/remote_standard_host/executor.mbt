@@ -39,12 +39,24 @@ struct NativeRemoteStandardBoundRun {
 /// this value is fixed before remote runtime admission; a dispatch cannot
 /// replace either the Run or its cleanup responsibility.
 struct NativeRemoteStandardRunOwner {
-  run : @native_host.NativeStandardStrategyRun
+  run : NativeRemoteStandardRun
   finish_output_owner : () -> Bool
   finish_input_owner : () -> Bool
   mut run_finished : Bool
   mut output_finished : Bool
   mut input_finished : Bool
+  source_observation : ((@remote.DispatchRequest) -> Result[
+    @remote.RemoteSourceObservation,
+    @remote.DispatchIssue,
+  ])?
+}
+
+///|
+/// A captured acquisition is already a completed checked task. It shares
+/// the standard runtime owner without inventing a Compute execution.
+priv enum NativeRemoteStandardRun {
+  Compute(@native_host.NativeStandardStrategyRun)
+  Acquired(@strategy.CapturedDAG, Int, Int)
 }
 
 ///|
@@ -174,13 +186,44 @@ pub fn prepare_native_remote_standard_captured_run_owner(
   finish_input_owner : () -> Bool,
 ) -> NativeRemoteStandardRunOwner {
   {
-    run,
+    run: Compute(run),
     finish_output_owner,
     finish_input_owner,
     run_finished: false,
     output_finished: false,
     input_finished: false,
+    source_observation: None,
   }
+}
+
+///|
+/// Retain one acquired Source Result under its existing captured DAG owner.
+/// Its live input remains available until the last publication reader has
+/// finished and the remote runtime authorizes release. This function opens
+/// no database and does not execute or combine checked tasks.
+pub fn prepare_native_remote_standard_acquired_run_owner(
+  run : @strategy.CapturedDAG,
+  result : Int,
+  finish_input_owner : () -> Bool,
+  source_observation? : ((@remote.DispatchRequest) -> Result[
+    @remote.RemoteSourceObservation,
+    @remote.DispatchIssue,
+  ])? = None,
+) -> Result[NativeRemoteStandardRunOwner, NativeRemoteStandardHostIssue] {
+  let graph = @strategy.captured_dag_graph(run)
+  guard @strategy.graph_result_task(graph, result) is Some(task) &&
+    task < @strategy.captured_compute_first_task(run) else {
+    return Err(InvalidConfiguration)
+  }
+  Ok({
+    run: Acquired(run, result, task),
+    finish_output_owner: () => true,
+    finish_input_owner,
+    run_finished: false,
+    output_finished: false,
+    input_finished: false,
+    source_observation,
+  })
 }
 
 ///|
@@ -211,9 +254,16 @@ fn NativeRemoteStandardRunOwner::release(
   self : NativeRemoteStandardRunOwner,
 ) -> Bool {
   if !self.run_finished {
-    match @native_host.close_native_standard_strategy_run(self.run) {
-      Ok(true) => self.run_finished = true
-      Ok(false) | Err(_) => return false
+    match self.run {
+      Compute(run) =>
+        match @native_host.close_native_standard_strategy_run(run) {
+          Ok(true) => self.run_finished = true
+          Ok(false) | Err(_) => return false
+        }
+      Acquired(run, _, _) => {
+        @strategy.stop_captured_dag(run)
+        self.run_finished = true
+      }
     }
   }
   if !self.output_finished {
@@ -593,28 +643,57 @@ fn execute_native_remote_standard_task(
       reject_native_remote_standard_input("foreign-input-binding").unwrap(),
     )
   }
-  let run = bound.owner.run
-  let completion = match
-    @native_host.execute_next_native_standard_strategy_task(run) {
-    Ok(Some(value)) => value
-    Ok(None) => return remote_standard_failure(bound, "missing-standard-task")
-    Err(_) => return remote_standard_failure(bound, "standard-task-failed")
+  let output_export = match bound.owner.run {
+    Compute(run) => {
+      let completion = match
+        @native_host.execute_next_native_standard_strategy_task(run) {
+        Ok(Some(value)) => value
+        Ok(None) =>
+          return remote_standard_failure(bound, "missing-standard-task")
+        Err(_) => return remote_standard_failure(bound, "standard-task-failed")
+      }
+      if completion.task != expected_task {
+        return remote_standard_failure(bound, "foreign-standard-task")
+      }
+      if !bound.finish_input() {
+        return remote_standard_failure(bound, "standard-input-cleanup")
+      }
+      match
+        @publication_host.prepare_publication_output_export(
+          completion.output,
+          limits.output_export,
+        ) {
+        Ok(value) => value
+        Err(_) => return remote_standard_failure(bound, "output-export-prepare")
+      }
+    }
+    Acquired(run, result, task) => {
+      if task != expected_task {
+        return remote_standard_failure(bound, "foreign-standard-task")
+      }
+      match
+        @publication_host.prepare_captured_result_publication_export(
+          run,
+          result,
+          limits.output_export,
+        ) {
+        Ok(value) => value
+        Err(_) => return remote_standard_failure(bound, "source-export-prepare")
+      }
+    }
   }
-  if completion.task != expected_task {
-    return remote_standard_failure(bound, "foreign-standard-task")
+  let observation = match bound.owner.source_observation {
+    None => None
+    Some(issue) =>
+      match issue(request) {
+        Ok(value) => Some(value)
+        Err(_) => {
+          output_export.cancel()
+          return remote_standard_failure(bound, "source-observation-rejected")
+        }
+      }
   }
-  if !bound.finish_input() {
-    return remote_standard_failure(bound, "standard-input-cleanup")
-  }
-  let output_export = match
-    @publication_host.prepare_publication_output_export(
-      completion.output,
-      limits.output_export,
-    ) {
-    Ok(value) => value
-    Err(_) => return remote_standard_failure(bound, "output-export-prepare")
-  }
-  prepare_native_remote_standard_output_from_export(
+  let physical = prepare_native_remote_standard_output_from_export(
     request,
     expected_task,
     output_export,
@@ -622,6 +701,13 @@ fn execute_native_remote_standard_task(
     limits,
     budget,
   )
+  match observation {
+    Some(value) =>
+      @runtime.attach_native_remote_source_observation(
+        physical, request, expected_task, value,
+      )
+    None => physical
+  }
 }
 
 ///|

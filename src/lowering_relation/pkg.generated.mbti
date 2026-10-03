@@ -331,6 +331,18 @@ pub fn graph_traverse_hop_count(PreparedGraphTraverse) -> Int
 
 pub fn graph_traverse_hop_direction(PreparedGraphTraverse, Int) -> @graph_typing.Direction?
 
+pub fn graph_traverse_hop_edge_fields(PreparedGraphTraverse, Int) -> @carrier_contract.Knowledge?
+
+pub fn graph_traverse_hop_edge_predicate(PreparedGraphTraverse, Int) -> Expression?
+
+pub fn graph_traverse_hop_edge_property_position(PreparedGraphTraverse, Int, Int, Int) -> Int?
+
+pub fn graph_traverse_hop_node_fields(PreparedGraphTraverse, Int) -> @carrier_contract.Knowledge?
+
+pub fn graph_traverse_hop_node_predicate(PreparedGraphTraverse, Int) -> Expression?
+
+pub fn graph_traverse_hop_node_property_position(PreparedGraphTraverse, Int, Int, Int) -> Int?
+
 pub fn graph_traverse_hop_type_at(PreparedGraphTraverse, Int, Int) -> String?
 
 pub fn graph_traverse_hop_type_count(PreparedGraphTraverse, Int) -> Int?

@@ -107,6 +107,7 @@ fn emit_remote_managed_output_observation_json(
   evidence : RemoteExecutionEvidence,
   subject : RemoteManagedOutputSubject,
   measurement : RemoteManagedOutputMeasurement,
+  source_observation? : RemoteSourceObservation? = None,
 ) -> Result[String, DispatchIssue] {
   let evidence_body = match remote_execution_evidence_json(evidence) {
     Ok(value) => value
@@ -137,6 +138,13 @@ fn emit_remote_managed_output_observation_json(
     )
     @encode.key(writer, "measurement_json")
     @encode.string_value(writer, measurement_body)
+    match source_observation {
+      Some(value) => {
+        @encode.key(writer, "source_observation_json")
+        @encode.string_value(writer, remote_source_observation_json(value))
+      }
+      None => ()
+    }
     @encode.key(writer, "subject_cid")
     @encode.string_value(writer, remote_managed_output_subject_cid(subject))
     @encode.key(writer, "subject_json")
@@ -160,13 +168,29 @@ pub fn remote_managed_output_observation_json(
   evidence : RemoteExecutionEvidence,
   subject : RemoteManagedOutputSubject,
   measurement : RemoteManagedOutputMeasurement,
+  source_observation? : RemoteSourceObservation? = None,
 ) -> Result[String, DispatchIssue] {
   if !remote_managed_output_observation_matches_transition(
       transition, evidence, subject, measurement,
     ) {
     return Err(InvalidTransition)
   }
-  emit_remote_managed_output_observation_json(evidence, subject, measurement)
+  match source_observation {
+    Some(value) =>
+      if !remote_source_observation_matches_dispatch(
+          value,
+          transition.record.request,
+        ) {
+        return Err(InvalidTransition)
+      }
+    None => ()
+  }
+  emit_remote_managed_output_observation_json(
+    evidence,
+    subject,
+    measurement,
+    source_observation~,
+  )
 }
 
 ///|
@@ -187,7 +211,7 @@ pub fn admit_remote_managed_output_observation_json(
   try {
     let object = evidence_object(evidence_root(body, 1048576, 32, 2), [
       "evidence_cid", "evidence_json", "measurement_cid", "measurement_json", "subject_cid",
-      "subject_json", "version",
+      "source_observation_json", "subject_json", "version",
     ])
     if evidence_text(object, "version") !=
       "actql-remote-managed-observation/0.1" {
@@ -211,6 +235,10 @@ pub fn admit_remote_managed_output_observation_json(
         restored.0,
         restored.1,
         restored.2,
+        source_observation=read_managed_source_observation(
+          object,
+          record.request,
+        ),
       ) {
       Ok(value) => value
       Err(_) => raise EvidenceJsonStop
@@ -219,6 +247,42 @@ pub fn admit_remote_managed_output_observation_json(
       raise EvidenceJsonStop
     }
     Ok(restored)
+  } catch {
+    EvidenceJsonStop => Err(InvalidJournal)
+  }
+}
+
+///|
+fn read_managed_source_observation(
+  object : @decode.ObjectView,
+  request : DispatchRequest,
+) -> RemoteSourceObservation? raise EvidenceJsonStop {
+  match @decode.lookup(object, "source_observation_json") {
+    None => None
+    Some(cursor) => {
+      let wire = evidence_decoded(@decode.text(cursor))
+      match admit_remote_source_observation_json(wire, request) {
+        Ok(value) => Some(value)
+        Err(_) => raise EvidenceJsonStop
+      }
+    }
+  }
+}
+
+///|
+/// Recover Source custody from the same atomic managed-output envelope.
+pub fn remote_managed_output_source_observation_json(
+  record : DispatchRecord,
+  body : String,
+) -> Result[RemoteSourceObservation?, DispatchIssue] {
+  if admit_remote_managed_output_observation_json(record, body) is Err(issue) {
+    return Err(issue)
+  }
+  try {
+    let object = evidence_decoded(
+      @decode.open_object(evidence_root(body, 1048576, 32, 2)),
+    )
+    Ok(read_managed_source_observation(object, record.request))
   } catch {
     EvidenceJsonStop => Err(InvalidJournal)
   }

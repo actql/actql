@@ -1,0 +1,50 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "immutable-late-resolution-supplements",
+  "kind": "change",
+  "revision": "c6c51f4611a94d955c68cf53784bc3cbf924c77b",
+  "parents": [
+    "b18632b65570713e36c0a83e8afd0063bc37a5c3"
+  ],
+  "changes": [
+    {
+      "path": "proofs/relation-pipeline/current-foundation.md",
+      "before": [
+        {
+          "revision": "b18632b65570713e36c0a83e8afd0063bc37a5c3",
+          "digest": "ecf85ce6f5b2ff7dd19c03eb5c7ba6eefebb3666160567c2be234e4eed38fba5",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "cf3f3f4d0c39bb0e75fd6fb9024449a5ad2523dbe7d8219f2db21a7808d966cb",
+      "afterMode": "100644",
+      "reason": "Add immutable original-digest-bound late dependency receipt supplements, independent real-Git rejection regressions and the fixed public PR 246 history replay; retain all prior source declarations and introductions."
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation.mjs",
+      "before": [
+        {
+          "revision": "b18632b65570713e36c0a83e8afd0063bc37a5c3",
+          "digest": "503a86afa77e3b7055b472b4216619d8a0e9aa8f74dc1640a61f9358af2c61aa",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "1d64c2dcbc4a5ff73ae614467ea4cf1695546c9ea7513cf46d50297aa0af038d",
+      "afterMode": "100644",
+      "reason": "Add immutable original-digest-bound late dependency receipt supplements, independent real-Git rejection regressions and the fixed public PR 246 history replay; retain all prior source declarations and introductions."
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation.test.mjs",
+      "before": [
+        {
+          "revision": "b18632b65570713e36c0a83e8afd0063bc37a5c3",
+          "digest": "6c022adeaa85375ba9050e27c3989a4df0feab254317128b92a3b10422dc973a",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "07dfeee98221d64066aeb86b9d889c891fe7fb8f1395f161f63e46c502b374aa",
+      "afterMode": "100644",
+      "reason": "Add immutable original-digest-bound late dependency receipt supplements, independent real-Git rejection regressions and the fixed public PR 246 history replay; retain all prior source declarations and introductions."
+    }
+  ]
+}

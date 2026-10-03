@@ -1,5 +1,5 @@
 ///|
-enum ClientRunCompilation {
+pub(all) enum ClientRunCompilation {
   Values(ClientValuesCompilation)
   Tasks(ClientTaskCompilation)
 }

@@ -5,13 +5,14 @@
 /// admit policy, demanded identities, pin/use rights and resource settlement.
 struct ManagedInputDuckDBCompletion[T] {
   values : @execution.ManagedOutputValues
-  port : @execution.ManagedCompletionPort[
+  mut port : @execution.ManagedCompletionPort[
     (@execution.ManagedOutputValueReceipt, @execution.ManagedRetainedOutput[T]),
     T,
-  ]
+  ]?
   state : Ref[Int]
-  authorize : () -> Bool
-  input_available : () -> Bool
+  mut authorize : (() -> Bool)?
+  mut input_available : (() -> Bool)?
+  mut completing : Bool
   demand_issue : Ref[@duckdb.NativeDemandIssue?]
   demand_usage : Ref[@duckdb.FixedComputeDemandUsage?]
 }
@@ -116,14 +117,15 @@ pub fn[T] prepare_managed_input_duckdb_completion(
   }
   Ok({
     values,
-    port,
+    port: Some(port),
     state,
-    authorize,
+    authorize: Some(authorize),
+    completing: false,
     demand_issue,
     demand_usage,
-    input_available: fn() {
+    input_available: Some(fn() {
       @duckdb.managed_fixed_query_matches_inputs(query, inputs)
-    },
+    }),
   })
 }
 
@@ -150,7 +152,10 @@ pub fn[T] bind_managed_input_duckdb_completion_attempt(
   completion : ManagedInputDuckDBCompletion[T],
   attempt : @execution.ManagedExecutionAttempt,
 ) -> Bool {
-  @execution.bind_managed_completion_attempt(completion.port, attempt)
+  match completion.port {
+    Some(port) => @execution.bind_managed_completion_attempt(port, attempt)
+    None => false
+  }
 }
 
 ///|
@@ -162,8 +167,34 @@ pub fn[T] cancel_managed_input_duckdb_completion(
   }
   completion.state.val = 3
   @execution.cancel_managed_output_values(completion.values) |> ignore
-  @execution.cancel_managed_completion_port(completion.port) |> ignore
+  if completion.port is Some(port) {
+    @execution.cancel_managed_completion_port(port) |> ignore
+  }
   true
+}
+
+///|
+/// Close private admission and verifier roots without revoking successful
+/// retained output. Native settlement and output retention are separate facts.
+pub fn[T] dispose_managed_input_duckdb_completion(
+  completion : ManagedInputDuckDBCompletion[T],
+) -> Unit {
+  cancel_managed_input_duckdb_completion(completion) |> ignore
+  @execution.dispose_managed_output_values_scratch(completion.values)
+  completion.port = None
+  completion.authorize = None
+  completion.input_available = None
+}
+
+///|
+pub fn[T] managed_input_duckdb_scratch_released(
+  completion : ManagedInputDuckDBCompletion[T],
+) -> Bool {
+  !completion.completing &&
+  completion.port is None &&
+  completion.authorize is None &&
+  completion.input_available is None &&
+  @execution.managed_output_values_scratch_released(completion.values)
 }
 
 ///|
@@ -172,21 +203,33 @@ pub fn[T] complete_managed_input_duckdb(
   receipt : @execution.ManagedOutputValueReceipt,
   material : @execution.ManagedRetainedOutput[T],
 ) -> Result[@execution.ManagedCompletedOutput[T], DuckDBComputeIssue] {
-  if completion.state.val != 0 {
+  if completion.state.val != 0 || completion.completing {
     return Err(InvalidState)
   }
-  completion.state.val = 1
-  let result = @execution.complete_managed_output(
-    completion.port,
-    (receipt, material),
+  completion.completing = true
+  let result = finish_managed_input_duckdb_completion(
+    completion, receipt, material,
   )
+  completion.completing = false
+  result
+}
+
+///|
+fn[T] finish_managed_input_duckdb_completion(
+  completion : ManagedInputDuckDBCompletion[T],
+  receipt : @execution.ManagedOutputValueReceipt,
+  material : @execution.ManagedRetainedOutput[T],
+) -> Result[@execution.ManagedCompletedOutput[T], DuckDBComputeIssue] {
+  guard completion.port is Some(port) else { return Err(InvalidState) }
+  completion.state.val = 1
+  let result = @execution.complete_managed_output(port, (receipt, material))
   match result {
     Ok(output) => {
       if completion.state.val != 1 ||
-        !(completion.authorize)() ||
+        !completion.authorize.map(check => check()).unwrap_or(false) ||
         completion.state.val != 1 ||
         !@execution.managed_completed_output_available(output) ||
-        !(completion.input_available)() ||
+        !completion.input_available.map(check => check()).unwrap_or(false) ||
         completion.state.val != 1 {
         cancel_managed_input_duckdb_completion(completion) |> ignore
         return Err(Completion(Unverified))

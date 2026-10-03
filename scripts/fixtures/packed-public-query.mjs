@@ -11,25 +11,34 @@ import {DatabaseSync} from 'node:sqlite';
 import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from
   '@actql/local-node/http-host';
-import {exercisePublicQueryInput, querySuccesses, queryRefusals, inferRefusals, sourceRows, sourceFreeSuccesses, sourceFreeRefusals, queryCompositionSuccesses, queryCompositionRefusals, pipeResultSuccesses, pipeResultRefusals, pipeResultExecutionFailures}
+import {exercisePublicQueryInput, querySuccesses, queryRefusals, inferRefusals, sourceRows, sourceFreeSuccesses, sourceFreeRefusals, queryCompositionSuccesses, queryCompositionRefusals, pipeResultSuccesses, pipeResultRefusals, pipeResultExecutionFailures, relationDataSuccesses, relationDataRefusals}
   from './public-query-input.mjs';
+
+import {propertyGraphSourceSuccesses, propertyGraphSourceExecutionFailures, propertyGraphSourceRefusals}
+  from "./property-graph-source-input.mjs";
+import {uniquePublicQueryCases} from './public-query-cases.mjs';
+import {acquiredDataSuccesses, acquiredGraphSourceSuccesses, acquiredDataRefusals}
+  from './acquired-data-source-input.mjs';
 
 if (process.env.ACTQL_TEST_TWO_SOURCE_ONLY === '1') {
   await import('./packed-two-source-public-query.mjs');
 } else {
+const propertyGraphOnly = process.env.ACTQL_TEST_PROPERTY_GRAPH_SOURCE_ONLY === "1";
 const sourceFreeOnly = process.env.ACTQL_TEST_SOURCE_FREE_ONLY === '1';
 const inferOnly = process.env.ACTQL_TEST_INFER_REFUSAL_ONLY === '1';
 const joinOnly = process.env.ACTQL_TEST_JOIN_ORDER_ONLY === '1';
 const compositionOnly = process.env.ACTQL_TEST_QUERY_COMPOSITION_ONLY === '1';
 const resultOnly = process.env.ACTQL_TEST_PIPE_RESULT_ONLY === '1';
+const dataOnly = process.env.ACTQL_TEST_RELATION_DATA_ONLY === '1';
+const acquiredDataOnly = process.env.ACTQL_TEST_ACQUIRED_DATA_ONLY === '1';
 const dataSetStrategyOnly = process.env.ACTQL_TEST_DATA_SET_STRATEGY_ONLY === '1';
-const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || inferOnly || joinOnly || sourceFreeOnly || compositionOnly || resultOnly || dataSetStrategyOnly;
+const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || inferOnly || joinOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const scope = JSON.parse(await readFile('pipe-scope-cases.json', 'utf8'));
 assert.deepEqual(scope.source_rows, sourceRows);
 const dataSetStrategyInputs = {
-  // Independent machine input bypasses the frontend. Values are deliberately
-  // opposite to the required order; the internal sort slot must not escape.
+  // Retain main's independent JSON control once. The DATA source group shares
+  // this input rather than duplicating the same machine Program and run.
   successes: [{name: 'independent-ordered-data-set', format: 'json',
     text: await readFile('data-set-strategy-program.json', 'utf8'),
     sourceReadCount: 0,
@@ -38,16 +47,23 @@ const dataSetStrategyInputs = {
     ]}}}],
   refusals: [],
 };
-const scopeInputs = dataSetStrategyOnly ? dataSetStrategyInputs
+const scopeInputs = propertyGraphOnly ? {successes: propertyGraphSourceSuccesses,
+  executionFailures: propertyGraphSourceExecutionFailures, refusals: propertyGraphSourceRefusals}
+  : acquiredDataOnly ? {successes: [...acquiredDataSuccesses, ...acquiredGraphSourceSuccesses],
+    refusals: acquiredDataRefusals}
+  : dataOnly ? {successes: [...relationDataSuccesses,
+  ...dataSetStrategyInputs.successes], refusals: relationDataRefusals}
+  : dataSetStrategyOnly ? dataSetStrategyInputs
   : sourceFreeOnly ? {successes: sourceFreeSuccesses, refusals: sourceFreeRefusals}
   : resultOnly ? {successes: pipeResultSuccesses, refusals: pipeResultRefusals,
     executionFailures: pipeResultExecutionFailures}
   : compositionOnly ? {successes: queryCompositionSuccesses, refusals: queryCompositionRefusals}
   : inferOnly ? {successes: [querySuccesses[0]], refusals: inferRefusals}
   : joinOnly ? joinOrder : scopeOnly ? {successes: scope.successes,
-  refusals: scope.refusals} : {successes: [...dataSetStrategyInputs.successes, ...querySuccesses, ...sourceFreeSuccesses, ...queryCompositionSuccesses, ...pipeResultSuccesses, ...scope.successes, ...joinOrder.successes],
-  refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals],
-  executionFailures: pipeResultExecutionFailures};
+  refusals: scope.refusals} : {successes: [...dataSetStrategyInputs.successes, ...querySuccesses, ...sourceFreeSuccesses, ...queryCompositionSuccesses, ...pipeResultSuccesses, ...relationDataSuccesses, ...acquiredDataSuccesses, ...acquiredGraphSourceSuccesses, ...propertyGraphSourceSuccesses, ...scope.successes, ...joinOrder.successes],
+  refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...relationDataRefusals, ...acquiredDataRefusals, ...propertyGraphSourceRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals],
+  executionFailures: [...pipeResultExecutionFailures, ...propertyGraphSourceExecutionFailures]};
+scopeInputs.successes = uniquePublicQueryCases(scopeInputs.successes);
 const expectedQueryRuns = scopeInputs.successes.length + (scopeInputs.executionFailures?.length ?? 0);
 const expectedSourceReads = [...scopeInputs.successes, ...(scopeInputs.executionFailures ?? [])]
   .reduce((count, item) => count + (item.sourceReadCount ?? item.sourceReadSessionCount ?? 1), 0);

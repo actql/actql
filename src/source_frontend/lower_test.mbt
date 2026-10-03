@@ -75,7 +75,6 @@ test "retired structural envelopes reject without context or a fallback" {
     document in [
       "AQL '0.1'; PROGRAM 'old' { STAGE s { STEP {}; } }", "-- retired\n /* prefix */ aQl '0.1'; PROGRAM 'old' {}",
       "PROGRAM 'old' {}", "STAGE main { STEP {}; }", "STEP {\"values\":{}};", "OP values {};",
-      "DATA same = FROM g |> graphs_equal(with: g);",
     ] {
     let formats : Array[Format] = [Text, Sql]
     for format in formats {
@@ -173,14 +172,17 @@ test "published query names bind one environment generation" {
 }
 
 ///|
-test "public query-only context rejects Graph lowering before preparation" {
+test "unified source dependency refuses legacy Graph inputs before Program preparation" {
+  let context = test_context()
   for
-    text in [
+    document in [
       "FROM GRAPH g |> MATCH WALK (a)-[]->(b) |> SELECT *", "FROM GRAPH g |> MATCH WALK (a) |> SELECT a.id",
+      "FROM GRAPH g LABELS {\"node\":{\"field\":\"name\"}} |> MATCH WALK (a:Person) |> SELECT a.id",
     ] {
     assert_true(
-      lower(text, Text, Some(test_context()))
+      lower(document, Text, Some(context))
       is Err(QueryLowering(@query.UnsupportedGraph)),
+      msg=document,
     )
   }
 }

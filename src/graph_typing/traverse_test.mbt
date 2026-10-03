@@ -57,7 +57,7 @@ test "current TRAIL admits bounded and patterned forms under shared budgets" {
 }
 
 ///|
-test "current path predicates refuse before any homogeneous execution can be prepared" {
+test "current path hop predicates retain typed edge and node roots" {
   let graph = current_scope_graph()
   let identity = current_node_identity(2)
   for key in ["edge_where", "node_where"] {
@@ -66,15 +66,20 @@ test "current path predicates refuse before any homogeneous execution can be pre
       "]},\"hops\":[{\"direction\":\"out\",\"" +
       key +
       "\":\"true\"}],\"path_mode\":\"trail\",\"emit\":\"paths\"}"
+    let checked = @graph_typing.check_traverse(
+      cursor(body),
+      graph,
+      None,
+      None,
+      predicate_limits(),
+    ).unwrap()
+    let hop = @graph_typing.traverse_hop_at(checked, 0).unwrap()
     assert_true(
-      @graph_typing.check_traverse(
-        cursor(body),
-        graph,
-        None,
-        None,
-        predicate_limits(),
-      )
-      is Err(MatchStructure({ kind: UnsupportedGraphOperation, .. })),
+      if key == "edge_where" {
+        @graph_typing.hop_edge_predicate(hop) is Some(_)
+      } else {
+        @graph_typing.hop_node_predicate(hop) is Some(_)
+      },
     )
   }
   let body = "{\"start\":{\"where\":\"true\"},\"hops\":[{\"direction\":\"out\"}],\"path_mode\":\"trail\",\"emit\":\"paths\"}"
@@ -99,7 +104,6 @@ test "current TRAIL rejects ambiguous modes and unconnected definition-free pred
       "\"hops\":[],\"emit\":\"paths\",\"path_mode\":\"trail\"}", "\"hops\":[{\"direction\":\"in\"}],\"direction\":\"out\",\"emit\":\"paths\",\"path_mode\":\"trail\"}",
       "\"min_hops\":0,\"max_hops\":3,\"emit\":\"paths\",\"path_mode\":\"trail\"}",
       "\"direction\":\"out\",\"min_hops\":4,\"max_hops\":3,\"emit\":\"paths\",\"path_mode\":\"trail\"}",
-      "\"hops\":[{\"direction\":\"in\",\"node_where\":{\"literal\":true}}],\"emit\":\"paths\",\"path_mode\":\"trail\"}",
       "\"hops\":[{\"direction\":\"in\"}],\"emit\":\"nodes\",\"path_mode\":\"trail\"}",
       "\"hops\":[{\"direction\":\"in\"}],\"emit\":\"paths\"}",
     ] {

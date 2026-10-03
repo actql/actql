@@ -16,19 +16,22 @@ govern names and semantic correspondence across source, Program and AoA.
    examples through the installed Local/HTTP Client. Keeping machine Programs
    or historical decoding tests is not completion of this second unit.
 
-The first unit does not add all target syntax. Implemented SQL/Pipe and limited
-Graph query forms remain available. A common INFER owner and real ModelTask
+The first unit does not add all target syntax. Public acceptance of a replacement
+form requires its common checked and execution owners; parser availability alone
+does not make that form executable. A common INFER owner and real ModelTask
 execution must arrive through its owner's formal handoff; source construction
-or test replay cannot substitute for that acceptance.
+or test replay cannot substitute for that acceptance. Delivery evidence belongs
+in the [migration checkpoint](../reviews/2026-10-03-frontend-migration-checkpoint.md),
+separately from these architectural obligations.
 
-## Current public input boundary
+## Public input responsibilities
 
 | Input | Public route | Meaning |
 | --- | --- | --- |
 | `json`, `aql-json` | Ordinary Program admission | Supported machine input |
 | `yaml`, `aql-yaml` | Ordinary Program admission | Supported machine input |
-| `sql` | Common SQL query parser/lowerer | Implemented SQL heads, including WITH/Pipe composition |
-| `aql-text` | Common query parser/lowerer | Implemented SQL/Pipe and limited Graph query forms |
+| `sql` | Common SQL query parser/lowerer | Adopted SQL query heads and allowed Pipe composition; unsupported forms are typed refusals |
+| `aql-text` | Common query parser/lowerer | Adopted SQL/Pipe and domain surfaces; Graph admission requires the unified Graph owner |
 | AQL/PROGRAM/STAGE, STEP/OP | Typed input rejection | No legacy fallback, alternate public entry or public formatter |
 
 Source errors precede durable Run acceptance and provider I/O. Neither SDK
@@ -45,15 +48,15 @@ the prior source and expected Program separately. Every named fixture previously
 used OP for its Values/Graph inputs or Relation egress, so withdrawing the
 envelope withdraws its *text path*, not the common Graph operation.
 
-| Prior example | Adopted new expression / meaning | Missing implementation | Completion evidence required |
+| Prior example | Adopted new expression / meaning | Boundary obligation | Completion evidence required |
 | --- | --- | --- | --- |
-| `client-values.structural.aql`: OP values | A source-free Relation with the same declared schema/rows; no fabricated external source | Source-free SELECT and UNION ALL lower to existing Values; the explicit RESULT surface remains separate | `SELECT 1 AS id UNION ALL SELECT 2 AS id ORDER BY id` versus independent `packages/sdk/fixtures/values.json`, then Local/HTTP Result |
-| `orders.structural.aql`: filter/group/sort | SQL/Pipe WHERE, AGGREGATE, ORDER BY; explicit RESULT where requested | Computation surfaces exist; exact authored IDs, metadata and Result envelope are not represented by query sugar | Preserve the independent machine Program; test modern complete source after Result surface is connected |
-| Named SGA examples: OP graph plus named calls | Existing producer references, named typed arguments and Graph-to-Graph or Graph-to-Relation operations | Standalone named DATA/SGA query parsing and source Graph construction; explicit Result syntax | All nodes, edges, types, order, multiplicity and Delta compared through public text Local/HTTP |
+| `client-values.structural.aql`: OP values | A source-free Relation with the same declared schema/rows; no fabricated external source | Source-free SELECT and UNION ALL lower to existing Values; named Results require explicit declarations | `SELECT 1 AS id UNION ALL SELECT 2 AS id ORDER BY id` versus independent `packages/sdk/fixtures/values.json`, then Local/HTTP Result |
+| `orders.structural.aql`: filter/group/sort | SQL/Pipe WHERE, AGGREGATE, ORDER BY; explicit RESULT where requested | Exact authored IDs, metadata and Result envelope are not represented automatically by query sugar | Preserve the independent machine Program; compare the complete modern source through Local/HTTP |
+| Named SGA examples: OP graph plus named calls | Existing producer references, named typed arguments and Graph-to-Graph or Graph-to-Relation operations | DATA/SGA syntax and lowering must connect to unified Graph admission, adapted consumers and explicit Results | All nodes, edges, types, order, multiplicity and Delta compared through public text Local/HTTP |
 | Metadata, bindings, unused steps and explicit no-ops | Program machine input retains these authored facts | No automatic equivalent text spelling is claimed; some facts belong to source context rather than query operators | Independent lossless machine input tests; any proposed text context must bind exact facts |
-| Old EFFECT maps and AFTER envelopes | Explicit terminal EFFECT, BRANCH, statement sequencing, AFTER ACCEPTED, RESULT(name)/RECEIPT(name) | Target syntax/lowering and some owner bindings remain pending; Effect-only export details are not yet decided | Existing Effect owners and durable acceptance; no Effect-free recheck or second scheduler |
-| INFER/NEAREST KEEP and AS | KEEP plus one result STRUCT forms a new output scope | Source lowering and execution are separate; common INFER handoff still required | Values/types/nullability, keys, replay and no-redispatch through packed Local/HTTP |
-| VecA/TEA OP forms | Their adopted domain vocabulary and existing logical operators | Remaining surface productions and lowering | Independent Program/result cases; never approximate with SQL scalar functions |
+| Old EFFECT maps and AFTER envelopes | Explicit terminal EFFECT, BRANCH, statement sequencing, AFTER ACCEPTED, RESULT(name)/RECEIPT(name) | Surface productions and owner bindings are separate; Effect-only export needs its explicitly adopted contract | Existing Effect owners and durable acceptance; no Effect-free recheck or second scheduler |
+| INFER/NEAREST KEEP and AS | KEEP plus one result STRUCT forms a new output scope | Source lowering and execution are separate; preserve common ModelTask and key/evidence ownership | Values/types/nullability, keys, replay and no-redispatch through packed Local/HTTP |
+| VecA/TEA OP forms | Their adopted domain vocabulary and existing logical operators | Surface productions and lowering must preserve the selected common contracts | Independent Program/result cases; never approximate with SQL scalar functions |
 
 Source-free Relation examples use the adopted FROM-optional SELECT and set
 syntax. The adopted [Property Graph mapping](frontend-standard-profiles.md#property-graph-mapping-and-element-identity)
@@ -66,13 +69,13 @@ and a source-free constructed Graph are distinct input obligations.
 
 ## Named SGA migration inventory
 
-The following producer-level expressions record already-adopted operation names
-and argument roles; they are not assertions that standalone DATA source parsing
-is implemented. The complete examples also require the construction and Result
-surfaces above. DATA references existing producers; it must not force another
+The following producer-level expressions record already-adopted operation names,
+argument roles and required connections; they do not establish runtime support.
+The complete examples also require the construction and Result surfaces above.
+DATA references existing producers; it must not force another
 acquisition, materialization, task or local placement.
 
-| Retained independent example | Adopted logical expression / Carrier transition | Remaining text connection |
+| Retained independent example | Adopted logical expression / Carrier transition | Required text connection |
 | --- | --- | --- |
 | components | `FROM g \|> components(kind: "weak")`: Graph → Relation | Named call then ordinary Relation SELECT |
 | reach-subgraph | `FROM g \|> reach(...)`, then `FROM g \|> subgraph(nodes: {from: reached, ...})`: Graph → Relation → Graph | Reuse the same g and reached producers |

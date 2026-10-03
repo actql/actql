@@ -5,6 +5,7 @@ import {
   "actql/actql/execution_site",
   "actql/actql/publication_payload",
   "actql/actql/remote_transfer",
+  "actql/actql/run_publication",
   "moonbitlang/core/debug",
 }
 
@@ -65,6 +66,8 @@ pub fn admit_remote_poll_output_json(String) -> Result[RemotePollOutput, Dispatc
 
 pub fn admit_remote_poll_output_plan_json(String) -> Result[RemotePollOutput, DispatchIssue]
 
+pub fn admit_remote_source_observation_json(String, DispatchRequest) -> Result[RemoteSourceObservation, DispatchIssue]
+
 pub fn advance_durable_coordinator_output_record(DurableCoordinatorOutputRecord, CoordinatorOutputTransition) -> Result[DurableCoordinatorOutputRecord, DispatchIssue]
 
 pub fn classify_remote_runtime_admission(Bool, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> RemoteRuntimeAdmission
@@ -107,7 +110,7 @@ pub fn coordinator_dispatch_record_state_codes(CoordinatorDispatchIntentRecord) 
 
 pub fn coordinator_dispatch_transition_attempt_identity(CoordinatorDispatchTransition) -> Result[String, DispatchIssue]
 
-pub fn coordinator_dispatch_transition_durable_json(DurableCoordinatorDispatchRecord, CoordinatorDispatchTransition, evidence? : RemoteExecutionEvidence?, subject? : RemoteManagedOutputSubject?, measurement? : RemoteManagedOutputMeasurement?) -> Result[String, DispatchIssue]
+pub fn coordinator_dispatch_transition_durable_json(DurableCoordinatorDispatchRecord, CoordinatorDispatchTransition, evidence? : RemoteExecutionEvidence?, subject? : RemoteManagedOutputSubject?, measurement? : RemoteManagedOutputMeasurement?, source_observation? : RemoteSourceObservation?) -> Result[String, DispatchIssue]
 
 pub fn coordinator_dispatch_transition_expected_history_json(CoordinatorDispatchTransition) -> Result[String, DispatchIssue]
 
@@ -232,6 +235,8 @@ pub fn durable_coordinator_dispatch_record_request(DurableCoordinatorDispatchRec
 pub fn durable_coordinator_dispatch_record_request_identity(DurableCoordinatorDispatchRecord) -> String
 
 pub fn durable_coordinator_dispatch_record_revision(DurableCoordinatorDispatchRecord) -> Int
+
+pub fn durable_coordinator_dispatch_record_source_observation(DurableCoordinatorDispatchRecord) -> RemoteSourceObservation?
 
 pub fn durable_coordinator_dispatch_record_subject(DurableCoordinatorDispatchRecord) -> RemoteManagedOutputSubject?
 
@@ -359,6 +364,8 @@ pub fn prepare_remote_runtime_reclaim_unknown(DispatchRecord) -> Result[RemoteRu
 
 pub fn prepare_remote_runtime_success(DispatchRecord, RemoteRuntimeCustody) -> Result[RemoteRuntimeSuccessAction, DispatchIssue]
 
+pub fn prepare_remote_source_observation(DispatchRequest, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String) -> Result[RemoteSourceObservation, DispatchIssue]
+
 pub fn prepare_retain_remote_output(DispatchRecord, String, String) -> Result[DispatchTransition, DispatchIssue]
 
 pub fn prepare_site_generation_restart(SiteDispatchJournal, @execution_site.ExecutionSite) -> Result[SiteRestartTransition, DispatchIssue]
@@ -389,9 +396,11 @@ pub fn remote_dispatch_response_projection(RemoteDispatchResponse) -> Array[Int]
 
 pub fn remote_dispatch_response_revision(RemoteDispatchResponse) -> Int
 
+pub fn remote_dispatch_response_source_observation(RemoteDispatchResponse) -> RemoteSourceObservation?
+
 pub fn remote_dispatch_response_subject(RemoteDispatchResponse) -> RemoteManagedOutputSubject?
 
-pub fn remote_dispatch_status_json(DispatchRecord, RemoteExecutionEvidence?, RemoteManagedOutputSubject?, RemoteManagedOutputMeasurement?) -> Result[String, DispatchIssue]
+pub fn remote_dispatch_status_json(DispatchRecord, RemoteExecutionEvidence?, RemoteManagedOutputSubject?, RemoteManagedOutputMeasurement?, source_observation? : RemoteSourceObservation?) -> Result[String, DispatchIssue]
 
 pub fn remote_execution_capability_scope(RemoteExecutionCapability) -> Array[String]
 
@@ -415,9 +424,11 @@ pub fn remote_managed_output_measurement_json(RemoteManagedOutputMeasurement) ->
 
 pub fn remote_managed_output_measurement_projection(RemoteManagedOutputMeasurement) -> Array[Array[Int]]
 
-pub fn remote_managed_output_observation_json(DispatchTransition, RemoteExecutionEvidence, RemoteManagedOutputSubject, RemoteManagedOutputMeasurement) -> Result[String, DispatchIssue]
+pub fn remote_managed_output_observation_json(DispatchTransition, RemoteExecutionEvidence, RemoteManagedOutputSubject, RemoteManagedOutputMeasurement, source_observation? : RemoteSourceObservation?) -> Result[String, DispatchIssue]
 
 pub fn remote_managed_output_observation_matches_transition(DispatchTransition, RemoteExecutionEvidence, RemoteManagedOutputSubject, RemoteManagedOutputMeasurement) -> Bool
+
+pub fn remote_managed_output_source_observation_json(DispatchRecord, String) -> Result[RemoteSourceObservation?, DispatchIssue]
 
 pub fn remote_managed_output_subject_cid(RemoteManagedOutputSubject) -> String
 
@@ -564,6 +575,12 @@ pub fn remote_runtime_step_action_code(RemoteRuntimeStep) -> Int
 pub fn remote_runtime_step_transition(RemoteRuntimeStep) -> Result[DispatchTransition, DispatchIssue]
 
 pub fn remote_runtime_success_action_code(RemoteRuntimeSuccessAction) -> Int
+
+pub fn remote_source_observation_json(RemoteSourceObservation) -> String
+
+pub fn remote_source_observation_matches_dispatch(RemoteSourceObservation, DispatchRequest) -> Bool
+
+pub fn remote_source_observation_projection(RemoteSourceObservation) -> (Int, String, String, String, String)
 
 pub fn restore_coordinator_dispatch_history_json(CoordinatorDispatchIntentRecord, String, RemoteExecutionEvidence?) -> Result[Unit, DispatchIssue]
 
@@ -816,6 +833,8 @@ pub(all) enum RemoteRuntimeSuccessAction {
   RuntimePersistEvidence
   RuntimeSuccessFinished
 } derive(Eq, @debug.Debug)
+
+type RemoteSourceObservation
 
 type SiteDispatchJournal
 

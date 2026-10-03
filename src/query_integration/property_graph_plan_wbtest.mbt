@@ -99,3 +99,26 @@ test "formal Property Graph Plan retains typed graph ports and keyed parallel-ed
     ["answer"],
   )
 }
+
+///|
+test "current property Graph and external TRAIL starts split before Relation filter" {
+  let (_, environment, limits) = local_effect_export_fixture(
+    property_graph=true,
+  )
+  let document =
+    #|{"version":"actql/0.1","id":"selected-current-trail","stages":[{"id":"seed_source","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"nodes"},{"values":{"schema":{"key":{"type":"number","nullable":false},"src":{"type":"number","nullable":false},"dst":{"type":"number","nullable":false}},"rows":[{"key":10,"src":1,"dst":1}]},"as":"edges"},{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"nodes","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[{"name":"E","from":"edges","key":["key"],"source":{"definition":"N","key":["src"]},"target":{"definition":"N","key":["dst"]},"labels":[{"name":"R","properties":{"mode":"all_columns"}}]}]},"as":"g"},{"from":"g","match_nodes":{"definition":"N","bindings":{"identity":"element"},"where":"true","fields":["element"]},"as":"seeds"}],"results":{"r":{"from":"seeds","fields":["element"]}}},{"id":"query","inputs":{"seeds":{"result":{"stage":"seed_source","result":"r"}}},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]},"as":"nodes"},{"values":{"schema":{"key":{"type":"number","nullable":false},"src":{"type":"number","nullable":false},"dst":{"type":"number","nullable":false}},"rows":[{"key":10,"src":1,"dst":1}]},"as":"edges"},{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"nodes","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[{"name":"E","from":"edges","key":["key"],"source":{"definition":"N","key":["src"]},"target":{"definition":"N","key":["dst"]},"labels":[{"name":"R","properties":{"mode":"all_columns"}}]}]},"as":"g"},{"from":"g","traverse":{"start":{"from":"seeds","id":"element"},"direction":"out","min_hops":1,"max_hops":1,"path_mode":"trail","emit":"paths"},"as":"paths"},{"from":"paths","filter":"hop_count > 0","as":"out"}],"results":{"r":{"from":"out","fields":["hop_count"]}}}],"results":{"answer":{"from":{"stage":"query","result":"r"}}}}
+  let prepared = @publication_host.prepare_effect_free_client_program(
+    document,
+    Json,
+    environment,
+    None,
+    { ..limits.program, max_tasks: 20, max_graph_work: 100000, },
+  ).unwrap()
+  let graph = @publication_host.prepared_client_graph(prepared)
+  assert_eq(@strategy.graph_task_count(graph), 9)
+  assert_eq(@strategy.graph_task_unit_index(graph, 7), Some(1))
+  assert_eq(@strategy.graph_task_selected_step(graph, 6), Some(2))
+  assert_eq(@strategy.graph_task_selected_step(graph, 7), Some(3))
+  assert_eq(@strategy.graph_task_input_count(graph, 7), Some(2))
+  assert_eq(@strategy.graph_task_selected_step(graph, 8), Some(4))
+}

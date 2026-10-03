@@ -31,6 +31,8 @@ pub fn recovered_site_dispatch_measurement(RecoveredSiteDispatch) -> @remote_sit
 
 pub fn recovered_site_dispatch_record(RecoveredSiteDispatch) -> @remote_site_protocol.DispatchRecord
 
+pub fn recovered_site_dispatch_source_observation(RecoveredSiteDispatch) -> @remote_site_protocol.RemoteSourceObservation?
+
 pub fn recovered_site_dispatch_subject(RecoveredSiteDispatch) -> @remote_site_protocol.RemoteManagedOutputSubject?
 
 // Errors
@@ -51,7 +53,7 @@ type Journal
 pub fn Journal::accept(Self, @remote_site_protocol.DispatchRequest) -> Result[(@remote_site_protocol.DispatchAcceptance, @remote_site_protocol.DispatchRecord), NativeRemoteJournalIssue]
 pub fn Journal::claim_start(Self, @remote_site_protocol.DispatchTransition, String) -> Result[NativeRemoteStartClaim, NativeRemoteJournalIssue]
 pub fn Journal::close(Self) -> Bool
-pub fn Journal::commit_evidence_transition(Self, @remote_site_protocol.DispatchTransition, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement) -> Result[Unit, NativeRemoteJournalIssue]
+pub fn Journal::commit_evidence_transition(Self, @remote_site_protocol.DispatchTransition, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, source_observation? : @remote_site_protocol.RemoteSourceObservation?) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::commit_transition(Self, @remote_site_protocol.DispatchTransition) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::complete_output_intent(Self, String) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::dispatch_envelope(Self, String) -> Result[String?, NativeRemoteJournalIssue]

@@ -2,6 +2,12 @@
 struct TraversalHop {
   direction : Direction
   types : Array[String]?
+  edge_predicate : CheckedPredicate?
+  node_predicate : CheckedPredicate?
+  edge_fields : @carrier.Knowledge
+  node_fields : @carrier.Knowledge
+  edge_property_positions : Array[Array[Int]]
+  node_property_positions : Array[Array[Int]]
 }
 
 ///|
@@ -110,7 +116,7 @@ pub fn check_traverse(
       text: limits.max_text_bytes,
     }
     scan(b, source)
-    guard input is @carrier.GraphValue(_) else {
+    guard input is @carrier.GraphValue(graph) else {
       if @carrier.kind(input) != @carrier.GraphKind {
         fail(source, WrongCarrier(@carrier.kind(input)))
       }
@@ -119,7 +125,7 @@ pub fn check_traverse(
     let root = decoded(
       @decode.closed_object(source, [
         "start", "hops", "direction", "edge_types", "min_hops", "max_hops", "emit",
-        "max_output_rows", "path_mode",
+        "max_output_rows", "path_mode", "edge_where", "node_where",
       ]),
     )
     let property_mode = {
@@ -155,10 +161,14 @@ pub fn check_traverse(
       _ => fail(at, InvalidBody)
     }
     let hops = []
+    let mut predicate_tokens = 0
     let patterned = @decode.lookup(root, "hops") is Some(_)
     let (minimum, maximum) = match @decode.lookup(root, "hops") {
       Some(at) => {
-        for key in ["direction", "edge_types", "min_hops", "max_hops"] {
+        for
+          key in [
+            "direction", "edge_types", "min_hops", "max_hops", "edge_where", "node_where",
+          ] {
           if @decode.lookup(root, key) is Some(c) {
             fail(c, InvalidBody)
           }
@@ -181,12 +191,23 @@ pub fn check_traverse(
             decoded(@decode.required(o, "direction")),
           )
           let types = traversal_types(b, @decode.lookup(o, "edge_types"))
-          for key in ["edge_where", "node_where"] {
-            if @decode.lookup(o, key) is Some(at) {
-              fail(at, UnsupportedGraphOperation)
-            }
+          let (checked, tokens) = match
+            check_traversal_hop_predicates(
+              graph,
+              hop,
+              direction,
+              types,
+              @decode.lookup(o, "edge_where"),
+              @decode.lookup(o, "node_where"),
+              parameters,
+              limits.max_tokens - predicate_tokens,
+              b,
+            ) {
+            Ok(value) => value
+            Err(issue) => raise MatchStop(issue)
           }
-          hops.push({ direction, types, })
+          predicate_tokens += tokens
+          hops.push(checked)
         }
         (xs.length().to_double(), xs.length().to_double())
       }
@@ -207,7 +228,23 @@ pub fn check_traverse(
         }
         let types = traversal_types(b, @decode.lookup(root, "edge_types"))
         spend(b, source, 1)
-        hops.push({ direction, types, })
+        let (checked, tokens) = match
+          check_traversal_hop_predicates(
+            graph,
+            source,
+            direction,
+            types,
+            @decode.lookup(root, "edge_where"),
+            @decode.lookup(root, "node_where"),
+            parameters,
+            limits.max_tokens - predicate_tokens,
+            b,
+          ) {
+          Ok(value) => value
+          Err(issue) => raise MatchStop(issue)
+        }
+        predicate_tokens += tokens
+        hops.push(checked)
         (minimum, maximum)
       }
     }
@@ -255,7 +292,7 @@ pub fn check_traverse(
         work: limits.max_work - b.work,
         nodes: limits.max_nodes - b.nodes,
         text_bytes: limits.max_text_bytes - b.text,
-        tokens: 0,
+        tokens: predicate_tokens,
       },
     })
   } catch {
@@ -321,6 +358,48 @@ pub fn hop_type_at(h : TraversalHop, index : Int) -> String? {
     Some(types) => types.get(index)
     None => None
   }
+}
+
+///|
+pub fn hop_edge_predicate(h : TraversalHop) -> CheckedPredicate? {
+  h.edge_predicate
+}
+
+///|
+pub fn hop_node_predicate(h : TraversalHop) -> CheckedPredicate? {
+  h.node_predicate
+}
+
+///|
+pub fn hop_edge_fields(h : TraversalHop) -> @carrier.Knowledge {
+  h.edge_fields
+}
+
+///|
+pub fn hop_node_fields(h : TraversalHop) -> @carrier.Knowledge {
+  h.node_fields
+}
+
+///|
+pub fn hop_edge_property_position(
+  h : TraversalHop,
+  definition : Int,
+  field : Int,
+) -> Int? {
+  h.edge_property_positions
+  .get(definition)
+  .bind(positions => positions.get(field))
+}
+
+///|
+pub fn hop_node_property_position(
+  h : TraversalHop,
+  definition : Int,
+  field : Int,
+) -> Int? {
+  h.node_property_positions
+  .get(definition)
+  .bind(positions => positions.get(field))
 }
 
 ///|

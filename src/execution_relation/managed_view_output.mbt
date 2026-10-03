@@ -97,6 +97,19 @@ pub fn[P, T] finish_managed_view_output(
   port : ManagedViewOutputPort[P, T],
   proof : P,
 ) -> Result[ManagedOutputValueReceipt, ManagedViewOutputIssue] {
+  if port.stream.active_uses != 0 {
+    return Err(Closed)
+  }
+  with_managed_output_scratch_use(port.stream, fn() {
+    finish_managed_view_output_active(port, proof)
+  })
+}
+
+///|
+fn[P, T] finish_managed_view_output_active(
+  port : ManagedViewOutputPort[P, T],
+  proof : P,
+) -> Result[ManagedOutputValueReceipt, ManagedViewOutputIssue] {
   if !port.open || !port.stream.open {
     // A reentrant finish during verification is not a terminal transition.
     if !port.stream.open {
@@ -115,7 +128,7 @@ pub fn[P, T] finish_managed_view_output(
     }
     Ok(_) => {
       stream.reading = false
-      match finish_managed_output_values(stream) {
+      match finish_managed_output_values_scoped(stream) {
         Ok(receipt) => {
           // Ownership was transferred to the receipt. A later cancellation
           // of this consumed port must never clear that receipt's index.

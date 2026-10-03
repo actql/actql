@@ -9,6 +9,7 @@ import {readmeQuickstart} from './readme-quickstart.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {withPackedQueryEvidence} from './packed-query-evidence.mjs';
 import {packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
+import {exercisePackedInferSource} from './packed-infer-source-acceptance.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const scratch = join(repository, '..', '.codex-scratch');
@@ -38,7 +39,13 @@ run('bash', ['-eu', '-c', quickstart.install], root,
 for (const [source, destination] of [
   ['scripts/fixtures/packed-readme-quickstart.mjs', 'readme-acceptance.mjs'],
   ['scripts/fixtures/public-query-input.mjs', 'public-query-input.mjs'],
+  ['scripts/fixtures/public-query-cases.mjs', 'public-query-cases.mjs'],
+  ['scripts/fixtures/acquired-data-source-input.mjs', 'acquired-data-source-input.mjs'],
+  ['scripts/fixtures/property-graph-source-input.mjs', 'property-graph-source-input.mjs'],
   ['scripts/fixtures/string-values-restart.mjs', 'string-values-restart.mjs'],
+  ['scripts/fixtures/installed-infer-fixture.mjs', 'installed-infer-fixture.mjs'],
+  ['scripts/fixtures/infer-source-expectation.mjs', 'infer-source-expectation.mjs'],
+  ['scripts/fixtures/packed-infer-source.mjs', 'packed-infer-source.mjs'],
   ['scripts/fixtures/packed-public-query.mjs', 'acceptance.mjs'],
   ['scripts/fixtures/packed-two-source-public-query.mjs', 'packed-two-source-public-query.mjs'],
   ['scripts/fixtures/packed-two-source-example.mjs', 'packed-two-source-example.mjs'],
@@ -53,6 +60,7 @@ for (const [source, destination] of [
   ['spec/frontend/fixtures/data-set-strategy/repro-program.json', 'data-set-strategy-program.json'],
   ['scripts/fixtures/packed-sga-cancellation.mjs', 'sga-cancellation.mjs'],
   ['scripts/property-graph-public-host.test.mjs', 'property-graph-public-host.test.mjs'],
+  ['scripts/property-graph-source-snapshot.test.mjs', 'property-graph-source-snapshot.test.mjs'],
   ['scripts/check-canonical-json.mjs', 'check-canonical-json.mjs'],
   ['docs/reviews/2026-09-19-sga-veca-tea-local-coverage.json', 'local-family-coverage.json'],
 ]) {
@@ -86,6 +94,9 @@ await writeFile(join(root, 'quickstart.mjs'), quickstart.client);
 const runtimeEnvironment = {...environment,
   PATH: `${dirname(process.execPath)}:/usr/bin:/bin`,
   NODE_EXTRA_CA_CERTS: join(root, 'remote.crt')};
+if (process.argv.includes('--property-graph-source-only')) {
+  runtimeEnvironment.ACTQL_TEST_PROPERTY_GRAPH_SOURCE_ONLY = '1';
+}
 if (process.argv.includes('--source-free-only')) {
   runtimeEnvironment.ACTQL_TEST_SOURCE_FREE_ONLY = '1';
 }
@@ -97,6 +108,12 @@ if (process.argv.includes('--query-composition-only')) {
 }
 if (process.argv.includes('--pipe-result-only')) {
   runtimeEnvironment.ACTQL_TEST_PIPE_RESULT_ONLY = '1';
+}
+if (process.argv.includes('--relation-data-only')) {
+  runtimeEnvironment.ACTQL_TEST_RELATION_DATA_ONLY = '1';
+}
+if (process.argv.includes('--acquired-data-only')) {
+  runtimeEnvironment.ACTQL_TEST_ACQUIRED_DATA_ONLY = '1';
 }
 if (process.argv.includes('--join-order-only')) {
   runtimeEnvironment.ACTQL_TEST_JOIN_ORDER_ONLY = '1';
@@ -113,6 +130,12 @@ if (process.argv.includes('--two-source-only')) {
 for (const name of ['NODE_PATH', 'NODE_OPTIONS', 'MOON_HOME', 'ACTQL_LOCAL_SOURCE_PROFILE',
   'ACTQL_LOCAL_EFFECT_PROFILE', 'ACTQL_LOCAL_STATE_DIR']) {
   delete runtimeEnvironment[name];
+}
+const exerciseInferSource = () => exercisePackedInferSource({root, directory,
+  run, environment: runtimeEnvironment, sourceSha: revision.stdout.trim()});
+if (process.argv.includes('--infer-source-only')) {
+  await exerciseInferSource();
+  return;
 }
 // Execute the README's literal runtime commands, then the same Program through
 // the existing public Client acceptance helper on HTTPS. No second pack/build.
@@ -134,9 +157,23 @@ try {
   assert.equal(negative.error, undefined);
   assert.notEqual(negative.status, 0, 'Missing packaged asset must fail at runtime');
   assert.match(negative.stderr, /ERR_MODULE_NOT_FOUND/u);
-  assert.match(negative.stderr, /publication\.generated\.js/u);
+assert.match(negative.stderr, /publication\.generated\.js/u);
   console.log('Packed missing generated asset: child failed as expected');
 } finally { await rename(asset + '.omitted', asset); }
+async function exerciseNativeGraphSource(sourceOnly = false) {
+  run('moon', ['build', '--target', 'native', '--release',
+    'src/cmd/native_client'], repository, environment);
+  const nativeClient = join(repository, '_build/native/release/build/cmd',
+    'native_client/native_client.exe');
+  console.log(run(process.execPath,
+    [join(repository, 'scripts/test-native-sga-public-source.mjs'),
+      root, nativeClient, directory, ...(sourceOnly ? ['--authored-source-only'] : [])],
+    root, runtimeEnvironment).trimEnd());
+}
+if (process.argv.includes('--property-graph-native-only')) {
+  await exerciseNativeGraphSource(true);
+  return;
+}
 if (process.argv.includes('--quickstart-only')) return;
 if (process.argv.includes('--cancellation-only')) {
   console.log(run(process.execPath, ['sga-cancellation.mjs'], root,
@@ -148,12 +185,16 @@ const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
 const narrowPublicQuery = process.argv.some(flag => ['--source-free-only',
   '--query-composition-only', '--pipe-result-only', '--join-order-only',
   '--alias-scope-only', '--infer-refusal-only', '--two-source-only',
-  '--data-set-strategy-only'].includes(flag));
+  '--relation-data-only', '--acquired-data-only',
+  '--data-set-strategy-only', '--property-graph-source-only'].includes(flag));
 try {
   if (!plannerSelectionOnly && !twoSourceExampleOnly) {
     const output = run(process.execPath, ['acceptance.mjs'], root,
       runtimeEnvironment, 900_000);
     console.log(output.trimEnd());
+    // Reuse this exact installation and its producer artifact. Source INFER
+    // is a separate authored corpus; narrow non-INFER selections stay narrow.
+    if (!process.argv.some(flag => flag.endsWith('-only'))) await exerciseInferSource();
   }
   // The same packed installation executes this bounded candidate corpus once.
   // Cost inputs go to the Host profile; the public Program never chooses a route.
@@ -188,7 +229,8 @@ if (plannerSelectionOnly || twoSourceExampleOnly) return;
 // Keep restart acceptance for full/source-free selections that create it.
 if (!process.argv.some(flag => ['--alias-scope-only', '--infer-refusal-only',
   '--join-order-only', '--query-composition-only', '--pipe-result-only',
-  '--data-set-strategy-only', '--two-source-only'].includes(flag))) {
+  '--relation-data-only', '--acquired-data-only', '--data-set-strategy-only', '--two-source-only',
+  '--property-graph-source-only'].includes(flag))) {
   console.log(run(process.execPath, ['string-values-restart.mjs'], root,
     runtimeEnvironment, 120000).trimEnd());
 }
@@ -196,24 +238,23 @@ if (process.argv.includes('--source-free-only') ||
   process.argv.includes('--data-set-strategy-only') ||
   process.argv.includes('--query-composition-only') ||
   process.argv.includes('--pipe-result-only') ||
+  process.argv.includes('--relation-data-only') ||
+  process.argv.includes('--acquired-data-only') ||
   process.argv.includes('--alias-scope-only') ||
   process.argv.includes('--infer-refusal-only') ||
   process.argv.includes('--two-source-only') ||
   process.argv.includes('--join-order-only')) return;
-console.log(run(process.execPath, ['sga-cancellation.mjs'], root,
-  runtimeEnvironment, 120000).trimEnd());
+if (!process.argv.includes('--property-graph-source-only')) {
+  console.log(run(process.execPath, ['sga-cancellation.mjs'], root,
+    runtimeEnvironment, 120000).trimEnd());
+}
 await mkdir(join(root, 'tls'));
 await writeFile(join(root, 'tls/site.key'), await readFile(join(root, 'remote.key')));
 await writeFile(join(root, 'tls/site.crt'), await readFile(join(root, 'remote.crt')));
 await writeFile(join(root, 'tls/ca.crt'), await readFile(join(root, 'remote.crt')));
-console.log(run(process.execPath, ['--test', 'property-graph-public-host.test.mjs'], root,
+console.log(run(process.execPath, ['--test', 'property-graph-public-host.test.mjs',
+  'property-graph-source-snapshot.test.mjs'], root,
   {...runtimeEnvironment, ACTQL_PROPERTY_GRAPH_PACKED: '1'}, 180000).trimEnd());
-run('moon', ['build', '--target', 'native', '--release',
-  'src/cmd/native_client'], repository, environment);
-const nativeClient = join(repository, '_build/native/release/build/cmd',
-  'native_client/native_client.exe');
-const nativeOutput = run(process.execPath,
-  [join(repository, 'scripts/test-native-sga-public-source.mjs'),
-    root, nativeClient, directory], root, runtimeEnvironment);
-console.log(nativeOutput.trimEnd());
+if (process.argv.includes('--property-graph-source-only')) return;
+await exerciseNativeGraphSource();
 });
