@@ -21,6 +21,10 @@ const digestPattern = /^[0-9a-f]{64}$/u;
 const shaPattern = /^[0-9a-f]{40}$/u;
 const maxFiles = 50000, maxFileBytes = 4 * 1024 ** 3, maxTotalBytes = 16 * 1024 ** 3;
 const maxManifestBytes = 32 * 1024 ** 2;
+// The existing whole capacity report is about 159 MiB (535 observations plus
+// repeated correspondence). Give only that named report a bounded allowance;
+// manifests, foundation records and individual receipts keep the smaller cap.
+const maxCapacityReportBytes = 256 * 1024 ** 2;
 const manifestName = 'ci-seal.json';
 const prefix = '.artifacts/relation-pipeline/';
 export const requiredStages = Object.freeze({
@@ -133,8 +137,9 @@ function sourceState(root) {
       setupDigest: hash(readFileSync(join(root, '.github/actions/setup-toolchain/action.yml'))),
       leanSetupDigest: hash(readFileSync(join(root, 'proofs/bounded-session/setup-lean.mjs'))), node: '22.22.0'}};
 }
-function assertReports(directory, producer, expected) {
-  const read = path => canonicalJson(join(directory, safePath(path)));
+export function inspectProducerEvidence(directory, producer, expected) {
+  const read = path => canonicalJson(join(directory, safePath(path)),
+    path === 'capacity/all.json' ? maxCapacityReportBytes : maxManifestBytes);
   const refs = [], reports = producer === 'mutations'
     ? ['base-js.json', 'fixed-mutations.json', ...(expected.exploration.required ? ['mutations.json'] : [])]
     : ['capacity/all.json', ...targets.map(target => `${target}.json`)];
@@ -222,7 +227,7 @@ export function sealEvidence({root, directory, producer, context, stages, source
   const archivedFoundation = canonicalJson(join(directory, 'current-foundation.json'));
   assert.equal(archivedFoundation.sourceRevision, context.testedSha);
   assert.equal(fileDigest(join(directory, 'current-foundation.json')), foundation.digest, 'Stale archived foundation');
-  const receipts = assertReports(directory, producer, expected);
+  const receipts = inspectProducerEvidence(directory, producer, expected);
   const manifest = {...expected, schema, completedStages: stages,
     restoration: {sourceRestored: true, fixtureClosed: true, workspacesClosed: true},
     files: inventory(directory, {excludeManifest: true}), receipts};
@@ -339,7 +344,7 @@ export function joinEvidence({root, inputs, expected, destination}) {
     assert.deepEqual(inventory(input.directory, {excludeManifest: true}), manifest.files, 'Transferred file inventory differs');
     assert.equal(fileDigest(join(input.directory, 'current-foundation.json')), expected.foundation.digest, 'Transferred foundation differs');
     assert.equal(canonicalJson(join(input.directory, 'current-foundation.json')).sourceRevision, expected.context.testedSha);
-    assert.deepEqual(assertReports(input.directory, input.producer, expected), manifest.receipts, 'Transferred receipt bindings differ');
+    assert.deepEqual(inspectProducerEvidence(input.directory, input.producer, expected), manifest.receipts, 'Transferred receipt bindings differ');
     for (const receipt of manifest.receipts) {
       assert(!receiptPaths.has(receipt.path), 'Receipt path collides across producers'); receiptPaths.add(receipt.path);
       for (const entry of canonicalJson(join(input.directory, receipt.path)).cases) {

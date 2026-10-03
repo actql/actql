@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, readdirSync, rmSync,
-  symlinkSync, linkSync, statSync, realpathSync } from 'node:fs';
+  symlinkSync, linkSync, statSync, realpathSync, truncateSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { parse } from 'yaml';
 import { safePath, inventory, validateEnvelope, requiredStages, contextFromEnvironment,
-  packArchive, unpackArchive, verifyArchive, joinEvidence } from './ci-artifacts.mjs';
+  packArchive, unpackArchive, verifyArchive, joinEvidence, inspectProducerEvidence } from './ci-artifacts.mjs';
 import { body, boundFixture, executionCommand } from './fixture.mjs';
 
 // Only synthetic evidence is used here. Real compiler execution and source,
@@ -387,6 +387,32 @@ function joinFixture(t, mutate = {}) {
   const inputs = ['mutations', 'capacity'].map(producer => producerFixture(root, producer, expected, mutate[producer]));
   return { root, expected, inputs, destination: join(root, 'joined') };
 }
+
+test('the existing large capacity aggregate has a separate bounded read allowance', t => {
+  const options = joinFixture(t, { capacity: ({ directory, json }) => {
+    const report = JSON.parse(readFileSync(join(directory, 'capacity/all.json')));
+    report.largeAggregateFixture = 'x'.repeat(33 * 1024 ** 2);
+    json('capacity/all.json', report);
+  } });
+  assert(statSync(join(options.inputs[1].directory, 'capacity/all.json')).size > 32 * 1024 ** 2);
+  assert.equal(joinEvidence(options).receiptCount, 9);
+});
+
+test('aggregate allowance stays bounded and does not expand receipt or manifest limits', t => {
+  const options = joinFixture(t), directory = options.inputs[1].directory;
+  const aggregate = join(directory, 'capacity/all.json');
+  const original = readFileSync(aggregate);
+  truncateSync(aggregate, 256 * 1024 ** 2 + 1);
+  assert.throws(() => inspectProducerEvidence(directory, 'capacity', options.expected), /Oversized JSON evidence/);
+  writeFileSync(aggregate, original);
+  const receipt = join(directory, '1790000000001-456-0000-capacity-js.json');
+  truncateSync(receipt, 32 * 1024 ** 2 + 1);
+  assert.throws(() => inspectProducerEvidence(directory, 'capacity', options.expected), /Oversized JSON evidence/);
+  const seal = join(options.inputs[0].directory, 'ci-seal.json');
+  truncateSync(seal, 32 * 1024 ** 2 + 1);
+  options.inputs[0].manifestDigest = digest(readFileSync(seal));
+  assert.throws(() => joinEvidence(options), /Oversized JSON evidence/);
+});
 
 test('join accepts only the four exact shared paths and preserves relocated read-only evidence', t => {
   const options = joinFixture(t);
