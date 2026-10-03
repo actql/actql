@@ -227,7 +227,7 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
     }
     capture = ledger === undefined
       ? await (broad ? runBroadHostQuery : runNativeHostQuery)(
-        grant, acquisition, owner.transportLimits, signal)
+        grant, acquisition, owner.transportLimits, signal, moon)
       : await runStrategyNativeHostQuery(grant, acquisition, ledger,
         owner.transportLimits, signal);
   } catch (cause) {
@@ -258,15 +258,20 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
         capturedSource, identity, requirement, owner.occurrence.task));
     // An Effect Run is opened only after durable Run admission. Acquisition
     // cannot mint that owner or begin its computation as a read-only Run.
-    const setup = owner.effectful || ledger !== undefined ? undefined :
+    const inferStep = owner.effectful || ledger !== undefined ? undefined :
+      moon.clientProgramSelectedInferStep(owner.checkedOwner);
+    const setup = owner.effectful || ledger !== undefined ||
+      inferStep !== undefined ? undefined :
       moon.clientProgramOpenCapturedLocalHost(owner.checkedOwner,
         capturedSource, registry, values, 1n, 0n, 0n, 0n,
         fragment, ordered);
-    if (!owner.effectful && ledger === undefined && setup === undefined) {
+    if (!owner.effectful && ledger === undefined &&
+        inferStep === undefined && setup === undefined) {
       throw new Error('InstalledSourceHostUnavailable');
     }
     return Object.freeze({capture, identity, logicalInput, requirement,
-      checkedSource, setup, occurrence: owner.occurrence,
+      checkedSource, setup, inferStep, capturedSource,
+      occurrence: owner.occurrence,
       acquisition: selection === undefined ? undefined : freezeAcquisitionDiagnostic({
         selection, observation: JSON.parse(capture.document())}),
       issueSourceEvidence: options => issueNativeSourceEvidence(capture,

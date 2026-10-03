@@ -54,6 +54,7 @@ import {
   "actql/actql/local_veca_provider",
   "actql/actql/managed_record_storage" @record_storage,
   "actql/actql/managed_carrier_runtime" @carrier_runtime,
+  "actql/actql/connectors/duckdb/acquisition" @duckdb_query,
   "actql/actql/execution_authorization" @authorization,
   "moonbitlang/core/debug",
   "actql/actql/stage_results" @effect_results,

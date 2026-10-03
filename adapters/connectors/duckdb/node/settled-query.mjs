@@ -17,6 +17,9 @@ export async function runSettledQuery(grant, prepare, limits, signal, acquire, a
     && matchesSourceAcquisition(settled, grant, bridge.port, settled.value.readView);
   const close = () => {
     if (released) return;
+    if (bridge?.stopped?.() === false) {
+      throw new DuckDBTransportError('QueryStopUnconfirmed');
+    }
     closed = true;
     bridge?.close();
     if (settled !== undefined) releaseSourceAcquisition(settled);
@@ -32,9 +35,11 @@ export async function runSettledQuery(grant, prepare, limits, signal, acquire, a
     settled = await acquire(grant, bridge.port, limits, signal, accounting);
     signal?.throwIfAborted();
     if (!verify(bridge.attempt)) throw new DuckDBTransportError('ForeignAcceptedAttempt');
-    // These are synchronous MoonBit state transitions: settlement, guarded
-    // demand/guards, retention, evidence and capture. No new source access is allowed.
-    const observation = bridge.complete();
+    // A trusted bounded residual may yield after transport settlement. Its
+    // owner retains the scan and must confirm stop before close can release it.
+    // Legacy completion remains synchronous; arbitrary thenables are rejected.
+    const observation = typeof bridge.completeBounded === 'function'
+      ? await bridge.completeBounded(signal) : bridge.complete();
     if (observation === undefined || observation === null || typeof observation.then === 'function') {
       throw new DuckDBTransportError('InvalidCaptureCompletion');
     }
@@ -50,9 +55,12 @@ export async function runSettledQuery(grant, prepare, limits, signal, acquire, a
       close,
     });
   } catch (error) {
-    const ended = settled !== undefined ? {outcome: 'stopped'} :
+    const ended = settled !== undefined ?
+      {outcome: bridge?.stopped?.() === false ? 'unknown' : 'stopped'} :
       !acquiring || error instanceof ExecutionAuthorizationError
         ? {outcome: 'not_started'} : acquisitionOutcome(error);
+    const unownedUnknown = settled === undefined &&
+      ended.outcome === 'unknown' && ended.recovery === undefined;
     const failures = [error];
     try { bridge?.abort(); } catch (cleanup) { failures.push(cleanup); }
     try { close(); } catch (cleanup) { failures.push(cleanup); }
@@ -68,7 +76,7 @@ export async function runSettledQuery(grant, prepare, limits, signal, acquire, a
       },
       cleanupPending: () => !released ||
         ended.recovery?.cleanupPending() === true ||
-        (ended.outcome === 'unknown' && ended.recovery === undefined),
+        unownedUnknown,
     });
     const pending = recovery.cleanupPending();
     if (!pending && failures.length === 1 &&

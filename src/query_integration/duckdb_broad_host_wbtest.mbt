@@ -113,6 +113,356 @@ test "broad capture orchestration fails closed for incomplete transport and exha
 }
 
 ///|
+test "broad bounded residual handoff preserves exact authority and scan custody" {
+  for revoke in 0..<3 {
+    let f = broad_issuer_fixture()
+    let foreign = broad_issuer_fixture()
+    let attempt = broad_issued_attempt(f)
+    broad_attempt_receive(attempt)
+    f.transport.push(attempt)
+    assert_true(
+      @duckdb_query.prepare_duckdb_broad_capture_input(foreign.issuer, attempt)
+      is Err(UnauthorizedAttempt),
+    )
+    let receipt = @duckdb_query.prepare_duckdb_broad_capture_input(
+      f.issuer,
+      attempt,
+    ).unwrap()
+    assert_true(
+      @duckdb_query.duckdb_broad_capture_input_live(f.issuer, attempt, receipt),
+    )
+    assert_false(
+      @duckdb_query.duckdb_broad_capture_input_live(
+        foreign.issuer,
+        attempt,
+        receipt,
+      ),
+    )
+    assert_eq(
+      @execution.captured_row_count(@query.query_receipt_rows(receipt)),
+      3,
+    )
+    // Admission has not executed a filter, produced an output or issued records.
+    assert_true(@duckdb_query.duckdb_broad_attempt_row_count(attempt) is None)
+    if revoke == 0 {
+      @duckdb_query.close_duckdb_query_issuer(f.issuer)
+    } else if revoke == 1 {
+      f.transport.clear()
+    } else {
+      @duckdb_query.abort_duckdb_broad_attempt(attempt)
+    }
+    assert_false(
+      @duckdb_query.duckdb_broad_capture_input_live(f.issuer, attempt, receipt),
+    )
+  }
+  let f = broad_issuer_fixture()
+  let unverified = broad_issued_attempt(f)
+  broad_attempt_receive(unverified)
+  assert_true(
+    @duckdb_query.prepare_duckdb_broad_capture_input(f.issuer, unverified)
+    is Err(UnverifiedTransport),
+  )
+  let unfinished = broad_issued_attempt(f)
+  f.transport.push(unfinished)
+  assert_true(
+    @duckdb_query.prepare_duckdb_broad_capture_input(f.issuer, unfinished)
+    is Err(BroadAttempt(InvalidState)),
+  )
+}
+
+///|
+test "settled broad scan runs through bounded Local without granting capture" {
+  for cancel in [false, true] {
+    let f = broad_issuer_fixture()
+    let attempt = broad_issued_attempt(f)
+    broad_attempt_receive(attempt)
+    f.transport.push(attempt)
+    let receipt = @duckdb_query.prepare_duckdb_broad_capture_input(
+      f.issuer,
+      attempt,
+    ).unwrap()
+    let live = fn() {
+      @duckdb_query.duckdb_broad_capture_input_live(f.issuer, attempt, receipt)
+    }
+    let limits = dispatch_test_limits()
+    let residual = @client_local_host.prepare_client_query_residual(
+      max_name_bytes=10000,
+      f.sequence,
+      receipt,
+      live,
+      limits.local_execution,
+      limits.guards,
+      100,
+      10000,
+    ).unwrap()
+    let active = @client_local_host.client_query_residual_execution(residual)
+    let mut terminal = false
+    let mut requested = false
+    let mut used = 0L
+    for _ in 0..<1000 {
+      if terminal {
+        break
+      }
+      match @local_connector.advance_managed_provider(active, 1).unwrap() {
+        @local_connector.Continue(work~, ..) => {
+          assert_true(work <= 1L)
+          used += work
+          if cancel && !requested && used > 0L {
+            assert_true(@local_connector.cancel_managed_provider(active))
+            requested = true
+            // A stop request does not revoke the attempt's borrowed input.
+            assert_true(live())
+          }
+        }
+        @local_connector.Complete(output, work~, ..) => {
+          assert_false(cancel)
+          assert_true(work <= 1L)
+          assert_eq(@execution.completed_row_count(output), 2)
+          assert_true(
+            @execution.completed_cell(output, 0, 0) is Some(Number(3)),
+          )
+          assert_true(
+            @execution.completed_cell(output, 1, 0) is Some(Number(2)),
+          )
+          assert_true(
+            @execution.completed_output_matches_captured_inputs(output, [
+              @query.query_receipt_rows(receipt),
+            ]),
+          )
+          let other = @query.admit_query_receipt(
+            f.sequence,
+            [
+              input_cursor("{\"id\":3}"),
+              input_cursor("{\"id\":1}"),
+              input_cursor("{\"id\":2}"),
+            ],
+            3,
+            run_limits().input_values,
+          ).unwrap()
+          assert_false(
+            @execution.completed_output_matches_captured_inputs(output, [
+              @query.query_receipt_rows(other),
+            ]),
+          )
+          terminal = true
+        }
+        @local_connector.Stopped(..) => {
+          assert_true(requested)
+          assert_true(
+            @client_local_host.client_query_residual_output(
+              residual,
+              f.sequence,
+              receipt,
+              100,
+              10000,
+            )
+            is None,
+          )
+          terminal = true
+        }
+        _ => fail("bounded acquisition residual failed")
+      }
+    }
+    assert_true(terminal)
+    assert_true(@local_connector.managed_provider_stopped(active))
+    assert_true(@duckdb_query.duckdb_broad_attempt_row_count(attempt) is None)
+    assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
+    assert_true(
+      @client_local_host.client_query_residual_output(
+        residual,
+        f.sequence,
+        receipt,
+        100,
+        10000,
+      )
+      is None,
+    )
+    @duckdb_query.abort_duckdb_broad_attempt(attempt)
+    assert_false(live())
+  }
+}
+
+///|
+test "bounded residual capture retains cleanup custody without repeating Compute" {
+  for retention_failure in [false, true] {
+    let f = broad_issuer_fixture()
+    let attempt = broad_issued_attempt(f)
+    broad_attempt_receive(attempt)
+    f.transport.push(attempt)
+    let receipt = @duckdb_query.prepare_duckdb_broad_capture_input(
+      f.issuer,
+      attempt,
+    ).unwrap()
+    let base = broad_host_completion_limits()
+    let limits = if retention_failure {
+      { ..base, retention: { ..base.retention, received_wire_bytes: 0, }, }
+    } else {
+      base
+    }
+    let guards = @planning.query_requirement_guards(f.requirement)
+    let residual = @client_local_host.prepare_client_query_residual(
+      f.sequence,
+      receipt,
+      fn() {
+        @duckdb_query.duckdb_broad_capture_input_live(
+          f.issuer,
+          attempt,
+          receipt,
+        )
+      },
+      limits.execution,
+      {
+        max_work: limits.guards.max_work,
+        max_bytes: limits.guards.max_bytes,
+        max_nodes: limits.guards.max_nodes,
+        max_depth: limits.guards.max_depth,
+      },
+      guards.max_rows,
+      guards.max_value_bytes,
+      max_name_bytes=10000,
+    ).unwrap()
+    let active = @client_local_host.client_query_residual_execution(residual)
+    assert_true(
+      @client_local_host.complete_client_broad_query_residual(
+        residual,
+        f.issuer,
+        attempt,
+        limits,
+      )
+      is Err(BroadAttempt(InvalidState)),
+    )
+    let mut done = false
+    for _ in 0..<1000 {
+      if done {
+        break
+      }
+      match @local_connector.advance_managed_provider(active, 1).unwrap() {
+        @local_connector.Continue(work~, ..) => assert_true(work <= 1L)
+        @local_connector.Complete(_, ..) => done = true
+        _ => fail("bounded residual did not complete")
+      }
+    }
+    assert_true(done)
+    let work = @local_connector.managed_provider_cumulative_work(active).unwrap()
+    assert_true(
+      @client_local_host.complete_client_broad_query_residual(
+        residual,
+        f.issuer,
+        attempt,
+        {
+          ..limits,
+          guards: { ..limits.guards, max_work: limits.guards.max_work + 1, },
+        },
+      )
+      is Err(BroadAttempt(InvalidState)),
+    )
+    let cleanup_calls = Ref(0)
+    let result = if retention_failure {
+      // Inject a transient cleanup failure at the trusted composition boundary.
+      @duckdb_query.complete_duckdb_broad_bounded_capture(
+        f.issuer,
+        attempt,
+        receipt,
+        fn(query, input, guards, _) {
+          @client_local_host.client_query_residual_output(
+            residual,
+            query,
+            input,
+            guards.max_rows,
+            guards.max_value_bytes,
+          )
+        },
+        fn() {
+          cleanup_calls.val += 1
+          if cleanup_calls.val == 1 {
+            return Err(@connector.InvalidLimits)
+          }
+          @local_connector.cleanup_managed_provider(active)
+        },
+        limits,
+      )
+    } else {
+      @client_local_host.complete_client_broad_query_residual(
+        residual,
+        f.issuer,
+        attempt,
+        limits,
+      )
+    }
+    if retention_failure {
+      assert_true(result is Err(BroadAttempt(Retention(_))))
+      assert_true(@duckdb_query.duckdb_broad_attempt_row_count(attempt) is None)
+      assert_true(
+        @duckdb_query.cleanup_duckdb_broad_residual(attempt)
+        is Err(@connector.InvalidLimits),
+      )
+      assert_eq(cleanup_calls.val, 1)
+      assert_true(
+        @client_local_host.client_query_residual_output(
+          residual,
+          f.sequence,
+          receipt,
+          guards.max_rows,
+          guards.max_value_bytes,
+        )
+        is Some(_),
+      )
+    } else {
+      let observation = result.unwrap()
+      let (expected, _) = query_observation_oracle(
+        f.requirement,
+        @duckdb_query.duckdb_broad_attempt_identity(attempt).unwrap(),
+        "[{\"id\":3},{\"id\":1},{\"id\":2}]",
+        3,
+        "[\"id\"]",
+        "[{\"id\":3},{\"id\":2}]",
+        2,
+      )
+      assert_eq(
+        @encode.document_text(
+          @duckdb_query.duckdb_broad_observation_document(observation),
+        ),
+        expected,
+      )
+      // Successful capture owns the residual until issuer revocation.
+      assert_false(
+        @duckdb_query.cleanup_duckdb_broad_residual(attempt).unwrap(),
+      )
+      assert_true(
+        @client_local_host.client_query_residual_output(
+          residual,
+          f.sequence,
+          receipt,
+          guards.max_rows,
+          guards.max_value_bytes,
+        )
+        is Some(_),
+      )
+      @duckdb_query.close_duckdb_query_issuer(f.issuer)
+    }
+    assert_true(@duckdb_query.cleanup_duckdb_broad_residual(attempt).unwrap())
+    assert_true(@duckdb_query.cleanup_duckdb_broad_residual(attempt).unwrap())
+    if retention_failure {
+      assert_eq(cleanup_calls.val, 2)
+    }
+    assert_true(
+      @client_local_host.client_query_residual_output(
+        residual,
+        f.sequence,
+        receipt,
+        guards.max_rows,
+        guards.max_value_bytes,
+      )
+      is None,
+    )
+    assert_eq(
+      @local_connector.managed_provider_cumulative_work(active),
+      Ok(work),
+    )
+  }
+}
+
+///|
 test "configured broad Host uses owned consumer binding with no acquisition data copies" {
   let f = broad_issuer_fixture()
   let (query, evidence) = query_evidence_test_bodies()

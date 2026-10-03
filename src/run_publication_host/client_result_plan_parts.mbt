@@ -40,6 +40,7 @@ fn issue_client_result_plan_parts(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  infer_output? : (Int, Int)? = None,
 ) -> Result[ClientResultPlanParts, ClientResultPlanPartsIssue] {
   match
     issue_prepared_client_direct_result_root_for_output(
@@ -64,9 +65,36 @@ fn issue_client_result_plan_parts(
   // A transformation may change projection/order, not the producer selected
   // by the checked graph. The direct-root refusal also covers other targets.
   guard @strategy.graph_result_task(owner.graph, result) is Some(task) &&
-    @strategy.graph_result_occurrence(owner.graph, result) is Some(occurrence) &&
-    @strategy.graph_task_target(owner.graph, task) is Some(target) &&
-    @results.port_target(@execution.managed_result_occurrence_port(occurrence)) ==
+    @strategy.graph_result_occurrence(owner.graph, result) is Some(occurrence) else {
+    return Err(Root(RequiresResultTransformation))
+  }
+  let target = match @strategy.graph_task_target(owner.graph, task) {
+    Some(target) => target
+    None => {
+      // A captured task has no single graph target. The Infer compiler must
+      // supply its exact checked terminal, not merely a matching Result name.
+      guard task == 0 &&
+        infer_output is Some((infer_step, terminal)) &&
+        client_acquired_infer_prefix_owner(owner, task, infer_step)
+        is Some(prepared) &&
+        terminal >= infer_step &&
+        @lower.preparation_output_target(@lower.bound_preparation(prepared)) ==
+        Some(@pipeline.Step(terminal)) &&
+        @lower.node_at(@lower.bound_preparation(prepared), terminal)
+        is Some(node) &&
+        @lower.node_id(node) == producer_port &&
+        physical_equal(
+          @execution.managed_result_occurrence_owner(occurrence),
+          prepared,
+        ) else {
+        return Err(Root(RequiresResultTransformation))
+      }
+      @pipeline.Step(terminal)
+    }
+  }
+  guard @results.port_target(
+      @execution.managed_result_occurrence_port(occurrence),
+    ) ==
     target else {
     return Err(Root(RequiresResultTransformation))
   }

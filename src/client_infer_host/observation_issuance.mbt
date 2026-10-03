@@ -26,6 +26,7 @@ struct ObservationIssuanceState {
   template : @publication.RunEvidenceValue
   artifact : @publication.RunEvidenceValue
   policy_cid : String
+  source : @publication.ModelSourceObservation?
   ledger : @resources.Ledger
   reservation : @resources.Reservation
   writer : @encode.Writer
@@ -125,6 +126,9 @@ pub fn start_observation_issuance(
     definition: bound.definition,
     template: @publication_host.client_compiled_run_template(bound.compiled),
     artifact: @publication_host.client_infer_call_scope_artifact(scope),
+    source: active.acquired_input.map(
+      @publication_host.client_infer_captured_input_observation,
+    ),
     policy_cid: @environment.model_task_data_handling_cid(
       @environment.model_execution_task(
         @publication_host.client_infer_plan_graph_execution_contract(plan),
@@ -177,7 +181,14 @@ fn emit_observation_issuance_step(
             @publication.run_evidence_value_identity(state.template),
           ),
           ("data_policy_cid", state.policy_cid),
-          ("consistency", "no_external_sources"),
+          (
+            "consistency",
+            if state.source is Some(_) {
+              "independent_snapshots"
+            } else {
+              "no_external_sources"
+            },
+          ),
         ] {
         @encode.key(writer, name)
         @encode.string_value(writer, value)
@@ -191,10 +202,35 @@ fn emit_observation_issuance_step(
       @encode.end_array(writer)
       @encode.key(writer, "source_evidence_cids")
       @encode.begin_array(writer)
+      if state.source is Some(source) {
+        @encode.string_value(
+          writer,
+          @publication.model_source_observation_fields(source).0,
+        )
+      }
       @encode.end_array(writer)
-      for name in ["capture_started_at", "capture_completed_at"] {
+      for
+        (index, name) in [
+          (0, "capture_started_at"),
+          (1, "capture_completed_at"),
+        ] {
         @encode.key(writer, name)
-        @encode.null_value(writer)
+        match state.source {
+          None => @encode.null_value(writer)
+          Some(source) => {
+            let (_, started, completed) = @publication.model_source_observation_fields(
+              source,
+            )
+            @encode.string_value(
+              writer,
+              if index == 0 {
+                started
+              } else {
+                completed
+              },
+            )
+          }
+        }
       }
       @encode.key(writer, "replayability")
       @encode.begin_object(writer)
