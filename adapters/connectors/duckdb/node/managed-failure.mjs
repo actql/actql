@@ -40,6 +40,32 @@ const cleanupState = (handle, required = false) => {
   }
 };
 
+// A successful Compute can still have readers holding its revoked output.
+// Reuse the installed attempt's recovery progression for pending/error cleanup;
+// completion is not permission to forget its Store or reservation.
+export async function closeManagedDuckDBOutput(moon, checked, state) {
+  let failure;
+  try {
+    moon.managedOutputCancel(state.output);
+    state.body.close();
+    state.store.close();
+    state.lifecycle.outputDisposed = true;
+    try { await state.store.cleanup(); }
+    finally {
+      moon.managedStrategyClose(state.run);
+      moon.managedStrategyRefreshRetention(state.run);
+    }
+    if (state.store.status().cleanupPending === false &&
+        checked(moon.managedStrategyCleanupRefresh(state.run)) === true) {
+      return;
+    }
+    failure = Object.assign(new Error('ManagedOutputCleanupPending'), {
+      code: 'ManagedOutputCleanupPending',
+    });
+  } catch (error) { failure = error; }
+  throw await settleFailedManagedDuckDB(moon, checked, state, failure);
+}
+
 // The portable DuckDB driver selects every lifecycle action. This adapter owns
 // only Node resources and observations: native cleanup, Store cleanup, and the
 // bridge calls that apply the selected common task operation.

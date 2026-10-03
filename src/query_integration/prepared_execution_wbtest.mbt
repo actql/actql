@@ -23,6 +23,7 @@ test "confirmed retention is bounded and never substitutes for completion or cle
           cancel: fn() {  },
           dispose: fn() {  },
           settled: fn() {  },
+          scratch_released: fn() { cleaned.val },
           retention_released: fn() { cleaned.val },
           released: fn() {  },
           ready: fn() { Ok(()) },
@@ -63,11 +64,22 @@ test "confirmed retention is bounded and never substitutes for completion or cle
     @strategy.close_task_execution(run, execution)
     let pending = @resources.ledger_usage(ledger)
     assert_eq(pending.held_bytes + pending.reserved_retention_bytes, 100L)
+    assert_eq(pending.reserved_execution_bytes, 10L)
+    @strategy.refresh_captured_retention(run)
+    assert_eq(@resources.ledger_usage(ledger), pending)
     cleaned.val = true
+    // The Host's late storage-refresh boundary must discharge the original
+    // disposed execution too, without running its finisher or cleanup again.
+    @strategy.refresh_captured_retention(run)
+    let released = @resources.ledger_usage(ledger)
+    assert_eq(released.reserved_execution_bytes, 0L)
     assert_true(
       @strategy.refresh_task_execution_cleanup(run, execution).unwrap(),
     )
-    let released = @resources.ledger_usage(ledger)
+    assert_eq(@resources.ledger_usage(ledger), released)
+    @strategy.refresh_captured_retention(run)
+    assert_eq(@resources.ledger_usage(ledger), released)
+    assert_eq(finishes.val, if amount == 40L { 1 } else { 0 })
     assert_eq(released.held_bytes, 0L)
     assert_eq(released.reserved_retention_bytes, 0L)
     assert_eq(released.transferred_bytes, 23L)
@@ -102,6 +114,7 @@ test "prepared asynchronous execution reserves before calling installed payload"
         cancel: fn() { cancelled.val += 1 },
         dispose: fn() { disposed.val += 1 },
         settled: fn() { settled.val += 1 },
+        scratch_released: fn() { true },
         retention_released: fn() { true },
         released: fn() { released.val += 1 },
         ready: fn() { Ok(()) },
@@ -242,6 +255,7 @@ test "prepared execution still rejects foreign completed output and keeps holdin
         cancel: fn() {  },
         dispose: fn() {  },
         settled: fn() {  },
+        scratch_released: fn() { true },
         retention_released: fn() { true },
         released: fn() {  },
         ready: fn() { Ok(()) },

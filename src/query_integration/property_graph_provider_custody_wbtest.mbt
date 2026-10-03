@@ -149,3 +149,101 @@ test "current Graph material remains owned across two MATCH consumers cancellati
   assert_true(@execution.completed_output_available(first_output))
   assert_true(@execution.completed_output_available(second_output))
 }
+
+///|
+test "provider scratch cleanup preserves the transferred snapshot generation" {
+  let nodes = keyed_node_source()
+  let edges = keyed_edge_source()
+  let owner = keyed_bridge_owner(nodes, edges)
+  let generated = @execution.select_generated_sequence_step(
+    task_test_generated(owner),
+    0,
+  ).unwrap()
+  let provider = @local_sga_provider.provider(
+    carrier_graph_storage_limits(),
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+    snapshot_policy=Some({
+      serialization: snapshot_caps(),
+      read: {
+        max_nodes: 10000,
+        max_depth: 100,
+        max_string_bytes: 100000,
+        max_total_string_bytes: 100000,
+      },
+      maximum_bytes: 100000,
+      maximum_frame_bytes: 100000,
+      workspace_bytes: 1000000L,
+    }),
+  )
+  let construction = @local_connector.start_managed_provider_with_inputs(
+    provider,
+    generated,
+    keyed_bridge_inputs(owner, nodes, edges).map(
+      @local_connector.managed_provider_relation_input,
+    ),
+    10,
+    1000,
+  ).unwrap()
+  let mut material = None
+  for _ in 0..<1000 {
+    match @local_connector.advance_managed_provider(construction, 1).unwrap() {
+      @local_connector.Continue(..) => ()
+      @local_connector.CarrierComplete(output, ..) => {
+        material = Some(output)
+        break
+      }
+      _ => fail("constructor did not deliver a current Graph")
+    }
+  }
+  let source = material.unwrap()
+  let operation = @carrier_runtime.material_prepare_snapshot(source)
+    .unwrap()
+    .unwrap()
+  let saved = StringBuilder()
+  let mut complete = false
+  for _ in 0..<10000 {
+    let advanced = (operation.advance_save)(1).unwrap()
+    saved.write_string((operation.take_output)().unwrap())
+    if advanced.complete {
+      complete = true
+      break
+    }
+  }
+  assert_true(complete)
+  let content = (operation.content)().unwrap()
+  (operation.release_source)(content.cid).unwrap()
+  assert_false(@carrier_runtime.material_available(source))
+  (operation.begin_reload)(saved.to_string(), () => true).unwrap()
+  complete = false
+  for _ in 0..<10000 {
+    if (operation.advance_reload)(1).unwrap().complete {
+      complete = true
+      break
+    }
+  }
+  assert_true(complete)
+  let restored = (operation.take_material)().unwrap()
+  @carrier_runtime.reclaim_material(source) |> ignore
+  assert_false(@carrier_runtime.material_cleanup_pending(source))
+  assert_eq(@carrier_runtime.material_storage_bytes(restored), Some(4096L))
+  assert_true(@local_connector.cleanup_managed_provider(construction).unwrap())
+  assert_true(@local_connector.cleanup_managed_provider(construction).unwrap())
+  assert_true(@carrier_runtime.material_available(restored))
+  assert_eq(@carrier_runtime.material_storage_bytes(restored), Some(4096L))
+  let receiver = keyed_graph_receiver(
+    owner,
+    body="[{\"from\":\"g\",\"match_nodes\":{\"definition\":\"N\",\"where\":\"true\",\"fields\":[\"display\"]}}]",
+  )
+  let read = @carrier_runtime.material_prepare_view(
+    restored, receiver, 0, owner,
+  ).unwrap()
+  assert_eq(@carrier_runtime.producer_view_node_count(read), Some(1))
+  assert_true(@carrier_runtime.reclaim_material(restored))
+  assert_false(@carrier_runtime.material_available(restored))
+  assert_true(@carrier_runtime.producer_view_node_count(read) is None)
+}
