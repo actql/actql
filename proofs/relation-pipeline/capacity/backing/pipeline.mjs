@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { inputs } from '../model.mjs';
 import { currentSlotsCeiling } from './model.mjs';
 import { inspectPipelineMaps } from './maps.mjs';
+import { inspectNativeArrays } from './native-array.mjs';
 // Dimensions come from the independent oracle applied to the executed case.
 // Each bound concerns a current container, not a sum of unique allocations.
 export function pipelineBounds(testCase, registry, target) {
@@ -26,6 +27,7 @@ export function inspectPipelineBacking(testCase, observation, registry, requeste
   const events = observation.faults.filter(e => e.kind === 'capacity observation' &&
     ['start', 'checkpoint', 'before-cleanup', 'after-cleanup'].includes(e.event));
   assert(events.length > 0, 'Missing actual container-capacity observations');
+  const selectedArrayExtents = [];
   for (const e of events) {
     assert(e.arrayCapacity, 'Missing real state Array capacity');
     assert.deepEqual(Object.keys(e.arrayCapacity).sort(), Object.keys(bounds).sort());
@@ -37,6 +39,9 @@ export function inspectPipelineBacking(testCase, observation, registry, requeste
     // makei(width, ...) has exactly width slots on every admitted target.
     assert.equal(BigInt(e.arrayCapacity.inputNames), bounds.inputNames);
     assert.equal(BigInt(e.arrayCapacity.outputNames), bounds.outputNames);
+    if (requestedTarget === 'native') {
+      selectedArrayExtents.push(inspectNativeArrays(e.nativeArrays, e.arrayCapacity, bounds));
+    } else assert.equal(e.nativeArrays, undefined, 'Native Array descriptors belong to another target');
     if (requestedTarget === 'js') {
       // These are visible lengths on JS, never observations of engine storage.
       assert.equal(e.arrayCapacity.keep, e.keep);
@@ -50,5 +55,6 @@ export function inspectPipelineBacking(testCase, observation, registry, requeste
     uniqueAllocationSum: false, allocationBytes: false,
     ...(maps.conditionalNativeRequestedExtent ? {
       conditionalNativeRequestedExtent: maps.conditionalNativeRequestedExtent,
+      selectedNativeArrayExtents: selectedArrayExtents,
     } : {}) };
 }
