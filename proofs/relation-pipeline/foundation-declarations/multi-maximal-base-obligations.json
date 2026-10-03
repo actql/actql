@@ -1,0 +1,76 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "multi-maximal-base-obligations",
+  "kind": "change",
+  "revision": "d9631e44d263a00a1ab9bf99361228d478dc3e0d",
+  "parents": [
+    "b6da7a7191dcdc9cf9bc91e39cd55cb4e12ed301"
+  ],
+  "changes": [
+    {
+      "path": "proofs/relation-pipeline/current-foundation.md",
+      "before": [
+        {
+          "revision": "b6da7a7191dcdc9cf9bc91e39cd55cb4e12ed301",
+          "digest": "3b5c54d1a9c074060aa98f917921985fe37b1dd21f242eb31e903baef3a8c37d",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "ecf85ce6f5b2ff7dd19c03eb5c7ba6eefebb3666160567c2be234e4eed38fba5",
+      "afterMode": "100644",
+      "reason": "Document the reviewed conservative multi-base contract, exact declaration/report fields, unchanged single-base boundaries and the separation between fixed identity examples and owner-supplied historical merge acceptance."
+    },
+    {
+      "path": "proofs/relation-pipeline/fixtures/multiple-merge-bases.json",
+      "before": [
+        {
+          "revision": "b6da7a7191dcdc9cf9bc91e39cd55cb4e12ed301",
+          "digest": null,
+          "mode": null
+        }
+      ],
+      "afterDigest": "e53a70b133738cec7f698db3a7cb06a3bf51f029bd91cebbb7958c2a52145bc2",
+      "afterMode": "100644",
+      "reason": "Retain independently inspected Git blob/mode identities for all 73 inherited protected paths at the actual 19b0 merge, ordered parents and both maximal bases, with the separately derived five/twenty-path requirements and twenty-one-path union; this fixture is not a D resolution declaration or execution receipt."
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation.mjs",
+      "before": [
+        {
+          "revision": "b6da7a7191dcdc9cf9bc91e39cd55cb4e12ed301",
+          "digest": "ea2c2a773a2b6bb420a246f5ec898e573ddd58273e6b3b01fbb8262746d34c7e",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "503a86afa77e3b7055b472b4216619d8a0e9aa8f74dc1640a61f9358af2c61aa",
+      "afterMode": "100644",
+      "reason": "Require the union of independently derived obligations over every actual maximal merge base, preserve complete per-base grounds and exact source/ordered-parent identities, and reject omitted or inconsistent base evidence without changing single-base validation."
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation.test.mjs",
+      "before": [
+        {
+          "revision": "b6da7a7191dcdc9cf9bc91e39cd55cb4e12ed301",
+          "digest": "ca871bab212f404665ef7fec03758214d892b07f588753381a33cf40ff24e3f1",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "6c022adeaa85375ba9050e27c3989a4df0feab254317128b92a3b10422dc973a",
+      "afterMode": "100644",
+      "reason": "Exercise actual real-Git criss-cross histories, exclusive obligations from either base, full-base and alias tampering, unavailable history objects and parent ordering; retain existing single-base and immutable/convergent provenance regressions."
+    },
+    {
+      "path": "proofs/relation-pipeline/history.mjs",
+      "before": [
+        {
+          "revision": "b6da7a7191dcdc9cf9bc91e39cd55cb4e12ed301",
+          "digest": "252e0dd8ede18402d89432cae73739b86134609c08765ef328b86c58c16a4269",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "a78c3998dfb17f879e3d24ffda59b6e6ed8ab8210a9d7213b648d601159c8b8f",
+      "afterMode": "100644",
+      "reason": "Protect the fixed multiple-merge-base identity fixture as an explicit foundation path so edits require source-bound declarations rather than moving the acceptance oracle outside the checked scope."
+    }
+  ]
+}
