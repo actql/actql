@@ -19,8 +19,12 @@ workspace, private-stop custody and installed Host cancellation evidence.
 The shared public refusal test exercises both source-free and external-input
 Programs and requires refusal before Run admission, input I/O and dispatch.
 Refused routes cannot claim execution/resource assurance, and no tuple fallback
-may satisfy an obsolete dispatch marker. Nonempty-hop predicate/resource variants
-and the other SGA consumers remain open; gate success is not all-SGA completion.
+may satisfy an obsolete dispatch marker. The checked hop-property predicate
+route now has focused JS type/lowering/kernel evidence and retained Node Host
+publication, two consumers, and cancellation after predicate progress. Its
+final three-target, packed, and submitted-SHA acceptance remains open, as do
+other SGA consumers; gate success is not
+all-SGA completion.
 See `docs/reviews/2026-10-02-property-graph-vertical.md` for checkpoint evidence.
 
 The current retained-Store traversal route is exercised for WALK, TRAIL, and
@@ -32,7 +36,7 @@ Graph inputs, multiple resume quanta, reversed physical edge insertion, and
 all three directions for TRAIL. The SGA fixture raises only its authored
 fragment-value cap to admit the canonical multi-hop path values; it does not
 alter the product limit. This closes those path-mode delivery shapes, not
-predicate-bearing traversal, all Graph obligations, or the blocked legacy
+all predicate-bearing traversal, all Graph obligations, or the blocked legacy
 Graph-to-Relation Bridges.
 
 The current ordered two-hop TRAIL label pattern also reaches the retained
@@ -41,7 +45,8 @@ independently expected rows through the producer and both consumers; an
 unmatched label publishes empty results for the same three names. Stored and
 viewed Graph reads retain independent exact/one-short work and workspace
 limits and cleanup after in-progress cancellation while comparing a nonempty
-label list. Hop property predicates, node emission, and other current SGA
+label list. This label-only fixture does not certify the separate hop-property
+predicate route described above. Node emission and other current SGA
 consumers remain unsupported; this evidence does not promote the entire
 `traverse` operation to complete.
 

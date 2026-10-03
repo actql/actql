@@ -187,6 +187,59 @@ rewrite its input spelling.
 Paths requiring no resolution under every maximal base do not need to be
 repeated in the resolution.
 
+### Receipts introduced after an immutable resolution
+
+A source ancestor can receive its declaration after a downstream resolution
+was recorded. The downstream original remains immutable. Complete its missing
+dependency receipts with a separate, additive record in
+`proofs/relation-pipeline/foundation-declarations-supplements/<id>.json`:
+
+```json
+{
+  "version": "actql-foundation-resolution-supplement/0.1",
+  "id": "complete-late-receipt",
+  "target": {"id": "original-resolution", "digest": "<original JSON SHA-256>"},
+  "inputs": ["later-introduced-declaration"],
+  "reason": "Bind the receipt introduced after the unchanged original"
+}
+```
+
+The target must be an independently validated resolution, bound by its exact
+original bytes. Every supplement introduction follows an original introduction
+and an introduction of each supplied receipt. Supplement bytes, mode, filename,
+membership and every introduction are checked against real Git and retained
+unchanged, using the same inheritance and working/index safeguards as originals.
+
+At **each original introduction**, its original normalized inputs must exactly
+cover every currently known required source group whose receipt was then
+reachable. A supplement cannot excuse an already visible omission, change an
+original input, repair a bad source/parent/blob/mode binding, or replace a
+missing source declaration. Additions must be disjoint required source groups
+ancestral to the original merge's real parents. Unknown, unrelated, future,
+self/cyclic, duplicate, redundant and still-incomplete dependencies are rejected.
+All effective source dependencies must match the independently derived complete
+set, and every equivalent original record must pass independently.
+
+The report retains original `inputs`, digest and introduction metadata verbatim.
+When present, a separate `supplements` array records the new records, their
+digests and introductions; affected integrations list their supplement IDs.
+Without supplements, declaration and aggregate formats/results are unchanged.
+This is dependency provenance, not an approval or permission to execute.
+
+Ordinary `foundation.test.mjs` regressions use small, self-contained real-Git
+fixtures. They cover failure before supplementation, success afterward,
+immutability and dependency rejection, and continued success after an unrelated
+commit or another independently justified supplement. They require neither an
+unmerged branch's objects nor a runtime HEAD merge into historical evidence.
+
+An optional `scripts/rehearse-foundation-supplement.mjs` command accepts explicit
+source and validator commit SHAs and a canonical supplement input file. It
+checks the original digest/introduction in an isolated worktree, leaves an
+identical existing supplement unchanged, and locates the receipt by identity
+rather than total count. Missing explicitly requested objects fail. This command
+is separate from ordinary CI. The previously obtained #246 rehearsal and its
+exact inputs remain in [the historical evidence record](../../docs/reviews/2026-10-03-resolution-supplement-rehearsal.md).
+
 A resolution records reviewed source provenance; it does not establish that
 both test commands are semantically correct or that a reviewer approved them.
 The real-Git integration fixtures assert both independent registrations and

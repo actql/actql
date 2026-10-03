@@ -521,6 +521,8 @@ pub(all) enum ExpressionConsumer {
   AnalyticArgument(String)
   SequencePredicate(Int)
   GraphMatchPredicate
+  GraphTraverseEdgePredicate(Int)
+  GraphTraverseNodePredicate(Int)
   InferInput(Int)
 } derive(Eq, @debug.Debug)
 

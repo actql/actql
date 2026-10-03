@@ -46,7 +46,7 @@ fn graph_property_scope_input() -> @carrier.Carrier {
 }
 
 ///|
-test "current TRAIL has no predicate slots while definition-scoped MATCH keeps the common expression owner" {
+test "TRAIL without predicates has no slots while MATCH keeps the common expression owner" {
   let graph = graph_property_scope_input()
   let relation = @carrier.relation(
     @carrier.rows(
@@ -60,7 +60,7 @@ test "current TRAIL has no predicate slots while definition-scoped MATCH keeps t
     (body, expected_slots, expected_work) in [
       (
         "[{\"from\":\"g\",\"traverse\":{\"start\":{\"from\":\"r\",\"id\":\"id\"},\"hops\":[{\"direction\":\"out\",\"edge_types\":[\"Link\"]}],\"path_mode\":\"trail\",\"emit\":\"paths\"}}]",
-        0, 1,
+        0, 3,
       ),
       (
         "[{\"from\":\"g\",\"match_nodes\":{\"definition\":\"N\",\"where\":\"active\",\"fields\":[\"active\"]}}]",
