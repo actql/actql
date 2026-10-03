@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "ci-artifact-preflight-fixtures",
+  "kind": "change",
+  "revision": "13863a129ea1a8deed227ed82aaf60a428f07bd2",
+  "parents": [
+    "e37fd3300ae9bd221a5c78eed09a96bed4b5f705"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "e37fd3300ae9bd221a5c78eed09a96bed4b5f705",
+          "digest": "48f0cb1ab766ff086618f5e611b1a6667e2f4dc19f64f387be4c1dcb3475e0e0",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "9885de175c415f5696ac226f6857160e8cc8c2ae7c606e2d1375707d1ceccddd",
+      "afterMode": "100644",
+      "reason": "Move the existing cheap pipeline artifact and aggregate fixture suite into mandatory preflight before expensive fan-out, excluding only that same file from the mutation producer's wildcard to avoid duplicate execution. Preserve all other producer fixtures, campaign commands, exact-source history checks and semantic artifact custody. The fixture uses the selector factory while independently asserting full coverage and retaining producer-failure negatives."
+    }
+  ]
+}
