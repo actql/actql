@@ -13294,12 +13294,20 @@ async function exerciseStrategyGraph(
       }
     } finally {
       const closing = failureExecution?.close();
+      const observedClosing = Promise.allSettled([closing]);
       if (failureExecution) {
         assert.equal(await failureExecution.cleanup(), true);
-        await closing;
+        const [closeObservation] = await observedClosing;
+        if (closeObservation.status === 'rejected') {
+          const error = closeObservation.reason;
+          assert.equal(error.code, 'ManagedOutputCleanupPending');
+          assert.equal(error.cleanupPending, true);
+          assert.equal(typeof error.cleanupHandle?.retry, 'function');
+        }
         assert.equal(failureExecution.usage().reservedTransferBytes, 0n);
         assert.equal(failureExecution.usage().reservedRetentionBytes, 0n);
-        assert.equal(failureExecution.usage().reservedExecutionBytes, 0n);
+        assert.equal(failureExecution.usage().reservedExecutionBytes, 0n,
+          transferFailureCase);
         assert(failureExecution.usage().transferredBytes > 0n,
           'spent Transfer bytes remain cumulative after failure');
       }

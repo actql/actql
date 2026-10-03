@@ -276,6 +276,11 @@ retention refresh also rechecks the original disposed executions. It releases
 their reservation only when execution settlement and the installed scratch and
 retention facts permit it. This refresh observes facts; it does not drive cleanup
 or Compute, and repeated refreshes cannot credit the reservation twice.
+The managed DuckDB Node output owner must not discard a false Store cleanup
+result after successful Compute. If a revoked body still has readers, close
+reports an owned pending-cleanup handle through the existing recovery progression.
+After the readers stop, recovery retries that exact Store and refreshes its
+original task reservation; it does not execute Compute again.
 
 Before publishing a completed task output, the common boundary validates the
 holding's ledger, origin reservation and exact bytes, then returns unused
