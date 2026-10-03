@@ -383,7 +383,7 @@
       ],
       "status": "partial",
       "owner": "local-sga",
-      "current_gap": "Initial constructor and definition-selected MATCH/TRAIL resource/cancellation regressions pass on JS, Wasm and native. Aggregate Core, final-source public snapshot and fresh packed acceptance remain open. Nonempty-hop predicate/resource variants and unconnected SGA consumers are not counted as execution success.",
+      "current_gap": "Initial constructor and definition-selected MATCH/TRAIL resource/cancellation regressions pass on JS, Wasm and native. The hop-property predicate route has focused JS checker, bounded-kernel, and retained Node Host publication evidence, but no final three-target or packed acceptance. Other traversal variants and unconnected SGA consumers remain partial.",
       "completed_layers": [
         "contract",
         "resources",
@@ -920,6 +920,26 @@
         }
       ],
       "layer_evidence": [
+        {
+          "scope": "typed_hop_property_predicates_on_current_graph",
+          "layers": [
+            "checker",
+            "lowering",
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication"
+          ],
+          "targets": ["js", "node"],
+          "evidence": [
+            "src/graph_typing/traverse_predicates_test.mbt",
+            "src/lowering_relation/graph_traverse_test.mbt",
+            "src/query_integration/property_graph_predicate_custody_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ],
+          "verification": "Focused JS checker/lowering/kernel tests and standard Node Host retained publication passed locally; final submitted-SHA CI and cross-target acceptance remain unverified."
+        },
         {
           "scope": "initial_current_graph_resource_and_stop_custody_only",
           "layers": [

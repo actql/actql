@@ -1816,6 +1816,18 @@ async function exerciseStrategyGraph(
     fields:['hop_count'],secondFields:['hop_count'],
     expected:[{hop_count:1},{hop_count:2},{hop_count:1},{hop_count:2}],
   }, {
+    name:'retained-trail-property-predicates',retainedOutput:true,
+    retainedTraversal:true,
+    steps:[
+      {from:'g',traverse:{start:{from:'seeds',id:'element'},
+        hops:[{direction:'out',edge_types:['Link'],
+          edge_where:'weight > 10',node_where:"node_name = 'first'"}],
+        path_mode:'trail',emit:'paths'},as:'paths'},
+      {from:'paths',filter:'hop_count > 0',as:'out'},
+    ],
+    fields:['hop_count'],secondFields:['hop_count'],
+    expected:[{hop_count:1}],
+  }, {
     name:'retained-walk-relation-filter', retainedOutput:true,
     retainedTraversal:true,
     steps:[
@@ -1894,6 +1906,15 @@ async function exerciseStrategyGraph(
       graphProgram.results.consumed_b = {
         from: {stage: 'consumer_b', result: 'r'},
       };
+    }
+    if (publicationCase.name === 'retained-trail-property-predicates') {
+      const invalidProgram = structuredClone(graphProgram);
+      invalidProgram.stages.find(stage => stage.id === 'graph')
+        .steps[1].traverse.hops[0].edge_where = 'missing_property > 10';
+      // Static rejection occurs before acquisition, Run or Store creation.
+      assert.throws(() => fixture.strategyFixtureSgaCreate(
+        ...sgaEnvironmentArguments(args), JSON.stringify(invalidProgram),
+      ));
     }
     const createSgaFixture = fixture.strategyFixtureSgaCreate;
     let sgaFixture;

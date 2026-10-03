@@ -19,8 +19,11 @@ workspace, private-stop custody and installed Host cancellation evidence.
 The shared public refusal test exercises both source-free and external-input
 Programs and requires refusal before Run admission, input I/O and dispatch.
 Refused routes cannot claim execution/resource assurance, and no tuple fallback
-may satisfy an obsolete dispatch marker. Nonempty-hop predicate/resource variants
-and the other SGA consumers remain open; gate success is not all-SGA completion.
+may satisfy an obsolete dispatch marker. The checked hop-property predicate
+route now has focused JS type/lowering/kernel evidence and retained Node Host
+publication with two consumers. Its final three-target, packed, and submitted-
+SHA acceptance remains open, as do other SGA consumers; gate success is not
+all-SGA completion.
 See `docs/reviews/2026-10-02-property-graph-vertical.md` for checkpoint evidence.
 
 The current retained-Store traversal route is exercised for WALK, TRAIL, and
