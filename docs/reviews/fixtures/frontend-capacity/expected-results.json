@@ -1,0 +1,116 @@
+{
+  "order-rebound-distinct": {
+    "sourceRows": [
+      {
+        "id": 1,
+        "amount": 10
+      },
+      {
+        "id": 2,
+        "amount": 20
+      },
+      {
+        "id": 1,
+        "amount": 10
+      }
+    ],
+    "rows": [
+      {
+        "id": -1
+      },
+      {
+        "id": -2
+      }
+    ],
+    "columns": [
+      {
+        "name": "id",
+        "contract": {
+          "type": "number",
+          "nullable": false
+        }
+      }
+    ]
+  },
+  "order-control-distinct": {
+    "sourceRows": [
+      {
+        "id": 1,
+        "amount": 10
+      },
+      {
+        "id": 2,
+        "amount": 20
+      },
+      {
+        "id": 1,
+        "amount": 10
+      }
+    ],
+    "rows": [
+      {
+        "score": -1
+      },
+      {
+        "score": -2
+      }
+    ],
+    "columns": [
+      {
+        "name": "score",
+        "contract": {
+          "type": "number",
+          "nullable": false
+        }
+      }
+    ]
+  },
+  "group-snapshot": {
+    "rows": [
+      {
+        "x": 7,
+        "n": 1
+      }
+    ],
+    "columns": [
+      {
+        "name": "x",
+        "contract": {
+          "type": "number",
+          "nullable": false
+        }
+      },
+      {
+        "name": "n",
+        "contract": {
+          "type": "number",
+          "nullable": false
+        }
+      }
+    ]
+  },
+  "group-current": {
+    "rows": [
+      {
+        "x": 9,
+        "n": 1
+      }
+    ],
+    "columns": [
+      {
+        "name": "x",
+        "contract": {
+          "type": "number",
+          "nullable": false
+        }
+      },
+      {
+        "name": "n",
+        "contract": {
+          "type": "number",
+          "nullable": false
+        }
+      }
+    ]
+  }
+}

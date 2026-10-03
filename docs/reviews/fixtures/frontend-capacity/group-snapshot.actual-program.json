@@ -1,0 +1,101 @@
+{
+  "id": "adhoc.query",
+  "results": {
+    "answer": {
+      "from": {
+        "result": "rows",
+        "stage": "main"
+      }
+    }
+  },
+  "stages": [
+    {
+      "id": "main",
+      "inputs": {},
+      "results": {
+        "rows": {
+          "fields": [
+            "x",
+            "n"
+          ],
+          "from": "aql_gen_0"
+        }
+      },
+      "steps": [
+        {
+          "as": "aql_source_free",
+          "values": {
+            "rows": [
+              {
+                "aql_source_free_unit": true
+              }
+            ],
+            "schema": {
+              "aql_source_free_unit": {
+                "nullable": false,
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        {
+          "derive": {
+            "aql_query_expr_0": {
+              "literal": 7
+            },
+            "aql_query_expr_1": {
+              "literal": 9
+            }
+          },
+          "from": "aql_source_free"
+        },
+        {
+          "select": [
+            {
+              "x": "aql_query_expr_0"
+            },
+            {
+              "y": "aql_query_expr_1"
+            }
+          ]
+        },
+        {
+          "derive": {
+            "aql_pipe_set_2": {
+              "field": "y"
+            }
+          }
+        },
+        {
+          "group": {
+            "aggregates": {
+              "n": {
+                "fn": "count"
+              }
+            },
+            "by": [
+              "x"
+            ]
+          }
+        },
+        {
+          "sort": [
+            {
+              "dir": "asc",
+              "field": "x",
+              "nulls": "first"
+            }
+          ]
+        },
+        {
+          "as": "aql_gen_0",
+          "select": [
+            "x",
+            "n"
+          ]
+        }
+      ]
+    }
+  ],
+  "version": "actql/0.1"
+}

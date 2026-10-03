@@ -1,0 +1,1 @@
+SELECT 7 AS x, 9 AS y |> AS before |> SET x = y |> AGGREGATE COUNT(*) AS n GROUP BY x |> ORDER BY x |> RESULT answer

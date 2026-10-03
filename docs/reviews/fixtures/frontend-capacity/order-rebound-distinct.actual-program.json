@@ -1,0 +1,120 @@
+{
+  "id": "adhoc.query",
+  "results": {
+    "answer": {
+      "from": {
+        "result": "rows",
+        "stage": "main"
+      }
+    }
+  },
+  "stages": [
+    {
+      "id": "capture",
+      "inputs": {
+        "source_0": {
+          "connector": "crm/main",
+          "resource": "r",
+          "view": "v"
+        }
+      },
+      "results": {
+        "source": {
+          "fields": [
+            "amount",
+            "id"
+          ],
+          "from": "aql_capture_0"
+        }
+      },
+      "steps": [
+        {
+          "filter": {
+            "literal": true
+          },
+          "from": "source_0"
+        },
+        {
+          "as": "aql_capture_0",
+          "select": [
+            "amount",
+            "id"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "main",
+      "inputs": {
+        "source_0": {
+          "result": {
+            "result": "source",
+            "stage": "capture"
+          }
+        }
+      },
+      "results": {
+        "rows": {
+          "fields": [
+            "id"
+          ],
+          "from": "aql_gen_0"
+        }
+      },
+      "steps": [
+        {
+          "derive": {
+            "aql_pipe_expr_2": {
+              "negate": {
+                "field": "id"
+              }
+            }
+          },
+          "from": "source_0"
+        },
+        {
+          "select": [
+            {
+              "id": "aql_pipe_expr_2"
+            }
+          ]
+        },
+        {
+          "distinct": [
+            "id"
+          ]
+        },
+        {
+          "derive": {
+            "aql_pipe_sort_2": {
+              "negate": {
+                "field": "id"
+              }
+            }
+          }
+        },
+        {
+          "sort": [
+            {
+              "dir": "asc",
+              "field": "aql_pipe_sort_2",
+              "nulls": "first"
+            }
+          ]
+        },
+        {
+          "select": [
+            "id"
+          ]
+        },
+        {
+          "as": "aql_gen_0",
+          "select": [
+            "id"
+          ]
+        }
+      ]
+    }
+  ],
+  "version": "actql/0.1"
+}

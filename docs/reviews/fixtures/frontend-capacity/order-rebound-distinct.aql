@@ -1,0 +1,1 @@
+FROM records |> AS original |> SELECT DISTINCT -id AS id |> ORDER BY -id |> RESULT answer

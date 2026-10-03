@@ -30,14 +30,23 @@ that inspection does not turn old execution evidence into a new-baseline run.
 
 | Independent repair | Submitted HEAD | Executed evidence and remaining boundary |
 |---|---|---|
-| [Scoped ORDER binding reuse #286](https://github.com/actql/actql/pull/286) | `f1144c4c3f1962112c79b68a0648ccee80680bbb` | Focused JS 17/17. Three positives/one refusal pass on both packed Local and HTTPS. DISTINCT remains `Execution(Physical(ExecutionLimit))` at managed start. |
+| [Scoped ORDER binding reuse #286](https://github.com/actql/actql/pull/286) | `1c95aeda9c3c14c49062a1cf58af766346b0c609` | Follow-up focused JS 28/28. All four positives/one refusal pass on both packed Local and HTTPS from clean runtime `06256fe791f85e7dbe4f6c71ea69bb0054e6b0fb`; adjacent RESULT removes the redundant cleanup projection. Historical DISTINCT refusal remains separately recorded. |
 | [Aggregate input scope #287](https://github.com/actql/actql/pull/287) | `e1366724e05e1296e06f7678eb28ef745fc2eaa8` | Focused Group/JOIN/parser JS 28/28, then Group/Pipe including SUM 11/11. SET/DROP SUM and two refusals pass on both packed transports. Ordered original/current-key controls remain `Execution(Physical(ExecutionLimit))`. |
 
 Each repair records its clean runtime source and normal tarball digests;
 submitted HEAD adds only the evidence document to that verified source.
-Both are Draft. Neither full positive corpus nor automatic PR CI is declared
-successful. No Host ceilings, providers, physical strategies or common owners
+Both are Draft. The narrow ORDER positive corpus is successful; the Group
+corpus remains incomplete. Neither final automatic PR CI is declared successful. No Host ceilings, providers, physical strategies or common owners
 were changed. The CTE shared-acquisition predicate defect remains D's handoff.
+
+The [capacity handoff](2026-10-04-frontend-capacity-handoff.md) preserves all
+three original refusals, actual checked Programs and independent expected rows.
+A owns the common derivation/reservation investigation; D owns public reacceptance
+after A's fixed SHA. B's adjacent RESULT repair independently closes the ORDER
+example without changing the capacity formula or 512 MiB ceiling. Group's two
+capacity refusals remain unresolved. No estimate defect is inferred solely from
+zero current reservation or a small physical fixture.
+
 NEAREST standard Host connection is separately A-owned; the existing
 [fixture directory](../../spec/frontend/fixtures/nearest-keep/README.md) and
 [prepared consumer](../../scripts/fixtures/nearest-public-input.mjs) remain
