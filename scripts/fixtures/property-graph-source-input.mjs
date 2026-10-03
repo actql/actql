@@ -10,7 +10,10 @@ const parallel = "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 
 const nodeGraph = data => data + ' DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node PROPERTIES (id))); ';
 const edgeGraph = data => 'DATA n = SELECT 1 AS id; ' + data +
   ' DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); ';
+const scopedNodes = label => "DATA p = SELECT 1 AS id, 'Person' AS tag; DATA c = SELECT 1 AS id, 'Firmxx' AS tag; DATA g = PROPERTY GRAPH (NODE TABLES (p AS P KEY (id) LABEL Node PROPERTIES (id, tag), c AS C KEY (id) LABEL " + label + ' PROPERTIES (tag, id))); ';
+const scopedEndpoint = 'DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS P KEY (id) LABEL Person NO PROPERTIES, n AS C KEY (id) LABEL Company NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES P DESTINATION KEY (dst) REFERENCES C LABEL R NO PROPERTIES)); ';
 const labelSpelling = 'DATA n = SELECT 1 AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Primary PROPERTIES (id AS ID) LABEL Secondary PROPERTIES (id AS id))); ';
+const scopedColumns = [number('id'), {name: 'tag', contract: {type: 'string', nullable: false, max_utf8_bytes: 6}}];
 export const propertyGraphSourceSuccesses = [
   {name: 'data-set-order-reuses-hidden-slot', format: 'aql-text',
     text: 'DATA n = SELECT 2 AS id UNION ALL SELECT 1 AS other ORDER BY id + 1, id + 1 DESC LIMIT 1; FROM n |> SELECT id |> RESULT nodes',
@@ -69,11 +72,28 @@ export const propertyGraphSourceSuccesses = [
   {name: 'keyed-static-label-set', format: 'aql-text',
     text: 'DATA n = SELECT 1 AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (id) LABEL Account PROPERTIES (id))); FROM GRAPH g |> MATCH WALK (a:account) |> SELECT a.id AS id |> RESULT nodes',
     results: {nodes: {rows: [{id: 1}], columns: [number('id')]}}, sourceReadCount: 0},
+  ...[['Node', 'Person'], ['`coMPaNY`', 'Firmxx']].map(([label, tag]) => ({
+    name: 'keyed-definition-label-' + tag, format: 'aql-text',
+    text: scopedNodes('Company') + 'FROM GRAPH g |> MATCH WALK (a:' + label + ') |> SELECT a.id, a.tag |> RESULT nodes',
+    results: {nodes: {rows: [{id: 1, tag}], columns: scopedColumns}}, sourceReadCount: 0,
+  })),
+  {name: 'keyed-shared-label-definition-multiplicity', format: 'aql-text',
+    text: scopedNodes('Node') + 'FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.id, a.tag |> RESULT nodes',
+    results: {nodes: {rows: [{id: 1, tag: 'Person'}, {id: 1, tag: 'Firmxx'}],
+      columns: scopedColumns, unordered: true}}, sourceReadCount: 0},
+  {name: 'keyed-definition-scoped-endpoint', format: 'aql-text',
+    text: scopedEndpoint + 'FROM GRAPH g |> MATCH p = ACYCLIC (:Person)-[:R]->() |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths',
+    results: {paths: {rows: [{depth: 1}], columns: [number('depth')]}}, sourceReadCount: 0},
   ...[['secondary', '(a:secondary WHERE `Id` = 1)'], ['all-labels', '(a WHERE `Id` = 1)']].map(([name, pattern]) => ({
     name: 'keyed-property-spelling-' + name, format: 'aql-text',
     text: labelSpelling + 'FROM GRAPH g |> MATCH WALK ' + pattern + ' |> SELECT a.id AS id |> RESULT nodes',
     results: {nodes: {rows: [{id: 1}], columns: [number('id')]}}, sourceReadCount: 0,
   })),
+  {name: 'keyed-property-spelling-definitions', format: 'aql-text',
+    text: scopedNodes('Node').replace('PROPERTIES (tag, id)', 'PROPERTIES (id AS ID, tag AS TAG)') +
+      'FROM GRAPH g |> MATCH WALK (a:Node WHERE `Id` = 1) |> SELECT a.id, a.tag |> ORDER BY tag |> RESULT nodes',
+    results: {nodes: {rows: [{id: 1, tag: 'Firmxx'}, {id: 1, tag: 'Person'}],
+      columns: scopedColumns}}, sourceReadCount: 0},
 ];
 export const propertyGraphSourceExecutionFailures = [
   {name: 'keyed-duplicate-node-key', format: 'aql-text',
@@ -87,6 +107,12 @@ export const propertyGraphSourceExecutionFailures = [
       'FROM GRAPH g |> MATCH p = WALK (:Node)-[:R]->(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths', resultNames: ['paths'], sourceReadCount: 0},
 ];
 export const propertyGraphSourceRefusals = [
+  {name: 'keyed-property-spelling-source-collision', format: 'aql-text',
+    text: 'DATA n = SELECT 1 AS id, 2 AS other; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Primary PROPERTIES (id AS ID) LABEL Secondary PROPERTIES (other AS id))); FROM GRAPH g |> MATCH WALK (a:secondary) |> SELECT a.id AS id'},
+  {name: 'keyed-unadapted-endpoint-label', format: 'aql-text', text: scopedEndpoint + 'FROM GRAPH g |> MATCH p = ACYCLIC (:Person)-[:R]->(:Person) |> SELECT PATH_LENGTH(p) AS depth'},
+  {name: 'keyed-unadapted-heterogeneous-binding', format: 'aql-text',
+    text: scopedNodes('Company').replace('LABEL Company PROPERTIES (tag, id)', 'LABEL Company PROPERTIES (id)') +
+      'FROM GRAPH g |> MATCH WALK (a) |> SELECT a.tag'},
   {name: 'unsupported-normalize-consumer', format: 'aql-text', text: nodes + 'FROM GRAPH g |> normalize_graph() |> MATCH WALK (a:Person) |> SELECT a.id'},
   {name: 'unsupported-equality-consumer', format: 'aql-text', text: nodes + 'DATA same = FROM g |> graphs_equal(with: g); FROM same |> SELECT equal'},
   {name: 'unsupported-mean-consumer', format: 'aql-text', text: nodes + 'DATA combined = mean_graphs(with: [g, g]); FROM GRAPH combined |> MATCH WALK (a:Person) |> SELECT a.id'},

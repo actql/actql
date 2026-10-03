@@ -7,6 +7,24 @@ priv struct ScriptGraph {
 }
 
 ///|
+fn keyed_start_definitions(
+  mapping : @query.PropertyGraphConstructor,
+  node : @query.GraphNodePattern,
+) -> Array[@query.PropertyNodeDefinition] raise Abort {
+  let selected = match node.label {
+    Some(name) =>
+      mapping.nodes.filter(definition => {
+        definition.labels.any(label => same_name(label.name, name))
+      })
+    None => mapping.nodes
+  }
+  if selected.is_empty() {
+    raise Abort(UnknownColumn)
+  }
+  selected
+}
+
+///|
 // This is schema-name projection, not Graph admission. The common owner
 // still validates global property types, label sets, keys and identities.
 fn keyed_node_fields(
@@ -221,32 +239,95 @@ fn lower_script_keyed_graph_query(
   if !projected {
     raise Abort(UnsupportedProjection)
   }
-  if graph.mapping.nodes.length() != 1 ||
-    pattern.nodes.is_empty() ||
+  if pattern.nodes.is_empty() ||
     pattern_query.label_field is Some(_) ||
     @query.cte_count(query) > 0 ||
     @query.set_part_count(query) > 0 ||
     @query.join_part_count(query) > 0 {
     raise Abort(UnsupportedGraph)
   }
-  let definition = graph.mapping.nodes[0]
+  let definitions = keyed_start_definitions(graph.mapping, pattern.nodes[0])
+  let definition = definitions[0]
   let input = property_mapping_input(definition.producer, graph.inputs)
   let fields = keyed_node_fields(definition, pattern.nodes[0], input)
   let identity = pipe_physical_name(fields, "aql_keyed_identity_")
-  let seeds = pipe_physical_name(reserved, "aql_keyed_seeds_")
-  reserved.push(seeds)
-  steps.push(
-    keyed_start_match(
-      construction,
-      graph,
-      definition,
+  let mut seeds = ""
+  for selected in definitions {
+    let selected_input = property_mapping_input(selected.producer, graph.inputs)
+    let selected_fields = keyed_node_fields(
+      selected,
       pattern.nodes[0],
-      fields,
-      identity,
-      seeds,
-      limits,
-    ),
-  )
+      selected_input,
+    )
+    // The current common match exposes a definition-specific closed schema.
+    // Combine equivalent property sets without guessing missing-property NULLs
+    // or converting element identities into scalar keys.
+    if selected_fields.length() != fields.length() {
+      raise Abort(UnsupportedGraph)
+    }
+    let names : Map[String, String] = Map([])
+    for field in selected_fields {
+      names[ascii_upper(field)] = field
+    }
+    let source_fields = fields.map(field => {
+      match names.get(ascii_upper(field)) {
+        Some(name) => name
+        None => raise Abort(UnsupportedGraph)
+      }
+    })
+    let mut branch = pipe_physical_name(reserved, "aql_keyed_seeds_")
+    reserved.push(branch)
+    steps.push(
+      keyed_start_match(
+        construction,
+        graph,
+        selected,
+        pattern.nodes[0],
+        source_fields,
+        identity,
+        branch,
+        limits,
+      ),
+    )
+    if source_fields != fields {
+      let aligned = pipe_physical_name(reserved, "aql_keyed_seeds_")
+      reserved.push(aligned)
+      let projection = [construction.text(identity)]
+      for index in 0..<fields.length() {
+        projection.push(
+          if fields[index] == source_fields[index] {
+            construction.text(fields[index])
+          } else {
+            construction.object([
+              (fields[index], construction.text(source_fields[index])),
+            ])
+          },
+        )
+      }
+      steps.push(
+        construction.object([
+          ("from", construction.text(branch)),
+          ("select", construction.array(projection)),
+          ("as", construction.text(aligned)),
+        ]),
+      )
+      branch = aligned
+    }
+    if seeds.is_empty() {
+      seeds = branch
+    } else {
+      let combined = pipe_physical_name(reserved, "aql_keyed_seeds_")
+      reserved.push(combined)
+      steps.push(
+        construction.object([
+          ("from", construction.text(seeds)),
+          ("append", construction.object([("with", construction.text(branch))])),
+          ("as", construction.text(combined)),
+        ]),
+      )
+      seeds = combined
+    }
+  }
   let bindings : Array[GraphBinding] = []
   let names : Array[@query.NamePart] = []
   for node in pattern.nodes {
@@ -288,6 +369,15 @@ fn lower_script_keyed_graph_query(
     }
     for index in 1..<pattern.nodes.length() {
       let node = pattern.nodes[index]
+      if graph.mapping.nodes.length() > 1 &&
+        node.label is Some(label) &&
+        !graph.mapping.nodes.all(definition => {
+          definition.labels.any(candidate => same_name(candidate.name, label))
+        }) {
+        // Without a common per-hop node-label filter, admitting this pattern
+        // would silently drop a demanded endpoint constraint.
+        raise Abort(UnsupportedGraph)
+      }
       ignore(keyed_node_fields(definition, node, input))
       if node.constraint is Some(_) {
         // Endpoint and intermediate predicates require a definition-scoped
