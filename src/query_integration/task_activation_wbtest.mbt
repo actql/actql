@@ -53,6 +53,7 @@ fn activation_test_prepared(
         cancel: fn() {  },
         dispose: fn() {  },
         settled: fn() {  },
+        scratch_released: fn() { true },
         retention_released: fn() { true },
         released: fn() {  },
         ready: fn() { Ok(()) },

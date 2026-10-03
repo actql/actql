@@ -814,6 +814,13 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
     obligations=vector_obligations,
   )
   let vector_rows = local_managed_test_rows(vectors_ops)
+  // Successful settlement observed pending cleanup; output retention and
+  // the unreclaimed provider workspace remain independently accounted.
+  assert_eq(cleanup_attempts.val, 1)
+  assert_true(
+    @resources.ledger_usage(@strategy.captured_dag_ledger(run)).reserved_execution_bytes >
+    0L,
+  )
   let expected_rows = if pooled { 1 } else { 2 }
   assert_eq(vector_rows.length(), expected_rows)
   if variant == "pool_normalize" {
@@ -972,7 +979,6 @@ fn run_standard_vectors_provider(variant : String) -> Unit raise {
   vectors_live.val = false
   @strategy.close_captured_task_output(run, vector_task)
   (vectors_ops.close)()
-  assert_false((vectors_ops.cleanup_refresh)())
   assert_true((vectors_ops.cleanup_refresh)())
   assert_eq(cleanup_attempts.val, 2)
   if assertion_ops is Some(ops) {

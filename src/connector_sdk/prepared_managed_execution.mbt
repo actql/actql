@@ -1,11 +1,13 @@
 ///|
 /// Common physical lifecycle facts for every installed execution. Output
 /// verification and completion authority are separate typed boundaries.
+/// Scratch release must be confirmed explicitly; stop alone is insufficient.
 pub(all) struct ExecutionLifecycleOperations[E] {
   cancel : () -> Unit
   dispose : () -> Unit
   settled : () -> Unit
   retention_released : () -> Bool
+  scratch_released : () -> Bool
   released : () -> Unit
   ready : () -> Result[Unit, E]
 }
@@ -18,6 +20,7 @@ pub(all) struct ManagedExecutionOperations[E] {
   dispose : () -> Unit
   settled : () -> Unit
   retention_released : () -> Bool
+  scratch_released : () -> Bool
   released : () -> Unit
   ready : () -> Result[Unit, E]
 }
@@ -31,6 +34,7 @@ pub fn[E] managed_execution_lifecycle(
     dispose: operations.dispose,
     settled: operations.settled,
     retention_released: operations.retention_released,
+    scratch_released: operations.scratch_released,
     released: operations.released,
     ready: operations.ready,
   }

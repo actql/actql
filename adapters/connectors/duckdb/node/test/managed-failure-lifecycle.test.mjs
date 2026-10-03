@@ -4,11 +4,75 @@ import {cp, mkdir, mkdtemp, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
-import {settleFailedManagedDuckDB} from '../managed-failure.mjs';
+import {closeManagedDuckDBOutput, settleFailedManagedDuckDB} from '../managed-failure.mjs';
+import {createLocalRetainedStore} from '../../../../store-local/files.mjs';
 import * as portableRuntime from
   '../../../../../_build/js/release/build/connectors/duckdb/host_node/host_node.js';
 
 const root = fileURLToPath(new URL('../../../../..', import.meta.url));
+
+for (const mode of ['normal', 'pending-reader', 'cleanup-error']) {
+  test(`successful managed output close preserves recovery: ${mode}`, async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'actql-success-cleanup-'));
+    const actual = await createLocalRetainedStore({parentDirectory: directory,
+      capacityBytes: 128, maxFrameBytes: 128, maxEntries: 1});
+    const writer = actual.reserve(128);
+    await writer.start();
+    await writer.appendBytes(new Uint8Array([1, 2, 3]));
+    const body = await writer.sealPhysical();
+    const reader = mode === 'normal' ? undefined : body.delegateRead('success-cleanup');
+    let inject = false, settlements = 0, refreshed = 0, confirmed = 0;
+    const store = Object.freeze({...actual, async cleanup() {
+      if (inject) { inject = false; throw new Error('injected Store cleanup failure'); }
+      return actual.cleanup();
+    }});
+    const moon = Object.freeze({...portableRuntime,
+      managedOutputCancel() {}, managedStrategyClose() {},
+      managedStrategyRefreshRetention() {},
+      managedStrategySettle() { settlements++; },
+      managedStrategyCleanupRefresh() {
+        refreshed++;
+        const complete = !actual.status().cleanupPending;
+        if (complete) confirmed++;
+        return complete;
+      },
+    });
+    const state = {run: {}, output: {}, body, store,
+      lifecycle: {sessionStarted: true, executionSettled: true, outputDisposed: false}};
+    try {
+      if (mode === 'normal') {
+        await closeManagedDuckDBOutput(moon, value => value, state);
+      } else {
+        let failure;
+        await assert.rejects(closeManagedDuckDBOutput(moon, value => value, state), error => {
+          failure = error; return error.cleanupPending === true;
+        });
+        assert.equal(actual.status().reservedBytes, 3);
+        assert.equal(confirmed, 0, 'a live reader must not confirm task cleanup');
+        assert.equal((await failure.cleanupHandle.retry()).pending, true);
+        assert.equal(actual.status().reservedBytes, 3);
+        assert.equal(reader.confirmStopped(), true);
+        if (mode === 'cleanup-error') {
+          inject = true;
+          assert.equal((await failure.cleanupHandle.retry()).pending, true);
+          assert.equal(actual.status().reservedBytes, 3);
+        }
+        assert.equal((await failure.cleanupHandle.retry()).pending, false);
+        assert.equal((await failure.cleanupHandle.retry()).pending, false);
+      }
+      assert.equal(actual.status().reservedBytes, 0);
+      assert.equal(actual.status().cleanupPending, false);
+      assert.equal(settlements, 0, 'successful native settlement must not be repeated');
+      assert.equal(state.lifecycle.outputDisposed, true);
+      assert(refreshed >= 1);
+      assert.equal(confirmed, 1);
+    } finally {
+      reader?.confirmStopped();
+      body.close(); actual.close(); await actual.cleanup();
+      await rm(directory, {recursive: true, force: true});
+    }
+  });
+}
 
 async function runFailure(reason, {failCleanupOnce = false} = {}) {
   const base = await mkdtemp(join(tmpdir(), 'actql-managed-failure-'));
