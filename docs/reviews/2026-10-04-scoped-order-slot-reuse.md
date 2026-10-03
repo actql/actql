@@ -49,10 +49,54 @@ input-scope counterexample is a separate repair unit.
   unqualified collision cases have opposite expected orders. DISTINCT input
   includes a duplicate. Run admission, physical acquisition, stream completion
   and repeated submission/reading use the existing acceptance helper.
-- Fresh packed Local/HTTPS acceptance has not yet run at this document revision.
-  The existing driver selection is `--scoped-order-only`; it does not execute
-  unrelated Graph, INFER, planner or native corpora.
+- Clean packed source: `b8aa2eecaf105bb88bcbafbdc4dad2a1a48c6d95`.
+  The normal producer/prepack and external installation succeeded. The initial
+  `--scoped-order-only` run passed the rebound-alias Local case, then stopped
+  at the DISTINCT case with `ACTQL_E_UNPUBLISHED_RUN`; it did not reach HTTPS.
+- Reusing those verified tarballs, a selection of the existing acceptance
+  application passed three positives and one refusal on **both Local and HTTPS**:
+  rebound alias, unchanged expression, qualified input, and displaced-range
+  refusal. The helper checks exact rows, describe column order/type/nullability,
+  stream completion, absence of hidden public fields, acquisition counts,
+  same-request retry and attach. Refusal keeps Run admission/provider I/O at zero.
+  Only fixture selection and isolated test directories changed; the installed
+  runtime was byte-checked against its tarball. This is representative acceptance,
+  not a pass of the four-positive corpus.
 - Full Core, other backends and hosted CI have not been run for this repair.
+
+### Remaining execution boundary
+
+```aql
+FROM records |> AS original |> SELECT DISTINCT -id AS id
+  |> ORDER BY -id |> RESULT answer
+```
+
+For IDs `[1, 1, 2]`, the independent expectation remains `[-1,-2]` after
+duplicate elimination. Lowering and ordinary checking pass. A diagnostic on
+the recorded runtime traced the first failure to
+`adapters/local-node/strategy-bundle.mjs`, `runPrepared`, at
+`strategyModule_local_ManagedStart`: `Execution(Physical(ExecutionLimit))`.
+No task completes. `StrategyNotComplete` and `ACTQL_E_UNPUBLISHED_RUN` are
+subsequent symptoms. The unchanged-expression DISTINCT control completes.
+The diagnostic temporarily exposed the existing error cause in a private test
+installation, restored the exact installed bytes, and is not product acceptance.
+
+The positive DISTINCT fixture is retained unchanged. This PR does not raise
+the Host ceiling, remove DISTINCT/ORDER, or alter independent expectations.
+Its full packed corpus remains unfinished until this execution boundary closes.
+
+### Recorded package SHA-256
+
+All names below have suffix `-0.0.0-development.tgz` and come from the clean
+packed source above. The limited Local/HTTPS checks reuse the same artifacts.
+
+| Package | SHA-256 |
+|---|---|
+| actql-client-wire | `5da98d3edb615f960f0511be9d6e61431cd34d02304a8bd6b6e576f7775f91a0` |
+| actql-sdk | `2fc910067348e421346945ced1e728e107bbe6fa455ee00f9d71da46e8123c5b` |
+| actql-run-host-core | `901be13bedaeb53a23f7e16af1a930c9eac313c828fdc227eedfd4d66ff1f898` |
+| actql-local-node | `9cee7aa86af955a88d1e30f5a3712a8b676aff1803463f2cdbc3dc4b488c6ba1` |
+| actql-node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
 
 Local commands (use the repository-pinned toolchain):
 
