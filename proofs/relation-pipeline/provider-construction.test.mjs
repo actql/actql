@@ -88,8 +88,9 @@ test('reviewed Graph rejection branches preserve the Relation capability predica
     '      | @lower.PropertyGraphConstructionStep(_)',
   ].join('\n');
   assert.equal(before.toString().split(oldBranch).length,2);
-  // Both blocks are alternatives in the same false branch. The active RowStep
-  // predicate, GeneratedSequence fields and every other function are unchanged.
+  // GraphDiagnosticStep is only another non-Row false-branch alternative.
+  // The active RowStep predicate, constructor records, callback captures,
+  // candidate array, GeneratedSequence fields and other functions are unchanged.
   assert.equal(before.toString().replace(oldBranch,newBranch),source);
   assert.throws(() => providerConstructionBound(p => p === path ? before : read(p)),
     /Changed provider representation premise src\/execution_relation\/generated_sequence\.mbt/);
