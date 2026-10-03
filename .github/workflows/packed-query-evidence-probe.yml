@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        fault: [nonzero, timeout]
+        fault: [nonzero, timeout, interrupted, upload]
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -26,12 +26,57 @@ jobs:
             revision: process.env.GITHUB_SHA, githubOutput: process.env.GITHUB_OUTPUT},
             ({run}) => run(process.execPath, ['-e',
               "console.log('probe stdout'); console.error('probe stderr');" +
-              (process.env.FAULT === 'timeout' ? 'setInterval(() => {}, 1000)' : 'process.exit(7)')],
+              (process.env.FAULT === 'timeout' ? 'setInterval(() => {}, 1000)' :
+               process.env.FAULT === 'interrupted' ? "process.kill(process.ppid, 'SIGKILL')" : 'process.exit(7)')],
               {timeout: 1000}));
           JS
+      - name: Verify retained partial observations without repairing missing receipts
+        if: always() && steps.probe.outputs.evidence-directory != ''
+        env:
+          FAULT: ${{ matrix.fault }}
+          EVIDENCE_DIRECTORY: ${{ steps.probe.outputs.evidence-directory }}
+          PROBE_OUTCOME: ${{ steps.probe.outcome }}
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import {existsSync, readFileSync} from 'node:fs';
+          import {join} from 'node:path';
+          const directory = process.env.EVIDENCE_DIRECTORY;
+          const summary = JSON.parse(readFileSync(join(directory, 'summary.json')));
+          assert.equal(process.env.PROBE_OUTCOME, 'failure');
+          assert.equal(summary.complete, false);
+          assert.equal(summary.github.runId, process.env.GITHUB_RUN_ID);
+          assert.equal(summary.github.runAttempt, process.env.GITHUB_RUN_ATTEMPT);
+          assert.equal(summary.source.revision, process.env.GITHUB_SHA);
+          if (process.env.FAULT === 'interrupted') {
+            assert.equal(summary.status, 'running');
+            assert.equal(summary.commands[0].status, null);
+            assert.equal(existsSync(join(directory, '001.result.json')), false);
+            assert.equal(existsSync(join(directory, '001.stdout.log')), false);
+          } else {
+            assert.equal(summary.status, 'failed');
+            const command = summary.commands[0];
+            if (process.env.FAULT === 'timeout') assert.equal(command.error.code, 'ETIMEDOUT');
+            else assert.equal(command.status, 7);
+          }
+          JS
       - name: Retain failed invocation evidence
+        id: collection
         if: always() && steps.probe.outputs.evidence-directory != ''
         uses: ./.github/actions/upload-packed-query-evidence
         with:
           directory: ${{ steps.probe.outputs.evidence-directory }}
-          name: packed-query-probe-${{ matrix.fault }}-${{ github.sha }}
+          name: ${{ matrix.fault == 'upload' && 'invalid/artifact-name' || format('packed-query-probe-{0}-{1}', matrix.fault, github.sha) }}
+      - name: Assert collection cannot turn verification green
+        if: always()
+        env:
+          FAULT: ${{ matrix.fault }}
+          PROBE_OUTCOME: ${{ steps.probe.outcome }}
+          COLLECTION_OUTCOME: ${{ steps.collection.outcome }}
+        run: |
+          test "$PROBE_OUTCOME" = failure
+          if [ "$FAULT" = upload ]; then
+            test "$COLLECTION_OUTCOME" = failure
+          else
+            test "$COLLECTION_OUTCOME" = success
+          fi

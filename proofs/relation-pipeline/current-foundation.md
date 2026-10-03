@@ -193,3 +193,50 @@ queue/dependency protocol and completed outcomes in the PR. Failed and cancelled
 runs remain failure evidence and are not counted as completed green samples.
 Local reconstructed-source runs, if any, are distinguished from exact hosted
 CI, and mutation phase timings are retained in the source-bound reports.
+
+## Source-only mutation workspace isolation
+
+The mutation runner now materializes two process-owned source snapshots before
+installing any mutation. Only the inventoried source bytes and executable modes are copied, including
+vendored native headers and the native link/archiver drivers. Existing
+`_build`, dependency directories, temporary fixtures and archived observations
+are not captured. The pristine and mutable snapshots have separate build roots;
+source and build symlinks or replaced workspace roots are rejected. The pinned
+external Moon toolchain is shared as a checked, read-only input. Its compiler,
+build runner, Wasm runner, core, runtime and headers are fingerprinted alongside
+the resolved Node, C/C++ compiler and archiver binaries. System libraries retain the
+existing CI runner/environment trust boundary.
+
+Every mutation is applied only in the mutable workspace. Its fixed replay,
+required fresh search/shrinking and three-target minima replay retain separate
+executions. The source bytes are restored and checked against the original
+snapshot before the next mutation. Each healthy replay then really executes in
+the pristine workspace, once per obligation and target. Its input, observations,
+log and receipt are new; only Moon's unchanged-source incremental build persists.
+The original checkout remains unchanged and still executes the final full normal
+corpus, models and independent audit on all three targets.
+
+Each fixture compiles a boundary marker containing the source, unique workspace,
+fixture, target, exact command, toolchain and non-input environment identities.
+Target-conditional constants keep the complete fixture source identical across
+JS, Wasm and native builds while binding each actual binary to its own target. The observation
+log must emit that exact compiled marker once. A runtime environment label alone
+cannot stand in for a compiled boundary. Reuse is confined to the same target,
+source, fixture, flags, lockfile, tools and environment in the same workspace;
+previously built artifact hashes are checked before and after each reused build.
+Observation identities include the invocation and serial, and the final audit
+rejects receipt or observation reuse across fixed, fresh and normal obligations.
+Compile errors, missing execution output, missing observations, failed restoration
+or failed cleanup are errors, never killed-mutant or successful-run evidence.
+
+The existing owned-scratch helper removes a successful run's temporary workspaces
+only after all child processes end and source/fixture restoration succeeds.
+Failure preserves those workspaces for diagnosis; durable receipt, input, log and
+source evidence remains outside them. `ACTQL_TEST_PRESERVE_SCRATCH=1` retains a
+successful workspace when explicit inspection is needed.
+
+This is a build-placement change, not an observation cache or a reduced gate.
+All eight production mutations, both obligations, all three targets, reviewed
+search/shrink domain, restoration and final audits remain required. Phase timings
+still include build and execution work; a restored-phase duration is not a pure
+compile cost or a promise that the entire phase can be removed.

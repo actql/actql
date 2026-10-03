@@ -1,0 +1,37 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "client-ci-split",
+  "kind": "change",
+  "revision": "2d7cd1ca295086c3370ffb6d96efa257535c7a20",
+  "parents": [
+    "bcbf77049fe4991c9b0f1a18541ac7a7952b01ad"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "bcbf77049fe4991c9b0f1a18541ac7a7952b01ad",
+          "digest": "36e951a381e4be1061b14e536801262bcedef20964915d55ea60efdfc060c209",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "07726bee0521d937e2f57e6147b227cd8897e0df19aeb7aa1cd3fa5281ca28c2",
+      "afterMode": "100644",
+      "reason": "Split the unchanged Client acceptance commands into independent distribution, packed-public and Salesforce/recovery jobs. Produce immutable same-checkout tarballs once and download only the exact validated producer artifact ID. Preserve the client/global aggregate and all conditional gates, evidence uploads and timeout limits; prepare recovery runtime bridges privately."
+    },
+    {
+      "path": "scripts/local-checks.mjs",
+      "before": [
+        {
+          "revision": "bcbf77049fe4991c9b0f1a18541ac7a7952b01ad",
+          "digest": "bcab6e27f3cdb094eec5b818c81b5aecbe13a2fd281f9f2502f2f302c7eded0b",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "2d62841fbb560af82c7c4308ec183b84bdca15e5499715a6df925969859ea732",
+      "afterMode": "100644",
+      "reason": "Map every previously Client-covered local change to the independent acceptance groups and expose client as CI-only aggregation. Keep the same workflow-derived acceptance commands available locally; local package fallback remains unchanged."
+    }
+  ]
+}

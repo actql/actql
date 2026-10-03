@@ -3173,6 +3173,112 @@ test('portable control validates Receipt and Captured Run references',
     recoveryAttempt.identity,
   )).state, 'failed');
 
+  await t.test('concurrent cleanup retains the real Store owner until terminal durability is confirmed',
+    async sub => {
+      const directory = await mkdtemp(join(tmpdir(), 'actql-concurrent-delivery-cleanup-'));
+      const deliveryStore = await openLocalPublicationStore({
+        directory, storeAuthorityCid: cid('a'), capacityBytes: 4 * 1024 * 1024,
+        maxObjectBytes: limits.maxWireBytes, maxObjects: 100,
+        maxContractNodes: limits.maxNodes, maxContractDepth: limits.maxDepth,
+      }, control);
+      sub.after(async () => {
+        await deliveryStore.close();
+        await rm(directory, {recursive: true, force: true});
+      });
+      await deliveryStore.putSemantic(resultSchemaWire, resultSchemaCid);
+      await deliveryStore.putBytes(Buffer.from(payloadWire, 'utf8'), physicalCid);
+      const publication = await publishEffectFreeRun({...publicationOptions,
+        store: deliveryStore,
+        attempt: {...publicationOptions.attempt, attemptId: 'concurrent-cleanup-publication'},
+      });
+      const deliveryIndex = publication.index;
+      const grant = control.issueResultReadGrant(deliveryIndex, deliveryManifest, {
+        resultNames: ['answer'], formats: ['json'], principalId: 'principal-a',
+        purpose: 'concurrent-cleanup-recovery', dataCeilingCid: cid('1'),
+        maxBytes: 1024, maxUses: 1, expiresAt: '2026-09-19T00:00:00.000Z',
+        authorizationContextCid: cid('2'), egressAdmissionCid: cid('3'),
+      }, limits);
+      const original = new Error('streaming append reply lost');
+      const terminalFailure = new Error('terminal append unavailable');
+      const terminalReplyLost = new Error('terminal append reply lost');
+      let entered, releaseFirst, releaseSecond, streamingRetries = 0;
+      const arrived = new Promise(resolve => { entered = resolve; });
+      const firstGate = new Promise(resolve => { releaseFirst = resolve; });
+      const secondGate = new Promise(resolve => { releaseSecond = resolve; });
+      const attempted = [];
+      let terminalAvailable = false, loseTerminalReply = true, payloadCalls = 0;
+      const retryStore = Object.freeze({...deliveryStore,
+        async appendDeliveryRecord(wire) {
+          attempted.push(wire);
+          if (attempted.length === 1) {
+            await deliveryStore.appendDeliveryRecord(wire);
+            throw original;
+          }
+          if (JSON.parse(wire).state === 'streaming') {
+            if (++streamingRetries === 1) { entered(); await firstGate; }
+            else await secondGate;
+          } else if (!terminalAvailable) throw terminalFailure;
+          // Exercise the product Store's exact-record idempotency, including a
+          // durable terminal write whose reply is lost before confirmation.
+          await deliveryStore.appendDeliveryRecord(wire);
+          if (JSON.parse(wire).state === 'failed' && loseTerminalReply) {
+            loseTerminalReply = false;
+            throw terminalReplyLost;
+          }
+        },
+        withCommittedResultRows() {
+          payloadCalls++;
+          assert.fail('record recovery must never open a payload reader');
+        },
+      });
+      let failure;
+      await assert.rejects(deliverPublishedResult({...deliveryBase,
+        store: retryStore, grant, format: 'json', attemptId: 'concurrent-cleanup',
+        sink: {
+          write() { payloadCalls++; assert.fail('cleanup must never resend bytes'); },
+          finish() { payloadCalls++; assert.fail('cleanup must never finish the sink'); },
+        },
+      }), error => { failure = error; return error.code === 'ResultDeliveryFailed'; });
+      const attemptCid = JSON.parse(attempted[0]).delivery_attempt_cid;
+      const latest = () => deliveryStore.latestDeliveryRecord(attemptCid);
+      assert.equal((await latest()).state, 'streaming');
+      const first = failure.cleanupHandle.retry();
+      await arrived;
+      const second = failure.cleanupHandle.retry();
+      assert.equal(failure.cleanupHandle.status().pending, true);
+      releaseFirst();
+      const firstStatus = await first;
+      releaseSecond();
+      const secondStatus = await second;
+      assert.equal(firstStatus.pending, true);
+      assert.equal(secondStatus.pending, true);
+      assert.equal(first, second);
+      assert.equal(firstStatus, secondStatus);
+      assert.equal(streamingRetries, 1);
+      assert.equal((await latest()).state, 'streaming');
+      assert.deepEqual(failure.cleanupErrors, [original, terminalFailure]);
+      terminalAvailable = true;
+      assert.equal((await failure.cleanupHandle.retry()).pending, true);
+      assert.equal((await latest()).state, 'failed');
+      assert.equal(failure.cleanupPending, true, 'a lost persistence reply remains unresolved');
+      assert.deepEqual(failure.cleanupErrors,
+        [original, terminalFailure, terminalReplyLost]);
+      assert.equal((await failure.cleanupHandle.retry()).pending, false);
+      assert.equal(failure.cleanupPending, false);
+      assert.equal(failure.cause, original);
+      assert.equal(failure.primaryFailure, original);
+      assert.deepEqual(failure.cleanupErrors,
+        [original, terminalFailure, terminalReplyLost]);
+      assert.equal(attempted[0], attempted[1]);
+      assert.equal(attempted[2], attempted[3]);
+      assert.equal(attempted[3], attempted[4]);
+      assert.equal((await latest()).delivery_record_cid,
+        JSON.parse(attempted[4]).delivery_record_cid);
+      await failure.cleanupHandle.retry();
+      assert.equal(attempted.length, 5);
+      assert.equal(payloadCalls, 0);
+    });
+
   const durabilityGrant = control.issueResultReadGrant(
     deliveryIndex,
     deliveryManifest,

@@ -14,22 +14,31 @@ import {readInstalledInferCapture} from './installed-infer-capture.mjs';
 const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
   {code: 'ClientDispatchCleanupPending'});
 
-export function installNodeInferRun({moon, core, registry, values, selections,
+export function installNodeInferRun({moon, core, registry, values, fragment, ordered, selections,
   namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection}) {
   const control = core.publicationControl;
   return async ({preparedProgram, plan, store, principalId, signal,
-    retainExecution, replay = false, beginPhysicalWork = () => {}}) => {
+    retainExecution, acquiredInfer, replay = false, beginPhysicalWork = () => {}}) => {
     const selected = selections.get(preparedProgram);
     if (selected === undefined || selected.graph !== plan.inferGraph) {
       throw new Error('InstalledInferSelectionMissing');
     }
     const savedSlots = replay ? await readInstalledInferCapture({moon,
       control, store, compiled: plan.compiled, runDefinition: plan.runDefinition,
-      storeAuthorityCid, signal}) : undefined;
+      storeAuthorityCid, signal,
+      restoreSource: acquiredInfer === undefined ? undefined : (source, observation) => {
+        const sourceValue = checked(moon.strategyRunEvidenceAdmit('source_evidence',
+          source.wire, 100000, 10000, 100));
+        const observationValue = checked(moon.strategyRunEvidenceAdmit('observation_set',
+          observation.wire, 16384, 1024, 20));
+        acquiredInfer = {input: checked(moon.clientProgramRestoreInferCapturedInput(
+          acquiredInfer.input, sourceValue, observationValue)), sourceEvidence: source};
+      }}) : undefined;
     let operation;
     try {
       operation = openNodeInferOperation({moon, preparedProgram,
-        step: selected.step, graph: selected.graph, registry, values, signal,
+        step: selected.step, graph: selected.graph, registry, values, fragment, ordered, signal,
+        acquiredInput: acquiredInfer?.input,
         computeSuffix: selected.computeSuffix,
         observeProgress: () => faultInjection?.('infer_execution_advanced', {}),
         ...(replay ? {savedSlots} : {provider: selected.provider,
@@ -48,6 +57,7 @@ export function installNodeInferRun({moon, core, registry, values, selections,
     let issuanceComplete = false;
     let persistCapture;
     let attemptsStored = false;
+    let sourceStored = false;
     // A failed write retains its exact physical owner. Cleanup retries only
     // that write, never operation.run or the provider.
     const cleanup = async () => {
@@ -141,6 +151,7 @@ export function installNodeInferRun({moon, core, registry, values, selections,
     }
     async function persistStoppedAttempts() {
       if (attemptsStored) return;
+      await persistSourceObservation();
       const attempts = operation.stoppedAttemptCount();
       if (!Number.isInteger(attempts) || attempts < 0 || attempts > 128) {
         throw new Error('InstalledInferAttemptInventoryUnavailable');
@@ -160,11 +171,18 @@ export function installNodeInferRun({moon, core, registry, values, selections,
       }
       attemptsStored = true;
     }
+    async function persistSourceObservation() {
+      if (sourceStored || acquiredInfer === undefined) return;
+      const evidence = acquiredInfer.sourceEvidence;
+      await hold('source_evidence', 0, evidence.wire, evidence.identity);
+      sourceStored = true;
+    }
     const modelEvidence = [];
     let wire = '';
     let exportComplete = false;
     persistCapture = async () => {
       if (captureStored) return;
+      await persistSourceObservation();
       modelEvidence.length = 0;
       for (let slot = 0; slot < count; slot++) {
         // Replay already adopted verified slot records and their original
@@ -221,6 +239,7 @@ export function installNodeInferRun({moon, core, registry, values, selections,
         }
         publication = inferTaskPublicationPlan({moon, control, preparedProgram,
           admitted: plan, operation, issuance, modelEvidence, namespaceId,
+          sourceEvidence: acquiredInfer === undefined ? [] : [acquiredInfer.sourceEvidence],
           authorityScopeCid, storeAuthorityCid, now});
       }
       await hold('observation_set', -1, publication.observation.wire,

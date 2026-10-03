@@ -261,7 +261,7 @@ pub fn issue_prepared_client_infer_prefix_fragment(
   if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
     return Err(InvalidLimits)
   }
-  guard client_infer_prefix_owner(value, task, infer_step) is Some(owner) &&
+  guard client_infer_metadata_owner(value, task, infer_step) is Some(owner) &&
     @lower.node_at(@lower.bound_preparation(owner), infer_step - 1)
     is Some(output) else {
     return Err(MissingOutput)

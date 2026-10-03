@@ -1,0 +1,50 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "mutation-workspace-fixture-ownership",
+  "kind": "change",
+  "revision": "bbd184a65d21dbfcfdad3e7a5d55b5b5c4c080cb",
+  "parents": [
+    "b1f4ef95da6fafec479b4f20c4865282e2de8fdd"
+  ],
+  "changes": [
+    {
+      "path": "proofs/relation-pipeline/execute.mjs",
+      "before": [
+        {
+          "revision": "b1f4ef95da6fafec479b4f20c4865282e2de8fdd",
+          "digest": "335eda3f00dc781f27ec327bce91d73d8bdcfa9c9582a106fffaa4128a2b6989",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "ddbd463f9eccba06825302d84c55b65b2ffc51142e266dd337de48ad71cd1539",
+      "afterMode": "100644",
+      "reason": "Bind owned fixtures to regular-file device/inode and exact bytes before reuse, after execution and at terminal/idempotent close; create exclusively and expose the same default close boundary for downstream handoff."
+    },
+    {
+      "path": "proofs/relation-pipeline/execute.test.mjs",
+      "before": [
+        {
+          "revision": "b1f4ef95da6fafec479b4f20c4865282e2de8fdd",
+          "digest": "9d743b9fceed72780bd152ea324e930f4aca60f72b3e04092b16d65c859b3394",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "831b457ade30bf207f7b2dc3865efde6fc8c40e91e18af56606c29bc82f2f601",
+      "afterMode": "100644",
+      "reason": "Reject same-byte fixture replacement before reuse/close and during execution, and verify default terminal/idempotent close preserves archived evidence and never adopts a new foreign fixture."
+    },
+    {
+      "path": "proofs/relation-pipeline/fixtures/execution-driver.mjs",
+      "before": [
+        {
+          "revision": "b1f4ef95da6fafec479b4f20c4865282e2de8fdd",
+          "digest": "a0284a20d8396f2fa7723963ce625f6064325d7b3cc84246332609469306b9f1",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "2543a046d978b935fea369b39136085fd655ae90e21f6162ddcf09e28bf56223",
+      "afterMode": "100644",
+      "reason": "Support exact physical-fixture substitution and the default close API in the instrumented execution regression transport."
+    }
+  ]
+}

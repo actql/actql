@@ -144,3 +144,38 @@ are additional review work. No generator, shrinker, independent semantic oracle,
 production owner, ledger, product algorithm or reservation formula is replaced.
 #149 is reused only through its official integrated revision
 `12dcd5e079e895ad0abf285cbd7c3dc45fa93c5b`; its orchestration is unchanged.
+
+## Contiguous restored-capacity replays
+
+The five capacity mutations keep their existing search, same-resource local
+minimum and mutated JS/Wasm/native replays. Only after every minimum is verified,
+the runner installs restored instrumentation once and independently executes each
+minimum on each target. These remain fifteen fresh healthy executions with
+separate input, observation, log and receipt identities. The unchanged semantic,
+structural and backing checks run for every observation. No execution evidence
+is cached; only target-separated incremental builds under unchanged source can
+persist. This does not alter the separate ordinary mutation workspace runner.
+
+The source-restoration `finally` and completed-report boundary remain after both
+blocks. A failed mutated or healthy phase cannot write a completed campaign.
+The complete CI still runs final normal verification and independent audits.
+Downstream child verification must remain after restoration, durable campaign
+persistence and explicit closure of the campaign's own fixture; batching does
+not authorize sharing a live fixture or moving custody/native child probes into
+the mutation or restored block.
+
+Each mutation's `durationMs` remains the wall span from the first mutated probe
+through its healthy replay completion. With separate blocks that span includes
+intervening work for other mutations and must not be summed as action cost.
+`activeDurationMs` sums only that mutation's mutated and healthy blocks, excluding
+the shared restored-source installation and gaps. Existing `searchMs`, `shrinkMs`,
+`replayMs` and `restoredMs` retain their individual phase meanings. These timers
+include build, execution, hashing and I/O; they are not compiler-only timings.
+Use completed exact-source hosted action/step durations for total cost and keep
+runner/source/load differences explicit when comparing samples.
+
+`capacity-orchestration.test.mjs` exercises the actual CLI with instrumented
+boundaries, including all five input associations, three targets, failure
+propagation and independent mutations of the scheduling logic. Those synthetic
+checks do not replace real compiler, model, oracle, source/binary binding or
+custody evidence from the complete hosted campaign.

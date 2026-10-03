@@ -95,6 +95,7 @@ pub struct Execution {
   mut physical_preflight : @model.ModelPhysicalPreflight?
   mut egress_admission : @publication_host.ClientInferEgressAdmission?
   mut final_quantity_usage : @resources.QuantityUsage?
+  mut acquired_input : @publication_host.ClientInferCapturedInput?
 }
 
 ///|
@@ -116,6 +117,9 @@ pub fn start(
   fixed_request_cid : String,
   limits : Limits,
   plan? : @publication_host.ClientInferPlanGraph? = None,
+  acquired_input? : @publication_host.ClientInferCapturedInput? = None,
+  fragment_body? : String? = None,
+  ordered_body? : String? = None,
 ) -> Result[Execution, Issue] {
   start_owned(
     prepared,
@@ -126,6 +130,9 @@ pub fn start(
     fixed_request_cid,
     limits,
     plan,
+    acquired_input~,
+    fragment_body~,
+    ordered_body~,
   )
 }
 
@@ -140,6 +147,9 @@ pub fn start_replay(
   capture : @model.VerifiedModelCapture,
   limits : Limits,
   plan : @publication_host.ClientInferPlanGraph,
+  acquired_input? : @publication_host.ClientInferCapturedInput? = None,
+  fragment_body? : String? = None,
+  ordered_body? : String? = None,
 ) -> Result[Execution, Issue] {
   guard @model.retain_verified_model_capture(capture) is Some(retained) else {
     return Err(Model(@model.OutputIdentity))
@@ -153,6 +163,9 @@ pub fn start_replay(
     @publication_host.client_infer_plan_graph_request_cid(plan),
     limits,
     Some(plan),
+    acquired_input~,
+    fragment_body~,
+    ordered_body~,
   )
   if started is Err(_) {
     @model.release_verified_model_capture(retained) |> ignore
@@ -171,6 +184,9 @@ pub fn start_restored_replay(
   capture : @publication.ModelCaptureBundleRead,
   limits : Limits,
   plan : @publication_host.ClientInferPlanGraph,
+  acquired_input? : @publication_host.ClientInferCapturedInput? = None,
+  fragment_body? : String? = None,
+  ordered_body? : String? = None,
 ) -> Result[Execution, Issue] {
   guard @publication.retain_model_capture_bundle_read(capture) is Some(retained) else {
     return Err(Model(@model.OutputIdentity))
@@ -184,6 +200,9 @@ pub fn start_restored_replay(
     @publication_host.client_infer_plan_graph_request_cid(plan),
     limits,
     Some(plan),
+    acquired_input~,
+    fragment_body~,
+    ordered_body~,
   )
   if started is Err(_) {
     @publication.release_model_capture_bundle_read(retained) |> ignore
@@ -202,6 +221,9 @@ pub fn start_restored_slot_replay(
   read : @model.ModelSlotReplayRead,
   limits : Limits,
   plan : @publication_host.ClientInferPlanGraph,
+  acquired_input? : @publication_host.ClientInferCapturedInput? = None,
+  fragment_body? : String? = None,
+  ordered_body? : String? = None,
 ) -> Result[Execution, Issue] {
   guard @model.retain_model_slot_replay(read) is Some(retained) else {
     return Err(Model(@model.OutputIdentity))
@@ -215,6 +237,9 @@ pub fn start_restored_slot_replay(
     @publication_host.client_infer_plan_graph_request_cid(plan),
     limits,
     Some(plan),
+    acquired_input~,
+    fragment_body~,
+    ordered_body~,
   )
   if started is Err(_) {
     @model.release_model_slot_replay(retained) |> ignore
@@ -253,6 +278,9 @@ fn start_owned(
   fixed_request_cid : String,
   limits : Limits,
   plan : @publication_host.ClientInferPlanGraph?,
+  acquired_input? : @publication_host.ClientInferCapturedInput? = None,
+  fragment_body? : String? = None,
+  ordered_body? : String? = None,
 ) -> Result[Execution, Issue] {
   if limits.output_rows < 0 ||
     limits.output_work < 0 ||
@@ -341,7 +369,27 @@ fn start_owned(
   } else {
     limits
   }
-  let input = match
+  let started_input = if acquired_input is Some(captured) {
+    guard @publication_host.client_infer_captured_input_source(
+        captured, prepared, step,
+      )
+      is Some(input_source) else {
+      return Err(CallScope(ForeignInput))
+    }
+    @input.start_client_acquired_infer_input(
+      prepared,
+      0,
+      step,
+      input_source,
+      registry,
+      values,
+      limits.input,
+      limits.measurement,
+      limits.mapping,
+      fragment_body~,
+      ordered_body~,
+    )
+  } else {
     @input.start_client_infer_input(
       prepared,
       0,
@@ -351,13 +399,16 @@ fn start_owned(
       limits.input,
       limits.measurement,
       limits.mapping,
-    ) {
+    )
+  }
+  let input = match started_input {
     Ok(value) => value
     Err(issue) => return Err(Input(issue))
   }
   Ok({
     prepared,
     input,
+    acquired_input,
     source,
     fixed_request_cid,
     step,
@@ -627,6 +678,7 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
           100000,
           10000,
           100,
+          captured=active.acquired_input,
         ) {
         Ok(value) => Some(value)
         Err(issue) => return fail(active, CallScope(issue))
@@ -1141,6 +1193,7 @@ pub fn cleanup(active : Execution) -> Result[Bool, Issue] {
       }
       active.rows = None
       active.call_scope = None
+      active.acquired_input = None
       active.reclaimed = true
       Ok(true)
     }
