@@ -92,7 +92,7 @@ async function installedVectorSource(root, name) {
   try {
     if (name === 'queries') {
       await connection.run('CREATE TABLE records(request_id VARCHAR, embedding DOUBLE[2], note VARCHAR)');
-      await connection.run("INSERT INTO records VALUES ('q1', [1.0, 0.0], NULL)");
+      await connection.run("INSERT INTO records VALUES ('q1', [1.0, 0.0], NULL), ('q2', [0.0, 0.0], 'zero')");
     } else {
       await connection.run('CREATE TABLE records(item_id VARCHAR, embedding DOUBLE[2], label VARCHAR)');
       await connection.run("INSERT INTO records VALUES ('b', [0.0, 1.0], 'second'), ('a', [1.0, 0.0], 'first')");
@@ -116,7 +116,7 @@ async function installedVectorSource(root, name) {
   return profile;
 }
 
-test('installed typed vector source admits a scalar projection', async t => {
+test('installed typed vector source executes a vector predicate', async t => {
   await mkdir(scratch, {recursive: true});
   const root = await mkdtemp(join(scratch, 'read-'));
   t.after(() => rm(root, {recursive: true, force: true}));
@@ -126,7 +126,8 @@ test('installed typed vector source admits a scalar projection', async t => {
   const program = {version: 'actql/0.1', id: 'nearest.typed-source-read',
     stages: [{id: 'read', inputs: {remote: {connector: 'nearest/queries',
       resource: 'r'}},
-    steps: [{from: 'remote', filter: 'true', as: 'filtered'},
+    steps: [{from: 'remote', filter:
+      "vector_score(embedding, embedding, 'dot') = 1", as: 'filtered'},
       {from: 'filtered', select: ['request_id'], as: 'out'}],
     results: {rows: {from: 'out', fields: ['request_id']}}},
     {id: 'project', inputs: {rows: {result: {stage: 'read', result: 'rows'}}},
