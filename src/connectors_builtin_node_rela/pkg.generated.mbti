@@ -6,6 +6,7 @@ import {
   "actql/actql/client_local_host",
   "actql/actql/client_salesforce_host",
   "actql/actql/connector_sdk",
+  "actql/actql/connectors/reference_compute",
   "actql/actql/connectors/salesforce/catalog",
   "actql/actql/connectors_builtin",
   "actql/actql/decode_core",
@@ -107,6 +108,12 @@ pub fn client_program_bind_effect_run(@run_publication_host.PreparedClientEffect
 pub fn client_program_cancel_captured_source_identity_scan(@execution_query.CapturedSourceIdentityScan) -> Bool
 
 pub fn client_program_canonical_effect_preview_draft(String, Int, Int, Int) -> Result[String, @run_publication.PublicationContractIssue]
+
+pub fn client_program_captured_acquisition_capacity(@actql/actql/connectors/duckdb/host.CaptureConfiguration) -> Result[Array[Int64], @physical_resources.LedgerIssue]
+
+pub fn client_program_captured_broad_configuration(@actql/actql/connectors/duckdb/host.BroadHostConfiguration) -> @actql/actql/connectors/duckdb/host.CaptureConfiguration
+
+pub fn client_program_captured_native_configuration(@actql/actql/connectors/duckdb/host.NativeHostConfiguration) -> @actql/actql/connectors/duckdb/host.CaptureConfiguration
 
 pub fn client_program_captured_source_dependency_bodies(@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedInputSource) -> (String, String)?
 
@@ -627,6 +634,8 @@ pub fn client_program_prepare_effect_free(String, String, @program_check.CheckEn
 pub fn client_program_prepare_effect_free_with_parameters(String, String, @program_check.CheckEnvironment, String?) -> ClientProgramBridgeOutcome
 
 pub fn client_program_prepare_local_query_requirement(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, @client_local_host.ClientLocalQueryIssue]
+
+pub fn client_program_prepare_multi_captured_effect_acquisition_ledger(@run_publication_host.PreparedClientEffectComputation, Array[@actql/actql/connectors/duckdb/host.CaptureConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn client_program_prepare_multi_captured_effect_local_ledger(@run_publication_host.PreparedClientEffectComputation, Array[@actql/actql/connectors/duckdb/host.NativeHostConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
@@ -2126,6 +2135,8 @@ pub(all) suberror NodeHostFailure {
   RemoteCredential(@remote_credential.RemoteCredentialIssue)
   RemoteBundle(@remote_bundle.RemoteBundleIssue)
   PhysicalManifest(@physical_manifest.PhysicalManifestIssue)
+  LocalManagedStart(@actql/actql/connectors/local/driver.LocalDispatchIssue)
+  ReferenceComputeManagedStart(@reference_compute.PlanIssue)
 }
 
 // Types and methods

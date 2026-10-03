@@ -122,7 +122,11 @@ pub fn client_compiled_run_authorization(ClientCompiledRun) -> @run_publication.
 
 pub fn client_compiled_run_infer(ClientCompiledRun) -> ClientInferPlanGraph?
 
+pub fn client_compiled_run_infer_observation_policy(ClientCompiledRun) -> String?
+
 pub fn client_compiled_run_matches(ClientCompiledRun, PreparedClientProgram) -> Bool
+
+pub fn client_compiled_run_matches_effect(ClientCompiledRun, PreparedClientEffectComputation, ClientEffectCompilation) -> Bool
 
 pub fn client_compiled_run_plan(ClientCompiledRun) -> @run_publication.PublicationContract
 

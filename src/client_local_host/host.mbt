@@ -229,45 +229,9 @@ fn open_checked_local_host(
     compute_sequences.push(generated[task])
   }
   let (values, execution, measurement) = client_local_execution_limits()
-  let mut retained_bytes = 0L
-  let mut execution_bytes = 0L
-  let mut total_retained_bytes = 0L
-  for sequence in compute_sequences {
-    guard @execution.generated_sequence_capacity(
-        sequence, execution, measurement,
-      )
-      is Some(required) else {
-      return None
-    }
-    let retained = @execution.execution_capacity_retained_bytes(required)
-    let executing = @execution.execution_capacity_execution_bytes(required)
-    if retained < 0L || retained > 536870912L - total_retained_bytes {
-      return None
-    }
-    total_retained_bytes += retained
-    if retained > retained_bytes {
-      retained_bytes = retained
-    }
-    if executing > execution_bytes {
-      execution_bytes = executing
-    }
-  }
-  // Each attempt may import one input of at most the Local import wire below
-  // (1 MB), so the transfer budget covers the checked task inventory.
-  let limits : @resources.LedgerLimits = {
-    planning_work: 100000,
-    attempts: task_count,
-    holdings: task_count,
-    transfer_bytes: task_count.to_int64() * 1000000L,
-    retained_bytes: if total_retained_bytes > 200000000L {
-      total_retained_bytes
-    } else {
-      200000000L
-    },
-    // The admitted value and retained-output reservations can exceed
-    // 256 MiB for a bounded multi-task Program. Keep the established value
-    // envelope and cap concurrent execution reservations at 512 MiB.
-    execution_bytes: 536870912L,
+  guard client_local_sequence_capacity(compute_sequences, task_count)
+    is Some((limits, retained_bytes, execution_bytes)) else {
+    return None
   }
   let opened = if captured_sources.length() == 2 {
     @strategy.open_multi_captured_dag(

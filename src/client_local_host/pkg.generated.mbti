@@ -38,6 +38,8 @@ pub fn client_duckdb_selection_document(ClientDuckDBAcquisitionSelection) -> Str
 
 pub fn client_duckdb_selection_native(ClientDuckDBAcquisitionSelection) -> @host.NativeHostConfiguration?
 
+pub fn client_effect_local_ledger_limits(@run_publication_host.PreparedClientEffectComputation, String, String, String?, String?) -> @physical_resources.LedgerLimits?
+
 pub fn client_infer_completed_input(ClientInferInputExecution) -> @execution_relation.CompletedOutput?
 
 pub fn client_infer_completion_preparation(ClientInferInputExecution, @execution_relation.PreparedInferRows) -> @execution_relation.CompletionPreparation?

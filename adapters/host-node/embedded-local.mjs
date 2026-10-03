@@ -911,7 +911,9 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
                   owner: facts.owner, acquired: facts.preparedExecution,
                   sourceProfile, registry, values, fragment, ordered,
                   sourceAccess: sourceProfile.sourceAccess, signal, now,
-                  retainComputationOwner});
+                  retainComputationOwner, infer: inferSelections.get(facts.prepared),
+                  store, principalId, faultInjection: authorization?.faultInjection,
+                  observe: authorization?.observe});
               }
               const setup = moon.clientProgramOpenSourceFreeLocalEffectHost(
                 facts.owner, registry, values, 1n, 0n, 0n, 0n);

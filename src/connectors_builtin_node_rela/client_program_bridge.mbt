@@ -3687,6 +3687,7 @@ fn client_program_configure_local_host(
   per_row_ms : Int64,
   per_wire_byte_ms : Int64,
   per_pair_ms : Int64,
+  component_providers? : Array[@local.ManagedProvider] = [],
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   let capacity : @connector.FixedComputeCapacity = {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
@@ -3722,6 +3723,9 @@ fn client_program_configure_local_host(
     selected_client_sga_providers(generated, execution, measurement) {
     Some(providers) => providers
     None => return reject_client_local_run(run)
+  }
+  for provider in component_providers {
+    providers.push(provider)
   }
   let local_configuration : @local_driver.LocalComputeConfiguration = {
     sequences: generated,
@@ -5696,6 +5700,7 @@ fn open_client_local_effect_host(
   ordered_body? : String? = None,
   captured_sources? : Array[(Int, @query.CapturedInputSource)] = [],
   acquisition_ledger? : @resources.Ledger? = None,
+  component_providers? : Array[@local.ManagedProvider] = [],
 ) -> ClientLocalEffectHost? {
   if fixed_ms < 0L ||
     per_row_ms < 0L ||
@@ -5706,14 +5711,6 @@ fn open_client_local_effect_host(
   guard client_local_contracts(registry_body, values_body) is Some(contracts) else {
     return None
   }
-  let limits : @resources.LedgerLimits = {
-    planning_work: 100000,
-    attempts: 10,
-    holdings: 10,
-    transfer_bytes: 500000L,
-    retained_bytes: 200000000L,
-    execution_bytes: 268435456L,
-  }
   let multiple = !captured_sources.is_empty()
   if multiple &&
     (
@@ -5723,6 +5720,9 @@ fn open_client_local_effect_host(
     ) {
     return None
   }
+  let computation = @publication_host.prepared_client_effect_run_computation(
+    prepared,
+  )
   let opened = if multiple {
     @publication_host.open_prepared_multi_captured_client_effect_run(
       prepared,
@@ -5730,6 +5730,12 @@ fn open_client_local_effect_host(
       acquisition_ledger.unwrap(),
     )
   } else {
+    guard @client_local_host.client_effect_local_ledger_limits(
+        computation, registry_body, values_body, fragment_body, ordered_body,
+      )
+      is Some(limits) else {
+      return None
+    }
     match source {
       None =>
         @publication_host.open_prepared_source_free_client_effect_run(
@@ -5746,9 +5752,6 @@ fn open_client_local_effect_host(
     Err(_) => return None
   }
   let captured = @strategy.captured_effect_run_dag(run)
-  let computation = @publication_host.prepared_client_effect_run_computation(
-    prepared,
-  )
   let graph = @strategy.checked_effect_run_graph(
     @publication_host.prepared_client_effect_run_graph(prepared),
   )
@@ -5791,8 +5794,15 @@ fn open_client_local_effect_host(
   }
   match
     client_program_configure_local_host(
-      captured, graph, generated, first_compute, fixed_ms, per_row_ms, per_wire_byte_ms,
+      captured,
+      graph,
+      generated,
+      first_compute,
+      fixed_ms,
+      per_row_ms,
+      per_wire_byte_ms,
       per_pair_ms,
+      component_providers~,
     ) {
     Some(host) => Some({ host, run, })
     None => None
@@ -5822,6 +5832,17 @@ pub fn client_program_compile_local_effects(
   @publication_host.ClientEffectCompilation,
   ClientProgramEffectCompilationBridgeIssue,
 ] {
+  compile_client_local_effects(prepared, None)
+}
+
+///|
+fn compile_client_local_effects(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  infer : @publication_host.ClientInferPlanGraph?,
+) -> Result[
+  @publication_host.ClientEffectCompilation,
+  ClientProgramEffectCompilationBridgeIssue,
+] {
   let manifests = match
     @publication_host.admit_client_compilation_manifests(
       @check_environment.compiler_grammar_manifest_wire(),
@@ -5842,6 +5863,7 @@ pub fn client_program_compile_local_effects(
     1000000,
     100000,
     100,
+    infer~,
   ).map_err(issue => Compilation(issue))
 }
 

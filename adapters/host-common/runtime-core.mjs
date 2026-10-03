@@ -1696,6 +1696,7 @@ function publicationControl(moon) {
   const evidenceTokens = new WeakMap();
   const admissionTokens = new WeakMap();
   const compiledRunTokens = new WeakMap();
+  const inferInvocationTokens = new WeakMap();
   const compiledRunResult = (result, code) => {
     try {
       return checked(result);
@@ -1941,6 +1942,20 @@ function publicationControl(moon) {
       compiledRunTokens.set(result, value);
       return result;
     },
+    adoptCheckedClientEffectInferRun(allowed, definition) {
+      const value = checked(moon.clientProgramEffectAllowedInferRun(allowed));
+      if (!moon.clientProgramCheckCompiledRunDefinition(value, token(definition))) {
+        throw new TypeError('Effect Infer Run Definition differs from admission');
+      }
+      const result = Object.freeze({kind: 'infer',
+        template: inspectEvidence(moon.clientProgramCompiledRunTemplate(value)),
+        compiledPlan: inspect(moon.clientProgramCompiledRunPlan(value)),
+        preparedEvidence: inspectEvidence(moon.clientProgramCompiledRunPrepared(value)),
+        authorization: inspectEvidence(moon.clientProgramCompiledRunAuthorization(value)),
+        admission: inspectAdmission(moon.clientProgramCompiledRunAdmission(value))});
+      compiledRunTokens.set(result, value);
+      return result;
+    },
     checkClientCompiledRunOwner(compiled, checkedProgram) {
       const value = compiledRunTokens.get(compiled);
       if (value === undefined ||
@@ -2067,11 +2082,24 @@ function publicationControl(moon) {
       }
       const binding = checked(moon.clientProgramBindIssuedInferInvocation(
         execution, value, token(definition), issued));
-      return Object.freeze({binding,
+      const result = Object.freeze({binding,
         observation: inspectEvidence(
           moon.clientProgramInferInvocationBindingObservation(binding)),
         invocation: inspect(
           moon.clientProgramInferInvocationBindingInvocation(binding))});
+      inferInvocationTokens.set(result, {compiled: value, definition});
+      return result;
+    },
+    checkedClientEffectInferInvocation(checkedEffect, compilation, definition, issued) {
+      const retained = inferInvocationTokens.get(issued);
+      if (retained === undefined || retained.definition.identity !== definition.identity ||
+          !moon.clientProgramCompiledRunEffectMatches(retained.compiled, checkedEffect, compilation) ||
+          !moon.clientProgramCheckCompiledRunDefinition(retained.compiled, token(definition)) ||
+          moon.clientProgramInferInvocationBindingObservation(issued.binding) === undefined) {
+        throw new TypeError('Foreign Effect Infer Invocation');
+      }
+      return Object.freeze({observation: issued.observation, invocation: issued.invocation,
+        owner: token(issued.invocation)});
     },
     readCheckedClientInferSlotReplay(compiled, definition, observation,
       records, bundle, proofs, {maxSlots, maxSlotWireUnits}) {

@@ -1,15 +1,20 @@
 // Physical custody while one admitted Effect Run acquires its source and
 // computes. This does not retry acquisition, Compute, or an Effect dispatch.
 import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
-import {acquiredEffectPublicationPlan, acquiredMultiEffectPublicationPlan} from './local-values-plan.mjs';
+import {acquiredEffectPublicationPlan, acquiredMultiEffectPublicationPlan,
+  acquiredInferEffectPublicationPlan} from './local-values-plan.mjs';
 import {installedSourceFor} from './installed-source.mjs';
 import {capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity} from './captured-duckdb-source.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runCapturedEffectComputation} from './entry.mjs';
+import {openNodeComposedInferProvider} from './infer-operation.mjs';
+import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
+import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 
 export async function openAcquiredEffectComputation({moon, owner, acquired,
   sourceProfile, registry, values, fragment, ordered, sourceAccess,
-  signal, now, retainComputationOwner}) {
+  signal, now, retainComputationOwner, infer, store, principalId, faultInjection,
+  observe}) {
   const multiple = moon?.clientProgramEffectAcquisitionCount?.(acquired.prepared) === 2;
   if (typeof retainComputationOwner !== 'function' ||
       (multiple ? sourceProfile?.sources?.length !== 2 :
@@ -19,7 +24,22 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
   }
   const captures = [];
   let execution;
+  let checkedHost;
   let recovery;
+  let inferCapture;
+  let ledger;
+  const diagnostic = diagnosticObserver(observe);
+  const observeUsage = name => {
+    const usage = ledger === undefined ? checkedHost === undefined ? undefined
+      : moon.strategyHostUsage(moon.clientProgramLocalEffectHostRuntime(checkedHost))
+      : moon.clientProgramMultiCapturedLedgerUsage(ledger);
+    if (usage === undefined) return;
+    diagnostic(name, {resourceUsage: Object.fromEntries([
+      'planningWork', 'attempts', 'holdings', 'transferredBytes',
+      'reservedTransferBytes', 'heldBytes', 'reservedRetentionBytes',
+      'reservedExecutionBytes', 'uncertainTransferBytes',
+    ].slice(0, usage.length).map((field, index) => [field, usage[index].toString()]))});
+  };
   let unresolved = false;
   let pending = true;
   let settled = false;
@@ -29,22 +49,44 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       closed = true;
       // A physical owner's cleanup, not another Compute call, recovers a
       // failed close. Retain the captured source until consumers are gone.
-      await (execution ?? recovery)?.close();
+      let failure;
+      try { await (execution ?? recovery)?.close(); }
+      catch (error) { failure = error; }
+      try { if (settled) await inferCapture?.custody.close(); }
+      catch (error) { failure ??= error; }
+      if (failure !== undefined) observeUsage('effect_computation_cleanup_pending');
+      if (failure !== undefined) throw failure;
     },
     async cleanup() {
+      if (!pending) return true;
       if (!closed || !settled || unresolved) return false;
+      if (inferCapture !== undefined) {
+        if (!await inferCapture.custody.cleanup()) {
+          observeUsage('effect_computation_cleanup_pending');
+          return false;
+        }
+      }
       const physical = execution ?? recovery;
       if (physical !== undefined) {
         if (await physical.cleanup() === false ||
-            physical.cleanupPending() !== false) return false;
-        execution = undefined;
-        recovery = undefined;
+            physical.cleanupPending() !== false) {
+          observeUsage('effect_computation_cleanup_pending');
+          return false;
+        }
       }
       while (captures.length > 0) {
         await captures[0].close();
         captures.shift();
       }
+      if (checkedHost !== undefined &&
+          !moon.clientProgramRefreshAcquiredEffectCleanup(checkedHost)) {
+        observeUsage('effect_computation_cleanup_pending');
+        return false;
+      }
+      execution = undefined;
+      recovery = undefined;
       pending = false;
+      observeUsage('effect_computation_cleanup_completed');
       return true;
     },
     cleanupPending: () => pending,
@@ -72,7 +114,6 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       sources.push({adapter, access, preparedSource, occurrence});
       signal?.throwIfAborted();
     }
-    let ledger;
     if (multiple) {
       const capacities = sources.map(value => capturedDuckDBPhysicalCapacity(value.preparedSource));
       ledger = moon.clientProgramPrepareMultiCapturedEffectAcquisitionLedger(
@@ -106,16 +147,47 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       evidence.push({captured, sourceEvidenceWire});
     }
     const captureCompletedAt = now();
-    const publicationPlan = multiple
+    let publicationPlan = infer === undefined ? multiple
       ? acquiredMultiEffectPublicationPlan({acquired, sources: evidence,
         captureStartedAt, captureCompletedAt})
       : acquiredEffectPublicationPlan({acquired, ...evidence[0],
-        captureStartedAt, captureCompletedAt});
+        captureStartedAt, captureCompletedAt}) : undefined;
+    let component;
+    if (infer !== undefined) {
+      if (!multiple) throw new TypeError('UnsupportedComposedInferSourceClosure');
+      const sources = checked(moon.clientProgramAdmitComposedInferSources(
+        infer.occurrence, captures.map(value => value.capture.source()),
+        captures.map(value => value.identity), captures.map(value => value.requirement),
+        captures.map(value => moon.strategyRunEvidenceJson(value.logicalInput)),
+        evidence.map(value => value.sourceEvidenceWire), acquired.authorityScopeCid,
+        captureStartedAt, captureCompletedAt));
+      const compiled = acquired.control.adoptCheckedClientEffectInferRun(
+        acquired.allowed, acquired.runDefinition);
+      const plan = {compiled, runDefinition: acquired.runDefinition};
+      component = openNodeComposedInferProvider({moon, selected: infer, sources,
+        control: acquired.control, plan, principalId, signal, now,
+        retainOperation(operation) {
+          inferCapture = openNodeInferCaptureCustody({moon, control: acquired.control,
+            operation, plan, store, storeAuthorityCid: acquired.storeAuthorityCid,
+            sourceEvidence: evidence.map(source => acquired.control.admitRunEvidence(
+              'source_evidence', source.sourceEvidenceWire,
+              {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100})),
+            faultInjection,
+            publicationFor: ({issuance, modelEvidence}) =>
+              acquiredInferEffectPublicationPlan({acquired, sources: evidence,
+                compiled, operation, issuance, modelEvidence,
+                captureStartedAt, captureCompletedAt})});
+        },
+        retainCompleted: () => inferCapture.retainCompleted()});
+    }
     signal?.throwIfAborted();
-    const checkedHost = multiple
-      ? moon.clientProgramOpenMultiCapturedLocalEffectHost(owner,
+    checkedHost = multiple
+      ? component === undefined ? moon.clientProgramOpenMultiCapturedLocalEffectHost(owner,
         captures.map(value => value.capture.source()), ledger,
-        registry, values, fragment, ordered)
+        registry, values, fragment, ordered) :
+        moon.clientProgramOpenMultiCapturedInferEffectHost(owner,
+          captures.map(value => value.capture.source()), ledger,
+          registry, values, fragment, ordered, component.provider)
       : moon.clientProgramOpenCapturedLocalEffectHost(owner,
         captures[0].capture.source(), registry, values, 1n, 0n, 0n, 0n,
         fragment, ordered);
@@ -133,7 +205,13 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
       {authorization: multiple ? undefined : sourceAccess?.authorization}, signal);
     unresolved = false;
     if (execution.status !== 'host-tasks-completed') {
-      throw execution.failure ?? new Error('InstalledEffectComputationFailed');
+      throw component?.failure() ?? execution.failure ?? new Error('InstalledEffectComputationFailed');
+    }
+    observeUsage('effect_computation_completed');
+    if (component !== undefined) {
+      if (inferCapture === undefined) throw component.failure() ?? new Error('InstalledInferCaptureUnavailable');
+      publicationPlan = (await inferCapture.persist()).plan;
+      await faultInjection?.('infer_capture_committed', {});
     }
     return Object.freeze({execution, checkedHost, publicationPlan,
       cleanupOwner: custody});

@@ -787,6 +787,7 @@ test('standard Host runs Local with mixed memory and provider inputs',
         output_row: () => ok('{"joined":true}'),
         storage_bytes: 16,
         close() {},
+        cleanup_refresh: () => true,
       };
       const local = localStrategyContribution({
         ...portableRuntime,
@@ -871,6 +872,7 @@ test('standard Local dispatches a Carrier input to a Carrier output',
       material: () => undefined,
       storage_bytes: 32n,
       close: () => { closed = true; },
+      cleanup_refresh: () => true,
     };
     const local = localStrategyContribution({
       ...portableRuntime,
@@ -955,6 +957,7 @@ test('configured row Store selects typed Carrier paths',
         material: () => undefined,
         storage_bytes: 32n,
         close() {},
+        cleanup_refresh: () => true,
       }),
     }, setup, checked, store);
     const prepared = await local.prepareNext(new Map());
@@ -1019,6 +1022,7 @@ test('standard Host retains an exact Carrier across task dispatch', async () => 
     material: () => undefined,
     storage_bytes: 32n,
     close: () => { outputClosed = true; },
+    cleanup_refresh: () => true,
   };
   const local = localStrategyContribution({
     ...portableRuntime,

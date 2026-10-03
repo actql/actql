@@ -18,6 +18,7 @@ import {databaseRows, expectedUpdates, expectedWrites, expectedModelInputs,
   publicFixtureEnvironment, modelConfiguration} from
   './fixtures/composed-infer-effect-input.mjs';
 import {canonicalJson} from '../adapters/host-node/local-account-config.mjs';
+import {packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const build = join(repository, '_build');
@@ -26,14 +27,16 @@ await mkdir(build, {recursive: true});
 const externalScratch = join(repository, '..', '.codex-scratch');
 await mkdir(externalScratch, {recursive: true});
 const root = await mkdtemp(join(externalScratch, 'actql-packed-salesforce-'));
-const inferEnabled = process.argv.includes('--composed-infer');
 const twoSourceEffect = process.argv.includes('--two-source-effect');
-const composed = inferEnabled || twoSourceEffect;
+const compositionCases = process.argv.includes('--composed-infer') ? ['infer']
+  : twoSourceEffect ? ['two-source'] : ['source', 'infer'];
+const inferEnabled = compositionCases.includes('infer');
+const composed = compositionCases.some(kind => kind !== 'source');
 const orgId = '00D000000000001EAA';
 const token = 'packed-test-only-token';
 
 function run(command, args, cwd, env = {...process.env,
-  npm_config_cache: join(build, 'npm-cache')}) {
+  npm_config_cache: packedNpmCache(root)}) {
   const result = spawnSync(command, args, {cwd, env, encoding: 'utf8',
     timeout: command === 'npm' && args[0] === 'pack' ? 600000 : 120000});
   if (result.error || result.status !== 0) {
@@ -45,7 +48,7 @@ function run(command, args, cwd, env = {...process.env,
 
 // A child that talks to the mock org served by this process: it must not
 // block this process's event loop.
-function runChild(script, env, args = []) {
+function runChild(script, env, args = [], expectedExit = 0) {
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [script, ...args], {cwd: root, env});
     let stdout = '';
@@ -56,7 +59,7 @@ function runChild(script, env, args = []) {
     child.on('error', reject);
     child.on('close', code => {
       clearTimeout(timer);
-      if (code === 0) resolve(stdout);
+      if (code === expectedExit) resolve(stdout);
       else reject(new Error(`${script} failed:\n${stdout}\n${stderr}`));
     });
   });
@@ -71,7 +74,7 @@ const server = await (async () => {
   const seen = [];
   // The current Name every target read answers; a test changes it to make
   // a Preview stale.
-  const target = {name: 'prior-name'};
+  const target = {name: 'prior-name', loseReply: false};
   const prefix = '/services/data/v62.0/';
   const records = [1, 2, 3].map(index => ({Id: `a0000000000000${index}`,
     Name: `record-${index}`, External_Key__c: `key-${index}`}));
@@ -129,6 +132,12 @@ const server = await (async () => {
         seen.at(-1).body = text;
         const body = JSON.parse(text);
         assert.deepEqual(Object.keys(body), ['Name']);
+        if (target.loseReply) {
+          target.loseReply = false;
+          target.name = body.Name; // The write happened; its response was lost.
+          response.destroy();
+          return;
+        }
         response.writeHead(204).end();
       });
       return;
@@ -144,10 +153,10 @@ let passed = false;
 try {
   const artifacts = [];
   for (const name of ['client-wire', 'sdk', 'local-node', 'node']) {
-    const packed = JSON.parse(run('npm', ['pack', '--pack-destination', root,
-      '--json'], join(repository, 'packages', name)));
-    artifacts.push(join(root, packed[0]?.filename ??
-      packed[`@actql/${name}`]?.filename));
+    await packedClientPackage({repository, name, destination: root,
+      pack: packageName => run('npm', ['pack', '--pack-destination', root,
+        '--json'], join(repository, 'packages', packageName))});
+    artifacts.push(join(root, `actql-${name}-0.0.0-development.tgz`));
   }
   console.log('packed package digests ' + JSON.stringify(
     await Promise.all(artifacts.map(async path => ({
@@ -406,13 +415,24 @@ import {userInfo} from 'node:os';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 import {connect} from '@actql/node';
 import {compositionProgram, twoSourceEffectProgram, modelConfiguration, registerCompositionModel,
-  expectedClassified, classifiedColumns, expectedUpdates} from
+  expectedClassified, classifiedColumns, expectedUpdates, updateColumns} from
   './composed-infer-effect-input.mjs';
 const composed = process.env.PACKED_COMPOSED_INFER === '1';
 const twoSourceEffect = process.env.PACKED_TWO_SOURCE_EFFECT === '1';
 const authorization = JSON.parse(readFileSync('authorization.json', 'utf8'));
-if (composed) authorization.observe = (name, detail) =>
-  console.error('packed-composition-diagnostic', name, detail);
+const pendingScratch = process.argv[2] === 'rce-submit-pending';
+let scratchReleased = !pendingScratch;
+authorization.observe = (name, detail) => {
+  if (name.startsWith('effect_computation_')) {
+    appendFileSync('composition-custody.jsonl', JSON.stringify({name, ...detail,
+      pendingScratch}) + '\\n');
+    if (pendingScratch && name === 'effect_computation_cleanup_pending') {
+      assert.ok(BigInt(detail.resourceUsage.reservedExecutionBytes) > 0n,
+        'false physical cleanup must retain the original execution reservation');
+      scratchReleased = true;
+    }
+  }
+};
 authorization.resumeAfterAnswer = process.argv[2] === 'resume';
 const installation = {
   directory: process.env.ACTQL_LOCAL_STATE_DIR,
@@ -434,7 +454,7 @@ if (composed) {
   installation.modelInstallation = model.installation;
   installation.registerModelProviders = moon => registerCompositionModel(
     moon, model.taskCid, score => appendFileSync('model-calls.jsonl',
-      JSON.stringify({score}) + '\\n'));
+      JSON.stringify({score}) + '\\n'), {cleanup: () => scratchReleased});
 }
 let remoteHost;
 let remoteServer;
@@ -452,6 +472,17 @@ if (process.env.PACKED_RCE_TRANSPORT === 'https') {
     token: 'fixture-token'};
 }
 const client = await connect(connection);
+function terminate(boundary, ref) {
+  appendFileSync('restart-boundaries.jsonl', JSON.stringify({boundary, ref,
+    transport: process.env.PACKED_RCE_TRANSPORT}) + '\\n');
+  // Stop the dedicated Host and its execution process without finally or
+  // graceful close. The following process must use only durable custody.
+  if (sourceObservation) appendFileSync('source-calls.jsonl', JSON.stringify(
+    sourceObservation.snapshot()) + '\\n');
+  process.stdout.write(boundary === 'capture-waiting' ? 'held\\n' : 'approved\\n',
+    () => process.exit(77));
+  return new Promise(() => {});
+}
 const pause = () => new Promise(resolve => setTimeout(resolve, 50));
 async function waitFor(check) {
   for (let attempt = 0; attempt < 400; attempt++) {
@@ -519,8 +550,9 @@ try {
     const answer = await client.resolveCheckpoints([
       {checkpoint, decision: 'approved'}], {signer});
     assert.deepEqual(answer.results.map(item => item.status), ['committed']);
+    if (composed) await terminate('approval-committed', ref);
     console.log('approved');
-  } else if (step === 'rce-submit') {
+  } else if (step === 'rce-submit' || step === 'rce-submit-pending') {
     // Read→Compute→Effect: acquire Test_Record__c, keep every record but
     // record-2, derive the new Name locally, and update the same records.
     const generation = JSON.parse(readFileSync('effect-publication.json',
@@ -557,9 +589,14 @@ try {
       }
       throw error;
     }
-    assert.equal((await execution.wait()).status, 'waiting_checkpoint');
+    if (pendingScratch) {
+      await waitFor(async () => (await execution.status()).status === 'waiting_checkpoint');
+    } else {
+      assert.equal((await execution.wait()).status, 'waiting_checkpoint');
+    }
     writeFileSync('effect-ref.json', JSON.stringify(execution.ref));
     writeFileSync('rce-request.txt', 'packed-rce-' + process.argv[3]);
+    if (composed && !pendingScratch) await terminate('capture-waiting', execution.ref);
     console.log('held');
   } else if (step === 'rce-resume') {
     const ref = JSON.parse(readFileSync('effect-ref.json', 'utf8'));
@@ -579,6 +616,8 @@ try {
       assert.deepEqual(await execution.result('classified').all(), expectedClassified);
       assert.deepEqual((await execution.result('classified').describe()).columns,
         classifiedColumns);
+      assert.deepEqual((await execution.result('updates').describe()).columns,
+        updateColumns);
       }
       assert.deepEqual(await execution.result('updates').all(), expectedUpdates);
     } else if (state.status === 'succeeded') {
@@ -650,6 +689,10 @@ try {
     item.method === 'GET' && item.path === '/services/data/v62.0/query').length;
   // Each invocation owns both its Host and its execution context. Exiting
   // before the next invocation stops both, also for the public HTTPS path.
+  for (const compositionKind of compositionCases) {
+  const composed = compositionKind !== 'source';
+  const inferEnabled = compositionKind === 'infer';
+  const twoSourceEffect = compositionKind === 'two-source';
   for (const transport of ['local', 'https']) {
     server.target.name = 'prior-name';
     const rceEnvironment = {...effectEnvironment,
@@ -657,12 +700,12 @@ try {
       PACKED_COMPOSED_INFER: composed ? '1' : '0',
       PACKED_TWO_SOURCE_EFFECT: twoSourceEffect ? '1' : '0',
       NODE_EXTRA_CA_CERTS: join(root, 'org.crt'),
-      ACTQL_LOCAL_STATE_DIR: join(root, 'rce-' + transport)};
+      ACTQL_LOCAL_STATE_DIR: join(root, 'rce-' + compositionKind + '-' + transport)};
     if (composed) delete rceEnvironment.ACTQL_LOCAL_SOURCE_PROFILE;
     const rce = async (steps, id) => {
       const readsBefore = queries();
       const held = (await runChild('effect-run.mjs', rceEnvironment,
-        ['rce-submit', id])).trim();
+        ['rce-submit', id], composed ? 77 : 0)).trim();
       if (held === 'not-connected') {
         throw Object.assign(new Error('ReadComputeEffectNotConnected: the ' +
           'packed Host refuses the Program (ClientProgramUnsupported).'),
@@ -685,7 +728,7 @@ try {
     await rce(async () => {
       assert.equal(patches().length, 0);
       assert.equal((await runChild('effect-run.mjs', rceEnvironment,
-        ['answer'])).trim(), 'approved');
+        ['answer'], composed ? 77 : 0)).trim(), 'approved');
       assert.equal(patches().length, 0);
       const done = JSON.parse((await runChild('effect-run.mjs',
         rceEnvironment, ['rce-resume'])).trim());
@@ -722,19 +765,102 @@ try {
     await rce(async () => {
       server.target.name = 'changed-after-preview';
       assert.equal((await runChild('effect-run.mjs', rceEnvironment,
-        ['answer'])).trim(), 'approved');
+        ['answer'], composed ? 77 : 0)).trim(), 'approved');
       const done = JSON.parse((await runChild('effect-run.mjs',
         rceEnvironment, ['rce-resume'])).trim());
       assert.equal(done.status, 'failed');
       assert.equal(patches().length, composed ? 1 : 2);
     }, 'stale');
+    if (inferEnabled) {
+      server.target.name = 'prior-name';
+      const writesBeforePending = patches().length;
+      const modelsBeforePending = (await readFile(join(root, 'model-calls.jsonl'),
+        'utf8')).trim().split('\n').filter(Boolean).length;
+      const sourceCallsBeforePending = (await readFile(join(root, 'source-calls.jsonl'),
+        'utf8')).trim().split('\n').filter(Boolean).length;
+      assert.equal((await runChild('effect-run.mjs', rceEnvironment,
+        ['rce-submit-pending', 'pending'])).trim(), 'held');
+      assert.equal(patches().length, writesBeforePending,
+        'cleanup retry cannot send an unapproved Effect');
+      const custody = (await readFile(join(root, 'composition-custody.jsonl'), 'utf8'))
+        .trim().split('\n').map(line => JSON.parse(line)).filter(item => item.pendingScratch);
+      const completed = custody.find(item => item.name === 'effect_computation_completed');
+      const pending = custody.find(item => item.name === 'effect_computation_cleanup_pending');
+      const released = custody.filter(item => item.name === 'effect_computation_cleanup_completed').at(-1);
+      assert.ok(completed && pending && released,
+        'the original completed computation must report pending and then actual release');
+      assert.ok(BigInt(pending.resourceUsage.reservedExecutionBytes) > 0n);
+      assert.equal(released.resourceUsage.reservedExecutionBytes, '0');
+      assert.equal(released.resourceUsage.reservedTransferBytes, '0');
+      assert.equal(released.resourceUsage.reservedRetentionBytes, '0');
+      assert.equal(released.resourceUsage.heldBytes, '0');
+      assert.equal(released.resourceUsage.transferredBytes, completed.resourceUsage.transferredBytes);
+      assert.equal(released.resourceUsage.planningWork, completed.resourceUsage.planningWork);
+      assert.equal((await runChild('effect-run.mjs', rceEnvironment,
+        ['answer'], 77)).trim(), 'approved');
+      for (let restart = 0; restart < 2; restart++) {
+        assert.equal(JSON.parse((await runChild('effect-run.mjs', rceEnvironment,
+          ['rce-resume'])).trim()).status, 'succeeded');
+        assert.deepEqual(patches().slice(writesBeforePending).map(item => ({
+          id: item.path.split('/').at(-1), body: JSON.parse(item.body)})), expectedWrites);
+      }
+      const modelCalls = (await readFile(join(root, 'model-calls.jsonl'), 'utf8'))
+        .trim().split('\n').filter(Boolean).map(line => JSON.parse(line).score);
+      assert.deepEqual(modelCalls.slice(modelsBeforePending).sort((a, b) => a - b), expectedModelInputs);
+      const sourceCalls = (await readFile(join(root, 'source-calls.jsonl'), 'utf8'))
+        .trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
+      assert.deepEqual(sourceCalls.slice(sourceCallsBeforePending).map(item =>
+        item.sourceReadSessions), [2, 0, 0, 0]);
+      console.log('packed ' + transport + ' composed cleanup false → retained reservation → release passed');
+      server.target.name = 'prior-name';
+      const writesBeforeLost = patches().length;
+      const modelsBeforeLost = (await readFile(join(root, 'model-calls.jsonl'),
+        'utf8')).trim().split('\n').filter(Boolean).length;
+      const sourcesBeforeLost = (await readFile(join(root, 'source-calls.jsonl'),
+        'utf8')).trim().split('\n').filter(Boolean).length;
+      await rce(async () => {
+        assert.equal(patches().length, writesBeforeLost);
+        assert.equal((await runChild('effect-run.mjs', rceEnvironment,
+          ['answer'], 77)).trim(), 'approved');
+        assert.equal(patches().length, writesBeforeLost);
+        server.target.loseReply = true;
+        for (let restart = 0; restart < 2; restart++) {
+          const done = JSON.parse((await runChild('effect-run.mjs', rceEnvironment,
+            ['rce-resume'])).trim());
+          assert.equal(done.status, 'needs_reconciliation',
+            'a lost Effect response cannot become success or an unconditional resend');
+          assert.deepEqual(patches().slice(writesBeforeLost).map(item => ({
+            id: item.path.split('/').at(-1), body: JSON.parse(item.body)})), expectedWrites);
+        }
+      }, 'lost-reply');
+      assert.deepEqual((await readFile(join(root, 'model-calls.jsonl'), 'utf8'))
+        .trim().split('\n').filter(Boolean).slice(modelsBeforeLost)
+        .map(line => JSON.parse(line).score).sort((a, b) => a - b), expectedModelInputs);
+      assert.deepEqual((await readFile(join(root, 'source-calls.jsonl'), 'utf8'))
+        .trim().split('\n').filter(Boolean).slice(sourcesBeforeLost)
+        .map(line => JSON.parse(line).sourceReadSessions), [2, 0, 0, 0]);
+      console.log('packed ' + transport + ' composed lost Effect response → reconciliation without resend passed');
+    }
     console.log('packed ' + transport +
-      ' Read→Compute→Effect recovery passed');
+      ' ' + compositionKind + ' Read→Compute→Effect recovery passed');
+  }
+  }
+  if (composed) {
+    const boundaries = (await readFile(join(root, 'restart-boundaries.jsonl'), 'utf8'))
+      .trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
+    for (const transport of ['local', 'https']) {
+      assert.ok(boundaries.some(item => item.transport === transport &&
+        item.boundary === 'capture-waiting'));
+      assert.ok(boundaries.some(item => item.transport === transport &&
+        item.boundary === 'approval-committed'));
+    }
+    console.log('packed composed Host + execution process termination at durable capture and approval passed');
   }
   console.log('packed public Client Read→Compute→Effect passed');
   passed = true;
 } finally {
   await server.close();
-  if (passed) await rm(root, {recursive: true, force: true});
+  if (passed && !process.argv.includes('--keep-artifacts')) await rm(root, {recursive: true, force: true});
+  else if (passed) console.log('Preserved packed composition evidence at ' + root);
   else console.error('Preserved failed packed composition at ' + root);
 }

@@ -13,6 +13,7 @@
   "managed_capacity": "local_managed_dispatch_site_capacity",
   "managed_start": "start_local_managed_dispatch_node",
   "managed_start_result": {"package":"actql/actql/connectors/local/driver","type":"LocalManagedDispatchOperations"},
+  "managed_start_error": {"package":"actql/actql/connectors/local/driver","type":"LocalDispatchIssue"},
   "configuration": "LocalComputeConfiguration",
   "configure": "configure_local_compute",
   "registration": "local_dispatch_registration",

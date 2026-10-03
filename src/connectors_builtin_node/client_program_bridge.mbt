@@ -5709,14 +5709,6 @@ fn open_client_local_effect_host(
   guard client_local_contracts(registry_body, values_body) is Some(contracts) else {
     return None
   }
-  let limits : @resources.LedgerLimits = {
-    planning_work: 100000,
-    attempts: 10,
-    holdings: 10,
-    transfer_bytes: 500000L,
-    retained_bytes: 200000000L,
-    execution_bytes: 268435456L,
-  }
   let multiple = !captured_sources.is_empty()
   if multiple &&
     (
@@ -5726,6 +5718,9 @@ fn open_client_local_effect_host(
     ) {
     return None
   }
+  let computation = @publication_host.prepared_client_effect_run_computation(
+    prepared,
+  )
   let opened = if multiple {
     @publication_host.open_prepared_multi_captured_client_effect_run(
       prepared,
@@ -5733,6 +5728,12 @@ fn open_client_local_effect_host(
       acquisition_ledger.unwrap(),
     )
   } else {
+    guard @client_local_host.client_effect_local_ledger_limits(
+        computation, registry_body, values_body, fragment_body, ordered_body,
+      )
+      is Some(limits) else {
+      return None
+    }
     match source {
       None =>
         @publication_host.open_prepared_source_free_client_effect_run(
@@ -5749,9 +5750,6 @@ fn open_client_local_effect_host(
     Err(_) => return None
   }
   let captured = @strategy.captured_effect_run_dag(run)
-  let computation = @publication_host.prepared_client_effect_run_computation(
-    prepared,
-  )
   let graph = @strategy.checked_effect_run_graph(
     @publication_host.prepared_client_effect_run_graph(prepared),
   )

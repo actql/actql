@@ -388,6 +388,26 @@ test "Effect compiler keeps the original Model barrier and KEEP in one Plan" {
     allowed, "composed-scope", "composed-run", "2026-10-03T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
   ).unwrap()
   let model_run = client_effect_allowed_infer_run(allowed).unwrap()
+  assert_true(client_compiled_run_matches_effect(model_run, owner, compilation))
+  // Identical compilation bodies do not substitute their physical owner.
+  let other_compilation = issue_prepared_client_effect_compilation(
+    owner,
+    manifests,
+    run_materials_limits().sequence,
+    1000,
+    10000,
+    100000,
+    10000,
+    100,
+    infer=Some(component),
+  ).unwrap()
+  assert_false(
+    client_compiled_run_matches_effect(model_run, owner, other_compilation),
+  )
+  assert_eq(
+    client_compiled_run_infer_observation_policy(model_run),
+    prepared_client_effect_publication_data_policy_cid(owner),
+  )
   assert_true(
     check_client_compiled_run_definition(model_run, definition) is Ok(_),
   )

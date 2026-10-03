@@ -2776,7 +2776,10 @@ test('one acquired Effect Program captures and computes from its owner',
         }, registry, values, fragment, ordered,
         sourceAccess: sourceOptions.sourceAccess,
         now: () => instants.shift(),
-        retainComputationOwner(value) { retained = value; }});
+        retainComputationOwner(value) { retained = value; }}).catch(error => {
+        t.diagnostic(inspect(error.cause, {depth: 6}));
+        throw error;
+      });
       const {execution, checkedHost: host} = computed;
       assert.equal(computed.cleanupOwner, retained);
       assert.equal(computed.publicationPlan.invocation.identity,

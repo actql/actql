@@ -10,6 +10,7 @@ import {
   "actql/actql/connector_sdk",
   "actql/actql/connectors/duckdb/acquisition",
   "actql/actql/connectors/local",
+  "actql/actql/connectors/reference_compute",
   "actql/actql/connectors/salesforce/catalog",
   "actql/actql/connectors_builtin",
   "actql/actql/decode_core",
@@ -287,6 +288,8 @@ pub fn client_program_compile_local_values(@run_publication_host.PreparedClientP
 pub fn client_program_compiled_run_admission(@run_publication_host.ClientCompiledRun) -> @run_publication.RunPublicationAdmission
 
 pub fn client_program_compiled_run_authorization(@run_publication_host.ClientCompiledRun) -> @run_publication.RunEvidenceValue
+
+pub fn client_program_compiled_run_effect_matches(@run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectCompilation) -> Bool
 
 pub fn client_program_compiled_run_matches(@run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientProgram) -> Bool
 
@@ -969,6 +972,8 @@ pub fn client_program_read_infer_slot_replay(@run_publication.RunEvidenceValue, 
 pub fn client_program_read_verified_infer_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Array[@model_execution.ModelAttemptRecords], @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, Int, Int) -> Result[@model_execution.ModelSlotReplayRead, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_recover_effect_target_guards(@run_publication.EffectPreviewIdentity, Array[Array[@logical_request_scope.LogicalRequestScope]], Array[Array[@effect_application.LogicalItemLocator]], Array[Array[@effect_application.EffectDispatchKey]], Array[Array[@effect_application.EffectLedgerBasis]], Array[Array[@effect_application.EffectLedgerEntry?]], Array[Array[Bool]], Int, Int, Int) -> Result[@effect_application.RecoveredEffectTargetGuards, @effect_application.EffectSetProgressIssue]
+
+pub fn client_program_refresh_acquired_effect_cleanup(ClientLocalEffectHost) -> Bool
 
 pub fn client_program_release_effect_input(@physical_strategy.CapturedEffectInput) -> Bool
 
@@ -2543,6 +2548,8 @@ pub(all) suberror NodeHostFailure {
   RemoteCredential(@remote_credential.RemoteCredentialIssue)
   RemoteBundle(@remote_bundle.RemoteBundleIssue)
   PhysicalManifest(@physical_manifest.PhysicalManifestIssue)
+  LocalManagedStart(@actql/actql/connectors/local/driver.LocalDispatchIssue)
+  ReferenceComputeManagedStart(@reference_compute.PlanIssue)
 }
 
 // Types and methods

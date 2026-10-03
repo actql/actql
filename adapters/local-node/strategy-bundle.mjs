@@ -3,6 +3,7 @@
 import {readLocalRetainedInput} from './retained-input.mjs';
 import {localRetainedStore} from './retained-store.mjs';
 import {prepareLocalRetainedOutput} from './retained-output.mjs';
+import {closeCompletedLocalManagedOutput} from './managed-output-custody.mjs';
 import {planManagedInputRows, registerManagedMemoryInput,
   withManagedInputRows, withManagedOutputRows} from
   '../store-local/managed-memory-representations.mjs';
@@ -347,7 +348,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         if (carrierMaterial != null) return Object.freeze({
           completed,
           carrierMaterial,
-          close: () => operations.close(),
+          close: () => closeCompletedLocalManagedOutput(operations, checked, failureProgress),
           diagnostic: Object.freeze({
             realization: 'local-managed',
             outputRepresentation: 'managed-local-carrier',
@@ -382,7 +383,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           }),
           () => {
             available = false;
-            operations.close();
+            closeCompletedLocalManagedOutput(operations, checked, failureProgress);
           },
           transferEstimate,
         );

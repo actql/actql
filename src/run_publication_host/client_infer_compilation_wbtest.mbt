@@ -74,6 +74,14 @@ test "Infer compilation reaches the shared Run owner with the checked barrier" {
       "2099-01-01T00:00:00.000Z",
     ).unwrap()
     assert_true(client_compiled_run_matches(admitted, prepared))
+    assert_eq(
+      client_compiled_run_infer_observation_policy(admitted),
+      Some(
+        @environment.model_task_data_handling_cid(
+          @environment.model_execution_task(graph.execution),
+        ),
+      ),
+    )
     assert_true(
       client_compiled_run_infer(admitted) is Some(selected) &&
       physical_equal(selected, graph),

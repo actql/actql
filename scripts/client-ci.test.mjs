@@ -27,6 +27,7 @@ test('each Client group retains its acceptance commands exactly once', () => {
     'node scripts/test-packed-acquired-infer.mjs',
     'node --test scripts/packed-query-evidence.test.mjs\nnode scripts/test-packed-public-query.mjs',
     'node scripts/test-packed-result-description.mjs',
+    'node scripts/test-packed-salesforce-source.mjs',
   ]);
   assert.deepEqual(runs('client-salesforce'), [
     'node scripts/build-runtime-packages.mjs local-node',
@@ -53,6 +54,9 @@ done`,
     }
   }
   assert.equal(jobs['client-salesforce'].needs, undefined);
+  const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
+  assert(!manifest.scripts['check:local-node-assets'].includes('test-packed-salesforce-source'),
+    'the packed composition acceptance moves from Host into the artifact consumer exactly once');
 });
 
 test('one producer uploads only manifest and tarballs; consumers select its immutable artifact ID', () => {

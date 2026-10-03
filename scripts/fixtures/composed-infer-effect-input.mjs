@@ -21,6 +21,11 @@ export const classifiedColumns = [
   // Outcome filtering does not refine the nullable captured value contract.
   {name: 'risk', contract: {type: 'string', nullable: true}},
 ];
+export const updateColumns = [...classifiedColumns,
+  // These two authored string literals each contain exactly 15 UTF-8 bytes.
+  {name: 'target_id', contract: {type: 'string', nullable: false, max_utf8_bytes: 15}},
+  {name: 'next_name', contract: {type: 'string', nullable: false, max_utf8_bytes: 15}},
+];
 
 export function compositionProgram(mappingRef) {
   const acquire = (id, connector) => ({id,
@@ -128,7 +133,7 @@ export async function modelConfiguration(baseEnvironment) {
   }};
 }
 
-export function registerCompositionModel(moon, taskCid, record) {
+export function registerCompositionModel(moon, taskCid, record, {cleanup = () => true} = {}) {
   const checked = value => {
     if (value?.$tag !== 1) throw new Error('CompositionModelAdmissionFailed');
     return value._0;
@@ -154,7 +159,7 @@ export function registerCompositionModel(moon, taskCid, record) {
             JSON.stringify({risk: score >= 200 ? 'high' : 'low'}),
             'composition-risk-model', 'composition-request-' + score,
             1n, 2n, new Date().toISOString());
-        }))}), () => true),
+        }))}), cleanup),
   }];
 }
 

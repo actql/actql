@@ -134,6 +134,18 @@ pub fn client_program_effect_allowed_infer_run(
 }
 
 ///|
+#export_name("clientProgramCompiledRunEffectMatches")
+pub fn client_program_compiled_run_effect_matches(
+  compiled : @publication_host.ClientCompiledRun,
+  prepared : @publication_host.PreparedClientEffectComputation,
+  compilation : @publication_host.ClientEffectCompilation,
+) -> Bool {
+  @publication_host.client_compiled_run_matches_effect(
+    compiled, prepared, compilation,
+  )
+}
+
+///|
 #export_name("clientProgramCheckCompiledRunDefinition")
 pub fn client_program_check_compiled_run_definition(
   compiled : @publication_host.ClientCompiledRun,
@@ -289,4 +301,27 @@ pub fn client_program_open_multi_captured_infer_effect_host(
     acquisition_ledger=Some(ledger),
     component_providers=[provider],
   )
+}
+
+///|
+/// Refresh the original acquired Effect DAG after installed output cleanup
+/// and both Source issuers have closed. This observes their release facts;
+/// revocation alone cannot return the ledger's retained bytes or scratch.
+#export_name("clientProgramRefreshAcquiredEffectCleanup")
+pub fn client_program_refresh_acquired_effect_cleanup(
+  value : ClientLocalEffectHost,
+) -> Bool {
+  let run = @strategy.captured_effect_run_dag(value.run)
+  @strategy.stop_captured_dag(run)
+  let count = @strategy.graph_task_count(@strategy.captured_dag_graph(run))
+  for task = count - 1; task >= 0; task = task - 1 {
+    @strategy.close_captured_task_output(run, task)
+  }
+  @strategy.refresh_captured_retention(run)
+  let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  usage.held_bytes == 0L &&
+  usage.reserved_transfer_bytes == 0L &&
+  usage.reserved_retention_bytes == 0L &&
+  usage.reserved_execution_bytes == 0L &&
+  usage.uncertain_transfer_bytes == 0L
 }

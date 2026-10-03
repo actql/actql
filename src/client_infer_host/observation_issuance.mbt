@@ -70,7 +70,7 @@ pub fn start_observation_issuance(
   }
   guard active.run_binding is Some(bound) &&
     active.call_scope is Some(scope) &&
-    active.plan is Some(plan) &&
+    active.plan is Some(_) &&
     active.model is Some(model) &&
     !active.reclaimed &&
     !active.cancelled &&
@@ -87,6 +87,13 @@ pub fn start_observation_issuance(
     return Err(Model(@model.OutputIdentity))
   }
   let count = @model.verified_model_capture_call_count(capture).unwrap()
+  guard @publication_host.client_compiled_run_infer_observation_policy(
+      bound.compiled,
+    )
+    is Some(policy_cid) else {
+    @model.release_verified_model_capture(capture) |> ignore
+    return Err(Model(@model.OutputIdentity))
+  }
   if count > limits.max_slots {
     @model.release_verified_model_capture(capture) |> ignore
     return Err(Model(@model.ItemLimit))
@@ -129,11 +136,7 @@ pub fn start_observation_issuance(
     sources: @publication_host.client_infer_call_scope_source_observations(
       scope,
     ),
-    policy_cid: @environment.model_task_data_handling_cid(
-      @environment.model_execution_task(
-        @publication_host.client_infer_plan_graph_execution_contract(plan),
-      ),
-    ),
+    policy_cid,
     ledger,
     reservation,
     writer,

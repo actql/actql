@@ -51,6 +51,45 @@ pub fn client_compiled_run_infer(
 }
 
 ///|
+/// Model execution may share an admitted Effect Run without adopting an
+/// Effect-free publication owner. Retain the exact original compilation.
+pub fn client_compiled_run_matches_effect(
+  value : ClientCompiledRun,
+  owner : PreparedClientEffectComputation,
+  compilation : ClientEffectCompilation,
+) -> Bool {
+  match value.compilation {
+    Effects(allowed) =>
+      physical_equal(allowed.compilation, compilation) &&
+      physical_equal(compilation.owner, owner)
+    Values(_) | Tasks(_) => false
+  }
+}
+
+///|
+/// Model egress and the enclosing Run's Result policy are different owners.
+/// Pure INFER retains its existing policy; an Effect Run keeps the checked
+/// publication policy of its original Source closure.
+pub fn client_compiled_run_infer_observation_policy(
+  value : ClientCompiledRun,
+) -> String? {
+  guard client_compiled_run_infer(value) is Some(plan) else { return None }
+  match value.compilation {
+    Effects(allowed) =>
+      prepared_client_effect_publication_data_policy_cid(
+        allowed.compilation.owner,
+      )
+    Tasks(_) =>
+      Some(
+        @environment.model_task_data_handling_cid(
+          @environment.model_execution_task(plan.execution),
+        ),
+      )
+    Values(_) => None
+  }
+}
+
+///|
 /// Retrieve the exact checked selection retained by compilation. None means
 /// a direct Result, not permission to accept a foreign or missing occurrence.
 pub fn client_compiled_run_result_transformation(
