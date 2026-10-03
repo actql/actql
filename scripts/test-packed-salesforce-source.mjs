@@ -420,6 +420,15 @@ import {compositionProgram, twoSourceEffectProgram, modelConfiguration, register
 const composed = process.env.PACKED_COMPOSED_INFER === '1';
 const twoSourceEffect = process.env.PACKED_TWO_SOURCE_EFFECT === '1';
 const authorization = JSON.parse(readFileSync('authorization.json', 'utf8'));
+if (process.env.PACKED_CHECKPOINT_TTL_MS !== undefined) {
+  authorization.checkpointTtlMs = Number(process.env.PACKED_CHECKPOINT_TTL_MS);
+}
+if (process.env.PACKED_DENY_EFFECT === '1') {
+  const account = JSON.parse(authorization.accountConfiguration);
+  account.entries = account.entries.map(entry => entry.entry_id === 'effect-commit'
+    ? {...entry, outcome: 'deny'} : entry);
+  authorization.accountConfiguration = JSON.stringify(account);
+}
 const pendingScratch = process.argv[2] === 'rce-submit-pending';
 let scratchReleased = !pendingScratch;
 authorization.observe = (name, detail) => {
@@ -596,6 +605,12 @@ try {
     }
     writeFileSync('effect-ref.json', JSON.stringify(execution.ref));
     writeFileSync('rce-request.txt', 'packed-rce-' + process.argv[3]);
+    if (process.env.PACKED_CHECKPOINT_TTL_MS !== undefined) {
+      const [checkpoint] = (await client.checkpoints()).items;
+      assert.equal(checkpoint.kind, 'effect_set');
+      writeFileSync('effect-deadline.json', JSON.stringify({ref: execution.ref,
+        expiresAt: checkpoint.expiresAt}));
+    }
     if (composed && !pendingScratch) await terminate('capture-waiting', execution.ref);
     console.log('held');
   } else if (step === 'rce-resume') {
@@ -702,9 +717,9 @@ try {
       NODE_EXTRA_CA_CERTS: join(root, 'org.crt'),
       ACTQL_LOCAL_STATE_DIR: join(root, 'rce-' + compositionKind + '-' + transport)};
     if (composed) delete rceEnvironment.ACTQL_LOCAL_SOURCE_PROFILE;
-    const rce = async (steps, id) => {
+    const rce = async (steps, id, environment = rceEnvironment) => {
       const readsBefore = queries();
-      const held = (await runChild('effect-run.mjs', rceEnvironment,
+      const held = (await runChild('effect-run.mjs', environment,
         ['rce-submit', id], composed ? 77 : 0)).trim();
       if (held === 'not-connected') {
         throw Object.assign(new Error('ReadComputeEffectNotConnected: the ' +
@@ -840,6 +855,59 @@ try {
         .trim().split('\n').filter(Boolean).slice(sourcesBeforeLost)
         .map(line => JSON.parse(line).sourceReadSessions), [2, 0, 0, 0]);
       console.log('packed ' + transport + ' composed lost Effect response → reconciliation without resend passed');
+      for (const boundary of ['expired-checkpoint', 'current-denial',
+        'valid-approval-after-answer-deadline']) {
+        server.target.name = 'prior-name';
+        const environment = {...rceEnvironment,
+          ACTQL_LOCAL_STATE_DIR: join(root, 'rce-infer-' + transport + '-' + boundary),
+          ...(boundary !== 'current-denial'
+            ? {PACKED_CHECKPOINT_TTL_MS: '30000'} : {})};
+        const writesBefore = patches().length;
+        const modelsBefore = (await readFile(join(root, 'model-calls.jsonl'), 'utf8'))
+          .trim().split('\n').filter(Boolean).length;
+        const sourcesBefore = (await readFile(join(root, 'source-calls.jsonl'), 'utf8'))
+          .trim().split('\n').filter(Boolean).length;
+        await rce(async () => {
+          assert.equal(patches().length, writesBefore);
+          if (boundary !== 'expired-checkpoint') {
+            assert.equal((await runChild('effect-run.mjs', environment,
+              ['answer'], 77)).trim(), 'approved');
+          }
+          assert.equal(patches().length, writesBefore,
+            'committing approval cannot itself send the Effect');
+          if (boundary !== 'current-denial') {
+            const checkpoint = JSON.parse(await readFile(join(root, 'effect-deadline.json'), 'utf8'));
+            const until = Date.parse(checkpoint.expiresAt);
+            assert.ok(Number.isFinite(until), 'wait for the actual public Checkpoint deadline');
+            await new Promise(resolve => setTimeout(resolve, Math.max(0, until - Date.now() + 100)));
+          } else {
+            environment.PACKED_DENY_EFFECT = '1';
+          }
+          for (let restart = 0; restart < 2; restart++) {
+            const done = JSON.parse((await runChild('effect-run.mjs', environment,
+              ['rce-resume'])).trim());
+            const approved = boundary === 'valid-approval-after-answer-deadline';
+            // The common waiting-exit contract cancels an unanswered expired
+            // Checkpoint; resumed current-authority refusal fails before send.
+            const expectedStatus = approved ? 'succeeded'
+              : boundary === 'expired-checkpoint' ? 'cancelled' : 'failed';
+            assert.equal(done.status, expectedStatus,
+              'the same Run must respect the Checkpoint closure and current account');
+            assert.deepEqual(patches().slice(writesBefore).map(item => ({
+              id: item.path.split('/').at(-1), body: JSON.parse(item.body)})),
+            approved ? expectedWrites : [],
+            'a closed unanswered Checkpoint or current denial cannot authorize a send');
+          }
+        }, boundary, environment);
+        assert.deepEqual((await readFile(join(root, 'model-calls.jsonl'), 'utf8'))
+          .trim().split('\n').filter(Boolean).slice(modelsBefore)
+          .map(line => JSON.parse(line).score).sort((a, b) => a - b), expectedModelInputs);
+        assert.deepEqual((await readFile(join(root, 'source-calls.jsonl'), 'utf8'))
+          .trim().split('\n').filter(Boolean).slice(sourcesBefore)
+          .map(line => JSON.parse(line).sourceReadSessions),
+        boundary === 'expired-checkpoint' ? [2, 0, 0] : [2, 0, 0, 0]);
+        console.log('packed ' + transport + ' composed ' + boundary + ' → same Run with current authorization and no replay passed');
+      }
     }
     console.log('packed ' + transport +
       ' ' + compositionKind + ' Read→Compute→Effect recovery passed');
