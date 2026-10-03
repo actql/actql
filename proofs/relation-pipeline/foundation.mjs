@@ -250,27 +250,53 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     byId.set(declaration.id, declaration);
     declarations.push({ path, digest: hash(bytes(entry)), introductions: declarationIntroductions, ...declaration });
   }
-  const supplements = [], supplementsByTarget = new Map();
+  const supplements = [], supplementsByTarget = new Map(), completionsByTarget = new Map();
+  // Originals remain immutable. A completion may only add separately checked
+  // missing source paths, never replace an original field or acceptance rule.
+  const effectiveChanges = declaration => [...declaration.changes,
+    ...(completionsByTarget.get(declaration.id) ?? []).flatMap(record => record.changes)];
   for (const [path, entry] of supplementsAt(head)) {
     const raw = bytes(entry), supplement = JSON.parse(raw);
     assert(raw.equals(Buffer.from(`${JSON.stringify(supplement, null, 2)}\n`)), 'Noncanonical foundation supplement JSON');
-    keys(supplement, ['version', 'id', 'target', 'inputs', 'reason'], 'foundation supplement');
-    assert.equal(supplement.version, 'actql-foundation-resolution-supplement/0.1');
+    const completion = supplement.version === 'actql-foundation-change-completion/0.1';
+    keys(supplement, ['version', 'id', 'target', completion ? 'changes' : 'inputs', 'reason'], 'foundation supplement');
+    if (!completion) assert.equal(supplement.version, 'actql-foundation-resolution-supplement/0.1');
     assert.match(supplement.id, id, 'Invalid foundation supplement ID');
     assert.equal(path, `${supplementDirectory}/${supplement.id}.json`, 'Ambiguous foundation supplement filename');
     keys(supplement.target, ['id', 'digest'], 'foundation supplement target');
     const original = declarations.find(value => value.id === supplement.target.id);
-    assert(original?.kind === 'resolution', 'Unknown or non-resolution foundation supplement target');
+    assert(original?.kind === (completion ? 'change' : 'resolution'), 'Unknown or wrong-kind foundation supplement target');
     assert.equal(supplement.target.digest, original.digest, 'Changed foundation supplement original');
     assert(typeof supplement.reason === 'string' && supplement.reason.trim(), 'Missing foundation supplement rationale');
-    assert(Array.isArray(supplement.inputs) && supplement.inputs.length
-      && supplement.inputs.every(value => typeof value === 'string' && byId.has(value)), 'Unknown or empty foundation supplement inputs');
-    assert.deepEqual(supplement.inputs, sorted(new Set(supplement.inputs)), 'Noncanonical foundation supplement inputs');
+    if (completion) {
+      assert(Array.isArray(supplement.changes) && supplement.changes.length, 'Empty foundation completion changes');
+      const paths = supplement.changes.map(change => change.path);
+      assert.deepEqual(paths, sorted(new Set(paths)), 'Noncanonical foundation completion paths');
+      const priorPaths = new Set(effectiveChanges(original).map(change => change.path));
+      for (const change of supplement.changes) {
+        keys(change, ['path', 'before', 'afterDigest', 'afterMode', 'reason'], 'foundation completion change');
+        assert(allowed.has(change.path), `Unknown foundation completion path ${change.path}`);
+        assert(!priorPaths.has(change.path), 'Redundant foundation completion path');
+        assert(typeof change.reason === 'string' && change.reason.trim(), 'Missing foundation completion rationale');
+        assert.match(change.afterDigest, digest, 'Incorrect foundation completion digest');
+        assert(['100644', '100755'].includes(change.afterMode), 'Invalid foundation completion mode');
+        const before = original.parents.map(parent => identity(parent, change.path));
+        assert.deepEqual(change.before, before, 'Incorrect foundation completion prior identity');
+        const after = identity(original.revision, change.path);
+        assert.equal(change.afterDigest, after.digest, 'Incorrect foundation completion current digest');
+        assert.equal(change.afterMode, after.mode, 'Incorrect foundation completion current mode');
+        assert(before.some(entry => entry.digest !== after.digest || entry.mode !== after.mode), 'Unchanged foundation completion path');
+      }
+    } else {
+      assert(Array.isArray(supplement.inputs) && supplement.inputs.length
+        && supplement.inputs.every(value => typeof value === 'string' && byId.has(value)), 'Unknown or empty foundation supplement inputs');
+      assert.deepEqual(supplement.inputs, sorted(new Set(supplement.inputs)), 'Noncanonical foundation supplement inputs');
+    }
     const introduced = sorted(introductions.get(path).revisions);
     for (const introduction of introduced) {
       assert(original.introductions.some(prior => prior !== introduction && ancestor(prior, introduction)),
         'Foundation supplement must follow its original declaration');
-      for (const input of supplement.inputs) {
+      if (!completion) for (const input of supplement.inputs) {
         const dependency = declarations.find(value => value.id === input);
         assert(dependency.introductions.some(prior => prior !== introduction && ancestor(prior, introduction)),
           'Foundation supplement must follow its dependency declaration');
@@ -278,8 +304,9 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     }
     const record = { path, digest: hash(raw), introductions: introduced, ...supplement };
     supplements.push(record);
-    if (!supplementsByTarget.has(original.id)) supplementsByTarget.set(original.id, []);
-    supplementsByTarget.get(original.id).push(record);
+    const collection = completion ? completionsByTarget : supplementsByTarget;
+    if (!collection.has(original.id)) collection.set(original.id, []);
+    collection.get(original.id).push(record);
   }
   const requirements = new Map();
   for (const revision of revisions) {
@@ -307,7 +334,7 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     assert(candidates, `Unlisted foundation source change ${revision}: ${required.join(', ')}`);
     for (const declaration of candidates) {
       assert.equal(declaration.kind, actualParents.length === 1 ? 'change' : 'resolution', 'Incorrect foundation declaration kind');
-      assert.deepEqual(sorted(declaration.changes.map(change => change.path)), sorted(required), 'Incomplete foundation changed paths');
+      assert.deepEqual(sorted(effectiveChanges(declaration).map(change => change.path)), sorted(required), 'Incomplete foundation changed paths');
     }
     requirements.set(revision, { actualParents, required, bases, obligations });
   }
@@ -324,7 +351,7 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     let inputs = [];
     if (actualParents.length === 2) {
       inputs = sorted(new Set(declarations.filter(candidate => candidate.revision !== revision
-        && candidate.changes.some(change => required.includes(change.path))
+        && effectiveChanges(candidate).some(change => required.includes(change.path))
         && actualParents.some(parent => ancestor(candidate.revision, parent))).map(candidate => candidate.revision)));
     }
     let binding;
@@ -357,7 +384,7 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
         }
         assert.deepEqual(inputRevisions, inputs, 'Incomplete or ambiguous foundation resolution inputs');
       }
-      const current = foundationSourceBinding(declaration, inputRevisions);
+      const current = foundationSourceBinding({ ...declaration, changes: effectiveChanges(declaration) }, inputRevisions);
       if (binding) assert.deepEqual(current, binding, 'Conflicting foundation source-binding declarations');
       else binding = current;
     }
@@ -408,6 +435,10 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
   return { version: 'actql-composed-foundation/0.1', sourceRevision: head, checkpoint,
     declarations: declarations.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0).map(declaration => ({ ...declaration,
       changes: [...declaration.changes].sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0) })),
+    ...(completionsByTarget.size ? { changeCompletions: [...completionsByTarget].map(([target, records]) => ({
+      target, supplements: sorted(records.map(record => record.id)),
+      changes: effectiveChanges(byId.get(target)).sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0),
+    })).sort((a, b) => a.target < b.target ? -1 : a.target > b.target ? 1 : 0) } : {}),
     integrations: integrations.sort((a, b) => a.revision < b.revision ? -1 : a.revision > b.revision ? 1 : 0),
     ...(supplements.length ? { supplements: supplements.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0) } : {}),
     immutable: immutable.map(entry => ({ ...entry, digest: hash(bytes(immutableEntries.get(entry.path))) })).sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0),

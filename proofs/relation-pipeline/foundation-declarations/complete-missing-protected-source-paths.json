@@ -1,0 +1,37 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "complete-missing-protected-source-paths",
+  "kind": "change",
+  "revision": "f744fb98d9977fb1de351d14c8fa67539fef8e0f",
+  "parents": [
+    "a8ac021231c364c97e639cc8b48ae92fc8767e25"
+  ],
+  "changes": [
+    {
+      "path": "proofs/relation-pipeline/foundation.mjs",
+      "before": [
+        {
+          "revision": "a8ac021231c364c97e639cc8b48ae92fc8767e25",
+          "digest": "1d64c2dcbc4a5ff73ae614467ea4cf1695546c9ea7513cf46d50297aa0af038d",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "a75ef3d6894ee6e29b12603ac885bcf0306c0f7a58ea6047dc49c798ac8192e1",
+      "afterMode": "100644",
+      "reason": "Allow an ordinary descendant commit to add only an omitted actual protected source path through an immutable original-digest-bound completion. Preserve independent original entry checks, exact real-Git source/parent/blob/mode and chronology checks, complete per-record effective coverage, source-binding equality and later merge dependencies. Reject overrides, duplicate or unchanged paths, incomplete aliases and changed originals; retain existing resolution-input supplement behavior."
+    },
+    {
+      "path": "proofs/relation-pipeline/current-foundation.md",
+      "before": [
+        {
+          "revision": "a8ac021231c364c97e639cc8b48ae92fc8767e25",
+          "digest": "3d96328a3a6ed0aeb2044e073ec5424c094008a181d2bc0ce9707002fec8cf3f",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "10e78d81fb3d85fb5c460aa99420f25919ce584afa376486805470e9db2860cc",
+      "afterMode": "100644",
+      "reason": "Allow an ordinary descendant commit to add only an omitted actual protected source path through an immutable original-digest-bound completion. Preserve independent original entry checks, exact real-Git source/parent/blob/mode and chronology checks, complete per-record effective coverage, source-binding equality and later merge dependencies. Reject overrides, duplicate or unchanged paths, incomplete aliases and changed originals; retain existing resolution-input supplement behavior."
+    }
+  ]
+}

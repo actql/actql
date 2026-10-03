@@ -8,6 +8,7 @@ import { artifacts } from '../bounded-session/evidence.mjs';
 import { body, boundFixture, executionCommand, fixturePath, payload, inputVariable } from './fixture.mjs';
 import assert from 'node:assert/strict';
 import { workspaceIdentity } from './workspaces.mjs';
+import { invocationIdentity, receiptBasename } from './execution-names.mjs';
 export const root = fileURLToPath(new URL('../../', import.meta.url));
 export const fixture = fixturePath;
 export const digest = value => createHash('sha256').update(value).digest('hex');
@@ -19,7 +20,11 @@ export const toolchain = pin;
 const compiler = spawnSync(join(home, 'bin/moonc'), ['-v'], { env: environment, encoding: 'utf8' });
 if (compiler.status !== 0 || compiler.stdout.trim() !== pin.moonc) throw new Error('Wrong MoonBit compiler');
 let serial = 0;
-const invocation = `${Date.now()}-${process.pid}`;
+const part = process.env.ACTQL_PIPELINE_PART ?? '';
+assert(part === '' || ['L-C0', 'L-C1', 'L-M0', 'L-M1'].includes(part), 'Unknown pipeline part');
+// Namespace at production, before receipt/observation identities are formed.
+// Aggregation never edits a receipt to resolve coincidental process IDs.
+const invocation = invocationIdentity(part);
 export const executions = [];
 // All contexts share only receipt storage and serial IDs, never source/build trees.
 export function createExecutor(workspace = workspaceIdentity(root, 'normal')) {
@@ -77,6 +82,7 @@ export function createExecutor(workspace = workspaceIdentity(root, 'normal')) {
   function execute(cases, registry, target, correspondence = false, label = 'probe') {
     assert(!closed, 'Execution workspace is closed');
     if (!['js', 'wasm', 'native'].includes(target) || !cases.length) throw new Error('Bad execution request');
+    const prefix = receiptBasename(invocation, serial, label, target);
     const source = workspace.check();
     assert.equal(toolIdentity(), expectedTools, 'Execution toolchain changed');
     const boundary = { version: 'actql-pipeline-execution-boundary/0.1', workspace: workspace.id,
@@ -104,7 +110,7 @@ export function createExecutor(workspace = workspaceIdentity(root, 'normal')) {
     const sourcePath = `.artifacts/relation-pipeline/sources/${source.digest}.json`;
     mkdirSync(join(directory, 'sources'), { recursive: true });
     if (!existsSync(join(root, sourcePath))) writeFileSync(join(root, sourcePath), JSON.stringify(source, null, 2) + '\n');
-    const prefix = `${invocation}-${String(serial++).padStart(4, '0')}-${label}-${target}`;
+    serial++;
     const command = executionCommand(target).slice(1);
     writeFileSync(join(directory, `${prefix}.fixture.mbt`), fixtureBody);
     writeFileSync(join(directory, `${prefix}.inputs.json`), inputs);

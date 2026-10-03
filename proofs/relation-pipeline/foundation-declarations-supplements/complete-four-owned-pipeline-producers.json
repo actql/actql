@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-change-completion/0.1",
+  "id": "complete-four-owned-pipeline-producers",
+  "target": {
+    "id": "four-owned-pipeline-producers",
+    "digest": "896822ca453a53c73e09c6fd412d6e248b0c62f1a6dbbed0939c163d7d2c3f16"
+  },
+  "changes": [
+    {
+      "path": "scripts/local-checks.mjs",
+      "before": [
+        {
+          "revision": "f8e538f370a7e8839e07af173e48c0e95c7934b1",
+          "digest": "38a760e2666261c88634817726d7874545f7f051a782a5ab16f39b49ff64e437",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "c08cc71efdca36baa1d93f8cae1186a532331f6e160c58a439bc8d0d783829de",
+      "afterMode": "100644",
+      "reason": "Derive pipeline changed-file suggestions from the complete CI-only job registry, so all four owned producer jobs, mandatory validation and aggregate expose dry-run inspection without a local heavy-execution bypass. This completes the actual source-commit changed-path inventory; no validator acceptance is weakened."
+    }
+  ],
+  "reason": "Append the omitted actual protected source path from the existing source commit. Preserve every byte of the earlier record and independently verify complete path, parent, source, blob and mode coverage."
+}

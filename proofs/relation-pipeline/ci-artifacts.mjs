@@ -32,7 +32,7 @@ export const requiredStages = Object.freeze({
   capacity: ['foundation', 'capacity', 'capacity-audit', 'capacity-negative', 'final-normal'],
 });
 const encode = value => `${JSON.stringify(value, null, 2)}\n`;
-function canonicalJson(path, limit = maxManifestBytes) {
+export function canonicalJson(path, limit = maxManifestBytes) {
   const info = regularFile(path);
   assert(info.size <= limit, 'Oversized JSON evidence');
   const chunks = []; let size = 0;
@@ -48,7 +48,7 @@ export function safePath(path) {
   assert(!path.split('/').some(part => ['_build', 'workspaces', 'node_modules'].includes(part)), 'Build/workspace payload is forbidden');
   return path;
 }
-function noLinks(path) {
+export function noLinks(path) {
   const full = resolve(path);
   let current = sep;
   for (const part of full.split(sep).filter(Boolean)) {
@@ -128,7 +128,7 @@ function validateContext(context) {
   assert(shaPattern.test(context.testedSha));
   assert(context.prHeadSha === null || shaPattern.test(context.prHeadSha));
 }
-function sourceState(root) {
+export function sourceState(root) {
   const source = snapshot(root), foundation = currentFoundation(root);
   return {context: contextFromEnvironment(root), source: {digest: source.digest},
     foundation: {digest: hash(encode(foundation))}, exploration: decision(root),
@@ -372,7 +372,7 @@ export function joinEvidence({root, inputs, expected, destination}) {
     expandedBytes: [...merged.values()].reduce((sum, {file}) => sum + file.size, 0),
     receiptCount: receiptPaths.size, observationCount: observations.size, manifests};
 }
-function outputs(values) {
+export function outputs(values) {
   assert(process.env.GITHUB_OUTPUT, 'Missing Actions step output file');
   for (const [key, value] of Object.entries(values)) {
     assert(/^[a-z-]+$/u.test(key) && /^[A-Za-z0-9.-]+$/u.test(String(value)));
