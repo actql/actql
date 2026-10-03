@@ -35,6 +35,26 @@ alter the product limit. This closes those path-mode delivery shapes, not
 predicate-bearing traversal, all Graph obligations, or the blocked legacy
 Graph-to-Relation Bridges.
 
+The current ordered two-hop TRAIL label pattern also reaches the retained
+Store through the ordinary Host. A matching static label publishes two
+independently expected rows through the producer and both consumers; an
+unmatched label publishes empty results for the same three names. Stored and
+viewed Graph reads retain independent exact/one-short work and workspace
+limits and cleanup after in-progress cancellation while comparing a nonempty
+label list. Hop property predicates, node emission, and other current SGA
+consumers remain unsupported; this evidence does not promote the entire
+`traverse` operation to complete.
+
+Definition-scoped `match_nodes` and `match_edges` now have retained-Store Host
+cases combining an explicit label and a typed property predicate. Each
+selected MATCH feeds a following Relation filter in the same authored Stage;
+the published producer and two independent consumer results are compared with
+fixed one-row expectations. The same edge route covers empty and repeated
+`types`: empty selects no rows, while repeated `Link` does not repeat edges.
+Existing portable predicate resource and stop fixtures remain the boundary
+evidence for the shared MATCH kernels. These cases do not certify every
+selector, projection or missing-property variant.
+
 ## Status interpretation (2026-09-28)
 
 This document contains chronological investigation notes as well as later
