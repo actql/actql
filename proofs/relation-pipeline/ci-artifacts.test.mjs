@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, readdirSync, rmSync,
-  symlinkSync, linkSync, statSync } from 'node:fs';
+  symlinkSync, linkSync, statSync, realpathSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { createHash } from 'node:crypto';
@@ -16,7 +16,9 @@ import { body, boundFixture, executionCommand } from './fixture.mjs';
 // semantic, foundation and capacity acceptance remain in the existing gates.
 const digest = value => createHash('sha256').update(value).digest('hex');
 function scratch(t) {
-  const root = mkdtempSync(join(tmpdir(), 'actql-pipeline-ci-artifacts-'));
+  // Resolve only the directory this fixture just created. macOS /var and an
+  // aliased TMPDIR can have linked ancestors; production paths remain strict.
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'actql-pipeline-ci-artifacts-')));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   return root;
 }
@@ -45,7 +47,7 @@ for (const path of ['', '.', '..', '../outside', 'a/../outside', './report.json'
   'C:/outside', 'report\u0000.json', 'report\n.json', '_build/report', 'a/_build/report',
   'workspaces/report', 'a/workspaces/report', 'node_modules/report', 'a/node_modules/report']) {
   test(`unsafe evidence path is rejected: ${JSON.stringify(path)}`, () => {
-    assert.throws(() => safePath(path));
+    assert.throws(() => safePath(path), /Unsafe evidence path|Build\/workspace payload is forbidden/);
   });
 }
 
@@ -67,7 +69,7 @@ for (const kind of ['file', 'directory']) {
     mkdirSync(evidence);
     const target = kind === 'file' ? put(root, 'outside/report.json', '{}') : dirname(put(root, 'outside/report.json', '{}'));
     symlinkSync(target, join(evidence, 'linked'));
-    assert.throws(() => inventory(evidence));
+    assert.throws(() => inventory(evidence), /Linked artifact input/);
   });
 }
 
@@ -75,19 +77,19 @@ test('inventory rejects a symbolic-link evidence root', t => {
   const root = scratch(t);
   put(root, 'actual/report.json', '{}');
   symlinkSync(join(root, 'actual'), join(root, 'linked'));
-  assert.throws(() => inventory(join(root, 'linked')));
+  assert.throws(() => inventory(join(root, 'linked')), /Linked evidence path/);
 });
 
 test('inventory rejects a hard-linked file and retained workspace contents', t => {
   const root = scratch(t), evidence = join(root, 'evidence');
   const original = put(root, 'outside', 'unchanged');
   mkdirSync(evidence); linkSync(original, join(evidence, 'report.json'));
-  assert.throws(() => inventory(evidence));
+  assert.throws(() => inventory(evidence), /Evidence must be an unlinked regular file/);
   rmSync(join(evidence, 'report.json'));
   mkdirSync(join(evidence, 'workspaces'));
   assert.deepEqual(inventory(evidence), [], 'Only the empty scratch parent may remain after successful closure');
   put(evidence, 'workspaces/mutation/source.mbt', 'retained workspace');
-  assert.throws(() => inventory(evidence));
+  assert.throws(() => inventory(evidence), /Mutation workspaces are not closed/);
 });
 
 test('context records the tested checkout and keeps PR head separate from the event SHA', t => {
@@ -246,7 +248,10 @@ for (const [name, members] of [
   test(`archive rejects ${name}`, async t => {
     const root = scratch(t), archive = put(root, 'hostile.tar', tarBytes(...members));
     const outside = put(root, 'outside', 'unchanged');
-    await assert.rejects(async () => unpackArchive(archive, join(root, 'destination')));
+    const reason = name.includes('traversal') || ['absolute path', 'backslash path'].includes(name)
+      ? /Unsafe evidence path/ : name === 'duplicate regular entries'
+        ? /Duplicate TAR path/ : /Unsupported TAR kind/;
+    await assert.rejects(async () => unpackArchive(archive, join(root, 'destination')), reason);
     assert.equal(readFileSync(outside, 'utf8'), 'unchanged');
   });
 }
@@ -257,7 +262,7 @@ test('archive rejects a truncated header, body and end marker', async t => {
   const fixtures = [Buffer.from('not a tar'), complete.subarray(0, 515), complete.subarray(0, -513)];
   for (const [index, bytes] of fixtures.entries()) {
     const archive = put(root, `truncated-${index}.tar`, bytes);
-    await assert.rejects(async () => unpackArchive(archive, join(root, `destination-${index}`)));
+    await assert.rejects(async () => unpackArchive(archive, join(root, `destination-${index}`)), /Invalid TAR size/);
   }
 });
 
@@ -266,7 +271,8 @@ test('archive rejects a bad checksum and bytes appended after the end marker', a
   const badChecksum = Buffer.from(good); badChecksum[1] ^= 1;
   for (const [index, bytes] of [badChecksum, Buffer.concat([good, Buffer.from('trailing')])].entries()) {
     const archive = put(root, `invalid-${index}.tar`, bytes);
-    await assert.rejects(async () => unpackArchive(archive, join(root, `destination-${index}`)));
+    await assert.rejects(async () => unpackArchive(archive, join(root, `destination-${index}`)),
+      index === 0 ? /Invalid TAR checksum/ : /Invalid TAR size/);
   }
 });
 
@@ -277,7 +283,7 @@ test('archive rejects high-bit path aliases rather than ASCII-decoding them', as
   const checksum = member.subarray(0, 512).reduce((sum, byte) => sum + byte, 0);
   member.write(checksum.toString(8).padStart(6, '0') + '\0 ', 148, 8);
   const archive = put(root, 'high-bit.tar', tarBytes(member));
-  await assert.rejects(async () => unpackArchive(archive, join(root, 'destination')));
+  await assert.rejects(async () => unpackArchive(archive, join(root, 'destination')), /Non-ASCII TAR field/);
 });
 
 test('archive pack and unpack round-trip without restoring a compiler build tree', async t => {
@@ -297,14 +303,14 @@ test('transport verifies the exact inner digest and sole expected filename befor
   put(evidence, 'ci-seal.json', '{}\n'); put(evidence, 'report.json', '{}\n');
   const actual = packArchive(evidence, join(staging, 'evidence.tar'));
   assert.equal(actual, digest(readFileSync(join(staging, 'evidence.tar'))));
-  assert.throws(() => verifyArchive(staging, join(root, 'wrong-digest'), '0'.repeat(64)));
-  assert.throws(() => verifyArchive(staging, join(root, 'missing-digest'), undefined));
+  assert.throws(() => verifyArchive(staging, join(root, 'wrong-digest'), '0'.repeat(64)), /Inner archive digest differs/);
+  assert.throws(() => verifyArchive(staging, join(root, 'missing-digest'), undefined), /Missing inner archive digest/);
   put(staging, 'unrequested.json', '{}');
-  assert.throws(() => verifyArchive(staging, join(root, 'extra'), actual));
+  assert.throws(() => verifyArchive(staging, join(root, 'extra'), actual), /Unexpected transport payload/);
   rmSync(join(staging, 'unrequested.json'));
   verifyArchive(staging, join(root, 'valid'), actual);
   assert.deepEqual(inventory(join(root, 'valid')), inventory(evidence));
-  assert.throws(() => verifyArchive(staging, join(root, 'valid'), actual), 'Never overwrite an existing extraction');
+  assert.throws(() => verifyArchive(staging, join(root, 'valid'), actual), /Extraction destination already exists/);
 });
 
 // These minimal reports satisfy only the custody boundary. The existing
@@ -421,7 +427,20 @@ for (const [name, change] of [
 ]) {
   test(`join rejects ${name}`, t => {
     const options = joinFixture(t); change(options);
-    assert.throws(() => joinEvidence(options));
+    const reasons = {
+      'absent producer': /Missing or duplicate producers/,
+      'duplicate producer': /Missing or duplicate producers/,
+      'repeated artifact ID': /Repeated producer artifact ID/,
+      'missing artifact ID': /Missing exact producer artifact ID/,
+      'multiple artifact IDs': /Missing exact producer artifact ID/,
+      'changed manifest digest': /Manifest digest differs/,
+      'wrong expected attempt': /Different run, attempt or tested checkout/,
+      'wrong expected checkout': /Different run, attempt or tested checkout/,
+      'tampered archived binary': /Transferred file inventory differs/,
+      'missing input file': /Transferred file inventory differs/,
+      'unmanifested input file': /Transferred file inventory differs/,
+    };
+    assert.throws(() => joinEvidence(options), reasons[name]);
   });
 }
 
