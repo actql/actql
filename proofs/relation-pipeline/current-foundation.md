@@ -226,14 +226,19 @@ digests and introductions; affected integrations list their supplement IDs.
 Without supplements, declaration and aggregate formats/results are unchanged.
 This is dependency provenance, not an approval or permission to execute.
 
-The protected `foundation.test.mjs` regression replays public #246 HEAD
-`26e2571666eafd8d3eea62259c1248015e923914` in a disposable Git worktree.
-It first requires the old owner's dependency failure, then normally merges the
-committed common rule there and appends the single #233 receipt. It requires
-full-history success and the exact original digest/introduction, without editing
-the real #246 worktree or adopting its product changes into this common PR.
-This replay requires full Git history including that published SHA; missing
-objects fail rather than silently skipping the acceptance.
+Ordinary `foundation.test.mjs` regressions use small, self-contained real-Git
+fixtures. They cover failure before supplementation, success afterward,
+immutability and dependency rejection, and continued success after an unrelated
+commit or another independently justified supplement. They require neither an
+unmerged branch's objects nor a runtime HEAD merge into historical evidence.
+
+An optional `scripts/rehearse-foundation-supplement.mjs` command accepts explicit
+source and validator commit SHAs and a canonical supplement input file. It
+checks the original digest/introduction in an isolated worktree, leaves an
+identical existing supplement unchanged, and locates the receipt by identity
+rather than total count. Missing explicitly requested objects fail. This command
+is separate from ordinary CI. The previously obtained #246 rehearsal and its
+exact inputs remain in [the historical evidence record](../../docs/reviews/2026-10-03-resolution-supplement-rehearsal.md).
 
 A resolution records reviewed source provenance; it does not establish that
 both test commands are semantically correct or that a reviewer approved them.

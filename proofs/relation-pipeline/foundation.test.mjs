@@ -1,9 +1,6 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, renameSync, symlinkSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, renameSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
-import { tmpdir } from 'node:os';
-import { fileURLToPath } from 'node:url';
-import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { createHash } from 'node:crypto';
 import { composeFoundation, foundationSourceBinding, foundationMergeObligations } from './foundation.mjs';
@@ -124,52 +121,48 @@ test('late receipt supplement remains immutable after introduction', t => {
   assert.throws(() => compose(fixture.repo), /Changed or removed foundation declaration/);
 });
 
-test('retained PR 246 actual history fails before supplement and passes its isolated integration', t => {
-  const root = fileURLToPath(new URL('../../', import.meta.url));
-  const source = '26e2571666eafd8d3eea62259c1248015e923914';
-  const originalPath = `${DECLARATION_DIRECTORY}/resolve-composition-frontend-latest-main.json`;
-  const expectedDigest = 'd3e29783d130b8f84e262d4ea389dd813b2d83285c07f4075460d9637d495471';
-  const originalIntroduction = 'df842fb35a51a0a9fc33740a1cca73d4e6f4848a';
-  const temporary = join(mkdtempSync(join(tmpdir(), 'actql-pr246-supplement-')), 'history');
-  const git = (cwd, ...args) => {
-    const result = spawnSync('git', ['-c', 'user.name=Foundation Replay', '-c', 'user.email=foundation@example.invalid',
-      '-c', 'core.hooksPath=/dev/null', '-c', 'commit.gpgsign=false', ...args], { cwd, encoding: 'utf8' });
-    assert.equal(result.status, 0, result.stderr);
-    return result.stdout.trim();
-  };
-  const validator = git(root, 'rev-parse', 'HEAD');
-  git(root, 'worktree', 'add', '--detach', temporary, source);
-  t.after(() => git(root, 'worktree', 'remove', '--force', temporary));
-  const original = readFileSync(join(temporary, originalPath));
-  assert.equal(sha256(original), expectedDigest);
-  assert.equal(git(temporary, 'log', '--diff-filter=A', '--format=%H', source, '--', originalPath), originalIntroduction);
-  const before = spawnSync(process.execPath, ['proofs/relation-pipeline/history.mjs'], { cwd: temporary, encoding: 'utf8' });
-  assert.notEqual(before.status, 0);
-  assert.match(before.stderr, /Incomplete or ambiguous foundation resolution inputs/);
-  // This detached rehearsal adopts the committed common rule, not any product
-  // patch, into the exact public history. The real #246 worktree is untouched.
-  git(temporary, 'merge', '--no-ff', '--no-edit', validator);
-  const folder = `${DECLARATION_DIRECTORY}-supplements`;
-  const supplement = { version: 'actql-foundation-resolution-supplement/0.1',
-    id: 'complete-composition-frontend-pr233',
-    target: { id: 'resolve-composition-frontend-latest-main', digest: expectedDigest },
-    inputs: ['main-pr233-package-resolution'],
-    reason: 'Retain the original D merge declaration and bind the PR 233 receipt introduced later by PR 254' };
-  mkdirSync(join(temporary, folder), { recursive: true });
-  writeFileSync(join(temporary, folder, `${supplement.id}.json`), `${JSON.stringify(supplement, null, 2)}\n`);
-  git(temporary, 'add', folder);
-  git(temporary, 'commit', '-m', 'fix(proofs): append late PR 233 dependency receipt');
-  const after = spawnSync(process.execPath, ['proofs/relation-pipeline/history.mjs', '--write'], { cwd: temporary, encoding: 'utf8' });
-  assert.equal(after.status, 0, after.stderr);
-  assert.deepEqual(readFileSync(join(temporary, originalPath)), original);
-  assert.equal(git(temporary, 'log', '--diff-filter=A', '--format=%H', '--', originalPath), originalIntroduction);
-  const manifest = JSON.parse(readFileSync(join(temporary, '.artifacts/relation-pipeline/current-foundation.json')));
-  assert.equal(manifest.supplements.length, 1);
-  assert.deepEqual(manifest.supplements[0].target, supplement.target);
-  t.diagnostic(JSON.stringify({ sourceRevision: source, validatorRevision: validator,
-    supplementedHistory: git(temporary, 'rev-parse', 'HEAD'), originalDigest: expectedDigest,
-    originalIntroduction, before: 'Incomplete or ambiguous foundation resolution inputs', after: 'success',
-    declarations: manifest.declarations.length, integrations: manifest.integrations.length }));
+test('late receipt supplement survives an unrelated later commit', t => {
+  const fixture = lateResolution(t);
+  const introduction = fixture.record();
+  const before = compose(fixture.repo);
+  fixture.repo.write('unrelated.txt', 'Independent later documentation\n');
+  fixture.repo.commit('Add unrelated documentation after supplementation');
+  const after = compose(fixture.repo);
+  assert.deepEqual(after.supplements, before.supplements);
+  assert.deepEqual(after.supplements.find(value => value.id === fixture.supplement.id).introductions, [introduction]);
+  assert.deepEqual(declaration(after, fixture.original.id), declaration(before, fixture.original.id));
+  assert.equal(after.sourceRevision, fixture.repo.head());
+});
+
+test('late receipt supplement survives another legitimate supplement on a different resolution', t => {
+  const fixture = lateResolution(t);
+  fixture.record();
+  const before = compose(fixture.repo);
+  const repo = fixture.repo;
+  repo.branch('second-late');
+  const leftSource = repo.source({ [CI]: ciBytes(['check:left']) });
+  const left = repo.declaration('second-left-registration', leftSource, [CI]);
+  repo.record(left);
+  repo.checkout('second-late');
+  const rightSource = repo.source({ [CI]: ciBytes(['check:right']) });
+  const right = repo.declaration('second-right-registration', rightSource, [CI]);
+  repo.checkout('main');
+  const merge = repo.merge('second-late', { [CI]: ciBytes(['check:left', 'check:right']) });
+  const original = repo.declaration('second-resolution', merge, [CI], { kind: 'resolution', inputs: [left.id] });
+  repo.record(original);
+  repo.record(right);
+  const originalBytes = readFileSync(join(repo.root, repo.declarationPath(original.id)));
+  const supplement = { version: 'actql-foundation-resolution-supplement/0.1', id: 'complete-second-resolution',
+    target: { id: original.id, digest: sha256(originalBytes) },
+    inputs: [right.id], reason: 'Complete the independent CI resolution without changing existing receipts' };
+  repo.write(`${DECLARATION_DIRECTORY}-supplements/${supplement.id}.json`, `${JSON.stringify(supplement, null, 2)}\n`);
+  repo.commit('Append a second independently justified supplement');
+  const after = compose(repo);
+  assert.deepEqual(after.supplements.find(value => value.id === fixture.supplement.id),
+    before.supplements.find(value => value.id === fixture.supplement.id));
+  assert.deepEqual(after.supplements.find(value => value.id === supplement.id).target, supplement.target);
+  assert.deepEqual(declaration(after, fixture.original.id), declaration(before, fixture.original.id));
+  assert.deepEqual(readFileSync(join(repo.root, repo.declarationPath(original.id))), originalBytes);
 });
 
 test('an unchanged real Git checkpoint composes without declarations', t => {
