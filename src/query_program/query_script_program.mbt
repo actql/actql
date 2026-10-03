@@ -104,7 +104,9 @@ fn lower_script_relation_term(
     raise Abort(UnsupportedGraph)
   }
   if @query.join_part_count(query) > 0 {
-    raise Abort(UnsupportedJoin)
+    return lower_script_join_relation(
+      construction, query, known, context, sources, limits, steps, reserved, retained,
+    )
   }
   let selected = selected_input(query, { ..context, inputs: known, }, limits)
   let fields = query_columns(query, selected)

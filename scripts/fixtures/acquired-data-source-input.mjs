@@ -39,6 +39,16 @@ export const acquiredDataSuccesses = [
     text: 'DATA copied = WITH records AS (SELECT amount, id FROM records WHERE id <= 2) SELECT amount, id FROM records; FROM copied |> ORDER BY id |> RESULT copied_rows',
     results: {copied_rows: {rows: [{amount: null, id: 1}, {amount: 20, id: 2}], columns}},
     sourceReadSessionCount: 1},
+  {name: 'acquired-data-join-keeps-multiplicity-and-one-capture', format: 'aql-text',
+    text: 'DATA seed = FROM records |> SELECT amount, id; DATA paired = SELECT l.amount, l.id FROM seed AS l JOIN seed AS r ON l.id = r.id; FROM paired |> ORDER BY id |> RESULT copied_rows',
+    results: {copied_rows: {rows: [{amount: null, id: 1}, {amount: 20, id: 2},
+      {amount: 30, id: 3}, {amount: 30, id: 3}, {amount: 30, id: 3},
+      {amount: 30, id: 3}], columns}}, sourceReadSessionCount: 1},
+  {name: 'acquired-data-cte-join-output-alias-order', format: 'aql-text',
+    text: 'DATA paired = WITH seed AS (FROM records |> SELECT amount, id) SELECT l.id AS amount, l.amount AS id FROM seed AS l JOIN seed AS r ON l.id = r.id ORDER BY amount + 1; FROM paired |> RESULT copied_rows',
+    sourceRows: [{id: 2, amount: 10}, {id: 1, amount: 20}],
+    results: {copied_rows: {rows: [{amount: 1, id: 20}, {amount: 2, id: 10}],
+      columns: [number('amount'), number('id', true)]}}, sourceReadSessionCount: 1},
 ];
 
 // Installed Source View provenance is required by the common Graph owner.
@@ -73,4 +83,6 @@ export const acquiredDataRefusals = [
     parameters: {minimum: 'secret-value'}},
   {name: 'acquired-data-cte-scope-does-not-leak', format: 'aql-text',
     text: 'DATA copied = WITH chosen AS (FROM records |> SELECT id) FROM chosen |> SELECT id; FROM chosen |> SELECT id'},
+  {name: 'acquired-data-join-ambiguous-output', format: 'aql-text',
+    text: 'DATA seed = FROM records |> SELECT id; DATA paired = SELECT id FROM seed AS l JOIN seed AS r ON l.id = r.id; FROM paired |> SELECT id'},
 ];
