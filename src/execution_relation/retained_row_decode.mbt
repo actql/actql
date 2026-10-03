@@ -17,6 +17,7 @@ pub(all) enum RetainedRowDecodeIssue {
   InvalidShape
   Decode(@decode.Issue)
   Value(Int, @admitted.Issue)
+  Presence(RelationPresenceIssue)
 }
 
 ///|
@@ -110,6 +111,22 @@ fn decode_retained_row(
   limits : RetainedRowDecodeLimits,
   reference_cells? : Array[Array[@admitted.ReferenceValue]],
 ) -> Result[Array[@admitted.CheckedValue], RetainedRowDecodeIssue] {
+  // Dense import is not a NULL-filling adapter for conditional schemas.
+  if !@schema.all_fields_required(schema) {
+    return Err(InvalidShape)
+  }
+  decode_retained_presence_cells(schema, text, limits, reference_cells?).map(cells => {
+    cells.map(cell => cell.unwrap())
+  })
+}
+
+///|
+fn decode_retained_presence_cells(
+  schema : @schema.Schema,
+  text : String,
+  limits : RetainedRowDecodeLimits,
+  reference_cells? : Array[Array[@admitted.ReferenceValue]],
+) -> Result[Array[@admitted.CheckedValue?], RetainedRowDecodeIssue] {
   if limits.max_bytes < 0 ||
     limits.max_nodes < 0 ||
     limits.max_text_bytes < 0 ||
@@ -146,7 +163,6 @@ fn decode_retained_row(
   }
   let width = @schema.field_count(schema)
   if width > limits.max_nodes ||
-    @decode.object_length(cursor) != Some(width) ||
     (reference_cells is Some(cells) && cells.length() != width) {
     return Err(InvalidShape)
   }
@@ -163,7 +179,15 @@ fn decode_retained_row(
     // are separate obligations for retained typed rows.
     let cell = match @decode.lookup(object, names[column]) {
       Some(cell) => cell
-      None => return Err(InvalidShape)
+      None => {
+        if @schema.field_at(schema, column).unwrap().presence ==
+          @schema.Required ||
+          (reference_cells is Some(cells) && !cells[column].is_empty()) {
+          return Err(InvalidShape)
+        }
+        values.push(None)
+        continue
+      }
     }
     let contract = @schema.field_at(schema, column).unwrap().contract
     let used = Ref(0)
@@ -220,12 +244,31 @@ fn decode_retained_row(
             ),
           )
         }
-        values.push(value)
+        values.push(Some(value))
       }
       Err(issue) => return Err(Value(column, issue))
     }
   }
   Ok(values)
+}
+
+///|
+/// Reload presence-bearing rows through the existing retained typed-value
+/// decoder. This is provisional data, never completion or read authority.
+pub fn read_retained_relation_row(
+  schema : @schema.Schema,
+  text : String,
+  decode_limits : RetainedRowDecodeLimits,
+  value_limits : ValueLimits,
+) -> Result[AdmittedRelationRow, RetainedRowDecodeIssue] {
+  let cells = match
+    decode_retained_presence_cells(schema, text, decode_limits) {
+    Ok(cells) => cells
+    Err(issue) => return Err(issue)
+  }
+  admit_relation_row(schema, cells, value_limits).map_err(issue => {
+    Presence(issue)
+  })
 }
 
 ///|
@@ -239,6 +282,24 @@ pub fn append_admitted_output_wire(
 ) -> Result[Unit, AdmittedOutputWireIssue] {
   if !output.buffer.open || output.buffer.reading {
     return Err(Admission(ClosedCapture))
+  }
+  if !@schema.all_fields_required(output.buffer.schema) {
+    let row = match
+      read_retained_relation_row(
+        output.buffer.schema,
+        text,
+        limits,
+        output.buffer.budget.limits,
+      ) {
+      Ok(row) => row
+      Err(issue) => {
+        cancel_admitted_output(output) |> ignore
+        return Err(Wire(issue))
+      }
+    }
+    return append_admitted_output_presence(output, row).map_err(issue => {
+      Admission(issue)
+    })
   }
   let values = match decode_retained_row(output.buffer.schema, text, limits) {
     Ok(value) => value
@@ -267,6 +328,21 @@ pub fn append_completed_output_import_wire(
     return Err(Unavailable)
   }
   let schema = value.source.representation.unwrap().receipt.schema
+  if !@schema.all_fields_required(schema) {
+    return match
+      read_retained_relation_row(
+        schema,
+        text,
+        limits,
+        value.admitted.buffer.budget.limits,
+      ) {
+      Ok(row) => append_completed_output_import_presence(value, row)
+      Err(issue) => {
+        cancel_completed_output_import(value) |> ignore
+        Err(WireRow(issue))
+      }
+    }
+  }
   match decode_retained_row(schema, text, limits) {
     Ok(values) => append_completed_output_import(value, values)
     Err(issue) => {

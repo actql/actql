@@ -19,6 +19,9 @@ fn evaluate_completed_body(
     Projection(_) => true
     PreparedBody(kernel) => @lower.kernel_is_projection(kernel)
   }
+  if input is PresenceTable(_) && !projection {
+    return Err(InvalidRows)
+  }
   if input is RowTable(_) || !projection {
     return evaluate_row_body(
       body,
@@ -35,7 +38,8 @@ fn evaluate_completed_body(
       numeric~,
     ).map(table => RowTable(table))
   }
-  if input is AdmittedTable(table) {
+  if input is AdmittedTable(_) || input is PresenceTable(_) {
+    let owner = RelationRows::checked_owner(input)
     let rows : Array[Array[@admitted.Value]] = []
     let names = match
       evaluate_row_body_into(
@@ -55,7 +59,21 @@ fn evaluate_completed_body(
             !spend_control(control, indices.length()) {
             return Err(RowLimit)
           }
-          rows.push(indices.map(i => table.rows[source][i]))
+          let cells = []
+          for column in indices {
+            match input {
+              AdmittedTable(table) => cells.push(table.rows[source][column])
+              PresenceTable(table) => {
+                let row = table.rows[source]
+                guard relation_row_required_value(row, column) is Ok(value) else {
+                  return Err(InvalidRows)
+                }
+                cells.push(value)
+              }
+              _ => return Err(InvalidRows)
+            }
+          }
+          rows.push(cells)
           Ok(())
         },
         ordered_budget=logical,
@@ -67,7 +85,7 @@ fn evaluate_completed_body(
       Ok(names) => names
       Err(issue) => return Err(issue)
     }
-    return Ok(AdmittedTable({ owner: table.owner, id, names, rows, }))
+    return Ok(AdmittedTable({ owner, id, names, rows, }))
   }
   let count = IndexedRows::row_count(input)
   let columns : Array[CompletedNumberColumn] = []
@@ -157,6 +175,7 @@ fn completed_selection(
   workspace : RowWorkspace,
 ) -> Result[CompletedTable, RowIssue] {
   match input {
+    PresenceTable(_) => Err(InvalidRows)
     AdmittedTable(table) =>
       Ok(
         AdmittedTable({

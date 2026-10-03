@@ -746,6 +746,24 @@ every value, nested array element, and declared object property MUST satisfy
 the declared type/nullability. `nullable: true` permits a present value to be
 `null`; it does not make the field or property optional.
 
+<!-- requirement-block: value-contracts.relation-required-presence value-contracts.relation-present-value-contract value-contracts.relation-schema-presence-identity value-contracts.relation-content-omission-identity -->
+Relation column presence is separate from these ordinary object value rules.
+A finite complete Relation schema MAY declare a column conditional: an absent
+row key is omission, not an explicit NULL. Required columns MUST occur in every
+row; every present cell MUST satisfy its declared value type and nullability.
+The existence guarantee MUST participate in schema identity and retained schema
+storage. Row content identity MUST distinguish omitted keys from explicit NULL,
+without including physical presence bitmap/layout choices.
+
+<!-- requirement-block: value-contracts.relation-reference-presence value-contracts.relation-conditional-reference-rejection value-contracts.relation-unsupported-consumers -->
+In the initial presence profile, ordinary references and public Result columns
+MUST be schema-guaranteed present. Conditional references MUST fail during
+checking; sample values, an empty Relation and `IS NOT NULL` do not prove
+presence. Projection of guaranteed columns is supported. Other consumers of a
+conditional schema remain explicitly unsupported until their preservation or
+refinement rules are implemented; they MUST NOT fill omission with NULL or
+silently drop presence. This does not make ordinary object properties optional.
+
 <!-- requirement-block: value-contracts.empty-object-contracts -->
 Both authored and checked object contracts MUST permit `fields: {}`. This closed
 contract admits only the empty object, plus `null` when `nullable: true`.

@@ -15,7 +15,15 @@ pub(all) enum FieldName {
 pub struct Field {
   name : FieldName
   contract : @contract.Contract
+  presence : Presence
 }
+
+///|
+/// A row-level existence guarantee, independent of the value's nullability.
+pub(all) enum Presence {
+  Required
+  Conditional
+} derive(Eq, Debug)
 
 ///|
 pub(all) enum Issue {
@@ -83,6 +91,7 @@ pub fn field_at(schema : Schema, index : Int) -> Field? {
       @contract.field_at(fields, index).map(f => {
         name: Unqualified(f.name),
         contract: f.contract,
+        presence: Required,
       })
     Scoped(fields) =>
       if index < 0 || index >= fields.length() {
@@ -106,6 +115,27 @@ pub fn field_reference_name(field : Field) -> String {
 ///|
 pub fn field_contract(field : Field) -> @contract.Contract {
   field.contract
+}
+
+///|
+pub fn field_presence(field : Field) -> Presence {
+  field.presence
+}
+
+///|
+pub fn all_fields_required(schema : Schema) -> Bool {
+  match schema.representation {
+    Flat(_, _) => true
+    Scoped(fields) => fields.all(f => f.field.presence == Required)
+  }
+}
+
+///|
+pub fn has_qualified_fields(schema : Schema) -> Bool {
+  match schema.representation {
+    Flat(_, _) => false
+    Scoped(fields) => fields.any(f => f.field.name is Qualified(_, _))
+  }
 }
 
 ///|
@@ -161,6 +191,21 @@ pub fn from_fields(
   max_fields~ : Int,
   max_name_bytes~ : Int,
 ) -> Result[Schema, Issue] {
+  from_presence_fields(
+    entries.map(e => (e.0, e.1, Required)),
+    max_fields~,
+    max_name_bytes~,
+  )
+}
+
+///|
+/// Closed finite columns. Conditional means omission is permitted, not NULL,
+/// an open field set, or an optional field in an ordinary object value.
+pub fn from_presence_fields(
+  entries : Array[(FieldName, @contract.Contract, Presence)],
+  max_fields~ : Int,
+  max_name_bytes~ : Int,
+) -> Result[Schema, Issue] {
   if max_fields < 0 || max_name_bytes < 0 {
     return Err(InvalidLimits)
   }
@@ -172,7 +217,11 @@ pub fn from_fields(
   let output : Array[Entry] = []
   let flat : Array[(String, @contract.Contract)] = []
   let mut qualified = false
-  for (name, contract) in entries {
+  let mut conditional = false
+  for (name, contract, presence) in entries {
+    if presence == Conditional {
+      conditional = true
+    }
     let (leaf, prefix) = match name {
       Unqualified(s) => (s, 0)
       Qualified(side, s) => {
@@ -205,10 +254,10 @@ pub fn from_fields(
       return Err(DuplicateField(name))
     }
     seen[spelling] = true
-    output.push({ field: { name, contract, }, spelling, })
+    output.push({ field: { name, contract, presence, }, spelling, })
     flat.push((leaf, contract))
   }
-  if !qualified {
+  if !qualified && !conditional {
     let row = @contract.object_contract(
       flat,
       nullable=false,

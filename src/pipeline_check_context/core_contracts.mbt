@@ -523,7 +523,7 @@ pub fn collect_core_contracts(
           input,
           @stages.stage_at(@local_inputs.source(locals), stage).unwrap().id,
           name,
-          @schema.as_object(schema).unwrap(),
+          schema,
         )
         if @local_inputs.environment_score_snapshot_at(
             @local_inputs.reconciled_inputs(context.locals[stage]),
@@ -850,7 +850,7 @@ pub fn core_contract_cid(v : CoreContractBody) -> String {
     SeriesCountRules =>
       "sha256:c85b84631add903652807808fc4faa9015e59cf9bfd0fb11bf170c85139dcf05"
     LocalSnapshotRules =>
-      "sha256:b59aff026e4853a370475e7b25c7fa6ddf0890aacbd57af0a3ec4b7aa14b65b5"
+      "sha256:0d1b824004f4e26bf3cadbfc437d000cd1d7cc6c218c0f0fc4276b483ba46701"
     LocalSourceReferenceRules =>
       "sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9"
     LocalInputType(cid) | LocalInputScores(cid) => cid

@@ -118,12 +118,18 @@ pub fn completed_output_row_wire(
           guard positions.get(name) is Some(column) else {
             return Err(Wire(InvalidLayout))
           }
+          if !IndexedRows::cell_present(table, row, column) {
+            continue
+          }
           @encode.key(writer, name)
           emit_runtime_value(IndexedRows::read_cell(table, row, column), writer)
         }
       }
       None =>
         for column in 0..<width {
+          if !IndexedRows::cell_present(table, row, column) {
+            continue
+          }
           @encode.key(writer, names[column])
           emit_runtime_value(IndexedRows::read_cell(table, row, column), writer)
         }

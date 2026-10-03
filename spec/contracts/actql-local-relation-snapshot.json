@@ -55,6 +55,16 @@
           }
         ]
       },
+      "column_presence": {
+        "type": "object",
+        "minProperties": 1,
+        "propertyNames": {
+          "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
+        },
+        "additionalProperties": {
+          "const": "conditional"
+        }
+      },
       "input_cid": {
         "type": "string",
         "pattern": "^sha256:[0-9a-f]{64}$"
@@ -1077,12 +1087,13 @@
   "semantics": {
     "identity": "canonical_json_utf8_sha256_of_entire_body_without_self_cid",
     "schema": "complete_checked_nonnullable_object_including_empty_fields",
+    "presence": "finite_declared_columns; absent_column_presence_means_all_required; listed_existing_columns_are_conditional_independently_of_nullable; omission_is_not_null; reject_unknown_columns_and_empty_maps",
     "static_only": "absent_materialization_is_not_empty_data_or_complete_data",
     "materialization": "input_cid_and_completeness_are_paired_claims_not_verified_rows",
     "integration": "optional_integration_binding_cid_requires_materialization_claim",
     "admission": "exact_program_source_resolution_recursive_assertion_agreement_and_environment_membership",
     "authority": "content_integrity_does_not_establish_host_authorization_or_runtime_validation",
     "scores": "optional_field_scoped_static_score_assertions_require_nonnullable_number_fields_and_ordered_finite_ranges; authenticate_against_exact_captured_input_before_use; never_normalize_or_relabel_computed_scores",
-    "score_projection": "canonical_snapshot_version_source_ref_output_carrier_schema_and_complete_nonempty_score_contracts_map; exclude_materialization_completeness_integration; separate_from_row_type_projection"
+    "score_projection": "canonical_snapshot_version_source_ref_output_carrier_schema_column_presence_and_complete_nonempty_score_contracts_map; exclude_materialization_completeness_integration; separate_from_row_type_projection"
   }
 }

@@ -71,12 +71,26 @@ impl IndexedRows for CapturedWireRows with fn column_count(self) {
 
 ///|
 impl IndexedRows for CapturedWireRows with fn row_width(self, row) {
-  self.rows.rows[row].length()
+  if @schema.all_fields_required(self.rows.schema) {
+    self.rows.rows[row].length()
+  } else {
+    @schema.field_count(self.rows.schema)
+  }
 }
 
 ///|
 impl IndexedRows for CapturedWireRows with fn read_cell(self, row, column) {
-  capture(self.rows.rows[row][column])
+  if @schema.all_fields_required(self.rows.schema) {
+    capture(self.rows.rows[row][column])
+  } else {
+    capture(self.rows.presence_rows[row].cells[column].unwrap())
+  }
+}
+
+///|
+impl IndexedRows for CapturedWireRows with fn cell_present(self, row, column) {
+  @schema.all_fields_required(self.rows.schema) ||
+  self.rows.presence_rows[row].cells[column] is Some(_)
 }
 
 ///|
@@ -121,6 +135,9 @@ fn[T : IndexedRows] hash_row_wire(
       }
       @encode.begin_object(writer)
       for (name, column) in order.columns {
+        if !table.cell_present(row, column) {
+          continue
+        }
         @encode.key(writer, name)
         emit_runtime_value(table.read_cell(row, column), writer)
       }
