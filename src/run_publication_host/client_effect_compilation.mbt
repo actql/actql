@@ -1,6 +1,7 @@
 ///|
 pub(all) enum ClientEffectCompilationIssue {
   UnsupportedProgram
+  ForeignInferOwner
   EffectPlan(@stage_results.EffectPlanBindingIssue)
   Graph(ClientTaskPlanGraphIssue)
   Template(ClientTaskBoundTemplateIssue)
@@ -90,6 +91,7 @@ pub fn issue_prepared_client_effect_compilation(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  infer? : ClientInferPlanGraph? = None,
 ) -> Result[ClientEffectCompilation, ClientEffectCompilationIssue] {
   let graph = @strategy.checked_effect_computation_graph(owner.graph)
   let headers = @checked.effect_program_static_headers(owner.candidate)
@@ -137,7 +139,27 @@ pub fn issue_prepared_client_effect_compilation(
   }
   // This private compiler view contains the same graph, source and Effects.
   // It is never returned as an Effect-free preparation or checked again.
-  let value = client_effect_program_view(owner)
+  let value = match infer {
+    None => client_effect_program_view(owner)
+    Some(infer) => {
+      if !physical_equal(infer.owner.graph, graph) ||
+        !physical_equal(infer.owner.source, owner.source) ||
+        infer.owner.check_environment_cid != owner.check_environment_cid {
+        return Err(ForeignInferOwner)
+      }
+      infer.owner
+    }
+  }
+  let required_profiles = match infer {
+    None => []
+    Some(_) =>
+      [
+        (
+          "actql-infer/0.1",
+          @environment.compiler_inference_barrier_contract_cid(),
+        ),
+      ]
+  }
   let roots : Array[(String, Int)] = []
   let plan_cids : Array[(String, String)] = []
   let names : Array[String] = []
@@ -193,14 +215,26 @@ pub fn issue_prepared_client_effect_compilation(
   }
   let task_graph = match
     issue_client_task_plan_graph(
-      value, sequence_limits, max_wire_bytes, max_nodes, max_depth, true, roots,
+      value,
+      sequence_limits,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      true,
+      roots,
+      infer~,
     ) {
     Ok(graph) => graph
     Err(issue) => return Err(Graph(issue))
   }
   let template = match
     issue_client_task_bound_template(
-      value, manifests, max_wire_bytes, max_nodes, max_depth,
+      value,
+      manifests,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      required_profiles~,
     ) {
     Ok(template) => template
     Err(issue) => return Err(Template(issue))
@@ -229,6 +263,7 @@ pub fn issue_prepared_client_effect_compilation(
       max_wire_bytes,
       max_nodes,
       max_depth,
+      required_profiles~,
     ) {
     Ok(plan) => plan
     Err(issue) => return Err(Plan(issue))
@@ -242,6 +277,7 @@ pub fn issue_prepared_client_effect_compilation(
       max_wire_bytes,
       max_nodes,
       max_depth,
+      infer~,
     ) {
     Ok(compiled) => compiled
     Err(issue) => return Err(Compilation(issue))
@@ -265,11 +301,19 @@ pub fn admit_prepared_client_effect_compilation(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  infer? : ClientInferPlanGraph? = None,
 ) -> Result[ClientEffectCompilation, ClientEffectCompilationAdmissionIssue] {
   let issued = match
     issue_prepared_client_effect_compilation(
-      owner, manifests, sequence_limits, max_facts, max_witnesses, max_wire_bytes,
-      max_nodes, max_depth,
+      owner,
+      manifests,
+      sequence_limits,
+      max_facts,
+      max_witnesses,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      infer~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Issue(issue))

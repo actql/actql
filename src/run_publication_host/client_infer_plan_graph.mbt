@@ -4,6 +4,8 @@
 /// and register a physical provider before accepting a Run.
 pub struct ClientInferPlanGraph {
   owner : PreparedClientProgram
+  task : Int
+  stage : Int
   source_ordinal : Int
   execution : @environment.ModelExecutionContract
   item_limit : @checked.InferItemLimit
@@ -12,6 +14,8 @@ pub struct ClientInferPlanGraph {
   request_wire : String
   request_cid : String
   barrier_cid : String
+  input : ClientTaskFragmentNode
+  output : ClientTaskFragmentNode
 }
 
 ///|
@@ -40,7 +44,24 @@ pub fn read_prepared_client_infer_model_execution(
   max_work : Int,
 ) -> Result[@environment.ModelExecutionContract, ClientInferPlanGraphIssue] {
   guard client_infer_metadata_owner(value, 0, step) is Some(owner) &&
-    @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.node_at(@lower.bound_preparation(owner), step) is Some(_) else {
+    return Err(UnsupportedProgram)
+  }
+  read_client_infer_owner_model_execution(
+    owner, step, body, expected_cid, limits, max_work,
+  )
+}
+
+///|
+fn read_client_infer_owner_model_execution(
+  owner : @lower.BoundPrepared,
+  step : Int,
+  body : Bytes,
+  expected_cid : String,
+  limits : @environment.Limits,
+  max_work : Int,
+) -> Result[@environment.ModelExecutionContract, ClientInferPlanGraphIssue] {
+  guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
     @lower.payload(node) is @lower.Infer(infer) else {
     return Err(UnsupportedProgram)
   }
@@ -77,6 +98,13 @@ pub fn client_infer_plan_graph_matches_occurrence(
 ///|
 pub fn client_infer_plan_graph_wire(value : ClientInferPlanGraph) -> String {
   value.graph.wire
+}
+
+///|
+pub fn client_infer_plan_graph_coordinates(
+  value : ClientInferPlanGraph,
+) -> (Int, Int, Int) {
+  (value.task, value.stage, value.source_ordinal)
 }
 
 ///|
@@ -184,8 +212,66 @@ pub fn issue_prepared_client_infer_plan_graph(
   max_depth : Int,
   capacity_work? : Int = 1000000,
 ) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue] {
-  guard client_infer_metadata_owner(value, 0, step) is Some(owner) &&
-    @lower.preparation_output_target(@lower.bound_preparation(owner))
+  guard client_infer_metadata_owner(value, 0, step) is Some(owner) else {
+    return Err(UnsupportedProgram)
+  }
+  issue_client_infer_plan_graph_for_occurrence(
+    { owner: value, task: 0, stage: 0, step, preparation: owner, },
+    execution,
+    limits_cid,
+    egress_requirements_cid,
+    sequence_limits,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    capacity_work,
+    true,
+  )
+}
+
+///|
+/// Connect the checked multi-task occurrence to the same Model barrier compiler
+/// used by the source-free/acquired component. External producers remain graph
+/// inputs; this does not manufacture a Source capture or execution permission.
+pub fn issue_prepared_client_composed_infer_plan_graph(
+  occurrence : ClientInferOccurrence,
+  execution : @environment.ModelExecutionContract,
+  limits_cid : String,
+  egress_requirements_cid : String,
+  sequence_limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  capacity_work? : Int = 1000000,
+  include_results? : Bool = true,
+) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue] {
+  if !client_infer_occurrence_matches(occurrence, occurrence.owner) {
+    return Err(UnsupportedProgram)
+  }
+  issue_client_infer_plan_graph_for_occurrence(
+    occurrence, execution, limits_cid, egress_requirements_cid, sequence_limits,
+    max_wire_bytes, max_nodes, max_depth, capacity_work, include_results,
+  )
+}
+
+///|
+fn issue_client_infer_plan_graph_for_occurrence(
+  occurrence : ClientInferOccurrence,
+  execution : @environment.ModelExecutionContract,
+  limits_cid : String,
+  egress_requirements_cid : String,
+  sequence_limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  capacity_work : Int,
+  include_results : Bool,
+) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue] {
+  let value = occurrence.owner
+  let owner = occurrence.preparation
+  let step = occurrence.step
+  let task = occurrence.task
+  guard @lower.preparation_output_target(@lower.bound_preparation(owner))
     is Some(@pipeline.Step(terminal)) &&
     terminal >= step &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
@@ -203,15 +289,22 @@ pub fn issue_prepared_client_infer_plan_graph(
     return Err(InvalidDependency)
   }
   let item_limit = match
-    prepare_client_infer_item_limit(
-      value, step, capacity_work, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(ItemLimit(issue))
+    (@checked.prepare_infer_item_limit(
+      @strategy.graph_program(value.graph),
+      occurrence.stage,
+      step,
+      capacity_work,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) catch {
+      issue => return Err(ItemLimit(Preparation(issue)))
+    }) {
+    value => value
   }
   let prefix = match
-    issue_prepared_client_infer_prefix_fragment(
-      value, 0, step, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+    issue_client_infer_prefix_fragment_for_owner(
+      owner, task, step, sequence_limits, max_wire_bytes, max_nodes, max_depth,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Input(issue))
@@ -343,7 +436,7 @@ pub fn issue_prepared_client_infer_plan_graph(
       is Some(prefix_node) else {
       return Err(Encoding)
     }
-    let barrier_id = "task_0_infer_" + step.to_string()
+    let barrier_id = "task_" + task.to_string() + "_infer_" + step.to_string()
     let output_port = @lower.node_id(node)
     let nodes : Array[@canonical.CanonicalValue] = [prefix_node]
     let edges : Array[@canonical.CanonicalValue] = []
@@ -381,11 +474,9 @@ pub fn issue_prepared_client_infer_plan_graph(
     @encode.key(node_writer, "profile_id")
     @encode.string_value(node_writer, "actql-infer/0.1")
     @encode.end_object(node_writer)
+    let barrier_wire = @encode.finish(node_writer)
     guard parse_plan_identity_value(
-        @encode.finish(node_writer),
-        max_wire_bytes,
-        max_nodes,
-        max_depth,
+        barrier_wire, max_wire_bytes, max_nodes, max_depth,
       )
       is Some(barrier_node) else {
       return Err(Encoding)
@@ -414,10 +505,18 @@ pub fn issue_prepared_client_infer_plan_graph(
     let mut result_node = barrier_id
     let mut result_port = output_port
     let mut result_contract = output_contract_cid
+    let mut output : ClientTaskFragmentNode = {
+      wire: barrier_wire,
+      node_id: barrier_id,
+      output_port,
+      logical_cid: barrier_cid,
+      output_contract_cid,
+      output_carrier: "relation",
+    }
     for next in (step + 1)..<(terminal + 1) {
       let fragment = match
         issue_client_infer_compute_fragment(
-          value, step, next, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+          owner, task, step, next, sequence_limits, max_wire_bytes, max_nodes, max_depth,
         ) {
         Ok(fragment) => fragment
         Err(issue) => return Err(Input(issue))
@@ -490,8 +589,13 @@ pub fn issue_prepared_client_infer_plan_graph(
       result_node = fragment.node_id
       result_port = fragment.output_port
       result_contract = fragment.output_contract_cid
+      output = fragment
     }
     for result in 0..<@strategy.graph_result_count(value.graph) {
+      if !include_results ||
+        @strategy.graph_result_task(value.graph, result) != Some(task) {
+        continue
+      }
       let parts = match
         issue_client_result_plan_parts(
           value,
@@ -527,6 +631,8 @@ pub fn issue_prepared_client_infer_plan_graph(
     @encode.end_object(graph_writer)
     Ok({
       owner: value,
+      task,
+      stage: occurrence.stage,
       source_ordinal: step,
       execution,
       item_limit,
@@ -535,6 +641,8 @@ pub fn issue_prepared_client_infer_plan_graph(
       request_wire,
       request_cid,
       barrier_cid,
+      input: prefix,
+      output,
     })
   } catch {
     _ => Err(Encoding)

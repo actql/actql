@@ -36,13 +36,15 @@ pub fn admit_client_effect_local_source_evidence(PreparedClientEffectComputation
 
 pub fn admit_client_infer_captured_input(PreparedClientProgram, Int, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.ModelSourceObservation) -> Result[ClientInferCapturedInput, ClientInferCallScopeIssue]
 
+pub fn admit_client_infer_occurrence_egress(ClientInferOccurrence, @check_environment.ModelExecutionContract, () -> ClientInferEgressObservation?) -> Result[ClientInferEgressAdmission, ClientInferEgressIssue]
+
 pub fn admit_client_request_identity_record(String, String, String, String, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
 pub fn admit_client_values_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits) -> Result[ClientValuesRunMaterials, ClientValuesRunMaterialsIssue]
 
 pub fn admit_prepared_client_direct_values_result_root(PreparedClientProgram, Int, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientDirectResultRoot, ClientDirectResultRootAdmissionIssue]
 
-pub fn admit_prepared_client_effect_compilation(PreparedClientEffectComputation, String, String, String, String, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int) -> Result[ClientEffectCompilation, ClientEffectCompilationAdmissionIssue]
+pub fn admit_prepared_client_effect_compilation(PreparedClientEffectComputation, String, String, String, String, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int, infer? : ClientInferPlanGraph?) -> Result[ClientEffectCompilation, ClientEffectCompilationAdmissionIssue]
 
 pub fn admit_prepared_client_effect_run_publication(PreparedClientEffectComputation, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> Result[@run_publication.RunPublicationAdmission, @run_publication.RunPublicationAdmissionIssue]
 
@@ -246,7 +248,15 @@ pub fn client_infer_egress_matches(ClientInferEgressAdmission, PreparedClientPro
 
 pub fn client_infer_egress_matches_scope(ClientInferEgressAdmission, ClientInferCallScope) -> Bool
 
+pub fn client_infer_occurrence_coordinates(ClientInferOccurrence) -> (Int, Int, Int)
+
+pub fn client_infer_occurrence_matches(ClientInferOccurrence, PreparedClientProgram) -> Bool
+
+pub fn client_infer_occurrence_model_task_cid(ClientInferOccurrence) -> String?
+
 pub fn client_infer_plan_graph_barrier_cid(ClientInferPlanGraph) -> String
+
+pub fn client_infer_plan_graph_coordinates(ClientInferPlanGraph) -> (Int, Int, Int)
 
 pub fn client_infer_plan_graph_execution_contract(ClientInferPlanGraph) -> @check_environment.ModelExecutionContract
 
@@ -482,11 +492,15 @@ pub fn issue_imported_client_effect_local_result_artifact(PreparedClientEffectCo
 
 pub fn issue_installed_client_infer_plan_graph(PreparedClientProgram, Int, @check_environment.ModelExecutionContract, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue]
 
+pub fn issue_prepared_client_composed_infer_plan_graph(ClientInferOccurrence, @check_environment.ModelExecutionContract, String, String, @lowering_relation.SequenceLimits, Int, Int, Int, capacity_work? : Int, include_results? : Bool) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue]
+
+pub fn issue_prepared_client_composed_task_plan_graph(PreparedClientProgram, ClientInferPlanGraph, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientTaskPlanGraph, ClientTaskPlanGraphIssue]
+
 pub fn issue_prepared_client_direct_task_result_root(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientDirectResultRoot, ClientDirectResultRootIssue]
 
 pub fn issue_prepared_client_direct_values_result_root(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientDirectResultRoot, ClientDirectResultRootIssue]
 
-pub fn issue_prepared_client_effect_compilation(PreparedClientEffectComputation, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int) -> Result[ClientEffectCompilation, ClientEffectCompilationIssue]
+pub fn issue_prepared_client_effect_compilation(PreparedClientEffectComputation, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int, Int, Int, infer? : ClientInferPlanGraph?) -> Result[ClientEffectCompilation, ClientEffectCompilationIssue]
 
 pub fn issue_prepared_client_effect_values_fragment(PreparedClientEffectComputation, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesFragmentNode, ClientValuesFragmentIssue]
 
@@ -616,6 +630,8 @@ pub fn prepared_client_captured_task_source_matches(PreparedClientProgram, @exec
 
 pub fn prepared_client_check_environment_cid(PreparedClientProgram) -> String
 
+pub fn prepared_client_composed_infer_occurrence(PreparedClientProgram) -> ClientInferOccurrence?
+
 pub fn prepared_client_effect_computation_candidate(PreparedClientEffectComputation) -> @program_check.EffectProgramStaticCandidate
 
 pub fn prepared_client_effect_computation_definition_cid(PreparedClientEffectComputation) -> String
@@ -629,6 +645,8 @@ pub fn prepared_client_effect_computation_semantics_cid(PreparedClientEffectComp
 pub fn prepared_client_effect_computation_source(PreparedClientEffectComputation) -> @stage_syntax.Program
 
 pub fn prepared_client_effect_identity(PreparedClientEffectComputation) -> ClientProgramIdentity
+
+pub fn prepared_client_effect_infer_occurrence(PreparedClientEffectComputation) -> ClientInferOccurrence?
 
 pub fn prepared_client_effect_publication_data_policy_cid(PreparedClientEffectComputation) -> String?
 
@@ -667,6 +685,8 @@ pub fn prepared_client_result_name(PreparedClientProgram, Int) -> String?
 pub fn prepared_client_terminal_infer_step(PreparedClientProgram) -> Int?
 
 pub fn prepared_client_uses_graph_carrier(PreparedClientProgram) -> Bool
+
+pub fn read_client_infer_occurrence_model_execution(ClientInferOccurrence, Bytes, String, @check_environment.Limits, Int) -> Result[@check_environment.ModelExecutionContract, ClientInferPlanGraphIssue]
 
 pub fn read_prepared_client_infer_model_execution(PreparedClientProgram, Int, Bytes, String, @check_environment.Limits, Int) -> Result[@check_environment.ModelExecutionContract, ClientInferPlanGraphIssue]
 
@@ -799,6 +819,7 @@ pub(all) enum ClientEffectCompilationAdmissionIssue {
 
 pub(all) enum ClientEffectCompilationIssue {
   UnsupportedProgram
+  ForeignInferOwner
   EffectPlan(@stage_results.EffectPlanBindingIssue)
   Graph(ClientTaskPlanGraphIssue)
   Template(ClientTaskBoundTemplateIssue)
@@ -1011,6 +1032,8 @@ pub(all) enum ClientInferDispatchIssue {
 
 pub struct ClientInferEgressAdmission {
   owner : PreparedClientProgram
+  task : Int
+  stage : Int
   step : Int
   execution : @check_environment.ModelExecutionContract
   observed : ClientInferEgressObservation
@@ -1048,8 +1071,18 @@ pub(all) enum ClientInferItemLimitIssue {
   Preparation(@program_check.UnitBuildFailure)
 }
 
+pub struct ClientInferOccurrence {
+  owner : PreparedClientProgram
+  task : Int
+  stage : Int
+  step : Int
+  preparation : @lowering_relation.BoundPrepared
+}
+
 pub struct ClientInferPlanGraph {
   owner : PreparedClientProgram
+  task : Int
+  stage : Int
   source_ordinal : Int
   execution : @check_environment.ModelExecutionContract
   item_limit : @program_check.InferItemLimit
@@ -1058,6 +1091,8 @@ pub struct ClientInferPlanGraph {
   request_wire : String
   request_cid : String
   barrier_cid : String
+  input : ClientTaskFragmentNode
+  output : ClientTaskFragmentNode
 }
 
 pub(all) enum ClientInferPlanGraphIssue {
