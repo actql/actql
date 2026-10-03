@@ -3905,6 +3905,121 @@ test "registered VecA provider preserves supplied score authority" {
 }
 
 ///|
+test "supplied scored ranking uses bounded materializing execution" {
+  for cancel in [false, true] {
+    let owner = supplied_ranking_fusion_owner("\"max\"")
+    let inputs = [
+      supplied_ranking_rows(owner, 0, [(1.0, 1.0, 0.75), (1.0, 2.0, 0.5)]),
+      supplied_ranking_rows(owner, 1, [(1.0, 1.0, 0.5), (1.0, 3.0, 0.5)]),
+    ]
+    let generated = task_test_generated(owner)
+    let limits = dispatch_test_limits()
+    let measurement : @execution.FixedInputGuardMeasureLimits = {
+      max_work: 10000,
+      max_bytes: 10000,
+      max_nodes: 10000,
+      max_depth: 100,
+    }
+    let provider = @local_veca_provider.provider(
+      carrier_vectors_storage_limits(),
+      4096L,
+      @execution.generated_sequence_capacity(
+        generated,
+        limits.local_execution,
+        limits.guards,
+      ).unwrap(),
+    )
+    let request = @connector.prepare_selected_fixed_compute_request_with_inputs(
+      owner,
+      0,
+      inputs.map(input => @execution.fixed_supplied_relation_read(input)),
+      {
+        contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+        max_rows: 10,
+        max_value_bytes: 1000,
+        common_fragment: None,
+      },
+    ).unwrap()
+    let registry = search_registry()
+    let candidate = @local_connector.local_fixed_compute_candidate(
+      @connector.capability_registration_at(registry, 0).unwrap(),
+      request,
+      generated,
+      [],
+      { transfer_bytes: None, retained_bytes: None, money_units: None, },
+      100,
+    ).unwrap()
+    guard @connector.choose_fixed_compute_candidate(
+        registry,
+        request,
+        [@connector.prepared_compute_candidate(candidate)],
+        Some([0]),
+        100,
+      ).unwrap()
+      is Proposed(choice) else {
+      fail("supplied ranking candidate")
+    }
+    let prepared = @local_connector.prepare_local_materializing_execution(
+      choice,
+      candidate,
+      limits.local_execution,
+      measurement,
+      @local_connector.local_default_import_limits(
+        limits.local_execution,
+        measurement,
+      ),
+      _ => @strategy.RunIssue::Compute(InvalidLimits),
+      family_providers=[provider],
+    ).unwrap()
+    let (attempt, lifecycle) = @connector.start_prepared_execution_lifecycle(
+      prepared,
+    ).unwrap()
+    let mut advances = 0
+    while true {
+      let step = @local_connector.advance_local_materializing_attempt(
+        attempt, 1,
+      ).unwrap()
+      assert_true(step.work <= 1L)
+      advances += 1
+      if cancel {
+        assert_true(step.work > 0L)
+        assert_false(step.complete)
+        assert_true(
+          @local_connector.cancel_local_materializing_attempt(attempt),
+        )
+        assert_false(@local_connector.local_materializing_stopped(attempt))
+        assert_true(inputs.all(@execution.supplied_relation_read_available))
+        assert_true(
+          @local_connector.advance_local_materializing_attempt(attempt, 1)
+          is Err(State),
+        )
+        assert_true(@local_connector.local_materializing_stopped(attempt))
+        assert_true(
+          @local_connector.local_materializing_completed_output(attempt) is None,
+        )
+        assert_true(inputs.all(@execution.supplied_relation_read_available))
+        break
+      }
+      if step.complete {
+        break
+      }
+      assert_true(step.work > 0L)
+      assert_true(advances < 10000)
+    }
+    if !cancel {
+      assert_true(advances > 1)
+      (lifecycle.settled)()
+      let output = @local_connector.local_materializing_completed_output(
+        attempt,
+      ).unwrap()
+      assert_eq(@execution.completed_row_count(output), 2)
+    }
+    assert_true(@local_connector.local_materializing_stopped(attempt))
+    @local_connector.close_local_materializing_attempt(attempt)
+  }
+}
+
+///|
 test "standard Host executes supplied scored rankings through two consumers" {
   for
     (policy, expected_ranked, expected_first, expected_second) in [
