@@ -41,7 +41,7 @@ pub fn[T] bind_compute_candidate(CapabilityRegistration, FixedComputeRequest, T,
 
 pub fn[T, P] bind_managed_compute_candidate(CapabilityRegistration, ManagedFixedComputeRequest[T], P, Int, Array[@physical_cost.SerialEstimateLine], QueryQuantities, Int, numeric_reductions? : Array[NumericReductionSupport]) -> Result[PreparedManagedCompute[T, P], FixedComputeIssue]
 
-pub fn[I, T, E, P] bind_prepared_managed_execution(ManagedFixedComputeChoice[I], PreparedManagedCompute[I, P], ExecutionCapacity, Array[(Int, Int64)], (P) -> Result[(T, ManagedExecutionOperations[E]), E], retained_bytes? : () -> Result[Int64, E], scratch_released? : () -> Bool, aggregate_output_ceilings? : Array[AggregateOutputCeiling], analytic_envelopes? : Array[AnalyticEnvelope]) -> Result[PreparedManagedExecution[I, T, E], FixedComputeIssue]
+pub fn[I, T, E, P] bind_prepared_managed_execution(ManagedFixedComputeChoice[I], PreparedManagedCompute[I, P], ExecutionCapacity, Array[(Int, Int64)], (P) -> Result[(T, ManagedExecutionOperations[E]), E], retained_bytes? : () -> Result[Int64, E], aggregate_output_ceilings? : Array[AggregateOutputCeiling], analytic_envelopes? : Array[AnalyticEnvelope]) -> Result[PreparedManagedExecution[I, T, E], FixedComputeIssue]
 
 pub fn[T, E, U] bind_prepared_materializing_execution(FixedComputeChoice, PreparedCompute[U], ExecutionCapacity, Array[(Int, Int64)], (U) -> Result[(T, ExecutionLifecycleOperations[E]), E], retained_bytes? : () -> Result[Int64, E], aggregate_output_ceilings? : Array[AggregateOutputCeiling], analytic_envelopes? : Array[AnalyticEnvelope]) -> Result[PreparedExecution[T, E], FixedComputeIssue]
 
@@ -199,8 +199,6 @@ pub fn[I, T, E] prepared_managed_execution_join_output_ceiling(PreparedManagedEx
 
 pub fn[I, T, E] prepared_managed_execution_retained_bytes(PreparedManagedExecution[I, T, E]) -> Result[Int64, ExecutionPreparationIssue[E]]
 
-pub fn[I, T, E] prepared_managed_execution_scratch_release_condition(PreparedManagedExecution[I, T, E]) -> (() -> Bool)?
-
 pub fn[T, U] project_capability_implementations(CapabilityImplementations[T], (T) -> U, Int) -> Result[CapabilityImplementations[U], CapabilityInstallationIssue]
 
 pub fn resource_binding_registration(ResourceBinding) -> CapabilityRegistration
@@ -300,6 +298,7 @@ pub(all) struct ExecutionLifecycleOperations[E] {
   dispose : () -> Unit
   settled : () -> Unit
   retention_released : () -> Bool
+  scratch_released : () -> Bool
   released : () -> Unit
   ready : () -> Result[Unit, E]
 }
@@ -356,6 +355,7 @@ pub(all) struct ManagedExecutionOperations[E] {
   dispose : () -> Unit
   settled : () -> Unit
   retention_released : () -> Bool
+  scratch_released : () -> Bool
   released : () -> Unit
   ready : () -> Result[Unit, E]
 }

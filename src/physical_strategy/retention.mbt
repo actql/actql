@@ -688,8 +688,15 @@ pub fn retain_captured_task_allocation(
 ///|
 /// Poll the original attached physical-release checks after Host cleanup.
 /// This does not close any result, acknowledge cleanup, or replace its check.
+/// Already disposed executions retain their original reservation until their
+/// installed scratch and retention facts arrive; observe those facts too.
 pub fn refresh_captured_retention(run : CapturedDAG) -> Unit {
   collect_captured_retention(run)
+  for execution in run.executions {
+    if execution is Some(execution) && execution.disposed {
+      release_task_execution(run, execution)
+    }
+  }
 }
 
 ///|

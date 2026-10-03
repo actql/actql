@@ -316,6 +316,9 @@ pub fn[T] start_numeric_managed_dispatch(
             }
           },
           settled: fn() { settled.val = true },
+          // Synchronous evaluator workspace has stopped at settlement;
+          // retained output belongs to its independent holding.
+          scratch_released: fn() { settled.val || !live.val },
           retention_released: fn() {
             retained.val is None ||
             retained.val

@@ -23,7 +23,7 @@ export function custodyInput() {
   return { case: case_, program: input };
 }
 export function custodyOverlay(read, mode) {
-  assert(['normal', 'pending'].includes(mode));
+  assert(['normal', 'pending', 'success'].includes(mode));
   const query = 'src/query_integration/query_checked_program_wbtest.mbt';
   const selected = 'src/connectors/local/selected_relation_provider.mbt';
   const fixture = 'src/query_integration/relation_pipeline_custody_wbtest.mbt';
@@ -51,7 +51,7 @@ let custody_started_children : Ref[Int] = Ref(0)
 ///|
 pub fn custody_child_start_count() -> Int { custody_started_children.val }
 `;
-  if (mode === 'pending') {
+  if (mode === 'pending' || mode === 'success') {
     const work = '  let work = Ref(0L)';
     assert.equal(overlay[selected].split(work).length, 2);
     overlay[selected] = overlay[selected].replace(work, work + '\n  let custody_cleanup_calls = Ref(0)');
@@ -75,7 +75,7 @@ ${before}`);
 // cannot broaden its scope by changing both its own labels and observations.
 export function auditCustody(receipt, target, mode, current, read) {
   assert(['js', 'wasm', 'native'].includes(target));
-  assert(['normal', 'pending'].includes(mode));
+  assert(['normal', 'pending', 'success'].includes(mode));
   assert.equal(receipt.version, 'actql-relation-custody/0.1');
   assert.equal(receipt.target, target, 'Requested custody target differs from execution');
   assert.equal(receipt.mode, mode, 'Requested cleanup mode differs from execution');
@@ -115,20 +115,31 @@ export function auditCustody(receipt, target, mode, current, read) {
   assert(o.executionCapacity > 0 && o.workBefore > 0);
   assert.equal(o.before, o.executionCapacity);
   assert.equal(o.workAfter, o.workBefore, 'Cleanup lost cumulative work');
-  const after = log.indexOf('ACTQL_CUSTODY_STAGE:after-settlement-before-cleanup');
+  const after = log.indexOf(mode === 'success' ?
+    'ACTQL_CUSTODY_STAGE:after-completion-before-cleanup' :
+    'ACTQL_CUSTODY_STAGE:after-settlement-before-cleanup');
   const cleanup = log.indexOf('"event":"before-cleanup"');
   const cleaned = log.indexOf('"event":"after-cleanup"');
   assert(after >= 0 && cleanup >= 0 && cleaned > cleanup);
   assert.equal(o.after, o.before, 'Settlement lost scratch before explicit cleanup');
-  assert(cleanup > after, 'Settlement/disposal must not poll child cleanup');
+  assert(cleanup > after, 'Successful child cleanup preceded pending-scratch observation');
   if (mode === 'normal') {
     assert(!log.includes('ACTQL_CUSTODY_RETRY:'));
   } else {
-    assert.equal(o.after, o.before, 'Pending cleanup lost reservation');
-    assert(cleanup > after, 'Actual child cleanup did not remain pending');
     const no = log.indexOf('ACTQL_CUSTODY_RETRY:false');
     const error = log.indexOf('ACTQL_CUSTODY_RETRY:error');
-    assert(no > after && error > no && cleanup > error, 'Missing explicit false/error/retry cleanup path');
+    if (mode === 'success') {
+      const settlement = log.indexOf('ACTQL_CUSTODY_STAGE:before-success-settlement');
+      assert(settlement >= 0 && no > settlement && no < after && error > after && cleanup > error,
+        'Missing success-time pending observation and explicit error/retry cleanup path');
+    } else {
+      assert(no > after && error > no && cleanup > error, 'Missing explicit false/error/retry cleanup path');
+    }
+    if (mode === 'success') {
+      assert(Number.isSafeInteger(o.heldAtCompletion) && o.heldAtCompletion > 0,
+        'Missing accepted output holding at completion');
+      assert.equal(o.unusedRetentionAtCompletion, 0, 'Unused output retention remains reserved');
+    }
   }
   assert(Object.keys(receipt.artifacts).length > 0);
   assert.deepEqual(Object.keys(receipt.archives).sort(), Object.keys(receipt.artifacts).sort());
@@ -142,4 +153,33 @@ export function auditCustody(receipt, target, mode, current, read) {
   }
   return { kind: 'finite actual chain custody correspondence', target, mode,
     physicalGcCompletion: false, completeAllocationUpper: false };
+}
+
+// Reconstruct the reviewed product mutation independently of the report labels.
+export function auditCustodyMutations(records, current, read) {
+  const site = 'src/physical_strategy/task_execution.mbt';
+  const code = read(site).toString();
+  const variants = [
+    { name: 'drop-installed-scratch-release-condition', mode: 'normal',
+      before: '(execution.hooks.unwrap().scratch_released)()',
+      after: 'physical_equal(execution, execution)' },
+    { name: 'settle-success-before-scratch-release', mode: 'success',
+      before: 'if task_execution_scratch_released(execution) {', after: 'if true {' },
+  ];
+  assert.deepEqual(records.map(({ name, mode }) => ({ name, mode })),
+    variants.map(({ name, mode }) => ({ name, mode })), 'Incomplete custody mutations');
+  for (const [index, record] of records.entries()) {
+    const variant = variants[index];
+    assert.equal(record.target, 'js');
+    assert.equal(record.site, site);
+    assert.equal(record.beforeDigest, hash(code));
+    assert.equal(code.split(variant.before).length, 2, 'Ambiguous custody mutation source');
+    const sources = { ...current.sources, [site]: hash(code.replace(variant.before, variant.after)) };
+    assert.deepEqual(record.source.sources, sources);
+    assert.equal(record.source.digest, hash(JSON.stringify(sources)));
+    assert(Number.isInteger(record.exit) && record.exit > 0, 'Mutation did not exit with a detected failure');
+    const log = read(record.logPath).toString();
+    assert.equal(hash(log), record.logDigest);
+    assert(log.includes('Scratch credited before child cleanup'), 'Mutation failed for a different reason');
+  }
 }

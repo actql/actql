@@ -16,30 +16,15 @@ import { auditCoreProbe } from './backing/core-probe.mjs';
 import { inspectPipelineBacking } from './backing/pipeline.mjs';
 import { auditParentStartup } from './parent-control/audit.mjs';
 import { rejectParentSubstitutions } from './parent-control/regression.mjs';
-import { auditCustody } from './parent-control/custody.mjs';
+import { auditCustody, auditCustodyMutations } from './parent-control/custody.mjs';
 export function validate(report, current, targets, read) {
   assert.equal(report.version, 'actql-relation-pipeline-structure/0.1');
   assert.deepEqual(report.source, current, 'Stale capacity source');
   assert.deepEqual(report.toolchain, JSON.parse(read('toolchain.json')), 'Unpinned compiler declaration');
   assert.deepEqual(report.custody.source, current, 'Stale custody campaign');
-  const custodyMutation = report.custody.mutation;
-  assert.equal(custodyMutation.name, 'drop-installed-scratch-release-condition');
-  assert.equal(custodyMutation.target, 'js');
-  assert.equal(custodyMutation.site, 'src/physical_strategy/task_execution.mbt');
-  assert.equal(custodyMutation.beforeDigest, hash(read(custodyMutation.site)));
-  const custodyBefore = 'scratch_released: @connector.prepared_managed_execution_scratch_release_condition(\n          prepared,\n        ),';
-  const custodyCode = read(custodyMutation.site).toString();
-  assert.equal(custodyCode.split(custodyBefore).length, 2);
-  const custodySources = { ...current.sources,
-    [custodyMutation.site]: hash(custodyCode.replace(custodyBefore, 'scratch_released: None,')) };
-  assert.deepEqual(custodyMutation.source.sources, custodySources);
-  assert.equal(custodyMutation.source.digest, hash(JSON.stringify(custodySources)));
-  assert.notEqual(custodyMutation.exit, 0);
-  const custodyLog = read(custodyMutation.logPath).toString();
-  assert.equal(hash(custodyLog), custodyMutation.logDigest);
-  assert(custodyLog.includes('Scratch credited before child cleanup'));
+  auditCustodyMutations(report.custody.mutations, current, read);
   assert.deepEqual(report.custody.records.map(({ target, mode }) => ({ target, mode })),
-    targets.flatMap(target => ['normal', 'pending'].map(mode => ({ target, mode }))), 'Incomplete custody targets/modes');
+    targets.flatMap(target => ['normal', 'pending', 'success'].map(mode => ({ target, mode }))), 'Incomplete custody targets/modes');
   for (const entry of report.custody.records) {
     const bytes = read(entry.path);
     assert.equal(hash(bytes), entry.digest);

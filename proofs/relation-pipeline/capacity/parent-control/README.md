@@ -165,3 +165,31 @@ that executor version is integrated.
 The final independent capacity audit rechecks the receipt. Local validation is
 limited to touched Node tests and one native generated case; complete campaign
 results belong to CI on the pushed SHA.
+
+## Output completion and scratch retirement
+
+Output acceptance and provider scratch release are independent acknowledgements.
+The common completion boundary preserves the execution reservation when the
+installed scratch-release condition is false, even after output retention has
+moved to a holding. An execution without an installed condition retains the
+existing synchronous completion behavior. The Local output commit tries the existing provider cleanup once before
+common completion; false/error keeps the provider and its reservation for
+explicit retry. The existing cleanup path retires scratch after confirmation; no new owner or ledger is used.
+
+The custody diagnostic reuses the typed `distinct → filter` corpus entry and
+registered Local driver. Its success mode defers the commit-time cleanup attempt
+once with an exact audited overlay, runs all three children, finalizes an
+accepted Int payload through the real completion/ledger boundary, checks the
+scratch reservation before explicit cleanup, then closes the output and verifies
+cleanup and repeated cleanup without Compute restart or work loss. The Int
+payload verifies completion accounting, not physical Relation output backing,
+last-consumer retention, or GC destruction. Those correspondence obligations
+remain open, together with complete child/runtime and parent byte bounds.
+
+The admission gate requires normal cancellation, pending false/error/retry
+cleanup, and successful completion receipts for each requested target. JS
+mutations separately remove the installed release condition and bypass the
+successful completion guard. Each must fail specifically for premature scratch
+credit; a compilation failure or missing record is not mutation detection.
+Normal finite correspondence on Wasm/native remains separate from JS mutation
+coverage. Successful cleanup is not evidence that an allocation disappeared.
