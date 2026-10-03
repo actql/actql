@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { hash } from '../inventory.mjs';
 import { recordCapacityOwner, validateCapacityOwners, unionCapacityParts, resolveCapacityUnion, assembleCapacityParts } from './parts.mjs';
+import { prepareCapacityRegressionInputs } from './regression-inputs.mjs';
 
 // Synthetic transport only. Real source/artifact/semantic audits remain required.
 function fixture() {
@@ -24,6 +25,55 @@ function fixture() {
   const files = new Map(parts.map(({ path, report }) => [path, JSON.stringify(report, null, 2) + '\n']));
   return { parts, files, read: path => { assert(files.has(path)); return files.get(path); } };
 }
+test('regression preparation reads each original once and freezes a detached source snapshot', () => {
+  const f = fixture(), original = unionCapacityParts(f.parts, f.read);
+  const current = { digest: 'source', sources: { 'src/example.mbt': 'original' } }, reads = [];
+  const prepared = prepareCapacityRegressionInputs(original, current, path => { reads.push(path); return f.read(path); });
+  current.sources['src/example.mbt'] = 'caller mutation';
+  assert.equal(prepared.current.sources['src/example.mbt'], 'original');
+  assert.throws(() => { prepared.current.sources['src/example.mbt'] = 'case mutation'; }, TypeError);
+  assert.throws(() => { prepared.current = current; }, TypeError);
+  for (let i = 0; i < 10; i++) assert.deepEqual(prepared.parts(), f.parts);
+  assert.deepEqual(reads, original.parts.map(ref => ref.path));
+});
+for (const order of [['L-C0', 'L-C1'], ['L-C1', 'L-C0']]) {
+  test(`regression cases cannot leak dirty nested state in ${order.join('/')} order`, () => {
+    const f = fixture(), original = unionCapacityParts(f.parts, f.read), before = structuredClone(original);
+    const prepared = prepareCapacityRegressionInputs(original, original.source, f.read);
+    for (const id of order) {
+      const parts = prepared.parts(), selected = parts.find(({ report }) => report.part === id);
+      selected.report.executions[0].receipt.boundary.workspace = 'foreign-owner';
+      selected.report.source.sources['extra.mbt'] = 'case mutation';
+      // Dirty cases still run the real union validator and must reject.
+      assert.throws(() => unionCapacityParts(parts, f.read));
+      const clean = prepared.parts();
+      assert.deepEqual(clean, f.parts);
+      assert.deepEqual(unionCapacityParts(clean, f.read), original);
+    }
+    assert.deepEqual(original, before);
+    assert.deepEqual(prepared.current, before.source);
+  });
+}
+test('prepared originals never bypass changed-input validation or become a cached pass', () => {
+  const f = fixture(), original = unionCapacityParts(f.parts, f.read);
+  const prepared = prepareCapacityRegressionInputs(original, original.source, f.read);
+  assert.deepEqual(unionCapacityParts(prepared.parts(), f.read), original);
+  const path = original.parts[0].path, bytes = f.files.get(path);
+  f.files.set(path, '{}');
+  assert.throws(() => unionCapacityParts(prepared.parts(), f.read), /original report differs/);
+  f.files.set(path, bytes);
+  assert.deepEqual(unionCapacityParts(prepared.parts(), f.read), original);
+  const altered = prepared.parts();
+  altered[0].report.complete = false;
+  const overrides = new Map(altered.map(({ path, report }) => [path, JSON.stringify(report)]));
+  assert.throws(() => unionCapacityParts(altered, path => overrides.get(path)), /Incomplete capacity fragment/);
+  assert.deepEqual(unionCapacityParts(prepared.parts(), f.read), original);
+});
+test('regression preparation does not hide missing or malformed original inputs', () => {
+  const f = fixture(), original = unionCapacityParts(f.parts, f.read);
+  assert.throws(() => prepareCapacityRegressionInputs(original, original.source, () => { throw new Error('missing original'); }), /missing original/);
+  assert.throws(() => prepareCapacityRegressionInputs(original, original.source, () => '{'), SyntaxError);
+});
 test('capacity union retains immutable originals and three distinct owner inventories', () => {
   const { parts, files, read } = fixture(), originals = structuredClone(parts);
   const union = unionCapacityParts(parts, read);
