@@ -170,3 +170,45 @@ all ten original task-projection tests). Formatting and whitespace are checked.
 The complete acquired-source Local/HTTP group and the final push-triggered CI
 remain obligations for the final fixed HEAD. Previous successful single-case
 acceptance is not relabelled as validation of later source changes.
+
+## Fixed-SHA public acceptance and remaining history integration
+
+Source `aa24b3f0c36fb643efafcc1a0e3206202db030be` normally incorporates main
+`4076a41fdbf37f5a74fada81131aee1139597d89`. The dependencies #233, #235,
+#237 and #240 have reached main; #242 now targets main. Earlier dependency
+and pending-acceptance statements above describe those earlier revisions.
+
+On this clean source, normal pack of the five public packages and an external
+consumer installation passed **13 positive cases and 6 typed refusals per
+transport**, Embedded Local and HTTP. This is the acquired-source acceptance
+group, not the complete packed suite or Frontend profile. Authored expectations
+cover shared CTE UNION ALL's eight duplicate-preserving rows and CTE JOIN's
+output-alias ordering, full Result types/nullability and declared column order.
+Empty inputs, parameters, static Graph labels, NULL-key exclusion and
+parallel-edge TRAIL are included. Original Runs acquire once per declared
+Source; attach, repeated Result reads and same-request resubmission do not
+acquire again. Refusals leave Run admission and provider I/O unchanged.
+Package digests, command outcomes and the preserved consumer evidence bind
+that exact source. The focused branch/JOIN/task tests pass **15/15**.
+
+[Automatic CI for this HEAD](https://github.com/actql/actql/actions/runs/37114314723)
+completed. Product jobs, including Core JS/Wasm/native, Workers, Host, Client,
+packed Client and native, passed. Pipeline mutations and capacity failed on
+the missing #233 merge declaration for `package.json`; pipeline evidence
+failed because its required producer failed. Overall CI did not pass.
+
+The single additive supplement is [#254](https://github.com/actql/actql/pull/254),
+source `44f822c234f038f5bf113972acb10ac17e756ca0`. It passes the existing
+history validator locally, and G's content review is approved. Its required
+CI and main integration are separate prerequisites. No duplicate declaration
+or validator change is needed. After integrating that main, retain the
+acceptance above as evidence for `aa24b3f0c36fb643efafcc1a0e3206202db030be`
+and report the new HEAD's automatic CI independently.
+
+D's #246 JSON Read/INFER/Effect composition is a separate acceptance unit.
+The existing text connection is `client.aql(source, {format: 'aql-text',
+requestId, parameterDeclarations, parameters})` through the Host's published
+aliases and normal Source preparation. A joined INFER input still needs the
+common candidate-key proof; `ITEM KEY` does not replace `assert_rows.unique_by`.
+The common success outcome is `ok`, not `success`. This PR does not supply an
+implicit Effect declaration or claim text composition/restart acceptance.
