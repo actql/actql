@@ -52,6 +52,10 @@ for (const [source, destination] of [
   ['scripts/fixtures/planner-selection-public-query.mjs', 'planner-selection-public-query.mjs'],
   ['scripts/fixtures/packed-planner-selection.mjs', 'packed-planner-selection.mjs'],
   ['scripts/fixtures/two-source-public-query.mjs', 'two-source-public-query.mjs'],
+  ['scripts/fixtures/nearest-public-input.mjs', 'nearest-public-input.mjs'],
+  ['scripts/fixtures/nearest-installed-source.mjs', 'nearest-installed-source.mjs'],
+  ['scripts/fixtures/packed-nearest-public-query.mjs', 'packed-nearest-public-query.mjs'],
+  ['adapters/host-node/fixtures/two-source/left.environment.json', 'nearest-source-template.json'],
   ['scripts/fixtures/two-source-restart.mjs', 'two-source-restart.mjs'],
   ['adapters/host-node/fixtures/query-amount-environment.json', 'source-environment.json'],
   ['spec/local-check-environment.json', 'base-environment.json'],
@@ -73,6 +77,12 @@ for (const name of ['database-rows.json', 'two-source-join.program.json',
   'left-only.program.json', 'left.environment.json', 'right.environment.json']) {
   await writeFile(join(root, 'two-source-fixtures', name), await readFile(join(repository,
     'adapters/host-node/fixtures/two-source', name)));
+}
+await mkdir(join(root, 'nearest-keep-fixtures'));
+for (const name of ['common-minimal.program.json', 'kept.ordered.aql',
+  'expected-rows.json', 'expected-schema.json']) {
+  await writeFile(join(root, 'nearest-keep-fixtures', name),
+    await readFile(join(repository, 'spec/frontend/fixtures/nearest-keep', name)));
 }
 // Copy the exact documented example and its shared JSON fixtures.
 const exampleReadme = await readFile(join(repository,
@@ -136,6 +146,11 @@ const exerciseInferSource = () => exercisePackedInferSource({root, directory,
   run, environment: runtimeEnvironment, sourceSha: revision.stdout.trim()});
 if (process.argv.includes('--infer-source-only')) {
   await exerciseInferSource();
+  return;
+}
+if (process.argv.includes('--nearest-only')) {
+  console.log(run(process.execPath, ['packed-nearest-public-query.mjs'], root,
+    runtimeEnvironment, 180_000).trimEnd());
   return;
 }
 // Execute the README's literal runtime commands, then the same Program through
@@ -205,6 +220,10 @@ try {
   }
   if (twoSourceExampleOnly || !plannerSelectionOnly && !narrowPublicQuery) {
     console.log(run(process.execPath, ['packed-two-source-example.mjs'], root,
+      runtimeEnvironment, 180_000).trimEnd());
+  }
+  if (!plannerSelectionOnly && !twoSourceExampleOnly && !narrowPublicQuery) {
+    console.log(run(process.execPath, ['packed-nearest-public-query.mjs'], root,
       runtimeEnvironment, 180_000).trimEnd());
   }
 } finally {
