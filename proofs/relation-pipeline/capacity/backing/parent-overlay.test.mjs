@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 import { parentOverlay, helper } from '../parent-control/overlay.mjs';
-import { auditParentStartup, parentCase } from '../parent-control/audit.mjs';
+import { auditParentStartup, parentCase, directory } from '../parent-control/audit.mjs';
 import { nativeProfile } from './source.mjs';
 import { body, boundFixture, executionCommand, inputVariable, payload } from '../../fixture.mjs';
 import { hash } from '../../inventory.mjs';
@@ -42,8 +42,14 @@ test('parent audit requires the executed target-bound fixture and build marker',
     fixturePath: 'fixture', logPath: 'log', logDigest: hash(log),
     inputVariable, cases: [], inputPath: 'inputs', inputDigest: hash(payload([], true)),
     sourcePath: 'next-independent-source-check'};
+  const modelLog = '3 conditional retained parent-core propositions checked';
+  const model = {command: ['node', 'proofs/relation-pipeline/capacity/parent-control/check.mjs'],
+    exit: 0, sourceDigest: source.digest, logDigest: hash(modelLog),
+    logPath: `${directory}/models/${hash(modelLog)}.log`};
+  const modelPath = `${directory}/models/${hash(JSON.stringify(model))}.json`;
   const report = {version: 'actql-native-parent-startup/0.1', target: 'native',
     unconditionalAllocationBytes: false, source, toolchain: pin,
+    model: {...model, receiptPath: modelPath},
     nativeRuntime: {platform: 'linux-x64',
       sources: {...nativeProfile.sources, ...nativeProfile.platformBinaries['linux-x64']},
       archive: pin.archives['linux-x64'], profileDigest: hash(JSON.stringify(nativeProfile))},
@@ -53,6 +59,8 @@ test('parent audit requires the executed target-bound fixture and build marker',
   const audit = (bytes = fixture, output = log, receipt = run) => {
     const execution = {...report.execution, receipt, digest: hash(JSON.stringify(receipt))};
     return auditParentStartup({...report, execution}, source, path => {
+      if (path === modelPath) return Buffer.from(JSON.stringify(model));
+      if (path === model.logPath) return Buffer.from(modelLog);
       if (path === 'receipt') return Buffer.from(JSON.stringify(receipt));
       if (path === 'fixture') return Buffer.from(bytes);
       if (path === 'log') return Buffer.from(output);
