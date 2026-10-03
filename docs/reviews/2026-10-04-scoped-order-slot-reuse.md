@@ -98,11 +98,20 @@ to the common ledger, capacity formula, ceiling or execution owner is made.
 
 The independent complete Program regression and continuing-checkpoint regression
 failed before this repair (7/9 passed, 2 failed). After it, selected ORDER,
-Pipe scope, Result and JOIN ORDER tests pass 28/28 on JS. The full four-positive,
-one-refusal packed selection has not yet been rerun from this follow-up source;
-the earlier success/failure evidence above remains tied to its original SHA.
+Pipe scope, Result and JOIN ORDER tests pass 28/28 on JS. The follow-up clean source `06256fe791f85e7dbe4f6c71ea69bb0054e6b0fb`
+passes all four positive fixtures and one pre-admission refusal on **both
+Embedded Local and HTTPS**, using normal prepack and an external installation.
+Rows, full describe column contracts and order, stream completion, hidden-column
+absence, acquisition counts and retry/attach behavior are checked. The unchanged
+DISTINCT collision fixture now reaches Named Result. The fixed 512 MiB ceiling
+and common capacity formula are unchanged. No new required-reservation value was
+measured for this revision; success establishes admission and publication only.
+The command took about 51 seconds. Its owned installation was removed after
+logs, source SHA and tarball digests were saved; historical failed Stores remain
+separate. This closes this PR's narrow public corpus, not all Frontend acceptance.
+The earlier failures remain tied to their original source SHA.
 
-### Recorded package SHA-256
+### Historical package SHA-256
 
 All names below have suffix `-0.0.0-development.tgz` and come from the clean
 packed source above. The limited Local/HTTPS checks reuse the same artifacts.
@@ -115,12 +124,26 @@ packed source above. The limited Local/HTTPS checks reuse the same artifacts.
 | actql-local-node | `9cee7aa86af955a88d1e30f5a3712a8b676aff1803463f2cdbc3dc4b488c6ba1` |
 | actql-node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
 
+### Follow-up package SHA-256
+
+Normally packed from clean `06256fe791f85e7dbe4f6c71ea69bb0054e6b0fb`.
+The submitted follow-up evidence commit changes documentation only.
+
+| Package | SHA-256 |
+|---|---|
+| actql-client-wire | `5da98d3edb615f960f0511be9d6e61431cd34d02304a8bd6b6e576f7775f91a0` |
+| actql-sdk | `2fc910067348e421346945ced1e728e107bbe6fa455ee00f9d71da46e8123c5b` |
+| actql-run-host-core | `901be13bedaeb53a23f7e16af1a930c9eac313c828fdc227eedfd4d66ff1f898` |
+| actql-local-node | `1ba4de04f47fcbd366efe71837659015e81cef4e0da42b66a46efa4c1dd6551e` |
+| actql-node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
+
 Local commands (use the repository-pinned toolchain):
 
 ```sh
 node scripts/local-checks.mjs test moon -- --target js \
   src/query_program/pipe_order_scope_test.mbt \
-  src/query_program/pipe_scope_test.mbt src/query_program/join_order_test.mbt
+  src/query_program/pipe_scope_test.mbt src/query_program/pipe_result_test.mbt \
+  src/query_program/join_order_test.mbt
 node scripts/test-packed-public-query.mjs --scoped-order-only
 ```
 
