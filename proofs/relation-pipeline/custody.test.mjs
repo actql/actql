@@ -17,12 +17,12 @@ function fixture(target = 'js', mode = 'normal') {
   const sources = { ...current.sources, ...overlays };
   const exact = Object.fromEntries(Object.keys(sources).sort().map(p => [p, sources[p]]));
   const observation = { executionCapacity: 100, before: 100, after: 100, workBefore: 6, workAfter: 6 };
-  if (mode === 'success') observation.heldAtCompletion = 40;
+  if (mode === 'success') Object.assign(observation, { heldAtCompletion: 40, unusedRetentionAtCompletion: 0 });
   const child = '"event":"before-cleanup"\n"event":"after-cleanup"\n';
   const stage = mode === 'success' ? 'ACTQL_CUSTODY_STAGE:after-completion-before-cleanup\n' :
     'ACTQL_CUSTODY_STAGE:after-settlement-before-cleanup\n';
   const log = 'ACTQL_CUSTODY_CHAIN:started\n' +
-    (mode === 'success' ? 'ACTQL_CUSTODY_COMMIT_CLEANUP:pending\n' : '') + stage + (mode !== 'pending' ? child :
+    stage + (mode === 'normal' ? child :
     'ACTQL_CUSTODY_RETRY:false\nACTQL_CUSTODY_RETRY:error\n' + child) +
     `ACTQL_CUSTODY:${JSON.stringify(observation)}\nTotal tests: 1, passed: 1, failed: 0.\n`;
   const binary = Buffer.from(`synthetic audit-unit-test artifact for ${target}`), digest = hash(binary);
@@ -62,7 +62,8 @@ test('custody auditor rejects cancellation evidence requested for successful com
   assert.throws(() => auditCustody(f.report, 'js', 'success', f.current, f.read), /mode differs/);
 });
 for (const [name, patch] of [['premature scratch credit', { after: 0 }],
-  ['missing accepted holding', { heldAtCompletion: 0 }]]) {
+  ['missing accepted holding', { heldAtCompletion: 0 }],
+  ['unused retention kept after completion', { unusedRetentionAtCompletion: 1 }]]) {
   test(`successful completion evidence rejects ${name} with a consistent log`, () => {
     const f = fixture('js', 'success');
     const before = JSON.stringify(f.report.observation);
@@ -104,7 +105,7 @@ function mutationFixture() {
   const site = 'src/physical_strategy/task_execution.mbt', code = read(site).toString();
   const variants = [
     { name: 'drop-installed-scratch-release-condition', mode: 'normal',
-      before: 'scratch_released: @connector.prepared_managed_execution_scratch_release_condition(\n          prepared,\n        ),', after: 'scratch_released: None,' },
+      before: '(execution.hooks.unwrap().scratch_released)()', after: 'physical_equal(execution, execution)' },
     { name: 'settle-success-before-scratch-release', mode: 'success',
       before: 'if task_execution_scratch_released(execution) {', after: 'if true {' },
   ];

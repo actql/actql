@@ -16,8 +16,8 @@ const site = 'src/physical_strategy/task_execution.mbt';
 const original = readFileSync(join(root, site));
 const variants = [
   { name: 'drop-installed-scratch-release-condition', mode: 'normal',
-    before: 'scratch_released: @connector.prepared_managed_execution_scratch_release_condition(\n          prepared,\n        ),',
-    after: 'scratch_released: None,' },
+    before: '(execution.hooks.unwrap().scratch_released)()',
+    after: 'physical_equal(execution, execution)' },
   { name: 'settle-success-before-scratch-release', mode: 'success',
     before: 'if task_execution_scratch_released(execution) {', after: 'if true {' },
 ];

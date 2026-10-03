@@ -5,19 +5,26 @@ scratch before asking its provider to clean up. A stopped DISTINCT can still own
 its keep/index/term state. Stop is permission to attempt cleanup, not confirmation
 that the owned state or its holding references have been released.
 
-`PreparedManagedExecution` now accepts an optional installed scratch-release
-condition. The existing task owner retains its scratch reservation until this
-condition is true, separately from physical stop and external output retention.
-Other implementations preserve their existing synchronous-disposal default.
-Local uses its real provider cleanup callback, caches the provider owner's final
-cumulative work, and drops its driver reference only after successful cleanup.
-False/error results keep the reservation; retry does not restart Compute.
-The installed condition only observes whether that reference has been dropped.
-Settlement/disposal may ask repeatedly and must not consume cleanup retries.
-Explicit `cleanup_refresh` alone drives provider cleanup; even an immediate
-cleanup provider retains scratch until that poll confirms release. Existing
-Host false-then-success cleanup regressions remain unchanged.
-There is no new accounting owner or ledger, and no allocation-byte formula change.
+Both installed lifecycle operation types require an explicit pure
+`scratch_released` confirmation. There is no omitted-condition success default.
+The existing task owner observes that confirmation separately from physical stop
+and output retention. Local drops its installed provider reference only after
+successful cleanup and preserves cumulative work; false/error keeps the reference
+and reservation. The observation callback does not poll cleanup. Success,
+settlement and disposal therefore do not consume the provider's retry sequence;
+explicit `cleanup_refresh` drives the existing provider cleanup boundary.
+
+`settle_completed_output_reservation` uses the existing ledger. Before exposing
+an accepted task output, it checks reservation ownership, the exact holding's
+origin reservation and bytes, and the remaining scratch amount. A zero-byte
+output can explicitly have no holding. It returns unused transfer and retention,
+keeps the independently admitted holding and consumed/uncertain usage, and
+preserves unreclaimed scratch. Relation, Carrier and materialized task completion
+share this boundary. Identical notifications cannot refund twice; changed ones
+are rejected before any usage change. Final successful cleanup releases the
+remaining scratch once. Ledger tests cover the historical early credit and
+unused-retention retention, invalid owner/holding/range and duplicate calls.
+There is no new owner, ledger or allocation-byte formula.
 
 ## Actual execution boundary
 
@@ -47,9 +54,12 @@ requiring actual chain construction and the unsplit source-free task.
 
 ## Evidence and remaining obligations
 
-The existing capacity CI command runs `custody-check.mjs all`: one actual JS
-mutation that drops the installed scratch condition, followed by restored normal
-and pending correspondence on JS, Wasm and native. The auditor binds each
+The existing capacity CI command runs `custody-check.mjs all`: two actual JS
+mutations bypass the installed scratch confirmation or credit scratch at output
+completion. Restored normal, pending and success correspondence runs on JS,
+Wasm and native. Success uses the actual accepted-output completion boundary,
+checks retained output and zero unused retention, and exercises false/error/retry
+cleanup without restarting its three started children. The auditor binds each
 requested target and cleanup mode independently to the reviewed fixture/input,
 source overlay, command, log and archived target artifacts. Whole internally
 consistent native reports cannot substitute for JS or Wasm. Audit unit fixtures

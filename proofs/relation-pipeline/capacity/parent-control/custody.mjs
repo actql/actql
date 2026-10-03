@@ -27,9 +27,7 @@ export function custodyOverlay(read, mode) {
   const query = 'src/query_integration/query_checked_program_wbtest.mbt';
   const selected = 'src/connectors/local/selected_relation_provider.mbt';
   const fixture = 'src/query_integration/relation_pipeline_custody_wbtest.mbt';
-  const driver = 'src/connectors/local/driver/managed_dispatch.mbt';
-  const originals = Object.fromEntries([...Object.keys(replacements), query, selected,
-    ...(mode === 'success' ? [driver] : [])].map(p => [p, read(p)]));
+  const originals = Object.fromEntries([...Object.keys(replacements), query, selected].map(p => [p, read(p)]));
   const overlay = Object.fromEntries(Object.entries(originals).map(([p, text]) =>
     [p, replacements[p] ? instrument(p, text.toString()) : text.toString()]));
   const anchor = '    Some(kind) => local_values_unary_program(kind)';
@@ -53,20 +51,7 @@ let custody_started_children : Ref[Int] = Ref(0)
 ///|
 pub fn custody_child_start_count() -> Int { custody_started_children.val }
 `;
-  if (mode === 'success') {
-    // Defer the commit-time cleanup attempt once. The real stopped provider
-    // remains installed, so output acceptance must keep its scratch reserved.
-    const before = '  let release_provider_scratch = fn() {';
-    assert.equal(overlay[driver].split(before).length, 2);
-    overlay[driver] = overlay[driver].replace(before, `  let custody_commit_cleanup_pending = Ref(true)
-${before}
-    if custody_commit_cleanup_pending.val {
-      custody_commit_cleanup_pending.val = false
-      println("ACTQL_CUSTODY_COMMIT_CLEANUP:pending")
-      return false
-    }`);
-  }
-  if (mode === 'pending') {
+  if (mode === 'pending' || mode === 'success') {
     const work = '  let work = Ref(0L)';
     assert.equal(overlay[selected].split(work).length, 2);
     overlay[selected] = overlay[selected].replace(work, work + '\n  let custody_cleanup_calls = Ref(0)');
@@ -138,21 +123,17 @@ export function auditCustody(receipt, target, mode, current, read) {
   assert(after >= 0 && cleanup >= 0 && cleaned > cleanup);
   assert.equal(o.after, o.before, 'Settlement lost scratch before explicit cleanup');
   assert(cleanup > after, 'Settlement/disposal must not poll child cleanup');
-  if (mode !== 'pending') {
+  if (mode === 'normal') {
     assert(!log.includes('ACTQL_CUSTODY_RETRY:'));
-    if (mode === 'success') {
-      assert.equal(log.split('ACTQL_CUSTODY_COMMIT_CLEANUP:pending').length, 2,
-        'Missing controlled pending cleanup at output commit');
-      assert(log.indexOf('ACTQL_CUSTODY_COMMIT_CLEANUP:pending') < after);
-      assert(Number.isSafeInteger(o.heldAtCompletion) && o.heldAtCompletion > 0,
-        'Missing accepted output holding at completion');
-    }
   } else {
-    assert.equal(o.after, o.before, 'Pending cleanup lost reservation');
-    assert(cleanup > after, 'Actual child cleanup did not remain pending');
     const no = log.indexOf('ACTQL_CUSTODY_RETRY:false');
     const error = log.indexOf('ACTQL_CUSTODY_RETRY:error');
     assert(no > after && error > no && cleanup > error, 'Missing explicit false/error/retry cleanup path');
+    if (mode === 'success') {
+      assert(Number.isSafeInteger(o.heldAtCompletion) && o.heldAtCompletion > 0,
+        'Missing accepted output holding at completion');
+      assert.equal(o.unusedRetentionAtCompletion, 0, 'Unused output retention remains reserved');
+    }
   }
   assert(Object.keys(receipt.artifacts).length > 0);
   assert.deepEqual(Object.keys(receipt.archives).sort(), Object.keys(receipt.artifacts).sort());
@@ -174,8 +155,8 @@ export function auditCustodyMutations(records, current, read) {
   const code = read(site).toString();
   const variants = [
     { name: 'drop-installed-scratch-release-condition', mode: 'normal',
-      before: 'scratch_released: @connector.prepared_managed_execution_scratch_release_condition(\n          prepared,\n        ),',
-      after: 'scratch_released: None,' },
+      before: '(execution.hooks.unwrap().scratch_released)()',
+      after: 'physical_equal(execution, execution)' },
     { name: 'settle-success-before-scratch-release', mode: 'success',
       before: 'if task_execution_scratch_released(execution) {', after: 'if true {' },
   ];

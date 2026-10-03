@@ -1430,6 +1430,9 @@ pub fn execute_captured_synchronous_task(
           output,
           holding,
           MissingOutput,
+          reservation,
+          capacity.retained_bytes,
+          0L,
         ) {
         Err(issue) => {
           @resources.release_allocation(run.ledger, holding) |> ignore
@@ -1439,7 +1442,6 @@ pub fn execute_captured_synchronous_task(
         }
         Ok(_) => ()
       }
-      @resources.settle_reservation(run.ledger, reservation) |> ignore
       Ok(())
     }
     Err(issue) => {

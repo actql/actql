@@ -108,6 +108,9 @@ pub fn[E] prepare_numeric_execution(
         cancel: close,
         dispose: close,
         settled: fn() { attempt.settled = true },
+        // The evaluator workspace is synchronous; its completed immutable
+        // storage is accounted by the separate result holding.
+        scratch_released: fn() { attempt.settled || attempt.closed },
         retention_released: fn() { true },
         released: fn() {  },
         ready: fn() {

@@ -91,6 +91,11 @@ test "generated serial capacity custody diagnostic" {
     assert_true(@execution.managed_completed_output_available(output))
     let usage = @resources.ledger_usage(ledger)
     assert_eq(usage.held_bytes, operations.storage_bytes)
+    assert_eq(usage.reserved_retention_bytes, 0L)
+    assert_true(
+      usage.reserved_execution_bytes == before,
+      msg="Scratch credited before child cleanup",
+    )
     println("ACTQL_CUSTODY_STAGE:after-completion-before-cleanup")
     println(
       "ACTQL_CUSTODY:{\"executionCapacity\":" +
@@ -103,6 +108,8 @@ test "generated serial capacity custody diagnostic" {
       work_before.to_string() +
       ",\"workAfter\":" +
       (operations.cumulative_provider_work)().unwrap().to_string() +
+      ",\"unusedRetentionAtCompletion\":" +
+      usage.reserved_retention_bytes.to_string() +
       ",\"heldAtCompletion\":" +
       usage.held_bytes.to_string() +
       "}",
@@ -112,7 +119,21 @@ test "generated serial capacity custody diagnostic" {
     available.val = false
     @strategy.close_captured_task_output(run, 0)
     (operations.close)()
-    assert_true((operations.cleanup_refresh)())
+    assert_false((operations.cleanup_refresh)())
+    assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, before)
+    assert_false((operations.cleanup_refresh)())
+    assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, before)
+    let mut cleanup_retries = 0
+    while !(operations.cleanup_refresh)() {
+      cleanup_retries += 1
+      assert_true(cleanup_retries < 10)
+      assert_eq(
+        @resources.ledger_usage(ledger).reserved_execution_bytes,
+        before,
+      )
+      assert_eq((operations.cumulative_provider_work)().unwrap(), work_before)
+      assert_eq(@local_connector.custody_child_start_count(), 3)
+    }
     assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
     assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
     assert_eq((operations.cumulative_provider_work)().unwrap(), work_before)

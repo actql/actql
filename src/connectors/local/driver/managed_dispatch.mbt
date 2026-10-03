@@ -765,6 +765,8 @@ pub fn[T] start_local_managed_dispatch(
             }
           },
           settled: fn() { settled.val = true },
+          // Observe the installed provider; only cleanup_refresh drives retries.
+          scratch_released: fn() { provider_execution.val is None },
           retention_released: fn() {
             let relation_released = retained.val is None ||
               retained.val
@@ -791,11 +793,6 @@ pub fn[T] start_local_managed_dispatch(
       },
       aggregate_output_ceilings=setup.aggregate_output_ceilings,
       analytic_envelopes=setup.analytic_envelopes,
-      // This is an observation, not a cleanup poll. Task settlement/disposal
-      // can ask more than once; it must not consume the provider's retries.
-      // Output commit and explicit cleanup_refresh drive cleanup; a false/error
-      // result preserves this reference and its scratch reservation for retry.
-      scratch_released=fn() { provider_execution.val is None },
     ) {
     Ok(value) => value
     Err(issue) => return Err(Configuration(issue))
@@ -1608,9 +1605,6 @@ pub fn[T] start_local_managed_dispatch(
         Ok(value) => value
         Err(issue) => return Err(Execution(Physical(issue)))
       }
-      // Output ownership has been prepared independently. Try the existing
-      // provider cleanup once; false/error keeps scratch reserved for retry.
-      release_provider_scratch() |> ignore
       match
         @strategy.complete_managed_task_execution_with_inputs(
           setup.run,
@@ -1679,9 +1673,6 @@ pub fn[T] start_local_managed_dispatch(
         Ok(value) => value
         Err(issue) => return Err(Execution(Physical(issue)))
       }
-      // Output ownership has been prepared independently. Try the existing
-      // provider cleanup once; false/error keeps scratch reserved for retry.
-      release_provider_scratch() |> ignore
       match
         @strategy.complete_carrier_managed_task_execution_with_inputs(
           setup.run,

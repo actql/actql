@@ -272,6 +272,7 @@ pub fn[E] prepare_local_materializing_execution(
             cancel: close,
             dispose: close,
             settled: fn() { attempt.settled = true },
+            scratch_released: fn() { attempt.provider_execution is None },
             retention_released: () => {
               match attempt.release_check {
                 None => true

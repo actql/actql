@@ -260,6 +260,22 @@ input/attempt/transport evidence validation. Cancellation alone never releases
 execution reservations. Confirmed execution cleanup may release execution
 capacity while keeping completion scratch and provisional output accounted.
 
+Every installed lifecycle explicitly confirms scratch release; an omitted
+condition cannot imply release. The confirmation only observes the owning
+implementation's cleanup state and does not poll, restart Compute or consume
+cleanup retries. Physical stop and successful output acceptance are separate
+from that confirmation.
+
+Before publishing a completed task output, the common boundary validates the
+holding's ledger, origin reservation and exact bytes, then returns unused
+retention and transfer through the same ledger. Consumed and uncertain usage
+and the independent accepted-output holding remain accounted. Only unreclaimed
+scratch remains reserved. An identical completion notification cannot return
+capacity twice; an invalid owner, holding, remaining amount or changed duplicate
+is rejected without changing ledger usage. Successful cleanup returns remaining
+scratch once. These are ownership and reservation guarantees, not physical GC
+completion or an allocation-byte upper bound.
+
 The DAG stores only common execution handles, not a parallel array indexed by
 concrete backend attempts. `connectors/duckdb/driver` owns the opaque DuckDB task
 handle, attempt construction, cancellation and verified completion operations.
