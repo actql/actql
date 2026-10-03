@@ -1,0 +1,60 @@
+// Authored from DATA/Relation and Property Graph contracts, not compiler output.
+// The existing packed harness installs these rows through the real source
+// profile, then compares Named Result rows and describe() column contracts.
+const number = (name, nullable = false) => ({name,
+  contract: {type: 'number', nullable}});
+const columns = [number('amount', true), number('id')];
+const ordered = [{amount: null, id: 1}, {amount: 20, id: 2},
+  {amount: 30, id: 3}, {amount: 30, id: 3}];
+export const acquiredDataSuccesses = [
+  {name: 'acquired-data-null-duplicates-column-order', format: 'aql-text',
+    text: 'DATA copied = FROM records |> SELECT amount, id; FROM copied |> ORDER BY id |> RESULT copied_rows',
+    results: {copied_rows: {rows: ordered, columns}}, sourceReadSessionCount: 1},
+  {name: 'acquired-data-shared-source-keeps-complete-input', format: 'aql-text',
+    text: 'DATA selected = FROM records |> WHERE amount >= 20 |> SELECT id; DATA complete = FROM records |> SELECT amount, id; FROM complete |> ORDER BY id |> RESULT all_rows',
+    results: {all_rows: {rows: ordered, columns}}, sourceReadSessionCount: 1},
+  {name: 'acquired-data-set-reuses-capture', format: 'aql-text',
+    text: 'DATA kept = FROM records |> WHERE id = 1 |> SELECT amount, id; DATA combined = FROM kept |> SELECT amount, id |> UNION ALL (FROM records |> WHERE amount >= 20 |> SELECT amount, id); FROM combined |> ORDER BY id |> RESULT all_rows',
+    results: {all_rows: {rows: ordered, columns}}, sourceReadSessionCount: 1},
+  {name: 'acquired-data-empty-retains-schema', format: 'aql-text',
+    text: 'DATA copied = FROM records |> SELECT amount, id; FROM copied |> ORDER BY id |> RESULT copied_rows',
+    sourceRows: [], results: {copied_rows: {rows: [], columns}},
+    sourceReadSessionCount: 1},
+  {name: 'acquired-data-parameter-declaration', format: 'aql-text',
+    text: 'DATA copied = FROM records |> WHERE amount >= @minimum |> SELECT amount, id; FROM copied |> ORDER BY id |> RESULT copied_rows',
+    parameterDeclarations: {minimum: {type: 'number'}}, parameters: {minimum: 20},
+    results: {copied_rows: {rows: [{amount: 20, id: 2}, {amount: 30, id: 3},
+      {amount: 30, id: 3}], columns}}, sourceReadSessionCount: 1},
+];
+
+// Installed Source View provenance is required by the common Graph owner.
+// These are pending execution obligations, not schema-only checker successes.
+export const acquiredGraphSourceSuccesses = [
+  {name: 'acquired-graph-direct-source-static-label', format: 'aql-text',
+    text: 'DATA g = PROPERTY GRAPH (NODE TABLES (records AS N KEY (id) LABEL Person PROPERTIES (amount, id))); FROM GRAPH g |> MATCH (a:Person) |> SELECT a.amount AS amount, a.id AS id |> ORDER BY id |> RESULT people',
+    sourceRows: [{id: 2, amount: 20}, {id: 1, amount: null}],
+    results: {people: {rows: [{amount: null, id: 1}, {amount: 20, id: 2}], columns}},
+    sourceReadSessionCount: 1},
+  {name: 'acquired-graph-null-key-exclusion', format: 'aql-text',
+    text: 'DATA g = PROPERTY GRAPH (NODE TABLES (records AS N KEY (amount) LABEL Person PROPERTIES (amount, id))); FROM GRAPH g |> MATCH (a:Person) |> SELECT a.amount AS amount, a.id AS id |> RESULT people',
+    sourceRows: [{id: 1, amount: null}, {id: 2, amount: 20}],
+    results: {people: {rows: [{amount: 20, id: 2}], columns}}, sourceReadSessionCount: 1},
+  {name: 'acquired-graph-parallel-edge-trail', format: 'aql-text',
+    text: 'DATA n = SELECT 1 AS id; DATA e = FROM records |> SELECT id AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = TRAIL (:Node)-[:R]->(:Node)-[:R]->(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths',
+    sourceRows: [{id: 10, amount: 20}, {id: 11, amount: 30}],
+    results: {paths: {rows: [{depth: 2}, {depth: 2}], columns: [number('depth')]}},
+    sourceReadSessionCount: 1},
+];
+
+export const acquiredDataRefusals = [
+  {name: 'acquired-data-later-unregistered-source', format: 'aql-text',
+    text: 'DATA copied = FROM records |> SELECT id; DATA missing = FROM unregistered |> SELECT id; FROM copied |> SELECT id'},
+  {name: 'acquired-data-removed-field', format: 'aql-text',
+    text: 'DATA copied = FROM records |> SELECT id; FROM copied |> SELECT amount'},
+  {name: 'acquired-data-undeclared-parameter', format: 'aql-text',
+    text: 'DATA copied = FROM records |> WHERE amount >= @minimum |> SELECT id; FROM copied |> SELECT id'},
+  {name: 'acquired-data-parameter-type-mismatch', format: 'aql-text',
+    text: 'DATA copied = FROM records |> WHERE amount >= @minimum |> SELECT id; FROM copied |> SELECT id',
+    parameterDeclarations: {minimum: {type: 'number'}},
+    parameters: {minimum: 'secret-value'}},
+];
