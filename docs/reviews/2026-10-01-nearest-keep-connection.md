@@ -1,5 +1,11 @@
 # NEAREST KEEP / AS source connection
 
+The baseline-specific common gaps below are historical. The
+[current public connection report](2026-10-03-nearest-public-connection-boundary.md)
+separates the resolved object/property boundary, ordinary VecA preparation and
+official Plan issuance from the remaining installed Host profile and public
+execution obligations. It does not claim packed NEAREST execution.
+
 ## Baseline and boundary
 
 Base: `c26a4ea4bf0a8ba55a7639ac1bdcf6653427b1f6` (`origin/main`).
