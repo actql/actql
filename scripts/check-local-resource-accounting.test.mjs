@@ -5,6 +5,8 @@ import {existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync} from 'node
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {validateResourceAccounting} from './validate-local-resource-accounting.mjs';
+import {deepFreeze, loadResourceAccountingSources} from './local-resource-accounting-sources.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const script = join(root, 'scripts/check-local-resource-accounting.mjs');
@@ -13,7 +15,40 @@ const source = join(
   'docs/reviews/2026-09-23-local-resource-accounting-audit.json',
 );
 
-function run(mutator, routeMutator, args = [], gapsText, observeDirectory) {
+const manifestTemplate = deepFreeze(JSON.parse(readFileSync(source, 'utf8')));
+const routesTemplate = deepFreeze(JSON.parse(readFileSync(join(
+  root, manifestTemplate.production_routes,
+), 'utf8')));
+const gapsTemplate = readFileSync(join(
+  root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
+), 'utf8');
+const sourceTemplate = loadResourceAccountingSources({
+  root, manifest: manifestTemplate, routes: routesTemplate,
+});
+
+function evaluate(mutator, routeMutator, args = [], gapsText) {
+  const manifest = structuredClone(manifestTemplate);
+  const routes = structuredClone(routesTemplate);
+  mutator?.(manifest);
+  routeMutator?.(routes);
+  return validateResourceAccounting({
+    root, manifest, routes,
+    sources: loadResourceAccountingSources({
+      root, manifest, routes, previousSources: sourceTemplate,
+    }),
+    requireBoundaryComplete: args.includes('--require-boundary-complete'),
+    checkSummary: args.includes('--check-summary'),
+    writeSummary: args.includes('--write-summary'),
+    gapsText: gapsText ?? gapsTemplate,
+  });
+}
+
+function run(...args) {
+  const result = evaluate(...args);
+  return (result.errors.length ? result.errors.join('\n') : result.output) + '\n';
+}
+
+function runCli(mutator, routeMutator, args = [], gapsText, observeDirectory) {
   const manifest = JSON.parse(readFileSync(source, 'utf8'));
   mutator?.(manifest);
   const directory = mkdtempSync(join(tmpdir(), 'actql-resource-audit-'));
@@ -57,14 +92,14 @@ function run(mutator, routeMutator, args = [], gapsText, observeDirectory) {
 test('resource audit fixtures are reclaimed on success, rejection, and setup failure', () => {
   const directories = [];
   const observe = directory => directories.push(directory);
-  assert.match(run(undefined, undefined, [], undefined, observe),
+  assert.match(runCli(undefined, undefined, [], undefined, observe),
     /69 operations, 5 implementation profiles/u);
-  assert.match(run(manifest => { manifest.operations = []; },
-    undefined, [], undefined, observe), /operation/u);
-  assert.throws(() => run(undefined,
+  assert.match(runCli(manifest => { manifest.bindings = []; },
+    undefined, [], undefined, observe), /bindings must exactly preserve/u);
+  assert.throws(() => runCli(undefined,
     () => { throw new Error('route fixture failure'); },
     [], 'partial fixture', observe), /route fixture failure/u);
-  assert.throws(() => run(undefined, undefined, [], Symbol('invalid'), observe),
+  assert.throws(() => runCli(undefined, undefined, [], Symbol('invalid'), observe),
     {code: 'ERR_INVALID_ARG_TYPE'});
   assert.equal(directories.length, 4);
   for (const directory of directories) assert.equal(existsSync(directory), false);
@@ -2826,4 +2861,120 @@ test('resource gate rejects assertions without ordinary bounded evidence', () =>
       entry.operation === 'assert_rows');
     delete assertion.resource_assurance.ordinary_entrypoint.variants.where;
   }), /RelA assert_rows: ordinary_entrypoint needs both resource variants/);
+});
+
+
+test('resource validator inputs are immutable and errors are fresh in either order', () => {
+  const options = {root, manifest: manifestTemplate, routes: routesTemplate,
+    sources: sourceTemplate, requireBoundaryComplete: true};
+  const before = JSON.stringify(options);
+  const good = validateResourceAccounting(options);
+  assert.deepEqual(good.errors, []);
+  const badManifest = structuredClone(manifestTemplate);
+  badManifest.bindings = [];
+  const bad = validateResourceAccounting({...options, manifest: badManifest});
+  assert.ok(bad.errors.length > 0);
+  assert.deepEqual(validateResourceAccounting(options), good);
+  assert.deepEqual(validateResourceAccounting({...options, manifest: badManifest}), bad);
+  assert.notEqual(validateResourceAccounting(options).errors, good.errors);
+  assert.equal(JSON.stringify(options), before);
+  good.errors.push('caller-owned error collection');
+  assert.deepEqual(validateResourceAccounting(options).errors, []);
+});
+
+test('resource validator matches the CLI for strict success and independent rejections', () => {
+  const omitMixed = routes => { routes.mixed_paths = []; };
+  assert.equal(evaluate(undefined, omitMixed).errors.length, 0);
+  assert.match(run(undefined, omitMixed, ['--require-boundary-complete']),
+    /typed prefix mixed-stage assurance is missing/u);
+  for (const [mutator, routeMutator, args, gapsText] of [
+    [undefined, undefined, ['--require-boundary-complete']],
+    [undefined, omitMixed, ['--require-boundary-complete']],
+    [manifest => { manifest.bindings = []; }],
+    [undefined, routes => { routes.routes[0].entrypoint = {path: 'missing.mbt'}; }],
+    [undefined, undefined, ['--check-summary'], 'no summary markers'],
+  ]) {
+    assert.equal(run(mutator, routeMutator, args, gapsText),
+      runCli(mutator, routeMutator, args, gapsText));
+  }
+});
+
+test('resource source snapshots preserve missing files and cannot leak fixture edits', () => {
+  assert.ok(Object.isFrozen(sourceTemplate));
+  const inventory = sourceTemplate[join(root, manifestTemplate.inventories.rela)];
+  assert.ok(Object.isFrozen(inventory.json.operations));
+  assert.throws(() => { inventory.json.operations.length = 0; }, TypeError);
+  const input = structuredClone(manifestTemplate);
+  input.profiles[Object.keys(input.profiles)[0]].sources.push('src/absent-resource-fixture.mbt');
+  const changed = loadResourceAccountingSources({root, manifest: input,
+    routes: routesTemplate, previousSources: sourceTemplate});
+  assert.equal(changed[join(root, 'src/absent-resource-fixture.mbt')].exists, false);
+  assert.equal(Object.hasOwn(sourceTemplate, join(root, 'src/absent-resource-fixture.mbt')), false);
+  assert.match(validateResourceAccounting({root, manifest: input,
+    routes: routesTemplate, sources: changed}).errors.join('\n'), /missing source/u);
+  assert.deepEqual(evaluate().errors, []);
+});
+
+
+test('resource CLI honors environment, strict checks, and summary write custody', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'actql-resource-cli-'));
+  const target = join(directory, 'manifest.json');
+  const gapsTarget = join(directory, 'gaps.md');
+  const invoke = (args = [], extraEnv = {}) => execFileSync(process.execPath,
+    [script, ...args], {cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+      env: {...process.env, ACTQL_LOCAL_RESOURCE_AUDIT: target,
+        ACTQL_LOCAL_RESOURCE_GAPS: gapsTarget, ...extraEnv}});
+  try {
+    writeFileSync(target, JSON.stringify(manifestTemplate));
+    const stale = gapsTemplate.replace('| Registered operations | 69 |',
+      '| Registered operations | 0 |');
+    assert.notEqual(stale, gapsTemplate);
+    writeFileSync(gapsTarget, stale);
+    assert.throws(() => invoke(['--check-summary']), error =>
+      error.status === 1 && /summary is stale/u.test(String(error.stderr)));
+    assert.match(invoke(['--check-summary', '--write-summary',
+      '--require-boundary-complete']), /69 operations/u);
+    assert.equal(readFileSync(gapsTarget, 'utf8'), gapsTemplate);
+    const rejected = structuredClone(manifestTemplate);
+    rejected.bindings = [];
+    writeFileSync(target, JSON.stringify(rejected));
+    writeFileSync(gapsTarget, stale);
+    assert.throws(() => invoke(['--check-summary', '--write-summary']), error =>
+      error.status === 1 && /bindings must exactly preserve/u.test(String(error.stderr)));
+    assert.equal(readFileSync(gapsTarget, 'utf8'), stale);
+    assert.throws(() => invoke([], {ACTQL_LOCAL_RESOURCE_AUDIT:
+      join(directory, 'missing.json')}), error => error.status === 1);
+    writeFileSync(target, JSON.stringify(manifestTemplate));
+    assert.throws(() => invoke(['--check-summary'], {ACTQL_LOCAL_RESOURCE_GAPS:
+      join(directory, 'missing.md')}), error =>
+      error.status === 1 && /ledger is missing/u.test(String(error.stderr)));
+    assert.match(invoke([], {ACTQL_LOCAL_RESOURCE_AUDIT: '',
+      ACTQL_LOCAL_RESOURCE_GAPS: ''}), /69 operations/u);
+  } finally {
+    rmSync(directory, {recursive: true, force: true});
+  }
+  assert.equal(existsSync(directory), false);
+});
+
+test('resource snapshots are explicit per-run source bytes rather than validation caches', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'actql-resource-snapshot-'));
+  const file = join(directory, 'source.mbt');
+  try {
+    const manifest = structuredClone(manifestTemplate);
+    manifest.profiles[Object.keys(manifest.profiles)[0]].sources.push(file);
+    writeFileSync(file, 'first source');
+    const first = loadResourceAccountingSources({root, manifest,
+      routes: routesTemplate, previousSources: sourceTemplate});
+    writeFileSync(file, 'second source');
+    const reused = loadResourceAccountingSources({root, manifest,
+      routes: routesTemplate, previousSources: first});
+    const fresh = loadResourceAccountingSources({root, manifest, routes: routesTemplate});
+    assert.equal(first[file].text, 'first source');
+    assert.equal(reused[file].text, 'first source');
+    assert.equal(fresh[file].text, 'second source');
+    assert.equal(Object.hasOwn(sourceTemplate, file), false);
+  } finally {
+    rmSync(directory, {recursive: true, force: true});
+  }
+  assert.equal(existsSync(directory), false);
 });
