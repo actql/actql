@@ -8,6 +8,7 @@ import {
   "actql/actql/client_local_host",
   "actql/actql/client_salesforce_host",
   "actql/actql/connector_sdk",
+  "actql/actql/connectors/duckdb/acquisition",
   "actql/actql/connectors/salesforce/catalog",
   "actql/actql/connectors_builtin",
   "actql/actql/decode_core",
@@ -42,6 +43,18 @@ import {
 }
 
 // Values
+pub fn client_broad_residual_advance(@client_local_host.ClientBroadResidual, Int) -> Bool raise ClientBroadResidualNodeIssue
+
+pub fn client_broad_residual_cancel(@client_local_host.ClientBroadResidual) -> Bool
+
+pub fn client_broad_residual_cleanup(@client_local_host.ClientBroadResidual) -> Bool raise ClientBroadResidualNodeIssue
+
+pub fn client_broad_residual_complete(@client_local_host.ClientBroadResidual) -> @acquisition.DuckDBBroadObservation raise ClientBroadResidualNodeIssue
+
+pub fn client_broad_residual_prepare(@actql/actql/connectors/duckdb/host.BroadHostRun, Int) -> @client_local_host.ClientBroadResidual raise ClientBroadResidualNodeIssue
+
+pub fn client_broad_residual_stopped(@client_local_host.ClientBroadResidual) -> Bool
+
 pub fn client_program_acquire_infer_capture(@client_infer_host.Execution) -> @model_execution.VerifiedModelCapture?
 
 pub fn client_program_acquire_infer_outcomes(@client_infer_host.Execution) -> @model_execution.ModelOutcomeRead?
@@ -71,6 +84,8 @@ pub fn client_program_admit_effect_local_dependency_body(@run_publication_host.P
 pub fn client_program_admit_effect_publication(@run_publication_host.PreparedClientEffectComputation, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.PublicationContract) -> @run_publication.RunPublicationAdmission?
 
 pub fn client_program_admit_effect_risk_acceptance_body(String, Int, Int, Int) -> Result[@effect_application.EffectRiskAcceptanceBody, @effect_application.EffectRiskAcceptanceIssue]
+
+pub fn client_program_admit_infer_captured_input(@run_publication_host.PreparedClientProgram, Int, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, String, String, String, String, String) -> Result[@run_publication_host.ClientInferCapturedInput, @run_publication_host.ClientInferCallScopeIssue]
 
 pub fn client_program_admit_infer_egress(@run_publication_host.PreparedClientProgram, Int, @check_environment.ModelExecutionContract, () -> (String, String, Bool, Bool)?) -> Result[@run_publication_host.ClientInferEgressAdmission, @run_publication_host.ClientInferEgressIssue]
 
@@ -920,6 +935,8 @@ pub fn client_program_replay_model_capture(@execution_relation.PreparedInferRows
 
 pub fn client_program_request_identity(@run_publication_host.PreparedClientProgram, String, String, String) -> @run_publication_host.ClientRequestIdentity?
 
+pub fn client_program_restore_infer_captured_input(@run_publication_host.ClientInferCapturedInput, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[@run_publication_host.ClientInferCapturedInput, @run_publication_host.ClientInferCallScopeIssue]
+
 pub fn client_program_result_count(@run_publication_host.PreparedClientProgram) -> Int
 
 pub fn client_program_result_name(@run_publication_host.PreparedClientProgram, Int) -> String?
@@ -1005,6 +1022,10 @@ pub fn client_program_source_free_input_intent_cid() -> String
 pub fn client_program_source_publication_valid(@program_check.CheckEnvironment, String) -> Bool
 
 pub fn client_program_stage_semantics_json(@run_publication_host.PreparedClientProgram, Int) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]
+
+pub fn client_program_start_acquired_infer_execution(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelProvider, @run_publication_host.ClientInferCapturedInput, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
+
+pub fn client_program_start_acquired_infer_slot_replay(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelSlotReplayRead, @run_publication_host.ClientInferCapturedInput, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
 pub fn client_program_start_infer_capture_export(@model_execution.VerifiedModelCapture, Int, Int) -> Result[@model_execution.ModelCaptureExport, @model_execution.ModelExecutionIssue]
 
@@ -2429,6 +2450,13 @@ pub fn strategy_superseded_publication_finalization_action(@run_publication.Publ
 pub fn strategy_trusted_clock_not_before(String?, String) -> Bool
 
 // Errors
+pub(all) suberror ClientBroadResidualNodeIssue {
+  Preparation(@client_local_host.ClientQueryResidualIssue)
+  Local(@connector_sdk.FixedComputeIssue)
+  Acquisition(@actql/actql/connectors/duckdb/host.BroadHostIssue)
+  Stopped
+}
+
 pub(all) suberror ClientProgramRunStateIssue {
   InvalidTerminalOutcome
   Projection(@run_publication.RunStateIssue)

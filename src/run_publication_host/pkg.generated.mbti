@@ -34,6 +34,8 @@ pub fn admit_client_effect_allowed_run(ClientEffectCompilation, @run_publication
 
 pub fn admit_client_effect_local_source_evidence(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectLocalManifest, ClientEffectLocalInvocation, ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, Int, Int, Int) -> Result[@run_publication.CapturedLocalEffectSourceEvidence, @run_publication.CapturedLocalEffectSourceIssue]
 
+pub fn admit_client_infer_captured_input(PreparedClientProgram, Int, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.ModelSourceObservation) -> Result[ClientInferCapturedInput, ClientInferCallScopeIssue]
+
 pub fn admit_client_request_identity_record(String, String, String, String, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
 pub fn admit_client_values_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits) -> Result[ClientValuesRunMaterials, ClientValuesRunMaterialsIssue]
@@ -103,6 +105,8 @@ pub fn check_client_infer_saved_observation_scope(ClientInferCallScope, @run_pub
 pub fn check_plan_fact_manifest_identity(String, String, Int, Int, Int) -> Result[String, PlanFactManifestIdentityIssue]
 
 pub fn check_source_free_client_effect_preview_identities(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, String, String, String, Array[ClientEffectLocalIdentity], Int, Int, Int) -> Result[Unit, ClientEffectLocalIdentityIssue]
+
+pub fn client_acquired_infer_prefix_owner(PreparedClientProgram, Int, Int) -> @lowering_relation.BoundPrepared?
 
 pub fn client_compilation_barrier_manifest_cid(ClientCompilationManifests) -> String
 
@@ -223,6 +227,10 @@ pub fn client_infer_call_scope_artifact(ClientInferCallScope) -> @run_publicatio
 pub fn client_infer_call_scope_matches(ClientInferCallScope, PreparedClientProgram, @execution_relation.CompletedOutput) -> Bool
 
 pub fn client_infer_call_scope_matches_rows(ClientInferCallScope, @execution_relation.PreparedInferRows, String) -> Bool
+
+pub fn client_infer_captured_input_observation(ClientInferCapturedInput) -> @run_publication.ModelSourceObservation
+
+pub fn client_infer_captured_input_source(ClientInferCapturedInput, PreparedClientProgram, Int) -> @execution_query.CapturedInputSource?
 
 pub fn client_infer_dispatch_authority(ClientInferDispatchAdmission) -> @run_publication.RunEvidenceValue
 
@@ -482,7 +490,7 @@ pub fn issue_prepared_client_empty_invocation_bindings(PreparedClientProgram, In
 
 pub fn issue_prepared_client_infer_bound_template(PreparedClientProgram, ClientInferPlanGraph, ClientCompilationManifests, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientInferBoundTemplateIssue]
 
-pub fn issue_prepared_client_infer_call_scope(PreparedClientProgram, ClientInferPlanGraph, Int, @execution_relation.CompletedOutput, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int) -> Result[ClientInferCallScope, ClientInferCallScopeIssue]
+pub fn issue_prepared_client_infer_call_scope(PreparedClientProgram, ClientInferPlanGraph, Int, @execution_relation.CompletedOutput, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int, captured? : ClientInferCapturedInput?) -> Result[ClientInferCallScope, ClientInferCallScopeIssue]
 
 pub fn issue_prepared_client_infer_compilation(PreparedClientProgram, ClientInferPlanGraph, ClientCompilationManifests, Int, Int, Int, Int, Int) -> Result[ClientTaskCompilation, ClientTaskCompilationIssue]
 
@@ -594,6 +602,8 @@ pub fn prepare_source_free_client_request_identity(PreparedClientProgram, String
 
 pub fn prepare_source_free_client_values_dispatch(ClientValuesRunBinding, ClientRequestIdentity, Int, String, ClientValuesSiteSelection) -> Result[@remote_site_protocol.DispatchRequest, ClientValuesDispatchIssue]
 
+pub fn prepared_client_acquired_infer_step(PreparedClientProgram) -> Int?
+
 pub fn prepared_client_acquisition_count(PreparedClientProgram) -> Int
 
 pub fn prepared_client_captured_task_source_matches(PreparedClientProgram, @execution_query.CapturedInputSource, Int) -> Bool
@@ -649,6 +659,8 @@ pub fn prepared_client_terminal_infer_step(PreparedClientProgram) -> Int?
 pub fn prepared_client_uses_graph_carrier(PreparedClientProgram) -> Bool
 
 pub fn read_prepared_client_infer_model_execution(PreparedClientProgram, Int, Bytes, String, @check_environment.Limits, Int) -> Result[@check_environment.ModelExecutionContract, ClientInferPlanGraphIssue]
+
+pub fn restore_client_infer_captured_input(ClientInferCapturedInput, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[ClientInferCapturedInput, ClientInferCallScopeIssue]
 
 pub fn source_free_caller_input_intent_cid() -> String
 
@@ -948,6 +960,7 @@ pub struct ClientInferCallScope {
   input : @execution_relation.CompletedOutput
   artifact : @run_publication.RunEvidenceValue
   effective : @run_publication.RunEvidenceValue
+  source : @run_publication.ModelSourceObservation?
   unit_definition_cid : String
   source_ordinal : Int
 }
@@ -958,6 +971,16 @@ pub(all) enum ClientInferCallScopeIssue {
   UnsupportedBindings
   Encoding
   Evidence(@run_publication.RunEvidenceValueIssue)
+}
+
+pub struct ClientInferCapturedInput {
+  owner : PreparedClientProgram
+  step : Int
+  source : @execution_query.CapturedInputSource
+  identity : @execution_query.CapturedSourceRelationIdentity
+  logical : @run_publication.RunEvidenceValue
+  name : String
+  observation : @run_publication.ModelSourceObservation
 }
 
 pub struct ClientInferDispatchAdmission {
@@ -993,6 +1016,7 @@ pub(all) enum ClientInferEgressIssue {
   RetentionDenied
   TrainingDenied
   ChangedObservation
+  InputPolicyUnavailable
 } derive(Eq, @debug.Debug)
 
 pub(all) struct ClientInferEgressObservation {

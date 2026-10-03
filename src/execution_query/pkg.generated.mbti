@@ -17,6 +17,8 @@ pub fn append_captured_source_identity_scan(CapturedSourceIdentityScan, String, 
 
 pub fn bind_captured_source(CapturedInputSource, @lowering_relation.BoundPrepared, Int) -> Result[@execution_relation.BoundProducerInput, CapturedSourceIssue]
 
+pub fn bind_captured_source_operation(CapturedInputSource, @lowering_relation.BoundPrepared, Int, Int) -> Result[@execution_relation.BoundProducerInput, CapturedSourceIssue]
+
 pub fn bind_query_receipt(QuerySequence, @execution_relation.CapturedRows) -> Result[QueryReceipt, QuerySequenceIssue]
 
 pub fn cancel_captured_source_identity_scan(CapturedSourceIdentityScan) -> Bool
@@ -28,6 +30,8 @@ pub fn captured_source_available(CapturedInputSource) -> Bool
 pub fn captured_source_identity_scan_storage(CapturedSourceIdentityScan) -> @execution_relation.ProducerStorage?
 
 pub fn captured_source_matches(CapturedInputSource, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.BoundPrepared) -> Bool
+
+pub fn captured_source_matches_query(CapturedInputSource, QuerySequence) -> Bool
 
 pub fn captured_source_matches_result(CapturedInputSource, @execution_relation.ManagedResultOccurrence) -> Bool
 
@@ -68,6 +72,8 @@ pub fn[P] prepare_trusted_capture_port(QuerySequence, @pipeline_check_context.Pr
 pub fn query_generated_sequence(QuerySequence) -> @execution_relation.GeneratedSequence
 
 pub fn query_program_matches(QuerySequence, @pipeline_check_context.ProgramSourceIdentity) -> Bool
+
+pub fn query_receipt_matches(QueryReceipt, QuerySequence) -> Bool
 
 pub fn query_receipt_rows(QueryReceipt) -> @execution_relation.CapturedRows
 

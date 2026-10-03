@@ -38,6 +38,37 @@ priv struct FixedInputGuardBudget {
 }
 
 ///|
+/// Bind the existing demanded-root guards before starting a bounded provider.
+/// This performs no expression evaluation. Return the remaining physical
+/// allowance so the caller cannot reuse the context preparation work credit.
+pub fn prepare_fixed_input_guard_roots(
+  original : GeneratedSequence,
+  ceiling : Int,
+  all_roots : Bool,
+  physical : FixedInputGuardMeasureLimits,
+) -> Result[
+  (GeneratedSequence, FixedInputGuardMeasureLimits),
+  FixedInputGuardIssue,
+] {
+  if ceiling < 0 ||
+    physical.max_work < 0 ||
+    physical.max_bytes < 0 ||
+    physical.max_nodes < 0 ||
+    physical.max_depth < 0 {
+    return Err(InvalidLimits)
+  }
+  let budget : FixedInputGuardBudget = {
+    work: physical.max_work,
+    bytes: physical.max_bytes,
+    nodes: physical.max_nodes,
+    depth: physical.max_depth,
+  }
+  constrain_guard_roots(original, ceiling, all_roots, budget).map(sequence => {
+    (sequence, { ..physical, max_work: budget.work, })
+  })
+}
+
+///|
 fn constrain_guard_roots(
   original : GeneratedSequence,
   ceiling : Int,

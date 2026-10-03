@@ -16,8 +16,8 @@ function fixture({missing, rejectReplay = false} = {}) {
       return `${role}:${slot}`;
     },
     admitRunEvidence(name, wire) {
-      assert.equal(name, 'observation_set');
-      return {wire};
+      assert.ok(['observation_set', 'source_evidence'].includes(name));
+      return {name, wire};
     },
     readCheckedClientInferSlotReplay(actual, run, observation, records,
       capture, proofs) {
@@ -81,4 +81,29 @@ test('common replay rejection releases the temporary bundle reader', async () =>
   await assert.rejects(readInstalledInferCapture(value.options),
     /CommonReplayBindingRejected/);
   assert.equal(value.released(), 1);
+});
+
+test('acquired replay restores source custody before reading model slots', async () => {
+  const value = fixture();
+  let restored = 0;
+  value.options.restoreSource = (source, observation) => {
+    assert.equal(source.name, 'source_evidence');
+    assert.equal(observation.name, 'observation_set');
+    assert.deepEqual(value.reads, ['observation_set:-1', 'source_evidence:0']);
+    restored++;
+  };
+  assert.equal(await readInstalledInferCapture(value.options), value.verified);
+  assert.equal(restored, 1);
+});
+
+test('missing or rejected source custody never opens the model capture', async () => {
+  for (const missing of [undefined, 'source_evidence:0']) {
+    const value = fixture({missing});
+    value.options.restoreSource = () => { throw new Error('SourceBindingRejected'); };
+    await assert.rejects(readInstalledInferCapture(value.options),
+      missing === undefined ? /SourceBindingRejected/ :
+        {code: 'InstalledInferCaptureUnavailable'});
+    assert.deepEqual(value.reads, ['observation_set:-1', 'source_evidence:0']);
+    assert.equal(value.released(), 0);
+  }
 });

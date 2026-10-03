@@ -9,6 +9,20 @@ pub fn check_source_free_model_invocation_binding(
   input_artifact : RunEvidenceValue,
   data_policy_cid : String,
 ) -> Result[Unit, RunEvidenceValueIssue] {
+  check_model_invocation_binding(
+    template, observation, invocation, input_artifact, data_policy_cid,
+  )
+}
+
+///|
+pub fn check_model_invocation_binding(
+  template : RunEvidenceValue,
+  observation : RunEvidenceValue,
+  invocation : PublicationContract,
+  input_artifact : RunEvidenceValue,
+  data_policy_cid : String,
+  source? : ModelSourceObservation? = None,
+) -> Result[Unit, RunEvidenceValueIssue] {
   if template.name != "bound_invocation_template" ||
     observation.name != "observation_set" ||
     invocation.name != "run_invocation" ||
@@ -31,8 +45,12 @@ pub fn check_source_free_model_invocation_binding(
     Some(observation.identity) {
     return Err(RunEvidenceReferenceMismatch("invocation.observation_set_cid"))
   }
-  check_source_free_model_observation_binding(
-    template, observation, input_artifact, data_policy_cid,
+  check_model_observation_binding(
+    template,
+    observation,
+    input_artifact,
+    data_policy_cid,
+    source~,
   )
 }
 
@@ -44,6 +62,19 @@ pub fn check_source_free_model_observation_binding(
   observation : RunEvidenceValue,
   input_artifact : RunEvidenceValue,
   data_policy_cid : String,
+) -> Result[Unit, RunEvidenceValueIssue] {
+  check_model_observation_binding(
+    template, observation, input_artifact, data_policy_cid,
+  )
+}
+
+///|
+pub fn check_model_observation_binding(
+  template : RunEvidenceValue,
+  observation : RunEvidenceValue,
+  input_artifact : RunEvidenceValue,
+  data_policy_cid : String,
+  source? : ModelSourceObservation? = None,
 ) -> Result[Unit, RunEvidenceValueIssue] {
   if template.name != "bound_invocation_template" ||
     observation.name != "observation_set" ||
@@ -79,9 +110,36 @@ pub fn check_source_free_model_observation_binding(
     )
   }
   guard @json.object_field(observation.value, "source_evidence_cids")
-    is Some(@json.Array(sources)) &&
-    @json.array_count(sources) == 0 else {
+    is Some(@json.Array(sources)) else {
     return Err(RunEvidenceReferenceMismatch("observation.source_evidence_cids"))
+  }
+  match source {
+    None =>
+      if @json.array_count(sources) != 0 {
+        return Err(
+          RunEvidenceReferenceMismatch("observation.source_evidence_cids"),
+        )
+      }
+    Some(source) => {
+      if @json.array_count(sources) != 1 ||
+        optional_string(@json.array_at(sources, 0)) !=
+        Some(source.source.identity) {
+        return Err(
+          RunEvidenceReferenceMismatch("observation.source_evidence_cids"),
+        )
+      }
+      for
+        (field, expected) in [
+          ("consistency", "independent_snapshots"),
+          ("capture_started_at", source.started_at),
+          ("capture_completed_at", source.completed_at),
+        ] {
+        if contract_string_from_value(observation.value, field) !=
+          Some(expected) {
+          return Err(RunEvidenceReferenceMismatch("observation." + field))
+        }
+      }
+    }
   }
   Ok(())
 }
@@ -99,16 +157,38 @@ pub fn check_saved_source_free_model_observation(
   check_environment_cid : String,
   data_policy_cid : String,
 ) -> Result[Unit, RunEvidenceValueIssue] {
+  check_saved_model_observation(
+    admission, definition, observation, input_artifact, program_definition_cid, program_semantics_cid,
+    check_environment_cid, data_policy_cid,
+  )
+}
+
+///|
+/// Acquired replay must bind the original admitted source observation, not a
+/// newly sampled timestamp or a caller-supplied source CID. Source-free callers
+/// retain the empty source inventory requirement through the wrapper above.
+pub fn check_saved_model_observation(
+  admission : RunPublicationAdmission,
+  definition : PublicationContract,
+  observation : RunEvidenceValue,
+  input_artifact : RunEvidenceValue,
+  program_definition_cid : String,
+  program_semantics_cid : String,
+  check_environment_cid : String,
+  data_policy_cid : String,
+  source? : ModelSourceObservation? = None,
+) -> Result[Unit, RunEvidenceValueIssue] {
   if check_run_publication_program_binding(
       admission, definition, program_definition_cid, program_semantics_cid, check_environment_cid,
     )
     is Err(_) {
     return Err(RunEvidenceReferenceMismatch("model_attempt_evidence"))
   }
-  check_source_free_model_observation_binding(
+  check_model_observation_binding(
     admission.template,
     observation,
     input_artifact,
     data_policy_cid,
+    source~,
   )
 }
