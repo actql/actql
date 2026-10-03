@@ -1895,6 +1895,20 @@ async function exerciseStrategyGraph(
     fields:['src','dst','weight'],secondFields:['weight','src'],
     expected:[{src:2,dst:1,weight:20}],
   }, {
+    name:'retained-unfiltered-edge-match', retainedOutput:true,
+    selectedStructural:true,
+    step:{from:'g',match_edges:{definition:'E',where:'true',
+      fields:['src','dst','weight']},as:'out'},
+    fields:['src','dst','weight'],secondFields:['weight','src'],
+    expected:[{src:1,dst:2,weight:10},{src:2,dst:1,weight:20}],
+  }, {
+    name:'retained-edge-projection-order', retainedOutput:true,
+    selectedStructural:true,
+    step:{from:'g',match_edges:{definition:'E',where:'true',
+      fields:['weight','dst','src']},as:'out'},
+    fields:['weight','dst','src'],secondFields:['dst','weight'],
+    expected:[{weight:10,dst:2,src:1},{weight:20,dst:1,src:2}],
+  }, {
     name:'retained-empty-edge-types', retainedOutput:true,
     selectedStructural:true,
     step:{from:'g',match_edges:{definition:'E',label:'Link',types:[],
@@ -1967,6 +1981,18 @@ async function exerciseStrategyGraph(
       assert.throws(() => fixture.strategyFixtureSgaCreate(
         ...sgaEnvironmentArguments(args), JSON.stringify(invalidProgram),
       ));
+    }
+    if (publicationCase.name === 'retained-unfiltered-edge-match') {
+      for (const operation of ['match_nodes', 'match_edges']) {
+        const invalidProgram = structuredClone(operation === 'match_nodes'
+          ? graphProgramBase : graphProgram);
+        const checkedStep = invalidProgram.stages.find(stage =>
+          stage.id === 'graph').steps[1];
+        checkedStep[operation].where = 'missing_property > 10';
+        assert.throws(() => fixture.strategyFixtureSgaCreate(
+          ...sgaEnvironmentArguments(args), JSON.stringify(invalidProgram),
+        ));
+      }
     }
     const createSgaFixture = fixture.strategyFixtureSgaCreate;
     let sgaFixture;

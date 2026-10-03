@@ -82,9 +82,14 @@ test "current MATCH retains repeated full composite identities and ordered proje
 ///|
 test "current edge MATCH keeps label filtering separate from independent key and endpoints" {
   let graph = current_scope_graph()
-  for types in ["[]", "[\"Edge\",\"Edge\"]"] {
+  for
+    (types, expected_count) in [
+      ("", None),
+      (",\"types\":[]", Some(0)),
+      (",\"types\":[\"Edge\",\"Edge\"]", Some(2)),
+    ] {
     let source = cursor(
-      "{\"definition\":\"E\",\"label\":\"Edge\",\"bindings\":{\"identity\":\"element\",\"source\":\"source_id\",\"target\":\"target_id\"},\"types\":" +
+      "{\"definition\":\"E\",\"label\":\"Edge\",\"bindings\":{\"identity\":\"element\",\"source\":\"source_id\",\"target\":\"target_id\"}" +
       types +
       ",\"where\":\"title = 'ok'\",\"fields\":[\"element\",\"source_id\",\"title\"]}",
     )
@@ -96,21 +101,50 @@ test "current edge MATCH keeps label filtering separate from independent key and
       predicate_limits(),
     ).unwrap()
     assert_true(@graph_typing.match_predicate(checked) is Some(_))
-    let copy = @graph_typing.match_types(checked).unwrap()
-    let count = copy.length()
-    copy.clear()
-    assert_eq(@graph_typing.match_type_count(checked), Some(count))
+    assert_eq(@graph_typing.match_type_count(checked), expected_count)
+    if @graph_typing.match_types(checked) is Some(copy) {
+      copy.clear()
+      assert_eq(@graph_typing.match_type_count(checked), expected_count)
+    }
     assert_eq(@graph_typing.match_field_count(checked), 3)
     let rows = @carrier.relation_rows(@graph_typing.match_output(checked)).unwrap()
     assert_true(@carrier.lookup(rows, Unqualified("Edge")) is Absent)
     assert_true(@carrier.lookup(rows, Unqualified("edge_type")) is Absent)
-    assert_true(
+    assert_eq(
       indexed_obligation_copy(
         @graph_typing.match_pending(checked),
         @graph_typing.match_pending_count(checked),
         i => @graph_typing.match_pending_at(checked, i),
         (a, b) => a == b,
       ).contains(FilterSelectedEdgeTypes),
+      expected_count is Some(_),
+    )
+  }
+}
+
+///|
+test "current MATCH rejects absent properties before either entity can run" {
+  let graph = current_scope_graph()
+  for
+    (entity, definition) in [
+      (@graph_typing.Nodes, "N"),
+      (@graph_typing.Edges, "E"),
+    ] {
+    let source = cursor(
+      "{\"definition\":\"" +
+      definition +
+      "\",\"where\":\"missing_property > 10\",\"fields\":[\"title\"]}",
+    )
+    let issue = @graph_typing.check_match(
+      entity,
+      source,
+      graph,
+      None,
+      predicate_limits(),
+    ).unwrap_err()
+    assert_eq(
+      @graph_typing.match_diagnostic(issue, source).kind,
+      @graph_typing.UnknownField("missing_property"),
     )
   }
 }
