@@ -1794,6 +1794,13 @@ async function exerciseStrategyGraph(
     fields:['id','node_name'], secondFields:['node_name'],
     expected:[{id:1,node_name:'first'},{id:2,node_name:'second'}],
   }, {
+    name:'retained-labelled-node-match', retainedOutput:true,
+    selectedStructural:true,
+    step:{from:'g', match_nodes:{definition:'N', label:'Node',
+      where:"node_name = 'second'", fields:['id','node_name']}, as:'out'},
+    fields:['id','node_name'], secondFields:['node_name'],
+    expected:[{id:2,node_name:'second'}],
+  }, {
     name:'node-match-filter-sort-take',
     steps:[
       {from:'g',match_nodes:{definition:'N',where:'true',
@@ -1868,6 +1875,13 @@ async function exerciseStrategyGraph(
     fields:['src','dst','weight'],secondFields:['weight','src'],
     expected:[{src:1,dst:2,weight:10},{src:2,dst:1,weight:20}],
     completedTasks:5,
+  }, {
+    name:'retained-labelled-edge-match', retainedOutput:true,
+    selectedStructural:true,
+    step:{from:'g',match_edges:{definition:'E',label:'Link',
+      where:'weight > 10',fields:['src','dst','weight']},as:'out'},
+    fields:['src','dst','weight'],secondFields:['weight','src'],
+    expected:[{src:2,dst:1,weight:20}],
   }];
   for (const publicationCase of graphPublicationCases) {
     const graphProgram = structuredClone(graphProgramBase);

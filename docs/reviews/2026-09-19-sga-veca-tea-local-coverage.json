@@ -146,7 +146,7 @@
       ],
       "status": "partial",
       "owner": "local-sga",
-      "current_gap": "Initial constructor and definition-selected MATCH/TRAIL resource/cancellation regressions pass on JS, Wasm and native. Aggregate Core, final-source public snapshot and fresh packed acceptance remain open. Nonempty-hop predicate/resource variants and unconnected SGA consumers are not counted as execution success.",
+      "current_gap": "Definition-selected MATCH has bounded predicate evidence and retained-Store publication for a labelled predicate route. Remaining selector, projection and missing-property variants, final-source CI, and other SGA consumers are not counted as complete.",
       "completed_layers": [
         "contract",
         "resources",
@@ -174,6 +174,21 @@
             "scripts/property-graph-surface-checker.test.mjs"
           ],
           "verification": "26 resource regressions per target; 15 installed Host scenarios on Node. Final committed/pushed SHA verification remains required."
+        },
+        {
+          "scope": "definition_label_predicate_retained_store_named_results",
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication"
+          ],
+          "targets": [
+            "js"
+          ],
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ],
+          "verification": "The focused standard Host test passed locally with fixed producer and two-consumer rows; pushed-SHA CI remains required."
         }
       ],
       "historical_implementation_evidence": [
@@ -265,7 +280,7 @@
       ],
       "status": "partial",
       "owner": "local-sga",
-      "current_gap": "Initial constructor and definition-selected MATCH/TRAIL resource/cancellation regressions pass on JS, Wasm and native. Aggregate Core, final-source public snapshot and fresh packed acceptance remain open. Nonempty-hop predicate/resource variants and unconnected SGA consumers are not counted as execution success.",
+      "current_gap": "Definition-selected MATCH has bounded predicate evidence and retained-Store publication for a labelled predicate route. Remaining type-filter, projection and missing-property variants, final-source CI, and other SGA consumers are not counted as complete.",
       "completed_layers": [
         "contract",
         "resources",
@@ -293,6 +308,21 @@
             "scripts/property-graph-surface-checker.test.mjs"
           ],
           "verification": "26 resource regressions per target; 15 installed Host scenarios on Node. Final committed/pushed SHA verification remains required."
+        },
+        {
+          "scope": "definition_label_predicate_retained_store_named_results",
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication"
+          ],
+          "targets": [
+            "js"
+          ],
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ],
+          "verification": "The focused standard Host test passed locally with fixed producer and two-consumer rows; pushed-SHA CI remains required."
         }
       ],
       "historical_implementation_evidence": [
