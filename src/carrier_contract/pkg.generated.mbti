@@ -44,6 +44,8 @@ pub fn property_definition_has_label(PropertyNodeDefinition, String) -> Bool
 
 pub fn property_definition_key_at(PropertyNodeDefinition, Int) -> @value_contract.Contract?
 
+pub fn property_definition_key_column_at(PropertyNodeDefinition, Int) -> String?
+
 pub fn property_definition_key_count(PropertyNodeDefinition) -> Int
 
 pub fn property_definition_keys(PropertyNodeDefinition) -> Array[@value_contract.Contract]
@@ -88,9 +90,11 @@ pub fn property_graph_node_named(PropertyGraphDefinition, String) -> PropertyNod
 
 pub fn property_graph_usage(String, Array[PropertyNodeDefinition], Array[PropertyEdgeDefinition], max_definitions~ : Int, max_contract_work~ : Int) -> Result[(Carrier, Int), PropertyGraphIssue]
 
-pub fn property_node_definition(String, Array[@value_contract.Contract], Knowledge, Array[String], max_fields~ : Int, max_name_bytes~ : Int, label_properties? : Array[(String, Knowledge)], max_contract_work? : Int) -> Result[PropertyNodeDefinition, PropertyGraphIssue]
+pub fn property_name_identity(String) -> String
 
-pub fn property_node_definition_usage(String, Array[@value_contract.Contract], Knowledge, Array[String], max_fields~ : Int, max_name_bytes~ : Int, label_properties? : Array[(String, Knowledge)], max_contract_work? : Int) -> Result[(PropertyNodeDefinition, Int), PropertyGraphIssue]
+pub fn property_node_definition(String, Array[@value_contract.Contract], Knowledge, Array[String], max_fields~ : Int, max_name_bytes~ : Int, label_properties? : Array[(String, Knowledge)], key_columns? : Array[String], max_contract_work? : Int) -> Result[PropertyNodeDefinition, PropertyGraphIssue]
+
+pub fn property_node_definition_usage(String, Array[@value_contract.Contract], Knowledge, Array[String], max_fields~ : Int, max_name_bytes~ : Int, label_properties? : Array[(String, Knowledge)], key_columns? : Array[String], max_contract_work? : Int) -> Result[(PropertyNodeDefinition, Int), PropertyGraphIssue]
 
 pub fn relation(Knowledge) -> Carrier
 

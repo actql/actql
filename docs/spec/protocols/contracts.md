@@ -206,7 +206,7 @@ object value contract, including `fields: {}`. Graph uses the ActQL-owned
 `actql-property-graph-contract/0.1` structural body in [Carriers](../language.md#carriers).
 The retired endpoint-tuple body is rejected, not converted or interpreted as
 the keyed contract. Structural admission preserves the declared definition
-domain, typed keys, label sets and independent edge definitions; it does not
+domain, typed keys, ordered key-column/component correspondence, label sets and independent edge definitions; it does not
 issue producer provenance or authorize execution.
 Events uses `{version: "actql-events-contract/0.1", records, id, time}`; Vectors
 uses `{version: "actql-vectors-contract/0.1", records, ids, components}`.
@@ -1883,7 +1883,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:1c2c612568483e6d2e250907e703bf06568c6c12c49fd37bfb661ffe0566c30c
+../../../spec/contracts/actql-check-environment.json# sha256:30d24c6cd412eea57d15fa47a21833cf21936124b127a1fda9fce6fc5a74d8c8
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:0d1b824004f4e26bf3cadbfc437d000cd1d7cc6c218c0f0fc4276b483ba46701
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2

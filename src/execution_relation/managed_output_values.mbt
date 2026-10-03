@@ -157,6 +157,8 @@ pub fn dispose_managed_output_values_scratch(
   }
   value.buffer.rows.clear()
   value.buffer.rows.shrink_to_fit()
+  value.buffer.presence_rows.clear()
+  value.buffer.presence_rows.shrink_to_fit()
   value.reference_rows.clear()
   value.reference_rows.shrink_to_fit()
   value.column_usage.clear()
@@ -180,6 +182,7 @@ pub fn managed_output_values_scratch_released(
   !value.reading &&
   !value.buffer.reading &&
   value.buffer.rows.capacity() == 0 &&
+  value.buffer.presence_rows.capacity() == 0 &&
   value.reference_rows.capacity() == 0 &&
   value.column_usage.capacity() == 0 &&
   value.column_maxima.capacity() == 0 &&
@@ -290,6 +293,24 @@ fn append_completed_projection_managed_values_active(
 ) -> Result[Unit, ManagedOutputValueIssue] {
   if !stream.open || stream.reading || !completed_output_available(output) {
     return Err(Closed)
+  }
+  if output.table is Some(PresenceTable(table)) {
+    guard table.rows.get(row) is Some(values) &&
+      physical_equal(table.owner, stream.owner) &&
+      output.target == stream.target else {
+      return Err(Admission(InvalidCheckedRow))
+    }
+    match managed_output_row_start(stream, values.cells.length()) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    match append_admitted_buffer_presence(stream.buffer, values) {
+      Err(issue) => {
+        cancel_managed_output_values(stream) |> ignore
+        return Err(Admission(issue))
+      }
+      Ok(_) => return managed_output_row_finish(stream)
+    }
   }
   guard output.table is Some(AdmittedTable(table)) &&
     table.rows.get(row) is Some(values) &&
@@ -407,20 +428,36 @@ fn finish_managed_output_row_active(
 ) -> Result[Unit, ManagedOutputValueIssue] {
   if !stream.open {
     stream.buffer.rows.clear()
+    stream.buffer.presence_rows.clear()
     return Err(Closed)
   }
+  let presence = stream.buffer.presence_rows.get(0)
   if stream.issue is None {
-    match
-      measure_input_values(
-        SingleAdmittedGuardRow::{ values: stream.buffer.rows[0], },
-        stream.max_value_bytes,
-        Output,
-        stream.measurement,
-        column_usage=stream.column_usage,
-        column_maxima=stream.column_maxima,
-        column_nulls=stream.column_nulls,
-        row_measurements?=stream.row_measurements,
-      ) {
+    let measured = match presence {
+      Some(row) =>
+        measure_input_values(
+          SinglePresenceGuardRow::{ value: row, },
+          stream.max_value_bytes,
+          Output,
+          stream.measurement,
+          column_usage=stream.column_usage,
+          column_maxima=stream.column_maxima,
+          column_nulls=stream.column_nulls,
+          row_measurements?=stream.row_measurements,
+        )
+      None =>
+        measure_input_values(
+          SingleAdmittedGuardRow::{ values: stream.buffer.rows[0], },
+          stream.max_value_bytes,
+          Output,
+          stream.measurement,
+          column_usage=stream.column_usage,
+          column_maxima=stream.column_maxima,
+          column_nulls=stream.column_nulls,
+          row_measurements?=stream.row_measurements,
+        )
+    }
+    match measured {
       Ok(_) => ()
       Err(issue) =>
         stream.issue = Some(
@@ -435,7 +472,15 @@ fn finish_managed_output_row_active(
     }
   }
   let references : Array[Array[@admitted.ReferenceValue]] = []
-  for column, value in stream.buffer.rows[0] {
+  for column in 0..<@schema.field_count(stream.buffer.schema) {
+    let value = match presence {
+      Some(row) => row.cells[column]
+      None => Some(stream.buffer.rows[0][column])
+    }
+    guard value is Some(value) else {
+      references.push([])
+      continue
+    }
     match
       collect_managed_references(value, stream.buffer.budget.limits.max_nodes) {
       Some(found) => references.push(found)
@@ -454,6 +499,7 @@ fn finish_managed_output_row_active(
   // Admission keeps running after a deferred measurement failure, as in the old
   // streamed output path. No successful receipt may conceal that failure.
   stream.buffer.rows.clear()
+  stream.buffer.presence_rows.clear()
   stream.rows += 1
   Ok(())
 }

@@ -149,7 +149,7 @@ pub fn[T] append_managed_producer_bridge_wire(
   }
   let schema = bridge.input.output.material.receipt.schema
   let decoded = match bridge.references {
-    ReferenceFree => decode_retained_row(schema, text, limits)
+    ReferenceFree => decode_retained_presence_cells(schema, text, limits)
     ExactRows => {
       guard bridge.input.output.material.receipt.reference_rows.get(
           bridge.imported_rows,
@@ -158,7 +158,7 @@ pub fn[T] append_managed_producer_bridge_wire(
         close_managed_producer_bridge(bridge)
         return Err(Wire(InvalidShape))
       }
-      decode_retained_row(
+      decode_retained_presence_cells(
         schema,
         text,
         limits,
@@ -173,7 +173,20 @@ pub fn[T] append_managed_producer_bridge_wire(
       return Err(Wire(issue))
     }
   }
-  match append_admitted_output(bridge.admitted, values) {
+  let appended = if @schema.all_fields_required(schema) {
+    append_admitted_output(bridge.admitted, values.map(value => value.unwrap()))
+  } else {
+    let row = match
+      admit_relation_row(schema, values, bridge.admitted.buffer.budget.limits) {
+      Ok(row) => row
+      Err(issue) => {
+        close_managed_producer_bridge(bridge)
+        return Err(Wire(Presence(issue)))
+      }
+    }
+    append_admitted_output_presence(bridge.admitted, row)
+  }
+  match appended {
     Ok(_) => {
       bridge.imported_rows += 1
       Ok(())

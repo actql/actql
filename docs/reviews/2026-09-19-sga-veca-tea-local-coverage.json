@@ -87,8 +87,8 @@
       "mean_graphs": "blocked",
       "property_graph": "partial",
       "graph": "blocked",
-      "node_rows": "blocked",
-      "edge_rows": "blocked"
+      "node_rows": "partial",
+      "edge_rows": "partial"
     },
     "completion_rule": "Historical tuple-profile suites do not discharge current Graph coverage. Partial resource/cancellation layers apply only to the initial constructor and definition-selected MATCH/TRAIL scope recorded below; they do not establish all normative variants or all SGA execution. Blocked means typed refusal before Run admission, acquisition I/O and dispatch."
   },
@@ -3087,9 +3087,9 @@
       "output": "relation",
       "canonical": ["BRIDGE.graph.to_node_rows"],
       "variants": ["identity restoration", "property columns", "collision failure"],
-      "status": "blocked",
+      "status": "partial",
       "owner": "local-bridge",
-      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "current_gap": "Current definition-keyed node rows use finite common Relation presence, typed identity roles and original typed key components. Only schema-guaranteed columns can be referenced or published. Definition/label refinements and direct publication of conditional columns remain unsupported. Current fixed-SHA three-target and packed acceptance must be recorded separately; historical tuple-profile suites are not current completion.",
       "completed_layers": ["contract"],
       "layer_evidence": [],
       "historical_implementation_evidence": [
@@ -3112,9 +3112,9 @@
       "output": "relation",
       "canonical": ["BRIDGE.graph.to_edge_rows"],
       "variants": ["identity restoration", "endpoint roles", "collision failure"],
-      "status": "blocked",
+      "status": "partial",
       "owner": "local-bridge",
-      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "current_gap": "Current definition-keyed edge rows preserve parallel edge identities, typed src/dst roles and original composite key components through common Relation presence. Only schema-guaranteed columns can be referenced or published. Definition/label refinements and direct publication of conditional columns remain unsupported. Current fixed-SHA three-target and packed acceptance must be recorded separately; historical tuple-profile suites are not current completion.",
       "completed_layers": ["contract"],
       "layer_evidence": [],
       "historical_implementation_evidence": [

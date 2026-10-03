@@ -58,18 +58,39 @@ test "current MATCH and TRAIL orders retain their producer through take and stru
 }
 
 ///|
-test "retired row projections and degree cannot issue canonical order for a current Graph" {
+test "current Graph row Bridge retains canonical producer order through structured projection" {
   for operation in ["\"node_rows\":true", "\"edge_rows\":true"] {
-    assert_true(
-      @pipeline.check_carriers(
-        cursor("[{" + operation + "}]"),
-        [("g", property_query_graph())],
-        None,
-        None,
-        ranking_limits(),
-      )
-      is Err({ kind: Projection(UnsupportedGraphOperation), .. }),
+    let checked = @pipeline.check_carriers(
+      cursor(
+        "[{" + operation + "},{\"select\":[\"id\",\"labels\"],\"as\":\"rows\"}]",
+      ),
+      [("g", property_query_graph())],
+      None,
+      None,
+      ranking_limits(),
+    ).unwrap()
+    assert_true(@pipeline.candidate_key(checked, Step(0)) is None)
+    assert_eq(
+      @pipeline.order_origin(@pipeline.logical_order(checked, Step(1)).unwrap()),
+      Step(0),
     )
+    let result = @relation_results.check(
+      checked,
+      cursor("{\"out\":{\"from\":\"rows\",\"fields\":[\"id\",\"labels\"]}}"),
+      limits(),
+    ).unwrap()
+    assert_eq(
+      @relation_results.publication_strategy(resolve(result)),
+      Inherited,
+    )
+    let bare = @pipeline.check_carriers(
+      cursor("[]"),
+      [("rows", @pipeline.output_carrier(checked).unwrap())],
+      None,
+      None,
+      ranking_limits(),
+    ).unwrap()
+    assert_true(@pipeline.logical_order(bare, Input(0)) is None)
   }
   assert_true(
     @pipeline.check_carriers(

@@ -17,7 +17,10 @@
         "name": "E",
         "properties": {},
         "source_definition": "N",
-        "target_definition": "N"
+        "target_definition": "N",
+        "key_columns": [
+          null
+        ]
       }
     ],
     "identity_law_cid": "sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc",
@@ -41,7 +44,10 @@
             "nullable": true,
             "type": "string"
           }
-        }
+        },
+        "key_columns": [
+          null
+        ]
       }
     ],
     "value_law_cid": "sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc",
@@ -49,7 +55,7 @@
   },
   "snapshot": [
     "actql-property-graph-snapshot/0.1",
-    "sha256:3e06c160155f0542561eab6a31c31422a78e7a749490ff5b24fb0ce4c7ff3321",
+    "sha256:6a0fe1664c431e3b0835ccaf2fff3569e99492ae427eab4ccb65d34096ce604d",
     {
       "domain": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
       "edge_definitions": [
@@ -66,7 +72,10 @@
           "name": "E",
           "properties": {},
           "source_definition": "N",
-          "target_definition": "N"
+          "target_definition": "N",
+          "key_columns": [
+            null
+          ]
         }
       ],
       "identity_law_cid": "sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc",
@@ -90,7 +99,10 @@
               "nullable": true,
               "type": "string"
             }
-          }
+          },
+          "key_columns": [
+            null
+          ]
         }
       ],
       "value_law_cid": "sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc",
@@ -205,6 +217,6 @@
       }
     ]
   ],
-  "expected_contract_cid": "sha256:3e06c160155f0542561eab6a31c31422a78e7a749490ff5b24fb0ce4c7ff3321",
-  "expected_snapshot_cid": "sha256:4d6e1221c4244ab1074b836a651e7b4522fcdfefa86414121b7529a715b60b1a"
+  "expected_contract_cid": "sha256:6a0fe1664c431e3b0835ccaf2fff3569e99492ae427eab4ccb65d34096ce604d",
+  "expected_snapshot_cid": "sha256:8d1360c290b9f6d48863bb6efb464b688506bae9751a10f257184723e9f69bd6"
 }
