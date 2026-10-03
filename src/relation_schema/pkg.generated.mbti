@@ -21,6 +21,8 @@ pub fn field_reference_name(Field) -> String
 
 pub fn fields(Schema) -> Array[Field]
 
+pub fn from_definition_fields(Array[Array[(FieldName, @value_contract.Contract)]], max_definitions~ : Int, max_fields~ : Int, max_name_bytes~ : Int, max_contract_work~ : Int) -> Result[(ConditionalSchema, Int), DefinitionPresenceIssue]
+
 pub fn from_fields(Array[(FieldName, @value_contract.Contract)], max_fields~ : Int, max_name_bytes~ : Int) -> Result[Schema, Issue]
 
 pub fn from_object(@value_contract.Contract) -> Result[Schema, Issue]
@@ -53,6 +55,15 @@ pub fn required_source_index(ConditionalSchema, Int) -> Int?
 type ConditionalField
 
 type ConditionalSchema
+
+pub(all) enum DefinitionPresenceIssue {
+  InvalidDefinitionLimits
+  EmptyDefinitions
+  DefinitionLimit
+  DefinitionSchema(Issue)
+  ConflictingReference(FieldName)
+  IncompatibleDeclaration(FieldName)
+} derive(Eq, @debug.Debug)
 
 pub struct Field {
   name : FieldName

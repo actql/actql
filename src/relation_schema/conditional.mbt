@@ -21,6 +21,117 @@ struct ConditionalSchema {
 }
 
 ///|
+pub(all) enum DefinitionPresenceIssue {
+  InvalidDefinitionLimits
+  EmptyDefinitions
+  DefinitionLimit
+  DefinitionSchema(Issue)
+  ConflictingReference(FieldName)
+  IncompatibleDeclaration(FieldName)
+} derive(Eq, Debug)
+
+///|
+priv struct DefinitionField {
+  name : FieldName
+  contract : @contract.Contract
+  declarations : Int
+}
+
+///|
+/// Derive one finite row layout from the statically possible definitions.
+/// A missing declaration is not a nullable value. Callers must include all
+/// bridge roles, authored aliases and properties of each definition; this
+/// function does not infer them from observed rows or predicate outcomes.
+pub fn from_definition_fields(
+  definitions : Array[Array[(FieldName, @contract.Contract)]],
+  max_definitions~ : Int,
+  max_fields~ : Int,
+  max_name_bytes~ : Int,
+  max_contract_work~ : Int,
+) -> Result[(ConditionalSchema, Int), DefinitionPresenceIssue] {
+  if max_definitions < 0 ||
+    max_fields < 0 ||
+    max_name_bytes < 0 ||
+    max_contract_work < 0 {
+    return Err(InvalidDefinitionLimits)
+  }
+  if definitions.is_empty() {
+    return Err(EmptyDefinitions)
+  }
+  if definitions.length() > max_definitions {
+    return Err(DefinitionLimit)
+  }
+  let accumulated : Array[DefinitionField] = []
+  let positions : Map[String, Int] = Map([])
+  let mut remaining = max_contract_work
+  for definition in definitions {
+    if remaining == 0 || definition.length() > remaining - 1 {
+      return Err(DefinitionLimit)
+    }
+    remaining -= 1
+    let admitted = match from_fields(definition, max_fields~, max_name_bytes~) {
+      Ok(value) => value
+      Err(issue) => return Err(DefinitionSchema(issue))
+    }
+    for index in 0..<field_count(admitted) {
+      remaining -= 1
+      let field = field_at(admitted, index).unwrap()
+      let spelling = reference_name(field.name)
+      match positions.get(spelling) {
+        None => {
+          if accumulated.length() >= max_fields {
+            return Err(DefinitionLimit)
+          }
+          positions[spelling] = accumulated.length()
+          accumulated.push({
+            name: field.name,
+            contract: field.contract,
+            declarations: 1,
+          })
+        }
+        Some(position) => {
+          let previous = accumulated[position]
+          if previous.name != field.name {
+            return Err(ConflictingReference(field.name))
+          }
+          let (joined, used) = @contract.join_nullability_usage(
+            previous.contract,
+            field.contract,
+            remaining,
+          ) catch {
+            _ => return Err(DefinitionLimit)
+          }
+          remaining -= used
+          guard joined is Some(contract) else {
+            return Err(IncompatibleDeclaration(field.name))
+          }
+          accumulated[position] = {
+            name: field.name,
+            contract,
+            declarations: previous.declarations + 1,
+          }
+        }
+      }
+    }
+  }
+  let entries = accumulated.map(field => {
+    (
+      field.name,
+      field.contract,
+      if field.declarations == definitions.length() {
+        Required
+      } else {
+        Conditional
+      },
+    )
+  })
+  match from_presence_fields(entries, max_fields~, max_name_bytes~) {
+    Ok(schema) => Ok((schema, max_contract_work - remaining))
+    Err(issue) => Err(DefinitionSchema(issue))
+  }
+}
+
+///|
 pub enum PresenceLookup {
   AlwaysPresent(Field)
   ConditionallyPresent(Field)

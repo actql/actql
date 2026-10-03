@@ -72,3 +72,83 @@ test "presence fields retain ordinary schema name and type validation" {
     is Err(InvalidField(_, _)),
   )
 }
+
+///|
+test "definition presence distinguishes missing property from nullable null" {
+  let id = @contract.primitive(NumberType, nullable=false)
+  let nullable = @contract.primitive(NumberType, nullable=true)
+  let (schema, work) = @relation_schema.from_definition_fields(
+    [
+      [(Unqualified("id"), id), (Unqualified("p"), nullable)],
+      [(Unqualified("id"), id)],
+    ],
+    max_definitions=2,
+    max_fields=2,
+    max_name_bytes=3,
+    max_contract_work=6,
+  ).unwrap()
+  assert_eq(work, 6)
+  assert_true(
+    @relation_schema.presence_lookup(schema, Unqualified("id"))
+    is AlwaysPresent(_),
+  )
+  assert_true(
+    @relation_schema.presence_lookup(schema, Unqualified("p"))
+    is ConditionallyPresent(_),
+  )
+  assert_eq(
+    @relation_schema.field_count(
+      @relation_schema.required_projection_schema(schema),
+    ),
+    1,
+  )
+  assert_true(
+    @relation_schema.from_definition_fields(
+      [
+        [(Unqualified("id"), id), (Unqualified("p"), nullable)],
+        [(Unqualified("id"), id)],
+      ],
+      max_definitions=2,
+      max_fields=2,
+      max_name_bytes=3,
+      max_contract_work=5,
+    )
+    is Err(DefinitionLimit),
+  )
+}
+
+///|
+test "definition presence rejects incompatible and colliding declarations" {
+  let number = @contract.primitive(NumberType, nullable=false)
+  let string = @contract.primitive(StringType, nullable=false)
+  assert_true(
+    @relation_schema.from_definition_fields(
+      [[(Unqualified("p"), number)], [(Unqualified("p"), string)]],
+      max_definitions=2,
+      max_fields=1,
+      max_name_bytes=1,
+      max_contract_work=5,
+    )
+    is Err(IncompatibleDeclaration(Unqualified("p"))),
+  )
+  assert_true(
+    @relation_schema.from_definition_fields(
+      [[(Unqualified("id"), number)], [(Unqualified("p"), number)]],
+      max_definitions=2,
+      max_fields=1,
+      max_name_bytes=2,
+      max_contract_work=4,
+    )
+    is Err(DefinitionLimit),
+  )
+  assert_true(
+    @relation_schema.from_definition_fields(
+      [[(Unqualified("id"), number), (Unqualified("id"), number)]],
+      max_definitions=1,
+      max_fields=2,
+      max_name_bytes=4,
+      max_contract_work=3,
+    )
+    is Err(DefinitionSchema(DuplicateField(Unqualified("id")))),
+  )
+}
