@@ -86,3 +86,47 @@ test "DATA JOIN retains the authored output guard rather than the frontend defau
     is Err(_),
   )
 }
+
+///|
+test "text Effect continuation keeps a retained Result at its own Stage boundary" {
+  let text = "FROM pair |> ASSERT UNIQUE BY (x) |> INFER score ITEM KEY (x) INPUT (n = y) KEEP (x, y) AS assessment |> SELECT x, y |> RESULT classified |> WHERE y > 0 |> EXTEND 'next' AS next_name |> RESULT updates |> EFFECT save UPDATE TARGET 'connector://c/T' MAPPING m FROM RESULT updates ID x SET (Name = next_name)"
+  let actual = compile(
+    @query.parse_query(text, syntax_limits()).unwrap(),
+    pair_context(),
+    construction_limits(),
+  ).unwrap()
+  assert_eq(@program.stage_count(actual), 2)
+  assert_eq(@program.export_count(actual), 2)
+  let body = semantic(actual)
+  assert_true(
+    body.contains(
+      "\"classified\":{\"from\":{\"result\":\"rows\",\"stage\":\"main\"}}",
+    ),
+  )
+  assert_true(
+    body.contains(
+      "\"updates\":{\"from\":{\"result\":\"rows\",\"stage\":\"aql_script_continuation_0\"}}",
+    ),
+  )
+}
+
+///|
+test "Model Result continuation cannot discard immutable range carriers or earlier roots" {
+  let infer = " |> ASSERT UNIQUE BY (x) |> INFER score ITEM KEY (x) INPUT (n = y) KEEP (x, y) AS assessment"
+  let effect = " |> RESULT classified |> WHERE y > 0 |> RESULT updates |> EFFECT save UPDATE TARGET 'connector://c/T' MAPPING m FROM RESULT updates ID x SET (Name = y)"
+  for
+    text in [
+      "FROM pair" + infer + " |> AS original |> SET y = x" + effect,
+      "FROM pair |> RESULT before" + infer + " |> SELECT x, y" + effect,
+    ] {
+    assert_true(
+      compile(
+        @query.parse_query(text, syntax_limits()).unwrap(),
+        pair_context(),
+        construction_limits(),
+      )
+      is Err(UnsupportedEffect),
+      msg=text,
+    )
+  }
+}

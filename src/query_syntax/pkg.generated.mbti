@@ -18,6 +18,8 @@ pub fn data_declaration_at(QueryScript, Int) -> DataDeclaration?
 
 pub fn data_declaration_count(QueryScript) -> Int
 
+pub fn effect_result_continuation(Query, NamePart) -> (Query, Query)?
+
 pub fn expression_child(Expression, Int) -> Expression?
 
 pub fn expression_document(Expression) -> @frontend_source_map.Document

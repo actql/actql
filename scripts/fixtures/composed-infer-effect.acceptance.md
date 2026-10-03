@@ -15,16 +15,23 @@ the existing checked assertion and physical row owner. It is not unconditional
 proof or duplicate elimination.
 
 The common Program may use different generated identifiers and step aliases.
-Text lowering captures each single-use source once, then places DATA producers,
-INFER/KEEP, both named Results and the Effect in one computation Stage. The JSON
-fixture uses separate classify/apply Stages. The retained classified Result
-therefore has a generated nonterminal port in text, while the Effect references
-the terminal updates port. Operators, contracts, arguments, literal values,
+Text lowering captures each single-use source once, places DATA producers and
+INFER/KEEP in one computation Stage, and imports its retained classified Result
+through an ordinary Stage Result edge for the terminal Effect continuation.
+Both text and JSON therefore use four Stages; generated identifiers, projection
+steps and KEEP correspondence plumbing can differ. The classified and updates
+Results each use their producing Stage's terminal port. Operators, contracts, arguments, literal values,
 result types/columns/order and physical execution counts must retain the JSON
 semantics. Source provenance and these identity-bearing Stage/step references
 may differ; Program and Run CIDs need not match between JSON and text. Repeating
 the same text request, including after both dedicated processes stop, must
 retrieve the original Run.
+
+This first connection retains one complete public Relation after INFER before
+the Effect continuation. Additional retained roots in the Model Unit, or hidden
+immutable range snapshots that would require separate carrier/output ports,
+remain implementation limits; they must not be dropped or treated as invalid
+language. The shared Model component and execution owners are not replaced.
 
 The ordinary `scripts/test-packed-salesforce-source.mjs` consumer includes both
 inputs and reuses its existing approval/restart/failure/cleanup matrix. The

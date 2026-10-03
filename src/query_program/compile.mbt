@@ -141,6 +141,7 @@ priv struct RetainedResult {
   from : String
   fields : Array[String]
   terminal : Bool
+  carrier_complete : Bool
 }
 
 ///|
@@ -216,6 +217,7 @@ fn program_root(
   context : Context,
   stages : Array[@builder.Node],
   result_exports? : Array[(String, String)]? = None,
+  staged_result_exports? : Array[(String, (String, String))]? = None,
 ) -> @builder.Node raise Abort {
   let entries = [
     ("version", construction.text("actql/0.1")),
@@ -224,8 +226,12 @@ fn program_root(
     (
       "results",
       construction.object(
-        result_exports
-        .unwrap_or([(context.result_name, context.stage_result)])
+        staged_result_exports
+        .unwrap_or_else(() => {
+          result_exports
+          .unwrap_or([(context.result_name, context.stage_result)])
+          .map(pair => (pair.0, (context.stage_id, pair.1)))
+        })
         .map(pair => {
           (
             pair.0,
@@ -233,8 +239,8 @@ fn program_root(
               (
                 "from",
                 construction.object([
-                  ("stage", construction.text(context.stage_id)),
-                  ("result", construction.text(pair.1)),
+                  ("stage", construction.text(pair.1.0)),
+                  ("result", construction.text(pair.1.1)),
                 ]),
               ),
             ]),
@@ -1502,6 +1508,7 @@ fn compile_steps(
           from,
           fields: pipe_visible.map(pair => pair.0),
           terminal: terminal_result,
+          carrier_complete: !needs_view,
         })
         if terminal_result {
           output = pipe_visible.map(pair => pair.0)

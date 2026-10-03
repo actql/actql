@@ -1860,6 +1860,48 @@ pub fn terminal_effect(query : Query) -> UpdateEffectClause? {
 }
 
 ///|
+// Preserve the parsed source and expression origins when a checked Model
+// producer is retained before an Effect continuation. This is AST slicing,
+// not reparsing text or constructing another execution language.
+pub fn effect_result_continuation(
+  query : Query,
+  input : NamePart,
+) -> (Query, Query)? {
+  if query.effect is None ||
+    !query.sets.is_empty() ||
+    !query.final_operations.is_empty() {
+    return None
+  }
+  let mut has_infer = false
+  for index in 0..<query.operations.length() {
+    match query.operations[index] {
+      Infer(_) => has_infer = true
+      RetainResult(_) if has_infer && index + 1 < query.operations.length() => {
+        let prefix = {
+          ..query,
+          operations: Array::makei(index + 1, i => query.operations[i]),
+          effect: None,
+        }
+        let tail = {
+          ..query,
+          relation: [input],
+          source_alias: None,
+          graph: None,
+          joins: [],
+          ctes: [],
+          operations: Array::makei(query.operations.length() - index - 1, i => {
+            query.operations[index + 1 + i]
+          }),
+        }
+        return Some((prefix, tail))
+      }
+      _ => ()
+    }
+  }
+  None
+}
+
+///|
 fn QueryParser::join_bound(self : QueryParser) -> Int64? raise QueryAbort {
   if self.has("MAX_OUTPUT_ROWS") {
     self.keyword("MAX_OUTPUT_ROWS")
