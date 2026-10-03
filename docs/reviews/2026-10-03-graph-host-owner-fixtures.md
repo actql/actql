@@ -8,8 +8,8 @@ Branch: `test/graph-host-owner-fixtures`.
 The two added cases use the existing keyed Graph Host fixture for MATCH nodes
 and MATCH edges. Existing normal cases, all nine variants at quantum 1, 7 and
 1024, and the existing cancellation case remain. The new cases enumerate those
-three quantum values, but the acquired-input refusal currently stops each at
-its first quantum-1 iteration. No workflow, history validator, product source,
+three quantum values. The original counterexample stopped at quantum 1;
+the fixed-source JS runs below complete quantum 1, 7 and 1024 in each case. No workflow, history validator, product source,
 target selection or execution frequency was removed or changed.
 
 The existing `delayed_cleanup_provider` fixture now forwards the original typed
@@ -27,12 +27,11 @@ Cleanup false and error preserve the reservation and holding. The normal cases
 retain their existing closure order. In the MATCH pilots the second consumer
 is still executing when the first consumer and producer public port close.
 Its acquired input remains available and the real holding stays charged; its
-independent expected rows and finalization pass. Host completion currently
-rejects that input, so last-consumer credit and the final cleanup/retry
-assertions have not been reached on this counterexample source. They remain
-required success expectations, not acceptance evidence. The earlier source
-verified reservation credit, remaining VALUES holding, consumed transfer/work
-and idempotent cleanup under the old closure order.
+independent expected rows and finalization pass. A's separate #272 fix makes
+completion succeed against the admitted input binding, without reopening the
+public port. The fixed-source runs below reach last-consumer retention, exact
+cascade credit, final cleanup retry and unchanged-ledger repeated close. The
+original #270 reproduction without A's fix remains red.
 
 Reservation release requires execution disposal in the current Host contract.
 A live output's provider cleanup callback completing alone is not evidence that
@@ -118,36 +117,78 @@ this branch has no unmerged dependency. The Git-only history validator passed
 again. Both edited test files remain byte-identical to the focused JS run above,
 so no further test or build was added for this second integration.
 
-## Remaining mutation acceptance
+## Fixed-source normal and mutation acceptance
 
-Production mutations remain unexecuted: early scratch release during pending
-cleanup, double holding credit, and release before the remaining consumer ends.
-Each must be exercised separately in an isolated copy, with
-failure at the corresponding intermediate invariant and restored success.
-Final-zero alone is not the double-credit detection criterion.
+A's product fix is #272 at
+`d5c1e949cec0064a8898554a6bf87f4e59fff235`, whose parent is the exact G
+counterexample `7f5c7c8353c8058c5710a6cd29f7ba3af3b53215`.
+An isolated detached worktree, `worktrees/actql-graph-host-owner-mutations`,
+ran only the two selected MATCH cases on JS with the pinned toolchain and
+120-second bounded/nonzero wrapper. It borrows `node_modules` and the toolchain
+listed above; its incremental `_build` is private. No product mutation or fix
+was added to G's production branch.
 
-The original cases kept the producer port open until both consumers closed.
-The two MATCH pilot cases now close it while the second consumer has no output
-and still needs input. Holding is preserved and execution reaches independent
-expected rows and finalization, but Host completion rejects with
-`Execution(ForeignCandidate)` because the producer's public slot is gone.
-The success expectation is retained. See the
-[acquired-input handoff](2026-10-03-graph-host-acquired-input-handoff.md) for the
-fixed counterexample, exact observations and A's separate product-fix boundary.
-Existing normal cases remain unchanged. Mutation and exact-once cascade-return
-acceptance await that fix; a failing unmutated case is not restored success.
+The clean fixed-source baseline passed **2/2**, completing quantum 1, 7 and 1024
+inside each case. Each of the three separate mutations then failed both cases
+at its intended intermediate assertion, exit 2. Each was restored to the exact
+Git bytes and mode `100644`, and the same selected cases passed **2/2** in a
+fresh process. Compiler errors, timeout, the original completion refusal and
+final-zero-only checks were not used as detection evidence.
 
-Mutation detection is incomplete. Wasm/native execution, broader validation,
-and exact submitted-SHA CI remain pending.
-No existing tests have been removed.
+| Invocation | Focused evidence directory | Local-check attempt | Result |
+| --- | --- | --- | --- |
+| Clean #272 baseline | `focused-test-BYUZlJ` | `run-EleUn5` | 2/2 pass |
+| Early scratch credit | `focused-test-YmqZvT` | `run-uYpxEo` | 0/2 pass; line 210, pending execution reservation must remain positive after MATCH cleanup false, with cleanup counter already 1 |
+| Restored scratch source | `focused-test-SeeV92` | `run-7AFStk` | 2/2 pass |
+| Double holding credit | `focused-test-JfdDBE` | `run-HAEhuJ` | 0/2 pass; exact consumer-close credit assertion, lines 552–556 |
+| Restored ledger source | `focused-test-VR0TKk` | `run-X66vzi` | 2/2 pass |
+| Missing child dependency | `focused-test-qTahjC` | `run-qYalMD` | 0/2 pass; last-consumer holding after producer-owner cleanup, lines 428–433 |
+| Restored retention source | `focused-test-v9G3Yz` | `run-AZ35Uw` | 2/2 pass |
 
-## Mutation preparation while A owns the product fix
+Evidence paths are relative to the isolated worktree:
+`_build/focused-evidence/<directory>` and
+`_build/local-checks/attempts/<attempt>`. Preserve all seven invocations.
+`_build/graph-owner-mutations/{early-scratch,double-credit,lost-consumer}`
+retains each exact patch and source record with fixed SHA, before/after SHA-256,
+mode, result references and checked restoration. These records describe finite
+runs; they are not capacity certificates or automatic evidence-gate claims.
 
-Recipe review baseline: `7f5c7c8353c8058c5710a6cd29f7ba3af3b53215`.
-The following are proposed changes **only in an isolated worktree**, one at a
-time. They have not been injected or counted as detected. Recheck their exact
-source/preconditions after adopting A's fixed revision; a changed site requires
-review, not a silent pin update or another equivalent-looking mutation.
+The scratch mutation makes the pending reservation zero while real cleanup is
+false. The double-credit mutation removes twice the exact holding quantity, so
+the first consumer's ledger delta disagrees with its real output storage bytes
+while other holdings remain. The child-dependency mutation removes the closed
+producer's holding after its own cleanup; this is observed before the remaining
+consumer closes. Tests still require that consumer to retain the holding and
+that its later close return its own plus the parent holding exactly once.
+
+These are JS mutation observations. The selected fixed-source tests and existing
+normal/cancellation tests remain required on all CI targets; JS mutation kills
+are not Wasm/native mutation evidence. No existing test was removed and no CI
+speedup or whole-implementation proof is claimed.
+
+## Main integration still required
+
+G normally merged main `336636c0bf6c5065d14941c7008c43b9897c7f4b` (#268)
+as `129ab2bd90944af2b7dab14e9007b14231aab2d9`, without conflicts.
+The new four-producer CI configuration and all original declarations were
+preserved. The Git-only history validator passed; no full local campaign was
+added. This main merge changes neither the two test files nor the three product
+files changed by A. G's branch intentionally does not contain A's fix yet.
+
+#272 currently targets #270's branch. This verification does not authorize
+merging a child PR into a dependency branch. A's product fix must become
+separately reviewable for main, and G must adopt the final integrated revision
+before claiming acceptance of #270's submitted HEAD. #270 remains Draft while
+that integration and exact-head automatic CI are outstanding. The original
+red #270 CI is not the fixed-source result above.
+
+## Executed mutation sites and detection scope
+
+Recipes were first reviewed against `7f5c7c8353c8058c5710a6cd29f7ba3af3b53215`
+and their exact source/preconditions rechecked at A's fixed revision above.
+The following changes were injected one at a time **only in the isolated
+worktree**, detected and restored. A changed future site requires review, not
+a silent pin update or another equivalent-looking mutation.
 
 | Fault | Actual product mutation site | Required intermediate failure |
 | --- | --- | --- |
@@ -184,9 +225,9 @@ by this preparation.
 
 ## Reuse guide for A/B/C/D
 
-This guide describes the intended completed example. Until the fixed-source
-normal run and mutation/restoration results above exist, #270 is Draft and
-its detection strength is unverified.
+The fixed-source normal and mutation/restoration runs above establish this
+finite JS example. Use the final adopted fix revision and exact submitted-head
+CI for integration; #270 remains Draft until those prerequisites are met.
 
 | Reuse at the same Host boundary | Add or retain for each operation | Confirm on the real connection |
 | --- | --- | --- |
@@ -197,7 +238,7 @@ its detection strength is unverified.
 The common Session/chain model theorems retain their declared scopes and
 assumptions. They do not by themselves certify Host fan-out, these Graph
 identities, arbitrary provider stop behavior, runtime bytes or physical GC.
-These Host assertions and future mutations are finite implementation evidence;
+These Host assertions and executed JS mutations are finite implementation evidence;
 no whole-implementation formal proof is claimed.
 
 When adding an operation, reuse an existing owner action/check only after its

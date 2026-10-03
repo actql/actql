@@ -83,9 +83,25 @@ and ownership evidence; retain rejection of foreign Run/occurrence and released
 inputs. Do not remove the check, reopen the closed public slot, add another
 owner or introduce a fallback. G will not duplicate that product fix.
 
-After A's fix, G will rerun this same counterexample, verify exact-once return
-after the last consumer closes, then independently exercise early scratch
-credit, double holding credit and removed consumer-retention guards in an
-isolated copy. Each mutation must fail at its intermediate invariant and each
-byte-restored copy must pass. Those mutation acceptances are still incomplete.
-#270 remains Draft. The earlier CI success belongs only to `79107ff2...`.
+## Follow-up at A's fixed revision
+
+A implemented the acquired-binding check in #272 at
+`d5c1e949cec0064a8898554a6bf87f4e59fff235`, directly based on the fixed
+counterexample commit `7f5c7c8353c8058c5710a6cd29f7ba3af3b53215`.
+G reran the same two cases in an isolated checkout: **2/2 pass on JS**,
+including quantum 1, 7 and 1024, completion, last-consumer holding and exact-once
+cascade return. No success expectation was relaxed.
+
+Three independent product mutations in that checkout were each detected by
+the intended intermediate reservation/holding assertion. Each exact-byte/mode
+restoration then passed the same two cases. See the
+[fixture acceptance record](2026-10-03-graph-host-owner-fixtures.md#fixed-source-normal-and-mutation-acceptance)
+for source recipes, invocation evidence and limits. This is finite JS
+implementation evidence, not a formal implementation proof or cross-target
+mutation claim.
+
+The isolated fixed revision is not #270's submitted HEAD. #272 still targets
+#270; keep the product fix separately reviewable and do not merge it into a
+dependency branch. #270 stays Draft until the product fix is adopted through
+main and exact-head CI succeeds. The original red CI and the earlier green
+`79107ff2...` CI retain their distinct meanings.
