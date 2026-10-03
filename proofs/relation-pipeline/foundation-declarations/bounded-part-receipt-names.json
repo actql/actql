@@ -1,0 +1,37 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "bounded-part-receipt-names",
+  "kind": "change",
+  "revision": "3809263593ddff65bd13c6c3b884a9a0b4ef4bf4",
+  "parents": [
+    "e59ae9199a7eb39bfe5539a3116d40ee2b66197d"
+  ],
+  "changes": [
+    {
+      "path": "proofs/relation-pipeline/execute.mjs",
+      "before": [
+        {
+          "revision": "e59ae9199a7eb39bfe5539a3116d40ee2b66197d",
+          "digest": "141e39ab30a397161fece359ee0f45a83fb703f4ce067c908883bd8640c8e94d",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "f2d8542a9d45404f5795621a9238a6db074a997b90fc40d7d814bd2557d5d7e4",
+      "afterMode": "100644",
+      "reason": "Create part receipt names with lossless timestamp and PID base36 encoding while retaining full part, scientific label, serial, target and case identity. Enforce the unchanged 100-byte USTAR basename budget before workspace checks, fixture writes or execution. Preserve unpartitioned invocation names and every original observation; update the real executor fixture dependency for the new pure naming helper. Keep archive limits and rejection behavior unchanged."
+    },
+    {
+      "path": "proofs/relation-pipeline/fixtures/execution-driver.mjs",
+      "before": [
+        {
+          "revision": "e59ae9199a7eb39bfe5539a3116d40ee2b66197d",
+          "digest": "2543a046d978b935fea369b39136085fd655ae90e21f6162ddcf09e28bf56223",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "3cf514939e0578410c6d243cadeef47acb7db74883288e93bbfc5f72abdef740",
+      "afterMode": "100644",
+      "reason": "Create part receipt names with lossless timestamp and PID base36 encoding while retaining full part, scientific label, serial, target and case identity. Enforce the unchanged 100-byte USTAR basename budget before workspace checks, fixture writes or execution. Preserve unpartitioned invocation names and every original observation; update the real executor fixture dependency for the new pure naming helper. Keep archive limits and rejection behavior unchanged."
+    }
+  ]
+}
