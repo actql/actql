@@ -227,7 +227,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     const propertyGraphLaw = JSON.parse(await readFile(join(packageRoot,
       'spec/dependencies/actql-property-graph-laws.json'), 'utf8'));
     environment = moon.clientProgramCheckEnvironmentWithPropertyGraphProfile(
-      environmentWire, evidenceCid, false, false, true, true, false, false,
+      environmentWire, evidenceCid, false, true, true, true, false, false,
       false, numericProfileCid, contentCid(propertyGraphLaw));
     if (environment !== undefined) {
       sourcePublication = sourceAliasPublication(moon, environment,

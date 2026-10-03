@@ -14,7 +14,7 @@ pub fn client_program_check_environment(
   calendar : Bool,
   text_rank : Bool,
 ) -> @program_check.CheckEnvironment? {
-  if sga && !selected_sga_supported() {
+  if (sga && !selected_sga_supported()) || (veca && !selected_veca_supported()) {
     return None
   }
   @publication_host.admit_client_check_environment(
@@ -41,7 +41,7 @@ pub fn client_program_check_environment_with_numeric_profile(
   text_rank : Bool,
   numeric_profile_cid : String,
 ) -> @program_check.CheckEnvironment? {
-  if sga && !selected_sga_supported() {
+  if (sga && !selected_sga_supported()) || (veca && !selected_veca_supported()) {
     return None
   }
   @publication_host.admit_client_check_environment(
@@ -73,7 +73,8 @@ pub fn client_program_check_environment_with_property_graph_profile(
 ) -> @program_check.CheckEnvironment? {
   if !selected_property_graph_supported() ||
     property_graph_law_cid != @graph_contract.property_law_cid() ||
-    (sga && !selected_sga_supported()) {
+    (sga && !selected_sga_supported()) ||
+    (veca && !selected_veca_supported()) {
     return None
   }
   @publication_host.admit_client_check_environment(
