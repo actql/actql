@@ -6,6 +6,8 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
+execFileSync(process.execPath, ['--test', 'scripts/build-runtime-packages.test.mjs'],
+  {cwd: root, stdio: 'inherit'});
 const expected = {
   'run-host-core': ['dist/client_values_host_abi.js'],
   'coordinator-core': ['dist/remote_coordinator_abi.js'],

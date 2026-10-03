@@ -1,0 +1,3340 @@
+{
+  "version": "actql-ci-artifact-retained-summary/0.1",
+  "observedAt": "2026-10-02T14:02:00Z",
+  "generatedBy": "node scripts/ci-evidence.mjs actql/actql --artifacts selection.json --json",
+  "projection": "Compact review projection of direct ZIP analysis. Full CLI JSON additionally lists each member, referring receipt, duplicate group and per-mutation/target action duration. This summary does not change original run outcomes.",
+  "complete": false,
+  "limits": [
+    "Read-only artifact analysis; no execution, cleanup, retention change or merge-readiness conclusion.",
+    "Phase values measure action calls, not compiler-only time, build counts, hashing or I/O. Missing splits remain unknown.",
+    "Action-duration sums, enclosing capacity duration, job/step wall time and parallel runner totals are different boundaries; they are never added together.",
+    "Pre-start delay is not proven queue time. Cache and runner details missing from selected evidence remain unknown.",
+    "Failed/cancelled runs retain completed phase evidence but are never completed-green end-to-end samples.",
+    "One sample is not a stable speedup estimate. Different source, runner/region, command, workload or campaign scope prevents a causal performance claim.",
+    "Logical bytes and ZIP bytes are distinct. Identical-content bytes are deduplication potential, not recoverable disk space or deletion permission.",
+    "All files remain protected: known references are re-audit evidence; unrecognized/unresolved references and unreferenced build outputs are unknown-protected."
+  ],
+  "samples": [
+    {
+      "id": "36992114814:1:11221237604",
+      "provenance": {
+        "repository": "actql/actql",
+        "runId": 36992114814,
+        "runNumber": 825,
+        "attempt": 1,
+        "workflow": "CI",
+        "workflowPath": ".github/workflows/ci.yml",
+        "workflowId": 354137505,
+        "event": "workflow_dispatch",
+        "headSha": "6190f5dc2954937e175b3b21a32bed3aa5cdeadb",
+        "executionSha": "6190f5dc2954937e175b3b21a32bed3aa5cdeadb",
+        "executionShaEvidence": "Retained mutation report revision plus artifact identity; source run head kept separately",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/actql/actql/actions/runs/36992114814",
+        "runner": {
+          "name": "GitHub Actions 1000011700",
+          "labels": [
+            "ubuntu-24.04"
+          ],
+          "region": "eastus",
+          "runnerVersion": "2.337.0",
+          "imageVersion": "20260927.320.1",
+          "ubuntuVersion": "24.04.5"
+        },
+        "cacheState": "unknown",
+        "artifact": {
+          "id": 11221237604,
+          "name": "relation-pipeline-evidence-6190f5dc2954937e175b3b21a32bed3aa5cdeadb",
+          "sha256": "ef82a648b35aea6ecaca3fdbfcfcc8541c7b6fe3fc023010920dcb309e4eaa96",
+          "compressedBytes": 39754070,
+          "url": "https://github.com/actql/actql/actions/runs/36992114814/artifacts/11221237604"
+        }
+      },
+      "reportedRunSuccessful": true,
+      "selectedEvidenceComplete": false,
+      "sampleCount": 1,
+      "receipts": {
+        "unique": 165,
+        "caseObservations": 1536,
+        "errors": [],
+        "commands": [
+          {
+            "target": "js",
+            "command": [
+              "moon",
+              "test",
+              "src/query_integration/relation_pipeline_batch_wbtest.mbt",
+              "--target",
+              "js",
+              "--deny-warn"
+            ],
+            "compiler": "v0.10.12+1634b282e (2026-09-07)"
+          },
+          {
+            "target": "native",
+            "command": [
+              "moon",
+              "test",
+              "src/query_integration/relation_pipeline_batch_wbtest.mbt",
+              "--target",
+              "native",
+              "--deny-warn"
+            ],
+            "compiler": "v0.10.12+1634b282e (2026-09-07)"
+          },
+          {
+            "target": "wasm",
+            "command": [
+              "moon",
+              "test",
+              "src/query_integration/relation_pipeline_batch_wbtest.mbt",
+              "--target",
+              "wasm",
+              "--deny-warn"
+            ],
+            "compiler": "v0.10.12+1634b282e (2026-09-07)"
+          }
+        ]
+      },
+      "campaigns": [
+        {
+          "campaign": "fixed",
+          "path": "relation-pipeline/fixed-mutations.json",
+          "reportSha256": "c907695a20386166c20153eb499a5991577dfe67a6b9bd62c89bd05c427892b0",
+          "revision": "6190f5dc2954937e175b3b21a32bed3aa5cdeadb",
+          "sourceDigest": "b2955643ef4eb70253e9b9a272d55f97e56fcc9da30fd458c62da6f7176268f5",
+          "toolchain": {
+            "version": "0.10.12+1634b282e",
+            "moon": "0.1.20260904 (94521db 2026-09-04)",
+            "moonc": "v0.10.12+1634b282e (2026-09-07)",
+            "archives": {
+              "darwin-arm64": {
+                "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-darwin-aarch64.tar.gz",
+                "sha256": "6ddad0d536e85d22e23d69567211e9dbc6534fa9366cee5d276a37275917e07e"
+              },
+              "linux-x64": {
+                "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-linux-x86_64.tar.gz",
+                "sha256": "9bbda7d342fa39654a65c23805e5ff5a3915a26b36627a2565a6b1a99d099e01"
+              }
+            },
+            "core": {
+              "url": "https://cli.moonbitlang.com/cores/core-0.10.12%2B1634b282e.tar.gz",
+              "sha256": "784a12ce4e204a3a98a0b704a021f747b916412efacd4dfe2f4e5c27ae183ac1"
+            }
+          },
+          "seed": null,
+          "explorationTarget": null,
+          "inventory": [
+            "distinct-first-column-only",
+            "distinct-handoff-wrong-port",
+            "distinct-reversed-survivors",
+            "handoff-wrong-port",
+            "rename-nullability-widened",
+            "rename-swap-wrong-input",
+            "rename-type-changed",
+            "stable-tie-reversed"
+          ],
+          "inventoryComplete": true,
+          "targetComplete": true,
+          "workloadSha256": "31245e042e095878c6d995bca16b952a8b5bbe61b205344b7fe561af2ed40272",
+          "sourceWorkloadSha256": "42c997b2c80a575c5ba7fbe2051a97868c790e3de9846b63710de55f02d45c45",
+          "phaseActionTotalsMs": {
+            "mutated/js": 106584.03467700008,
+            "mutated/wasm": 162987.80437900033,
+            "mutated/native": 477197.73406399996,
+            "healthy/js": 106545.92008999971,
+            "healthy/wasm": 154152.3350050002,
+            "healthy/native": 436090.7550669999
+          },
+          "phaseReceiptCoverage": {
+            "phases": 48,
+            "verified": 48
+          },
+          "perMutationWorkload": [
+            {
+              "name": "handoff-wrong-port",
+              "site": "src/connectors/local/selected_relation_provider.mbt",
+              "anchor": {
+                "kind": "wrong checked handoff port",
+                "producer": "n0",
+                "consumer": "n1"
+              },
+              "originalDigest": "7141fc0ae02018ec8612c8ebdbd3bc3bbbc4a10c3177169c833a1c0fc6818171",
+              "mutatedDigest": "2389d506610805303fd1730217c9207393f89893cad6766ed6894c97a7ebf133",
+              "workloadSha256": "5234a64b5730fff89d5166ac3d685f66c8699afbe6f6fac4faee0f1243d39abb",
+              "minimaSha256": "3706753272966c1df81888dea53debbd11189679cf301762bb96c767c0ea3326",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "13d51b3c83558097c8fd9e2b3674c0eb115804fd4137069267e10e55196578d7"
+            },
+            {
+              "name": "stable-tie-reversed",
+              "site": "src/execution_relation/bounded_index_sort.mbt",
+              "anchor": {
+                "kind": "owned equal-key occurrence pair inverted",
+                "sort": "n0",
+                "field": "extra",
+                "rows": [
+                  "31:r2",
+                  "31:r3"
+                ]
+              },
+              "originalDigest": "8aaaaed5985bfbe1d2f4a20f75c181a280de16db5d1a4fe9e355652f9c0e877a",
+              "mutatedDigest": "0ed50843070bf196984ce0ad3f2d9f489b8c4bafe463320316d11da594e55adb",
+              "workloadSha256": "88626da8b2c0189de5d1217bf27872bb703057d083040595c980883985946e3d",
+              "minimaSha256": "481e83a22096a3cda8e2e043dc63a999414e3aa75f7df30966ff4f8678ede3cb",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "0e532c9161691b9d93019ca52b985e4a3cc95836a936f891620323266c560ce2"
+            },
+            {
+              "name": "rename-nullability-widened",
+              "site": "src/relation_typing/check.mbt",
+              "anchor": {
+                "kind": "rename-nullability-widened",
+                "step": "rename",
+                "field": "extra",
+                "property": "nullable",
+                "expected": false,
+                "wrong": true
+              },
+              "originalDigest": "50a7e18770097824193b25b2812e4fbcf29ed556c55a1b6f1061c24bdb78cf6c",
+              "mutatedDigest": "726d4ca35515f07ae8c1b531bdb36cf215068b5b5c07a8b4615fae87bb6aa6ac",
+              "workloadSha256": "92741e695a1d7dd78f3bb9e93c25cd5997060d7faeabdd7cd19233fdccde9506",
+              "minimaSha256": "620e182d9873a878f884aaa867b48c143a41fc880a76f3a93ebd26825eb9e599",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "f9fcf99f7b6b5075380c7c1cfa5a01fb3eceb6a99fb7aa38353cca08fc530535"
+            },
+            {
+              "name": "rename-type-changed",
+              "site": "src/relation_typing/check.mbt",
+              "anchor": {
+                "kind": "rename-type-changed",
+                "step": "rename",
+                "field": "key",
+                "property": "type",
+                "expected": "number",
+                "wrong": "string"
+              },
+              "originalDigest": "50a7e18770097824193b25b2812e4fbcf29ed556c55a1b6f1061c24bdb78cf6c",
+              "mutatedDigest": "1aa988da05c0ec16445f8ae509cffe0400ddae8c8fb10483f743d552031af722",
+              "workloadSha256": "f7f0f5925dc709104b54668d212f7cffb83c04e55d6da28ed218096ab22d98b3",
+              "minimaSha256": "620e182d9873a878f884aaa867b48c143a41fc880a76f3a93ebd26825eb9e599",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "eaa324726baa74bf2cbdc3499cdc6ed420a2ed640628ec255dad3c0eb47d09e5"
+            },
+            {
+              "name": "rename-swap-wrong-input",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "kind": "rename swap reads output column",
+                "step": "rename",
+                "input": "extra",
+                "output": "k",
+                "row": "different"
+              },
+              "originalDigest": "93b1fa22c4aafc5076e4763795abf8c1e294d27c2982cceae01ac93cc2aadc7f",
+              "mutatedDigest": "1ff5e41f17d9d0b87f743649c031b73ec3662e1c126afe99db143eaa5b71a357",
+              "workloadSha256": "bb37f795ff7a9b937fbef915eb62006d70c0bf7a1ecf9cbd2c89ecf5fecf2f4a",
+              "minimaSha256": "8b74bfdc67e47d6ce92cf7bbdec59344725a1d85ecb5c4f2277151d0f42b1653",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "8614193bfe0c2fb5a844954bd6b67308b33a867ff7204302f9458a76ef1d3e3b"
+            },
+            {
+              "name": "distinct-first-column-only",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "kind": "distinct compares only first column",
+                "step": "distinct",
+                "field": "extra",
+                "rows": [
+                  "a",
+                  "b"
+                ]
+              },
+              "originalDigest": "93b1fa22c4aafc5076e4763795abf8c1e294d27c2982cceae01ac93cc2aadc7f",
+              "mutatedDigest": "ba1f468a7cad3e34377ae9376aea108777e4c02333c0c632aa9e2908f545c6ab",
+              "workloadSha256": "fc06a6d7bf90761e80d76b31e3d823eae2e602c7ceb4e7026e903ff10cb34b4e",
+              "minimaSha256": "14a40798c62ce968ef0440f70b2ddfdbd3c3ca8c396187ae06fa10356f11a01b",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "3b30f22b0478de8c89c2654228fbe289169efac1ff2ad7739196a31af1fbc6ca"
+            },
+            {
+              "name": "distinct-reversed-survivors",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "kind": "distinct reverses surviving row order",
+                "step": "distinct",
+                "field": "extra",
+                "rows": [
+                  "a",
+                  "b"
+                ]
+              },
+              "originalDigest": "93b1fa22c4aafc5076e4763795abf8c1e294d27c2982cceae01ac93cc2aadc7f",
+              "mutatedDigest": "b51f959bcc6742de6281796332df8d413a6fa54197202fd43079454e81ebe722",
+              "workloadSha256": "5aaad1271308725c45f35a230d5195454f1bce21146c368fc58a5dff5754ca47",
+              "minimaSha256": "14a40798c62ce968ef0440f70b2ddfdbd3c3ca8c396187ae06fa10356f11a01b",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "cee50266ca7a8c2456c0a6f9402ae4f2339ab155d1ec80c6af350a41d8a71f7f"
+            },
+            {
+              "name": "distinct-handoff-wrong-port",
+              "site": "src/connectors/local/selected_relation_provider.mbt",
+              "anchor": {
+                "kind": "wrong checked handoff port",
+                "producer": "distinct",
+                "consumer": "take"
+              },
+              "originalDigest": "7141fc0ae02018ec8612c8ebdbd3bc3bbbc4a10c3177169c833a1c0fc6818171",
+              "mutatedDigest": "2389d506610805303fd1730217c9207393f89893cad6766ed6894c97a7ebf133",
+              "workloadSha256": "253b9667e4a2afb5f86a9db7e77db723defb46a21303a2f9a248639158b4588d",
+              "minimaSha256": "14a40798c62ce968ef0440f70b2ddfdbd3c3ca8c396187ae06fa10356f11a01b",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "34801549c290df36385935633d2d7c11fb5e6a1521708289297c3a47ce3676c2"
+            }
+          ]
+        },
+        {
+          "campaign": "fresh",
+          "path": "relation-pipeline/mutations.json",
+          "reportSha256": "682c175ce146d84bab3c86c65956f798e0c504465a9b170b32fa2e9a31e75e50",
+          "revision": "6190f5dc2954937e175b3b21a32bed3aa5cdeadb",
+          "sourceDigest": "b2955643ef4eb70253e9b9a272d55f97e56fcc9da30fd458c62da6f7176268f5",
+          "toolchain": {
+            "version": "0.10.12+1634b282e",
+            "moon": "0.1.20260904 (94521db 2026-09-04)",
+            "moonc": "v0.10.12+1634b282e (2026-09-07)",
+            "archives": {
+              "darwin-arm64": {
+                "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-darwin-aarch64.tar.gz",
+                "sha256": "6ddad0d536e85d22e23d69567211e9dbc6534fa9366cee5d276a37275917e07e"
+              },
+              "linux-x64": {
+                "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-linux-x86_64.tar.gz",
+                "sha256": "9bbda7d342fa39654a65c23805e5ff5a3915a26b36627a2565a6b1a99d099e01"
+              }
+            },
+            "core": {
+              "url": "https://cli.moonbitlang.com/cores/core-0.10.12%2B1634b282e.tar.gz",
+              "sha256": "784a12ce4e204a3a98a0b704a021f747b916412efacd4dfe2f4e5c27ae183ac1"
+            }
+          },
+          "seed": 105106,
+          "explorationTarget": "js",
+          "inventory": [
+            "distinct-first-column-only",
+            "distinct-handoff-wrong-port",
+            "distinct-reversed-survivors",
+            "handoff-wrong-port",
+            "rename-nullability-widened",
+            "rename-swap-wrong-input",
+            "rename-type-changed",
+            "stable-tie-reversed"
+          ],
+          "inventoryComplete": true,
+          "targetComplete": true,
+          "workloadSha256": "b85bd4c863a962c123c717b97ae211f4bcda759655a331bb0172128376bf4766",
+          "sourceWorkloadSha256": "42c997b2c80a575c5ba7fbe2051a97868c790e3de9846b63710de55f02d45c45",
+          "phaseActionTotalsMs": {
+            "search/js": 14574.153083999932,
+            "shrink/js": 97634.95132599983,
+            "mutated/js": 10757.133223999845,
+            "mutated/wasm": 6145.158486999455,
+            "mutated/native": 4344.233771000014,
+            "healthy/js": 10813.52742199984,
+            "healthy/wasm": 6259.785386999953,
+            "healthy/native": 4294.725861999876
+          },
+          "phaseReceiptCoverage": {
+            "phases": 64,
+            "verified": 64
+          },
+          "perMutationWorkload": [
+            {
+              "name": "handoff-wrong-port",
+              "site": "src/connectors/local/selected_relation_provider.mbt",
+              "anchor": {
+                "kind": "wrong checked handoff port",
+                "producer": "n0",
+                "consumer": "n1"
+              },
+              "originalDigest": "7141fc0ae02018ec8612c8ebdbd3bc3bbbc4a10c3177169c833a1c0fc6818171",
+              "mutatedDigest": "2389d506610805303fd1730217c9207393f89893cad6766ed6894c97a7ebf133",
+              "workloadSha256": "f708980677cf7fa332961cd3b2db012a59d8572a7009c50e545856c5e0614837",
+              "minimaSha256": "0107dc214b6c9d66afa4c63ca90119f7dc2131755f14b6f27853bab46ecc4e59",
+              "shrinkHistorySha256": "761e92bfed07cca4cdb325ccf24c643094acbc58844f678fd63c1271f45cffd5",
+              "finalCandidateCount": 2,
+              "attemptedCandidateCount": 248,
+              "oracleSha256": "513bb8b0b443291457815d19b417a355e52af0c1ae7a2cab05fd753dc22800ca"
+            },
+            {
+              "name": "stable-tie-reversed",
+              "site": "src/execution_relation/bounded_index_sort.mbt",
+              "anchor": {
+                "kind": "owned equal-key occurrence pair inverted",
+                "sort": "n3",
+                "field": "r_tag",
+                "rows": [
+                  "39:r0",
+                  "39:r2"
+                ]
+              },
+              "originalDigest": "8aaaaed5985bfbe1d2f4a20f75c181a280de16db5d1a4fe9e355652f9c0e877a",
+              "mutatedDigest": "0ed50843070bf196984ce0ad3f2d9f489b8c4bafe463320316d11da594e55adb",
+              "workloadSha256": "68b2b0cb5e14c7706ec8c84cb1c49e6e3dbc411aa492fe83233c760024c35c0e",
+              "minimaSha256": "c1444197b889ccb87e902836eda19de9a5290f8429333a54de27ae4e5597bbd7",
+              "shrinkHistorySha256": "84031291711d123e77a66437980e1c3b26775d95ddc69075b5d4acb6b1105be0",
+              "finalCandidateCount": 4,
+              "attemptedCandidateCount": 132,
+              "oracleSha256": "96da8defab6835aad43bc85e82320515c30db4bde2b0213e6aa8b17451176cac"
+            },
+            {
+              "name": "rename-nullability-widened",
+              "site": "src/relation_typing/check.mbt",
+              "anchor": {
+                "kind": "rename-nullability-widened",
+                "step": "n1",
+                "field": "r_extra",
+                "property": "nullable",
+                "expected": false,
+                "wrong": true
+              },
+              "originalDigest": "50a7e18770097824193b25b2812e4fbcf29ed556c55a1b6f1061c24bdb78cf6c",
+              "mutatedDigest": "726d4ca35515f07ae8c1b531bdb36cf215068b5b5c07a8b4615fae87bb6aa6ac",
+              "workloadSha256": "dc7e73275aa408ff66ce5fd4247c906d814e4205c492fca0ee8ee87e88a61953",
+              "minimaSha256": "9ca36ffd7fb67082a993048b743bb30b35b9e1c0b53940b97354d5e308face95",
+              "shrinkHistorySha256": "c9fa432e7d4cbed745f0eafbc9e7de3e119ceea73d16f9ee2749fad207be855d",
+              "finalCandidateCount": 1,
+              "attemptedCandidateCount": 4,
+              "oracleSha256": "b897a4c2c241bbebe6de10b34230e41cc283504c160091785af03ff9428fab6c"
+            },
+            {
+              "name": "rename-type-changed",
+              "site": "src/relation_typing/check.mbt",
+              "anchor": {
+                "kind": "rename-type-changed",
+                "step": "n1",
+                "field": "r_extra",
+                "property": "type",
+                "expected": "number",
+                "wrong": "string"
+              },
+              "originalDigest": "50a7e18770097824193b25b2812e4fbcf29ed556c55a1b6f1061c24bdb78cf6c",
+              "mutatedDigest": "1aa988da05c0ec16445f8ae509cffe0400ddae8c8fb10483f743d552031af722",
+              "workloadSha256": "a2b0d249536326c1a661da7a5c5818de376cf97ac98e221b6aefe0ea6dd60ed9",
+              "minimaSha256": "9ca36ffd7fb67082a993048b743bb30b35b9e1c0b53940b97354d5e308face95",
+              "shrinkHistorySha256": "c9fa432e7d4cbed745f0eafbc9e7de3e119ceea73d16f9ee2749fad207be855d",
+              "finalCandidateCount": 1,
+              "attemptedCandidateCount": 4,
+              "oracleSha256": "f1d535ff3057f75b074cf1b387a02ec58e77f872c89b22781ea7cb0aeedf4f7c"
+            },
+            {
+              "name": "rename-swap-wrong-input",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "kind": "rename swap reads output column",
+                "step": "n0",
+                "input": "tag",
+                "output": "extra",
+                "row": "6:r0"
+              },
+              "originalDigest": "93b1fa22c4aafc5076e4763795abf8c1e294d27c2982cceae01ac93cc2aadc7f",
+              "mutatedDigest": "1ff5e41f17d9d0b87f743649c031b73ec3662e1c126afe99db143eaa5b71a357",
+              "workloadSha256": "e9974231a01920f17ce60515e92a24ff8cdb3d0217068ffad5522f5cdb97e761",
+              "minimaSha256": "8ed426271c60dc387d719f4d821419a84c3eef6b280bd5dbb4e153861f2e673e",
+              "shrinkHistorySha256": "7dd8e44b8861ff2e492c8c9bdf90eee50cb81a2b5a1aac049bc5794c5006094e",
+              "finalCandidateCount": 2,
+              "attemptedCandidateCount": 129,
+              "oracleSha256": "f4c01a11212902881f0891f55ef9132916d64ed1e3581c73b8b1930894464821"
+            },
+            {
+              "name": "distinct-first-column-only",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "kind": "distinct compares only first column",
+                "step": "n2",
+                "field": "extra",
+                "rows": [
+                  "16:r0",
+                  "16:r1"
+                ]
+              },
+              "originalDigest": "93b1fa22c4aafc5076e4763795abf8c1e294d27c2982cceae01ac93cc2aadc7f",
+              "mutatedDigest": "ba1f468a7cad3e34377ae9376aea108777e4c02333c0c632aa9e2908f545c6ab",
+              "workloadSha256": "e8ecece778da8c75392b996193b37179b0386b20c20d0fe42989ba19ee9b37c5",
+              "minimaSha256": "64f1f6365a0e2fda45f9863e49706a5ea4aad534d154c935f14d323e3fcbe101",
+              "shrinkHistorySha256": "9c6cfe5da123284f8bba64a97b23482d5882d158d24fb99bf90def0a24aa8c46",
+              "finalCandidateCount": 3,
+              "attemptedCandidateCount": 192,
+              "oracleSha256": "3ede8beff53df6df7ef1bac9e369f9270cff328325e44c2a1c52accd9e136720"
+            },
+            {
+              "name": "distinct-reversed-survivors",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "kind": "distinct reverses surviving row order",
+                "step": "n2",
+                "field": "extra",
+                "rows": [
+                  "16:r0",
+                  "16:r1"
+                ]
+              },
+              "originalDigest": "93b1fa22c4aafc5076e4763795abf8c1e294d27c2982cceae01ac93cc2aadc7f",
+              "mutatedDigest": "b51f959bcc6742de6281796332df8d413a6fa54197202fd43079454e81ebe722",
+              "workloadSha256": "8fe847fcd30f4ff8ab871f794a6ccfc894e6b0a36f05eddf512c5f2a02b79cab",
+              "minimaSha256": "64f1f6365a0e2fda45f9863e49706a5ea4aad534d154c935f14d323e3fcbe101",
+              "shrinkHistorySha256": "15a05e40bd41bfc6cbe1bd5c04a0501496e788b0d4ace8e0898c8be43743bf57",
+              "finalCandidateCount": 3,
+              "attemptedCandidateCount": 193,
+              "oracleSha256": "0d8e38de2e2c38173712c6a8cc7c68357e3866aa9c25e7f1fca405e4c6c9caec"
+            },
+            {
+              "name": "distinct-handoff-wrong-port",
+              "site": "src/connectors/local/selected_relation_provider.mbt",
+              "anchor": {
+                "kind": "wrong checked handoff port",
+                "producer": "n0",
+                "consumer": "n1"
+              },
+              "originalDigest": "7141fc0ae02018ec8612c8ebdbd3bc3bbbc4a10c3177169c833a1c0fc6818171",
+              "mutatedDigest": "2389d506610805303fd1730217c9207393f89893cad6766ed6894c97a7ebf133",
+              "workloadSha256": "eee25db0efe036aec0ab4fed5e7fa743889784f6b133ef890ecc3bf7f9950395",
+              "minimaSha256": "0107dc214b6c9d66afa4c63ca90119f7dc2131755f14b6f27853bab46ecc4e59",
+              "shrinkHistorySha256": "761e92bfed07cca4cdb325ccf24c643094acbc58844f678fd63c1271f45cffd5",
+              "finalCandidateCount": 2,
+              "attemptedCandidateCount": 248,
+              "oracleSha256": "513bb8b0b443291457815d19b417a355e52af0c1ae7a2cab05fd753dc22800ca"
+            }
+          ]
+        }
+      ],
+      "storage": {
+        "compressedArtifactBytes": 39754070,
+        "logicalFileBytes": 275416402,
+        "categories": {
+          "other": {
+            "files": 358,
+            "logicalBytes": 41315639,
+            "zipMemberCompressedBytes": 6740324,
+            "referencedFiles": 338,
+            "referencedBytes": 6977703
+          },
+          "log": {
+            "files": 176,
+            "logicalBytes": 3149881,
+            "zipMemberCompressedBytes": 173375,
+            "referencedFiles": 165,
+            "referencedBytes": 2476375
+          },
+          "receipt": {
+            "files": 165,
+            "logicalBytes": 11585988,
+            "zipMemberCompressedBytes": 534230,
+            "referencedFiles": 165,
+            "referencedBytes": 11585988
+          },
+          "executable": {
+            "files": 9,
+            "logicalBytes": 219364894,
+            "zipMemberCompressedBytes": 32122285,
+            "referencedFiles": 9,
+            "referencedBytes": 219364894
+          }
+        },
+        "duplicateGroups": 2,
+        "identicalContentExtraLogicalBytes": 2409944,
+        "recoverableDiskBytes": null,
+        "deletionCandidates": [],
+        "knownReferencedFiles": 677,
+        "unknownProtectedFiles": 31,
+        "unresolvedReferenceCount": 117,
+        "unresolvedOriginalPaths": [
+          "_build/js/debug/test/query_integration/query_integration.whitebox_test.js",
+          "_build/native/debug/test/query_integration/query_integration.whitebox_test.exe",
+          "_build/wasm/debug/test/query_integration/query_integration.whitebox_test.wasm"
+        ],
+        "unresolvedDistinctContentDigests": 21,
+        "unresolvedReasons": [
+          "missing-reference"
+        ]
+      },
+      "wallMeasurements": [
+        {
+          "kind": "job",
+          "jobId": 110790485726,
+          "stepNumber": null,
+          "stepName": null,
+          "status": "completed",
+          "conclusion": "success",
+          "execution": {
+            "from": {
+              "endpoint": "repos/actql/actql/actions/runs/36992114814/attempts/1/jobs?per_page=100",
+              "field": "jobs[id=110790485726].started_at",
+              "value": "2026-10-02T09:54:30Z"
+            },
+            "to": {
+              "endpoint": "repos/actql/actql/actions/runs/36992114814/attempts/1/jobs?per_page=100",
+              "field": "jobs[id=110790485726].completed_at",
+              "value": "2026-10-02T10:24:23Z"
+            },
+            "seconds": 1793,
+            "reason": null
+          }
+        },
+        {
+          "kind": "step",
+          "jobId": 110790485726,
+          "stepNumber": 7,
+          "stepName": "Verify fixed and required fresh mutations with distinct target evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "execution": {
+            "from": {
+              "endpoint": "repos/actql/actql/actions/runs/36992114814/attempts/1/jobs?per_page=100",
+              "field": "jobs[id=110790485726].steps[number=7].started_at",
+              "value": "2026-10-02T09:55:48Z"
+            },
+            "to": {
+              "endpoint": "repos/actql/actql/actions/runs/36992114814/attempts/1/jobs?per_page=100",
+              "field": "jobs[id=110790485726].steps[number=7].completed_at",
+              "value": "2026-10-02T10:22:30Z"
+            },
+            "seconds": 1602,
+            "reason": null
+          }
+        }
+      ],
+      "unmeasured": {
+        "buildCount": null,
+        "compilerOnlyMilliseconds": null,
+        "hashingMilliseconds": null,
+        "ioMilliseconds": null,
+        "queueMilliseconds": null
+      }
+    },
+    {
+      "id": "36996115208:1:11223341880",
+      "provenance": {
+        "repository": "actql/actql",
+        "runId": 36996115208,
+        "runNumber": 836,
+        "attempt": 1,
+        "workflow": "CI",
+        "workflowPath": ".github/workflows/ci.yml",
+        "workflowId": 354137505,
+        "event": "pull_request",
+        "headSha": "6afb0f29809180d8b22d7eeb7ab3e752a63928ec",
+        "executionSha": "26c59bddd8de5370eb3d5a8f8610b6170e326c00",
+        "executionShaEvidence": "Retained mutation report revision plus artifact identity; source run head kept separately",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/actql/actql/actions/runs/36996115208",
+        "runner": {
+          "name": "GitHub Actions 1000011894",
+          "labels": [
+            "ubuntu-24.04"
+          ],
+          "region": "eastus",
+          "runnerVersion": "2.337.0",
+          "imageVersion": "20260927.320.1",
+          "ubuntuVersion": "24.04.5"
+        },
+        "cacheState": "unknown",
+        "artifact": {
+          "id": 11223341880,
+          "name": "relation-pipeline-evidence-26c59bddd8de5370eb3d5a8f8610b6170e326c00",
+          "sha256": "8a15792822c89c5f0fd9178c3c69d9d7ab07b5e3db156fd429a8b8c4ac47929e",
+          "compressedBytes": 338401303,
+          "url": "https://github.com/actql/actql/actions/runs/36996115208/artifacts/11223341880"
+        }
+      },
+      "reportedRunSuccessful": true,
+      "selectedEvidenceComplete": false,
+      "sampleCount": 1,
+      "receipts": {
+        "unique": 230,
+        "caseObservations": 2071,
+        "errors": [],
+        "commands": [
+          {
+            "target": "js",
+            "command": [
+              "moon",
+              "test",
+              "src/query_integration/relation_pipeline_batch_wbtest.mbt",
+              "--target",
+              "js",
+              "--deny-warn"
+            ],
+            "compiler": "v0.10.12+1634b282e (2026-09-07)"
+          },
+          {
+            "target": "native",
+            "command": [
+              "moon",
+              "test",
+              "src/query_integration/relation_pipeline_batch_wbtest.mbt",
+              "--target",
+              "native",
+              "--deny-warn"
+            ],
+            "compiler": "v0.10.12+1634b282e (2026-09-07)"
+          },
+          {
+            "target": "wasm",
+            "command": [
+              "moon",
+              "test",
+              "src/query_integration/relation_pipeline_batch_wbtest.mbt",
+              "--target",
+              "wasm",
+              "--deny-warn"
+            ],
+            "compiler": "v0.10.12+1634b282e (2026-09-07)"
+          }
+        ]
+      },
+      "campaigns": [
+        {
+          "campaign": "fixed",
+          "path": "relation-pipeline/fixed-mutations.json",
+          "reportSha256": "6090a059b0b3b5f2bc4fb53411dd653a0f70d8a2bf0968e5b9ae12d0f974564c",
+          "revision": "26c59bddd8de5370eb3d5a8f8610b6170e326c00",
+          "sourceDigest": "57d8071f2b4f714f81011a812190e80f2e05cc2e12e2f3d41bbd820dda9fe980",
+          "toolchain": {
+            "version": "0.10.12+1634b282e",
+            "moon": "0.1.20260904 (94521db 2026-09-04)",
+            "moonc": "v0.10.12+1634b282e (2026-09-07)",
+            "archives": {
+              "darwin-arm64": {
+                "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-darwin-aarch64.tar.gz",
+                "sha256": "6ddad0d536e85d22e23d69567211e9dbc6534fa9366cee5d276a37275917e07e"
+              },
+              "linux-x64": {
+                "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-linux-x86_64.tar.gz",
+                "sha256": "9bbda7d342fa39654a65c23805e5ff5a3915a26b36627a2565a6b1a99d099e01"
+              }
+            },
+            "core": {
+              "url": "https://cli.moonbitlang.com/cores/core-0.10.12%2B1634b282e.tar.gz",
+              "sha256": "784a12ce4e204a3a98a0b704a021f747b916412efacd4dfe2f4e5c27ae183ac1"
+            }
+          },
+          "seed": null,
+          "explorationTarget": null,
+          "inventory": [
+            "distinct-first-column-only",
+            "distinct-handoff-wrong-port",
+            "distinct-reversed-survivors",
+            "handoff-wrong-port",
+            "rename-nullability-widened",
+            "rename-swap-wrong-input",
+            "rename-type-changed",
+            "stable-tie-reversed"
+          ],
+          "inventoryComplete": true,
+          "targetComplete": true,
+          "workloadSha256": "31245e042e095878c6d995bca16b952a8b5bbe61b205344b7fe561af2ed40272",
+          "sourceWorkloadSha256": "251a36881d31909ad56c37d43dec631dd121639bf37b0fd8d931b5dc32df0b2f",
+          "phaseActionTotalsMs": {
+            "mutated/js": 93277.43793500024,
+            "mutated/wasm": 145659.60069099994,
+            "mutated/native": 419034.0363459999,
+            "healthy/js": 93160.53619300014,
+            "healthy/wasm": 139529.59922400006,
+            "healthy/native": 403431.67047899973
+          },
+          "phaseReceiptCoverage": {
+            "phases": 48,
+            "verified": 48
+          },
+          "perMutationWorkload": [
+            {
+              "name": "handoff-wrong-port",
+              "site": "src/connectors/local/selected_relation_provider.mbt",
+              "anchor": {
+                "kind": "wrong checked handoff port",
+                "producer": "n0",
+                "consumer": "n1"
+              },
+              "originalDigest": "ce24eedf13170a1fd5e63a71d8d19e673f76c969b1c9e8613e9402d6f7a44a50",
+              "mutatedDigest": "b63b8198bdbd8e2d8211e79a7be733067f1ecdbbdd87281c57bab60b5f32f68a",
+              "workloadSha256": "5234a64b5730fff89d5166ac3d685f66c8699afbe6f6fac4faee0f1243d39abb",
+              "minimaSha256": "3706753272966c1df81888dea53debbd11189679cf301762bb96c767c0ea3326",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "13d51b3c83558097c8fd9e2b3674c0eb115804fd4137069267e10e55196578d7"
+            },
+            {
+              "name": "stable-tie-reversed",
+              "site": "src/execution_relation/bounded_index_sort.mbt",
+              "anchor": {
+                "kind": "owned equal-key occurrence pair inverted",
+                "sort": "n0",
+                "field": "extra",
+                "rows": [
+                  "31:r2",
+                  "31:r3"
+                ]
+              },
+              "originalDigest": "8aaaaed5985bfbe1d2f4a20f75c181a280de16db5d1a4fe9e355652f9c0e877a",
+              "mutatedDigest": "0ed50843070bf196984ce0ad3f2d9f489b8c4bafe463320316d11da594e55adb",
+              "workloadSha256": "88626da8b2c0189de5d1217bf27872bb703057d083040595c980883985946e3d",
+              "minimaSha256": "481e83a22096a3cda8e2e043dc63a999414e3aa75f7df30966ff4f8678ede3cb",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "0e532c9161691b9d93019ca52b985e4a3cc95836a936f891620323266c560ce2"
+            },
+            {
+              "name": "rename-nullability-widened",
+              "site": "src/relation_typing/check.mbt",
+              "anchor": {
+                "kind": "rename-nullability-widened",
+                "step": "rename",
+                "field": "extra",
+                "property": "nullable",
+                "expected": false,
+                "wrong": true
+              },
+              "originalDigest": "50a7e18770097824193b25b2812e4fbcf29ed556c55a1b6f1061c24bdb78cf6c",
+              "mutatedDigest": "726d4ca35515f07ae8c1b531bdb36cf215068b5b5c07a8b4615fae87bb6aa6ac",
+              "workloadSha256": "92741e695a1d7dd78f3bb9e93c25cd5997060d7faeabdd7cd19233fdccde9506",
+              "minimaSha256": "620e182d9873a878f884aaa867b48c143a41fc880a76f3a93ebd26825eb9e599",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "f9fcf99f7b6b5075380c7c1cfa5a01fb3eceb6a99fb7aa38353cca08fc530535"
+            },
+            {
+              "name": "rename-type-changed",
+              "site": "src/relation_typing/check.mbt",
+              "anchor": {
+                "kind": "rename-type-changed",
+                "step": "rename",
+                "field": "key",
+                "property": "type",
+                "expected": "number",
+                "wrong": "string"
+              },
+              "originalDigest": "50a7e18770097824193b25b2812e4fbcf29ed556c55a1b6f1061c24bdb78cf6c",
+              "mutatedDigest": "1aa988da05c0ec16445f8ae509cffe0400ddae8c8fb10483f743d552031af722",
+              "workloadSha256": "f7f0f5925dc709104b54668d212f7cffb83c04e55d6da28ed218096ab22d98b3",
+              "minimaSha256": "620e182d9873a878f884aaa867b48c143a41fc880a76f3a93ebd26825eb9e599",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "eaa324726baa74bf2cbdc3499cdc6ed420a2ed640628ec255dad3c0eb47d09e5"
+            },
+            {
+              "name": "rename-swap-wrong-input",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "kind": "rename swap reads output column",
+                "step": "rename",
+                "input": "extra",
+                "output": "k",
+                "row": "different"
+              },
+              "originalDigest": "93b1fa22c4aafc5076e4763795abf8c1e294d27c2982cceae01ac93cc2aadc7f",
+              "mutatedDigest": "1ff5e41f17d9d0b87f743649c031b73ec3662e1c126afe99db143eaa5b71a357",
+              "workloadSha256": "bb37f795ff7a9b937fbef915eb62006d70c0bf7a1ecf9cbd2c89ecf5fecf2f4a",
+              "minimaSha256": "8b74bfdc67e47d6ce92cf7bbdec59344725a1d85ecb5c4f2277151d0f42b1653",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "8614193bfe0c2fb5a844954bd6b67308b33a867ff7204302f9458a76ef1d3e3b"
+            },
+            {
+              "name": "distinct-first-column-only",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "kind": "distinct compares only first column",
+                "step": "distinct",
+                "field": "extra",
+                "rows": [
+                  "a",
+                  "b"
+                ]
+              },
+              "originalDigest": "93b1fa22c4aafc5076e4763795abf8c1e294d27c2982cceae01ac93cc2aadc7f",
+              "mutatedDigest": "ba1f468a7cad3e34377ae9376aea108777e4c02333c0c632aa9e2908f545c6ab",
+              "workloadSha256": "fc06a6d7bf90761e80d76b31e3d823eae2e602c7ceb4e7026e903ff10cb34b4e",
+              "minimaSha256": "14a40798c62ce968ef0440f70b2ddfdbd3c3ca8c396187ae06fa10356f11a01b",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "3b30f22b0478de8c89c2654228fbe289169efac1ff2ad7739196a31af1fbc6ca"
+            },
+            {
+              "name": "distinct-reversed-survivors",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "kind": "distinct reverses surviving row order",
+                "step": "distinct",
+                "field": "extra",
+                "rows": [
+                  "a",
+                  "b"
+                ]
+              },
+              "originalDigest": "93b1fa22c4aafc5076e4763795abf8c1e294d27c2982cceae01ac93cc2aadc7f",
+              "mutatedDigest": "b51f959bcc6742de6281796332df8d413a6fa54197202fd43079454e81ebe722",
+              "workloadSha256": "5aaad1271308725c45f35a230d5195454f1bce21146c368fc58a5dff5754ca47",
+              "minimaSha256": "14a40798c62ce968ef0440f70b2ddfdbd3c3ca8c396187ae06fa10356f11a01b",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "cee50266ca7a8c2456c0a6f9402ae4f2339ab155d1ec80c6af350a41d8a71f7f"
+            },
+            {
+              "name": "distinct-handoff-wrong-port",
+              "site": "src/connectors/local/selected_relation_provider.mbt",
+              "anchor": {
+                "kind": "wrong checked handoff port",
+                "producer": "distinct",
+                "consumer": "take"
+              },
+              "originalDigest": "ce24eedf13170a1fd5e63a71d8d19e673f76c969b1c9e8613e9402d6f7a44a50",
+              "mutatedDigest": "b63b8198bdbd8e2d8211e79a7be733067f1ecdbbdd87281c57bab60b5f32f68a",
+              "workloadSha256": "253b9667e4a2afb5f86a9db7e77db723defb46a21303a2f9a248639158b4588d",
+              "minimaSha256": "14a40798c62ce968ef0440f70b2ddfdbd3c3ca8c396187ae06fa10356f11a01b",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "34801549c290df36385935633d2d7c11fb5e6a1521708289297c3a47ce3676c2"
+            }
+          ]
+        },
+        {
+          "campaign": "fresh",
+          "path": "relation-pipeline/mutations.json",
+          "reportSha256": "a28d4888693f6286eae210b4ab9f9d157f598ba90f0c95c9af85722b23b8b4f2",
+          "revision": "26c59bddd8de5370eb3d5a8f8610b6170e326c00",
+          "sourceDigest": "57d8071f2b4f714f81011a812190e80f2e05cc2e12e2f3d41bbd820dda9fe980",
+          "toolchain": {
+            "version": "0.10.12+1634b282e",
+            "moon": "0.1.20260904 (94521db 2026-09-04)",
+            "moonc": "v0.10.12+1634b282e (2026-09-07)",
+            "archives": {
+              "darwin-arm64": {
+                "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-darwin-aarch64.tar.gz",
+                "sha256": "6ddad0d536e85d22e23d69567211e9dbc6534fa9366cee5d276a37275917e07e"
+              },
+              "linux-x64": {
+                "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-linux-x86_64.tar.gz",
+                "sha256": "9bbda7d342fa39654a65c23805e5ff5a3915a26b36627a2565a6b1a99d099e01"
+              }
+            },
+            "core": {
+              "url": "https://cli.moonbitlang.com/cores/core-0.10.12%2B1634b282e.tar.gz",
+              "sha256": "784a12ce4e204a3a98a0b704a021f747b916412efacd4dfe2f4e5c27ae183ac1"
+            }
+          },
+          "seed": 105106,
+          "explorationTarget": "js",
+          "inventory": [
+            "distinct-first-column-only",
+            "distinct-handoff-wrong-port",
+            "distinct-reversed-survivors",
+            "handoff-wrong-port",
+            "rename-nullability-widened",
+            "rename-swap-wrong-input",
+            "rename-type-changed",
+            "stable-tie-reversed"
+          ],
+          "inventoryComplete": true,
+          "targetComplete": true,
+          "workloadSha256": "b85bd4c863a962c123c717b97ae211f4bcda759655a331bb0172128376bf4766",
+          "sourceWorkloadSha256": "251a36881d31909ad56c37d43dec631dd121639bf37b0fd8d931b5dc32df0b2f",
+          "phaseActionTotalsMs": {
+            "search/js": 11532.18097500001,
+            "shrink/js": 76091.40547799984,
+            "mutated/js": 8356.422794000246,
+            "mutated/wasm": 5308.130876999858,
+            "mutated/native": 3327.2720260002243,
+            "healthy/js": 9333.787203999993,
+            "healthy/wasm": 5153.897143000213,
+            "healthy/native": 3364.2669889996178
+          },
+          "phaseReceiptCoverage": {
+            "phases": 64,
+            "verified": 64
+          },
+          "perMutationWorkload": [
+            {
+              "name": "handoff-wrong-port",
+              "site": "src/connectors/local/selected_relation_provider.mbt",
+              "anchor": {
+                "kind": "wrong checked handoff port",
+                "producer": "n0",
+                "consumer": "n1"
+              },
+              "originalDigest": "ce24eedf13170a1fd5e63a71d8d19e673f76c969b1c9e8613e9402d6f7a44a50",
+              "mutatedDigest": "b63b8198bdbd8e2d8211e79a7be733067f1ecdbbdd87281c57bab60b5f32f68a",
+              "workloadSha256": "f708980677cf7fa332961cd3b2db012a59d8572a7009c50e545856c5e0614837",
+              "minimaSha256": "0107dc214b6c9d66afa4c63ca90119f7dc2131755f14b6f27853bab46ecc4e59",
+              "shrinkHistorySha256": "761e92bfed07cca4cdb325ccf24c643094acbc58844f678fd63c1271f45cffd5",
+              "finalCandidateCount": 2,
+              "attemptedCandidateCount": 248,
+              "oracleSha256": "513bb8b0b443291457815d19b417a355e52af0c1ae7a2cab05fd753dc22800ca"
+            },
+            {
+              "name": "stable-tie-reversed",
+              "site": "src/execution_relation/bounded_index_sort.mbt",
+              "anchor": {
+                "kind": "owned equal-key occurrence pair inverted",
+                "sort": "n3",
+                "field": "r_tag",
+                "rows": [
+                  "39:r0",
+                  "39:r2"
+                ]
+              },
+              "originalDigest": "8aaaaed5985bfbe1d2f4a20f75c181a280de16db5d1a4fe9e355652f9c0e877a",
+              "mutatedDigest": "0ed50843070bf196984ce0ad3f2d9f489b8c4bafe463320316d11da594e55adb",
+              "workloadSha256": "68b2b0cb5e14c7706ec8c84cb1c49e6e3dbc411aa492fe83233c760024c35c0e",
+              "minimaSha256": "c1444197b889ccb87e902836eda19de9a5290f8429333a54de27ae4e5597bbd7",
+              "shrinkHistorySha256": "84031291711d123e77a66437980e1c3b26775d95ddc69075b5d4acb6b1105be0",
+              "finalCandidateCount": 4,
+              "attemptedCandidateCount": 132,
+              "oracleSha256": "96da8defab6835aad43bc85e82320515c30db4bde2b0213e6aa8b17451176cac"
+            },
+            {
+              "name": "rename-nullability-widened",
+              "site": "src/relation_typing/check.mbt",
+              "anchor": {
+                "kind": "rename-nullability-widened",
+                "step": "n1",
+                "field": "r_extra",
+                "property": "nullable",
+                "expected": false,
+                "wrong": true
+              },
+              "originalDigest": "50a7e18770097824193b25b2812e4fbcf29ed556c55a1b6f1061c24bdb78cf6c",
+              "mutatedDigest": "726d4ca35515f07ae8c1b531bdb36cf215068b5b5c07a8b4615fae87bb6aa6ac",
+              "workloadSha256": "dc7e73275aa408ff66ce5fd4247c906d814e4205c492fca0ee8ee87e88a61953",
+              "minimaSha256": "9ca36ffd7fb67082a993048b743bb30b35b9e1c0b53940b97354d5e308face95",
+              "shrinkHistorySha256": "c9fa432e7d4cbed745f0eafbc9e7de3e119ceea73d16f9ee2749fad207be855d",
+              "finalCandidateCount": 1,
+              "attemptedCandidateCount": 4,
+              "oracleSha256": "b897a4c2c241bbebe6de10b34230e41cc283504c160091785af03ff9428fab6c"
+            },
+            {
+              "name": "rename-type-changed",
+              "site": "src/relation_typing/check.mbt",
+              "anchor": {
+                "kind": "rename-type-changed",
+                "step": "n1",
+                "field": "r_extra",
+                "property": "type",
+                "expected": "number",
+                "wrong": "string"
+              },
+              "originalDigest": "50a7e18770097824193b25b2812e4fbcf29ed556c55a1b6f1061c24bdb78cf6c",
+              "mutatedDigest": "1aa988da05c0ec16445f8ae509cffe0400ddae8c8fb10483f743d552031af722",
+              "workloadSha256": "a2b0d249536326c1a661da7a5c5818de376cf97ac98e221b6aefe0ea6dd60ed9",
+              "minimaSha256": "9ca36ffd7fb67082a993048b743bb30b35b9e1c0b53940b97354d5e308face95",
+              "shrinkHistorySha256": "c9fa432e7d4cbed745f0eafbc9e7de3e119ceea73d16f9ee2749fad207be855d",
+              "finalCandidateCount": 1,
+              "attemptedCandidateCount": 4,
+              "oracleSha256": "f1d535ff3057f75b074cf1b387a02ec58e77f872c89b22781ea7cb0aeedf4f7c"
+            },
+            {
+              "name": "rename-swap-wrong-input",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "kind": "rename swap reads output column",
+                "step": "n0",
+                "input": "tag",
+                "output": "extra",
+                "row": "6:r0"
+              },
+              "originalDigest": "93b1fa22c4aafc5076e4763795abf8c1e294d27c2982cceae01ac93cc2aadc7f",
+              "mutatedDigest": "1ff5e41f17d9d0b87f743649c031b73ec3662e1c126afe99db143eaa5b71a357",
+              "workloadSha256": "e9974231a01920f17ce60515e92a24ff8cdb3d0217068ffad5522f5cdb97e761",
+              "minimaSha256": "8ed426271c60dc387d719f4d821419a84c3eef6b280bd5dbb4e153861f2e673e",
+              "shrinkHistorySha256": "7dd8e44b8861ff2e492c8c9bdf90eee50cb81a2b5a1aac049bc5794c5006094e",
+              "finalCandidateCount": 2,
+              "attemptedCandidateCount": 129,
+              "oracleSha256": "f4c01a11212902881f0891f55ef9132916d64ed1e3581c73b8b1930894464821"
+            },
+            {
+              "name": "distinct-first-column-only",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "kind": "distinct compares only first column",
+                "step": "n2",
+                "field": "extra",
+                "rows": [
+                  "16:r0",
+                  "16:r1"
+                ]
+              },
+              "originalDigest": "93b1fa22c4aafc5076e4763795abf8c1e294d27c2982cceae01ac93cc2aadc7f",
+              "mutatedDigest": "ba1f468a7cad3e34377ae9376aea108777e4c02333c0c632aa9e2908f545c6ab",
+              "workloadSha256": "e8ecece778da8c75392b996193b37179b0386b20c20d0fe42989ba19ee9b37c5",
+              "minimaSha256": "64f1f6365a0e2fda45f9863e49706a5ea4aad534d154c935f14d323e3fcbe101",
+              "shrinkHistorySha256": "9c6cfe5da123284f8bba64a97b23482d5882d158d24fb99bf90def0a24aa8c46",
+              "finalCandidateCount": 3,
+              "attemptedCandidateCount": 192,
+              "oracleSha256": "3ede8beff53df6df7ef1bac9e369f9270cff328325e44c2a1c52accd9e136720"
+            },
+            {
+              "name": "distinct-reversed-survivors",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "kind": "distinct reverses surviving row order",
+                "step": "n2",
+                "field": "extra",
+                "rows": [
+                  "16:r0",
+                  "16:r1"
+                ]
+              },
+              "originalDigest": "93b1fa22c4aafc5076e4763795abf8c1e294d27c2982cceae01ac93cc2aadc7f",
+              "mutatedDigest": "b51f959bcc6742de6281796332df8d413a6fa54197202fd43079454e81ebe722",
+              "workloadSha256": "8fe847fcd30f4ff8ab871f794a6ccfc894e6b0a36f05eddf512c5f2a02b79cab",
+              "minimaSha256": "64f1f6365a0e2fda45f9863e49706a5ea4aad534d154c935f14d323e3fcbe101",
+              "shrinkHistorySha256": "15a05e40bd41bfc6cbe1bd5c04a0501496e788b0d4ace8e0898c8be43743bf57",
+              "finalCandidateCount": 3,
+              "attemptedCandidateCount": 193,
+              "oracleSha256": "0d8e38de2e2c38173712c6a8cc7c68357e3866aa9c25e7f1fca405e4c6c9caec"
+            },
+            {
+              "name": "distinct-handoff-wrong-port",
+              "site": "src/connectors/local/selected_relation_provider.mbt",
+              "anchor": {
+                "kind": "wrong checked handoff port",
+                "producer": "n0",
+                "consumer": "n1"
+              },
+              "originalDigest": "ce24eedf13170a1fd5e63a71d8d19e673f76c969b1c9e8613e9402d6f7a44a50",
+              "mutatedDigest": "b63b8198bdbd8e2d8211e79a7be733067f1ecdbbdd87281c57bab60b5f32f68a",
+              "workloadSha256": "eee25db0efe036aec0ab4fed5e7fa743889784f6b133ef890ecc3bf7f9950395",
+              "minimaSha256": "0107dc214b6c9d66afa4c63ca90119f7dc2131755f14b6f27853bab46ecc4e59",
+              "shrinkHistorySha256": "761e92bfed07cca4cdb325ccf24c643094acbc58844f678fd63c1271f45cffd5",
+              "finalCandidateCount": 2,
+              "attemptedCandidateCount": 248,
+              "oracleSha256": "513bb8b0b443291457815d19b417a355e52af0c1ae7a2cab05fd753dc22800ca"
+            }
+          ]
+        },
+        {
+          "campaign": "capacity",
+          "path": "relation-pipeline/capacity/all.json",
+          "reportSha256": "40d4067aa0df7ba6c57fe3c9e4c41d21bb134c4cf4ea75bc20ab26c5a62dc328",
+          "revision": "26c59bddd8de5370eb3d5a8f8610b6170e326c00",
+          "sourceDigest": "57d8071f2b4f714f81011a812190e80f2e05cc2e12e2f3d41bbd820dda9fe980",
+          "toolchain": {
+            "version": "0.10.12+1634b282e",
+            "moon": "0.1.20260904 (94521db 2026-09-04)",
+            "moonc": "v0.10.12+1634b282e (2026-09-07)",
+            "archives": {
+              "darwin-arm64": {
+                "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-darwin-aarch64.tar.gz",
+                "sha256": "6ddad0d536e85d22e23d69567211e9dbc6534fa9366cee5d276a37275917e07e"
+              },
+              "linux-x64": {
+                "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-linux-x86_64.tar.gz",
+                "sha256": "9bbda7d342fa39654a65c23805e5ff5a3915a26b36627a2565a6b1a99d099e01"
+              }
+            },
+            "core": {
+              "url": "https://cli.moonbitlang.com/cores/core-0.10.12%2B1634b282e.tar.gz",
+              "sha256": "784a12ce4e204a3a98a0b704a021f747b916412efacd4dfe2f4e5c27ae183ac1"
+            }
+          },
+          "seed": 148256,
+          "explorationTarget": "js",
+          "inventory": [
+            "duplicate-index-release",
+            "handoff-copy-without-accounting",
+            "missing-index-reservation",
+            "oversized-metadata-map",
+            "premature-keep-release"
+          ],
+          "inventoryComplete": true,
+          "targetComplete": true,
+          "workloadSha256": "ea3024557bba43320df4f3ab2ade1c24e7b615d70721aaa083f32fc5609e00e2",
+          "sourceWorkloadSha256": "546e3f343789b8fe9d6b79e55a828dbcc86ffff3313f235f69f77644b7d7a773",
+          "phaseActionTotalsMs": {
+            "search/js": 62832.95052499999,
+            "shrink/js": 21014.555734000052,
+            "mutated/js": 5448.74263199995,
+            "mutated/wasm": 85327.31445900013,
+            "mutated/native": 250271.21850300027,
+            "healthy/js": 60206.36185499985,
+            "healthy/wasm": 85907.51471500011,
+            "healthy/native": 251009.87777800002,
+            "normal/js": 12969.613535,
+            "normal/wasm": 18001.042070000003,
+            "normal/native": 51002.47658100001,
+            "boundary/js": 37233.223893999995,
+            "boundary/wasm": 52469.081544000015,
+            "boundary/native": 152202.215766
+          },
+          "phaseReceiptCoverage": {
+            "phases": 52,
+            "verified": 52
+          },
+          "perMutationWorkload": [
+            {
+              "name": "missing-index-reservation",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "step": "n1",
+                "resource": "index-buffer admission",
+                "event": "index-admission",
+                "fault": "live DISTINCT scratch underreserved"
+              },
+              "originalDigest": null,
+              "mutatedDigest": null,
+              "workloadSha256": "85e2895e8bf894ca5d3ad422653bbf53e461b434c8ceefd6b21c7c207876eb84",
+              "minimaSha256": "e739b508e2e5700bd0ec0ffc8249e1f361801823bcd273ca6b51f5cbc65371e9",
+              "shrinkHistorySha256": "db844d18a95382379a4fe070a38c10b5d9c1aa01258f6e7fed54e407102dc025",
+              "finalCandidateCount": 1,
+              "attemptedCandidateCount": 15,
+              "oracleSha256": "7afa6abe43df5a6c6c503d24c141163454f7d61657e4547fceaa02ce6f17030f"
+            },
+            {
+              "name": "premature-keep-release",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "step": "n1",
+                "resource": "live keep bitmap",
+                "event": "premature-release",
+                "fault": "live DISTINCT scratch underreserved"
+              },
+              "originalDigest": null,
+              "mutatedDigest": null,
+              "workloadSha256": "f43b489984b451af12792f24d4a694f93268e196f02a9aa8181693080ab850d5",
+              "minimaSha256": "e739b508e2e5700bd0ec0ffc8249e1f361801823bcd273ca6b51f5cbc65371e9",
+              "shrinkHistorySha256": "db844d18a95382379a4fe070a38c10b5d9c1aa01258f6e7fed54e407102dc025",
+              "finalCandidateCount": 1,
+              "attemptedCandidateCount": 15,
+              "oracleSha256": "946608998f0fd14649abbe81df46e91fd2d67a0a418fc412350c69928cd59d0b"
+            },
+            {
+              "name": "duplicate-index-release",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "step": "n1",
+                "resource": "index-result custody transfer",
+                "event": "index-transfer",
+                "fault": "live DISTINCT scratch underreserved"
+              },
+              "originalDigest": null,
+              "mutatedDigest": null,
+              "workloadSha256": "c172ec0af4130edd7346628a152539f545d8dc41d5e8e6107660175aa465aa9e",
+              "minimaSha256": "e739b508e2e5700bd0ec0ffc8249e1f361801823bcd273ca6b51f5cbc65371e9",
+              "shrinkHistorySha256": "db844d18a95382379a4fe070a38c10b5d9c1aa01258f6e7fed54e407102dc025",
+              "finalCandidateCount": 1,
+              "attemptedCandidateCount": 15,
+              "oracleSha256": "aed11d63659e43a99f5f7b0b307b230bae497bd3965e65ba2cea2cc6efbeca22"
+            },
+            {
+              "name": "handoff-copy-without-accounting",
+              "site": "src/execution_relation/producer_read.mbt",
+              "anchor": {
+                "step": "n0",
+                "resource": "checked handoff backing ownership",
+                "event": "input-view",
+                "fault": "borrowed backing was replaced",
+                "receiver": "n1"
+              },
+              "originalDigest": null,
+              "mutatedDigest": null,
+              "workloadSha256": "47c8b469856b1ddddec3ba53291b67fcda24e0ce688ee85f5e3d3d44a802f7b7",
+              "minimaSha256": "b1aff2d7aa08b5b57a4b76eb54b7e38e53a824e8cfa7c25c3bbcde845bf1eddb",
+              "shrinkHistorySha256": "e4fcf50f050d10eed959dc72e0732de98e6153273887a0e39f0e767d9b9ce63a",
+              "finalCandidateCount": 3,
+              "attemptedCandidateCount": 30,
+              "oracleSha256": "774d8d6ad15ae97cd966ef6fcfac90042f8fc2caccb81c0da3eebd5ed778ab8e"
+            },
+            {
+              "name": "oversized-metadata-map",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "step": "n1",
+                "resource": "input ordinal Map table slots",
+                "event": "start",
+                "fault": "Map buckets exceed the admitted constructor bound"
+              },
+              "originalDigest": null,
+              "mutatedDigest": null,
+              "workloadSha256": "fe049c72b0ecae4152c2cf4c27bfcd25e3e48fbefbfb46c208d5d943e3a6ba8e",
+              "minimaSha256": "ba8c123587a8d8981221434143c42cc99e732535eec0ec178c7426e961d868c4",
+              "shrinkHistorySha256": "c2267b9b78f9e28f7f0d1d48541a0b14bf1f52a3e2b4cdaf5d17b4f730c37150",
+              "finalCandidateCount": 0,
+              "attemptedCandidateCount": 4,
+              "oracleSha256": "43b03ec319a60e589224fdb8d0fecc93f022b4a453717b5d418de2074175f709"
+            }
+          ]
+        }
+      ],
+      "storage": {
+        "compressedArtifactBytes": 338401303,
+        "logicalFileBytes": 3002116218,
+        "categories": {
+          "other": {
+            "files": 509,
+            "logicalBytes": 734783383,
+            "zipMemberCompressedBytes": 23095446,
+            "referencedFiles": 477,
+            "referencedBytes": 12771813
+          },
+          "log": {
+            "files": 255,
+            "logicalBytes": 38066587,
+            "zipMemberCompressedBytes": 784166,
+            "referencedFiles": 230,
+            "referencedBytes": 37380159
+          },
+          "receipt": {
+            "files": 230,
+            "logicalBytes": 83289726,
+            "zipMemberCompressedBytes": 1911580,
+            "referencedFiles": 230,
+            "referencedBytes": 83289726
+          },
+          "executable": {
+            "files": 51,
+            "logicalBytes": 2145976522,
+            "zipMemberCompressedBytes": 312332561,
+            "referencedFiles": 42,
+            "referencedBytes": 2142113858
+          }
+        },
+        "duplicateGroups": 8,
+        "identicalContentExtraLogicalBytes": 5422796,
+        "recoverableDiskBytes": null,
+        "deletionCandidates": [],
+        "knownReferencedFiles": 979,
+        "unknownProtectedFiles": 66,
+        "unresolvedReferenceCount": 117,
+        "unresolvedOriginalPaths": [
+          "_build/js/debug/test/query_integration/query_integration.whitebox_test.js",
+          "_build/native/debug/test/query_integration/query_integration.whitebox_test.exe",
+          "_build/wasm/debug/test/query_integration/query_integration.whitebox_test.wasm"
+        ],
+        "unresolvedDistinctContentDigests": 21,
+        "unresolvedReasons": [
+          "missing-reference"
+        ]
+      },
+      "wallMeasurements": [
+        {
+          "kind": "job",
+          "jobId": 110803495936,
+          "stepNumber": null,
+          "stepName": null,
+          "status": "completed",
+          "conclusion": "success",
+          "execution": {
+            "from": {
+              "endpoint": "repos/actql/actql/actions/runs/36996115208/attempts/1/jobs?per_page=100",
+              "field": "jobs[id=110803495936].started_at",
+              "value": "2026-10-02T10:34:47Z"
+            },
+            "to": {
+              "endpoint": "repos/actql/actql/actions/runs/36996115208/attempts/1/jobs?per_page=100",
+              "field": "jobs[id=110803495936].completed_at",
+              "value": "2026-10-02T11:22:52Z"
+            },
+            "seconds": 2885,
+            "reason": null
+          }
+        },
+        {
+          "kind": "step",
+          "jobId": 110803495936,
+          "stepNumber": 8,
+          "stepName": "Verify fixed and required fresh mutations with distinct target evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "execution": {
+            "from": {
+              "endpoint": "repos/actql/actql/actions/runs/36996115208/attempts/1/jobs?per_page=100",
+              "field": "jobs[id=110803495936].steps[number=8].started_at",
+              "value": "2026-10-02T10:36:41Z"
+            },
+            "to": {
+              "endpoint": "repos/actql/actql/actions/runs/36996115208/attempts/1/jobs?per_page=100",
+              "field": "jobs[id=110803495936].steps[number=8].completed_at",
+              "value": "2026-10-02T11:00:21Z"
+            },
+            "seconds": 1420,
+            "reason": null
+          }
+        },
+        {
+          "kind": "step",
+          "jobId": 110803495936,
+          "stepNumber": 9,
+          "stepName": "Verify conditional structural capacity, custody and same-resource shrinking on all targets",
+          "status": "completed",
+          "conclusion": "success",
+          "execution": {
+            "from": {
+              "endpoint": "repos/actql/actql/actions/runs/36996115208/attempts/1/jobs?per_page=100",
+              "field": "jobs[id=110803495936].steps[number=9].started_at",
+              "value": "2026-10-02T11:00:21Z"
+            },
+            "to": {
+              "endpoint": "repos/actql/actql/actions/runs/36996115208/attempts/1/jobs?per_page=100",
+              "field": "jobs[id=110803495936].steps[number=9].completed_at",
+              "value": "2026-10-02T11:19:30Z"
+            },
+            "seconds": 1149,
+            "reason": null
+          }
+        }
+      ],
+      "unmeasured": {
+        "buildCount": null,
+        "compilerOnlyMilliseconds": null,
+        "hashingMilliseconds": null,
+        "ioMilliseconds": null,
+        "queueMilliseconds": null
+      }
+    },
+    {
+      "id": "37001901277:1:11225817644",
+      "provenance": {
+        "repository": "actql/actql",
+        "runId": 37001901277,
+        "runNumber": 845,
+        "attempt": 1,
+        "workflow": "CI",
+        "workflowPath": ".github/workflows/ci.yml",
+        "workflowId": 354137505,
+        "event": "pull_request",
+        "headSha": "7e279c9decccb9851d034593fa73c1fdde84608f",
+        "executionSha": "2c6bba34f2ce7bc739a10ed2160eb0679caed631",
+        "executionShaEvidence": "Retained mutation report revision plus artifact identity; source run head kept separately",
+        "status": "completed",
+        "conclusion": "failure",
+        "url": "https://github.com/actql/actql/actions/runs/37001901277",
+        "runner": {
+          "name": "GitHub Actions 1000012058",
+          "labels": [
+            "ubuntu-24.04"
+          ],
+          "region": "northcentralus",
+          "runnerVersion": "2.337.0",
+          "imageVersion": "20260927.320.1",
+          "ubuntuVersion": "24.04.5"
+        },
+        "cacheState": "unknown",
+        "artifact": {
+          "id": 11225817644,
+          "name": "relation-pipeline-evidence-2c6bba34f2ce7bc739a10ed2160eb0679caed631",
+          "sha256": "544327e936b1723e2b0311b702f8864494c2031dac104c262962519740116ff3",
+          "compressedBytes": 294449491,
+          "url": "https://github.com/actql/actql/actions/runs/37001901277/artifacts/11225817644"
+        }
+      },
+      "reportedRunSuccessful": false,
+      "selectedEvidenceComplete": false,
+      "sampleCount": 1,
+      "receipts": {
+        "unique": 230,
+        "caseObservations": 2071,
+        "errors": [],
+        "commands": [
+          {
+            "target": "js",
+            "command": [
+              "moon",
+              "test",
+              "src/query_integration/relation_pipeline_batch_wbtest.mbt",
+              "--target",
+              "js",
+              "--deny-warn"
+            ],
+            "compiler": "v0.10.12+1634b282e (2026-09-07)"
+          },
+          {
+            "target": "native",
+            "command": [
+              "moon",
+              "test",
+              "src/query_integration/relation_pipeline_batch_wbtest.mbt",
+              "--target",
+              "native",
+              "--deny-warn"
+            ],
+            "compiler": "v0.10.12+1634b282e (2026-09-07)"
+          },
+          {
+            "target": "wasm",
+            "command": [
+              "moon",
+              "test",
+              "src/query_integration/relation_pipeline_batch_wbtest.mbt",
+              "--target",
+              "wasm",
+              "--deny-warn"
+            ],
+            "compiler": "v0.10.12+1634b282e (2026-09-07)"
+          }
+        ]
+      },
+      "campaigns": [
+        {
+          "campaign": "fixed",
+          "path": "relation-pipeline/fixed-mutations.json",
+          "reportSha256": "4b13b43a5ba76a9e8d53918cd82482576cdc4a57d5c345b278bf8a24d41c9d84",
+          "revision": "2c6bba34f2ce7bc739a10ed2160eb0679caed631",
+          "sourceDigest": "6580b6d9b27130f8fe67478dadf1d9e7a5021d2f979bb65d8e2276381fdb7cfb",
+          "toolchain": {
+            "version": "0.10.12+1634b282e",
+            "moon": "0.1.20260904 (94521db 2026-09-04)",
+            "moonc": "v0.10.12+1634b282e (2026-09-07)",
+            "archives": {
+              "darwin-arm64": {
+                "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-darwin-aarch64.tar.gz",
+                "sha256": "6ddad0d536e85d22e23d69567211e9dbc6534fa9366cee5d276a37275917e07e"
+              },
+              "linux-x64": {
+                "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-linux-x86_64.tar.gz",
+                "sha256": "9bbda7d342fa39654a65c23805e5ff5a3915a26b36627a2565a6b1a99d099e01"
+              }
+            },
+            "core": {
+              "url": "https://cli.moonbitlang.com/cores/core-0.10.12%2B1634b282e.tar.gz",
+              "sha256": "784a12ce4e204a3a98a0b704a021f747b916412efacd4dfe2f4e5c27ae183ac1"
+            }
+          },
+          "seed": null,
+          "explorationTarget": null,
+          "inventory": [
+            "distinct-first-column-only",
+            "distinct-handoff-wrong-port",
+            "distinct-reversed-survivors",
+            "handoff-wrong-port",
+            "rename-nullability-widened",
+            "rename-swap-wrong-input",
+            "rename-type-changed",
+            "stable-tie-reversed"
+          ],
+          "inventoryComplete": true,
+          "targetComplete": true,
+          "workloadSha256": "31245e042e095878c6d995bca16b952a8b5bbe61b205344b7fe561af2ed40272",
+          "sourceWorkloadSha256": "251a36881d31909ad56c37d43dec631dd121639bf37b0fd8d931b5dc32df0b2f",
+          "phaseActionTotalsMs": {
+            "mutated/js": 126989.71746500007,
+            "mutated/wasm": 177114.552416,
+            "mutated/native": 492017.517385,
+            "healthy/js": 37019.54597899964,
+            "healthy/wasm": 39039.240729999816,
+            "healthy/native": 83925.33861400012
+          },
+          "phaseReceiptCoverage": {
+            "phases": 48,
+            "verified": 48
+          },
+          "perMutationWorkload": [
+            {
+              "name": "handoff-wrong-port",
+              "site": "src/connectors/local/selected_relation_provider.mbt",
+              "anchor": {
+                "kind": "wrong checked handoff port",
+                "producer": "n0",
+                "consumer": "n1"
+              },
+              "originalDigest": "ce24eedf13170a1fd5e63a71d8d19e673f76c969b1c9e8613e9402d6f7a44a50",
+              "mutatedDigest": "b63b8198bdbd8e2d8211e79a7be733067f1ecdbbdd87281c57bab60b5f32f68a",
+              "workloadSha256": "5234a64b5730fff89d5166ac3d685f66c8699afbe6f6fac4faee0f1243d39abb",
+              "minimaSha256": "3706753272966c1df81888dea53debbd11189679cf301762bb96c767c0ea3326",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "13d51b3c83558097c8fd9e2b3674c0eb115804fd4137069267e10e55196578d7"
+            },
+            {
+              "name": "stable-tie-reversed",
+              "site": "src/execution_relation/bounded_index_sort.mbt",
+              "anchor": {
+                "kind": "owned equal-key occurrence pair inverted",
+                "sort": "n0",
+                "field": "extra",
+                "rows": [
+                  "31:r2",
+                  "31:r3"
+                ]
+              },
+              "originalDigest": "8aaaaed5985bfbe1d2f4a20f75c181a280de16db5d1a4fe9e355652f9c0e877a",
+              "mutatedDigest": "0ed50843070bf196984ce0ad3f2d9f489b8c4bafe463320316d11da594e55adb",
+              "workloadSha256": "88626da8b2c0189de5d1217bf27872bb703057d083040595c980883985946e3d",
+              "minimaSha256": "481e83a22096a3cda8e2e043dc63a999414e3aa75f7df30966ff4f8678ede3cb",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "0e532c9161691b9d93019ca52b985e4a3cc95836a936f891620323266c560ce2"
+            },
+            {
+              "name": "rename-nullability-widened",
+              "site": "src/relation_typing/check.mbt",
+              "anchor": {
+                "kind": "rename-nullability-widened",
+                "step": "rename",
+                "field": "extra",
+                "property": "nullable",
+                "expected": false,
+                "wrong": true
+              },
+              "originalDigest": "50a7e18770097824193b25b2812e4fbcf29ed556c55a1b6f1061c24bdb78cf6c",
+              "mutatedDigest": "726d4ca35515f07ae8c1b531bdb36cf215068b5b5c07a8b4615fae87bb6aa6ac",
+              "workloadSha256": "92741e695a1d7dd78f3bb9e93c25cd5997060d7faeabdd7cd19233fdccde9506",
+              "minimaSha256": "620e182d9873a878f884aaa867b48c143a41fc880a76f3a93ebd26825eb9e599",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "f9fcf99f7b6b5075380c7c1cfa5a01fb3eceb6a99fb7aa38353cca08fc530535"
+            },
+            {
+              "name": "rename-type-changed",
+              "site": "src/relation_typing/check.mbt",
+              "anchor": {
+                "kind": "rename-type-changed",
+                "step": "rename",
+                "field": "key",
+                "property": "type",
+                "expected": "number",
+                "wrong": "string"
+              },
+              "originalDigest": "50a7e18770097824193b25b2812e4fbcf29ed556c55a1b6f1061c24bdb78cf6c",
+              "mutatedDigest": "1aa988da05c0ec16445f8ae509cffe0400ddae8c8fb10483f743d552031af722",
+              "workloadSha256": "f7f0f5925dc709104b54668d212f7cffb83c04e55d6da28ed218096ab22d98b3",
+              "minimaSha256": "620e182d9873a878f884aaa867b48c143a41fc880a76f3a93ebd26825eb9e599",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "eaa324726baa74bf2cbdc3499cdc6ed420a2ed640628ec255dad3c0eb47d09e5"
+            },
+            {
+              "name": "rename-swap-wrong-input",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "kind": "rename swap reads output column",
+                "step": "rename",
+                "input": "extra",
+                "output": "k",
+                "row": "different"
+              },
+              "originalDigest": "93b1fa22c4aafc5076e4763795abf8c1e294d27c2982cceae01ac93cc2aadc7f",
+              "mutatedDigest": "1ff5e41f17d9d0b87f743649c031b73ec3662e1c126afe99db143eaa5b71a357",
+              "workloadSha256": "bb37f795ff7a9b937fbef915eb62006d70c0bf7a1ecf9cbd2c89ecf5fecf2f4a",
+              "minimaSha256": "8b74bfdc67e47d6ce92cf7bbdec59344725a1d85ecb5c4f2277151d0f42b1653",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "8614193bfe0c2fb5a844954bd6b67308b33a867ff7204302f9458a76ef1d3e3b"
+            },
+            {
+              "name": "distinct-first-column-only",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "kind": "distinct compares only first column",
+                "step": "distinct",
+                "field": "extra",
+                "rows": [
+                  "a",
+                  "b"
+                ]
+              },
+              "originalDigest": "93b1fa22c4aafc5076e4763795abf8c1e294d27c2982cceae01ac93cc2aadc7f",
+              "mutatedDigest": "ba1f468a7cad3e34377ae9376aea108777e4c02333c0c632aa9e2908f545c6ab",
+              "workloadSha256": "fc06a6d7bf90761e80d76b31e3d823eae2e602c7ceb4e7026e903ff10cb34b4e",
+              "minimaSha256": "14a40798c62ce968ef0440f70b2ddfdbd3c3ca8c396187ae06fa10356f11a01b",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "3b30f22b0478de8c89c2654228fbe289169efac1ff2ad7739196a31af1fbc6ca"
+            },
+            {
+              "name": "distinct-reversed-survivors",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "kind": "distinct reverses surviving row order",
+                "step": "distinct",
+                "field": "extra",
+                "rows": [
+                  "a",
+                  "b"
+                ]
+              },
+              "originalDigest": "93b1fa22c4aafc5076e4763795abf8c1e294d27c2982cceae01ac93cc2aadc7f",
+              "mutatedDigest": "b51f959bcc6742de6281796332df8d413a6fa54197202fd43079454e81ebe722",
+              "workloadSha256": "5aaad1271308725c45f35a230d5195454f1bce21146c368fc58a5dff5754ca47",
+              "minimaSha256": "14a40798c62ce968ef0440f70b2ddfdbd3c3ca8c396187ae06fa10356f11a01b",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "cee50266ca7a8c2456c0a6f9402ae4f2339ab155d1ec80c6af350a41d8a71f7f"
+            },
+            {
+              "name": "distinct-handoff-wrong-port",
+              "site": "src/connectors/local/selected_relation_provider.mbt",
+              "anchor": {
+                "kind": "wrong checked handoff port",
+                "producer": "distinct",
+                "consumer": "take"
+              },
+              "originalDigest": "ce24eedf13170a1fd5e63a71d8d19e673f76c969b1c9e8613e9402d6f7a44a50",
+              "mutatedDigest": "b63b8198bdbd8e2d8211e79a7be733067f1ecdbbdd87281c57bab60b5f32f68a",
+              "workloadSha256": "253b9667e4a2afb5f86a9db7e77db723defb46a21303a2f9a248639158b4588d",
+              "minimaSha256": "14a40798c62ce968ef0440f70b2ddfdbd3c3ca8c396187ae06fa10356f11a01b",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "34801549c290df36385935633d2d7c11fb5e6a1521708289297c3a47ce3676c2"
+            }
+          ]
+        },
+        {
+          "campaign": "fresh",
+          "path": "relation-pipeline/mutations.json",
+          "reportSha256": "6f9afad69bf36730381f5ce29b96218a2727c496fc6189d278193014aa080ac1",
+          "revision": "2c6bba34f2ce7bc739a10ed2160eb0679caed631",
+          "sourceDigest": "6580b6d9b27130f8fe67478dadf1d9e7a5021d2f979bb65d8e2276381fdb7cfb",
+          "toolchain": {
+            "version": "0.10.12+1634b282e",
+            "moon": "0.1.20260904 (94521db 2026-09-04)",
+            "moonc": "v0.10.12+1634b282e (2026-09-07)",
+            "archives": {
+              "darwin-arm64": {
+                "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-darwin-aarch64.tar.gz",
+                "sha256": "6ddad0d536e85d22e23d69567211e9dbc6534fa9366cee5d276a37275917e07e"
+              },
+              "linux-x64": {
+                "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-linux-x86_64.tar.gz",
+                "sha256": "9bbda7d342fa39654a65c23805e5ff5a3915a26b36627a2565a6b1a99d099e01"
+              }
+            },
+            "core": {
+              "url": "https://cli.moonbitlang.com/cores/core-0.10.12%2B1634b282e.tar.gz",
+              "sha256": "784a12ce4e204a3a98a0b704a021f747b916412efacd4dfe2f4e5c27ae183ac1"
+            }
+          },
+          "seed": 105106,
+          "explorationTarget": "js",
+          "inventory": [
+            "distinct-first-column-only",
+            "distinct-handoff-wrong-port",
+            "distinct-reversed-survivors",
+            "handoff-wrong-port",
+            "rename-nullability-widened",
+            "rename-swap-wrong-input",
+            "rename-type-changed",
+            "stable-tie-reversed"
+          ],
+          "inventoryComplete": true,
+          "targetComplete": true,
+          "workloadSha256": "b85bd4c863a962c123c717b97ae211f4bcda759655a331bb0172128376bf4766",
+          "sourceWorkloadSha256": "251a36881d31909ad56c37d43dec631dd121639bf37b0fd8d931b5dc32df0b2f",
+          "phaseActionTotalsMs": {
+            "search/js": 22329.94711700022,
+            "shrink/js": 157100.35204900015,
+            "mutated/js": 18409.171217999887,
+            "mutated/wasm": 14250.050298000104,
+            "mutated/native": 12715.850131999992,
+            "healthy/js": 18495.329741000372,
+            "healthy/wasm": 13984.635428999842,
+            "healthy/native": 12706.4734839999
+          },
+          "phaseReceiptCoverage": {
+            "phases": 64,
+            "verified": 64
+          },
+          "perMutationWorkload": [
+            {
+              "name": "handoff-wrong-port",
+              "site": "src/connectors/local/selected_relation_provider.mbt",
+              "anchor": {
+                "kind": "wrong checked handoff port",
+                "producer": "n0",
+                "consumer": "n1"
+              },
+              "originalDigest": "ce24eedf13170a1fd5e63a71d8d19e673f76c969b1c9e8613e9402d6f7a44a50",
+              "mutatedDigest": "b63b8198bdbd8e2d8211e79a7be733067f1ecdbbdd87281c57bab60b5f32f68a",
+              "workloadSha256": "f708980677cf7fa332961cd3b2db012a59d8572a7009c50e545856c5e0614837",
+              "minimaSha256": "0107dc214b6c9d66afa4c63ca90119f7dc2131755f14b6f27853bab46ecc4e59",
+              "shrinkHistorySha256": "761e92bfed07cca4cdb325ccf24c643094acbc58844f678fd63c1271f45cffd5",
+              "finalCandidateCount": 2,
+              "attemptedCandidateCount": 248,
+              "oracleSha256": "513bb8b0b443291457815d19b417a355e52af0c1ae7a2cab05fd753dc22800ca"
+            },
+            {
+              "name": "stable-tie-reversed",
+              "site": "src/execution_relation/bounded_index_sort.mbt",
+              "anchor": {
+                "kind": "owned equal-key occurrence pair inverted",
+                "sort": "n3",
+                "field": "r_tag",
+                "rows": [
+                  "39:r0",
+                  "39:r2"
+                ]
+              },
+              "originalDigest": "8aaaaed5985bfbe1d2f4a20f75c181a280de16db5d1a4fe9e355652f9c0e877a",
+              "mutatedDigest": "0ed50843070bf196984ce0ad3f2d9f489b8c4bafe463320316d11da594e55adb",
+              "workloadSha256": "68b2b0cb5e14c7706ec8c84cb1c49e6e3dbc411aa492fe83233c760024c35c0e",
+              "minimaSha256": "c1444197b889ccb87e902836eda19de9a5290f8429333a54de27ae4e5597bbd7",
+              "shrinkHistorySha256": "84031291711d123e77a66437980e1c3b26775d95ddc69075b5d4acb6b1105be0",
+              "finalCandidateCount": 4,
+              "attemptedCandidateCount": 132,
+              "oracleSha256": "96da8defab6835aad43bc85e82320515c30db4bde2b0213e6aa8b17451176cac"
+            },
+            {
+              "name": "rename-nullability-widened",
+              "site": "src/relation_typing/check.mbt",
+              "anchor": {
+                "kind": "rename-nullability-widened",
+                "step": "n1",
+                "field": "r_extra",
+                "property": "nullable",
+                "expected": false,
+                "wrong": true
+              },
+              "originalDigest": "50a7e18770097824193b25b2812e4fbcf29ed556c55a1b6f1061c24bdb78cf6c",
+              "mutatedDigest": "726d4ca35515f07ae8c1b531bdb36cf215068b5b5c07a8b4615fae87bb6aa6ac",
+              "workloadSha256": "dc7e73275aa408ff66ce5fd4247c906d814e4205c492fca0ee8ee87e88a61953",
+              "minimaSha256": "9ca36ffd7fb67082a993048b743bb30b35b9e1c0b53940b97354d5e308face95",
+              "shrinkHistorySha256": "c9fa432e7d4cbed745f0eafbc9e7de3e119ceea73d16f9ee2749fad207be855d",
+              "finalCandidateCount": 1,
+              "attemptedCandidateCount": 4,
+              "oracleSha256": "b897a4c2c241bbebe6de10b34230e41cc283504c160091785af03ff9428fab6c"
+            },
+            {
+              "name": "rename-type-changed",
+              "site": "src/relation_typing/check.mbt",
+              "anchor": {
+                "kind": "rename-type-changed",
+                "step": "n1",
+                "field": "r_extra",
+                "property": "type",
+                "expected": "number",
+                "wrong": "string"
+              },
+              "originalDigest": "50a7e18770097824193b25b2812e4fbcf29ed556c55a1b6f1061c24bdb78cf6c",
+              "mutatedDigest": "1aa988da05c0ec16445f8ae509cffe0400ddae8c8fb10483f743d552031af722",
+              "workloadSha256": "a2b0d249536326c1a661da7a5c5818de376cf97ac98e221b6aefe0ea6dd60ed9",
+              "minimaSha256": "9ca36ffd7fb67082a993048b743bb30b35b9e1c0b53940b97354d5e308face95",
+              "shrinkHistorySha256": "c9fa432e7d4cbed745f0eafbc9e7de3e119ceea73d16f9ee2749fad207be855d",
+              "finalCandidateCount": 1,
+              "attemptedCandidateCount": 4,
+              "oracleSha256": "f1d535ff3057f75b074cf1b387a02ec58e77f872c89b22781ea7cb0aeedf4f7c"
+            },
+            {
+              "name": "rename-swap-wrong-input",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "kind": "rename swap reads output column",
+                "step": "n0",
+                "input": "tag",
+                "output": "extra",
+                "row": "6:r0"
+              },
+              "originalDigest": "93b1fa22c4aafc5076e4763795abf8c1e294d27c2982cceae01ac93cc2aadc7f",
+              "mutatedDigest": "1ff5e41f17d9d0b87f743649c031b73ec3662e1c126afe99db143eaa5b71a357",
+              "workloadSha256": "e9974231a01920f17ce60515e92a24ff8cdb3d0217068ffad5522f5cdb97e761",
+              "minimaSha256": "8ed426271c60dc387d719f4d821419a84c3eef6b280bd5dbb4e153861f2e673e",
+              "shrinkHistorySha256": "7dd8e44b8861ff2e492c8c9bdf90eee50cb81a2b5a1aac049bc5794c5006094e",
+              "finalCandidateCount": 2,
+              "attemptedCandidateCount": 129,
+              "oracleSha256": "f4c01a11212902881f0891f55ef9132916d64ed1e3581c73b8b1930894464821"
+            },
+            {
+              "name": "distinct-first-column-only",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "kind": "distinct compares only first column",
+                "step": "n2",
+                "field": "extra",
+                "rows": [
+                  "16:r0",
+                  "16:r1"
+                ]
+              },
+              "originalDigest": "93b1fa22c4aafc5076e4763795abf8c1e294d27c2982cceae01ac93cc2aadc7f",
+              "mutatedDigest": "ba1f468a7cad3e34377ae9376aea108777e4c02333c0c632aa9e2908f545c6ab",
+              "workloadSha256": "e8ecece778da8c75392b996193b37179b0386b20c20d0fe42989ba19ee9b37c5",
+              "minimaSha256": "64f1f6365a0e2fda45f9863e49706a5ea4aad534d154c935f14d323e3fcbe101",
+              "shrinkHistorySha256": "9c6cfe5da123284f8bba64a97b23482d5882d158d24fb99bf90def0a24aa8c46",
+              "finalCandidateCount": 3,
+              "attemptedCandidateCount": 192,
+              "oracleSha256": "3ede8beff53df6df7ef1bac9e369f9270cff328325e44c2a1c52accd9e136720"
+            },
+            {
+              "name": "distinct-reversed-survivors",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "kind": "distinct reverses surviving row order",
+                "step": "n2",
+                "field": "extra",
+                "rows": [
+                  "16:r0",
+                  "16:r1"
+                ]
+              },
+              "originalDigest": "93b1fa22c4aafc5076e4763795abf8c1e294d27c2982cceae01ac93cc2aadc7f",
+              "mutatedDigest": "b51f959bcc6742de6281796332df8d413a6fa54197202fd43079454e81ebe722",
+              "workloadSha256": "8fe847fcd30f4ff8ab871f794a6ccfc894e6b0a36f05eddf512c5f2a02b79cab",
+              "minimaSha256": "64f1f6365a0e2fda45f9863e49706a5ea4aad534d154c935f14d323e3fcbe101",
+              "shrinkHistorySha256": "15a05e40bd41bfc6cbe1bd5c04a0501496e788b0d4ace8e0898c8be43743bf57",
+              "finalCandidateCount": 3,
+              "attemptedCandidateCount": 193,
+              "oracleSha256": "0d8e38de2e2c38173712c6a8cc7c68357e3866aa9c25e7f1fca405e4c6c9caec"
+            },
+            {
+              "name": "distinct-handoff-wrong-port",
+              "site": "src/connectors/local/selected_relation_provider.mbt",
+              "anchor": {
+                "kind": "wrong checked handoff port",
+                "producer": "n0",
+                "consumer": "n1"
+              },
+              "originalDigest": "ce24eedf13170a1fd5e63a71d8d19e673f76c969b1c9e8613e9402d6f7a44a50",
+              "mutatedDigest": "b63b8198bdbd8e2d8211e79a7be733067f1ecdbbdd87281c57bab60b5f32f68a",
+              "workloadSha256": "eee25db0efe036aec0ab4fed5e7fa743889784f6b133ef890ecc3bf7f9950395",
+              "minimaSha256": "0107dc214b6c9d66afa4c63ca90119f7dc2131755f14b6f27853bab46ecc4e59",
+              "shrinkHistorySha256": "761e92bfed07cca4cdb325ccf24c643094acbc58844f678fd63c1271f45cffd5",
+              "finalCandidateCount": 2,
+              "attemptedCandidateCount": 248,
+              "oracleSha256": "513bb8b0b443291457815d19b417a355e52af0c1ae7a2cab05fd753dc22800ca"
+            }
+          ]
+        },
+        {
+          "campaign": "capacity",
+          "path": "relation-pipeline/capacity/all.json",
+          "reportSha256": "b4d52d9b89344c10aa39cd9958d16aa25e5d3776ec2ab43c241e9ff9527c98ac",
+          "revision": "2c6bba34f2ce7bc739a10ed2160eb0679caed631",
+          "sourceDigest": "6580b6d9b27130f8fe67478dadf1d9e7a5021d2f979bb65d8e2276381fdb7cfb",
+          "toolchain": {
+            "version": "0.10.12+1634b282e",
+            "moon": "0.1.20260904 (94521db 2026-09-04)",
+            "moonc": "v0.10.12+1634b282e (2026-09-07)",
+            "archives": {
+              "darwin-arm64": {
+                "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-darwin-aarch64.tar.gz",
+                "sha256": "6ddad0d536e85d22e23d69567211e9dbc6534fa9366cee5d276a37275917e07e"
+              },
+              "linux-x64": {
+                "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-linux-x86_64.tar.gz",
+                "sha256": "9bbda7d342fa39654a65c23805e5ff5a3915a26b36627a2565a6b1a99d099e01"
+              }
+            },
+            "core": {
+              "url": "https://cli.moonbitlang.com/cores/core-0.10.12%2B1634b282e.tar.gz",
+              "sha256": "784a12ce4e204a3a98a0b704a021f747b916412efacd4dfe2f4e5c27ae183ac1"
+            }
+          },
+          "seed": 148256,
+          "explorationTarget": "js",
+          "inventory": [
+            "duplicate-index-release",
+            "handoff-copy-without-accounting",
+            "missing-index-reservation",
+            "oversized-metadata-map",
+            "premature-keep-release"
+          ],
+          "inventoryComplete": true,
+          "targetComplete": true,
+          "workloadSha256": "ea3024557bba43320df4f3ab2ade1c24e7b615d70721aaa083f32fc5609e00e2",
+          "sourceWorkloadSha256": "546e3f343789b8fe9d6b79e55a828dbcc86ffff3313f235f69f77644b7d7a773",
+          "phaseActionTotalsMs": {
+            "search/js": 75484.68627599993,
+            "shrink/js": 42519.84749600006,
+            "mutated/js": 11192.335729999933,
+            "mutated/wasm": 104331.50295,
+            "mutated/native": 296408.3029540001,
+            "healthy/js": 73454.49954500014,
+            "healthy/wasm": 104185.45844500011,
+            "healthy/native": 297501.08749099995,
+            "normal/js": 16054.041613000001,
+            "normal/wasm": 27010.016865999998,
+            "normal/native": 72401.16677499999,
+            "boundary/js": 45523.85226500002,
+            "boundary/wasm": 64290.222522000025,
+            "boundary/native": 178006.20016300003
+          },
+          "phaseReceiptCoverage": {
+            "phases": 52,
+            "verified": 52
+          },
+          "perMutationWorkload": [
+            {
+              "name": "missing-index-reservation",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "step": "n1",
+                "resource": "index-buffer admission",
+                "event": "index-admission",
+                "fault": "live DISTINCT scratch underreserved"
+              },
+              "originalDigest": null,
+              "mutatedDigest": null,
+              "workloadSha256": "85e2895e8bf894ca5d3ad422653bbf53e461b434c8ceefd6b21c7c207876eb84",
+              "minimaSha256": "e739b508e2e5700bd0ec0ffc8249e1f361801823bcd273ca6b51f5cbc65371e9",
+              "shrinkHistorySha256": "db844d18a95382379a4fe070a38c10b5d9c1aa01258f6e7fed54e407102dc025",
+              "finalCandidateCount": 1,
+              "attemptedCandidateCount": 15,
+              "oracleSha256": "7afa6abe43df5a6c6c503d24c141163454f7d61657e4547fceaa02ce6f17030f"
+            },
+            {
+              "name": "premature-keep-release",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "step": "n1",
+                "resource": "live keep bitmap",
+                "event": "premature-release",
+                "fault": "live DISTINCT scratch underreserved"
+              },
+              "originalDigest": null,
+              "mutatedDigest": null,
+              "workloadSha256": "f43b489984b451af12792f24d4a694f93268e196f02a9aa8181693080ab850d5",
+              "minimaSha256": "e739b508e2e5700bd0ec0ffc8249e1f361801823bcd273ca6b51f5cbc65371e9",
+              "shrinkHistorySha256": "db844d18a95382379a4fe070a38c10b5d9c1aa01258f6e7fed54e407102dc025",
+              "finalCandidateCount": 1,
+              "attemptedCandidateCount": 15,
+              "oracleSha256": "946608998f0fd14649abbe81df46e91fd2d67a0a418fc412350c69928cd59d0b"
+            },
+            {
+              "name": "duplicate-index-release",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "step": "n1",
+                "resource": "index-result custody transfer",
+                "event": "index-transfer",
+                "fault": "live DISTINCT scratch underreserved"
+              },
+              "originalDigest": null,
+              "mutatedDigest": null,
+              "workloadSha256": "c172ec0af4130edd7346628a152539f545d8dc41d5e8e6107660175aa465aa9e",
+              "minimaSha256": "e739b508e2e5700bd0ec0ffc8249e1f361801823bcd273ca6b51f5cbc65371e9",
+              "shrinkHistorySha256": "db844d18a95382379a4fe070a38c10b5d9c1aa01258f6e7fed54e407102dc025",
+              "finalCandidateCount": 1,
+              "attemptedCandidateCount": 15,
+              "oracleSha256": "aed11d63659e43a99f5f7b0b307b230bae497bd3965e65ba2cea2cc6efbeca22"
+            },
+            {
+              "name": "handoff-copy-without-accounting",
+              "site": "src/execution_relation/producer_read.mbt",
+              "anchor": {
+                "step": "n0",
+                "resource": "checked handoff backing ownership",
+                "event": "input-view",
+                "fault": "borrowed backing was replaced",
+                "receiver": "n1"
+              },
+              "originalDigest": null,
+              "mutatedDigest": null,
+              "workloadSha256": "47c8b469856b1ddddec3ba53291b67fcda24e0ce688ee85f5e3d3d44a802f7b7",
+              "minimaSha256": "b1aff2d7aa08b5b57a4b76eb54b7e38e53a824e8cfa7c25c3bbcde845bf1eddb",
+              "shrinkHistorySha256": "e4fcf50f050d10eed959dc72e0732de98e6153273887a0e39f0e767d9b9ce63a",
+              "finalCandidateCount": 3,
+              "attemptedCandidateCount": 30,
+              "oracleSha256": "774d8d6ad15ae97cd966ef6fcfac90042f8fc2caccb81c0da3eebd5ed778ab8e"
+            },
+            {
+              "name": "oversized-metadata-map",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "step": "n1",
+                "resource": "input ordinal Map table slots",
+                "event": "start",
+                "fault": "Map buckets exceed the admitted constructor bound"
+              },
+              "originalDigest": null,
+              "mutatedDigest": null,
+              "workloadSha256": "fe049c72b0ecae4152c2cf4c27bfcd25e3e48fbefbfb46c208d5d943e3a6ba8e",
+              "minimaSha256": "ba8c123587a8d8981221434143c42cc99e732535eec0ec178c7426e961d868c4",
+              "shrinkHistorySha256": "c2267b9b78f9e28f7f0d1d48541a0b14bf1f52a3e2b4cdaf5d17b4f730c37150",
+              "finalCandidateCount": 0,
+              "attemptedCandidateCount": 4,
+              "oracleSha256": "43b03ec319a60e589224fdb8d0fecc93f022b4a453717b5d418de2074175f709"
+            }
+          ]
+        }
+      ],
+      "storage": {
+        "compressedArtifactBytes": 294449491,
+        "logicalFileBytes": 2234335344,
+        "categories": {
+          "other": {
+            "files": 487,
+            "logicalBytes": 182869495,
+            "zipMemberCompressedBytes": 10725990,
+            "referencedFiles": 477,
+            "referencedBytes": 12987843
+          },
+          "log": {
+            "files": 238,
+            "logicalBytes": 37613809,
+            "zipMemberCompressedBytes": 774085,
+            "referencedFiles": 230,
+            "referencedBytes": 37482779
+          },
+          "receipt": {
+            "files": 230,
+            "logicalBytes": 83576219,
+            "zipMemberCompressedBytes": 2001371,
+            "referencedFiles": 230,
+            "referencedBytes": 83576219
+          },
+          "executable": {
+            "files": 42,
+            "logicalBytes": 1930275821,
+            "zipMemberCompressedBytes": 280680793,
+            "referencedFiles": 33,
+            "referencedBytes": 1926413157
+          }
+        },
+        "duplicateGroups": 17,
+        "identicalContentExtraLogicalBytes": 3249102,
+        "recoverableDiskBytes": null,
+        "deletionCandidates": [],
+        "knownReferencedFiles": 970,
+        "unknownProtectedFiles": 27,
+        "unresolvedReferenceCount": 229,
+        "unresolvedOriginalPaths": [
+          "_build/js/debug/test/query_integration/query_integration.whitebox_test.js",
+          "_build/native/debug/test/query_integration/query_integration.blackbox_test.exe",
+          "_build/native/debug/test/query_integration/query_integration.internal_test.exe",
+          "_build/native/debug/test/query_integration/query_integration.whitebox_test.exe",
+          "_build/wasm/debug/test/query_integration/query_integration.whitebox_test.wasm"
+        ],
+        "unresolvedDistinctContentDigests": 28,
+        "unresolvedReasons": [
+          "missing-reference"
+        ]
+      },
+      "wallMeasurements": [
+        {
+          "kind": "job",
+          "jobId": 110821272810,
+          "stepNumber": null,
+          "stepName": null,
+          "status": "completed",
+          "conclusion": "failure",
+          "execution": {
+            "from": {
+              "endpoint": "repos/actql/actql/actions/runs/37001901277/attempts/1/jobs?per_page=100",
+              "field": "jobs[id=110821272810].started_at",
+              "value": "2026-10-02T11:36:12Z"
+            },
+            "to": {
+              "endpoint": "repos/actql/actql/actions/runs/37001901277/attempts/1/jobs?per_page=100",
+              "field": "jobs[id=110821272810].completed_at",
+              "value": "2026-10-02T12:23:04Z"
+            },
+            "seconds": 2812,
+            "reason": null
+          }
+        },
+        {
+          "kind": "step",
+          "jobId": 110821272810,
+          "stepNumber": 8,
+          "stepName": "Verify fixed and required fresh mutations with distinct target evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "execution": {
+            "from": {
+              "endpoint": "repos/actql/actql/actions/runs/37001901277/attempts/1/jobs?per_page=100",
+              "field": "jobs[id=110821272810].steps[number=8].started_at",
+              "value": "2026-10-02T11:38:05Z"
+            },
+            "to": {
+              "endpoint": "repos/actql/actql/actions/runs/37001901277/attempts/1/jobs?per_page=100",
+              "field": "jobs[id=110821272810].steps[number=8].completed_at",
+              "value": "2026-10-02T11:58:41Z"
+            },
+            "seconds": 1236,
+            "reason": null
+          }
+        },
+        {
+          "kind": "step",
+          "jobId": 110821272810,
+          "stepNumber": 9,
+          "stepName": "Verify conditional structural capacity, custody and same-resource shrinking on all targets",
+          "status": "completed",
+          "conclusion": "success",
+          "execution": {
+            "from": {
+              "endpoint": "repos/actql/actql/actions/runs/37001901277/attempts/1/jobs?per_page=100",
+              "field": "jobs[id=110821272810].steps[number=9].started_at",
+              "value": "2026-10-02T11:58:41Z"
+            },
+            "to": {
+              "endpoint": "repos/actql/actql/actions/runs/37001901277/attempts/1/jobs?per_page=100",
+              "field": "jobs[id=110821272810].steps[number=9].completed_at",
+              "value": "2026-10-02T12:22:15Z"
+            },
+            "seconds": 1414,
+            "reason": null
+          }
+        }
+      ],
+      "unmeasured": {
+        "buildCount": null,
+        "compilerOnlyMilliseconds": null,
+        "hashingMilliseconds": null,
+        "ioMilliseconds": null,
+        "queueMilliseconds": null
+      }
+    },
+    {
+      "id": "37008083534:1:11229225034",
+      "provenance": {
+        "repository": "actql/actql",
+        "runId": 37008083534,
+        "runNumber": 849,
+        "attempt": 1,
+        "workflow": "CI",
+        "workflowPath": ".github/workflows/ci.yml",
+        "workflowId": 354137505,
+        "event": "pull_request",
+        "headSha": "b1f4ef95da6fafec479b4f20c4865282e2de8fdd",
+        "executionSha": "31b53d198315801ef65b97d4bb4da25536adbf78",
+        "executionShaEvidence": "Retained mutation report revision plus artifact identity; source run head kept separately",
+        "status": "completed",
+        "conclusion": "cancelled",
+        "url": "https://github.com/actql/actql/actions/runs/37008083534",
+        "runner": {
+          "name": "GitHub Actions 1000012115",
+          "labels": [
+            "ubuntu-24.04"
+          ],
+          "region": null
+        },
+        "cacheState": "unknown",
+        "artifact": {
+          "id": 11229225034,
+          "name": "relation-pipeline-evidence-31b53d198315801ef65b97d4bb4da25536adbf78",
+          "sha256": "2a66589477b5352ed5953d979f63a2b0b0d243bf127d1a57bb2677b2fdfcb163",
+          "compressedBytes": 341137618,
+          "url": "https://github.com/actql/actql/actions/runs/37008083534/artifacts/11229225034"
+        }
+      },
+      "reportedRunSuccessful": false,
+      "selectedEvidenceComplete": false,
+      "sampleCount": 1,
+      "receipts": {
+        "unique": 230,
+        "caseObservations": 2071,
+        "errors": [],
+        "commands": [
+          {
+            "target": "js",
+            "command": [
+              "moon",
+              "test",
+              "src/query_integration/relation_pipeline_batch_wbtest.mbt",
+              "--target",
+              "js",
+              "--deny-warn"
+            ],
+            "compiler": "v0.10.12+1634b282e (2026-09-07)"
+          },
+          {
+            "target": "native",
+            "command": [
+              "moon",
+              "test",
+              "src/query_integration/relation_pipeline_batch_wbtest.mbt",
+              "--target",
+              "native",
+              "--deny-warn"
+            ],
+            "compiler": "v0.10.12+1634b282e (2026-09-07)"
+          },
+          {
+            "target": "wasm",
+            "command": [
+              "moon",
+              "test",
+              "src/query_integration/relation_pipeline_batch_wbtest.mbt",
+              "--target",
+              "wasm",
+              "--deny-warn"
+            ],
+            "compiler": "v0.10.12+1634b282e (2026-09-07)"
+          }
+        ]
+      },
+      "campaigns": [
+        {
+          "campaign": "fixed",
+          "path": "relation-pipeline/fixed-mutations.json",
+          "reportSha256": "c0dcd57e1f7f73b5ba3012eca1b7f2f904378cb9166d5e54d94f037b83fce3d3",
+          "revision": "31b53d198315801ef65b97d4bb4da25536adbf78",
+          "sourceDigest": "10993864779c9bbd7c4b226635996dab12e7c3177af6f6578f2b9469a2ae4202",
+          "toolchain": {
+            "version": "0.10.12+1634b282e",
+            "moon": "0.1.20260904 (94521db 2026-09-04)",
+            "moonc": "v0.10.12+1634b282e (2026-09-07)",
+            "archives": {
+              "darwin-arm64": {
+                "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-darwin-aarch64.tar.gz",
+                "sha256": "6ddad0d536e85d22e23d69567211e9dbc6534fa9366cee5d276a37275917e07e"
+              },
+              "linux-x64": {
+                "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-linux-x86_64.tar.gz",
+                "sha256": "9bbda7d342fa39654a65c23805e5ff5a3915a26b36627a2565a6b1a99d099e01"
+              }
+            },
+            "core": {
+              "url": "https://cli.moonbitlang.com/cores/core-0.10.12%2B1634b282e.tar.gz",
+              "sha256": "784a12ce4e204a3a98a0b704a021f747b916412efacd4dfe2f4e5c27ae183ac1"
+            }
+          },
+          "seed": null,
+          "explorationTarget": null,
+          "inventory": [
+            "distinct-first-column-only",
+            "distinct-handoff-wrong-port",
+            "distinct-reversed-survivors",
+            "handoff-wrong-port",
+            "rename-nullability-widened",
+            "rename-swap-wrong-input",
+            "rename-type-changed",
+            "stable-tie-reversed"
+          ],
+          "inventoryComplete": true,
+          "targetComplete": true,
+          "workloadSha256": "31245e042e095878c6d995bca16b952a8b5bbe61b205344b7fe561af2ed40272",
+          "sourceWorkloadSha256": "251a36881d31909ad56c37d43dec631dd121639bf37b0fd8d931b5dc32df0b2f",
+          "phaseActionTotalsMs": {
+            "mutated/js": 131617.81343100013,
+            "mutated/wasm": 177067.8588359999,
+            "mutated/native": 495535.51790100004,
+            "healthy/js": 38594.925899999915,
+            "healthy/wasm": 38974.39626700012,
+            "healthy/native": 83680.62626100008
+          },
+          "phaseReceiptCoverage": {
+            "phases": 48,
+            "verified": 48
+          },
+          "perMutationWorkload": [
+            {
+              "name": "handoff-wrong-port",
+              "site": "src/connectors/local/selected_relation_provider.mbt",
+              "anchor": {
+                "kind": "wrong checked handoff port",
+                "producer": "n0",
+                "consumer": "n1"
+              },
+              "originalDigest": "ce24eedf13170a1fd5e63a71d8d19e673f76c969b1c9e8613e9402d6f7a44a50",
+              "mutatedDigest": "b63b8198bdbd8e2d8211e79a7be733067f1ecdbbdd87281c57bab60b5f32f68a",
+              "workloadSha256": "5234a64b5730fff89d5166ac3d685f66c8699afbe6f6fac4faee0f1243d39abb",
+              "minimaSha256": "3706753272966c1df81888dea53debbd11189679cf301762bb96c767c0ea3326",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "13d51b3c83558097c8fd9e2b3674c0eb115804fd4137069267e10e55196578d7"
+            },
+            {
+              "name": "stable-tie-reversed",
+              "site": "src/execution_relation/bounded_index_sort.mbt",
+              "anchor": {
+                "kind": "owned equal-key occurrence pair inverted",
+                "sort": "n0",
+                "field": "extra",
+                "rows": [
+                  "31:r2",
+                  "31:r3"
+                ]
+              },
+              "originalDigest": "8aaaaed5985bfbe1d2f4a20f75c181a280de16db5d1a4fe9e355652f9c0e877a",
+              "mutatedDigest": "0ed50843070bf196984ce0ad3f2d9f489b8c4bafe463320316d11da594e55adb",
+              "workloadSha256": "88626da8b2c0189de5d1217bf27872bb703057d083040595c980883985946e3d",
+              "minimaSha256": "481e83a22096a3cda8e2e043dc63a999414e3aa75f7df30966ff4f8678ede3cb",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "0e532c9161691b9d93019ca52b985e4a3cc95836a936f891620323266c560ce2"
+            },
+            {
+              "name": "rename-nullability-widened",
+              "site": "src/relation_typing/check.mbt",
+              "anchor": {
+                "kind": "rename-nullability-widened",
+                "step": "rename",
+                "field": "extra",
+                "property": "nullable",
+                "expected": false,
+                "wrong": true
+              },
+              "originalDigest": "50a7e18770097824193b25b2812e4fbcf29ed556c55a1b6f1061c24bdb78cf6c",
+              "mutatedDigest": "726d4ca35515f07ae8c1b531bdb36cf215068b5b5c07a8b4615fae87bb6aa6ac",
+              "workloadSha256": "92741e695a1d7dd78f3bb9e93c25cd5997060d7faeabdd7cd19233fdccde9506",
+              "minimaSha256": "620e182d9873a878f884aaa867b48c143a41fc880a76f3a93ebd26825eb9e599",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "f9fcf99f7b6b5075380c7c1cfa5a01fb3eceb6a99fb7aa38353cca08fc530535"
+            },
+            {
+              "name": "rename-type-changed",
+              "site": "src/relation_typing/check.mbt",
+              "anchor": {
+                "kind": "rename-type-changed",
+                "step": "rename",
+                "field": "key",
+                "property": "type",
+                "expected": "number",
+                "wrong": "string"
+              },
+              "originalDigest": "50a7e18770097824193b25b2812e4fbcf29ed556c55a1b6f1061c24bdb78cf6c",
+              "mutatedDigest": "1aa988da05c0ec16445f8ae509cffe0400ddae8c8fb10483f743d552031af722",
+              "workloadSha256": "f7f0f5925dc709104b54668d212f7cffb83c04e55d6da28ed218096ab22d98b3",
+              "minimaSha256": "620e182d9873a878f884aaa867b48c143a41fc880a76f3a93ebd26825eb9e599",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "eaa324726baa74bf2cbdc3499cdc6ed420a2ed640628ec255dad3c0eb47d09e5"
+            },
+            {
+              "name": "rename-swap-wrong-input",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "kind": "rename swap reads output column",
+                "step": "rename",
+                "input": "extra",
+                "output": "k",
+                "row": "different"
+              },
+              "originalDigest": "93b1fa22c4aafc5076e4763795abf8c1e294d27c2982cceae01ac93cc2aadc7f",
+              "mutatedDigest": "1ff5e41f17d9d0b87f743649c031b73ec3662e1c126afe99db143eaa5b71a357",
+              "workloadSha256": "bb37f795ff7a9b937fbef915eb62006d70c0bf7a1ecf9cbd2c89ecf5fecf2f4a",
+              "minimaSha256": "8b74bfdc67e47d6ce92cf7bbdec59344725a1d85ecb5c4f2277151d0f42b1653",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "8614193bfe0c2fb5a844954bd6b67308b33a867ff7204302f9458a76ef1d3e3b"
+            },
+            {
+              "name": "distinct-first-column-only",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "kind": "distinct compares only first column",
+                "step": "distinct",
+                "field": "extra",
+                "rows": [
+                  "a",
+                  "b"
+                ]
+              },
+              "originalDigest": "93b1fa22c4aafc5076e4763795abf8c1e294d27c2982cceae01ac93cc2aadc7f",
+              "mutatedDigest": "ba1f468a7cad3e34377ae9376aea108777e4c02333c0c632aa9e2908f545c6ab",
+              "workloadSha256": "fc06a6d7bf90761e80d76b31e3d823eae2e602c7ceb4e7026e903ff10cb34b4e",
+              "minimaSha256": "14a40798c62ce968ef0440f70b2ddfdbd3c3ca8c396187ae06fa10356f11a01b",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "3b30f22b0478de8c89c2654228fbe289169efac1ff2ad7739196a31af1fbc6ca"
+            },
+            {
+              "name": "distinct-reversed-survivors",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "kind": "distinct reverses surviving row order",
+                "step": "distinct",
+                "field": "extra",
+                "rows": [
+                  "a",
+                  "b"
+                ]
+              },
+              "originalDigest": "93b1fa22c4aafc5076e4763795abf8c1e294d27c2982cceae01ac93cc2aadc7f",
+              "mutatedDigest": "b51f959bcc6742de6281796332df8d413a6fa54197202fd43079454e81ebe722",
+              "workloadSha256": "5aaad1271308725c45f35a230d5195454f1bce21146c368fc58a5dff5754ca47",
+              "minimaSha256": "14a40798c62ce968ef0440f70b2ddfdbd3c3ca8c396187ae06fa10356f11a01b",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "cee50266ca7a8c2456c0a6f9402ae4f2339ab155d1ec80c6af350a41d8a71f7f"
+            },
+            {
+              "name": "distinct-handoff-wrong-port",
+              "site": "src/connectors/local/selected_relation_provider.mbt",
+              "anchor": {
+                "kind": "wrong checked handoff port",
+                "producer": "distinct",
+                "consumer": "take"
+              },
+              "originalDigest": "ce24eedf13170a1fd5e63a71d8d19e673f76c969b1c9e8613e9402d6f7a44a50",
+              "mutatedDigest": "b63b8198bdbd8e2d8211e79a7be733067f1ecdbbdd87281c57bab60b5f32f68a",
+              "workloadSha256": "253b9667e4a2afb5f86a9db7e77db723defb46a21303a2f9a248639158b4588d",
+              "minimaSha256": "14a40798c62ce968ef0440f70b2ddfdbd3c3ca8c396187ae06fa10356f11a01b",
+              "shrinkHistorySha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+              "finalCandidateCount": null,
+              "attemptedCandidateCount": null,
+              "oracleSha256": "34801549c290df36385935633d2d7c11fb5e6a1521708289297c3a47ce3676c2"
+            }
+          ]
+        },
+        {
+          "campaign": "fresh",
+          "path": "relation-pipeline/mutations.json",
+          "reportSha256": "6309dccc94edf27e9dd154879241abb1ff2ca10f7195612cb68e59eb9561aba0",
+          "revision": "31b53d198315801ef65b97d4bb4da25536adbf78",
+          "sourceDigest": "10993864779c9bbd7c4b226635996dab12e7c3177af6f6578f2b9469a2ae4202",
+          "toolchain": {
+            "version": "0.10.12+1634b282e",
+            "moon": "0.1.20260904 (94521db 2026-09-04)",
+            "moonc": "v0.10.12+1634b282e (2026-09-07)",
+            "archives": {
+              "darwin-arm64": {
+                "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-darwin-aarch64.tar.gz",
+                "sha256": "6ddad0d536e85d22e23d69567211e9dbc6534fa9366cee5d276a37275917e07e"
+              },
+              "linux-x64": {
+                "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-linux-x86_64.tar.gz",
+                "sha256": "9bbda7d342fa39654a65c23805e5ff5a3915a26b36627a2565a6b1a99d099e01"
+              }
+            },
+            "core": {
+              "url": "https://cli.moonbitlang.com/cores/core-0.10.12%2B1634b282e.tar.gz",
+              "sha256": "784a12ce4e204a3a98a0b704a021f747b916412efacd4dfe2f4e5c27ae183ac1"
+            }
+          },
+          "seed": 105106,
+          "explorationTarget": "js",
+          "inventory": [
+            "distinct-first-column-only",
+            "distinct-handoff-wrong-port",
+            "distinct-reversed-survivors",
+            "handoff-wrong-port",
+            "rename-nullability-widened",
+            "rename-swap-wrong-input",
+            "rename-type-changed",
+            "stable-tie-reversed"
+          ],
+          "inventoryComplete": true,
+          "targetComplete": true,
+          "workloadSha256": "b85bd4c863a962c123c717b97ae211f4bcda759655a331bb0172128376bf4766",
+          "sourceWorkloadSha256": "251a36881d31909ad56c37d43dec631dd121639bf37b0fd8d931b5dc32df0b2f",
+          "phaseActionTotalsMs": {
+            "search/js": 23479.20689000022,
+            "shrink/js": 162774.0413010001,
+            "mutated/js": 19226.687299000012,
+            "mutated/wasm": 14642.263962999597,
+            "mutated/native": 13688.532562000182,
+            "healthy/js": 19179.06398399989,
+            "healthy/wasm": 14417.774878999859,
+            "healthy/native": 13843.766060999944
+          },
+          "phaseReceiptCoverage": {
+            "phases": 64,
+            "verified": 64
+          },
+          "perMutationWorkload": [
+            {
+              "name": "handoff-wrong-port",
+              "site": "src/connectors/local/selected_relation_provider.mbt",
+              "anchor": {
+                "kind": "wrong checked handoff port",
+                "producer": "n0",
+                "consumer": "n1"
+              },
+              "originalDigest": "ce24eedf13170a1fd5e63a71d8d19e673f76c969b1c9e8613e9402d6f7a44a50",
+              "mutatedDigest": "b63b8198bdbd8e2d8211e79a7be733067f1ecdbbdd87281c57bab60b5f32f68a",
+              "workloadSha256": "f708980677cf7fa332961cd3b2db012a59d8572a7009c50e545856c5e0614837",
+              "minimaSha256": "0107dc214b6c9d66afa4c63ca90119f7dc2131755f14b6f27853bab46ecc4e59",
+              "shrinkHistorySha256": "761e92bfed07cca4cdb325ccf24c643094acbc58844f678fd63c1271f45cffd5",
+              "finalCandidateCount": 2,
+              "attemptedCandidateCount": 248,
+              "oracleSha256": "513bb8b0b443291457815d19b417a355e52af0c1ae7a2cab05fd753dc22800ca"
+            },
+            {
+              "name": "stable-tie-reversed",
+              "site": "src/execution_relation/bounded_index_sort.mbt",
+              "anchor": {
+                "kind": "owned equal-key occurrence pair inverted",
+                "sort": "n3",
+                "field": "r_tag",
+                "rows": [
+                  "39:r0",
+                  "39:r2"
+                ]
+              },
+              "originalDigest": "8aaaaed5985bfbe1d2f4a20f75c181a280de16db5d1a4fe9e355652f9c0e877a",
+              "mutatedDigest": "0ed50843070bf196984ce0ad3f2d9f489b8c4bafe463320316d11da594e55adb",
+              "workloadSha256": "68b2b0cb5e14c7706ec8c84cb1c49e6e3dbc411aa492fe83233c760024c35c0e",
+              "minimaSha256": "c1444197b889ccb87e902836eda19de9a5290f8429333a54de27ae4e5597bbd7",
+              "shrinkHistorySha256": "84031291711d123e77a66437980e1c3b26775d95ddc69075b5d4acb6b1105be0",
+              "finalCandidateCount": 4,
+              "attemptedCandidateCount": 132,
+              "oracleSha256": "96da8defab6835aad43bc85e82320515c30db4bde2b0213e6aa8b17451176cac"
+            },
+            {
+              "name": "rename-nullability-widened",
+              "site": "src/relation_typing/check.mbt",
+              "anchor": {
+                "kind": "rename-nullability-widened",
+                "step": "n1",
+                "field": "r_extra",
+                "property": "nullable",
+                "expected": false,
+                "wrong": true
+              },
+              "originalDigest": "50a7e18770097824193b25b2812e4fbcf29ed556c55a1b6f1061c24bdb78cf6c",
+              "mutatedDigest": "726d4ca35515f07ae8c1b531bdb36cf215068b5b5c07a8b4615fae87bb6aa6ac",
+              "workloadSha256": "dc7e73275aa408ff66ce5fd4247c906d814e4205c492fca0ee8ee87e88a61953",
+              "minimaSha256": "9ca36ffd7fb67082a993048b743bb30b35b9e1c0b53940b97354d5e308face95",
+              "shrinkHistorySha256": "c9fa432e7d4cbed745f0eafbc9e7de3e119ceea73d16f9ee2749fad207be855d",
+              "finalCandidateCount": 1,
+              "attemptedCandidateCount": 4,
+              "oracleSha256": "b897a4c2c241bbebe6de10b34230e41cc283504c160091785af03ff9428fab6c"
+            },
+            {
+              "name": "rename-type-changed",
+              "site": "src/relation_typing/check.mbt",
+              "anchor": {
+                "kind": "rename-type-changed",
+                "step": "n1",
+                "field": "r_extra",
+                "property": "type",
+                "expected": "number",
+                "wrong": "string"
+              },
+              "originalDigest": "50a7e18770097824193b25b2812e4fbcf29ed556c55a1b6f1061c24bdb78cf6c",
+              "mutatedDigest": "1aa988da05c0ec16445f8ae509cffe0400ddae8c8fb10483f743d552031af722",
+              "workloadSha256": "a2b0d249536326c1a661da7a5c5818de376cf97ac98e221b6aefe0ea6dd60ed9",
+              "minimaSha256": "9ca36ffd7fb67082a993048b743bb30b35b9e1c0b53940b97354d5e308face95",
+              "shrinkHistorySha256": "c9fa432e7d4cbed745f0eafbc9e7de3e119ceea73d16f9ee2749fad207be855d",
+              "finalCandidateCount": 1,
+              "attemptedCandidateCount": 4,
+              "oracleSha256": "f1d535ff3057f75b074cf1b387a02ec58e77f872c89b22781ea7cb0aeedf4f7c"
+            },
+            {
+              "name": "rename-swap-wrong-input",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "kind": "rename swap reads output column",
+                "step": "n0",
+                "input": "tag",
+                "output": "extra",
+                "row": "6:r0"
+              },
+              "originalDigest": "93b1fa22c4aafc5076e4763795abf8c1e294d27c2982cceae01ac93cc2aadc7f",
+              "mutatedDigest": "1ff5e41f17d9d0b87f743649c031b73ec3662e1c126afe99db143eaa5b71a357",
+              "workloadSha256": "e9974231a01920f17ce60515e92a24ff8cdb3d0217068ffad5522f5cdb97e761",
+              "minimaSha256": "8ed426271c60dc387d719f4d821419a84c3eef6b280bd5dbb4e153861f2e673e",
+              "shrinkHistorySha256": "7dd8e44b8861ff2e492c8c9bdf90eee50cb81a2b5a1aac049bc5794c5006094e",
+              "finalCandidateCount": 2,
+              "attemptedCandidateCount": 129,
+              "oracleSha256": "f4c01a11212902881f0891f55ef9132916d64ed1e3581c73b8b1930894464821"
+            },
+            {
+              "name": "distinct-first-column-only",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "kind": "distinct compares only first column",
+                "step": "n2",
+                "field": "extra",
+                "rows": [
+                  "16:r0",
+                  "16:r1"
+                ]
+              },
+              "originalDigest": "93b1fa22c4aafc5076e4763795abf8c1e294d27c2982cceae01ac93cc2aadc7f",
+              "mutatedDigest": "ba1f468a7cad3e34377ae9376aea108777e4c02333c0c632aa9e2908f545c6ab",
+              "workloadSha256": "e8ecece778da8c75392b996193b37179b0386b20c20d0fe42989ba19ee9b37c5",
+              "minimaSha256": "64f1f6365a0e2fda45f9863e49706a5ea4aad534d154c935f14d323e3fcbe101",
+              "shrinkHistorySha256": "9c6cfe5da123284f8bba64a97b23482d5882d158d24fb99bf90def0a24aa8c46",
+              "finalCandidateCount": 3,
+              "attemptedCandidateCount": 192,
+              "oracleSha256": "3ede8beff53df6df7ef1bac9e369f9270cff328325e44c2a1c52accd9e136720"
+            },
+            {
+              "name": "distinct-reversed-survivors",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "kind": "distinct reverses surviving row order",
+                "step": "n2",
+                "field": "extra",
+                "rows": [
+                  "16:r0",
+                  "16:r1"
+                ]
+              },
+              "originalDigest": "93b1fa22c4aafc5076e4763795abf8c1e294d27c2982cceae01ac93cc2aadc7f",
+              "mutatedDigest": "b51f959bcc6742de6281796332df8d413a6fa54197202fd43079454e81ebe722",
+              "workloadSha256": "8fe847fcd30f4ff8ab871f794a6ccfc894e6b0a36f05eddf512c5f2a02b79cab",
+              "minimaSha256": "64f1f6365a0e2fda45f9863e49706a5ea4aad534d154c935f14d323e3fcbe101",
+              "shrinkHistorySha256": "15a05e40bd41bfc6cbe1bd5c04a0501496e788b0d4ace8e0898c8be43743bf57",
+              "finalCandidateCount": 3,
+              "attemptedCandidateCount": 193,
+              "oracleSha256": "0d8e38de2e2c38173712c6a8cc7c68357e3866aa9c25e7f1fca405e4c6c9caec"
+            },
+            {
+              "name": "distinct-handoff-wrong-port",
+              "site": "src/connectors/local/selected_relation_provider.mbt",
+              "anchor": {
+                "kind": "wrong checked handoff port",
+                "producer": "n0",
+                "consumer": "n1"
+              },
+              "originalDigest": "ce24eedf13170a1fd5e63a71d8d19e673f76c969b1c9e8613e9402d6f7a44a50",
+              "mutatedDigest": "b63b8198bdbd8e2d8211e79a7be733067f1ecdbbdd87281c57bab60b5f32f68a",
+              "workloadSha256": "eee25db0efe036aec0ab4fed5e7fa743889784f6b133ef890ecc3bf7f9950395",
+              "minimaSha256": "0107dc214b6c9d66afa4c63ca90119f7dc2131755f14b6f27853bab46ecc4e59",
+              "shrinkHistorySha256": "761e92bfed07cca4cdb325ccf24c643094acbc58844f678fd63c1271f45cffd5",
+              "finalCandidateCount": 2,
+              "attemptedCandidateCount": 248,
+              "oracleSha256": "513bb8b0b443291457815d19b417a355e52af0c1ae7a2cab05fd753dc22800ca"
+            }
+          ]
+        },
+        {
+          "campaign": "capacity",
+          "path": "relation-pipeline/capacity/all.json",
+          "reportSha256": "63f7fc74f643b2c44ff79761c1f966ad5ffca250a08bb83cfde1aecf608362d1",
+          "revision": "31b53d198315801ef65b97d4bb4da25536adbf78",
+          "sourceDigest": "10993864779c9bbd7c4b226635996dab12e7c3177af6f6578f2b9469a2ae4202",
+          "toolchain": {
+            "version": "0.10.12+1634b282e",
+            "moon": "0.1.20260904 (94521db 2026-09-04)",
+            "moonc": "v0.10.12+1634b282e (2026-09-07)",
+            "archives": {
+              "darwin-arm64": {
+                "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-darwin-aarch64.tar.gz",
+                "sha256": "6ddad0d536e85d22e23d69567211e9dbc6534fa9366cee5d276a37275917e07e"
+              },
+              "linux-x64": {
+                "url": "https://cli.moonbitlang.com/binaries/0.10.12%2B1634b282e/moonbit-linux-x86_64.tar.gz",
+                "sha256": "9bbda7d342fa39654a65c23805e5ff5a3915a26b36627a2565a6b1a99d099e01"
+              }
+            },
+            "core": {
+              "url": "https://cli.moonbitlang.com/cores/core-0.10.12%2B1634b282e.tar.gz",
+              "sha256": "784a12ce4e204a3a98a0b704a021f747b916412efacd4dfe2f4e5c27ae183ac1"
+            }
+          },
+          "seed": 148256,
+          "explorationTarget": "js",
+          "inventory": [
+            "duplicate-index-release",
+            "handoff-copy-without-accounting",
+            "missing-index-reservation",
+            "oversized-metadata-map",
+            "premature-keep-release"
+          ],
+          "inventoryComplete": true,
+          "targetComplete": true,
+          "workloadSha256": "c45cce74f3f2d8d235dda5636673b9920eaed61c9258d9c5678c0fae1b6553fb",
+          "sourceWorkloadSha256": "546e3f343789b8fe9d6b79e55a828dbcc86ffff3313f235f69f77644b7d7a773",
+          "phaseActionTotalsMs": {
+            "search/js": 77556.48574899981,
+            "shrink/js": 44765.64503199997,
+            "mutated/js": 11989.012423000066,
+            "mutated/wasm": 105098.24329100025,
+            "mutated/native": 298223.2938949999,
+            "healthy/js": 74331.0343660001,
+            "healthy/wasm": 105459.95465199987,
+            "healthy/native": 300456.9343920002,
+            "normal/js": 16380.418544,
+            "normal/wasm": 27004.318086999996,
+            "normal/native": 73558.914418,
+            "boundary/js": 45735.54364300001,
+            "boundary/wasm": 63786.41709500001,
+            "boundary/native": 177531.92921299994
+          },
+          "phaseReceiptCoverage": {
+            "phases": 52,
+            "verified": 52
+          },
+          "perMutationWorkload": [
+            {
+              "name": "missing-index-reservation",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "step": "n1",
+                "resource": "index-buffer admission",
+                "event": "index-admission",
+                "fault": "live DISTINCT scratch underreserved"
+              },
+              "originalDigest": null,
+              "mutatedDigest": null,
+              "workloadSha256": "5f7acf826456175f803ddde017e2073d205bc826ce739f42bd051fb0f369b3a3",
+              "minimaSha256": "e739b508e2e5700bd0ec0ffc8249e1f361801823bcd273ca6b51f5cbc65371e9",
+              "shrinkHistorySha256": "db844d18a95382379a4fe070a38c10b5d9c1aa01258f6e7fed54e407102dc025",
+              "finalCandidateCount": 1,
+              "attemptedCandidateCount": 15,
+              "oracleSha256": "09b869cc2267fdceef5439051070094e135442fb94134c60e414a2f0211d8049"
+            },
+            {
+              "name": "premature-keep-release",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "step": "n1",
+                "resource": "live keep bitmap",
+                "event": "premature-release",
+                "fault": "live DISTINCT scratch underreserved"
+              },
+              "originalDigest": null,
+              "mutatedDigest": null,
+              "workloadSha256": "abd81f0b73218847bc6217bd41615e084c631aaad30bbc2f0f912ac3733d9b6d",
+              "minimaSha256": "e739b508e2e5700bd0ec0ffc8249e1f361801823bcd273ca6b51f5cbc65371e9",
+              "shrinkHistorySha256": "db844d18a95382379a4fe070a38c10b5d9c1aa01258f6e7fed54e407102dc025",
+              "finalCandidateCount": 1,
+              "attemptedCandidateCount": 15,
+              "oracleSha256": "78a591a41e29a8acceef0e9f86279537b7011062d7e8b7f09e415677f4ee546b"
+            },
+            {
+              "name": "duplicate-index-release",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "step": "n1",
+                "resource": "index-result custody transfer",
+                "event": "index-transfer",
+                "fault": "live DISTINCT scratch underreserved"
+              },
+              "originalDigest": null,
+              "mutatedDigest": null,
+              "workloadSha256": "ab74ff0db462a158cd6eeb02df1cc440a6e7013f7de860991e91d3b4a3c20e37",
+              "minimaSha256": "e739b508e2e5700bd0ec0ffc8249e1f361801823bcd273ca6b51f5cbc65371e9",
+              "shrinkHistorySha256": "db844d18a95382379a4fe070a38c10b5d9c1aa01258f6e7fed54e407102dc025",
+              "finalCandidateCount": 1,
+              "attemptedCandidateCount": 15,
+              "oracleSha256": "81cce2d3a3bd954630efc3d3c465268d7ab59cb4af689fd12182c7945ba6e5c9"
+            },
+            {
+              "name": "handoff-copy-without-accounting",
+              "site": "src/execution_relation/producer_read.mbt",
+              "anchor": {
+                "step": "n0",
+                "resource": "checked handoff backing ownership",
+                "event": "input-view",
+                "fault": "borrowed backing was replaced",
+                "receiver": "n1"
+              },
+              "originalDigest": null,
+              "mutatedDigest": null,
+              "workloadSha256": "2b48e9aae79c5673092f54083fbff97ca641d457bc27f8f502fc23431365836b",
+              "minimaSha256": "b1aff2d7aa08b5b57a4b76eb54b7e38e53a824e8cfa7c25c3bbcde845bf1eddb",
+              "shrinkHistorySha256": "e4fcf50f050d10eed959dc72e0732de98e6153273887a0e39f0e767d9b9ce63a",
+              "finalCandidateCount": 3,
+              "attemptedCandidateCount": 30,
+              "oracleSha256": "a02ae00825c5195604635c129e05805129f3ecc9b696d08b19936950116e4f60"
+            },
+            {
+              "name": "oversized-metadata-map",
+              "site": "src/execution_relation/bounded_binding_rows.mbt",
+              "anchor": {
+                "step": "n1",
+                "resource": "input ordinal Map table slots",
+                "event": "start",
+                "fault": "Map buckets exceed the admitted constructor bound"
+              },
+              "originalDigest": null,
+              "mutatedDigest": null,
+              "workloadSha256": "e1e63561afea2ca64bb44e36716508813949e644720fd67070fc51928460ea62",
+              "minimaSha256": "ba8c123587a8d8981221434143c42cc99e732535eec0ec178c7426e961d868c4",
+              "shrinkHistorySha256": "c2267b9b78f9e28f7f0d1d48541a0b14bf1f52a3e2b4cdaf5d17b4f730c37150",
+              "finalCandidateCount": 0,
+              "attemptedCandidateCount": 4,
+              "oracleSha256": "070a5fc47bbe153e1651e03e3783659450bdd64031ad7f348bc07a6350c49e97"
+            }
+          ]
+        }
+      ],
+      "storage": {
+        "compressedArtifactBytes": 341137618,
+        "logicalFileBytes": 3145813247,
+        "categories": {
+          "other": {
+            "files": 509,
+            "logicalBytes": 862041510,
+            "zipMemberCompressedBytes": 25443019,
+            "referencedFiles": 477,
+            "referencedBytes": 13019926
+          },
+          "log": {
+            "files": 255,
+            "logicalBytes": 43280960,
+            "zipMemberCompressedBytes": 875556,
+            "referencedFiles": 230,
+            "referencedBytes": 42580993
+          },
+          "receipt": {
+            "files": 230,
+            "logicalBytes": 94325582,
+            "zipMemberCompressedBytes": 2129397,
+            "referencedFiles": 230,
+            "referencedBytes": 94325582
+          },
+          "executable": {
+            "files": 51,
+            "logicalBytes": 2146165195,
+            "zipMemberCompressedBytes": 312412096,
+            "referencedFiles": 37,
+            "referencedBytes": 1926610964
+          }
+        },
+        "duplicateGroups": 25,
+        "identicalContentExtraLogicalBytes": 5276375,
+        "recoverableDiskBytes": null,
+        "deletionCandidates": [],
+        "knownReferencedFiles": 974,
+        "unknownProtectedFiles": 71,
+        "unresolvedReferenceCount": 229,
+        "unresolvedOriginalPaths": [
+          "_build/js/debug/test/query_integration/query_integration.whitebox_test.js",
+          "_build/native/debug/test/query_integration/query_integration.blackbox_test.exe",
+          "_build/native/debug/test/query_integration/query_integration.internal_test.exe",
+          "_build/native/debug/test/query_integration/query_integration.whitebox_test.exe",
+          "_build/wasm/debug/test/query_integration/query_integration.whitebox_test.wasm"
+        ],
+        "unresolvedDistinctContentDigests": 28,
+        "unresolvedReasons": [
+          "missing-reference"
+        ]
+      },
+      "wallMeasurements": [
+        {
+          "kind": "job",
+          "jobId": 110841006897,
+          "stepNumber": null,
+          "stepName": null,
+          "status": "completed",
+          "conclusion": "cancelled",
+          "execution": {
+            "from": {
+              "endpoint": "repos/actql/actql/actions/runs/37008083534/attempts/1/jobs?per_page=100",
+              "field": "jobs[id=110841006897].started_at",
+              "value": "2026-10-02T12:40:22Z"
+            },
+            "to": {
+              "endpoint": "repos/actql/actql/actions/runs/37008083534/attempts/1/jobs?per_page=100",
+              "field": "jobs[id=110841006897].completed_at",
+              "value": "2026-10-02T13:31:27Z"
+            },
+            "seconds": 3065,
+            "reason": null
+          }
+        },
+        {
+          "kind": "step",
+          "jobId": 110841006897,
+          "stepNumber": 8,
+          "stepName": "Verify fixed and required fresh mutations with distinct target evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "execution": {
+            "from": {
+              "endpoint": "repos/actql/actql/actions/runs/37008083534/attempts/1/jobs?per_page=100",
+              "field": "jobs[id=110841006897].steps[number=8].started_at",
+              "value": "2026-10-02T12:42:25Z"
+            },
+            "to": {
+              "endpoint": "repos/actql/actql/actions/runs/37008083534/attempts/1/jobs?per_page=100",
+              "field": "jobs[id=110841006897].steps[number=8].completed_at",
+              "value": "2026-10-02T13:03:21Z"
+            },
+            "seconds": 1256,
+            "reason": null
+          }
+        },
+        {
+          "kind": "step",
+          "jobId": 110841006897,
+          "stepNumber": 9,
+          "stepName": "Verify conditional structural capacity, custody and same-resource shrinking on all targets",
+          "status": "completed",
+          "conclusion": "success",
+          "execution": {
+            "from": {
+              "endpoint": "repos/actql/actql/actions/runs/37008083534/attempts/1/jobs?per_page=100",
+              "field": "jobs[id=110841006897].steps[number=9].started_at",
+              "value": "2026-10-02T13:03:21Z"
+            },
+            "to": {
+              "endpoint": "repos/actql/actql/actions/runs/37008083534/attempts/1/jobs?per_page=100",
+              "field": "jobs[id=110841006897].steps[number=9].completed_at",
+              "value": "2026-10-02T13:27:09Z"
+            },
+            "seconds": 1428,
+            "reason": null
+          }
+        }
+      ],
+      "unmeasured": {
+        "buildCount": null,
+        "compilerOnlyMilliseconds": null,
+        "hashingMilliseconds": null,
+        "ioMilliseconds": null,
+        "queueMilliseconds": null
+      }
+    }
+  ],
+  "comparisons": [
+    {
+      "left": "36992114814:1:11221237604",
+      "right": "36996115208:1:11223341880",
+      "campaign": "fixed",
+      "comparable": false,
+      "differences": [
+        "event",
+        "headSha",
+        "executionSha",
+        "runner",
+        "sourceWorkloadSha256",
+        "unresolved-custody-references",
+        "selected-evidence-incomplete",
+        "unknown-runner-or-cache"
+      ],
+      "sampleCounts": {
+        "left": 1,
+        "right": 1
+      },
+      "stableSpeedupEstimate": null,
+      "causalPerformanceClaim": false
+    },
+    {
+      "left": "36992114814:1:11221237604",
+      "right": "36996115208:1:11223341880",
+      "campaign": "fresh",
+      "comparable": false,
+      "differences": [
+        "event",
+        "headSha",
+        "executionSha",
+        "runner",
+        "sourceWorkloadSha256",
+        "unresolved-custody-references",
+        "selected-evidence-incomplete",
+        "unknown-runner-or-cache"
+      ],
+      "sampleCounts": {
+        "left": 1,
+        "right": 1
+      },
+      "stableSpeedupEstimate": null,
+      "causalPerformanceClaim": false
+    },
+    {
+      "left": "36992114814:1:11221237604",
+      "right": "37001901277:1:11225817644",
+      "campaign": "fixed",
+      "comparable": false,
+      "differences": [
+        "event",
+        "headSha",
+        "executionSha",
+        "conclusion",
+        "runner",
+        "sourceWorkloadSha256",
+        "unresolved-custody-references",
+        "selected-evidence-incomplete",
+        "not-two-green-samples",
+        "unknown-runner-or-cache"
+      ],
+      "sampleCounts": {
+        "left": 1,
+        "right": 1
+      },
+      "stableSpeedupEstimate": null,
+      "causalPerformanceClaim": false
+    },
+    {
+      "left": "36992114814:1:11221237604",
+      "right": "37001901277:1:11225817644",
+      "campaign": "fresh",
+      "comparable": false,
+      "differences": [
+        "event",
+        "headSha",
+        "executionSha",
+        "conclusion",
+        "runner",
+        "sourceWorkloadSha256",
+        "unresolved-custody-references",
+        "selected-evidence-incomplete",
+        "not-two-green-samples",
+        "unknown-runner-or-cache"
+      ],
+      "sampleCounts": {
+        "left": 1,
+        "right": 1
+      },
+      "stableSpeedupEstimate": null,
+      "causalPerformanceClaim": false
+    },
+    {
+      "left": "36992114814:1:11221237604",
+      "right": "37008083534:1:11229225034",
+      "campaign": "fixed",
+      "comparable": false,
+      "differences": [
+        "event",
+        "headSha",
+        "executionSha",
+        "conclusion",
+        "runner",
+        "sourceWorkloadSha256",
+        "unresolved-custody-references",
+        "selected-evidence-incomplete",
+        "not-two-green-samples",
+        "unknown-runner-or-cache"
+      ],
+      "sampleCounts": {
+        "left": 1,
+        "right": 1
+      },
+      "stableSpeedupEstimate": null,
+      "causalPerformanceClaim": false
+    },
+    {
+      "left": "36992114814:1:11221237604",
+      "right": "37008083534:1:11229225034",
+      "campaign": "fresh",
+      "comparable": false,
+      "differences": [
+        "event",
+        "headSha",
+        "executionSha",
+        "conclusion",
+        "runner",
+        "sourceWorkloadSha256",
+        "unresolved-custody-references",
+        "selected-evidence-incomplete",
+        "not-two-green-samples",
+        "unknown-runner-or-cache"
+      ],
+      "sampleCounts": {
+        "left": 1,
+        "right": 1
+      },
+      "stableSpeedupEstimate": null,
+      "causalPerformanceClaim": false
+    },
+    {
+      "left": "36996115208:1:11223341880",
+      "right": "37001901277:1:11225817644",
+      "campaign": "fixed",
+      "comparable": false,
+      "differences": [
+        "headSha",
+        "executionSha",
+        "conclusion",
+        "runner",
+        "unresolved-custody-references",
+        "selected-evidence-incomplete",
+        "not-two-green-samples",
+        "unknown-runner-or-cache"
+      ],
+      "sampleCounts": {
+        "left": 1,
+        "right": 1
+      },
+      "stableSpeedupEstimate": null,
+      "causalPerformanceClaim": false
+    },
+    {
+      "left": "36996115208:1:11223341880",
+      "right": "37001901277:1:11225817644",
+      "campaign": "fresh",
+      "comparable": false,
+      "differences": [
+        "headSha",
+        "executionSha",
+        "conclusion",
+        "runner",
+        "unresolved-custody-references",
+        "selected-evidence-incomplete",
+        "not-two-green-samples",
+        "unknown-runner-or-cache"
+      ],
+      "sampleCounts": {
+        "left": 1,
+        "right": 1
+      },
+      "stableSpeedupEstimate": null,
+      "causalPerformanceClaim": false
+    },
+    {
+      "left": "36996115208:1:11223341880",
+      "right": "37001901277:1:11225817644",
+      "campaign": "capacity",
+      "comparable": false,
+      "differences": [
+        "headSha",
+        "executionSha",
+        "conclusion",
+        "runner",
+        "unresolved-custody-references",
+        "selected-evidence-incomplete",
+        "not-two-green-samples",
+        "unknown-runner-or-cache"
+      ],
+      "sampleCounts": {
+        "left": 1,
+        "right": 1
+      },
+      "stableSpeedupEstimate": null,
+      "causalPerformanceClaim": false
+    },
+    {
+      "left": "36996115208:1:11223341880",
+      "right": "37008083534:1:11229225034",
+      "campaign": "fixed",
+      "comparable": false,
+      "differences": [
+        "headSha",
+        "executionSha",
+        "conclusion",
+        "runner",
+        "unresolved-custody-references",
+        "selected-evidence-incomplete",
+        "not-two-green-samples",
+        "unknown-runner-or-cache"
+      ],
+      "sampleCounts": {
+        "left": 1,
+        "right": 1
+      },
+      "stableSpeedupEstimate": null,
+      "causalPerformanceClaim": false
+    },
+    {
+      "left": "36996115208:1:11223341880",
+      "right": "37008083534:1:11229225034",
+      "campaign": "fresh",
+      "comparable": false,
+      "differences": [
+        "headSha",
+        "executionSha",
+        "conclusion",
+        "runner",
+        "unresolved-custody-references",
+        "selected-evidence-incomplete",
+        "not-two-green-samples",
+        "unknown-runner-or-cache"
+      ],
+      "sampleCounts": {
+        "left": 1,
+        "right": 1
+      },
+      "stableSpeedupEstimate": null,
+      "causalPerformanceClaim": false
+    },
+    {
+      "left": "36996115208:1:11223341880",
+      "right": "37008083534:1:11229225034",
+      "campaign": "capacity",
+      "comparable": false,
+      "differences": [
+        "headSha",
+        "executionSha",
+        "conclusion",
+        "runner",
+        "workloadSha256",
+        "unresolved-custody-references",
+        "selected-evidence-incomplete",
+        "not-two-green-samples",
+        "unknown-runner-or-cache"
+      ],
+      "sampleCounts": {
+        "left": 1,
+        "right": 1
+      },
+      "stableSpeedupEstimate": null,
+      "causalPerformanceClaim": false
+    },
+    {
+      "left": "37001901277:1:11225817644",
+      "right": "37008083534:1:11229225034",
+      "campaign": "fixed",
+      "comparable": false,
+      "differences": [
+        "headSha",
+        "executionSha",
+        "conclusion",
+        "runner",
+        "unresolved-custody-references",
+        "selected-evidence-incomplete",
+        "not-two-green-samples",
+        "unknown-runner-or-cache"
+      ],
+      "sampleCounts": {
+        "left": 1,
+        "right": 1
+      },
+      "stableSpeedupEstimate": null,
+      "causalPerformanceClaim": false
+    },
+    {
+      "left": "37001901277:1:11225817644",
+      "right": "37008083534:1:11229225034",
+      "campaign": "fresh",
+      "comparable": false,
+      "differences": [
+        "headSha",
+        "executionSha",
+        "conclusion",
+        "runner",
+        "unresolved-custody-references",
+        "selected-evidence-incomplete",
+        "not-two-green-samples",
+        "unknown-runner-or-cache"
+      ],
+      "sampleCounts": {
+        "left": 1,
+        "right": 1
+      },
+      "stableSpeedupEstimate": null,
+      "causalPerformanceClaim": false
+    },
+    {
+      "left": "37001901277:1:11225817644",
+      "right": "37008083534:1:11229225034",
+      "campaign": "capacity",
+      "comparable": false,
+      "differences": [
+        "headSha",
+        "executionSha",
+        "conclusion",
+        "runner",
+        "workloadSha256",
+        "unresolved-custody-references",
+        "selected-evidence-incomplete",
+        "not-two-green-samples",
+        "unknown-runner-or-cache"
+      ],
+      "sampleCounts": {
+        "left": 1,
+        "right": 1
+      },
+      "stableSpeedupEstimate": null,
+      "causalPerformanceClaim": false
+    }
+  ]
+}

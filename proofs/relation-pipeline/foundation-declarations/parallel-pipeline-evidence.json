@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "parallel-pipeline-evidence",
+  "kind": "change",
+  "revision": "6efc625efd006471224d5b0a3a788de4ab2a4c45",
+  "parents": [
+    "4f6feed519170e46c0065d1491c40287e6d34f1a"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "4f6feed519170e46c0065d1491c40287e6d34f1a",
+          "digest": "de409cdab2ba453ae6bf107c5f08a398cf8413df2aee171ff89d90dc3288f85e",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "d2145f41e8a6898fd84629bb76be49167751e52e6092ac2eba310bb1166981b0",
+      "afterMode": "100644",
+      "reason": "Run the unchanged ordinary-mutation and structural-capacity campaigns in separate full-history checkouts at the same tested revision. Keep capacity restoration, its positive and negative audits, and final normal three-target execution together. Preserve pipeline-evidence as the fail-closed required join and retain every existing campaign, target, fresh exploration, shrink, audit and global aggregate requirement. Transfer only sealed same-run/same-attempt evidence through exact immutable artifact IDs, verify bounded regular-file archive and per-file digests, retain original compiled workspace/receipt identities, reject collisions, and run existing audits against read-only transferred bytes without restoring compiler build trees. No acceptance skip, proof-result reuse, new cache or workflow permission change is introduced."
+    }
+  ]
+}
