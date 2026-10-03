@@ -11,6 +11,7 @@ import { nativeProfile } from '../backing/source.mjs';
 import { inspectParentStartup } from '../backing/parent-layout.mjs';
 import { parentOverlay } from './overlay.mjs';
 import { checkParentCensus, inspectParentCorePhases } from './bounds.mjs';
+import { inspectProviderConstruction } from './provider-construction.mjs';
 export const directory = '.artifacts/relation-pipeline/capacity/parent-control-probe';
 const pin = JSON.parse(readFileSync(new URL('../../../../toolchain.json', import.meta.url)));
 export function parentCase() {
@@ -32,6 +33,7 @@ export function auditParentStartup(report, current, read) {
   assert.equal(model.logPath, `${directory}/models/${model.logDigest}.log`);
   assert.equal(hash(read(model.logPath)), model.logDigest);
   assert(read(model.logPath).toString().includes('3 conditional retained parent-core propositions checked'));
+  assert(read(model.logPath).toString().includes('2 conditional provider-construction propositions checked'));
   assert.deepEqual(report.toolchain, pin);
   const runtime = report.nativeRuntime;
   assert(nativeProfile.supported.includes(runtime.platform));
@@ -99,5 +101,9 @@ export function auditParentStartup(report, current, read) {
   const core = inspectParentCorePhases(report.case, facts[0],
     entry.observation.faults.filter(f => f.kind === 'parent core observation'), run.target);
   assert.deepEqual(report.retainedCore, core, 'Retained-core recipe differs from independent input/source/observations');
-  return { kind: 'finite native startup and retained-core correspondence', ...inspectParentStartup(facts[0], run.target), retainedCore: core };
+  const construction = inspectProviderConstruction(
+    entry.observation.faults.filter(f => f.kind === 'provider construction observation'), read, run.target);
+  assert.deepEqual(report.providerConstruction, construction, 'Provider recipe differs from independent source and actual construction');
+  return { kind: 'finite native startup, retained-core and provider-construction correspondence',
+    ...inspectParentStartup(facts[0], run.target), retainedCore: core, providerConstruction: construction };
 }

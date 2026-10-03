@@ -27,3 +27,11 @@ extern "C" fn parent_core_phase_probe(
   parent : ManagedProviderExecution,
   phase : Int,
 ) -> String = "actql_proof_parent_phase"
+
+///|
+#borrow(candidates, execution, measurement)
+extern "C" fn provider_construction_probe(
+  candidates : Array[ManagedProvider],
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+) -> String = "actql_proof_provider_construction"
