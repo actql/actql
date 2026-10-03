@@ -1806,9 +1806,33 @@ async function exerciseStrategyGraph(
     expected:[{id:2,node_name:'second'}],completedTasks:9,
   }, {
     name:'retained-trail-relation-filter', retainedOutput:true,
+    retainedTraversal:true,
     steps:[
       {from:'g',traverse:{start:{from:'seeds',id:'element'},
-        direction:'out',min_hops:1,max_hops:1,path_mode:'trail',
+        direction:'out',min_hops:1,max_hops:3,path_mode:'trail',
+        emit:'paths'},as:'paths'},
+      {from:'paths',filter:'hop_count > 0',as:'out'},
+    ],
+    fields:['hop_count'],secondFields:['hop_count'],
+    expected:[{hop_count:1},{hop_count:2},{hop_count:1},{hop_count:2}],
+  }, {
+    name:'retained-walk-relation-filter', retainedOutput:true,
+    retainedTraversal:true,
+    steps:[
+      {from:'g',traverse:{start:{from:'seeds',id:'element'},
+        direction:'out',min_hops:1,max_hops:3,path_mode:'walk',
+        emit:'paths'},as:'paths'},
+      {from:'paths',filter:'hop_count > 0',as:'out'},
+    ],
+    fields:['hop_count'],secondFields:['hop_count'],
+    expected:[{hop_count:1},{hop_count:2},{hop_count:3},
+      {hop_count:1},{hop_count:2},{hop_count:3}],
+  }, {
+    name:'retained-acyclic-relation-filter', retainedOutput:true,
+    retainedTraversal:true,
+    steps:[
+      {from:'g',traverse:{start:{from:'seeds',id:'element'},
+        direction:'out',min_hops:1,max_hops:3,path_mode:'acyclic',
         emit:'paths'},as:'paths'},
       {from:'paths',filter:'hop_count > 0',as:'out'},
     ],
@@ -1828,7 +1852,7 @@ async function exerciseStrategyGraph(
     const consumerA = graphProgram.stages.find(stage => stage.id === 'consumer_a');
     const consumerB = graphProgram.stages.find(stage => stage.id === 'consumer_b');
     const tail = graphProgram.stages.find(stage => stage.id === 'tail');
-    if (publicationCase.name === 'retained-trail-relation-filter') {
+    if (publicationCase.retainedTraversal) {
       const seedSource = {
         id:'seed_source',
         inputs:{rows:{result:{stage:'values',result:'r'}}},

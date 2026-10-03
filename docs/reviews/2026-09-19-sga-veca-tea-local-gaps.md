@@ -23,6 +23,18 @@ may satisfy an obsolete dispatch marker. Nonempty-hop predicate/resource variant
 and the other SGA consumers remain open; gate success is not all-SGA completion.
 See `docs/reviews/2026-10-02-property-graph-vertical.md` for checkpoint evidence.
 
+The current retained-Store traversal route is exercised for WALK, TRAIL, and
+ACYCLIC `emit: paths` followed by a Relation filter in the same Stage. The
+standard Node Host test reads the producer and two consumer Named Results from
+the real Store against independently fixed start-major rows. A portable
+three-target fixture checks exact path values and order for stored and viewed
+Graph inputs, multiple resume quanta, reversed physical edge insertion, and
+all three directions for TRAIL. The SGA fixture raises only its authored
+fragment-value cap to admit the canonical multi-hop path values; it does not
+alter the product limit. This closes those path-mode delivery shapes, not
+predicate-bearing traversal, all Graph obligations, or the blocked legacy
+Graph-to-Relation Bridges.
+
 ## Status interpretation (2026-09-28)
 
 This document contains chronological investigation notes as well as later
