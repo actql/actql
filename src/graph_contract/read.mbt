@@ -117,84 +117,11 @@ fn read_properties(
 }
 
 ///|
-/// Read the existing closed graph structural body. This checks declared types
-/// and laws, not graph data, issuer authority, or canonical envelope bytes.
+/// Read only the current definition-scoped Graph contract. Historical seven-field
+/// schemas remain provenance, not an executable input or implicit conversion.
 pub fn read_cursor(
   root : @decode.Cursor,
   limits : Limits,
 ) -> Result[CheckedContract, ReadIssue] {
-  if limits.max_bytes < 0 || limits.max_nodes < 0 || limits.max_depth < 0 {
-    return Err(InvalidLimits)
-  }
-  try {
-    let b = {
-      nodes: limits.max_nodes,
-      text: limits.max_bytes,
-      depth: limits.max_depth,
-    }
-    charge_nodes(b, 1)
-    if @decode.object_length(root) != Some(7) {
-      stop(InvalidBody)
-    }
-    let object = match
-      @decode.closed_object(root, [
-        "version", "node_id_contract", "node_properties", "edge_properties", "edge_labels",
-        "identity_law_cid", "value_law_cid",
-      ]) {
-      Ok(v) => v
-      Err(_) => stop(InvalidBody)
-    }
-    if text_value(required(object, "version"), b) != "actql-graph-contract/0.1" {
-      stop(InvalidBody)
-    }
-    for key in ["identity_law_cid", "value_law_cid"] {
-      if text_value(required(object, key), b) != law_cid() {
-        stop(LawMismatch)
-      }
-    }
-    let id = read_type(required(object, "node_id_contract"), b)
-    let nodes = read_properties(required(object, "node_properties"), b, limits)
-    let edges = read_properties(required(object, "edge_properties"), b, limits)
-    let label_cursor = required(object, "edge_labels")
-    let labels = if @decode.is_null(label_cursor) {
-      charge_nodes(b, 1)
-      None
-    } else {
-      let count = match @decode.array_length(label_cursor) {
-        Some(n) => n
-        None => stop(InvalidBody)
-      }
-      charge_nodes(b, 1)
-      charge_nodes(b, count)
-      let values = []
-      let mut previous = None
-      for i in 0..<count {
-        let label = text_value(@decode.element_at(label_cursor, i).unwrap(), b)
-        if previous is Some(p) && @unicode.compare_utf16(p, label) >= 0 {
-          stop(NonCanonicalLabels)
-        }
-        previous = Some(label)
-        values.push(label)
-      }
-      Some(values)
-    }
-    let carrier = match
-      @carrier.graph(
-        id,
-        nodes,
-        edges,
-        labels~,
-        max_labels=limits.max_nodes,
-        max_label_bytes=limits.max_bytes,
-      ) {
-      Ok(v) => v
-      Err(_) => stop(InvalidStructure)
-    }
-    match admit(carrier, limits) {
-      Ok(v) => Ok(v)
-      Err(_) => stop(BudgetExceeded)
-    }
-  } catch {
-    ReadStop(e) => Err(e)
-  }
+  read_property_graph_cursor(root, limits)
 }

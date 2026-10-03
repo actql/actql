@@ -142,59 +142,24 @@ pub fn operation_scalar_demand(
         | AtomicMatchLimits
         | TeaProfile => None
       }
-    GraphRequirement(v) =>
-      match v {
-        BindPositiveCount(name) => Some(SafeInteger(name, minimum=1L))
-        BindNonnegativeCount(name) => Some(SafeInteger(name, minimum=0L))
-        ValidateGraphData
-        | ResolveSgaProfile
-        | ResolveGraphResources
-        | ComponentIdentityOrder
-        | BoundsReportOrder
-        | EnforceOutputGuard => None
-      }
     TraverseRequirement(v) =>
       match v {
         BindTraversalOutputGuard(name) => Some(SafeInteger(name, minimum=1L))
         AdmitTraversalGraph
         | RespectTraversalHopBounds
-        | EvaluateTraversalHopPredicates
-        | EmitMinimumNodeDepth
-        | EnumerateSimplePaths
+        | FilterTraversalLabels
+        | EnumeratePropertyPaths
         | DeduplicateExactPaths
         | CanonicalTraversalOrder
         | EnforceTraversalOutputGuard
         | ResolveTraversalResources
-        | ResolveTraversalProfile => None
-      }
-    ShortestRequirement(v) =>
-      match v {
-        BindShortestOutputGuard(name) => Some(SafeInteger(name, minimum=1L))
-        AdmitShortestGraph
-        | RequireEndpointMembership
-        | ValidateAllNonnegativeFiniteWeights
-        | FoldPathCostsWithOverrange
-        | RejectSelectedOverrangeAtomically
-        | SelectSimpleHopBoundedPaths
-        | ApplyCanonicalPathTieBreaks
-        | CanonicalShortestOutputOrder
-        | EnforceShortestOutputGuard
-        | ResolveShortestResources
-        | ResolveShortestProfile => None
+        | ResolvePropertyGraphTraversalProfile => None
       }
     AppendRequirement(_)
     | SetRequirement(_)
     | ValuesRequirement(_)
-    | ProjectionRequirement(_)
     | MatchRequirement(_)
-    | ReachRequirement(_)
-    | SubgraphRequirement(_)
     | SelectorRequirement(_)
-    | EqualityRequirement(_)
-    | DiffRequirement(_)
-    | ApplyRequirement(_)
-    | StructuralRequirement(_)
-    | MeanRequirement(_)
     | ConstructionRequirement(_)
     | VectorRequirement(_)
     | NearestRequirement(_)

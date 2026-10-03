@@ -1,0 +1,43 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-local-guard-acquired-infer-ci",
+  "kind": "resolution",
+  "revision": "7086830562e50d4c805c26e7a884b2da6ea21e7f",
+  "parents": [
+    "ad26309eaee827ecab10d80afc399bf6e2c45129",
+    "c26adeb078fd54327cc9263544f4c57420f6e3c2"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "ad26309eaee827ecab10d80afc399bf6e2c45129",
+          "digest": "bb816881c7ab5d9d6a0444720a5d42ea7e22ff0b60e00d22e26b79bd3b0c41c9",
+          "mode": "100644"
+        },
+        {
+          "revision": "c26adeb078fd54327cc9263544f4c57420f6e3c2",
+          "digest": "cea8141d269389901753e357ecba72540480924e84b67d40514ae3d9ad63bcee",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "2d2bc636e6b0e5e890fbb716074b737786c65e461ed9918b7d4b51cd1da80f3d",
+      "afterMode": "100644",
+      "reason": "Compose the local guard's bounded fixture steps in existing Linux lint and macOS jobs with main's packed acquired-INFER acceptance and always-on evidence upload. Both independently reviewed command sets remain exactly once. Preserve all inherited jobs, needs, conditions, limits, compiler/proof commands and additive declarations; change no historical baseline or prior declaration."
+    }
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-343a5565c1ac",
+    "adopt-985dbbba2789",
+    "adopt-dafff1a1aeea",
+    "bounded-local-execution-guard",
+    "client-ci-runner-context",
+    "client-ci-split",
+    "issue-180-foundation-composition",
+    "packed-acquired-infer-acceptance",
+    "resolve-acquired-infer-client-ci",
+    "resolve-main-model-backing"
+  ]
+}

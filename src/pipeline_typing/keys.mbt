@@ -74,12 +74,8 @@ fn graph_key_operation(
   operation : CheckedOperation,
 ) -> @evidence.GraphKeyOperation? {
   match operation {
-    Graph(op) if @graph.operation(op) != NormalizeGraph =>
-      Some(GraphOperation(op))
     GraphMatch(op) => Some(MatchOperation(op))
-    Reach(op) => Some(ReachOperation(op))
     Traverse(checked~, ..) => Some(TraverseOperation(checked))
-    Shortest(checked~, ..) => Some(ShortestOperation(checked))
     _ => None
   }
 }
@@ -309,18 +305,6 @@ fn sync_keys(
             b,
             step.source,
             @evidence.transfer_nest_keys(previous, checked, {
-              max_work: b.work,
-              max_name_bytes: b.text,
-            }),
-          ),
-        )
-      (_, Projection(op)) if @projection.operation(op) == @projection.NodeRows ||
-        @projection.operation(op) == @projection.EdgeRows =>
-        Some(
-          key_result(
-            b,
-            step.source,
-            @evidence.graph_projection_keys(op, {
               max_work: b.work,
               max_name_bytes: b.text,
             }),

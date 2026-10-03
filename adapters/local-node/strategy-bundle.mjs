@@ -1,8 +1,9 @@
 // Local connector's Node driver. The kernel and reservation authority stay in
 // MoonBit; this wrapper never evaluates an expression or synthesizes a result.
 import {readLocalRetainedInput} from './retained-input.mjs';
-import {localRetainedStore} from './retained-store.mjs';
+import {localRetainedStore, localSnapshotStore} from './retained-store.mjs';
 import {prepareLocalRetainedOutput} from './retained-output.mjs';
+import {prepareLocalCarrierSnapshot} from './carrier-snapshot.mjs';
 import {planManagedInputRows, registerManagedMemoryInput,
   withManagedInputRows, withManagedOutputRows} from
   '../store-local/managed-memory-representations.mjs';
@@ -90,6 +91,7 @@ const runManagedFinalization = async (
 
 export function localStrategyContribution(moon, setup, checked, configuration) {
   const createLease = localRetainedStore(configuration);
+  const createSnapshotLease = localSnapshotStore(configuration);
   const registration = moon.strategyModule_local_Registration(setup);
   let nextMaterial = 1;
   return Object.freeze({
@@ -231,10 +233,11 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
       );
       const failureProgress = beginManagedFailureProgress(
         moon,
-        true,
+        createSnapshotLease == null || typeof operations.prepare_carrier_snapshot !== 'function',
         typeof operations.cleanup_refresh !== 'function',
       );
       let available = true;
+      let snapshot, snapshotDiagnostic;
       try {
         const transfers = operations.inputs;
         const relationInputs = dispatchInputs.filter(input =>
@@ -314,6 +317,15 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
               throw new Error('ExecutionSiteCompletionNotReady');
             }
             const carrierMaterial = operations.carrier_material?.();
+            if (carrierMaterial != null && createSnapshotLease != null &&
+                typeof operations.prepare_carrier_snapshot === 'function') {
+              // Keep the physical handle before the first allocation can run;
+              // failures hand it to the existing common failure progression.
+              snapshot = prepareLocalCarrierSnapshot(
+                operations, createSnapshotLease, checked, signal,
+              );
+              snapshotDiagnostic = await snapshot.roundtrip();
+            }
             const payload = nextMaterial++;
             const boundedFinalization =
               typeof operations.prepare_finalization === 'function' &&
@@ -355,6 +367,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
             outputRows: 0,
             siteTransfers: resolved.records.length,
             siteTransferRecords: resolved.records,
+            ...(snapshotDiagnostic == null ? {} : {snapshot: snapshotDiagnostic}),
           }),
         });
         const outputRows = operations.output_rows();
@@ -407,6 +420,9 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         stopBoundedExecution(operations, checked);
         throw settleFailedManagedOperations(
           operations, checked, error, failureProgress,
+          snapshot == null ? [] : [{
+            close: snapshot.close, cleanupHandle: snapshot.cleanupHandle,
+          }],
         );
       }
     },

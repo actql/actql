@@ -1,36 +1,124 @@
 ///|
-test "traversal semantic bindings preserve mode predicates input roles and unresolved guards" {
-  let fields = @carrier.rows(
-    [],
-    field_set=Closed,
-    max_fields=0,
-    max_name_bytes=0,
-  ).unwrap()
-  let number = @contract.primitive(NumberType, nullable=false)
-  let graph = @carrier.graph(
-    number,
-    fields,
-    fields,
-    labels=None,
-    max_labels=0,
-    max_label_bytes=0,
-  ).unwrap()
+test "keyed traversal checks retain explicit mode and never reuse simple-path law obligations" {
+  let producer = property_execution_pipeline()
+  let graph = @pipeline.carrier_at(producer, @pipeline.Step(1)).unwrap()
+  guard graph is @carrier.GraphValue(schema) else { fail("keyed Graph schema") }
+  let domain = @carrier.property_graph_domain(
+    @carrier.graph_property_definition(schema),
+  )
+  let identity = "{\"definition\":\"N\",\"domain\":\"" +
+    domain +
+    "\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}"
+  for
+    (name, mode) in [
+      ("walk", @graph.Walk),
+      ("trail", @graph.Trail),
+      ("acyclic", @graph.Acyclic),
+    ] {
+    let pipeline = @pipeline.check_carriers(
+      asof_test_cursor(
+        "[{\"from\":\"g\",\"traverse\":{\"start\":{\"ids\":[" +
+        identity +
+        "]},\"hops\":[{\"direction\":\"out\"}],\"path_mode\":\"" +
+        name +
+        "\",\"emit\":\"paths\"}}]",
+      ),
+      [("g", graph)],
+      None,
+      None,
+      {
+        max_steps: 1,
+        max_work: 100000,
+        max_text_bytes: 100000,
+        max_nodes: 10000,
+        max_tokens: 10000,
+        max_depth: 100,
+      },
+    ).unwrap()
+    let step = @pipeline.step_at(pipeline, 0).unwrap()
+    assert_eq(
+      @pipeline.operation_profile_at(step.operation, 0),
+      Some(@pipeline.PropertyGraph),
+    )
+    assert_eq(
+      @pipeline.operation_profile_adopted_law_at(@pipeline.PropertyGraph, 0),
+      Some(@pipeline.PropertyGraphLaw),
+    )
+    let body = @pipeline.operation_obligation_group_at(step.operation, 0).unwrap()
+    let rules : Array[TraversalRule] = []
+    let mut unresolved = 0
+    for index in 0..<@pipeline.operation_obligations_count(body) {
+      let site : OperationRequirementSite = {
+        stage: 0,
+        producer_visit: 0,
+        step: 0,
+        group: 0,
+        index,
+        pipeline,
+        obligations: body,
+        requirement: @pipeline.operation_obligations_at(body, index).unwrap(),
+      }
+      match traversal_execution_check(site).unwrap() {
+        Some(TraversalExecution(check)) => {
+          assert_true(physical_equal(check.step, step))
+          assert_eq(@graph.traverse_property_path_mode(check.operation), mode)
+          assert_eq(check.input, @pipeline.Input(0))
+          assert_true(check.selector_relation is None)
+          rules.push(check.rule)
+        }
+        None => {
+          assert_true(
+            site.requirement
+            is @pipeline.TraverseRequirement(
+              ResolveTraversalResources
+              | ResolvePropertyGraphTraversalProfile
+            ),
+          )
+          unresolved += 1
+        }
+        _ => fail("wrong keyed traversal requirement")
+      }
+    }
+    assert_eq(rules, [
+      AdmitInputGraph,
+      RespectAuthoredHops,
+      FilterAuthoredLabels,
+      OrderTraversalRows,
+      EnumeratePropertyPaths,
+      DeduplicatePathIdentities,
+    ])
+    assert_eq(unresolved, 2)
+  }
+}
+
+///|
+test "current TRAIL bindings preserve mode input roles custody and unresolved guards" {
+  let producer = property_execution_pipeline()
+  let graph = @pipeline.carrier_at(producer, @pipeline.Step(1)).unwrap()
+  guard graph is @carrier.GraphValue(schema) else { fail("current Graph") }
+  let domain = @carrier.property_graph_domain(
+    @carrier.graph_property_definition(schema),
+  )
+  let identity = "{\"definition\":\"N\",\"domain\":\"" +
+    domain +
+    "\",\"key\":[2],\"key_types\":[{\"kind\":\"number\"}]}"
   let rows = @carrier.relation(
     @carrier.rows(
-      [(Unqualified("id"), Some(number))],
+      [(Qualified(Left, "element"), Some(@carrier.graph_identity(schema)))],
       field_set=Closed,
       max_fields=1,
-      max_name_bytes=10,
+      max_name_bytes=100,
     ).unwrap(),
   )
   for
     start in [
-      "{\"ids\":[2,2]}", "{\"from\":\"r\",\"id\":\"id\"}", "{\"where\":{\"literal\":false}}",
+      "{\"ids\":[" + identity + "," + identity + "]}",
+      "{\"from\":\"r\",\"id\":\"left.element\"}",
     ] {
     for patterned in [false, true] {
-      for emission in ["nodes", "paths"] {
+      for emission in ["paths"] {
         let mode = if patterned {
-          "\"hops\":[{\"direction\":\"out\",\"edge_where\":{\"literal\":false}},{\"direction\":\"in\",\"node_where\":{\"literal\":true}}]"
+          "\"hops\":[{\"direction\":\"out\"},{\"direction\":\"in\"}]"
         } else {
           "\"direction\":\"both\",\"min_hops\":0,\"max_hops\":9007199254740992"
         }
@@ -42,7 +130,7 @@ test "traversal semantic bindings preserve mode predicates input roles and unres
             mode +
             ",\"emit\":\"" +
             emission +
-            "\",\"max_output_rows\":1}}]",
+            "\",\"path_mode\":\"trail\",\"max_output_rows\":1}}]",
           ),
           [("g", graph), ("r", rows)],
           None,
@@ -64,15 +152,11 @@ test "traversal semantic bindings preserve mode predicates input roles and unres
         let expected : Array[TraversalRule] = [
           AdmitInputGraph,
           RespectAuthoredHops,
-          EvaluateHopConditions,
+          FilterAuthoredLabels,
           OrderTraversalRows,
         ]
-        if emission == "nodes" {
-          expected.push(EmitMinimumDepth)
-        } else {
-          expected.push(EnumerateSimplePaths)
-          expected.push(DeduplicatePathIdentities)
-        }
+        expected.push(EnumeratePropertyPaths)
+        expected.push(DeduplicatePathIdentities)
         let actual : Array[TraversalRule] = []
         let mut unresolved = 0
         for index in 0..<@pipeline.operation_obligations_count(body) {
@@ -92,7 +176,7 @@ test "traversal semantic bindings preserve mode predicates input roles and unres
                 site.requirement
                 is @pipeline.TraverseRequirement(
                   ResolveTraversalResources
-                  | ResolveTraversalProfile
+                  | ResolvePropertyGraphTraversalProfile
                   | EnforceTraversalOutputGuard
                 ),
               )
@@ -127,12 +211,6 @@ test "traversal semantic bindings preserve mode predicates input roles and unres
                 let second = @graph.traverse_hop_at(check.operation, 1).unwrap()
                 assert_eq(@graph.hop_direction(first), @graph.Outgoing)
                 assert_eq(@graph.hop_direction(second), @graph.Incoming)
-                assert_true(
-                  @graph.hop_predicate(first, @graph.Edges) is Some(_),
-                )
-                assert_true(
-                  @graph.hop_predicate(second, @graph.Nodes) is Some(_),
-                )
               }
               assert_eq(
                 operation_execution_phase(TraversalExecution(check)),

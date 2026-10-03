@@ -108,7 +108,10 @@ fn issued_fixture_checked(
       ),
     ]
   } else if components {
-    [components_fixture_capacity(environment, "graph", rows=components_rows)]
+    // This historical authoring probe has no current execution grant.
+    // The sole Property Graph admission refuses its retired constructor.
+    let _ = components_rows
+    []
   } else if reach {
     [reach_fixture_capacity(environment, "graph")]
   } else if shortest {
@@ -140,6 +143,7 @@ fn issued_fixture_checked(
         environment,
         { text_time: false, veca, },
         { rela: true, sga, tea, calendar: false, text_rank: false, },
+        property_graph=sga,
         numeric_profile=if numeric {
           Some(@numeric.builtin_profile())
         } else {

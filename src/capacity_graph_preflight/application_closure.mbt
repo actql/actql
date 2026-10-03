@@ -8,7 +8,6 @@ pub(all) enum ApplicationClosureIssue {
   ForeignGuardClosure
   SequenceGuardBindings(Int)
   TraversalGuardBindings(Int)
-  ComponentsGuardBindings(Int)
   GuardBindings(Int, @program.GuardBindingIssue)
   ProofWorkLimit
   InvalidProofOwner(Int, Int)
@@ -135,13 +134,6 @@ pub fn check_application_closure(
         @pipeline.bound_guard_closure_at(bound_guards, i).unwrap(),
       ) {
       return Err(TraversalGuardBindings(i))
-    }
-    if app.consumers.components is Some(components) &&
-      !@program.components_application_guard_bindings_match(
-        components,
-        @pipeline.bound_guard_closure_at(bound_guards, i).unwrap(),
-      ) {
-      return Err(ComponentsGuardBindings(i))
     }
     let bound = match
       @program.check_guard_bindings(

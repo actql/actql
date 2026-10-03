@@ -5,8 +5,7 @@ fn rule_input_count_valid(rule : Rule, n : Int) -> Bool {
     Preserve | Multiply(_) | GraphMeasure(_, _, _, _) => n == 1
     Clamp(_) => n <= 1
     Sum | Join(_) => n == 2
-    GraphCombine(_, expected) => n == expected
-    GraphQuery(query) => n == query.inputs.length()
+    PropertyGraphMeasure(_, _, expected) => n == expected
     QueryTopK(_) => n == 1 || n == 2
     Ranking(expected, maximum) =>
       n == expected || (n == 0 && maximum is Some(_))
@@ -20,13 +19,12 @@ fn rule_input_descriptor(
   i : Int,
 ) -> (@arithmetic.BoundUnit, Int) {
   let unit = match rule {
-    GraphMeasure(_, unit, _, _) | GraphCombine(unit, _) => unit
-    GraphQuery(query) => query.inputs[i].0
+    GraphMeasure(_, unit, _, _) => unit
     _ => @arithmetic.Rows
   }
   let edge = match rule {
     GraphMeasure(_, _, edge, _) => edge
-    GraphQuery(query) => query.inputs[i].1
+    PropertyGraphMeasure(_, start, _) => start + i
     QueryTopK(_) if n == 1 => 1
     _ => i
   }

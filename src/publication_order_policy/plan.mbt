@@ -147,22 +147,6 @@ pub fn[T] decide(
             authored: true,
           })
         }
-        // Keep ordinary key and retained-sequence precedence. Only an authored
-        // Result may additionally use an admitted Graph edge identity; this
-        // does not make its nullable label a general Relation candidate key.
-        if selected is None && prior_order is None && keys is Some(keys) {
-          let selection = match
-            @evidence.select_graph_order_identity(source, keys, {
-              max_work: b.work,
-              max_name_bytes: b.text,
-            }) {
-            Ok(v) => v
-            Err(_) => fail(source, BudgetExceeded)
-          }
-          b.work -= selection.work
-          b.text -= selection.name_bytes
-          selected = selection.key
-        }
         // Authored order takes priority: never replace it with projected-field
         // fallback or inherited order when its ties remain unresolved.
         if selected is None {

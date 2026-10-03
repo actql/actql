@@ -57,14 +57,6 @@ pub fn check_source_coverage(
               @program.join_limit_policy(v),
             ),
           )
-        Some(@program.ComponentsEnforcement(v)) =>
-          Some(
-            (
-              @program.components_limit_program(v),
-              @program.components_limit_sources(v),
-              @program.components_limit_policy(v),
-            ),
-          )
         Some(@program.TraversalEnforcement(v)) =>
           Some(
             (

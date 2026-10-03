@@ -21,17 +21,9 @@ pub enum PreparedStep {
   AppendStep(PreparedAppendKernel)
   SetStep(PreparedSetKernel)
   NestStep(PreparedNestKernel)
-  GraphBasicStep(PreparedGraphBasic)
-  GraphStructuralStep(PreparedGraphStructural)
-  GraphUnionStep(PreparedGraphUnion)
-  GraphMeanStep(PreparedGraphMean)
   GraphMatchStep(PreparedGraphMatch)
-  GraphReachStep(PreparedGraphReach)
-  GraphSubgraphStep(PreparedGraphSubgraph)
   GraphTraverseStep(PreparedGraphTraverse)
-  GraphShortestStep(PreparedGraphShortest)
-  GraphRelationStep(PreparedGraphRelation)
-  GraphConstructionStep(PreparedGraphConstruction)
+  PropertyGraphConstructionStep(PreparedPropertyGraphConstruction)
   VectorStep(PreparedVector)
   EventStep(PreparedEvent)
   CarrierProjectionStep(PreparedCarrierProjection)
@@ -63,14 +55,8 @@ pub(all) enum SequenceIssue {
   AppendFailure(Int, AppendIssue)
   SetFailure(Int, SetIssue)
   NestFailure(Int, NestIssue)
-  GraphBasicFailure(Int, GraphBasicIssue)
-  GraphMeanFailure(Int, GraphMeanIssue)
   GraphMatchFailure(Int, GraphMatchIssue)
-  GraphReachFailure(Int, GraphReachIssue)
-  GraphSubgraphFailure(Int, GraphSubgraphIssue)
   GraphTraverseFailure(Int, GraphTraverseIssue)
-  GraphShortestFailure(Int, GraphShortestIssue)
-  GraphRelationFailure(Int, GraphRelationIssue)
   GraphConstructionFailure(Int, GraphConstructionIssue)
   VectorFailure(Int, VectorIssue)
   EventFailure(Int, EventIssue)
@@ -279,32 +265,6 @@ fn prepare_sequence_count(
         }
         NestStep(kernel)
       }
-      GraphUnion(_) => {
-        let prepared = match prepare_graph_union_node(owner.prepared.nodes[i]) {
-          Ok(value) => value
-          Err(issue) => return Err(issue)
-        }
-        GraphUnionStep(prepared)
-      }
-      GraphMeanValue(_) => {
-        let (prepared, used_entries, used_names, used_work) = match
-          prepare_graph_mean_node(
-            owner.prepared.nodes[i],
-            max_entries=bindings,
-            max_name_bytes=names,
-            max_work=expressions.max_work,
-          ) {
-          Ok(value) => value
-          Err(issue) => return Err(GraphMeanFailure(i, issue))
-        }
-        bindings -= used_entries
-        names -= used_names
-        expressions = {
-          ..expressions,
-          max_work: expressions.max_work - used_work,
-        }
-        GraphMeanStep(prepared)
-      }
       GraphMatchRows(_) => {
         let (prepared, used_entries, used_names, remaining) = match
           prepare_graph_match_node(
@@ -321,40 +281,6 @@ fn prepare_sequence_count(
         names -= used_names
         expressions = remaining
         GraphMatchStep(prepared)
-      }
-      GraphReachRows(_) => {
-        let (prepared, used_entries, used_names, remaining) = match
-          prepare_graph_reach_node(
-            owner,
-            i,
-            max_entries=bindings,
-            max_name_bytes=names,
-            expressions~,
-          ) {
-          Ok(value) => value
-          Err(issue) => return Err(GraphReachFailure(i, issue))
-        }
-        bindings -= used_entries
-        names -= used_names
-        expressions = remaining
-        GraphReachStep(prepared)
-      }
-      GraphSubgraphValue(_) => {
-        let (prepared, used_entries, used_names, remaining) = match
-          prepare_graph_subgraph_node(
-            owner,
-            i,
-            max_entries=bindings,
-            max_name_bytes=names,
-            expressions~,
-          ) {
-          Ok(value) => value
-          Err(issue) => return Err(GraphSubgraphFailure(i, issue))
-        }
-        bindings -= used_entries
-        names -= used_names
-        expressions = remaining
-        GraphSubgraphStep(prepared)
       }
       GraphTraverseRows(_) => {
         let (prepared, used_entries, used_names, remaining) = match
@@ -373,50 +299,15 @@ fn prepare_sequence_count(
         expressions = remaining
         GraphTraverseStep(prepared)
       }
-      GraphShortestRows(_) => {
-        let (prepared, used_entries, used_names, remaining) = match
-          prepare_graph_shortest_node(
+      PropertyGraphConstructionValue(_) => {
+        let (prepared, used_entries, used_names, used_work) = match
+          prepare_property_graph_construction_node(
             owner,
             i,
             max_entries=bindings,
             max_name_bytes=names,
-            expressions~,
-          ) {
-          Ok(value) => value
-          Err(issue) => return Err(GraphShortestFailure(i, issue))
-        }
-        bindings -= used_entries
-        names -= used_names
-        expressions = remaining
-        GraphShortestStep(prepared)
-      }
-      GraphEqualityRows(_) | GraphDiffRows(_) | GraphApplyValue(_) => {
-        let (prepared, used_entries, used_names, used_work) = match
-          prepare_graph_relation_node(
-            owner.prepared.nodes[i],
-            max_entries=bindings,
-            max_name_bytes=names,
             max_work=expressions.max_work,
-          ) {
-          Ok(value) => value
-          Err(issue) => return Err(GraphRelationFailure(i, issue))
-        }
-        bindings -= used_entries
-        names -= used_names
-        expressions = {
-          ..expressions,
-          max_work: expressions.max_work - used_work,
-        }
-        GraphRelationStep(prepared)
-      }
-      GraphConstructionValue(_) => {
-        let (prepared, used_entries, used_names, used_work) = match
-          prepare_graph_construction_node(
-            owner.prepared.nodes[i],
-            step=i,
-            max_entries=bindings,
-            max_name_bytes=names,
-            max_work=expressions.max_work,
+            max_depth=expressions.max_depth,
           ) {
           Ok(value) => value
           Err(issue) => return Err(GraphConstructionFailure(i, issue))
@@ -427,7 +318,7 @@ fn prepare_sequence_count(
           ..expressions,
           max_work: expressions.max_work - used_work,
         }
-        GraphConstructionStep(prepared)
+        PropertyGraphConstructionStep(prepared)
       }
       VectorValue(_) | NearestValue(_) | PoolValue(_) | RankingValue(_) => {
         let (prepared, used_bindings, used_names, used_work) = match
@@ -477,34 +368,6 @@ fn prepare_sequence_count(
           Err(issue) => return Err(CarrierProjectionFailure(i, issue))
         }
         CarrierProjectionStep(prepared)
-      }
-      BasicGraph(_) => {
-        let (prepared, used_bindings, used_names, used_work) = match
-          prepare_graph_basic_node(
-            owner,
-            owner.prepared.nodes[i],
-            max_bindings=bindings,
-            max_name_bytes=names,
-            max_work=expressions.max_work,
-          ) {
-          Ok(value) => value
-          Err(issue) => return Err(GraphBasicFailure(i, issue))
-        }
-        bindings -= used_bindings
-        names -= used_names
-        expressions = {
-          ..expressions,
-          max_work: expressions.max_work - used_work,
-        }
-        GraphBasicStep(prepared)
-      }
-      StructuralGraph(_) => {
-        let prepared = match
-          prepare_graph_structural_node(owner.prepared.nodes[i]) {
-          Ok(value) => value
-          Err(issue) => return Err(issue)
-        }
-        GraphStructuralStep(prepared)
       }
       Values(values) => {
         let prepared = match
@@ -642,17 +505,10 @@ pub fn emit_sequence_step_range(
       AppendStep(v) => emit_append_kernel(v, out)
       SetStep(v) => emit_set_kernel(v, out)
       NestStep(v) => emit_nest_kernel(v, out)
-      GraphBasicStep(v) => emit_graph_basic_node(v, out)
-      GraphStructuralStep(v) => emit_graph_structural_node(v, out)
-      GraphUnionStep(v) => emit_graph_union_node(v, out)
-      GraphMeanStep(v) => emit_graph_mean_node(v, out)
       GraphMatchStep(v) => emit_graph_match_node(v, out)
-      GraphReachStep(v) => emit_graph_reach_node(v, out)
-      GraphSubgraphStep(v) => emit_graph_subgraph_node(v, out)
       GraphTraverseStep(v) => emit_graph_traverse_node(v, out)
-      GraphShortestStep(v) => emit_graph_shortest_node(v, out)
-      GraphRelationStep(v) => emit_graph_relation_node(v, out)
-      GraphConstructionStep(v) => emit_graph_construction_node(v, out)
+      PropertyGraphConstructionStep(v) =>
+        emit_property_graph_construction_node(v, out)
       VectorStep(v) => emit_vector_node(v, out)
       EventStep(v) => emit_event_node(v, out)
       CarrierProjectionStep(v) => emit_carrier_projection_node(v, out)

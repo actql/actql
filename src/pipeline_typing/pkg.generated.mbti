@@ -28,6 +28,7 @@ import {
   "actql/actql/relation_values",
   "actql/actql/source_span",
   "actql/actql/source_value",
+  "actql/actql/stage_syntax",
   "actql/actql/temporal_window",
   "actql/actql/text_rank_profile",
   "actql/actql/time_series",
@@ -249,6 +250,10 @@ pub fn operation_obligations_at(OperationObligations, Int) -> OperationObligatio
 
 pub fn operation_obligations_count(OperationObligations) -> Int
 
+pub fn operation_obligations_match(OperationObligations) -> @graph_typing.CheckedMatch?
+
+pub fn operation_obligations_property_construction(OperationObligations) -> @graph_typing.CheckedPropertyConstruction?
+
 pub fn operation_obligations_scope(OperationObligations) -> OperationObligationScope
 
 pub fn operation_obligations_selector(OperationObligations) -> @graph_typing.CheckedSelector?
@@ -413,6 +418,7 @@ pub(all) enum AdoptedOperationLaw {
   RelaPrimitive
   SgaStructural
   SgaIdentity
+  PropertyGraphLaw
   VecaNumeric
 } derive(Eq, @debug.Debug)
 
@@ -444,19 +450,9 @@ pub enum CheckedOperation {
   Calendar(@calendar_typing.CheckedCalendar)
   Window(@temporal_window.CheckedWindow)
   Projection(@carrier_projection.CheckedProjection)
-  Graph(@graph_typing.CheckedGraph)
   GraphMatch(@graph_typing.CheckedMatch)
-  Reach(@graph_typing.CheckedReach)
-  Subgraph(selector~ : Target?, checked~ : @graph_typing.CheckedSubgraph)
   Traverse(selector~ : Target?, checked~ : @graph_typing.CheckedTraverse)
-  Shortest(source_selector~ : Target?, target_selector~ : Target?, checked~ : @graph_typing.CheckedShortest)
-  GraphEquality(right~ : Target, checked~ : @graph_typing.CheckedEquality)
-  GraphDiff(right~ : Target, checked~ : @graph_typing.CheckedDiff)
-  GraphApply(right~ : Target, checked~ : @graph_typing.CheckedApply)
-  GraphStructural(right~ : Target, checked~ : @graph_typing.CheckedStructural)
-  GraphUnion(@graph_typing.CheckedUnion)
-  GraphMean(@graph_typing.CheckedMean)
-  GraphConstruction(nodes~ : Target?, edges~ : Target, checked~ : @graph_typing.CheckedConstruction)
+  PropertyGraphConstruction(inputs~ : Array[Target], checked~ : @graph_typing.CheckedPropertyConstruction)
   Vector(@vector_typing.CheckedVector)
   Nearest(queries~ : Target, checked~ : @relation_evidence.CheckedNearest)
   Pool(@vector_typing.CheckedPool)
@@ -525,13 +521,6 @@ pub(all) enum ExpressionConsumer {
   AnalyticArgument(String)
   SequencePredicate(Int)
   GraphMatchPredicate
-  ReachStart
-  SubgraphNodes
-  SubgraphEdges
-  TraverseStart
-  TraverseEdges(Int)
-  TraverseNodes(Int)
-  ShortestEndpoint(@relation_schema.Side)
   InferInput(Int)
 } derive(Eq, @debug.Debug)
 
@@ -579,6 +568,7 @@ pub(all) enum GuardScope {
 
 pub(all) enum InputContract {
   ProducedInput(ProducedInput)
+  SourceViewInput(@stage_syntax.Stage, String, @decode_core.Cursor, @check_environment.SourceViewCarrier)
   CarrierInput(@carrier_contract.Carrier)
   KeyedInput(@relation_evidence.KeyedRelation)
   CandidateKeysInput(@relation_evidence.KeySet)
@@ -644,6 +634,7 @@ pub(all) enum IssueKind {
   MissingGuardBinding(String)
   InvalidGuardValue(String)
   UnsupportedOperation(String)
+  MissingPropertyProducerDefinition
   InvalidMetadata
   ReservedMetadataKey(String)
   Operation(@relation_typing.IssueKind)
@@ -702,19 +693,9 @@ pub(all) enum OperationObligation {
   SeriesRequirement(@time_series.Obligation)
   CalendarRequirement(@calendar_typing.Obligation)
   WindowRequirement(@temporal_window.Obligation)
-  ProjectionRequirement(@carrier_projection.GraphObligation)
-  GraphRequirement(@graph_typing.Obligation)
   MatchRequirement(@graph_typing.MatchObligation)
-  ReachRequirement(@graph_typing.ReachObligation)
-  SubgraphRequirement(@graph_typing.SubgraphObligation)
   TraverseRequirement(@graph_typing.TraverseObligation)
-  ShortestRequirement(@graph_typing.ShortestObligation)
   SelectorRequirement(@graph_typing.SelectorObligation)
-  EqualityRequirement(@graph_typing.EqualityObligation)
-  DiffRequirement(@graph_typing.DeltaObligation)
-  ApplyRequirement(@graph_typing.ApplyObligation)
-  StructuralRequirement(@graph_typing.StructuralObligation)
-  MeanRequirement(@graph_typing.MeanObligation)
   ConstructionRequirement(@graph_typing.ConstructionObligation)
   VectorRequirement(@vector_typing.Obligation)
   NearestRequirement(@relation_evidence.NearestObligation)
@@ -729,10 +710,7 @@ pub(all) enum OperationObligationScope {
   SequenceRows
   SequenceSemantics
   UnionFold(Int)
-  NodeSelector
   StartSelector
-  SourceSelector
-  TargetSelector
 } derive(Eq, @debug.Debug)
 
 type OperationObligations
@@ -749,6 +727,7 @@ pub(all) enum OperationOrderDemand {
 pub(all) enum OperationProfile {
   RelA
   SGA
+  PropertyGraph
   TEA
   VecA
   CalendarProfile

@@ -293,34 +293,6 @@ pub fn fragment_request_row_limits(FragmentRequest) -> FragmentRowLimits?
 
 pub fn fragment_row_limits_valid(FragmentRowLimits) -> Bool
 
-pub fn graph_basic_bounds(PreparedGraphBasic) -> (Int64?, Int64?, Int64?)?
-
-pub fn graph_basic_component_max_output_rows(PreparedGraphBasic) -> Int64?
-
-pub fn graph_basic_kind(PreparedGraphBasic) -> GraphBasicKind
-
-pub fn graph_basic_output_schema(PreparedGraphBasic) -> @relation_schema.Schema
-
-pub fn graph_construction_derives_nodes(PreparedGraphConstruction) -> Bool
-
-pub fn graph_construction_edge_label(PreparedGraphConstruction) -> @relation_schema.FieldName?
-
-pub fn graph_construction_edge_property_at(PreparedGraphConstruction, Int) -> @relation_schema.FieldName?
-
-pub fn graph_construction_edge_property_count(PreparedGraphConstruction) -> Int
-
-pub fn graph_construction_edge_source(PreparedGraphConstruction) -> @relation_schema.FieldName
-
-pub fn graph_construction_edge_target(PreparedGraphConstruction) -> @relation_schema.FieldName
-
-pub fn graph_construction_node_identity(PreparedGraphConstruction) -> @relation_schema.FieldName
-
-pub fn graph_construction_node_property_at(PreparedGraphConstruction, Int) -> @relation_schema.FieldName?
-
-pub fn graph_construction_node_property_count(PreparedGraphConstruction) -> Int
-
-pub fn graph_construction_output_carrier(PreparedGraphConstruction) -> @carrier_contract.Carrier
-
 pub fn graph_match_field_at(PreparedGraphMatch, Int) -> @relation_schema.FieldName?
 
 pub fn graph_match_field_count(PreparedGraphMatch) -> Int
@@ -339,111 +311,17 @@ pub fn graph_match_output_schema(PreparedGraphMatch) -> @relation_schema.Schema
 
 pub fn graph_match_predicate(PreparedGraphMatch) -> Expression?
 
+pub fn graph_match_property_binding(PreparedGraphMatch, String) -> @relation_schema.FieldName?
+
+pub fn graph_match_property_definition(PreparedGraphMatch) -> Int
+
+pub fn graph_match_property_schema(PreparedGraphMatch) -> @carrier_contract.Knowledge
+
+pub fn graph_match_property_scope_fields(PreparedGraphMatch) -> @carrier_contract.Knowledge
+
 pub fn graph_match_type_at(PreparedGraphMatch, Int) -> String?
 
 pub fn graph_match_type_count(PreparedGraphMatch) -> Int?
-
-pub fn graph_mean_input_count(PreparedGraphMean) -> Int
-
-pub fn graph_mean_input_step(PreparedGraphMean, Int) -> Int?
-
-pub fn graph_mean_input_target(PreparedGraphMean, Int) -> @pipeline_typing.Target?
-
-pub fn graph_mean_property_count(PreparedGraphMean, @graph_typing.EntityKind) -> Int
-
-pub fn graph_mean_property_name(PreparedGraphMean, @graph_typing.EntityKind, Int) -> String?
-
-pub fn graph_mean_property_strategy(PreparedGraphMean, @graph_typing.EntityKind, Int) -> @graph_typing.MeanStrategy?
-
-pub fn graph_mean_support(PreparedGraphMean, @graph_typing.EntityKind) -> Double
-
-pub fn graph_mean_weight(PreparedGraphMean, Int) -> Double?
-
-pub fn graph_reach_direction(PreparedGraphReach) -> @graph_typing.Direction
-
-pub fn graph_reach_max_depth(PreparedGraphReach) -> Int?
-
-pub fn graph_reach_output_schema(PreparedGraphReach) -> @relation_schema.Schema
-
-pub fn graph_reach_start(PreparedGraphReach) -> @graph_typing.ReachStart
-
-pub fn graph_reach_start_id_at(PreparedGraphReach, Int) -> @value_admission.CheckedValue?
-
-pub fn graph_reach_start_id_count(PreparedGraphReach) -> Int
-
-pub fn graph_reach_start_predicate(PreparedGraphReach) -> Expression?
-
-pub fn graph_reach_start_relation_field(PreparedGraphReach) -> @relation_schema.FieldName?
-
-pub fn graph_relation_apply_field(PreparedGraphRelation) -> String?
-
-pub fn graph_relation_diff_contract(PreparedGraphRelation) -> @value_contract.Contract?
-
-pub fn graph_relation_graph_contract_cid(PreparedGraphRelation) -> String?
-
-pub fn graph_relation_input_step(PreparedGraphRelation, Int) -> Int?
-
-pub fn graph_relation_kind(PreparedGraphRelation) -> GraphRelationKind
-
-pub fn graph_relation_output_schema(PreparedGraphRelation) -> @relation_schema.Schema
-
-pub fn graph_shortest_direction(PreparedGraphShortest) -> @graph_typing.Direction
-
-pub fn graph_shortest_endpoint_id_at(PreparedGraphShortest, @relation_schema.Side, Int) -> @value_admission.CheckedValue?
-
-pub fn graph_shortest_endpoint_id_count(PreparedGraphShortest, @relation_schema.Side) -> Int
-
-pub fn graph_shortest_endpoint_input_port(PreparedGraphShortest, @relation_schema.Side) -> Int?
-
-pub fn graph_shortest_endpoint_predicate(PreparedGraphShortest, @relation_schema.Side) -> Expression?
-
-pub fn graph_shortest_endpoint_relation_field(PreparedGraphShortest, @relation_schema.Side) -> @relation_schema.FieldName?
-
-pub fn graph_shortest_endpoint_single(PreparedGraphShortest, @relation_schema.Side) -> @value_admission.CheckedValue?
-
-pub fn graph_shortest_max_hops(PreparedGraphShortest) -> Int?
-
-pub fn graph_shortest_output_guard(PreparedGraphShortest) -> Int64?
-
-pub fn graph_shortest_output_schema(PreparedGraphShortest) -> @relation_schema.Schema
-
-pub fn graph_shortest_selection(PreparedGraphShortest) -> @graph_typing.PathSelection
-
-pub fn graph_shortest_type_at(PreparedGraphShortest, Int) -> String?
-
-pub fn graph_shortest_type_count(PreparedGraphShortest) -> Int?
-
-pub fn graph_shortest_weight(PreparedGraphShortest) -> @relation_schema.FieldName?
-
-pub fn graph_structural_has_edge_property_strategies(PreparedGraphStructural) -> Bool
-
-pub fn graph_structural_has_node_property_strategies(PreparedGraphStructural) -> Bool
-
-pub fn graph_structural_has_only_exact_property_strategies(PreparedGraphStructural) -> Bool
-
-pub fn graph_structural_has_property_strategies(PreparedGraphStructural) -> Bool
-
-pub fn graph_structural_output(PreparedGraphStructural) -> @carrier_contract.Carrier
-
-pub fn graph_structural_strategy_count(PreparedGraphStructural, @relation_schema.Side) -> Int
-
-pub fn graph_structural_strategy_kind(PreparedGraphStructural, @relation_schema.Side, Int) -> @graph_typing.FieldStrategy?
-
-pub fn graph_structural_strategy_name(PreparedGraphStructural, @relation_schema.Side, Int) -> String?
-
-pub fn graph_subgraph_edge_predicate(PreparedGraphSubgraph) -> Expression?
-
-pub fn graph_subgraph_has_edge_predicate(PreparedGraphSubgraph) -> Bool
-
-pub fn graph_subgraph_literal_edge_predicate(PreparedGraphSubgraph) -> Bool?
-
-pub fn graph_subgraph_literal_id_at(PreparedGraphSubgraph, Int) -> @value_admission.CheckedValue?
-
-pub fn graph_subgraph_literal_id_count(PreparedGraphSubgraph) -> Int?
-
-pub fn graph_subgraph_node_predicate(PreparedGraphSubgraph) -> Expression?
-
-pub fn graph_subgraph_relation_selector_field(PreparedGraphSubgraph) -> @relation_schema.FieldName?
 
 pub fn graph_traverse_bounds(PreparedGraphTraverse) -> (Int64, Int64)?
 
@@ -452,10 +330,6 @@ pub fn graph_traverse_emits_paths(PreparedGraphTraverse) -> Bool
 pub fn graph_traverse_hop_count(PreparedGraphTraverse) -> Int
 
 pub fn graph_traverse_hop_direction(PreparedGraphTraverse, Int) -> @graph_typing.Direction?
-
-pub fn graph_traverse_hop_edge_predicate(PreparedGraphTraverse, Int) -> Expression?
-
-pub fn graph_traverse_hop_node_predicate(PreparedGraphTraverse, Int) -> Expression?
 
 pub fn graph_traverse_hop_type_at(PreparedGraphTraverse, Int, Int) -> String?
 
@@ -467,27 +341,13 @@ pub fn graph_traverse_output_schema(PreparedGraphTraverse) -> @relation_schema.S
 
 pub fn graph_traverse_patterned(PreparedGraphTraverse) -> Bool
 
+pub fn graph_traverse_property_path_mode(PreparedGraphTraverse) -> @graph_typing.PropertyPathMode
+
 pub fn graph_traverse_start_id_at(PreparedGraphTraverse, Int) -> @value_admission.CheckedValue?
 
 pub fn graph_traverse_start_id_count(PreparedGraphTraverse) -> Int
 
-pub fn graph_traverse_start_predicate(PreparedGraphTraverse) -> Expression?
-
 pub fn graph_traverse_start_relation_field(PreparedGraphTraverse) -> @relation_schema.FieldName?
-
-pub fn graph_union_fold_output(PreparedGraphUnion, Int) -> @carrier_contract.Carrier?
-
-pub fn graph_union_fold_strategy_count(PreparedGraphUnion, Int, @relation_schema.Side) -> Int?
-
-pub fn graph_union_fold_strategy_kind(PreparedGraphUnion, Int, @relation_schema.Side, Int) -> @graph_typing.FieldStrategy?
-
-pub fn graph_union_fold_strategy_name(PreparedGraphUnion, Int, @relation_schema.Side, Int) -> String?
-
-pub fn graph_union_has_only_exact_property_strategies(PreparedGraphUnion) -> Bool
-
-pub fn graph_union_has_property_strategies(PreparedGraphUnion) -> Bool
-
-pub fn graph_union_input_count(PreparedGraphUnion) -> Int
 
 pub fn group_aggregate_argument(PreparedAggregate) -> PreparedAggregateArgument
 
@@ -880,6 +740,28 @@ pub fn projection_fields(PreparedProjection) -> Array[@relation_typing.Projectio
 pub fn projection_node_id(PreparedNode) -> String?
 
 pub fn projection_output_schema(PreparedProjection) -> @relation_schema.Schema
+
+pub fn property_binding_input(PropertyElementBinding) -> Int
+
+pub fn property_binding_keys(PropertyElementBinding) -> Array[Int]
+
+pub fn property_binding_properties(PropertyElementBinding) -> Array[Int]
+
+pub fn property_edge_binding_element(PropertyEdgeBinding) -> PropertyElementBinding
+
+pub fn property_edge_binding_keys(PropertyEdgeBinding) -> (Array[Int], Array[Int])
+
+pub fn property_graph_construction_checked(PreparedPropertyGraphConstruction) -> @graph_typing.CheckedPropertyConstruction
+
+pub fn property_graph_construction_edge_at(PreparedPropertyGraphConstruction, Int) -> PropertyEdgeBinding?
+
+pub fn property_graph_construction_edge_count(PreparedPropertyGraphConstruction) -> Int
+
+pub fn property_graph_construction_node_at(PreparedPropertyGraphConstruction, Int) -> PropertyElementBinding?
+
+pub fn property_graph_construction_node_count(PreparedPropertyGraphConstruction) -> Int
+
+pub fn property_graph_construction_step(PreparedPropertyGraphConstruction) -> Int
 
 pub fn root_at(RootIndex, Int) -> ExpressionRoot?
 
@@ -1296,26 +1178,8 @@ pub(all) struct FragmentRowLimits {
   max_work : Int64
 }
 
-pub(all) enum GraphBasicIssue {
-  InvalidGraphBasicLimits
-  InvalidGraphBasicWiring
-  GraphBasicPreparationLimit
-  MissingGraphBasicParameter(String)
-  InvalidGraphBasicParameter(String)
-} derive(Eq, @debug.Debug)
-
-pub(all) enum GraphBasicKind {
-  NormalizeBasic
-  DegreeIncomingBasic
-  DegreeOutgoingBasic
-  DegreeBothBasic
-  ComponentsWeakBasic
-  ComponentsStrongBasic
-  BoundsBasic
-} derive(Eq, @debug.Debug)
-
 pub(all) enum GraphConstructionIssue {
-  InvalidGraphConstruction
+  InvalidPropertyGraphConstruction
 } derive(Eq, @debug.Debug)
 
 pub(all) enum GraphMatchIssue {
@@ -1330,46 +1194,6 @@ pub(all) enum GraphMatchLiteralSelection {
   SelectNoEntities
   SelectAllEntities
 } derive(Eq, @debug.Debug)
-
-pub(all) enum GraphMeanIssue {
-  InvalidGraphMeanLimits
-  InvalidGraphMeanWiring
-  GraphMeanPreparationLimit
-} derive(Eq, @debug.Debug)
-
-pub(all) enum GraphReachIssue {
-  InvalidGraphReachLimits
-  InvalidGraphReachWiring
-  GraphReachPreparationLimit
-} derive(Eq, @debug.Debug)
-
-pub(all) enum GraphRelationIssue {
-  InvalidGraphRelationLimits
-  InvalidGraphRelationWiring
-  GraphRelationPreparationLimit
-} derive(Eq, @debug.Debug)
-
-pub(all) enum GraphRelationKind {
-  GraphsEqualRelation
-  GraphDiffRelation
-  ApplyGraphRelation
-} derive(Eq, @debug.Debug)
-
-pub(all) enum GraphShortestIssue {
-  InvalidGraphShortestLimits
-  InvalidGraphShortestWiring
-  GraphShortestPreparationLimit
-  MissingGraphShortestParameter(String)
-  InvalidGraphShortestParameter(String)
-  GraphShortestExpression(ExpressionIssue)
-}
-
-pub(all) enum GraphSubgraphIssue {
-  InvalidGraphSubgraphLimits
-  InvalidGraphSubgraphWiring
-  GraphSubgraphPreparationLimit
-  GraphSubgraphExpression(ExpressionIssue)
-}
 
 pub(all) enum GraphTraverseIssue {
   InvalidGraphTraverseLimits
@@ -1561,19 +1385,9 @@ pub enum Payload {
   AppendRows(@relation_append.CheckedAppend)
   SetRows(@relation_set.CheckedSet)
   NestRows(@relation_nest.CheckedNest)
-  BasicGraph(@graph_typing.CheckedGraph)
-  StructuralGraph(@graph_typing.CheckedStructural)
-  GraphUnion(@graph_typing.CheckedUnion)
-  GraphMeanValue(@graph_typing.CheckedMean)
   GraphMatchRows(@graph_typing.CheckedMatch)
-  GraphReachRows(@graph_typing.CheckedReach)
-  GraphSubgraphValue(@graph_typing.CheckedSubgraph)
   GraphTraverseRows(@graph_typing.CheckedTraverse)
-  GraphShortestRows(@graph_typing.CheckedShortest)
-  GraphEqualityRows(@graph_typing.CheckedEquality)
-  GraphDiffRows(@graph_typing.CheckedDiff)
-  GraphApplyValue(@graph_typing.CheckedApply)
-  GraphConstructionValue(@graph_typing.CheckedConstruction)
+  PropertyGraphConstructionValue(@graph_typing.CheckedPropertyConstruction)
   VectorValue(@vector_typing.CheckedVector)
   NearestValue(@relation_evidence.CheckedNearest)
   PoolValue(@vector_typing.CheckedPool)
@@ -1643,27 +1457,9 @@ pub(all) enum PreparedFrameBoundary {
   PreparedUnboundedFollowing
 } derive(Eq, @debug.Debug)
 
-type PreparedGraphBasic
-
-type PreparedGraphConstruction
-
 type PreparedGraphMatch
 
-type PreparedGraphMean
-
-type PreparedGraphReach
-
-type PreparedGraphRelation
-
-type PreparedGraphShortest
-
-type PreparedGraphStructural
-
-type PreparedGraphSubgraph
-
 type PreparedGraphTraverse
-
-type PreparedGraphUnion
 
 type PreparedGroup
 
@@ -1707,6 +1503,8 @@ pub enum PreparedPivotFill {
 
 type PreparedProjection
 
+type PreparedPropertyGraphConstruction
+
 pub struct PreparedRowsFrame {
   start : PreparedFrameBoundary
   end : PreparedFrameBoundary
@@ -1732,17 +1530,9 @@ pub enum PreparedStep {
   AppendStep(PreparedAppendKernel)
   SetStep(PreparedSetKernel)
   NestStep(PreparedNestKernel)
-  GraphBasicStep(PreparedGraphBasic)
-  GraphStructuralStep(PreparedGraphStructural)
-  GraphUnionStep(PreparedGraphUnion)
-  GraphMeanStep(PreparedGraphMean)
   GraphMatchStep(PreparedGraphMatch)
-  GraphReachStep(PreparedGraphReach)
-  GraphSubgraphStep(PreparedGraphSubgraph)
   GraphTraverseStep(PreparedGraphTraverse)
-  GraphShortestStep(PreparedGraphShortest)
-  GraphRelationStep(PreparedGraphRelation)
-  GraphConstructionStep(PreparedGraphConstruction)
+  PropertyGraphConstructionStep(PreparedPropertyGraphConstruction)
   VectorStep(PreparedVector)
   EventStep(PreparedEvent)
   CarrierProjectionStep(PreparedCarrierProjection)
@@ -1778,6 +1568,10 @@ pub enum PreparedWatermarkThreshold {
 }
 
 type PreparedWindow
+
+type PropertyEdgeBinding
+
+type PropertyElementBinding
 
 type RootEvidence
 
@@ -1825,14 +1619,8 @@ pub(all) enum SequenceIssue {
   AppendFailure(Int, AppendIssue)
   SetFailure(Int, SetIssue)
   NestFailure(Int, NestIssue)
-  GraphBasicFailure(Int, GraphBasicIssue)
-  GraphMeanFailure(Int, GraphMeanIssue)
   GraphMatchFailure(Int, GraphMatchIssue)
-  GraphReachFailure(Int, GraphReachIssue)
-  GraphSubgraphFailure(Int, GraphSubgraphIssue)
   GraphTraverseFailure(Int, GraphTraverseIssue)
-  GraphShortestFailure(Int, GraphShortestIssue)
-  GraphRelationFailure(Int, GraphRelationIssue)
   GraphConstructionFailure(Int, GraphConstructionIssue)
   VectorFailure(Int, VectorIssue)
   EventFailure(Int, EventIssue)

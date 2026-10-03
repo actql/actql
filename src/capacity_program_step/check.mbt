@@ -107,8 +107,7 @@ priv enum Rule {
   Ranking(Int, Int64?)
   Join(@join.Kind)
   GraphMeasure(@arithmetic.BoundUnit, @arithmetic.BoundUnit, Int, Int64)
-  GraphCombine(@arithmetic.BoundUnit, Int)
-  GraphQuery(QueryBound)
+  PropertyGraphMeasure(@arithmetic.BoundUnit, Int, Int)
 }
 
 ///|
@@ -117,69 +116,29 @@ fn operation_rule(
   bindings : CountBindings?,
   unit : @arithmetic.BoundUnit,
 ) -> Result[(String, Rule), Issue] {
-  let graph_inputs = match step.operation {
-    @pipeline.GraphUnion(_) => Some(@pipeline.input_occurrence_count(step))
-    @pipeline.GraphStructural(checked~, ..) =>
-      Some(
-        if @graph.structural_operation(checked) == @graph.Subtract {
-          1
-        } else {
-          2
-        },
-      )
-    _ => None
-  }
-  if graph_inputs is Some(n) {
-    let law = match unit {
-      @arithmetic.Nodes => "actql.bound.graph-nodes"
-      @arithmetic.Edges => "actql.bound.graph-edges"
-      _ => return Err(LawMismatch)
-    }
-    return Ok((law, GraphCombine(unit, n)))
-  }
   match step.operation {
-    @pipeline.Traverse(checked~, ..) => {
-      if @graph.traverse_emission(checked) != @graph.TraversedNodes {
-        return Err(UnsupportedOperation)
+    @pipeline.PropertyGraphConstruction(checked~, ..) => {
+      let nodes = @graph.property_construction_node_count(checked)
+      let edges = @graph.property_construction_edge_count(checked)
+      return match unit {
+        @arithmetic.Nodes =>
+          Ok(
+            (
+              "actql.bound.property-graph-nodes",
+              PropertyGraphMeasure(unit, 0, nodes),
+            ),
+          )
+        @arithmetic.Edges =>
+          Ok(
+            (
+              "actql.bound.property-graph-edges",
+              PropertyGraphMeasure(unit, nodes, edges),
+            ),
+          )
+        _ => Err(LawMismatch)
       }
-      return Ok(
-        ("actql.bound.traverse-nodes", GraphQuery(traversal_bound(checked))),
-      )
     }
-    @pipeline.Shortest(source_selector~, checked~, ..) =>
-      return Ok(
-        (
-          "actql.bound.shortest-path",
-          GraphQuery(shortest_bound(checked, source_selector is Some(_))),
-        ),
-      )
-    @pipeline.Graph(op) =>
-      match @graph.operation(op) {
-        @graph.Degree =>
-          return Ok(
-            (
-              "actql.bound.graph-degree",
-              GraphMeasure(@arithmetic.Rows, @arithmetic.Nodes, 0, 1L),
-            ),
-          )
-        @graph.Components => {
-          if unit == @arithmetic.Nodes {
-            return Ok(
-              (
-                "actql.bound.components-input-nodes",
-                GraphMeasure(unit, unit, 0, 1L),
-              ),
-            )
-          }
-          return Ok(
-            (
-              "actql.bound.components-nodes",
-              GraphMeasure(@arithmetic.Rows, @arithmetic.Nodes, 0, 1L),
-            ),
-          )
-        }
-        _ => ()
-      }
+    @pipeline.Traverse(..) => return Err(UnsupportedOperation)
     @pipeline.GraphMatch(op) => {
       let (law, input_unit) = if @graph.match_entity(op) == @graph.Nodes {
         ("actql.bound.match-nodes", @arithmetic.Nodes)
@@ -190,61 +149,6 @@ fn operation_rule(
       // Do not mistake repeated authored selectors for extra output entities.
       return Ok((law, GraphMeasure(@arithmetic.Rows, input_unit, 0, 1L)))
     }
-    @pipeline.GraphConstruction(nodes~, ..) => {
-      if unit == @arithmetic.Nodes {
-        return Ok(
-          (
-            "actql.bound.graph-nodes",
-            GraphMeasure(
-              unit,
-              @arithmetic.Rows,
-              0,
-              if nodes is Some(_) {
-                1L
-              } else {
-                2L
-              },
-            ),
-          ),
-        )
-      }
-      if unit == @arithmetic.Edges {
-        return Ok(
-          (
-            "actql.bound.graph-edges",
-            GraphMeasure(
-              unit,
-              @arithmetic.Rows,
-              if nodes is Some(_) {
-                1
-              } else {
-                0
-              },
-              1L,
-            ),
-          ),
-        )
-      }
-      return Err(LawMismatch)
-    }
-    @pipeline.Projection(op) =>
-      match @projection.operation(op) {
-        @projection.NodeRows =>
-          return Ok(
-            (
-              "actql.bound.graph-node-rows",
-              GraphMeasure(@arithmetic.Rows, @arithmetic.Nodes, 0, 1L),
-            ),
-          )
-        @projection.EdgeRows =>
-          return Ok(
-            (
-              "actql.bound.graph-edge-rows",
-              GraphMeasure(@arithmetic.Rows, @arithmetic.Edges, 0, 1L),
-            ),
-          )
-        _ => ()
-      }
     _ => ()
   }
   match step.operation {
@@ -408,9 +312,6 @@ fn forwarded_input(
 ) -> @pipeline.Target? {
   if unit == @arithmetic.Nodes || unit == @arithmetic.Edges {
     return match step.operation {
-      @pipeline.Graph(op) if @graph.operation(op) == @graph.NormalizeGraph =>
-        step.input
-      @pipeline.Subgraph(..) => step.input
       _ => None
     }
   }
@@ -458,11 +359,7 @@ fn forwarded_input(
         @vector.ToVectors | @vector.NormalizeVectors | @vector.ScoreVectors =>
           true
       }
-    @pipeline.Projection(op) =>
-      match @projection.operation(op) {
-        @projection.Events | @projection.Vectors => true
-        _ => false
-      }
+    @pipeline.Projection(_) => true
     _ => false
   }
   if preserves_upper {
@@ -618,7 +515,7 @@ fn check_application(
   let operand_work = prepared.operand_work
   // Proof arrays sort capacity operands but retain repetitions. Derivations
   // below must still match their actual left/right data roles.
-  if rule is Ranking(_, _) || rule is GraphCombine(_, _) {
+  if rule is Ranking(_, _) || rule is PropertyGraphMeasure(_, _, _) {
     let remaining : Map[String, Int] = Map([])
     for id in ids {
       remaining[id] = remaining.get(id).unwrap_or(0) + 1
@@ -661,12 +558,8 @@ fn check_application(
   match (rule, @wire.derivation(witness)) {
     (One, @wire.SourceValue) => ()
     (Constant(_), @wire.SourceValue) => ()
-    (GraphQuery(_), @wire.SourceValue) => ()
     (GraphMeasure(_, _, _, _), @wire.SourceValue) => ()
-    (GraphCombine(_, _), @wire.SourceValue) => ()
-    (GraphCombine(_, 1), @wire.Preserve(input)) if input == ids[0] => ()
-    (GraphCombine(_, 2), @wire.Add(left, right)) if left == ids[0] &&
-      right == ids[1] => ()
+    (PropertyGraphMeasure(_, _, _), @wire.SourceValue) => ()
     (Join(_), @wire.SourceValue) => ()
     (Preserve, @wire.Preserve(input)) if input == ids[0] => ()
     (Clamp(expected), @wire.Clamp(input, maximum)) if maximum == expected &&
@@ -704,7 +597,7 @@ fn check_application(
 ///|
 fn rule_output_unit(rule : Rule) -> @arithmetic.BoundUnit {
   match rule {
-    GraphMeasure(unit, _, _, _) | GraphCombine(unit, _) => unit
+    GraphMeasure(unit, _, _, _) | PropertyGraphMeasure(unit, _, _) => unit
     _ => @arithmetic.Rows
   }
 }
@@ -731,7 +624,8 @@ fn prepare_bound_inputs(
   usage : Array[Int]?,
   aggregate_work? : Int? = None,
 ) -> Result[PreparedBoundInputs, Issue] {
-  let operand_work = if rule is Ranking(_, _) || rule is GraphCombine(_, _) {
+  let operand_work = if rule is Ranking(_, _) ||
+    rule is PropertyGraphMeasure(_, _, _) {
     // Five bounded passes: edges, multiset construction, proof comparison,
     // arithmetic and owned input copy. Check before allocating either table.
     if n > max_operand_work / 5 {

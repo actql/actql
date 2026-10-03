@@ -208,3 +208,28 @@ test "relation budgets are explicit and failures return no partial join" {
   assert_true(!@value_contract.type_equal(a, b, 2))
   assert_true(@value_contract.join_nullability(a, b, 2) is None)
 }
+
+///|
+test "joined contract usage reports visited pairs without changing legacy join semantics" {
+  let number = @value_contract.primitive(NumberType, nullable=false)
+  let nullable = @value_contract.with_nullability(number, true)
+  let (joined, used) = @value_contract.join_nullability_usage(
+    number, nullable, 1,
+  )
+  assert_eq(used, 1)
+  assert_true(@value_contract.type_equal(joined.unwrap(), nullable, 1))
+  assert_true(
+    @value_contract.type_equal(
+      @value_contract.join_nullability(number, nullable, 1).unwrap(),
+      joined.unwrap(),
+      1,
+    ),
+  )
+  let (bad, rejected_work) = @value_contract.join_nullability_usage(
+    number,
+    @value_contract.primitive(StringType, nullable=false),
+    1,
+  )
+  assert_true(bad is None)
+  assert_eq(rejected_work, 1)
+}

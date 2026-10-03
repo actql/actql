@@ -1,6 +1,5 @@
 ///|
 pub(all) enum OperationResolution {
-  ReachExpansion(ReachExpansion)
   AsOfCompletion(AsOfKeyCompletion)
   WindowPublication(WindowPublicationResources)
   Order(OperationOrderLink)
@@ -51,7 +50,6 @@ fn resolution_occurrence(
   v : OperationResolution,
 ) -> (Int, OperationRequirementSite) {
   match v {
-    ReachExpansion(r) => (r.requirement_index, r.site)
     AsOfCompletion(r) => (r.requirement_index, r.site)
     WindowPublication(r) => (r.requirement_index, r.site)
     Order(r) => (r.requirement_index, r.site)
@@ -215,14 +213,6 @@ pub fn index_program_operation_resolutions(
         }
       }
     }
-    match reach_expansion(requirements.entries[i], i) {
-      Ok(Some(expansion)) =>
-        if attach(ReachExpansion(expansion)) is Some(error) {
-          return Err(error)
-        }
-      Ok(None) => ()
-      Err(error) => return Err(error)
-    }
     match asof_key_completion(requirements.entries[i], i) {
       Ok(Some(completion)) =>
         if attach(AsOfCompletion(completion)) is Some(error) {
@@ -268,6 +258,20 @@ pub fn index_program_operation_resolutions(
         let policy = @capacity.application_closure_policy(
           stage.context.capacity,
         )
+        // Keyed constructors check every ordered definition input. Charge the
+        // actual visit count before that scan, including repeated producers.
+        if site.requirement is @pipeline.ConstructionRequirement(pending) &&
+          pending != @graph.ResolvePropertyGraphProfile &&
+          @pipeline.step_at(site.pipeline, site.step)
+          is Some({ operation: @pipeline.PropertyGraphConstruction(..), .. }) {
+          let cost = @pipeline.input_occurrence_count(
+            @pipeline.step_at(site.pipeline, site.step).unwrap(),
+          )
+          if cost > max_work - work {
+            return Err(BudgetExceeded)
+          }
+          work += cost
+        }
         let direct = direct_execution_candidate(
           site, policy, window_candidate, watermark_candidate,
         )
@@ -372,11 +376,6 @@ pub fn index_program_operation_resolutions(
     let candidate = match candidate {
       Ok(None) =>
         sequence_limits_candidate(requirements, requirements.entries[i])
-      other => other
-    }
-    let candidate = match candidate {
-      Ok(None) =>
-        components_limits_candidate(requirements, requirements.entries[i])
       other => other
     }
     let candidate = match candidate {
