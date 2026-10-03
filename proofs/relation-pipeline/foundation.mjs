@@ -68,12 +68,15 @@ function keys(value, expected, label) {
   assert(value && typeof value === 'object' && !Array.isArray(value), `Invalid ${label}`);
   assert.deepEqual(Object.keys(value).sort(), [...expected].sort(), `Invalid ${label} fields`);
 }
-export function composeFoundation(root, { checkpoint, paths, directory = 'proofs/relation-pipeline/foundation-declarations', immutable = [] }) {
+export function composeFoundation(root, { checkpoint, paths, directory = 'proofs/relation-pipeline/foundation-declarations',
+  supplementDirectory = `${directory}-supplements`, immutable = [] }) {
   assert.match(checkpoint, sha, 'Invalid foundation checkpoint');
   assert(Array.isArray(paths) && paths.length && new Set(paths).size === paths.length, 'Invalid foundation paths');
   const canonical = path => typeof path === 'string' && /^[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*$/.test(path)
     && !path.split('/').some(part => part === '.' || part === '..');
-  assert(paths.every(canonical) && canonical(directory), 'Invalid foundation path');
+  assert(paths.every(canonical) && canonical(directory) && canonical(supplementDirectory)
+    && !directory.startsWith(`${supplementDirectory}/`) && !supplementDirectory.startsWith(`${directory}/`)
+    && directory !== supplementDirectory, 'Invalid foundation path');
   const protectedPaths = sorted(paths), allowed = new Set(paths);
   assert(Array.isArray(immutable), 'Invalid immutable foundation inputs');
   for (const entry of immutable) {
@@ -129,7 +132,7 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
   }
   function tree(revision) {
     if (!trees.has(revision)) {
-      const output = git(['ls-tree', '-r', '-z', revision, '--', ...inspectedPaths, directory]).stdout.toString();
+      const output = git(['ls-tree', '-r', '-z', revision, '--', ...inspectedPaths, directory, supplementDirectory]).stdout.toString();
       const entries = new Map();
       for (const entry of output.split('\0').filter(Boolean)) {
         const match = /^(\d+) (\w+) ([0-9a-f]{40})\t(.*)$/.exec(entry);
@@ -165,7 +168,9 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     return [entry.path, expected];
   }));
   const declarationsAt = revision => new Map([...tree(revision)].filter(([path]) => path.startsWith(`${directory}/`)));
+  const supplementsAt = revision => new Map([...tree(revision)].filter(([path]) => path.startsWith(`${supplementDirectory}/`)));
   assert.equal(declarationsAt(checkpoint).size, 0, 'Foundation checkpoint already contains declarations');
+  assert.equal(supplementsAt(checkpoint).size, 0, 'Foundation checkpoint already contains supplements');
   const introductions = new Map();
   for (const revision of revisions) {
     const actualParents = parents(revision);
@@ -182,11 +187,11 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
       assert(current || actualParents.every(parent => !tree(parent).has(path)), `Removed immutable foundation ${path}`);
     }
     const inherited = new Map();
-    for (const parent of actualParents) for (const [path, entry] of declarationsAt(parent)) {
+    for (const parent of actualParents) for (const [path, entry] of [...declarationsAt(parent), ...supplementsAt(parent)]) {
       assert(!inherited.has(path) || same(inherited.get(path), entry), `Ambiguous foundation declaration ${path}`);
       inherited.set(path, entry);
     }
-    const current = declarationsAt(revision);
+    const current = new Map([...declarationsAt(revision), ...supplementsAt(revision)]);
     for (const [path, entry] of inherited) assert(same(entry, current.get(path)), `Changed or removed foundation declaration ${path}`);
     for (const [path, entry] of current) if (!inherited.has(path)) {
       assert(entry.mode === '100644', `Invalid foundation declaration mode ${path}`);
@@ -245,6 +250,37 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     byId.set(declaration.id, declaration);
     declarations.push({ path, digest: hash(bytes(entry)), introductions: declarationIntroductions, ...declaration });
   }
+  const supplements = [], supplementsByTarget = new Map();
+  for (const [path, entry] of supplementsAt(head)) {
+    const raw = bytes(entry), supplement = JSON.parse(raw);
+    assert(raw.equals(Buffer.from(`${JSON.stringify(supplement, null, 2)}\n`)), 'Noncanonical foundation supplement JSON');
+    keys(supplement, ['version', 'id', 'target', 'inputs', 'reason'], 'foundation supplement');
+    assert.equal(supplement.version, 'actql-foundation-resolution-supplement/0.1');
+    assert.match(supplement.id, id, 'Invalid foundation supplement ID');
+    assert.equal(path, `${supplementDirectory}/${supplement.id}.json`, 'Ambiguous foundation supplement filename');
+    keys(supplement.target, ['id', 'digest'], 'foundation supplement target');
+    const original = declarations.find(value => value.id === supplement.target.id);
+    assert(original?.kind === 'resolution', 'Unknown or non-resolution foundation supplement target');
+    assert.equal(supplement.target.digest, original.digest, 'Changed foundation supplement original');
+    assert(typeof supplement.reason === 'string' && supplement.reason.trim(), 'Missing foundation supplement rationale');
+    assert(Array.isArray(supplement.inputs) && supplement.inputs.length
+      && supplement.inputs.every(value => typeof value === 'string' && byId.has(value)), 'Unknown or empty foundation supplement inputs');
+    assert.deepEqual(supplement.inputs, sorted(new Set(supplement.inputs)), 'Noncanonical foundation supplement inputs');
+    const introduced = sorted(introductions.get(path).revisions);
+    for (const introduction of introduced) {
+      assert(original.introductions.some(prior => prior !== introduction && ancestor(prior, introduction)),
+        'Foundation supplement must follow its original declaration');
+      for (const input of supplement.inputs) {
+        const dependency = declarations.find(value => value.id === input);
+        assert(dependency.introductions.some(prior => prior !== introduction && ancestor(prior, introduction)),
+          'Foundation supplement must follow its dependency declaration');
+      }
+    }
+    const record = { path, digest: hash(raw), introductions: introduced, ...supplement };
+    supplements.push(record);
+    if (!supplementsByTarget.has(original.id)) supplementsByTarget.set(original.id, []);
+    supplementsByTarget.get(original.id).push(record);
+  }
   const requirements = new Map();
   for (const revision of revisions) {
     const actualParents = parents(revision), required = [], result = tree(revision);
@@ -299,6 +335,26 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
           'Unknown foundation resolution input');
         assert.deepEqual(declaration.inputs, sorted(new Set(declaration.inputs)), 'Noncanonical foundation resolution inputs');
         inputRevisions = sorted(new Set(declaration.inputs.map(value => byId.get(value).revision)));
+        const additions = supplementsByTarget.get(declaration.id) ?? [];
+        if (additions.length) {
+          // A supplement repairs only a source group whose receipt was absent
+          // at every original introduction. Never excuse an omission that was
+          // already visible, replace a raw input, or ignore an inherited record.
+          const original = declarations.find(value => value.id === declaration.id);
+          for (const introduction of original.introductions) {
+            const visible = inputs.filter(source => declarations.some(value => value.revision === source
+              && value.introductions.some(prior => ancestor(prior, introduction))));
+            assert.deepEqual(inputRevisions, visible, 'Incomplete original foundation resolution inputs');
+          }
+          const effective = new Set(inputRevisions);
+          for (const supplement of additions) for (const input of supplement.inputs) {
+            const source = byId.get(input).revision;
+            assert(inputs.includes(source), 'Non-ancestral or cyclic foundation supplement dependency');
+            assert(!effective.has(source), 'Redundant foundation supplement dependency');
+            effective.add(source);
+          }
+          inputRevisions = sorted(effective);
+        }
         assert.deepEqual(inputRevisions, inputs, 'Incomplete or ambiguous foundation resolution inputs');
       }
       const current = foundationSourceBinding(declaration, inputRevisions);
@@ -308,12 +364,15 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     if (actualParents.length === 2) {
       integrations.push({ revision, parents: actualParents,
         ...(bases.length === 1 ? { mergeBase: bases[0] } : { mergeBases: bases, obligations }),
-        declarations: sorted(candidates.map(candidate => candidate.id)) });
+        declarations: sorted(candidates.map(candidate => candidate.id)),
+        ...(candidates.some(value => supplementsByTarget.has(value.id)) ? {
+          supplements: sorted(candidates.flatMap(value => (supplementsByTarget.get(value.id) ?? []).map(value => value.id))),
+        } : {}) });
     }
   }
   const expectedIndex = new Map([...tree(head)].filter(([path]) => allowed.has(path)
-    || immutablePaths.includes(path) || path.startsWith(`${directory}/`)));
-  const indexEntries = git(['ls-files', '--stage', '-z', '--', ...protectedPaths, ...immutablePaths, directory]).stdout.toString().split('\0').filter(Boolean);
+    || immutablePaths.includes(path) || path.startsWith(`${directory}/`) || path.startsWith(`${supplementDirectory}/`)));
+  const indexEntries = git(['ls-files', '--stage', '-z', '--', ...protectedPaths, ...immutablePaths, directory, supplementDirectory]).stdout.toString().split('\0').filter(Boolean);
   assert.equal(indexEntries.length, expectedIndex.size, 'Uncommitted foundation index membership');
   for (const value of indexEntries) {
     const match = /^(\d+) ([0-9a-f]{40}) ([0-3])\t(.*)$/.exec(value);
@@ -337,10 +396,12 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     workingFile(path, entry.mode);
     assert.equal(hash(readFileSync(join(root, path))), hash(bytes(entry)), `Uncommitted foundation source ${path}`);
   }
-  const directoryPath = join(root, directory);
-  const workingDeclarations = existsSync(directoryPath) ? readdirSync(directoryPath).map(name => `${directory}/${name}`).sort() : [];
-  assert.deepEqual(workingDeclarations, sorted(declarationsAt(head).keys()), 'Uncommitted foundation declaration membership');
-  for (const [path, entry] of declarationsAt(head)) {
+  for (const [folder, records] of [[directory, declarationsAt(head)], [supplementDirectory, supplementsAt(head)]]) {
+    const directoryPath = join(root, folder);
+    const workingDeclarations = existsSync(directoryPath) ? readdirSync(directoryPath).map(name => `${folder}/${name}`).sort() : [];
+    assert.deepEqual(workingDeclarations, sorted(records.keys()), 'Uncommitted foundation declaration membership');
+  }
+  for (const [path, entry] of [...declarationsAt(head), ...supplementsAt(head)]) {
     workingFile(path, entry.mode);
     assert.equal(hash(readFileSync(join(root, path))), hash(bytes(entry)), `Uncommitted foundation declaration ${path}`);
   }
@@ -348,6 +409,7 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     declarations: declarations.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0).map(declaration => ({ ...declaration,
       changes: [...declaration.changes].sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0) })),
     integrations: integrations.sort((a, b) => a.revision < b.revision ? -1 : a.revision > b.revision ? 1 : 0),
+    ...(supplements.length ? { supplements: supplements.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0) } : {}),
     immutable: immutable.map(entry => ({ ...entry, digest: hash(bytes(immutableEntries.get(entry.path))) })).sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0),
     files: protectedPaths.map(path => ({ path, ...identity(head, path) })) };
 }
