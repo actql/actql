@@ -1119,3 +1119,59 @@ independently derived literal. Target logs are
 `/private/tmp/property-graph-run-vector-refresh-{js,wasm,native}-20261003.log`.
 The complete final-source Core/spec/packed and pushed-SHA checks remain
 required, rather than treating these narrow vectors as full acceptance.
+
+### Published-source CI integration repairs (2026-10-03)
+
+The first PR run for `8c052888503e130e3d6c5f5a5ea74037be407e3f`,
+`37083655552`, passes all three Core targets, spec and the native jobs, but
+fails Workers, Host, Salesforce, distribution and packed acceptance. These
+failures are not replaced by an assertion that the whole run succeeded.
+
+Workers fixture freshness identifies a stale generated projection. Regenerating
+with the existing generator removes retired tuple helpers and projects the
+current fixture; the generator and source expectations are unchanged. The
+resolved Workers dependency gate then identifies the newly reachable,
+dependency-free Carrier snapshot transport. Only that exact module is added
+to both existing bundle inventories. Node/native, unknown and transitive
+dependency rejection remains enabled. The complete local Workers job passes,
+including 27 workerd tests and the negative dependency checks.
+
+The Host and distribution failures come from historical Values vectors mixing
+pre-String identities with current grammar, check-environment and transfer
+preimages. The independent oracle freezes those predecessor preimages from
+`02a60baf0^`, preserving the existing historical Unit and Result Plan literals.
+Current vectors use the current owned Property Graph law. Historical bindings
+are compared with the independently derived historical contract, not current
+bindings. Both previously failing narrow tests pass; no product output is
+copied into expected identities.
+
+The Salesforce checked three-Stage Effect refusal used a removed tuple Graph
+constructor and unsupported normalize/row projection. Its fixture now uses a
+three-Stage Relation chain, retaining the same compiler refusal, typed public
+rejection, zero accepted requests and prohibition on physical execution. The
+narrow regression passes. An intermediate attempt using a new Graph fixture
+failed at preparation and is not counted as acceptance.
+
+The packed aggregate previously required successful execution of retired SGA
+consumers. It now invokes the existing shared Property Graph public regression
+and its authoritative coverage inventory, without a second capability table.
+Normal SQL/Pipe, source-count, recovery, failure and cleanup assertions remain.
+The positive pre-start cancellation case and native Client case use the current
+independent parallel-edge Program rather than restoring old algorithms.
+
+The complete fresh packed diagnostic exits zero: Local/HTTP query acceptance,
+two-source custody/recovery, planner selection, exact String reread, positive
+Graph cancellation, public snapshot/source-revocation/reload/MATCH/TRAIL, the
+17 inventory-driven refusals on both transports, and native Client Named
+Results all pass. Evidence is retained at
+`worktrees/.codex-scratch/public-query-evidence-LHSZ91` and
+`/private/tmp/property-graph-packed-aggregate-fix-diagnostic-20261003.log`.
+Its command records explicitly report dirty source; this is repair validation,
+not the final published-SHA acceptance or Linux CI result.
+
+Initial local narrow launches also required preparing all runtime packages
+and installing this worktree's own DuckDB dependencies. Missing generated
+Coordinator modules and missing DuckDB Node packages were startup failures,
+not successful test executions. No test loader, borrowed-dependency rewrite,
+ACK relaxation or expected-row relaxation is used. Remaining full related
+jobs and final clean-SHA CI are still required before the B handoff.

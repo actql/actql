@@ -1370,12 +1370,14 @@ test('Node JS bridge derives the checked named Result and request identity', asy
   const bytesBinding = JSON.parse(bytesBindingBody);
   const oldRows = valuesPublicationRowsBinding(oldUnit, 'rows');
   const oldBytes = valuesPublicationRowsBinding(oldUnit, 'rows', 'bytes');
+  const predecessor = valuesPublicationOracle({legacy: true});
+  assert.equal(oldUnit, predecessor.unit);
   assert.deepEqual([
     oldRows.resolved_limit_cid, oldBytes.resolved_limit_cid,
     oldRows.binding_cid, oldBytes.binding_cid,
   ], [
-    ...expected.limits.map(limit => limit.resolved_limit_cid),
-    ...expected.bindings.map(binding => binding.binding_cid),
+    ...predecessor.limits.map(limit => limit.resolved_limit_cid),
+    ...predecessor.bindings.map(binding => binding.binding_cid),
   ]);
   assert.deepEqual(rowsBinding,
     valuesPublicationRowsBinding(valuesUnitIdentity(source), 'rows'));
