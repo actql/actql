@@ -276,6 +276,64 @@ test "standard Client preparation retains source-free Effect closure" {
 }
 
 ///|
+test "parsed frontend Program retains the original Effect owner and closure checks" {
+  let (document, environment, limits) = client_effect_fixture()
+  let parsed = @syntax.parse(
+    document,
+    limits.program.checking.input,
+    format=Json,
+  ).unwrap()
+  let prepared = prepare_parsed_client_effect_computation(
+    parsed,
+    environment,
+    None,
+    [],
+    limits,
+  ).unwrap()
+  assert_true(
+    physical_equal(parsed, prepared_client_effect_computation_source(prepared)),
+  )
+  assert_eq(prepared_client_effect_result_count(prepared), 1)
+  assert_eq(prepared_client_effect_result_name(prepared, 0), Some("published"))
+  let descriptor = client_effect_member_descriptor(prepared, 0, "save", 16).unwrap()
+  assert_eq(descriptor.2, "create")
+  assert_eq(descriptor.3, "connector://crm/account")
+  assert_eq(descriptor.4, "mapping:crm.account.v1")
+  assert_eq(descriptor.6, Some("out"))
+  assert_true(
+    prepare_parsed_effect_free_client_program(
+      parsed,
+      environment,
+      None,
+      limits.program,
+    )
+    is Err(EffectNotSupported("source")),
+  )
+  assert_true(
+    prepare_parsed_client_effect_computation(parsed, environment, None, [], {
+      ..limits,
+      max_members: 0,
+    })
+    is Err(Candidate(_)),
+  )
+  let foreign = @syntax.parse(
+    document.replace(old="mapping:crm.account.v1", new="mapping:crm.foreign.v1"),
+    limits.program.checking.input,
+    format=Json,
+  ).unwrap()
+  assert_true(
+    prepare_parsed_client_effect_computation(
+      foreign,
+      environment,
+      None,
+      [],
+      limits,
+    )
+    is Err(_),
+  )
+}
+
+///|
 test "checked source-free Effect owner issues its local Invocation" {
   let (document, environment, limits) = client_effect_fixture()
   let prepared = prepare_client_effect_computation(
