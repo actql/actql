@@ -33,18 +33,22 @@ export const propertyGraphSourceSuccesses = [
   {name: 'keyed-empty-property-filter', format: 'aql-text',
     text: nodes + "FROM GRAPH g |> MATCH WALK (a:Person WHERE entity_type = 'Person') |> SELECT a.id AS id |> RESULT people",
     results: {people: {rows: [], columns: [number('id')]}}, sourceReadCount: 0},
+  {name: 'keyed-default-node-mode', format: 'aql-text',
+    text: nodes + 'FROM GRAPH g |> MATCH (a:Person) |> SELECT a.id AS id, a.entity_type AS category |> RESULT people',
+    results: {people: {rows: [{id: 1, category: 'Company'}], columns: [number('id'),
+      {name: 'category', contract: {type: 'string', nullable: false, max_utf8_bytes: 7}}]}}, sourceReadCount: 0},
   {name: 'keyed-explicit-projection-star', format: 'aql-text',
     text: nodes + 'FROM GRAPH g |> MATCH WALK (`a`:Person) |> SELECT `a`.`ID` AS id |> SELECT * |> RESULT people',
     results: {people: {rows: [{id: 1}], columns: [number('id')]}}, sourceReadCount: 0},
-  ...[['WALK', 4], ['TRAIL', 2], ['ACYCLIC', 0]].map(([mode, count]) => ({
-    name: 'keyed-scoped-loops-' + mode.toLowerCase(), format: 'aql-text',
+  ...[['WALK', 4], ['', 4], ['TRAIL', 2], ['ACYCLIC', 0]].map(([mode, count]) => ({
+    name: 'keyed-scoped-loops-' + (mode ? mode.toLowerCase() : 'default-walk'), format: 'aql-text',
     text: loops + 'FROM GRAPH g |> MATCH p = ' + mode +
       ' (:Node)-[:R]->(:Node)-[:R]->(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths',
     results: {paths: {rows: Array.from({length: count}, () => ({depth: 2})),
       columns: [number('depth')]}}, sourceReadCount: 0,
   })),
-  ...[['WALK', 4], ['TRAIL', 2], ['ACYCLIC', 0]].map(([mode, count]) => ({
-    name: 'keyed-parallel-one-definition-' + mode.toLowerCase(), format: 'aql-text',
+  ...[['WALK', 4], ['', 4], ['TRAIL', 2], ['ACYCLIC', 0]].map(([mode, count]) => ({
+    name: 'keyed-parallel-one-definition-' + (mode ? mode.toLowerCase() : 'default-walk'), format: 'aql-text',
     text: parallel + 'FROM GRAPH g |> MATCH p = ' + mode +
       ' (:Node)-[:R]->(:Node)-[:R]->(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths',
     results: {paths: {rows: Array.from({length: count}, () => ({depth: 2})),

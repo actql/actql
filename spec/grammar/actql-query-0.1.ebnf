@@ -50,7 +50,7 @@ graph_pipe    = "FROM", "GRAPH", path, [ graph_labels ],
 graph_labels  = "LABELS", "{", json_text, ":", "{",
                 json_text, ":", json_text, "}", "}" ;
 graph_match   = "MATCH", [ identifier, "=" ],
-                ( "WALK" | "TRAIL" | "ACYCLIC" ),
+                [ "WALK" | "TRAIL" | "ACYCLIC" ],
                 graph_node, { graph_edge, graph_node } ;
 graph_node    = "(", [ identifier ], [ ":", identifier ],
                 [ graph_constraint ], ")" ;

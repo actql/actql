@@ -55,10 +55,10 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   // Literal expectations were independently computed with Python hashlib
   // from the normative roles/files above, not read from generated pins.
   assert.equal(body.query_text_grammar_sha256,
-    '81f3bc6894004ce9942daa994bd01adc154cb4947d6d0bba228097474e086fa5');
+    'dd90ea227eb23be7003d70d6ae78403576c972875c838c9cad88451563f7bcfc');
   assert.equal(body.query_text_rules_sha256,
-    'de36a23d4e6fda20fc3bb19ae37f0fae9aa212eaa20c998929e3b5e866247f51');
-  const expected = 'sha256:f8803129b22ca89d078e90e530aaf6238bb3aa8a1da02555fd67a1c5929029b3';
+    'c025f920c1496106b3e9ee4cd2fb3cdd11420016edb60fe78c822890cce871a7');
+  const expected = 'sha256:f62ef6968a835996f50a9a23da1c1a711943971995208db0906c68523ed7c485';
   assert.equal(cid(body), expected);
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
   assert.deepEqual(pinned, body);

@@ -367,8 +367,10 @@ legacy Graph conversion or alternate SGA executor is provided.
 
 ## Graph pattern source
 
-`FROM GRAPH name` selects an existing Graph value. `MATCH` requires an explicit
-`WALK`, `TRAIL`, or `ACYCLIC` mode and yields a binding Relation. It cannot
+`FROM GRAPH name` selects an existing Graph value. `MATCH` yields a binding
+Relation. Omitting its path mode selects `WALK`, as in the selected GoogleSQL
+path-mode profile; explicit `WALK`, `TRAIL`, and `ACYCLIC` retain their meanings.
+Default mode changes neither traversal bounds nor supported pattern shapes. It cannot
 silently construct a Graph from a Relation, attach to an ambient Graph, or
 introduce a second implicit Graph input. One Graph source admits one MATCH;
 another pattern needs a separate source and an explicit Relation join.
