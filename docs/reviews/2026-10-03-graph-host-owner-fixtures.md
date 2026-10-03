@@ -166,6 +166,27 @@ normal/cancellation tests remain required on all CI targets; JS mutation kills
 are not Wasm/native mutation evidence. No existing test was removed and no CI
 speedup or whole-implementation proof is claimed.
 
+## Fixed-source CI correspondence
+
+A's automatic PR run [37131655117](https://github.com/actql/actql/actions/runs/37131655117)
+uses the same fixed SHA `d5c1e949cec0064a8898554a6bf87f4e59fff235`.
+The three Core job logs show unfiltered `moon test --target <target> --deny-warn`
+execution, including the unchanged Host whitebox test file (no target-specific
+exclusion on these cases). The recorded totals are:
+
+| CI target | Job | Executed / passed / failed |
+| --- | --- | --- |
+| JS | `111228243235` | 7413 / 7413 / 0 |
+| Wasm | `111228243276` | 7409 / 7409 / 0 |
+| Native | `111228243301` | 7496 / 7496 / 0 |
+
+These are finite normal-implementation CI results at A's fixed source. They
+include the existing normal/cancellation tests and do not repeat the three
+Host mutations on Wasm/native. The locally isolated mutation results above
+remain JS-only. The run's final evidence publication/aggregation status and
+#270's eventual submitted-head CI must still be checked independently; green
+Core jobs do not imply the whole run or a different HEAD passed.
+
 ## Main integration still required
 
 G normally merged main `336636c0bf6c5065d14941c7008c43b9897c7f4b` (#268)
