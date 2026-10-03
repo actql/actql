@@ -30,7 +30,7 @@ priv struct AdmittedGuardRows {
 
 ///|
 impl IndexedRows for AdmittedGuardRows with fn row_count(self) {
-  self.rows.rows.length()
+  admitted_output_row_count(self.rows)
 }
 
 ///|
@@ -40,12 +40,28 @@ impl IndexedRows for AdmittedGuardRows with fn column_count(self) {
 
 ///|
 impl IndexedRows for AdmittedGuardRows with fn row_width(self, row) {
-  self.rows.rows[row].length()
+  if @schema.all_fields_required(self.rows.schema) {
+    self.rows.rows[row].length()
+  } else {
+    self.rows.presence_rows[row].cells.length()
+  }
 }
 
 ///|
 impl IndexedRows for AdmittedGuardRows with fn read_cell(self, row, column) {
-  capture(self.rows.rows[row][column])
+  capture(
+    if @schema.all_fields_required(self.rows.schema) {
+      self.rows.rows[row][column]
+    } else {
+      self.rows.presence_rows[row].cells[column].unwrap()
+    },
+  )
+}
+
+///|
+impl IndexedRows for AdmittedGuardRows with fn cell_present(self, row, column) {
+  @schema.all_fields_required(self.rows.schema) ||
+  self.rows.presence_rows[row].cells[column] is Some(_)
 }
 
 ///|
@@ -174,7 +190,7 @@ pub fn finish_fixed_producer_measurement(
     physical_equal(schema, rows.schema) else {
     return Err(InvalidLayout)
   }
-  if rows.rows.length() > measurement.max_rows {
+  if admitted_output_row_count(rows) > measurement.max_rows {
     return Err(OutputRows)
   }
   match

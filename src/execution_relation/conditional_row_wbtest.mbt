@@ -1,16 +1,16 @@
 ///|
 fn conditional_row_test_schema() -> @schema.ConditionalSchema {
-  @schema.from_presence_fields(
+  @schema.from_conditional_fields(
     [
       (
         Unqualified("p"),
         @contract.primitive(NumberType, nullable=true),
-        @schema.Conditional,
+        @schema.FieldPresence::Conditional,
       ),
       (
         Unqualified("id"),
         @contract.primitive(NumberType, nullable=false),
-        @schema.Required,
+        @schema.FieldPresence::Required,
       ),
     ],
     max_fields=2,
@@ -157,7 +157,7 @@ test "required conditional columns enter the existing dense output owner" {
   ).unwrap()
   let n = @schema.lookup(target, Unqualified("n")).unwrap()
   let s = @schema.lookup(target, Unqualified("s")).unwrap()
-  let conditional = @schema.from_presence_fields(
+  let conditional = @schema.from_conditional_fields(
     [
       (Unqualified("n"), n, @schema.Required),
       (
@@ -316,7 +316,7 @@ test "required projection rejects a renamed field before publishing output" {
   ).unwrap()
   let n = @schema.lookup(target, Unqualified("n")).unwrap()
   let s = @schema.lookup(target, Unqualified("s")).unwrap()
-  let conditional = @schema.from_presence_fields(
+  let conditional = @schema.from_conditional_fields(
     [
       (Unqualified("s"), s, @schema.Required),
       (Unqualified("x"), n, @schema.Required),

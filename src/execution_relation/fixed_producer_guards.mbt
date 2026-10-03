@@ -25,6 +25,11 @@ impl IndexedRows for ProducerGuardRows with fn read_cell(self, row, column) {
 }
 
 ///|
+impl IndexedRows for ProducerGuardRows with fn cell_present(self, row, column) {
+  IndexedRows::cell_present(self.table, row, self.input.columns[column])
+}
+
+///|
 /// One cumulative measurement ledger for complete fixed input and retained
 /// output. Producer admission remains the ordinary owned driver path. The
 /// additional common root ceiling uses the existing evaluator, without replay.

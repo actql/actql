@@ -99,6 +99,9 @@ fn order_key(
     Some(v) => v
     None => fail(field_source, UnknownField(field))
   }
+  if contract.presence != @schema.Required {
+    fail(field_source, PresenceRequired(field))
+  }
   if !@order.author_orderable(contract.contract) {
     fail(field_source, NotAuthorOrderable(field))
   }
@@ -210,6 +213,9 @@ fn check_impl(
       let contract = match fields.get(key) {
         Some(v) => v
         None => fail(entry, UnknownField(key))
+      }
+      if contract.presence != @schema.Required {
+        fail(entry, PresenceRequired(key))
       }
       seen[key] = true
       charge(b, entry, key)

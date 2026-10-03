@@ -610,6 +610,19 @@ fn check_impl(
     if meta is Some(cursor) {
       metadata(b, cursor)
     }
+    // Only guaranteed-column projection currently consumes conditional rows.
+    // This checked boundary also covers consumers using Knowledge directly,
+    // rather than letting them infer dense rows from known field types.
+    if key != "select" {
+      if carrier(input, inputs, steps) is @carrier.Relation(rows) {
+        if !@carrier.all_fields_required(rows) {
+          fail(
+            operation_body,
+            Operation(@relation.ConditionalInputNotImplemented),
+          )
+        }
+      }
+    }
     if key == "infer" {
       if binding_name is None {
         fail(body, InferRequiresAlias)
@@ -1535,7 +1548,13 @@ fn check_impl(
     }
     let (checked, output) = match op {
       Some(op) => {
-        let input_schema = schema(operation_body, input, inputs, steps)
+        let input_schema = schema(
+          operation_body,
+          input,
+          inputs,
+          steps,
+          allow_conditional=key == "select",
+        )
         let operation_limits : @relation.Limits = {
           max_work: b.work,
           max_text_bytes: b.text,

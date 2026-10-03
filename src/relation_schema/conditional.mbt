@@ -119,13 +119,13 @@ pub fn from_definition_fields(
       field.name,
       field.contract,
       if field.declarations == definitions.length() {
-        Required
+        FieldPresence::Required
       } else {
-        Conditional
+        FieldPresence::Conditional
       },
     )
   })
-  match from_presence_fields(entries, max_fields~, max_name_bytes~) {
+  match from_conditional_fields(entries, max_fields~, max_name_bytes~) {
     Ok(schema) => Ok((schema, max_contract_work - remaining))
     Err(issue) => Err(DefinitionSchema(issue))
   }
@@ -141,7 +141,7 @@ pub enum PresenceLookup {
 ///|
 /// Validate all names and contracts through the existing schema owner, then
 /// retain the presence declaration separately from the nullable value type.
-pub fn from_presence_fields(
+pub fn from_conditional_fields(
   entries : Array[(FieldName, @contract.Contract, FieldPresence)],
   max_fields~ : Int,
   max_name_bytes~ : Int,
@@ -208,7 +208,7 @@ pub fn presence_field_contract(field : ConditionalField) -> @contract.Contract {
 }
 
 ///|
-pub fn field_presence(field : ConditionalField) -> FieldPresence {
+pub fn conditional_field_presence(field : ConditionalField) -> FieldPresence {
   field.presence
 }
 

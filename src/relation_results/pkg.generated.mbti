@@ -149,6 +149,7 @@ pub(all) enum IssueKind {
   WrongCarrier(@carrier_contract.Kind)
   IncompleteSchema
   UnknownField(String)
+  PresenceRequired(String)
   DuplicateField(String)
   InvalidOrder
   NotAuthorOrderable(String)

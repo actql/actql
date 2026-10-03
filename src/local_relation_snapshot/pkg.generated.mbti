@@ -16,6 +16,8 @@ pub fn cid(Snapshot) -> String
 
 pub fn emit(Snapshot, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
+pub fn emit_schema_type_projection(@local_source_ref.Reference, @relation_schema.Schema, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
+
 pub fn emit_score_projection(Snapshot, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_type_projection(Snapshot, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure

@@ -6,6 +6,7 @@ struct CapturedRows {
   origin : CaptureOrigin
   schema : @schema.Schema
   rows : Array[Array[@admitted.Value]]
+  presence_rows : Array[AdmittedRelationRow]
   usage : ValueUsage
 }
 
@@ -26,7 +27,11 @@ pub fn captured_schema(rows : CapturedRows) -> @schema.Schema {
 
 ///|
 pub fn captured_row_count(rows : CapturedRows) -> Int {
-  rows.rows.length()
+  if @schema.all_fields_required(rows.schema) {
+    rows.rows.length()
+  } else {
+    rows.presence_rows.length()
+  }
 }
 
 ///|
@@ -35,6 +40,12 @@ pub fn captured_cell(
   row : Int,
   column : Int,
 ) -> @admitted.Value? {
+  if !@schema.all_fields_required(rows.schema) {
+    return match rows.presence_rows.get(row) {
+      Some(value) => relation_row_required_value(value, column).to_option()
+      None => None
+    }
+  }
   match rows.rows.get(row) {
     Some(r) => r.get(column)
     None => None
@@ -100,6 +111,25 @@ pub fn capture_values(
     origin: ValuesNode(node_index),
     schema,
     rows,
+    presence_rows: [],
     usage: { nodes: budget.nodes, text_bytes: budget.text, work: budget.work, },
   })
+}
+
+///|
+pub fn captured_presence_cell(
+  rows : CapturedRows,
+  row : Int,
+  column : Int,
+) -> Result[RelationCell, RelationPresenceIssue] {
+  if @schema.all_fields_required(rows.schema) {
+    return match captured_cell(rows, row, column) {
+      Some(value) => Ok(Present(value))
+      None => Err(InvalidLayout)
+    }
+  }
+  match rows.presence_rows.get(row) {
+    Some(row) => relation_row_cell(row, column)
+    None => Err(InvalidLayout)
+  }
 }

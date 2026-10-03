@@ -127,7 +127,8 @@ fn advance_conditional_row_state(
         }
         match cell {
           None => {
-            if @schema.field_presence(field) == @schema.Required {
+            if @schema.conditional_field_presence(field) ==
+              @schema.FieldPresence::Required {
               return @bounded.Failed(MissingRequired(state.column), used, used)
             }
             state.builder.cells.push(None)

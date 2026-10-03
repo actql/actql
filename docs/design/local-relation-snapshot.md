@@ -1,5 +1,20 @@
 # Local Relation schema snapshot integrity
 
+## Column presence
+
+`column_presence` records conditional existence for a finite set of declared
+Relation columns. All other columns are required. The checked object contract
+in `schema` supplies recursive value types, not permission to omit ordinary
+object properties. Metadata admission rejects undeclared names, empty maps and
+values other than `"conditional"`. Type and score projections retain this map;
+materialization observations remain excluded. Missing row keys stay missing,
+and present NULL values are separately subject to nullable admission.
+
+The interpretation pin changes to include this contract. Dense snapshot bodies
+without conditional columns retain their canonical bytes; no legacy reader,
+fallback or inference from external catalogs is introduced. Store row admission
+and cleanup are separate from snapshot integrity.
+
 ## Input score assertions
 
 The optional `score_contracts` map supplies field-scoped input semantics for

@@ -7,7 +7,11 @@ import {
 }
 
 // Values
+pub fn all_fields_required(Schema) -> Bool
+
 pub fn as_object(Schema) -> @value_contract.Contract?
+
+pub fn conditional_field_presence(ConditionalField) -> FieldPresence
 
 pub fn field_at(Schema, Int) -> Field?
 
@@ -15,11 +19,13 @@ pub fn field_contract(Field) -> @value_contract.Contract
 
 pub fn field_count(Schema) -> Int
 
-pub fn field_presence(ConditionalField) -> FieldPresence
+pub fn field_presence(Field) -> Presence
 
 pub fn field_reference_name(Field) -> String
 
 pub fn fields(Schema) -> Array[Field]
+
+pub fn from_conditional_fields(Array[(FieldName, @value_contract.Contract, FieldPresence)], max_fields~ : Int, max_name_bytes~ : Int) -> Result[ConditionalSchema, Issue]
 
 pub fn from_definition_fields(Array[Array[(FieldName, @value_contract.Contract)]], max_definitions~ : Int, max_fields~ : Int, max_name_bytes~ : Int, max_contract_work~ : Int) -> Result[(ConditionalSchema, Int), DefinitionPresenceIssue]
 
@@ -27,7 +33,9 @@ pub fn from_fields(Array[(FieldName, @value_contract.Contract)], max_fields~ : I
 
 pub fn from_object(@value_contract.Contract) -> Result[Schema, Issue]
 
-pub fn from_presence_fields(Array[(FieldName, @value_contract.Contract, FieldPresence)], max_fields~ : Int, max_name_bytes~ : Int) -> Result[ConditionalSchema, Issue]
+pub fn from_presence_fields(Array[(FieldName, @value_contract.Contract, Presence)], max_fields~ : Int, max_name_bytes~ : Int) -> Result[Schema, Issue]
+
+pub fn has_qualified_fields(Schema) -> Bool
 
 pub fn lookup(Schema, FieldName) -> @value_contract.Contract?
 
@@ -68,6 +76,7 @@ pub(all) enum DefinitionPresenceIssue {
 pub struct Field {
   name : FieldName
   contract : @value_contract.Contract
+  presence : Presence
 }
 
 pub(all) enum FieldName {
@@ -86,6 +95,11 @@ pub(all) enum Issue {
   LimitExceeded
   DuplicateField(FieldName)
   InvalidField(FieldName, @value_contract.ConstructionIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum Presence {
+  Required
+  Conditional
 } derive(Eq, @debug.Debug)
 
 pub enum PresenceLookup {

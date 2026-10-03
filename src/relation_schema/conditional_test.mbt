@@ -2,10 +2,10 @@
 test "finite presence keeps missing distinct from nullable value types" {
   let number = @contract.primitive(NumberType, nullable=false)
   let nullable = @contract.primitive(NumberType, nullable=true)
-  let schema = @relation_schema.from_presence_fields(
+  let schema = @relation_schema.from_conditional_fields(
     [
-      (Unqualified("p"), nullable, Conditional),
-      (Unqualified("id"), number, Required),
+      (Unqualified("p"), nullable, FieldPresence::Conditional),
+      (Unqualified("id"), number, FieldPresence::Required),
     ],
     max_fields=2,
     max_name_bytes=3,
@@ -25,7 +25,10 @@ test "finite presence keeps missing distinct from nullable value types" {
   )
   let field = @relation_schema.presence_field_at(schema, 1).unwrap()
   assert_eq(@relation_schema.presence_field_name(field), Unqualified("p"))
-  assert_eq(@relation_schema.field_presence(field), Conditional)
+  assert_eq(
+    @relation_schema.conditional_field_presence(field),
+    FieldPresence::Conditional,
+  )
   assert_true(@relation_schema.presence_field_contract(field).nullable)
   let dense = @relation_schema.required_projection_schema(schema)
   assert_eq(@relation_schema.field_count(dense), 1)
@@ -37,26 +40,26 @@ test "finite presence keeps missing distinct from nullable value types" {
 test "presence fields retain ordinary schema name and type validation" {
   let number = @contract.primitive(NumberType, nullable=false)
   assert_true(
-    @relation_schema.from_presence_fields(
-      [(Unqualified("id"), number, Required)],
+    @relation_schema.from_conditional_fields(
+      [(Unqualified("id"), number, FieldPresence::Required)],
       max_fields=0,
       max_name_bytes=2,
     )
     is Err(LimitExceeded),
   )
   assert_true(
-    @relation_schema.from_presence_fields(
-      [(Unqualified("id"), number, Required)],
+    @relation_schema.from_conditional_fields(
+      [(Unqualified("id"), number, FieldPresence::Required)],
       max_fields=-1,
       max_name_bytes=2,
     )
     is Err(InvalidLimits),
   )
   assert_true(
-    @relation_schema.from_presence_fields(
+    @relation_schema.from_conditional_fields(
       [
-        (Unqualified("id"), number, Required),
-        (Unqualified("id"), number, Conditional),
+        (Unqualified("id"), number, FieldPresence::Required),
+        (Unqualified("id"), number, FieldPresence::Conditional),
       ],
       max_fields=2,
       max_name_bytes=4,
@@ -64,8 +67,8 @@ test "presence fields retain ordinary schema name and type validation" {
     is Err(DuplicateField(_)),
   )
   assert_true(
-    @relation_schema.from_presence_fields(
-      [(Unqualified("__actql_bad"), number, Conditional)],
+    @relation_schema.from_conditional_fields(
+      [(Unqualified("__actql_bad"), number, FieldPresence::Conditional)],
       max_fields=1,
       max_name_bytes=20,
     )

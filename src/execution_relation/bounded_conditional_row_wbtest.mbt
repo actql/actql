@@ -270,7 +270,7 @@ test "bounded conditional row rechecks compatible definition values" {
 ///|
 test "long conditional text yields between charged chunks" {
   let contract = @contract.primitive(StringType, nullable=false)
-  let schema = @schema.from_presence_fields(
+  let schema = @schema.from_conditional_fields(
     [(Unqualified("payload"), contract, @schema.Required)],
     max_fields=1,
     max_name_bytes=7,

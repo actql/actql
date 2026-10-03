@@ -73,7 +73,8 @@ pub fn append_conditional_cell(
   }
   match cell {
     None =>
-      if @schema.field_presence(field) == @schema.Required {
+      if @schema.conditional_field_presence(field) ==
+        @schema.FieldPresence::Required {
         cancel_conditional_row(builder) |> ignore
         return Err(MissingRequired(column))
       }

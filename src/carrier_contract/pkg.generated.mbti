@@ -8,6 +8,8 @@ import {
 }
 
 // Values
+pub fn all_fields_required(Knowledge) -> Bool
+
 pub fn complete_schema(Knowledge) -> @relation_schema.Schema?
 
 pub fn conditional_rows(@relation_schema.ConditionalSchema) -> Knowledge
@@ -146,6 +148,7 @@ pub struct Events {
 pub struct Field {
   name : @relation_schema.FieldName
   contract : @value_contract.Contract?
+  presence : @relation_schema.Presence
 }
 
 pub(all) enum FieldSet {

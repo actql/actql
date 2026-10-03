@@ -256,18 +256,32 @@ fn append_output_stream_row(
     return Err(Closed)
   }
   let row = stream.buffer.rows[0]
+  emit_output_stream_row(stream, column => Some(row[column]), Some(row), drain)
+}
+
+///|
+fn emit_output_stream_row(
+  stream : AdmittedOutputStream,
+  read : (Int) -> @admitted.Value?,
+  dense_row : Array[@admitted.Value]?,
+  drain : Bool,
+) -> Result[String, OutputStreamIssue] {
+  if dense_row is None && stream.measurement is Some(_) {
+    return Err(Admission(ConditionalInputRequiresPresence))
+  }
   let measured = stream.measurement is Some(_) ||
     stream.capture_value_measurement
   try {
     @encode.begin_object(stream.writer)
     for (name, column) in stream.order.columns {
+      guard read(column) is Some(cell) else { continue }
       @encode.key(stream.writer, name)
       let before = if measured {
         Some(@encode.writer_progress(stream.writer))
       } else {
         None
       }
-      @admitted.emit_wire_value(row[column], stream.writer)
+      @admitted.emit_wire_value(cell, stream.writer)
       if before is Some(previous) {
         let current = @encode.writer_progress(stream.writer)
         let value_bytes = current.0 - previous.0
@@ -283,7 +297,7 @@ fn append_output_stream_row(
             stream.encoded_max_value_bytes,
             value_bytes,
           )
-          if row[column] is @admitted.Null {
+          if cell is @admitted.Null {
             stream.encoded_column_nulls[column] += 1
           }
         }
@@ -301,7 +315,7 @@ fn append_output_stream_row(
       let (_, _, peak) = @encode.writer_progress(stream.writer)
       measure_fixed_producer_stream_row(
         measurement,
-        row,
+        dense_row.unwrap(),
         encoded=stream.encoded_cell_usage,
         encoded_depth=peak - 2,
       )
@@ -316,9 +330,43 @@ fn append_output_stream_row(
   } catch {
     issue => {
       if stream.measurement is Some(measurement) {
-        measure_fixed_producer_stream_row(measurement, row)
+        measure_fixed_producer_stream_row(measurement, dense_row.unwrap())
       }
       Err(Wire(Encoding(issue)))
+    }
+  }
+}
+
+///|
+/// Presence-aware provisional Store stream. The same buffer, writer, bounded
+/// receipts and cancellation own this representation; no alternate authority.
+pub fn append_admitted_output_stream_presence(
+  stream : AdmittedOutputStream,
+  row : AdmittedRelationRow,
+) -> Result[String, OutputStreamIssue] {
+  if !stream.open || stream.reading {
+    return Err(Closed)
+  }
+  if stream.rows >= stream.max_rows {
+    cancel_admitted_output_stream(stream) |> ignore
+    return Err(Admission(CaptureLimit))
+  }
+  stream.reading = true
+  let result = match append_admitted_buffer_presence(stream.buffer, row) {
+    Ok(_) =>
+      emit_output_stream_row(stream, column => row.cells[column], None, true)
+    Err(issue) => Err(Admission(issue))
+  }
+  stream.buffer.presence_rows.clear()
+  stream.reading = false
+  match result {
+    Ok(text) => {
+      stream.rows += 1
+      Ok(text)
+    }
+    Err(issue) => {
+      cancel_admitted_output_stream(stream) |> ignore
+      Err(issue)
     }
   }
 }
@@ -365,6 +413,7 @@ pub fn finish_admitted_output_stream(
           },
           measurement_identity,
           value_measurement: if stream.capture_value_measurement &&
+            @schema.all_fields_required(stream.buffer.schema) &&
             measured_work <= 2147483647L {
             let mut value_bytes = 0
             let mut value_nodes = 0

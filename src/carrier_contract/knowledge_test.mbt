@@ -26,10 +26,10 @@ test "unknown and absent fields are distinct from present untyped fields" {
 test "conditional rows expose only guaranteed fields to ordinary lookup" {
   let number = @value.primitive(NumberType, nullable=false)
   let nullable = @value.primitive(NumberType, nullable=true)
-  let schema = @row.from_presence_fields(
+  let schema = @row.from_conditional_fields(
     [
-      (@row.Unqualified("id"), number, @row.Required),
-      (@row.Unqualified("p"), nullable, @row.Conditional),
+      (@row.Unqualified("id"), number, @row.FieldPresence::Required),
+      (@row.Unqualified("p"), nullable, @row.FieldPresence::Conditional),
     ],
     max_fields=2,
     max_name_bytes=3,
@@ -166,4 +166,26 @@ test "wide incomplete schemas and deep shared child contracts" {
     max_name_bytes=4,
   ).unwrap()
   assert_true(complete_schema(deep) is Some(_))
+}
+
+///|
+test "closed typed knowledge does not imply row-total presence" {
+  let schema = @row.from_presence_fields(
+    [
+      (
+        Unqualified("p"),
+        @value.primitive(NumberType, nullable=true),
+        Conditional,
+      ),
+    ],
+    max_fields=1,
+    max_name_bytes=1,
+  ).unwrap()
+  let knowledge = typed_rows(schema)
+  assert_eq(field_set(knowledge), Closed)
+  let field = field_at(knowledge, 0).unwrap()
+  assert_eq(field.presence, @row.Conditional)
+  assert_true(field.contract.unwrap().nullable)
+  assert_true(!@row.all_fields_required(complete_schema(knowledge).unwrap()))
+  assert_true(lookup(knowledge, Unqualified("other")) is Absent)
 }
