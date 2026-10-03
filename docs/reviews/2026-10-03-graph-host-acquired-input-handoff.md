@@ -100,11 +100,15 @@ for source recipes, invocation evidence and limits. This is finite JS
 implementation evidence, not a formal implementation proof or cross-target
 mutation claim.
 
-The isolated fixed revision is not #270's submitted HEAD. #272 has been
-retargeted from #270 to main without changing its SHA. Its diff against main
-includes the published G tests/review records and existing declaration, in
-addition to A's product fix; those inherited changes need to remain explicit
-in its review scope. No dependency-branch PR merge is authorized. #270 stays
-Draft until the final revision is adopted through main and exact-head CI
-succeeds. The original red CI and the earlier green `79107ff2...` CI retain
-their distinct meanings.
+## Main integration
+
+#272 merged into main as `7081dedfd69f5794de11076ab27249c4f57b0c66` on
+2026-10-04 JST; #270 is also merged. G normally merged that main revision,
+retaining the existing tests, product fix and original history declaration.
+No duplicate implementation or declaration was added.
+
+The counterexample and mutation results above retain their actual source SHA.
+The isolated fixed-source files match the integrated test and product bytes,
+so no heavy campaign was repeated for integration. The original red CI and
+previous green CI retain their distinct meanings. Later reuse changes have
+their own selected checks and automatic PR CI.

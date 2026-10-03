@@ -1,4 +1,4 @@
-# Graph Host owner fixture reuse: integration status
+# Graph Host owner fixture reuse
 
 Baseline: `b18632b65570713e36c0a83e8afd0063bc37a5c3` (`origin/main` when this worktree was created).
 Branch: `test/graph-host-owner-fixtures`.
@@ -55,8 +55,9 @@ runner, scoped cleanup wrapper, exact consumer-credit/idempotence checks, and
 cleanup reservation checks. Its checked occurrence, independent rows/projections,
 identity/type conditions and operation-specific boundaries still require review.
 Different material/view or execution boundaries require their own correspondence.
-No test deletion, CI speedup, formal implementation proof or mutation equivalence
-is claimed by this change.
+No test deletion, CI speedup or formal implementation proof is claimed.
+The three specific JS mutation observations below are not general mutation
+equivalence or other-target detection guarantees.
 
 ## Focused verification
 
@@ -100,7 +101,7 @@ parents, its single merge base, workflow blob digests and modes, and 34 inherite
 declaration dependencies. It changes no workflow bytes or validator rules.
 The same source-bound declaration is preserved on the recovery branch's
 post-merge snapshot `bf4b509d776bbb4e643374f59b17181574537e2a`. It was not part
-of the merged #267 head; #270 carries the common history fix for review.
+of the merged #267 head; it reached main with the #270/#272 integration.
 
 At `7d26f502bedbf7773d85aabfc562bb990a330149`, the existing Git-only history
 validator passed and the bounded JS Graph Host selection passed 4/4. Its new
@@ -184,28 +185,24 @@ These are finite normal-implementation CI results at A's fixed source. They
 include the existing normal/cancellation tests and do not repeat the three
 Host mutations on Wasm/native. The locally isolated mutation results above
 remain JS-only. The same automatic run subsequently completed with conclusion `success`,
-including its final evidence publication/aggregation. #270's eventual
-submitted-head CI must still be checked independently; this successful run
-does not establish a different HEAD's result.
+including its final evidence publication/aggregation. Any later submitted-head CI must still be checked independently; this
+successful run does not establish a different HEAD's result.
 
-## Main integration still required
+## Completed main integration
 
-G normally merged main `336636c0bf6c5065d14941c7008c43b9897c7f4b` (#268)
-as `129ab2bd90944af2b7dab14e9007b14231aab2d9`, without conflicts.
-The new four-producer CI configuration and all original declarations were
-preserved. The Git-only history validator passed; no full local campaign was
-added. This main merge changes neither the two test files nor the three product
-files changed by A. G's branch intentionally does not contain A's fix yet.
+#272 reached main as `7081dedfd69f5794de11076ab27249c4f57b0c66` on
+2026-10-04 JST; #270 is also recorded as merged. The integration preserves
+G's tests and original #246 declaration alongside A's acquired-input fix.
+G normally merged this main revision without conflicts as
+`cc9d2bfd96abb656963207f11dc84e88a9dfd8f3`.
 
-#272 was originally stacked on #270 and has since been retargeted to main
-at the unchanged fixed SHA. Its main-relative diff therefore includes the
-published G test changes, both review records and the existing #246 declaration,
-as well as A's three product files. This is not a product-files-only diff; the
-PR scope and review must account for those inherited changes. No PR was merged
-into a dependency branch. G must adopt the final integrated main revision
-before claiming acceptance of #270's submitted HEAD. #270 remains Draft while
-that integration and exact-head automatic CI are outstanding. The original
-red #270 CI is not the fixed-source result above.
+Against main, G's remaining changes are these two review documents only.
+The two test files, three product-fix files and declaration have no residual
+diff. They also match the successful fixed-source revision recorded above.
+The original counterexample and three mutations remain evidence of their
+actual fixed SHA; no new mutation campaign or broad test was run merely to
+confirm integration. New documentation and subsequent test changes require
+their own automatic PR CI; old runs do not certify new HEADs.
 
 ## Executed mutation sites and detection scope
 
@@ -227,32 +224,11 @@ guard: the active-edge guard and producer cleanup may independently keep the
 holding. Conversely, the later child-guard mutation does not establish removal
 of the active-edge guard. Record the phase actually observed.
 
-Before any mutation, the unmodified A+G source must pass both selected MATCH
-cases, including final consumer credit and cleanup retry. Preserve A's complete
-fix SHA, G's integrated SHA, source bytes/digests and the actual inputs/quantums.
-Do not replace the success expectation with expected `ForeignCandidate`.
-
-Use the existing bounded/nonzero-test wrapper for the two MATCH cases. Give
-each isolated invocation its own `_build` and preserve its logs; dependencies
-may be borrowed, but never mutate a borrowed target or the active checkout.
-For each fault, retain the exact source patch, compiler/target, counts, exit,
-assertion location/message and observed before/after quantities. Compile failure,
-zero-test discovery, timeout, an unrelated failure or the known completion
-refusal is not mutation detection.
-
-Restore all mutated bytes and modes to the fixed source before the next fault.
-Check restoration against Git and rerun the same selected cases with a fresh
-test process in that isolated worktree. Only that restored success closes the
-fault's acceptance. Existing normal/cancellation tests and target/frequency
-obligations remain; JS mutation observations are not Wasm/native detection
-evidence. No CI selector, workflow, new harness, ledger or product fix is added
-by this preparation.
-
 ## Reuse guide for A/B/C/D
 
 The fixed-source normal and mutation/restoration runs above establish this
-finite JS example. Use the final adopted fix revision and exact submitted-head
-CI for integration; #270 remains Draft until those prerequisites are met.
+finite JS example, now integrated into main. Reuse its declared scope; record
+new checks and submitted-head CI separately for any adoption change.
 
 | Reuse at the same Host boundary | Add or retain for each operation | Confirm on the real connection |
 | --- | --- | --- |
@@ -326,7 +302,7 @@ Use the repository's pinned toolchain environment. See
 and [focused execution](../development.md#focused-test-execution) for the nonzero
 count/evidence contract. Do not run a full campaign merely to adopt this example.
 
-## Candidate after #270 closes: existing TimeSeries Host case
+## Next bounded reuse: existing TimeSeries Host case
 
 The first candidate is `standard Host runs time series with two retained
 consumers` in `src/query_integration/local_time_series_wbtest.mbt`. It already
@@ -346,6 +322,6 @@ contract. No new generic scenario callback or operation switch is needed.
 
 A producer-close-during-consumption scenario would be additional connection
 work, not automatically inherited from two close-helper calls. Estimate/review
-that separately once the acquired-input fix and Graph acceptance are complete.
+that separately; it is outside the small close-check reuse proposed here.
 There is no deletion or CI-time reduction claim yet; all four older retained
 Host layouts identified by #131 remain untouched.
