@@ -50,6 +50,7 @@ fn run_current_host_graph_relation_path(
   variant? : String = "current_filter",
   execution_quantum? : Int = 0,
   cancel_take_after? : Int = 0,
+  cleanup_attempts? : Ref[Int]? = None,
 ) -> Unit raise {
   let (run, issuer) = captured_graph_fixture(
     local_carrier_graph_chain=true,
@@ -100,6 +101,23 @@ fn run_current_host_graph_relation_path(
       limits.guards,
     ).unwrap(),
   )
+  let provider = if cleanup_attempts is Some(attempts) {
+    // The installed sequence includes construction at 0 and MATCH at 1;
+    // the driver selects that original occurrence for physical task 3.
+    assert_true(
+      @execution.generated_sequence_step_at(sequences[3], 1)
+      is Some(@lower.GraphMatchStep(_)),
+    )
+    delayed_cleanup_provider(
+      provider,
+      attempts,
+      only_owner=@execution.generated_sequence_owner(sequences[3]),
+      only_step=@execution.generated_sequence_step_index_at(sequences[3], 1).unwrap(),
+      cleanup_error=true,
+    )
+  } else {
+    provider
+  }
   let modules = @builtin.configure_compute_modules(
     @host_driver.open_dispatch_driver(run),
     registry,
@@ -168,6 +186,9 @@ fn run_current_host_graph_relation_path(
     construction_rows,
     obligations?=graph_publication_obligations(run, true),
   )
+  if cleanup_attempts is Some(attempts) {
+    assert_eq(attempts.val, 0)
+  }
   let projected_live = Ref(true)
   let (projected_ops, projected) = run_local_managed_test_task(
     installed,
@@ -181,6 +202,21 @@ fn run_current_host_graph_relation_path(
     obligations?=graph_publication_obligations(run, true),
   )
   let projected_rows = local_managed_test_rows(projected_ops)
+  if cleanup_attempts is Some(attempts) {
+    // Settlement observed false from the actual MATCH execution. An error
+    // during refresh must preserve the same real Host reservation and holding.
+    assert_eq(attempts.val, 1)
+    let pending = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+    assert_true(pending.reserved_execution_bytes > 0L)
+    assert_true(pending.held_bytes > 0L)
+    assert_false((projected_ops.cleanup_refresh)())
+    assert_eq(attempts.val, 2)
+    assert_eq(
+      @resources.ledger_usage(@strategy.captured_dag_ledger(run)),
+      pending,
+    )
+    assert_true(@execution.managed_completed_output_available(projected))
+  }
   if cancel_take_after > 0 {
     let cancelled_ops = start_local_managed_test_task_operations(
       installed,
@@ -276,6 +312,9 @@ fn run_current_host_graph_relation_path(
     assert_true(filtered_rows[0].contains("\"src\":1"))
     assert_true(filtered_rows[1].contains("\"src\":2"))
   }
+  if cleanup_attempts is Some(_) {
+    assert_graph_host_match_rows(variant, filtered_rows)
+  }
   let first_live = Ref(true)
   let (first_ops, first) = run_local_managed_test_task(
     installed,
@@ -300,17 +339,57 @@ fn run_current_host_graph_relation_path(
   )
   assert_eq(local_managed_test_rows(first_ops).length(), expected_rows)
   assert_eq(local_managed_test_rows(second_ops).length(), expected_rows)
-  first_live.val = false
-  @strategy.close_captured_task_output(run, 5)
-  (first_ops.close)()
-  (first_ops.cleanup_refresh)() |> ignore
-  assert_false(@execution.managed_completed_output_available(first))
+  if cleanup_attempts is Some(_) {
+    // Expected projections are per-operation data, not owner-fixture output.
+    if variant == "current_filter" {
+      assert_eq(local_managed_test_rows(first_ops), [
+        "{\"id\":1,\"node_name\":\"first\"}", "{\"id\":2,\"node_name\":\"second\"}",
+      ])
+      assert_eq(local_managed_test_rows(second_ops), [
+        "{\"node_name\":\"first\"}", "{\"node_name\":\"second\"}",
+      ])
+    } else {
+      assert_eq(local_managed_test_rows(first_ops), [
+        "{\"src\":1,\"weight\":10}", "{\"src\":2,\"weight\":20}",
+      ])
+      assert_eq(local_managed_test_rows(second_ops), [
+        "{\"weight\":10}", "{\"weight\":20}",
+      ])
+    }
+    let held = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+    assert_true(held.reserved_execution_bytes > 0L)
+  }
+  close_graph_host_consumer(run, 5, first_ops, first_live, first)
   assert_true(@execution.managed_completed_output_available(second))
   assert_true(@execution.managed_completed_output_available(filtered))
-  second_live.val = false
-  @strategy.close_captured_task_output(run, 6)
-  (second_ops.close)()
-  (second_ops.cleanup_refresh)() |> ignore
+  if cleanup_attempts is Some(attempts) {
+    assert_eq(attempts.val, 2)
+    assert_true(@execution.managed_completed_output_available(projected))
+    assert_true(
+      @resources.ledger_usage(@strategy.captured_dag_ledger(run)).reserved_execution_bytes >
+      0L,
+    )
+    // Reading the remaining consumer still checks the operation's values.
+    if variant == "current_filter" {
+      assert_eq(local_managed_test_rows(second_ops), [
+        "{\"node_name\":\"first\"}", "{\"node_name\":\"second\"}",
+      ])
+    } else {
+      assert_eq(local_managed_test_rows(second_ops), [
+        "{\"weight\":10}", "{\"weight\":20}",
+      ])
+    }
+  }
+  close_graph_host_consumer(run, 6, second_ops, second_live, second)
+  if cleanup_attempts is Some(attempts) {
+    assert_true(@execution.managed_completed_output_available(filtered))
+    assert_true(@execution.managed_completed_output_available(projected))
+    assert_eq(attempts.val, 2)
+    assert_true(
+      @resources.ledger_usage(@strategy.captured_dag_ledger(run)).reserved_execution_bytes >
+      0L,
+    )
+  }
   filtered_live.val = false
   @strategy.close_captured_task_output(run, 4)
   (filtered_ops.close)()
@@ -318,6 +397,12 @@ fn run_current_host_graph_relation_path(
   projected_live.val = false
   @strategy.close_captured_task_output(run, 3)
   (projected_ops.close)()
+  if cleanup_attempts is Some(attempts) {
+    // Disposing the execution is distinct from acknowledging scratch cleanup.
+    // Both consumer outputs are already closed; the VALUES holding stays live.
+    assert_eq(attempts.val, 2)
+    retry_graph_host_match_cleanup(run, projected_ops, values, attempts)
+  }
   (projected_ops.cleanup_refresh)() |> ignore
   @strategy.close_captured_task_output(run, 2)
   (construction_ops.close)()
@@ -355,4 +440,112 @@ test "standard Host cancellation after current MATCH preserves cleanup and retur
     variant="current_take",
     cancel_take_after=18,
   )
+}
+
+///|
+fn close_graph_host_consumer(
+  run : @strategy.CapturedDAG,
+  task : Int,
+  operations : @local_driver.LocalManagedDispatchOperations[Int],
+  live : Ref[Bool],
+  output : @execution.ManagedCompletedOutput[Int],
+) -> Unit raise {
+  let before = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  let bytes = @execution.managed_completed_output_storage_bytes(output).unwrap()
+  live.val = false
+  @strategy.close_captured_task_output(run, task)
+  (operations.close)()
+  (operations.cleanup_refresh)() |> ignore
+  assert_false(@execution.managed_completed_output_available(output))
+  let after = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_eq(after.held_bytes, before.held_bytes - bytes)
+  // Repeating close must not credit this allocation again at an intermediate
+  // nonzero ledger balance; final-zero alone cannot establish that property.
+  @strategy.close_captured_task_output(run, task)
+  (operations.close)()
+  (operations.cleanup_refresh)() |> ignore
+  assert_eq(@resources.ledger_usage(@strategy.captured_dag_ledger(run)), after)
+}
+
+///|
+fn retry_graph_host_match_cleanup(
+  run : @strategy.CapturedDAG,
+  operations : @local_driver.LocalManagedDispatchOperations[Int],
+  output : @execution.ManagedCompletedOutput[Int],
+  attempts : Ref[Int],
+) -> Unit raise {
+  let pending = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  let work = (operations.cumulative_provider_work)().unwrap()
+  (operations.cleanup_refresh)() |> ignore
+  assert_eq(attempts.val, 3)
+  let cleaned = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
+  assert_true(
+    cleaned.reserved_execution_bytes < pending.reserved_execution_bytes,
+  )
+  assert_eq(cleaned.held_bytes, pending.held_bytes)
+  assert_eq(cleaned.reserved_retention_bytes, pending.reserved_retention_bytes)
+  assert_eq(cleaned.transferred_bytes, pending.transferred_bytes)
+  assert_eq((operations.cumulative_provider_work)(), Ok(work))
+  assert_true(@execution.managed_completed_output_available(output))
+  // A second refresh must not return any additional credit or rerun cleanup.
+  (operations.cleanup_refresh)() |> ignore
+  assert_eq(attempts.val, 3)
+  assert_eq(
+    @resources.ledger_usage(@strategy.captured_dag_ledger(run)),
+    cleaned,
+  )
+}
+
+///|
+fn assert_graph_host_match_rows(
+  variant : String,
+  rows : Array[String],
+) -> Unit raise {
+  if variant == "current_filter" {
+    // Independent definition preimage: admitted constructor mappings, two
+    // VALUES producer occurrences and their declared field projections.
+    // No checker output, runtime Graph value or observed identity is used.
+    let definition =
+      #|{"constructor":{"edges":[{"input_occurrence":1,"key":["id"],"labels":[{"name":"Edge","properties":{"columns":[{"from":"src","to":"src"},{"from":"dst","to":"dst"},{"from":"weight","to":"weight"}],"mode":"columns"}}],"name":"E","source":{"definition":"N","key":["src"]},"target":{"definition":"N","key":["dst"]}}],"nodes":[{"input_occurrence":0,"key":["id"],"labels":[{"name":"Node","properties":{"columns":[{"from":"id","to":"id"},{"from":"node_name","to":"node_name"}],"mode":"columns"}}],"name":"N"}],"version":"actql-property-graph-constructor/0.1"},"producer_definitions":[{"producer":{"body":{"values":{"rows":[{"dst":2,"id":1,"node_name":"first","src":1,"weight":10},{"dst":1,"id":2,"node_name":"second","src":2,"weight":20}],"schema":{"dst":{"nullable":false,"type":"number"},"id":{"nullable":false,"type":"number"},"node_name":{"nullable":false,"type":"string"},"src":{"nullable":false,"type":"number"},"weight":{"nullable":false,"type":"number"}}}},"dependencies":[]},"projection":["id","src","dst","node_name","weight"]},{"producer":{"body":{"values":{"rows":[{"dst":2,"id":1,"node_name":"first","src":1,"weight":10},{"dst":1,"id":2,"node_name":"second","src":2,"weight":20}],"schema":{"dst":{"nullable":false,"type":"number"},"id":{"nullable":false,"type":"number"},"node_name":{"nullable":false,"type":"string"},"src":{"nullable":false,"type":"number"},"weight":{"nullable":false,"type":"number"}}}},"dependencies":[]},"projection":["id","src","dst","node_name","weight"]}],"version":"actql-property-graph-definition/0.1"}
+    let domain = "sha256:" + @sha.hex(@utf8.encode(definition))
+    let expected = Array::makei(2, index => {
+      "{\"element\":{\"definition\":\"N\",\"domain\":\"" +
+      domain +
+      "\",\"key\":[" +
+      (index + 1).to_string() +
+      "],\"key_types\":[{\"kind\":\"number\"}]},\"id\":" +
+      (index + 1).to_string() +
+      ",\"node_name\":\"" +
+      (if index == 0 { "first" } else { "second" }) +
+      "\"}"
+    })
+    assert_eq(rows, expected)
+  } else {
+    assert_eq(variant, "current_edge_filter")
+    assert_eq(rows, [
+      "{\"dst\":2,\"src\":1,\"weight\":10}", "{\"dst\":1,\"src\":2,\"weight\":20}",
+    ])
+  }
+}
+
+///|
+test "Host MATCH nodes retains cleanup responsibility through false error and retry" {
+  for quantum in [1, 7, 1024] {
+    run_current_host_graph_relation_path(
+      variant="current_filter",
+      execution_quantum=quantum,
+      cleanup_attempts=Some(Ref(0)),
+    )
+  }
+}
+
+///|
+test "Host MATCH edges retains cleanup responsibility through false error and retry" {
+  for quantum in [1, 7, 1024] {
+    run_current_host_graph_relation_path(
+      variant="current_edge_filter",
+      execution_quantum=quantum,
+      cleanup_attempts=Some(Ref(0)),
+    )
+  }
 }

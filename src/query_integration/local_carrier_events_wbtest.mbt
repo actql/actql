@@ -586,17 +586,34 @@ fn carrier_events_storage_limits() -> @record_storage.Limits {
 fn delayed_cleanup_provider(
   provider : @local_connector.ManagedProvider,
   attempts : Ref[Int],
+  only_owner? : @lower.BoundPrepared,
+  only_step? : Int,
+  cleanup_error? : Bool = false,
 ) -> @local_connector.ManagedProvider {
-  @local_connector.managed_provider(
+  @local_connector.managed_provider_with_inputs(
     sequence => @local_connector.managed_provider_accepts(provider, sequence),
     sequence => @local_connector.managed_provider_capacity(provider, sequence),
     fn(sequence, inputs, max_rows, max_value_bytes, execution) {
       match
-        @local_connector.start_managed_provider_with_execution(
+        @local_connector.start_managed_provider_with_inputs_and_execution(
           provider, sequence, inputs, max_rows, max_value_bytes, execution,
         ) {
         Err(issue) => Err(issue)
-        Ok(active) =>
+        Ok(active) => {
+          // Scope injection to the actual selected occurrence when requested.
+          // Other tasks still use the original provider execution unchanged.
+          if only_owner is Some(owner) &&
+            !physical_equal(
+              @execution.generated_sequence_owner(sequence),
+              owner,
+            ) {
+            return Ok(active)
+          }
+          if only_step is Some(step) &&
+            @execution.generated_sequence_step_index_at(sequence, 0) !=
+            Some(step) {
+            return Ok(active)
+          }
           Ok(
             @local_connector.managed_provider_execution(
               quantum => {
@@ -608,12 +625,15 @@ fn delayed_cleanup_provider(
                 attempts.val += 1
                 if attempts.val == 1 {
                   Ok(false)
+                } else if cleanup_error && attempts.val == 2 {
+                  Err(@connector.InvalidLimits)
                 } else {
                   @local_connector.cleanup_managed_provider(active)
                 }
               },
             ),
           )
+        }
       }
     },
   )
