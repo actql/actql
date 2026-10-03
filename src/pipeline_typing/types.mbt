@@ -152,6 +152,8 @@ pub enum CheckedOperation {
   Window(@window.CheckedWindow)
   Projection(@projection.CheckedProjection)
   GraphMatch(@graph.CheckedMatch)
+  GraphBounds(@graph.CheckedGraphBounds)
+  GraphDegree(@graph.CheckedDegree)
   Traverse(selector~ : Target?, checked~ : @graph.CheckedTraverse)
   PropertyGraphConstruction(
     inputs~ : Array[Target],

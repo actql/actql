@@ -15,6 +15,13 @@ pub fn operation_profile_requirement(
         | CanonicalMatchOrder
         | ResolveMatchResources => None
       }
+    DiagnosticRequirement(o) =>
+      match o {
+        AdmitDiagnosticGraph => Some(PropertyGraph)
+        ResolveDiagnosticResources
+        | EnforceDiagnosticRelationRows
+        | BindDiagnosticThreshold(_) => None
+      }
     TraverseRequirement(o) =>
       match o {
         ResolvePropertyGraphTraversalProfile => Some(PropertyGraph)

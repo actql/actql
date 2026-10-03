@@ -98,6 +98,8 @@ pub fn completeness_scope(v : CompletenessRequirement) -> CompletenessScope {
         | Calendar(_)
         | Projection(_)
         | GraphMatch(_)
+        | GraphBounds(_)
+        | GraphDegree(_)
         | Traverse(..)
         | PropertyGraphConstruction(..)
         | Vector(_)

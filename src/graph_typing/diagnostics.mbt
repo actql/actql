@@ -21,6 +21,68 @@ struct CheckedDegree {
 }
 
 ///|
+pub(all) enum DiagnosticObligation {
+  AdmitDiagnosticGraph
+  ResolveDiagnosticResources
+  EnforceDiagnosticRelationRows
+  BindDiagnosticThreshold(String)
+} derive(Eq, Debug)
+
+///|
+pub fn graph_bounds_pending_count(value : CheckedGraphBounds) -> Int {
+  let mut count = 3
+  for bound in [value.max_nodes, value.max_edges, value.max_degree] {
+    if bound is Some(Parameter(_)) {
+      count += 1
+    }
+  }
+  count
+}
+
+///|
+pub fn graph_bounds_pending_at(
+  value : CheckedGraphBounds,
+  index : Int,
+) -> DiagnosticObligation? {
+  if index < 3 {
+    return diagnostic_pending_at(index)
+  }
+  let mut next = 3
+  for bound in [value.max_nodes, value.max_edges, value.max_degree] {
+    if bound is Some(Parameter(name)) {
+      if index == next {
+        return Some(BindDiagnosticThreshold(name))
+      }
+      next += 1
+    }
+  }
+  None
+}
+
+///|
+pub fn degree_pending_count(_ : CheckedDegree) -> Int {
+  3
+}
+
+///|
+pub fn degree_pending_at(
+  _ : CheckedDegree,
+  index : Int,
+) -> DiagnosticObligation? {
+  diagnostic_pending_at(index)
+}
+
+///|
+fn diagnostic_pending_at(index : Int) -> DiagnosticObligation? {
+  match index {
+    0 => Some(AdmitDiagnosticGraph)
+    1 => Some(ResolveDiagnosticResources)
+    2 => Some(EnforceDiagnosticRelationRows)
+    _ => None
+  }
+}
+
+///|
 fn diagnostic_rows(
   source : @decode.Cursor,
   fields : Array[(@row.FieldName, @contract.Contract?)],

@@ -46,6 +46,7 @@ fn attach_fragment_budgets(
       @lower.SetStep(_) => ()
       @lower.GraphMatchStep(_) => ()
       @lower.GraphTraverseStep(_) => ()
+      @lower.GraphDiagnosticStep(_) => ()
       @lower.PropertyGraphConstructionStep(_) => ()
       @lower.VectorStep(_) => ()
       @lower.EventStep(_) => ()
