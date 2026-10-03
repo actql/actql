@@ -101,7 +101,7 @@ fn join_chain_keys(
 
 ///|
 // Bind each producer once at the caller's existing boundary. This function
-// appends ordinary select/join/derive/sort operations; it neither acquires
+// appends ordinary join/derive/sort operations; it neither acquires
 // inputs nor chooses a provider, task partition or execution strategy.
 fn compile_join_chain_steps(
   construction : Construction,
@@ -121,26 +121,20 @@ fn compile_join_chain_steps(
   let fields = columns(left.0)
   let physical = fields.copy()
   let visible : Array[(String, String)] = []
-  let selection : Array[@builder.Node] = []
   for field in fields {
     let slot = pipe_physical_name(physical, "aql_chain_column_")
     physical.push(slot)
     visible.push((field, slot))
-    selection.push(construction.object([(slot, construction.text(field))]))
   }
-  let initial = pipe_physical_name(reserved, "aql_chain_seed_")
-  reserved.push(initial)
-  let steps = [
-    construction.object([
-      ("from", construction.text(left.1)),
-      ("select", construction.array(selection)),
-      ("as", construction.text(initial)),
-    ]),
-  ]
-  let mut from = initial
+  // The first JOIN's existing projection assigns the private left slots.
+  // An extra seed SELECT would retain a needless intermediate relation and
+  // consume another bounded provider allowance for exactly the same fields.
+  let steps : Array[@builder.Node] = []
+  let mut from = left.1
+  let original = fields.map(field => (field, field))
   let mut scope : JoinChainScope = {
-    visible,
-    ranges: [(query_range_name(query), visible.copy())],
+    visible: original,
+    ranges: [(query_range_name(query), original.copy())],
   }
   for index in 0..<@query.join_part_count(query) {
     let part = @query.join_part_at(query, index).unwrap()
@@ -180,13 +174,23 @@ fn compile_join_chain_steps(
     let projected : Array[(String, @builder.Node)] = []
     // Qualified references keep both USING columns. Only the unqualified
     // visible row coalesces that key for the supported INNER/LEFT profiles.
-    for slot in physical {
-      if !fields.contains(slot) {
-        projected.push((slot, construction.text("left." + slot)))
+    if index == 0 {
+      for (field, slot) in visible {
+        projected.push((slot, construction.text("left." + field)))
+      }
+    } else {
+      for slot in physical {
+        if !fields.contains(slot) {
+          projected.push((slot, construction.text("left." + slot)))
+        }
       }
     }
     let right_range : Array[(String, String)] = []
-    let next_visible = scope.visible.copy()
+    let next_visible = if index == 0 {
+      visible.copy()
+    } else {
+      scope.visible.copy()
+    }
     for field in right_fields {
       let slot = pipe_physical_name(physical, "aql_chain_column_")
       physical.push(slot)
@@ -237,7 +241,12 @@ fn compile_join_chain_steps(
     from = joined
     scope = {
       visible: next_visible,
-      ranges: scope.ranges + [(qualifier, right_range)],
+      ranges: (if index == 0 {
+        [(query_range_name(query), visible.copy())]
+      } else {
+        scope.ranges
+      }) +
+      [(qualifier, right_range)],
     }
   }
   let final_from = pipe_physical_name(reserved, "aql_chain_result_")

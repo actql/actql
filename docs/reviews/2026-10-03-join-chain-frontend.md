@@ -20,6 +20,9 @@ selected expression reuses its output slot.
 
 DATA uses the existing producer cache. Repeated references share their original
 input/capture; the Frontend adds no acquisition owner or forced materialization.
+The first JOIN projection assigns the left input's private column slots; an
+additional seed SELECT is unnecessary. Selected expression evaluation and JOIN
+ceilings are unchanged, and no Host capacity allowance is increased.
 Standalone Values inputs are emitted once per producer. Existing JOIN output
 ceilings remain enforced. FULL chains are explicitly unsupported until their
 stable-row identity/coalescence boundary is adapted. Post-projection Pipe JOIN,
@@ -47,6 +50,36 @@ checked separately. These results establish lowering and ordinary checker
 admission, not public Host execution. No local full Core, all-target, packed,
 native or proof campaign was run. Public Local/HTTP and other backend results
 must be recorded from the submitted fixed SHA before this unit is complete.
+
+## Follow-up to the initial automatic CI
+
+Run [37124401491](https://github.com/actql/actql/actions/runs/37124401491),
+source `2f78352b820f32353860f6f45785cdbadbd21fc7`, identified two failures:
+the query-text rules digest had not been regenerated, and the first new packed
+Local example failed before publication. The CI package source is test merge
+`6a351574c88e316269214046ddcb7a1164db8351`; its additional NEAREST handoff
+files do not alter the JOIN implementation. Do not treat the two entire trees
+as identical.
+
+A bounded diagnostic reused those normally produced packages. Tasks 0–23
+completed; task 24 failed to reserve execution capacity: 539,299,328 bytes
+against the existing 536,870,912-byte ceiling. The extra pure seed projection
+was removed by assigning its columns in the first JOIN projection instead.
+The corresponding ordinary JSON Program, submitted to the unchanged packaged
+Client/Host, reached Named Result with rows `[{"y":1,"z":200},{"y":2,"z":100}]`
+and ordered nonnullable number columns `y`, `z`. This checks the proposed Program
+execution, **not** the updated source compiler or HTTP acceptance. The original
+nine-positive/four-refusal source fixtures remain the product acceptance target.
+
+Query-text documentation is a Grammar Manifest preimage. Regeneration changes
+its rules SHA-256 to
+`5bb6f784249ac4d0045be159779759a3e4c17fce84f3bb7f54c568a14199bbd8`
+and the grammar body CID to
+`sha256:24f53c1f64028206dbc01f6c3d0c11d991c8c9d512581fdfd007a250315f8bbd`.
+Compiler identities that bind that manifest consequently change; the manifest
+resource pin, normative imports and independent canonical identity vector are
+updated together. Wire/schema versions stay at 0.1. Expectations are derived
+independently from the normative preimage, not copied from compiler output.
 
 NEAREST's installed Host connection is a separate D-coordinated dependency;
 these pure relational changes do not enable VecA profiles or replace that work.
