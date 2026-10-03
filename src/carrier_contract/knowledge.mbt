@@ -24,12 +24,19 @@ struct Knowledge {
   field_set : FieldSet
   entries : Array[Field]
   complete : @row.Schema?
+  conditional : @row.ConditionalSchema?
   has_qualified_fields : Bool
 }
 
 ///|
 pub fn unknown_rows() -> Knowledge {
-  { field_set: Open, entries: [], complete: None, has_qualified_fields: false, }
+  {
+    field_set: Open,
+    entries: [],
+    complete: None,
+    conditional: None,
+    has_qualified_fields: false,
+  }
 }
 
 ///|
@@ -41,7 +48,39 @@ pub fn typed_rows(schema : @row.Schema) -> Knowledge {
       contract: Some(f.contract),
     }),
     complete: Some(schema),
+    conditional: None,
     has_qualified_fields: @row.as_object(schema) is None,
+  }
+}
+
+///|
+/// A finite Relation layout with row-dependent presence. Conditional fields
+/// retain their exact contracts in the schema but are not ordinary lookup
+/// evidence or a complete dense schema for unadapted consumers.
+pub fn conditional_rows(schema : @row.ConditionalSchema) -> Knowledge {
+  let entries = []
+  let mut qualified = false
+  for index in 0..<@row.presence_field_count(schema) {
+    let field = @row.presence_field_at(schema, index).unwrap()
+    let name = @row.presence_field_name(field)
+    if name is @row.Qualified(_, _) {
+      qualified = true
+    }
+    entries.push({
+      name,
+      contract: if @row.field_presence(field) == @row.Required {
+        Some(@row.presence_field_contract(field))
+      } else {
+        None
+      },
+    })
+  }
+  {
+    field_set: Closed,
+    entries,
+    complete: None,
+    conditional: Some(schema),
+    has_qualified_fields: qualified,
   }
 }
 
@@ -92,6 +131,7 @@ pub fn rows(
     } else {
       None
     },
+    conditional: None,
     has_qualified_fields: @row.as_object(admitted) is None,
   })
 }
@@ -126,6 +166,11 @@ pub fn complete_schema(rows : Knowledge) -> @row.Schema? {
 }
 
 ///|
+pub fn conditional_schema(rows : Knowledge) -> @row.ConditionalSchema? {
+  rows.conditional
+}
+
+///|
 pub fn lookup(rows : Knowledge, name : @row.FieldName) -> Lookup {
   let spelling = @row.reference_name(name)
   let mut lo = 0
@@ -140,6 +185,10 @@ pub fn lookup(rows : Knowledge, name : @row.FieldName) -> Lookup {
     }
   }
   if lo < rows.entries.length() && rows.entries[lo].name == name {
+    if rows.conditional is Some(schema) &&
+      @row.presence_lookup(schema, name) is @row.ConditionallyPresent(_) {
+      return Unknown
+    }
     Present(rows.entries[lo])
   } else if rows.field_set == Closed {
     Absent

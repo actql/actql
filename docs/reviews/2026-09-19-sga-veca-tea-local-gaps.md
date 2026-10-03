@@ -71,16 +71,17 @@ required or conditional presence independent of nullability. It preserves each
 row's declared properties and known aliases, distinguishing a missing field
 from a present nullable `NULL`; shared names require compatible types, and
 static references require presence in every possible contributing definition.
-The current Relation
-completion is fixed-width: `prepare_admitted_output` requires one flat object
-schema, and `append_admitted_row` requires every cell at that width. It cannot
-preserve row-specific absence. This is a shared Relation representation and
-admission gap, not permission to fill missing fields with `NULL`, add a new
-missing Value, or revive the retired tuple Graph. The required next boundary is
-a checked sparse-row representation with typed field-presence knowledge,
-bounded capture and retained Store/publication support; current Graph Bridge
-completion remains unclaimed until that boundary and its independent fixtures
-are implemented.
+The branch now has a typed conditional Relation schema and a per-row admission
+and wire roundtrip that distinguish absent fields from explicit `NULL`. Carrier
+knowledge withholds conditional fields from ordinary lookup and does not expose
+the sparse layout as a complete dense schema. A focused checker regression
+confirms that unadapted Relation consumers refuse conditional input. These are
+shared boundary components, not a connected Graph Bridge: the Graph projection
+checker, bounded producer, retained Store custody and reread, guaranteed-column
+projection, and Named Result path still need one executable vertical fixture.
+The existing `prepare_admitted_output` and retained Relation decoder remain
+fixed-width and must not receive sparse rows by treating absence as `NULL`.
+No missing Value or retired tuple-Graph fallback is introduced.
 
 ## Status interpretation (2026-09-28)
 

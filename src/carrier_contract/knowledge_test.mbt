@@ -23,6 +23,35 @@ test "unknown and absent fields are distinct from present untyped fields" {
 }
 
 ///|
+test "conditional rows expose only guaranteed fields to ordinary lookup" {
+  let number = @value.primitive(NumberType, nullable=false)
+  let nullable = @value.primitive(NumberType, nullable=true)
+  let schema = @row.from_presence_fields(
+    [
+      (@row.Unqualified("id"), number, @row.Required),
+      (@row.Unqualified("p"), nullable, @row.Conditional),
+    ],
+    max_fields=2,
+    max_name_bytes=3,
+  ).unwrap()
+  let records = conditional_rows(schema)
+  assert_eq(field_set(records), Closed)
+  assert_eq(field_count(records), 2)
+  assert_true(complete_schema(records) is None)
+  assert_true(conditional_schema(records) is Some(_))
+  assert_true(
+    lookup(records, @row.Unqualified("id"))
+    is Present({ contract: Some(_), .. }),
+  )
+  assert_true(lookup(records, @row.Unqualified("p")) is Unknown)
+  assert_true(lookup(records, @row.Unqualified("absent")) is Absent)
+  assert_true(field_at(records, 1).unwrap().contract is None)
+  let required = @row.required_projection_schema(schema)
+  assert_eq(@row.field_count(required), 1)
+  assert_true(complete_schema(typed_rows(required)) is Some(_))
+}
+
+///|
 test "complete names alone never infer types and open known types never close rows" {
   let number = @value.primitive(NumberType, nullable=false)
   let input = [(@row.Unqualified("x"), Some(number))]

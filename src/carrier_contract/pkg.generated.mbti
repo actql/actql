@@ -10,6 +10,10 @@ import {
 // Values
 pub fn complete_schema(Knowledge) -> @relation_schema.Schema?
 
+pub fn conditional_rows(@relation_schema.ConditionalSchema) -> Knowledge
+
+pub fn conditional_schema(Knowledge) -> @relation_schema.ConditionalSchema?
+
 pub fn event_clock_encoding(Events) -> ClockEncoding
 
 pub fn event_identity(Events) -> Field
