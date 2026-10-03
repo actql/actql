@@ -12,6 +12,7 @@ pub(all) struct DuckDBComputeLimits {
 ///|
 pub(all) enum DuckDBComputeIssue {
   NotSelected
+  UnsupportedInputShape
   ForeignPreparation
   InvalidState
   UnverifiedTransport
@@ -90,10 +91,10 @@ pub fn start_duckdb_compute_attempt(
   let request = @connector.fixed_compute_candidate_request(
     @connector.prepared_compute_candidate(prepared),
   )
-  if !@duckdb.fixed_compute_inputs_match(
-      compute,
-      @connector.fixed_compute_request_inputs(request),
-    ) {
+  guard duckdb_completed_fixed_inputs(request) is Some(inputs) else {
+    return Err(UnsupportedInputShape)
+  }
+  if !@duckdb.fixed_compute_inputs_match(compute, inputs) {
     return Err(ForeignPreparation)
   }
   if !physical_equal(
@@ -106,7 +107,7 @@ pub fn start_duckdb_compute_attempt(
   }
   let measurement = match
     @execution.prepare_streamed_fixed_producer_measurement(
-      @connector.fixed_compute_request_inputs(request),
+      inputs,
       @duckdb.fixed_query_target(@duckdb.fixed_compute_query(compute)),
       max_rows=@connector.fixed_compute_request_capacity(request).max_rows,
       max_value_bytes=@connector.fixed_compute_request_capacity(request).max_value_bytes,
@@ -134,7 +135,7 @@ pub fn start_duckdb_compute_attempt(
       limits.completion_entries,
       limits.completion_name_bytes,
       verified_compute_rows,
-      inputs=@connector.fixed_compute_request_inputs(request),
+      inputs~,
     ) {
     Ok(port) => port
     Err(issue) => return Err(Completion(issue))
@@ -146,7 +147,7 @@ pub fn start_duckdb_compute_attempt(
       limits.completion_entries,
       limits.completion_name_bytes,
       verified_compute_material,
-      inputs=@connector.fixed_compute_request_inputs(request),
+      inputs~,
     ) {
     Ok(port) => port
     Err(issue) => return Err(Completion(issue))
@@ -341,9 +342,10 @@ fn verified_compute_rows(
       @connector.fixed_compute_request_capacity(value.request).max_value_bytes,
     ) &&
     @duckdb.fixed_compute_receipt_rows(receipt) is Some(rows) &&
+    duckdb_completed_fixed_inputs(value.request) is Some(inputs) &&
     @execution.fixed_producer_measurement_matches(
       measured,
-      @connector.fixed_compute_request_inputs(value.request),
+      inputs,
       rows,
       @connector.fixed_compute_request_capacity(value.request).max_rows,
       @connector.fixed_compute_request_capacity(value.request).max_value_bytes,

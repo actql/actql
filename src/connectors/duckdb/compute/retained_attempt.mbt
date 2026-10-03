@@ -206,6 +206,9 @@ fn verified_compute_material(
     return None
   }
   let capacity = @connector.fixed_compute_request_capacity(value.request)
+  guard duckdb_completed_fixed_inputs(value.request) is Some(inputs) else {
+    return None
+  }
   if !@duckdb.fixed_compute_stream_demand_matches(
       demand,
       value.compute,
@@ -214,7 +217,7 @@ fn verified_compute_material(
     ) ||
     !@execution.fixed_producer_stream_measurement_matches(
       measured,
-      @connector.fixed_compute_request_inputs(value.request),
+      inputs,
       content,
       capacity.max_rows,
       capacity.max_value_bytes,
