@@ -32,6 +32,18 @@ pub fn check_traverse(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_c
 
 pub fn hop_direction(TraversalHop) -> Direction
 
+pub fn hop_edge_fields(TraversalHop) -> @carrier_contract.Knowledge
+
+pub fn hop_edge_predicate(TraversalHop) -> CheckedPredicate?
+
+pub fn hop_edge_property_position(TraversalHop, Int, Int) -> Int?
+
+pub fn hop_node_fields(TraversalHop) -> @carrier_contract.Knowledge
+
+pub fn hop_node_predicate(TraversalHop) -> CheckedPredicate?
+
+pub fn hop_node_property_position(TraversalHop, Int, Int) -> Int?
+
 pub fn hop_type_at(TraversalHop, Int) -> String?
 
 pub fn hop_type_count(TraversalHop) -> Int?

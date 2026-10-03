@@ -1,6 +1,8 @@
 ///|
 priv struct PreparedGraphTraverseHop {
   checked : @graph.TraversalHop
+  edge_predicate : Expression?
+  node_predicate : Expression?
 }
 
 ///|
@@ -121,6 +123,62 @@ pub fn graph_traverse_hop_type_at(
 }
 
 ///|
+pub fn graph_traverse_hop_edge_predicate(
+  value : PreparedGraphTraverse,
+  index : Int,
+) -> Expression? {
+  value.hops.get(index).bind(hop => hop.edge_predicate)
+}
+
+///|
+pub fn graph_traverse_hop_node_predicate(
+  value : PreparedGraphTraverse,
+  index : Int,
+) -> Expression? {
+  value.hops.get(index).bind(hop => hop.node_predicate)
+}
+
+///|
+pub fn graph_traverse_hop_edge_fields(
+  value : PreparedGraphTraverse,
+  index : Int,
+) -> @carrier.Knowledge? {
+  value.hops.get(index).map(hop => @graph.hop_edge_fields(hop.checked))
+}
+
+///|
+pub fn graph_traverse_hop_node_fields(
+  value : PreparedGraphTraverse,
+  index : Int,
+) -> @carrier.Knowledge? {
+  value.hops.get(index).map(hop => @graph.hop_node_fields(hop.checked))
+}
+
+///|
+pub fn graph_traverse_hop_edge_property_position(
+  value : PreparedGraphTraverse,
+  index : Int,
+  definition : Int,
+  field : Int,
+) -> Int? {
+  value.hops
+  .get(index)
+  .bind(hop => @graph.hop_edge_property_position(hop.checked, definition, field))
+}
+
+///|
+pub fn graph_traverse_hop_node_property_position(
+  value : PreparedGraphTraverse,
+  index : Int,
+  definition : Int,
+  field : Int,
+) -> Int? {
+  value.hops
+  .get(index)
+  .bind(hop => @graph.hop_node_property_position(hop.checked, definition, field))
+}
+
+///|
 pub(all) enum GraphTraverseIssue {
   InvalidGraphTraverseLimits
   InvalidGraphTraverseWiring
@@ -189,8 +247,46 @@ fn prepare_graph_traverse_node(
     }
   }
   let hops : Array[PreparedGraphTraverseHop] = []
+  let mut remaining = expressions
   for index in 0..<hop_count {
-    hops.push({ checked: @graph.traverse_hop_at(checked, index).unwrap(), })
+    let hop = @graph.traverse_hop_at(checked, index).unwrap()
+    let edge_predicate = if @graph.hop_edge_predicate(hop) is Some(_) {
+      let (expression, usage) = match
+        lower_expression_measured(owner, step_index, index * 2, remaining) {
+        Ok(value) => value
+        Err(issue) => return Err(GraphTraverseExpression(issue))
+      }
+      remaining = {
+        ..remaining,
+        max_nodes: remaining.max_nodes - usage.nodes,
+        max_work: remaining.max_work - usage.work,
+        max_literal_nodes: remaining.max_literal_nodes - usage.literal_nodes,
+        max_literal_text_bytes: remaining.max_literal_text_bytes -
+        usage.literal_bytes,
+      }
+      Some(expression)
+    } else {
+      None
+    }
+    let node_predicate = if @graph.hop_node_predicate(hop) is Some(_) {
+      let (expression, usage) = match
+        lower_expression_measured(owner, step_index, index * 2 + 1, remaining) {
+        Ok(value) => value
+        Err(issue) => return Err(GraphTraverseExpression(issue))
+      }
+      remaining = {
+        ..remaining,
+        max_nodes: remaining.max_nodes - usage.nodes,
+        max_work: remaining.max_work - usage.work,
+        max_literal_nodes: remaining.max_literal_nodes - usage.literal_nodes,
+        max_literal_text_bytes: remaining.max_literal_text_bytes -
+        usage.literal_bytes,
+      }
+      Some(expression)
+    } else {
+      None
+    }
+    hops.push({ checked: hop, edge_predicate, node_predicate, })
   }
   let output_guard = match @graph.traverse_output_guard(checked) {
     None => None
@@ -213,7 +309,7 @@ fn prepare_graph_traverse_node(
       Some(integer)
     }
   }
-  Ok(({ node, checked, hops, output_guard, }, entries, name_bytes, expressions))
+  Ok(({ node, checked, hops, output_guard, }, entries, name_bytes, remaining))
 }
 
 ///|
@@ -268,6 +364,14 @@ fn emit_graph_traverse_node(
       @encode.key(out, "direction")
       emit_graph_direction(@graph.hop_direction(hop.checked), out)
       emit_graph_types(hop.checked, out)
+      if hop.edge_predicate is Some(predicate) {
+        @encode.key(out, "edge_where")
+        emit_expression(predicate, out)
+      }
+      if hop.node_predicate is Some(predicate) {
+        @encode.key(out, "node_where")
+        emit_expression(predicate, out)
+      }
       @encode.end_object(out)
     }
     @encode.end_array(out)
@@ -276,6 +380,14 @@ fn emit_graph_traverse_node(
     @encode.key(out, "direction")
     emit_graph_direction(@graph.hop_direction(hop), out)
     emit_graph_types(hop, out)
+    if prepared.hops[0].edge_predicate is Some(predicate) {
+      @encode.key(out, "edge_where")
+      emit_expression(predicate, out)
+    }
+    if prepared.hops[0].node_predicate is Some(predicate) {
+      @encode.key(out, "node_where")
+      emit_expression(predicate, out)
+    }
     let (minimum, maximum) = @graph.traverse_bounds(prepared.checked)
     @encode.key(out, "min_hops")
     @encode.number_value(out, minimum)

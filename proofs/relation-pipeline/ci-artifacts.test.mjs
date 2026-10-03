@@ -658,7 +658,7 @@ test('global check continues to require the final pipeline-evidence verdict', ()
   assert(jobs.check.needs.includes('pipeline-evidence'));
   assert(!producerJobs.some(name => jobs.check.needs.includes(name)), 'Final audited join remains the required check boundary');
   const script = jobs.check.steps.find(step => step.run).run;
-  const needs = Object.fromEntries(jobs.check.needs.map(name => [name, { result: 'success' }]));
+  const needs = Object.fromEntries(jobs.check.needs.map(name => [name, { result: name === 'focused-tests' ? 'skipped' : 'success' }]));
   const revision = 'b'.repeat(40);
   const selection = selectTargets(['.github/workflows/ci.yml']);
   assert.equal(selection.profile, 'full');

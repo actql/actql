@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "ci-focused-fixed-requests",
+  "kind": "change",
+  "revision": "4ef3cb97fee07a434d9e06b81c86bc0c7376e3aa",
+  "parents": [
+    "dcce0a3ac8636019a235722ab82b306f8bd06178"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "dcce0a3ac8636019a235722ab82b306f8bd06178",
+          "digest": "d20065b2cdc5be3f34b51f26b524ab7d58ef383a0c79468bd6309703e11f3e9f",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "38db7f5d957805622f04dfc7d9e2a6531f2fec11233b1a13ed595ae0fd5ed446",
+      "afterMode": "100644",
+      "reason": "Add a focused JS job for registered backend-independent fixed compute/join test-only changes, including new tests. Run every changed file and its stable owning family with package compilation and nonzero execution guards. Preserve mandatory full-history preflight, artifact contracts, lint and spec; omit unrelated runtime and proof families only after exact raw inventory, fixture and target-boundary admission. Keep full-profile checkpoints valid when the focused-only job is skipped, and retain cumulative main obligations. No earlier proof or runtime evidence is reused."
+    }
+  ]
+}

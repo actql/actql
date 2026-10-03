@@ -94,7 +94,7 @@ test "current TRAIL retains patterned label selection and the exact Relation sel
 }
 
 ///|
-test "current TRAIL exposes a patterned keyed selector and refuses definition-free predicates" {
+test "current TRAIL exposes a patterned keyed selector and checks predicate scope" {
   let source = "[{\"from\":\"g\",\"traverse\":{\"start\":{\"from\":\"selected\",\"id\":\"key\"},\"hops\":[{\"direction\":\"both\",\"edge_types\":[\"owns\"]}],\"path_mode\":\"trail\",\"emit\":\"paths\"}}]"
   let sequence = @lowering_relation.prepare_sequence(
     graph_current_owner(source, true),
@@ -123,7 +123,7 @@ test "current TRAIL exposes a patterned keyed selector and refuses definition-fr
     @schema.field_count(@lowering_relation.graph_traverse_output_schema(view)),
     5,
   )
-  let rejected = @pipeline.check_carriers(
+  let accepted = @pipeline.check_carriers(
     cursor(
       "[{\"from\":\"g\",\"traverse\":{\"start\":{\"ids\":[" +
       graph_match_identity(2) +
@@ -141,17 +141,7 @@ test "current TRAIL exposes a patterned keyed selector and refuses definition-fr
       max_depth: 4000,
     },
   )
-  assert_true(
-    rejected
-    is Err(
-      {
-        kind: @pipeline.GraphMatch(
-          @graph.Structure(@graph.UnsupportedGraphOperation)
-        ),
-        ..
-      }
-    ),
-  )
+  assert_true(accepted is Ok(_))
 }
 
 ///|
