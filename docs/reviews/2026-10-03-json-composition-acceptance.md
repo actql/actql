@@ -131,3 +131,24 @@ and declarations remain immutable. This PR is Draft until its integrated
 HEAD's external packed acceptance and required CI complete. Real Model/real
 service acceptance, Cloud deployment and broader #182 coverage are separate
 units; fixtures incur no external cost or real service writes.
+
+Main containing #243 was adopted by a normal merge from
+`4303f0681c7e7ae3544563fa9dd6d7e5c0eebd41`, without conflicts or removal of any
+inherited declaration. The integration commit is
+`b42b367afb280983d25b08cd621aac671582c7cc`. Forty focused CI scheduling,
+fixture binding and mock runtime-builder checks passed in 6.2 seconds;
+Node syntax and whitespace checks also passed. No full local CI, Core,
+proof campaign, packed suite or performance measurement was added.
+
+The Git-only history preflight now first rejects
+`Ambiguous foundation merge bases` at the retained integration
+`19b0b464b983695c68df60d601016bb25a4fd06d`. Its ordered parents are
+`4a4f4f10eb9723e3537c2b0fb444fca20dd28f33` and
+`88fbcc95306abb4fc41f0d488bcc6d38ec19506d`; their two maximal bases are
+`8b21ddd3f4a17fcecbb9bcf5878082148af0aa99` and
+`8baa87fc6b6cb7d7caa981cef1692c9d73d88318`. This is distinct from the repaired
+duplicate-introduction and missing main #225 declaration failures. The
+current history contract requires one base and rejects before it can assess
+this merge's required resolution. D does not rewrite the retained merge,
+select an arbitrary base or introduce a competing shared-validator repair.
+The Draft retains its unmerged #193 dependency until that parent reaches main.
