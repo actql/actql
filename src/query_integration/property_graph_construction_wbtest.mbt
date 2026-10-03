@@ -1545,6 +1545,237 @@ test "selected property node rows use bounded Graph view and shared Relation out
 }
 
 ///|
+test "property node rows output charges its selected Graph view" {
+  let nodes = keyed_node_source()
+  let edges = keyed_edge_source()
+  let graph_owner = keyed_bridge_owner(nodes, edges)
+  let construction = @local_bridge.start_rows_to_property_graph(
+    @bounded.control(),
+    prepared_sequence(graph_owner),
+    0,
+    keyed_bridge_inputs(graph_owner, nodes, edges),
+    carrier_graph_storage_limits(),
+    4096L,
+    1000,
+    () => true,
+  ).unwrap()
+  guard keyed_bridge_terminal(construction) is @local_bridge.Complete(graph, ..) else {
+    fail("constructor failed")
+  }
+  let owner = keyed_graph_receiver(
+    graph_owner,
+    body="[{\"from\":\"g\",\"node_rows\":true}]",
+  )
+  guard @lower.sequence_step(prepared_sequence(owner), 0)
+    is Some(@lower.CarrierProjectionStep(projected)) &&
+    @lower.carrier_projection_node_rows(projected) is Some(plan) else {
+    fail("node rows plan missing")
+  }
+  let input = @graphs.prepare_producer_read(owner, 0, graph_owner, graph).unwrap()
+  let preparation = task_test_completion(owner)
+  let sequence = prepared_sequence(owner)
+  // The one-row control path spends 35 steps. Its nested identity and field
+  // names require a larger, separate value-work allowance of 146.
+  let control_work = 1 + 30 + 1 + 1 + 1 + 1
+  let value_work = 146
+  for
+    (work, workspace, expected) in [
+      (value_work, 5, true),
+      (value_work - 1, 5, false),
+      (value_work, 4, false),
+    ] {
+    let limits : @execution.ValueLimits = {
+      max_nodes: 1000,
+      max_text_bytes: 4096,
+      max_depth: 50,
+      max_work: work,
+    }
+    let active = @local_sga.start_property_node_rows_output_view(
+      @bounded.control(),
+      preparation,
+      sequence,
+      0,
+      plan,
+      @graphs.producer_read_view(input).unwrap(),
+      1,
+      limits,
+      workspace,
+      4096,
+      4096,
+    ).unwrap()
+    let mut terminal = false
+    for _ in 0..<200 {
+      match @local_sga.advance_property_node_rows_output(active, 1).unwrap() {
+        @local_sga.NodeRowsOutputContinue(..) => ()
+        @local_sga.NodeRowsOutputComplete(output, work=spent, ..) => {
+          assert_true(expected)
+          assert_eq(spent, control_work.to_int64())
+          assert_eq(@execution.completed_row_count(output), 1)
+          terminal = true
+          break
+        }
+        @local_sga.NodeRowsOutputFailed(@local_sga.NodeRowsOutputWorkLimit, ..) => {
+          assert_false(expected)
+          terminal = true
+          break
+        }
+        @local_sga.NodeRowsOutputFailed(
+          @local_sga.NodeRowsOutputInput(
+            @local_sga.Row(@local_sga.Row(@execution.Limit))
+          ),
+          ..
+        ) => {
+          assert_false(expected)
+          terminal = true
+          break
+        }
+        _ => fail("node rows selected output crossed the wrong boundary")
+      }
+    }
+    assert_true(terminal)
+    assert_true(@local_sga.cleanup_property_node_rows_output(active).unwrap())
+    assert_false(@local_sga.property_node_rows_output_cleanup_pending(active))
+  }
+  let control = @bounded.control()
+  let cancelling = @local_sga.start_property_node_rows_output_view(
+    control,
+    preparation,
+    sequence,
+    0,
+    plan,
+    @graphs.producer_read_view(input).unwrap(),
+    1,
+    { max_nodes: 1000, max_text_bytes: 4096, max_depth: 50, max_work: 146, },
+    5,
+    4096,
+    4096,
+  ).unwrap()
+  assert_true(
+    @local_sga.advance_property_node_rows_output(cancelling, 1)
+    is Ok(@local_sga.NodeRowsOutputContinue(progress=1L, work=1L)),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_property_node_rows_output(cancelling, 1)
+    is Ok(@local_sga.NodeRowsOutputStopped(_, ..)),
+  )
+  assert_true(@local_sga.property_node_rows_output_cleanup_pending(cancelling))
+  assert_true(@graphs.producer_read_available(input))
+  assert_true(@local_sga.cleanup_property_node_rows_output(cancelling).unwrap())
+  assert_false(@local_sga.property_node_rows_output_cleanup_pending(cancelling))
+  assert_true(@local_bridge.cleanup_rows_to_graph(construction).unwrap())
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
+test "property node rows output charges its fused stored Graph" {
+  let nodes = keyed_node_source()
+  let edges = keyed_edge_source()
+  let fused_body =
+    #|[{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"nodes","key":["tenant","id"],"labels":[{"name":"Node","properties":{"mode":"columns","columns":[{"from":"name","to":"display"}]}}]}],"edges":[{"name":"E","from":"edges","key":["key"],"source":{"definition":"N","key":["tenant","src"]},"target":{"definition":"N","key":["tenant","dst"]},"labels":[{"name":"R","properties":{"mode":"no_properties"}}]}]},"as":"g"},{"from":"g","node_rows":true}]
+  let owner = keyed_bridge_owner(nodes, edges, body=Some(fused_body))
+  let inputs = keyed_bridge_inputs(owner, nodes, edges)
+  let construction = @local_bridge.start_rows_to_property_graph(
+    @bounded.control(),
+    prepared_sequence(owner),
+    0,
+    inputs,
+    carrier_graph_storage_limits(),
+    4096L,
+    1000,
+    () => true,
+  ).unwrap()
+  guard keyed_bridge_terminal(construction) is @local_bridge.Complete(graph, ..) else {
+    fail("fused constructor failed")
+  }
+  let sequence = prepared_sequence(owner)
+  guard @lower.sequence_step(sequence, 1)
+    is Some(@lower.CarrierProjectionStep(projected)) &&
+    @lower.carrier_projection_node_rows(projected) is Some(plan) else {
+    fail("fused node rows plan missing")
+  }
+  let read = @graphs.prepare_step_read(owner, 1, 0, graph).unwrap()
+  for
+    (work, workspace, expected) in [
+      (146, 5, true),
+      (145, 5, false),
+      (146, 4, false),
+    ] {
+    let active = @local_sga.start_property_node_rows_output_stored(
+      @bounded.control(),
+      task_test_completion(owner),
+      sequence,
+      1,
+      plan,
+      read,
+      1,
+      { max_nodes: 1000, max_text_bytes: 4096, max_depth: 50, max_work: work, },
+      workspace,
+      4096,
+      4096,
+      keyed_bridge_inputs(owner, nodes, edges),
+    ).unwrap()
+    let mut terminal = false
+    for _ in 0..<200 {
+      match @local_sga.advance_property_node_rows_output(active, 1).unwrap() {
+        @local_sga.NodeRowsOutputContinue(..) => ()
+        @local_sga.NodeRowsOutputComplete(output, work=spent, ..) => {
+          assert_true(expected)
+          assert_eq(spent, 35L)
+          assert_eq(@execution.completed_row_count(output), 1)
+          terminal = true
+          break
+        }
+        @local_sga.NodeRowsOutputFailed(
+          @local_sga.NodeRowsOutputInput(
+            @local_sga.Row(@local_sga.Row(@execution.Limit))
+          ),
+          ..
+        ) => {
+          assert_false(expected)
+          terminal = true
+          break
+        }
+        _ => fail("fused stored node rows crossed the wrong boundary")
+      }
+    }
+    assert_true(terminal)
+    assert_true(@local_sga.cleanup_property_node_rows_output(active).unwrap())
+    assert_false(@local_sga.property_node_rows_output_cleanup_pending(active))
+  }
+  let control = @bounded.control()
+  let cancelling = @local_sga.start_property_node_rows_output_stored(
+    control,
+    task_test_completion(owner),
+    sequence,
+    1,
+    plan,
+    read,
+    1,
+    { max_nodes: 1000, max_text_bytes: 4096, max_depth: 50, max_work: 146, },
+    5,
+    4096,
+    4096,
+    keyed_bridge_inputs(owner, nodes, edges),
+  ).unwrap()
+  assert_true(
+    @local_sga.advance_property_node_rows_output(cancelling, 1)
+    is Ok(@local_sga.NodeRowsOutputContinue(progress=1L, work=1L)),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_property_node_rows_output(cancelling, 1)
+    is Ok(@local_sga.NodeRowsOutputStopped(_, ..)),
+  )
+  assert_true(@local_sga.property_node_rows_output_cleanup_pending(cancelling))
+  assert_true(@graphs.producer_read_available(read))
+  assert_true(@local_sga.cleanup_property_node_rows_output(cancelling).unwrap())
+  assert_false(@local_sga.property_node_rows_output_cleanup_pending(cancelling))
+  assert_true(@local_bridge.cleanup_rows_to_graph(construction).unwrap())
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
 test "property node rows keep absent properties distinct from present null" {
   let named = keyed_source_owner(
     "{\"id\":{\"type\":\"number\",\"nullable\":false},\"name\":{\"type\":\"string\",\"nullable\":true}}",

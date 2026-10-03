@@ -118,6 +118,64 @@ fn property_node_row_values() -> @execution.ValueLimits {
 }
 
 ///|
+test "property node row admits exact step work and workspace and refuses one short" {
+  let (plan, storage) = property_node_row_fixture()
+  // One checked Graph identity object and a present NULL property traverse
+  // 46 bounded read, recheck, name/value-measure and finalization steps. The
+  // row holds two cells plus one active traversal frame at peak.
+  for
+    (step_work, workspace, expected) in [
+      (46, 3, true),
+      (45, 3, false),
+      (46, 2, false),
+    ] {
+    let active = start_property_node_row_read(
+      plan,
+      0,
+      () => true,
+      () => @storage.node_definition_index(storage, 0),
+      () => @storage.node_identity(storage, 0),
+      property => @storage.node_property(storage, 0, property),
+      property_node_row_values(),
+      step_work,
+      workspace,
+    ).unwrap()
+    let mut complete = false
+    let mut limited = false
+    let mut observed_work = 0L
+    for _ in 0..<50 {
+      match advance_property_node_row(active, 1).unwrap() {
+        PropertyNodeRowContinue(work~) => {
+          assert_true(work >= observed_work)
+          observed_work = work
+        }
+        PropertyNodeRowComplete(_, work~) => {
+          observed_work = work
+          complete = true
+          break
+        }
+        PropertyNodeRowFailed(Row(@execution.Limit), work~) => {
+          observed_work = work
+          limited = true
+          break
+        }
+        _ => fail("unexpected boundary result")
+      }
+    }
+    assert_eq(complete, expected)
+    assert_eq(limited, !expected)
+    if expected {
+      assert_eq(observed_work, 46L)
+    } else {
+      assert_true(
+        @execution.conditional_row_preparation_value(active.row) is None,
+      )
+    }
+    assert_true(cleanup_property_node_row(active).unwrap())
+  }
+}
+
+///|
 test "property Graph node rows preserve absent and present null through bounded construction" {
   let (plan, storage) = property_node_row_fixture()
   let expected = [

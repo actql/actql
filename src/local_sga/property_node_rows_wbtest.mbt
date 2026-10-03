@@ -28,6 +28,70 @@ fn property_node_rows_fixture(
 }
 
 ///|
+test "property node rows charge exact cursor work and child workspace" {
+  let (plan, storage) = property_node_row_fixture()
+  // One node-start unit plus the independently bounded 46-step row. The
+  // cursor's post-ack terminal check consumes no additional unit.
+  for
+    (work, workspace, expected) in [
+      (47, 3, true),
+      (46, 3, false),
+      (47, 2, false),
+    ] {
+    let cursor = start_property_node_rows_read(1, 1, work, () => true, (
+      node,
+      remaining,
+    ) => {
+      start_property_node_row_read(
+        plan,
+        node,
+        () => true,
+        () => @storage.node_definition_index(storage, node),
+        () => @storage.node_identity(storage, node),
+        property => @storage.node_property(storage, node, property),
+        property_node_row_values(),
+        remaining,
+        workspace,
+      )
+    }).unwrap()
+    let mut complete = false
+    let mut limited = false
+    for _ in 0..<50 {
+      match advance_property_node_rows(cursor, 1).unwrap() {
+        PropertyNodeRowsContinue(work~) => assert_true(work <= 1L)
+        PropertyNodeRowsRow(row, work~) => {
+          assert_true(work <= 1L)
+          assert_true(acknowledge_property_node_rows_row(cursor, row).unwrap())
+        }
+        PropertyNodeRowsComplete(work~) => {
+          assert_true(work <= 1L)
+          complete = true
+          break
+        }
+        PropertyNodeRowsFailed(Row(Row(@execution.Limit)), ..) => {
+          limited = true
+          break
+        }
+        PropertyNodeRowsFailed(WorkLimit, ..) => {
+          limited = true
+          break
+        }
+        _ => fail("unexpected node row cursor boundary result")
+      }
+    }
+    assert_eq(complete, expected)
+    assert_eq(limited, !expected)
+    if expected {
+      assert_eq(cursor.work, 47)
+    } else {
+      assert_true(cursor.pending is None)
+    }
+    assert_true(cleanup_property_node_rows(cursor).unwrap())
+    assert_true(cursor.active is None)
+  }
+}
+
+///|
 test "bounded property Graph cursor preserves row presence and ack ownership" {
   let started = Ref(0)
   let cursor = property_node_rows_fixture(3, 500, started)

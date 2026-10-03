@@ -4581,6 +4581,16 @@ async function exerciseStrategyGraph(
       fields:['id','node_name']},as:'out'},
     fields:['id','node_name'],
   }, {
+    name: 'current-node-rows-in-flight',
+    selectedStructural:true,
+    retainedOutput:true,propertyNodeRows:true,
+    rows:40,advanceQuantum:1,
+    constructionProgress:80,constructionStarts:[1],
+    cancelOnManagedStart:2,managedStarts:2,cancelTask:3,
+    completedTasks:[1,2],
+    step:{from:'g',node_rows:true,as:'out'},
+    fields:['display','weight'],
+  }, {
     name:'current-match-nodes-predicate-in-flight',
     selectedStructural:true,
     rows:40,advanceQuantum:1,
@@ -5903,6 +5913,16 @@ async function exerciseStrategyGraph(
       // input; no tuple-only Graph field list needs extending.
     }
     if (graphFamily) {
+      if (cancellationCase.propertyNodeRows) {
+        graphCancellationProgram.stages[graphStageIndex].steps[0]
+          .property_graph.nodes[0].labels[0].properties = {
+            mode:'columns',
+            columns:[
+              {from:'node_name',to:'display'},
+              {from:'weight',to:'weight'},
+            ],
+          };
+      }
       graphCancellationProgram.stages[graphStageIndex].steps.splice(
         1,
         1,

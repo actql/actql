@@ -6,11 +6,12 @@ The new definition-keyed Property Graph is the sole executable Graph contract.
 The previous tuple-profile coverage inventory is retained as inert historical
 text in `portability/historical/local-family-coverage-pre-property-graph.json.txt`.
 Its completed SGA/Graph-bridge claims do not apply to the new representation.
-The current manifest records four partial operations (constructor, two MATCH
-forms and explicit TRAIL) and seventeen blocked old/unconnected routes. These
-are implementation gaps, not permanent language exclusions. Existing non-Graph
-coverage is unchanged. Current-source snapshot, fresh packed and aggregate
-acceptance remain open; three-target focused tests do not certify full coverage.
+The current manifest records five partial operations (constructor, two MATCH
+forms, explicit TRAIL and `node_rows`) and sixteen blocked old/unconnected
+routes. These are implementation gaps, not permanent language exclusions.
+Existing non-Graph coverage is unchanged. Current-source snapshot, fresh packed
+and aggregate acceptance remain open; three-target focused tests do not certify
+full coverage.
 
 The existing strict resource gate now distinguishes executable routes from
 typed pre-execution refusals using this same inventory. Initial constructor,
@@ -79,7 +80,11 @@ is rejected at check time. Focused tests cover the row ceiling, bounded work,
 post-progress cancellation, cleanup, retained roundtrip, and exact versus
 one-short conditional-input work charging. These results do not establish
 direct publication of sparse rows as Named Results: the successful Host path
-explicitly projects guaranteed columns first.
+explicitly projects guaranteed columns first. The fused stored-Graph output
+helper has a direct bounded exact/one-short and stop/cleanup test, but this
+snapshot's normal Host fixture selects the separate Graph-view task. The
+stored helper is not counted as a production-route assurance; a future Host
+route that selects it needs its own dispatched cancellation evidence.
 
 The `edge_rows` Bridge remains blocked. The checked node layout already maps
 each output column back to its definition's source property, and the node
@@ -565,12 +570,12 @@ and checked by `check:local-resource-accounting`.
 | Resource boundary evidence | Count |
 |---|---:|
 | Registered operations | 69 |
-| Executable production routes | 52 |
-| Typed pre-execution refusals (not execution success) | 17 |
-| Operation-specific boundary records | 52 |
-| Four-role lifecycle assurance | 52 |
-| Full route work/workspace assurance | 52 |
-| Path-scoped work/workspace assurance | 98 |
+| Executable production routes | 53 |
+| Typed pre-execution refusals (not execution success) | 16 |
+| Operation-specific boundary records | 53 |
+| Four-role lifecycle assurance | 53 |
+| Full route work/workspace assurance | 53 |
+| Path-scoped work/workspace assurance | 99 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 

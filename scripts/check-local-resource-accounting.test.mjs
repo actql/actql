@@ -106,7 +106,25 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
 });
 
 test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /69 operations, 5 implementation profiles, 52 production routes mapped, 17 typed pre-execution refusals \(not execution success\), 52 with operation-specific boundary records, 52 with four-role boundary evidence, 52 with full work\/workspace assurance, 98 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  assert.match(run(), /69 operations, 5 implementation profiles, 53 production routes mapped, 16 typed pre-execution refusals \(not execution success\), 53 with operation-specific boundary records, 53 with four-role boundary evidence, 53 with full work\/workspace assurance, 99 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+});
+
+test('selected property node rows keeps its boundary and delivered stop evidence', () => {
+  const nodeRows = routes => routes.routes.find(route =>
+    route.family === 'Bridge' && route.operation === 'node_rows');
+  assert.match(run(undefined, routes => {
+    const route = nodeRows(routes);
+    route.boundary_tests = route.boundary_tests.filter(test =>
+      test.role !==
+        'node_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup');
+  }, ['--require-boundary-complete']),
+  /Bridge node_rows: entrypoint exact_limit lacks an executable fixture/u);
+  assert.match(run(undefined, routes => {
+    const route = nodeRows(routes);
+    route.environment_tests = route.environment_tests.filter(test =>
+      test.role !== 'node_rows_host_in_flight_cancel');
+  }, ['--require-boundary-complete']),
+  /Bridge node_rows: entrypoint in_flight_cancel lacks an executable fixture/u);
 });
 
 test('unsupported Graph routes require one shared public refusal boundary and cannot claim execution', () => {
@@ -993,7 +1011,7 @@ test('resource summary rejects stale route counts', () => {
     root, 'docs/reviews/2026-09-19-sga-veca-tea-local-gaps.md',
   ), 'utf8');
   const stale = gaps.replace(
-    '| Path-scoped work/workspace assurance | 98 |',
+    '| Path-scoped work/workspace assurance | 99 |',
     '| Path-scoped work/workspace assurance | 52 |',
   );
   assert.notEqual(stale, gaps);
@@ -2142,7 +2160,7 @@ test('resource completion rejects every unassured operation', () => {
 
 test('strict resource completion accepts every assured route', () => {
   assert.match(run(undefined, undefined, ['--require-boundary-complete']),
-    /52 with four-role boundary evidence, 52 with full work\/workspace assurance/);
+    /53 with four-role boundary evidence, 53 with full work\/workspace assurance/);
 });
 
 test('whole-sequence take owes both keyed and unkeyed resource branches', () => {

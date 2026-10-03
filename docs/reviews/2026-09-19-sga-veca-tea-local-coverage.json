@@ -87,10 +87,10 @@
       "mean_graphs": "blocked",
       "property_graph": "partial",
       "graph": "blocked",
-      "node_rows": "blocked",
+      "node_rows": "partial",
       "edge_rows": "blocked"
     },
-    "completion_rule": "Historical tuple-profile suites do not discharge current Graph coverage. Partial resource/cancellation layers apply only to the initial constructor and definition-selected MATCH/TRAIL scope recorded below; they do not establish all normative variants or all SGA execution. Blocked means typed refusal before Run admission, acquisition I/O and dispatch."
+    "completion_rule": "Historical tuple-profile suites do not discharge current Graph coverage. Partial resource/cancellation layers apply only to the constructor, definition-selected MATCH/TRAIL and selected node_rows scopes recorded below; they do not establish all normative variants or all SGA execution. Blocked means typed refusal before Run admission, acquisition I/O and dispatch."
   },
   "operations": [
     {
@@ -3087,11 +3087,25 @@
       "output": "relation",
       "canonical": ["BRIDGE.graph.to_node_rows"],
       "variants": ["identity restoration", "property columns", "collision failure"],
-      "status": "blocked",
+      "status": "partial",
       "owner": "local-bridge",
-      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
-      "completed_layers": ["contract"],
-      "layer_evidence": [],
+      "current_gap": "The selected definition-keyed node_rows path is public and bounded, but source-role aliases and collision checks are not connected. Direct sparse Named Result publication and complete per-route resource assurance are not established.",
+      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation"],
+      "scope": "Selected definition-keyed Graph node projection, retained Store import, guaranteed-column projection and two downstream consumers only. This does not claim source-role aliases, direct sparse publication, or every Graph Bridge variant.",
+      "layer_evidence": [
+        {
+          "scope": "selected_definition_keyed_node_rows_and_retained_store",
+          "layers": ["checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation"],
+          "targets": ["js", "wasm", "native", "node"],
+          "evidence": [
+            "src/local_sga/property_node_rows_wbtest.mbt",
+            "src/query_integration/property_graph_construction_wbtest.mbt",
+            "src/execution_relation/relation_presence_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ],
+          "verification": "Focused JS node-row tests, the strict local resource gate, and the Node standard Host passed on this working tree. Three-target tests and final submitted-SHA CI remain required."
+        }
+      ],
       "historical_implementation_evidence": [
         {
           "scope": "named_result_publication_and_environment_cancellation",
