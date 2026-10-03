@@ -24,16 +24,10 @@ node scripts/setup-moonbit.mjs
 export MOON_HOME="$PWD/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
 export PATH="$MOON_HOME/bin:$PATH"
 moon version --all
-npm run check:spec
-moon fmt --check
-moon check --deny-warn
-moon test --deny-warn
 ```
 
-That sequence confirms a new setup. For everyday changes, check in tiers as
-described under Local verification in [AGENTS.md](../AGENTS.md):
-`node scripts/local-checks.mjs changed` lists the checks for the current
-diff, and Linux CI verifies the pushed revision.
+That sequence installs and identifies the pinned toolchain; it does not run
+a full test suite. For everyday changes, use [Local verification](#local-verification).
 
 Setup verifies archive SHA-256 pins before extraction and installs only inside
 the ignored `.toolchains/` directory. It does not modify a global installation
@@ -44,37 +38,43 @@ scan of installed core sources. If it fails, move only the named toolchain
 directory aside and rerun setup; an existing installation is never overwritten.
 Use the same environment variables in the editor's launch environment.
 Do not run `moon upgrade` inside this installation: update the reviewed version
-and archive pins together, then reinstall and run all checks.
+and archive pins together, then reinstall. Verify the changed toolchain on the
+supported targets in CI; local target diagnostics are explicit.
 
 The root `moon.mod` defines the single `actql/actql` module. JS is the default;
 common-core packages support JS, Wasm (not Wasm GC), and native. JS is the
 daily development default for the shared core, not a restriction on CLI or Host
 deployment. Wasm GC is outside the initial validation scope; adding it requires
-toolchain setup and target tests, not just a metadata change. Run the same
-checks as CI with explicit targets:
+toolchain setup and target tests, not just a metadata change.
 
-```sh
-for target in js wasm native; do
-  moon check --target "$target" --deny-warn
-  if [ "$target" = native ]; then
-    node scripts/test-native-core.mjs --deny-warn
-  else
-    moon test --target "$target" --deny-warn
-  fi
-done
-node scripts/check-moonbit-api.mjs
-node --test scripts/moonbit-environment.test.mjs
-```
+### Target-specific diagnostics
+
+A native-only package, C FFI, target-specific behavior or a failing backend may
+need a focused diagnostic on that backend. Select it explicitly; JS success
+does not validate native-only code. An explicitly requested whole-target
+diagnostic uses `node scripts/local-checks.mjs run core --target <target>
+--allow-heavy`, with the workflow budget or an explicit `--timeout-seconds`.
+This is not an everyday local check. Main CI retains the full supported-target
+matrix.
+
+`node scripts/check-moonbit-api.mjs` invokes `moon info` on all three targets
+and checks tracked interfaces. Preserve this cross-target gate in CI; run it
+locally only for an explicit public-interface or target diagnosis.
 
 Native core verification uses `scripts/test-native-core.mjs`, including
 `node scripts/local-checks.mjs run core --target native --allow-heavy`. Each invocation
 creates a fresh `native-*` SQLite namespace with the existing owned-scratch
 helper, then runs `moon test --target native` with the remaining arguments.
-For the narrow trusted-clock regression, use:
+For an explicit narrow trusted-clock diagnostic, use:
 
 ```sh
-node scripts/test-native-core.mjs --deny-warn -p platform_native/trusted_clock
+node scripts/test-native-core.mjs --deny-warn src/platform_native/trusted_clock
 ```
+
+This native helper owns SQLite scratch; it does not itself add the bounded
+wrapper's wall-clock budget, worktree/machine locks or focused nonzero-test
+validation. Confirm the intended cases actually ran; exit zero alone does not
+establish that a native selection executed.
 
 `ACTQL_TEST_NATIVE_SQLITE_ROOT`, when supplied to this wrapper, is a **parent**
 for the newly owned namespace, not an existing database root to reuse or
@@ -100,10 +100,9 @@ modified files and newly untracked interfaces. Its report parser is tested
 against the pinned build tool with a real backend-specific signature mismatch;
 rerun that test on toolchain upgrades. Keep
 host-specific packages separate from the common core rather than weakening its
-target checks or narrowing a common-core package's supported targets. The initial
-test is only an environment smoke test, not language
-conformance. Implementation migration, AoA linkage and distribution packaging
-are separate work.
+target checks or narrowing a common-core package's supported targets. An
+environment smoke test is not language conformance. Implementation migration,
+AoA linkage and distribution packaging are separate work.
 
 The checks are read-only:
 
@@ -157,6 +156,46 @@ belongs in separate reports tied to case IDs and the implementation revision.
 YAML parsing does not establish ActQL semantic validity. The MoonBit checker and
 runtime must verify these same fixtures as implementation becomes available.
 
+## Local verification
+
+The default is the affected MoonBit core packages on the JS backend, plus
+targeted Node tests for changed SDK, adapter and script behavior. These are
+different test layers: MoonBit tests compiled to JS do not replace public Node
+API or package-boundary tests. Select native-only/FFI diagnostics explicitly;
+do not automatically expand every core change to all targets.
+
+Use [the local verification skill](../.agents/skills/actql-local-verification/SKILL.md)
+for command selection. `node scripts/local-checks.mjs changed` is an advisory
+path-based list, not a complete reverse-dependency closure. Inspect affected
+callers and test imports before deciding coverage. Its CI-job suggestions do
+not require running those jobs locally. Broad Core, proof, packed acceptance
+and performance gates remain explicit diagnostics, not local defaults.
+
+Keep incremental `_build` artifacts. Use the bounded/nonzero-test wrapper below
+for selected tests and builds; do not run competing gates or mutate a worktree
+while a gate uses it. Report the observed test counts, failures, skipped or
+unrun checks and any remaining target/boundary coverage. Main CI retains full
+verification; local and PR results prove only their executed selection.
+
+## Runtime package artifacts
+
+Compiled JavaScript under `packages/local-node/_build` and the `dist`
+directories of `run-host-core`, `coordinator-core`, and `transfer-core` is
+ignored, not committed. After changing MoonBit sources or merging another
+branch, prepare the affected packages before importing them directly. Pass only
+the package names being consumed, for example
+`npm run build:runtime-packages -- local-node`. The related npm checks prepare
+their runtime dependencies automatically; do not add an all-package preparation
+step before a check that already prepares its own dependencies.
+
+`npm pack` in each runtime package builds its payload through `prepack`;
+use the pinned MoonBit toolchain and root npm dependencies. Do not use
+`--ignore-scripts` when producing tarballs. Consumers may install the resulting
+tarballs with `--ignore-scripts` and need no MoonBit toolchain. Generated API
+interfaces, schema/pins, fixtures, and the tracked Run Host service wrappers
+remain reviewed source artifacts. Regenerate wrapper changes explicitly;
+runtime preparation checks them but does not silently update them.
+
 ## Bounded local execution
 
 `local-checks.mjs` remains the local entry point for the workflow's actual
@@ -167,10 +206,8 @@ and launch no checks. Incremental `_build` artifacts are never removed.
 
 ```sh
 node scripts/local-checks.mjs test node -- scripts/local-checks.test.mjs
-node scripts/local-checks.mjs test moon -- --target js -p query_integration
+node scripts/local-checks.mjs test moon -- --target js src/query_integration
 node scripts/local-checks.mjs build moon -- --target js src/query_integration
-node scripts/local-checks.mjs run lint
-node scripts/local-checks.mjs run core --target native --allow-heavy
 ```
 
 The small shared [classification](local-checks-hooks.md#what-the-policy-recognizes)
@@ -269,7 +306,7 @@ Use the existing local verification tool when a selected test must actually run:
 
 ```sh
 node scripts/local-checks.mjs test node -- --test-name-pattern 'selected name' scripts/example.test.mjs
-node scripts/local-checks.mjs test moon -- --target js -p query_integration --filter '*selected name*'
+node scripts/local-checks.mjs test moon -- --target js src/query_integration --filter '*selected name*'
 ```
 
 Replace the example file/package/filter with the intended selection. `changed`
