@@ -36,9 +36,18 @@ test "property node rows derive required and conditional fields before execution
   let checked = @carrier_projection.check_property_node_rows(
     cursor("true"),
     input,
-    { ..limits(), max_work: 10, },
+    { ..limits(), max_work: 13, },
   ).unwrap()
-  assert_eq(@carrier_projection.property_node_rows_usage(checked).work, 10)
+  assert_eq(@carrier_projection.property_node_rows_usage(checked).work, 13)
+  assert_eq(@carrier_projection.property_node_rows_id_column(checked), 0)
+  assert_eq(
+    @carrier_projection.property_node_rows_property_column(checked, 0, 0),
+    Some(1),
+  )
+  assert_true(
+    @carrier_projection.property_node_rows_property_column(checked, 1, 0)
+    is None,
+  )
   let output = @carrier_projection.property_node_rows_output(checked)
   let rows = @carrier.relation_rows(output).unwrap()
   assert_true(@carrier.complete_schema(rows) is None)
@@ -53,7 +62,7 @@ test "property node rows derive required and conditional fields before execution
   assert_true(
     @carrier_projection.check_property_node_rows(cursor("true"), input, {
       ..limits(),
-      max_work: 9,
+      max_work: 12,
     })
     is Err({ kind: BudgetExceeded, .. }),
   )
@@ -85,6 +94,10 @@ test "property node rows collapse compatible case spellings and reject role coll
     limits(),
   ).unwrap()
   let schema = @carrier_projection.property_node_rows_schema(checked)
+  assert_eq(
+    @carrier_projection.property_node_rows_property_column(checked, 0, 0),
+    @carrier_projection.property_node_rows_property_column(checked, 1, 0),
+  )
   assert_true(
     @row.presence_lookup(schema, Unqualified("P")) is AlwaysPresent(_),
   )

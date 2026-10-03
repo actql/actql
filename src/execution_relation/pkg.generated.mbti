@@ -83,6 +83,8 @@ pub fn advance_completed_relation_identity_scan(CompletedRelationIdentityScan, I
 
 pub fn advance_completed_result_relation_export(CompletedResultRelationExportPreparation, Int) -> Result[(Bool, Int), CompletedExportIssue]
 
+pub fn advance_conditional_required_output_preparation(ConditionalRequiredOutputPreparation, Int) -> Result[AdmittedOutputPoll, @bounded_execution.Issue]
+
 pub fn advance_expression_execution(ExpressionExecution) -> Result[ExpressionExecutionPoll, EvalIssue]
 
 pub fn advance_fixed_record_guard(FixedRecordGuardScan, Int) -> Result[@bounded_execution.Observation[FixedInputGuardMeasureLimits, FixedInputGuardIssue], @bounded_execution.Issue]
@@ -217,6 +219,8 @@ pub fn cancel_completed_relation_identity_scan(CompletedRelationIdentityScan) ->
 
 pub fn cancel_completed_result_relation_export(CompletedResultRelationExportPreparation) -> Bool
 
+pub fn cancel_conditional_required_output_preparation(ConditionalRequiredOutputPreparation) -> Bool
+
 pub fn cancel_conditional_row(ConditionalRowBuilder) -> Bool
 
 pub fn cancel_expression_execution(ExpressionExecution) -> Bool
@@ -333,6 +337,8 @@ pub fn cleanup_bounded_unpivot(BoundedUnpivotExecution) -> Result[Bool, BoundedU
 
 pub fn cleanup_bounded_values(BoundedValuesExecution) -> Result[Bool, BoundedValuesIssue]
 
+pub fn cleanup_conditional_required_output_preparation(ConditionalRequiredOutputPreparation) -> Result[Bool, @bounded_execution.Issue]
+
 pub fn cleanup_fixed_record_guard(FixedRecordGuardScan) -> Result[Bool, @bounded_execution.Issue]
 
 pub fn cleanup_infer_rows_preparation(InferRowsPreparation) -> Result[Bool, InferPreparationIssue]
@@ -414,6 +420,8 @@ pub fn completion_preparation_sequence(CompletionPreparation) -> @lowering_relat
 pub fn completion_preparation_terminal_step(CompletionPreparation) -> Int
 
 pub fn conditional_required_cell(ConditionalRow, Int) -> @value_admission.CheckedValue?
+
+pub fn conditional_required_output_rows(ConditionalRequiredOutputPreparation) -> AdmittedOutputRows?
 
 pub fn conditional_row_cell(ConditionalRow, Int) -> @value_admission.CheckedValue??
 
@@ -1073,7 +1081,7 @@ pub fn selected_managed_execution_profile() -> ManagedExecutionProfile
 
 pub fn sequence_failure_kind(SequenceRunIssue) -> SequenceFailureKind
 
-pub fn start_admitted_output_preparation(AdmittedOutput, Int, Int, Int, (Int, Int) -> @value_admission.Value?) -> Result[AdmittedOutputPreparation, CaptureIssue]
+pub fn start_admitted_output_preparation(AdmittedOutput, Int, Int, Int, (Int, Int) -> @value_admission.Value?, validate_field? : ((Int) -> Bool)?) -> Result[AdmittedOutputPreparation, CaptureIssue]
 
 pub fn start_bounded_append(@bounded_execution.Control, GeneratedSequence, ProducerRead, ProducerRead, Int, ValueLimits, ValueLimits, Int, Int, Int, Int) -> Result[BoundedAppendExecution, BoundedAppendIssue]
 
@@ -1128,6 +1136,8 @@ pub fn start_completed_record_guard(@bounded_execution.Control, CompletedOutput,
 pub fn start_completed_relation_identity_scan(CompletedOutput, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int, Int) -> Result[CompletedRelationIdentityScan, CompletedExportIssue]
 
 pub fn start_completed_result_relation_export(CompletedOutput, ManagedResultOccurrence, CompletedResultViewLimits, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedResultRelationExportPreparation, CompletedExportIssue]
+
+pub fn start_conditional_required_output_preparation(AdmittedOutput, @relation_schema.ConditionalSchema, Int, Int, Int, (Int) -> ConditionalRow?) -> Result[ConditionalRequiredOutputPreparation, CaptureIssue]
 
 pub fn start_expression_execution(@lowering_relation.Expression, Map[String, Value], Array[Value], Int, Int, Int) -> Result[ExpressionExecution, EvalIssue]
 
@@ -1607,6 +1617,8 @@ pub(all) struct CompletedResultViewLimits {
 type CompletedSequence
 
 type CompletionPreparation
+
+type ConditionalRequiredOutputPreparation
 
 type ConditionalRow
 

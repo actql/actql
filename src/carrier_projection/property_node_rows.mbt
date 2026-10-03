@@ -6,6 +6,8 @@ struct CheckedPropertyNodeRows {
   input : @carrier.Carrier
   output : @carrier.Carrier
   schema : @row.ConditionalSchema
+  id_column : Int
+  property_columns : Array[Array[Int]]
   usage : Usage
 }
 
@@ -39,6 +41,7 @@ pub fn check_property_node_rows(
   }
   let id = @carrier.graph_identity(graph)
   let declarations : Array[Array[(@row.FieldName, @contract.Contract)]] = []
+  let definition_properties : Array[Array[String]] = []
   let shared_names : Map[String, String] = Map([])
   let mut remaining = limits.max_work - 1
   let mut total_fields = 0
@@ -57,6 +60,7 @@ pub fn check_property_node_rows(
       return Err(issue(source, BudgetExceeded))
     }
     let fields = [(@row.Unqualified("id"), id)]
+    let properties_for_definition = []
     total_fields += 1
     for column in 0..<width {
       remaining -= 1
@@ -77,9 +81,11 @@ pub fn check_property_node_rows(
         }
       }
       fields.push((@row.Unqualified(output_name), contract))
+      properties_for_definition.push(output_name)
       total_fields += 1
     }
     declarations.push(fields)
+    definition_properties.push(properties_for_definition)
   }
   if count == 0 {
     declarations.push([(@row.Unqualified("id"), id)])
@@ -101,6 +107,25 @@ pub fn check_property_node_rows(
   if @row.presence_field_count(schema) >= limits.max_nodes {
     return Err(issue(source, BudgetExceeded))
   }
+  let output_columns : Map[String, Int] = Map([])
+  let output_width = @row.presence_field_count(schema)
+  if output_width > remaining {
+    return Err(issue(source, BudgetExceeded))
+  }
+  remaining -= output_width
+  for column in 0..<output_width {
+    let field = @row.presence_field_at(schema, column).unwrap()
+    output_columns[@row.reference_name(@row.presence_field_name(field))] = column
+  }
+  let id_column = output_columns.get("id").unwrap()
+  let property_columns = []
+  for names in definition_properties {
+    if names.length() > remaining {
+      return Err(issue(source, BudgetExceeded))
+    }
+    remaining -= names.length()
+    property_columns.push(names.map(name => output_columns.get(name).unwrap()))
+  }
   let mut text = limits.max_text_bytes
   for column in 0..<@row.presence_field_count(schema) {
     let field = @row.presence_field_at(schema, column).unwrap()
@@ -116,6 +141,8 @@ pub fn check_property_node_rows(
     input,
     output: @carrier.relation(@carrier.conditional_rows(schema)),
     schema,
+    id_column,
+    property_columns,
     usage: {
       work: limits.max_work - remaining,
       nodes: @row.presence_field_count(schema) + 1,
@@ -150,6 +177,22 @@ pub fn property_node_rows_schema(
   value : CheckedPropertyNodeRows,
 ) -> @row.ConditionalSchema {
   value.schema
+}
+
+///|
+pub fn property_node_rows_id_column(value : CheckedPropertyNodeRows) -> Int {
+  value.id_column
+}
+
+///|
+/// This maps the storage definition's canonical property index to the common
+/// output schema, including compatible case-spelling differences.
+pub fn property_node_rows_property_column(
+  value : CheckedPropertyNodeRows,
+  definition : Int,
+  property : Int,
+) -> Int? {
+  value.property_columns.get(definition).bind(columns => columns.get(property))
 }
 
 ///|

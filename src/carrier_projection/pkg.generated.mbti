@@ -21,9 +21,13 @@ pub fn operation(CheckedProjection) -> Operation
 
 pub fn output(CheckedProjection) -> @carrier_contract.Carrier
 
+pub fn property_node_rows_id_column(CheckedPropertyNodeRows) -> Int
+
 pub fn property_node_rows_input(CheckedPropertyNodeRows) -> @carrier_contract.Carrier
 
 pub fn property_node_rows_output(CheckedPropertyNodeRows) -> @carrier_contract.Carrier
+
+pub fn property_node_rows_property_column(CheckedPropertyNodeRows, Int, Int) -> Int?
 
 pub fn property_node_rows_schema(CheckedPropertyNodeRows) -> @relation_schema.ConditionalSchema
 

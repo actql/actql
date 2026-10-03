@@ -2,6 +2,7 @@
 /// Incremental import of typed immutable cells. This imports material only;
 /// successful execution must still be proven by an installed output verifier.
 priv enum AdmittedOutputPhase {
+  ValidateSchema
   BeginRow
   ReadCell
   AdmitCell
@@ -16,11 +17,13 @@ priv struct AdmittedOutputState {
   output : AdmittedOutput
   count : Int
   read : (Int, Int) -> @admitted.Value?
+  validate_field : ((Int) -> Bool)?
   workspace : RowWorkspace
   max_work : Int
   mut work : Int
   mut row : Int
   mut column : Int
+  mut validation_column : Int
   mut cells : Array[@admitted.Value]
   mut pending : @admitted.Value?
   mut measure : SteppedValueMeasure?
@@ -97,6 +100,16 @@ fn advance_admitted_output_state(
     let buffer = state.output.buffer
     let width = @schema.field_count(buffer.schema)
     match state.phase {
+      ValidateSchema => {
+        guard state.validate_field is Some(validate) &&
+          validate(state.validation_column) else {
+          return @bounded.Failed(InvalidCheckedRow, used, used)
+        }
+        state.validation_column += 1
+        if state.validation_column == width {
+          state.phase = BeginRow
+        }
+      }
       BeginRow => {
         if state.row == state.count {
           state.phase = Seal
@@ -218,6 +231,7 @@ pub fn start_admitted_output_preparation(
   max_step_work : Int,
   max_workspace_slots : Int,
   read : (Int, Int) -> @admitted.Value?,
+  validate_field? : ((Int) -> Bool)? = None,
 ) -> Result[AdmittedOutputPreparation, CaptureIssue] {
   if count < 0 || max_step_work < 0 || max_workspace_slots < 0 {
     return Err(InvalidCaptureLimits)
@@ -235,16 +249,23 @@ pub fn start_admitted_output_preparation(
     output,
     count,
     read,
+    validate_field,
     workspace: row_workspace(max_workspace_slots),
     max_work: max_step_work,
     work: 0,
     row: 0,
     column: 0,
+    validation_column: 0,
     cells: [],
     pending: None,
     measure: None,
     admission: None,
-    phase: BeginRow,
+    phase: if validate_field is Some(_) &&
+      @schema.field_count(output.buffer.schema) > 0 {
+      ValidateSchema
+    } else {
+      BeginRow
+    },
     material: None,
     reclaimed: false,
   }

@@ -79,10 +79,13 @@ confirms that unadapted Relation consumers refuse conditional input. These are
 shared boundary components, not a connected Graph Bridge. Definition declarations
 now produce a bounded presence layout, and a typing-only `node_rows` check
 derives the fixed `id` role plus compatible node properties while rejecting
-role collisions. Authored alias metadata is not yet retained through Graph
-storage, so this check is not offered as executable `node_rows`. The edge
-layout, bounded producers, retained Store custody and reread, guaranteed-column
-projection, and Named Result path still need one executable vertical fixture.
+role collisions. A guaranteed-column adapter now uses the existing bounded
+Relation output owner, checking names and exact contracts during incremental
+cell reads; cancellation and one-short work have focused tests. Authored alias
+metadata is not yet retained through Graph storage, so the typing check is
+not offered as executable `node_rows`. The edge layout, Graph row producer,
+retained Store custody and reread, Stage projection connection, and Named
+Result path still need one executable vertical fixture.
 The existing `prepare_admitted_output` and retained Relation decoder remain
 fixed-width and must not receive sparse rows by treating absence as `NULL`.
 No missing Value or retired tuple-Graph fallback is introduced.
