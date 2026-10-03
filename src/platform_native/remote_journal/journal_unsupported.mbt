@@ -248,3 +248,19 @@ pub fn Journal::start_claimant(
 ) -> Result[String?, NativeRemoteJournalIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+pub fn Journal::request_cancellation(
+  _self : Journal,
+  _request : @remote.DispatchRequest,
+) -> Result[@remote.DispatchRecord, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::cancellation_requested(
+  _self : Journal,
+  _request : @remote.DispatchRequest,
+) -> Result[Bool, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}

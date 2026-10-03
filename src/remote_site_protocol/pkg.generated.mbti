@@ -56,6 +56,8 @@ pub fn admit_remote_output_report_retry_json(String) -> Result[String, DispatchI
 
 pub fn admit_remote_output_result_json(String, RemotePollOutput, @publication_payload.PublicationPayloadRequest, @remote_transfer.RemoteTransferRequest) -> Result[RemoteOutputResult, DispatchIssue]
 
+pub fn admit_remote_poll_cancel_json(String) -> Result[DispatchRequest, DispatchIssue]
+
 pub fn admit_remote_poll_dispatch_json(String) -> Result[RemotePollDispatch, DispatchIssue]
 
 pub fn admit_remote_poll_not_seen_json(String, DispatchRequest) -> Result[Unit, DispatchIssue]
@@ -318,6 +320,8 @@ pub fn prepare_coordinator_site_observation(CoordinatorDispatchIntentRecord, Int
 
 pub fn prepare_dispatch_acceptance(SiteDispatchJournal, DispatchRequest) -> Result[DispatchAdmission, DispatchIssue]
 
+pub fn prepare_dispatch_cancellation(SiteDispatchJournal, DispatchRequest) -> Result[DispatchAdmission, DispatchIssue]
+
 pub fn prepare_dispatch_request(String, String, String, Int, String, String, Int, String, String, String, String, String, String, String, String, String) -> Result[DispatchRequest, DispatchIssue]
 
 pub fn prepare_durable_coordinator_output_record(RemotePollOutput, RemoteOutputPlan) -> Result[DurableCoordinatorOutputRecord, DispatchIssue]
@@ -489,6 +493,8 @@ pub fn remote_output_result_payload_digest(RemoteOutputResult) -> String
 pub fn remote_output_result_projection(RemoteOutputResult, @remote_transfer.RemoteTransferRequest) -> Result[Array[String], DispatchIssue]
 
 pub fn remote_output_result_transfer_record(RemoteOutputResult, @remote_transfer.RemoteTransferRequest) -> Result[@remote_transfer.RemoteTransferRecord, DispatchIssue]
+
+pub fn remote_poll_cancel_json(DispatchRequest) -> Result[String, DispatchIssue]
 
 pub fn remote_poll_dispatch_input_binding(RemotePollDispatch) -> RemoteInputBinding
 

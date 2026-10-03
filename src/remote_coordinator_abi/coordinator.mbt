@@ -409,3 +409,11 @@ pub fn coordinator_exact_retransmission_eligible(
 ) -> Bool {
   @remote.coordinator_exact_retransmission_eligible(record, request)
 }
+
+///|
+#export_name("coordinatorPollCancelJson")
+pub fn coordinator_poll_cancel_json(
+  request : @remote.DispatchRequest,
+) -> Result[String, @remote.DispatchIssue] {
+  @remote.remote_poll_cancel_json(request)
+}
