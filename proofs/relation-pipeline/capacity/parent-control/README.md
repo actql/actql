@@ -1,4 +1,4 @@
-# Native parent startup and the 256-byte premise
+# Native parent allocation census, retained core and the 256-byte premise
 
 This diagnostic connects one existing generated `filter → distinct` pipeline
 to the real registered serial-chain constructor. It inspects its owned roots
@@ -73,6 +73,62 @@ all existing capacity mutations/corpus/three-target checks remain required.
 
 ## Remaining upper-bound work
 
+`allocations.json` preserves seven source roles: retained parent core, selected
+step contexts, selected inputs, internal binding/read edges, provider selection,
+poll/return temporaries, and retirement/output custody. The checker binds record
+field types, the ten Ref declarations, reported-work variants and all eleven
+provider constructors to actual source. All eleven provider candidates are
+constructed before the acceptance loop; the returned provider alone is not a
+complete constructor footprint. These objects remain in the census even when
+their byte/lifetime bounds are unresolved.
+
+### Input-derived retained-core component
+
+For an admitted Int32 step count `n ≥ 2`, let
+`C(n) = max(1, max(8, 2*n))`, the existing grow-at-full backing ceiling. The
+conditional retained-core envelope is **680 + 16*C(n)** requested bytes:
+
+| Source group, including replacement overlap | Upper component |
+| --- | ---: |
+| Ten single-field Refs, payload at most eight bytes each | 160 |
+| Parent execution record | 56 |
+| Five immutable callbacks | 248 |
+| `start_next` environment | 120 |
+| Two simultaneous reported-work records | 32 |
+| Two children Array owners | 48 |
+| Two backing headers | 16 |
+| Two backing payloads, each at most `C(n)` pointer slots | `16*C(n)` |
+
+The bound is derived before execution from source/ABI premises and input count,
+not from the largest observed value. The scalar GC class does not encode an
+allocation request size: the Ref payload ceiling remains an explicit pinned
+source/ABI premise, rather than a claimed scalar-size measurement. The old/new
+overlap limits are also explicit premises. Existing array growth reasoning is
+reused; finite callback snapshots do not prove every transient overlap.
+
+`NativeParentCore.lean` checks the conditional sum and backing-overlap rule.
+Its retained-owner witness is a model example, not physical GC evidence. The
+runner executes the pinned Lean checker, archives its source-bound model receipt
+and log separately from the native execution receipt, and requires both at the
+evidence admission boundary.
+
+The native borrowed phase reader observes the actual parent before/after
+advance, cancel and cleanup callbacks. It verifies capture identities and
+indexed GC layouts, current children owner/backing identity, backing slots and
+terminal/reclaimed flags without storing a MoonBit pointer or increasing RC.
+The current finite case exercises normal handoff, premature cleanup, terminal
+advance and repeated successful cleanup. It does not exercise cancellation of
+the parent, failure or pending/error cleanup retry. Child cancellation already
+present in the harness must not be relabeled as parent cancellation evidence.
+Current phase identities establish point-in-time sharing only, not allocation
+epochs or a complete lifetime union across possible address reuse.
+
+The implementation correspondence is deliberately incomplete for the whole
+parent. In particular, the driver keeps its provider handle after cleanup, so
+immutable parent callbacks and Refs can remain reachable. Cleanup success does
+not establish physical destruction or correct retirement of their reservation.
+That custody/retirement correspondence remains a separate unresolved role.
+
 The 616 subtotal is a lower bound, not the measured maximum reused as an upper
 bound. A replacement sizing rule still needs a source-derived upper bound for
 all parent and uncovered edge allocations, including children backing growth,
@@ -85,7 +141,8 @@ by the selected Map/Array extents or this diagnostic. Physical allocator arenas,
 fragmentation, collector buffers and process RSS remain outside the agreed
 allocation accounting boundary. Cleanup success is not physical GC evidence.
 
-Run only this source-bound diagnostic with the pinned `MOON_HOME`:
+Run only this source-bound diagnostic with the pinned `MOON_HOME` and pinned
+Lean executable on `PATH`:
 
 ```sh
 node proofs/relation-pipeline/capacity/parent-control/run.mjs

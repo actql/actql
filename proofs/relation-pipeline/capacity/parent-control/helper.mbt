@@ -20,3 +20,10 @@ extern "C" fn parent_control_probe(
   family : Array[ManagedProvider],
   count : Int,
 ) -> String = "actql_proof_parent_control"
+
+///|
+#borrow(parent)
+extern "C" fn parent_core_phase_probe(
+  parent : ManagedProviderExecution,
+  phase : Int,
+) -> String = "actql_proof_parent_phase"

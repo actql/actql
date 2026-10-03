@@ -86,7 +86,7 @@ moonbit_string_t actql_proof_parent_control(void *parent, void *children,
     }
   }
   char json[2048];
-  int n=snprintf(json,sizeof json,"ACTQL_PIPELINE_FAULT:{\"kind\":\"parent control investigation\",\"count\":%d,\"rootBytes\":%" PRIu64 ",\"callbackBytes\":%" PRIu64 ",\"childrenContainerBytes\":%" PRIu64 ",\"knownOwnedLowerBytes\":%" PRIu64 ",\"unclassifiedCaptures\":%d,\"unclassifiedRegularBytes\":%" PRIu64 ",\"embeddedCaptures\":%d,\"allowance\":%" PRIu64 ",\"matchedEnvironment\":%d,\"environmentBytes\":%" PRIu64 "}",count,roots_bytes,callback_bytes,container_bytes,roots_bytes+callback_bytes+container_bytes,candidates,candidate_bytes,embedded,(uint64_t)count*256,matched_environment,environment_bytes);
+  int n=snprintf(json,sizeof json,"ACTQL_PIPELINE_FAULT:{\"kind\":\"parent control investigation\",\"parent\":\"%" PRIu64 "\",\"count\":%d,\"rootBytes\":%" PRIu64 ",\"callbackBytes\":%" PRIu64 ",\"childrenContainerBytes\":%" PRIu64 ",\"knownOwnedLowerBytes\":%" PRIu64 ",\"unclassifiedCaptures\":%d,\"unclassifiedRegularBytes\":%" PRIu64 ",\"embeddedCaptures\":%d,\"allowance\":%" PRIu64 ",\"matchedEnvironment\":%d,\"environmentBytes\":%" PRIu64 "}",(uint64_t)(uintptr_t)parent,count,roots_bytes,callback_bytes,container_bytes,roots_bytes+callback_bytes+container_bytes,candidates,candidate_bytes,embedded,(uint64_t)count*256,matched_environment,environment_bytes);
   assert(n>0 && (size_t)n<sizeof json);
   moonbit_string_t result=moonbit_make_string_raw(n);
   for (int i=0;i<n;i++) result[i]=(uint16_t)(unsigned char)json[i];
