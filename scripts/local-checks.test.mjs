@@ -22,7 +22,7 @@ function fixture(t) {
     'timeout-minutes': 60};
   writeFileSync(join(root, '.github/workflows/ci.yml'), JSON.stringify({jobs: {
     lint: job, core: job, future: job, 'native-macos': job,
-    'pipeline-mutations': pipelineJob, 'pipeline-capacity': pipelineJob, 'pipeline-evidence': pipelineJob,
+    'pipeline-mutations': pipelineJob, 'pipeline-capacity': pipelineJob, 'pipeline-mutations-rest': pipelineJob, 'pipeline-capacity-mutants': pipelineJob, 'pipeline-validation': pipelineJob, 'pipeline-evidence': pipelineJob,
   }}));
   const moon = join(root, 'bin/moon');
   writeFileSync(moon, `#!${process.execPath}\nconst fs=require('fs');
@@ -61,7 +61,7 @@ test('heavy jobs require deliberate override; light lint remains usable', t => {
 
 test('CI-only pipeline wrappers refuse even heavy overrides and supplied GitHub metadata without side effects', t => {
   const f = fixture(t);
-  for (const name of ['pipeline-mutations', 'pipeline-capacity', 'pipeline-evidence']) {
+  for (const name of ['pipeline-mutations', 'pipeline-capacity', 'pipeline-mutations-rest', 'pipeline-capacity-mutants', 'pipeline-validation', 'pipeline-evidence']) {
     for (const options of [[], ['--allow-heavy'], ['--allow-heavy', '--timeout-seconds', '7']]) {
       const refused = f.run(['run', name, ...options], {
         GITHUB_SHA: 'a'.repeat(40), GITHUB_RUN_ID: '123', GITHUB_RUN_ATTEMPT: '1',
@@ -82,7 +82,7 @@ test('CI-only pipeline list and dry-run report literal commands without fake con
   const f = fixture(t);
   const listed = f.run(['list']);
   assert.equal(listed.status, 0, listed.stderr);
-  for (const name of ['pipeline-mutations', 'pipeline-capacity', 'pipeline-evidence']) {
+  for (const name of ['pipeline-mutations', 'pipeline-capacity', 'pipeline-mutations-rest', 'pipeline-capacity-mutants', 'pipeline-validation', 'pipeline-evidence']) {
     assert.match(listed.stdout, new RegExp(`${name} \\(CI only:`, 'u'));
     for (const options of [['--dry-run'], ['--allow-heavy', '--dry-run']]) {
       const dry = f.run(['run', name, ...options]);
@@ -111,7 +111,7 @@ test('changed pipeline paths report all CI-only wrappers without suggesting a he
   chmodSync(git, 0o755);
   const result = f.run(['changed']);
   assert.equal(result.status, 0, result.stderr);
-  for (const name of ['pipeline-mutations', 'pipeline-capacity', 'pipeline-evidence']) {
+  for (const name of ['pipeline-mutations', 'pipeline-capacity', 'pipeline-mutations-rest', 'pipeline-capacity-mutants', 'pipeline-validation', 'pipeline-evidence']) {
     assert.match(result.stdout, new RegExp(`run ${name} --dry-run  # CI only:`, 'u'));
   }
   assert.doesNotMatch(result.stdout, /--allow-heavy/u);

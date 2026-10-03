@@ -137,3 +137,32 @@ No deletion count, generated-case-to-saved-test conversion or CI speedup is
 claimed. Existing operation boundaries and physical-route reviews still apply.
 The second distinct increment measures marginal meaning rules and connection
 review against the fixed first foundation, separately from these initial costs.
+
+### Four-part hosted evidence
+
+The full workflow uses the source-bound `proof-parts.mjs` plan with exactly four
+fresh producers: `L-C0` owns normal/boundary capacity, backing/model evidence,
+custody followed by native-parent evidence, and the full final 86-case corpus on
+three targets. `L-C1` owns all five capacity mutations with unchanged fresh
+search, shrinking, mutated minima and independent instrumented healthy replays.
+`L-M0` and `L-M1` own the reviewed static four-variant groups; fixed and required
+fresh modes remain together in each independent mutable/pristine pair.
+
+Each mutated root is restored byte-for-byte. Its old executor closes before a
+new owner executes its assigned recovered minima on the same restored root, on
+all three targets. These fresh recovery observations remain separate from the
+original pristine/instrumented healthy replays and are not another execution of
+the 86-case corpus. The new owner closes before the part is sealed. Existing
+local consistency and custody checks remain mandatory before sealing.
+
+`ci-parts.mjs` seals a PART envelope, never a full scientific success. Receipts
+and observation IDs receive their part namespace at production. The aggregate
+requires all four successful exact artifact IDs from one workflow/run/attempt,
+identical tested source, foundation, toolchain and plan, and successful same-source
+synthetic validation (executed once in parallel). Missing or duplicate parts,
+observations, changed receipts, foreign owners and incomplete local obligations
+fail admission. Original part reports and receipts are retained unchanged; a
+new derived union binds them by digest and retains their actual owner maps.
+Only that complete union undergoes the full scientific and whole-report negative
+audits and can satisfy `pipeline-evidence`. No build tree or completed proof
+result is cached or shared between producers.

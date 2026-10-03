@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { copyFileSync, mkdirSync, mkdtempSync, readdirSync, symlinkSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -11,13 +11,14 @@ const directory = resolve(process.argv[2] ?? join(root, '.artifacts/relation-pip
 const parent = join(root, '.artifacts/relation-pipeline-target-regression');
 mkdirSync(parent, { recursive: true });
 const output = mkdtempSync(join(parent, 'run-'));
-const reports = new Set(['base-js.json', 'js.json', 'wasm.json', 'native.json']);
+const baselineSlots = existsSync(join(directory, 'base-js-L-M0.json')) ? ['base-js-L-M0.json', 'base-js-L-M1.json'] : ['base-js.json'];
+const reports = new Set([...baselineSlots, 'js.json', 'wasm.json', 'native.json']);
 const cases = [
   { name: 'healthy-three-targets', replacements: {}, expected: null },
   { name: 'native-in-js-slot', replacements: { 'js.json': 'native.json' }, expected: 'Report target differs from requested audit target js' },
   { name: 'native-in-wasm-slot', replacements: { 'wasm.json': 'native.json' }, expected: 'Report target differs from requested audit target wasm' },
   { name: 'native-in-both-slots', replacements: { 'js.json': 'native.json', 'wasm.json': 'native.json' }, expected: 'Report target differs from requested audit target js' },
-  { name: 'native-in-baseline-slot', replacements: { 'base-js.json': 'native.json' }, expected: 'Baseline report target differs from requested audit target js' },
+  ...baselineSlots.map(slot => ({ name: `native-in-${slot.slice(0, -5)}-slot`, replacements: { [slot]: 'native.json' }, expected: 'Baseline report target differs from requested audit target js' })),
 ];
 const results = [];
 for (const entry of cases) {

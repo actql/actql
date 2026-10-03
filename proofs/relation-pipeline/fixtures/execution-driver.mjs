@@ -8,7 +8,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const repository = fileURLToPath(new URL('../../../', import.meta.url));
-const modules = ['proofs/relation-pipeline/execute.mjs', 'proofs/relation-pipeline/engine.mjs',
+const modules = ['proofs/relation-pipeline/execute.mjs', 'proofs/relation-pipeline/execution-names.mjs', 'proofs/relation-pipeline/engine.mjs',
   'proofs/relation-pipeline/fixture.mjs', 'proofs/relation-pipeline/harness.mbt',
   'proofs/relation-pipeline/inventory.mjs', 'proofs/relation-pipeline/workspaces.mjs',
   'proofs/relation-pipeline/take.mjs', 'proofs/bounded-session/evidence.mjs',

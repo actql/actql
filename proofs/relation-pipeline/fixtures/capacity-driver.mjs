@@ -13,7 +13,12 @@ writeFileSync(join(root, sourcePath), 'healthy');
 const source = () => readFileSync(join(root, sourcePath), 'utf8');
 const calls = [], executions = [], installs = [], checks = [];
 let clock = 0, executorClosed = false;
-const closes = [], custodyProbes = [], parentProbes = [];
+const closes = [], custodyProbes = [], parentProbes = [], restoredCloses = [];
+const primaryBoundary = { workspace: 'primary-owner', root, role: 'normal' };
+const restoredBoundary = { workspace: 'restored-owner', root, role: 'normal' };
+let freshClosed = false, activeBoundary = primaryBoundary;
+const reportRelative = options.part ? `parts/${options.part}.json` : `${options.target === 'js' ? 'js' : 'all'}.json`;
+const savedRelative = options.part ? `checkpoints/${options.part}.json` : reportRelative;
 Object.defineProperty(globalThis, 'performance', { value: { now: () => clock } });
 const mutations = actualMutations.map(m => ({ ...m, path: sourcePath }));
 const cases = mutations.map((m, slot) => ({ id: `search-${slot}`, slot, rows: [{ value: slot }],
@@ -30,6 +35,8 @@ module('corpus.mjs', { fixedCorpus: () => cases });
 module('registry.mjs', { registry: [] });
 module('obligations.mjs', { registrations: [] });
 module('capacity/census.mjs', { checkCensus() {} });
+module('capacity/audit.mjs', { validateCapacityPart() {} });
+module('workspaces.mjs', { workspaceIdentity: () => restoredBoundary });
 module('capacity/instrument.mjs', { mutations, replacements: { [sourcePath]: [] },
   generatedObservers: { 'observer.mbt': 'observer' },
   instrument: (_path, code) => `instrumented:${code}`,
@@ -69,7 +76,7 @@ mock.module('node:child_process', { namedExports: { spawnSync: (command, args) =
     assert(!existsSync(join(root, 'observer.mbt')));
     const target = options.target === 'js' ? 'js' : 'all';
     assert.equal(args[1], target);
-    const campaign = JSON.parse(readFileSync(join(root, `.artifacts/relation-pipeline/capacity/${target}.json`)));
+    const campaign = JSON.parse(readFileSync(join(root, `.artifacts/relation-pipeline/capacity/${savedRelative}`)));
     assert.deepEqual(campaign.executions, executions, 'Custody verification started before campaign receipts were saved');
     custodyProbes.push({ afterCalls: calls.length, afterClose: closes.length, target });
     if (options.fail === 'custody-probe') return { status: 24, stdout: '', stderr: 'Injected custody probe failure' };
@@ -85,7 +92,7 @@ mock.module('node:child_process', { namedExports: { spawnSync: (command, args) =
     assert.equal(custodyProbes.length, 1, 'Parent probe started before custody verification');
     assert.equal(source(), 'healthy');
     assert(!existsSync(join(root, 'observer.mbt')));
-    const campaign = JSON.parse(readFileSync(join(root, '.artifacts/relation-pipeline/capacity/all.json')));
+    const campaign = JSON.parse(readFileSync(join(root, `.artifacts/relation-pipeline/capacity/${savedRelative}`)));
     assert.deepEqual(campaign.executions, executions, 'Parent probe started before campaign receipts were saved');
     parentProbes.push({ afterCalls: calls.length, afterClose: closes.length, afterCustody: custodyProbes.length });
     if (options.fail === 'parent-probe') return { status: 23, stdout: '', stderr: 'Injected parent probe failure' };
@@ -98,19 +105,8 @@ mock.module('node:child_process', { namedExports: { spawnSync: (command, args) =
   assert(args[0].endsWith('/check.mjs'));
   return { status: 0, stdout: 'instrumented model transport', stderr: '' };
 } } });
-module('execute.mjs', { root, toolchain: {}, executions,
-  closeExecutor: () => {
-    const path = join(root, '.artifacts/relation-pipeline/capacity', options.target === 'js' ? 'js.json' : 'all.json');
-    const report = JSON.parse(readFileSync(path));
-    assert.deepEqual(report.executions, executions, 'Executor closed before campaign receipts were saved');
-    assert.equal(source(), 'healthy');
-    assert(!existsSync(join(root, 'observer.mbt')));
-    closes.push({ afterCalls: calls.length, receipts: report.executions.length });
-    if (options.fail === 'close') throw new Error('Injected executor close failure');
-    executorClosed = true;
-  },
-  execute: (inputs, _registry, target, correspondence, label) => {
-    assert(!executorClosed, 'Closed campaign executor was reused');
+const mockExecute = (inputs, _registry, target, correspondence, label) => {
+    assert(activeBoundary === restoredBoundary ? !freshClosed : !executorClosed, 'Closed campaign executor was reused');
     const call = { inputs: structuredClone(inputs), target, correspondence, label, source: source(), started: clock };
     calls.push(call); clock += 10;
     if (options.fail === `${label}:${target}`) throw new Error('Injected compilation/execution failure');
@@ -131,22 +127,43 @@ module('execute.mjs', { root, toolchain: {}, executions,
     mkdirSync(join(root, '_build', target), { recursive: true });
     writeFileSync(join(root, binary), `compiled:${source()}:${target}`);
     const path = `receipt-${calls.length}.json`;
-    const receipt = { target, correspondence, cases: inputs.map((testCase, i) => ({ testCase, observation: observations[i] })),
+    const receipt = { target, correspondence, boundary: activeBoundary, cases: inputs.map((testCase, i) => ({ testCase, observation: observations[i] })),
       artifacts: { [binary]: hash(readFileSync(join(root, binary))) } };
     writeFileSync(join(root, path), JSON.stringify(receipt));
     executions.push({ path, receipt });
     call.ended = clock; call.receipt = path;
     return observations;
+  };
+module('execute.mjs', { root, toolchain: {}, executions, execute: mockExecute, closeExecutor: () => {
+    const path = join(root, '.artifacts/relation-pipeline/capacity', savedRelative);
+    const report = JSON.parse(readFileSync(path));
+    assert.deepEqual(report.executions, executions, 'Executor closed before campaign receipts were saved');
+    assert.equal(source(), 'healthy');
+    assert(!existsSync(join(root, 'observer.mbt')));
+    closes.push({ afterCalls: calls.length, receipts: report.executions.length });
+    if (options.fail === 'close') throw new Error('Injected executor close failure');
+    executorClosed = true;
+  },
+  createExecutor: () => {
+    assert(executorClosed, 'Fresh owner started before predecessor close');
+    assert.equal(source(), 'healthy');
+    assert(!existsSync(join(root, 'observer.mbt')));
+    return { execute: (...args) => { activeBoundary = restoredBoundary; return mockExecute(...args); },
+      close: () => { restoredCloses.push({ afterCalls: calls.length, receipts: executions.length });
+        if (options.fail === 'post-restore-close') throw new Error('Injected post-restore close failure');
+        freshClosed = true; } };
   } });
 process.on('exit', () => {
-  const reportPath = join(root, '.artifacts/relation-pipeline/capacity', `${options.target === 'js' ? 'js' : 'all'}.json`);
+  const reportPath = join(root, '.artifacts/relation-pipeline/capacity', reportRelative);
   writeFileSync(join(root, 'state.json'), JSON.stringify({ calls, installs, checks, source: source(),
-    observerPresent: existsSync(join(root, 'observer.mbt')), executions, clock, closes, custodyProbes, parentProbes, executorClosed,
+    observerPresent: existsSync(join(root, 'observer.mbt')), executions, clock, closes, restoredCloses, freshClosed, custodyProbes, parentProbes, executorClosed,
     parentReportPresent: existsSync(join(root, '.artifacts/relation-pipeline/capacity/parent-control-probe/all.json')),
+    checkpoint: existsSync(join(root, '.artifacts/relation-pipeline/capacity', savedRelative)) ? JSON.parse(readFileSync(join(root, '.artifacts/relation-pipeline/capacity', savedRelative))) : null,
     report: existsSync(reportPath) ? JSON.parse(readFileSync(reportPath)) : null }));
 });
+if (options.environmentPart) process.env.ACTQL_PIPELINE_PART = options.environmentPart;
 process.argv[2] = options.target ?? 'all';
-process.argv[3] = options.normal ? 'normal' : undefined;
+process.argv[3] = options.part ?? (options.normal ? 'normal' : undefined);
 const runner = new URL('../capacity/run.mjs', import.meta.url);
 if (!options.runnerFault) await import(runner.href);
 else {
@@ -160,3 +177,4 @@ else {
   code = code.replace(/from '(\.\.?\/[^']+)'/g, (_match, path) => `from '${new URL(path, runner).href}'`);
   await import(`data:text/javascript;base64,${Buffer.from(code).toString('base64')}`);
 }
+
