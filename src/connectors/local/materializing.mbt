@@ -178,7 +178,7 @@ pub fn[E] prepare_local_materializing_execution(
   let request = @connector.fixed_compute_candidate_request(
     @connector.prepared_compute_candidate(prepared),
   )
-  let inputs = @connector.fixed_compute_request_relation_inputs(request)
+  let inputs = @connector.fixed_compute_request_inputs(request)
   let mut retention = base.retained_bytes
   if output_limits is Some(limits) {
     guard local_export_retention_capacity(limits) is Some(extra) &&

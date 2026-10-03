@@ -3141,6 +3141,54 @@ fn supplied_ranking_fusion_owner(policy : String) -> @lower.BoundPrepared {
 }
 
 ///|
+fn mixed_ranking_fusion_owner(
+  left : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  let contract = "{\"domain\":\"unit.v1\",\"range\":[0,1]," +
+    "\"normalization\":\"unit.v1\"}"
+  let ranking = @vector.declare_ranking_score(
+    input_cursor(contract),
+    direct_ranking_carrier(),
+    @schema.Unqualified("score"),
+    { max_work: 1000, max_nodes: 1000, max_depth: 10, max_text_bytes: 1000, },
+  ).unwrap()
+  direct_nearest_bind(
+    @pipeline.check_with_evidence(
+      input_cursor(
+        "[{\"merge_rankings\":{\"with\":\"right\"," +
+        "\"by\":[\"q\"],\"candidate\":\"id\"," +
+        "\"score\":\"score\",\"k\":2,\"score_policy\":\"max\"," +
+        "\"score_contract\":" +
+        contract +
+        "}}]",
+      ),
+      [
+        (
+          "left",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(left)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+        ("right", @pipeline.RankingInput(ranking)),
+      ],
+      None,
+      Some(input_cursor("\"left\"")),
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
 fn supplied_ranking_rows(
   owner : @lower.BoundPrepared,
   input : Int,
@@ -3771,7 +3819,16 @@ test "registered VecA provider preserves supplied score authority" {
     ).unwrap()
     assert_eq(@connector.fixed_compute_request_input_count(request), 2)
     assert_true(@connector.fixed_compute_request_has_supplied_input(request))
-    assert_true(@connector.fixed_compute_request_inputs(request).is_empty())
+    let request_inputs = @connector.fixed_compute_request_inputs(request)
+    assert_eq(request_inputs.length(), 2)
+    for index in 0..<2 {
+      assert_true(
+        @execution.fixed_relation_read_same(
+          request_inputs[index],
+          fixed_inputs[index],
+        ),
+      )
+    }
     let registry = search_registry()
     let candidate = @local_connector.local_fixed_compute_candidate(
       @connector.capability_registration_at(registry, 0).unwrap(),
@@ -3908,6 +3965,74 @@ test "registered VecA provider preserves supplied score authority" {
     assert_true(@local_connector.cleanup_managed_provider(cancelled).unwrap())
     assert_true(inputs.all(@execution.supplied_relation_read_available))
   }
+}
+
+///|
+test "fixed Compute retains ordered completed and supplied input identities" {
+  let left = direct_ranking_owner()
+  let owner = mixed_ranking_fusion_owner(left)
+  let output = direct_ranking_output(left, [(1.0, 1.0, 0.75)])
+  let completed = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, left, output).unwrap(),
+    1000,
+    10000,
+  ).unwrap()
+  let supplied = supplied_ranking_rows(owner, 1, [(1.0, 2.0, 0.5)])
+  let expected = [
+    @execution.fixed_completed_relation_read(completed),
+    @execution.fixed_supplied_relation_read(supplied),
+  ]
+  let capacity : @connector.FixedComputeCapacity = {
+    contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+    max_rows: 10,
+    max_value_bytes: 1000,
+    common_fragment: None,
+  }
+  let request = @connector.prepare_selected_fixed_compute_request_with_inputs(
+    owner, 0, expected, capacity,
+  ).unwrap()
+  assert_eq(@connector.fixed_compute_request_input_count(request), 2)
+  assert_true(@connector.fixed_compute_request_has_supplied_input(request))
+  let exported = @connector.fixed_compute_request_inputs(request)
+  assert_eq(exported.length(), 2)
+  for index in 0..<2 {
+    assert_true(
+      @execution.fixed_relation_read_same(exported[index], expected[index]),
+    )
+    assert_true(
+      @execution.fixed_relation_read_same(
+        @connector.fixed_compute_request_input(request, index).unwrap(),
+        expected[index],
+      ),
+    )
+  }
+  assert_true(exported[0] is @execution.CompletedRelation(_))
+  assert_true(exported[1] is @execution.SuppliedRelation(_))
+  exported.clear()
+  assert_eq(@connector.fixed_compute_request_inputs(request).length(), 2)
+  assert_true(
+    @connector.prepare_selected_fixed_compute_request_with_inputs(
+      owner,
+      0,
+      [expected[1], expected[0]],
+      capacity,
+    )
+    is Err(@connector.UnsupportedInputShape),
+  )
+  let registry = search_registry()
+  assert_true(
+    @duckdb_compute.duckdb_fixed_compute_candidate(
+      @connector.capability_registration_at(registry, 1).unwrap(),
+      request,
+      "owned_input",
+      native_compile_limits(),
+      [],
+      { transfer_bytes: None, retained_bytes: None, money_units: None, },
+      100,
+    )
+    is Err(Request(UnsupportedInputShape)),
+  )
 }
 
 ///|

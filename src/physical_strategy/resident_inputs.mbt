@@ -92,7 +92,8 @@ pub fn prepare_resident_inputs(
       }
     }
     reads.push(read)
-    guard @connector.fixed_compute_request_input(request, port) is Some(input) &&
+    guard @connector.fixed_compute_request_input(request, port)
+      is Some(@execution.CompletedRelation(input)) &&
       physical_equal(input, read.input) else {
       for read in reads {
         return_resident_read(read) |> ignore

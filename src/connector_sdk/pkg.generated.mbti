@@ -91,17 +91,13 @@ pub fn fixed_compute_request_capacity(FixedComputeRequest) -> FixedComputeCapaci
 
 pub fn fixed_compute_request_has_supplied_input(FixedComputeRequest) -> Bool
 
-pub fn fixed_compute_request_input(FixedComputeRequest, Int) -> @execution_relation.ProducerRead?
+pub fn fixed_compute_request_input(FixedComputeRequest, Int) -> @execution_relation.FixedRelationRead?
 
 pub fn fixed_compute_request_input_count(FixedComputeRequest) -> Int
 
-pub fn fixed_compute_request_inputs(FixedComputeRequest) -> Array[@execution_relation.ProducerRead]
+pub fn fixed_compute_request_inputs(FixedComputeRequest) -> Array[@execution_relation.FixedRelationRead]
 
 pub fn fixed_compute_request_owner(FixedComputeRequest) -> @lowering_relation.BoundPrepared
-
-pub fn fixed_compute_request_relation_input(FixedComputeRequest, Int) -> @execution_relation.FixedRelationRead?
-
-pub fn fixed_compute_request_relation_inputs(FixedComputeRequest) -> Array[@execution_relation.FixedRelationRead]
 
 pub fn[A, C, E] install_bundles(Array[CapabilityBundle[A, C, E]], Int, Int) -> Result[InstalledBundles[A, C, E], CapabilityRegistrationIssue]
 

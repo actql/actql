@@ -4571,6 +4571,14 @@ cleanup without another Compute dispatch. The complete standard Host test
 passed locally on this source. These checks do not establish every later
 Relation operation or other retained ranking input shape.
 
+The fixed Compute request's public low-level input readers now return
+`FixedRelationRead` for every port. The former `ProducerRead` snapshot could
+return an empty array for a nonempty supplied or mixed request, so it was
+removed along with the redundant relation-specific reader names. Completed-only
+connectors explicitly reject a supplied variant before execution. Existing
+callers were migrated with the generated interface; zero, completed, supplied,
+and mixed requests retain their exact input counts, order, and bindings.
+
 The retained Relation path also splits a direct `VEC.knn_join` occurrence
 from a later `filter` in the same Stage. The nearest obligation is admitted
 only for the exact one-step sequence accepted by the registered bounded

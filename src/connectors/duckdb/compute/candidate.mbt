@@ -7,6 +7,22 @@ pub(all) enum DuckDBComputeCandidateIssue {
 }
 
 ///|
+/// Native fixed Compute accepts completed producer reads only. A supplied
+/// port is an unsupported shape, never an empty input set.
+fn duckdb_completed_fixed_inputs(
+  request : @connector.FixedComputeRequest,
+) -> Array[@execution.ProducerRead]? {
+  let completed = []
+  for input in @connector.fixed_compute_request_inputs(request) {
+    guard @execution.fixed_relation_read_completed(input) is Some(read) else {
+      return None
+    }
+    completed.push(read)
+  }
+  Some(completed)
+}
+
+///|
 /// Finite managed applicability classification. Ownership, limits and internal
 /// inconsistencies are planning failures, not reasons to hide this candidate.
 pub fn duckdb_managed_candidate_unsupported(
@@ -90,15 +106,12 @@ pub fn duckdb_fixed_compute_candidate(
   }
   // The native compiler is currently unary. Multi-input requests must never
   // enter comparison as apparently executable native candidates.
-  if @connector.fixed_compute_request_inputs(request).length() != 1 {
+  guard duckdb_completed_fixed_inputs(request) is Some(inputs) &&
+    inputs.length() == 1 else {
     return Err(Request(UnsupportedInputShape))
   }
   let compiled = match
-    @duckdb.prepare_fixed_compute(
-      @connector.fixed_compute_request_inputs(request)[0],
-      table,
-      compilation,
-    ) {
+    @duckdb.prepare_fixed_compute(inputs[0], table, compilation) {
     Err(issue) => return Err(Compilation(issue))
     Ok(value) => value
   }
@@ -126,17 +139,14 @@ pub fn duckdb_bound_compute_candidate(
     is Some(_) {
     return Err(Request(CommonFragmentUnsupported))
   }
-  if @connector.fixed_compute_request_has_supplied_input(request) {
+  guard duckdb_completed_fixed_inputs(request) is Some(inputs) else {
     return Err(Request(UnsupportedInputShape))
   }
   if !physical_equal(
       @duckdb.fixed_query_owner(@duckdb.fixed_compute_query(compiled)),
       @connector.fixed_compute_request_owner(request),
     ) ||
-    !@duckdb.fixed_compute_inputs_match(
-      compiled,
-      @connector.fixed_compute_request_inputs(request),
-    ) {
+    !@duckdb.fixed_compute_inputs_match(compiled, inputs) {
     return Err(Request(ForeignPreparation))
   }
   @connector.bind_compute_candidate(

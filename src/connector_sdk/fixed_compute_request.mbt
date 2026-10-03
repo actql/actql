@@ -245,14 +245,6 @@ pub fn fixed_compute_request_capacity(
 pub fn fixed_compute_request_input(
   request : FixedComputeRequest,
   index : Int,
-) -> @execution.ProducerRead? {
-  request.inputs.get(index).bind(@execution.fixed_relation_read_completed)
-}
-
-///|
-pub fn fixed_compute_request_relation_input(
-  request : FixedComputeRequest,
-  index : Int,
 ) -> @execution.FixedRelationRead? {
   request.inputs.get(index)
 }
@@ -275,20 +267,6 @@ pub fn fixed_compute_request_input_count(request : FixedComputeRequest) -> Int {
 /// Snapshot only the bounded immutable input handles. The caller cannot replace
 /// owned ports; retained row storage is shared without copying or re-admission.
 pub fn fixed_compute_request_inputs(
-  request : FixedComputeRequest,
-) -> Array[@execution.ProducerRead] {
-  let inputs = []
-  for input in request.inputs {
-    guard @execution.fixed_relation_read_completed(input) is Some(read) else {
-      return []
-    }
-    inputs.push(read)
-  }
-  inputs
-}
-
-///|
-pub fn fixed_compute_request_relation_inputs(
   request : FixedComputeRequest,
 ) -> Array[@execution.FixedRelationRead] {
   request.inputs.copy()

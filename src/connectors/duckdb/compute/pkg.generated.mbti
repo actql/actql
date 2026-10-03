@@ -176,6 +176,7 @@ pub(all) enum DuckDBComputeCandidateIssue {
 
 pub(all) enum DuckDBComputeIssue {
   NotSelected
+  UnsupportedInputShape
   ForeignPreparation
   InvalidState
   UnverifiedTransport

@@ -1605,7 +1605,7 @@ fn captured_request_inputs_match(
     return false
   }
   for port in 0..<ports.length() {
-    guard @connector.fixed_compute_request_relation_input(request, port)
+    guard @connector.fixed_compute_request_input(request, port)
       is Some(expected) else {
       return false
     }

@@ -545,7 +545,13 @@ pub fn execute_local_fixed_compute_with_usage(
     is Some(target) else {
     return Err(UnsupportedInputShape)
   }
-  let inputs = @connector.fixed_compute_request_inputs(request)
+  let inputs : Array[@execution.ProducerRead] = []
+  for input in @connector.fixed_compute_request_inputs(request) {
+    guard @execution.fixed_relation_read_completed(input) is Some(read) else {
+      return Err(UnsupportedInputShape)
+    }
+    inputs.push(read)
+  }
   if representations is Some(copies) {
     if copies.length() != inputs.length() {
       return Err(UnsupportedInputShape)
