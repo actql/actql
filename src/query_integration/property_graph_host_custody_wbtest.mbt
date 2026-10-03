@@ -326,50 +326,128 @@ fn run_current_host_graph_relation_path(
     first_live,
     obligations?=graph_publication_obligations(run, true),
   )
-  let second_live = Ref(true)
-  let (second_ops, second) = run_local_managed_test_task(
-    installed,
-    run,
-    6,
-    [filtered],
-    [filtered_rows],
-    6,
-    second_live,
-    obligations?=graph_publication_obligations(run, true),
-  )
-  assert_eq(local_managed_test_rows(first_ops).length(), expected_rows)
-  assert_eq(local_managed_test_rows(second_ops).length(), expected_rows)
   if cleanup_attempts is Some(_) {
-    // Expected projections are per-operation data, not owner-fixture output.
     if variant == "current_filter" {
       assert_eq(local_managed_test_rows(first_ops), [
         "{\"id\":1,\"node_name\":\"first\"}", "{\"id\":2,\"node_name\":\"second\"}",
-      ])
-      assert_eq(local_managed_test_rows(second_ops), [
-        "{\"node_name\":\"first\"}", "{\"node_name\":\"second\"}",
       ])
     } else {
       assert_eq(local_managed_test_rows(first_ops), [
         "{\"src\":1,\"weight\":10}", "{\"src\":2,\"weight\":20}",
       ])
-      assert_eq(local_managed_test_rows(second_ops), [
+    }
+  }
+  let second_live = Ref(true)
+  let mut closed_parent_bytes = 0L
+  let (second_ops, second) = if cleanup_attempts is Some(attempts) {
+    let operations = start_local_managed_test_task_operations(
+      installed,
+      run,
+      6,
+      [filtered],
+      [filtered_rows],
+      obligations?=graph_publication_obligations(run, true),
+    )
+    // One bounded poll has not produced a result. The remaining consumer
+    // still needs its input for execution, not merely a published reread.
+    let pending = (operations.advance)(1).unwrap()
+    assert_false(pending.complete)
+    assert_eq((operations.output_rows)(), 0)
+    assert_true((operations.material)() is None)
+    assert_false(@strategy.captured_task_completed(run, 6))
+    close_graph_host_consumer(run, 5, first_ops, first_live, first)
+    assert_true(@execution.managed_completed_output_available(filtered))
+    closed_parent_bytes = @execution.managed_completed_output_storage_bytes(
+      filtered,
+    ).unwrap()
+    assert_true(closed_parent_bytes > 0L)
+    let held = @resources.ledger_usage(@strategy.captured_dag_ledger(run)).held_bytes
+    // Revoke the Host public port, not the already-borrowed material.
+    @strategy.close_captured_task_output(run, 4)
+    (filtered_ops.close)()
+    (filtered_ops.cleanup_refresh)() |> ignore
+    assert_false(
+      @strategy.captured_managed_task_output_matches(
+        run,
+        4,
+        @strategy.captured_task_target(run, 4).unwrap(),
+        filtered,
+      ),
+    )
+    assert_true(@execution.managed_completed_output_available(filtered))
+    assert_eq(
+      @resources.ledger_usage(@strategy.captured_dag_ledger(run)).held_bytes,
+      held,
+      msg="in-flight consumer must retain the closed producer holding",
+    )
+    // Actual execution, finalization and Host completion all happen AFTER
+    // the producer port is revoked. Exact operation rows are checked below.
+    (operations.execute)().unwrap()
+    if variant == "current_filter" {
+      assert_eq(local_managed_test_rows(operations), [
+        "{\"node_name\":\"first\"}", "{\"node_name\":\"second\"}",
+      ])
+    } else {
+      assert_eq(local_managed_test_rows(operations), [
         "{\"weight\":10}", "{\"weight\":20}",
       ])
     }
-    let held = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
-    assert_true(held.reserved_execution_bytes > 0L)
-  }
-  close_graph_host_consumer(run, 5, first_ops, first_live, first)
-  assert_true(@execution.managed_completed_output_available(second))
-  assert_true(@execution.managed_completed_output_available(filtered))
-  if cleanup_attempts is Some(attempts) {
-    assert_eq(attempts.val, 2)
-    assert_true(@execution.managed_completed_output_available(projected))
-    assert_true(
-      @resources.ledger_usage(@strategy.captured_dag_ledger(run)).reserved_execution_bytes >
-      0L,
+    (operations.prepare_finalization)(6, operations.storage_bytes, fn() {
+      second_live.val
+    }).unwrap()
+    let mut polls = 0
+    let mut ready = false
+    while !ready && polls < 10000 {
+      polls += 1
+      ready = (operations.advance_finalization)(1).unwrap().complete
+    }
+    assert_true(ready)
+    (operations.settle)().unwrap()
+    let completion = (operations.complete)(6, operations.storage_bytes, fn() {
+      second_live.val
+    })
+    if completion is Err(@local_driver.Execution(@strategy.ForeignCandidate)) {
+      fail(
+        "Closed producer port rejects the acquired consumer completion: Execution(ForeignCandidate)",
+      )
+    }
+    let completed = completion.unwrap()
+    assert_true(@strategy.captured_task_completed(run, 6))
+    @strategy.refresh_captured_retention(run)
+    assert_eq(
+      @resources.ledger_usage(@strategy.captured_dag_ledger(run)).held_bytes,
+      held +
+      @execution.managed_completed_output_storage_bytes(completed).unwrap(),
+      msg="published consumer must retain its closed producer holding",
     )
-    // Reading the remaining consumer still checks the operation's values.
+    // Completion seals input evidence. Only now retire the fixture's source
+    // material; the remaining consumer still owns the Host parent dependency.
+    filtered_live.val = false
+    assert_true((filtered_ops.cleanup_refresh)())
+    @strategy.refresh_captured_retention(run)
+    assert_eq(
+      @resources.ledger_usage(@strategy.captured_dag_ledger(run)).held_bytes,
+      held +
+      @execution.managed_completed_output_storage_bytes(completed).unwrap(),
+      msg="last consumer must retain the producer holding after owner cleanup",
+    )
+    assert_eq(attempts.val, 2)
+    (operations, completed)
+  } else {
+    run_local_managed_test_task(
+      installed,
+      run,
+      6,
+      [filtered],
+      [filtered_rows],
+      6,
+      second_live,
+      obligations?=graph_publication_obligations(run, true),
+    )
+  }
+  assert_eq(local_managed_test_rows(second_ops).length(), expected_rows)
+  if cleanup_attempts is Some(_) {
+    // Independent expected projections are outside the owner helpers.
     if variant == "current_filter" {
       assert_eq(local_managed_test_rows(second_ops), [
         "{\"node_name\":\"first\"}", "{\"node_name\":\"second\"}",
@@ -379,10 +457,22 @@ fn run_current_host_graph_relation_path(
         "{\"weight\":10}", "{\"weight\":20}",
       ])
     }
-  }
-  close_graph_host_consumer(run, 6, second_ops, second_live, second)
-  if cleanup_attempts is Some(attempts) {
+  } else {
+    assert_eq(local_managed_test_rows(first_ops).length(), expected_rows)
+    close_graph_host_consumer(run, 5, first_ops, first_live, first)
+    assert_true(@execution.managed_completed_output_available(second))
     assert_true(@execution.managed_completed_output_available(filtered))
+  }
+  close_graph_host_consumer(
+    run,
+    6,
+    second_ops,
+    second_live,
+    second,
+    released_parent_bytes=closed_parent_bytes,
+  )
+  if cleanup_attempts is Some(attempts) {
+    assert_false(@execution.managed_completed_output_available(filtered))
     assert_true(@execution.managed_completed_output_available(projected))
     assert_eq(attempts.val, 2)
     assert_true(
@@ -449,6 +539,7 @@ fn close_graph_host_consumer(
   operations : @local_driver.LocalManagedDispatchOperations[Int],
   live : Ref[Bool],
   output : @execution.ManagedCompletedOutput[Int],
+  released_parent_bytes? : Int64 = 0L,
 ) -> Unit raise {
   let before = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
   let bytes = @execution.managed_completed_output_storage_bytes(output).unwrap()
@@ -458,7 +549,11 @@ fn close_graph_host_consumer(
   (operations.cleanup_refresh)() |> ignore
   assert_false(@execution.managed_completed_output_available(output))
   let after = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
-  assert_eq(after.held_bytes, before.held_bytes - bytes)
+  assert_eq(
+    after.held_bytes,
+    before.held_bytes - bytes - released_parent_bytes,
+    msg="consumer close must return each owned holding exactly once",
+  )
   // Repeating close must not credit this allocation again at an intermediate
   // nonzero ledger balance; final-zero alone cannot establish that property.
   @strategy.close_captured_task_output(run, task)

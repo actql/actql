@@ -122,10 +122,16 @@ Each must be exercised separately in an isolated copy, with
 failure at the corresponding intermediate invariant and restored success.
 Final-zero alone is not the double-credit detection criterion.
 
-The current producer port remains open until both consumers close. The two
-MATCH pilot cases still need an intermediate producer-port close while the
-second consumer retains its input before claiming detection of a missing
-consumer-retention guard. Existing normal cases must remain unchanged.
+The original cases kept the producer port open until both consumers closed.
+The two MATCH pilot cases now close it while the second consumer has no output
+and still needs input. Holding is preserved and execution reaches independent
+expected rows and finalization, but Host completion rejects with
+`Execution(ForeignCandidate)` because the producer's public slot is gone.
+The success expectation is retained. See the
+[acquired-input handoff](2026-10-03-graph-host-acquired-input-handoff.md) for the
+fixed counterexample, exact observations and A's separate product-fix boundary.
+Existing normal cases remain unchanged. Mutation and exact-once cascade-return
+acceptance await that fix; a failing unmutated case is not restored success.
 
 Mutation detection is incomplete. Wasm/native execution, broader validation,
 and exact submitted-SHA CI remain pending.
