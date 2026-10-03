@@ -2997,7 +2997,7 @@ async function exerciseStrategyGraph(
       assert.equal(fixture.strategyFixtureOpen(
         scoredFixture, scoredCapture.source()), true);
       const setup = fixture.strategyFixtureVecaRetainedSubset(scoredFixture);
-      const runtime = runtimeCore(hostRuntime);
+      const runtime = runtimeCore(scoredRuntime);
       assert.equal(runtime.resultInventory(setup).length, 3);
       scoredStore = await openLocalPublicationStore({
         directory: scoredDirectory,
@@ -3047,8 +3047,8 @@ async function exerciseStrategyGraph(
         assert(scoredFailureExecution.completed.some(value =>
           value.outputRepresentation === 'retained-file'));
         assert.equal(scoredFailureExecution.failure?.code, 'MoonBitHostFailure');
-        assert.equal(fixture.strategyFixtureManagedFilterArithmetic(
-          scoredFailureExecution.failure.cause, 0), true);
+        assert.equal(fixture.strategyFixtureRetainedCapturedFilterArithmetic(
+          scoredFailureExecution.failure.cause), true);
         await assert.rejects(scoredStore.lookupCommittedIndex(
           publicationKey, () => true), /PublicationLookupDenied/);
       } else {

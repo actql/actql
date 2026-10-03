@@ -4560,10 +4560,16 @@ three with independently specified rows, and reclaims held and reserved bytes.
 This covers the scored-policy-to-filter shape, not every later Relation
 operation. The supplied-input provider fixture also requests cancellation
 after positive work, verifies that cleanup cannot precede stop, and retains
-both supplied reads through final cleanup. A retained-Store cancellation and
-failure injection at the ordinary Node Host route is not yet established by
-that lower-level fixture; it remains separate from the existing common
-bounded-provider and materializing-owner evidence.
+both supplied reads through final cleanup. The bounded materializing attempt
+also advances the supplied inputs with quantum one and observes cancellation
+before releasing them on JS, Wasm, and native. The ordinary Node Host now
+delivers a timer cancellation after positive ranking work, verifies physical
+stop before release, and rejects publication. A separate downstream filter
+failure preserves its authored arithmetic cause, rejects publication, keeps
+cleanup responsibility through one injected close failure, and retries
+cleanup without another Compute dispatch. The complete standard Host test
+passed locally on this source. These checks do not establish every later
+Relation operation or other retained ranking input shape.
 
 The retained Relation path also splits a direct `VEC.knn_join` occurrence
 from a later `filter` in the same Stage. The nearest obligation is admitted
