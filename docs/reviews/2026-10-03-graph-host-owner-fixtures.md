@@ -196,13 +196,24 @@ G's tests and original #246 declaration alongside A's acquired-input fix.
 G normally merged this main revision without conflicts as
 `cc9d2bfd96abb656963207f11dc84e88a9dfd8f3`.
 
-Against main, G's remaining changes are these two review documents only.
-The two test files, three product-fix files and declaration have no residual
-diff. They also match the successful fixed-source revision recorded above.
-The original counterexample and three mutations remain evidence of their
-actual fixed SHA; no new mutation campaign or broad test was run merely to
-confirm integration. New documentation and subsequent test changes require
-their own automatic PR CI; old runs do not certify new HEADs.
+The two test files, three product-fix files and original #246 declaration
+have no residual diff against main. The five test/product files also match
+the successful fixed-source revision recorded above. The original counterexample
+and three mutations remain evidence of their actual fixed SHA; no new mutation
+campaign or broad test was run merely to confirm integration.
+
+The first documentation PR run exposed a missing declaration for G's actual
+normal merge `cc9d2bfd96abb656963207f11dc84e88a9dfd8f3`.
+`resolve-host-owner-main-7081dedfd.json` adds that distinct merge's provenance:
+two ordered parents, both maximal common ancestors, the required union
+0 + 13 = 13 paths, exact before/after blob digests and modes, and 50 inherited
+declaration IDs. Existing records are preserved; the validator and workflow
+are unchanged. The Git-only history entrypoint passed after this addition.
+This necessary metadata is separate from the two residual review documents.
+
+Main then advanced to `ba3d6d128` (#266) and was normally merged without
+conflicts. Subsequent documentation and test changes require their own
+automatic PR CI; earlier runs do not certify a new HEAD.
 
 ## Executed mutation sites and detection scope
 

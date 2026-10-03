@@ -1,12 +1,17 @@
 # Frontend migration: independent source checkpoint
 
 This ledger separates implemented source, public execution evidence and remaining
-migration work. The current development integration combines B
+migration work. The integrated main baseline is
+`11fde3441fdcf0766c583c5173ccf8e788a09751`, including the JSON composition in
+#246. Results below retain their own verified source/package identities; they
+are not blanket execution evidence for this baseline or the full migration.
+
+The earlier Graph development integration combined B
 `b19ed2cfb0bdce93832d47a8c3a7a8da95266c14` and C
 `51376bca11d57b775aa22d42453176f8ad1f681b`. Fresh packed Local/HTTP acceptance
 passed at clean `a6675aa5945389e66aa15978c9ed0ae66cbe69a1`, as recorded in
 [public acceptance](2026-10-03-property-graph-public-acceptance.md).
-This is not formal dependency adoption or completion of the full migration.
+That result does not establish all Graph consumers or completion of the migration.
 Earlier checkpoints below retain their original source and package identities.
 
 ## Implemented versus execution evidence
@@ -19,7 +24,9 @@ Earlier checkpoints below retain their original source and package identities.
 | Pure PROPERTY GRAPH | Bounded parsing and ordinary Program construction connected to C's unified owner | Fifteen keyed source cases passed packed Local/HTTP with exact rows and descriptions; common JSON snapshot controls and authored-source snapshot/TRAIL tests passed separately; source-specific exact snapshot CID assertion remains unexecuted |
 | Named SGA calls | Nineteen adopted names and argument roles parsed by the shared query parser; DATA aliases and normalize-before-MATCH lower to retained producers | Adapted common Carrier/schema contracts for remaining calls; all promised examples through Named Results |
 | Public Graph source | DATA constructor lowers to the unified ordinary Program; standalone retired Graph aliases remain refused | Packed Local/HTTP passed 18 successes, 3 execution failures and 12 input refusals per transport; required final CI and native CLI acceptance remain pending |
-| Source INFER KEEP/AS | Frontend lowering and independent fixture work remain separate from common execution | Formal owner fix and smallest source-input Local/HTTP execution first, followed by NULL, keys and replay |
+| Source INFER KEEP/AS | Selected source-free execution is in main through #261; common owner is reused | Seven positives/four typed refusals per Local/HTTPS transport passed at `1ba6c06670f991594a8404d7f61a28ab5bdb5789`, including NULL, complete descriptions/streams and fresh-process capture replay with zero Model redispatch; acquired-source text and wider compositions remain separate |
+| INNER/LEFT/CROSS JOIN chains | #266 lowers ordinary SQL/Pipe, DATA and CTE chains to existing JOIN operations | Nine positives/four refusals remain the packed Local/HTTP target. Submitted `d4ba0a96ed94d3ba78e8ae126cf1577b5d283c86` CI failed on an imported-main history declaration before product jobs; updated source execution is unverified |
+| NEAREST KEEP/AS | Independent source/Program/row/type fixtures and public consumer are prepared; explicit-profile common checker/Plan diagnostic succeeded using historical packages | Standard installed Host capability/source connection is coordinated with D, not waiting for a C artifact; public Local/HTTP execution remains unverified |
 | Other target Effect, VecA and TEA surfaces | Adopted targets and machine capability are distinct from public syntax support | Feature-specific source, checker and real execution evidence; no bulk completion claim |
 
 The public Graph refusal retains standalone installed Graph aliases; DATA pure constructors now lower to the unified ordinary Program.
@@ -40,12 +47,18 @@ explicitly historical.
 `src/source_frontend/unified_dependency_test.mbt` verifies keyed DATA lowering,
 typed refusals and Relation DATA/RESULT preparation. It does not itself observe
 Host counters, deliver a Result or roundtrip a snapshot. Separate packed evidence
-now covers the selected Graph sources; source-INFER execution remains incomplete.
+now covers the selected Graph sources. The later
+[source-INFER acceptance record](2026-10-03-source-infer-public-acceptance.md)
+closes the selected source-free KEEP/AS cases, not the full INFER corpus.
+The [JOIN chain record](2026-10-03-join-chain-frontend.md) separates ordinary
+JSON diagnostic success from updated source execution still required in #266.
+The [NEAREST connection report](2026-10-03-nearest-public-connection-boundary.md)
+identifies its installed Host boundary and prepared, unexecuted acceptance cases.
 
 C's earlier submitted candidate `8c052888503e130e3d6c5f5a5ea74037be407e3f`
 and provisional #164 `125a186ae9396fbfc7865641922e8e8a4ffc87d9` are historical,
 not current dependency inputs. The pushed unified SHA `51376bca11d57b775aa22d42453176f8ad1f681b`
-is the current development input. The user authorized connection before C's
+was the development input for that Graph checkpoint. The user authorized connection before C's
 all-CI or merge completion. Both parent SHAs, clean acceptance SHA and package
 digests are recorded in the linked acceptance report. Formal adoption still
 requires review and necessary CI. No unsubmitted worktree is a release dependency.
@@ -149,7 +162,7 @@ own successful temporary installation. This is local fixed-SHA acceptance;
 it is not a same-SHA Linux CI result, Graph/snapshot acceptance or source-INFER
 execution evidence.
 
-## Development Graph connection resumed
+## Historical development Graph connection
 
 The connection target is C #164 public HEAD
 `51376bca11d57b775aa22d42453176f8ad1f681b`, integrated with B
@@ -157,5 +170,7 @@ The connection target is C #164 public HEAD
 branch. This supersedes the historical submitted-candidate status above.
 Starting acceptance does not require C all-CI or merge success, and is not
 formal adoption or migration completion. Follow the linked unified-source
-record and public acceptance report for executed tests and remaining coverage. Source-INFER
-remains assigned to its common owner; no frontend executor is introduced.
+record and public acceptance report for executed tests and remaining coverage.
+The later source-free INFER acceptance reuses the common owner already in main;
+no frontend executor is introduced. JSON composition in #246 does not establish
+equivalent authored-text composition or all Graph/VecA/TEA surfaces.
