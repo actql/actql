@@ -419,6 +419,13 @@ fn derive_row_counts(
             }
           }),
         )
+      GraphDegree(_) => graph_input.bind(g => g.nodes)
+      GraphBounds(_) =>
+        if graph_input.bind(g => g.nodes) is Some({ upper: 0L, .. }) {
+          Some(count(0L, true))
+        } else {
+          None
+        }
       Event(v) =>
         match @event.options(v) {
           ToEvents | Session(_) | Watermark(_, Mark) => input

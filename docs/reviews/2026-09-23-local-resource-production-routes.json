@@ -6739,13 +6739,216 @@
       "inventory": "families",
       "family": "SGA",
       "operation": "graph_bounds",
-      "profile": "sga_graph"
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_graph_bounds("
+      },
+      "additional_dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_graph_bounds_view("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/graph_diagnostics.mbt",
+        "symbol": "start_graph_bounds"
+      },
+      "selected_entrypoint": {
+        "path": "src/local_sga/graph_diagnostics.mbt",
+        "symbol": "start_graph_bounds_view"
+      },
+      "boundary_tests": [
+        {
+          "role": "graph_bounds_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+          "fixture": "Graph bounds yields during typed identity ordering and rejects partial output"
+        },
+        {
+          "role": "graph_bounds_stored_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+          "fixture": "Graph bounds yields during typed identity ordering and rejects partial output"
+        },
+        {
+          "role": "graph_bounds_long_text_compare_cancel_cleanup",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+          "fixture": "Graph bounds yields during typed identity ordering and rejects partial output"
+        },
+        {
+          "role": "graph_bounds_view_work_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+          "fixture": "Graph bounds yields during typed identity ordering and rejects partial output"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "graph_bounds_fused_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "current-graph-bounds-fused-in-flight"
+        },
+        {
+          "role": "graph_bounds_selected_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "current-graph-bounds-in-flight"
+        },
+        {
+          "role": "graph_bounds_retained_named_results",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "retained-graph-bounds"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "graph_bounds_work_exact_one_short",
+          "one_short_limit": "graph_bounds_work_exact_one_short",
+          "in_flight_cancel": "graph_bounds_fused_host_in_flight_cancel",
+          "cleanup": "graph_bounds_long_text_compare_cancel_cleanup"
+        },
+        "selected_entrypoint": {
+          "exact_limit": "graph_bounds_view_work_workspace_exact_one_short",
+          "one_short_limit": "graph_bounds_view_work_workspace_exact_one_short",
+          "in_flight_cancel": "graph_bounds_selected_host_in_flight_cancel",
+          "cleanup": "graph_bounds_view_work_workspace_exact_one_short"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "graph_bounds_work_exact_one_short",
+            "one_short_limit": "graph_bounds_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "graph_bounds_stored_workspace_exact_one_short",
+            "one_short_limit": "graph_bounds_stored_workspace_exact_one_short"
+          }
+        },
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "graph_bounds_view_work_workspace_exact_one_short",
+            "one_short_limit": "graph_bounds_view_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "graph_bounds_view_work_workspace_exact_one_short",
+            "one_short_limit": "graph_bounds_view_work_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "families",
       "family": "SGA",
       "operation": "degree",
-      "profile": "sga_graph"
+      "profile": "sga_graph",
+      "dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_graph_degree("
+      },
+      "additional_dispatch": {
+        "path": "src/local_sga_provider/graph_pipeline.mbt",
+        "marker": "@sga.start_graph_degree_view("
+      },
+      "entrypoint": {
+        "path": "src/local_sga/graph_diagnostics.mbt",
+        "symbol": "start_graph_degree"
+      },
+      "selected_entrypoint": {
+        "path": "src/local_sga/graph_diagnostics.mbt",
+        "symbol": "start_graph_degree_view"
+      },
+      "boundary_tests": [
+        {
+          "role": "degree_control_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+          "fixture": "Graph bounds yields during typed identity ordering and rejects partial output"
+        },
+        {
+          "role": "degree_stored_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+          "fixture": "Graph bounds yields during typed identity ordering and rejects partial output"
+        },
+        {
+          "role": "degree_view_work_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+          "fixture": "Graph bounds yields during typed identity ordering and rejects partial output"
+        }
+      ],
+      "environment_tests": [
+        {
+          "role": "degree_fused_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "current-degree-fused-in-flight"
+        },
+        {
+          "role": "degree_selected_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "current-degree-selected-in-flight"
+        },
+        {
+          "role": "degree_retained_named_results",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "retained-degree-metrics"
+        }
+      ],
+      "path_assurance": {
+        "entrypoint": {
+          "exact_limit": "degree_control_work_exact_one_short",
+          "one_short_limit": "degree_control_work_exact_one_short",
+          "in_flight_cancel": "degree_fused_host_in_flight_cancel",
+          "cleanup": "degree_stored_workspace_exact_one_short"
+        },
+        "selected_entrypoint": {
+          "exact_limit": "degree_view_work_workspace_exact_one_short",
+          "one_short_limit": "degree_view_work_workspace_exact_one_short",
+          "in_flight_cancel": "degree_selected_host_in_flight_cancel",
+          "cleanup": "degree_view_work_workspace_exact_one_short"
+        }
+      },
+      "resource_assurance": {
+        "entrypoint": {
+          "work": {
+            "exact_limit": "degree_control_work_exact_one_short",
+            "one_short_limit": "degree_control_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "degree_stored_workspace_exact_one_short",
+            "one_short_limit": "degree_stored_workspace_exact_one_short"
+          }
+        },
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "degree_view_work_workspace_exact_one_short",
+            "one_short_limit": "degree_view_work_workspace_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "degree_view_work_workspace_exact_one_short",
+            "one_short_limit": "degree_view_work_workspace_exact_one_short"
+          }
+        }
+      }
     },
     {
       "inventory": "families",

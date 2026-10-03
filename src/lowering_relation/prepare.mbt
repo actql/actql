@@ -62,6 +62,8 @@ pub enum Payload {
   SetRows(@set.CheckedSet)
   NestRows(@nest.CheckedNest)
   GraphMatchRows(@graph.CheckedMatch)
+  GraphBoundsRows(@graph.CheckedGraphBounds)
+  GraphDegreeRows(@graph.CheckedDegree)
   GraphTraverseRows(@graph.CheckedTraverse)
   PropertyGraphConstructionValue(@graph.CheckedPropertyConstruction)
   VectorValue(@vector.CheckedVector)
@@ -214,6 +216,8 @@ pub fn operation(value : PreparedNode) -> String {
         @graph.Nodes => "SGA.match_nodes"
         @graph.Edges => "SGA.match_edges"
       }
+    GraphBoundsRows(_) => "SGA.bounds_check"
+    GraphDegreeRows(_) => "SGA.degree_metrics"
     GraphTraverseRows(_) => "SGA.traverse"
     PropertyGraphConstructionValue(_) => "BRIDGE.rows.to_property_graph"
     VectorValue(value) =>
@@ -287,6 +291,8 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     Calendar(_) => None
     Projection(value) => Some(CarrierProjection(value))
     GraphMatch(value) => Some(GraphMatchRows(value))
+    GraphBounds(value) => Some(GraphBoundsRows(value))
+    GraphDegree(value) => Some(GraphDegreeRows(value))
     Traverse(checked~, ..) => Some(GraphTraverseRows(checked))
     Pool(value) => Some(PoolValue(value))
     Nearest(checked~, ..) => Some(NearestValue(checked))
@@ -412,6 +418,8 @@ pub fn prepare(
           },
           1,
         )
+      GraphBoundsRows(_) => ("graph_bounds", 1)
+      GraphDegreeRows(_) => ("degree", 1)
       GraphTraverseRows(checked) =>
         (
           "traverse",
@@ -618,6 +626,7 @@ pub fn prepare(
       CrossJoinRows(_) => None
       NestRows(_) => None
       GraphMatchRows(_) => None
+      GraphBoundsRows(_) | GraphDegreeRows(_) => None
       GraphTraverseRows(_) => None
       PropertyGraphConstructionValue(_) => None
       VectorValue(_) => None
