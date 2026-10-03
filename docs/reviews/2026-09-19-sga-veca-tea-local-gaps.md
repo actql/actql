@@ -2700,14 +2700,14 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | Coverage state | Count |
 |---|---:|
 | `contract` | 40/40 |
-| `checker` | 19/40 |
-| `lowering` | 19/40 |
-| `kernel` | 19/40 |
-| `managed` | 19/40 |
-| `standard_host` | 19/40 |
-| `consumer_lifetime` | 19/40 |
-| `resources` | 23/40 |
-| `cancellation` | 23/40 |
+| `checker` | 20/40 |
+| `lowering` | 20/40 |
+| `kernel` | 20/40 |
+| `managed` | 20/40 |
+| `standard_host` | 20/40 |
+| `consumer_lifetime` | 20/40 |
+| `resources` | 24/40 |
+| `cancellation` | 24/40 |
 | `publication` | 19/40 |
 | `three_targets` | 19/40 |
 | complete operations | 19/40 |
