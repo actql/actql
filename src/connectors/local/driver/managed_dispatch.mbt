@@ -1,4 +1,19 @@
 ///|
+// A synchronous callback can reenter cancellation. Its stack roots still
+// belong to this execution until the callback returns.
+fn[A] with_managed_scratch_use(
+  uses : Ref[Int],
+  release : () -> Unit,
+  action : () -> A,
+) -> A {
+  uses.val += 1
+  let result = action()
+  uses.val -= 1
+  release()
+  result
+}
+
+///|
 /// Pure prepared Local managed task. Physical representation access starts
 /// only after common selection, reservation and task registration.
 struct LocalManagedDispatchConfiguration[T] {
@@ -619,8 +634,9 @@ pub fn[T] start_local_managed_dispatch(
   let live = Ref(true)
   let settled = Ref(false)
   let disposed = Ref(false)
-  let bridges : Array[@execution.ManagedProducerBridge[T]] = []
-  let retained_imports : Array[@execution.CompletedOutputImport] = []
+  let scratch_uses = Ref(0)
+  let bridges : Array[Ref[@execution.ManagedProducerBridge[T]?]] = []
+  let retained_imports : Array[Ref[@execution.CompletedOutputImport?]] = []
   let reads : Array[@execution.ProducerRead?] = []
   let ordinary : Ref[@execution.CompletedOutput?] = Ref(None)
   let retained : Ref[@execution.ManagedRetainedOutput[T]?] = Ref(None)
@@ -735,6 +751,54 @@ pub fn[T] start_local_managed_dispatch(
       @execution.cancel_completed_result_relation_export(preparation) |> ignore
     }
   }
+  let release_output_aliases = fn() {
+    ordinary.val = None
+    finalization_payload.val = None
+    finalization_available.val = None
+    finalization_receipt.val = None
+    finalization_material.val = None
+    finalization_completed.val = None
+  }
+  // These are the driver's charged scratch roots. Returned transfer handles
+  // capture optional owners, so even a finished importer can be detached.
+  // Do not clear shared result storage: successful material owns its receipt.
+  let release_owned_scratch = fn() {
+    if !(disposed.val ||
+      (settled.val && (finalization_ready.val || carrier.val is Some(_)))) ||
+      scratch_uses.val != 0 ||
+      provider_execution.val is Some(_) {
+      return
+    }
+    for handle in bridges {
+      handle.val = None
+    }
+    for handle in retained_imports {
+      handle.val = None
+    }
+    for index in 0..<reads.length() {
+      reads[index] = None
+    }
+    // The checked-value copy is scratch. Its immutable receipt/index was
+    // transferred to material; disposing this buffer does not revoke it.
+    if finalization_values.val is Some(values) {
+      @execution.dispose_managed_output_values_scratch(values)
+    }
+    finalization_values.val = None
+    finalization_retention.val = None
+    finalization_stream.val = None
+    finalization_result_preparation.val = None
+    // Execution disposal may precede the published output's final reader.
+    // Only unpublished output can be dropped here; the existing released
+    // notification retires published aliases after retention is confirmed.
+    if disposed.val && retained.val is None {
+      release_output_aliases()
+    }
+    for index in 0..<finalization_cids.length() {
+      finalization_cids[index] = None
+    }
+    finalization_issuers.clear()
+    finalization_issuers.shrink_to_fit()
+  }
   let bound = match
     @connector.bind_prepared_managed_execution(
       setup.choice,
@@ -763,7 +827,7 @@ pub fn[T] start_local_managed_dispatch(
                 Err(_) =>
                   return Err(@strategy.RunIssue::Compute(InputUnavailable))
               }
-              bridges.push(bridge)
+              bridges.push(Ref(Some(bridge)))
               reads.push(None)
             }
             SuppliedRelationInput(_) => reads.push(None)
@@ -778,37 +842,76 @@ pub fn[T] start_local_managed_dispatch(
             if provider_execution.val is Some(active) {
               @local.cancel_managed_provider(active) |> ignore
             }
-            for bridge in bridges {
-              @execution.close_managed_producer_bridge(bridge)
+            for handle in bridges {
+              if handle.val is Some(bridge) {
+                @execution.close_managed_producer_bridge(bridge)
+              }
             }
-            for importer in retained_imports {
-              @execution.cancel_completed_output_import(importer) |> ignore
+            for handle in retained_imports {
+              if handle.val is Some(importer) {
+                @execution.cancel_completed_output_import(importer) |> ignore
+              }
             }
           },
           dispose: fn() {
-            disposed.val = true
             live.val = false
             cancel_finalization()
             if provider_execution.val is Some(active) {
               @local.cancel_managed_provider(active) |> ignore
             }
-            for bridge in bridges {
-              @execution.close_managed_producer_bridge(bridge)
+            for handle in bridges {
+              if handle.val is Some(bridge) {
+                @execution.close_managed_producer_bridge(bridge)
+              }
             }
-            for importer in retained_imports {
-              @execution.cancel_completed_output_import(importer) |> ignore
+            for handle in retained_imports {
+              if handle.val is Some(importer) {
+                @execution.cancel_completed_output_import(importer) |> ignore
+              }
             }
+            disposed.val = true
+            release_owned_scratch()
           },
           settled: fn() {
             settled.val = true
-            // Finalization has detached the pending output. Poll only the
-            // stopped provider workspace once; pending/error keeps its owner.
+            // Preserve the existing one stopped-provider cleanup attempt.
+            // Pending/error keeps both its owner and all scratch responsibility.
             if live.val && (ordinary.val is Some(_) || carrier.val is Some(_)) {
               release_provider_scratch() |> ignore
             }
+            release_owned_scratch()
           },
-          // Observe the installed provider; cleanup_refresh drives pending retries.
-          scratch_released: fn() { provider_execution.val is None },
+          // Observation only: cleanup never runs from this witness.
+          scratch_released: fn() {
+            (
+              disposed.val ||
+              (settled.val && finalization_ready.val) ||
+              (settled.val && carrier.val is Some(_))
+            ) &&
+            scratch_uses.val == 0 &&
+            provider_execution.val is None &&
+            bridges.all(handle => handle.val is None) &&
+            retained_imports.all(handle => handle.val is None) &&
+            reads.all(read => read is None) &&
+            (
+              !disposed.val ||
+              retained.val is Some(_) ||
+              (
+                ordinary.val is None &&
+                finalization_payload.val is None &&
+                finalization_available.val is None &&
+                finalization_receipt.val is None &&
+                finalization_material.val is None &&
+                finalization_completed.val is None
+              )
+            ) &&
+            finalization_values.val is None &&
+            finalization_retention.val is None &&
+            finalization_stream.val is None &&
+            finalization_result_preparation.val is None &&
+            finalization_cids.all(cid => cid is None) &&
+            finalization_issuers.is_empty()
+          },
           retention_released: fn() {
             let relation_released = retained.val is None ||
               retained.val
@@ -831,7 +934,7 @@ pub fn[T] start_local_managed_dispatch(
             old_carriers_released &&
             snapshot_storage_released.val.map(check => check()).unwrap_or(true)
           },
-          released: fn() { () },
+          released: release_output_aliases,
           ready: fn() {
             if live.val && settled.val && !disposed.val {
               Ok(())
@@ -870,11 +973,14 @@ pub fn[T] start_local_managed_dispatch(
   let mut bridge_index = 0
   for read_index, input in relation_inputs {
     guard input is ManagedRelationInput(managed) else { continue }
-    let bridge = bridges[bridge_index]
+    let handle = bridges[bridge_index]
     bridge_index += 1
     transfers.push(LocalManagedInputTransfer::{
       input: managed,
       append: fn(row) {
+        guard handle.val is Some(bridge) && live.val else {
+          return Err(Configuration(InputUnavailable))
+        }
         let bytes = match
           managed_row_transfer_bytes(row, setup.imports.wire.max_bytes) {
           Ok(value) => value
@@ -892,6 +998,9 @@ pub fn[T] start_local_managed_dispatch(
         }
       },
       finish: fn() {
+        guard handle.val is Some(bridge) && live.val else {
+          return Err(Configuration(InputUnavailable))
+        }
         match
           @execution.finish_managed_producer_bridge(
             bridge,
@@ -916,6 +1025,7 @@ pub fn[T] start_local_managed_dispatch(
     }
     let position = read_index
     let importer : Ref[@execution.CompletedOutputImport?] = Ref(None)
+    retained_imports.push(importer)
     retained_transfers.push({
       material,
       input: read,
@@ -941,7 +1051,6 @@ pub fn[T] start_local_managed_dispatch(
           Ok(value) => value
           Err(_) => return Err(Configuration(InputUnavailable))
         }
-        retained_imports.push(prepared)
         importer.val = Some(prepared)
         Ok(())
       },
@@ -1079,8 +1188,10 @@ pub fn[T] start_local_managed_dispatch(
             }
             ordinary.val = Some(output)
             execution_finished.val = true
-            for bridge in bridges {
-              @execution.close_managed_producer_bridge(bridge)
+            for handle in bridges {
+              if handle.val is Some(bridge) {
+                @execution.close_managed_producer_bridge(bridge)
+              }
             }
             Ok({ complete: true, progress, work, })
           }
@@ -1093,8 +1204,10 @@ pub fn[T] start_local_managed_dispatch(
             }
             carrier.val = Some(material)
             execution_finished.val = true
-            for bridge in bridges {
-              @execution.close_managed_producer_bridge(bridge)
+            for handle in bridges {
+              if handle.val is Some(bridge) {
+                @execution.close_managed_producer_bridge(bridge)
+              }
             }
             Ok({ complete: true, progress, work, })
           }
@@ -1136,7 +1249,7 @@ pub fn[T] start_local_managed_dispatch(
     }
     result
   }
-  Ok({
+  let operations : LocalManagedDispatchOperations[T] = {
     inputs: transfers,
     retained_inputs: retained_transfers,
     execute: fn() {
@@ -1960,9 +2073,13 @@ pub fn[T] start_local_managed_dispatch(
       @strategy.close_task_execution(setup.run, execution)
     },
     cleanup_refresh: fn() {
+      if scratch_uses.val != 0 {
+        return false
+      }
       if !release_provider_scratch() {
         return false
       }
+      release_owned_scratch()
       let carrier_reclaimed = match carrier.val {
         None => true
         Some(material) =>
@@ -1988,6 +2105,68 @@ pub fn[T] start_local_managed_dispatch(
       @strategy.refresh_task_execution_cleanup(setup.run, execution).unwrap_or(
         false,
       )
+    },
+  }
+  Ok({
+    ..operations,
+    inputs: operations.inputs.map(transfer => {
+      ..transfer,
+      append: row => {
+        with_managed_scratch_use(scratch_uses, release_owned_scratch, () => {
+          (transfer.append)(row)
+        })
+      },
+      finish: () => {
+        with_managed_scratch_use(
+          scratch_uses,
+          release_owned_scratch,
+          transfer.finish,
+        )
+      },
+    }),
+    execute: () => {
+      with_managed_scratch_use(
+        scratch_uses,
+        release_owned_scratch,
+        operations.execute,
+      )
+    },
+    retained_inputs: operations.retained_inputs.map(transfer => {
+      ..transfer,
+      begin: () => {
+        with_managed_scratch_use(
+          scratch_uses,
+          release_owned_scratch,
+          transfer.begin,
+        )
+      },
+      append: row => {
+        with_managed_scratch_use(scratch_uses, release_owned_scratch, () => {
+          (transfer.append)(row)
+        })
+      },
+      finish: () => {
+        with_managed_scratch_use(
+          scratch_uses,
+          release_owned_scratch,
+          transfer.finish,
+        )
+      },
+    }),
+    advance: quantum => {
+      with_managed_scratch_use(scratch_uses, release_owned_scratch, () => {
+        (operations.advance)(quantum)
+      })
+    },
+    prepare_finalization: (payload, bytes, available) => {
+      with_managed_scratch_use(scratch_uses, release_owned_scratch, () => {
+        (operations.prepare_finalization)(payload, bytes, available)
+      })
+    },
+    advance_finalization: quantum => {
+      with_managed_scratch_use(scratch_uses, release_owned_scratch, () => {
+        (operations.advance_finalization)(quantum)
+      })
     },
   })
 }

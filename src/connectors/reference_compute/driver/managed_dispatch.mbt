@@ -1,4 +1,19 @@
 ///|
+// A synchronous callback can reenter cancellation. Its stack roots still
+// belong to this execution until the callback returns.
+fn[A] with_managed_scratch_use(
+  uses : Ref[Int],
+  release : () -> Unit,
+  action : () -> A,
+) -> A {
+  uses.val += 1
+  let result = action()
+  uses.val -= 1
+  release()
+  result
+}
+
+///|
 /// Pure prepared reference managed task. Candidate support and cost comparison
 /// perform no representation read, pin, task reservation or identity work.
 struct NumericManagedDispatchConfiguration[T] {
@@ -266,11 +281,30 @@ pub fn[T] start_numeric_managed_dispatch(
   setup : NumericManagedDispatchConfiguration[T],
 ) -> Result[NumericManagedDispatchOperations[T], @numeric.PlanIssue] {
   let live = Ref(true)
+  let output_live = Ref(true)
   let settled = Ref(false)
-  let bridges : Array[@execution.ManagedProducerBridge[T]] = []
+  let disposed = Ref(false)
+  let scratch_uses = Ref(0)
+  let bridges : Array[Ref[@execution.ManagedProducerBridge[T]?]] = []
   let reads : Array[@execution.ProducerRead?] = []
   let ordinary : Ref[@execution.CompletedOutput?] = Ref(None)
   let retained : Ref[@execution.ManagedRetainedOutput[T]?] = Ref(None)
+  let release_owned_scratch = fn() {
+    if !(disposed.val || settled.val) || scratch_uses.val != 0 {
+      return
+    }
+    for handle in bridges {
+      handle.val = None
+    }
+    for index in 0..<reads.length() {
+      reads[index] = None
+    }
+    // Numeric output and its managed checked copy are covered by the existing
+    // retained bound; only the imported invocation workspace is scratch.
+    if disposed.val && retained.val is None {
+      ordinary.val = None
+    }
+  }
   let request = @connector.managed_fixed_compute_candidate_request(
     @connector.prepared_managed_compute_candidate(setup.prepared),
   )
@@ -297,7 +331,7 @@ pub fn[T] start_numeric_managed_dispatch(
                 @strategy.RunIssue::Compute(@connector.InputUnavailable),
               )
           }
-          bridges.push(bridge)
+          bridges.push(Ref(Some(bridge)))
           reads.push(None)
         }
         let operations : @connector.ManagedExecutionOperations[
@@ -305,20 +339,40 @@ pub fn[T] start_numeric_managed_dispatch(
         ] = {
           cancel: fn() {
             live.val = false
-            for bridge in bridges {
-              @execution.close_managed_producer_bridge(bridge)
+            if retained.val is None {
+              output_live.val = false
+            }
+            for handle in bridges {
+              if handle.val is Some(bridge) {
+                @execution.close_managed_producer_bridge(bridge)
+              }
             }
           },
           dispose: fn() {
             live.val = false
-            for bridge in bridges {
-              @execution.close_managed_producer_bridge(bridge)
+            if retained.val is None {
+              output_live.val = false
             }
+            for handle in bridges {
+              if handle.val is Some(bridge) {
+                @execution.close_managed_producer_bridge(bridge)
+              }
+            }
+            disposed.val = true
+            release_owned_scratch()
           },
-          settled: fn() { settled.val = true },
-          // Synchronous evaluator workspace has stopped at settlement;
-          // retained output belongs to its independent holding.
-          scratch_released: fn() { settled.val || !live.val },
+          settled: fn() {
+            settled.val = true
+            release_owned_scratch()
+          },
+          // Observe actual roots after the synchronous input-use frame returns.
+          scratch_released: fn() {
+            (disposed.val || settled.val) &&
+            scratch_uses.val == 0 &&
+            bridges.all(handle => handle.val is None) &&
+            reads.all(read => read is None) &&
+            (!disposed.val || retained.val is Some(_) || ordinary.val is None)
+          },
           retention_released: fn() {
             retained.val is None ||
             retained.val
@@ -327,7 +381,12 @@ pub fn[T] start_numeric_managed_dispatch(
             })
             .unwrap()
           },
-          released: fn() { () },
+          // The accepted output can outlive execution disposal. Its existing
+          // retention observation must confirm release before dropping rows.
+          released: fn() {
+            output_live.val = false
+            ordinary.val = None
+          },
           ready: fn() {
             if live.val && settled.val {
               Ok(())
@@ -377,10 +436,13 @@ pub fn[T] start_numeric_managed_dispatch(
   let row_limits = managed_numeric_row_limits(setup.limits)
   let wire_limits = managed_numeric_wire_limits(setup.limits)
   let transfers = Array::makei(bridges.length(), index => {
-    let bridge = bridges[index]
+    let handle = bridges[index]
     NumericManagedInputTransfer::{
       input: managed_inputs[index],
       append: fn(row) {
+        guard handle.val is Some(bridge) && live.val else {
+          return Err(@numeric.Unsupported)
+        }
         match
           @strategy.charge_task_execution_transfer(
             setup.run,
@@ -395,6 +457,9 @@ pub fn[T] start_numeric_managed_dispatch(
         }
       },
       finish: fn() {
+        guard handle.val is Some(bridge) && live.val else {
+          return Err(@numeric.Unsupported)
+        }
         @execution.finish_managed_producer_bridge(
           bridge,
           setup.limits.max_entries,
@@ -409,7 +474,7 @@ pub fn[T] start_numeric_managed_dispatch(
   let output_target = @lower.preparation_output_target(
     @lower.bound_preparation(owner),
   )
-  Ok({
+  let operations : NumericManagedDispatchOperations[T] = {
     inputs: transfers,
     execute: fn() {
       guard live.val && reads.length() == 1 && reads[0] is Some(input) else {
@@ -422,14 +487,16 @@ pub fn[T] start_numeric_managed_dispatch(
           input,
           setup.generated,
           setup.limits,
-          () => live.val,
+          () => output_live.val,
         ) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
       ordinary.val = Some(output)
-      for bridge in bridges {
-        @execution.close_managed_producer_bridge(bridge)
+      for handle in bridges {
+        if handle.val is Some(bridge) {
+          @execution.close_managed_producer_bridge(bridge)
+        }
       }
       Ok(())
     },
@@ -627,8 +694,34 @@ pub fn[T] start_numeric_managed_dispatch(
     storage_bytes: setup.capacity.retained_bytes,
     close: fn() { @strategy.close_task_execution(setup.run, execution) },
     cleanup_refresh: fn() {
+      release_owned_scratch()
       @strategy.refresh_task_execution_cleanup(setup.run, execution).unwrap_or(
         false,
+      )
+    },
+  }
+  Ok({
+    ..operations,
+    inputs: operations.inputs.map(transfer => {
+      ..transfer,
+      append: row => {
+        with_managed_scratch_use(scratch_uses, release_owned_scratch, () => {
+          (transfer.append)(row)
+        })
+      },
+      finish: () => {
+        with_managed_scratch_use(
+          scratch_uses,
+          release_owned_scratch,
+          transfer.finish,
+        )
+      },
+    }),
+    execute: () => {
+      with_managed_scratch_use(
+        scratch_uses,
+        release_owned_scratch,
+        operations.execute,
       )
     },
   })
