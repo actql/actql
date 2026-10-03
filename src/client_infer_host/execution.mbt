@@ -399,6 +399,8 @@ fn start_owned(
       limits.input,
       limits.measurement,
       limits.mapping,
+      fragment_body~,
+      ordered_body~,
     )
   }
   let input = match started_input {

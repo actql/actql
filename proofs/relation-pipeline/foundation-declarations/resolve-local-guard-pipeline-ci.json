@@ -1,0 +1,64 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-local-guard-pipeline-ci",
+  "kind": "resolution",
+  "revision": "89d2f4ae0d16cb87da79ea8e0e81b0154492a8b7",
+  "parents": [
+    "f2477c83e55dbbcf4779d1fd77ce4533acf0eca7",
+    "b7a74fe387683bfd92c409126e774a7a4418d37b"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "f2477c83e55dbbcf4779d1fd77ce4533acf0eca7",
+          "digest": "2d2bc636e6b0e5e890fbb716074b737786c65e461ed9918b7d4b51cd1da80f3d",
+          "mode": "100644"
+        },
+        {
+          "revision": "b7a74fe387683bfd92c409126e774a7a4418d37b",
+          "digest": "378594ad66e917058065462a18c13bd3d4f4933b63771bd5142f6012d90f2c54",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "7535581d92b1b266b91cd76fd4703f16d2d2817d9430bf8ac96e32948ebb532d",
+      "afterMode": "100644",
+      "reason": "Preserve main's independently sealed pipeline mutation/capacity producers and required exact-artifact audit join, together with the local guard fixtures in the existing Linux lint and macOS jobs. All main jobs, needs, conditions, permissions, budgets and commands remain byte-equivalent after removing only the two additive guard steps; inherited source and resolution declarations remain unchanged."
+    },
+    {
+      "path": "scripts/local-checks.mjs",
+      "before": [
+        {
+          "revision": "f2477c83e55dbbcf4779d1fd77ce4533acf0eca7",
+          "digest": "ce17ad1f0947134f9dfd9887353552fd85f35adcc57d2a6c1b63c669ae3170f8",
+          "mode": "100644"
+        },
+        {
+          "revision": "b7a74fe387683bfd92c409126e774a7a4418d37b",
+          "digest": "2d62841fbb560af82c7c4308ec183b84bdca15e5499715a6df925969859ea732",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "38a760e2666261c88634817726d7874545f7f051a782a5ab16f39b49ff64e437",
+      "afterMode": "100644",
+      "reason": "Integrate the split pipeline's hosted provenance boundary into local job routing. Explicitly refuse pipeline-mutations, pipeline-capacity and pipeline-evidence execution before creating locks or evidence even with --allow-heavy or supplied GitHub metadata. Keep list/changed/literal dry-run read-only without fabricated CI context, preserve other local jobs and focused routes, and retain the existing owned-process guard, output flushing and cancellation semantics. Raw campaigns are not converted into an alternate hosted acceptance route."
+    }
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-343a5565c1ac",
+    "adopt-985dbbba2789",
+    "adopt-dafff1a1aeea",
+    "bounded-local-execution-guard",
+    "client-ci-runner-context",
+    "client-ci-split",
+    "issue-180-foundation-composition",
+    "packed-acquired-infer-acceptance",
+    "parallel-pipeline-evidence",
+    "resolve-acquired-infer-client-ci",
+    "resolve-local-guard-acquired-infer-ci",
+    "resolve-main-model-backing",
+    "resolve-parallel-pipeline-main-infer"
+  ]
+}

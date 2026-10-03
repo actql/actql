@@ -20,12 +20,13 @@ function fixture(t) {
   for (const path of [join(checkout, 'scripts'),
     join(checkout, '.github/workflows'), parent, bin]) mkdirSync(path, {recursive: true});
   for (const name of ['test-native-core.mjs', 'owned-scratch.mjs',
-    'local-checks.mjs', 'test-execution.mjs', 'packed-query-evidence.mjs']) {
+    'local-checks.mjs', 'local-checks-guard.mjs', 'local-checks-supervisor.mjs',
+    'local-checks-policy.mjs', 'test-execution.mjs', 'packed-query-evidence.mjs']) {
     copyFileSync(new URL(name, import.meta.url), join(checkout, 'scripts', name));
   }
   symlinkSync(new URL('../node_modules', import.meta.url), join(checkout, 'node_modules'), 'dir');
   writeFileSync(join(checkout, '.github/workflows/ci.yml'),
-    JSON.stringify({jobs: {core: {steps: [coreStep]}}}));
+    JSON.stringify({jobs: {core: {'timeout-minutes': 30, steps: [coreStep]}}}));
   const originals = ['trusted-clock.sqlite', 'trusted-clock.sqlite-wal',
     'trusted-clock.sqlite-shm'];
   for (const name of originals) writeFileSync(join(parent, name), `external ${name}`);
@@ -50,7 +51,7 @@ setTimeout(() => console.log('child stopped'), 100);
 `);
   chmodSync(moon, 0o755);
   const env = {...process.env, PATH: `${bin}:${process.env.PATH}`,
-    RUNNER_TEMP: join(root, 'runner'), ACTQL_TEST_NATIVE_SQLITE_ROOT: parent,
+    HOME: root, RUNNER_TEMP: join(root, 'runner'), ACTQL_TEST_NATIVE_SQLITE_ROOT: parent,
     ACTQL_TEST_PRESERVE_SCRATCH: ''};
   delete env.NODE_TEST_CONTEXT;
   function verifyExternal() {
@@ -63,7 +64,7 @@ setTimeout(() => console.log('child stopped'), 100);
 
 function run(f, env = {}, local = false) {
   const result = spawnSync(process.execPath, local
-    ? ['scripts/local-checks.mjs', 'run', 'core', '--target', 'native']
+    ? ['scripts/local-checks.mjs', 'run', 'core', '--target', 'native', '--allow-heavy']
     : ['scripts/test-native-core.mjs', '--deny-warn', '-p', 'platform_native/trusted_clock'],
   {cwd: f.checkout, encoding: 'utf8', env: {...f.env, ...env}});
   return {...result, path: /Native core SQLite namespace: (.*)/u.exec(result.stdout)?.[1]};

@@ -24,7 +24,7 @@ function facts(log) {
 }
 function checkFacts(target, observed) {
   assert.deepEqual(observed.map(o => o.case).sort(),
-    (target === 'native' ? ['clear', 'growth', 'map', 'native-map'] : ['clear', 'growth', 'map']).sort());
+    (target === 'native' ? ['clear', 'growth', 'map', 'native-map', 'native-array'] : ['clear', 'growth', 'map']).sort());
   assert(observed.every(o => o.target === target), 'Core fixture target differs from requested target');
   const clear = observed.find(o => o.case === 'clear');
   const growth = observed.find(o => o.case === 'growth');
@@ -37,6 +37,10 @@ function checkFacts(target, observed) {
   if (target === 'native') assert.deepEqual(observed.find(o => o.case === 'native-map'), {
     target, case: 'native-map', headerBytes: 8, pointerBytes: 8, mapBytes: 48,
     tableBytes: 72, entryBytes: 48, emptyBytes: 120, threeKeysBytes: 264, replacementBytes: 240,
+  });
+  if (target === 'native') assert.deepEqual(observed.find(o => o.case === 'native-array'), {
+    target, case: 'native-array', ownerBytes: 24, emptyBackingBytes: 8,
+    int8BackingBytes: 40, int16BackingBytes: 72, names3BackingBytes: 32,
   });
 }
 export function auditCoreProbe(report, targets, read = path => readFileSync(join(root, path))) {
@@ -54,7 +58,7 @@ export function auditCoreProbe(report, targets, read = path => readFileSync(join
     assert.deepEqual(run.sources, report.sources);
     assert.equal(run.logPath, `${directory}/${target}.log`);
     const log = read(run.logPath).toString(); assert.equal(hash(log), run.logDigest);
-    const count = target === 'native' ? 5 : 4;
+    const count = target === 'native' ? 6 : 4;
     assert(log.includes(`Total tests: ${count}, passed: ${count}, failed: 0.`), 'Incomplete core fixture');
     if (target === 'native') {
       assert(['darwin-arm64', 'linux-x64'].includes(run.nativeRuntime.platform));
@@ -112,7 +116,7 @@ export function runCoreProbe(targets) {
       assert.deepEqual(checkNativeRuntime(home, pin), nativeRuntime, 'Runtime changed during probe');
       report.runs[target].nativeRuntime = nativeRuntime;
     }
-    console.log(`${target}: ${target === 'native' ? 5 : 4} pinned-core Array/Map backing and explicit-holder checks`);
+    console.log(`${target}: ${target === 'native' ? 6 : 4} pinned-core Array/Map backing and explicit-holder checks`);
   }
   auditCoreProbe(report, targets);
   writeFileSync(join(root, directory, targets.length === 3 ? 'all.json' : `${targets[0]}.json`), JSON.stringify(report, null, 2) + '\n');

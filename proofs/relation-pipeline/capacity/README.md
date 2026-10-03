@@ -92,6 +92,16 @@ measurement or a formal proof of a runtime byte bound. The chain-specific Ref,
 closure, array growth and edge-wrapper sizing derivation is still missing.
 The fixed value is unchanged and is not renamed into a convenient logical fee.
 
+The [native parent startup diagnostic](parent-control/README.md) independently
+binds actual captures and requested object extents for one existing two-child
+registered pipeline. Its included startup lower bound is 616 bytes, already
+above the separate 512-byte parent component under the pinned native layout.
+This contradicts that standalone component premise, not the total reservation:
+child/base slack and complete parent/edge upper bounds must still be examined.
+Native-containing capacity campaigns and their final audits require its
+separate source-bound receipt; portable-only runs cannot reuse it as portable
+layout evidence. Unconditional allocation-byte claims remain rejected.
+
 The structural claim gate rejects unconditional allocation-byte claims and
 omitted runtime premises. It sits at evidence issuance/admission, not normal
 product admission. A complete byte claim will require independently supported

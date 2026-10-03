@@ -1,0 +1,341 @@
+{
+  "version": "actql-native-parent-allocation-census/0.1",
+  "scope": "existing numeric/NULL unqualified unary serial Relation pilot; source census preserves the complete original parent and uncovered-edge scope",
+  "sourceFields": [
+    {
+      "path": "src/connectors/local/managed_provider.mbt",
+      "struct": "ManagedProviderExecution",
+      "fields": [
+        {
+          "name": "advance",
+          "type": "(Int) -> Result[ManagedProviderPoll, @connector.FixedComputeIssue]"
+        },
+        {
+          "name": "cancel",
+          "type": "() -> Bool"
+        },
+        {
+          "name": "stopped",
+          "type": "() -> Bool"
+        },
+        {
+          "name": "cleanup",
+          "type": "() -> Result[Bool, @connector.FixedComputeIssue]"
+        },
+        {
+          "name": "reported_work",
+          "type": "Result[Int64, ManagedProviderWorkIssue]"
+        },
+        {
+          "name": "child_work_issue",
+          "type": "() -> ManagedProviderWorkIssue?"
+        }
+      ]
+    },
+    {
+      "path": "src/connectors/local/managed_provider.mbt",
+      "struct": "ManagedProvider",
+      "fields": [
+        {
+          "name": "accepts",
+          "type": "(@execution.GeneratedSequence) -> Bool"
+        },
+        {
+          "name": "capacity",
+          "type": "(@execution.GeneratedSequence) -> @execution.ExecutionCapacity?"
+        },
+        {
+          "name": "start",
+          "type": "( @execution.GeneratedSequence, Array[ManagedProviderInput], Int, Int, @execution.SequenceExecutionLimits, ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue]"
+        },
+        {
+          "name": "start_numeric",
+          "type": "(( @execution.GeneratedSequence, Array[ManagedProviderInput], Int, Int, @execution.SequenceExecutionLimits, @execution.NumericAggregateExecution?, ) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue])?"
+        }
+      ]
+    },
+    {
+      "path": "src/execution_relation/generated_sequence.mbt",
+      "struct": "GeneratedSequence",
+      "fields": [
+        {
+          "name": "contracts",
+          "type": "RegisteredRelationContracts"
+        },
+        {
+          "name": "sequence",
+          "type": "@lower.PreparedSequence"
+        },
+        {
+          "name": "selected_steps",
+          "type": "Array[Int]?"
+        },
+        {
+          "name": "selected_prefix_end",
+          "type": "Int?"
+        },
+        {
+          "name": "contexts",
+          "type": "Array[FragmentRuntimeContext]"
+        },
+        {
+          "name": "retained_ids",
+          "type": "Array[String]"
+        },
+        {
+          "name": "join_ceilings",
+          "type": "Array[(Int, Int64)]"
+        },
+        {
+          "name": "expansion_ceilings",
+          "type": "Array[(Int, Int64)]"
+        },
+        {
+          "name": "session_output_ceilings",
+          "type": "Array[(Int, Int64)]"
+        },
+        {
+          "name": "interval_search_ceilings",
+          "type": "Array[(Int, Int64)]"
+        },
+        {
+          "name": "asof_search_ceilings",
+          "type": "Array[(Int, Int64)]"
+        },
+        {
+          "name": "sequence_match_ceilings",
+          "type": "Array[(Int, Int64, Int64)]"
+        },
+        {
+          "name": "aggregate_outputs",
+          "type": "Array[SelectedAggregateOutput]"
+        },
+        {
+          "name": "analytic_envelopes",
+          "type": "Array[SelectedAnalyticEnvelope]"
+        },
+        {
+          "name": "nest_item_ceilings",
+          "type": "Array[(Int, Int64)]"
+        },
+        {
+          "name": "nest_grouped_byte_ceilings",
+          "type": "Array[(Int, Int64)]"
+        },
+        {
+          "name": "nest_attached_byte_ceilings",
+          "type": "Array[(Int, Int64)]"
+        },
+        {
+          "name": "numeric",
+          "type": "NumericAggregateExecution?"
+        }
+      ]
+    },
+    {
+      "path": "src/execution_relation/producer_binding.mbt",
+      "struct": "BoundProducerInput",
+      "fields": [
+        {
+          "name": "identity",
+          "type": "ProducerBindingIdentity"
+        },
+        {
+          "name": "receiver",
+          "type": "@lower.BoundPrepared"
+        },
+        {
+          "name": "consumer_step",
+          "type": "Int?"
+        },
+        {
+          "name": "input_index",
+          "type": "Int"
+        },
+        {
+          "name": "output",
+          "type": "CompletedOutput"
+        },
+        {
+          "name": "projection",
+          "type": "@lower.PreparedProjection?"
+        }
+      ]
+    },
+    {
+      "path": "src/execution_relation/producer_binding.mbt",
+      "struct": "ProducerBindingIdentity",
+      "fields": [
+        {
+          "name": "input_index",
+          "type": "Int"
+        },
+        {
+          "name": "carrier",
+          "type": "@managed_carrier.ProducerReadReference?"
+        },
+        {
+          "name": "supplied",
+          "type": "CapturedRows?"
+        }
+      ]
+    },
+    {
+      "path": "src/execution_relation/producer_read.mbt",
+      "struct": "ProducerRead",
+      "fields": [
+        {
+          "name": "bound",
+          "type": "BoundProducerInput"
+        },
+        {
+          "name": "schema",
+          "type": "@schema.Schema"
+        },
+        {
+          "name": "columns",
+          "type": "Array[Int]"
+        },
+        {
+          "name": "max_entries",
+          "type": "Int"
+        },
+        {
+          "name": "max_name_bytes",
+          "type": "Int"
+        }
+      ]
+    }
+  ],
+  "chainReferences": [
+    "children",
+    "previous",
+    "current",
+    "position",
+    "pending",
+    "used",
+    "cancelled",
+    "terminal",
+    "reclaimed",
+    "cleanup_index"
+  ],
+  "providerConstructors": [
+    "selected_relation_provider",
+    "cross_join_provider",
+    "append_provider",
+    "set_provider",
+    "nest_provider",
+    "global_count_provider",
+    "group_provider",
+    "row_window_provider",
+    "unpivot_provider",
+    "unnest_provider",
+    "values_provider"
+  ],
+  "included": [
+    {
+      "id": "retained-parent-core",
+      "objects": "ten Refs, execution record, five callbacks and start_next environment; mutable reported_work records; children array and backing",
+      "phases": [
+        "startup",
+        "advance",
+        "handoff",
+        "cancel",
+        "cleanup-pending",
+        "cleanup-complete",
+        "retained-owner-after-cleanup"
+      ],
+      "basis": "source/ABI core recipe with explicit Ref layout premise; backing slots from the input step-count contract",
+      "status": "core-only conditional upper model; all-phase implementation correspondence pending"
+    },
+    {
+      "id": "selected-step-context",
+      "objects": "fresh GeneratedSequence record, selected_steps Int array, retained_ids reference array and result/option wrappers for each selected child",
+      "phases": [
+        "startup",
+        "handoff",
+        "cleanup-pending"
+      ],
+      "basis": "selected view copies shared context references, but both newly constructed arrays and the record are separate allocations",
+      "status": "complete source census; native size/lifetime bound pending"
+    },
+    {
+      "id": "step-input-selection",
+      "objects": "new Array[ManagedProviderInput] owner/backing; each new RelationInput variant; external inputs are shared",
+      "phases": [
+        "startup",
+        "handoff",
+        "cleanup-pending"
+      ],
+      "basis": "port count and exact selected operation; one input in the approved unary pilot",
+      "status": "native size/lifetime bound pending"
+    },
+    {
+      "id": "internal-edge-binding",
+      "objects": "ProducerBindingIdentity and BoundProducerInput records, consumer-step option and result wrappers; ProducerRead record and new column index array; temporary projection/metadata lookup wrappers",
+      "phases": [
+        "handoff",
+        "cleanup-pending"
+      ],
+      "basis": "unqualified receiving schema width, array growth and exact predecessor binding; output payload stays shared",
+      "status": "native size/lifetime bound pending"
+    },
+    {
+      "id": "provider-selection",
+      "objects": "all eleven providers and their callbacks, selection array/backing, constructor-owned helper closures/default arrays, selected execution-limits record",
+      "phases": [
+        "startup",
+        "handoff"
+      ],
+      "basis": "the whole literal provider list is constructed before the first acceptance check; it is not just the returned provider",
+      "status": "constructor transitive layout/capture bounds pending"
+    },
+    {
+      "id": "poll-and-return-temporaries",
+      "objects": "parent-created ManagedProviderPoll and Result wrappers, tuple/option/error adapters and initial replacement child_work_issue callback",
+      "phases": [
+        "startup",
+        "advance",
+        "handoff",
+        "cancel",
+        "cleanup-pending"
+      ],
+      "basis": "source branch-local lifetimes and one common-driver poll at a time; child-produced values retain their separate child obligation",
+      "status": "allocation-count and simultaneous-live bounds pending"
+    },
+    {
+      "id": "retirement-and-custody",
+      "objects": "parent execution and captured Refs still reachable through LocalManagedDispatchOperations after cleanup; accepted output and its upstream holdings",
+      "phases": [
+        "cleanup-pending",
+        "cleanup-complete",
+        "retained-owner-after-cleanup"
+      ],
+      "basis": "cleanup does not destroy immutable callbacks; driver provider_execution is retained; ownership and reservation correspondence must be demonstrated",
+      "status": "reservation retirement/custody correspondence pending; no physical-GC completion claim"
+    }
+  ],
+  "sharedInputs": [
+    "caller-owned sequence/contracts/schema/numeric/measurement configuration and input payloads: references are shared; newly made views/wrappers/arrays remain included"
+  ],
+  "excluded": [
+    "malloc allocator metadata, fragmentation/arenas, collector work buffers, stacks/code/RSS; these are not requested object extents"
+  ],
+  "admission": "a core-only model never discharges the entire parent premise, child bounds or total pipeline upper bound",
+  "chainReferenceDeclarations": [
+    "let children : Ref[Array[ManagedProviderExecution]] = Ref([initial])",
+    "let previous : Ref[@execution.CompletedOutput?] = Ref(None)",
+    "let current : Ref[ManagedProviderExecution?] = Ref(Some(initial))",
+    "let position = Ref(0)",
+    "let pending = Ref(false)",
+    "let used = Ref(0L)",
+    "let cancelled = Ref(false)",
+    "let terminal = Ref(false)",
+    "let reclaimed = Ref(false)",
+    "let cleanup_index = Ref(-1)"
+  ],
+  "workIssueVariants": [
+    "InvalidReport",
+    "CounterOverflow"
+  ]
+}

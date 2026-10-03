@@ -100,7 +100,7 @@ test('existing installed Local providers execute the keyed constructor and MATCH
   }
 });
 
-for (const boundary of ['success','cleanup-failure','snapshot-cancel']) {
+for (const boundary of ['success','cleanup-failure','snapshot-cancel','factory-throw','factory-reject']) {
   test(`common driver snapshot handoff charges deltas once and retains custody: ${boundary}`, async () => {
     const ready = moon.clientProgramPreparationReady(prepare(owner));
     const aoa = read('spec/contracts/actql-aoa.json');
@@ -116,16 +116,22 @@ for (const boundary of ['success','cleanup-failure','snapshot-cancel']) {
     const controller = new AbortController();
     let graphOperations, baseline, total = 0n, saveCalls = 0, reloadCalls = 0, leases = 0;
     let source, restored, store, failedCleanup = false, afterGraphCompute = false, consumerStarted = false;
-    const configuration = installLocalSnapshotStore(async (_key, bytes, frame) => {
+    const factoryFailure = new Error('DriverSnapshotFactoryBeforeAllocation');
+    const factoryRejected = boundary === 'factory-throw' || boundary === 'factory-reject';
+    const configuration = installLocalSnapshotStore((_key, bytes, frame) => {
       leases++;
-      store = await createLocalRetainedStore({parentDirectory:directory,
-        capacityBytes:bytes,maxFrameBytes:frame,maxEntries:1});
-      return {...store, async cleanup() {
-        if (boundary === 'cleanup-failure' && !failedCleanup) {
-          failedCleanup = true; throw new Error('InjectedDriverSnapshotCleanup');
-        }
-        return store.cleanup();
-      }};
+      if (boundary === 'factory-throw') throw factoryFailure;
+      if (boundary === 'factory-reject') return Promise.reject(factoryFailure);
+      return createLocalRetainedStore({parentDirectory:directory,
+        capacityBytes:bytes,maxFrameBytes:frame,maxEntries:1}).then(acquired => {
+        store = acquired;
+        return {...store, async cleanup() {
+          if (boundary === 'cleanup-failure' && !failedCleanup) {
+            failedCleanup = true; throw new Error('InjectedDriverSnapshotCleanup');
+          }
+          return store.cleanup();
+        }};
+      });
     });
     const observed = new Proxy(moon,{get(target,name,receiver) {
       if (name !== 'strategyModule_local_ManagedStart') return Reflect.get(target,name,receiver);
@@ -173,7 +179,16 @@ for (const boundary of ['success','cleanup-failure','snapshot-cancel']) {
     }});
     const execution = await runInstalledStrategy(setup,runtimeCore(moon),
       [localStrategyContribution(observed,setup,checked,configuration)],controller.signal);
-    assert.equal(leases,1); assert(saveCalls > 0); assert(total > 0n);
+    assert.equal(leases,1);
+    if (factoryRejected) {
+      // The common settlement returns the original reason unchanged when no
+      // cleanup obligation remains; only pending cleanup needs a wrapper.
+      assert.equal(execution.failure,factoryFailure);
+      assert.equal(store,undefined);
+      assert.equal(saveCalls,0); assert.equal(reloadCalls,0); assert.equal(total,0n);
+    } else {
+      assert(saveCalls > 0); assert(total > 0n);
+    }
     assert.equal(afterGraphCompute,false);
     assert.equal(execution.status,boundary === 'success' ? 'host-tasks-completed' : 'host-tasks-failed');
     assert.equal(consumerStarted,boundary === 'success');
@@ -184,7 +199,7 @@ for (const boundary of ['success','cleanup-failure','snapshot-cancel']) {
     await execution.cleanup(); await execution.cleanup();
     assert.equal(execution.cleanupPending(),false);
     assert.equal(checked(graphOperations.cumulative_provider_work()),baseline + total);
-    assert.equal(store.status().reservedBytes,0);
+    if (store !== undefined) assert.equal(store.status().reservedBytes,0);
     assert.deepEqual(await readdir(directory),[]);
   });
 }

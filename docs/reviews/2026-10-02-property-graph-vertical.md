@@ -2,6 +2,66 @@
 
 ## Current authority and completion boundary
 
+### Snapshot factory acquisition repair (2026-10-03)
+
+Published source `51376bca11d57b775aa22d42453176f8ad1f681b` passes full
+local lint, spec (strict resource regression **176/176**), Core JS
+**7,297/7,297**, actual foundation-history validation, and fresh packed public
+Local/HTTPS snapshot acceptance **2/2, no skips**. Its PR CI is run
+`37090486752`; the actual checkout is merge
+`70db75db5ad2072356907e97aed9523b2fd44952`, including main's CI/evidence
+parallelization changes. That run is distinct from repair-source acceptance.
+
+Review nevertheless reproduces a snapshot transport failure missed by the
+five existing transport cases: cleanup responsibility begins before the
+factory transfers a Store lease. A synchronous factory throw or Promise
+rejection before acquisition leaves no Store but permanently reports cleanup
+pending. Both added transport regressions fail on the published source;
+the three acquired-lease reserve/start/save failure controls and the five
+existing tests pass (**8 passed, 2 failed**). Log:
+`/private/tmp/property-graph-factory-before-51376bca1-20261003.log`.
+
+The repair begins that responsibility immediately after successful lease
+acquisition, before reserve/start/save or cancellation checks. A rejected
+factory preserves the exact primary error and has no fabricated cleanup
+obligation. Acquired leases still retain their existing owner through cleanup
+failure and retry; neither save, Source revocation, reload nor completion is
+repeated to recover. The same installed common-driver tests additionally
+exercise both factory failure modes through ordinary failure settlement.
+Transport, retained-output and common-driver regressions pass **40/40**, with
+no skips: `/private/tmp/property-graph-factory-driver-fixed-identity-20261003.log`.
+The first driver test incorrectly expected a pending-cleanup wrapper; the
+existing settlement contract returns the original reason unchanged when
+cleanup is already finished. The corrected assertion requires exact original
+error identity. That test-authoring failure remains separately recorded in
+`/private/tmp/property-graph-factory-driver-fixed-20261003.log`; no production
+error contract was changed to satisfy it.
+No Graph identity, snapshot bytes, public API, capacity check or admission
+rule changes. Fresh repair-source packed acceptance and pushed-SHA required
+CI remain necessary; the earlier SHA's successful checks are not adoption GO
+for this repair. B can continue connection preparation, but formal adoption
+and merge remain withheld.
+
+The clean repair source is
+`5d75101e168b46553ca91adf597c55c6f07ed310`. Its complete local Host and
+spec jobs pass; spec retains strict resource regression **176/176** and
+reports metadata `changes: []`, `writes: false`. Fresh normal-prepack public
+Graph acceptance passes **2/2, no skips**, with that clean SHA in the retained
+receipt at `worktrees/.codex-scratch/property-graph-package-kynPcB/acceptance.json`.
+Logs: `/private/tmp/property-graph-{host,spec,packed-snapshot}-5d75101e1-20261003.log`.
+
+Main then advances to `8b21ddd3f4a17fcecbb9bcf5878082148af0aa99`
+(CI/evidence parallelization #226 and symlinked temporary-root fixtures #229).
+The resulting PR conflict prevents new CI from starting; it is not a failed
+repair-source test. After the local gate exits, integration preserves both
+main's symlink regression and this branch's exact three Graph-gate additions
+in `scripts/build-runtime-packages.test.mjs`. All remaining main changes are
+adopted without independent edits. Runtime-builder, sealed CI-evidence and
+repair/driver checks pass **197/197, no skips** before the integration commit:
+`/private/tmp/property-graph-main8b-repair-regression-20261003.log`. No common
+Graph source changes in this integration. Fresh packed acceptance and final
+public CI are still required for its submitted SHA.
+
 ### Acquired-INFER main integration (2026-10-03)
 
 Clean source `34c1f5f82b7474f0c302d6ac7ba50597a1bf9909` completes both
