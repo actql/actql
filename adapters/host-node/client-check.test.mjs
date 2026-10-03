@@ -192,6 +192,9 @@ async function httpClient(t, configuration, mutateCheckReply) {
     assertNoExecution: observation.assertNoExecution});
 }
 
+const leftEnvironment = JSON.parse(await readFile(join(repository,
+  'adapters/host-node/fixtures/two-source/left.environment.json'), 'utf8'));
+const leftConfiguration = {...configurations.allowed, environment: leftEnvironment};
 const rightEnvironment = JSON.parse(await readFile(join(repository,
   'adapters/host-node/fixtures/two-source/right.environment.json'), 'utf8'));
 const rightView = rightEnvironment.source_views[0];
@@ -220,7 +223,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
   test(`${entrance}: zero, one and two installed Sources preserve public checks`,
     async t => {
       for (const configuration of [[], [configurations.allowed],
-        [configurations.allowed, rightConfiguration('denied')]]) {
+        [leftConfiguration, rightConfiguration('denied')]]) {
         const client = await open(t, configuration);
         const expected = (verdict, reasons) => ({context_ref: '<ctx>',
           scope: {kind: 'bound_input'}, verdict, reasons,
@@ -238,7 +241,7 @@ for (const [entrance, open] of Object.entries(entrances)) {
     async t => {
       for (const hidden of ['absent', 'denied', 'undecidable']) {
         for (const reversed of [false, true]) {
-          const configuration = [configurations.allowed, rightConfiguration(hidden)];
+          const configuration = [leftConfiguration, rightConfiguration(hidden)];
           if (reversed) configuration.reverse();
           const client = await open(t, configuration);
           assert.deepEqual(withoutContext(await check(client, 'satisfied')).report,
