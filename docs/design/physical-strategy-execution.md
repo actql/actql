@@ -271,6 +271,12 @@ only after its successful output has independent retention, preserving scalar
 measurement and demand usage. Retained-file release remains separate. Physical
 stop and successful output acceptance are separate from that confirmation.
 
+When an asynchronous Store-release fact arrives after disposal, the existing
+retention refresh also rechecks the original disposed executions. It releases
+their reservation only when execution settlement and the installed scratch and
+retention facts permit it. This refresh observes facts; it does not drive cleanup
+or Compute, and repeated refreshes cannot credit the reservation twice.
+
 Before publishing a completed task output, the common boundary validates the
 holding's ledger, origin reservation and exact bytes, then returns unused
 retention and transfer through the same ledger. Consumed and uncertain usage
