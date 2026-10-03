@@ -47,11 +47,10 @@ pub fn start_conditional_required_output_preparation(
           @schema.field_at(output.buffer.schema, column) is Some(target) &&
           field.name == target.name &&
           physical_equal(field.contract, target.contract) &&
-          conditional_required_cell(current, column) is Some(checked) &&
-          physical_equal(checked.contract, target.contract) else {
+          conditional_required_cell(current, column) is Some(value) else {
           return None
         }
-        Some(checked.value)
+        Some(value)
       },
       validate_field=Some(column => {
         guard @schema.field_at(required, column) is Some(field) &&

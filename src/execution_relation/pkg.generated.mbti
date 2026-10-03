@@ -437,11 +437,13 @@ pub fn completion_preparation_sequence(CompletionPreparation) -> @lowering_relat
 
 pub fn completion_preparation_terminal_step(CompletionPreparation) -> Int
 
-pub fn conditional_required_cell(ConditionalRow, Int) -> @value_admission.CheckedValue?
+pub fn conditional_relation_row(ConditionalRow) -> AdmittedRelationRow
+
+pub fn conditional_required_cell(ConditionalRow, Int) -> @value_admission.Value?
 
 pub fn conditional_required_output_rows(ConditionalRequiredOutputPreparation) -> AdmittedOutputRows?
 
-pub fn conditional_row_cell(ConditionalRow, Int) -> @value_admission.CheckedValue??
+pub fn conditional_row_cell(ConditionalRow, Int) -> @value_admission.Value??
 
 pub fn conditional_row_preparation_value(ConditionalRowPreparation) -> ConditionalRow?
 

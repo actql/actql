@@ -160,15 +160,14 @@ test "property Graph node rows preserve absent and present null through bounded 
     assert_eq(@encode.finish(writer), expected[index])
     if index == 0 {
       assert_true(
-        @execution.conditional_row_cell(row, 1)
-        is Some(Some({ value: @value.Null, .. })),
+        @execution.conditional_row_cell(row, 1) is Some(Some(@value.Null)),
       )
     } else if index == 1 {
       assert_true(@execution.conditional_row_cell(row, 1) is Some(None))
     } else {
       assert_true(
         @execution.conditional_row_cell(row, 1)
-        is Some(Some({ value: @value.Number(7.0), .. })),
+        is Some(Some(@value.Number(7.0))),
       )
     }
     assert_true(cleanup_property_node_row(active).unwrap())

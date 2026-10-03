@@ -25,7 +25,7 @@ fn conditional_row_test_wire() -> RetainedRowDecodeLimits {
 
 ///|
 fn conditional_row_test_values() -> ValueLimits {
-  { max_nodes: 5, max_text_bytes: 3, max_depth: 2, max_work: 8, }
+  { max_nodes: 3, max_text_bytes: 3, max_depth: 2, max_work: 6, }
 }
 
 ///|
@@ -43,18 +43,12 @@ test "conditional rows roundtrip absent and explicit null separately" {
     emit_conditional_row(row, writer)
     assert_eq(@encode.finish(writer), examples[index])
     assert_true(conditional_row_cell(row, 0) is Some(Some(_)))
-    assert_true(
-      conditional_required_cell(row, 0)
-      is Some({ value: @admitted.Number(_), .. }),
-    )
+    assert_true(conditional_required_cell(row, 0) is Some(@admitted.Number(_)))
     assert_true(conditional_required_cell(row, 1) is None)
     if index == 2 {
       assert_true(conditional_row_cell(row, 1) is Some(None))
     } else if index == 1 {
-      assert_true(
-        conditional_row_cell(row, 1)
-        is Some(Some({ value: @admitted.Null, .. })),
-      )
+      assert_true(conditional_row_cell(row, 1) is Some(Some(@admitted.Null)))
     }
   }
 }
@@ -109,15 +103,15 @@ test "conditional presence charges absent slots and supports cancellation" {
     conditional_row_test_wire(),
     conditional_row_test_values(),
   ).unwrap()
-  assert_eq(conditional_row_usage(exact).nodes, 5)
+  assert_eq(conditional_row_usage(exact).nodes, 3)
   assert_eq(conditional_row_usage(exact).text_bytes, 3)
-  assert_eq(conditional_row_usage(exact).work, 8)
+  assert_eq(conditional_row_usage(exact).work, 6)
   assert_true(
     decode_conditional_row_wire(
       schema,
       "{\"id\":1,\"p\":7}",
       conditional_row_test_wire(),
-      { ..conditional_row_test_values(), max_work: 7, },
+      { ..conditional_row_test_values(), max_work: 5, },
     )
     is Err(Row(Limit)),
   )
@@ -126,7 +120,7 @@ test "conditional presence charges absent slots and supports cancellation" {
       schema,
       "{\"id\":1,\"p\":7}",
       conditional_row_test_wire(),
-      { ..conditional_row_test_values(), max_nodes: 4, },
+      { ..conditional_row_test_values(), max_nodes: 2, },
     )
     is Err(Row(Limit)),
   )
@@ -173,7 +167,7 @@ test "required conditional columns enter the existing dense output owner" {
   let row = output_fixture_row(owner, 0)
   let builder = prepare_conditional_row(conditional, {
     max_nodes: 9,
-    max_text_bytes: 4,
+    max_text_bytes: 5,
     max_depth: 2,
     max_work: 13,
   }).unwrap()

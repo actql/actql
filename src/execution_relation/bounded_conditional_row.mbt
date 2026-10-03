@@ -62,7 +62,7 @@ fn discard_conditional_row_state(state : ConditionalRowState) -> Bool {
   state.builder.cells.clear()
   state.builder.open = false
   if state.material is Some(row) {
-    row.cells.clear()
+    row.relation.cells.clear()
     state.material = None
   }
   release_slots(state.workspace, state.workspace.live)
@@ -114,8 +114,7 @@ fn advance_conditional_row_state(
           state.phase = SealConditionalRow
           continue
         }
-        if !reserve_slots(state.workspace, 1) ||
-          !charge_node(state.builder.budget, 2) {
+        if !reserve_slots(state.workspace, 1) {
           return @bounded.Failed(Limit, used, used)
         }
         let field = @schema.presence_field_at(
@@ -131,8 +130,10 @@ fn advance_conditional_row_state(
               @schema.FieldPresence::Required {
               return @bounded.Failed(MissingRequired(state.column), used, used)
             }
-            state.builder.cells.push(None)
-            state.column += 1
+            state.pending = None
+            if !start_conditional_name_measure(state) {
+              return @bounded.Failed(Limit, used, used)
+            }
           }
           Some(checked) => {
             state.pending = Some(checked)
@@ -185,17 +186,29 @@ fn advance_conditional_row_state(
           SteppedMeasureComplete => {
             state.measure = None
             if state.phase is MeasureConditionalName {
-              guard start_stepped_measure_result(
-                  Captured(state.pending.unwrap().value),
-                  state.workspace,
-                )
-                is Some(value) else {
-                return @bounded.Failed(Limit, used, used)
+              match state.pending {
+                None => {
+                  if !charge_node(state.builder.budget, 2) {
+                    return @bounded.Failed(Limit, used, used)
+                  }
+                  state.builder.cells.push(None)
+                  state.column += 1
+                  state.phase = ReadConditionalCell
+                }
+                Some(checked) => {
+                  guard start_stepped_measure_result(
+                      Captured(checked.value),
+                      state.workspace,
+                    )
+                    is Some(value) else {
+                    return @bounded.Failed(Limit, used, used)
+                  }
+                  state.measure = Some(value)
+                  state.phase = MeasureConditionalValue
+                }
               }
-              state.measure = Some(value)
-              state.phase = MeasureConditionalValue
             } else {
-              state.builder.cells.push(state.pending)
+              state.builder.cells.push(Some(state.pending.unwrap().value))
               state.pending = None
               state.column += 1
               state.phase = ReadConditionalCell

@@ -39,7 +39,16 @@ test "bounded conditional row charges exact value and step limits" {
     }
   }
   let row = completed.unwrap()
-  assert_eq(conditional_row_usage(row), { nodes: 5, text_bytes: 3, work: 8, })
+  assert_eq(conditional_row_usage(row), { nodes: 3, text_bytes: 3, work: 6, })
+  let shared = conditional_relation_row(row)
+  assert_true(
+    physical_equal(
+      relation_row_schema(shared),
+      @schema.conditional_relation_schema(active.state.builder.schema),
+    ),
+  )
+  assert_eq(relation_row_usage(shared), conditional_row_usage(row))
+  let independent = copy_relation_row(shared, conditional_row_test_values()).unwrap()
   assert_true(conditional_row_preparation_value(active) is Some(_))
   let writer = @encode.writer(128, 16, 4)
   emit_conditional_row(row, writer)
@@ -47,12 +56,14 @@ test "bounded conditional row charges exact value and step limits" {
   assert_true(cleanup_conditional_row_preparation(active).unwrap())
   assert_true(conditional_row_preparation_value(active) is None)
   assert_eq(active.state.workspace.live, 0)
+  assert_true(
+    relation_row_cell(independent, 1) is Ok(Present(@admitted.Number(7))),
+  )
   for
     (step_work, workspace, values) in [
       (7, 3, conditional_row_test_values()),
       (8, 2, conditional_row_test_values()),
-      (8, 3, { ..conditional_row_test_values(), max_nodes: 4, }),
-      (8, 3, { ..conditional_row_test_values(), max_work: 7, }),
+      (8, 3, { ..conditional_row_test_values(), max_work: 5, }),
     ] {
     let rejected = bounded_conditional_fixture(step_work, workspace, values)
     let mut limited = false
@@ -71,6 +82,17 @@ test "bounded conditional row charges exact value and step limits" {
     assert_true(cleanup_conditional_row_preparation(rejected).unwrap())
     assert_eq(rejected.state.workspace.live, 0)
   }
+  let schema = conditional_row_test_schema()
+  assert_true(
+    start_conditional_row_preparation(
+      schema,
+      { ..conditional_row_test_values(), max_nodes: 2, },
+      8,
+      3,
+      _ => None,
+    )
+    is Err(Limit),
+  )
 }
 
 ///|
@@ -133,16 +155,22 @@ test "bounded conditional rows distinguish absence from explicit null" {
       }
     }
     let row = completed.unwrap()
+    let canonical = admit_relation_row(
+      @schema.conditional_relation_schema(schema),
+      [Some(id), cell],
+      conditional_row_test_values(),
+    ).unwrap()
+    assert_eq(
+      relation_row_usage(conditional_relation_row(row)),
+      relation_row_usage(canonical),
+    )
     let writer = @encode.writer(128, 16, 4)
     emit_conditional_row(row, writer)
     assert_eq(@encode.finish(writer), expected)
     if cell is None {
       assert_true(conditional_row_cell(row, 1) is Some(None))
     } else {
-      assert_true(
-        conditional_row_cell(row, 1)
-        is Some(Some({ value: @admitted.Null, .. })),
-      )
+      assert_true(conditional_row_cell(row, 1) is Some(Some(@admitted.Null)))
     }
     assert_true(cleanup_conditional_row_preparation(active).unwrap())
   }
@@ -191,13 +219,8 @@ test "bounded conditional row rechecks compatible definition values" {
     }
   }
   let row = completed.unwrap()
-  assert_eq(conditional_row_usage(row), { nodes: 5, text_bytes: 3, work: 8, })
-  let field = @schema.presence_field_at(schema, 1).unwrap()
-  assert_true(
-    conditional_row_cell(row, 1)
-    is Some(Some({ contract: target, value: @admitted.Number(7.0), })) &&
-    physical_equal(target, @schema.presence_field_contract(field)),
-  )
+  assert_eq(conditional_row_usage(row), { nodes: 3, text_bytes: 3, work: 6, })
+  assert_true(conditional_row_cell(row, 1) is Some(Some(@admitted.Number(7.0))))
   assert_true(cleanup_conditional_row_preparation(active).unwrap())
   let too_short = start_conditional_row_preparation(
     schema,
@@ -282,10 +305,10 @@ test "long conditional text yields between charged chunks" {
     max_depth: 1,
   }).unwrap()
   let limits : ValueLimits = {
-    max_nodes: 3,
+    max_nodes: 2,
     max_text_bytes: 207,
     max_depth: 2,
-    max_work: 210,
+    max_work: 209,
   }
   let active = start_conditional_row_preparation(schema, limits, 16, 2, column => {
     if column == 0 {
@@ -309,9 +332,9 @@ test "long conditional text yields between charged chunks" {
   }
   assert_true(polls > 6)
   assert_eq(conditional_row_usage(completed.unwrap()), {
-    nodes: 3,
+    nodes: 2,
     text_bytes: 207,
-    work: 210,
+    work: 209,
   })
   assert_true(cleanup_conditional_row_preparation(active).unwrap())
   let cancelled = start_conditional_row_preparation(schema, limits, 16, 2, column => {
