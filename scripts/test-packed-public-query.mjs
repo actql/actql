@@ -58,6 +58,7 @@ for (const [source, destination] of [
   ['spec/frontend/fixtures/pipe-scope/cases.json', 'pipe-scope-cases.json'],
   ['spec/frontend/fixtures/join-order/cases.json', 'join-order-cases.json'],
   ['spec/frontend/fixtures/join-chain/cases.json', 'join-chain-cases.json'],
+  ['spec/frontend/fixtures/group-scope/cases.json', 'group-scope-cases.json'],
   ['spec/frontend/fixtures/data-set-strategy/repro-program.json', 'data-set-strategy-program.json'],
   ['scripts/fixtures/packed-sga-cancellation.mjs', 'sga-cancellation.mjs'],
   ['scripts/property-graph-public-host.test.mjs', 'property-graph-public-host.test.mjs'],
@@ -118,6 +119,9 @@ if (process.argv.includes('--acquired-data-only')) {
 }
 if (process.argv.includes('--join-order-only')) {
   runtimeEnvironment.ACTQL_TEST_JOIN_ORDER_ONLY = '1';
+}
+if (process.argv.includes('--group-scope-only')) {
+  runtimeEnvironment.ACTQL_TEST_GROUP_SCOPE_ONLY = '1';
 }
 if (process.argv.includes('--alias-scope-only')) {
   runtimeEnvironment.ACTQL_TEST_PIPE_SCOPE_ONLY = '1';

@@ -10,6 +10,38 @@ fn query_limits() -> QueryLimits {
 }
 
 ///|
+test "SQL grouping and Pipe aggregation retain their distinct column scopes" {
+  for
+    (text, scope) in [
+      (
+        "SELECT id, COUNT(*) AS n FROM records GROUP BY id",
+        GroupingScope::SqlSelect,
+      ),
+      (
+        "FROM records |> AGGREGATE COUNT(*) AS n GROUP BY id",
+        GroupingScope::PipeAggregate,
+      ),
+    ] {
+    let query = parse_query(text, query_limits()).unwrap()
+    match operation_at(query, 0) {
+      Some(Group(keys, _, actual)) => {
+        assert_true(actual == scope)
+        assert_eq(keys.length(), 1)
+        keys.clear()
+      }
+      _ => fail("expected common aggregation with explicit source scope")
+    }
+    match operation_at(query, 0) {
+      Some(Group(keys, _, actual)) => {
+        assert_true(actual == scope)
+        assert_eq(keys.length(), 1)
+      }
+      _ => fail("query accessor must retain scope and its independent keys")
+    }
+  }
+}
+
+///|
 test "Pipe current range syntax remains available after projection" {
   for
     text in [
