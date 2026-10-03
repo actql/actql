@@ -293,6 +293,12 @@ pub fn fragment_request_row_limits(FragmentRequest) -> FragmentRowLimits?
 
 pub fn fragment_row_limits_valid(FragmentRowLimits) -> Bool
 
+pub fn graph_diagnostic_bounds(PreparedGraphDiagnostic) -> (Int64?, Int64?, Int64?)?
+
+pub fn graph_diagnostic_kind(PreparedGraphDiagnostic) -> GraphDiagnosticKind
+
+pub fn graph_diagnostic_output_schema(PreparedGraphDiagnostic) -> @relation_schema.Schema
+
 pub fn graph_match_field_at(PreparedGraphMatch, Int) -> @relation_schema.FieldName?
 
 pub fn graph_match_field_count(PreparedGraphMatch) -> Int
@@ -1194,6 +1200,21 @@ pub(all) enum GraphConstructionIssue {
   InvalidPropertyGraphConstruction
 } derive(Eq, @debug.Debug)
 
+pub(all) enum GraphDiagnosticIssue {
+  InvalidGraphDiagnosticLimits
+  InvalidGraphDiagnosticWiring
+  GraphDiagnosticPreparationLimit
+  MissingGraphDiagnosticParameter(String)
+  InvalidGraphDiagnosticParameter(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum GraphDiagnosticKind {
+  BoundsDiagnostic
+  IncomingDegreeDiagnostic
+  OutgoingDegreeDiagnostic
+  TotalDegreeDiagnostic
+} derive(Eq, @debug.Debug)
+
 pub(all) enum GraphMatchIssue {
   InvalidGraphMatchLimits
   InvalidGraphMatchWiring
@@ -1398,6 +1419,8 @@ pub enum Payload {
   SetRows(@relation_set.CheckedSet)
   NestRows(@relation_nest.CheckedNest)
   GraphMatchRows(@graph_typing.CheckedMatch)
+  GraphBoundsRows(@graph_typing.CheckedGraphBounds)
+  GraphDegreeRows(@graph_typing.CheckedDegree)
   GraphTraverseRows(@graph_typing.CheckedTraverse)
   PropertyGraphConstructionValue(@graph_typing.CheckedPropertyConstruction)
   VectorValue(@vector_typing.CheckedVector)
@@ -1468,6 +1491,8 @@ pub(all) enum PreparedFrameBoundary {
   PreparedFollowing(Int64)
   PreparedUnboundedFollowing
 } derive(Eq, @debug.Debug)
+
+type PreparedGraphDiagnostic
 
 type PreparedGraphMatch
 
@@ -1543,6 +1568,7 @@ pub enum PreparedStep {
   SetStep(PreparedSetKernel)
   NestStep(PreparedNestKernel)
   GraphMatchStep(PreparedGraphMatch)
+  GraphDiagnosticStep(PreparedGraphDiagnostic)
   GraphTraverseStep(PreparedGraphTraverse)
   PropertyGraphConstructionStep(PreparedPropertyGraphConstruction)
   VectorStep(PreparedVector)
@@ -1632,6 +1658,7 @@ pub(all) enum SequenceIssue {
   SetFailure(Int, SetIssue)
   NestFailure(Int, NestIssue)
   GraphMatchFailure(Int, GraphMatchIssue)
+  GraphDiagnosticFailure(Int, GraphDiagnosticIssue)
   GraphTraverseFailure(Int, GraphTraverseIssue)
   GraphConstructionFailure(Int, GraphConstructionIssue)
   VectorFailure(Int, VectorIssue)

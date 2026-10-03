@@ -40,6 +40,10 @@ pub fn degree_input(CheckedDegree) -> @carrier_contract.Carrier
 
 pub fn degree_output(CheckedDegree) -> @carrier_contract.Carrier
 
+pub fn degree_pending_at(CheckedDegree, Int) -> DiagnosticObligation?
+
+pub fn degree_pending_count(CheckedDegree) -> Int
+
 pub fn degree_source(CheckedDegree) -> @decode_core.Cursor
 
 pub fn degree_usage(CheckedDegree) -> Usage
@@ -47,6 +51,10 @@ pub fn degree_usage(CheckedDegree) -> Usage
 pub fn graph_bounds_input(CheckedGraphBounds) -> @carrier_contract.Carrier
 
 pub fn graph_bounds_output(CheckedGraphBounds) -> @carrier_contract.Carrier
+
+pub fn graph_bounds_pending_at(CheckedGraphBounds, Int) -> DiagnosticObligation?
+
+pub fn graph_bounds_pending_count(CheckedGraphBounds) -> Int
 
 pub fn graph_bounds_source(CheckedGraphBounds) -> @decode_core.Cursor
 
@@ -271,6 +279,13 @@ pub enum Count {
   Literal(Int64)
   Parameter(String)
 }
+
+pub(all) enum DiagnosticObligation {
+  AdmitDiagnosticGraph
+  ResolveDiagnosticResources
+  EnforceDiagnosticRelationRows
+  BindDiagnosticThreshold(String)
+} derive(Eq, @debug.Debug)
 
 pub(all) enum Direction {
   Incoming
