@@ -299,8 +299,13 @@ for (const mode of ['local','remote']) {
           where:'id = 1',fields:['element']},as:'seeds'});
       document.stages[0].steps.push({from:'visited',select:['start_id','node_id','depth'],as:'projected'});
       document.stages[0].results.out = {from:'projected',fields:['start_id','node_id','depth']};
-      const traversed = await client.aql(canonicalText(document),
-        {format:'json',requestId:`traverse-nodes-${index}-${mode}`});
+      let traversed;
+      try {
+        traversed = await client.aql(canonicalText(document),
+          {format:'json',requestId:`traverse-nodes-${index}-${mode}`});
+      } catch (cause) {
+        throw new Error(`Traversal submission failed: ${scenario.name}; ${String(cause.cause?.cause ?? cause.code)}`,{cause});
+      }
       const state = await traversed.wait();
       assert.equal(state.status,'succeeded',JSON.stringify(state));
       const expected = scenario.rows.map(({start_key,node_key,depth})=>({

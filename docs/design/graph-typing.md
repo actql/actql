@@ -316,12 +316,12 @@ The mode and empty-filter rules are now explicit in Language and the machine
 schema. Unlike the pinned reference decoder, no max_paths source option or
 default output ceiling is admitted. A present edge-type filter requires semantic
 label evidence even when empty; a mere property or closed domain is insufficient.
-Minimum node depth, simple paths, exact path deduplication, canonical order,
+Minimum eligible node depth, path-mode-aware enumeration, exact path deduplication, canonical order,
 binding checks and execution resources remain separate obligations. No evaluator
 or lowering is included.
 
 `TraversalCheck` binds graph admission, authored-hop enforcement, hop predicate
-evaluation, node minimum-depth selection or simple-path enumeration and exact
+evaluation, node minimum-eligible-depth selection or path-mode-aware enumeration and exact
 path deduplication, and canonical output ordering to the same checked operation.
 It retains the primary Graph and optional selector Relation with their input
 roles. Indexed hop/predicate readers consume the retained operation; they do not

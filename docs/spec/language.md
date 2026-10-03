@@ -5713,7 +5713,7 @@ one traversal mode. Homogeneous mode requires literal finite integer-valued
 `min_hops` and `max_hops` in the stated ranges and explicit `direction`, with
 optional `edge_types`, `edge_where`, and `node_where`. Pattern mode instead
 requires a nonempty `hops` array
-and rejects all four homogeneous members. Each hop admits only `direction`,
+and rejects the homogeneous direction, bounds and filter members. Each hop admits only `direction`,
 optional `edge_types`, `edge_where`, and `node_where`. A pattern follows its
 entire ordered hop list. Predicates require nullable or non-null boolean and
 retain only true. Edge-type lists contain nonempty normalized strings; absence
@@ -5732,6 +5732,7 @@ check-time error, not an implicit NULL or a runtime fallback. A declared
 nullable property whose value is NULL retains the ordinary expression NULL
 rules. A statically empty edge selection still checks any authored predicate.
 
+<!-- requirement-block: traverse.minimum-eligible-node-depth-and-order -->
 `emit: nodes` returns the required, non-null `start_id`, `node_id`, and minimum
 `depth` columns. Identity columns retain the complete admitted typed Graph
 identity, not an endpoint key, display string or provider locator. The output

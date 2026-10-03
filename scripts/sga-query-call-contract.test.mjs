@@ -58,7 +58,11 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     'dd90ea227eb23be7003d70d6ae78403576c972875c838c9cad88451563f7bcfc');
   assert.equal(body.query_text_rules_sha256,
     '5bb6f784249ac4d0045be159779759a3e4c17fce84f3bb7f54c568a14199bbd8');
-  const expected = 'sha256:24f53c1f64028206dbc01f6c3d0c11d991c8c9d512581fdfd007a250315f8bbd';
+  // Node/path emission and their shared predicates change the Program schema,
+  // not the query-text bytes. Hash that complete normative body independently.
+  assert.equal(body.source_grammar_cid,
+    'sha256:5cfed3155edea075796e6be985026b6f3d5b59ecc6937540d86c6af7ffc77351');
+  const expected = 'sha256:b631f06f2ad3b4972d2ac2211819a55d40b1ffd4c5ff6e56b726a20f512c106d';
   assert.equal(cid(body), expected);
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
   assert.deepEqual(pinned, body);
