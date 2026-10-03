@@ -37,7 +37,7 @@ fn captured_graph_fixture(
   local_carrier_events_chain? : Bool = false,
   local_carrier_events_variant? : String = "watermark",
   local_carrier_graph_chain? : Bool = false,
-  local_carrier_graph_variant? : String = "projection",
+  local_carrier_graph_variant? : String = "current_filter",
   local_time_series_chain? : Bool = false,
   local_carrier_vectors_chain? : Bool = false,
   local_carrier_vectors_variant? : String = "normalize",
@@ -243,6 +243,52 @@ fn compute_test_limits() -> @execution.SequenceExecutionLimits {
 }
 
 ///|
+/// Fixture owner: query_integration/property_graph_host_custody_wbtest.mbt
+fn current_graph_relation_program(variant : String) -> String {
+  let relation_step = match variant {
+    "current_filter" | "current_edge_filter" => "\"filter\":\"true\""
+    "current_filter_false" => "\"filter\":\"false\""
+    "current_select" => "\"select\":[\"id\",\"node_name\"]"
+    "current_derive" => "\"derive\":{\"copy\":\"id\"}"
+    "current_take" => "\"take\":1"
+    "current_sort" => "\"sort\":[{\"id\":\"desc\"}]"
+    "current_assert" => "\"assert_rows\":{\"where\":\"id > 0\"}"
+    "current_unique" => "\"assert_rows\":{\"unique_by\":[\"id\"]}"
+    _ => abort("unknown current Graph regression variant")
+  }
+  let matched = if variant == "current_edge_filter" {
+    "{\"match_edges\":{\"definition\":\"E\",\"label\":\"Edge\",\"where\":\"true\",\"fields\":[\"src\",\"dst\",\"weight\"]},\"as\":\"projected\"}"
+  } else {
+    "{\"match_nodes\":{\"definition\":\"N\",\"label\":\"Node\",\"bindings\":{\"identity\":\"element\"},\"where\":\"true\",\"fields\":[\"element\",\"id\",\"node_name\"]},\"as\":\"projected\"}"
+  }
+  let result_fields = if variant == "current_edge_filter" {
+    "\"src\",\"dst\",\"weight\""
+  } else if variant == "current_derive" {
+    "\"id\",\"node_name\",\"copy\""
+  } else {
+    "\"id\",\"node_name\""
+  }
+  let first_fields = if variant == "current_edge_filter" {
+    "\"src\",\"weight\""
+  } else {
+    "\"id\",\"node_name\""
+  }
+  let second_fields = if variant == "current_edge_filter" {
+    "\"weight\""
+  } else {
+    "\"node_name\""
+  }
+  let template =
+    #|{"version":"actql/0.1","id":"p","params":{"minimum":{"type":"number","nullable":false}},"stages":[{"id":"a","inputs":{"remote":{"connector":"crm/main","resource":"r"}},"steps":[{"filter":"id > $minimum","as":"filtered"},{"select":["id"],"as":"captured"}],"results":{"r":{"from":"captured","fields":["id"]}}},{"id":"values","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"src":{"type":"number","nullable":false},"dst":{"type":"number","nullable":false},"node_name":{"type":"string","nullable":false},"weight":{"type":"number","nullable":false}},"rows":[{"id":1,"src":1,"dst":2,"node_name":"first","weight":10},{"id":2,"src":2,"dst":1,"node_name":"second","weight":20}]},"as":"out"}],"results":{"r":{"from":"out","fields":["id","src","dst","node_name","weight"]}}},{"id":"graph","inputs":{"rows":{"result":{"stage":"values","result":"r"}}},"steps":[{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"rows","key":["id"],"labels":[{"name":"Node","properties":{"mode":"columns","columns":[{"from":"id","to":"id"},{"from":"node_name","to":"node_name"}]}}]}],"edges":[{"name":"E","from":"rows","key":["id"],"source":{"definition":"N","key":["src"]},"target":{"definition":"N","key":["dst"]},"labels":[{"name":"Edge","properties":{"mode":"columns","columns":[{"from":"src","to":"src"},{"from":"dst","to":"dst"},{"from":"weight","to":"weight"}]}}]}]},"as":"g"},MATCH_STEP,RELATION_STEP],"results":{"r":{"from":"out","fields":[RESULT_FIELDS]}}},{"id":"consumer_a","inputs":{"x":{"result":{"stage":"graph","result":"r"}}},"steps":[{"select":[FIRST_FIELDS],"as":"out"}],"results":{"r":{"from":"out","fields":[FIRST_FIELDS]}}},{"id":"consumer_b","inputs":{"x":{"result":{"stage":"graph","result":"r"}}},"steps":[{"select":[SECOND_FIELDS],"as":"out"}],"results":{"r":{"from":"out","fields":[SECOND_FIELDS]}}}],"results":{"source":{"from":{"stage":"a","result":"r"}}}}
+  template
+  .replace(old="MATCH_STEP", new=matched)
+  .replace(old="RELATION_STEP", new="{" + relation_step + ",\"as\":\"out\"}")
+  .replace(old="RESULT_FIELDS", new=result_fields)
+  .replace_all(old="FIRST_FIELDS", new=first_fields)
+  .replace_all(old="SECOND_FIELDS", new=second_fields)
+}
+
+///|
 /// Fixture owner: query_integration/physical_dispatch_wbtest.mbt
 fn dispatch_test_generated(
   run : @strategy.CapturedDAG,
@@ -270,17 +316,6 @@ fn input_cursor(text : String) -> @decode.Cursor {
       max_total_string_bytes: 10000,
     },
   ).unwrap()
-}
-
-///|
-/// Fixture owner: query_integration/local_carrier_graph_wbtest.mbt
-fn is_graph_equality_variant(variant : String) -> Bool {
-  variant == "graphs_equal" ||
-  variant == "graphs_equal_reverse" ||
-  variant == "graphs_equal_self" ||
-  variant == "graphs_nullable_equal" ||
-  variant == "graphs_nullable_null_equal" ||
-  variant.has_suffix("unequal")
 }
 
 ///|
@@ -586,79 +621,7 @@ fn local_carrier_events_program(variant? : String = "watermark") -> String {
 }
 
 ///|
-/// Fixture owner: query_integration/local_carrier_graph_wbtest.mbt
-fn local_carrier_graph_apply_program() -> String {
-  let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
-    "\"src\":{\"type\":\"number\",\"nullable\":false}," +
-    "\"dst\":{\"type\":\"number\",\"nullable\":false}," +
-    "\"node_name\":{\"type\":\"string\",\"nullable\":false}," +
-    "\"weight\":{\"type\":\"number\",\"nullable\":false}}"
-  let graph = "{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
-    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
-    "\"source\":\"src\",\"target\":\"dst\"," +
-    "\"fields\":[\"weight\"]}}"
-  let right_graph = "{\"nodes\":{\"from\":\"other\",\"id\":\"id\"," +
-    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"other\"," +
-    "\"source\":\"src\",\"target\":\"dst\"," +
-    "\"fields\":[\"weight\"]}}"
-  "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":{" +
-  "\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
-  "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
-  "\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{" +
-  "\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{" +
-  "\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{" +
-  "\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}},{" +
-  "\"id\":\"values\",\"inputs\":{},\"steps\":[{\"values\":{" +
-  "\"schema\":" +
-  schema +
-  ",\"rows\":[{" +
-  "\"id\":1,\"src\":1,\"dst\":2,\"node_name\":\"first\"," +
-  "\"weight\":10},{\"id\":2,\"src\":2,\"dst\":1," +
-  "\"node_name\":\"second\",\"weight\":20}]},\"as\":\"out\"}]," +
-  "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"," +
-  "\"src\",\"dst\",\"node_name\",\"weight\"]}}},{" +
-  "\"id\":\"other_values\",\"inputs\":{},\"steps\":[{\"values\":{" +
-  "\"schema\":" +
-  schema +
-  ",\"rows\":[{\"id\":1,\"src\":1," +
-  "\"dst\":3,\"node_name\":\"changed\",\"weight\":11},{" +
-  "\"id\":3,\"src\":3,\"dst\":1,\"node_name\":\"third\"," +
-  "\"weight\":30}]},\"as\":\"out\"}],\"results\":{\"r\":{" +
-  "\"from\":\"out\",\"fields\":[\"id\",\"src\",\"dst\"," +
-  "\"node_name\",\"weight\"]}}},{\"id\":\"diff\",\"inputs\":{" +
-  "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
-  "\"other\":{\"result\":{\"stage\":\"other_values\"," +
-  "\"result\":\"r\"}}},\"steps\":[{\"graph\":" +
-  graph +
-  ",\"as\":\"g\"},{\"graph\":" +
-  right_graph +
-  ",\"as\":\"right\"},{\"from\":\"g\",\"graph_diff\":{" +
-  "\"with\":\"right\"},\"as\":\"out\"}],\"results\":{\"r\":{" +
-  "\"from\":\"out\",\"fields\":[\"delta\"]}}},{" +
-  "\"id\":\"apply\",\"inputs\":{\"rows\":{\"result\":{" +
-  "\"stage\":\"values\",\"result\":\"r\"}},\"changes\":{" +
-  "\"result\":{\"stage\":\"diff\",\"result\":\"r\"}}}," +
-  "\"steps\":[{\"graph\":" +
-  graph +
-  ",\"as\":\"base\"},{" +
-  "\"from\":\"base\",\"apply_graph_delta\":{\"with\":\"changes\"," +
-  "\"field\":\"delta\"},\"as\":\"applied\"},{\"from\":\"applied\"," +
-  "\"node_rows\":true,\"as\":\"out\"}],\"results\":{\"r\":{" +
-  "\"from\":\"out\",\"fields\":[\"id\",\"node_name\"]}}},{" +
-  "\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
-  "\"stage\":\"apply\",\"result\":\"r\"}}},\"steps\":[{" +
-  "\"select\":[\"id\",\"node_name\"],\"as\":\"out\"}]," +
-  "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"," +
-  "\"node_name\"]}}},{\"id\":\"consumer_b\",\"inputs\":{\"x\":{" +
-  "\"result\":{\"stage\":\"apply\",\"result\":\"r\"}}}," +
-  "\"steps\":[{\"select\":[\"node_name\"],\"as\":\"out\"}]," +
-  "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[" +
-  "\"node_name\"]}}}],\"results\":{\"source\":{\"from\":{" +
-  "\"stage\":\"a\",\"result\":\"r\"}}}}"
-}
-
-///|
-/// Fixture owner: query_integration/local_carrier_graph_wbtest.mbt
+/// Fixture owner: query_integration/property_graph_fixture_helpers_wbtest.mbt
 fn local_carrier_graph_environment(
   original : @environment.WireEnvironment,
 ) -> @environment.WireEnvironment raise {
@@ -695,771 +658,10 @@ fn local_carrier_graph_environment(
 }
 
 ///|
-/// Fixture owner: query_integration/local_carrier_graph_wbtest.mbt
-fn local_carrier_graph_program(variant? : String = "projection") -> String {
-  if variant == "graph_apply_changes" {
-    return local_carrier_graph_apply_program()
-  }
-  let concise = variant == "concise_projection"
-  let split = variant == "split_projection"
-  let subtract = variant.has_prefix("subtract")
-  let subtract_exact = variant == "subtract_exact"
-  let subtract_numeric = variant == "subtract_numeric"
-  let subtract_properties = subtract_exact || subtract_numeric
-  let union_set = variant == "union_set"
-  let patterned_multi = variant == "traverse_pattern_multi" ||
-    variant.has_prefix("traverse_pattern_multi_paths")
-  let typed_traverse = variant.has_prefix("traverse_type") ||
-    variant.has_prefix("shortest_type") ||
-    patterned_multi
-  let subgraph_relation_selector = variant.has_prefix(
-    "subgraph_relation_selector",
-  )
-  let traverse_relation_selector = variant == "traverse_relation_selector" ||
-    variant == "traverse_relation_paths"
-  let traverse_paths = variant == "traverse_paths" ||
-    variant == "traverse_relation_paths" ||
-    variant == "traverse_predicate_paths" ||
-    variant.has_prefix("traverse_pattern_multi_paths") ||
-    variant == "traverse_in_paths" ||
-    variant == "traverse_both_paths" ||
-    variant == "traverse_zero_paths" ||
-    variant == "traverse_type_empty_paths"
-  let shortest_relation_selector = variant == "shortest_relation_selector"
-  let relation_selector = subgraph_relation_selector ||
-    traverse_relation_selector ||
-    shortest_relation_selector
-  let schema = "{\"id\":{\"type\":\"number\",\"nullable\":false}," +
-    "\"src\":{\"type\":\"number\",\"nullable\":false}," +
-    "\"dst\":{\"type\":\"number\",\"nullable\":false}," +
-    (if typed_traverse {
-      "\"edge_type\":{\"type\":\"string\",\"nullable\":false},"
-    } else {
-      ""
-    }) +
-    (if union_set {
-      "\"tags\":{\"type\":\"array\",\"nullable\":false," +
-      "\"items\":{\"type\":\"string\",\"nullable\":true}," +
-      "\"max_items\":10}}"
-    } else if subtract && !subtract_properties {
-      "\"marker\":{\"type\":\"number\",\"nullable\":false}}"
-    } else {
-      "\"node_name\":{\"type\":\"string\",\"nullable\":" +
-      (if variant.has_prefix("graphs_nullable") { "true" } else { "false" }) +
-      "}," +
-      "\"weight\":{\"type\":\"number\",\"nullable\":" +
-      (if variant.has_prefix("graphs_nullable") { "true" } else { "false" }) +
-      "}}"
-    })
-  let first_name = if variant == "graphs_nullable_null_equal" {
-    "null"
-  } else if variant == "graphs_nullable_equal" {
-    "\"x\""
-  } else {
-    "\"first\""
-  }
-  let rows = if union_set {
-    "[{\"id\":1,\"src\":1,\"dst\":1," + "\"tags\":[\"b\",\"a\"]}]"
-  } else if patterned_multi {
-    "[{\"id\":1,\"src\":1,\"dst\":2,\"edge_type\":\"owns\"," +
-    "\"node_name\":\"first\",\"weight\":10},{\"id\":2," +
-    "\"src\":2,\"dst\":3,\"edge_type\":\"blocks\"," +
-    "\"node_name\":\"second\",\"weight\":20},{\"id\":3," +
-    "\"src\":3,\"dst\":3,\"edge_type\":\"other\"," +
-    "\"node_name\":\"third\",\"weight\":30}]"
-  } else if typed_traverse {
-    "[{\"id\":1,\"src\":1,\"dst\":2,\"edge_type\":\"owns\"," +
-    "\"node_name\":\"first\",\"weight\":10},{\"id\":2," +
-    "\"src\":2,\"dst\":1,\"edge_type\":\"blocks\"," +
-    "\"node_name\":\"second\",\"weight\":20}]"
-  } else if subtract && !subtract_properties {
-    "[{\"id\":1,\"src\":1,\"dst\":2,\"marker\":0}," +
-    "{\"id\":2,\"src\":2,\"dst\":1,\"marker\":0}]"
-  } else {
-    "[{\"id\":1,\"src\":1,\"dst\":2," +
-    "\"node_name\":" +
-    first_name +
-    ",\"weight\":" +
-    (if variant == "graphs_nullable_null_equal" { "null" } else { "10" }) +
-    "},{\"id\":2," +
-    "\"src\":2,\"dst\":1,\"node_name\":\"second\"," +
-    "\"weight\":20}]"
-  }
-  let graph_equality = is_graph_equality_variant(variant)
-  let graph_diff = variant == "graph_diff" || variant == "graph_diff_changes"
-  let graph_diff_changes = variant == "graph_diff_changes"
-  let projection = if concise {
-    "\"from\":\"g\",\"edge_rows\":true,\"as\":\"out\""
-  } else if variant == "match_nodes" {
-    "\"from\":\"g\",\"match_nodes\":{\"ids\":[2,1,2]," +
-    "\"fields\":[\"id\",\"node_name\"]},\"as\":\"out\""
-  } else if variant == "match_nodes_literal" {
-    "\"from\":\"g\",\"match_nodes\":{\"where\":\"true\"," +
-    "\"fields\":[\"id\",\"node_name\"]},\"as\":\"out\""
-  } else if variant == "match_nodes_predicate" {
-    "\"from\":\"g\",\"match_nodes\":{\"where\":" +
-    "\"node_name = 'second'\",\"fields\":[\"id\",\"node_name\"]}," +
-    "\"as\":\"out\""
-  } else if variant == "match_edges" || variant == "edge_projection" {
-    "\"from\":\"g\",\"match_edges\":{\"fields\":[\"src\",\"dst\"," +
-    "\"weight\"]},\"as\":\"out\""
-  } else if variant == "match_edges_predicate" {
-    "\"from\":\"g\",\"match_edges\":{\"where\":\"weight > 10\"," +
-    "\"fields\":[\"src\",\"dst\",\"weight\"]},\"as\":\"out\""
-  } else if variant == "graph_bounds" {
-    "\"from\":\"g\",\"graph_bounds\":{\"max_nodes\":1," +
-    "\"max_edges\":1,\"max_degree\":1},\"as\":\"out\""
-  } else if variant == "degree_in" {
-    "\"from\":\"g\",\"degree\":{\"direction\":\"in\"}," + "\"as\":\"out\""
-  } else if variant == "degree_out" {
-    "\"from\":\"g\",\"degree\":{\"direction\":\"out\"}," + "\"as\":\"out\""
-  } else if variant == "degree_both" {
-    "\"from\":\"g\",\"degree\":{\"direction\":\"both\"}," + "\"as\":\"out\""
-  } else if variant == "components_weak" {
-    "\"from\":\"g\",\"components\":{\"kind\":\"weak\"}," + "\"as\":\"out\""
-  } else if variant == "components_strong" {
-    "\"from\":\"g\",\"components\":{\"kind\":\"strong\"}," + "\"as\":\"out\""
-  } else if variant == "reach_out" {
-    "\"from\":\"g\",\"reach\":{\"start\":1,\"direction\":\"out\"," +
-    "\"max_depth\":2},\"as\":\"out\""
-  } else if shortest_relation_selector {
-    "\"from\":\"g\",\"shortest_path\":{\"source\":{\"from\":" +
-    "\"selected\",\"id\":\"key\"},\"target\":{\"from\":" +
-    "\"selected\",\"id\":\"key\"},\"selection\":\"each_pair\"," +
-    "\"direction\":\"out\",\"max_hops\":2},\"as\":\"out\""
-  } else if variant == "shortest_predicate" {
-    "\"from\":\"g\",\"shortest_path\":{\"source\":{\"where\":" +
-    "\"true\"},\"target\":{\"where\":\"node_name = 'second'\"}," +
-    "\"selection\":\"each_pair\",\"direction\":\"out\"," +
-    "\"max_hops\":2},\"as\":\"out\""
-  } else if variant == "shortest_ids" {
-    "\"from\":\"g\",\"shortest_path\":{\"source\":{\"ids\":[2,1,2]}," +
-    "\"target\":{\"ids\":[2,1]},\"selection\":\"each_pair\"," +
-    "\"direction\":\"out\",\"max_hops\":2},\"as\":\"out\""
-  } else if variant == "shortest_nearest_per_source" {
-    "\"from\":\"g\",\"shortest_path\":{\"source\":{\"ids\":[2,1]}," +
-    "\"target\":{\"ids\":[2]},\"selection\":\"nearest_per_source\"," +
-    "\"direction\":\"out\",\"max_hops\":2},\"as\":\"out\""
-  } else if variant == "shortest_nearest_pair" {
-    "\"from\":\"g\",\"shortest_path\":{\"source\":{\"ids\":[2,1]}," +
-    "\"target\":{\"ids\":[2,1]},\"selection\":\"nearest_pair\"," +
-    "\"direction\":\"out\",\"max_hops\":2},\"as\":\"out\""
-  } else if variant.has_prefix("shortest_") {
-    "\"from\":\"g\",\"shortest_path\":{\"source\":1," +
-    "\"target\":" +
-    (if variant == "shortest_zero" { "1" } else { "2" }) +
-    ",\"direction\":\"" +
-    (if variant == "shortest_in" {
-      "in"
-    } else if variant == "shortest_both" {
-      "both"
-    } else {
-      "out"
-    }) +
-    "\",\"max_hops\":2" +
-    (if variant == "shortest_weighted" { ",\"weight\":\"weight\"" } else { "" }) +
-    (if variant == "shortest_type_empty" {
-      ",\"edge_types\":[]"
-    } else if variant == "shortest_types_match" {
-      ",\"edge_types\":[\"missing\",\"owns\"]"
-    } else if variant == "shortest_type_miss" {
-      ",\"edge_types\":[\"blocks\"]"
-    } else if variant == "shortest_type_match" {
-      ",\"edge_types\":[\"owns\"]"
-    } else {
-      ""
-    }) +
-    "}," +
-    "\"as\":\"out\""
-  } else if variant.has_prefix("traverse_") {
-    "\"from\":\"g\",\"traverse\":{\"start\":{" +
-    (if variant == "traverse_predicate" ||
-      variant == "traverse_predicate_paths" ||
-      variant == "traverse_pattern_all_predicates" {
-      "\"where\":" +
-      (if variant == "traverse_pattern_all_predicates" {
-        "\"node_name = 'second'\""
-      } else {
-        "\"true\""
-      })
-    } else if traverse_relation_selector {
-      "\"from\":\"selected\",\"id\":\"key\""
-    } else {
-      "\"ids\":[" +
-      (if variant == "traverse_ids" {
-        "2,1,2"
-      } else if variant.has_prefix("traverse_pattern_") &&
-        !patterned_multi &&
-        variant != "traverse_pattern_one" {
-        "2"
-      } else {
-        "1"
-      }) +
-      "]"
-    }) +
-    "}," +
-    (if variant.has_prefix("traverse_pattern_") {
-      if patterned_multi {
-        "\"hops\":[{\"direction\":\"out\"," +
-        "\"edge_types\":[\"owns\"]," +
-        "\"edge_where\":\"weight > " +
-        (if variant == "traverse_pattern_multi_paths_empty" {
-          "100"
-        } else {
-          "5"
-        }) +
-        "\"," +
-        "\"node_where\":\"node_name = 'second'\"" +
-        "},{\"direction\":\"out\"," +
-        "\"edge_types\":[\"blocks\"]," +
-        "\"edge_where\":\"weight > 15\"," +
-        "\"node_where\":\"node_name = 'third'\"" +
-        "}],"
-      } else {
-        "\"hops\":[{\"direction\":\"out\"" +
-        (if variant == "traverse_pattern_predicate" ||
-          variant == "traverse_pattern_all_predicates" ||
-          variant == "traverse_pattern_edge_predicate" {
-          ",\"edge_where\":\"weight > 10\""
-        } else if variant == "traverse_pattern_predicate_empty" {
-          ",\"edge_where\":\"weight > 100\""
-        } else {
-          ""
-        }) +
-        (if variant == "traverse_pattern_predicate" ||
-          variant == "traverse_pattern_all_predicates" ||
-          variant == "traverse_pattern_node_predicate" {
-          ",\"node_where\":\"node_name = 'first'\""
-        } else {
-          ""
-        }) +
-        "}],"
-      }
-    } else {
-      "\"direction\":\"" +
-      (if variant == "traverse_in" || variant == "traverse_in_paths" {
-        "in"
-      } else if variant == "traverse_both" || variant == "traverse_both_paths" {
-        "both"
-      } else {
-        "out"
-      }) +
-      "\"," +
-      (if typed_traverse {
-        if variant == "traverse_type_empty" ||
-          variant == "traverse_type_empty_paths" {
-          "\"edge_types\":[],"
-        } else if variant.has_prefix("traverse_types_") {
-          "\"edge_types\":[\"missing\",\"" +
-          (if variant == "traverse_types_match" { "owns" } else { "other" }) +
-          "\"],"
-        } else {
-          "\"edge_types\":[\"" +
-          (if variant == "traverse_type_miss" { "blocks" } else { "owns" }) +
-          "\"],"
-        }
-      } else {
-        ""
-      }) +
-      "\"min_hops\":" +
-      (if variant == "traverse_zero_paths" { "0" } else { "1" }) +
-      ",\"max_hops\":" +
-      (if variant == "traverse_zero_paths" { "1" } else { "2" }) +
-      ","
-    }) +
-    (if traverse_paths {
-      "\"max_output_rows\":" +
-      (if traverse_relation_selector { "4" } else { "2" }) +
-      ","
-    } else {
-      ""
-    }) +
-    "\"emit\":\"" +
-    (if traverse_paths { "paths" } else { "nodes" }) +
-    "\"},\"as\":\"out\""
-  } else if variant == "normalize_shared" {
-    "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
-    "\"from\":\"normalized\",\"normalize_graph\":true," +
-    "\"as\":\"same_carrier\"},{" +
-    "\"from\":\"normalized\",\"node_rows\":true,\"as\":\"out\""
-  } else if variant == "normalize_filter" ||
-    variant == "normalize_filter_false" ||
-    variant == "normalize_select" ||
-    variant == "normalize_derive" ||
-    variant == "normalize_take" ||
-    variant == "normalize_sort" ||
-    variant == "normalize_assert" ||
-    variant == "normalize_unique" {
-    "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
-    "\"from\":\"normalized\",\"node_rows\":true," +
-    "\"as\":\"projected\"},{" +
-    "\"from\":\"projected\"," +
-    (if variant == "normalize_select" {
-      "\"select\":[\"id\",\"node_name\"]"
-    } else if variant == "normalize_derive" {
-      "\"derive\":{\"copy\":\"id\"}"
-    } else if variant == "normalize_take" {
-      "\"take\":1"
-    } else if variant == "normalize_sort" {
-      "\"sort\":[{\"id\":\"desc\"}]"
-    } else if variant == "normalize_assert" {
-      "\"assert_rows\":{\"where\":\"id > 0\"}"
-    } else if variant == "normalize_unique" {
-      "\"assert_rows\":{\"unique_by\":[\"id\"]}"
-    } else if variant == "normalize_filter_false" {
-      "\"filter\":\"false\""
-    } else {
-      "\"filter\":\"true\""
-    }) +
-    ",\"as\":\"out\""
-  } else if variant == "edge_projection_filter" {
-    "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
-    "\"from\":\"normalized\",\"edge_rows\":true," +
-    "\"as\":\"projected\"},{" +
-    "\"from\":\"projected\",\"filter\":\"true\",\"as\":\"out\""
-  } else if variant == "normalize" {
-    "\"from\":\"g\",\"normalize_graph\":true,\"as\":\"normalized\"},{" +
-    "\"from\":\"normalized\",\"node_rows\":true,\"as\":\"out\""
-  } else if variant == "subgraph_ids" ||
-    variant == "subgraph_shared" ||
-    variant == "subgraph_filter" {
-    "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"ids\":[2]}}," +
-    "\"as\":\"selected\"},{" +
-    (if variant == "subgraph_shared" {
-      "\"from\":\"selected\",\"normalize_graph\":true," +
-      "\"as\":\"same_carrier\"},{"
-    } else {
-      ""
-    }) +
-    "\"from\":\"selected\"," +
-    "\"node_rows\":true,\"as\":" +
-    (if variant == "subgraph_filter" {
-      "\"projected\"},{\"from\":\"projected\"," +
-      "\"filter\":\"true\",\"as\":\"out\""
-    } else {
-      "\"out\""
-    })
-  } else if variant == "subgraph_edges_false" {
-    "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"ids\":[1,2]}," +
-    "\"edges\":\"false\"},\"as\":\"selected\"},{" +
-    "\"from\":\"selected\",\"edge_rows\":true,\"as\":\"out\""
-  } else if variant == "subgraph_node_predicate" {
-    "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"where\":" +
-    "\"node_name = 'second'\"}},\"as\":\"selected\"},{" +
-    "\"from\":\"selected\",\"node_rows\":true,\"as\":\"out\""
-  } else if subgraph_relation_selector {
-    "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"from\":" +
-    "\"selected\",\"id\":\"key\"}},\"as\":\"selected_graph\"},{" +
-    "\"from\":\"selected_graph\",\"node_rows\":true,\"as\":\"out\""
-  } else if variant == "subgraph_edge_predicate" {
-    "\"from\":\"g\",\"subgraph\":{\"nodes\":{\"ids\":[1,2]}," +
-    "\"edges\":\"weight > 10\"},\"as\":\"selected\"},{" +
-    "\"from\":\"selected\",\"edge_rows\":true,\"as\":\"out\""
-  } else if variant == "graft" {
-    "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
-    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":" +
-    "\"rows\",\"source\":\"src\",\"target\":\"dst\"," +
-    "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
-    "\"from\":\"g\",\"graft_graph\":{\"with\":\"right_graph\"}," +
-    "\"as\":\"grafted\"},{\"from\":\"grafted\"," +
-    "\"node_rows\":true,\"as\":\"out\""
-  } else if variant == "mean" {
-    "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
-    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":" +
-    "\"rows\",\"source\":\"src\",\"target\":\"dst\"," +
-    "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
-    "\"mean_graphs\":{\"with\":[\"right_graph\",\"g\"," +
-    "\"right_graph\"],\"weights\":[1,2,3]," +
-    "\"support\":{\"nodes\":1,\"edges\":1}," +
-    "\"properties\":{\"nodes\":{\"node_name\":\"exact_equal\"}," +
-    "\"edges\":{\"weight\":{\"mean\":{" +
-    "\"missing\":\"exclude\",\"nulls\":\"fail\"}}}}}," +
-    "\"as\":\"averaged\"},{\"from\":\"averaged\"," +
-    "\"node_rows\":true,\"as\":\"out\""
-  } else if variant == "union" ||
-    variant == "union_singleton" ||
-    variant == "union_numeric" ||
-    union_set {
-    "\"graph\":{\"nodes\":{\"from\":" +
-    (if union_set { "\"other\"" } else { "\"rows\"" }) +
-    ",\"id\":\"id\"," +
-    "\"fields\":" +
-    (if union_set { "[\"tags\"]" } else { "[\"node_name\"]" }) +
-    "},\"edges\":{\"from\":" +
-    (if union_set { "\"other\"" } else { "\"rows\"" }) +
-    "," +
-    "\"source\":\"src\",\"target\":\"dst\"," +
-    "\"fields\":" +
-    (if union_set { "[]" } else { "[\"weight\"]" }) +
-    "}},\"as\":\"right_graph\"},{" +
-    "\"from\":\"g\",\"union_graphs\":{\"with\":" +
-    (if variant == "union_singleton" || variant == "union_numeric" || union_set {
-      "\"right_graph\""
-    } else {
-      "[\"right_graph\",\"g\",\"right_graph\"]"
-    }) +
-    (if variant == "union_numeric" {
-      ",\"merge\":{\"edge_properties\":{\"weight\":" + "\"number_sum\"}}"
-    } else if union_set {
-      ",\"merge\":{\"node_properties\":{\"tags\":\"set_union\"}}"
-    } else {
-      ""
-    }) +
-    "}," +
-    "\"as\":\"united\"},{\"from\":\"united\"," +
-    (if variant == "union_numeric" {
-      "\"edge_rows\":true,\"as\":\"out\""
-    } else {
-      "\"node_rows\":true,\"as\":\"out\""
-    })
-  } else if subtract {
-    "\"graph\":{\"nodes\":{\"from\":\"other\",\"id\":\"id\"," +
-    "\"fields\":" +
-    (if subtract_properties { "[\"node_name\"]" } else { "[]" }) +
-    "},\"edges\":{\"from\":\"other\"," +
-    "\"source\":\"src\",\"target\":\"dst\",\"fields\":" +
-    (if subtract_properties { "[\"weight\"]" } else { "[]" }) +
-    "}}," +
-    "\"as\":\"right_graph\"},{" +
-    "\"from\":\"g\",\"subtract_graphs\":{\"with\":\"right_graph\"" +
-    (if subtract_exact {
-      ",\"merge\":{\"node_properties\":{\"node_name\":\"exact_equal\"}," +
-      "\"edge_properties\":{\"weight\":\"exact_equal\"}}"
-    } else if subtract_numeric {
-      ",\"merge\":{\"node_properties\":{\"node_name\":\"exact_equal\"}," +
-      "\"edge_properties\":{\"weight\":\"number_sum\"}}"
-    } else {
-      ""
-    }) +
-    "}," +
-    "\"as\":\"subtracted\"},{\"from\":\"subtracted\"," +
-    (if subtract_numeric {
-      "\"edge_rows\":true,\"as\":\"out\""
-    } else {
-      "\"node_rows\":true,\"as\":\"out\""
-    })
-  } else if graph_diff {
-    "\"graph\":{\"nodes\":{\"from\":" +
-    (if graph_diff_changes { "\"other\"" } else { "\"rows\"" }) +
-    ",\"id\":\"id\"," +
-    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":" +
-    (if graph_diff_changes { "\"other\"" } else { "\"rows\"" }) +
-    "," +
-    "\"source\":\"src\",\"target\":\"dst\"," +
-    "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{" +
-    "\"from\":\"g\",\"graph_diff\":{\"with\":\"right_graph\"}," +
-    "\"as\":\"out\""
-  } else if graph_equality {
-    let right = if variant == "graphs_equal_self" {
-      ""
-    } else {
-      "\"graph\":{\"nodes\":{\"from\":" +
-      (if variant == "graphs_payload_unequal" {
-        "\"other\""
-      } else {
-        "\"rows\""
-      }) +
-      ",\"id\":\"id\"," +
-      "\"fields\":[\"node_name\"]},\"edges\":{\"from\":" +
-      (if variant.has_suffix("unequal") { "\"other\"" } else { "\"rows\"" }) +
-      "," +
-      "\"source\":\"src\",\"target\":\"dst\"," +
-      "\"fields\":[\"weight\"]}},\"as\":\"right_graph\"},{"
-    }
-    let left_name = if variant == "graphs_equal_reverse" {
-      "right_graph"
-    } else {
-      "g"
-    }
-    let right_name = if variant == "graphs_equal_reverse" ||
-      variant == "graphs_equal_self" {
-      "g"
-    } else {
-      "right_graph"
-    }
-    right +
-    "\"from\":\"" +
-    left_name +
-    "\",\"graphs_equal\":{\"with\":\"" +
-    right_name +
-    "\"},\"as\":\"out\""
-  } else if variant == "edge_projection" || variant == "edge_projection_filter" {
-    "\"from\":\"g\",\"edge_rows\":true,\"as\":\"out\""
-  } else {
-    "\"node_rows\":true,\"as\":\"out\""
-  }
-  let result_fields = if union_set {
-    "\"id\",\"tags\""
-  } else if subtract && !subtract_properties {
-    "\"id\""
-  } else if subtract_numeric {
-    "\"src\",\"dst\",\"weight\""
-  } else if variant == "normalize_derive" {
-    "\"id\",\"node_name\",\"copy\""
-  } else if concise {
-    "\"src\",\"dst\",\"id\",\"weight\""
-  } else if variant.has_prefix("match_edges") ||
-    variant == "edge_projection" ||
-    variant == "edge_projection_filter" ||
-    variant == "union_numeric" ||
-    variant == "subgraph_edges_false" ||
-    variant == "subgraph_edge_predicate" {
-    "\"src\",\"dst\",\"weight\""
-  } else if variant == "graph_bounds" {
-    "\"kind\",\"node_id\",\"actual\",\"max\""
-  } else if variant.has_prefix("degree_") {
-    "\"node\",\"degree\""
-  } else if variant.has_prefix("components_") {
-    "\"node_id\",\"component_id\",\"component_size\""
-  } else if variant.has_prefix("shortest_") {
-    "\"source_id\",\"target_id\",\"total_cost\",\"hop_count\"," +
-    "\"node_ids\",\"edge_ids\""
-  } else if traverse_paths {
-    "\"start_id\",\"end_id\",\"hop_count\",\"node_ids\",\"edge_ids\""
-  } else if variant.has_prefix("reach_") || variant.has_prefix("traverse_") {
-    "\"start_id\",\"node_id\",\"depth\""
-  } else if graph_diff {
-    "\"delta\""
-  } else if graph_equality {
-    "\"equal\""
-  } else {
-    "\"id\",\"node_name\""
-  }
-  let first_fields = result_fields
-  let second_fields = if union_set {
-    "\"tags\""
-  } else if subtract && !subtract_properties {
-    "\"id\""
-  } else if subtract_numeric {
-    "\"weight\",\"src\""
-  } else if variant == "normalize_derive" {
-    "\"copy\",\"id\""
-  } else if concise {
-    "\"weight\",\"src\""
-  } else if variant.has_prefix("match_edges") ||
-    variant == "edge_projection" ||
-    variant == "edge_projection_filter" ||
-    variant == "union_numeric" ||
-    variant == "subgraph_edges_false" ||
-    variant == "subgraph_edge_predicate" {
-    "\"weight\",\"src\""
-  } else if variant == "graph_bounds" {
-    "\"kind\",\"node_id\""
-  } else if variant.has_prefix("degree_") {
-    "\"degree\""
-  } else if variant.has_prefix("components_") {
-    "\"component_id\",\"component_size\""
-  } else if variant.has_prefix("shortest_") {
-    "\"source_id\",\"target_id\",\"hop_count\""
-  } else if traverse_paths {
-    "\"start_id\",\"end_id\",\"hop_count\""
-  } else if variant.has_prefix("reach_") || variant.has_prefix("traverse_") {
-    "\"node_id\",\"depth\""
-  } else if graph_diff {
-    "\"delta\""
-  } else if graph_equality {
-    "\"equal\""
-  } else {
-    "\"node_name\""
-  }
-  let other_stage = if graph_diff_changes {
-    "{\"id\":\"other_values\",\"inputs\":{},\"steps\":[{" +
-    "\"values\":{\"schema\":" +
-    schema +
-    ",\"rows\":[{\"id\":1,\"src\":1,\"dst\":3," +
-    "\"node_name\":\"changed\",\"weight\":11},{\"id\":3," +
-    "\"src\":3,\"dst\":1,\"node_name\":\"third\"," +
-    "\"weight\":30}]},\"as\":\"out\"}],\"results\":{\"r\":{" +
-    "\"from\":\"out\",\"fields\":[\"id\",\"src\",\"dst\"," +
-    "\"node_name\",\"weight\"]}}},"
-  } else if subtract || union_set {
-    "{\"id\":\"other_values\",\"inputs\":{},\"steps\":[{" +
-    "\"values\":{\"schema\":" +
-    schema +
-    ",\"rows\":" +
-    (if union_set {
-      "[{\"id\":1,\"src\":1,\"dst\":1," + "\"tags\":[\"c\",null,\"b\"]}]"
-    } else if subtract_numeric {
-      "[{\"id\":1,\"src\":1,\"dst\":2," +
-      "\"node_name\":\"first\",\"weight\":1},{\"id\":2," +
-      "\"src\":2,\"dst\":1,\"node_name\":\"second\"," +
-      "\"weight\":5}]"
-    } else {
-      "[{\"id\":2,\"src\":2,\"dst\":2," +
-      (if subtract_properties {
-        "\"node_name\":\"second\",\"weight\":20"
-      } else {
-        "\"marker\":0"
-      }) +
-      "}]"
-    }) +
-    "},\"as\":\"out\"}],\"results\":{\"r\":{" +
-    "\"from\":\"out\",\"fields\":[\"id\",\"src\",\"dst\"," +
-    (if union_set {
-      "\"tags\""
-    } else if subtract_properties {
-      "\"node_name\",\"weight\""
-    } else {
-      "\"marker\""
-    }) +
-    "]}}},"
-  } else if split {
-    "{\"id\":\"node_values\",\"inputs\":{},\"steps\":[{" +
-    "\"values\":{\"schema\":" +
-    schema +
-    ",\"rows\":[{\"id\":1,\"src\":1,\"dst\":1," +
-    "\"node_name\":\"first\",\"weight\":0},{\"id\":2," +
-    "\"src\":2,\"dst\":2,\"node_name\":\"second\"," +
-    "\"weight\":0}]},\"as\":\"out\"}],\"results\":{\"r\":{" +
-    "\"from\":\"out\",\"fields\":[\"id\",\"src\",\"dst\"," +
-    "\"node_name\",\"weight\"]}}},"
-  } else if variant.has_suffix("unequal") {
-    "{\"id\":\"other_values\",\"inputs\":{},\"steps\":[{" +
-    "\"values\":{\"schema\":" +
-    schema +
-    ",\"rows\":" +
-    (if variant == "graphs_payload_unequal" {
-      "[{\"id\":1,\"src\":1,\"dst\":2," +
-      "\"node_name\":\"different\",\"weight\":10},{\"id\":2," +
-      "\"src\":2,\"dst\":1,\"node_name\":\"second\"," +
-      "\"weight\":20}]"
-    } else {
-      "[]"
-    }) +
-    "}," +
-    "\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
-    "\"fields\":[\"id\",\"src\",\"dst\",\"node_name\"," +
-    "\"weight\"]}}},"
-  } else {
-    ""
-  }
-  let selector_stage = if relation_selector {
-    "{\"id\":\"selector_values\",\"inputs\":{},\"steps\":[{" +
-    "\"values\":{\"schema\":{\"key\":{\"type\":\"number\"," +
-    "\"nullable\":" +
-    (if variant == "subgraph_relation_selector_nullable" {
-      "true"
-    } else {
-      "false"
-    }) +
-    "}},\"rows\":" +
-    (if traverse_relation_selector || shortest_relation_selector {
-      "[{\"key\":2},{\"key\":1},{\"key\":2}]"
-    } else {
-      "[{\"key\":2},{\"key\":2}]"
-    }) +
-    "}" +
-    ",\"as\":\"out\"}],\"results\":{\"r\":{\"from\":\"out\"," +
-    "\"fields\":[\"key\"]}}},"
-  } else {
-    ""
-  }
-  let graph_inputs = if graph_diff_changes {
-    "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
-    "\"other\":{\"result\":{\"stage\":\"other_values\"," +
-    "\"result\":\"r\"}}"
-  } else if subtract || union_set {
-    "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
-    "\"other\":{\"result\":{\"stage\":\"other_values\"," +
-    "\"result\":\"r\"}}"
-  } else if split {
-    "\"nodes\":{\"result\":{\"stage\":\"node_values\"," +
-    "\"result\":\"r\"}},\"rows\":{\"result\":{" +
-    "\"stage\":\"values\",\"result\":\"r\"}}"
-  } else if variant.has_suffix("unequal") {
-    "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
-    "\"other\":{\"result\":{\"stage\":\"other_values\"," +
-    "\"result\":\"r\"}}"
-  } else if relation_selector {
-    "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}," +
-    "\"selected\":{\"result\":{\"stage\":\"selector_values\"," +
-    "\"result\":\"r\"}}"
-  } else {
-    "\"rows\":{\"result\":{\"stage\":\"values\",\"result\":\"r\"}}"
-  }
-  "{\"version\":\"actql/0.1\",\"id\":\"p\",\"params\":" +
-  "{\"minimum\":{\"type\":\"number\",\"nullable\":false}}," +
-  "\"stages\":[{\"id\":\"a\",\"inputs\":{\"remote\":{" +
-  "\"connector\":\"crm/main\",\"resource\":\"r\"}},\"steps\":[{" +
-  "\"filter\":\"id > $minimum\",\"as\":\"filtered\"},{" +
-  "\"select\":[\"id\"],\"as\":\"captured\"}],\"results\":{" +
-  "\"r\":{\"from\":\"captured\",\"fields\":[\"id\"]}}},{" +
-  "\"id\":\"values\",\"inputs\":{},\"steps\":[{\"values\":{" +
-  "\"schema\":" +
-  schema +
-  ",\"rows\":" +
-  rows +
-  "},\"as\":\"out\"}]," +
-  "\"results\":{\"r\":{\"from\":\"out\",\"fields\":[\"id\"," +
-  "\"src\",\"dst\"," +
-  (if union_set {
-    "\"tags\""
-  } else if subtract && !subtract_properties {
-    "\"marker\""
-  } else if typed_traverse {
-    "\"edge_type\",\"node_name\",\"weight\""
-  } else {
-    "\"node_name\",\"weight\""
-  }) +
-  "]}}}," +
-  other_stage +
-  selector_stage +
-  "{\"id\":\"graph\",\"inputs\":{" +
-  graph_inputs +
-  "},\"steps\":[{" +
-  (if concise {
-    "\"from\":\"rows\",\"graph\":{\"source\":\"src\"," +
-    "\"target\":\"dst\"},\"as\":\"g\"},{"
-  } else if subtract {
-    "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
-    "\"fields\":" +
-    (if subtract_properties { "[\"node_name\"]" } else { "[]" }) +
-    "},\"edges\":{\"from\":\"rows\"," +
-    "\"source\":\"src\",\"target\":\"dst\",\"fields\":" +
-    (if subtract_properties { "[\"weight\"]" } else { "[]" }) +
-    "}}," +
-    "\"as\":\"g\"},{"
-  } else if union_set {
-    "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
-    "\"fields\":[\"tags\"]},\"edges\":{\"from\":\"rows\"," +
-    "\"source\":\"src\",\"target\":\"dst\",\"fields\":[]}}," +
-    "\"as\":\"g\"},{"
-  } else if typed_traverse {
-    "\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
-    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
-    "\"source\":\"src\",\"target\":\"dst\"," +
-    "\"label\":\"edge_type\",\"fields\":[\"weight\"]}}," +
-    "\"as\":\"g\"},{"
-  } else {
-    "\"graph\":{\"nodes\":{\"from\":" +
-    (if split { "\"nodes\"" } else { "\"rows\"" }) +
-    ",\"id\":\"id\"," +
-    "\"fields\":[\"node_name\"]},\"edges\":{\"from\":\"rows\"," +
-    "\"source\":\"src\",\"target\":\"dst\"," +
-    "\"fields\":[\"weight\"]}},\"as\":\"g\"},{"
-  }) +
-  projection +
-  "}],\"results\":{\"r\":{" +
-  "\"from\":\"out\",\"fields\":[" +
-  result_fields +
-  "]}}},{" +
-  "\"id\":\"consumer_a\",\"inputs\":{\"x\":{\"result\":{" +
-  "\"stage\":\"graph\",\"result\":\"r\"}}},\"steps\":[{" +
-  "\"select\":[" +
-  first_fields +
-  "],\"as\":\"out\"}],\"results\":{" +
-  "\"r\":{\"from\":\"out\",\"fields\":[" +
-  first_fields +
-  "]}}},{" +
-  "\"id\":\"consumer_b\",\"inputs\":{\"x\":{\"result\":{" +
-  "\"stage\":\"graph\",\"result\":\"r\"}}},\"steps\":[{" +
-  "\"select\":[" +
-  second_fields +
-  "],\"as\":\"out\"}],\"results\":{\"r\":{" +
-  "\"from\":\"out\",\"fields\":[" +
-  second_fields +
-  "]}}}],\"results\":{" +
-  "\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}"
+/// Fixture owner: query_integration/property_graph_fixture_helpers_wbtest.mbt
+// Current keyed Graph fixtures only. Retired tuple fixtures are retained in Git.
+fn local_carrier_graph_program(variant? : String = "current_filter") -> String {
+  current_graph_relation_program(variant)
 }
 
 ///|
@@ -3627,7 +2829,7 @@ fn query_checked_program_fixture(
   local_carrier_events_chain? : Bool = false,
   local_carrier_events_variant? : String = "watermark",
   local_carrier_graph_chain? : Bool = false,
-  local_carrier_graph_variant? : String = "projection",
+  local_carrier_graph_variant? : String = "current_filter",
   local_time_series_chain? : Bool = false,
   local_carrier_vectors_chain? : Bool = false,
   local_carrier_vectors_variant? : String = "normalize",
@@ -4161,11 +3363,7 @@ fn query_checked_program_fixture(
       old="\"results\":{\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}",
       new=if local_carrier_graph_chain {
         "\"results\":{\"published\":{\"from\":{\"stage\":" +
-        (if local_carrier_graph_variant == "graph_apply_changes" {
-          "\"apply\""
-        } else {
-          "\"graph\""
-        }) +
+        "\"graph\"" +
         ",\"result\":\"r\"}}}}"
       } else if local_carrier_events_chain {
         "\"results\":{\"published\":{\"from\":{\"stage\":" +
@@ -4256,80 +3454,7 @@ fn query_checked_program_fixture(
   } else {
     environment
   }
-  let evidence = if local_carrier_graph_chain &&
-    local_carrier_graph_variant.has_prefix("reach_") {
-    [traversal_capacity_material(environment, "graph", "reach")]
-  } else if local_carrier_graph_chain &&
-    local_carrier_graph_variant.has_prefix("traverse_") {
-    [
-      traversal_capacity_material(
-        environment,
-        "graph",
-        "traverse",
-        input_rows=if local_carrier_graph_variant.has_prefix(
-            "traverse_pattern_multi",
-          ) {
-          3L
-        } else {
-          2L
-        },
-        output_rows=if local_carrier_graph_variant == "traverse_ids" ||
-          local_carrier_graph_variant == "traverse_predicate" ||
-          local_carrier_graph_variant == "traverse_predicate_paths" ||
-          local_carrier_graph_variant == "traverse_pattern_all_predicates" ||
-          local_carrier_graph_variant == "traverse_relation_selector" ||
-          local_carrier_graph_variant == "traverse_relation_paths" {
-          4L
-        } else if local_carrier_graph_variant == "traverse_pattern_multi" {
-          3L
-        } else {
-          2L
-        },
-        selector_rows=if local_carrier_graph_variant ==
-          "traverse_relation_selector" ||
-          local_carrier_graph_variant == "traverse_relation_paths" {
-          Some(3L)
-        } else {
-          None
-        },
-        path_emission=local_carrier_graph_variant == "traverse_paths" ||
-          local_carrier_graph_variant == "traverse_relation_paths" ||
-          local_carrier_graph_variant == "traverse_predicate_paths" ||
-          local_carrier_graph_variant.has_prefix("traverse_pattern_multi_paths") ||
-          local_carrier_graph_variant == "traverse_in_paths" ||
-          local_carrier_graph_variant == "traverse_both_paths" ||
-          local_carrier_graph_variant == "traverse_zero_paths" ||
-          local_carrier_graph_variant == "traverse_type_empty_paths",
-      ),
-    ]
-  } else if local_carrier_graph_chain &&
-    local_carrier_graph_variant.has_prefix("shortest_") {
-    [
-      traversal_capacity_material(
-        environment,
-        "graph",
-        "shortest_path",
-        output_rows=if local_carrier_graph_variant == "shortest_ids" {
-          6L
-        } else if local_carrier_graph_variant == "shortest_relation_selector" {
-          9L
-        } else if local_carrier_graph_variant == "shortest_predicate" {
-          4L
-        } else if local_carrier_graph_variant == "shortest_nearest_per_source" {
-          2L
-        } else {
-          1L
-        },
-        selector_rows=if local_carrier_graph_variant ==
-          "shortest_relation_selector" {
-          Some(3L)
-        } else {
-          None
-        },
-        predicate_selector=local_carrier_graph_variant == "shortest_predicate",
-      ),
-    ]
-  } else if dag_join {
+  let evidence = if dag_join {
     [join_graph_capacity_material(environment, "compute_c", steps=join_steps)]
   } else if local_values_cross_external_chain {
     let left = query_capacity_proof(
@@ -4578,7 +3703,7 @@ fn query_checked_program_fixture(
         },
         {
           rela: true,
-          sga: local_carrier_graph_chain,
+          sga: false,
           tea: local_carrier_events_chain ||
           local_time_series_chain ||
           local_values_interval_chain ||
@@ -4587,6 +3712,7 @@ fn query_checked_program_fixture(
           calendar: false,
           text_rank: false,
         },
+        property_graph=local_carrier_graph_chain,
         numeric_profile=if numeric_materializing_group ||
           (
             local_values_group_chain &&
@@ -4620,10 +3746,7 @@ fn query_checked_program_fixture(
         compilation: query_checked_limits(
           Int::max(
             2 * (linear_compute_stages + 1),
-            if local_carrier_graph_variant == "graph_apply_changes" {
-              12
-            } else if local_values_join_chain &&
-              local_values_join_kind == "full" {
+            if local_values_join_chain && local_values_join_kind == "full" {
               20
             } else {
               10
@@ -5208,203 +4331,4 @@ fn test_fragment_contract() -> @execution.FragmentContract raise {
     registered_fragment(),
     registry_limits(),
   ).unwrap()
-}
-
-///|
-/// Fixture owner: query_integration/join_graph_capacity_wbtest.mbt
-fn traversal_capacity_material(
-  environment : @environment.WireEnvironment,
-  stage : String,
-  operation : String,
-  step? : Int = 1,
-  input_rows? : Int64 = 2L,
-  output_rows? : Int64 = 2L,
-  selector_rows? : Int64? = None,
-  predicate_selector? : Bool = false,
-  path_emission? : Bool = false,
-) -> @context.StageCapacityInput raise {
-  let policy = @environment.capacity_policy(
-    @environment.read_capacity(environment, {
-      max_bytes: 10000,
-      max_nodes: 1000,
-      max_depth: 30,
-    }).unwrap(),
-  )
-  let witnesses : Array[@wire.WireWitness] = []
-  let proofs : Array[@wire.ProgramProofClaim] = []
-  if operation == "traverse" {
-    let input = query_capacity_proof(
-      "actql.bound.values",
-      input_rows,
-      "{\"op\":\"source\"}",
-      step=0,
-    )
-    let graph = query_capacity_proof(
-      "actql.bound.graph-nodes",
-      input_rows,
-      "{\"op\":\"source\"}",
-      inputs=[@wire.cid(@wire.program_proof_witness(input))],
-      step=0,
-      unit="nodes",
-    )
-    proofs.push(input)
-    proofs.push(graph)
-    let output_inputs = [@wire.cid(@wire.program_proof_witness(graph))]
-    if selector_rows is Some(rows) {
-      let selector = query_capacity_proof(
-        "actql.bound.values",
-        rows,
-        "{\"op\":\"source\"}",
-        step=0,
-      )
-      proofs.push(selector)
-      output_inputs.push(@wire.cid(@wire.program_proof_witness(selector)))
-    }
-    if !path_emission {
-      let output = query_capacity_proof(
-        "actql.bound.traverse-nodes",
-        output_rows,
-        "{\"op\":\"source\"}",
-        inputs=output_inputs,
-        step~,
-      )
-      proofs.push(output)
-    }
-    for proof in proofs {
-      witnesses.push(@wire.program_proof_witness(proof))
-    }
-  } else if operation == "shortest_path" {
-    let output_inputs : Array[String] = []
-    if predicate_selector {
-      let input = query_capacity_proof(
-        "actql.bound.values",
-        2L,
-        "{\"op\":\"source\"}",
-        step=0,
-      )
-      let graph = query_capacity_proof(
-        "actql.bound.graph-nodes",
-        2L,
-        "{\"op\":\"source\"}",
-        inputs=[@wire.cid(@wire.program_proof_witness(input))],
-        step=0,
-        unit="nodes",
-      )
-      proofs.push(input)
-      proofs.push(graph)
-      output_inputs.push(@wire.cid(@wire.program_proof_witness(graph)))
-    } else if selector_rows is Some(rows) {
-      let selector = query_capacity_proof(
-        "actql.bound.values",
-        rows,
-        "{\"op\":\"source\"}",
-        step=0,
-      )
-      proofs.push(selector)
-      let selector_cid = @wire.cid(@wire.program_proof_witness(selector))
-      // Source and target are distinct ordered input edges even when they
-      // select the same material.
-      output_inputs.push(selector_cid)
-      output_inputs.push(selector_cid)
-    }
-    let output = query_capacity_proof(
-      "actql.bound.shortest-path",
-      output_rows,
-      "{\"op\":\"source\"}",
-      inputs=output_inputs,
-      step~,
-    )
-    proofs.push(output)
-    for proof in proofs {
-      witnesses.push(@wire.program_proof_witness(proof))
-    }
-  }
-  let artifacts : Array[(Bytes, String)] = []
-  for
-    (field, unit, suffix) in [
-      ("max_graph_paths", "paths", ":paths"),
-      ("max_graph_output_rows", "rows", ""),
-    ] {
-    let host = @host.create(@capacity_policy.ceiling(policy, field).unwrap(), {
-      max_bytes: 10000,
-      max_nodes: 1000,
-      max_depth: 30,
-    }).unwrap()
-    let writer = @encode.writer(10000, 1000, 30)
-    @host.emit(host, writer)
-    let text = @encode.finish(writer)
-    let wire = @wire.admit(@utf8.encode(text), @host.cid(host), {
-      max_bytes: 10000,
-      max_nodes: 1000,
-      max_depth: 30,
-    }).unwrap()
-    witnesses.push(wire)
-    let candidates = [wire]
-    if (
-        operation == "shortest_path" ||
-        (operation == "traverse" && !path_emission)
-      ) &&
-      unit == "rows" {
-      candidates.push(@wire.program_proof_witness(proofs[proofs.length() - 1]))
-      candidates.sort_by((a, b) => @wire.cid(a).compare(@wire.cid(b)))
-    }
-    let texts = candidates.map(candidate => {
-      let writer = @encode.writer(10000, 1000, 30)
-      @wire.emit(candidate, writer)
-      @encode.finish(writer)
-    })
-    let mut effective = @wire.value(candidates[0])
-    for candidate in candidates {
-      effective = Int64::min(effective, @wire.value(candidate))
-    }
-    let prefix = "{\"author_guard_binding\":\"absent\",\"breach\":\"fail\"," +
-      "\"candidates\":[" +
-      texts.join(",") +
-      "],\"effective_max\":" +
-      effective.to_string() +
-      ",\"enforcement\":\"engine_atomic\""
-    let tail = ",\"subject_ref\":\"" +
-      operation +
-      ":checked-step:" +
-      step.to_string() +
-      suffix +
-      "\",\"unit\":\"" +
-      unit +
-      "\",\"version\":\"actql-resolved-limit/0.1\"}"
-    let cid = "sha256:" + @sha.hex(@utf8.encode(prefix + tail))
-    artifacts.push(
-      (
-        @utf8.encode(prefix + ",\"resolved_limit_cid\":\"" + cid + "\"" + tail),
-        cid,
-      ),
-    )
-  }
-  let mixed = @wire.check_mixed_claims(witnesses, artifacts, {
-    max_entities: 12,
-    max_references: 24,
-    max_bytes: 10000,
-    max_nodes: 1000,
-    max_depth: 30,
-  }).unwrap()
-  let claims = @wire.check_mixed_program_claims(mixed, proofs, {
-    max_witnesses: 20,
-    max_references: 100,
-  }).unwrap()
-  let sources = @host.bind_claim_sources(claims, [policy], {
-    max_entries: 20,
-    max_bytes: 20000,
-    max_nodes: 2000,
-    max_depth: 30,
-  }).unwrap()
-  {
-    stage,
-    sources,
-    uses: [
-      @context.Traversal(
-        step~,
-        paths=@wire.mixed_limit_at(mixed, 0).unwrap(),
-        output=@wire.mixed_limit_at(mixed, 1).unwrap(),
-      ),
-    ],
-  }
 }

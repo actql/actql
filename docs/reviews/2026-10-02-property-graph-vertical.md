@@ -29,6 +29,21 @@ normal fresh packed snapshot acceptance and final pushed-SHA CI are still
 required before adoption. The previous source's successes do not substitute
 for that integration's acceptance.
 
+The first integrated lint run at
+`6e553eeb8e75c122ae96798c51cdb734b2962de7` fails before the dependency-free
+Node execution step: the Node Host fixture copy is stale relative to the
+current Workers fixture. The existing `node-host-fixtures.mjs --write`
+projection removes 1,134 lines of retired tuple fixture helpers and adds the
+same 58 current lines already owned by the Workers fixture. No generator,
+semantic oracle, dependency guard or expected result is changed. The actual
+DuckDB-free standard-entry regression then passes **62/62**, with one explicitly
+conditional source-only RelA check skipped in the isolated JS installation.
+Formatting passes. Logs remain separate:
+`/private/tmp/property-graph-lint-6e553eeb8-20261003.log` and
+`/private/tmp/property-graph-node-fixture-fixed-no-duckdb-20261003.log`.
+The failed lint aggregate is not reported as passing; a clean-source rerun is
+required after committing this generated copy.
+
 ### Three-target Core and current-main integration (2026-10-03)
 
 Clean source `73c58a1e1c17a09b96e5c5822fbb514aeb4e961a` passes the actual
