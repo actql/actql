@@ -1219,8 +1219,29 @@ test "one CTE lowers to a shared checked Stage Result" {
     "WITH left_rows AS (SELECT a FROM left_rows) SELECT a FROM left_rows",
     syntax_limits(),
   ).unwrap()
+  // A nonrecursive CTE sees the outer producer in its body; its own name is
+  // bound only for the following query. This is not a recursive reference.
+  let shadow_program = compile(shadow, set_context(), construction_limits()).unwrap()
+  assert_eq(@program.stage_count(shadow_program), 2)
+  assert_true(semantic(shadow_program).contains("\"stage\":\"aql_cte_0\""))
+  match
+    @check.check_parsed(
+      shadow_program,
+      check_environment(),
+      None,
+      check_limits(),
+    ) {
+    Checked(_) => ()
+    NeedsInputs(_) => fail("outer-source CTE shadow should remain closed")
+    Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+  }
+  let recursive = @query.parse_query(
+    "WITH missing AS (SELECT a FROM missing) SELECT a FROM missing",
+    syntax_limits(),
+  ).unwrap()
   assert_true(
-    compile(shadow, set_context(), construction_limits()) is Err(UnsupportedCte),
+    compile(recursive, set_context(), construction_limits())
+    is Err(UnsupportedCte),
   )
   let reused = @query.parse_query(
     "WITH chosen AS (SELECT a, b FROM left_rows WHERE a > 0) SELECT l.a AS a, r.b AS right_b FROM chosen AS l JOIN chosen AS r ON l.a = r.a",
