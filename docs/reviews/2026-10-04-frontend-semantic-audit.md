@@ -17,7 +17,7 @@ was generated from the product lowerer.
 
 Assertion/terminal Effect syntax and the composition-specific Source predicate
 and JOIN-limit representation belong to [#273](https://github.com/actql/actql/pull/273).
-That work is not duplicated here. The two newly reproduced defects below also
+That work is not duplicated here. The three newly reproduced defects below also
 require changes to its shared `query_program/compile.mbt`; their counterexamples
 are handed to D instead of editing that file concurrently.
 
@@ -73,6 +73,56 @@ another consumer needs the original Source, retain the complete acquisition
 and leave this WHERE on `chosen`. Do not acquire the original Source a second
 time, remove the predicate, or equate a shadowing CTE name with an outer Source.
 
+## Reproduced defect: aggregate input loses an immutable range snapshot
+
+```aql
+FROM records AS before |> SET id = amount
+  |> AGGREGATE SUM(before.id) AS total |> RESULT answer
+
+FROM records AS before |> DROP id
+  |> AGGREGATE SUM(before.id) AS total |> RESULT answer
+```
+
+With `id=[1,2]` and `amount=[10,20]`, both should return `total=3`.
+SET and DROP retain `before.id` as the original input value. AGGREGATE closes
+that range in its **output**, after resolving its input expressions. The
+current-column control `SUM(id)` after SET correctly returns `total=30`.
+These rules follow the adopted Pipe scope contract and the pinned
+[GoogleSQL SET and AS descriptions](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/pipe-syntax.md).
+
+The scoped Group branch in `compile_steps` (baseline lines 1736–1757)
+materializes only the current visible columns and clears `pipe_ranges` before
+resolving group keys and aggregate arguments. The later resolver therefore
+returns `UnknownColumn` for `before.id`; DROP also discards its needed physical
+slot. Keep the input scope and required original slots through aggregate
+argument/key lowering, then close the output scope. Do not revive the old
+range after aggregation or replace its references with the current column.
+
+The [three authored aggregation cases](../../spec/frontend/fixtures/semantic-audit/group-cases.json)
+were executed using the same verified external installation and tarball
+digests from the audited main; no runtime rebuild or repack was needed.
+Both old-range cases fail on both Local and HTTP with `ClientProgramRejected`,
+with **zero durable Run admissions and zero Source acquisition sessions**.
+The current-column control succeeds on both, returning `[{"total":30}]`,
+ordered column `total:number nullable`, a complete row stream, one acquisition,
+and no further acquisition on same-request retry or attach/read.
+
+Focused JS compilation: 3 tests, 1 control passed and 2 pre-fix regressions
+failed with `UnknownColumn`. The control's common checker requests existing
+numeric input evidence; that isolated fixture is not counted as a closed
+Host execution. The packed control establishes the real execution separately.
+Packed observations: 6 cases across both transports. Recomparison against the
+independently corrected SUM contract gives 2 controls passed and 4 pre-fix
+regressions failed. SUM's nullable output follows its empty-input contract
+(`relation_typing/aggregates.mbt`); the initial private harness incorrectly
+expected non-nullability. That harness error is retained in the raw evidence
+and is not classified as a product defect. Recomparison used saved
+observations and did not rerun the Host or change any expected row.
+
+This third issue also shares D's `compile.mbt` edit boundary. Its executable
+pre-fix regression and public source cases are handed off without a parallel
+implementation.
+
 ## Focused evidence
 
 The [four authored public cases](../../spec/frontend/fixtures/semantic-audit/cases.json)
@@ -121,10 +171,10 @@ parameter references remain typed expression nodes. The inspected pre-JOIN
 WHERE paths retain the authored filter. No additional silent replacement was
 identified in these paths; the four-case execution sample is not exhaustive.
 
-Broader NULL/JOIN combinations, aggregate input scopes, all parameter types,
+Broader NULL/JOIN combinations, remaining aggregate input scopes, all parameter types,
 failure/cancellation campaigns and frontend-wide conformance remain unaudited.
 Explicitly rejected profile gaps such as LIMIT 0 are not reclassified as silent
 lowering errors or fixed by this record. No full Core, proof, performance or
 packed campaign, manual CI rerun, merge, or deployment was performed.
-The two reproduced defects remain unfixed pending the shared-file handoff;
+The three reproduced defects remain unfixed pending the shared-file handoff;
 this evidence commit is not a product repair PR or a new runtime validation SHA.

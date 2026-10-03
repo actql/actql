@@ -1,0 +1,93 @@
+{
+  "audited_source_sha": "ba3d6d12891f884b1bb55bb4d67bf043d4a58a94",
+  "cases": [
+    {
+      "name": "group-set-old",
+      "format": "aql-text",
+      "sourceRows": [
+        {
+          "id": 1,
+          "amount": 10
+        },
+        {
+          "id": 2,
+          "amount": 20
+        }
+      ],
+      "text": "FROM records AS before |> SET id = amount |> AGGREGATE SUM(before.id) AS total |> RESULT answer",
+      "rows": [
+        {
+          "total": 3
+        }
+      ],
+      "columns": [
+        {
+          "name": "total",
+          "contract": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-drop-old",
+      "format": "aql-text",
+      "sourceRows": [
+        {
+          "id": 1,
+          "amount": 10
+        },
+        {
+          "id": 2,
+          "amount": 20
+        }
+      ],
+      "text": "FROM records AS before |> DROP id |> AGGREGATE SUM(before.id) AS total |> RESULT answer",
+      "rows": [
+        {
+          "total": 3
+        }
+      ],
+      "columns": [
+        {
+          "name": "total",
+          "contract": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "group-set-current-control",
+      "format": "aql-text",
+      "sourceRows": [
+        {
+          "id": 1,
+          "amount": 10
+        },
+        {
+          "id": 2,
+          "amount": 20
+        }
+      ],
+      "text": "FROM records AS before |> SET id = amount |> AGGREGATE SUM(id) AS total |> RESULT answer",
+      "rows": [
+        {
+          "total": 30
+        }
+      ],
+      "columns": [
+        {
+          "name": "total",
+          "contract": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      ]
+    }
+  ],
+  "status": "independent pre-fix audit obligations; not registered passing acceptance"
+}
