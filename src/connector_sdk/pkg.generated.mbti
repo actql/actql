@@ -308,6 +308,7 @@ pub(all) struct ExecutionLifecycleOperations[E] {
   dispose : () -> Unit
   settled : () -> Unit
   retention_released : () -> Bool
+  scratch_released : () -> Bool
   released : () -> Unit
   ready : () -> Result[Unit, E]
 }
@@ -364,6 +365,7 @@ pub(all) struct ManagedExecutionOperations[E] {
   dispose : () -> Unit
   settled : () -> Unit
   retention_released : () -> Bool
+  scratch_released : () -> Bool
   released : () -> Unit
   ready : () -> Result[Unit, E]
 }

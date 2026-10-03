@@ -1805,6 +1805,16 @@ async function exerciseStrategyGraph(
     fields:['id','node_name'],secondFields:['node_name'],
     expected:[{id:2,node_name:'second'}],completedTasks:9,
   }, {
+    name:'retained-trail-relation-filter', retainedOutput:true,
+    steps:[
+      {from:'g',traverse:{start:{from:'seeds',id:'element'},
+        direction:'out',min_hops:1,max_hops:1,path_mode:'trail',
+        emit:'paths'},as:'paths'},
+      {from:'paths',filter:'hop_count > 0',as:'out'},
+    ],
+    fields:['hop_count'],secondFields:['hop_count'],
+    expected:[{hop_count:1},{hop_count:1}],
+  }, {
     name:'edge-match',
     step:{from:'g',match_edges:{definition:'E',where:'true',
       fields:['src','dst','weight']},as:'out'},
@@ -1818,6 +1828,20 @@ async function exerciseStrategyGraph(
     const consumerA = graphProgram.stages.find(stage => stage.id === 'consumer_a');
     const consumerB = graphProgram.stages.find(stage => stage.id === 'consumer_b');
     const tail = graphProgram.stages.find(stage => stage.id === 'tail');
+    if (publicationCase.name === 'retained-trail-relation-filter') {
+      const seedSource = {
+        id:'seed_source',
+        inputs:{rows:{result:{stage:'values',result:'r'}}},
+        steps:[structuredClone(graphStage.steps[0]),{
+          from:'g',match_nodes:{definition:'N',
+            bindings:{identity:'element'},where:'true',fields:['element']},
+          as:'seeds',
+        }],
+        results:{r:{from:'seeds',fields:['element']}},
+      };
+      graphProgram.stages.splice(graphProgram.stages.indexOf(graphStage),0,seedSource);
+      graphStage.inputs.seeds = {result:{stage:'seed_source',result:'r'}};
+    }
     graphStage.steps.splice(
       1,
       1,
@@ -12276,12 +12300,32 @@ async function exerciseStrategyGraph(
       }
     } finally {
       const closing = failureExecution?.close();
+      const observedClosing = Promise.allSettled([closing]);
       if (failureExecution) {
-        assert.equal(await failureExecution.cleanup(), true);
-        await closing;
+        const [closeObservation] = await observedClosing;
+        if (closeObservation.status === 'rejected') {
+          const error = closeObservation.reason;
+          assert(error.code === 'ManagedOutputCleanupPending' ||
+            (error instanceof AggregateError &&
+              error.message === 'ManagedSiteTransferCleanupFailed'));
+          assert.equal(error.cleanupPending, true);
+          assert.equal(typeof error.cleanupHandle?.retry, 'function');
+        }
+        // Each cleanup pass retries each independent owner once. A Store
+        // retry may precede the Transfer retry that releases its reader pin.
+        const cleaned = await failureExecution.cleanup();
+        if (!cleaned) {
+          assert.equal(failureExecution.cleanupPending(), true);
+          assert(failureExecution.usage().reservedExecutionBytes > 0n,
+            'pending output cleanup must retain its original scratch');
+          assert.equal(await failureExecution.cleanup(), true,
+            'after source stop, retry must settle the original output owner');
+        }
+        assert.equal(failureExecution.cleanupPending(), false);
         assert.equal(failureExecution.usage().reservedTransferBytes, 0n);
         assert.equal(failureExecution.usage().reservedRetentionBytes, 0n);
-        assert.equal(failureExecution.usage().reservedExecutionBytes, 0n);
+        assert.equal(failureExecution.usage().reservedExecutionBytes, 0n,
+          transferFailureCase);
         assert(failureExecution.usage().transferredBytes > 0n,
           'spent Transfer bytes remain cumulative after failure');
       }

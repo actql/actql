@@ -291,6 +291,7 @@ fn complete_retained_duckdb_compute_impl(
     @execution.complete_trusted_retained_output(value.retained_port, value) {
     Ok(output) => {
       value.completed = true
+      release_duckdb_compute_scratch(value)
       // Only this result's logical use restriction survives completion. The
       // stored material has its own copy lifetime, independent of its inputs.
       let live = value.retained_live

@@ -89,6 +89,8 @@ pub fn[T] start_captured_managed_duckdb_task(
             |> ignore
           },
           settled: fn() { settled.val = true },
+          // The transport owner confirms retained private storage cleanup.
+          scratch_released: fn() { disposed.val && retention_released() },
           retention_released,
           released: fn() { () },
           ready: fn() {

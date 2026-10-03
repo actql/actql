@@ -272,7 +272,13 @@ pub fn[E] prepare_local_materializing_execution(
           {
             cancel: close,
             dispose: close,
-            settled: fn() { attempt.settled = true },
+            settled: fn() {
+              attempt.settled = true
+              if !attempt.closed && attempt.output is Some(_) {
+                release_local_materializing_scratch(attempt) |> ignore
+              }
+            },
+            scratch_released: fn() { attempt.provider_execution is None },
             retention_released: () => {
               match attempt.release_check {
                 None => true
@@ -656,6 +662,26 @@ pub fn local_materializing_publication_output(
 }
 
 ///|
+/// The detached output has its own retention. Release only stopped provider
+/// workspace, retaining the existing owner on pending/error for close retry.
+fn release_local_materializing_scratch(
+  attempt : LocalMaterializingAttempt,
+) -> Bool {
+  match attempt.provider_execution {
+    None => true
+    Some(active) => {
+      if !managed_provider_stopped(active) ||
+        !cleanup_managed_provider(active).unwrap_or(false) {
+        return false
+      }
+      attempt.provider_work = managed_provider_cumulative_work(active)
+      attempt.provider_execution = None
+      true
+    }
+  }
+}
+
+///|
 pub fn close_local_materializing_attempt(
   attempt : LocalMaterializingAttempt,
 ) -> Unit {
@@ -684,10 +710,6 @@ pub fn close_local_materializing_attempt(
       cancel_managed_provider(active) |> ignore
       advance_managed_provider(active, 1) |> ignore
     }
-    if managed_provider_stopped(active) &&
-      cleanup_managed_provider(active).unwrap_or(false) {
-      attempt.provider_work = managed_provider_cumulative_work(active)
-      attempt.provider_execution = None
-    }
+    release_local_materializing_scratch(attempt) |> ignore
   }
 }

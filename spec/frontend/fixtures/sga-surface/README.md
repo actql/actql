@@ -1,6 +1,7 @@
-> These `.aql` files are historical/internal fixtures, not accepted public
-> source. Independent `*.expected-program.json` files remain machine-input
-> execution fixtures. JSON execution does not complete new text migration.
+> These `.aql` files and independent `*.expected-program.json` files preserve
+> historical/internal tuple-Graph fixtures, not current executable inputs.
+> Current admission refuses the retired constructor even with the keyed
+> Property Graph profile installed. Historical rows do not prove current execution.
 > See [migration mapping](../../../../docs/design/frontend-language-migration.md).
 
 # SGA surface baseline fixtures
@@ -97,8 +98,8 @@ Result order declaration.
 ## Historical public text execution evidence
 
 These observations apply to the recorded earlier SHAs. Current packed tests
-submit the independent machine Programs and reject the historical text. They
-do not demonstrate replacement text migration.
+use the independently authored keyed Property Graph Program and reject the
+retired inputs. They do not demonstrate replacement text migration.
 
 At `0601a0f02f99e23cb38b908f2d0955a96339b50f`, the standard clean packed
 installation passed `normalize-rows`, `mean-graphs`, `traverse-paths`,

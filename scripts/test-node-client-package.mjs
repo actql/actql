@@ -1854,9 +1854,7 @@ await checkQueryPair(installedRemote, 'remote');
 await checkCurrentPropertyGraph(installedRemote, 'remote');
 if (process.env.ACTQL_GRAPH_ONLY === '1') {
   installedRemote.close();
-  console.log(projectionOnly
-    ? 'packed projection Local and HTTP smoke passed'
-    : 'packed Graph Local and HTTP smoke passed');
+  console.log('packed Graph Local and HTTP smoke passed');
   process.exit(0);
 }
 await checkValuesCte(installedRemote, 'remote');
