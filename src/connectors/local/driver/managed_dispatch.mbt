@@ -716,6 +716,14 @@ pub fn[T] start_local_managed_dispatch(
       @execution.cancel_completed_result_relation_export(preparation) |> ignore
     }
   }
+  let release_output_aliases = fn() {
+    ordinary.val = None
+    finalization_payload.val = None
+    finalization_available.val = None
+    finalization_receipt.val = None
+    finalization_material.val = None
+    finalization_completed.val = None
+  }
   // These are the driver's charged scratch roots. Returned transfer handles
   // capture optional owners, so even a finished importer can be detached.
   // Do not clear shared result storage: successful material owns its receipt.
@@ -744,15 +752,11 @@ pub fn[T] start_local_managed_dispatch(
     finalization_retention.val = None
     finalization_stream.val = None
     finalization_result_preparation.val = None
-    // Keep the readable ordinary result and completion facts with the existing
-    // retained-output lifetime. Dispose drops the driver's aliases as well.
-    if disposed.val {
-      ordinary.val = None
-      finalization_payload.val = None
-      finalization_available.val = None
-      finalization_receipt.val = None
-      finalization_material.val = None
-      finalization_completed.val = None
+    // Execution disposal may precede the published output's final reader.
+    // Only unpublished output can be dropped here; the existing released
+    // notification retires published aliases after retention is confirmed.
+    if disposed.val && retained.val is None {
+      release_output_aliases()
     }
     for index in 0..<finalization_cids.length() {
       finalization_cids[index] = None
@@ -856,6 +860,7 @@ pub fn[T] start_local_managed_dispatch(
             reads.all(read => read is None) &&
             (
               !disposed.val ||
+              retained.val is Some(_) ||
               (
                 ordinary.val is None &&
                 finalization_payload.val is None &&
@@ -885,7 +890,7 @@ pub fn[T] start_local_managed_dispatch(
               .unwrap()
             relation_released && carrier_released
           },
-          released: fn() { () },
+          released: release_output_aliases,
           ready: fn() {
             if live.val && settled.val && !disposed.val {
               Ok(())

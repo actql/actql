@@ -196,6 +196,12 @@ test "managed success releases import and admission scratch while retained outpu
   assert_eq(local_managed_test_rows(operations), rows)
   assert_true((transfer.append)(rows[0]) is Err(_))
   assert_true((transfer.finish)() is Err(_))
+  // Disposing the execution cannot discard a still-published output generation.
+  // Its existing owner must keep the readable backing until the output closes.
+  (operations.close)()
+  assert_false((operations.cleanup_refresh)())
+  assert_true(@execution.managed_completed_output_available(completed))
+  assert_eq(local_managed_test_rows(operations), rows)
   output_live.val = false
   @strategy.close_captured_task_output(run, 2)
   (operations.close)()

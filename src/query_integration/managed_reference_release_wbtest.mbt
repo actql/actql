@@ -1,6 +1,6 @@
 ///|
 test "reference managed finished import releases through common cleanup with transfer handles retained" {
-  for phase in 0..<2 {
+  for phase in 0..<3 {
     let (run, issuer) = captured_graph_fixture(
       dag_two_consumers_of_compute_a=true,
     )
@@ -83,7 +83,7 @@ test "reference managed finished import releases through common cleanup with tra
       native_compile_limits().expressions,
     ).unwrap()
     |> ignore
-    // This cancellation-only task requests the reference implementation's
+    // This task requests the reference implementation's
     // supported no-identity profile, not process-managed deferred CID custody.
     let obligations = @execution.prepare_managed_obligations(
       owner,
@@ -113,7 +113,7 @@ test "reference managed finished import releases through common cleanup with tra
       (transfer.append)(row).unwrap()
     }
     (transfer.finish)().unwrap()
-    if phase == 1 {
+    if phase > 0 {
       (operations.execute)().unwrap()
       assert_eq((operations.output_rows)(), 1)
     }
@@ -123,16 +123,40 @@ test "reference managed finished import releases through common cleanup with tra
     )
     assert_true(admitted.transferred_bytes > before.transferred_bytes)
     assert_false(@strategy.captured_task_completed(run, 2))
+    let output_live = Ref(true)
+    let published = if phase == 2 {
+      (operations.settle)().unwrap()
+      Some(
+        (operations.complete)(2, operations.storage_bytes, fn() {
+          output_live.val
+        }).unwrap(),
+      )
+    } else {
+      None
+    }
     (operations.close)()
     assert_false((operations.cleanup_refresh)())
+    if published is Some(output) {
+      assert_true(@execution.managed_completed_output_available(output))
+      assert_eq((operations.output_rows)(), 1)
+      assert_eq((operations.output_row)(0).unwrap(), rows[0])
+    }
     let pending = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
     assert_eq(
       pending.reserved_execution_bytes,
-      admitted.reserved_execution_bytes,
+      if phase == 2 {
+        before.reserved_execution_bytes
+      } else {
+        admitted.reserved_execution_bytes
+      },
     )
     assert_eq(pending.transferred_bytes, admitted.transferred_bytes)
     assert_true((operations.execute)() is Err(_))
     (operations.settle)().unwrap()
+    if phase == 2 {
+      output_live.val = false
+      @strategy.close_captured_task_output(run, 2)
+    }
     guard (operations.cleanup_refresh)() else {
       fail("Reference import scratch remained after cleanup")
     }
@@ -156,7 +180,7 @@ test "reference managed finished import releases through common cleanup with tra
       @resources.ledger_usage(@strategy.captured_dag_ledger(run)).transferred_bytes,
       admitted.transferred_bytes,
     )
-    assert_false(@strategy.captured_task_completed(run, 2))
+    assert_eq(@strategy.captured_task_completed(run, 2), phase == 2)
     assert_true(@execution.managed_completed_output_available(producer))
     assert_eq(local_managed_test_rows(producer_operations), rows)
     producer_live.val = false

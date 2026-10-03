@@ -281,6 +281,7 @@ pub fn[T] start_numeric_managed_dispatch(
   setup : NumericManagedDispatchConfiguration[T],
 ) -> Result[NumericManagedDispatchOperations[T], @numeric.PlanIssue] {
   let live = Ref(true)
+  let output_live = Ref(true)
   let settled = Ref(false)
   let disposed = Ref(false)
   let scratch_uses = Ref(0)
@@ -300,7 +301,7 @@ pub fn[T] start_numeric_managed_dispatch(
     }
     // Numeric output and its managed checked copy are covered by the existing
     // retained bound; only the imported invocation workspace is scratch.
-    if disposed.val {
+    if disposed.val && retained.val is None {
       ordinary.val = None
     }
   }
@@ -338,6 +339,9 @@ pub fn[T] start_numeric_managed_dispatch(
         ] = {
           cancel: fn() {
             live.val = false
+            if retained.val is None {
+              output_live.val = false
+            }
             for handle in bridges {
               if handle.val is Some(bridge) {
                 @execution.close_managed_producer_bridge(bridge)
@@ -346,6 +350,9 @@ pub fn[T] start_numeric_managed_dispatch(
           },
           dispose: fn() {
             live.val = false
+            if retained.val is None {
+              output_live.val = false
+            }
             for handle in bridges {
               if handle.val is Some(bridge) {
                 @execution.close_managed_producer_bridge(bridge)
@@ -364,7 +371,7 @@ pub fn[T] start_numeric_managed_dispatch(
             scratch_uses.val == 0 &&
             bridges.all(handle => handle.val is None) &&
             reads.all(read => read is None) &&
-            (!disposed.val || ordinary.val is None)
+            (!disposed.val || retained.val is Some(_) || ordinary.val is None)
           },
           retention_released: fn() {
             retained.val is None ||
@@ -374,7 +381,12 @@ pub fn[T] start_numeric_managed_dispatch(
             })
             .unwrap()
           },
-          released: fn() { () },
+          // The accepted output can outlive execution disposal. Its existing
+          // retention observation must confirm release before dropping rows.
+          released: fn() {
+            output_live.val = false
+            ordinary.val = None
+          },
           ready: fn() {
             if live.val && settled.val {
               Ok(())
@@ -475,7 +487,7 @@ pub fn[T] start_numeric_managed_dispatch(
           input,
           setup.generated,
           setup.limits,
-          () => live.val,
+          () => output_live.val,
         ) {
         Ok(value) => value
         Err(issue) => return Err(issue)
