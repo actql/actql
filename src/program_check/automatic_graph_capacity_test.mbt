@@ -1,5 +1,5 @@
 ///|
-test "standard Graph projection derives quantity bounds through Result imports" {
+test "Property Graph MATCH derives quantity bounds through Result imports" {
   for
     (nodes, empty) in [
       (true, false),
@@ -7,23 +7,32 @@ test "standard Graph projection derives quantity bounds through Result imports" 
       (true, true),
       (false, true),
     ] {
-    let (text, _, environment, _, limits) = public_input_fixture(
+    let (text, _, base, _, limits) = public_input_fixture(
       generated=true,
       graph_policy=true,
     )
+    let environment = @program_check.checking_environment(
+      @program_check.checking_environment_wire(base),
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+      property_graph=true,
+    )
     let projection = if nodes {
-      "{\"node_rows\":true},{\"derive\":{\"value\":\"id\"},\"as\":\"projected\"}"
+      "{\"match_nodes\":{\"definition\":\"N\",\"label\":\"Node\",\"where\":\"true\",\"fields\":[\"id\",\"value\"]},\"as\":\"projected\"}"
     } else {
-      "{\"edge_rows\":true},{\"select\":[{\"id\":\"src\"},{\"value\":\"dst\"}],\"as\":\"projected\"}"
+      "{\"match_edges\":{\"definition\":\"E\",\"label\":\"R\",\"where\":\"true\",\"fields\":[\"id\",\"value\"]},\"as\":\"projected\"}"
     }
     let source = text
       .replace(
         old="\"as\":\"derived\"}]",
-        new="\"as\":\"derived\"},{\"graph\":{\"source\":\"id\",\"target\":\"value\"}}," +
+        new="\"as\":\"derived\"},{\"property_graph\":{\"version\":\"actql-property-graph-constructor/0.1\",\"nodes\":[{\"name\":\"N\",\"from\":\"derived\",\"key\":[\"id\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"all_columns\"}}]}],\"edges\":[{\"name\":\"E\",\"from\":\"derived\",\"key\":[\"id\"],\"source\":{\"definition\":\"N\",\"key\":[\"id\"]},\"target\":{\"definition\":\"N\",\"key\":[\"id\"]},\"labels\":[{\"name\":\"R\",\"properties\":{\"mode\":\"all_columns\"}}]}]},\"as\":\"g\"}," +
           projection +
           "]",
       )
-      .replace(old="\"from\":\"derived\"", new="\"from\":\"projected\"")
+      .replace(
+        old="\"results\":{\"out\":{\"from\":\"derived\"",
+        new="\"results\":{\"out\":{\"from\":\"projected\"",
+      )
       .replace(old="{\"take\":1,\"as\":\"selected\"}", new="")
       .replace(old="\"from\":\"selected\"", new="\"from\":\"rows\"")
       .replace(
@@ -62,9 +71,9 @@ test "standard Graph projection derives quantity bounds through Result imports" 
         ),
         if empty {
           0L
-        } else if nodes {
-          2L
         } else {
+          // One declared node and one independently keyed self-loop per row;
+          // construction no longer invents nodes from endpoint values.
           1L
         },
       )

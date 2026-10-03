@@ -5,6 +5,7 @@ import test from 'node:test';
 import {valuesUnitIdentity, valuesResultPlan} from
   '../../scripts/fixtures/string-contract-identities.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
+import {valuesDependencyOracle} from '../../scripts/client-values-dependency-oracle.mjs';
 import {validRunState} from '../client-wire/index.mjs';
 import {admitDispatchJson, dispatchCid, createJournal, prepareIntent,
   admissionDurableJson, admitDurableJson, commitIntent, admitResponseJson,
@@ -829,7 +830,7 @@ test('portable Host package compiles the ordinary Values Program', () => {
   assert.equal(valuesResultPlan(valuesUnitIdentity(source, true)).result_plan_logical_cid,
     'sha256:8d2ad95f6f8b7be42c550d922d0614e68be2700bba05d7af2c7e03a4fcbbcc38');
   assert.deepEqual(plan.execution_material.result_plan_logical_cids,
-    {answer: valuesResultPlan(valuesUnitIdentity(source)).result_plan_logical_cid});
+    {answer: valuesDependencyOracle().resultPlan});
   assert.equal(template.bound_invocation_template_cid,
     without(template, 'bound_invocation_template_cid'));
   assert.equal(compiled.compiled_plan_cid,

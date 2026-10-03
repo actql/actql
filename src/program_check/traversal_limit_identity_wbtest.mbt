@@ -1,6 +1,6 @@
 ///|
 // Synthetic Unit names test canonical conversion, not Unit definition admission.
-test "traversal limit conversion matches independent namespaces and aggregate boundaries" {
+test "current TRAIL limit conversion matches independent namespaces and aggregate boundaries" {
   for
     (unit_cid, cap, paths_cid, rows_cid) in [
       (
@@ -29,13 +29,13 @@ test "traversal limit conversion matches independent namespaces and aggregate bo
       { work: 100000000, bytes: 10000000, nodes: 1000000, depth: 100, },
       through_check=true,
       checked_results=programs,
-      sga=true,
+      property_graph=true,
       graph_output_limit=Some(cap),
       graph_construction_limit=Some(1000),
       traversal_capacity=true,
-      generated_rows=Some("[{\"id\":1}]"),
+      generated_rows=Some("[{\"id\":1},{\"id\":2}]"),
       producer_expression="id",
-      producer_suffix=",{\"graph\":{\"nodes\":{\"from\":\"seed\",\"id\":\"id\",\"fields\":[]},\"edges\":{\"from\":\"derived\",\"source\":\"id\",\"target\":\"value\",\"fields\":[]}},\"as\":\"g\"},{\"traverse\":{\"start\":{\"ids\":[1]},\"direction\":\"out\",\"min_hops\":0,\"max_hops\":1,\"emit\":\"nodes\"}},{\"select\":[{\"id\":\"start_id\"},{\"value\":\"depth\"}],\"as\":\"projected\"}",
+      producer_suffix=current_trail_resources_suffix("out", "1"),
       producer_result_from="projected",
       extra_step_budget=3,
     )

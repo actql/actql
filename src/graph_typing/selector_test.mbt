@@ -1,73 +1,84 @@
 ///|
-test "graph selectors preserve Ref identity contracts from qualified Relation columns" {
-  let reference = @contract.read_checked(
-    cursor(
-      "{\"type\":\"resource_ref\",\"nullable\":false,\"resource_kind\":\"mail/message\"}",
-    ),
-    { max_nodes: 100, max_depth: 10, max_text_bytes: 1000, },
-  ).unwrap()
-  let g = complete_graph(
-    reference,
-    @contract.primitive(BooleanType, nullable=false),
-    "a",
-  )
-  let rows = @carrier.rows(
-    [(Qualified(Left, "id"), Some(reference)), (Unqualified("unrelated"), None)],
-    field_set=Open,
-    max_fields=2,
-    max_name_bytes=100,
-  ).unwrap()
-  let relation = @carrier.relation(rows)
-  let source = cursor("{\"from\":\"selected\",\"id\":\"left.id\"}")
-  let c = @graph_typing.check_selector(
+test "definition-free selectors refuse with an exact public diagnostic before preparing predicates" {
+  let source = cursor("{\"where\":\"true\"}")
+  let issue = @graph_typing.check_selector(
     source,
-    g,
+    current_scope_graph(),
+    None,
+    None,
+    predicate_limits(),
+  ).unwrap_err()
+  let diagnostic = @graph_typing.match_diagnostic(issue, source)
+  assert_eq(
+    diagnostic.kind,
+    @graph_typing.Structure(@graph_typing.UnsupportedGraphOperation),
+  )
+  assert_eq(diagnostic.path, [@source.Key("where")])
+  assert_true(diagnostic.range is None)
+  let invalid_limits = @graph_typing.check_selector(
+    source,
+    current_scope_graph(),
+    None,
+    None,
+    { ..predicate_limits(), max_work: -1, },
+  ).unwrap_err()
+  assert_eq(
+    @graph_typing.match_diagnostic(invalid_limits, source).kind,
+    @graph_typing.Structure(@graph_typing.InvalidLimits),
+  )
+}
+
+///|
+test "current Graph Relation selectors retain qualified full identity contracts" {
+  let graph = current_scope_graph()
+  guard graph is @carrier.GraphValue(value) else { fail("Graph") }
+  let identity = @carrier.graph_identity(value)
+  let relation = @carrier.relation(
+    @carrier.rows(
+      [(Qualified(Left, "element"), Some(identity))],
+      field_set=Closed,
+      max_fields=1,
+      max_name_bytes=100,
+    ).unwrap(),
+  )
+  let source = cursor("{\"from\":\"selected\",\"id\":\"left.element\"}")
+  let checked = @graph_typing.check_selector(
+    source,
+    graph,
     Some(relation),
     None,
     predicate_limits(),
   ).unwrap()
   assert_true(
-    @graph_typing.selector_form(c)
-    is RelationIds(from="selected", field=Qualified(Left, "id")),
+    @graph_typing.selector_form(checked)
+    is RelationIds(from="selected", field=Qualified(Left, "element")),
   )
   assert_true(
-    @contract.type_equal(reference, @graph_typing.selector_identity(c), 100),
+    @contract.type_equal(
+      identity,
+      @graph_typing.selector_identity(checked),
+      100,
+    ),
   )
-  assert_true(
-    indexed_obligation_copy(
-      @graph_typing.selector_pending(c),
-      @graph_typing.selector_pending_count(c),
-      i => @graph_typing.selector_pending_at(c, i),
-      (a, b) => a == b,
-    ).contains(RevalidateSelectorReferences),
-  )
-  assert_true(
-    indexed_obligation_copy(
-      @graph_typing.selector_pending(c),
-      @graph_typing.selector_pending_count(c),
-      i => @graph_typing.selector_pending_at(c, i),
-      (a, b) => a == b,
-    ).contains(RequireSelectorMembership),
-  )
-  let u = @graph_typing.selector_usage(c)
+  let usage = @graph_typing.selector_usage(checked)
   let exact = {
     ..predicate_limits(),
-    max_work: u.work,
-    max_nodes: u.nodes,
-    max_text_bytes: u.text_bytes,
+    max_work: usage.work,
+    max_nodes: usage.nodes,
+    max_text_bytes: usage.text_bytes,
   }
   assert_true(
-    @graph_typing.check_selector(source, g, Some(relation), None, exact)
+    @graph_typing.check_selector(source, graph, Some(relation), None, exact)
     is Ok(_),
   )
   for
     cap in [
-      { ..exact, max_work: u.work - 1, },
-      { ..exact, max_nodes: u.nodes - 1, },
-      { ..exact, max_text_bytes: u.text_bytes - 1, },
+      { ..exact, max_work: usage.work - 1, },
+      { ..exact, max_nodes: usage.nodes - 1, },
+      { ..exact, max_text_bytes: usage.text_bytes - 1, },
     ] {
     assert_true(
-      @graph_typing.check_selector(source, g, Some(relation), None, cap)
+      @graph_typing.check_selector(source, graph, Some(relation), None, cap)
       is Err(_),
     )
   }
@@ -87,7 +98,7 @@ test "graph selectors preserve Ref identity contracts from qualified Relation co
   assert_true(
     @graph_typing.check_selector(
       cursor("{\"from\":\"r\",\"id\":\"id\"}"),
-      g,
+      graph,
       Some(numeric),
       None,
       predicate_limits(),
@@ -97,53 +108,47 @@ test "graph selectors preserve Ref identity contracts from qualified Relation co
 }
 
 ///|
-test "graph selectors keep literal occurrences and admit predicate empty selection" {
-  let g = match_graph()
-  let ids = @graph_typing.check_selector(
-    cursor("{\"ids\":[10,2,10]}"),
-    g,
+test "current Graph selectors retain repeated typed-domain identity occurrences without tuple fallback" {
+  let graph = current_scope_graph()
+  let checked = @graph_typing.check_selector(
+    cursor(
+      "{\"ids\":[" +
+      current_node_identity(10) +
+      "," +
+      current_node_identity(2) +
+      "," +
+      current_node_identity(10) +
+      "]}",
+    ),
+    graph,
     None,
     None,
     predicate_limits(),
   ).unwrap()
-  assert_eq(@graph_typing.selector_ids(ids).length(), 3)
-  let copy = @graph_typing.selector_ids(ids)
-  assert_eq(@graph_typing.selector_id_count(ids), 3)
+  assert_eq(@graph_typing.selector_id_count(checked), 3)
+  let detached = @graph_typing.selector_ids(checked)
   for i in 0..<3 {
     assert_true(
-      physical_equal(@graph_typing.selector_id_at(ids, i).unwrap(), copy[i]),
+      physical_equal(
+        detached[i],
+        @graph_typing.selector_id_at(checked, i).unwrap(),
+      ),
     )
   }
-  copy.clear()
-  assert_eq(@graph_typing.selector_ids(ids).length(), 3)
-  for (i, expected) in [(0, 10.0), (1, 2.0), (2, 10.0)] {
-    assert_true(
-      @graph_typing.selector_id_at(ids, i).unwrap().value is Number(actual) &&
-      actual == expected,
-    )
-  }
+  detached.clear()
+  assert_eq(@graph_typing.selector_id_count(checked), 3)
   for i in [-1, 3, 2147483647] {
-    assert_true(@graph_typing.selector_id_at(ids, i) is None)
+    assert_true(@graph_typing.selector_id_at(checked, i) is None)
   }
-  let p = @graph_typing.check_selector(
-    cursor("{\"where\":{\"literal\":false}}"),
-    g,
-    None,
-    None,
-    predicate_limits(),
-  ).unwrap()
-  assert_true(@graph_typing.selector_predicate(p) is Some(_))
-  assert_eq(@graph_typing.selector_id_count(p), 0)
-  assert_true(@graph_typing.selector_id_at(p, 0) is None)
   for
     body in [
-      "{}", "{\"ids\":[]}", "{\"ids\":[null]}", "{\"ids\":[2],\"where\":{\"literal\":true}}",
-      "{\"id\":\"node_id\"}", "{\"ids\":[2],\"id\":\"node_id\"}", "{\"from\":\"r\",\"id\":\"node_id\"}",
+      "{}", "{\"ids\":[]}", "{\"ids\":[null]}", "{\"id\":\"element\"}", "{\"from\":\"r\",\"id\":\"element\"}",
+      "{\"where\":\"true\"}",
     ] {
     assert_true(
       @graph_typing.check_selector(
         cursor(body),
-        g,
+        graph,
         None,
         None,
         predicate_limits(),

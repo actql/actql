@@ -27,7 +27,7 @@ struct PipelineAttachment {
 }
 
 ///|
-/// Prepare type-only registrations from the selected Catalog contracts. Facts,
+/// Retain original declarations and selected Catalog contracts. Facts,
 /// read permissions, request closure and producer obligations are not inferred.
 pub fn prepare_pipeline_inputs(
   resolved : Resolved,
@@ -120,17 +120,18 @@ pub fn pipeline_input_at(
   .map(e => {
     (
       e.input.declaration.input_name,
-      @pipeline.CarrierInput(
-        @environment.carrier_schema_value(
-          @environment.source_view_carrier_schema(e.carrier),
-        ),
+      @pipeline.SourceViewInput(
+        @stages.stage_at(@inputs.source(v.resolved.owner.inputs), stage_index).unwrap(),
+        e.input.declaration.input_name,
+        e.input.declaration.source,
+        e.carrier,
       ),
     )
   })
 }
 
 ///|
-/// Require the original type-only registration, not a same-shaped replacement
+/// Require the original declaration and Catalog owner, not a same-shaped replacement
 /// or unadmitted candidate-key/ranking/producer evidence.
 pub fn attach_pipeline_inputs(
   inputs : PipelineInputs,
@@ -176,11 +177,19 @@ pub fn attach_pipeline_inputs(
       None => return Err(ForeignInput(name))
       Some(i) => @pipeline.input_contract_at(pipeline, i).unwrap()
     }
-    let expected = @environment.carrier_schema_value(
-      @environment.source_view_carrier_schema(entry.carrier),
-    )
-    guard actual is @pipeline.CarrierInput(value) &&
-      physical_equal(expected, value) else {
+    guard actual
+      is @pipeline.SourceViewInput(original, declared, declaration, owner) &&
+      declared == name &&
+      physical_equal(
+        original,
+        @stages.stage_at(@stages.source(stage), index).unwrap(),
+      ) &&
+      @decode.tree_index(entry.input.declaration.source, declaration) ==
+      @decode.tree_index(
+        entry.input.declaration.source,
+        entry.input.declaration.source,
+      ) &&
+      physical_equal(entry.carrier, owner) else {
       return Err(ForeignInput(name))
     }
   }

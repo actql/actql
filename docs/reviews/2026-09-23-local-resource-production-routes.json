@@ -1,28 +1,34 @@
 {
   "version": "actql-local-resource-production-routes/0.1",
+  "refusal_boundary": {
+    "suite": "node:property_graph_public_host",
+    "targets": ["node"],
+    "path": "scripts/property-graph-public-host.test.mjs",
+    "fixture": "keyed constructor and TRAIL reach public Named Results through"
+  },
   "mixed_paths": [
     {
-      "id": "graph_subgraph_node_rows_filter",
+      "id": "graph_constructor_match_nodes_filter",
       "carrier": "Graph",
-      "operations": ["subgraph", "node_rows", "filter"],
+      "operations": ["property_graph", "match_nodes", "filter"],
       "standalone_prefix_provider": false,
       "standard_host": {
         "suite": "moon:query_integration",
         "targets": ["js", "wasm", "native"],
-        "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "fixture": "standard Host selects subgraph before Relation filter and two consumers"
+        "path": "src/query_integration/property_graph_host_custody_wbtest.mbt",
+        "fixture": "standard Host composes current keyed MATCH with bounded Relation consumers and releases all capacity"
       },
       "in_flight_cancel": {
-        "suite": "node:duckdb_standard_host",
+        "suite": "node:property_graph_surface_checker",
         "targets": ["node"],
-        "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-        "fixture": "subgraph-fused-bridge"
+        "path": "scripts/property-graph-surface-checker.test.mjs",
+        "fixture": "current-match-nodes-literal"
       },
       "selected_in_flight_cancel": {
-        "suite": "node:duckdb_standard_host",
+        "suite": "node:property_graph_surface_checker",
         "targets": ["node"],
-        "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-        "fixture": "subgraph-selected-filter"
+        "path": "scripts/property-graph-surface-checker.test.mjs",
+        "fixture": "current-match-nodes-literal"
       }
     },
     {
@@ -198,8 +204,8 @@
           "role": "filter_mixed_stage_lifetime",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "standard Host composes Graph projection and Relation filter"
+          "path": "src/query_integration/property_graph_host_custody_wbtest.mbt",
+          "fixture": "standard Host composes current keyed MATCH with bounded Relation consumers and releases all capacity"
         },
         {
           "role": "filter_input_exact",
@@ -264,7 +270,7 @@
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "normalize-filter"
+          "fixture": "property-match-filter"
         },
         {
           "role": "ordinary_filter_in_flight_host_timer",
@@ -486,8 +492,8 @@
           "role": "select_mixed_stage_lifetime",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "standard Host composes Graph projection and Relation select"
+          "path": "src/query_integration/property_graph_host_custody_wbtest.mbt",
+          "fixture": "standard Host composes current keyed MATCH with bounded Relation consumers and releases all capacity"
         },
         {
           "role": "values_split_select_lifetime",
@@ -622,7 +628,7 @@
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "normalize-select"
+          "fixture": "property-match-select"
         },
         {
           "role": "ordinary_select_in_flight_host_timer",
@@ -1128,8 +1134,8 @@
           "role": "mixed_stage_sort_quantum_and_lifetime",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "standard Host composes Graph projection and bounded Relation sort"
+          "path": "src/query_integration/property_graph_host_custody_wbtest.mbt",
+          "fixture": "standard Host composes current keyed MATCH with bounded Relation consumers and releases all capacity"
         },
         {
           "role": "selected_sort_cancel_cleanup",
@@ -1194,7 +1200,7 @@
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "normalize-sort-wide-comparison"
+          "fixture": "property-match-sort-wide-comparison"
         },
         {
           "role": "ordinary_sort_in_flight_host_timer",
@@ -1347,15 +1353,15 @@
           "role": "mixed_stage_sort_quantum_and_lifetime",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "standard Host composes Graph projection and Relation take"
+          "path": "src/query_integration/property_graph_host_custody_wbtest.mbt",
+          "fixture": "standard Host composes current keyed MATCH with bounded Relation consumers and releases all capacity"
         },
         {
           "role": "mixed_stage_sort_cancel_and_cleanup",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "standard Host cancels ordered Graph projection take before completion"
+          "path": "src/query_integration/property_graph_host_custody_wbtest.mbt",
+          "fixture": "standard Host cancellation after current MATCH preserves cleanup and returns capacity"
         },
         {
           "role": "take_unkeyed_work_exact_one_short",
@@ -1406,7 +1412,7 @@
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "normalize-take"
+          "fixture": "property-match-take"
         },
         {
           "role": "ordinary_take_in_flight_host_timer",
@@ -4762,8 +4768,8 @@
           "role": "assert_where_mixed_stage_lifetime",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "standard Host composes Graph projection and bounded Relation assertion"
+          "path": "src/query_integration/property_graph_host_custody_wbtest.mbt",
+          "fixture": "standard Host composes current keyed MATCH with bounded Relation consumers and releases all capacity"
         },
         {
           "role": "assert_where_failure_cleanup",
@@ -4804,8 +4810,8 @@
           "role": "assert_unique_mixed_stage_lifetime",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "standard Host composes Graph projection and bounded unique assertion"
+          "path": "src/query_integration/property_graph_host_custody_wbtest.mbt",
+          "fixture": "standard Host composes current keyed MATCH with bounded Relation consumers and releases all capacity"
         },
         {
           "role": "assert_unique_values_split_lifetime",
@@ -4891,14 +4897,14 @@
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "normalize-assert"
+          "fixture": "property-match-assert"
         },
         {
           "role": "assert_unique_in_flight_host_timer",
           "suite": "node:duckdb_standard_host",
           "targets": ["node"],
           "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "normalize-assert-unique"
+          "fixture": "property-match-assert-unique"
         }
       ],
       "path_assurance": {
@@ -6195,150 +6201,7 @@
       "inventory": "families",
       "family": "SGA",
       "operation": "normalize_graph",
-      "profile": "sga_graph",
-      "dispatch": {
-        "path": "src/local_sga_provider/graph_pipeline.mbt",
-        "marker": "@sga.start_normalize("
-      },
-      "entrypoint": {
-        "path": "src/local_sga/normalize.mbt",
-        "symbol": "start_normalize"
-      },
-      "selected_entrypoint": {
-        "path": "src/local_sga/normalize.mbt",
-        "symbol": "start_normalize_view"
-      },
-      "boundary_tests": [
-        {
-          "role": "normalize_exact_node_capacity",
-          "suite": "moon:local_sga",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/local_sga/normalize_wbtest.mbt",
-          "fixture": "normalize accepts the exact node capacity"
-        },
-        {
-          "role": "normalize_one_short_node_capacity",
-          "suite": "moon:local_sga",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/local_sga/normalize_wbtest.mbt",
-          "fixture": "normalize rejects one node less than the required capacity"
-        },
-        {
-          "role": "normalize_one_short_edge_capacity",
-          "suite": "moon:local_sga",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/local_sga/normalize_wbtest.mbt",
-          "fixture": "normalize rejects one edge less than the required capacity"
-        },
-        {
-          "role": "normalize_cancel_cleanup",
-          "suite": "moon:local_sga",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/local_sga/normalize_wbtest.mbt",
-          "fixture": "normalize confirms cancellation before reclaiming partial output"
-        },
-        {
-          "role": "normalize_work_workspace_exact_one_short",
-          "suite": "moon:local_sga",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/local_sga/normalize_wbtest.mbt",
-          "fixture": "normalize admits exact and one-short work and workspace"
-        },
-        {
-          "role": "normalize_view_exact_node_capacity",
-          "suite": "moon:local_sga",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/local_sga/normalize_wbtest.mbt",
-          "fixture": "normalize managed view accepts the exact node capacity"
-        },
-        {
-          "role": "normalize_view_one_short_node_capacity",
-          "suite": "moon:local_sga",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/local_sga/normalize_wbtest.mbt",
-          "fixture": "normalize managed view rejects one node less than required"
-        },
-        {
-          "role": "normalize_view_one_short_edge_capacity",
-          "suite": "moon:local_sga",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/local_sga/normalize_wbtest.mbt",
-          "fixture": "normalize managed view rejects one edge less than required"
-        },
-        {
-          "role": "normalize_view_cancel_cleanup",
-          "suite": "moon:local_sga",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/local_sga/normalize_wbtest.mbt",
-          "fixture": "normalize managed view cancels and reclaims partial output"
-        },
-        {
-          "role": "normalize_view_work_workspace_exact_one_short",
-          "suite": "moon:local_sga",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/local_sga/normalize_wbtest.mbt",
-          "fixture": "normalize managed view admits exact and one-short work and workspace"
-        }
-      ],
-      "environment_tests": [
-        {
-          "role": "normalize_fused_in_flight_host_timer",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "normalize-fused-kernel"
-        },
-        {
-          "role": "normalize_selected_in_flight_host_timer",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "normalize-selected-kernel"
-        },
-        {
-          "role": "installed_retained_graph_named_results",
-          "suite": "node:duckdb_retained_values_chain",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/retained-values-chain.test.mjs",
-          "fixture": "installed retained graph factory executes a normal mixed Stage"
-        }
-      ],
-      "path_assurance": {
-        "entrypoint": {
-          "exact_limit": "normalize_exact_node_capacity",
-          "one_short_limit": "normalize_one_short_node_capacity",
-          "in_flight_cancel": "normalize_fused_in_flight_host_timer",
-          "cleanup": "normalize_cancel_cleanup"
-        },
-        "selected_entrypoint": {
-          "exact_limit": "normalize_view_exact_node_capacity",
-          "one_short_limit": "normalize_view_one_short_node_capacity",
-          "in_flight_cancel": "normalize_selected_in_flight_host_timer",
-          "cleanup": "normalize_view_cancel_cleanup"
-        }
-      },
-      "resource_assurance": {
-        "entrypoint": {
-          "work": {
-            "exact_limit": "normalize_work_workspace_exact_one_short",
-            "one_short_limit": "normalize_work_workspace_exact_one_short"
-          },
-          "workspace": {
-            "exact_limit": "normalize_work_workspace_exact_one_short",
-            "one_short_limit": "normalize_work_workspace_exact_one_short"
-          }
-        },
-        "selected_entrypoint": {
-          "work": {
-            "exact_limit": "normalize_view_work_workspace_exact_one_short",
-            "one_short_limit": "normalize_view_work_workspace_exact_one_short"
-          },
-          "workspace": {
-            "exact_limit": "normalize_view_work_workspace_exact_one_short",
-            "one_short_limit": "normalize_view_work_workspace_exact_one_short"
-          }
-        }
-      }
+      "profile": "sga_graph"
     },
     {
       "inventory": "families",
@@ -6365,81 +6228,117 @@
         {
           "role": "match_nodes_view_exact_one_short_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "selected node match view admits exact limits and cleans cancellation"
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_construction_wbtest.mbt",
+          "fixture": "keyed node MATCH preserves exact work workspace and every private stop boundary"
         },
         {
           "role": "bounded_scratch_initialization_and_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "node identity match admits workspace before execution and cleans cancel"
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_construction_wbtest.mbt",
+          "fixture": "keyed node MATCH preserves exact work workspace and every private stop boundary"
         },
         {
           "role": "match_nodes_control_work_exact_one_short",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "node identity match admits exact work and workspace and rejects one short"
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_construction_wbtest.mbt",
+          "fixture": "keyed node MATCH preserves exact work workspace and every private stop boundary"
         },
         {
           "role": "match_nodes_identity_workspace_exact_one_short",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "node identity match admits exact work and workspace and rejects one short"
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_construction_wbtest.mbt",
+          "fixture": "keyed node MATCH preserves exact work workspace and every private stop boundary"
         },
         {
           "role": "match_nodes_long_text_compare_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "node identity sort yields during a long text comparison"
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+          "fixture": "typed node and edge identity sorting yields during long comparisons and preserves input on stop"
         },
         {
           "role": "match_nodes_predicate_workspace_exact_one_short",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "bounded node match evaluates a checked property predicate"
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_predicate_custody_wbtest.mbt",
+          "fixture": "keyed node and edge predicates preserve exact work workspace and every private stop boundary"
         },
         {
           "role": "match_nodes_predicate_work_exact_one_short",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "bounded node match evaluates a checked property predicate"
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_predicate_custody_wbtest.mbt",
+          "fixture": "keyed node and edge predicates preserve exact work workspace and every private stop boundary"
         }
       ],
       "environment_tests": [
         {
           "role": "match_nodes_view_host_in_flight_cancel",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "retained-match-nodes-filter-in-flight"
+          "suite": "node:property_graph_surface_checker",
+          "targets": [
+            "node"
+          ],
+          "path": "scripts/property-graph-surface-checker.test.mjs",
+          "fixture": "current-match-nodes-literal"
         },
         {
           "role": "match_nodes_literal_host_two_consumers",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "match-nodes"
+          "suite": "node:property_graph_surface_checker",
+          "targets": [
+            "node"
+          ],
+          "path": "scripts/property-graph-surface-checker.test.mjs",
+          "fixture": "current-match-nodes-literal"
         },
         {
           "role": "match_nodes_predicate_host_two_consumers",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "match-nodes-predicate"
+          "suite": "node:property_graph_surface_checker",
+          "targets": [
+            "node"
+          ],
+          "path": "scripts/property-graph-surface-checker.test.mjs",
+          "fixture": "current-match-nodes-predicate"
         },
         {
           "role": "match_nodes_predicate_host_in_flight_cancel",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "match-nodes-predicate-in-flight"
+          "suite": "node:property_graph_surface_checker",
+          "targets": [
+            "node"
+          ],
+          "path": "scripts/property-graph-surface-checker.test.mjs",
+          "fixture": "current-match-nodes-predicate"
         }
       ],
       "path_assurance": {
@@ -6504,95 +6403,137 @@
         {
           "role": "match_edges_view_exact_one_short_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "selected edge match view admits exact limits and cleans cancellation"
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_construction_wbtest.mbt",
+          "fixture": "keyed edge MATCH preserves exact work workspace and every private stop boundary"
         },
         {
           "role": "bounded_scratch_initialization_and_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "bounded edge match admits workspace and cleans cancellation"
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_construction_wbtest.mbt",
+          "fixture": "keyed edge MATCH preserves exact work workspace and every private stop boundary"
         },
         {
           "role": "match_edges_control_work_exact_one_short",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "edge identity match admits exact work and workspace and rejects one short"
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_construction_wbtest.mbt",
+          "fixture": "keyed edge MATCH preserves exact work workspace and every private stop boundary"
         },
         {
           "role": "match_edges_identity_workspace_exact_one_short",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "edge identity match admits exact work and workspace and rejects one short"
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_construction_wbtest.mbt",
+          "fixture": "keyed edge MATCH preserves exact work workspace and every private stop boundary"
         },
         {
           "role": "match_edges_type_index_quantum_workspace_cancel",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "edge type index builds within quantum and releases on cancellation"
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_construction_wbtest.mbt",
+          "fixture": "keyed edge MATCH preserves exact work workspace and every private stop boundary"
         },
         {
           "role": "match_edges_long_text_compare_cancel_cleanup",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "edge identity sort yields during a long text comparison"
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+          "fixture": "typed node and edge identity sorting yields during long comparisons and preserves input on stop"
         },
         {
           "role": "match_edges_predicate_workspace_exact_one_short",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "bounded edge match evaluates a checked property predicate"
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_predicate_custody_wbtest.mbt",
+          "fixture": "keyed node and edge predicates preserve exact work workspace and every private stop boundary"
         },
         {
           "role": "match_edges_predicate_work_exact_one_short",
           "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "bounded edge match evaluates a checked property predicate"
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "path": "src/query_integration/property_graph_predicate_custody_wbtest.mbt",
+          "fixture": "keyed node and edge predicates preserve exact work workspace and every private stop boundary"
         }
       ],
       "environment_tests": [
         {
           "role": "match_edges_view_host_in_flight_cancel",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "retained-match-edges-filter-in-flight"
+          "suite": "node:property_graph_surface_checker",
+          "targets": [
+            "node"
+          ],
+          "path": "scripts/property-graph-surface-checker.test.mjs",
+          "fixture": "current-match-edges-literal"
         },
         {
           "role": "match_edges_literal_host_two_consumers",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "match-edges"
+          "suite": "node:property_graph_surface_checker",
+          "targets": [
+            "node"
+          ],
+          "path": "scripts/property-graph-surface-checker.test.mjs",
+          "fixture": "current-match-edges-literal"
         },
         {
           "role": "match_edges_predicate_host_two_consumers",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "match-edges-predicate"
+          "suite": "node:property_graph_surface_checker",
+          "targets": [
+            "node"
+          ],
+          "path": "scripts/property-graph-surface-checker.test.mjs",
+          "fixture": "current-match-edges-predicate"
         },
         {
           "role": "match_edges_literal_host_in_flight_cancel",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "match-edges-in-flight"
+          "suite": "node:property_graph_surface_checker",
+          "targets": [
+            "node"
+          ],
+          "path": "scripts/property-graph-surface-checker.test.mjs",
+          "fixture": "current-match-edges-literal"
         },
         {
           "role": "match_edges_predicate_host_in_flight_cancel",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "match-edges-predicate-in-flight"
+          "suite": "node:property_graph_surface_checker",
+          "targets": [
+            "node"
+          ],
+          "path": "scripts/property-graph-surface-checker.test.mjs",
+          "fixture": "current-match-edges-predicate"
         }
       ],
       "path_assurance": {
@@ -6654,8 +6595,8 @@
             "wasm",
             "native"
           ],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "traversal empty simple-path work has exact boundaries"
+          "path": "src/query_integration/property_graph_selector_custody_wbtest.mbt",
+          "fixture": "keyed TRAIL retains exact Graph and Relation selector owners through stop and completion"
         },
         {
           "role": "literal_empty_node_workspace_exact_one_short",
@@ -6665,8 +6606,8 @@
             "wasm",
             "native"
           ],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "traversal empty simple-path work has exact boundaries"
+          "path": "src/query_integration/property_graph_selector_custody_wbtest.mbt",
+          "fixture": "keyed TRAIL retains exact Graph and Relation selector owners through stop and completion"
         },
         {
           "role": "exact_one_short_and_cancel_cleanup",
@@ -6676,8 +6617,8 @@
             "wasm",
             "native"
           ],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "path traversal charges overlapping start selector and indices"
+          "path": "src/query_integration/property_graph_selector_custody_wbtest.mbt",
+          "fixture": "keyed TRAIL retains exact Graph and Relation selector owners through stop and completion"
         },
         {
           "role": "quantum_and_empty_selector",
@@ -6687,19 +6628,8 @@
             "wasm",
             "native"
           ],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "sparse and zero-hop path selectors are independent of resume quantum"
-        },
-        {
-          "role": "node_emit_control_work_ceiling",
-          "suite": "moon:query_integration",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "homogeneous traversal enforces minimum depth and cancellation"
+          "path": "src/query_integration/property_graph_path_order_wbtest.mbt",
+          "fixture": "current TRAIL retains start-major depth order and direction across resume quanta and physical edge permutations"
         },
         {
           "role": "path_emit_control_work_ceiling",
@@ -6709,8 +6639,8 @@
             "wasm",
             "native"
           ],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "path traversal charges overlapping start selector and indices"
+          "path": "src/query_integration/property_graph_trail_resource_wbtest.mbt",
+          "fixture": "current path variants retain independent exact work workspace and every private stop boundary"
         },
         {
           "role": "traverse_variant_work_exact_one_short",
@@ -6720,8 +6650,8 @@
             "wasm",
             "native"
           ],
-          "path": "src/query_integration/local_sga_traversal_variant_resource_wbtest.mbt",
-          "fixture": "SGA traversal variants admit exact work and reject one unit short"
+          "path": "src/query_integration/property_graph_trail_resource_wbtest.mbt",
+          "fixture": "current path variants retain independent exact work workspace and every private stop boundary"
         },
         {
           "role": "traverse_variant_workspace_exact_one_short",
@@ -6731,8 +6661,8 @@
             "wasm",
             "native"
           ],
-          "path": "src/query_integration/local_sga_traversal_variant_resource_wbtest.mbt",
-          "fixture": "SGA traversal variants admit exact workspace and reject one entry short"
+          "path": "src/query_integration/property_graph_trail_resource_wbtest.mbt",
+          "fixture": "current path variants retain independent exact work workspace and every private stop boundary"
         },
         {
           "role": "traverse_variant_cancel_cleanup",
@@ -6742,35 +6672,35 @@
             "wasm",
             "native"
           ],
-          "path": "src/query_integration/local_sga_traversal_variant_resource_wbtest.mbt",
-          "fixture": "SGA traversal variants cancel after bounded work and clean up"
+          "path": "src/query_integration/property_graph_trail_resource_wbtest.mbt",
+          "fixture": "current path variants retain independent exact work workspace and every private stop boundary"
         }
       ],
       "environment_tests": [
         {
-          "role": "traverse_nodes_host_in_flight_cancel",
-          "suite": "node:duckdb_standard_host",
+          "role": "traverse_selected_relation_host_in_flight_cancel",
+          "suite": "node:property_graph_surface_checker",
           "targets": [
             "node"
           ],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "traverse-out"
+          "path": "scripts/property-graph-surface-checker.test.mjs",
+          "fixture": "current-trail"
         },
         {
           "role": "traverse_paths_host_in_flight_cancel",
-          "suite": "node:duckdb_standard_host",
+          "suite": "node:property_graph_surface_checker",
           "targets": [
             "node"
           ],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "traverse-paths"
+          "path": "scripts/property-graph-surface-checker.test.mjs",
+          "fixture": "current-trail"
         }
       ],
       "path_assurance": {
         "entrypoint": {
           "exact_limit": "traverse_variant_work_exact_one_short",
           "one_short_limit": "traverse_variant_workspace_exact_one_short",
-          "in_flight_cancel": "traverse_nodes_host_in_flight_cancel",
+          "in_flight_cancel": "traverse_paths_host_in_flight_cancel",
           "cleanup": "traverse_variant_cancel_cleanup"
         }
       },
@@ -6791,1471 +6721,79 @@
       "inventory": "families",
       "family": "SGA",
       "operation": "shortest_path",
-      "profile": "sga_graph",
-      "dispatch": {
-        "path": "src/local_sga_provider/graph_pipeline.mbt",
-        "marker": "@sga.start_shortest("
-      },
-      "entrypoint": {
-        "path": "src/local_sga/shortest.mbt",
-        "symbol": "start_shortest"
-      },
-      "selected_entrypoint": {
-        "path": "src/local_sga/shortest.mbt",
-        "symbol": "start_shortest_view"
-      },
-      "boundary_tests": [
-        {
-          "role": "shortest_selected_exact_one_short_cancel_binding",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "selected Graph shortest view preserves exact limits and binding"
-        },
-        {
-          "role": "shortest_selected_relation_selector_ports",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "selected Graph shortest path binds both Relation selector ports"
-        },
-        {
-          "role": "shortest_workspace_exact_one_short",
-          "suite": "moon:query_integration",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "scalar shortest path admits workspace before allocation and cancels"
-        },
-        {
-          "role": "shortest_scalar_control_work_exact_one_short",
-          "suite": "moon:query_integration",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "scalar shortest path admits workspace before allocation and cancels"
-        },
-        {
-          "role": "shortest_scalar_pipeline_work_exact_one_short",
-          "suite": "moon:query_integration",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "registered shortest path shares work across construction and search"
-        },
-        {
-          "role": "shortest_value_preallocation_rejection",
-          "suite": "moon:query_integration",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "scalar shortest path admits workspace before allocation and cancels"
-        },
-        {
-          "role": "shortest_kernel_cancel_cleanup",
-          "suite": "moon:query_integration",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "scalar shortest path admits workspace before allocation and cancels"
-        },
-        {
-          "role": "shortest_long_typed_identity_cancel_cleanup",
-          "suite": "moon:query_integration",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "shortest endpoint ordering yields across long typed identities"
-        },
-        {
-          "role": "shortest_standard_host_consumers",
-          "suite": "moon:query_integration",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "standard Host runs a bounded scalar shortest path"
-        },
-        {
-          "role": "shortest_variant_work_exact_one_short",
-          "suite": "moon:query_integration",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/query_integration/local_sga_traversal_variant_resource_wbtest.mbt",
-          "fixture": "SGA shortest path variants admit exact work and reject one unit short"
-        },
-        {
-          "role": "shortest_variant_workspace_exact_one_short",
-          "suite": "moon:query_integration",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/query_integration/local_sga_traversal_variant_resource_wbtest.mbt",
-          "fixture": "SGA shortest path variants admit exact workspace and reject one entry short"
-        },
-        {
-          "role": "shortest_variant_cancel_cleanup",
-          "suite": "moon:query_integration",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/query_integration/local_sga_traversal_variant_resource_wbtest.mbt",
-          "fixture": "SGA shortest path variants cancel after bounded work and clean up"
-        }
-      ],
-      "environment_tests": [
-        {
-          "role": "shortest_selected_host_in_flight_cancel",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "retained-shortest-filter-in-flight"
-        },
-        {
-          "role": "shortest_host_in_flight_cancel_cleanup",
-          "suite": "node:duckdb_standard_host",
-          "targets": [
-            "node"
-          ],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "shortest-out"
-        }
-      ],
-      "path_assurance": {
-        "entrypoint": {
-          "exact_limit": "shortest_variant_work_exact_one_short",
-          "one_short_limit": "shortest_variant_workspace_exact_one_short",
-          "in_flight_cancel": "shortest_host_in_flight_cancel_cleanup",
-          "cleanup": "shortest_variant_cancel_cleanup"
-        },
-        "selected_entrypoint": {
-          "exact_limit": "shortest_selected_exact_one_short_cancel_binding",
-          "one_short_limit": "shortest_selected_exact_one_short_cancel_binding",
-          "in_flight_cancel": "shortest_selected_host_in_flight_cancel",
-          "cleanup": "shortest_selected_exact_one_short_cancel_binding"
-        }
-      },
-      "resource_assurance": {
-        "entrypoint": {
-          "work": {
-            "exact_limit": "shortest_variant_work_exact_one_short",
-            "one_short_limit": "shortest_variant_work_exact_one_short"
-          },
-          "workspace": {
-            "exact_limit": "shortest_variant_workspace_exact_one_short",
-            "one_short_limit": "shortest_variant_workspace_exact_one_short"
-          }
-        },
-        "selected_entrypoint": {
-          "work": {
-            "exact_limit": "shortest_selected_exact_one_short_cancel_binding",
-            "one_short_limit": "shortest_selected_exact_one_short_cancel_binding"
-          },
-          "workspace": {
-            "exact_limit": "shortest_selected_exact_one_short_cancel_binding",
-            "one_short_limit": "shortest_selected_exact_one_short_cancel_binding"
-          }
-        }
-      }
+      "profile": "sga_graph"
     },
     {
       "inventory": "families",
       "family": "SGA",
       "operation": "components",
-      "profile": "sga_graph",
-      "dispatch": {
-        "path": "src/local_sga_provider/graph_pipeline.mbt",
-        "marker": "@sga.start_components("
-      },
-      "entrypoint": {
-        "path": "src/local_sga/components.mbt",
-        "symbol": "start_components"
-      },
-      "selected_entrypoint": {
-        "path": "src/local_sga/components.mbt",
-        "symbol": "start_components_view"
-      },
-      "boundary_tests": [
-        {
-          "role": "components_selected_exact_one_short_and_cancel",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "selected Graph components view admits exact limits and stops in flight"
-        },
-        {
-          "role": "components_empty_exact_work_workspace_cancel_cleanup",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "empty components admit exact work and workspace and reclaim cancellation"
-        },
-        {
-          "role": "components_nonempty_work_ceiling_and_active_cancel",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "weak and strong components preserve canonical identities and bounds"
-        },
-        {
-          "role": "components_nonempty_exact_work_workspace",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "nonempty components admit exact graph work and workspace"
-        },
-        {
-          "role": "components_long_text_minimum_cancel_cleanup",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "weak and strong components yield during long minimum comparisons"
-        }
-      ],
-      "environment_tests": [
-        {
-          "role": "components_selected_host_in_flight_cancel",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "components-retained-filter-in-flight"
-        },
-        {
-          "role": "components_strong_host_in_flight_cancel",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "components-strong"
-        }
-      ],
-      "path_assurance": {
-        "entrypoint": {
-          "exact_limit": "components_nonempty_exact_work_workspace",
-          "one_short_limit": "components_nonempty_exact_work_workspace",
-          "in_flight_cancel": "components_strong_host_in_flight_cancel",
-          "cleanup": "components_nonempty_work_ceiling_and_active_cancel"
-        },
-        "selected_entrypoint": {
-          "exact_limit": "components_selected_exact_one_short_and_cancel",
-          "one_short_limit": "components_selected_exact_one_short_and_cancel",
-          "in_flight_cancel": "components_selected_host_in_flight_cancel",
-          "cleanup": "components_selected_exact_one_short_and_cancel"
-        }
-      },
-      "resource_assurance": {
-        "entrypoint": {
-          "work": {
-            "exact_limit": "components_nonempty_exact_work_workspace",
-            "one_short_limit": "components_nonempty_exact_work_workspace"
-          },
-          "workspace": {
-            "exact_limit": "components_nonempty_exact_work_workspace",
-            "one_short_limit": "components_nonempty_exact_work_workspace"
-          }
-        },
-        "selected_entrypoint": {
-          "work": {
-            "exact_limit": "components_selected_exact_one_short_and_cancel",
-            "one_short_limit": "components_selected_exact_one_short_and_cancel"
-          },
-          "workspace": {
-            "exact_limit": "components_selected_exact_one_short_and_cancel",
-            "one_short_limit": "components_selected_exact_one_short_and_cancel"
-          }
-        }
-      }
+      "profile": "sga_graph"
     },
     {
       "inventory": "families",
       "family": "SGA",
       "operation": "reach",
-      "profile": "sga_graph",
-      "dispatch": {
-        "path": "src/local_sga_provider/graph_pipeline.mbt",
-        "marker": "@sga.start_reach("
-      },
-      "entrypoint": {
-        "path": "src/local_sga/reach.mbt",
-        "symbol": "start_reach"
-      },
-      "selected_entrypoint": {
-        "path": "src/local_sga/reach.mbt",
-        "symbol": "start_reach_view"
-      },
-      "boundary_tests": [
-        {
-          "role": "reach_selected_exact_one_short_cancel_binding",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "selected Graph reach view preserves exact limits and binding"
-        },
-        {
-          "role": "reach_prefix_work_workspace_active_cancel",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "reach preserves direction depth bounds and cancellation"
-        },
-        {
-          "role": "reach_nonempty_exact_work_workspace",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "reach preserves direction depth bounds and cancellation"
-        },
-        {
-          "role": "reach_long_text_sort_cancel_cleanup",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "reach yields during long typed identity sorting"
-        }
-      ],
-      "environment_tests": [
-        {
-          "role": "reach_selected_host_in_flight_cancel",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "retained-reach-filter-in-flight"
-        },
-        {
-          "role": "reach_out_host_in_flight_cancel",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "reach-out"
-        }
-      ],
-      "path_assurance": {
-        "entrypoint": {
-          "exact_limit": "reach_nonempty_exact_work_workspace",
-          "one_short_limit": "reach_nonempty_exact_work_workspace",
-          "in_flight_cancel": "reach_out_host_in_flight_cancel",
-          "cleanup": "reach_prefix_work_workspace_active_cancel"
-        },
-        "selected_entrypoint": {
-          "exact_limit": "reach_selected_exact_one_short_cancel_binding",
-          "one_short_limit": "reach_selected_exact_one_short_cancel_binding",
-          "in_flight_cancel": "reach_selected_host_in_flight_cancel",
-          "cleanup": "reach_selected_exact_one_short_cancel_binding"
-        }
-      },
-      "resource_assurance": {
-        "entrypoint": {
-          "work": {
-            "exact_limit": "reach_nonempty_exact_work_workspace",
-            "one_short_limit": "reach_nonempty_exact_work_workspace"
-          },
-          "workspace": {
-            "exact_limit": "reach_nonempty_exact_work_workspace",
-            "one_short_limit": "reach_nonempty_exact_work_workspace"
-          }
-        },
-        "selected_entrypoint": {
-          "work": {
-            "exact_limit": "reach_selected_exact_one_short_cancel_binding",
-            "one_short_limit": "reach_selected_exact_one_short_cancel_binding"
-          },
-          "workspace": {
-            "exact_limit": "reach_selected_exact_one_short_cancel_binding",
-            "one_short_limit": "reach_selected_exact_one_short_cancel_binding"
-          }
-        }
-      }
+      "profile": "sga_graph"
     },
     {
       "inventory": "families",
       "family": "SGA",
       "operation": "graph_bounds",
-      "profile": "sga_graph",
-      "dispatch": {
-        "path": "src/local_sga_provider/graph_pipeline.mbt",
-        "marker": "@sga.start_graph_bounds("
-      },
-      "entrypoint": {
-        "path": "src/local_sga/graph_bounds.mbt",
-        "symbol": "start_graph_bounds"
-      },
-      "selected_entrypoint": {
-        "path": "src/local_sga/graph_bounds.mbt",
-        "symbol": "start_graph_bounds_view"
-      },
-      "boundary_tests": [
-        {
-          "role": "graph_bounds_selected_exact_one_short_and_cancel",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "selected Graph bounds view admits exact limits and stops in flight"
-        },
-        {
-          "role": "graph_bounds_output_exact_one_short",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "bounded graph diagnostics preserve row and identity order"
-        },
-        {
-          "role": "graph_bounds_workspace_exact_one_short",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "graph diagnostics admit workspace before execution and clean cancel"
-        },
-        {
-          "role": "graph_bounds_work_exact_one_short",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "graph bounds admits exact value and control work"
-        },
-        {
-          "role": "graph_bounds_cancel_cleanup",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "graph diagnostics admit workspace before execution and clean cancel"
-        },
-        {
-          "role": "graph_bounds_long_text_compare_cancel_cleanup",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "graph diagnostics yield during long identity ordering"
-        }
-      ],
-      "environment_tests": [
-        {
-          "role": "graph_bounds_selected_host_in_flight_cancel",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "retained-bounds-filter-in-flight"
-        },
-        {
-          "role": "graph_bounds_host_timer",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "graph-bounds"
-        }
-      ],
-      "path_assurance": {
-        "entrypoint": {
-          "exact_limit": "graph_bounds_output_exact_one_short",
-          "one_short_limit": "graph_bounds_workspace_exact_one_short",
-          "in_flight_cancel": "graph_bounds_host_timer",
-          "cleanup": "graph_bounds_cancel_cleanup"
-        },
-        "selected_entrypoint": {
-          "exact_limit": "graph_bounds_selected_exact_one_short_and_cancel",
-          "one_short_limit": "graph_bounds_selected_exact_one_short_and_cancel",
-          "in_flight_cancel": "graph_bounds_selected_host_in_flight_cancel",
-          "cleanup": "graph_bounds_selected_exact_one_short_and_cancel"
-        }
-      },
-      "resource_assurance": {
-        "entrypoint": {
-          "work": {
-            "exact_limit": "graph_bounds_work_exact_one_short",
-            "one_short_limit": "graph_bounds_work_exact_one_short"
-          },
-          "workspace": {
-            "exact_limit": "graph_bounds_work_exact_one_short",
-            "one_short_limit": "graph_bounds_work_exact_one_short"
-          }
-        },
-        "selected_entrypoint": {
-          "work": {
-            "exact_limit": "graph_bounds_selected_exact_one_short_and_cancel",
-            "one_short_limit": "graph_bounds_selected_exact_one_short_and_cancel"
-          },
-          "workspace": {
-            "exact_limit": "graph_bounds_selected_exact_one_short_and_cancel",
-            "one_short_limit": "graph_bounds_selected_exact_one_short_and_cancel"
-          }
-        }
-      }
+      "profile": "sga_graph"
     },
     {
       "inventory": "families",
       "family": "SGA",
       "operation": "degree",
-      "profile": "sga_graph",
-      "dispatch": {
-        "path": "src/local_sga_provider/graph_pipeline.mbt",
-        "marker": "@sga.start_graph_degree("
-      },
-      "entrypoint": {
-        "path": "src/local_sga/graph_bounds.mbt",
-        "symbol": "start_graph_degree"
-      },
-      "selected_entrypoint": {
-        "path": "src/local_sga/graph_bounds.mbt",
-        "symbol": "start_graph_degree_view"
-      },
-      "boundary_tests": [
-        {
-          "role": "degree_selected_exact_one_short_and_cancel",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "selected Graph degree view admits exact limits and stops in flight"
-        },
-        {
-          "role": "degree_workspace_exact_one_short",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "degree metrics preserve directions and admitted execution"
-        },
-        {
-          "role": "degree_control_work_exact_one_short",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "degree metrics preserve directions and admitted execution"
-        },
-        {
-          "role": "degree_work_exact_one_short",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "degree metrics preserve directions and admitted execution"
-        },
-        {
-          "role": "degree_output_exact_one_short",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "degree diagnostics enforce output capacity before publishing"
-        },
-        {
-          "role": "degree_cancel_cleanup",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "degree diagnostics stop in flight and reclaim private output"
-        }
-      ],
-      "environment_tests": [
-        {
-          "role": "degree_selected_host_in_flight_cancel",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "retained-degree-filter-in-flight"
-        },
-        {
-          "role": "degree_host_timer",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "degree-both"
-        }
-      ],
-      "path_assurance": {
-        "entrypoint": {
-          "exact_limit": "degree_output_exact_one_short",
-          "one_short_limit": "degree_workspace_exact_one_short",
-          "in_flight_cancel": "degree_host_timer",
-          "cleanup": "degree_cancel_cleanup"
-        },
-        "selected_entrypoint": {
-          "exact_limit": "degree_selected_exact_one_short_and_cancel",
-          "one_short_limit": "degree_selected_exact_one_short_and_cancel",
-          "in_flight_cancel": "degree_selected_host_in_flight_cancel",
-          "cleanup": "degree_selected_exact_one_short_and_cancel"
-        }
-      },
-      "resource_assurance": {
-        "entrypoint": {
-          "work": {
-            "exact_limit": "degree_work_exact_one_short",
-            "one_short_limit": "degree_work_exact_one_short"
-          },
-          "workspace": {
-            "exact_limit": "degree_workspace_exact_one_short",
-            "one_short_limit": "degree_workspace_exact_one_short"
-          }
-        },
-        "selected_entrypoint": {
-          "work": {
-            "exact_limit": "degree_selected_exact_one_short_and_cancel",
-            "one_short_limit": "degree_selected_exact_one_short_and_cancel"
-          },
-          "workspace": {
-            "exact_limit": "degree_selected_exact_one_short_and_cancel",
-            "one_short_limit": "degree_selected_exact_one_short_and_cancel"
-          }
-        }
-      }
+      "profile": "sga_graph"
     },
     {
       "inventory": "families",
       "family": "SGA",
       "operation": "graph_diff",
-      "profile": "sga_graph",
-      "dispatch": {
-        "path": "src/local_sga_provider/graph_pipeline.mbt",
-        "marker": "@sga.start_graph_diff("
-      },
-      "entrypoint": {
-        "path": "src/local_sga/graph_diff.mbt",
-        "symbol": "start_graph_diff"
-      },
-      "boundary_tests": [
-        {
-          "role": "graph_diff_tail_work_ceiling_and_kernel_cancel_cleanup",
-          "suite": "moon:query_integration",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "Graph diff cancellation stops partial snapshots before cleanup"
-        },
-        {
-          "role": "graph_diff_variant_work_exact_one_short",
-          "suite": "moon:query_integration",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/query_integration/local_sga_delta_resource_wbtest.mbt",
-          "fixture": "Graph diff and apply admit exact work and reject one unit short"
-        },
-        {
-          "role": "graph_diff_variant_workspace_exact_one_short",
-          "suite": "moon:query_integration",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/query_integration/local_sga_delta_resource_wbtest.mbt",
-          "fixture": "Graph diff and apply admit exact workspace and reject one entry short"
-        },
-        {
-          "role": "graph_diff_variant_cancel_cleanup",
-          "suite": "moon:query_integration",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/query_integration/local_sga_delta_resource_wbtest.mbt",
-          "fixture": "Graph diff and apply cancel after bounded work and clean up"
-        }
-      ],
-      "environment_tests": [
-        {
-          "role": "graph_diff_host_in_flight_cancel",
-          "suite": "node:duckdb_standard_host",
-          "targets": [
-            "node"
-          ],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "graph-diff-in-flight"
-        },
-        {
-          "role": "graph_diff_selected_host_in_flight_cancel",
-          "suite": "node:duckdb_standard_host",
-          "targets": [
-            "node"
-          ],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "retained-graph-diff-filter-in-flight"
-        }
-      ],
-      "path_assurance": {
-        "entrypoint": {
-          "exact_limit": "graph_diff_variant_work_exact_one_short",
-          "one_short_limit": "graph_diff_variant_workspace_exact_one_short",
-          "in_flight_cancel": "graph_diff_host_in_flight_cancel",
-          "cleanup": "graph_diff_variant_cancel_cleanup"
-        }
-      },
-      "resource_assurance": {
-        "entrypoint": {
-          "work": {
-            "exact_limit": "graph_diff_variant_work_exact_one_short",
-            "one_short_limit": "graph_diff_variant_work_exact_one_short"
-          },
-          "workspace": {
-            "exact_limit": "graph_diff_variant_workspace_exact_one_short",
-            "one_short_limit": "graph_diff_variant_workspace_exact_one_short"
-          }
-        }
-      }
+      "profile": "sga_graph"
     },
     {
       "inventory": "families",
       "family": "SGA",
       "operation": "graft_graph",
-      "profile": "sga_graph",
-      "dispatch": {
-        "path": "src/local_sga_provider/graph_pipeline.mbt",
-        "marker": "@sga.start_graft("
-      },
-      "entrypoint": {
-        "path": "src/local_sga/graft.mbt",
-        "symbol": "start_graft"
-      },
-      "boundary_tests": [
-        {
-          "role": "graft_empty_work_exact_one_short_and_cleanup",
-          "suite": "moon:local_sga",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/local_sga/graft_wbtest.mbt",
-          "fixture": "structural Graph modes charge empty source positions and completion"
-        },
-        {
-          "role": "graft_merge_work_exact_one_short",
-          "suite": "moon:local_sga",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
-          "fixture": "structural Graph merges admit exact work and reject one unit short"
-        },
-        {
-          "role": "graft_merge_workspace_exact_one_short",
-          "suite": "moon:local_sga",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
-          "fixture": "structural Graph merges admit exact workspace and reject one entry short"
-        },
-        {
-          "role": "graft_merge_output_exact_one_short",
-          "suite": "moon:local_sga",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
-          "fixture": "structural Graph merges admit exact output budgets and reject one short"
-        },
-        {
-          "role": "graft_merge_cancel_cleanup",
-          "suite": "moon:local_sga",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
-          "fixture": "structural Graph merges cancel after bounded work and clean up"
-        }
-      ],
-      "environment_tests": [
-        {
-          "role": "graft_host_in_flight_cancel",
-          "suite": "node:duckdb_standard_host",
-          "targets": [
-            "node"
-          ],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "graft"
-        }
-      ],
-      "path_assurance": {
-        "entrypoint": {
-          "exact_limit": "graft_merge_work_exact_one_short",
-          "one_short_limit": "graft_merge_workspace_exact_one_short",
-          "in_flight_cancel": "graft_host_in_flight_cancel",
-          "cleanup": "graft_merge_cancel_cleanup"
-        }
-      },
-      "resource_assurance": {
-        "entrypoint": {
-          "work": {
-            "exact_limit": "graft_merge_work_exact_one_short",
-            "one_short_limit": "graft_merge_work_exact_one_short"
-          },
-          "workspace": {
-            "exact_limit": "graft_merge_workspace_exact_one_short",
-            "one_short_limit": "graft_merge_workspace_exact_one_short"
-          }
-        }
-      }
+      "profile": "sga_graph"
     },
     {
       "inventory": "families",
       "family": "SGA",
       "operation": "union_graphs",
-      "profile": "sga_graph",
-      "dispatch": {
-        "path": "src/local_sga_provider/graph_pipeline.mbt",
-        "marker": "@sga.start_graft_views("
-      },
-      "entrypoint": {
-        "path": "src/local_sga/graft.mbt",
-        "symbol": "start_graft_views"
-      },
-      "boundary_tests": [
-        {
-          "role": "union_empty_work_exact_one_short_active_cancel_cleanup",
-          "suite": "moon:local_sga",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/local_sga/graft_wbtest.mbt",
-          "fixture": "structural Graph modes charge empty source positions and completion"
-        },
-        {
-          "role": "union_merge_work_exact_one_short",
-          "suite": "moon:local_sga",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
-          "fixture": "structural Graph merges admit exact work and reject one unit short"
-        },
-        {
-          "role": "union_merge_workspace_exact_one_short",
-          "suite": "moon:local_sga",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
-          "fixture": "structural Graph merges admit exact workspace and reject one entry short"
-        },
-        {
-          "role": "union_merge_output_exact_one_short",
-          "suite": "moon:local_sga",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
-          "fixture": "structural Graph merges admit exact output budgets and reject one short"
-        },
-        {
-          "role": "union_merge_cancel_cleanup",
-          "suite": "moon:local_sga",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
-          "fixture": "structural Graph merges cancel after bounded work and clean up"
-        }
-      ],
-      "environment_tests": [
-        {
-          "role": "union_host_in_flight_cancel",
-          "suite": "node:duckdb_standard_host",
-          "targets": [
-            "node"
-          ],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "union"
-        }
-      ],
-      "path_assurance": {
-        "entrypoint": {
-          "exact_limit": "union_merge_work_exact_one_short",
-          "one_short_limit": "union_merge_workspace_exact_one_short",
-          "in_flight_cancel": "union_host_in_flight_cancel",
-          "cleanup": "union_merge_cancel_cleanup"
-        }
-      },
-      "resource_assurance": {
-        "entrypoint": {
-          "work": {
-            "exact_limit": "union_merge_work_exact_one_short",
-            "one_short_limit": "union_merge_work_exact_one_short"
-          },
-          "workspace": {
-            "exact_limit": "union_merge_workspace_exact_one_short",
-            "one_short_limit": "union_merge_workspace_exact_one_short"
-          }
-        }
-      }
+      "profile": "sga_graph"
     },
     {
       "inventory": "families",
       "family": "SGA",
       "operation": "subtract_graphs",
-      "profile": "sga_graph",
-      "dispatch": {
-        "path": "src/local_sga_provider/graph_pipeline.mbt",
-        "marker": "@sga.start_graft_views("
-      },
-      "entrypoint": {
-        "path": "src/local_sga/graft.mbt",
-        "symbol": "start_graft_views"
-      },
-      "boundary_tests": [
-        {
-          "role": "subtract_empty_work_exact_one_short_and_cleanup",
-          "suite": "moon:local_sga",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/local_sga/graft_wbtest.mbt",
-          "fixture": "structural Graph modes charge empty source positions and completion"
-        },
-        {
-          "role": "subtract_merge_work_exact_one_short",
-          "suite": "moon:local_sga",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
-          "fixture": "structural Graph merges admit exact work and reject one unit short"
-        },
-        {
-          "role": "subtract_merge_workspace_exact_one_short",
-          "suite": "moon:local_sga",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
-          "fixture": "structural Graph merges admit exact workspace and reject one entry short"
-        },
-        {
-          "role": "subtract_merge_output_exact_one_short",
-          "suite": "moon:local_sga",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
-          "fixture": "structural Graph merges admit exact output budgets and reject one short"
-        },
-        {
-          "role": "subtract_merge_cancel_cleanup",
-          "suite": "moon:local_sga",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
-          "fixture": "structural Graph merges cancel after bounded work and clean up"
-        }
-      ],
-      "environment_tests": [
-        {
-          "role": "subtract_host_in_flight_cancel",
-          "suite": "node:duckdb_standard_host",
-          "targets": [
-            "node"
-          ],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "subtract-exact"
-        }
-      ],
-      "path_assurance": {
-        "entrypoint": {
-          "exact_limit": "subtract_merge_work_exact_one_short",
-          "one_short_limit": "subtract_merge_workspace_exact_one_short",
-          "in_flight_cancel": "subtract_host_in_flight_cancel",
-          "cleanup": "subtract_merge_cancel_cleanup"
-        }
-      },
-      "resource_assurance": {
-        "entrypoint": {
-          "work": {
-            "exact_limit": "subtract_merge_work_exact_one_short",
-            "one_short_limit": "subtract_merge_work_exact_one_short"
-          },
-          "workspace": {
-            "exact_limit": "subtract_merge_workspace_exact_one_short",
-            "one_short_limit": "subtract_merge_workspace_exact_one_short"
-          }
-        }
-      }
+      "profile": "sga_graph"
     },
     {
       "inventory": "families",
       "family": "SGA",
       "operation": "subgraph",
-      "profile": "sga_graph",
-      "dispatch": {
-        "path": "src/local_sga_provider/graph_pipeline.mbt",
-        "marker": "@sga.start_subgraph("
-      },
-      "entrypoint": {
-        "path": "src/local_sga/subgraph.mbt",
-        "symbol": "start_subgraph"
-      },
-      "boundary_tests": [
-        {
-          "role": "subgraph_combined_workspace_exact",
-          "suite": "moon:local_sga",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/local_sga/subgraph_wbtest.mbt",
-          "fixture": "subgraph admits exact combined selector and output workspace"
-        },
-        {
-          "role": "subgraph_combined_workspace_one_short",
-          "suite": "moon:local_sga",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/local_sga/subgraph_wbtest.mbt",
-          "fixture": "subgraph rejects one short combined selector and output workspace"
-        },
-        {
-          "role": "subgraph_literal_control_work_exact_one_short",
-          "suite": "moon:local_sga",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/local_sga/subgraph_wbtest.mbt",
-          "fixture": "subgraph admits exact literal-selection control work"
-        },
-        {
-          "role": "subgraph_false_edge_work_workspace_exact_one_short",
-          "suite": "moon:local_sga",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/local_sga/subgraph_wbtest.mbt",
-          "fixture": "subgraph false edge branch retains exact work and workspace bounds"
-        },
-        {
-          "role": "subgraph_cancel_cleanup",
-          "suite": "moon:local_sga",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/local_sga/subgraph_wbtest.mbt",
-          "fixture": "subgraph cancellation reclaims unpublished output"
-        }
-      ],
-      "environment_tests": [
-        {
-          "role": "subgraph_fused_in_flight_host_timer",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "subgraph-fused-bridge"
-        }
-      ],
-      "path_assurance": {
-        "entrypoint": {
-          "exact_limit": "subgraph_combined_workspace_exact",
-          "one_short_limit": "subgraph_combined_workspace_one_short",
-          "in_flight_cancel": "subgraph_fused_in_flight_host_timer",
-          "cleanup": "subgraph_cancel_cleanup"
-        }
-      },
-      "resource_assurance": {
-        "entrypoint": {
-          "work": {
-            "exact_limit": "subgraph_literal_control_work_exact_one_short",
-            "one_short_limit": "subgraph_literal_control_work_exact_one_short"
-          },
-          "workspace": {
-            "exact_limit": "subgraph_combined_workspace_exact",
-            "one_short_limit": "subgraph_combined_workspace_one_short"
-          }
-        }
-      }
+      "profile": "sga_graph"
     },
     {
       "inventory": "families",
       "family": "SGA",
       "operation": "graphs_equal",
-      "profile": "sga_graph",
-      "dispatch": {
-        "path": "src/local_sga_provider/graph_pipeline.mbt",
-        "marker": "@sga.start_graphs_equal("
-      },
-      "entrypoint": {
-        "path": "src/local_sga/graphs_equal.mbt",
-        "symbol": "start_graphs_equal"
-      },
-      "selected_entrypoint": {
-        "path": "src/local_sga/graphs_equal.mbt",
-        "symbol": "start_graphs_equal_view"
-      },
-      "boundary_tests": [
-        {
-          "role": "graphs_equal_selected_exact_one_short_cancel",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "selected Graph equality keeps repeated input occurrences and exact work"
-        },
-        {
-          "role": "graphs_equal_control_work_exact_one_short_and_cancel",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "Graph equality enforces exact control work and cleans cancellation"
-        },
-        {
-          "role": "graphs_equal_nested_value_work_ceiling",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "Graph equality bounds nested value comparison work"
-        },
-        {
-          "role": "graphs_equal_long_text_quantum_cancel_cleanup",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "Graph equality stops during a long property comparison"
-        }
-      ],
-      "environment_tests": [
-        {
-          "role": "graphs_equal_selected_host_in_flight_cancel",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "retained-graphs-equal-filter-in-flight"
-        },
-        {
-          "role": "graphs_equal_selected_host_two_consumers",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "retained-graphs-equal-filter"
-        },
-        {
-          "role": "graphs_equal_host_two_consumers",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "graphs-equal"
-        },
-        {
-          "role": "graphs_equal_host_in_flight_cancel",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "graphs-equal-in-flight"
-        }
-      ],
-      "path_assurance": {
-        "entrypoint": {
-          "exact_limit": "graphs_equal_control_work_exact_one_short_and_cancel",
-          "one_short_limit": "graphs_equal_control_work_exact_one_short_and_cancel",
-          "in_flight_cancel": "graphs_equal_host_in_flight_cancel",
-          "cleanup": "graphs_equal_long_text_quantum_cancel_cleanup"
-        },
-        "selected_entrypoint": {
-          "exact_limit": "graphs_equal_selected_exact_one_short_cancel",
-          "one_short_limit": "graphs_equal_selected_exact_one_short_cancel",
-          "in_flight_cancel": "graphs_equal_selected_host_in_flight_cancel",
-          "cleanup": "graphs_equal_selected_exact_one_short_cancel"
-        }
-      },
-      "resource_assurance": {
-        "entrypoint": {
-          "work": {
-            "exact_limit": "graphs_equal_control_work_exact_one_short_and_cancel",
-            "one_short_limit": "graphs_equal_control_work_exact_one_short_and_cancel"
-          },
-          "workspace": {
-            "exact_limit": "graphs_equal_control_work_exact_one_short_and_cancel",
-            "one_short_limit": "graphs_equal_control_work_exact_one_short_and_cancel"
-          }
-        },
-        "selected_entrypoint": {
-          "work": {
-            "exact_limit": "graphs_equal_selected_exact_one_short_cancel",
-            "one_short_limit": "graphs_equal_selected_exact_one_short_cancel"
-          },
-          "workspace": {
-            "exact_limit": "graphs_equal_selected_exact_one_short_cancel",
-            "one_short_limit": "graphs_equal_selected_exact_one_short_cancel"
-          }
-        }
-      }
+      "profile": "sga_graph"
     },
     {
       "inventory": "families",
       "family": "SGA",
       "operation": "apply_graph_delta",
-      "profile": "sga_graph",
-      "dispatch": {
-        "path": "src/local_sga_provider/graph_pipeline.mbt",
-        "marker": "@sga.start_graph_apply("
-      },
-      "entrypoint": {
-        "path": "src/local_sga/graph_apply.mbt",
-        "symbol": "start_graph_apply"
-      },
-      "boundary_tests": [
-        {
-          "role": "exact_one_short_and_cancel_cleanup",
-          "suite": "moon:query_integration",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "Graph delta atomically applies node edge and property changes"
-        },
-        {
-          "role": "many_action_and_empty_base",
-          "suite": "moon:query_integration",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "Graph delta admits many additions and removals before scratch allocation"
-        },
-        {
-          "role": "wide_property",
-          "suite": "moon:query_integration",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "Graph delta reserves wide property reference containers before action storage"
-        },
-        {
-          "role": "utf8_key",
-          "suite": "moon:query_integration",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "Graph delta accounts UTF-8 action keys apart from structural entries"
-        },
-        {
-          "role": "graph_apply_variant_work_exact_one_short",
-          "suite": "moon:query_integration",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/query_integration/local_sga_delta_resource_wbtest.mbt",
-          "fixture": "Graph diff and apply admit exact work and reject one unit short"
-        },
-        {
-          "role": "graph_apply_variant_workspace_exact_one_short",
-          "suite": "moon:query_integration",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/query_integration/local_sga_delta_resource_wbtest.mbt",
-          "fixture": "Graph diff and apply admit exact workspace and reject one entry short"
-        },
-        {
-          "role": "graph_apply_variant_cancel_cleanup",
-          "suite": "moon:query_integration",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/query_integration/local_sga_delta_resource_wbtest.mbt",
-          "fixture": "Graph diff and apply cancel after bounded work and clean up"
-        }
-      ],
-      "environment_tests": [
-        {
-          "role": "graph_apply_host_in_flight_cancel",
-          "suite": "node:duckdb_standard_host",
-          "targets": [
-            "node"
-          ],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "graph-apply-delta-in-flight"
-        }
-      ],
-      "path_assurance": {
-        "entrypoint": {
-          "exact_limit": "graph_apply_variant_work_exact_one_short",
-          "one_short_limit": "graph_apply_variant_workspace_exact_one_short",
-          "in_flight_cancel": "graph_apply_host_in_flight_cancel",
-          "cleanup": "graph_apply_variant_cancel_cleanup"
-        }
-      },
-      "resource_assurance": {
-        "entrypoint": {
-          "work": {
-            "exact_limit": "graph_apply_variant_work_exact_one_short",
-            "one_short_limit": "graph_apply_variant_work_exact_one_short"
-          },
-          "workspace": {
-            "exact_limit": "graph_apply_variant_workspace_exact_one_short",
-            "one_short_limit": "graph_apply_variant_workspace_exact_one_short"
-          }
-        }
-      }
+      "profile": "sga_graph"
     },
     {
       "inventory": "families",
       "family": "SGA",
       "operation": "mean_graphs",
-      "profile": "sga_graph",
-      "dispatch": {
-        "path": "src/local_sga_provider/graph_pipeline.mbt",
-        "marker": "@sga.start_mean_views("
-      },
-      "entrypoint": {
-        "path": "src/local_sga/mean.mbt",
-        "symbol": "start_mean_views"
-      },
-      "boundary_tests": [
-        {
-          "role": "mean_empty_work_exact_one_short_and_cleanup",
-          "suite": "moon:local_sga",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/local_sga/mean_wbtest.mbt",
-          "fixture": "graph mean charges empty input weights and final completion"
-        },
-        {
-          "role": "mean_long_text_sort_cancel_cleanup",
-          "suite": "moon:local_sga",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/local_sga/mean_wbtest.mbt",
-          "fixture": "graph mean yields during long typed identity sorting"
-        },
-        {
-          "role": "mean_merge_work_exact_one_short",
-          "suite": "moon:local_sga",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
-          "fixture": "structural Graph merges admit exact work and reject one unit short"
-        },
-        {
-          "role": "mean_merge_workspace_exact_one_short",
-          "suite": "moon:local_sga",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
-          "fixture": "structural Graph merges admit exact workspace and reject one entry short"
-        },
-        {
-          "role": "mean_merge_output_exact_one_short",
-          "suite": "moon:local_sga",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
-          "fixture": "structural Graph merges admit exact output budgets and reject one short"
-        },
-        {
-          "role": "mean_merge_cancel_cleanup",
-          "suite": "moon:local_sga",
-          "targets": [
-            "js",
-            "wasm",
-            "native"
-          ],
-          "path": "src/local_sga/structural_merge_resource_wbtest.mbt",
-          "fixture": "structural Graph merges cancel after bounded work and clean up"
-        }
-      ],
-      "environment_tests": [
-        {
-          "role": "mean_host_in_flight_cancel",
-          "suite": "node:duckdb_standard_host",
-          "targets": [
-            "node"
-          ],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "mean"
-        }
-      ],
-      "path_assurance": {
-        "entrypoint": {
-          "exact_limit": "mean_merge_work_exact_one_short",
-          "one_short_limit": "mean_merge_workspace_exact_one_short",
-          "in_flight_cancel": "mean_host_in_flight_cancel",
-          "cleanup": "mean_merge_cancel_cleanup"
-        }
-      },
-      "resource_assurance": {
-        "entrypoint": {
-          "work": {
-            "exact_limit": "mean_merge_work_exact_one_short",
-            "one_short_limit": "mean_merge_work_exact_one_short"
-          },
-          "workspace": {
-            "exact_limit": "mean_merge_workspace_exact_one_short",
-            "one_short_limit": "mean_merge_workspace_exact_one_short"
-          }
-        }
-      }
+      "profile": "sga_graph"
     },
     {
       "inventory": "families",
@@ -9949,165 +8487,79 @@
     {
       "inventory": "families",
       "family": "Bridge",
-      "operation": "graph",
+      "operation": "property_graph",
       "profile": "carrier_bridges",
       "dispatch": {
         "path": "src/local_sga_provider/graph_pipeline.mbt",
-        "marker": "@bridge.start_rows_to_graph("
+        "marker": "@bridge.start_rows_to_property_graph("
       },
       "entrypoint": {
-        "path": "src/local_bridge/graph.mbt",
-        "symbol": "start_rows_to_graph"
+        "path": "src/local_bridge/property_graph.mbt",
+        "symbol": "start_rows_to_property_graph"
       },
       "boundary_tests": [
         {
-          "role": "graph_bridge_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
+          "role": "property_graph_control_work_workspace_exact_one_short",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "rows to Graph Bridge admits exact control work and workspace"
+          "path": "src/query_integration/property_graph_construction_wbtest.mbt",
+          "fixture": "keyed constructor admits exact control work and workspace and refuses one short"
         },
         {
-          "role": "graph_bridge_two_consumer_lifetime",
+          "role": "property_graph_private_capacity_cancel_cleanup",
           "suite": "moon:query_integration",
           "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "bounded Graph bridge preserves repeated positions and two consumers"
+          "path": "src/query_integration/property_graph_construction_wbtest.mbt",
+          "fixture": "keyed constructor capacity failure and cancellation never hand off partial material"
         }
       ],
       "environment_tests": [
         {
-          "role": "graph_bridge_host_in_flight_cancel",
-          "suite": "node:duckdb_standard_host",
+          "role": "property_graph_host_in_flight_cancel_cleanup",
+          "suite": "node:property_graph_surface_checker",
           "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "concise-graph-construction"
+          "path": "scripts/property-graph-surface-checker.test.mjs",
+          "fixture": "keyed constructor Host in-flight cancellation never publishes partial Graph and closes custody"
         }
       ],
       "path_assurance": {
         "entrypoint": {
-          "exact_limit": "graph_bridge_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
-          "one_short_limit": "graph_bridge_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
-          "in_flight_cancel": "graph_bridge_host_in_flight_cancel",
-          "cleanup": "graph_bridge_work_workspace_exact_one_short_and_kernel_cancel_cleanup"
+          "exact_limit": "property_graph_control_work_workspace_exact_one_short",
+          "one_short_limit": "property_graph_control_work_workspace_exact_one_short",
+          "in_flight_cancel": "property_graph_host_in_flight_cancel_cleanup",
+          "cleanup": "property_graph_private_capacity_cancel_cleanup"
         }
       },
       "resource_assurance": {
         "entrypoint": {
           "work": {
-            "exact_limit": "graph_bridge_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
-            "one_short_limit": "graph_bridge_work_workspace_exact_one_short_and_kernel_cancel_cleanup"
+            "exact_limit": "property_graph_control_work_workspace_exact_one_short",
+            "one_short_limit": "property_graph_control_work_workspace_exact_one_short"
           },
           "workspace": {
-            "exact_limit": "graph_bridge_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
-            "one_short_limit": "graph_bridge_work_workspace_exact_one_short_and_kernel_cancel_cleanup"
+            "exact_limit": "property_graph_control_work_workspace_exact_one_short",
+            "one_short_limit": "property_graph_control_work_workspace_exact_one_short"
           }
         }
       }
+    },
+    {
+      "inventory": "families",
+      "family": "Bridge",
+      "operation": "graph",
+      "profile": "carrier_bridges"
     },
     {
       "inventory": "families",
       "family": "Bridge",
       "operation": "node_rows",
-      "profile": "carrier_bridges",
-      "dispatch": {
-        "path": "src/local_sga_provider/graph_pipeline.mbt",
-        "marker": "@bridge.start_graph_to_rows("
-      },
-      "entrypoint": {
-        "path": "src/local_bridge/graph.mbt",
-        "symbol": "start_graph_to_rows"
-      },
-      "boundary_tests": [
-        {
-          "role": "node_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "Graph node rows admit exact work and workspace and stop after field work"
-        }
-      ],
-      "environment_tests": [
-        {
-          "role": "node_rows_host_in_flight_cancel",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "node-rows"
-        }
-      ],
-      "path_assurance": {
-        "entrypoint": {
-          "exact_limit": "node_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
-          "one_short_limit": "node_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
-          "in_flight_cancel": "node_rows_host_in_flight_cancel",
-          "cleanup": "node_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup"
-        }
-      },
-      "resource_assurance": {
-        "entrypoint": {
-          "work": {
-            "exact_limit": "node_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
-            "one_short_limit": "node_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup"
-          },
-          "workspace": {
-            "exact_limit": "node_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
-            "one_short_limit": "node_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup"
-          }
-        }
-      }
+      "profile": "carrier_bridges"
     },
     {
       "inventory": "families",
       "family": "Bridge",
       "operation": "edge_rows",
-      "profile": "carrier_bridges",
-      "dispatch": {
-        "path": "src/local_sga_provider/graph_pipeline.mbt",
-        "marker": "@bridge.start_graph_to_rows("
-      },
-      "entrypoint": {
-        "path": "src/local_bridge/graph.mbt",
-        "symbol": "start_graph_to_rows"
-      },
-      "boundary_tests": [
-        {
-          "role": "edge_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
-          "suite": "moon:query_integration",
-          "targets": ["js", "wasm", "native"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "Graph edge rows admit exact work and workspace and stop after field work"
-        }
-      ],
-      "environment_tests": [
-        {
-          "role": "edge_rows_host_in_flight_cancel",
-          "suite": "node:duckdb_standard_host",
-          "targets": ["node"],
-          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
-          "fixture": "edge-rows"
-        }
-      ],
-      "path_assurance": {
-        "entrypoint": {
-          "exact_limit": "edge_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
-          "one_short_limit": "edge_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
-          "in_flight_cancel": "edge_rows_host_in_flight_cancel",
-          "cleanup": "edge_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup"
-        }
-      },
-      "resource_assurance": {
-        "entrypoint": {
-          "work": {
-            "exact_limit": "edge_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
-            "one_short_limit": "edge_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup"
-          },
-          "workspace": {
-            "exact_limit": "edge_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup",
-            "one_short_limit": "edge_rows_work_workspace_exact_one_short_and_kernel_cancel_cleanup"
-          }
-        }
-      }
+      "profile": "carrier_bridges"
     },
     {
       "inventory": "families",

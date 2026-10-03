@@ -297,11 +297,6 @@ fn derive_row_capacity(
       for index in 0..<steps {
         spend(1)
         let step = @pipeline.step_at(pipeline, index).unwrap()
-        if step.operation is @pipeline.Graph(graph) &&
-          @graph.operation(graph) == @graph.Components {
-          spend(1)
-          roots.push((@pipeline.Step(index), @derivation.Nodes))
-        }
         match step.operation {
           @pipeline.Join(..)
           | @pipeline.CrossJoin(..)

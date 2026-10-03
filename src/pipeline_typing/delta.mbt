@@ -62,11 +62,6 @@ fn sync_delta(
       None => empty_delta()
     }
     let next = match step.operation {
-      GraphDiff(checked~, ..) => {
-        spend(b, source, 1)
-        charge(b, source, "delta")
-        { fields: Map([("delta", @graph.diff_graph_contract(checked))]), }
-      }
       Unary(op) => transfer_delta(b, source, previous, op)
       _ => empty_delta()
     }

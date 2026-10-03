@@ -1,5 +1,5 @@
 ///|
-test "guard domains distinguish positive counts nonnegative reports and temporal widths" {
+test "guard domains distinguish positive counts and temporal widths" {
   for
     (obligation, expected) in [
       (
@@ -31,22 +31,8 @@ test "guard domains distinguish positive counts nonnegative reports and temporal
         @pipeline_typing.Milliseconds("n", signed=false),
       ),
       (
-        @pipeline_typing.GraphRequirement(@graph.BindPositiveCount("n")),
-        @pipeline_typing.SafeInteger("n", minimum=1L),
-      ),
-      (
-        @pipeline_typing.GraphRequirement(@graph.BindNonnegativeCount("n")),
-        @pipeline_typing.SafeInteger("n", minimum=0L),
-      ),
-      (
         @pipeline_typing.TraverseRequirement(
           @graph.BindTraversalOutputGuard("n"),
-        ),
-        @pipeline_typing.SafeInteger("n", minimum=1L),
-      ),
-      (
-        @pipeline_typing.ShortestRequirement(
-          @graph.BindShortestOutputGuard("n"),
         ),
         @pipeline_typing.SafeInteger("n", minimum=1L),
       ),
@@ -62,9 +48,7 @@ test "guard domains distinguish positive counts nonnegative reports and temporal
       @pipeline_typing.AsOfRequirement(RejectAsOfTies),
       @pipeline_typing.NestRequirement(@nest.ResolveItemLimit),
       @pipeline_typing.SequenceRequirement(@relation.AtomicMatchLimits),
-      @pipeline_typing.GraphRequirement(@graph.EnforceOutputGuard),
       @pipeline_typing.TraverseRequirement(@graph.EnforceTraversalOutputGuard),
-      @pipeline_typing.ShortestRequirement(@graph.EnforceShortestOutputGuard),
     ] {
     assert_true(@pipeline_typing.operation_scalar_demand(obligation) is None)
   }

@@ -40,7 +40,6 @@ pub(all) struct Context {
   captured_stage : String?
   parameter_declarations : @parameters.Declarations?
   inputs : Array[Input]
-  graph_inputs : Array[GraphInput]
 }
 
 ///|
@@ -2632,7 +2631,11 @@ pub fn compile(
     return Err(UnsupportedNearest)
   }
   if @query.graph_query(query) is Some(_) {
-    return compile_graph_query(query, context, limits)
+    // A query-only context carries Relation inputs, not an admitted current
+    // constructor definition. The retired tuple generator is not a fallback.
+    // Current Graph construction and MATCH/TRAIL use the ordinary Program
+    // checker; the Script frontend supplies that definition-scoped path.
+    return Err(UnsupportedGraph)
   }
   if @query.cte_count(query) > 0 {
     return compile_cte_query(query, context, limits)

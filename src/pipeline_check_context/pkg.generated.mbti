@@ -11,7 +11,6 @@ import {
   "actql/actql/capacity_program_step",
   "actql/actql/capacity_sequence_limit",
   "actql/actql/capacity_witness",
-  "actql/actql/carrier_projection",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
   "actql/actql/encode_core",
@@ -129,7 +128,7 @@ pub fn check_expression_profiles(ExpressionValidationContext, ExpressionProfiles
 
 pub fn check_like_patterns(ExpressionValidationContext, LikePatternLimits) -> Result[LikePatternChecks, LikePatternIssue]
 
-pub fn check_operation_profiles(ProgramPreparation, PureOperationProfiles, Int) -> Result[OperationProfileChecks, OperationProfilesIssue]
+pub fn check_operation_profiles(ProgramPreparation, PureOperationProfiles, Int, property_graph? : Bool) -> Result[OperationProfileChecks, OperationProfilesIssue]
 
 pub fn check_parameter_bindings(PipelineContext, max_work~ : Int, max_text_bytes~ : Int) -> Result[BoundParameters, ParameterIssue]
 
@@ -291,37 +290,13 @@ pub fn expression_validation_text_time(ExpressionValidationContext) -> @check_en
 
 pub fn expression_validation_usage(ExpressionValidationContext) -> SelectedPolicyUsage
 
-pub fn graph_apply_resource_at(GraphApplyCheck, Int) -> GraphDeltaResource?
-
-pub fn graph_apply_resource_count(GraphApplyCheck) -> Int
-
-pub fn graph_comparison_resource_at(GraphEqualityCheck, Int) -> GraphComparisonResource?
-
-pub fn graph_comparison_resource_count(GraphEqualityCheck) -> Int
-
-pub fn graph_delta_resource_at(GraphDiffCheck, Int) -> GraphDeltaResource?
-
-pub fn graph_delta_resource_count(GraphDiffCheck) -> Int
-
 pub fn graph_match_resource_at(GraphMatchCheck, Int) -> GraphComparisonResource?
 
 pub fn graph_match_resource_count(GraphMatchCheck) -> Int
 
-pub fn graph_mean_resource_at(GraphMeanCheck, Int) -> GraphMeanResource?
-
-pub fn graph_mean_resource_count(GraphMeanCheck) -> Int
-
-pub fn graph_mean_sample_at(GraphMeanCheck, Int) -> (@pipeline_typing.InputOccurrence, Double)?
-
-pub fn graph_mean_sample_count(GraphMeanCheck) -> Int
-
 pub fn graph_selector_resource_at(GraphSelectorCheck, Int) -> GraphSelectionResource?
 
 pub fn graph_selector_resource_count(GraphSelectorCheck) -> Int
-
-pub fn graph_structural_resource_at(GraphStructuralCheck, Int) -> GraphStructuralResource?
-
-pub fn graph_structural_resource_count(GraphStructuralCheck) -> Int
 
 pub fn group_array_limit_call(GroupArrayLimit) -> @relation_typing.CheckedAggregate
 
@@ -619,6 +594,8 @@ pub fn operation_profiles_diagnostic(OperationProfilesIssue) -> String?
 
 pub fn operation_profiles_preparation(OperationProfileChecks) -> ProgramPreparation
 
+pub fn operation_profiles_property_graph(OperationProfileChecks) -> Bool
+
 pub fn operation_profiles_work(OperationProfileChecks) -> Int
 
 pub fn operation_queries_count(ProgramOperationQueries) -> Int
@@ -741,7 +718,7 @@ pub fn prepare_nest_value_envelope(NestItemLimit, Int, Int) -> Result[NestValueE
 
 pub fn prepare_program_analytic_numeric_slots(ProgramOperationRequirements, @numeric_reduction.Profile, Int, Int) -> Result[ProgramAnalyticNumericSlots, NumericSlotsIssue]
 
-pub fn prepare_program_checks(SourceProducerContext, ExpressionProfiles, PureOperationProfiles, PreparationBudget, max_policy_depth~ : Int, max_requirements~ : Int, max_regex_depth~ : Int) -> Result[OperationProfileChecks, PrepareChecksIssue]
+pub fn prepare_program_checks(SourceProducerContext, ExpressionProfiles, PureOperationProfiles, PreparationBudget, max_policy_depth~ : Int, max_requirements~ : Int, max_regex_depth~ : Int, property_graph? : Bool) -> Result[OperationProfileChecks, PrepareChecksIssue]
 
 pub fn prepare_program_incoming_gates(ProgramIncomingLinks, IncomingGateLimits) -> Result[ProgramIncomingGates, ProgramIncomingGatesIssue]
 
@@ -1067,10 +1044,6 @@ pub fn stage_results(StageContexts) -> @stage_results.Checked
 
 pub fn stage_usage(StageContexts) -> (Int, Int)
 
-pub fn subgraph_resource_at(SubgraphCheck, Int) -> GraphSelectionResource?
-
-pub fn subgraph_resource_count(SubgraphCheck) -> Int
-
 pub fn text_bound_at(TextBoundsChecks, Int) -> TextBoundResolution?
 
 pub fn text_bound_count(TextBoundsChecks) -> Int
@@ -1323,8 +1296,6 @@ pub enum CapacityStageIssue {
   MissingJoinCeiling(Int)
   ResolvedTraversalLimits(Int, Int, @capacity_host_witness.ResolvedLimitIssue)
   MissingTraversalCeiling(Int, String)
-  ResolvedComponentsLimits(Int, Int, @capacity_host_witness.ResolvedLimitIssue)
-  MissingComponentsCeiling(Int)
   StageCount
   VisitCount(Int)
   BudgetExceeded
@@ -1345,14 +1316,7 @@ pub(all) struct CapacityStageLimits {
 pub(all) enum CapacityUse {
   Sequence(step~ : Int, matches~ : @capacity_witness.LimitClaim, output~ : @capacity_witness.LimitClaim)
   Join(step~ : Int, output~ : @capacity_witness.LimitClaim)
-  Components(step~ : Int, nodes~ : @capacity_witness.LimitClaim, output~ : @capacity_witness.LimitClaim)
   Traversal(step~ : Int, paths~ : @capacity_witness.LimitClaim, output~ : @capacity_witness.LimitClaim)
-}
-
-pub struct ComponentsLimitsCheck {
-  site : OperationRequirementSite
-  step : @pipeline_typing.CheckedStep
-  limits : @capacity_program_step.ComponentsLimits
 }
 
 pub(all) enum CoreContractBody {
@@ -1375,6 +1339,7 @@ pub(all) enum CoreContractBody {
   AsOfSearchRules
   WindowCountRules
   GraphCountRules
+  PropertyGraphCountRules
   RankingCountRules
   SeriesCountRules
   LocalSnapshotRules
@@ -1603,47 +1568,11 @@ pub(all) struct ExpressionValidationLimits {
 
 type ExpressionValidationSite
 
-pub struct GraphApplyCheck {
-  site : OperationRequirementSite
-  step : @pipeline_typing.CheckedStep
-  base : @pipeline_typing.Target
-  delta : @pipeline_typing.Target
-  operation : @graph_typing.CheckedApply
-  rule : GraphApplyRule
-  policy : @capacity_policy.Policy
-}
-
-pub(all) enum GraphApplyRule {
-  RequireSingleDeltaRow
-  AdmitDeltaShapeAndVersion
-  MatchGraphContract
-  AdmitBaseGraph
-  MatchBaseIdentity
-  ValidateUniqueOrderedActions
-  MatchBeforeRecords
-  CheckActionExistence
-  ApplyChangesAtomically
-  AdmitResultGraph
-  MatchTargetIdentity
-  PreservePolicyDependencies
-  RequireApplicationResources
-} derive(Eq, @debug.Debug)
-
 pub(all) enum GraphComparisonResource {
   ComparisonWork
   RetainedComparisonState
   InputAndTemporaryBytes
 } derive(Eq, @debug.Debug)
-
-pub struct GraphConstructionCheck {
-  site : OperationRequirementSite
-  step : @pipeline_typing.CheckedStep
-  nodes : @pipeline_typing.Target?
-  edges : @pipeline_typing.Target
-  operation : @graph_typing.CheckedConstruction
-  rule : GraphConstructionRule
-  envelope : GraphConstructionEnvelope?
-}
 
 pub struct GraphConstructionEnvelope {
   policy : @capacity_policy.Policy
@@ -1651,76 +1580,6 @@ pub struct GraphConstructionEnvelope {
   output_nodes : @capacity_policy.Ceiling
   output_edges : @capacity_policy.Ceiling
 }
-
-pub(all) enum GraphConstructionRule {
-  AdmitInputRows
-  CloseDeclaredEndpoints
-  DeriveEndpointNodes
-  JournalEndpoints
-  JournalLabels
-  CollapseEqualPayloads
-  RejectPayloadConflicts
-  EnforceConstructionEnvelope
-} derive(Eq, @debug.Debug)
-
-pub(all) enum GraphDeltaResource {
-  GraphNodes
-  GraphEdges
-  ActionRecords
-  ValueAndTemporaryBytes
-  Work
-  RetainedState
-} derive(Eq, @debug.Debug)
-
-pub struct GraphDiffCheck {
-  site : OperationRequirementSite
-  step : @pipeline_typing.CheckedStep
-  base : @pipeline_typing.Target
-  target : @pipeline_typing.Target
-  operation : @graph_typing.CheckedDiff
-  rule : GraphDiffRule
-  policy : @capacity_policy.Policy
-}
-
-pub(all) enum GraphDiffRule {
-  EmitVersion
-  AdmitCommonSnapshots
-  EmitContractIdentity
-  BindSnapshotIdentities
-  EmitCompleteRecords
-  OrderUniqueActions
-  RequireDeltaResources
-} derive(Eq, @debug.Debug)
-
-pub struct GraphEqualityCheck {
-  site : OperationRequirementSite
-  step : @pipeline_typing.CheckedStep
-  left : @pipeline_typing.Target
-  right : @pipeline_typing.Target
-  operation : @graph_typing.CheckedEquality
-  rule : GraphEqualityRule
-  policy : @capacity_policy.Policy
-}
-
-pub(all) enum GraphEqualityRule {
-  AdmitOperands
-  CompareCanonicalGraphs
-  RequireComparisonResources
-} derive(Eq, @debug.Debug)
-
-pub struct GraphExecutionCheck {
-  site : OperationRequirementSite
-  step : @pipeline_typing.CheckedStep
-  input : @pipeline_typing.Target
-  operation : @graph_typing.CheckedGraph
-  rule : GraphExecutionRule
-}
-
-pub(all) enum GraphExecutionRule {
-  AdmitGraphData
-  OrderComponentIdentities
-  OrderBoundsReport
-} derive(Eq, @debug.Debug)
 
 pub struct GraphMatchCheck {
   site : OperationRequirementSite
@@ -1741,76 +1600,9 @@ pub(all) enum GraphMatchRule {
   EnforceMatchResources
 } derive(Eq, @debug.Debug)
 
-pub struct GraphMeanCheck {
-  site : OperationRequirementSite
-  step : @pipeline_typing.CheckedStep
-  operation : @graph_typing.CheckedMean
-  rule : GraphMeanRule
-  policy : @capacity_policy.Policy
-}
-
-pub(all) enum GraphMeanResource {
-  SampleWork
-  ExactArithmeticWork
-  ValueAndTemporaryBytes
-  RetainedMeanState
-} derive(Eq, @debug.Debug)
-
-pub(all) enum GraphMeanRule {
-  AdmitMeanSamples
-  CompareMeanSupport
-  CloseMeanEndpoints
-  CheckMeanLabels
-  ApplyMeanProperties
-  RoundMeanOnce
-  ValidateMeanFiniteResults
-  OrderMeanIdentities
-  PreserveMeanDependencies
-  RequireMeanResources
-} derive(Eq, @debug.Debug)
-
-pub struct GraphProjectionCheck {
-  site : OperationRequirementSite
-  step : @pipeline_typing.CheckedStep
-  input : @pipeline_typing.Target
-  operation : @carrier_projection.CheckedProjection
-  rule : GraphProjectionRule
-}
-
-pub struct GraphProjectionEnvelope {
-  site : OperationRequirementSite
-  step : @pipeline_typing.CheckedStep
-  input : @pipeline_typing.Target
-  operation : @carrier_projection.CheckedProjection
-  policy : @capacity_policy.Policy
-  output_rows : @capacity_policy.Ceiling
-}
-
-pub(all) enum GraphProjectionRule {
-  AdmitGraphRecords
-  RejectColumnCollisions
-  RestoreIdentityNames
-} derive(Eq, @debug.Debug)
-
-pub(all) enum GraphResourceScope {
-  PreserveGraph
-  RelationRows(@capacity_policy.Ceiling)
-}
-
-pub struct GraphResourcesCheck {
-  site : OperationRequirementSite
-  step : @pipeline_typing.CheckedStep
-  input : @pipeline_typing.Target
-  operation : @graph_typing.CheckedGraph
-  policy : @capacity_policy.Policy
-  scope : GraphResourceScope
-}
-
 pub(all) enum GraphSelectionResource {
   SelectorWork
   SelectorBytes
-  MaterializationWork
-  MaterializationBytes
 } derive(Eq, @debug.Debug)
 
 pub struct GraphSelectorCheck {
@@ -1828,38 +1620,7 @@ pub(all) enum GraphSelectorRule {
   RevalidateReferences
   DeduplicateIdentities
   RequireMembership
-  EvaluateNodePredicate
   RequireSelectorResources
-} derive(Eq, @debug.Debug)
-
-pub struct GraphStructuralCheck {
-  site : OperationRequirementSite
-  step : @pipeline_typing.CheckedStep
-  left : StructuralOperand
-  right : @pipeline_typing.Target
-  operation : @graph_typing.CheckedStructural
-  rule : GraphStructuralRule
-  policy : @capacity_policy.Policy
-}
-
-pub(all) enum GraphStructuralResource {
-  CompositionWork
-  ValueAndTemporaryBytes
-  RetainedCompositionState
-} derive(Eq, @debug.Debug)
-
-pub(all) enum GraphStructuralRule {
-  AdmitStructuralInputs
-  CompareIdentityRecords
-  RequirePropertyEquality
-  ApplyPropertyStrategies
-  RetainOneSidedRecords
-  SubtractMatchingRecords
-  CloseResultEndpoints
-  ValidateSetResults
-  ValidateNumericResults
-  PreserveOperandPolicies
-  RequireStructuralResources
 } derive(Eq, @debug.Debug)
 
 type GroupArrayLimit
@@ -2376,33 +2137,16 @@ pub(all) enum OperationExecutionCheck {
   NestItems(NestItemLimit)
   NestExecution(NestExecutionCheck)
   GraphSelectorExecution(GraphSelectorCheck)
-  SubgraphExecution(SubgraphCheck)
   GraphMatchExecution(GraphMatchCheck)
-  GraphApplyExecution(GraphApplyCheck)
-  GraphDiffExecution(GraphDiffCheck)
-  GraphEqualityExecution(GraphEqualityCheck)
-  GraphStructuralExecution(GraphStructuralCheck)
-  GraphMeanExecution(GraphMeanCheck)
   VectorExecution(VectorCheck)
   NearestExecution(NearestCheck)
   PoolExecution(PoolCheck)
   RankingExecution(RankingCheck)
   TextRankExecution(TextRankCheck)
-  GraphResources(GraphResourcesCheck)
-  ComponentsLimits(ComponentsLimitsCheck)
-  ComponentsOutputGuard(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
-  ReachLimits(TraversalLimitsCheck)
-  ShortestLimits(TraversalLimitsCheck)
-  ShortestOutputGuard(TraversalLimitsCheck)
   TraversalOutputGuard(TraversalLimitsCheck)
   TraversalExecution(TraversalCheck)
-  ReachExecution(ReachCheck)
-  ShortestExecution(ShortestCheck)
-  GraphExecution(GraphExecutionCheck)
-  GraphConstructionExecution(GraphConstructionCheck)
-  GraphProjection(GraphProjectionCheck)
-  GraphProjectionOutput(GraphProjectionEnvelope)
+  PropertyGraphConstructionExecution(PropertyGraphConstructionCheck)
   SequenceMatch(SequenceMatchCheck)
   SequenceLimits(SequenceLimitsCheck)
   SequenceExecution(SequenceExecutionCheck)
@@ -2581,7 +2325,6 @@ pub(all) enum OperationRequirementsIssue {
 } derive(Eq, @debug.Debug)
 
 pub(all) enum OperationResolution {
-  ReachExpansion(ReachExpansion)
   AsOfCompletion(AsOfKeyCompletion)
   WindowPublication(WindowPublicationResources)
   Order(OperationOrderLink)
@@ -2930,6 +2673,21 @@ pub(all) enum ProgramSourcesIssue {
   BudgetExceeded
 } derive(Eq, @debug.Debug)
 
+pub struct PropertyGraphConstructionCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  operation : @graph_typing.CheckedPropertyConstruction
+  rule : PropertyGraphConstructionRule
+  envelope : GraphConstructionEnvelope?
+}
+
+pub(all) enum PropertyGraphConstructionRule {
+  AdmitPropertyInputRows
+  RejectDuplicateKeys
+  ExcludeNullKeysAndMissingEndpoints
+  EnforcePropertyConstructionEnvelope
+} derive(Eq, @debug.Debug)
+
 pub enum PublicationClosureIssue {
   InvalidLimits
   BudgetExceeded
@@ -3008,34 +2766,6 @@ pub struct RankingScoreEnvelope {
   minimum : Double
   maximum : Double
 }
-
-pub struct ReachCheck {
-  site : OperationRequirementSite
-  step : @pipeline_typing.CheckedStep
-  input : @pipeline_typing.Target
-  operation : @graph_typing.CheckedReach
-  rule : ReachRule
-}
-
-pub struct ReachExpansion {
-  requirement_index : Int
-  site : OperationRequirementSite
-  step : @pipeline_typing.CheckedStep
-  input : @pipeline_typing.Target
-  operation : @graph_typing.CheckedReach
-  start : @graph_typing.ReachStart
-  direction : @graph_typing.Direction
-  minimum_hops : Double
-  maximum_hops : Double
-  emission : @graph_typing.PathOutput
-}
-
-pub(all) enum ReachRule {
-  AdmitInputGraph
-  RequireStartMembership
-  EmitBoundedMinimumDepth
-  OrderReachRows
-} derive(Eq, @debug.Debug)
 
 type ReconciledContexts
 
@@ -3228,27 +2958,6 @@ pub(all) enum SetRowsRule {
   BoundOutputByLeftInput
   RetainIdentityAndCompleteness
   RequireComparisonResources
-} derive(Eq, @debug.Debug)
-
-pub struct ShortestCheck {
-  site : OperationRequirementSite
-  step : @pipeline_typing.CheckedStep
-  input : @pipeline_typing.Target
-  source_relation : @pipeline_typing.Target?
-  target_relation : @pipeline_typing.Target?
-  operation : @graph_typing.CheckedShortest
-  rule : ShortestRule
-}
-
-pub(all) enum ShortestRule {
-  AdmitShortestInput
-  RequireEndpoints
-  ValidateAllWeights
-  FoldCostsWithOverrange
-  RejectSelectedOverrange
-  SelectSimpleBoundedPaths
-  ApplyPathTieBreaks
-  OrderOutputRows
 } derive(Eq, @debug.Debug)
 
 type SourceBindingRequirements
@@ -3453,30 +3162,6 @@ pub enum StatisticalLaw {
   SampleStandardDeviation
 }
 
-pub(all) enum StructuralOperand {
-  StructuralInput(@pipeline_typing.Target)
-  UnionAccumulator(Int)
-} derive(Eq, @debug.Debug)
-
-pub struct SubgraphCheck {
-  site : OperationRequirementSite
-  step : @pipeline_typing.CheckedStep
-  input : @pipeline_typing.Target
-  selector_relation : @pipeline_typing.Target?
-  operation : @graph_typing.CheckedSubgraph
-  rule : SubgraphRule
-  policy : @capacity_policy.Policy
-}
-
-pub(all) enum SubgraphRule {
-  AdmitInputGraph
-  InduceBothEndpoints
-  FilterInducedEdges
-  PreserveIdentitiesAndProperties
-  PreservePolicyAndScope
-  RequireMaterializationResources
-} derive(Eq, @debug.Debug)
-
 type TextBoundResolution
 
 type TextBoundsChecks
@@ -3598,9 +3283,8 @@ pub struct TraversalLimitsCheck {
 pub(all) enum TraversalRule {
   AdmitInputGraph
   RespectAuthoredHops
-  EvaluateHopConditions
-  EmitMinimumDepth
-  EnumerateSimplePaths
+  FilterAuthoredLabels
+  EnumeratePropertyPaths
   DeduplicatePathIdentities
   OrderTraversalRows
 } derive(Eq, @debug.Debug)

@@ -26,7 +26,6 @@ fn test_context() -> @query.Context {
         graph_bindings: [],
       },
     ],
-    graph_inputs: [],
   }
 }
 
@@ -174,42 +173,16 @@ test "published query names bind one environment generation" {
 }
 
 ///|
-test "public Graph lowering rejects private star before Program preparation" {
-  let source = @wire.admit(
-    @source.parse_json("{\"connector\":\"crm/main\",\"resource\":\"graph\"}", {
-      max_input_bytes: 1024,
-      max_nodes: 64,
-      max_depth: 8,
-    }).unwrap(),
-    {
-      max_nodes: 64,
-      max_depth: 8,
-      max_string_bytes: 1024,
-      max_total_string_bytes: 1024,
-    },
-  ).unwrap()
-  let context = {
-    ..test_context(),
-    captured_stage: None,
-    inputs: [],
-    graph_inputs: [
-      {
-        relation: [{ value: "g", quoted: false, }],
-        name: "g",
-        source: @query.CapturedGraph(source),
-        node_fields: ["id", "name"],
-        edge_fields: ["src", "dst", "rel"],
-      },
-    ],
-  }
-  assert_true(
-    lower(
-      "FROM GRAPH g |> MATCH WALK (a)-[]->(b) |> SELECT *",
-      Text,
-      Some(context),
+test "public query-only context rejects Graph lowering before preparation" {
+  for
+    text in [
+      "FROM GRAPH g |> MATCH WALK (a)-[]->(b) |> SELECT *", "FROM GRAPH g |> MATCH WALK (a) |> SELECT a.id",
+    ] {
+    assert_true(
+      lower(text, Text, Some(test_context()))
+      is Err(QueryLowering(@query.UnsupportedGraph)),
     )
-    is Err(QueryLowering(@query.UnsupportedProjection)),
-  )
+  }
 }
 
 ///|

@@ -24,34 +24,6 @@ fn traversal_limits_check(
   let check : TraversalLimitsCheck = { site, step, limits, }
   match (site.requirement, step.operation) {
     (
-      @pipeline.ShortestRequirement(requirement),
-      @pipeline.Shortest(checked=operation, ..),
-    ) => {
-      if @graph.shortest_pending_at(operation, site.index) != Some(requirement) {
-        return Err(ForeignOccurrence(site.step))
-      }
-      match requirement {
-        ResolveShortestResources => Ok(ShortestLimits(check))
-        EnforceShortestOutputGuard =>
-          if @step_bounds.traversal_limit_guard_value(limits) is Some(_) {
-            Ok(ShortestOutputGuard(check))
-          } else {
-            Err(ForeignOccurrence(site.step))
-          }
-        _ => Err(ForeignOccurrence(site.step))
-      }
-    }
-    (
-      @pipeline.ReachRequirement(ResolveReachResources),
-      @pipeline.Reach(operation),
-    ) =>
-      if @graph.reach_pending_at(operation, site.index) ==
-        Some(ResolveReachResources) {
-        Ok(ReachLimits(check))
-      } else {
-        Err(ForeignOccurrence(site.step))
-      }
-    (
       @pipeline.TraverseRequirement(requirement),
       @pipeline.Traverse(checked=operation, ..),
     ) => {
@@ -79,15 +51,10 @@ fn traversal_limits_candidate(
   site : OperationRequirementSite,
 ) -> Result[OperationExecutionCheck?, OperationResolutionIndexIssue] {
   guard site.requirement
-    is (@pipeline.TraverseRequirement(
+    is @pipeline.TraverseRequirement(
       ResolveTraversalResources
       | EnforceTraversalOutputGuard
-    )
-    | @pipeline.ReachRequirement(ResolveReachResources)
-    | @pipeline.ShortestRequirement(
-      ResolveShortestResources
-      | EnforceShortestOutputGuard
-    )) else {
+    ) else {
     return Ok(None)
   }
   let stages = requirements.stages

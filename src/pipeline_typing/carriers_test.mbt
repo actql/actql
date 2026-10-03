@@ -175,13 +175,20 @@ test "event vector and partial field roles retain structure without inventing ev
 ///|
 test "unused partially known and Graph contracts are preflighted within shared budgets" {
   let properties = @carrier.typed_rows(schema())
-  let graph = @carrier.graph(
-    @contract.primitive(StringType, nullable=false),
+  let node = @carrier.property_node_definition(
+    "N",
+    [@contract.primitive(StringType, nullable=false)],
     properties,
-    properties,
-    labels=Some(["edge"]),
-    max_labels=1,
-    max_label_bytes=4,
+    ["Node"],
+    max_fields=10,
+    max_name_bytes=100,
+  ).unwrap()
+  let graph = @carrier.property_graph(
+    "sha256:" + "0".repeat(64),
+    [node],
+    [],
+    max_definitions=1,
+    max_contract_work=1000,
   ).unwrap()
   let inputs = [("rows", @carrier.relation(properties)), ("graph", graph)]
   let p = @pipeline_typing.check_carriers(

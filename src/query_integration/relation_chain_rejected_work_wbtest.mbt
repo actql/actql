@@ -1,8 +1,9 @@
 ///|
 test "chain carrier rejection retains terminal work through cleanup" {
-  let source = carrier_graph_source_owner()
-  let graph = carrier_graph_match_owner(source, "[1]")
-  let material = carrier_match_graph_material(graph, source)
+  // Use the current admitted, definition-keyed Graph. Accounting rejects the
+  // carrier kind, not a retired endpoint-tuple construction path.
+  let graph = snapshot_fixture_owner()
+  let material = @graphs.completed_material(snapshot_handoff_source(graph)).unwrap()
   let sequence = chain_evidence_sequence(2)
   let actual = chain_evidence_family(sequence, chain_evidence_probe())
   let stopped = Ref(false)
@@ -139,10 +140,10 @@ test "zero work Continue latches accounting failure through stop and cleanup" {
 
 ///|
 test "zero work terminal provider polls remain valid accounting reports" {
-  let source = carrier_graph_source_owner()
+  let source = keyed_node_source()
   let output = carrier_events_source_output(source)
-  let graph = carrier_graph_match_owner(source, "[1]")
-  let material = carrier_match_graph_material(graph, source)
+  let graph = snapshot_fixture_owner()
+  let material = @graphs.completed_material(snapshot_handoff_source(graph)).unwrap()
   let polls = [
     @local_connector.managed_provider_complete(output, 0L, 0L),
     @local_connector.managed_provider_carrier_complete(material, 0L, 0L),

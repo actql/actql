@@ -1,98 +1,34 @@
 ///|
 test "profile obligations map to their declared module without discharging other requirements" {
   assert_eq(
-    operation_profile_requirement(GraphRequirement(ResolveSgaProfile)),
-    Some(SGA),
-  )
-  assert_eq(
-    operation_profile_requirement(GraphRequirement(ValidateGraphData)),
-    None,
-  )
-  assert_eq(
-    operation_profile_requirement(MatchRequirement(ResolveMatchProfile)),
-    Some(SGA),
+    operation_profile_requirement(
+      MatchRequirement(ResolvePropertyGraphMatchProfile),
+    ),
+    Some(PropertyGraph),
   )
   assert_eq(
     operation_profile_requirement(MatchRequirement(AdmitMatchGraphData)),
     None,
   )
   assert_eq(
-    operation_profile_requirement(ReachRequirement(ResolveReachProfile)),
-    Some(SGA),
+    operation_profile_requirement(
+      TraverseRequirement(ResolvePropertyGraphTraversalProfile),
+    ),
+    Some(PropertyGraph),
   )
   assert_eq(
-    operation_profile_requirement(ReachRequirement(AdmitReachGraph)),
+    operation_profile_requirement(TraverseRequirement(EnumeratePropertyPaths)),
     None,
-  )
-  assert_eq(
-    operation_profile_requirement(SubgraphRequirement(ResolveSubgraphProfile)),
-    Some(SGA),
-  )
-  assert_eq(
-    operation_profile_requirement(SubgraphRequirement(AdmitSubgraphInput)),
-    None,
-  )
-  assert_eq(
-    operation_profile_requirement(TraverseRequirement(ResolveTraversalProfile)),
-    Some(SGA),
   )
   assert_eq(
     operation_profile_requirement(TraverseRequirement(AdmitTraversalGraph)),
     None,
   )
   assert_eq(
-    operation_profile_requirement(ShortestRequirement(ResolveShortestProfile)),
-    Some(SGA),
-  )
-  assert_eq(
-    operation_profile_requirement(ShortestRequirement(AdmitShortestGraph)),
-    None,
-  )
-  assert_eq(
-    operation_profile_requirement(EqualityRequirement(ResolveSgaProfile)),
-    Some(SGA),
-  )
-  assert_eq(
-    operation_profile_requirement(EqualityRequirement(AdmitBothGraphs)),
-    None,
-  )
-  assert_eq(
-    operation_profile_requirement(DiffRequirement(ResolveSgaProfile)),
-    Some(SGA),
-  )
-  assert_eq(
-    operation_profile_requirement(DiffRequirement(EmitDeltaVersion)),
-    None,
-  )
-  assert_eq(
-    operation_profile_requirement(ApplyRequirement(ResolveSgaProfile)),
-    Some(SGA),
-  )
-  assert_eq(
-    operation_profile_requirement(ApplyRequirement(RequireExactlyOneDeltaRow)),
-    None,
-  )
-  assert_eq(
-    operation_profile_requirement(StructuralRequirement(ResolveSgaProfile)),
-    Some(SGA),
-  )
-  assert_eq(
     operation_profile_requirement(
-      StructuralRequirement(AdmitGraphsUnderCommonContract),
+      ConstructionRequirement(ResolvePropertyGraphProfile),
     ),
-    None,
-  )
-  assert_eq(
-    operation_profile_requirement(MeanRequirement(ResolveMeanProfile)),
-    Some(SGA),
-  )
-  assert_eq(
-    operation_profile_requirement(MeanRequirement(AdmitEveryMeanSample)),
-    None,
-  )
-  assert_eq(
-    operation_profile_requirement(ConstructionRequirement(ResolveSgaProfile)),
-    Some(SGA),
+    Some(PropertyGraph),
   )
   assert_eq(
     operation_profile_requirement(ConstructionRequirement(AdmitGraphInputRows)),

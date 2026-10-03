@@ -483,82 +483,8 @@ fn lower_expression_measured(
         }
         (@graph.predicate_expression(predicate), references)
       }
-      GraphReachRows(checked) => {
-        if binding_index != 0 {
-          expression_fail(step.source, MissingCheckedBinding)
-        }
-        let predicate = match @graph.reach_start(checked) {
-          @graph.SelectedReachStarts(selector) =>
-            @graph.selector_predicate(selector)
-          _ => None
-        }
-        guard predicate is Some(predicate) else {
-          expression_fail(step.source, MissingCheckedBinding)
-        }
-        guard graph_predicate_fields(predicate) is Some(references) else {
-          expression_fail(step.source, MissingResolvedField(""))
-        }
-        (@graph.predicate_expression(predicate), references)
-      }
-      GraphSubgraphValue(checked) => {
-        let predicate = match binding_index {
-          0 => @graph.selector_predicate(@graph.subgraph_nodes(checked))
-          1 => @graph.subgraph_edges(checked)
-          _ => None
-        }
-        guard predicate is Some(predicate) else {
-          expression_fail(step.source, MissingCheckedBinding)
-        }
-        guard graph_predicate_fields(predicate) is Some(references) else {
-          expression_fail(step.source, MissingResolvedField(""))
-        }
-        (@graph.predicate_expression(predicate), references)
-      }
-      GraphTraverseRows(checked) => {
-        let predicate = if binding_index == 0 {
-          @graph.selector_predicate(@graph.traverse_start(checked))
-        } else {
-          let adjusted = binding_index - 1
-          let hop_index = adjusted / 2
-          match @graph.traverse_hop_at(checked, hop_index) {
-            None => None
-            Some(hop) =>
-              @graph.hop_predicate(
-                hop,
-                if adjusted % 2 == 0 {
-                  @graph.Edges
-                } else {
-                  @graph.Nodes
-                },
-              )
-          }
-        }
-        guard predicate is Some(predicate) else {
-          expression_fail(step.source, MissingCheckedBinding)
-        }
-        guard graph_predicate_fields(predicate) is Some(references) else {
-          expression_fail(step.source, MissingResolvedField(""))
-        }
-        (@graph.predicate_expression(predicate), references)
-      }
-      GraphShortestRows(checked) => {
-        let side = match binding_index {
-          0 => @schema.Left
-          1 => @schema.Right
-          _ => expression_fail(step.source, MissingCheckedBinding)
-        }
-        let predicate = match @graph.shortest_endpoint(checked, side) {
-          @graph.Single(_) => None
-          @graph.Selected(selector) => @graph.selector_predicate(selector)
-        }
-        guard predicate is Some(predicate) else {
-          expression_fail(step.source, MissingCheckedBinding)
-        }
-        guard graph_predicate_fields(predicate) is Some(references) else {
-          expression_fail(step.source, MissingResolvedField(""))
-        }
-        (@graph.predicate_expression(predicate), references)
-      }
+      GraphTraverseRows(_) =>
+        expression_fail(step.source, MissingCheckedBinding)
       SequenceRows(checked) => {
         guard @relation.sequence_pattern_at(checked, binding_index)
           is Some(pattern) else {
@@ -599,14 +525,7 @@ fn lower_expression_measured(
       | AppendRows(_)
       | SetRows(_)
       | NestRows(_)
-      | BasicGraph(_)
-      | StructuralGraph(_)
-      | GraphUnion(_)
-      | GraphMeanValue(_)
-      | GraphEqualityRows(_)
-      | GraphDiffRows(_)
-      | GraphApplyValue(_)
-      | GraphConstructionValue(_)
+      | PropertyGraphConstructionValue(_)
       | VectorValue(_)
       | NearestValue(_)
       | PoolValue(_)
