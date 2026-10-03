@@ -1,0 +1,159 @@
+{
+  "audited_source_sha": "ba3d6d12891f884b1bb55bb4d67bf043d4a58a94",
+  "status": "independent pre-fix audit obligations; not registered passing acceptance",
+  "cases": [
+    {
+      "name": "pipe-rebound-order",
+      "format": "aql-text",
+      "sourceRows": [
+        {
+          "id": 1,
+          "amount": 10
+        },
+        {
+          "id": 2,
+          "amount": 20
+        }
+      ],
+      "text": "FROM records |> AS original |> SELECT -id AS id |> ORDER BY -id |> RESULT answer",
+      "rows": [
+        {
+          "id": -1
+        },
+        {
+          "id": -2
+        }
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "contract": {
+            "type": "number",
+            "nullable": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "cte-join-shared-source",
+      "format": "sql",
+      "sourceRows": [
+        {
+          "id": 1,
+          "amount": 10
+        },
+        {
+          "id": 2,
+          "amount": 20
+        }
+      ],
+      "text": "WITH chosen AS (SELECT id FROM records WHERE id = 1), pairs AS (SELECT r.id AS id FROM chosen AS l CROSS JOIN records AS r) SELECT id FROM pairs ORDER BY id",
+      "rows": [
+        {
+          "id": 1
+        },
+        {
+          "id": 2
+        }
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "contract": {
+            "type": "number",
+            "nullable": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "sql-rebound-order-control",
+      "format": "sql",
+      "sourceRows": [
+        {
+          "id": 1,
+          "amount": 10
+        },
+        {
+          "id": 2,
+          "amount": 20
+        }
+      ],
+      "text": "SELECT -id AS id FROM records ORDER BY -id",
+      "rows": [
+        {
+          "id": -1
+        },
+        {
+          "id": -2
+        }
+      ],
+      "columns": [
+        {
+          "name": "id",
+          "contract": {
+            "type": "number",
+            "nullable": false
+          }
+        }
+      ]
+    },
+    {
+      "name": "data-predicate-parameter-limit-null-duplicates",
+      "format": "aql-text",
+      "sourceRows": [
+        {
+          "id": 3,
+          "amount": 30
+        },
+        {
+          "id": 1,
+          "amount": null
+        },
+        {
+          "id": 2,
+          "amount": 20
+        },
+        {
+          "id": 3,
+          "amount": 30
+        }
+      ],
+      "text": "DATA copied = FROM records |> WHERE amount >= @minimum |> SELECT amount, id; FROM copied |> ORDER BY id |> LIMIT 2 OFFSET 1 |> RESULT answer",
+      "parameterDeclarations": {
+        "minimum": {
+          "type": "number"
+        }
+      },
+      "parameters": {
+        "minimum": 20
+      },
+      "rows": [
+        {
+          "amount": 30,
+          "id": 3
+        },
+        {
+          "amount": 30,
+          "id": 3
+        }
+      ],
+      "columns": [
+        {
+          "name": "amount",
+          "contract": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        {
+          "name": "id",
+          "contract": {
+            "type": "number",
+            "nullable": false
+          }
+        }
+      ]
+    }
+  ]
+}
