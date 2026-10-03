@@ -1,12 +1,30 @@
 // PRs use JS for ordinary portable changes. main retains every target.
-// This selects only the core matrix and macOS job; evidence campaigns retain
-// their complete, same-attempt JS/wasm/native acceptance contract.
+// An exact maintenance inventory may omit whole unrelated job families.
+// Selected evidence campaigns retain their complete three-target contract.
 import assert from 'node:assert/strict';
 import {appendFileSync, readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 
 const all = ['js', 'wasm', 'native'];
+const sha = /^[0-9a-f]{40}$/u;
+// Reviewed callers are retained lint tests or manual reporting commands only.
+// These files are not runtime/proof semantic inputs (generic checkout identity
+// still changes). A new runtime/build/proof caller must remove or re-review its
+// registration here before merge; a full run alone does not preserve isolation.
+// README is excluded: packed acceptance executes its literal Quickstart blocks.
+export const maintenanceFiles = Object.freeze([
+  'docs/development.md', 'docs/ci-artifact-analysis.md', 'docs/verification-actions.md',
+  'scripts/ci-evidence.mjs', 'scripts/ci-evidence.test.mjs', 'scripts/ci-review.mjs',
+  'scripts/ci-timing.mjs', 'scripts/ci-artifacts.mjs', 'scripts/ci-artifacts.test.mjs',
+  'scripts/ci-artifact-reader.mjs', 'scripts/ci-artifact-reader.test.mjs',
+  'scripts/verification-actions.mjs', 'scripts/verification-actions.test.mjs',
+  'scripts/worktree-inventory.mjs', 'scripts/worktree-inventory.test.mjs',
+]);
+const maintenance = new Set(maintenanceFiles);
+export const gateJobs = Object.freeze(['select-targets', 'lint', 'core', 'host', 'client',
+  'native', 'spec', 'session-evidence', 'pipeline-evidence', 'native-macos',
+  'native-separated-network', 'workers', 'connector-addition', 'duckdb-node']);
 const validPath = path => typeof path === 'string' && path.length > 0 && !/[\0\r\n]/u.test(path)
   && !path.startsWith('/') && !path.split('/').some(part => ['', '.', '..'].includes(part));
 // Canonical identity, runtime ownership, platform/FFI and build changes keep
@@ -23,8 +41,10 @@ const reviewedPortableFiles = new Set([
   'scripts/worktree-inventory.mjs',
 ]);
 export function selectTargets(paths, {event = 'pull_request', nativeMacos = false, failure = null,
-  targetSensitiveDiff = false} = {}) {
-  const full = reason => ({schema: 'actql-ci-targets/0.1', targets: [...all], macos: true, reason});
+  targetSensitiveDiff = false, maintenanceChanges = null} = {}) {
+  const validPaths = Array.isArray(paths) && paths.every(validPath);
+  const full = reason => ({schema: 'actql-ci-targets/0.1', targets: [...all], macos: true, reason,
+    profile: 'full', event, paths: validPaths ? [...paths] : [], maintenanceChanges: null});
   if (event !== 'pull_request') {
     const result = full(`Full core verification selected for ${event}`);
     // Preserve the existing explicit opt-in for an on-demand working branch.
@@ -33,18 +53,60 @@ export function selectTargets(paths, {event = 'pull_request', nativeMacos = fals
   }
   if (failure) return full(`Diff unavailable: ${failure}`);
   if (!Array.isArray(paths) || !paths.length || !paths.every(validPath)) return full('Empty or invalid change inventory');
+  if (eligibleMaintenance(paths, maintenanceChanges)) return {...full('Reviewed maintenance files: lint and spec required; runtime and proof families not applicable'),
+    profile: 'maintenance', targets: ['js'], macos: false, maintenanceChanges};
   if (targetSensitiveDiff) return full('Target-specific syntax or runtime boundary changed');
   const path = paths.find(path => sensitive.test(path) || !reviewedPortableFiles.has(path));
   if (path) return full(`Target-sensitive or unclassified input: ${path}`);
-  return {schema: 'actql-ci-targets/0.1', targets: ['js'], macos: false,
+  return {...full(''), targets: ['js'], macos: false,
     reason: 'Reviewed portable paths: PR core uses JS; full targets and macOS selected on main'};
 }
+function eligibleMaintenance(paths, changes) {
+  return paths.length > 0 && paths.every(path => maintenance.has(path))
+    && new Set(paths).size === paths.length && Array.isArray(changes) && changes.length === paths.length
+    && changes.every((entry, index) => entry && Object.keys(entry).sort().join(',') === 'after,before,path'
+      && entry.path === paths[index] && [entry.before, entry.after].every(identity => identity
+        && Object.keys(identity).sort().join(',') === 'mode,object'
+        && identity.mode === '100644' && sha.test(identity.object) && identity.object !== '0'.repeat(40))
+      && entry.before.object !== entry.after.object);
+}
 export function validateSelection(selection) {
+  assert.deepEqual(Object.keys(selection ?? {}).sort(), ['schema', 'targets', 'macos', 'reason',
+    'profile', 'event', 'paths', 'maintenanceChanges'].sort(), 'Invalid selection fields');
   assert.equal(selection?.schema, 'actql-ci-targets/0.1');
   assert.deepEqual(selection.targets, selection.targets?.length === 1 ? ['js'] : all);
   assert.equal(typeof selection.macos, 'boolean');
   assert(typeof selection.reason === 'string' && selection.reason.trim());
+  assert(['full', 'maintenance'].includes(selection.profile), 'Invalid selection profile');
+  assert(typeof selection.event === 'string' && selection.event.length, 'Missing selection event');
+  assert(Array.isArray(selection.paths) && selection.paths.every(validPath), 'Invalid selection paths');
+  if (selection.profile === 'maintenance') {
+    assert.equal(selection.event, 'pull_request', 'Maintenance is PR-only');
+    assert(eligibleMaintenance(selection.paths, selection.maintenanceChanges), 'Invalid maintenance inventory');
+    assert.deepEqual(selection.targets, ['js']);
+    assert.equal(selection.macos, false);
+  } else assert.equal(selection.maintenanceChanges, null, 'Unexpected maintenance inventory');
+  if (selection.event !== 'pull_request') {
+    assert.deepEqual(selection.targets, all, 'Non-PR targets must remain full');
+    if (selection.event !== 'workflow_dispatch') assert.equal(selection.macos, true);
+  }
   return selection;
+}
+export function verifyGate(plan, needs, {event, sourceRevision}) {
+  assert.deepEqual(Object.keys(plan ?? {}).sort(), ['selection', 'sourceRevision'], 'Invalid plan envelope');
+  assert(sha.test(sourceRevision) && plan.sourceRevision === sourceRevision, 'Selection belongs to another checkout');
+  const selection = validateSelection(plan.selection);
+  assert.equal(selection.event, event, 'Selection belongs to another event');
+  assert.deepEqual(Object.keys(needs ?? {}).sort(), [...gateJobs].sort(), 'Incomplete gate dependency inventory');
+  const lines = [];
+  for (const name of gateJobs) {
+    const required = ['select-targets', 'lint', 'spec'].includes(name)
+      || selection.profile === 'full' && (name !== 'native-macos' || selection.macos);
+    const expected = required ? 'success' : 'skipped';
+    assert.equal(needs[name]?.result, expected, `${name}: expected ${expected}`);
+    lines.push(`${required ? 'PASS' : 'NOT APPLICABLE'} ${name}: ${required ? 'required job completed' : selection.reason}`);
+  }
+  return lines;
 }
 export function readChanges(payload, git = args => execFileSync('git', args,
   {encoding: 'utf8', maxBuffer: 32 * 1024 * 1024})) {
@@ -59,10 +121,30 @@ export function readChanges(payload, git = args => execFileSync('git', args,
   const patch = git(['diff', '--no-renames', '--unified=0', base, head, '--']);
   const changedLines = patch.split('\n').filter(line => /^[+-](?![+-])/u.test(line)).join('\n');
   const paths = output.split('\0').filter(Boolean);
+  let maintenanceChanges = null, structuralChange = false;
+  if (paths.length && paths.every(path => maintenance.has(path))) {
+    // Exact raw Git identities distinguish ordinary edits from additions,
+    // deletions, renames, symlinks and mode changes. No text/extension guess.
+    const raw = git(['diff', '--no-renames', '--raw', '--no-abbrev', '-z', base, head, '--']);
+    assert(raw.endsWith('\0'), 'Truncated raw change inventory');
+    const records = raw.slice(0, -1).split('\0');
+    assert(records.length === paths.length * 2, 'Incomplete raw change inventory');
+    const changes = [];
+    for (let index = 0; index < records.length; index += 2) {
+      const match = /^:(\d{6}) (\d{6}) ([0-9a-f]{40}) ([0-9a-f]{40}) ([A-Z][0-9]*)$/u.exec(records[index]);
+      assert(match && records[index + 1] === paths[index / 2], 'Invalid raw change inventory');
+      const [, beforeMode, afterMode, beforeObject, afterObject, status] = match;
+      changes.push({path: records[index + 1], before: {mode: beforeMode, object: beforeObject},
+        after: {mode: afterMode, object: afterObject}});
+      if (status !== 'M') changes[index / 2].before.mode = 'unsupported';
+    }
+    if (eligibleMaintenance(paths, changes)) maintenanceChanges = changes;
+    else structuralChange = true;
+  }
   const boundary = /\b(?:extern|supported_targets|targets|native-stub|unsafe|malloc|realloc|sizeof)\b|\b(?:free|release|retain|dispose|cleanup)\s*\(|#(?:cfg|external|borrow|owned)\b|\btarget\s*=|\b\w*(?:cid|sha256|canonical|preimage|hash)\w*\b/iu;
   // A registered filename must not hide a symlink, executable-mode change,
   // addition or deletion. Inspect Git headers as well as changed source text.
-  let targetSensitiveDiff = /^(?:old mode|new mode|new file mode|deleted file mode) /mu.test(patch) || boundary.test(changedLines);
+  let targetSensitiveDiff = structuralChange || /^(?:old mode|new mode|new file mode|deleted file mode) /mu.test(patch) || boundary.test(changedLines);
   // A body-only edit under an unchanged target/ownership annotation still
   // affects that target. Check both versions; new/deleted source is full.
   for (const path of paths.filter(path => path.startsWith('src/') && path.endsWith('.mbt'))) {
@@ -70,19 +152,31 @@ export function readChanges(payload, git = args => execFileSync('git', args,
       targetSensitiveDiff ||= [base, head].some(revision => boundary.test(git(['show', `${revision}:${path}`])));
     } catch { targetSensitiveDiff = true; }
   }
-  return {paths, targetSensitiveDiff};
+  return {paths, targetSensitiveDiff, maintenanceChanges, head};
 }
 function main() {
+  if (process.argv[2] === 'gate') {
+    const lines = verifyGate(JSON.parse(process.env.CI_PLAN), JSON.parse(process.env.RESULTS),
+      {event: process.env.GITHUB_EVENT_NAME, sourceRevision: process.env.GITHUB_SHA});
+    console.log(lines.join('\n'));
+    if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n');
+    return;
+  }
+  assert(!process.argv[2], 'Usage: ci-targets.mjs [gate]');
   let changes = {paths: []}, failure = null;
   if (process.env.GITHUB_EVENT_NAME === 'pull_request') {
     try { changes = readChanges(JSON.parse(readFileSync(process.env.GITHUB_EVENT_PATH, 'utf8'))); }
     catch (error) { failure = error.message; }
   }
   const selected = validateSelection(selectTargets(changes.paths, {event: process.env.GITHUB_EVENT_NAME,
-    nativeMacos: process.env.NATIVE_MACOS === 'true', failure, targetSensitiveDiff: changes.targetSensitiveDiff}));
-  appendFileSync(process.env.GITHUB_OUTPUT, `targets=${JSON.stringify(selected.targets)}\nmacos=${selected.macos}\n`);
+    nativeMacos: process.env.NATIVE_MACOS === 'true', failure, targetSensitiveDiff: changes.targetSensitiveDiff,
+    maintenanceChanges: changes.maintenanceChanges}));
+  const sourceRevision = execFileSync('git', ['rev-parse', 'HEAD'], {encoding: 'utf8'}).trim();
+  assert(sha.test(sourceRevision) && sourceRevision === process.env.GITHUB_SHA, 'Unexpected tested checkout');
+  const plan = {sourceRevision, selection: selected};
+  appendFileSync(process.env.GITHUB_OUTPUT, `targets=${JSON.stringify(selected.targets)}\nmacos=${selected.macos}\nprofile=${selected.profile}\nplan=${JSON.stringify(plan)}\n`);
   console.log(JSON.stringify(selected, null, 2));
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY,
-    `Core targets: ${selected.targets.join(', ')}\n\nmacOS: ${selected.macos ? 'required' : 'not applicable for this run'}\n\n${selected.reason}\n\nProof campaigns retain all three targets when they run.\n`);
+    `Job profile: ${selected.profile}\n\nCore targets when selected: ${selected.targets.join(', ')}\n\nmacOS: ${selected.macos ? 'required' : 'not applicable for this run'}\n\n${selected.reason}\n\nUnselected families produce no execution evidence. Selected proof campaigns retain all three targets.\n`);
 }
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main();

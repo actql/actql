@@ -525,7 +525,7 @@ const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url));
 const workflow = parse(readFileSync(join(repositoryRoot, '.github/workflows/ci.yml'), 'utf8'));
 const { jobs } = workflow;
 const producerJobs = ['pipeline-mutations', 'pipeline-capacity'];
-const normalSchedule = '${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}';
+const normalSchedule = "${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}";
 const runLines = job => jobs[job].steps.filter(step => step.run).flatMap(step => step.run.trim().split('\n'));
 const shell = (script, env) => spawnSync('bash', ['-eo', 'pipefail', '-c', script], {
   cwd: repositoryRoot, env: { ...process.env, ...env }, encoding: 'utf8', timeout: 10_000,
@@ -560,7 +560,7 @@ test('workflow partitions the existing campaigns without dropping or changing ac
   ]);
   for (const name of producerJobs) {
     assert.equal(jobs[name].if, normalSchedule);
-    assert.equal(jobs[name].needs, undefined, 'Producers must remain independently scheduled');
+    assert.deepEqual(jobs[name].needs, ['select-targets'], 'Producers share selection only, not each other');
     assert.equal(jobs[name].strategy, undefined, 'A failed sibling must not cancel the other campaign');
     assert.equal(jobs[name]['runs-on'], 'ubuntu-24.04');
     for (const step of jobs[name].steps.filter(step => step.run)) {
@@ -579,7 +579,8 @@ test('workflow partitions the existing campaigns without dropping or changing ac
 test('workflow downloads exact producer IDs only after its success and identity guard', () => {
   const final = jobs['pipeline-evidence'];
   assert.deepEqual(final.needs, producerJobs);
-  assert.equal(final.if, '${{ always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}');
+  assert.match(final.if, /always\(\)/u);
+  assert.match(final.if, /!\(needs\.pipeline-mutations\.result == 'skipped' && needs\.pipeline-capacity\.result == 'skipped'\)/u);
   assert.deepEqual(final.steps[0].env, { PIPELINE_NEEDS: '${{ toJSON(needs) }}' });
   assert(final.steps[0].run, 'Guard must run before all downloads');
   for (const producer of ['mutations', 'capacity']) {
@@ -642,11 +643,16 @@ test('workflow producer guard rejects unsuccessful, missing or ambiguous produce
 test('global check continues to require the final pipeline-evidence verdict', () => {
   assert(jobs.check.needs.includes('pipeline-evidence'));
   assert(!producerJobs.some(name => jobs.check.needs.includes(name)), 'Final audited join remains the required check boundary');
-  const script = jobs.check.steps[0].run;
+  const script = jobs.check.steps.find(step => step.run).run;
   const needs = Object.fromEntries(jobs.check.needs.map(name => [name, { result: 'success' }]));
+  const revision = 'b'.repeat(40);
+  const gateEnv = { GITHUB_SHA: revision, GITHUB_EVENT_NAME: 'pull_request', GITHUB_STEP_SUMMARY: '',
+    CI_PLAN: JSON.stringify({ sourceRevision: revision, selection: { schema: 'actql-ci-targets/0.1',
+      targets: ['js', 'wasm', 'native'], macos: true, reason: 'Full fixture', profile: 'full',
+      event: 'pull_request', paths: ['.github/workflows/ci.yml'], maintenanceChanges: null } }) };
   for (const result of ['failure', 'cancelled', 'skipped']) {
-    const child = shell(script, { RESULTS: JSON.stringify({ ...needs, 'pipeline-evidence': { result } }), MACOS_SCHEDULED: 'true' });
+    const child = shell(script, { RESULTS: JSON.stringify({ ...needs, 'pipeline-evidence': { result } }), ...gateEnv });
     assert.notEqual(child.status, 0, result);
   }
-  assert.equal(shell(script, { RESULTS: JSON.stringify(needs), MACOS_SCHEDULED: 'true' }).status, 0);
+  assert.equal(shell(script, { RESULTS: JSON.stringify(needs), ...gateEnv }).status, 0);
 });
