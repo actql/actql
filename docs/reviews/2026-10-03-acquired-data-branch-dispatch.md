@@ -212,3 +212,18 @@ aliases and normal Source preparation. A joined INFER input still needs the
 common candidate-key proof; `ITEM KEY` does not replace `assert_rows.unique_by`.
 The common success outcome is `ok`, not `success`. This PR does not supply an
 implicit Effect declaration or claim text composition/restart acceptance.
+
+## Adopted history repair
+
+#254's automatic CI [37115050704](https://github.com/actql/actql/actions/runs/37115050704)
+passed on `44f822c234f038f5bf113972acb10ac17e756ca0`, including mutation,
+capacity and combined history evidence. Its normal main merge is
+`b18632b65570713e36c0a83e8afd0063bc37a5c3`. The normal #242 integration is
+`b3ec8489119298fdde2649c91099fe04c7a6ab35`, without conflicts. The existing
+declaration and current CI workflow are preserved byte-for-byte; no duplicate
+declaration is added. The product fix and authored public fixtures are unchanged
+from the accepted `aa24b3f0c36fb643efafcc1a0e3206202db030be` tree.
+
+This history success is not a new-HEAD product acceptance result. The next
+automatic #242 CI must establish the integrated public acceptance and all
+required jobs. The older Local/HTTP result above retains its original SHA.
