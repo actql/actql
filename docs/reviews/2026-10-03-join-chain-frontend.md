@@ -83,3 +83,30 @@ independently from the normative preimage, not copied from compiler output.
 
 NEAREST's installed Host connection is a separate D-coordinated dependency;
 these pure relational changes do not enable VecA profiles or replace that work.
+
+## Integrated history repair and exact-head CI follow-up
+
+Source `341d505da1915c778f68bd1b90e1ecfd2c0c3e8a` normally integrates main
+`b36d7864b57dc654cc03f583d8391e9ba2a506b3`. It adopts the existing #246
+main-merge resolution record, unchanged, from
+`5d8a0baf5f35b5f75598d0debd281dea2954720b` in #268. The actual retained
+Git-history validator and automatic CI preflight pass; no validator policy,
+workflow or existing declaration was rewritten.
+
+Automatic run [37131266399](https://github.com/actql/actql/actions/runs/37131266399)
+tests merge `dd1b0a441871734b7288af3f6771ba96e0496bc6`. Core's independent
+Run-materials vector check found the preceding grammar-bound expected CID.
+The follow-up preserves that historical vector and updates the current vector
+and MoonBit fixture using the independently assembled canonical preimages,
+without consulting product issuer output. The two Node vector tests pass.
+
+Packed Local now passes the first `join-chain-alias-expression` case,
+including rows, descriptions, attach and same-request replay counters. It then
+fails the `join-chain-qualified-input` row comparison. That source has b.y=20
+for id=1 and b.y=10 for id=2, and specifies ascending `ORDER BY b.y + 1`.
+Its authored expectation lists id=1 before id=2, contrary to 11 preceding 21.
+The returned rows are `[{"y":1,"z":200},{"y":2,"z":100}]`.
+The fixture is retained pending an explicit correction decision; production
+sort semantics must not be reversed to satisfy it. Remaining chain cases,
+refusals and HTTP were not reached. This is partial public execution evidence,
+not the nine-positive/four-refusal acceptance completion.
