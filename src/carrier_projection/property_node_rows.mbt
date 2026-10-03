@@ -8,6 +8,7 @@ struct CheckedPropertyNodeRows {
   schema : @row.ConditionalSchema
   id_column : Int
   property_columns : Array[Array[Int]]
+  source_properties : Array[Map[Int, Int]]
   usage : Usage
 }
 
@@ -119,12 +120,21 @@ pub fn check_property_node_rows(
   }
   let id_column = output_columns.get("id").unwrap()
   let property_columns = []
+  let source_properties = []
   for names in definition_properties {
     if names.length() > remaining {
       return Err(issue(source, BudgetExceeded))
     }
     remaining -= names.length()
-    property_columns.push(names.map(name => output_columns.get(name).unwrap()))
+    let columns = []
+    let sources : Map[Int, Int] = Map([])
+    for index, name in names {
+      let column = output_columns.get(name).unwrap()
+      columns.push(column)
+      sources[column] = index
+    }
+    property_columns.push(columns)
+    source_properties.push(sources)
   }
   let mut text = limits.max_text_bytes
   for column in 0..<@row.presence_field_count(schema) {
@@ -143,6 +153,7 @@ pub fn check_property_node_rows(
     schema,
     id_column,
     property_columns,
+    source_properties,
     usage: {
       work: limits.max_work - remaining,
       nodes: @row.presence_field_count(schema) + 1,
@@ -193,6 +204,20 @@ pub fn property_node_rows_property_column(
   property : Int,
 ) -> Int? {
   value.property_columns.get(definition).bind(columns => columns.get(property))
+}
+
+///|
+/// Read one output column without scanning the whole definition's properties.
+/// None is an absent property in this definition; the fixed id role is read
+/// separately through property_node_rows_id_column.
+pub fn property_node_rows_source_property(
+  value : CheckedPropertyNodeRows,
+  definition : Int,
+  output_column : Int,
+) -> Int? {
+  value.source_properties
+  .get(definition)
+  .bind(columns => columns.get(output_column))
 }
 
 ///|

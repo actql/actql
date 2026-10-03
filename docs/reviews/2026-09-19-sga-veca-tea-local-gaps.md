@@ -85,7 +85,10 @@ cell reads; cancellation and one-short work have focused tests. Authored alias
 metadata is not yet retained through Graph storage. A separate bounded
 ConditionalRow builder now charges presence and steps through nested values
 before accepting each cell; focused tests cover exact and one-short limits,
-absence versus explicit `NULL`, cancellation, and cleanup. This builder is
+absence versus explicit `NULL`, compatible definition contracts, cancellation,
+and cleanup. The checked node layout also maps each output column back to a
+definition's source property without rescanning all properties per cell.
+This builder and mapping are
 not yet the Graph producer or retained Store path, so the typing check is
 not offered as executable `node_rows`. The edge layout, Graph row producer,
 retained Store custody and reread, Stage projection connection, and Named

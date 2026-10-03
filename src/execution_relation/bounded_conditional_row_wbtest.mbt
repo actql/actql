@@ -163,6 +163,111 @@ test "bounded conditional rows distinguish absence from explicit null" {
 }
 
 ///|
+test "bounded conditional row rechecks compatible definition values" {
+  let schema = conditional_row_test_schema()
+  let id_contract = @schema.presence_field_contract(
+    @schema.presence_field_at(schema, 0).unwrap(),
+  )
+  let id = @admitted.checked_number_value(1.0, id_contract).unwrap()
+  let narrow = @contract.primitive(NumberType, nullable=false)
+  let p = @admitted.checked_number_value(7.0, narrow).unwrap()
+  let cells = [Some(id), Some(p)]
+  let active = start_conditional_row_preparation(
+    schema,
+    conditional_row_test_values(),
+    10,
+    3,
+    column => cells.get(column),
+  ).unwrap()
+  let mut completed = None
+  for _ in 0..<10 {
+    match advance_conditional_row_preparation(active, 1).unwrap() {
+      ConditionalRowContinue(..) => ()
+      ConditionalRowComplete(row, ..) => {
+        completed = Some(row)
+        break
+      }
+      _ => fail("compatible definition value was rejected")
+    }
+  }
+  let row = completed.unwrap()
+  assert_eq(conditional_row_usage(row), { nodes: 5, text_bytes: 3, work: 8, })
+  let field = @schema.presence_field_at(schema, 1).unwrap()
+  assert_true(
+    conditional_row_cell(row, 1)
+    is Some(Some({ contract: target, value: @admitted.Number(7.0), })) &&
+    physical_equal(target, @schema.presence_field_contract(field)),
+  )
+  assert_true(cleanup_conditional_row_preparation(active).unwrap())
+  let too_short = start_conditional_row_preparation(
+    schema,
+    conditional_row_test_values(),
+    9,
+    3,
+    column => cells.get(column),
+  ).unwrap()
+  let mut limited = false
+  for _ in 0..<10 {
+    match advance_conditional_row_preparation(too_short, 1).unwrap() {
+      ConditionalRowContinue(..) => ()
+      ConditionalRowFailed(Limit, ..) => {
+        limited = true
+        break
+      }
+      _ => fail("one-short recheck completed")
+    }
+  }
+  assert_true(limited)
+  assert_true(cleanup_conditional_row_preparation(too_short).unwrap())
+  let cancelled = start_conditional_row_preparation(
+    schema,
+    conditional_row_test_values(),
+    10,
+    3,
+    column => cells.get(column),
+  ).unwrap()
+  for _ in 0..<4 {
+    assert_true(
+      advance_conditional_row_preparation(cancelled, 1).unwrap()
+      is ConditionalRowContinue(..),
+    )
+  }
+  assert_true(cancelled.state.admission is Some(_))
+  assert_true(cancel_conditional_row_preparation(cancelled))
+  assert_true(
+    advance_conditional_row_preparation(cancelled, 1).unwrap()
+    is ConditionalRowStopped(..),
+  )
+  assert_true(conditional_row_preparation_value(cancelled) is None)
+  assert_true(cleanup_conditional_row_preparation(cancelled).unwrap())
+  assert_true(cancelled.state.admission is None)
+  assert_eq(cancelled.state.workspace.live, 0)
+  let text_contract = @contract.primitive(StringType, nullable=false)
+  let invalid = @admitted.checked_text_value("bad", text_contract).unwrap()
+  let foreign = [Some(id), Some(invalid)]
+  let rejected = start_conditional_row_preparation(
+    schema,
+    conditional_row_test_values(),
+    10,
+    3,
+    column => foreign.get(column),
+  ).unwrap()
+  let mut mismatch = false
+  for _ in 0..<10 {
+    match advance_conditional_row_preparation(rejected, 1).unwrap() {
+      ConditionalRowContinue(..) => ()
+      ConditionalRowFailed(ForeignValue(1), ..) => {
+        mismatch = true
+        break
+      }
+      _ => fail("incompatible definition value completed")
+    }
+  }
+  assert_true(mismatch)
+  assert_true(cleanup_conditional_row_preparation(rejected).unwrap())
+}
+
+///|
 test "long conditional text yields between charged chunks" {
   let contract = @contract.primitive(StringType, nullable=false)
   let schema = @schema.from_presence_fields(

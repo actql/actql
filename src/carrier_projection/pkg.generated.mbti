@@ -33,6 +33,8 @@ pub fn property_node_rows_schema(CheckedPropertyNodeRows) -> @relation_schema.Co
 
 pub fn property_node_rows_source(CheckedPropertyNodeRows) -> @decode_core.Cursor
 
+pub fn property_node_rows_source_property(CheckedPropertyNodeRows, Int, Int) -> Int?
+
 pub fn property_node_rows_usage(CheckedPropertyNodeRows) -> Usage
 
 pub fn source(CheckedProjection) -> @decode_core.Cursor

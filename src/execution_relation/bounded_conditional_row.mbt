@@ -1,6 +1,7 @@
 ///|
 priv enum ConditionalRowPhase {
   ReadConditionalCell
+  RecheckConditionalValue
   MeasureConditionalName
   MeasureConditionalValue
   SealConditionalRow
@@ -15,6 +16,7 @@ priv struct ConditionalRowState {
   mut work : Int
   mut column : Int
   mut pending : @admitted.CheckedValue?
+  mut admission : @admitted.RecheckCursor?
   mut measure : SteppedValueMeasure?
   mut phase : ConditionalRowPhase
   mut material : ConditionalRow?
@@ -51,6 +53,10 @@ fn discard_conditional_row_state(state : ConditionalRowState) -> Bool {
     clear_stepped_measure(cursor)
     state.measure = None
   }
+  if state.admission is Some(cursor) {
+    @admitted.cancel_recheck_runtime_value(cursor)
+    state.admission = None
+  }
   state.pending = None
   state.builder.cells.clear()
   state.builder.open = false
@@ -61,6 +67,28 @@ fn discard_conditional_row_state(state : ConditionalRowState) -> Bool {
   release_slots(state.workspace, state.workspace.live)
   state.reclaimed = true
   workspace_healthy(state.workspace)
+}
+
+///|
+fn start_conditional_name_measure(state : ConditionalRowState) -> Bool {
+  let field = @schema.presence_field_at(state.builder.schema, state.column).unwrap()
+  let cursor : SteppedValueMeasure = {
+    frames: [],
+    workspace: state.workspace,
+    workspace_failed: false,
+  }
+  if !push_stepped_measure(
+      cursor,
+      SteppedTextNext(
+        @schema.reference_name(@schema.presence_field_name(field)),
+        0,
+      ),
+    ) {
+    return false
+  }
+  state.measure = Some(cursor)
+  state.phase = MeasureConditionalName
+  true
 }
 
 ///|
@@ -105,29 +133,44 @@ fn advance_conditional_row_state(
             state.column += 1
           }
           Some(checked) => {
+            state.pending = Some(checked)
             if !physical_equal(
                 @schema.presence_field_contract(field),
                 checked.contract,
               ) {
-              return @bounded.Failed(ForeignValue(state.column), used, used)
-            }
-            let cursor : SteppedValueMeasure = {
-              frames: [],
-              workspace: state.workspace,
-              workspace_failed: false,
-            }
-            if !push_stepped_measure(
-                cursor,
-                SteppedTextNext(
-                  @schema.reference_name(@schema.presence_field_name(field)),
-                  0,
-                ),
-              ) {
+              let budget = state.builder.budget
+              guard @admitted.start_recheck_runtime_value(
+                  checked.value,
+                  @schema.presence_field_contract(field),
+                  {
+                    max_nodes: budget.limits.max_nodes - budget.nodes,
+                    max_depth: budget.limits.max_depth,
+                    max_text_bytes: budget.limits.max_text_bytes - budget.text,
+                  },
+                )
+                is Some(cursor) else {
+                return @bounded.Failed(Limit, used, used)
+              }
+              state.admission = Some(cursor)
+              state.phase = RecheckConditionalValue
+            } else if !start_conditional_name_measure(state) {
               return @bounded.Failed(Limit, used, used)
             }
+          }
+        }
+      }
+      RecheckConditionalValue => {
+        let cursor = state.admission.unwrap()
+        match @admitted.advance_recheck_runtime_value(cursor) {
+          @admitted.RecheckContinue => ()
+          @admitted.RecheckFailed =>
+            return @bounded.Failed(ForeignValue(state.column), used, used)
+          @admitted.RecheckComplete(checked, _, _) => {
+            state.admission = None
             state.pending = Some(checked)
-            state.measure = Some(cursor)
-            state.phase = MeasureConditionalName
+            if !start_conditional_name_measure(state) {
+              return @bounded.Failed(Limit, used, used)
+            }
           }
         }
       }
@@ -197,6 +240,7 @@ pub fn start_conditional_row_preparation(
     work: 0,
     column: 0,
     pending: None,
+    admission: None,
     measure: None,
     phase: ReadConditionalCell,
     material: None,

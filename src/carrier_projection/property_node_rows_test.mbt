@@ -44,6 +44,18 @@ test "property node rows derive required and conditional fields before execution
     @carrier_projection.property_node_rows_property_column(checked, 0, 0),
     Some(1),
   )
+  assert_eq(
+    @carrier_projection.property_node_rows_source_property(checked, 0, 1),
+    Some(0),
+  )
+  assert_true(
+    @carrier_projection.property_node_rows_source_property(checked, 1, 1)
+    is None,
+  )
+  assert_true(
+    @carrier_projection.property_node_rows_source_property(checked, 0, 0)
+    is None,
+  )
   assert_true(
     @carrier_projection.property_node_rows_property_column(checked, 1, 0)
     is None,
@@ -97,6 +109,21 @@ test "property node rows collapse compatible case spellings and reject role coll
   assert_eq(
     @carrier_projection.property_node_rows_property_column(checked, 0, 0),
     @carrier_projection.property_node_rows_property_column(checked, 1, 0),
+  )
+  let shared_column = @carrier_projection.property_node_rows_property_column(
+    checked, 0, 0,
+  ).unwrap()
+  assert_eq(
+    @carrier_projection.property_node_rows_source_property(
+      checked, 0, shared_column,
+    ),
+    Some(0),
+  )
+  assert_eq(
+    @carrier_projection.property_node_rows_source_property(
+      checked, 1, shared_column,
+    ),
+    Some(0),
   )
   assert_true(
     @row.presence_lookup(schema, Unqualified("P")) is AlwaysPresent(_),
