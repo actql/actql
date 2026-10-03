@@ -1,6 +1,6 @@
 ///|
 test "traversal guards retain authored restrictions without replacing candidate claims" {
-  for emission in ["nodes", "paths"] {
+  for emission in ["paths"] {
     for value in [1, 7, 20] {
       let (pipeline, limits) = traversal_checked_fixture(
         emission,

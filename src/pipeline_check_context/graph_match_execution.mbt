@@ -1,3 +1,23 @@
+// MATCH retains ordering comparison work, state and temporary-byte requirements.
+// These resources do not authorize the retired binary Graph equality consumer.
+
+///|
+pub(all) enum GraphComparisonResource {
+  ComparisonWork
+  RetainedComparisonState
+  InputAndTemporaryBytes
+} derive(Eq, Debug)
+
+///|
+fn graph_comparison_resource(index : Int) -> GraphComparisonResource? {
+  match index {
+    0 => Some(ComparisonWork)
+    1 => Some(RetainedComparisonState)
+    2 => Some(InputAndTemporaryBytes)
+    _ => None
+  }
+}
+
 ///|
 pub(all) enum GraphMatchRule {
   AdmitGraph
@@ -54,12 +74,16 @@ fn graph_match_execution_check(
     EvaluateMatchPredicate => EvaluatePredicate
     CanonicalMatchOrder => OrderMatches
     ResolveMatchResources => EnforceMatchResources
-    ResolveMatchProfile => return Ok(None)
+    ResolvePropertyGraphMatchProfile => return Ok(None)
   }
   guard @pipeline.step_at(site.pipeline, site.step) is Some(step) &&
     step.operation is @pipeline.GraphMatch(operation) &&
     step.input is Some(input) &&
+    site.group == 0 &&
     @pipeline.operation_obligations_scope(site.obligations) == @pipeline.Body &&
+    @pipeline.operation_obligations_match(site.obligations)
+    is Some(obligation_owner) &&
+    physical_equal(obligation_owner, operation) &&
     @graph.match_pending_at(operation, site.index) == Some(pending) &&
     @pipeline.input_occurrence_count(step) == 1 else {
     return Err(ForeignOccurrence(site.step))

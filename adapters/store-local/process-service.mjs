@@ -24,6 +24,7 @@ export function createProcessRetainedStore(options) {
     if (request.command === 'reserve' && Object.keys(request).sort().join(',') === 'bytes,command,output') {
       const {output, bytes} = request;
       if (typeof output !== 'string' || !output.length || output.length > 256 || outputs.has(output) ||
+          outputs.size >= limits.maxEntries ||
           !Number.isSafeInteger(bytes) || bytes < 0 || bytes > limits.capacityBytes) fail('InvalidStoreRequest');
       if (!store) {
         opening ??= createLocalRetainedStore(limits);
@@ -65,6 +66,22 @@ export function createProcessRetainedStore(options) {
       const result = read.finish(request.report);
       entry.reads.delete(request.report.token);
       return result;
+    }
+    if (request.command === 'release-sealed' && Object.keys(request).sort().join(',') === 'command,output,report') {
+      const entry = outputs.get(request.output);
+      const report = request.report;
+      if (!entry?.body || !report || typeof report !== 'object' || Array.isArray(report) ||
+          Object.keys(report).sort().join(',') !== 'bytes,cid' ||
+          report.cid !== entry.body.cid || report.bytes !== entry.body.bytes) fail('ForeignStoreReport');
+      // Only the exact independently sealed generation is revocable here.
+      // Existing read owners prevent unlink/capacity release until confirmed.
+      entry.body.close();
+      await entry.body.cleanupHandle.retry();
+      const state = entry.body.cleanupHandle.status();
+      // Keep the bounded entry as a tombstone: a lost reply can be answered
+      // again and the same output name can never acquire another generation.
+      return {version: 'actql-local-file-release/0.1', output: request.output,
+        bytes: report.bytes, cid: report.cid, reclaimed: !state.pending};
     }
     fail('InvalidStoreRequest');
   };

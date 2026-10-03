@@ -1,23 +1,6 @@
 ///|
 fn input_bound_pipeline(body : String) -> @pipeline.CheckedPipeline {
-  let rows = @carrier.typed_rows(
-    @schema.from_object(
-      @contract.object_contract(
-        [],
-        nullable=false,
-        max_fields=0,
-        max_name_bytes=0,
-      ).unwrap(),
-    ).unwrap(),
-  )
-  let graph = @carrier.graph(
-    @contract.primitive(StringType, nullable=false),
-    rows,
-    rows,
-    labels=None,
-    max_labels=0,
-    max_label_bytes=0,
-  ).unwrap()
+  let graph = current_graph_input()
   @pipeline.check_carriers(closure_cursor(body), [("g", graph)], None, None, {
     max_steps: 20,
     max_work: 10000,
@@ -32,11 +15,16 @@ fn input_bound_pipeline(body : String) -> @pipeline.CheckedPipeline {
 test "Graph input bounds retain exact preflight owners and enforce measure roles" {
   let policy = policy(false)
   for
-    (op, measure, law) in [
-      ("node_rows", @input.Nodes, "actql.bound.graph-node-rows"),
-      ("edge_rows", @input.Edges, "actql.bound.graph-edge-rows"),
+    (op, definition, measure, law) in [
+      ("match_nodes", "N", @input.Nodes, "actql.bound.match-nodes"),
+      ("match_edges", "E", @input.Edges, "actql.bound.match-edges"),
     ] {
-    let pipeline = input_bound_pipeline("[{\"" + op + "\":true}]")
+    let body = "[{\"" +
+      op +
+      "\":{\"definition\":\"" +
+      definition +
+      "\",\"bindings\":{\"identity\":\"element\"},\"where\":\"true\",\"fields\":[\"element\"]}}]"
+    let pipeline = input_bound_pipeline(body)
     let standalone = sources(0, policy)
     let first = @input.check(pipeline, standalone, policy, caps()).unwrap()
     let original = @input.input_bound(first, 0, measure).unwrap()
@@ -106,7 +94,7 @@ test "Graph input bounds retain exact preflight owners and enforce measure roles
       ])
       is Err(InputUnitMismatch(0)),
     )
-    let other = input_bound_pipeline("[{\"" + op + "\":true}]")
+    let other = input_bound_pipeline(body)
     assert_true(
       @program.check_with_sources(
         other,
@@ -125,71 +113,68 @@ test "Graph input bounds retain exact preflight owners and enforce measure roles
 }
 
 ///|
-test "Graph source bounds compose through repeated union inputs and row bridges" {
+test "Property Graph MATCH bounds cross retained row transformations without losing units" {
   let policy = policy(false)
-  let pipeline = input_bound_pipeline(
-    "[{\"union_graphs\":{\"with\":[\"g\",\"g\"]},\"as\":\"merged\"},{\"node_rows\":true},{\"from\":\"merged\",\"edge_rows\":true},{\"take\":2}]",
-  )
   for
-    (measure, unit, bridge, law) in [
-      (@input.Nodes, "nodes", 1, "actql.bound.graph-node-rows"),
-      (@input.Edges, "edges", 2, "actql.bound.graph-edge-rows"),
+    (operation, definition, measure, law) in [
+      ("match_nodes", "N", @input.Nodes, "actql.bound.match-nodes"),
+      ("match_edges", "E", @input.Edges, "actql.bound.match-edges"),
     ] {
-    let first = @input.check(pipeline, sources(0, policy), policy, caps()).unwrap()
+    let p = input_bound_pipeline(
+      "[{\"" +
+      operation +
+      "\":{\"definition\":\"" +
+      definition +
+      "\",\"bindings\":{\"identity\":\"element\"},\"where\":\"true\",\"fields\":[\"element\"]}}," +
+      "{\"select\":[\"element\"]},{\"derive\":{\"copy\":\"element\"}},{\"take\":2}]",
+    )
+    let initial = @input.check(p, sources(0, policy), policy, caps()).unwrap()
     let id = @wire.cid(
-      @input.bound_witness(@input.input_bound(first, 0, measure).unwrap()),
+      @input.bound_witness(@input.input_bound(initial, 0, measure).unwrap()),
     )
-    let combined = graph_proof(
-      "actql.bound.graph-" + unit,
-      3L,
-      "{\"op\":\"source\"}",
-      unit~,
-      inputs=[id, id, id],
+    let projected = graph_proof(law, 1L, "{\"op\":\"source\"}", inputs=[id])
+    let projected_id = @wire.cid(@wire.program_proof_witness(projected))
+    let take = graph_proof(
+      "actql.bound.take",
+      1L,
+      "{\"input\":\"" + projected_id + "\",\"maximum\":2,\"op\":\"clamp\"}",
+      reference="checked-step:3",
+      inputs=[projected_id],
     )
-    let projected = graph_proof(
-      law,
-      3L,
-      "{\"op\":\"source\"}",
-      reference="checked-step:" + bridge.to_string(),
-      inputs=[@wire.cid(@wire.program_proof_witness(combined))],
+    let source = sources(0, policy, proofs=[projected, take])
+    let graph = @input.check(p, source, policy, caps()).unwrap()
+    let input = @program.GraphInput(
+      @input.input_bound(graph, 0, measure).unwrap(),
     )
-    let sources = sources(0, policy, proofs=[combined, projected])
-    let root = @input.check(pipeline, sources, policy, caps()).unwrap()
-    let operand = @program.GraphInput(
-      @input.input_bound(root, 0, measure).unwrap(),
-    )
-    let inputs = [operand, operand, operand]
-    assert_true(
-      @program.check_with_sources(
-        pipeline,
-        0,
-        combined,
-        inputs,
-        max_operand_work=14,
-      )
-      is Err(OperandWorkLimit),
-    )
-    let union = @program.check_with_sources(
-      pipeline,
-      0,
-      combined,
-      inputs,
-      max_operand_work=15,
+    let rows = @program.check_with_sources(p, 0, projected, [input]).unwrap()
+    let downstream = @program.check_with_inputs(
+      p,
+      3,
+      take,
+      [rows],
+      max_input_work=2,
     ).unwrap()
-    assert_eq(@program.operand_work(union), 15)
-    assert_eq(@program.input_count(union), 3)
-    let output = @program.check_with_inputs(pipeline, bridge, projected, [union]).unwrap()
-    let apps = @program.check_applications(
-      @host.source_claims(sources),
-      [union, output],
+    assert_eq(@program.input_work(downstream), 2)
+    assert_true(physical_equal(@program.input_at(downstream, 0).unwrap(), rows))
+    let collection = @program.check_applications(
+      @host.source_claims(source),
+      [rows, downstream],
       max_work=100,
     ).unwrap()
     assert_true(
-      @capacity_graph_preflight.check_source_coverage(root, apps, max_work=100)
+      @capacity_graph_preflight.check_source_coverage(
+        graph,
+        collection,
+        max_work=100,
+      )
       is Ok(_),
     )
-    // A graph measure cannot stand in for a row count, even with the same value.
-    let take = graph_proof(
+    assert_true(
+      @program.check_with_inputs(p, 3, take, [rows], max_input_work=1)
+      is Err(InputWorkLimit),
+    )
+    // Equal numeric values do not make a Graph measure into a row bound.
+    let wrong_unit = graph_proof(
       "actql.bound.take",
       1L,
       "{\"input\":\"" + id + "\",\"maximum\":2,\"op\":\"clamp\"}",
@@ -197,76 +182,8 @@ test "Graph source bounds compose through repeated union inputs and row bridges"
       inputs=[id],
     )
     assert_true(
-      @program.check_with_sources(
-        pipeline,
-        3,
-        take,
-        [operand],
-        max_input_work=10,
-      )
+      @program.check_with_sources(p, 3, wrong_unit, [input], max_input_work=3)
       is Err(InputUnitMismatch(0)),
-    )
-  }
-}
-
-///|
-test "Graph bounds cross normalization and subgraph without crossing expanding unions" {
-  let policy = policy(false)
-  for
-    (operation, measure, law) in [
-      ("node_rows", @input.Nodes, "actql.bound.graph-node-rows"),
-      ("edge_rows", @input.Edges, "actql.bound.graph-edge-rows"),
-    ] {
-    let text = "[{\"normalize_graph\":true},{\"subgraph\":{\"nodes\":{\"ids\":[\"a\"]}}},{\"" +
-      operation +
-      "\":true}]"
-    let p = input_bound_pipeline(text)
-    let graph = @input.check(p, sources(0, policy), policy, caps()).unwrap()
-    let input = @input.input_bound(graph, 0, measure).unwrap()
-    let proof = graph_proof(
-      law,
-      1L,
-      "{\"op\":\"source\"}",
-      reference="checked-step:2",
-      inputs=[@wire.cid(@input.bound_witness(input))],
-    )
-    let app = @program.check_with_sources(
-      p,
-      2,
-      proof,
-      [@program.GraphInput(input)],
-      max_input_work=2,
-    ).unwrap()
-    assert_eq(@program.input_work(app), 2)
-    guard @program.source_at(app, 0) is Some(@program.GraphInput(retained)) else {
-      abort("missing original preflight")
-    }
-    assert_true(physical_equal(@input.bound_owner(retained), graph))
-    assert_true(
-      @program.check_with_sources(
-        p,
-        2,
-        proof,
-        [@program.GraphInput(input)],
-        max_input_work=1,
-      )
-      is Err(InputWorkLimit),
-    )
-    let expanded = input_bound_pipeline(
-      "[{\"union_graphs\":{\"with\":\"g\"}},{\"normalize_graph\":true},{\"" +
-      operation +
-      "\":true}]",
-    )
-    let root = @input.check(expanded, sources(0, policy), policy, caps()).unwrap()
-    assert_true(
-      @program.check_with_sources(
-        expanded,
-        2,
-        proof,
-        [@program.GraphInput(@input.input_bound(root, 0, measure).unwrap())],
-        max_input_work=2,
-      )
-      is Err(InputTargetMismatch(0)),
     )
   }
 }
@@ -282,7 +199,9 @@ test "Graph preflight bounds follow actual imported owners under cumulative trav
     @pipeline.produced_input(base, Input(0)).unwrap(),
   )
   let receiver = @pipeline.check_with_evidence(
-    closure_cursor("[{\"node_rows\":true}]"),
+    closure_cursor(
+      "[{\"match_nodes\":{\"definition\":\"N\",\"bindings\":{\"identity\":\"element\"},\"where\":\"true\",\"fields\":[\"element\"]}}]",
+    ),
     [("imported", input)],
     None,
     None,
@@ -296,7 +215,7 @@ test "Graph preflight bounds follow actual imported owners under cumulative trav
     },
   ).unwrap()
   let proof = graph_proof(
-    "actql.bound.graph-node-rows",
+    "actql.bound.match-nodes",
     1L,
     "{\"op\":\"source\"}",
     inputs=[@wire.cid(@input.bound_witness(bound))],

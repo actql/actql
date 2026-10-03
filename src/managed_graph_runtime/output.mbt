@@ -99,15 +99,22 @@ pub fn prepare_output(
 }
 
 ///|
-pub fn append_node(
+/// Definition-keyed inputs use the existing private storage and retention port.
+pub fn append_property_node(
   output : OutputBuilder,
-  identity : @value.CheckedValue,
+  definition_index : Int,
+  keys : Array[@value.CheckedValue],
   properties : Array[@value.CheckedValue],
 ) -> Result[Unit, Issue] {
   if !output.open {
     return Err(Closed)
   }
-  @storage.append_node(output.graph, identity, properties).map_err(issue => {
+  @storage.append_property_node(
+    output.graph,
+    definition_index,
+    keys,
+    properties,
+  ).map_err(issue => {
     output.open = false
     @lifecycle.cancel_retention_port(output.retention) |> ignore
     Storage(issue)
@@ -115,68 +122,27 @@ pub fn append_node(
 }
 
 ///|
-pub fn observe_node(
+pub fn append_property_edge(
   output : OutputBuilder,
-  identity : @value.CheckedValue,
+  definition_index : Int,
+  keys : Array[@value.CheckedValue],
+  source_keys : Array[@value.CheckedValue],
+  target_keys : Array[@value.CheckedValue],
   properties : Array[@value.CheckedValue],
 ) -> Result[Unit, Issue] {
   if !output.open {
     return Err(Closed)
   }
-  @storage.observe_node(output.graph, identity, properties).map_err(issue => {
+  @storage.append_property_edge(
+    output.graph,
+    definition_index,
+    keys,
+    source_keys,
+    target_keys,
+    properties,
+  ).map_err(issue => {
     output.open = false
     @lifecycle.cancel_retention_port(output.retention) |> ignore
-    Storage(issue)
-  })
-}
-
-///|
-pub fn append_edge(
-  output : OutputBuilder,
-  source : @value.CheckedValue,
-  target : @value.CheckedValue,
-  label : @value.CheckedValue?,
-  properties : Array[@value.CheckedValue],
-) -> Result[Unit, Issue] {
-  if !output.open {
-    return Err(Closed)
-  }
-  @storage.append_edge(output.graph, source, target, label, properties).map_err(issue => {
-      output.open = false
-      @lifecycle.cancel_retention_port(output.retention) |> ignore
-      Storage(issue)
-    },
-  )
-}
-
-///|
-pub fn observe_edge(
-  output : OutputBuilder,
-  source : @value.CheckedValue,
-  target : @value.CheckedValue,
-  label : @value.CheckedValue?,
-  properties : Array[@value.CheckedValue],
-) -> Result[Unit, Issue] {
-  if !output.open {
-    return Err(Closed)
-  }
-  @storage.observe_edge(output.graph, source, target, label, properties).map_err(issue => {
-      output.open = false
-      @lifecycle.cancel_retention_port(output.retention) |> ignore
-      Storage(issue)
-    },
-  )
-}
-
-///|
-pub fn contains_declared_node(
-  output : OutputBuilder,
-  identity : @value.CheckedValue,
-) -> Result[Bool, Issue] {
-  if !output.open {
-    return Err(Closed)
-  }
-  @storage.contains_declared_node(output.graph, identity).map_err(issue => {
     Storage(issue)
   })
 }
@@ -393,33 +359,50 @@ pub fn producer_read_view(
   value : ProducerRead,
 ) -> Result[@lifecycle.ProducerView, Issue] {
   guard producer_read_storage(value) is Some(storage) &&
-    @storage.carrier(storage) is @carrier.GraphValue(graph) else {
+    @storage.carrier(storage) is @carrier.GraphValue(_) else {
     return Err(Producer(@lifecycle.ProducerUnavailable))
   }
-  @lifecycle.prepare_graph_producer_view(
-    producer_read_carrier_reference(value),
-    @storage.node_count(storage),
-    @storage.edge_count(storage),
-    @carrier.field_count(@carrier.graph_node_properties(graph)),
-    @carrier.field_count(@carrier.graph_edge_properties(graph)),
-    node => @storage.node_identity(storage, node),
-    (node, property) => @storage.node_property(storage, node, property),
+  let read = producer_read_carrier_reference(value)
+  let nodes = @storage.node_count(storage)
+  let edges = @storage.edge_count(storage)
+  let node_identity = node => @storage.node_identity(storage, node)
+  let node_property = (node, property) => {
+    @storage.node_property(storage, node, property)
+  }
+  let node_index = identity => {
+    match @storage.node_index(storage, identity) {
+      Ok(index) => Some(index)
+      Err(_) => None
+    }
+  }
+  let edge_endpoints = edge => @storage.edge_endpoints(storage, edge)
+  let edge_property = (edge, property) => {
+    @storage.edge_property(storage, edge, property)
+  }
+  let view = @lifecycle.prepare_property_graph_producer_view(
+    read,
+    nodes,
+    edges,
+    node_identity,
+    node_property,
+    node_index,
+    edge_endpoints,
+    edge_property,
+    node => @storage.node_definition_index(storage, node),
+    edge => @storage.edge_definition_index(storage, edge),
+    edge => @storage.edge_identity(storage, edge),
     identity => {
-      match @storage.node_index(storage, identity) {
+      match @storage.edge_identity_index(storage, identity) {
         Ok(index) => Some(index)
         Err(_) => None
       }
     },
-    edge => @storage.edge_endpoints(storage, edge),
-    edge => @storage.edge_label(storage, edge),
-    (edge, property) => @storage.edge_property(storage, edge, property),
-    (source, target, label) => {
-      match @storage.edge_index(storage, source, target, label) {
-        Ok(index) => Some(index)
-        Err(_) => None
-      }
-    },
-  ).map_err(issue => {
+    (node, component) => @storage.node_typed_key_at(storage, node, component),
+    (edge, component) => @storage.edge_typed_key_at(storage, edge, component),
+    node => @storage.node_identity_order_key(storage, node),
+    edge => @storage.edge_identity_order_key(storage, edge),
+  )
+  view.map_err(issue => {
     Lifecycle(
       match issue {
         @lifecycle.WrongCarrier => @lifecycle.WrongCarrier
@@ -436,6 +419,7 @@ pub fn producer_read_view(
 /// Erase only the storage representation while retaining exact Graph custody.
 pub fn completed_material(
   value : Completed,
+  snapshot_factory? : @lifecycle.SnapshotFactory? = None,
 ) -> Result[@lifecycle.Material, Issue] {
   @lifecycle.prepare_material(
     completed_carrier_reference(value),
@@ -465,6 +449,7 @@ pub fn completed_material(
       }
     },
     fn() { discard_completed(value) },
+    snapshot_factory~,
   ).map_err(issue => Lifecycle(issue))
 }
 

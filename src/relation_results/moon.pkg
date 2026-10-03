@@ -17,6 +17,7 @@ import {
 
 import {
   "actql/actql/source_value" @source,
+  "actql/actql/graph_typing" @graph,
   "actql/actql/vector_typing" @vector,
   "moonbitlang/core/debug",
 } for "test"

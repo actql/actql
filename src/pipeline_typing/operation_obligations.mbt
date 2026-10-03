@@ -5,10 +5,7 @@ pub(all) enum OperationObligationScope {
   SequenceRows
   SequenceSemantics
   UnionFold(Int)
-  NodeSelector
   StartSelector
-  SourceSelector
-  TargetSelector
 } derive(Eq, Debug)
 
 ///|
@@ -28,19 +25,9 @@ pub(all) enum OperationObligation {
   SeriesRequirement(@series.Obligation)
   CalendarRequirement(@calendar.Obligation)
   WindowRequirement(@window.Obligation)
-  ProjectionRequirement(@projection.GraphObligation)
-  GraphRequirement(@graph.Obligation)
   MatchRequirement(@graph.MatchObligation)
-  ReachRequirement(@graph.ReachObligation)
-  SubgraphRequirement(@graph.SubgraphObligation)
   TraverseRequirement(@graph.TraverseObligation)
-  ShortestRequirement(@graph.ShortestObligation)
   SelectorRequirement(@graph.SelectorObligation)
-  EqualityRequirement(@graph.EqualityObligation)
-  DiffRequirement(@graph.DeltaObligation)
-  ApplyRequirement(@graph.ApplyObligation)
-  StructuralRequirement(@graph.StructuralObligation)
-  MeanRequirement(@graph.MeanObligation)
   ConstructionRequirement(@graph.ConstructionObligation)
   VectorRequirement(@vector.Obligation)
   NearestRequirement(@vector.NearestObligation)
@@ -66,20 +53,10 @@ priv enum ObligationOwner {
   SeriesOwner(@series.CheckedSeries)
   CalendarOwner(@calendar.CheckedCalendar)
   WindowOwner(@window.CheckedWindow)
-  ProjectionOwner(@projection.CheckedProjection)
-  GraphOwner(@graph.CheckedGraph)
   MatchOwner(@graph.CheckedMatch)
-  ReachOwner(@graph.CheckedReach)
-  SubgraphOwner(@graph.CheckedSubgraph)
   TraverseOwner(@graph.CheckedTraverse)
-  ShortestOwner(@graph.CheckedShortest)
   SelectorOwner(@graph.CheckedSelector)
-  EqualityOwner(@graph.CheckedEquality)
-  DiffOwner(@graph.CheckedDiff)
-  ApplyOwner(@graph.CheckedApply)
-  StructuralOwner(@graph.CheckedStructural)
-  MeanOwner(@graph.CheckedMean)
-  ConstructionOwner(@graph.CheckedConstruction)
+  PropertyConstructionOwner(@graph.CheckedPropertyConstruction)
   VectorOwner(@vector.CheckedVector)
   NearestOwner(@vector.CheckedNearest)
   PoolOwner(@vector.CheckedPool)
@@ -119,20 +96,10 @@ pub fn operation_obligations_source(v : OperationObligations) -> @decode.Cursor 
     SeriesOwner(c) => @series.source(c)
     CalendarOwner(c) => @calendar.source(c)
     WindowOwner(c) => @window.source(c)
-    ProjectionOwner(c) => @projection.source(c)
-    GraphOwner(c) => @graph.source(c)
     MatchOwner(c) => @graph.match_source(c)
-    ReachOwner(c) => @graph.reach_source(c)
-    SubgraphOwner(c) => @graph.subgraph_source(c)
     TraverseOwner(c) => @graph.traverse_source(c)
-    ShortestOwner(c) => @graph.shortest_source(c)
     SelectorOwner(c) => @graph.selector_source(c)
-    EqualityOwner(c) => @graph.equality_source(c)
-    DiffOwner(c) => @graph.diff_source(c)
-    ApplyOwner(c) => @graph.apply_source(c)
-    StructuralOwner(c) => @graph.structural_source(c)
-    MeanOwner(c) => @graph.mean_options_source(@graph.mean_options(c))
-    ConstructionOwner(c) => @graph.construction_source(c)
+    PropertyConstructionOwner(c) => @graph.property_construction_source(c)
     VectorOwner(c) => @vector.source(c)
     NearestOwner(c) =>
       @vector.nearest_source(
@@ -175,6 +142,28 @@ pub fn operation_obligations_selector(
 }
 
 ///|
+/// Retain the exact admitted keyed constructor, not a structurally equal body.
+pub fn operation_obligations_property_construction(
+  v : OperationObligations,
+) -> @graph.CheckedPropertyConstruction? {
+  match v.owner {
+    PropertyConstructionOwner(construction) => Some(construction)
+    _ => None
+  }
+}
+
+///|
+/// Retain the exact checked MATCH owner; equal text is not owner identity.
+pub fn operation_obligations_match(
+  v : OperationObligations,
+) -> @graph.CheckedMatch? {
+  match v.owner {
+    MatchOwner(operation) => Some(operation)
+    _ => None
+  }
+}
+
+///|
 /// O(1) reads; callers can charge before visiting or retaining each entry.
 pub fn operation_obligations_count(v : OperationObligations) -> Int {
   match v.owner {
@@ -192,20 +181,11 @@ pub fn operation_obligations_count(v : OperationObligations) -> Int {
     SeriesOwner(c) => @series.pending_validation_count(c)
     CalendarOwner(c) => @calendar.pending_validation_count(c)
     WindowOwner(c) => @window.pending_validation_count(c)
-    ProjectionOwner(c) => @projection.graph_pending_count(c)
-    GraphOwner(c) => @graph.pending_validation_count(c)
     MatchOwner(c) => @graph.match_pending_count(c)
-    ReachOwner(c) => @graph.reach_pending_count(c)
-    SubgraphOwner(c) => @graph.subgraph_pending_count(c)
     TraverseOwner(c) => @graph.traverse_pending_count(c)
-    ShortestOwner(c) => @graph.shortest_pending_count(c)
     SelectorOwner(c) => @graph.selector_pending_count(c)
-    EqualityOwner(c) => @graph.equality_pending_count(c)
-    DiffOwner(c) => @graph.diff_pending_count(c)
-    ApplyOwner(c) => @graph.apply_pending_count(c)
-    StructuralOwner(c) => @graph.structural_pending_count(c)
-    MeanOwner(c) => @graph.mean_pending_count(c)
-    ConstructionOwner(c) => @graph.construction_pending_count(c)
+    PropertyConstructionOwner(c) =>
+      @graph.property_construction_pending_count(c)
     VectorOwner(c) => @vector.pending_validation_count(c)
     NearestOwner(c) => @vector.nearest_pending_count(c)
     PoolOwner(c) => @vector.pool_pending_count(c)
@@ -255,34 +235,14 @@ pub fn operation_obligations_at(
       @calendar.pending_validation_at(c, index).map(x => CalendarRequirement(x))
     WindowOwner(c) =>
       @window.pending_validation_at(c, index).map(x => WindowRequirement(x))
-    ProjectionOwner(c) =>
-      @projection.graph_pending_at(c, index).map(x => ProjectionRequirement(x))
-    GraphOwner(c) =>
-      @graph.pending_validation_at(c, index).map(x => GraphRequirement(x))
     MatchOwner(c) =>
       @graph.match_pending_at(c, index).map(x => MatchRequirement(x))
-    ReachOwner(c) =>
-      @graph.reach_pending_at(c, index).map(x => ReachRequirement(x))
-    SubgraphOwner(c) =>
-      @graph.subgraph_pending_at(c, index).map(x => SubgraphRequirement(x))
     TraverseOwner(c) =>
       @graph.traverse_pending_at(c, index).map(x => TraverseRequirement(x))
-    ShortestOwner(c) =>
-      @graph.shortest_pending_at(c, index).map(x => ShortestRequirement(x))
     SelectorOwner(c) =>
       @graph.selector_pending_at(c, index).map(x => SelectorRequirement(x))
-    EqualityOwner(c) =>
-      @graph.equality_pending_at(c, index).map(x => EqualityRequirement(x))
-    DiffOwner(c) =>
-      @graph.diff_pending_at(c, index).map(x => DiffRequirement(x))
-    ApplyOwner(c) =>
-      @graph.apply_pending_at(c, index).map(x => ApplyRequirement(x))
-    StructuralOwner(c) =>
-      @graph.structural_pending_at(c, index).map(x => StructuralRequirement(x))
-    MeanOwner(c) =>
-      @graph.mean_pending_at(c, index).map(x => MeanRequirement(x))
-    ConstructionOwner(c) =>
-      @graph.construction_pending_at(c, index).map(x => {
+    PropertyConstructionOwner(c) =>
+      @graph.property_construction_pending_at(c, index).map(x => {
         ConstructionRequirement(x)
       })
     VectorOwner(c) =>
@@ -301,25 +261,13 @@ pub fn operation_obligations_at(
 }
 
 ///|
-/// No nested owner is flattened into an unbounded temporary array. A single
-/// shortest endpoint has no selector group; selected endpoints retain their side.
+/// Nested selector owners are retained without an unbounded temporary array.
 pub fn operation_obligation_group_count(operation : CheckedOperation) -> Int {
   match operation {
     // Acquisition closure and call-slot preflight belong to the model owner,
     // not the pure operation obligation inventory.
-    Infer(_) => 0
-    Sequence(_) | Subgraph(..) | Traverse(..) => 2
-    Shortest(checked~, ..) => {
-      let mut n = 1
-      if @graph.shortest_endpoint(checked, Left) is Selected(_) {
-        n += 1
-      }
-      if @graph.shortest_endpoint(checked, Right) is Selected(_) {
-        n += 1
-      }
-      n
-    }
-    GraphUnion(c) => @graph.union_count(c)
+    Infer(_) | Projection(_) => 0
+    Sequence(_) | Traverse(..) => 2
     Unary(_)
     | WindowGroup(_)
     | Join(checked=_, ..)
@@ -333,16 +281,8 @@ pub fn operation_obligation_group_count(operation : CheckedOperation) -> Int {
     | TimeSeries(_)
     | Calendar(_)
     | Window(_)
-    | Projection(_)
-    | Graph(_)
     | GraphMatch(_)
-    | Reach(_)
-    | GraphEquality(checked=_, ..)
-    | GraphDiff(checked=_, ..)
-    | GraphApply(checked=_, ..)
-    | GraphStructural(checked=_, ..)
-    | GraphMean(_)
-    | GraphConstruction(checked=_, ..)
+    | PropertyGraphConstruction(..)
     | Vector(_)
     | Nearest(checked=_, ..)
     | Pool(_)
@@ -362,7 +302,7 @@ pub fn operation_obligation_group_at(
   }
   Some(
     match operation {
-      Infer(_) => return None
+      Infer(_) | Projection(_) => return None
       Unary(c) | WindowGroup(c) => { scope: Body, owner: RelationOwner(c), }
       Join(checked=c, ..) => { scope: Body, owner: JoinOwner(c), }
       Append(checked=c, ..) => { scope: Body, owner: AppendOwner(c), }
@@ -376,18 +316,9 @@ pub fn operation_obligation_group_at(
       TimeSeries(c) => { scope: Body, owner: SeriesOwner(c), }
       Calendar(c) => { scope: Body, owner: CalendarOwner(c), }
       Window(c) => { scope: Body, owner: WindowOwner(c), }
-      Projection(c) => { scope: Body, owner: ProjectionOwner(c), }
-      Graph(c) => { scope: Body, owner: GraphOwner(c), }
       GraphMatch(c) => { scope: Body, owner: MatchOwner(c), }
-      Reach(c) => { scope: Body, owner: ReachOwner(c), }
-      GraphEquality(checked=c, ..) => { scope: Body, owner: EqualityOwner(c), }
-      GraphDiff(checked=c, ..) => { scope: Body, owner: DiffOwner(c), }
-      GraphApply(checked=c, ..) => { scope: Body, owner: ApplyOwner(c), }
-      GraphStructural(checked=c, ..) =>
-        { scope: Body, owner: StructuralOwner(c), }
-      GraphMean(c) => { scope: Body, owner: MeanOwner(c), }
-      GraphConstruction(checked=c, ..) =>
-        { scope: Body, owner: ConstructionOwner(c), }
+      PropertyGraphConstruction(checked=c, ..) =>
+        { scope: Body, owner: PropertyConstructionOwner(c), }
       Vector(c) => { scope: Body, owner: VectorOwner(c), }
       Nearest(checked=c, ..) => { scope: Body, owner: NearestOwner(c), }
       Pool(c) => { scope: Body, owner: PoolOwner(c), }
@@ -400,15 +331,6 @@ pub fn operation_obligation_group_at(
         } else {
           { scope: SequenceSemantics, owner: SequenceOwner(c), }
         }
-      Subgraph(checked=c, ..) =>
-        if index == 0 {
-          { scope: Body, owner: SubgraphOwner(c), }
-        } else {
-          {
-            scope: NodeSelector,
-            owner: SelectorOwner(@graph.subgraph_nodes(c)),
-          }
-        }
       Traverse(checked=c, ..) =>
         if index == 0 {
           { scope: Body, owner: TraverseOwner(c), }
@@ -418,24 +340,6 @@ pub fn operation_obligation_group_at(
             owner: SelectorOwner(@graph.traverse_start(c)),
           }
         }
-      Shortest(checked=c, ..) =>
-        if index == 0 {
-          { scope: Body, owner: ShortestOwner(c), }
-        } else {
-          let left = @graph.shortest_endpoint(c, Left)
-          let right = @graph.shortest_endpoint(c, Right)
-          match (left, right, index) {
-            (Selected(s), _, 1) =>
-              { scope: SourceSelector, owner: SelectorOwner(s), }
-            (_, Selected(s), _) =>
-              { scope: TargetSelector, owner: SelectorOwner(s), }
-            _ => return None
-          }
-        }
-      GraphUnion(c) => {
-        let fold = @graph.union_fold_at(c, index).unwrap()
-        { scope: UnionFold(index), owner: StructuralOwner(fold), }
-      }
     },
   )
 }

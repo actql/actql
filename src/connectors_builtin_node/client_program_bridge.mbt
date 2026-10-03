@@ -54,6 +54,39 @@ pub fn client_program_check_environment_with_numeric_profile(
 }
 
 ///|
+/// Explicit installed capability for the separately identified Property Graph
+/// subset. Existing bridge entries and their legacy SGA flag remain unchanged.
+/// A law pin selects semantics, not execution authorization.
+#export_name("clientProgramCheckEnvironmentWithPropertyGraphProfile")
+pub fn client_program_check_environment_with_property_graph_profile(
+  body : String,
+  evidence_bundle_cid : String,
+  text_time : Bool,
+  veca : Bool,
+  rela : Bool,
+  sga : Bool,
+  tea : Bool,
+  calendar : Bool,
+  text_rank : Bool,
+  numeric_profile_cid : String,
+  property_graph_law_cid : String,
+) -> @program_check.CheckEnvironment? {
+  if !selected_property_graph_supported() ||
+    property_graph_law_cid != @graph_contract.property_law_cid() ||
+    (sga && !selected_sga_supported()) {
+    return None
+  }
+  @publication_host.admit_client_check_environment(
+    body,
+    evidence_bundle_cid,
+    { text_time, veca, },
+    { rela, sga, tea, calendar, text_rank, },
+    numeric_profile_cid=Some(numeric_profile_cid),
+    property_graph=true,
+  )
+}
+
+///|
 /// Preserve the shared checker's typed failure across the in-process Host bridge.
 /// A wire adapter may project it to a public error, but must not recheck the
 /// Program or infer missing inputs from an absent prepared handle.

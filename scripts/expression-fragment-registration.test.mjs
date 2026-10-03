@@ -16,7 +16,7 @@ const canonical = v => Array.isArray(v) ? `[${v.map(canonical)}]`
     : JSON.stringify(v);
 const cid = v => 'sha256:' + createHash('sha256').update(canonical(v)).digest('hex');
 const currentCid =
-  'sha256:579c3a62fc22e6fea165bdd5714e3ca26206f606e43098434e84c02c8c0651cc';
+  'sha256:2e39600e7fafbb97b18ced2352fe60a53dc624128f221b308f1dd0fc489709bf';
 const contractCid = 'sha256:1282c3d8af052606f64be809cead104630c67a8b676050bcdc7edd4a884b9b60';
 
 function resolve(body, selected, owner = aoa, expr = expressions) {
@@ -39,9 +39,10 @@ function resolve(body, selected, owner = aoa, expr = expressions) {
 test('extensions preserve historical primitives except explicitly revised values resources', () => {
   assert.equal(cid(historical), 'sha256:b97a22de3664c1dafe3bc1e6791f1f8bcfb70324a1fcc1087450fe057e0f2311');
   assert.equal(cid(registry), currentCid);
-  assert.equal(Object.keys(registry).length, 68);
+  assert.equal(Object.keys(registry).length, 69);
   const {[op]: added, ...rest} = registry;
   const retained=structuredClone(rest);
+  delete retained['BRIDGE.rows.to_property_graph'];
   delete retained['REL.derive'].execution_extensions;
   delete retained['REL.except_rows'];
   delete retained['REL.intersect_rows'];

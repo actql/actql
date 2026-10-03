@@ -32,6 +32,8 @@
     "actql.bound.merge-rankings",
     "actql.bound.nearest",
     "actql.bound.nest-empty-array",
+    "actql.bound.property-graph-edges",
+    "actql.bound.property-graph-nodes",
     "actql.bound.reach-nodes",
     "actql.bound.row-window",
     "actql.bound.sequence-output",

@@ -17,9 +17,7 @@ pub(all) struct PredicateUsage {
 
 ///|
 pub enum PredicateIssue {
-  InvalidPredicateLimits
   PredicateBudget(@decode.Cursor)
-  ScopeIssue(Issue)
   SyntaxIssue(@syntax.Issue)
   TypingIssue(@typing.Issue)
   UnknownPredicateField(@syntax.FieldReference)
@@ -35,30 +33,17 @@ struct CheckedPredicate {
 }
 
 ///|
-/// Check only referenced fields; unrelated open or untyped properties remain valid.
-pub fn check_predicate(
-  entity : EntityKind,
+// The match checker supplies the exact admitted definition scope. This is the
+// same expression checker and evaluator, not a Graph-specific expression engine.
+fn check_predicate_in_scope(
+  scope : CheckedScope,
   source : @decode.Cursor,
-  input : @carrier.Carrier,
   parameters : @parameter.Declarations?,
   limits : PredicateLimits,
 ) -> Result[CheckedPredicate, PredicateIssue] {
-  if limits.max_work < 0 ||
-    limits.max_nodes < 0 ||
-    limits.max_depth < 0 ||
-    limits.max_text_bytes < 0 ||
-    limits.max_tokens < 0 {
-    return Err(InvalidPredicateLimits)
-  }
-  let scope = match
-    check_scope(entity, source, input, {
-      max_work: limits.max_work,
-      max_nodes: limits.max_nodes,
-      max_depth: limits.max_depth,
-      max_text_bytes: limits.max_text_bytes,
-    }) {
-    Ok(s) => s
-    Err(e) => return Err(ScopeIssue(e))
+  if scope.usage.work > limits.max_work ||
+    scope.usage.text_bytes > limits.max_text_bytes {
+    return Err(PredicateBudget(source))
   }
   let mut work = limits.max_work - scope.usage.work
   let mut nodes = limits.max_nodes

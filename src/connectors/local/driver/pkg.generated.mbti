@@ -95,6 +95,7 @@ pub(all) enum LocalDispatchIssue {
   ManagedRetention(@execution_relation.ManagedOutputRetentionIssue)
   ManagedCompletion(@execution_relation.TrustedOutputIssue)
   IdentityExport(@execution_relation.CompletedExportIssue)
+  CarrierSnapshot(@managed_carrier_runtime.SnapshotIssue)
 }
 
 type LocalDispatchModule
@@ -187,6 +188,7 @@ pub struct LocalManagedDispatchOperations[T] {
   output_row : (Int) -> Result[String, LocalDispatchIssue]
   material : () -> @execution_relation.ManagedRetainedOutput[T]?
   carrier_material : () -> @managed_carrier_runtime.Material?
+  prepare_carrier_snapshot : (() -> Bool) -> Result[LocalManagedSnapshot?, LocalDispatchIssue]
   storage_bytes : Int64
   close : () -> Unit
   cleanup_refresh : () -> Bool
@@ -195,6 +197,19 @@ pub struct LocalManagedDispatchOperations[T] {
 pub struct LocalManagedInputTransfer[T] {
   input : @execution_relation.ManagedProducerRead[T]
   append : (String) -> Result[Unit, LocalDispatchIssue]
+  finish : () -> Result[Unit, LocalDispatchIssue]
+}
+
+pub struct LocalManagedSnapshot {
+  key : String
+  maximum_bytes : Int
+  maximum_frame_bytes : Int
+  advance_save : (Int) -> Result[LocalManagedAdvance, LocalDispatchIssue]
+  take_output : () -> Result[String, LocalDispatchIssue]
+  content : () -> Result[@managed_carrier_runtime.SnapshotContent, LocalDispatchIssue]
+  release_source : (String) -> Result[Unit, LocalDispatchIssue]
+  begin_reload : (String, () -> Bool) -> Result[Unit, LocalDispatchIssue]
+  advance_reload : (Int) -> Result[LocalManagedAdvance, LocalDispatchIssue]
   finish : () -> Result[Unit, LocalDispatchIssue]
 }
 

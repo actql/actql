@@ -15,33 +15,16 @@ pub(all) enum OperationExecutionCheck {
   NestItems(NestItemLimit)
   NestExecution(NestExecutionCheck)
   GraphSelectorExecution(GraphSelectorCheck)
-  SubgraphExecution(SubgraphCheck)
   GraphMatchExecution(GraphMatchCheck)
-  GraphApplyExecution(GraphApplyCheck)
-  GraphDiffExecution(GraphDiffCheck)
-  GraphEqualityExecution(GraphEqualityCheck)
-  GraphStructuralExecution(GraphStructuralCheck)
-  GraphMeanExecution(GraphMeanCheck)
   VectorExecution(VectorCheck)
   NearestExecution(NearestCheck)
   PoolExecution(PoolCheck)
   RankingExecution(RankingCheck)
   TextRankExecution(TextRankCheck)
-  GraphResources(GraphResourcesCheck)
-  ComponentsLimits(ComponentsLimitsCheck)
-  ComponentsOutputGuard(ComponentsLimitsCheck)
   TraversalLimits(TraversalLimitsCheck)
-  ReachLimits(TraversalLimitsCheck)
-  ShortestLimits(TraversalLimitsCheck)
-  ShortestOutputGuard(TraversalLimitsCheck)
   TraversalOutputGuard(TraversalLimitsCheck)
   TraversalExecution(TraversalCheck)
-  ReachExecution(ReachCheck)
-  ShortestExecution(ShortestCheck)
-  GraphExecution(GraphExecutionCheck)
-  GraphConstructionExecution(GraphConstructionCheck)
-  GraphProjection(GraphProjectionCheck)
-  GraphProjectionOutput(GraphProjectionEnvelope)
+  PropertyGraphConstructionExecution(PropertyGraphConstructionCheck)
   SequenceMatch(SequenceMatchCheck)
   SequenceLimits(SequenceLimitsCheck)
   SequenceExecution(SequenceExecutionCheck)
@@ -101,17 +84,7 @@ pub fn operation_execution_phase(
       match v.rule {
         AdmitIdentities | RevalidateReferences | RequireSelectorResources =>
           BeforeOperationInputUse
-        DeduplicateIdentities | RequireMembership | EvaluateNodePredicate =>
-          BeforeOperationOutput
-      }
-    SubgraphExecution(v) =>
-      match v.rule {
-        AdmitInputGraph | RequireMaterializationResources =>
-          BeforeOperationInputUse
-        InduceBothEndpoints
-        | FilterInducedEdges
-        | PreserveIdentitiesAndProperties
-        | PreservePolicyAndScope => BeforeOperationOutput
+        DeduplicateIdentities | RequireMembership => BeforeOperationOutput
       }
     GraphMatchExecution(v) =>
       match v.rule {
@@ -120,61 +93,6 @@ pub fn operation_execution_phase(
         | FilterEdgeTypes
         | EvaluatePredicate
         | OrderMatches => BeforeOperationOutput
-      }
-    GraphApplyExecution(v) =>
-      match v.rule {
-        ApplyChangesAtomically | AdmitResultGraph | MatchTargetIdentity =>
-          BeforeOperationOutput
-        RequireSingleDeltaRow
-        | AdmitDeltaShapeAndVersion
-        | MatchGraphContract
-        | AdmitBaseGraph
-        | MatchBaseIdentity
-        | ValidateUniqueOrderedActions
-        | MatchBeforeRecords
-        | CheckActionExistence
-        | PreservePolicyDependencies
-        | RequireApplicationResources => BeforeOperationInputUse
-      }
-    GraphDiffExecution(v) =>
-      match v.rule {
-        AdmitCommonSnapshots | RequireDeltaResources => BeforeOperationInputUse
-        EmitVersion
-        | EmitContractIdentity
-        | BindSnapshotIdentities
-        | EmitCompleteRecords
-        | OrderUniqueActions => BeforeOperationOutput
-      }
-    GraphEqualityExecution(v) =>
-      match v.rule {
-        AdmitOperands | RequireComparisonResources => BeforeOperationInputUse
-        CompareCanonicalGraphs => BeforeOperationOutput
-      }
-    GraphStructuralExecution(v) =>
-      match v.rule {
-        AdmitStructuralInputs | RequireStructuralResources =>
-          BeforeOperationInputUse
-        CompareIdentityRecords
-        | RequirePropertyEquality
-        | ApplyPropertyStrategies
-        | RetainOneSidedRecords
-        | SubtractMatchingRecords
-        | CloseResultEndpoints
-        | ValidateSetResults
-        | ValidateNumericResults
-        | PreserveOperandPolicies => BeforeOperationOutput
-      }
-    GraphMeanExecution(v) =>
-      match v.rule {
-        AdmitMeanSamples | RequireMeanResources => BeforeOperationInputUse
-        CompareMeanSupport
-        | CloseMeanEndpoints
-        | CheckMeanLabels
-        | ApplyMeanProperties
-        | RoundMeanOnce
-        | ValidateMeanFiniteResults
-        | OrderMeanIdentities
-        | PreserveMeanDependencies => BeforeOperationOutput
       }
     VectorExecution(v) =>
       match v.rule {
@@ -249,60 +167,22 @@ pub fn operation_execution_phase(
         | OrderPoolGroupsByIdentity
         | ValidatePositiveSafeMemberCounts => BeforeOperationOutput
       }
-    ComponentsLimits(_)
-    | ComponentsOutputGuard(_)
-    | TraversalLimits(_)
-    | ReachLimits(_)
-    | ShortestLimits(_)
-    | ShortestOutputGuard(_)
-    | TraversalOutputGuard(_)
-    | GraphResources(_) => BeforeOperationOutput
-    ShortestExecution(v) =>
-      match v.rule {
-        AdmitShortestInput | RequireEndpoints | ValidateAllWeights =>
-          BeforeOperationInputUse
-        FoldCostsWithOverrange
-        | RejectSelectedOverrange
-        | SelectSimpleBoundedPaths
-        | ApplyPathTieBreaks
-        | OrderOutputRows => BeforeOperationOutput
-      }
-    ReachExecution(v) =>
-      match v.rule {
-        AdmitInputGraph | RequireStartMembership => BeforeOperationInputUse
-        EmitBoundedMinimumDepth | OrderReachRows => BeforeOperationOutput
-      }
+    TraversalLimits(_) | TraversalOutputGuard(_) => BeforeOperationOutput
     TraversalExecution(v) =>
       match v.rule {
         AdmitInputGraph => BeforeOperationInputUse
         RespectAuthoredHops
-        | EvaluateHopConditions
-        | EmitMinimumDepth
-        | EnumerateSimplePaths
+        | FilterAuthoredLabels
+        | EnumeratePropertyPaths
         | DeduplicatePathIdentities
         | OrderTraversalRows => BeforeOperationOutput
       }
-    GraphExecution(v) =>
+    PropertyGraphConstructionExecution(v) =>
       match v.rule {
-        AdmitGraphData => BeforeOperationInputUse
-        OrderComponentIdentities | OrderBoundsReport => BeforeOperationOutput
-      }
-    GraphConstructionExecution(v) =>
-      match v.rule {
-        AdmitInputRows => BeforeOperationInputUse
-        CloseDeclaredEndpoints
-        | DeriveEndpointNodes
-        | JournalEndpoints
-        | JournalLabels
-        | CollapseEqualPayloads
-        | EnforceConstructionEnvelope
-        | RejectPayloadConflicts => BeforeOperationOutput
-      }
-    GraphProjectionOutput(_) => BeforeOperationOutput
-    GraphProjection(v) =>
-      match v.rule {
-        AdmitGraphRecords => BeforeOperationInputUse
-        RejectColumnCollisions | RestoreIdentityNames => BeforeOperationOutput
+        AdmitPropertyInputRows => BeforeOperationInputUse
+        RejectDuplicateKeys
+        | ExcludeNullKeysAndMissingEndpoints
+        | EnforcePropertyConstructionEnvelope => BeforeOperationOutput
       }
     SequenceMatch(_) => BeforeOperationOutput
     SequenceLimits(_) => BeforeOperationOutput
@@ -398,33 +278,16 @@ pub fn operation_execution_failure(
     NestItems(_) => RejectOperationOutput
     NestExecution(_) => RejectOperationOutput
     GraphSelectorExecution(_)
-    | SubgraphExecution(_)
     | GraphMatchExecution(_)
-    | GraphApplyExecution(_)
-    | GraphDiffExecution(_)
-    | GraphEqualityExecution(_)
-    | GraphStructuralExecution(_)
-    | GraphMeanExecution(_)
     | VectorExecution(_)
     | NearestExecution(_)
     | PoolExecution(_)
     | RankingExecution(_)
     | TextRankExecution(_)
-    | GraphResources(_)
-    | ComponentsLimits(_)
-    | ComponentsOutputGuard(_)
     | TraversalLimits(_)
-    | ReachLimits(_)
-    | ShortestLimits(_)
-    | ShortestOutputGuard(_)
     | TraversalOutputGuard(_)
     | TraversalExecution(_)
-    | ReachExecution(_)
-    | ShortestExecution(_)
-    | GraphProjection(_)
-    | GraphExecution(_)
-    | GraphProjectionOutput(_)
-    | GraphConstructionExecution(_) => RejectOperationOutput
+    | PropertyGraphConstructionExecution(_) => RejectOperationOutput
     AsOfExecution(_) => RejectOperationOutput
     IntervalExecution(_) => RejectOperationOutput
     IntervalSearch(_) => RejectOperationOutput

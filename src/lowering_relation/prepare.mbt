@@ -18,7 +18,6 @@ struct PreparedNode {
   aggregation_id : String?
   nest_expansion : Array[PreparedNestExpansionNode]?
   vector_expansion : Array[PreparedVectorExpansionNode]?
-  graph_construction_expansion : Array[PreparedGraphConstructionExpansionNode]?
   payload : Payload
   inputs : Array[String]
   input_targets : Array[@pipeline.Target]
@@ -62,19 +61,9 @@ pub enum Payload {
   AppendRows(@append.CheckedAppend)
   SetRows(@set.CheckedSet)
   NestRows(@nest.CheckedNest)
-  BasicGraph(@graph.CheckedGraph)
-  StructuralGraph(@graph.CheckedStructural)
-  GraphUnion(@graph.CheckedUnion)
-  GraphMeanValue(@graph.CheckedMean)
   GraphMatchRows(@graph.CheckedMatch)
-  GraphReachRows(@graph.CheckedReach)
-  GraphSubgraphValue(@graph.CheckedSubgraph)
   GraphTraverseRows(@graph.CheckedTraverse)
-  GraphShortestRows(@graph.CheckedShortest)
-  GraphEqualityRows(@graph.CheckedEquality)
-  GraphDiffRows(@graph.CheckedDiff)
-  GraphApplyValue(@graph.CheckedApply)
-  GraphConstructionValue(@graph.CheckedConstruction)
+  PropertyGraphConstructionValue(@graph.CheckedPropertyConstruction)
   VectorValue(@vector.CheckedVector)
   NearestValue(@vector.CheckedNearest)
   PoolValue(@vector.CheckedPool)
@@ -220,34 +209,13 @@ pub fn operation(value : PreparedNode) -> String {
     // Nest lowers to a registered multi-node expansion whose final node is a
     // projection. There is no REL.nest operation in the AoA registry.
     NestRows(_) => "REL.select"
-    BasicGraph(value) =>
-      match @graph.operation(value) {
-        @graph.NormalizeGraph => "SGA.normalize"
-        @graph.Degree => "SGA.degree_metrics"
-        @graph.Components => "SGA.components"
-        @graph.GraphBounds => "SGA.bounds_check"
-      }
-    StructuralGraph(value) =>
-      match @graph.structural_operation(value) {
-        @graph.Graft => "SGA.graft"
-        @graph.Union => "SGA.union_structural"
-        @graph.Subtract => "SGA.diff_structural"
-      }
-    GraphUnion(_) => "SGA.union_structural"
-    GraphMeanValue(_) => "SGA.mean_structural"
     GraphMatchRows(value) =>
       match @graph.match_entity(value) {
         @graph.Nodes => "SGA.match_nodes"
         @graph.Edges => "SGA.match_edges"
       }
-    GraphReachRows(_) => "SGA.reachable"
-    GraphSubgraphValue(_) => "SGA.subgraph"
     GraphTraverseRows(_) => "SGA.traverse"
-    GraphShortestRows(_) => "SGA.shortest_path"
-    GraphEqualityRows(_) => "SGA.equal"
-    GraphDiffRows(_) => "SGA.diff"
-    GraphApplyValue(_) => "SGA.apply_delta"
-    GraphConstructionValue(_) => "BRIDGE.rows.to_graph"
+    PropertyGraphConstructionValue(_) => "BRIDGE.rows.to_property_graph"
     VectorValue(value) =>
       match @vector.operation(value) {
         @vector.ToVectors => "BRIDGE.rows.to_vectors"
@@ -268,8 +236,6 @@ pub fn operation(value : PreparedNode) -> String {
       match @projection.operation(value) {
         @projection.Events => "BRIDGE.events.to_rows"
         @projection.Vectors => "BRIDGE.vectors.to_rows"
-        @projection.NodeRows => "BRIDGE.graph.to_node_rows"
-        @projection.EdgeRows => "BRIDGE.graph.to_edge_rows"
       }
     SetRows(checked) =>
       match @set.operation(checked) {
@@ -318,28 +284,13 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     Sequence(value) => Some(SequenceRows(value))
     Calendar(_) => None
     Projection(value) => Some(CarrierProjection(value))
-    Graph(value) =>
-      match @graph.operation(value) {
-        @graph.NormalizeGraph
-        | @graph.Degree
-        | @graph.Components
-        | @graph.GraphBounds => Some(BasicGraph(value))
-      }
     GraphMatch(value) => Some(GraphMatchRows(value))
-    Reach(value) => Some(GraphReachRows(value))
-    Subgraph(checked~, ..) => Some(GraphSubgraphValue(checked))
     Traverse(checked~, ..) => Some(GraphTraverseRows(checked))
-    Shortest(checked~, ..) => Some(GraphShortestRows(checked))
-    GraphEquality(checked~, ..) => Some(GraphEqualityRows(checked))
-    GraphDiff(checked~, ..) => Some(GraphDiffRows(checked))
-    GraphApply(checked~, ..) => Some(GraphApplyValue(checked))
-    GraphStructural(checked~, ..) => Some(StructuralGraph(checked))
-    GraphUnion(v) => Some(GraphUnion(v))
-    GraphMean(value) => Some(GraphMeanValue(value))
     Pool(value) => Some(PoolValue(value))
     Nearest(checked~, ..) => Some(NearestValue(checked))
     Ranking(value) => Some(RankingValue(value))
-    GraphConstruction(checked~, ..) => Some(GraphConstructionValue(checked))
+    PropertyGraphConstruction(checked~, ..) =>
+      Some(PropertyGraphConstructionValue(checked))
     TextRank(..) => None
     Vector(value) => Some(VectorValue(value))
     Event(value) =>
@@ -451,28 +402,6 @@ pub fn prepare(
       CrossJoinRows(_) => ("cross_join", 2)
       AppendRows(_) => ("append", 2)
       NestRows(_) => ("nest", 2)
-      BasicGraph(value) =>
-        (
-          match @graph.operation(value) {
-            @graph.NormalizeGraph => "normalize_graph"
-            @graph.Degree => "degree"
-            @graph.Components => "components"
-            @graph.GraphBounds => "graph_bounds"
-          },
-          1,
-        )
-      StructuralGraph(value) =>
-        (
-          match @graph.structural_operation(value) {
-            @graph.Graft => "graft_graph"
-            @graph.Union => "union_graphs"
-            @graph.Subtract => "subtract_graphs"
-          },
-          2,
-        )
-      GraphUnion(value) => ("union_graphs", 1 + @graph.union_count(value))
-      GraphMeanValue(value) =>
-        ("mean_graphs", @graph.mean_sample_count(@graph.mean_options(value)))
       GraphMatchRows(value) =>
         (
           match @graph.match_entity(value) {
@@ -480,26 +409,6 @@ pub fn prepare(
             @graph.Edges => "match_edges"
           },
           1,
-        )
-      GraphReachRows(checked) =>
-        (
-          "reach",
-          if @graph.reach_start(checked) is @graph.SelectedReachStarts(selector) &&
-            @graph.selector_form(selector) is @graph.RelationIds(..) {
-            2
-          } else {
-            1
-          },
-        )
-      GraphSubgraphValue(checked) =>
-        (
-          "subgraph",
-          if @graph.selector_form(@graph.subgraph_nodes(checked))
-            is @graph.RelationIds(..) {
-            2
-          } else {
-            1
-          },
         )
       GraphTraverseRows(checked) =>
         (
@@ -511,30 +420,11 @@ pub fn prepare(
             1
           },
         )
-      GraphShortestRows(checked) => {
-        let mut relations = 0
-        for side in [@schema.Left, @schema.Right] {
-          match @graph.shortest_endpoint(checked, side) {
-            @graph.Selected(selector) =>
-              if @graph.selector_form(selector) is @graph.RelationIds(..) {
-                relations += 1
-              }
-            @graph.Single(_) => ()
-          }
-        }
-        ("shortest_path", 1 + relations)
-      }
-      GraphEqualityRows(_) => ("graphs_equal", 2)
-      GraphDiffRows(_) => ("graph_diff", 2)
-      GraphApplyValue(_) => ("apply_graph_delta", 2)
-      GraphConstructionValue(checked) =>
+      PropertyGraphConstructionValue(checked) =>
         (
-          "graph",
-          if @graph.construction_nodes_name(checked) is Some(_) {
-            2
-          } else {
-            1
-          },
+          "property_graph",
+          @graph.property_construction_node_count(checked) +
+          @graph.property_construction_edge_count(checked),
         )
       VectorValue(value) =>
         (
@@ -564,8 +454,6 @@ pub fn prepare(
           match @projection.operation(value) {
             @projection.Events => "events"
             @projection.Vectors => "vectors"
-            @projection.NodeRows => "node_rows"
-            @projection.EdgeRows => "edge_rows"
           },
           1,
         )
@@ -586,15 +474,6 @@ pub fn prepare(
     let vector_expansion = match payload {
       NearestValue(nearest) => Some(prepare_nearest_expansion(nearest))
       PoolValue(pool) => Some(prepare_pool_expansion(pool))
-      _ => None
-    }
-    let graph_construction_expansion = match payload {
-      GraphConstructionValue(checked) =>
-        Some(
-          prepare_graph_construction_expansion(
-            @graph.construction_nodes_name(checked) is Some(_),
-          ),
-        )
       _ => None
     }
     if nest_expansion is Some(expansion) {
@@ -642,40 +521,6 @@ pub fn prepare(
           continue
         }
         let generated = vector_generated_role_id(i, expansion_node.role)
-        if used.contains(generated) || generated == id {
-          return Err({ kind: IdentifierCollision, source: step.source, })
-        }
-        if generated.length() > limits.max_identifier_bytes - bytes {
-          return Err({ kind: BudgetExceeded, source: step.source, })
-        }
-        bytes += generated.length()
-        used[generated] = true
-      }
-      expansions += added_nodes
-      references += added_references
-      work += added_nodes + added_references
-    }
-    if graph_construction_expansion is Some(expansion) {
-      let expanded_nodes = expansion.length()
-      let expanded_references = graph_construction_expansion_reference_count(
-        expansion,
-      )
-      let added_nodes = expanded_nodes - 1
-      let added_references = expanded_references - arity
-      if added_nodes > limits.max_nodes - count - inputs - expansions ||
-        added_references > limits.max_references - references ||
-        added_nodes > limits.max_work - work ||
-        added_references > limits.max_work - work - added_nodes {
-        return Err({ kind: BudgetExceeded, source: step.source, })
-      }
-      for expansion_node in expansion {
-        if expansion_node.source_node {
-          continue
-        }
-        let generated = graph_construction_generated_role_id(
-          i,
-          expansion_node.role,
-        )
         if used.contains(generated) || generated == id {
           return Err({ kind: IdentifierCollision, source: step.source, })
         }
@@ -768,19 +613,9 @@ pub fn prepare(
       SetRows(_) => None
       CrossJoinRows(_) => None
       NestRows(_) => None
-      BasicGraph(_) => None
-      StructuralGraph(_) => None
-      GraphUnion(_) => None
-      GraphMeanValue(_) => None
       GraphMatchRows(_) => None
-      GraphReachRows(_) => None
-      GraphSubgraphValue(_) => None
       GraphTraverseRows(_) => None
-      GraphShortestRows(_) => None
-      GraphEqualityRows(_) => None
-      GraphDiffRows(_) => None
-      GraphApplyValue(_) => None
-      GraphConstructionValue(_) => None
+      PropertyGraphConstructionValue(_) => None
       VectorValue(_) => None
       NearestValue(_) => None
       PoolValue(_) => None
@@ -876,7 +711,6 @@ pub fn prepare(
       aggregation_id,
       nest_expansion,
       vector_expansion,
-      graph_construction_expansion,
       payload,
       inputs: refs,
       input_targets,

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {execFile} from 'node:child_process';
 import {createHash, randomUUID} from 'node:crypto';
-import {readFile, readdir, writeFile} from 'node:fs/promises';
+import {readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {createRequire} from 'node:module';
 import {userInfo} from 'node:os';
@@ -15,16 +15,9 @@ if (!installation || !executable) {
   throw new Error('Usage: node test-native-sga-public-source.mjs ' +
     '<packed-installation> <native-client-executable>');
 }
-const fixtureDirectory = join(installation, 'sga-fixtures');
-const availableCases = (await readdir(fixtureDirectory))
-  .filter(name => name.endsWith('.expected-program.json'))
-  .map(name => name.slice(0, -'.expected-program.json'.length)).sort();
-const cases = process.env.ACTQL_TEST_SGA_CASES === undefined
-  ? ['normalize-rows'] : process.env.ACTQL_TEST_SGA_CASES.split(',');
-if (cases.length === 0 || new Set(cases).size !== cases.length ||
-    cases.some(name => !availableCases.includes(name))) {
-  throw new Error('Invalid selected native SGA acceptance cases');
-}
+// Same independently authored current constructor/MATCH input as the packed
+// Local/HTTPS snapshot regression. Retired SGA algorithms are not fallbacks.
+const cases = ['property-graph-parallel'];
 const requireInstalled = createRequire(join(installation, 'package.json'));
 const {openInstalledRemoteHttpHost} = await import(pathToFileURL(
   requireInstalled.resolve('@actql/local-node/http-host')));
@@ -66,21 +59,13 @@ try {
   const profile = JSON.parse(await run('connect'));
   assert.equal(profile.mode, 'remote');
   for (const name of cases) {
-    const sourceFile = `${name}.expected-program.json`;
+    const sourceFile = `${name}.program.json`;
     await writeFile(join(installation, sourceFile),
-      await readFile(join(fixtureDirectory, sourceFile)));
-    const expected = JSON.parse(await readFile(join(fixtureDirectory,
-      `${name}.expected-results.json`), 'utf8'));
+      await readFile(join(installation, 'fixtures', sourceFile)));
+    // Two distinct edge keys survive the identical endpoints; order follows
+    // the constructor's input occurrence order, not product output.
+    const expected = {answer: {rows: [{key: 10}, {key: 11}]}};
     const requestId = `sga-native-${name}-${randomUUID()}`;
-    const retiredFile = `${name}.named.aql`;
-    await writeFile(join(installation, retiredFile),
-      await readFile(join(fixtureDirectory, retiredFile)));
-    await assert.rejects(run('aql', '--program-file', retiredFile,
-      '--format', 'aql-text', '--request-id', `retired-${requestId}`),
-    error => error.message.includes('ClientProgramInvalidInput') &&
-      !error.message.includes('SubmissionUnknown'));
-    assert.deepEqual(JSON.parse(await run('lookup-request', '--request-id',
-      `retired-${requestId}`)), {kind: 'not_found'});
     const accepted = JSON.parse(await run('aql', '--program-file',
       sourceFile, '--format', 'json', '--request-id', requestId));
     assert.ok(accepted.ref, name);

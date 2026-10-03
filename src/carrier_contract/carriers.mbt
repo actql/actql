@@ -17,17 +17,13 @@ pub(all) enum Issue {
   InvalidProperties
   InvalidLabel(String)
   DuplicateLabel(String)
+  UnsupportedGraphProfile
 } derive(Eq, Debug)
 
 ///|
 struct Graph {
-  semantic_label : @value.Contract?
-  row_names : GraphRowNames?
+  property_graph : PropertyGraphDefinition
   identity : @value.Contract
-  node_properties : Knowledge
-  edge_properties : Knowledge
-  // None means no closed label domain, not proof that a label role exists.
-  labels : Array[String]?
 }
 
 ///|
@@ -118,105 +114,9 @@ fn typed_role(
 }
 
 ///|
-/// Labels are a closed domain only when supplied. This constructor does not
-/// establish actual graph membership, edge endpoints or observed uniqueness.
-pub fn graph(
-  identity : @value.Contract,
-  node_properties : Knowledge,
-  edge_properties : Knowledge,
-  labels~ : Array[String]?,
-  max_labels~ : Int,
-  max_label_bytes~ : Int,
-  row_names? : GraphRowNames? = None,
-  label_contract? : @value.Contract? = None,
-) -> Result[Carrier, Issue] {
-  if max_labels < 0 || max_label_bytes < 0 {
-    return Err(InvalidLimits)
-  }
-  if !identity_domain(identity) {
-    return Err(InvalidIdentity)
-  }
-  if label_contract is Some(c) && !(c.shape is @value.Text(_)) {
-    return Err(InvalidProperties)
-  }
-  if node_properties.has_qualified_fields ||
-    edge_properties.has_qualified_fields {
-    return Err(InvalidProperties)
-  }
-  let admitted = match labels {
-    None => None
-    Some(input) => {
-      if input.length() > max_labels {
-        return Err(LimitExceeded)
-      }
-      let mut remaining = max_label_bytes
-      let seen : Map[String, Bool] = Map([])
-      let output : Array[String] = []
-      for label in input {
-        let size = match @scalar.admit_utf8_length(label, remaining) {
-          Ok(size) => size
-          Err(@scalar.MalformedUtf16(_)) => return Err(InvalidLabel(label))
-          Err(_) => return Err(LimitExceeded)
-        }
-        remaining -= size
-        if @canonical.normalize_nfc_lf(label) != Ok(label) {
-          return Err(InvalidLabel(label))
-        }
-        if seen.contains(label) {
-          return Err(DuplicateLabel(label))
-        }
-        seen[label] = true
-        output.push(label)
-      }
-      output.sort_by(@canonical.compare_utf16)
-      Some(output)
-    }
-  }
-  Ok(
-    GraphValue({
-      identity,
-      node_properties,
-      edge_properties,
-      labels: admitted,
-      row_names,
-      semantic_label: label_contract,
-    }),
-  )
-}
-
-///|
-pub fn graph_labels(graph : Graph) -> Array[String]? {
-  graph.labels.map(labels => labels.copy())
-}
-
-///|
-/// Known semantic label-role type, distinct from its closed value domain.
-pub fn graph_label_contract(graph : Graph) -> @value.Contract? {
-  graph.semantic_label
-}
-
-///|
 /// Rewrap an already admitted opaque Graph without copying its domains.
 pub fn graph_carrier(graph : Graph) -> Carrier {
   GraphValue(graph)
-}
-
-///|
-pub fn graph_label_count(graph : Graph) -> Int? {
-  graph.labels.map(labels => labels.length())
-}
-
-///|
-pub fn graph_label_at(graph : Graph, index : Int) -> String? {
-  match graph.labels {
-    Some(labels) =>
-      if index < 0 || index >= labels.length() {
-        None
-      } else {
-        Some(labels[index])
-      }
-    None => None
-  }
 }
 
 ///|
@@ -336,16 +236,6 @@ pub fn vector_identity_at(vector : Vectors, index : Int) -> Field? {
 ///|
 pub fn graph_identity(graph : Graph) -> @value.Contract {
   graph.identity
-}
-
-///|
-pub fn graph_node_properties(graph : Graph) -> Knowledge {
-  graph.node_properties
-}
-
-///|
-pub fn graph_edge_properties(graph : Graph) -> Knowledge {
-  graph.edge_properties
 }
 
 ///|

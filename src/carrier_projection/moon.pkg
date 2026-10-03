@@ -1,7 +1,6 @@
 supported_targets = "+js+wasm+native"
 
 import {
-  "actql/actql/value_contract" @value,
   "actql/actql/carrier_contract" @carrier,
   "actql/actql/decode_core" @decode,
   "actql/actql/decode_scalar" @scalar,
@@ -11,6 +10,5 @@ import {
 
 import {
   "actql/actql/source_value" @source,
-  "actql/actql/graph_contract",
   "actql/actql/value_contract" @contract,
 } for "test"

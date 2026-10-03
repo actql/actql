@@ -1,93 +1,92 @@
 ///|
-test "Graph publication retains declared and derived node provenance through both row bridges" {
-  for form in ["concise", "label", "completed", "shared", "split"] {
-    for bridge in ["node_rows", "edge_rows"] {
-      let named = form == "shared" || form == "split"
-      let label = form == "label" || form == "completed"
-      let steps = (if label {
-          "{\"derive\":{\"edge_type\":\"to_string(id)\"}},"
-        } else {
-          ""
-        }) +
-        (if named {
-          "{\"graph\":{\"nodes\":{\"from\":\"remote\",\"id\":\"id\",\"fields\":[]},\"edges\":{\"from\":\"" +
-          (if form == "split" { "right" } else { "remote" }) +
-          "\",\"source\":\"id\",\"target\":\"extra\",\"fields\":[]}},\"as\":\"g\"}"
-        } else {
-          "{\"graph\":{\"source\":\"id\",\"target\":\"extra\"" +
-          (if form == "label" { ",\"label\":\"edge_type\"" } else { "" }) +
-          "}}"
-        }) +
-        ",{\"" +
-        bridge +
-        "\":true},{\"select\":[{\"id\":\"" +
-        (if bridge == "node_rows" { "id" } else { "src" }) +
-        "\"}]}"
-      let program = checked_direct_program_fixture(
-        graph_steps=steps,
-        graph_right=form == "split",
-      )
+fn publication_property_steps(split : Bool, node_match : Bool) -> String {
+  let graph =
+    #|{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"NODE_INPUT","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[{"name":"E","from":"derived","key":["id"],"source":{"definition":"N","key":["id"]},"target":{"definition":"N","key":["id"]},"labels":[{"name":"Link","properties":{"mode":"all_columns"}}]}]},"as":"g"}
+  "," +
+  graph.replace(old="NODE_INPUT", new=if split { "seed" } else { "derived" }) +
+  (if node_match {
+    ",{\"match_nodes\":{\"definition\":\"N\",\"label\":\"Node\",\"where\":\"true\",\"fields\":[\"id\"]}},{\"derive\":{\"value\":\"id\"},\"as\":\"projected\"}"
+  } else {
+    ",{\"match_edges\":{\"definition\":\"E\",\"label\":\"Link\",\"fields\":[\"id\",\"value\"]},\"as\":\"projected\"}"
+  })
+}
+
+///|
+fn checked_property_publication(
+  split : Bool,
+  node_match : Bool,
+  resources? : Bool = true,
+) -> CheckedProgram raise {
+  let prefix =
+    #|{"values":{"schema":{"id":{"type":"number","nullable":false},"extra":{"type":"number","nullable":false}},"rows":[{"id":1,"extra":2},{"id":2,"extra":1}]},"as":"seed"},{"derive":{"value":"id"},"as":"derived"}
+  checked_direct_program_fixture(
+    graph_steps=prefix + publication_property_steps(split, node_match),
+    graph_resources=resources,
+    property_graph=true,
+  )
+}
+
+///|
+test "keyed Graph publication retains shared and distinct producer owners through scoped MATCH" {
+  for split in [false, true] {
+    for node_match in [false, true] {
+      let program = checked_property_publication(split, node_match)
       let unit = program.units[0]
       let policy = publication_source_policy(unit.publications[0]).unwrap()
-      assert_eq(
-        publication_policy_source_count(policy),
-        if form == "split" {
-          2
-        } else {
-          1
-        },
-      )
+      // The unused external Source cannot lend its provenance to these retained
+      // Values producers. This is not admission of an unowned external definition.
+      assert_eq(publication_policy_source_count(policy), 0)
       assert_eq(publication_policy_carrier_step_count(policy), 2)
       let retained = publication_policy_carrier_step_at(policy, 1).unwrap()
       guard retained.operation
-        is GraphConstruction(nodes~, edges~, checked=operation) else {
-        fail("Graph construction lost")
+        is PropertyGraphConstruction(inputs~, checked=operation) else {
+        fail("keyed constructor owner lost")
       }
-      assert_eq(nodes is Some(_), named)
-      assert_eq(retained.step, if label { 1 } else { 0 })
+      assert_eq(retained.step, 2)
       assert_false(retained.unknown_provenance)
-      guard @pipeline.step_at(unit.pipeline, retained.step).unwrap().operation
-        is GraphConstruction(checked=original, ..) else {
-        fail("original graph owner lost")
+      let original_step = @pipeline.step_at(unit.pipeline, 2).unwrap()
+      guard original_step.operation
+        is PropertyGraphConstruction(checked=original, ..) else {
+        fail("original constructor owner lost")
       }
       assert_true(physical_equal(operation, original))
+      assert_eq(inputs.length(), 2)
+      assert_eq(@pipeline.input_occurrence_count(original_step), 2)
       let mut occurrences = 0
       for i in 0..<publication_policy_edge_count(policy) {
         let edge = publication_policy_edge_at(policy, i).unwrap()
         if edge.step == retained.step {
           let original = @pipeline.input_occurrence_at(
-            @pipeline.step_at(unit.pipeline, retained.step).unwrap(),
-            occurrences,
+            original_step, occurrences,
           ).unwrap()
           assert_eq(edge.occurrence.role, original.role)
           assert_eq(edge.occurrence.target, original.target)
+          assert_eq(original.role, @pipeline.Sample(occurrences))
           occurrences += 1
         }
       }
-      assert_eq(occurrences, if named { 2 } else { 1 })
+      assert_eq(occurrences, 2)
+      assert_eq(inputs[0] == inputs[1], !split)
       let closure = @context.stage_requirement_operations(requirements(program))
-      let mut declared = 0
-      let mut derived = 0
+      let mut uniqueness = 0
+      let mut exclusions = 0
       let mut envelopes = 0
-      let mut completed = 0
       for i in 0..<@context.operation_closure_count(closure) {
         if @context.operation_closure_at(closure, i)
-          is Some(ExecutionCheck(GraphConstructionExecution(check))) {
+          is Some(ExecutionCheck(PropertyGraphConstructionExecution(check))) {
           assert_true(physical_equal(check.operation, operation))
           assert_true(physical_equal(check.site.pipeline, unit.pipeline))
-          assert_eq(check.nodes, nodes)
-          assert_eq(check.edges, edges)
+          assert_true(physical_equal(check.step, original_step))
           assert_eq(
             @context.operation_execution_failure(
-              GraphConstructionExecution(check),
+              PropertyGraphConstructionExecution(check),
             ),
             RejectOperationOutput,
           )
           match check.rule {
-            CloseDeclaredEndpoints => declared += 1
-            DeriveEndpointNodes => derived += 1
-            JournalLabels => completed += 1
-            EnforceConstructionEnvelope => {
+            RejectDuplicateKeys => uniqueness += 1
+            ExcludeNullKeysAndMissingEndpoints => exclusions += 1
+            EnforcePropertyConstructionEnvelope => {
               let envelope = check.envelope.unwrap()
               assert_eq(@policy.ceiling_value(envelope.input_rows), 1000L)
               assert_eq(@policy.ceiling_value(envelope.output_nodes), 1000L)
@@ -98,23 +97,16 @@ test "Graph publication retains declared and derived node provenance through bot
           }
         }
       }
-      assert_eq((declared, derived), if named { (1, 0) } else { (0, 1) })
-      assert_eq(completed, if form == "completed" { 1 } else { 0 })
-      assert_eq(envelopes, 1)
+      assert_eq((uniqueness, exclusions, envelopes), (1, 1, 1))
     }
   }
 }
 
 ///|
-test "Graph publication cannot replace missing construction resource selection" {
-  try
-    checked_direct_program_fixture(
-      graph_steps="{\"graph\":{\"source\":\"id\",\"target\":\"extra\"}},{\"node_rows\":true}",
-      graph_resources=false,
-    )
-  catch {
+test "keyed Graph publication cannot waive missing construction resource selection" {
+  try checked_property_publication(false, true, resources=false) catch {
     Closure(UnresolvedOperation(site)) => {
-      assert_eq((site.stage, site.step), (0, 0))
+      assert_eq((site.stage, site.step), (0, 2))
       assert_true(
         site.requirement
         is @pipeline.ConstructionRequirement(ResolveGraphConstructionResources),

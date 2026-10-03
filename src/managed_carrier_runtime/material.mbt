@@ -7,6 +7,10 @@ struct Material {
   prepare_input : (@lower.BoundPrepared, Int, @lower.BoundPrepared) -> ProducerView?
   prepare_operation : (@lower.BoundPrepared, Int, Int, @lower.BoundPrepared) -> ProducerView?
   reclaim : () -> Bool
+  snapshot_factory : SnapshotFactory?
+  snapshot_claimed : Ref[Bool]
+  snapshot_operation : Ref[SnapshotIO?]
+  snapshot_cleaned : Ref[Bool]
 }
 
 ///|
@@ -15,11 +19,21 @@ pub fn prepare_material(
   prepare_input : (@lower.BoundPrepared, Int, @lower.BoundPrepared) -> ProducerView?,
   prepare_operation : (@lower.BoundPrepared, Int, Int, @lower.BoundPrepared) -> ProducerView?,
   reclaim : () -> Bool,
+  snapshot_factory? : SnapshotFactory? = None,
 ) -> Result[Material, Issue] {
   if !completion_reference_available(reference) {
     return Err(Unavailable)
   }
-  Ok({ reference, prepare_input, prepare_operation, reclaim, })
+  Ok({
+    reference,
+    prepare_input,
+    prepare_operation,
+    reclaim,
+    snapshot_factory,
+    snapshot_claimed: Ref(false),
+    snapshot_operation: Ref(None),
+    snapshot_cleaned: Ref(false),
+  })
 }
 
 ///|
@@ -105,5 +119,14 @@ pub fn material_prepare_operation_view(
 /// Reclaim the exact generation under family-owned disposal. False preserves
 /// cleanup custody for retry or reports that reclamation already completed.
 pub fn reclaim_material(value : Material) -> Bool {
+  if !value.snapshot_cleaned.val &&
+    value.snapshot_operation.val is Some(operation) {
+    match (operation.cleanup)() {
+      // True confirms complete cleanup, including an already-clean operation.
+      // False or an error leaves the same handle available for retry.
+      Ok(true) => value.snapshot_cleaned.val = true
+      Ok(false) | Err(_) => return false
+    }
+  }
   (value.reclaim)()
 }
