@@ -24,5 +24,11 @@ export function rejectParentSubstitutions(report, source, read) {
   const model = structuredClone(report);
   model.model.sourceDigest = '0'.repeat(64);
   assert.throws(() => auditParentStartup(model, source, read), /independent execution receipt/);
-  return 'native parent receipt: portable-slot substitution, unsupported guarantee, detached facts, changed core recipe, stale model and missing executed artifacts rejected';
+  const candidates = structuredClone(report);
+  candidates.providerConstruction.recipe.bytes = 512;
+  assert.throws(() => auditParentStartup(candidates, source, read), /Provider recipe differs/);
+  const incomplete = structuredClone(report);
+  delete incomplete.providerConstruction;
+  assert.throws(() => auditParentStartup(incomplete, source, read), /Provider recipe differs/);
+  return 'native parent receipt: portable-slot substitution, unsupported guarantee, detached facts, changed core/provider recipe, missing provider evidence, stale model and missing executed artifacts rejected';
 }
