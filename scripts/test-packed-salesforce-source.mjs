@@ -6,7 +6,7 @@
 import assert from 'node:assert/strict';
 import {execFileSync, spawn, spawnSync} from 'node:child_process';
 import {createHash, generateKeyPairSync} from 'node:crypto';
-import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
+import {appendFile, mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {dirname, join} from 'node:path';
@@ -14,7 +14,7 @@ import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
 import {loadTwoSourceFixtures, installTwoSourceFixtures} from
   './fixtures/two-source-public-query.mjs';
-import {databaseRows, expectedUpdates, expectedWrites, expectedModelInputs,
+import {compositionExpectations, databaseRows, expectedUpdates, expectedWrites, expectedModelInputs,
   publicFixtureEnvironment, modelConfiguration} from
   './fixtures/composed-infer-effect-input.mjs';
 import {canonicalJson} from '../adapters/host-node/local-account-config.mjs';
@@ -377,6 +377,7 @@ console.log(JSON.stringify(published.mappings.map(mapping =>
   console.log('packed Local Host coinstalled Source and Effect read passed');
 
   for (const name of ['composed-infer-effect-input.mjs',
+    'composed-infer-effect.program.template.json', 'composed-infer-effect.expected.json',
     'installed-infer-fixture.mjs', 'two-source-public-query.mjs',
     'public-query-input.mjs']) {
     await writeFile(join(root, name), await readFile(join(repository,
@@ -760,13 +761,19 @@ try {
       'source-calls.jsonl'), 'utf8')).trim().split('\n').filter(Boolean).length : 0;
     const modelCallsBefore = composed ? (await readFile(join(root,
       'model-calls.jsonl'), 'utf8')).trim().split('\n').filter(Boolean).length : 0;
+    const effectWriteCounts = [];
+    let normalResult;
     await rce(async () => {
+      effectWriteCounts.push(patches().length);
       assert.equal(patches().length, 0);
       assert.equal((await runChild('effect-run.mjs', rceEnvironment,
         ['answer'], composed ? 77 : 0)).trim(), 'approved');
+      effectWriteCounts.push(patches().length);
       assert.equal(patches().length, 0);
       const done = JSON.parse((await runChild('effect-run.mjs',
         rceEnvironment, ['rce-resume'])).trim());
+      normalResult = done;
+      effectWriteCounts.push(patches().length);
       assert.equal(done.status, 'succeeded');
       if (composed) {
         assert.deepEqual(done.rows, expectedUpdates);
@@ -783,6 +790,7 @@ try {
       }
       assert.equal(JSON.parse((await runChild('effect-run.mjs',
         rceEnvironment, ['rce-resume'])).trim()).status, 'succeeded');
+      effectWriteCounts.push(patches().length);
       assert.equal(patches().length, composed ? 1 : 2);
     }, 'success');
     if (composed) {
@@ -790,12 +798,35 @@ try {
         .trim().split('\n').filter(Boolean).map(line => JSON.parse(line).score);
       const sourceCalls = (await readFile(join(root, 'source-calls.jsonl'), 'utf8'))
         .trim().split('\n').filter(Boolean).map(line => JSON.parse(line));
-      assert.deepEqual(sourceCalls.slice(sourceCallsBefore).map(item =>
-        item.sourceReadSessions), [2, 0, 0, 0],
+      const sourceReadSessions = sourceCalls.slice(sourceCallsBefore).map(item =>
+        item.sourceReadSessions);
+      const modelInputs = calls.slice(modelCallsBefore).sort((a, b) => a - b);
+      assert.deepEqual(sourceReadSessions, compositionExpectations.sourceReadSessions,
       'only submission acquires the two Sources; recovery uses captured inputs');
-      assert.deepEqual(calls.slice(modelCallsBefore).sort((a, b) => a - b),
+      assert.deepEqual(modelInputs,
         inferEnabled ? expectedModelInputs : [],
         'saved Model results must not be replayed physically');
+      assert.deepEqual(effectWriteCounts, compositionExpectations.effectWriteCounts);
+      const ref = JSON.parse(await readFile(join(root, 'effect-ref.json'), 'utf8'));
+      const boundaries = (await readFile(join(root, 'restart-boundaries.jsonl'), 'utf8'))
+        .trim().split('\n').filter(Boolean).map(line => JSON.parse(line))
+        .filter(item => item.transport === transport &&
+          item.ref.runDefinitionCid === ref.runDefinitionCid &&
+          item.ref.authorityScopeCid === ref.authorityScopeCid);
+      assert.deepEqual(boundaries.map(item => item.boundary),
+        compositionExpectations.restartBoundaries);
+      for (const boundary of boundaries) assert.deepEqual(boundary.ref, ref);
+      const observation = {sourceRevision, transport, case: compositionKind,
+        requestId: await readFile(join(root, 'rce-request.txt'), 'utf8'), ref,
+        submittedProgramSha256: createHash('sha256').update(await readFile(
+          join(root, 'rce-program.json'))).digest('hex'),
+        sourceReadSessions, modelInputs, effectWriteCounts,
+        writes: patches().map(item => ({id: item.path.split('/').at(-1),
+          body: JSON.parse(item.body)})), rows: normalResult.rows,
+        restartBoundaries: boundaries};
+      await appendFile(join(root, 'composition-acceptance.jsonl'),
+        JSON.stringify(observation) + '\n');
+      console.log('packed composition acceptance ' + JSON.stringify(observation));
     }
     if (!composed) {
       // The preceding public execution and independent rows establish semantic
@@ -985,4 +1016,3 @@ try {
   else if (passed) console.log('Preserved packed composition evidence at ' + root);
   else console.error('Preserved failed packed composition at ' + root);
 }
-

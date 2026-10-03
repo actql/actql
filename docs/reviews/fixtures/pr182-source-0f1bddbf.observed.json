@@ -1,0 +1,188 @@
+{
+  "revision": "0f1bddbfbab87e52bb4a8933927aa83a968623fd",
+  "main": "25093479e16c40874701ae7f884ffcc7538d425b",
+  "kind": "source-prepared public Local/HTTPS; no npm pack or hosted-CI claim",
+  "results": [
+    {
+      "transport": "local",
+      "ref": {
+        "namespaceId": "local",
+        "authorityScopeCid": "sha256:e1df4dbbb6072702e9cd0d2616d96bc90d7d25cbe7b0f44187d8795df99de25c",
+        "runDefinitionCid": "sha256:16d9beaeb94bd6752fd621c674ff377bb995b0e2d46535cba6abf7d85c0926bb"
+      },
+      "actual": {
+        "status": "succeeded",
+        "rows": [
+          {
+            "id": 2,
+            "left_amount": 20,
+            "right_amount": 200,
+            "risk": "high",
+            "target_id": "a00000000000002",
+            "next_name": "review-required"
+          }
+        ]
+      },
+      "writes": [
+        {
+          "id": "a00000000000002",
+          "body": {
+            "Name": "review-required"
+          }
+        }
+      ],
+      "restored": {
+        "status": "succeeded",
+        "rows": [
+          {
+            "id": 2,
+            "left_amount": 20,
+            "right_amount": 200,
+            "risk": "high",
+            "target_id": "a00000000000002",
+            "next_name": "review-required"
+          }
+        ]
+      }
+    },
+    {
+      "transport": "https",
+      "ref": {
+        "namespaceId": "local",
+        "authorityScopeCid": "sha256:255de931b64a5853a5a042526e6f99214cc4814903a4b6ef4f844ab2e918516e",
+        "runDefinitionCid": "sha256:5c23c4dfe7a26bd0bdfc2f957818934e82d2eff692d8cf1dd4f271d97518ceb1"
+      },
+      "actual": {
+        "status": "succeeded",
+        "rows": [
+          {
+            "id": 2,
+            "left_amount": 20,
+            "right_amount": 200,
+            "risk": "high",
+            "target_id": "a00000000000002",
+            "next_name": "review-required"
+          }
+        ]
+      },
+      "writes": [
+        {
+          "id": "a00000000000002",
+          "body": {
+            "Name": "review-required"
+          }
+        }
+      ],
+      "restored": {
+        "status": "succeeded",
+        "rows": [
+          {
+            "id": 2,
+            "left_amount": 20,
+            "right_amount": 200,
+            "risk": "high",
+            "target_id": "a00000000000002",
+            "next_name": "review-required"
+          }
+        ]
+      }
+    }
+  ],
+  "runtimeDigests": {
+    "node_modules/@actql/local-node/_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js": "d529ca05ed1de21dc17f9241a2e6b054159fe894fbc107092345b5cdf3e148e2",
+    "node_modules/@actql/run-host-core/dist/client_values_host_abi.js": "1240967d5e732d0dd519faae522012ff8d71d4ef709c4c134dee701e1e97f374"
+  },
+  "programSha256": "1262d6510a78e963e06c1250dd30948b66e67c17139bb0bcca737eb30b00dbe6",
+  "expected": {
+    "classified": [
+      {
+        "id": 1,
+        "left_amount": 10,
+        "right_amount": 100,
+        "risk": "low"
+      },
+      {
+        "id": 2,
+        "left_amount": 20,
+        "right_amount": 200,
+        "risk": "high"
+      }
+    ],
+    "updates": [
+      {
+        "id": 2,
+        "left_amount": 20,
+        "right_amount": 200,
+        "risk": "high",
+        "target_id": "a00000000000002",
+        "next_name": "review-required"
+      }
+    ],
+    "writes": [
+      {
+        "id": "a00000000000002",
+        "body": {
+          "Name": "review-required"
+        }
+      }
+    ]
+  },
+  "sourceReadSessions": [
+    2,
+    0,
+    0,
+    0,
+    2,
+    0,
+    0,
+    0
+  ],
+  "modelInputs": [
+    100,
+    200,
+    100,
+    200
+  ],
+  "status": "passed",
+  "submittedProgramSha256": "2d4620eb3de66800f09373d9a292590db814a761c766132e7d46792fa83fe1fc",
+  "programSha256Meaning": "Historical pretty-printed authoring file, not submitted bytes",
+  "submittedProgramFile": "pr182-source-0f1bddbf.program.json",
+  "restartBoundaries": [
+    {
+      "boundary": "capture-waiting",
+      "ref": {
+        "namespaceId": "local",
+        "authorityScopeCid": "sha256:e1df4dbbb6072702e9cd0d2616d96bc90d7d25cbe7b0f44187d8795df99de25c",
+        "runDefinitionCid": "sha256:16d9beaeb94bd6752fd621c674ff377bb995b0e2d46535cba6abf7d85c0926bb"
+      },
+      "transport": "local"
+    },
+    {
+      "boundary": "approval-committed",
+      "ref": {
+        "namespaceId": "local",
+        "authorityScopeCid": "sha256:e1df4dbbb6072702e9cd0d2616d96bc90d7d25cbe7b0f44187d8795df99de25c",
+        "runDefinitionCid": "sha256:16d9beaeb94bd6752fd621c674ff377bb995b0e2d46535cba6abf7d85c0926bb"
+      },
+      "transport": "local"
+    },
+    {
+      "boundary": "capture-waiting",
+      "ref": {
+        "namespaceId": "local",
+        "authorityScopeCid": "sha256:255de931b64a5853a5a042526e6f99214cc4814903a4b6ef4f844ab2e918516e",
+        "runDefinitionCid": "sha256:5c23c4dfe7a26bd0bdfc2f957818934e82d2eff692d8cf1dd4f271d97518ceb1"
+      },
+      "transport": "https"
+    },
+    {
+      "boundary": "approval-committed",
+      "ref": {
+        "namespaceId": "local",
+        "authorityScopeCid": "sha256:255de931b64a5853a5a042526e6f99214cc4814903a4b6ef4f844ab2e918516e",
+        "runDefinitionCid": "sha256:5c23c4dfe7a26bd0bdfc2f957818934e82d2eff692d8cf1dd4f271d97518ceb1"
+      },
+      "transport": "https"
+    }
+  ]
+}

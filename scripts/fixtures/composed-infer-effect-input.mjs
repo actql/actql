@@ -1,84 +1,29 @@
 // Independent acceptance input for #182. One Program owns every operation;
 // the harness installs fixtures and submits it, never runs its stages itself.
-export const databaseRows = {
-  left: [{id: 2, amount: 20}, {id: 1, amount: 10}, {id: 4, amount: 40}],
-  right: [{id: 3, amount: 300}, {id: 1, amount: 100}, {id: 2, amount: 200}],
-};
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 
-export const expectedClassified = [
-  {id: 1, left_amount: 10, right_amount: 100, risk: 'low'},
-  {id: 2, left_amount: 20, right_amount: 200, risk: 'high'},
-];
-export const expectedUpdates = [{id: 2, left_amount: 20, right_amount: 200,
-  risk: 'high', target_id: 'a00000000000002', next_name: 'review-required'}];
-export const expectedWrites = [{id: 'a00000000000002',
-  body: {Name: 'review-required'}}];
-export const expectedModelInputs = [100, 200];
-export const classifiedColumns = [
-  {name: 'id', contract: {type: 'number', nullable: false}},
-  {name: 'left_amount', contract: {type: 'number', nullable: true}},
-  {name: 'right_amount', contract: {type: 'number', nullable: true}},
-  // Outcome filtering does not refine the nullable captured value contract.
-  {name: 'risk', contract: {type: 'string', nullable: true}},
-];
-export const updateColumns = [...classifiedColumns,
-  // These two authored string literals each contain exactly 15 UTF-8 bytes.
-  {name: 'target_id', contract: {type: 'string', nullable: false, max_utf8_bytes: 15}},
-  {name: 'next_name', contract: {type: 'string', nullable: false, max_utf8_bytes: 15}},
-];
+const fixture = name => JSON.parse(readFileSync(new URL(name, import.meta.url), 'utf8'));
+export const compositionTemplate = fixture('./composed-infer-effect.program.template.json');
+export const compositionExpectations = fixture('./composed-infer-effect.expected.json');
+export const databaseRows = compositionExpectations.databaseRows;
+export const expectedClassified = compositionExpectations.classified;
+export const expectedUpdates = compositionExpectations.updates;
+export const expectedWrites = compositionExpectations.writes;
+export const expectedModelInputs = compositionExpectations.modelInputs;
+export const classifiedColumns = compositionExpectations.classifiedColumns;
+export const updateColumns = compositionExpectations.updateColumns;
 
+// Only the newly published Effect MappingRef is installation-specific.
+// Bind that one field; retain every authored expression and literal verbatim.
 export function compositionProgram(mappingRef) {
-  const acquire = (id, connector) => ({id,
-    inputs: {remote: {connector, resource: 'r'}},
-    // Match A's acquired-input fixture: non-null IDs compare equal to themselves.
-    // Both field leaves retain their admitted source policy before INFER.
-    steps: [{filter: 'id = id'},
-      {select: ['id', 'amount'], as: 'captured'}],
-    results: {rows: {from: 'captured', fields: ['id', 'amount']}},
-  });
-  return {version: 'actql/0.1', id: 'fixture.composed-infer-effect', stages: [
-    acquire('acquire_left', 'crm/main'),
-    acquire('acquire_right', 'crm/right'),
-    {id: 'classify', inputs: {
-      left_rows: {result: {stage: 'acquire_left', result: 'rows'}},
-      right_rows: {result: {stage: 'acquire_right', result: 'rows'}},
-    }, steps: [
-      {from: 'left_rows', join: {with: 'right_rows', kind: 'inner',
-        on: [{left: 'id', right: 'id'}], max_output_rows: 10,
-        select: {id: 'left.id', left_amount: 'left.amount',
-          right_amount: 'right.amount'}}},
-      {assert_rows: {unique_by: ['id']}, as: 'joined'},
-      {infer: {contract: 'model-task:composition-risk.v1', key: 'id',
-        input: {score: {field: 'right_amount'}}}, as: 'inferred'},
-      // The existing KEEP lowering: retain original columns by exact key.
-      {join: {with: 'joined', kind: 'inner', cardinality: 'one_to_one',
-        on: [{left: 'id', right: 'id'}], select: {
-          id: 'right.id', left_amount: 'right.left_amount',
-          right_amount: 'right.right_amount', outcome: 'left.outcome',
-          value: 'left.value'}}},
-      {filter: {eq: [{field: 'outcome'}, {literal: 'ok'}]}},
-      {derive: {risk: {property: {value: {field: 'value'}, name: 'risk'}}}},
-      {select: ['id', 'left_amount', 'right_amount', 'risk']},
-      {sort: [{id: 'asc'}], as: 'ordered'},
-    ], results: {rows: {from: 'ordered',
-      fields: ['id', 'left_amount', 'right_amount', 'risk']}}},
-    {id: 'apply', inputs: {
-      classified: {result: {stage: 'classify', result: 'rows'}},
-    }, steps: [
-      {filter: {eq: [{field: 'risk'}, {literal: 'high'}]}},
-      {derive: {target_id: {literal: 'a00000000000002'},
-        next_name: {literal: 'review-required'}}, as: 'updates'},
-    ], results: {rows: {from: 'updates', fields: [
-      'id', 'left_amount', 'right_amount', 'risk', 'target_id', 'next_name',
-    ]}}, effects: {save: {update: {
-      target: 'connector://crm-main/Test_Record__c', mapping: mappingRef,
-      from: {result: 'rows'}, id: 'target_id',
-      set: {Name: {field: 'next_name'}},
-    }}}},
-  ], results: {
-    classified: {from: {stage: 'classify', result: 'rows'}},
-    updates: {from: {stage: 'apply', result: 'rows'}},
-  }};
+  assert.equal(typeof mappingRef, 'string');
+  assert.ok(mappingRef.length > 0);
+  const program = structuredClone(compositionTemplate);
+  const update = program.stages.find(stage => stage.id === 'apply').effects.save.update;
+  assert.equal(update.mapping, '__PUBLICATION_MAPPING_REF__');
+  update.mapping = mappingRef;
+  return program;
 }
 
 // Installed contract and deterministic test provider remain separate from the

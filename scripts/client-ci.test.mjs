@@ -8,6 +8,8 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {parse} from 'yaml';
+import {compositionProgram, compositionTemplate, compositionExpectations} from
+  './fixtures/composed-infer-effect-input.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const {jobs} = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
@@ -17,6 +19,34 @@ const consumers = ['client-distribution', 'client-packed'];
 const runs = name => jobs[name].steps.filter(step => step.run).map(step => step.run.trim());
 const run = (script, env) => spawnSync('bash', ['-eo', 'pipefail', '-c', script], {
   cwd: root, env: {...process.env, ...env}, encoding: 'utf8',
+});
+
+test('the submitted JSON fixture binds only the newly published MappingRef', () => {
+  const original = structuredClone(compositionTemplate);
+  const first = compositionProgram('fixture-mapping-first');
+  const second = compositionProgram('fixture-mapping-second');
+  const update = program => program.stages.find(stage => stage.id === 'apply').effects.save.update;
+  assert.equal(update(first).mapping, 'fixture-mapping-first');
+  assert.equal(update(second).mapping, 'fixture-mapping-second');
+  update(first).mapping = update(second).mapping = '__PUBLICATION_MAPPING_REF__';
+  assert.deepEqual(first, original);
+  assert.deepEqual(second, original);
+  assert.deepEqual(compositionTemplate, original);
+  assert.throws(() => compositionProgram(''));
+});
+
+test('ordinary packed composition ships JSON input and independent replay expectations', () => {
+  const script = readFileSync(new URL('./test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
+  assert(script.includes(": twoSourceEffect ? ['two-source'] : ['source', 'infer']"));
+  for (const name of ['composed-infer-effect.program.template.json',
+    'composed-infer-effect.expected.json']) {
+    assert(script.includes("'" + name + "'"), 'isolated consumer must receive ' + name);
+  }
+  assert.deepEqual(compositionExpectations.sourceReadSessions, [2, 0, 0, 0]);
+  assert.deepEqual(compositionExpectations.modelInputs, [100, 200]);
+  assert.deepEqual(compositionExpectations.effectWriteCounts, [0, 0, 1, 1]);
+  assert.deepEqual(compositionExpectations.restartBoundaries,
+    ['capture-waiting', 'approval-committed']);
 });
 
 test('each Client group retains its acceptance commands exactly once', () => {
