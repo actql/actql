@@ -12,8 +12,56 @@ let cancelling = false, finished = false, groupOwned = false, retainLocks = fals
 let output = [], outputBytes = 0, outputComplete = true;
 let summary = {startedAt: new Date().toISOString(), status: 'starting', complete: false, steps: []};
 const env = process.env;
-const diagnostic = message => process.stderr.write(`${message}\n`);
+// Caller pipes can reject early diagnostics, or stop draining after the command
+// exits. Keep their faults separate from captured command evidence and never
+// report a stream error by writing recursively to that same stream.
+const callerStreams = ['stdout', 'stderr'].map(name => {
+  const stream = process[name], state = {name, stream};
+  stream.on('error', error => { state.error ??= error; });
+  stream.on('close', () => { state.error ??= new Error('CallerOutputClosed'); });
+  return state;
+});
+function writeCaller(name, text) {
+  const state = callerStreams.find(item => item.name === name);
+  if (state.error) return;
+  try { state.stream.write(text, error => { if (error) state.error ??= error; }); }
+  catch (error) { state.error ??= error; }
+}
+const diagnostic = message => writeCaller('stderr', `${message}\n`);
 const same = (a, b) => a.dev === b.dev && a.ino === b.ino;
+
+async function flushCallerOutput(deadline) {
+  await Promise.all(callerStreams.map(state => new Promise(resolve => {
+    if (state.error) { resolve(); return; }
+    const {stream} = state;
+    const done = error => {
+      if (error) state.error ??= error;
+      clearTimeout(timeout);
+      stream.removeListener('error', done);
+      stream.removeListener('close', closed);
+      resolve();
+    };
+    const closed = () => done(new Error('CallerOutputClosed'));
+    const timeout = setTimeout(() => done(new Error('CallerOutputFlushTimeout')),
+      Math.max(0, deadline - performance.now()));
+    stream.once('error', done);
+    stream.once('close', closed);
+    // A callback on the last queued write also waits for earlier diagnostics.
+    // A true return from write() alone would not prove delivery to the pipe.
+    try { stream.write('', done); } catch (error) { done(error); }
+  })));
+}
+
+function recordCallerFailures() {
+  for (const state of callerStreams) {
+    if (!state.error || state.reported) continue;
+    state.reported = true;
+    (summary.errors ??= []).push({stage: `${state.name} forwarding`,
+      code: state.error.code ?? state.error.message});
+  }
+  summary.callerOutputComplete = !callerStreams.some(state => state.error);
+  return !summary.callerOutputComplete;
+}
 
 // The same ownership checks as packed-query-evidence: a unique canonical
 // directory, exclusive initial files, and truncation only through a checked
@@ -123,7 +171,7 @@ function groupMembers() {
   } catch (error) { retainLocks = true; throw error; }
 }
 
-function finish(status, release) {
+async function finish(status, release) {
   if (finished) return;
   finished = true;
   status = primaryStatus || status;
@@ -149,6 +197,14 @@ function finish(status, release) {
     status ||= 1;
   }
   if (!release || !outputComplete) status ||= 1;
+  // One separate five-second delivery budget covers both streams and any
+  // final evidence-error diagnostics. A stalled caller must not hold us alive.
+  const flushDeadline = performance.now() + 5000;
+  if (output.length) writeCaller('stdout', redactCommandEvidence(Buffer.concat(output).toString('utf8'), env));
+  if (directory) diagnostic(`Local check evidence: ${directory}`);
+  if (!release && locks) diagnostic('Local check locks retained; process termination or ownership is unconfirmed. Inspect the reported owner before manual recovery.');
+  await flushCallerOutput(flushDeadline);
+  if (recordCallerFailures()) status ||= 1;
   if (status !== 0 && summary.status === 'passed') summary.status = 'guard failed';
   summary.exitCode = status;
   summary.complete = status === 0 && release && !summary.errors?.length;
@@ -159,9 +215,16 @@ function finish(status, release) {
     try { evidence?.write('summary.json', JSON.stringify(summary, null, 2) + '\n'); }
     catch (error) { diagnostic(error.message); }
   }
-  if (output.length) process.stdout.write(redactCommandEvidence(Buffer.concat(output).toString('utf8'), env));
-  if (directory) diagnostic(`Local check evidence: ${directory}`);
-  if (!release && locks) diagnostic('Local check locks retained; process termination or ownership is unconfirmed. Inspect the reported owner before manual recovery.');
+  await flushCallerOutput(flushDeadline);
+  if (recordCallerFailures()) {
+    status ||= 1;
+    summary.exitCode = status;
+    summary.complete = false;
+    if (summary.status === 'passed') summary.status = 'guard failed';
+    // Do not create more caller writes after the delivery budget is spent.
+    try { evidence?.write('summary.json', JSON.stringify(summary, null, 2) + '\n'); }
+    catch { /* Earlier evidence diagnostics are already queued or delivered. */ }
+  }
   process.exit(status);
 }
 

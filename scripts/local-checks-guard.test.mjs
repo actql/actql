@@ -59,6 +59,179 @@ const locateEvidence = `const fs = require('fs'), path = require('path');
   const parent = path.join(process.cwd(), '_build/local-checks/attempts');
   const attempt = path.join(parent, fs.readdirSync(parent)[0]);`;
 
+// Node's spawn(..., stdio: 'pipe') may use socket pairs. Shell pipelines give
+// both supervisor streams actual pipes, checked by each receiver with fstat.
+function pipedRun(f, {exitCode = 0, failEvidence = false, stdout = 'drain',
+  stderr = 'drain', cancellation, outputBytes = 200000, failFinalEvidence = false} = {}) {
+  const caller = join(f.directory, 'caller.mjs'), receiver = join(f.directory, 'receiver.cjs');
+  const ready = join(f.directory, 'output-ready'), done = join(f.directory, 'caller-done');
+  const source = locateEvidence + `
+    ${cancellation ? "process.on('SIGTERM', () => process.exit(7)); setInterval(() => {}, 1000);" : ''}
+    process.stdout.write('o'.repeat(${outputBytes}), () => {
+      process.stderr.write('e'.repeat(${outputBytes}), () => {
+        ${failEvidence ? "const target = path.join(attempt, 'output.log'); fs.renameSync(target, target + '.saved'); fs.writeFileSync(target, 'replacement bytes');" : ''}
+        fs.writeFileSync(${JSON.stringify(ready)}, 'ready'); process.exitCode = ${exitCode};
+      });
+    });`;
+  writeFileSync(caller, `import {runLocalCheck} from ${JSON.stringify(guard)};
+    import {existsSync, writeFileSync} from 'node:fs';
+    const abort = new AbortController();
+    ${cancellation === 'caller' ? `const poll = setInterval(() => {
+      if (existsSync(${JSON.stringify(ready)})) { clearInterval(poll); abort.abort(); }
+    }, 20);` : ''}
+    const config = ${JSON.stringify({root: f.root, heavy: true,
+      timeoutSeconds: cancellation === 'timeout' ? 0.5 : 10, graceSeconds: 0.2,
+      steps: steps(source)})};
+    config.steps[0].name = 'd'.repeat(200000);
+    process.exitCode = await runLocalCheck(config, {signal: abort.signal});
+    writeFileSync(${JSON.stringify(done)}, String(process.exitCode));`);
+  writeFileSync(receiver, `const fs = require('fs'), assert = require('assert');
+    const [file, mode, ready, done] = process.argv.slice(2);
+    assert(fs.fstatSync(0).isFIFO(), 'receiver must be a real pipe');
+    fs.writeFileSync(file, '');
+    if (mode === 'closed') process.exit(0);
+    const bound = setTimeout(() => process.exit(90), 12000);
+    const poll = setInterval(() => {
+      if (mode === 'stall') {
+        if (fs.existsSync(done)) process.exit(0);
+      } else if (fs.existsSync(ready)) {
+        clearInterval(poll);
+        // Do not read until the command has produced all its output. Both
+        // pipes fill before the old supervisor reaches its immediate exit.
+        setTimeout(() => {
+          const chunks = [];
+          process.stdin.on('data', chunk => chunks.push(chunk));
+          process.stdin.on('end', () => { fs.writeFileSync(file, Buffer.concat(chunks)); clearTimeout(bound); });
+        }, 150);
+      }
+    }, 20);`);
+  const out = join(f.directory, 'caller.stdout'), err = join(f.directory, 'caller.stderr');
+  const env = {...f.env};
+  if (failFinalEvidence) {
+    const preload = join(f.directory, 'fail-final-save.mjs');
+    writeFileSync(preload, `import fs from 'node:fs';
+      import {syncBuiltinESMExports} from 'node:module';
+      if (process.argv[1]?.endsWith('/local-checks-supervisor.mjs')) {
+        const original = fs.writeFileSync;
+        fs.writeFileSync = (file, value, ...args) => {
+          if (typeof value === 'string' && value.startsWith('{') && JSON.parse(value).complete === true) {
+            throw Object.assign(new Error('late evidence save ' + 'l'.repeat(200000)), {code: 'EIO'});
+          }
+          return original(file, value, ...args);
+        };
+        syncBuiltinESMExports();
+      }`);
+    env.NODE_OPTIONS = `--import=${preload}`;
+  }
+  const started = performance.now();
+  const result = spawnSync('bash', ['-o', 'pipefail', '-c',
+    '{ "$1" "$2" 2>&1 1>&3 | "$1" "$3" "$5" "$9" "$6" "$7"; } 3>&1 | "$1" "$3" "$4" "$8" "$6" "$7"',
+    'pipe-fixture', process.execPath, caller, receiver, out, err, ready, done, stdout, stderr],
+  {env, encoding: 'utf8', timeout: 15000});
+  assert.equal(result.error, undefined, 'caller delivery must not need the external kill bound');
+  assert.equal(result.signal, null);
+  return {...result, elapsed: performance.now() - started,
+    stdout: readFileSync(out), stderr: readFileSync(err, 'utf8')};
+}
+
+function assertFullCallerOutput(bytes) {
+  assert.equal(bytes.length, 400000);
+  assert.equal(bytes.filter(byte => byte === 111).length, 200000);
+  assert.equal(bytes.filter(byte => byte === 101).length, 200000);
+}
+
+for (const [exitCode, failEvidence] of [[0, false], [7, false], [7, true]]) {
+  test(`real caller pipes retain full stdout and stderr for exit ${exitCode}, evidence failure ${failEvidence}`, t => {
+    const f = fixture(t), result = pipedRun(f, {exitCode, failEvidence});
+    assert.equal(result.status, exitCode, result.stderr.slice(-2000));
+    assertFullCallerOutput(result.stdout);
+    const [evidence] = attempts(f), record = summary(evidence);
+    assert.ok(result.stderr.includes('== ' + 'd'.repeat(200000) + '\n'));
+    assert.ok(result.stderr.includes(`Local check evidence: ${evidence}\n`));
+    if (failEvidence) {
+      assert.equal(readFileSync(join(evidence, 'output.log'), 'utf8'), 'replacement bytes');
+      assert.ok(result.stderr.endsWith('EvidenceFileOwnershipChanged\n'));
+      assert.equal(record.complete, false);
+    } else {
+      assert.deepEqual(result.stdout, readFileSync(join(evidence, 'output.log')));
+      assert.equal(result.stderr, `Local check budget: 10s; TERM grace: 0.2s\nLocal check evidence: ${evidence}\n== ` +
+        'd'.repeat(200000) + `\nLocal check evidence: ${evidence}\n`);
+      assert.equal(record.complete, exitCode === 0);
+    }
+    assert.equal(record.callerOutputComplete, true);
+    assert.equal(record.exitCode, exitCode);
+    assert.deepEqual(locks(f), []);
+  });
+}
+
+test('real caller stderr drains pending diagnostics even with empty command output', t => {
+  const f = fixture(t), result = pipedRun(f, {outputBytes: 0});
+  assert.equal(result.status, 0);
+  assert.equal(result.stdout.length, 0);
+  const [evidence] = attempts(f);
+  const expected = `Local check budget: 10s; TERM grace: 0.2s\nLocal check evidence: ${evidence}\n== ` +
+    'd'.repeat(200000) + `\nLocal check evidence: ${evidence}\n`;
+  assert.equal(Buffer.byteLength(result.stderr), Buffer.byteLength(expected));
+  assert.equal(result.stderr, expected);
+  assert.equal(summary(evidence).callerOutputComplete, true);
+  assert.deepEqual(locks(f), []);
+});
+
+test('real caller stderr drains a late evidence-save error after the main output barrier', t => {
+  const f = fixture(t), result = pipedRun(f, {outputBytes: 0, failFinalEvidence: true});
+  assert.equal(result.status, 1);
+  assert.equal(result.stdout.length, 0);
+  assert.ok(result.stderr.includes('== ' + 'd'.repeat(200000) + '\n'));
+  assert.ok(result.stderr.endsWith('late evidence save ' + 'l'.repeat(200000) + '\n'));
+  const [evidence] = attempts(f), record = summary(evidence);
+  assert.equal(record.callerOutputComplete, true);
+  assert.equal(record.outputComplete, true);
+  assert.equal(record.complete, false);
+  assert.equal(record.exitCode, 1);
+  assert.ok(record.errors.some(error => error.stage === 'summary' && error.code === 'EIO'));
+  assert.deepEqual(locks(f), []);
+});
+
+for (const stream of ['stdout', 'stderr']) {
+  for (const mode of ['stall', 'closed']) {
+    for (const exitCode of [0, 7]) {
+      test(`${mode} caller ${stream} has a bounded exit and preserves command status ${exitCode}`, t => {
+        const f = fixture(t), result = pipedRun(f, {exitCode, [stream]: mode});
+        assert.equal(result.status, exitCode || 1, result.stderr.slice(-2000));
+        assert.ok(result.elapsed < 10000, `forwarding took ${result.elapsed}ms`);
+        const [evidence] = attempts(f), record = summary(evidence);
+        assertFullCallerOutput(readFileSync(join(evidence, 'output.log')));
+        if (stream === 'stderr') assertFullCallerOutput(result.stdout);
+        else assert.ok(result.stderr.includes('== ' + 'd'.repeat(200000) + '\n'));
+        assert.equal(record.exitCode, exitCode || 1);
+        assert.equal(record.steps[0].code, exitCode);
+        assert.equal(record.steps[0].streamsComplete, true);
+        assert.equal(record.outputComplete, true);
+        assert.equal(record.callerOutputComplete, false);
+        assert.equal(record.complete, false);
+        assert.equal(record.locksReleased, true);
+        assert.ok(record.errors.some(error => error.stage === `${stream} forwarding`));
+        assert.deepEqual(locks(f), []);
+      });
+    }
+  }
+}
+
+for (const cancellation of ['timeout', 'caller']) {
+  test(`closed caller stderr cannot replace first-cause ${cancellation} status`, t => {
+    const f = fixture(t), result = pipedRun(f, {stderr: 'closed', cancellation});
+    const expected = cancellation === 'timeout' ? 124 : 130;
+    assert.equal(result.status, expected);
+    const record = summary(attempts(f)[0]);
+    assert.equal(record.exitCode, expected);
+    assert.equal(record.steps[0].code, 7);
+    assert.equal(record.status, cancellation === 'timeout' ? 'timeout' : 'interrupted');
+    assert.equal(record.callerOutputComplete, false);
+    assertFullCallerOutput(result.stdout);
+    assert.deepEqual(locks(f), []);
+  });
+}
+
 test('budgets come from workflow or explicit positive timer-safe seconds', () => {
   assert.equal(checkBudget(undefined, 30), 1800);
   assert.equal(checkBudget('0.2', 30), 0.2);

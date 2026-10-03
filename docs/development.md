@@ -206,8 +206,13 @@ exit observations from overall completeness; `output.log` retains the bounded
 combined diagnostic output. The existing evidence redactor and 8 MiB output
 limit are reused. Overflow stops the invocation, fails it, and marks output
 incomplete. Output is buffered and printed at completion rather than streamed;
-steps and their evidence directory are announced immediately. Focused tests
-also retain their existing per-test evidence. Abrupt supervisor death can
+steps and their evidence directory are announced immediately. The supervisor
+waits for caller stdout and stderr writes with a separate, shared five-second
+forwarding budget after command cleanup. A stalled or closed receiver marks
+`callerOutputComplete: false` and fails an otherwise successful invocation;
+an existing command failure or cancellation keeps its original status. This
+does not change the saved command log or its `outputComplete` capture flag.
+Focused tests also retain their existing per-test evidence. Abrupt supervisor death can
 leave only the last written, incomplete snapshot. Redaction is diagnostic
 best-effort, not proof that arbitrary application output has no secrets.
 
