@@ -8,6 +8,23 @@ fn keyed_script(text : String) -> Result[@program.Program, Issue] {
 }
 
 ///|
+test "keyed properties reuse canonical spelling across labels of one definition" {
+  let prefix = "DATA n = SELECT 1 AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Primary PROPERTIES (id AS ID) LABEL Secondary PROPERTIES (id AS id))); "
+  for pattern in ["(a:secondary WHERE `Id` = 1)", "(a WHERE `Id` = 1)"] {
+    let body = mapping_semantic(
+      keyed_script(
+        prefix +
+        "FROM GRAPH g |> MATCH WALK " +
+        pattern +
+        " |> SELECT a.id AS id",
+      ).unwrap(),
+    )
+    assert_true(body.contains("\"fields\":[\"aql_keyed_identity_1\",\"ID\"]"))
+    assert_true(body.contains("\"eq\":[{\"field\":\"ID\"},{\"literal\":1}]"))
+  }
+}
+
+///|
 test "keyed node predicates resolve properties without replacing label membership" {
   let prefix = "DATA n = SELECT 1 AS id, 'Company' AS entity_type; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (id, entity_type))); "
   for
