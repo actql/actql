@@ -17,9 +17,28 @@ was generated from the product lowerer.
 
 Assertion/terminal Effect syntax and the composition-specific Source predicate
 and JOIN-limit representation belong to [#273](https://github.com/actql/actql/pull/273).
-That work is not duplicated here. The three newly reproduced defects below also
-require changes to its shared `query_program/compile.mbt`; their counterexamples
-are handed to D instead of editing that file concurrently.
+That work is not duplicated here. At the original audit checkpoint, the three
+counterexamples below were handed off because they share `query_program/compile.mbt`.
+The follow-up scope below separates the independent ORDER/Group branches from
+D's assertion, Effect, Source predicate and JOIN-limit locations.
+
+## Repair follow-up on current main
+
+Repair baseline: `a4132d64f9cd83022d38bcb9c4e79d981fb2f803`.
+Relevant Frontend source comparisons against the audited runtime were unchanged;
+that inspection does not turn old execution evidence into a new-baseline run.
+
+| Independent repair | Submitted HEAD | Executed evidence and remaining boundary |
+|---|---|---|
+| [Scoped ORDER binding reuse #286](https://github.com/actql/actql/pull/286) | `f1144c4c3f1962112c79b68a0648ccee80680bbb` | Focused JS 17/17. Three positives/one refusal pass on both packed Local and HTTPS. DISTINCT remains `Execution(Physical(ExecutionLimit))` at managed start. |
+| [Aggregate input scope #287](https://github.com/actql/actql/pull/287) | `e1366724e05e1296e06f7678eb28ef745fc2eaa8` | Focused Group/JOIN/parser JS 28/28, then Group/Pipe including SUM 11/11. SET/DROP SUM and two refusals pass on both packed transports. Ordered original/current-key controls remain `Execution(Physical(ExecutionLimit))`. |
+
+Each repair records its clean runtime source and normal tarball digests;
+submitted HEAD adds only the evidence document to that verified source.
+Both are Draft. Neither full positive corpus nor automatic PR CI is declared
+successful. No Host ceilings, providers, physical strategies or common owners
+were changed. The CTE shared-acquisition predicate defect remains D's handoff.
+NEAREST standard Host connection is separately A-owned; existing fixtures remain.
 
 ## Reproduced defect: scoped Pipe ORDER reuses the wrong value
 
@@ -119,9 +138,8 @@ expected non-nullability. That harness error is retained in the raw evidence
 and is not classified as a product defect. Recomparison used saved
 observations and did not rerun the Host or change any expected row.
 
-This third issue also shares D's `compile.mbt` edit boundary. Its executable
-pre-fix regression and public source cases are handed off without a parallel
-implementation.
+This third issue initially shared the file-level edit boundary. The follow-up
+Group repair above edits only its independently owned aggregate scope branch.
 
 ## Focused evidence
 
@@ -194,5 +212,6 @@ failure/cancellation campaigns and frontend-wide conformance remain unaudited.
 Explicitly rejected profile gaps such as LIMIT 0 are not reclassified as silent
 lowering errors or fixed by this record. No full Core, proof, performance or
 packed campaign, manual CI rerun, merge, or deployment was performed.
-The three reproduced defects remain unfixed pending the shared-file handoff;
-this evidence commit is not a product repair PR or a new runtime validation SHA.
+At the original audit checkpoint, all three defects were unfixed. The repair
+follow-up above supersedes that delivery status, without reclassifying these
+historical failures as passes. This audit record itself changes no runtime.
