@@ -7,8 +7,9 @@ Branch: `test/graph-host-owner-fixtures`.
 
 The two added cases use the existing keyed Graph Host fixture for MATCH nodes
 and MATCH edges. Existing normal cases, all nine variants at quantum 1, 7 and
-1024, and the existing cancellation case remain. The new cases also run each
-of those three quantum values. No workflow, history validator, product source,
+1024, and the existing cancellation case remain. The new cases enumerate those
+three quantum values, but the acquired-input refusal currently stops each at
+its first quantum-1 iteration. No workflow, history validator, product source,
 target selection or execution frequency was removed or changed.
 
 The existing `delayed_cleanup_provider` fixture now forwards the original typed
@@ -22,13 +23,16 @@ Two small functions share consumer close checks and disposed-execution cleanup
 retry checks. They observe the real CapturedDAG ledger and actual completed
 output storage bytes. Each consumer close returns exactly that output's holding;
 a repeated close must leave the entire intermediate ledger observation unchanged.
-Cleanup false and error preserve the reservation and holding. After the first
-consumer closes, the second consumer and upstream outputs remain available;
-the second consumer's exact rows are read again. After both consumers close,
-upstream closure and execution disposal precede successful scratch cleanup.
-That retry returns reservation credit, preserves the remaining VALUES holding
-and consumed transfer/work, and is idempotent. Final upstream closure leaves
-execution/retention reservations and holdings at zero.
+Cleanup false and error preserve the reservation and holding. The normal cases
+retain their existing closure order. In the MATCH pilots the second consumer
+is still executing when the first consumer and producer public port close.
+Its acquired input remains available and the real holding stays charged; its
+independent expected rows and finalization pass. Host completion currently
+rejects that input, so last-consumer credit and the final cleanup/retry
+assertions have not been reached on this counterexample source. They remain
+required success expectations, not acceptance evidence. The earlier source
+verified reservation credit, remaining VALUES holding, consumed transfer/work
+and idempotent cleanup under the old closure order.
 
 Reservation release requires execution disposal in the current Host contract.
 A live output's provider cleanup callback completing alone is not evidence that
@@ -136,3 +140,92 @@ acceptance await that fix; a failing unmutated case is not restored success.
 Mutation detection is incomplete. Wasm/native execution, broader validation,
 and exact submitted-SHA CI remain pending.
 No existing tests have been removed.
+
+## Mutation preparation while A owns the product fix
+
+Recipe review baseline: `7f5c7c8353c8058c5710a6cd29f7ba3af3b53215`.
+The following are proposed changes **only in an isolated worktree**, one at a
+time. They have not been injected or counted as detected. Recheck their exact
+source/preconditions after adopting A's fixed revision; a changed site requires
+review, not a silent pin update or another equivalent-looking mutation.
+
+| Fault | Actual product mutation site | Required intermediate failure |
+| --- | --- | --- |
+| Unreclaimed scratch credited early | `src/physical_strategy/task_execution.mbt`, `task_output_remaining_scratch`: change only the unreleased `execution.scratch` branch to `0L`. Keep the cleanup witness call and successful output path. | After the actual MATCH callback returns false, `pending.reserved_execution_bytes > 0L` must fail. The MATCH counter must already be 1. A completion/allocation refusal before this assertion does not qualify. |
+| Same holding credited twice | `src/physical_resources/ledger.mbt`, `release_allocation`: subtract `2L * holding.bytes` instead of `holding.bytes`, leaving owner/live checks and resource removal intact. This specifically tests double credit of one exact token; it does not prove all invalid-token rejection behavior. | `close_graph_host_consumer` must fail at `consumer close must return each owned holding exactly once`: the ledger delta must equal the actual output's storage bytes, plus the exact closed-parent bytes only on the final consumer. The first consumer must have a nonzero holding; final balance zero is not the criterion. |
+| Closed producer loses its remaining consumer dependency | `src/physical_strategy/retention.mbt`, `collect_captured_retention`: remove only the `child.parents.contains(task)` retention guard. Preserve the active-edge guard, pins, owner cleanup checks and release callback. | After consumer completion and producer-owner cleanup succeeds, `last consumer must retain the producer holding after owner cleanup` must fail. At this point the producer public port is closed and its execution cleanup no longer masks a missing child dependency. The observed holding must remain until consumer 6 closes. Failure at the known Host completion refusal does not qualify. |
+
+The active-consumer observation and completed-consumer dependency are separate.
+The in-flight assertion alone cannot establish detection of a removed child
+guard: the active-edge guard and producer cleanup may independently keep the
+holding. Conversely, the later child-guard mutation does not establish removal
+of the active-edge guard. Record the phase actually observed.
+
+Before any mutation, the unmodified A+G source must pass both selected MATCH
+cases, including final consumer credit and cleanup retry. Preserve A's complete
+fix SHA, G's integrated SHA, source bytes/digests and the actual inputs/quantums.
+Do not replace the success expectation with expected `ForeignCandidate`.
+
+Use the existing bounded/nonzero-test wrapper for the two MATCH cases. Give
+each isolated invocation its own `_build` and preserve its logs; dependencies
+may be borrowed, but never mutate a borrowed target or the active checkout.
+For each fault, retain the exact source patch, compiler/target, counts, exit,
+assertion location/message and observed before/after quantities. Compile failure,
+zero-test discovery, timeout, an unrelated failure or the known completion
+refusal is not mutation detection.
+
+Restore all mutated bytes and modes to the fixed source before the next fault.
+Check restoration against Git and rerun the same selected cases with a fresh
+test process in that isolated worktree. Only that restored success closes the
+fault's acceptance. Existing normal/cancellation tests and target/frequency
+obligations remain; JS mutation observations are not Wasm/native detection
+evidence. No CI selector, workflow, new harness, ledger or product fix is added
+by this preparation.
+
+## Reuse guide for A/B/C/D
+
+This guide describes the intended completed example. Until the fixed-source
+normal run and mutation/restoration results above exist, #270 is Draft and
+its detection strength is unverified.
+
+| Reuse at the same Host boundary | Add or retain for each operation | Confirm on the real connection |
+| --- | --- | --- |
+| Exact token credit on consumer close and unchanged ledger on repeated close | Independent expected rows, authored projection order, schema/type conditions and operation identity. Do not derive these from runtime output or owner helpers. | The installed registry selects the intended provider, owner and checked occurrence with the actual typed inputs. Equal CIDs or scope labels do not establish this. |
+| Scratch responsibility across cleanup false/error/retry and preserved consumed work/transfer | Algorithm-specific work and capacity limits, one-short cases, NULL/empty/tie behavior, unique fault regressions and backend/Store tests | The callback failure hits that execution, not construction or another child. Observe the real run ledger and output storage quantities, not a second accounting table. |
+| Closed public port, live acquired input, consumer progress, last-consumer retention and exact-once cascade return | Each operation's own output meaning and input ownership conditions; preserve separate material/view lifetime and actual Store/process obligations | Public-slot revocation and acquired-input release are distinct. Confirm failed new public lookup, acquired-input validity and consumer completion against its existing ownership evidence. |
+
+The common Session/chain model theorems retain their declared scopes and
+assumptions. They do not by themselves certify Host fan-out, these Graph
+identities, arbitrary provider stop behavior, runtime bytes or physical GC.
+These Host assertions and future mutations are finite implementation evidence;
+no whole-implementation formal proof is claimed.
+
+When adding an operation, reuse an existing owner action/check only after its
+preconditions match. Review the new independent values, input/output connection
+and residual boundaries. Keep an old assertion if it is also the only witness
+of correct transported data. Count reduced repeated authoring/review obligations,
+not generated cases, helpers moved between files or unchanged runtime duration.
+
+## Candidate after #270 closes: existing TimeSeries Host case
+
+The first candidate is `standard Host runs time series with two retained
+consumers` in `src/query_integration/local_time_series_wbtest.mbt`. It already
+uses the same Host task execution, managed completion, ledger and existing
+`delayed_cleanup_provider` fixture. This is a candidate, not a migrated or
+accepted second example.
+
+Initial bounded delta: two whitebox-test files plus this review record. Rename
+the existing exact-credit consumer-close function to a Host-neutral name and
+replace the two duplicated consumer-close blocks (about 15 lines of lifecycle
+operations and availability checks) with calls to it. Retain the independent
+three timestamp rows, canonical named-Result identity/deadline assertions,
+remaining-consumer availability, original setup and all time/overflow/capacity
+boundaries. The existing false-only cleanup counter expects 2; do not apply
+the MATCH false/error/retry helper's expected 3 calls without matching that
+contract. No new generic scenario callback or operation switch is needed.
+
+A producer-close-during-consumption scenario would be additional connection
+work, not automatically inherited from two close-helper calls. Estimate/review
+that separately once the acquired-input fix and Graph acceptance are complete.
+There is no deletion or CI-time reduction claim yet; all four older retained
+Host layouts identified by #131 remain untouched.
