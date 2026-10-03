@@ -54,11 +54,11 @@ HEAD `1f8c3bee300614bf21f19b9a8e9fb187d3a17fcc` exposed an over-broad
 segmentation condition in [native CI](https://github.com/actql/actql/actions/runs/37111041058/job/111168940065).
 `task_projection_wbtest.mbt`'s existing JOIN ceiling test failed while reading
 the two input ports of its fused task. A binary JOIN's repeated peer input
-does not start the independent unary branch described above. Limit the new
-condition to a later unary operation reading an external retained input;
-preserve the already-supported fused binary JOIN chain and its two exact
-capacity obligations. Do not relabel the old test's task index to conceal the
-unnecessary segmentation.
+does not start the independent unary branch described above. Identify nonlinear unary Relation dependencies from their receiving edges:
+a later external-input root, or an internal Step reference other than the
+immediately preceding Step. Preserve the already-supported fused binary JOIN
+chain and its two exact capacity obligations. Do not relabel the old test's
+task index to conceal unnecessary segmentation.
 
 The existing JOIN failure was reproduced as one focused JS test before the
 correction. Afterward, the new branch test and binary JOIN topology control,
@@ -73,12 +73,58 @@ The former CTE fixture also expected a nonrecursive body to reject an existing
 outer producer with its future CTE name. Update that expectation to checked
 success, and retain an independent rejection case with no outer producer.
 
+## DATA-local CTE fork and append
+
+At HEAD `1f8c3bee300614bf21f19b9a8e9fb187d3a17fcc`, the unchanged installed
+source fixture's first six acquired DATA cases passed in Local, but
+`acquired-data-cte-set-shared-producer` failed before Result publication.
+The [packed job](https://github.com/actql/actql/actions/runs/37111041058/job/111169708738)
+and artifact `11270162302` record that failure. Subsequent cases and HTTP were
+not reached. This remains separate from shared CI/history infrastructure.
+
+```aql
+DATA copied =
+  WITH chosen AS (FROM records |> SELECT amount, id)
+  SELECT amount, id FROM chosen
+  UNION ALL
+  SELECT amount, id FROM chosen;
+FROM copied |> ORDER BY id |> RESULT copied_rows
+```
+
+The later unary consumer references the same earlier `chosen` step, not its
+preceding sibling. Checking only external Input references missed this fork.
+Use the same exact checked-edge segmentation for this internal dependency.
+Do not expand the producer, reacquire input, deduplicate append rows or change
+the authored eight-row expectation in the packed fixture.
+
+The independent machine-Program execution regression uses the existing mock
+capture owner once and the existing managed Local provider for every selected
+task. Both branch reads preserve `[3,1,2,3]`; append/sort returns
+`[1,1,2,2,3,3,3,3]`. Both append ports keep their exact producer identities.
+The shared output remains available through both consumers. Cleanup leaves
+held bytes, reserved retention and reserved execution at zero. Its four-row
+capture retention fixture has independently counted array sizes, 37 bytes /
+nine nodes per array; no product ceiling is increased.
+
+A second control replaces the authored append with a JOIN. It verifies the
+selected JOIN retains checked step 3, its original 10000-row ceiling, and the
+left/right producer ports. Missing, wrong-step and excessive ceilings reject
+before callback execution and leave the resource ledger unchanged. The
+existing fused multi-JOIN regression retains its original task indices.
+
 ## Executed and pending validation
 
-Focused JS checks through `scripts/local-checks.mjs`, each with a 90-second
-budget, passed: CTE shadow/recursive regression 1/1; captured Relation branch
-topology regression 1/1. Changed MoonBit formatting and diff whitespace pass.
-The topology regression does not establish successful Result publication.
+Focused JS checks through `scripts/local-checks.mjs`, with a 90-second budget,
+pass **14/14**: four branch/JOIN regressions and all ten existing task-projection
+tests. Formatting and diff whitespace pass. This is common-owner execution
+and cleanup evidence, not yet installed-source Result publication evidence.
+The older 12/12 topology/JOIN result and CTE 1/1 result remain historical.
+
+HEAD `9ab6a7daf2907908c9d04361e6041ed35dbffaae` has successful hosted Core JS
+and separated-native checks, but its packed job still fails on this CTE case;
+its lint job also found two unformatted assertions. This correction formats
+them. Neither that partial CI result nor the prior failed HEAD establishes
+final success.
 
 All five Frontend branches normally merged main
 `5178253e375fab28e98e2de5f0c13dc644161e4d` without conflicts. Existing history

@@ -211,7 +211,7 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
   let mut zero_input_count = 0
   let mut found_binary = false
   let mut found_external_input = false
-  let mut reentered_relation_input = false
+  let mut nonlinear_unary_relation_input = false
   let mut prefer_fused_without_relation = false
   let mut all_selected = true
   for step in 0..<count {
@@ -254,6 +254,12 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
               return None
             }
             found_relation = true
+            // Unary operators normally consume the immediately preceding
+            // output. A reference to an older producer is a separate DAG
+            // branch, even when that producer lives in this same Stage.
+            if @lower.node_input_count(node) == 1 && producer != step - 1 {
+              nonlinear_unary_relation_input = true
+            }
           } else {
             if !@lower.node_accepts_managed_carrier_view(node, input) {
               return None
@@ -270,7 +276,7 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
           // supported fused chain. Only a unary root restarts a separate
           // Relation branch; retain the JOIN's existing ceiling owner.
           if step > 0 && @lower.node_input_count(node) == 1 {
-            reentered_relation_input = true
+            nonlinear_unary_relation_input = true
           }
         }
         None => return None
@@ -282,12 +288,12 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
     (!prefer_fused_without_relation || found_relation) {
     return Some(-1)
   }
-  // A later branch reads the retained input again rather than the preceding
-  // step. A linear fused provider cannot realize that DAG. Select its checked
-  // steps only when every external port has an exact retained Relation edge;
+  // A later unary branch reads a retained input or an older checked producer
+  // rather than the preceding step. A linear fused provider cannot realize that
+  // DAG. Select its checked steps only when every external port has an exact retained Relation edge;
   // the captured predecessor and its acquisition remain one owned task.
   if all_selected &&
-    reentered_relation_input &&
+    nonlinear_unary_relation_input &&
     found_relation &&
     !found_carrier {
     for step in 0..<count {
