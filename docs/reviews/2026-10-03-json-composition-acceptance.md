@@ -209,3 +209,17 @@ once, then reuses those SHA/digest-verified tarballs for the existing
 `--composed-infer` Local/HTTPS consumer. Its exact SHA, retained external
 acceptance report and natural PR CI run are reported separately after the
 commit. No full local packed suite, Core campaign or manual CI rerun is added.
+
+During this integration, main advanced again. Normal merge
+`736ec05845de80f124878017e269511a5644589c` adopts #247's maintenance-family
+selection from `a9f6f2507f13f8e4708e7b71517761599353ddac`. Its only textual
+conflict was the adjacent `client-salesforce.needs` expectation in
+`scripts/client-ci.test.mjs`: retain main's `select-targets` dependency and the
+composition assertion preventing a duplicate packed Host acceptance.
+Normal merge `b9b07b0228e3d5cbe10bbf7b0d2182759714b397` then adopts fetched
+main `da13b789552dd6ea62ee09506c34e6d4f4ff0217`, including #233/#235/#237/#240
+and #250. The frontend comes from its existing owner; the next DATA composition
+acceptance remains separate. Append-only declarations bind the actual CI and
+package registration overlaps in these merges. Fixed-HEAD packed evidence
+before these updates remains separate; the submitted HEAD is validated again
+using normal prepack and the existing focused consumer.
