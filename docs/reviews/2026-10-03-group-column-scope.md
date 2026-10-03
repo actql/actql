@@ -77,16 +77,56 @@ the normal package producer and common Host:
 node scripts/test-packed-public-query.mjs --group-scope-only
 ```
 
-These public targets are **not executed** at this checkpoint. They do not
-establish packed execution, capacity admission or all aggregation combinations.
-No prior #246 JSON composition result is used as text execution evidence.
+The entire eight-positive/four-refusal corpus has **not passed**. The original
+Local run passed the two SUM cases, then stopped at
+`group-snapshot-original-key`; HTTPS was not reached in that run. No prior
+#246 JSON composition result is used as text execution evidence.
 
 ## Current-baseline evidence
 
 On the current baseline with the reapplied repair, the selected Group, JOIN
 ORDER and query parser tests passed 28/28 on JS before adding the two global
 SUM counterexamples. After adding the global SUM cases, Group and Pipe scope tests passed 11/11
-on JS. Fresh packed execution and hosted CI remain pending.
+on JS.
+
+Clean packed source: `4c0f7a1e6d93533569e877d3db6d75a9003d6c4a`.
+Normal package producer/prepack and external installation succeeded. Reusing
+these verified tarballs, two positive cases (original SUM after SET and DROP)
+and two refusals (old range after aggregation and a dropped non-grouped input)
+passed on **both Embedded Local and HTTPS**. The existing helper verifies exact
+rows, full column contracts and order through describe, stream completion,
+same-request resubmission, attach, one acquisition session and no reacquisition.
+The refusal checks preserve zero Run admissions and provider I/O. This follow-up
+selected cases and isolated test directories from the existing application;
+the installed runtime was byte-checked against its tarball.
+
+The remaining original-key/current-key grouping cases fail during
+`strategyModule_local_ManagedStart` in
+`adapters/local-node/strategy-bundle.mjs::runPrepared`, with
+`Execution(Physical(ExecutionLimit))`. A cause-tracing diagnostic on the recorded
+runtime confirmed that both forms reach this same first failure; no task
+completes. The later `StrategyNotComplete` and `ACTQL_E_UNPUBLISHED_RUN` do not
+identify the root cause. This diagnostic temporarily logged an existing error
+cause in the private installation and restored its bytes. It is not successful
+runtime acceptance. The expectations x=7 and x=9, and explicit ORDER BY, remain
+unchanged. No Host ceiling, owner, provider or physical strategy is changed here.
+
+The later JOIN/empty-input/shared-producer public cases remain unexecuted.
+Hosted CI is pending. This is a lowering repair with representative public
+acceptance, not completion of the full grouping corpus.
+
+### Recorded package SHA-256
+
+Names have suffix `-0.0.0-development.tgz`. The limited Local/HTTPS checks reuse
+these artifacts from the clean packed source above.
+
+| Package | SHA-256 |
+|---|---|
+| actql-client-wire | `5da98d3edb615f960f0511be9d6e61431cd34d02304a8bd6b6e576f7775f91a0` |
+| actql-sdk | `2fc910067348e421346945ced1e728e107bbe6fa455ee00f9d71da46e8123c5b` |
+| actql-run-host-core | `901be13bedaeb53a23f7e16af1a930c9eac313c828fdc227eedfd4d66ff1f898` |
+| actql-local-node | `1f34d7a31024b97bf4f49efe4e3b7c7abd4679902e9ab286df761504da3d1dcc` |
+| actql-node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
 
 The original audit at runtime `ba3d6d12891f884b1bb55bb4d67bf043d4a58a94`
 rejected the SET and DROP SUM counterexamples before admission/provider I/O,
@@ -125,7 +165,7 @@ Run and rows. This older-package control establishes common execution of
 that expected IR only, not fresh-source Local/HTTP acceptance or CI success
 for this branch.
 
-Public Local/HTTP acceptance and same-source PR CI remain unfinished. FULL JOIN,
+Complete public Local/HTTP acceptance and same-source PR CI remain unfinished. FULL JOIN,
 wider collection/frame combinations, NEAREST's installed Host connection and
 the full language migration remain separate obligations. No full local Core,
 packed suite, proof campaign or new native runtime build was requested here.
