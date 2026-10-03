@@ -156,6 +156,13 @@ pub fn operation_scalar_demand(
         | ResolveTraversalResources
         | ResolvePropertyGraphTraversalProfile => None
       }
+    DiagnosticRequirement(v) =>
+      match v {
+        BindDiagnosticThreshold(name) => Some(SafeInteger(name, minimum=0L))
+        AdmitDiagnosticGraph
+        | ResolveDiagnosticResources
+        | EnforceDiagnosticRelationRows => None
+      }
     AppendRequirement(_)
     | SetRequirement(_)
     | ValuesRequirement(_)

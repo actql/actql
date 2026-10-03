@@ -16,6 +16,7 @@ pub(all) enum OperationExecutionCheck {
   NestExecution(NestExecutionCheck)
   GraphSelectorExecution(GraphSelectorCheck)
   GraphMatchExecution(GraphMatchCheck)
+  GraphDiagnosticExecution(GraphDiagnosticCheck)
   VectorExecution(VectorCheck)
   NearestExecution(NearestCheck)
   PoolExecution(PoolCheck)
@@ -93,6 +94,11 @@ pub fn operation_execution_phase(
         | FilterEdgeTypes
         | EvaluatePredicate
         | OrderMatches => BeforeOperationOutput
+      }
+    GraphDiagnosticExecution(v) =>
+      match v.rule {
+        RequireDiagnosticResources => BeforeOperationInputUse
+        EnforceDiagnosticRows => BeforeOperationOutput
       }
     VectorExecution(v) =>
       match v.rule {
@@ -280,6 +286,7 @@ pub fn operation_execution_failure(
     NestExecution(_) => RejectOperationOutput
     GraphSelectorExecution(_)
     | GraphMatchExecution(_)
+    | GraphDiagnosticExecution(_)
     | VectorExecution(_)
     | NearestExecution(_)
     | PoolExecution(_)

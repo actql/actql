@@ -95,15 +95,36 @@ test "current Graph row Bridge retains canonical producer order through structur
     ).unwrap()
     assert_true(@pipeline.logical_order(bare, Input(0)) is None)
   }
-  assert_true(
-    @pipeline.check_carriers(
-      cursor("[{\"degree\":{\"direction\":\"out\"}}]"),
-      [("g", property_query_graph())],
-      None,
-      None,
-      ranking_limits(),
-    )
-    is Err({ kind: Graph(@graph.UnsupportedGraphOperation), .. }),
+}
+
+///|
+test "current Graph bounds carries deterministic diagnostic order into Results" {
+  let checked = @pipeline.check_carriers(
+    cursor("[{\"graph_bounds\":{\"max_nodes\":0},\"as\":\"violations\"}]"),
+    [("g", property_query_graph())],
+    None,
+    None,
+    ranking_limits(),
+  ).unwrap()
+  assert_true(@pipeline.candidate_key(checked, Step(0)) is None)
+  assert_eq(
+    @pipeline.order_origin(@pipeline.logical_order(checked, Step(0)).unwrap()),
+    Step(0),
+  )
+  let result = @relation_results.check(
+    checked,
+    cursor(
+      "{\"out\":{\"from\":\"violations\",\"fields\":[\"kind\",\"node_id\",\"actual\",\"max\"]}}",
+    ),
+    limits(),
+  ).unwrap()
+  let publication = resolve(result)
+  assert_eq(@relation_results.publication_strategy(publication), Inherited)
+  assert_eq(
+    @pipeline.order_origin(
+      @relation_results.publication_inherited_order(publication).unwrap(),
+    ),
+    Step(0),
   )
 }
 

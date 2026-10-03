@@ -13,6 +13,8 @@ priv enum RelationExecution {
   MatchEdgesExecution(@sga.MatchEdgesExecution)
   TraverseExecution(@sga.TraverseExecution)
   GraphRowsExecution(@bridge.EventsToRowsExecution)
+  GraphBoundsExecution(@sga.GraphBoundsExecution)
+  GraphDegreeExecution(@sga.GraphDegreeExecution)
 }
 
 ///|
@@ -188,6 +190,19 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         .bind(target => @lower.preparation_carrier_at(prepared, target))
         .map(current_graph)
         .unwrap_or(false)
+      @lower.GraphDiagnosticStep(diagnostic) => {
+        guard @lower.node_input_target(node, 0) is Some(input) &&
+          @lower.preparation_carrier_at(prepared, input) is Some(carrier) else {
+          return false
+        }
+        current_graph(carrier) &&
+        @lower.operation(node) ==
+        (if @lower.graph_diagnostic_kind(diagnostic) == @lower.BoundsDiagnostic {
+          "SGA.bounds_check"
+        } else {
+          "SGA.degree_metrics"
+        })
+      }
       // No tuple Graph constructor/projection or legacy SGA execution fallback.
       // Other new-profile operations remain explicit unsupported selections.
       _ => false
@@ -226,7 +241,9 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
     }
     match
       @lower.sequence_step(@execution.generated_prepared_sequence(sequence), 1) {
-      Some(@lower.GraphMatchStep(_)) | Some(@lower.GraphTraverseStep(_)) => ()
+      Some(@lower.GraphMatchStep(_))
+      | Some(@lower.GraphTraverseStep(_))
+      | Some(@lower.GraphDiagnosticStep(_)) => ()
       _ => return false
     }
   }
@@ -695,6 +712,90 @@ fn advance_execution(
               Err(_) => return fail_execution(value)
             }
           }
+          Some(@lower.GraphDiagnosticStep(diagnostic)) => {
+            let limits : @execution.ValueLimits = {
+              max_nodes: value.limits.max_value_nodes,
+              max_text_bytes: value.max_value_bytes,
+              max_depth: value.limits.max_value_depth,
+              max_work: value.limits.max_work,
+            }
+            if @lower.graph_diagnostic_kind(diagnostic) ==
+              @lower.BoundsDiagnostic {
+              let started = if direct_view is Some(view) {
+                @sga.start_graph_bounds_view(
+                  value.control,
+                  @execution.generated_completion_preparation(value.generated),
+                  value.sequence,
+                  value.projection_step,
+                  view,
+                  value.max_rows,
+                  limits,
+                  value.limits.max_workspace_slots,
+                  value.limits.max_value_bytes,
+                  value.limits.max_value_bytes,
+                  value.inputs,
+                  control_work_limit=Some(value.limits.max_work),
+                )
+              } else {
+                guard input is Some(read) else { return fail_execution(value) }
+                @sga.start_graph_bounds(
+                  value.control,
+                  @execution.generated_completion_preparation(value.generated),
+                  value.sequence,
+                  value.projection_step,
+                  read,
+                  value.max_rows,
+                  limits,
+                  value.limits.max_workspace_slots,
+                  value.limits.max_value_bytes,
+                  value.limits.max_value_bytes,
+                  value.inputs,
+                  control_work_limit=Some(value.limits.max_work),
+                )
+              }
+              match started {
+                Ok(execution) => GraphBoundsExecution(execution)
+                Err(_) => return fail_execution(value)
+              }
+            } else {
+              let started = if direct_view is Some(view) {
+                @sga.start_graph_degree_view(
+                  value.control,
+                  @execution.generated_completion_preparation(value.generated),
+                  value.sequence,
+                  value.projection_step,
+                  view,
+                  value.max_rows,
+                  limits,
+                  value.limits.max_workspace_slots,
+                  value.limits.max_value_bytes,
+                  value.limits.max_value_bytes,
+                  value.inputs,
+                  control_work_limit=Some(value.limits.max_work),
+                )
+              } else {
+                guard input is Some(read) else { return fail_execution(value) }
+                @sga.start_graph_degree(
+                  value.control,
+                  @execution.generated_completion_preparation(value.generated),
+                  value.sequence,
+                  value.projection_step,
+                  read,
+                  value.max_rows,
+                  limits,
+                  value.limits.max_workspace_slots,
+                  value.limits.max_value_bytes,
+                  value.limits.max_value_bytes,
+                  value.inputs,
+                  control_work_limit=Some(value.limits.max_work),
+                )
+              }
+              match started {
+                Ok(execution) => GraphDegreeExecution(execution)
+                Err(_) => return fail_execution(value)
+              }
+            }
+          }
           _ => return fail_execution(value)
         }
         value.relation = Some(started)
@@ -751,6 +852,30 @@ fn advance_execution(
               Ok(@bridge.Failed(_, progress~, work~)) =>
                 Ok(RelationFailed(progress, work))
               Ok(@bridge.Stopped(_, progress~, work~)) =>
+                Ok(RelationStopped(progress, work))
+              Err(_) => Err(issue())
+            }
+          GraphBoundsExecution(execution) =>
+            match @sga.advance_graph_bounds(execution, quantum) {
+              Ok(@sga.GraphBoundsContinue(progress~, work~)) =>
+                Ok(RelationContinue(progress, work))
+              Ok(@sga.GraphBoundsComplete(output, progress~, work~)) =>
+                Ok(RelationComplete(output, progress, work))
+              Ok(@sga.GraphBoundsFailed(_, progress~, work~)) =>
+                Ok(RelationFailed(progress, work))
+              Ok(@sga.GraphBoundsStopped(_, progress~, work~)) =>
+                Ok(RelationStopped(progress, work))
+              Err(_) => Err(issue())
+            }
+          GraphDegreeExecution(execution) =>
+            match @sga.advance_graph_degree(execution, quantum) {
+              Ok(@sga.GraphDegreeContinue(progress~, work~)) =>
+                Ok(RelationContinue(progress, work))
+              Ok(@sga.GraphDegreeComplete(output, progress~, work~)) =>
+                Ok(RelationComplete(output, progress, work))
+              Ok(@sga.GraphDegreeFailed(_, progress~, work~)) =>
+                Ok(RelationFailed(progress, work))
+              Ok(@sga.GraphDegreeStopped(_, progress~, work~)) =>
                 Ok(RelationStopped(progress, work))
               Err(_) => Err(issue())
             }
@@ -837,6 +962,16 @@ fn cleanup_execution(
           Ok(_) => ()
           Err(_) => failed = true
         }
+      GraphBoundsExecution(execution) =>
+        match @sga.cleanup_graph_bounds(execution) {
+          Ok(_) => ()
+          Err(_) => failed = true
+        }
+      GraphDegreeExecution(execution) =>
+        match @sga.cleanup_graph_degree(execution) {
+          Ok(_) => ()
+          Err(_) => failed = true
+        }
     }
   }
   discard(value.graph) |> ignore
@@ -855,6 +990,10 @@ fn cleanup_execution(
     Some(TraverseExecution(active)) => @sga.traverse_cleanup_pending(active)
     Some(GraphRowsExecution(active)) =>
       @bridge.events_to_rows_cleanup_pending(active)
+    Some(GraphBoundsExecution(active)) =>
+      @sga.graph_bounds_cleanup_pending(active)
+    Some(GraphDegreeExecution(active)) =>
+      @sga.graph_degree_cleanup_pending(active)
     None => false
   }
   if failed {
@@ -947,6 +1086,14 @@ pub fn provider(
         Some(@lower.CarrierProjectionStep(_)) => selected_step is Some(_)
         _ => false
       }
+      let direct_diagnostic = match
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          selected_step.unwrap_or(0),
+        ) {
+        Some(@lower.GraphDiagnosticStep(_)) => selected_step is Some(_)
+        _ => false
+      }
       let property_inputs = match
         @lower.sequence_step(
           @execution.generated_prepared_sequence(sequence),
@@ -976,7 +1123,7 @@ pub fn provider(
         if relations.length() != expected || !carriers.is_empty() {
           return Err(@connector.Execution(@execution.InputSet))
         }
-      } else if direct_match || direct_traverse {
+      } else if direct_match || direct_traverse || direct_diagnostic {
         if carriers.length() != 1 ||
           relations.length() !=
           (if direct_traverse { direct_traverse_relation_count } else { 0 }) {

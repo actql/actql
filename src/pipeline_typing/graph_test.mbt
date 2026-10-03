@@ -301,9 +301,7 @@ test "unsupported current Graph consumers cannot manufacture a legacy checked pi
   for
     (name, body) in [
       ("normalize_graph", "true"),
-      ("degree", "{\"direction\":\"both\"}"),
       ("components", "{\"kind\":\"strong\"}"),
-      ("graph_bounds", "{\"max_nodes\":1}"),
       (
         "reach",
         "{\"start\":{\"ids\":[" +
@@ -356,6 +354,22 @@ test "unsupported current Graph consumers cannot manufacture a legacy checked pi
       is GraphMatch(@graph.Structure(@graph.UnsupportedGraphOperation)),
     )
     assert_eq(issue.path, [Index(0), Key(name)])
+  }
+  for
+    (name, body) in [
+      ("degree", "{\"direction\":\"both\"}"),
+      ("graph_bounds", "{\"max_nodes\":1}"),
+    ] {
+    assert_true(
+      @pipeline_typing.check_carriers(
+        cursor("[{\"from\":\"g\",\"" + name + "\":" + body + "}]"),
+        [("g", graph_property_scope_input())],
+        None,
+        None,
+        limits(),
+      )
+      is Ok(_),
+    )
   }
 }
 

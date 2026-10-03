@@ -924,6 +924,16 @@ fn prepare_target_source_policy(
             unknown = unknown || missing
             1
           }
+          @pipeline.GraphBounds(_) | @pipeline.GraphDegree(_) => {
+            identity_charge(budget, 1)
+            carrier_steps.push({
+              step: index,
+              operation: step.operation,
+              unknown_provenance: true,
+            })
+            unknown = true
+            1
+          }
           @pipeline.PropertyGraphConstruction(inputs~, ..) => {
             identity_charge(budget, 1)
             carrier_steps.push({

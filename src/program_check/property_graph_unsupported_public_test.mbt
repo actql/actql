@@ -12,8 +12,7 @@ test "current public Property Graph admission refuses unsupported SGA rather tha
   )
   for
     operation in [
-      "\"normalize_graph\":true", "\"degree\":{\"direction\":\"both\"}", "\"components\":{\"kind\":\"weak\"}",
-      "\"graph_bounds\":{\"max_nodes\":1}", "\"graphs_equal\":{\"other\":\"g\"}",
+      "\"normalize_graph\":true", "\"components\":{\"kind\":\"weak\"}", "\"graphs_equal\":{\"other\":\"g\"}",
       "\"graph_diff\":{\"other\":\"g\"}", "\"apply_graph_delta\":{\"delta\":\"g\"}",
       "\"subgraph\":{\"nodes\":[1]}", "\"reach\":{\"start\":{\"ids\":[1]},\"max_hops\":1}",
       "\"shortest_path\":{\"start\":{\"ids\":[1]},\"end\":{\"ids\":[1]}}", "\"graft_graph\":{\"other\":\"g\"}",

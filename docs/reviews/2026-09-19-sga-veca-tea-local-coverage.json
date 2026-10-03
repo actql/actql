@@ -75,8 +75,8 @@
       "shortest_path": "blocked",
       "components": "blocked",
       "reach": "blocked",
-      "graph_bounds": "blocked",
-      "degree": "blocked",
+      "graph_bounds": "partial",
+      "degree": "partial",
       "graph_diff": "blocked",
       "graft_graph": "blocked",
       "union_graphs": "blocked",
@@ -90,7 +90,7 @@
       "node_rows": "partial",
       "edge_rows": "partial"
     },
-    "completion_rule": "Historical tuple-profile suites do not discharge current Graph coverage. Partial resource/cancellation layers apply only to the initial constructor and definition-selected MATCH/TRAIL scope recorded below; they do not establish all normative variants or all SGA execution. Blocked means typed refusal before Run admission, acquisition I/O and dispatch."
+    "completion_rule": "Historical tuple-profile suites do not discharge current Graph coverage. Partial evidence is limited to the current constructor, definition-selected MATCH/TRAIL, bounds and degree paths recorded below; it does not establish all normative variants or all SGA execution. Blocked means typed refusal before Run admission, acquisition I/O and dispatch."
   },
   "operations": [
     {
@@ -1263,11 +1263,32 @@
       "output": "relation",
       "canonical": ["SGA.bounds_check"],
       "variants": ["node bound", "edge bound", "degree bound", "combined bounds"],
-      "status": "blocked",
+      "status": "partial",
       "owner": "local-sga",
-      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
-      "completed_layers": ["contract"],
-      "layer_evidence": [],
+      "current_gap": "Current definition-keyed Graph bounds reach a bounded selected provider, retained Store publication and two consumers. Node/edge/degree limits and long typed-key ordering are exercised. Task-wide cumulative work, every formal branch and final CI remain open.",
+      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "publication"],
+      "layer_evidence": [
+        {
+          "scope": "current_property_graph_bounds_bounded_order_and_stop",
+          "layers": ["checker", "lowering", "kernel", "managed", "resources", "cancellation"],
+          "targets": ["js", "wasm", "native"],
+          "evidence": [
+            "src/local_sga/graph_diagnostics.mbt",
+            "src/query_integration/property_graph_text_key_custody_wbtest.mbt"
+          ],
+          "verification": "Long typed identity ordering, workspace 10/9, output rows 2/1, control work 184/183, and quantum-one stop cover stored and managed-view inputs on three targets."
+        },
+        {
+          "scope": "current_property_graph_bounds_retained_store_publication",
+          "layers": ["standard_host", "consumer_lifetime", "publication", "cancellation"],
+          "targets": ["js"],
+          "evidence": [
+            "src/query_integration/property_graph_host_custody_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ],
+          "verification": "The ordinary Host selects the bounded Graph diagnostic, publishes the retained producer and two consumer Named Results from a real Store, and delivers an in-flight cancel without publishing a partial result."
+        }
+      ],
       "historical_implementation_evidence": [
         {
           "scope": "bounded_graph_diagnostics_standard_host_execution",
@@ -1318,11 +1339,32 @@
       "output": "relation",
       "canonical": ["SGA.degree_metrics"],
       "variants": ["incoming", "outgoing", "both", "typed edges"],
-      "status": "blocked",
+      "status": "partial",
       "owner": "local-sga",
-      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
-      "completed_layers": ["contract"],
-      "layer_evidence": [],
+      "current_gap": "Current definition-keyed Graph degree uses the bounded diagnostic provider. A two-node directed fixture covers in/out/both and semantic ID order; the retained Store publishes the both variant with two consumers. Task-wide cumulative work, all typed edge variants and final CI remain open.",
+      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "publication"],
+      "layer_evidence": [
+        {
+          "scope": "current_property_graph_directional_degree",
+          "layers": ["checker", "lowering", "kernel", "managed", "resources", "cancellation"],
+          "targets": ["js", "wasm", "native"],
+          "evidence": [
+            "src/local_sga/graph_diagnostics.mbt",
+            "src/query_integration/property_graph_text_key_custody_wbtest.mbt"
+          ],
+          "verification": "In/out/both directed-incidence results, canonical semantic ID order, workspace 8/7 and control work 178/177 cover stored and managed-view inputs on three targets."
+        },
+        {
+          "scope": "current_property_graph_degree_retained_store_publication",
+          "layers": ["standard_host", "consumer_lifetime", "publication", "cancellation"],
+          "targets": ["js"],
+          "evidence": [
+            "src/query_integration/property_graph_host_custody_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ],
+          "verification": "The ordinary Host selects the bounded degree provider, reads retained producer and two consumer Named Results from a real Store, and delivers selected and fused in-flight cancellation."
+        }
+      ],
       "historical_implementation_evidence": [
         {
           "scope": "directional_degree_standard_host_execution",

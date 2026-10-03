@@ -117,6 +117,8 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     GraphMatchRows(_) =>
       operation(node) == "SGA.match_nodes" ||
       operation(node) == "SGA.match_edges"
+    GraphBoundsRows(_) => operation(node) == "SGA.bounds_check"
+    GraphDegreeRows(_) => operation(node) == "SGA.degree_metrics"
     VectorValue(_) =>
       operation(node) == "BRIDGE.rows.to_vectors" ||
       operation(node) == "VEC.normalize_l2" ||

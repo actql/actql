@@ -1581,6 +1581,20 @@ pub struct GraphConstructionEnvelope {
   output_edges : @capacity_policy.Ceiling
 }
 
+pub struct GraphDiagnosticCheck {
+  site : OperationRequirementSite
+  step : @pipeline_typing.CheckedStep
+  input : @pipeline_typing.Target
+  rule : GraphDiagnosticRule
+  policy : @capacity_policy.Policy
+  output_rows : @capacity_policy.Ceiling
+}
+
+pub(all) enum GraphDiagnosticRule {
+  RequireDiagnosticResources
+  EnforceDiagnosticRows
+} derive(Eq, @debug.Debug)
+
 pub struct GraphMatchCheck {
   site : OperationRequirementSite
   step : @pipeline_typing.CheckedStep
@@ -2138,6 +2152,7 @@ pub(all) enum OperationExecutionCheck {
   NestExecution(NestExecutionCheck)
   GraphSelectorExecution(GraphSelectorCheck)
   GraphMatchExecution(GraphMatchCheck)
+  GraphDiagnosticExecution(GraphDiagnosticCheck)
   VectorExecution(VectorCheck)
   NearestExecution(NearestCheck)
   PoolExecution(PoolCheck)
