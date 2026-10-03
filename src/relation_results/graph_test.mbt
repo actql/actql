@@ -62,16 +62,19 @@ test "definition scoped MATCH feeds ordinary Relation steps and Result publicati
     )
   }
   for operation in ["\"node_rows\":true", "\"edge_rows\":true"] {
-    assert_true(
-      @pipeline.check_carriers(
-        cursor("[{" + operation + "}]"),
-        [("g", property_query_graph())],
-        None,
-        None,
-        ranking_limits(),
-      )
-      is Err({ kind: Projection(UnsupportedGraphOperation), .. }),
-    )
+    let rows = @pipeline.check_carriers(
+      cursor("[{" + operation + ",\"as\":\"rows\"}]"),
+      [("g", property_query_graph())],
+      None,
+      None,
+      ranking_limits(),
+    ).unwrap()
+    let result = @relation_results.check(
+      rows,
+      cursor("{\"main\":{\"from\":\"rows\",\"fields\":[\"id\"]}}"),
+      limits(),
+    ).unwrap()
+    assert_eq(@relation_results.count(result), 1)
     assert_true(
       @pipeline.check_carriers(
         cursor("[{" + operation + "}]"),

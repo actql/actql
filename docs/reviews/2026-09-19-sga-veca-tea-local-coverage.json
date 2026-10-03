@@ -3089,9 +3089,15 @@
       "variants": ["identity restoration", "property columns", "collision failure"],
       "status": "partial",
       "owner": "local-bridge",
-      "current_gap": "Current definition-keyed node rows use finite common Relation presence, typed identity roles and original typed key components. Only schema-guaranteed columns can be referenced or published. Definition/label refinements and direct publication of conditional columns remain unsupported. Current fixed-SHA three-target and packed acceptance must be recorded separately; historical tuple-profile suites are not current completion.",
-      "completed_layers": ["contract"],
-      "layer_evidence": [],
+      "current_gap": "Current definition-keyed node rows use finite common Relation presence, typed identity roles and original typed key components. Only schema-guaranteed columns can be referenced or published. Definition/label refinements and direct publication of conditional columns remain unsupported. Exact/one-short work and workspace, kernel cleanup and installed Host cancellation apply to the common bounded row kernel. Fixed-SHA three-target CI and packed acceptance are reported separately; historical tuple-profile suites are not current completion.",
+      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "publication"],
+      "layer_evidence": [
+        "src/local_bridge/graph_rows.mbt",
+        "src/local_bridge/events.mbt",
+        "src/query_integration/property_graph_rows_presence_wbtest.mbt",
+        "scripts/property-graph-surface-checker.test.mjs",
+        "scripts/property-graph-public-query.test.mjs"
+      ],
       "historical_implementation_evidence": [
         {
           "scope": "named_result_publication_and_environment_cancellation",
@@ -3114,9 +3120,15 @@
       "variants": ["identity restoration", "endpoint roles", "collision failure"],
       "status": "partial",
       "owner": "local-bridge",
-      "current_gap": "Current definition-keyed edge rows preserve parallel edge identities, typed src/dst roles and original composite key components through common Relation presence. Only schema-guaranteed columns can be referenced or published. Definition/label refinements and direct publication of conditional columns remain unsupported. Current fixed-SHA three-target and packed acceptance must be recorded separately; historical tuple-profile suites are not current completion.",
-      "completed_layers": ["contract"],
-      "layer_evidence": [],
+      "current_gap": "Current definition-keyed edge rows preserve parallel edge identities, typed src/dst roles and original composite key components through common Relation presence. Only schema-guaranteed columns can be referenced or published. Definition/label refinements and direct publication of conditional columns remain unsupported. Exact/one-short work and workspace, kernel cleanup and installed Host cancellation apply to the common bounded row kernel. Fixed-SHA three-target CI and packed acceptance are reported separately; historical tuple-profile suites are not current completion.",
+      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "publication"],
+      "layer_evidence": [
+        "src/local_bridge/graph_rows.mbt",
+        "src/local_bridge/events.mbt",
+        "src/query_integration/property_graph_rows_presence_wbtest.mbt",
+        "scripts/property-graph-surface-checker.test.mjs",
+        "scripts/property-graph-public-query.test.mjs"
+      ],
       "historical_implementation_evidence": [
         {
           "scope": "named_result_publication_and_environment_cancellation",

@@ -31,6 +31,158 @@ fn property_rows_value_limits() -> @execution.ValueLimits {
 }
 
 ///|
+fn property_rows_resource_boundary(edge : Bool) -> Unit raise {
+  let nodes = keyed_source_owner(
+    "{\"person_key\":{\"type\":\"number\",\"nullable\":false}}", "[{\"person_key\":1}]",
+  )
+  let edges = keyed_source_owner(
+    "{\"edge_key\":{\"type\":\"number\",\"nullable\":false},\"src\":{\"type\":\"number\",\"nullable\":false},\"dst\":{\"type\":\"number\",\"nullable\":false}}",
+    "[{\"edge_key\":10,\"src\":1,\"dst\":1}]",
+  )
+  let graph_owner = keyed_bridge_owner(
+    nodes,
+    edges,
+    body=Some(
+      (
+        #|[{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"nodes","key":["person_key"],"labels":[]}],"edges":[{"name":"E","from":"edges","key":["edge_key"],"source":{"definition":"N","key":["src"]},"target":{"definition":"N","key":["dst"]},"labels":[]}]},"as":"g"}]
+      ),
+    ),
+  )
+  let construction = @local_bridge.start_rows_to_property_graph(
+    @bounded.control(),
+    prepared_sequence(graph_owner),
+    0,
+    keyed_bridge_inputs(graph_owner, nodes, edges),
+    carrier_graph_storage_limits(),
+    8192L,
+    1000,
+    () => true,
+  ).unwrap()
+  guard keyed_bridge_terminal(construction) is @local_bridge.Complete(graph, ..) else {
+    fail("resource boundary Graph")
+  }
+  let owner = keyed_graph_receiver(
+    graph_owner,
+    body=if edge { "[{\"edge_rows\":true}]" } else { "[{\"node_rows\":true}]" },
+  )
+  let input = @graphs.prepare_producer_read(owner, 0, graph_owner, graph).unwrap()
+  let completion = task_test_completion(owner)
+  // Independent one-row ledger: key collection + sort initialization = 2.
+  // Rechecking each typed identity takes 8 nodes, 11 container/child frames
+  // and the final empty-stack poll = 20. Empty labels cost 3; scalar key = 2.
+  // Scan + schema matching + verification + append cost 3+6+3+1 for nodes,
+  // 5+15+5+1 for edges. Thus work is 40 / 93, not sampled from a product run.
+  // Workspace is four ordering slots per row plus schema width (3 / 5).
+  let exact_work = if edge { 93 } else { 40 }
+  let exact_slots = if edge { 9 } else { 7 }
+  for viewed in [false, true] {
+    let start = fn(control, work, slots) {
+      if viewed {
+        @local_bridge.start_graph_view_to_rows(
+          control,
+          completion,
+          prepared_sequence(owner),
+          0,
+          @graphs.producer_read_view(input).unwrap(),
+          1,
+          property_rows_value_limits(),
+          slots,
+          1000,
+          control_work_limit=Some(work),
+        )
+      } else {
+        @local_bridge.start_graph_to_rows(
+          control,
+          completion,
+          prepared_sequence(owner),
+          0,
+          input,
+          1,
+          property_rows_value_limits(),
+          slots,
+          1000,
+          [],
+          control_work_limit=Some(work),
+        )
+      }
+    }
+    assert_eq(
+      start(@bounded.control(), exact_work, exact_slots - 1).unwrap_err(),
+      @local_bridge.Completion(@execution.Limit),
+    )
+    for short in [false, true] {
+      let active = start(
+        @bounded.control(),
+        exact_work - (if short { 1 } else { 0 }),
+        exact_slots,
+      ).unwrap()
+      let mut terminal = false
+      let mut cumulative = 0L
+      for _ in 0..<200 {
+        match @local_bridge.advance_events_to_rows(active, 1).unwrap() {
+          @local_bridge.Continue(work~, ..) => {
+            assert_true(work >= cumulative && work - cumulative <= 1L)
+            cumulative = work
+          }
+          @local_bridge.Complete(output, work~, ..) => {
+            assert_false(short)
+            assert_eq(work, exact_work.to_int64())
+            assert_eq(@execution.completed_row_count(output), 1)
+            terminal = true
+            break
+          }
+          @local_bridge.Failed(@local_bridge.ControlWorkLimit, work~, ..) => {
+            assert_true(short)
+            assert_eq(work, (exact_work - 1).to_int64())
+            terminal = true
+            break
+          }
+          _ => fail("unexpected Graph rows resource result")
+        }
+      }
+      assert_true(terminal)
+      assert_true(@local_bridge.cleanup_events_to_rows(active).unwrap())
+      assert_false(@local_bridge.cleanup_events_to_rows(active).unwrap())
+      assert_false(@local_bridge.events_to_rows_cleanup_pending(active))
+      assert_true(@graphs.completed_available(graph))
+    }
+    // Stop at every charged private phase, including nested identity recheck,
+    // ordering and the final append. No partial completion may escape.
+    for stop_after in 1..<exact_work {
+      let control = @bounded.control()
+      let active = start(control, exact_work, exact_slots).unwrap()
+      for _ in 0..<stop_after {
+        assert_true(
+          @local_bridge.advance_events_to_rows(active, 1).unwrap()
+          is @local_bridge.Continue(..),
+        )
+      }
+      assert_true(@bounded.request_cancel(control))
+      assert_true(
+        @local_bridge.advance_events_to_rows(active, 1).unwrap()
+        is @local_bridge.Stopped(_, ..),
+      )
+      assert_true(@local_bridge.cleanup_events_to_rows(active).unwrap())
+      assert_false(@local_bridge.cleanup_events_to_rows(active).unwrap())
+      assert_false(@local_bridge.events_to_rows_cleanup_pending(active))
+      assert_true(@graphs.completed_available(graph))
+    }
+  }
+  assert_true(@local_bridge.cleanup_rows_to_graph(construction).unwrap())
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
+test "node rows admit exact work and workspace and reclaim every private phase" {
+  property_rows_resource_boundary(false)
+}
+
+///|
+test "edge rows admit exact work and workspace and reclaim every private phase" {
+  property_rows_resource_boundary(true)
+}
+
+///|
 fn property_rows_restore(
   owner : @lower.BoundPrepared,
   original : @graphs.Completed,
