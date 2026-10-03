@@ -1,10 +1,13 @@
 # Frontend migration: independent source checkpoint
 
-This ledger describes B's independent implementation, integrated with main
-`4f6feed519170e46c0065d1491c40287e6d34f1a` and verified at
-`93f4689f3b5029b0a11b5435be6d1f0d5444718c`. It separates source work from
-public execution evidence. It does not declare the new Frontend migration
-complete or adopt C's unfinished implementation.
+This ledger separates implemented source, public execution evidence and remaining
+migration work. The current development integration combines B
+`b19ed2cfb0bdce93832d47a8c3a7a8da95266c14` and C
+`51376bca11d57b775aa22d42453176f8ad1f681b`. Fresh packed Local/HTTP acceptance
+passed at clean `a6675aa5945389e66aa15978c9ed0ae66cbe69a1`, as recorded in
+[public acceptance](2026-10-03-property-graph-public-acceptance.md).
+This is not formal dependency adoption or completion of the full migration.
+Earlier checkpoints below retain their original source and package identities.
 
 ## Implemented versus execution evidence
 
@@ -13,9 +16,9 @@ complete or adopt C's unfinished implementation.
 | Retired AQL/PROGRAM/STAGE and STEP/OP public entry | Typed refusal; no compatibility parser or formatter | Preserve existing SQL/Pipe and machine-input regressions when integrating the unified owner |
 | JSON/YAML Program | Existing machine admission remains available | Machine execution is not evidence that replacement text executes |
 | Relation DATA and explicit RESULT | Shared script parsing and lowering; public preparation retains named roots | Three authored source examples and the independent JSON control passed fresh packed Local/HTTP at `93f4689f3b5029b0a11b5435be6d1f0d5444718c`, as detailed below; this does not cover Graph DATA |
-| Pure PROPERTY GRAPH | Bounded parsing and independently authored Program construction | Common unified constructor/checker, public execution, descriptions and snapshot roundtrip |
+| Pure PROPERTY GRAPH | Bounded parsing and ordinary Program construction connected to C's unified owner | Fifteen keyed source cases passed packed Local/HTTP with exact rows and descriptions; common JSON snapshot controls passed separately; source-specific snapshot CID assertion remains unexecuted |
 | Named SGA calls | Nineteen adopted names and argument roles parsed by the shared query parser; DATA aliases and normalize-before-MATCH lower to retained producers | Adapted common Carrier/schema contracts for remaining calls; all promised examples through Named Results |
-| Public Graph source | DATA constructor lowers to the unified ordinary Program; standalone retired Graph aliases remain refused | Packed Run/Named Result, description, refusal counters and snapshot evidence remain pending |
+| Public Graph source | DATA constructor lowers to the unified ordinary Program; standalone retired Graph aliases remain refused | Packed Local/HTTP passed 18 successes, 3 execution failures and 12 input refusals per transport; required final CI and native CLI acceptance remain pending |
 | Source INFER KEEP/AS | Frontend lowering and independent fixture work remain separate from common execution | Formal owner fix and smallest source-input Local/HTTP execution first, followed by NULL, keys and replay |
 | Other target Effect, VecA and TEA surfaces | Adopted targets and machine capability are distinct from public syntax support | Feature-specific source, checker and real execution evidence; no bulk completion claim |
 
@@ -34,27 +37,24 @@ The [named-call checkpoint](2026-10-02-sga-query-calls.md) records B's parser,
 lowering and canonical identity tests; its provisional-dependency results are
 explicitly historical.
 
-`src/source_frontend/unified_dependency_test.mbt` verifies the current typed
-refusal and Relation DATA/RESULT preparation. It does not observe Host counters,
-deliver a Result or roundtrip a snapshot. Neither these tests nor a green CI run
-can substitute for the missing Graph or source-INFER execution evidence.
+`src/source_frontend/unified_dependency_test.mbt` verifies keyed DATA lowering,
+typed refusals and Relation DATA/RESULT preparation. It does not itself observe
+Host counters, deliver a Result or roundtrip a snapshot. Separate packed evidence
+now covers the selected Graph sources; source-INFER execution remains incomplete.
 
-C has submitted `8c052888503e130e3d6c5f5a5ea74037be407e3f`, with reported
-CI failures. The dependency is **submitted; correction and formal handoff
-pending**. It is not adopted as a unified owner or successful snapshot evidence.
-The earlier #164 `125a186ae9396fbfc7865641922e8e8a4ffc87d9` is also not adopted.
-Integration requires a corrected complete pushed SHA and the corresponding
-unified/snapshot validation. No unsubmitted worktree is a release dependency.
-When that handoff arrives, use fresh normally packed Local/HTTP installations,
-record both owners' SHAs and package digests, and compare authored expectations
-through Named Results. Keep old successful runs classified by their old inputs
-and dependency SHAs.
+C's earlier submitted candidate `8c052888503e130e3d6c5f5a5ea74037be407e3f`
+and provisional #164 `125a186ae9396fbfc7865641922e8e8a4ffc87d9` are historical,
+not current dependency inputs. The pushed unified SHA `51376bca11d57b775aa22d42453176f8ad1f681b`
+is the current development input. The user authorized connection before C's
+all-CI or merge completion. Both parent SHAs, clean acceptance SHA and package
+digests are recorded in the linked acceptance report. Formal adoption still
+requires review and necessary CI. No unsubmitted worktree is a release dependency.
 
 The [architecture and migration obligations](../design/frontend-language-migration.md)
 remain broader than this implementation checkpoint. Existing JSON/YAML inputs
 are retained capabilities, not completed replacements for withdrawn text paths.
 
-## Main integration and current packed acceptance
+## Historical main integration and Relation packed acceptance
 
 The integration commit is `7a5d7c62148066ea1bfe0a4cc487161dc7ca1168`;
 its source-registration resolution is recorded independently at the verified
@@ -157,5 +157,5 @@ The connection target is C #164 public HEAD
 branch. This supersedes the historical submitted-candidate status above.
 Starting acceptance does not require C all-CI or merge success, and is not
 formal adoption or migration completion. Follow the linked unified-source
-record for executed tests and still-pending public execution. Source-INFER
+record and public acceptance report for executed tests and remaining coverage. Source-INFER
 remains assigned to its common owner; no frontend executor is introduced.

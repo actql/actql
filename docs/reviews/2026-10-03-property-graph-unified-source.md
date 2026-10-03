@@ -1,7 +1,9 @@
 # Frontend source separation for the unified Property Graph owner
 
-Status: independent connection checkpoint, not public Graph execution acceptance.
-Base: `0fd6332757176b88e8c4071e4a2cd0be3d6254e3`.
+Status: development integration and selected packed Graph source acceptance passed;
+formal adoption, required CI and remaining migration coverage are incomplete.
+Independent separation base: `0fd6332757176b88e8c4071e4a2cd0be3d6254e3`.
+Current development input: C `51376bca11d57b775aa22d42453176f8ad1f681b`.
 
 ## Dependency withdrawal
 
@@ -59,9 +61,11 @@ Ordinary Relation DATA remains separate from Graph acceptance.
 authored rows, declared column order/types/nullability, parallel-edge counts,
 composite keys, label/property separation, NULL exclusions, refusal cases and
 duplicate-key execution failures. No fixture expectation is regenerated from
-the current compiler or old C output. The fixture is now connected to the existing external packed application,
-including its narrow `--property-graph-source-only` selection. Packed execution
-acceptance is still pending at this source checkpoint.
+the current compiler or old C output. The fixture is connected to the existing
+external packed application, including its narrow `--property-graph-source-only`
+selection. Its selected public execution acceptance passed at clean
+`a6675aa5945389e66aa15978c9ed0ae66cbe69a1`; exact counts and package digests
+are in the separate acceptance report.
 
 The parser/lowering tests compare authored expected Programs. C-dependent
 checker and packed acceptance from the original branch are preserved there;
@@ -70,7 +74,7 @@ The narrow public preparation tests assert ordinary keyed lowering, standalone
 legacy alias refusal and unchanged public parser/Relation DATA behavior. They do not prove HTTP Run
 admission/provider counters or snapshot roundtrip.
 
-Development integration and acceptance sequence:
+Development integration sequence (steps 1–4 completed for the selected fixtures):
 
 1. Integrate the pushed unified owner, preserving current main changes.
 2. Reconcile constructor body, Carrier projection, MATCH/TRAIL and definition
@@ -80,15 +84,16 @@ Development integration and acceptance sequence:
 4. Normally prepack fresh external Local and HTTP installations at one fixed
    source SHA. Check all original fixture obligations through Named Results,
    actual descriptions and independent rows, plus refusal counters and replay.
-5. Use C's snapshot save/reload entry and validate source-to-restored execution.
-   Record package digests, the B/C SHAs, failures and unexecuted coverage.
+5. Common JSON Program snapshot save/reload controls passed on the same installed
+   packages. A separate source-constructor exact snapshot CID assertion is not
+   claimed. Retain that distinction when extending source-to-restored coverage.
 
 The selected Graph source execution and common public snapshot controls now
 pass at the [fixed acceptance source](2026-10-03-property-graph-public-acceptance.md).
 Native CLI, required CI, remaining SGA consumers and full Frontend migration
 remain incomplete. No merge or package publication is requested.
 
-## Local checkpoint validation
+## Historical independent checkpoint validation
 
 - Query syntax: 71/71 JS; query Program construction: 146/146 JS.
 - Public preparation: 10/10 JS; the five dependency-boundary tests pass on
