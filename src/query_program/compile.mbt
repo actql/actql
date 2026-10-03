@@ -416,20 +416,27 @@ fn selected_relation(
 ///|
 // DATA/CTE producer aliases and published relation paths retain their
 // respective rules at every query and constructor entry.
+fn input_relation_matches(
+  relation : Array[@query.NamePart],
+  input : Input,
+) -> Bool {
+  if input.source is StepReference &&
+    relation.length() == 1 &&
+    input.relation.length() == 1 {
+    same_name(relation[0], input.relation[0])
+  } else {
+    same_relation_path(relation, input.relation)
+  }
+}
+
+///|
 fn resolve_relation_input(
   relation : Array[@query.NamePart],
   inputs : Array[Input],
 ) -> Input raise Abort {
   let mut found : Input? = None
   for input in inputs {
-    let matches = if input.source is StepReference &&
-      relation.length() == 1 &&
-      input.relation.length() == 1 {
-      same_name(relation[0], input.relation[0])
-    } else {
-      same_relation_path(relation, input.relation)
-    }
-    if matches {
+    if input_relation_matches(relation, input) {
       if found is Some(_) {
         raise Abort(AmbiguousRelation)
       }
@@ -2880,113 +2887,8 @@ fn compile_cte_query(
   if @query.relation(query).length() != 1 {
     return Err(UnsupportedCte)
   }
-  let used = Array::make(@query.cte_count(query), false)
-  let joined_relation = if @query.join_part_count(query) == 1 {
-    Some(@query.join_part_at(query, 0).unwrap().relation)
-  } else {
-    None
-  }
-  for index in 0..<@query.cte_count(query) {
-    let cte = @query.cte_at(query, index).unwrap()
-    for earlier in 0..<index {
-      if same_relation_name(
-          cte.name,
-          @query.cte_at(query, earlier).unwrap().name,
-        ) {
-        return Err(UnsupportedCte)
-      }
-    }
-    let body = cte.query
-    // RESULT is a statement-level publication obligation. A CTE or a
-    // derived-table body cannot add externally visible exports.
-    for operation_index in 0..<@query.operation_count(body) {
-      if @query.operation_at(body, operation_index) is Some(RetainResult(_)) {
-        return Err(UnsupportedResult)
-      }
-    }
-    if @query.cte_count(body) != 0 || @query.join_part_count(body) > 1 {
-      return Err(UnsupportedCte)
-    }
-    for term in query_terms(body) {
-      let body_relation = @query.relation(term)
-      for future in index..<@query.cte_count(query) {
-        if same_relation_path(body_relation, [
-            @query.cte_at(query, future).unwrap().name,
-          ]) {
-          return Err(UnsupportedCte)
-        }
-      }
-      let mut known_relation = body_relation.is_empty() ||
-        context.inputs.any(input => {
-          same_relation_path(body_relation, input.relation)
-        })
-      for earlier in 0..<index {
-        if same_relation_path(body_relation, [
-            @query.cte_at(query, earlier).unwrap().name,
-          ]) {
-          known_relation = true
-        }
-      }
-      if !known_relation {
-        return Err(UnknownRelation)
-      }
-      if @query.join_part_count(term) == 1 {
-        let right = @query.join_part_at(term, 0).unwrap().relation
-        let mut known_right = false
-        for earlier in 0..<index {
-          if same_relation_path(right, [
-              @query.cte_at(query, earlier).unwrap().name,
-            ]) {
-            known_right = true
-          }
-        }
-        if !known_right {
-          return Err(UnsupportedCte)
-        }
-      }
-    }
-    let joined = match joined_relation {
-      Some(path) => same_relation_path(path, [cte.name])
-      None => false
-    }
-    if query_terms(query).any(term => {
-        same_relation_path(@query.relation(term), [cte.name])
-      }) ||
-      joined {
-      used[index] = true
-    }
-  }
-  if !used.any(value => value) {
-    return Err(UnsupportedCte)
-  }
-  let mut index = @query.cte_count(query) - 1
-  while index >= 0 {
-    if used[index] {
-      for term in query_terms(@query.cte_at(query, index).unwrap().query) {
-        let relation = @query.relation(term)
-        let right = if @query.join_part_count(term) == 1 {
-          Some(@query.join_part_at(term, 0).unwrap().relation)
-        } else {
-          None
-        }
-        for earlier in 0..<index {
-          let name = [@query.cte_at(query, earlier).unwrap().name]
-          if same_relation_path(relation, name) ||
-            (
-              right is Some(right_relation) &&
-              same_relation_path(right_relation, name)
-            ) {
-            used[earlier] = true
-          }
-        }
-      }
-    }
-    index -= 1
-  }
-  // An unused declaration still needs full semantic checking. Until the
-  // frontend can check it without scheduling its acquisition, reject it.
-  if used.any(value => !value) {
-    return Err(UnsupportedCte)
+  validate_cte_scope(query, context.inputs) catch {
+    Abort(issue) => return Err(issue)
   }
   let document = @query.query_document(query)
   let generated = @origin.range(document, 0, 0, kind=Generated).unwrap()
@@ -3192,7 +3094,7 @@ fn compile_cte_query(
             ]),
           ),
         ])
-        let (steps, fields, final_from) = compile_cte_join_steps(
+        let (steps, fields, final_from) = compile_join_steps(
           construction,
           query,
           @query.relation(query)[0],
@@ -3307,7 +3209,7 @@ fn compile_cte_stage(
         ),
       ])
     }
-    let (steps, output, final_from) = compile_cte_join_steps(
+    let (steps, output, final_from) = compile_join_steps(
       construction,
       body,
       @query.relation(body)[0],
@@ -3469,7 +3371,7 @@ fn compile_cte_stage(
 }
 
 ///|
-fn compile_cte_join_steps(
+fn compile_join_steps(
   construction : Construction,
   query : @query.Query,
   left_name : @query.NamePart,
@@ -3478,6 +3380,9 @@ fn compile_cte_join_steps(
   right_fields : Array[String],
   limits : Limits,
   retained? : Array[RetainedResult]? = None,
+  left_from? : String = "l",
+  right_from? : String = "r",
+  step_bindings? : Map[String, String] = Map([]),
 ) -> (Array[@builder.Node], Array[String], String) raise Abort {
   if @query.operation_count(query) < 1 ||
     (@query.operation_count(query) > 4 && !has_retained_result(query)) ||
@@ -3495,7 +3400,7 @@ fn compile_cte_join_steps(
     part, left_qualifier, right_qualifier, left_fields, right_fields,
   )
   let pre_steps : Array[@builder.Node] = []
-  let mut join_from = "l"
+  let mut join_from = left_from
   match part.pre_join_filter {
     Some(expression) => {
       let resolve = fn(path : Array[@query.NamePart]) -> String? {
@@ -3520,10 +3425,15 @@ fn compile_cte_join_steps(
         construction.object([
           ("from", construction.text(join_from)),
           ("filter", filter),
-          ("as", construction.text("aql_join_prefiltered")),
+          (
+            "as",
+            construction.text(
+              join_step_binding(step_bindings, "aql_join_prefiltered"),
+            ),
+          ),
         ]),
       )
-      join_from = "aql_join_prefiltered"
+      join_from = join_step_binding(step_bindings, "aql_join_prefiltered")
     }
     None => ()
   }
@@ -3552,12 +3462,13 @@ fn compile_cte_join_steps(
       left_fields,
       right_fields,
       limits.max_expression_work,
+      step_bindings~,
     )
     let operation = if part.kind == "cross" {
       (
         "cross_join",
         construction.object([
-          ("with", construction.text("r")),
+          ("with", construction.text(right_from)),
           (
             "max_output_rows",
             construction.add(Number(limits.max_join_output_rows.to_double())),
@@ -3569,7 +3480,7 @@ fn compile_cte_join_steps(
       (
         "join",
         construction.object([
-          ("with", construction.text("r")),
+          ("with", construction.text(right_from)),
           ("kind", construction.text(part.kind)),
           (
             "on",
@@ -3602,14 +3513,24 @@ fn compile_cte_join_steps(
     if distinct {
       steps.push(
         construction.object([
-          ("from", construction.text("aql_join_output")),
+          (
+            "from",
+            construction.text(
+              join_step_binding(step_bindings, "aql_join_output"),
+            ),
+          ),
           (
             "distinct",
             construction.array(
               visible_names.map(name => construction.text(name)),
             ),
           ),
-          ("as", construction.text("aql_join_unique")),
+          (
+            "as",
+            construction.text(
+              join_step_binding(step_bindings, "aql_join_unique"),
+            ),
+          ),
         ]),
       )
     }
@@ -3621,12 +3542,13 @@ fn compile_cte_join_steps(
       visible_names,
       output.length(),
       if distinct {
-        "aql_join_unique"
+        join_step_binding(step_bindings, "aql_join_unique")
       } else {
-        "aql_join_output"
+        join_step_binding(step_bindings, "aql_join_output")
       },
       next,
       result_tail=retained.map(results => (limits, results)),
+      step_bindings~,
     )
     return (steps, visible_names, final_from)
   }
@@ -3705,7 +3627,7 @@ fn compile_cte_join_steps(
     (
       "cross_join",
       construction.object([
-        ("with", construction.text("r")),
+        ("with", construction.text(right_from)),
         (
           "max_output_rows",
           construction.add(Number(limits.max_join_output_rows.to_double())),
@@ -3717,7 +3639,7 @@ fn compile_cte_join_steps(
     (
       "join",
       construction.object([
-        ("with", construction.text("r")),
+        ("with", construction.text(right_from)),
         ("kind", construction.text(part.kind)),
         (
           "on",
@@ -3747,9 +3669,9 @@ fn compile_cte_join_steps(
         "as",
         construction.text(
           if merged.is_empty() {
-            "aql_join_output"
+            join_step_binding(step_bindings, "aql_join_output")
           } else {
-            "aql_join_raw"
+            join_step_binding(step_bindings, "aql_join_raw")
           },
         ),
       ),
@@ -3758,7 +3680,10 @@ fn compile_cte_join_steps(
   if !merged.is_empty() {
     steps.push(
       construction.object([
-        ("from", construction.text("aql_join_raw")),
+        (
+          "from",
+          construction.text(join_step_binding(step_bindings, "aql_join_raw")),
+        ),
         (
           "derive",
           construction.object(
@@ -3782,29 +3707,44 @@ fn compile_cte_join_steps(
             }),
           ),
         ),
-        ("as", construction.text("aql_join_merged")),
+        (
+          "as",
+          construction.text(join_step_binding(step_bindings, "aql_join_merged")),
+        ),
       ]),
     )
     steps.push(
       construction.object([
-        ("from", construction.text("aql_join_merged")),
+        (
+          "from",
+          construction.text(join_step_binding(step_bindings, "aql_join_merged")),
+        ),
         (
           "select",
           construction.array(output.map(name => construction.text(name))),
         ),
-        ("as", construction.text("aql_join_output")),
+        (
+          "as",
+          construction.text(join_step_binding(step_bindings, "aql_join_output")),
+        ),
       ]),
     )
   }
   if distinct {
     steps.push(
       construction.object([
-        ("from", construction.text("aql_join_output")),
+        (
+          "from",
+          construction.text(join_step_binding(step_bindings, "aql_join_output")),
+        ),
         (
           "distinct",
           construction.array(output.map(name => construction.text(name))),
         ),
-        ("as", construction.text("aql_join_unique")),
+        (
+          "as",
+          construction.text(join_step_binding(step_bindings, "aql_join_unique")),
+        ),
       ]),
     )
   }
@@ -3816,12 +3756,13 @@ fn compile_cte_join_steps(
     output,
     output.length(),
     if distinct {
-      "aql_join_unique"
+      join_step_binding(step_bindings, "aql_join_unique")
     } else {
-      "aql_join_output"
+      join_step_binding(step_bindings, "aql_join_output")
     },
     select_index + 1,
     result_tail=retained.map(results => (limits, results)),
+    step_bindings~,
   )
   (steps, output, from)
 }
@@ -4690,6 +4631,7 @@ fn joined_projection(
   left_fields : Array[String],
   right_fields : Array[String],
   max_work : Int,
+  step_bindings? : Map[String, String] = Map([]),
 ) -> (
   Array[(String, @builder.Node)],
   Array[@builder.Node],
@@ -4738,7 +4680,12 @@ fn joined_projection(
   }
   let tail : Array[@builder.Node] = []
   if !private_projection {
-    return (select, tail, output, "aql_join_output")
+    return (
+      select,
+      tail,
+      output,
+      join_step_binding(step_bindings, "aql_join_output"),
+    )
   }
   select.clear()
   let required : Array[(String, String)] = []
@@ -4814,7 +4761,7 @@ fn joined_projection(
       None => None
     }
   }
-  let mut from = "aql_join_raw"
+  let mut from = join_step_binding(step_bindings, "aql_join_raw")
   match predicate {
     Some(expression) => {
       let filter = match
@@ -4826,10 +4773,15 @@ fn joined_projection(
         construction.object([
           ("from", construction.text(from)),
           ("filter", filter),
-          ("as", construction.text("aql_join_filtered")),
+          (
+            "as",
+            construction.text(
+              join_step_binding(step_bindings, "aql_join_filtered"),
+            ),
+          ),
         ]),
       )
-      from = "aql_join_filtered"
+      from = join_step_binding(step_bindings, "aql_join_filtered")
     }
     None => ()
   }
@@ -4873,10 +4825,15 @@ fn joined_projection(
       construction.object([
         ("from", construction.text(from)),
         ("derive", construction.object(derivations)),
-        ("as", construction.text("aql_join_derived")),
+        (
+          "as",
+          construction.text(
+            join_step_binding(step_bindings, "aql_join_derived"),
+          ),
+        ),
       ]),
     )
-    from = "aql_join_derived"
+    from = join_step_binding(step_bindings, "aql_join_derived")
   }
   let order_derivations : Array[(String, @builder.Node)] = []
   for (name, expression) in order_expressions {
@@ -4904,19 +4861,27 @@ fn joined_projection(
       construction.object([
         ("from", construction.text(from)),
         ("derive", construction.object(order_derivations)),
-        ("as", construction.text("aql_join_order_derived")),
+        (
+          "as",
+          construction.text(
+            join_step_binding(step_bindings, "aql_join_order_derived"),
+          ),
+        ),
       ]),
     )
-    from = "aql_join_order_derived"
+    from = join_step_binding(step_bindings, "aql_join_order_derived")
   }
   tail.push(
     construction.object([
       ("from", construction.text(from)),
       ("select", construction.array(final_select)),
-      ("as", construction.text("aql_join_output")),
+      (
+        "as",
+        construction.text(join_step_binding(step_bindings, "aql_join_output")),
+      ),
     ]),
   )
-  (select, tail, output, "aql_join_raw")
+  (select, tail, output, join_step_binding(step_bindings, "aql_join_raw"))
 }
 
 ///|
@@ -5046,6 +5011,7 @@ fn append_join_order_steps(
   initial_from : String,
   next_operation : Int,
   result_tail? : (Limits, Array[RetainedResult])? = None,
+  step_bindings? : Map[String, String] = Map([]),
 ) -> String raise Abort {
   let mut result_from = initial_from
   if !order_fields.is_empty() {
@@ -5063,10 +5029,13 @@ fn append_join_order_steps(
       construction.object([
         ("from", construction.text(result_from)),
         ("sort", construction.array(order)),
-        ("as", construction.text("aql_join_sorted")),
+        (
+          "as",
+          construction.text(join_step_binding(step_bindings, "aql_join_sorted")),
+        ),
       ]),
     )
-    result_from = "aql_join_sorted"
+    result_from = join_step_binding(step_bindings, "aql_join_sorted")
   }
   let mut next = next_operation
   match @query.operation_at(query, next) {
@@ -5081,10 +5050,15 @@ fn append_join_order_steps(
               ("offset", construction.add(Number(offset.to_double()))),
             ]),
           ),
-          ("as", construction.text("aql_join_taken")),
+          (
+            "as",
+            construction.text(
+              join_step_binding(step_bindings, "aql_join_taken"),
+            ),
+          ),
         ]),
       )
-      result_from = "aql_join_taken"
+      result_from = join_step_binding(step_bindings, "aql_join_taken")
       next += 1
     }
     _ => ()
@@ -5097,10 +5071,15 @@ fn append_join_order_steps(
           "select",
           construction.array(visible_names.map(name => construction.text(name))),
         ),
-        ("as", construction.text("aql_join_visible")),
+        (
+          "as",
+          construction.text(
+            join_step_binding(step_bindings, "aql_join_visible"),
+          ),
+        ),
       ]),
     )
-    result_from = "aql_join_visible"
+    result_from = join_step_binding(step_bindings, "aql_join_visible")
   }
   if next != @query.operation_count(query) {
     guard result_tail is Some((limits, retained)) && has_retained_result(query) else {
@@ -5126,7 +5105,7 @@ fn append_join_order_steps(
       limits.max_collection_bytes,
       next,
       false,
-      "aql_join_result",
+      join_step_binding(step_bindings, "aql_join_result"),
       retained=Some(retained),
       projected_input=true,
     )
@@ -5137,7 +5116,7 @@ fn append_join_order_steps(
       visible_names.append(output)
     }
     steps.append(tail)
-    result_from = "aql_join_result"
+    result_from = join_step_binding(step_bindings, "aql_join_result")
   }
   result_from
 }

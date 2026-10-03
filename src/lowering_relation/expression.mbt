@@ -483,8 +483,25 @@ fn lower_expression_measured(
         }
         (@graph.predicate_expression(predicate), references)
       }
-      GraphTraverseRows(_) =>
-        expression_fail(step.source, MissingCheckedBinding)
+      GraphTraverseRows(checked) => {
+        let hop_index = binding_index / 2
+        guard binding_index >= 0 &&
+          @graph.traverse_hop_at(checked, hop_index) is Some(hop) else {
+          expression_fail(step.source, MissingCheckedBinding)
+        }
+        let predicate = if binding_index % 2 == 0 {
+          @graph.hop_edge_predicate(hop)
+        } else {
+          @graph.hop_node_predicate(hop)
+        }
+        guard predicate is Some(predicate) else {
+          expression_fail(step.source, MissingCheckedBinding)
+        }
+        guard graph_predicate_fields(predicate) is Some(references) else {
+          expression_fail(step.source, MissingResolvedField(""))
+        }
+        (@graph.predicate_expression(predicate), references)
+      }
       SequenceRows(checked) => {
         guard @relation.sequence_pattern_at(checked, binding_index)
           is Some(pattern) else {

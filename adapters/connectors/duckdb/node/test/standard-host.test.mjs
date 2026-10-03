@@ -1794,6 +1794,13 @@ async function exerciseStrategyGraph(
     fields:['id','node_name'], secondFields:['node_name'],
     expected:[{id:1,node_name:'first'},{id:2,node_name:'second'}],
   }, {
+    name:'retained-labelled-node-match', retainedOutput:true,
+    selectedStructural:true,
+    step:{from:'g', match_nodes:{definition:'N', label:'Node',
+      where:"node_name = 'second'", fields:['id','node_name']}, as:'out'},
+    fields:['id','node_name'], secondFields:['node_name'],
+    expected:[{id:2,node_name:'second'}],
+  }, {
     name:'node-match-filter-sort-take',
     steps:[
       {from:'g',match_nodes:{definition:'N',where:'true',
@@ -1815,6 +1822,18 @@ async function exerciseStrategyGraph(
     ],
     fields:['hop_count'],secondFields:['hop_count'],
     expected:[{hop_count:1},{hop_count:2},{hop_count:1},{hop_count:2}],
+  }, {
+    name:'retained-trail-property-predicates',retainedOutput:true,
+    retainedTraversal:true,
+    steps:[
+      {from:'g',traverse:{start:{from:'seeds',id:'element'},
+        hops:[{direction:'out',edge_types:['Link'],
+          edge_where:'weight > 10',node_where:"node_name = 'first'"}],
+        path_mode:'trail',emit:'paths'},as:'paths'},
+      {from:'paths',filter:'hop_count > 0',as:'out'},
+    ],
+    fields:['hop_count'],secondFields:['hop_count'],
+    expected:[{hop_count:1}],
   }, {
     name:'retained-walk-relation-filter', retainedOutput:true,
     retainedTraversal:true,
@@ -1839,12 +1858,57 @@ async function exerciseStrategyGraph(
     fields:['hop_count'],secondFields:['hop_count'],
     expected:[{hop_count:1},{hop_count:1}],
   }, {
+    name:'retained-labelled-hop-pattern', retainedOutput:true,
+    retainedTraversal:true,
+    steps:[
+      {from:'g',traverse:{start:{from:'seeds',id:'element'},
+        hops:[
+          {direction:'out',edge_types:['Link']},
+          {direction:'out',edge_types:['Link']},
+        ],path_mode:'trail',emit:'paths'},as:'paths'},
+      {from:'paths',filter:'hop_count = 2',as:'out'},
+    ],
+    fields:['hop_count'],secondFields:['hop_count'],
+    expected:[{hop_count:2},{hop_count:2}],
+  }, {
+    name:'retained-unmatched-hop-label', retainedOutput:true,
+    retainedTraversal:true,
+    steps:[
+      {from:'g',traverse:{start:{from:'seeds',id:'element'},
+        hops:[{direction:'out',edge_types:['Missing']}],
+        path_mode:'trail',emit:'paths'},as:'paths'},
+      {from:'paths',filter:'hop_count > 0',as:'out'},
+    ],
+    fields:['hop_count'],secondFields:['hop_count'],expected:[],
+  }, {
     name:'edge-match',
     step:{from:'g',match_edges:{definition:'E',where:'true',
       fields:['src','dst','weight']},as:'out'},
     fields:['src','dst','weight'],secondFields:['weight','src'],
     expected:[{src:1,dst:2,weight:10},{src:2,dst:1,weight:20}],
     completedTasks:5,
+  }, {
+    name:'retained-labelled-edge-match', retainedOutput:true,
+    selectedStructural:true,
+    step:{from:'g',match_edges:{definition:'E',label:'Link',
+      where:'weight > 10',fields:['src','dst','weight']},as:'out'},
+    fields:['src','dst','weight'],secondFields:['weight','src'],
+    expected:[{src:2,dst:1,weight:20}],
+  }, {
+    name:'retained-empty-edge-types', retainedOutput:true,
+    selectedStructural:true,
+    step:{from:'g',match_edges:{definition:'E',label:'Link',types:[],
+      where:'true',fields:['src','dst','weight']},as:'out'},
+    fields:['src','dst','weight'],secondFields:['weight','src'],
+    expected:[],
+  }, {
+    name:'retained-repeated-edge-types', retainedOutput:true,
+    selectedStructural:true,
+    step:{from:'g',match_edges:{definition:'E',label:'Link',
+      types:['Link','Link'],where:'true',fields:['src','dst','weight']},
+    as:'out'},
+    fields:['src','dst','weight'],secondFields:['weight','src'],
+    expected:[{src:1,dst:2,weight:10},{src:2,dst:1,weight:20}],
   }];
   for (const publicationCase of graphPublicationCases) {
     const graphProgram = structuredClone(graphProgramBase);
@@ -1894,6 +1958,15 @@ async function exerciseStrategyGraph(
       graphProgram.results.consumed_b = {
         from: {stage: 'consumer_b', result: 'r'},
       };
+    }
+    if (publicationCase.name === 'retained-trail-property-predicates') {
+      const invalidProgram = structuredClone(graphProgram);
+      invalidProgram.stages.find(stage => stage.id === 'graph')
+        .steps[1].traverse.hops[0].edge_where = 'missing_property > 10';
+      // Static rejection occurs before acquisition, Run or Store creation.
+      assert.throws(() => fixture.strategyFixtureSgaCreate(
+        ...sgaEnvironmentArguments(args), JSON.stringify(invalidProgram),
+      ));
     }
     const createSgaFixture = fixture.strategyFixtureSgaCreate;
     let sgaFixture;
@@ -2000,6 +2073,12 @@ async function exerciseStrategyGraph(
               [field, row[field]]))),
         } : {}),
       };
+      assert.deepEqual(
+        sgaPublicationOwner.execution.publicationInventory.occurrences
+          .map(occurrence => occurrence.name).sort(),
+        Object.keys(expectedResults).sort(),
+        `${publicationCase.name}/published result names`,
+      );
       for (const occurrence of
         sgaPublicationOwner.execution.publicationInventory.occurrences) {
         const received = [];
@@ -4451,6 +4530,18 @@ async function exerciseStrategyGraph(
       fields:['src','dst','weight']},as:'out'},
     fields:['src','dst','weight'],
   }, {
+    name:'current-traverse-hop-predicate-in-flight',
+    selectedStructural:true,
+    retainedOutput:true,retainedTraversal:true,rows:8,advanceQuantum:1,
+    constructionProgress:16,constructionStarts:[1,3],
+    cancelOnManagedStart:4,managedStarts:4,cancelTask:5,
+    minimumCompletedRows:1,completedTasks:[1,2,3,4],
+    step:{from:'g',traverse:{start:{from:'seeds',id:'element'},
+      hops:[{direction:'out',edge_types:['Link'],
+        edge_where:'weight > 0',node_where:"node_name <> 'never'"}],
+      path_mode:'trail',emit:'paths'},as:'out'},
+    fields:['start_id','end_id','hop_count'],
+  }, {
     name: 'property-match-filter',
     rows: 40, advanceQuantum: 1,
     cancelOnManagedStart: 4, managedStarts: 4, cancelTask: 4,
@@ -5695,7 +5786,6 @@ async function exerciseStrategyGraph(
         as: 'out',
       });
     }
-    const graphStageIndex = 2;
     if (graphFamily) {
       graphCancellationProgram.stages[1].steps[0].values.rows =
         Array.from({length: cancellationCase.rows}, (_, index) => ({
@@ -5706,6 +5796,26 @@ async function exerciseStrategyGraph(
           weight: index + 1,
         }));
     }
+    if (graphFamily && cancellationCase.retainedTraversal) {
+      const graphStage = graphCancellationProgram.stages.find(stage =>
+        stage.id === 'graph');
+      graphCancellationProgram.stages.splice(
+        graphCancellationProgram.stages.indexOf(graphStage), 0, {
+          id:'seed_source',
+          inputs:{rows:{result:{stage:'values',result:'r'}}},
+          steps:[structuredClone(graphStage.steps[0]),{
+            from:'g',match_nodes:{definition:'N',
+              bindings:{identity:'element'},where:'true',fields:['element']},
+            as:'seeds',
+          }],
+          results:{r:{from:'seeds',fields:['element']}},
+        },
+      );
+      graphStage.inputs.seeds = {result:{stage:'seed_source',result:'r'}};
+    }
+    const graphStageIndex = graphFamily
+      ? graphCancellationProgram.stages.findIndex(stage => stage.id === 'graph')
+      : 2;
     if (graphFamily && cancellationCase.sortStress) {
       const valueStep = graphCancellationProgram.stages[1].steps[0].values;
       for (const key of stressSortKeys) {
@@ -6013,7 +6123,12 @@ async function exerciseStrategyGraph(
         managedStarts,
         expectedManagedStarts,
         `${cancellationCase.name}: ${JSON.stringify({
-          managedTaskByStart, advanceObservations, lifecycleObservations,
+          managedTaskByStart,
+          advanceCount:advanceObservations.length,
+          lifecycleObservations,
+          status:cancellationExecution.status,
+          failure:cancellationExecution.failure?.message,
+          cause:cancellationExecution.failure?.cause,
         }, (_, value) => typeof value === 'bigint' ? value.toString() : value)}`,
       );
       if (cancellationCase.cancelTask !== undefined) {

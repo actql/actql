@@ -237,6 +237,108 @@ test "current path variants retain independent exact work workspace and every pr
       }
     }
   }
+  // A nonempty unmatched label visits exactly one additional charged label
+  // comparison per eligible edge. TRAIL admits every first edge, so all five
+  // definition-scoped copies of the 100 source edges each cost one scan and
+  // one label comparison after the eleven zero-hop control/value steps.
+  let labeled_work = 3 + 3 + 1 + 2 + 1 + 1 + 2 * 5 * edge_count
+  let labeled_owner = keyed_graph_receiver(
+    graph_owner,
+    body="[{\"from\":\"g\",\"traverse\":{\"start\":{\"ids\":[" +
+      identity +
+      "]},\"direction\":\"out\",\"min_hops\":0,\"max_hops\":1,\"edge_types\":[\"Missing\"],\"path_mode\":\"trail\",\"emit\":\"paths\"}}]",
+  )
+  let labeled_input = @graphs.prepare_producer_read(
+    labeled_owner, 0, graph_owner, graph,
+  ).unwrap()
+  let labeled_preparation = task_test_completion(labeled_owner)
+  for viewed in [false, true] {
+    let start = fn(control, slots, allowed_work) {
+      let limits : @execution.ValueLimits = {
+        max_work: allowed_work,
+        max_nodes: 1000,
+        max_text_bytes: 10000,
+        max_depth: 50,
+      }
+      if viewed {
+        @local_sga.start_traverse_view(
+          control,
+          labeled_preparation,
+          prepared_sequence(labeled_owner),
+          0,
+          @graphs.producer_read_view(labeled_input).unwrap(),
+          1,
+          limits,
+          slots,
+          10000,
+          10000,
+          [],
+        ).unwrap()
+      } else {
+        @local_sga.start_traverse(
+          control,
+          labeled_preparation,
+          prepared_sequence(labeled_owner),
+          0,
+          labeled_input,
+          1,
+          limits,
+          slots,
+          10000,
+          10000,
+          [],
+        ).unwrap()
+      }
+    }
+    for quantum in [1, 127] {
+      let spent = Ref(0L)
+      let exact = start(@bounded.control(), workspace, labeled_work)
+      let output = finish_traverse(exact, quantum~, spent_work=Some(spent)).unwrap()
+      assert_eq(spent.val, labeled_work.to_int64())
+      assert_eq(@execution.completed_row_count(output), 1)
+      assert_eq(
+        @execution.completed_output_row_wire(output, 0, 10000, 10000, 50).unwrap(),
+        expected,
+      )
+      assert_true(@local_sga.cleanup_traverse(exact).unwrap())
+      let short = start(@bounded.control(), workspace, labeled_work - 1)
+      let short_spent = Ref(0L)
+      assert_true(
+        finish_traverse(short, quantum~, spent_work=Some(short_spent))
+        is Err(@local_sga.TraversePathIssue(@local_sga.TraversePathsWorkLimit)),
+      )
+      assert_eq(short_spent.val, (labeled_work - 1).to_int64())
+      assert_true(@local_sga.cleanup_traverse(short).unwrap())
+      assert_eq(@local_sga.traverse_private_entry_count(short), 0)
+      let no_workspace = start(@bounded.control(), workspace - 1, labeled_work)
+      assert_true(
+        finish_traverse(no_workspace, quantum~)
+        is Err(
+          @local_sga.TraversePathIssue(@local_sga.TraversePathsWorkspaceLimit)
+        ),
+      )
+      assert_true(@local_sga.cleanup_traverse(no_workspace).unwrap())
+      assert_eq(@local_sga.traverse_private_entry_count(no_workspace), 0)
+    }
+    let control = @bounded.control()
+    let stopped = start(control, workspace, labeled_work)
+    for index in 0..<20 {
+      assert_true(
+        @local_sga.advance_traverse(stopped, 1)
+        is Ok(@local_sga.TraverseContinue(work~, ..)) &&
+        work == (index + 1).to_int64(),
+      )
+    }
+    assert_true(@bounded.request_cancel(control))
+    guard @local_sga.advance_traverse(stopped, 1)
+      is Ok(@local_sga.TraverseStopped(_, work=spent, ..)) else {
+      fail("label scan did not stop")
+    }
+    assert_eq(spent, 20L)
+    assert_true(@local_sga.cleanup_traverse(stopped).unwrap())
+    assert_eq(@local_sga.traverse_private_entry_count(stopped), 0)
+    assert_true(@graphs.producer_read_available(labeled_input))
+  }
   assert_true(@local_bridge.cleanup_rows_to_graph(construction).unwrap())
   assert_true(@graphs.discard_completed(graph))
 }

@@ -140,7 +140,7 @@ test "sequence expression slots retain all pattern predicates" {
 }
 
 ///|
-test "current Graph expression slots retain scoped MATCH and literal TRAIL without fabricated predicates" {
+test "Graph expression slots retain scoped MATCH and literal TRAIL without fabricated predicates" {
   let identity = "{\"definition\":\"N\",\"domain\":\"sha256:" +
     "0".repeat(64) +
     "\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}"
@@ -153,8 +153,9 @@ test "current Graph expression slots retain scoped MATCH and literal TRAIL witho
         identity +
         "]},\"hops\":[{\"direction\":\"in\"},{\"direction\":\"out\"}],\"path_mode\":\"trail\",\"emit\":\"paths\"}}]",
         0,
-        // One checked step, with no fabricated start/hop predicate slots.
-        1,
+        // One checked step and two probed slots per hop, but no fabricated
+        // predicate entries.
+        5,
       ),
     ] {
     let p = @pipeline_typing.check_carriers(

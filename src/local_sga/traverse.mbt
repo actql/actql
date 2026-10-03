@@ -142,6 +142,12 @@ pub fn traverse_value_item_attempts(value : TraverseExecution) -> Int {
 }
 
 ///|
+/// Number of demanded hop predicates whose bounded evaluator has started.
+pub fn traverse_predicate_starts(value : TraverseExecution) -> Int {
+  traverse_paths_predicate_starts(value.kernel)
+}
+
+///|
 pub fn cleanup_traverse(
   value : TraverseExecution,
 ) -> Result[Bool, TraverseIssue] {

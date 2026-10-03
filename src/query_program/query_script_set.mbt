@@ -7,6 +7,7 @@ fn lower_script_set_relation(
   query : @query.Query,
   known : Array[Input],
   context : Context,
+  sources : ScriptSources,
   limits : Limits,
   steps : Array[@builder.Node],
   reserved : Array[String],
@@ -15,7 +16,7 @@ fn lower_script_set_relation(
   let first = pipe_physical_name(reserved, "aql_data_set_term_")
   reserved.push(first)
   let left = lower_script_relation_term(
-    construction, query, known, context, limits, steps, reserved, first,
+    construction, query, known, context, sources, limits, steps, reserved, first,
   )
   let fields = left.visible_fields
   let mut current = left.name
@@ -28,6 +29,7 @@ fn lower_script_set_relation(
       part.right,
       known,
       context,
+      sources,
       limits,
       steps,
       reserved,
