@@ -1,0 +1,44 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "frontend-sga-main-integration",
+  "kind": "resolution",
+  "revision": "7a5d7c62148066ea1bfe0a4cc487161dc7ca1168",
+  "parents": [
+    "2aa1116e77be62cf4c3079ec4c75478d38b35a95",
+    "4f6feed519170e46c0065d1491c40287e6d34f1a"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "2aa1116e77be62cf4c3079ec4c75478d38b35a95",
+          "digest": "be83896fcd35570c9e150f848174011241f8a389e9dba613884cb8f1c599e9fd",
+          "mode": "100644"
+        },
+        {
+          "revision": "4f6feed519170e46c0065d1491c40287e6d34f1a",
+          "digest": "946a8de4938e3f11af16540b994ea97fd277be254154a0203a5097df4461f416",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "d0d1b409ff512fc957f6d83ca9ec548391c2bb8b26cb6f797b99102e3496bc12",
+      "afterMode": "100644",
+      "reason": "Integrate main test registrations and CI runtime-package scheduling corrections while retaining the independent named-SGA contract regression in check:contracts. Preserve all inherited verification commands and provenance declarations; no validator, oracle, historical baseline or product semantics is replaced by this package registration merge."
+    }
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-3877b637406b",
+    "adopt-63b114ad524b",
+    "adopt-678626b010b4",
+    "adopt-7427f7f09276",
+    "adopt-9a7c592a8ed9",
+    "adopt-b480cffb6e6d",
+    "adopt-bf2d058c21c1",
+    "adopt-f24288853c19",
+    "adopt-sga-query-contract",
+    "remove-duplicate-runtime-package-checks",
+    "sdk-cancel-response-loss-registration"
+  ]
+}
