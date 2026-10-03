@@ -1897,7 +1897,7 @@ async function exerciseStrategyGraph(
   }, {
     name:'retained-unfiltered-edge-match', retainedOutput:true,
     selectedStructural:true,
-    step:{from:'g',match_edges:{definition:'E',where:'true',
+    step:{from:'g',match_edges:{definition:'E',
       fields:['src','dst','weight']},as:'out'},
     fields:['src','dst','weight'],secondFields:['weight','src'],
     expected:[{src:1,dst:2,weight:10},{src:2,dst:1,weight:20}],

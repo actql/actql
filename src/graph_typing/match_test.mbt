@@ -123,6 +123,31 @@ test "current edge MATCH keeps label filtering separate from independent key and
 }
 
 ///|
+test "current edge MATCH admits absent type and predicate selectors" {
+  let checked = @graph_typing.check_match(
+    Edges,
+    cursor("{\"definition\":\"E\",\"fields\":[\"title\"]}"),
+    current_scope_graph(),
+    None,
+    predicate_limits(),
+  ).unwrap()
+  assert_true(@graph_typing.match_types(checked) is None)
+  assert_true(@graph_typing.match_predicate(checked) is None)
+  assert_eq(
+    @graph_typing.match_field_at(checked, 0),
+    Some(Unqualified("title")),
+  )
+  let obligations = indexed_obligation_copy(
+    @graph_typing.match_pending(checked),
+    @graph_typing.match_pending_count(checked),
+    i => @graph_typing.match_pending_at(checked, i),
+    (a, b) => a == b,
+  )
+  assert_true(!obligations.contains(FilterSelectedEdgeTypes))
+  assert_true(!obligations.contains(EvaluateMatchPredicate))
+}
+
+///|
 test "current MATCH rejects absent properties before either entity can run" {
   let graph = current_scope_graph()
   for
