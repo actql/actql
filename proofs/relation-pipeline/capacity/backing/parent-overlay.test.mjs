@@ -42,7 +42,8 @@ test('parent audit requires the executed target-bound fixture and build marker',
     fixturePath: 'fixture', logPath: 'log', logDigest: hash(log),
     inputVariable, cases: [], inputPath: 'inputs', inputDigest: hash(payload([], true)),
     sourcePath: 'next-independent-source-check'};
-  const modelLog = '3 conditional retained parent-core propositions checked';
+  const modelLog = '3 conditional retained parent-core propositions checked\n' +
+    '2 conditional provider-construction propositions checked';
   const model = {command: ['node', 'proofs/relation-pipeline/capacity/parent-control/check.mjs'],
     exit: 0, sourceDigest: source.digest, logDigest: hash(modelLog),
     logPath: `${directory}/models/${hash(modelLog)}.log`};
