@@ -164,7 +164,7 @@ pub fn[T, E] start_prepared_execution_lifecycle(
   }
   prepared.started = true
   for input in prepared.candidate.request.inputs {
-    if !@execution.producer_read_available(input) {
+    if !@execution.fixed_relation_read_available(input) {
       return Err(Candidate(InputUnavailable))
     }
   }

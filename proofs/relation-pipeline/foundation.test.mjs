@@ -3,7 +3,7 @@ import { readFileSync, renameSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 import { createHash } from 'node:crypto';
-import { composeFoundation, foundationSourceBinding } from './foundation.mjs';
+import { composeFoundation, foundationSourceBinding, foundationMergeObligations } from './foundation.mjs';
 import { ADDED, CI, DECLARATION_DIRECTORY, DISTINCT, FoundationRepository, PACKAGE,
   PROTECTED_PATHS, RENAME, ciBytes, disjointBranches, olderInFlightBranch, overlappingBranches,
   packageBytes, sha256, singleChange, threePullRequestBranches } from './fixtures/foundation-repository.mjs';
@@ -444,7 +444,7 @@ test('identical declaration files converge while retaining every independent int
   assert.equal(aggregate.declarations.length, 1);
 });
 
-test('a criss-cross merge with multiple merge bases fails closed even when protected bytes agree', t => {
+test('an unprotected criss-cross records every base without a spurious declaration', t => {
   const repo = new FoundationRepository(t);
   repo.branch('right');
   repo.write('left.txt', 'left\n');
@@ -457,9 +457,172 @@ test('a criss-cross merge with multiple merge bases fails closed even when prote
   repo.checkout('right');
   repo.merge('left-tip');
   repo.checkout('main');
-  repo.merge('right');
+  const merge = repo.merge('right');
+  const mergeBases = repo.git('merge-base', '--all', ...repo.parents(merge)).split('\n').sort();
+  assert.equal(mergeBases.length, 2);
+  assert.deepEqual(compose(repo).integrations, [{ revision: merge, parents: repo.parents(merge),
+    mergeBases, obligations: [], declarations: [] }]);
+});
+
+function protectedCrissCross(t, { omit, mutate, record = true, reverse = false } = {}) {
+  const repo = new FoundationRepository(t);
+  repo.branch('right');
+  const left = repo.source({ [RENAME]: 'export const rename = "left";\n' });
+  repo.record(repo.declaration('left-source', left, [RENAME]));
+  repo.branch('left-tip');
+  repo.checkout('right');
+  const right = repo.source({ [DISTINCT]: 'export const distinct = "right";\n' });
+  repo.record(repo.declaration('right-source', right, [DISTINCT]));
+  repo.branch('right-tip');
+  repo.checkout('main');
+  repo.merge('right-tip');
+  repo.checkout('right');
+  repo.merge('left-tip');
+  repo.checkout(reverse ? 'right' : 'main');
+  const merge = repo.merge(reverse ? 'main' : 'right');
+  const mergeBases = repo.git('merge-base', '--all', ...repo.parents(merge)).split('\n').sort();
+  assert.equal(mergeBases.length, 2);
+  const resolution = repo.declaration('resolve-criss-cross', merge, [RENAME, DISTINCT].filter(path => path !== omit),
+    { kind: 'resolution', inputs: ['left-source', 'right-source'] });
+  resolution.mergeBases = mergeBases;
+  mutate?.(resolution, repo);
+  if (record) repo.record(resolution);
+  return { repo, merge, mergeBases, resolution };
+}
+
+test('real criss-cross obligations retain every base and converge by full source identity', t => {
+  const { repo, merge, mergeBases, resolution } = protectedCrissCross(t);
+  const aggregate = compose(repo), integration = aggregate.integrations.find(entry => entry.revision === merge);
+  assert.deepEqual(integration.mergeBases, mergeBases);
+  assert(!Object.hasOwn(integration, 'mergeBase'));
+  assert.deepEqual(integration.parents, repo.parents(merge));
+  assert.deepEqual(integration.obligations.map(entry => entry.path), [DISTINCT, RENAME].sort());
+  for (const obligation of integration.obligations) {
+    assert.equal(obligation.revision, merge);
+    assert.deepEqual(obligation.parents, repo.parents(merge));
+    assert.deepEqual(obligation.grounds.map(ground => ground.mergeBase), mergeBases);
+    assert.equal(obligation.grounds.filter(ground => ground.required).length, 1);
+    for (const ground of obligation.grounds) {
+      const object = repo.git('rev-parse', `${ground.mergeBase}:${obligation.path}`);
+      assert.deepEqual(ground.base, { object, mode: '100644' });
+    }
+  }
+  assert.deepEqual(foundationSourceBinding(resolution, ['left', 'right']).mergeBases, mergeBases);
+  assert.equal(JSON.stringify(compose(repo)), JSON.stringify(aggregate));
+  assert.equal(JSON.stringify(compose(repo, { paths: [...PROTECTED_PATHS].reverse() })), JSON.stringify(aggregate));
+});
+
+for (const omit of [RENAME, DISTINCT]) {
+  test(`a real criss-cross rejects omission of the path exclusive to either base: ${omit}`, t => {
+    const { repo } = protectedCrissCross(t, { omit });
+    assert.throws(() => compose(repo), /Incomplete foundation changed paths/);
+  });
+}
+
+for (const [name, mutate] of [
+  ['missing entire base set', input => { delete input.mergeBases; }],
+  ['omitted base', input => { input.mergeBases.pop(); }],
+  ['extra nonmaximal base', (input, repo) => { input.mergeBases.push(repo.checkpoint); input.mergeBases.sort(); }],
+  ['unknown base', input => { input.mergeBases[0] = 'f'.repeat(40); input.mergeBases.sort(); }],
+  ['duplicate base', input => { input.mergeBases.push(input.mergeBases[0]); input.mergeBases.sort(); }],
+  ['noncanonical base order', input => { input.mergeBases.reverse(); }],
+  ['swapped parents', input => { input.parents.reverse(); }],
+  ['swapped before identities', input => { input.changes[0].before.reverse(); }],
+  ['missing input revision', input => { input.inputs.pop(); }],
+]) {
+  test(`a real criss-cross rejects ${name}`, t => {
+    const { repo } = protectedCrissCross(t, { mutate });
+    rejects(repo);
+  });
+}
+
+test('a valid multi-base resolution cannot hide an alias with changed base grounds', t => {
+  const { repo, resolution } = protectedCrissCross(t);
+  const alias = { ...structuredClone(resolution), id: 'wrong-base-alias' };
+  alias.mergeBases.pop();
+  repo.record(alias);
   rejects(repo);
 });
+
+test('single-base declarations reject spurious multi-base metadata', t => {
+  const { repo, resolution } = overlappingBranches(t, { recordResolution: false });
+  resolution.mergeBases = [repo.checkpoint];
+  repo.record(resolution);
+  assert.throws(() => compose(repo), /Spurious foundation merge bases/);
+});
+
+test('reversing real merge parents preserves base obligations without erasing parent order', t => {
+  const first = protectedCrissCross(t), reversed = protectedCrissCross(t, { reverse: true });
+  const a = compose(first.repo).integrations.find(entry => entry.revision === first.merge);
+  const b = compose(reversed.repo).integrations.find(entry => entry.revision === reversed.merge);
+  assert.deepEqual(b.parents, [...a.parents].reverse());
+  assert.deepEqual(b.mergeBases, a.mergeBases);
+  assert.deepEqual(b.obligations.map(({ path, grounds }) => ({ path, grounds })),
+    a.obligations.map(({ path, grounds }) => ({ path, grounds })));
+});
+
+for (const index of [0, 1]) {
+  test(`a missing maximal-base commit ${index} fails closed`, t => {
+    const { repo, mergeBases } = protectedCrissCross(t);
+    const object = mergeBases[index];
+    repo.remove(`.git/objects/${object.slice(0, 2)}/${object.slice(2)}`);
+    rejects(repo);
+  });
+  test(`a missing protected blob from maximal base ${index} fails closed`, t => {
+    const { repo, mergeBases } = protectedCrissCross(t);
+    const object = repo.git('rev-parse', `${mergeBases[index]}:${RENAME}`);
+    repo.remove(`.git/objects/${object.slice(0, 2)}/${object.slice(2)}`);
+    rejects(repo);
+  });
+}
+
+function publishedMultiBaseFixture() {
+  const fixture = JSON.parse(readFileSync(new URL('./fixtures/multiple-merge-bases.json', import.meta.url)));
+  const evaluations = fixture.mergeBases.map(mergeBase => ({ mergeBase,
+    paths: fixture.paths.map(entry => ({ path: entry.path, before: structuredClone(entry.before), after: structuredClone(entry.after),
+      base: structuredClone(entry.bases.find(base => base.revision === mergeBase).identity) })) }));
+  return { fixture, evaluations };
+}
+
+test('published 19b0 identities require 5 and 20 obligations with a 21-path union', () => {
+  const { fixture, evaluations } = publishedMultiBaseFixture();
+  assert.equal(fixture.revision, '19b0b464b983695c68df60d601016bb25a4fd06d');
+  assert.deepEqual(fixture.parents, ['4a4f4f10eb9723e3537c2b0fb444fca20dd28f33', '88fbcc95306abb4fc41f0d488bcc6d38ec19506d']);
+  assert.deepEqual(fixture.mergeBases, ['8b21ddd3f4a17fcecbb9bcf5878082148af0aa99', '8baa87fc6b6cb7d7caa981cef1692c9d73d88318']);
+  assert.equal(fixture.paths.length, 73);
+  assert.deepEqual(fixture.expected.perBase.map(entry => entry.required.length), [5, 20]);
+  for (const evaluation of evaluations) {
+    const obligations = foundationMergeObligations(fixture.revision, fixture.parents, [evaluation.mergeBase], [evaluation]);
+    assert.deepEqual(obligations.map(entry => entry.path), fixture.expected.perBase.find(entry => entry.revision === evaluation.mergeBase).required);
+  }
+  const combined = foundationMergeObligations(fixture.revision, fixture.parents, fixture.mergeBases, evaluations);
+  assert.equal(combined.length, 21);
+  assert.deepEqual(combined.map(entry => entry.path), fixture.expected.required);
+  for (const obligation of combined) {
+    assert.deepEqual(obligation.grounds.map(ground => ground.mergeBase), fixture.mergeBases);
+    for (const ground of obligation.grounds) assert.deepEqual(ground.base,
+      fixture.paths.find(entry => entry.path === obligation.path).bases.find(base => base.revision === ground.mergeBase).identity);
+  }
+  assert.deepEqual(foundationMergeObligations(fixture.revision, fixture.parents, [...fixture.mergeBases].reverse(),
+    [...evaluations].reverse().map(value => ({ ...value, paths: [...value.paths].reverse() }))), combined);
+});
+
+for (const [name, mutate] of [
+  ['one omitted base', values => values.pop()],
+  ['base-one-exclusive obligation', values => { values[0].paths = values[0].paths.filter(entry => entry.path !== 'proofs/relation-pipeline/capacity/finish.mjs'); }],
+  ['base-two-exclusive obligation', values => { values[1].paths = values[1].paths.filter(entry => entry.path !== 'proofs/relation-pipeline/workspaces.mjs'); }],
+  ['inconsistent same-path source result', values => { values[1].paths[0].after.object = 'f'.repeat(40); }],
+  ['inconsistent same-path parent identity', values => { values[1].paths[0].before.reverse(); }],
+  ['inconsistent same-path mode', values => { values[1].paths[0].after.mode = '100755'; }],
+]) {
+  test(`multi-base obligation combination rejects ${name}`, () => {
+    const { fixture, evaluations } = publishedMultiBaseFixture();
+    const values = structuredClone(evaluations);
+    mutate(values);
+    assert.throws(() => foundationMergeObligations(fixture.revision, fixture.parents, fixture.mergeBases, values),
+      /Incomplete|Inconsistent/);
+  });
+}
 
 for (const omitPriorResolution of [false, true]) {
   test(`later resolutions preserve the complete prior rationale chain (omission=${omitPriorResolution})`, t => {

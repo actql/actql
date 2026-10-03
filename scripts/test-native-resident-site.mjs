@@ -15,6 +15,9 @@ import {createServer} from 'node:net';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {fileURLToPath, pathToFileURL} from 'node:url';
+import {createRequire} from 'node:module';
+import {residentSourceEnvironment, sourceProgram, sourceRows,
+  sourceRef, sourceContractCid} from './fixtures/resident-source.mjs';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
 import {installNodeClientProgramPreparation} from
   '../adapters/host-node/client-program-preparation.mjs';
@@ -37,6 +40,7 @@ import {openSqliteTransferJournal} from
 import {createLocalRetainedStore} from '../adapters/store-local/files.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
+const sourceMode = process.argv.includes('--source-only');
 const scratchRoot = process.env.ACTQL_TEST_SCRATCH_ROOT;
 if (typeof scratchRoot !== 'string' || scratchRoot.length === 0) {
   throw new Error('ACTQL_TEST_SCRATCH_ROOT is required');
@@ -67,6 +71,8 @@ if (targetTriple === undefined) {
 }
 const physicalCid = value =>
   `sha256:${createHash('sha256').update(value).digest('hex')}`;
+const coordinatorAuthority = sourceMode ? physicalCid('resident-source-authority')
+  : 'cloud-coordinator';
 const openssl = (...args) =>
   execFileSync('openssl', args, {cwd: root, stdio: 'ignore'});
 
@@ -256,15 +262,17 @@ try {
     'component.bin'], {stdio: 'inherit'});
   execFileSync(bundleTool, [...bundleCommon, 'activate', '--bundle-cid',
     envelope.runtimeBundleCid], {stdio: 'inherit'});
-  const [registry, values] = await pinnedEngineContracts(repository);
+  const [registry, values, fragment] = await pinnedEngineContracts(repository);
   await writeFile(join(engineRoot, 'registry.json'), registry);
   await writeFile(join(engineRoot, 'values.json'), values);
+  await writeFile(join(engineRoot, 'fragment.json'), fragment);
 
   // The issuing side (the Cloud's role) prepares and authorizes the Run.
-  const programText = await readFile(join(repository,
+  const programText = sourceMode ? sourceProgram : await readFile(join(repository,
     'packages/sdk/fixtures/values.json'), 'utf8');
-  const environmentWire = (await readFile(join(repository,
-    'packages/sdk/fixtures/values.environment.json'), 'utf8')).trimEnd();
+  const environmentWire = sourceMode ? (await residentSourceEnvironment(repository)).wire
+    : (await readFile(join(repository,
+      'packages/sdk/fixtures/values.environment.json'), 'utf8')).trimEnd();
   const environmentCid = JSON.parse(environmentWire).evidence_bundle_cid;
   const checkEnvironment = moonModule.clientProgramCheckEnvironment(
     environmentWire, environmentCid, false, false, true, false, false, false,
@@ -276,13 +284,28 @@ try {
   const now = Date.now();
   const createdAt = new Date(now - 60_000).toISOString();
   const validUntil = new Date(now + 3_600_000).toISOString();
-  const compiled = portable.publicationControl.prepareCheckedClientCompiledRun(
+  const sourcePrepared = sourceMode ? runHost.prepare(programText, 'json',
+    runHost.admitEnvironment(environmentWire, environmentCid, {rela: true})) : undefined;
+  const sourceCompilation = sourceMode ? runHost.compileTasks(sourcePrepared) : undefined;
+  const sourceAllowed = sourceMode ? runHost.issueAllowedTaskRun(sourcePrepared, sourceCompilation, {
+    executionContextCid: physicalCid('resident-execution-context'),
+    hostPolicyCid: physicalCid('resident-host-policy'), expiresAt: validUntil,
+  }) : undefined;
+  const compiled = sourceMode ? {
+    preparedEvidence: {wire: sourceAllowed.preparedInvocationWire},
+    authorization: {wire: sourceAllowed.authorizationWire},
+    compiledPlan: {wire: runHost.privateTaskCompilationWires(sourceCompilation).compiledPlan},
+  } : portable.publicationControl.prepareCheckedClientCompiledRun(
     program, 'values', {
       executionContextCid: physicalCid('resident-execution-context'),
       hostPolicyCid: physicalCid('resident-host-policy'),
       expiresAt: validUntil,
     });
-  const definition = portable.publicationControl.defineCheckedClientCompiledRun(
+  const sourceDefinition = sourceMode ? runHost.privateRunDefinition(runHost.issueTaskRunDefinition(
+    sourcePrepared, sourceCompilation, sourceAllowed.admission,
+    'resident-scope', 'resident-run-1', createdAt, validUntil)) : undefined;
+  const definition = sourceMode ? {wire: sourceDefinition.wire, identity: sourceDefinition.cid}
+    : portable.publicationControl.defineCheckedClientCompiledRun(
     compiled, {namespaceId: 'resident-scope', runId: 'resident-run-1',
       createdAt, validUntil});
   // Restore the original owners from retained evidence. The new issuer only
@@ -290,12 +313,14 @@ try {
   const retainedEnvironment = runHost.admitEnvironment(environmentWire,
     environmentCid, {rela: true});
   const retainedPrepared = runHost.prepare(programText, 'json', retainedEnvironment);
-  const retainedCompilation = runHost.compileValues(retainedPrepared);
-  const retainedAdmission = runHost.admitRun(retainedPrepared, retainedCompilation,
+  const retainedCompilation = sourceMode ? runHost.compileTasks(retainedPrepared)
+    : runHost.compileValues(retainedPrepared);
+  const retainedAdmission = (sourceMode ? runHost.admitTaskRun : runHost.admitRun)(retainedPrepared, retainedCompilation,
     compiled.preparedEvidence.wire, compiled.authorization.wire);
-  const retainedDefinition = runHost.admitSourceFreeRunDefinition(retainedPrepared,
+  const retainedDefinition = (sourceMode ? runHost.admitTaskRunDefinition : runHost.admitSourceFreeRunDefinition)(retainedPrepared,
     retainedCompilation, retainedAdmission, definition.wire);
-  const materials = runHost.issueSourceFreeRunMaterials(retainedPrepared,
+  const materialsIssuer = sourceMode ? runHost.issueTaskRunMaterials : runHost.issueSourceFreeRunMaterials;
+  const materials = materialsIssuer(retainedPrepared,
     retainedCompilation, retainedAdmission, retainedDefinition, {
       environment: retainedEnvironment, environmentWire,
       document: programText, format: 'json',
@@ -310,7 +335,7 @@ try {
   assert.equal(projected.valid_until, validUntil);
   // Individual inputs remain valid, but quoting both makes the aggregate
   // materials exceed the cap. Exercise this through the installed issuer too.
-  assert.throws(() => runHost.issueSourceFreeRunMaterials(retainedPrepared,
+  assert.throws(() => materialsIssuer(retainedPrepared,
     retainedCompilation, retainedAdmission, retainedDefinition, {
       environment: retainedEnvironment, environmentWire, format: 'json',
       document: '\t'.repeat(65536 - Buffer.byteLength(programText)) + programText,
@@ -318,14 +343,17 @@ try {
     }), {code: 'RunHostRunMaterialsRejected'});
   const operationCapability = physicalCid('resident-operation-capability');
   const issuerCapability = physicalCid('resident-issuer-capability');
+  const executionBytes = sourceMode ? 134217728n : 1048576n;
   const budget = siteControl.prepareBudget({retainedBytes: 1048576n,
-    executionBytes: 1048576n});
-  const binding = siteControl.prepareInputBinding('{}');
-  const taskKey = JSON.parse(compiled.compiledPlan.wire).executable_plan_cid
+    executionBytes});
+  const bindingBody = sourceMode ? runHost.taskInputBinding(retainedPrepared, 0) : '{}';
+  const binding = siteControl.prepareInputBinding(bindingBody);
+  const taskKey = sourceMode ? runHost.taskKeys(retainedPrepared, retainedCompilation)[0]
+    : JSON.parse(compiled.compiledPlan.wire).executable_plan_cid
     === undefined ? 'values_0' : 'values_0';
   const dispatchFor = (dispatchId, attempt, overrides = {}) =>
     siteControl.prepare({
-      coordinatorAuthority: 'cloud-coordinator',
+      coordinatorAuthority,
       runDefinitionCid: definition.identity,
       taskKey,
       taskAttempt: attempt,
@@ -345,18 +373,18 @@ try {
     });
   const materialsEnvelope = dispatch => coordinator.pollDispatchMaterialsJson(
     coordinator.admitDispatchJson(siteControl.requestJson(dispatch),
-      siteControl.identity(dispatch)), '{}', 16, materials);
+      siteControl.identity(dispatch)), bindingBody, 8192, materials);
   const ensureOutputReceiver = async dispatch => {
     if (observationStore?.contains(dispatch, siteControl)) return;
     observationStore ??= openSqliteCoordinatorDispatchJournal(
       join(root, 'foundation-coordinator-output'),
-      {coordinatorAuthority: 'cloud-coordinator'});
+      {coordinatorAuthority});
     observationStore.accept(siteControl.prepareCoordinatorIntent(
-      siteControl.createCoordinatorJournal('cloud-coordinator'), dispatch),
+      siteControl.createCoordinatorJournal(coordinatorAuthority), dispatch),
     dispatch, siteControl);
     observationReceiver = createRemoteSiteCoordinator({
       control: siteControl,
-      journal: siteControl.createCoordinatorJournal('cloud-coordinator'),
+      journal: siteControl.createCoordinatorJournal(coordinatorAuthority),
       store: observationStore,
       authorization: await allowAllAuthorization(),
       output: value => gateway.output(value),
@@ -366,8 +394,9 @@ try {
   // The Result the Coordinator publishes, from the ordinary Client owners.
   const hostPrepared = runHost.prepare(programText, 'json',
     runHost.admitEnvironment(environmentWire, environmentCid, {rela: true}));
-  const resultDefinitionCid = runHost.resultDefinitions(hostPrepared,
-    runHost.compileValues(hostPrepared))[0].cid;
+  const resultDefinitionCid = sourceMode ? runHost.taskResultDefinitions(hostPrepared,
+    runHost.compileTasks(hostPrepared))[0].cid : runHost.resultDefinitions(hostPrepared,
+      runHost.compileValues(hostPrepared))[0].cid;
   // The Coordinator queries until the execution settled and its output
   // subject is observed; an executor entry is recorded before execution.
   const settledQuery = async (dispatch, tag) => {
@@ -388,7 +417,7 @@ try {
       publicationAttemptCid: physicalCid(`resident-publication-${tag}`),
       resultDefinitionCid,
       orderingEvidenceCid: physicalCid('resident-ordering'),
-      coordinatorAuthority: 'cloud-coordinator',
+      coordinatorAuthority,
       transferAttemptId: `resident-transfer-${tag}`,
       transferRoute: 'direct',
       destinationSite: 'cloud-results',
@@ -429,13 +458,13 @@ try {
     `${gateway.origin}/v1/sites/${siteKey}/generations/1/outbound/poll`,
     '--observation-url',
     `${gateway.origin}/v1/sites/${siteKey}/generations/1/outbound/observations`,
-    '--coordinator-authority', 'cloud-coordinator',
+    '--coordinator-authority', coordinatorAuthority,
     '--runtime-bundle-cid', envelope.runtimeBundleCid,
     '--connector-registration', 'local', '--connector-revision', 'local/1',
     '--strategy-revision', 'strategy/1',
     '--operation-capability-cid', operationCapability,
     '--issuer-capability-cid', issuerCapability,
-    '--budget-retained-bytes', '1048576', '--budget-execution-bytes', '1048576',
+    '--budget-retained-bytes', '1048576', '--budget-execution-bytes', String(executionBytes),
     '--engine-root', engineRoot, '--executor-entry-log', entryLog,
     '--transfer-cert', join(root, 'transfer.crt'),
     '--transfer-key', join(root, 'transfer.key'),
@@ -558,7 +587,161 @@ try {
   };
   let expectedEntries = 0;
 
-  if (process.argv.includes('--release-recovery-only')) {
+  if (sourceMode) {
+    const duckdbLibrary = process.env.ACTQL_TEST_DUCKDB_LIBRARY ?? join(repository,
+      'adapters/connectors/duckdb/node/node_modules/@duckdb',
+      `node-bindings-${process.platform}-${process.arch}`,
+      process.platform === 'darwin' ? 'libduckdb.dylib' : 'libduckdb.so');
+    assert.ok(existsSync(duckdbLibrary), 'Source acceptance requires the actual DuckDB library');
+    const require = createRequire(join(repository, 'adapters/connectors/duckdb/node/package.json'));
+    const {DuckDBInstance} = require('@duckdb/node-api');
+    const databasePath = join(root, 'source.duckdb');
+    const instance = await DuckDBInstance.create(databasePath);
+    const connection = await instance.connect();
+    try {
+      await connection.run('CREATE TABLE records(id DOUBLE)');
+      await connection.run('INSERT INTO records VALUES (3), (1), (2)');
+    } finally { connection.closeSync(); instance.closeSync(); }
+    for (const [name, contract] of [
+      ['query-contract.json', 'actql-query-acquisition.json'],
+      ['query-evidence-contract.json', 'actql-query-process-evidence.json'],
+      ['query-two-receipt-contract.json', 'actql-query-two-receipt.json'],
+    ]) {
+      await writeFile(join(engineRoot, name), await readFile(join(repository, 'spec/contracts', contract)));
+    }
+    const extra = ['--duckdb-library', duckdbLibrary, '--source-ref', sourceRef,
+      '--source-contract-cid', sourceContractCid, '--source-database', databasePath,
+      '--source-schema', 'main', '--source-table', 'records'];
+    const configured = (changes = {}) => {
+      const args = [...extra];
+      for (const [flag, value] of Object.entries(changes)) args[args.indexOf(flag) + 1] = value;
+      return args;
+    };
+    // Both refusals must precede holder creation. A nonexistent physical
+    // database makes an accidental acquisition observable as a different
+    // failure, rather than silently reading the permitted test database.
+    for (const [index, mode] of ['foreign-source', 'foreign-binding'].entries()) {
+      const args = configured({'--source-database': join(root, 'not-created.duckdb'),
+        ...(mode === 'foreign-source' ? {'--source-ref': 'connector://crm/main/other#v'} : {})});
+      const rejecting = startSite(args);
+      currentSite = rejecting;
+      const foreignBody = mode === 'foreign-binding'
+        ? JSON.stringify({source_contract_cid: sourceContractCid, source_ref: 'connector://crm/main/other#v'})
+        : bindingBody;
+      const foreignBinding = siteControl.prepareInputBinding(foreignBody);
+      const dispatch = dispatchFor(`source-refusal-${mode}`, 90 + index,
+        {inputBindingCid: siteControl.inputBindingIdentity(foreignBinding)});
+      const envelope = coordinator.pollDispatchMaterialsJson(coordinator.admitDispatchJson(
+        siteControl.requestJson(dispatch), siteControl.identity(dispatch)), foreignBody, 8192, materials);
+      const outcome = gateway.dispatch({dispatch, inputBindingBody: foreignBody,
+        dispatchEnvelope: envelope}).catch(error => error);
+      await waitFor(() => rejecting.lines.some(line => line.kind === 'refused' &&
+        line.reason === 'foreign-source'), mode);
+      assert.equal(gateway.withdraw({dispatch}), true);
+      assert.equal((await within(outcome, mode)).code, 'RemoteDispatchWithdrawn');
+      assert.equal((await entries()).length, 0);
+      assert.equal(rejecting.lines.some(line => line.kind === 'holder-started'), false);
+      assert.equal(existsSync(join(root, 'not-created.duckdb')), false);
+      rejecting.child.kill('SIGTERM');
+      await rejecting.exited;
+    }
+    assert.deepEqual(runHost.taskExecutionShape(retainedPrepared, retainedCompilation),
+      {taskCount: 1, acquisitionCount: 1});
+    assert.deepEqual(runHost.taskResultSchema(retainedPrepared, retainedCompilation, 'answer').fields, ['id']);
+    const site = startSite(extra);
+    currentSite = site;
+    const request = runHost.prepareTaskRequest(retainedPrepared, retainedCompilation,
+      coordinatorAuthority, 'resident-source-request');
+    const issued = runHost.issueTaskDispatch(retainedPrepared, retainedCompilation,
+      retainedAdmission, retainedDefinition, request, 0, {
+        taskAttempt: 1, dispatchId: 'resident-source-dispatch', siteKey, siteGeneration: 1,
+        runtimeBundleCid: envelope.runtimeBundleCid, connectorRegistration: 'local',
+        connectorRevision: 'local/1', strategyRevision: 'strategy/1',
+        obligationsCid: physicalCid('resident-obligations'), budgetCid: siteControl.budgetIdentity(budget),
+        evidenceIssuerCapabilityCid: issuerCapability, grantCid: operationCapability,
+      });
+    const dispatch = coordinator.admitDispatchJson(issued.wire, issued.cid);
+    const sourceDispatch = dispatchFor('resident-source-dispatch', 1);
+    assert.equal(siteControl.requestJson(sourceDispatch), issued.wire);
+    await within(gateway.dispatch({dispatch: sourceDispatch, inputBindingBody: bindingBody,
+      dispatchEnvelope: coordinator.pollDispatchMaterialsJson(dispatch, bindingBody, 8192, materials)}), 'Source dispatch');
+    const terminal = await settledQuery(sourceDispatch, 'Source');
+    const plan = await planOutput(sourceDispatch, terminal, 'source');
+    const delivered = await within(requestOutput(sourceDispatch, plan), 'Source Output');
+    const received = [];
+    await receiver.consume(transferControl.identity(plan.planned.transferRequest),
+      () => true, (_index, frame) => { received.push(Buffer.from(frame)); });
+    assert.deepEqual(JSON.parse(Buffer.concat(received).toString('utf8')), sourceRows);
+    assert.equal((await entries()).length, 1);
+    // The common payload cleanup owner must retain the responsibility while
+    // deletion is blocked; repairing permission must not execute again.
+    await chmod(publicationRoot, 0o500);
+    const releasing = within(gateway.release({dispatch: sourceDispatch}), 'Source release');
+    try {
+      await waitFor(() => site.lines.some(line => line.kind === 'cleanup-pending' &&
+        line.step === 'payload'), 'Source cleanup pending');
+      assert.ok(reservedPayloadBytes() > 0);
+      assert.equal((await entries()).length, 1);
+    } finally { await chmod(publicationRoot, 0o700); }
+    await releasing;
+    await waitFor(() => site.lines.some(line => line.kind === 'holder-released'), 'Source physical release');
+    const released = await within(gateway.query({dispatch: sourceDispatch}), 'Source release query');
+    assert.equal(released.state[2], 2);
+    assert.equal(reservedPayloadBytes(), 0);
+    assert.equal(pendingIntents().length, 0);
+    assert.equal((await entries()).length, 1);
+    const database = new DatabaseSync(journalPath, {readOnly: true});
+    try {
+      const managed = database.prepare('SELECT CAST(body AS TEXT) AS body FROM actql_records WHERE namespace = ?')
+        .all('site_managed_observation').map(row => JSON.parse(row.body));
+      const proof = managed.find(row => row.source_observation_json !== undefined);
+      assert.ok(proof, 'physical Source observation must share the managed Output transaction');
+      const observation = JSON.parse(proof.source_observation_json);
+      assert.equal(observation.run_definition_cid, definition.identity);
+      assert.equal(observation.dispatch_request_cid, issued.cid);
+      assert.equal(observation.task_ordinal, 0);
+      assert.equal(proof.source_observation_json.includes(databasePath), false);
+      const checkedSource = runHost.sourceEvidenceFacts(retainedPrepared, 0, 0);
+      const invocation = runHost.issueTaskInvocation(retainedPrepared, retainedCompilation,
+        retainedAdmission, retainedDefinition, {
+          sourceEvidenceWire: observation.source_evidence_wire,
+          inputLogicalWire: observation.input_logical_wire,
+          sourceRef: checkedSource.sourceRef, sourceContractCid: checkedSource.sourceContractCid,
+          authorityScopeCid: coordinatorAuthority, dataPolicyCid: checkedSource.sourceDataPolicyCid,
+          captureStartedAt: observation.capture_started_at,
+          captureCompletedAt: observation.capture_completed_at,
+        }, {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64});
+      assert.equal(JSON.parse(invocation.observation.wire).source_evidence_cids.length, 1);
+    } finally { database.close(); }
+    console.log(JSON.stringify({kind: 'native-resident-source-verified', runDefinitionCid: definition.identity,
+      dispatchRequestCid: issued.cid, checkedTasks: 1, executorEntries: 1, rows: sourceRows,
+      outputDelivered: !!delivered, formalRelease: true, reservedPayloadBytes: 0, pendingIntents: 0,
+      publicClientAcceptance: false}));
+    site.child.kill('SIGTERM');
+    await site.exited;
+    // Missing physical table is an acquisition failure after the ordinary
+    // exclusive start claim. Query/release never retry the provider.
+    const failing = startSite(configured({'--source-table': 'not_created'}));
+    currentSite = failing;
+    const failed = dispatchFor('source-acquisition-failed', 3);
+    await within(gateway.dispatch({dispatch: failed, inputBindingBody: bindingBody,
+      dispatchEnvelope: materialsEnvelope(failed)}), 'failing Source');
+    await waitFor(async () => (await within(gateway.query({dispatch: failed}), 'failed Source query')).state[0] === 4,
+      'Source acquisition failure');
+    assert.equal((await entries()).length, 2);
+    await within(gateway.release({dispatch: failed}), 'failed Source release');
+    const failureState = await within(gateway.query({dispatch: failed}), 'failed Source final state');
+    assert.equal(failureState.state[0], 4);
+    assert.equal(failureState.state[2], 2);
+    assert.equal((await entries()).length, 2);
+    assert.equal(reservedPayloadBytes(), 0);
+    assert.equal(pendingIntents().length, 0);
+    console.log(JSON.stringify({kind: 'native-resident-source-negatives-verified',
+      refusalsBeforeIO: 2, acquisitionFailureEntries: 1,
+      cleanupPendingRecovered: true, reservedPayloadBytes: 0, pendingIntents: 0}));
+    failing.child.kill('SIGTERM');
+    await failing.exited;
+  } else if (process.argv.includes('--release-recovery-only')) {
     // The same physical Site and journals must discharge release after a
     // bounded failure, a lost control reply, and loss of the live holder.
     const releaseModes = process.argv.includes('--release-maintenance-only') ? ['maintenance'] :

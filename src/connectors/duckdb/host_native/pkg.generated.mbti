@@ -9,6 +9,7 @@ import {
   "actql/actql/connectors/duckdb/driver",
   "actql/actql/connectors/duckdb/host",
   "actql/actql/connectors/duckdb/standard_host",
+  "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/physical_resources",
   "actql/actql/physical_strategy",
@@ -52,6 +53,8 @@ pub fn fail_next_native_resident_transaction_end(NativeStandardStrategyRun, Bool
 
 pub fn native_acquisition_runtime_output(NativeAcquisitionRuntime) -> Result[@acquisition.DuckDBNativeOutput, @host.NativeHostIssue]
 
+pub fn native_acquisition_runtime_source_capture(NativeAcquisitionRuntime) -> Result[@host.NativeHostSourceCapture, @execution_query.CapturedSourceIssue]
+
 pub fn native_compute_runtime_output(NativeComputeRuntime) -> Result[@execution_relation.CompletedOutput, NativeComputeExecutionIssue]
 
 pub fn native_resident_import_scratch_bytes(NativeComputeImportLimits, Int, Int, Int, Bool) -> Int64?
@@ -68,9 +71,13 @@ pub fn native_strategy_compute_run_task_count(NativeStrategyComputeRun) -> Int
 
 pub fn native_strategy_compute_runtime_output(NativeStrategyComputeRuntime) -> Result[@execution_relation.CompletedOutput, NativeStrategyComputeIssue]
 
+pub fn open_native_read_only_source_acquisition(NativeReadOnlySourceBinding, @host.NativeHostConfiguration, @native.Library, String) -> Result[NativeAcquisitionRuntime, NativeReadOnlySourceIssue]
+
 pub fn open_native_standard_strategy_run(@standard_host.StrategyHostDispatch, NativeComputeImportLimits, Int64, Int64, library? : @native.Library?, database_path? : String, retained_profile? : NativeStrategyRetainedOutputProfile) -> Result[NativeStandardStrategyRun, NativeStandardStrategyRunIssue]
 
 pub fn open_native_strategy_compute_run() -> NativeStrategyComputeRun
+
+pub fn prepare_native_read_only_source_binding(@host.NativeHostConfiguration, String, Int64) -> Result[NativeReadOnlySourceBinding, NativeReadOnlySourceIssue]
 
 pub fn prepare_native_standard_policy_consultation(@standard_host.StrategyHostDispatch, @http_client.Client, @trusted_clock.NativeTrustedClock, String, String, String, String, String, Int64, Int, (@physical_strategy.PolicyRequest, @physical_strategy.PolicyCandidateSet) -> Bool) -> Result[NativeStandardPolicyConsultation?, NativeStandardPolicyIssue]
 
@@ -145,6 +152,15 @@ pub(all) enum NativeParameterBindingIssue {
   Parameter(@adapter.ValueIssue)
   Runtime(@native.NativeDuckDBIssue)
 } derive(Eq, @debug.Debug)
+
+type NativeReadOnlySourceBinding
+
+pub(all) enum NativeReadOnlySourceIssue {
+  InvalidConfiguration
+  ForeignSource
+  Database(@native.NativeDuckDBIssue)
+  AcquisitionHost(@host.NativeHostIssue)
+}
 
 pub struct NativeStandardPolicyConsultation {
   dispatch : @standard_host.StrategyHostDispatch

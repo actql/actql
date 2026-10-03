@@ -64,18 +64,27 @@ test "registered fixed Compute candidates keep the same capture and Local execut
   }).unwrap()
   assert_true(
     physical_equal(
-      @connector.fixed_compute_request_input(request, 0).unwrap(),
+      @execution.fixed_relation_read_completed(
+        @connector.fixed_compute_request_input(request, 0).unwrap(),
+      ).unwrap(),
       input,
     ),
   )
   let generated = query_generated(@execution.producer_read_receiver(input))
   let exported_inputs = @connector.fixed_compute_request_inputs(request)
-  assert_true(physical_equal(exported_inputs[0], input))
+  assert_true(
+    physical_equal(
+      @execution.fixed_relation_read_completed(exported_inputs[0]).unwrap(),
+      input,
+    ),
+  )
   exported_inputs.clear()
   assert_eq(@connector.fixed_compute_request_input_count(request), 1)
   assert_true(
     physical_equal(
-      @connector.fixed_compute_request_input(request, 0).unwrap(),
+      @execution.fixed_relation_read_completed(
+        @connector.fixed_compute_request_input(request, 0).unwrap(),
+      ).unwrap(),
       input,
     ),
   )

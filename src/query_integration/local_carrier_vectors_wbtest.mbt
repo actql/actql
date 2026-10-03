@@ -3141,6 +3141,54 @@ fn supplied_ranking_fusion_owner(policy : String) -> @lower.BoundPrepared {
 }
 
 ///|
+fn mixed_ranking_fusion_owner(
+  left : @lower.BoundPrepared,
+) -> @lower.BoundPrepared {
+  let contract = "{\"domain\":\"unit.v1\",\"range\":[0,1]," +
+    "\"normalization\":\"unit.v1\"}"
+  let ranking = @vector.declare_ranking_score(
+    input_cursor(contract),
+    direct_ranking_carrier(),
+    @schema.Unqualified("score"),
+    { max_work: 1000, max_nodes: 1000, max_depth: 10, max_text_bytes: 1000, },
+  ).unwrap()
+  direct_nearest_bind(
+    @pipeline.check_with_evidence(
+      input_cursor(
+        "[{\"merge_rankings\":{\"with\":\"right\"," +
+        "\"by\":[\"q\"],\"candidate\":\"id\"," +
+        "\"score\":\"score\",\"k\":2,\"score_policy\":\"max\"," +
+        "\"score_contract\":" +
+        contract +
+        "}}]",
+      ),
+      [
+        (
+          "left",
+          @pipeline.ProducedInput(
+            @pipeline.produced_input(
+              @lower.pipeline(@lower.bound_preparation(left)),
+              @pipeline.Step(0),
+            ).unwrap(),
+          ),
+        ),
+        ("right", @pipeline.RankingInput(ranking)),
+      ],
+      None,
+      Some(input_cursor("\"left\"")),
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap(),
+  )
+}
+
+///|
 fn supplied_ranking_rows(
   owner : @lower.BoundPrepared,
   input : Int,
@@ -3759,6 +3807,106 @@ test "registered VecA provider preserves supplied score authority" {
     }
     let result = output.unwrap()
     assert_eq(@execution.completed_row_count(result), 2)
+    let fixed_inputs = inputs.map(@execution.fixed_supplied_relation_read)
+    let capacity : @connector.FixedComputeCapacity = {
+      contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+      max_rows: 10,
+      max_value_bytes: 1000,
+      common_fragment: None,
+    }
+    let request = @connector.prepare_selected_fixed_compute_request_with_inputs(
+      owner, 0, fixed_inputs, capacity,
+    ).unwrap()
+    assert_eq(@connector.fixed_compute_request_input_count(request), 2)
+    assert_true(@connector.fixed_compute_request_has_supplied_input(request))
+    let request_inputs = @connector.fixed_compute_request_inputs(request)
+    assert_eq(request_inputs.length(), 2)
+    for index in 0..<2 {
+      assert_true(
+        @execution.fixed_relation_read_same(
+          request_inputs[index],
+          fixed_inputs[index],
+        ),
+      )
+    }
+    let registry = search_registry()
+    let candidate = @local_connector.local_fixed_compute_candidate(
+      @connector.capability_registration_at(registry, 0).unwrap(),
+      request,
+      generated,
+      [],
+      { transfer_bytes: None, retained_bytes: None, money_units: None, },
+      100,
+    ).unwrap()
+    guard @connector.choose_fixed_compute_candidate(
+        registry,
+        request,
+        [@connector.prepared_compute_candidate(candidate)],
+        Some([0]),
+        100,
+      ).unwrap()
+      is Proposed(choice) else {
+      fail("supplied ranking candidate")
+    }
+    assert_true(
+      @local_connector.execute_local_fixed_compute(
+        choice,
+        candidate,
+        compute_test_limits(),
+        measurement={
+          max_work: 10000,
+          max_bytes: 10000,
+          max_nodes: 10000,
+          max_depth: 100,
+        },
+      )
+      is Err(@connector.UnsupportedInputShape),
+    )
+    assert_true(
+      @connector.prepare_selected_fixed_compute_request_with_inputs(
+        owner,
+        0,
+        [fixed_inputs[1], fixed_inputs[0]],
+        capacity,
+      )
+      is Err(@connector.UnsupportedInputShape),
+    )
+    assert_true(
+      @connector.prepare_selected_fixed_compute_request_with_inputs(
+        owner,
+        0,
+        fixed_inputs,
+        { ..capacity, max_rows: 1, },
+      )
+      is Err(@connector.CommonInputRows),
+    )
+    let anchored = @execution.anchor_completed_output_fixed_inputs(
+      result,
+      Some(0),
+      fixed_inputs,
+    ).unwrap()
+    assert_true(
+      @execution.completed_output_matches_fixed_inputs(
+        anchored,
+        Some(0),
+        fixed_inputs,
+      ),
+    )
+    assert_false(
+      @execution.completed_output_matches_fixed_inputs(anchored, Some(0), [
+        fixed_inputs[1],
+        fixed_inputs[0],
+      ]),
+    )
+    let rebound = @execution.fixed_supplied_relation_read(
+      supplied_ranking_rows(owner, 0, [(1.0, 1.0, 0.75)]),
+    )
+    assert_false(
+      @execution.completed_output_matches_fixed_inputs(anchored, Some(0), [
+        rebound,
+        fixed_inputs[1],
+      ]),
+    )
     let output_schema = @pipeline.schema_at(
       @lower.pipeline(@lower.bound_preparation(owner)),
       @pipeline.Step(0),
@@ -3792,6 +3940,213 @@ test "registered VecA provider preserves supplied score authority" {
     assert_true(
       @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
     )
+
+    let cancelled = @local_connector.start_managed_provider_with_inputs(
+      provider,
+      generated,
+      inputs.map(@local_connector.managed_provider_supplied_relation_input),
+      10,
+      1000,
+    ).unwrap()
+    assert_true(
+      @local_connector.advance_managed_provider(cancelled, 1).unwrap()
+      is @local_connector.Continue(work~, ..) &&
+      work > 0L,
+    )
+    assert_true(@local_connector.cancel_managed_provider(cancelled))
+    assert_false(@local_connector.managed_provider_stopped(cancelled))
+    assert_false(@local_connector.cleanup_managed_provider(cancelled).unwrap())
+    assert_true(inputs.all(@execution.supplied_relation_read_available))
+    assert_true(
+      @local_connector.advance_managed_provider(cancelled, 1).unwrap()
+      is @local_connector.Stopped(_),
+    )
+    assert_true(@local_connector.managed_provider_stopped(cancelled))
+    assert_true(@local_connector.cleanup_managed_provider(cancelled).unwrap())
+    assert_true(inputs.all(@execution.supplied_relation_read_available))
+  }
+}
+
+///|
+test "fixed Compute retains ordered completed and supplied input identities" {
+  let left = direct_ranking_owner()
+  let owner = mixed_ranking_fusion_owner(left)
+  let output = direct_ranking_output(left, [(1.0, 1.0, 0.75)])
+  let completed = @execution.prepare_producer_read(
+    owner,
+    @execution.bind_completed_input(owner, 0, left, output).unwrap(),
+    1000,
+    10000,
+  ).unwrap()
+  let supplied = supplied_ranking_rows(owner, 1, [(1.0, 2.0, 0.5)])
+  let expected = [
+    @execution.fixed_completed_relation_read(completed),
+    @execution.fixed_supplied_relation_read(supplied),
+  ]
+  let capacity : @connector.FixedComputeCapacity = {
+    contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+    max_rows: 10,
+    max_value_bytes: 1000,
+    common_fragment: None,
+  }
+  let request = @connector.prepare_selected_fixed_compute_request_with_inputs(
+    owner, 0, expected, capacity,
+  ).unwrap()
+  assert_eq(@connector.fixed_compute_request_input_count(request), 2)
+  assert_true(@connector.fixed_compute_request_has_supplied_input(request))
+  let exported = @connector.fixed_compute_request_inputs(request)
+  assert_eq(exported.length(), 2)
+  for index in 0..<2 {
+    assert_true(
+      @execution.fixed_relation_read_same(exported[index], expected[index]),
+    )
+    assert_true(
+      @execution.fixed_relation_read_same(
+        @connector.fixed_compute_request_input(request, index).unwrap(),
+        expected[index],
+      ),
+    )
+  }
+  assert_true(exported[0] is @execution.CompletedRelation(_))
+  assert_true(exported[1] is @execution.SuppliedRelation(_))
+  exported.clear()
+  assert_eq(@connector.fixed_compute_request_inputs(request).length(), 2)
+  assert_true(
+    @connector.prepare_selected_fixed_compute_request_with_inputs(
+      owner,
+      0,
+      [expected[1], expected[0]],
+      capacity,
+    )
+    is Err(@connector.UnsupportedInputShape),
+  )
+  let registry = search_registry()
+  assert_true(
+    @duckdb_compute.duckdb_fixed_compute_candidate(
+      @connector.capability_registration_at(registry, 1).unwrap(),
+      request,
+      "owned_input",
+      native_compile_limits(),
+      [],
+      { transfer_bytes: None, retained_bytes: None, money_units: None, },
+      100,
+    )
+    is Err(Request(UnsupportedInputShape)),
+  )
+}
+
+///|
+test "supplied scored ranking uses bounded materializing execution" {
+  for cancel in [false, true] {
+    let owner = supplied_ranking_fusion_owner("\"max\"")
+    let inputs = [
+      supplied_ranking_rows(owner, 0, [(1.0, 1.0, 0.75), (1.0, 2.0, 0.5)]),
+      supplied_ranking_rows(owner, 1, [(1.0, 1.0, 0.5), (1.0, 3.0, 0.5)]),
+    ]
+    let generated = task_test_generated(owner)
+    let limits = dispatch_test_limits()
+    let measurement : @execution.FixedInputGuardMeasureLimits = {
+      max_work: 10000,
+      max_bytes: 10000,
+      max_nodes: 10000,
+      max_depth: 100,
+    }
+    let provider = @local_veca_provider.provider(
+      carrier_vectors_storage_limits(),
+      4096L,
+      @execution.generated_sequence_capacity(
+        generated,
+        limits.local_execution,
+        limits.guards,
+      ).unwrap(),
+    )
+    let request = @connector.prepare_selected_fixed_compute_request_with_inputs(
+      owner,
+      0,
+      inputs.map(input => @execution.fixed_supplied_relation_read(input)),
+      {
+        contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+        max_rows: 10,
+        max_value_bytes: 1000,
+        common_fragment: None,
+      },
+    ).unwrap()
+    let registry = search_registry()
+    let candidate = @local_connector.local_fixed_compute_candidate(
+      @connector.capability_registration_at(registry, 0).unwrap(),
+      request,
+      generated,
+      [],
+      { transfer_bytes: None, retained_bytes: None, money_units: None, },
+      100,
+    ).unwrap()
+    guard @connector.choose_fixed_compute_candidate(
+        registry,
+        request,
+        [@connector.prepared_compute_candidate(candidate)],
+        Some([0]),
+        100,
+      ).unwrap()
+      is Proposed(choice) else {
+      fail("supplied ranking candidate")
+    }
+    let prepared = @local_connector.prepare_local_materializing_execution(
+      choice,
+      candidate,
+      limits.local_execution,
+      measurement,
+      @local_connector.local_default_import_limits(
+        limits.local_execution,
+        measurement,
+      ),
+      _ => @strategy.RunIssue::Compute(InvalidLimits),
+      family_providers=[provider],
+    ).unwrap()
+    let (attempt, lifecycle) = @connector.start_prepared_execution_lifecycle(
+      prepared,
+    ).unwrap()
+    let mut advances = 0
+    while true {
+      let step = @local_connector.advance_local_materializing_attempt(
+        attempt, 1,
+      ).unwrap()
+      assert_true(step.work <= 1L)
+      advances += 1
+      if cancel {
+        assert_true(step.work > 0L)
+        assert_false(step.complete)
+        assert_true(
+          @local_connector.cancel_local_materializing_attempt(attempt),
+        )
+        assert_false(@local_connector.local_materializing_stopped(attempt))
+        assert_true(inputs.all(@execution.supplied_relation_read_available))
+        assert_true(
+          @local_connector.advance_local_materializing_attempt(attempt, 1)
+          is Err(State),
+        )
+        assert_true(@local_connector.local_materializing_stopped(attempt))
+        assert_true(
+          @local_connector.local_materializing_completed_output(attempt) is None,
+        )
+        assert_true(inputs.all(@execution.supplied_relation_read_available))
+        break
+      }
+      if step.complete {
+        break
+      }
+      assert_true(step.work > 0L)
+      assert_true(advances < 10000)
+    }
+    if !cancel {
+      assert_true(advances > 1)
+      (lifecycle.settled)()
+      let output = @local_connector.local_materializing_completed_output(
+        attempt,
+      ).unwrap()
+      assert_eq(@execution.completed_row_count(output), 2)
+    }
+    assert_true(@local_connector.local_materializing_stopped(attempt))
+    @local_connector.close_local_materializing_attempt(attempt)
   }
 }
 

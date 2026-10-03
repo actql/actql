@@ -9,6 +9,8 @@ import {
 // Values
 pub fn coordinator_accepted_site_output(@remote_site_protocol.DurableCoordinatorDispatchRecord) -> Result[Array[String]?, @remote_site_protocol.DispatchIssue]
 
+pub fn coordinator_accepted_source_observation(@remote_site_protocol.DurableCoordinatorDispatchRecord) -> Array[String]?
+
 pub fn coordinator_admission_durable_json(@remote_site_protocol.CoordinatorDispatchIntentAdmission) -> Result[String, @remote_site_protocol.DispatchIssue]
 
 pub fn coordinator_admit_checked_output_plan(@remote_site_protocol.DurableCoordinatorDispatchRecord, String, String, String, Int, Int, Int64) -> Result[CoordinatorCheckedOutputPlan, @remote_site_protocol.DispatchIssue]

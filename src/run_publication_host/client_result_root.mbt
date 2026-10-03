@@ -126,6 +126,33 @@ pub fn issue_prepared_client_direct_task_result_root(
 }
 
 ///|
+// A captured acquisition has no Compute target. Its checked acquisition
+// capture still identifies the exact producer Result port; do not invent a
+// Compute step merely to export that already produced Relation.
+fn client_publication_task_target(
+  value : PreparedClientProgram,
+  task : Int,
+) -> @pipeline.Target? {
+  let graph = value.graph
+  match @strategy.graph_task_target(graph, task) {
+    Some(target) => Some(target)
+    None => {
+      if task != 0 || @strategy.graph_captured_prefix(graph) != 1 {
+        return None
+      }
+      guard @strategy.graph_task_unit_index(graph, task) is Some(stage) else {
+        return None
+      }
+      match prepare_client_query_acquisition(value, stage, 0) {
+        Ok(acquisition) =>
+          Some(@acquisition.query_acquisition_capture(acquisition))
+        Err(_) => None
+      }
+    }
+  }
+}
+
+///|
 fn issue_prepared_client_direct_result_root_for_output(
   value : PreparedClientProgram,
   result : Int,
@@ -142,7 +169,7 @@ fn issue_prepared_client_direct_result_root_for_output(
     return Err(MissingResult)
   }
   let port = @execution.managed_result_occurrence_port(occurrence)
-  guard @strategy.graph_task_target(graph, task) is Some(target) &&
+  guard client_publication_task_target(value, task) is Some(target) &&
     @results.port_target(port) == target else {
     return Err(RequiresResultTransformation)
   }
