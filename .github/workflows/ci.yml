@@ -79,6 +79,8 @@ jobs:
       - name: Validate actual retained foundation history
         run: node proofs/relation-pipeline/history.mjs --write
       - run: npm ci
+      - name: Test pipeline artifact and aggregate contracts
+        run: node --test proofs/relation-pipeline/ci-artifacts.test.mjs
       - name: Test declaration provenance validators
         if: needs.select-targets.outputs.profile == 'declaration'
         run: node --test proofs/relation-pipeline/foundation.test.mjs proofs/relation-pipeline/history.test.mjs proofs/relation-pipeline/foundation-integration.test.mjs
@@ -271,7 +273,11 @@ jobs:
         run: node proofs/relation-pipeline/ci-artifacts.mjs begin mutations
       - name: Reject invalid pipeline scopes and shrinking substitutions
         run: |
-          node --test proofs/relation-pipeline/*.test.mjs proofs/relation-pipeline/capacity/backing/*.test.mjs
+          tests=()
+          for test in proofs/relation-pipeline/*.test.mjs; do
+            if [[ "$test" != proofs/relation-pipeline/ci-artifacts.test.mjs ]]; then tests+=("$test"); fi
+          done
+          node --test "${tests[@]}" proofs/relation-pipeline/capacity/backing/*.test.mjs
           node proofs/relation-pipeline/ci-artifacts.mjs stage mutations focused
       - name: Verify the three-operation baseline at this same source
         run: |
