@@ -1387,6 +1387,7 @@ pub(all) enum ClientRunCancellationAction {
 pub(all) enum ClientRunCompilation {
   Values(ClientValuesCompilation)
   Tasks(ClientTaskCompilation)
+  Effects(ClientEffectAllowedRun)
 }
 
 pub(all) struct ClientRunMaterials {
