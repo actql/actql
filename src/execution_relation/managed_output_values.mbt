@@ -9,8 +9,8 @@ struct ManagedOutputValues {
   buffer : AdmittedRowBuffer
   measurement : FixedInputGuardBudget
   initial : FixedInputGuardMeasureLimits
-  producer : FixedProducerMeasurement?
-  managed_producer : ManagedProducerMeasurement?
+  mut producer : FixedProducerMeasurement?
+  mut managed_producer : ManagedProducerMeasurement?
   column_usage : Array[(Int, Int)]
   column_maxima : Array[Int]
   column_nulls : Array[Int]
@@ -21,6 +21,8 @@ struct ManagedOutputValues {
   mut rows : Int
   mut open : Bool
   mut reading : Bool
+  mut active_uses : Int
+  mut disposal_requested : Bool
   mut issue : FixedInputGuardIssue?
 }
 
@@ -107,6 +109,8 @@ pub fn prepare_managed_output_values(
     rows: 0,
     open: true,
     reading: false,
+    active_uses: 0,
+    disposal_requested: false,
     issue: None,
   })
 }
@@ -116,6 +120,10 @@ pub fn cancel_managed_output_values(value : ManagedOutputValues) -> Bool {
   if !value.open {
     return false
   }
+  if value.active_uses != 0 {
+    dispose_managed_output_values_scratch(value)
+    return true
+  }
   value.open = false
   if value.row_measurements is Some(index) {
     discard_managed_row_measurements(index)
@@ -123,6 +131,76 @@ pub fn cancel_managed_output_values(value : ManagedOutputValues) -> Bool {
   value.reference_rows.clear()
   cancel_admitted_buffer(value.buffer) |> ignore
   true
+}
+
+///|
+/// Retire only admission-owned scratch. A finished receipt keeps its copied
+/// facts and transferred index; it remains available under its separate owner.
+/// This is safe after cancellation, failed finish, or successful completion.
+pub fn dispose_managed_output_values_scratch(
+  value : ManagedOutputValues,
+) -> Unit {
+  value.disposal_requested = true
+  value.open = false
+  value.buffer.open = false
+  // Revocation is immediate; destructive cleanup waits for stack ownership
+  // to unwind, including callbacks within measurement and representation IO.
+  if value.active_uses != 0 || value.buffer.reading {
+    return
+  }
+  // A reserved view/verification port also uses reading. Once every active
+  // frame has returned, disposal ends that reservation as well.
+  value.reading = false
+  if value.row_measurements is Some(index) {
+    discard_managed_row_measurements(index)
+    value.row_measurements = None
+  }
+  value.buffer.rows.clear()
+  value.buffer.rows.shrink_to_fit()
+  value.reference_rows.clear()
+  value.reference_rows.shrink_to_fit()
+  value.column_usage.clear()
+  value.column_usage.shrink_to_fit()
+  value.column_maxima.clear()
+  value.column_maxima.shrink_to_fit()
+  value.column_nulls.clear()
+  value.column_nulls.shrink_to_fit()
+  value.producer = None
+  value.managed_producer = None
+}
+
+///|
+/// Observe real released roots without driving cleanup. Active admission may
+/// still hold a callback's temporary values until that frame has returned.
+pub fn managed_output_values_scratch_released(
+  value : ManagedOutputValues,
+) -> Bool {
+  !value.open &&
+  value.active_uses == 0 &&
+  !value.reading &&
+  !value.buffer.reading &&
+  value.buffer.rows.capacity() == 0 &&
+  value.reference_rows.capacity() == 0 &&
+  value.column_usage.capacity() == 0 &&
+  value.column_maxima.capacity() == 0 &&
+  value.column_nulls.capacity() == 0 &&
+  value.row_measurements is None &&
+  value.producer is None &&
+  value.managed_producer is None
+}
+
+///|
+fn[A] with_managed_output_scratch_use(
+  value : ManagedOutputValues,
+  action : () -> A,
+) -> A {
+  value.active_uses += 1
+  let result = action()
+  value.active_uses -= 1
+  if value.disposal_requested {
+    dispose_managed_output_values_scratch(value)
+  }
+  result
 }
 
 ///|
@@ -136,6 +214,20 @@ pub fn managed_output_values_schema(
 /// Initial value validation remains mandatory. Measurements are per top-level
 /// value, not row-array JSON bytes; their measuring writer has no text/hash sink.
 pub fn append_managed_output_values(
+  stream : ManagedOutputValues,
+  width : Int,
+  read : (Int) -> @admitted.CheckedValue?,
+) -> Result[Unit, ManagedOutputValueIssue] {
+  if stream.active_uses != 0 {
+    return Err(Closed)
+  }
+  with_managed_output_scratch_use(stream, fn() {
+    append_managed_output_values_active(stream, width, read)
+  })
+}
+
+///|
+fn append_managed_output_values_active(
   stream : ManagedOutputValues,
   width : Int,
   read : (Int) -> @admitted.CheckedValue?,
@@ -182,6 +274,20 @@ pub fn append_completed_projection_managed_values(
   output : CompletedOutput,
   row : Int,
 ) -> Result[Unit, ManagedOutputValueIssue] {
+  if stream.active_uses != 0 {
+    return Err(Closed)
+  }
+  with_managed_output_scratch_use(stream, fn() {
+    append_completed_projection_managed_values_active(stream, output, row)
+  })
+}
+
+///|
+fn append_completed_projection_managed_values_active(
+  stream : ManagedOutputValues,
+  output : CompletedOutput,
+  row : Int,
+) -> Result[Unit, ManagedOutputValueIssue] {
   if !stream.open || stream.reading || !completed_output_available(output) {
     return Err(Closed)
   }
@@ -221,6 +327,24 @@ pub fn append_completed_projection_managed_wire(
   wire : RowWireLimits,
   decode : RetainedRowDecodeLimits,
 ) -> Result[Unit, ManagedOutputValueIssue] {
+  if stream.active_uses != 0 {
+    return Err(Closed)
+  }
+  with_managed_output_scratch_use(stream, fn() {
+    append_completed_projection_managed_wire_active(
+      stream, output, row, wire, decode,
+    )
+  })
+}
+
+///|
+fn append_completed_projection_managed_wire_active(
+  stream : ManagedOutputValues,
+  output : CompletedOutput,
+  row : Int,
+  wire : RowWireLimits,
+  decode : RetainedRowDecodeLimits,
+) -> Result[Unit, ManagedOutputValueIssue] {
   if !stream.open ||
     stream.reading ||
     !completed_output_matches_port(output, stream.owner, stream.target) ||
@@ -242,7 +366,7 @@ pub fn append_completed_projection_managed_wire(
     Ok(value) => value
     Err(_) => return Err(Admission(InvalidCheckedRow))
   }
-  append_managed_output_values(stream, values.length(), column => {
+  append_managed_output_values_active(stream, values.length(), column => {
     values.get(column)
   })
 }
@@ -269,6 +393,16 @@ fn managed_output_row_start(
 
 ///|
 fn managed_output_row_finish(
+  stream : ManagedOutputValues,
+) -> Result[Unit, ManagedOutputValueIssue] {
+  stream.reading = true
+  let result = finish_managed_output_row_active(stream)
+  stream.reading = false
+  result
+}
+
+///|
+fn finish_managed_output_row_active(
   stream : ManagedOutputValues,
 ) -> Result[Unit, ManagedOutputValueIssue] {
   if !stream.open {
@@ -311,6 +445,11 @@ fn managed_output_row_finish(
       }
     }
   }
+  // Reference availability is a Host callback. Disposal may have retired
+  // admission while the active frame still held the row and reference roots.
+  if !stream.open {
+    return Err(Closed)
+  }
   stream.reference_rows.push(references)
   // Admission keeps running after a deferred measurement failure, as in the old
   // streamed output path. No successful receipt may conceal that failure.
@@ -323,19 +462,48 @@ fn managed_output_row_finish(
 pub fn finish_managed_output_values(
   stream : ManagedOutputValues,
 ) -> Result[ManagedOutputValueReceipt, ManagedOutputValueIssue] {
+  if stream.active_uses != 0 {
+    return Err(Closed)
+  }
+  with_managed_output_scratch_use(stream, fn() {
+    finish_managed_output_values_scoped(stream)
+  })
+}
+
+///|
+fn finish_managed_output_values_scoped(
+  stream : ManagedOutputValues,
+) -> Result[ManagedOutputValueReceipt, ManagedOutputValueIssue] {
   if !stream.open || stream.reading {
     return Err(Closed)
   }
+  stream.reading = true
+  let result = finish_managed_output_values_active(stream)
+  // A finish attempt remains terminal even when a callback rejects its input.
+  stream.open = false
+  stream.buffer.open = false
+  stream.reading = false
+  result
+}
+
+///|
+fn finish_managed_output_values_active(
+  stream : ManagedOutputValues,
+) -> Result[ManagedOutputValueReceipt, ManagedOutputValueIssue] {
   for row, cells in stream.reference_rows {
     for column, references in cells {
       if references.any(reference => !@admitted.reference_available(reference)) {
         cancel_managed_output_values(stream) |> ignore
         return Err(ReferenceUnavailable(row, column))
       }
+      if !stream.open {
+        return Err(Closed)
+      }
     }
   }
-  stream.open = false
-  stream.buffer.open = false
+  if !stream.open {
+    return Err(Closed)
+  }
   let fixed_measurement = match stream.producer {
     None => None
     Some(producer) => {
@@ -379,6 +547,13 @@ pub fn finish_managed_output_values(
       )
     }
   }
+  // Keep the stream open while invoking availability callbacks; reading
+  // prevents reentry, and disposal can still revoke this active finish.
+  if !stream.open {
+    return Err(Closed)
+  }
+  stream.open = false
+  stream.buffer.open = false
   if stream.issue is Some(issue) {
     return Err(Guard(issue))
   }
@@ -404,7 +579,7 @@ pub fn finish_managed_output_values(
     Ok(value) => value
     Err(_) => return Err(Guard(InvalidLayout))
   }
-  Ok({
+  let receipt : ManagedOutputValueReceipt = {
     carrier_receipt,
     owner: stream.owner,
     target: stream.target,
@@ -426,7 +601,11 @@ pub fn finish_managed_output_values(
     }),
     measured_depth: stream.measurement.depth,
     row_measurements: stream.row_measurements,
-  })
+  }
+  // The receipt now owns the index. Later admission-scratch disposal must not
+  // revoke or clear the separately retained successful output.
+  stream.row_measurements = None
+  Ok(receipt)
 }
 
 ///|

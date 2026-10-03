@@ -16,6 +16,25 @@ const relationNumber = (name, nullable = false) => ({name,
 // amount before id. Plain FROM retains that order, independently of the
 // insertion order of keys in the sourceRows objects above.
 const sourceColumns = [relationNumber('amount', true), relationNumber('id')];
+// The ordered DATA repro has two roots, append, one hidden sort slot and LIMIT.
+// The packed harness reuses main's independently authored JSON control.
+export const relationDataSuccesses = [
+  {name: 'data-set-order-reuses-hidden-slot', format: 'aql-text',
+    text: 'DATA n = SELECT 2 AS id UNION ALL SELECT 1 AS other ORDER BY id + 1, id + 1 DESC LIMIT 1; FROM n |> SELECT id |> RESULT nodes',
+    results: {nodes: {rows: [{id: 1}], columns: [relationNumber('id')]}}, sourceReadCount: 0},
+  {name: 'data-quoted-set-order', format: 'aql-text',
+    text: 'DATA `n` = SELECT 2 AS id UNION ALL SELECT 1 AS other ORDER BY id; FROM `n` |> SELECT id |> RESULT nodes',
+    results: {nodes: {rows: [{id: 1}, {id: 2}], columns: [relationNumber('id')]}}, sourceReadCount: 0},
+  {name: 'data-retained-results', format: 'aql-text',
+    text: 'DATA n = SELECT 2 AS id; FROM n |> RESULT original |> WHERE id > 0 |> RESULT active',
+    results: {original: {rows: [{id: 2}], columns: [relationNumber('id')]},
+      active: {rows: [{id: 2}], columns: [relationNumber('id')]}}, sourceReadCount: 0},
+];
+export const relationDataRefusals = [
+  {name: 'data-forward-reference', format: 'aql-text', text: 'DATA n = FROM later |> SELECT id; DATA later = SELECT 1 AS id; FROM n |> SELECT id'},
+  {name: 'data-duplicate', format: 'aql-text', text: 'DATA n = SELECT 1 AS id; DATA `N` = SELECT 2 AS id; FROM n |> SELECT id'},
+  {name: 'data-sql-format', format: 'sql', text: 'DATA n = SELECT 1 AS id; FROM n |> SELECT id'},
+];
 export const pipeResultSuccesses = [
   {name: 'result-exact-string-prefix', format: 'sql',
     text: "SELECT r'\\n' 'e\\u0301' AS value |> RESULT original |> SET value = '\\r\\néx' |> RESULT updated",
