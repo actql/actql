@@ -1,0 +1,100 @@
+{
+  "audited_source_sha": "ba3d6d12891f884b1bb55bb4d67bf043d4a58a94",
+  "status": "independent audit obligations",
+  "cases": [
+    {
+      "name": "cte-left-join-null-multiplicity",
+      "format": "sql",
+      "sourceRows": [
+        {
+          "id": 1,
+          "amount": null
+        },
+        {
+          "id": 2,
+          "amount": 20
+        },
+        {
+          "id": 3,
+          "amount": 20
+        }
+      ],
+      "text": "WITH all_rows AS (SELECT id, amount FROM records), selected AS (SELECT id, amount FROM records WHERE id = 2) SELECT l.amount, r.id AS matched FROM all_rows AS l LEFT JOIN selected AS r ON l.amount = r.amount ORDER BY l.id",
+      "rows": [
+        {
+          "amount": null,
+          "matched": null
+        },
+        {
+          "amount": 20,
+          "matched": 2
+        },
+        {
+          "amount": 20,
+          "matched": 2
+        }
+      ],
+      "columns": [
+        {
+          "name": "amount",
+          "contract": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        {
+          "name": "matched",
+          "contract": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      ]
+    },
+    {
+      "name": "cte-inner-join-null-multiplicity",
+      "format": "sql",
+      "sourceRows": [
+        {
+          "id": 1,
+          "amount": null
+        },
+        {
+          "id": 2,
+          "amount": 20
+        },
+        {
+          "id": 3,
+          "amount": 20
+        }
+      ],
+      "text": "WITH all_rows AS (SELECT id, amount FROM records), selected AS (SELECT id, amount FROM records WHERE id = 2) SELECT l.amount, r.id AS matched FROM all_rows AS l INNER JOIN selected AS r ON l.amount = r.amount ORDER BY l.id",
+      "rows": [
+        {
+          "amount": 20,
+          "matched": 2
+        },
+        {
+          "amount": 20,
+          "matched": 2
+        }
+      ],
+      "columns": [
+        {
+          "name": "amount",
+          "contract": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        {
+          "name": "matched",
+          "contract": {
+            "type": "number",
+            "nullable": false
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -163,6 +163,24 @@ the runtime was not repacked for those harness corrections.
 | local-node | `a87efa0d9fa9621842f9c13fae74db2cad1f9c8f5b58a15a290045e6bde81c5c` |
 | node | `89a340b9d0a80c4ade483e471c06a5503f81c347ced3a17f3c4e4d4a21b1eb64` |
 
+## Discriminating NULL and JOIN multiplicity controls
+
+[Two authored CTE JOIN cases](../../spec/frontend/fixtures/semantic-audit/join-null-cases.json)
+contrast LEFT and INNER with the same input: `id=[1,2,3]`,
+`amount=[NULL,20,20]`. A second CTE keeps only `id=2`; the JOIN condition is
+`l.amount = r.amount`, not `true`. LEFT must retain the NULL-extended first
+row and two identical projected matches; INNER must retain the two matches
+without that first row. Ordering is by the qualified, non-output `l.id`.
+
+All 4 Local/HTTP comparisons pass on the same unchanged external main runtime.
+They confirm the authored rows (including duplicates), ordered columns
+`amount,matched`, their nullable contracts, complete streams, exactly one
+shared Source acquisition and no additional acquisition on retry/attach/read.
+These controls distinguish a lost ON condition, changed JOIN kind, NULL-equals-
+NULL treatment, duplicate elimination and qualified-input sorting. They do not
+establish every JOIN or NULL combination or change the three outstanding
+regressions into passes.
+
 ## Read-only checks and remaining coverage
 
 Inspected ordinary/CTE/set/JOIN LIMIT and OFFSET lowering retains `take.count`
