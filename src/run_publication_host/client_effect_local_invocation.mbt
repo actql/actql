@@ -160,22 +160,26 @@ pub fn issue_acquired_client_effect_local_invocation(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  unit? : Int = 0,
 ) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue] {
   let program = @checked.effect_program_static_checked_computation(
     owner.candidate,
   )
   let graph = @strategy.checked_effect_computation_graph(owner.graph)
-  guard @strategy.graph_task_owner(graph, 0) is Some(first) &&
-    @checked.unit_definition_cid(program, 0) is Some(definition) &&
-    @checked.unit_used_values_cid(program, 0) is Some(values) &&
-    @checked.unit_contracts_cid(program, 0) is Some(contracts) &&
-    @checked.unit_pipeline(program, 0) is Some(pipeline) else {
+  if unit < 0 || unit >= @strategy.graph_captured_prefix(graph) {
+    return Err(MissingUnit)
+  }
+  guard @strategy.graph_task_owner(graph, unit) is Some(first) &&
+    @checked.unit_definition_cid(program, unit) is Some(definition) &&
+    @checked.unit_used_values_cid(program, unit) is Some(values) &&
+    @checked.unit_contracts_cid(program, unit) is Some(contracts) &&
+    @checked.unit_pipeline(program, unit) is Some(pipeline) else {
     return Err(MissingUnit)
   }
   let source_owner = @checked.source_identity(@strategy.graph_program(graph))
   if @pipeline.starts_with_values(pipeline) ||
-    @checked.unit_result_import_count(program, 0) != Some(0) ||
-    @checked.unit_import_cid_count(program, 0) != Some(0) ||
+    @checked.unit_result_import_count(program, unit) != Some(0) ||
+    @checked.unit_import_cid_count(program, unit) != Some(0) ||
     !@query.captured_source_matches(captured, source_owner, first) ||
     !@query.captured_source_relation_identity_matches_source(identity, captured) ||
     !physical_equal(
@@ -216,7 +220,7 @@ pub fn issue_acquired_client_effect_local_invocation(
   }
   issue_client_effect_local_invocation_body(
     owner,
-    0,
+    unit,
     definition,
     values,
     contracts,

@@ -26,7 +26,8 @@ function ownedStage(stage, code) {
       !stage.apply || !stage.receipt || !stage.publication ||
       !Array.isArray(stage.scopes) || stage.scopes.length === 0 ||
       typeof stage.continuationWire !== 'string' ||
-      stage.dispose !== undefined && typeof stage.dispose !== 'function') {
+      stage.dispose !== undefined && typeof stage.dispose !== 'function' ||
+      stage.releaseInputs !== undefined && typeof stage.releaseInputs !== 'function') {
     fail(code);
   }
   return stage;
@@ -136,6 +137,13 @@ function cleanupCustody(physical, requirePhysical = false) {
   let disposed = false;
   let release;
   let released = false;
+  let inputsReleased = false;
+  const releaseInputs = async () => {
+    if (!inputsReleased && typeof stage?.releaseInputs === 'function') {
+      await stage.releaseInputs();
+      inputsReleased = true;
+    }
+  };
   return Object.freeze({
     attachPhysical(value) {
       if (physical !== undefined && physical !== value ||
@@ -156,11 +164,19 @@ function cleanupCustody(physical, requirePhysical = false) {
       }
       release = operation;
     },
-    async close() { await physical?.close(); },
+    async close() {
+      // Effect execution has stopped before dispatch custody closes. Its
+      // consumer pins must go before the borrowed Compute output can reclaim.
+      let failure;
+      try { await releaseInputs(); } catch (error) { failure = error; }
+      try { await physical?.close(); } catch (error) { failure ??= error; }
+      if (failure !== undefined) throw failure;
+    },
     async cleanup() {
       // Opening may have begun physical work before returning an owner.
       // Missing custody is not evidence that the operation stopped.
       if (requirePhysical && physical === undefined) return false;
+      await releaseInputs();
       const cleaned = await physical?.cleanup() ?? true;
       if (cleaned === false || physical?.cleanupPending() === true) {
         return false;

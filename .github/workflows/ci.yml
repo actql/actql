@@ -773,6 +773,10 @@ jobs:
         with:
           directory: ${{ steps.packed-result-description.outputs.evidence-directory }}
           name: packed-result-description-${{ github.sha }}
+      - name: Test packed Source JOIN INFER Effect approval and process recovery
+        # One installation of this job's exact tarballs covers ordinary Source
+        # and composed Programs on Local/HTTPS; flags only narrow local probes.
+        run: node scripts/test-packed-salesforce-source.mjs
   # These source-backed checks need no packed artifact or other Client job.
   client-salesforce:
     needs: [select-targets, preflight]

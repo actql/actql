@@ -1,6 +1,7 @@
 ///|
 pub(all) enum ClientEffectCompilationIssue {
   UnsupportedProgram
+  ForeignInferOwner
   EffectPlan(@stage_results.EffectPlanBindingIssue)
   Graph(ClientTaskPlanGraphIssue)
   Template(ClientTaskBoundTemplateIssue)
@@ -78,9 +79,9 @@ pub fn client_effect_compilation_result_transformation(
 }
 
 ///|
-/// Compile a Values Effect Unit or an acquired root feeding one Effect Unit.
-/// Existing task lowering owns the supported Relation operations. Command
-/// Effects and other multi-Unit plans are rejected explicitly.
+/// Compile a Values Effect Unit or independent acquired roots feeding Local
+/// computation and a final Effect Unit. Existing task lowering and the checked
+/// graph own supported operations and input edges. Command Effects are refused.
 pub fn issue_prepared_client_effect_compilation(
   owner : PreparedClientEffectComputation,
   manifests : ClientCompilationManifests,
@@ -90,12 +91,13 @@ pub fn issue_prepared_client_effect_compilation(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  infer? : ClientInferPlanGraph? = None,
 ) -> Result[ClientEffectCompilation, ClientEffectCompilationIssue] {
   let graph = @strategy.checked_effect_computation_graph(owner.graph)
   let headers = @checked.effect_program_static_headers(owner.candidate)
   let count = @syntax.effect_header_count(headers)
   let units = @checked.unit_count(@strategy.graph_program(graph))
-  if (units != 1 && units != 2) ||
+  if units < 1 ||
     count == 0 ||
     count > max_nodes ||
     @strategy.checked_effect_source_count(owner.graph) != count {
@@ -115,16 +117,49 @@ pub fn issue_prepared_client_effect_compilation(
     @pipeline.starts_with_values(
       @lower.pipeline(@lower.bound_preparation(first)),
     )
-  let acquired = units == 2 &&
-    @pipeline.input_count(pipeline) == 1 &&
-    prepare_client_query_acquisition(client_effect_program_view(owner), 0, 0)
-    is Ok(_)
+  let prefix = @strategy.graph_captured_prefix(graph)
+  // Preserve the existing single-acquisition shape. The plural increment
+  // may contain downstream Local Units after the independently checked pair.
+  let mut acquired = (prefix == 1 && units == 2) || (prefix == 2 && units > 2)
+  if acquired {
+    for stage in 0..<prefix {
+      if prepare_client_query_acquisition(
+          client_effect_program_view(owner),
+          stage,
+          0,
+        )
+        is Err(_) {
+        acquired = false
+        break
+      }
+    }
+  }
   if !source_free && !acquired {
     return Err(UnsupportedProgram)
   }
   // This private compiler view contains the same graph, source and Effects.
   // It is never returned as an Effect-free preparation or checked again.
-  let value = client_effect_program_view(owner)
+  let value = match infer {
+    None => client_effect_program_view(owner)
+    Some(infer) => {
+      if !physical_equal(infer.owner.graph, graph) ||
+        !physical_equal(infer.owner.source, owner.source) ||
+        infer.owner.check_environment_cid != owner.check_environment_cid {
+        return Err(ForeignInferOwner)
+      }
+      infer.owner
+    }
+  }
+  let required_profiles = match infer {
+    None => []
+    Some(_) =>
+      [
+        (
+          "actql-infer/0.1",
+          @environment.compiler_inference_barrier_contract_cid(),
+        ),
+      ]
+  }
   let roots : Array[(String, Int)] = []
   let plan_cids : Array[(String, String)] = []
   let names : Array[String] = []
@@ -180,14 +215,26 @@ pub fn issue_prepared_client_effect_compilation(
   }
   let task_graph = match
     issue_client_task_plan_graph(
-      value, sequence_limits, max_wire_bytes, max_nodes, max_depth, true, roots,
+      value,
+      sequence_limits,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      true,
+      roots,
+      infer~,
     ) {
     Ok(graph) => graph
     Err(issue) => return Err(Graph(issue))
   }
   let template = match
     issue_client_task_bound_template(
-      value, manifests, max_wire_bytes, max_nodes, max_depth,
+      value,
+      manifests,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      required_profiles~,
     ) {
     Ok(template) => template
     Err(issue) => return Err(Template(issue))
@@ -216,6 +263,7 @@ pub fn issue_prepared_client_effect_compilation(
       max_wire_bytes,
       max_nodes,
       max_depth,
+      required_profiles~,
     ) {
     Ok(plan) => plan
     Err(issue) => return Err(Plan(issue))
@@ -229,6 +277,7 @@ pub fn issue_prepared_client_effect_compilation(
       max_wire_bytes,
       max_nodes,
       max_depth,
+      infer~,
     ) {
     Ok(compiled) => compiled
     Err(issue) => return Err(Compilation(issue))
@@ -252,11 +301,19 @@ pub fn admit_prepared_client_effect_compilation(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  infer? : ClientInferPlanGraph? = None,
 ) -> Result[ClientEffectCompilation, ClientEffectCompilationAdmissionIssue] {
   let issued = match
     issue_prepared_client_effect_compilation(
-      owner, manifests, sequence_limits, max_facts, max_witnesses, max_wire_bytes,
-      max_nodes, max_depth,
+      owner,
+      manifests,
+      sequence_limits,
+      max_facts,
+      max_witnesses,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      infer~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Issue(issue))
@@ -340,6 +397,29 @@ pub fn client_effect_allowed_run_admission(
   value : ClientEffectAllowedRun,
 ) -> @publication.RunPublicationAdmission {
   value.admission
+}
+
+///|
+/// The Model component consumes the original Effect Run's admission. The
+/// original checked Effect owner stays retained in this compilation variant;
+/// no separate Effect-free Run, authorization or public Program is issued.
+pub fn client_effect_allowed_infer_run(
+  value : ClientEffectAllowedRun,
+) -> Result[ClientCompiledRun, ClientCompiledRunIssue] {
+  let compilation = value.compilation
+  guard compilation.compiled.infer is Some(plan) &&
+    physical_equal(plan.owner, compilation.compiled.owner) else {
+    return Err(ForeignOwner)
+  }
+  Ok({
+    owner: compilation.compiled.owner,
+    compilation: Effects(value),
+    template: compilation.compiled.template,
+    plan: compilation.compiled.compiled_plan,
+    prepared: value.prepared,
+    authorization: value.authorization,
+    admission: value.admission,
+  })
 }
 
 ///|

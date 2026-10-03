@@ -26,7 +26,7 @@
     "check:run-host-core": "node scripts/build-runtime-packages.mjs run-host-core coordinator-core && npm run check:run-host-types && node --test packages/run-host-core/index.test.mjs adapters/host-common/publication-action.test.mjs adapters/host-common/result-access-clock.test.mjs adapters/host-common/result-delivery.test.mjs && node scripts/test-packed-run-host-core.mjs",
     "check:run-host-types": "tsc --noEmit --strict --module NodeNext --moduleResolution NodeNext --target ES2022 packages/run-host-core/types.negative.test.ts",
     "check:client-types": "tsc --noEmit --strict --module NodeNext --moduleResolution NodeNext --target ES2022 packages/sdk/index.d.ts packages/sdk/host-port.d.ts packages/client-wire/index.d.ts",
-    "check:local-node-assets": "node scripts/build-runtime-packages.mjs local-node && node scripts/build-local-node-adapters.mjs && node scripts/build-local-node-adapters.mjs --check && node scripts/test-packed-local-node-assets.mjs && node scripts/test-packed-salesforce-source.mjs",
+    "check:local-node-assets": "node scripts/build-runtime-packages.mjs local-node && node scripts/build-local-node-adapters.mjs && node scripts/build-local-node-adapters.mjs --check && node scripts/test-packed-local-node-assets.mjs",
     "check:native-separated-network": "bash scripts/test-native-separated-network.sh",
     "check:native-remote-runtime": "node scripts/test-native-remote-runtime.mjs",
     "check:connector-addition": "node scripts/check-duckdb-environment-contract.mjs && node --test scripts/connector-addition-wire-dependency.test.mjs && node scripts/check-connector-addition.mjs",

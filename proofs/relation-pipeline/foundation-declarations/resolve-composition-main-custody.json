@@ -1,0 +1,56 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-composition-main-custody",
+  "kind": "resolution",
+  "revision": "0f8a402ddad56d8da193b7061464514381d73b63",
+  "parents": [
+    "4a3820d44ba942506118cc310c5a3997b077150f",
+    "4116239f9527e4decffca1b63705dd0abfafd3c2"
+  ],
+  "inputs": [
+    "capacity-adopt-cb8707e36ba9",
+    "capacity-adopt-cc13922878b2",
+    "issue-180-foundation-composition",
+    "mutation-workspace-audit-compatibility",
+    "mutation-workspace-fixture-ownership",
+    "mutation-workspace-isolation"
+  ],
+  "changes": [
+    {
+      "path": "proofs/relation-pipeline/execute.mjs",
+      "before": [
+        {
+          "revision": "4a3820d44ba942506118cc310c5a3997b077150f",
+          "digest": "ddbd463f9eccba06825302d84c55b65b2ffc51142e266dd337de48ad71cd1539",
+          "mode": "100644"
+        },
+        {
+          "revision": "4116239f9527e4decffca1b63705dd0abfafd3c2",
+          "digest": "22aa0daf586433031edff777dbb80c8a71e32fa6a6f7816bed6d80616a87e176",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "ddbd463f9eccba06825302d84c55b65b2ffc51142e266dd337de48ad71cd1539",
+      "afterMode": "100644",
+      "reason": "Compose current main workspace isolation with the adopted common capacity custody. Preserve main's per-workspace executor, exact fixture ownership, terminal idempotent close and receipt retention; retain the capacity campaign explicit close and protect both main and custody regression sources. Historical foundations and prior declarations remain immutable."
+    },
+    {
+      "path": "proofs/relation-pipeline/history.mjs",
+      "before": [
+        {
+          "revision": "4a3820d44ba942506118cc310c5a3997b077150f",
+          "digest": "5a7441a7740f0389c282fa82ff9cb91e1af99074128514d35f87cfa961662d5b",
+          "mode": "100644"
+        },
+        {
+          "revision": "4116239f9527e4decffca1b63705dd0abfafd3c2",
+          "digest": "68e98629c27f3aaf519246baa902f5d84a1c527356c0217b049e897e84f89ec2",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "dc6d36411561943613fc915f3bf011ee6a811b47ac68f4690371c4d9caad301b",
+      "afterMode": "100644",
+      "reason": "Compose current main workspace isolation with the adopted common capacity custody. Preserve main's per-workspace executor, exact fixture ownership, terminal idempotent close and receipt retention; retain the capacity campaign explicit close and protect both main and custody regression sources. Historical foundations and prior declarations remain immutable."
+    }
+  ]
+}

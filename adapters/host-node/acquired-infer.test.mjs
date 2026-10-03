@@ -75,6 +75,7 @@ async function runAcquiredInfer({authored, boundary}, t) {
   let calls = 0;
   let egressIssueKind;
   let run;
+  const observed = [];
   let started;
   const startedRun = new Promise(resolve => { started = resolve; });
   let cancelled = false;
@@ -139,6 +140,7 @@ async function runAcquiredInfer({authored, boundary}, t) {
         sourceProfilePath, modelInstallation: installation,
         authorization: {accountConfiguration,
           observe(name, detail) {
+            observed.push({name, detail});
             if (name === 'infer_replay_failed') rejectReplay(detail);
           },
           faultInjection: async name => {
@@ -233,7 +235,10 @@ async function runAcquiredInfer({authored, boundary}, t) {
           ref: run.ref, calls}));
         return;
       }
-      if (terminal.status !== 'succeeded') t.diagnostic(inspect(terminal, {depth: 8}));
+      if (terminal.status !== 'succeeded') {
+        t.diagnostic(inspect(terminal, {depth: 8}));
+        t.diagnostic(inspect(observed, {depth: 8}));
+      }
       assert.equal(terminal.status, 'succeeded');
       assert.deepEqual(await run.result('answer').all(), [
         {id: 1, outcome: 'ok', value: {reason: null, risk: 'high'}},

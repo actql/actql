@@ -11,6 +11,7 @@ import { parentOverlay, helper, paths } from './overlay.mjs';
 import { auditParentStartup, parentCase, directory } from './audit.mjs';
 import { rejectParentSubstitutions } from './regression.mjs';
 import { checkParentCensus, inspectParentCorePhases } from './bounds.mjs';
+import { inspectProviderConstruction } from './provider-construction.mjs';
 
 // The C reader borrows existing roots only for this synchronous call.
 // It never stores a MoonBit pointer, changes RC, or adds a persistent holder.
@@ -62,6 +63,9 @@ try {
     case: testCase, observation, execution,
     scope: 'two-child native startup requested object extents; not a full parent upper bound or total-reservation violation',
     unconditionalAllocationBytes: false };
+  report.providerConstruction = inspectProviderConstruction(
+    observation.faults.filter(f => f.kind === 'provider construction observation'),
+    path => originals[path] ?? read(path), 'native');
   report.retainedCore = inspectParentCorePhases(testCase,
     observation.faults.find(f => f.kind === 'parent control investigation'),
     observation.faults.filter(f => f.kind === 'parent core observation'), 'native');

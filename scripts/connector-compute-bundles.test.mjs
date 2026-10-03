@@ -84,8 +84,24 @@ test('declarations cannot inject code or move implementation ownership into core
     {resource_policy: {configuration: 'Settings', prepare: 'prepare', install: 'install', work_slots: 'slots', extra: true}},
     {dispatch_error: {package: '../../elsewhere', type: 'Issue'}},
     {estimate_error: {package: good.manifest.package, type: 'Issue', extra: true}},
+    {managed_start_error: {package: '../../elsewhere', type: 'Issue'}},
+    {managed_start_error: {package: good.manifest.package, type: 'Issue); abort()'}},
+    {managed_start_error: {package: good.manifest.package, type: 'Issue', extra: true}},
   ]) {
     assert.throws(() => generateComputeAssembly([{...good, manifest: {...good.manifest, ...update}}]));
   }
   assert.throws(() => generateComputeAssembly([good, good]));
+});
+
+test('managed start has an explicit error type independent of dispatch', () => {
+  const reference = entry('reference_compute');
+  assert.notDeepEqual(reference.manifest.managed_start_error,
+    reference.manifest.dispatch_error);
+  assert.doesNotThrow(() => generateComputeAssembly([reference]));
+  for (const key of ['managed_start', 'managed_start_result', 'managed_start_error']) {
+    const manifest = {...reference.manifest};
+    delete manifest[key];
+    assert.throws(() => generateComputeAssembly([{...reference, manifest}]),
+      /declaration/);
+  }
 });

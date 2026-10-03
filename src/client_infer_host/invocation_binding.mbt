@@ -33,7 +33,10 @@ pub fn bind_run(
   compiled : @publication_host.ClientCompiledRun,
   definition : @publication.PublicationContract,
 ) -> Result[Unit, InvocationBindingIssue] {
-  if !@publication_host.client_compiled_run_matches(compiled, active.prepared) ||
+  if !@publication_host.client_infer_occurrence_matches_compiled_run(
+      active.occurrence,
+      compiled,
+    ) ||
     @publication_host.check_client_compiled_run_definition(compiled, definition)
     is Err(_) {
     return Err(ForeignRun)
@@ -136,7 +139,10 @@ pub fn bind_invocation(
     @publication.publication_contract_identity(definition) else {
     return Err(ForeignRun)
   }
-  if !@publication_host.client_compiled_run_matches(compiled, active.prepared) ||
+  if !@publication_host.client_infer_occurrence_matches_compiled_run(
+      active.occurrence,
+      compiled,
+    ) ||
     @publication_host.check_client_compiled_run_definition(compiled, definition)
     is Err(_) {
     return Err(ForeignRun)
@@ -165,8 +171,8 @@ pub fn bind_invocation(
       invocation,
       @publication_host.client_infer_call_scope_artifact(scope),
       data_policy_cid,
-      source=active.acquired_input.map(
-        @publication_host.client_infer_captured_input_observation,
+      sources=@publication_host.client_infer_call_scope_source_observations(
+        scope,
       ),
     ) {
     Err(issue) => return Err(Evidence(issue))

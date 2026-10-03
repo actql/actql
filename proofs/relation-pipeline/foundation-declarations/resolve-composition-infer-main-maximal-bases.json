@@ -1,0 +1,439 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-composition-infer-main-maximal-bases",
+  "kind": "resolution",
+  "revision": "19b0b464b983695c68df60d601016bb25a4fd06d",
+  "parents": [
+    "4a4f4f10eb9723e3537c2b0fb444fca20dd28f33",
+    "88fbcc95306abb4fc41f0d488bcc6d38ec19506d"
+  ],
+  "mergeBases": [
+    "8b21ddd3f4a17fcecbb9bcf5878082148af0aa99",
+    "8baa87fc6b6cb7d7caa981cef1692c9d73d88318"
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-343a5565c1ac",
+    "adopt-3877b637406b",
+    "adopt-63b114ad524b",
+    "adopt-678626b010b4",
+    "adopt-7427f7f09276",
+    "adopt-985dbbba2789",
+    "adopt-9a7c592a8ed9",
+    "adopt-b480cffb6e6d",
+    "adopt-bf2d058c21c1",
+    "adopt-dafff1a1aeea",
+    "adopt-f24288853c19",
+    "bounded-local-execution-guard",
+    "bounded-session-action-input-report",
+    "bounded-session-action-input-timing",
+    "capacity-adopt-cb8707e36ba9",
+    "capacity-adopt-cc13922878b2",
+    "ci-portable-pr-targets",
+    "client-ci-runner-context",
+    "client-ci-split",
+    "composition-custody-executor-fixture",
+    "issue-180-foundation-composition",
+    "main-pr225-ci-resolution",
+    "mutation-workspace-audit-compatibility",
+    "mutation-workspace-fixture-ownership",
+    "mutation-workspace-isolation",
+    "packed-acquired-infer-acceptance",
+    "packed-composed-infer-effect-acceptance",
+    "parallel-pipeline-evidence",
+    "parent-startup-main-integration-f2550ea4567d",
+    "pr164-main-a32-verification-resolution",
+    "pr164-main4f-runtime-check-resolution",
+    "pr164-property-graph-source",
+    "remove-duplicate-runtime-package-checks",
+    "resolve-acquired-infer-client-ci",
+    "resolve-composition-main-custody",
+    "resolve-local-guard-acquired-infer-ci",
+    "resolve-local-guard-pipeline-ci",
+    "resolve-local-guard-portable-pr-ci",
+    "resolve-main-local-guard-ci",
+    "resolve-main-model-backing",
+    "resolve-parallel-pipeline-main-infer",
+    "sdk-cancel-response-loss-registration"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "4a4f4f10eb9723e3537c2b0fb444fca20dd28f33",
+          "digest": "af952021226a05d4177e6b657baa5b16e18a453b98352905712a908891552e94",
+          "mode": "100644"
+        },
+        {
+          "revision": "88fbcc95306abb4fc41f0d488bcc6d38ec19506d",
+          "digest": "a22ee792f4b836c7d950d8f89f0f8266701e2516557a1718ea4399604b1a3783",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "a4df329184a39cc1203a2908a7536ea13f7ff653301ddf02e64dd3b9d3920526",
+      "afterMode": "100644",
+      "reason": "Retain the actual composition/main integration of shared capacity custody, isolated evidence workspaces and acquired INFER acceptance. Preserve the historical CI registration and bounded local guard from both parents; this record adds missing merge evidence without modifying any historical source or declaration."
+    },
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "4a4f4f10eb9723e3537c2b0fb444fca20dd28f33",
+          "digest": "455df8240635aedf6878438ceeed06806781535a3af1436583af540866f5ef91",
+          "mode": "100644"
+        },
+        {
+          "revision": "88fbcc95306abb4fc41f0d488bcc6d38ec19506d",
+          "digest": "a564c8fef5bbc0da1c5df2872148d3bead5be9da79124d76031b775f5d1372d4",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "3bf739c2d4cd0059010250e82894afcda948f549abd3973b6eb2870f7ec83cf6",
+      "afterMode": "100644",
+      "reason": "Retain the actual composition/main integration of shared capacity custody, isolated evidence workspaces and acquired INFER acceptance. Preserve the historical CI registration and bounded local guard from both parents; this record adds missing merge evidence without modifying any historical source or declaration."
+    },
+    {
+      "path": "proofs/bounded-session/evidence.test.mjs",
+      "before": [
+        {
+          "revision": "4a4f4f10eb9723e3537c2b0fb444fca20dd28f33",
+          "digest": "db1b18abcb943dcfc1152dc45af6931c0da10a4f3763bbe10eb3fd28986487c1",
+          "mode": "100644"
+        },
+        {
+          "revision": "88fbcc95306abb4fc41f0d488bcc6d38ec19506d",
+          "digest": "db1b18abcb943dcfc1152dc45af6931c0da10a4f3763bbe10eb3fd28986487c1",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "db1b18abcb943dcfc1152dc45af6931c0da10a4f3763bbe10eb3fd28986487c1",
+      "afterMode": "100644",
+      "reason": "Retain the actual composition/main integration of shared capacity custody, isolated evidence workspaces and acquired INFER acceptance. Preserve the historical CI registration and bounded local guard from both parents; this record adds missing merge evidence without modifying any historical source or declaration."
+    },
+    {
+      "path": "proofs/bounded-session/run.mjs",
+      "before": [
+        {
+          "revision": "4a4f4f10eb9723e3537c2b0fb444fca20dd28f33",
+          "digest": "8e7f98a7a0c9674ac0ad8917c117e99c93d5cb525ba2c7ceb2a9a0f63984190c",
+          "mode": "100644"
+        },
+        {
+          "revision": "88fbcc95306abb4fc41f0d488bcc6d38ec19506d",
+          "digest": "8e7f98a7a0c9674ac0ad8917c117e99c93d5cb525ba2c7ceb2a9a0f63984190c",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "8e7f98a7a0c9674ac0ad8917c117e99c93d5cb525ba2c7ceb2a9a0f63984190c",
+      "afterMode": "100644",
+      "reason": "Retain the actual composition/main integration of shared capacity custody, isolated evidence workspaces and acquired INFER acceptance. Preserve the historical CI registration and bounded local guard from both parents; this record adds missing merge evidence without modifying any historical source or declaration."
+    },
+    {
+      "path": "proofs/relation-pipeline/audit.mjs",
+      "before": [
+        {
+          "revision": "4a4f4f10eb9723e3537c2b0fb444fca20dd28f33",
+          "digest": "b2e5a5c6ccb94ae53ea5c3654925ceede8c29f17bb661df57f0e6a713e77d970",
+          "mode": "100644"
+        },
+        {
+          "revision": "88fbcc95306abb4fc41f0d488bcc6d38ec19506d",
+          "digest": "b2e5a5c6ccb94ae53ea5c3654925ceede8c29f17bb661df57f0e6a713e77d970",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "b2e5a5c6ccb94ae53ea5c3654925ceede8c29f17bb661df57f0e6a713e77d970",
+      "afterMode": "100644",
+      "reason": "Retain the actual composition/main integration of shared capacity custody, isolated evidence workspaces and acquired INFER acceptance. Preserve the historical CI registration and bounded local guard from both parents; this record adds missing merge evidence without modifying any historical source or declaration."
+    },
+    {
+      "path": "proofs/relation-pipeline/capacity/finish.mjs",
+      "before": [
+        {
+          "revision": "4a4f4f10eb9723e3537c2b0fb444fca20dd28f33",
+          "digest": "5d9961e50caec4c4ac3e59e4f4d2385ec7e72b5a028b48bba5311684efbf274c",
+          "mode": "100644"
+        },
+        {
+          "revision": "88fbcc95306abb4fc41f0d488bcc6d38ec19506d",
+          "digest": "5d9961e50caec4c4ac3e59e4f4d2385ec7e72b5a028b48bba5311684efbf274c",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "5d9961e50caec4c4ac3e59e4f4d2385ec7e72b5a028b48bba5311684efbf274c",
+      "afterMode": "100644",
+      "reason": "Retain the actual composition/main integration of shared capacity custody, isolated evidence workspaces and acquired INFER acceptance. Preserve the historical CI registration and bounded local guard from both parents; this record adds missing merge evidence without modifying any historical source or declaration."
+    },
+    {
+      "path": "proofs/relation-pipeline/current-foundation.md",
+      "before": [
+        {
+          "revision": "4a4f4f10eb9723e3537c2b0fb444fca20dd28f33",
+          "digest": "b320fc8087624c3eb5e3ca75e16fb3ffa1bb1b5846260d4dac3567a0260f5cbc",
+          "mode": "100644"
+        },
+        {
+          "revision": "88fbcc95306abb4fc41f0d488bcc6d38ec19506d",
+          "digest": "b320fc8087624c3eb5e3ca75e16fb3ffa1bb1b5846260d4dac3567a0260f5cbc",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "b320fc8087624c3eb5e3ca75e16fb3ffa1bb1b5846260d4dac3567a0260f5cbc",
+      "afterMode": "100644",
+      "reason": "Retain the actual composition/main integration of shared capacity custody, isolated evidence workspaces and acquired INFER acceptance. Preserve the historical CI registration and bounded local guard from both parents; this record adds missing merge evidence without modifying any historical source or declaration."
+    },
+    {
+      "path": "proofs/relation-pipeline/execute.mjs",
+      "before": [
+        {
+          "revision": "4a4f4f10eb9723e3537c2b0fb444fca20dd28f33",
+          "digest": "ddbd463f9eccba06825302d84c55b65b2ffc51142e266dd337de48ad71cd1539",
+          "mode": "100644"
+        },
+        {
+          "revision": "88fbcc95306abb4fc41f0d488bcc6d38ec19506d",
+          "digest": "ddbd463f9eccba06825302d84c55b65b2ffc51142e266dd337de48ad71cd1539",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "ddbd463f9eccba06825302d84c55b65b2ffc51142e266dd337de48ad71cd1539",
+      "afterMode": "100644",
+      "reason": "Retain the actual composition/main integration of shared capacity custody, isolated evidence workspaces and acquired INFER acceptance. Preserve the historical CI registration and bounded local guard from both parents; this record adds missing merge evidence without modifying any historical source or declaration."
+    },
+    {
+      "path": "proofs/relation-pipeline/execute.test.mjs",
+      "before": [
+        {
+          "revision": "4a4f4f10eb9723e3537c2b0fb444fca20dd28f33",
+          "digest": "831b457ade30bf207f7b2dc3865efde6fc8c40e91e18af56606c29bc82f2f601",
+          "mode": "100644"
+        },
+        {
+          "revision": "88fbcc95306abb4fc41f0d488bcc6d38ec19506d",
+          "digest": "831b457ade30bf207f7b2dc3865efde6fc8c40e91e18af56606c29bc82f2f601",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "831b457ade30bf207f7b2dc3865efde6fc8c40e91e18af56606c29bc82f2f601",
+      "afterMode": "100644",
+      "reason": "Retain the actual composition/main integration of shared capacity custody, isolated evidence workspaces and acquired INFER acceptance. Preserve the historical CI registration and bounded local guard from both parents; this record adds missing merge evidence without modifying any historical source or declaration."
+    },
+    {
+      "path": "proofs/relation-pipeline/executor-close.test.mjs",
+      "before": [
+        {
+          "revision": "4a4f4f10eb9723e3537c2b0fb444fca20dd28f33",
+          "digest": "d541a3ac8fa6a1f6edf976e278bf6c92fe2ed1b4df80069660e4c82ff1434c2c",
+          "mode": "100644"
+        },
+        {
+          "revision": "88fbcc95306abb4fc41f0d488bcc6d38ec19506d",
+          "digest": "e99f942a77405b36a1d2afca65d549a18fc141cc54c97b672cca1cab8b42f6d1",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "e99f942a77405b36a1d2afca65d549a18fc141cc54c97b672cca1cab8b42f6d1",
+      "afterMode": "100644",
+      "reason": "Retain the actual composition/main integration of shared capacity custody, isolated evidence workspaces and acquired INFER acceptance. Preserve the historical CI registration and bounded local guard from both parents; this record adds missing merge evidence without modifying any historical source or declaration."
+    },
+    {
+      "path": "proofs/relation-pipeline/fixture.mjs",
+      "before": [
+        {
+          "revision": "4a4f4f10eb9723e3537c2b0fb444fca20dd28f33",
+          "digest": "a365a348c7dbab19cf4498b011a198b6588cabbfe3bd187c9d2b49af789d6450",
+          "mode": "100644"
+        },
+        {
+          "revision": "88fbcc95306abb4fc41f0d488bcc6d38ec19506d",
+          "digest": "a365a348c7dbab19cf4498b011a198b6588cabbfe3bd187c9d2b49af789d6450",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "a365a348c7dbab19cf4498b011a198b6588cabbfe3bd187c9d2b49af789d6450",
+      "afterMode": "100644",
+      "reason": "Retain the actual composition/main integration of shared capacity custody, isolated evidence workspaces and acquired INFER acceptance. Preserve the historical CI registration and bounded local guard from both parents; this record adds missing merge evidence without modifying any historical source or declaration."
+    },
+    {
+      "path": "proofs/relation-pipeline/fixture.test.mjs",
+      "before": [
+        {
+          "revision": "4a4f4f10eb9723e3537c2b0fb444fca20dd28f33",
+          "digest": "4362179f875066d5b19475e973dde6e07c5472c49b2cd1fd40f2e8b5fff96a9a",
+          "mode": "100644"
+        },
+        {
+          "revision": "88fbcc95306abb4fc41f0d488bcc6d38ec19506d",
+          "digest": "4362179f875066d5b19475e973dde6e07c5472c49b2cd1fd40f2e8b5fff96a9a",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "4362179f875066d5b19475e973dde6e07c5472c49b2cd1fd40f2e8b5fff96a9a",
+      "afterMode": "100644",
+      "reason": "Retain the actual composition/main integration of shared capacity custody, isolated evidence workspaces and acquired INFER acceptance. Preserve the historical CI registration and bounded local guard from both parents; this record adds missing merge evidence without modifying any historical source or declaration."
+    },
+    {
+      "path": "proofs/relation-pipeline/fixtures/execution-driver.mjs",
+      "before": [
+        {
+          "revision": "4a4f4f10eb9723e3537c2b0fb444fca20dd28f33",
+          "digest": "2543a046d978b935fea369b39136085fd655ae90e21f6162ddcf09e28bf56223",
+          "mode": "100644"
+        },
+        {
+          "revision": "88fbcc95306abb4fc41f0d488bcc6d38ec19506d",
+          "digest": "2543a046d978b935fea369b39136085fd655ae90e21f6162ddcf09e28bf56223",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "2543a046d978b935fea369b39136085fd655ae90e21f6162ddcf09e28bf56223",
+      "afterMode": "100644",
+      "reason": "Retain the actual composition/main integration of shared capacity custody, isolated evidence workspaces and acquired INFER acceptance. Preserve the historical CI registration and bounded local guard from both parents; this record adds missing merge evidence without modifying any historical source or declaration."
+    },
+    {
+      "path": "proofs/relation-pipeline/fixtures/mutation-driver.mjs",
+      "before": [
+        {
+          "revision": "4a4f4f10eb9723e3537c2b0fb444fca20dd28f33",
+          "digest": "dd7643cb316783ad2c2d2de3a56eafa210b94fd227ab4c469402fdb2727baf61",
+          "mode": "100644"
+        },
+        {
+          "revision": "88fbcc95306abb4fc41f0d488bcc6d38ec19506d",
+          "digest": "dd7643cb316783ad2c2d2de3a56eafa210b94fd227ab4c469402fdb2727baf61",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "dd7643cb316783ad2c2d2de3a56eafa210b94fd227ab4c469402fdb2727baf61",
+      "afterMode": "100644",
+      "reason": "Retain the actual composition/main integration of shared capacity custody, isolated evidence workspaces and acquired INFER acceptance. Preserve the historical CI registration and bounded local guard from both parents; this record adds missing merge evidence without modifying any historical source or declaration."
+    },
+    {
+      "path": "proofs/relation-pipeline/history.mjs",
+      "before": [
+        {
+          "revision": "4a4f4f10eb9723e3537c2b0fb444fca20dd28f33",
+          "digest": "dc6d36411561943613fc915f3bf011ee6a811b47ac68f4690371c4d9caad301b",
+          "mode": "100644"
+        },
+        {
+          "revision": "88fbcc95306abb4fc41f0d488bcc6d38ec19506d",
+          "digest": "dc6d36411561943613fc915f3bf011ee6a811b47ac68f4690371c4d9caad301b",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "dc6d36411561943613fc915f3bf011ee6a811b47ac68f4690371c4d9caad301b",
+      "afterMode": "100644",
+      "reason": "Retain the actual composition/main integration of shared capacity custody, isolated evidence workspaces and acquired INFER acceptance. Preserve the historical CI registration and bounded local guard from both parents; this record adds missing merge evidence without modifying any historical source or declaration."
+    },
+    {
+      "path": "proofs/relation-pipeline/inventory.mjs",
+      "before": [
+        {
+          "revision": "4a4f4f10eb9723e3537c2b0fb444fca20dd28f33",
+          "digest": "659294a751e7fdfbac4709171c56a9c290770392e71adb0e39c322d250c89b63",
+          "mode": "100644"
+        },
+        {
+          "revision": "88fbcc95306abb4fc41f0d488bcc6d38ec19506d",
+          "digest": "659294a751e7fdfbac4709171c56a9c290770392e71adb0e39c322d250c89b63",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "659294a751e7fdfbac4709171c56a9c290770392e71adb0e39c322d250c89b63",
+      "afterMode": "100644",
+      "reason": "Retain the actual composition/main integration of shared capacity custody, isolated evidence workspaces and acquired INFER acceptance. Preserve the historical CI registration and bounded local guard from both parents; this record adds missing merge evidence without modifying any historical source or declaration."
+    },
+    {
+      "path": "proofs/relation-pipeline/mutations.mjs",
+      "before": [
+        {
+          "revision": "4a4f4f10eb9723e3537c2b0fb444fca20dd28f33",
+          "digest": "1397d1252b43f542d9eda3bb551c60dee06f4f705a2287e14423190571ac395c",
+          "mode": "100644"
+        },
+        {
+          "revision": "88fbcc95306abb4fc41f0d488bcc6d38ec19506d",
+          "digest": "1397d1252b43f542d9eda3bb551c60dee06f4f705a2287e14423190571ac395c",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "1397d1252b43f542d9eda3bb551c60dee06f4f705a2287e14423190571ac395c",
+      "afterMode": "100644",
+      "reason": "Retain the actual composition/main integration of shared capacity custody, isolated evidence workspaces and acquired INFER acceptance. Preserve the historical CI registration and bounded local guard from both parents; this record adds missing merge evidence without modifying any historical source or declaration."
+    },
+    {
+      "path": "proofs/relation-pipeline/mutations.test.mjs",
+      "before": [
+        {
+          "revision": "4a4f4f10eb9723e3537c2b0fb444fca20dd28f33",
+          "digest": "93d55a224f3dfc8aa36d5e1a61da8a5c797ba1338c0be1b2fd1a68760335d29d",
+          "mode": "100644"
+        },
+        {
+          "revision": "88fbcc95306abb4fc41f0d488bcc6d38ec19506d",
+          "digest": "93d55a224f3dfc8aa36d5e1a61da8a5c797ba1338c0be1b2fd1a68760335d29d",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "93d55a224f3dfc8aa36d5e1a61da8a5c797ba1338c0be1b2fd1a68760335d29d",
+      "afterMode": "100644",
+      "reason": "Retain the actual composition/main integration of shared capacity custody, isolated evidence workspaces and acquired INFER acceptance. Preserve the historical CI registration and bounded local guard from both parents; this record adds missing merge evidence without modifying any historical source or declaration."
+    },
+    {
+      "path": "proofs/relation-pipeline/workspaces.mjs",
+      "before": [
+        {
+          "revision": "4a4f4f10eb9723e3537c2b0fb444fca20dd28f33",
+          "digest": "823e9d4f633ab350b10666a7240834a8e3ca930bd89532873e9fe2b2cd2cef3d",
+          "mode": "100644"
+        },
+        {
+          "revision": "88fbcc95306abb4fc41f0d488bcc6d38ec19506d",
+          "digest": "823e9d4f633ab350b10666a7240834a8e3ca930bd89532873e9fe2b2cd2cef3d",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "823e9d4f633ab350b10666a7240834a8e3ca930bd89532873e9fe2b2cd2cef3d",
+      "afterMode": "100644",
+      "reason": "Retain the actual composition/main integration of shared capacity custody, isolated evidence workspaces and acquired INFER acceptance. Preserve the historical CI registration and bounded local guard from both parents; this record adds missing merge evidence without modifying any historical source or declaration."
+    },
+    {
+      "path": "proofs/relation-pipeline/workspaces.test.mjs",
+      "before": [
+        {
+          "revision": "4a4f4f10eb9723e3537c2b0fb444fca20dd28f33",
+          "digest": "56ad70d82477c1f7283499228d5786d25839202ba0a51fc1261135350ad617f1",
+          "mode": "100644"
+        },
+        {
+          "revision": "88fbcc95306abb4fc41f0d488bcc6d38ec19506d",
+          "digest": "56ad70d82477c1f7283499228d5786d25839202ba0a51fc1261135350ad617f1",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "56ad70d82477c1f7283499228d5786d25839202ba0a51fc1261135350ad617f1",
+      "afterMode": "100644",
+      "reason": "Retain the actual composition/main integration of shared capacity custody, isolated evidence workspaces and acquired INFER acceptance. Preserve the historical CI registration and bounded local guard from both parents; this record adds missing merge evidence without modifying any historical source or declaration."
+    },
+    {
+      "path": "scripts/local-checks.mjs",
+      "before": [
+        {
+          "revision": "4a4f4f10eb9723e3537c2b0fb444fca20dd28f33",
+          "digest": "2d62841fbb560af82c7c4308ec183b84bdca15e5499715a6df925969859ea732",
+          "mode": "100644"
+        },
+        {
+          "revision": "88fbcc95306abb4fc41f0d488bcc6d38ec19506d",
+          "digest": "38a760e2666261c88634817726d7874545f7f051a782a5ab16f39b49ff64e437",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "38a760e2666261c88634817726d7874545f7f051a782a5ab16f39b49ff64e437",
+      "afterMode": "100644",
+      "reason": "Retain the actual composition/main integration of shared capacity custody, isolated evidence workspaces and acquired INFER acceptance. Preserve the historical CI registration and bounded local guard from both parents; this record adds missing merge evidence without modifying any historical source or declaration."
+    }
+  ]
+}

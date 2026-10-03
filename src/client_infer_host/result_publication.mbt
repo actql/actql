@@ -31,12 +31,13 @@ pub fn start_result_publication(
   guard !binding.output_use.released &&
     binding.issuance is Some(issued) &&
     !issued.reclaimed &&
-    invocation_binding_output(binding) is Some(completed) else {
+    invocation_binding_output(binding) is Some(completed) &&
+    binding.output_use.owner.prepared is Some(prepared) else {
     return Err(InvalidState)
   }
   let selection = match
     @publication_host.prepare_client_result_transformation(
-      binding.output_use.owner.prepared,
+      prepared,
       result,
       limits.schema.max_bytes,
       limits.schema.max_nodes,

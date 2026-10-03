@@ -3,6 +3,7 @@ package "actql/actql/workers_conformance"
 
 import {
   "actql/actql/connector_sdk",
+  "actql/actql/connectors/reference_compute",
   "actql/actql/connectors_workers",
   "actql/actql/connectors_workers_async",
   "actql/actql/effect_application",
@@ -2610,6 +2611,7 @@ pub(all) suberror AsyncHostFailure {
   RemoteCredential(@remote_credential.RemoteCredentialIssue)
   RemoteBundle(@remote_bundle.RemoteBundleIssue)
   PhysicalManifest(@physical_manifest.PhysicalManifestIssue)
+  ReferenceComputeManagedStart(@reference_compute.PlanIssue)
 }
 
 pub(all) suberror NodeHostFailure {
@@ -2636,6 +2638,7 @@ pub(all) suberror NodeHostFailure {
   RemoteCredential(@remote_credential.RemoteCredentialIssue)
   RemoteBundle(@remote_bundle.RemoteBundleIssue)
   PhysicalManifest(@physical_manifest.PhysicalManifestIssue)
+  LocalManagedStart(@actql/actql/connectors/local/driver.LocalDispatchIssue)
 }
 
 pub suberror ProbeFailure {

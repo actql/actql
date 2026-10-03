@@ -2,6 +2,7 @@
 pub(all) enum ClientRunCompilation {
   Values(ClientValuesCompilation)
   Tasks(ClientTaskCompilation)
+  Effects(ClientEffectAllowedRun)
 }
 
 ///|
@@ -25,6 +26,7 @@ pub(all) enum ClientCompiledRunIssue {
   Contract(@publication.PublicationContractIssue)
   ValuesBinding(ClientValuesRunBindingIssue)
   TaskBinding(ClientTaskRunBindingIssue)
+  EffectBinding(ClientEffectCompiledRunIssue)
 }
 
 ///|
@@ -44,6 +46,46 @@ pub fn client_compiled_run_infer(
   match value.compilation {
     Values(_) => None
     Tasks(compilation) => compilation.infer
+    Effects(allowed) => allowed.compilation.compiled.infer
+  }
+}
+
+///|
+/// Model execution may share an admitted Effect Run without adopting an
+/// Effect-free publication owner. Retain the exact original compilation.
+pub fn client_compiled_run_matches_effect(
+  value : ClientCompiledRun,
+  owner : PreparedClientEffectComputation,
+  compilation : ClientEffectCompilation,
+) -> Bool {
+  match value.compilation {
+    Effects(allowed) =>
+      physical_equal(allowed.compilation, compilation) &&
+      physical_equal(compilation.owner, owner)
+    Values(_) | Tasks(_) => false
+  }
+}
+
+///|
+/// Model egress and the enclosing Run's Result policy are different owners.
+/// Pure INFER retains its existing policy; an Effect Run keeps the checked
+/// publication policy of its original Source closure.
+pub fn client_compiled_run_infer_observation_policy(
+  value : ClientCompiledRun,
+) -> String? {
+  guard client_compiled_run_infer(value) is Some(plan) else { return None }
+  match value.compilation {
+    Effects(allowed) =>
+      prepared_client_effect_publication_data_policy_cid(
+        allowed.compilation.owner,
+      )
+    Tasks(_) =>
+      Some(
+        @environment.model_task_data_handling_cid(
+          @environment.model_execution_task(plan.execution),
+        ),
+      )
+    Values(_) => None
   }
 }
 
@@ -62,6 +104,7 @@ pub fn client_compiled_run_result_transformation(
   let selections = match value.compilation {
     Values(compilation) => compilation.plan.transformations
     Tasks(compilation) => compilation.plan.plan.transformations
+    Effects(_) => return Err(ForeignOwner)
   }
   for selection in selections {
     if client_result_transformation_matches(selection, owner, result) {
@@ -201,6 +244,14 @@ pub fn check_client_compiled_run_definition(
       )
       .map(_ => ())
       .map_err(issue => TaskBinding(issue))
+    Effects(allowed) =>
+      bind_client_effect_compiled_run(
+        allowed.compilation.owner,
+        allowed,
+        definition,
+      )
+      .map(_ => ())
+      .map_err(issue => EffectBinding(issue))
   }
 }
 
@@ -267,7 +318,8 @@ pub fn issue_client_compiled_values_invocation(
       issue_client_values_source_free_invocation(
         compilation, data_policy_cid, max_wire_bytes, max_nodes, max_depth,
       )
-    Tasks(_) => Err(@publication.RunEvidenceReferenceMismatch("values_run"))
+    Tasks(_) | Effects(_) =>
+      Err(@publication.RunEvidenceReferenceMismatch("values_run"))
   }
 }
 
@@ -291,7 +343,8 @@ pub fn issue_client_compiled_source_free_task_invocation(
       issue_client_task_source_free_invocation(
         compilation, data_policy_cid, max_wire_bytes, max_nodes, max_depth,
       )
-    Values(_) => Err(@publication.RunEvidenceReferenceMismatch("task_run"))
+    Values(_) | Effects(_) =>
+      Err(@publication.RunEvidenceReferenceMismatch("task_run"))
   }
 }
 
@@ -333,7 +386,8 @@ pub fn issue_client_compiled_task_invocation(
         max_nodes,
         max_depth,
       )
-    Values(_) => Err(@publication.RunEvidenceReferenceMismatch("task_run"))
+    Values(_) | Effects(_) =>
+      Err(@publication.RunEvidenceReferenceMismatch("task_run"))
   }
 }
 
@@ -377,6 +431,7 @@ pub fn issue_client_compiled_multi_task_invocation(
         max_nodes,
         max_depth,
       )
-    Values(_) => Err(@publication.RunEvidenceReferenceMismatch("task_run"))
+    Values(_) | Effects(_) =>
+      Err(@publication.RunEvidenceReferenceMismatch("task_run"))
   }
 }

@@ -42,7 +42,7 @@ test "egress admission rejects incompatible observations before any work" {
     )
     assert_true(
       @publication_host.admit_prepared_client_infer_egress(
-        active.prepared,
+        active.prepared.unwrap(),
         2,
         execution,
         () => observation,
@@ -66,7 +66,7 @@ test "egress admission binds the exact prepared owner and selected contract" {
     active.plan.unwrap(),
   )
   let admission = @publication_host.admit_prepared_client_infer_egress(
-    active.prepared,
+    active.prepared.unwrap(),
     2,
     execution,
     () => Some(egress_fixture_observation()),
@@ -96,7 +96,7 @@ test "changed egress after physical preparation refuses dispatch and releases re
     active.plan.unwrap(),
   )
   let admission = @publication_host.admit_prepared_client_infer_egress(
-    active.prepared,
+    active.prepared.unwrap(),
     2,
     execution,
     () => observed.val,

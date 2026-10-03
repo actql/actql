@@ -12,6 +12,8 @@ pub(all) struct ClientInferEgressObservation {
 ///|
 pub struct ClientInferEgressAdmission {
   owner : PreparedClientProgram
+  task : Int
+  stage : Int
   step : Int
   execution : @environment.ModelExecutionContract
   observed : ClientInferEgressObservation
@@ -49,8 +51,48 @@ pub fn admit_prepared_client_infer_egress(
   execution : @environment.ModelExecutionContract,
   observe : () -> ClientInferEgressObservation?,
 ) -> Result[ClientInferEgressAdmission, ClientInferEgressIssue] {
-  guard client_infer_metadata_owner(owner, 0, step) is Some(prefix) &&
-    @lower.node_at(@lower.bound_preparation(prefix), step) is Some(node) &&
+  guard client_infer_metadata_owner(owner, 0, step) is Some(prefix) else {
+    return Err(ForeignOwner)
+  }
+  admit_client_infer_egress_for_occurrence(
+    { owner, task: 0, stage: 0, step, preparation: prefix, },
+    execution,
+    observe,
+    client_acquired_infer_prefix_owner(owner, 0, step) is Some(_),
+  )
+}
+
+///|
+/// Use the effective source policy of the actual checked Unit. All upstream
+/// source classifications participate; a provider observation cannot replace
+/// or lower the policy established by JOIN and imported Results.
+pub fn admit_client_infer_occurrence_egress(
+  occurrence : ClientInferOccurrence,
+  execution : @environment.ModelExecutionContract,
+  observe : () -> ClientInferEgressObservation?,
+) -> Result[ClientInferEgressAdmission, ClientInferEgressIssue] {
+  if !client_infer_occurrence_matches(occurrence, occurrence.owner) {
+    return Err(ForeignOwner)
+  }
+  admit_client_infer_egress_for_occurrence(
+    occurrence,
+    execution,
+    observe,
+    @strategy.graph_captured_prefix(occurrence.owner.graph) > 0,
+  )
+}
+
+///|
+fn admit_client_infer_egress_for_occurrence(
+  occurrence : ClientInferOccurrence,
+  execution : @environment.ModelExecutionContract,
+  observe : () -> ClientInferEgressObservation?,
+  acquired : Bool,
+) -> Result[ClientInferEgressAdmission, ClientInferEgressIssue] {
+  let owner = occurrence.owner
+  let step = occurrence.step
+  let prefix = occurrence.preparation
+  guard @lower.node_at(@lower.bound_preparation(prefix), step) is Some(node) &&
     @lower.payload(node) is @lower.Infer(infer) &&
     physical_equal(
       @infer.model_task(infer),
@@ -72,10 +114,10 @@ pub fn admit_prepared_client_infer_egress(
       }
     None => observed.classification
   }
-  if client_acquired_infer_prefix_owner(owner, 0, step) is Some(_) {
+  if acquired {
     let policy = @checked.prepare_infer_input_source_policy(
       @strategy.graph_program(owner.graph),
-      0,
+      occurrence.stage,
       step,
       1000000,
       1000000,
@@ -120,7 +162,15 @@ pub fn admit_prepared_client_infer_egress(
   if observed.training_use {
     return Err(TrainingDenied)
   }
-  Ok({ owner, step, execution, observed, current: observe, })
+  Ok({
+    owner,
+    task: occurrence.task,
+    stage: occurrence.stage,
+    step,
+    execution,
+    observed,
+    current: observe,
+  })
 }
 
 ///|
@@ -130,6 +180,8 @@ pub fn client_infer_egress_matches(
   plan : ClientInferPlanGraph,
 ) -> Bool {
   physical_equal(admission.owner, owner) &&
+  plan.task == admission.task &&
+  plan.stage == admission.stage &&
   client_infer_plan_graph_matches(plan, owner, admission.execution) &&
   client_infer_plan_graph_matches_occurrence(plan, owner, admission.step)
 }

@@ -1,0 +1,12 @@
+{
+  "version": "actql-foundation-resolution-supplement/0.1",
+  "id": "complete-composition-frontend-pr233",
+  "target": {
+    "id": "resolve-composition-frontend-latest-main",
+    "digest": "d3e29783d130b8f84e262d4ea389dd813b2d83285c07f4075460d9637d495471"
+  },
+  "inputs": [
+    "main-pr233-package-resolution"
+  ],
+  "reason": "Retain the original D merge declaration and bind the PR 233 receipt introduced later by PR 254"
+}
