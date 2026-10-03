@@ -2,16 +2,15 @@
 
 ## Baseline and dependency
 
-This independent unit starts at
-`6e85ad432ffb12dd0867843197a2ae728f139949` on
-`feat/frontend-grouped-column-scope`. It depends on the unmerged JOIN chain
-connection in [#266](https://github.com/actql/actql/pull/266); it does not replace
-that PR's unchanged nine-positive/four-refusal execution target. Integrated
-main is `b36d7864b57dc654cc03f583d8391e9ba2a506b3`, merged normally
-through the JOIN parent. Existing history declarations are retained.
+This repair now starts from main
+`a4132d64f9cd83022d38bcb9c4e79d981fb2f803` on
+`fix/frontend-group-input-scope`. #266 is already merged; there is no unmerged
+JOIN parent. The earlier implementation commits were retained and reapplied to
+this fixed baseline without rewriting published history.
 
-The imported-main foundation declaration failure remains a separate dependency.
-No declaration, validator, workflow or common execution owner changes here.
+The assertion, terminal Effect, Source predicate and JOIN-limit locations for
+#273 remain D-owned. This unit changes aggregate input/output scope only;
+there are no declaration, validator, workflow or common execution-owner changes.
 
 ## Existing semantics and implementation defect
 
@@ -56,9 +55,11 @@ NeedsInputs. No Frontend evidence, alternate evaluator or runtime is introduced.
 
 ## Independent public acceptance target
 
-[Six positive/four refusal fixtures](../../spec/frontend/fixtures/group-scope/cases.json)
+[Eight positive/four refusal fixtures](../../spec/frontend/fixtures/group-scope/cases.json)
 are authored from the selected semantics, not compiler output. They cover:
 
+- Original SUM argument after SET and DROP: input IDs 1/2 sum to 3,
+  rather than the changed values 10/20. SUM remains nullable by common contract.
 - Original versus current key after SET: x=7 versus x=9, each with count 1.
 - Computed SQL grouping alias, HAVING and ordered output through three JOINs.
 - Pipe JOIN grouping followed by its new public x/n scope.
@@ -80,7 +81,20 @@ These public targets are **not executed** at this checkpoint. They do not
 establish packed execution, capacity admission or all aggregation combinations.
 No prior #246 JSON composition result is used as text execution evidence.
 
-## Focused evidence and unfinished coverage
+## Current-baseline evidence
+
+On the current baseline with the reapplied repair, the selected Group, JOIN
+ORDER and query parser tests passed 28/28 on JS before adding the two global
+SUM counterexamples. After adding the global SUM cases, Group and Pipe scope tests passed 11/11
+on JS. Fresh packed execution and hosted CI remain pending.
+
+The original audit at runtime `ba3d6d12891f884b1bb55bb4d67bf043d4a58a94`
+rejected the SET and DROP SUM counterexamples before admission/provider I/O,
+while unqualified SUM of the current SET value succeeded. The relevant Group
+source is unchanged between that revision and this baseline. This is a source
+comparison, not a current-baseline execution reproduction.
+
+## Historical focused evidence (not current-baseline validation)
 
 The changed group tests plus existing compile/JOIN tests passed 73/73 on JS.
 After adding the complete independent Program assertion, selected group/parser

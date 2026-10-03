@@ -1,6 +1,74 @@
 {
   "successes": [
     {
+      "name": "group-drop-original-sum",
+      "format": "aql-text",
+      "sourceRows": [
+        {
+          "id": 1,
+          "amount": 10
+        },
+        {
+          "id": 2,
+          "amount": 20
+        }
+      ],
+      "text": "FROM records AS before |> DROP id |> AGGREGATE SUM(before.id) AS total |> RESULT answer",
+      "results": {
+        "answer": {
+          "rows": [
+            {
+              "total": 3
+            }
+          ],
+          "columns": [
+            {
+              "name": "total",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadSessionCount": 1
+    },
+    {
+      "name": "group-set-original-sum",
+      "format": "aql-text",
+      "sourceRows": [
+        {
+          "id": 1,
+          "amount": 10
+        },
+        {
+          "id": 2,
+          "amount": 20
+        }
+      ],
+      "text": "FROM records AS before |> SET id = amount |> AGGREGATE SUM(before.id) AS total |> RESULT answer",
+      "results": {
+        "answer": {
+          "rows": [
+            {
+              "total": 3
+            }
+          ],
+          "columns": [
+            {
+              "name": "total",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadSessionCount": 1
+    },
+    {
       "name": "group-snapshot-original-key",
       "format": "aql-text",
       "text": "SELECT 7 AS x, 9 AS y |> AS before |> SET x = y |> AGGREGATE COUNT(*) AS n GROUP BY before.x |> ORDER BY x",

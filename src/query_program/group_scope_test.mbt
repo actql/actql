@@ -61,6 +61,41 @@ test "Pipe AGGREGATE rejects old input ranges with and without private slots" {
 }
 
 ///|
+test "global SUM retains the original range after SET and DROP" {
+  for operation in ["SET x = y", "DROP x"] {
+    let program = compile(
+      @query.parse_query(
+        "FROM pair AS before |> " +
+        operation +
+        " |> AGGREGATE SUM(before.x) AS total",
+        syntax_limits(),
+      ).unwrap(),
+      pair_context(),
+      construction_limits(),
+    ).unwrap()
+    // The original x=7 is retained even though current x becomes 9 or is
+    // dropped. SUM must consume x, not the new/current value or an empty row.
+    assert_true(
+      semantic(program).contains(
+        "\"aggregates\":{\"total\":{\"field\":\"x\",\"fn\":\"sum\"}}",
+      ),
+    )
+    assert_true(semantic(program).contains("\"fields\":[\"total\"]"))
+    match
+      @check.check_parsed(
+        program,
+        check_environment(numeric=true),
+        None,
+        check_limits(),
+      ) {
+      Checked(_) => ()
+      Rejected(error) => raise @check.diagnostic_cause(error)
+      _ => fail("global SUM uses the existing numeric profile")
+    }
+  }
+}
+
+///|
 test "SQL JOIN grouping retains only grouped qualified slots and aliases" {
   for
     query in [
