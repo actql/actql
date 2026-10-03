@@ -82,7 +82,11 @@ derives the fixed `id` role plus compatible node properties while rejecting
 role collisions. A guaranteed-column adapter now uses the existing bounded
 Relation output owner, checking names and exact contracts during incremental
 cell reads; cancellation and one-short work have focused tests. Authored alias
-metadata is not yet retained through Graph storage, so the typing check is
+metadata is not yet retained through Graph storage. A separate bounded
+ConditionalRow builder now charges presence and steps through nested values
+before accepting each cell; focused tests cover exact and one-short limits,
+absence versus explicit `NULL`, cancellation, and cleanup. This builder is
+not yet the Graph producer or retained Store path, so the typing check is
 not offered as executable `node_rows`. The edge layout, Graph row producer,
 retained Store custody and reread, Stage projection connection, and Named
 Result path still need one executable vertical fixture.

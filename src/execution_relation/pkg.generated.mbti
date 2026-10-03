@@ -85,6 +85,8 @@ pub fn advance_completed_result_relation_export(CompletedResultRelationExportPre
 
 pub fn advance_conditional_required_output_preparation(ConditionalRequiredOutputPreparation, Int) -> Result[AdmittedOutputPoll, @bounded_execution.Issue]
 
+pub fn advance_conditional_row_preparation(ConditionalRowPreparation, Int) -> Result[ConditionalRowPoll, @bounded_execution.Issue]
+
 pub fn advance_expression_execution(ExpressionExecution) -> Result[ExpressionExecutionPoll, EvalIssue]
 
 pub fn advance_fixed_record_guard(FixedRecordGuardScan, Int) -> Result[@bounded_execution.Observation[FixedInputGuardMeasureLimits, FixedInputGuardIssue], @bounded_execution.Issue]
@@ -223,6 +225,8 @@ pub fn cancel_conditional_required_output_preparation(ConditionalRequiredOutputP
 
 pub fn cancel_conditional_row(ConditionalRowBuilder) -> Bool
 
+pub fn cancel_conditional_row_preparation(ConditionalRowPreparation) -> Bool
+
 pub fn cancel_expression_execution(ExpressionExecution) -> Bool
 
 pub fn cancel_fixed_join_stream(FixedJoinStream) -> Unit
@@ -339,6 +343,8 @@ pub fn cleanup_bounded_values(BoundedValuesExecution) -> Result[Bool, BoundedVal
 
 pub fn cleanup_conditional_required_output_preparation(ConditionalRequiredOutputPreparation) -> Result[Bool, @bounded_execution.Issue]
 
+pub fn cleanup_conditional_row_preparation(ConditionalRowPreparation) -> Result[Bool, @bounded_execution.Issue]
+
 pub fn cleanup_fixed_record_guard(FixedRecordGuardScan) -> Result[Bool, @bounded_execution.Issue]
 
 pub fn cleanup_infer_rows_preparation(InferRowsPreparation) -> Result[Bool, InferPreparationIssue]
@@ -424,6 +430,8 @@ pub fn conditional_required_cell(ConditionalRow, Int) -> @value_admission.Checke
 pub fn conditional_required_output_rows(ConditionalRequiredOutputPreparation) -> AdmittedOutputRows?
 
 pub fn conditional_row_cell(ConditionalRow, Int) -> @value_admission.CheckedValue??
+
+pub fn conditional_row_preparation_value(ConditionalRowPreparation) -> ConditionalRow?
 
 pub fn conditional_row_usage(ConditionalRow) -> ValueUsage
 
@@ -1139,6 +1147,8 @@ pub fn start_completed_result_relation_export(CompletedOutput, ManagedResultOccu
 
 pub fn start_conditional_required_output_preparation(AdmittedOutput, @relation_schema.ConditionalSchema, Int, Int, Int, (Int) -> ConditionalRow?) -> Result[ConditionalRequiredOutputPreparation, CaptureIssue]
 
+pub fn start_conditional_row_preparation(@relation_schema.ConditionalSchema, ValueLimits, Int, Int, (Int) -> @value_admission.CheckedValue??) -> Result[ConditionalRowPreparation, ConditionalRowIssue]
+
 pub fn start_expression_execution(@lowering_relation.Expression, Map[String, Value], Array[Value], Int, Int, Int) -> Result[ExpressionExecution, EvalIssue]
 
 pub fn start_infer_rows_preparation(@bounded_execution.Control, InferRowInput, InferPreparationLimits) -> Result[InferRowsPreparation, InferPreparationIssue]
@@ -1632,6 +1642,15 @@ pub(all) enum ConditionalRowIssue {
   ForeignValue(Int)
   Limit
 } derive(Eq, @debug.Debug)
+
+pub enum ConditionalRowPoll {
+  ConditionalRowContinue(work~ : Int64)
+  ConditionalRowComplete(ConditionalRow, work~ : Int64)
+  ConditionalRowFailed(ConditionalRowIssue, work~ : Int64)
+  ConditionalRowStopped(work~ : Int64)
+}
+
+type ConditionalRowPreparation
 
 pub(all) enum ConditionalRowWireIssue {
   InvalidLimits
