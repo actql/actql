@@ -220,8 +220,9 @@ results belong to CI on the pushed SHA.
 Output acceptance and provider scratch release are independent acknowledgements.
 The common completion boundary preserves the execution reservation when the
 installed scratch-release condition is false, even after output retention has
-moved to a holding. An execution without an installed condition retains the
-existing synchronous completion behavior. The Local output commit tries the existing provider cleanup once before
+moved to a holding. Both lifecycle operation records require an explicit pure
+scratch-release observation; omitting it cannot imply successful release. The
+Local output commit tries the existing provider cleanup once before
 common completion; false/error keeps the provider and its reservation for
 explicit retry. The existing cleanup path retires scratch after confirmation; no new owner or ledger is used.
 
@@ -237,7 +238,7 @@ remain open, together with complete child/runtime and parent byte bounds.
 
 The admission gate requires normal cancellation, pending false/error/retry
 cleanup, and successful completion receipts for each requested target. JS
-mutations separately remove the installed release condition and bypass the
+mutations separately bypass the installed release observation and the
 successful completion guard. Each must fail specifically for premature scratch
 credit; a compilation failure or missing record is not mutation detection.
 Normal finite correspondence on Wasm/native remains separate from JS mutation
