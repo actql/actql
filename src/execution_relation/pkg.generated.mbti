@@ -1017,7 +1017,7 @@ pub fn producer_storage_row_count(ProducerStorage) -> Int
 
 pub fn producer_storage_schema(ProducerStorage) -> @relation_schema.Schema
 
-pub fn read_retained_relation_row(@relation_schema.Schema, String, RetainedRowDecodeLimits, ValueLimits) -> Result[AdmittedRelationRow, RetainedRowDecodeIssue]
+pub fn read_retained_relation_row(@relation_schema.Schema, String, RetainedRowDecodeLimits, ValueLimits, reference_cells? : Array[Array[@value_admission.ReferenceValue]]) -> Result[AdmittedRelationRow, RetainedRowDecodeIssue]
 
 pub fn[P] readmit_trusted_retained_output(TrustedRetainedReadmission[P], P) -> Result[CompletedOutput, TrustedOutputIssue]
 

@@ -178,6 +178,69 @@ test "presence row admission never changes ordinary object or value-type rules" 
 }
 
 ///|
+test "all-required output admits present cells and rejects absent cells before capture" {
+  let owner = capture_fixture()
+  let schema = @pipeline.schema_at(
+    @lower.pipeline(@lower.bound_preparation(owner)),
+    Step(1),
+  ).unwrap()
+  let cells = output_fixture_row(owner, 0)
+  let row = admit_relation_row(
+    schema,
+    cells.map(value => Some(value)),
+    stream_value_limits(),
+  ).unwrap()
+  let output = prepare_admitted_output(owner, Step(1), 1, stream_value_limits()).unwrap()
+  append_admitted_output_presence(output, row).unwrap()
+  assert_eq(output.buffer.rows.length(), 1)
+  let completed = finish_admitted_output(output).unwrap()
+  assert_eq(admitted_output_row_count(completed), 1)
+  for column in 0..<@schema.field_count(schema) {
+    let name = @schema.reference_name(
+      @schema.field_at(schema, column).unwrap().name,
+    )
+    if name == "s" {
+      assert_true(
+        admitted_output_cell(completed, 0, column) is Some(@admitted.Text("é")),
+      )
+    } else {
+      assert_true(
+        admitted_output_cell(completed, 0, column) is Some(@admitted.Number(1)),
+      )
+    }
+  }
+
+  let one_short = prepare_admitted_output(
+    owner,
+    Step(1),
+    0,
+    stream_value_limits(),
+  ).unwrap()
+  assert_true(
+    append_admitted_output_presence(one_short, row) is Err(CaptureLimit),
+  )
+  assert_true(one_short.buffer.rows.is_empty())
+  assert_true(finish_admitted_output(one_short) is Err(ClosedCapture))
+
+  let absent : AdmittedRelationRow = {
+    schema,
+    cells: [None, None],
+    usage: relation_row_usage(row),
+  }
+  let invalid = prepare_admitted_output(
+    owner,
+    Step(1),
+    1,
+    stream_value_limits(),
+  ).unwrap()
+  assert_true(
+    append_admitted_output_presence(invalid, absent) is Err(InvalidCheckedRow),
+  )
+  assert_true(invalid.buffer.rows.is_empty())
+  assert_true(finish_admitted_output(invalid) is Err(ClosedCapture))
+}
+
+///|
 test "presence schema identity binds guarantees separately from nullability" {
   let conditional = presence_test_schema()
   let required = @schema.from_fields(
@@ -530,6 +593,173 @@ test "presence output stream retains exact bytes and reloads through the existin
     completed_presence_cell(reloaded, 1, 1) is Ok(Present(@admitted.Null)),
   )
   assert_true(completed_presence_cell(reloaded, 2, 1) is Ok(Absent))
+  let managed = prepare_managed_output_values(
+    owner,
+    Step(0),
+    3,
+    stream_value_limits(),
+    4,
+    { max_work: 9, max_bytes: 8, max_nodes: 6, max_depth: 10, },
+  ).unwrap()
+  for index in 0..<3 {
+    append_completed_projection_managed_values(managed, reloaded, index).unwrap()
+    assert_true(managed.buffer.presence_rows.is_empty())
+  }
+  let managed_receipt = finish_managed_output_values(managed).unwrap()
+  assert_eq(managed_output_value_row_count(managed_receipt), 3)
+  assert_eq(managed_output_value_measurement(managed_receipt), (9, 8, 6))
+  let one_short = prepare_managed_output_values(
+    owner,
+    Step(0),
+    3,
+    stream_value_limits(),
+    4,
+    { max_work: 8, max_bytes: 8, max_nodes: 6, max_depth: 10, },
+  ).unwrap()
+  for index in 0..<3 {
+    append_completed_projection_managed_values(one_short, reloaded, index).unwrap()
+  }
+  assert_true(
+    finish_managed_output_values(one_short) is Err(Guard(MeasurementWork)),
+  )
+  let wire_managed = prepare_managed_output_values(
+    owner,
+    Step(0),
+    3,
+    stream_value_limits(),
+    4,
+    { max_work: 9, max_bytes: 8, max_nodes: 6, max_depth: 10, },
+  ).unwrap()
+  for index in 0..<3 {
+    append_completed_projection_managed_wire(
+      wire_managed,
+      reloaded,
+      index,
+      row_wire_limits(),
+      retained_row_test_limits(),
+    ).unwrap()
+  }
+  assert_eq(
+    managed_output_value_row_count(
+      finish_managed_output_values(wire_managed).unwrap(),
+    ),
+    3,
+  )
+  let produced = @pipeline.produced_input(
+    @lower.pipeline(@lower.bound_preparation(owner)),
+    Step(0),
+  ).unwrap()
+  let checked_consumer = @pipeline.check_with_evidence(
+    input_cursor("[{\"select\":[\"id\"]}]"),
+    [("source", @pipeline.ProducedInput(produced))],
+    None,
+    Some(input_cursor("\"source\"")),
+    {
+      max_steps: 10,
+      max_work: 10000,
+      max_text_bytes: 10000,
+      max_nodes: 1000,
+      max_tokens: 1000,
+      max_depth: 100,
+    },
+  ).unwrap()
+  let consumer = @lower.bind_parameters(
+    @lower.prepare(checked_consumer, {
+      max_nodes: 100,
+      max_references: 100,
+      max_work: 10000,
+      max_identifier_bytes: 10000,
+    }).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let generated = prepare_generated_sequence(
+    registered_relation_contracts(),
+    prepared_sequence(consumer),
+    [],
+    [
+      @lower.node_id(
+        @lower.node_at(@lower.bound_preparation(consumer), 0).unwrap(),
+      ),
+    ],
+    10000,
+    1000,
+  ).unwrap()
+  let selected = select_generated_sequence_step(generated, 0).unwrap()
+  let bound = bind_completed_input(consumer, 0, owner, reloaded).unwrap()
+  let read = prepare_producer_read(consumer, bound, 1000, 10000).unwrap()
+  // Three row roots, three `id` values, and three `p` presence cells;
+  // the two names cost three UTF-8 bytes per row. No output measurement is
+  // borrowed to establish this input-side boundary.
+  let exact_input : ValueLimits = {
+    max_nodes: 9,
+    max_text_bytes: 9,
+    max_depth: 10,
+    max_work: 18,
+  }
+  let active = start_bounded_binding_rows(
+    @bounded.control(),
+    selected,
+    read,
+    3,
+    exact_input,
+    stream_value_limits(),
+    10000,
+    100,
+    1000,
+    10000,
+  ).unwrap()
+  let mut selected_rows : CompletedOutput? = None
+  for _ in 0..<10000 {
+    match advance_bounded_binding_rows(active, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsComplete(value, ..) => {
+        selected_rows = Some(value)
+        break
+      }
+      BoundedBindingRowsFailed(InvalidExecution, ..) =>
+        fail("required-column projection invalid execution")
+      BoundedBindingRowsFailed(Capture(_), ..) =>
+        fail("required-column projection capture")
+      BoundedBindingRowsFailed(Rows(_), ..) =>
+        fail("required-column projection rows")
+      BoundedBindingRowsFailed(_, ..) =>
+        fail("required-column projection failed")
+      BoundedBindingRowsStopped(_, ..) =>
+        fail("required-column projection stopped")
+    }
+  }
+  guard selected_rows is Some(selected_rows) else {
+    fail("projection did not terminate")
+  }
+  assert_eq(completed_row_count(selected_rows), 3)
+  assert_true(cleanup_bounded_binding_rows(active).unwrap())
+  let short = start_bounded_binding_rows(
+    @bounded.control(),
+    selected,
+    read,
+    3,
+    { ..exact_input, max_work: 17, },
+    stream_value_limits(),
+    10000,
+    100,
+    1000,
+    10000,
+  ).unwrap()
+  let mut input_limited = false
+  for _ in 0..<10000 {
+    match advance_bounded_binding_rows(short, 1).unwrap() {
+      BoundedBindingRowsContinue(..) => ()
+      BoundedBindingRowsFailed(InputLimit, ..) => {
+        input_limited = true
+        break
+      }
+      _ => fail("one-short conditional input did not reach its typed limit")
+    }
+  }
+  assert_true(input_limited)
+  assert_true(cleanup_bounded_binding_rows(short).unwrap())
   assert_eq(
     row_wire_cid(identify_completed_rows(source, row_wire_limits()).unwrap()),
     row_wire_cid(identify_completed_rows(reloaded, row_wire_limits()).unwrap()),

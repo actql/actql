@@ -148,6 +148,46 @@ pub fn[T] append_managed_producer_bridge_wire(
     return Err(Unavailable)
   }
   let schema = bridge.input.output.material.receipt.schema
+  if !@schema.all_fields_required(schema) {
+    let references = match bridge.references {
+      ReferenceFree => None
+      ExactRows =>
+        match
+          bridge.input.output.material.receipt.reference_rows.get(
+            bridge.imported_rows,
+          ) {
+          Some(source_references) => Some(source_references)
+          None => {
+            close_managed_producer_bridge(bridge)
+            return Err(Wire(InvalidShape))
+          }
+        }
+    }
+    let row = match
+      read_retained_relation_row(
+        schema,
+        text,
+        limits,
+        bridge.admitted.buffer.budget.limits,
+        reference_cells?=references,
+      ) {
+      Ok(value) => value
+      Err(issue) => {
+        close_managed_producer_bridge(bridge)
+        return Err(Wire(issue))
+      }
+    }
+    return match append_admitted_output_presence(bridge.admitted, row) {
+      Ok(_) => {
+        bridge.imported_rows += 1
+        Ok(())
+      }
+      Err(issue) => {
+        close_managed_producer_bridge(bridge)
+        Err(Admission(issue))
+      }
+    }
+  }
   let decoded = match bridge.references {
     ReferenceFree => decode_retained_row(schema, text, limits)
     ExactRows => {

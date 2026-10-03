@@ -260,9 +260,15 @@ pub fn read_retained_relation_row(
   text : String,
   decode_limits : RetainedRowDecodeLimits,
   value_limits : ValueLimits,
+  reference_cells? : Array[Array[@admitted.ReferenceValue]],
 ) -> Result[AdmittedRelationRow, RetainedRowDecodeIssue] {
   let cells = match
-    decode_retained_presence_cells(schema, text, decode_limits) {
+    decode_retained_presence_cells(
+      schema,
+      text,
+      decode_limits,
+      reference_cells?,
+    ) {
     Ok(cells) => cells
     Err(issue) => return Err(issue)
   }

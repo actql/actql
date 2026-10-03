@@ -77,6 +77,31 @@ fn bounded_binding_input_cell(
 }
 
 ///|
+/// Presence is inspected only for input charging. Ordinary expressions and
+/// projections still require a statically guaranteed field.
+fn bounded_binding_input_presence_cell(
+  input : BoundedBindingInput,
+  row : Int,
+  column : Int,
+) -> Result[RelationCell, RelationPresenceIssue] {
+  match input {
+    CompletedBindingInput(read) => {
+      guard producer_read_available(read) &&
+        read.columns.get(column) is Some(source) else {
+        return Err(Unavailable)
+      }
+      completed_presence_cell(read.bound.output, row, source)
+    }
+    SuppliedBindingInput(read) =>
+      if supplied_relation_read_available(read) {
+        captured_presence_cell(read.rows, row, column)
+      } else {
+        Err(Unavailable)
+      }
+  }
+}
+
+///|
 /// Only an admitted backing table can carry a reusable cell proof. A raw
 /// RowTable may contain computed values and must be checked again.
 fn bounded_binding_input_admitted_cell(
@@ -1013,13 +1038,48 @@ fn bounded_binding_rows_step(
         } else if state.charge_column < state.input_names.length() {
           let column = state.charge_column
           if state.charge_measure is None {
-            guard bounded_binding_input_cell(
-                state.input,
-                state.charge_row,
-                column,
-              )
-              is Some(value) else {
-              return fail_bounded_binding_rows(InvalidExecution, progress, used)
+            let field = @schema.field_at(
+              bounded_binding_input_schema(state.input),
+              column,
+            ).unwrap()
+            let value = if field.presence == @schema.Conditional {
+              match
+                bounded_binding_input_presence_cell(
+                  state.input,
+                  state.charge_row,
+                  column,
+                ) {
+                Ok(Absent) => {
+                  if !charge_text(state.input_values, state.input_names[column]) ||
+                    !charge_node(state.input_values, 2) {
+                    return fail_bounded_binding_rows(InputLimit, progress, used)
+                  }
+                  state.charge_column += 1
+                  used += 1
+                  continue
+                }
+                Ok(Present(value)) => Captured(value)
+                Err(_) =>
+                  return fail_bounded_binding_rows(
+                    InvalidExecution,
+                    progress,
+                    used,
+                  )
+              }
+            } else {
+              guard bounded_binding_input_cell(
+                  state.input,
+                  state.charge_row,
+                  column,
+                )
+                is Some(value) else {
+                return fail_bounded_binding_rows(
+                  InvalidExecution,
+                  progress,
+                  used,
+                )
+              }
+              value
             }
             if !charge_text(state.input_values, state.input_names[column]) {
               return fail_bounded_binding_rows(InputLimit, progress, used)

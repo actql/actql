@@ -121,11 +121,22 @@ fn append_admitted_buffer_values(
   source : @schema.Schema,
   values : Array[@admitted.Value],
 ) -> Result[Unit, CaptureIssue] {
+  append_admitted_buffer_values_read(input, source, values.length(), index => {
+    values.get(index)
+  })
+}
+
+///|
+fn append_admitted_buffer_values_read(
+  input : AdmittedRowBuffer,
+  source : @schema.Schema,
+  width : Int,
+  read : (Int) -> @admitted.Value?,
+) -> Result[Unit, CaptureIssue] {
   if !physical_equal(input.schema, source) || !input.open || input.reading {
     return Err(InvalidCheckedRow)
   }
-  let width = @schema.field_count(input.schema)
-  if values.length() != width {
+  if width != @schema.field_count(input.schema) {
     return Err(InvalidCheckedRow)
   }
   let budget = input.budget
@@ -137,7 +148,7 @@ fn append_admitted_buffer_values(
   let row = []
   for column in 0..<width {
     let field = @schema.field_at(input.schema, column).unwrap()
-    let value = values[column]
+    guard read(column) is Some(value) else { return Err(InvalidCheckedRow) }
     if !charge_text(budget, @schema.reference_name(field.name)) ||
       !measure(value, 2, budget) {
       return Err(CaptureLimit)
@@ -229,10 +240,21 @@ fn append_admitted_buffer_presence(
   if !buffer.open || buffer.reading {
     return Err(ClosedCapture)
   }
-  if @schema.all_fields_required(buffer.schema) ||
-    !physical_equal(buffer.schema, row.schema) {
+  if !physical_equal(buffer.schema, row.schema) {
     cancel_admitted_buffer(buffer) |> ignore
     return Err(InvalidCheckedRow)
+  }
+  if @schema.all_fields_required(buffer.schema) {
+    let result = append_admitted_buffer_values_read(
+      buffer,
+      row.schema,
+      @schema.field_count(row.schema),
+      column => row.cells.get(column).bind(cell => cell),
+    )
+    if result is Err(_) {
+      cancel_admitted_buffer(buffer) |> ignore
+    }
+    return result
   }
   if buffer.presence_rows.length() >= buffer.max_rows {
     cancel_admitted_buffer(buffer) |> ignore

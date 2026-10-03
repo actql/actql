@@ -229,9 +229,9 @@ pub fn read(
             @schema.reference_name(field.name),
           )
           is Some(_) {
-          @schema.Conditional
+          @schema.Presence::Conditional
         } else {
-          @schema.Required
+          @schema.Presence::Required
         }
         (field.name, field.contract, presence)
       })
