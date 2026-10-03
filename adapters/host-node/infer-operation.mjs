@@ -6,13 +6,15 @@ import {checked} from '../host-common/runtime-result.mjs';
 
 const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
   {code: 'ClientDispatchCleanupPending'});
+const activeOperations = new WeakMap();
 
 // Called by the installed Run's dispatch callback. The caller transfers this
 // object to client-dispatch-owner before calling run, hence before any advance.
 // Exactly one physical provider or already Store-confirmed saved read is used.
 export function openNodeInferOperation({moon, preparedProgram, step, graph,
   registry, values, fragment, ordered, provider, savedCapture, savedSlots, quantityCapacity,
-  physicalPreflight, egressAdmission, computeSuffix, acquiredInput, signal, quantum = 256, observeProgress}) {
+  physicalPreflight, egressAdmission, computeSuffix, acquiredInput, composedInput,
+  signal, quantum = 256, observeProgress}) {
   if (!Number.isSafeInteger(quantum) || quantum < 1 || quantum > 2147483647 ||
       [provider, savedCapture, savedSlots].filter(value => value !== undefined)
         .length !== 1) {
@@ -44,7 +46,16 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   if (acquiredInput !== undefined && savedCapture !== undefined) {
     throw new TypeError('AcquiredInferReplayNotConnected');
   }
-  const active = checked(savedSlots !== undefined
+  if (composedInput !== undefined && (provider === undefined ||
+      acquiredInput !== undefined || savedSlots !== undefined ||
+      savedCapture !== undefined)) {
+    throw new TypeError('InvalidComposedInferOperation');
+  }
+  const active = checked(composedInput !== undefined
+    ? moon.clientProgramStartComposedInferExecution(composedInput.occurrence,
+      graph, composedInput.prefix, composedInput.inputs, provider,
+      composedInput.sources)
+    : savedSlots !== undefined
     ? acquiredInput === undefined
       ? moon.clientProgramStartRestoredInferSlotReplay(preparedProgram, step,
         graph, registry, values, savedSlots)
@@ -137,6 +148,9 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   }
 
   function run() {
+    if (composedInput !== undefined) {
+      return Promise.reject(new Error('InferComponentDrivenByLocal'));
+    }
     if (closing || reclaimed) {
       return Promise.reject(new Error('InferOperationClosed'));
     }
@@ -172,7 +186,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     return closeFlight;
   }
 
-  return Object.freeze({run, stop, close, cleanup,
+  const operation = Object.freeze({run, stop, close, cleanup,
     cleanupPending: () => !reclaimed,
     physicalStopped: () => moon.clientProgramInferExecutionStopped(active),
     quantityUsage: () => moon.clientProgramInferQuantityUsage(active),
@@ -208,6 +222,58 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       withNodeInferResult({moon, binding, result, consume,
         signal: resultSignal, quantum}),
   });
+  activeOperations.set(operation, active);
+  return operation;
+}
+
+// One original Model component is opened by the common Local task driver,
+// after it has bound actual producer reads. Local alone advances it. The
+// installing Run retains physical custody before binding current admissions.
+export function openNodeComposedInferProvider({moon, selected, sources,
+  control, plan, principalId, now, signal, retainOperation, retainCompleted}) {
+  if (selected?.occurrence === undefined ||
+      typeof retainOperation !== 'function') {
+    throw new TypeError('InvalidComposedInferProvider');
+  }
+  let operation;
+  let failure;
+  const provider = moon.clientProgramComposedInferLocalProvider(
+    selected.occurrence, inputs => {
+      try {
+        if (operation !== undefined) throw new Error('ComposedInferAlreadyOpened');
+        operation = openNodeInferOperation({moon, graph: selected.graph,
+          composedInput: {occurrence: selected.occurrence,
+            prefix: selected.computePrefix, inputs, sources},
+          computeSuffix: selected.computeSuffix, provider: selected.provider,
+          quantityCapacity: selected.quantityCapacity,
+          physicalPreflight: selected.physicalPreflight,
+          egressAdmission: selected.egressAdmission, signal});
+        retainOperation(operation);
+        operation.bindRun(control, plan);
+        operation.bindDispatch(control, {...plan, account: selected.account,
+          principalId, at: now(), observeAccount: selected.observeAccount,
+          observeAt: now});
+        return activeOperations.get(operation);
+      } catch (error) {
+        failure = error;
+        return undefined;
+      }
+    }, issue => {
+      failure ??= Object.assign(new Error('ComposedInferComponentFailed'),
+        {code: 'MoonBitHostFailure', cause: issue});
+    }, active => {
+      try {
+        if (operation === undefined || activeOperations.get(operation) !== active) {
+          throw new Error('ForeignComposedInferCompletion');
+        }
+        return retainCompleted?.(operation) !== false;
+      } catch (error) {
+        failure = error;
+        return false;
+      }
+    });
+  return Object.freeze({provider, operation: () => operation,
+    failure: () => failure});
 }
 
 // This is physical stepping of the existing checked Result transformer, not

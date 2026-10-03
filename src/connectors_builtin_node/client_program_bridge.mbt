@@ -3685,6 +3685,7 @@ fn client_program_configure_local_host(
   per_row_ms : Int64,
   per_wire_byte_ms : Int64,
   per_pair_ms : Int64,
+  component_providers? : Array[@local.ManagedProvider] = [],
 ) -> @builtin.ConfiguredComputeHost[@strategy.RunIssue]? {
   let capacity : @connector.FixedComputeCapacity = {
     contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
@@ -3720,6 +3721,9 @@ fn client_program_configure_local_host(
     selected_client_sga_providers(generated, execution, measurement) {
     Some(providers) => providers
     None => return reject_client_local_run(run)
+  }
+  for provider in component_providers {
+    providers.push(provider)
   }
   let local_configuration : @local_driver.LocalComputeConfiguration = {
     sequences: generated,
@@ -5694,6 +5698,7 @@ fn open_client_local_effect_host(
   ordered_body? : String? = None,
   captured_sources? : Array[(Int, @query.CapturedInputSource)] = [],
   acquisition_ledger? : @resources.Ledger? = None,
+  component_providers? : Array[@local.ManagedProvider] = [],
 ) -> ClientLocalEffectHost? {
   if fixed_ms < 0L ||
     per_row_ms < 0L ||
@@ -5789,8 +5794,15 @@ fn open_client_local_effect_host(
   }
   match
     client_program_configure_local_host(
-      captured, graph, generated, first_compute, fixed_ms, per_row_ms, per_wire_byte_ms,
+      captured,
+      graph,
+      generated,
+      first_compute,
+      fixed_ms,
+      per_row_ms,
+      per_wire_byte_ms,
       per_pair_ms,
+      component_providers~,
     ) {
     Some(host) => Some({ host, run, })
     None => None

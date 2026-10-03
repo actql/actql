@@ -159,3 +159,134 @@ pub fn client_program_admit_composed_infer_egress(
     () => client_infer_egress_observation(observe()),
   )
 }
+
+///|
+#export_name("clientProgramStartComposedInferExecution")
+pub fn client_program_start_composed_infer_execution(
+  occurrence : @publication_host.ClientInferOccurrence,
+  graph : @publication_host.ClientInferPlanGraph,
+  prefix : @execution.GeneratedSequence,
+  inputs : Array[@local.ManagedProviderInput],
+  provider : @model.ModelProvider,
+  sources : @publication_host.ClientInferComposedSources?,
+) -> Result[@infer_host.Execution, @infer_host.Issue] {
+  @infer_host.start_composed(
+    occurrence,
+    graph,
+    prefix,
+    inputs,
+    provider,
+    @infer_host.standard_limits(),
+    sources~,
+  )
+}
+
+///|
+#export_name("clientProgramComposedInferLocalProvider")
+pub fn client_program_composed_infer_local_provider(
+  occurrence : @publication_host.ClientInferOccurrence,
+  open : (Array[@local.ManagedProviderInput]) -> @infer_host.Execution?,
+  observe_issue : (@infer_host.Issue) -> Unit,
+  retain_completed : (@infer_host.Execution) -> Bool,
+) -> @local.ManagedProvider {
+  @infer_host.composed_local_provider(
+    occurrence,
+    @infer_host.standard_limits(),
+    inputs => {
+      match open(inputs) {
+        Some(active) => Ok(active)
+        None => Err(@infer_host.InvalidAdvance)
+      }
+    },
+    issue => {
+      observe_issue(issue)
+      @connector.ComputeUnsupported
+    },
+    retain_completed~,
+  )
+}
+
+///|
+#export_name("clientProgramAdmitComposedInferSources")
+pub fn client_program_admit_composed_infer_sources(
+  occurrence : @publication_host.ClientInferOccurrence,
+  captures : Array[@query.CapturedInputSource],
+  identities : Array[@query.CapturedSourceRelationIdentity],
+  requirements : Array[@planning.QueryRequirement],
+  logical_wires : Array[String],
+  evidence_wires : Array[String],
+  authority_scope_cid : String,
+  started_at : String,
+  completed_at : String,
+) -> Result[
+  @publication_host.ClientInferComposedSources,
+  @publication_host.ClientInferCallScopeIssue,
+] {
+  if logical_wires.length() != 2 || evidence_wires.length() != 2 {
+    return Err(@publication_host.ForeignInput)
+  }
+  let logicals = []
+  let evidence = []
+  for index in 0..<2 {
+    let logical = match
+      @publication.admit_run_evidence_value(
+        "source_input_logical",
+        logical_wires[index],
+        100000,
+        10000,
+        100,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(@publication_host.Evidence(issue))
+    }
+    let source = match
+      @publication.admit_run_evidence_value(
+        "source_evidence",
+        evidence_wires[index],
+        100000,
+        10000,
+        100,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(@publication_host.Evidence(issue))
+    }
+    logicals.push(logical)
+    evidence.push(source)
+  }
+  @publication_host.admit_client_infer_composed_sources(
+    occurrence, captures, identities, requirements, logicals, evidence, authority_scope_cid,
+    started_at, completed_at,
+  )
+}
+
+///|
+#export_name("clientProgramOpenMultiCapturedInferEffectHost")
+pub fn client_program_open_multi_captured_infer_effect_host(
+  prepared : @publication_host.PreparedClientEffectRun,
+  sources : Array[@query.CapturedInputSource],
+  ledger : @resources.Ledger,
+  registry : String,
+  values : String,
+  fragment : String?,
+  ordered : String?,
+  provider : @local.ManagedProvider,
+) -> ClientLocalEffectHost? {
+  if sources.length() != 2 {
+    return None
+  }
+  open_client_local_effect_host(
+    prepared,
+    None,
+    registry,
+    values,
+    1L,
+    0L,
+    0L,
+    0L,
+    fragment_body=fragment,
+    ordered_body=ordered,
+    captured_sources=[(0, sources[0]), (1, sources[1])],
+    acquisition_ledger=Some(ledger),
+    component_providers=[provider],
+  )
+}

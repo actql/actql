@@ -61,6 +61,8 @@ pub fn cleanup_observation_issuance(ObservationIssuance) -> Result[Bool, Issue]
 
 pub fn completed(Poll) -> @execution_relation.CompletedOutput?
 
+pub fn composed_local_provider(@run_publication_host.ClientInferOccurrence, Limits, (Array[@local.ManagedProviderInput]) -> Result[Execution, Issue], (Issue) -> @connector_sdk.FixedComputeIssue, retain_completed? : (Execution) -> Bool) -> @local.ManagedProvider
+
 pub fn execution_quantity_usage(Execution) -> @physical_resources.QuantityUsage?
 
 pub fn execution_stopped(Execution) -> Bool
@@ -81,7 +83,7 @@ pub fn invocation_evidence(Execution, Int) -> @run_publication.RunEvidenceValue?
 
 pub fn issued_slot_capture(Execution, Int) -> Result[@run_publication.RunEvidenceValue, @model_execution.ModelExecutionIssue]
 
-pub fn local_component(Execution, (Issue) -> @connector_sdk.FixedComputeIssue) -> Result[@local.ManagedProviderExecution, Issue]
+pub fn local_component(Execution, (Issue) -> @connector_sdk.FixedComputeIssue, retain_completed? : (Execution) -> Bool) -> Result[@local.ManagedProviderExecution, Issue]
 
 pub fn matches(Execution, @run_publication_host.PreparedClientProgram) -> Bool
 

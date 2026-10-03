@@ -6,6 +6,7 @@
 pub fn local_component(
   active : Execution,
   project_issue : (Issue) -> @connector.FixedComputeIssue,
+  retain_completed? : (Execution) -> Bool = _ => true,
 ) -> Result[@local.ManagedProviderExecution, Issue] {
   if active.reclaimed ||
     active.cancelled ||
@@ -37,8 +38,21 @@ pub fn local_component(
         charged.val = total
         match poll {
           Continue(_) => Ok(@local.managed_provider_continue(delta, delta))
-          Complete(output, ..) =>
+          Complete(output, ..) => {
+            // The Host can borrow the original accepted capture/output
+            // before Local attempts scratch cleanup. Store custody may not
+            // be replaced by replaying the Model after task completion.
+            if !retain_completed(active) {
+              return Ok(
+                @local.managed_provider_failed(
+                  project_issue(InvalidAdvance),
+                  delta,
+                  delta,
+                ),
+              )
+            }
             Ok(@local.managed_provider_complete(output, delta, delta))
+          }
           Failed(issue, ..) =>
             Ok(
               @local.managed_provider_failed(project_issue(issue), delta, delta),
