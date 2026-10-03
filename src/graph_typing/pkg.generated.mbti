@@ -18,6 +18,10 @@ import {
 }
 
 // Values
+pub fn check_degree(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedDegree, Issue]
+
+pub fn check_graph_bounds(@decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedGraphBounds, Issue]
+
 pub fn check_match(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedMatch, MatchIssue]
 
 pub fn check_mean_options(@decode_core.Cursor, Limits) -> Result[CheckedMeanOptions, Issue]
@@ -29,6 +33,26 @@ pub fn check_property_construction(@decode_core.Cursor, Array[(String, @carrier_
 pub fn check_selector(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSelector, MatchIssue]
 
 pub fn check_traverse(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedTraverse, MatchIssue]
+
+pub fn degree_direction(CheckedDegree) -> Direction
+
+pub fn degree_input(CheckedDegree) -> @carrier_contract.Carrier
+
+pub fn degree_output(CheckedDegree) -> @carrier_contract.Carrier
+
+pub fn degree_source(CheckedDegree) -> @decode_core.Cursor
+
+pub fn degree_usage(CheckedDegree) -> Usage
+
+pub fn graph_bounds_input(CheckedGraphBounds) -> @carrier_contract.Carrier
+
+pub fn graph_bounds_output(CheckedGraphBounds) -> @carrier_contract.Carrier
+
+pub fn graph_bounds_source(CheckedGraphBounds) -> @decode_core.Cursor
+
+pub fn graph_bounds_thresholds(CheckedGraphBounds) -> (Count?, Count?, Count?)
+
+pub fn graph_bounds_usage(CheckedGraphBounds) -> Usage
 
 pub fn hop_direction(TraversalHop) -> Direction
 
@@ -217,6 +241,10 @@ pub fn traverse_usage(CheckedTraverse) -> PredicateUsage
 // Errors
 
 // Types and methods
+type CheckedDegree
+
+type CheckedGraphBounds
+
 type CheckedMatch
 
 type CheckedMeanOptions
