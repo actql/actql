@@ -69,8 +69,10 @@ export function prepareLocalCarrierSnapshot(operations, createLease, checked, si
           maximumFrameBytes > maximumBytes || maximumFrameBytes > 16777216) {
         throw new Error('InvalidLocalSnapshotLimits');
       }
-      released = false;
       store = await createLease(key, maximumBytes, maximumFrameBytes, signal);
+      // A rejected factory has not transferred a lease to this owner. Start
+      // cleanup responsibility only after acquisition, before any Store use.
+      released = false;
       signal?.throwIfAborted();
       const writer = store.reserve(maximumBytes);
       await writer.start();
