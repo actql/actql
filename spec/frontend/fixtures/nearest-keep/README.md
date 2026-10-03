@@ -13,7 +13,10 @@ score and rank. They are not runtime results. The source ending in explicit
 `composite-bridge.program.json` records the common source bridge gap. Composite
 identity is adopted; it is not replaced by a string or object declared as a key.
 
-Current evidence: source construction and common checker probes. Packed
-Local/HTTP execution, Result.describe and replay counts are pending common
-object/property execution. See the
-[connection record](../../../../docs/reviews/2026-10-01-nearest-keep-connection.md).
+Recorded evidence: source construction and common checker/Plan probes. Packed
+Local/HTTP execution, Result.describe and replay counts remain unverified.
+Standard Host connection is now A-owned; the existing fixture data and
+`scripts/fixtures/nearest-public-input.mjs` consumer are retained unchanged.
+The [updated connection record](../../../../docs/reviews/2026-10-03-nearest-public-connection-boundary.md)
+separates its remaining installed-Host boundaries from the earlier object/property
+gap in the historical record.

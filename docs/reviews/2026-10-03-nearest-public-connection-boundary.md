@@ -1,6 +1,6 @@
 # NEAREST: common preparation versus installed Host execution
 
-## Current boundary
+## Recorded boundary
 
 Source inspection is pinned to main
 `b7aa6cf21e45a086f32bcb6a480d8dfdde79d24f`. This is a connection report,
@@ -77,11 +77,13 @@ valid typed vector source.
 
 ## Connection responsibilities and unchanged acceptance
 
-**B** retains Frontend resolution/lowering and independently authored public
-acceptance. The user assigned coordination of standard Host connection to **D**;
-there is no pending C connection artifact or fixed-SHA handoff for this feature.
-The installed profile selection and source publication changes must be assigned
-through that D connection unit.
+Ownership update, 2026-10-04: standard Host connection is assigned to **A**.
+The independent fixture directory and prepared acceptance consumer below are
+handed over unchanged; no new acceptance framework is needed. **B** retains
+Frontend resolution/lowering and handles concrete Frontend defects reported
+from that connection work. There is no pending C connection artifact or
+fixed-SHA handoff for this feature. The recorded probes remain historical
+preparation/Plan evidence, not public Local/HTTP execution.
 Any actual common VecA provider/Carrier deficiency belongs to its common owner;
 it must be demonstrated separately from the present profile refusal. No Host,
 kernel, task partitioning, Store or recovery code is changed by this report.
@@ -153,4 +155,4 @@ Main was normally merged; the selected Host profile, bridge, parameter contract
 and NEAREST lowering/checker files are unchanged between the earlier inspected
 main and the integrated main above. No full local Core, packed installation,
 proof or performance campaign was run for this handoff. This fixture is not
-enabled in the default packed corpus until D supplies the real Host connection.
+enabled in the default packed corpus until A supplies the real Host connection.

@@ -38,7 +38,11 @@ submitted HEAD adds only the evidence document to that verified source.
 Both are Draft. Neither full positive corpus nor automatic PR CI is declared
 successful. No Host ceilings, providers, physical strategies or common owners
 were changed. The CTE shared-acquisition predicate defect remains D's handoff.
-NEAREST standard Host connection is separately A-owned; existing fixtures remain.
+NEAREST standard Host connection is separately A-owned; the existing
+[fixture directory](../../spec/frontend/fixtures/nearest-keep/README.md) and
+[prepared consumer](../../scripts/fixtures/nearest-public-input.mjs) remain
+unchanged. The [connection handoff](2026-10-03-nearest-public-connection-boundary.md)
+now records that assignment and keeps historical preparation evidence separate.
 
 ## Reproduced defect: scoped Pipe ORDER reuses the wrong value
 
