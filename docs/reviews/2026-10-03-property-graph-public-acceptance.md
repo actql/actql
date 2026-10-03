@@ -85,3 +85,21 @@ Successful temporary installations were reclaimed after evidence was saved.
 
 See [connection boundaries](2026-10-03-property-graph-unified-source.md) and
 [migration checkpoint](2026-10-03-frontend-migration-checkpoint.md).
+
+
+## Full-corpus request registration correction
+
+The first pushed-source CI run
+[37092716948](https://github.com/actql/actql/actions/runs/37092716948) found
+that the default full selection registered the three shared Relation DATA
+controls twice. Local cases themselves passed; their identical request IDs
+correctly reused existing Runs, so the actual accepted count was 120 while
+the fixture incorrectly expected 123. Narrow Graph selection was unaffected.
+
+The correction keeps the first equivalent fixture for each request name,
+asserts exact source/options/expectations equality for shared names, and
+rejects conflicting duplicates. It changes no result expectation, Run owner
+or request identity. The combined Relation/Graph corpus has 18 distinct
+requests; the two composition regressions pass and are imported by the
+existing packed-query evidence CI entry. That registered test entry passes
+22/22 locally. Full-corpus verification on the corrected pushed SHA is pending.

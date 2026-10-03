@@ -16,6 +16,7 @@ import {exercisePublicQueryInput, querySuccesses, queryRefusals, inferRefusals, 
 
 import {propertyGraphSourceSuccesses, propertyGraphSourceExecutionFailures, propertyGraphSourceRefusals}
   from "./property-graph-source-input.mjs";
+import {uniquePublicQueryCases} from './public-query-cases.mjs';
 
 if (process.env.ACTQL_TEST_TWO_SOURCE_ONLY === '1') {
   await import('./packed-two-source-public-query.mjs');
@@ -57,6 +58,7 @@ const scopeInputs = propertyGraphOnly ? {successes: propertyGraphSourceSuccesses
   refusals: scope.refusals} : {successes: [...dataSetStrategyInputs.successes, ...querySuccesses, ...sourceFreeSuccesses, ...queryCompositionSuccesses, ...pipeResultSuccesses, ...relationDataSuccesses, ...propertyGraphSourceSuccesses, ...scope.successes, ...joinOrder.successes],
   refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...relationDataRefusals, ...propertyGraphSourceRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals],
   executionFailures: [...pipeResultExecutionFailures, ...propertyGraphSourceExecutionFailures]};
+scopeInputs.successes = uniquePublicQueryCases(scopeInputs.successes);
 const expectedQueryRuns = scopeInputs.successes.length + (scopeInputs.executionFailures?.length ?? 0);
 const expectedSourceReads = [...scopeInputs.successes, ...(scopeInputs.executionFailures ?? [])]
   .reduce((count, item) => count + (item.sourceReadCount ?? item.sourceReadSessionCount ?? 1), 0);
