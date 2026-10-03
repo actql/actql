@@ -107,6 +107,11 @@ export interface AcceptedSiteOutput {
 }
 export function acceptedSiteOutput(durable: DurableRecord):
   Readonly<AcceptedSiteOutput> | undefined;
+/** Completed transport candidate; grants no Source or publication authority. */
+export function acceptedSourceObservation(durable: DurableRecord):
+  Readonly<{taskOrdinal: number; sourceEvidenceWire: string;
+    inputLogicalWire: string; captureStartedAt: string;
+    captureCompletedAt: string}> | undefined;
 export interface OutputIntentInput {
   storeAuthorityCid: string;
   publicationAttemptCid: string;

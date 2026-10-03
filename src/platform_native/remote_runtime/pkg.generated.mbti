@@ -10,6 +10,8 @@ import {
 }
 
 // Values
+pub fn attach_native_remote_source_observation(NativeRemotePhysicalExecution, @remote_site_protocol.DispatchRequest, Int, @remote_site_protocol.RemoteSourceObservation) -> NativeRemotePhysicalExecution
+
 pub fn install_native_remote_runtime_registry_registration(@execution_site.ExecutionSite, @runtime_bundle.NativeActiveRuntimeBinding, String, String, Array[NativeRemoteTaskExecutor]) -> Result[NativeRemoteRuntimeRegistration, NativeRemoteRuntimeIssue]
 
 pub fn install_native_remote_task_executor(String, String, (@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding, @remote_site_protocol.RemoteDispatchBudget) -> NativeRemotePhysicalExecution) -> Result[NativeRemoteTaskExecutor, NativeRemoteRuntimeIssue]

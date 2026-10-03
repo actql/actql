@@ -117,6 +117,19 @@ pub fn prepared_client_acquisition_count(value : PreparedClientProgram) -> Int {
 }
 
 ///|
+/// The original checked Catalog facts for one Source. These facts are used
+/// to validate a later physical observation, never to authorize a file read.
+pub fn prepared_client_source_evidence_facts(
+  value : PreparedClientProgram,
+  stage : Int,
+  source_index : Int,
+) -> @planning.QuerySourceEvidenceFacts? {
+  prepare_client_query_acquisition(value, stage, source_index)
+  .to_option()
+  .bind(@planning.query_acquisition_source_evidence_facts)
+}
+
+///|
 pub fn prepared_client_captured_task_source_matches(
   value : PreparedClientProgram,
   source : @query.CapturedInputSource,

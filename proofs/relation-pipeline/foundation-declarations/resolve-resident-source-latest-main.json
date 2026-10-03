@@ -1,0 +1,47 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-resident-source-latest-main",
+  "kind": "resolution",
+  "revision": "3ad450f7996ccb8187de5d3d8e5288a5d4f640ed",
+  "parents": [
+    "9a3bb78f43a94ef9435f8daded7c2be76c357958",
+    "88fbcc95306abb4fc41f0d488bcc6d38ec19506d"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "9a3bb78f43a94ef9435f8daded7c2be76c357958",
+          "digest": "05f989915c150485a9166a5cca28ce25ec63c4818cc957f3e1ff4f42b226d261",
+          "mode": "100644"
+        },
+        {
+          "revision": "88fbcc95306abb4fc41f0d488bcc6d38ec19506d",
+          "digest": "a564c8fef5bbc0da1c5df2872148d3bead5be9da79124d76031b775f5d1372d4",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "e07d7f96553d52930e9042b1776bb9eed0b6df1e89142bb3a2011442c3b84ef4",
+      "afterMode": "100644",
+      "reason": "Compose the resident Source native acceptance registration with main local-check guard commands, Property Graph and packed admission acceptance registrations. Keep both independent command sets, normal checked-task dispatch boundaries and existing proof commands; do not change the foundation baseline or inherited declarations."
+    }
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-3877b637406b",
+    "adopt-63b114ad524b",
+    "adopt-678626b010b4",
+    "adopt-7427f7f09276",
+    "adopt-9a7c592a8ed9",
+    "adopt-b480cffb6e6d",
+    "adopt-bf2d058c21c1",
+    "adopt-f24288853c19",
+    "pr164-main-a32-verification-resolution",
+    "pr164-main4f-runtime-check-resolution",
+    "pr164-property-graph-source",
+    "remove-duplicate-runtime-package-checks",
+    "resident-source-native-registration",
+    "sdk-cancel-response-loss-registration"
+  ]
+}

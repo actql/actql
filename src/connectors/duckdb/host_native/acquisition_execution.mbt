@@ -380,3 +380,27 @@ pub fn close_native_acquisition_runtime(
   @duckdb_host.close_native_host(runtime.host)
   runtime.database.close()
 }
+
+///|
+/// Obtain the exact live Source capture from the runtime that observed the
+/// acquisition. The existing Host owns validation, completion and retention;
+/// application composition cannot substitute observation or schema evidence.
+pub fn native_acquisition_runtime_source_capture(
+  runtime : NativeAcquisitionRuntime,
+) -> Result[@duckdb_host.NativeHostSourceCapture, @query.CapturedSourceIssue] {
+  if runtime.closed {
+    return Err(Unavailable)
+  }
+  guard runtime.observation is Some(observation) else {
+    return Err(Unavailable)
+  }
+  @duckdb_host.capture_native_host_source(
+    runtime.host,
+    observation,
+    false,
+    runtime.limits.output_rows,
+    runtime.limits.retention,
+    runtime.limits.output_entries,
+    runtime.limits.output_name_bytes,
+  )
+}

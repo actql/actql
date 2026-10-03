@@ -19,6 +19,7 @@ struct DurableCoordinatorDispatchRecord {
   evidence : RemoteExecutionEvidence?
   subject : RemoteManagedOutputSubject?
   measurement : RemoteManagedOutputMeasurement?
+  source_observation : RemoteSourceObservation?
   observation_history_json : String
   body : String
 }
@@ -41,6 +42,7 @@ fn emit_durable_coordinator_record(
   accepted_measurement_cid : String,
   accepted_measurement_json : String,
   observation_history_json : String,
+  source_observation? : RemoteSourceObservation? = None,
 ) -> Result[String, DispatchIssue] {
   if revision < 0 {
     return Err(InvalidJournal)
@@ -66,6 +68,13 @@ fn emit_durable_coordinator_record(
     @encode.string_value(writer, accepted_subject_cid)
     @encode.key(writer, "accepted_subject_json")
     @encode.string_value(writer, accepted_subject_json)
+    match source_observation {
+      Some(value) => {
+        @encode.key(writer, "completed_source_observation_json")
+        @encode.string_value(writer, remote_source_observation_json(value))
+      }
+      None => ()
+    }
     @encode.key(writer, "dispatch_request_cid")
     @encode.string_value(writer, request.dispatch_request_cid)
     @encode.key(writer, "observation_history_json")
@@ -264,6 +273,7 @@ pub fn coordinator_dispatch_transition_durable_json(
   evidence? : RemoteExecutionEvidence? = None,
   subject? : RemoteManagedOutputSubject? = None,
   measurement? : RemoteManagedOutputMeasurement? = None,
+  source_observation? : RemoteSourceObservation? = None,
 ) -> Result[String, DispatchIssue] {
   if current.request.dispatch_request_cid !=
     transition.record.request.dispatch_request_cid ||
@@ -316,6 +326,28 @@ pub fn coordinator_dispatch_transition_durable_json(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let next_source = match (current.source_observation, source_observation) {
+    (Some(previous), Some(next)) => {
+      if remote_source_observation_json(previous) !=
+        remote_source_observation_json(next) {
+        return Err(StateCollision)
+      }
+      Some(previous)
+    }
+    (Some(previous), None) => Some(previous)
+    (None, Some(next)) => {
+      // A Source candidate is accepted atomically with its first completed
+      // output, never added to an older completion after the fact.
+      if current.evidence is Some(_) ||
+        effective_evidence is None ||
+        effective_subject is None ||
+        !remote_source_observation_matches_dispatch(next, current.request) {
+        return Err(InvalidJournal)
+      }
+      Some(next)
+    }
+    (None, None) => None
+  }
   emit_durable_coordinator_record(
     current.request,
     if transition.replay {
@@ -337,6 +369,7 @@ pub fn coordinator_dispatch_transition_durable_json(
     next_measurement.0,
     next_measurement.1,
     emit_coordinator_history(transition.next_history).unwrap(),
+    source_observation=next_source,
   )
 }
 
@@ -392,9 +425,10 @@ pub fn admit_durable_coordinator_dispatch_record(
     let object = evidence_object(root, [
       "accepted_evidence_cid", "accepted_evidence_json", "accepted_measurement_cid",
       "accepted_measurement_json", "accepted_subject_cid", "accepted_subject_json",
-      "dispatch_request_cid", "observation_history_json", "progress_state", "request_json",
-      "revision", "site_cleanup", "site_evidence", "site_execution", "site_material_available",
-      "site_quarantined_capacity", "site_revision", "version",
+      "completed_source_observation_json", "dispatch_request_cid", "observation_history_json",
+      "progress_state", "request_json", "revision", "site_cleanup", "site_evidence",
+      "site_execution", "site_material_available", "site_quarantined_capacity", "site_revision",
+      "version",
     ])
     if evidence_text(object, "version") !=
       "actql-remote-coordinator-history-record/0.1" {
@@ -477,6 +511,23 @@ pub fn admit_durable_coordinator_dispatch_record(
       }
       Some(value)
     }
+    let source_observation = match
+      @decode.lookup(object, "completed_source_observation_json") {
+      None => None
+      Some(cursor) => {
+        if evidence is None || subject is None || measurement is None {
+          raise EvidenceJsonStop
+        }
+        match
+          admit_remote_source_observation_json(
+            evidence_decoded(@decode.text(cursor)),
+            request,
+          ) {
+          Ok(value) => Some(value)
+          Err(_) => raise EvidenceJsonStop
+        }
+      }
+    }
     let revision = evidence_int(object, "revision")
     let progress_code = evidence_int(object, "progress_state")
     let site_revision = coordinator_signed_int(object, "site_revision")
@@ -517,10 +568,23 @@ pub fn admit_durable_coordinator_dispatch_record(
     }
     let canonical = match
       emit_durable_coordinator_record(
-        request, revision, progress_code, site_revision, site_execution, site_evidence,
-        site_cleanup, site_material_available, site_quarantined_capacity, accepted_evidence_cid,
-        accepted_evidence_json, accepted_subject_cid, accepted_subject_json, accepted_measurement_cid,
-        accepted_measurement_json, observation_history_json,
+        request,
+        revision,
+        progress_code,
+        site_revision,
+        site_execution,
+        site_evidence,
+        site_cleanup,
+        site_material_available,
+        site_quarantined_capacity,
+        accepted_evidence_cid,
+        accepted_evidence_json,
+        accepted_subject_cid,
+        accepted_subject_json,
+        accepted_measurement_cid,
+        accepted_measurement_json,
+        observation_history_json,
+        source_observation~,
       ) {
       Ok(value) => value
       Err(_) => raise EvidenceJsonStop
@@ -547,6 +611,7 @@ pub fn admit_durable_coordinator_dispatch_record(
       evidence,
       subject,
       measurement,
+      source_observation,
       observation_history_json,
       body,
     })
@@ -657,4 +722,11 @@ pub fn durable_coordinator_dispatch_record_measurement(
   durable : DurableCoordinatorDispatchRecord,
 ) -> RemoteManagedOutputMeasurement? {
   durable.measurement
+}
+
+///|
+pub fn durable_coordinator_dispatch_record_source_observation(
+  durable : DurableCoordinatorDispatchRecord,
+) -> RemoteSourceObservation? {
+  durable.source_observation
 }

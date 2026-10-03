@@ -292,6 +292,19 @@ pub fn coordinator_prepare_unknown(
 }
 
 ///|
+#export_name("coordinatorAcceptedSourceObservation")
+pub fn coordinator_accepted_source_observation(
+  durable : @remote.DurableCoordinatorDispatchRecord,
+) -> Array[String]? {
+  @remote.durable_coordinator_dispatch_record_source_observation(durable).map(value => {
+    let (task, source, input, started, completed) = @remote.remote_source_observation_projection(
+      value,
+    )
+    [task.to_string(), source, input, started, completed]
+  })
+}
+
+///|
 /// Site replies are admitted against the exact dispatch and reply operation.
 #export_name("coordinatorAdmitResponseJson")
 pub fn coordinator_admit_response_json(
@@ -360,6 +373,9 @@ pub fn coordinator_response_durable_json(
     evidence=@remote.remote_dispatch_response_evidence(response),
     subject=@remote.remote_dispatch_response_subject(response),
     measurement=@remote.remote_dispatch_response_measurement(response),
+    source_observation=@remote.remote_dispatch_response_source_observation(
+      response,
+    ),
   )
 }
 
