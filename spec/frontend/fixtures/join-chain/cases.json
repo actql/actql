@@ -1,0 +1,369 @@
+{
+  "successes": [
+    {
+      "name": "join-chain-alias-expression",
+      "format": "sql",
+      "text": "WITH a AS (SELECT 1 AS id, 2 AS x UNION ALL SELECT 2 AS id, 1 AS x), b AS (SELECT 1 AS id, 20 AS y UNION ALL SELECT 2 AS id, 10 AS y), c AS (SELECT 1 AS id, 100 AS z UNION ALL SELECT 2 AS id, 200 AS z) SELECT a.x AS y, c.z FROM a JOIN b ON a.id = b.id JOIN c ON b.id = c.id ORDER BY y + 1",
+      "results": {
+        "answer": {
+          "rows": [
+            {
+              "y": 1,
+              "z": 200
+            },
+            {
+              "y": 2,
+              "z": 100
+            }
+          ],
+          "columns": [
+            {
+              "name": "y",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "z",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadCount": 0
+    },
+    {
+      "name": "join-chain-qualified-input",
+      "format": "sql",
+      "text": "WITH a AS (SELECT 1 AS id, 2 AS x UNION ALL SELECT 2 AS id, 1 AS x), b AS (SELECT 1 AS id, 20 AS y UNION ALL SELECT 2 AS id, 10 AS y), c AS (SELECT 1 AS id, 100 AS z UNION ALL SELECT 2 AS id, 200 AS z) SELECT a.x AS y, c.z FROM a JOIN b ON a.id = b.id JOIN c ON b.id = c.id ORDER BY b.y + 1",
+      "results": {
+        "answer": {
+          "rows": [
+            {
+              "y": 2,
+              "z": 100
+            },
+            {
+              "y": 1,
+              "z": 200
+            }
+          ],
+          "columns": [
+            {
+              "name": "y",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "z",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadCount": 0
+    },
+    {
+      "name": "join-chain-repeated-projection",
+      "format": "sql",
+      "text": "WITH a AS (SELECT 1 AS id, 2 AS x UNION ALL SELECT 2 AS id, 1 AS x), b AS (SELECT 1 AS id, 20 AS y UNION ALL SELECT 2 AS id, 10 AS y), c AS (SELECT 1 AS id, 100 AS z UNION ALL SELECT 2 AS id, 200 AS z) SELECT a.x + 1 AS first, a.x + 1 AS second FROM a JOIN b ON a.id = b.id JOIN c ON b.id = c.id ORDER BY a.x + 1",
+      "results": {
+        "answer": {
+          "rows": [
+            {
+              "first": 2,
+              "second": 2
+            },
+            {
+              "first": 3,
+              "second": 3
+            }
+          ],
+          "columns": [
+            {
+              "name": "first",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "second",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadCount": 0
+    },
+    {
+      "name": "join-chain-distinct-selection",
+      "format": "sql",
+      "text": "WITH a AS (SELECT 1 AS id, 2 AS x UNION ALL SELECT 2 AS id, 1 AS x), b AS (SELECT 1 AS id, 20 AS y UNION ALL SELECT 2 AS id, 10 AS y), c AS (SELECT 1 AS id, 100 AS z UNION ALL SELECT 2 AS id, 200 AS z) SELECT DISTINCT a.x AS y FROM a JOIN b ON a.id = b.id JOIN c ON b.id = c.id ORDER BY a.x",
+      "results": {
+        "answer": {
+          "rows": [
+            {
+              "y": 1
+            },
+            {
+              "y": 2
+            }
+          ],
+          "columns": [
+            {
+              "name": "y",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadCount": 0
+    },
+    {
+      "name": "join-chain-using",
+      "format": "sql",
+      "text": "WITH a AS (SELECT 1 AS id, 2 AS x UNION ALL SELECT 2 AS id, 1 AS x), b AS (SELECT 1 AS id, 20 AS y UNION ALL SELECT 2 AS id, 10 AS y), c AS (SELECT 1 AS id, 100 AS z UNION ALL SELECT 2 AS id, 200 AS z) SELECT id, a.x, b.y, c.z FROM a JOIN b USING (id) JOIN c USING (id) ORDER BY id",
+      "results": {
+        "answer": {
+          "rows": [
+            {
+              "id": 1,
+              "x": 2,
+              "y": 20,
+              "z": 100
+            },
+            {
+              "id": 2,
+              "x": 1,
+              "y": 10,
+              "z": 200
+            }
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "x",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "y",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "z",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadCount": 0
+    },
+    {
+      "name": "join-chain-left-null-extension",
+      "format": "sql",
+      "text": "WITH a AS (SELECT 1 AS id UNION ALL SELECT 2 AS id), b AS (SELECT 1 AS id, 20 AS y), c AS (SELECT 1 AS id UNION ALL SELECT 2 AS id) SELECT a.id, b.y FROM a LEFT JOIN b ON a.id = b.id JOIN c ON a.id = c.id ORDER BY a.id",
+      "results": {
+        "answer": {
+          "rows": [
+            {
+              "id": 1,
+              "y": 20
+            },
+            {
+              "id": 2,
+              "y": null
+            }
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "y",
+              "contract": {
+                "type": "number",
+                "nullable": true
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadCount": 0
+    },
+    {
+      "name": "join-chain-data-pipe",
+      "format": "aql-text",
+      "text": "DATA a = SELECT 1 AS x; DATA b = SELECT 2 AS y; DATA c = SELECT 3 AS z; FROM a AS l |> CROSS JOIN b AS m |> CROSS JOIN c AS r |> SELECT l.x, m.y, r.z",
+      "results": {
+        "answer": {
+          "rows": [
+            {
+              "x": 1,
+              "y": 2,
+              "z": 3
+            }
+          ],
+          "columns": [
+            {
+              "name": "x",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "y",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            },
+            {
+              "name": "z",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadCount": 0
+    },
+    {
+      "name": "join-chain-cte-body",
+      "format": "sql",
+      "text": "WITH a AS (SELECT 2 AS id UNION ALL SELECT 1 AS id), joined AS (SELECT l.id FROM a AS l JOIN a AS m ON l.id = m.id JOIN a AS r ON m.id = r.id) SELECT id FROM joined ORDER BY id",
+      "results": {
+        "answer": {
+          "rows": [
+            {
+              "id": 1
+            },
+            {
+              "id": 2
+            }
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadCount": 0
+    },
+    {
+      "name": "join-chain-acquired-shared-producer",
+      "format": "aql-text",
+      "text": "DATA seed = FROM records |> SELECT id; DATA joined = SELECT l.id FROM seed AS l JOIN seed AS m ON l.id = m.id JOIN seed AS r ON m.id = r.id; FROM joined |> ORDER BY id",
+      "results": {
+        "answer": {
+          "rows": [
+            {
+              "id": 1
+            },
+            {
+              "id": 2
+            },
+            {
+              "id": 3
+            },
+            {
+              "id": 3
+            },
+            {
+              "id": 3
+            },
+            {
+              "id": 3
+            },
+            {
+              "id": 3
+            },
+            {
+              "id": 3
+            },
+            {
+              "id": 3
+            },
+            {
+              "id": 3
+            }
+          ],
+          "columns": [
+            {
+              "name": "id",
+              "contract": {
+                "type": "number",
+                "nullable": false
+              }
+            }
+          ]
+        }
+      },
+      "sourceReadSessionCount": 1
+    }
+  ],
+  "refusals": [
+    {
+      "name": "join-chain-ambiguous",
+      "format": "sql",
+      "text": "WITH a AS (SELECT 1 AS id, 2 AS x UNION ALL SELECT 2 AS id, 1 AS x), b AS (SELECT 1 AS id, 20 AS y UNION ALL SELECT 2 AS id, 10 AS y), c AS (SELECT 1 AS id, 100 AS z UNION ALL SELECT 2 AS id, 200 AS z) SELECT id FROM a JOIN b ON a.id = b.id JOIN c ON b.id = c.id "
+    },
+    {
+      "name": "join-chain-duplicate-range",
+      "format": "sql",
+      "text": "WITH a AS (SELECT 1 AS id, 2 AS x UNION ALL SELECT 2 AS id, 1 AS x), b AS (SELECT 1 AS id, 20 AS y UNION ALL SELECT 2 AS id, 10 AS y), c AS (SELECT 1 AS id, 100 AS z UNION ALL SELECT 2 AS id, 200 AS z) SELECT a.id FROM a JOIN b AS a ON a.id = a.id JOIN c ON a.id = c.id"
+    },
+    {
+      "name": "join-chain-future-range",
+      "format": "sql",
+      "text": "WITH a AS (SELECT 1 AS id, 2 AS x UNION ALL SELECT 2 AS id, 1 AS x), b AS (SELECT 1 AS id, 20 AS y UNION ALL SELECT 2 AS id, 10 AS y), c AS (SELECT 1 AS id, 100 AS z UNION ALL SELECT 2 AS id, 200 AS z) SELECT a.id FROM a JOIN b ON c.id = b.id JOIN c ON a.id = c.id"
+    },
+    {
+      "name": "join-chain-unselected-distinct-order",
+      "format": "sql",
+      "text": "WITH a AS (SELECT 1 AS id, 2 AS x UNION ALL SELECT 2 AS id, 1 AS x), b AS (SELECT 1 AS id, 20 AS y UNION ALL SELECT 2 AS id, 10 AS y), c AS (SELECT 1 AS id, 100 AS z UNION ALL SELECT 2 AS id, 200 AS z) SELECT DISTINCT a.x AS y FROM a JOIN b ON a.id = b.id JOIN c ON b.id = c.id ORDER BY c.z"
+    }
+  ]
+}

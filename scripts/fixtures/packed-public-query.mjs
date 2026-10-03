@@ -34,6 +34,7 @@ const acquiredDataOnly = process.env.ACTQL_TEST_ACQUIRED_DATA_ONLY === '1';
 const dataSetStrategyOnly = process.env.ACTQL_TEST_DATA_SET_STRATEGY_ONLY === '1';
 const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || inferOnly || joinOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || propertyGraphOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
+const joinChain = JSON.parse(await readFile('join-chain-cases.json', 'utf8'));
 const scope = JSON.parse(await readFile('pipe-scope-cases.json', 'utf8'));
 assert.deepEqual(scope.source_rows, sourceRows);
 const dataSetStrategyInputs = {
@@ -63,6 +64,10 @@ const scopeInputs = propertyGraphOnly ? {successes: propertyGraphSourceSuccesses
   refusals: scope.refusals} : {successes: [...dataSetStrategyInputs.successes, ...querySuccesses, ...sourceFreeSuccesses, ...queryCompositionSuccesses, ...pipeResultSuccesses, ...relationDataSuccesses, ...acquiredDataSuccesses, ...acquiredGraphSourceSuccesses, ...propertyGraphSourceSuccesses, ...scope.successes, ...joinOrder.successes],
   refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...relationDataRefusals, ...acquiredDataRefusals, ...propertyGraphSourceRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals],
   executionFailures: [...pipeResultExecutionFailures, ...propertyGraphSourceExecutionFailures]};
+if (!scopeOnly) {
+  scopeInputs.successes.push(...joinChain.successes);
+  scopeInputs.refusals.push(...joinChain.refusals);
+}
 scopeInputs.successes = uniquePublicQueryCases(scopeInputs.successes);
 const expectedQueryRuns = scopeInputs.successes.length + (scopeInputs.executionFailures?.length ?? 0);
 const expectedSourceReads = [...scopeInputs.successes, ...(scopeInputs.executionFailures ?? [])]

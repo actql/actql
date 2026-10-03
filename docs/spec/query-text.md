@@ -318,10 +318,14 @@ admitted Source View provenance required by the common Graph checker.
 Frontend preparation passes the constructed Program to the common checker;
 it cannot substitute its own Graph admission or execution. Source construction
 and checking alone establish neither execution nor snapshot support. No
-conversion to the old simple-Graph contract is permitted. DATA single-JOIN
-bodies use the ordinary JOIN projection, alias and ordering rules, retaining
-their existing logical operands. JOIN chains beyond that assembly, unused
-CTE checking without scheduling acquisition, and standalone Stage
+conversion to the old simple-Graph contract is permitted. SQL, Pipe, DATA and
+CTE INNER/LEFT/CROSS JOIN chains retain each range's column scope while lowering
+to ordinary bounded JOIN operations. ON resolves only preceding ranges and
+the current right input; USING shares an unqualified key without discarding
+either qualified input column. Projection and ORDER BY reuse the normal output
+alias and evaluated-slot rules. FULL JOIN chains still require an adapted
+stable-row identity/coalescence path; they are explicitly unsupported rather
+than approximated. Unused CTE checking without scheduling acquisition and standalone Stage
 references without their producer definitions remain explicit implementation
 gaps. These are support limits, not permanent restrictions of the target
 language.
