@@ -99,231 +99,12 @@ const sourceProgram = await readFile(join(repository,
 await writeFile(join(root, 'source-program.json'), sourceProgram);
 const queryFrontend = await import(pathToFileURL(join(repository,
   '_build/js/debug/build/query_program_test_bridge/query_program_test_bridge.js')));
-const graphSteps = [
-  {values: {schema: {
-    id: {type: 'number', nullable: false},
-    entity_type: {type: 'string', nullable: true},
-    name: {type: 'string', nullable: false}},
-  rows: [{id: 1, entity_type: 'Account', name: 'one'},
-    {id: 2, entity_type: null, name: 'two'}]}, as: 'nodes'},
-  {values: {schema: {
-    src: {type: 'number', nullable: false},
-    dst: {type: 'number', nullable: false},
-    rel: {type: 'string', nullable: true}}, rows: []}, as: 'edges'},
-  {graph: {nodes: {from: 'nodes', id: 'id', fields: ['entity_type', 'name']},
-    edges: {from: 'edges', source: 'src', target: 'dst', label: 'rel',
-      fields: []}}, as: 'g'},
-];
-const graphQuery = queryFrontend.compileGeneratedGraphQueryJson(
-  'FROM GRAPH g LABELS {"node":{"field":"entity_type"}} '
-    + '|> MATCH WALK (a:Account) |> SELECT a.name AS name',
-  'g', JSON.stringify(graphSteps), JSON.stringify(['id', 'entity_type', 'name']),
-  JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_node_only');
-assert.notEqual(graphQuery, '');
-await writeFile(join(root, 'graph-node-query.json'), graphQuery);
-const pathSteps = [
-  {values: {schema: {
-    id: {type: 'number', nullable: false},
-    name: {type: 'string', nullable: false}},
-  rows: [{id: 1, name: 'A'}, {id: 2, name: 'B'},
-    {id: 3, name: 'C'}, {id: 4, name: 'D'}]}, as: 'nodes'},
-  {values: {schema: {
-    src: {type: 'number', nullable: false},
-    dst: {type: 'number', nullable: false},
-    rel: {type: 'string', nullable: true}},
-  rows: [{src: 1, dst: 2, rel: 'R'},
-    {src: 1, dst: 3, rel: 'R'},
-    {src: 2, dst: 4, rel: 'R'},
-    {src: 3, dst: 4, rel: 'R'}]}, as: 'edges'},
-  {graph: {nodes: {from: 'nodes', id: 'id', fields: ['name']},
-    edges: {from: 'edges', source: 'src', target: 'dst',
-      label: 'rel', fields: []}}, as: 'g'},
-];
-const pathQuery = queryFrontend.compileGeneratedGraphQueryJson(
-  'FROM GRAPH g |> MATCH WALK (a)-[]->(b)-[]->(d) '
-    + '|> SELECT a.id AS start_id, d.id AS end_id',
-  'g', JSON.stringify(pathSteps), JSON.stringify(['id', 'name']),
-  JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_diamond');
-assert.notEqual(pathQuery, '');
-await writeFile(join(root, 'graph-path-query.json'), pathQuery);
-for (const [name, source] of [
-  ['node-star', 'FROM GRAPH g |> MATCH WALK (a) |> SELECT *'],
-  ['quoted-node-star', 'FROM GRAPH g |> MATCH WALK (`a`) |> SELECT *'],
-  ['projected-star', 'FROM GRAPH g |> MATCH WALK (a)-[]->(b) '
-    + '|> SELECT a.id AS id, b.name AS name |> SELECT *'],
-  ['quoted-projected-star', 'FROM GRAPH g |> MATCH WALK (`a`)-[]->(`b`) '
-    + '|> SELECT `a`.id AS id, `b`.name AS name |> SELECT *'],
-]) {
-  const program = queryFrontend.compileGeneratedGraphQueryJson(source,
-    'g', JSON.stringify(pathSteps), JSON.stringify(['id', 'name']),
-    JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_' + name);
-  assert.notEqual(program, '', name);
-  const result = JSON.parse(program).stages[0].results.rows;
-  assert.deepEqual(result.fields, ['id', 'name']);
-  await writeFile(join(root, 'graph-' + name + '.json'), program);
-}
-const macroQuery = queryFrontend.compileGeneratedGraphQueryJson(
-  'FROM GRAPH g |> MATCH p = WALK (a)-[e]->(b) '
-    + '|> SELECT NODE_ID(a) AS node_id, EDGE_SOURCE(e) AS source_id, '
-    + 'EDGE_TARGET(e) AS target_id, EDGE_LABEL(e) AS edge_label, '
-    + 'PATH_LENGTH(p) + 1 AS depth',
-  'g', JSON.stringify(pathSteps), JSON.stringify(['id', 'name']),
-  JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_macros');
-assert.notEqual(macroQuery, '');
-await writeFile(join(root, 'graph-macro-query.json'), macroQuery);
-const boundedGraphQuery = queryFrontend.compileGeneratedGraphQueryJson(
-  'FROM GRAPH g |> MATCH p = ACYCLIC (a)-[:R]->{1,2}(b) '
-    + '|> SELECT a.id AS start_id, b.id AS end_id, '
-    + 'PATH_LENGTH(p) AS depth',
-  'g', JSON.stringify(pathSteps), JSON.stringify(['id', 'name']),
-  JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_bounded');
-assert.notEqual(boundedGraphQuery, '');
-await writeFile(join(root, 'graph-bounded-query.json'), boundedGraphQuery);
-for (const [name, pattern, projection] of [
-  ['named-node-where', 'WALK (a WHERE id = 1)', 'a.id AS id'],
-  ['anonymous-node-where', 'WALK (WHERE id = 1)', 'id AS id'],
-  ['quoted-node-where', 'WALK (`WHERE` WHERE id = 1)',
-    '`WHERE`.id AS id'],
-  ['named-edge-where', 'WALK (a)-[e WHERE src = 1]->(b)', 'b.id AS id'],
-  ['anonymous-edge-where', 'WALK (a)-[WHERE src = 1]->(b)',
-    'b.id AS id'],
-  ['quoted-edge-where', 'WALK (a)-[`WHERE` WHERE src = 1]->(b)',
-    'b.id AS id'],
-]) {
-  const query = queryFrontend.compileGeneratedGraphQueryJson(
-    'FROM GRAPH g |> MATCH ' + pattern + ' |> SELECT ' + projection,
-    'g', JSON.stringify(pathSteps), JSON.stringify(['id', 'name']),
-    JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_' + name);
-  assert.notEqual(query, '', name);
-  await writeFile(join(root, 'graph-' + name + '-query.json'), query);
-}
-for (const [name, bounds] of [
-  ['shared-node-zero', '{0,2}'],
-  ['shared-node-positive', '{1,2}'],
-]) {
-  const query = queryFrontend.compileGeneratedGraphQueryJson(
-    'FROM GRAPH g |> MATCH p = ACYCLIC '
-      + '(a WHERE id <= 2)-[:R]->' + bounds
-      + '(a WHERE id >= 2) '
-      + '|> SELECT a.id AS id, PATH_LENGTH(p) AS depth',
-    'g', JSON.stringify(pathSteps), JSON.stringify(['id', 'name']),
-    JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_' + name);
-  assert.notEqual(query, '', name);
-  await writeFile(join(root, 'graph-' + name + '-query.json'), query);
-}
-const cycleSteps = [
-  {values: {schema: {id: {type: 'number', nullable: false}},
-    rows: [{id: 1}, {id: 2}]}, as: 'nodes'},
-  {values: {schema: {
-    src: {type: 'number', nullable: false},
-    dst: {type: 'number', nullable: false},
-    rel: {type: 'string', nullable: true}},
-  rows: [{src: 1, dst: 2, rel: null},
-    {src: 2, dst: 1, rel: null}]}, as: 'edges'},
-  {graph: {nodes: {from: 'nodes', id: 'id', fields: []},
-    edges: {from: 'edges', source: 'src', target: 'dst',
-      label: 'rel', fields: []}}, as: 'g'},
-];
-for (const [name, pattern] of [
-  ['walk', 'WALK (a)-[]->(b)-[]->(c)'],
-  ['acyclic', 'ACYCLIC (a)-[]->(b)-[]->(c)'],
-  ['trail', 'TRAIL (a)-[]->(b)-[]->(c)-[]->(d)'],
-  ['missing', 'WALK (a {id: 9})-[]->(b)'],
-]) {
-  const query = queryFrontend.compileGeneratedGraphQueryJson(
-    'FROM GRAPH g |> MATCH ' + pattern +
-      ' |> SELECT a.id AS start_id',
-    'g', JSON.stringify(cycleSteps), JSON.stringify(['id']),
-    JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_' + name);
-  assert.notEqual(query, '');
-  await writeFile(join(root, 'graph-' + name + '-query.json'), query);
-}
-const selfLoopSteps = [
-  {values: {schema: {id: {type: 'number', nullable: false}},
-    rows: [{id: 1}]}, as: 'nodes'},
-  {values: {schema: {
-    src: {type: 'number', nullable: false},
-    dst: {type: 'number', nullable: false},
-    rel: {type: 'string', nullable: true}},
-  rows: [{src: 1, dst: 1, rel: null}]}, as: 'edges'},
-  {graph: {nodes: {from: 'nodes', id: 'id', fields: []},
-    edges: {from: 'edges', source: 'src', target: 'dst',
-      label: 'rel', fields: []}}, as: 'g'},
-];
-for (const mode of ['WALK', 'TRAIL', 'ACYCLIC']) {
-  const name = 'self-' + mode.toLowerCase();
-  const query = queryFrontend.compileGeneratedGraphQueryJson(
-    'FROM GRAPH g |> MATCH ' + mode + ' (a)-[]->(b) '
-      + '|> SELECT a.id AS start_id',
-    'g', JSON.stringify(selfLoopSteps), JSON.stringify(['id']),
-    JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_' + name);
-  assert.notEqual(query, '');
-  await writeFile(join(root, 'graph-' + name + '-query.json'), query);
-}
-// Node 3 is unreachable from node 1, while node 2 reaches a second hop only
-// after its predicate has been evaluated. These rows fix both demand cases.
-const predicateSteps = [
-  {values: {schema: {
-    id: {type: 'number', nullable: false},
-    den: {type: 'number', nullable: false}},
-  rows: [{id: 1, den: 1}, {id: 2, den: 2}, {id: 3, den: 0}]},
-  as: 'nodes'},
-  {values: {schema: {
-    src: {type: 'number', nullable: false},
-    dst: {type: 'number', nullable: false},
-    rel: {type: 'string', nullable: true}},
-  rows: [{src: 1, dst: 2, rel: 'R'}]}, as: 'edges'},
-  {graph: {nodes: {from: 'nodes', id: 'id', fields: ['den']},
-    edges: {from: 'edges', source: 'src', target: 'dst',
-      label: 'rel', fields: []}}, as: 'g'},
-];
-for (const [name, query] of [
-  ['unreached', 'FROM GRAPH g |> MATCH WALK '
-    + '(a {id: 1})-[]->(b WHERE 10 / b.den > 1) '
-    + '|> SELECT b.id AS id'],
-  ['prefix-failure', 'FROM GRAPH g |> MATCH WALK '
-    + '(a {id: 1})-[]->(b WHERE 10 / (b.den - 2) > 1)-[]->(c) '
-    + '|> SELECT c.id AS id'],
-]) {
-  const compiled = queryFrontend.compileGeneratedGraphQueryJson(
-    query, 'g', JSON.stringify(predicateSteps), JSON.stringify(['id', 'den']),
-    JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_' + name);
-  assert.notEqual(compiled, '', name);
-  await writeFile(join(root, 'graph-' + name + '-query.json'), compiled);
-}
-// One hop has 72 bindings; three hops produce 4,608 before the final
-// impossible node predicate. The final Result alone would contain no rows.
-const denseNodes = Array.from({length: 9}, (_, index) => ({id: index + 1}));
-const denseEdges = denseNodes.flatMap(source => denseNodes
-  .filter(target => target.id !== source.id)
-  .map(target => ({src: source.id, dst: target.id, rel: 'R'})));
-const denseGraphSteps = [
-  {values: {schema: {id: {type: 'number', nullable: false}},
-    rows: denseNodes}, as: 'nodes'},
-  {values: {schema: {
-    src: {type: 'number', nullable: false},
-    dst: {type: 'number', nullable: false},
-    rel: {type: 'string', nullable: true}},
-  rows: denseEdges}, as: 'edges'},
-  {graph: {nodes: {from: 'nodes', id: 'id', fields: []},
-    edges: {from: 'edges', source: 'src', target: 'dst',
-      label: 'rel', fields: []}}, as: 'g'},
-];
-const denseGraphQuery = queryFrontend.compileGeneratedGraphQueryJson(
-  'FROM GRAPH g |> MATCH WALK (a)-[]->(b)-[]->(c)-[]->(d {id: 999}) '
-    + '|> SELECT a.id AS id',
-  'g', JSON.stringify(denseGraphSteps), JSON.stringify(['id']),
-  JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_dense');
-assert.notEqual(denseGraphQuery, '');
-await writeFile(join(root, 'graph-dense-query.json'), denseGraphQuery);
-const denseControlQuery = queryFrontend.compileGeneratedGraphQueryJson(
-  'FROM GRAPH g |> MATCH WALK (a)-[]->(b {id: 999}) '
-    + '|> SELECT a.id AS id',
-  'g', JSON.stringify(denseGraphSteps), JSON.stringify(['id']),
-  JSON.stringify(['src', 'dst', 'rel']), 'fixture.graph_dense_control');
-assert.notEqual(denseControlQuery, '');
-await writeFile(join(root, 'graph-dense-control-query.json'),
-  denseControlQuery);
+// Current Graph acceptance uses the admitted keyed Program, never the retired
+// frontend tuple generator. Rich snapshot/identity acceptance is registered
+// separately in test-packed-property-graph.mjs.
+await writeFile(join(root, 'property-graph-parallel.json'),
+  await readFile(join(repository,
+    'scripts/fixtures/property-graph-parallel.program.json'), 'utf8'));
 const pairExpectedProgram = JSON.parse(await readFile(join(repository,
   'spec/frontend/fixtures/query-pair.expected-program.json'), 'utf8'));
 const pairExpectedRows = JSON.parse(await readFile(join(repository,
@@ -1250,144 +1031,35 @@ const computedValuesQueryDocument = readFileSync('query-computed-values.json',
 const pairQueryDocument = readFileSync('query-pair.json', 'utf8');
 const pairExpectedRows = JSON.parse(readFileSync(
   'query-pair.expected-rows.json', 'utf8'));
-async function checkGraphNodeQuery(client, suffix) {
-  for (const [name, expected] of [
-    ['node-star', [{id: 1, name: 'A'}, {id: 2, name: 'B'},
-      {id: 3, name: 'C'}, {id: 4, name: 'D'}]],
-    ['quoted-node-star', [{id: 1, name: 'A'}, {id: 2, name: 'B'},
-      {id: 3, name: 'C'}, {id: 4, name: 'D'}]],
-    ['projected-star', [{id: 1, name: 'B'}, {id: 1, name: 'C'},
-      {id: 2, name: 'D'}, {id: 3, name: 'D'}]],
-    ['quoted-projected-star', [{id: 1, name: 'B'}, {id: 1, name: 'C'},
-      {id: 2, name: 'D'}, {id: 3, name: 'D'}]],
-  ]) {
-    const execution = await client.aql(readFileSync('graph-' + name + '.json',
-      'utf8'), {format: 'json', requestId: 'packed-' + name + '-' + suffix});
-    const status = await execution.wait();
-    assert.equal(status.status, 'succeeded', JSON.stringify(status));
-    const rows = await execution.result('answer').all();
-    assert.deepEqual(rows, expected);
-    for (const row of rows) assert.deepEqual(Object.keys(row).sort(),
-      ['id', 'name']);
-  }
+async function checkCurrentPropertyGraph(client, suffix) {
+  const program = JSON.parse(readFileSync('property-graph-parallel.json', 'utf8'));
+  const execution = await client.aql(JSON.stringify(program),
+    {format: 'json', requestId: 'packed-property-graph-' + suffix});
+  const state = await execution.wait();
+  assert.equal(state.status, 'succeeded', JSON.stringify(state));
+  const result = execution.result('answer');
+  assert.deepEqual((await result.describe()).columns,
+    [{name: 'key', contract: {type: 'number', nullable: false}}]);
+  const reader = result.rows();
+  // Independently keyed parallel self-loops must not collapse by endpoints.
+  assert.deepEqual(await Array.fromAsync(reader), [{key: 10}, {key: 11}]);
+  assert.equal(reader.state(), 'complete');
 
-  const execution = await client.aql(readFileSync('graph-node-query.json',
-    'utf8'), {format: 'json', requestId: 'packed-graph-node-' + suffix});
-  const status = await execution.wait();
-  assert.equal(status.status, 'succeeded', JSON.stringify(status));
-  assert.deepEqual(await execution.result('answer').all(), [{name: 'one'}]);
-}
-async function checkGraphPathQuery(client, suffix) {
-  const execution = await client.aql(readFileSync('graph-path-query.json',
-    'utf8'), {format: 'json', requestId: 'packed-graph-path-' + suffix});
-  const status = await execution.wait();
-  assert.equal(status.status, 'succeeded', JSON.stringify(status));
-  assert.deepEqual(await execution.result('answer').all(), [
-    {start_id: 1, end_id: 4},
-    {start_id: 1, end_id: 4},
-  ]);
-}
-async function checkGraphMacroQuery(client, suffix) {
-  const execution = await client.aql(readFileSync('graph-macro-query.json',
-    'utf8'), {format: 'json', requestId: 'packed-graph-macro-' + suffix});
-  const status = await execution.wait();
-  assert.equal(status.status, 'succeeded', JSON.stringify(status));
-  assert.deepEqual(await execution.result('answer').all(), [
-    {node_id: 1, source_id: 1, target_id: 2, edge_label: 'R', depth: 2},
-    {node_id: 1, source_id: 1, target_id: 3, edge_label: 'R', depth: 2},
-    {node_id: 2, source_id: 2, target_id: 4, edge_label: 'R', depth: 2},
-    {node_id: 3, source_id: 3, target_id: 4, edge_label: 'R', depth: 2},
-  ]);
-}
-async function checkBoundedGraphQuery(client, suffix) {
-  const execution = await client.aql(readFileSync('graph-bounded-query.json',
-    'utf8'), {format: 'json', requestId: 'packed-graph-bounded-' + suffix});
-  const status = await execution.wait();
-  assert.equal(status.status, 'succeeded', JSON.stringify(status));
-  assert.deepEqual(await execution.result('answer').all(), [
-    {start_id: 1, end_id: 2, depth: 1},
-    {start_id: 1, end_id: 3, depth: 1},
-    {start_id: 1, end_id: 4, depth: 2},
-    {start_id: 1, end_id: 4, depth: 2},
-    {start_id: 2, end_id: 4, depth: 1},
-    {start_id: 3, end_id: 4, depth: 1},
-  ]);
-}
-async function checkGraphWhereConstraints(client, suffix) {
-  for (const [name, expected] of [
-    ['named-node-where', [{id: 1}]],
-    ['anonymous-node-where', [{id: 1}]],
-    ['quoted-node-where', [{id: 1}]],
-    ['named-edge-where', [{id: 2}, {id: 3}]],
-    ['anonymous-edge-where', [{id: 2}, {id: 3}]],
-    ['quoted-edge-where', [{id: 2}, {id: 3}]],
-  ]) {
-    const execution = await client.aql(readFileSync(
-      'graph-' + name + '-query.json', 'utf8'),
-    {format: 'json', requestId: 'packed-graph-' + name + '-' + suffix});
-    assert.equal((await execution.wait()).status, 'succeeded', name);
-    assert.deepEqual(await execution.result('answer').all(), expected, name);
-  }
-}
-async function checkBoundedSharedNode(client, suffix) {
-  for (const [name, expected] of [
-    ['shared-node-zero', [{id: 2, depth: 0}]],
-    ['shared-node-positive', []],
-  ]) {
-    const execution = await client.aql(readFileSync(
-      'graph-' + name + '-query.json', 'utf8'),
-    {format: 'json', requestId: 'packed-graph-' + name + '-' + suffix});
-    assert.equal((await execution.wait()).status, 'succeeded', name);
-    assert.deepEqual(await execution.result('answer').all(), expected, name);
-  }
-}
-async function checkGraphPathModes(client, suffix) {
-  for (const [name, expected] of [
-    ['walk', [{start_id: 1}, {start_id: 2}]],
-    ['acyclic', []],
-    ['trail', []],
-    ['missing', []],
-    ['self-walk', [{start_id: 1}]],
-    ['self-trail', [{start_id: 1}]],
-    ['self-acyclic', []],
-  ]) {
-    const execution = await client.aql(readFileSync(
-      'graph-' + name + '-query.json', 'utf8'),
-    {format: 'json', requestId: 'packed-graph-' + name + '-' + suffix});
-    assert.equal((await execution.wait()).status, 'succeeded');
-    assert.deepEqual(await execution.result('answer').all(), expected);
-  }
-}
-async function checkGraphPredicateDemand(client, suffix) {
-  const unreached = await client.aql(readFileSync(
-    'graph-unreached-query.json', 'utf8'),
-  {format: 'json', requestId: 'packed-graph-unreached-' + suffix});
-  const unreachedStatus = await unreached.wait();
-  assert.equal(unreachedStatus.status, 'succeeded',
-    JSON.stringify(unreachedStatus));
-  assert.deepEqual(await unreached.result('answer').all(), [{id: 2}]);
-  const failed = await client.aql(readFileSync(
-    'graph-prefix-failure-query.json', 'utf8'),
-  {format: 'json', requestId: 'packed-graph-prefix-failure-' + suffix});
-  const failedStatus = await failed.wait();
-  assert.equal(failedStatus.status, 'failed', JSON.stringify(failedStatus));
-  await assert.rejects(failed.result('answer').all());
-}
-async function checkGraphIntermediateLimit(client, suffix) {
-  const control = await client.aql(readFileSync(
-    'graph-dense-control-query.json', 'utf8'),
-  {format: 'json', requestId: 'packed-graph-dense-control-' + suffix});
-  const controlStatus = await control.wait();
-  assert.equal(controlStatus.status, 'succeeded',
-    JSON.stringify(controlStatus));
-  assert.deepEqual(await control.result('answer').all(), []);
-  const execution = await client.aql(readFileSync(
-    'graph-dense-query.json', 'utf8'),
-  {format: 'json', requestId: 'packed-graph-dense-' + suffix});
-  const status = await execution.wait();
-  assert.equal(status.status, 'failed', JSON.stringify(status));
-  assert.equal(status.result_availability.answer.reason, 'not_published');
-  await assert.rejects(execution.result('answer').all());
+  program.id = 'packed-property-graph-trail';
+  program.stages[0].steps.splice(3, 1,
+    {from: 'g', match_nodes: {definition: 'N', label: 'Node',
+      bindings: {identity: 'element'}, where: 'true', fields: ['element']},
+    as: 'seeds'},
+    {from: 'g', traverse: {start: {from: 'seeds', id: 'element'},
+      direction: 'out', min_hops: 2, max_hops: 2, path_mode: 'trail',
+      emit: 'paths'}, as: 'paths'});
+  program.stages[0].results.out = {from: 'paths', fields: ['hop_count']};
+  const trail = await client.aql(JSON.stringify(program),
+    {format: 'json', requestId: 'packed-property-trail-' + suffix});
+  assert.equal((await trail.wait()).status, 'succeeded');
+  // Two distinct edge keys permit exactly the two two-hop permutations.
+  assert.deepEqual(await trail.result('answer').all(),
+    [{hop_count: 2}, {hop_count: 2}]);
 }
 async function checkQueryPair(client, suffix) {
   const execution = await client.aql(pairQueryDocument,
@@ -1919,7 +1591,7 @@ async function runAcquiredApplication(options, requestId) {
 if (process.env.ACTQL_PROJECTION_ONLY === '1') {
   const local = await connect({mode: 'local', owner: 'local',
     durability: 'durable'});
-  await checkGraphNodeQuery(local, 'projection-local');
+  await checkCurrentPropertyGraph(local, 'projection-local');
   await checkOrderScopes(local, 'projection-local');
   local.close();
   globalThis.fetch = originalFetch;
@@ -1929,7 +1601,7 @@ if (process.env.ACTQL_PROJECTION_ONLY === '1') {
   assert.equal(released.status, 200);
   const remote = await connect({mode: 'remote', endpoint,
     token: 'packed-test-token', durability: 'durable'});
-  await checkGraphNodeQuery(remote, 'projection-remote');
+  await checkCurrentPropertyGraph(remote, 'projection-remote');
   await checkOrderScopes(remote, 'projection-remote');
   remote.close();
   process.exit(0);
@@ -1971,15 +1643,7 @@ assert.deepEqual(await computedValuesQueryLocal.result('answer').all(),
   [{id: 2}]);
 await checkOrderScopes(installedLocal, 'local');
 await checkQueryPair(installedLocal, 'local');
-await checkGraphNodeQuery(installedLocal, 'local');
-await checkGraphPathQuery(installedLocal, 'local');
-await checkGraphMacroQuery(installedLocal, 'local');
-await checkBoundedGraphQuery(installedLocal, 'local');
-await checkGraphWhereConstraints(installedLocal, 'local');
-await checkBoundedSharedNode(installedLocal, 'local');
-await checkGraphPathModes(installedLocal, 'local');
-await checkGraphPredicateDemand(installedLocal, 'local');
-await checkGraphIntermediateLimit(installedLocal, 'local');
+await checkCurrentPropertyGraph(installedLocal, 'local');
 await checkValuesCte(installedLocal, 'local');
 await checkPipeSnapshots(installedLocal, 'local');
 await checkNullOrder(installedLocal, 'local');
@@ -2187,15 +1851,7 @@ assert.deepEqual(await computedValuesQueryRemote.result('answer').all(),
   [{id: 2}]);
 await checkOrderScopes(installedRemote, 'remote');
 await checkQueryPair(installedRemote, 'remote');
-await checkGraphNodeQuery(installedRemote, 'remote');
-await checkGraphPathQuery(installedRemote, 'remote');
-await checkGraphMacroQuery(installedRemote, 'remote');
-await checkBoundedGraphQuery(installedRemote, 'remote');
-await checkGraphWhereConstraints(installedRemote, 'remote');
-await checkBoundedSharedNode(installedRemote, 'remote');
-await checkGraphPathModes(installedRemote, 'remote');
-await checkGraphPredicateDemand(installedRemote, 'remote');
-await checkGraphIntermediateLimit(installedRemote, 'remote');
+await checkCurrentPropertyGraph(installedRemote, 'remote');
 if (process.env.ACTQL_GRAPH_ONLY === '1') {
   installedRemote.close();
   console.log(projectionOnly

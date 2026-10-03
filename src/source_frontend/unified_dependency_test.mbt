@@ -1,11 +1,11 @@
 ///|
-test "unified dependency checkpoint refuses Property Graph before common admission" {
+test "unified source lowers Property Graph to the ordinary keyed Program" {
   let source = "DATA n = SELECT 1 AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node PROPERTIES (id))); FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.id"
   let context = { ..test_context(), inputs: [], captured_stage: None, }
-  assert_true(
-    lower(source, Text, Some(context))
-    is Err(QueryLowering(@query.UnsupportedGraph)),
-  )
+  let result = lower(source, Text, Some(context)).unwrap()
+  assert_true(result.document.contains("\"property_graph\""))
+  assert_true(result.document.contains("\"match_nodes\""))
+  assert_true(!result.document.contains("\"graph\":{\"nodes\""))
   assert_true(lower(source, Sql, Some(context)) is Err(WrongQueryForm))
 }
 
@@ -46,8 +46,6 @@ test "unified dependency refuses SGA Graph source without legacy dispatch" {
   let prefix = "DATA n = SELECT 1 AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node PROPERTIES (id))); "
   for
     source in [
-      prefix +
-      "FROM GRAPH g |> normalize_graph() |> MATCH WALK (a:Node) |> SELECT a.id",
       prefix +
       "DATA same = FROM g |> graphs_equal(with: g); FROM same |> SELECT equal",
       prefix +

@@ -114,12 +114,21 @@ All original eight cases passed packed Embedded Local and HTTP at that SHA.
 The five additional cases above passed, for thirteen standard named-source cases.
 The earlier failed probes and their repaired provider boundaries are recorded
 in `docs/reviews/2026-09-29-sga-packed-run-handoff.md`.
-The distribution Client job runs `scripts/sga-surface-checker.test.mjs`
-against common preparation. It admits all thirteen source-free Graph fixtures,
+At that historical revision, the distribution Client job ran
+`scripts/sga-surface-checker.test.mjs` against common preparation. It admitted
+all thirteen source-free Graph fixtures,
 checks typed Graph/Delta task edges and Result roots, and rejects a Relation
 passed to a Graph-only operation and a bounds call without a threshold.
 Source authorization and independent positive, rejection and boundary
 fixtures for other Graph operations remain separate work.
+
+The current sole Property Graph implementation no longer executes these tuple
+Programs. That test now checks typed refusal of the retired constructor with
+the current profile installed. Current Plan and Host custody/resource tests
+use `scripts/property-graph-surface-checker.test.mjs`; current unsupported
+consumer refusal is derived from the existing family inventory by
+`scripts/property-graph-public-host.test.mjs`. These historical rows and CIDs
+must not be reported as current execution acceptance.
 
 At `5835d644410e702223c0b77250a9a154abfcabea`, all fourteen fixtures,
 including `shortest-path`, passed through clean packed Embedded Local and

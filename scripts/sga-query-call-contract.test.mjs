@@ -28,10 +28,11 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
     .flatMap(line => [...line.split('|')[2].matchAll(/\[`([a-z_]+)`\]\(#[a-z-]+\)/g)]
       .map(match => match[1])).sort();
   assert.equal(new Set(operations).size, operations.length);
-  // This base has 72 registered common operations. The pending new Graph owner
-  // is not registered by a parser-only change. This is
-  // distinct from the historical imported 72 and the 19 named SGA operations.
-  assert.equal(operations.length, 72);
+  // The integrated common owner registers property_graph in addition to the
+  // 72-operation predecessor. This remains distinct from the historical
+  // imported inventory and the 19 named SGA surface operations.
+  assert.equal(operations.length, 73);
+  assert.ok(operations.includes('property_graph'));
   const protocol = read('spec/contracts/actql-protocol-schemas.json');
   const program = protocol.artifact_schemas.executable_plan.properties
     .execution_material.properties.program;
@@ -56,8 +57,8 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.equal(body.query_text_grammar_sha256,
     '81f3bc6894004ce9942daa994bd01adc154cb4947d6d0bba228097474e086fa5');
   assert.equal(body.query_text_rules_sha256,
-    'fa852a4602c706a22c81a3838b105d7f8871a0fa519bb12edb077cb167eebe1b');
-  const expected = 'sha256:4e911e389d7c72405b29e2ef2ee8051aa5eb397b67e5e6c2bfe6df7e4bf9d7cc';
+    'de36a23d4e6fda20fc3bb19ae37f0fae9aa212eaa20c998929e3b5e866247f51');
+  const expected = 'sha256:f8803129b22ca89d078e90e530aaf6238bb3aa8a1da02555fd67a1c5929029b3';
   assert.equal(cid(body), expected);
   const {grammar_manifest_cid, ...pinned} = read('spec/manifests/actql-grammar-0.1.json');
   assert.deepEqual(pinned, body);

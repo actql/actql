@@ -5,7 +5,7 @@ test "legacy Graph cannot silently treat a static label as a property" {
     syntax_limits(),
   ).unwrap()
   assert_true(
-    compile(parsed, diamond_graph_context(), construction_limits())
+    compile(parsed, fixture_context(), construction_limits())
     is Err(UnsupportedGraph),
   )
 }

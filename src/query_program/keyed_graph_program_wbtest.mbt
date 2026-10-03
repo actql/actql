@@ -8,6 +8,30 @@ fn keyed_script(text : String) -> Result[@program.Program, Issue] {
 }
 
 ///|
+test "keyed node predicates resolve properties without replacing label membership" {
+  let prefix = "DATA n = SELECT 1 AS id, 'Company' AS entity_type; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (id, entity_type))); "
+  for
+    constraint in [
+      "WHERE entity_type = 'Company'", "WHERE `a`.`ENTITY_TYPE` = 'Company'", "{entity_type: 'Company'}",
+    ] {
+    let actual = keyed_script(
+      prefix +
+      "FROM GRAPH g |> MATCH WALK (a:Person " +
+      constraint +
+      ") |> SELECT a.id",
+    ).unwrap()
+    let body = mapping_semantic(actual)
+    assert_true(body.contains("\"label\":\"Person\""))
+    assert_true(
+      body.contains(
+        "\"eq\":[{\"field\":\"entity_type\"},{\"literal\":\"Company\"}]",
+      ),
+    )
+    assert_false(body.contains("\"literal\":\"Person\""))
+  }
+}
+
+///|
 test "keyed source node labels are membership and NODE_ID is the full identity slot" {
   let prefix = "DATA n = SELECT 1 AS id, 'Company' AS entity_type; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (id, entity_type))); "
   let actual = keyed_script(

@@ -19,14 +19,13 @@ implementation is copied. The independent #184 Relation strategy correction
 is adopted from `6685718f86b0e18518e2c53258f5129f0875447a`, preserving the
 current main captured-prefix guard and using its existing checked owners.
 
-C has submitted the new candidate
-`8c052888503e130e3d6c5f5a5ea74037be407e3f`. Its CI has reported failures,
-so the dependency is now **submitted; correction and formal handoff pending**,
-not an unsubmitted implementation and not an adoption GO. B has not integrated
-this candidate or counted it as unified-owner/snapshot acceptance. The earlier
-#164 `125a186ae9396fbfc7865641922e8e8a4ffc87d9` and unsubmitted worktrees
-remain unadopted. Adoption requires C's corrected complete pushed SHA and the
-corresponding unified-owner/snapshot validation.
+The development integration now uses C public HEAD
+`51376bca11d57b775aa22d42453176f8ad1f681b` from #164, together with B
+`b19ed2cfb0bdce93832d47a8c3a7a8da95266c14`. Earlier candidate
+`8c052888503e130e3d6c5f5a5ea74037be407e3f` is historical. The user authorized
+connection and acceptance before C completes CI or merges. This is development
+integration, not formal adoption GO. The provisional #174/#164 implementation
+and unsubmitted worktrees remain unadopted.
 This separation does not rewrite, force-push or replace published history.
 
 ## Boundaries retained for integration
@@ -38,7 +37,7 @@ This separation does not rewrite, force-push or replace published history.
 | `query_program.compile_query_script` | Existing logical producer references; no added capture, persistence or placement boundary |
 | `keyed_start_match`, `lower_script_keyed_graph_query` | Definition-scoped `match_nodes`, Graph-owned static labels and full element identity |
 | Existing traversal Program emission | Independently keyed edge identity, WALK/TRAIL/ACYCLIC and exact Relation selector custody |
-| `source_frontend.lower(Text)` | Existing Host preparation/checker/Run owner; constructor refuses until the unified owner is adopted |
+| `source_frontend.lower(Text)` | Existing Host preparation/checker/Run owner; DATA constructors lower to the unified ordinary Program |
 | Ordinary Named Result declaration | Existing Result publication and `Result.describe`; no private identity slots are exported |
 | Snapshot acceptance | C's public bounded save/reload owner; B adds source-path acceptance after handoff, not a snapshot codec |
 
@@ -48,11 +47,10 @@ Run-start, cancellation, reconciliation and publication owners are reused.
 JSON/YAML machine inputs retain their existing roles.
 
 There is no `property_graph` -> old `graph` conversion or fallback. New
-constructor source is refused with `QueryLowering(UnsupportedGraph)` before
-a Program is returned by public preparation. This temporary dependency
-refusal is not a permanent language restriction or a claim of runtime success.
-Existing Graph alias inputs are refused at the same source boundary; an
-explicit label annotation does not reactivate their old property-label route.
+constructor source lowers through public preparation to the ordinary common
+checker. Existing standalone Graph alias inputs remain refused; an explicit
+label annotation does not reactivate their old property-label route. Unsupported
+consumers must still fail before Run admission and provider I/O.
 Ordinary Relation DATA remains separate from Graph acceptance.
 
 ## Independent evidence and next acceptance
@@ -61,17 +59,18 @@ Ordinary Relation DATA remains separate from Graph acceptance.
 authored rows, declared column order/types/nullability, parallel-edge counts,
 composite keys, label/property separation, NULL exclusions, refusal cases and
 duplicate-key execution failures. No fixture expectation is regenerated from
-the current compiler or old C output. The fixture is not connected to a
-successful packed test in this dependency checkpoint.
+the current compiler or old C output. The fixture is now connected to the existing external packed application,
+including its narrow `--property-graph-source-only` selection. Packed execution
+acceptance is still pending at this source checkpoint.
 
 The parser/lowering tests compare authored expected Programs. C-dependent
 checker and packed acceptance from the original branch are preserved there;
 they are not silently reclassified as successful tests of this checkpoint.
-The narrow public preparation tests assert typed dependency refusal and the
-unchanged public parser/Relation DATA behavior. They do not prove HTTP Run
+The narrow public preparation tests assert ordinary keyed lowering, standalone
+legacy alias refusal and unchanged public parser/Relation DATA behavior. They do not prove HTTP Run
 admission/provider counters or snapshot roundtrip.
 
-After a formal C handoff:
+Development integration and acceptance sequence:
 
 1. Integrate the pushed unified owner, preserving current main changes.
 2. Reconcile constructor body, Carrier projection, MATCH/TRAIL and definition
@@ -114,3 +113,22 @@ remain incomplete. No merge or package publication is requested.
 - No full Core/Client gate, fresh packed Graph acceptance or new Linux CI was
   run for this incomplete dependency checkpoint. Historical #174 green CI
   and packed results do not fill those gaps.
+
+## Development integration validation
+
+- Public source boundary: 5/5 JS; keyed lowering and property predicates: 4/4 JS.
+- Independent historical/current Run preimages: 2/2 Node. Current merged Grammar
+  Manifest is `sha256:f8803129b22ca89d078e90e530aaf6238bb3aa8a1da02555fd67a1c5929029b3`;
+  dependent compiler pins, metadata and canonical vectors were regenerated from
+  the merged source, with Workers fixtures generated before Node Host fixtures.
+- `check:spec` was attempted on the integration source. Relation execution
+  passed 1,094/1,094; the aggregate was intentionally interrupted at
+  `check-local-resource-accounting.test.mjs` after prolonged lack of progress
+  under high machine load. The full gate is **incomplete**, not successful.
+  No guard was disabled, no test expectation relaxed, and no whole Core gate
+  was added. The interruption is not classified as a semantic product failure.
+- Three-target public API consistency passed. Common Run material issuance
+  passed 1/1 JS against the independent Run preimage. `check:contracts` passed
+  after independently updating the integrated grammar expectation from the
+  normative body; no compiler output was used as the expected digest.
+- Packed Graph source, snapshot acceptance and final-SHA CI are pending.

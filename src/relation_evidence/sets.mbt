@@ -161,33 +161,6 @@ pub fn select_key(
 }
 
 ///|
-/// A Graph edge identity may complete authored Result order, but is not a
-/// non-null Relation key. Its nullable label uses the order's explicit null
-/// placement. The checked Graph producer and all surviving identity components
-/// remain required; a matching row shape or a declaration is not this evidence.
-pub fn select_graph_order_identity(
-  source : @decode.Cursor,
-  value : KeySet,
-  limits : TransferLimits,
-) -> Result[KeySelection, Issue] {
-  select_matching_key(
-    source,
-    value,
-    (key, _, field) => {
-      guard key.origin == GraphProjectionResult &&
-        key.producer is Some(GraphProjectionProducer(projection)) &&
-        @projection.operation(projection) == @projection.EdgeRows else {
-        return false
-      }
-      guard field.contract is Some(contract) else { return false }
-      eligible(field, CanonicalOrder) ||
-      (contract.nullable && contract.shape is Text(_))
-    },
-    limits,
-  )
-}
-
-///|
 fn select_matching_key(
   source : @decode.Cursor,
   value : KeySet,

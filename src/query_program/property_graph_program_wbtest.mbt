@@ -48,7 +48,6 @@ fn mapping_context() -> Context {
     captured_stage: None,
     parameter_declarations: None,
     inputs: [],
-    graph_inputs: [],
   }
 }
 

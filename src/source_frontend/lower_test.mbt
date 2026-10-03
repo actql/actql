@@ -26,7 +26,6 @@ fn test_context() -> @query.Context {
         graph_bindings: [],
       },
     ],
-    graph_inputs: [],
   }
 }
 
@@ -174,33 +173,7 @@ test "published query names bind one environment generation" {
 
 ///|
 test "unified source dependency refuses legacy Graph inputs before Program preparation" {
-  let source = @wire.admit(
-    @source.parse_json("{\"connector\":\"crm/main\",\"resource\":\"graph\"}", {
-      max_input_bytes: 1024,
-      max_nodes: 64,
-      max_depth: 8,
-    }).unwrap(),
-    {
-      max_nodes: 64,
-      max_depth: 8,
-      max_string_bytes: 1024,
-      max_total_string_bytes: 1024,
-    },
-  ).unwrap()
-  let context = {
-    ..test_context(),
-    captured_stage: None,
-    inputs: [],
-    graph_inputs: [
-      {
-        relation: [{ value: "g", quoted: false, }],
-        name: "g",
-        source: @query.CapturedGraph(source),
-        node_fields: ["id", "name"],
-        edge_fields: ["src", "dst", "rel"],
-      },
-    ],
-  }
+  let context = test_context()
   for
     document in [
       "FROM GRAPH g |> MATCH WALK (a)-[]->(b) |> SELECT *", "FROM GRAPH g |> MATCH WALK (a) |> SELECT a.id",

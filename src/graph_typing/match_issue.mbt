@@ -21,7 +21,7 @@ pub struct MatchDiagnostic {
 ///|
 pub fn match_diagnostic(
   e : MatchIssue,
-  source : @decode.Cursor,
+  _source : @decode.Cursor,
 ) -> MatchDiagnostic {
   match e {
     MatchStructure(e) =>
@@ -37,13 +37,6 @@ pub fn match_diagnostic(
       { kind: Value(kind), path: path.copy(), span, range: None, }
     MatchPredicate(e) =>
       match e {
-        ScopeIssue(e) =>
-          {
-            kind: Structure(e.kind),
-            path: e.path.copy(),
-            span: e.span,
-            range: None,
-          }
         SyntaxIssue(e) =>
           {
             kind: Syntax(e.kind),
@@ -78,13 +71,6 @@ pub fn match_diagnostic(
             },
             path: @decode.cursor_path(c),
             span: @decode.cursor_span(c),
-            range: None,
-          }
-        InvalidPredicateLimits =>
-          {
-            kind: Structure(InvalidLimits),
-            path: @decode.cursor_path(source),
-            span: @decode.cursor_span(source),
             range: None,
           }
       }

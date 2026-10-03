@@ -32,14 +32,7 @@ fn consumer_pipeline(
   let graph = if unknown_graph {
     @carrier.unknown_carrier(GraphKind)
   } else {
-    @carrier.graph(
-      @contract.primitive(StringType, nullable=false),
-      @carrier.unknown_rows(),
-      @carrier.unknown_rows(),
-      labels=None,
-      max_labels=0,
-      max_label_bytes=0,
-    ).unwrap()
+    current_graph_input()
   }
   let row = @schema.from_object(
     @contract.object_contract(

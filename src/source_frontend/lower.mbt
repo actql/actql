@@ -31,7 +31,6 @@ pub(all) enum Issue {
 /// carries the already-admitted input into the common query lowerer.
 pub(all) enum AliasInput {
   Relation(@query.Input)
-  Graph(@query.GraphInput)
 }
 
 ///|
@@ -69,7 +68,6 @@ pub fn bind_query_context(
     return Err(InvalidProgramId)
   }
   let inputs : Array[@query.Input] = []
-  let graph_inputs : Array[@query.GraphInput] = []
   let mut captured = false
   for index, entry in aliases {
     if entry.name.is_empty() || entry.name.any(part => part.value.is_empty()) {
@@ -96,12 +94,6 @@ pub fn bind_query_context(
           captured = true
         }
       }
-      Graph(input) => {
-        if !@query.same_relation_path(entry.name, input.relation) {
-          return Err(InputNameMismatch)
-        }
-        graph_inputs.push(input)
-      }
     }
   }
   Ok({
@@ -116,7 +108,6 @@ pub fn bind_query_context(
     },
     parameter_declarations,
     inputs,
-    graph_inputs,
   })
 }
 
@@ -265,16 +256,11 @@ pub fn lower(
         Err(issue) => return Err(QuerySyntax(issue))
       }
       guard context is Some(context) else { return Err(MissingQueryContext) }
-      // This branch has no adopted Property Graph execution owner. Keep the
-      // source boundary closed until C's unified implementation is adopted;
-      // never route a new constructor into the old simple-Graph profile.
-      for index in 0..<@syntax.data_declaration_count(script) {
-        if @syntax.data_declaration_at(script, index).unwrap().value
-          is PropertyGraph(_) {
-          return Err(QueryLowering(@query.UnsupportedGraph))
-        }
-      }
-      if @syntax.graph_query(@syntax.script_query(script)) is Some(_) {
+      // DATA constructors lower to the sole definition-keyed Program owner.
+      // A bare external Graph alias still lacks admitted definition provenance;
+      // never reinterpret it through the retired tuple-Graph source route.
+      if @syntax.data_declaration_count(script) == 0 &&
+        @syntax.graph_query(@syntax.script_query(script)) is Some(_) {
         return Err(QueryLowering(@query.UnsupportedGraph))
       }
       let program = if @syntax.data_declaration_count(script) > 0 {

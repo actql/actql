@@ -17,35 +17,35 @@ fn graph_rows_input() -> @carrier.Carrier {
 }
 
 ///|
-test "named graph branches are ordered operands and bridge to relation consumers" {
-  let input = graph_rows_input()
+test "named Property Graph definitions retain ordered repeated operands through MATCH" {
   let p = @pipeline_typing.check_carriers(
     cursor(
       (
-        #|[{"graph":{"nodes":{"from":"rows","id":"id","fields":[]},"edges":{"from":"rows","source":"src_id","target":"dst_id","fields":["weight"]}},"as":"g"},
-        #| {"node_rows":true},{"select":["id"]}]
+        #|[{"values":{"schema":{"id":{"type":"number","nullable":false},"src_id":{"type":"number","nullable":false},"dst_id":{"type":"number","nullable":false},"weight":{"type":"number","nullable":false}},"rows":[{"id":1,"src_id":1,"dst_id":1,"weight":2}]},"as":"rows"},
+        #| {"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"rows","key":["id"],"labels":[{"name":"Node","properties":{"mode":"no_properties"}}]}],"edges":[{"name":"E","from":"rows","key":["id"],"source":{"definition":"N","key":["src_id"]},"target":{"definition":"N","key":["dst_id"]},"labels":[{"name":"Edge","properties":{"mode":"columns","columns":[{"from":"weight","to":"weight"}]}}]}]},"as":"g"},
+        #| {"match_nodes":{"definition":"N","bindings":{"identity":"element"},"where":"true","fields":["element"]}},{"select":["element"]}]
       ),
     ),
-    [("rows", input)],
+    [],
     None,
     None,
     limits(),
   ).unwrap()
-  let step = @pipeline_typing.step_at(p, 0).unwrap()
+  let step = @pipeline_typing.step_at(p, 1).unwrap()
   assert_true(step.input is None)
   assert_true(
-    step.operation
-    is GraphConstruction(nodes=Some(Input(0)), edges=Input(0), ..),
+    step.operation is PropertyGraphConstruction(inputs=[Step(0), Step(0)], ..),
   )
   let refs = @pipeline_typing.input_occurrences(step)
   assert_eq(refs.length(), 2)
-  assert_true(refs[0] is { role: Left, target: Input(0), })
-  assert_true(refs[1] is { role: Right, target: Input(0), })
+  assert_true(refs[0] is { role: Sample(0), target: Step(0), })
+  assert_true(refs[1] is { role: Sample(1), target: Step(0), })
+  assert_eq(@schema.field_count(@pipeline_typing.output_schema(p).unwrap()), 1)
   assert_true(@pipeline_typing.output_schema(p) is Some(_))
 }
 
 ///|
-test "concise graph consumes current while explicit branches reject conflicting from" {
+test "retired Graph constructors are refused without issuing a compatible Graph" {
   let input = graph_rows_input()
   assert_true(
     @pipeline_typing.check_carriers(
@@ -57,7 +57,13 @@ test "concise graph consumes current while explicit branches reject conflicting 
       None,
       limits(),
     )
-    is Ok(_),
+    is Err(
+      {
+        kind: Graph(@graph.UnsupportedGraphOperation),
+        path: [Index(0), Key("graph")],
+        ..
+      }
+    ),
   )
   for extra in ["", ",\"as\":\"g\",\"from\":\"r\""] {
     assert_true(

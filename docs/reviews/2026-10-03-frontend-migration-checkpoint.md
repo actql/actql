@@ -15,11 +15,11 @@ complete or adopt C's unfinished implementation.
 | Relation DATA and explicit RESULT | Shared script parsing and lowering; public preparation retains named roots | Three authored source examples and the independent JSON control passed fresh packed Local/HTTP at `93f4689f3b5029b0a11b5435be6d1f0d5444718c`, as detailed below; this does not cover Graph DATA |
 | Pure PROPERTY GRAPH | Bounded parsing and independently authored Program construction | Common unified constructor/checker, public execution, descriptions and snapshot roundtrip |
 | Named SGA calls | Nineteen adopted names and argument roles parsed by the shared query parser; DATA aliases and normalize-before-MATCH lower to retained producers | Adapted common Carrier/schema contracts for remaining calls; all promised examples through Named Results |
-| Public Graph source | Typed `QueryLowering(UnsupportedGraph)` before a Program is returned | Replace the dependency refusal after the formal unified owner is adopted; verify actual Run/admission and provider counters |
+| Public Graph source | DATA constructor lowers to the unified ordinary Program; standalone retired Graph aliases remain refused | Packed Run/Named Result, description, refusal counters and snapshot evidence remain pending |
 | Source INFER KEEP/AS | Frontend lowering and independent fixture work remain separate from common execution | Formal owner fix and smallest source-input Local/HTTP execution first, followed by NULL, keys and replay |
 | Other target Effect, VecA and TEA surfaces | Adopted targets and machine capability are distinct from public syntax support | Feature-specific source, checker and real execution evidence; no bulk completion claim |
 
-The public Graph refusal includes installed Graph aliases and pure constructors.
+The public Graph refusal retains standalone installed Graph aliases; DATA pure constructors now lower to the unified ordinary Program.
 No retired property-label route, simple-Graph conversion or old consumer fallback
 is enabled. Syntax-only normalization must not be reported as common Graph
 checker or kernel acceptance.
@@ -148,3 +148,14 @@ The harness retained command results/logs and these digests, then removed its
 own successful temporary installation. This is local fixed-SHA acceptance;
 it is not a same-SHA Linux CI result, Graph/snapshot acceptance or source-INFER
 execution evidence.
+
+## Development Graph connection resumed
+
+The connection target is C #164 public HEAD
+`51376bca11d57b775aa22d42453176f8ad1f681b`, integrated with B
+`b19ed2cfb0bdce93832d47a8c3a7a8da95266c14` in an isolated development
+branch. This supersedes the historical submitted-candidate status above.
+Starting acceptance does not require C all-CI or merge success, and is not
+formal adoption or migration completion. Follow the linked unified-source
+record for executed tests and still-pending public execution. Source-INFER
+remains assigned to its common owner; no frontend executor is introduced.

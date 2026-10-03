@@ -105,6 +105,36 @@ test('private holding abort requires confirmed non-commit', async t => {
     undefined);
 });
 
+test('source observation custody survives a failed write without replacement',
+  async t => {
+    const store = await fixture(t);
+    const source = {...binding, name: 'source_evidence'};
+    let preparations = 0;
+    let commits = 0;
+    const owner = preparePrivatePublicationHolding({
+      confirmPrivateEvidence: value => store.confirmPrivateEvidence(value),
+      preparePrivateEvidence: (...args) => {
+        preparations++;
+        return store.preparePrivateEvidence(...args);
+      },
+      commitPhysicalHolding: (...args) => {
+        if (++commits === 1) throw new Error('SourceCustodyWriteFailed');
+        return store.commitPhysicalHolding(...args);
+      },
+    }, source);
+    await assert.rejects(owner.commit(), {message: 'SourceCustodyWriteFailed'});
+    assert.equal(owner.status().preparedPending, true);
+    await owner.retry();
+    assert.equal(preparations, 1);
+    assert.equal(commits, 2);
+    assert.equal((await store.readPrivateEvidence(source.name,
+      source.semanticCid, source.holdingCid)).toString(), source.wire);
+    await assert.rejects(store.confirmPrivateEvidence({...source,
+      wire: '{"private":"replacement"}'}));
+    assert.equal((await store.retirePhysicalHolding(source.holdingCid)).deleted,
+      true);
+  });
+
 test('private holding abort reclaims an uncommitted preparation', async t => {
   const store = await fixture(t);
   const observed = {

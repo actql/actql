@@ -187,13 +187,15 @@ fn client_task_carrier_contract(
       Some(("relation", "sha256:" + cid))
     }
     GraphKind =>
+      // Public task ports use the keyed contract exclusively. Old carrier
+      // bodies are not an alternative admission path after a failed check.
       match
-        @graph_contract.admit(carrier, {
+        @graph_contract.admit_property_graph(carrier, {
           max_bytes: max_wire_bytes,
           max_nodes,
           max_depth,
         }) {
-        Ok(contract) => Some(("graph", @graph_contract.cid(contract)))
+        Ok(contract) => Some(("graph", @graph_contract.property_cid(contract)))
         Err(_) => None
       }
     EventsKind | VectorsKind =>
@@ -261,7 +263,7 @@ pub fn issue_prepared_client_infer_prefix_fragment(
   if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
     return Err(InvalidLimits)
   }
-  guard client_infer_prefix_owner(value, task, infer_step) is Some(owner) &&
+  guard client_infer_metadata_owner(value, task, infer_step) is Some(owner) &&
     @lower.node_at(@lower.bound_preparation(owner), infer_step - 1)
     is Some(output) else {
     return Err(MissingOutput)

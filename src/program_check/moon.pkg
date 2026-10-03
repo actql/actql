@@ -1,6 +1,7 @@
 supported_targets = "+js+wasm+native"
 
 import {
+  "moonbitlang/core/debug",
   "actql/actql/internal_structural_fixture" @aql,
   "actql/actql/program_source_builder" @builder,
   "actql/actql/frontend_source_map" @origin,

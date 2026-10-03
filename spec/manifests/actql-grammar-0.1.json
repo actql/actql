@@ -1,6 +1,6 @@
 {
   "version": "actql-grammar-manifest/0.1",
-  "source_grammar_cid": "sha256:a6bfc4b6c00d89f521ccee9e99e1dbbd7385675fd55478f1536f36f860b1ef0a",
+  "source_grammar_cid": "sha256:50527c1472e91aa673ad57bcd43141b0e679a2de24cc6bf19efb9e8e32c2607a",
   "operations": [
     "analytic",
     "append",
@@ -44,6 +44,7 @@
     "normalize_vectors",
     "pivot",
     "pool_vectors",
+    "property_graph",
     "reach",
     "rename",
     "row_window",
@@ -81,6 +82,6 @@
   "structural_text_grammar_sha256": "0f6a0337a350348efbe20e23fe658ce1e56297d407ba9dac3ec2eaf008849a56",
   "structural_text_rules_sha256": "209cde18dff4cc5b8b7cdd6749a3329b0bcf6a8fe6c7243977c0c5f169e49762",
   "query_text_grammar_sha256": "81f3bc6894004ce9942daa994bd01adc154cb4947d6d0bba228097474e086fa5",
-  "query_text_rules_sha256": "fa852a4602c706a22c81a3838b105d7f8871a0fa519bb12edb077cb167eebe1b",
-  "grammar_manifest_cid": "sha256:4e911e389d7c72405b29e2ef2ee8051aa5eb397b67e5e6c2bfe6df7e4bf9d7cc"
+  "query_text_rules_sha256": "de36a23d4e6fda20fc3bb19ae37f0fae9aa212eaa20c998929e3b5e866247f51",
+  "grammar_manifest_cid": "sha256:f8803129b22ca89d078e90e530aaf6238bb3aa8a1da02555fd67a1c5929029b3"
 }

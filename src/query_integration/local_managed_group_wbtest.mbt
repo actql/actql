@@ -62,6 +62,8 @@ fn start_local_managed_test_task_operations(
     Err(ManagedRetention(_)) => fail("Local managed retention setup failed")
     Err(ManagedCompletion(_)) => fail("Local managed completion setup failed")
     Err(IdentityExport(_)) => fail("Local managed identity export failed")
+    Err(CarrierSnapshot(_)) =>
+      fail("Unexpected Carrier snapshot during Relation setup")
   }
   if grant is Some(value) {
     @strategy.authorize_captured_task_activation(run, task, value).unwrap()
@@ -120,6 +122,8 @@ fn start_local_managed_test_task_operations(
     Err(ManagedRetention(_)) => fail("Local managed start retention failed")
     Err(ManagedCompletion(_)) => fail("Local managed start completion failed")
     Err(IdentityExport(_)) => fail("Local managed identity export failed")
+    Err(CarrierSnapshot(_)) =>
+      fail("Unexpected Carrier snapshot during Relation start")
   }
   assert_eq(operations.inputs.length(), rows.length())
   for index, transfer in operations.inputs {
@@ -144,6 +148,8 @@ fn start_local_managed_test_task_operations(
         Err(ManagedCompletion(_)) =>
           fail("Local managed row completion setup failed")
         Err(IdentityExport(_)) => fail("Local managed identity export failed")
+        Err(CarrierSnapshot(_)) =>
+          fail("Unexpected Carrier snapshot during Relation transfer")
       }
     }
     (transfer.finish)().unwrap()
@@ -340,6 +346,8 @@ fn run_local_managed_test_task(
       fail("Local managed completion setup failed")
     Err(@local_driver.IdentityExport(_)) =>
       fail("Local managed identity export failed")
+    Err(@local_driver.CarrierSnapshot(_)) =>
+      fail("Unexpected Carrier snapshot during Relation execution")
     Err(
       @local_driver.Configuration(
         @connector.Execution(@execution.Rows(_, @execution.InvalidRows))
@@ -387,6 +395,8 @@ fn run_local_managed_test_task(
       Err(ManagedCompletion(_)) =>
         fail("Local managed finalization completion failed")
       Err(IdentityExport(_)) => fail("Local managed identity export failed")
+      Err(CarrierSnapshot(_)) =>
+        fail("Unexpected Carrier snapshot during Relation finalization")
     }
     assert_true(observation.progress >= finalization_progress)
     assert_true(observation.work >= 0L)

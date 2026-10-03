@@ -37,7 +37,7 @@ fn query_checked_program_fixture(
   local_carrier_events_chain? : Bool = false,
   local_carrier_events_variant? : String = "watermark",
   local_carrier_graph_chain? : Bool = false,
-  local_carrier_graph_variant? : String = "projection",
+  local_carrier_graph_variant? : String = "current_filter",
   local_time_series_chain? : Bool = false,
   local_carrier_vectors_chain? : Bool = false,
   local_carrier_vectors_variant? : String = "normalize",
@@ -571,11 +571,7 @@ fn query_checked_program_fixture(
       old="\"results\":{\"source\":{\"from\":{\"stage\":\"a\",\"result\":\"r\"}}}}",
       new=if local_carrier_graph_chain {
         "\"results\":{\"published\":{\"from\":{\"stage\":" +
-        (if local_carrier_graph_variant == "graph_apply_changes" {
-          "\"apply\""
-        } else {
-          "\"graph\""
-        }) +
+        "\"graph\"" +
         ",\"result\":\"r\"}}}}"
       } else if local_carrier_events_chain {
         "\"results\":{\"published\":{\"from\":{\"stage\":" +
@@ -666,83 +662,7 @@ fn query_checked_program_fixture(
   } else {
     environment
   }
-  let evidence = if local_carrier_graph_chain &&
-    local_carrier_graph_variant.has_prefix("components_") {
-    [components_capacity_material(environment, "graph")]
-  } else if local_carrier_graph_chain &&
-    local_carrier_graph_variant.has_prefix("reach_") {
-    [traversal_capacity_material(environment, "graph", "reach")]
-  } else if local_carrier_graph_chain &&
-    local_carrier_graph_variant.has_prefix("traverse_") {
-    [
-      traversal_capacity_material(
-        environment,
-        "graph",
-        "traverse",
-        input_rows=if local_carrier_graph_variant.has_prefix(
-            "traverse_pattern_multi",
-          ) {
-          3L
-        } else {
-          2L
-        },
-        output_rows=if local_carrier_graph_variant == "traverse_ids" ||
-          local_carrier_graph_variant == "traverse_predicate" ||
-          local_carrier_graph_variant == "traverse_predicate_paths" ||
-          local_carrier_graph_variant == "traverse_pattern_all_predicates" ||
-          local_carrier_graph_variant == "traverse_relation_selector" ||
-          local_carrier_graph_variant == "traverse_relation_paths" {
-          4L
-        } else if local_carrier_graph_variant == "traverse_pattern_multi" {
-          3L
-        } else {
-          2L
-        },
-        selector_rows=if local_carrier_graph_variant ==
-          "traverse_relation_selector" ||
-          local_carrier_graph_variant == "traverse_relation_paths" {
-          Some(3L)
-        } else {
-          None
-        },
-        path_emission=local_carrier_graph_variant == "traverse_paths" ||
-          local_carrier_graph_variant == "traverse_relation_paths" ||
-          local_carrier_graph_variant == "traverse_predicate_paths" ||
-          local_carrier_graph_variant.has_prefix("traverse_pattern_multi_paths") ||
-          local_carrier_graph_variant == "traverse_in_paths" ||
-          local_carrier_graph_variant == "traverse_both_paths" ||
-          local_carrier_graph_variant == "traverse_zero_paths" ||
-          local_carrier_graph_variant == "traverse_type_empty_paths",
-      ),
-    ]
-  } else if local_carrier_graph_chain &&
-    local_carrier_graph_variant.has_prefix("shortest_") {
-    [
-      traversal_capacity_material(
-        environment,
-        "graph",
-        "shortest_path",
-        output_rows=if local_carrier_graph_variant == "shortest_ids" {
-          6L
-        } else if local_carrier_graph_variant == "shortest_relation_selector" {
-          9L
-        } else if local_carrier_graph_variant == "shortest_predicate" {
-          4L
-        } else if local_carrier_graph_variant == "shortest_nearest_per_source" {
-          2L
-        } else {
-          1L
-        },
-        selector_rows=if local_carrier_graph_variant ==
-          "shortest_relation_selector" {
-          Some(3L)
-        } else {
-          None
-        },
-        predicate_selector=local_carrier_graph_variant == "shortest_predicate",
-      ),
-    ]
-  } else if dag_join {
+  let evidence = if dag_join {
     [join_graph_capacity_material(environment, "compute_c", steps=join_steps)]
   } else if local_values_cross_external_chain {
     let left = query_capacity_proof(
@@ -991,7 +911,7 @@ fn query_checked_program_fixture(
         },
         {
           rela: true,
-          sga: local_carrier_graph_chain,
+          sga: false,
           tea: local_carrier_events_chain ||
           local_time_series_chain ||
           local_values_interval_chain ||
@@ -1000,6 +920,7 @@ fn query_checked_program_fixture(
           calendar: false,
           text_rank: false,
         },
+        property_graph=local_carrier_graph_chain,
         numeric_profile=if numeric_materializing_group ||
           (
             local_values_group_chain &&
@@ -1033,10 +954,7 @@ fn query_checked_program_fixture(
         compilation: query_checked_limits(
           Int::max(
             2 * (linear_compute_stages + 1),
-            if local_carrier_graph_variant == "graph_apply_changes" {
-              12
-            } else if local_values_join_chain &&
-              local_values_join_kind == "full" {
+            if local_values_join_chain && local_values_join_kind == "full" {
               20
             } else {
               10

@@ -73,32 +73,11 @@
     {"family": "RelA", "operation": "join", "path": "selected_entrypoint"},
     {"family": "RelA", "operation": "join", "path": "external_input_entrypoint"},
     {"family": "RelA", "operation": "join", "path": "same_stage_entrypoint"},
-    {"family": "SGA", "operation": "graph_bounds", "path": "entrypoint"},
-    {"family": "SGA", "operation": "graph_bounds", "path": "selected_entrypoint"},
-    {"family": "SGA", "operation": "degree", "path": "entrypoint"},
-    {"family": "SGA", "operation": "degree", "path": "selected_entrypoint"},
-    {"family": "SGA", "operation": "components", "path": "entrypoint"},
-    {"family": "SGA", "operation": "components", "path": "selected_entrypoint"},
-    {"family": "SGA", "operation": "reach", "path": "entrypoint"},
-    {"family": "SGA", "operation": "reach", "path": "selected_entrypoint"},
-    {"family": "SGA", "operation": "normalize_graph", "path": "entrypoint"},
-    {"family": "SGA", "operation": "normalize_graph", "path": "selected_entrypoint"},
-    {"family": "SGA", "operation": "subgraph", "path": "entrypoint"},
-    {"family": "SGA", "operation": "graphs_equal", "path": "entrypoint"},
-    {"family": "SGA", "operation": "graphs_equal", "path": "selected_entrypoint"},
     {"family": "SGA", "operation": "match_nodes", "path": "entrypoint"},
     {"family": "SGA", "operation": "match_nodes", "path": "selected_entrypoint"},
     {"family": "SGA", "operation": "match_edges", "path": "entrypoint"},
     {"family": "SGA", "operation": "match_edges", "path": "selected_entrypoint"},
-    {"family": "SGA", "operation": "graph_diff", "path": "entrypoint"},
-    {"family": "SGA", "operation": "apply_graph_delta", "path": "entrypoint"},
-    {"family": "SGA", "operation": "graft_graph", "path": "entrypoint"},
-    {"family": "SGA", "operation": "union_graphs", "path": "entrypoint"},
-    {"family": "SGA", "operation": "subtract_graphs", "path": "entrypoint"},
-    {"family": "SGA", "operation": "mean_graphs", "path": "entrypoint"},
     {"family": "SGA", "operation": "traverse", "path": "entrypoint"},
-    {"family": "SGA", "operation": "shortest_path", "path": "entrypoint"},
-    {"family": "SGA", "operation": "shortest_path", "path": "selected_entrypoint"},
     {"family": "TEA", "operation": "window_events", "path": "entrypoint"},
     {"family": "TEA", "operation": "watermark_events", "path": "entrypoint"},
     {"family": "TEA", "operation": "dedupe_events", "path": "entrypoint"},
@@ -120,9 +99,7 @@
     {"family": "VecA", "operation": "merge_rankings", "path": "entrypoint"},
     {"family": "VecAExpression", "operation": "vector_score", "path": "entrypoint"},
     {"family": "VecAExpression", "operation": "vector_concat", "path": "entrypoint"},
-    {"family": "Bridge", "operation": "graph", "path": "entrypoint"},
-    {"family": "Bridge", "operation": "node_rows", "path": "entrypoint"},
-    {"family": "Bridge", "operation": "edge_rows", "path": "entrypoint"},
+    {"family": "Bridge", "operation": "property_graph", "path": "entrypoint"},
     {"family": "Bridge", "operation": "to_events", "path": "entrypoint"},
     {"family": "Bridge", "operation": "events", "path": "entrypoint"},
     {"family": "Bridge", "operation": "to_vectors", "path": "entrypoint"},
@@ -210,49 +187,58 @@
         "cleanup": "cancel nested evaluation and clear selectors, snapshots, frontiers, scratch, and unpublished builders"
       },
       "sources": [
-        "src/local_sga/normalize.mbt",
-        "src/local_sga/graft.mbt",
-        "src/local_sga/mean.mbt",
+        "src/local_bridge/property_graph.mbt",
+        "src/local_sga/match_nodes.mbt",
+        "src/local_sga/match_edges.mbt",
         "src/local_sga/traverse_paths.mbt",
-        "src/local_sga/graph_apply.mbt"
+        "src/managed_graph_storage/property_storage.mbt",
+        "src/managed_graph_runtime/output.mbt"
       ],
       "evidence": [
         {
-          "facets": ["charged_bounded_work"],
-          "path": "src/local_sga/normalize_wbtest.mbt",
-          "fixture": "normalize advances in bounded steps and feeds two consumers"
+          "facets": [
+            "admission_before_allocation",
+            "charged_bounded_work",
+            "temporary_retained_peak_scope"
+          ],
+          "path": "src/query_integration/property_graph_construction_wbtest.mbt",
+          "fixture": "keyed constructor admits exact control work and workspace and refuses one short"
         },
         {
-          "facets": ["admission_before_allocation", "temporary_retained_peak_scope"],
-          "path": "src/local_sga/mean_wbtest.mbt",
-          "fixture": "graph mean admits merge storage before sorting"
+          "facets": [
+            "finite_stop_observation",
+            "cleanup_owner"
+          ],
+          "path": "src/query_integration/property_graph_construction_wbtest.mbt",
+          "fixture": "keyed MATCH failure and cancellation retain cleanup without partial output"
         },
         {
-          "facets": ["finite_stop_observation", "cleanup_owner"],
-          "path": "src/local_sga/normalize_wbtest.mbt",
-          "fixture": "normalize confirms cancellation before reclaiming partial output"
+          "facets": [
+            "cleanup_owner"
+          ],
+          "path": "src/managed_graph_runtime/output_wbtest.mbt",
+          "fixture": "managed Graph completion supports two exact downstream consumers"
         },
         {
-          "facets": ["admission_before_allocation", "temporary_retained_peak_scope", "cleanup_owner"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "Graph delta admits many additions and removals before scratch allocation"
+          "facets": [
+            "admission_before_allocation",
+            "charged_bounded_work",
+            "temporary_retained_peak_scope"
+          ],
+          "path": "src/managed_graph_storage/storage_wbtest.mbt",
+          "fixture": "keyed graph keeps atomic key conflict capacity work and cancellation boundaries"
         },
         {
-          "facets": ["admission_before_allocation", "temporary_retained_peak_scope"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "Graph delta reserves wide property reference containers before action storage"
-        },
-        {
-          "facets": ["admission_before_allocation", "temporary_retained_peak_scope"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "Graph delta accounts UTF-8 action keys apart from structural entries"
-        },
-        {
-          "facets": ["temporary_retained_peak_scope", "finite_stop_observation", "cleanup_owner"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "path traversal charges overlapping start selector and indices"
+          "facets": [
+            "temporary_retained_peak_scope",
+            "finite_stop_observation",
+            "cleanup_owner"
+          ],
+          "path": "src/query_integration/property_graph_snapshot_wbtest.mbt",
+          "fixture": "property snapshot reload capacity cancellation input loss and work exhaustion never hand off partial material"
         }
-      ]
+      ],
+      "profile_scope": "Current keyed constructor, MATCH and TRAIL resource/custody evidence only. Blocked Graph consumers have no current resource-completeness claim."
     },
     "tea_events": {
       "work_unit": "one event field, sort comparison, membership, candidate pair, pattern cell, identity scalar, or output append",
@@ -370,13 +356,13 @@
       "evidence": [
         {
           "facets": ["admission_before_allocation", "charged_bounded_work", "temporary_retained_peak_scope"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "bounded Graph bridge preserves repeated positions and two consumers"
+        "path": "src/query_integration/property_graph_construction_wbtest.mbt",
+        "fixture": "keyed constructor admits exact control work and workspace and refuses one short"
         },
         {
           "facets": ["finite_stop_observation", "cleanup_owner"],
-          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
-          "fixture": "Graph bridge cancellation stops before cleanup and preserves inputs"
+        "path": "src/query_integration/property_graph_construction_wbtest.mbt",
+        "fixture": "keyed constructor capacity failure and cancellation never hand off partial material"
         },
         {
           "facets": ["temporary_retained_peak_scope"],
@@ -437,7 +423,7 @@
       "family": "Bridge",
       "profile": "carrier_bridges",
       "operations": [
-        "graph", "node_rows", "edge_rows", "to_events", "events",
+        "property_graph", "graph", "node_rows", "edge_rows", "to_events", "events",
         "to_vectors", "vectors"
       ]
     },

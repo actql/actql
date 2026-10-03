@@ -3,6 +3,7 @@ import {spawnSync} from 'node:child_process';
 import {mkdir, mkdtemp, open, readFile, readdir} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {join} from 'node:path';
+import {nodeTestArguments} from './test-execution.mjs';
 import * as moon from '../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../adapters/host-common/runtime-core.mjs';
 import {openLocalPublicationStore} from '../adapters/store-local/publication-store.mjs';
@@ -15,19 +16,22 @@ await mkdir(scratch, {recursive: true});
 const root = await mkdtemp(join(scratch.pathname, 'run-'));
 const boundary = process.argv[2] ?? 'effect-capture';
 const savedPath = join(root, 'capture.json');
-const child = spawnSync(process.execPath, [
+const child = spawnSync(process.execPath, nodeTestArguments([
   '--experimental-test-module-mocks', '--import',
   new URL('./fixtures/effect-capture-crash-preload.mjs', import.meta.url).href,
   '--test', '--test-name-pattern',
   '^one acquired Effect Program captures and computes from its owner$',
   'adapters/host-node/client-program-bridge.test.mjs',
-], {cwd: new URL('../', import.meta.url), encoding: 'utf8', timeout: 120_000,
+]), {cwd: new URL('../', import.meta.url), encoding: 'utf8', timeout: 120_000,
   env: {...process.env, ACTQL_TEST_CAPTURE_CRASH_RECORD: savedPath,
     ACTQL_TEST_CAPTURE_CRASH_BOUNDARY: boundary}});
 // Node's test runner maps the killed test worker's exit to its own failure.
 assert.notEqual(child.status, 0, 'the process must stop before normal cleanup');
 assert.match(child.stdout + child.stderr, /77/, 'verify the intentional stop');
 const saved = JSON.parse(await readFile(savedPath, 'utf8'));
+assert.equal(saved.boundary, boundary, 'the selected Store boundary must be captured');
+assert.equal(saved.holding.namespace, boundary,
+  'the captured holding must belong to the selected Store boundary');
 saved.configuration.privateEvidenceKey = Buffer.from(
   saved.configuration.privateEvidenceKey.data);
 const control = runtimeCore(moon).publicationControl;

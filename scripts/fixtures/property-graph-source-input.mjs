@@ -81,6 +81,9 @@ export const propertyGraphSourceExecutionFailures = [
       'FROM GRAPH g |> MATCH p = WALK (:Node)-[:R]->(:Node) |> SELECT PATH_LENGTH(p) AS depth |> RESULT paths', resultNames: ['paths'], sourceReadCount: 0},
 ];
 export const propertyGraphSourceRefusals = [
+  {name: 'unsupported-normalize-consumer', format: 'aql-text', text: nodes + 'FROM GRAPH g |> normalize_graph() |> MATCH WALK (a:Person) |> SELECT a.id'},
+  {name: 'unsupported-equality-consumer', format: 'aql-text', text: nodes + 'DATA same = FROM g |> graphs_equal(with: g); FROM same |> SELECT equal'},
+  {name: 'unsupported-mean-consumer', format: 'aql-text', text: nodes + 'DATA combined = mean_graphs(with: [g, g]); FROM GRAPH combined |> MATCH WALK (a:Person) |> SELECT a.id'},
   {name: 'keyed-star', format: 'aql-text', text: nodes + 'FROM GRAPH g |> MATCH WALK (a) |> SELECT *'},
   {name: 'keyed-implicit-element-export', format: 'aql-text', text: nodes + 'FROM GRAPH g |> MATCH WALK (a)'},
   {name: 'keyed-missing-binding', format: 'aql-text', text: nodes + 'FROM GRAPH missing |> MATCH WALK (a) |> SELECT a.id'},

@@ -20,30 +20,7 @@ fn carrier_projection_owner(
 }
 
 ///|
-test "all Carrier projections retain their registered typed operation" {
-  let graph = carrier_projection_owner(
-    "[{\"from\":\"g\",\"node_rows\":true},{\"from\":\"g\",\"edge_rows\":true}]",
-    [("g", graph_match_carrier())],
-  )
-  let graph_sequence = @lowering_relation.prepare_sequence(
-    graph,
-    sequence_limits(),
-  ).unwrap()
-  guard @lowering_relation.sequence_step(graph_sequence, 0)
-    is Some(@lowering_relation.CarrierProjectionStep(nodes)) &&
-    @lowering_relation.sequence_step(graph_sequence, 1)
-    is Some(@lowering_relation.CarrierProjectionStep(edges)) else {
-    fail("expected graph projections")
-  }
-  assert_eq(
-    @lowering_relation.carrier_projection_operation(nodes),
-    @projection.NodeRows,
-  )
-  assert_eq(
-    @lowering_relation.carrier_projection_operation(edges),
-    @projection.EdgeRows,
-  )
-
+test "Vectors projection retains its registered typed operation" {
   let vectors = carrier_projection_owner(
     "[{\"from\":\"rows\",\"to_vectors\":{\"id\":\"product_id\",\"vector\":\"embedding\"}},{\"vectors\":true}]",
     [("rows", vector_relation())],
@@ -60,4 +37,28 @@ test "all Carrier projections retain their registered typed operation" {
     @lowering_relation.carrier_projection_operation(projected),
     @projection.Vectors,
   )
+}
+
+///|
+test "unconnected Graph projections refuse current input rather than issuing tuple kernels" {
+  for operation in ["node_rows", "edge_rows"] {
+    let issue = @pipeline.check_carriers(
+      cursor("[{\"from\":\"g\",\"" + operation + "\":true}]"),
+      [("g", graph_match_carrier())],
+      None,
+      None,
+      {
+        max_steps: 10,
+        max_work: 10000,
+        max_text_bytes: 10000,
+        max_nodes: 1000,
+        max_tokens: 1000,
+        max_depth: 100,
+      },
+    ).unwrap_err()
+    assert_true(
+      issue.kind is @pipeline.Projection(@projection.UnsupportedGraphOperation),
+    )
+    assert_true(issue.path.contains(@source.Key(operation)))
+  }
 }

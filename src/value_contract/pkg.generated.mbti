@@ -30,6 +30,8 @@ pub fn fields(Fields) -> Array[Field]
 
 pub fn join_nullability(Contract, Contract, Int) -> Contract? raise RelationError
 
+pub fn join_nullability_usage(Contract, Contract, Int) -> (Contract?, Int) raise RelationError
+
 pub fn key_comparable(Contract, Contract) -> Bool
 
 pub fn nonnull_resource_ref_kind(Contract) -> String?

@@ -1,7 +1,7 @@
 ///|
 /// Host/Connector observations, not author-supplied permission. This initial
-/// owner applies only to the checked source-free Relation prefix. Acquired
-/// inputs must bring their own effective data-policy owner instead.
+/// owner combines these with the checked effective input policy for acquired
+/// inputs. Provider observations cannot lower the source classification.
 pub(all) struct ClientInferEgressObservation {
   classification : @environment.DataClassification
   region : String
@@ -28,6 +28,7 @@ pub(all) enum ClientInferEgressIssue {
   RetentionDenied
   TrainingDenied
   ChangedObservation
+  InputPolicyUnavailable
 } derive(Eq, Debug)
 
 ///|
@@ -48,7 +49,7 @@ pub fn admit_prepared_client_infer_egress(
   execution : @environment.ModelExecutionContract,
   observe : () -> ClientInferEgressObservation?,
 ) -> Result[ClientInferEgressAdmission, ClientInferEgressIssue] {
-  guard client_infer_prefix_owner(owner, 0, step) is Some(prefix) &&
+  guard client_infer_metadata_owner(owner, 0, step) is Some(prefix) &&
     @lower.node_at(@lower.bound_preparation(prefix), step) is Some(node) &&
     @lower.payload(node) is @lower.Infer(infer) &&
     physical_equal(
@@ -61,7 +62,7 @@ pub fn admit_prepared_client_infer_egress(
   if observed.classification == @environment.Unknown {
     return Err(UnknownClassification)
   }
-  let classification = match @infer.minimum_classification(infer) {
+  let mut classification = match @infer.minimum_classification(infer) {
     Some(minimum) =>
       if infer_classification_rank(minimum) >
         infer_classification_rank(observed.classification) {
@@ -70,6 +71,30 @@ pub fn admit_prepared_client_infer_egress(
         observed.classification
       }
     None => observed.classification
+  }
+  if client_acquired_infer_prefix_owner(owner, 0, step) is Some(_) {
+    let policy = @checked.prepare_infer_input_source_policy(
+      @strategy.graph_program(owner.graph),
+      0,
+      step,
+      1000000,
+      1000000,
+      100000,
+      100,
+    ) catch {
+      _ => return Err(InputPolicyUnavailable)
+    }
+    guard policy is Some(policy) else { return Err(UnknownClassification) }
+    let input_classification = @checked.publication_policy_classification(
+      policy,
+    )
+    if input_classification == @environment.Unknown {
+      return Err(UnknownClassification)
+    }
+    if infer_classification_rank(input_classification) >
+      infer_classification_rank(classification) {
+      classification = input_classification
+    }
   }
   let task = @environment.model_execution_task(execution)
   if !@environment.model_task_accepts_classification(task, classification) {

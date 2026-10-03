@@ -46,6 +46,85 @@ fn keyed_node_fields(
 }
 
 ///|
+fn keyed_property_field(
+  path : Array[@query.NamePart],
+  variable : @query.NamePart?,
+  fields : Array[String],
+) -> String? {
+  if path.length() < 1 || path.length() > 2 {
+    return None
+  }
+  if path.length() == 2 {
+    match variable {
+      Some(name) if same_name(path[0], name) => ()
+      _ => return None
+    }
+  }
+  let mut found : String? = None
+  for field in fields {
+    if same_name(path.last().unwrap(), { value: field, quoted: false, }) {
+      if found is Some(_) {
+        return None
+      }
+      found = Some(field)
+    }
+  }
+  found
+}
+
+///|
+fn keyed_node_constraint(
+  construction : Construction,
+  node : @query.GraphNodePattern,
+  fields : Array[String],
+  max_work : Int,
+) -> @builder.Node raise Abort {
+  // Only property predicates become ordinary expressions. Static labels are
+  // passed independently to match_nodes and never compared with a property.
+  let resolve = fn(path : Array[@query.NamePart]) -> String? {
+    keyed_property_field(path, node.variable, fields)
+  }
+  let append = fn(expression : @query.Expression) -> @builder.Node raise Abort {
+    match
+      @expression.append(expression, resolve, construction.builder, max_work) {
+      Ok(value) => value
+      Err(error) => raise Abort(Expression(error))
+    }
+  }
+  match node.constraint {
+    None => construction.object([("literal", construction.add(Bool(true)))])
+    Some(Predicate(expression)) => append(expression)
+    Some(Properties(properties)) => {
+      let predicates : Array[@builder.Node] = []
+      for (field, expression) in properties {
+        let name = match keyed_property_field([field], node.variable, fields) {
+          Some(name) => name
+          None => raise Abort(UnknownColumn)
+        }
+        predicates.push(
+          construction.object([
+            (
+              "eq",
+              construction.array([
+                construction.object([("field", construction.text(name))]),
+                append(expression),
+              ]),
+            ),
+          ]),
+        )
+      }
+      if predicates.is_empty() {
+        construction.object([("literal", construction.add(Bool(true)))])
+      } else if predicates.length() == 1 {
+        predicates[0]
+      } else {
+        construction.object([("and", construction.array(predicates))])
+      }
+    }
+  }
+}
+
+///|
 fn keyed_start_match(
   construction : Construction,
   graph : ScriptGraph,
@@ -58,18 +137,12 @@ fn keyed_start_match(
 ) -> @builder.Node raise Abort {
   // Label membership belongs to match_nodes. Never replace it by a
   // comparison with a property, even if a property has the same name.
-  let predicate = match
-    graph_node_predicate(
-      construction,
-      { label_field: None, pattern: None, },
-      { ..node, label: None, },
-      fields,
-      "",
-      limits.max_expression_work,
-    ) {
-    Some(predicate) => predicate
-    None => construction.object([("literal", construction.add(Bool(true)))])
-  }
+  let predicate = keyed_node_constraint(
+    construction,
+    node,
+    fields,
+    limits.max_expression_work,
+  )
   let params = [
     ("definition", construction.text(definition.name.value)),
     ("where", predicate),

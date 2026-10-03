@@ -46,6 +46,7 @@ fn native_operation(name : String) -> Bool {
     | "normalize_vectors"
     | "pivot"
     | "pool_vectors"
+    | "property_graph"
     | "reach"
     | "rename"
     | "row_window"
