@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "ci-native-query-partition",
+  "kind": "change",
+  "revision": "50b4364884c199346e27c7f7db7410d545985f20",
+  "parents": [
+    "08e2d634f8d05548791a01d15396a50185d6e5d8"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "08e2d634f8d05548791a01d15396a50185d6e5d8",
+          "digest": "38db7f5d957805622f04dfc7d9e2a6531f2fec11233b1a13ed595ae0fd5ed446",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "4a97ae9211f1f9c42e514cdc8e581fdaf4f6b87b9882128d5980d61134f279b6",
+      "afterMode": "100644",
+      "reason": "Add native query ownership and nonzero execution regression tests once to the existing lightweight lint step. Preserve the inherited artifact-contract preflight, focused-job skip and full-checkpoint contracts, full native Core coverage, and Linux/macOS fixture harnesses. HTTP and remote query selections retain their environment-owned files, with explicit full-harness fallback for unreviewed environment consumers. No earlier runtime or proof evidence is reused."
+    }
+  ]
+}
