@@ -44,6 +44,10 @@ export interface TaskCompilation {
   readonly [taskCompilationBrand]: true;
 }
 
+/** Count physical checked tasks separately from Result Plan transformations. */
+export function taskExecutionShape(prepared: PreparedProgram,
+  compilation: TaskCompilation): Readonly<{taskCount: number; acquisitionCount: number}>;
+
 export interface RequestIdentity {
   readonly [requestBrand]: true;
 }
@@ -294,6 +298,8 @@ export function compileTasks(prepared: PreparedProgram): TaskCompilation;
 export function privateTaskCompilationWires(
   compilation: TaskCompilation): PrivateCompilationWires;
 export function taskResultNames(compilation: TaskCompilation): readonly string[];
+/** Exact dispatch keys from checked fragments, excluding Result transforms. */
+export function taskKeys(prepared: PreparedProgram, compilation: TaskCompilation): readonly string[];
 export function taskResultDefinitions(prepared: PreparedProgram,
   compilation: TaskCompilation): readonly Readonly<{
   name: string;
@@ -392,14 +398,14 @@ export function privateRunDefinition(definition: RunDefinition): Readonly<{
 }>;
 /** Project the owner's unpublished Run state from retained physical facts. */
 export function issueUnpublishedRunStateWire(prepared: PreparedProgram,
-  compilation: ValuesCompilation, admission: RunAdmission,
+  compilation: ValuesCompilation | TaskCompilation, admission: RunAdmission,
   definition: RunDefinition, observedAt: string,
   observation: Readonly<{dispatchReserved: boolean;
     preDispatchFailureConfirmed: boolean; cancelledBeforeStart?: boolean;
     executionUnknown?: boolean}>): string;
 /** Project a committed Run with current physical availability observations. */
 export function issueSucceededRunStateWire(prepared: PreparedProgram,
-  compilation: ValuesCompilation, admission: RunAdmission,
+  compilation: ValuesCompilation | TaskCompilation, admission: RunAdmission,
   definition: RunDefinition, observedAt: string,
   observations: readonly Readonly<{name: string;
     state: 'available' | 'unavailable' | 'unknown';
@@ -453,6 +459,12 @@ export interface SourceFreeRunMaterialsInput {
  * extend expiry. The encoded body is bounded to 262144 UTF-8 bytes. */
 export function issueSourceFreeRunMaterials(prepared: PreparedProgram,
   compilation: ValuesCompilation, admission: RunAdmission,
+  definition: RunDefinition, retained: SourceFreeRunMaterialsInput): string;
+
+/** Projects an original checked task Run through the common materials owner.
+ * Physical Source paths and connection configuration remain Site-owned. */
+export function issueTaskRunMaterials(prepared: PreparedProgram,
+  compilation: TaskCompilation, admission: RunAdmission,
   definition: RunDefinition, retained: SourceFreeRunMaterialsInput): string;
 
 export function prepareRunStart(requested: RequestIdentity,
@@ -522,6 +534,21 @@ export interface ValuesSiteSelection {
 export function issueSourceFreeDispatch(prepared: PreparedProgram,
   compilation: ValuesCompilation, admission: RunAdmission,
   definition: RunDefinition, request: RequestIdentity,
+  selection: ValuesSiteSelection): Readonly<{cid: string; wire: string}>;
+/** No caller-supplied Run-start Artifact; later Source capture remains separate. */
+export function prepareTaskRequest(prepared: PreparedProgram,
+  compilation: TaskCompilation, authorityScopeCid: string,
+  requestId: string): RequestIdentity;
+/** Original checked Catalog facts; these do not grant acquisition I/O. */
+export function sourceEvidenceFacts(prepared: PreparedProgram, stage: number,
+  sourceIndex: number): Readonly<{sourceRef: string; sourceContractCid: string;
+    carrierSchemaContractCid: string; sourceDataPolicyCid: string;
+    dataClassification: string; sourceViewContractCid: string}> | undefined;
+/** Checked logical input only, with no Site path or connection settings. */
+export function taskInputBinding(prepared: PreparedProgram, task: number): string;
+export function issueTaskDispatch(prepared: PreparedProgram,
+  compilation: TaskCompilation, admission: RunAdmission,
+  definition: RunDefinition, request: RequestIdentity, task: number,
   selection: ValuesSiteSelection): Readonly<{cid: string; wire: string}>;
 /** Canonical contract admission is not publication or read authorization. */
 export function admitPublicationContract<Name extends string>(name: Name,
@@ -661,8 +688,19 @@ export function admitCapturedResultSnapshot(definition: PublicationContract,
   artifact: PublicationContract, rowsWire: string,
   fields: readonly string[], limits: PublicationLimits):
   CapturedResultSnapshot;
-/** Source-free capture has no source-state advances to invent. */
+/** Source-free capture uses the same read-only captured-computation owner. */
 export function issueSourceFreeCapturedRun(
+  runDefinition: PublicationContract, invocation: PublicationContract,
+  definitions: readonly PublicationContract[],
+  artifacts: readonly PublicationContract[],
+  manifest: PublicationContract, receipt: PublicationContract,
+  snapshots: readonly CapturedResultSnapshot[], authoring: RunEvidence,
+  models: readonly RunEvidence[], limits: PublicationLimits):
+  PublicationContract;
+
+/** Read-only Source capture has no source-state advances; receipt validation
+ * still requires the exact acquired Source evidence inventory. */
+export function issueReadOnlyCapturedRun(
   runDefinition: PublicationContract, invocation: PublicationContract,
   definitions: readonly PublicationContract[],
   artifacts: readonly PublicationContract[],
@@ -673,7 +711,7 @@ export function issueSourceFreeCapturedRun(
 
 /** Authenticated storage is supplied by the Host; this grants no execution. */
 export function projectSiteRun(prepared: PreparedProgram,
-  compilation: ValuesCompilation, admission: RunAdmission,
+  compilation: ValuesCompilation | TaskCompilation, admission: RunAdmission,
   definition: RunDefinition, authority: string, durableWire: string,
   observedAt: string, cancellationRequested?: boolean,
   physicalStartClaimed?: boolean): Readonly<{stateWire: string;

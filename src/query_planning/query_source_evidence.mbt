@@ -18,6 +18,20 @@ pub fn query_requirement_source_evidence_facts(
   let acquisition = @query.query_sequence_requirement(
     requirement.material.owner,
   )
+  guard query_acquisition_source_evidence_facts(acquisition) is Some(facts) &&
+    facts.source_contract_cid == requirement.source_contract_cid &&
+    facts.source_ref == requirement.source_ref else {
+    return None
+  }
+  Some(facts)
+}
+
+///|
+/// Resolve logical Source evidence facts from the checked Catalog selection.
+/// This requires no physical Query preparation and grants no acquisition I/O.
+pub fn query_acquisition_source_evidence_facts(
+  acquisition : @acquisition.QueryAcquisition,
+) -> QuerySourceEvidenceFacts? {
   let requests = @acquisition.query_acquisition_owner(acquisition)
   guard @acquisition.pipeline_request_at(
       requests,
@@ -27,8 +41,7 @@ pub fn query_requirement_source_evidence_facts(
     return None
   }
   let selected = @acquisition.mode_input(mode)
-  if @acquisition.selected_cid(selected) != requirement.source_contract_cid ||
-    @environment.read_mode_kind(@acquisition.mode_contract(mode)) !=
+  if @environment.read_mode_kind(@acquisition.mode_contract(mode)) !=
     @environment.SnapshotMode {
     return None
   }
@@ -55,9 +68,6 @@ pub fn query_requirement_source_evidence_facts(
     return None
   }
   let data_policy = @environment.source_view_data_policy(view_policy)
-  if @environment.data_policy_source(data_policy) != requirement.source_ref {
-    return None
-  }
   let data_policy_cid = @environment.contract_identity(
       @environment.data_policy_envelope(data_policy),
     ).2
@@ -69,8 +79,8 @@ pub fn query_requirement_source_evidence_facts(
     @environment.Unknown => "unknown"
   }
   Some({
-    source_ref: requirement.source_ref,
-    source_contract_cid: requirement.source_contract_cid,
+    source_ref: @environment.data_policy_source(data_policy),
+    source_contract_cid: @acquisition.selected_cid(selected),
     carrier_schema_contract_cid: schema_cid,
     source_data_policy_cid: data_policy_cid,
     data_classification: classification,

@@ -5,6 +5,9 @@ import test from 'node:test';
 import {valuesUnitIdentity, valuesResultPlan} from
   '../../scripts/fixtures/string-contract-identities.mjs';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
+import {residentSourceEnvironment, sourceProgram, sourceRef, sourceContractCid}
+  from '../../scripts/fixtures/resident-source.mjs';
+import {fileURLToPath} from 'node:url';
 import {validRunState} from '../client-wire/index.mjs';
 import {admitDispatchJson, dispatchCid, createJournal, prepareIntent,
   admissionDurableJson, admitDurableJson, commitIntent, admitResponseJson,
@@ -12,7 +15,7 @@ import {admitDispatchJson, dispatchCid, createJournal, prepareIntent,
   from '../coordinator-core/index.mjs';
 import {admitEnvironment, admitRequestFields, admitRunDefinition,
   admitSourceFreeRunDefinition,
-  issueSourceFreeRunMaterials,
+  issueSourceFreeRunMaterials, issueTaskRunMaterials,
   admitPublicationContract, admitRunEvidenceValue, sealRunEvidenceValue,
   validatePublicationChain,
   validatePublicationRecordTransition,
@@ -34,7 +37,8 @@ import {admitEnvironment, admitRequestFields, admitRunDefinition,
   inspectCanonicalResultRows,
   admitSourceFreeRequestFields, admitRun, compileValues, compileTasks,
   privateTaskCompilationWires, taskResultNames,
-  taskResultDefinitions, taskResultSchema,
+  taskResultDefinitions, taskResultSchema, taskExecutionShape, taskKeys,
+  sourceEvidenceFacts, taskInputBinding, prepareTaskRequest, issueTaskDispatch,
   issueAllowedTaskRun, admitTaskRun, issueTaskRunDefinition,
   admitTaskRunDefinition,
   checkRunBinding, issueAllowedRun, issueRunDefinition,
@@ -237,6 +241,29 @@ test('checked acquired Program issues and re-admits its task Run', () => {
   const definition = issueTaskRunDefinition(prepared, compilation,
     allowed.admission, 'task-scope', 'task-run',
     '2026-09-26T00:00:00.000Z', '2026-09-27T00:00:00.000Z');
+  const retained = {document, format: 'json', environment,
+    environmentWire: JSON.parse(catalog[1]), parametersWire: parameters};
+  const materials = issueTaskRunMaterials(prepared, compilation,
+    allowed.admission, definition, retained);
+  const projected = JSON.parse(materials);
+  assert.equal(projected.program, document);
+  assert.equal(projected.parameters, parameters);
+  assert.equal(projected.check_environment, retained.environmentWire);
+  assert.equal(projected.prepared_invocation, allowed.preparedInvocationWire);
+  assert.equal(projected.run_authorization, allowed.authorizationWire);
+  assert.equal(projected.run_id, 'task-run');
+  assert.equal(projected.valid_until, '2026-09-27T00:00:00.000Z');
+  assert.equal(issueTaskRunMaterials(prepared, compilation,
+    allowed.admission, definition, retained), materials);
+  assert.throws(() => issueTaskRunMaterials(prepared, compilation,
+    allowed.admission, definition, {...retained, parametersWire: '{"minimum":7}'}),
+  {code: 'RunHostRunMaterialsRejected'});
+  assert.throws(() => issueTaskRunMaterials(prepared, compilation,
+    allowed.admission, definition, {...retained, databasePath: '/forbidden.db'}),
+  {message: 'InvalidRunHostRunMaterialsInput'});
+  assert.throws(() => issueTaskRunMaterials(prepare(document, 'json',
+    environment, parameters), compilation, allowed.admission, definition, retained),
+  {message: 'ForeignRunHostCompilation'});
   const limits = {maxWireBytes: 8192, maxNodes: 256, maxDepth: 16};
   assert.throws(() => issueSourceFreeTaskInvocation(prepared, compilation,
     allowed.admission, definition, `sha256:${'d'.repeat(64)}`, limits),
@@ -300,6 +327,82 @@ test('checked acquired Program issues and re-admits its task Run', () => {
       hostPolicyCid: `sha256:${'b'.repeat(64)}`,
       expiresAt: '2026-10-01T00:00:00.000Z',
     }).admission, wire), {code: 'RunHostTaskDefinitionRejected'});
+});
+
+test('resident Source dispatch preserves checked task and logical input identity', async () => {
+  const fixture = await residentSourceEnvironment(fileURLToPath(new URL('../../', import.meta.url)));
+  const environment = admitEnvironment(fixture.wire, fixture.cid, {rela: true});
+  const prepared = prepare(sourceProgram, 'json', environment);
+  const compilation = compileTasks(prepared);
+  assert.deepEqual(taskExecutionShape(prepared, compilation), {taskCount: 1, acquisitionCount: 1});
+  assert.deepEqual(taskKeys(prepared, compilation), ['task_0']);
+  // The extra Plan node is a publication transform, not another task claim.
+  assert.equal(JSON.parse(privateTaskCompilationWires(compilation).executablePlan).nodes.length, 2);
+  assert.deepEqual(taskResultSchema(prepared, compilation, 'answer').fields, ['id']);
+  const facts = sourceEvidenceFacts(prepared, 0, 0);
+  assert.equal(facts.sourceRef, sourceRef);
+  assert.equal(facts.sourceContractCid, sourceContractCid);
+  assert.equal(facts.sourceDataPolicyCid,
+    'sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf');
+  assert.equal(sourceEvidenceFacts(prepared, 1, 0), undefined);
+  const binding = taskInputBinding(prepared, 0);
+  assert.deepEqual(JSON.parse(binding), {source_contract_cid: sourceContractCid, source_ref: sourceRef});
+  assert.throws(() => taskInputBinding(prepared, 1), {code: 'RunHostTaskBindingRejected'});
+  const scope = cid({authority: 'Source'});
+  const allowed = issueAllowedTaskRun(prepared, compilation, {
+    executionContextCid: cid({context: 'Source'}), hostPolicyCid: cid({policy: 'Source'}),
+    expiresAt: '2099-01-01T00:00:00.000Z',
+  });
+  const definition = issueTaskRunDefinition(prepared, compilation, allowed.admission,
+    'Source-scope', 'original-Source-run', '2026-10-03T00:00:00.000Z', '2026-10-04T00:00:00.000Z');
+  const request = prepareTaskRequest(prepared, compilation, scope, 'Source-request');
+  const unpublished = issueUnpublishedRunStateWire(prepared, compilation, allowed.admission,
+    definition, '2026-10-03T00:00:01.000Z', {dispatchReserved: false, preDispatchFailureConfirmed: false});
+  assert(validRunState(JSON.parse(unpublished)));
+  assert.equal(JSON.parse(unpublished).status, 'preparing');
+  const succeeded = issueSucceededRunStateWire(prepared, compilation, allowed.admission,
+    definition, '2026-10-03T00:00:02.000Z', [{name: 'answer', state: 'available', reason: 'confirmed_present',
+      observedAt: '2026-10-03T00:00:02.000Z'}]);
+  assert(validRunState(JSON.parse(succeeded)));
+  assert.equal(JSON.parse(succeeded).status, 'succeeded');
+  const selected = {taskAttempt: 1, dispatchId: 'Source-dispatch', siteKey: 'Source-site', siteGeneration: 1,
+    runtimeBundleCid: cid({bundle: 'Source'}), connectorRegistration: 'local', connectorRevision: 'local/1',
+    strategyRevision: 'strategy/1', obligationsCid: cid({obligations: 'Source'}), budgetCid: cid({budget: 'Source'}),
+    evidenceIssuerCapabilityCid: cid({issuer: 'Source'}), grantCid: cid({grant: 'Source'})};
+  const issued = issueTaskDispatch(prepared, compilation, allowed.admission, definition, request, 0, selected);
+  const dispatch = JSON.parse(issued.wire);
+  assert.equal(dispatch.run_definition_cid, privateRunDefinition(definition).cid);
+  assert.equal(dispatch.coordinator_authority, scope);
+  assert.equal(dispatch.task_key, taskKeys(prepared, compilation)[0]);
+  assert.equal(dispatch.input_binding_cid, `sha256:${createHash('sha256').update(binding).digest('hex')}`);
+  assert.deepEqual(issueTaskDispatch(prepared, compilation, allowed.admission, definition, request, 0, selected), issued);
+  for (const [execution, cleanup, nextWork] of [[3, 0, 'publication'], [3, 2, 'publication'],
+    [4, 2, 'none'], [4, 1, 'cleanup'], [6, 3, 'reconcile']]) {
+    const admittedDispatch = admitDispatchJson(issued.wire, issued.cid);
+    const intent = prepareIntent(createJournal(scope), admittedDispatch);
+    const durable = admitDurableJson(admissionDurableJson(intent));
+    const record = commitIntent(intent);
+    const response = admitResponseJson(JSON.stringify({
+      version: 'actql-remote-dispatch-response/0.1', dispatch_request_cid: issued.cid,
+      revision: 2, state: [execution, 0, cleanup, 0, 0],
+    }), admittedDispatch, false);
+    const saved = responseDurableJson(durable, prepareResponseObservation(record, response), response);
+    const projection = projectSiteRun(prepared, compilation, allowed.admission, definition,
+      scope, saved, '2026-10-03T00:00:01.000Z');
+    assert.equal(projection.nextWork, nextWork);
+    assert(validRunState(JSON.parse(projection.stateWire)));
+    assert.deepEqual(projectSiteRun(prepared, compilation, allowed.admission, definition,
+      scope, saved, '2026-10-03T00:00:01.000Z'), projection);
+    assert.throws(() => projectSiteRun(prepared, compilation, allowed.admission, definition,
+      cid({authority: 'foreign'}), saved, '2026-10-03T00:00:01.000Z'),
+    {code: 'RunHostSiteProjectionRejected'});
+  }
+  assert.throws(() => issueTaskDispatch(prepared, compilation, allowed.admission, definition, request, 1, selected),
+    {code: 'RunHostDispatchRejected'});
+  const foreign = prepare(sourceProgram.replace('id > 1', 'id > 2'), 'json', environment);
+  assert.throws(() => issueTaskDispatch(prepared, compilation, allowed.admission, definition,
+    prepareTaskRequest(foreign, compileTasks(foreign), scope, 'Source-request'), 0, selected),
+    {code: 'RunHostDispatchRejected'});
 });
 
 test('portable delivery control keeps progress and serializer opaque', () => {

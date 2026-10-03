@@ -51,6 +51,14 @@ struct RecoveredSiteDispatch {
   evidence : @remote.RemoteExecutionEvidence?
   subject : @remote.RemoteManagedOutputSubject?
   measurement : @remote.RemoteManagedOutputMeasurement?
+  source_observation : @remote.RemoteSourceObservation?
+}
+
+///|
+pub fn recovered_site_dispatch_source_observation(
+  recovered : RecoveredSiteDispatch,
+) -> @remote.RemoteSourceObservation? {
+  recovered.source_observation
 }
 
 ///|

@@ -8,6 +8,7 @@ import {
   "actql/actql/physical_manifest" @manifest,
   "actql/actql/publication_payload" @payload,
   "actql/actql/remote_transfer" @transfer,
+  "actql/actql/run_publication" @publication,
   "actql/actql/sha256" @sha,
   "actql/actql/source_value" @source,
   "moonbitlang/core/encoding/utf8",

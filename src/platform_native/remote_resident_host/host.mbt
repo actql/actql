@@ -7,6 +7,7 @@ pub(all) struct ResidentRunAdmission {
   operations : @context.PureOperationProfiles
   manifests : @host.ClientCompilationManifests
   limits : @host.ClientValuesRunMaterialsLimits
+  source : (String, String)?
 }
 
 ///|
@@ -18,6 +19,7 @@ pub(all) enum ResidentHostIssue {
   EnvelopeMissing
   Refused(@resident.ResidentDispatchRefusal)
   Values(@values.NativeRemoteValuesHostIssue)
+  Source(ResidentSourceIssue)
   Runtime(@runtime.NativeRemoteRuntimeIssue)
 }
 
@@ -39,10 +41,10 @@ fn rebuild_materials(
   admission : ResidentRunAdmission,
   request : @remote.DispatchRequest,
   materials : String,
-) -> Result[@host.ClientValuesRunMaterials, @resident.ResidentDispatchRefusal] {
+) -> Result[@host.ClientRunMaterials, @resident.ResidentDispatchRefusal] {
   let (run_definition_cid, _) = @remote.dispatch_request_task_scope(request)
   match
-    @host.admit_client_values_run_materials(
+    @host.admit_client_run_materials(
       materials,
       run_definition_cid,
       admission.expressions,
@@ -51,7 +53,10 @@ fn rebuild_materials(
       admission.limits,
     ) {
     Ok(value) => Ok(value)
-    Err(issue) => Err(MaterialsRejected(issue))
+    Err(@host.ClientRunMaterialsIssue::Values(issue)) =>
+      Err(MaterialsRejected(issue))
+    Err(@host.ClientRunMaterialsIssue::Tasks(issue)) =>
+      Err(TaskMaterialsRejected(issue))
   }
 }
 
@@ -60,13 +65,42 @@ fn admit_materials(
   admission : ResidentRunAdmission,
   request : @remote.DispatchRequest,
   materials : String,
+  binding : @remote.RemoteInputBinding,
   now : String,
-) -> Result[@host.ClientValuesRunMaterials, @resident.ResidentDispatchRefusal] {
+) -> Result[@host.ClientRunMaterials, @resident.ResidentDispatchRefusal] {
   let rebuilt = match rebuild_materials(admission, request, materials) {
     Ok(value) => value
     Err(refusal) => return Err(refusal)
   }
-  match @resident.check_resident_run_current(rebuilt, now) {
+  if rebuilt.compilation is @host.Tasks(_) {
+    let graph = @host.prepared_client_graph(rebuilt.prepared)
+    if @strategy.graph_task_count(graph) != 1 ||
+      @host.prepared_client_acquisition_count(rebuilt.prepared) != 1 ||
+      @host.prepared_client_result_count(rebuilt.prepared) != 1 ||
+      @strategy.graph_result_task(graph, 0) != Some(0) ||
+      @strategy.graph_task_target(graph, 0) is Some(_) {
+      return Err(@resident.UnsupportedTask)
+    }
+    guard admission.source is Some((source_ref, source_contract_cid)) &&
+      @host.prepared_client_source_evidence_facts(rebuilt.prepared, 0, 0)
+      is Some(facts) else {
+      return Err(@resident.ForeignSource)
+    }
+    let selected = @planning.query_source_evidence_fact_values(facts)
+    if selected[0] != source_ref || selected[1] != source_contract_cid {
+      return Err(@resident.ForeignSource)
+    }
+    guard @host.prepare_client_task_input_binding(rebuilt.prepared, 0)
+      is Ok(expected) else {
+      return Err(@resident.UnsupportedTask)
+    }
+    if @remote.remote_input_binding_body(binding) !=
+      @remote.remote_input_binding_body(expected) ||
+      !@remote.remote_input_binding_matches_dispatch(binding, request) {
+      return Err(@resident.ForeignSource)
+    }
+  }
+  match @resident.check_resident_materials_current(rebuilt, now) {
     Ok(_) => Ok(rebuilt)
     Err(refusal) => Err(refusal)
   }
@@ -101,7 +135,7 @@ pub fn accept_resident_dispatch(
     Ok(_) => ()
     Err(refusal) => return Ok(Refused(refusal))
   }
-  match admit_materials(admission, request, materials, now) {
+  match admit_materials(admission, request, materials, binding, now) {
     Ok(_) => ()
     Err(refusal) => return Ok(Refused(refusal))
   }
@@ -191,6 +225,7 @@ pub(all) struct ResidentExecution {
   per_wire_byte_ms : Int64
   per_pair_ms : Int64
   limits : @values.NativeRemoteValuesTaskLimits
+  source : ResidentSourceConfiguration?
 }
 
 ///|
@@ -266,48 +301,80 @@ pub fn execute_resident_attempt(
   // acquire the existing exclusive start claim and terminate through the
   // runtime owner; returning while still Accepted would indefinitely retry
   // the queue head. No physical call is permitted by this claim.
-  let accepted_run_current = @resident.check_resident_run_current(
+  let accepted_run_current = @resident.check_resident_materials_current(
       rebuilt,
       current_time(),
     )
     is Ok(_)
-  let executor = match
-    @values.install_native_remote_values_task_executor(
-      rebuilt.prepared,
-      rebuilt.compilation,
-      rebuilt.admission,
-      rebuilt.run_definition,
-      binding,
-      execution.registry_body,
-      execution.values_body,
-      execution.fixed_ms,
-      execution.per_row_ms,
-      execution.per_wire_byte_ms,
-      execution.per_pair_ms,
-      execution.limits,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(failed(Values(issue)))
-  }
-  let runtime = match
-    @values.open_native_remote_values_site_runtime(
-      execution.site,
-      execution.active_runtime,
-      execution.operation_capability_cid,
-      execution.issuer_capability_cid,
-      executor,
-      journal,
-      execution.bundles,
-      execution.budgets,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(failed(Values(issue)))
+  let (runtime, result_definition_cid) = match rebuilt.compilation {
+    @host.Tasks(compilation) => {
+      guard execution.source is Some(source) else {
+        return Err(failed(Source(UnsupportedSource)))
+      }
+      let (executor, result_definition_cid) = match
+        install_resident_source_executor(
+          rebuilt, compilation, binding, request, execution, source, current_time,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(failed(Source(issue)))
+      }
+      let runtime = match
+        @output.open_native_remote_standard_site_runtime(
+          execution.site,
+          execution.active_runtime,
+          execution.operation_capability_cid,
+          execution.issuer_capability_cid,
+          [executor],
+          journal,
+          execution.bundles,
+          execution.budgets,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(failed(Source(Standard(issue))))
+      }
+      (runtime, result_definition_cid)
+    }
+    @host.Values(compilation) => {
+      let executor = match
+        @values.install_native_remote_values_task_executor(
+          rebuilt.prepared,
+          compilation,
+          rebuilt.admission,
+          rebuilt.run_definition,
+          binding,
+          execution.registry_body,
+          execution.values_body,
+          execution.fixed_ms,
+          execution.per_row_ms,
+          execution.per_wire_byte_ms,
+          execution.per_pair_ms,
+          execution.limits,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(failed(Values(issue)))
+      }
+      let runtime = match
+        @values.open_native_remote_values_site_runtime(
+          execution.site,
+          execution.active_runtime,
+          execution.operation_capability_cid,
+          execution.issuer_capability_cid,
+          executor,
+          journal,
+          execution.bundles,
+          execution.budgets,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(failed(Values(issue)))
+      }
+      (runtime, executor.result_definition_cid())
+    }
   }
   // From here the runtime may own cleanup: every failure keeps it until its
   // close is confirmed.
   match
     runtime.guard_executor_start(() => {
-      let current = @resident.check_resident_run_current(
+      let current = @resident.check_resident_materials_current(
         rebuilt,
         current_time(),
       )
@@ -330,12 +397,7 @@ pub fn execute_resident_attempt(
   }
   match runtime.start(request, binding) {
     Ok(completion) =>
-      Ok({
-        runtime,
-        completion,
-        request,
-        result_definition_cid: executor.result_definition_cid(),
-      })
+      Ok({ runtime, completion, request, result_definition_cid, })
     Err(@runtime.StartAuthorizationRejected) =>
       failed_after_runtime(runtime, Refused(@resident.NotCurrent))
     Err(issue) => failed_after_runtime(runtime, Runtime(issue))

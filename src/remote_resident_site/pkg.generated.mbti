@@ -9,6 +9,8 @@ import {
 // Values
 pub fn check_resident_dispatch_delegation(ResidentSiteDelegation, @remote_site_protocol.DispatchRequest, Int) -> Result[Unit, ResidentDispatchRefusal]
 
+pub fn check_resident_materials_current(@run_publication_host.ClientRunMaterials, String) -> Result[Unit, ResidentDispatchRefusal]
+
 pub fn check_resident_run_current(@run_publication_host.ClientValuesRunMaterials, String) -> Result[Unit, ResidentDispatchRefusal]
 
 pub fn resident_utc_timestamp(Int64) -> String?
@@ -35,6 +37,9 @@ pub(all) enum ResidentDispatchRefusal {
   UnsupportedBudget
   MaterialsMissing
   MaterialsRejected(@run_publication_host.ClientValuesRunMaterialsIssue)
+  TaskMaterialsRejected(@run_publication_host.ClientTaskRunMaterialsIssue)
+  ForeignSource
+  UnsupportedTask
   NotCurrent
   QueueFull
 }
