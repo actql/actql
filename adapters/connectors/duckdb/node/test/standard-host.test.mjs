@@ -12611,7 +12611,8 @@ async function exerciseStrategyGraph(
         fixture.strategyFixtureAcquisition(f), fixture.strategyFixtureLedger(f), suppliedLimits, rootRetention);
       try {
         assert.equal(captured.output, undefined);
-        assert.equal(captured.source, undefined);
+        assert.equal(typeof captured.source, 'function');
+        assert.ok(captured.source());
         // Admission keeps the full file ceiling. Only the exact sealed body
         // becomes a holding; unused capacity is released after completion.
         assert.equal(captured.physicalCapacity.retentionBytes, 134615840n);
@@ -12656,7 +12657,8 @@ async function exerciseStrategyGraph(
   const accountedComputes = [];
   try {
     assert.equal(accounted.output, undefined);
-    assert.equal(accounted.source, undefined);
+    assert.equal(typeof accounted.source, 'function');
+    assert.ok(accounted.source());
     const graph = fixture.strategyFixtureGraph(accountedFixture);
     const dag = accounted.openDAG(graph);
     assert.equal(fixture.strategyFixtureAttach(accountedFixture, dag), true);

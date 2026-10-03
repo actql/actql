@@ -293,6 +293,14 @@ pub fn captured_source_available(source : CapturedInputSource) -> Bool {
 }
 
 ///|
+pub fn captured_source_matches_query(
+  source : CapturedInputSource,
+  query : QuerySequence,
+) -> Bool {
+  (source.live)() && physical_equal(source.owner, query)
+}
+
+///|
 /// Restrict an already owned capture without replacing its original liveness
 /// checks or copying its retained data. This cannot construct a new observation.
 pub fn restrict_captured_source(
@@ -332,6 +340,28 @@ pub fn bind_captured_source(
     query_sequence_owner(source.owner),
     source.output,
     source.live,
+  ).map_err(issue => Binding(issue))
+}
+
+///|
+/// Bind a same-pipeline consumer to the exact captured step. The restricted
+/// completion keeps the observation live during subsequent provider reads;
+/// binding is neither a copy nor a transfer of the capture cleanup owner.
+pub fn bind_captured_source_operation(
+  source : CapturedInputSource,
+  receiver : @lower.BoundPrepared,
+  step : Int,
+  input : Int,
+) -> Result[@execution.BoundProducerInput, CapturedSourceIssue] {
+  if !(source.live)() {
+    return Err(Unavailable)
+  }
+  @execution.bind_completed_operation_input(
+    receiver,
+    step,
+    input,
+    query_sequence_owner(source.owner),
+    @execution.restrict_completed_output(source.output, source.live),
   ).map_err(issue => Binding(issue))
 }
 

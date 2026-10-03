@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "sdk-cancel-response-loss-registration",
+  "kind": "change",
+  "revision": "93e316653e510faec9bd40db8240ec9734e07e1e",
+  "parents": [
+    "bcbf77049fe4991c9b0f1a18541ac7a7952b01ad"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "bcbf77049fe4991c9b0f1a18541ac7a7952b01ad",
+          "digest": "28aa357d16dcf7079b020150dff2783473bb9f6ce6b010cba94388702c570716",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "b559af7ef2b305b47c26f6171b315b5acae04dd2767f5cf080b8776ca92b55a6",
+      "afterMode": "100644",
+      "reason": "Register the bounded public SDK cancellation-response-loss acceptance in the existing distribution Client gate. Preserve every existing test command, proof gate, corpus, mutation and foundation owner unchanged."
+    }
+  ]
+}

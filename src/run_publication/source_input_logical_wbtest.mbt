@@ -135,6 +135,100 @@ test "source observation binds the completed input and checked source" {
   let evidence = seal_run_evidence_value(
     "source_evidence", prefix, 8192, 256, 16,
   ).unwrap()
+  let observed = admit_model_source_observation(
+    evidence, input, source_ref, source_cid, scope, other, "2026-09-26T00:00:00.000Z",
+    "2026-09-26T00:00:01.000Z",
+  ).unwrap()
+  assert_true(model_source_observation_matches_input(observed, input))
+  let observation_body = "{\"version\":\"actql-observation-set/0.1\"," +
+    "\"invocation_template_cid\":\"" +
+    other +
+    "\"," +
+    "\"data_policy_cid\":\"" +
+    other +
+    "\"," +
+    "\"consistency\":\"independent_snapshots\"," +
+    "\"capture_started_at\":\"2026-09-26T00:00:00.000Z\"," +
+    "\"capture_completed_at\":\"2026-09-26T00:00:01.000Z\"," +
+    "\"source_evidence_cids\":[\"" +
+    evidence.identity +
+    "\"]," +
+    "\"captured_input_artifact_cids\":[],\"model_slot_capture_cids\":[]," +
+    "\"replayability\":{\"materialized\":false,\"availability_evidence_cids\":[]}}"
+  let saved = seal_run_evidence_value(
+    "observation_set", observation_body, 8192, 256, 16,
+  ).unwrap()
+  let fresh_evidence = seal_run_evidence_value(
+    "source_evidence",
+    prefix.replace(
+      old="2026-09-26T00:00:00.000Z",
+      new="2026-09-27T00:00:00.000Z",
+    ),
+    8192,
+    256,
+    16,
+  ).unwrap()
+  let fresh = admit_model_source_observation(
+    fresh_evidence, input, source_ref, source_cid, scope, other, "2026-09-27T00:00:00.000Z",
+    "2026-09-27T00:00:01.000Z",
+  ).unwrap()
+  let restored = restore_model_source_observation(fresh, evidence, saved).unwrap()
+  assert_eq(
+    model_source_observation_fields(restored),
+    model_source_observation_fields(observed),
+  )
+  assert_true(
+    restore_model_source_observation(fresh, fresh_evidence, saved)
+    is Err(RunEvidenceReferenceMismatch("observation.source_evidence_cids")),
+  )
+  for
+    inventory in [
+      "[]",
+      "[\"" + other + "\"]",
+      "[\"" + evidence.identity + "\",\"" + other + "\"]",
+    ] {
+    let invalid = seal_run_evidence_value(
+      "observation_set",
+      observation_body.replace(
+        old="[\"" + evidence.identity + "\"]",
+        new=inventory,
+      ),
+      8192,
+      256,
+      16,
+    ).unwrap()
+    assert_true(
+      restore_model_source_observation(fresh, evidence, invalid)
+      is Err(RunEvidenceReferenceMismatch("observation.source_evidence_cids")),
+    )
+  }
+  assert_eq(
+    model_source_observation_fields(observed),
+    (
+      run_evidence_value_identity(evidence),
+      "2026-09-26T00:00:00.000Z",
+      "2026-09-26T00:00:01.000Z",
+    ),
+  )
+  assert_true(
+    admit_model_source_observation(
+      evidence, input, source_ref, source_cid, other, other, "2026-09-26T00:00:00.000Z",
+      "2026-09-26T00:00:01.000Z",
+    )
+    is Err(RunEvidenceReferenceMismatch("source_evidence")),
+  )
+  for
+    (start, finish) in [
+      ("invalid", "2026-09-26T00:00:01.000Z"),
+      ("2026-09-26T00:00:02.000Z", "2026-09-26T00:00:01.000Z"),
+    ] {
+    assert_true(
+      admit_model_source_observation(
+        evidence, input, source_ref, source_cid, scope, other, start, finish,
+      )
+      is Err(RunEvidenceReferenceMismatch("source.capture_interval")),
+    )
+  }
   let saved_input = admit_source_effect_dependency_body(
     "source_input_logical",
     input.wire,

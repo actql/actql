@@ -13,6 +13,7 @@ pub fn model_private_holding_cid(
     return None
   }
   match role {
+    "source_evidence" => if slot != 0 { return None }
     "model_capture_bundle" | "observation_set" | "run_invocation" =>
       if slot != -1 {
         return None

@@ -39,7 +39,7 @@ pub fn read_prepared_client_infer_model_execution(
   limits : @environment.Limits,
   max_work : Int,
 ) -> Result[@environment.ModelExecutionContract, ClientInferPlanGraphIssue] {
-  guard client_infer_prefix_owner(value, 0, step) is Some(owner) &&
+  guard client_infer_metadata_owner(value, 0, step) is Some(owner) &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
     @lower.payload(node) is @lower.Infer(infer) else {
     return Err(UnsupportedProgram)
@@ -184,8 +184,8 @@ pub fn issue_prepared_client_infer_plan_graph(
   max_depth : Int,
   capacity_work? : Int = 1000000,
 ) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue] {
-  guard client_infer_prefix_owner(value, 0, step) is Some(owner) &&
-    @strategy.graph_task_target(value.graph, 0)
+  guard client_infer_metadata_owner(value, 0, step) is Some(owner) &&
+    @lower.preparation_output_target(@lower.bound_preparation(owner))
     is Some(@pipeline.Step(terminal)) &&
     terminal >= step &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
@@ -494,8 +494,15 @@ pub fn issue_prepared_client_infer_plan_graph(
     for result in 0..<@strategy.graph_result_count(value.graph) {
       let parts = match
         issue_client_result_plan_parts(
-          value, result, result_node, result_port, result_contract, max_wire_bytes,
-          max_nodes, max_depth,
+          value,
+          result,
+          result_node,
+          result_port,
+          result_contract,
+          max_wire_bytes,
+          max_nodes,
+          max_depth,
+          infer_output=Some((step, terminal)),
         ) {
         Ok(parts) => parts
         Err(issue) => return Err(Result(issue))

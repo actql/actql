@@ -1,5 +1,5 @@
 ///|
-/// Identity context for one checked, source-free INFER occurrence. It is not
+/// Identity context for one checked INFER occurrence. It is not
 /// a dispatch permission, completed model capture or reusable egress grant.
 pub struct ClientInferCallScope {
   owner : PreparedClientProgram
@@ -7,6 +7,7 @@ pub struct ClientInferCallScope {
   input : @execution.CompletedOutput
   artifact : @publication.RunEvidenceValue
   effective : @publication.RunEvidenceValue
+  source : @publication.ModelSourceObservation?
   unit_definition_cid : String
   source_ordinal : Int
 }
@@ -21,9 +22,9 @@ pub(all) enum ClientInferCallScopeIssue {
 }
 
 ///|
-/// Bind the actual completed input and its exact export receipt. This initial
-/// route has no Stage inputs or opaque bindings; their nonempty variants need
-/// their existing acquisition/authority owners, not caller-provided CID maps.
+/// Bind the completed input and its exact export receipt. An acquired input
+/// supplies its checked capture owner, never a caller-provided CID map. Opaque
+/// invocation bindings still require their separate authority admission.
 pub fn issue_prepared_client_infer_call_scope(
   owner : PreparedClientProgram,
   plan : ClientInferPlanGraph,
@@ -33,10 +34,20 @@ pub fn issue_prepared_client_infer_call_scope(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  captured? : ClientInferCapturedInput? = None,
 ) -> Result[ClientInferCallScope, ClientInferCallScopeIssue] {
+  let prefix = match captured {
+    None => client_infer_prefix_owner(owner, 0, step)
+    Some(value) => {
+      guard client_infer_captured_input_source(value, owner, step) is Some(_) else {
+        return Err(ForeignInput)
+      }
+      client_acquired_infer_prefix_owner(owner, 0, step)
+    }
+  }
   guard physical_equal(owner, plan.owner) &&
     plan.source_ordinal == step &&
-    client_infer_prefix_owner(owner, 0, step) is Some(prefix) &&
+    prefix is Some(prefix) &&
     @checked.unit_definition_cid(@strategy.graph_program(owner.graph), 0)
     is Some(unit_definition_cid) else {
     return Err(ForeignOwner)
@@ -57,12 +68,35 @@ pub fn issue_prepared_client_infer_call_scope(
     Err(_) => return Err(UnsupportedBindings)
   }
   let identity = prepared_client_identity(owner)
-  let effective_body = "{\"version\":\"actql-model-effective-inputs/0.1\"," +
-    "\"parameter_values_cid\":\"" +
-    identity.parameter_values_cid +
-    "\",\"invocation_bindings_cid\":\"" +
-    @publication.run_evidence_value_identity(bindings) +
-    "\",\"input_artifacts\":{}}"
+  let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  let effective_body = try {
+    @encode.begin_object(writer)
+    @encode.key(writer, "version")
+    @encode.string_value(writer, "actql-model-effective-inputs/0.1")
+    @encode.key(writer, "parameter_values_cid")
+    @encode.string_value(writer, identity.parameter_values_cid)
+    @encode.key(writer, "invocation_bindings_cid")
+    @encode.string_value(
+      writer,
+      @publication.run_evidence_value_identity(bindings),
+    )
+    @encode.key(writer, "input_artifacts")
+    @encode.begin_object(writer)
+    if captured is Some(value) {
+      @encode.key(writer, value.name)
+      @encode.string_value(
+        writer,
+        @publication.run_evidence_value_identity(value.logical),
+      )
+    }
+    @encode.end_object(writer)
+    @encode.end_object(writer)
+    @encode.finish(writer)
+  } catch {
+    _ => return Err(Encoding)
+  }
   let effective = match
     @publication.seal_run_evidence_value(
       "model_effective_inputs", effective_body, max_wire_bytes, max_nodes, max_depth,
@@ -107,6 +141,7 @@ pub fn issue_prepared_client_infer_call_scope(
     input,
     artifact,
     effective,
+    source: captured.map(value => value.observation),
     unit_definition_cid,
     source_ordinal: step,
   })
@@ -139,7 +174,7 @@ pub fn check_client_infer_saved_observation_scope(
   definition : @publication.PublicationContract,
   observation : @publication.RunEvidenceValue,
 ) -> Result[Unit, @publication.RunEvidenceValueIssue] {
-  @publication.check_saved_source_free_model_observation(
+  @publication.check_saved_model_observation(
     admission,
     definition,
     observation,
@@ -150,6 +185,7 @@ pub fn check_client_infer_saved_observation_scope(
     @environment.model_task_data_handling_cid(
       @environment.model_execution_task(scope.plan.execution),
     ),
+    source=scope.source,
   )
 }
 

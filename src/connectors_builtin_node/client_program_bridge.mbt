@@ -1669,6 +1669,74 @@ pub fn client_program_prepare_duckdb_broad_acquisition(
 }
 
 ///|
+#export_name("clientProgramDuckDBAcquisitionEstimate")
+pub fn client_program_duckdb_acquisition_estimate(
+  work_slots : Array[Array[Int]],
+  milliseconds : Array[Int64?],
+  quantities : Array[Int64?],
+) -> Result[
+  @client_local_host.ClientDuckDBAcquisitionEstimate,
+  @client_local_host.ClientDuckDBAcquisitionIssue,
+] {
+  @client_local_host.client_duckdb_acquisition_estimate(
+    work_slots, milliseconds, quantities,
+  )
+}
+
+///|
+#export_name("clientProgramSelectDuckDBAcquisition")
+pub fn client_program_select_duckdb_acquisition(
+  requirement : @planning.QueryRequirement,
+  database_schema : String,
+  table : String,
+  query_contract_body : String,
+  evidence_contract_body : String,
+  two_receipt_contract_body : String,
+  native_estimate : @client_local_host.ClientDuckDBAcquisitionEstimate,
+  broad_estimate : @client_local_host.ClientDuckDBAcquisitionEstimate,
+  priority : Array[String],
+) -> Result[
+  @client_local_host.ClientDuckDBAcquisitionSelection,
+  @client_local_host.ClientDuckDBAcquisitionIssue,
+] {
+  @client_local_host.select_client_duckdb_acquisition(
+    requirement,
+    database_schema,
+    table,
+    query_contract_body,
+    evidence_contract_body,
+    two_receipt_contract_body,
+    native_estimate,
+    broad_estimate,
+    host_priority=if priority.is_empty() { None } else { Some(priority) },
+  )
+}
+
+///|
+#export_name("clientProgramDuckDBSelectionNative")
+pub fn client_program_duckdb_selection_native(
+  selected : @client_local_host.ClientDuckDBAcquisitionSelection,
+) -> @duckdb_host.NativeHostConfiguration? {
+  @client_local_host.client_duckdb_selection_native(selected)
+}
+
+///|
+#export_name("clientProgramDuckDBSelectionBroad")
+pub fn client_program_duckdb_selection_broad(
+  selected : @client_local_host.ClientDuckDBAcquisitionSelection,
+) -> @duckdb_host.BroadHostConfiguration? {
+  @client_local_host.client_duckdb_selection_broad(selected)
+}
+
+///|
+#export_name("clientProgramDuckDBSelectionDocument")
+pub fn client_program_duckdb_selection_document(
+  selected : @client_local_host.ClientDuckDBAcquisitionSelection,
+) -> String {
+  @client_local_host.client_duckdb_selection_document(selected)
+}
+
+///|
 #export_name("clientProgramDuckDBNativeCandidateUnavailable")
 pub fn client_program_duckdb_native_candidate_unavailable(
   outcome : Result[
@@ -1709,8 +1777,12 @@ pub fn client_program_effect_captured_source_matches(
 fn captured_source_matches_graph(
   graph : @strategy.CheckedDAG,
   source : @query.CapturedInputSource,
+  task? : Int = 0,
 ) -> Bool {
-  guard @strategy.graph_task_owner(graph, 0) is Some(owner) else {
+  if task < 0 || task >= @strategy.graph_captured_prefix(graph) {
+    return false
+  }
+  guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
     return false
   }
   @query.captured_source_matches(
@@ -1949,15 +2021,27 @@ fn issue_captured_source_logical_graph(
   source : @query.CapturedInputSource,
   identity : @query.CapturedSourceRelationIdentity,
   requirement : @planning.QueryRequirement,
+  task? : Int = 0,
 ) -> Result[@publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue] {
   let program = @program_check.source_identity(@strategy.graph_program(graph))
-  if !captured_source_matches_graph(graph, source) {
+  if !captured_source_matches_graph(graph, source, task~) {
     return Err(ForeignPrepared)
   }
   if !@query.captured_source_relation_identity_matches_source(identity, source) {
     return Err(ForeignIdentity)
   }
-  if !physical_equal(@planning.query_requirement_program(requirement), program) {
+  guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
+    return Err(ForeignPrepared)
+  }
+  if !physical_equal(@planning.query_requirement_program(requirement), program) ||
+    !physical_equal(
+      @query.query_sequence_owner(
+        @planning.query_material_owner(
+          @planning.query_requirement_material(requirement),
+        ),
+      ),
+      owner,
+    ) {
     return Err(ForeignRequirement)
   }
   let rows = @query.captured_source_relation_logical_cid(identity)

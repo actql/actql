@@ -60,6 +60,8 @@ pub fn prepare_client_infer_prefix(
   ordered_body? : String? = None,
 ) -> @execution.GeneratedSequence? {
   guard @publication_host.client_infer_prefix_owner(prepared, task, step)
+    is Some(_) ||
+    @publication_host.client_acquired_infer_prefix_owner(prepared, task, step)
     is Some(_) else {
     return None
   }
@@ -98,6 +100,39 @@ pub fn prepare_client_infer_suffix(
     ordered_body,
     task_count=Some(1),
     infer_suffix=Some(step),
+  ).bind(sequences => sequences.get(0))
+}
+
+///|
+/// Physical source capture ends at its own checked filter/select boundary.
+/// The remaining pre-INFER steps belong to Local, not to the source adapter.
+fn prepare_client_infer_acquisition_prefix(
+  prepared : @publication_host.PreparedClientProgram,
+  task : Int,
+  step : Int,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @execution.GeneratedSequence? {
+  guard @publication_host.client_acquired_infer_prefix_owner(
+      prepared, task, step,
+    )
+    is Some(_) &&
+    @publication_host.prepare_client_query_acquisition(prepared, task, 0)
+    is Ok(query) &&
+    @sourceviews.query_acquisition_capture(query) is @pipeline.Step(capture) &&
+    capture < step else {
+    return None
+  }
+  prepare_client_local_sequences_owned(
+    Pure(prepared),
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+    task_count=Some(1),
+    infer_prefix=Some((task, capture)),
   ).bind(sequences => sequences.get(0))
 }
 

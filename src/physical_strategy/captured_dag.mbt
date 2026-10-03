@@ -4,8 +4,8 @@
 struct CapturedDAG {
   graph : CheckedDAG
   offer_owner : StrategyOfferOwner
-  root_is_compute : Bool
-  mut source : @query.CapturedInputSource?
+  original_sources : Array[@query.CapturedInputSource?]
+  sources : Array[@query.CapturedInputSource?]
   ledger : @resources.Ledger
   outputs : Array[CommittedTaskOutput?]
   done : Array[Bool]
@@ -161,8 +161,11 @@ fn ordered_data_inputs_complete(
   input_counts : Array[Int],
   data : Array[DataEdge],
   supplied_slots? : Array[LocalInputSlot] = [],
+  captured_prefix? : Int = 1,
 ) -> Bool {
-  if input_counts.is_empty() {
+  if input_counts.is_empty() ||
+    captured_prefix < 0 ||
+    captured_prefix > input_counts.length() {
     return false
   }
   let seen : Array[Array[Bool]] = Array::makei(input_counts.length(), task => {
@@ -174,7 +177,7 @@ fn ordered_data_inputs_complete(
     }
   })
   for edge in data {
-    if edge.consumer <= 0 || edge.consumer >= input_counts.length() {
+    if edge.consumer < captured_prefix || edge.consumer >= input_counts.length() {
       return false
     }
     let inputs = seen[edge.consumer]
@@ -184,7 +187,8 @@ fn ordered_data_inputs_complete(
     inputs[edge.input] = true
   }
   for input in supplied_slots {
-    if input.consumer <= 0 || input.consumer >= input_counts.length() {
+    if input.consumer < captured_prefix ||
+      input.consumer >= input_counts.length() {
       return false
     }
     let inputs = seen[input.consumer]
@@ -193,7 +197,7 @@ fn ordered_data_inputs_complete(
     }
     inputs[input.input] = true
   }
-  for task in 1..<input_counts.length() {
+  for task in captured_prefix..<input_counts.length() {
     if input_counts[task] < 0 {
       return false
     }
@@ -212,6 +216,7 @@ pub fn graph_ordered_inputs_complete(graph : CheckedDAG) -> Bool {
     graph.input_counts,
     graph.data,
     supplied_slots=graph.supplied_slots,
+    captured_prefix=graph.captured_prefix,
   )
 }
 
@@ -225,10 +230,25 @@ pub fn open_captured_dag(
   ledger : @resources.Ledger,
   supplied? : Array[@execution.CapturedRows] = [],
 ) -> Result[CapturedDAG, RunIssue] {
-  if graph.source_free_root || graph_program_has_effects(graph) {
+  if graph.captured_prefix != 1 || graph_program_has_effects(graph) {
     return Err(UnsupportedGraph)
   }
-  open_checked_dag(graph, Some(source), ledger, supplied)
+  open_checked_dag(graph, [(0, source)], ledger, supplied)
+}
+
+///|
+/// Open the exact two-acquisition prefix using occurrence/task-indexed handles.
+/// Missing, repeated, substituted or later source slots fail before execution.
+pub fn open_multi_captured_dag(
+  graph : CheckedDAG,
+  sources : Array[(Int, @query.CapturedInputSource)],
+  ledger : @resources.Ledger,
+  supplied? : Array[@execution.CapturedRows] = [],
+) -> Result[CapturedDAG, RunIssue] {
+  if graph.captured_prefix != 2 || graph_program_has_effects(graph) {
+    return Err(UnsupportedGraph)
+  }
+  open_checked_dag(graph, sources, ledger, supplied)
 }
 
 ///|
@@ -241,7 +261,7 @@ pub fn open_source_free_dag(
   if !valid_source_free_root(graph) || graph_program_has_effects(graph) {
     return Err(UnsupportedGraph)
   }
-  open_checked_dag(graph, None, ledger, [])
+  open_checked_dag(graph, [], ledger, [])
 }
 
 ///|
@@ -278,7 +298,7 @@ pub fn open_source_free_effect_run_dag(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let captured = match open_checked_dag(graph, None, ledger, []) {
+  let captured = match open_checked_dag(graph, [], ledger, []) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -306,7 +326,7 @@ pub fn open_captured_effect_run_dag(
     Err(issue) => return Err(issue)
   }
   let captured = match
-    open_checked_dag(checked.computation.graph, Some(source), ledger, supplied) {
+    open_checked_dag(checked.computation.graph, [(0, source)], ledger, supplied) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -346,7 +366,7 @@ pub fn captured_effect_run_source_at(
 ///|
 fn open_checked_dag(
   graph : CheckedDAG,
-  source : @query.CapturedInputSource?,
+  captures : Array[(Int, @query.CapturedInputSource)],
   ledger : @resources.Ledger,
   supplied : Array[@execution.CapturedRows],
 ) -> Result[CapturedDAG, RunIssue] {
@@ -354,16 +374,24 @@ fn open_checked_dag(
   if count == 0 {
     return Err(UnsupportedGraph)
   }
-  if source is Some(captured) &&
-    !@query.captured_source_matches(
-      captured,
-      @checked.source_identity(graph.program),
-      graph.owners[0],
-    ) {
+  if captures.length() != graph.captured_prefix {
     return Err(ForeignCapture)
   }
-  let root_is_compute = source is None
-  let first_task = if root_is_compute { 0 } else { 1 }
+  let sources : Array[@query.CapturedInputSource?] = Array::make(count, None)
+  for (task, captured) in captures {
+    if task < 0 ||
+      task >= graph.captured_prefix ||
+      sources[task] is Some(_) ||
+      !@query.captured_source_matches(
+        captured,
+        @checked.source_identity(graph.program),
+        graph.owners[task],
+      ) {
+      return Err(ForeignCapture)
+    }
+    sources[task] = Some(captured)
+  }
+  let first_task = graph.captured_prefix
   let input_counts = Array::makei(count, task => graph.input_counts[task])
   let join_limits : Array[Array[(Int, Int64)]] = Array::makei(count, _ => [])
   let interval_search_limits : Array[Array[(Int, Int64)]] = Array::makei(
@@ -385,6 +413,7 @@ fn open_checked_dag(
       input_counts,
       graph.data,
       supplied_slots=graph.supplied_slots,
+      captured_prefix=graph.captured_prefix,
     ) {
     return Err(UnsupportedGraph)
   }
@@ -609,7 +638,7 @@ fn open_checked_dag(
   // task still selects the final step; a segmented Carrier task retains its
   // original intermediate coordinate instead of relabeling it as final.
   for edge in graph.data {
-    if (root_is_compute || edge.producer != 0) &&
+    if edge.producer >= graph.captured_prefix &&
       graph.targets.get(edge.producer).bind(value => value) != Some(edge.target) {
       return Err(UnsupportedGraph)
     }
@@ -618,10 +647,9 @@ fn open_checked_dag(
     live: true,
     pins: 0,
   })
-  let root_lifetime = lifetimes[0]
   let resources : Array[TaskRetention?] = Array::make(count, None)
-  if !root_is_compute {
-    resources[0] = Some({
+  for task in 0..<graph.captured_prefix {
+    resources[task] = Some({
       holding: None,
       release_confirmed: fn() { true },
       parents: [],
@@ -630,10 +658,13 @@ fn open_checked_dag(
   Ok({
     graph,
     offer_owner: { graph, },
-    root_is_compute,
-    source: source.map(captured => {
-      @query.restrict_captured_source(captured, fn() {
-        root_lifetime.live || root_lifetime.pins > 0
+    original_sources: sources.copy(),
+    sources: Array::makei(count, task => {
+      sources[task].map(captured => {
+        let lifetime = lifetimes[task]
+        @query.restrict_captured_source(captured, fn() {
+          lifetime.live || lifetime.pins > 0
+        })
       })
     }),
     ledger,
@@ -649,7 +680,7 @@ fn open_checked_dag(
     analytic_envelopes,
     inputs: Array::makei(count, task => {
       Array::make(
-        if task == 0 && !root_is_compute {
+        if task < graph.captured_prefix {
           0
         } else {
           graph.input_counts[task]
@@ -726,7 +757,7 @@ pub fn configure_captured_managed_identity_policy(
   host_policy : Bool,
 ) -> Bool {
   let mut started = false
-  for index in (if run.root_is_compute { 0 } else { 1 })..<run.done.length() {
+  for index in captured_compute_first_task(run)..<run.done.length() {
     if run.done[index] {
       started = true
     }
@@ -744,8 +775,7 @@ pub fn configure_captured_managed_identity_policy(
   // before comparing or starting any Compute candidate.
   let publication_required = publish_checked_results || publication
   if publication_required &&
-    !run.root_is_compute &&
-    run.graph.results.any(result => result.task == 0) {
+    run.graph.results.any(result => result.task < run.graph.captured_prefix) {
     return false
   }
   run.managed_publication_identity = publication_required
@@ -834,7 +864,10 @@ pub fn captured_next_managed_obligations(
 pub fn captured_root_statistics(
   run : CapturedDAG,
 ) -> @query.CapturedSourceStatistics? {
-  run.source.bind(source => @query.captured_source_statistics(source))
+  run.sources
+  .get(0)
+  .bind(source => source)
+  .bind(source => @query.captured_source_statistics(source))
 }
 
 ///|
@@ -848,7 +881,7 @@ pub fn captured_dag_graph(run : CapturedDAG) -> CheckedDAG {
 pub fn captured_task_target(run : CapturedDAG, task : Int) -> @pipeline.Target? {
   if task < 0 ||
     task >= run.graph.owners.length() ||
-    (task == 0 && !run.root_is_compute) {
+    task < run.graph.captured_prefix {
     return None
   }
   run.graph.targets[task]
@@ -861,18 +894,14 @@ pub fn captured_dag_strategy(run : CapturedDAG) -> StrategyRevision? {
 
 ///|
 fn task_done(run : CapturedDAG, index : Int) -> Bool {
-  (index == 0 && !run.root_is_compute) || run.done[index]
+  index < run.graph.captured_prefix || run.done[index]
 }
 
 ///|
 /// Index of the first task requiring Compute; a captured acquisition is
 /// already complete and is never submitted as Compute.
 pub fn captured_compute_first_task(run : CapturedDAG) -> Int {
-  if run.root_is_compute {
-    0
-  } else {
-    1
-  }
+  run.graph.captured_prefix
 }
 
 ///|
@@ -945,8 +974,8 @@ pub fn captured_task_input(
   let edge = selected.unwrap()
   let receiver = run.graph.owners[task]
   let receiver_input = edge.source_input.unwrap_or(edge.input)
-  let bound = if edge.producer == 0 && !run.root_is_compute {
-    guard run.source is Some(source) else {
+  let bound = if edge.producer < run.graph.captured_prefix {
+    guard run.sources[edge.producer] is Some(source) else {
       fail_captured_task(run, task, Capture(Unavailable))
       return Err(Capture(Unavailable))
     }
@@ -1090,7 +1119,7 @@ pub fn[T] captured_managed_task_input(
     }
   }
   guard selected is Some(edge) &&
-    (edge.producer > 0 || (edge.producer == 0 && run.root_is_compute)) &&
+    edge.producer >= run.graph.captured_prefix &&
     captured_managed_task_output_matches(
       run,
       edge.producer,
@@ -1182,7 +1211,7 @@ pub fn captured_carrier_managed_task_input(
     }
   }
   guard selected is Some(edge) &&
-    (edge.producer > 0 || (edge.producer == 0 && run.root_is_compute)) &&
+    edge.producer >= run.graph.captured_prefix &&
     captured_carrier_managed_task_output_matches(
       run,
       edge.producer,
@@ -1839,4 +1868,19 @@ pub fn captured_task_analytic_envelope_at(
   index : Int,
 ) -> @connector.AnalyticEnvelope? {
   run.analytic_envelopes.get(task).bind(items => items.get(index))
+}
+
+///|
+/// Physical handoff checks the original opaque capture, not equal rows or CIDs.
+pub fn captured_task_source_matches(
+  run : CapturedDAG,
+  task : Int,
+  source : @query.CapturedInputSource,
+) -> Bool {
+  task >= 0 &&
+  task < run.graph.captured_prefix &&
+  run.lifetimes[task].live &&
+  run.original_sources[task] is Some(expected) &&
+  physical_equal(expected, source) &&
+  @query.captured_source_available(source)
 }

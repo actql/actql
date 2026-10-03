@@ -57,6 +57,7 @@ priv enum CapturedAnyResultKind {
 ///|
 priv struct CapturedSourceResultBorrow {
   run : CapturedDAG
+  task : Int
   source : @query.CapturedInputSource
   occurrence : @execution.ManagedResultOccurrence
   mut live : Bool
@@ -373,19 +374,19 @@ pub fn borrow_captured_any_result_output(
   if task < 0 || task >= run.outputs.length() {
     return Err(ForeignCandidate)
   }
-  if task == 0 && !run.root_is_compute {
-    if max_pins <= 0 || !run.lifetimes[0].live {
+  if task < run.graph.captured_prefix {
+    if max_pins <= 0 || !run.lifetimes[task].live {
       return Err(NotReady)
     }
-    guard run.source is Some(source) &&
+    guard run.sources[task] is Some(source) &&
       @query.captured_source_matches_result(source, occurrence) else {
       return Err(ForeignCandidate)
     }
-    if run.lifetimes[0].pins >= max_pins {
+    if run.lifetimes[task].pins >= max_pins {
       return Err(Physical(@resources.HoldingLimit))
     }
-    run.lifetimes[0].pins += 1
-    return Ok({ kind: Source({ run, source, occurrence, live: true, }), })
+    run.lifetimes[task].pins += 1
+    return Ok({ kind: Source({ run, task, source, occurrence, live: true, }), })
   }
   match run.outputs[task] {
     Some(Materialized(_)) =>
@@ -444,7 +445,9 @@ pub fn captured_any_result_borrows_share_view(
     (Resident(a), Resident(b)) =>
       physical_equal(a.run, b.run) && a.task == b.task
     (Source(a), Source(b)) =>
-      physical_equal(a.run, b.run) && physical_equal(a.source, b.source)
+      physical_equal(a.run, b.run) &&
+      a.task == b.task &&
+      physical_equal(a.source, b.source)
     _ => false
   }
   let a = captured_any_result_borrow_occurrence(first)
@@ -509,7 +512,7 @@ pub fn release_captured_any_result_borrow(
         return false
       }
       value.live = false
-      value.run.lifetimes[0].pins -= 1
+      value.run.lifetimes[value.task].pins -= 1
       collect_captured_retention(value.run)
       true
     }
@@ -849,9 +852,8 @@ pub fn close_captured_task_output(run : CapturedDAG, task : Int) -> Unit {
     return
   }
   run.lifetimes[task].live = false
-  if task == 0 {
-    run.source = None
-  }
+  run.sources[task] = None
+  run.original_sources[task] = None
   // A pinned consumer owns a separate alias until its release. The ordinary
   // port is revoked immediately; its output slot may be dropped now.
   run.outputs[task] = None

@@ -29,6 +29,31 @@ pub struct PublicationSourcePolicy {
   priv nests : Array[PublicationPolicyNest]
   priv temporal_joins : Array[PublicationPolicyTemporalJoin]
   priv carrier_steps : Array[PublicationPolicyCarrierStep]
+  priv model_steps : Array[PublicationPolicyModelStep]
+}
+
+///|
+/// An external model observation is not a pure transfer of the source policy.
+/// Keep its checked occurrence for capture admission while retaining all of
+/// its input provenance. Static preparation alone cannot attest its output.
+pub struct PublicationPolicyModelStep {
+  step : Int
+  infer : @evidence.CheckedInfer
+}
+
+///|
+pub fn publication_policy_model_step_count(
+  value : PublicationSourcePolicy,
+) -> Int {
+  value.model_steps.length()
+}
+
+///|
+pub fn publication_policy_model_step_at(
+  value : PublicationSourcePolicy,
+  index : Int,
+) -> PublicationPolicyModelStep? {
+  value.model_steps.get(index)
 }
 
 ///|
@@ -498,10 +523,57 @@ fn prepare_publication_source_policy(
   budget : IdentityBudget,
   producers? : Array[BuiltUnit]? = None,
 ) -> PublicationSourcePolicy? raise UnitBuildFailure {
+  prepare_target_source_policy(
+    unit,
+    publication.stage,
+    @publication.target(@publication.port_result(publication.port)),
+    budget,
+    producers~,
+  )
+}
+
+///|
+/// Reuse the publication provenance walk at the model's checked input edge.
+/// This describes input policy, not a model response or dispatch permission.
+pub fn prepare_infer_input_source_policy(
+  program : CheckedProgram,
+  unit : Int,
+  index : Int,
+  max_work : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> PublicationSourcePolicy? raise UnitBuildFailure {
+  if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
+    raise BudgetExceeded
+  }
+  guard program.units.get(unit) is Some(selected) &&
+    @pipeline.step_at(selected.pipeline, index) is Some(step) &&
+    step.operation is @pipeline.Infer(_) &&
+    @pipeline.input_occurrence_count(step) == 1 &&
+    @pipeline.input_occurrence_at(step, 0) is Some(input) else {
+    raise ForeignOwner
+  }
+  prepare_target_source_policy(
+    selected,
+    unit,
+    input.target,
+    { work: max_work, bytes: max_bytes, nodes: max_nodes, depth: max_depth, },
+    producers=Some(program.units),
+  )
+}
+
+///|
+fn prepare_target_source_policy(
+  unit : BuiltUnit,
+  stage : Int,
+  original : @pipeline.Target,
+  budget : IdentityBudget,
+  producers? : Array[BuiltUnit]? = None,
+) -> PublicationSourcePolicy? raise UnitBuildFailure {
   if unit.source_execution.is_empty() {
     return None
   }
-  let original = @publication.target(@publication.port_result(publication.port))
   let pending = [original]
   let visited_steps : Map[Int, Bool] = Map([])
   let visited_inputs : Map[Int, Bool] = Map([])
@@ -527,13 +599,13 @@ fn prepare_publication_source_policy(
   let nests : Array[PublicationPolicyNest] = []
   let temporal_joins : Array[PublicationPolicyTemporalJoin] = []
   let carrier_steps : Array[PublicationPolicyCarrierStep] = []
+  let model_steps : Array[PublicationPolicyModelStep] = []
   // A single named keyed input can have several correlation producers. Index
   // the owned gates by join occurrence, never by response CID or input name.
   let keyed_responses : Map[Int, SourceExecution] = Map([])
   for check in unit.source_execution {
     identity_charge(budget, 1)
-    if check.subject.stage == publication.stage &&
-      check.kind is KeyedResponse(binding) {
+    if check.subject.stage == stage && check.kind is KeyedResponse(binding) {
       let step = @sourceviews.keyed_join_step(binding.join)
       if keyed_responses.contains(step) {
         raise ForeignOwner
@@ -553,9 +625,14 @@ fn prepare_publication_source_policy(
         let step = @pipeline.step_at(unit.pipeline, index).unwrap()
         let mut keyed_right = false
         let expected = match step.operation {
-          // Model policy and captured issuer provenance need their own closure.
-          // Do not classify acquisition as a pure transfer from source rows.
-          @pipeline.Infer(_) => raise UnsupportedStaticPath(step.source)
+          @pipeline.Infer(infer) => {
+            // Follow the exact input edge without claiming that its policy
+            // attests the external response. The execution/publication owner
+            // must separately bind the model's adopted slot captures.
+            model_steps.push({ step: index, infer, })
+            unknown = true
+            1
+          }
           @pipeline.Values(_) | @pipeline.TimeSeries(_) => {
             identity_charge(budget, 1)
             generators.push({ step: index, operation: step.operation, })
@@ -1174,7 +1251,7 @@ fn prepare_publication_source_policy(
         for check in unit.source_execution {
           identity_charge(budget, 1)
           let subject = check.subject
-          if subject.stage == publication.stage &&
+          if subject.stage == stage &&
             check.kind is CarrierResponse &&
             identity_compare(
               @sourceviews.declaration(subject.source).input_name,
@@ -1248,7 +1325,7 @@ fn prepare_publication_source_policy(
             identity_charge(budget, 1)
             let check = @context.local_input_closure_at(unit.local_inputs, i).unwrap()
             let subject = check.subject
-            if subject.stage == publication.stage &&
+            if subject.stage == stage &&
               subject.target == target &&
               physical_equal(subject.pipeline, unit.pipeline) {
               locals.push(check)
@@ -1320,6 +1397,7 @@ fn prepare_publication_source_policy(
     nests,
     temporal_joins,
     carrier_steps,
+    model_steps,
   }
   |> Some
 }
