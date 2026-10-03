@@ -151,6 +151,8 @@ if (process.argv.includes('--infer-source-only')) {
 if (process.argv.includes('--nearest-only')) {
   console.log(run(process.execPath, ['packed-nearest-public-query.mjs'], root,
     runtimeEnvironment, 180_000).trimEnd());
+  await writeFile(join(directory, 'nearest-public-acceptance.json'),
+    await readFile(join(root, 'nearest-public-report.json')));
   return;
 }
 // Execute the README's literal runtime commands, then the same Program through
@@ -240,6 +242,10 @@ try {
   try {
     await writeFile(join(directory, 'planner-selection-acceptance.json'),
       await readFile(join(root, 'planner-selection-packed-report.json')));
+  } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  try {
+    await writeFile(join(directory, 'nearest-public-acceptance.json'),
+      await readFile(join(root, 'nearest-public-report.json')));
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
 if (plannerSelectionOnly || twoSourceExampleOnly) return;
