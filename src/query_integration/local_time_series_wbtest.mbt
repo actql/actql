@@ -477,18 +477,11 @@ test "standard Host runs time series with two retained consumers" {
   assert_eq(local_managed_test_rows(first_ops), rows)
   assert_eq(local_managed_test_rows(second_ops), rows)
 
-  first_live.val = false
-  @strategy.close_captured_task_output(run, 2)
-  (first_ops.close)()
-  (first_ops.cleanup_refresh)() |> ignore
-  assert_false(@execution.managed_completed_output_available(first))
+  close_retained_host_consumer(run, 2, first_ops, first_live, first)
   assert_true(@execution.managed_completed_output_available(second))
   assert_true(@execution.managed_completed_output_available(series))
 
-  second_live.val = false
-  @strategy.close_captured_task_output(run, 3)
-  (second_ops.close)()
-  (second_ops.cleanup_refresh)() |> ignore
+  close_retained_host_consumer(run, 3, second_ops, second_live, second)
   series_live.val = false
   @strategy.close_captured_task_output(run, 1)
   (series_ops.close)()
