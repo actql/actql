@@ -146,6 +146,8 @@ jobs:
         run: node --test scripts/test-native-core.test.mjs
       - name: Test preflight admission and latest-revision guard
         run: node --test scripts/ci-preflight.test.mjs
+      - name: Test focused owning-family selection and zero-test guards
+        run: node --test scripts/ci-focused-tests.test.mjs
       - name: Test conservative CI target selection
         run: node --test scripts/ci-targets.test.mjs scripts/ci-main-base.test.mjs
       - name: Test Client CI partition and aggregate requirements
@@ -158,6 +160,37 @@ jobs:
         run: node --test scripts/owned-scratch.test.mjs scripts/dependency-isolation-scratch.test.mjs
       - name: Execute standard module subsets without DuckDB dependencies
         run: node scripts/check-node-without-duckdb.mjs
+  focused-tests:
+    needs: [select-targets, preflight]
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'focused-tests' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.22.0
+      - name: Install pinned MoonBit without unrelated native transport dependencies
+        run: |
+          node scripts/setup-moonbit.mjs
+          toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
+          echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
+          echo "$toolchain/bin" >> "$GITHUB_PATH"
+      - name: Check package and execute changed tests plus owning JS family
+        env:
+          CI_PLAN: ${{ needs.select-targets.outputs.plan }}
+        run: node scripts/ci-focused-tests.mjs
+      - name: Upload focused execution diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: focused-tests-${{ github.run_id }}-${{ github.run_attempt }}
+          path: _build/focused-evidence
+          if-no-files-found: warn
+          retention-days: 7
   # One runner per target: check, then test, each with --deny-warn, as
   # before. A target never shares a runner or _build with another.
   core:
@@ -719,7 +752,7 @@ jobs:
   check:
     if: ${{ always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     needs: [select-targets, preflight, lint, core, host, client, native, spec, session-evidence, pipeline-evidence, native-macos,
-      native-separated-network, workers, connector-addition, duckdb-node]
+      native-separated-network, workers, connector-addition, duckdb-node, focused-tests]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:

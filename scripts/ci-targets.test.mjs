@@ -106,7 +106,7 @@ const head = 'b'.repeat(40);
 const plan = selection => ({sourceRevision: head, selection});
 const context = {event: 'pull_request', sourceRevision: head};
 const results = selection => Object.fromEntries(gateJobs.map(name => [name, {result:
-  ['select-targets', 'preflight', 'lint', 'spec'].includes(name) || selection.profile === 'full' &&
+  ['select-targets', 'preflight', 'lint', 'spec'].includes(name) || selection.profile === 'full' && name !== 'focused-tests' &&
     (name !== 'native-macos' || selection.macos) ? 'success' : 'skipped'}]));
 const changes = paths => paths.map(path => ({path, before: {mode: '100644', object: 'c'.repeat(40)},
   after: {mode: '100644', object: 'd'.repeat(40)}}));
@@ -115,7 +115,7 @@ const maintenanceSelection = paths => selectTargets(paths, {maintenanceChanges: 
 test('required aggregate rejects failed, cancelled, skipped and missing selected jobs', () => {
   const selection = selectTargets(['src/unregistered/engine.mbt']);
   assert.equal(verifyGate(plan(selection), results(selection), context).length, gateJobs.length);
-  for (const name of gateJobs) {
+  for (const name of gateJobs.filter(name => name !== 'focused-tests')) {
     for (const result of ['failure', 'cancelled', 'skipped', 'in_progress', undefined]) {
       const candidate = results(selection); candidate[name] = {result};
       assert.throws(() => verifyGate(plan(selection), candidate, context), undefined, `${name}: ${result}`);

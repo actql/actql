@@ -82,7 +82,7 @@ test('moved validators execute exactly once before fan-out; complete local spec 
 });
 test('failed, skipped, cancelled or missing preflight cannot become a passing final gate', () => {
   const selection = selectTargets(['.github/workflows/ci.yml']);
-  const results = Object.fromEntries(gateJobs.map(name => [name, {result: 'success'}]));
+  const results = Object.fromEntries(gateJobs.map(name => [name, {result: name === 'focused-tests' ? 'skipped' : 'success'}]));
   const plan = {sourceRevision: merge, selection};
   const context = {sourceRevision: merge, event: 'pull_request'};
   verifyGate(plan, results, context);
