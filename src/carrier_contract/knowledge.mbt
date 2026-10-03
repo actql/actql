@@ -192,7 +192,7 @@ pub fn conditional_schema(rows : Knowledge) -> @row.ConditionalSchema? {
 }
 
 ///|
-pub fn lookup(rows : Knowledge, name : @row.FieldName) -> Lookup {
+pub fn lookup_declared(rows : Knowledge, name : @row.FieldName) -> Lookup {
   let spelling = @row.reference_name(name)
   let mut lo = 0
   let mut hi = rows.entries.length()
@@ -206,13 +206,21 @@ pub fn lookup(rows : Knowledge, name : @row.FieldName) -> Lookup {
     }
   }
   if lo < rows.entries.length() && rows.entries[lo].name == name {
-    if rows.entries[lo].presence == @row.Presence::Conditional {
-      return Unknown
-    }
     Present(rows.entries[lo])
   } else if rows.field_set == Closed {
     Absent
   } else {
     Unknown
+  }
+}
+
+///|
+/// Ordinary lookup does not promise a value for a conditionally present field.
+/// Declaration validation can use lookup_declared to distinguish that known
+/// condition from an otherwise unknown open-schema field.
+pub fn lookup(rows : Knowledge, name : @row.FieldName) -> Lookup {
+  match lookup_declared(rows, name) {
+    Present(field) if field.presence == @row.Presence::Conditional => Unknown
+    result => result
   }
 }

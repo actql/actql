@@ -58,19 +58,25 @@ test "current MATCH and TRAIL orders retain their producer through take and stru
 }
 
 ///|
-test "retired row projections and degree cannot issue canonical order for a current Graph" {
-  for operation in ["\"node_rows\":true", "\"edge_rows\":true"] {
-    assert_true(
-      @pipeline.check_carriers(
-        cursor("[{" + operation + "}]"),
-        [("g", property_query_graph())],
-        None,
-        None,
-        ranking_limits(),
-      )
-      is Err({ kind: Projection(UnsupportedGraphOperation), .. }),
+test "node rows do not issue canonical order and edge rows remain unsupported" {
+  let nodes = @pipeline.check_carriers(
+    cursor("[{\"node_rows\":true}]"),
+    [("g", property_query_graph())],
+    None,
+    None,
+    ranking_limits(),
+  ).unwrap()
+  assert_true(@pipeline.logical_order(nodes, Step(0)) is None)
+  assert_true(
+    @pipeline.check_carriers(
+      cursor("[{\"edge_rows\":true}]"),
+      [("g", property_query_graph())],
+      None,
+      None,
+      ranking_limits(),
     )
-  }
+    is Err({ kind: Projection(UnsupportedGraphOperation), .. }),
+  )
   assert_true(
     @pipeline.check_carriers(
       cursor("[{\"degree\":{\"direction\":\"out\"}}]"),

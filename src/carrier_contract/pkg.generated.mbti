@@ -44,6 +44,8 @@ pub fn kind(Carrier) -> Kind
 
 pub fn lookup(Knowledge, @relation_schema.FieldName) -> Lookup
 
+pub fn lookup_declared(Knowledge, @relation_schema.FieldName) -> Lookup
+
 pub fn property_definition_has_label(PropertyNodeDefinition, String) -> Bool
 
 pub fn property_definition_key_at(PropertyNodeDefinition, Int) -> @value_contract.Contract?

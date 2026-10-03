@@ -198,7 +198,7 @@ pub fn declare_primary_key(
       }
       seen[name] = true
       let field_name = @row.Unqualified(name)
-      let contract = match @carrier.lookup(records, field_name) {
+      let contract = match @carrier.lookup_declared(records, field_name) {
         Absent => fail(at, MissingKeyField(name))
         Unknown => None
         Present(f) => {
