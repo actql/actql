@@ -19,7 +19,11 @@ function run(options = {}) {
 }
 function coverage(result, targets = ['js', 'wasm', 'native']) {
   assert.equal(result.status, 0, result.stderr);
-  const { calls, installs, report, checks, executions, source, observerPresent } = result.state;
+  const { calls, installs, report, checks, executions, source, observerPresent, closes, parentProbes } = result.state;
+  assert.deepEqual(closes, [{ afterCalls: calls.length, receipts: executions.length }]);
+  assert.deepEqual(parentProbes, targets.includes('native') ? [{ afterCalls: calls.length, afterClose: 1 }] : []);
+  if (targets.includes('native')) assert.equal(report.parentStartup.separateChild, true);
+  else assert.equal(report.parentStartup, undefined);
   assert.equal(source, 'healthy'); assert.equal(observerPresent, false);
   assert.equal(mutations.length, 5, 'Explicitly review a changed capacity mutation scope');
   assert.deepEqual(report.mutations.map(m => m.name), mutations.map(m => m.name));
@@ -73,6 +77,9 @@ test('normal-only mode retains normal corpus and all workspace boundaries withou
   assert.equal(result.status, 0, result.stderr);
   assert.equal(result.state.calls.length, 12); assert.equal(result.state.installs.length, 4);
   assert.deepEqual(result.state.report.mutations, []);
+  assert.deepEqual(result.state.closes, [{ afterCalls: 12, receipts: 12 }]);
+  assert.deepEqual(result.state.parentProbes, [{ afterCalls: 12, afterClose: 1 }]);
+  assert.equal(result.state.report.parentStartup.separateChild, true);
   assert.equal(result.state.source, 'healthy'); assert.equal(result.state.observerPresent, false);
 });
 for (const fail of [
@@ -83,6 +90,7 @@ for (const fail of [
 ]) test(`${fail} cannot produce a completed campaign or restoration claim`, () => {
   const result = run({ fail });
   assert.notEqual(result.status, 0); assert.equal(result.state.report, null);
+  assert.deepEqual(result.state.closes, []); assert.deepEqual(result.state.parentProbes, []);
   assert(!result.stdout.includes('Source restored byte-for-byte'));
   assert.equal(result.state.source, fail === 'restore' ? 'contaminated' : 'healthy');
   assert.equal(result.state.observerPresent, false);
@@ -100,5 +108,24 @@ for (const runnerFault of ['omit-wasm', 'duplicate-input', 'wrong-result', 'omit
       assert(result.state.report, 'Negative control must reach the independent coverage check');
     }
     assert.throws(() => coverage(result));
+  });
+}
+
+for (const fail of ['close', 'parent-probe']) {
+  test(`${fail} preserves partial receipts and cannot claim a completed parent campaign`, () => {
+    const result = run({ fail });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, fail === 'close' ? /Injected executor close failure/ : /Injected parent probe failure/);
+    assert(!result.stdout.includes('Source restored byte-for-byte'));
+    const { calls, executions, report, closes, parentProbes, executorClosed, parentReportPresent } = result.state;
+    assert.equal(result.state.source, 'healthy');
+    assert.equal(result.state.observerPresent, false);
+    assert(report, 'Completed child receipts remain available after handoff failure');
+    assert.deepEqual(report.executions, executions);
+    assert.equal(report.parentStartup, undefined);
+    assert.equal(parentReportPresent, false);
+    assert.deepEqual(closes, [{ afterCalls: calls.length, receipts: executions.length }]);
+    assert.equal(executorClosed, fail === 'parent-probe');
+    assert.deepEqual(parentProbes, fail === 'parent-probe' ? [{ afterCalls: calls.length, afterClose: 1 }] : []);
   });
 }
