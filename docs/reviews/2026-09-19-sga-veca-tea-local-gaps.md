@@ -2680,15 +2680,15 @@ checked by `check:local-family-coverage`; do not edit its counts by hand.
 | Coverage state | Count |
 |---|---:|
 | `contract` | 40/40 |
-| `checker` | 21/40 |
-| `lowering` | 21/40 |
-| `kernel` | 21/40 |
-| `managed` | 21/40 |
-| `standard_host` | 21/40 |
-| `consumer_lifetime` | 21/40 |
-| `resources` | 25/40 |
-| `cancellation` | 25/40 |
-| `publication` | 21/40 |
+| `checker` | 23/40 |
+| `lowering` | 23/40 |
+| `kernel` | 23/40 |
+| `managed` | 23/40 |
+| `standard_host` | 23/40 |
+| `consumer_lifetime` | 23/40 |
+| `resources` | 27/40 |
+| `cancellation` | 27/40 |
+| `publication` | 23/40 |
 | `three_targets` | 19/40 |
 | complete operations | 19/40 |
 | open operations | 21/40 |
