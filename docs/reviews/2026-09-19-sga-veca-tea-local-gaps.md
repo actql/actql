@@ -480,7 +480,7 @@ and checked by `check:local-resource-accounting`.
 | Operation-specific boundary records | 68 |
 | Four-role lifecycle assurance | 68 |
 | Full route work/workspace assurance | 68 |
-| Path-scoped work/workspace assurance | 121 |
+| Path-scoped work/workspace assurance | 122 |
 | Selected-only assurance | 0 |
 <!-- local-resource-accounting-summary:end -->
 
@@ -4542,3 +4542,18 @@ Bridges, reject publication, and retain cleanup responsibility through one
 injected cleanup failure before a successful retry. They do not cover later
 Relation operations beyond the filter shape or every mixed-Carrier failure
 boundary.
+
+Selected `SGA.traverse` now reads an exact retained Graph view for both node
+and path emission. A separately supplied Relation start selector keeps its
+operation input port when the authored Stage is split at the Graph boundary;
+the constructed Graph and selector are not forced back into a fused fallback.
+The bounded traversal kernels and their completion owner remain shared with
+the fused path. Portable view tests pin exact and one-short work/workspace
+limits, reject a foreign Graph binding, and observe cancellation after positive
+work on JS, Wasm, and native. The Node standard Host runs node, path, and
+Relation-selected path traversal followed by a same-Stage filter, retains the
+Relation in a real Store, and compares the producer and two consumer Named
+Results with independent ordered expectations. It also delivers an in-flight
+cancel during selected traversal and checks stop, nonpublication, and final
+reclamation. This does not establish every mixed Carrier failure boundary or
+all remaining retained Store obligations.

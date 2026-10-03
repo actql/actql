@@ -6645,7 +6645,32 @@
         "path": "src/local_sga/traverse.mbt",
         "symbol": "start_traverse"
       },
+      "selected_entrypoint": {
+        "path": "src/local_sga/traverse.mbt",
+        "symbol": "start_traverse_view"
+      },
       "boundary_tests": [
+        {
+          "role": "traverse_selected_path_work_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "selected Graph traverse view preserves path limits and binding"
+        },
+        {
+          "role": "traverse_selected_path_workspace_exact_one_short",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "selected Graph traverse view preserves path limits and binding"
+        },
+        {
+          "role": "traverse_selected_path_cancel_cleanup_binding",
+          "suite": "moon:query_integration",
+          "targets": ["js", "wasm", "native"],
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "fixture": "selected Graph traverse view preserves path limits and binding"
+        },
         {
           "role": "literal_empty_path_work_exact_one_short",
           "suite": "moon:query_integration",
@@ -6748,6 +6773,20 @@
       ],
       "environment_tests": [
         {
+          "role": "traverse_selected_relation_host_in_flight_cancel",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "retained-traverse-relation-paths-filter-in-flight"
+        },
+        {
+          "role": "traverse_selected_named_results",
+          "suite": "node:duckdb_standard_host",
+          "targets": ["node"],
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "fixture": "retained-traverse-relation-paths-filter"
+        },
+        {
           "role": "traverse_nodes_host_in_flight_cancel",
           "suite": "node:duckdb_standard_host",
           "targets": [
@@ -6772,6 +6811,12 @@
           "one_short_limit": "traverse_variant_workspace_exact_one_short",
           "in_flight_cancel": "traverse_nodes_host_in_flight_cancel",
           "cleanup": "traverse_variant_cancel_cleanup"
+        },
+        "selected_entrypoint": {
+          "exact_limit": "traverse_selected_path_work_exact_one_short",
+          "one_short_limit": "traverse_selected_path_workspace_exact_one_short",
+          "in_flight_cancel": "traverse_selected_relation_host_in_flight_cancel",
+          "cleanup": "traverse_selected_path_cancel_cleanup_binding"
         }
       },
       "resource_assurance": {
@@ -6783,6 +6828,16 @@
           "workspace": {
             "exact_limit": "traverse_variant_workspace_exact_one_short",
             "one_short_limit": "traverse_variant_workspace_exact_one_short"
+          }
+        },
+        "selected_entrypoint": {
+          "work": {
+            "exact_limit": "traverse_selected_path_work_exact_one_short",
+            "one_short_limit": "traverse_selected_path_work_exact_one_short"
+          },
+          "workspace": {
+            "exact_limit": "traverse_selected_path_workspace_exact_one_short",
+            "one_short_limit": "traverse_selected_path_workspace_exact_one_short"
           }
         }
       }
