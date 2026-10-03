@@ -1,5 +1,29 @@
 # PR 246 adoption of the reviewed common supplement rule
 
+## Subsequent main movement and PR preflight
+
+The first combined push was `c8ad0d0086a7e60e3a71ea92ac5331d944583e34`.
+Its exact local HEAD passed full-history validation. Nevertheless, automatic
+PR [run 37123341456](https://github.com/actql/actql/actions/runs/37123341456)
+failed preflight at GitHub test-merge
+`833a05f6e632928353d243f35e1690473f0fae6e`, whose ordered parents were the
+subsequently updated main `eec5cae6e5f915b92cdae0ded5d4a44bdef40e54` and
+that submitted HEAD. The first concrete error was
+`Unlisted foundation source change 833a05f6e632928353d243f35e1690473f0fae6e: .github/workflows/ci.yml`.
+This is distinct from the repaired #233 dependency error. Public packed,
+interface and Workers jobs were skipped after preflight failure, not verified.
+
+Actual normal merge `290d6ef5c119bf21a0a84504c25fd89319934ec8` retains
+ordered parents `c8ad0d0086a7e60e3a71ea92ac5331d944583e34` and
+`eec5cae6e5f915b92cdae0ded5d4a44bdef40e54`, adopting #258 main carryforward,
+#262 focused verification and #259 graph predicates without conflict. Its
+maximal common base is `13bb2c79fac7ac97173f8146266248b1cf36d169`.
+`resolve-composition-current-ci-main` binds the actual required workflow path
+and 29 source groups. Earlier merge declarations and the supplement are retained.
+No declaration for the disposable GitHub merge is manufactured, and neither
+the history validator nor CI gates are bypassed. The failed old SHA is not retried;
+the updated HEAD receives its own natural PR push run.
+
 ## Fixed inputs and actual integration
 
 Normal merge `5f223a77e82ae8676c6d081f42ec92da592e0eff` retains ordered
