@@ -13,7 +13,7 @@ writeFileSync(join(root, sourcePath), 'healthy');
 const source = () => readFileSync(join(root, sourcePath), 'utf8');
 const calls = [], executions = [], installs = [], checks = [];
 let clock = 0, executorClosed = false;
-const closes = [], parentProbes = [];
+const closes = [], custodyProbes = [], parentProbes = [];
 Object.defineProperty(globalThis, 'performance', { value: { now: () => clock } });
 const mutations = actualMutations.map(m => ({ ...m, path: sourcePath }));
 const cases = mutations.map((m, slot) => ({ id: `search-${slot}`, slot, rows: [{ value: slot }],
@@ -63,13 +63,31 @@ module('engine.mjs', { generate: () => cases, candidates: reductions,
   } });
 mock.module('node:child_process', { namedExports: { spawnSync: (command, args) => {
   if (command === 'git') return { status: 0, stdout: 'a'.repeat(40) };
+  if (args[0].endsWith('/parent-control/custody-check.mjs')) {
+    assert(executorClosed, 'Custody verification started before the campaign executor closed');
+    assert.equal(source(), 'healthy');
+    assert(!existsSync(join(root, 'observer.mbt')));
+    const target = options.target === 'js' ? 'js' : 'all';
+    assert.equal(args[1], target);
+    const campaign = JSON.parse(readFileSync(join(root, `.artifacts/relation-pipeline/capacity/${target}.json`)));
+    assert.deepEqual(campaign.executions, executions, 'Custody verification started before campaign receipts were saved');
+    custodyProbes.push({ afterCalls: calls.length, afterClose: closes.length, target });
+    if (options.fail === 'custody-probe') return { status: 24, stdout: '', stderr: 'Injected custody probe failure' };
+    const directory = join(root, '.artifacts/relation-pipeline/capacity/custody');
+    mkdirSync(directory, { recursive: true });
+    writeFileSync(join(directory, `${target}.json`), JSON.stringify({
+      kind: 'synthetic custody orchestration', target, separateChild: true,
+    }));
+    return { status: 0, stdout: 'synthetic custody transport', stderr: '' };
+  }
   if (args[0].endsWith('/parent-control/run.mjs')) {
     assert(executorClosed, 'Parent probe started before the campaign executor closed');
+    assert.equal(custodyProbes.length, 1, 'Parent probe started before custody verification');
     assert.equal(source(), 'healthy');
     assert(!existsSync(join(root, 'observer.mbt')));
     const campaign = JSON.parse(readFileSync(join(root, '.artifacts/relation-pipeline/capacity/all.json')));
     assert.deepEqual(campaign.executions, executions, 'Parent probe started before campaign receipts were saved');
-    parentProbes.push({ afterCalls: calls.length, afterClose: closes.length });
+    parentProbes.push({ afterCalls: calls.length, afterClose: closes.length, afterCustody: custodyProbes.length });
     if (options.fail === 'parent-probe') return { status: 23, stdout: '', stderr: 'Injected parent probe failure' };
     const directory = join(root, '.artifacts/relation-pipeline/capacity/parent-control-probe');
     mkdirSync(directory, { recursive: true });
@@ -123,7 +141,7 @@ module('execute.mjs', { root, toolchain: {}, executions,
 process.on('exit', () => {
   const reportPath = join(root, '.artifacts/relation-pipeline/capacity', `${options.target === 'js' ? 'js' : 'all'}.json`);
   writeFileSync(join(root, 'state.json'), JSON.stringify({ calls, installs, checks, source: source(),
-    observerPresent: existsSync(join(root, 'observer.mbt')), executions, clock, closes, parentProbes, executorClosed,
+    observerPresent: existsSync(join(root, 'observer.mbt')), executions, clock, closes, custodyProbes, parentProbes, executorClosed,
     parentReportPresent: existsSync(join(root, '.artifacts/relation-pipeline/capacity/parent-control-probe/all.json')),
     report: existsSync(reportPath) ? JSON.parse(readFileSync(reportPath)) : null }));
 });

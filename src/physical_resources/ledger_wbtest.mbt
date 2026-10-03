@@ -171,3 +171,212 @@ test "reservation arithmetic rejects overflow without losing charges" {
   settle_reservation(ledger, r).unwrap()
   assert_eq(ledger_usage(ledger).transferred_bytes, 9223372036854775807L)
 }
+
+///|
+test "completed output returns unused retention but keeps pending scratch and consumption" {
+  let ledger = create_ledger(test_limits()).unwrap()
+  let reservation = reserve_attempt(ledger, 9L, 10L, 12L).unwrap()
+  charge_planning(ledger, 2).unwrap()
+  charge_transfer(ledger, reservation, 3L).unwrap()
+  let holding = retain_allocation(ledger, reservation, 4L).unwrap()
+  settle_completed_output_reservation(
+    ledger,
+    reservation,
+    Some(holding),
+    4L,
+    7L,
+  ).unwrap()
+  let partial = ledger_usage(ledger)
+  assert_eq(partial.planning_work, 2)
+  assert_eq(partial.transferred_bytes, 3L)
+  assert_eq(partial.held_bytes, 4L)
+  assert_eq(partial.reserved_transfer_bytes, 0L)
+  assert_eq(partial.reserved_retention_bytes, 0L)
+  assert_eq(partial.reserved_execution_bytes, 7L)
+  assert_true(reservation_pending(reservation))
+  // A new attempt can use the six unused retention bytes while scratch waits.
+  let next = reserve_attempt(ledger, 0L, 6L, 0L).unwrap()
+  settle_reservation(ledger, next).unwrap()
+  let stable = ledger_usage(ledger)
+  settle_completed_output_reservation(
+    ledger,
+    reservation,
+    Some(holding),
+    4L,
+    7L,
+  ).unwrap()
+  assert_eq(ledger_usage(ledger), stable)
+  // Pending/failed cleanup does not refund scratch. A successful confirmation
+  // settles it once and leaves the accepted holding intact.
+  mark_cleanup_pending(ledger, reservation).unwrap()
+  assert_eq(ledger_usage(ledger), stable)
+  settle_reservation(ledger, reservation).unwrap()
+  let cleaned = ledger_usage(ledger)
+  assert_eq(cleaned.reserved_execution_bytes, 0L)
+  assert_eq(cleaned.held_bytes, 4L)
+  assert_eq(cleaned.transferred_bytes, 3L)
+  assert_true(settle_reservation(ledger, reservation) is Err(ClosedReservation))
+  settle_completed_output_reservation(
+    ledger,
+    reservation,
+    Some(holding),
+    4L,
+    7L,
+  ).unwrap()
+  assert_eq(ledger_usage(ledger), cleaned)
+  release_allocation(ledger, holding).unwrap()
+  assert_eq(ledger_usage(ledger).held_bytes, 0L)
+}
+
+///|
+test "completed output rejects foreign unconfirmed or invalid notification without mutation" {
+  let ledger = create_ledger(test_limits()).unwrap()
+  let foreign = create_ledger(test_limits()).unwrap()
+  let reservation = reserve_attempt(ledger, 0L, 5L, 10L).unwrap()
+  let other = reserve_attempt(ledger, 0L, 4L, 0L).unwrap()
+  let holding = retain_allocation(ledger, reservation, 2L).unwrap()
+  let other_holding = retain_allocation(ledger, other, 2L).unwrap()
+  let foreign_reservation = reserve_attempt(foreign, 0L, 2L, 1L).unwrap()
+  let foreign_holding = retain_allocation(foreign, foreign_reservation, 2L).unwrap()
+  let before = ledger_usage(ledger)
+  let foreign_before = ledger_usage(foreign)
+  assert_true(
+    settle_completed_output_reservation(
+      foreign,
+      reservation,
+      Some(holding),
+      2L,
+      3L,
+    )
+    is Err(ForeignOwner),
+  )
+  assert_true(
+    settle_completed_output_reservation(
+      ledger,
+      reservation,
+      Some(foreign_holding),
+      2L,
+      3L,
+    )
+    is Err(ForeignOwner),
+  )
+  assert_true(
+    settle_completed_output_reservation(
+      ledger,
+      reservation,
+      Some(other_holding),
+      2L,
+      3L,
+    )
+    is Err(InvalidCharge),
+  )
+  assert_true(
+    settle_completed_output_reservation(ledger, reservation, None, 2L, 3L)
+    is Err(InvalidCharge),
+  )
+  assert_true(
+    settle_completed_output_reservation(
+      ledger,
+      reservation,
+      Some(holding),
+      3L,
+      3L,
+    )
+    is Err(InvalidCharge),
+  )
+  assert_true(
+    settle_completed_output_reservation(
+      ledger,
+      reservation,
+      Some(holding),
+      2L,
+      -1L,
+    )
+    is Err(InvalidCharge),
+  )
+  assert_true(
+    settle_completed_output_reservation(
+      ledger,
+      reservation,
+      Some(holding),
+      2L,
+      11L,
+    )
+    is Err(InvalidCharge),
+  )
+  assert_eq(ledger_usage(ledger), before)
+  assert_eq(ledger_usage(foreign), foreign_before)
+  release_allocation(ledger, holding).unwrap()
+  let released = ledger_usage(ledger)
+  assert_true(
+    settle_completed_output_reservation(
+      ledger,
+      reservation,
+      Some(holding),
+      2L,
+      3L,
+    )
+    is Err(InvalidCharge),
+  )
+  assert_eq(ledger_usage(ledger), released)
+}
+
+///|
+test "completed empty output settles immediate scratch and rejects changed duplicates" {
+  let ledger = create_ledger(test_limits()).unwrap()
+  let reservation = reserve_attempt(ledger, 5L, 8L, 4L).unwrap()
+  settle_completed_output_reservation(ledger, reservation, None, 0L, 0L).unwrap()
+  let settled = ledger_usage(ledger)
+  assert_eq(settled.reserved_retention_bytes, 0L)
+  assert_eq(settled.reserved_execution_bytes, 0L)
+  assert_false(reservation_open(reservation))
+  settle_completed_output_reservation(ledger, reservation, None, 0L, 0L).unwrap()
+  assert_true(
+    settle_completed_output_reservation(ledger, reservation, None, 0L, 1L)
+    is Err(InvalidCharge),
+  )
+  assert_eq(ledger_usage(ledger), settled)
+}
+
+///|
+test "completed output preserves observed quantities and refunds undispatched quantities" {
+  let ledger = create_ledger(test_limits()).unwrap()
+  configure_quantities(ledger, {
+    tokens: 50L,
+    cost_units: 50L,
+    duration_ms: 50L,
+  }).unwrap()
+  let first = reserve_attempt(
+    ledger,
+    4L,
+    5L,
+    6L,
+    quantities=Some({ tokens: 10L, cost_units: 12L, duration_ms: 14L, }),
+  ).unwrap()
+  mark_quantities_uncertain(ledger, first).unwrap()
+  observe_quantities(ledger, first, tokens=Some(3L)).unwrap()
+  let held = retain_allocation(ledger, first, 2L).unwrap()
+  let observed = quantity_usage(ledger)
+  settle_completed_output_reservation(ledger, first, Some(held), 2L, 4L).unwrap()
+  assert_eq(quantity_usage(ledger), observed)
+  let second = reserve_attempt(
+    ledger,
+    0L,
+    0L,
+    1L,
+    quantities=Some({ tokens: 5L, cost_units: 5L, duration_ms: 5L, }),
+  ).unwrap()
+  settle_completed_output_reservation(ledger, second, None, 0L, 1L).unwrap()
+  assert_eq(quantity_usage(ledger), observed)
+  let before = ledger_usage(ledger)
+  assert_true(charge_transfer(ledger, first, 0L) is Err(ClosedReservation))
+  assert_true(
+    mark_transfer_uncertain(ledger, first, 0L) is Err(ClosedReservation),
+  )
+  assert_true(retain_allocation(ledger, first, 0L) is Err(ClosedReservation))
+  assert_true(
+    settle_completed_output_reservation(ledger, first, Some(held), 2L, 3L)
+    is Err(InvalidCharge),
+  )
+  assert_eq(ledger_usage(ledger), before)
+}

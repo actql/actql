@@ -163,6 +163,21 @@ fn task_execution_retention_released(execution : TaskExecution) -> Bool {
 }
 
 ///|
+fn task_execution_scratch_released(execution : TaskExecution) -> Bool {
+  (execution.hooks.unwrap().scratch_released)()
+}
+
+///|
+// Physical stop and output acceptance do not confirm scratch release.
+fn task_output_remaining_scratch(execution : TaskExecution) -> Int64 {
+  if task_execution_scratch_released(execution) {
+    0L
+  } else {
+    execution.scratch
+  }
+}
+
+///|
 fn task_execution_released(
   hooks : @connector.ExecutionLifecycleOperations[RunIssue],
 ) -> Unit {
@@ -776,7 +791,12 @@ pub fn settle_task_execution(
   let result = @resources.settle_execution_reservation(
     run.ledger,
     execution.reservation,
-    remaining_execution=if execution.disposed { 0L } else { execution.scratch },
+    remaining_execution=if execution.disposed &&
+      task_execution_scratch_released(execution) {
+      0L
+    } else {
+      execution.scratch
+    },
   )
   match result {
     Err(issue) => Err(issue)
@@ -873,6 +893,9 @@ fn complete_materialized_execution(
                 output,
                 holding,
                 ForeignCandidate,
+                execution.reservation,
+                retained_bytes,
+                task_output_remaining_scratch(execution),
               )
           }
         }
@@ -885,7 +908,6 @@ fn complete_materialized_execution(
         }
         Ok(_) => ()
       }
-      @resources.settle_reservation(run.ledger, execution.reservation) |> ignore
       run.running = None
       Ok(())
     }
@@ -972,14 +994,19 @@ fn release_task_execution(run : CapturedDAG, execution : TaskExecution) -> Unit 
     !task_execution_matches(run, execution) {
     return
   }
-  if !task_execution_retention_released(execution) {
-    // Dispose has synchronously freed MoonBit scratch; external retained
-    // storage has its own acknowledgement and must keep its reservation.
+  let scratch_released = task_execution_scratch_released(execution)
+  if !scratch_released || !task_execution_retention_released(execution) {
+    // Keep the existing task reservation while installed scratch cleanup is
+    // pending. External retention can independently outlive scratch release.
     if @resources.reservation_open(execution.reservation) {
       @resources.settle_execution_reservation(
         run.ledger,
         execution.reservation,
-        remaining_execution=0L,
+        remaining_execution=if scratch_released {
+          0L
+        } else {
+          execution.scratch
+        },
       )
       |> ignore
     }
