@@ -25,8 +25,9 @@ export const classifiedColumns = [
 export function compositionProgram(mappingRef) {
   const acquire = (id, connector) => ({id,
     inputs: {remote: {connector, resource: 'r'}},
-    steps: [{filter: 'id >= 0'},
-      {select: ['id', 'amount'], as: 'captured'}],
+    // Every authored fixture ID is positive. Read the declared fields without
+    // introducing an unattested literal into the Model input's source policy.
+    steps: [{select: ['id', 'amount'], as: 'captured'}],
     results: {rows: {from: 'captured', fields: ['id', 'amount']}},
   });
   return {version: 'actql/0.1', id: 'fixture.composed-infer-effect', stages: [
