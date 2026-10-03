@@ -7,8 +7,9 @@ import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-// Independent command inventory: deleting the redundant checks must not also
-// delete, reorder or weaken any existing build, type, unit or packed check.
+// Independent command inventory: runtime preparation keeps its build, type,
+// unit and asset checks. Moving packed acceptance to another CI job also
+// requires the fixed scheduling assertions in client-ci.test.mjs.
 const expectedGates = {
   "check:remote-site-runtime": [
     "moon build --target js --release src/connectors_builtin_node",
@@ -41,8 +42,7 @@ const expectedGates = {
     "node scripts/build-runtime-packages.mjs local-node",
     "node scripts/build-local-node-adapters.mjs",
     "node scripts/build-local-node-adapters.mjs --check",
-    "node scripts/test-packed-local-node-assets.mjs",
-    "node scripts/test-packed-salesforce-source.mjs"
+    "node scripts/test-packed-local-node-assets.mjs"
   ]
 };
 const packages = {
@@ -163,7 +163,10 @@ test('runtime preparation preserves physical cwd and output through a symlinked 
 });
 
 for (const [gate, commands] of Object.entries(expectedGates)) {
-  test(`${gate} retains every command except its immediate duplicate check`, () => {
+  const purpose = gate === 'check:local-node-assets'
+    ? 'retains its independent runtime and asset command inventory'
+    : 'retains every command except its immediate duplicate check';
+  test(`${gate} ${purpose}`, () => {
     const actual = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).scripts[gate];
     assert.deepEqual(actual.split(' && '), commands);
   });
