@@ -10,6 +10,14 @@ const digest = /^[0-9a-f]{64}$/;
 const id = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const same = (a, b) => a?.object === b?.object && a?.mode === b?.mode;
 const sorted = values => [...values].sort();
+// A descriptor, not a verifier. The composer calls this only after every
+// record's real Git binding and complete dependency grounds have passed.
+export function foundationSourceBinding(declaration, inputRevisions) {
+  return { version: declaration.version, kind: declaration.kind, revision: declaration.revision,
+    parents: declaration.parents, changes: declaration.changes.map(({ path, before, afterDigest, afterMode }) =>
+      ({ path, before, afterDigest, afterMode })).sort((a, b) => a.path < b.path ? -1 : a.path > b.path ? 1 : 0),
+    inputs: sorted(new Set(inputRevisions)) };
+}
 function keys(value, expected, label) {
   assert(value && typeof value === 'object' && !Array.isArray(value), `Invalid ${label}`);
   assert.deepEqual(Object.keys(value).sort(), [...expected].sort(), `Invalid ${label} fields`);
@@ -125,9 +133,11 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     const current = declarationsAt(revision);
     for (const [path, entry] of inherited) assert(same(entry, current.get(path)), `Changed or removed foundation declaration ${path}`);
     for (const [path, entry] of current) if (!inherited.has(path)) {
-      assert(!introductions.has(path), `Duplicate foundation declaration introduction ${path}`);
       assert(entry.mode === '100644', `Invalid foundation declaration mode ${path}`);
-      introductions.set(path, revision);
+      const previous = introductions.get(path);
+      assert(!previous || same(previous.entry, entry), `Conflicting foundation declaration introduction ${path}`);
+      if (previous) previous.revisions.push(revision);
+      else introductions.set(path, { entry, revisions: [revision] });
     }
   }
   const declarations = [], byRevision = new Map(), byId = new Map();
@@ -145,11 +155,12 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     assert(!byId.has(declaration.id), 'Duplicate foundation declaration ID');
     assert.match(declaration.revision, sha, 'Invalid foundation supporting revision');
     assert(revisionSet.has(declaration.revision), 'Unrelated foundation supporting revision');
-    assert(!byRevision.has(declaration.revision), 'Duplicate foundation supporting revision');
     assert(Array.isArray(declaration.parents) && declaration.parents.every(value => sha.test(value)), 'Invalid foundation parents');
     assert.deepEqual(declaration.parents, parents(declaration.revision), 'Incorrect foundation supporting parents');
-    const introduction = introductions.get(path);
-    assert(introduction !== declaration.revision && ancestor(declaration.revision, introduction), 'Foundation declaration must follow its source commit');
+    const declarationIntroductions = sorted(introductions.get(path).revisions);
+    for (const introduction of declarationIntroductions) {
+      assert(introduction !== declaration.revision && ancestor(declaration.revision, introduction), 'Foundation declaration must follow its source commit');
+    }
     assert(Array.isArray(declaration.changes) && declaration.changes.length, 'Empty foundation declaration');
     const changePaths = declaration.changes.map(change => change.path);
     assert(new Set(changePaths).size === changePaths.length, 'Duplicate foundation change path');
@@ -165,10 +176,14 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
       assert.equal(change.afterDigest, after.digest, `Incorrect current foundation digest ${change.path}`);
       assert.equal(change.afterMode, after.mode, `Incorrect current foundation mode ${change.path}`);
     }
-    byRevision.set(declaration.revision, declaration); byId.set(declaration.id, declaration);
-    declarations.push({ path, digest: hash(bytes(entry)), introduction, ...declaration });
+    // Retain every physical record. No representative may exempt another
+    // record from the independent Git, path, mode or dependency checks.
+    if (!byRevision.has(declaration.revision)) byRevision.set(declaration.revision, []);
+    byRevision.get(declaration.revision).push(declaration);
+    byId.set(declaration.id, declaration);
+    declarations.push({ path, digest: hash(bytes(entry)), introductions: declarationIntroductions, ...declaration });
   }
-  const integrations = [];
+  const requirements = new Map();
   for (const revision of revisions) {
     const actualParents = parents(revision), required = [], result = tree(revision);
     let mergeBase;
@@ -193,17 +208,43 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
         if (bothChanged || !same(automatic, after)) required.push(path);
       }
     }
-    const declaration = byRevision.get(revision);
-    if (!required.length) { assert(!declaration, 'Spurious foundation declaration'); continue; }
-    assert(declaration, `Unlisted foundation source change ${revision}: ${required.join(', ')}`);
-    assert.equal(declaration.kind, actualParents.length === 1 ? 'change' : 'resolution', 'Incorrect foundation declaration kind');
-    assert.deepEqual(sorted(declaration.changes.map(change => change.path)), sorted(required), 'Incomplete foundation changed paths');
+    const candidates = byRevision.get(revision);
+    if (!required.length) { assert(!candidates, 'Spurious foundation declaration'); continue; }
+    assert(candidates, `Unlisted foundation source change ${revision}: ${required.join(', ')}`);
+    for (const declaration of candidates) {
+      assert.equal(declaration.kind, actualParents.length === 1 ? 'change' : 'resolution', 'Incorrect foundation declaration kind');
+      assert.deepEqual(sorted(declaration.changes.map(change => change.path)), sorted(required), 'Incomplete foundation changed paths');
+    }
+    requirements.set(revision, { actualParents, required, mergeBase });
+  }
+  const integrations = [];
+  // All records have now independently matched real source commits and the
+  // complete changed-path set. Validate ancestor dependencies in topological
+  // order before allowing equivalent records to share a source-binding group.
+  for (const [revision, { actualParents, required, mergeBase }] of requirements) {
+    const candidates = byRevision.get(revision);
+    let inputs = [];
     if (actualParents.length === 2) {
-      const inputs = declarations.filter(candidate => candidate.revision !== revision
+      inputs = sorted(new Set(declarations.filter(candidate => candidate.revision !== revision
         && candidate.changes.some(change => required.includes(change.path))
-        && actualParents.some(parent => ancestor(candidate.revision, parent))).map(candidate => candidate.id).sort();
-      assert.deepEqual(declaration.inputs, inputs, 'Incomplete or ambiguous foundation resolution inputs');
-      integrations.push({ revision, parents: actualParents, mergeBase, declaration: declaration.id });
+        && actualParents.some(parent => ancestor(candidate.revision, parent))).map(candidate => candidate.revision)));
+    }
+    let binding;
+    for (const declaration of candidates) {
+      let inputRevisions = [];
+      if (declaration.kind === 'resolution') {
+        assert(Array.isArray(declaration.inputs) && declaration.inputs.every(value => typeof value === 'string' && byId.has(value)),
+          'Unknown foundation resolution input');
+        assert.deepEqual(declaration.inputs, sorted(new Set(declaration.inputs)), 'Noncanonical foundation resolution inputs');
+        inputRevisions = sorted(new Set(declaration.inputs.map(value => byId.get(value).revision)));
+        assert.deepEqual(inputRevisions, inputs, 'Incomplete or ambiguous foundation resolution inputs');
+      }
+      const current = foundationSourceBinding(declaration, inputRevisions);
+      if (binding) assert.deepEqual(current, binding, 'Conflicting foundation source-binding declarations');
+      else binding = current;
+    }
+    if (actualParents.length === 2) {
+      integrations.push({ revision, parents: actualParents, mergeBase, declarations: sorted(candidates.map(candidate => candidate.id)) });
     }
   }
   const expectedIndex = new Map([...tree(head)].filter(([path]) => allowed.has(path)
