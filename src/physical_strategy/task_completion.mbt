@@ -1,4 +1,27 @@
 ///|
+/// Start already checked each ordered binding against the live producer slot,
+/// receiving port and exact Run. Completion compares that admission witness
+/// with the still-live acquired inputs, not with a public slot that may close
+/// while the consumer owns its material.
+fn admitted_managed_inputs_match(
+  execution : TaskExecution,
+  inputs : Array[@execution.ManagedInputBinding],
+) -> Bool {
+  guard execution.admitted_managed_inputs is Some(admitted) &&
+    admitted.length() == inputs.length() else {
+    return false
+  }
+  for index, input in inputs {
+    if !@execution.managed_input_binding_same(admitted[index], input) ||
+      !@execution.managed_input_binding_available(admitted[index]) ||
+      !@execution.managed_input_binding_available(input) {
+      return false
+    }
+  }
+  true
+}
+
+///|
 /// The only mutation that makes a task output visible to scheduling and
 /// producer binding. Representation-specific verification must finish before
 /// this call; no Connector callback runs after the slot is committed.
@@ -171,7 +194,7 @@ pub fn[T] complete_managed_task_execution_with_inputs(
   }
   let input_matches = match managed_inputs {
     Some(inputs) =>
-      captured_mixed_managed_inputs_match(run, task, inputs) &&
+      admitted_managed_inputs_match(execution, inputs) &&
       @execution.managed_completed_output_matches_common_inputs(output, inputs)
     None => {
       let inputs = []
@@ -298,7 +321,7 @@ pub fn complete_carrier_managed_task_execution_with_inputs(
   }
   let input_matches = match managed_inputs {
     Some(inputs) =>
-      captured_mixed_managed_inputs_match(run, task, inputs) &&
+      admitted_managed_inputs_match(execution, inputs) &&
       @execution.carrier_managed_completed_output_matches_managed_inputs(
         output, inputs,
       )
