@@ -17,6 +17,9 @@ execution. The shared public Host test derives its cases from that inventory
 and checks refusal before Run admission, acquisition I/O and dispatch. The
 retired `graph` constructor is refused; its replacement `property_graph` has
 its construction, resource and lifecycle evidence in that same inventory.
+The current `node_rows` / `edge_rows` paths have finite presence-aware schema
+and executed Relation retention evidence. Only schema-guaranteed columns can
+be referenced normally; this does not complete conditional Result delivery.
 
 | Operations | Operation tests | Pipeline tests | Schema owner |
 | --- | --- | --- | --- |
@@ -37,7 +40,7 @@ its construction, resource and lifecycle evidence in that same inventory.
 | sequence | src/relation_typing/sequence_test.mbt | src/pipeline_typing/sequence_keys_test.mbt | scripts/event-schema.mjs |
 | calendar_bucket, calendar_series | src/calendar_typing/admission_test.mbt | src/pipeline_typing/calendar_test.mbt | scripts/event-schema.mjs |
 | events, vectors | src/carrier_projection/projection_test.mbt | src/pipeline_typing/bridge_audit_test.mbt | scripts/carrier-projection-schema.mjs |
-| node_rows, edge_rows | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
+| node_rows, edge_rows | src/carrier_projection/graph_rows_test.mbt | src/query_integration/property_graph_rows_presence_wbtest.mbt | scripts/graph-schema.mjs |
 | graph | src/program_check/property_graph_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
 | normalize_graph, components | src/program_check/property_graph_unsupported_public_test.mbt | scripts/property-graph-public-host.test.mjs | scripts/graph-schema.mjs |
 | degree, graph_bounds | src/graph_typing/diagnostics_test.mbt | src/query_integration/property_graph_host_custody_wbtest.mbt | scripts/graph-schema.mjs |
