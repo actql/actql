@@ -78,6 +78,7 @@ pub(all) enum Issue {
   UnsupportedInfer
   UnsupportedNearest
   UnsupportedResult
+  UnsupportedEffect
   Construction(@builder.Issue)
   Expression(@expression.Diagnostic)
   Admission(@program.SyntaxError)
@@ -1409,6 +1410,21 @@ fn compile_steps(
     }
     match operation {
       GraphCall(_) => raise Abort(UnsupportedGraph)
+      AssertUnique(keys) => {
+        let unique : Array[@builder.Node] = []
+        for path in keys {
+          guard pipe_slot(path, pipe_visible, pipe_ranges) is Some(slot) else {
+            raise Abort(UnknownColumn)
+          }
+          unique.push(construction.text(slot))
+        }
+        entries.push(
+          (
+            "assert_rows",
+            construction.object([("unique_by", construction.array(unique))]),
+          ),
+        )
+      }
       RetainResult(name) => {
         guard retained is Some(retained) else { raise Abort(UnsupportedResult) }
         if requires_graph_projection {
@@ -2655,6 +2671,13 @@ pub fn compile(
   context : Context,
   limits : Limits,
 ) -> Result[@program.Program, Issue] {
+  if @query.terminal_effect(query) is Some(_) {
+    return compile_query_script(
+      @query.single_query_script(query),
+      context,
+      limits,
+    )
+  }
   let mut has_nearest = false
   for i in 0..<@query.operation_count(query) {
     if @query.operation_at(query, i) is Some(Nearest(_)) {
@@ -3452,6 +3475,7 @@ fn compile_join_steps(
     raise Abort(UnsupportedCte)
   }
   let part = @query.join_part_at(query, 0).unwrap()
+  let max_output_rows = authored_join_bound(part, limits)
   let left_qualifier = @query.relation_alias(query).unwrap_or(left_name)
   let right_qualifier = part.source_alias.unwrap_or(right_name)
   if same_name(left_qualifier, right_qualifier) {
@@ -3532,7 +3556,7 @@ fn compile_join_steps(
           ("with", construction.text(right_from)),
           (
             "max_output_rows",
-            construction.add(Number(limits.max_join_output_rows.to_double())),
+            construction.add(Number(max_output_rows.to_double())),
           ),
           ("select", construction.object(select)),
         ]),
@@ -3556,7 +3580,7 @@ fn compile_join_steps(
           ),
           (
             "max_output_rows",
-            construction.add(Number(limits.max_join_output_rows.to_double())),
+            construction.add(Number(max_output_rows.to_double())),
           ),
           ("select", construction.object(select)),
         ]),
@@ -3691,7 +3715,7 @@ fn compile_join_steps(
         ("with", construction.text(right_from)),
         (
           "max_output_rows",
-          construction.add(Number(limits.max_join_output_rows.to_double())),
+          construction.add(Number(max_output_rows.to_double())),
         ),
         ("select", construction.object(select)),
       ]),
@@ -3715,7 +3739,7 @@ fn compile_join_steps(
         ),
         (
           "max_output_rows",
-          construction.add(Number(limits.max_join_output_rows.to_double())),
+          construction.add(Number(max_output_rows.to_double())),
         ),
         ("select", construction.object(select)),
       ]),
@@ -5434,4 +5458,18 @@ fn compile_join_query(
       Err(issue)
     }
   }
+}
+
+///|
+fn authored_join_bound(
+  part : @query.JoinPart,
+  limits : Limits,
+) -> Int64 raise Abort {
+  let bound = part.max_output_rows.unwrap_or(limits.max_join_output_rows)
+  if bound < 1L ||
+    bound > 9007199254740991L ||
+    bound > limits.max_join_output_rows {
+    raise Abort(UnsupportedJoin)
+  }
+  bound
 }

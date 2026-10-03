@@ -110,8 +110,37 @@ fn lower_script_relation_term(
   }
   let selected = selected_input(query, { ..context, inputs: known, }, limits)
   let fields = query_columns(query, selected)
+  let mut start_at = 0
+  let predicate = if context.captured_stage is Some(_) &&
+    selected.source is Captured(_) &&
+    sources.unshared.contains(selected.name) {
+    match @query.operation_at(query, 0) {
+      Some(Where(expression)) => {
+        start_at = 1
+        Some(
+          append_expression(
+            construction,
+            expression,
+            query,
+            selected,
+            fields,
+            limits.max_expression_work,
+          ),
+        )
+      }
+      _ => None
+    }
+  } else {
+    None
+  }
   let input = bind_script_input(
-    construction, selected, context, sources, steps, reserved,
+    construction,
+    selected,
+    context,
+    sources,
+    steps,
+    reserved,
+    predicate~,
   )
   let (body, output_fields) = compile_steps(
     construction,
@@ -121,7 +150,7 @@ fn lower_script_relation_term(
     limits.max_expression_work,
     limits.max_collection_items,
     limits.max_collection_bytes,
-    0,
+    start_at,
     false,
     output,
     retained~,
@@ -175,6 +204,7 @@ pub fn compile_query_script(
       declarations: [],
       stages: [],
       bound: Map([]),
+      unshared: unshared_script_sources(script, context.inputs),
     }
     let mut known = context.inputs.copy()
     let mut graphs : Array[ScriptGraph] = []
@@ -284,7 +314,7 @@ pub fn compile_query_script(
         retained=Some(retained),
       )
     }
-    let stage = construction.object([
+    let stage_entries = [
       ("id", construction.text(context.stage_id)),
       ("inputs", construction.object(sources.declarations)),
       ("steps", construction.array(steps)),
@@ -305,7 +335,22 @@ pub fn compile_query_script(
           retained,
         ),
       ),
-    ])
+    ]
+    if @query.terminal_effect(query) is Some(effect) {
+      stage_entries.push(
+        (
+          "effects",
+          lower_update_effect(
+            construction,
+            effect,
+            context.stage_result,
+            retained,
+            limits.max_expression_work,
+          ),
+        ),
+      )
+    }
+    let stage = construction.object(stage_entries)
     let root = program_root(
       construction,
       context,

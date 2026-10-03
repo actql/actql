@@ -309,8 +309,13 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(vector(pin('6f98988807520ccf18a96d72b418ca70dcf845bc1f3c1f35458b1adea18c6157'),
     cid(aoaContract), dependencies, barrierCid).run.run_definition_cid,
     pin('7b2561667a301294b394ce0d5b64e905b9e8fbd30c0d07f8969c4070de53fe72'));
-  assert.equal(current.run.run_definition_cid,
+  // Retain the JOIN-chain grammar vector before adding explicit composition
+  // controls. The Values Unit, proof and Result Plan remain identical.
+  assert.equal(vector(pin('24f53c1f64028206dbc01f6c3d0c11d991c8c9d512581fdfd007a250315f8bbd'),
+    cid(aoaContract), dependencies, barrierCid).run.run_definition_cid,
     pin('5347f97a234b92717a8495614590b5e4b0a87a4b8bd796f051952ef164988663'));
+  assert.equal(current.run.run_definition_cid,
+    pin('07ba9ca36c06c85c6fdc3e88aaed22d02dff38348fb1d7003aa6ab4108b3654e'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');

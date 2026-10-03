@@ -29,9 +29,10 @@ const externalScratch = join(repository, '..', '.codex-scratch');
 await mkdir(externalScratch, {recursive: true});
 const root = await mkdtemp(join(externalScratch, 'actql-packed-salesforce-'));
 const twoSourceEffect = process.argv.includes('--two-source-effect');
-const compositionCases = process.argv.includes('--composed-infer') ? ['infer']
-  : twoSourceEffect ? ['two-source'] : ['source', 'infer'];
-const inferEnabled = compositionCases.includes('infer');
+const compositionCases = process.argv.includes('--composed-text') ? ['infer-text']
+  : process.argv.includes('--composed-infer') ? ['infer', 'infer-text']
+  : twoSourceEffect ? ['two-source'] : ['source', 'infer', 'infer-text'];
+const inferEnabled = compositionCases.some(kind => kind.startsWith('infer'));
 const composed = compositionCases.some(kind => kind !== 'source');
 const orgId = '00D000000000001EAA';
 const token = 'packed-test-only-token';
@@ -378,6 +379,8 @@ console.log(JSON.stringify(published.mappings.map(mapping =>
 
   for (const name of ['composed-infer-effect-input.mjs',
     'composed-infer-effect.program.template.json', 'composed-infer-effect.expected.json',
+    'composed-infer-effect.aql.template',
+    'composed-infer-effect-null-assert.aql.template',
     'installed-infer-fixture.mjs', 'two-source-public-query.mjs',
     'public-query-input.mjs']) {
     await writeFile(join(root, name), await readFile(join(repository,
@@ -413,6 +416,31 @@ console.log(JSON.stringify(published.mappings.map(mapping =>
     await writeFile(join(root, 'source-calls.jsonl'), '');
     await writeFile(join(root, 'composition-databases.json'),
       JSON.stringify(installed.databases));
+    // Independent bad rows in separate databases: never alter the positive
+    // capture or infer that a NULL id rejected by JOIN tests assertion custody.
+    if (compositionCases.includes('infer-text')) {
+      for (const [variant, rows] of Object.entries({
+        duplicate: {left: [{id: 1, amount: 10}, {id: 1, amount: 10},
+          {id: 2, amount: 20}], right: databaseRows.right},
+        null: {left: databaseRows.left, right: [{id: 1, amount: null},
+          {id: 2, amount: 200}, {id: 3, amount: 300}]},
+      })) {
+        const bad = await installTwoSourceFixtures({root: join(root,
+          'composition-' + variant), fixture: {...fixture,
+          rows: {...rows, equal_content: rows.left}}, duckdb});
+        for (const name of ['left', 'right']) {
+          const profile = JSON.parse(await readFile(bad.profiles[name], 'utf8'));
+          const view = fixture.environments[name].source_views[0];
+          profile.queryAliases = [{name: name + '_records', sourceRef: profile.sourceRef,
+            sourceViewContractCid: view.contract_cid, schemaContractCid: view.output.schema.cid}];
+          await writeFile(bad.profiles[name], canonical(profile));
+        }
+        await writeFile(join(root, 'composition-' + variant + '-profiles.json'),
+          JSON.stringify([bad.profiles.left, bad.profiles.right]));
+        await writeFile(join(root, 'composition-' + variant + '-databases.json'),
+          JSON.stringify(bad.databases));
+      }
+    }
   }
 
   // Every step runs in a fresh process with only the installed tarballs.
@@ -429,11 +457,12 @@ import {observeTwoSourceProvider} from './two-source-public-query.mjs';
 import {userInfo} from 'node:os';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 import {connect} from '@actql/node';
-import {compositionProgram, twoSourceEffectProgram, modelConfiguration, registerCompositionModel,
+import {compositionProgram, compositionText, twoSourceEffectProgram, modelConfiguration, registerCompositionModel,
   expectedClassified, classifiedColumns, expectedUpdates, updateColumns} from
   './composed-infer-effect-input.mjs';
 const composed = process.env.PACKED_COMPOSED_INFER === '1';
 const twoSourceEffect = process.env.PACKED_TWO_SOURCE_EFFECT === '1';
+const composedText = process.env.PACKED_COMPOSED_TEXT === '1';
 const authorization = JSON.parse(readFileSync('authorization.json', 'utf8'));
 if (process.env.PACKED_CHECKPOINT_TTL_MS !== undefined) {
   authorization.checkpointTtlMs = Number(process.env.PACKED_CHECKPOINT_TTL_MS);
@@ -469,10 +498,10 @@ if (composed) {
   sourceObservation = observeTwoSourceProvider(createRequire(
     new URL('./node_modules/@actql/local-node/package.json', import.meta.url))(
       '@duckdb/node-api'), JSON.parse(readFileSync(
-        'composition-databases.json', 'utf8')));
+        process.env.PACKED_COMPOSITION_DATABASES ?? 'composition-databases.json', 'utf8')));
   delete installation.sourceProfilePath;
   installation.sourceProfilePaths = JSON.parse(readFileSync(
-    'composition-profiles.json', 'utf8'));
+    process.env.PACKED_COMPOSITION_PROFILES ?? 'composition-profiles.json', 'utf8'));
   const model = await modelConfiguration(JSON.parse(readFileSync(
     'base-environment.json', 'utf8')));
   installation.modelInstallation = model.installation;
@@ -590,6 +619,18 @@ try {
     assert.deepEqual(lookup, {kind: 'not_found'});
     console.log(JSON.stringify({code: 'ClientProgramUnsupported', lookup,
       programSha256: process.argv[3]}));
+  } else if (step === 'assertion-refusal') {
+    const variant = process.argv[3];
+    const generation = JSON.parse(readFileSync('effect-publication.json', 'utf8'));
+    const mapping = generation.mappings.find(entry => entry.write.resource === 'Test_Record__c');
+    const document = compositionText(mapping.mapping_ref, variant);
+    const execution = await client.aql(document, {format: 'aql-text',
+      requestId: 'assertion-' + variant});
+    const state = await execution.wait();
+    assert.equal(state.status, 'failed', 'assertion failure precedes INFER and Effect');
+    assert.deepEqual((await client.checkpoints()).items, []);
+    console.log(JSON.stringify({variant, state, ref: execution.ref,
+      submittedProgramSha256: createHash('sha256').update(document).digest('hex')}));
   } else if (step === 'rce-submit' || step === 'rce-submit-pending') {
     // Read→Compute→Effect: acquire Test_Record__c, keep every record but
     // record-2, derive the new Name locally, and update the same records.
@@ -616,7 +657,8 @@ try {
           mapping: mapping.mapping_ref, from: {result: 'updates'}, id: 'Id',
           set: {Name: {field: 'next_name'}}}}}},
     ], results: {updates: {from: {stage: 'compute', result: 'updates'}}}};
-    const submission = {document: JSON.stringify(program), format: 'json',
+    const submission = {document: composedText ? compositionText(mapping.mapping_ref)
+      : JSON.stringify(program), format: composedText ? 'aql-text' : 'json',
       requestId: 'packed-rce-' + process.argv[3]};
     let execution;
     try {
@@ -749,7 +791,7 @@ try {
   // before the next invocation stops both, also for the public HTTPS path.
   for (const compositionKind of compositionCases) {
   const composed = compositionKind !== 'source';
-  const inferEnabled = compositionKind === 'infer';
+  const inferEnabled = compositionKind.startsWith('infer');
   const twoSourceEffect = compositionKind === 'two-source';
   for (const transport of ['local', 'https']) {
     server.target.name = 'prior-name';
@@ -757,6 +799,7 @@ try {
       PACKED_RCE_TRANSPORT: transport,
       PACKED_COMPOSED_INFER: composed ? '1' : '0',
       PACKED_TWO_SOURCE_EFFECT: twoSourceEffect ? '1' : '0',
+      PACKED_COMPOSED_TEXT: compositionKind === 'infer-text' ? '1' : '0',
       NODE_EXTRA_CA_CERTS: join(root, 'org.crt'),
       ACTQL_LOCAL_STATE_DIR: join(root, 'rce-' + compositionKind + '-' + transport)};
     if (composed) delete rceEnvironment.ACTQL_LOCAL_SOURCE_PROFILE;
@@ -851,6 +894,27 @@ try {
       await appendFile(join(root, 'composition-acceptance.jsonl'),
         JSON.stringify(observation) + '\n');
       console.log('packed composition acceptance ' + JSON.stringify(observation));
+    }
+    if (compositionKind === 'infer-text') {
+      for (const variant of ['duplicate', 'null']) {
+        const modelBefore = await readFile(join(root, 'model-calls.jsonl'), 'utf8');
+        const writeBefore = server.seen.filter(item => item.method === 'PATCH').length;
+        const refusal = JSON.parse((await runChild('effect-run.mjs', {
+          ...rceEnvironment,
+          ACTQL_LOCAL_STATE_DIR: join(root, 'assertion-' + variant + '-' + transport),
+          PACKED_COMPOSITION_PROFILES: 'composition-' + variant + '-profiles.json',
+          PACKED_COMPOSITION_DATABASES: 'composition-' + variant + '-databases.json',
+        }, ['assertion-refusal', variant])).trim());
+        assert.equal(refusal.state.status, 'failed');
+        assert.equal(await readFile(join(root, 'model-calls.jsonl'), 'utf8'), modelBefore,
+          'bad assertion rows must be rejected before any Model call');
+        assert.equal(server.seen.filter(item => item.method === 'PATCH').length, writeBefore);
+        const observation = {sourceRevision, transport, ...refusal,
+          modelCalls: 0, writes: 0, checkpoints: 0};
+        await appendFile(join(root, 'composition-assertion-refusals.jsonl'),
+          JSON.stringify(observation) + '\n');
+        console.log('packed composition assertion refusal ' + JSON.stringify(observation));
+      }
     }
     if (!composed) {
       // The preceding public execution and independent rows establish semantic
@@ -969,7 +1033,7 @@ try {
         'valid-approval-after-answer-deadline']) {
         server.target.name = 'prior-name';
         const environment = {...rceEnvironment,
-          ACTQL_LOCAL_STATE_DIR: join(root, 'rce-infer-' + transport + '-' + boundary),
+          ACTQL_LOCAL_STATE_DIR: join(root, 'rce-' + compositionKind + '-' + transport + '-' + boundary),
           ...(boundary !== 'current-denial'
             ? {PACKED_CHECKPOINT_TTL_MS: '30000'} : {})};
         const writesBefore = patches().length;
