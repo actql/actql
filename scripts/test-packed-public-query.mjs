@@ -95,6 +95,9 @@ if (process.argv.includes('--query-composition-only')) {
 if (process.argv.includes('--pipe-result-only')) {
   runtimeEnvironment.ACTQL_TEST_PIPE_RESULT_ONLY = '1';
 }
+if (process.argv.includes('--relation-data-only')) {
+  runtimeEnvironment.ACTQL_TEST_RELATION_DATA_ONLY = '1';
+}
 if (process.argv.includes('--join-order-only')) {
   runtimeEnvironment.ACTQL_TEST_JOIN_ORDER_ONLY = '1';
 }
@@ -157,7 +160,7 @@ try {
 // Narrow selections without the String fixture have no retained String Run.
 // Keep restart acceptance for full/source-free selections that create it.
 if (!process.argv.some(flag => ['--alias-scope-only', '--infer-refusal-only',
-  '--join-order-only', '--query-composition-only', '--pipe-result-only',
+  '--join-order-only', '--query-composition-only', '--pipe-result-only', '--relation-data-only',
   '--two-source-only'].includes(flag))) {
   console.log(run(process.execPath, ['string-values-restart.mjs'], root,
     runtimeEnvironment, 120000).trimEnd());
@@ -165,6 +168,7 @@ if (!process.argv.some(flag => ['--alias-scope-only', '--infer-refusal-only',
 if (process.argv.includes('--source-free-only') ||
   process.argv.includes('--query-composition-only') ||
   process.argv.includes('--pipe-result-only') ||
+  process.argv.includes('--relation-data-only') ||
   process.argv.includes('--alias-scope-only') ||
   process.argv.includes('--infer-refusal-only') ||
   process.argv.includes('--two-source-only') ||
