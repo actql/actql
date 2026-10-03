@@ -5,7 +5,7 @@ import { fixedCorpus } from '../../corpus.mjs';
 import { registry } from '../../registry.mjs';
 import { registrations } from '../../obligations.mjs';
 import { program } from '../../engine.mjs';
-import { body, payload, inputVariable } from '../../fixture.mjs';
+import { auditFixture, payload, inputVariable } from '../../fixture.mjs';
 import { compareSemantics } from '../../evidence.mjs';
 import { nativeProfile } from '../backing/source.mjs';
 import { inspectParentStartup } from '../backing/parent-layout.mjs';
@@ -37,7 +37,8 @@ export function auditParentStartup(report, current, read) {
   assert.equal(run.target, 'native', 'Native layout evidence belongs to another target');
   assert.equal(run.compiler, pin.moonc); assert.equal(run.exit, 0); assert.equal(run.correspondence, true);
   assert.deepEqual(run.command, ['moon', 'test', 'src/query_integration/relation_pipeline_batch_wbtest.mbt', '--target', 'native', '--deny-warn']);
-  assert.equal(run.fixtureDigest, hash(body)); assert.equal(read(run.fixturePath).toString(), body);
+  const log = read(run.logPath).toString(); assert.equal(hash(log), run.logDigest);
+  auditFixture(run, read(run.fixturePath), log, 'native');
   assert.equal(run.inputVariable, inputVariable);
   assert.equal(run.inputDigest, hash(payload(run.cases, true)));
   assert.equal(read(run.inputPath).toString(), payload(run.cases, true));
@@ -55,7 +56,6 @@ export function auditParentStartup(report, current, read) {
   assert.equal(entry.observation.source, entry.program.source);
   assert.equal(entry.observation.steps, entry.program.steps);
   compareSemantics(report.case, entry.observation, registry);
-  const log = read(run.logPath).toString(); assert.equal(hash(log), run.logDigest);
   const observations = []; let id; let faults;
   for (const line of log.split('\n')) {
     if (line.startsWith('ACTQL_PIPELINE_CASE:')) { id = JSON.parse(line.slice(20)); faults = []; }
