@@ -1794,6 +1794,13 @@ async function exerciseStrategyGraph(
     fields:['id','node_name'], secondFields:['node_name'],
     expected:[{id:1,node_name:'first'},{id:2,node_name:'second'}],
   }, {
+    name:'retained-labelled-node-match', retainedOutput:true,
+    selectedStructural:true,
+    step:{from:'g', match_nodes:{definition:'N', label:'Node',
+      where:"node_name = 'second'", fields:['id','node_name']}, as:'out'},
+    fields:['id','node_name'], secondFields:['node_name'],
+    expected:[{id:2,node_name:'second'}],
+  }, {
     name:'node-match-filter-sort-take',
     steps:[
       {from:'g',match_nodes:{definition:'N',where:'true',
@@ -1851,12 +1858,57 @@ async function exerciseStrategyGraph(
     fields:['hop_count'],secondFields:['hop_count'],
     expected:[{hop_count:1},{hop_count:1}],
   }, {
+    name:'retained-labelled-hop-pattern', retainedOutput:true,
+    retainedTraversal:true,
+    steps:[
+      {from:'g',traverse:{start:{from:'seeds',id:'element'},
+        hops:[
+          {direction:'out',edge_types:['Link']},
+          {direction:'out',edge_types:['Link']},
+        ],path_mode:'trail',emit:'paths'},as:'paths'},
+      {from:'paths',filter:'hop_count = 2',as:'out'},
+    ],
+    fields:['hop_count'],secondFields:['hop_count'],
+    expected:[{hop_count:2},{hop_count:2}],
+  }, {
+    name:'retained-unmatched-hop-label', retainedOutput:true,
+    retainedTraversal:true,
+    steps:[
+      {from:'g',traverse:{start:{from:'seeds',id:'element'},
+        hops:[{direction:'out',edge_types:['Missing']}],
+        path_mode:'trail',emit:'paths'},as:'paths'},
+      {from:'paths',filter:'hop_count > 0',as:'out'},
+    ],
+    fields:['hop_count'],secondFields:['hop_count'],expected:[],
+  }, {
     name:'edge-match',
     step:{from:'g',match_edges:{definition:'E',where:'true',
       fields:['src','dst','weight']},as:'out'},
     fields:['src','dst','weight'],secondFields:['weight','src'],
     expected:[{src:1,dst:2,weight:10},{src:2,dst:1,weight:20}],
     completedTasks:5,
+  }, {
+    name:'retained-labelled-edge-match', retainedOutput:true,
+    selectedStructural:true,
+    step:{from:'g',match_edges:{definition:'E',label:'Link',
+      where:'weight > 10',fields:['src','dst','weight']},as:'out'},
+    fields:['src','dst','weight'],secondFields:['weight','src'],
+    expected:[{src:2,dst:1,weight:20}],
+  }, {
+    name:'retained-empty-edge-types', retainedOutput:true,
+    selectedStructural:true,
+    step:{from:'g',match_edges:{definition:'E',label:'Link',types:[],
+      where:'true',fields:['src','dst','weight']},as:'out'},
+    fields:['src','dst','weight'],secondFields:['weight','src'],
+    expected:[],
+  }, {
+    name:'retained-repeated-edge-types', retainedOutput:true,
+    selectedStructural:true,
+    step:{from:'g',match_edges:{definition:'E',label:'Link',
+      types:['Link','Link'],where:'true',fields:['src','dst','weight']},
+    as:'out'},
+    fields:['src','dst','weight'],secondFields:['weight','src'],
+    expected:[{src:1,dst:2,weight:10},{src:2,dst:1,weight:20}],
   }];
   for (const publicationCase of graphPublicationCases) {
     const graphProgram = structuredClone(graphProgramBase);
@@ -2021,6 +2073,12 @@ async function exerciseStrategyGraph(
               [field, row[field]]))),
         } : {}),
       };
+      assert.deepEqual(
+        sgaPublicationOwner.execution.publicationInventory.occurrences
+          .map(occurrence => occurrence.name).sort(),
+        Object.keys(expectedResults).sort(),
+        `${publicationCase.name}/published result names`,
+      );
       for (const occurrence of
         sgaPublicationOwner.execution.publicationInventory.occurrences) {
         const received = [];

@@ -211,6 +211,7 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
   let mut zero_input_count = 0
   let mut found_binary = false
   let mut found_external_input = false
+  let mut nonlinear_relation_input = false
   let mut prefer_fused_without_relation = false
   let mut all_selected = true
   for step in 0..<count {
@@ -253,6 +254,18 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
               return None
             }
             found_relation = true
+            // The fused primary input follows the preceding Step. A later
+            // primary reference, or a binary peer held by an internal Step,
+            // needs exact per-operation ports. Fused JOINs with an external
+            // peer remain unchanged.
+            if (
+                @lower.node_input_count(node) <= 2 &&
+                input == 0 &&
+                producer != step - 1
+              ) ||
+              (@lower.node_input_count(node) == 2 && input == 1) {
+              nonlinear_relation_input = true
+            }
           } else {
             if !@lower.node_accepts_managed_carrier_view(node, input) {
               return None
@@ -263,7 +276,14 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
             }
           }
         }
-        Some(@pipeline.Input(_)) => found_external_input = true
+        Some(@pipeline.Input(_)) => {
+          found_external_input = true
+          // A binary JOIN may reread an external peer in a fused chain.
+          // Only a later primary port restarts an independent branch.
+          if step > 0 && @lower.node_input_count(node) <= 2 && input == 0 {
+            nonlinear_relation_input = true
+          }
+        }
         None => return None
       }
     }
@@ -271,6 +291,46 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
   if all_selected &&
     found_carrier &&
     (!prefer_fused_without_relation || found_relation) {
+    return Some(-1)
+  }
+  // A non-linear Relation dependency cannot be realized by the fused provider.
+  // Select checked steps only when every external port has an exact retained
+  // Relation edge;
+  // the captured predecessor and its acquisition remain one owned task.
+  if all_selected &&
+    nonlinear_relation_input &&
+    found_relation &&
+    !found_carrier {
+    for step in 0..<count {
+      let node = @lower.node_at(prepared, step).unwrap()
+      for input in 0..<@lower.node_input_count(node) {
+        if @lower.node_input_target(node, input)
+          is Some(@pipeline.Input(source)) {
+          if !@lower.node_accepts_managed_relation_view(node, input) {
+            return None
+          }
+          let mut retained_relation = false
+          for edge in graph.data {
+            if edge.consumer == stage &&
+              edge.input == source &&
+              edge.producer >= 0 &&
+              edge.producer < graph.owners.length() {
+              let predecessor = @lower.bound_preparation(
+                graph.owners[edge.producer],
+              )
+              if @lower.preparation_carrier_at(predecessor, edge.target)
+                is Some(carrier) &&
+                @carrier.kind(carrier) == @carrier.RelationKind {
+                retained_relation = true
+              }
+            }
+          }
+          if !retained_relation {
+            return None
+          }
+        }
+      }
+    }
     return Some(-1)
   }
   // A retained intermediate Relation Result needs its own exact output.
