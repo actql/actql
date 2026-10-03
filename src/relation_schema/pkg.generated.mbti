@@ -15,6 +15,8 @@ pub fn field_contract(Field) -> @value_contract.Contract
 
 pub fn field_count(Schema) -> Int
 
+pub fn field_presence(ConditionalField) -> FieldPresence
+
 pub fn field_reference_name(Field) -> String
 
 pub fn fields(Schema) -> Array[Field]
@@ -23,15 +25,35 @@ pub fn from_fields(Array[(FieldName, @value_contract.Contract)], max_fields~ : I
 
 pub fn from_object(@value_contract.Contract) -> Result[Schema, Issue]
 
+pub fn from_presence_fields(Array[(FieldName, @value_contract.Contract, FieldPresence)], max_fields~ : Int, max_name_bytes~ : Int) -> Result[ConditionalSchema, Issue]
+
 pub fn lookup(Schema, FieldName) -> @value_contract.Contract?
 
 pub fn lookup_reference(Schema, String) -> Field?
 
+pub fn presence_field_at(ConditionalSchema, Int) -> ConditionalField?
+
+pub fn presence_field_contract(ConditionalField) -> @value_contract.Contract
+
+pub fn presence_field_count(ConditionalSchema) -> Int
+
+pub fn presence_field_name(ConditionalField) -> FieldName
+
+pub fn presence_lookup(ConditionalSchema, FieldName) -> PresenceLookup
+
 pub fn reference_name(FieldName) -> String
+
+pub fn required_projection_schema(ConditionalSchema) -> Schema
+
+pub fn required_source_index(ConditionalSchema, Int) -> Int?
 
 // Errors
 
 // Types and methods
+type ConditionalField
+
+type ConditionalSchema
+
 pub struct Field {
   name : FieldName
   contract : @value_contract.Contract
@@ -42,6 +64,11 @@ pub(all) enum FieldName {
   Qualified(Side, String)
 } derive(Eq, @debug.Debug)
 
+pub(all) enum FieldPresence {
+  Required
+  Conditional
+} derive(Eq, @debug.Debug)
+
 pub(all) enum Issue {
   InvalidRowContract
   InvalidLimits
@@ -49,6 +76,12 @@ pub(all) enum Issue {
   DuplicateField(FieldName)
   InvalidField(FieldName, @value_contract.ConstructionIssue)
 } derive(Eq, @debug.Debug)
+
+pub enum PresenceLookup {
+  AlwaysPresent(Field)
+  ConditionallyPresent(Field)
+  AbsentField
+}
 
 type Schema
 

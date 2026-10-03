@@ -123,6 +123,8 @@ pub fn append_completed_projection_managed_values(ManagedOutputValues, Completed
 
 pub fn append_completed_projection_managed_wire(ManagedOutputValues, CompletedOutput, Int, RowWireLimits, RetainedRowDecodeLimits) -> Result[Unit, ManagedOutputValueIssue]
 
+pub fn append_conditional_cell(ConditionalRowBuilder, @value_admission.CheckedValue?) -> Result[Unit, ConditionalRowIssue]
+
 pub fn[T] append_managed_computed_view(ManagedComputedView[T], (Int) -> @value_admission.CheckedValue?) -> Result[Unit, ManagedComputedViewIssue]
 
 pub fn append_managed_output_values(ManagedOutputValues, Int, (Int) -> @value_admission.CheckedValue?) -> Result[Unit, ManagedOutputValueIssue]
@@ -214,6 +216,8 @@ pub fn cancel_completed_relation_export_receipt(CompletedRelationExportReceipt) 
 pub fn cancel_completed_relation_identity_scan(CompletedRelationIdentityScan) -> Bool
 
 pub fn cancel_completed_result_relation_export(CompletedResultRelationExportPreparation) -> Bool
+
+pub fn cancel_conditional_row(ConditionalRowBuilder) -> Bool
 
 pub fn cancel_expression_execution(ExpressionExecution) -> Bool
 
@@ -409,6 +413,12 @@ pub fn completion_preparation_sequence(CompletionPreparation) -> @lowering_relat
 
 pub fn completion_preparation_terminal_step(CompletionPreparation) -> Int
 
+pub fn conditional_required_cell(ConditionalRow, Int) -> @value_admission.CheckedValue?
+
+pub fn conditional_row_cell(ConditionalRow, Int) -> @value_admission.CheckedValue??
+
+pub fn conditional_row_usage(ConditionalRow) -> ValueUsage
+
 pub fn constrain_generated_aggregate_output(GeneratedSequence, Int, String, AggregateOutputUnit, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
 
 pub fn constrain_generated_analytic_envelope(GeneratedSequence, Int, Int64, Int64, Int64, Int64, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
@@ -429,9 +439,13 @@ pub fn constrain_generated_session_output(GeneratedSequence, Int, Int64) -> Resu
 
 pub fn copy_completed_output_independent(CompletedOutput, Int, Int) -> Result[CompletedOutput, ManagedIndependentOutputIssue]
 
+pub fn decode_conditional_row_wire(@relation_schema.ConditionalSchema, String, RetainedRowDecodeLimits, ValueLimits) -> Result[ConditionalRow, ConditionalRowWireIssue]
+
 pub fn discard_managed_output_measurement_index(ManagedOutputValueReceipt) -> Bool
 
 pub fn dispose_managed_output_values_scratch(ManagedOutputValues) -> Unit
+
+pub fn emit_conditional_row(ConditionalRow, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn emit_ordered_params(OrderedParams, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
@@ -482,6 +496,8 @@ pub fn finish_completed_relation_export(CompletedOutputExport) -> Result[(Comple
 pub fn finish_completed_relation_identity_scan(CompletedRelationIdentityScan) -> Result[CompletedRelationExportReceipt, CompletedExportIssue]
 
 pub fn finish_completed_result_relation_export_preparation(CompletedResultRelationExportPreparation) -> Result[CompletedOutputExport, CompletedExportIssue]
+
+pub fn finish_conditional_row(ConditionalRowBuilder) -> Result[ConditionalRow, ConditionalRowIssue]
 
 pub fn finish_fixed_join_stream(FixedJoinStream) -> Result[FixedJoinValidation, RowIssue]
 
@@ -830,6 +846,8 @@ pub fn prepare_completed_relation_export(CompletedOutput, Int, ValueLimits, RowW
 pub fn prepare_completed_result_relation_export(CompletedOutput, ManagedResultOccurrence, CompletedResultViewLimits, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedOutputExport, CompletedExportIssue]
 
 pub fn prepare_completion(RegisteredRelationContracts, @lowering_relation.PreparedSequence, Array[String], Int, Int) -> Result[CompletionPreparation, SequenceRunIssue]
+
+pub fn prepare_conditional_row(@relation_schema.ConditionalSchema, ValueLimits) -> Result[ConditionalRowBuilder, ConditionalRowIssue]
 
 pub fn prepare_fixed_input_guard_roots(GeneratedSequence, Int, Bool, FixedInputGuardMeasureLimits) -> Result[(GeneratedSequence, FixedInputGuardMeasureLimits), FixedInputGuardIssue]
 
@@ -1589,6 +1607,29 @@ pub(all) struct CompletedResultViewLimits {
 type CompletedSequence
 
 type CompletionPreparation
+
+type ConditionalRow
+
+type ConditionalRowBuilder
+
+pub(all) enum ConditionalRowIssue {
+  InvalidLimits
+  Closed
+  InvalidWidth
+  MissingRequired(Int)
+  ForeignValue(Int)
+  Limit
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ConditionalRowWireIssue {
+  InvalidLimits
+  InputLimit
+  ShapeLimit
+  InvalidJson
+  Decode(@decode_core.Issue)
+  Value(Int, @value_admission.Issue)
+  Row(ConditionalRowIssue)
+}
 
 pub struct EvalIssue {
   kind : EvalIssueKind

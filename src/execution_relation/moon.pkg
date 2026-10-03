@@ -28,6 +28,7 @@ import {
   "actql/actql/carrier_contract" @carrier,
   "actql/actql/check_environment" @model_environment,
   "moonbitlang/core/json",
+  "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/bigint",
 }
 
