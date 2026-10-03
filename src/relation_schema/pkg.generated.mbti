@@ -13,6 +13,8 @@ pub fn as_object(Schema) -> @value_contract.Contract?
 
 pub fn conditional_field_presence(ConditionalField) -> FieldPresence
 
+pub fn conditional_relation_schema(ConditionalSchema) -> Schema
+
 pub fn field_at(Schema, Int) -> Field?
 
 pub fn field_contract(Field) -> @value_contract.Contract

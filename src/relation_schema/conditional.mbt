@@ -16,6 +16,7 @@ struct ConditionalField {
 /// cannot be passed to the dense Relation APIs as an ordinary Schema.
 struct ConditionalSchema {
   fields : Array[ConditionalField]
+  relation : Schema
   required : Schema
   required_indices : Array[Int]
 }
@@ -153,8 +154,18 @@ pub fn from_conditional_fields(
     return Err(LimitExceeded)
   }
   let all = match
-    from_fields(
-      entries.map(entry => (entry.0, entry.1)),
+    from_presence_fields(
+      entries.map(entry => {
+        (
+          entry.0,
+          entry.1,
+          if entry.2 == FieldPresence::Required {
+            Presence::Required
+          } else {
+            Presence::Conditional
+          },
+        )
+      }),
       max_fields~,
       max_name_bytes~,
     ) {
@@ -181,7 +192,15 @@ pub fn from_conditional_fields(
       required_indices.push(index)
     }
   }
-  Ok({ fields: result_fields, required, required_indices, })
+  Ok({ fields: result_fields, relation: all, required, required_indices, })
+}
+
+///|
+/// The same checked finite field set in the shared Relation owner. This is
+/// schema evidence only; it does not turn a provisional row into retained
+/// Relation storage or a publishable Result.
+pub fn conditional_relation_schema(schema : ConditionalSchema) -> Schema {
+  schema.relation
 }
 
 ///|

@@ -10,10 +10,22 @@ test "unadapted Relation consumers reject conditional rows before execution" {
     max_fields=2,
     max_name_bytes=3,
   ).unwrap()
-  let input = [
-    ("rows", @carrier.relation(@carrier.conditional_rows(conditional))),
-  ]
-  for source in ["[{\"select\":[\"p\"]}]", "[{\"filter\":\"p = 7\"}]"] {
+  let input = [("rows", @carrier.relation(@carrier.typed_rows(conditional)))]
+  assert_true(
+    @pipeline_typing.check_carriers(
+      cursor("[{\"select\":[\"id\"]}]"),
+      input,
+      None,
+      None,
+      limits(),
+    )
+    is Ok(_),
+  )
+  for
+    (source, expected) in [
+      ("[{\"select\":[\"p\"]}]", "presence"),
+      ("[{\"filter\":\"p = 7\"}]", "unsupported"),
+    ] {
     let result = @pipeline_typing.check_carriers(
       cursor(source),
       input,
@@ -21,6 +33,17 @@ test "unadapted Relation consumers reject conditional rows before execution" {
       None,
       limits(),
     )
-    assert_true(result is Err({ kind: IncompleteSchema, .. }))
+    if expected == "presence" {
+      assert_true(
+        result is Err({ kind: Operation(@relation.PresenceRequired("p")), .. }),
+      )
+    } else {
+      assert_true(
+        result
+        is Err(
+          { kind: Operation(@relation.ConditionalInputNotImplemented), .. }
+        ),
+      )
+    }
   }
 }

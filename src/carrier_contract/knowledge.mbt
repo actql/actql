@@ -206,8 +206,7 @@ pub fn lookup(rows : Knowledge, name : @row.FieldName) -> Lookup {
     }
   }
   if lo < rows.entries.length() && rows.entries[lo].name == name {
-    if rows.conditional is Some(schema) &&
-      @row.presence_lookup(schema, name) is @row.ConditionallyPresent(_) {
+    if rows.entries[lo].presence == @row.Presence::Conditional {
       return Unknown
     }
     Present(rows.entries[lo])

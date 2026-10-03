@@ -187,5 +187,6 @@ test "closed typed knowledge does not imply row-total presence" {
   assert_eq(field.presence, @row.Conditional)
   assert_true(field.contract.unwrap().nullable)
   assert_true(!@row.all_fields_required(complete_schema(knowledge).unwrap()))
+  assert_true(lookup(knowledge, Unqualified("p")) is Unknown)
   assert_true(lookup(knowledge, Unqualified("other")) is Absent)
 }

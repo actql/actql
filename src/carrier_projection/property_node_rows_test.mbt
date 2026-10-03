@@ -62,7 +62,13 @@ test "property node rows derive required and conditional fields before execution
   )
   let output = @carrier_projection.property_node_rows_output(checked)
   let rows = @carrier.relation_rows(output).unwrap()
-  assert_true(@carrier.complete_schema(rows) is None)
+  let shared = @carrier.complete_schema(rows).unwrap()
+  assert_true(!@row.all_fields_required(shared))
+  assert_eq(@row.field_at(shared, 0).unwrap().presence, @row.Presence::Required)
+  assert_eq(
+    @row.field_at(shared, 1).unwrap().presence,
+    @row.Presence::Conditional,
+  )
   assert_true(@carrier.lookup(rows, Unqualified("p")) is Unknown)
   let schema = @carrier_projection.property_node_rows_schema(checked)
   assert_true(

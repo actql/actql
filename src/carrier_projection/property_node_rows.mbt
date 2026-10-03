@@ -149,7 +149,9 @@ pub fn check_property_node_rows(
   Ok({
     source,
     input,
-    output: @carrier.relation(@carrier.conditional_rows(schema)),
+    output: @carrier.relation(
+      @carrier.typed_rows(@row.conditional_relation_schema(schema)),
+    ),
     schema,
     id_column,
     property_columns,
