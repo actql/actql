@@ -186,6 +186,7 @@
                 "type": "object",
                 "additionalProperties": false,
                 "required": [
+                  "key_columns",
                   "key_contracts",
                   "labels",
                   "name",
@@ -194,6 +195,17 @@
                   "target_definition"
                 ],
                 "properties": {
+                  "key_columns": {
+                    "type": "array",
+                    "items": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "minLength": 1
+                    },
+                    "minItems": 1
+                  },
                   "key_contracts": {
                     "type": "array",
                     "items": {
@@ -253,12 +265,24 @@
                 "type": "object",
                 "additionalProperties": false,
                 "required": [
+                  "key_columns",
                   "key_contracts",
                   "labels",
                   "name",
                   "properties"
                 ],
                 "properties": {
+                  "key_columns": {
+                    "type": "array",
+                    "items": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "minLength": 1
+                    },
+                    "minItems": 1
+                  },
                   "key_contracts": {
                     "type": "array",
                     "items": {

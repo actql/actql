@@ -1,5 +1,5 @@
 ///|
-test "unsupported unary Graph consumers distinguish current contract opaque evidence and wrong families" {
+test "unary Graph consumers distinguish supported contracts opaque evidence and wrong families" {
   let bodies = [
     ("normalize_graph", "true"),
     ("degree", "{\"direction\":\"in\"}"),
@@ -17,15 +17,20 @@ test "unsupported unary Graph consumers distinguish current contract opaque evid
   ]
   for (name, body) in bodies {
     let source = cursor("[{\"" + name + "\":" + body + "}]")
-    let issue = @pipeline_typing.check_carriers(
+    let checked = @pipeline_typing.check_carriers(
       source,
       [("g", graph_input())],
       None,
       None,
       limits(),
-    ).unwrap_err()
-    assert_eq(issue.kind, Graph(@graph.UnsupportedGraphOperation))
-    assert_eq(issue.path, [Index(0), Key(name)])
+    )
+    if name == "degree" || name == "graph_bounds" {
+      assert_true(checked is Ok(_))
+    } else {
+      let issue = checked.unwrap_err()
+      assert_eq(issue.kind, Graph(@graph.UnsupportedGraphOperation))
+      assert_eq(issue.path, [Index(0), Key(name)])
+    }
     let missing = @pipeline_typing.check_carriers(
       source,
       [("g", @carrier.unknown_carrier(GraphKind))],

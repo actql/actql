@@ -2174,7 +2174,7 @@ pub(all) enum RelationPresenceIssue {
   PresenceNotGuaranteed(Int)
   InvalidLimits
   Limit
-}
+} derive(Eq, @debug.Debug)
 
 type RelationSchemaIdentity
 

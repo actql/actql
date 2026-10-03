@@ -77,9 +77,11 @@ fn primary_operation_profile(operation : CheckedOperation) -> OperationProfile? 
         match @projection.operation(projection) {
           Events => TEA
           Vectors => VecA
+          NodeRows | EdgeRows => PropertyGraph
         }
       PropertyGraphConstruction(..) => PropertyGraph
-      GraphMatch(_) | Traverse(..) => PropertyGraph
+      GraphMatch(_) | GraphBounds(_) | GraphDegree(_) | Traverse(..) =>
+        PropertyGraph
       Vector(_) | Nearest(..) | Pool(_) | Ranking(_) => VecA
       TextRank(..) => TextRankProfile
     },

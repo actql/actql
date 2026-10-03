@@ -40,25 +40,41 @@ test "Vectors projection retains its registered typed operation" {
 }
 
 ///|
-test "unconnected Graph projections refuse current input rather than issuing tuple kernels" {
+test "Graph row projections lower to registered typed Carrier bridges" {
   for operation in ["node_rows", "edge_rows"] {
-    let issue = @pipeline.check_carriers(
-      cursor("[{\"from\":\"g\",\"" + operation + "\":true}]"),
+    let owner = carrier_projection_owner(
+      "[{\"from\":\"g\",\"" + operation + "\":true}]",
       [("g", graph_match_carrier())],
-      None,
-      None,
-      {
-        max_steps: 10,
-        max_work: 10000,
-        max_text_bytes: 10000,
-        max_nodes: 1000,
-        max_tokens: 1000,
-        max_depth: 100,
-      },
-    ).unwrap_err()
-    assert_true(
-      issue.kind is @pipeline.Projection(@projection.UnsupportedGraphOperation),
     )
-    assert_true(issue.path.contains(@source.Key(operation)))
+    let sequence = @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
+    guard @lowering_relation.sequence_step(sequence, 0)
+      is Some(@lowering_relation.CarrierProjectionStep(checked)) else {
+      fail("typed Graph bridge")
+    }
+    assert_eq(
+      @lowering_relation.carrier_projection_operation(checked),
+      if operation == "node_rows" {
+        @projection.NodeRows
+      } else {
+        @projection.EdgeRows
+      },
+    )
+    let node = @lowering_relation.node_at(
+      @lowering_relation.bound_preparation(owner),
+      0,
+    ).unwrap()
+    assert_true(@lowering_relation.node_accepts_managed_carrier_view(node, 0))
+    assert_false(@lowering_relation.node_accepts_managed_carrier_view(node, 1))
+    assert_true(
+      @lowering_relation.node_supports_selected_managed_execution(node),
+    )
+    assert_eq(
+      @lowering_relation.operation(node),
+      if operation == "node_rows" {
+        "BRIDGE.graph.to_node_rows"
+      } else {
+        "BRIDGE.graph.to_edge_rows"
+      },
+    )
   }
 }

@@ -77,6 +77,43 @@ fn bounded_binding_input_cell(
 }
 
 ///|
+// Resource admission inspects typed presence, not ordinary expression access.
+// Missing metadata and unavailable reads remain errors, never NULL or omission.
+fn bounded_binding_input_charge_cell(
+  input : BoundedBindingInput,
+  row : Int,
+  column : Int,
+) -> Result[Value?, BoundedBindingRowsIssue] {
+  let schema = bounded_binding_input_schema(input)
+  if @schema.all_fields_required(schema) {
+    return match bounded_binding_input_cell(input, row, column) {
+      Some(value) => Ok(Some(value))
+      None => Err(InvalidExecution)
+    }
+  }
+  let cell = match input {
+    CompletedBindingInput(read) => {
+      guard producer_read_available(read) &&
+        read.columns.get(column) is Some(source) else {
+        return Err(InvalidExecution)
+      }
+      completed_presence_cell(read.bound.output, row, source)
+    }
+    SuppliedBindingInput(read) => {
+      if !supplied_relation_read_available(read) {
+        return Err(InvalidExecution)
+      }
+      captured_presence_cell(read.rows, row, column)
+    }
+  }
+  match cell {
+    Ok(Absent) => Ok(None)
+    Ok(Present(value)) => Ok(Some(capture(value)))
+    Err(_) => Err(InvalidExecution)
+  }
+}
+
+///|
 /// Only an admitted backing table can carry a reusable cell proof. A raw
 /// RowTable may contain computed values and must be checked again.
 fn bounded_binding_input_admitted_cell(
@@ -1013,16 +1050,26 @@ fn bounded_binding_rows_step(
         } else if state.charge_column < state.input_names.length() {
           let column = state.charge_column
           if state.charge_measure is None {
-            guard bounded_binding_input_cell(
+            let charged = match
+              bounded_binding_input_charge_cell(
                 state.input,
                 state.charge_row,
                 column,
-              )
-              is Some(value) else {
-              return fail_bounded_binding_rows(InvalidExecution, progress, used)
+              ) {
+              Ok(value) => value
+              Err(issue) =>
+                return fail_bounded_binding_rows(issue, progress, used)
             }
             if !charge_text(state.input_values, state.input_names[column]) {
               return fail_bounded_binding_rows(InputLimit, progress, used)
+            }
+            guard charged is Some(value) else {
+              if !charge_node(state.input_values, 2) {
+                return fail_bounded_binding_rows(InputLimit, progress, used)
+              }
+              state.charge_column += 1
+              used += 1
+              continue
             }
             guard start_stepped_measure_result(value, state.workspace)
               is Some(cursor) else {
@@ -2459,6 +2506,9 @@ fn start_bounded_binding_rows_with_input(
   let sort_only = body is @lower.StableSort(_) ||
     body is @lower.TopK(_, _) ||
     body is @lower.PartitionedTopK(_, _)
+  if !@schema.all_fields_required(input_schema) && !select_mode {
+    return Err(InvalidExecution)
+  }
   let partition_limit = match body {
     @lower.PartitionedTopK(count, _) => Some(count)
     _ => None

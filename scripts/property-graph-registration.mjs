@@ -24,6 +24,7 @@ export function executionContract(law, protocol) {
   const lawCid = machineCid(law);
   const value = {$ref: '#/$defs/value_contract'};
   const definition = {
+    key_columns: {...array({type: ['string', 'null'], minLength: 1}), minItems: 1},
     key_contracts: {...array({allOf: [value, {properties: {nullable: {const: false}}}]}), minItems: 1},
     labels: {type: 'object', additionalProperties: {...array(name), uniqueItems: true}},
     name,
@@ -61,7 +62,7 @@ export function executionContract(law, protocol) {
       admission: 'use_existing_checked_constructor_and_typed_contract_owner_before_execution_schema_validation_alone_is_not_admission',
       profile: 'distinct_property_graph_contract_no_legacy_graph_reading_conversion_or_fallback',
       inputs: 'one_ordered_relation_occurrence_per_node_then_edge_definition_preserve_repeated_producers_exact_input_count_equals_nodes_plus_edges_zero_only_for_empty_definition_set',
-      correspondence: 'each_binding_names_exact_admitted_definition_once_keys_and_properties_are_checked_producer_column_coordinates_endpoint_coordinates_match_referenced_node_key_types',
+      correspondence: 'each_binding_names_exact_admitted_definition_once_keys_and_properties_are_checked_producer_column_coordinates_endpoint_coordinates_match_referenced_node_key_types_key_columns_has_exact_key_contract_count_all_named_or_all_anonymous_null_and_preserves_original_component_name_position_type_for_snapshot_and_rows',
       identity: 'definition_domain_and_complete_nonnull_typed_key_independent_of_properties_labels_endpoints_input_artifact_parameter_values_run_invocation_and_current_content_CIDs',
       domain: 'existing_checker_issues_domain_from_admitted_constructor_definition_and_producer_provenance_not_caller_claimed_current_data',
       null_keys: 'exclude_rows_with_null_element_key_before_uniqueness_and_endpoint_resolution',

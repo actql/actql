@@ -266,6 +266,76 @@ test('keyed constructor Host in-flight cancellation never publishes partial Grap
 // All variants use the same admitted current constructor and existing Host.
 // These are execution/custody checks, not refusals standing in for execution.
 for (const scenario of [
+  {operation:'node_rows', name: 'node_rows Host in-flight cancellation reclaims private Relation without publishing'},
+  {operation:'edge_rows', name: 'edge_rows Host in-flight cancellation reclaims private Relation without publishing'},
+]) {
+  const rowsOperation = scenario.operation;
+  test(scenario.name, async () => {
+    const value = structuredClone(program);
+    value.stages[0].steps[0] = {values: {
+      schema: {person_key: {type:'number', nullable:false}},
+      rows: [{person_key:1}],
+    }, as:'nodes'};
+    value.stages[0].steps[2].property_graph.nodes[0].key = ['person_key'];
+    value.stages[0].steps[2].property_graph.nodes[0].labels = [];
+    value.stages[0].steps[2].property_graph.edges[0].labels = [];
+    value.stages[0].steps[3] = {from:'g', [rowsOperation]:true, as:'matched'};
+    value.stages[0].results.out.fields = ['id'];
+    const ready = moon.clientProgramPreparationReady(
+      moon.clientProgramPrepareEffectFreeWithParameters(canonicalText(value),'json',owner,undefined));
+    assert.ok(ready);
+    const aoa = read('spec/contracts/actql-aoa.json');
+    const setup = moon.clientProgramOpenSourceFreeLocalHost(ready,
+      JSON.stringify(read(aoa.pipeline_registry_file)), JSON.stringify(aoa.execution_contracts['REL.values']),
+      1n,0n,0n,0n,JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+      JSON.stringify(aoa.execution_contracts['REL.derive.ordered']));
+    assert.ok(setup);
+    assert.equal(moon.strategyHostConfigureManagedIdentity(setup,true,false,false,false),true);
+    const controller = new AbortController();
+    let sawWork = false, completed = false, starts = 0;
+    const observed = new Proxy(moon,{get(target,name,receiver) {
+      if (name !== 'strategyModule_local_ManagedStart') return Reflect.get(target,name,receiver);
+      return configuration => {
+        const task = target.strategyHostNextTask(setup);
+        starts++;
+        const result = target.strategyModule_local_ManagedStart(configuration);
+        if (task !== 3) return result;
+        const operations = checked(result);
+        return {$tag:1,_0:new Proxy(operations,{get(operation,member,operationReceiver) {
+          if (member !== 'advance') return Reflect.get(operation,member,operationReceiver);
+          return () => {
+            const result = operation.advance(1);
+            const observation = checked(result);
+            completed ||= observation.complete;
+            if (!sawWork && !observation.complete && observation.work > 0n) {
+              sawWork = true;
+              // Deliver cancellation at the existing Host's actual yield.
+              setTimeout(() => controller.abort(),0);
+            }
+            return result;
+          };
+        }})};
+      };
+    }});
+    const execution = await runInstalledStrategy(setup,runtimeCore(moon),
+      [localStrategyContribution(observed,setup,checked)],controller.signal);
+    try {
+      assert.equal(sawWork,true);
+      assert.equal(controller.signal.aborted,true);
+      assert.equal(completed,false);
+      assert.equal(starts,4);
+      assert.equal(execution.status,'host-tasks-failed');
+      assert.equal(execution.failure?.name,'AbortError');
+      assert.deepEqual(execution.completed.map(result => result.task),[0,1,2]);
+    } finally {
+      await execution.close();
+      await execution.cleanup(); await execution.close();
+      assert.equal(execution.cleanupPending(),false);
+    }
+  });
+}
+
+for (const scenario of [
   {name: 'current-match-nodes-literal', op:'match_nodes', where:'true', field:'id', expected:1},
   {name: 'current-match-nodes-predicate', op:'match_nodes', where:'id > 0', field:'id', expected:1},
   {name: 'current-match-edges-literal', op:'match_edges', where:'true', field:'key', expected:2},

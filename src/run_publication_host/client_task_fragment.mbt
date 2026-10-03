@@ -171,10 +171,25 @@ fn client_task_carrier_contract(
   match @carrier.kind(carrier) {
     RelationKind => {
       guard @carrier.relation_rows(carrier) is Some(rows) &&
-        @carrier.complete_schema(rows) is Some(schema) &&
-        @schema.as_object(schema) is Some(row) else {
+        @carrier.complete_schema(rows) is Some(schema) else {
         return None
       }
+      // Conditional Relation fields are not optional ordinary object fields.
+      // Bind the existing presence-aware schema owner at both task ports;
+      // publication still requires a projection to guaranteed columns.
+      if !@schema.all_fields_required(schema) {
+        return @execution.identify_relation_schema(schema, {
+            max_fields: max_nodes,
+            max_bytes: max_wire_bytes,
+            max_nodes,
+            max_depth,
+          })
+          .map(identity => {
+            ("relation", @execution.relation_schema_cid(identity))
+          })
+          .to_option()
+      }
+      guard @schema.as_object(schema) is Some(row) else { return None }
       let output_hash = @encode.hashing_writer(
         max_wire_bytes, max_nodes, max_depth,
       ) catch {
