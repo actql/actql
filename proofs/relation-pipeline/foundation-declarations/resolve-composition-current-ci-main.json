@@ -1,0 +1,61 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-composition-current-ci-main",
+  "kind": "resolution",
+  "revision": "290d6ef5c119bf21a0a84504c25fd89319934ec8",
+  "parents": [
+    "c8ad0d0086a7e60e3a71ea92ac5331d944583e34",
+    "eec5cae6e5f915b92cdae0ded5d4a44bdef40e54"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "c8ad0d0086a7e60e3a71ea92ac5331d944583e34",
+          "digest": "90c48c700b1dfc054e6e998945733315330573ae7f20c475d05f28481e2231ad",
+          "mode": "100644"
+        },
+        {
+          "revision": "eec5cae6e5f915b92cdae0ded5d4a44bdef40e54",
+          "digest": "38db7f5d957805622f04dfc7d9e2a6531f2fec11233b1a13ed595ae0fd5ed446",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "4efe8163fb965a7399fdd3d0bf17950d8fe4867d5019fc19db54f1c8356533ab",
+      "afterMode": "100644",
+      "reason": "Normally integrate the subsequently merged main carryforward and focused-CI settings with the existing composition acceptance; retain all ordered parents, original declarations and independently derived source groups."
+    }
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-343a5565c1ac",
+    "adopt-985dbbba2789",
+    "adopt-dafff1a1aeea",
+    "bounded-local-execution-guard",
+    "ci-artifact-preflight-fixtures",
+    "ci-declaration-profile",
+    "ci-focused-fixed-requests",
+    "ci-main-carryforward",
+    "ci-maintenance-pr-profile",
+    "ci-mandatory-preflight",
+    "ci-portable-pr-targets",
+    "client-ci-runner-context",
+    "client-ci-split",
+    "issue-180-foundation-composition",
+    "main-pr225-ci-resolution",
+    "packed-acquired-infer-acceptance",
+    "packed-composed-infer-effect-acceptance",
+    "parallel-pipeline-evidence",
+    "resolve-acquired-infer-client-ci",
+    "resolve-ci-main-carryforward-artifact-preflight",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-composition-maintenance-ci-main",
+    "resolve-composition-reviewed-supplements-main",
+    "resolve-local-guard-acquired-infer-ci",
+    "resolve-local-guard-pipeline-ci",
+    "resolve-main-model-backing",
+    "resolve-parallel-pipeline-main-infer"
+  ]
+}

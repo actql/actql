@@ -48,6 +48,29 @@ pub fn issue_prepared_client_task_plan_graph(
 }
 
 ///|
+/// Splice the original Model component into its checked task position. The
+/// common graph still validates every producer edge and issues Named Results.
+pub fn issue_prepared_client_composed_task_plan_graph(
+  value : PreparedClientProgram,
+  infer : ClientInferPlanGraph,
+  sequence_limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientTaskPlanGraph, ClientTaskPlanGraphIssue] {
+  issue_client_task_plan_graph(
+    value,
+    sequence_limits,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    false,
+    [],
+    infer=Some(infer),
+  )
+}
+
+///|
 fn issue_client_task_plan_graph(
   value : PreparedClientProgram,
   sequence_limits : @lower.SequenceLimits,
@@ -56,6 +79,7 @@ fn issue_client_task_plan_graph(
   max_depth : Int,
   effects : Bool,
   effect_roots : Array[(String, Int)],
+  infer? : ClientInferPlanGraph? = None,
 ) -> Result[ClientTaskPlanGraph, ClientTaskPlanGraphIssue] {
   if max_wire_bytes <= 0 || max_nodes <= 0 || max_depth <= 0 {
     return Err(InvalidLimits)
@@ -70,18 +94,37 @@ fn issue_client_task_plan_graph(
     return Err(UnsupportedGraph)
   }
   let fragments : Array[ClientTaskFragmentNode] = []
+  let input_fragments : Array[ClientTaskFragmentNode] = []
+  let input_nodes : Array[@canonical.CanonicalValue] = []
+  let model_edges : Array[@canonical.CanonicalValue] = []
   let transformations : Array[ClientResultTransformation] = []
   let nodes : Array[@canonical.CanonicalValue] = []
+  if infer is Some(infer) &&
+    (
+      !physical_equal(value, infer.owner) ||
+      infer.task < 0 ||
+      infer.task >= count
+    ) {
+    return Err(UnsupportedGraph)
+  }
   for task in 0..<count {
-    let fragment = match
-      issue_prepared_client_task_fragment(
-        value, task, sequence_limits, max_wire_bytes, max_nodes, max_depth,
-      ) {
-      Ok(fragment) => fragment
-      Err(issue) => return Err(Fragment(issue))
+    let fragment = match infer {
+      Some(infer) if task == infer.task => infer.output
+      _ =>
+        match
+          issue_prepared_client_task_fragment(
+            value, task, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+          ) {
+          Ok(fragment) => fragment
+          Err(issue) => return Err(Fragment(issue))
+        }
+    }
+    let input = match infer {
+      Some(infer) if task == infer.task => infer.input
+      _ => fragment
     }
     guard parse_plan_identity_value(
-        fragment.wire,
+        input.wire,
         max_wire_bytes,
         max_nodes,
         max_depth,
@@ -90,7 +133,36 @@ fn issue_client_task_plan_graph(
       return Err(Encoding)
     }
     fragments.push(fragment)
-    nodes.push(node)
+    input_fragments.push(input)
+    input_nodes.push(node)
+    match infer {
+      Some(infer) if task == infer.task => {
+        guard parse_plan_identity_value(
+            infer.graph.wire,
+            max_wire_bytes,
+            max_nodes,
+            max_depth,
+          )
+          is Some(component) &&
+          @canonical.object_field(component, "nodes")
+          is Some(@canonical.Array(component_nodes)) &&
+          @canonical.object_field(component, "data_edges")
+          is Some(@canonical.Array(component_edges)) &&
+          @canonical.object_field(component, "root_refs")
+          is Some(@canonical.Array(component_roots)) &&
+          @canonical.array_values(component_roots).is_empty() &&
+          infer.graph.transformations.is_empty() else {
+          return Err(UnsupportedGraph)
+        }
+        for component_node in @canonical.array_values(component_nodes) {
+          nodes.push(component_node)
+        }
+        for edge in @canonical.array_values(component_edges) {
+          model_edges.push(edge)
+        }
+      }
+      _ => nodes.push(node)
+    }
   }
   let roots : Array[@canonical.CanonicalValue] = []
   let result_edges : Array[@canonical.CanonicalValue] = []
@@ -168,11 +240,11 @@ fn issue_client_task_plan_graph(
           })
       }
       guard fragments.get(producer) is Some(source) &&
-        fragments.get(consumer) is Some(destination) &&
+        input_fragments.get(consumer) is Some(destination) &&
         input is Some((input_name, carrier)) &&
         client_task_carrier_kind(source.output_carrier) is Some(source_kind) &&
         @carrier.kind(carrier) == source_kind &&
-        nodes.get(consumer) is Some(consumer_node) &&
+        input_nodes.get(consumer) is Some(consumer_node) &&
         @canonical.object_field(consumer_node, "input_contracts")
         is Some(input_contracts) &&
         @canonical.object_field(input_contracts, input_name)
@@ -202,6 +274,9 @@ fn issue_client_task_plan_graph(
       @encode.string_value(writer, input_name)
       @encode.end_object(writer)
       @encode.end_object(writer)
+    }
+    for edge in model_edges {
+      @canonical.emit_value(edge, writer)
     }
     for edge in result_edges {
       @canonical.emit_value(edge, writer)

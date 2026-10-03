@@ -27,6 +27,7 @@ pub(all) suberror NodeHostFailure {
   RemoteCredential(@credential.RemoteCredentialIssue)
   RemoteBundle(@bundle.RemoteBundleIssue)
   PhysicalManifest(@manifest.PhysicalManifestIssue)
+  ReferenceComputeManagedStart(@binding16.PlanIssue)
 }
 
 ///|
@@ -8844,6 +8845,6 @@ pub fn reference_compute_managed_start(
 ) -> @binding15.NumericManagedDispatchOperations[Int] raise NodeHostFailure {
   match @binding15.start_numeric_managed_dispatch_node(setup) {
     Ok(value) => value
-    Err(_) => raise InvalidCommand
+    Err(issue) => raise ReferenceComputeManagedStart(issue)
   }
 }

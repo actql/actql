@@ -1,4 +1,32 @@
 ///|
+/// The selected configurations retain their original Native/Broad owner.
+#export_name("clientProgramCapturedNativeConfiguration")
+pub fn client_program_captured_native_configuration(
+  setup : @duckdb_host.NativeHostConfiguration,
+) -> @duckdb_host.CaptureConfiguration {
+  @duckdb_host.native_capture_configuration(setup)
+}
+
+///|
+#export_name("clientProgramCapturedBroadConfiguration")
+pub fn client_program_captured_broad_configuration(
+  setup : @duckdb_host.BroadHostConfiguration,
+) -> @duckdb_host.CaptureConfiguration {
+  @duckdb_host.broad_capture_configuration(setup)
+}
+
+///|
+#export_name("clientProgramCapturedAcquisitionCapacity")
+pub fn client_program_captured_acquisition_capacity(
+  setup : @duckdb_host.CaptureConfiguration,
+) -> Result[Array[Int64], @resources.LedgerIssue] {
+  match @duckdb_host.configured_capture_capacity(setup) {
+    Some(capacity) => Ok([capacity.retained_bytes, capacity.execution_bytes])
+    None => Err(InvalidLimits)
+  }
+}
+
+///|
 /// Read the existing Run ledger for bounded installed-Host diagnostics.
 #export_name("clientProgramMultiCapturedLedgerUsage")
 pub fn client_program_multi_captured_ledger_usage(
@@ -59,5 +87,71 @@ pub fn client_program_open_multi_captured_local_host(
     fragment_body,
     ordered_body,
     provider_factory=installed_client_family_providers,
+  )
+}
+
+///|
+#export_name("clientProgramPrepareMultiCapturedEffectLocalLedger")
+pub fn client_program_prepare_multi_captured_effect_local_ledger(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  acquisitions : Array[@duckdb_host.NativeHostConfiguration],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.Ledger? {
+  @client_local_host.prepare_multi_captured_effect_local_ledger(
+    prepared, acquisitions, transport_bytes, transport_execution_bytes, registry_body,
+    values_body, fragment_body, ordered_body,
+  )
+}
+
+///|
+#export_name("clientProgramOpenMultiCapturedLocalEffectHost")
+pub fn client_program_open_multi_captured_local_effect_host(
+  prepared : @publication_host.PreparedClientEffectRun,
+  sources : Array[@query.CapturedInputSource],
+  ledger : @resources.Ledger,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> ClientLocalEffectHost? {
+  if sources.length() != 2 {
+    return None
+  }
+  open_client_local_effect_host(
+    prepared,
+    None,
+    registry_body,
+    values_body,
+    1L,
+    0L,
+    0L,
+    0L,
+    fragment_body~,
+    ordered_body~,
+    captured_sources=[(0, sources[0]), (1, sources[1])],
+    acquisition_ledger=Some(ledger),
+  )
+}
+
+///|
+#export_name("clientProgramPrepareMultiCapturedEffectAcquisitionLedger")
+pub fn client_program_prepare_multi_captured_effect_acquisition_ledger(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  acquisitions : Array[@duckdb_host.CaptureConfiguration],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.Ledger? {
+  @client_local_host.prepare_multi_captured_effect_acquisition_ledger(
+    prepared, acquisitions, transport_bytes, transport_execution_bytes, registry_body,
+    values_body, fragment_body, ordered_body,
   )
 }

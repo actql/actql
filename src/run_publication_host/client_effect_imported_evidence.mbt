@@ -35,19 +35,15 @@ pub fn issue_client_effect_imported_evidence(
     Ok(value) => value
     Err(issue) => return Err(Invocation(issue))
   }
-  // The installed profile has one external source. Every imported result
-  // must retain that same admitted scope; do not union access permissions.
-  guard observations[0].artifact.scope is Some(scope) else {
-    return Err(MissingScope)
-  }
+  // Retain each producer's exact scope on its Relation. The downstream
+  // scope is the canonical request inventory of those captured imports,
+  // not a union of access permissions or a caller-supplied source list.
+  let scopes : Array[@publication.PublicationContract] = []
   let relations : Array[@publication.PublicationContract] = []
   for observation in observations {
     let artifact = observation.artifact
     guard artifact.scope is Some(input_scope) else { return Err(MissingScope) }
-    if @publication.publication_contract_identity(input_scope) !=
-      @publication.publication_contract_identity(scope) {
-      return Err(IncompatibleScope)
-    }
+    scopes.push(input_scope)
     let relation = match
       @publication.issue_derived_input_relation(
         artifact.artifact,
@@ -70,6 +66,13 @@ pub fn issue_client_effect_imported_evidence(
       relations.push(relation)
     }
   }
+  let scope = match
+    @publication.issue_combined_acquisition_scope(
+      scopes, max_bytes, max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Relation(issue))
+  }
   relations.sort_by(fn(a, b) {
     @canonical_value.compare_utf16(
       @publication.publication_contract_identity(a),
@@ -91,6 +94,15 @@ pub fn client_effect_imported_invocation(
   value : ClientEffectImportedEvidence,
 ) -> ClientEffectLocalInvocation {
   value.invocation
+}
+
+///|
+/// The derived Result references this exact combined scope. Retain its body
+/// alongside the input Relations so recovery can close the evidence graph.
+pub fn client_effect_imported_scope_json(
+  value : ClientEffectImportedEvidence,
+) -> String {
+  @publication.publication_contract_json(value.scope)
 }
 
 ///|

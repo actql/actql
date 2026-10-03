@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
+import {readFile, mkdir, mkdtemp, rm} from 'node:fs/promises';
+import {createRequire} from 'node:module';
+import {execFileSync} from 'node:child_process';
+import {fileURLToPath, pathToFileURL} from 'node:url';
+import {join} from 'node:path';
 import test from 'node:test';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -7,6 +11,7 @@ import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {createNodeAuthorizationGate} from './authorization.mjs';
 import {capturedDuckDBNativeConfiguration, openCapturedDuckDBSource,
   prepareCapturedDuckDBSource} from './captured-duckdb-source.mjs';
+import * as capturedModule from './captured-duckdb-source.mjs';
 
 const nativeCapability = 'sha256:7d9eec132b742aca27b78a801c6bea187a251b7423967950e285755c50e853d8';
 const broadCapability = 'sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89';
@@ -231,4 +236,87 @@ test('a prepared source binds its immutable mandatory transport policy', async (
     reportAcquisitionFailure: failure => { ended = failure; }}),
   {message: 'InstalledSourceResourcePolicyMismatch'});
   assert.equal(ended.outcome, 'not_started');
+});
+
+test('selected Broad acquisition contributes its original capacity without being relabeled Native', async () => {
+  const options = await sourceOptions(await requirement([broadCapability]), moon, 'allow');
+  const prepared = await prepareCapturedDuckDBSource(options);
+  assert.equal(prepared.selection.selectedCandidate, 'broadQuery');
+  assert.throws(() => capturedDuckDBNativeConfiguration(prepared),
+    {message: 'InstalledMultiSourceNativeAcquisitionRequired'});
+  assert.equal(typeof capturedModule.capturedDuckDBConfiguration, 'function');
+  const configuration = capturedModule.capturedDuckDBConfiguration(prepared);
+  const capacity = checked(moon.clientProgramCapturedAcquisitionCapacity(configuration));
+  assert.equal(capacity.length, 2);
+  assert.ok(capacity[0] > 0n);
+  assert.ok(capacity[1] > 0n);
+  assert.throws(() => capturedModule.capturedDuckDBConfiguration({}),
+    {message: 'InstalledSourcePreparationMismatch'});
+  assert.equal(prepared.selection.selectedCandidate, 'broadQuery');
+});
+
+test('one accounted Broad capture holds the original residual until confirmed cleanup', async () => {
+  const root = fileURLToPath(new URL('../../', import.meta.url));
+  execFileSync('moon', ['build', '--target', 'js', '--release',
+    'src/physical_strategy_example'], {cwd: root, stdio: 'pipe'});
+  const app = await import(pathToFileURL(join(root,
+    '_build/js/release/build/physical_strategy_example/physical_strategy_example.js')));
+  const requireDuckDB = createRequire(new URL('../connectors/duckdb/node/package.json', import.meta.url));
+  const {DuckDBInstance} = requireDuckDB('@duckdb/node-api');
+  const base = join(root, '_build/duckdb-fixtures');
+  await mkdir(base, {recursive: true});
+  const directory = await mkdtemp(join(base, 'broad-ledger-'));
+  let captured;
+  let cleanupAllowed = false;
+  try {
+    const database = join(directory, 'source.duckdb');
+    const db = await DuckDBInstance.create(database);
+    const connection = await db.connect();
+    try {
+      await connection.run('CREATE TABLE records(id DOUBLE, amount DOUBLE)');
+      await connection.run('INSERT INTO records VALUES (3,30),(1,NULL),(2,20)');
+    } finally { connection.closeSync(); db.closeSync(); }
+    const observedMoon = {...moon, clientBroadResidualCleanup(owner) {
+      return cleanupAllowed ? moon.clientBroadResidualCleanup(owner) :
+        { $tag: 1, _0: false };
+    }};
+    const options = await sourceOptions(await requirement([broadCapability]), observedMoon, 'allow');
+    options.database = database;
+    const preparedSource = await prepareCapturedDuckDBSource(options);
+    assert.equal(preparedSource.selection.selectedCandidate, 'broadQuery');
+    const ledger = checked(app.applicationBoundedLedger({planning_work: 100000,
+      attempts: 2, holdings: 2, transfer_bytes: 100000n,
+      retained_bytes: 1000000000n, execution_bytes: 2000000000n}));
+    captured = await openCapturedDuckDBSource({...options, preparedSource, ledger});
+    const observation = JSON.parse(captured.capture.document());
+    assert.equal(observation.output.rows_cid, contentCid([{id: 3}, {id: 2}]));
+    assert.equal(observation.output.row_count, 2);
+    assert.throws(() => captured.capture.bindInput(undefined, 0),
+      {code: 'MoonBitHostFailure'});
+    assert.equal(captured.acquisition.selection.selectedCandidate, 'broadQuery');
+    const usage = () => moon.clientProgramMultiCapturedLedgerUsage(ledger);
+    assert.equal(usage()[1], 1n);
+    assert.equal(usage()[2], 1n);
+    assert.ok(usage()[3] > 0n);
+    assert.ok(usage()[5] > 0n);
+    assert.equal(usage()[6], 0n);
+    assert.equal(usage()[7], 0n);
+    assert.equal(usage()[8], 0n);
+    assert.throws(() => captured.close(), {code: 'ResidualCleanupPending'});
+    assert.equal(usage()[2], 1n);
+    assert.ok(usage()[5] > 0n);
+    cleanupAllowed = true;
+    await captured.close();
+    // Holdings counts issued allocations; released bytes must return to zero.
+    assert.equal(usage()[2], 1n);
+    assert.equal(usage()[5], 0n);
+    assert.equal(usage()[6], 0n);
+    assert.equal(usage()[7], 0n);
+    assert.throws(() => captured.capture.source(), {code: 'ClosedSourceCapture'});
+    await captured.close();
+  } finally {
+    cleanupAllowed = true;
+    await captured?.close();
+    await rm(directory, {recursive: true, force: true});
+  }
 });

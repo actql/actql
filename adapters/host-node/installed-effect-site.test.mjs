@@ -194,6 +194,29 @@ test('installed Effect custody retries provider cleanup without Compute',
     assert.equal(disposeCalls, 2);
   });
 
+test('installed Effect releases its consumer pins before Compute reclamation', async () => {
+  const order = [];
+  let retained, released = false;
+  const execution = {async close() {
+    order.push('compute-close');
+    assert.equal(released, true, 'the stopped Effect no longer borrows Compute');
+  }, async cleanup() { order.push('compute-cleanup'); return released; },
+  cleanupPending: () => !released};
+  const site = createInstalledEffectSite({environmentWire: '{}',
+    prepareCaptured() { return {
+      releaseInputs() { order.push('pins-release'); released = true; },
+      dispose() { order.push('stage-dispose'); },
+    }; }, prepareRecovered() { assert.fail('No new capture or Compute'); }});
+  await assert.rejects(site.execute({openComputation: () => ({execution, checkedHost: {}}),
+    retainExecution: value => { retained = value; }}),
+  {code: 'InvalidInstalledEffectCapture'});
+  await retained.close();
+  assert.equal(await retained.cleanup(), true);
+  assert.equal(await retained.cleanup(), true);
+  assert.deepEqual(order, ['pins-release', 'compute-close', 'compute-cleanup',
+    'stage-dispose', 'compute-cleanup']);
+});
+
 for (const mismatch of ['Preview', 'Unit', 'missing Unit']) {
 test(`installed Effect continuation rejects ${mismatch} before claim`,
   async () => {

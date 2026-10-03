@@ -38,9 +38,13 @@ pub fn client_duckdb_selection_document(ClientDuckDBAcquisitionSelection) -> Str
 
 pub fn client_duckdb_selection_native(ClientDuckDBAcquisitionSelection) -> @host.NativeHostConfiguration?
 
+pub fn client_effect_local_ledger_limits(@run_publication_host.PreparedClientEffectComputation, String, String, String?, String?) -> @physical_resources.LedgerLimits?
+
 pub fn client_infer_completed_input(ClientInferInputExecution) -> @execution_relation.CompletedOutput?
 
 pub fn client_infer_completion_preparation(ClientInferInputExecution, @execution_relation.PreparedInferRows) -> @execution_relation.CompletionPreparation?
+
+pub fn client_local_import_limits(@connector_sdk.FixedComputeCapacity, @execution_relation.ValueLimits) -> @local.LocalImportLimits
 
 pub fn client_query_residual_execution(ClientQueryResidual) -> @local.ManagedProviderExecution
 
@@ -68,9 +72,17 @@ pub fn open_source_free_local_retained_host(@run_publication_host.PreparedClient
 
 pub fn prepare_client_broad_residual(@host.BroadHostRun, Int) -> Result[ClientBroadResidual, ClientQueryResidualIssue]
 
+pub fn prepare_client_composed_infer_prefix(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientInferOccurrence, String, String, fragment_body? : String?, ordered_body? : String?) -> @execution_relation.GeneratedSequence?
+
+pub fn prepare_client_composed_infer_suffix(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientInferOccurrence, String, String, fragment_body? : String?, ordered_body? : String?) -> @execution_relation.GeneratedSequence?
+
 pub fn prepare_client_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String, String, String) -> Result[@host.NativeHostConfiguration, ClientDuckDBAcquisitionIssue]
 
 pub fn prepare_client_duckdb_broad_acquisition(@query_planning.QueryRequirement, String, String, String, String, String) -> Result[@host.BroadHostConfiguration, ClientDuckDBAcquisitionIssue]
+
+pub fn prepare_client_effect_infer_prefix(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientInferOccurrence, String, String, fragment_body? : String?, ordered_body? : String?) -> @execution_relation.GeneratedSequence?
+
+pub fn prepare_client_effect_infer_suffix(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientInferOccurrence, String, String, fragment_body? : String?, ordered_body? : String?) -> @execution_relation.GeneratedSequence?
 
 pub fn prepare_client_effect_local_sequences(@run_publication_host.PreparedClientEffectComputation, String, String, String?, String?, task_count? : Int?) -> Array[@execution_relation.GeneratedSequence]?
 
@@ -86,6 +98,10 @@ pub fn prepare_effect_local_query_requirement(@run_publication_host.PreparedClie
 
 pub fn prepare_local_query_requirement(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, ClientLocalQueryIssue]
 
+pub fn prepare_multi_captured_effect_acquisition_ledger(@run_publication_host.PreparedClientEffectComputation, Array[@host.CaptureConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
+
+pub fn prepare_multi_captured_effect_local_ledger(@run_publication_host.PreparedClientEffectComputation, Array[@host.NativeHostConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
+
 pub fn prepare_multi_captured_local_ledger(@run_publication_host.PreparedClientProgram, Array[@host.NativeHostConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn retry_local_values_execution_failure_cleanup(LocalValuesExecutionFailure) -> Bool
@@ -93,6 +109,8 @@ pub fn retry_local_values_execution_failure_cleanup(LocalValuesExecutionFailure)
 pub fn select_client_duckdb_acquisition(@query_planning.QueryRequirement, String, String, String, String, String, ClientDuckDBAcquisitionEstimate, ClientDuckDBAcquisitionEstimate, host_priority? : Array[String]?) -> Result[ClientDuckDBAcquisitionSelection, ClientDuckDBAcquisitionIssue]
 
 pub fn start_client_acquired_infer_input(@run_publication_host.PreparedClientProgram, Int, Int, @execution_query.CapturedInputSource, String, String, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.InferPreparationLimits, fragment_body? : String?, ordered_body? : String?) -> Result[ClientInferInputExecution, ClientInferInputIssue]
+
+pub fn start_client_composed_infer_input(@run_publication_host.ClientInferOccurrence, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.InferPreparationLimits) -> Result[ClientInferInputExecution, ClientInferInputIssue]
 
 pub fn start_client_infer_input(@run_publication_host.PreparedClientProgram, Int, Int, String, String, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, @execution_relation.InferPreparationLimits, fragment_body? : String?, ordered_body? : String?) -> Result[ClientInferInputExecution, ClientInferInputIssue]
 

@@ -606,11 +606,13 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
     // payloads it prepared. A failure releases them and keeps its own cause;
     // a failed release is attached, never substituted.
     let sourceSet;
+    let releaseInputs;
     try {
       return await captureStage({control, store, execution, checkedHost,
         prepared, identity, plan, previewContext, unit, members,
         runInvocationCid, dispatches, requestScope, storedResults,
-        authorizeEvidenceRead, signal, own: value => { sourceSet = value; }});
+        authorizeEvidenceRead, signal, own: value => { sourceSet = value; },
+        ownInputs: release => { releaseInputs = release; }});
     } catch (error) {
       try {
         for (const payload of sourceSet?.payloads ?? []) {
@@ -624,6 +626,14 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
           error.cleanupFailure ??= cleanupError;
         }
       }
+      // No Effect has started on capture failure. Drop the exact common
+      // consumer inventory even when its Store payload cleanup remains pending.
+      try { releaseInputs?.(); }
+      catch (cleanupError) {
+        if (error !== null && typeof error === 'object') {
+          error.cleanupFailure ??= cleanupError;
+        }
+      }
       throw error;
     }
   }
@@ -631,9 +641,11 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
   async function captureStage({control, store, execution, checkedHost,
     prepared, identity, plan, previewContext, unit, members,
     runInvocationCid, dispatches, requestScope, storedResults,
-    authorizeEvidenceRead, signal, own}) {
+    authorizeEvidenceRead, signal, own, ownInputs}) {
     const inputs = checked(moon.clientProgramPinEffectSources(checkedHost,
       limits.maxPinnedResults));
+    const releaseInputs = () => { moon.clientProgramReleaseEffectInputs(inputs); };
+    ownInputs(releaseInputs);
     const proposals = members.map(() => []);
     const sourceSet = await preparePinnedEffectSourceSet({moon,
       checkedOwner: prepared, execution, inputs,
@@ -863,7 +875,8 @@ function installedSalesforceEffect({moon, salesforceMoon, site, installed,
           now: plan.now},
         scopes: scopes(members),
         continuationWire: continuationOf(plan, unit, members, dispatches),
-        dispose: () => ledger.close()});
+        releaseInputs,
+        dispose: () => { releaseInputs(); ledger.close(); }});
     } catch (error) {
       ledger.close();
       throw error;
