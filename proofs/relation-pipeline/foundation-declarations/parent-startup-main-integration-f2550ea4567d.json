@@ -1,0 +1,74 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "parent-startup-main-integration-f2550ea4567d",
+  "kind": "resolution",
+  "revision": "f2550ea4567d7cfe604c8efe08cb40b56aa33429",
+  "parents": [
+    "4d69dcd8165dd38c415a9543961264753b9ac9bd",
+    "c26adeb078fd54327cc9263544f4c57420f6e3c2"
+  ],
+  "inputs": [
+    "capacity-adopt-cb8707e36ba9",
+    "capacity-adopt-cc13922878b2",
+    "issue-180-foundation-composition",
+    "mutation-workspace-audit-compatibility",
+    "mutation-workspace-fixture-ownership",
+    "mutation-workspace-isolation"
+  ],
+  "changes": [
+    {
+      "path": "proofs/relation-pipeline/execute.mjs",
+      "before": [
+        {
+          "revision": "4d69dcd8165dd38c415a9543961264753b9ac9bd",
+          "digest": "22aa0daf586433031edff777dbb80c8a71e32fa6a6f7816bed6d80616a87e176",
+          "mode": "100644"
+        },
+        {
+          "revision": "c26adeb078fd54327cc9263544f4c57420f6e3c2",
+          "digest": "ddbd463f9eccba06825302d84c55b65b2ffc51142e266dd337de48ad71cd1539",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "ddbd463f9eccba06825302d84c55b65b2ffc51142e266dd337de48ad71cd1539",
+      "afterMode": "100644",
+      "reason": "Retain main's per-workspace executor and terminal physical fixture ownership, which subsume the branch's default executor close correction; preserve the closeExecutor alias used by capacity finish."
+    },
+    {
+      "path": "proofs/relation-pipeline/executor-close.test.mjs",
+      "before": [
+        {
+          "revision": "4d69dcd8165dd38c415a9543961264753b9ac9bd",
+          "digest": "5d2970886d3d2e4a89d55ed745e84b37636bb40b6dd484c86c7653be073701fb",
+          "mode": "100644"
+        },
+        {
+          "revision": "c26adeb078fd54327cc9263544f4c57420f6e3c2",
+          "digest": null,
+          "mode": null
+        }
+      ],
+      "afterDigest": "e99f942a77405b36a1d2afca65d549a18fc141cc54c97b672cca1cab8b42f6d1",
+      "afterMode": "100644",
+      "reason": "Adapt the branch's live campaign-to-child handoff regression to main's bound fixture and compiler transport while retaining terminal close, receipt persistence, foreign/changed/replaced ownership rejection and omitted-close detection."
+    },
+    {
+      "path": "proofs/relation-pipeline/history.mjs",
+      "before": [
+        {
+          "revision": "4d69dcd8165dd38c415a9543961264753b9ac9bd",
+          "digest": "68e98629c27f3aaf519246baa902f5d84a1c527356c0217b049e897e84f89ec2",
+          "mode": "100644"
+        },
+        {
+          "revision": "c26adeb078fd54327cc9263544f4c57420f6e3c2",
+          "digest": "5a7441a7740f0389c282fa82ff9cb91e1af99074128514d35f87cfa961662d5b",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "dc6d36411561943613fc915f3bf011ee6a811b47ac68f4690371c4d9caad301b",
+      "afterMode": "100644",
+      "reason": "Union main's workspace execution foundation files with the branch's capacity finish and executor-close test files without changing historical foundation records."
+    }
+  ]
+}
