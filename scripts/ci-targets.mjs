@@ -22,7 +22,7 @@ export const maintenanceFiles = Object.freeze([
   'scripts/worktree-inventory.mjs', 'scripts/worktree-inventory.test.mjs',
 ]);
 const maintenance = new Set(maintenanceFiles);
-export const gateJobs = Object.freeze(['select-targets', 'lint', 'core', 'host', 'client',
+export const gateJobs = Object.freeze(['select-targets', 'preflight', 'lint', 'core', 'host', 'client',
   'native', 'spec', 'session-evidence', 'pipeline-evidence', 'native-macos',
   'native-separated-network', 'workers', 'connector-addition', 'duckdb-node']);
 const validPath = path => typeof path === 'string' && path.length > 0 && !/[\0\r\n]/u.test(path)
@@ -100,7 +100,7 @@ export function verifyGate(plan, needs, {event, sourceRevision}) {
   assert.deepEqual(Object.keys(needs ?? {}).sort(), [...gateJobs].sort(), 'Incomplete gate dependency inventory');
   const lines = [];
   for (const name of gateJobs) {
-    const required = ['select-targets', 'lint', 'spec'].includes(name)
+    const required = ['select-targets', 'preflight', 'lint', 'spec'].includes(name)
       || selection.profile === 'full' && (name !== 'native-macos' || selection.macos);
     const expected = required ? 'success' : 'skipped';
     assert.equal(needs[name]?.result, expected, `${name}: expected ${expected}`);
@@ -180,3 +180,4 @@ function main() {
     `Job profile: ${selected.profile}\n\nCore targets when selected: ${selected.targets.join(', ')}\n\nmacOS: ${selected.macos ? 'required' : 'not applicable for this run'}\n\n${selected.reason}\n\nUnselected families produce no execution evidence. Selected proof campaigns retain all three targets.\n`);
 }
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) main();
+

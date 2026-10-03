@@ -83,14 +83,14 @@ test('push+PR duplication is removed without workflow-level path filtering', () 
   assert.equal(workflow.concurrency['cancel-in-progress'], '${{ !inputs.performance_matrix }}');
 });
 test('whole-family scheduling retains the core matrix and complete selected proof campaigns', () => {
-  assert.deepEqual(jobs.core.needs, ['select-targets']);
+  assert.deepEqual(jobs.core.needs, ['select-targets', 'preflight']);
   assert.equal(jobs.core.strategy['fail-fast'], false);
   assert.equal(jobs.core.strategy.matrix.target, '${{ fromJSON(needs.select-targets.outputs.targets) }}');
-  assert.deepEqual(jobs['native-macos'].needs, ['select-targets']);
+  assert.deepEqual(jobs['native-macos'].needs, ['select-targets', 'preflight']);
   assert.match(jobs['native-macos'].if, /needs\.select-targets\.outputs\.macos == 'true'/u);
   for (const name of ['session-evidence', 'pipeline-mutations', 'pipeline-capacity']) {
     assert.match(jobs[name].if, /needs\.select-targets\.outputs\.profile == 'full'/u);
-    assert.deepEqual(jobs[name].needs, ['select-targets']);
+    assert.deepEqual(jobs[name].needs, ['select-targets', 'preflight']);
   }
   assert.deepEqual(jobs['pipeline-evidence'].needs, ['pipeline-mutations', 'pipeline-capacity']);
   const capacity = jobs['pipeline-capacity'].steps.map(step => step.run ?? '').join('\n');
@@ -105,7 +105,7 @@ const head = 'b'.repeat(40);
 const plan = selection => ({sourceRevision: head, selection});
 const context = {event: 'pull_request', sourceRevision: head};
 const results = selection => Object.fromEntries(gateJobs.map(name => [name, {result:
-  ['select-targets', 'lint', 'spec'].includes(name) || selection.profile === 'full' &&
+  ['select-targets', 'preflight', 'lint', 'spec'].includes(name) || selection.profile === 'full' &&
     (name !== 'native-macos' || selection.macos) ? 'success' : 'skipped'}]));
 const changes = paths => paths.map(path => ({path, before: {mode: '100644', object: 'c'.repeat(40)},
   after: {mode: '100644', object: 'd'.repeat(40)}}));
@@ -338,7 +338,7 @@ test('every heavy primitive is selected as one complete job and lint/spec always
     assert.equal(scheduled(name, {'select-targets': {outputs: {profile: '', macos: 'true'}}}), false);
   }
   assert.deepEqual(jobs.check.needs, gateJobs);
-  for (const name of ['lint', 'spec']) assert.equal(jobs[name].needs, undefined);
+  for (const name of ['lint', 'spec']) assert.deepEqual(jobs[name].needs, ['preflight']);
   const lint = jobs.lint.steps.map(step => step.run ?? '');
   assert(lint.includes('node --test scripts/ci-evidence.test.mjs'));
   assert(lint.includes('node --test scripts/worktree-inventory.test.mjs'));
@@ -402,3 +402,4 @@ test('real Git raw changes admit a regular modification and reject structural ch
   git(['rm', 'docs/development.md']);
   assert.equal(inspect().profile, 'full');
 });
+

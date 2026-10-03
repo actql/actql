@@ -560,7 +560,7 @@ test('workflow partitions the existing campaigns without dropping or changing ac
   ]);
   for (const name of producerJobs) {
     assert.equal(jobs[name].if, normalSchedule);
-    assert.deepEqual(jobs[name].needs, ['select-targets'], 'Producers share selection only, not each other');
+    assert.deepEqual(jobs[name].needs, ['select-targets', 'preflight'], 'Producers share selection and admission, not each other');
     assert.equal(jobs[name].strategy, undefined, 'A failed sibling must not cancel the other campaign');
     assert.equal(jobs[name]['runs-on'], 'ubuntu-24.04');
     for (const step of jobs[name].steps.filter(step => step.run)) {
