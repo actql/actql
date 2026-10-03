@@ -18,12 +18,23 @@ const cid = (v) => `sha256:${createHash('sha256').update(canonical(v)).digest('h
 test('current registry and historical preimages keep distinct identities', () => {
   assert.equal(cid(registry), contract.pipeline_registry_cid);
   assert.equal(cid(registry),
-    'sha256:579c3a62fc22e6fea165bdd5714e3ca26206f606e43098434e84c02c8c0651cc');
+    'sha256:2e39600e7fafbb97b18ced2352fe60a53dc624128f221b308f1dd0fc489709bf');
   const fragmentRegistry = JSON.parse(read('portability/fixtures/pipeline-registry-fragment.json'));
   assert.equal(cid(fragmentRegistry), 'sha256:23a7f1081d1a2cdab7b20e425dddce846510355ba964058e0c809350fae33816');
   const valuesRegistry = JSON.parse(read('portability/fixtures/pipeline-registry-values.json'));
   assert.equal(cid(valuesRegistry), 'sha256:b97a22de3664c1dafe3bc1e6791f1f8bcfb70324a1fcc1087450fe057e0f2311');
-  const {['ACTQL.expression_fragment/0.1']: fragment, ...previous} = registry;
+  const {['BRIDGE.rows.to_property_graph']: property, ...preProperty} = registry;
+  assert.ok(property);
+  assert.equal(cid(preProperty),
+    'sha256:579c3a62fc22e6fea165bdd5714e3ca26206f606e43098434e84c02c8c0651cc');
+  // Removing the new Graph operation retains the exact-String Values law.
+  // The predecessor before both changes has its explicitly frozen Values pin.
+  const preStringProperty = structuredClone(preProperty);
+  preStringProperty['REL.values'].execution_contract.cid =
+    'sha256:9dec7cf1abedfb23b0af130ec5e25c7442d28c205a94cad0218b2f5982d44b44';
+  assert.equal(cid(preStringProperty),
+    'sha256:fda8b3f12e5a42673160163c097f9626b09d999ee3f4889b96e549c6e5e24332');
+  const {['ACTQL.expression_fragment/0.1']: fragment, ...previous} = preProperty;
   assert.ok(fragment);
   const primitive = structuredClone(previous);
   assert.equal(

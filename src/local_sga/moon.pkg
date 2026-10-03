@@ -2,8 +2,6 @@ supported_targets = "+js+wasm+native"
 
 import {
   "actql/actql/bounded_execution" @bounded,
-  "actql/actql/bounded_graph_diff" @diff,
-  "actql/actql/bounded_graph_snapshot" @snapshot,
   "actql/actql/managed_graph_runtime" @graph,
   "actql/actql/managed_graph_storage" @storage,
   "actql/actql/lowering_relation" @lower,
@@ -15,16 +13,8 @@ import {
   "actql/actql/relation_schema" @schema,
   "actql/actql/value_admission" @value,
   "actql/actql/value_contract" @contract,
-  "actql/actql/bounded_value_set" @value_set,
-  "actql/actql/exact_binary64" @exact,
-  "actql/actql/decode_scalar" @scalar,
-  "actql/actql/canonical_value" @canonical,
 }
 
 import {
-  "actql/actql/value_contract" @contract,
-  "actql/actql/relation_schema" @schema,
-  "actql/actql/decode_core" @decode,
-  "actql/actql/source_value" @source,
-  "actql/actql/value_admission" @value,
+  "actql/actql/canonical_value" @canonical,
 } for "wbtest"

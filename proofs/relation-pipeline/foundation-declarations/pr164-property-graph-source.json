@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "pr164-property-graph-source",
+  "kind": "change",
+  "revision": "81ef098cb8a588f0ebb9eca2ae7f95ec972d55d3",
+  "parents": [
+    "0fd6332757176b88e8c4071e4a2cd0be3d6254e3"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "0fd6332757176b88e8c4071e4a2cd0be3d6254e3",
+          "digest": "28aa357d16dcf7079b020150dff2783473bb9f6ce6b010cba94388702c570716",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "123454a746bc622c2c955d2b1d38a4f018a379fab9370ac1383b314cdff8a773",
+      "afterMode": "100644",
+      "reason": "Register keyed Property Graph law and registration checks in the existing specification command, public surface and packed snapshot acceptance in distribution, and carrier snapshot custody in retained-boundary. Retain all prior verification commands; historical foundation records and validators are unchanged."
+    }
+  ]
+}

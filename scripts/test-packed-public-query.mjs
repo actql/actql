@@ -51,9 +51,10 @@ for (const [source, destination] of [
   ['spec/frontend/fixtures/pipe-scope/cases.json', 'pipe-scope-cases.json'],
   ['spec/frontend/fixtures/join-order/cases.json', 'join-order-cases.json'],
   ['spec/frontend/fixtures/data-set-strategy/repro-program.json', 'data-set-strategy-program.json'],
-  ['scripts/accept-sga-public-source.mjs', 'accept-sga-public-source.mjs'],
-  ['scripts/reach-selector-capacity-fixture.mjs', 'reach-selector-capacity-fixture.mjs'],
   ['scripts/fixtures/packed-sga-cancellation.mjs', 'sga-cancellation.mjs'],
+  ['scripts/property-graph-public-host.test.mjs', 'property-graph-public-host.test.mjs'],
+  ['scripts/check-canonical-json.mjs', 'check-canonical-json.mjs'],
+  ['docs/reviews/2026-09-19-sga-veca-tea-local-coverage.json', 'local-family-coverage.json'],
 ]) {
   await writeFile(join(root, destination), await readFile(join(repository, source)));
 }
@@ -71,21 +72,9 @@ const exampleCommands = [...exampleReadme.matchAll(/```bash\n([\s\S]*?)\n```/gu)
 assert.equal(exampleCommands.length, 2);
 run('bash', ['-eu', '-c', exampleCommands[0][1]], root,
   {...environment, ACTQL_CHECKOUT: repository});
-await mkdir(join(root, 'sga-source-fixtures'));
-for (const name of ['normalize-rows', 'mean-graphs', 'traverse-paths',
-  'shortest-path',
-  'reach-selector', 'reach-selector-duplicates', 'reach-selector-empty',
-  'reach-selector-nullable',
-  'union-graphs', 'graft-graphs', 'subtract-graphs', 'degree-rows',
-  'components', 'graph-bounds', 'match-projections', 'reach-subgraph',
-  'graphs-equal', 'diff-apply']) {
-  for (const suffix of ['named.aql', 'expected-program.json', 'expected-results.json']) {
-    const file = `${name}.${suffix}`;
-    await writeFile(join(root, 'sga-source-fixtures', file),
-      await readFile(join(repository,
-        'spec/frontend/fixtures/sga-surface', file)));
-  }
-}
+await mkdir(join(root, 'fixtures'));
+await writeFile(join(root, 'fixtures/property-graph-parallel.program.json'),
+  await readFile(join(repository, 'scripts/fixtures/property-graph-parallel.program.json')));
 run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
   '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1',
   '-subj', '/CN=localhost',
@@ -213,6 +202,12 @@ if (process.argv.includes('--source-free-only') ||
   process.argv.includes('--join-order-only')) return;
 console.log(run(process.execPath, ['sga-cancellation.mjs'], root,
   runtimeEnvironment, 120000).trimEnd());
+await mkdir(join(root, 'tls'));
+await writeFile(join(root, 'tls/site.key'), await readFile(join(root, 'remote.key')));
+await writeFile(join(root, 'tls/site.crt'), await readFile(join(root, 'remote.crt')));
+await writeFile(join(root, 'tls/ca.crt'), await readFile(join(root, 'remote.crt')));
+console.log(run(process.execPath, ['--test', 'property-graph-public-host.test.mjs'], root,
+  {...runtimeEnvironment, ACTQL_PROPERTY_GRAPH_PACKED: '1'}, 180000).trimEnd());
 run('moon', ['build', '--target', 'native', '--release',
   'src/cmd/native_client'], repository, environment);
 const nativeClient = join(repository, '_build/native/release/build/cmd',

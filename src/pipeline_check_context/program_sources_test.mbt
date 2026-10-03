@@ -4,6 +4,7 @@ fn program_sources_fixture(
   supplied? : @decode.Cursor? = None,
   tea? : Bool = false,
   sga? : Bool = false,
+  property_graph? : Bool = false,
   calendar? : Bool = false,
   veca? : Bool = false,
   text_rank? : Bool = false,
@@ -37,6 +38,7 @@ fn program_sources_fixture(
     preparation,
     { rela: true, sga, tea, calendar, text_rank, },
     10000000,
+    property_graph~,
   ).unwrap()
   let stages = wired_stage_contexts(reconciled_wiring(policy_context(selected)))
   let bound = stage_operations(stages)

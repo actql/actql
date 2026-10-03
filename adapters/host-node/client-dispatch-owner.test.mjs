@@ -177,6 +177,7 @@ test('diagnostic failure cannot stop Compute or bypass required ownership',
       let retained = 0;
       const stopped = [];
       const ref = {runDefinitionCid: `diagnostic-${kind}`};
+      const installedConfiguration = Object.freeze({snapshotStore: {}});
       const physical = {async close() { closes++; }, async cleanup() {},
         cleanupPending: () => false};
       const owner = installNodeClientDispatchOwner({
@@ -193,8 +194,11 @@ test('diagnostic failure cannot stop Compute or bypass required ownership',
           return new Promise(() => {});
         },
         planFor: () => ({runDefinition: {wire: 'definition'}}),
-        runPublished: async (_setup, _publication, _options, _signal,
+        computeConfigurations: {fixtureProvider: installedConfiguration},
+        runPublished: async (_setup, _publication, options, _signal,
           _observer, retainExecution) => {
+          assert.equal(options.fixtureProvider, installedConfiguration,
+            'shared dispatch forwards the concrete adapter configuration unchanged');
           starts++;
           retainExecution(physical);
           retained++;

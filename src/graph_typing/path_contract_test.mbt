@@ -1,67 +1,65 @@
 ///|
-test "path contracts retain typed edge identity tuples without synthetic strings" {
-  let id = @contract.decimal_contract(38, 9, nullable=false).unwrap()
-  let g = complete_graph(
-    id,
-    @contract.primitive(BooleanType, nullable=false),
-    "a",
-  )
-  for kind in [@graph_typing.TraversedPaths, @graph_typing.ShortestPaths] {
-    let c = @graph_typing.check_path_contract(kind, cursor("true"), g, limits()).unwrap()
-    let rows = @carrier.complete_schema(
-      @carrier.relation_rows(@graph_typing.path_output(c)).unwrap(),
-    ).unwrap()
-    let edges = @row.lookup(rows, Unqualified("edge_ids")).unwrap()
-    guard edges.shape is @contract.Array(edge, ..) else {
-      abort("expected edge array")
+test "current path contracts retain full independent edge identities and reject tuple-path schemas" {
+  let graph = current_scope_graph()
+  let source = cursor("true")
+  let checked = @graph_typing.check_path_contract(
+    TraversedPaths,
+    source,
+    graph,
+    limits(),
+  ).unwrap()
+  let rows = @carrier.complete_schema(
+    @carrier.relation_rows(@graph_typing.path_output(checked)).unwrap(),
+  ).unwrap()
+  for name in ["node_ids", "edge_ids"] {
+    guard @row.lookup(rows, Unqualified(name)).unwrap().shape
+      is @contract.Array(element, ..) else {
+      fail("identity array")
     }
-    let edge_fields = @row.from_object(edge).unwrap()
-    assert_eq(@row.field_count(edge_fields), 3)
-    assert_true(
-      @contract.type_equal(
-        @row.lookup(edge_fields, Unqualified("src")).unwrap(),
-        id,
-        20,
-      ),
-    )
-    assert_true(
-      @contract.type_equal(
-        @row.lookup(edge_fields, Unqualified("dst")).unwrap(),
-        id,
-        20,
-      ),
-    )
-    assert_true(@row.lookup(edge_fields, Unqualified("rel")).unwrap().nullable)
-    let u = @graph_typing.path_usage(c)
-    let exact = {
-      ..limits(),
-      max_work: u.work,
-      max_nodes: u.nodes,
-      max_text_bytes: u.text_bytes,
-    }
-    assert_true(
-      @graph_typing.check_path_contract(kind, cursor("true"), g, exact) is Ok(_),
-    )
-    for
-      cap in [
-        { ..exact, max_work: u.work - 1, },
-        { ..exact, max_nodes: u.nodes - 1, },
-        { ..exact, max_text_bytes: u.text_bytes - 1, },
-        { ..exact, max_depth: 1, },
-      ] {
-      assert_true(
-        @graph_typing.check_path_contract(kind, cursor("true"), g, cap)
-        is Err(_),
-      )
-    }
+    assert_true(element.shape is @contract.Json)
+    assert_false(element.nullable)
+  }
+  let usage = @graph_typing.path_usage(checked)
+  // Two array wrappers, five fields, and their independently counted names.
+  assert_eq((usage.work, usage.nodes, usage.text_bytes), (7, 2, 39))
+  let exact = {
+    ..limits(),
+    max_work: usage.work,
+    max_nodes: usage.nodes,
+    max_text_bytes: usage.text_bytes,
   }
   assert_true(
-    @graph_typing.check_path_contract(
-      TraversedPaths,
-      cursor("true"),
-      @carrier.unknown_carrier(GraphKind),
-      limits(),
+    @graph_typing.check_path_contract(TraversedPaths, source, graph, exact)
+    is Ok(_),
+  )
+  for
+    cap in [
+      { ..exact, max_work: usage.work - 1, },
+      { ..exact, max_nodes: usage.nodes - 1, },
+      { ..exact, max_text_bytes: usage.text_bytes - 1, },
+      { ..exact, max_depth: 1, },
+    ] {
+    assert_true(
+      @graph_typing.check_path_contract(TraversedPaths, source, graph, cap)
+      is Err(_),
     )
-    is Err(_),
+  }
+}
+
+///|
+test "retired node emission is refused before any checked path grant" {
+  let source = cursor(
+    "{\"start\":{\"ids\":[{\"domain\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"definition\":\"N\",\"key\":[1,\"one\"],\"key_types\":[{\"kind\":\"number\"},{\"kind\":\"string\"}]}]},\"direction\":\"out\",\"min_hops\":0,\"max_hops\":1,\"path_mode\":\"trail\",\"emit\":\"nodes\"}",
+  )
+  let issue = @graph_typing.check_traverse(
+    source,
+    current_scope_graph(),
+    None,
+    None,
+    predicate_limits(),
+  ).unwrap_err()
+  assert_eq(
+    @graph_typing.match_diagnostic(issue, source).kind,
+    Structure(UnsupportedGraphProfile),
   )
 }

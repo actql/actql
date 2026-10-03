@@ -112,3 +112,56 @@ test "invalid provider work cannot become a normal cumulative total" {
   assert_eq(managed_provider_cumulative_work(owner), Err(InvalidReport))
   assert_true(cancelled.val)
 }
+
+///|
+test "snapshot handoff work uses the provider total and reads cleanup do not charge" {
+  let owner = managed_provider_execution(
+    _ => Ok(managed_provider_failed(@connector.InvalidLimits, 0L, 1L)),
+    () => true,
+    () => true,
+    () => Ok(true),
+  )
+  advance_managed_provider(owner, 1).unwrap() |> ignore
+  managed_provider_record_handoff_work(owner, 2L).unwrap()
+  managed_provider_record_handoff_work(owner, 0L).unwrap()
+  assert_eq(managed_provider_cumulative_work(owner), Ok(3L))
+  cleanup_managed_provider(owner).unwrap() |> ignore
+  cleanup_managed_provider(owner).unwrap() |> ignore
+  assert_eq(managed_provider_cumulative_work(owner), Ok(3L))
+  assert_eq(managed_provider_cumulative_work(owner), Ok(3L))
+}
+
+///|
+test "snapshot handoff invalid delta and overflow stay errors through cleanup" {
+  for overflow in [false, true] {
+    let cancelled = Ref(false)
+    let owner = managed_provider_execution(
+      _ => Ok(managed_provider_stopped_poll(0L, 0L)),
+      fn() {
+        cancelled.val = true
+        true
+      },
+      () => true,
+      () => Ok(true),
+    )
+    if overflow {
+      owner.reported_work = Ok(9223372036854775807L)
+    }
+    let expected = if overflow { CounterOverflow } else { InvalidReport }
+    assert_eq(
+      managed_provider_record_handoff_work(
+        owner,
+        if overflow {
+          1L
+        } else {
+          -1L
+        },
+      ),
+      Err(expected),
+    )
+    assert_true(cancelled.val)
+    assert_eq(managed_provider_record_handoff_work(owner, 0L), Err(expected))
+    cleanup_managed_provider(owner).unwrap() |> ignore
+    assert_eq(managed_provider_cumulative_work(owner), Err(expected))
+  }
+}

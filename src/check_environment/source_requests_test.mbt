@@ -341,10 +341,12 @@ test "role budgets accumulate across views sharing the same schema envelopes" {
 ///|
 test "a Graph response cannot silently become one field-based correlation record" {
   let body = @json.parse(
-    "{\"version\":\"actql-graph-contract/0.1\",\"node_id_contract\":{\"type\":\"number\",\"nullable\":false},\"node_properties\":{},\"edge_properties\":{},\"edge_labels\":null,\"identity_law_cid\":\"" +
-    @graph.law_cid() +
+    "{\"version\":\"actql-property-graph-contract/0.1\",\"domain\":\"sha256:" +
+    "0".repeat(64) +
+    "\",\"node_definitions\":[],\"edge_definitions\":[],\"identity_law_cid\":\"" +
+    @graph.property_law_cid() +
     "\",\"value_law_cid\":\"" +
-    @graph.law_cid() +
+    @graph.property_law_cid() +
     "\"}",
   )
   let plain = request_carriers(record_body(), body, None, kind="graph")

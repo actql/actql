@@ -112,19 +112,21 @@ fn carrier_records(
 fn read_carrier_body(
   root : @decode.Cursor,
   limits : @graph.Limits,
-) -> @carrier.Carrier raise CarrierStop {
+  max_contract_work : Int,
+) -> (@carrier.Carrier, Int) raise CarrierStop {
   let count = @decode.object_length(root).unwrap_or(0)
-  if count != 4 && count != 7 {
+  if count != 4 && count != 6 {
     carrier_fail(InvalidBody, root)
   }
   let obj = @decode.open_object(root).unwrap()
   if @decode.lookup(obj, "version") is None {
-    return @carrier.relation(carrier_records(root, limits))
+    return (@carrier.relation(carrier_records(root, limits)), 0)
   }
   let version = carrier_name(obj, "version", root)
-  if version == "actql-graph-contract/0.1" {
-    return match @graph.read_cursor(root, limits) {
-      Ok(v) => @carrier.graph_carrier(@graph.graph(v))
+  if version == "actql-property-graph-contract/0.1" {
+    return match
+      @graph.read_property_graph_cursor_usage(root, limits, max_contract_work~) {
+      Ok((v, used)) => (@carrier.graph_carrier(@graph.property_graph(v)), used)
       Err(e) => carrier_fail(InvalidGraph(e), root)
     }
   }
@@ -166,7 +168,7 @@ fn read_carrier_body(
     )
   }
   match result {
-    Ok(c) => c
+    Ok(c) => (c, 0)
     Err(e) => carrier_fail(InvalidRole(e), root)
   }
 }
@@ -228,11 +230,12 @@ pub fn check_carrier_schemas(
       }
       bytes += b
       nodes += n
-      let carrier = read_carrier_body(envelope.body, {
-        max_bytes: b,
-        max_nodes: n,
-        max_depth: limits.bodies.max_depth,
-      })
+      let (carrier, validation_work) = read_carrier_body(
+        envelope.body,
+        { max_bytes: b, max_nodes: n, max_depth: limits.bodies.max_depth, },
+        limits.max_work - work,
+      )
+      work += validation_work
       let schema = { envelope, carrier, body_cid, }
       entries.push(schema)
       by_cid[envelope.cid] = schema

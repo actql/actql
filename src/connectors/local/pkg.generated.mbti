@@ -146,6 +146,8 @@ pub fn managed_provider_execution((Int) -> Result[ManagedProviderPoll, @connecto
 
 pub fn managed_provider_failed(@connector_sdk.FixedComputeIssue, Int64, Int64) -> ManagedProviderPoll
 
+pub fn managed_provider_record_handoff_work(ManagedProviderExecution, Int64) -> Result[Unit, ManagedProviderWorkIssue]
+
 pub fn managed_provider_relation_input(@execution_relation.ProducerRead) -> ManagedProviderInput
 
 pub fn managed_provider_runs_numeric(ManagedProvider) -> Bool

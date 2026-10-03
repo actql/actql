@@ -27,7 +27,6 @@ import {
   "actql/actql/relation_values" @values,
   "actql/actql/vector_typing" @vector,
   "actql/actql/carrier_contract" @carrier,
-  "actql/actql/carrier_projection" @projection,
   "actql/actql/time_series" @series,
   "actql/actql/calendar_typing" @calendar,
   "actql/actql/calendar_options",

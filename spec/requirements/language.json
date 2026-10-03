@@ -510,7 +510,7 @@
     },
     {
       "requirement_id": "actql.language/carriers.graph-law-body",
-      "statement_sha256": "42d23543974c4566887b344a91265dc587b2c8a3fb9218a259d2395f2083c26a",
+      "statement_sha256": "a6958297cd6fd9121c29897ef4704e29b18e0cd3b4e3b74be846b1a45de4b2d0",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -2358,7 +2358,7 @@
     },
     {
       "requirement_id": "actql.language/operation-inventory.family-operation-input-output",
-      "statement_sha256": "117cee600061a4b2e6c77897a1022d6b1c1f39c45308447f38e1fa7af6579adc",
+      "statement_sha256": "d81aea146e88b9d26ed11d765673728a3f6a435060979bb3f9c9173a4bf75654",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -7066,7 +7066,7 @@
     },
     {
       "requirement_id": "actql.language/algebra-lowering.actql-surface-form-canonical-aoa-registry-operation",
-      "statement_sha256": "fe4b4ae09ab87546b28b6cbbd970d40cb996df3e43a359aac1b57cdc989628a0",
+      "statement_sha256": "c6485d80e405f6b2fe2fc275527ef199427b6182cc0e4dc3d5e398599f31f764",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -8089,7 +8089,7 @@
     },
     {
       "requirement_id": "actql.language/machine-contracts.exact-artifacts",
-      "statement_sha256": "388f5ada531044ec58f609a355f9110cd9db1a25b2778cf6cf933318ceef661d",
+      "statement_sha256": "7e58dce4ce769c7fa9d13f7be0901927d6d6a2f62d233b5bb5543d4ae0a18ddc",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

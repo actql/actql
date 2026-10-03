@@ -5,20 +5,9 @@ pub fn operation_profile_requirement(
   v : OperationObligation,
 ) -> OperationProfile? {
   match v {
-    GraphRequirement(o) =>
-      match o {
-        ResolveSgaProfile => Some(SGA)
-        ValidateGraphData
-        | ResolveGraphResources
-        | ComponentIdentityOrder
-        | BindPositiveCount(_, ..)
-        | BindNonnegativeCount(_, ..)
-        | BoundsReportOrder
-        | EnforceOutputGuard => None
-      }
     MatchRequirement(o) =>
       match o {
-        ResolveMatchProfile => Some(SGA)
+        ResolvePropertyGraphMatchProfile => Some(PropertyGraph)
         AdmitMatchGraphData
         | ValidateSelectedIdentityMembership
         | FilterSelectedEdgeTypes
@@ -26,129 +15,25 @@ pub fn operation_profile_requirement(
         | CanonicalMatchOrder
         | ResolveMatchResources => None
       }
-    ReachRequirement(o) =>
-      match o {
-        ResolveReachProfile => Some(SGA)
-        AdmitReachGraph
-        | RequireReachStartMembership
-        | JournalReachExpansion
-        | BoundedMinimumDepthTraversal
-        | CanonicalReachOrder
-        | ResolveReachResources => None
-      }
-    SubgraphRequirement(o) =>
-      match o {
-        ResolveSubgraphProfile => Some(SGA)
-        AdmitSubgraphInput
-        | InduceSelectedEndpoints
-        | FilterInducedEdges
-        | PreserveSubgraphIdentitiesAndProperties
-        | PreserveSubgraphPolicyAndScope
-        | ResolveSubgraphResources => None
-      }
     TraverseRequirement(o) =>
       match o {
-        ResolveTraversalProfile => Some(SGA)
+        ResolvePropertyGraphTraversalProfile => Some(PropertyGraph)
         AdmitTraversalGraph
         | RespectTraversalHopBounds
-        | EvaluateTraversalHopPredicates
-        | EmitMinimumNodeDepth
-        | EnumerateSimplePaths
+        | FilterTraversalLabels
+        | EnumeratePropertyPaths
         | DeduplicateExactPaths
         | CanonicalTraversalOrder
         | EnforceTraversalOutputGuard
         | BindTraversalOutputGuard(_, ..)
         | ResolveTraversalResources => None
       }
-    ShortestRequirement(o) =>
-      match o {
-        ResolveShortestProfile => Some(SGA)
-        AdmitShortestGraph
-        | RequireEndpointMembership
-        | ValidateAllNonnegativeFiniteWeights
-        | FoldPathCostsWithOverrange
-        | RejectSelectedOverrangeAtomically
-        | SelectSimpleHopBoundedPaths
-        | ApplyCanonicalPathTieBreaks
-        | CanonicalShortestOutputOrder
-        | EnforceShortestOutputGuard
-        | BindShortestOutputGuard(_, ..)
-        | ResolveShortestResources => None
-      }
-    EqualityRequirement(o) =>
-      match o {
-        ResolveSgaProfile => Some(SGA)
-        AdmitBothGraphs
-        | CompareTypedCanonicalGraphs
-        | ResolveComparisonResources => None
-      }
-    DiffRequirement(o) =>
-      match o {
-        ResolveSgaProfile => Some(SGA)
-        EmitDeltaVersion
-        | AdmitSnapshotsUnderCommonContract
-        | EmitGraphContractIdentity
-        | BindBaseAndTargetIdentities
-        | EmitCompleteBeforeAfterRecords
-        | SortUniqueActionIdentities
-        | ResolveDeltaResources => None
-      }
-    ApplyRequirement(o) =>
-      match o {
-        ResolveSgaProfile => Some(SGA)
-        RequireExactlyOneDeltaRow
-        | ValidateDeltaVersionAndClosedShape
-        | MatchPinnedGraphContract
-        | AdmitBaseUnderPinnedContract
-        | MatchExactBaseIdentity
-        | ValidateOrderedUniqueActions
-        | ValidateExactBeforeRecords
-        | ValidateAddRemoveUpdateExistence
-        | ApplyNodeAndEdgeChangesTogether
-        | ValidateResultEndpointsAndContract
-        | MatchExactTargetIdentity
-        | PreserveGraphPolicyDependencies
-        | ResolveApplyResources => None
-      }
-    StructuralRequirement(o) =>
-      match o {
-        ResolveSgaProfile => Some(SGA)
-        AdmitGraphsUnderCommonContract
-        | CompareCompleteIdentityPayloads
-        | RejectUnspecifiedConflicts
-        | ApplyEveryAuthoredStrategy
-        | KeepCompleteOneSidedUnionRecords
-        | KeepOnlyLeftSubtractionRecords
-        | CloseSubtractionEndpoints
-        | ValidateCanonicalSetOperations
-        | ValidateFiniteNumericResults
-        | PreservePolicyDependencies
-        | ResolveStructuralResources => None
-      }
-    MeanRequirement(o) =>
-      match o {
-        ResolveMeanProfile => Some(SGA)
-        AdmitEveryMeanSample
-        | CompareExactRationalSupport
-        | RetainSupportedNodesBeforeEdges
-        | RequirePositiveWeightLabelAgreement
-        | ApplyEveryMeanPropertyPolicy
-        | RoundExactWeightedMeansOnce
-        | RejectNonfiniteMeanResults
-        | CanonicalMeanIdentityOrder
-        | PreserveMeanObservationAndPolicy
-        | ResolveMeanResources => None
-      }
     ConstructionRequirement(o) =>
       match o {
-        ResolveSgaProfile => Some(SGA)
+        ResolvePropertyGraphProfile => Some(PropertyGraph)
         AdmitGraphInputRows
-        | CloseBothEndpointsAgainstDeclaredNodes
-        | DeriveDistinctEndpointNodes
-        | JournalEndpointCompletion
-        | JournalLabelCompletion
-        | CollapseEqualIdentityPayloads
-        | RejectConflictingIdentityPayloads
+        | RejectDuplicateDefinitionKeys
+        | ExcludeNullKeysAndMissingEndpoints
         | ResolveGraphConstructionResources => None
       }
     VectorRequirement(o) =>
@@ -288,7 +173,6 @@ pub fn operation_profile_requirement(
     | SeriesRequirement(_)
     | CalendarRequirement(_)
     | WindowRequirement(_)
-    | ProjectionRequirement(_)
     | SelectorRequirement(_) => None
   }
 }

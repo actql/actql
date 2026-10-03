@@ -50,6 +50,21 @@ work, not hidden inside operation registration, and no CI speedup is claimed.
 
 ## Marginal rules people add and review
 
+### Property Graph verification integration
+
+CI run `36956692142` on `5cbe43c7bb251da0ea7d85affaa5f6916b3397ed`
+completed the replay stages but failed the final fixed-foundation audit because
+`package.json` now connects the additive Property Graph registration, public
+Host and packed acceptance tests. All other **56 of 57** frozen common files
+are byte-identical to the preceding `fe0dbb424792ba7ccd4ae5517a74530b56a15f3c`
+baseline. The integration record pins the actual Git revision and both package
+digests; the audit continues checking all 57 hashes against Git and disk.
+
+No generator, oracle, mutation, theorem, audit implementation or verification
+obligation changes. This metadata correction is separate from the original
+frozen no-common-change experiment and does not convert the failed CI into a
+success. Fresh integrated-source evidence and final CI remain required.
+
 | Addition | Meaning requiring review |
 | --- | --- |
 | `distinct.mjs` | Exact whole-row variant; admitted total input occurrence order; schema/order preservation; independent complete-row equality including NULL; first occurrence; argument registration |
