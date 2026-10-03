@@ -6,6 +6,7 @@ pub(all) enum PhysicalType {
   Integer(bits~ : Int, signed~ : Bool)
   Float32
   Float64
+  DoubleArray(length~ : Int)
   Decimal(precision~ : Int, scale~ : Int)
   Date
   TimestampTZ
@@ -50,6 +51,7 @@ pub fn prepare_value_mapping(
       if precision < 1 || precision > 38 || scale < 0 || scale > precision {
         return Err(UnsupportedType)
       }
+    DoubleArray(length~) => if length < 1 { return Err(UnsupportedType) }
     _ => ()
   }
   let matches = match (physical, contract.shape) {
@@ -60,6 +62,8 @@ pub fn prepare_value_mapping(
     | (Float64, @contract.Number)
     | (Date, @contract.Date)
     | (TimestampTZ, @contract.Timestamp) => true
+    (DoubleArray(length~), @contract.Vector(dimensions~)) =>
+      length.to_double() == dimensions
     (Decimal(precision~, scale~), @contract.Decimal(precision=p, scale=s)) =>
       precision == p && scale == s
     _ => false

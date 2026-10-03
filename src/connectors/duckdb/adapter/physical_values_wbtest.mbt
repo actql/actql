@@ -175,3 +175,48 @@ test "floating transport, NULL, text and budgets still use shared admission" {
     is Err(TypeMismatch),
   )
 }
+
+///|
+test "fixed physical double arrays need an exact typed vector contract" {
+  let vector = @contract.vector_contract(2, nullable=false).unwrap()
+  let physical = DoubleArray(length=2)
+  let mapping = prepare_value_mapping(physical, vector).unwrap()
+  let decoded = admit_physical_value(
+    mapping,
+    payload("\"3ff0000000000000,0000000000000000\""),
+    { max_nodes: 3, max_depth: 1, max_text_bytes: 100, },
+  ).unwrap()
+  assert_true(decoded.value is @admitted.Vector(_))
+  assert_true(
+    prepare_value_mapping(DoubleArray(length=3), vector) is Err(TypeMismatch),
+  )
+  assert_true(
+    prepare_value_mapping(
+      physical,
+      @contract.primitive(@contract.StringType, nullable=false),
+    )
+    is Err(TypeMismatch),
+  )
+  for
+    bad in [
+      "\"3ff0000000000000\"", "\"3FF0000000000000,0000000000000000\"", "\"3ff0000000000000,8000000000000000\"",
+      "\"3ff0000000000000,null\"",
+    ] {
+    assert_true(
+      admit_physical_value(mapping, payload(bad), {
+        max_nodes: 3,
+        max_depth: 1,
+        max_text_bytes: 100,
+      })
+      is Err(_),
+    )
+  }
+  assert_true(
+    admit_physical_value(
+      mapping,
+      payload("\"3ff0000000000000,0000000000000000\""),
+      { max_nodes: 2, max_depth: 1, max_text_bytes: 100, },
+    )
+    is Err(Admission(@admitted.ValueIssue(@admitted.BudgetExceeded, ..))),
+  )
+}

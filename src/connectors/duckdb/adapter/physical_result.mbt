@@ -158,7 +158,11 @@ pub fn admit_physical_chunk(
         admit_physical_usage(mapping, payload, {
           max_nodes: result.limits.max_nodes - result.nodes,
           max_text_bytes: result.limits.max_text_bytes - result.text_bytes,
-          max_depth: 0,
+          max_depth: if mapping.physical is DoubleArray(_) {
+            1
+          } else {
+            0
+          },
         }) {
         Ok(value) => value
         Err(issue) => return Err(Cell(result.rows + row, column, issue))

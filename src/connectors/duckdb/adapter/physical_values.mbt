@@ -228,6 +228,53 @@ fn admit_physical_usage(
       Admission(issue)
     })
   }
+  if mapping.physical is DoubleArray(length~) {
+    if limits.max_nodes <= length || limits.max_depth < 1 {
+      return Err(
+        Admission(
+          @admitted.ValueIssue(
+            @admitted.IssueKind::BudgetExceeded,
+            path=[],
+            span=@decode.cursor_span(payload),
+          ),
+        ),
+      )
+    }
+    let text = match @decode.text(payload) {
+      Ok(value) => value
+      Err(issue) => return Err(Decode(issue))
+    }
+    let parts = text.split(",").to_array()
+    if parts.length() != length {
+      return Err(InvalidPhysicalValue)
+    }
+    let span = @decode.cursor_span(payload)
+    let items : Array[@source.Node] = []
+    for part in parts {
+      let value = if part == "null" {
+        @source.Null
+      } else {
+        guard hex_bits(part.to_owned(), 16) is Some(bits) else {
+          return Err(InvalidPhysicalValue)
+        }
+        @source.Number(bits.reinterpret_as_double())
+      }
+      items.push({ value, span, })
+    }
+    let converted = match
+      @decode.admit({ value: @source.Array(items), span, }, {
+        max_nodes: limits.max_nodes,
+        max_depth: limits.max_depth,
+        max_string_bytes: limits.max_text_bytes,
+        max_total_string_bytes: limits.max_text_bytes,
+      }) {
+      Ok(value) => value
+      Err(issue) => return Err(Decode(issue))
+    }
+    return @admitted.admit_usage(mapping.contract, converted, limits).map_err(issue => {
+      Admission(issue)
+    })
+  }
   let text = match @decode.text(payload) {
     Ok(value) => value
     Err(issue) => return Err(Decode(issue))
@@ -294,7 +341,7 @@ fn admit_physical_usage(
       String(timestamp)
     }
     NaiveTimestamp => return Err(ImplicitTimezone)
-    Boolean | Varchar => return Err(TypeMismatch)
+    Boolean | Varchar | DoubleArray(_) => return Err(TypeMismatch)
   }
   let converted = match
     @decode.admit({ value, span: @decode.cursor_span(payload), }, {

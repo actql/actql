@@ -39,6 +39,47 @@ fn result_limits() -> PhysicalResultLimits {
 }
 
 ///|
+test "typed fixed vector source survives physical chunk admission and charges nodes" {
+  let schema = @schema.from_fields(
+    [
+      (
+        @schema.Unqualified("embedding"),
+        @contract.vector_contract(2, nullable=false).unwrap(),
+      ),
+    ],
+    max_fields=1,
+    max_name_bytes=100,
+  ).unwrap()
+  let result = prepare_physical_result(
+    schema,
+    [("embedding", DoubleArray(length=2))],
+    { max_rows: 1, max_cells: 1, max_nodes: 3, max_text_bytes: 0, },
+    100,
+  ).unwrap()
+  let batch = admit_physical_chunk(result, 1, [
+    result_cursor("[\"3ff0000000000000,0000000000000000\"]"),
+  ]).unwrap()
+  assert_true(
+    physical_batch_cell(batch, 0, 0).unwrap().value is @admitted.Vector(_),
+  )
+  assert_eq(physical_result_usage(result), (1, 1, 3, 0))
+  let one_short = prepare_physical_result(
+    schema,
+    [("embedding", DoubleArray(length=2))],
+    { max_rows: 1, max_cells: 1, max_nodes: 2, max_text_bytes: 0, },
+    100,
+  ).unwrap()
+  assert_true(
+    admit_physical_chunk(one_short, 1, [
+      result_cursor("[\"3ff0000000000000,0000000000000000\"]"),
+    ])
+    is Err(
+      Cell(0, 0, Admission(@admitted.ValueIssue(@admitted.BudgetExceeded, ..)))
+    ),
+  )
+}
+
+///|
 test "native record guard counts keys and canonical escaping not raw transport text" {
   // {"id":1,"label":"a\n"} occupies 22 canonical UTF-8 bytes.
   for ceiling in [21, 22] {

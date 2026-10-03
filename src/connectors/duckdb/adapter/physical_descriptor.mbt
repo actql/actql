@@ -19,6 +19,8 @@ pub fn decode_physical_type(
   }
   let fields = if id == "DECIMAL" {
     ["id", "precision", "scale"]
+  } else if id == "DOUBLE_ARRAY" {
+    ["id", "length"]
   } else {
     ["id"]
   }
@@ -41,6 +43,20 @@ pub fn decode_physical_type(
     "UHUGEINT" => Integer(bits=128, signed=false)
     "FLOAT" => Float32
     "DOUBLE" => Float64
+    "DOUBLE_ARRAY" => {
+      let length = match @decode.required(object, "length") {
+        Ok(value) =>
+          match @decode.int32(value) {
+            Ok(value) => value
+            Err(issue) => return Err(Decode(issue))
+          }
+        Err(issue) => return Err(Decode(issue))
+      }
+      if length < 1 {
+        return Err(InvalidPhysicalValue)
+      }
+      DoubleArray(length~)
+    }
     "DATE" => Date
     "TIMESTAMP_TZ" => TimestampTZ
     "TIMESTAMP" | "TIMESTAMP_S" | "TIMESTAMP_MS" | "TIMESTAMP_NS" =>
@@ -109,7 +125,11 @@ pub fn decode_physical_fields(
     let members : Array[@source.Field] = [
       { key: "id", key_span: span, value: { value: String(id), span, }, },
     ]
-    for (index, key) in [(2, "precision"), (3, "scale")] {
+    for
+      (index, key) in [
+        (2, if id == "DOUBLE_ARRAY" { "length" } else { "precision" }),
+        (3, "scale"),
+      ] {
       let cell = @decode.element_at(record, index).unwrap()
       if @decode.is_null(cell) {
         continue
@@ -118,7 +138,8 @@ pub fn decode_physical_fields(
         Ok(value) => value
         Err(_) => return Err(InvalidFields)
       }
-      if digits.length() == 0 || digits.length() > 2 {
+      if digits.length() == 0 ||
+        digits.length() > (if id == "DOUBLE_ARRAY" { 9 } else { 2 }) {
         return Err(InvalidFields)
       }
       let mut number = 0

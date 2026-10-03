@@ -754,6 +754,7 @@ pub(all) enum PhysicalType {
   Integer(bits~ : Int, signed~ : Bool)
   Float32
   Float64
+  DoubleArray(length~ : Int)
   Decimal(precision~ : Int, scale~ : Int)
   Date
   TimestampTZ

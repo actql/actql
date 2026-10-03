@@ -75,6 +75,12 @@ function floatFromBits(text, width) {
 
 export function physicalType(type) {
   const id = DuckDBTypeId[type.typeId];
+  if (id === 'ARRAY' && !type.alias &&
+      DuckDBTypeId[type.valueType?.typeId] === 'DOUBLE' &&
+      !type.valueType.alias && Number.isSafeInteger(type.length) &&
+      type.length > 0) {
+    return Object.freeze({id: 'DOUBLE_ARRAY', length: type.length});
+  }
   if (type.alias || !(integers.has(id) || timestamps.has(id) ||
     ['BOOLEAN', 'VARCHAR', 'FLOAT', 'DOUBLE', 'DATE', 'DECIMAL'].includes(id))) {
     throw new PhysicalValueError('UnsupportedPhysicalType');
@@ -90,6 +96,10 @@ export function exportPhysicalValue(value, type) {
   if (integers.has(id)) return value.toString();
   if (timestamps.has(id)) return value[timestamps.get(id)[0]].toString();
   switch (id) {
+    case 'DOUBLE_ARRAY': {
+      requireValue(value && Array.isArray(value.items) && value.items.length === type.length);
+      return value.items.map(item => item === null ? 'null' : floatBits(item, 8)).join(',');
+    }
     case 'BOOLEAN': case 'VARCHAR': return value;
     case 'FLOAT': return floatBits(value, 4);
     case 'DOUBLE': return floatBits(value, 8);

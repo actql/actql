@@ -13,6 +13,11 @@ export function assertBoundedVectorRuntime() {
 // law is implemented. The 16-byte string descriptor and little-endian length
 // must be re-audited together with the SDK pin; unknown layouts fail closed.
 export function boundedVectorItem(vector, row, type, maxBytes) {
+  if (type.id === 'DOUBLE_ARRAY' &&
+      (!Number.isSafeInteger(type.length) || type.length < 1 ||
+        type.length > Math.floor((maxBytes - 2) / 17))) {
+    throw new DuckDBTransportError('ChunkBytes');
+  }
   if (type.id === 'VARCHAR') {
     const {dataView, validity} = vector;
     if (!(vector instanceof DuckDBVarCharVector) || !(dataView instanceof DataView) ||
