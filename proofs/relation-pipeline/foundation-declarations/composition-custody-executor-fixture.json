@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "composition-custody-executor-fixture",
+  "kind": "change",
+  "revision": "98e09c40e40d6fa6e5cbc51b0805101b73ee3a1b",
+  "parents": [
+    "0f8a402ddad56d8da193b7061464514381d73b63"
+  ],
+  "changes": [
+    {
+      "path": "proofs/relation-pipeline/executor-close.test.mjs",
+      "before": [
+        {
+          "revision": "0f8a402ddad56d8da193b7061464514381d73b63",
+          "digest": "5d2970886d3d2e4a89d55ed745e84b37636bb40b6dd484c86c7653be073701fb",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "d541a3ac8fa6a1f6edf976e278bf6c92fe2ed1b4df80069660e4c82ff1434c2c",
+      "afterMode": "100644",
+      "reason": "Reuse the current main isolated-executor transport fixture for the adopted capacity close tests. Preserve explicit parent-to-child handoff in one live checkout, archived receipts, rejection of foreign and changed fixtures, terminal idempotent close, and the mutation that omits close. The updated fake transport supplies the required executed build identity and complete observation markers; no product result or stale receipt is treated as proof."
+    }
+  ]
+}

@@ -1,0 +1,96 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-composition-reviewed-supplements-main",
+  "kind": "resolution",
+  "revision": "5f223a77e82ae8676c6d081f42ec92da592e0eff",
+  "parents": [
+    "af7bec7c20cc3e263f6ec0317e71598f1c5bc63b",
+    "13bb2c79fac7ac97173f8146266248b1cf36d169"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "af7bec7c20cc3e263f6ec0317e71598f1c5bc63b",
+          "digest": "1816a0b1c13cb30ce0f94c076fd0e1640a25d1bf98727b2ced3fd54fed7ce26b",
+          "mode": "100644"
+        },
+        {
+          "revision": "13bb2c79fac7ac97173f8146266248b1cf36d169",
+          "digest": "9885de175c415f5696ac226f6857160e8cc8c2ae7c606e2d1375707d1ceccddd",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "90c48c700b1dfc054e6e998945733315330573ae7f20c475d05f28481e2231ad",
+      "afterMode": "100644",
+      "reason": "Normally integrate reviewed PR 257 and current main CI preflight/profile changes with the existing composition branch; retain all ordered parents, original declarations and independently derived source groups."
+    },
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "af7bec7c20cc3e263f6ec0317e71598f1c5bc63b",
+          "digest": "df3da8470e6960fb516ecf9765ef7d7201938e53840fc7bb4b71e087a1420974",
+          "mode": "100644"
+        },
+        {
+          "revision": "13bb2c79fac7ac97173f8146266248b1cf36d169",
+          "digest": "a5acef60ab169cc5eb2eb2b55f73a29ca867f181268ec3fc41f40cca726a8b11",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "7ddae67a24261dacd8d65f4875afbf06b260939c9464fb5c81476cfb6ae15424",
+      "afterMode": "100644",
+      "reason": "Normally integrate reviewed PR 257 and current main CI preflight/profile changes with the existing composition branch; retain all ordered parents, original declarations and independently derived source groups."
+    }
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-343a5565c1ac",
+    "adopt-3877b637406b",
+    "adopt-63b114ad524b",
+    "adopt-678626b010b4",
+    "adopt-7427f7f09276",
+    "adopt-985dbbba2789",
+    "adopt-9a7c592a8ed9",
+    "adopt-b480cffb6e6d",
+    "adopt-bf2d058c21c1",
+    "adopt-dafff1a1aeea",
+    "adopt-f24288853c19",
+    "adopt-sga-query-contract",
+    "bounded-local-execution-guard",
+    "ci-artifact-preflight-fixtures",
+    "ci-declaration-profile",
+    "ci-maintenance-pr-profile",
+    "ci-mandatory-preflight",
+    "ci-portable-pr-targets",
+    "client-ci-runner-context",
+    "client-ci-split",
+    "frontend-sga-main-integration",
+    "frontend-unified-graph-source-integration",
+    "issue-180-foundation-composition",
+    "main-pr225-ci-resolution",
+    "main-pr233-package-resolution",
+    "packed-acquired-infer-acceptance",
+    "packed-composed-infer-effect-acceptance",
+    "parallel-pipeline-evidence",
+    "pr164-main-a32-verification-resolution",
+    "pr164-main4f-runtime-check-resolution",
+    "pr164-property-graph-source",
+    "remove-duplicate-runtime-package-checks",
+    "resident-source-native-registration",
+    "resolve-acquired-infer-client-ci",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-frontend-latest-main",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-composition-maintenance-ci-main",
+    "resolve-composition-resident-source-main",
+    "resolve-local-guard-acquired-infer-ci",
+    "resolve-local-guard-pipeline-ci",
+    "resolve-main-model-backing",
+    "resolve-parallel-pipeline-main-infer",
+    "resolve-resident-source-latest-main",
+    "sdk-cancel-response-loss-registration"
+  ]
+}

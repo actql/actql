@@ -1,0 +1,160 @@
+{
+  "databaseRows": {
+    "left": [
+      {
+        "id": 2,
+        "amount": 20
+      },
+      {
+        "id": 1,
+        "amount": 10
+      },
+      {
+        "id": 4,
+        "amount": 40
+      }
+    ],
+    "right": [
+      {
+        "id": 3,
+        "amount": 300
+      },
+      {
+        "id": 1,
+        "amount": 100
+      },
+      {
+        "id": 2,
+        "amount": 200
+      }
+    ]
+  },
+  "classified": [
+    {
+      "id": 1,
+      "left_amount": 10,
+      "right_amount": 100,
+      "risk": "low"
+    },
+    {
+      "id": 2,
+      "left_amount": 20,
+      "right_amount": 200,
+      "risk": "high"
+    }
+  ],
+  "updates": [
+    {
+      "id": 2,
+      "left_amount": 20,
+      "right_amount": 200,
+      "risk": "high",
+      "target_id": "a00000000000002",
+      "next_name": "review-required"
+    }
+  ],
+  "writes": [
+    {
+      "id": "a00000000000002",
+      "body": {
+        "Name": "review-required"
+      }
+    }
+  ],
+  "modelInputs": [
+    100,
+    200
+  ],
+  "classifiedColumns": [
+    {
+      "name": "id",
+      "contract": {
+        "type": "number",
+        "nullable": false
+      }
+    },
+    {
+      "name": "left_amount",
+      "contract": {
+        "type": "number",
+        "nullable": true
+      }
+    },
+    {
+      "name": "right_amount",
+      "contract": {
+        "type": "number",
+        "nullable": true
+      }
+    },
+    {
+      "name": "risk",
+      "contract": {
+        "type": "string",
+        "nullable": true
+      }
+    }
+  ],
+  "updateColumns": [
+    {
+      "name": "id",
+      "contract": {
+        "type": "number",
+        "nullable": false
+      }
+    },
+    {
+      "name": "left_amount",
+      "contract": {
+        "type": "number",
+        "nullable": true
+      }
+    },
+    {
+      "name": "right_amount",
+      "contract": {
+        "type": "number",
+        "nullable": true
+      }
+    },
+    {
+      "name": "risk",
+      "contract": {
+        "type": "string",
+        "nullable": true
+      }
+    },
+    {
+      "name": "target_id",
+      "contract": {
+        "type": "string",
+        "nullable": false,
+        "max_utf8_bytes": 15
+      }
+    },
+    {
+      "name": "next_name",
+      "contract": {
+        "type": "string",
+        "nullable": false,
+        "max_utf8_bytes": 15
+      }
+    }
+  ],
+  "sourceReadSessions": [
+    2,
+    0,
+    0,
+    0
+  ],
+  "effectWriteCounts": [
+    0,
+    0,
+    1,
+    1
+  ],
+  "restartBoundaries": [
+    "capture-waiting",
+    "approval-committed"
+  ]
+}

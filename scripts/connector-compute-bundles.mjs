@@ -29,12 +29,12 @@ export function generateComputeAssembly(entries) {
     const managed = Object.hasOwn(m, 'managed_dispatch') ||
       Object.hasOwn(m, 'managed_dispatch_result');
     const managedStart = Object.hasOwn(m, 'managed_start') ||
-      Object.hasOwn(m, 'managed_start_result');
+      Object.hasOwn(m, 'managed_start_result') || Object.hasOwn(m, 'managed_start_error');
     const managedDuration = Object.hasOwn(m, 'managed_duration');
     const managedCapacity = Object.hasOwn(m, 'managed_capacity');
     const managedOptional = m.managed_dispatch_optional === true;
     if (!identifier(name) || names.has(name) ||
-        !keys(m, ['package', 'module', 'configuration', 'configure', 'registration', 'contribution', 'dispatch', 'dispatch_result', 'dispatch_error', 'estimate_error', 'estimate_policy', 'resource_policy', ...(Object.hasOwn(m, 'synchronous_dispatch') ? ['synchronous_dispatch'] : []), ...(Object.hasOwn(m, 'completion_dispatch') ? ['completion_dispatch'] : []), ...(managed ? ['managed_dispatch', 'managed_dispatch_result'] : []), ...(managedOptional ? ['managed_dispatch_optional'] : []), ...(managedStart ? ['managed_start', 'managed_start_result'] : []), ...(managedDuration ? ['managed_duration'] : []), ...(managedCapacity ? ['managed_capacity'] : [])]) ||
+        !keys(m, ['package', 'module', 'configuration', 'configure', 'registration', 'contribution', 'dispatch', 'dispatch_result', 'dispatch_error', 'estimate_error', 'estimate_policy', 'resource_policy', ...(Object.hasOwn(m, 'synchronous_dispatch') ? ['synchronous_dispatch'] : []), ...(Object.hasOwn(m, 'completion_dispatch') ? ['completion_dispatch'] : []), ...(managed ? ['managed_dispatch', 'managed_dispatch_result'] : []), ...(managedOptional ? ['managed_dispatch_optional'] : []), ...(managedStart ? ['managed_start', 'managed_start_result', 'managed_start_error'] : []), ...(managedDuration ? ['managed_duration'] : []), ...(managedCapacity ? ['managed_capacity'] : [])]) ||
         (Object.hasOwn(m, 'synchronous_dispatch') && !identifier(m.synchronous_dispatch)) ||
         (Object.hasOwn(m, 'completion_dispatch') &&
           (m.dispatch_result !== 'Unit' || !identifier(m.completion_dispatch))) ||
@@ -47,7 +47,10 @@ export function generateComputeAssembly(entries) {
         (managedStart && (!managed || !identifier(m.managed_start) ||
           !keys(m.managed_start_result, ['package', 'type']) ||
           !packageName(m.managed_start_result.package) ||
-          !typeName(m.managed_start_result.type))) ||
+          !typeName(m.managed_start_result.type) ||
+          !keys(m.managed_start_error, ['package', 'type']) ||
+          !packageName(m.managed_start_error.package) ||
+          !typeName(m.managed_start_error.type))) ||
         (managedDuration && (!managed || !identifier(m.managed_duration))) ||
         (managedCapacity && (!managed || !identifier(m.managed_capacity))) ||
         !packageName(m.package) || !(m.package === `actql/actql/connectors/${name}` || m.package.startsWith(`actql/actql/connectors/${name}/`)) ||

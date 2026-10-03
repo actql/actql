@@ -260,8 +260,10 @@ async function prepareDependentEffectSourceSet(options, memberCount, maxWork) {
         throw new RangeError('EffectDependencyImportLimit');
       }
       let dependency;
-      if (unitIndex === 0 && imports === 0) {
-        dependency = owned.localEvidenceContext.acquiredEvidence;
+      if (imports === 0) {
+        dependency = owned.localEvidenceContext.acquiredEvidenceByUnit?.[unitIndex]
+          ?? (unitIndex === 0 ? owned.localEvidenceContext.acquiredEvidence : undefined);
+        if (dependency === undefined) throw new TypeError('MissingEffectSourceEvidence');
       } else {
         const observations = [];
         for (let index = 0; index < imports; index++) {
@@ -735,7 +737,8 @@ async function preparePinnedEffectSourcePayloadOwned({
         ...local.staticBodies,
         ...localEvidenceContext.retentionDependencies,
         ...localEvidenceContext.acquisitionDependencies,
-        ...localEvidenceContext.acquiredEvidence.catalogBodies,
+        ...(localEvidenceContext.acquiredCatalogBodies
+          ?? localEvidenceContext.acquiredEvidence.catalogBodies),
         schemaBody,
         Object.freeze({kind: 'relation_value', cid: summary.logicalCid,
           wire: '{"sort":"relation","value":' + relationChunks.join('') + '}'}),

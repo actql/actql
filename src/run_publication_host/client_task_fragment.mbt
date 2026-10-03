@@ -264,6 +264,27 @@ pub fn issue_prepared_client_infer_prefix_fragment(
     return Err(InvalidLimits)
   }
   guard client_infer_metadata_owner(value, task, infer_step) is Some(owner) &&
+    @lower.node_at(@lower.bound_preparation(owner), infer_step - 1) is Some(_) else {
+    return Err(MissingOutput)
+  }
+  issue_client_infer_prefix_fragment_for_owner(
+    owner, task, infer_step, sequence_limits, max_wire_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Both the existing component and the composed occurrence retain the original
+/// bound preparation. This helper only lowers its pure pre-Model computation.
+fn issue_client_infer_prefix_fragment_for_owner(
+  owner : @lower.BoundPrepared,
+  task : Int,
+  infer_step : Int,
+  sequence_limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientTaskFragmentNode, ClientTaskFragmentIssue] {
+  guard infer_step > 0 &&
     @lower.node_at(@lower.bound_preparation(owner), infer_step - 1)
     is Some(output) else {
     return Err(MissingOutput)
@@ -298,7 +319,8 @@ pub fn issue_prepared_client_infer_prefix_fragment(
 
 ///|
 fn issue_client_infer_compute_fragment(
-  value : PreparedClientProgram,
+  owner : @lower.BoundPrepared,
+  task : Int,
   infer_step : Int,
   step : Int,
   sequence_limits : @lower.SequenceLimits,
@@ -307,7 +329,6 @@ fn issue_client_infer_compute_fragment(
   max_depth : Int,
 ) -> Result[ClientTaskFragmentNode, ClientTaskFragmentIssue] {
   guard step > infer_step &&
-    client_infer_prefix_owner(value, 0, infer_step) is Some(owner) &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(output) else {
     return Err(MissingOutput)
   }
@@ -332,7 +353,7 @@ fn issue_client_infer_compute_fragment(
     owner,
     step,
     Some(step),
-    "task_0_after_infer_" + step.to_string(),
+    "task_" + task.to_string() + "_after_infer_" + step.to_string(),
     pipeline_wire,
     max_wire_bytes,
     max_nodes,

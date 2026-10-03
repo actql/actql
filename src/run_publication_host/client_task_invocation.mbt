@@ -281,6 +281,94 @@ pub fn issue_client_multi_task_invocation(
     is Err(_) {
     return Err(@publication.RunEvidenceReferenceMismatch("task_run"))
   }
+  issue_client_multi_capture_observation(
+    prepared,
+    client_task_compilation_template(compilation),
+    captures,
+    identities,
+    requirements,
+    source_evidence_wires,
+    input_logical_wires,
+    authority_scope_cid,
+    data_policy_cid,
+    capture_started_at,
+    capture_completed_at,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+/// Retain the original Effect computation and admitted Run while reusing the
+/// common task-indexed capture, Source policy and complete-coverage checks.
+pub fn issue_client_effect_multi_captured_invocation(
+  prepared : PreparedClientEffectComputation,
+  compilation : ClientEffectCompilation,
+  admission : @publication.RunPublicationAdmission,
+  run_definition : @publication.PublicationContract,
+  captures : Array[@query.CapturedInputSource],
+  identities : Array[@query.CapturedSourceRelationIdentity],
+  requirements : Array[@planning.QueryRequirement],
+  source_evidence_wires : Array[String],
+  input_logical_wires : Array[String],
+  authority_scope_cid : String,
+  data_policy_cid : String,
+  capture_started_at : String,
+  capture_completed_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.PublicationContract),
+  @publication.RunEvidenceValueIssue,
+] {
+  if !physical_equal(compilation.owner, prepared) ||
+    bind_prepared_client_effect_run(prepared, admission, run_definition)
+    is Err(_) {
+    return Err(@publication.RunEvidenceReferenceMismatch("effect_run"))
+  }
+  if compilation.compiled.infer is Some(_) {
+    return Err(@publication.RunEvidenceReferenceMismatch("model_capture"))
+  }
+  issue_client_multi_capture_observation(
+    client_effect_program_view(prepared),
+    client_effect_compilation_template(compilation),
+    captures,
+    identities,
+    requirements,
+    source_evidence_wires,
+    input_logical_wires,
+    authority_scope_cid,
+    data_policy_cid,
+    capture_started_at,
+    capture_completed_at,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  )
+}
+
+///|
+fn issue_client_multi_capture_observation(
+  prepared : PreparedClientProgram,
+  template : @publication.RunEvidenceValue,
+  captures : Array[@query.CapturedInputSource],
+  identities : Array[@query.CapturedSourceRelationIdentity],
+  requirements : Array[@planning.QueryRequirement],
+  source_evidence_wires : Array[String],
+  input_logical_wires : Array[String],
+  authority_scope_cid : String,
+  data_policy_cid : String,
+  capture_started_at : String,
+  capture_completed_at : String,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (@publication.RunEvidenceValue, @publication.PublicationContract),
+  @publication.RunEvidenceValueIssue,
+] {
   if prepared_client_acquisition_count(prepared) != 2 ||
     captures.length() != 2 ||
     identities.length() != 2 ||
@@ -362,13 +450,7 @@ pub fn issue_client_multi_task_invocation(
     source_cids.push(@publication.run_evidence_value_identity(source))
   }
   issue_client_captured_observation_from_template(
-    client_task_compilation_template(compilation),
-    source_cids,
-    data_policy_cid,
-    capture_started_at,
-    capture_completed_at,
-    max_wire_bytes,
-    max_nodes,
-    max_depth,
+    template, source_cids, data_policy_cid, capture_started_at, capture_completed_at,
+    max_wire_bytes, max_nodes, max_depth,
   )
 }

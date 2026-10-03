@@ -50,6 +50,26 @@ pub fn model_source_observation_matches_input(
 }
 
 ///|
+/// The enclosing capture interval covers every independently admitted Source.
+/// No fresh observation or source identity is issued by this projection.
+pub fn model_source_observation_interval(
+  values : Array[ModelSourceObservation],
+) -> (String, String)? {
+  guard values.get(0) is Some(first) else { return None }
+  let mut started = first.started_at
+  let mut completed = first.completed_at
+  for value in values {
+    if value.started_at < started {
+      started = value.started_at
+    }
+    if value.completed_at > completed {
+      completed = value.completed_at
+    }
+  }
+  Some((started, completed))
+}
+
+///|
 /// Restore the original observation against a newly checked input. Fresh
 /// acquisition times are not replay identity; source, input and policy are.
 pub fn restore_model_source_observation(

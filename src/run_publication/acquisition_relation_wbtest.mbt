@@ -246,3 +246,99 @@ test "input Relation provenance rejects wrong kinds and repeated references" {
     ),
   )
 }
+
+///|
+test "combined acquisition scope retains both requests without widening permissions" {
+  let left = issue_single_source_acquisition_scope(
+    relation_fixture_cid("1"),
+    relation_fixture_cid("2"),
+    10000,
+    1000,
+    32,
+  ).unwrap()
+  let right = issue_single_source_acquisition_scope(
+    relation_fixture_cid("3"),
+    relation_fixture_cid("4"),
+    10000,
+    1000,
+    32,
+  ).unwrap()
+  let joined = issue_combined_acquisition_scope(
+    [right, left, right],
+    10000,
+    1000,
+    32,
+  ).unwrap()
+  // Independent Node SHA-256 of the authored two-entry canonical scope body.
+  assert_eq(
+    joined.identity,
+    "sha256:8d9592c5289d76efed38c6f47bedbaa1cc1827818d12e2ae3fafda7ead71995b",
+  )
+  assert_eq(
+    issue_combined_acquisition_scope([left, right], 10000, 1000, 32).unwrap().identity,
+    joined.identity,
+  )
+  assert_eq(
+    issue_combined_acquisition_scope([left, left], 10000, 1000, 32).unwrap().identity,
+    left.identity,
+  )
+  assert_true(
+    issue_combined_acquisition_scope([], 10000, 1000, 32) is Err(WrongScope),
+  )
+  assert_true(
+    issue_combined_acquisition_scope(
+      [relation_fixture_retention(relation_fixture_cid("5"))],
+      10000,
+      1000,
+      32,
+    )
+    is Err(WrongScope),
+  )
+  // Repeated entries consume the input budget even when they deduplicate.
+  assert_true(
+    issue_combined_acquisition_scope([left, left], 10000, 3, 32)
+    is Err(Encoding),
+  )
+  assert_true(
+    issue_combined_acquisition_scope([left, right], 1, 1000, 32)
+    is Err(Encoding),
+  )
+}
+
+///|
+test "separate Source and publication policies preserve retention custody bounds" {
+  let source = relation_fixture_retention(relation_fixture_cid("5"))
+  let publication = relation_fixture_retention(relation_fixture_cid("6"))
+  assert_true(result_retention_bounds_equal(source, publication))
+  assert_true(result_retention_bounds_equal(source, source))
+  let scope = issue_single_source_acquisition_scope(
+    relation_fixture_cid("1"),
+    relation_fixture_cid("2"),
+    10000,
+    1000,
+    32,
+  ).unwrap()
+  assert_false(result_retention_bounds_equal(scope, publication))
+  assert_false(result_retention_bounds_equal(source, scope))
+  let body =
+    #|{"version":"actql-result-retention-policy/0.1","retention_contract_cid":"sha256:1111111111111111111111111111111111111111111111111111111111111111","effective_data_policy_cid":"sha256:6666666666666666666666666666666666666666666666666666666666666666","available_until":"2026-09-29T01:00:00.000Z","delete_by":"2026-09-29T02:00:00.000Z","extension_ceiling_at":"2026-09-29T03:00:00.000Z","metadata_retention_policy_cid":"sha256:2222222222222222222222222222222222222222222222222222222222222222","metadata_delete_by":"2026-09-29T04:00:00.000Z","clock_contract_cid":"sha256:3333333333333333333333333333333333333333333333333333333333333333"}
+  for
+    (old, replacement) in [
+      (relation_fixture_cid("1"), relation_fixture_cid("7")),
+      (relation_fixture_cid("2"), relation_fixture_cid("7")),
+      (relation_fixture_cid("3"), relation_fixture_cid("7")),
+      ("2026-09-29T01:00:00.000Z", "2026-09-29T01:30:00.000Z"),
+      ("2026-09-29T02:00:00.000Z", "2026-09-29T02:30:00.000Z"),
+      ("2026-09-29T03:00:00.000Z", "2026-09-29T03:30:00.000Z"),
+      ("2026-09-29T04:00:00.000Z", "2026-09-29T04:30:00.000Z"),
+    ] {
+    let changed = seal_publication_contract(
+      "result_retention_policy",
+      body.replace(old~, new=replacement),
+      10000,
+      1000,
+      32,
+    ).unwrap()
+    assert_false(result_retention_bounds_equal(source, changed))
+  }
+}

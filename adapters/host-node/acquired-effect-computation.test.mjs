@@ -166,3 +166,43 @@ test('source evidence failure retains capture cleanup until release succeeds',
     assert.equal(reads, 1);
     assert.equal(closes, 2);
   });
+
+test('plural Effect preparation retains custody before either read can start', async () => {
+  const prepared = {};
+  const failure = new Error('SecondSourcePreparationUnavailable');
+  let custody;
+  let reads = 0;
+  const preparedTasks = [];
+  const sources = [0, 1].map(task => {
+    const access = {name: `source-${task}`};
+    return {
+      realizationKey: 'duckdb-acquired', sourceAccess: access,
+      admitsSource: ref => ref === `source-${task}`,
+      async prepare(options) {
+        assert.equal(custody.cleanupPending(), true);
+        assert.equal(options.preparedEffect, prepared);
+        assert.equal(options.sourceAccess, access);
+        assert.deepEqual(options.occurrence, {stage: task, input: 0, task});
+        preparedTasks.push(task);
+        if (task === 1) throw failure;
+        return {};
+      },
+      async open() { reads++; throw new Error('UnexpectedRead'); },
+    };
+  });
+  await assert.rejects(openAcquiredEffectComputation({
+    moon: {
+      clientProgramEffectAcquisitionCount: () => 2,
+      clientProgramEffectPrepareLocalQueryRequirement: (_, task) => ({$tag: 1, _0: task}),
+      clientProgramQueryRequirementSourceRef: task => `source-${task}`,
+    },
+    owner: {}, acquired: {prepared}, sourceProfile: {sources},
+    retainComputationOwner(value) { custody = value; },
+  }), error => error === failure);
+  assert.deepEqual(preparedTasks, [0, 1]);
+  assert.equal(reads, 0);
+  assert.equal(await custody.cleanup(), false);
+  await custody.close();
+  assert.equal(await custody.cleanup(), true);
+  assert.equal(custody.cleanupPending(), false);
+});

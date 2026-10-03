@@ -1,0 +1,37 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "packed-composed-infer-effect-acceptance",
+  "kind": "change",
+  "revision": "a0b4c868d2f8834fdd157aa0fa0cffac77e9ef14",
+  "parents": [
+    "bc33d2bacaf08817f1bebd7cc916e4ff748cbfff"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "bc33d2bacaf08817f1bebd7cc916e4ff748cbfff",
+          "digest": "378594ad66e917058065462a18c13bd3d4f4933b63771bd5142f6012d90f2c54",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "af952021226a05d4177e6b657baa5b16e18a453b98352905712a908891552e94",
+      "afterMode": "100644",
+      "reason": "Run the ordinary and composed packed Local/HTTPS Source JOIN INFER Effect acceptance unconditionally in the existing client-packed artifact consumer. Reuse the exact-SHA verified tarballs without another job or pack, and preserve all prior acceptance commands and aggregate failure predicates."
+    },
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "bc33d2bacaf08817f1bebd7cc916e4ff748cbfff",
+          "digest": "946a8de4938e3f11af16540b994ea97fd277be254154a0203a5097df4461f416",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "455df8240635aedf6878438ceeed06806781535a3af1436583af540866f5ef91",
+      "afterMode": "100644",
+      "reason": "Move the existing packed Salesforce acceptance out of the Host asset command into the verified client-packed consumer so the ordinary and composed Programs are covered exactly once. Keep the Host runtime-asset checks, all source-backed recovery probes, and every required gate intact."
+    }
+  ]
+}

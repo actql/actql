@@ -17,6 +17,7 @@ struct ClientEffectAcquiredEvidence {
   request : @encode.EncodedDocument
   request_cid : String
   retention : @publication.PublicationContract
+  publication_retention : @publication.PublicationContract
   relation : @publication.PublicationContract
   ordering : @publication.PublicationContract
   scope : @publication.PublicationContract
@@ -89,11 +90,29 @@ pub fn issue_client_effect_acquired_evidence(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  unit? : Int = 0,
+  publication_retention? : @publication.PublicationContract? = None,
 ) -> Result[ClientEffectAcquiredEvidence, ClientEffectAcquiredEvidenceIssue] {
+  let publication_retention = publication_retention.unwrap_or(retention)
+  if !@publication.result_retention_bounds_equal(
+      retention, publication_retention,
+    ) {
+    return Err(Relation(@publication.WrongRetention))
+  }
   let invocation = match
     issue_acquired_client_effect_local_invocation(
-      owner, captured, identity, requirement, input, observation, authority_scope_cid,
-      data_policy_cid, max_bytes, max_nodes, max_depth,
+      owner,
+      captured,
+      identity,
+      requirement,
+      input,
+      observation,
+      authority_scope_cid,
+      data_policy_cid,
+      max_bytes,
+      max_nodes,
+      max_depth,
+      unit~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Invocation(issue))
@@ -123,6 +142,7 @@ pub fn issue_client_effect_acquired_evidence(
     request: @planning.query_material_request(material),
     request_cid,
     retention,
+    publication_retention,
     relation,
     ordering,
     scope,
@@ -142,7 +162,7 @@ pub fn client_effect_acquired_request_cid(
 pub fn client_effect_acquired_dependency_bodies(
   value : ClientEffectAcquiredEvidence,
 ) -> Array[(String, String)] {
-  [
+  let bodies = [
     ("source_input_logical", @publication.run_evidence_value_json(value.input)),
     ("source_evidence", @publication.run_evidence_value_json(value.observation)),
     ("request_values", @encode.document_text(value.request)),
@@ -156,6 +176,16 @@ pub fn client_effect_acquired_dependency_bodies(
     ),
     ("acquisition_scope", @publication.publication_contract_json(value.scope)),
   ]
+  if @publication.publication_contract_identity(value.retention) !=
+    @publication.publication_contract_identity(value.publication_retention) {
+    bodies.push(
+      (
+        "result_retention_policy",
+        @publication.publication_contract_json(value.retention),
+      ),
+    )
+  }
+  bodies
 }
 
 ///|
@@ -196,7 +226,7 @@ pub fn issue_acquired_client_effect_local_result_artifact(
   if !client_effect_local_result_definition_matches(
       definition,
       owner,
-      0,
+      source.invocation.unit,
       @execution.managed_result_occurrence_name(
         @strategy.captured_any_result_borrow_occurrence(borrow),
       ),
@@ -221,7 +251,7 @@ pub fn issue_acquired_client_effect_local_result_artifact(
       run_definition,
       run_invocation,
       observation,
-      source.retention,
+      source.publication_retention,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Context(issue))
@@ -232,7 +262,7 @@ pub fn issue_acquired_client_effect_local_result_artifact(
     definition,
     source.invocation,
     receipt,
-    source.retention,
+    source.publication_retention,
     @publication.publication_contract_identity(source.scope),
     policy,
     authority,
