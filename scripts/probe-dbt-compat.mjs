@@ -21,9 +21,10 @@ import {existsSync} from 'node:fs';
 import {cp, mkdir, readdir, readFile, writeFile} from 'node:fs/promises';
 import {dirname, join, relative} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {probeStatus} from './fixtures/dbt-compat-judge.mjs';
+import {compatibilityReport, packageIdentity, textIdentity} from
+  './fixtures/dbt-compat-judge.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
-import {CLIENT_PACKAGES, packedClientPackage, packedNpmCache} from
+import {CLIENT_PACKAGES, checkoutState, packedClientPackage, packedNpmCache} from
   './packed-client-packages.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
@@ -52,12 +53,13 @@ const persistCommands = () => writeFile(join(evidence, 'commands.json'),
 // Run one command, keep its argv, exit, duration and streams as evidence,
 // and fail the probe on an unexpected exit.
 async function run(command, args, {cwd = root, env = process.env,
-  timeout = 600_000, allowFailure = false} = {}) {
+  timeout = 600_000, allowFailure = false, kind = 'setup', project} = {}) {
   const begin = performance.now();
   const result = spawnSync(command, args, {cwd, env, encoding: 'utf8',
     timeout, killSignal: 'SIGKILL', maxBuffer: 64 * 1024 * 1024});
   const id = String(commands.length + 1).padStart(3, '0');
-  commands.push({id, command, args: args.map(value =>
+  commands.push({id, kind, ...(project ? {project} : {}), command,
+    args: args.map(value =>
     String(value).replaceAll(root, '<scratch>').replaceAll(repository,
       '<repository>/')), cwd: relative(root, cwd) || '.',
   status: result.status, signal: result.signal,
@@ -73,6 +75,26 @@ async function run(command, args, {cwd = root, env = process.env,
   return result;
 }
 
+const versions = {};
+const compileChecks = {};
+const compiled = {};
+const compiledFiles = {};
+const programs = {};
+const tarballs = {};
+const packages = [];
+const source = {};
+let recorded = {outcomes: [], installed: []};
+let fault;
+try {
+source.before = checkoutState(repository);
+await cp(join(probe, 'cases.json'), join(evidence, 'cases.json'));
+if (!source.before.clean) {
+  throw new Error('Commit all probe/build inputs before running');
+}
+for (const item of specification.cases) {
+  if (item.program) programs[item.program] = await readFile(
+    join(probe, item.program), 'utf8');
+}
 // 1. Python and the pinned dbt installation (the only networked step).
 const python = process.env.ACTQL_PROBE_PYTHON ?? 'python3.13';
 const pythonVersion = (await run(python, ['--version'])).stdout.trim();
@@ -88,13 +110,13 @@ const pipEnv = {...process.env, PIP_DISABLE_PIP_VERSION_CHECK: '1',
 await run(pip, ['install', '--require-hashes', '--only-binary', ':all:',
   '--no-deps', '-r', join(probe, 'requirements.txt')], {env: pipEnv});
 await run(pip, ['list', '--format', 'json'], {env: pipEnv});
-const versions = JSON.parse((await run(join(venv, 'bin', 'python'), ['-c',
+Object.assign(versions, JSON.parse((await run(join(venv, 'bin', 'python'), ['-c',
   'import json, importlib.metadata as m, platform; print(json.dumps({' +
   '"python": platform.python_version(), ' +
   '"dbt-core": m.version("dbt-core"), "dbt-duckdb": m.version("dbt-duckdb"), ' +
   '"dbt-adapters": m.version("dbt-adapters"), ' +
   '"dbt-common": m.version("dbt-common"), "duckdb": m.version("duckdb")}))'
-])).stdout);
+], {kind: 'versions'})).stdout));
 
 // 2. dbt compile, offline, from copies of the projects (dbt writes target/
 // and logs/ next to the project).
@@ -120,7 +142,6 @@ const dbtEnv = {...process.env, DBT_SEND_ANONYMOUS_USAGE_STATS: 'false',
 const sandbox = existsSync('/usr/bin/sandbox-exec');
 const isolation = sandbox
   ? 'sandbox-exec with (deny network-outbound)' : 'not network-isolated';
-const compileChecks = {};
 for (const project of ['project', 'project-default-quoting']) {
   const directory = join(projects, project);
   const dbtArgs = ['compile', '--no-populate-cache', '--profiles-dir', '.',
@@ -129,7 +150,8 @@ for (const project of ['project', 'project-default-quoting']) {
   const dbt = join(venv, 'bin', 'dbt');
   await run(sandbox ? '/usr/bin/sandbox-exec' : dbt, sandbox
     ? ['-p', '(version 1)(allow default)(deny network-outbound)', dbt,
-      ...dbtArgs] : dbtArgs, {cwd: directory, env: dbtEnv});
+      ...dbtArgs] : dbtArgs, {cwd: directory, env: dbtEnv,
+      kind: 'dbt-compile', project});
   const log = await readFile(join(directory, 'logs', 'dbt.log'), 'utf8');
   await mkdir(join(evidence, 'dbt', project), {recursive: true});
   await writeFile(join(evidence, 'dbt', project, 'dbt.log'), log);
@@ -143,7 +165,6 @@ for (const project of ['project', 'project-default-quoting']) {
 }
 
 // 3. Compiled SQL exactly as written by dbt, with its manifest provenance.
-const compiled = {};
 const manifestExcerpt = {};
 for (const item of specification.cases) {
   const directory = join(projects, item.project);
@@ -151,6 +172,11 @@ for (const item of specification.cases) {
     'cases', `${item.model}.sql`);
   const bytes = await readFile(file);
   compiled[item.name] = bytes.toString('utf8');
+  if (!Buffer.from(compiled[item.name], 'utf8').equals(bytes)) {
+    throw new Error(`Compiled SQL is not lossless UTF-8: ${item.name}`);
+  }
+  compiledFiles[item.name] = {file: `compiled/${item.name}.sql`,
+    ...textIdentity(bytes)};
   await mkdir(join(evidence, 'compiled'), {recursive: true});
   await writeFile(join(evidence, 'compiled', `${item.name}.sql`), bytes);
   const manifest = JSON.parse(await readFile(join(directory, 'target',
@@ -172,19 +198,24 @@ await writeFile(join(evidence, 'manifest-excerpt.json'),
 const install = join(root, 'install');
 await mkdir(install);
 const npmEnv = {...process.env, npm_config_cache: packedNpmCache(install)};
-const tarballs = {};
 for (const name of CLIENT_PACKAGES) {
   await packedClientPackage({repository, name, destination: install,
     pack: () => run('npm', ['pack', '--pack-destination', install, '--json'],
       {cwd: join(repository, 'packages', name), env: npmEnv})});
   const file = `actql-${name}-0.0.0-development.tgz`;
   tarballs[file] = sha256(await readFile(join(install, file)));
+  const unpack = join(root, 'package-payloads', name);
+  await mkdir(unpack, {recursive: true});
+  await run('tar', ['-xzf', join(install, file), '-C', unpack]);
+  packages.push({...await packageIdentity(join(unpack, 'package')),
+    filename: file, sha256: tarballs[file], revision: source.before.revision});
 }
 await writeFile(join(install, 'package.json'),
   '{"private":true,"type":"module"}\n');
 await run('npm', ['install', '--ignore-scripts', '--no-save',
   ...CLIENT_PACKAGES.map(name => join(install,
-    `actql-${name}-0.0.0-development.tgz`))], {cwd: install, env: npmEnv});
+    `actql-${name}-0.0.0-development.tgz`))], {cwd: install, env: npmEnv,
+    kind: 'install'});
 for (const [source, destination] of [
   ['scripts/fixtures/dbt-compat-acceptance.mjs', 'acceptance.mjs'],
   ['scripts/fixtures/dbt-compat-judge.mjs', 'dbt-compat-judge.mjs'],
@@ -212,62 +243,61 @@ for (const name of ['MOON_HOME', 'ACTQL_LOCAL_STATE_DIR',
 const resultsPath = join(evidence, 'results.json');
 const acceptance = await run(process.execPath, ['acceptance.mjs',
   'cases.json', 'compiled.json', resultsPath], {cwd: install, env: runtimeEnv,
-  timeout: 900_000, allowFailure: true});
-const recorded = existsSync(resultsPath)
+  timeout: 900_000, allowFailure: true, kind: 'acceptance'});
+recorded = existsSync(resultsPath)
   ? JSON.parse(await readFile(resultsPath, 'utf8')) : {outcomes: []};
-const results = recorded.outcomes;
 // An acceptance that stopped without recording why is itself a fault.
-const fault = recorded.fault ?? (acceptance.status === 0 ? undefined
+fault = recorded.fault ?? (acceptance.status === 0 ? undefined
   : {message: `acceptance exited ${acceptance.status ?? acceptance.signal
   } without recording a fault`});
 
-// 6. Summary, written before the environment may be removed.
-const revision = spawnSync('git', ['rev-parse', 'HEAD'], {cwd: repository,
-  encoding: 'utf8'}).stdout.trim();
-const dirty = spawnSync('git', ['status', '--porcelain', '--untracked-files=no'],
-  {cwd: repository, encoding: 'utf8'}).stdout.trim() !== '';
-const compileProblems = Object.entries(compileChecks).filter(([, check]) =>
-  check.connectionOpens !== 0 || check.duckdbFiles.length !== 0 ||
-  check.userFile);
-const {status, failures} = probeStatus({outcomes: results, compileProblems,
-  fault});
-const injected = process.env.ACTQL_DBT_PROBE_INJECT_RUN_FAILURE;
-const summary = {
-  version: 'actql-dbt-compat-evidence/0.1',
-  status,
-  ...(fault === undefined ? {} : {fault}),
-  ...(injected ? {injectedRunFailures: injected.split(',')} : {}),
-  startedAt: new Date(started).toISOString(),
-  elapsedMs: Date.now() - started,
-  platform: `${process.platform}-${process.arch}`,
-  node: process.version,
-  actql: {revision, trackedChanges: dirty, tarballs},
-  dbt: {...versions, requirementsSha256: sha256(await readFile(join(probe,
-    'requirements.txt'))), compileChecks},
-  outcomes: results.map(({case: name, transport, stage, verdict, code,
-    problems, injected}) => ({case: name, transport, stage, verdict,
-    ...(code === undefined ? {} : {code}),
-    ...(injected === undefined ? {} : {injected}),
-    ...(problems === undefined ? {} : {problems})})),
-};
-await writeFile(join(evidence, 'summary.json'),
-  JSON.stringify(summary, null, 2) + '\n');
-for (const item of summary.outcomes) {
-  console.log(`${item.transport}\t${item.case}\t${item.stage}\t${
-    item.verdict}${item.code ? '\t' + item.code : ''}`);
-}
-console.log(`dbt compatibility probe ${summary.status} in ${
-  Math.round(summary.elapsedMs / 1000)} s; evidence: ${evidence}`);
-if (summary.status !== 'passed') {
-  for (const [project, check] of compileProblems) {
-    console.error(`dbt compile check failed for ${project}: ${
-      JSON.stringify(check)}`);
+// The outer report also runs for setup/compile/pack failures.
+} catch (error) {
+  fault = {message: String(error.message), code: error.code ?? null};
+} finally {
+  try { source.after = checkoutState(repository); }
+  catch (error) { fault ??= {message: String(error.message)}; }
+  const results = recorded.outcomes ?? [];
+  const report = compatibilityReport({specification, compiled, programs,
+    commands, versions, source, packages, installed: recorded.installed ?? [],
+    outcomes: results, compileChecks, fault});
+  const injected = process.env.ACTQL_DBT_PROBE_INJECT_RUN_FAILURE;
+  const summary = {
+    version: 'actql-dbt-compat-evidence/0.1',
+    ...report,
+    ...(fault === undefined ? {} : {fault}),
+    ...(injected ? {injectedRunFailures: injected.split(',')} : {}),
+    startedAt: new Date(started).toISOString(),
+    elapsedMs: Date.now() - started,
+    platform: `${process.platform}-${process.arch}`,
+    node: process.version,
+    actql: {revision: source.before?.revision ?? null,
+      trackedChanges: source.before ? !source.before.clean : null,
+      source, tarballs, packages, installed: recorded.installed ?? []},
+    dbt: {...versions, requirementsSha256: sha256(await readFile(join(probe,
+      'requirements.txt'))), compileChecks},
+    compiled: compiledFiles,
+    expectedResults: {file: 'cases.json', ...textIdentity(await readFile(
+      join(probe, 'cases.json'))), origin: 'independently authored fixture'},
+    commands,
+    outcomes: results,
+  };
+  await writeFile(join(evidence, 'summary.json'),
+    JSON.stringify(summary, null, 2) + '\n');
+  for (const item of summary.outcomes) {
+    console.log(`${item.transport}\t${item.case}\t${item.stage}\t${
+      item.verdict}${item.code ? '\t' + item.code : ''}`);
   }
-  for (const item of failures) console.error(JSON.stringify(item));
-  if (fault !== undefined) console.error(`fault: ${JSON.stringify(fault)}`);
-  process.exitCode = 1;
-} else {
-  // Every process this probe started has exited (spawnSync) and the
-  // evidence above is written.
-  scratch.passed();
+  console.log(`dbt compatibility probe ${summary.status} in ${
+    Math.round(summary.elapsedMs / 1000)} s; evidence: ${evidence}`);
+  if (summary.status !== 'passed') {
+    for (const problem of report.problems) console.error(problem);
+    for (const item of report.failures) console.error(JSON.stringify(item));
+    if (fault !== undefined) console.error(`fault: ${JSON.stringify(fault)}`);
+    process.exitCode = 1;
+  } else {
+    // Every process this probe started has exited (spawnSync), and all
+    // reports are written before the disposable environment is removed.
+    scratch.passed();
+  }
 }

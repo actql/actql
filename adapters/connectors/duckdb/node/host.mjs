@@ -1354,12 +1354,14 @@ async function runHostNativeQuery(grant, setup, limits, signal, ledger, retained
     evidence,
     storageUsage: () => store?.status(),
     cleanupHandle: retained ? retainedCleanup : undefined,
+    source: () => checked(moon.nativeHostSourceCaptureSource(
+      retainedSourceCapture())),
     ...(capacity === undefined ? {
       output,
-      source: () => checked(moon.nativeHostSourceCaptureSource(
-        retainedSourceCapture())),
     } : {
       openDAG: graph => checked(moon.nativeHostOpenDAG(liveRun(), graph, captured.observation)),
+      retainTask: (dag, task) => checked(moon.nativeHostRetainCapturedTask(
+        liveRun(), dag, task, captured.observation)),
     }),
     close() {
       if (captureReleased) return;
@@ -1368,36 +1370,39 @@ async function runHostNativeQuery(grant, setup, limits, signal, ledger, retained
       body?.close();
       store?.close();
       captured.close();
+      // Drop cached source custody only after the original issuer confirms
+      // close. Failed close retries retain that same owner; the weak entry's
+      // liveRun guard preserves the established closed-evidence failure.
+      sourceCapture = undefined;
       captureReleased = true;
     },
   });
-  if (capacity === undefined) {
-    ownedSourceCaptures.set(result, Object.freeze({
-      issue: ({context, identity, logicalInput, authorityScopeCid,
-        effectiveDataPolicyCid, signal: issuanceSignal}) => {
-        const held = retainedSourceCapture();
-        const sourceRef = moon.nativeHostSourceCaptureSourceRef(held);
-        if (sourceRef === undefined) {
-          throw new DuckDBTransportError('ClosedSourceCapture');
-        }
-        return withCurrentSourceEvidenceRead(grant, sourceRef, () => {
-          liveRun();
-          return checked(moon.nativeHostIssueSourceEvidence(held, context, identity,
-            logicalInput, authorityScopeCid, effectiveDataPolicyCid,
-            observedAt));
-        }, issuanceSignal);
-      },
-      matches: identity => !closed &&
-        moon.nativeHostSourceCaptureIdentityMatches(
-          retainedSourceCapture(), identity),
-    }));
-  }
+  ownedSourceCaptures.set(result, Object.freeze({
+    issue: ({context, identity, logicalInput, authorityScopeCid,
+      effectiveDataPolicyCid, signal: issuanceSignal}) => {
+      const held = retainedSourceCapture();
+      const sourceRef = moon.nativeHostSourceCaptureSourceRef(held);
+      if (sourceRef === undefined) {
+        throw new DuckDBTransportError('ClosedSourceCapture');
+      }
+      return withCurrentSourceEvidenceRead(grant, sourceRef, () => {
+        liveRun();
+        return checked(moon.nativeHostIssueSourceEvidence(held, context, identity,
+          logicalInput, authorityScopeCid, effectiveDataPolicyCid,
+          observedAt));
+      }, issuanceSignal);
+    },
+    matches: identity => !closed &&
+      moon.nativeHostSourceCaptureIdentityMatches(
+        retainedSourceCapture(), identity),
+  }));
   return result;
 }
 
 // The broad result binds directly to an owned consumer through the existing
 // captured-input API. No caller-supplied expected producer or success proof.
-export async function runBroadHostQuery(grant, setup, limits, signal) {
+export async function runBroadHostQuery(grant, setup, limits, signal,
+  residualRuntime) {
   const moon = await loadRuntime();
   let capturedRun;
   const captured = await runBroadQuery(grant, verify => {
@@ -1405,6 +1410,8 @@ export async function runBroadHostQuery(grant, setup, limits, signal) {
     capturedRun = run;
     const attempt = moon.broadHostAttempt(run);
     let view;
+    let residual;
+    const localMoon = residualRuntime;
     const owns = current => {
       if (view === undefined) view = current;
       if (view !== current) throw new DuckDBTransportError('ForeignReadView');
@@ -1435,10 +1442,51 @@ export async function runBroadHostQuery(grant, setup, limits, signal) {
     });
     return Object.freeze({
       attempt, port,
-      complete: () => checked(moon.broadHostComplete(run)),
+      complete: () => checked(residual === undefined ?
+        moon.broadHostComplete(run) :
+        localMoon.clientBroadResidualComplete(residual)),
+      ...(localMoon === undefined ? {} : {async completeBounded(activeSignal) {
+        residual = checked(localMoon.clientBroadResidualPrepare(
+          moon.broadHostAcquisition(run), moon.broadHostMaxNameBytes(run)));
+        try {
+          for (;;) {
+            activeSignal?.throwIfAborted();
+            if (checked(localMoon.clientBroadResidualAdvance(residual, 128))) break;
+            await yieldToHost();
+          }
+          activeSignal?.throwIfAborted();
+          return checked(localMoon.clientBroadResidualComplete(residual));
+        } catch (cause) {
+          localMoon.clientBroadResidualCancel(residual);
+          try {
+            while (!localMoon.clientBroadResidualStopped(residual)) {
+              try { checked(localMoon.clientBroadResidualAdvance(residual, 128)); }
+              catch (stopError) {
+                if (!localMoon.clientBroadResidualStopped(residual)) throw stopError;
+              }
+              if (!localMoon.clientBroadResidualStopped(residual)) await yieldToHost();
+            }
+          } catch (stopError) {
+            throw new DuckDBTransportError('ResidualStopUnconfirmed', {
+              cause: new AggregateError([cause, stopError]),
+            });
+          }
+          throw cause;
+        }
+      }}),
+      stopped: () => residual === undefined ||
+        localMoon.clientBroadResidualStopped(residual),
       bindInput: (observation, receiver, inputIndex) => checked(moon.broadHostBind(run, observation, receiver, rows(inputIndex))),
-      abort() { moon.broadHostAbort(run); },
-      close() { moon.broadHostClose(run); },
+      abort() {
+        if (residual === undefined) moon.broadHostAbort(run);
+        else localMoon.clientBroadResidualCancel(residual);
+      },
+      close() {
+        if (residual === undefined) moon.broadHostClose(run);
+        else if (!checked(localMoon.clientBroadResidualCleanup(residual))) {
+          throw new DuckDBTransportError('ResidualCleanupPending');
+        }
+      },
     });
   }, limits, signal);
   let closed = false;

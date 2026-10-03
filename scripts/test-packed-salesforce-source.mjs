@@ -5,7 +5,7 @@
 // mock; the `sf` CLI is a stand-in that returns a test-only token.
 import assert from 'node:assert/strict';
 import {execFileSync, spawn, spawnSync} from 'node:child_process';
-import {generateKeyPairSync} from 'node:crypto';
+import {createHash, generateKeyPairSync} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
@@ -139,6 +139,11 @@ try {
     artifacts.push(join(root, packed[0]?.filename ??
       packed[`@actql/${name}`]?.filename));
   }
+  console.log('packed package digests ' + JSON.stringify(
+    await Promise.all(artifacts.map(async path => ({
+      package: path.split('/').at(-1),
+      sha256: createHash('sha256').update(await readFile(path)).digest('hex'),
+    })))));
   await writeFile(join(root, 'package.json'),
     '{"private":true,"type":"module"}\n');
   run('npm', ['install', '--ignore-scripts', '--no-save', ...artifacts],
@@ -348,16 +353,34 @@ import assert from 'node:assert/strict';
 import {createPrivateKey, sign} from 'node:crypto';
 import {readFileSync, writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
+import {createServer} from 'node:https';
+import {userInfo} from 'node:os';
+import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 import {connect} from '@actql/node';
 const authorization = JSON.parse(readFileSync('authorization.json', 'utf8'));
 authorization.resumeAfterAnswer = process.argv[2] === 'resume';
-const client = await connect({mode: 'local', owner: 'local',
-  durability: 'durable', installation: {
-    directory: process.env.ACTQL_LOCAL_STATE_DIR,
-    sourceProfilePath: process.env.ACTQL_LOCAL_SOURCE_PROFILE,
-    effectProfilePath: process.env.ACTQL_LOCAL_EFFECT_PROFILE,
-    authorization,
-  }});
+const installation = {
+  directory: process.env.ACTQL_LOCAL_STATE_DIR,
+  sourceProfilePath: process.env.ACTQL_LOCAL_SOURCE_PROFILE,
+  effectProfilePath: process.env.ACTQL_LOCAL_EFFECT_PROFILE,
+  authorization,
+};
+let remoteHost;
+let remoteServer;
+let connection = {mode: 'local', owner: 'local',
+  durability: 'durable', installation};
+if (process.env.PACKED_RCE_TRANSPORT === 'https') {
+  remoteHost = await openInstalledRemoteHttpHost({...installation,
+    authenticate: header => header === 'Bearer fixture-token'
+      ? userInfo().username : undefined});
+  remoteServer = createServer({key: readFileSync('org.key'),
+    cert: readFileSync('org.crt')}, remoteHost.handler);
+  await new Promise(resolve => remoteServer.listen(0, '127.0.0.1', resolve));
+  connection = {mode: 'remote', durability: 'durable',
+    endpoint: 'https://127.0.0.1:' + remoteServer.address().port + '/',
+    token: 'fixture-token'};
+}
+const client = await connect(connection);
 const pause = () => new Promise(resolve => setTimeout(resolve, 50));
 async function waitFor(check) {
   for (let attempt = 0; attempt < 400; attempt++) {
@@ -461,15 +484,27 @@ try {
     await waitFor(async () => (await execution.status()).status ===
       'waiting_checkpoint');
     writeFileSync('effect-ref.json', JSON.stringify(execution.ref));
+    writeFileSync('rce-request.txt', 'packed-rce-' + process.argv[3]);
     console.log('held');
   } else if (step === 'rce-resume') {
     const ref = JSON.parse(readFileSync('effect-ref.json', 'utf8'));
-    const execution = await client.attach(ref);
+    const lookup = await client.lookupRequest(readFileSync('rce-request.txt',
+      'utf8'));
+    assert.equal(lookup.kind, 'found');
+    assert.deepEqual(lookup.ref, ref);
+    assert.deepEqual((await client.checkpoints()).items, []);
+    const execution = await client.attach(lookup.ref);
     const state = await waitFor(async () => {
       const current = await execution.status();
       return ['succeeded', 'failed', 'needs_reconciliation', 'cancelled']
         .includes(current.status) ? current : undefined;
     });
+    if (state.status === 'succeeded') {
+      assert.deepEqual((await execution.result('updates').describe()).columns, [
+        {name: 'Id', contract: {type: 'string', nullable: false}},
+        {name: 'next_name', contract: {type: 'string', nullable: false}},
+      ]);
+    }
     console.log(JSON.stringify({status: state.status,
       rows: state.status === 'succeeded'
         ? await execution.result('updates').all() : undefined}));
@@ -489,6 +524,11 @@ try {
   }
 } finally {
   await client.close();
+  if (remoteServer) {
+    remoteServer.closeAllConnections();
+    await new Promise(resolve => remoteServer.close(resolve));
+    await remoteHost.close();
+  }
 }
 `);
   const beforeIdentity = server.seen.length;
@@ -519,49 +559,66 @@ try {
   // further restart. Then a target changed after the Preview writes nothing.
   // Until the common Host runs an Effect from an acquisition, this ends as
   // not connected, never as passed.
-  const rce = async (steps, id) => {
-    const held = (await runChild('effect-run.mjs', effectEnvironment,
-      ['rce-submit', id])).trim();
-    if (held === 'not-connected') {
-      throw Object.assign(new Error('ReadComputeEffectNotConnected: the ' +
-        'packed Host refuses the Program (ClientProgramUnsupported).'),
-      {code: 'ReadComputeEffectNotConnected'});
-    }
-    assert.equal(held, 'held');
-    return steps();
-  };
-  const writesBefore = server.seen.filter(item => item.method === 'PATCH')
-    .length;
-  const patches = () => server.seen.filter(item => item.method === 'PATCH')
-    .slice(writesBefore);
-  await rce(async () => {
-    assert.equal(patches().length, 0);
-    assert.equal((await runChild('effect-run.mjs', effectEnvironment,
-      ['answer'])).trim(), 'approved');
-    assert.equal(patches().length, 0);
-    const done = JSON.parse((await runChild('effect-run.mjs',
-      effectEnvironment, ['rce-resume'])).trim());
-    assert.equal(done.status, 'succeeded');
-    assert.deepEqual([...done.rows].sort((a, b) => a.Id < b.Id ? -1 : 1), [
-      {Id: 'a00000000000001', next_name: 'key-1-processed'},
-      {Id: 'a00000000000003', next_name: 'key-3-processed'}]);
-    assert.deepEqual(patches().map(item => [item.path.split('/').at(-1),
-      item.body]).sort(), [
-      ['a00000000000001', '{"Name":"key-1-processed"}'],
-      ['a00000000000003', '{"Name":"key-3-processed"}']]);
-    assert.equal(JSON.parse((await runChild('effect-run.mjs',
-      effectEnvironment, ['rce-resume'])).trim()).status, 'succeeded');
-    assert.equal(patches().length, 2);
-  }, 'success');
-  await rce(async () => {
-    server.target.name = 'changed-after-preview';
-    assert.equal((await runChild('effect-run.mjs', effectEnvironment,
-      ['answer'])).trim(), 'approved');
-    const done = JSON.parse((await runChild('effect-run.mjs',
-      effectEnvironment, ['rce-resume'])).trim());
-    assert.equal(done.status, 'failed');
-    assert.equal(patches().length, 2);
-  }, 'stale');
+  const queries = () => server.seen.filter(item =>
+    item.method === 'GET' && item.path === '/services/data/v62.0/query').length;
+  // Each invocation owns both its Host and its execution context. Exiting
+  // before the next invocation stops both, also for the public HTTPS path.
+  for (const transport of ['local', 'https']) {
+    server.target.name = 'prior-name';
+    const rceEnvironment = {...effectEnvironment,
+      PACKED_RCE_TRANSPORT: transport,
+      NODE_EXTRA_CA_CERTS: join(root, 'org.crt'),
+      ACTQL_LOCAL_STATE_DIR: join(root, 'rce-' + transport)};
+    const rce = async (steps, id) => {
+      const readsBefore = queries();
+      const held = (await runChild('effect-run.mjs', rceEnvironment,
+        ['rce-submit', id])).trim();
+      if (held === 'not-connected') {
+        throw Object.assign(new Error('ReadComputeEffectNotConnected: the ' +
+          'packed Host refuses the Program (ClientProgramUnsupported).'),
+        {code: 'ReadComputeEffectNotConnected'});
+      }
+      assert.equal(held, 'held');
+      assert.equal(queries(), readsBefore + 1);
+      await steps();
+      assert.equal(queries(), readsBefore + 1,
+        'recovery must use captured Source rows without another query');
+    };
+    const writesBefore = server.seen.filter(item => item.method === 'PATCH')
+      .length;
+    const patches = () => server.seen.filter(item => item.method === 'PATCH')
+      .slice(writesBefore);
+    await rce(async () => {
+      assert.equal(patches().length, 0);
+      assert.equal((await runChild('effect-run.mjs', rceEnvironment,
+        ['answer'])).trim(), 'approved');
+      assert.equal(patches().length, 0);
+      const done = JSON.parse((await runChild('effect-run.mjs',
+        rceEnvironment, ['rce-resume'])).trim());
+      assert.equal(done.status, 'succeeded');
+      assert.deepEqual([...done.rows].sort((a, b) => a.Id < b.Id ? -1 : 1), [
+        {Id: 'a00000000000001', next_name: 'key-1-processed'},
+        {Id: 'a00000000000003', next_name: 'key-3-processed'}]);
+      assert.deepEqual(patches().map(item => [item.path.split('/').at(-1),
+        item.body]).sort(), [
+        ['a00000000000001', '{"Name":"key-1-processed"}'],
+        ['a00000000000003', '{"Name":"key-3-processed"}']]);
+      assert.equal(JSON.parse((await runChild('effect-run.mjs',
+        rceEnvironment, ['rce-resume'])).trim()).status, 'succeeded');
+      assert.equal(patches().length, 2);
+    }, 'success');
+    await rce(async () => {
+      server.target.name = 'changed-after-preview';
+      assert.equal((await runChild('effect-run.mjs', rceEnvironment,
+        ['answer'])).trim(), 'approved');
+      const done = JSON.parse((await runChild('effect-run.mjs',
+        rceEnvironment, ['rce-resume'])).trim());
+      assert.equal(done.status, 'failed');
+      assert.equal(patches().length, 2);
+    }, 'stale');
+    console.log('packed ' + transport +
+      ' Read→Compute→Effect recovery passed');
+  }
   console.log('packed public Client Read→Compute→Effect passed');
 } finally {
   await server.close();

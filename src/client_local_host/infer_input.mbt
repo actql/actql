@@ -29,6 +29,7 @@ pub(all) enum ClientInferInputIssue {
   Local(@connector.FixedComputeIssue)
   Mapping(@execution.InferPreparationIssue)
   ProducerRead(@execution.ProducerReadIssue)
+  Capture(@query.CapturedSourceIssue)
 }
 
 ///|
@@ -57,6 +58,11 @@ pub fn start_client_infer_input(
   if mapping.max_work < 0 || execution.max_work < 0 {
     return Err(InvalidLimits)
   }
+  // This entry owns an empty input list. Acquired prefixes must be started
+  // with their actual captured input owner, never through the empty route.
+  if @publication_host.client_infer_prefix_owner(prepared, task, step) is None {
+    return Err(UnsupportedProgram)
+  }
   guard prepare_client_infer_prefix(
       prepared,
       task,
@@ -68,6 +74,104 @@ pub fn start_client_infer_input(
     )
     is Some(sequence) else {
     return Err(UnsupportedProgram)
+  }
+  start_client_infer_input_sequence(
+    sequence,
+    step,
+    [],
+    execution,
+    measurement,
+    mapping,
+  )
+}
+
+///|
+/// Start the Local segment after source capture without replaying the scan.
+/// The caller owns the capture until this input execution is reclaimed.
+pub fn start_client_acquired_infer_input(
+  prepared : @publication_host.PreparedClientProgram,
+  task : Int,
+  step : Int,
+  source : @query.CapturedInputSource,
+  registry_body : String,
+  values_body : String,
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  mapping : @execution.InferPreparationLimits,
+  fragment_body? : String? = None,
+  ordered_body? : String? = None,
+) -> Result[ClientInferInputExecution, ClientInferInputIssue] {
+  guard @publication_host.client_acquired_infer_prefix_owner(
+      prepared, task, step,
+    )
+    is Some(owner) &&
+    @publication_host.prepare_client_query_acquisition(prepared, task, 0)
+    is Ok(query) &&
+    @sourceviews.query_acquisition_capture(query) is @pipeline.Step(capture) &&
+    capture + 1 < step else {
+    return Err(UnsupportedProgram)
+  }
+  guard prepare_client_infer_prefix(
+      prepared,
+      task,
+      step,
+      registry_body,
+      values_body,
+      fragment_body~,
+      ordered_body~,
+    )
+    is Some(prefix) &&
+    @execution.select_generated_sequence_range(prefix, capture + 1, step - 1)
+    is Some(sequence) else {
+    return Err(UnsupportedProgram)
+  }
+  let inputs : Array[@local.ManagedProviderInput] = []
+  for consumer in (capture + 1)..<step {
+    guard @lower.node_at(@lower.bound_preparation(owner), consumer)
+      is Some(node) else {
+      return Err(UnsupportedProgram)
+    }
+    for port in 0..<@lower.node_input_count(node) {
+      guard @lower.node_input_target(node, port) is Some(@pipeline.Step(target)) else {
+        return Err(UnsupportedProgram)
+      }
+      if target > capture {
+        continue
+      }
+      let bound = match
+        @query.bind_captured_source_operation(source, owner, consumer, port) {
+        Ok(bound) => bound
+        Err(issue) => return Err(Capture(issue))
+      }
+      let read = match
+        @execution.prepare_producer_read(
+          owner,
+          bound,
+          execution.rows.operation_entries,
+          measurement.max_bytes,
+        ) {
+        Ok(read) => read
+        Err(issue) => return Err(ProducerRead(issue))
+      }
+      inputs.push(@local.managed_provider_relation_input(read))
+    }
+  }
+  start_client_infer_input_sequence(
+    sequence, step, inputs, execution, measurement, mapping,
+  )
+}
+
+///|
+fn start_client_infer_input_sequence(
+  sequence : @execution.GeneratedSequence,
+  step : Int,
+  inputs : Array[@local.ManagedProviderInput],
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  mapping : @execution.InferPreparationLimits,
+) -> Result[ClientInferInputExecution, ClientInferInputIssue] {
+  if mapping.max_work < 0 || execution.max_work < 0 {
+    return Err(InvalidLimits)
   }
   let owner = @execution.generated_sequence_owner(sequence)
   guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
@@ -92,7 +196,7 @@ pub fn start_client_infer_input(
     @local.start_managed_provider_with_inputs_and_execution(
       provider,
       sequence,
-      [],
+      inputs,
       execution.rows.max_rows,
       measurement.max_bytes,
       execution,

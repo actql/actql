@@ -10,6 +10,8 @@ pub(all) enum ClientDuckDBAcquisitionIssue {
 
 ///|
 /// Bind one checked source requirement to the installed DuckDB realization.
+/// This single-candidate API has exactly one implementation; its explicit singleton Host
+/// preference needs no duration estimate and makes no cheapest-route claim.
 /// The trusted Host supplies the physical table and file grant separately;
 /// Program text cannot select a local file or replace evidence contracts.
 fn prepare_client_duckdb_acquisition_parts(
@@ -130,6 +132,14 @@ pub fn prepare_client_duckdb_acquisition(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  guard @duckdb_host.prepare_native_source_evidence_context(requirement)
+    is Ok(context) &&
+    @duckdb_host.source_evidence_context_supports(
+      context,
+      @planning.query_two_receipt_contract_cid(receipts),
+    ) else {
+    return Err(Candidate)
+  }
   guard @connector.capability_registration_at(registry, 0) is Some(registration) else {
     return Err(Registration)
   }
@@ -137,12 +147,7 @@ pub fn prepare_client_duckdb_acquisition(
     @duckdb_query.duckdb_native_candidate(
       registration,
       preparation,
-      [
-        {
-          work_slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-          milliseconds: Some(10L),
-        },
-      ],
+      [{ work_slots: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], milliseconds: None, }],
       { transfer_bytes: None, retained_bytes: None, money_units: None, },
       100,
     ) {
@@ -153,74 +158,78 @@ pub fn prepare_client_duckdb_acquisition(
       registry,
       requirement,
       [@planning.prepared_acquisition_candidate(candidate)],
-      None,
+      Some([0]),
       100,
     )
     is Ok(@planning.Proposed(choice)) else {
     return Err(Selection)
   }
+  Ok(configure_client_duckdb_native(requirement, receipts, choice, candidate))
+}
+
+///|
+fn configure_client_duckdb_native(
+  requirement : @planning.QueryRequirement,
+  receipts : @planning.QueryTwoReceiptContract,
+  choice : @planning.AcquisitionChoice,
+  candidate : @planning.PreparedAcquisition[
+    @duckdb_query.DuckDBNativePreparation,
+  ],
+) -> @duckdb_host.NativeHostConfiguration {
   let measurement : @execution.FixedInputGuardMeasureLimits = {
     max_work: 100000,
     max_bytes: 100000,
     max_nodes: 10000,
     max_depth: 100,
   }
-  Ok(
-    @duckdb_host.configure_native_host(
-      receipts,
-      requirement,
-      choice,
-      candidate,
-      {
-        physical: {
-          max_rows: 100,
-          max_cells: 1000,
-          max_nodes: 1000,
-          max_text_bytes: 10000,
-        },
-        metadata_work: 10000,
-        measurement,
-        completion: {
-          demand: measurement,
-          receipts: {
-            max_columns: 10,
-            max_order_work: 10000,
-            max_bytes: 100000,
-            max_nodes: 10000,
-            max_depth: 100,
-          },
-          max_received_rows: 100,
-          max_received_bytes: 100000,
-          max_retained_wire_bytes: 100000,
-          records: {
-            max_work: 1000000,
-            max_fields: 100,
-            max_parameters: 100,
-            max_bytes: 1000000,
-            max_nodes: 100000,
-            max_depth: 100,
-          },
-          capture: { max_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
-        },
-        retention: {
-          max_nodes: 10000,
-          max_text_bytes: 100000,
-          max_depth: 100,
-          max_work: 1000000,
-        },
-        output_rows: 100,
-        output_entries: 100,
-        output_name_bytes: 10000,
-        transport: {
-          max_bytes: 100000,
-          max_nodes: 10000,
-          max_columns: 10,
-          max_rows: 100,
-          max_text_bytes: 100000,
-        },
+  @duckdb_host.configure_native_host(receipts, requirement, choice, candidate, {
+    physical: {
+      max_rows: 100,
+      max_cells: 1000,
+      max_nodes: 1000,
+      max_text_bytes: 10000,
+    },
+    metadata_work: 10000,
+    measurement,
+    completion: {
+      demand: measurement,
+      receipts: {
+        max_columns: 10,
+        max_order_work: 10000,
+        max_bytes: 100000,
+        max_nodes: 10000,
+        max_depth: 100,
       },
-    ),
-  )
+      max_received_rows: 100,
+      max_received_bytes: 100000,
+      max_retained_wire_bytes: 100000,
+      records: {
+        max_work: 1000000,
+        max_fields: 100,
+        max_parameters: 100,
+        max_bytes: 1000000,
+        max_nodes: 100000,
+        max_depth: 100,
+      },
+      capture: { max_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
+    },
+    retention: {
+      max_nodes: 10000,
+      max_text_bytes: 100000,
+      max_depth: 100,
+      max_work: 1000000,
+    },
+    output_rows: 100,
+    output_entries: 100,
+    output_name_bytes: 10000,
+    transport: {
+      max_bytes: 100000,
+      max_nodes: 10000,
+      max_columns: 10,
+      max_rows: 100,
+      max_text_bytes: 100000,
+    },
+  })
 }
 
 ///|
@@ -257,7 +266,7 @@ pub fn prepare_client_duckdb_broad_acquisition(
     @duckdb_query.duckdb_broad_candidate(
       registration,
       preparation,
-      [{ work_slots: [0, 1, 2, 3, 4, 5, 6, 7], milliseconds: Some(10L), }],
+      [{ work_slots: [0, 1, 2, 3, 4, 5, 6, 7], milliseconds: None, }],
       { transfer_bytes: None, retained_bytes: None, money_units: None, },
       100,
     ) {
@@ -268,81 +277,85 @@ pub fn prepare_client_duckdb_broad_acquisition(
       registry,
       requirement,
       [@planning.prepared_acquisition_candidate(candidate)],
-      None,
+      Some([0]),
       100,
     )
     is Ok(@planning.Proposed(choice)) else {
     return Err(Selection)
   }
+  Ok(configure_client_duckdb_broad(requirement, contracts, choice, candidate))
+}
+
+///|
+fn configure_client_duckdb_broad(
+  requirement : @planning.QueryRequirement,
+  contracts : @planning.QueryEvidenceContracts,
+  choice : @planning.AcquisitionChoice,
+  candidate : @planning.PreparedAcquisition[
+    @duckdb_query.DuckDBQueryPreparation,
+  ],
+) -> @duckdb_host.BroadHostConfiguration {
   let values : @execution.ValueLimits = {
     max_nodes: 10000,
     max_text_bytes: 100000,
     max_depth: 100,
     max_work: 1000000,
   }
-  Ok(
-    @duckdb_host.configure_broad_host(
-      contracts,
-      requirement,
-      choice,
-      candidate,
-      {
-        physical: {
+  @duckdb_host.configure_broad_host(contracts, requirement, choice, candidate, {
+    physical: {
+      max_rows: 100,
+      max_cells: 1000,
+      max_nodes: 1000,
+      max_text_bytes: 10000,
+    },
+    metadata_work: 10000,
+    retention: values,
+    completion: {
+      execution: {
+        rows: {
           max_rows: 100,
-          max_cells: 1000,
-          max_nodes: 1000,
-          max_text_bytes: 10000,
+          metadata_entries: 10000,
+          retained_entries: 10000,
+          operation_entries: 10000,
+          input_values: values,
+          output_values: values,
         },
-        metadata_work: 10000,
-        retention: values,
-        completion: {
-          execution: {
-            rows: {
-              max_rows: 100,
-              metadata_entries: 10000,
-              retained_entries: 10000,
-              operation_entries: 10000,
-              input_values: values,
-              output_values: values,
-            },
-            max_work: 1000000,
-            max_frames: 10000,
-          },
-          guards: {
-            max_work: 100000,
-            max_bytes: 100000,
-            max_nodes: 10000,
-            max_depth: 100,
-          },
-          retention: {
-            received_wire_bytes: 100000,
-            retained_wire_bytes: 100000,
-            measurement: {
-              max_columns: 10,
-              max_order_work: 10000,
-              max_bytes: 100000,
-              max_nodes: 10000,
-              max_depth: 100,
-            },
-          },
-          records: {
-            max_work: 1000000,
-            max_fields: 100,
-            max_parameters: 100,
-            max_bytes: 1000000,
-            max_nodes: 100000,
-            max_depth: 100,
-          },
-          capture: { max_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
-        },
-        transport: {
+        max_work: 1000000,
+        max_frames: 10000,
+      },
+      guards: {
+        max_work: 100000,
+        max_bytes: 100000,
+        max_nodes: 10000,
+        max_depth: 100,
+      },
+      retention: {
+        received_wire_bytes: 100000,
+        retained_wire_bytes: 100000,
+        measurement: {
+          max_columns: 10,
+          max_order_work: 10000,
           max_bytes: 100000,
           max_nodes: 10000,
-          max_columns: 10,
-          max_rows: 100,
-          max_text_bytes: 100000,
+          max_depth: 100,
         },
       },
-    ),
-  )
+      records: {
+        max_work: 1000000,
+        max_fields: 100,
+        max_parameters: 100,
+        max_bytes: 1000000,
+        max_nodes: 100000,
+        max_depth: 100,
+      },
+      capture: { max_bytes: 1000000, max_nodes: 100000, max_depth: 100, },
+    },
+    transport: {
+      max_bytes: 100000,
+      max_nodes: 10000,
+      max_columns: 10,
+      max_rows: 100,
+      max_text_bytes: 100000,
+    },
+  })
 }

@@ -39,8 +39,8 @@ pub(all) enum QuerySequenceIssue {
 ///|
 /// The sole driver executes every operation. Do not feed it a larger pipeline
 /// and accidentally run downstream consumers before the acquisition capture.
-/// Supporting a capture inside a larger pipeline requires an owned execution
-/// slice, not deleting steps or rebuilding a different CheckedPipeline here.
+/// A larger checked pipeline is accepted only through an owned two-step
+/// execution prefix. It keeps the original pipeline and binding identities.
 pub fn prepare_query_sequence(
   query : @acquisition.QueryAcquisition,
   generated : @execution.GeneratedSequence,
@@ -76,7 +76,11 @@ pub fn prepare_query_sequence(
       }
   }
   if @pipeline.input_count(pipeline) != 1 ||
-    @pipeline.step_count(pipeline) != 2 ||
+    @lower.sequence_count(@execution.generated_prepared_sequence(generated)) !=
+    2 ||
+    @execution.generated_sequence_step_count(generated) != 2 ||
+    @execution.generated_sequence_step_index_at(generated, 0) != Some(0) ||
+    @execution.generated_sequence_step_index_at(generated, 1) != Some(1) ||
     @acquisition.query_acquisition_input(query) != @pipeline.Input(0) ||
     @acquisition.query_acquisition_filter_index(query) != 0 ||
     @acquisition.query_acquisition_capture(query) != @pipeline.Step(1) {
@@ -116,6 +120,9 @@ pub fn evaluate_query_receipt(
   admission : @execution.ValueLimits,
   execution : @execution.SequenceExecutionLimits,
 ) -> Result[@execution.CompletedSequence, QuerySequenceIssue] {
+  if !query_has_complete_synchronous_shape(prepared) {
+    return Err(UnsupportedExecutionShape)
+  }
   let receipt = match
     admit_query_receipt(prepared, rows, max_received_rows, admission) {
     Ok(value) => value
@@ -175,6 +182,9 @@ pub fn execute_query_receipt(
   if !physical_equal(prepared, receipt.owner) {
     return Err(ForeignReceipt)
   }
+  if !query_has_complete_synchronous_shape(prepared) {
+    return Err(UnsupportedExecutionShape)
+  }
   match
     @execution.execute_generated_sequence(
       prepared.generated,
@@ -187,10 +197,29 @@ pub fn execute_query_receipt(
 }
 
 ///|
+/// The legacy synchronous driver owns the whole checked pipeline. Prefixes
+/// must use the existing bounded provider, never run their downstream steps.
+fn query_has_complete_synchronous_shape(prepared : QuerySequence) -> Bool {
+  @pipeline.step_count(
+    @lower.pipeline(@lower.bound_preparation(query_sequence_owner(prepared))),
+  ) ==
+  2
+}
+
+///|
 /// Immutable, owned material for bounded access hashing by the Host. This does
 /// not expose a completion handle or permit a caller to issue execution records.
 pub fn query_receipt_rows(receipt : QueryReceipt) -> @execution.CapturedRows {
   receipt.rows
+}
+
+///|
+/// Bind-time ownership only; source authority and liveness remain separate.
+pub fn query_receipt_matches(
+  receipt : QueryReceipt,
+  prepared : QuerySequence,
+) -> Bool {
+  physical_equal(receipt.owner, prepared)
 }
 
 ///|

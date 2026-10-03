@@ -155,6 +155,10 @@ returns that Run rather than executing it again. Keep `actql-state` while
 using its retained Results. The consumer directory belongs to this
 example and can be removed when you no longer need its files or Results.
 
+For two independently bound local databases, run the executable
+[two-source DuckDB JOIN example](examples/two-source-join/README.md).
+It uses one JSON Program and returns a Named Result through the same public Client.
+
 ## A real-world program
 
 That was a local query. The following ecosystem example illustrates the same

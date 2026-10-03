@@ -85,6 +85,8 @@ pub fn advance_completed_result_relation_export(CompletedResultRelationExportPre
 
 pub fn advance_expression_execution(ExpressionExecution) -> Result[ExpressionExecutionPoll, EvalIssue]
 
+pub fn advance_fixed_record_guard(FixedRecordGuardScan, Int) -> Result[@bounded_execution.Observation[FixedInputGuardMeasureLimits, FixedInputGuardIssue], @bounded_execution.Issue]
+
 pub fn advance_infer_rows_preparation(InferRowsPreparation, Int) -> Result[InferRowsPreparationPoll, InferPreparationIssue]
 
 pub fn advance_predicate_expression(PredicateExpressionExecution) -> Result[PredicateExpressionPoll, EvalIssue]
@@ -96,6 +98,8 @@ pub fn analytic_execution_supported_with_numeric(@lowering_relation.PreparedAnal
 pub fn anchor_completed_output_inputs(CompletedOutput, Array[ProducerRead]) -> CompletedOutput?
 
 pub fn anchor_completed_output_operation_inputs(CompletedOutput, Int, Array[ProducerRead]) -> CompletedOutput?
+
+pub fn anchor_completed_output_supplied_inputs(CompletedOutput, Array[SuppliedRelationRead]) -> CompletedOutput?
 
 pub fn append_admitted_input(AdmittedInput, Array[@value_admission.CheckedValue]) -> Result[Unit, CaptureIssue]
 
@@ -323,6 +327,8 @@ pub fn cleanup_bounded_unpivot(BoundedUnpivotExecution) -> Result[Bool, BoundedU
 
 pub fn cleanup_bounded_values(BoundedValuesExecution) -> Result[Bool, BoundedValuesIssue]
 
+pub fn cleanup_fixed_record_guard(FixedRecordGuardScan) -> Result[Bool, @bounded_execution.Issue]
+
 pub fn cleanup_infer_rows_preparation(InferRowsPreparation) -> Result[Bool, InferPreparationIssue]
 
 pub fn cleanup_prepared_infer_rows(PreparedInferRows) -> Bool
@@ -355,11 +361,15 @@ pub fn completed_output_available(CompletedOutput) -> Bool
 
 pub fn completed_output_has_row_table(CompletedOutput) -> Bool
 
+pub fn completed_output_matches_captured_inputs(CompletedOutput, Array[CapturedRows]) -> Bool
+
 pub fn completed_output_matches_inputs(CompletedOutput, Array[ProducerRead]) -> Bool
 
 pub fn completed_output_matches_operation_inputs(CompletedOutput, Int, Array[ProducerRead]) -> Bool
 
 pub fn completed_output_matches_port(CompletedOutput, @lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Bool
+
+pub fn completed_output_matches_supplied_inputs(CompletedOutput, Array[SuppliedRelationRead]) -> Bool
 
 pub fn completed_output_row_wire(CompletedOutput, Int, Int, Int, Int) -> Result[String, CompletedExportIssue]
 
@@ -793,6 +803,8 @@ pub fn prepare_completed_result_relation_export(CompletedOutput, ManagedResultOc
 
 pub fn prepare_completion(RegisteredRelationContracts, @lowering_relation.PreparedSequence, Array[String], Int, Int) -> Result[CompletionPreparation, SequenceRunIssue]
 
+pub fn prepare_fixed_input_guard_roots(GeneratedSequence, Int, Bool, FixedInputGuardMeasureLimits) -> Result[(GeneratedSequence, FixedInputGuardMeasureLimits), FixedInputGuardIssue]
+
 pub fn prepare_fixed_join_stream(@lowering_relation.BoundPrepared, @lowering_relation.PreparedInnerJoin, Array[ProducerRead], FixedJoinValidationLimits) -> Result[FixedJoinStream, RowIssue]
 
 pub fn prepare_fixed_managed_output_values(FixedProducerMeasurement, ValueLimits) -> Result[ManagedOutputValues, ManagedOutputValueIssue]
@@ -1065,6 +1077,8 @@ pub fn start_bounded_unpivot_supplied(@bounded_execution.Control, GeneratedSeque
 
 pub fn start_bounded_values(@bounded_execution.Control, GeneratedSequence, Int, ValueLimits, ValueLimits, Int, Int, Int, Int) -> Result[BoundedValuesExecution, BoundedValuesIssue]
 
+pub fn start_completed_record_guard(@bounded_execution.Control, CompletedOutput, Int, FixedInputGuardMeasureLimits, Int) -> Result[FixedRecordGuardScan, FixedInputGuardIssue]
+
 pub fn start_completed_relation_identity_scan(CompletedOutput, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int, Int) -> Result[CompletedRelationIdentityScan, CompletedExportIssue]
 
 pub fn start_completed_result_relation_export(CompletedOutput, ManagedResultOccurrence, CompletedResultViewLimits, Int, ValueLimits, RowWireLimits, RowWireLimits, RelationSchemaIdentityLimits, Int) -> Result[CompletedResultRelationExportPreparation, CompletedExportIssue]
@@ -1074,6 +1088,8 @@ pub fn start_expression_execution(@lowering_relation.Expression, Map[String, Val
 pub fn start_infer_rows_preparation(@bounded_execution.Control, InferRowInput, InferPreparationLimits) -> Result[InferRowsPreparation, InferPreparationIssue]
 
 pub fn start_predicate_expression(@lowering_relation.Expression, Map[String, Value], Int, Int, Int) -> Result[PredicateExpressionExecution, EvalIssue]
+
+pub fn start_supplied_record_guard(@bounded_execution.Control, SuppliedRelationRead, Int, FixedInputGuardMeasureLimits, Int) -> Result[FixedRecordGuardScan, FixedInputGuardIssue]
 
 pub fn string_bytes_output_unit() -> AggregateOutputUnit
 
@@ -1614,6 +1630,8 @@ type FixedProducerMeasuredOutput
 type FixedProducerMeasurement
 
 type FixedProducerStreamMeasuredOutput
+
+type FixedRecordGuardScan
 
 pub(all) enum FragmentAdmissionIssue {
   InvalidContract

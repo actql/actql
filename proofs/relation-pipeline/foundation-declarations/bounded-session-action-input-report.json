@@ -1,0 +1,37 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "bounded-session-action-input-report",
+  "kind": "change",
+  "revision": "542cb8b285c4695772300c94bb410d256d8315ec",
+  "parents": [
+    "bcbf77049fe4991c9b0f1a18541ac7a7952b01ad"
+  ],
+  "changes": [
+    {
+      "path": "proofs/bounded-session/evidence.test.mjs",
+      "before": [
+        {
+          "revision": "bcbf77049fe4991c9b0f1a18541ac7a7952b01ad",
+          "digest": "25fa7ee21066f1eafc73122e882e982d96b6c6e784c759cfe2ca59541f1f92eb",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "db1b18abcb943dcfc1152dc45af6931c0da10a4f3763bbe10eb3fd28986487c1",
+      "afterMode": "100644",
+      "reason": "Register the lightweight report-only input inventory fixtures in the existing evidence gate while preserving every existing assertion."
+    },
+    {
+      "path": "proofs/bounded-session/run.mjs",
+      "before": [
+        {
+          "revision": "bcbf77049fe4991c9b0f1a18541ac7a7952b01ad",
+          "digest": "474081c3338a1fea85a87549d7866e97c467dae38b05a3863304db1747835e59",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "492c0dc78b7be34a57d397f983449d39f0882ffddb9aee1fc5f35928961c0107",
+      "afterMode": "100644",
+      "reason": "Write a fresh report-only action inventory before the unchanged unconditional Lean theorem, typed Claims and axiom check; preserve broad snapshots and all later executions."
+    }
+  ]
+}
