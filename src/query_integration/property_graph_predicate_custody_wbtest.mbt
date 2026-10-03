@@ -7,6 +7,208 @@ enum KeyedPredicateBoundaryPoll {
 }
 
 ///|
+test "current TRAIL evaluates reached edge and nullable node predicates on demand" {
+  let nodes = keyed_source_owner(
+    "{\"id\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":true}}",
+    "[{\"id\":1,\"flag\":null},{\"id\":2,\"flag\":true}]",
+  )
+  let edges = keyed_source_owner(
+    "{\"key\":{\"type\":\"number\",\"nullable\":false},\"src\":{\"type\":\"number\",\"nullable\":false},\"dst\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":false}}",
+    "[{\"key\":10,\"src\":1,\"dst\":2,\"flag\":true},{\"key\":11,\"src\":2,\"dst\":1,\"flag\":false}]",
+  )
+  let graph_owner = keyed_bridge_owner(
+    nodes,
+    edges,
+    body=Some(
+      (
+        #|[{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"nodes","key":["id"],"labels":[{"name":"Node","properties":{"mode":"columns","columns":[{"from":"flag","to":"f"}]}}]}],"edges":[{"name":"E","from":"edges","key":["key"],"source":{"definition":"N","key":["src"]},"target":{"definition":"N","key":["dst"]},"labels":[{"name":"R","properties":{"mode":"columns","columns":[{"from":"flag","to":"f"}]}}]}]},"as":"g"}]
+      ),
+    ),
+  )
+  let construction = @local_bridge.start_rows_to_property_graph(
+    @bounded.control(),
+    prepared_sequence(graph_owner),
+    0,
+    keyed_bridge_inputs(graph_owner, nodes, edges),
+    carrier_graph_storage_limits(),
+    8192L,
+    1000,
+    () => true,
+  ).unwrap()
+  guard keyed_bridge_terminal(construction) is @local_bridge.Complete(graph, ..) else {
+    fail("constructor failed")
+  }
+  guard @pipeline.carrier_at(
+      @lower.pipeline(@lower.bound_preparation(graph_owner)),
+      @pipeline.Step(0),
+    )
+    is Some(@carrier_contract.GraphValue(contract)) else {
+    fail("current Graph contract")
+  }
+  let domain = @carrier_contract.property_graph_domain(
+    @carrier_contract.graph_property_definition(contract),
+  )
+  let node = fn(key : Int) {
+    "{\"definition\":\"N\",\"domain\":\"" +
+    domain +
+    "\",\"key\":[" +
+    key.to_string() +
+    "],\"key_types\":[{\"kind\":\"number\"}]}"
+  }
+  let edge = fn(key : Int) {
+    "{\"definition\":\"E\",\"domain\":\"" +
+    domain +
+    "\",\"key\":[" +
+    key.to_string() +
+    "],\"key_types\":[{\"kind\":\"number\"}]}"
+  }
+  for
+    (start, edge_where, node_where, expected_edge, expected_end) in [
+      (1, "f = TRUE", "f = TRUE", 10, 2),
+      (2, "f = FALSE", "f IS NULL", 11, 1),
+    ] {
+    let owner = keyed_graph_receiver(
+      graph_owner,
+      body="[{\"from\":\"g\",\"traverse\":{\"start\":{\"ids\":[" +
+        node(start) +
+        "]},\"hops\":[{\"direction\":\"out\",\"edge_types\":[\"R\"],\"edge_where\":\"" +
+        edge_where +
+        "\",\"node_where\":\"" +
+        node_where +
+        "\"}],\"path_mode\":\"trail\",\"emit\":\"paths\"}}]",
+    )
+    let input = @graphs.prepare_producer_read(owner, 0, graph_owner, graph).unwrap()
+    let preparation = task_test_completion(owner)
+    for quantum in [1, 7] {
+      let active = @local_sga.start_traverse(
+        @bounded.control(),
+        preparation,
+        prepared_sequence(owner),
+        0,
+        input,
+        2,
+        {
+          max_work: 10000,
+          max_nodes: 10000,
+          max_text_bytes: 10000,
+          max_depth: 50,
+        },
+        10000,
+        10000,
+        10000,
+        [],
+      ).unwrap()
+      let output = finish_traverse(active, quantum~).unwrap()
+      assert_eq(@execution.completed_row_count(output), 1)
+      assert_eq(
+        @execution.completed_output_row_wire(output, 0, 10000, 10000, 50).unwrap(),
+        "{\"edge_ids\":[" +
+        edge(expected_edge) +
+        "],\"end_id\":" +
+        node(expected_end) +
+        ",\"hop_count\":1,\"node_ids\":[" +
+        node(start) +
+        "," +
+        node(expected_end) +
+        "],\"start_id\":" +
+        node(start) +
+        "}",
+      )
+      assert_true(@local_sga.cleanup_traverse(active).unwrap())
+      assert_false(@local_sga.cleanup_traverse(active).unwrap())
+      assert_true(@graphs.producer_read_available(input))
+    }
+    let control = @bounded.control()
+    let cancelled = @local_sga.start_traverse(
+      control,
+      preparation,
+      prepared_sequence(owner),
+      0,
+      input,
+      2,
+      {
+        max_work: 10000,
+        max_nodes: 10000,
+        max_text_bytes: 10000,
+        max_depth: 50,
+      },
+      10000,
+      10000,
+      10000,
+      [],
+    ).unwrap()
+    let mut reached_node_predicate = false
+    for _ in 0..<1000 {
+      guard @local_sga.advance_traverse(cancelled, 1)
+        is Ok(@local_sga.TraverseContinue(..)) else {
+        fail("predicate run completed before cancellation boundary")
+      }
+      if @local_sga.traverse_predicate_starts(cancelled) == 2 {
+        reached_node_predicate = true
+        break
+      }
+    }
+    assert_true(reached_node_predicate)
+    assert_true(@bounded.request_cancel(control))
+    assert_true(
+      @local_sga.advance_traverse(cancelled, 1)
+      is Ok(@local_sga.TraverseStopped(_, ..)),
+    )
+    assert_true(@local_sga.traverse_cleanup_pending(cancelled))
+    assert_true(@graphs.producer_read_available(input))
+    assert_true(@local_sga.cleanup_traverse(cancelled).unwrap())
+    assert_false(@local_sga.cleanup_traverse(cancelled).unwrap())
+    assert_eq(@local_sga.traverse_private_entry_count(cancelled), 0)
+    assert_true(@graphs.producer_read_available(input))
+  }
+  let patterned = keyed_graph_receiver(
+    graph_owner,
+    body="[{\"from\":\"g\",\"traverse\":{\"start\":{\"ids\":[" +
+      node(1) +
+      "]},\"hops\":[{\"direction\":\"out\",\"edge_where\":\"f = TRUE\",\"node_where\":\"f = TRUE\"},{\"direction\":\"out\",\"edge_where\":\"f = FALSE\",\"node_where\":\"f IS NULL\"}],\"path_mode\":\"trail\",\"emit\":\"paths\"}}]",
+  )
+  let patterned_input = @graphs.prepare_producer_read(
+    patterned, 0, graph_owner, graph,
+  ).unwrap()
+  let patterned_execution = @local_sga.start_traverse(
+    @bounded.control(),
+    task_test_completion(patterned),
+    prepared_sequence(patterned),
+    0,
+    patterned_input,
+    2,
+    { max_work: 10000, max_nodes: 10000, max_text_bytes: 10000, max_depth: 50, },
+    10000,
+    10000,
+    10000,
+    [],
+  ).unwrap()
+  let patterned_output = finish_traverse(patterned_execution, quantum=1).unwrap()
+  assert_eq(@execution.completed_row_count(patterned_output), 1)
+  assert_eq(
+    @execution.completed_output_row_wire(patterned_output, 0, 10000, 10000, 50).unwrap(),
+    "{\"edge_ids\":[" +
+    edge(10) +
+    "," +
+    edge(11) +
+    "],\"end_id\":" +
+    node(1) +
+    ",\"hop_count\":2,\"node_ids\":[" +
+    node(1) +
+    "," +
+    node(2) +
+    "," +
+    node(1) +
+    "],\"start_id\":" +
+    node(1) +
+    "}",
+  )
+  assert_true(@local_sga.cleanup_traverse(patterned_execution).unwrap())
+  assert_true(@local_bridge.cleanup_rows_to_graph(construction).unwrap())
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
 test "keyed node and edge predicates preserve exact work workspace and every private stop boundary" {
   let nodes = keyed_source_owner(
     "{\"id\":{\"type\":\"number\",\"nullable\":false},\"flag\":{\"type\":\"boolean\",\"nullable\":false}}",

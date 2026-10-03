@@ -60,6 +60,8 @@ pub fn start_traverse_view(@bounded_execution.Control, @execution_relation.Compl
 
 pub fn traverse_cleanup_pending(TraverseExecution) -> Bool
 
+pub fn traverse_predicate_starts(TraverseExecution) -> Int
+
 pub fn traverse_private_entry_count(TraverseExecution) -> Int
 
 pub fn traverse_private_workspace_usage(TraverseExecution) -> (Int, Int)
@@ -131,6 +133,7 @@ pub(all) enum TraversePathsIssue {
   TraversePathsWorkspaceLimit
   TraversePathsWorkLimit
   TraversePathsKeyOrder(@value_admission.KeyOrderIssue)
+  TraversePathsPredicate(@execution_relation.EvalIssueKind)
   TraversePathsOutput(@execution_relation.CaptureIssue)
   TraversePathsCompletion(@execution_relation.TrustedOutputIssue)
   TraversePathsExecutionIssue(@bounded_execution.Issue)
