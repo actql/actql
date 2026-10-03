@@ -140,8 +140,18 @@ function expectedCalls(names, directory) {
   }), {done: true}];
 }
 
+// The current Graph registration adds these three acceptance checks. Keep the
+// predecessor command inventory independent, and require the exact additions
+// at their registered positions rather than ignoring arbitrary extra checks.
+const distribution = expectedGates['check:distribution-client'];
+distribution[3] = distribution[3].replace(
+  'scripts/infer-owner-checker.test.mjs ',
+  'scripts/infer-owner-checker.test.mjs scripts/property-graph-surface-checker.test.mjs scripts/property-graph-public-host.test.mjs ',
+);
+distribution.splice(5, 0, 'node scripts/test-packed-property-graph.mjs');
+
 for (const [gate, commands] of Object.entries(expectedGates)) {
-  test(`${gate} retains every command except its immediate duplicate check`, () => {
+  test(`${gate} retains its exact registered commands without duplicate checks`, () => {
     const actual = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')).scripts[gate];
     assert.deepEqual(actual.split(' && '), commands);
   });

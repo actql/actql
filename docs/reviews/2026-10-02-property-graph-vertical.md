@@ -1175,3 +1175,18 @@ Coordinator modules and missing DuckDB Node packages were startup failures,
 not successful test executions. No test loader, borrowed-dependency rewrite,
 ACK relaxation or expected-row relaxation is used. Remaining full related
 jobs and final clean-SHA CI are still required before the B handoff.
+
+The local Host job at `291fa9c571477b64fc59578e1578a363dfbe7912` passes
+its custody, publication, Remote Site, Checkpoint and Run Host phases, then
+fails the final runtime-build command inventory comparison (28/29). Main's
+redundant-check removal test did not include the three deliberately registered
+Graph acceptance commands. The repair requires those exact additions in their
+exact positions; it does not ignore extra commands or weaken stale-artifact
+rejection. The full builder regression passes 29/29. Its first cold pack fails
+on inaccessible shared npm cache, while the separate run using the existing
+owned npm cache successfully builds and packs all four runtime packages from
+missing bundles. Logs remain separate at
+`/private/tmp/property-graph-host-291fa9c57-20261003.log`,
+`/private/tmp/property-graph-cold-runtime-fixed-20261003.log` and
+`/private/tmp/property-graph-cold-runtime-owned-cache-fixed-20261003.log`.
+No shared cache is changed; neither failed aggregate is reported as passing.
