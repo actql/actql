@@ -284,6 +284,87 @@ language restrictions. Object/property execution is a separate common-owner
 dependency; source construction and type checking do not claim packed Host
 execution or successful publication.
 
+## Logical DATA and pure Property Graph construction
+
+The AQL-text source grammar admits logical `DATA name = expression;`
+bindings followed by a query; SQL format retains its query-only entry.
+DATA names reference producers and do not create acquisition, storage,
+placement or physical task boundaries. Bodies resolve before the declared
+name becomes visible. Duplicate, recursive and forward references are
+rejected. A Graph producer is not a Relation alias. RESULT and INFER are
+not permitted in a DATA query body; final queries retain explicit Results.
+
+`DATA g = PROPERTY GRAPH (...)` is an ActQL pure-value extension using the
+[selected GoogleSQL/SQL-PGQ mapping profile](../design/frontend-standard-profiles.md#property-graph-mapping-and-element-identity).
+It does not create a Catalog object or claim ISO GQL constructor syntax.
+Relation producers, element-definition names and labels are separate.
+REFERENCES resolves the element definition and its ordered KEY columns.
+Typed keys, independently keyed parallel edges, Graph-owned label sets,
+Graph-wide property types and same-label property sets belong to the
+common Graph contract. The Frontend cannot issue those checked facts,
+replace static labels with property predicates or discard edge identity.
+
+The current independent Frontend checkpoint parses mappings and retains
+lowering fixtures. **Public preparation explicitly refuses the constructor
+until the unified common Graph owner is adopted.** Neither parser success
+nor independent source construction establishes execution or snapshot
+support. No conversion to the old simple-Graph contract is permitted.
+Supported Relation DATA uses existing query-expression lowering; captured
+DATA sources and DATA CTE/JOIN bodies remain explicit implementation gaps.
+These are support limits, not permanent restrictions of the target language.
+
+## Named logical SGA calls
+
+The adopted named SGA surface is an ActQL extension, not a SQL scalar-function
+or ISO GQL procedure alias. The operation names are reach, traverse,
+shortest_path, components, degree, graph_bounds, match_nodes, match_edges,
+normalize_graph, subgraph, graft_graph, union_graphs, subtract_graphs,
+graphs_equal, graph_diff, apply_graph_delta, mean_graphs, node_rows and
+edge_rows. Calls retain their existing logical Carrier transitions; a Graph
+is not implicitly converted to a Relation for SQL compatibility.
+
+Arguments are named. Their role comes from the operation contract rather
+than from the content of a String: `with: target` names a producer,
+`start: "A"` is a value and `field: "delta"` designates a column. Relation
+selectors in reach/traverse `start.from`, shortest_path `source.from` and
+`target.from`, and subgraph `nodes.from` use producer references. Bare and
+backtick producer names follow the existing DATA resolution rules; String
+values cannot name producers. A mean_graphs `with` list is explicit and does
+not silently acquire an additional current input. Duplicate input
+specification must be rejected rather than merged or ignored.
+
+Operation and selector vocabulary is case-insensitive. Object-valued data
+retains its own field names and decoded values. Numeric tokens retain their
+exact spelling until normal numeric admission. The same lexical, syntax,
+work and depth budgets apply to calls inside a query and a DATA body.
+
+A Graph-preserving query can bind its producer through DATA or precede a
+Graph MATCH. For example:
+
+```aql
+DATA normalized = FROM g |> normalize_graph();
+FROM GRAPH normalized |> MATCH WALK (a:Node) |> SELECT a.id
+```
+
+This lowers to the existing normalize_graph step on g and the existing
+definition-selected MATCH on its output. DATA does not copy the Graph,
+reacquire its inputs, add a Result or request materialization/physical
+placement. The normalization has no named options; extra arguments are not
+discarded. Unconsumed Graph calls cannot pass through relational compilation.
+
+The independent Frontend lowering connects Graph-preserving normalize only.
+Public preparation refuses constructor-dependent queries until the unified
+common Graph owner is adopted. This is lowering evidence, not an executable
+normalize consumer or a public Result guarantee.
+Other named calls parse but their output Carrier/schema is not yet connected
+to subsequent source operations; they return UnsupportedGraph before Run
+admission. Calls following a MATCH Relation are also explicitly unsupported
+by this first connection. These are implementation gaps, not permanent
+language restrictions. Common new-Graph consumer support is an independent
+requirement: successful source lowering does not override a common checker
+refusal, authorize execution or establish snapshot/replay acceptance. No
+legacy Graph conversion or alternate SGA executor is provided.
+
 ## Graph pattern source
 
 `FROM GRAPH name` selects an existing Graph value. `MATCH` requires an explicit

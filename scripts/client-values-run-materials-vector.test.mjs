@@ -251,9 +251,10 @@ test('baseline preimages and changed normative pins independently determine the 
   for (const field of ['unit', 'proof', 'resultPlan']) {
     assert.equal(dependencies[field], preRefreshDependencies[field]);
   }
-  assert.equal(vector(grammarCid, cid(aoaContract), dependencies).run.run_definition_cid,
+  const constructorGrammar = pin('2bf8ef0846b81f91fec96548d10dddd8c7e5a82b7db05444b38eefa316779c11');
+  assert.equal(vector(constructorGrammar, cid(aoaContract), dependencies).run.run_definition_cid,
     pin('3e86d58da98d5af468f0cd07aaef40562c46117c099dfa1cb41a2de052f983f3'));
-  assert.equal(current.run.run_definition_cid,
+  assert.equal(vector(constructorGrammar, cid(aoaContract), dependencies, barrierCid).run.run_definition_cid,
     pin('6feea7b7aec5bf825c5db7e46123c9b08f72f5fa85e795968e707d4e4d6c16c4'));
 
   // Preserve the independent INFER predecessor with its original dependency closure.
@@ -281,6 +282,20 @@ test('baseline preimages and changed normative pins independently determine the 
     pin('ce0e1e8935e1c65b8992f2fb0272da80b192d54616c546efd80a0cad87bd4ec4'),
     predecessorDependencies, barrierCid).run.run_definition_cid,
     pin('be53b8665c7381ddaad2edddf62c211ae07b9eddefa07ec743ce57ea108cac18'));
+  // B's DATA and named-SGA checkpoints retain their pre-unification dependency
+  // closure. Replacing the current registry must not rewrite their history.
+  for (const [grammar, expected] of [
+    ['170329dc75f0246794c3c2209461b743f6bb7c856cf81d1cfa34f8154a680741',
+      '6e124bb879d2de1400c1113a68f77416134c941de8edd29337ff74839069e631'],
+    ['4e911e389d7c72405b29e2ef2ee8051aa5eb397b67e5e6c2bfe6df7e4bf9d7cc',
+      'c807da4c26a523be68bdfe1a6d144a3ca799c4c30a5c433af02392ce04bc9901'],
+  ]) {
+    assert.equal(vector(pin(grammar),
+      pin('ce0e1e8935e1c65b8992f2fb0272da80b192d54616c546efd80a0cad87bd4ec4'),
+      predecessorDependencies, barrierCid).run.run_definition_cid, pin(expected));
+  }
+  assert.equal(current.run.run_definition_cid,
+    pin('784c1a8f2cbc868cf8b4eca126380e29ae2ab2674fd1c111f8c118a8f58edd02'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');

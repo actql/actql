@@ -243,12 +243,49 @@ pub fn lower(
   match format {
     Json => Ok({ document, format: @program.Json, })
     Yaml => Ok({ document, format: @program.Yaml, })
-    Text | Sql => {
+    Text => {
+      match
+        @syntax.starts_query(document, syntax_limits().lexical, source_path~) {
+        Ok(true) => ()
+        Ok(false) => return Err(WrongQueryForm)
+        Err(issue) => return Err(QuerySyntax(issue))
+      }
+      let script = match
+        @syntax.parse_query_script(document, syntax_limits(), source_path~) {
+        Ok(value) => value
+        Err(issue) => return Err(QuerySyntax(issue))
+      }
+      guard context is Some(context) else { return Err(MissingQueryContext) }
+      // DATA constructors lower to the sole definition-keyed Program owner.
+      // A bare external Graph alias still lacks admitted definition provenance;
+      // never reinterpret it through the retired tuple-Graph source route.
+      if @syntax.data_declaration_count(script) == 0 &&
+        @syntax.graph_query(@syntax.script_query(script)) is Some(_) {
+        return Err(QueryLowering(@query.UnsupportedGraph))
+      }
+      let program = if @syntax.data_declaration_count(script) > 0 {
+        match @query.compile_query_script(script, context, query_limits()) {
+          Ok(value) => value
+          Err(issue) => return Err(QueryLowering(issue))
+        }
+      } else {
+        match
+          @query.compile(@syntax.script_query(script), context, query_limits()) {
+          Ok(value) => value
+          Err(issue) => return Err(QueryLowering(issue))
+        }
+      }
+      emit(program)
+    }
+    Sql => {
       let parsed = match parse_query(document, format, source_path~) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
       guard context is Some(context) else { return Err(MissingQueryContext) }
+      if @syntax.graph_query(parsed) is Some(_) {
+        return Err(QueryLowering(@query.UnsupportedGraph))
+      }
       let program = match @query.compile(parsed, context, query_limits()) {
         Ok(value) => value
         Err(issue) => return Err(QueryLowering(issue))

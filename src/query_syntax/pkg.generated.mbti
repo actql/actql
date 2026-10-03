@@ -8,9 +8,15 @@ import {
 }
 
 // Values
+pub fn after_graph_calls(Query) -> Query
+
 pub fn cte_at(Query, Int) -> CtePart?
 
 pub fn cte_count(Query) -> Int
+
+pub fn data_declaration_at(QueryScript, Int) -> DataDeclaration?
+
+pub fn data_declaration_count(QueryScript) -> Int
 
 pub fn expression_child(Expression, Int) -> Expression?
 
@@ -42,9 +48,15 @@ pub fn operation_count(Query) -> Int
 
 pub fn parse_expression(String, ExpressionLimits, source_path? : String) -> Result[Expression, Diagnostic]
 
+pub fn parse_property_graph(String, QueryLimits, source_path? : String) -> Result[PropertyGraphConstructor, Diagnostic]
+
 pub fn parse_query(String, QueryLimits, source_path? : String) -> Result[Query, Diagnostic]
 
+pub fn parse_query_script(String, QueryLimits, source_path? : String) -> Result[QueryScript, Diagnostic]
+
 pub fn parse_relation_path(String, LexicalLimits, source_path? : String) -> Result[Array[NamePart], Diagnostic]
+
+pub fn parse_sga_call(String, QueryLimits, source_path? : String) -> Result[SgaCall, Diagnostic]
 
 pub fn query_document(Query) -> @frontend_source_map.Document
 
@@ -57,6 +69,12 @@ pub fn relation(Query) -> Array[NamePart]
 pub fn relation_alias(Query) -> NamePart?
 
 pub fn same_relation_name(NamePart, NamePart) -> Bool
+
+pub fn script_document(QueryScript) -> @frontend_source_map.Document
+
+pub fn script_query(QueryScript) -> Query
+
+pub fn script_work(QueryScript) -> Int
 
 pub fn set_part_at(Query, Int) -> SetPart?
 
@@ -117,6 +135,19 @@ pub(all) enum CastType {
 pub(all) struct CtePart {
   name : NamePart
   query : Query
+}
+
+pub(all) struct DataDeclaration {
+  name : NamePart
+  value : DataExpression
+  start : Int
+  end : Int
+}
+
+pub(all) enum DataExpression {
+  RelationQuery(Query)
+  PropertyGraph(PropertyGraphConstructor)
+  NamedGraphCall(SgaCall)
 }
 
 pub(all) struct Diagnostic {
@@ -202,6 +233,13 @@ pub(all) struct GraphPattern {
   start : Int
   end : Int
 }
+
+pub(all) enum GraphPropertySelection {
+  AllColumns
+  AllColumnsExcept(Array[NamePart])
+  NoProperties
+  Columns(Array[(NamePart, NamePart)])
+} derive(Eq, @debug.Debug)
 
 pub(all) struct GraphQuery {
   label_field : String?
@@ -295,6 +333,40 @@ pub(all) struct Projection {
   star : String?
 }
 
+pub(all) struct PropertyEdgeDefinition {
+  producer : Array[NamePart]
+  name : NamePart
+  key : Array[NamePart]
+  source : PropertyEndpointReference
+  destination : PropertyEndpointReference
+  labels : Array[PropertyGraphLabel]
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PropertyEndpointReference {
+  key : Array[NamePart]
+  definition : NamePart
+  referenced_key : Array[NamePart]?
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PropertyGraphConstructor {
+  nodes : Array[PropertyNodeDefinition]
+  edges : Array[PropertyEdgeDefinition]
+  start : Int
+  end : Int
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PropertyGraphLabel {
+  name : NamePart
+  properties : GraphPropertySelection
+} derive(Eq, @debug.Debug)
+
+pub(all) struct PropertyNodeDefinition {
+  producer : Array[NamePart]
+  name : NamePart
+  key : Array[NamePart]
+  labels : Array[PropertyGraphLabel]
+} derive(Eq, @debug.Debug)
+
 type Query
 
 pub(all) struct QueryLimits {
@@ -306,6 +378,7 @@ pub(all) struct QueryLimits {
 }
 
 pub(all) enum QueryOperation {
+  GraphCall(SgaCall)
   Infer(InferClause)
   Nearest(NearestClause)
   RetainResult(NamePart)
@@ -323,6 +396,8 @@ pub(all) enum QueryOperation {
   Limit(Int64, Int64)
 }
 
+type QueryScript
+
 pub(all) enum Resource {
   Tokens
   LiteralBytes
@@ -335,6 +410,24 @@ pub(all) struct SetPart {
   by_name : Bool
   right : Query
 }
+
+pub(all) enum SgaArgument {
+  Producer(NamePart)
+  TextValue(String)
+  NumberValue(String)
+  BooleanValue(Bool)
+  NullValue
+  ParameterValue(String)
+  ObjectValue(Array[(String, SgaArgument)])
+  ListValue(Array[SgaArgument])
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SgaCall {
+  operation : String
+  arguments : Array[(String, SgaArgument)]
+  start : Int
+  end : Int
+} derive(Eq, @debug.Debug)
 
 pub(all) struct SortTerm {
   expression : Expression
