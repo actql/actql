@@ -32,6 +32,16 @@ Neither the selected vendor profile nor a grammar checkout establishes complete
 ISO compliance. Immutable reference revisions and selected web clauses belong
 in the evidence for an implemented feature; a moving web page is not a law CID.
 
+## Selected Graph path default
+
+The pinned [GoogleSQL path-mode clause](https://github.com/google/googlesql/blob/d82db99a923a46571f543a13899dc791a7b6f743/docs/graph-patterns.md#path_mode)
+uses WALK when no path mode is authored. Adopt that default for the supported
+fixed directed patterns, including named paths and node-only patterns. The
+Frontend lowers implicit and explicit WALK to the same logical traversal mode;
+TRAIL and ACYCLIC remain explicit restrictions. This does not add search prefixes,
+optional patterns, nested paths or broader quantifiers. Shape support and
+bounded resource admission remain separate from the choice of default.
+
 ## Meaning preservation and coordinated changes
 
 `machine_program_semantics_preserved` in the adopted Frontend profile means
@@ -59,7 +69,9 @@ as eager. Exact failure and resource behavior belongs in the common contract.
 
 ## Property Graph mapping and element identity
 
-The following is adopted target notation, not currently executable source:
+The following notation defines the adopted mapping profile. Execution requires
+the installed common constructor and supported consumers; declaration of this
+profile alone is not an execution certificate:
 
 ```text
 DATA g = PROPERTY GRAPH (

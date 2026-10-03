@@ -64,6 +64,10 @@ test "keyed source node labels are membership and NODE_ID is the full identity s
     format=Json,
   ).unwrap()
   assert_eq(mapping_semantic(actual), mapping_semantic(expected))
+  let default_mode = keyed_script(
+    prefix + "FROM GRAPH g |> MATCH (a:Person) |> SELECT a.id",
+  ).unwrap()
+  assert_eq(mapping_semantic(default_mode), mapping_semantic(expected))
   let binding : GraphBinding = {
     variable: { value: "a", quoted: false, },
     prefix: "",
@@ -91,6 +95,7 @@ test "keyed source path modes lower to the existing traversal with full identity
   for
     (mode, wire) in [
       ("WALK", "walk"),
+      ("", "walk"),
       ("TRAIL", "trail"),
       ("ACYCLIC", "acyclic"),
     ] {
