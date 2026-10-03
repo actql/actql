@@ -971,7 +971,7 @@ pub fn captured_task_input(
       break
     }
   }
-  let edge = selected.unwrap()
+  guard selected is Some(edge) else { return Err(NotReady) }
   let receiver = run.graph.owners[task]
   let receiver_input = edge.source_input.unwrap_or(edge.input)
   let bound = if edge.producer < run.graph.captured_prefix {
@@ -1603,10 +1603,25 @@ fn captured_request_inputs_match(
     return false
   }
   for port in 0..<ports.length() {
-    guard ports[port] is Some(actual) &&
-      @connector.fixed_compute_request_input(request, port) is Some(expected) &&
-      physical_equal(actual, expected) else {
+    guard @connector.fixed_compute_request_relation_input(request, port)
+      is Some(expected) else {
       return false
+    }
+    match expected {
+      @execution.CompletedRelation(actual) => {
+        guard ports[port] is Some(bound) &&
+          run.supplied_reads[task][port] is None &&
+          @execution.producer_read_same_binding(actual, bound) else {
+          return false
+        }
+      }
+      @execution.SuppliedRelation(actual) => {
+        guard ports[port] is None &&
+          run.supplied_reads[task][port] is Some(bound) &&
+          @execution.supplied_relation_read_same_binding(actual, bound) else {
+          return false
+        }
+      }
     }
   }
   true
@@ -1620,6 +1635,27 @@ fn captured_output_inputs_match(
   task : Int,
   output : @execution.CompletedOutput,
 ) -> Bool {
+  let mixed : Array[@execution.FixedRelationRead] = []
+  let mut supplied = false
+  for port in 0..<run.inputs[task].length() {
+    if run.inputs[task][port] is Some(read) &&
+      run.supplied_reads[task][port] is None {
+      mixed.push(@execution.fixed_completed_relation_read(read))
+    } else if run.inputs[task][port] is None &&
+      run.supplied_reads[task][port] is Some(read) {
+      supplied = true
+      mixed.push(@execution.fixed_supplied_relation_read(read))
+    } else {
+      return false
+    }
+  }
+  if supplied {
+    return @execution.completed_output_matches_fixed_inputs(
+      output,
+      graph_task_selected_step(run.graph, task),
+      mixed,
+    )
+  }
   let inputs = []
   for input in run.inputs[task] {
     guard input is Some(input) else { return false }

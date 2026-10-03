@@ -126,6 +126,9 @@ pub fn duckdb_bound_compute_candidate(
     is Some(_) {
     return Err(Request(CommonFragmentUnsupported))
   }
+  if @connector.fixed_compute_request_has_supplied_input(request) {
+    return Err(Request(UnsupportedInputShape))
+  }
   if !physical_equal(
       @duckdb.fixed_query_owner(@duckdb.fixed_compute_query(compiled)),
       @connector.fixed_compute_request_owner(request),

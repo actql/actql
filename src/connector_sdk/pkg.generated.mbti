@@ -89,6 +89,8 @@ pub fn fixed_compute_choice_reason(FixedComputeChoice) -> @physical_cost.CostCho
 
 pub fn fixed_compute_request_capacity(FixedComputeRequest) -> FixedComputeCapacity
 
+pub fn fixed_compute_request_has_supplied_input(FixedComputeRequest) -> Bool
+
 pub fn fixed_compute_request_input(FixedComputeRequest, Int) -> @execution_relation.ProducerRead?
 
 pub fn fixed_compute_request_input_count(FixedComputeRequest) -> Int
@@ -96,6 +98,10 @@ pub fn fixed_compute_request_input_count(FixedComputeRequest) -> Int
 pub fn fixed_compute_request_inputs(FixedComputeRequest) -> Array[@execution_relation.ProducerRead]
 
 pub fn fixed_compute_request_owner(FixedComputeRequest) -> @lowering_relation.BoundPrepared
+
+pub fn fixed_compute_request_relation_input(FixedComputeRequest, Int) -> @execution_relation.FixedRelationRead?
+
+pub fn fixed_compute_request_relation_inputs(FixedComputeRequest) -> Array[@execution_relation.FixedRelationRead]
 
 pub fn[A, C, E] install_bundles(Array[CapabilityBundle[A, C, E]], Int, Int) -> Result[InstalledBundles[A, C, E], CapabilityRegistrationIssue]
 
@@ -155,6 +161,8 @@ pub fn prepare_capability_registry(Array[CapabilityDescription], Int, Int) -> Re
 
 pub fn prepare_fixed_compute_request(Array[@execution_relation.ProducerRead], FixedComputeCapacity) -> Result[FixedComputeRequest, FixedComputeIssue]
 
+pub fn prepare_fixed_compute_request_with_inputs(@lowering_relation.BoundPrepared, Array[@execution_relation.FixedRelationRead], FixedComputeCapacity) -> Result[FixedComputeRequest, FixedComputeIssue]
+
 pub fn[T] prepare_managed_fixed_compute_request(Array[@execution_relation.ManagedProducerRead[T]], FixedComputeCapacity, @execution_relation.ManagedObligations) -> Result[ManagedFixedComputeRequest[T], FixedComputeIssue]
 
 pub fn[T] prepare_managed_fixed_compute_request_for_bindings(@lowering_relation.BoundPrepared, Array[@execution_relation.ManagedInputBinding], FixedComputeCapacity, @execution_relation.ManagedObligations) -> Result[ManagedFixedComputeRequest[T], FixedComputeIssue]
@@ -164,6 +172,8 @@ pub fn[T] prepare_managed_fixed_compute_request_for_owner(@lowering_relation.Bou
 pub fn prepare_resource_binding(CapabilityRegistry, CapabilityRegistration) -> Result[ResourceBinding, CapabilityInstallationIssue]
 
 pub fn prepare_selected_fixed_compute_request(@lowering_relation.BoundPrepared, Int, Array[@execution_relation.ProducerRead], FixedComputeCapacity) -> Result[FixedComputeRequest, FixedComputeIssue]
+
+pub fn prepare_selected_fixed_compute_request_with_inputs(@lowering_relation.BoundPrepared, Int, Array[@execution_relation.FixedRelationRead], FixedComputeCapacity) -> Result[FixedComputeRequest, FixedComputeIssue]
 
 pub fn prepare_source_free_fixed_compute_request(@lowering_relation.BoundPrepared, FixedComputeCapacity) -> Result[FixedComputeRequest, FixedComputeIssue]
 

@@ -72,6 +72,8 @@ pub fn local_materializing_guard_usage(LocalMaterializingAttempt) -> (Int, Int, 
 
 pub fn local_materializing_input(LocalMaterializingAttempt, Int) -> @execution_relation.ProducerRead?
 
+pub fn local_materializing_input_count(LocalMaterializingAttempt) -> Int
+
 pub fn local_materializing_provider_work(LocalMaterializingAttempt) -> Int64?
 
 pub fn local_materializing_publication_output(LocalMaterializingAttempt) -> @execution_relation.CompletedOutput?

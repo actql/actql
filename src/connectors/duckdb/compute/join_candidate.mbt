@@ -37,6 +37,9 @@ fn compile_duckdb_join_candidate(
   request : @connector.FixedComputeRequest,
   compilation : @duckdb.NativeQueryLimits,
 ) -> Result[DuckDBJoinPreparation, DuckDBComputeCandidateIssue] {
+  if @connector.fixed_compute_request_has_supplied_input(request) {
+    return Err(Request(UnsupportedInputShape))
+  }
   let owner = @connector.fixed_compute_request_owner(request)
   @duckdb.compile_fixed_inner_join(
     owner,

@@ -3753,6 +3753,97 @@ test "registered VecA provider preserves supplied score authority" {
     }
     let result = output.unwrap()
     assert_eq(@execution.completed_row_count(result), 2)
+    let fixed_inputs = inputs.map(@execution.fixed_supplied_relation_read)
+    let capacity : @connector.FixedComputeCapacity = {
+      contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+      max_rows: 10,
+      max_value_bytes: 1000,
+      common_fragment: None,
+    }
+    let request = @connector.prepare_selected_fixed_compute_request_with_inputs(
+      owner, 0, fixed_inputs, capacity,
+    ).unwrap()
+    assert_eq(@connector.fixed_compute_request_input_count(request), 2)
+    assert_true(@connector.fixed_compute_request_has_supplied_input(request))
+    assert_true(@connector.fixed_compute_request_inputs(request).is_empty())
+    let registry = search_registry()
+    let candidate = @local_connector.local_fixed_compute_candidate(
+      @connector.capability_registration_at(registry, 0).unwrap(),
+      request,
+      generated,
+      [],
+      { transfer_bytes: None, retained_bytes: None, money_units: None, },
+      100,
+    ).unwrap()
+    guard @connector.choose_fixed_compute_candidate(
+        registry,
+        request,
+        [@connector.prepared_compute_candidate(candidate)],
+        Some([0]),
+        100,
+      ).unwrap()
+      is Proposed(choice) else {
+      fail("supplied ranking candidate")
+    }
+    assert_true(
+      @local_connector.execute_local_fixed_compute(
+        choice,
+        candidate,
+        compute_test_limits(),
+        measurement={
+          max_work: 10000,
+          max_bytes: 10000,
+          max_nodes: 10000,
+          max_depth: 100,
+        },
+      )
+      is Err(@connector.UnsupportedInputShape),
+    )
+    assert_true(
+      @connector.prepare_selected_fixed_compute_request_with_inputs(
+        owner,
+        0,
+        [fixed_inputs[1], fixed_inputs[0]],
+        capacity,
+      )
+      is Err(@connector.UnsupportedInputShape),
+    )
+    assert_true(
+      @connector.prepare_selected_fixed_compute_request_with_inputs(
+        owner,
+        0,
+        fixed_inputs,
+        { ..capacity, max_rows: 1, },
+      )
+      is Err(@connector.CommonInputRows),
+    )
+    let anchored = @execution.anchor_completed_output_fixed_inputs(
+      result,
+      Some(0),
+      fixed_inputs,
+    ).unwrap()
+    assert_true(
+      @execution.completed_output_matches_fixed_inputs(
+        anchored,
+        Some(0),
+        fixed_inputs,
+      ),
+    )
+    assert_false(
+      @execution.completed_output_matches_fixed_inputs(anchored, Some(0), [
+        fixed_inputs[1],
+        fixed_inputs[0],
+      ]),
+    )
+    let rebound = @execution.fixed_supplied_relation_read(
+      supplied_ranking_rows(owner, 0, [(1.0, 1.0, 0.75)]),
+    )
+    assert_false(
+      @execution.completed_output_matches_fixed_inputs(anchored, Some(0), [
+        rebound,
+        fixed_inputs[1],
+      ]),
+    )
     let output_schema = @pipeline.schema_at(
       @lower.pipeline(@lower.bound_preparation(owner)),
       @pipeline.Step(0),
