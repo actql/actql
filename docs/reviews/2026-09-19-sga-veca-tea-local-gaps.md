@@ -4521,6 +4521,21 @@ Store, reads three Named Results against independent expected rows, and reclaims
 the Store and Run. This proves the RRF-to-filter delivery shape, not every
 ranking policy or every subsequent Relation operation in a retained Stage.
 
+The retained scored-policy path now accepts exact, ordered supplied Relation
+ports for `VEC.merge_rankings` maximum and weighted sum without representing
+them as completed producer outputs. The fixed request, selected candidate,
+bounded Local materializing attempt, and completed output bind the same input
+occurrences. The legacy synchronous Local executor and connectors without
+supplied-input support reject the request rather than silently treating it as
+source-free. A focused portable fixture checks the two policies, reversed and
+rebound ports, input row capacity, and the synchronous rejection on JS, Wasm,
+and native. The real Node standard Host retains each scored result in a Store,
+publishes the producer and two downstream consumer Named Results, compares all
+three with independently specified rows, and reclaims held and reserved bytes.
+This covers the scored-policy-to-filter shape, not every later Relation
+operation or a route-specific retained cancellation/failure injection; those
+remain subject to the common bounded-provider and materializing-owner evidence.
+
 The retained Relation path also splits a direct `VEC.knn_join` occurrence
 from a later `filter` in the same Stage. The nearest obligation is admitted
 only for the exact one-step sequence accepted by the registered bounded
