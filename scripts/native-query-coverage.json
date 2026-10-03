@@ -1,0 +1,214 @@
+{
+  "files": {
+    "client_source_free_root_wbtest.mbt": {
+      "owners": [
+        "remote-runtime"
+      ],
+      "tests": [
+        "ordinary AQL values root reaches the installed Local kernel",
+        "captured Values output supports shared Effect and publication borrows"
+      ],
+      "variables": [
+        "ACTQL_TEST_NATIVE_CRYPTO_LIBRARY",
+        "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_BODY",
+        "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID",
+        "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY",
+        "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_SIGNATURE",
+        "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET",
+        "ACTQL_TEST_NATIVE_REMOTE_VALUES_ROOT",
+        "ACTQL_TEST_NATIVE_SQLITE_LIBRARY",
+        "ACTQL_TEST_NATIVE_VALUES_CANCEL_ACCEPTANCE",
+        "ACTQL_TEST_NATIVE_VALUES_COORDINATOR_AUTHORITY",
+        "ACTQL_TEST_NATIVE_VALUES_CREATED_AT",
+        "ACTQL_TEST_NATIVE_VALUES_DIRECT_ORIGIN",
+        "ACTQL_TEST_NATIVE_VALUES_DISPATCH_CID",
+        "ACTQL_TEST_NATIVE_VALUES_DISPATCH_ID",
+        "ACTQL_TEST_NATIVE_VALUES_EXPECTED_ROWS",
+        "ACTQL_TEST_NATIVE_VALUES_HTTPS_CA",
+        "ACTQL_TEST_NATIVE_VALUES_HTTPS_CERT",
+        "ACTQL_TEST_NATIVE_VALUES_HTTPS_KEY",
+        "ACTQL_TEST_NATIVE_VALUES_HTTPS_PEER",
+        "ACTQL_TEST_NATIVE_VALUES_HTTP_LIBRARY",
+        "ACTQL_TEST_NATIVE_VALUES_HTTP_REQUESTS",
+        "ACTQL_TEST_NATIVE_VALUES_PROGRAM",
+        "ACTQL_TEST_NATIVE_VALUES_RUN_DEFINITION_CID",
+        "ACTQL_TEST_NATIVE_VALUES_RUN_ID",
+        "ACTQL_TEST_NATIVE_VALUES_SCOPE_ID",
+        "ACTQL_TEST_NATIVE_VALUES_TLS_CLIENT_CERT",
+        "ACTQL_TEST_NATIVE_VALUES_TLS_CLIENT_KEY",
+        "ACTQL_TEST_NATIVE_VALUES_VALID_UNTIL"
+      ]
+    },
+    "duckdb_native_compute_wbtest.mbt": {
+      "owners": [
+        "http-client"
+      ],
+      "tests": [
+        "native selected DuckDB seals independent output before completion",
+        "native fixed Compute rolls back a failed physical transaction",
+        "native DuckDB executes portable fixed Compute without Node",
+        "native fixed Compute rejects import capacity before execution",
+        "standard dispatcher completes native fixed Compute without Node",
+        "native DuckDB memory denial releases the common execution reservation"
+      ],
+      "variables": [
+        "ACTQL_TEST_NATIVE_STORE_ROOT"
+      ]
+    },
+    "duckdb_native_runtime_wbtest.mbt": {
+      "owners": [
+        "http-client"
+      ],
+      "tests": [
+        "native DuckDB executes the portable acquisition Host without Node",
+        "native acquisition failure rolls back before releasing its Host attempt"
+      ],
+      "variables": []
+    },
+    "native_publication_output_wbtest.mbt": {
+      "owners": [
+        "http-client",
+        "remote-runtime"
+      ],
+      "tests": [
+        "native standard Host exposes each checked task completion once",
+        "standard Local output reaches the durable native publication commit",
+        "standard DuckDB output reaches the durable native publication commit",
+        "retained native DuckDB result reaches formal publication and delivery",
+        "retained native Local result reaches formal publication and delivery",
+        "native Local file failure prevents completion and retains cleanup owner",
+        "native Local file creation failure retains the common attempt owner",
+        "native DuckDB file failure prevents completion and retains cleanup owner",
+        "native standard Host reads each retained DuckDB input from a fresh file",
+        "native Remote Site executes registered Local and DuckDB tasks"
+      ],
+      "variables": [
+        "ACTQL_TEST_NATIVE_CRYPTO_LIBRARY",
+        "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_BODY",
+        "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID",
+        "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY",
+        "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_SIGNATURE",
+        "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET",
+        "ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT",
+        "ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT",
+        "ACTQL_TEST_NATIVE_SQLITE_LIBRARY",
+        "ACTQL_TEST_NATIVE_STORE_ROOT"
+      ]
+    },
+    "native_remote_transfer_input_wbtest.mbt": {
+      "owners": [
+        "http-client"
+      ],
+      "tests": [
+        "incremental direct destination uses common standard input verifier",
+        "standard Local reads the exact committed Transfer destination"
+      ],
+      "variables": [
+        "ACTQL_TEST_NATIVE_CRYPTO_LIBRARY",
+        "ACTQL_TEST_NATIVE_HTTP_CA",
+        "ACTQL_TEST_NATIVE_HTTP_CERT",
+        "ACTQL_TEST_NATIVE_HTTP_KEY",
+        "ACTQL_TEST_NATIVE_HTTP_LIBRARY",
+        "ACTQL_TEST_NATIVE_HTTP_URL",
+        "ACTQL_TEST_NATIVE_REMOTE_GATEWAY_ORIGIN",
+        "ACTQL_TEST_NATIVE_REMOTE_PUBLICATION_ROOT",
+        "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_BODY",
+        "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID",
+        "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY",
+        "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_SIGNATURE",
+        "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET",
+        "ACTQL_TEST_NATIVE_REMOTE_TRANSFER_STANDARD_ROOT",
+        "ACTQL_TEST_NATIVE_SQLITE_LIBRARY",
+        "ACTQL_TEST_NATIVE_SQLITE_ROOT",
+        "ACTQL_TEST_NATIVE_STORE_ROOT"
+      ]
+    },
+    "native_resident_standard_wbtest.mbt": {
+      "owners": [
+        "http-client"
+      ],
+      "tests": [
+        "native resident Host shares one database and imports each producer once",
+        "native resident task failure keeps the environment owner until release",
+        "native resident import rejection returns its table and environment",
+        "native resident import allowance is admitted exactly before any import",
+        "native resident task demand is admitted exactly before any import",
+        "native resident unconfirmed rollback keeps its owner and is never reused",
+        "native resident unconfirmed commit keeps completed work and blocks reuse"
+      ],
+      "variables": [
+        "ACTQL_REQUIRE_NATIVE_DUCKDB_TESTS",
+        "ACTQL_TEST_DUCKDB_LIBRARY",
+        "ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT"
+      ]
+    },
+    "physical_adaptive_dispatch_wbtest.mbt": {
+      "owners": [
+        "http-client"
+      ],
+      "tests": [
+        "standard Host commits an authenticated external policy before dispatch",
+        "native standard Host consults mTLS policy and retains a failed choice",
+        "observed completion revises only the unstarted suffix without resetting resources",
+        "unknown downstream size defers and cannot fall through to an old selection",
+        "adaptive estimate overflow and revision exhaustion do not start more work"
+      ],
+      "variables": [
+        "ACTQL_TEST_NATIVE_HTTP_CA",
+        "ACTQL_TEST_NATIVE_HTTP_CERT",
+        "ACTQL_TEST_NATIVE_HTTP_KEY",
+        "ACTQL_TEST_NATIVE_HTTP_LIBRARY",
+        "ACTQL_TEST_NATIVE_HTTP_URL",
+        "ACTQL_TEST_NATIVE_POLICY_CLOCK",
+        "ACTQL_TEST_NATIVE_SQLITE_LIBRARY"
+      ]
+    },
+    "resident_native_source_wbtest.mbt": {
+      "owners": [
+        "http-client"
+      ],
+      "tests": [
+        "resident Source exports a preconfigured read-only DuckDB acquisition"
+      ],
+      "variables": []
+    }
+  },
+  "requiredEnvironment": {
+    "http-client": [
+      "ACTQL_REQUIRE_NATIVE_DUCKDB_TESTS",
+      "ACTQL_TEST_DUCKDB_LIBRARY",
+      "ACTQL_TEST_NATIVE_CRYPTO_LIBRARY",
+      "ACTQL_TEST_NATIVE_HTTP_CA",
+      "ACTQL_TEST_NATIVE_HTTP_CERT",
+      "ACTQL_TEST_NATIVE_HTTP_KEY",
+      "ACTQL_TEST_NATIVE_HTTP_LIBRARY",
+      "ACTQL_TEST_NATIVE_HTTP_URL",
+      "ACTQL_TEST_NATIVE_POLICY_CLOCK",
+      "ACTQL_TEST_NATIVE_REMOTE_GATEWAY_ORIGIN",
+      "ACTQL_TEST_NATIVE_REMOTE_PUBLICATION_ROOT",
+      "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_BODY",
+      "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID",
+      "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY",
+      "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_SIGNATURE",
+      "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET",
+      "ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT",
+      "ACTQL_TEST_NATIVE_REMOTE_TRANSFER_STANDARD_ROOT",
+      "ACTQL_TEST_NATIVE_RETAINED_TASK_ROOT",
+      "ACTQL_TEST_NATIVE_SQLITE_LIBRARY",
+      "ACTQL_TEST_NATIVE_SQLITE_ROOT",
+      "ACTQL_TEST_NATIVE_STORE_ROOT"
+    ],
+    "remote-runtime": [
+      "ACTQL_TEST_DUCKDB_LIBRARY",
+      "ACTQL_TEST_NATIVE_SQLITE_LIBRARY",
+      "ACTQL_TEST_NATIVE_CRYPTO_LIBRARY",
+      "ACTQL_TEST_NATIVE_REMOTE_STANDARD_ROOT",
+      "ACTQL_TEST_NATIVE_REMOTE_VALUES_ROOT",
+      "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_TARGET",
+      "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_PUBLIC_KEY",
+      "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_BODY",
+      "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID",
+      "ACTQL_TEST_NATIVE_REMOTE_RUNTIME_SIGNATURE"
+    ]
+  }
+}
