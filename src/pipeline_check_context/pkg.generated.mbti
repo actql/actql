@@ -3286,6 +3286,7 @@ pub(all) enum TraversalRule {
   FilterAuthoredLabels
   EnumeratePropertyPaths
   DeduplicatePathIdentities
+  SelectMinimumEligibleNodeDepth
   OrderTraversalRows
 } derive(Eq, @debug.Debug)
 

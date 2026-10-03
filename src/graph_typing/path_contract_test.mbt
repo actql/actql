@@ -47,19 +47,37 @@ test "current path contracts retain full independent edge identities and reject 
 }
 
 ///|
-test "retired node emission is refused before any checked path grant" {
-  let source = cursor(
-    "{\"start\":{\"ids\":[{\"domain\":\"sha256:0000000000000000000000000000000000000000000000000000000000000000\",\"definition\":\"N\",\"key\":[1,\"one\"],\"key_types\":[{\"kind\":\"number\"},{\"kind\":\"string\"}]}]},\"direction\":\"out\",\"min_hops\":0,\"max_hops\":1,\"path_mode\":\"trail\",\"emit\":\"nodes\"}",
-  )
-  let issue = @graph_typing.check_traverse(
+test "current node contract retains typed identities and exact schema budget" {
+  let source = cursor("true")
+  let graph = current_scope_graph()
+  let checked = @graph_typing.check_path_contract(
+    TraversedNodes,
     source,
-    current_scope_graph(),
-    None,
-    None,
-    predicate_limits(),
-  ).unwrap_err()
-  assert_eq(
-    @graph_typing.match_diagnostic(issue, source).kind,
-    Structure(UnsupportedGraphProfile),
+    graph,
+    limits(),
+  ).unwrap()
+  let rows = @carrier.complete_schema(
+    @carrier.relation_rows(@graph_typing.path_output(checked)).unwrap(),
+  ).unwrap()
+  for name in ["start_id", "node_id"] {
+    let field = @row.lookup(rows, Unqualified(name)).unwrap()
+    assert_true(field.shape is @contract.Json)
+    assert_false(field.nullable)
+  }
+  let depth = @row.lookup(rows, Unqualified("depth")).unwrap()
+  assert_true(depth.shape is @contract.Number)
+  assert_false(depth.nullable)
+  let usage = @graph_typing.path_usage(checked)
+  assert_eq((usage.work, usage.nodes, usage.text_bytes), (5, 0, 20))
+  let exact = { ..limits(), max_work: 5, max_nodes: 0, max_text_bytes: 20, }
+  assert_true(
+    @graph_typing.check_path_contract(TraversedNodes, source, graph, exact)
+    is Ok(_),
   )
+  for cap in [{ ..exact, max_work: 4, }, { ..exact, max_text_bytes: 19, }] {
+    assert_true(
+      @graph_typing.check_path_contract(TraversedNodes, source, graph, cap)
+      is Err(_),
+    )
+  }
 }

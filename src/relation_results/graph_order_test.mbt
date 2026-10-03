@@ -1,11 +1,13 @@
 ///|
-fn current_trail_query() -> String {
+fn current_trail_query(emit? : String = "paths") -> String {
   let identity = "{\"definition\":\"N\",\"domain\":\"sha256:" +
     "0".repeat(64) +
     "\",\"key\":[1,\"a\"],\"key_types\":[{\"kind\":\"number\"},{\"kind\":\"string\"}]}"
   "{\"traverse\":{\"start\":{\"ids\":[" +
   identity +
-  "]},\"hops\":[{\"direction\":\"out\"}],\"path_mode\":\"trail\",\"emit\":\"paths\"}}"
+  "]},\"hops\":[{\"direction\":\"out\"}],\"path_mode\":\"trail\",\"emit\":\"" +
+  emit +
+  "\"}}"
 }
 
 ///|
@@ -15,6 +17,7 @@ test "current MATCH and TRAIL orders retain their producer through take and stru
       (property_query_body(false, "[\"element\",\"score\"]"), "element"),
       (property_query_body(true, "[\"element\",\"src\",\"dst\"]"), "element"),
       (current_trail_query(), "edge_ids"),
+      (current_trail_query(emit="nodes"), "node_id"),
     ] {
     let p = @pipeline.check_carriers(
       cursor("[" + body + ",{\"take\":1,\"as\":\"rows\"}]"),

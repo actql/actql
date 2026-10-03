@@ -1160,6 +1160,15 @@ pub fn[T] start_local_managed_dispatch(
                 return Err(Configuration(issue))
               }
             }
+            guard local_task_constrain_traversal(
+                setup.run,
+                setup.task,
+                constrained,
+              )
+              is Some(constrained) else {
+              execution_finished.val = true
+              return Err(Configuration(InputUnavailable))
+            }
             let started = match
               @local.start_managed_provider_with_inputs_and_execution(
                 provider,
@@ -1902,7 +1911,7 @@ pub fn[T] start_local_managed_dispatch(
     material: fn() { retained.val },
     carrier_material: fn() { carrier.val },
     prepare_relation_snapshot: fn(storage_released) {
-      // Restrict this first connection to the adopted Graph row bridge. The
+      // Retain checked Graph row bridges and node-emitting traversals. The
       // operation keys come from the checked owner, not caller-supplied names.
       let prepared = @lower.bound_preparation(
         @execution.generated_sequence_owner(setup.sequence),
@@ -1918,6 +1927,16 @@ pub fn[T] start_local_managed_dispatch(
           let key = @lower.operation(node)
           if key == "BRIDGE.graph.to_node_rows" ||
             key == "BRIDGE.graph.to_edge_rows" {
+            graph_rows = true
+          } else if @lower.sequence_step(
+              @execution.generated_prepared_sequence(setup.sequence),
+              @execution.generated_sequence_step_index_at(
+                setup.sequence,
+                position,
+              ).unwrap(),
+            )
+            is Some(@lower.GraphTraverseStep(traverse)) &&
+            !@lower.graph_traverse_emits_paths(traverse) {
             graph_rows = true
           }
         }

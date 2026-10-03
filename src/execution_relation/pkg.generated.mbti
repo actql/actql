@@ -439,6 +439,8 @@ pub fn constrain_generated_sequence_match_limits(GeneratedSequence, Int, Int64, 
 
 pub fn constrain_generated_session_output(GeneratedSequence, Int, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
 
+pub fn constrain_generated_traversal(GeneratedSequence, Int, Int64, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
+
 pub fn copy_completed_output_independent(CompletedOutput, Int, Int) -> Result[CompletedOutput, ManagedIndependentOutputIssue]
 
 pub fn copy_relation_row(AdmittedRelationRow, ValueLimits) -> Result[AdmittedRelationRow, RelationPresenceIssue]
@@ -594,6 +596,8 @@ pub fn generated_sequence_step_count(GeneratedSequence) -> Int
 pub fn generated_sequence_step_index_at(GeneratedSequence, Int) -> Int?
 
 pub fn generated_session_output_ceiling(GeneratedSequence, Int) -> Int64?
+
+pub fn generated_traversal_ceilings(GeneratedSequence, Int) -> (Int64, Int64)?
 
 pub fn group_execution_supported(@lowering_relation.PreparedGroup) -> Bool
 

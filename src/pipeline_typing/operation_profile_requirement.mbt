@@ -23,6 +23,7 @@ pub fn operation_profile_requirement(
         | FilterTraversalLabels
         | EnumeratePropertyPaths
         | DeduplicateExactPaths
+        | MinimumEligibleNodeDepth
         | CanonicalTraversalOrder
         | EnforceTraversalOutputGuard
         | BindTraversalOutputGuard(_, ..)
