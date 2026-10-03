@@ -62,6 +62,12 @@ pub(all) struct SortTerm {
 }
 
 ///|
+pub(all) enum GroupingScope {
+  SqlSelect
+  PipeAggregate
+} derive(Eq)
+
+///|
 pub(all) enum QueryOperation {
   GraphCall(SgaCall)
   Infer(InferClause)
@@ -73,7 +79,7 @@ pub(all) enum QueryOperation {
   Drop(Array[NamePart])
   Rename(Array[(NamePart, NamePart)])
   Alias(NamePart)
-  Group(Array[Expression], Array[Projection])
+  Group(Array[Expression], Array[Projection], GroupingScope)
   Having(Expression)
   Analytic(Array[Projection])
   Select(Array[Projection], Bool)
@@ -361,7 +367,8 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
     Rename(xs) => Some(Rename(xs.copy()))
     Alias(name) => Some(Alias(name))
     RetainResult(name) => Some(RetainResult(name))
-    Group(keys, projections) => Some(Group(keys.copy(), projections.copy()))
+    Group(keys, projections, scope) =>
+      Some(Group(keys.copy(), projections.copy(), scope))
     Having(e) => Some(Having(e))
     Analytic(projections) => Some(Analytic(projections.copy()))
     Select(xs, distinct) => Some(Select(xs.copy(), distinct))
@@ -1106,9 +1113,9 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
   let grouped = self.has("GROUP") ||
     projections.any(projection => projection.aggregate is Some(_))
   if self.has("GROUP") {
-    operations.push(Group(self.group_keys(), projections))
+    operations.push(Group(self.group_keys(), projections, SqlSelect))
   } else if grouped {
-    operations.push(Group([], projections))
+    operations.push(Group([], projections, SqlSelect))
   }
   if self.has("HAVING") {
     if !grouped {
@@ -1541,7 +1548,7 @@ fn QueryParser::pipe_tail(
         raise QueryAbort("AGGREGATE requires named calls", self.peek().start)
       }
       let keys = if self.has("GROUP") { self.group_keys() } else { [] }
-      operations.push(Group(keys, aggregates))
+      operations.push(Group(keys, aggregates, PipeAggregate))
     } else if self.has("SELECT") {
       self.keyword("SELECT")
       let distinct = self.has("DISTINCT")
