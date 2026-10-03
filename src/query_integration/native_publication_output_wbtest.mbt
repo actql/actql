@@ -1196,6 +1196,125 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
       max_retained_bytes: 1048576L,
     },
   ).unwrap()
+  // Acquisition is opened by the same exact-binding factory, after the
+  // remote runtime's exclusive start claim. The database path is test Site
+  // configuration, never a member of the dispatched Program or binding.
+  let source_name = "resident-remote-source.duckdb"
+  let source_path = root_path + "/" + source_name
+  let source_library = @native_duckdb.load_library(duckdb_path).unwrap()
+  let source_setup_database = source_library
+    .open_database(
+      @native_duckdb.restricted_open_limits(134217728L),
+      path=source_path,
+    )
+    .unwrap()
+  native_runtime_command(
+    source_setup_database, "CREATE TABLE records(id DOUBLE)",
+  )
+  native_runtime_command(
+    source_setup_database, "INSERT INTO records VALUES (3), (1), (2)",
+  )
+  source_setup_database.close()
+  let (source_graph, source_configuration, source_requirement) = resident_native_source_setup(
+    evidence_members=true,
+  )
+  let source_evidence_context = @acquisition_host.prepare_native_source_evidence_context(
+    source_requirement,
+  ).unwrap()
+  let source_binding = @native_host.prepare_native_read_only_source_binding(
+    source_configuration, source_path, 134217728L,
+  ).unwrap()
+  let (source_run_context, _, _, _) = native_publication_run_context(
+    @strategy.graph_program_definition_cid(source_graph),
+    "remote-source-run",
+  )
+  let source_run_definition_cid = @publication.publication_contract_identity(
+    source_run_context.run_definition,
+  )
+  let source_opens = [0]
+  let source_cleanup_attempts = [0]
+  let source_captured : Array[@strategy.CapturedDAG?] = [None]
+  let source_factory = @native_remote_standard.register_native_remote_standard_bound_run_factory(
+    input_binding,
+    () => {
+      source_opens[0] += 1
+      let acquisition_runtime = @native_host.open_native_read_only_source_acquisition(
+        source_binding, source_configuration, source_library, "remote-source",
+      ).unwrap()
+      @native_host.execute_native_acquisition_runtime(acquisition_runtime).unwrap()
+      |> ignore
+      let capture = @native_host.native_acquisition_runtime_source_capture(
+        acquisition_runtime,
+      ).unwrap()
+      let captured_source = @acquisition_host.native_host_source_capture_source(
+        capture,
+      ).unwrap()
+      let source_limits = native_publication_export_limits()
+      let source_identity = @query.identify_captured_source_relation(
+        captured_source,
+        source_limits.max_rows,
+        source_limits.values,
+        source_limits.payload_wire,
+        source_limits.logical_wire,
+        source_limits.schema,
+        source_limits.max_batch_bytes,
+      ).unwrap()
+      let logical = @publication_host.issue_captured_source_input_logical(
+        source_graph, captured_source, source_identity, source_requirement,
+      ).unwrap()
+      let evidence = @acquisition_host.issue_native_host_source_evidence(
+        capture,
+        source_evidence_context,
+        source_identity,
+        logical,
+        "sha256:" + "a".repeat(64),
+        "sha256:e29dbae5d01c451177772ccd55550b9ec4be9b47eb12e56afffea74cfdd879bf",
+        "2026-10-03T00:00:01.000Z",
+      ).unwrap()
+      let ledger = @resources.create_ledger({
+        planning_work: 10000,
+        attempts: 10,
+        holdings: 10,
+        transfer_bytes: 300000L,
+        retained_bytes: 32000000L,
+        execution_bytes: 134217728L,
+      }).unwrap()
+      let captured = @strategy.open_captured_dag(
+        source_graph, captured_source, ledger,
+      ).unwrap()
+      source_captured[0] = Some(captured)
+      Ok(
+        @native_remote_standard.prepare_native_remote_standard_acquired_run_owner(
+          captured,
+          0,
+          () => {
+            source_cleanup_attempts[0] += 1
+            if source_cleanup_attempts[0] == 1 {
+              return false
+            }
+            @native_host.close_native_acquisition_runtime(acquisition_runtime)
+            true
+          },
+          source_observation=Some(request => {
+            @remote.prepare_remote_source_observation(
+              request, 0, evidence, logical, "2026-10-03T00:00:00.000Z", "2026-10-03T00:00:01.000Z",
+            )
+          }),
+        ).unwrap(),
+      )
+    },
+  )
+  let source_executor = @native_remote_standard.install_native_remote_standard_bound_task_executor(
+    source_run_definition_cid,
+    "task-0-source",
+    0,
+    source_factory,
+    {
+      output_export: native_publication_export_limits(),
+      max_manifest_bytes: 65536,
+      max_retained_bytes: 1048576L,
+    },
+  ).unwrap()
   let foreign_run_opens = [0]
   let foreign_binding = @remote.prepare_remote_input_binding(
     "{\"foreign\":true}", 32,
@@ -1263,7 +1382,9 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
     active_runtime,
     operation_capability,
     issuer_capability,
-    [local_executor, duckdb_executor, foreign_executor, pending_input_executor],
+    [
+      local_executor, duckdb_executor, source_executor, foreign_executor, pending_input_executor,
+    ],
     journal,
     bundles,
     [local_budget, duckdb_budget],
@@ -1429,6 +1550,114 @@ test "native Remote Site executes registered Local and DuckDB tasks" {
   assert_eq(input_cleanup_attempts[0], 1)
   assert_true(runtime.cleanup(pending_input_request).unwrap())
   assert_eq(input_cleanup_attempts[0], 2)
+  let foreign_source_request = @remote.prepare_dispatch_request(
+    "native-standard-coordinator",
+    source_run_definition_cid,
+    "task-0-source",
+    2,
+    "native-standard-source-foreign-binding",
+    "native-standard-site",
+    1,
+    bundle_cid,
+    connector_registration,
+    connector_revision,
+    strategy_revision,
+    @remote.remote_input_binding_cid(foreign_binding),
+    native_publication_cid("remote-standard-obligations"),
+    @remote.remote_dispatch_budget_cid(duckdb_budget),
+    issuer_capability,
+    operation_capability,
+  ).unwrap()
+  let foreign_source_operation = @remote.admit_remote_poll_operation_json(
+    @remote.remote_poll_dispatch_json(foreign_source_request, foreign_binding).unwrap(),
+  ).unwrap()
+  guard @native_remote_agent.advance_native_outbound_operation(
+      runtime,
+      Some(foreign_source_operation),
+      acknowledge_foreign_acceptance,
+      observe_foreign_status,
+    )
+    is Err(
+      @native_remote_agent.RuntimeObserved(
+        @native_remote_runtime.Physical("foreign-input-binding"),
+        _
+      )
+    ) else {
+    fail("Source binding substitution did not fail before acquisition")
+  }
+  assert_eq(source_opens[0], 0)
+  assert_true(runtime.cleanup(foreign_source_request).unwrap())
+  // Keep the negative dispatch's start identity separate from the normal
+  // acceptance. Reusing the rejected attempt cannot open its Source.
+  assert_true(runtime.start(foreign_source_request, foreign_binding) is Err(_))
+  assert_eq(source_opens[0], 0)
+  let source_request = @remote.prepare_dispatch_request(
+    "native-standard-coordinator",
+    source_run_definition_cid,
+    "task-0-source",
+    1,
+    "native-standard-source-dispatch-1",
+    "native-standard-site",
+    1,
+    bundle_cid,
+    connector_registration,
+    connector_revision,
+    strategy_revision,
+    @remote.remote_input_binding_cid(input_binding),
+    native_publication_cid("remote-standard-obligations"),
+    @remote.remote_dispatch_budget_cid(duckdb_budget),
+    issuer_capability,
+    operation_capability,
+  ).unwrap()
+  assert_eq(source_opens[0], 0)
+  assert_native_remote_standard_output(
+    runtime,
+    journal,
+    source_request,
+    input_binding,
+    "[{\"id\":2},{\"id\":3}]",
+    retry_release=true,
+  )
+  assert_eq(source_opens[0], 1)
+  assert_eq(source_cleanup_attempts[0], 2)
+  // A completed release has no pending cleanup owner: retry is a no-op,
+  // rather than a second successful physical cleanup.
+  assert_eq(runtime.cleanup(source_request).unwrap(), false)
+  assert_eq(runtime.release(source_request).unwrap(), false)
+  assert_eq(source_opens[0], 1)
+  assert_eq(source_cleanup_attempts[0], 2)
+  let source_record = journal.require(source_request).unwrap()
+  assert_eq(@remote.dispatch_record_state_codes(source_record)[2], 2)
+  assert_native_resident_ledger_released(source_captured[0].unwrap())
+  let source_observed = journal.observation(source_request).unwrap()
+  let source_proof = @native_remote_journal.recovered_site_dispatch_source_observation(
+    source_observed,
+  ).unwrap()
+  assert_eq(@remote.remote_source_observation_projection(source_proof).0, 0)
+  assert_true(
+    !@remote.remote_source_observation_json(source_proof).contains(source_path),
+  )
+  let source_status = @remote.remote_dispatch_status_json(
+    source_record,
+    @native_remote_journal.recovered_site_dispatch_evidence(source_observed),
+    @native_remote_journal.recovered_site_dispatch_subject(source_observed),
+    @native_remote_journal.recovered_site_dispatch_measurement(source_observed),
+    source_observation=Some(source_proof),
+  ).unwrap()
+  let re_admitted = @remote.admit_remote_dispatch_response_json(
+    source_status,
+    source_request,
+    @remote.StatusReply,
+  ).unwrap()
+  assert_eq(
+    @remote.remote_source_observation_json(
+      @remote.remote_dispatch_response_source_observation(re_admitted).unwrap(),
+    ),
+    @remote.remote_source_observation_json(source_proof),
+  )
+  let source_generation = root.inspect_generation(source_name).unwrap().unwrap()
+  root.reclaim_generation(source_name, source_generation).unwrap()
+  root.sync_directory().unwrap()
   assert_true(runtime.close().unwrap())
   assert_true(journal.close())
   assert_true(bundles.close().unwrap())

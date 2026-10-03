@@ -4558,6 +4558,39 @@ Store, reads three Named Results against independent expected rows, and reclaims
 the Store and Run. This proves the RRF-to-filter delivery shape, not every
 ranking policy or every subsequent Relation operation in a retained Stage.
 
+The retained scored-policy path now accepts exact, ordered supplied Relation
+ports for `VEC.merge_rankings` maximum and weighted sum without representing
+them as completed producer outputs. The fixed request, selected candidate,
+bounded Local materializing attempt, and completed output bind the same input
+occurrences. The legacy synchronous Local executor and connectors without
+supplied-input support reject the request rather than silently treating it as
+source-free. A focused portable fixture checks the two policies, reversed and
+rebound ports, input row capacity, and the synchronous rejection on JS, Wasm,
+and native. The real Node standard Host retains each scored result in a Store,
+publishes the producer and two downstream consumer Named Results, compares all
+three with independently specified rows, and reclaims held and reserved bytes.
+This covers the scored-policy-to-filter shape, not every later Relation
+operation. The supplied-input provider fixture also requests cancellation
+after positive work, verifies that cleanup cannot precede stop, and retains
+both supplied reads through final cleanup. The bounded materializing attempt
+also advances the supplied inputs with quantum one and observes cancellation
+before releasing them on JS, Wasm, and native. The ordinary Node Host now
+delivers a timer cancellation after positive ranking work, verifies physical
+stop before release, and rejects publication. A separate downstream filter
+failure preserves its authored arithmetic cause, rejects publication, keeps
+cleanup responsibility through one injected close failure, and retries
+cleanup without another Compute dispatch. The complete standard Host test
+passed locally on this source. These checks do not establish every later
+Relation operation or other retained ranking input shape.
+
+The fixed Compute request's public low-level input readers now return
+`FixedRelationRead` for every port. The former `ProducerRead` snapshot could
+return an empty array for a nonempty supplied or mixed request, so it was
+removed along with the redundant relation-specific reader names. Completed-only
+connectors explicitly reject a supplied variant before execution. Existing
+callers were migrated with the generated interface; zero, completed, supplied,
+and mixed requests retain their exact input counts, order, and bindings.
+
 The retained Relation path also splits a direct `VEC.knn_join` occurrence
 from a later `filter` in the same Stage. The nearest obligation is admitted
 only for the exact one-step sequence accepted by the registered bounded

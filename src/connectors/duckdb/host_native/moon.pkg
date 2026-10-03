@@ -12,6 +12,7 @@ import {
   "actql/actql/connectors/duckdb/adapters/native" @native_duckdb,
   "actql/actql/decode_core" @decode,
   "actql/actql/execution_relation" @execution,
+  "actql/actql/execution_query" @query,
   "actql/actql/physical_resources" @resources,
   "actql/actql/physical_strategy" @strategy,
   "actql/actql/platform_native/run_publication" @native_publication,

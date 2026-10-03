@@ -26,10 +26,12 @@ pub(all) enum ResidentDispatchRefusal {
   ForeignGrant
   ForeignIssuer
   UnsupportedBudget
-  /// This implementation runs only source-free Values Runs it can rebuild
-  /// from typed run materials.
+  /// The original Run must rebuild from bounded typed materials.
   MaterialsMissing
   MaterialsRejected(@host.ClientValuesRunMaterialsIssue)
+  TaskMaterialsRejected(@host.ClientTaskRunMaterialsIssue)
+  ForeignSource
+  UnsupportedTask
   /// The Run is not live at the Site's own clock.
   NotCurrent
   /// The bounded queue of accepted, not yet started dispatches is full.
@@ -83,6 +85,22 @@ pub fn check_resident_dispatch_delegation(
 /// authorization's expiry. Checked at receipt and again before start.
 pub fn check_resident_run_current(
   materials : @host.ClientValuesRunMaterials,
+  at : String,
+) -> Result[Unit, ResidentDispatchRefusal] {
+  if @publication.run_publication_start_current(
+      materials.admission,
+      materials.run_definition,
+      at,
+    ) {
+    Ok(())
+  } else {
+    Err(NotCurrent)
+  }
+}
+
+///|
+pub fn check_resident_materials_current(
+  materials : @host.ClientRunMaterials,
   at : String,
 ) -> Result[Unit, ResidentDispatchRefusal] {
   if @publication.run_publication_start_current(

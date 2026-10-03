@@ -2870,6 +2870,289 @@ async function exerciseStrategyGraph(
     await rm(rankingPublicationDirectory, {recursive: true, force: true});
     await rankingRetained.close();
   }
+  const scoreContract = {
+    domain: 'unit.v1', normalization: 'unit.v1', range: [0, 1],
+  };
+  const scoreSchema = {
+    q: {type: 'number', nullable: false},
+    id: {type: 'number', nullable: false},
+    score: {type: 'number', nullable: false},
+  };
+  const scoredEnvironment = JSON.parse(args[0]);
+  scoredEnvironment.schema_snapshots = ['right', 'left'].map(input => ({
+    output_carrier: 'relation',
+    schema: {
+      type: 'object', nullable: false, additional_properties: false,
+      fields: Object.fromEntries(Object.entries(scoreSchema).map(
+        ([name, field]) => [name, {type: field.type, nullable: false}],
+      )),
+    },
+    score_contracts: {score: scoreContract},
+    source_ref: `source:local/fusion/${input}`,
+    version: 'actql-local-input-schema/0.1',
+  })).sort((left, right) => canonicalHash(left).localeCompare(
+    canonicalHash(right)));
+  const scoredEnvironmentBody = {...scoredEnvironment};
+  delete scoredEnvironmentBody.evidence_bundle_cid;
+  scoredEnvironment.evidence_bundle_cid = canonicalHash(scoredEnvironmentBody);
+  const scoredArgs = [
+    canonical(scoredEnvironment),
+    scoredEnvironment.evidence_bundle_cid,
+    ...args.slice(2),
+  ];
+  for (const {name, policy, score, failConsumer = false,
+    cancelRanking = false} of [
+    {name: 'maximum', policy: 'max', score: 0.75},
+    {name: 'weighted', policy: {weighted_sum: {left: 0.5, right: 0.5}},
+      score: 0.6875},
+    {name: 'maximum-consumer-failure', policy: 'max', score: 0.75,
+      failConsumer: true},
+    {name: 'maximum-in-flight-cancel', policy: 'max', score: 0.75,
+      cancelRanking: true},
+  ]) {
+    const scoredProgram = {
+      version: 'actql/0.1', id: 'p',
+      params: {minimum: {type: 'number', nullable: false}},
+      stages: [carrierVectorPublicationProgram.stages[0], {
+        id: 'fusion',
+        inputs: {
+          left: {carrier: 'relation', schema: scoreSchema},
+          right: {carrier: 'relation', schema: scoreSchema},
+        },
+        steps: [{
+          from: 'left',
+          merge_rankings: {
+            with: 'right', by: ['q'], candidate: 'id', score: 'score',
+            score_policy: policy, score_contract: scoreContract, k: 2,
+          },
+          as: 'ranked',
+        }, {
+          from: 'ranked', filter: 'id = 2', as: 'out',
+        }],
+        results: {r: {from: 'out', fields: rankingFields}},
+      }, ...['a', 'b'].map(id => ({
+        id: `consumer_${id}`,
+        inputs: {x: {result: {stage: 'fusion', result: 'r'}}},
+        steps: [{select: rankingFields, as: 'out'}],
+        results: {r: {from: 'out', fields: rankingFields}},
+      }))],
+      results: {
+        published: {from: {stage: 'fusion', result: 'r'}},
+        consumed_a: {from: {stage: 'consumer_a', result: 'r'}},
+        consumed_b: {from: {stage: 'consumer_b', result: 'r'}},
+      },
+    };
+    if (failConsumer) {
+      scoredProgram.stages.find(stage => stage.id === 'consumer_a').steps = [{
+        filter: '1 / (id - id) > 0', as: 'failed',
+      }, {from: 'failed', select: rankingFields, as: 'out'}];
+    }
+    const scoredFixture = fixture.strategyFixtureVecaScoredCreate(
+      ...scoredArgs, JSON.stringify(scoredProgram), orderedContract, 2,
+    );
+    const scoredCapture = await runNativeHostQuery(
+      grant, fixture.strategyFixtureAcquisition(scoredFixture), suppliedLimits,
+    );
+    const scoredDirectory = await mkdtemp(join(
+      root, `_build/duckdb-fixtures/ranking-${name}-publication-entry-`,
+    ));
+    const scoredAbort = new AbortController();
+    let rankingDispatched = false, rankingAdvanced = false;
+    let cancellationScheduled = false, rankingCancelRequested = false;
+    let rankingCompletedBeforeCancel = false, rankingStopped = false;
+    const scoredRetained = await createCarrierRetainedStore(`ranking-${name}`,
+      {
+        failCleanupLease: failConsumer ? 1 : undefined,
+        beforeClose() {
+          if (cancelRanking && scoredAbort.signal.aborted) {
+            assert.equal(rankingStopped, true,
+              'supplied ranking output release must follow stop');
+          }
+        },
+      });
+    let scoredOwner;
+    let scoredFailureExecution;
+    let scoredStore;
+    let computeEntrances = 0;
+    const scoredRuntime = new Proxy(hostRuntime, {
+      get(target, property, receiver) {
+        if (property !== 'strategyModule_local_Dispatch' ||
+            !cancelRanking) return Reflect.get(target, property, receiver);
+        return (setup, task) => {
+          const producers = target.strategyHostManagedProducers(setup);
+          const ranking = target.strategyHostManagedInputCount(setup) === 2 &&
+            Array.isArray(producers) && producers.length === 2 &&
+            producers.every(value => value === -1);
+          const operations = checked(target[property](setup, task));
+          if (!ranking) return {$tag: 1, _0: operations};
+          rankingDispatched = true;
+          return {$tag: 1, _0: new Proxy(operations, {
+            get(operation, member, receiver) {
+              if (member === 'execute') {
+                assert.fail('supplied ranking used synchronous execution');
+              }
+              if (member === 'execution_stopped') return () => {
+                const value = operation.execution_stopped();
+                if (scoredAbort.signal.aborted && value) rankingStopped = true;
+                return value;
+              };
+              if (member === 'request_cancel') return () => {
+                rankingCancelRequested = true;
+                return operation.request_cancel();
+              };
+              if (member !== 'advance') {
+                return Reflect.get(operation, member, receiver);
+              }
+              return quantum => {
+                const value = operation.advance(Math.min(quantum, 1));
+                const poll = checked(value);
+                if (poll.complete && !scoredAbort.signal.aborted) {
+                  rankingCompletedBeforeCancel = true;
+                }
+                if (!poll.complete && poll.progress > 0n) {
+                  rankingAdvanced = true;
+                  if (!cancellationScheduled) {
+                    cancellationScheduled = true;
+                    setTimeout(() => scoredAbort.abort(), 0);
+                  }
+                }
+                return value;
+              };
+            },
+          })};
+        };
+      },
+    });
+    const scoredHost = createNodeHostEntry(() => scoredRuntime,
+      async (...installationArgs) => {
+        const contributions = await installStrategyContributions(
+          ...installationArgs);
+        return contributions.map(contribution => ({
+          ...contribution,
+          run(...args) {
+            computeEntrances++;
+            return contribution.run(...args);
+          },
+          ...(typeof contribution.runPrepared === 'function' ? {
+            runPrepared(...args) {
+              computeEntrances++;
+              return contribution.runPrepared(...args);
+            },
+          } : {}),
+        }));
+      });
+    try {
+      assert.equal(fixture.strategyFixtureOpen(
+        scoredFixture, scoredCapture.source()), true);
+      const setup = fixture.strategyFixtureVecaRetainedSubset(scoredFixture);
+      const runtime = runtimeCore(scoredRuntime);
+      assert.equal(runtime.resultInventory(setup).length, 3);
+      scoredStore = await openLocalPublicationStore({
+        directory: scoredDirectory,
+        storeAuthorityCid: hash(`ranking-${name}-publication-store`),
+        capacityBytes: 4 * 1024 * 1024,
+        maxObjectBytes: publicationResultExportLimits.maxWireBytes,
+        maxObjects: 100,
+        maxContractNodes: 10000,
+        maxContractDepth: 64,
+      }, runtime.publicationControl);
+      const plan = standardPublicationPlan(
+        runtime, runtime.programDefinitionCid(setup), 3,
+        `ranking-${name}-publication-attempt`,
+      );
+      try {
+        scoredOwner = await scoredHost.runPublishedCapturedStrategy(
+          setup, {store: scoredStore, plan},
+          {local: scoredRetained.configuration}, scoredAbort.signal,
+        );
+      } catch (error) {
+        scoredFailureExecution = error.execution;
+        if (!failConsumer && !cancelRanking) throw error;
+        assert.equal(error.code, 'CapturedRunPublicationFailed');
+      }
+      const publicationKey = {
+        namespaceId: plan.request.namespaceId,
+        authorityScopeCid: plan.request.authorityScopeCid,
+        runDefinitionCid: plan.runDefinition.identity,
+      };
+      if (cancelRanking) {
+        assert.equal(scoredOwner, undefined);
+        assert.equal(rankingDispatched, true);
+        assert.equal(rankingAdvanced, true);
+        assert.equal(cancellationScheduled, true);
+        assert.equal(rankingCancelRequested, true);
+        assert.equal(rankingCompletedBeforeCancel, false);
+        assert.equal(rankingStopped, true);
+        assert.equal(scoredFailureExecution.status, 'host-tasks-failed');
+        assert.equal(scoredFailureExecution.failure?.name, 'AbortError');
+        await assert.rejects(scoredStore.lookupCommittedIndex(
+          publicationKey, () => true), /PublicationLookupDenied/);
+      } else if (failConsumer) {
+        assert(scoredRetained.leases.length > 0);
+        assert.equal(scoredOwner, undefined);
+        assert(computeEntrances > 0);
+        assert.equal(scoredFailureExecution.status, 'host-tasks-failed');
+        assert(scoredFailureExecution.completed.some(value =>
+          value.outputRepresentation === 'retained-file'));
+        assert.equal(scoredFailureExecution.failure?.code, 'MoonBitHostFailure');
+        assert.equal(fixture.strategyFixtureRetainedCapturedFilterArithmetic(
+          scoredFailureExecution.failure.cause), true);
+        await assert.rejects(scoredStore.lookupCommittedIndex(
+          publicationKey, () => true), /PublicationLookupDenied/);
+      } else {
+        assert(scoredRetained.leases.length > 0);
+        assert.equal(scoredOwner.status, 'published');
+        assert.equal(scoredOwner.publication.publication.state, 'succeeded');
+        assert(scoredOwner.execution.completed.some(value =>
+          value.outputRepresentation === 'retained-file'));
+        const committedIndex = await scoredStore.lookupCommittedIndex(
+          publicationKey, () => true);
+        const committedManifest = JSON.parse((await scoredStore
+          .readPublicationContract(committedIndex.result_manifest_cid,
+            'result_manifest')).wire);
+        assert.deepEqual(Object.keys(committedManifest.results).sort(),
+          ['consumed_a', 'consumed_b', 'published']);
+        for (const resultName of ['published', 'consumed_a', 'consumed_b']) {
+          const received = [];
+          await scoredStore.consumeCommittedResult(
+            publicationKey,
+            committedManifest.results[resultName].result_definition_cid,
+            () => true, chunk => received.push(Buffer.from(chunk)),
+          );
+          assert.deepEqual(JSON.parse(Buffer.concat(received).toString('utf8')),
+            [{q: 1, id: 2, score, rank: 2}]);
+        }
+      }
+    } finally {
+      if (scoredOwner !== undefined) {
+        await scoredOwner.close();
+        assert.equal(scoredOwner.cleanupPending(), false);
+        assert.equal(await scoredOwner.cleanup(), true);
+        assert.equal(scoredOwner.execution.usage().heldBytes, 0n);
+        assert.equal(scoredOwner.execution.usage().reservedExecutionBytes, 0n);
+      } else if (scoredFailureExecution !== undefined) {
+        const entrancesAtFailure = computeEntrances;
+        if (failConsumer) {
+          await assert.rejects(async () => scoredFailureExecution.close(),
+            /InjectedCarrierRetainedCleanupPending/);
+          assert.equal(computeEntrances, entrancesAtFailure);
+          assert.equal(scoredRetained.cleanupFailures(), 1);
+          assert.equal(scoredFailureExecution.cleanupPending(), true);
+          scoredRetained.permitCleanup();
+        } else await scoredFailureExecution.close();
+        assert.equal(await scoredFailureExecution.cleanup(), true);
+        assert.equal(scoredFailureExecution.cleanupPending(), false);
+        assert.equal(computeEntrances, entrancesAtFailure);
+        assert.equal(scoredFailureExecution.usage().heldBytes, 0n);
+        assert.equal(scoredFailureExecution.usage().reservedExecutionBytes,
+          0n);
+      }
+      scoredCapture.close();
+      await scoredStore?.close();
+      await rm(scoredDirectory, {recursive: true, force: true});
+      await scoredRetained.close();
+    }
+  }
   const nearestFields = ['query_id', 'candidate_id', 'score', 'rank'];
   const nearestSchema = {
     id: {type: 'number', nullable: false},

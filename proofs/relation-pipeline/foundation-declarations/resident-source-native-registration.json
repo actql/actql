@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resident-source-native-registration",
+  "kind": "change",
+  "revision": "9de752b1bfbee786056bf86f6c748813e89c3820",
+  "parents": [
+    "8b21ddd3f4a17fcecbb9bcf5878082148af0aa99"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "8b21ddd3f4a17fcecbb9bcf5878082148af0aa99",
+          "digest": "946a8de4938e3f11af16540b994ea97fd277be254154a0203a5097df4461f416",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "05f989915c150485a9166a5cca28ce25ec63c4818cc957f3e1ff4f42b226d261",
+      "afterMode": "100644",
+      "reason": "Register the actual resident read-only Source acquisition and formal release process acceptance beside existing native Values checks; pipeline execution and measurement commands remain unchanged."
+    }
+  ]
+}

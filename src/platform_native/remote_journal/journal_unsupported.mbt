@@ -121,7 +121,9 @@ pub fn Journal::commit_evidence_transition(
   evidence : @remote.RemoteExecutionEvidence,
   subject : @remote.RemoteManagedOutputSubject,
   measurement : @remote.RemoteManagedOutputMeasurement,
+  source_observation? : @remote.RemoteSourceObservation? = None,
 ) -> Result[Unit, NativeRemoteJournalIssue] {
+  ignore(source_observation)
   ignore(transition)
   ignore(evidence)
   ignore(subject)

@@ -6,6 +6,7 @@ import {
   "actql/actql/execution_query",
   "actql/actql/execution_relation",
   "actql/actql/execution_site",
+  "actql/actql/physical_strategy",
   "actql/actql/pipeline_check_context",
   "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/http_client",
@@ -84,6 +85,8 @@ pub fn open_native_remote_standard_site_runtime(@execution_site.ExecutionSite, @
 pub fn persist_native_remote_observed_output_payload(@remote_runtime.NativeRemoteRuntime, @remote_journal.Journal, @remote_site_protocol.DispatchRequest, @remote_runtime.NativeRemoteRuntimeCompletion, @publication_payload.PublicationPayloadRequest, @publication_store.Store, Int, after_append? : () -> Unit) -> Result[@publication_store.NativePublicationPayloadInfo, NativeRemoteStandardPayloadFailure]
 
 pub fn prepare_native_remote_observed_output_plan(String, Int, @remote_runtime.NativeRemoteOutputFacts, NativeRemoteObservedOutputIntent) -> Result[NativeRemoteObservedOutputPlan, NativeRemoteObservedOutputPlanIssue]
+
+pub fn prepare_native_remote_standard_acquired_run_owner(@physical_strategy.CapturedDAG, Int, () -> Bool, source_observation? : ((@remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.RemoteSourceObservation, @remote_site_protocol.DispatchIssue])?) -> Result[NativeRemoteStandardRunOwner, NativeRemoteStandardHostIssue]
 
 pub fn prepare_native_remote_standard_captured_run_owner(@host_native.NativeStandardStrategyRun, () -> Bool, () -> Bool) -> NativeRemoteStandardRunOwner
 

@@ -202,6 +202,9 @@ pub fn acknowledge_status(
           @journal.recovered_site_dispatch_evidence(observation),
           @journal.recovered_site_dispatch_subject(observation),
           @journal.recovered_site_dispatch_measurement(observation),
+          source_observation=@journal.recovered_site_dispatch_source_observation(
+            observation,
+          ),
         ) {
         Ok(value) => value
         Err(issue) => return Err(Protocol(issue))

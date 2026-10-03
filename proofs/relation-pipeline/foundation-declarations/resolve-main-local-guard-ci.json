@@ -1,0 +1,48 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-main-local-guard-ci",
+  "kind": "resolution",
+  "revision": "6520c3f59b86307229536824fac8f8b5ac5450e4",
+  "parents": [
+    "398b85c87e0eb29a3d3db0ed21e53ea84464566c",
+    "89a7fd00479c70093cb88282ac3d0cb08b7bcda2"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "398b85c87e0eb29a3d3db0ed21e53ea84464566c",
+          "digest": "ce517405b172df0cd29617fb14a157a9776d86b389ecfb64ca9c5fe6ab83b568",
+          "mode": "100644"
+        },
+        {
+          "revision": "89a7fd00479c70093cb88282ac3d0cb08b7bcda2",
+          "digest": "7535581d92b1b266b91cd76fd4703f16d2d2817d9430bf8ac96e32948ebb532d",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "a22ee792f4b836c7d950d8f89f0f8266701e2516557a1718ea4399604b1a3783",
+      "afterMode": "100644",
+      "reason": "Preserve main CI cost controls and portable target selection together with the bounded local guard tests from #225 in the existing Linux lint and macOS jobs. Retain the original jobs, conditions, evidence campaigns and commands; describe the actual main merge without changing historical inputs."
+    }
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-343a5565c1ac",
+    "adopt-985dbbba2789",
+    "adopt-dafff1a1aeea",
+    "bounded-local-execution-guard",
+    "ci-portable-pr-targets",
+    "client-ci-runner-context",
+    "client-ci-split",
+    "issue-180-foundation-composition",
+    "packed-acquired-infer-acceptance",
+    "parallel-pipeline-evidence",
+    "resolve-acquired-infer-client-ci",
+    "resolve-local-guard-acquired-infer-ci",
+    "resolve-local-guard-pipeline-ci",
+    "resolve-main-model-backing",
+    "resolve-parallel-pipeline-main-infer"
+  ]
+}

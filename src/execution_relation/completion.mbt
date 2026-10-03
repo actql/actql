@@ -214,6 +214,131 @@ pub fn anchor_completed_output_operation_inputs(
 }
 
 ///|
+/// Seal a fixed task over its exact ordered mixture of completed and supplied
+/// Relation reads. The selected operation coordinate is distinct from the
+/// enclosing Stage input position; neither can be inferred from equal rows.
+pub fn anchor_completed_output_fixed_inputs(
+  output : CompletedOutput,
+  selected_step : Int?,
+  inputs : Array[FixedRelationRead],
+) -> CompletedOutput? {
+  let original = output.completion
+  let owner = @lower.sequence_owner(original.sequence)
+  let prepared = @lower.bound_preparation(owner)
+  let expected = match selected_step {
+    Some(step) => {
+      guard output.target == @pipeline.Step(step) &&
+        @lower.node_at(prepared, step) is Some(node) else {
+        return None
+      }
+      @lower.node_input_count(node)
+    }
+    None => @lower.preparation_input_count(prepared)
+  }
+  if original.readmitted ||
+    !completed_output_available(output) ||
+    inputs.length() != expected {
+    return None
+  }
+  let anchors = original._producer_inputs.copy()
+  let bindings = []
+  for index, input in inputs {
+    let matches = match selected_step {
+      Some(step) =>
+        fixed_relation_read_matches_operation_input(input, owner, step, index)
+      None => fixed_relation_read_matches_input(input, owner, index)
+    }
+    if !matches {
+      return None
+    }
+    match input {
+      CompletedRelation(read) => {
+        anchors.push(read.bound)
+        bindings.push(read.bound.identity)
+      }
+      SuppliedRelation(read) => bindings.push(read.identity)
+    }
+  }
+  Some({
+    ..output,
+    completion: {
+      ..original,
+      _producer_inputs: anchors,
+      input_bindings: bindings,
+    },
+  })
+}
+
+///|
+/// Completed output provenance does not require an upstream to remain live.
+/// It does require the exact selected input occurrence and receiving port.
+pub fn completed_output_matches_fixed_inputs(
+  output : CompletedOutput,
+  selected_step : Int?,
+  inputs : Array[FixedRelationRead],
+) -> Bool {
+  let completion = output.completion
+  let owner = @lower.sequence_owner(completion.sequence)
+  let prepared = @lower.bound_preparation(owner)
+  let expected = match selected_step {
+    Some(step) => {
+      guard output.target == @pipeline.Step(step) &&
+        @lower.node_at(prepared, step) is Some(node) else {
+        return false
+      }
+      @lower.node_input_count(node)
+    }
+    None => @lower.preparation_input_count(prepared)
+  }
+  if completion.readmitted ||
+    !completed_output_available(output) ||
+    inputs.length() != expected ||
+    completion.input_bindings.length() != expected {
+    return false
+  }
+  for index, input in inputs {
+    let identity = completion.input_bindings[index]
+    match input {
+      CompletedRelation(read) => {
+        if !physical_equal(read.bound.receiver, owner) ||
+          !physical_equal(identity, read.bound.identity) {
+          return false
+        }
+        match selected_step {
+          Some(step) =>
+            if !producer_read_binding_matches_operation_input(
+                read, owner, step, index,
+              ) {
+              return false
+            }
+          None => if read.bound.input_index != index { return false }
+        }
+      }
+      SuppliedRelation(read) => {
+        if !physical_equal(read.receiver, owner) ||
+          !physical_equal(identity, read.identity) {
+          return false
+        }
+        let matches = match selected_step {
+          Some(step) =>
+            @lower.node_at(prepared, step).bind(node => {
+              @lower.node_input_target(node, index)
+            }) ==
+            Some(@pipeline.Input(read.input_index))
+          None => read.input_index == index
+        }
+        // A sealed result remains valid after the original supplied read is
+        // retired. Check its exact position without re-reading its liveness.
+        if !matches {
+          return false
+        }
+      }
+    }
+  }
+  true
+}
+
+///|
 pub fn completed_output(
   completion : CompletedSequence,
   target : @pipeline.Target,

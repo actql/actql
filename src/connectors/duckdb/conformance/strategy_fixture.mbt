@@ -916,7 +916,7 @@ pub fn strategy_fixture_compute(
       abort("choice")
     }
     let generated = fixture_generated(
-      @execution.producer_read_receiver(
+      @execution.fixed_relation_read_receiver(
         @connector.fixed_compute_request_input(request, 0).unwrap(),
       ),
       f.registry_json,
@@ -971,7 +971,7 @@ pub fn strategy_fixture_local(f : StrategyFixture, task : Int) -> Bool {
     let request = strategy_fixture_request(f, task)
     let registry = f.registry
     let generated = fixture_generated(
-      @execution.producer_read_receiver(
+      @execution.fixed_relation_read_receiver(
         @connector.fixed_compute_request_input(request, 0).unwrap(),
       ),
       f.registry_json,
