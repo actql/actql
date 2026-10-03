@@ -55,6 +55,25 @@ test('known-heavy job denies while preserving the selected target in guidance', 
   assert.equal(classifyCommand('node scripts/local-checks.mjs run new-job').recognized, false);
 });
 
+test('CI-only pipeline job hooks deny execution with no heavy override route but permit reporting', () => {
+  for (const name of ['pipeline-mutations', 'pipeline-capacity', 'pipeline-evidence']) {
+    for (const options of ['', ' --allow-heavy', ' --allow-heavy --timeout-seconds 30']) {
+      const command = `node scripts/local-checks.mjs run ${name}${options}`;
+      assert.equal(classifyCommand(command).classification, 'ci-only');
+      const result = hookResponse(event(command)).hookSpecificOutput;
+      assert.equal(result.permissionDecision, 'deny');
+      assert.match(result.permissionDecisionReason, /CI only/u);
+      assert.match(result.permissionDecisionReason, /--allow-heavy cannot enable this job locally/u);
+      assert.doesNotMatch(result.permissionDecisionReason, /run [a-z-]+ --allow-heavy/u);
+    }
+    for (const options of ['--dry-run', '--allow-heavy --dry-run']) {
+      const command = `node scripts/local-checks.mjs run ${name} ${options}`;
+      assert.equal(classifyCommand(command).classification, 'reporting');
+      assert.equal(hookResponse(event(command)), null);
+    }
+  }
+});
+
 test('unknown Moon options direct users to supported policy rather than a rejected override', () => {
   const reason = hookResponse(event('moon test --future-option path')).
     hookSpecificOutput.permissionDecisionReason;
@@ -86,6 +105,10 @@ test('unsupported shell syntax is explicitly unclassified, never asserted safe',
     'moon test | cat', 'moon test >log', 'moon test\nmoon build',
     'cd repo && moon test', 'env CI=1 moon test', 'CI=1 moon test',
     'bash -c "moon test"', '/usr/bin/moon test', 'npm test',
+    'node proofs/relation-pipeline/mutations.mjs verify',
+    'node proofs/relation-pipeline/capacity/run.mjs all',
+    'node proofs/relation-pipeline/run.mjs all',
+    'node proofs/relation-pipeline/ci-artifacts.mjs begin mutations',
     'moon test --target "js"', "moon test --filter 'selected *'",
     'moon test $(echo src/a)', 'moon test src/*', 'moon test # comment',
     'moon test\\\n--target js',

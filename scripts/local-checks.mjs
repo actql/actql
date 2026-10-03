@@ -1,7 +1,7 @@
 // Local verification from the CI definition itself. `run <job>` executes the
-// same `run:` commands as that job in .github/workflows/ci.yml, so a local
-// check never drifts from CI; `changed` lists the narrow checks and the CI
-// jobs that relate to the files changed since a base.
+// same `run:` commands as that locally supported job in .github/workflows/ci.yml,
+// so a local check never drifts from CI; `changed` lists the narrow checks and
+// the CI jobs that relate to the files changed since a base.
 //
 //   node scripts/local-checks.mjs test node|moon -- <test arguments>
 //   node scripts/local-checks.mjs list
@@ -13,7 +13,7 @@ import {dirname, join, relative} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {parse} from 'yaml';
 import {checkBudget, durationSeconds, runLocalCheck} from './local-checks-guard.mjs';
-import {classifyJob, classifyMoon} from './local-checks-policy.mjs';
+import {ciOnlyPipelineJobs, classifyJob, classifyMoon} from './local-checks-policy.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const workflow = parse(readFileSync(join(root, '.github/workflows/ci.yml'),
@@ -25,6 +25,7 @@ const ciOnly = new Map([
   ['performance-matrix', 'registered performance runs'],
   ['check', 'aggregates the other jobs'],
   ['client', 'aggregates client-packages, client-distribution, client-packed and client-salesforce'],
+  ...Object.entries(ciOnlyPipelineJobs),
 ]);
 const jobs = Object.entries(workflow.jobs)
   .filter(([, job]) => Array.isArray(job.steps));
@@ -46,14 +47,14 @@ const preparation = step => /^(npm ci|moon version|node scripts\/setup-moonbit)/
 
 // The commands of one job with its CI expressions resolved for this
 // checkout. Runner preparation (`uses:` and install steps) is left to the
-// developer's own installed toolchain.
-function commands(name, target) {
+// developer's own installed toolchain. CI-only inspection keeps expressions raw.
+function commands(name, target, raw = false) {
   const job = workflow.jobs[name];
   if (job === undefined || !Array.isArray(job.steps)) {
     fail(`Unknown job: ${name}`);
   }
   const scratch = join(root, '_build', 'local-checks', name);
-  const resolve = text => String(text)
+  const resolve = text => raw ? String(text) : String(text)
     .replaceAll('${{ matrix.target }}', target)
     .replaceAll('${{ github.workspace }}', root.replace(/\/$/u, ''))
     .replaceAll('${{ runner.temp }}', scratch)
@@ -101,16 +102,27 @@ async function execute(steps, classification, options, defaultMinutes) {
 }
 
 async function runJob(name, args) {
-  if (ciOnly.has(name)) fail(`${name} is CI only: ${ciOnly.get(name)}`);
+  const classification = classifyJob(name);
+  // Keep the existing CI-only routes closed. Pipeline wrappers additionally
+  // support inspection of the literal CI commands, without fake CI context.
+  if (ciOnly.has(name) && classification.classification !== 'ci-only') {
+    fail(`${name} is CI only: ${ciOnly.get(name)}`);
+  }
   const options = executionOptions(args);
   const target = options['--target'] ?? 'js';
   if (!['js', 'wasm', 'native'].includes(target)) fail('--target must be js, wasm or native');
-  const selected = commands(name, target);
+  if (classification.classification === 'ci-only' && !options['--dry-run']) {
+    fail(`${classification.reason}\n--allow-heavy cannot enable this job locally; use hosted CI.\n` +
+      classification.alternatives.join('\n'));
+  }
+  const selected = commands(name, target, classification.classification === 'ci-only');
   if (options['--dry-run']) {
+    if (classification.classification === 'ci-only') {
+      console.log(`${classification.reason}\nLiteral workflow commands for inspection only:`);
+    }
     for (const step of selected) console.log(`\n== ${name}: ${step.name}\n${step.run}`);
     return 0;
   }
-  const classification = classifyJob(name);
   requireHeavy(classification, options);
   return execute(selected.map(step => ({name: `${name}: ${step.name}`,
     command: 'bash', args: ['-eo', 'pipefail', '-c', step.run], scratch: step.scratch,
@@ -141,7 +153,7 @@ async function runSelected(command, kind, args) {
 // CI jobs that cover a changed path. The narrow checks come first; the jobs
 // are what to run before pushing, and Linux CI remains the full check.
 const areas = [
-  [/^proofs\/relation-pipeline\//u, ['pipeline-evidence']],
+  [/^proofs\/relation-pipeline\//u, ['pipeline-mutations', 'pipeline-capacity', 'pipeline-evidence']],
   [/^scripts\/packed-client-packages/u, ['client-packages', 'client-distribution', 'client-packed']],
   [/^scripts\/(build-runtime-packages|test-runtime-package-build|build-local-node|build-run-host-core|build-remote-(coordinator|transfer)-package)|^packages\/(run-host-core|coordinator-core|transfer-core)\//u, ['host']],
   [/^\.github\/|^scripts\/local-checks(?:[-.])/u, ['lint']],
@@ -206,7 +218,9 @@ function changed() {
     const note = ciOnly.has(name) ? `  # CI only: ${ciOnly.get(name)}`
       : name === 'core' ? '  # add --target wasm / native when shared core changed'
         : '';
-    const deliberate = classifyJob(name).heavy ? ' --allow-heavy' : '';
+    const classification = classifyJob(name);
+    const deliberate = classification.classification === 'ci-only' ? ' --dry-run'
+      : classification.heavy ? ' --allow-heavy' : '';
     console.log(`  node scripts/local-checks.mjs run ${name}${deliberate}${note}`);
   }
   console.log('\nThen push and let Linux CI verify the whole SHA.');

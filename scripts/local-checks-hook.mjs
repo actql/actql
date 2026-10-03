@@ -84,6 +84,10 @@ export function hookDecision(payload, {checkout = root} = {}) {
   if (payload?.hook_event_name !== 'PreToolUse' || payload.tool_name !== 'Bash' ||
       !inCheckout(payload.cwd, checkout)) return null;
   const result = classifyCommand(payload.tool_input?.command);
+  if (result.recognized && result.classification === 'ci-only') {
+    return `${result.reason}. Use hosted CI; --allow-heavy cannot enable this job locally. ` +
+      `Read-only inspection: ${result.alternatives.join('; ')}.`;
+  }
   if (!result.recognized || !result.heavy || result.explicitOverride) return null;
   const rerun = `node scripts/local-checks.mjs ${result.route} --allow-heavy` +
     (result.moonArgs ? ` --timeout-seconds <seconds> --${result.moonArgs.length ? ' ' + result.moonArgs.join(' ') : ''}`

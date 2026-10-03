@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {test} from 'node:test';
-import {classifyJob, classifyMoon, heavyJobs} from './local-checks-policy.mjs';
+import {ciOnlyPipelineJobs, classifyJob, classifyMoon, heavyJobs} from './local-checks-policy.mjs';
 
 test('full Moon test and build remain heavy despite target and build options', () => {
   for (const kind of ['test', 'build']) {
@@ -75,4 +75,23 @@ test('CI classification is an explicit reviewed list, independent of time budget
   assert.equal(classifyJob('new-job').classification, 'unknown');
   assert.equal(classifyJob('new-job').heavy, true);
   assert.equal(classifyJob('check').classification, 'unknown');
+});
+
+test('split pipeline job wrappers require CI provenance, not a heavy override', () => {
+  const workflow = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
+  assert.deepEqual(Object.keys(ciOnlyPipelineJobs), [
+    'pipeline-mutations', 'pipeline-capacity', 'pipeline-evidence',
+  ]);
+  for (const name of Object.keys(ciOnlyPipelineJobs)) {
+    assert.match(workflow, new RegExp(`^  ${name}:$`, 'mu'));
+    assert.equal(heavyJobs.includes(name), false);
+    const result = classifyJob(name);
+    assert.equal(result.classification, 'ci-only');
+    assert.match(result.reason, /CI only/u);
+    assert.equal(result.alternatives.includes(`node scripts/local-checks.mjs run ${name} --dry-run`), true);
+  }
+  for (const name of ['pipeline-mutations', 'pipeline-capacity']) {
+    assert.match(classifyJob(name).reason, /source\/run\/attempt\/output.*begin, stage and seal/u);
+  }
+  assert.match(classifyJob('pipeline-evidence').reason, /sealed exact-artifact.*same GitHub run and attempt/u);
 });

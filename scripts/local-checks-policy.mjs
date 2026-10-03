@@ -4,10 +4,19 @@
 import {posix} from 'node:path';
 
 export const heavyJobs = Object.freeze([
-  'core', 'host', 'native', 'session-evidence', 'pipeline-evidence',
+  'core', 'host', 'native', 'session-evidence',
   'client-packages', 'client-distribution', 'client-packed', 'client-salesforce',
   'workers', 'connector-addition', 'duckdb-node', 'spec',
 ]);
+
+// These workflow wrappers require hosted Actions provenance, not just a cost
+// override. The underlying proof campaigns remain ordinary heavy work; this
+// registry does not classify or intercept their raw commands.
+export const ciOnlyPipelineJobs = Object.freeze({
+  'pipeline-mutations': 'requires real GitHub source/run/attempt/output metadata for producer begin, stage and seal',
+  'pipeline-capacity': 'requires real GitHub source/run/attempt/output metadata for producer begin, stage and seal',
+  'pipeline-evidence': 'requires sealed exact-artifact producer inputs from the same GitHub run and attempt',
+});
 
 const commonFlags = new Set([
   '-g', '--debug', '--release', '--strip', '--no-strip', '--enable-coverage',
@@ -105,6 +114,12 @@ export function classifyMoon(kind, args) {
 export function classifyJob(name) {
   const alternatives = ['node scripts/local-checks.mjs changed',
     'node scripts/local-checks.mjs run <job> --dry-run'];
+  if (Object.hasOwn(ciOnlyPipelineJobs, name)) return {
+    heavy: true, classification: 'ci-only',
+    reason: `${name} is CI only: ${ciOnlyPipelineJobs[name]}`,
+    alternatives: ['node scripts/local-checks.mjs list',
+      `node scripts/local-checks.mjs run ${name} --dry-run`],
+  };
   if (heavyJobs.includes(name)) return {
     heavy: true, classification: 'heavy',
     reason: `CI job ${name} runs a complete suite or build`, alternatives,

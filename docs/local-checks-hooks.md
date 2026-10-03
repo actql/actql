@@ -3,8 +3,9 @@
 The shared policy in `scripts/local-checks-policy.mjs` distinguishes explicit
 Moon package/file selections from whole-project checks. The optional hooks add
 pre-launch friction for three command families: unscoped `moon test`, unscoped
-`moon build`, and known-heavy `local-checks.mjs run` jobs. They do not run tests,
-inspect test results, or start background checks.
+`moon build`, and known-heavy `local-checks.mjs run` jobs. They also refuse
+the explicitly registered CI-only pipeline job wrappers. They do not run
+tests, inspect test results, or start background checks.
 
 Use the execution wrapper for the actual bounded run. From the checkout root:
 
@@ -41,10 +42,20 @@ an authorization token, or permission to bypass the client's normal controls.
   paths. Unknown Moon options remain unclassified; the wrapper rejects them
   until the shared policy explicitly supports them.
 - Heavy jobs are an explicit reviewed list: `core`, `host`, `native`,
-  `session-evidence`, `pipeline-evidence`, `client-packages`,
+  `session-evidence`, `client-packages`,
   `client-distribution`, `client-packed`, `client-salesforce`, `workers`,
   `connector-addition`, `duckdb-node`, and `spec`. `lint` does not need a heavy
   override. An unfamiliar job is not assumed cheap or heavy from its timeout.
+- `pipeline-mutations`, `pipeline-capacity`, and `pipeline-evidence` are
+  explicitly CI-only wrappers, not locally executable heavy jobs. Producers
+  need real GitHub source SHA, run, attempt and output metadata for begin,
+  stage and seal; the final join needs sealed exact-artifact producer inputs
+  from that same run and attempt. Both wrapper and matching hooks refuse
+  execution even with `--allow-heavy` or supplied GitHub environment variables.
+  `list`, `changed`, and these jobs' `--dry-run` remain read-only; their dry-run
+  prints literal workflow commands without substituting fake CI context.
+  Underlying raw proof campaigns remain ordinary heavy work outside the hook's
+  command grammar. Running one locally does not replace the hosted artifact join.
 - Help, dry-run, `list`, and `changed` are reporting operations. Focused Node
   file tests are unaffected. A focused classification is about selection, not
   a runtime guarantee; execution budgets still matter.

@@ -182,6 +182,17 @@ The first unit does not intercept npm aliases, direct proof campaigns, arbitrary
 shell commands, raw Node suites, or processes started outside this wrapper.
 Hosted CI commands, coverage, gates and results remain authoritative.
 
+The split `pipeline-mutations`, `pipeline-capacity` and final `pipeline-evidence`
+job wrappers are explicitly CI-only. Producer begin/stage/seal requires real
+GitHub source SHA, run, attempt and output metadata; the final join requires
+sealed exact-artifact producer inputs from the same run and attempt. These
+wrappers refuse local execution before creating locks or evidence, even with
+`--allow-heavy` and supplied GitHub environment variables. `list` and `changed`
+label them CI-only; `run <job> --dry-run` prints their literal workflow commands
+without constructing fake CI context. Raw underlying proof campaigns remain
+ordinary heavy work outside this wrapper's guard. They are not an alternate
+local acceptance route for the hosted producer/join boundary.
+
 ### Budgets and output
 
 `run <job>` defaults to that job's `timeout-minutes` in
