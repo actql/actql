@@ -239,3 +239,20 @@ pub fn broad_host_abort(run : BroadNodeRun) -> Unit {
 pub fn broad_host_close(run : BroadNodeRun) -> Unit {
   @acquisition_host.close_broad_host(run.host)
 }
+
+///|
+/// Connector-owned acquisition handle for the separate Client/Local
+/// composition. The transport bridge never imports Local execution.
+#export_name("broadHostAcquisition")
+pub fn broad_host_acquisition(
+  run : BroadNodeRun,
+) -> @acquisition_host.BroadHostRun {
+  run.host
+}
+
+///|
+/// The only completion-policy input needed by the Local composition.
+#export_name("broadHostMaxNameBytes")
+pub fn broad_host_max_name_bytes(run : BroadNodeRun) -> Int {
+  run.limits.completion.records.max_bytes
+}

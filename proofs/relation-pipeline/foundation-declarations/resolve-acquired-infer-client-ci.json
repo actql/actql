@@ -1,0 +1,41 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-acquired-infer-client-ci",
+  "kind": "resolution",
+  "revision": "1377cb4dd6771eff8f8cd57f41393ceaa4e6cb0b",
+  "parents": [
+    "48a470dff92a00d884ef61eeaa7c2143828b3a53",
+    "a32d8c94404c3f6be52d1fcfb73aab21cbf7093c"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "48a470dff92a00d884ef61eeaa7c2143828b3a53",
+          "digest": "4d5a67fab548a9b8cf4719441809cc1841eb01ead5a3928efc4f4f2e3f41003f",
+          "mode": "100644"
+        },
+        {
+          "revision": "a32d8c94404c3f6be52d1fcfb73aab21cbf7093c",
+          "digest": "de409cdab2ba453ae6bf107c5f08a398cf8413df2aee171ff89d90dc3288f85e",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "cea8141d269389901753e357ecba72540480924e84b67d40514ae3d9ad63bcee",
+      "afterMode": "100644",
+      "reason": "Retain main's independently scheduled Client package and packed acceptance jobs while adding the acquired-input INFER scenario and its evidence upload. Keep the aggregate Client gate and existing acceptance commands unchanged."
+    }
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-343a5565c1ac",
+    "adopt-985dbbba2789",
+    "adopt-dafff1a1aeea",
+    "client-ci-runner-context",
+    "client-ci-split",
+    "issue-180-foundation-composition",
+    "packed-acquired-infer-acceptance",
+    "resolve-main-model-backing"
+  ]
+}

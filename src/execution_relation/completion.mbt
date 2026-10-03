@@ -92,6 +92,94 @@ pub fn anchor_completed_output_inputs(
 }
 
 ///|
+/// Seal a trusted bounded chain over the exact supplied reads it consumed.
+/// The caller must pass the same reads supplied at start, not equal row data.
+/// Their immutable identities retain the scan without borrowing its authority.
+pub fn anchor_completed_output_supplied_inputs(
+  output : CompletedOutput,
+  inputs : Array[SuppliedRelationRead],
+) -> CompletedOutput? {
+  let original = output.completion
+  let owner = @lower.sequence_owner(original.sequence)
+  if original.readmitted ||
+    !completed_output_available(output) ||
+    inputs.length() !=
+    @lower.preparation_input_count(@lower.bound_preparation(owner)) {
+    return None
+  }
+  for index, input in inputs {
+    if !supplied_relation_read_matches_input(input, owner, index) {
+      return None
+    }
+  }
+  Some({
+    ..output,
+    completion: {
+      ..original,
+      input_bindings: inputs.map(input => input.identity),
+    },
+  })
+}
+
+///|
+/// Exact supplied-input provenance of an independently valid completion.
+/// Rebinding the same scan creates a different read occurrence and is rejected.
+/// Input liveness was checked at execution/anchoring, not again after completion.
+pub fn completed_output_matches_supplied_inputs(
+  output : CompletedOutput,
+  inputs : Array[SuppliedRelationRead],
+) -> Bool {
+  let completion = output.completion
+  let owner = @lower.sequence_owner(completion.sequence)
+  let count = @lower.preparation_input_count(@lower.bound_preparation(owner))
+  if completion.readmitted ||
+    !completed_output_available(output) ||
+    inputs.length() != count ||
+    completion.input_bindings.length() != count {
+    return false
+  }
+  for index, input in inputs {
+    if !physical_equal(input.receiver, owner) ||
+      input.input_index != index ||
+      !physical_equal(completion.input_bindings[index], input.identity) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+/// Verify the exact immutable scans underlying sealed supplied input bindings.
+/// Acquisition owners use this without reconstructing read occurrences or
+/// treating equal row content as input identity.
+pub fn completed_output_matches_captured_inputs(
+  output : CompletedOutput,
+  inputs : Array[CapturedRows],
+) -> Bool {
+  let completion = output.completion
+  let owner = @lower.sequence_owner(completion.sequence)
+  let count = @lower.preparation_input_count(@lower.bound_preparation(owner))
+  if completion.readmitted ||
+    !completed_output_available(output) ||
+    inputs.length() != count ||
+    completion.input_bindings.length() != count {
+    return false
+  }
+  for index, input in inputs {
+    let identity = completion.input_bindings[index]
+    guard identity.carrier is None &&
+      identity.input_index == index &&
+      identity.supplied is Some(actual) &&
+      physical_equal(actual, input) &&
+      physical_equal(captured_owner(input), owner) &&
+      captured_origin(input) == SuppliedInput(index) else {
+      return false
+    }
+  }
+  true
+}
+
+///|
 /// Anchor the exact ordered inputs of a selected operation. A physical task
 /// may have fewer receiving ports than its enclosing authored Stage.
 pub fn anchor_completed_output_operation_inputs(

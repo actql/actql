@@ -330,6 +330,15 @@ jobs:
         with:
           directory: ${{ steps.packed-infer.outputs.evidence-directory }}
           name: packed-single-infer-${{ github.sha }}
+      - name: Test packed acquired INFER capture and replay
+        id: packed-acquired-infer
+        run: node scripts/test-packed-acquired-infer.mjs
+      - name: Retain packed acquired INFER evidence
+        if: always() && steps.packed-acquired-infer.outputs.evidence-directory != ''
+        uses: ./.github/actions/upload-packed-query-evidence
+        with:
+          directory: ${{ steps.packed-acquired-infer.outputs.evidence-directory }}
+          name: packed-acquired-infer-${{ github.sha }}
       - name: Test raw public SQL and Pipe through packed Local and HTTP
         id: packed-query
         run: |
