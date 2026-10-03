@@ -84,6 +84,7 @@ test('reviewed Graph rejection branches preserve the Relation capability predica
   const newBranch = [
     '      | @lower.GraphMatchStep(_)',
     '      | @lower.GraphTraverseStep(_)',
+    '      | @lower.GraphDiagnosticStep(_)',
     '      | @lower.PropertyGraphConstructionStep(_)',
   ].join('\n');
   assert.equal(before.toString().split(oldBranch).length,2);
