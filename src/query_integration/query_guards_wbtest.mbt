@@ -95,6 +95,238 @@ test "acquisition guards include demanded intermediate roots without evaluating 
 }
 
 ///|
+test "bounded acquisition residual preserves demanded root ceilings" {
+  for ceiling in [8, 9] {
+    let (query, owner) = query_sequence_fixture(filter="id > 123456789")
+    let sequence = @query.prepare_query_sequence(
+      query,
+      query_generated(owner),
+      10000,
+    ).unwrap()
+    let receipt = @query.admit_query_receipt(
+      sequence,
+      [input_cursor("{\"id\":1}")],
+      1,
+      run_limits().input_values,
+    ).unwrap()
+    let limits = dispatch_test_limits()
+    let active = match
+      @client_local_host.start_client_query_residual(
+        max_name_bytes=10000,
+        sequence,
+        receipt,
+        fn() { true },
+        limits.local_execution,
+        limits.guards,
+        100,
+        ceiling,
+      ) {
+      Ok(value) => value
+      Err(UnsupportedProgram) => fail("unsupported bounded query prefix")
+      Err(Guard(_)) => fail("guard preparation failed")
+      Err(Local(_)) => fail("bounded provider start failed")
+      Err(_) => fail("bounded query input admission failed")
+    }
+    let mut terminal = false
+    for _ in 0..<1000 {
+      if terminal {
+        break
+      }
+      match @local_connector.advance_managed_provider(active, 1).unwrap() {
+        @local_connector.Continue(work~, ..) => assert_true(work <= 1L)
+        @local_connector.Complete(output, ..) => {
+          assert_eq(ceiling, 9)
+          assert_eq(@execution.completed_row_count(output), 0)
+          terminal = true
+        }
+        @local_connector.Failed(issue, ..) => {
+          assert_eq(ceiling, 8)
+          guard issue
+            is @connector.Execution(@execution.Rows(0, Evaluation(0, _, cause))) else {
+            fail(
+              "expected the demanded predicate root to exceed its byte ceiling",
+            )
+          }
+          assert_true(
+            cause.kind is LogicalValue(ValueMeasure(WireMeasureFailure)),
+          )
+          terminal = true
+        }
+        _ => fail("unexpected bounded residual state")
+      }
+    }
+    assert_true(terminal)
+    assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
+  }
+}
+
+///|
+test "bounded query guards share input output allowances and reject unpublished output" {
+  let (query, owner) = query_sequence_fixture()
+  let sequence = @query.prepare_query_sequence(
+    query,
+    query_generated(owner),
+    10000,
+  ).unwrap()
+  let receipt = @query.admit_query_receipt(
+    sequence,
+    [input_cursor("{\"id\":3}")],
+    1,
+    run_limits().input_values,
+  ).unwrap()
+  let limits = dispatch_test_limits()
+  // Each {"id":3} is eight bytes and two nodes. Each guard takes six
+  // frames; two setup steps and one context binding give fifteen guard work.
+  for mode in 0..<5 {
+    let residual = @client_local_host.prepare_client_query_residual(
+      max_name_bytes=10000,
+      sequence,
+      receipt,
+      fn() { true },
+      limits.local_execution,
+      {
+        max_work: if mode == 4 {
+          14
+        } else {
+          15
+        },
+        max_bytes: if mode == 1 {
+          15
+        } else {
+          16
+        },
+        max_nodes: 4,
+        max_depth: 10,
+      },
+      if mode == 2 {
+        0
+      } else {
+        1
+      },
+      if mode == 3 {
+        7
+      } else {
+        8
+      },
+    ).unwrap()
+    let active = @client_local_host.client_query_residual_execution(residual)
+    let rows = if mode == 2 { 0 } else { 1 }
+    let bytes = if mode == 3 { 7 } else { 8 }
+    assert_true(
+      @client_local_host.client_query_residual_output(
+        residual, sequence, receipt, rows, bytes,
+      )
+      is None,
+    )
+    let mut terminal = false
+    for _ in 0..<1000 {
+      if terminal {
+        break
+      }
+      match @local_connector.advance_managed_provider(active, 1).unwrap() {
+        @local_connector.Continue(work~, ..) => assert_true(work <= 1L)
+        @local_connector.Complete(output, ..) => {
+          assert_eq(mode, 0)
+          assert_eq(@execution.completed_row_count(output), 1)
+          assert_true(
+            @execution.completed_cell(output, 0, 0) is Some(Number(3)),
+          )
+          let checked = @client_local_host.client_query_residual_output(
+            residual, sequence, receipt, rows, bytes,
+          ).unwrap()
+          assert_true(physical_equal(checked, output))
+          let other = @query.admit_query_receipt(
+            sequence,
+            [input_cursor("{\"id\":3}")],
+            1,
+            run_limits().input_values,
+          ).unwrap()
+          assert_true(
+            @client_local_host.client_query_residual_output(
+              residual, sequence, other, rows, bytes,
+            )
+            is None,
+          )
+          assert_true(
+            @client_local_host.client_query_residual_output(
+              residual,
+              sequence,
+              receipt,
+              rows + 1,
+              bytes,
+            )
+            is None,
+          )
+          assert_true(
+            @client_local_host.client_query_residual_output(
+              residual,
+              sequence,
+              receipt,
+              rows,
+              bytes + 1,
+            )
+            is None,
+          )
+          terminal = true
+        }
+        @local_connector.Failed(issue, ..) => {
+          assert_true(
+            @client_local_host.client_query_residual_output(
+              residual, sequence, receipt, rows, bytes,
+            )
+            is None,
+          )
+          match mode {
+            1 =>
+              assert_true(
+                issue
+                is @connector.Guard(
+                  @execution.Measurement(Output, 0, -1, OutputLimit)
+                ),
+              )
+            2 => assert_true(issue is @connector.Guard(@execution.OutputRows))
+            3 =>
+              assert_true(
+                issue
+                is @connector.Guard(@execution.ValueBytes(InputValues, 0, -1)),
+              )
+            4 =>
+              assert_true(issue is @connector.Guard(@execution.MeasurementWork))
+            _ =>
+              match issue {
+                @connector.Guard(@execution.MeasurementWork) =>
+                  fail("exact guard work rejected")
+                @connector.Guard(@execution.Measurement(_, _, _, _)) =>
+                  fail("exact wire measurement rejected")
+                @connector.Execution(_) => fail("exact Compute budget rejected")
+                _ => fail("exact acquisition guard budget rejected")
+              }
+          }
+          terminal = true
+        }
+        _ => fail("unexpected acquisition guard stop")
+      }
+    }
+    assert_true(terminal)
+    assert_true(@local_connector.managed_provider_stopped(active))
+    let used = @local_connector.managed_provider_cumulative_work(active).unwrap()
+    assert_true(used > 0L)
+    assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
+    assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
+    assert_true(
+      @client_local_host.client_query_residual_output(
+        residual, sequence, receipt, rows, bytes,
+      )
+      is None,
+    )
+    assert_eq(
+      @local_connector.managed_provider_cumulative_work(active),
+      Ok(used),
+    )
+  }
+}
+
+///|
 test "query record guard includes field names and preserves lazy branch demand" {
   let (query, bound) = query_sequence_fixture(
     filter="if(id > 0, true, 1 / (id - id) > 0)",

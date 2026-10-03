@@ -4,6 +4,12 @@
 pub fn prepared_client_terminal_infer_step(
   value : PreparedClientProgram,
 ) -> Int? {
+  if prepared_client_acquired_infer_step(value) is Some(step) &&
+    client_acquired_infer_prefix_owner(value, 0, step) is Some(owner) &&
+    @lower.preparation_output_target(@lower.bound_preparation(owner)) ==
+    Some(@pipeline.Step(step)) {
+    return Some(step)
+  }
   guard @strategy.graph_task_count(value.graph) == 1 &&
     @strategy.graph_task_target(value.graph, 0) is Some(@pipeline.Step(step)) &&
     client_infer_prefix_owner(value, 0, step) is Some(_) else {
@@ -16,6 +22,9 @@ pub fn prepared_client_terminal_infer_step(
 /// Select one acquisition in a checked task, retaining any following Compute
 /// occurrences. Their provider and input admission remain separate checks.
 pub fn prepared_client_infer_step(value : PreparedClientProgram) -> Int? {
+  if prepared_client_acquired_infer_step(value) is Some(step) {
+    return Some(step)
+  }
   guard @strategy.graph_task_count(value.graph) == 1 &&
     @strategy.graph_task_target(value.graph, 0) is Some(@pipeline.Step(last)) &&
     @strategy.graph_task_owner(value.graph, 0) is Some(owner) else {
@@ -44,12 +53,26 @@ pub fn prepared_client_infer_model_task_cid(
   value : PreparedClientProgram,
   step : Int,
 ) -> String? {
-  guard client_infer_prefix_owner(value, 0, step) is Some(owner) &&
+  guard client_infer_metadata_owner(value, 0, step) is Some(owner) &&
     @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
     @lower.payload(node) is @lower.Infer(infer) else {
     return None
   }
   Some(@environment.model_task_identity(@infer.model_task(infer)).2)
+}
+
+///|
+/// Metadata selection recognizes both admitted input shapes. Execution,
+/// identity and egress must still choose their own source-specific admission.
+fn client_infer_metadata_owner(
+  value : PreparedClientProgram,
+  task : Int,
+  step : Int,
+) -> @lower.BoundPrepared? {
+  match client_infer_prefix_owner(value, task, step) {
+    Some(owner) => Some(owner)
+    None => client_acquired_infer_prefix_owner(value, task, step)
+  }
 }
 
 ///|
@@ -62,13 +85,65 @@ pub fn client_infer_prefix_owner(
   task : Int,
   infer_step : Int,
 ) -> @lower.BoundPrepared? {
+  client_infer_prefix_owner_for_input(value, task, infer_step, false)
+}
+
+///|
+/// Select the same checked prefix only when its single external input is the
+/// existing admitted Query acquisition. This is not the source-free scope:
+/// callers still need captured input, source evidence and egress admission.
+pub fn client_acquired_infer_prefix_owner(
+  value : PreparedClientProgram,
+  task : Int,
+  infer_step : Int,
+) -> @lower.BoundPrepared? {
+  guard prepare_client_query_acquisition(value, task, 0) is Ok(_) else {
+    return None
+  }
+  client_infer_prefix_owner_for_input(value, task, infer_step, true)
+}
+
+///|
+pub fn prepared_client_acquired_infer_step(
+  value : PreparedClientProgram,
+) -> Int? {
+  guard @strategy.graph_task_count(value.graph) == 1 &&
+    @strategy.graph_task_owner(value.graph, 0) is Some(owner) &&
+    @lower.preparation_output_target(@lower.bound_preparation(owner))
+    is Some(@pipeline.Step(last)) else {
+    return None
+  }
+  let mut selected = None
+  for step in 0..<(last + 1) {
+    guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) else {
+      return None
+    }
+    if @lower.payload(node) is @lower.Infer(_) {
+      if selected is Some(_) ||
+        client_acquired_infer_prefix_owner(value, 0, step) is None {
+        return None
+      }
+      selected = Some(step)
+    }
+  }
+  selected
+}
+
+///|
+fn client_infer_prefix_owner_for_input(
+  value : PreparedClientProgram,
+  task : Int,
+  infer_step : Int,
+  acquired : Bool,
+) -> @lower.BoundPrepared? {
   guard task == 0 &&
     @strategy.graph_task_count(value.graph) == 1 &&
     @strategy.graph_task_selected_step(value.graph, task) is None &&
     @strategy.graph_task_prefix_end(value.graph, task) is None &&
     infer_step > 0 &&
     @strategy.graph_task_owner(value.graph, task) is Some(owner) &&
-    @lower.preparation_input_count(@lower.bound_preparation(owner)) == 0 &&
+    @lower.preparation_input_count(@lower.bound_preparation(owner)) ==
+    (if acquired { 1 } else { 0 }) &&
     @lower.node_at(@lower.bound_preparation(owner), infer_step) is Some(node) &&
     @lower.payload(node) is @lower.Infer(_) &&
     @lower.node_input_target(node, 0) == Some(@pipeline.Step(infer_step - 1)) &&
@@ -109,7 +184,7 @@ pub fn prepare_client_infer_item_limit(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[@checked.InferItemLimit, ClientInferItemLimitIssue] {
-  if client_infer_prefix_owner(value, 0, step) is None {
+  if client_infer_metadata_owner(value, 0, step) is None {
     return Err(UnsupportedProgram)
   }
   Ok(
@@ -163,7 +238,7 @@ fn prepared_client_infer_host_ceiling(
   field : String,
   missing : ClientInferHostCapacityIssue,
 ) -> Result[Int64, ClientInferHostCapacityIssue] {
-  if client_infer_prefix_owner(value, 0, step) is None {
+  if client_infer_metadata_owner(value, 0, step) is None {
     return Err(UnsupportedProgram)
   }
   let capacity = match
