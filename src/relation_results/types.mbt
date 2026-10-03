@@ -46,6 +46,7 @@ pub(all) enum IssueKind {
   WrongCarrier(@carrier.Kind)
   IncompleteSchema
   UnknownField(String)
+  PresenceRequired(String)
   DuplicateField(String)
   InvalidOrder
   NotAuthorOrderable(String)

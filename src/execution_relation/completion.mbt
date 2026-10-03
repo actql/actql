@@ -494,6 +494,10 @@ pub fn completed_cell(
   column : Int,
 ) -> Value? {
   guard output.table is Some(table) else { return None }
+  if table is PresenceTable(values) {
+    guard values.rows.get(row) is Some(value) else { return None }
+    return relation_row_required_value(value, column).to_option().map(capture)
+  }
   if row < 0 ||
     row >= IndexedRows::row_count(table) ||
     column < 0 ||
@@ -501,6 +505,24 @@ pub fn completed_cell(
     return None
   }
   Some(IndexedRows::read_cell(table, row, column))
+}
+
+///|
+/// A typed presence read is distinct from ordinary value access and unavailable
+/// completion. It does not refine the checked schema for later expressions.
+pub fn completed_presence_cell(
+  output : CompletedOutput,
+  row : Int,
+  column : Int,
+) -> Result[RelationCell, RelationPresenceIssue] {
+  if !completed_output_available(output) {
+    return Err(Unavailable)
+  }
+  guard output.table is Some(PresenceTable(table)) &&
+    table.rows.get(row) is Some(value) else {
+    return Err(InvalidLayout)
+  }
+  relation_row_cell(value, column)
 }
 
 ///|

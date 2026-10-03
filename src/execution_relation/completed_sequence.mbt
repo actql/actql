@@ -28,9 +28,7 @@ fn prepare_physical_sequence(
     control,
     captured => {
       with_sequence_workspace(limits.operation_entries, workspace => {
-        table_from_capture_bounded(captured, control, workspace).map(table => {
-          RowTable(table)
-        })
+        completed_table_from_capture(captured, control, workspace)
       })
     },
     fn(bound, id, output_budget) {
@@ -43,6 +41,8 @@ fn prepare_physical_sequence(
           AdmittedTable({ ..table, owner: bound.receiver, id, })
         ColumnTable(table) =>
           ColumnTable({ ..table, owner: bound.receiver, id, })
+        PresenceTable(table) =>
+          PresenceTable({ ..table, owner: bound.receiver, id, })
       }
       match bound.projection {
         None => Ok(adopted)
@@ -102,9 +102,7 @@ fn evaluate_physical_sequence(
     invocation,
     captured => {
       with_sequence_workspace(limits.operation_entries, workspace => {
-        table_from_capture_bounded(captured, control, workspace).map(table => {
-          RowTable(table)
-        })
+        completed_table_from_capture(captured, control, workspace)
       })
     },
     (kernel, input, logical) => {

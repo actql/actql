@@ -138,3 +138,25 @@ test "wide incomplete schemas and deep shared child contracts" {
   ).unwrap()
   assert_true(complete_schema(deep) is Some(_))
 }
+
+///|
+test "closed typed knowledge does not imply row-total presence" {
+  let schema = @row.from_presence_fields(
+    [
+      (
+        Unqualified("p"),
+        @value.primitive(NumberType, nullable=true),
+        Conditional,
+      ),
+    ],
+    max_fields=1,
+    max_name_bytes=1,
+  ).unwrap()
+  let knowledge = typed_rows(schema)
+  assert_eq(field_set(knowledge), Closed)
+  let field = field_at(knowledge, 0).unwrap()
+  assert_eq(field.presence, @row.Conditional)
+  assert_true(field.contract.unwrap().nullable)
+  assert_true(!@row.all_fields_required(complete_schema(knowledge).unwrap()))
+  assert_true(lookup(knowledge, Unqualified("other")) is Absent)
+}

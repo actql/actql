@@ -15,6 +15,7 @@ struct AdmittedOutputRows {
   target : @pipeline.Target
   schema : @schema.Schema
   rows : Array[Array[@admitted.Value]]
+  presence_rows : Array[AdmittedRelationRow]
   usage : ValueUsage
 }
 
@@ -38,13 +39,21 @@ pub fn prepare_admitted_output(
     @lower.preparation_schema_at(prepared, target) is Some(schema) else {
     return Err(NotRelationOutput)
   }
-  if @schema.as_object(schema) is None {
+  if @schema.has_qualified_fields(schema) {
     return Err(ScopedInputNotImplemented)
   }
   Ok({
     owner,
     target,
-    buffer: { schema, max_rows, budget, rows: [], open: true, reading: false, },
+    buffer: {
+      schema,
+      max_rows,
+      budget,
+      rows: [],
+      presence_rows: [],
+      open: true,
+      reading: false,
+    },
   })
 }
 
@@ -87,6 +96,7 @@ pub fn finish_admitted_output(
     target: output.target,
     schema: buffer.schema,
     rows: buffer.rows,
+    presence_rows: buffer.presence_rows,
     usage: {
       nodes: buffer.budget.nodes,
       text_bytes: buffer.budget.text,
@@ -114,7 +124,11 @@ pub fn admitted_output_schema(output : AdmittedOutputRows) -> @schema.Schema {
 
 ///|
 pub fn admitted_output_row_count(output : AdmittedOutputRows) -> Int {
-  output.rows.length()
+  if @schema.all_fields_required(output.schema) {
+    output.rows.length()
+  } else {
+    output.presence_rows.length()
+  }
 }
 
 ///|
@@ -123,8 +137,22 @@ pub fn admitted_output_cell(
   row : Int,
   column : Int,
 ) -> @admitted.Value? {
+  if !@schema.all_fields_required(output.schema) {
+    return match output.presence_rows.get(row) {
+      Some(value) => relation_row_required_value(value, column).to_option()
+      None => None
+    }
+  }
   guard output.rows.get(row) is Some(values) else { return None }
   values.get(column)
+}
+
+///|
+pub fn append_admitted_output_presence(
+  output : AdmittedOutput,
+  row : AdmittedRelationRow,
+) -> Result[Unit, CaptureIssue] {
+  append_admitted_buffer_presence(output.buffer, row)
 }
 
 ///|

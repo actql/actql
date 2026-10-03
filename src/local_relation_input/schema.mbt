@@ -81,20 +81,48 @@ pub fn check_schema(
     return Err(InvalidLimits)
   }
   try {
-    let actual = match @schema.as_object(schema) {
-      Some(c) => c
-      None => raise SchemaStop(NonFlatSchema)
+    if @schema.has_qualified_fields(schema) {
+      raise SchemaStop(NonFlatSchema)
     }
+    let actual = @schema.as_object(schema)
     let b = {
       nodes: limits.max_nodes,
       text: limits.max_text_bytes,
       depth: limits.max_depth,
     }
-    type_scan(b, actual)
+    match actual {
+      Some(actual) => type_scan(b, actual)
+      None => {
+        // A finite conditional Relation is not an ordinary object contract.
+        // Inspect each value type under the existing bounded schema owner.
+        if b.nodes == 0 {
+          raise SchemaStop(BudgetExceeded)
+        }
+        b.nodes -= 1
+        let count = @schema.field_count(schema)
+        if count > b.nodes {
+          raise SchemaStop(BudgetExceeded)
+        }
+        for index in 0..<count {
+          let field = @schema.field_at(schema, index).unwrap()
+          type_text(b, @schema.reference_name(field.name))
+          if field.presence == @schema.Conditional {
+            if b.nodes == 0 {
+              raise SchemaStop(BudgetExceeded)
+            }
+            b.nodes -= 1
+          }
+          type_scan(b, field.contract)
+        }
+      }
+    }
     let authored = @carrier.complete_schema(
       @carrier.relation_rows(declaration.carrier).unwrap(),
     )
     if authored is Some(authored) {
+      // Authored ordinary object fields are all required; optional row cells
+      // cannot weaken that assertion merely because their value type matches.
+      guard actual is Some(actual) else { raise SchemaStop(TypeMismatch) }
       let expected = @schema.as_object(authored).unwrap()
       type_scan(b, expected)
       let valid = @contract.assignable(actual, expected, limits.max_nodes) catch {
@@ -156,8 +184,13 @@ pub fn check_schema(
         }
         b.nodes -= 1
         type_text(b, term.field)
-        let c = match @schema.lookup(schema, @schema.Unqualified(term.field)) {
-          Some(c) => c
+        let c = match @schema.lookup_reference(schema, term.field) {
+          Some(field) => {
+            if field.presence != @schema.Required {
+              raise SchemaStop(InvalidOrderField(term.field))
+            }
+            field.contract
+          }
           None => raise SchemaStop(InvalidOrderField(term.field))
         }
         if !@order.author_orderable(c) {

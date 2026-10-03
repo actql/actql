@@ -69,6 +69,9 @@ fn validate_captured_keys(
           return Err(Limit)
         }
         if f.name == field.name {
+          if f.presence != @schema.Required {
+            return Err(MissingField)
+          }
           ordinal = Some(n)
           break
         }
@@ -77,7 +80,7 @@ fn validate_captured_keys(
       columns.push(n)
     }
     let seen : Map[Array[KeyAtom], Int] = Map([])
-    for row = 0; row < input.rows.length(); row = row + 1 {
+    for row = 0; row < captured_row_count(input); row = row + 1 {
       if !spend_control(control, 1) {
         return Err(Limit)
       }
@@ -86,7 +89,10 @@ fn validate_captured_keys(
         if !spend_control(control, 1) || !reserve_slots(workspace, 1) {
           return Err(Limit)
         }
-        let atom = match input.rows[row][column] {
+        guard captured_cell(input, row, column) is Some(cell) else {
+          return Err(MissingField)
+        }
+        let atom = match cell {
           @admitted.Null => return Err(NullKey(row))
           @admitted.Number(n) => KeyNumber(n)
           @admitted.Boolean(b) => KeyBoolean(b)

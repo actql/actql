@@ -37,7 +37,18 @@ fn emit_relation_schema_identity(
   for index = 0; index < @schema.field_count(schema); index = index + 1 {
     let field = @schema.field_at(schema, index).unwrap()
     @encode.key(writer, @schema.reference_name(field.name))
-    @contract.emit_checked(field.contract, writer)
+    if field.presence == @schema.Conditional {
+      @encode.begin_object(writer)
+      @encode.key(writer, "contract")
+      @contract.emit_checked(field.contract, writer)
+      @encode.key(writer, "presence")
+      @encode.string_value(writer, "conditional")
+      @encode.end_object(writer)
+    } else {
+      // Ordinary value contracts always have a type discriminator. The
+      // conditional entry cannot be confused with a required value contract.
+      @contract.emit_checked(field.contract, writer)
+    }
   }
   @encode.end_object(writer)
 }

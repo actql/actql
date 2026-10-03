@@ -14,6 +14,19 @@ test('Local input score assertions and fusion use the same closed contract', () 
   }
 });
 
+test('Relation presence metadata is finite and independent of value nullability', () => {
+  const snapshot = JSON.parse(readFileSync('spec/contracts/actql-local-relation-snapshot.json', 'utf8'));
+  assert.deepEqual(snapshot.schema.properties.column_presence, {
+    type: 'object', minProperties: 1,
+    propertyNames: {pattern: snapshot.schema.properties.score_contracts.propertyNames.pattern},
+    additionalProperties: {const: 'conditional'},
+  });
+  assert.ok(!snapshot.schema.required.includes('column_presence'));
+  assert.match(snapshot.semantics.presence, /omission_is_not_null/);
+  assert.match(snapshot.semantics.presence, /reject_unknown_columns_and_empty_maps/);
+  assert.match(snapshot.semantics.score_projection, /column_presence/);
+});
+
 test('Local interpretation roots match pinned snapshot dependencies', () => {
   const snapshot = JSON.parse(readFileSync('spec/contracts/actql-local-relation-snapshot.json','utf8'));
   const reference = JSON.parse(readFileSync('spec/contracts/actql-local-source-reference.json','utf8'));

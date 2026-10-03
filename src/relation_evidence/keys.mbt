@@ -201,7 +201,12 @@ pub fn declare_primary_key(
       let contract = match @carrier.lookup(records, field_name) {
         Absent => fail(at, MissingKeyField(name))
         Unknown => None
-        Present(f) => f.contract
+        Present(f) => {
+          if f.presence != @row.Required {
+            fail(at, InvalidKeyType(name))
+          }
+          f.contract
+        }
       }
       if contract is Some(c) && (c.nullable || !@contract.key_comparable(c, c)) {
         fail(at, InvalidKeyType(name))

@@ -282,11 +282,22 @@ checking does not implicitly acquire, materialize or authorize data.
 A local Relation schema snapshot MUST contain exactly the required members
 `version: "actql-local-input-schema/0.1"`, `source_ref`,
 `output_carrier: "relation"`, and `schema`, plus only the optional members
-`input_cid`, `completeness`, `integration_binding_cid`, and `score_contracts`. `schema` is a complete
+`input_cid`, `completeness`, `integration_binding_cid`, `score_contracts`, and
+`column_presence`. `schema` is a complete
 checked non-nullable object contract, including explicit `additional_properties:
 false`; empty `fields` is allowed. It is not an author-form declaration or a
 bare field map. Other local Carriers require their corresponding snapshot
 contracts; this Relation contract does not restrict their language support.
+
+<!-- requirement-block: check-environment.local-relation-presence-map check-environment.local-relation-presence-admission check-environment.local-relation-presence-projection -->
+`column_presence`, when present, MUST be a nonempty map from existing schema
+column names to `"conditional"`. Unlisted columns are required. Admission MUST
+reject unknown columns and other presence values. This map describes Relation
+row existence, independently of each column's value type and nullable flag; it
+does not change ordinary object value admission. Absence is key omission, not
+NULL. Both full snapshot and static type/score projections MUST retain this
+metadata. No consumer may reconstruct it from sample rows or an external
+catalog. Its absence denotes an all-required Relation, not unknown presence.
 
 <!-- requirement-block: check-environment.local-relation-snapshot-materialization -->
 `input_cid` and `completeness` MUST occur together, with completeness either
@@ -1873,7 +1884,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- normative-code: law -->
 ```text
 ../../../spec/contracts/actql-check-environment.json# sha256:1c2c612568483e6d2e250907e703bf06568c6c12c49fd37bfb661ffe0566c30c
-../../../spec/contracts/actql-local-relation-snapshot.json# sha256:b59aff026e4853a370475e7b25c7fa6ddf0890aacbd57af0a3ec4b7aa14b65b5
+../../../spec/contracts/actql-local-relation-snapshot.json# sha256:0d1b824004f4e26bf3cadbfc437d000cd1d7cc6c218c0f0fc4276b483ba46701
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2
 ../../../spec/contracts/actql-consumer-capacity.json# sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f
