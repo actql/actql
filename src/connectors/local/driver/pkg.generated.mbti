@@ -189,6 +189,7 @@ pub struct LocalManagedDispatchOperations[T] {
   material : () -> @execution_relation.ManagedRetainedOutput[T]?
   carrier_material : () -> @managed_carrier_runtime.Material?
   prepare_carrier_snapshot : (() -> Bool) -> Result[LocalManagedSnapshot?, LocalDispatchIssue]
+  prepare_relation_snapshot : (() -> Bool) -> Result[LocalManagedRelationSnapshot?, LocalDispatchIssue]
   storage_bytes : Int64
   close : () -> Unit
   cleanup_refresh : () -> Bool
@@ -197,6 +198,19 @@ pub struct LocalManagedDispatchOperations[T] {
 pub struct LocalManagedInputTransfer[T] {
   input : @execution_relation.ManagedProducerRead[T]
   append : (String) -> Result[Unit, LocalDispatchIssue]
+  finish : () -> Result[Unit, LocalDispatchIssue]
+}
+
+pub struct LocalManagedRelationSnapshot {
+  key : String
+  frames : LocalInputFrames
+  next : () -> Result[String?, LocalDispatchIssue]
+  content : () -> Result[@managed_carrier_runtime.SnapshotContent, LocalDispatchIssue]
+  release_source : (String, () -> Bool) -> Result[Unit, LocalDispatchIssue]
+  source_available : () -> Bool
+  begin_reload : () -> Result[Unit, LocalDispatchIssue]
+  append_reload : (String) -> Result[Unit, LocalDispatchIssue]
+  finish_reload : () -> Result[Unit, LocalDispatchIssue]
   finish : () -> Result[Unit, LocalDispatchIssue]
 }
 

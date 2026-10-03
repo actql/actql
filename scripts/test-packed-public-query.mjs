@@ -84,6 +84,8 @@ run('bash', ['-eu', '-c', exampleCommands[0][1]], root,
 await mkdir(join(root, 'fixtures'));
 await writeFile(join(root, 'fixtures/property-graph-parallel.program.json'),
   await readFile(join(repository, 'scripts/fixtures/property-graph-parallel.program.json')));
+await writeFile(join(root, 'fixtures/property-graph-presence.program.json'),
+  await readFile(join(repository, 'scripts/fixtures/property-graph-presence.program.json')));
 run('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
   '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1',
   '-subj', '/CN=localhost',

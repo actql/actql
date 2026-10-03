@@ -5,9 +5,9 @@
     "id": "source",
     "inputs": {},
     "steps": [
-      {"values": {"schema": {"person_key": {"type": "number", "nullable": false}, "tenant_key": {"type": "string", "nullable": false}, "p": {"type": "number", "nullable": true}}, "rows": [{"person_key": 1, "tenant_key": "a", "p": 7}, {"person_key": 2, "tenant_key": "a", "p": null}]}, "as": "persons"},
+      {"values": {"schema": {"person_key": {"type": "number", "nullable": false}, "tenant_key": {"type": "string", "nullable": false}, "p": {"type": "number", "nullable": true}}, "rows": [{"person_key": 2, "tenant_key": "a", "p": null}, {"person_key": 1, "tenant_key": "a", "p": 7}]}, "as": "persons"},
       {"values": {"schema": {"company_key": {"type": "number", "nullable": false}}, "rows": [{"company_key": 3}]}, "as": "companies"},
-      {"values": {"schema": {"edge_key": {"type": "number", "nullable": false}, "tenant_key": {"type": "string", "nullable": false}, "source_key": {"type": "number", "nullable": false}, "target_key": {"type": "number", "nullable": false}}, "rows": [{"edge_key": 10, "tenant_key": "a", "source_key": 1, "target_key": 2}, {"edge_key": 11, "tenant_key": "a", "source_key": 1, "target_key": 2}]}, "as": "edges"},
+      {"values": {"schema": {"edge_key": {"type": "number", "nullable": false}, "tenant_key": {"type": "string", "nullable": false}, "source_key": {"type": "number", "nullable": false}, "target_key": {"type": "number", "nullable": false}}, "rows": [{"edge_key": 11, "tenant_key": "a", "source_key": 1, "target_key": 2}, {"edge_key": 10, "tenant_key": "a", "source_key": 1, "target_key": 2}]}, "as": "edges"},
       {"property_graph": {"version": "actql-property-graph-constructor/0.1", "nodes": [
         {"name": "N", "from": "persons", "key": ["person_key", "tenant_key"], "labels": [{"name": "Person", "properties": {"mode": "columns", "columns": [{"from": "p", "to": "p"}]}}, {"name": "Owner", "properties": {"mode": "columns", "columns": [{"from": "p", "to": "p"}]}}]},
         {"name": "M", "from": "companies", "key": ["company_key"], "labels": []}

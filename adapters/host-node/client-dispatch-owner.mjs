@@ -449,7 +449,10 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       await step('computed', {ref: accepted.ref,
         carrierSnapshots: (published.execution?.completed ?? [])
           .filter(task => task.snapshot !== undefined)
-          .map(task => ({task:task.task,...task.snapshot}))});
+          .map(task => ({task:task.task,...task.snapshot})),
+        relationSnapshots: (published.execution?.completed ?? [])
+          .filter(task => task.relationSnapshot !== undefined)
+          .map(task => ({task:task.task,...task.relationSnapshot}))});
       await settleCleanup(entry);
       await finishRun(entry);
     }).catch(async cause => {

@@ -89,12 +89,27 @@ const presenceSnapshot = canonicalText(['actql-property-graph-snapshot/0.1',cid(
   [10,11].map(key=>({id:presenceIdentity('E',[key,'a'],['number','string']),key:[key,'a'],props:{},
     src:nodeIdentity(1),dst:nodeIdentity(2)}))]);
 const presenceSnapshotCid = 'sha256:' + createHash('sha256').update(presenceSnapshot).digest('hex');
+// Independent full Relation streams, including unprojected conditional fields.
+// These are canonical ordered rows, not bytes captured from the implementation.
+const presenceRows = {
+  node_rows: [{company_key:3,id:presenceIdentity('M',[3],['number']),labels:[]},
+    ...[1,2].map(key=>({id:nodeIdentity(key),labels:['Owner','Person'],
+      p:key===1 ? 7 : null,person_key:key,tenant_key:'a'}))],
+  edge_rows: [10,11].map(key=>({edge_key:key,
+    id:presenceIdentity('E',[key,'a'],['number','string']),
+    src:nodeIdentity(1),dst:nodeIdentity(2),labels:['Link'],tenant_key:'a'})),
+};
+// The source fixture deliberately supplies descending keys. Canonical Graph
+// order must be established, not inherited accidentally from already sorted input.
+assert.deepEqual(presenceFixture.stages[0].steps[0].values.rows.map(row=>row.person_key),[2,1]);
+assert.deepEqual(presenceFixture.stages[0].steps[2].values.rows.map(row=>row.edge_key),[11,10]);
 
 for (const mode of ['local','remote']) {
   test(`keyed constructor and TRAIL reach public Named Results through ${mode}`, {timeout:60_000}, async t => {
     const directory = await mkdtemp(new URL(`${mode}-`, scratch));
     t.diagnostic(`Retained Host regression evidence: ${directory}`);
     const snapshots = new Map();
+    const relationSnapshots = new Map();
     const snapshotWaiters = new Map();
     const physicalSteps = [];
     const keys = generateKeyPairSync('ed25519');
@@ -114,6 +129,7 @@ for (const mode of ['local','remote']) {
       physicalSteps.push(name);
       if (name === 'computed') {
         snapshots.set(detail.ref.runDefinitionCid, detail.carrierSnapshots);
+        relationSnapshots.set(detail.ref.runDefinitionCid, detail.relationSnapshots);
         snapshotWaiters.get(detail.ref.runDefinitionCid)?.();
       }
     }};
@@ -232,13 +248,23 @@ for (const mode of ['local','remote']) {
         ? [{id:presenceIdentity('M',[3],['number']),labels:[]},
           ...[1,2].map(key=>({id:nodeIdentity(key),labels:['Owner','Person']}))]
         : [10,11].map(key=>({id:presenceIdentity('E',[key,'a'],['number','string']),labels:['Link']}));
-      assert.deepEqual(actual.map(canonicalText).sort(),expected.map(canonicalText).sort());
+      // node_rows/edge_rows preserve canonical Graph identity order. Compare
+      // the ordered oracle directly; sorting would hide a transport regression.
+      assert.deepEqual(actual,expected);
       assert.deepEqual((await projected.result('answer').describe()).columns.map(column=>column.name),['id','labels']);
       // The installed route saves the Graph, revokes its source, reloads it,
       // and feeds ordinary Relation projection before public publication.
       await assertSnapshot(projected,3,presenceSnapshotCid,presenceSnapshot);
-      assert.deepEqual((await (await client.attach(projected.ref)).result('answer').all())
-        .map(canonicalText).sort(),expected.map(canonicalText).sort());
+      // This is Relation retention, not the preceding Graph snapshot. The
+      // exact full stream is saved, original cell access is refused, then the
+      // same completion is imported and only guaranteed columns are projected.
+      const stream = canonicalText(presenceRows[projection]);
+      assert.deepEqual(relationSnapshots.get(projected.ref.runDefinitionCid),[
+        {task:4,cid:cid(presenceRows[projection]),bytes:Buffer.byteLength(stream),
+          verifiedReadBytes:Buffer.byteLength(stream),rows:presenceRows[projection].length,
+          sourceReleased:true,sourceReadRejected:true,restored:true,temporaryBodyReclaimed:true},
+      ]);
+      assert.deepEqual(await (await client.attach(projected.ref)).result('answer').all(),expected);
     }
   });
 }

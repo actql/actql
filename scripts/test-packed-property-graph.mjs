@@ -59,6 +59,8 @@ const acceptance = {
     'physical save, source revocation and verified reload',
     'temporary body reclaimed before restored completion',
     'definition-specific typed key aliases and conditional presence',
+    'ordered node_rows and edge_rows on initial read and reattach',
+    'Relation Store save, original output unavailable, verified reload with omission and NULL distinct',
     'guaranteed id and labels projection through public Named Results',
     'conditional property refusal before Run admission'],
 };
