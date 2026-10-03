@@ -274,9 +274,7 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
           @projection.EdgeRows
         )
       @lower.GraphTraverseStep(traverse) =>
-        @lower.operation(node) == "SGA.traverse" &&
-        @lower.graph_traverse_emits_paths(traverse) &&
-        accepts_traverse(traverse)
+        @lower.operation(node) == "SGA.traverse" && accepts_traverse(traverse)
       @lower.GraphMatchStep(matched) =>
         if @lower.graph_match_nodes(matched) {
           @lower.operation(node) == "SGA.match_nodes"
@@ -2322,16 +2320,24 @@ pub fn provider(
         _ => None
       }
       let direct_subgraph = direct_subgraph_selector is Some(_)
-      let direct_traverse = match
+      let direct_traverse_relation_count = match
         @lower.sequence_step(
           @execution.generated_prepared_sequence(sequence),
           selected_step.unwrap_or(0),
         ) {
         Some(@lower.GraphTraverseStep(traverse)) =>
-          selected_step is Some(_) &&
-          @lower.graph_traverse_emits_paths(traverse)
-        _ => false
+          if selected_step is Some(_) {
+            if @lower.graph_traverse_start_relation_field(traverse) is Some(_) {
+              Some(1)
+            } else {
+              Some(0)
+            }
+          } else {
+            None
+          }
+        _ => None
       }
+      let direct_traverse = direct_traverse_relation_count is Some(_)
       let direct_match = match
         @lower.sequence_step(
           @execution.generated_prepared_sequence(sequence),
@@ -2381,7 +2387,13 @@ pub fn provider(
             carriers.length() != 1
           )
         ) ||
-        (direct_traverse && (relations.length() != 1 || carriers.length() != 1)) ||
+        (
+          direct_traverse &&
+          (
+            relations.length() != direct_traverse_relation_count.unwrap_or(-1) ||
+            carriers.length() != 1
+          )
+        ) ||
         (direct_match && (relations.length() != 0 || carriers.length() != 1)) ||
         (
           direct_shortest &&

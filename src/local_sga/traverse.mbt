@@ -25,14 +25,15 @@ pub(all) enum TraverseIssue {
 } derive(Eq, Debug)
 
 ///|
-/// Start a finite traversal kernel. Eligible multi-hop node emission uses
-/// the same simple-path search as path emission before reducing endpoints.
-pub fn start_traverse(
+/// Start either traversal emission from an exact Graph read. Both the stored
+/// and managed-view entrypoints retain the same bounded search state.
+fn start_traverse_read(
   control : @bounded.Control,
   preparation : @execution.CompletionPreparation,
   sequence : @lower.PreparedSequence,
   step : Int,
-  input : @graph.ProducerRead,
+  source : GraphReadSource,
+  graph : @carrier.Graph,
   max_rows : Int,
   limits : @execution.ValueLimits,
   max_workspace_slots : Int,
@@ -62,9 +63,18 @@ pub fn start_traverse(
     ) &&
     hop_count > 0 &&
     @lower.graph_traverse_hop_direction(prepared, 0) is Some(direction) &&
-    @graph.producer_read_matches_operation_input(input, owner, step, 0) &&
-    @graph.producer_read_storage(input) is Some(source) &&
-    @storage.carrier(source) is @carrier.GraphValue(graph) else {
+    (match source {
+      Stored(read) =>
+        @graph.producer_read_matches_operation_input(read, owner, step, 0)
+      Viewed(view) =>
+        @lifecycle.producer_view_kind(view) == @carrier.GraphKind &&
+        @lifecycle.producer_read_reference_matches_operation_input(
+          @lifecycle.producer_view_read_reference(view),
+          owner,
+          step,
+          0,
+        )
+    }) else {
     return Err(UnsupportedTraverseKernel)
   }
   for hop in 0..<hop_count {
@@ -75,8 +85,8 @@ pub fn start_traverse(
   if @lower.graph_traverse_emits_paths(prepared) ||
     (patterned && hop_count > 1) ||
     minimum > 1L {
-    return start_traverse_paths(
-        control, preparation, sequence, step, input, max_rows, limits, max_workspace_slots,
+    return start_traverse_paths_read(
+        control, preparation, sequence, step, source, max_rows, limits, max_workspace_slots,
         max_entries, max_name_bytes, inputs,
       )
       .map(paths => ({ kernel: TraversePaths(paths), } : TraverseExecution))
@@ -133,7 +143,7 @@ pub fn start_traverse(
     preparation,
     sequence,
     step,
-    Stored(input),
+    source,
     graph,
     @lower.graph_traverse_output_schema(prepared),
     starts,
@@ -161,9 +171,44 @@ pub fn start_traverse(
 }
 
 ///|
-/// Run path emission from an exact retained Graph handoff. This is the same
-/// bounded path kernel as the in-task Graph read; the handoff is validated
-/// against the selected operation before any rows are observed.
+/// Start a finite traversal kernel. Eligible multi-hop node emission uses
+/// the same simple-path search as path emission before reducing endpoints.
+pub fn start_traverse(
+  control : @bounded.Control,
+  preparation : @execution.CompletionPreparation,
+  sequence : @lower.PreparedSequence,
+  step : Int,
+  input : @graph.ProducerRead,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_workspace_slots : Int,
+  max_entries : Int,
+  max_name_bytes : Int,
+  inputs : Array[@execution.ProducerRead],
+) -> Result[TraverseExecution, TraverseIssue] {
+  guard @graph.producer_read_storage(input) is Some(storage) &&
+    @storage.carrier(storage) is @carrier.GraphValue(graph) else {
+    return Err(UnsupportedTraverseKernel)
+  }
+  start_traverse_read(
+    control,
+    preparation,
+    sequence,
+    step,
+    Stored(input),
+    graph,
+    max_rows,
+    limits,
+    max_workspace_slots,
+    max_entries,
+    max_name_bytes,
+    inputs,
+  )
+}
+
+///|
+/// Run traversal from an exact retained Graph handoff. The handoff is
+/// validated against the selected operation before any rows are observed.
 pub fn start_traverse_view(
   control : @bounded.Control,
   preparation : @execution.CompletionPreparation,
@@ -178,24 +223,19 @@ pub fn start_traverse_view(
   inputs : Array[@execution.ProducerRead],
 ) -> Result[TraverseExecution, TraverseIssue] {
   let owner = @lower.sequence_owner(sequence)
-  guard @lower.sequence_step(sequence, step)
-    is Some(@lower.GraphTraverseStep(prepared)) &&
-    @lower.graph_traverse_emits_paths(prepared) &&
-    @lifecycle.producer_view_kind(view) == @carrier.GraphKind &&
-    @lifecycle.producer_read_reference_matches_operation_input(
-      @lifecycle.producer_view_read_reference(view),
-      owner,
-      step,
-      0,
-    ) else {
+  guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
+    @lower.node_input_target(node, 0) is Some(target) &&
+    @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
+    is Some(@carrier.GraphValue(graph)) else {
     return Err(UnsupportedTraverseKernel)
   }
-  start_traverse_paths_read(
+  start_traverse_read(
     control,
     preparation,
     sequence,
     step,
     Viewed(view),
+    graph,
     max_rows,
     limits,
     max_workspace_slots,
@@ -203,8 +243,6 @@ pub fn start_traverse_view(
     max_name_bytes,
     inputs,
   )
-  .map(paths => ({ kernel: TraversePaths(paths), } : TraverseExecution))
-  .map_err(issue => TraversePathIssue(issue))
 }
 
 ///|

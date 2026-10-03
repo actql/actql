@@ -2243,6 +2243,55 @@ async function exerciseStrategyGraph(
       {start_id: 1, node_id: 2, depth: 1},
     ],
   }, {
+    name: 'retained-traverse-nodes-filter',
+    retainedOutput: true,
+    selectedStructural: true,
+    step: {
+      from: 'g',
+      traverse: {
+        start: {ids: [1]}, direction: 'out', min_hops: 1,
+        max_hops: 1, emit: 'nodes',
+      },
+      as: 'out',
+    },
+    fields: ['start_id', 'node_id', 'depth'],
+    secondFields: ['node_id', 'depth'],
+    expected: [{start_id: 1, node_id: 2, depth: 1}],
+  }, {
+    name: 'retained-traverse-paths-filter',
+    retainedOutput: true,
+    selectedStructural: true,
+    step: {
+      from: 'g',
+      traverse: {
+        start: {ids: [1]}, direction: 'out', min_hops: 1,
+        max_hops: 1, emit: 'paths', max_output_rows: 2,
+      },
+      as: 'out',
+    },
+    fields: ['start_id', 'end_id', 'hop_count'],
+    secondFields: ['end_id', 'hop_count'],
+    expected: [{start_id: 1, end_id: 2, hop_count: 1}],
+  }, {
+    name: 'retained-traverse-relation-paths-filter',
+    retainedOutput: true,
+    selectedStructural: true,
+    selectorInput: true,
+    step: {
+      from: 'g',
+      traverse: {
+        start: {from: 'selected', id: 'id'}, direction: 'out',
+        min_hops: 1, max_hops: 1, emit: 'paths', max_output_rows: 2,
+      },
+      as: 'out',
+    },
+    fields: ['start_id', 'end_id', 'hop_count'],
+    secondFields: ['end_id', 'hop_count'],
+    expected: [
+      {start_id: 1, end_id: 2, hop_count: 1},
+      {start_id: 2, end_id: 1, hop_count: 1},
+    ],
+  }, {
     name: 'retained-shortest-filter',
     retainedOutput: true,
     selectedStructural: true,
@@ -2348,6 +2397,10 @@ async function exerciseStrategyGraph(
     graphPublicationCases.push(publicationCase);
   }
   for (const publicationCase of graphPublicationCases) {
+    if (process.env.ACTQL_TEST_GRAPH_CASE &&
+        !publicationCase.name.startsWith(process.env.ACTQL_TEST_GRAPH_CASE)) {
+      continue;
+    }
     const graphProgram = structuredClone(graphProgramBase);
     if (publicationCase.rightRows) {
       const rightValues = structuredClone(graphProgram.stages[1]);
@@ -2413,6 +2466,8 @@ async function exerciseStrategyGraph(
       : publicationCase.name.startsWith('reach-') ||
           publicationCase.name === 'retained-reach-filter'
         ? fixture.strategyFixtureSgaReachCreate
+        : publicationCase.name.startsWith('retained-traverse-')
+          ? fixture.strategyFixtureSgaTraverseSelectedSizedCreate
         : publicationCase.name === 'retained-shortest-filter'
           ? fixture.strategyFixtureSgaShortestSizedCreate
         : fixture.strategyFixtureSgaCreate;
@@ -2421,7 +2476,11 @@ async function exerciseStrategyGraph(
       sgaFixture = createSgaFixture(
         ...sgaEnvironmentArguments(args),
         JSON.stringify(graphProgram),
-        ...(publicationCase.name === 'retained-shortest-filter' ? [2n] : []),
+        ...(publicationCase.name === 'retained-shortest-filter' ||
+          publicationCase.name.startsWith('retained-traverse-')
+          ? [2n] : []),
+        ...(publicationCase.name.startsWith('retained-traverse-')
+          ? [publicationCase.name.includes('-paths-')] : []),
       );
     } catch (error) {
       throw new Error(`SGA fixture ${publicationCase.name} failed to check`,
@@ -5212,6 +5271,28 @@ async function exerciseStrategyGraph(
     }],
     fields: ['start_id', 'node_id', 'depth'],
   }, {
+    name: 'retained-traverse-relation-paths-filter-in-flight',
+    retainedOutput: true,
+    selectedStructural: true,
+    relationSelector: true,
+    rows: 40,
+    advanceQuantum: 1,
+    constructionProgress: 40,
+    constructionStarts: [1],
+    cancelOnManagedStart: 2,
+    managedStarts: 2,
+    cancelTask: 3,
+    completedTasks: [1, 2],
+    steps: [{
+      from: 'g',
+      traverse: {
+        start: {from: 'selected', id: 'id'}, direction: 'out',
+        min_hops: 1, max_hops: 1, emit: 'paths', max_output_rows: 40,
+      },
+      as: 'out',
+    }],
+    fields: ['start_id', 'end_id', 'hop_count'],
+  }, {
     name: 'retained-shortest-filter-in-flight',
     retainedOutput: true,
     selectedStructural: true,
@@ -5367,6 +5448,10 @@ async function exerciseStrategyGraph(
     rows: 40,
     advanceQuantum: 1,
     constructionProgress: 80,
+    cancelOnManagedStart: 3,
+    managedStarts: 3,
+    cancelTask: 3,
+    completedTasks: [1, 2],
     step: {
       from: 'g',
       traverse: {
@@ -5849,6 +5934,10 @@ async function exerciseStrategyGraph(
     fields: ['query_id', 'candidate_id', 'score', 'rank'],
   }];
   for (const cancellationCase of graphCancellationCases) {
+    if (process.env.ACTQL_TEST_GRAPH_CASE &&
+        !cancellationCase.name.startsWith(process.env.ACTQL_TEST_GRAPH_CASE)) {
+      continue;
+    }
     const teaFamily = cancellationCase.family === 'tea' ||
       cancellationCase.family === 'time-series' ||
       cancellationCase.family === 'interval' ||
@@ -6771,6 +6860,9 @@ async function exerciseStrategyGraph(
           ? fixture.strategyFixtureSgaTraversePathsSizedCreate
         : cancellationCase.name === 'traverse-out'
           ? fixture.strategyFixtureSgaTraverseSizedCreate
+        : cancellationCase.name ===
+            'retained-traverse-relation-paths-filter-in-flight'
+          ? fixture.strategyFixtureSgaTraverseSelectedSizedCreate
         : cancellationCase.name === 'reach-out' ||
           cancellationCase.name === 'retained-reach-filter-in-flight'
           ? fixture.strategyFixtureSgaReachSizedCreate
@@ -6794,6 +6886,9 @@ async function exerciseStrategyGraph(
               ? [orderedContract, cancellationCase.rows]
               : [orderedContract]
           : [BigInt(cancellationCase.rows)]),
+        ...(cancellationCase.name ===
+          'retained-traverse-relation-paths-filter-in-flight'
+          ? [true] : []),
       );
     } catch (error) {
       throw new Error(`Graph cancellation fixture ${cancellationCase.name} failed to check`,

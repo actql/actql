@@ -27,6 +27,7 @@ fn issued_fixture_checked(
   shortest? : Bool = false,
   traverse? : Bool = false,
   traverse_paths? : Bool = false,
+  traverse_selected? : Bool = false,
   sga_rows? : Int64? = None,
   sga_derived_rows? : Int64? = None,
   sequence_match? : Bool = false,
@@ -113,6 +114,9 @@ fn issued_fixture_checked(
     [reach_fixture_capacity(environment, "graph")]
   } else if shortest {
     [shortest_fixture_capacity(environment, "graph")]
+  } else if traverse && traverse_selected {
+    // The standard derived-capacity owner binds the split producer and query.
+    []
   } else if traverse {
     [
       traverse_fixture_capacity(

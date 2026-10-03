@@ -106,10 +106,9 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     Values(_) | InnerJoin(_) | CrossJoinRows(_) | AppendRows(_) | SetRows(_) =>
       true
     GraphConstructionValue(_) => operation(node) == "BRIDGE.rows.to_graph"
-    GraphTraverseRows(checked) =>
+    GraphTraverseRows(_) =>
       operation(node) == "SGA.traverse" &&
-      @graph.traverse_emission(checked) == @graph.TraversedPaths &&
-      node.input_targets.length() == 2
+      (node.input_targets.length() == 1 || node.input_targets.length() == 2)
     GraphMatchRows(_) =>
       operation(node) == "SGA.match_nodes" ||
       operation(node) == "SGA.match_edges"

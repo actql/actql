@@ -1793,9 +1793,30 @@ fn start_traverse_paths_read(
         inputs~,
       )
     Viewed(view) => {
-      guard inputs.length() == 1 else {
+      guard inputs.length() + 1 == @lower.node_input_count(node) else {
         @execution.cancel_admitted_output(output) |> ignore
         return Err(InvalidTraversePathsKernel)
+      }
+      let bound = [
+        @execution.trusted_output_carrier_input(
+          @lifecycle.producer_view_read_reference(view),
+        ),
+      ]
+      for port in 1..<@lower.node_input_count(node) {
+        let mut found = None
+        for read in inputs {
+          if @execution.producer_read_matches_operation_input(
+              read, owner, step, port,
+            ) {
+            found = Some(read)
+            break
+          }
+        }
+        guard found is Some(read) else {
+          @execution.cancel_admitted_output(output) |> ignore
+          return Err(InvalidTraversePathsKernel)
+        }
+        bound.push(@execution.trusted_output_relation_input(read))
       }
       @execution.prepare_trusted_output_port_with_inputs(
         preparation,
@@ -1803,12 +1824,7 @@ fn start_traverse_paths_read(
         max_entries,
         max_name_bytes,
         fn(_) { if live.val { rows.val } else { None } },
-        inputs=[
-          @execution.trusted_output_carrier_input(
-            @lifecycle.producer_view_read_reference(view),
-          ),
-          @execution.trusted_output_relation_input(inputs[0]),
-        ],
+        inputs=bound,
       )
     }
   }
@@ -1949,35 +1965,6 @@ fn start_traverse_paths_read(
     workspace_usage: fn() { (state.workspace_slots, state.workspace_peak) },
     value_item_attempts,
   })
-}
-
-///|
-fn start_traverse_paths(
-  control : @bounded.Control,
-  preparation : @execution.CompletionPreparation,
-  sequence : @lower.PreparedSequence,
-  step : Int,
-  input : @graph.ProducerRead,
-  max_rows : Int,
-  limits : @execution.ValueLimits,
-  max_workspace_slots : Int,
-  max_entries : Int,
-  max_name_bytes : Int,
-  inputs : Array[@execution.ProducerRead],
-) -> Result[TraversePathsExecution, TraversePathsIssue] {
-  start_traverse_paths_read(
-    control,
-    preparation,
-    sequence,
-    step,
-    Stored(input),
-    max_rows,
-    limits,
-    max_workspace_slots,
-    max_entries,
-    max_name_bytes,
-    inputs,
-  )
 }
 
 ///|

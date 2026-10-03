@@ -220,15 +220,6 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
         }
       }
     }
-    // A graph constructed in this Stage and a separately supplied start
-    // Relation still belong to the fused traversal task. Splitting here
-    // would request a Graph output that the existing task never retained.
-    if @lower.operation(node) == "SGA.traverse" &&
-      @lower.node_input_count(node) == 2 &&
-      @lower.node_input_target(node, 0) is Some(@pipeline.Step(_)) &&
-      @lower.node_input_target(node, 1) is Some(@pipeline.Input(_)) {
-      return None
-    }
     for input in 0..<@lower.node_input_count(node) {
       match @lower.node_input_target(node, input) {
         Some(@pipeline.Step(producer)) => {

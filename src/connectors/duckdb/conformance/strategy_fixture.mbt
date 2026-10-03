@@ -508,6 +508,40 @@ pub fn strategy_fixture_sga_traverse_paths_sized_create(
 }
 
 ///|
+#export_name("strategyFixtureSgaTraverseSelectedSizedCreate")
+pub fn strategy_fixture_sga_traverse_selected_sized_create(
+  environment_json : String,
+  environment_cid : String,
+  registry_json : String,
+  values_json : String,
+  fragment_json : String,
+  query_json : String,
+  evidence_json : String,
+  two_receipt_json : String,
+  program_json : String,
+  rows : Int64,
+  path_emission : Bool,
+) -> StrategyFixture {
+  strategy_fixture_create_impl(
+    environment_json,
+    environment_cid,
+    registry_json,
+    values_json,
+    fragment_json,
+    query_json,
+    evidence_json,
+    two_receipt_json,
+    program_json,
+    false,
+    sga=true,
+    traverse=true,
+    traverse_paths=path_emission,
+    traverse_selected=true,
+    sga_rows=Some(rows),
+  )
+}
+
+///|
 fn strategy_fixture_create_impl(
   environment_json : String,
   environment_cid : String,
@@ -530,6 +564,7 @@ fn strategy_fixture_create_impl(
   shortest? : Bool = false,
   traverse? : Bool = false,
   traverse_paths? : Bool = false,
+  traverse_selected? : Bool = false,
   sga_rows? : Int64? = None,
   sga_derived_rows? : Int64? = None,
   supplied_ranking_rows? : Int? = None,
@@ -551,6 +586,7 @@ fn strategy_fixture_create_impl(
       shortest~,
       traverse~,
       traverse_paths~,
+      traverse_selected~,
       sga_rows~,
       sga_derived_rows~,
       sequence_match~,

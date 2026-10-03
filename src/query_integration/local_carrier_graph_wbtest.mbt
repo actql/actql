@@ -10065,6 +10065,101 @@ test "selected Graph reach view preserves exact limits and binding" {
 }
 
 ///|
+test "selected Graph traverse view preserves path limits and binding" {
+  let source_owner = carrier_graph_source_owner_with_rows(
+    sga_variant_chain_rows(),
+  )
+  let graph_owner = carrier_graph_material_owner(source_owner)
+  let material = carrier_graph_diagnostic_material(graph_owner, source_owner)
+  let traverse = sga_variant_traverse_body("{\"ids\":[1]}", "paths", 1, 2)
+  let owner = carrier_selected_graph_diagnostic_owner(graph_owner, traverse)
+  let generated = @execution.select_generated_sequence_step(
+    task_test_generated(owner),
+    0,
+  ).unwrap()
+  let sequence = @execution.generated_prepared_sequence(generated)
+  let start = fn(control, workspace, work) {
+    @local_sga.start_traverse_view(
+      control,
+      @execution.generated_completion_preparation(generated),
+      sequence,
+      0,
+      @carrier_runtime.material_prepare_view(material, owner, 0, graph_owner).unwrap(),
+      10,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: work, },
+      workspace,
+      1000,
+      1000,
+      [],
+    )
+  }
+  // The fixed five-node path corpus has an independently pinned ceiling of
+  // 268 value-work units and a peak of 26 private workspace slots.
+  let exact = start(@bounded.control(), 26, 268).unwrap()
+  let output = finish_traverse(exact).unwrap()
+  assert_eq(@execution.completed_row_count(output), 4)
+  assert_eq(
+    @execution.completed_output_row_wire(output, 0, 10000, 1000, 20).unwrap(),
+    sga_variant_path_row([1, 2]),
+  )
+  assert_eq(@local_sga.cleanup_traverse(exact), Ok(true))
+  let work_short = start(@bounded.control(), 26, 267).unwrap()
+  assert_true(
+    finish_traverse(work_short)
+    is Err(
+      @local_sga.TraversePathIssue(
+        @local_sga.TraversePathsOutput(@execution.CaptureLimit)
+      )
+    ),
+  )
+  assert_eq(@local_sga.cleanup_traverse(work_short), Ok(true))
+  let space_short = start(@bounded.control(), 25, 268).unwrap()
+  assert_true(
+    finish_traverse(space_short)
+    is Err(@local_sga.TraversePathIssue(@local_sga.TraversePathsWorkspaceLimit)),
+  )
+  assert_eq(@local_sga.cleanup_traverse(space_short), Ok(true))
+
+  let control = @bounded.control()
+  let cancelled = start(control, 26, 268).unwrap()
+  assert_true(
+    @local_sga.advance_traverse(cancelled, 1).unwrap()
+    is @local_sga.TraverseContinue(work=1L, ..),
+  )
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    @local_sga.advance_traverse(cancelled, 1).unwrap()
+    is @local_sga.TraverseStopped(_, ..),
+  )
+  assert_eq(@local_sga.cleanup_traverse(cancelled), Ok(true))
+
+  let foreign_owner = carrier_selected_graph_diagnostic_owner(
+    graph_owner, traverse,
+  )
+  let foreign = @carrier_runtime.material_prepare_view(
+    material, foreign_owner, 0, graph_owner,
+  ).unwrap()
+  assert_true(
+    @local_sga.start_traverse_view(
+      @bounded.control(),
+      @execution.generated_completion_preparation(generated),
+      sequence,
+      0,
+      foreign,
+      10,
+      { max_nodes: 1000, max_text_bytes: 1000, max_depth: 10, max_work: 268, },
+      26,
+      1000,
+      1000,
+      [],
+    )
+    is Err(@local_sga.UnsupportedTraverseKernel),
+  )
+  assert_true(@carrier_runtime.material_available(material))
+  assert_true(@carrier_runtime.reclaim_material(material))
+}
+
+///|
 test "selected Graph shortest path retains its exact input" {
   let source_owner = carrier_graph_source_owner()
   let graph_owner = carrier_graph_material_owner(source_owner)

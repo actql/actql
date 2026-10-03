@@ -409,6 +409,8 @@ pub fn strategy_fixture_sga_subset(StrategyFixture) -> @connectors_builtin.Confi
 
 pub fn strategy_fixture_sga_traverse_paths_sized_create(String, String, String, String, String, String, String, String, String, Int64) -> StrategyFixture
 
+pub fn strategy_fixture_sga_traverse_selected_sized_create(String, String, String, String, String, String, String, String, String, Int64, Bool) -> StrategyFixture
+
 pub fn strategy_fixture_sga_traverse_sized_create(String, String, String, String, String, String, String, String, String, Int64) -> StrategyFixture
 
 pub fn strategy_fixture_source_free_retained_subset(@run_publication_host.PreparedClientProgram, String, String, String, Int, Int) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]
