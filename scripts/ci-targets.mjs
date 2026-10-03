@@ -12,13 +12,21 @@ const validPath = path => typeof path === 'string' && path.length > 0 && !/[\0\r
 // Canonical identity, runtime ownership, platform/FFI and build changes keep
 // every core target and macOS. New/unclassified areas also default to full.
 const sensitive = /^(?:\.github\/|vendor\/|proofs\/|spec\/|portability\/|docs\/(?:spec|reviews)\/)|^(?:toolchain\.json|moon\.mod|package(?:-lock)?\.json)$|(?:^|\/)(?:moon\.pkg|package(?:-lock)?\.json|[^/]*(?:build|link)[^/]*|[^/]*(?:native|wasm|_js\.|ffi|identity|canonical|custody|ownership|owner|owned|publication|lifetime|recovery|capacity|resource|memory|allocation|cleanup|retained|scratch|sqlite|sha256)[^/]*)|^src\/(?:cmd\/|platform_native\/|managed_[^/]+\/|bounded_[^/]+\/|execution_relation\/|connectors\/local\/|(?:encode|decode)_[^/]+\/|value_(?:contract|admission)\/)|\.(?:c|h|cc|cpp|a|so|dylib|wasm)$/iu;
-const knownPortable = /^(?:src\/|docs\/|packages\/|adapters\/)|^(?:README\.md|LICENSE|CONTRIBUTING\.md|AGENTS\.md|CLAUDE\.md)$|^\.(?:agents|claude)\/skills\//u;
-const reportingTool = /^scripts\/(?:ci-(?:evidence|review|timing|artifacts|artifact-reader)|worktree-inventory)(?:\.test)?\.mjs$/u;
+// Eligibility is an exact, reviewed inventory, never a directory or extension
+// heuristic. New files and configuration files stay full until reviewed here.
+// source_span/span.mbt is the portable Span data declaration; its manifest
+// enables all three targets without imports or target-specific source.
+// worktree-inventory.mjs is standalone, read-only metadata reporting.
+const reviewedPortableFiles = new Set([
+  'README.md', 'LICENSE', 'CONTRIBUTING.md', 'AGENTS.md', 'CLAUDE.md',
+  'src/source_span/span.mbt',
+  'scripts/worktree-inventory.mjs',
+]);
 export function selectTargets(paths, {event = 'pull_request', nativeMacos = false, failure = null,
   targetSensitiveDiff = false} = {}) {
   const full = reason => ({schema: 'actql-ci-targets/1', targets: [...all], macos: true, reason});
   if (event !== 'pull_request') {
-    const result = full(`Full core verification for ${event}`);
+    const result = full(`Full core verification selected for ${event}`);
     // Preserve the existing explicit opt-in for an on-demand working branch.
     if (event === 'workflow_dispatch') result.macos = nativeMacos;
     return result;
@@ -26,13 +34,10 @@ export function selectTargets(paths, {event = 'pull_request', nativeMacos = fals
   if (failure) return full(`Diff unavailable: ${failure}`);
   if (!Array.isArray(paths) || !paths.length || !paths.every(validPath)) return full('Empty or invalid change inventory');
   if (targetSensitiveDiff) return full('Target-specific syntax or runtime boundary changed');
-  const path = paths.find(path => sensitive.test(path) ||
-    (path.startsWith('src/') && !path.endsWith('.mbt')) ||
-    (path.startsWith('packages/') && !/^packages\/(?:sdk|client-wire|node|local-node|run-host-core|coordinator-core|transfer-core)\//u.test(path)) ||
-    !(knownPortable.test(path) || reportingTool.test(path)));
+  const path = paths.find(path => sensitive.test(path) || !reviewedPortableFiles.has(path));
   if (path) return full(`Target-sensitive or unclassified input: ${path}`);
   return {schema: 'actql-ci-targets/1', targets: ['js'], macos: false,
-    reason: 'Reviewed portable paths: PR core uses JS; full targets and macOS run on main'};
+    reason: 'Reviewed portable paths: PR core uses JS; full targets and macOS selected on main'};
 }
 export function validateSelection(selection) {
   assert.equal(selection?.schema, 'actql-ci-targets/1');
@@ -55,7 +60,9 @@ export function readChanges(payload, git = args => execFileSync('git', args,
   const changedLines = patch.split('\n').filter(line => /^[+-](?![+-])/u.test(line)).join('\n');
   const paths = output.split('\0').filter(Boolean);
   const boundary = /\b(?:extern|supported_targets|targets|native-stub|unsafe|malloc|realloc|sizeof)\b|\b(?:free|release|retain|dispose|cleanup)\s*\(|#(?:cfg|external|borrow|owned)\b|\btarget\s*=|\b\w*(?:cid|sha256|canonical|preimage|hash)\w*\b/iu;
-  let targetSensitiveDiff = boundary.test(changedLines);
+  // A registered filename must not hide a symlink, executable-mode change,
+  // addition or deletion. Inspect Git headers as well as changed source text.
+  let targetSensitiveDiff = /^(?:old mode|new mode|new file mode|deleted file mode) /mu.test(patch) || boundary.test(changedLines);
   // A body-only edit under an unchanged target/ownership annotation still
   // affects that target. Check both versions; new/deleted source is full.
   for (const path of paths.filter(path => path.startsWith('src/') && path.endsWith('.mbt'))) {

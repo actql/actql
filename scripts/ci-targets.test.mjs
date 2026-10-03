@@ -16,11 +16,10 @@ test('main keeps full core and macOS, manual keeps explicit macOS opt-in', () =>
   assert.equal(selectTargets([], {event: 'workflow_dispatch', nativeMacos: true}).macos, true);
 });
 test('portable PR paths choose JS and explain deferred macOS coverage', () => {
-  for (const path of ['README.md', 'docs/development.md', 'src/source_frontend/parse.mbt',
-    'packages/sdk/index.mjs', 'adapters/workers/index.mjs', 'scripts/ci-evidence.test.mjs']) {
+  for (const path of ['README.md', 'src/source_span/span.mbt', 'scripts/worktree-inventory.mjs']) {
     const result = validateSelection(selectTargets([path]));
     assert.deepEqual(result.targets, ['js'], path); assert.equal(result.macos, false, path);
-    assert.match(result.reason, /full targets and macOS run on main/u);
+    assert.match(result.reason, /full targets and macOS selected on main/u);
   }
 });
 test('platform, per-file target, runtime ownership, identities and build retain every target', () => {
@@ -139,5 +138,58 @@ test('canonical identities in otherwise portable source files retain all targets
         args.includes('--name-only') ? 'src/graph_contract/contract.mbt\0' : '+ordinary edit');
     assert.equal(result.targetSensitiveDiff, true, token);
     assert.deepEqual(selectTargets(result.paths, result).targets, all, token);
+  }
+});
+
+test('P1: unregistered runtime files and configuration cannot qualify by directory', () => {
+  for (const path of [
+    'adapters/new-engine/index.mjs',
+    'adapters/workers/wrangler.toml',
+    'packages/sdk/tsconfig.json',
+    'src/source_frontend/lower.mbt',
+  ]) {
+    const selected = selectTargets([path], {targetSensitiveDiff: false});
+    assert.deepEqual(selected.targets, all, path);
+    assert.equal(selected.macos, true, path);
+  }
+});
+test('an existing unregistered MoonBit file stays full even with portable contents', () => {
+  const base = 'a'.repeat(40), head = 'b'.repeat(40);
+  const result = readChanges({pull_request: {base: {sha: base}}}, args =>
+    args[0] === 'rev-parse' ? head : args[0] === 'show' ? 'fn add(a: Int, b: Int) -> Int { a + b }' :
+      args.includes('--name-only') ? 'src/unregistered/arithmetic.mbt\0' : '+ a + b');
+  assert.equal(result.targetSensitiveDiff, false);
+  assert.deepEqual(selectTargets(result.paths, result).targets, all);
+  assert.equal(selectTargets(result.paths, result).macos, true);
+});
+test('only the exact registered portable file qualifies, not siblings or configuration', () => {
+  assert.deepEqual(selectTargets(['src/source_span/span.mbt']).targets, ['js']);
+  for (const path of ['src/source_span/other.mbt', 'src/source_span/moon.pkg',
+    'scripts/worktree-inventory.config.json', 'docs/new-engine.md',
+    'packages/sdk/index.mjs', 'adapters/workers/runtime.mjs']) {
+    assert.deepEqual(selectTargets([path]).targets, all, path);
+  }
+  assert.deepEqual(selectTargets(['src/source_span/span.mbt'], {targetSensitiveDiff: true}).targets, all);
+});
+
+test('registered files cannot hide type/mode changes or head-only target annotations', () => {
+  const base = 'a'.repeat(40), head = 'b'.repeat(40), path = 'src/source_span/span.mbt';
+  const calls = [];
+  const result = readChanges({pull_request: {base: {sha: base}}}, args => {
+    if (args[0] === 'rev-parse') return head;
+    if (args[0] === 'show') {
+      calls.push(args[1]);
+      return args[1].startsWith(base) ? 'pub struct Span { line : Int }' : '#cfg(target="js")\npub struct Span { line : Int }';
+    }
+    return args.includes('--name-only') ? path + '\0' : '+ line : Int';
+  });
+  assert.equal(result.targetSensitiveDiff, true);
+  assert.deepEqual(calls, [`${base}:${path}`, `${head}:${path}`]);
+  for (const header of ['old mode 100644\nnew mode 120000', 'new file mode 100644', 'deleted file mode 100644']) {
+    const changed = readChanges({pull_request: {base: {sha: base}}}, args =>
+      args[0] === 'rev-parse' ? head : args[0] === 'show' ? 'pub struct Span { line : Int }' :
+        args.includes('--name-only') ? path + '\0' : header + '\n+ other-path');
+    assert.equal(changed.targetSensitiveDiff, true, header);
+    assert.deepEqual(selectTargets(changed.paths, changed).targets, all);
   }
 });
