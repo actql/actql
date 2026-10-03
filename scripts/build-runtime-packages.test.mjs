@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {copyFileSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {dirname, join} from 'node:path';
+import {basename, dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 
@@ -71,8 +71,8 @@ function put(directory, path, contents) {
   writeFileSync(join(directory, path), contents);
 }
 
-function run(t, requested, {fail, wrapper, version} = {}) {
-  const directory = realpathSync(mkdtempSync(join(tmpdir(), 'runtime-build-check-')));
+function run(t, requested, {fail, wrapper, version, temporaryParent = tmpdir()} = {}) {
+  const directory = realpathSync(mkdtempSync(join(temporaryParent, 'runtime-build-check-')));
   t.after(() => rmSync(directory, {recursive: true, force: true}));
   mkdirSync(join(directory, 'scripts'));
   for (const name of ['build-runtime-packages', 'check-owned-contract-versions',
@@ -139,6 +139,28 @@ function expectedCalls(names, directory) {
       args: [`scripts/${item.builder}.mjs`, ...args], cwd: directory + '/', stdio: 'inherit'}));
   }), {done: true}];
 }
+
+test('runtime preparation preserves physical cwd and output through a symlinked temporary parent', t => {
+  const scratch = realpathSync(mkdtempSync(join(tmpdir(), 'runtime-build-alias-')));
+  // Both the link and its target belong to this test. Recursive removal of
+  // scratch unlinks directory symlinks rather than following their targets.
+  t.after(() => rmSync(scratch, {recursive: true, force: true}));
+  const physicalParent = join(scratch, 'physical'), logicalParent = join(scratch, 'logical');
+  mkdirSync(physicalParent);
+  symlinkSync(physicalParent, logicalParent, 'dir');
+  assert.notEqual(logicalParent, realpathSync(logicalParent));
+  const {result, calls, directory} = run(t, ['transfer-core'], {temporaryParent: logicalParent});
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(calls, expectedCalls(['transfer-core'], directory));
+  assert.equal(dirname(directory), physicalParent);
+  const output = packages['transfer-core'].destination;
+  const physicalOutput = join(physicalParent, basename(directory), output);
+  const logicalOutput = join(logicalParent, basename(directory), output);
+  assert.equal(realpathSync(logicalOutput), physicalOutput);
+  const expected = Buffer.from('export const payload = "fixture-remote_transfer_abi";\n');
+  assert.deepEqual(readFileSync(physicalOutput), expected);
+  assert.deepEqual(readFileSync(logicalOutput), expected);
+});
 
 for (const [gate, commands] of Object.entries(expectedGates)) {
   test(`${gate} retains every command except its immediate duplicate check`, () => {
