@@ -106,7 +106,19 @@ fails the `join-chain-qualified-input` row comparison. That source has b.y=20
 for id=1 and b.y=10 for id=2, and specifies ascending `ORDER BY b.y + 1`.
 Its authored expectation lists id=1 before id=2, contrary to 11 preceding 21.
 The returned rows are `[{"y":1,"z":200},{"y":2,"z":100}]`.
-The fixture is retained pending an explicit correction decision; production
-sort semantics must not be reversed to satisfy it. Remaining chain cases,
+That historical failure is a fixture error, not evidence of incorrect sorting.
+Remaining chain cases,
 refusals and HTTP were not reached. This is partial public execution evidence,
 not the nine-positive/four-refusal acceptance completion.
+
+The approved fixture correction changes only the second example's b input:
+id=1 has y=10, id=2 has y=20. Its existing expected rows remain
+`[{"y":2,"z":100},{"y":1,"z":200}]`. Qualified b.y produces keys 11,21;
+the selected output alias y instead produces 3,2 and the opposite row order.
+This distinguishes correct qualified input binding from accidental alias reuse.
+An independent SQLite evaluation of the authored query matches the unchanged
+expected rows; replacing its order expression with a.x + 1 produces the reverse
+order. Both checks pass without importing the Frontend or runtime. The corpus
+remains nine positive/four refusal examples; column contracts, acquisition
+counts and hidden-column/replay checks are unchanged. This input correction
+does not itself establish packed Local/HTTP acceptance.
