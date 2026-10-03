@@ -1,0 +1,51 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "main-pr233-package-resolution",
+  "kind": "resolution",
+  "revision": "258f86ecd9abf9628d4d98c1da602c16e257873d",
+  "parents": [
+    "d0d81080a78e59b7d5f5377432f6ef9f88eb59e9",
+    "3f1bebc8875b2ab2209811d779f2804c7c5051c3"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "d0d81080a78e59b7d5f5377432f6ef9f88eb59e9",
+          "digest": "e07d7f96553d52930e9042b1776bb9eed0b6df1e89142bb3a2011442c3b84ef4",
+          "mode": "100644"
+        },
+        {
+          "revision": "3f1bebc8875b2ab2209811d779f2804c7c5051c3",
+          "digest": "ed9130958b1df24fc7a06769d0af0618d629f9c454fdd4cbf69c39e062f8e11a",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "5568135ba9f9417ed68315079c33817e13009bcbe9a8b55ca9a97d45e812324f",
+      "afterMode": "100644",
+      "reason": "Compose the actual PR #233 merge of main resident-source native acceptance registration with the Frontend SGA contract check. Preserve both independent command additions exactly once, all inherited gates and declarations, and the committed package body; no validator, historical baseline or runtime behavior changes."
+    }
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-3877b637406b",
+    "adopt-63b114ad524b",
+    "adopt-678626b010b4",
+    "adopt-7427f7f09276",
+    "adopt-9a7c592a8ed9",
+    "adopt-b480cffb6e6d",
+    "adopt-bf2d058c21c1",
+    "adopt-f24288853c19",
+    "adopt-sga-query-contract",
+    "frontend-sga-main-integration",
+    "frontend-unified-graph-source-integration",
+    "pr164-main-a32-verification-resolution",
+    "pr164-main4f-runtime-check-resolution",
+    "pr164-property-graph-source",
+    "remove-duplicate-runtime-package-checks",
+    "resident-source-native-registration",
+    "resolve-resident-source-latest-main",
+    "sdk-cancel-response-loss-registration"
+  ]
+}
