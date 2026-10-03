@@ -42,6 +42,26 @@ CI remain necessary; the earlier SHA's successful checks are not adoption GO
 for this repair. B can continue connection preparation, but formal adoption
 and merge remain withheld.
 
+The clean repair source is
+`5d75101e168b46553ca91adf597c55c6f07ed310`. Its complete local Host and
+spec jobs pass; spec retains strict resource regression **176/176** and
+reports metadata `changes: []`, `writes: false`. Fresh normal-prepack public
+Graph acceptance passes **2/2, no skips**, with that clean SHA in the retained
+receipt at `worktrees/.codex-scratch/property-graph-package-kynPcB/acceptance.json`.
+Logs: `/private/tmp/property-graph-{host,spec,packed-snapshot}-5d75101e1-20261003.log`.
+
+Main then advances to `8b21ddd3f4a17fcecbb9bcf5878082148af0aa99`
+(CI/evidence parallelization #226 and symlinked temporary-root fixtures #229).
+The resulting PR conflict prevents new CI from starting; it is not a failed
+repair-source test. After the local gate exits, integration preserves both
+main's symlink regression and this branch's exact three Graph-gate additions
+in `scripts/build-runtime-packages.test.mjs`. All remaining main changes are
+adopted without independent edits. Runtime-builder, sealed CI-evidence and
+repair/driver checks pass **197/197, no skips** before the integration commit:
+`/private/tmp/property-graph-main8b-repair-regression-20261003.log`. No common
+Graph source changes in this integration. Fresh packed acceptance and final
+public CI are still required for its submitted SHA.
+
 ### Acquired-INFER main integration (2026-10-03)
 
 Clean source `34c1f5f82b7474f0c302d6ac7ba50597a1bf9909` completes both
