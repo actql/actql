@@ -119,3 +119,70 @@ test "Pipe JOIN aggregation projects keys after physical grouping" {
     _ => fail("Pipe grouped JOIN Values must be closed")
   }
 }
+
+///|
+test "authored public grouping sources pass ordinary script admission and checking" {
+  // Same independently authored input rows as the public fixture. Here they
+  // are Values, so this verifies lowering/checking, not acquisition or Host I/O.
+  let values = @wire.admit(
+    @source.parse_json(
+      (
+        #|{"values":{"schema":{"amount":{"type":"number","nullable":true},"id":{"type":"number","nullable":false}},"rows":[{"id":3,"amount":30},{"id":1,"amount":null},{"id":2,"amount":20},{"id":3,"amount":30}]},"as":"records"}
+      ),
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  let context = {
+    ..pair_context(),
+    inputs: [
+      {
+        relation: [{ value: "records", quoted: false, }],
+        name: "records",
+        source: GeneratedValues(values),
+        visible_fields: ["amount", "id"],
+        graph_bindings: [],
+      },
+    ],
+  }
+  for
+    (source, fields) in [
+      (
+        "SELECT 7 AS x, 9 AS y |> AS before |> SET x = y |> AGGREGATE COUNT(*) AS n GROUP BY before.x |> ORDER BY x",
+        "\"fields\":[\"x\",\"n\"]",
+      ),
+      (
+        "SELECT 7 AS x, 9 AS y |> AS before |> SET x = y |> AGGREGATE COUNT(*) AS n GROUP BY x |> ORDER BY x",
+        "\"fields\":[\"x\",\"n\"]",
+      ),
+      (
+        "WITH t AS (SELECT 2 AS x, 10 AS y UNION ALL SELECT 1 AS x, 20 AS y) SELECT l.x + 1 AS y, COUNT(*) AS n FROM t AS l JOIN t AS r ON l.x = r.x JOIN t AS s ON r.x = s.x GROUP BY y HAVING y > 1 ORDER BY y",
+        "\"fields\":[\"y\",\"n\"]",
+      ),
+      (
+        "WITH t AS (SELECT 2 AS x, 10 AS y UNION ALL SELECT 1 AS x, 20 AS y) FROM t AS l |> JOIN t AS r ON l.x = r.x |> JOIN t AS s ON r.x = s.x |> AGGREGATE COUNT(*) AS n GROUP BY l.x |> SELECT x, n |> ORDER BY x",
+        "\"fields\":[\"x\",\"n\"]",
+      ),
+      (
+        "SELECT CAST(NULL AS FLOAT64) AS x WHERE FALSE |> AS before |> AGGREGATE COUNT(*) AS n GROUP BY before.x |> ORDER BY x",
+        "\"fields\":[\"x\",\"n\"]",
+      ),
+      (
+        "DATA seed = FROM records |> SELECT id; SELECT l.id AS id, COUNT(*) AS n FROM seed AS l JOIN seed AS r ON l.id = r.id JOIN seed AS s ON r.id = s.id GROUP BY id ORDER BY id",
+        "\"fields\":[\"id\",\"n\"]",
+      ),
+    ] {
+    let program = compile_query_script(
+      @query.parse_query_script(source, syntax_limits()).unwrap(),
+      context,
+      construction_limits(),
+    ).unwrap()
+    assert_true(semantic(program).contains(fields), msg=source)
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      Rejected(error) => raise @check.diagnostic_cause(error)
+      _ => fail("authored grouping Values must be closed")
+    }
+  }
+}
