@@ -1,0 +1,37 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "reuse-general-audit-preparation",
+  "kind": "change",
+  "revision": "d48e3a31dd547f036266da80b19be4de56289dc6",
+  "parents": [
+    "a591715837abf79dde8499221c777a8b4d791e4e"
+  ],
+  "changes": [
+    {
+      "path": "proofs/relation-pipeline/audit.mjs",
+      "before": [
+        {
+          "revision": "a591715837abf79dde8499221c777a8b4d791e4e",
+          "digest": "bc8006f47fab5b9d44c8d9f4963d2ca1e0bcfae6ca1a5c13fda265730643ef86",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "465f96a3183a898bce9ef636ec40da28a804393870d739abf8a4237f759fe7bd",
+      "afterMode": "100644",
+      "reason": "Prepare mandatory baseline, Git foundation, source snapshot and exploration decision once per read-only target-regression CLI batch. Keep detached immutable source inputs only; every alternate directory runs the same full audit with fresh receipt and observation identity sets and fresh evidence reads/hashes. Preserve ordinary healthy CLI execution, actual batch failure for an admitted or wrongly rejected negative, all target/provenance/semantic/shrink/history checks and honest per-case rejection versus batch exit diagnostics. The checkout, Git history and environment remain fixed within this process; no validation-result or cross-run evidence cache."
+    },
+    {
+      "path": "proofs/relation-pipeline/audit-target-regression.mjs",
+      "before": [
+        {
+          "revision": "a591715837abf79dde8499221c777a8b4d791e4e",
+          "digest": "9c7da45c044621a0224dbf6cb9c872f888ca6fe5964b7506aff45146b945a10a",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "a7d5481c9b843bfd88f28e68b50a511de2968435941af617ec646f5523d9b232",
+      "afterMode": "100644",
+      "reason": "Retain the healthy standalone audit CLI and every existing whole-report substitution, independent alternate directory and expected rejection. Run all negative directories through one actual audit CLI batch to avoid repeated immutable history preparation, verify complete ordered results and actual batch status, retain per-case logs and explicit rejection records, and measure shared preparation separately from each full audit. No producer, obligation, target, source or evidence validation is removed."
+    }
+  ]
+}
