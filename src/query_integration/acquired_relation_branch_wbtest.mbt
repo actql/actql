@@ -356,3 +356,27 @@ test "split JOIN retains checked step ceiling and both shared producer ports" {
   }
   @mock.close_mock_query_issuer(issuer)
 }
+
+///|
+test "binary JOIN of one internal CTE producer selects both occurrence ports" {
+  let document = acquired_shared_producer_document().replace(
+    old="{\"from\":\"chosen\",\"select\":[\"id\"],\"as\":\"left_rows\"},{\"from\":\"chosen\",\"select\":[\"id\"],\"as\":\"right_rows\"},{\"from\":\"left_rows\",\"append\":{\"with\":\"right_rows\"},\"as\":\"appended\"}",
+    new="{\"from\":\"chosen\",\"join\":{\"with\":\"chosen\",\"kind\":\"inner\",\"on\":[{\"left\":\"id\",\"right\":\"id\"}],\"select\":{\"id\":\"left.id\"}},\"as\":\"appended\"}",
+  )
+  let checked = acquired_relation_branch_checked(document, join_steps=[1])
+  let graph = @strategy.prepare_checked_dag(
+    checked,
+    physical_graph_owners(checked),
+    10,
+    100000,
+  ).unwrap()
+  assert_eq(@strategy.graph_task_count(graph), 4)
+  assert_eq(@strategy.graph_task_selected_step(graph, 2), Some(1))
+  assert_eq(@strategy.graph_task_input_count(graph, 2), Some(2))
+  for index in [1, 2] {
+    let edge = @strategy.graph_data_at(graph, index).unwrap()
+    assert_eq((edge.producer, edge.consumer, edge.input), (1, 2, index - 1))
+  }
+  let obligation = @strategy.graph_task_operation_at(graph, 2, 0).unwrap()
+  assert_eq((obligation.site.stage, obligation.site.step), (1, 1))
+}

@@ -133,3 +133,40 @@ proof campaigns and performance checks were not repeated locally. The next
 push-triggered CI must verify the correction and remaining public obligations;
 older successful or failed runs are historical evidence only. Draft status and
 unmerged dependency bases remain in place.
+
+## Integration after #233/#235/#237/#240 reached main
+
+Normally merge main `da13b789552dd6ea62ee09506c34e6d4f4ff0217`; the resulting
+merge is `4036ef2f60c9a736474d6908b43a8ab8ee0bea91`. No conflict resolution,
+workflow rollback, history-declaration edit or legacy Graph fallback is needed.
+Those four dependencies are now integrated, so #242 can target main.
+
+At correction HEAD `eb8bd72999212f9be1ff17882d0ba344e89632d7`, a clean normal
+pack and external consumer install passed the unchanged shared-CTE UNION ALL
+source in both Local and HTTP. Each Named Result contains eight rows with the
+authored NULLs, column order and full declared contracts. Attach/re-read and
+same-request resubmission do not acquire again; each original Run uses exactly
+one acquisition session. Package digests and command outcomes are retained
+with that fixed-SHA acceptance evidence. This is one source case, not all
+thirteen acquired-input obligations.
+
+[That HEAD's CI](https://github.com/actql/actql/actions/runs/37113016529)
+advanced through nine acquired Relation cases in Local. Its next failure is
+`acquired-data-cte-join-output-alias-order`, a separate later obligation. A
+JOIN of two internal CTE outputs has an internal peer edge; the fused provider
+only supports the already-admitted external peer shape. Classify a non-linear
+primary edge or an internal binary peer using the existing dependency edges.
+Select those operations with their exact ports and original JOIN ceiling.
+Keep external-peer fused JOINs fused. The new independent binary-CTE control
+checks both occurrences of the same producer and its checked obligation.
+
+The source fixture helper's new optional checked Program also requires the
+projected Workers fixture to change. Regenerate Workers first, then Node Host
+from that source; do not hand-edit generated bodies. No public interface or
+contract version changes in this correction.
+
+The integrated focused JS checks pass **15/15** (five branch/JOIN controls and
+all ten original task-projection tests). Formatting and whitespace are checked.
+The complete acquired-source Local/HTTP group and the final push-triggered CI
+remain obligations for the final fixed HEAD. Previous successful single-case
+acceptance is not relabelled as validation of later source changes.

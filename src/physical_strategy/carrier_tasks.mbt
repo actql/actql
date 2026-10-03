@@ -211,7 +211,7 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
   let mut zero_input_count = 0
   let mut found_binary = false
   let mut found_external_input = false
-  let mut nonlinear_unary_relation_input = false
+  let mut nonlinear_relation_input = false
   let mut prefer_fused_without_relation = false
   let mut all_selected = true
   for step in 0..<count {
@@ -254,11 +254,17 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
               return None
             }
             found_relation = true
-            // Unary operators normally consume the immediately preceding
-            // output. A reference to an older producer is a separate DAG
-            // branch, even when that producer lives in this same Stage.
-            if @lower.node_input_count(node) == 1 && producer != step - 1 {
-              nonlinear_unary_relation_input = true
+            // The fused primary input follows the preceding Step. A later
+            // primary reference, or a binary peer held by an internal Step,
+            // needs exact per-operation ports. Fused JOINs with an external
+            // peer remain unchanged.
+            if (
+                @lower.node_input_count(node) <= 2 &&
+                input == 0 &&
+                producer != step - 1
+              ) ||
+              (@lower.node_input_count(node) == 2 && input == 1) {
+              nonlinear_relation_input = true
             }
           } else {
             if !@lower.node_accepts_managed_carrier_view(node, input) {
@@ -272,11 +278,10 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
         }
         Some(@pipeline.Input(_)) => {
           found_external_input = true
-          // A binary JOIN can legitimately reread a peer in an already
-          // supported fused chain. Only a unary root restarts a separate
-          // Relation branch; retain the JOIN's existing ceiling owner.
-          if step > 0 && @lower.node_input_count(node) == 1 {
-            nonlinear_unary_relation_input = true
+          // A binary JOIN may reread an external peer in a fused chain.
+          // Only a later primary port restarts an independent branch.
+          if step > 0 && @lower.node_input_count(node) <= 2 && input == 0 {
+            nonlinear_relation_input = true
           }
         }
         None => return None
@@ -288,12 +293,12 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
     (!prefer_fused_without_relation || found_relation) {
     return Some(-1)
   }
-  // A later unary branch reads a retained input or an older checked producer
-  // rather than the preceding step. A linear fused provider cannot realize that
-  // DAG. Select its checked steps only when every external port has an exact retained Relation edge;
+  // A non-linear Relation dependency cannot be realized by the fused provider.
+  // Select checked steps only when every external port has an exact retained
+  // Relation edge;
   // the captured predecessor and its acquisition remain one owned task.
   if all_selected &&
-    nonlinear_unary_relation_input &&
+    nonlinear_relation_input &&
     found_relation &&
     !found_carrier {
     for step in 0..<count {
