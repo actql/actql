@@ -4601,6 +4601,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/graph-rows.definition-keyed-presence",
+      "statement_sha256": "178b84e65e9b2b144743c90368aaaef042ae1c7107aa261bb087b63798636063",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "graph-rows",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/graph-rows.output-enforcement",
       "statement_sha256": "44ca2cf06d365f9d7b67d4da77aec56396e3fc279f479a047d6ff083dabfc47d",
       "status": "pending",

@@ -5491,6 +5491,21 @@ string or json. Runtime graph admission rejects collisions that cannot be ruled
 out from partial evidence. Projection alone does not prove row order, unique
 keys, successful data admission or bounded execution.
 
+<!-- requirement-block: graph-rows.definition-keyed-presence -->
+For a definition-keyed Graph, row projection MUST give fixed bridge-role
+columns common names and types in every row, declare whether each column in
+the finite set of known definitions is always or conditionally present
+independently of its value type and nullability, retain only the properties and
+known aliases declared by each row's definition, distinguish an absent field
+from a present nullable field containing `NULL`, reject role/property/alias
+collisions within any contributing definition at check time, give a name shared
+across definitions a common type only when those declarations are compatible,
+and permit a downstream field reference only when static evidence proves its
+presence in every definition that can contribute a row. A static selector may
+narrow that set, but observed rows and predicate outcomes may not. Conditional
+presence is not permission to reference an arbitrary field, erase an
+incompatible type, or substitute `NULL` for absence.
+
 <!-- requirement-block: graph-rows.output-enforcement -->
 Graph row projection MUST enforce the selected Host
 `max_relation_output_rows` on its produced Relation, accepting counts equal to

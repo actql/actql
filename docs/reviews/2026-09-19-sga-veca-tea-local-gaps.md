@@ -56,9 +56,31 @@ selected MATCH feeds a following Relation filter in the same authored Stage;
 the published producer and two independent consumer results are compared with
 fixed one-row expectations. The same edge route covers empty and repeated
 `types`: empty selects no rows, while repeated `Link` does not repeat edges.
+The unfiltered edge route also publishes both expected rows with absent
+`types` and `where`. A separate projection-order case selects `weight`, `dst`,
+`src` and preserves that field order through the retained producer and two
+consumers. Both have checked missing-property rejection before Host acquisition;
+the focused checker test verifies `UnknownField` for both MATCH entities.
 Existing portable predicate resource and stop fixtures remain the boundary
 evidence for the shared MATCH kernels. These cases do not certify every
 selector, projection or missing-property variant.
+
+The current definition-keyed `node_rows` and `edge_rows` Bridges remain blocked.
+Their agreed multi-definition contract has a finite known column set with
+required or conditional presence independent of nullability. It preserves each
+row's declared properties and known aliases, distinguishing a missing field
+from a present nullable `NULL`; shared names require compatible types, and
+static references require presence in every possible contributing definition.
+The current Relation
+completion is fixed-width: `prepare_admitted_output` requires one flat object
+schema, and `append_admitted_row` requires every cell at that width. It cannot
+preserve row-specific absence. This is a shared Relation representation and
+admission gap, not permission to fill missing fields with `NULL`, add a new
+missing Value, or revive the retired tuple Graph. The required next boundary is
+a checked sparse-row representation with typed field-presence knowledge,
+bounded capture and retained Store/publication support; current Graph Bridge
+completion remains unclaimed until that boundary and its independent fixtures
+are implemented.
 
 ## Status interpretation (2026-09-28)
 
