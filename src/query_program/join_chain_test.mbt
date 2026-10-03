@@ -143,3 +143,35 @@ test "JOIN chain DISTINCT reuses the selected expression after projection" {
     is Err(_),
   )
 }
+
+///|
+test "JOIN chain filters original left columns before assigning private slots" {
+  // The first WHERE runs before the JOIN projection creates private slots.
+  // Independently declare its input and predicate, both JOIN ports and the
+  // output-alias sort. Quoting range names must not change those bindings.
+  let expected = @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.pipe_slots","stages":[{"id":"aql_chain_source_0","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":false}},"rows":[{"x":1,"y":20},{"x":2,"y":10}]},"as":"t"}],"results":{"aql_chain_source_0":{"from":"t","fields":["x","y"]}}},{"id":"main","inputs":{"aql_chain_input_0":{"result":{"stage":"aql_chain_source_0","result":"aql_chain_source_0"}},"aql_chain_input_1":{"result":{"stage":"aql_chain_source_0","result":"aql_chain_source_0"}},"aql_chain_input_2":{"result":{"stage":"aql_chain_source_0","result":"aql_chain_source_0"}}},"steps":[{"from":"aql_chain_input_0","filter":{"gt":[{"field":"x"},{"literal":1}]},"as":"aql_chain_filter_3"},{"from":"aql_chain_filter_3","join":{"with":"aql_chain_input_1","kind":"inner","on":[{"left":"x","right":"x"}],"max_output_rows":1000,"select":{"aql_chain_column_2":"left.x","aql_chain_column_3":"left.y","aql_chain_column_4":"right.x","aql_chain_column_5":"right.y"}},"as":"aql_chain_join_4"},{"from":"aql_chain_join_4","join":{"with":"aql_chain_input_2","kind":"inner","on":[{"left":"aql_chain_column_4","right":"x"}],"max_output_rows":1000,"select":{"aql_chain_column_2":"left.aql_chain_column_2","aql_chain_column_3":"left.aql_chain_column_3","aql_chain_column_4":"left.aql_chain_column_4","aql_chain_column_5":"left.aql_chain_column_5","aql_chain_column_6":"right.x","aql_chain_column_7":"right.y"}},"as":"aql_chain_join_5"},{"from":"aql_chain_join_5","derive":{"aql_pipe_sort_7":{"add":[{"field":"aql_chain_column_2"},{"literal":1}]}}},{"sort":[{"field":"aql_pipe_sort_7","dir":"asc","nulls":"first"}]},{"select":[{"y":"aql_chain_column_2"}],"as":"aql_chain_result_6"}],"results":{"rows":{"from":"aql_chain_result_6","fields":["y"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+  for
+    source in [
+      "FROM t AS l |> WHERE l.x > 1 |> JOIN t AS r ON l.x = r.x |> JOIN t AS s ON r.x = s.x |> SELECT l.x AS y |> ORDER BY y + 1",
+      "FROM t AS `l` |> WHERE `l`.`x` > 1 |> JOIN t AS `r` ON `l`.`x` = `r`.`x` |> JOIN t AS `s` ON `r`.`x` = `s`.`x` |> SELECT `l`.`x` AS y |> ORDER BY y + 1",
+    ] {
+    let generated = compile(
+      @query.parse_query(source, syntax_limits()).unwrap(),
+      join_order_context(),
+      construction_limits(),
+    ).unwrap()
+    assert_eq(semantic(generated), semantic(expected))
+    match
+      @check.check_parsed(generated, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      Rejected(error) => raise @check.diagnostic_cause(error)
+      _ => fail("filtered JOIN chain Values must be closed")
+    }
+  }
+}
