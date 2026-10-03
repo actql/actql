@@ -130,6 +130,35 @@ Its real-chain probe is documented in [CUSTODY.md](CUSTODY.md); the core snapsho
 above do not prove that change. Accepted-output last-holder custody remains
 unresolved. Cleanup success does not establish physical destruction.
 
+### Reviewed source-premise refresh
+
+The recipe was introduced at `58fd19eade59cf3bcbf6a859c9821471346e3b41`.
+Its two representation-premise files were compared in full against integration
+`c575456c157dd51de4780c2de40848481908d237` before refreshing their exact pins.
+The eleven provider factory sources, candidate order, native reader, formulas
+and conditional Lean model remain unchanged.
+
+| Premise | Reviewed difference | Preserved construction obligation |
+| --- | --- | --- |
+| `managed_provider.mbt` | Only adds `managed_provider_record_handoff_work`, which validates a delta and updates the existing execution accounting owner | The four `ManagedProvider` callback fields, all compatibility/numeric constructor bodies, their captures and the existing six-field `ManagedProviderExecution` are byte-identical |
+| `generated_sequence.mbt` | Replaces retired Graph alternatives with `PropertyGraphConstructionStep` in the existing `false` branch of `generated_sequence_all_row_kernels` | The `RowStep` capability predicate, sequence fields, selection/accessor bodies and all other branches are byte-identical; Graph remains rejected by this Relation predicate |
+
+The added work helper runs on an existing execution owner, not while allocating
+the eleven provider candidate records. Its work updates do not add candidate
+fields or captures. Runtime poll/work temporaries remain a separate unresolved
+allocation/lifetime obligation. The Graph change does not extend this
+numeric/NULL Relation pilot to a Graph execution path.
+
+`provider-construction.test.mjs` compares actual Git blobs from the recipe's
+introduction with current source. It fixes the two reviewed differences and
+requires whole-file equality outside them, then feeds each original stale blob
+back through admission and requires rejection. The existing current-source,
+changed-source, target and unsupported-complete-claim regressions remain.
+This is source-premise review and synthetic admission regression, not fresh
+native correspondence or a complete byte proof. The conditional **2344** bound,
+scalar callback payload assumptions, lifetime exclusions and all unresolved
+capacity obligations remain unchanged; hosted native receipts are required.
+
 ### Conditional candidate-construction component
 
 The selection loop evaluates all eleven provider factories before testing the
