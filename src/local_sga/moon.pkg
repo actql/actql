@@ -8,6 +8,7 @@ import {
   "actql/actql/managed_carrier_runtime" @lifecycle,
   "actql/actql/pipeline_typing" @pipeline,
   "actql/actql/carrier_contract" @carrier,
+  "actql/actql/carrier_projection" @projection,
   "actql/actql/graph_typing" @graph_type,
   "actql/actql/execution_relation" @execution,
   "actql/actql/relation_schema" @schema,
@@ -17,4 +18,7 @@ import {
 
 import {
   "actql/actql/canonical_value" @canonical,
+  "actql/actql/decode_core" @decode,
+  "actql/actql/encode_core" @encode,
+  "actql/actql/source_value" @source,
 } for "wbtest"

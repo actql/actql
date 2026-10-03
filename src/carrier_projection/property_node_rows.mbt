@@ -196,6 +196,13 @@ pub fn property_node_rows_id_column(value : CheckedPropertyNodeRows) -> Int {
 }
 
 ///|
+pub fn property_node_rows_definition_count(
+  value : CheckedPropertyNodeRows,
+) -> Int {
+  value.property_columns.length()
+}
+
+///|
 /// This maps the storage definition's canonical property index to the common
 /// output schema, including compatible case-spelling differences.
 pub fn property_node_rows_property_column(

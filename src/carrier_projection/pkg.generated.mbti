@@ -21,6 +21,8 @@ pub fn operation(CheckedProjection) -> Operation
 
 pub fn output(CheckedProjection) -> @carrier_contract.Carrier
 
+pub fn property_node_rows_definition_count(CheckedPropertyNodeRows) -> Int
+
 pub fn property_node_rows_id_column(CheckedPropertyNodeRows) -> Int
 
 pub fn property_node_rows_input(CheckedPropertyNodeRows) -> @carrier_contract.Carrier

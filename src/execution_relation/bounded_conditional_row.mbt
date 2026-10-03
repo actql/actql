@@ -10,7 +10,7 @@ priv enum ConditionalRowPhase {
 ///|
 priv struct ConditionalRowState {
   builder : ConditionalRowBuilder
-  read : (Int) -> @admitted.CheckedValue??
+  mut read : ((Int) -> @admitted.CheckedValue??)?
   workspace : RowWorkspace
   max_work : Int
   mut work : Int
@@ -57,6 +57,7 @@ fn discard_conditional_row_state(state : ConditionalRowState) -> Bool {
     @admitted.cancel_recheck_runtime_value(cursor)
     state.admission = None
   }
+  state.read = None
   state.pending = None
   state.builder.cells.clear()
   state.builder.open = false
@@ -121,7 +122,7 @@ fn advance_conditional_row_state(
           state.builder.schema,
           state.column,
         ).unwrap()
-        guard (state.read)(state.column) is Some(cell) else {
+        guard state.read is Some(read) && read(state.column) is Some(cell) else {
           return @bounded.Failed(InvalidWidth, used, used)
         }
         match cell {
@@ -234,7 +235,7 @@ pub fn start_conditional_row_preparation(
   }
   let state : ConditionalRowState = {
     builder,
-    read,
+    read: Some(read),
     workspace: row_workspace(max_workspace_slots),
     max_work: max_step_work,
     work: 0,

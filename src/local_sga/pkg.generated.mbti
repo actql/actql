@@ -3,6 +3,7 @@ package "actql/actql/local_sga"
 
 import {
   "actql/actql/bounded_execution",
+  "actql/actql/carrier_projection",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
   "actql/actql/managed_carrier_runtime",
@@ -16,11 +17,17 @@ pub fn advance_match_edges(MatchEdgesExecution, Int) -> Result[MatchEdgesPoll, M
 
 pub fn advance_match_nodes(MatchNodesExecution, Int) -> Result[MatchNodesPoll, MatchNodesIssue]
 
+pub fn advance_property_node_row(PropertyNodeRowExecution, Int) -> Result[PropertyNodeRowPoll, PropertyNodeRowIssue]
+
 pub fn advance_traverse(TraverseExecution, Int) -> Result[TraversePoll, TraverseIssue]
+
+pub fn cancel_property_node_row(PropertyNodeRowExecution) -> Bool
 
 pub fn cleanup_match_edges(MatchEdgesExecution) -> Result[Bool, MatchEdgesIssue]
 
 pub fn cleanup_match_nodes(MatchNodesExecution) -> Result[Bool, MatchNodesIssue]
+
+pub fn cleanup_property_node_row(PropertyNodeRowExecution) -> Result[Bool, PropertyNodeRowIssue]
 
 pub fn cleanup_traverse(TraverseExecution) -> Result[Bool, TraverseIssue]
 
@@ -53,6 +60,8 @@ pub fn start_match_edges_view(@bounded_execution.Control, @execution_relation.Co
 pub fn start_match_nodes(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[MatchNodesExecution, MatchNodesIssue]
 
 pub fn start_match_nodes_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[MatchNodesExecution, MatchNodesIssue]
+
+pub fn start_property_node_row_stored(@carrier_projection.CheckedPropertyNodeRows, @lowering_relation.BoundPrepared, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int) -> Result[PropertyNodeRowExecution, PropertyNodeRowIssue]
 
 pub fn start_traverse(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[TraverseExecution, TraverseIssue]
 
@@ -116,6 +125,23 @@ pub enum MatchNodesPoll {
   MatchNodesComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
   MatchNodesFailed(MatchNodesIssue, progress~ : Int64, work~ : Int64)
   MatchNodesStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
+type PropertyNodeRowExecution
+
+pub(all) enum PropertyNodeRowIssue {
+  InvalidBinding
+  InputUnavailable
+  InvalidNode
+  Row(@execution_relation.ConditionalRowIssue)
+  Execution(@bounded_execution.Issue)
+} derive(Eq, @debug.Debug)
+
+pub enum PropertyNodeRowPoll {
+  PropertyNodeRowContinue(work~ : Int64)
+  PropertyNodeRowComplete(@execution_relation.ConditionalRow, work~ : Int64)
+  PropertyNodeRowFailed(PropertyNodeRowIssue, work~ : Int64)
+  PropertyNodeRowStopped(work~ : Int64)
 }
 
 type TraverseExecution
