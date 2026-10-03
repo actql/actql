@@ -64,7 +64,7 @@ input-scope counterexample is a separate repair unit.
   not a pass of the four-positive corpus.
 - Full Core, other backends and hosted CI have not been run for this repair.
 
-### Remaining execution boundary
+### Recorded execution boundary and adjacent RESULT repair
 
 ```aql
 FROM records |> AS original |> SELECT DISTINCT -id AS id
@@ -83,7 +83,24 @@ installation, restored the exact installed bytes, and is not product acceptance.
 
 The positive DISTINCT fixture is retained unchanged. This PR does not raise
 the Host ceiling, remove DISTINCT/ORDER, or alter independent expectations.
-Its full packed corpus remains unfinished until this execution boundary closes.
+At that runtime, the required execution reservation is 572,045,056 bytes with
+zero bytes already reserved, above the 536,870,912-byte Run ceiling. The
+unchanged-expression control requires 418,930,944 bytes and completes. These
+are declared reservations, not observed heap/RSS.
+
+The DISTINCT collision Program unnecessarily selected the same active columns
+twice: hidden ORDER cleanup, followed immediately by RESULT checkpoint
+projection. Scoped ORDER now lets that adjacent RESULT's existing projection
+perform both jobs. SELECT and ORDER expression evaluation, DISTINCT comparison,
+sort terms, visible columns and Result/checkpoint bindings are unchanged. With
+an intervening LIMIT or another operator, immediate cleanup remains. No change
+to the common ledger, capacity formula, ceiling or execution owner is made.
+
+The independent complete Program regression and continuing-checkpoint regression
+failed before this repair (7/9 passed, 2 failed). After it, selected ORDER,
+Pipe scope, Result and JOIN ORDER tests pass 28/28 on JS. The full four-positive,
+one-refusal packed selection has not yet been rerun from this follow-up source;
+the earlier success/failure evidence above remains tied to its original SHA.
 
 ### Recorded package SHA-256
 

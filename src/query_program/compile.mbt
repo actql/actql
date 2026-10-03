@@ -2421,14 +2421,23 @@ fn compile_steps(
           // With no deferred SELECT, remove sort-only slots immediately.
           // Retain demanded original slots for the existing range snapshots.
           step_entries.push(entries)
-          step_entries.push([
-            (
-              "select",
-              construction.array(
-                active_fields.map(field => construction.text(field)),
+          // An immediately following RESULT already selects these exact
+          // active fields and binds its checkpoint. There is no intervening
+          // consumer of the hidden slots, so one projection does both jobs.
+          let result_projects_next = match @query.operation_at(query, i + 1) {
+            Some(RetainResult(_)) => true
+            _ => false
+          }
+          if !result_projects_next {
+            step_entries.push([
+              (
+                "select",
+                construction.array(
+                  active_fields.map(field => construction.text(field)),
+                ),
               ),
-            ),
-          ])
+            ])
+          }
           deferred = true
         }
       }
