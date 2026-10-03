@@ -3,7 +3,7 @@
 ## Current boundary
 
 Source inspection is pinned to main
-`9ca64d72d24a73196b9015aaa085a52571c82ab9`. This is a connection report,
+`b7aa6cf21e45a086f32bcb6a480d8dfdde79d24f`. This is a connection report,
 not a change to the adopted NEAREST semantics or a claim of public execution.
 The [independent JSON control](../../spec/frontend/fixtures/nearest-keep/common-minimal.program.json),
 [authored source](../../spec/frontend/fixtures/nearest-keep/kept.ordered.aql),
@@ -139,3 +139,18 @@ typed schemas in the JSON fixture, not test-only resolver injections. The
 installation must expose nullable `note` and dimension-2 embeddings. No default
 source selection, parameter-vector workaround or array-to-vector coercion is
 introduced here.
+
+## Local verification of the prepared consumer
+
+The two changed JavaScript files pass `node --check`. Loading the independent
+fixtures confirms five positives/four refusals, distinct case names, preserved
+empty-input schema, multiset treatment of the un-ordered JSON control and the
+independently specified ordered-source ranks. Selected document links and
+`git diff --check` pass. These are fixture preparation and syntax checks, not
+executed Client or NEAREST tests.
+
+Main was normally merged; the selected Host profile, bridge, parameter contract
+and NEAREST lowering/checker files are unchanged between the earlier inspected
+main and the integrated main above. No full local Core, packed installation,
+proof or performance campaign was run for this handoff. This fixture is not
+enabled in the default packed corpus until D supplies the real Host connection.
