@@ -5,7 +5,7 @@ import {checked} from '../host-common/runtime-result.mjs';
 const limits = Object.freeze({maxWireBytes: 16384, maxNodes: 1024, maxDepth: 20});
 
 export async function readInstalledInferCapture({moon, control, store,
-  compiled, runDefinition, storeAuthorityCid, signal}) {
+  compiled, runDefinition, storeAuthorityCid, signal, restoreSource}) {
   const read = async (name, slot) => {
     signal?.throwIfAborted();
     const holdingCid = control.modelPrivateHoldingCid(runDefinition,
@@ -25,6 +25,12 @@ export async function readInstalledInferCapture({moon, control, store,
   const observed = await read('observation_set', -1);
   const observation = control.admitRunEvidence('observation_set', observed.wire,
     limits);
+  if (restoreSource !== undefined) {
+    const saved = await read('source_evidence', 0);
+    const source = control.admitRunEvidence('source_evidence', saved.wire,
+      {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100});
+    await restoreSource(source, observation);
+  }
   // The common reader admits this closed canonical body first. Its inventory
   // bounds physical reads; the common replay owner verifies all slot bindings.
   const slots = JSON.parse(observation.wire).model_slot_capture_cids;

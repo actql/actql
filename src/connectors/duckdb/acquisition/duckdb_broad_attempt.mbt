@@ -24,7 +24,7 @@ priv enum DuckDBBroadState {
 ///|
 priv struct DuckDBBroadCompletion {
   _scan : @execution.CapturedRows
-  sequence : @execution.CompletedSequence
+  output : @execution.CompletedOutput
 }
 
 ///|
@@ -34,13 +34,36 @@ struct DuckDBBroadAttempt {
   preparation : DuckDBQueryPreparation
   authority : DuckDBBroadAuthority?
   mut state : DuckDBBroadState
+  mut residual_cleanup : (() -> Result[Bool, @connector.FixedComputeIssue])?
 }
 
 ///|
 pub fn prepare_duckdb_broad_attempt(
   preparation : DuckDBQueryPreparation,
 ) -> DuckDBBroadAttempt {
-  { preparation, authority: None, state: Metadata, }
+  { preparation, authority: None, state: Metadata, residual_cleanup: None, }
+}
+
+///|
+/// Reclaim an adopted bounded residual only after failure or issuer revocation.
+/// Keep its owner reachable when cleanup fails; retries never execute Compute.
+pub fn cleanup_duckdb_broad_residual(
+  attempt : DuckDBBroadAttempt,
+) -> Result[Bool, @connector.FixedComputeIssue] {
+  guard attempt.residual_cleanup is Some(cleanup) else { return Ok(true) }
+  if !(attempt.state is Failed) {
+    guard attempt.authority is Some(authority) &&
+      !@planning.query_evidence_registration_live(authority.issuer.registration) else {
+      return Ok(false)
+    }
+  }
+  match cleanup() {
+    Ok(true) => {
+      attempt.residual_cleanup = None
+      Ok(true)
+    }
+    other => other
+  }
 }
 
 ///|
@@ -170,7 +193,22 @@ pub fn execute_duckdb_broad_attempt(
       measurement,
     ) {
     Ok((completed, _)) => {
-      attempt.state = Completed({ _scan: input, sequence: completed, })
+      guard @execution.completed_output(
+          completed,
+          @sourcequery.query_acquisition_capture(
+            @query.query_sequence_requirement(
+              @planning.query_material_owner(
+                @planning.query_requirement_material(
+                  attempt.preparation.requirement,
+                ),
+              ),
+            ),
+          ),
+        )
+        is Some(output) else {
+        return fail_duckdb_broad_attempt(attempt, Residual(MissingOutput))
+      }
+      attempt.state = Completed({ _scan: input, output, })
       Ok(())
     }
     Err(issue) => fail_duckdb_broad_attempt(attempt, Residual(issue))
@@ -189,16 +227,7 @@ fn duckdb_broad_attempt_output(
     Captured(value) => value.records.retention.completion
     _ => return None
   }
-  @execution.completed_output(
-    completed.sequence,
-    @sourcequery.query_acquisition_capture(
-      @query.query_sequence_requirement(
-        @planning.query_material_owner(
-          @planning.query_requirement_material(attempt.preparation.requirement),
-        ),
-      ),
-    ),
-  )
+  Some(completed.output)
 }
 
 ///|

@@ -2589,8 +2589,11 @@ fn physical_graph_owners(
 
 ///|
 /// Fixture owner: query_integration/engine_fixtures_wbtest.mbt
-fn prepared_sequence(owner : @lower.BoundPrepared) -> @lower.PreparedSequence {
-  @lower.prepare_sequence(owner, {
+fn prepared_sequence(
+  owner : @lower.BoundPrepared,
+  prefix_end? : Int? = None,
+) -> @lower.PreparedSequence {
+  let limits : @lower.SequenceLimits = {
     max_steps: 100,
     max_rows: 100,
     max_cells: 10000,
@@ -2603,7 +2606,11 @@ fn prepared_sequence(owner : @lower.BoundPrepared) -> @lower.PreparedSequence {
       max_literal_nodes: 10000,
       max_literal_text_bytes: 10000,
     },
-  }).unwrap()
+  }
+  match prefix_end {
+    Some(last) => @lower.prepare_sequence_prefix(owner, last, limits).unwrap()
+    None => @lower.prepare_sequence(owner, limits).unwrap()
+  }
 }
 
 ///|
@@ -3821,8 +3828,9 @@ fn query_evidence_test_bodies() -> (
 fn query_generated(
   owner : @lower.BoundPrepared,
   retained? : Array[String] = ["select_1"],
+  prefix_end? : Int? = None,
 ) -> @execution.GeneratedSequence raise {
-  let sequence = prepared_sequence(owner)
+  let sequence = prepared_sequence(owner, prefix_end~)
   @execution.prepare_generated_sequence(
     registered_relation_contracts(),
     sequence,

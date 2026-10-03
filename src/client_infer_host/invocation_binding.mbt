@@ -159,12 +159,15 @@ pub fn bind_invocation(
     return Err(UnverifiedSlots)
   }
   match
-    @publication.check_source_free_model_invocation_binding(
+    @publication.check_model_invocation_binding(
       @publication_host.client_compiled_run_template(compiled),
       observation,
       invocation,
       @publication_host.client_infer_call_scope_artifact(scope),
       data_policy_cid,
+      source=active.acquired_input.map(
+        @publication_host.client_infer_captured_input_observation,
+      ),
     ) {
     Err(issue) => return Err(Evidence(issue))
     Ok(_) => ()

@@ -21,6 +21,8 @@ pub fn broad_host_abort(BroadNodeRun) -> Unit
 
 pub fn broad_host_accept(BroadNodeRun, Int, String) -> Unit raise NodeHostFailure
 
+pub fn broad_host_acquisition(BroadNodeRun) -> @host.BroadHostRun
+
 pub fn broad_host_attempt(BroadNodeRun) -> @acquisition.DuckDBBroadAttempt
 
 pub fn broad_host_begin(BroadNodeRun, String) -> Unit raise NodeHostFailure
@@ -36,6 +38,8 @@ pub fn broad_host_document(@acquisition.DuckDBBroadObservation) -> String
 pub fn broad_host_finish(BroadNodeRun) -> Unit raise NodeHostFailure
 
 pub fn broad_host_issue_source_evidence(@host.BroadHostSourceCapture, @host.NativeSourceEvidenceContext, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> String raise NodeHostFailure
+
+pub fn broad_host_max_name_bytes(BroadNodeRun) -> Int
 
 pub fn broad_host_metadata(BroadNodeRun, Int, String, String) -> Unit raise NodeHostFailure
 

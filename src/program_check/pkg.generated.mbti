@@ -370,6 +370,8 @@ pub fn pivot_numeric_slots_operation(PivotNumericSlots) -> UnitOperationSource
 
 pub fn prepare_effect_computation_candidate(@stage_syntax.Program, CheckEnvironment, @decode_core.Cursor?, Array[@pipeline_check_context.StageCapacityInput], CheckLimits, Int, Int) -> Result[EffectComputationCandidate, EffectComputationIssue]
 
+pub fn prepare_infer_input_source_policy(CheckedProgram, Int, Int, Int, Int, Int, Int) -> PublicationSourcePolicy? raise UnitBuildFailure
+
 pub fn prepare_infer_item_limit(CheckedProgram, Int, Int, Int, Int, Int, Int) -> InferItemLimit raise UnitBuildFailure
 
 pub fn proof_application(ReidentifiedStep) -> @capacity_program_step.StepBound
@@ -441,6 +443,10 @@ pub fn publication_policy_lag_count(PublicationSourcePolicy) -> Int
 pub fn publication_policy_local_check_at(PublicationSourcePolicy, Int) -> @pipeline_check_context.LocalInputExecutionCheck?
 
 pub fn publication_policy_local_check_count(PublicationSourcePolicy) -> Int
+
+pub fn publication_policy_model_step_at(PublicationSourcePolicy, Int) -> PublicationPolicyModelStep?
+
+pub fn publication_policy_model_step_count(PublicationSourcePolicy) -> Int
 
 pub fn publication_policy_nest_at(PublicationSourcePolicy, Int) -> PublicationPolicyNest?
 
@@ -1095,6 +1101,11 @@ pub struct PublicationPolicyLag {
   field : @relation_typing.KeyField
   output : String
   offset : @relation_typing.CountValue
+}
+
+pub struct PublicationPolicyModelStep {
+  step : Int
+  infer : @relation_evidence.CheckedInfer
 }
 
 pub struct PublicationPolicyNest {

@@ -61,14 +61,22 @@ fn prepare_local_query_requirement_owned(
 ) -> Result[@planning.QueryRequirement, ClientLocalQueryIssue] {
   let sequences = match prepared {
     Pure(value) =>
-      prepare_client_local_sequences(
-        value,
-        registry_body,
-        values_body,
-        fragment_body,
-        ordered_body,
-        task_count=Some(stage + 1),
-      )
+      if stage == 0 &&
+        @publication_host.prepared_client_acquired_infer_step(value)
+        is Some(step) {
+        prepare_client_infer_acquisition_prefix(
+          value, stage, step, registry_body, values_body, fragment_body, ordered_body,
+        ).map(sequence => [sequence])
+      } else {
+        prepare_client_local_sequences(
+          value,
+          registry_body,
+          values_body,
+          fragment_body,
+          ordered_body,
+          task_count=Some(stage + 1),
+        )
+      }
     Effect(value) =>
       prepare_client_effect_local_sequences(
         value,

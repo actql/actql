@@ -2,6 +2,33 @@
 
 ## Current authority and completion boundary
 
+### Acquired-INFER main integration (2026-10-03)
+
+Clean source `34c1f5f82b7474f0c302d6ac7ba50597a1bf9909` completes both
+the full Salesforce job and the full packed Client job. These include the
+277 Salesforce tests, actual Effect recovery and all public/lower-level Store
+crash boundaries, public SQL/Pipe and two-source custody/recovery, the shared
+Graph snapshot and unsupported-consumer matrix, native Graph Named Results,
+and packed Result descriptions. Logs:
+`/private/tmp/property-graph-client-{salesforce,packed}-34c1f5f82-20261003.log`.
+The clean public-query artifact is
+`worktrees/.codex-scratch/public-query-evidence-6YwRFc`. This is local evidence
+for that source, not a final Linux CI result.
+
+Main subsequently advances to `c26adeb078fd54327cc9263544f4c57420f6e3c2`
+(acquired-INFER #223). The current integration is conflict-free and retains
+both the existing Graph checks and main's new acquired-INFER packed check.
+No Graph scope, identity or unsupported-consumer policy is expanded. Before
+committing the integration, the complete `pipeline_check_context` package
+passes **278/278 on each of JS, Wasm and native**, public interfaces match
+across the three targets, and Node/Workers generated assemblies are fresh.
+Logs: `/private/tmp/property-graph-mainc26-construction-{js,wasm,native}-20261003.log`
+and `/private/tmp/property-graph-mainc26-{api,node-freshness,workers-freshness}-20261003.log`.
+These are integrated working-tree checks; clean-source aggregate validation,
+normal fresh packed snapshot acceptance and final pushed-SHA CI are still
+required before adoption. The previous source's successes do not substitute
+for that integration's acceptance.
+
 ### Three-target Core and current-main integration (2026-10-03)
 
 Clean source `73c58a1e1c17a09b96e5c5822fbb514aeb4e961a` passes the actual

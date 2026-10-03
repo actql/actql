@@ -19,11 +19,12 @@ const run = (script, env) => spawnSync('bash', ['-eo', 'pipefail', '-c', script]
   cwd: root, env: {...process.env, ...env}, encoding: 'utf8',
 });
 
-test('the three groups retain each original acceptance command exactly once', () => {
+test('each Client group retains its acceptance commands exactly once', () => {
   assert.deepEqual(runs('client-distribution'), ['npm run check:distribution-client']);
   assert.deepEqual(runs('client-packed'), [
     'npm run check:packed-embedded-checkpoint',
     'node scripts/test-packed-single-infer.mjs',
+    'node scripts/test-packed-acquired-infer.mjs',
     'node --test scripts/packed-query-evidence.test.mjs\nnode scripts/test-packed-public-query.mjs',
     'node scripts/test-packed-result-description.mjs',
   ]);
@@ -83,6 +84,7 @@ test('one producer uploads only manifest and tarballs; consumers select its immu
 test('packed evidence uploads remain always-on after their original command', () => {
   const steps = jobs['client-packed'].steps;
   for (const [id, name] of [['packed-infer', 'packed-single-infer'],
+    ['packed-acquired-infer', 'packed-acquired-infer'],
     ['packed-query', 'packed-public-query'], ['packed-result-description', 'packed-result-description']]) {
     const command = steps.findIndex(step => step.id === id);
     const upload = steps[command + 1];

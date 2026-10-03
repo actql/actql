@@ -91,19 +91,42 @@ pub fn compile_native_filter_select(
 }
 
 ///|
+/// Compile only an explicitly selected capture prefix, preserving its original
+/// checked owner. Later Local operations never enter this acquisition SQL.
+pub fn compile_native_filter_select_prefix(
+  sequence : @lower.PreparedSequence,
+  database_schema : String,
+  table : String,
+  limits : NativeQueryLimits,
+) -> Result[NativeQuery, NativeQueryIssue] {
+  if @lower.sequence_count(sequence) != 2 {
+    return Err(UnsupportedShape)
+  }
+  compile_native_filter_select_base(
+    @lower.sequence_owner(sequence),
+    database_schema,
+    table,
+    limits,
+    None,
+    owned_prefix=true,
+  )
+}
+
+///|
 fn compile_native_filter_select_base(
   owner : @lower.BoundPrepared,
   database_schema : String,
   table : String,
   limits : NativeQueryLimits,
   occurrence : (String, String)?,
+  owned_prefix? : Bool = false,
 ) -> Result[NativeQuery, NativeQueryIssue] {
   if limits.max_entries < 0 || limits.max_sql_bytes < 0 {
     return Err(InvalidLimits)
   }
   let preparation = @lower.bound_preparation(owner)
   if @lower.preparation_input_count(preparation) != 1 ||
-    @lower.node_count(preparation) != 2 {
+    (!owned_prefix && @lower.node_count(preparation) != 2) {
     return Err(UnsupportedShape)
   }
   let filter = match

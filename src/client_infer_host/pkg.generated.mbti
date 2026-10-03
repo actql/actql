@@ -106,15 +106,15 @@ pub fn sealing_observation(Execution) -> Bool
 
 pub fn standard_limits() -> Limits
 
-pub fn start(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelProvider, String, Limits, plan? : @run_publication_host.ClientInferPlanGraph?) -> Result[Execution, Issue]
+pub fn start(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelProvider, String, Limits, plan? : @run_publication_host.ClientInferPlanGraph?, acquired_input? : @run_publication_host.ClientInferCapturedInput?, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
 
 pub fn start_observation_issuance(Execution, @physical_resources.Ledger, ObservationIssuanceLimits) -> Result[ObservationIssuance, Issue]
 
-pub fn start_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.VerifiedModelCapture, Limits, @run_publication_host.ClientInferPlanGraph) -> Result[Execution, Issue]
+pub fn start_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.VerifiedModelCapture, Limits, @run_publication_host.ClientInferPlanGraph, acquired_input? : @run_publication_host.ClientInferCapturedInput?, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
 
-pub fn start_restored_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @run_publication.ModelCaptureBundleRead, Limits, @run_publication_host.ClientInferPlanGraph) -> Result[Execution, Issue]
+pub fn start_restored_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @run_publication.ModelCaptureBundleRead, Limits, @run_publication_host.ClientInferPlanGraph, acquired_input? : @run_publication_host.ClientInferCapturedInput?, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
 
-pub fn start_restored_slot_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelSlotReplayRead, Limits, @run_publication_host.ClientInferPlanGraph) -> Result[Execution, Issue]
+pub fn start_restored_slot_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelSlotReplayRead, Limits, @run_publication_host.ClientInferPlanGraph, acquired_input? : @run_publication_host.ClientInferCapturedInput?, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
 
 pub fn start_result_publication(InvocationBinding, Int, @run_publication_host.PublicationOutputExportLimits) -> Result[ResultPublication, ResultPublicationIssue]
 
@@ -153,6 +153,7 @@ pub struct Execution {
   mut physical_preflight : ((@model_execution.ModelRequest) -> Result[@model_execution.ModelRequestPreflight, @model_execution.ModelExecutionIssue])?
   mut egress_admission : @run_publication_host.ClientInferEgressAdmission?
   mut final_quantity_usage : @physical_resources.QuantityUsage?
+  mut acquired_input : @run_publication_host.ClientInferCapturedInput?
 }
 
 type ExecutionRunBinding
