@@ -1805,6 +1805,16 @@ async function exerciseStrategyGraph(
     fields:['id','node_name'],secondFields:['node_name'],
     expected:[{id:2,node_name:'second'}],completedTasks:9,
   }, {
+    name:'retained-trail-relation-filter', retainedOutput:true,
+    steps:[
+      {from:'g',traverse:{start:{from:'seeds',id:'element'},
+        direction:'out',min_hops:1,max_hops:1,path_mode:'trail',
+        emit:'paths'},as:'paths'},
+      {from:'paths',filter:'hop_count > 0',as:'out'},
+    ],
+    fields:['hop_count'],secondFields:['hop_count'],
+    expected:[{hop_count:1},{hop_count:1}],
+  }, {
     name:'edge-match',
     step:{from:'g',match_edges:{definition:'E',where:'true',
       fields:['src','dst','weight']},as:'out'},
@@ -1818,6 +1828,20 @@ async function exerciseStrategyGraph(
     const consumerA = graphProgram.stages.find(stage => stage.id === 'consumer_a');
     const consumerB = graphProgram.stages.find(stage => stage.id === 'consumer_b');
     const tail = graphProgram.stages.find(stage => stage.id === 'tail');
+    if (publicationCase.name === 'retained-trail-relation-filter') {
+      const seedSource = {
+        id:'seed_source',
+        inputs:{rows:{result:{stage:'values',result:'r'}}},
+        steps:[structuredClone(graphStage.steps[0]),{
+          from:'g',match_nodes:{definition:'N',
+            bindings:{identity:'element'},where:'true',fields:['element']},
+          as:'seeds',
+        }],
+        results:{r:{from:'seeds',fields:['element']}},
+      };
+      graphProgram.stages.splice(graphProgram.stages.indexOf(graphStage),0,seedSource);
+      graphStage.inputs.seeds = {result:{stage:'seed_source',result:'r'}};
+    }
     graphStage.steps.splice(
       1,
       1,

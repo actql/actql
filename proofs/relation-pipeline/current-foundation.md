@@ -122,7 +122,8 @@ ordinary protected-file edit must have its own declaration, including edits
 later reverted. Removing an earlier declaration cannot be hidden by a later
 commit whose parent already contains the omitted change.
 
-Two-parent merges require a unique Git merge base. For each protected path:
+For a two-parent merge, enumerate **all actual maximal Git merge bases**. Apply
+the following existing rule independently at every base and protected path:
 
 - When neither side changed it, the committed result must match that file
 - When exactly one side changed it, the result must match that side
@@ -130,6 +131,44 @@ Two-parent merges require a unique Git merge base. For each protected path:
   resolution, even if a textual merge was clean or both sides reached equal bytes
 - Any other result, including dropping one side with an `ours` merge, requires
   an explicit resolution
+
+For multiple bases, require the union of those obligations. An obligation binds
+the source revision, actual ordered parents, path, both parent blob/mode
+identities and committed result blob/mode. Equal full bindings combine their
+grounds; a same-path binding with inconsistent source, parent or result grounds
+rejects instead of overwriting another obligation. Each required obligation's
+generated report retains every base SHA, that base's path blob/mode, the
+both-changed and automatic-result derivation, and whether that base requires
+resolution. This includes bases where that particular path needs no resolution.
+No preferred, first or virtual base can replace the actual full set.
+
+A multi-base resolution declaration adds `mergeBases`, the complete sorted list
+of actual maximal base SHAs. Every record must match the independently computed
+Git set exactly; missing, extra, nonmaximal, duplicate or reordered bases reject.
+This field participates in source-binding equivalence, so a valid alias cannot
+hide another record's changed grounds. Parent order and each ordered `before`
+identity remain significant. The declaration's required paths and source-revision
+input set must cover the entire union, including paths where the parents already
+agree but one base still makes both sides changed.
+
+The original single-base declaration and generated integration formats remain
+unchanged; adding `mergeBases` to a single-base declaration rejects. Multi-base
+integration metadata uses `mergeBases` and `obligations` rather than the scalar
+`mergeBase`, including an empty-obligation record when no protected path needs
+resolution. No declaration is allowed for that empty case. Source/dependency,
+immutability, deletion, mode and complete-history safeguards are unchanged.
+
+The fixed [multiple-base identity fixture](fixtures/multiple-merge-bases.json)
+records the inspected merge `19b0b464b983695c68df60d601016bb25a4fd06d`, its ordered
+parents and the two bases `8b21ddd3f4a17fcecbb9bcf5878082148af0aa99` and
+`8baa87fc6b6cb7d7caa981cef1692c9d73d88318`. Their existing-rule obligations are
+5 and 20 paths, with a 21-path union. These fixed Git identities test requirement
+derivation, not complete repository acceptance or product execution. Independent
+temporary real-Git criss-cross fixtures test declarations, missing grounds,
+both bases' exclusive paths, parent ordering and unavailable history objects.
+This extension does not declare that retained source merge: its owner must add
+an actual source-bound resolution after adopting the rule, then validate every
+remaining historical merge and the final integrated checkout.
 
 For example, branches adding different test registrations to `package.json`
 retain their separate declarations. Resolve the actual source so both commands
@@ -145,7 +184,8 @@ the normalized group set must equal the complete independently derived set.
 Unknown, omitted, extra, cyclic and future-source dependencies are rejected.
 An alias introduced later cannot force an existing immutable resolution to
 rewrite its input spelling.
-Other paths composed from one side do not need to be repeated in the resolution.
+Paths requiring no resolution under every maximal base do not need to be
+repeated in the resolution.
 
 A resolution records reviewed source provenance; it does not establish that
 both test commands are semantically correct or that a reviewer approved them.
@@ -153,13 +193,15 @@ The real-Git integration fixtures assert both independent registrations and
 rationales survive in the actual merged file. The normal source review and
 required pipeline tests remain necessary.
 
-Different-file merges require no resolution declaration or aggregate edit.
+Single-base merges of disjoint protected paths require no resolution declaration
+or aggregate edit when each result preserves the changed side. A different-file
+criss-cross can still require a resolution under another maximal base.
 For older branches, composition uses their actual old common-base blobs. If
 both the checkpoint/main side and the branch changed a protected file, the
 explicit resolution pins the integrated bytes while the immutable checkpoint
 retains the earlier rationale. It never substitutes old branch bytes for a
 newer checkpoint file without that resolution.
-Octopus merges, multiple merge bases, unrelated histories, protected-file
+Octopus merges, unrelated histories, protected-file
 deletions and executable-mode changes are rejected
 with a diagnostic; use a supported integration shape rather than a fallback.
 No product execution, allocation claim, mutation requirement or oracle is
