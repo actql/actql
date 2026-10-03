@@ -197,6 +197,32 @@ fn client_infer_dependency_cid(value : String) -> Bool {
 }
 
 ///|
+/// The same installed references, bound to the original composed occurrence.
+/// Results belong to the enclosing Effect compiler rather than this component.
+pub fn issue_installed_client_composed_infer_plan_graph(
+  occurrence : ClientInferOccurrence,
+  execution : @environment.ModelExecutionContract,
+  sequence_limits : @lower.SequenceLimits,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue] {
+  issue_prepared_client_composed_infer_plan_graph(
+    occurrence,
+    execution,
+    prepared_client_check_environment_cid(occurrence.owner),
+    @environment.model_task_identity(
+      @environment.model_execution_task(execution),
+    ).2,
+    sequence_limits,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    include_results=false,
+  )
+}
+
+///|
 /// Select one terminal Infer under the ordinary checked Program owner. The
 /// prefix stays AoA and the model node stays an acquisition barrier. Checked
 /// Result transformations consume the barrier's actual Relation port.

@@ -5820,6 +5820,17 @@ pub fn client_program_compile_local_effects(
   @publication_host.ClientEffectCompilation,
   ClientProgramEffectCompilationBridgeIssue,
 ] {
+  compile_client_local_effects(prepared, None)
+}
+
+///|
+fn compile_client_local_effects(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  infer : @publication_host.ClientInferPlanGraph?,
+) -> Result[
+  @publication_host.ClientEffectCompilation,
+  ClientProgramEffectCompilationBridgeIssue,
+] {
   let manifests = match
     @publication_host.admit_client_compilation_manifests(
       @check_environment.compiler_grammar_manifest_wire(),
@@ -5840,6 +5851,7 @@ pub fn client_program_compile_local_effects(
     1000000,
     100000,
     100,
+    infer~,
   ).map_err(issue => Compilation(issue))
 }
 

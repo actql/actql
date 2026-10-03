@@ -1251,21 +1251,26 @@ pub fn client_program_admit_infer_egress(
     prepared,
     step,
     execution,
-    () => {
-      guard observe() is Some((name, region, provider_retention, training_use)) else {
-        return None
-      }
-      let classification = match name {
-        "public" => @check_environment.Public
-        "internal" => @check_environment.Internal
-        "confidential" => @check_environment.Confidential
-        "restricted" => @check_environment.Restricted
-        "unknown" => @check_environment.Unknown
-        _ => return None
-      }
-      Some({ classification, region, provider_retention, training_use, })
-    },
+    () => client_infer_egress_observation(observe()),
   )
+}
+
+///|
+fn client_infer_egress_observation(
+  observation : (String, String, Bool, Bool)?,
+) -> @publication_host.ClientInferEgressObservation? {
+  guard observation is Some((name, region, provider_retention, training_use)) else {
+    return None
+  }
+  let classification = match name {
+    "public" => @check_environment.Public
+    "internal" => @check_environment.Internal
+    "confidential" => @check_environment.Confidential
+    "restricted" => @check_environment.Restricted
+    "unknown" => @check_environment.Unknown
+    _ => return None
+  }
+  Some({ classification, region, provider_retention, training_use, })
 }
 
 ///|

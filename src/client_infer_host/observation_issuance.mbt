@@ -26,7 +26,7 @@ struct ObservationIssuanceState {
   template : @publication.RunEvidenceValue
   artifact : @publication.RunEvidenceValue
   policy_cid : String
-  source : @publication.ModelSourceObservation?
+  sources : Array[@publication.ModelSourceObservation]
   ledger : @resources.Ledger
   reservation : @resources.Reservation
   writer : @encode.Writer
@@ -126,8 +126,8 @@ pub fn start_observation_issuance(
     definition: bound.definition,
     template: @publication_host.client_compiled_run_template(bound.compiled),
     artifact: @publication_host.client_infer_call_scope_artifact(scope),
-    source: active.acquired_input.map(
-      @publication_host.client_infer_captured_input_observation,
+    sources: @publication_host.client_infer_call_scope_source_observations(
+      scope,
     ),
     policy_cid: @environment.model_task_data_handling_cid(
       @environment.model_execution_task(
@@ -183,7 +183,7 @@ fn emit_observation_issuance_step(
           ("data_policy_cid", state.policy_cid),
           (
             "consistency",
-            if state.source is Some(_) {
+            if !state.sources.is_empty() {
               "independent_snapshots"
             } else {
               "no_external_sources"
@@ -202,7 +202,7 @@ fn emit_observation_issuance_step(
       @encode.end_array(writer)
       @encode.key(writer, "source_evidence_cids")
       @encode.begin_array(writer)
-      if state.source is Some(source) {
+      for source in state.sources {
         @encode.string_value(
           writer,
           @publication.model_source_observation_fields(source).0,
@@ -215,12 +215,9 @@ fn emit_observation_issuance_step(
           (1, "capture_completed_at"),
         ] {
         @encode.key(writer, name)
-        match state.source {
+        match @publication.model_source_observation_interval(state.sources) {
           None => @encode.null_value(writer)
-          Some(source) => {
-            let (_, started, completed) = @publication.model_source_observation_fields(
-              source,
-            )
+          Some((started, completed)) =>
             @encode.string_value(
               writer,
               if index == 0 {
@@ -229,7 +226,6 @@ fn emit_observation_issuance_step(
                 completed
               },
             )
-          }
         }
       }
       @encode.key(writer, "replayability")

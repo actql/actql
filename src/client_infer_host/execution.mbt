@@ -66,7 +66,8 @@ pub enum Poll {
 /// Run state machine nor a retry engine. The installing Host supplies an
 /// admitted fixed request identity, provider and envelope before dispatch.
 pub struct Execution {
-  prepared : @publication_host.PreparedClientProgram
+  prepared : @publication_host.PreparedClientProgram?
+  occurrence : @publication_host.ClientInferOccurrence
   input : @input.ClientInferInputExecution
   source : Source
   fixed_request_cid : String
@@ -86,6 +87,7 @@ pub struct Execution {
   mut cancelled : Bool
   mut advancing : Bool
   mut reclaimed : Bool
+  mut local_component_bound : Bool
   mut work : Int64
   mut child_work : Int64
   mut output_uses : Int
@@ -96,6 +98,7 @@ pub struct Execution {
   mut egress_admission : @publication_host.ClientInferEgressAdmission?
   mut final_quantity_usage : @resources.QuantityUsage?
   mut acquired_input : @publication_host.ClientInferCapturedInput?
+  composed_sources : @publication_host.ClientInferComposedSources?
 }
 
 ///|
@@ -282,6 +285,79 @@ fn start_owned(
   fragment_body? : String? = None,
   ordered_body? : String? = None,
 ) -> Result[Execution, Issue] {
+  guard @publication_host.prepared_client_infer_execution_occurrence(
+      prepared, step,
+    )
+    is Some(occurrence) else {
+    return Err(Input(@input.UnsupportedProgram))
+  }
+  if acquired_input is Some(captured) &&
+    @publication_host.client_infer_captured_input_source(
+      captured, prepared, step,
+    )
+    is None {
+    return Err(CallScope(ForeignInput))
+  }
+  start_occurrence(
+    occurrence,
+    Some(prepared),
+    source,
+    fixed_request_cid,
+    limits,
+    plan,
+    limits => {
+      if acquired_input is Some(captured) {
+        let input_source = @publication_host.client_infer_captured_input_source(
+          captured, prepared, step,
+        ).unwrap()
+        @input.start_client_acquired_infer_input(
+          prepared,
+          0,
+          step,
+          input_source,
+          registry,
+          values,
+          limits.input,
+          limits.measurement,
+          limits.mapping,
+          fragment_body~,
+          ordered_body~,
+        )
+      } else {
+        @input.start_client_infer_input(
+          prepared,
+          0,
+          step,
+          registry,
+          values,
+          limits.input,
+          limits.measurement,
+          limits.mapping,
+        )
+      }
+    },
+    acquired_input~,
+  )
+}
+
+///|
+fn start_occurrence(
+  occurrence : @publication_host.ClientInferOccurrence,
+  prepared : @publication_host.PreparedClientProgram?,
+  source : Source,
+  fixed_request_cid : String,
+  limits : Limits,
+  plan : @publication_host.ClientInferPlanGraph?,
+  start_input : (Limits) -> Result[
+    @input.ClientInferInputExecution,
+    @input.ClientInferInputIssue,
+  ],
+  acquired_input? : @publication_host.ClientInferCapturedInput? = None,
+  composed_sources? : @publication_host.ClientInferComposedSources? = None,
+) -> Result[Execution, Issue] {
+  let (_, _, step) = @publication_host.client_infer_occurrence_coordinates(
+    occurrence,
+  )
   if limits.output_rows < 0 ||
     limits.output_work < 0 ||
     limits.output_workspace < 0 {
@@ -299,21 +375,14 @@ fn start_owned(
   }
   if plan is Some(graph) &&
     (
-      !@publication_host.client_infer_plan_graph_matches_occurrence(
-        graph, prepared, step,
-      ) ||
+      !@publication_host.client_infer_occurrence_matches_plan(occurrence, graph) ||
       @publication_host.client_infer_plan_graph_request_cid(graph) !=
       fixed_request_cid
     ) {
     return Err(Model(@model.RequestIdentity))
   }
-  let ceiling = match
-    @publication_host.prepared_client_infer_host_item_ceiling(prepared, step) {
-    Ok(value) => value
-    Err(issue) => return Err(Capacity(issue))
-  }
-  let request_ceiling = match
-    @publication_host.prepared_client_infer_host_request_ceiling(prepared, step) {
+  let (ceiling, request_ceiling) = match
+    @publication_host.client_infer_occurrence_host_ceilings(occurrence) {
     Ok(value) => value
     Err(issue) => return Err(Capacity(issue))
   }
@@ -369,46 +438,17 @@ fn start_owned(
   } else {
     limits
   }
-  let started_input = if acquired_input is Some(captured) {
-    guard @publication_host.client_infer_captured_input_source(
-        captured, prepared, step,
-      )
-      is Some(input_source) else {
-      return Err(CallScope(ForeignInput))
-    }
-    @input.start_client_acquired_infer_input(
-      prepared,
-      0,
-      step,
-      input_source,
-      registry,
-      values,
-      limits.input,
-      limits.measurement,
-      limits.mapping,
-      fragment_body~,
-      ordered_body~,
-    )
-  } else {
-    @input.start_client_infer_input(
-      prepared,
-      0,
-      step,
-      registry,
-      values,
-      limits.input,
-      limits.measurement,
-      limits.mapping,
-    )
-  }
+  let started_input = start_input(limits)
   let input = match started_input {
     Ok(value) => value
     Err(issue) => return Err(Input(issue))
   }
   Ok({
     prepared,
+    occurrence,
     input,
     acquired_input,
+    composed_sources,
     source,
     fixed_request_cid,
     step,
@@ -436,6 +476,7 @@ fn start_owned(
     physical_preflight: None,
     egress_admission: None,
     final_quantity_usage: None,
+    local_component_bound: false,
   })
 }
 
@@ -444,7 +485,53 @@ pub fn matches(
   active : Execution,
   prepared : @publication_host.PreparedClientProgram,
 ) -> Bool {
-  physical_equal(active.prepared, prepared) && !active.reclaimed
+  active.prepared
+  .map(actual => physical_equal(actual, prepared))
+  .unwrap_or(false) &&
+  !active.reclaimed
+}
+
+///|
+/// Connect an original checked Unit and the common task driver's producer
+/// reads to the existing Model component. No private Effect-free preparation
+/// is exported or reconstructed. Dispatch still needs bind_run, admission,
+/// egress and the installed physical envelope before any advance.
+pub fn start_composed(
+  occurrence : @publication_host.ClientInferOccurrence,
+  plan : @publication_host.ClientInferPlanGraph,
+  prefix : @relation.GeneratedSequence,
+  inputs : Array[@local.ManagedProviderInput],
+  provider : @model.ModelProvider,
+  limits : Limits,
+  sources? : @publication_host.ClientInferComposedSources? = None,
+) -> Result[Execution, Issue] {
+  if sources is Some(value) &&
+    !@publication_host.client_infer_composed_sources_matches(value, occurrence) {
+    return Err(CallScope(ForeignInput))
+  }
+  if @publication_host.client_infer_occurrence_has_captured_sources(occurrence) &&
+    sources is None {
+    return Err(CallScope(ForeignInput))
+  }
+  start_occurrence(
+    occurrence,
+    None,
+    Physical(provider),
+    @publication_host.client_infer_plan_graph_request_cid(plan),
+    limits,
+    Some(plan),
+    limits => {
+      @input.start_client_composed_infer_input(
+        occurrence,
+        prefix,
+        inputs,
+        limits.input,
+        limits.measurement,
+        limits.mapping,
+      )
+    },
+    composed_sources=sources,
+  )
 }
 
 ///|
@@ -472,9 +559,10 @@ pub fn bind_compute_suffix(
     active.phase is Input &&
     active.work == 0L &&
     active.suffix_sequence is None &&
-    @publication_host.client_infer_prefix_owner(active.prepared, 0, active.step)
-    is Some(owner) &&
-    physical_equal(owner, @relation.generated_sequence_owner(sequence)) else {
+    physical_equal(
+      @publication_host.client_infer_occurrence_preparation(active.occurrence),
+      @relation.generated_sequence_owner(sequence),
+    ) else {
     return Err(InvalidAdvance)
   }
   let full = @relation.generated_prepared_sequence(sequence)
@@ -669,16 +757,16 @@ fn advance_child(active : Execution, quantum : Int) -> Poll {
         return fail(active, InvalidAdvance)
       }
       active.call_scope = match
-        @publication_host.issue_prepared_client_infer_call_scope(
-          active.prepared,
+        @publication_host.issue_client_infer_occurrence_call_scope(
+          active.occurrence,
           plan,
-          active.step,
           completed,
           receipt,
           100000,
           10000,
           100,
           captured=active.acquired_input,
+          sources=active.composed_sources,
         ) {
         Ok(value) => Some(value)
         Err(issue) => return fail(active, CallScope(issue))

@@ -114,3 +114,114 @@ pub fn prepared_client_effect_infer_occurrence(
 ) -> ClientInferOccurrence? {
   prepared_client_composed_infer_occurrence(client_effect_program_view(owner))
 }
+
+///|
+/// Keep the existing component constructor's admitted input scope. Composed
+/// execution obtains its occurrence from compilation, never this fallback.
+pub fn prepared_client_infer_execution_occurrence(
+  owner : PreparedClientProgram,
+  step : Int,
+) -> ClientInferOccurrence? {
+  client_infer_metadata_owner(owner, 0, step).map(preparation => {
+    owner,
+    task: 0,
+    stage: 0,
+    step,
+    preparation,
+  })
+}
+
+///|
+/// Only the Relation preparation escapes; the private Effect compiler view
+/// is never returned as an Effect-free prepared Program.
+pub fn client_infer_occurrence_preparation(
+  occurrence : ClientInferOccurrence,
+) -> @lower.BoundPrepared {
+  occurrence.preparation
+}
+
+///|
+pub fn client_infer_occurrence_terminal(
+  occurrence : ClientInferOccurrence,
+) -> Bool {
+  client_infer_occurrence_matches(occurrence, occurrence.owner) &&
+  occurrence.step + 1 ==
+  @pipeline.step_count(
+    @lower.pipeline(@lower.bound_preparation(occurrence.preparation)),
+  )
+}
+
+///|
+pub fn client_infer_occurrence_matches_plan(
+  occurrence : ClientInferOccurrence,
+  plan : ClientInferPlanGraph,
+) -> Bool {
+  client_infer_occurrence_matches(occurrence, plan.owner) &&
+  occurrence.task == plan.task &&
+  occurrence.stage == plan.stage &&
+  occurrence.step == plan.source_ordinal
+}
+
+///|
+pub fn client_infer_occurrence_matches_compiled_run(
+  occurrence : ClientInferOccurrence,
+  compiled : ClientCompiledRun,
+) -> Bool {
+  client_infer_occurrence_matches(occurrence, compiled.owner) &&
+  client_compiled_run_infer(compiled)
+  .map(plan => client_infer_occurrence_matches_plan(occurrence, plan))
+  .unwrap_or(false)
+}
+
+///|
+pub fn client_infer_occurrence_has_captured_sources(
+  occurrence : ClientInferOccurrence,
+) -> Bool {
+  @strategy.graph_captured_prefix(occurrence.owner.graph) > 0
+}
+
+///|
+pub fn client_infer_occurrence_matches_effect(
+  occurrence : ClientInferOccurrence,
+  owner : PreparedClientEffectComputation,
+) -> Bool {
+  physical_equal(occurrence.owner.source, owner.source) &&
+  physical_equal(
+    occurrence.owner.graph,
+    @strategy.checked_effect_computation_graph(owner.graph),
+  ) &&
+  occurrence.owner.check_environment_cid == owner.check_environment_cid
+}
+
+///|
+pub fn client_infer_occurrence_matches_egress(
+  occurrence : ClientInferOccurrence,
+  admission : ClientInferEgressAdmission,
+  plan : ClientInferPlanGraph,
+) -> Bool {
+  client_infer_occurrence_matches_plan(occurrence, plan) &&
+  client_infer_egress_matches(admission, occurrence.owner, plan)
+}
+
+///|
+pub fn client_infer_occurrence_host_ceilings(
+  occurrence : ClientInferOccurrence,
+) -> Result[(Int64, Int64), ClientInferHostCapacityIssue] {
+  if !client_infer_occurrence_matches(occurrence, occurrence.owner) {
+    return Err(UnsupportedProgram)
+  }
+  let items = match
+    read_client_infer_host_ceiling(
+      occurrence.owner,
+      "max_infer_items",
+      MissingItemCeiling,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  read_client_infer_host_ceiling(
+    occurrence.owner,
+    "max_model_request_bytes_per_item",
+    MissingRequestCeiling,
+  ).map(bytes => (items, bytes))
+}

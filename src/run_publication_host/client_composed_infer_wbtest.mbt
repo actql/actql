@@ -378,6 +378,38 @@ test "Effect compiler keeps the original Model barrier and KEEP in one Plan" {
   )
   assert_true(physical_equal(compilation.compiled.infer.unwrap(), component))
   assert_eq(compilation.compiled.result_names, ["published"])
+  let allowed = issue_client_effect_allowed_run(
+    compilation,
+    "sha256:" + "a".repeat(64),
+    "sha256:" + "b".repeat(64),
+    "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  let definition = issue_client_effect_run_definition(
+    allowed, "composed-scope", "composed-run", "2026-10-03T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  let model_run = client_effect_allowed_infer_run(allowed).unwrap()
+  assert_true(
+    check_client_compiled_run_definition(model_run, definition) is Ok(_),
+  )
+  assert_true(
+    client_infer_occurrence_matches_compiled_run(occurrence, model_run),
+  )
+  assert_true(
+    physical_equal(client_compiled_run_infer(model_run).unwrap(), component),
+  )
+  // The Model component shares the Effect admission, but cannot use an
+  // Effect-free invocation issuer or substitute a second Run owner.
+  assert_true(
+    issue_client_compiled_source_free_task_invocation(
+      model_run,
+      definition,
+      "sha256:" + "d".repeat(64),
+      100000,
+      10000,
+      100,
+    )
+    is Err(_),
+  )
   let plan = compilation.compiled.plan.plan
   let saved = admit_prepared_client_effect_compilation(
     owner,

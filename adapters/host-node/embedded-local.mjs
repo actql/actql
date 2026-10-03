@@ -544,83 +544,18 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
     }
     return observeRun({ref, principalId: actual});
   };
-  const requestOf = ({preparedProgram, requestId}) => {
-    prepareSubmit.assertOwned(preparedProgram);
-    if (prepareSubmit.kindOf(preparedProgram) === 'effectful') {
-      const count = moon.clientProgramEffectAcquisitionCount(preparedProgram);
-      const acquired = count > 0;
-      if (count > 0) {
-        if (sourceProfile === undefined) throw clientOperationError('ClientProgramNeedsInputs');
-        if (count > 2 || count === 2 && sourceProfile.sources?.length !== 2 ||
-            count === 1 && sourceProfile.sources !== undefined) {
-          throw clientOperationError('ClientProgramUnsupported');
-        }
-        const selected = new Set();
-        for (let task = 0; task < count; task++) {
-          try {
-            const requirement = checked(moon.clientProgramEffectPrepareLocalQueryRequirement(
-              preparedProgram, task, 0, registry, values, fragment, ordered));
-            const adapter = installedSourceFor(sourceProfile,
-              moon.clientProgramQueryRequirementSourceRef(requirement));
-            if (count === 2 && adapter.realizationKey !== 'duckdb-acquired') {
-              throw new Error('UnsupportedEffectSourceRealization');
-            }
-            selected.add(adapter);
-          } catch (cause) {
-            throw clientOperationError('ClientProgramUnsupported', cause);
-          }
-        }
-        if (selected.size !== count) throw clientOperationError('ClientProgramUnsupported');
-      }
-      const requested = moon.clientProgramEffectRequestIdentity(
-        preparedProgram, authorityScopeCid, requestId,
-        moon.clientProgramSourceFreeInputIntentCid());
-      if (requested === undefined) {
-        throw clientOperationError('ClientProgramNeedsInputs');
-      }
-      const resultNames = [];
-      for (let index = 0;
-        index < moon.clientProgramEffectResultCount(preparedProgram);
-        index++) {
-        const name = moon.clientProgramEffectResultName(preparedProgram,
-          index);
-        if (name === undefined) {
-          throw new Error('ClientProgramResultMissing');
-        }
-        resultNames.push(name);
-      }
-      return {requested, resultNames, acquired, effectful: true};
-    }
-    const acquisitionCount = moon.clientProgramAcquisitionCount(preparedProgram);
-    const acquired = acquisitionCount > 0;
-    const selectedAdapters = new Set();
-    if (acquired) {
-      if (sourceProfile === undefined) throw clientOperationError('ClientProgramNeedsInputs');
-      if (acquisitionCount > 2 || acquisitionCount === 2 && sourceProfile.sources?.length !== 2) {
-        throw clientOperationError('ClientProgramUnsupported');
-      }
-      // Every occurrence is selected by its checked requirement before any I/O.
-      for (let task = 0; task < acquisitionCount; task++) {
-        try {
-          const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(
-            preparedProgram, task, 0, registry, values, fragment, ordered));
-          const adapter = installedSourceFor(sourceProfile,
-            moon.clientProgramQueryRequirementSourceRef(requirement));
-          selectedAdapters.add(adapter);
-        } catch (cause) {
-          throw clientOperationError('ClientProgramUnsupported', cause);
-        }
-      }
-    }
-    if (selectedAdapters.size !== acquisitionCount) throw clientOperationError('ClientProgramUnsupported');
-    // Static ModelTask admission cannot authorize a model call. Until the
-    // installed dependency/dispatch route is present, refuse before admitting
-    // a Run rather than sending this acquisition into a Values fallback.
-    if (moon.clientProgramSelectedInferStep(preparedProgram) !== undefined) {
+  const prepareInferSelection = (preparedProgram, occurrence) => {
+    // The Effect compiler retains this exact graph for the saved admission.
+    // Current account/egress callbacks are checked again by physical dispatch.
+    if (occurrence !== undefined && inferSelections.has(preparedProgram)) return;
+    const selectedStep = occurrence === undefined
+      ? moon.clientProgramSelectedInferStep(preparedProgram)
+      : moon.clientProgramInferOccurrenceCoordinates(occurrence)._2;
+    if (selectedStep !== undefined) {
       let execution;
       try {
         ({execution} = readInstalledModelExecution(moon, preparedProgram,
-          modelInstallation));
+          modelInstallation, occurrence));
       } catch (cause) {
         diagnostic('infer_preparation_rejected', {boundary: 'model_execution',
           code: cause.code, cause: cause.cause ?? cause,
@@ -665,24 +600,35 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
           new Error('InstalledInferDispatchNotConnected'));
       }
       try {
-        const step = moon.clientProgramSelectedInferStep(preparedProgram);
-        const computeSuffix = checked(moon.clientProgramPrepareInferComputeSuffix(
-          preparedProgram, step, registry, values, fragment, ordered));
-        const egressAdmission = checked(moon.clientProgramAdmitInferEgress(
-          preparedProgram, step, execution, physical.observeEgress));
+        const step = selectedStep;
+        const segments = occurrence === undefined ? undefined : checked(
+          moon.clientProgramPrepareEffectInferSegments(preparedProgram, occurrence,
+            registry, values, fragment, ordered));
+        const computeSuffix = occurrence === undefined
+          ? checked(moon.clientProgramPrepareInferComputeSuffix(preparedProgram,
+            step, registry, values, fragment, ordered)) : segments._1;
+        const egressAdmission = checked(occurrence === undefined
+          ? moon.clientProgramAdmitInferEgress(preparedProgram, step, execution,
+            physical.observeEgress)
+          : moon.clientProgramAdmitComposedInferEgress(occurrence, execution,
+            physical.observeEgress));
         const observeAccount = () => observeInstalledModelAccount(moon, authorization);
         const account = observeAccount();
         const decision = moon.executionAuthorizationEvaluate(account, principalId,
           moon.clientProgramInferProviderId(execution),
-          moon.clientProgramInferModelTaskCid(preparedProgram, step), 'infer');
+          occurrence === undefined
+            ? moon.clientProgramInferModelTaskCid(preparedProgram, step)
+            : moon.clientProgramInferOccurrenceModelTaskCid(occurrence), 'infer');
         const outcome = JSON.parse(moon.executionAuthorizationEvaluationJson(decision));
         if (outcome.outcome !== 'allow') {
           throw Object.assign(new Error('InstalledInferAuthorityUnavailable'),
             {code: 'InstalledInferAuthorityUnavailable', cause: outcome});
         }
-        const graph = checked(moon.clientProgramInstalledInferPlanGraph(
-          preparedProgram, step, execution));
+        const graph = checked(occurrence === undefined
+          ? moon.clientProgramInstalledInferPlanGraph(preparedProgram, step, execution)
+          : moon.clientProgramInstalledComposedInferPlanGraph(occurrence, execution));
         inferSelections.set(preparedProgram, Object.freeze({step, graph, computeSuffix,
+          occurrence, computePrefix: segments?._0,
           provider: moon.clientProgramAdmittedModelProvider(admittedProvider, execution),
           egressAdmission, account, observeAccount,
           physicalPreflight: physical.physicalPreflight,
@@ -693,6 +639,82 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
         throw clientOperationError('ClientProgramUnsupported', cause);
       }
     }
+  };
+  const requestOf = ({preparedProgram, requestId}) => {
+    prepareSubmit.assertOwned(preparedProgram);
+    if (prepareSubmit.kindOf(preparedProgram) === 'effectful') {
+      const count = moon.clientProgramEffectAcquisitionCount(preparedProgram);
+      const acquired = count > 0;
+      if (count > 0) {
+        if (sourceProfile === undefined) throw clientOperationError('ClientProgramNeedsInputs');
+        if (count > 2 || count === 2 && sourceProfile.sources?.length !== 2 ||
+            count === 1 && sourceProfile.sources !== undefined) {
+          throw clientOperationError('ClientProgramUnsupported');
+        }
+        const selected = new Set();
+        for (let task = 0; task < count; task++) {
+          try {
+            const requirement = checked(moon.clientProgramEffectPrepareLocalQueryRequirement(
+              preparedProgram, task, 0, registry, values, fragment, ordered));
+            const adapter = installedSourceFor(sourceProfile,
+              moon.clientProgramQueryRequirementSourceRef(requirement));
+            if (count === 2 && adapter.realizationKey !== 'duckdb-acquired') {
+              throw new Error('UnsupportedEffectSourceRealization');
+            }
+            selected.add(adapter);
+          } catch (cause) {
+            throw clientOperationError('ClientProgramUnsupported', cause);
+          }
+        }
+        if (selected.size !== count) throw clientOperationError('ClientProgramUnsupported');
+      }
+      const occurrence = moon.clientProgramEffectInferOccurrence(preparedProgram);
+      if (occurrence !== undefined) prepareInferSelection(preparedProgram, occurrence);
+      const requested = moon.clientProgramEffectRequestIdentity(
+        preparedProgram, authorityScopeCid, requestId,
+        moon.clientProgramSourceFreeInputIntentCid());
+      if (requested === undefined) {
+        throw clientOperationError('ClientProgramNeedsInputs');
+      }
+      const resultNames = [];
+      for (let index = 0;
+        index < moon.clientProgramEffectResultCount(preparedProgram);
+        index++) {
+        const name = moon.clientProgramEffectResultName(preparedProgram,
+          index);
+        if (name === undefined) {
+          throw new Error('ClientProgramResultMissing');
+        }
+        resultNames.push(name);
+      }
+      return {requested, resultNames, acquired, effectful: true};
+    }
+    const acquisitionCount = moon.clientProgramAcquisitionCount(preparedProgram);
+    const acquired = acquisitionCount > 0;
+    const selectedAdapters = new Set();
+    if (acquired) {
+      if (sourceProfile === undefined) throw clientOperationError('ClientProgramNeedsInputs');
+      if (acquisitionCount > 2 || acquisitionCount === 2 && sourceProfile.sources?.length !== 2) {
+        throw clientOperationError('ClientProgramUnsupported');
+      }
+      // Every occurrence is selected by its checked requirement before any I/O.
+      for (let task = 0; task < acquisitionCount; task++) {
+        try {
+          const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(
+            preparedProgram, task, 0, registry, values, fragment, ordered));
+          const adapter = installedSourceFor(sourceProfile,
+            moon.clientProgramQueryRequirementSourceRef(requirement));
+          selectedAdapters.add(adapter);
+        } catch (cause) {
+          throw clientOperationError('ClientProgramUnsupported', cause);
+        }
+      }
+    }
+    if (selectedAdapters.size !== acquisitionCount) throw clientOperationError('ClientProgramUnsupported');
+    // Static ModelTask admission cannot authorize a model call. Until the
+    // installed dependency/dispatch route is present, refuse before admitting
+    // a Run rather than sending this acquisition into a Values fallback.
+    prepareInferSelection(preparedProgram);
     const requested = moon.clientProgramRequestIdentity(preparedProgram,
       authorityScopeCid, requestId,
       moon.clientProgramSourceFreeInputIntentCid());
@@ -845,7 +867,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
   };
   const effectRun = effectInstallation === undefined ? undefined :
     installNodeClientEffectRun({moon, publicationControl: control, journal,
-      now,
+      now, inferPlanFor: prepared => inferSelections.get(prepared)?.graph,
       authorizeRequest: async ({principalId: actual, connection}) => {
         if (!hostConnection({principalId: actual, connection})) return null;
         const createdAt = now();

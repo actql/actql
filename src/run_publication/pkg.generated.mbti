@@ -114,15 +114,15 @@ pub fn check_effect_preview_row_outcome(EffectPreviewIdentity, Int, Int, String,
 
 pub fn check_effect_preview_run_binding(RunPublicationAdmission, PublicationContract, PublicationContract, EffectPreviewIdentity) -> Result[Unit, EffectPreviewRunBindingIssue]
 
-pub fn check_model_invocation_binding(RunEvidenceValue, RunEvidenceValue, PublicationContract, RunEvidenceValue, String, source? : ModelSourceObservation?) -> Result[Unit, RunEvidenceValueIssue]
+pub fn check_model_invocation_binding(RunEvidenceValue, RunEvidenceValue, PublicationContract, RunEvidenceValue, String, source? : ModelSourceObservation?, sources? : Array[ModelSourceObservation]) -> Result[Unit, RunEvidenceValueIssue]
 
-pub fn check_model_observation_binding(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, String, source? : ModelSourceObservation?) -> Result[Unit, RunEvidenceValueIssue]
+pub fn check_model_observation_binding(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, String, source? : ModelSourceObservation?, sources? : Array[ModelSourceObservation]) -> Result[Unit, RunEvidenceValueIssue]
 
 pub fn check_model_slot_capture_policy(BoundModelSlotCapture, String) -> Result[Unit, RunEvidenceValueIssue]
 
 pub fn check_run_publication_program_binding(RunPublicationAdmission, PublicationContract, String, String, String) -> Result[Unit, RunProgramBindingIssue]
 
-pub fn check_saved_model_observation(RunPublicationAdmission, PublicationContract, RunEvidenceValue, RunEvidenceValue, String, String, String, String, source? : ModelSourceObservation?) -> Result[Unit, RunEvidenceValueIssue]
+pub fn check_saved_model_observation(RunPublicationAdmission, PublicationContract, RunEvidenceValue, RunEvidenceValue, String, String, String, String, source? : ModelSourceObservation?, sources? : Array[ModelSourceObservation]) -> Result[Unit, RunEvidenceValueIssue]
 
 pub fn check_saved_source_free_model_observation(RunPublicationAdmission, PublicationContract, RunEvidenceValue, RunEvidenceValue, String, String, String, String) -> Result[Unit, RunEvidenceValueIssue]
 
@@ -385,6 +385,8 @@ pub fn model_observation_slot_count(RunEvidenceValue) -> Int?
 pub fn model_private_holding_cid(PublicationContract, String, String, Int) -> String?
 
 pub fn model_source_observation_fields(ModelSourceObservation) -> (String, String, String)
+
+pub fn model_source_observation_interval(Array[ModelSourceObservation]) -> (String, String)?
 
 pub fn model_source_observation_matches_input(ModelSourceObservation, RunEvidenceValue) -> Bool
 

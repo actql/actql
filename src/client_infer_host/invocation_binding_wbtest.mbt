@@ -11,12 +11,12 @@ fn invocation_fixture_compiled(
     100,
   ).unwrap()
   let plan = if alternate_plan {
-    call_identity_plan(active.prepared)
+    call_identity_plan(active.prepared.unwrap())
   } else {
     active.plan.unwrap()
   }
   let compilation = @publication_host.issue_prepared_client_infer_compilation(
-    active.prepared,
+    active.prepared.unwrap(),
     plan,
     manifests,
     1000,
@@ -26,7 +26,7 @@ fn invocation_fixture_compiled(
     100,
   ).unwrap()
   let compiled = @publication_host.issue_client_task_compiled_run(
-    active.prepared,
+    active.prepared.unwrap(),
     compilation,
     "sha256:" + "a".repeat(64),
     "sha256:" + "b".repeat(64),

@@ -4,6 +4,7 @@ package "actql/actql/client_infer_host"
 import {
   "actql/actql/bounded_execution",
   "actql/actql/client_local_host",
+  "actql/actql/connector_sdk",
   "actql/actql/connectors/local",
   "actql/actql/execution_relation",
   "actql/actql/model_execution",
@@ -80,6 +81,8 @@ pub fn invocation_evidence(Execution, Int) -> @run_publication.RunEvidenceValue?
 
 pub fn issued_slot_capture(Execution, Int) -> Result[@run_publication.RunEvidenceValue, @model_execution.ModelExecutionIssue]
 
+pub fn local_component(Execution, (Issue) -> @connector_sdk.FixedComputeIssue) -> Result[@local.ManagedProviderExecution, Issue]
+
 pub fn matches(Execution, @run_publication_host.PreparedClientProgram) -> Bool
 
 pub fn observation_issuance_value(ObservationIssuance) -> (@run_publication.RunEvidenceValue, @run_publication.PublicationContract)?
@@ -108,6 +111,8 @@ pub fn standard_limits() -> Limits
 
 pub fn start(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelProvider, String, Limits, plan? : @run_publication_host.ClientInferPlanGraph?, acquired_input? : @run_publication_host.ClientInferCapturedInput?, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
 
+pub fn start_composed(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, Limits, sources? : @run_publication_host.ClientInferComposedSources?) -> Result[Execution, Issue]
+
 pub fn start_observation_issuance(Execution, @physical_resources.Ledger, ObservationIssuanceLimits) -> Result[ObservationIssuance, Issue]
 
 pub fn start_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.VerifiedModelCapture, Limits, @run_publication_host.ClientInferPlanGraph, acquired_input? : @run_publication_host.ClientInferCapturedInput?, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
@@ -124,7 +129,8 @@ pub fn stopped_attempt_count(Execution) -> Int?
 
 // Types and methods
 pub struct Execution {
-  prepared : @run_publication_host.PreparedClientProgram
+  prepared : @run_publication_host.PreparedClientProgram?
+  occurrence : @run_publication_host.ClientInferOccurrence
   input : @client_local_host.ClientInferInputExecution
   source : Source
   fixed_request_cid : String
@@ -144,6 +150,7 @@ pub struct Execution {
   mut cancelled : Bool
   mut advancing : Bool
   mut reclaimed : Bool
+  mut local_component_bound : Bool
   mut work : Int64
   mut child_work : Int64
   mut output_uses : Int
@@ -154,6 +161,7 @@ pub struct Execution {
   mut egress_admission : @run_publication_host.ClientInferEgressAdmission?
   mut final_quantity_usage : @physical_resources.QuantityUsage?
   mut acquired_input : @run_publication_host.ClientInferCapturedInput?
+  composed_sources : @run_publication_host.ClientInferComposedSources?
 }
 
 type ExecutionRunBinding

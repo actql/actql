@@ -99,7 +99,131 @@ pub fn prepare_client_infer_suffix(
     fragment_body,
     ordered_body,
     task_count=Some(1),
-    infer_suffix=Some(step),
+    infer_suffix=Some((0, step)),
+  ).bind(sequences => sequences.get(0))
+}
+
+///|
+pub fn prepare_client_composed_infer_prefix(
+  prepared : @publication_host.PreparedClientProgram,
+  occurrence : @publication_host.ClientInferOccurrence,
+  registry_body : String,
+  values_body : String,
+  fragment_body? : String? = None,
+  ordered_body? : String? = None,
+) -> @execution.GeneratedSequence? {
+  if !@publication_host.client_infer_occurrence_matches(occurrence, prepared) {
+    return None
+  }
+  prepare_owned_infer_segment(
+    Pure(prepared),
+    occurrence,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+    false,
+  )
+}
+
+///|
+pub fn prepare_client_effect_infer_prefix(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  occurrence : @publication_host.ClientInferOccurrence,
+  registry_body : String,
+  values_body : String,
+  fragment_body? : String? = None,
+  ordered_body? : String? = None,
+) -> @execution.GeneratedSequence? {
+  if !@publication_host.client_infer_occurrence_matches_effect(
+      occurrence, prepared,
+    ) {
+    return None
+  }
+  prepare_owned_infer_segment(
+    Effect(prepared),
+    occurrence,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+    false,
+  )
+}
+
+///|
+pub fn prepare_client_composed_infer_suffix(
+  prepared : @publication_host.PreparedClientProgram,
+  occurrence : @publication_host.ClientInferOccurrence,
+  registry_body : String,
+  values_body : String,
+  fragment_body? : String? = None,
+  ordered_body? : String? = None,
+) -> @execution.GeneratedSequence? {
+  if !@publication_host.client_infer_occurrence_matches(occurrence, prepared) {
+    return None
+  }
+  prepare_owned_infer_segment(
+    Pure(prepared),
+    occurrence,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+    true,
+  )
+}
+
+///|
+pub fn prepare_client_effect_infer_suffix(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  occurrence : @publication_host.ClientInferOccurrence,
+  registry_body : String,
+  values_body : String,
+  fragment_body? : String? = None,
+  ordered_body? : String? = None,
+) -> @execution.GeneratedSequence? {
+  if !@publication_host.client_infer_occurrence_matches_effect(
+      occurrence, prepared,
+    ) {
+    return None
+  }
+  prepare_owned_infer_segment(
+    Effect(prepared),
+    occurrence,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+    true,
+  )
+}
+
+///|
+fn prepare_owned_infer_segment(
+  prepared : ClientLocalSequenceOwner,
+  occurrence : @publication_host.ClientInferOccurrence,
+  registry : String,
+  values : String,
+  fragment : String?,
+  ordered : String?,
+  suffix : Bool,
+) -> @execution.GeneratedSequence? {
+  let (task, _, step) = @publication_host.client_infer_occurrence_coordinates(
+    occurrence,
+  )
+  if step < 1 {
+    return None
+  }
+  prepare_client_local_sequences_owned(
+    prepared,
+    registry,
+    values,
+    fragment,
+    ordered,
+    selected_task=Some(task),
+    infer_prefix=if suffix { None } else { Some((task, step - 1)) },
+    infer_suffix=if suffix { Some((task, step)) } else { None },
   ).bind(sequences => sequences.get(0))
 }
 
@@ -145,7 +269,8 @@ fn prepare_client_local_sequences_owned(
   ordered_body : String?,
   task_count? : Int? = None,
   infer_prefix? : (Int, Int)? = None,
-  infer_suffix? : Int? = None,
+  infer_suffix? : (Int, Int)? = None,
+  selected_task? : Int? = None,
 ) -> Array[@execution.GeneratedSequence]? {
   if registry_body.length() > 100000 || values_body.length() > 100000 {
     return None
@@ -222,7 +347,13 @@ fn prepare_client_local_sequences_owned(
     return None
   }
   let generated = []
+  if selected_task is Some(task) && (task < 0 || task >= count) {
+    return None
+  }
   for task in 0..<count {
+    if selected_task is Some(selected) && task != selected {
+      continue
+    }
     guard @strategy.graph_task_owner(graph, task) is Some(owner) else {
       return None
     }
@@ -246,13 +377,13 @@ fn prepare_client_local_sequences_owned(
           )
         _ =>
           match infer_suffix {
-            Some(step) =>
+            Some((suffix_task, step)) if suffix_task == task =>
               @lower.prepare_sequence_with_infer_boundary(
                 owner,
                 step,
                 @publication_host.client_standard_values_sequence_limits(),
               )
-            None =>
+            _ =>
               @lower.prepare_sequence(
                 owner,
                 @publication_host.client_standard_values_sequence_limits(),
@@ -354,7 +485,8 @@ fn prepare_client_local_sequences_owned(
         _ => ()
       }
     }
-    let outcome = if infer_suffix is Some(boundary) {
+    let outcome = if infer_suffix is Some((suffix_task, boundary)) &&
+      task == suffix_task {
       let last = @lower.sequence_count(sequence) - 1
       guard last > boundary &&
         @lower.node_at(@lower.bound_preparation(owner), last) is Some(node) else {
@@ -416,7 +548,8 @@ fn prepare_client_local_sequences_owned(
       Ok(value) => value
       Err(_) => return None
     }
-    let sequence = if infer_suffix is Some(boundary) {
+    let sequence = if infer_suffix is Some((suffix_task, boundary)) &&
+      task == suffix_task {
       guard @execution.select_generated_sequence_range(
           sequence,
           boundary + 1,

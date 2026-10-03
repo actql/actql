@@ -75,6 +75,8 @@ pub fn client_program_admit_allowed_effect_run(@run_publication_host.ClientEffec
 
 pub fn client_program_admit_compiled_run_definition(@run_publication_host.ClientCompiledRun, String) -> Result[@run_publication.PublicationContract, @run_publication_host.ClientCompiledRunIssue]
 
+pub fn client_program_admit_composed_infer_egress(@run_publication_host.ClientInferOccurrence, @check_environment.ModelExecutionContract, () -> (String, String, Bool, Bool)?) -> Result[@run_publication_host.ClientInferEgressAdmission, @run_publication_host.ClientInferEgressIssue]
+
 pub fn client_program_admit_direct_values_result_root(@run_publication_host.PreparedClientProgram, Int, String) -> Result[@run_publication_host.ClientDirectResultRoot, @run_publication_host.ClientDirectResultRootAdmissionIssue]
 
 pub fn client_program_admit_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[@run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyIssue]
@@ -201,6 +203,8 @@ pub fn client_program_captured_source_schema_cid(@execution_query.CapturedSource
 
 pub fn client_program_captured_task_source_matches(@run_publication_host.PreparedClientProgram, @execution_query.CapturedInputSource, Int) -> Bool
 
+pub fn client_program_check_compiled_run_definition(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> Bool
+
 pub fn client_program_check_compiler_identity() -> String
 
 pub fn client_program_check_effect_apply_preflight(@physical_strategy.CapturedEffectPreviewInputs, Array[@physical_strategy.CapturedEffectPlanProof], Array[String], Array[String], Array[String], Array[String], Array[String], Array[String], Array[@effect_application.EffectApplyCapabilityObservation], @effect_application.EffectRiskAcceptanceBody?, Bool, String, String, String, String, String, String, String, String, @logical_request_scope.LogicalRequestScope, Array[Array[@effect_application.EffectDispatchKey]], Int, Int, Int, Int) -> Result[Unit, @physical_strategy.CapturedEffectApplyPreflightIssue]
@@ -263,6 +267,8 @@ pub fn client_program_compilation_template_wire(@run_publication_host.ClientValu
 
 pub fn client_program_compile_local_effects(@run_publication_host.PreparedClientEffectComputation) -> Result[@run_publication_host.ClientEffectCompilation, ClientProgramEffectCompilationBridgeIssue]
 
+pub fn client_program_compile_local_effects_with_infer(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientInferPlanGraph) -> Result[@run_publication_host.ClientEffectCompilation, ClientProgramEffectCompilationBridgeIssue]
+
 pub fn client_program_compile_local_infer(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientInferPlanGraph) -> Result[@run_publication_host.ClientTaskCompilation, ClientProgramTaskCompilationBridgeIssue]
 
 pub fn client_program_compile_local_tasks(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientTaskCompilation, ClientProgramTaskCompilationBridgeIssue]
@@ -307,6 +313,8 @@ pub fn client_program_duckdb_selection_native(@client_local_host.ClientDuckDBAcq
 
 pub fn client_program_effect_acquisition_count(@run_publication_host.PreparedClientEffectComputation) -> Int
 
+pub fn client_program_effect_allowed_infer_run(@run_publication_host.ClientEffectAllowedRun) -> Result[@run_publication_host.ClientCompiledRun, @run_publication_host.ClientCompiledRunIssue]
+
 pub fn client_program_effect_apply_capability_from_codes(String, Int, Int, Int, Bool, Bool, Int, Int) -> Result[@effect_application.EffectApplyCapabilityObservation, @effect_application.EffectApplyCapabilityIssue]
 
 pub fn client_program_effect_apply_capability_idempotency_mode(@effect_application.EffectApplyCapabilityObservation) -> String
@@ -346,6 +354,8 @@ pub fn client_program_effect_definition_cid(@run_publication_host.PreparedClient
 pub fn client_program_effect_dependency_body_cid(@run_publication.CapturedEffectDependencyBody) -> String
 
 pub fn client_program_effect_environment_cid(@run_publication_host.PreparedClientEffectComputation) -> String
+
+pub fn client_program_effect_infer_occurrence(@run_publication_host.PreparedClientEffectComputation) -> @run_publication_host.ClientInferOccurrence?
 
 pub fn client_program_effect_input_at(@physical_strategy.CapturedEffectInputs, Int) -> @physical_strategy.CapturedEffectInput?
 
@@ -585,6 +595,10 @@ pub fn client_program_infer_model_task_cid(@run_publication_host.PreparedClientP
 
 pub fn client_program_infer_observation_pending(@client_infer_host.Execution) -> Bool
 
+pub fn client_program_infer_occurrence_coordinates(@run_publication_host.ClientInferOccurrence) -> (Int, Int, Int)
+
+pub fn client_program_infer_occurrence_model_task_cid(@run_publication_host.ClientInferOccurrence) -> String?
+
 pub fn client_program_infer_outcomes_accepted(@model_execution.ModelOutcomeRead) -> Bool
 
 pub fn client_program_infer_outcomes_call(@model_execution.ModelOutcomeRead, Int) -> @run_publication.RunEvidenceValue?
@@ -648,6 +662,8 @@ pub fn client_program_infer_result_task(@run_publication_host.ClientResultTransf
 pub fn client_program_infer_stopped_attempt_count(@client_infer_host.Execution) -> Int?
 
 pub fn client_program_install_model_provider(String, (@model_execution.ModelRequest) -> @model_execution.ModelResponse?) -> @model_execution.ModelProvider?
+
+pub fn client_program_installed_composed_infer_plan_graph(@run_publication_host.ClientInferOccurrence, @check_environment.ModelExecutionContract) -> Result[@run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferPlanGraphIssue]
 
 pub fn client_program_installed_infer_plan_graph(@run_publication_host.PreparedClientProgram, Int, @check_environment.ModelExecutionContract) -> Result[@run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientInferPlanGraphIssue]
 
@@ -875,6 +891,8 @@ pub fn client_program_prepare_effect_free(String, String, @program_check.CheckEn
 
 pub fn client_program_prepare_effect_free_with_parameters(String, String, @program_check.CheckEnvironment, String?) -> ClientProgramBridgeOutcome
 
+pub fn client_program_prepare_effect_infer_segments(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientInferOccurrence, String, String, String, String) -> Result[(@execution_relation.GeneratedSequence, @execution_relation.GeneratedSequence?), @client_infer_host.Issue]
+
 pub fn client_program_prepare_infer_compute_suffix(@run_publication_host.PreparedClientProgram, Int, String, String, String, String) -> Result[@execution_relation.GeneratedSequence?, @client_infer_host.Issue]
 
 pub fn client_program_prepare_local_query_requirement(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, @client_local_host.ClientLocalQueryIssue]
@@ -922,6 +940,8 @@ pub fn client_program_query_requirement_source_contract_cid(@query_planning.Quer
 pub fn client_program_query_requirement_source_evidence_facts(@query_planning.QueryRequirement) -> Result[Array[String], String]
 
 pub fn client_program_query_requirement_source_ref(@query_planning.QueryRequirement) -> String
+
+pub fn client_program_read_composed_infer_model_execution(@run_publication_host.ClientInferOccurrence, String, String) -> Result[@check_environment.ModelExecutionContract, @run_publication_host.ClientInferPlanGraphIssue]
 
 pub fn client_program_read_infer_capture_bundle(String, String) -> Result[@run_publication.ModelCaptureBundleRead, @run_publication.RunEvidenceValueIssue]
 

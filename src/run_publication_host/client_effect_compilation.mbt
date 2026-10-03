@@ -400,6 +400,29 @@ pub fn client_effect_allowed_run_admission(
 }
 
 ///|
+/// The Model component consumes the original Effect Run's admission. The
+/// original checked Effect owner stays retained in this compilation variant;
+/// no separate Effect-free Run, authorization or public Program is issued.
+pub fn client_effect_allowed_infer_run(
+  value : ClientEffectAllowedRun,
+) -> Result[ClientCompiledRun, ClientCompiledRunIssue] {
+  let compilation = value.compilation
+  guard compilation.compiled.infer is Some(plan) &&
+    physical_equal(plan.owner, compilation.compiled.owner) else {
+    return Err(ForeignOwner)
+  }
+  Ok({
+    owner: compilation.compiled.owner,
+    compilation: Effects(value),
+    template: compilation.compiled.template,
+    plan: compilation.compiled.compiled_plan,
+    prepared: value.prepared,
+    authorization: value.authorization,
+    admission: value.admission,
+  })
+}
+
+///|
 /// Use the saved policy and exact Run Definition at physical-start time.
 /// Current Host authorization remains an independent requirement.
 pub fn client_effect_run_start_current(

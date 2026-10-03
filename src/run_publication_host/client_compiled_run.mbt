@@ -2,6 +2,7 @@
 enum ClientRunCompilation {
   Values(ClientValuesCompilation)
   Tasks(ClientTaskCompilation)
+  Effects(ClientEffectAllowedRun)
 }
 
 ///|
@@ -25,6 +26,7 @@ pub(all) enum ClientCompiledRunIssue {
   Contract(@publication.PublicationContractIssue)
   ValuesBinding(ClientValuesRunBindingIssue)
   TaskBinding(ClientTaskRunBindingIssue)
+  EffectBinding(ClientEffectCompiledRunIssue)
 }
 
 ///|
@@ -44,6 +46,7 @@ pub fn client_compiled_run_infer(
   match value.compilation {
     Values(_) => None
     Tasks(compilation) => compilation.infer
+    Effects(allowed) => allowed.compilation.compiled.infer
   }
 }
 
@@ -62,6 +65,7 @@ pub fn client_compiled_run_result_transformation(
   let selections = match value.compilation {
     Values(compilation) => compilation.plan.transformations
     Tasks(compilation) => compilation.plan.plan.transformations
+    Effects(_) => return Err(ForeignOwner)
   }
   for selection in selections {
     if client_result_transformation_matches(selection, owner, result) {
@@ -201,6 +205,14 @@ pub fn check_client_compiled_run_definition(
       )
       .map(_ => ())
       .map_err(issue => TaskBinding(issue))
+    Effects(allowed) =>
+      bind_client_effect_compiled_run(
+        allowed.compilation.owner,
+        allowed,
+        definition,
+      )
+      .map(_ => ())
+      .map_err(issue => EffectBinding(issue))
   }
 }
 
@@ -267,7 +279,8 @@ pub fn issue_client_compiled_values_invocation(
       issue_client_values_source_free_invocation(
         compilation, data_policy_cid, max_wire_bytes, max_nodes, max_depth,
       )
-    Tasks(_) => Err(@publication.RunEvidenceReferenceMismatch("values_run"))
+    Tasks(_) | Effects(_) =>
+      Err(@publication.RunEvidenceReferenceMismatch("values_run"))
   }
 }
 
@@ -291,7 +304,8 @@ pub fn issue_client_compiled_source_free_task_invocation(
       issue_client_task_source_free_invocation(
         compilation, data_policy_cid, max_wire_bytes, max_nodes, max_depth,
       )
-    Values(_) => Err(@publication.RunEvidenceReferenceMismatch("task_run"))
+    Values(_) | Effects(_) =>
+      Err(@publication.RunEvidenceReferenceMismatch("task_run"))
   }
 }
 
@@ -333,7 +347,8 @@ pub fn issue_client_compiled_task_invocation(
         max_nodes,
         max_depth,
       )
-    Values(_) => Err(@publication.RunEvidenceReferenceMismatch("task_run"))
+    Values(_) | Effects(_) =>
+      Err(@publication.RunEvidenceReferenceMismatch("task_run"))
   }
 }
 
@@ -377,6 +392,7 @@ pub fn issue_client_compiled_multi_task_invocation(
         max_nodes,
         max_depth,
       )
-    Values(_) => Err(@publication.RunEvidenceReferenceMismatch("task_run"))
+    Values(_) | Effects(_) =>
+      Err(@publication.RunEvidenceReferenceMismatch("task_run"))
   }
 }

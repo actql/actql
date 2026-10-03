@@ -109,9 +109,9 @@ pub fn bind_egress_admission(
     return Err(InvalidAdvance)
   }
   guard active.plan is Some(plan) &&
-    @publication_host.client_infer_egress_matches(
+    @publication_host.client_infer_occurrence_matches_egress(
+      active.occurrence,
       admission,
-      active.prepared,
       plan,
     ) else {
     return Err(Model(@model.Egress(@publication_host.ForeignOwner)))
