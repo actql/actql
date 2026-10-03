@@ -1794,19 +1794,6 @@ fn captured_mixed_managed_inputs_match(
 }
 
 ///|
-fn[T] captured_managed_request_inputs_match(
-  run : CapturedDAG,
-  task : Int,
-  request : @connector.ManagedFixedComputeRequest[T],
-) -> Bool {
-  captured_mixed_managed_inputs_match(
-    run,
-    task,
-    @connector.managed_fixed_compute_request_bindings(request),
-  )
-}
-
-///|
 /// Read the already-owned application, never reconstruct a limit from a CID or
 /// substitute the Host's execution settings for the selected checked contract.
 /// The selected checked limit, not an estimate inferred from input row counts.
