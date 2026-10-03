@@ -95,7 +95,9 @@ workflow resolution declaration was missing. The added
 `main-json-composition-246-resolution.json` binds that merge's two ordered
 parents, its single merge base, workflow blob digests and modes, and 34 inherited
 declaration dependencies. It changes no workflow bytes or validator rules.
-The same source-bound declaration is also carried by #267.
+The same source-bound declaration is preserved on the recovery branch's
+post-merge snapshot `bf4b509d776bbb4e643374f59b17181574537e2a`. It was not part
+of the merged #267 head; #270 carries the common history fix for review.
 
 At `7d26f502bedbf7773d85aabfc562bb990a330149`, the existing Git-only history
 validator passed and the bounded JS Graph Host selection passed 4/4. Its new
@@ -103,6 +105,14 @@ evidence is `_build/focused-evidence/focused-test-IS1mMx` and
 `_build/local-checks/attempts/run-8GOM7e`. No broad local campaign or old CI rerun
 was added for integration. This documentation update changes none of those
 tested source bytes. Fresh submitted-head PR CI is recorded in the PR.
+
+During this work #267 also normally merged into main at
+`b36d7864b57dc654cc03f583d8391e9ba2a506b3`. This branch normally merged that
+new main as `7d998820bb9375dc7717f9a6df0ae17e169d8c71`, without conflicts.
+The recovered provider-construction evidence is now inherited from main;
+this branch has no unmerged dependency. The Git-only history validator passed
+again. Both edited test files remain byte-identical to the focused JS run above,
+so no further test or build was added for this second integration.
 
 ## Remaining mutation acceptance
 
