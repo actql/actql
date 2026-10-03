@@ -143,7 +143,7 @@ jobs:
       - name: Test environment guards
         run: node --test scripts/moonbit-environment.test.mjs
       - name: Test native SQLite namespace ownership
-        run: node --test scripts/test-native-core.test.mjs
+        run: node --test scripts/test-native-core.test.mjs scripts/native-query-coverage.test.mjs
       - name: Test preflight admission and latest-revision guard
         run: node --test scripts/ci-preflight.test.mjs
       - name: Test focused owning-family selection and zero-test guards
@@ -628,6 +628,10 @@ jobs:
         with:
           directory: ${{ steps.packed-result-description.outputs.evidence-directory }}
           name: packed-result-description-${{ github.sha }}
+      - name: Test packed Source JOIN INFER Effect approval and process recovery
+        # One installation of this job's exact tarballs covers ordinary Source
+        # and composed Programs on Local/HTTPS; flags only narrow local probes.
+        run: node scripts/test-packed-salesforce-source.mjs
   # These source-backed checks need no packed artifact or other Client job.
   client-salesforce:
     needs: [select-targets, preflight]

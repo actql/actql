@@ -34,6 +34,85 @@ fn client_local_execution_limits() -> (
 }
 
 ///|
+/// Use the checked task inventory and the same Local import/output envelope
+/// for ordinary and Effect computations. Provider capacity and Run capacity
+/// are derived together, before any task starts.
+fn client_local_sequence_capacity(
+  sequences : Array[@execution.GeneratedSequence],
+  task_count : Int,
+) -> (@resources.LedgerLimits, Int64, Int64)? {
+  if task_count < 1 || task_count > 32 || sequences.length() > task_count {
+    return None
+  }
+  let (_, execution, measurement) = client_local_execution_limits()
+  let mut retained_bytes = 0L
+  let mut execution_bytes = 0L
+  let mut total_retained_bytes = 0L
+  for sequence in sequences {
+    guard @execution.generated_sequence_capacity(
+        sequence, execution, measurement,
+      )
+      is Some(required) else {
+      return None
+    }
+    let retained = @execution.execution_capacity_retained_bytes(required)
+    let executing = @execution.execution_capacity_execution_bytes(required)
+    if retained < 0L || retained > 536870912L - total_retained_bytes {
+      return None
+    }
+    total_retained_bytes += retained
+    if retained > retained_bytes {
+      retained_bytes = retained
+    }
+    if executing > execution_bytes {
+      execution_bytes = executing
+    }
+  }
+  let limits : @resources.LedgerLimits = {
+    planning_work: 100000,
+    attempts: task_count,
+    holdings: task_count,
+    // Each checked task may import one input under the existing 1 MB wire cap.
+    transfer_bytes: task_count.to_int64() * 1000000L,
+    retained_bytes: if total_retained_bytes > 200000000L {
+      total_retained_bytes
+    } else {
+      200000000L
+    },
+    execution_bytes: 536870912L,
+  }
+  Some((limits, retained_bytes, execution_bytes))
+}
+
+///|
+/// Keep the original checked Effect owner while sizing its Local suffix.
+pub fn client_effect_local_ledger_limits(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.LedgerLimits? {
+  let graph = @strategy.checked_effect_computation_graph(
+    @publication_host.prepared_client_effect_computation_graph(prepared),
+  )
+  guard prepare_client_effect_local_sequences(
+      prepared, registry_body, values_body, fragment_body, ordered_body,
+    )
+    is Some(sequences) else {
+    return None
+  }
+  let compute = []
+  for task in @strategy.graph_captured_prefix(graph)..<sequences.length() {
+    compute.push(sequences[task])
+  }
+  client_local_sequence_capacity(compute, @strategy.graph_task_count(graph)).map(value => {
+      value.0
+    },
+  )
+}
+
+///|
 /// Size the existing Run ledger before physical acquisition. Native capture
 /// capacities and all downstream retained outputs contribute to this one
 /// bounded inventory; no allocation is represented by a synthetic zero.
@@ -47,7 +126,61 @@ pub fn prepare_multi_captured_local_ledger(
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
-  let graph = @publication_host.prepared_client_graph(prepared)
+  prepare_multi_captured_local_ledger_owned(
+    Pure(prepared),
+    acquisitions.map(@duckdb_host.native_capture_configuration),
+    transport_bytes,
+    transport_execution_bytes,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+  )
+}
+
+///|
+/// Use the same capacity and ledger owner while retaining the checked Effect
+/// computation. Neither Source capture is copied or silently re-accounted.
+pub fn prepare_multi_captured_effect_local_ledger(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  acquisitions : Array[@duckdb_host.NativeHostConfiguration],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.Ledger? {
+  prepare_multi_captured_local_ledger_owned(
+    Effect(prepared),
+    acquisitions.map(@duckdb_host.native_capture_configuration),
+    transport_bytes,
+    transport_execution_bytes,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+  )
+}
+
+///|
+fn prepare_multi_captured_local_ledger_owned(
+  owner : ClientLocalSequenceOwner,
+  acquisitions : Array[@duckdb_host.CaptureConfiguration],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.Ledger? {
+  let graph = match owner {
+    Pure(prepared) => @publication_host.prepared_client_graph(prepared)
+    Effect(prepared) =>
+      @strategy.checked_effect_computation_graph(
+        @publication_host.prepared_client_effect_computation_graph(prepared),
+      )
+  }
   let count = @strategy.graph_task_count(graph)
   if @strategy.graph_captured_prefix(graph) != 2 ||
     acquisitions.length() != 2 ||
@@ -57,8 +190,8 @@ pub fn prepare_multi_captured_local_ledger(
     transport_execution_bytes.length() != 2 {
     return None
   }
-  guard prepare_client_local_sequences(
-      prepared, registry_body, values_body, fragment_body, ordered_body,
+  guard prepare_client_local_sequences_owned(
+      owner, registry_body, values_body, fragment_body, ordered_body,
     )
     is Some(sequences) else {
     return None
@@ -69,7 +202,8 @@ pub fn prepare_multi_captured_local_ledger(
   let mut execution_capacity = 536870912L
   for index in 0..<2 {
     let acquisition = acquisitions[index]
-    guard @duckdb_host.configured_native_capacity(acquisition) is Some(capacity) else {
+    guard @duckdb_host.configured_capture_capacity(acquisition)
+      is Some(capacity) else {
       return None
     }
     if capacity.retained_bytes < 0L ||
@@ -126,4 +260,29 @@ pub fn prepare_multi_captured_local_ledger(
     retained_bytes: native_retained + compute_retained,
     execution_bytes: execution_capacity,
   }).to_option()
+}
+
+///|
+/// Admit capacities from the exact selected Native or Broad preparations.
+/// Broad's bounded residual remains under its original acquisition owner.
+pub fn prepare_multi_captured_effect_acquisition_ledger(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  acquisitions : Array[@duckdb_host.CaptureConfiguration],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.Ledger? {
+  prepare_multi_captured_local_ledger_owned(
+    Effect(prepared),
+    acquisitions,
+    transport_bytes,
+    transport_execution_bytes,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+  )
 }

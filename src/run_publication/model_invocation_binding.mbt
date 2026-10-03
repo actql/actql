@@ -22,6 +22,7 @@ pub fn check_model_invocation_binding(
   input_artifact : RunEvidenceValue,
   data_policy_cid : String,
   source? : ModelSourceObservation? = None,
+  sources? : Array[ModelSourceObservation] = [],
 ) -> Result[Unit, RunEvidenceValueIssue] {
   if template.name != "bound_invocation_template" ||
     observation.name != "observation_set" ||
@@ -51,6 +52,7 @@ pub fn check_model_invocation_binding(
     input_artifact,
     data_policy_cid,
     source~,
+    sources~,
   )
 }
 
@@ -75,6 +77,7 @@ pub fn check_model_observation_binding(
   input_artifact : RunEvidenceValue,
   data_policy_cid : String,
   source? : ModelSourceObservation? = None,
+  sources? : Array[ModelSourceObservation] = [],
 ) -> Result[Unit, RunEvidenceValueIssue] {
   if template.name != "bound_invocation_template" ||
     observation.name != "observation_set" ||
@@ -110,34 +113,36 @@ pub fn check_model_observation_binding(
     )
   }
   guard @json.object_field(observation.value, "source_evidence_cids")
-    is Some(@json.Array(sources)) else {
+    is Some(@json.Array(wire_sources)) else {
     return Err(RunEvidenceReferenceMismatch("observation.source_evidence_cids"))
   }
-  match source {
-    None =>
-      if @json.array_count(sources) != 0 {
-        return Err(
-          RunEvidenceReferenceMismatch("observation.source_evidence_cids"),
-        )
-      }
-    Some(source) => {
-      if @json.array_count(sources) != 1 ||
-        optional_string(@json.array_at(sources, 0)) !=
-        Some(source.source.identity) {
-        return Err(
-          RunEvidenceReferenceMismatch("observation.source_evidence_cids"),
-        )
-      }
-      for
-        (field, expected) in [
-          ("consistency", "independent_snapshots"),
-          ("capture_started_at", source.started_at),
-          ("capture_completed_at", source.completed_at),
-        ] {
-        if contract_string_from_value(observation.value, field) !=
-          Some(expected) {
-          return Err(RunEvidenceReferenceMismatch("observation." + field))
-        }
+  if (source is Some(_) && !sources.is_empty()) || sources.length() > 128 {
+    return Err(RunEvidenceReferenceMismatch("observation.source_evidence_cids"))
+  }
+  let expected = match source {
+    Some(value) => [value]
+    None => sources
+  }
+  if @json.array_count(wire_sources) != expected.length() {
+    return Err(RunEvidenceReferenceMismatch("observation.source_evidence_cids"))
+  }
+  for index in 0..<expected.length() {
+    if optional_string(@json.array_at(wire_sources, index)) !=
+      Some(expected[index].source.identity) {
+      return Err(
+        RunEvidenceReferenceMismatch("observation.source_evidence_cids"),
+      )
+    }
+  }
+  if model_source_observation_interval(expected) is Some((started, completed)) {
+    for
+      (field, value) in [
+        ("consistency", "independent_snapshots"),
+        ("capture_started_at", started),
+        ("capture_completed_at", completed),
+      ] {
+      if contract_string_from_value(observation.value, field) != Some(value) {
+        return Err(RunEvidenceReferenceMismatch("observation." + field))
       }
     }
   }
@@ -177,6 +182,7 @@ pub fn check_saved_model_observation(
   check_environment_cid : String,
   data_policy_cid : String,
   source? : ModelSourceObservation? = None,
+  sources? : Array[ModelSourceObservation] = [],
 ) -> Result[Unit, RunEvidenceValueIssue] {
   if check_run_publication_program_binding(
       admission, definition, program_definition_cid, program_semantics_cid, check_environment_cid,
@@ -190,5 +196,6 @@ pub fn check_saved_model_observation(
     input_artifact,
     data_policy_cid,
     source~,
+    sources~,
   )
 }

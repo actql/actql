@@ -3,6 +3,7 @@
 import {readLocalRetainedInput} from './retained-input.mjs';
 import {localRetainedStore, localSnapshotStore} from './retained-store.mjs';
 import {prepareLocalRetainedOutput} from './retained-output.mjs';
+import {closeCompletedLocalManagedOutput} from './managed-output-custody.mjs';
 import {prepareLocalCarrierSnapshot} from './carrier-snapshot.mjs';
 import {planManagedInputRows, registerManagedMemoryInput,
   withManagedInputRows, withManagedOutputRows} from
@@ -120,10 +121,9 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         // Common captured_task_input checks the exact completed predecessor,
         // operation binding, and live retained representation. It also covers
         // a preceding row-file task without inventing a managed output.
-        return (createLease == null ? producer === 0 :
-          producer >= 0 &&
+        return (producer >= 0 && (createLease == null ||
           moon.strategyModule_local_PredecessorIsCarrier?.(setup, producer) ===
-            false) ? Object.freeze({
+            false)) ? Object.freeze({
           task: producer,
           capturedRelation: true,
         }) : undefined;
@@ -360,7 +360,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
         if (carrierMaterial != null) return Object.freeze({
           completed,
           carrierMaterial,
-          close: () => operations.close(),
+          close: () => closeCompletedLocalManagedOutput(operations, checked, failureProgress),
           diagnostic: Object.freeze({
             realization: 'local-managed',
             outputRepresentation: 'managed-local-carrier',
@@ -396,7 +396,7 @@ export function localStrategyContribution(moon, setup, checked, configuration) {
           }),
           () => {
             available = false;
-            operations.close();
+            closeCompletedLocalManagedOutput(operations, checked, failureProgress);
           },
           transferEstimate,
         );

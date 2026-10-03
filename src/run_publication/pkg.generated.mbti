@@ -114,15 +114,15 @@ pub fn check_effect_preview_row_outcome(EffectPreviewIdentity, Int, Int, String,
 
 pub fn check_effect_preview_run_binding(RunPublicationAdmission, PublicationContract, PublicationContract, EffectPreviewIdentity) -> Result[Unit, EffectPreviewRunBindingIssue]
 
-pub fn check_model_invocation_binding(RunEvidenceValue, RunEvidenceValue, PublicationContract, RunEvidenceValue, String, source? : ModelSourceObservation?) -> Result[Unit, RunEvidenceValueIssue]
+pub fn check_model_invocation_binding(RunEvidenceValue, RunEvidenceValue, PublicationContract, RunEvidenceValue, String, source? : ModelSourceObservation?, sources? : Array[ModelSourceObservation]) -> Result[Unit, RunEvidenceValueIssue]
 
-pub fn check_model_observation_binding(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, String, source? : ModelSourceObservation?) -> Result[Unit, RunEvidenceValueIssue]
+pub fn check_model_observation_binding(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, String, source? : ModelSourceObservation?, sources? : Array[ModelSourceObservation]) -> Result[Unit, RunEvidenceValueIssue]
 
 pub fn check_model_slot_capture_policy(BoundModelSlotCapture, String) -> Result[Unit, RunEvidenceValueIssue]
 
 pub fn check_run_publication_program_binding(RunPublicationAdmission, PublicationContract, String, String, String) -> Result[Unit, RunProgramBindingIssue]
 
-pub fn check_saved_model_observation(RunPublicationAdmission, PublicationContract, RunEvidenceValue, RunEvidenceValue, String, String, String, String, source? : ModelSourceObservation?) -> Result[Unit, RunEvidenceValueIssue]
+pub fn check_saved_model_observation(RunPublicationAdmission, PublicationContract, RunEvidenceValue, RunEvidenceValue, String, String, String, String, source? : ModelSourceObservation?, sources? : Array[ModelSourceObservation]) -> Result[Unit, RunEvidenceValueIssue]
 
 pub fn check_saved_source_free_model_observation(RunPublicationAdmission, PublicationContract, RunEvidenceValue, RunEvidenceValue, String, String, String, String) -> Result[Unit, RunEvidenceValueIssue]
 
@@ -286,6 +286,8 @@ pub fn issue_captured_effect_dependency_inventory(Array[CapturedEffectDependency
 
 pub fn issue_captured_source_input_relation(RunEvidenceValue, RunEvidenceValue, String, Int, PublicationContract, Int, Int, Int) -> Result[(PublicationContract, PublicationContract, PublicationContract), AcquisitionRelationIssue]
 
+pub fn issue_combined_acquisition_scope(Array[PublicationContract], Int, Int, Int) -> Result[PublicationContract, AcquisitionRelationIssue]
+
 pub fn issue_complete_local_result_artifact(String, String, ResultOrderingEvidence, PublicationContract, Int, Int, Int, Int) -> Result[PublicationContract, ResultArtifactIssuanceIssue]
 
 pub fn issue_complete_result_artifact(PublicationContract, PublicationContract, ResultOrderingEvidence, PublicationContract, Int, Int, Int, Int) -> Result[PublicationContract, ResultArtifactIssuanceIssue]
@@ -383,6 +385,8 @@ pub fn model_observation_slot_count(RunEvidenceValue) -> Int?
 pub fn model_private_holding_cid(PublicationContract, String, String, Int) -> String?
 
 pub fn model_source_observation_fields(ModelSourceObservation) -> (String, String, String)
+
+pub fn model_source_observation_interval(Array[ModelSourceObservation]) -> (String, String)?
 
 pub fn model_source_observation_matches_input(ModelSourceObservation, RunEvidenceValue) -> Bool
 
@@ -545,6 +549,8 @@ pub fn result_read_grant_allows_bytes(PublicationContract, Int) -> Bool
 pub fn result_read_grant_valid_at(PublicationContract, String) -> Bool
 
 pub fn result_read_retention_policy_cid(PublicationContract, String) -> Result[String, DeliveryIssuanceIssue]
+
+pub fn result_retention_bounds_equal(PublicationContract, PublicationContract) -> Bool
 
 pub fn result_retention_clock_contract_cid(PublicationContract) -> Result[String, DeliveryIssuanceIssue]
 

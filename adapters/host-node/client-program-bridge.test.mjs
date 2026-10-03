@@ -11,6 +11,7 @@ import {valuesUnitIdentity, valuesPublicationRowsBinding, valuesResultPlan} from
 import {inspect} from 'node:util';
 import * as moon from
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import {readInstalledModelExecution} from './installed-model.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {composeInstalledCheckEnvironment} from
   './installed-check-environment.mjs';
@@ -2801,7 +2802,10 @@ test('one acquired Effect Program captures and computes from its owner',
         }, registry, values, fragment, ordered,
         sourceAccess: sourceOptions.sourceAccess,
         now: () => instants.shift(),
-        retainComputationOwner(value) { retained = value; }});
+        retainComputationOwner(value) { retained = value; }}).catch(error => {
+        t.diagnostic(inspect(error.cause, {depth: 6}));
+        throw error;
+      });
       const {execution, checkedHost: host} = computed;
       assert.equal(computed.cleanupOwner, retained);
       assert.equal(computed.publicationPlan.invocation.identity,
@@ -6052,4 +6056,59 @@ test('a supplied connector manifest is checked without any Mapping', async () =>
     assert.equal(environment({...withConnector, connector_manifest: manifest}),
       undefined);
   }
+});
+
+
+test('checked INFER barrier compiles within the original Effect Run', async () => {
+  const {program, configuration} = await import(
+    '../../scripts/fixtures/installed-infer-fixture.mjs');
+  const effect = await effectFixture({sourceIds: ['ticket-1']});
+  const {installation, taskCid} = configuration(JSON.parse(effect.environmentWire));
+  const environmentDocument = JSON.parse(installation.environmentWire);
+  const environment = moon.clientProgramCheckEnvironment(
+    installation.environmentWire, environmentDocument.evidence_bundle_cid,
+    false, false, true, false, false, false, false);
+  assert.ok(environment);
+  const document = structuredClone(program);
+  // Effect references name declared stage Results, not intermediate aliases.
+  // The installed mapping consumes the original string key, not Model value.
+  document.stages[0].steps.at(-1).select = ['id', 'assessment'];
+  document.stages[0].results.answer.fields = ['id', 'assessment'];
+  document.stages[0].effects = {
+    save: {create: {target: 'connector://crm/account',
+      mapping: 'mapping:crm.account.v1', from: {result: 'answer'}}},
+  };
+  const preparation = moon.clientProgramPrepareEffectComputationWithParameters(
+    JSON.stringify(document), 'json', environment, undefined, []);
+  const prepared = moon.clientProgramEffectPreparationReady(preparation);
+  assert.ok(prepared, moon.clientProgramEffectPreparationIssueCode(preparation));
+  const occurrence = moon.clientProgramEffectInferOccurrence(prepared);
+  assert.ok(occurrence);
+  assert.deepEqual(moon.clientProgramInferOccurrenceCoordinates(occurrence),
+    {_0: 0, _1: 0, _2: 3});
+  assert.equal(moon.clientProgramInferOccurrenceModelTaskCid(occurrence), taskCid);
+  const {execution} = readInstalledModelExecution(moon, prepared, installation,
+    occurrence);
+  const graph = checked(moon.clientProgramInstalledComposedInferPlanGraph(
+    occurrence, execution));
+  // This is the saved pre-fix failure: the default compiler has no Model node.
+  assert.throws(() => checked(moon.clientProgramCompileLocalEffects(prepared)),
+    {code: 'MoonBitHostFailure'});
+  const compilation = checked(moon.clientProgramCompileLocalEffectsWithInfer(
+    prepared, graph));
+  const plan = JSON.parse(moon.clientProgramEffectCompilationPlanWire(compilation));
+  assert.deepEqual(plan.nodes.filter(node => /_infer_3$/.test(node.node_id))
+    .map(node => node.node_id).sort(), ['task_0_before_infer_3', 'task_0_infer_3']);
+  const allowed = checked(moon.clientProgramIssueAllowedEffectRun(compilation,
+    cid('a'), cid('b'), '2099-01-01T00:00:00.000Z'));
+  const definition = checked(moon.clientProgramIssueEffectRunDefinition(allowed,
+    'composition-scope', 'original-effect-run', '2026-10-03T00:00:00.000Z',
+    '2099-01-01T00:00:00.000Z'));
+  const modelRun = checked(moon.clientProgramEffectAllowedInferRun(allowed));
+  assert.equal(moon.clientProgramCheckCompiledRunDefinition(modelRun, definition), true);
+  const foreign = moon.clientProgramEffectPreparationReady(
+    moon.clientProgramPrepareEffectComputationWithParameters(JSON.stringify(document),
+      'json', environment, undefined, []));
+  assert.throws(() => checked(moon.clientProgramCompileLocalEffectsWithInfer(
+    foreign, graph)), {code: 'MoonBitHostFailure'});
 });

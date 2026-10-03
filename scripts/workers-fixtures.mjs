@@ -77,6 +77,7 @@ const extra = [
   ['actql/actql/remote_bundle','bundle'],
   ['actql/actql/effect_application','effect'],
   ['actql/actql/connectors_workers_async','probe'],
+  ['actql/actql/connectors/reference_compute','numeric_compute'],
   ['actql/actql/connectors/reference_compute/driver','numeric_driver'],
   ['actql/actql/connectors/local/driver','local_driver'],
 ];
@@ -100,7 +101,11 @@ const asyncBinding = bridgeBinding(
   readFileSync(join(asyncBridgeDirectory, 'moon.pkg'), 'utf8'),
   'actql/actql/connectors/reference_compute/driver',
 );
-if (asyncBinding === undefined) {
+const asyncComputeBinding = bridgeBinding(
+  readFileSync(join(asyncBridgeDirectory, 'moon.pkg'), 'utf8'),
+  'actql/actql/connectors/reference_compute',
+);
+if (asyncBinding === undefined || asyncComputeBinding === undefined) {
   throw new Error('Missing numeric bridge binding');
 }
 const asyncBridge = readFileSync(
@@ -109,6 +114,7 @@ const asyncBridge = readFileSync(
 const asyncProjection = asyncBridge
   .replaceAll('@builtin','@probe')
   .replaceAll(`@${asyncBinding}`, '@numeric_driver')
+  .replaceAll(`@${asyncComputeBinding}`, '@numeric_compute')
   .replaceAll('NodeHostFailure','AsyncHostFailure')
   .replaceAll('StrategyHost','AsyncStrategyHost')
   .replaceAll('physical_manifest_', 'async_physical_manifest_')

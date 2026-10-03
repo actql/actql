@@ -225,6 +225,39 @@ fn start_client_infer_input_sequence(
 }
 
 ///|
+/// The common task driver supplies exact producer reads for a composed Unit.
+/// Reuse the component's Local-prefix and Infer-row mapping owners; finished
+/// caller-authored rows are not an accepted input to this operation.
+pub fn start_client_composed_infer_input(
+  occurrence : @publication_host.ClientInferOccurrence,
+  sequence : @execution.GeneratedSequence,
+  inputs : Array[@local.ManagedProviderInput],
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  mapping : @execution.InferPreparationLimits,
+) -> Result[ClientInferInputExecution, ClientInferInputIssue] {
+  let (_, _, step) = @publication_host.client_infer_occurrence_coordinates(
+    occurrence,
+  )
+  if !physical_equal(
+      @publication_host.client_infer_occurrence_preparation(occurrence),
+      @execution.generated_sequence_owner(sequence),
+    ) ||
+    @execution.generated_sequence_step_count(sequence) != step {
+    return Err(UnsupportedProgram)
+  }
+  for index in 0..<step {
+    if @execution.generated_sequence_step_index_at(sequence, index) !=
+      Some(index) {
+      return Err(UnsupportedProgram)
+    }
+  }
+  start_client_infer_input_sequence(
+    sequence, step, inputs, execution, measurement, mapping,
+  )
+}
+
+///|
 /// Only the mapped rows actually completed by this input execution can select
 /// its acquisition output contract. Equal checked programs are not sufficient.
 pub fn client_infer_completion_preparation(

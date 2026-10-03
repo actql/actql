@@ -444,6 +444,42 @@ test('Local keeps supplied inputs inside the MoonBit Run boundary', async () => 
   assert.equal(prepared.dispatchInputs[0].suppliedRelation, true);
 });
 
+test('Local offers both captured predecessors to the common managed owner', async () => {
+  const setup = {}, registration = {}, configuration = {}, marker = {};
+  let admit = true, calls = 0;
+  const entry = localStrategyContribution({
+    strategyModule_local_Registration: () => registration,
+    strategyHostRegistrationSelectionKey: () => 'local',
+    strategyHostNextTask: () => 2,
+    strategyHostManagedProducers: () => [0, 1],
+    strategyHostManagedInputCount: () => 2,
+    strategyHostReleasableManagedProducers: () => [],
+    strategyModule_local_RelationOutput: () => assert.fail('invented output'),
+    strategyModule_local_CarrierOutput: () => assert.fail('invented carrier'),
+    strategyModule_local_CapturedRelationInput: () => marker,
+    strategyModule_local_ManagedCarrierDispatch: (owner, inputs, bytes) => {
+      assert.equal(owner, setup);
+      assert.deepEqual(inputs, [marker, marker]);
+      assert.equal(bytes, 0n);
+      calls++;
+      return ok(admit ? configuration : undefined);
+    },
+    strategyModule_local_ManagedUsesProvider: () => true,
+    strategyModule_local_ManagedDuration: () => 1n,
+    strategyModule_local_ManagedCapacity: () => [0n, 0n],
+  }, setup, checked);
+  const prepared = await entry.prepareNext(new Map());
+  assert.ok(prepared, 'both captures must reach common input admission');
+  assert.equal(prepared.configuration, configuration);
+  assert.deepEqual(prepared.inputs, []);
+  assert.deepEqual(prepared.dispatchInputs, [
+    {task: 0, capturedRelation: true}, {task: 1, capturedRelation: true},
+  ]);
+  admit = false;
+  assert.equal(await entry.prepareNext(new Map()), undefined);
+  assert.equal(calls, 2, 'common admission refusal remains authoritative');
+});
+
 test('bounded Local yields so cancellation reaches the active kernel',
   async () => {
     const setup = {}, registration = {}, configuration = {};
@@ -751,6 +787,7 @@ test('standard Host runs Local with mixed memory and provider inputs',
         output_row: () => ok('{"joined":true}'),
         storage_bytes: 16,
         close() {},
+        cleanup_refresh: () => true,
       };
       const local = localStrategyContribution({
         ...portableRuntime,
@@ -835,6 +872,7 @@ test('standard Local dispatches a Carrier input to a Carrier output',
       material: () => undefined,
       storage_bytes: 32n,
       close: () => { closed = true; },
+      cleanup_refresh: () => true,
     };
     const local = localStrategyContribution({
       ...portableRuntime,
@@ -919,6 +957,7 @@ test('configured row Store selects typed Carrier paths',
         material: () => undefined,
         storage_bytes: 32n,
         close() {},
+        cleanup_refresh: () => true,
       }),
     }, setup, checked, store);
     const prepared = await local.prepareNext(new Map());
@@ -983,6 +1022,7 @@ test('standard Host retains an exact Carrier across task dispatch', async () => 
     material: () => undefined,
     storage_bytes: 32n,
     close: () => { outputClosed = true; },
+    cleanup_refresh: () => true,
   };
   const local = localStrategyContribution({
     ...portableRuntime,

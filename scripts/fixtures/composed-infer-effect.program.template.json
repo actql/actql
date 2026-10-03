@@ -1,0 +1,275 @@
+{
+  "version": "actql/0.1",
+  "id": "fixture.composed-infer-effect",
+  "stages": [
+    {
+      "id": "acquire_left",
+      "inputs": {
+        "remote": {
+          "connector": "crm/main",
+          "resource": "r"
+        }
+      },
+      "steps": [
+        {
+          "filter": "id = id"
+        },
+        {
+          "select": [
+            "id",
+            "amount"
+          ],
+          "as": "captured"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "captured",
+          "fields": [
+            "id",
+            "amount"
+          ]
+        }
+      }
+    },
+    {
+      "id": "acquire_right",
+      "inputs": {
+        "remote": {
+          "connector": "crm/right",
+          "resource": "r"
+        }
+      },
+      "steps": [
+        {
+          "filter": "id = id"
+        },
+        {
+          "select": [
+            "id",
+            "amount"
+          ],
+          "as": "captured"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "captured",
+          "fields": [
+            "id",
+            "amount"
+          ]
+        }
+      }
+    },
+    {
+      "id": "classify",
+      "inputs": {
+        "left_rows": {
+          "result": {
+            "stage": "acquire_left",
+            "result": "rows"
+          }
+        },
+        "right_rows": {
+          "result": {
+            "stage": "acquire_right",
+            "result": "rows"
+          }
+        }
+      },
+      "steps": [
+        {
+          "from": "left_rows",
+          "join": {
+            "with": "right_rows",
+            "kind": "inner",
+            "on": [
+              {
+                "left": "id",
+                "right": "id"
+              }
+            ],
+            "max_output_rows": 10,
+            "select": {
+              "id": "left.id",
+              "left_amount": "left.amount",
+              "right_amount": "right.amount"
+            }
+          }
+        },
+        {
+          "assert_rows": {
+            "unique_by": [
+              "id"
+            ]
+          },
+          "as": "joined"
+        },
+        {
+          "infer": {
+            "contract": "model-task:composition-risk.v1",
+            "key": "id",
+            "input": {
+              "score": {
+                "field": "right_amount"
+              }
+            }
+          },
+          "as": "inferred"
+        },
+        {
+          "join": {
+            "with": "joined",
+            "kind": "inner",
+            "cardinality": "one_to_one",
+            "on": [
+              {
+                "left": "id",
+                "right": "id"
+              }
+            ],
+            "select": {
+              "id": "right.id",
+              "left_amount": "right.left_amount",
+              "right_amount": "right.right_amount",
+              "outcome": "left.outcome",
+              "value": "left.value"
+            }
+          }
+        },
+        {
+          "filter": {
+            "eq": [
+              {
+                "field": "outcome"
+              },
+              {
+                "literal": "ok"
+              }
+            ]
+          }
+        },
+        {
+          "derive": {
+            "risk": {
+              "property": {
+                "value": {
+                  "field": "value"
+                },
+                "name": "risk"
+              }
+            }
+          }
+        },
+        {
+          "select": [
+            "id",
+            "left_amount",
+            "right_amount",
+            "risk"
+          ]
+        },
+        {
+          "sort": [
+            {
+              "id": "asc"
+            }
+          ],
+          "as": "ordered"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "ordered",
+          "fields": [
+            "id",
+            "left_amount",
+            "right_amount",
+            "risk"
+          ]
+        }
+      }
+    },
+    {
+      "id": "apply",
+      "inputs": {
+        "classified": {
+          "result": {
+            "stage": "classify",
+            "result": "rows"
+          }
+        }
+      },
+      "steps": [
+        {
+          "filter": {
+            "eq": [
+              {
+                "field": "risk"
+              },
+              {
+                "literal": "high"
+              }
+            ]
+          }
+        },
+        {
+          "derive": {
+            "target_id": {
+              "literal": "a00000000000002"
+            },
+            "next_name": {
+              "literal": "review-required"
+            }
+          },
+          "as": "updates"
+        }
+      ],
+      "results": {
+        "rows": {
+          "from": "updates",
+          "fields": [
+            "id",
+            "left_amount",
+            "right_amount",
+            "risk",
+            "target_id",
+            "next_name"
+          ]
+        }
+      },
+      "effects": {
+        "save": {
+          "update": {
+            "target": "connector://crm-main/Test_Record__c",
+            "mapping": "__PUBLICATION_MAPPING_REF__",
+            "from": {
+              "result": "rows"
+            },
+            "id": "target_id",
+            "set": {
+              "Name": {
+                "field": "next_name"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "results": {
+    "classified": {
+      "from": {
+        "stage": "classify",
+        "result": "rows"
+      }
+    },
+    "updates": {
+      "from": {
+        "stage": "apply",
+        "result": "rows"
+      }
+    }
+  }
+}

@@ -23,6 +23,7 @@ pub(all) suberror NodeHostFailure {
   RemoteCredential(@credential.RemoteCredentialIssue)
   RemoteBundle(@bundle.RemoteBundleIssue)
   PhysicalManifest(@manifest.PhysicalManifestIssue)
+  // MANAGED_START_ISSUES
 }
 
 ///|

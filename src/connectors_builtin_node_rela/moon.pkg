@@ -25,6 +25,7 @@ import {
   "actql/actql/connectors/local/driver" @local_driver,
   "actql/actql/connectors/duckdb/driver" @binding19,
   "actql/actql/connectors/reference_compute/driver" @binding20,
+  "actql/actql/connectors/reference_compute" @binding21,
   "actql/actql/effect_application" @effect,
   "actql/actql/remote_transfer" @transfer,
   "actql/actql/client_local_host",

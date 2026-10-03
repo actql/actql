@@ -17,7 +17,9 @@ pub fn captured_effect_local_result_matches_source(
 ) -> Bool {
   if !inputs.live ||
     inputs.run.captured.stopped ||
-    result.stage != 0 ||
+    result.stage < 0 ||
+    result.stage >= inputs.run.captured.graph.captured_prefix ||
+    result.task != result.stage ||
     !inputs.local_results.any(value => physical_equal(value, result)) ||
     !captured_any_result_borrow_available(result.borrow) {
     return false
@@ -127,11 +129,11 @@ fn effect_dependency_ports(
     work -= results
     for index in 0..<results {
       let port = @ports.port_at(publications, index).unwrap()
-      // Acquisition occupies task zero but is not a Compute task with a
-      // selected graph target. Its actual Result target is checked against
-      // the captured Source completion when the pin is acquired.
-      let selected = if stage == 0 && !graph.source_free_root {
-        Some(0)
+      // Every checked acquisition-prefix Unit occupies its own source task,
+      // without a selected Compute target. The actual Result target remains
+      // checked against that source's completion when the pin is acquired.
+      let selected = if stage < graph.captured_prefix {
+        Some(stage)
       } else {
         graph_stage_target_task(graph, stage, @ports.port_target(port))
       }

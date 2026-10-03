@@ -1312,6 +1312,7 @@ pub(all) suberror NodeHostFailure {
   RemoteCredential(@remote_credential.RemoteCredentialIssue)
   RemoteBundle(@remote_bundle.RemoteBundleIssue)
   PhysicalManifest(@physical_manifest.PhysicalManifestIssue)
+  LocalManagedStart(@driver.LocalDispatchIssue)
 }
 
 // Types and methods

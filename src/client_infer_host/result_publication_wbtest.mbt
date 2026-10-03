@@ -36,7 +36,9 @@ test "checked Infer Result exports keep independent Invocation and output custod
   let calls = Ref(0)
   let active = failed_outcome_start(@model.Timeout, calls)
   assert_eq(
-    @publication_host.prepared_client_terminal_infer_step(active.prepared),
+    @publication_host.prepared_client_terminal_infer_step(
+      active.prepared.unwrap(),
+    ),
     Some(2),
   )
   evidence_authorize(active)
@@ -67,7 +69,7 @@ test "checked Infer Result exports keep independent Invocation and output custod
     )
     assert_eq(@publication_host.client_result_transformation_task(selection), 0)
     let expected = @publication.prepare_result_definition(
-      @publication_host.prepared_client_identity(active.prepared).program_definition_cid,
+      @publication_host.prepared_client_identity(active.prepared.unwrap()).program_definition_cid,
       "answer",
     ).unwrap()
     assert_eq(

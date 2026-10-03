@@ -80,6 +80,7 @@ pub fn prepare_checked_effect_computation_dag(
   max_tasks : Int,
   max_work : Int,
   source_free_root? : Bool = false,
+  captured_prefix? : Int = 1,
 ) -> Result[CheckedEffectComputationDAG, GraphIssue] {
   let bindings = @results.effect_static_candidate_results(
     @checked.effect_program_static_effects(candidate),
@@ -98,6 +99,7 @@ pub fn prepare_checked_effect_computation_dag(
       max_tasks,
       max_work - member_count,
       source_free_root~,
+      captured_prefix~,
     ) {
     Ok(graph) => {
       let sources = match

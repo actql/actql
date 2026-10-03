@@ -8,6 +8,7 @@ pub struct ClientInferCallScope {
   artifact : @publication.RunEvidenceValue
   effective : @publication.RunEvidenceValue
   source : @publication.ModelSourceObservation?
+  sources : Array[@publication.ModelSourceObservation]
   unit_definition_cid : String
   source_ordinal : Int
 }
@@ -36,19 +37,62 @@ pub fn issue_prepared_client_infer_call_scope(
   max_depth : Int,
   captured? : ClientInferCapturedInput? = None,
 ) -> Result[ClientInferCallScope, ClientInferCallScopeIssue] {
-  let prefix = match captured {
-    None => client_infer_prefix_owner(owner, 0, step)
-    Some(value) => {
-      guard client_infer_captured_input_source(value, owner, step) is Some(_) else {
-        return Err(ForeignInput)
-      }
-      client_acquired_infer_prefix_owner(owner, 0, step)
-    }
+  guard prepared_client_infer_execution_occurrence(owner, step)
+    is Some(occurrence) else {
+    return Err(ForeignOwner)
   }
-  guard physical_equal(owner, plan.owner) &&
-    plan.source_ordinal == step &&
-    prefix is Some(prefix) &&
-    @checked.unit_definition_cid(@strategy.graph_program(owner.graph), 0)
+  issue_client_infer_occurrence_call_scope(
+    occurrence,
+    plan,
+    input,
+    receipt,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    captured~,
+  )
+}
+
+///|
+/// Bind the actual Unit/task to the same completed-input identity owner used
+/// by the installed component. A checked Effect view remains private here.
+pub fn issue_client_infer_occurrence_call_scope(
+  occurrence : ClientInferOccurrence,
+  plan : ClientInferPlanGraph,
+  input : @execution.CompletedOutput,
+  receipt : @execution.CompletedRelationExportReceipt,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  captured? : ClientInferCapturedInput? = None,
+  sources? : ClientInferComposedSources? = None,
+) -> Result[ClientInferCallScope, ClientInferCallScopeIssue] {
+  let owner = occurrence.owner
+  let step = occurrence.step
+  let prefix = occurrence.preparation
+  if sources is Some(value) &&
+    (
+      captured is Some(_) ||
+      !client_infer_composed_sources_matches(value, occurrence)
+    ) {
+    return Err(ForeignInput)
+  }
+  if captured is Some(value) &&
+    client_infer_captured_input_source(value, owner, step) is None {
+    return Err(ForeignInput)
+  }
+  if client_infer_occurrence_has_captured_sources(occurrence) &&
+    captured is None &&
+    sources is None {
+    // An imported Source path needs its complete capture closure; it cannot
+    // silently take the no-external-sources identity route.
+    return Err(ForeignInput)
+  }
+  guard client_infer_occurrence_matches_plan(occurrence, plan) &&
+    @checked.unit_definition_cid(
+      @strategy.graph_program(owner.graph),
+      occurrence.stage,
+    )
     is Some(unit_definition_cid) else {
     return Err(ForeignOwner)
   }
@@ -90,6 +134,15 @@ pub fn issue_prepared_client_infer_call_scope(
         writer,
         @publication.run_evidence_value_identity(value.logical),
       )
+    }
+    if sources is Some(value) {
+      for input in value.inputs {
+        @encode.key(writer, input.name)
+        @encode.string_value(
+          writer,
+          @publication.run_evidence_value_identity(input.logical),
+        )
+      }
     }
     @encode.end_object(writer)
     @encode.end_object(writer)
@@ -142,6 +195,9 @@ pub fn issue_prepared_client_infer_call_scope(
     artifact,
     effective,
     source: captured.map(value => value.observation),
+    sources: sources
+    .map(client_infer_composed_source_observations)
+    .unwrap_or([]),
     unit_definition_cid,
     source_ordinal: step,
   })
@@ -186,7 +242,18 @@ pub fn check_client_infer_saved_observation_scope(
       @environment.model_execution_task(scope.plan.execution),
     ),
     source=scope.source,
+    sources=scope.sources,
   )
+}
+
+///|
+pub fn client_infer_call_scope_source_observations(
+  scope : ClientInferCallScope,
+) -> Array[@publication.ModelSourceObservation] {
+  match scope.source {
+    Some(value) => [value]
+    None => scope.sources.copy()
+  }
 }
 
 ///|
