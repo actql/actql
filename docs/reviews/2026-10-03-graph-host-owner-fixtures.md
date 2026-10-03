@@ -175,9 +175,12 @@ preserved. The Git-only history validator passed; no full local campaign was
 added. This main merge changes neither the two test files nor the three product
 files changed by A. G's branch intentionally does not contain A's fix yet.
 
-#272 currently targets #270's branch. This verification does not authorize
-merging a child PR into a dependency branch. A's product fix must become
-separately reviewable for main, and G must adopt the final integrated revision
+#272 was originally stacked on #270 and has since been retargeted to main
+at the unchanged fixed SHA. Its main-relative diff therefore includes the
+published G test changes, both review records and the existing #246 declaration,
+as well as A's three product files. This is not a product-files-only diff; the
+PR scope and review must account for those inherited changes. No PR was merged
+into a dependency branch. G must adopt the final integrated main revision
 before claiming acceptance of #270's submitted HEAD. #270 remains Draft while
 that integration and exact-head automatic CI are outstanding. The original
 red #270 CI is not the fixed-source result above.

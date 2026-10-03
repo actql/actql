@@ -100,8 +100,11 @@ for source recipes, invocation evidence and limits. This is finite JS
 implementation evidence, not a formal implementation proof or cross-target
 mutation claim.
 
-The isolated fixed revision is not #270's submitted HEAD. #272 still targets
-#270; keep the product fix separately reviewable and do not merge it into a
-dependency branch. #270 stays Draft until the product fix is adopted through
-main and exact-head CI succeeds. The original red CI and the earlier green
-`79107ff2...` CI retain their distinct meanings.
+The isolated fixed revision is not #270's submitted HEAD. #272 has been
+retargeted from #270 to main without changing its SHA. Its diff against main
+includes the published G tests/review records and existing declaration, in
+addition to A's product fix; those inherited changes need to remain explicit
+in its review scope. No dependency-branch PR merge is authorized. #270 stays
+Draft until the final revision is adopted through main and exact-head CI
+succeeds. The original red CI and the earlier green `79107ff2...` CI retain
+their distinct meanings.
