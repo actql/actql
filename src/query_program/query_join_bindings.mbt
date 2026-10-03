@@ -35,8 +35,35 @@ fn lower_script_join_relation(
   reserved : Array[String],
   retained : Array[RetainedResult]?,
 ) -> Input raise Abort {
-  if @query.join_part_count(query) != 1 {
+  if @query.join_part_count(query) < 1 {
     raise Abort(UnsupportedJoin)
+  }
+  if @query.join_part_count(query) > 1 {
+    let scoped = { ..context, inputs: known, }
+    let selected = selected_input(query, scoped, limits)
+    let left = bind_script_input(
+      construction, selected, context, sources, steps, reserved,
+    )
+    let inputs = [(selected, left.name)]
+    for index in 0..<@query.join_part_count(query) {
+      let part = @query.join_part_at(query, index).unwrap()
+      let selected = selected_relation(part.relation, scoped)
+      let bound = bind_script_input(
+        construction, selected, context, sources, steps, reserved,
+      )
+      inputs.push((selected, bound.name))
+    }
+    let (body, fields, from) = compile_join_chain_steps(
+      construction, query, inputs, limits, reserved, retained,
+    )
+    steps.append(body)
+    return {
+      relation: [],
+      name: from,
+      source: StepReference,
+      visible_fields: fields,
+      graph_bindings: [],
+    }
   }
   let part = @query.join_part_at(query, 0).unwrap()
   let scoped = { ..context, inputs: known, }

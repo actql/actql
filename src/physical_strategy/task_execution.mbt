@@ -15,6 +15,7 @@ struct TaskExecution {
   mut failed_holding : @resources.Holding?
   mut resident : ResidentExecution?
   attempt : @execution.ManagedExecutionAttempt
+  mut admitted_managed_inputs : Array[@execution.ManagedInputBinding]?
   numeric : Array[TaskNumericReduction]
   numeric_captures : Array[TaskNumericCapture]
   numeric_pending : Array[TaskNumericExecution]
@@ -231,8 +232,11 @@ pub fn[I, T] start_captured_managed_execution(
   }
   let candidate = @connector.prepared_managed_execution_candidate(prepared)
   let request = @connector.managed_fixed_compute_candidate_request(candidate)
+  let admitted_inputs = @connector.managed_fixed_compute_request_bindings(
+    request,
+  )
   if !strategy_managed_candidate_matches(run, task, candidate) ||
-    !captured_managed_request_inputs_match(run, task, request) {
+    !captured_mixed_managed_inputs_match(run, task, admitted_inputs) {
     return Err(ForeignCandidate)
   }
   if !@connector.prepared_managed_execution_available(prepared) {
@@ -327,6 +331,7 @@ pub fn[I, T] start_captured_managed_execution(
         failed_holding: None,
         resident: None,
         attempt: @execution.issue_managed_execution_attempt(),
+        admitted_managed_inputs: Some(admitted_inputs),
         numeric,
         numeric_captures: [],
         numeric_pending: [],
@@ -485,6 +490,7 @@ fn[T] start_task_execution(
         failed_holding: None,
         resident,
         attempt: @execution.issue_managed_execution_attempt(),
+        admitted_managed_inputs: None,
         numeric,
         numeric_captures: [],
         numeric_pending: [],
@@ -1024,6 +1030,7 @@ fn release_task_execution(run : CapturedDAG, execution : TaskExecution) -> Unit 
   let hooks = execution.hooks.unwrap()
   execution.hooks = None
   execution.resident = None
+  execution.admitted_managed_inputs = None
   task_execution_released(hooks)
   collect_captured_retention(run)
 }

@@ -57,6 +57,7 @@ for (const [source, destination] of [
   ['spec/local-check-environment.json', 'base-environment.json'],
   ['spec/frontend/fixtures/pipe-scope/cases.json', 'pipe-scope-cases.json'],
   ['spec/frontend/fixtures/join-order/cases.json', 'join-order-cases.json'],
+  ['spec/frontend/fixtures/join-chain/cases.json', 'join-chain-cases.json'],
   ['spec/frontend/fixtures/data-set-strategy/repro-program.json', 'data-set-strategy-program.json'],
   ['scripts/fixtures/packed-sga-cancellation.mjs', 'sga-cancellation.mjs'],
   ['scripts/property-graph-public-host.test.mjs', 'property-graph-public-host.test.mjs'],
