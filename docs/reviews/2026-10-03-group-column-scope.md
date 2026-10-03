@@ -7,7 +7,8 @@ This independent unit starts at
 `feat/frontend-grouped-column-scope`. It depends on the unmerged JOIN chain
 connection in [#266](https://github.com/actql/actql/pull/266); it does not replace
 that PR's unchanged nine-positive/four-refusal execution target. Integrated
-main is `11fde3441fdcf0766c583c5173ccf8e788a09751`.
+main is `b36d7864b57dc654cc03f583d8391e9ba2a506b3`, merged normally
+through the JOIN parent. Existing history declarations are retained.
 
 The imported-main foundation declaration failure remains a separate dependency.
 No declaration, validator, workflow or common execution owner changes here.
@@ -92,6 +93,23 @@ The new parser metadata/accessor regression passed 17/17 with the existing
 parser cases after correcting its test-only constructor qualification. Changed
 Node scripts pass syntax checks; document links and whitespace are checked
 separately. None of those checks executes the prepared public fixture rows.
+
+At integration `a2659718d18265b1359339293294fff277aa7ee8`, the selected
+grouping test file passed 5/5, including a loop over all six authored positive
+sources through script lowering and ordinary admission/checking. The acquired
+input was represented by Values in that focused test; this does not establish
+source acquisition or public Host execution.
+
+A separate one-case Local JSON control passed using the unchanged installed
+packages from source `6a351574c88e316269214046ddcb7a1164db8351`.
+It submitted the independently authored expected Program, rather than a
+compiler-generated expectation. Rows were
+`[{"x":7,"current_value":9,"original_value":7}]`; describe returned x,
+current_value, original_value in that order, with the ordinary number and
+nullable contracts. Same-request retry and Result rereading preserved the
+Run and rows. This older-package control establishes common execution of
+that expected IR only, not fresh-source Local/HTTP acceptance or CI success
+for this branch.
 
 Public Local/HTTP acceptance and same-source PR CI remain unfinished. FULL JOIN,
 wider collection/frame combinations, NEAREST's installed Host connection and
