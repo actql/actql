@@ -690,6 +690,10 @@ try {
     assert.equal(reservedPayloadBytes(), 0);
     assert.equal(pendingIntents().length, 0);
     assert.equal((await entries()).length, 1);
+    // Physical release does not stop the control process's journal updates.
+    // Confirm its exit before inspecting the final durable Source proof.
+    site.child.kill('SIGTERM');
+    await within(site.exited, 'Source control shutdown');
     const database = new DatabaseSync(journalPath, {readOnly: true});
     try {
       const managed = database.prepare('SELECT CAST(body AS TEXT) AS body FROM actql_records WHERE namespace = ?')
@@ -717,8 +721,6 @@ try {
       dispatchRequestCid: issued.cid, checkedTasks: 1, executorEntries: 1, rows: sourceRows,
       outputDelivered: !!delivered, formalRelease: true, reservedPayloadBytes: 0, pendingIntents: 0,
       publicClientAcceptance: false}));
-    site.child.kill('SIGTERM');
-    await site.exited;
     // Missing physical table is an acquisition failure after the ordinary
     // exclusive start claim. Query/release never retry the provider.
     const failing = startSite(configured({'--source-table': 'not_created'}));

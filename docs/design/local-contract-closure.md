@@ -200,7 +200,7 @@ and proof status remain those explicitly recorded in the adopted manifest.
 Each Local input declaration selects the existing
 `actql-local-relation-snapshot-contract/0.1` interpretation body at
 `spec/contracts/actql-local-relation-snapshot.json`, pointer `""`, CID
-`sha256:b59aff026e4853a370475e7b25c7fa6ddf0890aacbd57af0a3ec4b7aa14b65b5`.
+`sha256:0d1b824004f4e26bf3cadbfc437d000cd1d7cc6c218c0f0fc4276b483ba46701`.
 Selection includes unused declarations and does not depend on whether concrete
 materialization is already supplied. Its two declared dependencies select the
 canonical value grammar and `actql-local-source-reference/0.1`, CID
@@ -212,7 +212,8 @@ This selection does not replace the identity of an actual interpreted row type
 or establish admission of materialized rows.
 
 `local_relation_snapshot.emit_type_projection` emits the admitted snapshot's
-schema-only shape: exactly `version`, `source_ref`, `output_carrier` and `schema`.
+schema-only shape: `version`, `source_ref`, `output_carrier`, `schema`, and the
+complete `column_presence` map when conditional columns exist.
 It reuses `actql-local-input-schema/0.1` and the checked-type emitter, with no new
 artifact family. Unlike the complete snapshot CID, this projection excludes
 `input_cid`, `completeness` and `integration_binding_cid`. Changing those

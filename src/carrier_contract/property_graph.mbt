@@ -120,7 +120,7 @@ pub fn property_node_definition_usage(
     }
     work -= 1
     let field = field_at(properties, index).unwrap()
-    if field.contract is None {
+    if field.contract is None || field.presence != @row.Required {
       return Err(IncompleteProperties)
     }
     let folded = property_name_key(@row.reference_name(field.name))

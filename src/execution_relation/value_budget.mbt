@@ -23,6 +23,7 @@ pub(all) enum CaptureIssue {
   NotRelationInput
   NotRelationOutput
   ScopedInputNotImplemented
+  ConditionalInputRequiresPresence
   InputValue(Int, @admitted.Issue)
   ClosedCapture
   ForeignCheckedValue(Int, Int)

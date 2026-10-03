@@ -116,6 +116,18 @@ fn[T : IndexedRows] measure_input_values(
         return Err(MeasurementWork)
       }
       budget.work -= 1
+      if !rows.cell_present(row, column) {
+        // No scalar is invented for omission. Presence metadata still consumes
+        // a physical node; dense row-measurement reuse is explicitly unsupported.
+        if row_measurements is Some(_) {
+          return Err(InvalidLayout)
+        }
+        if budget.nodes <= 0 {
+          return Err(Measurement(phase, row, column, @encode.OutputLimit))
+        }
+        budget.nodes -= 1
+        continue
+      }
       let cell = rows.read_cell(row, column)
       let usage = try {
         let writer = @encode.measuring_writer(
@@ -190,6 +202,13 @@ fn[T : IndexedRows] measure_input_records(
           return Err(MeasurementWork)
         }
         budget.work -= 1
+        if !rows.cell_present(row, column) {
+          if budget.nodes <= 0 {
+            return Err(Measurement(phase, row, column, @encode.OutputLimit))
+          }
+          budget.nodes -= 1
+          continue
+        }
         @encode.key(writer, name_at(column))
         emit_runtime_value(rows.read_cell(row, column), writer)
       }

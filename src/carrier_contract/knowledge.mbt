@@ -9,6 +9,7 @@ pub(all) enum FieldSet {
 pub struct Field {
   name : @row.FieldName
   contract : @value.Contract?
+  presence : @row.Presence
 }
 
 ///|
@@ -25,11 +26,18 @@ struct Knowledge {
   entries : Array[Field]
   complete : @row.Schema?
   has_qualified_fields : Bool
+  has_conditional_fields : Bool
 }
 
 ///|
 pub fn unknown_rows() -> Knowledge {
-  { field_set: Open, entries: [], complete: None, has_qualified_fields: false, }
+  {
+    field_set: Open,
+    entries: [],
+    complete: None,
+    has_qualified_fields: false,
+    has_conditional_fields: false,
+  }
 }
 
 ///|
@@ -39,9 +47,11 @@ pub fn typed_rows(schema : @row.Schema) -> Knowledge {
     entries: @row.fields(schema).map(f => {
       name: f.name,
       contract: Some(f.contract),
+      presence: f.presence,
     }),
     complete: Some(schema),
-    has_qualified_fields: @row.as_object(schema) is None,
+    has_qualified_fields: @row.has_qualified_fields(schema),
+    has_conditional_fields: !@row.all_fields_required(schema),
   }
 }
 
@@ -83,6 +93,7 @@ pub fn rows(
   let entries = @row.fields(admitted).map(f => {
     name: f.name,
     contract: types[@row.reference_name(f.name)],
+    presence: f.presence,
   })
   Ok({
     field_set,
@@ -92,13 +103,20 @@ pub fn rows(
     } else {
       None
     },
-    has_qualified_fields: @row.as_object(admitted) is None,
+    has_qualified_fields: @row.has_qualified_fields(admitted),
+    has_conditional_fields: false,
   })
 }
 
 ///|
 pub fn field_set(rows : Knowledge) -> FieldSet {
   rows.field_set
+}
+
+///|
+/// Known row fields' existence guarantee; independent of open field-set knowledge.
+pub fn all_fields_required(rows : Knowledge) -> Bool {
+  !rows.has_conditional_fields
 }
 
 ///|

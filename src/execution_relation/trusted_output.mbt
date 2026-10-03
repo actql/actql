@@ -266,12 +266,21 @@ pub fn[P] complete_trusted_output(
     physical_equal(schema, rows.schema) else {
     return Err(ForeignOutput)
   }
-  let table = CompletedTable::AdmittedTable({
-    owner,
-    id: port.id,
-    names: port.names,
-    rows: rows.rows,
-  })
+  let table = if @schema.all_fields_required(rows.schema) {
+    CompletedTable::AdmittedTable({
+      owner,
+      id: port.id,
+      names: port.names,
+      rows: rows.rows,
+    })
+  } else {
+    CompletedTable::PresenceTable({
+      owner,
+      id: port.id,
+      names: port.names,
+      rows: rows.presence_rows,
+    })
+  }
   let live = fn() {
     match (port.verify)(proof) {
       Some(current) => physical_equal(current, rows)

@@ -13,6 +13,7 @@ priv struct AdmittedRowBuffer {
   max_rows : Int
   budget : ValueBudget
   rows : Array[Array[@admitted.Value]]
+  presence_rows : Array[AdmittedRelationRow]
   mut open : Bool
   mut reading : Bool
 }
@@ -36,13 +37,21 @@ pub fn prepare_admitted_input(
     @lower.preparation_input_schema(prepared, input_index) is Some(schema) else {
     return Err(NotRelationInput)
   }
-  if @schema.as_object(schema) is None {
+  if @schema.has_qualified_fields(schema) {
     return Err(ScopedInputNotImplemented)
   }
   Ok({
     owner,
     input_index,
-    buffer: { schema, max_rows, budget, rows: [], open: true, reading: false, },
+    buffer: {
+      schema,
+      max_rows,
+      budget,
+      rows: [],
+      presence_rows: [],
+      open: true,
+      reading: false,
+    },
   })
 }
 
@@ -59,6 +68,7 @@ fn cancel_admitted_buffer(input : AdmittedRowBuffer) -> Bool {
   }
   input.open = false
   input.rows.clear()
+  input.presence_rows.clear()
   true
 }
 
@@ -88,6 +98,10 @@ fn append_admitted_buffer_cells(
 ) -> Result[Unit, CaptureIssue] {
   if !input.open || input.reading {
     return Err(ClosedCapture)
+  }
+  if !@schema.all_fields_required(input.schema) {
+    cancel_admitted_buffer(input) |> ignore
+    return Err(ConditionalInputRequiresPresence)
   }
   input.reading = true
   let result = append_admitted_row(input, width, read)
@@ -188,10 +202,59 @@ pub fn finish_admitted_input(
     origin: SuppliedInput(input.input_index),
     schema: buffer.schema,
     rows: buffer.rows,
+    presence_rows: buffer.presence_rows,
     usage: {
       nodes: buffer.budget.nodes,
       text_bytes: buffer.budget.text,
       work: buffer.budget.work,
     },
   })
+}
+
+///|
+/// Import immutable presence-bearing rows only under the exact prepared input
+/// schema. Cumulative resource limits and cancellation stay with this buffer.
+pub fn append_admitted_input_presence(
+  input : AdmittedInput,
+  row : AdmittedRelationRow,
+) -> Result[Unit, CaptureIssue] {
+  append_admitted_buffer_presence(input.buffer, row)
+}
+
+///|
+fn append_admitted_buffer_presence(
+  buffer : AdmittedRowBuffer,
+  row : AdmittedRelationRow,
+) -> Result[Unit, CaptureIssue] {
+  if !buffer.open || buffer.reading {
+    return Err(ClosedCapture)
+  }
+  if @schema.all_fields_required(buffer.schema) ||
+    !physical_equal(buffer.schema, row.schema) {
+    cancel_admitted_buffer(buffer) |> ignore
+    return Err(InvalidCheckedRow)
+  }
+  if buffer.presence_rows.length() >= buffer.max_rows {
+    cancel_admitted_buffer(buffer) |> ignore
+    return Err(CaptureLimit)
+  }
+  let budget = buffer.budget
+  let copied = match
+    copy_relation_row(row, {
+      max_nodes: budget.limits.max_nodes - budget.nodes,
+      max_text_bytes: budget.limits.max_text_bytes - budget.text,
+      max_work: budget.limits.max_work - budget.work,
+      max_depth: budget.limits.max_depth,
+    }) {
+    Ok(copied) => copied
+    Err(_) => {
+      cancel_admitted_buffer(buffer) |> ignore
+      return Err(CaptureLimit)
+    }
+  }
+  budget.nodes += copied.usage.nodes
+  budget.text += copied.usage.text_bytes
+  budget.work += copied.usage.work
+  buffer.presence_rows.push(copied)
+  Ok(())
 }

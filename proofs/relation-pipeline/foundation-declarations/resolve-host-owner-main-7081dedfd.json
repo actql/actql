@@ -1,0 +1,302 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-host-owner-main-7081dedfd",
+  "kind": "resolution",
+  "revision": "cc9d2bfd96abb656963207f11dc84e88a9dfd8f3",
+  "parents": [
+    "cc0a889eecbf137a026a6494bdc8e5e0e05534c1",
+    "7081dedfd69f5794de11076ab27249c4f57b0c66"
+  ],
+  "mergeBases": [
+    "336636c0bf6c5065d14941c7008c43b9897c7f4b",
+    "7f5c7c8353c8058c5710a6cd29f7ba3af3b53215"
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-343a5565c1ac",
+    "adopt-985dbbba2789",
+    "adopt-dafff1a1aeea",
+    "bounded-local-execution-guard",
+    "bounded-part-receipt-names",
+    "capacity-adopt-cc13922878b2",
+    "ci-artifact-preflight-fixtures",
+    "ci-declaration-profile",
+    "ci-focused-fixed-requests",
+    "ci-main-carryforward",
+    "ci-maintenance-pr-profile",
+    "ci-mandatory-preflight",
+    "ci-native-query-partition",
+    "ci-portable-pr-targets",
+    "client-ci-runner-context",
+    "client-ci-split",
+    "complete-missing-protected-source-paths",
+    "convergent-foundation-declarations",
+    "four-owned-pipeline-producers",
+    "immutable-late-resolution-supplements",
+    "issue-180-foundation-composition",
+    "main-json-composition-246-resolution",
+    "main-pr225-ci-resolution",
+    "multi-maximal-base-obligations",
+    "mutation-workspace-audit-compatibility",
+    "mutation-workspace-fixture-ownership",
+    "mutation-workspace-isolation",
+    "packed-acquired-infer-acceptance",
+    "packed-composed-infer-effect-acceptance",
+    "parallel-pipeline-evidence",
+    "parent-startup-main-integration-f2550ea4567d",
+    "resolve-acquired-infer-client-ci",
+    "resolve-ci-main-carryforward-artifact-preflight",
+    "resolve-composed-infer-effect-main-11fde344",
+    "resolve-composition-current-ci-main",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-composition-main-custody",
+    "resolve-composition-maintenance-ci-main",
+    "resolve-composition-reviewed-supplements-main",
+    "resolve-four-producers-current-main",
+    "resolve-local-guard-acquired-infer-ci",
+    "resolve-local-guard-pipeline-ci",
+    "resolve-local-guard-portable-pr-ci",
+    "resolve-main-local-guard-ci",
+    "resolve-main-local-guard-ci-6520c3f59",
+    "resolve-main-model-backing",
+    "resolve-parallel-pipeline-main-infer",
+    "separate-resolution-rehearsal-from-regression"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "cc0a889eecbf137a026a6494bdc8e5e0e05534c1",
+          "digest": "f7d317b9da185705e2449030d4ef6b2599bff2f039e18008df77b9ba04c3c827",
+          "mode": "100644"
+        },
+        {
+          "revision": "7081dedfd69f5794de11076ab27249c4f57b0c66",
+          "digest": "f7d317b9da185705e2449030d4ef6b2599bff2f039e18008df77b9ba04c3c827",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "f7d317b9da185705e2449030d4ef6b2599bff2f039e18008df77b9ba04c3c827",
+      "afterMode": "100644",
+      "reason": "Preserve the exact main four-producer CI foundation while normally integrating the merged acquired-input fix. Apply existing rules to both actual maximal common ancestors and bind the union of required paths. Retain original declarations, supplements and introductions; no workflow or validator changes and no reused execution claims."
+    },
+    {
+      "path": "proofs/relation-pipeline/audit-target-regression.mjs",
+      "before": [
+        {
+          "revision": "cc0a889eecbf137a026a6494bdc8e5e0e05534c1",
+          "digest": "9c7da45c044621a0224dbf6cb9c872f888ca6fe5964b7506aff45146b945a10a",
+          "mode": "100644"
+        },
+        {
+          "revision": "7081dedfd69f5794de11076ab27249c4f57b0c66",
+          "digest": "9c7da45c044621a0224dbf6cb9c872f888ca6fe5964b7506aff45146b945a10a",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "9c7da45c044621a0224dbf6cb9c872f888ca6fe5964b7506aff45146b945a10a",
+      "afterMode": "100644",
+      "reason": "Preserve the exact main four-producer CI foundation while normally integrating the merged acquired-input fix. Apply existing rules to both actual maximal common ancestors and bind the union of required paths. Retain original declarations, supplements and introductions; no workflow or validator changes and no reused execution claims."
+    },
+    {
+      "path": "proofs/relation-pipeline/audit.mjs",
+      "before": [
+        {
+          "revision": "cc0a889eecbf137a026a6494bdc8e5e0e05534c1",
+          "digest": "bc8006f47fab5b9d44c8d9f4963d2ca1e0bcfae6ca1a5c13fda265730643ef86",
+          "mode": "100644"
+        },
+        {
+          "revision": "7081dedfd69f5794de11076ab27249c4f57b0c66",
+          "digest": "bc8006f47fab5b9d44c8d9f4963d2ca1e0bcfae6ca1a5c13fda265730643ef86",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "bc8006f47fab5b9d44c8d9f4963d2ca1e0bcfae6ca1a5c13fda265730643ef86",
+      "afterMode": "100644",
+      "reason": "Preserve the exact main four-producer CI foundation while normally integrating the merged acquired-input fix. Apply existing rules to both actual maximal common ancestors and bind the union of required paths. Retain original declarations, supplements and introductions; no workflow or validator changes and no reused execution claims."
+    },
+    {
+      "path": "proofs/relation-pipeline/capacity/finish.mjs",
+      "before": [
+        {
+          "revision": "cc0a889eecbf137a026a6494bdc8e5e0e05534c1",
+          "digest": "a8f4e65d8411d6447af7b38876b778ef3438b2cdc0702dcfd738a2f3ff160dde",
+          "mode": "100644"
+        },
+        {
+          "revision": "7081dedfd69f5794de11076ab27249c4f57b0c66",
+          "digest": "a8f4e65d8411d6447af7b38876b778ef3438b2cdc0702dcfd738a2f3ff160dde",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "a8f4e65d8411d6447af7b38876b778ef3438b2cdc0702dcfd738a2f3ff160dde",
+      "afterMode": "100644",
+      "reason": "Preserve the exact main four-producer CI foundation while normally integrating the merged acquired-input fix. Apply existing rules to both actual maximal common ancestors and bind the union of required paths. Retain original declarations, supplements and introductions; no workflow or validator changes and no reused execution claims."
+    },
+    {
+      "path": "proofs/relation-pipeline/current-foundation.md",
+      "before": [
+        {
+          "revision": "cc0a889eecbf137a026a6494bdc8e5e0e05534c1",
+          "digest": "10e78d81fb3d85fb5c460aa99420f25919ce584afa376486805470e9db2860cc",
+          "mode": "100644"
+        },
+        {
+          "revision": "7081dedfd69f5794de11076ab27249c4f57b0c66",
+          "digest": "10e78d81fb3d85fb5c460aa99420f25919ce584afa376486805470e9db2860cc",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "10e78d81fb3d85fb5c460aa99420f25919ce584afa376486805470e9db2860cc",
+      "afterMode": "100644",
+      "reason": "Preserve the exact main four-producer CI foundation while normally integrating the merged acquired-input fix. Apply existing rules to both actual maximal common ancestors and bind the union of required paths. Retain original declarations, supplements and introductions; no workflow or validator changes and no reused execution claims."
+    },
+    {
+      "path": "proofs/relation-pipeline/execute.mjs",
+      "before": [
+        {
+          "revision": "cc0a889eecbf137a026a6494bdc8e5e0e05534c1",
+          "digest": "f2d8542a9d45404f5795621a9238a6db074a997b90fc40d7d814bd2557d5d7e4",
+          "mode": "100644"
+        },
+        {
+          "revision": "7081dedfd69f5794de11076ab27249c4f57b0c66",
+          "digest": "f2d8542a9d45404f5795621a9238a6db074a997b90fc40d7d814bd2557d5d7e4",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "f2d8542a9d45404f5795621a9238a6db074a997b90fc40d7d814bd2557d5d7e4",
+      "afterMode": "100644",
+      "reason": "Preserve the exact main four-producer CI foundation while normally integrating the merged acquired-input fix. Apply existing rules to both actual maximal common ancestors and bind the union of required paths. Retain original declarations, supplements and introductions; no workflow or validator changes and no reused execution claims."
+    },
+    {
+      "path": "proofs/relation-pipeline/fixtures/execution-driver.mjs",
+      "before": [
+        {
+          "revision": "cc0a889eecbf137a026a6494bdc8e5e0e05534c1",
+          "digest": "3cf514939e0578410c6d243cadeef47acb7db74883288e93bbfc5f72abdef740",
+          "mode": "100644"
+        },
+        {
+          "revision": "7081dedfd69f5794de11076ab27249c4f57b0c66",
+          "digest": "3cf514939e0578410c6d243cadeef47acb7db74883288e93bbfc5f72abdef740",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "3cf514939e0578410c6d243cadeef47acb7db74883288e93bbfc5f72abdef740",
+      "afterMode": "100644",
+      "reason": "Preserve the exact main four-producer CI foundation while normally integrating the merged acquired-input fix. Apply existing rules to both actual maximal common ancestors and bind the union of required paths. Retain original declarations, supplements and introductions; no workflow or validator changes and no reused execution claims."
+    },
+    {
+      "path": "proofs/relation-pipeline/fixtures/mutation-driver.mjs",
+      "before": [
+        {
+          "revision": "cc0a889eecbf137a026a6494bdc8e5e0e05534c1",
+          "digest": "070e17341fb6449a2c892da2fe3ba0759a5720734f0fcb0b55a7bbbe971c3a6e",
+          "mode": "100644"
+        },
+        {
+          "revision": "7081dedfd69f5794de11076ab27249c4f57b0c66",
+          "digest": "070e17341fb6449a2c892da2fe3ba0759a5720734f0fcb0b55a7bbbe971c3a6e",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "070e17341fb6449a2c892da2fe3ba0759a5720734f0fcb0b55a7bbbe971c3a6e",
+      "afterMode": "100644",
+      "reason": "Preserve the exact main four-producer CI foundation while normally integrating the merged acquired-input fix. Apply existing rules to both actual maximal common ancestors and bind the union of required paths. Retain original declarations, supplements and introductions; no workflow or validator changes and no reused execution claims."
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation.mjs",
+      "before": [
+        {
+          "revision": "cc0a889eecbf137a026a6494bdc8e5e0e05534c1",
+          "digest": "a75ef3d6894ee6e29b12603ac885bcf0306c0f7a58ea6047dc49c798ac8192e1",
+          "mode": "100644"
+        },
+        {
+          "revision": "7081dedfd69f5794de11076ab27249c4f57b0c66",
+          "digest": "a75ef3d6894ee6e29b12603ac885bcf0306c0f7a58ea6047dc49c798ac8192e1",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "a75ef3d6894ee6e29b12603ac885bcf0306c0f7a58ea6047dc49c798ac8192e1",
+      "afterMode": "100644",
+      "reason": "Preserve the exact main four-producer CI foundation while normally integrating the merged acquired-input fix. Apply existing rules to both actual maximal common ancestors and bind the union of required paths. Retain original declarations, supplements and introductions; no workflow or validator changes and no reused execution claims."
+    },
+    {
+      "path": "proofs/relation-pipeline/mutations.mjs",
+      "before": [
+        {
+          "revision": "cc0a889eecbf137a026a6494bdc8e5e0e05534c1",
+          "digest": "bff7c3a3e30fe1a816c191b47e3dee1fa488ee6c04cff67085aea0c09c62b6f6",
+          "mode": "100644"
+        },
+        {
+          "revision": "7081dedfd69f5794de11076ab27249c4f57b0c66",
+          "digest": "bff7c3a3e30fe1a816c191b47e3dee1fa488ee6c04cff67085aea0c09c62b6f6",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "bff7c3a3e30fe1a816c191b47e3dee1fa488ee6c04cff67085aea0c09c62b6f6",
+      "afterMode": "100644",
+      "reason": "Preserve the exact main four-producer CI foundation while normally integrating the merged acquired-input fix. Apply existing rules to both actual maximal common ancestors and bind the union of required paths. Retain original declarations, supplements and introductions; no workflow or validator changes and no reused execution claims."
+    },
+    {
+      "path": "proofs/relation-pipeline/mutations.test.mjs",
+      "before": [
+        {
+          "revision": "cc0a889eecbf137a026a6494bdc8e5e0e05534c1",
+          "digest": "9d8ba16118a83d90b9bb706c57ac19a93aa9fc3cd64dfa31f710f45515cd1076",
+          "mode": "100644"
+        },
+        {
+          "revision": "7081dedfd69f5794de11076ab27249c4f57b0c66",
+          "digest": "9d8ba16118a83d90b9bb706c57ac19a93aa9fc3cd64dfa31f710f45515cd1076",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "9d8ba16118a83d90b9bb706c57ac19a93aa9fc3cd64dfa31f710f45515cd1076",
+      "afterMode": "100644",
+      "reason": "Preserve the exact main four-producer CI foundation while normally integrating the merged acquired-input fix. Apply existing rules to both actual maximal common ancestors and bind the union of required paths. Retain original declarations, supplements and introductions; no workflow or validator changes and no reused execution claims."
+    },
+    {
+      "path": "proofs/relation-pipeline/run.mjs",
+      "before": [
+        {
+          "revision": "cc0a889eecbf137a026a6494bdc8e5e0e05534c1",
+          "digest": "f0ff6e45a83c6dc377b0ba8ca7833ee3818e61c6cee3d53db45c3adcfcd4db7d",
+          "mode": "100644"
+        },
+        {
+          "revision": "7081dedfd69f5794de11076ab27249c4f57b0c66",
+          "digest": "f0ff6e45a83c6dc377b0ba8ca7833ee3818e61c6cee3d53db45c3adcfcd4db7d",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "f0ff6e45a83c6dc377b0ba8ca7833ee3818e61c6cee3d53db45c3adcfcd4db7d",
+      "afterMode": "100644",
+      "reason": "Preserve the exact main four-producer CI foundation while normally integrating the merged acquired-input fix. Apply existing rules to both actual maximal common ancestors and bind the union of required paths. Retain original declarations, supplements and introductions; no workflow or validator changes and no reused execution claims."
+    },
+    {
+      "path": "scripts/local-checks.mjs",
+      "before": [
+        {
+          "revision": "cc0a889eecbf137a026a6494bdc8e5e0e05534c1",
+          "digest": "c08cc71efdca36baa1d93f8cae1186a532331f6e160c58a439bc8d0d783829de",
+          "mode": "100644"
+        },
+        {
+          "revision": "7081dedfd69f5794de11076ab27249c4f57b0c66",
+          "digest": "c08cc71efdca36baa1d93f8cae1186a532331f6e160c58a439bc8d0d783829de",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "c08cc71efdca36baa1d93f8cae1186a532331f6e160c58a439bc8d0d783829de",
+      "afterMode": "100644",
+      "reason": "Preserve the exact main four-producer CI foundation while normally integrating the merged acquired-input fix. Apply existing rules to both actual maximal common ancestors and bind the union of required paths. Retain original declarations, supplements and introductions; no workflow or validator changes and no reused execution claims."
+    }
+  ]
+}

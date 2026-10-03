@@ -592,10 +592,16 @@ fn export_completed_row(
   }
   try {
     for index, (name, column) in value.order.columns {
-      let cell = IndexedRows::read_cell(table, value.row, column)
       if !charge_text(value.budget, name) {
         return Err(Admission(CaptureLimit))
       }
+      if !IndexedRows::cell_present(table, value.row, column) {
+        if !charge_node(value.budget, 2) {
+          return Err(Admission(CaptureLimit))
+        }
+        continue
+      }
+      let cell = IndexedRows::read_cell(table, value.row, column)
       if !measure_result(cell, value.budget) {
         return Err(Admission(CaptureLimit))
       }
@@ -641,6 +647,9 @@ fn emit_completed_export_row(
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(writer)
   for (name, column) in value.order.columns {
+    if !IndexedRows::cell_present(table, value.row, column) {
+      continue
+    }
     let cell = IndexedRows::read_cell(table, value.row, column)
     @encode.key(writer, name)
     emit_runtime_value(cell, writer)
@@ -679,6 +688,9 @@ pub fn completed_relation_export_snapshot(
     for row = 0; row < IndexedRows::row_count(value.rows); row = row + 1 {
       @encode.begin_object(writer)
       for (name, column) in value.order.columns {
+        if !IndexedRows::cell_present(value.rows, row, column) {
+          continue
+        }
         let cell = IndexedRows::read_cell(value.rows, row, column)
         @encode.key(writer, name)
         emit_runtime_value(cell, writer)

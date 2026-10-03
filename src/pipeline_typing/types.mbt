@@ -152,6 +152,8 @@ pub enum CheckedOperation {
   Window(@window.CheckedWindow)
   Projection(@projection.CheckedProjection)
   GraphMatch(@graph.CheckedMatch)
+  GraphBounds(@graph.CheckedGraphBounds)
+  GraphDegree(@graph.CheckedDegree)
   Traverse(selector~ : Target?, checked~ : @graph.CheckedTraverse)
   PropertyGraphConstruction(
     inputs~ : Array[Target],
@@ -600,12 +602,18 @@ fn schema(
   target : Target,
   inputs : Array[(String, @carrier.Carrier)],
   steps : Array[CheckedStep],
+  allow_conditional? : Bool = false,
 ) -> @schema.Schema raise Stop {
   let value = carrier(target, inputs, steps)
   match value {
     @carrier.Relation(rows) =>
       match @carrier.complete_schema(rows) {
-        Some(schema) => schema
+        Some(schema) => {
+          if !allow_conditional && !@schema.all_fields_required(schema) {
+            fail(source, Operation(@relation.ConditionalInputNotImplemented))
+          }
+          schema
+        }
         None => fail(source, IncompleteSchema)
       }
     _ => fail(source, WrongCarrier(@carrier.kind(value)))

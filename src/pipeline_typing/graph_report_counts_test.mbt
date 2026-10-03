@@ -1,5 +1,5 @@
 ///|
-test "unsupported bounds reports remain refused for empty and populated current Graph declarations" {
+test "bounds reports retain empty and unknown row counts for current Graph declarations" {
   for n in [0, 3] {
     for
       body in [
@@ -7,7 +7,7 @@ test "unsupported bounds reports remain refused for empty and populated current 
         "{\"max_degree\":0}", "{\"max_nodes\":6,\"max_edges\":3,\"max_degree\":6}",
         "{\"max_degree\":5}",
       ] {
-      let issue = @pipeline_typing.check_carriers(
+      let checked = @pipeline_typing.check_carriers(
         cursor(
           "[" +
           keyed_graph_count_prefix(n, n) +
@@ -19,9 +19,13 @@ test "unsupported bounds reports remain refused for empty and populated current 
         None,
         None,
         limits(),
-      ).unwrap_err()
-      assert_eq(issue.kind, Graph(@graph.UnsupportedGraphOperation))
-      assert_eq(issue.path, [Index(3), Key("graph_bounds")])
+      ).unwrap()
+      if n == 0 {
+        assert_count(checked, 3, 0L, true)
+        assert_count(checked, 4, 0L, true)
+      } else {
+        assert_true(@pipeline_typing.row_count(checked, Step(3)) is None)
+      }
     }
   }
 }

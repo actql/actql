@@ -103,6 +103,8 @@ fn check_supported_source(
               | "match_nodes"
               | "match_edges"
               | "traverse"
+              | "degree"
+              | "graph_bounds"
               | "to_vectors"
               | "normalize_vectors"
               | "score_vectors"
