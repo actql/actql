@@ -1039,17 +1039,17 @@ pub fn client_program_start_infer_observation_issuance(@client_infer_host.Execut
 
 pub fn client_program_start_infer_observation_verification(@model_execution.VerifiedModelCapture, @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], Int, Int, Int) -> Result[@model_execution.ModelObservationVerification, @model_execution.ModelExecutionIssue]
 
-pub fn client_program_start_infer_replay(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.VerifiedModelCapture) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
+pub fn client_program_start_infer_replay(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.VerifiedModelCapture, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
 pub fn client_program_start_model_execution(@execution_relation.PreparedInferRows, @model_execution.ModelProvider, String) -> Result[@model_execution.ModelExecution, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_start_model_output(@client_local_host.ClientInferInputExecution, @execution_relation.PreparedInferRows, @model_execution.ModelExecution) -> Result[@model_execution.ModelOutputPreparation, @model_execution.ModelExecutionIssue]
 
-pub fn client_program_start_restored_infer_replay(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @run_publication.ModelCaptureBundleRead) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
+pub fn client_program_start_restored_infer_replay(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @run_publication.ModelCaptureBundleRead, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
-pub fn client_program_start_restored_infer_slot_replay(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelSlotReplayRead) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
+pub fn client_program_start_restored_infer_slot_replay(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelSlotReplayRead, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
-pub fn client_program_start_scoped_infer_execution(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelProvider) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
+pub fn client_program_start_scoped_infer_execution(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelProvider, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
 pub fn client_program_task_compilation_compiled_plan_wire(@run_publication_host.ClientTaskCompilation) -> String
 

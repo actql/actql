@@ -1,0 +1,43 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-parallel-pipeline-main-infer",
+  "kind": "resolution",
+  "revision": "13de27e2bbabfdd6a853f7e78eed8482716a0f96",
+  "parents": [
+    "d3edc149473231522ca2c105e1cc697a943fa1ab",
+    "c26adeb078fd54327cc9263544f4c57420f6e3c2"
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-343a5565c1ac",
+    "adopt-985dbbba2789",
+    "adopt-dafff1a1aeea",
+    "client-ci-runner-context",
+    "client-ci-split",
+    "issue-180-foundation-composition",
+    "packed-acquired-infer-acceptance",
+    "parallel-pipeline-evidence",
+    "resolve-acquired-infer-client-ci",
+    "resolve-main-model-backing"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "d3edc149473231522ca2c105e1cc697a943fa1ab",
+          "digest": "d2145f41e8a6898fd84629bb76be49167751e52e6092ac2eba310bb1166981b0",
+          "mode": "100644"
+        },
+        {
+          "revision": "c26adeb078fd54327cc9263544f4c57420f6e3c2",
+          "digest": "cea8141d269389901753e357ecba72540480924e84b67d40514ae3d9ad63bcee",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "378594ad66e917058065462a18c13bd3d4f4933b63771bd5142f6012d90f2c54",
+      "afterMode": "100644",
+      "reason": "Compose the independent current-main acquired-input INFER acceptance with the parallel Relation Pipeline producers. Retain main's packed acquired-INFER command and all existing Client acceptance, the split's complete mutation and capacity campaigns, same-workspace capacity restoration and final-normal sequence, strict same-attempt sealed-artifact join, and the existing global check. This explicit resolution records both independent workflow edits without changing campaign semantics, dropping checks, weakening provenance, reusing prior proof results or expanding workflow permissions."
+    }
+  ]
+}
