@@ -410,7 +410,11 @@ fn advance_execution(
                     policy.maximum_bytes,
                     policy.maximum_frame_bytes,
                     policy.workspace_bytes,
-                    () => !value.reclaimed,
+                    // Restored output belongs to its own completion owner.
+                    // Releasing this provider's scratch must not revoke that
+                    // generation. The snapshot port checks source availability
+                    // and the restored lifecycle still enforces reclamation.
+                    () => true,
                   ).map_err(_ => issue())
               }
               let material = match prepared_material {

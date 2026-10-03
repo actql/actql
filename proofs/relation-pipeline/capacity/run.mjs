@@ -164,9 +164,15 @@ try {
     console.log(`${result.name}: fresh JS detection/shrink, same-resource minimum, ${targets.length} mutated/restored targets`);
   }
 } finally { restore(); }
-// Persist the completed campaign before transferring the checkout's temporary
-// fixture slot. Parent and child executors never share a live fixture owner.
+// Save receipts and close this executor before either child verification uses
+// the same checkout. The children retain their own independent ownership.
 finishCapacityCampaign(report, targets);
+const custody = spawnSync(process.execPath,
+  ['proofs/relation-pipeline/capacity/parent-control/custody-check.mjs', targets.length === 1 ? 'js' : 'all'],
+  { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
+process.stdout.write(custody.stdout ?? ''); process.stderr.write(custody.stderr ?? '');
+assert.equal(custody.status, 0, 'Missing actual chain cleanup/reservation correspondence');
+report.custody = JSON.parse(readFileSync(join(directory, 'custody', `${targets.length === 1 ? 'js' : 'all'}.json`)));
 if (targets.includes('native')) {
   // Keep this receipt separate: the diagnostic observes native parent roots,
   // not the portable child campaign, and must not contaminate its source set.

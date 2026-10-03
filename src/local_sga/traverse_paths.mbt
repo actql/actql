@@ -1305,12 +1305,29 @@ fn start_traverse_paths_read(
         inputs~,
       )
     Viewed(view) => {
+      guard inputs.length() + 1 == @lower.node_input_count(node) else {
+        @execution.cancel_admitted_output(output) |> ignore
+        return Err(InvalidTraversePathsKernel)
+      }
       let retained_inputs = [
         @execution.trusted_output_carrier_input(
           @lifecycle.producer_view_read_reference(view),
         ),
       ]
-      for input in inputs {
+      for port in 1..<@lower.node_input_count(node) {
+        let mut found = None
+        for input in inputs {
+          if @execution.producer_read_matches_operation_input(
+              input, owner, step, port,
+            ) {
+            found = Some(input)
+            break
+          }
+        }
+        guard found is Some(input) else {
+          @execution.cancel_admitted_output(output) |> ignore
+          return Err(InvalidTraversePathsKernel)
+        }
         retained_inputs.push(@execution.trusted_output_relation_input(input))
       }
       @execution.prepare_trusted_output_port_with_inputs(
