@@ -28,6 +28,12 @@ This follow-up does not claim a runtime failure reproduced on #223. No new Run,
 provider call, capture, package build or full gate was performed for the source
 inspection. No common owner or Host implementation was edited by B.
 
+The subsequent handoff confirms the same omitted connection by current-main
+source inspection and assigns its correction to A. This does not create a new
+current-main execution reproduction: the packed failure remains evidence from
+the older selected owner recorded in the original handoff. Public availability
+of #223 and completion of B's required source-free connection are separate facts.
+
 After A supplies the complete pushed handoff SHA and minimal installed ModelTask
 registration, B resumes with the smallest authored source through packed Local
 and HTTPS to Named Result. Then verify KEEP/AS, nested nullable object projection,

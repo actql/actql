@@ -39,9 +39,12 @@ refusal and Relation DATA/RESULT preparation. It does not observe Host counters,
 deliver a Result or roundtrip a snapshot. Neither these tests nor a green CI run
 can substitute for the missing Graph or source-INFER execution evidence.
 
-C's public `125a186ae9396fbfc7865641922e8e8a4ffc87d9` is not adopted as a
-unified owner. Integration requires a pushed complete SHA and the corresponding
-unified/snapshot validation. No unpushed checkpoint is a release dependency.
+C has submitted `8c052888503e130e3d6c5f5a5ea74037be407e3f`, with reported
+CI failures. The dependency is **submitted; correction and formal handoff
+pending**. It is not adopted as a unified owner or successful snapshot evidence.
+The earlier #164 `125a186ae9396fbfc7865641922e8e8a4ffc87d9` is also not adopted.
+Integration requires a corrected complete pushed SHA and the corresponding
+unified/snapshot validation. No unsubmitted worktree is a release dependency.
 When that handoff arrives, use fresh normally packed Local/HTTP installations,
 record both owners' SHAs and package digests, and compare authored expectations
 through Named Results. Keep old successful runs classified by their old inputs

@@ -19,10 +19,14 @@ implementation is copied. The independent #184 Relation strategy correction
 is adopted from `6685718f86b0e18518e2c53258f5129f0875447a`, preserving the
 current main captured-prefix guard and using its existing checked owners.
 
-C's published #164 HEAD `125a186ae9396fbfc7865641922e8e8a4ffc87d9` is
-not adopted: it is still Draft with failed CI. Unpushed checkpoints named in
-that PR are source-inspection material, not accepted dependencies. Adoption
-requires C's complete pushed SHA and its unified-owner/snapshot validation.
+C has submitted the new candidate
+`8c052888503e130e3d6c5f5a5ea74037be407e3f`. Its CI has reported failures,
+so the dependency is now **submitted; correction and formal handoff pending**,
+not an unsubmitted implementation and not an adoption GO. B has not integrated
+this candidate or counted it as unified-owner/snapshot acceptance. The earlier
+#164 `125a186ae9396fbfc7865641922e8e8a4ffc87d9` and unsubmitted worktrees
+remain unadopted. Adoption requires C's corrected complete pushed SHA and the
+corresponding unified-owner/snapshot validation.
 This separation does not rewrite, force-push or replace published history.
 
 ## Boundaries retained for integration
