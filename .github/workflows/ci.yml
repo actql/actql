@@ -62,6 +62,8 @@ jobs:
         run: node --test scripts/worktree-inventory.test.mjs
       - name: Test nonzero execution guards
         run: node --test scripts/test-execution.test.mjs
+      - name: Test bounded local execution and optional hook adapters
+        run: node --test scripts/local-checks.test.mjs scripts/local-checks-guard.test.mjs scripts/local-checks-policy.test.mjs scripts/local-checks-hook.test.mjs
       - name: Test environment guards
         run: node --test scripts/moonbit-environment.test.mjs
       - name: Test native SQLite namespace ownership
@@ -560,6 +562,8 @@ jobs:
           toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
           echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
           echo "$toolchain/bin" >> "$GITHUB_PATH"
+      - name: Test macOS local execution ownership and cancellation
+        run: node --test scripts/local-checks.test.mjs scripts/local-checks-guard.test.mjs scripts/local-checks-policy.test.mjs scripts/local-checks-hook.test.mjs
       - name: Verify native macOS arm64 profile
         run: |
           test "$(uname -m)" = arm64

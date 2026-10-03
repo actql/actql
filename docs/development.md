@@ -67,7 +67,7 @@ node --test scripts/moonbit-environment.test.mjs
 ```
 
 Native core verification uses `scripts/test-native-core.mjs`, including
-`node scripts/local-checks.mjs run core --target native`. Each invocation
+`node scripts/local-checks.mjs run core --target native --allow-heavy`. Each invocation
 creates a fresh `native-*` SQLite namespace with the existing owned-scratch
 helper, then runs `moon test --target native` with the remaining arguments.
 For the narrow trusted-clock regression, use:
@@ -156,6 +156,96 @@ Case definitions contain expectations, not execution results. Execution evidence
 belongs in separate reports tied to case IDs and the implementation revision.
 YAML parsing does not establish ActQL semantic validity. The MoonBit checker and
 runtime must verify these same fixtures as implementation becomes available.
+
+## Bounded local execution
+
+`local-checks.mjs` remains the local entry point for the workflow's actual
+commands and the existing nonzero-test guard. It now applies cooperative
+exclusion and a wall-clock budget to routed executions on macOS and Linux.
+`list`, `changed` and `run <job> --dry-run` only report; they acquire no locks
+and launch no checks. Incremental `_build` artifacts are never removed.
+
+```sh
+node scripts/local-checks.mjs test node -- scripts/local-checks.test.mjs
+node scripts/local-checks.mjs test moon -- --target js -p query_integration
+node scripts/local-checks.mjs build moon -- --target js src/query_integration
+node scripts/local-checks.mjs run lint
+node scripts/local-checks.mjs run core --target native --allow-heavy
+```
+
+The small shared [classification](local-checks-hooks.md#what-the-policy-recognizes)
+requires `--allow-heavy` only for known full suites/builds. This is a deliberate
+choice by the caller, not human approval or an authorization grant. Unknown
+Moon options/jobs are refused until explicitly classified. A package/file
+selection is a narrower scope, not a promise about its runtime or dependencies.
+The first unit does not intercept npm aliases, direct proof campaigns, arbitrary
+shell commands, raw Node suites, or processes started outside this wrapper.
+Hosted CI commands, coverage, gates and results remain authoritative.
+
+### Budgets and output
+
+`run <job>` defaults to that job's `timeout-minutes` in
+`.github/workflows/ci.yml`, covering the whole sequence, not each step anew.
+Focused `test node` uses the lint job's budget; focused Moon test/build uses
+core's budget. `--timeout-seconds N` replaces that default for this invocation.
+An unscoped Moon test/build has no default: supply both `--allow-heavy` and an
+explicit `--timeout-seconds N`. If the workflow has no numeric timeout, the
+wrapper requires an explicit budget rather than inventing one.
+
+Every execution reports its budget before starting. On expiration or caller
+cancellation it sends TERM to only the invocation's process group, waits
+5 seconds, then escalates to KILL if needed. `--kill-grace-seconds N` changes
+that termination grace; it is not an extra test budget. Durations must be
+positive and fit Node's timer range. A timeout exits 124; caller cancellation
+exits 130; child failures preserve their nonzero status. There is no automatic
+retry, timeout increase, dependency installation, build-cache deletion or repair.
+
+Each invocation retains `_build/local-checks/attempts/run-*`, including failures
+and timeouts, and reports its exact directory. `summary.json` separates process
+exit observations from overall completeness; `output.log` retains the bounded
+combined diagnostic output. The existing evidence redactor and 8 MiB output
+limit are reused. Overflow stops the invocation, fails it, and marks output
+incomplete. Output is buffered and printed at completion rather than streamed;
+steps and their evidence directory are announced immediately. Focused tests
+also retain their existing per-test evidence. Abrupt supervisor death can
+leave only the last written, incomplete snapshot. Redaction is diagnostic
+best-effort, not proof that arbitrary application output has no secrets.
+
+### Lock ownership and stopped processes
+
+The canonical worktree path gets one exclusive lock for every routed
+execution. Classified-heavy work additionally gets one lock across this
+user's worktrees on this host. State is beneath the canonical home directory
+at `.cache/actql/local-checks/<host-hash>/`, independent of `TMPDIR` and
+`RUNNER_TEMP`. Other users or containers with separate homes/state are outside
+this cooperative lock scope. Existing state-directory symlinks or foreign
+ownership are refused; the wrapper does not change permissions or user config.
+
+A lock records a random owner token, supervisor PID, user/host, worktree and
+evidence path. Acquisition is exclusive; release checks file identity and the
+same token. A failed second acquisition releases only locks it acquired before
+starting any command. A busy or incomplete lock fails immediately, without
+waiting or retrying. PID liveness is diagnostic only: PID reuse, missing PIDs,
+reboots, incomplete metadata and surviving descendants never authorize removal.
+There is no automatic stale-lock recovery or generic cleanup command. Inspect
+the exact reported owner/evidence and confirm its processes have stopped
+before manually recovering that lock. Never remove another active worker's
+lock or use a broad process-kill command.
+
+The per-invocation Node supervisor stays alive as its own process-group leader.
+Commands inherit that group; signals never target a PID read from an old lock.
+Parent IPC disconnect cancels the group even after the calling agent/wrapper
+is killed. macOS/Linux `ps` verifies group liveness before normal release.
+An inspection/ownership failure retains locks. KILL escalation also kills the
+supervisor and deliberately retains locks for inspection. If the supervisor
+itself is killed, no new watchdog is started and locks stay in place.
+
+This is not a security sandbox or OS resource quota. Detached/daemonized children
+that intentionally escape the group, raw commands, edits or branch switches
+outside the wrapper, and manual lock removal are not prevented. Continue to
+follow the same-worktree/one-heavy-gate rules in [AGENTS.md](../AGENTS.md).
+The optional [Claude Code and Codex hooks](local-checks-hooks.md) add pre-launch
+reminders for a small literal-command grammar; they do not broaden these limits.
 
 ## Focused test execution
 

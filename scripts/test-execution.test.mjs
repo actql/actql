@@ -134,7 +134,7 @@ test('local-checks integrates real selected and unmatched Node tests', t => {
   const script = fileURLToPath(new URL('./local-checks.mjs', import.meta.url));
   for (const [pattern, status] of [['selected', 0], ['missing-selection', 1]]) {
     const child = spawnSync(process.execPath, [script, 'test', 'node', '--',
-      '--test-name-pattern', pattern, file], {encoding: 'utf8', env: childEnv, timeout: 10_000});
+      '--test-name-pattern', pattern, file], {encoding: 'utf8', env: {...childEnv, HOME: root}, timeout: 10_000});
     assert.equal(child.status, status, child.stdout + child.stderr);
     assert.match(child.stdout + child.stderr, /counts=/u);
   }

@@ -7,12 +7,13 @@
 //   node scripts/local-checks.mjs list
 //   node scripts/local-checks.mjs changed [--base origin/main]
 //   node scripts/local-checks.mjs run <job> [--target js|wasm|native] [--dry-run]
-import {execFileSync, spawnSync} from 'node:child_process';
-import {existsSync, mkdirSync, readFileSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
+import {existsSync, readFileSync} from 'node:fs';
 import {dirname, join, relative} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {parse} from 'yaml';
-import {runFocusedTests} from './test-execution.mjs';
+import {checkBudget, durationSeconds, runLocalCheck} from './local-checks-guard.mjs';
+import {classifyJob, classifyMoon} from './local-checks-policy.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const workflow = parse(readFileSync(join(root, '.github/workflows/ci.yml'),
@@ -67,32 +68,74 @@ function commands(name, target) {
   }));
 }
 
-function runJob(name) {
+function executionOptions(args) {
+  const result = {};
+  for (let index = 0; index < args.length; index++) {
+    const name = args[index];
+    if (name === '--allow-heavy' || name === '--dry-run') {
+      if (result[name]) fail(`Duplicate option: ${name}`);
+      result[name] = true;
+    } else if (['--target', '--timeout-seconds', '--kill-grace-seconds'].includes(name)) {
+      if (result[name] !== undefined || args[index + 1] === undefined) fail(`Invalid option: ${name}`);
+      result[name] = args[++index];
+    } else fail(`Unknown local execution option: ${name}`);
+  }
+  return result;
+}
+
+function requireHeavy(classification, options) {
+  if (classification.classification === 'unknown') {
+    fail(`${classification.reason}\nThis invocation is unclassified; use a supported focused selection or update the small classification explicitly.`);
+  }
+  if (classification.heavy && !options['--allow-heavy']) {
+    fail(`${classification.reason}\n${classification.alternatives.join('\n')}\n` +
+      'For a deliberate local run, supply --allow-heavy. It is friction, not human approval.');
+  }
+}
+
+async function execute(steps, classification, options, defaultMinutes) {
+  const timeoutSeconds = checkBudget(options['--timeout-seconds'], defaultMinutes);
+  const graceSeconds = options['--kill-grace-seconds'] === undefined ? 5 :
+    durationSeconds(options['--kill-grace-seconds'], 'kill-grace-seconds');
+  return runLocalCheck({root, steps, heavy: classification.heavy, timeoutSeconds, graceSeconds});
+}
+
+async function runJob(name, args) {
   if (ciOnly.has(name)) fail(`${name} is CI only: ${ciOnly.get(name)}`);
-  const target = option('--target', 'js');
-  if (!['js', 'wasm', 'native'].includes(target)) {
-    fail('--target must be js, wasm or native');
+  const options = executionOptions(args);
+  const target = options['--target'] ?? 'js';
+  if (!['js', 'wasm', 'native'].includes(target)) fail('--target must be js, wasm or native');
+  const selected = commands(name, target);
+  if (options['--dry-run']) {
+    for (const step of selected) console.log(`\n== ${name}: ${step.name}\n${step.run}`);
+    return 0;
   }
-  const dryRun = process.argv.includes('--dry-run');
-  for (const step of commands(name, target)) {
-    console.log(`\n== ${name}: ${step.name}`);
-    if (dryRun) {
-      console.log(step.run);
-      continue;
-    }
-    mkdirSync(step.scratch, {recursive: true});
-    const started = Date.now();
-    const result = spawnSync('bash', ['-eo', 'pipefail', '-c', step.run], {
-      cwd: root, stdio: 'inherit',
-      env: {...process.env, RUNNER_TEMP: step.scratch, ...step.env},
-    });
-    const seconds = ((Date.now() - started) / 1000).toFixed(1);
-    if (result.status !== 0) {
-      console.error(`== failed after ${seconds}s: ${step.name}`);
-      process.exit(result.status ?? 1);
-    }
-    console.log(`== passed in ${seconds}s`);
-  }
+  const classification = classifyJob(name);
+  requireHeavy(classification, options);
+  return execute(selected.map(step => ({name: `${name}: ${step.name}`,
+    command: 'bash', args: ['-eo', 'pipefail', '-c', step.run], scratch: step.scratch,
+    env: {RUNNER_TEMP: step.scratch, ...step.env},
+  })), classification, options, workflow.jobs[name]['timeout-minutes']);
+}
+
+async function runSelected(command, kind, args) {
+  const delimiter = args.indexOf('--');
+  if (delimiter < 0) fail('Selected commands require -- before test/build arguments');
+  const options = executionOptions(args.slice(0, delimiter));
+  if (options['--target'] !== undefined || options['--dry-run']) fail('Pass target after --; dry-run is only for jobs');
+  const selected = args.slice(delimiter + 1);
+  const classification = kind === 'moon' ? classifyMoon(command, selected) :
+    {heavy: false, classification: 'focused'};
+  requireHeavy(classification, options);
+  const defaultMinutes = classification.heavy ? undefined :
+    workflow.jobs[kind === 'moon' ? 'core' : 'lint']?.['timeout-minutes'];
+  // Reuse the existing summary/evidence guard unchanged, in an owned child so
+  // its synchronous test capture cannot block timeout or parent-death handling.
+  const step = command === 'test' ? {name: `selected ${kind} tests`, command: process.execPath,
+    args: ['--input-type=module', '-e',
+      "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode = runFocusedTests(process.argv[1], process.argv.slice(2), {cwd: process.cwd()});",
+      kind, ...selected]} : {name: 'selected MoonBit build', command: 'moon', args: ['build', ...selected]};
+  return execute([step], classification, options, defaultMinutes);
 }
 
 // CI jobs that cover a changed path. The narrow checks come first; the jobs
@@ -101,7 +144,7 @@ const areas = [
   [/^proofs\/relation-pipeline\//u, ['pipeline-evidence']],
   [/^scripts\/packed-client-packages/u, ['client-packages', 'client-distribution', 'client-packed']],
   [/^scripts\/(build-runtime-packages|test-runtime-package-build|build-local-node|build-run-host-core|build-remote-(coordinator|transfer)-package)|^packages\/(run-host-core|coordinator-core|transfer-core)\//u, ['host']],
-  [/^\.github\/|^scripts\/local-checks\.mjs$/u, ['lint']],
+  [/^\.github\/|^scripts\/local-checks(?:[-.])/u, ['lint']],
   [/^src\//u, ['lint', 'core']],
   [/^(spec|docs)\/|\.md$/u, ['spec']],
   [/^adapters\/connectors\/salesforce\//u, ['client-distribution', 'client-packed', 'client-salesforce']],
@@ -163,7 +206,8 @@ function changed() {
     const note = ciOnly.has(name) ? `  # CI only: ${ciOnly.get(name)}`
       : name === 'core' ? '  # add --target wasm / native when shared core changed'
         : '';
-    console.log(`  node scripts/local-checks.mjs run ${name}${note}`);
+    const deliberate = classifyJob(name).heavy ? ' --allow-heavy' : '';
+    console.log(`  node scripts/local-checks.mjs run ${name}${deliberate}${note}`);
   }
   console.log('\nThen push and let Linux CI verify the whole SHA.');
 }
@@ -178,13 +222,17 @@ if (command === 'list') {
       console.log(`  - ${step.name ?? step.run.split('\n')[0]}`);
     }
   }
-} else if (command === 'test' && ['node', 'moon'].includes(argument) && process.argv[4] === '--') {
-  process.exitCode = runFocusedTests(argument, process.argv.slice(5), {cwd: root});
+} else if ((command === 'test' && ['node', 'moon'].includes(argument)) ||
+    (command === 'build' && argument === 'moon')) {
+  try { process.exitCode = await runSelected(command, argument, process.argv.slice(4)); }
+  catch (error) { fail(error.message); }
 } else if (command === 'changed') {
   changed();
 } else if (command === 'run' && argument) {
-  runJob(argument);
+  try { process.exitCode = await runJob(argument, process.argv.slice(4)); }
+  catch (error) { fail(error.message); }
 } else {
-  fail('Usage: local-checks.mjs test node|moon -- <test arguments> | list | changed [--base <ref>] | ' +
-    'run <job> [--target js|wasm|native] [--dry-run]');
+  fail('Usage: local-checks.mjs test node|moon [--allow-heavy] [--timeout-seconds N] -- <test arguments> | ' +
+    'build moon [--allow-heavy] [--timeout-seconds N] -- <build arguments> | list | changed [--base <ref>] | ' +
+    'run <job> [--target js|wasm|native] [--allow-heavy] [--timeout-seconds N] [--dry-run]');
 }
