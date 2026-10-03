@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "ci-portable-pr-targets",
+  "kind": "change",
+  "revision": "3e9f013880d1d4d9c37fbd5f398fec814d302dd5",
+  "parents": [
+    "da400a71fcba5b742ee3ffbd6352694cd1ca091a"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "da400a71fcba5b742ee3ffbd6352694cd1ca091a",
+          "digest": "d803417727669032ba5d2989f2f0e03781ba4063703f5b14befcc5937da09c3d",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "ce517405b172df0cd29617fb14a157a9776d86b389ecfb64ca9c5fe6ab83b568",
+      "afterMode": "100644",
+      "reason": "Remove duplicate integration-branch push execution while retaining PR runs and full main verification. Select JS-only core and omit macOS only for reviewed portable PR inputs; target-specific syntax, ownership, canonical identities, build or unknown inputs retain all core targets and macOS. Keep every Client and three-target proof campaign, acceptance command, same-attempt artifact guard and aggregate intact. Fail the final aggregate for missing/failed selection or malformed macOS selection."
+    }
+  ]
+}
