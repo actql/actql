@@ -99,11 +99,15 @@ that distinction. An unadapted consumer must reject the new contract rather
 than collapse it to the historical endpoint/label tuple. Durable identity
 across runs is an ActQL requirement, not an assumption about vendor display IDs.
 
-The Graph algebra model and its operations belong in AoA; mechanized statements
-must name their actual assumptions and proof coverage. ActQL connects that
-model to source mapping, admission, acquisition, capacity, cancellation and
-storage/replay. An old simple-Graph theorem or conformance test does not prove
-the new keyed model or its correspondence to the selected external rules.
+The current Property Graph model, law body and operations are owned in ActQL;
+`smoothhq/aoa` is not a build, runtime or acceptance dependency. The owned
+[Property Graph laws](../../spec/dependencies/actql-property-graph-laws.json)
+bind the constructor, typed identity and snapshot profile. Mechanized
+statements must name their actual assumptions and proof coverage. The same
+ActQL owners connect the model to source mapping, admission, acquisition,
+capacity, cancellation and storage/replay. An old simple-Graph theorem or
+conformance test does not prove the new keyed model or its correspondence to
+the selected external rules.
 Complete SGA mechanization is not a prerequisite added to the first vertical
 unit. No second Graph engine belongs in the Frontend.
 

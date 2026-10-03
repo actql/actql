@@ -312,6 +312,8 @@ pub fn client_program_start_scoped_infer_execution(
   registry : String,
   values : String,
   provider : @model.ModelProvider,
+  fragment : String,
+  ordered : String,
 ) -> Result[@infer_host.Execution, @infer_host.Issue] {
   @infer_host.start(
     prepared,
@@ -322,6 +324,8 @@ pub fn client_program_start_scoped_infer_execution(
     @publication_host.client_infer_plan_graph_request_cid(graph),
     @infer_host.standard_limits(),
     plan=Some(graph),
+    fragment_body=Some(fragment),
+    ordered_body=Some(ordered),
   )
 }
 
@@ -335,6 +339,8 @@ pub fn client_program_start_infer_replay(
   registry : String,
   values : String,
   capture : @model.VerifiedModelCapture,
+  fragment : String,
+  ordered : String,
 ) -> Result[@infer_host.Execution, @infer_host.Issue] {
   @infer_host.start_replay(
     prepared,
@@ -344,6 +350,8 @@ pub fn client_program_start_infer_replay(
     capture,
     @infer_host.standard_limits(),
     graph,
+    fragment_body=Some(fragment),
+    ordered_body=Some(ordered),
   )
 }
 
@@ -744,6 +752,8 @@ pub fn client_program_start_restored_infer_replay(
   registry : String,
   values : String,
   capture : @publication.ModelCaptureBundleRead,
+  fragment : String,
+  ordered : String,
 ) -> Result[@infer_host.Execution, @infer_host.Issue] {
   @infer_host.start_restored_replay(
     prepared,
@@ -753,6 +763,8 @@ pub fn client_program_start_restored_infer_replay(
     capture,
     @infer_host.standard_limits(),
     graph,
+    fragment_body=Some(fragment),
+    ordered_body=Some(ordered),
   )
 }
 
@@ -831,6 +843,8 @@ pub fn client_program_start_restored_infer_slot_replay(
   registry : String,
   values : String,
   read : @model.ModelSlotReplayRead,
+  fragment : String,
+  ordered : String,
 ) -> Result[@infer_host.Execution, @infer_host.Issue] {
   @infer_host.start_restored_slot_replay(
     prepared,
@@ -840,6 +854,8 @@ pub fn client_program_start_restored_infer_slot_replay(
     read,
     @infer_host.standard_limits(),
     graph,
+    fragment_body=Some(fragment),
+    ordered_body=Some(ordered),
   )
 }
 

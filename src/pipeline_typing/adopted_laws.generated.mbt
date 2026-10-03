@@ -11,6 +11,8 @@ pub fn adopted_operation_law_cid(law : AdoptedOperationLaw) -> String {
       "sha256:1426ea2ceaffc511c0540eba706a5ece132a3df5ee3948702edce7e833fc60df"
     SgaIdentity =>
       "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4"
+    PropertyGraphLaw =>
+      "sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc"
     VecaNumeric =>
       "sha256:926c086c2ea57e49102ca5dfb724c851fa7fc148370a0bdf8363457fe5fcd004"
   }

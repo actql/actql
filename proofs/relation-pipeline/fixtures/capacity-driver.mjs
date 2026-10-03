@@ -12,7 +12,8 @@ const sourcePath = 'bounded_binding_rows.mbt';
 writeFileSync(join(root, sourcePath), 'healthy');
 const source = () => readFileSync(join(root, sourcePath), 'utf8');
 const calls = [], executions = [], installs = [], checks = [];
-let clock = 0;
+let clock = 0, executorClosed = false;
+const closes = [], parentProbes = [];
 Object.defineProperty(globalThis, 'performance', { value: { now: () => clock } });
 const mutations = actualMutations.map(m => ({ ...m, path: sourcePath }));
 const cases = mutations.map((m, slot) => ({ id: `search-${slot}`, slot, rows: [{ value: slot }],
@@ -62,11 +63,36 @@ module('engine.mjs', { generate: () => cases, candidates: reductions,
   } });
 mock.module('node:child_process', { namedExports: { spawnSync: (command, args) => {
   if (command === 'git') return { status: 0, stdout: 'a'.repeat(40) };
+  if (args[0].endsWith('/parent-control/run.mjs')) {
+    assert(executorClosed, 'Parent probe started before the campaign executor closed');
+    assert.equal(source(), 'healthy');
+    assert(!existsSync(join(root, 'observer.mbt')));
+    const campaign = JSON.parse(readFileSync(join(root, '.artifacts/relation-pipeline/capacity/all.json')));
+    assert.deepEqual(campaign.executions, executions, 'Parent probe started before campaign receipts were saved');
+    parentProbes.push({ afterCalls: calls.length, afterClose: closes.length });
+    if (options.fail === 'parent-probe') return { status: 23, stdout: '', stderr: 'Injected parent probe failure' };
+    const directory = join(root, '.artifacts/relation-pipeline/capacity/parent-control-probe');
+    mkdirSync(directory, { recursive: true });
+    const report = { kind: 'synthetic native parent orchestration', target: 'native', separateChild: true };
+    writeFileSync(join(directory, 'all.json'), JSON.stringify(report));
+    return { status: 0, stdout: 'synthetic parent transport', stderr: '' };
+  }
   assert(args[0].endsWith('/check.mjs'));
   return { status: 0, stdout: 'instrumented model transport', stderr: '' };
 } } });
 module('execute.mjs', { root, toolchain: {}, executions,
+  closeExecutor: () => {
+    const path = join(root, '.artifacts/relation-pipeline/capacity', options.target === 'js' ? 'js.json' : 'all.json');
+    const report = JSON.parse(readFileSync(path));
+    assert.deepEqual(report.executions, executions, 'Executor closed before campaign receipts were saved');
+    assert.equal(source(), 'healthy');
+    assert(!existsSync(join(root, 'observer.mbt')));
+    closes.push({ afterCalls: calls.length, receipts: report.executions.length });
+    if (options.fail === 'close') throw new Error('Injected executor close failure');
+    executorClosed = true;
+  },
   execute: (inputs, _registry, target, correspondence, label) => {
+    assert(!executorClosed, 'Closed campaign executor was reused');
     const call = { inputs: structuredClone(inputs), target, correspondence, label, source: source(), started: clock };
     calls.push(call); clock += 10;
     if (options.fail === `${label}:${target}`) throw new Error('Injected compilation/execution failure');
@@ -97,7 +123,8 @@ module('execute.mjs', { root, toolchain: {}, executions,
 process.on('exit', () => {
   const reportPath = join(root, '.artifacts/relation-pipeline/capacity', `${options.target === 'js' ? 'js' : 'all'}.json`);
   writeFileSync(join(root, 'state.json'), JSON.stringify({ calls, installs, checks, source: source(),
-    observerPresent: existsSync(join(root, 'observer.mbt')), executions, clock,
+    observerPresent: existsSync(join(root, 'observer.mbt')), executions, clock, closes, parentProbes, executorClosed,
+    parentReportPresent: existsSync(join(root, '.artifacts/relation-pipeline/capacity/parent-control-probe/all.json')),
     report: existsSync(reportPath) ? JSON.parse(readFileSync(reportPath)) : null }));
 });
 process.argv[2] = options.target ?? 'all';

@@ -214,29 +214,11 @@ pub fn collect_author_guards(
             "max_output_rows",
           )
         }
-        Graph(checked) =>
-          match @graph.options(checked) {
-            ComponentOptions(_, max_output_rows~) =>
-              add(
-                ComponentOutputRows,
-                graph_guard(max_output_rows),
-                @graph.source(checked),
-                "max_output_rows",
-              )
-            _ => ()
-          }
         Traverse(checked~, ..) =>
           add(
             TraverseOutputRows,
             graph_guard(@graph.traverse_output_guard(checked)),
             @graph.traverse_source(checked),
-            "max_output_rows",
-          )
-        Shortest(checked~, ..) =>
-          add(
-            ShortestOutputRows,
-            graph_guard(@graph.shortest_output_guard(checked)),
-            @graph.shortest_source(checked),
             "max_output_rows",
           )
         Unary(op) | WindowGroup(op) => {

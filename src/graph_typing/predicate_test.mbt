@@ -1,127 +1,98 @@
 ///|
-fn predicate_limits() -> @graph_typing.PredicateLimits {
-  {
-    max_work: 100000,
-    max_nodes: 100000,
-    max_depth: 1000,
-    max_text_bytes: 100000,
-    max_tokens: 100000,
-  }
+fn current_match_predicate(body : String) -> @decode.Cursor {
+  cursor(
+    "{\"definition\":\"N\",\"label\":\"Node\",\"bindings\":{\"identity\":\"element\"},\"where\":" +
+    body +
+    ",\"fields\":[\"title\",\"element\"]}",
+  )
 }
 
 ///|
-test "graph predicate checks only referenced typed properties with exact shared budgets" {
-  let boolean = @contract.primitive(BooleanType, nullable=true)
-  let props = @carrier.rows(
-    [(Unqualified("active"), Some(boolean)), (Unqualified("untyped"), None)],
-    field_set=Open,
-    max_fields=2,
-    max_name_bytes=100,
-  ).unwrap()
-  let g = @carrier.graph(
-    @contract.primitive(NumberType, nullable=false),
-    props,
-    props,
-    labels=None,
-    max_labels=0,
-    max_label_bytes=0,
-  ).unwrap()
-  let source = cursor("{\"and\":[{\"field\":\"active\"},{\"literal\":true}]}")
-  let c = @graph_typing.check_predicate(
+test "current Graph predicates use the checked definition scope and exact shared budgets" {
+  let graph = current_scope_graph()
+  let source = current_match_predicate("\"title = 'ok' AND true\"")
+  let checked = @graph_typing.check_match(
     Nodes,
     source,
-    g,
+    graph,
     None,
     predicate_limits(),
   ).unwrap()
-  let u = @graph_typing.predicate_usage(c)
+  let predicate = @graph_typing.match_predicate(checked).unwrap()
+  assert_eq(@graph_typing.predicate_reference_count(predicate), 1)
+  let usage = @graph_typing.match_usage(checked)
   let exact = {
     ..predicate_limits(),
-    max_work: u.work,
-    max_nodes: u.nodes,
-    max_text_bytes: u.text_bytes,
-    max_tokens: u.tokens,
+    max_work: usage.work,
+    max_nodes: usage.nodes,
+    max_text_bytes: usage.text_bytes,
+    max_tokens: usage.tokens,
   }
   assert_true(
-    @graph_typing.check_predicate(Nodes, source, g, None, exact) is Ok(_),
+    @graph_typing.check_match(Nodes, source, graph, None, exact) is Ok(_),
   )
   for
     cap in [
-      { ..exact, max_work: u.work - 1, },
-      { ..exact, max_nodes: u.nodes - 1, },
-      { ..exact, max_text_bytes: u.text_bytes - 1, },
+      { ..exact, max_work: usage.work - 1, },
+      { ..exact, max_nodes: usage.nodes - 1, },
+      { ..exact, max_text_bytes: usage.text_bytes - 1, },
+      { ..exact, max_tokens: usage.tokens - 1, },
     ] {
     assert_true(
-      @graph_typing.check_predicate(Nodes, source, g, None, cap) is Err(_),
+      @graph_typing.check_match(Nodes, source, graph, None, cap) is Err(_),
     )
   }
-  assert_true(
-    @graph_typing.check_predicate(
-      Nodes,
-      cursor("{\"field\":\"untyped\"}"),
-      g,
-      None,
-      predicate_limits(),
+  for invalid in ["{\"literal\":1}", "{\"literal\":null}"] {
+    assert_true(
+      @graph_typing.check_match(
+        Nodes,
+        current_match_predicate(invalid),
+        graph,
+        None,
+        predicate_limits(),
+      )
+      is Err(@graph_typing.MatchPredicate(_)),
     )
-    is Err(UntypedPredicateField(_)),
-  )
-  assert_true(
-    @graph_typing.check_predicate(
-      Nodes,
-      cursor("{\"literal\":1}"),
-      g,
-      None,
-      predicate_limits(),
-    )
-    is Err(ExpectedPredicateBoolean(_)),
-  )
-  assert_true(
-    @graph_typing.check_predicate(
-      Nodes,
-      cursor("{\"literal\":null}"),
-      g,
-      None,
-      predicate_limits(),
-    )
-    is Err(TypingIssue(_)),
-  )
+  }
 }
 
 ///|
-test "graph predicate preserves nested and text reference locations" {
-  let g = @carrier.unknown_carrier(GraphKind)
-  let structured = cursor(
+test "current Graph predicate diagnostics preserve structured and text reference locations" {
+  let graph = current_scope_graph()
+  let structured = current_match_predicate(
     "{\"and\":[{\"literal\":true},{\"field\":\"missing\"}]}",
   )
-  guard @graph_typing.check_predicate(
+  guard @graph_typing.check_match(
       Nodes,
       structured,
-      g,
+      graph,
       None,
       predicate_limits(),
     )
-    is Err(UnknownPredicateField(reference)) else {
-    abort("missing field accepted")
+    is Err(@graph_typing.MatchPredicate(UnknownPredicateField(reference))) else {
+    fail("undefined business property accepted")
   }
   assert_eq(@decode.cursor_path(reference.location.source), [
+    @source.Key("where"),
     @source.Key("and"),
     @source.Index(1),
   ])
-  let text = cursor("\"true AND missing\"")
-  guard @graph_typing.check_predicate(Edges, text, g, None, predicate_limits())
-    is Err(UnknownPredicateField(reference)) else {
-    abort("missing text field accepted")
+  let text = current_match_predicate("\"true AND missing\"")
+  guard @graph_typing.check_match(Nodes, text, graph, None, predicate_limits())
+    is Err(@graph_typing.MatchPredicate(UnknownPredicateField(reference))) else {
+    fail("undefined text property accepted")
   }
   assert_eq(reference.name, "missing")
   assert_true(reference.location.range is Some(_))
+  // A label is not a synthesized property column.
   assert_true(
-    @graph_typing.check_predicate(
+    @graph_typing.check_match(
       Nodes,
-      cursor("{\"literal\":true}"),
-      g,
+      current_match_predicate("\"Node = 'Node'\""),
+      graph,
       None,
       predicate_limits(),
     )
-    is Ok(_),
+    is Err(@graph_typing.MatchPredicate(UnknownPredicateField(_))),
   )
 }

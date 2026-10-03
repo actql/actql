@@ -5,6 +5,7 @@ pub(all) enum AdoptedOperationLaw {
   RelaPrimitive
   SgaStructural
   SgaIdentity
+  PropertyGraphLaw
   VecaNumeric
 } derive(Eq, Debug)
 
@@ -14,7 +15,7 @@ pub(all) enum AdoptedOperationLaw {
 pub fn operation_profile_adopted_law_count(profile : OperationProfile) -> Int {
   match profile {
     RelA | SGA => 2
-    VecA => 1
+    VecA | PropertyGraph => 1
     TEA | CalendarProfile | TextRankProfile => 0
   }
 }
@@ -38,6 +39,7 @@ pub fn operation_profile_adopted_law_at(
         _ => None
       }
     VecA => if index == 0 { Some(VecaNumeric) } else { None }
+    PropertyGraph => if index == 0 { Some(PropertyGraphLaw) } else { None }
     TEA | CalendarProfile | TextRankProfile => None
   }
 }

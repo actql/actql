@@ -40,11 +40,12 @@ fn local_construction_fixture(
   text_time? : Bool = false,
   tea? : Bool = false,
   sga? : Bool = false,
+  property_graph? : Bool = false,
   veca? : Bool = false,
   graph_construction_limit? : Int? = None,
-  components_capacity_rows? : Int? = None,
   traversal_capacity? : Bool = false,
   traversal_kind? : String = "traverse",
+  traversal_step? : Int = 3,
   traversal_proofs? : Array[@wire.ProgramProofClaim] = [],
   graph_output_limit? : Int? = None,
   graph_input_limit? : Int? = None,
@@ -370,16 +371,12 @@ fn local_construction_fixture(
   } else {
     None
   }
-  let components_sources = components_capacity_rows.map(rows => {
-    local_components_capacity_fixture(environment, rows) catch {
-      _ => abort("invalid components test material")
-    }
-  })
   let traversal_sources = if traversal_capacity {
     Some(
       local_traversal_capacity_fixture(
         environment,
         operation_name=traversal_kind,
+        step=traversal_step,
         proofs=traversal_proofs,
       ) catch {
         _ => abort("invalid traversal test material")
@@ -397,13 +394,9 @@ fn local_construction_fixture(
         traversal_sources is Some(sources) {
         @context.CapacityMaterial::{
           sources,
-          consumers: [@capacity.Traversal(step=3, paths=0, output=1)],
-        }
-      } else if (stage == 0 || (stage == 1 && visit > 0)) &&
-        components_sources is Some(sources) {
-        @context.CapacityMaterial::{
-          sources,
-          consumers: [@capacity.Components(step=3, nodes=0, output=1)],
+          consumers: [
+            @capacity.Traversal(step=traversal_step, paths=0, output=1),
+          ],
         }
       } else if (
           (stage == sequence_capacity_stage && visit == 0) ||
@@ -458,6 +451,7 @@ fn local_construction_fixture(
       max_nodes=budget.nodes,
       max_depth=budget.depth,
       numeric_profile~,
+      property_graph~,
       calendar=selected_calendar,
       text_rank=selected_text_rank,
     )
@@ -489,6 +483,7 @@ fn local_construction_fixture(
     ),
     budget,
     calendar=selected_calendar,
+    property_graph~,
     text_rank=selected_text_rank,
   )
 }

@@ -1,15 +1,24 @@
 import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
 import {createDecipheriv, createHash, generateKeyPairSync} from 'node:crypto';
-import {appendFileSync, readFileSync, writeFileSync} from 'node:fs';
+import {appendFileSync, mkdirSync, readFileSync, writeFileSync} from 'node:fs';
+import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
+import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {connect} from '@actql/node';
+import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 import {canonical, cid, configuration, program, expected} from
   './installed-infer-fixture.mjs';
 
 const mode = process.argv[2];
+const transport = process.argv[3] ?? 'local';
 assert.ok(['success', 'cancel', 'failure', 'capture', 'replay'].includes(mode));
-const root = join(process.cwd(), mode === 'replay' ? 'capture' : mode);
+assert.ok(['local', 'http'].includes(transport));
+const root = join(process.cwd(), transport,
+  mode === 'replay' ? 'capture' : mode);
+const certificateRoot = join(process.cwd(), transport);
+mkdirSync(root, {recursive: true});
 const {installation, taskCid} = configuration(
   JSON.parse(readFileSync('base-environment.json', 'utf8')));
 const keys = generateKeyPairSync('ed25519');
@@ -34,7 +43,7 @@ const ready = new Promise(resolve => { started = resolve; });
 authorization.faultInjection = async name => {
   if (mode === 'capture' && name === 'infer_capture_committed') {
     assert.equal(calls, 1);
-    writeFileSync(join(process.cwd(), 'capture-boundary.json'),
+    writeFileSync(join(process.cwd(), `capture-boundary-${transport}.json`),
       JSON.stringify({calls, boundary: name}));
     process.exit(0);
   }
@@ -49,8 +58,7 @@ const checked = result => {
   assert.equal(result.$tag, 1, 'physical request must pass common admission');
   return result._0;
 };
-const client = await connect({mode: 'local', owner: 'local',
-  durability: 'durable', installation: {directory: root, authorization,
+const installationOptions = {directory: root, authorization,
     modelInstallation: installation,
     registerModelProviders: moon => [{providerId: 'models/packed',
       invoke() { throw new Error('UnpreparedModelCall'); },
@@ -68,7 +76,7 @@ const client = await connect({mode: 'local', owner: 'local',
           request, 1000n, 33n, 0n, 500n, () => {
             calls++;
             appendFileSync(join(process.cwd(), 'provider-calls.jsonl'),
-              `${JSON.stringify({mode, taskCid})}\n`);
+              `${JSON.stringify({mode, taskCid, transport})}\n`);
             assert.notEqual(mode, 'replay', 'saved capture must not redispatch');
             assert.equal(moon.clientProgramModelRequestInput(request, 'text'),
               '"urgent"');
@@ -77,8 +85,31 @@ const client = await connect({mode: 'local', owner: 'local',
               'packed-request', 1n, mode === 'failure' ? 1000n : 2n,
               new Date().toISOString());
           }))}), () => true),
-    }],
-  }});
+    }]};
+let host, server;
+let client;
+const priorCertificates = getCACertificates('default');
+if (transport === 'http') {
+  execFileSync('openssl', ['req', '-x509', '-nodes', '-newkey', 'rsa:2048',
+    '-keyout', 'host.key', '-out', 'host.crt', '-days', '1',
+    '-subj', '/CN=localhost',
+    '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'],
+  {cwd: certificateRoot, stdio: 'ignore'});
+  const certificate = readFileSync(join(certificateRoot, 'host.crt'));
+  setDefaultCACertificates([...priorCertificates, certificate.toString()]);
+  host = await openInstalledRemoteHttpHost({...installationOptions,
+    authenticate: header => header === 'Bearer fixture-owner'
+      ? userInfo().username : undefined});
+  server = createServer({key: readFileSync(join(certificateRoot, 'host.key')),
+    cert: certificate}, host.handler);
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  client = await connect({mode: 'remote',
+    endpoint: `https://127.0.0.1:${server.address().port}/`,
+    token: 'fixture-owner', durability: 'durable'});
+} else {
+  client = await connect({mode: 'local', owner: 'local',
+    durability: 'durable', installation: installationOptions});
+}
 try {
   run = await client.start(program, {requestId: 'packed-single-infer'});
   started();
@@ -147,8 +178,14 @@ try {
         mode === 'cancel' ? 'cancelled' : 'budget_exceeded');
     }
   }
-  console.log(JSON.stringify({mode, status: terminal.status, calls,
+  console.log(JSON.stringify({mode, transport, status: terminal.status, calls,
     evidenceHoldings: 4}));
 } finally {
   await client.close();
+  if (server !== undefined) {
+    server.closeAllConnections();
+    await new Promise(resolve => server.close(resolve));
+  }
+  await host?.close();
+  setDefaultCACertificates(priorCertificates);
 }

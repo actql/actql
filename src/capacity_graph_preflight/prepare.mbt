@@ -4,7 +4,6 @@
 pub(all) enum ConsumerRequest {
   Sequence(step~ : Int, matches~ : Int, output~ : Int)
   Join(step~ : Int, output~ : Int)
-  Components(step~ : Int, nodes~ : Int, output~ : Int)
   Traversal(step~ : Int, paths~ : Int, output~ : Int)
 } derive(Eq, Debug)
 
@@ -26,11 +25,9 @@ pub(all) enum PreparationIssue {
   Program(@program.PreparationIssue)
   Sequence(Int, @sequence.Issue)
   Join(Int, @program.JoinLimitIssue)
-  Components(Int, @program.ComponentsLimitIssue)
   Traversal(Int, @program.TraversalLimitIssue)
   SequenceCollection(@sequence.CollectionIssue)
   JoinCollection(@program.JoinCollectionIssue)
-  ComponentsCollection(@program.ComponentsCollectionIssue)
   TraversalCollection(@program.TraversalCollectionIssue)
   Coverage(ApplicationCoverageIssue)
 } derive(Eq, Debug)
@@ -92,7 +89,6 @@ pub fn prepare_application_coverage(
   remaining -= usage(graph).0
   let sequences : Array[@sequence.SequenceLimits] = []
   let joins : Array[@program.JoinLimit] = []
-  let components : Array[@program.ComponentsLimits] = []
   let traversals : Array[@program.TraversalLimits] = []
   for index, request in requests {
     match request {
@@ -181,25 +177,6 @@ pub fn prepare_application_coverage(
         remaining -= @program.join_limit_work(v)
         joins.push(v)
       }
-      Components(step~, nodes~, output~) => {
-        let v = match
-          @program.check_components_limits(
-            pipeline,
-            step,
-            sources,
-            program,
-            policy,
-            nodes,
-            output,
-            guards~,
-            max_work=remaining,
-          ) {
-          Ok(v) => v
-          Err(e) => return Err(Components(index, e))
-        }
-        remaining -= @program.components_limit_work(v)
-        components.push(v)
-      }
       Traversal(step~, paths~, output~) => {
         let v = match
           @program.check_traversal_limits(
@@ -234,19 +211,6 @@ pub fn prepare_application_coverage(
     Err(e) => return Err(JoinCollection(e))
   }
   remaining -= @program.join_application_work(joined)
-  let component = match
-    @program.check_components_applications(
-      pipeline,
-      sources,
-      program,
-      policy,
-      components,
-      max_work=remaining,
-    ) {
-    Ok(v) => v
-    Err(e) => return Err(ComponentsCollection(e))
-  }
-  remaining -= @program.components_application_work(component)
   let traversal = match
     @program.check_traversal_applications(
       pipeline,
@@ -266,7 +230,6 @@ pub fn prepare_application_coverage(
       program,
       sequence,
       joins=Some(joined),
-      components=Some(component),
       traversals=Some(traversal),
       max_work=remaining,
     ) {

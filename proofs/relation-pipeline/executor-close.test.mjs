@@ -1,91 +1,95 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, writeFileSync, mkdirSync, copyFileSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawnSync } from 'node:child_process';
-import {minimalRepository} from './fixtures/execution-driver.mjs';
-const root = fileURLToPath(new URL('../../', import.meta.url));
-// No product execution is claimed: mock only the Moon transport. The actual
-// executor, ownership checks, receipt persistence and live process handoff run.
+import { minimalRepository, runDriver, successful } from './fixtures/execution-driver.mjs';
+
+// Reuse the current bound-fixture/compiler transport. The executor, physical
+// fixture ownership, receipt persistence and live child handoff remain real.
 function workspace(t) {
-  const directory = minimalRepository(t);
-  const put = (path, content) => {
-    mkdirSync(join(directory, path, '..'), {recursive: true});
-    writeFileSync(join(directory, path), content);
-  };
-  const home = join(directory, '.fake-moon');
-  mkdirSync(join(directory, 'proofs/relation-pipeline/capacity'), {recursive: true});
-  copyFileSync(join(root, 'proofs/relation-pipeline/capacity/finish.mjs'),
-    join(directory, 'proofs/relation-pipeline/capacity/finish.mjs'));
-  mkdirSync(join(directory, '.artifacts/relation-pipeline/capacity'), {recursive: true});
-  put('lifecycle.mjs', `
-import assert from 'node:assert/strict';
-import {readFileSync,writeFileSync,existsSync,unlinkSync} from 'node:fs';
-import {spawnSync} from 'node:child_process';
-import {createExecutor,execute,executions,closeExecutor,fixture} from './proofs/relation-pipeline/execute.mjs';
-import {take} from './proofs/relation-pipeline/take.mjs';
-import {finishCapacityCampaign} from './proofs/relation-pipeline/capacity/finish.mjs';
-const cases = [{id:'lifecycle',rows:[],steps:[{id:'take',op:'take',args:{offset:0,count:1}}]}];
-const registry = [take];
-const mode = process.argv[2];
-const run = () => execute(cases,registry,'js',false,'capacity-parent-lifecycle');
-if (mode==='child') { run(); closeExecutor(); }
-else if (mode==='foreign') {
-  run(); const bytes=readFileSync(fixture,'utf8'); closeExecutor();
-  writeFileSync(fixture,bytes); const foreign=createExecutor();
-  assert.throws(()=>foreign.execute(cases,registry,'js'),/Another pipeline batch owns/);
-  foreign.close(); assert.equal(readFileSync(fixture,'utf8'),bytes);
-  unlinkSync(fixture);
-} else if (mode==='changed') {
-  run(); const bytes=readFileSync(fixture,'utf8'); writeFileSync(fixture,bytes+'\\n');
-  assert.throws(closeExecutor,/Owned fixture was changed/);
-  assert(existsSync(fixture)); writeFileSync(fixture,bytes); closeExecutor();
-} else {
-  run();
-  const receipt=executions.at(-1); const bytes=readFileSync(fixture,'utf8');
-  assert.deepEqual(JSON.parse(readFileSync(receipt.path)),receipt.receipt);
-  const child = () => spawnSync(process.execPath,['lifecycle.mjs','child'],{encoding:'utf8'});
-  const blocked=child(); assert.notEqual(blocked.status,0);
-  assert.match(blocked.stderr,/Another pipeline batch owns the temporary fixture/);
-  assert(existsSync(fixture));
-  finishCapacityCampaign({kind:'mock transport lifecycle regression'},['js','wasm','native']);
-  assert(!existsSync(fixture));
-  assert.throws(run,/Execution workspace is closed/);
-  assert.equal(readFileSync(receipt.receipt.fixturePath,'utf8'),bytes);
-  const admitted=child(); assert.equal(admitted.status,0,admitted.stderr);
-  assert(!existsSync(fixture));
-  assert.deepEqual(JSON.parse(readFileSync('.artifacts/relation-pipeline/capacity/all.json')).executions,executions);
-  closeExecutor(); closeExecutor();
+  const root = minimalRepository(t);
+  const finish = 'proofs/relation-pipeline/capacity/finish.mjs';
+  mkdirSync(dirname(join(root, finish)), { recursive: true });
+  copyFileSync(fileURLToPath(new URL('./capacity/finish.mjs', import.meta.url)), join(root, finish));
+  mkdirSync(join(root, '.artifacts/relation-pipeline/capacity'), { recursive: true });
+  return root;
 }
-`);
-  return { directory, home, put };
-}
-for (const [mode, name] of [['handoff', 'capacity executor saves receipts and closes before a child probe in the same live checkout'],
-  ['foreign', 'identical fixture bytes do not confer ownership'], ['changed', 'changed owned fixture is preserved and rejected']]) {
-  test(name, t => {
-    const w = workspace(t);
-    try {
-      const result = spawnSync(process.execPath, ['lifecycle.mjs', mode], {
-        cwd: w.directory, env: { ...process.env, MOON_HOME: w.home, PATH: `${w.home}/bin:${process.env.PATH}`, CC: 'cc', CXX: 'c++',
-          ACTQL_TEST_EXECUTION_CONTROL: join(w.directory, '.execution-control.json'),
-          ACTQL_TEST_EXECUTION_CALLS: join(w.directory, '.execution-calls.jsonl') }, encoding: 'utf8' });
-      assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
-    } finally { rmSync(w.directory, { recursive: true, force: true }); }
-  });
-}
+
+const handoff = String.raw`
+const { spawnSync } = await import('node:child_process');
+const { pathToFileURL } = await import('node:url');
+const { finishCapacityCampaign } = await import(pathToFileURL(join(root, 'proofs/relation-pipeline/capacity/finish.mjs')));
+execute([makeCase()], registry, 'js', false, 'capacity-parent-lifecycle');
+const receipt = executions.at(-1), fixtureBytes = readFileSync(join(root, fixture));
+assert.deepEqual(JSON.parse(readFileSync(join(root, receipt.path))), receipt.receipt);
+const childSource = [
+  'import {execute,closeExecutor} from ' + JSON.stringify(pathToFileURL(join(root, 'proofs/relation-pipeline/execute.mjs')).href) + ';',
+  'import {take} from ' + JSON.stringify(pathToFileURL(join(root, 'proofs/relation-pipeline/take.mjs')).href) + ';',
+  'execute(' + JSON.stringify([makeCase('child')]) + ',[take],"js",false,"capacity-child-lifecycle"); closeExecutor();',
+].join('\n');
+const child = () => spawnSync(process.execPath, ['--input-type=module', '-e', childSource], {
+  cwd: root, env: process.env, encoding: 'utf8', timeout: 10000,
+});
+const blocked = child(); assert.notEqual(blocked.status, 0);
+assert.match(blocked.stderr, /Another pipeline batch owns the temporary fixture/);
+assert(existsSync(join(root, fixture)));
+finishCapacityCampaign({ kind: 'mock transport lifecycle regression' }, ['js', 'wasm', 'native']);
+assert(!existsSync(join(root, fixture)), 'capacity finish left owned fixture live');
+assert.throws(() => execute([makeCase()], registry, 'js'), /Execution workspace is closed/);
+assert.deepEqual(readFileSync(join(root, receipt.receipt.fixturePath)), fixtureBytes);
+assert.deepEqual(JSON.parse(readFileSync(join(root, '.artifacts/relation-pipeline/capacity/all.json'))).executions, executions);
+const admitted = child(); assert.equal(admitted.status, 0, admitted.stderr);
+assert(!existsSync(join(root, fixture)));
+closeExecutor(); closeExecutor();
+`;
+
+test('capacity executor saves receipts and closes before a child probe in the same live checkout', t => {
+  successful(runDriver(workspace(t), handoff));
+});
+
+test('identical fixture bytes do not confer ownership', t => {
+  successful(runDriver(workspace(t), String.raw`
+execute([makeCase()], registry, 'js');
+const path = join(root, fixture), bytes = readFileSync(path);
+closeExecutor();
+writeFileSync(path, bytes);
+const other = createExecutor();
+assert.throws(() => other.execute([makeCase()], registry, 'js'), /Another pipeline batch owns the temporary fixture/);
+other.close(); closeExecutor();
+assert.deepEqual(readFileSync(path), bytes);
+unlinkSync(path);
+`));
+});
+
+test('changed owned fixture is preserved and rejected', t => {
+  successful(runDriver(workspace(t), String.raw`
+execute([makeCase()], registry, 'js');
+const path = join(root, fixture), bytes = readFileSync(path);
+writeFileSync(path, Buffer.concat([bytes, Buffer.from('\n')]));
+assert.throws(closeExecutor, /Owned fixture was changed/);
+assert(existsSync(path));
+writeFileSync(path, bytes); closeExecutor();
+`));
+});
+
+test('same-byte replacement is preserved and rejected before close', t => {
+  successful(runDriver(workspace(t), String.raw`
+execute([makeCase()], registry, 'js');
+const path = join(root, fixture), saved = join(root, '.original-owned-fixture'), bytes = readFileSync(path);
+renameSync(path, saved); writeFileSync(path, bytes);
+assert.throws(closeExecutor, /Owned fixture was replaced/);
+assert.deepEqual(readFileSync(path), bytes);
+unlinkSync(path); renameSync(saved, path); closeExecutor();
+`));
+});
+
 test('handoff regression detects omitting the campaign executor close', t => {
-  const w = workspace(t);
-  try {
-    const path = join(w.directory, 'proofs/relation-pipeline/capacity/finish.mjs');
-    const source = readFileSync(path, 'utf8');
-    assert.equal(source.split('  closeExecutor();').length, 2);
-    writeFileSync(path, source.replace('  closeExecutor();', '  // Deliberately omit owner release.'));
-    const result = spawnSync(process.execPath, ['lifecycle.mjs', 'handoff'], {
-      cwd: w.directory, env: { ...process.env, MOON_HOME: w.home, PATH: `${w.home}/bin:${process.env.PATH}`, CC: 'cc', CXX: 'c++',
-          ACTQL_TEST_EXECUTION_CONTROL: join(w.directory, '.execution-control.json'),
-          ACTQL_TEST_EXECUTION_CALLS: join(w.directory, '.execution-calls.jsonl') }, encoding: 'utf8' });
-    assert.notEqual(result.status, 0);
-    assert.match(result.stderr, /assert\(!existsSync\(fixture\)\)/);
-  } finally { rmSync(w.directory, { recursive: true, force: true }); }
+  const root = workspace(t), path = join(root, 'proofs/relation-pipeline/capacity/finish.mjs');
+  const source = readFileSync(path, 'utf8');
+  assert.equal(source.split('  closeExecutor();').length, 2);
+  writeFileSync(path, source.replace('  closeExecutor();', '  // Deliberately omit owner release.'));
+  const result = runDriver(root, handoff);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /capacity finish left owned fixture live/);
 });

@@ -1,43 +1,204 @@
 ///|
-fn graph_construction_rows() -> @carrier.Carrier {
-  let number = @contract.primitive(@contract.NumberType, nullable=false)
-  @carrier.relation(
+fn keyed_lowering_constructor_checked(
+  shared_endpoint? : Bool = false,
+) -> @pipeline.CheckedPipeline {
+  let source =
+    #|{"values":{"schema":{"id":{"type":"number","nullable":false},"src":{"type":"number","nullable":false},"dst":{"type":"number","nullable":false},"weight":{"type":"number","nullable":false}},"rows":[{"id":1,"src":1,"dst":1,"weight":2}]},"as":"rows"}
+  let source_key = if shared_endpoint { "id" } else { "src" }
+  let target_key = if shared_endpoint { "id" } else { "dst" }
+  @pipeline.check_carriers(
+    cursor(
+      "[" +
+      source +
+      ",{" +
+      "\"property_graph\":{\"version\":\"actql-property-graph-constructor/0.1\"," +
+      "\"nodes\":[{\"name\":\"N\",\"from\":\"rows\",\"key\":[\"id\"],\"labels\":[{\"name\":\"Node\",\"properties\":{\"mode\":\"no_properties\"}}]}]," +
+      "\"edges\":[{\"name\":\"E\",\"from\":\"rows\",\"key\":[\"id\"],\"labels\":[{\"name\":\"owns\",\"properties\":{\"mode\":\"columns\",\"columns\":[{\"from\":\"weight\",\"to\":\"weight\"}]}}]," +
+      "\"source\":{\"definition\":\"N\",\"key\":[\"" +
+      source_key +
+      "\"]}," +
+      "\"target\":{\"definition\":\"N\",\"key\":[\"" +
+      target_key +
+      "\"]}}]},\"as\":\"g\"}]",
+    ),
+    [],
+    None,
+    None,
+    {
+      max_steps: 10,
+      max_work: 100000,
+      max_text_bytes: 100000,
+      max_nodes: 10000,
+      max_tokens: 10000,
+      max_depth: 4000,
+    },
+  ).unwrap()
+}
+
+///|
+fn keyed_lowering_constructor_owner(
+  shared_endpoint? : Bool = false,
+) -> @lowering_relation.BoundPrepared {
+  @lowering_relation.bind_parameters(
+    @lowering_relation.prepare(
+      keyed_lowering_constructor_checked(shared_endpoint~),
+      limits(),
+    ).unwrap(),
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+}
+
+///|
+test "keyed constructor retains distinct repeated producer roles and independent edge key" {
+  let sequence = @lowering_relation.prepare_sequence(
+    keyed_lowering_constructor_owner(),
+    sequence_limits(),
+  ).unwrap()
+  guard @lowering_relation.sequence_step(sequence, 1)
+    is Some(@lowering_relation.PropertyGraphConstructionStep(graph)) else {
+    fail("current constructor required")
+  }
+  assert_eq(@lowering_relation.property_graph_construction_node_count(graph), 1)
+  assert_eq(@lowering_relation.property_graph_construction_edge_count(graph), 1)
+  let node = @lowering_relation.property_graph_construction_node_at(graph, 0).unwrap()
+  let edge = @lowering_relation.property_graph_construction_edge_at(graph, 0).unwrap()
+  let element = @lowering_relation.property_edge_binding_element(edge)
+  // Producer schema is ordered dst, id, src, weight. Both roles use the same
+  // producer, but the independent edge key is not its endpoint tuple.
+  assert_eq(@lowering_relation.property_binding_input(node), 0)
+  assert_eq(@lowering_relation.property_binding_input(element), 1)
+  assert_eq(@lowering_relation.property_binding_keys(node), [1])
+  assert_eq(@lowering_relation.property_binding_keys(element), [1])
+  assert_eq(@lowering_relation.property_binding_properties(element), [3])
+  assert_eq(@lowering_relation.property_edge_binding_keys(edge), ([2], [0]))
+  let checked = @lowering_relation.property_graph_construction_checked(graph)
+  assert_eq(@graph.property_construction_node_count(checked), 1)
+  assert_eq(@graph.property_construction_edge_count(checked), 1)
+}
+
+///|
+test "keyed constructor uses one canonical bridge without tuple expansion" {
+  let sequence = @lowering_relation.prepare_sequence(
+    keyed_lowering_constructor_owner(),
+    sequence_limits(),
+  ).unwrap()
+  assert_eq(
+    @lowering_relation.sequence_canonical_node_count(sequence, 1),
+    Some(1),
+  )
+  assert_eq(
+    @lowering_relation.sequence_canonical_node_at(sequence, 1, 0).unwrap().operation,
+    "BRIDGE.rows.to_property_graph",
+  )
+  let writer = @encode.writer(30000, 3000, 100)
+  @lowering_relation.emit_sequence_steps(sequence, writer)
+  let wire = @encode.finish(writer)
+  assert_true(
+    wire.contains(
+      "\"in\":[\"values_0\",\"values_0\"],\"op\":\"BRIDGE.rows.to_property_graph\"",
+    ),
+  )
+  assert_true(
+    wire.contains(
+      "\"element\":{\"definition\":\"E\",\"input\":1,\"keys\":[1],\"properties\":[3]},\"source\":[2],\"target\":[0]",
+    ),
+  )
+  assert_true(
+    wire.contains(
+      "\"nodes\":[{\"definition\":\"N\",\"input\":0,\"keys\":[1],\"properties\":[]}]",
+    ),
+  )
+  assert_false(wire.contains("BRIDGE.rows.to_graph\""))
+  assert_false(wire.contains("REL.join"))
+  assert_false(wire.contains("REL.distinct"))
+}
+
+///|
+test "keyed constructor preparation keeps exact finite shared limits" {
+  let checked = keyed_lowering_constructor_checked()
+  let prepared = @lowering_relation.prepare(checked, limits()).unwrap()
+  let usage = @lowering_relation.usage(prepared)
+  let exact : @lowering_relation.Limits = {
+    max_nodes: usage.nodes,
+    max_references: usage.references,
+    max_work: usage.work,
+    max_identifier_bytes: usage.identifier_bytes,
+  }
+  assert_true(@lowering_relation.prepare(checked, exact) is Ok(_))
+  for
+    limited in [
+      { ..exact, max_nodes: exact.max_nodes - 1, },
+      { ..exact, max_references: exact.max_references - 1, },
+      { ..exact, max_work: exact.max_work - 1, },
+      { ..exact, max_identifier_bytes: exact.max_identifier_bytes - 1, },
+    ] {
+    assert_true(@lowering_relation.prepare(checked, limited) is Err(_))
+  }
+  let owner = @lowering_relation.bind_parameters(
+    prepared,
+    None,
+    max_parameters=0,
+    max_name_bytes=0,
+  ).unwrap()
+  assert_true(
+    @lowering_relation.prepare_sequence(owner, sequence_limits()) is Ok(_),
+  )
+  assert_true(
+    @lowering_relation.prepare_sequence(owner, {
+      ..sequence_limits(),
+      max_steps: 1,
+    })
+    is Err(@lowering_relation.SequenceLimit),
+  )
+  assert_true(
+    @lowering_relation.prepare_sequence(owner, {
+      ..sequence_limits(),
+      max_bindings: 0,
+    })
+    is Err(_),
+  )
+  assert_true(
+    @lowering_relation.prepare_sequence(owner, {
+      ..sequence_limits(),
+      max_name_bytes: 0,
+    })
+    is Err(_),
+  )
+  assert_true(
+    @lowering_relation.prepare_sequence(owner, {
+      ..sequence_limits(),
+      expressions: { ..expression_limits(), max_work: 0, },
+    })
+    is Err(_),
+  )
+}
+
+///|
+test "retired endpoint-derived constructor cannot synthesize a current Graph" {
+  let rows = @carrier.relation(
     @carrier.rows(
       [
-        (@schema.Unqualified("id"), Some(number)),
-        (@schema.Unqualified("src_id"), Some(number)),
-        (@schema.Unqualified("dst_id"), Some(number)),
-        (@schema.Unqualified("weight"), Some(number)),
+        (
+          @schema.Unqualified("src_id"),
+          Some(@contract.primitive(NumberType, nullable=false)),
+        ),
+        (
+          @schema.Unqualified("dst_id"),
+          Some(@contract.primitive(NumberType, nullable=false)),
+        ),
       ],
-      field_set=@carrier.Closed,
-      max_fields=4,
-      max_name_bytes=100,
+      field_set=Closed,
+      max_fields=2,
+      max_name_bytes=12,
     ).unwrap(),
   )
-}
-
-///|
-fn explicit_graph_construction_sequence() -> @lowering_relation.PreparedSequence {
-  let checked = explicit_graph_construction_checked()
-  let owner = @lowering_relation.bind_parameters(
-    @lowering_relation.prepare(checked, limits()).unwrap(),
-    None,
-    max_parameters=0,
-    max_name_bytes=0,
-  ).unwrap()
-  @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
-}
-
-///|
-fn explicit_graph_construction_checked() -> @pipeline.CheckedPipeline {
-  @pipeline.check_carriers(
+  let issue = @pipeline.check_carriers(
     cursor(
-      "[{\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
-      "\"fields\":[]},\"edges\":{\"from\":\"rows\"," +
-      "\"source\":\"src_id\",\"target\":\"dst_id\"," +
-      "\"fields\":[\"weight\"]}},\"as\":\"g\"}]",
+      "[{\"from\":\"rows\",\"graph\":{\"source\":\"src_id\",\"target\":\"dst_id\"},\"as\":\"g\"}]",
     ),
-    [("rows", graph_construction_rows())],
+    [("rows", rows)],
     None,
     None,
     {
@@ -48,305 +209,34 @@ fn explicit_graph_construction_checked() -> @pipeline.CheckedPipeline {
       max_tokens: 1000,
       max_depth: 100,
     },
+  ).unwrap_err()
+  assert_true(issue.kind is @pipeline.Graph(@graph.UnsupportedGraphOperation))
+  assert_true(issue.path.contains(@source.Key("graph")))
+}
+
+///|
+test "shared keyed endpoint retains both roles without projecting or merging edge identity" {
+  let sequence = @lowering_relation.prepare_sequence(
+    keyed_lowering_constructor_owner(shared_endpoint=true),
+    sequence_limits(),
   ).unwrap()
-}
-
-///|
-fn concise_graph_construction_checked() -> @pipeline.CheckedPipeline {
-  @pipeline.check_carriers(
-    cursor(
-      "[{\"from\":\"rows\",\"graph\":{\"source\":\"src_id\"," +
-      "\"target\":\"dst_id\"},\"as\":\"g\"}]",
-    ),
-    [("rows", graph_construction_rows())],
-    None,
-    Some(cursor("\"rows\"")),
-    {
-      max_steps: 10,
-      max_work: 10000,
-      max_text_bytes: 10000,
-      max_nodes: 1000,
-      max_tokens: 1000,
-      max_depth: 100,
-    },
-  ).unwrap()
-}
-
-///|
-fn concise_graph_construction_sequence() -> @lowering_relation.PreparedSequence {
-  let checked = concise_graph_construction_checked()
-  let owner = @lowering_relation.bind_parameters(
-    @lowering_relation.prepare(checked, limits()).unwrap(),
-    None,
-    max_parameters=0,
-    max_name_bytes=0,
-  ).unwrap()
-  @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
-}
-
-///|
-fn self_loop_graph_construction_checked() -> @pipeline.CheckedPipeline {
-  @pipeline.check_carriers(
-    cursor(
-      "[{\"graph\":{\"nodes\":{\"from\":\"rows\",\"id\":\"id\"," +
-      "\"fields\":[]},\"edges\":{\"from\":\"rows\"," +
-      "\"source\":\"id\",\"target\":\"id\"," +
-      "\"fields\":[]}},\"as\":\"g\"}]",
-    ),
-    [("rows", graph_construction_rows())],
-    None,
-    None,
-    {
-      max_steps: 10,
-      max_work: 10000,
-      max_text_bytes: 10000,
-      max_nodes: 1000,
-      max_tokens: 1000,
-      max_depth: 100,
-    },
-  ).unwrap()
-}
-
-///|
-test "explicit Graph construction lowers exact repeated input roles" {
-  let sequence = explicit_graph_construction_sequence()
-  guard @lowering_relation.sequence_step(sequence, 0)
-    is Some(@lowering_relation.GraphConstructionStep(graph)) else {
-    fail("expected Graph construction")
+  guard @lowering_relation.sequence_step(sequence, 1)
+    is Some(@lowering_relation.PropertyGraphConstructionStep(graph)) else {
+    fail("current constructor required")
   }
+  let edge = @lowering_relation.property_graph_construction_edge_at(graph, 0).unwrap()
+  assert_eq(@lowering_relation.property_edge_binding_keys(edge), ([1], [1]))
   assert_eq(
-    @schema.reference_name(
-      @lowering_relation.graph_construction_node_identity(graph),
+    @lowering_relation.property_binding_keys(
+      @lowering_relation.property_edge_binding_element(edge),
     ),
-    "id",
+    [1],
   )
+  let copy = @lowering_relation.property_edge_binding_keys(edge)
+  copy.0[0] = 99
+  assert_eq(@lowering_relation.property_edge_binding_keys(edge), ([1], [1]))
   assert_eq(
-    @schema.reference_name(
-      @lowering_relation.graph_construction_edge_source(graph),
-    ),
-    "src_id",
-  )
-  assert_eq(
-    @schema.reference_name(
-      @lowering_relation.graph_construction_edge_target(graph),
-    ),
-    "dst_id",
-  )
-  assert_eq(@lowering_relation.graph_construction_node_property_count(graph), 0)
-  assert_eq(@lowering_relation.graph_construction_edge_property_count(graph), 1)
-  assert_eq(
-    @lowering_relation.sequence_canonical_node_count(sequence, 0),
-    Some(5),
-  )
-  let expected = [
-    ("graph_nodes_0", "REL.select"),
-    ("graph_edges_0", "REL.select"),
-    ("graph_source_closed_0", "REL.join"),
-    ("graph_target_closed_0", "REL.join"),
-    ("graph_0", "BRIDGE.rows.to_graph"),
-  ]
-  for index, item in expected {
-    assert_eq(
-      @lowering_relation.sequence_canonical_node_at(sequence, 0, index).map(occurrence => {
-        (occurrence.id, occurrence.operation)
-      }),
-      Some(item),
-    )
-  }
-  let writer = @encode.writer(10000, 1000, 100)
-  @lowering_relation.emit_sequence_steps(sequence, writer)
-  assert_eq(
-    @encode.finish(writer),
-    "[{\"id\":\"graph_nodes_0\",\"in\":[\"input_0\"]," +
-    "\"op\":\"REL.select\",\"params\":{\"columns\":[" +
-    "{\"from\":\"id\",\"to\":\"id\"}]}}," +
-    "{\"id\":\"graph_edges_0\",\"in\":[\"input_0\"]," +
-    "\"op\":\"REL.select\",\"params\":{\"columns\":[" +
-    "{\"from\":\"src_id\",\"to\":\"src_id\"}," +
-    "{\"from\":\"dst_id\",\"to\":\"dst_id\"}," +
-    "{\"from\":\"weight\",\"to\":\"weight\"}]}}," +
-    "{\"id\":\"graph_source_closed_0\",\"in\":[" +
-    "\"graph_edges_0\",\"graph_nodes_0\"],\"op\":\"REL.join\"," +
-    "\"params\":{\"how\":\"semi\",\"key_pairs\":[{" +
-    "\"left\":\"src_id\",\"right\":\"id\"}]," +
-    "\"null_key\":\"no_match\",\"on\":{\"left\":{" +
-    "\"path\":[\"left\",\"src_id\"],\"type\":\"col\"}," +
-    "\"op\":\"eq\",\"right\":{\"path\":[\"right\",\"id\"]," +
-    "\"type\":\"col\"},\"type\":\"cmp\"}}}," +
-    "{\"id\":\"graph_target_closed_0\",\"in\":[" +
-    "\"graph_source_closed_0\",\"graph_nodes_0\"]," +
-    "\"op\":\"REL.join\",\"params\":{\"how\":\"semi\"," +
-    "\"key_pairs\":[{\"left\":\"dst_id\",\"right\":\"id\"}]," +
-    "\"null_key\":\"no_match\",\"on\":{\"left\":{" +
-    "\"path\":[\"left\",\"dst_id\"],\"type\":\"col\"}," +
-    "\"op\":\"eq\",\"right\":{\"path\":[\"right\",\"id\"]," +
-    "\"type\":\"col\"},\"type\":\"cmp\"}}}," +
-    "{\"id\":\"graph_0\",\"in\":[\"graph_nodes_0\"," +
-    "\"graph_target_closed_0\"]," +
-    "\"op\":\"BRIDGE.rows.to_graph\",\"params\":{" +
-    "\"edge\":{\"label\":null,\"properties\":[\"weight\"]," +
-    "\"source\":\"src_id\",\"target\":\"dst_id\"}," +
-    "\"mode\":\"declared_nodes\",\"node\":{" +
-    "\"identity\":\"id\",\"properties\":[]}}}]",
-  )
-}
-
-///|
-test "explicit Graph construction accounts for its finite expansion" {
-  let checked = explicit_graph_construction_checked()
-  let prepared = @lowering_relation.prepare(checked, limits()).unwrap()
-  let usage = @lowering_relation.usage(prepared)
-  let exact : @lowering_relation.Limits = {
-    max_nodes: usage.nodes,
-    max_references: usage.references,
-    max_work: usage.work,
-    max_identifier_bytes: usage.identifier_bytes,
-  }
-  assert_true(@lowering_relation.prepare(checked, exact) is Ok(_))
-  for
-    limited in [
-      { ..exact, max_nodes: exact.max_nodes - 1, },
-      { ..exact, max_references: exact.max_references - 1, },
-      { ..exact, max_work: exact.max_work - 1, },
-      { ..exact, max_identifier_bytes: exact.max_identifier_bytes - 1, },
-    ] {
-    assert_true(@lowering_relation.prepare(checked, limited) is Err(_))
-  }
-
-  let owner = @lowering_relation.bind_parameters(
-    prepared,
-    None,
-    max_parameters=0,
-    max_name_bytes=0,
-  ).unwrap()
-  let exact_sequence = {
-    ..sequence_limits(),
-    max_bindings: 4,
-    max_name_bytes: 20,
-    expressions: { ..expression_limits(), max_work: 4, },
-  }
-  assert_true(
-    @lowering_relation.prepare_sequence(owner, exact_sequence) is Ok(_),
-  )
-  for
-    limited in [
-      { ..exact_sequence, max_bindings: 3, },
-      { ..exact_sequence, max_name_bytes: 19, },
-      {
-        ..exact_sequence,
-        expressions: { ..exact_sequence.expressions, max_work: 3, },
-      },
-    ] {
-    assert_true(@lowering_relation.prepare_sequence(owner, limited) is Err(_))
-  }
-}
-
-///|
-test "concise Graph construction derives endpoint nodes canonically" {
-  let sequence = concise_graph_construction_sequence()
-  guard @lowering_relation.sequence_step(sequence, 0)
-    is Some(@lowering_relation.GraphConstructionStep(graph)) else {
-    fail("expected concise Graph construction")
-  }
-  assert_true(@lowering_relation.graph_construction_derives_nodes(graph))
-  assert_eq(
-    @lowering_relation.sequence_canonical_node_count(sequence, 0),
-    Some(6),
-  )
-  let expected = [
-    ("graph_source_nodes_0", "REL.select"),
-    ("graph_target_nodes_0", "REL.select"),
-    ("graph_all_nodes_0", "REL.unionAll"),
-    ("graph_nodes_0", "REL.distinct"),
-    ("graph_edges_0", "REL.select"),
-    ("graph_0", "BRIDGE.rows.to_graph"),
-  ]
-  for index, item in expected {
-    assert_eq(
-      @lowering_relation.sequence_canonical_node_at(sequence, 0, index).map(occurrence => {
-        (occurrence.id, occurrence.operation)
-      }),
-      Some(item),
-    )
-  }
-  let writer = @encode.writer(10000, 1000, 100)
-  @lowering_relation.emit_sequence_steps(sequence, writer)
-  assert_eq(
-    @encode.finish(writer),
-    "[{\"id\":\"graph_source_nodes_0\",\"in\":[\"input_0\"]," +
-    "\"op\":\"REL.select\",\"params\":{\"columns\":[{" +
-    "\"from\":\"src_id\",\"to\":\"node_id\"}]}},{" +
-    "\"id\":\"graph_target_nodes_0\",\"in\":[\"input_0\"]," +
-    "\"op\":\"REL.select\",\"params\":{\"columns\":[{" +
-    "\"from\":\"dst_id\",\"to\":\"node_id\"}]}},{" +
-    "\"id\":\"graph_all_nodes_0\",\"in\":[" +
-    "\"graph_source_nodes_0\",\"graph_target_nodes_0\"]," +
-    "\"op\":\"REL.unionAll\",\"params\":{}},{" +
-    "\"id\":\"graph_nodes_0\",\"in\":[\"graph_all_nodes_0\"]," +
-    "\"op\":\"REL.distinct\",\"params\":{}},{" +
-    "\"id\":\"graph_edges_0\",\"in\":[\"input_0\"]," +
-    "\"op\":\"REL.select\",\"params\":{\"columns\":[{" +
-    "\"from\":\"src_id\",\"to\":\"src_id\"},{" +
-    "\"from\":\"dst_id\",\"to\":\"dst_id\"},{" +
-    "\"from\":\"id\",\"to\":\"id\"},{" +
-    "\"from\":\"weight\",\"to\":\"weight\"}]}},{" +
-    "\"id\":\"graph_0\",\"in\":[\"graph_nodes_0\"," +
-    "\"graph_edges_0\"],\"op\":\"BRIDGE.rows.to_graph\"," +
-    "\"params\":{\"edge\":{\"label\":null," +
-    "\"properties\":[\"id\",\"weight\"]," +
-    "\"source\":\"src_id\",\"target\":\"dst_id\"}," +
-    "\"mode\":\"derived_endpoints\",\"node\":{" +
-    "\"identity\":\"node_id\",\"properties\":[]}}}]",
-  )
-}
-
-///|
-test "concise Graph construction accounts for its finite expansion" {
-  let checked = concise_graph_construction_checked()
-  let prepared = @lowering_relation.prepare(checked, limits()).unwrap()
-  let usage = @lowering_relation.usage(prepared)
-  let exact : @lowering_relation.Limits = {
-    max_nodes: usage.nodes,
-    max_references: usage.references,
-    max_work: usage.work,
-    max_identifier_bytes: usage.identifier_bytes,
-  }
-  assert_true(@lowering_relation.prepare(checked, exact) is Ok(_))
-  for
-    limited in [
-      { ..exact, max_nodes: exact.max_nodes - 1, },
-      { ..exact, max_references: exact.max_references - 1, },
-      { ..exact, max_work: exact.max_work - 1, },
-      { ..exact, max_identifier_bytes: exact.max_identifier_bytes - 1, },
-    ] {
-    assert_true(@lowering_relation.prepare(checked, limited) is Err(_))
-  }
-}
-
-///|
-test "explicit Graph construction projects a shared endpoint once" {
-  let checked = self_loop_graph_construction_checked()
-  let prepared = @lowering_relation.prepare(checked, limits()).unwrap()
-  let owner = @lowering_relation.bind_parameters(
-    prepared,
-    None,
-    max_parameters=0,
-    max_name_bytes=0,
-  ).unwrap()
-  let sequence = @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
-  let writer = @encode.writer(10000, 1000, 100)
-  @lowering_relation.emit_sequence_steps(sequence, writer)
-  let encoded = @encode.finish(writer)
-  assert_true(
-    encoded.contains(
-      "\"id\":\"graph_edges_0\",\"in\":[\"input_0\"]," +
-      "\"op\":\"REL.select\",\"params\":{\"columns\":[" +
-      "{\"from\":\"id\",\"to\":\"id\"}]}",
-    ),
-  )
-  assert_false(
-    encoded.contains(
-      "{\"from\":\"id\",\"to\":\"id\"}," + "{\"from\":\"id\",\"to\":\"id\"}",
-    ),
+    @lowering_relation.sequence_canonical_node_count(sequence, 1),
+    Some(1),
   )
 }

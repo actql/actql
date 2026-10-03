@@ -76,6 +76,7 @@ pub(all) enum LocalDispatchIssue {
   // while establishing a result identity: a resource limit, not an
   // unsupported identity.
   IdentityExport(@execution.CompletedExportIssue)
+  CarrierSnapshot(@carrier_runtime.SnapshotIssue)
 }
 
 ///|

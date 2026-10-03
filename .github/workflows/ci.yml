@@ -1,13 +1,12 @@
 name: CI
 
-# Runs automatically for main, integration branches headed for main and
-# pull requests. A working branch is checked on demand:
+# Run once per pull request update, then the full suite on main.
+# Integration branches use their PR; a working branch is checked on demand:
 #   gh workflow run CI --ref <branch> [-f native_macos=true]
 on:
   push:
     branches:
       - main
-      - 'integration/**'
   pull_request:
   workflow_dispatch:
     inputs:
@@ -32,6 +31,23 @@ concurrency:
   cancel-in-progress: ${{ !inputs.performance_matrix }}
 
 jobs:
+  select-targets:
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      targets: ${{ steps.select.outputs.targets }}
+      macos: ${{ steps.select.outputs.macos }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Select core targets without weakening evidence campaigns
+        id: select
+        env:
+          NATIVE_MACOS: ${{ inputs.native_macos }}
+        run: node scripts/ci-targets.mjs
   packed-query-evidence-probe:
     if: github.event_name == 'workflow_dispatch' && inputs.packed_query_evidence_probe
     uses: ./.github/workflows/packed-query-evidence-probe.yml
@@ -62,10 +78,14 @@ jobs:
         run: node --test scripts/worktree-inventory.test.mjs
       - name: Test nonzero execution guards
         run: node --test scripts/test-execution.test.mjs
+      - name: Test bounded local execution and optional hook adapters
+        run: node --test scripts/local-checks.test.mjs scripts/local-checks-guard.test.mjs scripts/local-checks-policy.test.mjs scripts/local-checks-hook.test.mjs
       - name: Test environment guards
         run: node --test scripts/moonbit-environment.test.mjs
       - name: Test native SQLite namespace ownership
         run: node --test scripts/test-native-core.test.mjs
+      - name: Test conservative CI target selection
+        run: node --test scripts/ci-targets.test.mjs
       - name: Test Client CI partition and aggregate requirements
         run: node --test scripts/client-ci.test.mjs
       - name: Test read-only CI evidence reporting
@@ -79,12 +99,13 @@ jobs:
   # One runner per target: check, then test, each with --deny-warn, as
   # before. A target never shares a runner or _build with another.
   core:
+    needs: [select-targets]
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     name: core (${{ matrix.target }})
     strategy:
       fail-fast: false
       matrix:
-        target: [js, wasm, native]
+        target: ${{ fromJSON(needs.select-targets.outputs.targets) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -626,7 +647,7 @@ jobs:
   # scheduled (see its condition).
   check:
     if: ${{ always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
-    needs: [lint, core, host, client, native, spec, session-evidence, pipeline-evidence, native-macos,
+    needs: [select-targets, lint, core, host, client, native, spec, session-evidence, pipeline-evidence, native-macos,
       native-separated-network, workers, connector-addition, duckdb-node]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -634,13 +655,15 @@ jobs:
       - name: Require every job
         env:
           RESULTS: ${{ toJSON(needs) }}
-          MACOS_SCHEDULED: >-
-            ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-              (github.event_name == 'pull_request' && github.base_ref == 'main') ||
-              (github.event_name == 'workflow_dispatch' && inputs.native_macos) }}
+          MACOS_SCHEDULED: ${{ needs.select-targets.outputs.macos }}
         run: |
           node -e '
             const results = JSON.parse(process.env.RESULTS);
+            if (results["select-targets"]?.result !== "success" ||
+                !["true", "false"].includes(process.env.MACOS_SCHEDULED?.trim())) {
+              console.error("Missing or invalid target selection");
+              process.exit(1);
+            }
             const macos = process.env.MACOS_SCHEDULED.trim() === "true";
             let failed = false;
             for (const [job, {result}] of Object.entries(results)) {
@@ -684,14 +707,13 @@ jobs:
         run: npm run check:metadata
       - name: Verify metadata checks did not change tracked files
         run: git diff --exit-code
-  # macOS minutes cost ten times Linux ones: run for main, pull requests to
-  # main, and on demand.
+  # Full main coverage; PRs keep macOS for target/runtime-sensitive or unknown
+  # inputs. The selector records why a portable PR omits this job.
   native-macos:
+    needs: [select-targets]
     if: >-
-      ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && (
-        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-        (github.event_name == 'pull_request' && github.base_ref == 'main') ||
-        (github.event_name == 'workflow_dispatch' && inputs.native_macos)) }}
+      ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
+        needs.select-targets.outputs.macos == 'true' }}
     runs-on: macos-14
     timeout-minutes: 20
     steps:
@@ -714,6 +736,8 @@ jobs:
           toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
           echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
           echo "$toolchain/bin" >> "$GITHUB_PATH"
+      - name: Test macOS local execution ownership and cancellation
+        run: node --test scripts/local-checks.test.mjs scripts/local-checks-guard.test.mjs scripts/local-checks-policy.test.mjs scripts/local-checks-hook.test.mjs
       - name: Verify native macOS arm64 profile
         run: |
           test "$(uname -m)" = arm64
@@ -862,3 +886,4 @@ jobs:
         run: node --test adapters/connectors/duckdb/node/bench/matched-equivalent-pair.test.mjs
       - name: Build fixture-independent acquisition Host entries
         run: npm run build:host --prefix adapters/connectors/duckdb/node
+

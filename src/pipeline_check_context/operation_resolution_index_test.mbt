@@ -45,6 +45,10 @@ fn check_resolution_index(
         execution += 1
         assert_true(physical_equal(check.site, site))
       }
+      Execution(PropertyGraphConstructionExecution(check)) => {
+        execution += 1
+        assert_true(physical_equal(check.site, site))
+      }
       Execution(SequenceExecution(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))
@@ -170,43 +174,11 @@ fn check_resolution_index(
         execution += 1
         assert_true(physical_equal(check.site, site))
       }
-      Execution(GraphProjection(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
-      Execution(GraphResources(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
-      Execution(GraphEqualityExecution(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
-      Execution(GraphDiffExecution(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
-      Execution(GraphApplyExecution(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
       Execution(GraphMatchExecution(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))
       }
       Execution(GraphSelectorExecution(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
-      Execution(SubgraphExecution(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
-      Execution(GraphStructuralExecution(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
-      Execution(GraphMeanExecution(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))
       }
@@ -230,41 +202,11 @@ fn check_resolution_index(
         execution += 1
         assert_true(physical_equal(check.site, site))
       }
-      Execution(ComponentsLimits(check) | ComponentsOutputGuard(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
-      Execution(
-        TraversalLimits(check)
-        | TraversalOutputGuard(check)
-        | ReachLimits(check)
-        | ShortestLimits(check)
-        | ShortestOutputGuard(check)
-      ) => {
+      Execution(TraversalLimits(check) | TraversalOutputGuard(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))
       }
       Execution(TraversalExecution(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
-      Execution(ReachExecution(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
-      Execution(ShortestExecution(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
-      Execution(GraphExecution(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
-      Execution(GraphConstructionExecution(check)) => {
-        execution += 1
-        assert_true(physical_equal(check.site, site))
-      }
-      Execution(GraphProjectionOutput(check)) => {
         execution += 1
         assert_true(physical_equal(check.site, site))
       }
@@ -285,7 +227,6 @@ fn check_resolution_index(
       Resolved(v) => {
         resolved += 1
         let (position, owner, kind) = match v {
-          ReachExpansion(_) => abort("reach expansion has dedicated tests")
           AsOfCompletion(_) => abort("as-of completion has dedicated tests")
           RankingEnvelope(_) => abort("ranking envelopes have dedicated tests")
           WindowPublication(_) =>
@@ -372,7 +313,6 @@ fn check_resolution_index(
   for i in 0..<count {
     let kind = fn(v : OperationResolutionState) {
       match v {
-        Resolved(ReachExpansion(_)) => 14
         Resolved(RankingEnvelope(_)) => 15
         Resolved(AsOfCompletion(_)) => 13
         Resolved(WindowPublication(_)) => 12

@@ -333,6 +333,8 @@ fn start_owned(
           limits.input,
           limits.measurement,
           limits.mapping,
+          fragment_body~,
+          ordered_body~,
         )
       }
     },

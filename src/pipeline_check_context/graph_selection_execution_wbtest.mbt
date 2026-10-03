@@ -1,36 +1,31 @@
 ///|
-test "selector bindings retain endpoint roles and reject foreign checked owners" {
-  let fields = @carrier.rows(
-    [],
-    field_set=Closed,
-    max_fields=0,
-    max_name_bytes=0,
-  ).unwrap()
-  let number = @contract.primitive(NumberType, nullable=false)
-  let graph = @carrier.graph(
-    number,
-    fields,
-    fields,
-    labels=None,
-    max_labels=0,
-    max_label_bytes=0,
-  ).unwrap()
+test "current TRAIL selectors retain full identity input roles and reject foreign checked owners" {
+  let producer = property_execution_pipeline()
+  let graph = @pipeline.carrier_at(producer, @pipeline.Step(1)).unwrap()
+  guard graph is @carrier.GraphValue(schema) else { fail("current Graph") }
+  let domain = @carrier.property_graph_domain(
+    @carrier.graph_property_definition(schema),
+  )
+  let identity = "{\"definition\":\"N\",\"domain\":\"" +
+    domain +
+    "\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}"
   let rows = @carrier.relation(
     @carrier.rows(
-      [(Unqualified("id"), Some(number))],
+      [(Qualified(Left, "element"), Some(@carrier.graph_identity(schema)))],
       field_set=Closed,
       max_fields=1,
-      max_name_bytes=10,
+      max_name_bytes=100,
     ).unwrap(),
   )
   let policy = sequence_limit_policy(false)
   for
     body in [
-      "{\"subgraph\":{\"nodes\":{\"ids\":[1,1]}}}", "{\"subgraph\":{\"nodes\":{\"from\":\"r\",\"id\":\"id\"}}}",
-      "{\"traverse\":{\"start\":{\"from\":\"r\",\"id\":\"id\"},\"direction\":\"both\",\"min_hops\":0,\"max_hops\":2,\"emit\":\"nodes\"}}",
-      "{\"shortest_path\":{\"source\":{\"from\":\"r\",\"id\":\"id\"},\"target\":2,\"selection\":\"each_pair\",\"direction\":\"both\",\"max_hops\":2}}",
-      "{\"shortest_path\":{\"source\":1,\"target\":{\"from\":\"r\",\"id\":\"id\"},\"selection\":\"each_pair\",\"direction\":\"both\",\"max_hops\":2}}",
-      "{\"shortest_path\":{\"source\":{\"from\":\"r\",\"id\":\"id\"},\"target\":{\"from\":\"r\",\"id\":\"id\"},\"selection\":\"each_pair\",\"direction\":\"both\",\"max_hops\":2}}",
+      "{\"traverse\":{\"start\":{\"ids\":[" +
+      identity +
+      "," +
+      identity +
+      "]},\"hops\":[{\"direction\":\"out\"}],\"path_mode\":\"trail\",\"emit\":\"paths\"}}",
+      "{\"traverse\":{\"start\":{\"from\":\"r\",\"id\":\"left.element\"},\"direction\":\"both\",\"min_hops\":0,\"max_hops\":2,\"path_mode\":\"trail\",\"emit\":\"paths\"}}",
     ] {
     let build = fn() {
       @pipeline.check_carriers(
@@ -114,54 +109,6 @@ test "selector bindings retain endpoint roles and reject foreign checked owners"
           )
           is Err(ForeignOccurrence(0)),
         )
-        if @pipeline.operation_obligation_group_count(step.operation) == 3 {
-          let other = @pipeline.operation_obligation_group_at(
-            step.operation,
-            if group_index == 1 {
-              2
-            } else {
-              1
-            },
-          ).unwrap()
-          assert_true(
-            graph_selector_execution_check(
-              { ..site, obligations: other, },
-              policy,
-            )
-            is Err(ForeignOccurrence(0)),
-          )
-        }
-      }
-    }
-    if step.operation is Subgraph(..) {
-      let group = @pipeline.operation_obligation_group_at(step.operation, 0).unwrap()
-      for index in 0..<@pipeline.operation_obligations_count(group) {
-        let site : OperationRequirementSite = {
-          stage: 0,
-          producer_visit: 0,
-          step: 0,
-          group: 0,
-          index,
-          pipeline,
-          obligations: group,
-          requirement: @pipeline.operation_obligations_at(group, index).unwrap(),
-        }
-        if site.requirement is SubgraphRequirement(ResolveSubgraphProfile) {
-          assert_true(subgraph_execution_check(site, policy) is Ok(None))
-        } else {
-          assert_true(
-            subgraph_execution_check(site, policy)
-            is Ok(Some(SubgraphExecution(_))),
-          )
-          assert_true(
-            subgraph_execution_check({ ..site, group: 1, }, policy)
-            is Err(ForeignOccurrence(0)),
-          )
-          assert_true(
-            subgraph_execution_check({ ..site, index: 99, }, policy)
-            is Err(ForeignOccurrence(0)),
-          )
-        }
       }
     }
   }

@@ -58,17 +58,17 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     : savedSlots !== undefined
     ? acquiredInput === undefined
       ? moon.clientProgramStartRestoredInferSlotReplay(preparedProgram, step,
-        graph, registry, values, savedSlots)
+        graph, registry, values, savedSlots, fragment, ordered)
       : moon.clientProgramStartAcquiredInferSlotReplay(preparedProgram, step,
         graph, registry, values, savedSlots, acquiredInput, fragment, ordered)
     : savedCapture === undefined
       ? acquiredInput === undefined
         ? moon.clientProgramStartScopedInferExecution(preparedProgram, step,
-          graph, registry, values, provider)
+          graph, registry, values, provider, fragment, ordered)
         : moon.clientProgramStartAcquiredInferExecution(preparedProgram, step,
           graph, registry, values, provider, acquiredInput, fragment, ordered)
       : moon.clientProgramStartRestoredInferReplay(preparedProgram, step,
-        graph, registry, values, savedCapture));
+        graph, registry, values, savedCapture, fragment, ordered));
   const requestStop = () => moon.clientProgramCancelInferExecution(active);
   if (quantityCapacity !== undefined) {
     const {limits, perAttempt} = quantityCapacity;

@@ -60,7 +60,12 @@ test('the execution profile covers the fixed non-expression mother set', () => {
   const fromCoverage = coverage.operations
     .filter(item => item.family !== 'VecAExpression')
     .flatMap(item => item.canonical);
-  assert.deepEqual(fromCoverage, expectedOperations);
+  // Preserve the frozen legacy profile; the keyed constructor is a separately
+  // admitted additive operation, never a replacement for rows.to_graph.
+  assert.equal(fromCoverage.filter(operation =>
+    operation === 'BRIDGE.rows.to_property_graph').length, 1);
+  assert.deepEqual(fromCoverage.filter(operation =>
+    operation !== 'BRIDGE.rows.to_property_graph'), expectedOperations);
   for (const operation of expectedOperations) {
     assert.ok(registry[operation], `missing registry operation ${operation}`);
   }

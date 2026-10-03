@@ -407,6 +407,35 @@ pub fn managed_provider_cumulative_work(
 }
 
 ///|
+/// Charge a validated handoff delta to the SAME provider accounting owner.
+/// Stage cursors validate cumulative reports before calling this function;
+/// reading totals, cleanup and physical file release never synthesize work.
+pub fn managed_provider_record_handoff_work(
+  execution : ManagedProviderExecution,
+  work : Int64,
+) -> Result[Unit, ManagedProviderWorkIssue] {
+  match execution.reported_work {
+    Err(issue) => Err(issue)
+    Ok(total) => {
+      if work < 0L {
+        execution.reported_work = Err(InvalidReport)
+      } else if total > 9223372036854775807L - work {
+        execution.reported_work = Err(CounterOverflow)
+      } else {
+        execution.reported_work = Ok(total + work)
+      }
+      match execution.reported_work {
+        Ok(_) => Ok(())
+        Err(issue) => {
+          cancel_managed_provider(execution) |> ignore
+          Err(issue)
+        }
+      }
+    }
+  }
+}
+
+///|
 pub fn cancel_managed_provider(execution : ManagedProviderExecution) -> Bool {
   (execution.cancel)()
 }

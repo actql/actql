@@ -19,6 +19,14 @@ Existing operation checking remains supported and is tested through the same
 pipeline. Both Carrier alternatives of an overloaded operation are in scope;
 supporting just its Relation alternative is not completion.
 
+This original scope is not a current Graph execution-support certificate.
+The sole Property Graph representation replaces the retired tuple constructor;
+its current supported/refused boundary is maintained by the existing
+[family coverage inventory](../reviews/2026-09-19-sga-veca-tea-local-coverage.json).
+The [evidence index](pure-operation-test-inventory.md) distinguishes current
+execution tests from shared typed-refusal tests. Historical Graph algorithm
+law bodies do not authorize a legacy implementation or fallback.
+
 No evaluator, algebra lowering, acquisition, `infer`, `search_candidates`,
 `serialize`, Effect/Run engine, provider dispatch, Host adapter or deployment is
 part of this work. Fixed numerical vectors document the admitted law; generating

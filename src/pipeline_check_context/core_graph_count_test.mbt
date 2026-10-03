@@ -2,9 +2,9 @@
 test "Graph count contracts retain construction and row bridge occurrences" {
   let requirements = operation_order_fixture(
     (
-      #|[{"values":{"schema":{"id":{"type":"number","nullable":false},"dst":{"type":"number","nullable":false}},"rows":[]},"as":"seed"},{"derive":{"x":"concat($p, to_string($n))"}},{"graph":{"nodes":{"from":"seed","id":"id","fields":[]},"edges":{"from":"seed","source":"id","target":"dst","fields":[]}},"as":"g"},{"node_rows":true}]
+      #|[{"values":{"schema":{"id":{"type":"number","nullable":false},"dst":{"type":"number","nullable":false}},"rows":[]},"as":"seed"},{"derive":{"x":"concat($p, to_string($n))"}},{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"N","from":"seed","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[{"name":"E","from":"seed","key":["id"],"source":{"definition":"N","key":["id"]},"target":{"definition":"N","key":["dst"]}}]},"as":"g"},{"match_nodes":{"definition":"N","where":"true","fields":["id"]}}]
     ),
-    sga=true,
+    property_graph=true,
   )
   let identity = expression_closure_identity(
     operation_requirements_expressions(requirements),
@@ -25,16 +25,16 @@ test "Graph count contracts retain construction and row bridge occurrences" {
           step,
         ).unwrap().operation
       assert_true(
-        operation is @pipeline.GraphConstruction(..) ||
-        operation is @pipeline.Projection(_),
+        operation is @pipeline.PropertyGraphConstruction(..) ||
+        operation is @pipeline.GraphMatch(_),
       )
-      assert_eq(root.body, GraphCountRules)
-      assert_true(stage_has_contract(inventory, stage, GraphCountRules))
+      assert_eq(root.body, PropertyGraphCountRules)
+      assert_true(stage_has_contract(inventory, stage, PropertyGraphCountRules))
       roots += 1
     }
   }
   for i in 0..<core_contract_body_count(inventory) {
-    if core_contract_body_at(inventory, i) == Some(GraphCountRules) {
+    if core_contract_body_at(inventory, i) == Some(PropertyGraphCountRules) {
       bodies += 1
     }
   }

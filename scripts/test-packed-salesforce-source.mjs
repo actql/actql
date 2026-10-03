@@ -19,6 +19,7 @@ import {databaseRows, expectedUpdates, expectedWrites, expectedModelInputs,
   './fixtures/composed-infer-effect-input.mjs';
 import {canonicalJson} from '../adapters/host-node/local-account-config.mjs';
 import {packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
+import {readTwoSourceJournal} from './fixtures/two-source-public-query.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const build = join(repository, '_build');
@@ -151,6 +152,9 @@ const server = await (async () => {
 
 let passed = false;
 try {
+  const sourceRevision = run('git', ['rev-parse', 'HEAD'], repository).trim();
+  assert.match(sourceRevision, /^[0-9a-f]{40}$/u);
+  console.log('packed source revision ' + sourceRevision);
   const artifacts = [];
   for (const name of ['client-wire', 'sdk', 'local-node', 'node']) {
     await packedClientPackage({repository, name, destination: root,
@@ -405,7 +409,7 @@ console.log(JSON.stringify(published.mappings.map(mapping =>
   // recovery and the Named Result without a MoonBit toolchain.
   await writeFile(join(root, 'effect-run.mjs'), `
 import assert from 'node:assert/strict';
-import {createPrivateKey, sign} from 'node:crypto';
+import {createHash, createPrivateKey, sign} from 'node:crypto';
 import {appendFileSync, readFileSync, writeFileSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {createServer} from 'node:https';
@@ -561,6 +565,20 @@ try {
     assert.deepEqual(answer.results.map(item => item.status), ['committed']);
     if (composed) await terminate('approval-committed', ref);
     console.log('approved');
+  } else if (step === 'rce-empty') {
+    assert.deepEqual(await client.lookupRequest('unsupported-rce'),
+      {kind: 'not_found'});
+    console.log('empty');
+  } else if (step === 'rce-unsupported') {
+    const program = readFileSync('rce-program.json', 'utf8');
+    assert.equal(createHash('sha256').update(program).digest('hex'),
+      process.argv[3], 'the exact positively executed Program is reused');
+    await assert.rejects(client.aql(program, {format: 'json',
+      requestId: 'unsupported-rce'}), {code: 'ClientProgramUnsupported'});
+    const lookup = await client.lookupRequest('unsupported-rce');
+    assert.deepEqual(lookup, {kind: 'not_found'});
+    console.log(JSON.stringify({code: 'ClientProgramUnsupported', lookup,
+      programSha256: process.argv[3]}));
   } else if (step === 'rce-submit' || step === 'rce-submit-pending') {
     // Read→Compute→Effect: acquire Test_Record__c, keep every record but
     // record-2, derive the new Name locally, and update the same records.
@@ -587,9 +605,10 @@ try {
           mapping: mapping.mapping_ref, from: {result: 'updates'}, id: 'Id',
           set: {Name: {field: 'next_name'}}}}}},
     ], results: {updates: {from: {stage: 'compute', result: 'updates'}}}};
+    const programText = JSON.stringify(program);
     let execution;
     try {
-      execution = await client.aql(JSON.stringify(program), {format: 'json',
+      execution = await client.aql(programText, {format: 'json',
         requestId: 'packed-rce-' + process.argv[3]});
     } catch (error) {
       if (error?.code === 'ClientProgramUnsupported') {
@@ -605,6 +624,7 @@ try {
     }
     writeFileSync('effect-ref.json', JSON.stringify(execution.ref));
     writeFileSync('rce-request.txt', 'packed-rce-' + process.argv[3]);
+    writeFileSync('rce-program.json', programText);
     if (process.env.PACKED_CHECKPOINT_TTL_MS !== undefined) {
       const [checkpoint] = (await client.checkpoints()).items;
       assert.equal(checkpoint.kind, 'effect_set');
@@ -777,6 +797,39 @@ try {
         inferEnabled ? expectedModelInputs : [],
         'saved Model results must not be replayed physically');
     }
+    if (!composed) {
+      // The preceding public execution and independent rows establish semantic
+      // validity. Reuse its exact bytes in a fresh source-only installation;
+      // the unsupported refusal alone must never be treated as a validity check.
+      const programSha256 = createHash('sha256').update(await readFile(
+        join(root, 'rce-program.json'))).digest('hex');
+      const unsupportedEnvironment = {...rceEnvironment,
+        ACTQL_LOCAL_STATE_DIR: join(root, 'unsupported-rce-' + transport)};
+      delete unsupportedEnvironment.ACTQL_LOCAL_EFFECT_PROFILE;
+      const providerBefore = server.seen.slice();
+      assert.equal((await runChild('effect-run.mjs', unsupportedEnvironment,
+        ['rce-empty'])).trim(), 'empty');
+      const journalBefore = readTwoSourceJournal(
+        unsupportedEnvironment.ACTQL_LOCAL_STATE_DIR);
+      assert.deepEqual(journalBefore, [], 'fresh installation has no accepted Run');
+      assert.deepEqual(server.seen, providerBefore, 'opening restores without provider I/O');
+      const refusal = JSON.parse((await runChild('effect-run.mjs',
+        unsupportedEnvironment, ['rce-unsupported', programSha256])).trim());
+      assert.equal(refusal.code, 'ClientProgramUnsupported');
+      assert.deepEqual(refusal.lookup, {kind: 'not_found'});
+      assert.equal(refusal.programSha256, programSha256);
+      const journalAfter = readTwoSourceJournal(
+        unsupportedEnvironment.ACTQL_LOCAL_STATE_DIR);
+      assert.deepEqual(journalAfter, journalBefore,
+        'unsupported input creates no Run, dispatch or physical-start reservation');
+      assert.deepEqual(server.seen, providerBefore,
+        'unsupported input performs no provider HTTP request, including source reads or Effect writes');
+      console.log('packed unsupported admission ' + JSON.stringify({
+        transport, sourceRevision, programSha256,
+        profile: 'installed Salesforce Source; no Effect execution profile',
+        positive: 'same bytes completed Read→Compute→Effect with independent rows',
+        ...refusal, providerRequests: 0, journalBefore, journalAfter}));
+    }
     await rce(async () => {
       server.target.name = 'changed-after-preview';
       assert.equal((await runChild('effect-run.mjs', rceEnvironment,
@@ -932,3 +985,4 @@ try {
   else if (passed) console.log('Preserved packed composition evidence at ' + root);
   else console.error('Preserved failed packed composition at ' + root);
 }
+

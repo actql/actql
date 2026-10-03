@@ -1,0 +1,43 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "pr164-main-a32-verification-resolution",
+  "kind": "resolution",
+  "revision": "b2180c826a0115b0f2a611efb77d25dc2cdb39ad",
+  "parents": [
+    "3d8a8d1b0e11673f228f32e3dc36816facf60c66",
+    "a32d8c94404c3f6be52d1fcfb73aab21cbf7093c"
+  ],
+  "changes": [
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "3d8a8d1b0e11673f228f32e3dc36816facf60c66",
+          "digest": "123454a746bc622c2c955d2b1d38a4f018a379fab9370ac1383b314cdff8a773",
+          "mode": "100644"
+        },
+        {
+          "revision": "a32d8c94404c3f6be52d1fcfb73aab21cbf7093c",
+          "digest": "b559af7ef2b305b47c26f6171b315b5acae04dd2767f5cf080b8776ca92b55a6",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "e41780792bb4367b938688d93fee06d6fc3d54033091475fc6e58c6ce44974ba",
+      "afterMode": "100644",
+      "reason": "Record the prior current-main merge retaining both keyed Graph surface/public/fresh-packed snapshot verification and the SDK cancellation response-loss regression exactly once. Preserve both source rationales, all historical foundation records and every validator. This declaration repairs missing provenance only; it changes no source, contract, expected result or acceptance rule."
+    }
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-3877b637406b",
+    "adopt-63b114ad524b",
+    "adopt-678626b010b4",
+    "adopt-7427f7f09276",
+    "adopt-9a7c592a8ed9",
+    "adopt-b480cffb6e6d",
+    "adopt-bf2d058c21c1",
+    "adopt-f24288853c19",
+    "pr164-property-graph-source",
+    "sdk-cancel-response-loss-registration"
+  ]
+}

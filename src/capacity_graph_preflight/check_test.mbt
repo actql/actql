@@ -403,6 +403,43 @@ fn sources(
 }
 
 ///|
+fn current_graph_input() -> @carrier.Carrier {
+  let properties = @carrier.rows(
+    [],
+    field_set=Closed,
+    max_fields=0,
+    max_name_bytes=0,
+  ).unwrap()
+  let node = @carrier.property_node_definition(
+    "N",
+    [@contract.primitive(StringType, nullable=false)],
+    properties,
+    [],
+    max_fields=1,
+    max_name_bytes=100,
+  ).unwrap()
+  let edge = @carrier.property_edge_definition(
+    @carrier.property_node_definition(
+      "E",
+      [@contract.primitive(StringType, nullable=false)],
+      properties,
+      [],
+      max_fields=1,
+      max_name_bytes=100,
+    ).unwrap(),
+    "N",
+    "N",
+  ).unwrap()
+  @carrier.property_graph(
+    "sha256:" + "0".repeat(64),
+    [node],
+    [edge],
+    max_definitions=2,
+    max_contract_work=100,
+  ).unwrap()
+}
+
+///|
 fn fixture_pipeline(
   graph : Bool,
   opaque_graph? : Bool = false,
@@ -418,14 +455,7 @@ fn fixture_pipeline(
     },
   ).unwrap()
   let carrier = if graph {
-    @carrier.graph(
-      @contract.primitive(StringType, nullable=false),
-      @carrier.unknown_rows(),
-      @carrier.unknown_rows(),
-      labels=None,
-      max_labels=0,
-      max_label_bytes=0,
-    ).unwrap()
+    current_graph_input()
   } else {
     @carrier.relation(@carrier.unknown_rows())
   }

@@ -1,72 +1,54 @@
 ///|
-fn ordered_graph_source(operation : String) -> String {
-  "[{\"values\":{\"schema\":{\"src\":{\"type\":\"number\",\"nullable\":false},\"dst\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"src\":1,\"dst\":2} ]},\"as\":\"edges\"},{\"graph\":{\"source\":\"src\",\"target\":\"dst\"},\"as\":\"g\"},{" +
-  operation +
-  "}]"
+fn current_trail_query() -> String {
+  let identity = "{\"definition\":\"N\",\"domain\":\"sha256:" +
+    "0".repeat(64) +
+    "\",\"key\":[1,\"a\"],\"key_types\":[{\"kind\":\"number\"},{\"kind\":\"string\"}]}"
+  "{\"traverse\":{\"start\":{\"ids\":[" +
+  identity +
+  "]},\"hops\":[{\"direction\":\"out\"}],\"path_mode\":\"trail\",\"emit\":\"paths\"}}"
 }
 
 ///|
-test "ordered graph queries retain their origin through take and nonorderable Result projection" {
+test "current MATCH and TRAIL orders retain their producer through take and structured Result projection" {
   for
-    (operation, field) in [
-      (
-        "\"match_nodes\":{\"where\":\"true\",\"fields\":[\"node_id\"]}", "node_id",
-      ),
-      ("\"match_edges\":{\"where\":\"true\",\"fields\":[\"src\"]}", "src"),
-      (
-        "\"reach\":{\"start\":1,\"direction\":\"out\",\"max_depth\":2}", "node_id",
-      ),
-      (
-        "\"traverse\":{\"start\":{\"ids\":[1]},\"direction\":\"out\",\"min_hops\":0,\"max_hops\":2,\"emit\":\"nodes\"}",
-        "node_id",
-      ),
-      (
-        "\"traverse\":{\"start\":{\"ids\":[1]},\"direction\":\"out\",\"min_hops\":0,\"max_hops\":2,\"emit\":\"paths\"}",
-        "edge_ids",
-      ),
-      (
-        "\"shortest_path\":{\"source\":1,\"target\":2,\"direction\":\"out\",\"max_hops\":2}",
-        "node_ids",
-      ),
-      ("\"components\":{\"kind\":\"weak\"}", "component_id"),
-      ("\"components\":{\"kind\":\"strong\"}", "component_id"),
-      ("\"graph_bounds\":{\"max_nodes\":0,\"max_degree\":0}", "kind"),
+    (body, field) in [
+      (property_query_body(false, "[\"element\",\"score\"]"), "element"),
+      (property_query_body(true, "[\"element\",\"src\",\"dst\"]"), "element"),
+      (current_trail_query(), "edge_ids"),
     ] {
-    let source = ordered_graph_source(
-      operation + "},{\"take\":1,\"as\":\"query\"",
-    )
     let p = @pipeline.check_carriers(
-      cursor(source),
-      [],
+      cursor("[" + body + ",{\"take\":1,\"as\":\"rows\"}]"),
+      [("g", property_query_graph())],
       None,
       None,
       ranking_limits(),
     ).unwrap()
-    assert_true(@pipeline.logical_order(p, Step(1)) is None)
-    let order = @pipeline.logical_order(p, Step(2)).unwrap()
-    assert_eq(@pipeline.order_origin(order), Step(2))
+    assert_true(@pipeline.logical_order(p, Input(0)) is None)
     assert_eq(
-      @pipeline.order_origin(@pipeline.take_order(p, 3).unwrap()),
-      Step(2),
+      @pipeline.order_origin(@pipeline.logical_order(p, Step(0)).unwrap()),
+      Step(0),
     )
-    let results = @relation_results.check(
+    assert_eq(
+      @pipeline.order_origin(@pipeline.take_order(p, 1).unwrap()),
+      Step(0),
+    )
+    let result = @relation_results.check(
       p,
-      cursor("{\"out\":{\"from\":\"query\",\"fields\":[\"" + field + "\"]}}"),
+      cursor("{\"out\":{\"from\":\"rows\",\"fields\":[\"" + field + "\"]}}"),
       limits(),
     ).unwrap()
-    let published = resolve(results)
-    assert_eq(@relation_results.publication_strategy(published), Inherited)
+    let order = resolve(result)
+    assert_eq(@relation_results.publication_strategy(order), Inherited)
     assert_eq(
       @pipeline.order_origin(
-        @relation_results.publication_inherited_order(published).unwrap(),
+        @relation_results.publication_inherited_order(order).unwrap(),
       ),
-      Step(2),
+      Step(0),
     )
-    assert_eq(@relation_results.publication_term_count(published), 0)
-    // Same shape without the checked query producer has no inherited order.
+    assert_eq(@relation_results.publication_term_count(order), 0)
     let plain = @pipeline.check_carriers(
       cursor("[]"),
-      [("query", @pipeline.output_carrier(p).unwrap())],
+      [("rows", @pipeline.output_carrier(p).unwrap())],
       None,
       None,
       ranking_limits(),
@@ -76,117 +58,106 @@ test "ordered graph queries retain their origin through take and nonorderable Re
 }
 
 ///|
-test "graph row projection alone does not claim canonical logical order" {
-  for
-    operation in [
-      "\"node_rows\":true", "\"edge_rows\":true", "\"degree\":{\"direction\":\"out\"}",
-    ] {
-    let p = @pipeline.check_carriers(
-      cursor(ordered_graph_source(operation)),
-      [],
+test "retired row projections and degree cannot issue canonical order for a current Graph" {
+  for operation in ["\"node_rows\":true", "\"edge_rows\":true"] {
+    assert_true(
+      @pipeline.check_carriers(
+        cursor("[{" + operation + "}]"),
+        [("g", property_query_graph())],
+        None,
+        None,
+        ranking_limits(),
+      )
+      is Err({ kind: Projection(UnsupportedGraphOperation), .. }),
+    )
+  }
+  assert_true(
+    @pipeline.check_carriers(
+      cursor("[{\"degree\":{\"direction\":\"out\"}}]"),
+      [("g", property_query_graph())],
       None,
       None,
       ranking_limits(),
-    ).unwrap()
-    assert_true(@pipeline.logical_order(p, Step(2)) is None)
-  }
+    )
+    is Err({ kind: Graph(@graph.UnsupportedGraphOperation), .. }),
+  )
 }
 
 ///|
-test "nullable Graph edge labels use projected Result order" {
-  let p = @pipeline.check_carriers(
-    cursor(ordered_graph_source("\"edge_rows\":true,\"as\":\"out\"")),
-    [],
+test "nullable business properties remain ordinary projected scalars not Graph label identities" {
+  let matched = @pipeline.check_carriers(
+    cursor("[" + property_query_body(true, "[\"element\",\"score\"]") + "]"),
+    [("g", property_query_graph())],
+    None,
+    None,
+    ranking_limits(),
+  ).unwrap()
+  let plain = @pipeline.check_carriers(
+    cursor("[]"),
+    [("rows", @pipeline.output_carrier(matched).unwrap())],
     None,
     None,
     ranking_limits(),
   ).unwrap()
   let results = @relation_results.check(
-    p,
-    cursor("{\"out\":{\"from\":\"out\",\"fields\":[\"src\",\"dst\",\"rel\"]}}"),
+    plain,
+    cursor("{\"out\":{\"from\":\"rows\",\"fields\":[\"score\"]}}"),
     limits(),
   ).unwrap()
   let order = resolve(results)
   assert_eq(@relation_results.publication_strategy(order), ProjectedFields)
   assert_true(@relation_results.publication_key(order) is None)
-  for (index, name) in [(0, "src"), (1, "dst"), (2, "rel")] {
-    let term = @relation_results.publication_term_at(order, index).unwrap()
-    assert_eq(@relation_results.publication_term_field(term), Unqualified(name))
-    assert_eq(@relation_results.publication_term_direction(term), Asc)
-    assert_eq(@relation_results.publication_term_nulls(term), Last)
-  }
+  assert_eq(@relation_results.publication_term_count(order), 1)
+  let term = @relation_results.publication_term_at(order, 0).unwrap()
+  assert_eq(term.field, Unqualified("score"))
+  assert_eq(term.direction, Asc)
+  assert_eq(term.nulls, Last)
 }
 
 ///|
-test "authored edge Result order retains the Graph identity without a non-null key" {
+test "authored property order retains MATCH sequence for ties but cannot turn JSON identity into scalar key" {
   for
     suffix in [
-      "", "},{\"select\":[{\"source\":\"src\"},{\"target\":\"dst\"},{\"label\":\"rel\"}],\"as\":\"aliased\"",
+      "", ",{\"select\":[{\"id\":\"element\"},\"score\"],\"as\":\"aliased\"}",
     ] {
     let renamed = suffix != ""
     let p = @pipeline.check_carriers(
-      cursor(ordered_graph_source("\"edge_rows\":true,\"as\":\"out\"" + suffix)),
-      [],
+      cursor(
+        "[" +
+        property_query_body(true, "[\"element\",\"score\"]") +
+        suffix +
+        "]",
+      ),
+      [("g", property_query_graph())],
       None,
       None,
       ranking_limits(),
     ).unwrap()
     let from = if renamed { "aliased" } else { "out" }
-    let src = if renamed { "source" } else { "src" }
-    let dst = if renamed { "target" } else { "dst" }
-    let rel = if renamed { "label" } else { "rel" }
-    for complete in [false, true] {
-      let order = if complete {
-        "[{\"" +
-        src +
-        "\":\"desc\"},{\"" +
-        dst +
-        "\":\"asc\"},{\"" +
-        rel +
-        "\":\"asc\"}]"
-      } else {
-        "[{\"" + src + "\":\"desc\"}]"
-      }
-      let results = @relation_results.check(
-        p,
-        cursor(
-          "{\"out\":{\"from\":\"" +
-          from +
-          "\",\"fields\":[\"" +
-          src +
-          "\",\"" +
-          dst +
-          "\",\"" +
-          rel +
-          "\"],\"order_by\":" +
-          order +
-          "}}",
-        ),
-        limits(),
-      ).unwrap()
-      let resolved = resolve(results)
-      assert_eq(@relation_results.publication_strategy(resolved), Authored)
-      assert_eq(@relation_results.publication_term_count(resolved), 3)
-      let first = @relation_results.publication_term_at(resolved, 0).unwrap()
-      assert_eq(first.field, Unqualified(src))
-      assert_eq(first.direction, Desc)
-      assert_true(first.authored)
-      let identity = @relation_results.publication_key(resolved).unwrap()
-      assert_eq(@evidence.key_origin(identity), GraphProjectionResult)
-      assert_eq(@evidence.key_pending(identity), [ValidateKeyProducer])
-      for usage in [@evidence.CanonicalOrder, @evidence.ScalarIdentity] {
-        assert_true(
-          @evidence.select_key(
-            cursor("null"),
-            @evidence.singleton_key(identity),
-            usage,
-            { max_work: 1000, max_name_bytes: 1000, },
-          ).unwrap().key
-          is None,
-        )
-      }
-    }
-    // The same shape, without the producer, cannot authorize completion.
+    let field = if renamed { "id" } else { "element" }
+    let body = "{\"out\":{\"from\":\"" +
+      from +
+      "\",\"fields\":[\"" +
+      field +
+      "\",\"score\"],\"order_by\":[{\"field\":\"score\",\"dir\":\"desc\",\"nulls\":\"last\"}]}}"
+    let result = @relation_results.check(p, cursor(body), limits()).unwrap()
+    let order = resolve(result)
+    assert_eq(@relation_results.publication_strategy(order), Authored)
+    assert_true(@relation_results.publication_key(order) is None)
+    assert_eq(
+      @pipeline.order_origin(
+        @relation_results.publication_inherited_order(order).unwrap(),
+      ),
+      Step(0),
+    )
+    assert_eq(@relation_results.publication_term_count(order), 1)
+    assert_eq(
+      @relation_results.publication_term_at(order, 0).unwrap().direction,
+      Desc,
+    )
+    assert_true(
+      @relation_results.publication_term_at(order, 0).unwrap().authored,
+    )
     let plain = @pipeline.check_carriers(
       cursor("[]"),
       [(from, @pipeline.output_carrier(p).unwrap())],
@@ -194,22 +165,10 @@ test "authored edge Result order retains the Graph identity without a non-null k
       None,
       ranking_limits(),
     ).unwrap()
-    let results = @relation_results.check(
-      plain,
-      cursor(
-        "{\"out\":{\"from\":\"" +
-        from +
-        "\",\"fields\":[\"" +
-        src +
-        "\"],\"order_by\":[{\"" +
-        src +
-        "\":\"asc\"}]}}",
-      ),
-      limits(),
-    ).unwrap()
+    let plain_result = @relation_results.check(plain, cursor(body), limits()).unwrap()
     assert_eq(
       @relation_results.resolve_publication_order(
-        results,
+        plain_result,
         0,
         max_work=10000,
         max_text_bytes=10000,
@@ -220,32 +179,32 @@ test "authored edge Result order retains the Graph identity without a non-null k
 }
 
 ///|
-test "dropping a Graph identity component refuses authored edge order" {
+test "dropping independent identity loses its key but retains checked MATCH sequence" {
   let p = @pipeline.check_carriers(
     cursor(
-      ordered_graph_source(
-        "\"edge_rows\":true},{\"drop\":[\"rel\"],\"as\":\"out\"",
-      ),
+      "[" +
+      property_query_body(true, "[\"element\",\"src\",\"dst\",\"score\"]") +
+      ",{\"drop\":[\"element\"],\"as\":\"rows\"}]",
     ),
-    [],
+    [("g", property_query_graph())],
     None,
     None,
     ranking_limits(),
   ).unwrap()
-  let results = @relation_results.check(
+  assert_true(@pipeline.candidate_key(p, Step(1)) is None)
+  let result = @relation_results.check(
     p,
     cursor(
-      "{\"out\":{\"from\":\"out\",\"fields\":[\"src\",\"dst\"],\"order_by\":[{\"src\":\"asc\"},{\"dst\":\"asc\"}]}}",
+      "{\"out\":{\"from\":\"rows\",\"fields\":[\"src\",\"dst\",\"score\"]}}",
     ),
     limits(),
   ).unwrap()
+  let order = resolve(result)
+  assert_eq(@relation_results.publication_strategy(order), Inherited)
   assert_eq(
-    @relation_results.resolve_publication_order(
-      results,
-      0,
-      max_work=10000,
-      max_text_bytes=10000,
-    ).unwrap_err().kind,
-    UnresolvedOrder,
+    @pipeline.order_origin(
+      @relation_results.publication_inherited_order(order).unwrap(),
+    ),
+    Step(0),
   )
 }
