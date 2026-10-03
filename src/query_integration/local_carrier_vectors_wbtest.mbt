@@ -3877,6 +3877,30 @@ test "registered VecA provider preserves supplied score authority" {
     assert_true(
       @local_connector.cleanup_managed_provider(execution).unwrap_or(false),
     )
+
+    let cancelled = @local_connector.start_managed_provider_with_inputs(
+      provider,
+      generated,
+      inputs.map(@local_connector.managed_provider_supplied_relation_input),
+      10,
+      1000,
+    ).unwrap()
+    assert_true(
+      @local_connector.advance_managed_provider(cancelled, 1).unwrap()
+      is @local_connector.Continue(work~, ..) &&
+      work > 0L,
+    )
+    assert_true(@local_connector.cancel_managed_provider(cancelled))
+    assert_false(@local_connector.managed_provider_stopped(cancelled))
+    assert_false(@local_connector.cleanup_managed_provider(cancelled).unwrap())
+    assert_true(inputs.all(@execution.supplied_relation_read_available))
+    assert_true(
+      @local_connector.advance_managed_provider(cancelled, 1).unwrap()
+      is @local_connector.Stopped(_),
+    )
+    assert_true(@local_connector.managed_provider_stopped(cancelled))
+    assert_true(@local_connector.cleanup_managed_provider(cancelled).unwrap())
+    assert_true(inputs.all(@execution.supplied_relation_read_available))
   }
 }
 

@@ -4558,8 +4558,12 @@ and native. The real Node standard Host retains each scored result in a Store,
 publishes the producer and two downstream consumer Named Results, compares all
 three with independently specified rows, and reclaims held and reserved bytes.
 This covers the scored-policy-to-filter shape, not every later Relation
-operation or a route-specific retained cancellation/failure injection; those
-remain subject to the common bounded-provider and materializing-owner evidence.
+operation. The supplied-input provider fixture also requests cancellation
+after positive work, verifies that cleanup cannot precede stop, and retains
+both supplied reads through final cleanup. A retained-Store cancellation and
+failure injection at the ordinary Node Host route is not yet established by
+that lower-level fixture; it remains separate from the existing common
+bounded-provider and materializing-owner evidence.
 
 The retained Relation path also splits a direct `VEC.knn_join` occurrence
 from a later `filter` in the same Stage. The nearest obligation is admitted
