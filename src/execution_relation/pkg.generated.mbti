@@ -417,6 +417,8 @@ pub fn copy_completed_output_independent(CompletedOutput, Int, Int) -> Result[Co
 
 pub fn discard_managed_output_measurement_index(ManagedOutputValueReceipt) -> Bool
 
+pub fn dispose_managed_output_values_scratch(ManagedOutputValues) -> Unit
+
 pub fn emit_ordered_params(OrderedParams, @encode_core.Writer) -> Unit raise @encode_core.EncodeFailure
 
 pub fn enable_managed_row_measurements(ManagedOutputValues, Int) -> Result[Unit, ManagedOutputValueIssue]
@@ -668,6 +670,8 @@ pub fn managed_output_value_schema(ManagedOutputValueReceipt) -> @relation_schem
 pub fn managed_output_value_usage(ManagedOutputValueReceipt) -> ValueUsage
 
 pub fn managed_output_values_schema(ManagedOutputValues) -> @relation_schema.Schema
+
+pub fn managed_output_values_scratch_released(ManagedOutputValues) -> Bool
 
 pub fn[T] managed_producer_measurement_matches_inputs(ManagedProducerMeasurement, Array[ManagedProducerRead[T]]) -> Bool
 
