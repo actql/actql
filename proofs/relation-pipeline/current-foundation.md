@@ -103,8 +103,10 @@ Ordinary declaration shape (replace placeholders with exact identities):
 ```
 
 Declarations are append-only. At every commit, all declarations inherited from
-any parent must survive byte-identically. A declaration has exactly one
-introduction, strictly after its supporting source commit. Correct an
+any parent must survive byte-identically. Independently introduced copies of
+the same path must have the identical Git blob and mode. Every introduction
+must strictly follow its supporting source commit in the real ancestry; the
+generated report retains the complete sorted `introductions` list. Correct an
 unpublished declaration before its introduction is finalized, or rebuild the
 unpublished source/declaration sequence. Squash, rebase and cherry-pick rewrite
 source identities: rebuild the declarations against those exact rewritten
@@ -135,9 +137,14 @@ remain, commit the merge, then add a new `kind: "resolution"` declaration. Its
 `parents` lists both actual parents in Git order; each `before` lists both
 parent identities; `afterDigest` pins the actual merged file. The rationale
 explains the integration. Its additional `inputs` field is the sorted list of
-all earlier declarations touching any resolved path and reachable through
-either parent, including original changes, reverts and prior resolutions.
-The validator derives this complete input set itself and requires exact equality.
+all earlier source-binding groups touching any resolved path and reachable
+through either parent, including original changes, reverts and prior resolutions.
+Each input ID must name a retained, independently validated declaration. Raw
+IDs must be sorted and unique. Equivalent aliases may name the same group;
+the normalized group set must equal the complete independently derived set.
+Unknown, omitted, extra, cyclic and future-source dependencies are rejected.
+An alias introduced later cannot force an existing immutable resolution to
+rewrite its input spelling.
 Other paths composed from one side do not need to be repeated in the resolution.
 
 A resolution records reviewed source provenance; it does not establish that
@@ -240,3 +247,67 @@ All eight production mutations, both obligations, all three targets, reviewed
 search/shrink domain, restoration and final audits remain required. Phase timings
 still include build and execution work; a restored-phase duration is not a pure
 compile cost or a promise that the entire phase can be removed.
+
+
+## Convergent declarations for an existing source binding
+
+Independently published records may describe the same exact source transition.
+Every physical record first passes canonical encoding, filename/ID, actual Git
+source ancestry, ordered parents, complete changed-path membership, before and
+after digest/mode, nonempty rationale and every introduction check. Only then
+may records share a source-binding group. Equality requires the declaration
+version and kind, source revision, ordered parents, the complete path-indexed
+before/after identities and modes, and the exact normalized dependency grounds.
+Equal final bytes alone are insufficient. Dependency groups are checked in
+source topological order, so an unverified alias cannot provide authority.
+
+IDs, paths, record digests, rationales and all introduction commits remain in
+the manifest. The integration report lists all matching declaration IDs in its
+`declarations` array. No original is edited, removed, renamed or replaced by a
+representative. Conflicting bindings fail closed. This does not exempt a source
+or merge that lacks a declaration: it still requires its own exact Git-bound
+record. It neither promotes provenance into human approval nor changes test,
+execution receipt, mutation, restoration or proof-audit obligations.
+
+### Pinned published convergence examples
+
+[The checked fixture](fixtures/convergent-declarations.json) retains the exact
+canonical bytes and Git blob IDs of these independently published records,
+plus all 30 distinct dependency records used by their two input sets:
+
+- [main-pr225-ci-resolution](https://github.com/actql/actql/blob/7c38d206d8fcc77c66c4edeba1d6fa3b2b86eb85/proofs/relation-pipeline/foundation-declarations/main-pr225-ci-resolution.json): Git blob `2bab7142e7cea72147d2d9bd3e19d16a3354490b`
+- [resolve-local-guard-portable-pr-ci](https://github.com/actql/actql/blob/3a32c416ba23821694a1b8c6aac961ba6a4807ea/proofs/relation-pipeline/foundation-declarations/resolve-local-guard-portable-pr-ci.json): Git blob `49cc43f2e1b40e7ad1d96625fc194b1f4c217b31`
+- [resolve-main-local-guard-ci-6520c3f59](https://github.com/actql/actql/blob/ad902e348e37b5c28e4429b4152ec456e9640ed8/proofs/relation-pipeline/foundation-declarations/resolve-main-local-guard-ci-6520c3f59.json): Git blob `f7f8f52777cdad190e3fc84fe59e2939e4120fc9`
+- [resolve-main-local-guard-ci](https://github.com/actql/actql/blob/b09e8e21cc1ac366db6f4f7157711282c1e5967a/proofs/relation-pipeline/foundation-declarations/resolve-main-local-guard-ci.json): Git blob `20e95385cf3e1092a2c243eca58b9850a1f18fa0`
+- [resolve-resident-source-latest-main](https://github.com/actql/actql/blob/b09e8e21cc1ac366db6f4f7157711282c1e5967a/proofs/relation-pipeline/foundation-declarations/resolve-resident-source-latest-main.json): Git blob `decd45cd1187ec7dc8c967de1084e3b0bd3ead5d`
+
+The first four bind source merge
+`6520c3f59b86307229536824fac8f8b5ac5450e4`, ordered parents
+`398b85c87e0eb29a3d3db0ed21e53ea84464566c` and
+`89a7fd00479c70093cb88282ac3d0cb08b7bcda2`, and 16 dependency grounds.
+The protected path is `.github/workflows/ci.yml`, mode `100644` throughout.
+The independently retrieved parent/result Git blobs are respectively
+`60de1fca9c32adeb4507fbc87fd5942ffca6c999`,
+`9aa7901c2d3805bb3d23f67dc3ea282c0815eb9c`, and
+`4ec9e2cec19a3fb4be1ef6053f9c50de7c50a6a8`; their SHA-256 values match
+all four records. Only IDs, rationales and original field order differ.
+
+The fifth binds a different source merge
+`3ad450f7996ccb8187de5d3d8e5288a5d4f640ed`, ordered parents
+`9a3bb78f43a94ef9435f8daded7c2be76c357958` and
+`88fbcc95306abb4fc41f0d488bcc6d38ec19506d`, the `package.json` path
+and 15 dependency grounds. It must remain a distinct source-binding group.
+Its independently verified parent/result Git blobs are
+`ffef535bb30d465dc5cf31f218a01a5373857cad`,
+`303047732730743e09a20c77dcd44d5de197c3ab`, and
+`53632bbb1662490c14cedb82d85dfc73c968de99`, all mode `100644`.
+Its published record is retained on its original branch, without being added
+as main's CI-merge declaration.
+
+The fixture test verifies original blob identities and exercises the same
+binding descriptor as the composer. Separate temporary real-Git DAG tests
+exercise independent validation, each-field tampering, missing declarations,
+dependency omissions and inherited declaration deletion. The fixture is a
+reproducible record comparison, not a substitute for composing the complete
+actual branch histories. In a full checkout, `history.mjs --write` still
+validates every real ancestor, original declaration and source blob.

@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync, renameSync, symlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
-import { composeFoundation } from './foundation.mjs';
+import { createHash } from 'node:crypto';
+import { composeFoundation, foundationSourceBinding } from './foundation.mjs';
 import { ADDED, CI, DECLARATION_DIRECTORY, DISTINCT, FoundationRepository, PACKAGE,
   PROTECTED_PATHS, RENAME, ciBytes, disjointBranches, olderInFlightBranch, overlappingBranches,
   packageBytes, sha256, singleChange, threePullRequestBranches } from './fixtures/foundation-repository.mjs';
@@ -32,7 +33,7 @@ test('a declaration binds exact source, parent, digest, rationale and later intr
   const aggregate = compose(repo);
   const actual = declaration(aggregate, input.id);
   assert.equal(actual.revision, revision);
-  assert.equal(actual.introduction, introduction);
+  assert.deepEqual(actual.introductions, [introduction]);
   assert.deepEqual(actual.parents, [repo.checkpoint]);
   assert.deepEqual(actual.changes, input.changes);
   assert.equal(actual.digest, sha256(readFileSync(join(repo.root, actual.path))));
@@ -66,7 +67,7 @@ test('overlapping package and CI registrations retain both rationales and valida
   assert.notEqual(file(aggregate, PACKAGE).digest, distinct.changes.find(change => change.path === PACKAGE).afterDigest);
   assert.deepEqual(declaration(aggregate, resolution.id).inputs, ['register-distinct', 'register-rename']);
   assert.deepEqual(aggregate.integrations, [{ revision: merge, parents: repo.parents(merge),
-    mergeBase: repo.checkpoint, declaration: resolution.id }]);
+    mergeBase: repo.checkpoint, declarations: [resolution.id] }]);
   assert.deepEqual(JSON.parse(mergedPackage).scripts, {
     'check:base': 'node base.mjs', 'check:rename': 'node rename.test.mjs', 'check:distinct': 'node distinct.test.mjs',
   });
@@ -179,12 +180,17 @@ for (const [name, mutate] of invalidDeclarations) {
   });
 }
 
-test('duplicate source revisions cannot be represented as independent declarations', t => {
+test('independently validated aliases retain both records for one source binding', t => {
   const { repo, declaration: input } = singleChange(t);
   repo.writeDeclaration(input);
-  repo.writeDeclaration({ ...input, id: 'second-rationale' });
+  const alias = structuredClone(input);
+  alias.id = 'second-rationale';
+  alias.changes[0].reason = 'Independent retained rationale';
+  repo.writeDeclaration(alias);
   repo.commit('Two declarations for one source commit');
-  rejects(repo);
+  const aggregate = compose(repo);
+  assert.deepEqual(aggregate.declarations.map(entry => entry.id), ['register-rename', 'second-rationale']);
+  assert.deepEqual(declaration(aggregate, alias.id).changes, alias.changes);
 });
 
 test('duplicate IDs cannot hide behind separate declaration filenames', t => {
@@ -421,19 +427,21 @@ test('a linked-worktree graft cannot hide an undeclared edit and revert', t => {
     /Grafted|foundation|Unlisted/i);
 });
 
-test('identical declaration files cannot be introduced independently on separate branches', t => {
+test('identical declaration files converge while retaining every independent introduction', t => {
   const { repo, revision, declaration: input } = singleChange(t);
   repo.branch('parallel', revision);
   repo.writeDeclaration(input);
   repo.write('left.txt', 'left introduction\n');
-  repo.commit('First introduction');
+  const first = repo.commit('First introduction');
   repo.checkout('parallel');
   repo.writeDeclaration(input);
   repo.write('right.txt', 'right introduction\n');
-  repo.commit('Independent second introduction');
+  const second = repo.commit('Independent second introduction');
   repo.checkout('main');
   repo.merge('parallel');
-  rejects(repo);
+  const aggregate = compose(repo);
+  assert.deepEqual(declaration(aggregate, input.id).introductions, [first, second].sort());
+  assert.equal(aggregate.declarations.length, 1);
 });
 
 test('a criss-cross merge with multiple merge bases fails closed even when protected bytes agree', t => {
@@ -565,7 +573,7 @@ test('an older in-flight branch keeps its original SHA while resolving against t
   assert.deepEqual(aggregate.immutable, [{ path: fixture.historicalPath, revision: fixture.repo.checkpoint,
     digest: sha256(fixture.checkpointBytes) }]);
   assert.deepEqual(aggregate.integrations, [{ revision: fixture.merge, parents: fixture.repo.parents(fixture.merge),
-    mergeBase: fixture.fork, declaration: fixture.resolution.id }]);
+    mergeBase: fixture.fork, declarations: [fixture.resolution.id] }]);
 });
 
 test('an old-fork merge resolution cannot authorize the omitted incoming source declaration', t => {
@@ -586,4 +594,148 @@ test('an unrelated root history remains rejected after allowing ordinary old-for
   repo.git('merge', '--allow-unrelated-histories', '--no-ff', '--no-commit', 'unrelated-root');
   repo.commit('Try to integrate unrelated root');
   rejects(repo);
+});
+
+
+// A valid representative must never mask an independently invalid alias.
+for (const [name, mutate] of invalidDeclarations) {
+  test(`convergence rejects an alias with ${name}`, t => {
+    const { repo, declaration: input } = singleChange(t);
+    repo.record(input);
+    const alias = structuredClone(input);
+    alias.id = 'alias';
+    mutate(alias);
+    repo.record(alias, 'alias');
+    rejects(repo);
+  });
+}
+
+test('convergence rejects a partial changed-path alias despite a complete record', t => {
+  const repo = new FoundationRepository(t);
+  const revision = repo.source({ [PACKAGE]: packageBytes({ extra: 'node extra.mjs' }), [CI]: ciBytes(['extra']) });
+  repo.record(repo.declaration('complete', revision, [PACKAGE, CI]));
+  repo.record(repo.declaration('partial', revision, [PACKAGE]));
+  rejects(repo);
+});
+
+test('parallel same-path introductions independently require source ancestry', t => {
+  const { repo, declaration: input } = singleChange(t);
+  repo.branch('unrelated-introduction', repo.checkpoint);
+  repo.record(input);
+  repo.checkout('unrelated-introduction');
+  repo.record(input);
+  repo.checkout('main');
+  repo.merge('unrelated-introduction');
+  rejects(repo);
+});
+
+test('parallel same-path introductions cannot disagree even only in rationale', t => {
+  const { repo, revision, declaration: input } = singleChange(t);
+  repo.branch('parallel-conflict', revision);
+  repo.record(input);
+  repo.checkout('parallel-conflict');
+  const changed = structuredClone(input);
+  changed.changes[0].reason = 'Conflicting independently published bytes';
+  repo.record(changed);
+  repo.checkout('main');
+  repo.merge('parallel-conflict', { [repo.declarationPath(input.id)]: `${JSON.stringify(input, null, 2)}\n` });
+  rejects(repo);
+});
+
+test('resolution aliases retain old input spelling and equivalent independent dependency grounds', t => {
+  const { repo, rename, resolution, merge } = overlappingBranches(t);
+  // Introduce a new spelling later: old immutable resolutions remain valid.
+  const renameAlias = { ...structuredClone(rename), id: 'rename-alias' };
+  repo.record(renameAlias);
+  const resolutionAlias = { ...structuredClone(resolution), id: 'resolution-alias',
+    inputs: ['register-distinct', 'rename-alias'] };
+  resolutionAlias.changes.reverse(); // Path order is not binding; parent order is.
+  repo.record(resolutionAlias);
+  const aggregate = compose(repo);
+  assert.deepEqual(declaration(aggregate, resolution.id).inputs, resolution.inputs);
+  assert.deepEqual(declaration(aggregate, resolutionAlias.id).inputs, resolutionAlias.inputs);
+  assert.deepEqual(aggregate.integrations.find(entry => entry.revision === merge).declarations,
+    ['resolution-alias', 'resolve-registrations']);
+  assert.equal(aggregate.declarations.length, 5);
+});
+
+for (const [name, mutate] of [
+  ['ordered parents', input => { input.parents.reverse(); }],
+  ['before identities', input => { input.changes[0].before.reverse(); }],
+  ['missing dependency', input => { input.inputs.pop(); }],
+  ['unknown dependency', input => { input.inputs.push('unknown'); }],
+  ['duplicate raw dependency', input => { input.inputs.push(input.inputs[0]); input.inputs.sort(); }],
+  ['unsorted dependencies', input => { input.inputs.reverse(); }],
+  ['self dependency', input => { input.inputs.push(input.id); input.inputs.sort(); }],
+  ['same-source alias dependency', input => { input.inputs.push('resolve-registrations'); input.inputs.sort(); }],
+]) {
+  test(`resolution convergence rejects ${name}`, t => {
+    const { repo, resolution } = overlappingBranches(t);
+    const alias = { ...structuredClone(resolution), id: 'alias-resolution' };
+    mutate(alias);
+    repo.record(alias);
+    rejects(repo);
+  });
+}
+
+test('resolution convergence rejects unrelated and future dependency groups', t => {
+  const { repo, resolution } = overlappingBranches(t);
+  const revision = repo.source({ [DISTINCT]: 'export const distinct = "future";\n' });
+  repo.record(repo.declaration('future-source', revision, [DISTINCT]));
+  repo.record({ ...structuredClone(resolution), id: 'future-alias',
+    inputs: [...resolution.inputs, 'future-source'].sort() });
+  rejects(repo);
+});
+
+test('equivalent source aliases never fill a missing merge declaration', t => {
+  const { repo, rename } = overlappingBranches(t, { recordResolution: false });
+  repo.record({ ...structuredClone(rename), id: 'rename-alias' });
+  rejects(repo);
+});
+
+test('converged records remain independently immutable and required', t => {
+  const { repo, declaration: input } = singleChange(t);
+  repo.record(input);
+  repo.record({ ...structuredClone(input), id: 'alias' });
+  repo.remove(repo.declarationPath(input.id));
+  repo.commit('Remove original after alias convergence');
+  rejects(repo);
+});
+
+
+// These are the exact published records, not generated composer output. Their
+// real source/parent/blob/dependency audit is linked from current-foundation.md.
+// Full validation above uses actual temporary Git DAGs; descriptors are not proof.
+test('four published CI records share one binding and the resident package merge remains separate', () => {
+  const fixture = JSON.parse(readFileSync(new URL('./fixtures/convergent-declarations.json', import.meta.url)));
+  assert.equal(fixture.records.length, 5);
+  assert.deepEqual(fixture.records.map(entry => [entry.declaration.id, entry.blob]), [
+    ['main-pr225-ci-resolution', '2bab7142e7cea72147d2d9bd3e19d16a3354490b'],
+    ['resolve-local-guard-portable-pr-ci', '49cc43f2e1b40e7ad1d96625fc194b1f4c217b31'],
+    ['resolve-main-local-guard-ci-6520c3f59', 'f7f8f52777cdad190e3fc84fe59e2939e4120fc9'],
+    ['resolve-main-local-guard-ci', '20e95385cf3e1092a2c243eca58b9850a1f18fa0'],
+    ['resolve-resident-source-latest-main', 'decd45cd1187ec7dc8c967de1084e3b0bd3ead5d'],
+  ]);
+  const dependencies = new Map(fixture.dependencies.map(entry => [entry.declaration.id, entry.declaration]));
+  assert.equal(dependencies.size, fixture.dependencies.length, 'Duplicate recorded dependency ID');
+  for (const entry of [...fixture.records, ...fixture.dependencies]) {
+    const bytes = Buffer.from(`${JSON.stringify(entry.declaration, null, 2)}\n`);
+    const object = createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
+    assert.equal(object, entry.blob, `Changed original Git bytes: ${entry.path}`);
+    assert.equal(entry.path, `${DECLARATION_DIRECTORY}/${entry.declaration.id}.json`);
+    assert.match(entry.reference, /^[0-9a-f]{40}$/);
+  }
+  const bindings = fixture.records.map(({ declaration: input }) => foundationSourceBinding(input,
+    input.inputs.map(id => { assert(dependencies.has(id), `Missing recorded dependency ${id}`); return dependencies.get(id).revision; })));
+  for (const binding of bindings.slice(0, 4)) {
+    assert.deepEqual(binding, bindings[0]);
+    assert.equal(binding.revision, '6520c3f59b86307229536824fac8f8b5ac5450e4');
+    assert.deepEqual(binding.parents, ['398b85c87e0eb29a3d3db0ed21e53ea84464566c', '89a7fd00479c70093cb88282ac3d0cb08b7bcda2']);
+    assert.equal(binding.inputs.length, 16);
+    assert.deepEqual(binding.changes.map(change => change.path), [CI]);
+  }
+  assert.notDeepEqual(bindings[4], bindings[0]);
+  assert.equal(bindings[4].revision, '3ad450f7996ccb8187de5d3d8e5288a5d4f640ed');
+  assert.equal(bindings[4].inputs.length, 15);
+  assert.deepEqual(bindings[4].changes.map(change => change.path), [PACKAGE]);
 });
