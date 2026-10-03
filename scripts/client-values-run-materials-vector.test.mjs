@@ -294,8 +294,13 @@ test('baseline preimages and changed normative pins independently determine the 
       pin('ce0e1e8935e1c65b8992f2fb0272da80b192d54616c546efd80a0cad87bd4ec4'),
       predecessorDependencies, barrierCid).run.run_definition_cid, pin(expected));
   }
-  assert.equal(current.run.run_definition_cid,
+  // The default-WALK grammar changes the template/Plan/Run preimages only.
+  // Keep the preceding explicit-mode vector and its unchanged Values roles.
+  assert.equal(vector(pin('f8803129b22ca89d078e90e530aaf6238bb3aa8a1da02555fd67a1c5929029b3'),
+    cid(aoaContract), dependencies, barrierCid).run.run_definition_cid,
     pin('784c1a8f2cbc868cf8b4eca126380e29ae2ab2674fd1c111f8c118a8f58edd02'));
+  assert.equal(current.run.run_definition_cid,
+    pin('4947c86a57b25e4c12b95b3a549b337f4a7676d77bf04e66e7b8a4c14a801a59'));
   const source = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(source.includes(current.run.run_definition_cid), 'MoonBit fixed expected CID must follow independent preimage');
   const resultSource = readFileSync('src/run_publication_host/client_program_test.mbt', 'utf8');
