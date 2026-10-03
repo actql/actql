@@ -88,14 +88,16 @@ before accepting each cell; focused tests cover exact and one-short limits,
 absence versus explicit `NULL`, compatible definition contracts, cancellation,
 and cleanup. The checked node layout also maps each output column back to a
 definition's source property without rescanning all properties per cell.
-This builder and mapping are
-now joined by a bounded single-node kernel that reads actual immutable Graph
-storage through an exact producer binding and releases its read callbacks on
-cleanup. This is not yet the selected Graph Bridge provider or retained Store
-path, so the typing check is not offered as executable `node_rows`. The edge
-layout, full Graph row producer, retained Store custody and reread, Stage
-projection connection, and Named Result path still need one executable
-vertical fixture.
+This builder and mapping are joined by a bounded single-node kernel that reads
+actual immutable Graph storage through an exact producer binding. A bounded
+node cursor now advances over that storage without collecting all output rows;
+each private row requires an acknowledgement before the next begins. Its
+cumulative work limit, row ceiling, progress-then-cancel, unacknowledged-row
+cleanup, input revocation and empty input have focused JS evidence. This is
+not yet the selected Graph Bridge provider or retained Store path, so the
+typing check is not offered as executable `node_rows`. The edge layout,
+retained Store custody and reread, Stage projection connection, and Named
+Result path still need one executable vertical fixture.
 The existing `prepare_admitted_output` and retained Relation decoder remain
 fixed-width and must not receive sparse rows by treating absence as `NULL`.
 No missing Value or retired tuple-Graph fallback is introduced.

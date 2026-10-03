@@ -13,21 +13,29 @@ import {
 }
 
 // Values
+pub fn acknowledge_property_node_rows_row(PropertyNodeRowsExecution, @execution_relation.ConditionalRow) -> Result[Bool, PropertyNodeRowsIssue]
+
 pub fn advance_match_edges(MatchEdgesExecution, Int) -> Result[MatchEdgesPoll, MatchEdgesIssue]
 
 pub fn advance_match_nodes(MatchNodesExecution, Int) -> Result[MatchNodesPoll, MatchNodesIssue]
 
 pub fn advance_property_node_row(PropertyNodeRowExecution, Int) -> Result[PropertyNodeRowPoll, PropertyNodeRowIssue]
 
+pub fn advance_property_node_rows(PropertyNodeRowsExecution, Int) -> Result[PropertyNodeRowsPoll, PropertyNodeRowsIssue]
+
 pub fn advance_traverse(TraverseExecution, Int) -> Result[TraversePoll, TraverseIssue]
 
 pub fn cancel_property_node_row(PropertyNodeRowExecution) -> Bool
+
+pub fn cancel_property_node_rows(PropertyNodeRowsExecution) -> Bool
 
 pub fn cleanup_match_edges(MatchEdgesExecution) -> Result[Bool, MatchEdgesIssue]
 
 pub fn cleanup_match_nodes(MatchNodesExecution) -> Result[Bool, MatchNodesIssue]
 
 pub fn cleanup_property_node_row(PropertyNodeRowExecution) -> Result[Bool, PropertyNodeRowIssue]
+
+pub fn cleanup_property_node_rows(PropertyNodeRowsExecution) -> Result[Bool, PropertyNodeRowsIssue]
 
 pub fn cleanup_traverse(TraverseExecution) -> Result[Bool, TraverseIssue]
 
@@ -62,6 +70,8 @@ pub fn start_match_nodes(@bounded_execution.Control, @execution_relation.Complet
 pub fn start_match_nodes_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[MatchNodesExecution, MatchNodesIssue]
 
 pub fn start_property_node_row_stored(@carrier_projection.CheckedPropertyNodeRows, @lowering_relation.BoundPrepared, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int) -> Result[PropertyNodeRowExecution, PropertyNodeRowIssue]
+
+pub fn start_property_node_rows_stored(@carrier_projection.CheckedPropertyNodeRows, @lowering_relation.BoundPrepared, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int) -> Result[PropertyNodeRowsExecution, PropertyNodeRowsIssue]
 
 pub fn start_traverse(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[TraverseExecution, TraverseIssue]
 
@@ -142,6 +152,27 @@ pub enum PropertyNodeRowPoll {
   PropertyNodeRowComplete(@execution_relation.ConditionalRow, work~ : Int64)
   PropertyNodeRowFailed(PropertyNodeRowIssue, work~ : Int64)
   PropertyNodeRowStopped(work~ : Int64)
+}
+
+type PropertyNodeRowsExecution
+
+pub(all) enum PropertyNodeRowsIssue {
+  InvalidLimits
+  InvalidBinding
+  InputUnavailable
+  RowLimit
+  WorkLimit
+  RowPending
+  Closed
+  Row(PropertyNodeRowIssue)
+} derive(Eq, @debug.Debug)
+
+pub enum PropertyNodeRowsPoll {
+  PropertyNodeRowsContinue(work~ : Int64)
+  PropertyNodeRowsRow(@execution_relation.ConditionalRow, work~ : Int64)
+  PropertyNodeRowsComplete(work~ : Int64)
+  PropertyNodeRowsFailed(PropertyNodeRowsIssue, work~ : Int64)
+  PropertyNodeRowsStopped(work~ : Int64)
 }
 
 type TraverseExecution
