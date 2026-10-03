@@ -1,6 +1,6 @@
 name: CI
 
-# Run once per pull request update, then the full suite on main.
+# Run once per PR update; main uses cumulative applicability after a verified full checkpoint.
 # Integration branches use their PR; a working branch is checked on demand:
 #   gh workflow run CI --ref <branch> [-f native_macos=true]
 on:
@@ -32,6 +32,9 @@ concurrency:
 
 jobs:
   select-targets:
+    permissions:
+      contents: read
+      actions: read
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -49,6 +52,7 @@ jobs:
         id: select
         env:
           NATIVE_MACOS: ${{ inputs.native_macos }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/ci-targets.mjs
   packed-query-evidence-probe:
     if: github.event_name == 'workflow_dispatch' && inputs.packed_query_evidence_probe
@@ -143,7 +147,7 @@ jobs:
       - name: Test preflight admission and latest-revision guard
         run: node --test scripts/ci-preflight.test.mjs
       - name: Test conservative CI target selection
-        run: node --test scripts/ci-targets.test.mjs
+        run: node --test scripts/ci-targets.test.mjs scripts/ci-main-base.test.mjs
       - name: Test Client CI partition and aggregate requirements
         run: node --test scripts/client-ci.test.mjs
       - name: Test read-only CI evidence reporting
