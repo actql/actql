@@ -93,6 +93,38 @@ These match the underlying #235 acceptance packages. Only acceptance scripts and
 documentation changed; no public API, wire, grammar, canonical preimage, common
 Graph/INFER owner or generated runtime payload is revised here.
 
+## Property-name alignment follow-up
+
+Clean source `6e15f2625a56aff8a61afcd19ab9b6643c24e3eb` merges the
+Frontend correction `3f5f1086cc42c7aefb9816d072e486a42feb6756` from #235.
+The selected common Graph dependency remains C `51376bca11d57b775aa22d42453176f8ad1f681b`.
+Case-insensitive lookup now preserves each definition's checked property spelling;
+equivalent field names across definitions are aligned by ordinary projection.
+The independent cases cover label-specific spelling, unlabeled patterns and
+multiple definitions with predicates. Conflicting source-column mappings remain
+common-owner preparation refusals.
+
+Invocation `public-query-evidence-vVeQvE` completed the same focused packed command:
+**25 successful sources** (3 Relation controls, 22 Graph cases), **15 expected
+typed preparation refusals**, **157 native command outcomes** and **13 successful
+driver commands**. Actual Named Result descriptions and rows, complete streams,
+request reuse and no-admission/no-provider-I/O refusal counters passed. Source was
+clean; temporary installations were reclaimed after recording complete logs and
+digests. These results supersede the earlier corpus totals for this source; the
+prior fixed-SHA record above remains historical evidence.
+
+The native binary digest and four unchanged package digests match the table above.
+The updated `actql-local-node` tarball digest is
+`135227fa535c9d4146c9af172e6459a6cc179b927842697451643b9f0191156f`, matching
+#235's clean Local/HTTPS invocation `public-query-evidence-mzb3ei` at `3f5f1086…`.
+That separate acceptance passed 25 sources, 15 preparation refusals, 3 duplicate-key
+execution failures per transport, and 4 snapshot/restore controls.
+
+Required CI remains distinct. #235's new [run 37100153497](https://github.com/actql/actql/actions/runs/37100153497)
+could not start jobs because GitHub reported failed account payments or a spending
+limit. The preceding source's green CI does not validate this correction. No
+billing change, retry, main merge or package publication was performed.
+
 ## Remaining migration obligations
 
 Required final-SHA CI and review remain separate. This verifies the selected
