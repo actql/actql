@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,rmSync} from 'node:fs';
+import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,rmSync,realpathSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {invocationIdentity,receiptBasename,receiptSuffixes} from './execution-names.mjs';
@@ -26,7 +26,7 @@ test('every actual phase label and longest suffix fits unchanged USTAR limit at 
  }
 });
 test('longest real receipt labels round-trip the real strict USTAR writer and reader',t=>{
- const root=mkdtempSync(join(tmpdir(),'actql-receipt-names-'));t.after(()=>rmSync(root,{recursive:true,force:true}));
+ const root=realpathSync(mkdtempSync(join(tmpdir(),'actql-receipt-names-')));t.after(()=>rmSync(root,{recursive:true,force:true}));
  const source=join(root,'source');const out=join(root,'unpacked');
  const identity=invocationIdentity('L-C1',Date.UTC(2100,0,1),2147483647);
  const longest=[...labels].sort((a,b)=>b.length-a.length)[0];
