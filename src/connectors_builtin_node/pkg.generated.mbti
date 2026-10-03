@@ -187,6 +187,12 @@ pub fn client_program_cancel_model_output(@model_execution.ModelOutputPreparatio
 
 pub fn client_program_canonical_effect_preview_draft(String, Int, Int, Int) -> Result[String, @run_publication.PublicationContractIssue]
 
+pub fn client_program_captured_acquisition_capacity(@actql/actql/connectors/duckdb/host.CaptureConfiguration) -> Result[Array[Int64], @physical_resources.LedgerIssue]
+
+pub fn client_program_captured_broad_configuration(@actql/actql/connectors/duckdb/host.BroadHostConfiguration) -> @actql/actql/connectors/duckdb/host.CaptureConfiguration
+
+pub fn client_program_captured_native_configuration(@actql/actql/connectors/duckdb/host.NativeHostConfiguration) -> @actql/actql/connectors/duckdb/host.CaptureConfiguration
+
 pub fn client_program_captured_source_dependency_bodies(@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedInputSource) -> (String, String)?
 
 pub fn client_program_captured_source_identity_scan_material(@execution_query.CapturedSourceIdentityScan) -> @execution_relation.RetainedOutputMaterial?
@@ -896,6 +902,8 @@ pub fn client_program_prepare_effect_infer_segments(@run_publication_host.Prepar
 pub fn client_program_prepare_infer_compute_suffix(@run_publication_host.PreparedClientProgram, Int, String, String, String, String) -> Result[@execution_relation.GeneratedSequence?, @client_infer_host.Issue]
 
 pub fn client_program_prepare_local_query_requirement(@run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?) -> Result[@query_planning.QueryRequirement, @client_local_host.ClientLocalQueryIssue]
+
+pub fn client_program_prepare_multi_captured_effect_acquisition_ledger(@run_publication_host.PreparedClientEffectComputation, Array[@actql/actql/connectors/duckdb/host.CaptureConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn client_program_prepare_multi_captured_effect_local_ledger(@run_publication_host.PreparedClientEffectComputation, Array[@actql/actql/connectors/duckdb/host.NativeHostConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 

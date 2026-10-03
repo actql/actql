@@ -3,7 +3,7 @@
 import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
 import {acquiredEffectPublicationPlan, acquiredMultiEffectPublicationPlan} from './local-values-plan.mjs';
 import {installedSourceFor} from './installed-source.mjs';
-import {capturedDuckDBNativeConfiguration, capturedDuckDBPhysicalCapacity} from './captured-duckdb-source.mjs';
+import {capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity} from './captured-duckdb-source.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runCapturedEffectComputation} from './entry.mjs';
 
@@ -75,9 +75,9 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
     let ledger;
     if (multiple) {
       const capacities = sources.map(value => capturedDuckDBPhysicalCapacity(value.preparedSource));
-      ledger = moon.clientProgramPrepareMultiCapturedEffectLocalLedger(
+      ledger = moon.clientProgramPrepareMultiCapturedEffectAcquisitionLedger(
         acquired.prepared,
-        sources.map(value => capturedDuckDBNativeConfiguration(value.preparedSource)),
+        sources.map(value => capturedDuckDBConfiguration(value.preparedSource)),
         capacities.map(value => value.transferBytes),
         capacities.map(value => value.executionBytes), registry, values, fragment, ordered);
       if (ledger === undefined) throw new Error('InstalledMultiSourceLedgerUnavailable');

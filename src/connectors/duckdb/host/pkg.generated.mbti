@@ -33,6 +33,8 @@ pub fn bind_broad_host_input(BroadHostRun, @acquisition.DuckDBBroadObservation, 
 
 pub fn bind_native_host_input(NativeHostRun, @acquisition.DuckDBNativeObservation, @lowering_relation.BoundPrepared, Int, Int, @execution_relation.ValueLimits, Int, Int) -> Result[@execution_relation.BoundProducerInput, NativeHostIssue]
 
+pub fn broad_capture_configuration(BroadHostConfiguration) -> CaptureConfiguration
+
 pub fn broad_host_attempt(BroadHostRun) -> @acquisition.DuckDBBroadAttempt
 
 pub fn broad_host_metadata(BroadHostRun, Int, Array[(String, @adapter.PhysicalType)], Array[@decode_core.Cursor]) -> Result[Unit, BroadHostIssue]
@@ -67,7 +69,11 @@ pub fn configure_broad_host(@query_planning.QueryEvidenceContracts, @query_plann
 
 pub fn configure_native_host(@query_planning.QueryTwoReceiptContract, @query_planning.QueryRequirement, @query_planning.AcquisitionChoice, @query_planning.PreparedAcquisition[@acquisition.DuckDBNativePreparation], NativeHostLimits) -> NativeHostConfiguration
 
+pub fn configured_broad_capacity(BroadHostConfiguration) -> NativeCapacity?
+
 pub fn configured_broad_host_limits(BroadHostConfiguration) -> BroadHostLimits
+
+pub fn configured_capture_capacity(CaptureConfiguration) -> NativeCapacity?
 
 pub fn configured_native_capacity(NativeHostConfiguration) -> NativeCapacity?
 
@@ -82,6 +88,8 @@ pub fn finish_native_host_receipt(NativeHostRun) -> Result[Unit, NativeHostIssue
 pub fn issue_broad_host_source_evidence(BroadHostSourceCapture, NativeSourceEvidenceContext, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, NativeSourceEvidenceIssue]
 
 pub fn issue_native_host_source_evidence(NativeHostSourceCapture, NativeSourceEvidenceContext, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, NativeSourceEvidenceIssue]
+
+pub fn native_capture_configuration(NativeHostConfiguration) -> CaptureConfiguration
 
 pub fn native_host_attempt(NativeHostRun) -> @acquisition.DuckDBNativeAttempt
 
@@ -137,6 +145,12 @@ pub(all) struct BroadHostLimits {
 type BroadHostRun
 
 type BroadHostSourceCapture
+
+pub struct CaptureConfiguration {
+  owner : CaptureConfigurationOwner
+}
+
+type CaptureConfigurationOwner
 
 pub struct NativeCapacity {
   retained_bytes : Int64

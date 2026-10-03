@@ -49,7 +49,7 @@ pub fn prepare_multi_captured_local_ledger(
 ) -> @resources.Ledger? {
   prepare_multi_captured_local_ledger_owned(
     Pure(prepared),
-    acquisitions,
+    acquisitions.map(@duckdb_host.native_capture_configuration),
     transport_bytes,
     transport_execution_bytes,
     registry_body,
@@ -74,7 +74,7 @@ pub fn prepare_multi_captured_effect_local_ledger(
 ) -> @resources.Ledger? {
   prepare_multi_captured_local_ledger_owned(
     Effect(prepared),
-    acquisitions,
+    acquisitions.map(@duckdb_host.native_capture_configuration),
     transport_bytes,
     transport_execution_bytes,
     registry_body,
@@ -87,7 +87,7 @@ pub fn prepare_multi_captured_effect_local_ledger(
 ///|
 fn prepare_multi_captured_local_ledger_owned(
   owner : ClientLocalSequenceOwner,
-  acquisitions : Array[@duckdb_host.NativeHostConfiguration],
+  acquisitions : Array[@duckdb_host.CaptureConfiguration],
   transport_bytes : Array[Int64],
   transport_execution_bytes : Array[Int64],
   registry_body : String,
@@ -123,7 +123,8 @@ fn prepare_multi_captured_local_ledger_owned(
   let mut execution_capacity = 536870912L
   for index in 0..<2 {
     let acquisition = acquisitions[index]
-    guard @duckdb_host.configured_native_capacity(acquisition) is Some(capacity) else {
+    guard @duckdb_host.configured_capture_capacity(acquisition)
+      is Some(capacity) else {
       return None
     }
     if capacity.retained_bytes < 0L ||
@@ -180,4 +181,29 @@ fn prepare_multi_captured_local_ledger_owned(
     retained_bytes: native_retained + compute_retained,
     execution_bytes: execution_capacity,
   }).to_option()
+}
+
+///|
+/// Admit capacities from the exact selected Native or Broad preparations.
+/// Broad's bounded residual remains under its original acquisition owner.
+pub fn prepare_multi_captured_effect_acquisition_ledger(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  acquisitions : Array[@duckdb_host.CaptureConfiguration],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.Ledger? {
+  prepare_multi_captured_local_ledger_owned(
+    Effect(prepared),
+    acquisitions,
+    transport_bytes,
+    transport_execution_bytes,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+  )
 }

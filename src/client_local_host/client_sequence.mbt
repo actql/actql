@@ -347,6 +347,13 @@ fn prepare_client_local_sequences_owned(
     return None
   }
   let generated = []
+  let composed_boundary = match prepared {
+    Effect(value) =>
+      @publication_host.prepared_client_effect_infer_occurrence(value).map(
+        @publication_host.client_infer_occurrence_coordinates,
+      )
+    Pure(_) => None
+  }
   if selected_task is Some(task) && (task < 0 || task >= count) {
     return None
   }
@@ -384,10 +391,19 @@ fn prepare_client_local_sequences_owned(
                 @publication_host.client_standard_values_sequence_limits(),
               )
             _ =>
-              @lower.prepare_sequence(
-                owner,
-                @publication_host.client_standard_values_sequence_limits(),
-              )
+              match composed_boundary {
+                Some((infer_task, _, step)) if infer_task == task =>
+                  @lower.prepare_sequence_with_infer_boundary(
+                    owner,
+                    step,
+                    @publication_host.client_standard_values_sequence_limits(),
+                  )
+                _ =>
+                  @lower.prepare_sequence(
+                    owner,
+                    @publication_host.client_standard_values_sequence_limits(),
+                  )
+              }
           }
       }) {
       Ok(value) => value

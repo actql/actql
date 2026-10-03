@@ -222,14 +222,13 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
   const {acquisition, broad, selection} = authorizedSelection ?? owner;
   let capture;
   try {
-    if (ledger !== undefined && broad) {
-      throw new Error('InstalledMultiSourceNativeAcquisitionRequired');
-    }
-    capture = ledger === undefined
-      ? await (broad ? runBroadHostQuery : runNativeHostQuery)(
-        grant, acquisition, owner.transportLimits, signal, moon)
-      : await runStrategyNativeHostQuery(grant, acquisition, ledger,
-        owner.transportLimits, signal);
+    capture = broad
+      ? await runBroadHostQuery(grant, acquisition, owner.transportLimits,
+        signal, moon, ledger)
+      : ledger === undefined
+        ? await runNativeHostQuery(grant, acquisition, owner.transportLimits, signal)
+        : await runStrategyNativeHostQuery(grant, acquisition, ledger,
+          owner.transportLimits, signal);
   } catch (cause) {
     const ended = acquisitionOutcome(cause);
     failAcquisition(cause, cause instanceof
@@ -310,6 +309,20 @@ export function capturedDuckDBNativeConfiguration(prepared) {
     throw new TypeError('InstalledMultiSourceNativeAcquisitionRequired');
   }
   return owner.acquisition;
+}
+
+// Keep the selected configuration's typed owner. Broad remains Broad, with
+// the existing Client/Local residual represented in capacity admission.
+export function capturedDuckDBConfiguration(prepared) {
+  const owner = preparations.get(prepared);
+  if (owner === undefined) {
+    throw new TypeError('InstalledSourcePreparationMismatch');
+  }
+  if (owner.acquisition === undefined) {
+    throw new TypeError('InstalledSourceSelectionRequired');
+  }
+  return (owner.broad ? owner.moon.clientProgramCapturedBroadConfiguration
+    : owner.moon.clientProgramCapturedNativeConfiguration)(owner.acquisition);
 }
 
 export function capturedDuckDBPhysicalCapacity(prepared) {
