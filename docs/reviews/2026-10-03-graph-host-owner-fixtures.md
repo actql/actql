@@ -247,6 +247,60 @@ and residual boundaries. Keep an old assertion if it is also the only witness
 of correct transported data. Count reduced repeated authoring/review obligations,
 not generated cases, helpers moved between files or unchanged runtime duration.
 
+## Applying the example during operation development
+
+Use this method when an operation goes through the same captured Host task,
+installed managed dispatch, completed output and real reservation/holding ledger.
+A carrier name, identical result CID or use of the same Session is not sufficient
+connection evidence. Keep material/view, Store, process and backend obligations
+in their existing tests.
+
+1. Identify the checked producer/consumer task positions, original prepared
+   occurrence and installed provider. Keep typed acquired inputs attached to
+   the real task runner. Write the operation's independent expected rows,
+   projection/type/identity conditions and residual boundaries before reusing
+   an owner check.
+2. Reuse the scoped `delayed_cleanup_provider` only if its callback sequence
+   matches the scenario. The Graph example injects false/error/retry into MATCH
+   alone; the TimeSeries default is false/retry. Check construction/unrelated
+   tasks did not receive the injection. Do not introduce operation switches into
+   a universal lifecycle harness.
+3. Reuse `close_graph_host_consumer` where the closing consumer has its own
+   real charged output holding. Keep sibling availability and correct-data
+   assertions outside it. Its optional parent credit is valid only after the
+   public producer port is already closed and this is the last retaining child;
+   obtain that quantity from the exact real parent output. Shared backing,
+   views or a different ownership boundary need their own correspondence rather
+   than multiplying storage bytes by references.
+4. To verify retention after producer close, start the remaining consumer before
+   it has output, close the public port, and preserve its acquired material.
+   Check failed new public lookup, unchanged holding, independently expected
+   execution values and completion. Only after producer-owner cleanup no longer
+   masks a missing dependency can the remaining-child assertion establish the
+   dependency. Rereading an already materialized result alone cannot do so.
+5. Run the smallest affected JS selection with the repository bounded/nonzero
+   wrapper. Review the test counts and the exact source revision. A new scenario
+   must pass before a mutation is counted. For a changed ownership path, select
+   its real mutation site, require the intended intermediate assertion, restore
+   exact bytes/mode, and rerun. Existing unchanged evidence can be referenced
+   with its actual scope; it is not a new mutation run on the current SHA.
+6. In the PR, list reused actions/invariants, added operation expectations and
+   connection checks, residual tests, selected results, and exact submitted-head
+   automatic CI. Distinguish model theorems, finite implementation checks and
+   JS-only mutation observations. Count authoring/review obligations actually
+   reused, not case count, code motion or alleged CI time savings.
+
+For the Graph example the minimal local selection is:
+
+```sh
+node scripts/local-checks.mjs test moon --timeout-seconds 120 -- --target js src/query_integration/property_graph_host_custody_wbtest.mbt --filter 'Host MATCH *'
+```
+
+Use the repository's pinned toolchain environment. See
+[local verification](../development.md#local-verification) for command selection
+and [focused execution](../development.md#focused-test-execution) for the nonzero
+count/evidence contract. Do not run a full campaign merely to adopt this example.
+
 ## Candidate after #270 closes: existing TimeSeries Host case
 
 The first candidate is `standard Host runs time series with two retained
