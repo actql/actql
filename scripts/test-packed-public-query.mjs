@@ -41,6 +41,7 @@ for (const [source, destination] of [
   ['scripts/fixtures/string-values-restart.mjs', 'string-values-restart.mjs'],
   ['scripts/fixtures/packed-public-query.mjs', 'acceptance.mjs'],
   ['scripts/fixtures/packed-two-source-public-query.mjs', 'packed-two-source-public-query.mjs'],
+  ['scripts/fixtures/packed-two-source-example.mjs', 'packed-two-source-example.mjs'],
   ['scripts/fixtures/planner-selection-public-query.mjs', 'planner-selection-public-query.mjs'],
   ['scripts/fixtures/packed-planner-selection.mjs', 'packed-planner-selection.mjs'],
   ['scripts/fixtures/two-source-public-query.mjs', 'two-source-public-query.mjs'],
@@ -62,6 +63,13 @@ for (const name of ['database-rows.json', 'two-source-join.program.json',
   await writeFile(join(root, 'two-source-fixtures', name), await readFile(join(repository,
     'adapters/host-node/fixtures/two-source', name)));
 }
+// Copy the exact documented example and its shared JSON fixtures.
+const exampleReadme = await readFile(join(repository,
+  'examples/two-source-join/README.md'), 'utf8');
+const exampleCommands = [...exampleReadme.matchAll(/```bash\n([\s\S]*?)\n```/gu)];
+assert.equal(exampleCommands.length, 2);
+run('bash', ['-eu', '-c', exampleCommands[0][1]], root,
+  {...environment, ACTQL_CHECKOUT: repository});
 await mkdir(join(root, 'sga-source-fixtures'));
 for (const name of ['normalize-rows', 'mean-graphs', 'traverse-paths',
   'shortest-path',
@@ -142,23 +150,32 @@ if (process.argv.includes('--cancellation-only')) {
     runtimeEnvironment, 120000).trimEnd());
   return;
 }
+const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
 const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
 const narrowPublicQuery = process.argv.some(flag => ['--source-free-only',
   '--query-composition-only', '--pipe-result-only', '--join-order-only',
   '--alias-scope-only', '--infer-refusal-only', '--two-source-only'].includes(flag));
 try {
-  if (!plannerSelectionOnly) {
+  if (!plannerSelectionOnly && !twoSourceExampleOnly) {
     const output = run(process.execPath, ['acceptance.mjs'], root,
       runtimeEnvironment, 900_000);
     console.log(output.trimEnd());
   }
   // The same packed installation executes this bounded candidate corpus once.
   // Cost inputs go to the Host profile; the public Program never chooses a route.
-  if (plannerSelectionOnly || !narrowPublicQuery) {
+  if (plannerSelectionOnly || !narrowPublicQuery && !twoSourceExampleOnly) {
     console.log(run(process.execPath, ['packed-planner-selection.mjs'], root,
       runtimeEnvironment, 180_000).trimEnd());
   }
+  if (twoSourceExampleOnly || !plannerSelectionOnly && !narrowPublicQuery) {
+    console.log(run(process.execPath, ['packed-two-source-example.mjs'], root,
+      runtimeEnvironment, 180_000).trimEnd());
+  }
 } finally {
+  try {
+    await writeFile(join(directory, 'two-source-example.json'),
+      await readFile(join(root, 'two-source-example-report.json')));
+  } catch (error) { if (error.code !== 'ENOENT') throw error; }
   // Preserve two-source observations beside existing command/tarball evidence
   // before the harness removes its installed consumer, including on failure.
   try {
@@ -170,7 +187,7 @@ try {
       await readFile(join(root, 'planner-selection-packed-report.json')));
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
-if (plannerSelectionOnly) return;
+if (plannerSelectionOnly || twoSourceExampleOnly) return;
 // The first Host process has exited: no live Local installation still owns
 // its Store. Restore retained Results in a new process without resubmission.
 // Narrow selections without the String fixture have no retained String Run.

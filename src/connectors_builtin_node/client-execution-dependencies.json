@@ -1,0 +1,8 @@
+{
+  "imports": [
+    {
+      "path": "actql/actql/connectors/duckdb/acquisition",
+      "alias": "duckdb_query"
+    }
+  ]
+}

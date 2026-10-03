@@ -2183,9 +2183,35 @@ Local evidence at the working revision:
   failed to start because `moon` was absent from PATH. Its pinned-toolchain
   rerun passed 1/1. The failed aggregate run is not recorded as successful.
 
+At `eb5f13a960f6fb6632290eef48baaf39f795b25d`, the lint job passed through
+`local-checks.mjs run lint`, including public API comparison, SDK declarations
+and dependency isolation. Focused Wasm and native runs each passed 8/8 for
+record guard scans, source observation bindings and model call identity.
+These focused runs do not certify every affected package on those targets.
+
 This is not a final SHA or release verdict. Full affected Node jobs,
-Wasm/native execution, final interface verification and Linux CI remain to
-be recorded. The external packed acquired-input acceptance is not yet run.
+remaining portable execution coverage and Linux CI remain to be recorded.
+The external packed acquired-input acceptance now runs through
+`scripts/test-packed-acquired-infer.mjs`. It packs and installs the five public
+Client/Host packages outside the checkout, then executes an independently
+authored acquired-input ModelTask and expected result using only the installed
+`@actql/node` export. The installed application's PATH excludes MoonBit.
+Success reads the exact Named Result; post-dispatch cancellation publishes no
+Result. After a separate capture process exits at persistence, a fresh process
+replays the same expected row without another provider call. Provider calls
+were one per physical scenario and zero on replay. The application also
+authenticates four private evidence holdings and checks SourceEvidence,
+observed usage, positive work, unknown cost, and the cancelled outcome. The
+local packed run passed at the working revision; final-SHA CI remains pending.
+
+The final dependency check found that the DuckDB transport bridge imported
+the Local residual owner. That residual now remains in the selected Client
+composition package; the connector bridge supplies only its owned acquisition
+handle and completion limit. The installed Host injects its selected runtime,
+so the product path stays bounded without making the connector import Local.
+The connector dependency regression, broad transport tests, public acquired
+Host tests and packed acceptance passed after this correction.
+
 Broad KEEP, multiple SourceViews and immediate capture-to-INFER without a
 post-capture Local step are not claimed supported. Acquisition retention
 identity measurement still uses its existing synchronous completion path;

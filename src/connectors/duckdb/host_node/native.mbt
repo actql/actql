@@ -10,9 +10,6 @@ struct NativeNodeRun {
 
 ///|
 pub(all) suberror NodeHostFailure {
-  Residual(@client_local.ClientQueryResidualIssue)
-  Local(@connector.FixedComputeIssue)
-  ResidualStopped
   SourceEvidence(@acquisition_host.NativeSourceEvidenceIssue)
   Host(@acquisition_host.NativeHostIssue)
   Broad(@acquisition_host.BroadHostIssue)

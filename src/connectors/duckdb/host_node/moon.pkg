@@ -3,9 +3,6 @@ supported_targets = "js"
 pkgtype(kind: "foreign_library")
 
 import {
-  "actql/actql/client_local_host" @client_local,
-  "actql/actql/connectors/local",
-  "actql/actql/connector_sdk" @connector,
   "actql/actql/connectors/duckdb/host" @acquisition_host,
   "actql/actql/connectors/duckdb/acquisition" @duckdb_query,
   "actql/actql/execution_query" @query,

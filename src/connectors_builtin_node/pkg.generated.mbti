@@ -8,6 +8,7 @@ import {
   "actql/actql/client_local_host",
   "actql/actql/client_salesforce_host",
   "actql/actql/connector_sdk",
+  "actql/actql/connectors/duckdb/acquisition",
   "actql/actql/connectors/salesforce/catalog",
   "actql/actql/connectors_builtin",
   "actql/actql/decode_core",
@@ -42,6 +43,18 @@ import {
 }
 
 // Values
+pub fn client_broad_residual_advance(@client_local_host.ClientBroadResidual, Int) -> Bool raise ClientBroadResidualNodeIssue
+
+pub fn client_broad_residual_cancel(@client_local_host.ClientBroadResidual) -> Bool
+
+pub fn client_broad_residual_cleanup(@client_local_host.ClientBroadResidual) -> Bool raise ClientBroadResidualNodeIssue
+
+pub fn client_broad_residual_complete(@client_local_host.ClientBroadResidual) -> @acquisition.DuckDBBroadObservation raise ClientBroadResidualNodeIssue
+
+pub fn client_broad_residual_prepare(@actql/actql/connectors/duckdb/host.BroadHostRun, Int) -> @client_local_host.ClientBroadResidual raise ClientBroadResidualNodeIssue
+
+pub fn client_broad_residual_stopped(@client_local_host.ClientBroadResidual) -> Bool
+
 pub fn client_program_acquire_infer_capture(@client_infer_host.Execution) -> @model_execution.VerifiedModelCapture?
 
 pub fn client_program_acquire_infer_outcomes(@client_infer_host.Execution) -> @model_execution.ModelOutcomeRead?
@@ -2457,6 +2470,13 @@ pub fn strategy_superseded_publication_finalization_action(@run_publication.Publ
 pub fn strategy_trusted_clock_not_before(String?, String) -> Bool
 
 // Errors
+pub(all) suberror ClientBroadResidualNodeIssue {
+  Preparation(@client_local_host.ClientQueryResidualIssue)
+  Local(@connector_sdk.FixedComputeIssue)
+  Acquisition(@actql/actql/connectors/duckdb/host.BroadHostIssue)
+  Stopped
+}
+
 pub(all) suberror ClientProgramRunStateIssue {
   InvalidTerminalOutcome
   Projection(@run_publication.RunStateIssue)

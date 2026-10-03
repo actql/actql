@@ -227,7 +227,7 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
     }
     capture = ledger === undefined
       ? await (broad ? runBroadHostQuery : runNativeHostQuery)(
-        grant, acquisition, owner.transportLimits, signal)
+        grant, acquisition, owner.transportLimits, signal, moon)
       : await runStrategyNativeHostQuery(grant, acquisition, ledger,
         owner.transportLimits, signal);
   } catch (cause) {
@@ -263,7 +263,7 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
         capturedSource, identity, requirement, owner.occurrence.task));
     // An Effect Run is opened only after durable Run admission. Acquisition
     // cannot mint that owner or begin its computation as a read-only Run.
-    const inferStep = owner.effectful ? undefined :
+    const inferStep = owner.effectful || ledger !== undefined ? undefined :
       moon.clientProgramSelectedInferStep(owner.checkedOwner);
     const setup = owner.effectful || ledger !== undefined ||
       inferStep !== undefined ? undefined :

@@ -41,15 +41,17 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     if (entry.sourceCapture !== undefined) {
       throw new TypeError('ClientSourceCaptureAlreadyRetained');
     }
+    const installedSource = installedSourceFor(sourceProfile,
+      preparedSource.checkedSource.sourceRef);
     const captureStartedAt = now();
     await step('acquisition_started', {ref: entry.ref,
-      ...(preparedSource?.selection === undefined ? {} : {selection: preparedSource.selection})});
+      ...(preparedSource.selection === undefined ? {} :
+        {selection: preparedSource.selection})});
     entry.physicalStarted = true;
     entry.physicalWorkMayHaveStarted = true;
     const acquisition = acquisitionEndHandoff();
     try {
-      entry.sourceCapture = await installedSourceFor(sourceProfile,
-        preparedSource.checkedSource.sourceRef).open({preparedProgram,
+      entry.sourceCapture = await installedSource.open({preparedProgram,
         registry, values, fragment, ordered, sourceAccess,
         signal: entry.abort.signal, preparedSource,
         reportAcquisitionFailure: acquisition.retain});
@@ -59,6 +61,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         entry.stopObservationPending = true;
       } else if (ended.recovery !== undefined) {
         entry.cleanupOwner = ended.recovery;
+      } else {
+        entry.unresolvedCleanup = true;
       }
       throw error;
     }
@@ -250,6 +254,9 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         throw new Error('InstalledInferDispatchUnavailable');
       }
       const multiple = held.preparedSources?.length === 2;
+      if (inferring && multiple) {
+        throw new Error('InstalledInferMultiSourceUnsupported');
+      }
       const installedSource = acquiring && !multiple
         ? installedSourceFor(sourceProfile, held.preparedSource.checkedSource.sourceRef) : undefined;
       let ledger;
@@ -387,7 +394,6 @@ export function installNodeClientDispatchOwner({moon, control, journal,
             {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100})};
         } else {
           held.plan = acquiredTaskPublicationPlan({moon, control,
-
           acquired: held.plan, preparedProgram,
           captured: entry.sourceCapture, sourceEvidenceWire,
           authorityScopeCid,
