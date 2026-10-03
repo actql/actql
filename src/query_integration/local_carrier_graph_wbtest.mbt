@@ -12348,6 +12348,15 @@ fn run_standard_host_graph_relation_path(
     (output_ops, output, initial_graph_obligations)
   }
   let graph_rows = local_managed_test_rows(graph_ops)
+  if !separate_graph_task {
+    // Completion has observed the provider's first pending cleanup; the
+    // independent Graph output and unreclaimed scratch both remain owned.
+    assert_eq(cleanup_attempts.val, 1)
+    assert_true(
+      @resources.ledger_usage(@strategy.captured_dag_ledger(run)).reserved_execution_bytes >
+      0L,
+    )
+  }
   let expected_rows = if variant == "traverse_type_miss" ||
     variant == "traverse_type_empty" ||
     variant == "traverse_type_empty_paths" ||
@@ -12697,7 +12706,6 @@ fn run_standard_host_graph_relation_path(
   if separate_graph_task {
     (graph_ops.cleanup_refresh)() |> ignore
   } else {
-    assert_false((graph_ops.cleanup_refresh)())
     assert_true((graph_ops.cleanup_refresh)())
     assert_eq(cleanup_attempts.val, 2)
   }
@@ -13258,6 +13266,11 @@ fn run_standard_host_graph_apply_path() -> Unit raise {
     obligations?=graph_publication_obligations(run, true),
   )
   let diff_rows = local_managed_test_rows(diff_ops)
+  assert_eq(cleanup_attempts.val, 1)
+  assert_true(
+    @resources.ledger_usage(@strategy.captured_dag_ledger(run)).reserved_execution_bytes >
+    0L,
+  )
   assert_eq(diff_rows.length(), 1)
   assert_true(diff_rows[0].contains("\"version\":\"actql-graph-delta/0.1\""))
 
@@ -13274,6 +13287,7 @@ fn run_standard_host_graph_apply_path() -> Unit raise {
     obligations?=apply_obligations,
   )
   let applied_rows = local_managed_test_rows(apply_ops)
+  assert_eq(cleanup_attempts.val, 2)
   assert_eq(applied_rows.length(), 2)
   assert_true(applied_rows[0].contains("\"id\":1"))
   assert_true(applied_rows[0].contains("\"node_name\":\"changed\""))
@@ -13342,7 +13356,6 @@ fn run_standard_host_graph_apply_path() -> Unit raise {
   apply_live.val = false
   @strategy.close_captured_task_output(run, 4)
   (apply_ops.close)()
-  assert_false((apply_ops.cleanup_refresh)())
   assert_true((apply_ops.cleanup_refresh)())
   diff_live.val = false
   @strategy.close_captured_task_output(run, 3)
