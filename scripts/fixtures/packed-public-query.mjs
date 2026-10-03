@@ -23,18 +23,32 @@ const joinOnly = process.env.ACTQL_TEST_JOIN_ORDER_ONLY === '1';
 const compositionOnly = process.env.ACTQL_TEST_QUERY_COMPOSITION_ONLY === '1';
 const resultOnly = process.env.ACTQL_TEST_PIPE_RESULT_ONLY === '1';
 const dataOnly = process.env.ACTQL_TEST_RELATION_DATA_ONLY === '1';
-const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || inferOnly || joinOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly;
+const dataSetStrategyOnly = process.env.ACTQL_TEST_DATA_SET_STRATEGY_ONLY === '1';
+const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || inferOnly || joinOnly || sourceFreeOnly || compositionOnly || resultOnly || dataOnly || dataSetStrategyOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const scope = JSON.parse(await readFile('pipe-scope-cases.json', 'utf8'));
 assert.deepEqual(scope.source_rows, sourceRows);
-const scopeInputs = sourceFreeOnly ? {successes: sourceFreeSuccesses, refusals: sourceFreeRefusals}
-  : dataOnly ? {successes: relationDataSuccesses, refusals: relationDataRefusals}
+const dataSetStrategyInputs = {
+  // Retain main's independent JSON control once. The DATA source group shares
+  // this input rather than duplicating the same machine Program and run.
+  successes: [{name: 'independent-ordered-data-set', format: 'json',
+    text: await readFile('data-set-strategy-program.json', 'utf8'),
+    sourceReadCount: 0,
+    results: {nodes: {rows: [{id: 1}], columns: [
+      {name: 'id', contract: {type: 'number', nullable: false}},
+    ]}}}],
+  refusals: [],
+};
+const scopeInputs = dataOnly ? {successes: [...relationDataSuccesses,
+  ...dataSetStrategyInputs.successes], refusals: relationDataRefusals}
+  : dataSetStrategyOnly ? dataSetStrategyInputs
+  : sourceFreeOnly ? {successes: sourceFreeSuccesses, refusals: sourceFreeRefusals}
   : resultOnly ? {successes: pipeResultSuccesses, refusals: pipeResultRefusals,
     executionFailures: pipeResultExecutionFailures}
   : compositionOnly ? {successes: queryCompositionSuccesses, refusals: queryCompositionRefusals}
   : inferOnly ? {successes: [querySuccesses[0]], refusals: inferRefusals}
   : joinOnly ? joinOrder : scopeOnly ? {successes: scope.successes,
-  refusals: scope.refusals} : {successes: [...querySuccesses, ...sourceFreeSuccesses, ...queryCompositionSuccesses, ...pipeResultSuccesses, ...relationDataSuccesses, ...scope.successes, ...joinOrder.successes],
+  refusals: scope.refusals} : {successes: [...dataSetStrategyInputs.successes, ...querySuccesses, ...sourceFreeSuccesses, ...queryCompositionSuccesses, ...pipeResultSuccesses, ...relationDataSuccesses, ...scope.successes, ...joinOrder.successes],
   refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...relationDataRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals],
   executionFailures: pipeResultExecutionFailures};
 const expectedQueryRuns = scopeInputs.successes.length + (scopeInputs.executionFailures?.length ?? 0);
@@ -95,7 +109,8 @@ async function prepareCase(rows = sourceRows) {
 const view = environment.source_views[0];
 const sourceProfilePath = resolve('source-profile.json');
 await writeFile(sourceProfilePath, canonical({
-  version: 'actql-installed-duckdb-source/0.1', database,
+  acquisitionPlanning: {policy: 'priority', priority: ['nativeQuery', 'broadQuery']},
+    version: 'actql-installed-duckdb-source/0.1', database,
   schema: 'main', table: 'records', sourceRef: 'connector://crm/main/r#v',
   queryAliases: [{name: 'records', sourceRef: 'connector://crm/main/r#v',
     sourceViewContractCid: view.contract_cid,

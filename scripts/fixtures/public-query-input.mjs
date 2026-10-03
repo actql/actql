@@ -17,7 +17,7 @@ const relationNumber = (name, nullable = false) => ({name,
 // insertion order of keys in the sourceRows objects above.
 const sourceColumns = [relationNumber('amount', true), relationNumber('id')];
 // The ordered DATA repro has two roots, append, one hidden sort slot and LIMIT.
-// The JSON control is authored independently, not obtained from the frontend.
+// The packed harness reuses main's independently authored JSON control.
 export const relationDataSuccesses = [
   {name: 'data-set-order-reuses-hidden-slot', format: 'aql-text',
     text: 'DATA n = SELECT 2 AS id UNION ALL SELECT 1 AS other ORDER BY id + 1, id + 1 DESC LIMIT 1; FROM n |> SELECT id |> RESULT nodes',
@@ -29,9 +29,6 @@ export const relationDataSuccesses = [
     text: 'DATA n = SELECT 2 AS id; FROM n |> RESULT original |> WHERE id > 0 |> RESULT active',
     results: {original: {rows: [{id: 2}], columns: [relationNumber('id')]},
       active: {rows: [{id: 2}], columns: [relationNumber('id')]}}, sourceReadCount: 0},
-  {name: 'data-ordered-machine-control', format: 'json',
-    text: '{"version":"actql/0.1","id":"independent-data-set","stages":[{"id":"main","inputs":{},"steps":[{"as":"left","values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":2}]}},{"as":"right","values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1}]}},{"from":"left","append":{"with":"right"},"as":"combined"},{"from":"combined","derive":{"sort_slot":{"add":[{"field":"id"},{"literal":1}]}},"as":"derived"},{"from":"derived","sort":[{"field":"sort_slot","dir":"asc","nulls":"first"}],"as":"ordered"},{"from":"ordered","select":["id"],"as":"projected"},{"from":"projected","take":{"count":1,"offset":0},"as":"limited"}],"results":{"rows":{"from":"limited","fields":["id"]}}}],"results":{"nodes":{"from":{"stage":"main","result":"rows"}}}}',
-    results: {nodes: {rows: [{id: 1}], columns: [relationNumber('id')]}}, sourceReadCount: 0},
 ];
 export const relationDataRefusals = [
   {name: 'data-forward-reference', format: 'aql-text', text: 'DATA n = FROM later |> SELECT id; DATA later = SELECT 1 AS id; FROM n |> SELECT id'},

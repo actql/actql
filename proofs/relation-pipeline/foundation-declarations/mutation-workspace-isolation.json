@@ -1,0 +1,180 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "mutation-workspace-isolation",
+  "kind": "change",
+  "revision": "92f40d21848b1def54c46555a1f9dbc5b4d5bf0c",
+  "parents": [
+    "6afb0f29809180d8b22d7eeb7ab3e752a63928ec"
+  ],
+  "changes": [
+    {
+      "path": "proofs/relation-pipeline/audit.mjs",
+      "before": [
+        {
+          "revision": "6afb0f29809180d8b22d7eeb7ab3e752a63928ec",
+          "digest": "61cb9fc9412b7cc254e62c47a7b773e2801f1d5632dc6fbb194f7daa37ee2b19",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "e5a4f16082c70a36dd0da144a44c6d43ba04da356f219199761f050bc6d61746",
+      "afterMode": "100644",
+      "reason": "Bind each independently audited observation to its compiled workspace/source/target/command boundary and reject reused receipt or observation identities."
+    },
+    {
+      "path": "proofs/relation-pipeline/current-foundation.md",
+      "before": [
+        {
+          "revision": "6afb0f29809180d8b22d7eeb7ab3e752a63928ec",
+          "digest": "9a38041ed3616afee11f08c85d702f8fca13cc6ab0db9e43bc513bd85b7c040b",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "b320fc8087624c3eb5e3ca75e16fb3ffa1bb1b5846260d4dac3567a0260f5cbc",
+      "afterMode": "100644",
+      "reason": "Document source-only workspace materialization, exact execution identity, unchanged verification obligations and measurement/trust limits."
+    },
+    {
+      "path": "proofs/relation-pipeline/execute.mjs",
+      "before": [
+        {
+          "revision": "6afb0f29809180d8b22d7eeb7ab3e752a63928ec",
+          "digest": "0a248c882d978e40b443f05e2f61cd32bd34849cba80e90c8fcf2318a02e7eba",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "335eda3f00dc781f27ec327bce91d73d8bdcfa9c9582a106fffaa4128a2b6989",
+      "afterMode": "100644",
+      "reason": "Execute fresh inputs in explicit isolated workspaces while checking source, target, tool, environment and previously built artifact identities; preserve durable receipts and fail closed on missing execution."
+    },
+    {
+      "path": "proofs/relation-pipeline/execute.test.mjs",
+      "before": [
+        {
+          "revision": "6afb0f29809180d8b22d7eeb7ab3e752a63928ec",
+          "digest": null,
+          "mode": null
+        }
+      ],
+      "afterDigest": "9d743b9fceed72780bd152ea324e930f4aca60f72b3e04092b16d65c859b3394",
+      "afterMode": "100644",
+      "reason": "Exercise the real execution/evidence boundary with independent subprocess fixtures covering swaps, compilation failures, missing execution and fixture ownership."
+    },
+    {
+      "path": "proofs/relation-pipeline/fixture.mjs",
+      "before": [
+        {
+          "revision": "6afb0f29809180d8b22d7eeb7ab3e752a63928ec",
+          "digest": "0f24f57ff4ebed236f069d9c24ef501a991af4d960f2f962744cc2b65028c42d",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "a267f0ff81932df5654167eb8e01f655838e6eafefc37a5dfc02f8a72042141d",
+      "afterMode": "100644",
+      "reason": "Compile target-conditional execution-boundary markers without changing fixture source bytes when targets or runtime cases change."
+    },
+    {
+      "path": "proofs/relation-pipeline/fixtures/execution-driver.mjs",
+      "before": [
+        {
+          "revision": "6afb0f29809180d8b22d7eeb7ab3e752a63928ec",
+          "digest": null,
+          "mode": null
+        }
+      ],
+      "afterDigest": "a0284a20d8396f2fa7723963ce625f6064325d7b3cc84246332609469306b9f1",
+      "afterMode": "100644",
+      "reason": "Provide a bounded instrumented Moon subprocess fixture for execution and workspace regression tests; production semantic checks remain real Moon executions."
+    },
+    {
+      "path": "proofs/relation-pipeline/fixtures/mutation-driver.mjs",
+      "before": [
+        {
+          "revision": "6afb0f29809180d8b22d7eeb7ab3e752a63928ec",
+          "digest": "853e5c799050b7029a7cbc2788bf5a9cc390b54c7b51285032b0f6ad9ef8893a",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "dd7643cb316783ad2c2d2de3a56eafa210b94fd227ab4c469402fdb2727baf61",
+      "afterMode": "100644",
+      "reason": "Model distinct mutable/pristine workspaces in existing orchestration regressions and inject failed source restoration."
+    },
+    {
+      "path": "proofs/relation-pipeline/history.mjs",
+      "before": [
+        {
+          "revision": "6afb0f29809180d8b22d7eeb7ab3e752a63928ec",
+          "digest": "142e57dae208b6445ba027bdf6b9521ac6de21ecf84991c09aafb3e07c8be62a",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "74fa43d6c83dc92ac3ed32b69ca2beaf9625b609cf8caf74f5d50a329345bd8c",
+      "afterMode": "100644",
+      "reason": "Add the new trusted workspace helper and its regression fixtures/tests to the explicit protected foundation scope."
+    },
+    {
+      "path": "proofs/relation-pipeline/inventory.mjs",
+      "before": [
+        {
+          "revision": "6afb0f29809180d8b22d7eeb7ab3e752a63928ec",
+          "digest": "375b2f0bcc439811b0ab489a0407d1e86d6ffa3774054a133f2d4ec376b2a682",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "659294a751e7fdfbac4709171c56a9c290770392e71adb0e39c322d250c89b63",
+      "afterMode": "100644",
+      "reason": "Bind the native link and archiver wrappers, vendored native inputs and owned-scratch helper to every actual source snapshot."
+    },
+    {
+      "path": "proofs/relation-pipeline/mutations.mjs",
+      "before": [
+        {
+          "revision": "6afb0f29809180d8b22d7eeb7ab3e752a63928ec",
+          "digest": "29d4eaf713f65cf3174ca7c68b48619b86be1d072246871716ecc4d3cfd6ecc7",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "1397d1252b43f542d9eda3bb551c60dee06f4f705a2287e14423190571ac395c",
+      "afterMode": "100644",
+      "reason": "Keep all fixed/fresh executions while routing mutations to a private mutable tree and each healthy replay to a pristine tree; restore original bytes before publishing reports."
+    },
+    {
+      "path": "proofs/relation-pipeline/mutations.test.mjs",
+      "before": [
+        {
+          "revision": "6afb0f29809180d8b22d7eeb7ab3e752a63928ec",
+          "digest": "ff45631446b698dcfd337aef02a01dda6cfd4266c1a61d0d12c607854ccd38e6",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "93d55a224f3dfc8aa36d5e1a61da8a5c797ba1338c0be1b2fd1a68760335d29d",
+      "afterMode": "100644",
+      "reason": "Verify unchanged fixed/fresh and three-target execution counts, distinct workspace routing, fresh receipt identities and failure before healthy replay when restoration fails."
+    },
+    {
+      "path": "proofs/relation-pipeline/workspaces.mjs",
+      "before": [
+        {
+          "revision": "6afb0f29809180d8b22d7eeb7ab3e752a63928ec",
+          "digest": null,
+          "mode": null
+        }
+      ],
+      "afterDigest": "823e9d4f633ab350b10666a7240834a8e3ca930bd89532873e9fe2b2cd2cef3d",
+      "afterMode": "100644",
+      "reason": "Materialize clean source-only trees with executable modes, reject source/build substitutions and share no mutable build directories; use existing owned scratch cleanup."
+    },
+    {
+      "path": "proofs/relation-pipeline/workspaces.test.mjs",
+      "before": [
+        {
+          "revision": "6afb0f29809180d8b22d7eeb7ab3e752a63928ec",
+          "digest": null,
+          "mode": null
+        }
+      ],
+      "afterDigest": "56ad70d82477c1f7283499228d5786d25839202ba0a51fc1261135350ad617f1",
+      "afterMode": "100644",
+      "reason": "Reject dirty-output capture, source/build/workspace substitution and incomplete restoration, and verify successful cleanup and preserved failure evidence."
+    }
+  ]
+}

@@ -1,0 +1,305 @@
+{
+  "version": "actql-ci-artifact-selection/0.1",
+  "samples": [
+    {
+      "archive": "retained-artifacts/run825.zip",
+      "provenance": {
+        "repository": "actql/actql",
+        "runId": 36992114814,
+        "runNumber": 825,
+        "attempt": 1,
+        "workflow": "CI",
+        "workflowPath": ".github/workflows/ci.yml",
+        "workflowId": 354137505,
+        "event": "workflow_dispatch",
+        "headSha": "6190f5dc2954937e175b3b21a32bed3aa5cdeadb",
+        "executionSha": "6190f5dc2954937e175b3b21a32bed3aa5cdeadb",
+        "executionShaEvidence": "Retained mutation report revision plus artifact identity; source run head kept separately",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/actql/actql/actions/runs/36992114814",
+        "runner": {
+          "name": "GitHub Actions 1000011700",
+          "labels": [
+            "ubuntu-24.04"
+          ],
+          "region": "eastus",
+          "runnerVersion": "2.337.0",
+          "imageVersion": "20260927.320.1",
+          "ubuntuVersion": "24.04.5"
+        },
+        "cacheState": "unknown",
+        "artifact": {
+          "id": 11221237604,
+          "name": "relation-pipeline-evidence-6190f5dc2954937e175b3b21a32bed3aa5cdeadb",
+          "sha256": "ef82a648b35aea6ecaca3fdbfcfcc8541c7b6fe3fc023010920dcb309e4eaa96",
+          "compressedBytes": 39754070,
+          "url": "https://github.com/actql/actql/actions/runs/36992114814/artifacts/11221237604"
+        }
+      },
+      "reports": {
+        "fixed": "relation-pipeline/fixed-mutations.json",
+        "fresh": "relation-pipeline/mutations.json"
+      },
+      "expectedInventory": {
+        "fixed": [
+          "handoff-wrong-port",
+          "stable-tie-reversed",
+          "rename-nullability-widened",
+          "rename-type-changed",
+          "rename-swap-wrong-input",
+          "distinct-first-column-only",
+          "distinct-reversed-survivors",
+          "distinct-handoff-wrong-port"
+        ],
+        "fresh": [
+          "handoff-wrong-port",
+          "stable-tie-reversed",
+          "rename-nullability-widened",
+          "rename-type-changed",
+          "rename-swap-wrong-input",
+          "distinct-first-column-only",
+          "distinct-reversed-survivors",
+          "distinct-handoff-wrong-port"
+        ],
+        "capacity": [
+          "missing-index-reservation",
+          "premature-keep-release",
+          "duplicate-index-release",
+          "handoff-copy-without-accounting",
+          "oversized-metadata-map"
+        ],
+        "targets": [
+          "js",
+          "wasm",
+          "native"
+        ]
+      }
+    },
+    {
+      "archive": "retained-artifacts/run836.zip",
+      "provenance": {
+        "repository": "actql/actql",
+        "runId": 36996115208,
+        "runNumber": 836,
+        "attempt": 1,
+        "workflow": "CI",
+        "workflowPath": ".github/workflows/ci.yml",
+        "workflowId": 354137505,
+        "event": "pull_request",
+        "headSha": "6afb0f29809180d8b22d7eeb7ab3e752a63928ec",
+        "executionSha": "26c59bddd8de5370eb3d5a8f8610b6170e326c00",
+        "executionShaEvidence": "Retained mutation report revision plus artifact identity; source run head kept separately",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/actql/actql/actions/runs/36996115208",
+        "runner": {
+          "name": "GitHub Actions 1000011894",
+          "labels": [
+            "ubuntu-24.04"
+          ],
+          "region": "eastus",
+          "runnerVersion": "2.337.0",
+          "imageVersion": "20260927.320.1",
+          "ubuntuVersion": "24.04.5"
+        },
+        "cacheState": "unknown",
+        "artifact": {
+          "id": 11223341880,
+          "name": "relation-pipeline-evidence-26c59bddd8de5370eb3d5a8f8610b6170e326c00",
+          "sha256": "8a15792822c89c5f0fd9178c3c69d9d7ab07b5e3db156fd429a8b8c4ac47929e",
+          "compressedBytes": 338401303,
+          "url": "https://github.com/actql/actql/actions/runs/36996115208/artifacts/11223341880"
+        }
+      },
+      "reports": {
+        "fixed": "relation-pipeline/fixed-mutations.json",
+        "fresh": "relation-pipeline/mutations.json",
+        "capacity": "relation-pipeline/capacity/all.json"
+      },
+      "expectedInventory": {
+        "fixed": [
+          "handoff-wrong-port",
+          "stable-tie-reversed",
+          "rename-nullability-widened",
+          "rename-type-changed",
+          "rename-swap-wrong-input",
+          "distinct-first-column-only",
+          "distinct-reversed-survivors",
+          "distinct-handoff-wrong-port"
+        ],
+        "fresh": [
+          "handoff-wrong-port",
+          "stable-tie-reversed",
+          "rename-nullability-widened",
+          "rename-type-changed",
+          "rename-swap-wrong-input",
+          "distinct-first-column-only",
+          "distinct-reversed-survivors",
+          "distinct-handoff-wrong-port"
+        ],
+        "capacity": [
+          "missing-index-reservation",
+          "premature-keep-release",
+          "duplicate-index-release",
+          "handoff-copy-without-accounting",
+          "oversized-metadata-map"
+        ],
+        "targets": [
+          "js",
+          "wasm",
+          "native"
+        ]
+      }
+    },
+    {
+      "archive": "retained-artifacts/run845.zip",
+      "provenance": {
+        "repository": "actql/actql",
+        "runId": 37001901277,
+        "runNumber": 845,
+        "attempt": 1,
+        "workflow": "CI",
+        "workflowPath": ".github/workflows/ci.yml",
+        "workflowId": 354137505,
+        "event": "pull_request",
+        "headSha": "7e279c9decccb9851d034593fa73c1fdde84608f",
+        "executionSha": "2c6bba34f2ce7bc739a10ed2160eb0679caed631",
+        "executionShaEvidence": "Retained mutation report revision plus artifact identity; source run head kept separately",
+        "status": "completed",
+        "conclusion": "failure",
+        "url": "https://github.com/actql/actql/actions/runs/37001901277",
+        "runner": {
+          "name": "GitHub Actions 1000012058",
+          "labels": [
+            "ubuntu-24.04"
+          ],
+          "region": "northcentralus",
+          "runnerVersion": "2.337.0",
+          "imageVersion": "20260927.320.1",
+          "ubuntuVersion": "24.04.5"
+        },
+        "cacheState": "unknown",
+        "artifact": {
+          "id": 11225817644,
+          "name": "relation-pipeline-evidence-2c6bba34f2ce7bc739a10ed2160eb0679caed631",
+          "sha256": "544327e936b1723e2b0311b702f8864494c2031dac104c262962519740116ff3",
+          "compressedBytes": 294449491,
+          "url": "https://github.com/actql/actql/actions/runs/37001901277/artifacts/11225817644"
+        }
+      },
+      "reports": {
+        "fixed": "relation-pipeline/fixed-mutations.json",
+        "fresh": "relation-pipeline/mutations.json",
+        "capacity": "relation-pipeline/capacity/all.json"
+      },
+      "expectedInventory": {
+        "fixed": [
+          "handoff-wrong-port",
+          "stable-tie-reversed",
+          "rename-nullability-widened",
+          "rename-type-changed",
+          "rename-swap-wrong-input",
+          "distinct-first-column-only",
+          "distinct-reversed-survivors",
+          "distinct-handoff-wrong-port"
+        ],
+        "fresh": [
+          "handoff-wrong-port",
+          "stable-tie-reversed",
+          "rename-nullability-widened",
+          "rename-type-changed",
+          "rename-swap-wrong-input",
+          "distinct-first-column-only",
+          "distinct-reversed-survivors",
+          "distinct-handoff-wrong-port"
+        ],
+        "capacity": [
+          "missing-index-reservation",
+          "premature-keep-release",
+          "duplicate-index-release",
+          "handoff-copy-without-accounting",
+          "oversized-metadata-map"
+        ],
+        "targets": [
+          "js",
+          "wasm",
+          "native"
+        ]
+      }
+    },
+    {
+      "archive": "retained-artifacts/run849.zip",
+      "provenance": {
+        "repository": "actql/actql",
+        "runId": 37008083534,
+        "runNumber": 849,
+        "attempt": 1,
+        "workflow": "CI",
+        "workflowPath": ".github/workflows/ci.yml",
+        "workflowId": 354137505,
+        "event": "pull_request",
+        "headSha": "b1f4ef95da6fafec479b4f20c4865282e2de8fdd",
+        "executionSha": "31b53d198315801ef65b97d4bb4da25536adbf78",
+        "executionShaEvidence": "Retained mutation report revision plus artifact identity; source run head kept separately",
+        "status": "completed",
+        "conclusion": "cancelled",
+        "url": "https://github.com/actql/actql/actions/runs/37008083534",
+        "runner": {
+          "name": "GitHub Actions 1000012115",
+          "labels": [
+            "ubuntu-24.04"
+          ],
+          "region": null
+        },
+        "cacheState": "unknown",
+        "artifact": {
+          "id": 11229225034,
+          "name": "relation-pipeline-evidence-31b53d198315801ef65b97d4bb4da25536adbf78",
+          "sha256": "2a66589477b5352ed5953d979f63a2b0b0d243bf127d1a57bb2677b2fdfcb163",
+          "compressedBytes": 341137618,
+          "url": "https://github.com/actql/actql/actions/runs/37008083534/artifacts/11229225034"
+        }
+      },
+      "reports": {
+        "fixed": "relation-pipeline/fixed-mutations.json",
+        "fresh": "relation-pipeline/mutations.json",
+        "capacity": "relation-pipeline/capacity/all.json"
+      },
+      "expectedInventory": {
+        "fixed": [
+          "handoff-wrong-port",
+          "stable-tie-reversed",
+          "rename-nullability-widened",
+          "rename-type-changed",
+          "rename-swap-wrong-input",
+          "distinct-first-column-only",
+          "distinct-reversed-survivors",
+          "distinct-handoff-wrong-port"
+        ],
+        "fresh": [
+          "handoff-wrong-port",
+          "stable-tie-reversed",
+          "rename-nullability-widened",
+          "rename-type-changed",
+          "rename-swap-wrong-input",
+          "distinct-first-column-only",
+          "distinct-reversed-survivors",
+          "distinct-handoff-wrong-port"
+        ],
+        "capacity": [
+          "missing-index-reservation",
+          "premature-keep-release",
+          "duplicate-index-release",
+          "handoff-copy-without-accounting",
+          "oversized-metadata-map"
+        ],
+        "targets": [
+          "js",
+          "wasm",
+          "native"
+        ]
+      }
+    }
+  ]
+}

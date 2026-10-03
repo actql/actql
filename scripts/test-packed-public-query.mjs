@@ -41,12 +41,16 @@ for (const [source, destination] of [
   ['scripts/fixtures/string-values-restart.mjs', 'string-values-restart.mjs'],
   ['scripts/fixtures/packed-public-query.mjs', 'acceptance.mjs'],
   ['scripts/fixtures/packed-two-source-public-query.mjs', 'packed-two-source-public-query.mjs'],
+  ['scripts/fixtures/packed-two-source-example.mjs', 'packed-two-source-example.mjs'],
+  ['scripts/fixtures/planner-selection-public-query.mjs', 'planner-selection-public-query.mjs'],
+  ['scripts/fixtures/packed-planner-selection.mjs', 'packed-planner-selection.mjs'],
   ['scripts/fixtures/two-source-public-query.mjs', 'two-source-public-query.mjs'],
   ['scripts/fixtures/two-source-restart.mjs', 'two-source-restart.mjs'],
   ['adapters/host-node/fixtures/query-amount-environment.json', 'source-environment.json'],
   ['spec/local-check-environment.json', 'base-environment.json'],
   ['spec/frontend/fixtures/pipe-scope/cases.json', 'pipe-scope-cases.json'],
   ['spec/frontend/fixtures/join-order/cases.json', 'join-order-cases.json'],
+  ['spec/frontend/fixtures/data-set-strategy/repro-program.json', 'data-set-strategy-program.json'],
   ['scripts/accept-sga-public-source.mjs', 'accept-sga-public-source.mjs'],
   ['scripts/reach-selector-capacity-fixture.mjs', 'reach-selector-capacity-fixture.mjs'],
   ['scripts/fixtures/packed-sga-cancellation.mjs', 'sga-cancellation.mjs'],
@@ -60,6 +64,13 @@ for (const name of ['database-rows.json', 'two-source-join.program.json',
   await writeFile(join(root, 'two-source-fixtures', name), await readFile(join(repository,
     'adapters/host-node/fixtures/two-source', name)));
 }
+// Copy the exact documented example and its shared JSON fixtures.
+const exampleReadme = await readFile(join(repository,
+  'examples/two-source-join/README.md'), 'utf8');
+const exampleCommands = [...exampleReadme.matchAll(/```bash\n([\s\S]*?)\n```/gu)];
+assert.equal(exampleCommands.length, 2);
+run('bash', ['-eu', '-c', exampleCommands[0][1]], root,
+  {...environment, ACTQL_CHECKOUT: repository});
 await mkdir(join(root, 'sga-source-fixtures'));
 for (const name of ['normalize-rows', 'mean-graphs', 'traverse-paths',
   'shortest-path',
@@ -88,6 +99,9 @@ const runtimeEnvironment = {...environment,
   NODE_EXTRA_CA_CERTS: join(root, 'remote.crt')};
 if (process.argv.includes('--source-free-only')) {
   runtimeEnvironment.ACTQL_TEST_SOURCE_FREE_ONLY = '1';
+}
+if (process.argv.includes('--data-set-strategy-only')) {
+  runtimeEnvironment.ACTQL_TEST_DATA_SET_STRATEGY_ONLY = '1';
 }
 if (process.argv.includes('--query-composition-only')) {
   runtimeEnvironment.ACTQL_TEST_QUERY_COMPOSITION_ONLY = '1';
@@ -143,29 +157,57 @@ if (process.argv.includes('--cancellation-only')) {
     runtimeEnvironment, 120000).trimEnd());
   return;
 }
+const twoSourceExampleOnly = process.argv.includes('--two-source-example-only');
+const plannerSelectionOnly = process.argv.includes('--planner-selection-only');
+const narrowPublicQuery = process.argv.some(flag => ['--source-free-only',
+  '--query-composition-only', '--pipe-result-only', '--join-order-only',
+  '--alias-scope-only', '--infer-refusal-only', '--two-source-only',
+  '--data-set-strategy-only'].includes(flag));
 try {
-  const output = run(process.execPath, ['acceptance.mjs'], root,
-    runtimeEnvironment, 900_000);
-  console.log(output.trimEnd());
+  if (!plannerSelectionOnly && !twoSourceExampleOnly) {
+    const output = run(process.execPath, ['acceptance.mjs'], root,
+      runtimeEnvironment, 900_000);
+    console.log(output.trimEnd());
+  }
+  // The same packed installation executes this bounded candidate corpus once.
+  // Cost inputs go to the Host profile; the public Program never chooses a route.
+  if (plannerSelectionOnly || !narrowPublicQuery && !twoSourceExampleOnly) {
+    console.log(run(process.execPath, ['packed-planner-selection.mjs'], root,
+      runtimeEnvironment, 180_000).trimEnd());
+  }
+  if (twoSourceExampleOnly || !plannerSelectionOnly && !narrowPublicQuery) {
+    console.log(run(process.execPath, ['packed-two-source-example.mjs'], root,
+      runtimeEnvironment, 180_000).trimEnd());
+  }
 } finally {
+  try {
+    await writeFile(join(directory, 'two-source-example.json'),
+      await readFile(join(root, 'two-source-example-report.json')));
+  } catch (error) { if (error.code !== 'ENOENT') throw error; }
   // Preserve two-source observations beside existing command/tarball evidence
   // before the harness removes its installed consumer, including on failure.
   try {
     await writeFile(join(directory, 'two-source-acceptance.json'),
       await readFile(join(root, 'two-source-packed-report.json')));
   } catch (error) { if (error.code !== 'ENOENT') throw error; }
+  try {
+    await writeFile(join(directory, 'planner-selection-acceptance.json'),
+      await readFile(join(root, 'planner-selection-packed-report.json')));
+  } catch (error) { if (error.code !== 'ENOENT') throw error; }
 }
+if (plannerSelectionOnly || twoSourceExampleOnly) return;
 // The first Host process has exited: no live Local installation still owns
 // its Store. Restore retained Results in a new process without resubmission.
 // Narrow selections without the String fixture have no retained String Run.
 // Keep restart acceptance for full/source-free selections that create it.
 if (!process.argv.some(flag => ['--alias-scope-only', '--infer-refusal-only',
-  '--join-order-only', '--query-composition-only', '--pipe-result-only', '--relation-data-only',
-  '--two-source-only'].includes(flag))) {
+  '--join-order-only', '--query-composition-only', '--pipe-result-only',
+  '--relation-data-only', '--data-set-strategy-only', '--two-source-only'].includes(flag))) {
   console.log(run(process.execPath, ['string-values-restart.mjs'], root,
     runtimeEnvironment, 120000).trimEnd());
 }
 if (process.argv.includes('--source-free-only') ||
+  process.argv.includes('--data-set-strategy-only') ||
   process.argv.includes('--query-composition-only') ||
   process.argv.includes('--pipe-result-only') ||
   process.argv.includes('--relation-data-only') ||

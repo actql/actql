@@ -1671,6 +1671,74 @@ pub fn client_program_prepare_duckdb_broad_acquisition(
 }
 
 ///|
+#export_name("clientProgramDuckDBAcquisitionEstimate")
+pub fn client_program_duckdb_acquisition_estimate(
+  work_slots : Array[Array[Int]],
+  milliseconds : Array[Int64?],
+  quantities : Array[Int64?],
+) -> Result[
+  @client_local_host.ClientDuckDBAcquisitionEstimate,
+  @client_local_host.ClientDuckDBAcquisitionIssue,
+] {
+  @client_local_host.client_duckdb_acquisition_estimate(
+    work_slots, milliseconds, quantities,
+  )
+}
+
+///|
+#export_name("clientProgramSelectDuckDBAcquisition")
+pub fn client_program_select_duckdb_acquisition(
+  requirement : @planning.QueryRequirement,
+  database_schema : String,
+  table : String,
+  query_contract_body : String,
+  evidence_contract_body : String,
+  two_receipt_contract_body : String,
+  native_estimate : @client_local_host.ClientDuckDBAcquisitionEstimate,
+  broad_estimate : @client_local_host.ClientDuckDBAcquisitionEstimate,
+  priority : Array[String],
+) -> Result[
+  @client_local_host.ClientDuckDBAcquisitionSelection,
+  @client_local_host.ClientDuckDBAcquisitionIssue,
+] {
+  @client_local_host.select_client_duckdb_acquisition(
+    requirement,
+    database_schema,
+    table,
+    query_contract_body,
+    evidence_contract_body,
+    two_receipt_contract_body,
+    native_estimate,
+    broad_estimate,
+    host_priority=if priority.is_empty() { None } else { Some(priority) },
+  )
+}
+
+///|
+#export_name("clientProgramDuckDBSelectionNative")
+pub fn client_program_duckdb_selection_native(
+  selected : @client_local_host.ClientDuckDBAcquisitionSelection,
+) -> @duckdb_host.NativeHostConfiguration? {
+  @client_local_host.client_duckdb_selection_native(selected)
+}
+
+///|
+#export_name("clientProgramDuckDBSelectionBroad")
+pub fn client_program_duckdb_selection_broad(
+  selected : @client_local_host.ClientDuckDBAcquisitionSelection,
+) -> @duckdb_host.BroadHostConfiguration? {
+  @client_local_host.client_duckdb_selection_broad(selected)
+}
+
+///|
+#export_name("clientProgramDuckDBSelectionDocument")
+pub fn client_program_duckdb_selection_document(
+  selected : @client_local_host.ClientDuckDBAcquisitionSelection,
+) -> String {
+  @client_local_host.client_duckdb_selection_document(selected)
+}
+
+///|
 #export_name("clientProgramDuckDBNativeCandidateUnavailable")
 pub fn client_program_duckdb_native_candidate_unavailable(
   outcome : Result[
