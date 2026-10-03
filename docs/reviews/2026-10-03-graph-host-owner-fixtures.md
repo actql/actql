@@ -1,4 +1,4 @@
-# Graph Host owner fixture reuse: pre-integration result
+# Graph Host owner fixture reuse: integration status
 
 Baseline: `b18632b65570713e36c0a83e8afd0063bc37a5c3` (`origin/main` when this worktree was created).
 Branch: `test/graph-host-owner-fixtures`.
@@ -81,15 +81,42 @@ Earlier unsuccessful attempts also remain separate. The first sandbox invocation
 could not inspect the wrapper's owned process group; no test success is claimed
 for that invocation. Narrow reruns followed concrete test-fixture corrections.
 
-## Deferred until B/D integration
+## Main integration and focused acceptance
 
-At the end of this stage #242 and #246 remained open. No push was made.
+The pre-integration results above belong to `afa3e2ac1a8ae5f35c64046cc59088add5050ffe`.
+After #242 and #246 reached main, this branch normally merged
+`11fde3441fdcf0766c583c5173ccf8e788a09751` with no conflicts. Existing product
+owners, CI cost controls, declarations, supplements and introduction history
+were retained. No alternate JSON composition path or compatibility fallback
+was added.
+
+The first light history check rejected the actual #246 main merge because its
+workflow resolution declaration was missing. The added
+`main-json-composition-246-resolution.json` binds that merge's two ordered
+parents, its single merge base, workflow blob digests and modes, and 34 inherited
+declaration dependencies. It changes no workflow bytes or validator rules.
+The same source-bound declaration is also carried by #267.
+
+At `7d26f502bedbf7773d85aabfc562bb990a330149`, the existing Git-only history
+validator passed and the bounded JS Graph Host selection passed 4/4. Its new
+evidence is `_build/focused-evidence/focused-test-IS1mMx` and
+`_build/local-checks/attempts/run-8GOM7e`. No broad local campaign or old CI rerun
+was added for integration. This documentation update changes none of those
+tested source bytes. Fresh submitted-head PR CI is recorded in the PR.
+
+## Remaining mutation acceptance
+
 Production mutations remain unexecuted: early scratch release during pending
 cleanup, double holding credit, and release before the remaining consumer ends.
-Each must be exercised separately in an isolated copy after integration, with
+Each must be exercised separately in an isolated copy, with
 failure at the corresponding intermediate invariant and restored success.
 Final-zero alone is not the double-credit detection criterion.
 
+The current producer port remains open until both consumers close. The two
+MATCH pilot cases still need an intermediate producer-port close while the
+second consumer retains its input before claiming detection of a missing
+consumer-retention guard. Existing normal cases must remain unchanged.
+
 Mutation detection is incomplete. Wasm/native execution, broader validation,
-post-integration source correspondence and exact submitted-SHA CI remain pending.
+and exact submitted-SHA CI remain pending.
 No existing tests have been removed.
