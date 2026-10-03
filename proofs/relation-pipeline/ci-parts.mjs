@@ -25,7 +25,7 @@ export const partStages = Object.freeze({
 const targets = ['js','wasm','native'], prefix = '.artifacts/relation-pipeline/';
 const encode = value => `${JSON.stringify(value, null, 2)}\n`;
 const hex = /^[0-9a-f]{64}$/u;
-const receiptPattern = /^(L-[CM][01])-[0-9]+-[0-9]+-[0-9]{4}-[A-Za-z0-9_-]+\.json$/u;
+const receiptPattern = /^(L-[CM][01])-[0-9a-z]+-[0-9a-z]+-[0-9]{4,5}-[A-Za-z0-9_-]+\.json$/u;
 function reader(directory) {
   const local = path => {
     assert(path.startsWith(prefix), 'Non-local evidence reference');
@@ -118,7 +118,7 @@ export function inspectPart(directory, partId, expected) {
     assert(!/^L-[CM][01]-/u.test(file.path) || file.path.startsWith(`${partId}-`),'Foreign part payload');
     const common=['current-foundation.json','session-model.log','chain-model.log'].includes(file.path)
       || /^sources\/[0-9a-f]{64}\.json$/u.test(file.path)
-      || new RegExp(`^${partId}-[0-9]+-[0-9]+-[0-9]{4}-[A-Za-z0-9_-]+\\.(json|inputs\\.json|fixture\\.mbt|log)$`,'u').test(file.path);
+      || new RegExp(`^${partId}-[0-9a-z]+-[0-9a-z]+-[0-9]{4,5}-[A-Za-z0-9_-]+\\.(json|inputs\\.json|fixture\\.mbt|log)$`,'u').test(file.path);
     const owned=partFamily(partId)==='capacity'
       ? (partId==='L-C0' ? file.path.startsWith('capacity/') : file.path.startsWith('capacity/binaries/') || file.path===`capacity/parts/${partId}.json`) || (partId==='L-C0' && (targets.some(t=>file.path===`${t}.json`) || file.path.startsWith('final-artifacts/')))
       : ['exploration-decision.json',`base-js-${partId}.json`,`fixed-mutations-${partId}.json`,...(expected.exploration.required?[`mutations-${partId}.json`]:[])].includes(file.path);
