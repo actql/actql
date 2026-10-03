@@ -242,6 +242,7 @@ fn start_remote_completion_test_execution(
         cancel: fn() { () },
         dispose: fn() { () },
         settled: fn() { settled.val = true },
+        scratch_released: fn() { true },
         retention_released: fn() { true },
         released: fn() { () },
         ready: fn() {

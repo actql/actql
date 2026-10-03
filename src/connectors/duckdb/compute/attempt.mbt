@@ -38,13 +38,15 @@ struct DuckDBComputeAttempt {
   input_streams : Array[@duckdb.FixedImportStream?]
   mut input_demand : @duckdb.FixedImportDemand?
   mut join_validation : @execution.FixedJoinValidation?
-  join_stream : @execution.FixedJoinStream?
+  mut join_stream : @execution.FixedJoinStream?
   transport_matches : (DuckDBComputeAttempt) -> Bool
   mut receiving : @duckdb.FixedComputeReceiving?
   mut receipt : @duckdb.FixedComputeReceipt?
   mut measured : @execution.FixedProducerMeasuredOutput?
   mut demand : @duckdb.FixedComputeDemand?
   mut completed : Bool
+  mut completed_measurement_usage : (Int, Int, Int)?
+  mut completed_demand_usage : @duckdb.FixedComputeDemandUsage?
   // Sealed only after the trusted completion port accepts the exact rows.
   // Retention belongs to this Compute, not to its input's future availability.
   mut completed_rows : @execution.AdmittedOutputRows?
@@ -170,6 +172,8 @@ pub fn start_duckdb_compute_attempt(
     measured: None,
     demand: None,
     completed: false,
+    completed_measurement_usage: None,
+    completed_demand_usage: None,
     completed_rows: None,
     streaming: false,
     retained_required,
@@ -197,6 +201,9 @@ pub fn duckdb_compute_attempt_plan(
 pub fn duckdb_compute_measurement_usage(
   value : DuckDBComputeAttempt,
 ) -> (Int, Int, Int)? {
+  if value.completed_measurement_usage is Some(usage) {
+    return Some(usage)
+  }
   match (value.stream_measured, value.measured) {
     (Some(measured), _) =>
       Some(@execution.fixed_producer_stream_measurement_usage(measured))
@@ -211,6 +218,9 @@ pub fn duckdb_compute_measurement_usage(
 pub fn duckdb_compute_demand_usage(
   value : DuckDBComputeAttempt,
 ) -> @duckdb.FixedComputeDemandUsage? {
+  if value.completed_demand_usage is Some(usage) {
+    return Some(usage)
+  }
   match (value.stream_demand, value.demand) {
     (Some(demand), _) => Some(@duckdb.fixed_compute_stream_demand_usage(demand))
     (_, Some(demand)) => Some(@duckdb.fixed_compute_demand_usage(demand))
@@ -414,6 +424,7 @@ fn complete_duckdb_compute_impl(
     Ok(output) => {
       value.completed_rows = Some(rows)
       value.completed = true
+      release_duckdb_compute_scratch(value)
       Ok(output)
     }
     Err(issue) => Err(Completion(issue))
@@ -429,28 +440,68 @@ pub fn abort_duckdb_compute_attempt(value : DuckDBComputeAttempt) -> Unit {
 }
 
 ///|
-pub fn close_duckdb_compute_attempt(value : DuckDBComputeAttempt) -> Unit {
-  value.live = false
-  value.retained_live.val = false
+/// Drop verification/receiving workspace references after output ownership has
+/// moved to the independent holding, or during disposal. This is reference
+/// release, not a physical GC acknowledgement or retained-file release.
+fn release_duckdb_compute_scratch(value : DuckDBComputeAttempt) -> Unit {
+  if value.completed {
+    // Preserve actual accounting observations without retaining receipt/buffer
+    // graphs merely to report scalar usage after successful completion.
+    value.completed_measurement_usage = duckdb_compute_measurement_usage(value)
+    value.completed_demand_usage = duckdb_compute_demand_usage(value)
+  }
   if value.join_stream is Some(stream) {
     @execution.cancel_fixed_join_stream(stream)
   }
-  for stream in value.input_streams {
+  value.join_stream = None
+  for index, stream in value.input_streams {
     if stream is Some(stream) {
       @duckdb.cancel_fixed_import_stream(stream) |> ignore
     }
+    value.input_streams[index] = None
   }
+  value.join_validation = None
   value.input_demand = None
   value.stream_receipt = None
   value.stream_measured = None
   value.stream_demand = None
-  value.pending_material = None
-  value.completed_rows = None
-  if value.receiving is Some(receiving) {
+  if !value.completed && value.receiving is Some(receiving) {
     @duckdb.abort_fixed_compute_receiving(receiving)
   }
+  // The successful immutable rows/material have moved to their own holding.
+  // Drop the receiver reference without cancelling that accepted payload.
+  value.receiving = None
   value.receipt = None
   value.measured = None
   value.demand = None
+}
+
+///|
+/// Observe this exact attempt's released verification workspace. Successful
+/// output rows/material remain independently held; stop alone is insufficient.
+pub fn duckdb_compute_scratch_released(value : DuckDBComputeAttempt) -> Bool {
+  (value.completed || !value.live) &&
+  value.input_streams.all(stream => stream is None) &&
+  value.join_stream is None &&
+  value.join_validation is None &&
+  value.input_demand is None &&
+  value.stream_receipt is None &&
+  value.stream_measured is None &&
+  value.stream_demand is None &&
+  value.receiving is None &&
+  value.receipt is None &&
+  value.measured is None &&
+  value.demand is None
+}
+
+///|
+pub fn close_duckdb_compute_attempt(value : DuckDBComputeAttempt) -> Unit {
+  value.live = false
+  value.retained_live.val = false
+  release_duckdb_compute_scratch(value)
+  value.pending_material = None
+  value.completed_rows = None
   value.completed = false
+  value.completed_measurement_usage = None
+  value.completed_demand_usage = None
 }

@@ -17,14 +17,24 @@ const reasons = {
   compiler: 'Unpinned compiler declaration',
   'core-js': 'Requested core probe target differs from execution',
   'core-wasm': 'Requested core probe target differs from execution',
+  'custody-js': 'Requested custody target differs from execution',
+  'custody-wasm': 'Requested custody target differs from execution',
 };
-for (const slot of ['healthy', 'js', 'wasm', 'bytes', 'edge', 'history', 'compiler', 'core-js', 'core-wasm']) {
+for (const slot of ['healthy', 'js', 'wasm', 'bytes', 'edge', 'history', 'compiler', 'core-js', 'core-wasm', 'custody-js', 'custody-wasm']) {
   const report = structuredClone(original);
   if (slot === 'bytes') report.claim.unconditionalAllocationBytes = true;
   else if (slot === 'edge') delete report.mutations.find(m => m.name === 'handoff-copy-without-accounting').anchor.receiver;
   else if (slot === 'history') report.mutations[0].history[0].accepted = -2;
   else if (slot === 'compiler') report.toolchain.version += '-unreviewed';
   else if (slot.startsWith('core-')) report.backingCore.runs[slot.slice(5)] = structuredClone(report.backingCore.runs.native);
+  else if (slot.startsWith('custody-')) {
+    for (const entry of report.custody.records.filter(entry => entry.target === slot.slice(8))) {
+      const native = report.custody.records.find(other => other.target === 'native' && other.mode === entry.mode);
+      // Preserve the independently requested slot; point to the untouched,
+      // internally consistent native receipt/artifact/command/log instead.
+      entry.path = native.path; entry.digest = native.digest;
+    }
+  }
   else if (slot !== 'healthy') {
     // Keep every native receipt, source, artifact and log internally valid.
     report.normal[slot] = report.normal.native;
