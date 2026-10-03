@@ -10,14 +10,47 @@ import {acquireLocalLocks, checkBudget, durationSeconds, lockDirectory,
 
 const guard = new URL('./local-checks-guard.mjs', import.meta.url).href;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+// Normal cancellation must allow a process exit, pipe EOF and the supervisor's
+// bounded (up to 2s) ps inspection. This is fixture-only, not a production change.
+const cancellationGraceSeconds = 3;
+// These ordering tests need time to start both Node processes and observe their
+// readiness/exit records. Timeout still fires through the real production timer.
+const cancellationTimeoutSeconds = 3;
 function fixture(t) {
   const directory = realpathSync(mkdtempSync(join(tmpdir(), 'actql-local-guard-')));
-  t.after(() => rmSync(directory, {recursive: true, force: true}));
+  const runs = [];
+  t.after(async () => {
+    // Only signal caller handles owned by this fixture. Their supervisors retain
+    // responsibility for process-group cancellation and its finite TERM grace.
+    for (const {child} of runs) {
+      if (child.exitCode === null && child.signalCode === null) child.kill('SIGINT');
+    }
+    const outcomes = await Promise.allSettled(runs.map(run => run.done));
+    const cleanupFailure = outcomes.find(result => result.status === 'rejected');
+    // passed/error are TestContext APIs present since Node 20.12/21.7.
+    if (t.passed === true && !cleanupFailure) {
+      rmSync(directory, {recursive: true, force: true});
+      return;
+    }
+    const error = t.error?.cause ?? t.error ?? cleanupFailure?.reason;
+    writeFileSync(join(directory, 'failure.json'), JSON.stringify({
+      test: t.name, error: String(error?.stack ?? error).slice(0, 16384),
+      callers: outcomes.map((result, index) => {
+        if (result.status === 'rejected') return {pid: runs[index].child.pid, error: String(result.reason)};
+        const {code, signal, stdout, stderr} = result.value;
+        writeFileSync(join(directory, `caller-${index}.stdout`), stdout);
+        writeFileSync(join(directory, `caller-${index}.stderr`), stderr);
+        return {pid: runs[index].child.pid, code, signal};
+      }),
+    }, null, 2) + '\n');
+    t.diagnostic(`Failed local guard fixture retained: ${directory}`);
+    if (cleanupFailure) throw cleanupFailure.reason;
+  }, {timeout: 30000});
   const home = join(directory, 'home'), root = join(directory, 'checkout');
   mkdirSync(home); mkdirSync(root);
   const env = {...process.env, HOME: home};
   delete env.NODE_TEST_CONTEXT;
-  return {directory, home, root, env};
+  return {directory, home, root, env, runs};
 }
 function steps(source) {
   return [{name: 'fixture', command: process.execPath, args: ['-e', source]}];
@@ -36,7 +69,9 @@ function start(f, options = {}, extraEnv = {}) {
     child.once('error', reject);
     child.once('close', (code, signal) => resolve({code, signal, stdout, stderr}));
   });
-  return {child, done};
+  const run = {child, done};
+  f.runs.push(run);
+  return run;
 }
 async function until(predicate) {
   const deadline = Date.now() + 10_000;
@@ -62,25 +97,52 @@ const locateEvidence = `const fs = require('fs'), path = require('path');
 // Node's spawn(..., stdio: 'pipe') may use socket pairs. Shell pipelines give
 // both supervisor streams actual pipes, checked by each receiver with fstat.
 function pipedRun(f, {exitCode = 0, failEvidence = false, stdout = 'drain',
-  stderr = 'drain', cancellation, outputBytes = 200000, failFinalEvidence = false} = {}) {
+  stderr = 'drain', cancellation, outputBytes = 200000, failFinalEvidence = false,
+  cancelBeforeReady = false} = {}) {
   const caller = join(f.directory, 'caller.mjs'), receiver = join(f.directory, 'receiver.cjs');
   const ready = join(f.directory, 'output-ready'), done = join(f.directory, 'caller-done');
+  const release = join(f.directory, 'release-handler'), handlerReady = join(f.directory, 'handler-ready');
+  const events = join(f.directory, 'cancellation-events');
+  const eventSource = `const event = value => fs.appendFileSync(${JSON.stringify(events)}, JSON.stringify(value) + '\\n');`;
   const source = locateEvidence + `
-    ${cancellation ? "process.on('SIGTERM', () => process.exit(7)); setInterval(() => {}, 1000);" : ''}
+    ${cancellation ? eventSource + `
+      // Hold handler installation behind an explicit gate. The negative control
+      // cancels at output readiness while this gate is still closed.
+      setInterval(() => {}, 1000);
+      const poll = setInterval(() => {
+        if (!fs.existsSync(${JSON.stringify(release)})) return;
+        clearInterval(poll);
+        process.on('SIGTERM', () => {
+          const record = JSON.parse(fs.readFileSync(path.join(attempt, 'summary.json')));
+          event({event: 'TERM', status: record.status, code: record.steps[0].code ?? null});
+          process.exit(7);
+        });
+        event({event: 'handler-ready'});
+        fs.writeFileSync(${JSON.stringify(handlerReady)}, 'ready');
+      }, 10);` : ''}
     process.stdout.write('o'.repeat(${outputBytes}), () => {
       process.stderr.write('e'.repeat(${outputBytes}), () => {
         ${failEvidence ? "const target = path.join(attempt, 'output.log'); fs.renameSync(target, target + '.saved'); fs.writeFileSync(target, 'replacement bytes');" : ''}
+        ${cancellation ? "event({event: 'output-ready'});" : ''}
         fs.writeFileSync(${JSON.stringify(ready)}, 'ready'); process.exitCode = ${exitCode};
       });
     });`;
   writeFileSync(caller, `import {runLocalCheck} from ${JSON.stringify(guard)};
-    import {existsSync, writeFileSync} from 'node:fs';
+    import fs, {existsSync, writeFileSync} from 'node:fs';
     const abort = new AbortController();
-    ${cancellation === 'caller' ? `const poll = setInterval(() => {
-      if (existsSync(${JSON.stringify(ready)})) { clearInterval(poll); abort.abort(); }
-    }, 20);` : ''}
+    ${cancellation ? eventSource + `
+      const poll = setInterval(() => {
+        if (!existsSync(${JSON.stringify(ready)})) return;
+        ${cancelBeforeReady ? `
+          clearInterval(poll); event({event: 'caller-cancel'}); abort.abort();` : `
+          if (!existsSync(${JSON.stringify(release)})) writeFileSync(${JSON.stringify(release)}, 'release');
+          if (!existsSync(${JSON.stringify(handlerReady)})) return;
+          clearInterval(poll);
+          ${cancellation === 'caller' ? "event({event: 'caller-cancel'}); abort.abort();" : ''}`}
+      }, 20);` : ''}
     const config = ${JSON.stringify({root: f.root, heavy: true,
-      timeoutSeconds: cancellation === 'timeout' ? 0.5 : 10, graceSeconds: 0.2,
+      timeoutSeconds: cancellation === 'timeout' ? cancellationTimeoutSeconds : 10,
+      graceSeconds: cancellation ? cancellationGraceSeconds : 0.2,
       steps: steps(source)})};
     config.steps[0].name = 'd'.repeat(200000);
     process.exitCode = await runLocalCheck(config, {signal: abort.signal});
@@ -131,7 +193,8 @@ function pipedRun(f, {exitCode = 0, failEvidence = false, stdout = 'drain',
   assert.equal(result.error, undefined, 'caller delivery must not need the external kill bound');
   assert.equal(result.signal, null);
   return {...result, elapsed: performance.now() - started,
-    stdout: readFileSync(out), stderr: readFileSync(err, 'utf8')};
+    stdout: readFileSync(out), stderr: readFileSync(err, 'utf8'),
+    events: existsSync(events) ? readFileSync(events, 'utf8').trim().split('\n').map(JSON.parse) : []};
 }
 
 function assertFullCallerOutput(bytes) {
@@ -225,12 +288,107 @@ for (const cancellation of ['timeout', 'caller']) {
     const record = summary(attempts(f)[0]);
     assert.equal(record.exitCode, expected);
     assert.equal(record.steps[0].code, 7);
-    assert.equal(record.status, cancellation === 'timeout' ? 'timeout' : 'interrupted');
+    assert.equal(record.steps[0].signal, null);
+    const status = cancellation === 'timeout' ? 'timeout' : 'interrupted';
+    assert.equal(record.status, status);
+    assert.deepEqual(result.events, [
+      {event: 'output-ready'}, {event: 'handler-ready'},
+      ...(cancellation === 'caller' ? [{event: 'caller-cancel'}] : []),
+      {event: 'TERM', status, code: null},
+    ], 'cancellation is established after readiness and before the direct exit');
+    assert.equal(record.steps[0].streamsComplete, true);
+    assert.equal(record.outputComplete, true);
     assert.equal(record.callerOutputComplete, false);
+    assert.equal(record.complete, false);
+    assert.equal(record.locksReleased, true);
+    assert.ok(record.errors.some(error => error.stage === 'stderr forwarding'));
     assertFullCallerOutput(result.stdout);
+    assert.deepEqual(result.stdout, readFileSync(join(attempts(f)[0], 'output.log')));
     assert.deepEqual(locks(f), []);
   });
 }
+
+test('caller cancellation before handler readiness records SIGTERM instead of a handler exit', t => {
+  const f = fixture(t), result = pipedRun(f, {
+    stderr: 'closed', cancellation: 'caller', cancelBeforeReady: true,
+  });
+  const record = summary(attempts(f)[0]);
+  assert.equal(result.status, 130);
+  assert.deepEqual(result.events, [{event: 'output-ready'}, {event: 'caller-cancel'}]);
+  assert.equal(record.exitCode, 130);
+  assert.equal(record.status, 'interrupted');
+  assert.equal(record.steps[0].code, null);
+  assert.equal(record.steps[0].signal, 'SIGTERM');
+  assert.equal(record.steps[0].streamsComplete, true);
+  assert.equal(record.outputComplete, true);
+  assert.equal(record.callerOutputComplete, false);
+  assert.equal(record.complete, false);
+  assert.equal(record.locksReleased, true);
+  assertFullCallerOutput(result.stdout);
+  assert.deepEqual(result.stdout, readFileSync(join(attempts(f)[0], 'output.log')));
+  assert.deepEqual(locks(f), []);
+});
+
+test('failed fixtures retain actual evidence and reap owned callers; successful fixtures are removed', async t => {
+  const f = fixture(t), harness = join(f.directory, 'retention.test.mjs');
+  const paths = join(f.directory, 'fixture-paths.json');
+  const unrelatedReady = join(f.root, 'unrelated-ready');
+  const unrelated = start(f, {graceSeconds: cancellationGraceSeconds, steps: steps(`
+    require('fs').writeFileSync(${JSON.stringify(unrelatedReady)}, String(process.pid));
+    setInterval(() => {}, 1000);`)});
+  await until(() => existsSync(unrelatedReady));
+  // Exercise a real failing child test and real Node outcome APIs, without
+  // failing this suite or importing/re-running its other test definitions.
+  writeFileSync(harness, `import assert from 'node:assert/strict';
+    import {spawn} from 'node:child_process';
+    import {existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync} from 'node:fs';
+    import {tmpdir} from 'node:os'; import {join} from 'node:path'; import test from 'node:test';
+    const guard = ${JSON.stringify(guard)};
+    const sleep = ${sleep.toString()};
+    ${[fixture, steps, start, until].map(fn => fn.toString()).join('\n')}
+    const paths = {};
+    test('intentional fixture failure', async t => {
+      assert.equal(typeof t.passed, 'boolean');
+      const f = fixture(t); paths.failed = f.directory;
+      writeFileSync(${JSON.stringify(paths)}, JSON.stringify(paths));
+      const marker = join(f.root, 'owned-pid');
+      start(f, {graceSeconds: ${cancellationGraceSeconds}, steps: steps(
+        "process.stdout.write('before fixture assertion' + String.fromCharCode(10), () => {" +
+        "require('fs').writeFileSync(" + JSON.stringify(marker) + ", String(process.pid));});" +
+        "setInterval(() => {}, 1000);")});
+      await until(() => existsSync(marker));
+      assert.fail('intentional fixture assertion');
+    });
+    test('intentional fixture success', async t => {
+      const f = fixture(t); paths.passed = f.directory;
+      writeFileSync(${JSON.stringify(paths)}, JSON.stringify(paths));
+      assert.equal((await start(f).done).code, 0);
+    });`);
+  const result = spawnSync(process.execPath, ['--test', harness],
+    {env: f.env, encoding: 'utf8', timeout: 20000});
+  assert.equal(result.error, undefined);
+  assert.equal(result.status, 1, result.stderr);
+  const retained = JSON.parse(readFileSync(paths));
+  t.after(() => { if (t.passed) rmSync(retained.failed, {recursive: true, force: true}); });
+  assert.ok(result.stdout.includes(`Failed local guard fixture retained: ${retained.failed}`));
+  assert.equal(existsSync(retained.passed), false, 'successful fixture cleanup is unchanged');
+  const failed = {root: join(retained.failed, 'checkout')};
+  const [evidence] = attempts(failed), record = summary(evidence);
+  const failure = JSON.parse(readFileSync(join(retained.failed, 'failure.json')));
+  assert.match(failure.error, /intentional fixture assertion/u);
+  assert.equal(record.status, 'interrupted');
+  assert.equal(record.exitCode, 130);
+  assert.equal(record.locksReleased, true);
+  assert.equal(record.steps[0].streamsComplete, true);
+  assert.equal(readFileSync(join(evidence, 'output.log'), 'utf8'), 'before fixture assertion\n');
+  assert.equal(readFileSync(join(retained.failed, 'caller-0.stdout'), 'utf8'), 'before fixture assertion\n');
+  assert.equal(failure.callers[0].code, 130);
+  assert.equal(Boolean(live(failure.callers[0].pid)), false);
+  assert.equal(Boolean(live(Number(readFileSync(join(failed.root, 'owned-pid'))))), false);
+  assert.equal(Boolean(live(Number(readFileSync(unrelatedReady)))), true, 'another fixture is not signalled');
+  unrelated.child.kill('SIGINT');
+  assert.equal((await unrelated.done).code, 130);
+});
 
 test('budgets come from workflow or explicit positive timer-safe seconds', () => {
   assert.equal(checkBudget(undefined, 30), 1800);
@@ -518,8 +676,19 @@ for (const exitCode of [0, 7]) {
   for (const [cancellation, resistant] of [['timeout', false], ['timeout', true], ['caller', false], ['caller', true]]) {
     test(`inherited pipes retain direct exit ${exitCode} before ${cancellation} cancellation and TERM resistance ${resistant}`, async t => {
       const f = fixture(t), pidFile = join(f.root, 'descendant-pid');
-      const descendant = `${resistant ? "process.on('SIGTERM',()=>{});" : ''}
-        process.send('ready'); setTimeout(()=>{}, 3000);`;
+      const termObserved = join(f.root, 'descendant-TERM');
+      const descendant = locateEvidence + `
+        process.on('SIGTERM', () => {
+          const record = JSON.parse(fs.readFileSync(path.join(attempt, 'summary.json')));
+          fs.writeFileSync(${JSON.stringify(termObserved)}, JSON.stringify({
+            status: record.status, code: record.steps[0].code,
+            streamsComplete: record.steps[0].streamsComplete,
+          }));
+          ${resistant ? '' : 'process.exit(0);'}
+        });
+        // Resistance, not a short grace or a self-expiring timer, forces KILL.
+        // Readiness proves this handler is installed before the direct exit.
+        process.send('ready'); setInterval(()=>{}, 1000);`;
       const source = `const {spawn} = require('child_process');
         const child = spawn(process.execPath, ['-e', ${JSON.stringify(descendant)}],
           {stdio: ['ignore', 'inherit', 'inherit', 'ipc']});
@@ -528,8 +697,8 @@ for (const exitCode of [0, 7]) {
           child.disconnect(); child.unref(); console.log('direct stdout'); console.error('direct stderr');
           process.exit(${exitCode});
         });`;
-      const run = start(f, {timeoutSeconds: cancellation === 'timeout' ? 0.7 : 3,
-        graceSeconds: 0.15, steps: steps(source)});
+      const run = start(f, {timeoutSeconds: cancellation === 'timeout' ? cancellationTimeoutSeconds : 10,
+        graceSeconds: cancellationGraceSeconds, steps: steps(source)});
       let pending, result;
       try {
         await until(() => {
@@ -543,6 +712,7 @@ for (const exitCode of [0, 7]) {
           }
         });
         assert.equal(pending.complete, false);
+        assert.equal(pending.status, exitCode ? 'failed' : 'running', 'direct exit precedes cancellation');
         assert.equal(pending.steps[0].streamsComplete, false);
         assert.equal(pending.steps[0].status, exitCode ? 'failed' : 'draining');
         assert.ok(pending.steps[0].exitedAt);
@@ -555,6 +725,11 @@ for (const exitCode of [0, 7]) {
       assert.equal(record.complete, false);
       assert.equal(record.exitCode, expected);
       assert.equal(record.steps[0].code, exitCode);
+      assert.equal(record.steps[0].signal, null);
+      assert.deepEqual(JSON.parse(readFileSync(termObserved)), {
+        status: cancellation === 'timeout' ? 'timeout' : 'interrupted',
+        code: exitCode, streamsComplete: false,
+      }, 'TERM observes an already-persisted direct exit, before inherited pipes close');
       assert.equal(record.steps[0].streamsComplete, !resistant);
       assert.equal(Boolean(live(Number(readFileSync(pidFile)))), false);
       assert.match(readFileSync(join(attempts(f)[0], 'output.log'), 'utf8'), /direct stdout/u);
@@ -578,16 +753,23 @@ for (const cancellation of ['timeout', 'caller']) {
   for (const resistant of [false, true]) {
     test(`${cancellation} cancellation keeps its status when a later TERM handler exits 7, with descendant resistance ${resistant}`, async t => {
       const f = fixture(t), ready = join(f.root, 'ready');
+      const termObserved = join(f.root, 'direct-TERM');
       const descendant = `${resistant ? "process.on('SIGTERM',()=>{});" : ''}
-        process.send('ready'); setTimeout(()=>{}, 3000);`;
-      const source = `process.on('SIGTERM', () => { console.log('TERM handler exits 7'); process.exit(7); });
+        process.send('ready'); setInterval(()=>{}, 1000);`;
+      const source = locateEvidence + `process.on('SIGTERM', () => {
+          const record = JSON.parse(fs.readFileSync(path.join(attempt, 'summary.json')));
+          fs.writeFileSync(${JSON.stringify(termObserved)}, JSON.stringify({
+            status: record.status, code: record.steps[0].code ?? null,
+          }));
+          console.log('TERM handler exits 7'); process.exit(7);
+        });
         const child = require('child_process').spawn(process.execPath, ['-e', ${JSON.stringify(descendant)}],
           {stdio: ['ignore', 'inherit', 'inherit', 'ipc']});
         child.once('message', () => {
           require('fs').writeFileSync(${JSON.stringify(ready)}, JSON.stringify([process.pid, child.pid]));
         });`;
-      const run = start(f, {timeoutSeconds: cancellation === 'timeout' ? 0.7 : 3,
-        graceSeconds: 0.15, steps: steps(source)});
+      const run = start(f, {timeoutSeconds: cancellation === 'timeout' ? cancellationTimeoutSeconds : 10,
+        graceSeconds: cancellationGraceSeconds, steps: steps(source)});
       let result;
       try {
         await until(() => existsSync(ready));
@@ -598,6 +780,9 @@ for (const cancellation of ['timeout', 'caller']) {
       const record = summary(attempts(f)[0]);
       assert.equal(record.exitCode, expected);
       assert.equal(record.steps[0].code, 7, 'late direct exit remains diagnostic evidence');
+      assert.deepEqual(JSON.parse(readFileSync(termObserved)), {
+        status: cancellation === 'timeout' ? 'timeout' : 'interrupted', code: null,
+      }, 'cancellation is persisted before the TERM handler exits');
       assert.equal(record.steps[0].status, 'failed');
       assert.ok(record.steps[0].exitedAt);
       assert.equal(record.steps[0].streamsComplete, !resistant);
