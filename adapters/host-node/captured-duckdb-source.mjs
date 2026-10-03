@@ -222,14 +222,13 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
   const {acquisition, broad, selection} = authorizedSelection ?? owner;
   let capture;
   try {
-    if (ledger !== undefined && broad) {
-      throw new Error('InstalledMultiSourceNativeAcquisitionRequired');
-    }
-    capture = ledger === undefined
-      ? await (broad ? runBroadHostQuery : runNativeHostQuery)(
-        grant, acquisition, owner.transportLimits, signal, moon)
-      : await runStrategyNativeHostQuery(grant, acquisition, ledger,
-        owner.transportLimits, signal);
+    capture = broad
+      ? await runBroadHostQuery(grant, acquisition, owner.transportLimits,
+        signal, moon, ledger)
+      : ledger === undefined
+        ? await runNativeHostQuery(grant, acquisition, owner.transportLimits, signal)
+        : await runStrategyNativeHostQuery(grant, acquisition, ledger,
+          owner.transportLimits, signal);
   } catch (cause) {
     const ended = acquisitionOutcome(cause);
     failAcquisition(cause, cause instanceof
@@ -239,8 +238,10 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
   try {
     const capturedSource = capture.source();
     if ((owner.effectful
-      ? moon.clientProgramEffectCapturedSourceMatches(owner.checkedOwner,
-        capturedSource)
+      ? (owner.occurrence.task === 0
+        ? moon.clientProgramEffectCapturedSourceMatches(owner.checkedOwner, capturedSource)
+        : moon.clientProgramEffectCapturedSourceMatchesAt(owner.checkedOwner,
+          capturedSource, owner.occurrence.task))
       : moon.clientProgramCapturedTaskSourceMatches(owner.checkedOwner,
         capturedSource, owner.occurrence.task)) !== true) {
       throw new Error('InstalledSourceProgramMismatch');
@@ -252,8 +253,11 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
       throw new Error('InstalledSourceObservationMismatch');
     }
     const logicalInput = checked(owner.effectful
-      ? moon.clientProgramEffectIssueCapturedSourceLogical(owner.checkedOwner,
-        capturedSource, identity, requirement)
+      ? (owner.occurrence.task === 0
+        ? moon.clientProgramEffectIssueCapturedSourceLogical(owner.checkedOwner,
+          capturedSource, identity, requirement)
+        : moon.clientProgramEffectIssueCapturedSourceLogicalAt(owner.checkedOwner,
+          capturedSource, identity, requirement, owner.occurrence.task))
       : moon.clientProgramIssueCapturedTaskSourceLogical(owner.checkedOwner,
         capturedSource, identity, requirement, owner.occurrence.task));
     // An Effect Run is opened only after durable Run admission. Acquisition
@@ -301,10 +305,24 @@ export async function openCapturedDuckDBSource({moon, preparedProgram,
 // manufacture a configuration or bypass the occurrence owner.
 export function capturedDuckDBNativeConfiguration(prepared) {
   const owner = preparations.get(prepared);
-  if (owner === undefined || owner.broad || owner.effectful || owner.acquisition === undefined) {
+  if (owner === undefined || owner.broad || owner.acquisition === undefined) {
     throw new TypeError('InstalledMultiSourceNativeAcquisitionRequired');
   }
   return owner.acquisition;
+}
+
+// Keep the selected configuration's typed owner. Broad remains Broad, with
+// the existing Client/Local residual represented in capacity admission.
+export function capturedDuckDBConfiguration(prepared) {
+  const owner = preparations.get(prepared);
+  if (owner === undefined) {
+    throw new TypeError('InstalledSourcePreparationMismatch');
+  }
+  if (owner.acquisition === undefined) {
+    throw new TypeError('InstalledSourceSelectionRequired');
+  }
+  return (owner.broad ? owner.moon.clientProgramCapturedBroadConfiguration
+    : owner.moon.clientProgramCapturedNativeConfiguration)(owner.acquisition);
 }
 
 export function capturedDuckDBPhysicalCapacity(prepared) {

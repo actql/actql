@@ -427,13 +427,13 @@ export const queryRefusals = [
   {name: 'missing-alias', text: 'SELECT id FROM unregistered', format: 'sql'},
   {name: 'wrong-language', text: 'FROM records |> SELECT id', format: 'sql'},
 ];
-// These syntactically valid source forms must remain non-executable until
-// the common infer owner exists. Rejection is not a model outcome.
+// This Host installs no ModelTask. Valid INFER syntax cannot grant a missing
+// installation; scope/name failures are separate pre-admission refusals.
 export const inferRefusals = [
-  {name: 'infer-common-owner', format: 'aql-text',
+  {name: 'infer-missing-model-task', format: 'aql-text',
     text: 'FROM records |> INFER `model-task:risk.v1` ITEM KEY (id) '
       + 'INPUT (n = amount) KEEP (id) AS assessment'},
-  {name: 'infer-omitted-keep', format: 'aql-text',
+  {name: 'infer-omitted-keep-missing-model-task', format: 'aql-text',
     text: 'FROM records |> INFER `model-task:risk.v1` ITEM KEY (id) '
       + 'INPUT (n = amount) AS assessment'},
   {name: 'infer-removed-alias', format: 'aql-text',
@@ -514,7 +514,8 @@ export async function exercisePublicQueryInput(connect, options,
       assert.deepEqual((await client.lookupRequest(requestId)).ref, execution.ref);
       assert.deepEqual(await counters(), beforeRead,
         'reading, attaching and resending must not accept or acquire again');
-      await completedCase?.({name, ref: execution.ref, expected, columns});
+      await completedCase?.({name, ref: execution.ref, execution, expected, columns,
+        beforeSubmit, beforeRead});
       console.log(`Public query passed: ${requestPrefix}/${name}`);
       if (name === 'sql') {
         await assert.rejects(execution.result('answer').all({maxRows: 1}),

@@ -15,6 +15,156 @@ const rejects = (repo, options) => assert.throws(() => compose(repo, options),
 const file = (aggregate, path) => aggregate.files.find(entry => entry.path === path);
 const declaration = (aggregate, id) => aggregate.declarations.find(entry => entry.id === id);
 
+function lateResolution(t, { knownBeforeOriginal = false, twoLateGroups = false } = {}) {
+  const repo = new FoundationRepository(t);
+  repo.branch('late');
+  const leftSource = repo.source({ [PACKAGE]: packageBytes({ left: 'node left.mjs' }) });
+  const left = repo.declaration('left-registration', leftSource, [PACKAGE]);
+  repo.record(left);
+  repo.checkout('late');
+  const rightSource = repo.source({ [PACKAGE]: packageBytes({ right: 'node right.mjs' }) });
+  const right = repo.declaration('right-registration', rightSource, [PACKAGE]);
+  const late = [right];
+  if (twoLateGroups) {
+    const next = repo.source({ [PACKAGE]: packageBytes({ right: 'node right.mjs', extra: 'node extra.mjs' }) });
+    late.push(repo.declaration('extra-registration', next, [PACKAGE]));
+  }
+  if (knownBeforeOriginal) repo.record(right);
+  repo.checkout('main');
+  const merge = repo.merge('late', { [PACKAGE]: packageBytes({ left: 'node left.mjs', right: 'node right.mjs',
+    ...(twoLateGroups ? { extra: 'node extra.mjs' } : {}) }) });
+  const original = repo.declaration('original-resolution', merge, [PACKAGE], { kind: 'resolution', inputs: [left.id] });
+  const originalIntroduction = repo.record(original);
+  const originalBytes = readFileSync(join(repo.root, repo.declarationPath(original.id)));
+  for (const value of late) if (!knownBeforeOriginal || value !== right) repo.record(value);
+  const supplement = { version: 'actql-foundation-resolution-supplement/0.1', id: 'complete-late-resolution',
+    target: { id: original.id, digest: sha256(originalBytes) },
+    inputs: late.map(value => value.id).sort(), reason: 'Bind receipts introduced after the immutable original' };
+  const supplementPath = `${DECLARATION_DIRECTORY}-supplements/${supplement.id}.json`;
+  const record = (value = supplement) => {
+    repo.write(supplementPath, `${JSON.stringify(value, null, 2)}\n`);
+    return repo.commit('Append exact late dependency supplement');
+  };
+  return { repo, original, originalIntroduction, originalBytes, supplement, supplementPath, record, right };
+}
+
+test('late receipt supplement closes dependency coverage while preserving original bytes and introduction', t => {
+  const fixture = lateResolution(t);
+  assert.throws(() => compose(fixture.repo), /Incomplete or ambiguous foundation resolution inputs/);
+  const introduction = fixture.record();
+  const aggregate = compose(fixture.repo);
+  const original = declaration(aggregate, fixture.original.id);
+  assert.deepEqual(original.inputs, ['left-registration']);
+  assert.deepEqual(original.introductions, [fixture.originalIntroduction]);
+  assert.equal(original.digest, sha256(fixture.originalBytes));
+  assert.deepEqual(readFileSync(join(fixture.repo.root, original.path)), fixture.originalBytes);
+  assert.deepEqual(aggregate.supplements[0].introductions, [introduction]);
+  assert.deepEqual(aggregate.supplements[0].target, fixture.supplement.target);
+  assert.deepEqual(aggregate.integrations[0].supplements, ['complete-late-resolution']);
+});
+
+for (const [name, edit, pattern] of [
+  ['wrong original digest', value => { value.target.digest = '0'.repeat(64); }, /Changed foundation supplement original/],
+  ['unknown target', value => { value.target.id = 'missing'; }, /supplement target/],
+  ['non-resolution target', value => { value.target.id = 'right-registration'; }, /supplement target/],
+  ['unknown dependency', value => { value.inputs = ['missing']; }, /supplement inputs/],
+  ['self cycle', value => { value.inputs = ['original-resolution']; }, /cyclic foundation supplement dependency/],
+  ['redundant original dependency', value => { value.inputs = ['left-registration', 'right-registration']; }, /Redundant foundation supplement dependency/],
+  ['duplicate dependency', value => { value.inputs.push(value.inputs[0]); }, /Noncanonical foundation supplement inputs/],
+  ['empty dependencies', value => { value.inputs = []; }, /empty foundation supplement inputs/],
+  ['undeclared field', value => { value.bypass = true; }, /foundation supplement fields/],
+]) test(`late receipt supplement rejects ${name}`, t => {
+  const fixture = lateResolution(t);
+  const value = structuredClone(fixture.supplement);
+  edit(value);
+  fixture.record(value);
+  assert.throws(() => compose(fixture.repo), pattern);
+});
+
+test('late receipt supplement rejects omission of one of two required late source groups', t => {
+  const fixture = lateResolution(t, { twoLateGroups: true });
+  fixture.supplement.inputs = [fixture.right.id];
+  fixture.record();
+  assert.throws(() => compose(fixture.repo), /Incomplete or ambiguous foundation resolution inputs/);
+});
+
+test('late receipt supplement cannot excuse an originally visible omitted dependency', t => {
+  const fixture = lateResolution(t, { knownBeforeOriginal: true });
+  fixture.record();
+  assert.throws(() => compose(fixture.repo), /Incomplete original foundation resolution inputs/);
+});
+
+test('late receipt supplement rejects a downstream source dependency', t => {
+  const fixture = lateResolution(t);
+  const source = fixture.repo.source({ [PACKAGE]: packageBytes({ unrelated: 'node unrelated.mjs' }) });
+  const later = fixture.repo.declaration('later-registration', source, [PACKAGE]);
+  fixture.repo.record(later);
+  fixture.supplement.inputs = [later.id];
+  fixture.record();
+  assert.throws(() => compose(fixture.repo), /Non-ancestral or cyclic foundation supplement dependency/);
+});
+
+test('late receipt supplement cannot legitimize a changed original declaration', t => {
+  const fixture = lateResolution(t);
+  fixture.original.inputs.push(fixture.right.id);
+  fixture.repo.record(fixture.original);
+  fixture.supplement.target.digest = sha256(readFileSync(join(fixture.repo.root, fixture.repo.declarationPath(fixture.original.id))));
+  fixture.record();
+  assert.throws(() => compose(fixture.repo), /Changed or removed foundation declaration/);
+});
+
+test('late receipt supplement remains immutable after introduction', t => {
+  const fixture = lateResolution(t);
+  fixture.record();
+  fixture.supplement.reason = 'Rewritten historical review rationale';
+  fixture.record();
+  assert.throws(() => compose(fixture.repo), /Changed or removed foundation declaration/);
+});
+
+test('late receipt supplement survives an unrelated later commit', t => {
+  const fixture = lateResolution(t);
+  const introduction = fixture.record();
+  const before = compose(fixture.repo);
+  fixture.repo.write('unrelated.txt', 'Independent later documentation\n');
+  fixture.repo.commit('Add unrelated documentation after supplementation');
+  const after = compose(fixture.repo);
+  assert.deepEqual(after.supplements, before.supplements);
+  assert.deepEqual(after.supplements.find(value => value.id === fixture.supplement.id).introductions, [introduction]);
+  assert.deepEqual(declaration(after, fixture.original.id), declaration(before, fixture.original.id));
+  assert.equal(after.sourceRevision, fixture.repo.head());
+});
+
+test('late receipt supplement survives another legitimate supplement on a different resolution', t => {
+  const fixture = lateResolution(t);
+  fixture.record();
+  const before = compose(fixture.repo);
+  const repo = fixture.repo;
+  repo.branch('second-late');
+  const leftSource = repo.source({ [CI]: ciBytes(['check:left']) });
+  const left = repo.declaration('second-left-registration', leftSource, [CI]);
+  repo.record(left);
+  repo.checkout('second-late');
+  const rightSource = repo.source({ [CI]: ciBytes(['check:right']) });
+  const right = repo.declaration('second-right-registration', rightSource, [CI]);
+  repo.checkout('main');
+  const merge = repo.merge('second-late', { [CI]: ciBytes(['check:left', 'check:right']) });
+  const original = repo.declaration('second-resolution', merge, [CI], { kind: 'resolution', inputs: [left.id] });
+  repo.record(original);
+  repo.record(right);
+  const originalBytes = readFileSync(join(repo.root, repo.declarationPath(original.id)));
+  const supplement = { version: 'actql-foundation-resolution-supplement/0.1', id: 'complete-second-resolution',
+    target: { id: original.id, digest: sha256(originalBytes) },
+    inputs: [right.id], reason: 'Complete the independent CI resolution without changing existing receipts' };
+  repo.write(`${DECLARATION_DIRECTORY}-supplements/${supplement.id}.json`, `${JSON.stringify(supplement, null, 2)}\n`);
+  repo.commit('Append a second independently justified supplement');
+  const after = compose(repo);
+  assert.deepEqual(after.supplements.find(value => value.id === fixture.supplement.id),
+    before.supplements.find(value => value.id === fixture.supplement.id));
+  assert.deepEqual(after.supplements.find(value => value.id === supplement.id).target, supplement.target);
+  assert.deepEqual(declaration(after, fixture.original.id), declaration(before, fixture.original.id));
+  assert.deepEqual(readFileSync(join(repo.root, repo.declarationPath(original.id))), originalBytes);
+});
+
 test('an unchanged real Git checkpoint composes without declarations', t => {
   const repo = new FoundationRepository(t);
   const aggregate = compose(repo);

@@ -2,6 +2,7 @@
 struct BroadNodeRun {
   host : @acquisition_host.BroadHostRun
   limits : @acquisition_host.BroadHostLimits
+  physical : BroadPhysical?
 }
 
 ///|
@@ -10,6 +11,17 @@ pub fn broad_host_source_capture(
   run : BroadNodeRun,
   observation : @duckdb_query.DuckDBBroadObservation,
 ) -> @acquisition_host.BroadHostSourceCapture raise NodeHostFailure {
+  if run.physical is Some(p) {
+    if p.closed {
+      raise Physical(InvalidCharge)
+    }
+    if p.observation is Some(expected) {
+      guard physical_equal(expected, observation) && p.capture is Some(capture) else {
+        raise Physical(InvalidCharge)
+      }
+      return capture
+    }
+  }
   match @acquisition_host.capture_broad_host_source(run.host, observation) {
     Ok(value) => value
     Err(issue) => raise CapturedSource(issue)
@@ -76,7 +88,11 @@ pub fn broad_host_open(
 ) -> BroadNodeRun raise NodeHostFailure {
   match @acquisition_host.start_configured_broad_host(setup, nonce, verify) {
     Ok(host) =>
-      { host, limits: @acquisition_host.configured_broad_host_limits(setup), }
+      {
+        host,
+        limits: @acquisition_host.configured_broad_host_limits(setup),
+        physical: None,
+      }
     Err(issue) => raise Broad(issue)
   }
 }
@@ -206,6 +222,11 @@ pub fn broad_host_bind(
   receiver : @lower.BoundPrepared,
   input_index : Int,
 ) -> @execution.BoundProducerInput raise NodeHostFailure {
+  // Accounted acquisitions enter through their retained DAG slot. A parallel
+  // bound export must not outlive that allocation's original cleanup owner.
+  if run.physical is Some(_) {
+    raise Physical(InvalidCharge)
+  }
   match
     @acquisition_host.bind_broad_host_input(
       run.host,
@@ -238,6 +259,7 @@ pub fn broad_host_abort(run : BroadNodeRun) -> Unit {
 #export_name("broadHostClose")
 pub fn broad_host_close(run : BroadNodeRun) -> Unit {
   @acquisition_host.close_broad_host(run.host)
+  close_broad_physical(run)
 }
 
 ///|

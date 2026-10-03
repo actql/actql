@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "ci-main-carryforward",
+  "kind": "change",
+  "revision": "85833165417b1ed2ef2f3917004f8c43b742f6c9",
+  "parents": [
+    "d7f7ef8a16ee722679061b7fadaf8c6c52877280"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "d7f7ef8a16ee722679061b7fadaf8c6c52877280",
+          "digest": "48f0cb1ab766ff086618f5e611b1a6667e2f4dc19f64f387be4c1dcb3475e0e0",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "8a5f5b9a1822f19339398c9d4fb3856dc7af058b1322939eab50e9bea3fd079a",
+      "afterMode": "100644",
+      "reason": "Select main applicability from the complete diff since a same-policy fully successful main ancestor, preserving unfinished runtime obligations after cancelled or failed runs. Grant only select-targets Actions read permission using the existing ephemeral workflow token, and test the checkpoint selector. Selected runtime and proof campaigns retain full target coverage; declaration/maintenance omissions require a source-bound verified checkpoint. First rollout and unavailable/untrusted history select full."
+    }
+  ]
+}

@@ -36,15 +36,41 @@ fn lower_script_relation(
   query : @query.Query,
   known : Array[Input],
   context : Context,
+  sources : ScriptSources,
   limits : Limits,
   steps : Array[@builder.Node],
   reserved : Array[String],
   output : String,
   retained? : Array[RetainedResult]? = None,
 ) -> Input raise Abort {
+  let known = if @query.cte_count(query) == 0 {
+    known
+  } else {
+    validate_cte_scope(query, known)
+    let mut scoped = known.copy()
+    for index in 0..<@query.cte_count(query) {
+      let cte = @query.cte_at(query, index).unwrap()
+      let name = pipe_physical_name(reserved, "aql_script_cte_")
+      reserved.push(name)
+      let bound = lower_script_relation(
+        construction,
+        cte.query,
+        scoped,
+        context,
+        sources,
+        limits,
+        steps,
+        reserved,
+        name,
+      )
+      scoped = scoped.filter(input => !input_relation_matches([cte.name], input))
+      scoped.push({ ..bound, relation: [cte.name], })
+    }
+    scoped
+  }
   if @query.set_part_count(query) > 0 {
     return lower_script_set_relation(
-      construction, query, known, context, limits, steps, reserved, output,
+      construction, query, known, context, sources, limits, steps, reserved, output,
     )
   }
   lower_script_relation_term(
@@ -52,6 +78,7 @@ fn lower_script_relation(
     query,
     known,
     context,
+    sources,
     limits,
     steps,
     reserved,
@@ -66,6 +93,7 @@ fn lower_script_relation_term(
   query : @query.Query,
   known : Array[Input],
   context : Context,
+  sources : ScriptSources,
   limits : Limits,
   steps : Array[@builder.Node],
   reserved : Array[String],
@@ -75,26 +103,16 @@ fn lower_script_relation_term(
   if @query.graph_query(query) is Some(_) {
     raise Abort(UnsupportedGraph)
   }
-  if @query.cte_count(query) > 0 {
-    raise Abort(UnsupportedCte)
-  }
   if @query.join_part_count(query) > 0 {
-    raise Abort(UnsupportedJoin)
+    return lower_script_join_relation(
+      construction, query, known, context, sources, limits, steps, reserved, retained,
+    )
   }
   let selected = selected_input(query, { ..context, inputs: known, }, limits)
   let fields = query_columns(query, selected)
-  let input = match selected.source {
-    GeneratedValues(source) => {
-      let name = pipe_physical_name(reserved, "aql_script_seed_")
-      reserved.push(name)
-      steps.push(import_script_seed(construction, source, name))
-      { ..selected, name, source: StepReference, visible_fields: fields, }
-    }
-    StepReference => selected
-    // These paths must retain their existing acquisition/Stage ownership.
-    // They are not silently copied into an independently executable Values step.
-    Captured(_) | StageResult(_, _) => raise Abort(InvalidContext)
-  }
+  let input = bind_script_input(
+    construction, selected, context, sources, steps, reserved,
+  )
   let (body, output_fields) = compile_steps(
     construction,
     query,
@@ -131,8 +149,18 @@ pub fn compile_query_script(
     context.stage_id.is_empty() ||
     context.stage_result.is_empty() ||
     context.result_name.is_empty() ||
+    context.captured_stage == Some("") ||
+    context.captured_stage == Some(context.stage_id) ||
+    context.inputs.any(input => input.name.is_empty()) ||
     limits.max_expression_work < 0 {
     return Err(InvalidContext)
+  }
+  for index, input in context.inputs {
+    for previous in 0..<index {
+      if context.inputs[previous].name == input.name {
+        return Err(InvalidContext)
+      }
+    }
   }
   let document = @query.script_document(script)
   let generated = @origin.range(document, 0, 0, kind=Generated).unwrap()
@@ -143,6 +171,11 @@ pub fn compile_query_script(
   let construction : Construction = { builder, generated, }
   try {
     let steps : Array[@builder.Node] = []
+    let sources : ScriptSources = {
+      declarations: [],
+      stages: [],
+      bound: Map([]),
+    }
     let mut known = context.inputs.copy()
     let mut graphs : Array[ScriptGraph] = []
     let reserved = known.map(input => input.name)
@@ -171,7 +204,8 @@ pub fn compile_query_script(
             continue
           }
           let bound = lower_script_relation(
-            construction, query, known, context, limits, steps, reserved, output,
+            construction, query, known, context, sources, limits, steps, reserved,
+            output,
           )
           // Body resolution precedes binding. Existing published names may be
           // shadowed only afterward; no forward/recursive DATA reference exists.
@@ -185,8 +219,28 @@ pub fn compile_query_script(
           })
         }
         PropertyGraph(mapping) => {
+          // Resolve against the original source kind: binding a captured
+          // Relation must not turn its quoted-name rules into DATA alias rules.
+          let producer_names : Map[String, String] = Map([])
+          let references = mapping.nodes.map(node => node.producer) +
+            mapping.edges.map(edge => edge.producer)
+          for path in references {
+            let input = property_mapping_input(path, known)
+            if !producer_names.contains(input.name) {
+              let bound = bind_script_input(
+                construction, input, context, sources, steps, reserved,
+              )
+              producer_names[input.name] = bound.name
+            }
+          }
           steps.push(
-            lower_property_graph_step(construction, mapping, known, output),
+            lower_property_graph_step(
+              construction,
+              mapping,
+              known,
+              output,
+              producer_names~,
+            ),
           )
           graphs = graphs.filter(graph => {
             !same_name(graph.name, declaration.name)
@@ -222,6 +276,7 @@ pub fn compile_query_script(
         query,
         known,
         context,
+        sources,
         limits,
         steps,
         reserved,
@@ -231,7 +286,7 @@ pub fn compile_query_script(
     }
     let stage = construction.object([
       ("id", construction.text(context.stage_id)),
-      ("inputs", construction.object([])),
+      ("inputs", construction.object(sources.declarations)),
       ("steps", construction.array(steps)),
       (
         "results",
@@ -254,7 +309,7 @@ pub fn compile_query_script(
     let root = program_root(
       construction,
       context,
-      [stage],
+      sources.stages + [stage],
       result_exports=retained_result_exports(context, retained),
     )
     let source = match @builder.finish(builder, root) {

@@ -101,6 +101,7 @@ pub fn prepare_client_effect_computation(
       owners,
       limits.program.max_tasks,
       limits.program.max_graph_work,
+      captured_prefix=client_program_acquisition_prefix(checked),
       source_free_root=owners.length() > 0 &&
         @pipeline.starts_with_values(
           @lower.pipeline(@lower.bound_preparation(owners[0])),
@@ -309,6 +310,20 @@ pub fn open_prepared_captured_client_effect_run(
 }
 
 ///|
+/// The two acquisition owners transfer their existing ledger and original
+/// captures; opening Compute must not re-account them on a fresh ledger.
+pub fn open_prepared_multi_captured_client_effect_run(
+  value : PreparedClientEffectRun,
+  sources : Array[(Int, @query.CapturedInputSource)],
+  ledger : @resources.Ledger,
+) -> Result[@strategy.CapturedEffectRunDAG, ClientRunOpenIssue] {
+  @strategy.open_multi_captured_effect_run_dag(value.checked, sources, ledger).map_err(issue => {
+      Run(issue)
+    },
+  )
+}
+
+///|
 /// Compile an Effectful task through the same checked Local lowering as an
 /// Effect-free task, without discarding its static Effect owner.
 pub fn prepare_client_effect_task_sequence(
@@ -331,4 +346,13 @@ pub fn prepare_client_effect_task_sequence(
     max_entries,
     prepared_sequence~,
   )
+}
+
+///|
+/// The effective publication policy comes from the original checked Result
+/// provenance, including both acquisitions, rather than one installed alias.
+pub fn prepared_client_effect_publication_data_policy_cid(
+  value : PreparedClientEffectComputation,
+) -> String? {
+  prepared_client_publication_data_policy_cid(client_effect_program_view(value))
 }

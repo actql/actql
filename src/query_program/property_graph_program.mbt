@@ -132,6 +132,7 @@ fn lower_property_graph_step(
   graph : @query.PropertyGraphConstructor,
   known : Array[Input],
   output : String,
+  producer_names? : Map[String, String] = Map([]),
 ) -> @builder.Node raise Abort {
   let names : Array[@query.NamePart] = []
   for node in graph.nodes {
@@ -151,7 +152,10 @@ fn lower_property_graph_step(
     let input = property_mapping_input(node.producer, known)
     construction.object([
       ("name", construction.text(node.name.value)),
-      ("from", construction.text(input.name)),
+      (
+        "from",
+        construction.text(producer_names.get(input.name).unwrap_or(input.name)),
+      ),
       ("key", property_mapping_columns(construction, node.key, input)),
       ("labels", property_mapping_labels(construction, node.labels, input)),
     ])
@@ -160,7 +164,10 @@ fn lower_property_graph_step(
     let input = property_mapping_input(edge.producer, known)
     construction.object([
       ("name", construction.text(edge.name.value)),
-      ("from", construction.text(input.name)),
+      (
+        "from",
+        construction.text(producer_names.get(input.name).unwrap_or(input.name)),
+      ),
       ("key", property_mapping_columns(construction, edge.key, input)),
       (
         "source",

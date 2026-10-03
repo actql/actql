@@ -8,6 +8,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { parse } from 'yaml';
+import { selectTargets } from '../../scripts/ci-targets.mjs';
 import { safePath, inventory, validateEnvelope, requiredStages, contextFromEnvironment,
   packArchive, unpackArchive, verifyArchive, joinEvidence, inspectProducerEvidence } from './ci-artifacts.mjs';
 import { body, boundFixture, executionCommand } from './fixture.mjs';
@@ -538,11 +539,24 @@ function successfulNeeds() {
 }
 
 test('workflow partitions the existing campaigns without dropping or changing acceptance commands', () => {
-  const commands = name => runLines(name).filter(line => /^node (?:--test proofs\/relation-pipeline\/|proofs\/relation-pipeline\/)/u.test(line)
+  const artifactCommand = 'node --test proofs/relation-pipeline/ci-artifacts.test.mjs';
+  assert.equal(runLines('preflight').filter(line => line === artifactCommand).length, 1);
+  const admissionStep = jobs.preflight.steps.find(step => step.run === artifactCommand);
+  assert.equal(admissionStep.if, undefined, 'Artifact contracts are mandatory for every normal profile');
+  const focused = jobs['pipeline-mutations'].steps.find(step => step.run?.includes('tests=()')).run;
+  const listed = shell(focused.split('node --test')[0] + 'printf "%s\\n" "${tests[@]}"', {});
+  assert.equal(listed.status, 0, listed.stderr);
+  const expected = readdirSync(join(repositoryRoot, 'proofs/relation-pipeline'))
+    .filter(name => name.endsWith('.test.mjs') && name !== 'ci-artifacts.test.mjs')
+    .map(name => `proofs/relation-pipeline/${name}`).sort();
+  assert(expected.length > 0);
+  assert.deepEqual(listed.stdout.trim().split('\n').sort(), expected,
+    'The mutation producer retains every other fixture exactly once, excluding only preflight artifacts');
+  const commands = name => runLines(name).filter(line => /^node (?:--test |proofs\/relation-pipeline\/)/u.test(line)
     && !line.startsWith('node proofs/relation-pipeline/ci-artifacts.mjs'));
   assert.deepEqual(commands('pipeline-mutations'), [
     'node proofs/relation-pipeline/history.mjs --write',
-    'node --test proofs/relation-pipeline/*.test.mjs proofs/relation-pipeline/capacity/backing/*.test.mjs',
+    'node --test "${tests[@]}" proofs/relation-pipeline/capacity/backing/*.test.mjs',
     'node proofs/relation-pipeline/run.mjs js base',
     'node proofs/relation-pipeline/mutations.mjs verify',
   ]);
@@ -560,7 +574,7 @@ test('workflow partitions the existing campaigns without dropping or changing ac
   ]);
   for (const name of producerJobs) {
     assert.equal(jobs[name].if, normalSchedule);
-    assert.deepEqual(jobs[name].needs, ['select-targets'], 'Producers share selection only, not each other');
+    assert.deepEqual(jobs[name].needs, ['select-targets', 'preflight'], 'Producers share selection and admission, not each other');
     assert.equal(jobs[name].strategy, undefined, 'A failed sibling must not cancel the other campaign');
     assert.equal(jobs[name]['runs-on'], 'ubuntu-24.04');
     for (const step of jobs[name].steps.filter(step => step.run)) {
@@ -644,12 +658,14 @@ test('global check continues to require the final pipeline-evidence verdict', ()
   assert(jobs.check.needs.includes('pipeline-evidence'));
   assert(!producerJobs.some(name => jobs.check.needs.includes(name)), 'Final audited join remains the required check boundary');
   const script = jobs.check.steps.find(step => step.run).run;
-  const needs = Object.fromEntries(jobs.check.needs.map(name => [name, { result: 'success' }]));
+  const needs = Object.fromEntries(jobs.check.needs.map(name => [name, { result: name === 'focused-tests' ? 'skipped' : 'success' }]));
   const revision = 'b'.repeat(40);
+  const selection = selectTargets(['.github/workflows/ci.yml']);
+  assert.equal(selection.profile, 'full');
+  assert.deepEqual(selection.targets, ['js', 'wasm', 'native']);
+  assert.equal(selection.macos, true);
   const gateEnv = { GITHUB_SHA: revision, GITHUB_EVENT_NAME: 'pull_request', GITHUB_STEP_SUMMARY: '',
-    CI_PLAN: JSON.stringify({ sourceRevision: revision, selection: { schema: 'actql-ci-targets/0.1',
-      targets: ['js', 'wasm', 'native'], macos: true, reason: 'Full fixture', profile: 'full',
-      event: 'pull_request', paths: ['.github/workflows/ci.yml'], maintenanceChanges: null } }) };
+    CI_PLAN: JSON.stringify({ sourceRevision: revision, selection }) };
   for (const result of ['failure', 'cancelled', 'skipped']) {
     const child = shell(script, { RESULTS: JSON.stringify({ ...needs, 'pipeline-evidence': { result } }), ...gateEnv });
     assert.notEqual(child.status, 0, result);

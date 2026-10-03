@@ -1,10 +1,15 @@
 ///|
 fn client_infer_graph_test_execution(
   prepared : PreparedClientProgram,
+  occurrence? : ClientInferOccurrence? = None,
 ) -> @environment.ModelExecutionContract {
-  let owner = client_infer_prefix_owner(prepared, 0, 2).unwrap()
+  let step = occurrence.map(value => value.step).unwrap_or(2)
+  let owner = match occurrence {
+    None => client_infer_prefix_owner(prepared, 0, 2).unwrap()
+    Some(value) => value.preparation
+  }
   guard @lower.payload(
-      @lower.node_at(@lower.bound_preparation(owner), 2).unwrap(),
+      @lower.node_at(@lower.bound_preparation(owner), step).unwrap(),
     )
     is @lower.Infer(infer) else {
     abort("checked Infer fixture")
