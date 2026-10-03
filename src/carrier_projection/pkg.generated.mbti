@@ -13,11 +13,23 @@ import {
 // Values
 pub fn check(Operation, @decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedProjection, Issue]
 
+pub fn check_property_node_rows(@decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedPropertyNodeRows, Issue]
+
 pub fn input(CheckedProjection) -> @carrier_contract.Carrier
 
 pub fn operation(CheckedProjection) -> Operation
 
 pub fn output(CheckedProjection) -> @carrier_contract.Carrier
+
+pub fn property_node_rows_input(CheckedPropertyNodeRows) -> @carrier_contract.Carrier
+
+pub fn property_node_rows_output(CheckedPropertyNodeRows) -> @carrier_contract.Carrier
+
+pub fn property_node_rows_schema(CheckedPropertyNodeRows) -> @relation_schema.ConditionalSchema
+
+pub fn property_node_rows_source(CheckedPropertyNodeRows) -> @decode_core.Cursor
+
+pub fn property_node_rows_usage(CheckedPropertyNodeRows) -> Usage
 
 pub fn source(CheckedProjection) -> @decode_core.Cursor
 
@@ -27,6 +39,8 @@ pub fn usage(CheckedProjection) -> Usage
 
 // Types and methods
 type CheckedProjection
+
+type CheckedPropertyNodeRows
 
 pub struct Issue {
   kind : IssueKind
@@ -42,6 +56,7 @@ pub(all) enum IssueKind {
   IncompleteGraph
   UnsupportedGraphOperation
   OutputCollision(@relation_schema.FieldName)
+  GraphDeclaration(@relation_schema.DefinitionPresenceIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Limits {

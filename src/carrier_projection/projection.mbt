@@ -13,6 +13,7 @@ pub(all) enum IssueKind {
   IncompleteGraph
   UnsupportedGraphOperation
   OutputCollision(@row.FieldName)
+  GraphDeclaration(@row.DefinitionPresenceIssue)
 } derive(Eq, Debug)
 
 ///|

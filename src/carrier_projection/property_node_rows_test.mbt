@@ -1,0 +1,104 @@
+///|
+fn property_node_rows_fixture(
+  first : Array[(@row.FieldName, @contract.Contract?)],
+  second : Array[(@row.FieldName, @contract.Contract?)],
+) -> @carrier.Carrier {
+  let id = @contract.primitive(NumberType, nullable=false)
+  let a = @carrier.property_node_definition(
+    "A",
+    [id],
+    @carrier.rows(first, field_set=Closed, max_fields=4, max_name_bytes=32).unwrap(),
+    [],
+    max_fields=4,
+    max_name_bytes=32,
+  ).unwrap()
+  let b = @carrier.property_node_definition(
+    "B",
+    [id],
+    @carrier.rows(second, field_set=Closed, max_fields=4, max_name_bytes=32).unwrap(),
+    [],
+    max_fields=4,
+    max_name_bytes=32,
+  ).unwrap()
+  @carrier.property_graph(
+    "sha256:" + "1".repeat(64),
+    [a, b],
+    [],
+    max_definitions=2,
+    max_contract_work=32,
+  ).unwrap()
+}
+
+///|
+test "property node rows derive required and conditional fields before execution" {
+  let nullable = @contract.primitive(NumberType, nullable=true)
+  let input = property_node_rows_fixture([(Unqualified("p"), Some(nullable))], [])
+  let checked = @carrier_projection.check_property_node_rows(
+    cursor("true"),
+    input,
+    { ..limits(), max_work: 10, },
+  ).unwrap()
+  assert_eq(@carrier_projection.property_node_rows_usage(checked).work, 10)
+  let output = @carrier_projection.property_node_rows_output(checked)
+  let rows = @carrier.relation_rows(output).unwrap()
+  assert_true(@carrier.complete_schema(rows) is None)
+  assert_true(@carrier.lookup(rows, Unqualified("p")) is Unknown)
+  let schema = @carrier_projection.property_node_rows_schema(checked)
+  assert_true(
+    @row.presence_lookup(schema, Unqualified("id")) is AlwaysPresent(_),
+  )
+  assert_true(
+    @row.presence_lookup(schema, Unqualified("p")) is ConditionallyPresent(_),
+  )
+  assert_true(
+    @carrier_projection.check_property_node_rows(cursor("true"), input, {
+      ..limits(),
+      max_work: 9,
+    })
+    is Err({ kind: BudgetExceeded, .. }),
+  )
+  assert_true(
+    @carrier_projection.check_property_node_rows(cursor("true"), input, {
+      ..limits(),
+      max_nodes: 3,
+    })
+    is Ok(_),
+  )
+  assert_true(
+    @carrier_projection.check_property_node_rows(cursor("true"), input, {
+      ..limits(),
+      max_nodes: 2,
+    })
+    is Err({ kind: BudgetExceeded, .. }),
+  )
+}
+
+///|
+test "property node rows collapse compatible case spellings and reject role collisions" {
+  let number = @contract.primitive(NumberType, nullable=false)
+  let input = property_node_rows_fixture([(Unqualified("P"), Some(number))], [
+    (Unqualified("p"), Some(number)),
+  ])
+  let checked = @carrier_projection.check_property_node_rows(
+    cursor("true"),
+    input,
+    limits(),
+  ).unwrap()
+  let schema = @carrier_projection.property_node_rows_schema(checked)
+  assert_true(
+    @row.presence_lookup(schema, Unqualified("P")) is AlwaysPresent(_),
+  )
+  assert_true(@row.presence_lookup(schema, Unqualified("p")) is AbsentField)
+  let colliding = property_node_rows_fixture(
+    [(Unqualified("ID"), Some(number))],
+    [],
+  )
+  assert_true(
+    @carrier_projection.check_property_node_rows(
+      cursor("true"),
+      colliding,
+      limits(),
+    )
+    is Err({ kind: OutputCollision(Unqualified("ID")), .. }),
+  )
+}
