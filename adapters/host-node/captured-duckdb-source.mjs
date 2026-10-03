@@ -2,6 +2,7 @@
 // Program and MoonBit acquisition planner own the source request and query;
 // this adapter supplies only the approved database grant and bounded I/O.
 import {readFile} from 'node:fs/promises';
+import {duckDBPhysicalTarget} from './duckdb-physical-target.mjs';
 import {validateLimits} from '../connectors/duckdb/node/configuration.mjs';
 import {checkDuckDBAcquisitionPlanning, freezeAcquisitionDiagnostic, selectInstalledDuckDBAcquisition} from '../connectors/duckdb/node/acquisition-planning.mjs';
 import {computePhysicalCapacity} from '../connectors/duckdb/node/physical-capacity.mjs';
@@ -144,16 +145,12 @@ export async function prepareCapturedDuckDBSource({moon, preparedProgram,
   // read. Physical names are bound by their exact UTF-8 bytes (hex): the
   // database distinguishes names that ActQL's logical text normalization
   // treats as equal. The readable names are display only.
-  const exact = name => Buffer.from(name, 'utf8').toString('hex');
   const prepared = Object.freeze({checkedSource, selection,
     occurrence: Object.freeze({...occurrence}),
     readTuple: Object.freeze({connection: sourceAccess.connection ??
       'local-database', resource: sourceAccess.resource ?? database,
     operation: 'read'}),
-    physicalBinding: Object.freeze({version:
-      'actql-installed-duckdb-target/0.1', database, schema, table,
-      utf8_hex: Object.freeze({database: exact(database),
-        schema: exact(schema), table: exact(table)})})});
+    physicalBinding: duckDBPhysicalTarget({database, schema, table})});
   preparations.set(prepared, Object.freeze({moon, checkedOwner, effectful, registry,
     values, fragment, ordered, database, schema, table, sourceAccess,
     requirement, evidenceContext, acquisition, broad, selection, single, selectionInputs,

@@ -94,12 +94,35 @@ const {DuckDBInstance, DuckDBPreparedStatement, DuckDBConnection,
   DuckDBExtractedStatements} = createRequire(
   new URL('./node_modules/@actql/local-node/package.json', import.meta.url))(
   '@duckdb/node-api');
+// Provider-confirmed independent rows for canonically equivalent physical names.
+const exactTargetPairs = [
+  {field: 'table', targets: [
+    {schema: 'main', table: 'caf\u00e9', rows: [{id: 101, amount: 11}]},
+    {schema: 'main', table: 'cafe\u0301', rows: [{id: 202, amount: 22}]},
+  ]},
+  {field: 'schema', targets: [
+    {schema: 'caf\u00e9', table: 'records', rows: [{id: 303, amount: 33}]},
+    {schema: 'cafe\u0301', table: 'records', rows: [{id: 404, amount: 44}]},
+  ]},
+];
+const physicalSqlName = target => `"${target.schema}"."${target.table}"`;
 const instance = await DuckDBInstance.create(database);
 const connection = await instance.connect();
 try {
   await connection.run('CREATE TABLE records(id DOUBLE, amount DOUBLE)');
   for (const row of sourceRows) {
     await connection.run('INSERT INTO records VALUES (?, ?)', [row.id, row.amount]);
+  }
+  for (const {targets} of scopeOnly ? [] : exactTargetPairs) {
+    for (const target of targets) {
+      if (target.schema !== 'main') await connection.run(`CREATE SCHEMA "${target.schema}"`);
+      await connection.run(`CREATE TABLE ${physicalSqlName(target)}(id DOUBLE, amount DOUBLE)`);
+      for (const row of target.rows) await connection.run(
+        `INSERT INTO ${physicalSqlName(target)} VALUES (?, ?)`, [row.id, row.amount]);
+      const observed = await connection.runAndReadAll(
+        `SELECT id, amount FROM ${physicalSqlName(target)} ORDER BY id`);
+      assert.deepEqual(observed.getRowObjectsJS(), target.rows);
+    }
   }
 } finally {
   connection.closeSync();
@@ -221,6 +244,64 @@ async function exercisePublicCheck(options) {
 }
 await exercisePublicCheck({mode: 'local', owner: 'local', durability: 'durable',
   installation: {directory: resolve('local-state'), sourceProfilePath}});
+// Extend the same public harness; no second lifecycle/fault matrix. Each
+// physical spelling has independently authored rows and its own explicit Host.
+async function exerciseExactPhysicalTargets() {
+  const baseProfile = JSON.parse(await readFile(sourceProfilePath, 'utf8'));
+  for (const {field, targets} of exactTargetPairs) {
+    const path = resolve(`exact-${field}-source.json`);
+    const firstDirectory = resolve(`exact-${field}-local-0`);
+    const firstOptions = {mode: 'local', owner: 'local', durability: 'durable',
+      installation: {directory: firstDirectory, sourceProfilePath: path}};
+    for (const [index, target] of targets.entries()) {
+      const profile = {...baseProfile, schema: target.schema, table: target.table};
+      await writeFile(path, JSON.stringify(profile));
+      if (index === 1) {
+        const before = observe(firstDirectory)();
+        await assert.rejects(connect(firstOptions),
+          {name: 'TypeError', message: 'InstalledHostConfigurationMismatch'});
+        assert.deepEqual(observe(firstDirectory)(), before,
+          'changing only the physical target must refuse without provider I/O');
+      }
+      const directory = resolve(`exact-${field}-local-${index}`);
+      const options = {...firstOptions, installation: {directory, sourceProfilePath: path}};
+      const fixture = {name: `exact-${field}-${index}`, format: 'sql',
+        text: 'SELECT id, amount FROM records ORDER BY id',
+        expected: target.rows, columns: [
+          {name: 'id', contract: {type: 'number', nullable: false}},
+          {name: 'amount', contract: {type: 'number', nullable: true}},
+        ]};
+      await exercisePublicQueryInput(connect, options, {
+        requestPrefix: 'exact-local', observe: observe(directory),
+        successes: [fixture], refusals: []});
+      const before = observe(directory)();
+      await writeFile(path, JSON.stringify(Object.fromEntries(
+        Object.entries(profile).reverse()), null, 2) + '\n');
+      const unchanged = await connect(options);
+      unchanged.close();
+      assert.deepEqual(observe(directory)(), before,
+        'unchanged target with reordered JSON must reuse without provider I/O');
+      const remoteDirectory = resolve(`exact-${field}-remote-${index}`);
+      const remoteHost = await openInstalledRemoteHttpHost({directory: remoteDirectory,
+        sourceProfilePath: path, authenticate: header => header === 'Bearer fixture-token'
+          ? userInfo().username : undefined});
+      const remoteServer = createServer({key: await readFile('remote.key'),
+        cert: await readFile('remote.crt')}, remoteHost.handler);
+      try {
+        await new Promise(resolve => remoteServer.listen(0, '127.0.0.1', resolve));
+        await exercisePublicQueryInput(connect, {mode: 'remote',
+          endpoint: `https://127.0.0.1:${remoteServer.address().port}/`,
+          token: 'fixture-token', durability: 'durable'}, {
+          requestPrefix: 'exact-http', observe: observe(remoteDirectory),
+          successes: [fixture], refusals: []});
+      } finally {
+        remoteServer.closeAllConnections();
+        await new Promise(resolve => remoteServer.close(resolve));
+        await remoteHost.close();
+      }
+    }
+  }
+}
 const retainedStrings = {};
 const recordString = mode => item => {
   if (item.name === 'exact-string-values') retainedStrings[mode] = item;
@@ -251,6 +332,7 @@ try {
   assert.equal(observe('remote-state')().acceptedRuns, expectedQueryRuns);
   assert.ok(sourceIo >= beforeRemote + expectedSourceReads);
   console.log('packed raw SQL/Pipe HTTP acceptance passed');
+  if (!scopeOnly) await exerciseExactPhysicalTargets();
 } finally {
   server.closeAllConnections();
   await new Promise(resolve => server.close(resolve));
