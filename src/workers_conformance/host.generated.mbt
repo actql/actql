@@ -27,6 +27,7 @@ pub(all) suberror NodeHostFailure {
   RemoteCredential(@credential.RemoteCredentialIssue)
   RemoteBundle(@bundle.RemoteBundleIssue)
   PhysicalManifest(@manifest.PhysicalManifestIssue)
+  LocalManagedStart(@local_driver.LocalDispatchIssue)
 }
 
 ///|
@@ -8840,7 +8841,7 @@ pub fn local_managed_start(
 ) -> @local_driver.LocalManagedDispatchOperations[Int] raise NodeHostFailure {
   match @local_driver.start_local_managed_dispatch_node(setup) {
     Ok(value) => value
-    Err(_) => raise InvalidCommand
+    Err(issue) => raise LocalManagedStart(issue)
   }
 }
 
@@ -8873,6 +8874,7 @@ pub(all) suberror AsyncHostFailure {
   RemoteCredential(@credential.RemoteCredentialIssue)
   RemoteBundle(@bundle.RemoteBundleIssue)
   PhysicalManifest(@manifest.PhysicalManifestIssue)
+  ReferenceComputeManagedStart(@numeric_compute.PlanIssue)
 }
 
 ///|
@@ -17698,6 +17700,6 @@ pub fn reference_compute_managed_start(
 ) -> @numeric_driver.NumericManagedDispatchOperations[Int] raise AsyncHostFailure {
   match @numeric_driver.start_numeric_managed_dispatch_node(setup) {
     Ok(value) => value
-    Err(_) => raise InvalidCommand
+    Err(issue) => raise ReferenceComputeManagedStart(issue)
   }
 }

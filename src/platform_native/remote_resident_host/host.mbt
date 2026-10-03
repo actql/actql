@@ -307,6 +307,9 @@ pub fn execute_resident_attempt(
     )
     is Ok(_)
   let (runtime, result_definition_cid) = match rebuilt.compilation {
+    // This resident transport installs read-only task/Values executors.
+    // An enclosing Effect Run needs the installed Effect owner instead.
+    @host.Effects(_) => return Err(failed(Refused(@resident.UnsupportedTask)))
     @host.Tasks(compilation) => {
       guard execution.source is Some(source) else {
         return Err(failed(Source(UnsupportedSource)))
