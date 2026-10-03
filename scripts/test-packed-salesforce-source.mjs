@@ -12,7 +12,7 @@ import {userInfo} from 'node:os';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
-import {loadTwoSourceFixtures, installTwoSourceFixtures} from
+import {loadTwoSourceFixtures, installTwoSourceFixtures, canonical} from
   './fixtures/two-source-public-query.mjs';
 import {compositionExpectations, databaseRows, expectedUpdates, expectedWrites, expectedModelInputs,
   publicFixtureEnvironment, modelConfiguration} from
@@ -397,6 +397,16 @@ console.log(JSON.stringify(published.mappings.map(mapping =>
       'node_modules/@actql/local-node/package.json'))('@duckdb/node-api');
     const installed = await installTwoSourceFixtures({root: join(root,
       'composition-sources'), fixture, duckdb});
+    // Publish aliases through the same installed Source profiles used by the
+    // JSON control. Text lowering must resolve the exact installed identities.
+    for (const name of ['left', 'right']) {
+      const profile = JSON.parse(await readFile(installed.profiles[name], 'utf8'));
+      const view = fixture.environments[name].source_views[0];
+      profile.queryAliases = [{name: name + '_records', sourceRef: profile.sourceRef,
+        sourceViewContractCid: view.contract_cid,
+        schemaContractCid: view.output.schema.cid}];
+      await writeFile(installed.profiles[name], canonical(profile));
+    }
     await writeFile(join(root, 'composition-profiles.json'), JSON.stringify([
       installed.profiles.left, installed.profiles.right]));
     await writeFile(join(root, 'model-calls.jsonl'), '');
@@ -571,10 +581,10 @@ try {
       {kind: 'not_found'});
     console.log('empty');
   } else if (step === 'rce-unsupported') {
-    const program = readFileSync('rce-program.json', 'utf8');
-    assert.equal(createHash('sha256').update(program).digest('hex'),
+    const submission = JSON.parse(readFileSync('rce-submission.json', 'utf8'));
+    assert.equal(createHash('sha256').update(submission.document).digest('hex'),
       process.argv[3], 'the exact positively executed Program is reused');
-    await assert.rejects(client.aql(program, {format: 'json',
+    await assert.rejects(client.aql(submission.document, {format: submission.format,
       requestId: 'unsupported-rce'}), {code: 'ClientProgramUnsupported'});
     const lookup = await client.lookupRequest('unsupported-rce');
     assert.deepEqual(lookup, {kind: 'not_found'});
@@ -606,11 +616,12 @@ try {
           mapping: mapping.mapping_ref, from: {result: 'updates'}, id: 'Id',
           set: {Name: {field: 'next_name'}}}}}},
     ], results: {updates: {from: {stage: 'compute', result: 'updates'}}}};
-    const programText = JSON.stringify(program);
+    const submission = {document: JSON.stringify(program), format: 'json',
+      requestId: 'packed-rce-' + process.argv[3]};
     let execution;
     try {
-      execution = await client.aql(programText, {format: 'json',
-        requestId: 'packed-rce-' + process.argv[3]});
+      execution = await client.aql(submission.document, {
+        format: submission.format, requestId: submission.requestId});
     } catch (error) {
       if (error?.code === 'ClientProgramUnsupported') {
         console.log('not-connected');
@@ -624,8 +635,13 @@ try {
       assert.equal((await execution.wait()).status, 'waiting_checkpoint');
     }
     writeFileSync('effect-ref.json', JSON.stringify(execution.ref));
-    writeFileSync('rce-request.txt', 'packed-rce-' + process.argv[3]);
-    writeFileSync('rce-program.json', programText);
+    writeFileSync('rce-submission.json', JSON.stringify(submission));
+    if (process.argv[3] === 'success') {
+      const repeated = await client.aql(submission.document, {
+        format: submission.format, requestId: submission.requestId});
+      assert.deepEqual(repeated.ref, execution.ref,
+        'resubmitting the same request must retain the original Run');
+    }
     if (process.env.PACKED_CHECKPOINT_TTL_MS !== undefined) {
       const [checkpoint] = (await client.checkpoints()).items;
       assert.equal(checkpoint.kind, 'effect_set');
@@ -636,11 +652,17 @@ try {
     console.log('held');
   } else if (step === 'rce-resume') {
     const ref = JSON.parse(readFileSync('effect-ref.json', 'utf8'));
-    const lookup = await client.lookupRequest(readFileSync('rce-request.txt',
-      'utf8'));
+    const submission = JSON.parse(readFileSync('rce-submission.json', 'utf8'));
+    const lookup = await client.lookupRequest(submission.requestId);
     assert.equal(lookup.kind, 'found');
     assert.deepEqual(lookup.ref, ref);
     assert.deepEqual((await client.checkpoints()).items, []);
+    if (process.argv[3] === 'resubmit') {
+      const repeated = await client.aql(submission.document, {
+        format: submission.format, requestId: submission.requestId});
+      assert.deepEqual(repeated.ref, ref,
+        'resubmission after process termination must recover the same Run');
+    }
     const execution = await client.attach(lookup.ref);
     const state = await waitFor(async () => {
       const current = await execution.status();
@@ -771,7 +793,7 @@ try {
       effectWriteCounts.push(patches().length);
       assert.equal(patches().length, 0);
       const done = JSON.parse((await runChild('effect-run.mjs',
-        rceEnvironment, ['rce-resume'])).trim());
+        rceEnvironment, ['rce-resume', 'resubmit'])).trim());
       normalResult = done;
       effectWriteCounts.push(patches().length);
       assert.equal(done.status, 'succeeded');
@@ -789,7 +811,7 @@ try {
         ['a00000000000003', '{"Name":"key-3-processed"}']]);
       }
       assert.equal(JSON.parse((await runChild('effect-run.mjs',
-        rceEnvironment, ['rce-resume'])).trim()).status, 'succeeded');
+        rceEnvironment, ['rce-resume', 'resubmit'])).trim()).status, 'succeeded');
       effectWriteCounts.push(patches().length);
       assert.equal(patches().length, composed ? 1 : 2);
     }, 'success');
@@ -816,10 +838,12 @@ try {
       assert.deepEqual(boundaries.map(item => item.boundary),
         compositionExpectations.restartBoundaries);
       for (const boundary of boundaries) assert.deepEqual(boundary.ref, ref);
+      const submission = JSON.parse(await readFile(join(root,
+        'rce-submission.json'), 'utf8'));
       const observation = {sourceRevision, transport, case: compositionKind,
-        requestId: await readFile(join(root, 'rce-request.txt'), 'utf8'), ref,
-        submittedProgramSha256: createHash('sha256').update(await readFile(
-          join(root, 'rce-program.json'))).digest('hex'),
+        requestId: submission.requestId, ref, submittedFormat: submission.format,
+        submittedProgramSha256: createHash('sha256').update(
+          submission.document).digest('hex'),
         sourceReadSessions, modelInputs, effectWriteCounts,
         writes: patches().map(item => ({id: item.path.split('/').at(-1),
           body: JSON.parse(item.body)})), rows: normalResult.rows,
@@ -832,8 +856,10 @@ try {
       // The preceding public execution and independent rows establish semantic
       // validity. Reuse its exact bytes in a fresh source-only installation;
       // the unsupported refusal alone must never be treated as a validity check.
-      const programSha256 = createHash('sha256').update(await readFile(
-        join(root, 'rce-program.json'))).digest('hex');
+      const submission = JSON.parse(await readFile(join(root,
+        'rce-submission.json'), 'utf8'));
+      const programSha256 = createHash('sha256').update(
+        submission.document).digest('hex');
       const unsupportedEnvironment = {...rceEnvironment,
         ACTQL_LOCAL_STATE_DIR: join(root, 'unsupported-rce-' + transport)};
       delete unsupportedEnvironment.ACTQL_LOCAL_EFFECT_PROFILE;
