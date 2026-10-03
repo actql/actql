@@ -1,0 +1,57 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-ci-main-carryforward-artifact-preflight",
+  "kind": "resolution",
+  "revision": "c737141f9f68c9b4d5bfda2b2bce840d16829cfe",
+  "parents": [
+    "269f5b7594180a300c004a67b01a7eaef2650ffc",
+    "a388af3f7c52b138e0b5b6b717ce1c94e249df91"
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-343a5565c1ac",
+    "adopt-985dbbba2789",
+    "adopt-dafff1a1aeea",
+    "bounded-local-execution-guard",
+    "ci-artifact-preflight-fixtures",
+    "ci-declaration-profile",
+    "ci-main-carryforward",
+    "ci-maintenance-pr-profile",
+    "ci-mandatory-preflight",
+    "ci-portable-pr-targets",
+    "client-ci-runner-context",
+    "client-ci-split",
+    "issue-180-foundation-composition",
+    "main-pr225-ci-resolution",
+    "packed-acquired-infer-acceptance",
+    "parallel-pipeline-evidence",
+    "resolve-acquired-infer-client-ci",
+    "resolve-local-guard-acquired-infer-ci",
+    "resolve-local-guard-pipeline-ci",
+    "resolve-local-guard-portable-pr-ci",
+    "resolve-main-local-guard-ci",
+    "resolve-main-local-guard-ci-6520c3f59",
+    "resolve-main-model-backing",
+    "resolve-parallel-pipeline-main-infer"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "269f5b7594180a300c004a67b01a7eaef2650ffc",
+          "digest": "8a5f5b9a1822f19339398c9d4fb3856dc7af058b1322939eab50e9bea3fd079a",
+          "mode": "100644"
+        },
+        {
+          "revision": "a388af3f7c52b138e0b5b6b717ce1c94e249df91",
+          "digest": "9885de175c415f5696ac226f6857160e8cc8c2ae7c606e2d1375707d1ceccddd",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "d20065b2cdc5be3f34b51f26b524ab7d58ef383a0c79468bd6309703e11f3e9f",
+      "afterMode": "100644",
+      "reason": "Integrate the declaration-profile dependency repairs through an actual two-parent merge. Preserve verified-main-ancestor selection and job-scoped Actions read access while moving the existing artifact and aggregate fixture tests into mandatory preflight and excluding only that file from the mutation producer. Retain all other selected campaigns and complete source-bound ancestry obligations."
+    }
+  ]
+}
