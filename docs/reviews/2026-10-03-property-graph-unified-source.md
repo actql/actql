@@ -83,7 +83,9 @@ Development integration and acceptance sequence:
 5. Use C's snapshot save/reload entry and validate source-to-restored execution.
    Record package digests, the B/C SHAs, failures and unexecuted coverage.
 
-Graph execution, public snapshot, native CLI and complete frontend migration
+The selected Graph source execution and common public snapshot controls now
+pass at the [fixed acceptance source](2026-10-03-property-graph-public-acceptance.md).
+Native CLI, required CI, remaining SGA consumers and full Frontend migration
 remain incomplete. No merge or package publication is requested.
 
 ## Local checkpoint validation
@@ -131,4 +133,6 @@ remain incomplete. No merge or package publication is requested.
   passed 1/1 JS against the independent Run preimage. `check:contracts` passed
   after independently updating the integrated grammar expectation from the
   normative body; no compiler output was used as the expected digest.
-- Packed Graph source, snapshot acceptance and final-SHA CI are pending.
+- Packed Graph source and common snapshot acceptance passed at
+  `a6675aa5945389e66aa15978c9ed0ae66cbe69a1`; see the separate acceptance
+  record for exact counts and package digests. Required final-SHA CI is pending.
