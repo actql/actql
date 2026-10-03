@@ -65,6 +65,7 @@ test "managed row measurement index is optional bounded and sealed only on full 
   let stream = managed_retention_test_stream(owner)
   enable_managed_row_measurements(stream, 3).unwrap()
   assert_true(enable_managed_row_measurements(stream, 4) is Err(Closed))
+  let index = stream.row_measurements.unwrap()
   let first = output_fixture_row(owner, 0)
   append_managed_output_values(stream, 2, i => first.get(i)).unwrap()
   let reads = Ref(0)
@@ -76,7 +77,10 @@ test "managed row measurement index is optional bounded and sealed only on full 
     is Err(MeasurementIndexLimit),
   )
   assert_eq(reads.val, 0)
-  assert_eq(stream.row_measurements.unwrap().count, 0)
+  assert_true(stream.row_measurements is None)
+  assert_eq(index.count, 0)
+  assert_eq(index.cells.length(), 0)
+  assert_true(managed_output_values_scratch_released(stream))
   assert_true(finish_managed_output_values(stream) is Err(Closed))
 }
 

@@ -83,14 +83,22 @@ pub fn[T] start_captured_managed_duckdb_task(
             |> ignore
           },
           dispose: fn() {
-            disposed.val = true
             live.val = false
-            @compute.cancel_managed_input_duckdb_completion(prepared_completion)
-            |> ignore
+            @compute.dispose_managed_input_duckdb_completion(
+              prepared_completion,
+            )
+            disposed.val = true
           },
           settled: fn() { settled.val = true },
-          // The transport owner confirms retained private storage cleanup.
-          scratch_released: fn() { disposed.val && retention_released() },
+          // Native transport cleanup and detached admission/verifier roots are
+          // both required; retained output has its independent lifetime.
+          scratch_released: fn() {
+            disposed.val &&
+            retention_released() &&
+            completion.val
+            .map(@compute.managed_input_duckdb_scratch_released)
+            .unwrap_or(false)
+          },
           retention_released,
           released: fn() { () },
           ready: fn() {

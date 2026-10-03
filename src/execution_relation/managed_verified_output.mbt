@@ -57,6 +57,19 @@ pub fn[P] finish_managed_verified_output(
   port : ManagedVerifiedOutputPort[P],
   proof : P,
 ) -> Result[ManagedOutputValueReceipt, ManagedVerifiedOutputIssue] {
+  if port.stream.active_uses != 0 {
+    return Err(Closed)
+  }
+  with_managed_output_scratch_use(port.stream, fn() {
+    finish_managed_verified_output_active(port, proof)
+  })
+}
+
+///|
+fn[P] finish_managed_verified_output_active(
+  port : ManagedVerifiedOutputPort[P],
+  proof : P,
+) -> Result[ManagedOutputValueReceipt, ManagedVerifiedOutputIssue] {
   if !port.open || !port.stream.open {
     return Err(Closed)
   }
@@ -94,7 +107,7 @@ pub fn[P] finish_managed_verified_output(
     }
     Ok(_) => {
       port.stream.reading = false
-      match finish_managed_output_values(port.stream) {
+      match finish_managed_output_values_scoped(port.stream) {
         Ok(receipt) => Ok(receipt)
         Err(issue) => Err(Values(issue))
       }
