@@ -10,6 +10,7 @@ const parallel = "DATA n = SELECT 1 AS id; DATA e = SELECT 10 AS key, 1 AS src, 
 const nodeGraph = data => data + ' DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node PROPERTIES (id))); ';
 const edgeGraph = data => 'DATA n = SELECT 1 AS id; ' + data +
   ' DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES) EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); ';
+const labelSpelling = 'DATA n = SELECT 1 AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Primary PROPERTIES (id AS ID) LABEL Secondary PROPERTIES (id AS id))); ';
 export const propertyGraphSourceSuccesses = [
   {name: 'data-set-order-reuses-hidden-slot', format: 'aql-text',
     text: 'DATA n = SELECT 2 AS id UNION ALL SELECT 1 AS other ORDER BY id + 1, id + 1 DESC LIMIT 1; FROM n |> SELECT id |> RESULT nodes',
@@ -68,6 +69,11 @@ export const propertyGraphSourceSuccesses = [
   {name: 'keyed-static-label-set', format: 'aql-text',
     text: 'DATA n = SELECT 1 AS id; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (id) LABEL Person PROPERTIES (id) LABEL Account PROPERTIES (id))); FROM GRAPH g |> MATCH WALK (a:account) |> SELECT a.id AS id |> RESULT nodes',
     results: {nodes: {rows: [{id: 1}], columns: [number('id')]}}, sourceReadCount: 0},
+  ...[['secondary', '(a:secondary WHERE `Id` = 1)'], ['all-labels', '(a WHERE `Id` = 1)']].map(([name, pattern]) => ({
+    name: 'keyed-property-spelling-' + name, format: 'aql-text',
+    text: labelSpelling + 'FROM GRAPH g |> MATCH WALK ' + pattern + ' |> SELECT a.id AS id |> RESULT nodes',
+    results: {nodes: {rows: [{id: 1}], columns: [number('id')]}}, sourceReadCount: 0,
+  })),
 ];
 export const propertyGraphSourceExecutionFailures = [
   {name: 'keyed-duplicate-node-key', format: 'aql-text',

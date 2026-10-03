@@ -14,15 +14,19 @@ fn keyed_node_fields(
   node : @query.GraphNodePattern,
   input : Input,
 ) -> Array[String] raise Abort {
-  let labels = match node.label {
-    Some(name) => definition.labels.filter(label => same_name(label.name, name))
-    None => definition.labels
-  }
-  if labels.is_empty() {
-    raise Abort(UnknownColumn)
-  }
+  // The common constructor retains the first spelling of each property in
+  // this definition, including across label-specific property selections.
+  // Lookup is case-insensitive; the checked output field still has that name.
+  let canonical : Map[String, String] = Map([])
+  let seen : Map[String, Bool] = Map([])
   let selected : Array[String] = []
-  for label in labels {
+  let mut matched = false
+  for label in definition.labels {
+    let selected_label = match node.label {
+      Some(name) => same_name(label.name, name)
+      None => true
+    }
+    matched = matched || selected_label
     let fields = match label.properties {
       AllColumns => columns(input)
       NoProperties => []
@@ -37,10 +41,22 @@ fn keyed_node_fields(
         })
     }
     for field in fields {
-      if !selected.contains(field) {
-        selected.push(field)
+      let folded = ascii_upper(field)
+      let name = match canonical.get(folded) {
+        Some(name) => name
+        None => {
+          canonical[folded] = field
+          field
+        }
+      }
+      if selected_label && !seen.contains(folded) {
+        seen[folded] = true
+        selected.push(name)
       }
     }
+  }
+  if !matched {
+    raise Abort(UnknownColumn)
   }
   selected
 }
