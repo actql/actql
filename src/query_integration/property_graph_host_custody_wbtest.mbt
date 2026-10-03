@@ -355,7 +355,7 @@ fn run_current_host_graph_relation_path(
     assert_eq((operations.output_rows)(), 0)
     assert_true((operations.material)() is None)
     assert_false(@strategy.captured_task_completed(run, 6))
-    close_graph_host_consumer(run, 5, first_ops, first_live, first)
+    close_retained_host_consumer(run, 5, first_ops, first_live, first)
     assert_true(@execution.managed_completed_output_available(filtered))
     closed_parent_bytes = @execution.managed_completed_output_storage_bytes(
       filtered,
@@ -459,11 +459,11 @@ fn run_current_host_graph_relation_path(
     }
   } else {
     assert_eq(local_managed_test_rows(first_ops).length(), expected_rows)
-    close_graph_host_consumer(run, 5, first_ops, first_live, first)
+    close_retained_host_consumer(run, 5, first_ops, first_live, first)
     assert_true(@execution.managed_completed_output_available(second))
     assert_true(@execution.managed_completed_output_available(filtered))
   }
-  close_graph_host_consumer(
+  close_retained_host_consumer(
     run,
     6,
     second_ops,
@@ -533,7 +533,7 @@ test "standard Host cancellation after current MATCH preserves cleanup and retur
 }
 
 ///|
-fn close_graph_host_consumer(
+fn close_retained_host_consumer(
   run : @strategy.CapturedDAG,
   task : Int,
   operations : @local_driver.LocalManagedDispatchOperations[Int],
