@@ -6070,9 +6070,13 @@ test('checked INFER barrier compiles within the original Effect Run', async () =
     false, false, true, false, false, false, false);
   assert.ok(environment);
   const document = structuredClone(program);
+  // Effect references name declared stage Results, not intermediate aliases.
+  // The installed mapping consumes the original string key, not Model value.
+  document.stages[0].steps.at(-1).select = ['id', 'assessment'];
+  document.stages[0].results.answer.fields = ['id', 'assessment'];
   document.stages[0].effects = {
     save: {create: {target: 'connector://crm/account',
-      mapping: 'mapping:crm.account.v1', from: {result: 'captured'}}},
+      mapping: 'mapping:crm.account.v1', from: {result: 'answer'}}},
   };
   const preparation = moon.clientProgramPrepareEffectComputationWithParameters(
     JSON.stringify(document), 'json', environment, undefined, []);
@@ -6081,7 +6085,7 @@ test('checked INFER barrier compiles within the original Effect Run', async () =
   const occurrence = moon.clientProgramEffectInferOccurrence(prepared);
   assert.ok(occurrence);
   assert.deepEqual(moon.clientProgramInferOccurrenceCoordinates(occurrence),
-    {_0: 0, _1: 0, _2: 2});
+    {_0: 0, _1: 0, _2: 3});
   assert.equal(moon.clientProgramInferOccurrenceModelTaskCid(occurrence), taskCid);
   const {execution} = readInstalledModelExecution(moon, prepared, installation,
     occurrence);
@@ -6093,7 +6097,8 @@ test('checked INFER barrier compiles within the original Effect Run', async () =
   const compilation = checked(moon.clientProgramCompileLocalEffectsWithInfer(
     prepared, graph));
   const plan = JSON.parse(moon.clientProgramEffectCompilationPlanWire(compilation));
-  assert.equal(plan.nodes.filter(node => node.node_id.includes('infer')).length, 2);
+  assert.deepEqual(plan.nodes.filter(node => /_infer_3$/.test(node.node_id))
+    .map(node => node.node_id).sort(), ['task_0_before_infer_3', 'task_0_infer_3']);
   const allowed = checked(moon.clientProgramIssueAllowedEffectRun(compilation,
     cid('a'), cid('b'), '2099-01-01T00:00:00.000Z'));
   const definition = checked(moon.clientProgramIssueEffectRunDefinition(allowed,

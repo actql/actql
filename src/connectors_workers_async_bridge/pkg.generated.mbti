@@ -3,6 +3,7 @@ package "actql/actql/connectors_workers_async_bridge"
 
 import {
   "actql/actql/connector_sdk",
+  "actql/actql/connectors/reference_compute",
   "actql/actql/connectors/reference_compute/driver",
   "actql/actql/connectors_workers_async",
   "actql/actql/effect_application",
@@ -1312,6 +1313,7 @@ pub(all) suberror NodeHostFailure {
   RemoteCredential(@remote_credential.RemoteCredentialIssue)
   RemoteBundle(@remote_bundle.RemoteBundleIssue)
   PhysicalManifest(@physical_manifest.PhysicalManifestIssue)
+  ReferenceComputeManagedStart(@reference_compute.PlanIssue)
 }
 
 // Types and methods

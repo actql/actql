@@ -458,6 +458,9 @@ async function prepareReferenceCapture(facts, {directory, mappingCids,
       resource: 'records'})),
     continuationWire: canonicalJson({request: plan.request,
       attempt: plan.attempt}),
+    // Match the installed Site's consumer ownership: durable capture no
+    // longer needs these in-process Preview pins when the Host stops.
+    releaseInputs: () => { moon.clientProgramReleaseEffectInputs(inputs); },
     dispose: () => ledger.close()};
 }
 

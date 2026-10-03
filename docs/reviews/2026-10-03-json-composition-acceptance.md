@@ -82,9 +82,9 @@ ACTQL_PACKED_CLIENT_PACKAGES=/path/to/exact-sha-artifact \
 ```
 
 The package helper verifies the artifact against the checkout. Without an
-artifact it uses normal package prepack. That heavier local preparation was
-not rerun for this intermediate submission; latest-HEAD packed acceptance
-and required hosted CI remain pending.
+artifact it uses normal package prepack. The initial intermediate submission
+did not rerun that preparation. Subsequent fixed-HEAD packed acceptance and
+hosted CI must be reported against their own source revisions.
 
 ## Fixed source execution evidence
 
@@ -112,8 +112,8 @@ later HEAD. Historical green SHAs remain separate evidence.
 A #223 is adopted at `61b0760d303d054b76f3444e9abab6181e3d52e4`.
 D retains A's acquired input and Model execution ownership and adds only the
 composition connections. G #222 is adopted at
-`4116239f9527e4decffca1b63705dd0abfafd3c2`; its main integration remains
-tracked in #193. C #164's initial Graph scope is merged; this JSON acceptance
+`4116239f9527e4decffca1b63705dd0abfafd3c2`; #193 is now merged into main.
+C #164's initial Graph scope is merged; this JSON acceptance
 uses the existing Relation path and does not wait for full Graph completion.
 G #227's additional actual managed-root release work is unadopted and separate;
 zero accounting balances are not evidence of general physical heap bounds.
@@ -140,7 +140,7 @@ fixture binding and mock runtime-builder checks passed in 6.2 seconds;
 Node syntax and whitespace checks also passed. No full local CI, Core,
 proof campaign, packed suite or performance measurement was added.
 
-The Git-only history preflight now first rejects
+The initial Git-only history preflight first rejected
 `Ambiguous foundation merge bases` at the retained integration
 `19b0b464b983695c68df60d601016bb25a4fd06d`. Its ordered parents are
 `4a4f4f10eb9723e3537c2b0fb444fca20dd28f33` and
@@ -148,10 +148,10 @@ The Git-only history preflight now first rejects
 `8b21ddd3f4a17fcecbb9bcf5878082148af0aa99` and
 `8baa87fc6b6cb7d7caa981cef1692c9d73d88318`. This is distinct from the repaired
 duplicate-introduction and missing main #225 declaration failures. The
-current history contract requires one base and rejects before it can assess
+then-current history contract required one base and rejected before it could assess
 this merge's required resolution. D does not rewrite the retained merge,
 select an arbitrary base or introduce a competing shared-validator repair.
-The Draft retains its unmerged #193 dependency until that parent reaches main.
+At that submission, the Draft retained its unmerged #193 dependency.
 
 The stacked parent was subsequently incorporated through normal merge
 `b8a4c682f90babf0f35edf00eed41ab0365e7c16` at its actual public HEAD
@@ -162,3 +162,50 @@ capacity-orchestration checks passed in 2.1 seconds; formatting of the two
 inherited MoonBit files and whitespace checks passed. These synthetic checks
 do not execute a proof campaign or revalidate the product's public packed path.
 The historical source success above remains bound to its original SHA.
+
+## Main integration and independent CI repairs
+
+Main `79ac7f83ca8cac8fe5ca3eea6a03d659dd979f99` contains #248 at
+`4b9d597eb623c95f485c53135b2616c85ed59ae8` and #244 at
+`7a85ff83c38505f1997c044596dfdde167a831d6`. Normal merges
+`3724e9d90848861ee15b6db97443d2e63c96b23b` and
+`4e2791761714fab3fb14c331997db5c2e44787d0` preserve existing declarations,
+the current CI cost controls and shared Source/Run dispatch owners. #193's
+public head is an ancestor of this main, so this PR can now use base `main`.
+
+The shared validator from #248 derives all maximal-base obligations. New
+append-only declarations bind the actual retained merges: 19b0's bases require
+5 and 20 paths with a 21-path union; b8a4's bases require 23 and 0 paths with a
+23-path union. The zero-obligation base remains recorded. The #244 integration
+also declares its one protected package registration overlap. Every record
+binds ordered real parents, exact blob digests/modes and retained supporting
+declaration groups. No shared-validator workaround or historical edit is used.
+Full Git history passed at `f585157323c6281870d357ce8644dc1f50d5057e`
+(51 declarations, 18 integrations), followed by 165 focused foundation,
+generator, assembly freshness and scoped Workers interface checks. This is
+Git provenance validation and focused regression, not a proof campaign.
+
+The previous PR run at `92240a7912f8064a12f9ffcf52b0bd09aba6bedd`,
+[37108088415](https://github.com/actql/actql/actions/runs/37108088415), failed.
+Its successful packed job is historical evidence only. Three independent
+non-history failures were reproduced after main integration and repaired:
+
+- Workers had stale tracked bridge projections. Both assemblies and their
+  interfaces are regenerated with the existing generators, preserving typed
+  managed-start failures.
+- The INFER compilation regression referenced an intermediate alias as an
+  Effect Result. It now declares and consumes the final Named Result with
+  its original string key, retains A's preceding filter, and checks explicit
+  prefix/barrier node identities rather than searching arbitrary names.
+  Foreign equal-body preparations remain rejected by the original owner.
+- The reference Effect Site omitted its Preview-input release hook. It now
+  returns the same exact pin release hook as the installed Salesforce Site.
+  Public HTTP restart, transformed Result, unknown response, cancellation
+  and rejection regressions pass without ignoring cleanup failures or changing
+  the production cleanup owner.
+
+The next validation uses this integrated checkout's normal prepack producer
+once, then reuses those SHA/digest-verified tarballs for the existing
+`--composed-infer` Local/HTTPS consumer. Its exact SHA, retained external
+acceptance report and natural PR CI run are reported separately after the
+commit. No full local packed suite, Core campaign or manual CI rerun is added.
