@@ -2571,6 +2571,13 @@ test "standard Host runs registered bounded Events provider" {
       obligations?=event_obligations,
       require_provider=variant.has_prefix("session"),
     )
+    // Settlement performed one real cleanup poll, which returned false.
+    // Completion preserves the scratch reservation until the explicit retry.
+    assert_eq(cleanup_attempts.val, 1)
+    assert_true(
+      @resources.ledger_usage(@strategy.captured_dag_ledger(run)).reserved_execution_bytes >
+      0L,
+    )
     let event_rows = local_managed_test_rows(events_ops)
     let expected_rows = if variant == "dedupe" {
       2
@@ -2696,7 +2703,6 @@ test "standard Host runs registered bounded Events provider" {
     events_live.val = false
     @strategy.close_captured_task_output(run, 2)
     (events_ops.close)()
-    assert_false((events_ops.cleanup_refresh)())
     assert_true((events_ops.cleanup_refresh)())
     assert_eq(cleanup_attempts.val, 2)
     values_live.val = false
