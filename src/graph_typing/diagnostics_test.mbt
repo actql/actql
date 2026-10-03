@@ -22,6 +22,11 @@ test "graph diagnostics retain typed identity, order and exact threshold forms" 
   assert_true(nodes is Some(@graph_typing.Literal(0L)))
   assert_true(edges is Some(@graph_typing.Literal(2L)))
   assert_true(degree is Some(@graph_typing.Literal(4L)))
+  assert_eq(@graph_typing.graph_bounds_pending_count(bounds), 3)
+  assert_eq(
+    @graph_typing.graph_bounds_pending_at(bounds, 2),
+    Some(@graph_typing.EnforceDiagnosticRelationRows),
+  )
   let rows = @carrier.complete_schema(
     @carrier.relation_rows(@graph_typing.graph_bounds_output(bounds)).unwrap(),
   ).unwrap()
@@ -44,6 +49,11 @@ test "graph diagnostics retain typed identity, order and exact threshold forms" 
     @carrier.GraphKind,
   )
   assert_eq(@graph_typing.degree_direction(checked), @graph_typing.Both)
+  assert_eq(@graph_typing.degree_pending_count(checked), 3)
+  assert_eq(
+    @graph_typing.degree_pending_at(checked, 0),
+    Some(@graph_typing.AdmitDiagnosticGraph),
+  )
   let degree_rows = @carrier.complete_schema(
     @carrier.relation_rows(@graph_typing.degree_output(checked)).unwrap(),
   ).unwrap()
@@ -99,6 +109,11 @@ test "graph bounds retain declared parameter references without observing values
   assert_true(nodes is None)
   assert_true(edges is None)
   assert_true(degree is Some(@graph_typing.Parameter("n")))
+  assert_eq(@graph_typing.graph_bounds_pending_count(checked), 4)
+  assert_eq(
+    @graph_typing.graph_bounds_pending_at(checked, 3),
+    Some(@graph_typing.BindDiagnosticThreshold("n")),
+  )
   assert_true(
     @graph_typing.check_graph_bounds(
       cursor("{\"max_nodes\":{\"$param\":\"missing\"}}"),

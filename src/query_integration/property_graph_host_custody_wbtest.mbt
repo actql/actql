@@ -2,6 +2,8 @@
 fn current_graph_relation_program(variant : String) -> String {
   let relation_step = match variant {
     "current_filter" | "current_edge_filter" => "\"filter\":\"true\""
+    "current_degree" => "\"filter\":\"degree >= 0\""
+    "current_bounds" => "\"filter\":\"actual >= 0\""
     "current_filter_false" => "\"filter\":\"false\""
     "current_select" => "\"select\":[\"id\",\"node_name\"]"
     "current_derive" => "\"derive\":{\"copy\":\"id\"}"
@@ -11,24 +13,40 @@ fn current_graph_relation_program(variant : String) -> String {
     "current_unique" => "\"assert_rows\":{\"unique_by\":[\"id\"]}"
     _ => abort("unknown current Graph regression variant")
   }
-  let matched = if variant == "current_edge_filter" {
+  let matched = if variant == "current_degree" {
+    "{\"degree\":{\"direction\":\"both\"},\"as\":\"projected\"}"
+  } else if variant == "current_bounds" {
+    "{\"graph_bounds\":{\"max_nodes\":1,\"max_edges\":1},\"as\":\"projected\"}"
+  } else if variant == "current_edge_filter" {
     "{\"match_edges\":{\"definition\":\"E\",\"label\":\"Edge\",\"where\":\"true\",\"fields\":[\"src\",\"dst\",\"weight\"]},\"as\":\"projected\"}"
   } else {
     "{\"match_nodes\":{\"definition\":\"N\",\"label\":\"Node\",\"bindings\":{\"identity\":\"element\"},\"where\":\"true\",\"fields\":[\"element\",\"id\",\"node_name\"]},\"as\":\"projected\"}"
   }
-  let result_fields = if variant == "current_edge_filter" {
+  let result_fields = if variant == "current_degree" {
+    "\"node\",\"degree\""
+  } else if variant == "current_bounds" {
+    "\"kind\",\"node_id\",\"actual\",\"max\""
+  } else if variant == "current_edge_filter" {
     "\"src\",\"dst\",\"weight\""
   } else if variant == "current_derive" {
     "\"id\",\"node_name\",\"copy\""
   } else {
     "\"id\",\"node_name\""
   }
-  let first_fields = if variant == "current_edge_filter" {
+  let first_fields = if variant == "current_degree" {
+    "\"node\",\"degree\""
+  } else if variant == "current_bounds" {
+    "\"kind\",\"actual\""
+  } else if variant == "current_edge_filter" {
     "\"src\",\"weight\""
   } else {
     "\"id\",\"node_name\""
   }
-  let second_fields = if variant == "current_edge_filter" {
+  let second_fields = if variant == "current_degree" {
+    "\"degree\""
+  } else if variant == "current_bounds" {
+    "\"kind\""
+  } else if variant == "current_edge_filter" {
     "\"weight\""
   } else {
     "\"node_name\""
@@ -308,6 +326,16 @@ fn run_current_host_graph_relation_path(
     assert_eq(filtered_rows, projected_rows)
   } else if variant == "current_unique" {
     assert_eq(filtered_rows, projected_rows)
+  } else if variant == "current_degree" {
+    assert_true(filtered_rows[0].contains("\"degree\":2"))
+    assert_true(filtered_rows[1].contains("\"degree\":2"))
+    assert_true(filtered_rows[0].contains("\"definition\":\"N\""))
+    assert_true(filtered_rows[0].contains("\"key\":[1]"))
+    assert_true(filtered_rows[1].contains("\"key\":[2]"))
+  } else if variant == "current_bounds" {
+    assert_eq(filtered_rows, [
+      "{\"actual\":2,\"kind\":\"nodes\",\"max\":1,\"node_id\":null}", "{\"actual\":2,\"kind\":\"edges\",\"max\":1,\"node_id\":null}",
+    ])
   } else {
     assert_true(filtered_rows[0].contains("\"src\":1"))
     assert_true(filtered_rows[1].contains("\"src\":2"))
@@ -326,6 +354,18 @@ fn run_current_host_graph_relation_path(
     first_live,
     obligations?=graph_publication_obligations(run, true),
   )
+  if variant == "current_degree" {
+    let rows = local_managed_test_rows(first_ops)
+    assert_eq(rows.length(), 2)
+    assert_true(rows[0].contains("\"key\":[1]"))
+    assert_true(rows[1].contains("\"key\":[2]"))
+    assert_true(rows[0].contains("\"degree\":2"))
+    assert_true(rows[1].contains("\"degree\":2"))
+  } else if variant == "current_bounds" {
+    assert_eq(local_managed_test_rows(first_ops), [
+      "{\"kind\":\"nodes\",\"actual\":2}", "{\"kind\":\"edges\",\"actual\":2}",
+    ])
+  }
   if cleanup_attempts is Some(_) {
     if variant == "current_filter" {
       assert_eq(local_managed_test_rows(first_ops), [
@@ -446,6 +486,15 @@ fn run_current_host_graph_relation_path(
     )
   }
   assert_eq(local_managed_test_rows(second_ops).length(), expected_rows)
+  if variant == "current_degree" {
+    assert_eq(local_managed_test_rows(second_ops), [
+      "{\"degree\":2}", "{\"degree\":2}",
+    ])
+  } else if variant == "current_bounds" {
+    assert_eq(local_managed_test_rows(second_ops), [
+      "{\"kind\":\"nodes\"}", "{\"kind\":\"edges\"}",
+    ])
+  }
   if cleanup_attempts is Some(_) {
     // Independent expected projections are outside the owner helpers.
     if variant == "current_filter" {
@@ -519,6 +568,15 @@ test "standard Host composes current keyed MATCH with bounded Relation consumers
       "current_derive", "current_take", "current_sort", "current_assert", "current_unique",
     ] {
     for quantum in [1, 7, 1024] {
+      run_current_host_graph_relation_path(variant~, execution_quantum=quantum)
+    }
+  }
+}
+
+///|
+test "standard Host composes bounded Graph diagnostics with Relation consumers" {
+  for variant in ["current_degree", "current_bounds"] {
+    for quantum in [1, 7] {
       run_current_host_graph_relation_path(variant~, execution_quantum=quantum)
     }
   }
