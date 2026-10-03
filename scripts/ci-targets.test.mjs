@@ -1,9 +1,11 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {readFileSync, mkdtempSync, mkdirSync, rmSync, writeFileSync, chmodSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import test from 'node:test';
 import {parse} from 'yaml';
-import {readChanges, selectTargets, validateSelection} from './ci-targets.mjs';
+import {readChanges, selectTargets, validateSelection, verifyGate, maintenanceFiles, gateJobs} from './ci-targets.mjs';
 import {occurrences} from './check-owned-contract-versions.mjs';
 const all = ['js', 'wasm', 'native'];
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
@@ -80,15 +82,15 @@ test('push+PR duplication is removed without workflow-level path filtering', () 
   assert.equal(workflow.on.push['paths-ignore'], undefined);
   assert.equal(workflow.concurrency['cancel-in-progress'], '${{ !inputs.performance_matrix }}');
 });
-test('core and macOS depend on one successful selector; no evidence jobs are narrowed', () => {
+test('whole-family scheduling retains the core matrix and complete selected proof campaigns', () => {
   assert.deepEqual(jobs.core.needs, ['select-targets']);
   assert.equal(jobs.core.strategy['fail-fast'], false);
   assert.equal(jobs.core.strategy.matrix.target, '${{ fromJSON(needs.select-targets.outputs.targets) }}');
   assert.deepEqual(jobs['native-macos'].needs, ['select-targets']);
   assert.match(jobs['native-macos'].if, /needs\.select-targets\.outputs\.macos == 'true'/u);
-  const normal = '${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}';
   for (const name of ['session-evidence', 'pipeline-mutations', 'pipeline-capacity']) {
-    assert.equal(jobs[name].if, normal); assert.equal(jobs[name].needs, undefined);
+    assert.match(jobs[name].if, /needs\.select-targets\.outputs\.profile == 'full'/u);
+    assert.deepEqual(jobs[name].needs, ['select-targets']);
   }
   assert.deepEqual(jobs['pipeline-evidence'].needs, ['pipeline-mutations', 'pipeline-capacity']);
   const capacity = jobs['pipeline-capacity'].steps.map(step => step.run ?? '').join('\n');
@@ -96,25 +98,34 @@ test('core and macOS depend on one successful selector; no evidence jobs are nar
   assert.match(capacity, /node proofs\/relation-pipeline\/run\.mjs all/u);
   const check = jobs.check;
   assert(check.needs.includes('select-targets'));
-  assert.equal(check.steps[0].env.MACOS_SCHEDULED, '${{ needs.select-targets.outputs.macos }}');
+  assert.equal(check.steps.find(step => step.run).env.CI_PLAN, '${{ needs.select-targets.outputs.plan }}');
   assert.match(check.if, /always\(\)/u);
 });
-test('required aggregate rejects failed or skipped selection and scheduled macOS omissions', () => {
-  const script = jobs.check.steps[0].run;
-  const results = Object.fromEntries(jobs.check.needs.map(name => [name, {result: 'success'}]));
-  const run = (candidate, macos) => spawnSync('bash', ['-eo', 'pipefail', '-c', script], {
-    encoding: 'utf8', env: {...process.env, RESULTS: JSON.stringify(candidate), MACOS_SCHEDULED: macos},
-  }).status;
-  assert.equal(run(results, 'true'), 0);
-  for (const value of ['', 'invalid', 'undefined']) assert.equal(run(results, value), 1);
-  const missing = {...results}; delete missing['select-targets'];
-  assert.equal(run(missing, 'false'), 1);
-  assert.equal(run({...results, 'native-macos': {result: 'skipped'}}, 'false'), 0);
-  assert.equal(run({...results, 'native-macos': {result: 'skipped'}}, 'true'), 1);
-  for (const result of ['failure', 'cancelled', 'skipped']) {
-    assert.equal(run({...results, 'select-targets': {result}}, 'false'), 1);
-    assert.equal(run({...results, core: {result}}, 'false'), 1);
+const head = 'b'.repeat(40);
+const plan = selection => ({sourceRevision: head, selection});
+const context = {event: 'pull_request', sourceRevision: head};
+const results = selection => Object.fromEntries(gateJobs.map(name => [name, {result:
+  ['select-targets', 'lint', 'spec'].includes(name) || selection.profile === 'full' &&
+    (name !== 'native-macos' || selection.macos) ? 'success' : 'skipped'}]));
+const changes = paths => paths.map(path => ({path, before: {mode: '100644', object: 'c'.repeat(40)},
+  after: {mode: '100644', object: 'd'.repeat(40)}}));
+const maintenanceSelection = paths => selectTargets(paths, {maintenanceChanges: changes(paths)});
+
+test('required aggregate rejects failed, cancelled, skipped and missing selected jobs', () => {
+  const selection = selectTargets(['src/unregistered/engine.mbt']);
+  assert.equal(verifyGate(plan(selection), results(selection), context).length, gateJobs.length);
+  for (const name of gateJobs) {
+    for (const result of ['failure', 'cancelled', 'skipped', 'in_progress', undefined]) {
+      const candidate = results(selection); candidate[name] = {result};
+      assert.throws(() => verifyGate(plan(selection), candidate, context), undefined, `${name}: ${result}`);
+    }
+    const candidate = results(selection); delete candidate[name];
+    assert.throws(() => verifyGate(plan(selection), candidate, context), /dependency inventory/u);
   }
+  assert.throws(() => verifyGate(plan(selection), {...results(selection), unknown: {result: 'success'}}, context));
+  const portable = selectTargets(['README.md']);
+  assert.doesNotThrow(() => verifyGate(plan(portable), results(portable), context));
+  assert.throws(() => verifyGate(plan(selection), results(portable), context));
 });
 
 // The unchanged annotation can be far outside the edited hunk.
@@ -204,4 +215,190 @@ test('CI selection follows the owned contract baseline without a legacy exceptio
   for (const file of ['ci-targets.mjs', 'ci-targets.test.mjs']) {
     assert.deepEqual(occurrences(readFileSync(new URL(file, import.meta.url), 'utf8'), `scripts/${file}`), []);
   }
+});
+
+
+test('maintenance inventory is exact and every existing reviewed modification qualifies', () => {
+  assert.equal(maintenanceFiles.length, 15);
+  assert.equal(new Set(maintenanceFiles).size, 15);
+  for (const path of maintenanceFiles) {
+    const selection = validateSelection(maintenanceSelection([path]));
+    assert.equal(selection.profile, 'maintenance', path);
+    const lines = verifyGate(plan(selection), results(selection), context);
+    assert(lines.some(line => line.startsWith('NOT APPLICABLE pipeline-evidence')));
+    assert(lines.some(line => line.startsWith('PASS lint')));
+    assert(lines.some(line => line.startsWith('PASS spec')));
+  }
+  assert.equal(maintenanceSelection(maintenanceFiles).profile, 'maintenance');
+  for (const path of ['README.md', 'src/source_span/span.mbt', 'packages/sdk/README.md',
+    'docs/spec/language.md', 'docs/design/something.md', 'docs/reviews/report.json',
+    'scripts/local-checks.mjs', 'proofs/relation-pipeline/ci-artifacts.mjs',
+    'scripts/ci-review.config.json', 'scripts/new-reporter.mjs']) {
+    assert.equal(maintenanceSelection([path]).profile, 'full', path);
+    assert.equal(maintenanceSelection([maintenanceFiles[0], path]).profile, 'full', path);
+  }
+  assert.equal(selectTargets(maintenanceFiles).profile, 'full', 'paths alone are not modification evidence');
+});
+
+test('raw Git classification rejects additions deletions renames modes and malformed inventories', () => {
+  const path = 'scripts/worktree-inventory.mjs', base = 'a'.repeat(40);
+  const raw = (status = 'M', before = '100644', after = '100644') =>
+    `:${before} ${after} ${'c'.repeat(40)} ${'d'.repeat(40)} ${status}\0${path}\0`;
+  const inspect = output => readChanges({pull_request: {base: {sha: base}}}, args =>
+    args[0] === 'rev-parse' ? head : args.includes('--name-only') ? path + '\0' :
+      args.includes('--raw') ? output : '+report hash and target text');
+  const modified = inspect(raw());
+  assert.equal(modified.targetSensitiveDiff, true, 'report terminology still triggers existing target scanner');
+  assert.equal(selectTargets(modified.paths, modified).profile, 'maintenance');
+  for (const output of [raw('A', '000000'), raw('D', '100644', '000000'), raw('R100'),
+    raw('T', '100644', '120000'), raw('M', '100644', '100755'), raw('M', '120000', '120000')]) {
+    const changed = inspect(output);
+    assert.equal(selectTargets(changed.paths, changed).profile, 'full');
+    assert.deepEqual(selectTargets(changed.paths, changed).targets, all);
+  }
+  for (const output of ['', raw().slice(0, -1), raw() + raw(), raw().replace(path, 'scripts/other.mjs'), 'malformed\0']) {
+    assert.throws(() => inspect(output));
+  }
+});
+
+test('maintenance plans reject inconsistent fields identities and input membership', () => {
+  const selection = maintenanceSelection(['docs/development.md']);
+  for (const mutate of [
+    value => { value.profile = 'unknown'; }, value => { value.event = 'push'; },
+    value => { value.macos = true; }, value => { value.targets = all; },
+    value => { value.paths.push('unknown'); }, value => { value.paths.push(value.paths[0]); },
+    value => { value.maintenanceChanges = null; }, value => { value.maintenanceChanges[0].path = 'unknown'; },
+    value => { value.maintenanceChanges[0].before.mode = '120000'; },
+    value => { value.maintenanceChanges[0].after.object = value.maintenanceChanges[0].before.object; },
+    value => { value.maintenanceChanges[0].before.object = 'bad'; },
+    value => { value.maintenanceChanges[0].before.object = '0'.repeat(40); },
+    value => { value.maintenanceChanges[0].status = 'M'; }, value => { value.extra = true; },
+    value => { delete value.profile; }, value => { value.reason = ''; },
+  ]) {
+    const invalid = structuredClone(selection); mutate(invalid);
+    assert.throws(() => validateSelection(invalid));
+  }
+  assert.throws(() => verifyGate({...plan(selection), sourceRevision: 'a'.repeat(40)}, results(selection), context));
+  assert.throws(() => verifyGate(plan(selection), results(selection), {...context, event: 'push'}));
+  assert.throws(() => verifyGate({...plan(selection), extra: true}, results(selection), context));
+  for (const event of ['push', 'workflow_dispatch', 'merge_group']) {
+    const value = selectTargets(maintenanceFiles, {event, maintenanceChanges: changes(maintenanceFiles)});
+    assert.equal(value.profile, 'full'); assert.deepEqual(value.targets, all);
+    assert.throws(() => validateSelection({...value, targets: ['js']}));
+    if (event !== 'workflow_dispatch') assert.throws(() => validateSelection({...value, macos: false}));
+  }
+});
+
+test('maintenance N/A is explicit and cannot hide execution or selected check failures', () => {
+  const selection = maintenanceSelection(['docs/development.md']);
+  for (const name of gateJobs) {
+    const candidate = results(selection);
+    candidate[name] = {result: candidate[name].result === 'success' ? 'skipped' : 'success'};
+    assert.throws(() => verifyGate(plan(selection), candidate, context), undefined, name);
+    for (const result of ['failure', 'cancelled', undefined]) {
+      candidate[name] = {result};
+      assert.throws(() => verifyGate(plan(selection), candidate, context), undefined, name);
+    }
+  }
+});
+
+// Exercise the real GitHub job expressions, including always() behavior.
+const scheduled = (name, needs, inputs = {}) => {
+  const expression = jobs[name].if.slice(3, -3).replace(/needs\.([a-z][a-z0-9-]*)/gu, (_, name) => `needs[${JSON.stringify(name)}]`);
+  return Function('needs', 'inputs', 'always', `return (${expression});`)(needs, inputs, () => true);
+};
+test('aggregate workflow expressions run on mixed failures and skip only wholly unselected families', () => {
+  for (const [name, groups] of [['client', ['client-packages', 'client-distribution', 'client-packed', 'client-salesforce']],
+    ['pipeline-evidence', ['pipeline-mutations', 'pipeline-capacity']]]) {
+    assert.deepEqual(jobs[name].needs, groups);
+    assert.match(jobs[name].if, /always\(\)/u);
+    const skipped = Object.fromEntries(groups.map(group => [group, {result: 'skipped'}]));
+    assert.equal(scheduled(name, skipped), false);
+    for (const group of groups) for (const result of ['success', 'failure', 'cancelled', undefined]) {
+      assert.equal(scheduled(name, {...skipped, [group]: {result}}), true, `${name}/${group}/${result}`);
+    }
+    assert.equal(scheduled(name, Object.fromEntries(groups.map(group => [group, {result: 'success'}]))), true);
+    assert.equal(scheduled(name, skipped, {performance_matrix: true}), false);
+  }
+  const evidence = jobs['pipeline-evidence'];
+  assert.equal(evidence.steps.find(step => step.name === 'Require successful producers and exact immutable artifact identities').env.PIPELINE_NEEDS,
+    '${{ toJSON(needs) }}');
+  assert.equal(evidence.steps.find(step => step.run === 'node proofs/relation-pipeline/ci-artifacts.mjs join').env.PIPELINE_NEEDS,
+    '${{ toJSON(needs) }}');
+});
+
+test('every heavy primitive is selected as one complete job and lint/spec always retain their tests', () => {
+  const heavy = ['core', 'host', 'client-packages', 'client-distribution', 'client-packed', 'client-salesforce',
+    'native', 'session-evidence', 'pipeline-mutations', 'pipeline-capacity', 'native-macos',
+    'native-separated-network', 'workers', 'connector-addition', 'duckdb-node'];
+  for (const name of heavy) {
+    assert(jobs[name].needs.includes('select-targets'));
+    assert.equal(scheduled(name, {'select-targets': {outputs: {profile: 'maintenance', macos: 'false'}}}), false);
+    assert.equal(scheduled(name, {'select-targets': {outputs: {profile: 'full', macos: 'true'}}}), true);
+    assert.equal(scheduled(name, {'select-targets': {outputs: {profile: '', macos: 'true'}}}), false);
+  }
+  assert.deepEqual(jobs.check.needs, gateJobs);
+  for (const name of ['lint', 'spec']) assert.equal(jobs[name].needs, undefined);
+  const lint = jobs.lint.steps.map(step => step.run ?? '');
+  assert(lint.includes('node --test scripts/ci-evidence.test.mjs'));
+  assert(lint.includes('node --test scripts/worktree-inventory.test.mjs'));
+  const reporter = readFileSync(new URL('./ci-evidence.test.mjs', import.meta.url), 'utf8');
+  for (const file of ['ci-artifact-reader.test.mjs', 'ci-artifacts.test.mjs', 'verification-actions.test.mjs']) {
+    assert(reporter.includes(`import './${file}';`), `Missing retained reporter suite ${file}`);
+  }
+  assert(jobs.spec.steps.some(step => step.run?.includes('npm run check:spec')));
+});
+
+test('actual final gate command fails closed for missing or corrupted plans', () => {
+  const selection = maintenanceSelection(['docs/development.md']);
+  const script = jobs.check.steps.find(step => step.run).run;
+  const run = value => spawnSync('bash', ['-eo', 'pipefail', '-c', script], {cwd: new URL('../', import.meta.url),
+    encoding: 'utf8', env: {...process.env, CI_PLAN: value, RESULTS: JSON.stringify(results(selection)),
+      GITHUB_SHA: head, GITHUB_EVENT_NAME: 'pull_request', GITHUB_STEP_SUMMARY: ''}});
+  const good = run(JSON.stringify(plan(selection)));
+  assert.equal(good.status, 0, good.stderr);
+  assert.match(good.stdout, /NOT APPLICABLE pipeline-evidence/u);
+  for (const value of ['', 'undefined', '{}', JSON.stringify({...plan(selection), sourceRevision: 'a'.repeat(40)})]) {
+    assert.notEqual(run(value).status, 0);
+  }
+});
+
+test('real Git raw changes admit a regular modification and reject structural changes', t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-ci-maintenance-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.startsWith('GIT_')));
+  Object.assign(env, {GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null'});
+  const git = args => {
+    const result = spawnSync('git', args, {cwd: root, env, encoding: 'utf8'});
+    assert.equal(result.status, 0, result.stderr);
+    return result.stdout;
+  };
+  git(['init', '--quiet']);
+  git(['config', 'user.name', 'Maintenance Fixture']);
+  git(['config', 'user.email', 'maintenance@example.invalid']);
+  git(['config', 'commit.gpgsign', 'false']);
+  git(['config', 'core.filemode', 'true']);
+  mkdirSync(join(root, 'docs'));
+  const path = join(root, 'docs/development.md');
+  writeFileSync(path, 'Original developer instructions\n');
+  git(['add', '.']); git(['commit', '--quiet', '-m', 'Original regular file']);
+  const base = git(['rev-parse', 'HEAD']).trim();
+  const inspect = () => {
+    git(['add', '--all']); git(['commit', '--quiet', '-m', 'Fixture change']);
+    const change = readChanges({pull_request: {base: {sha: base}}}, git);
+    return selectTargets(change.paths, change);
+  };
+  writeFileSync(path, 'Changed developer instructions about hash reports\n');
+  assert.equal(inspect().profile, 'maintenance');
+  chmodSync(path, 0o755);
+  assert.equal(inspect().profile, 'full');
+  git(['reset', '--hard', base]);
+  git(['mv', 'docs/development.md', 'docs/verification-actions.md']);
+  assert.equal(inspect().profile, 'full');
+  git(['reset', '--hard', base]);
+  writeFileSync(join(root, 'docs/ci-artifact-analysis.md'), 'New documentation\n');
+  assert.equal(inspect().profile, 'full');
+  git(['reset', '--hard', base]);
+  git(['rm', 'docs/development.md']);
+  assert.equal(inspect().profile, 'full');
 });
