@@ -1,0 +1,50 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "capacity-adopt-cc13922878b2",
+  "kind": "change",
+  "revision": "cc13922878b2070b67cedb3e9a48ff9cfeb7cf32",
+  "parents": [
+    "d262045bc00e544b32a160212264001175549c46"
+  ],
+  "changes": [
+    {
+      "path": "proofs/relation-pipeline/capacity/finish.mjs",
+      "before": [
+        {
+          "revision": "d262045bc00e544b32a160212264001175549c46",
+          "digest": null,
+          "mode": null
+        }
+      ],
+      "afterDigest": "5d9961e50caec4c4ac3e59e4f4d2385ec7e72b5a028b48bba5311684efbf274c",
+      "afterMode": "100644",
+      "reason": "Preserve the original source change: fix(proofs): close campaign fixture before parent probe. Bind this protected path to its actual source and parent; retain existing semantic, mutation and target obligations."
+    },
+    {
+      "path": "proofs/relation-pipeline/execute.mjs",
+      "before": [
+        {
+          "revision": "d262045bc00e544b32a160212264001175549c46",
+          "digest": "0a248c882d978e40b443f05e2f61cd32bd34849cba80e90c8fcf2318a02e7eba",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "22aa0daf586433031edff777dbb80c8a71e32fa6a6f7816bed6d80616a87e176",
+      "afterMode": "100644",
+      "reason": "Preserve the original source change: fix(proofs): close campaign fixture before parent probe. Bind this protected path to its actual source and parent; retain existing semantic, mutation and target obligations."
+    },
+    {
+      "path": "proofs/relation-pipeline/executor-close.test.mjs",
+      "before": [
+        {
+          "revision": "d262045bc00e544b32a160212264001175549c46",
+          "digest": null,
+          "mode": null
+        }
+      ],
+      "afterDigest": "5d2970886d3d2e4a89d55ed745e84b37636bb40b6dd484c86c7653be073701fb",
+      "afterMode": "100644",
+      "reason": "Preserve the original source change: fix(proofs): close campaign fixture before parent probe. Bind this protected path to its actual source and parent; retain existing semantic, mutation and target obligations."
+    }
+  ]
+}

@@ -43,7 +43,9 @@ default.
    --check`, and `moon fmt --check` when MoonBit changed.
    `node scripts/local-checks.mjs changed` lists these for the current diff.
 3. Before a push or handoff: the CI jobs for the touched areas, with
-   `node scripts/local-checks.mjs run <job>`. It runs the same commands as
+   `node scripts/local-checks.mjs run <job>`. Known full-suite/build jobs
+   require a deliberate `--allow-heavy`; prefer the focused checks or hosted CI.
+   It runs the same commands as
    that job in `.github/workflows/ci.yml`. Run `core` for wasm and native
    (`--target`) only when shared MoonBit core changed; canonical identifier
    changes keep the rule above (`check:spec` and all three targets).
@@ -67,6 +69,14 @@ Build hygiene:
   switch branches or edit a worktree while a gate runs there; the results
   would mix states. Run one heavy gate at a time per machine and note load
   when judging timing-sensitive failures.
+- Route local test/build work through `scripts/local-checks.mjs` for worktree
+  exclusion and a time budget. Full Moon test/build calls need both
+  `--allow-heavy` and `--timeout-seconds`; job budgets default to the workflow.
+  Never treat `--allow-heavy` as human approval. Raw commands are not protected.
+- Optional personal Claude Code and local Codex hooks only classify commands;
+  they never run tests. See [local hooks](docs/local-checks-hooks.md) and
+  [execution limits](docs/development.md#bounded-local-execution). No hook is
+  installed or mandatory for contributors.
 - Report the commands that ran and the gates that did not.
 
 ## Runtime package artifacts

@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync, mkdirSync, copyFileSync, existsSync } from
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { execute, executions, root, toolchain } from '../execute.mjs';
+import { finishCapacityCampaign } from './finish.mjs';
 import { hash, snapshot } from '../inventory.mjs';
 import { generate, shrink, candidates } from '../engine.mjs';
 import { fixedCorpus } from '../corpus.mjs';
@@ -163,6 +164,18 @@ try {
     console.log(`${result.name}: fresh JS detection/shrink, same-resource minimum, ${targets.length} mutated/restored targets`);
   }
 } finally { restore(); }
+// Persist the completed campaign before transferring the checkout's temporary
+// fixture slot. Parent and child executors never share a live fixture owner.
+finishCapacityCampaign(report, targets);
+if (targets.includes('native')) {
+  // Keep this receipt separate: the diagnostic observes native parent roots,
+  // not the portable child campaign, and must not contaminate its source set.
+  const parent = spawnSync(process.execPath, ['proofs/relation-pipeline/capacity/parent-control/run.mjs'],
+    { cwd: root, encoding: 'utf8', maxBuffer: 1024 * 1024 });
+  process.stdout.write(parent.stdout ?? ''); process.stderr.write(parent.stderr ?? '');
+  assert.equal(parent.status, 0, 'Missing actual parent startup correspondence');
+  report.parentStartup = JSON.parse(readFileSync(join(directory, 'parent-control-probe/all.json')));
+}
 report.executions = executions;
 writeFileSync(join(directory, `${targets.length === 1 ? 'js' : 'all'}.json`), JSON.stringify(report, null, 2) + '\n');
 console.log('Source restored byte-for-byte; structural evidence does not close the runtime/256-byte premise');
