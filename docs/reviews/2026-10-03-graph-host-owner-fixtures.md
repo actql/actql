@@ -277,7 +277,7 @@ in their existing tests.
    alone; the TimeSeries default is false/retry. Check construction/unrelated
    tasks did not receive the injection. Do not introduce operation switches into
    a universal lifecycle harness.
-3. Reuse `close_graph_host_consumer` where the closing consumer has its own
+3. Reuse `close_retained_host_consumer` where the closing consumer has its own
    real charged output holding. Keep sibling availability and correct-data
    assertions outside it. Its optional parent credit is valid only after the
    public producer port is already closed and this is the last retaining child;
@@ -313,26 +313,63 @@ Use the repository's pinned toolchain environment. See
 and [focused execution](../development.md#focused-test-execution) for the nonzero
 count/evidence contract. Do not run a full campaign merely to adopt this example.
 
-## Next bounded reuse: existing TimeSeries Host case
+## TimeSeries reuse of the same Host close invariant
 
-The first candidate is `standard Host runs time series with two retained
-consumers` in `src/query_integration/local_time_series_wbtest.mbt`. It already
-uses the same Host task execution, managed completion, ledger and existing
-`delayed_cleanup_provider` fixture. This is a candidate, not a migrated or
-accepted second example.
+`standard Host runs time series with two retained consumers` in
+`src/query_integration/local_time_series_wbtest.mbt` now calls the same close
+check as MATCH. The helper was renamed from `close_graph_host_consumer` to
+`close_retained_host_consumer`; its body and the Graph callback sequence are
+unchanged. No new harness, algorithm, owner, fixture or operation switch was
+introduced.
 
-Initial bounded delta: two whitebox-test files plus this review record. Rename
-the existing exact-credit consumer-close function to a Host-neutral name and
-replace the two duplicated consumer-close blocks (about 15 lines of lifecycle
-operations and availability checks) with calls to it. Retain the independent
-three timestamp rows, canonical named-Result identity/deadline assertions,
-remaining-consumer availability, original setup and all time/overflow/capacity
-boundaries. The existing false-only cleanup counter expects 2; do not apply
-the MATCH false/error/retry helper's expected 3 calls without matching that
-contract. No new generic scenario callback or operation switch is needed.
+The TimeSeries path already uses the installed managed dispatch, retained
+Relation inputs, admitted completion, real CapturedDAG ledger and actual output
+storage bytes. Both consumer outputs have their own charged holding. Its
+producer port stays open during consumer close, so parent cascade credit is
+zero; the last-consumer-after-producer-close scenario remains the Graph-specific
+connection evidence above and is not claimed for this TimeSeries change.
 
-A producer-close-during-consumption scenario would be additional connection
-work, not automatically inherited from two close-helper calls. Estimate/review
-that separately; it is outside the small close-check reuse proposed here.
-There is no deletion or CI-time reduction claim yet; all four older retained
-Host layouts identified by #131 remain untouched.
+| Obligation | Reused or retained |
+| --- | --- |
+| Close each consumer through its Host and dispatch operations | Two handwritten close blocks (nine lines) become two calls to the existing helper. |
+| Return the exact owned output holding | Shared assertion compares the actual ledger delta with the completed output's storage bytes at each close. |
+| Repeated close does not credit again | Shared check compares the entire intermediate ledger observation after a second close/cleanup refresh, with other holdings still present. |
+| Closing the first consumer leaves sibling and producer available | Existing TimeSeries assertions remain immediately after the shared call. They are availability checks, not proof of in-flight input retention. |
+| TimeSeries meaning and publication | The three independently authored 1969/1970 timestamp rows, both consumer row checks, literal NamedResult CID and BeforePublication deadline checks remain unchanged. |
+| Provider cleanup and final recovery | The existing TimeSeries false/retry callback sequence, counter 1 before consumption / 2 after disposal, and final reservation/holding-zero checks remain. The Graph false/error/retry helper is not used. |
+
+Adding another consumer at this same owning-output boundary now requires its
+connection and independent expected data plus a helper call; authors do not
+rewrite the close order, ledger-delta calculation or repeated-close invariant.
+This is an actual second caller, not a moved fixture or a count of generated
+cases. Other material/view, capacity, time/overflow, cancellation and backend
+obligations remain in their existing tests. No existing test was deleted and
+no CI time reduction is claimed.
+
+### Focused adoption checks
+
+The bounded/nonzero JS wrapper executed:
+
+```sh
+node scripts/local-checks.mjs test moon --timeout-seconds 120 -- --target js src/query_integration/local_time_series_wbtest.mbt --filter 'standard Host runs time series with two retained consumers'
+node scripts/local-checks.mjs test moon --timeout-seconds 120 -- --target js src/query_integration/property_graph_host_custody_wbtest.mbt
+```
+
+Results: TimeSeries **1/1**, Graph **4/4**. Their exact test bytes are in
+`d087d67e1` (the test-only commit); helper implementation bytes are unchanged
+apart from its name. The selected checks ran before that commit, with the
+source changes present; this is not a claim that a clean later HEAD was tested.
+`moon fmt --check` on those two files and `git diff --check` passed.
+
+Retain local evidence under `worktrees/actql-graph-host-owner-fixtures`:
+
+- TimeSeries: `_build/focused-evidence/focused-test-4iBiIh` and
+  `_build/local-checks/attempts/run-GrbHTm`.
+- Graph: `_build/focused-evidence/focused-test-9qY2sX` and
+  `_build/local-checks/attempts/run-Lhyk4w`.
+
+The later normal main/documentation merges changed neither test file. The
+submitted HEAD's automatic PR CI is recorded separately in the PR. No broad
+local Core, all-target, proof, packed or performance campaign was added.
+The fixed `d5c1e949...` Graph mutations retain that source's scope; no new
+TimeSeries mutation execution or other-target mutation detection is claimed.
