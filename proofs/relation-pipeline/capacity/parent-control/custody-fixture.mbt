@@ -81,6 +81,7 @@ test "generated serial capacity custody diagnostic" {
       finalization_polls += 1
       assert_true(finalization_polls < 1000)
     }
+    println("ACTQL_CUSTODY_STAGE:before-success-settlement")
     (operations.settle)().unwrap()
     let before = @resources.ledger_usage(ledger).reserved_execution_bytes
     let work_before = (operations.cumulative_provider_work)().unwrap()
@@ -119,8 +120,8 @@ test "generated serial capacity custody diagnostic" {
     available.val = false
     @strategy.close_captured_task_output(run, 0)
     (operations.close)()
-    assert_false((operations.cleanup_refresh)())
-    assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, before)
+    // The successful settlement already observed false without releasing
+    // scratch. The first explicit retry observes error, then real cleanup.
     assert_false((operations.cleanup_refresh)())
     assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, before)
     let mut cleanup_retries = 0

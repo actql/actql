@@ -764,8 +764,15 @@ pub fn[T] start_local_managed_dispatch(
               @execution.cancel_completed_output_import(importer) |> ignore
             }
           },
-          settled: fn() { settled.val = true },
-          // Observe the installed provider; only cleanup_refresh drives retries.
+          settled: fn() {
+            settled.val = true
+            // Finalization has detached the pending output. Poll only the
+            // stopped provider workspace once; pending/error keeps its owner.
+            if live.val && (ordinary.val is Some(_) || carrier.val is Some(_)) {
+              release_provider_scratch() |> ignore
+            }
+          },
+          // Observe the installed provider; cleanup_refresh drives pending retries.
           scratch_released: fn() { provider_execution.val is None },
           retention_released: fn() {
             let relation_released = retained.val is None ||

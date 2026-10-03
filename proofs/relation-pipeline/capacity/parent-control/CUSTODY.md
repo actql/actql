@@ -10,9 +10,15 @@ Both installed lifecycle operation types require an explicit pure
 The existing task owner observes that confirmation separately from physical stop
 and output retention. Local drops its installed provider reference only after
 successful cleanup and preserves cumulative work; false/error keeps the reference
-and reservation. The observation callback does not poll cleanup. Success,
-settlement and disposal therefore do not consume the provider's retry sequence;
-explicit `cleanup_refresh` drives the existing provider cleanup boundary.
+and reservation. The observation callback does not poll cleanup. Once Local
+finalization has detached an output, settlement makes one actual stopped-provider
+cleanup attempt; false/error retains the owner and scratch for explicit
+`cleanup_refresh` retries. This keeps normal sequential admission compatible
+with independent output holdings without manufacturing a cleanup confirmation.
+Materializing Local uses the same stopped-provider release boundary. DuckDB drops
+its completed receiving/verification references while retaining independently
+accepted rows/material and scalar usage; retained-file release is a separate fact.
+Disposal still revokes outputs and drives pending cleanup through the same owners.
 
 `settle_completed_output_reservation` uses the existing ledger. Before exposing
 an accepted task output, it checks reservation ownership, the exact holding's

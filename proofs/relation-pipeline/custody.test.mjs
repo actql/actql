@@ -22,8 +22,9 @@ function fixture(target = 'js', mode = 'normal') {
   const stage = mode === 'success' ? 'ACTQL_CUSTODY_STAGE:after-completion-before-cleanup\n' :
     'ACTQL_CUSTODY_STAGE:after-settlement-before-cleanup\n';
   const log = 'ACTQL_CUSTODY_CHAIN:started\n' +
+    (mode === 'success' ? 'ACTQL_CUSTODY_STAGE:before-success-settlement\nACTQL_CUSTODY_RETRY:false\n' : '') +
     stage + (mode === 'normal' ? child :
-    'ACTQL_CUSTODY_RETRY:false\nACTQL_CUSTODY_RETRY:error\n' + child) +
+    (mode === 'pending' ? 'ACTQL_CUSTODY_RETRY:false\n' : '') + 'ACTQL_CUSTODY_RETRY:error\n' + child) +
     `ACTQL_CUSTODY:${JSON.stringify(observation)}\nTotal tests: 1, passed: 1, failed: 0.\n`;
   const binary = Buffer.from(`synthetic audit-unit-test artifact for ${target}`), digest = hash(binary);
   const artifact = `_build/${target}/debug/test/query_integration/query_integration.whitebox_test.${{ js: 'js', wasm: 'wasm', native: 'exe' }[target]}`;
@@ -73,6 +74,19 @@ for (const [name, patch] of [['premature scratch credit', { after: 0 }],
     assert.throws(() => auditCustody(f.report, 'js', 'success', f.current, f.read));
   });
 }
+for (const [name, mutate] of [
+  ['missing success-time pending observation', log => log.replace('ACTQL_CUSTODY_RETRY:false\n', '')],
+  ['cleanup succeeded before completion while scratch remains pending', log => {
+    const child = '"event":"before-cleanup"\n"event":"after-cleanup"\n';
+    return log.replace(child, '').replace('ACTQL_CUSTODY_RETRY:false\n', child);
+  }],
+  ['pending observation moved to explicit retry', log => log.replace('ACTQL_CUSTODY_RETRY:false\n', '')
+    .replace('ACTQL_CUSTODY_RETRY:error\n', 'ACTQL_CUSTODY_RETRY:false\nACTQL_CUSTODY_RETRY:error\n')],
+]) test(`successful completion custody rejects ${name}`, () => {
+  const f = fixture('js', 'success'), log = mutate(f.read('test.log').toString());
+  f.entries.set('test.log', Buffer.from(log)); f.report.logDigest = hash(log);
+  assert.throws(() => auditCustody(f.report, 'js', 'success', f.current, f.read));
+});
 for (const [name, mutate] of [
   ['unconditional byte claim', f => { f.report.completeAllocationUpper = true; }],
   ['cleanup polled during settlement', f => {

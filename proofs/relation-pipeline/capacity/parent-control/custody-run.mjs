@@ -71,7 +71,7 @@ try {
   writeFileSync(join(root, `${prefix}.receipt.json`), JSON.stringify(receipt, null, 2) + '\n');
   if (process.argv[3]) {
     assert.equal(prematureReleaseCandidate, false, 'Scratch credited before child cleanup');
-    assert(cleanup > after, 'Settlement/disposal must not poll child cleanup');
+    assert(cleanup > after, 'Successful child cleanup preceded pending-scratch observation');
     assert.equal(observed.after, observed.before, 'Settlement lost scratch before explicit cleanup');
     if (mode === 'normal') assert(!log.includes('ACTQL_CUSTODY_RETRY:'));
     else {

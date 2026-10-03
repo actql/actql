@@ -263,8 +263,13 @@ capacity while keeping completion scratch and provisional output accounted.
 Every installed lifecycle explicitly confirms scratch release; an omitted
 condition cannot imply release. The confirmation only observes the owning
 implementation's cleanup state and does not poll, restart Compute or consume
-cleanup retries. Physical stop and successful output acceptance are separate
-from that confirmation.
+cleanup retries. After Local finalization has detached its output, settlement
+makes one actual cleanup attempt on the stopped provider. Pending or failed
+cleanup retains the existing owner and scratch; explicit cleanup retries may
+release it later. Materializing DuckDB releases receiving/verification references
+only after its successful output has independent retention, preserving scalar
+measurement and demand usage. Retained-file release remains separate. Physical
+stop and successful output acceptance are separate from that confirmation.
 
 Before publishing a completed task output, the common boundary validates the
 holding's ledger, origin reservation and exact bytes, then returns unused

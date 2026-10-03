@@ -122,13 +122,19 @@ export function auditCustody(receipt, target, mode, current, read) {
   const cleaned = log.indexOf('"event":"after-cleanup"');
   assert(after >= 0 && cleanup >= 0 && cleaned > cleanup);
   assert.equal(o.after, o.before, 'Settlement lost scratch before explicit cleanup');
-  assert(cleanup > after, 'Settlement/disposal must not poll child cleanup');
+  assert(cleanup > after, 'Successful child cleanup preceded pending-scratch observation');
   if (mode === 'normal') {
     assert(!log.includes('ACTQL_CUSTODY_RETRY:'));
   } else {
     const no = log.indexOf('ACTQL_CUSTODY_RETRY:false');
     const error = log.indexOf('ACTQL_CUSTODY_RETRY:error');
-    assert(no > after && error > no && cleanup > error, 'Missing explicit false/error/retry cleanup path');
+    if (mode === 'success') {
+      const settlement = log.indexOf('ACTQL_CUSTODY_STAGE:before-success-settlement');
+      assert(settlement >= 0 && no > settlement && no < after && error > after && cleanup > error,
+        'Missing success-time pending observation and explicit error/retry cleanup path');
+    } else {
+      assert(no > after && error > no && cleanup > error, 'Missing explicit false/error/retry cleanup path');
+    }
     if (mode === 'success') {
       assert(Number.isSafeInteger(o.heldAtCompletion) && o.heldAtCompletion > 0,
         'Missing accepted output holding at completion');

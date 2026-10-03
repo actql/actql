@@ -144,7 +144,6 @@ pub fn start_captured_duckdb_task(
     Some(value) => [(0, value.to_int64())]
     None => []
   }
-  let scratch_disposed = Ref(false)
   let start_attempt = fn() {
     match
       @compute.start_duckdb_compute_attempt(
@@ -163,18 +162,12 @@ pub fn start_captured_duckdb_task(
           @strategy.RunIssue,
         ] = {
           cancel: fn() { @compute.abort_duckdb_compute_attempt(attempt) },
-          dispose: fn() {
-            @compute.close_duckdb_compute_attempt(attempt)
-            scratch_disposed.val = true
-          },
+          dispose: fn() { @compute.close_duckdb_compute_attempt(attempt) },
           settled: fn() {  },
-          // The installed retained-storage owner supplies physical release
-          // confirmation independently of query stop.
+          // Verification workspace is released separately from retained
+          // output storage, whose installed condition remains below.
           scratch_released: fn() {
-            match retained_storage {
-              Some((_, released)) => scratch_disposed.val && released()
-              None => scratch_disposed.val
-            }
+            @compute.duckdb_compute_scratch_released(attempt)
           },
           retention_released: retained_storage
           .map(value => value.1)
