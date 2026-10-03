@@ -6,6 +6,7 @@ import {spawnSync} from 'node:child_process';
 import test from 'node:test';
 import {parse} from 'yaml';
 import {readChanges, selectTargets, validateSelection, verifyGate, maintenanceFiles, gateJobs} from './ci-targets.mjs';
+import {policyPaths} from './ci-main-base.mjs';
 import {occurrences} from './check-owned-contract-versions.mjs';
 const all = ['js', 'wasm', 'native'];
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
@@ -531,4 +532,42 @@ test('declaration profile requires actual full history and validator regressions
     'workers', 'connector-addition', 'duckdb-node']) {
     assert.equal(scheduled(name, {'select-targets': {outputs: {profile: 'declaration', macos: 'false'}}}), false, name);
   }
+});
+
+const checkpoint = () => ({baseSha: 'a'.repeat(40), testedSha: head, runId: 42, runAttempt: 1, workflowId: 7,
+  policy: policyPaths.map(path => ({path, object: 'd'.repeat(40)})), reason: 'Verified full main checkpoint'});
+test('main narrow applicability requires checkpoint and complete cumulative declaration inventory', () => {
+  const selected = selectTargets([declarationFile], {event: 'push', mainBaseline: checkpoint(), declarationChanges: declarationChanges(), targetSensitiveDiff: true});
+  assert.equal(validateSelection(selected).profile, 'declaration');
+  assert.equal(selected.mainBaseline.baseSha, 'a'.repeat(40));
+  const lines = verifyGate(plan(selected), results(selected), {...context, event: 'push'});
+  assert(lines.some(line => line.startsWith('NOT APPLICABLE core')));
+  const stale = structuredClone(selected); stale.mainBaseline.testedSha = 'e'.repeat(40);
+  assert.throws(() => verifyGate(plan(stale), results(stale), {...context, event: 'push'}), /another tested checkout/u);
+  const unbound = structuredClone(selected); unbound.mainBaseline = null;
+  assert.throws(() => validateSelection(unbound), /verified checkpoint/u);
+});
+test('main cumulative product changes retain all backend coverage even for portable PR paths', () => {
+  for (const paths of [[declarationFile, 'src/source_span/span.mbt'], ['src/source_span/span.mbt'], ['README.md']]) {
+    const selected = validateSelection(selectTargets(paths, {event: 'push', mainBaseline: checkpoint(), declarationChanges: declarationChanges()}));
+    assert.equal(selected.profile, 'full'); assert.deepEqual(selected.targets, all); assert.equal(selected.macos, true);
+  }
+});
+test('main uses verified base for every raw, text, mode and path diff, never push.before', () => {
+  const calls = [], baseRevision = 'a'.repeat(40), before = 'c'.repeat(40);
+  const changed = readChanges({before}, args => {
+    calls.push(args); if (args[0] === 'rev-parse') return head;
+    if (args.includes('--name-only')) return 'src/source_span/span.mbt\0';
+    if (args[0] === 'show') return 'ordinary';
+    return '+ordinary';
+  }, {baseRevision});
+  assert.deepEqual(changed.paths, ['src/source_span/span.mbt']);
+  for (const args of calls.filter(args => args[0] === 'diff')) { assert(args.includes(baseRevision)); assert(!args.includes(before)); }
+});
+test('main API permission is read-only and scoped to selection with no persistent token', () => {
+  assert.deepEqual(workflow.permissions, {contents: 'read'});
+  assert.deepEqual(jobs['select-targets'].permissions, {contents: 'read', actions: 'read'});
+  const select = jobs['select-targets'].steps.find(step => step.id === 'select');
+  assert.equal(select.env.GITHUB_TOKEN, '${{ github.token }}');
+  assert(jobs.lint.steps.some(step => step.run?.includes('scripts/ci-main-base.test.mjs')));
 });
