@@ -38,6 +38,8 @@ jobs:
     outputs:
       targets: ${{ steps.select.outputs.targets }}
       macos: ${{ steps.select.outputs.macos }}
+      profile: ${{ steps.select.outputs.profile }}
+      plan: ${{ steps.select.outputs.plan }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -100,7 +102,7 @@ jobs:
   # before. A target never shares a runner or _build with another.
   core:
     needs: [select-targets]
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     name: core (${{ matrix.target }})
     strategy:
       fail-fast: false
@@ -134,7 +136,8 @@ jobs:
           fi
   # Conditional proof and correspondence evidence beside the existing gates.
   session-evidence:
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    needs: [select-targets]
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -185,7 +188,8 @@ jobs:
   # Isolated producers retain every campaign and never share source/build trees.
   # Evidence is from this run AND attempt; rerun all jobs after partial retries.
   pipeline-mutations:
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    needs: [select-targets]
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     outputs:
@@ -242,7 +246,8 @@ jobs:
           include-hidden-files: true
           if-no-files-found: warn
   pipeline-capacity:
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    needs: [select-targets]
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     outputs:
@@ -301,7 +306,8 @@ jobs:
           include-hidden-files: true
           if-no-files-found: warn
   pipeline-evidence:
-    if: ${{ always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    if: ${{ always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
+      !(needs.pipeline-mutations.result == 'skipped' && needs.pipeline-capacity.result == 'skipped') }}
     needs: [pipeline-mutations, pipeline-capacity]
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -370,7 +376,8 @@ jobs:
           if-no-files-found: error
   # Host, authorization, Checkpoint and retained-state owners.
   host:
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    needs: [select-targets]
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -415,7 +422,8 @@ jobs:
   # Share only clean-checkout tarballs and their source/digest manifest.
   # Consumers retain fresh installs and private target/native build outputs.
   client-packages:
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    needs: [select-targets]
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     outputs:
@@ -444,8 +452,8 @@ jobs:
           if-no-files-found: error
           retention-days: 7
   client-distribution:
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
-    needs: [client-packages]
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    needs: [select-targets, client-packages]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -465,8 +473,8 @@ jobs:
           TMPDIR: ${{ github.workspace }}/_build
         run: npm run check:distribution-client
   client-packed:
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
-    needs: [client-packages]
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    needs: [select-targets, client-packages]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -529,7 +537,8 @@ jobs:
         run: node scripts/test-packed-salesforce-source.mjs
   # These source-backed checks need no packed artifact or other Client job.
   client-salesforce:
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    needs: [select-targets]
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -560,7 +569,8 @@ jobs:
   # Preserve the existing required Client result, including failed, cancelled
   # or unexpectedly skipped producers/consumers. No acceptance runs here.
   client:
-    if: ${{ always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    if: ${{ always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
+      !(needs.client-packages.result == 'skipped' && needs.client-distribution.result == 'skipped' && needs.client-packed.result == 'skipped' && needs.client-salesforce.result == 'skipped') }}
     needs: [client-packages, client-distribution, client-packed, client-salesforce]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -582,7 +592,8 @@ jobs:
           '
   # Native storage, publication and control, and the Native retained path.
   native:
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    needs: [select-targets]
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -652,30 +663,14 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - name: Require every job
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          persist-credentials: false
+      - name: Require selected jobs and explicit not-applicable families
         env:
           RESULTS: ${{ toJSON(needs) }}
-          MACOS_SCHEDULED: ${{ needs.select-targets.outputs.macos }}
-        run: |
-          node -e '
-            const results = JSON.parse(process.env.RESULTS);
-            if (results["select-targets"]?.result !== "success" ||
-                !["true", "false"].includes(process.env.MACOS_SCHEDULED?.trim())) {
-              console.error("Missing or invalid target selection");
-              process.exit(1);
-            }
-            const macos = process.env.MACOS_SCHEDULED.trim() === "true";
-            let failed = false;
-            for (const [job, {result}] of Object.entries(results)) {
-              const ok = result === "success" ||
-                (job === "native-macos" && !macos && result === "skipped");
-              console.log(`${ok ? "ok  " : "FAIL"} ${job}: ${result}`);
-              if (!ok) failed = true;
-            }
-            if (failed) process.exit(1);
-          '
-  # Specifications, machine contracts, generated artifacts, boundaries and
-  # documented examples.
+          CI_PLAN: ${{ needs.select-targets.outputs.plan }}
+        run: node scripts/ci-targets.mjs gate
   spec:
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     runs-on: ubuntu-24.04
@@ -713,7 +708,7 @@ jobs:
     needs: [select-targets]
     if: >-
       ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
-        needs.select-targets.outputs.macos == 'true' }}
+        needs.select-targets.outputs.profile == 'full' && needs.select-targets.outputs.macos == 'true' }}
     runs-on: macos-14
     timeout-minutes: 20
     steps:
@@ -746,7 +741,8 @@ jobs:
           ACTQL_TEST_SCRATCH_ROOT="$RUNNER_TEMP/actql-native" \
             npm run check:native-http-client
   native-separated-network:
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    needs: [select-targets]
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -781,7 +777,8 @@ jobs:
           ACTQL_TEST_SCRATCH_ROOT: ${{ runner.temp }}/actql-native-network
         run: npm run check:native-separated-network
   workers:
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    needs: [select-targets]
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -814,7 +811,8 @@ jobs:
       - name: Build inspect and execute the Workers JS profile
         run: npm test --prefix adapters/workers
   connector-addition:
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    needs: [select-targets]
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -853,7 +851,8 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
   duckdb-node:
-    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    needs: [select-targets]
+    if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:

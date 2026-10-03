@@ -13,7 +13,7 @@ import {compositionProgram, compositionTemplate, compositionExpectations} from
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const {jobs} = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
-const normal = '${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}';
+const normal = "${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}";
 const groups = ['client-packages', 'client-distribution', 'client-packed', 'client-salesforce'];
 const consumers = ['client-distribution', 'client-packed'];
 const runs = name => jobs[name].steps.filter(step => step.run).map(step => step.run.trim());
@@ -83,7 +83,7 @@ done`,
       assert.equal(step['continue-on-error'], undefined);
     }
   }
-  assert.equal(jobs['client-salesforce'].needs, undefined);
+  assert.deepEqual(jobs['client-salesforce'].needs, ['select-targets']);
   const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
   assert(!manifest.scripts['check:local-node-assets'].includes('test-packed-salesforce-source'),
     'the packed composition acceptance moves from Host into the artifact consumer exactly once');
@@ -103,7 +103,7 @@ test('one producer uploads only manifest and tarballs; consumers select its immu
   ].map(name => '${{ runner.temp }}/actql-client-packages/' + name));
   assert.deepEqual(producer.outputs, {'artifact-id': '${{ steps.packages.outputs.artifact-id }}'});
   for (const name of consumers) {
-    assert.deepEqual(jobs[name].needs, ['client-packages']);
+    assert.deepEqual(jobs[name].needs, ['select-targets', 'client-packages']);
     const download = jobs[name].steps.find(step => step.name === 'Download the exact Client package artifact');
     assert.equal(download.uses, './.github/actions/download-client-packages');
     assert.deepEqual(download.with, {
@@ -134,7 +134,8 @@ test('packed evidence uploads remain always-on after their original command', ()
 
 test('the original client check succeeds only when every producer and acceptance group succeeds', () => {
   assert.deepEqual(jobs.client.needs, groups);
-  assert.equal(jobs.client.if, '${{ always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}');
+  assert.match(jobs.client.if, /always\(\)/u);
+  assert.match(jobs.client.if, /!\(needs\.client-packages\.result == 'skipped'/u);
   assert(jobs.check.needs.includes('client'));
   const script = jobs.client.steps[0].run;
   const results = Object.fromEntries(groups.map(name => [name, {result: 'success'}]));
@@ -147,17 +148,6 @@ test('the original client check succeeds only when every producer and acceptance
     }
   }
   assert.equal(run(script, {RESULTS: '{}'}).status, 1);
-});
-
-test('global check still rejects client failure and permits only intentionally unscheduled macOS', () => {
-  const script = jobs.check.steps[0].run;
-  const results = Object.fromEntries(jobs.check.needs.map(name => [name, {result: 'success'}]));
-  for (const result of ['failure', 'cancelled', 'skipped']) {
-    assert.equal(run(script, {RESULTS: JSON.stringify({...results, client: {result}}), MACOS_SCHEDULED: 'true'}).status, 1);
-  }
-  results['native-macos'] = {result: 'skipped'};
-  assert.equal(run(script, {RESULTS: JSON.stringify(results), MACOS_SCHEDULED: 'false'}).status, 0);
-  assert.equal(run(script, {RESULTS: JSON.stringify(results), MACOS_SCHEDULED: 'true'}).status, 1);
 });
 
 test('local commands remain available for each independently retryable group', () => {
