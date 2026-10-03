@@ -32,15 +32,19 @@ fn keyed_node_fields(
   node : @query.GraphNodePattern,
   input : Input,
 ) -> Array[String] raise Abort {
-  let labels = match node.label {
-    Some(name) => definition.labels.filter(label => same_name(label.name, name))
-    None => definition.labels
-  }
-  if labels.is_empty() {
-    raise Abort(UnknownColumn)
-  }
+  // The common constructor retains the first spelling of each property in
+  // this definition, including across label-specific property selections.
+  // Lookup is case-insensitive; the checked output field still has that name.
+  let canonical : Map[String, String] = Map([])
+  let seen : Map[String, Bool] = Map([])
   let selected : Array[String] = []
-  for label in labels {
+  let mut matched = false
+  for label in definition.labels {
+    let selected_label = match node.label {
+      Some(name) => same_name(label.name, name)
+      None => true
+    }
+    matched = matched || selected_label
     let fields = match label.properties {
       AllColumns => columns(input)
       NoProperties => []
@@ -55,10 +59,22 @@ fn keyed_node_fields(
         })
     }
     for field in fields {
-      if !selected.contains(field) {
-        selected.push(field)
+      let folded = ascii_upper(field)
+      let name = match canonical.get(folded) {
+        Some(name) => name
+        None => {
+          canonical[folded] = field
+          field
+        }
+      }
+      if selected_label && !seen.contains(folded) {
+        seen[folded] = true
+        selected.push(name)
       }
     }
+  }
+  if !matched {
+    raise Abort(UnknownColumn)
   }
   selected
 }
@@ -246,11 +262,20 @@ fn lower_script_keyed_graph_query(
     // The current common match exposes a definition-specific closed schema.
     // Combine equivalent property sets without guessing missing-property NULLs
     // or converting element identities into scalar keys.
-    if selected_fields.length() != fields.length() ||
-      !fields.all(field => selected_fields.contains(field)) {
+    if selected_fields.length() != fields.length() {
       raise Abort(UnsupportedGraph)
     }
-    let branch = pipe_physical_name(reserved, "aql_keyed_seeds_")
+    let names : Map[String, String] = Map([])
+    for field in selected_fields {
+      names[ascii_upper(field)] = field
+    }
+    let source_fields = fields.map(field => {
+      match names.get(ascii_upper(field)) {
+        Some(name) => name
+        None => raise Abort(UnsupportedGraph)
+      }
+    })
+    let mut branch = pipe_physical_name(reserved, "aql_keyed_seeds_")
     reserved.push(branch)
     steps.push(
       keyed_start_match(
@@ -258,12 +283,36 @@ fn lower_script_keyed_graph_query(
         graph,
         selected,
         pattern.nodes[0],
-        fields,
+        source_fields,
         identity,
         branch,
         limits,
       ),
     )
+    if source_fields != fields {
+      let aligned = pipe_physical_name(reserved, "aql_keyed_seeds_")
+      reserved.push(aligned)
+      let projection = [construction.text(identity)]
+      for index in 0..<fields.length() {
+        projection.push(
+          if fields[index] == source_fields[index] {
+            construction.text(fields[index])
+          } else {
+            construction.object([
+              (fields[index], construction.text(source_fields[index])),
+            ])
+          },
+        )
+      }
+      steps.push(
+        construction.object([
+          ("from", construction.text(branch)),
+          ("select", construction.array(projection)),
+          ("as", construction.text(aligned)),
+        ]),
+      )
+      branch = aligned
+    }
     if seeds.is_empty() {
       seeds = branch
     } else {
