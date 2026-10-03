@@ -89,6 +89,32 @@ Successful temporary installations were reclaimed after evidence was saved.
 See [connection boundaries](2026-10-03-property-graph-unified-source.md) and
 [migration checkpoint](2026-10-03-frontend-migration-checkpoint.md).
 
+## Authored source snapshot follow-through
+
+`scripts/property-graph-source-snapshot.test.mjs` submits authored DATA /
+PROPERTY GRAPH text through the installed Client, ordinary checker and Host.
+Two distinct self-loop edge keys must survive the common physical snapshot
+save/read/reload route and yield exactly two ordered two-hop TRAIL choices.
+Named Result rows and column contracts are independently specified. The awaited
+Host observation confirms one saved Graph, verified read bytes, original-carrier
+release, successful restoration and temporary snapshot-body reclamation.
+Attach, reread and identical request resubmission cause no new physical events.
+No frontend storage codec or Graph executor is introduced.
+
+The narrow packed editing run `public-query-evidence-SAHW9F` passed the existing
+18/3/12 source cases per transport and **4/4 snapshot tests**: two common JSON
+controls plus two authored-source Local/HTTPS cases. It records committed
+baseline `326074ca2a32b00f6d79d0357ff34da9a5245409` with the new test/harness
+edits present (`dirty: true`), so
+this is editing evidence, not clean final-SHA evidence. It uses the same five
+package digests as the clean acceptance above. Final pushed-SHA CI must verify
+the committed tests. This source observation does not independently assert the
+exact canonical snapshot CID; the exact-byte/CID oracle remains the JSON control.
+
+The initial direct checkout invocation stopped before Host startup because a
+borrowed dependency resolved an older Client wire export without `validCheckOutcome`.
+The fresh installed packages passed; the borrowed dependency was not modified.
+
 
 ## Full-corpus request registration correction
 

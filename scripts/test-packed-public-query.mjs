@@ -55,6 +55,7 @@ for (const [source, destination] of [
   ['spec/frontend/fixtures/data-set-strategy/repro-program.json', 'data-set-strategy-program.json'],
   ['scripts/fixtures/packed-sga-cancellation.mjs', 'sga-cancellation.mjs'],
   ['scripts/property-graph-public-host.test.mjs', 'property-graph-public-host.test.mjs'],
+  ['scripts/property-graph-source-snapshot.test.mjs', 'property-graph-source-snapshot.test.mjs'],
   ['scripts/check-canonical-json.mjs', 'check-canonical-json.mjs'],
   ['docs/reviews/2026-09-19-sga-veca-tea-local-coverage.json', 'local-family-coverage.json'],
 ]) {
@@ -218,7 +219,8 @@ await mkdir(join(root, 'tls'));
 await writeFile(join(root, 'tls/site.key'), await readFile(join(root, 'remote.key')));
 await writeFile(join(root, 'tls/site.crt'), await readFile(join(root, 'remote.crt')));
 await writeFile(join(root, 'tls/ca.crt'), await readFile(join(root, 'remote.crt')));
-console.log(run(process.execPath, ['--test', 'property-graph-public-host.test.mjs'], root,
+console.log(run(process.execPath, ['--test', 'property-graph-public-host.test.mjs',
+  'property-graph-source-snapshot.test.mjs'], root,
   {...runtimeEnvironment, ACTQL_PROPERTY_GRAPH_PACKED: '1'}, 180000).trimEnd());
 if (process.argv.includes('--property-graph-source-only')) return;
 run('moon', ['build', '--target', 'native', '--release',

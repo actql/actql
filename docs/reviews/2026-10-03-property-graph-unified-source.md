@@ -85,8 +85,10 @@ Development integration sequence (steps 1–4 completed for the selected fixture
    source SHA. Check all original fixture obligations through Named Results,
    actual descriptions and independent rows, plus refusal counters and replay.
 5. Common JSON Program snapshot save/reload controls passed on the same installed
-   packages. A separate source-constructor exact snapshot CID assertion is not
-   claimed. Retain that distinction when extending source-to-restored coverage.
+   packages. The later authored-source snapshot tests also passed Local/HTTPS
+   during editing: physical restoration and TRAIL multiplicity are observed.
+   A separate source-constructor exact snapshot CID assertion is not claimed.
+   Retain that distinction and the clean-versus-editing source classification.
 
 The selected Graph source execution and common public snapshot controls now
 pass at the [fixed acceptance source](2026-10-03-property-graph-public-acceptance.md).
