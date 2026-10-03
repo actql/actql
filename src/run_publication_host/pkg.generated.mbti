@@ -42,6 +42,10 @@ pub fn admit_client_infer_occurrence_egress(ClientInferOccurrence, @check_enviro
 
 pub fn admit_client_request_identity_record(String, String, String, String, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
+pub fn admit_client_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits) -> Result[ClientRunMaterials, ClientRunMaterialsIssue]
+
+pub fn admit_client_task_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits) -> Result[ClientTaskRunMaterials, ClientTaskRunMaterialsIssue]
+
 pub fn admit_client_values_run_materials(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientCompilationManifests, ClientValuesRunMaterialsLimits) -> Result[ClientValuesRunMaterials, ClientValuesRunMaterialsIssue]
 
 pub fn admit_prepared_client_direct_values_result_root(PreparedClientProgram, Int, String, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientDirectResultRoot, ClientDirectResultRootAdmissionIssue]
@@ -466,6 +470,8 @@ pub fn issue_acquired_client_effect_local_result_artifact(PreparedClientEffectCo
 
 pub fn issue_captured_client_effect_local_result_definition(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, Int, Int, Int) -> Result[ClientEffectLocalResultDefinition, ClientEffectLocalResultDefinitionIssue]
 
+pub fn issue_captured_source_input_logical(@physical_strategy.CheckedDAG, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, task? : Int) -> Result[@run_publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue]
+
 pub fn issue_client_allowed_run_evidence(@run_publication.RunEvidenceValue, @run_publication.PublicationContract, String, String, String) -> Result[(@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue), ClientAllowedRunEvidenceIssue]
 
 pub fn issue_client_compiled_multi_task_invocation(ClientCompiledRun, @run_publication.PublicationContract, Array[@execution_query.CapturedInputSource], Array[@execution_query.CapturedSourceRelationIdentity], Array[@query_planning.QueryRequirement], Array[String], Array[String], String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
@@ -509,6 +515,8 @@ pub fn issue_client_multi_task_invocation(PreparedClientProgram, ClientTaskCompi
 pub fn issue_client_task_compiled_run(PreparedClientProgram, ClientTaskCompilation, String, String, String) -> Result[ClientCompiledRun, ClientCompiledRunIssue]
 
 pub fn issue_client_task_invocation(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, String, String, String, String, String, String, String, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
+
+pub fn issue_client_task_run_materials(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @program_check.CheckEnvironment, String, String, String?) -> Result[String, ClientTaskRunMaterialsIssue]
 
 pub fn issue_client_task_source_free_invocation(ClientTaskCompilation, String, Int, Int, Int) -> Result[(@run_publication.RunEvidenceValue, @run_publication.PublicationContract), @run_publication.RunEvidenceValueIssue]
 
@@ -559,6 +567,8 @@ pub fn issue_prepared_client_publication_witnesses(PreparedClientProgram, Int, I
 pub fn issue_prepared_client_result_plan(PreparedClientProgram, Int, Int, Int, Int) -> Result[ClientResultPlanIdentity, ClientResultPlanIssue]
 
 pub fn issue_prepared_client_result_row_contract(PreparedClientProgram, Int, Int, Int, Int, Int) -> Result[ClientResultRowContractIdentity, ClientResultRowContractIssue]
+
+pub fn issue_prepared_client_result_schema(PreparedClientProgram, Int, @execution_relation.RelationSchemaIdentityLimits) -> Result[@execution_relation.RelationSchemaIdentity, ClientTaskOutputSchemaIssue]
 
 pub fn issue_prepared_client_task_bound_template(PreparedClientProgram, ClientCompilationManifests, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[@run_publication.RunEvidenceValue, ClientTaskBoundTemplateIssue]
 
@@ -644,6 +654,10 @@ pub fn prepare_client_run_pre_start_failure(ClientRequestIdentity, ClientRequest
 
 pub fn prepare_client_run_start(ClientRequestIdentity, ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool) -> Result[ClientRunStartAction, ClientRunStartIssue]
 
+pub fn prepare_client_task_dispatch(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, ClientRequestIdentity, Int, Int, String, ClientValuesSiteSelection) -> Result[@remote_site_protocol.DispatchRequest, ClientTaskDispatchIssue]
+
+pub fn prepare_client_task_input_binding(PreparedClientProgram, Int) -> Result[@remote_site_protocol.RemoteInputBinding, ClientTaskDispatchIssue]
+
 pub fn prepare_client_task_sequence(PreparedClientProgram, Int, @execution_relation.RegisteredRelationContracts, Array[@execution_relation.FragmentRuntimeContext], @lowering_relation.SequenceLimits, Int, Int, prepared_sequence? : @lowering_relation.PreparedSequence?) -> Result[@execution_relation.GeneratedSequence, ClientTaskSequenceIssue]
 
 pub fn prepare_effect_free_client_program(String, @stage_syntax.Format, @program_check.CheckEnvironment, @decode_core.Cursor?, ClientProgramPreparationLimits) -> Result[PreparedClientProgram, ClientProgramPreparationIssue]
@@ -718,6 +732,8 @@ pub fn prepared_client_result_count(PreparedClientProgram) -> Int
 
 pub fn prepared_client_result_name(PreparedClientProgram, Int) -> String?
 
+pub fn prepared_client_source_evidence_facts(PreparedClientProgram, Int, Int) -> @query_planning.QuerySourceEvidenceFacts?
+
 pub fn prepared_client_terminal_infer_step(PreparedClientProgram) -> Int?
 
 pub fn prepared_client_uses_graph_carrier(PreparedClientProgram) -> Bool
@@ -770,6 +786,15 @@ pub(all) enum ClientBoundTemplateIssue {
   UnsupportedPipeline
   OpaqueBindings(ClientEmptyInvocationBindingsIssue)
   Evidence(@run_publication.RunEvidenceValueIssue)
+}
+
+pub(all) enum ClientCapturedSourceLogicalIssue {
+  ForeignPrepared
+  ForeignIdentity
+  ForeignRequirement
+  Encoding(@encode_core.EncodeFailure)
+  Evidence(@run_publication.RunEvidenceValueIssue)
+  Admission(@run_publication.SourceInputLogicalIssue)
 }
 
 pub(all) enum ClientCompilationManifestIssue {
@@ -1359,7 +1384,22 @@ pub(all) enum ClientRunCancellationAction {
   AlreadyTerminal
 } derive(Eq, @debug.Debug)
 
-type ClientRunCompilation
+pub(all) enum ClientRunCompilation {
+  Values(ClientValuesCompilation)
+  Tasks(ClientTaskCompilation)
+}
+
+pub(all) struct ClientRunMaterials {
+  prepared : PreparedClientProgram
+  compilation : ClientRunCompilation
+  admission : @run_publication.RunPublicationAdmission
+  run_definition : @run_publication.PublicationContract
+}
+
+pub(all) enum ClientRunMaterialsIssue {
+  Values(ClientValuesRunMaterialsIssue)
+  Tasks(ClientTaskRunMaterialsIssue)
+}
 
 pub(all) enum ClientRunOpenIssue {
   Ledger(@physical_resources.LedgerIssue)
@@ -1415,6 +1455,15 @@ pub(all) enum ClientTaskCompilationIssue {
   CompiledPlan(@run_publication.PublicationContractIssue)
   Encoding
   ForeignInferOwner
+}
+
+pub(all) enum ClientTaskDispatchIssue {
+  Binding(ClientTaskRunBindingIssue)
+  Fragment(ClientTaskFragmentIssue)
+  ForeignRequest
+  UnsupportedTask
+  InvalidInputBinding
+  Protocol(@remote_site_protocol.DispatchIssue)
 }
 
 pub struct ClientTaskExecutablePlan {
@@ -1487,6 +1536,22 @@ pub struct ClientTaskRunBinding {
 pub(all) enum ClientTaskRunBindingIssue {
   ForeignRun
   UnsupportedProgram
+}
+
+pub(all) struct ClientTaskRunMaterials {
+  prepared : PreparedClientProgram
+  compilation : ClientTaskCompilation
+  admission : @run_publication.RunPublicationAdmission
+  run_definition : @run_publication.PublicationContract
+}
+
+pub(all) enum ClientTaskRunMaterialsIssue {
+  Input(ClientValuesRunMaterialsIssue)
+  Compilation(ClientTaskCompilationIssue)
+  Admission(@run_publication.RunPublicationAdmissionIssue)
+  Definition(@run_publication.RunPublicationAdmissionIssue)
+  RunMismatch
+  Binding(ClientTaskRunBindingIssue)
 }
 
 pub(all) enum ClientTaskSequenceIssue {

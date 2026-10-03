@@ -254,6 +254,15 @@ test "bounded selected rows retain supplied input provenance" {
         assert_true(completed_cell(output, 0, 1) is Some(Text("ok")))
         let anchored = anchor_completed_output_supplied_inputs(output, [read]).unwrap()
         assert_true(completed_output_matches_supplied_inputs(anchored, [read]))
+        let fixed = fixed_supplied_relation_read(read)
+        let fixed_output = anchor_completed_output_fixed_inputs(
+          output,
+          Some(0),
+          [fixed],
+        ).unwrap()
+        assert_true(
+          completed_output_matches_fixed_inputs(fixed_output, Some(0), [fixed]),
+        )
         let rebound = prepare_supplied_relation_read(owner, 0, captured, fn() {
           true
         }).unwrap()
@@ -276,6 +285,10 @@ test "bounded selected rows retain supplied input provenance" {
         assert_eq(
           completed_output_matches_supplied_inputs(anchored, [read]),
           completed_output_available(anchored),
+        )
+        assert_eq(
+          completed_output_matches_fixed_inputs(fixed_output, Some(0), [fixed]),
+          completed_output_available(fixed_output),
         )
         complete = true
       }

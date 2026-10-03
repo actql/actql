@@ -42,7 +42,7 @@ pub(all) struct ClientValuesRunMaterials {
 }
 
 ///|
-let client_values_run_materials_fields : Array[String] = [
+let client_run_materials_fields : Array[String] = [
   "check_environment", "check_environment_cid", "created_at", "parameters", "prepared_invocation",
   "program", "program_format", "run_authorization", "run_id", "scope_id", "valid_until",
   "version",
@@ -71,6 +71,22 @@ pub fn issue_client_values_run_materials(
     Ok(_) => ()
     Err(issue) => return Err(MaterialsBinding(issue))
   }
+  issue_client_run_materials_input(
+    prepared, admission, definition, environment, environment_wire, program, parameters_wire,
+  )
+}
+
+///|
+// Both compilation owners project the same bounded original Run body.
+fn issue_client_run_materials_input(
+  prepared : PreparedClientProgram,
+  admission : @publication.RunPublicationAdmission,
+  definition : @publication.PublicationContract,
+  environment : @checked.CheckEnvironment,
+  environment_wire : String,
+  program : String,
+  parameters_wire : String?,
+) -> Result[String, ClientValuesRunMaterialsIssue] {
   let environment_cid = @checked.checking_environment_cid(environment)
   guard environment_cid == prepared_client_check_environment_cid(prepared) &&
     @environment.read(@utf8.encode(environment_wire), environment_cid, {
@@ -205,24 +221,26 @@ pub fn issue_client_values_run_materials(
 }
 
 ///|
-/// Rebuild a source-free Values Run from `actql-remote-run-materials/0.1`
-/// and admit it only when its Run definition CID equals
-/// `expected_run_definition_cid`.
-///
-/// The Program, check environment and parameters are checked again here; the
-/// compiled Plan and invocation template are recomputed by the ordinary
-/// compiler and are never taken from the materials. The prepared invocation
-/// and Run authorization are received evidence, admitted by their owners and
-/// never issued by this Site. The CID match is an identity check, not an
-/// execution permission.
-pub fn admit_client_values_run_materials(
+// Bounded retained inputs for both compilation owners.
+priv struct ClientRunMaterialsInput {
+  prepared : PreparedClientProgram
+  prepared_wire : String
+  authorization_wire : String
+  scope_id : String
+  run_id : String
+  created_at : String
+  valid_until : String
+}
+
+///|
+// Parsing/checking is shared; no caller-supplied compilation or authority is
+// accepted from the materials.
+fn read_client_run_materials_input(
   materials : String,
-  expected_run_definition_cid : String,
   expressions : @context.ExpressionProfiles,
   operations : @context.PureOperationProfiles,
-  manifests : ClientCompilationManifests,
   limits : ClientValuesRunMaterialsLimits,
-) -> Result[ClientValuesRunMaterials, ClientValuesRunMaterialsIssue] {
+) -> Result[ClientRunMaterialsInput, ClientValuesRunMaterialsIssue] {
   let parsed = match
     @source.parse_json_bytes(
       @utf8.encode(materials),
@@ -246,8 +264,7 @@ pub fn admit_client_values_run_materials(
     Ok(value) => value
     Err(_) => return Err(MaterialsMalformed)
   }
-  let object = match
-    @decode.closed_object(root, client_values_run_materials_fields) {
+  let object = match @decode.closed_object(root, client_run_materials_fields) {
     Ok(value) => value
     Err(_) => return Err(MaterialsMalformed)
   }
@@ -316,6 +333,62 @@ pub fn admit_client_values_run_materials(
     Ok(value) => value
     Err(issue) => return Err(MaterialsProgram(issue))
   }
+  Ok({
+    prepared,
+    prepared_wire,
+    authorization_wire,
+    scope_id,
+    run_id,
+    created_at,
+    valid_until,
+  })
+}
+
+///|
+/// Rebuild a source-free Values Run from `actql-remote-run-materials/0.1`
+/// and admit it only when its Run definition CID equals
+/// `expected_run_definition_cid`.
+///
+/// The Program, check environment and parameters are checked again here; the
+/// compiled Plan and invocation template are recomputed by the ordinary
+/// compiler and are never taken from the materials. The prepared invocation
+/// and Run authorization are received evidence, admitted by their owners and
+/// never issued by this Site. The CID match is an identity check, not an
+/// execution permission.
+pub fn admit_client_values_run_materials(
+  materials : String,
+  expected_run_definition_cid : String,
+  expressions : @context.ExpressionProfiles,
+  operations : @context.PureOperationProfiles,
+  manifests : ClientCompilationManifests,
+  limits : ClientValuesRunMaterialsLimits,
+) -> Result[ClientValuesRunMaterials, ClientValuesRunMaterialsIssue] {
+  let input = match
+    read_client_run_materials_input(materials, expressions, operations, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  admit_client_values_run_materials_input(
+    input, expected_run_definition_cid, manifests, limits,
+  )
+}
+
+///|
+fn admit_client_values_run_materials_input(
+  input : ClientRunMaterialsInput,
+  expected_run_definition_cid : String,
+  manifests : ClientCompilationManifests,
+  limits : ClientValuesRunMaterialsLimits,
+) -> Result[ClientValuesRunMaterials, ClientValuesRunMaterialsIssue] {
+  let {
+    prepared,
+    prepared_wire,
+    authorization_wire,
+    scope_id,
+    run_id,
+    created_at,
+    valid_until,
+  } = input
   let compilation = match
     issue_prepared_client_values_compilation(
       prepared,

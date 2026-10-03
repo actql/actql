@@ -80,7 +80,8 @@ pub fn offer_numeric_compute(
   estimates : Array[@cost.SerialEstimateLine],
   quantities : @connector.QueryQuantities,
 ) -> Result[@connector.PreparedCompute[NumericCompute], PlanIssue] {
-  if @connector.fixed_compute_request_input_count(request) != 1 {
+  if @connector.fixed_compute_request_input_count(request) != 1 ||
+    @connector.fixed_compute_request_has_supplied_input(request) {
     return Err(Unsupported)
   }
   // This specialization does not implement shared fragment logical metering.

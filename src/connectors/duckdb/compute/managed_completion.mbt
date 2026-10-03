@@ -29,6 +29,9 @@ pub fn[T] prepare_managed_duckdb_completion(
     attempt.receiving is Some(_) {
     return Err(InvalidState)
   }
+  guard duckdb_completed_fixed_inputs(attempt.request) is Some(inputs) else {
+    return Err(UnsupportedInputShape)
+  }
   let port = match
     @execution.prepare_managed_completion_port(
       profile,
@@ -50,7 +53,7 @@ pub fn[T] prepare_managed_duckdb_completion(
         }
         verified_managed_duckdb_compute_material(output, material)
       },
-      inputs=@connector.fixed_compute_request_inputs(attempt.request),
+      inputs~,
     ) {
     Ok(port) => port
     Err(issue) => return Err(Completion(issue))

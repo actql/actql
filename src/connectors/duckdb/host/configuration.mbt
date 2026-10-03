@@ -47,6 +47,15 @@ pub fn configured_native_host_limits(
 }
 
 ///|
+/// The checked logical Source selected by this configuration. Physical
+/// location is independently supplied by the trusted Site binding.
+pub fn configured_native_host_source(
+  value : NativeHostConfiguration,
+) -> (String, String) {
+  @planning.query_requirement_source(value.requirement)
+}
+
+///|
 pub fn start_configured_native_host(
   value : NativeHostConfiguration,
   nonce : String,

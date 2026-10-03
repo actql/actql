@@ -79,6 +79,8 @@ pub fn configured_native_capacity(NativeHostConfiguration) -> NativeCapacity?
 
 pub fn configured_native_host_limits(NativeHostConfiguration) -> NativeHostLimits
 
+pub fn configured_native_host_source(NativeHostConfiguration) -> (String, String)
+
 pub fn configured_retained_native_capacity(NativeHostConfiguration) -> NativeCapacity?
 
 pub fn finish_broad_host_receipt(BroadHostRun) -> Result[Unit, BroadHostIssue]
