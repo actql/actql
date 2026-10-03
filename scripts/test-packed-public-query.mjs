@@ -143,9 +143,23 @@ try {
   assert.equal(negative.error, undefined);
   assert.notEqual(negative.status, 0, 'Missing packaged asset must fail at runtime');
   assert.match(negative.stderr, /ERR_MODULE_NOT_FOUND/u);
-  assert.match(negative.stderr, /publication\.generated\.js/u);
+assert.match(negative.stderr, /publication\.generated\.js/u);
   console.log('Packed missing generated asset: child failed as expected');
 } finally { await rename(asset + '.omitted', asset); }
+async function exerciseNativeGraphSource(sourceOnly = false) {
+  run('moon', ['build', '--target', 'native', '--release',
+    'src/cmd/native_client'], repository, environment);
+  const nativeClient = join(repository, '_build/native/release/build/cmd',
+    'native_client/native_client.exe');
+  console.log(run(process.execPath,
+    [join(repository, 'scripts/test-native-sga-public-source.mjs'),
+      root, nativeClient, directory, ...(sourceOnly ? ['--authored-source-only'] : [])],
+    root, runtimeEnvironment).trimEnd());
+}
+if (process.argv.includes('--property-graph-native-only')) {
+  await exerciseNativeGraphSource(true);
+  return;
+}
 if (process.argv.includes('--quickstart-only')) return;
 if (process.argv.includes('--cancellation-only')) {
   console.log(run(process.execPath, ['sga-cancellation.mjs'], root,
@@ -223,12 +237,5 @@ console.log(run(process.execPath, ['--test', 'property-graph-public-host.test.mj
   'property-graph-source-snapshot.test.mjs'], root,
   {...runtimeEnvironment, ACTQL_PROPERTY_GRAPH_PACKED: '1'}, 180000).trimEnd());
 if (process.argv.includes('--property-graph-source-only')) return;
-run('moon', ['build', '--target', 'native', '--release',
-  'src/cmd/native_client'], repository, environment);
-const nativeClient = join(repository, '_build/native/release/build/cmd',
-  'native_client/native_client.exe');
-const nativeOutput = run(process.execPath,
-  [join(repository, 'scripts/test-native-sga-public-source.mjs'),
-    root, nativeClient, directory], root, runtimeEnvironment);
-console.log(nativeOutput.trimEnd());
+await exerciseNativeGraphSource();
 });
