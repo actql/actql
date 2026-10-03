@@ -1,4 +1,32 @@
 ///|
+test "source-free fixed requests expose no ordered input ports" {
+  let owner = zero_input_request_owner(
+    "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":7}]},\"as\":\"seed\"}]",
+  )
+  let capacity : @connector.FixedComputeCapacity = {
+    contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+    max_rows: 100,
+    max_value_bytes: 10000,
+    common_fragment: None,
+  }
+  let request = @connector.prepare_source_free_fixed_compute_request(
+    owner, capacity,
+  ).unwrap()
+  assert_eq(@connector.fixed_compute_request_input_count(request), 0)
+  assert_eq(@connector.fixed_compute_request_inputs(request).length(), 0)
+  assert_true(@connector.fixed_compute_request_input(request, 0) is None)
+  assert_false(@connector.fixed_compute_request_has_supplied_input(request))
+  let selected = @connector.prepare_selected_fixed_compute_request_with_inputs(
+    owner,
+    0,
+    [],
+    capacity,
+  ).unwrap()
+  assert_eq(@connector.fixed_compute_request_input_count(selected), 0)
+  assert_eq(@connector.fixed_compute_request_inputs(selected).length(), 0)
+}
+
+///|
 test "selected fixed requests bind the checked operation input" {
   let input = duckdb_captured_input(filter="id > 2")
   let owner = @execution.producer_read_receiver(input)
