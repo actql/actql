@@ -40,7 +40,9 @@ for (const backend of target === 'all' ? ['js', 'wasm', 'native'] : [target]) {
       'child/runtime capacity bounds and 256-byte allowance unproved', 'physical Store and backend boundaries retain existing tests'],
     caseCount: cases.length, obligations, durationMs: performance.now() - started, requested: actual.flatMap(e => e.receipt.cases.map(c => c.caseDigest)), executions: actual };
   validate(report, snapshot(root), selected);
-  writeFileSync(join(directory, `${process.argv[3] === 'base' ? 'base-' : ''}${backend}.json`), JSON.stringify(report, null, 2) + '\n');
+  const part = process.env.ACTQL_PIPELINE_PART;
+  const suffix = process.argv[3] === 'base' && part ? `-${part}` : '';
+  writeFileSync(join(directory, `${process.argv[3] === 'base' ? 'base-' : ''}${backend}${suffix}.json`), JSON.stringify(report, null, 2) + '\n');
   const pairs = cases.filter(c => c.id.startsWith('pair:')).map(c => c.steps.map(s => s.op).join('/'));
   console.log(`${backend}: ${cases.length} checked, registered and completed cases; ${pairs.length} adjacent obligations; ${selected.length} descriptors`);
   console.log(`semantic corpus digest ${hash(JSON.stringify(cases))}; empty output ${cases.filter(c => !oracle(c, selected).rows.length).length}`);

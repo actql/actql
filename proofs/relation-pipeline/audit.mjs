@@ -1,3 +1,5 @@
+import { resolveMutationUnion } from './mutation-parts.mjs';
+import { mutationNamesByPart } from './proof-parts.mjs';
 import { variants } from './mutation-registry.mjs';
 import { fixedCorpus, coverage } from './corpus.mjs';
 import { registrations } from './obligations.mjs';
@@ -89,13 +91,19 @@ function auditModels(report) {
     assert(!log.includes('sorryAx'));
   }
 }
-const baseReport = read(join(directory, 'base-js.json'));
-assert.equal(baseReport.target, 'js', 'Baseline report target differs from requested audit target js');
-assert.equal(baseReport.revision, expectedImpact.revision);
-validate(baseReport, current, baseRegistry);
-assert.deepEqual(baseReport.executions.flatMap(e => e.receipt.cases.map(c => c.testCase)), fixedCorpus(baseRegistry, registrations));
-baseReport.executions.forEach(e => auditExecution(e, baseRegistry, 'js'));
-auditModels(baseReport);
+const fixedMutations = read(join(directory, 'fixed-mutations.json'));
+// Both independently executed producer baselines remain original reports.
+// There is deliberately no merged or relabelled baseline receipt.
+for (const name of fixedMutations.partUnion
+  ? Object.keys(mutationNamesByPart).map(id => `base-js-${id}.json`) : ['base-js.json']) {
+  const baseReport = read(join(directory, name));
+  assert.equal(baseReport.target, 'js', 'Baseline report target differs from requested audit target js');
+  assert.equal(baseReport.revision, expectedImpact.revision);
+  validate(baseReport, current, baseRegistry);
+  assert.deepEqual(baseReport.executions.flatMap(e => e.receipt.cases.map(c => c.testCase)), fixedCorpus(baseRegistry, registrations));
+  baseReport.executions.forEach(e => auditExecution(e, baseRegistry, 'js'));
+  auditModels(baseReport);
+}
 for (const target of ['js', 'wasm', 'native']) {
   const report = read(join(directory, `${target}.json`));
   assert.equal(report.target, target, `Report target differs from requested audit target ${target}`);
@@ -118,16 +126,28 @@ const impact = read(join(directory, 'exploration-decision.json'));
 assert.deepEqual(impact, decision(root));
 for (const mode of impact.required ? ['fixed', 'explore'] : ['fixed']) {
 const mutations = read(join(directory, mode === 'fixed' ? 'fixed-mutations.json' : 'mutations.json'));
+if (mutations.partUnion) {
+  resolveMutationUnion(mutations, path => read(artifact(path)));
+  assert.deepEqual(mutations.workspaceOwners, fixedMutations.workspaceOwners, 'Fixed/fresh mutations changed owners');
+  assert.deepEqual(mutations.restorationOwners, fixedMutations.restorationOwners, 'Fixed/fresh restoration changed owners');
+  assert.deepEqual(mutations.partUnion.owners, fixedMutations.partUnion.owners, 'Fixed/fresh mutations changed assignments');
+}
 assert.equal(mutations.mode, mode);
 assert.deepEqual(mutations.decision, impact);
 assert.equal(mutations.revision, impact.revision);
 assert.deepEqual(mutations.source, current);
-assert.notEqual(mutations.workspaces.pristine.id, mutations.workspaces.mutable.id);
-assert.notEqual(mutations.workspaces.pristine.root, mutations.workspaces.mutable.root);
+if (!mutations.partUnion) {
+  assert.notEqual(mutations.workspaces.pristine.id, mutations.workspaces.mutable.id);
+  assert.notEqual(mutations.workspaces.pristine.root, mutations.workspaces.mutable.root);
+}
 assert.equal(mutations.explorationTarget, mode === 'explore' ? 'js' : null);
 assert.equal(mutations.seed, mode === 'explore' ? 105106 : null);
 assert.deepEqual(mutations.results.map(r => r.name), variants.map(v => v.name));
 for (const result of mutations.results) {
+  const owner = mutations.partUnion?.owners[result.name];
+  const workspaces = owner ? mutations.workspaceOwners[owner] : mutations.workspaces;
+  const restorationOwner = owner ? mutations.restorationOwners[owner] : mutations.restorationOwner;
+  if (owner) assert.equal(result.owner, owner, 'Wrong mutation result owner');
   const variant = variants.find(v => v.name === result.name);
   const preserves = (c, o, a) => variant.eligible(c) && variant.preserves(c, o, a, registry);
   const changed = Object.keys(current.sources).filter(path => current.sources[path] !== result.source.sources[path]);
@@ -170,7 +190,7 @@ for (const result of mutations.results) {
   const recorded = new Map();
   for (const execution of result.executions) {
     assert.equal(execution.receipt.boundary.role, 'mutable');
-    assert.deepEqual(auditExecution(execution, registry, execution.receipt.target, mutations.workspaces.mutable), result.source);
+    assert.deepEqual(auditExecution(execution, registry, execution.receipt.target, workspaces.mutable), result.source);
     for (const entry of execution.receipt.cases) recorded.set(JSON.stringify(entry.observation), entry.testCase);
   }
   for (const [i, actual] of (result.finalObservations ?? []).entries()) {
@@ -187,7 +207,7 @@ for (const result of mutations.results) {
   assert.deepEqual(result.healthyExecutions.map(e => e.receipt.target), ['js', 'wasm', 'native']);
   for (const execution of result.healthyExecutions) {
     assert.equal(execution.receipt.boundary.role, 'pristine');
-    assert.deepEqual(auditExecution(execution, registry, execution.receipt.target, mutations.workspaces.pristine), current);
+    assert.deepEqual(auditExecution(execution, registry, execution.receipt.target, workspaces.pristine), current);
     assert(execution.receipt.correspondence);
     execution.receipt.cases.forEach(c => healthy.set(JSON.stringify(c.observation), { target: execution.receipt.target, testCase: c.testCase }));
   }
@@ -196,7 +216,25 @@ for (const result of mutations.results) {
     assert(!preserves(result.minimal, result.healthy[target], result.anchor));
     assert.deepEqual(healthy.get(JSON.stringify(result.healthy[target])), { target, testCase: result.minimal });
   }
-  console.log(`${result.name}: ${mode} evidence and mutated/restored finite replay audited`);
+  assert.equal(restorationOwner.root, workspaces.mutable.root, 'Recovery did not observe restored mutable root');
+  assert.notEqual(restorationOwner.id, workspaces.mutable.id, 'Recovery reused mutated executor');
+  assert.notEqual(restorationOwner.id, workspaces.pristine.id, 'Recovery reused pristine executor');
+  assert.equal(result.postRestore.executions.length, 3);
+  assert.deepEqual(result.postRestore.executions.map(e => e.receipt.target), ['js', 'wasm', 'native']);
+  assert.deepEqual(Object.keys(result.postRestore.observations).sort(), ['js', 'native', 'wasm']);
+  for (const execution of result.postRestore.executions) {
+    const target = execution.receipt.target;
+    assert.equal(execution.receipt.boundary.role, 'mutable');
+    assert.deepEqual(auditExecution(execution, registry, target, restorationOwner), current);
+    assert.equal(execution.receipt.correspondence, true);
+    assert.equal(execution.receipt.cases.length, 1, 'Recovery must contain exactly its assigned minimum');
+    const entry = execution.receipt.cases[0], actual = result.postRestore.observations[target];
+    assert.deepEqual(entry.testCase, result.minimal);
+    assert.deepEqual(entry.observation, actual);
+    compareSemantics(result.minimal, actual, registry);
+    assert(!preserves(result.minimal, actual, result.anchor));
+  }
+  console.log(`${result.name}: ${mode} evidence, pristine healthy and new-owner restored mutable finite replay audited`);
 }
 }
 const extension = checkTakeHistory(root);

@@ -1,0 +1,65 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-four-producers-current-main",
+  "kind": "resolution",
+  "revision": "5d8a0baf5f35b5f75598d0debd281dea2954720b",
+  "parents": [
+    "eb17de6f85ae7ba7dff7faa36ca58e7857737f4b",
+    "b36d7864b57dc654cc03f583d8391e9ba2a506b3"
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-343a5565c1ac",
+    "adopt-985dbbba2789",
+    "adopt-dafff1a1aeea",
+    "bounded-local-execution-guard",
+    "ci-artifact-preflight-fixtures",
+    "ci-declaration-profile",
+    "ci-focused-fixed-requests",
+    "ci-main-carryforward",
+    "ci-maintenance-pr-profile",
+    "ci-mandatory-preflight",
+    "ci-native-query-partition",
+    "ci-portable-pr-targets",
+    "client-ci-runner-context",
+    "client-ci-split",
+    "four-owned-pipeline-producers",
+    "issue-180-foundation-composition",
+    "main-pr225-ci-resolution",
+    "packed-acquired-infer-acceptance",
+    "packed-composed-infer-effect-acceptance",
+    "parallel-pipeline-evidence",
+    "resolve-acquired-infer-client-ci",
+    "resolve-ci-main-carryforward-artifact-preflight",
+    "resolve-composed-infer-effect-main-11fde344",
+    "resolve-composition-current-ci-main",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-composition-maintenance-ci-main",
+    "resolve-composition-reviewed-supplements-main",
+    "resolve-local-guard-acquired-infer-ci",
+    "resolve-local-guard-pipeline-ci",
+    "resolve-main-model-backing",
+    "resolve-parallel-pipeline-main-infer"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "eb17de6f85ae7ba7dff7faa36ca58e7857737f4b",
+          "digest": "524a3c1198c42a99efde66c7fb823ec5f561d1598a5682f71ddf1ccbef9ec138",
+          "mode": "100644"
+        },
+        {
+          "revision": "b36d7864b57dc654cc03f583d8391e9ba2a506b3",
+          "digest": "9d9a05b73e7d617b950530d26506d6fb1f1330900f3601f9a6a91621ada10a27",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "f7d317b9da185705e2449030d4ef6b2599bff2f039e18008df77b9ba04c3c827",
+      "afterMode": "100644",
+      "reason": "Integrate current main normally into the existing four-producer PR. Retain the exact packed Source JOIN INFER Effect check added on main, all merged provider-construction coverage, four independently owned proof producers, mandatory once-only validation and full union audits. Bind every distinct ancestral workflow source group from both actual parents, including the original four-producer source and the actual main workflow merge. Preserve all original commits and records; no runner changes, history rewrite or reused proof observations."
+    }
+  ]
+}
