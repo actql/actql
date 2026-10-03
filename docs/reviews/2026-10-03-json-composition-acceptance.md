@@ -152,3 +152,13 @@ current history contract requires one base and rejects before it can assess
 this merge's required resolution. D does not rewrite the retained merge,
 select an arbitrary base or introduce a competing shared-validator repair.
 The Draft retains its unmerged #193 dependency until that parent reaches main.
+
+The stacked parent was subsequently incorporated through normal merge
+`b8a4c682f90babf0f35edf00eed41ab0365e7c16` at its actual public HEAD
+`ec27ef0e9091d20d53e6d1064afe8848b9a24ede`. This keeps #193 as an ancestor
+and the Draft's base, while preserving its custody-order fixtures and restored
+Graph generation ownership. Thirty-two focused fixture/scheduling and synthetic
+capacity-orchestration checks passed in 2.1 seconds; formatting of the two
+inherited MoonBit files and whitespace checks passed. These synthetic checks
+do not execute a proof campaign or revalidate the product's public packed path.
+The historical source success above remains bound to its original SHA.
