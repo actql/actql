@@ -84,3 +84,20 @@ test "captured Relation branches retain one acquisition and exact input ports" {
     @strategy.prepare_checked_dag(checked, owners, 4, 100000) is Err(TaskLimit),
   )
 }
+
+///|
+test "retained binary JOIN chain preserves its fused capacity owner" {
+  let (run, issuer) = captured_graph_fixture(join=true, join_steps=[1, 2])
+  let graph = @strategy.captured_dag_graph(run)
+  assert_eq(@strategy.graph_task_count(graph), 5)
+  assert_eq(@strategy.graph_task_selected_step(graph, 3), None)
+  assert_eq(@strategy.graph_task_input_count(graph, 3), Some(2))
+  assert_eq(@strategy.captured_task_join_output_count(run, 3), Some(2))
+  assert_eq(@strategy.captured_task_join_output_at(run, 3, 0), Some((1, 10000L)))
+  assert_eq(@strategy.captured_task_join_output_at(run, 3, 1), Some((2, 10000L)))
+  @strategy.stop_captured_dag(run)
+  for task in 0..<5 {
+    @strategy.close_captured_task_output(run, task)
+  }
+  @mock.close_mock_query_issuer(issuer)
+}

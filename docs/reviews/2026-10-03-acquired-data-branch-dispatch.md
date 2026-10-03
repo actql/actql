@@ -48,6 +48,27 @@ checks the single captured prefix, selected step coordinates, owner identity,
 the branch's exact input edges, complete port mapping and the task limit.
 The existing packed source fixture and its expected rows remain unchanged.
 
+## Unary branch versus a binary JOIN
+
+HEAD `1f8c3bee300614bf21f19b9a8e9fb187d3a17fcc` exposed an over-broad
+segmentation condition in [native CI](https://github.com/actql/actql/actions/runs/37111041058/job/111168940065).
+`task_projection_wbtest.mbt`'s existing JOIN ceiling test failed while reading
+the two input ports of its fused task. A binary JOIN's repeated peer input
+does not start the independent unary branch described above. Limit the new
+condition to a later unary operation reading an external retained input;
+preserve the already-supported fused binary JOIN chain and its two exact
+capacity obligations. Do not relabel the old test's task index to conceal the
+unnecessary segmentation.
+
+The existing JOIN failure was reproduced as one focused JS test before the
+correction. Afterward, the new branch test and binary JOIN topology control,
+together with all ten existing task-projection tests, pass **12/12** through
+`local-checks` with a 90-second budget. They cover exact owners/ports, multiple
+JOIN and aggregate ceilings, start rejection without spending an attempt,
+sort/take execution and failure. This remains distinct from the pending
+installed-source Result acceptance. No native suite or packed suite was
+repeated locally.
+
 The former CTE fixture also expected a nonrecursive body to reject an existing
 outer producer with its future CTE name. Update that expectation to checked
 success, and retain an independent rejection case with no outer producer.

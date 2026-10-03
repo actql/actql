@@ -266,7 +266,10 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
         }
         Some(@pipeline.Input(_)) => {
           found_external_input = true
-          if step > 0 {
+          // A binary JOIN can legitimately reread a peer in an already
+          // supported fused chain. Only a unary root restarts a separate
+          // Relation branch; retain the JOIN's existing ceiling owner.
+          if step > 0 && @lower.node_input_count(node) == 1 {
             reentered_relation_input = true
           }
         }
