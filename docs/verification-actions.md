@@ -10,10 +10,28 @@ node --test scripts/verification-actions.test.mjs
 
 This is a report, not a selector, execution log, action-key system or cache.
 It never executes inspected commands, imports inspected JavaScript, writes
-repository files, skips a check or supplies old evidence. Existing workflow
-jobs and assertions are unchanged. The fixtures also run through the existing
+repository files, skips a check or supplies old evidence. This report does not change
+workflow jobs or assertions. The fixtures also run through the existing
 `ci-evidence.test.mjs` CI reporting gate; retain its other imported fixtures
 when integrating reporting changes.
+
+## Declared actions and selected CI jobs
+
+This inventory describes workflow declarations; it does not evaluate the
+run's CI selection plan. Consult the selector and final-check summaries to
+distinguish executed jobs from explicitly **NOT APPLICABLE** families.
+
+For pull requests containing only ordinary edits to existing regular files in
+the [reviewed maintenance inventory](../scripts/ci-targets.mjs), CI runs the
+selector, complete lint, complete spec and final check. Unrelated runtime and
+proof families are skipped as whole families. N/A is neither a test pass nor
+reuse of an older execution receipt. Selected proof campaigns still require
+their complete JS, Wasm and native evidence.
+
+New, removed, renamed, mode/type-changed or unclassified files do not qualify.
+Main retains full verification; other PRs retain their normal job-family
+coverage and existing core-target selection. A new runtime, build or proof
+caller of a registered reporting tool requires re-review of that registration.
 
 ## Sources and candidate workflows
 

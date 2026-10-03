@@ -14,6 +14,8 @@ fn graph_macro_value(
     }
     let role = match (binding.kind, name) {
       (Node, "NODE_ID") => "id"
+      (PropertyNode(identity), "NODE_ID") =>
+        return Some(@expression.Field(identity))
       (Edge, "EDGE_SOURCE") => "src"
       (Edge, "EDGE_TARGET") => "dst"
       (Edge, "EDGE_LABEL") =>

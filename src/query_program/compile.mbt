@@ -20,6 +20,7 @@ pub(all) struct GraphBinding {
 ///|
 pub(all) enum GraphBindingKind {
   Node
+  PropertyNode(String)
   Edge
   Path
 }
@@ -29,6 +30,10 @@ pub(all) enum InputSource {
   Captured(@wire.Cursor)
   GeneratedValues(@wire.Cursor)
   StageResult(String, String)
+  // A logical producer already emitted in the current Program pipeline.
+  // Only script composition can consume it; standalone query compilation
+  // rejects it rather than fabricating a source or retained Stage Result.
+  StepReference
 }
 
 ///|
@@ -405,9 +410,26 @@ fn selected_relation(
   relation : Array[@query.NamePart],
   context : Context,
 ) -> Input raise Abort {
+  resolve_relation_input(relation, context.inputs)
+}
+
+///|
+// DATA/CTE producer aliases and published relation paths retain their
+// respective rules at every query and constructor entry.
+fn resolve_relation_input(
+  relation : Array[@query.NamePart],
+  inputs : Array[Input],
+) -> Input raise Abort {
   let mut found : Input? = None
-  for input in context.inputs {
-    if same_relation_path(relation, input.relation) {
+  for input in inputs {
+    let matches = if input.source is StepReference &&
+      relation.length() == 1 &&
+      input.relation.length() == 1 {
+      same_name(relation[0], input.relation[0])
+    } else {
+      same_relation_path(relation, input.relation)
+    }
+    if matches {
       if found is Some(_) {
         raise Abort(AmbiguousRelation)
       }
@@ -422,7 +444,7 @@ fn selected_relation(
 
 ///|
 fn columns(input : Input) -> Array[String] raise Abort {
-  if input.source is StageResult(_, _) {
+  if input.source is StageResult(_, _) || input.source is StepReference {
     return input.visible_fields.copy()
   }
   let source = match input.source {
@@ -448,7 +470,7 @@ fn columns(input : Input) -> Array[String] raise Abort {
         None => raise Abort(InvalidContext)
       }
     }
-    StageResult(_, _) => raise Abort(InvalidContext)
+    StageResult(_, _) | StepReference => raise Abort(InvalidContext)
   }
   let declaration = match @wire.open_object(source) {
     Ok(object) => object
@@ -1374,6 +1396,7 @@ fn compile_steps(
       first = false
     }
     match operation {
+      GraphCall(_) => raise Abort(UnsupportedGraph)
       RetainResult(name) => {
         guard retained is Some(retained) else { raise Abort(UnsupportedResult) }
         if requires_graph_projection {
@@ -2674,7 +2697,7 @@ pub fn compile(
     let fragment = match input.source {
       Captured(declaration) => declaration
       GeneratedValues(step) => step
-      StageResult(_, _) => raise Abort(InvalidContext)
+      StageResult(_, _) | StepReference => raise Abort(InvalidContext)
     }
     let imported = match @builder.import_cursor(builder, fragment, generated) {
       Ok(node) => node
@@ -2719,7 +2742,7 @@ pub fn compile(
         }
         ([], [imported], None)
       }
-      StageResult(_, _) => raise Abort(InvalidContext)
+      StageResult(_, _) | StepReference => raise Abort(InvalidContext)
     }
     let capture_stages = match capture_stage {
       Some(stage) => [stage]
@@ -2764,7 +2787,7 @@ pub fn compile(
             }
           }
         }
-        StageResult(_, _) => raise Abort(UnsupportedNearest)
+        StageResult(_, _) | StepReference => raise Abort(UnsupportedNearest)
       }
     }
     let retained : Array[RetainedResult] = []
@@ -3362,6 +3385,7 @@ fn compile_cte_stage(
       }
       ([], [imported])
     }
+    StepReference => raise Abort(InvalidContext)
     StageResult(producer, result) => {
       let source_ref = construction.object([
         (
@@ -4035,6 +4059,7 @@ fn compile_set_stages(
         (capture_stage, "source")
       }
       StageResult(producer, result) => (producer, result)
+      StepReference => raise Abort(InvalidContext)
     }
     let term_stage = prefix + "aql_set_term_" + index.to_string()
     if context.inputs.any(other => other.name == term_stage) {
@@ -4121,42 +4146,14 @@ fn compile_set_stages(
   for index in 0..<@query.set_part_count(query) {
     let part = @query.set_part_at(query, index).unwrap()
     let right_fields = outputs[index + 1]
-    if right_fields.length() != left_fields.length() {
-      raise Abort(UnsupportedSet)
-    }
-    let aligned : Array[(String, @builder.Node)] = []
-    let mut alignment_needed = false
-    let matched : Array[String] = []
-    for field in left_fields {
-      let source = if part.by_name {
-        let mut selected : String? = None
-        for candidate in right_fields {
-          if same_name({ value: field, quoted: false, }, {
-              value: candidate,
-              quoted: false,
-            }) {
-            if selected is Some(_) {
-              raise Abort(UnsupportedSet)
-            }
-            selected = Some(candidate)
-          }
-        }
-        match selected {
-          Some(name) => name
-          None => raise Abort(UnsupportedSet)
-        }
-      } else {
-        right_fields[aligned.length()]
-      }
-      matched.push(source)
-      if source != field || right_fields[aligned.length()] != field {
-        alignment_needed = true
-      }
-      aligned.push((field, construction.text(source)))
-    }
-    if matched.length() != right_fields.length() {
-      raise Abort(UnsupportedSet)
-    }
+    let (matched, alignment_needed) = set_alignment_fields(
+      left_fields,
+      right_fields,
+      part.by_name,
+    )
+    let aligned = left_fields.mapi((index, field) => {
+      (field, construction.text(matched[index]))
+    })
     let mut right_stage = sources[index + 1]
     if alignment_needed {
       let aligned_name = prefix + "aql_set_aligned_" + index.to_string()
@@ -4223,20 +4220,7 @@ fn compile_set_stages(
       right_stage = aligned_name
     }
     let combined = "aql_set_combined_" + index.to_string()
-    let operation = match part.kind {
-      "union" => "append"
-      "intersect" => "intersect"
-      "except" => "except"
-      _ => raise Abort(UnsupportedSet)
-    }
-    let body = if part.kind == "union" {
-      construction.object([("with", construction.text("r"))])
-    } else {
-      construction.object([
-        ("with", construction.text("r")),
-        ("duplicates", construction.text(part.duplicates)),
-      ])
-    }
+    let (operation, body) = set_operation_body(construction, part, "r")
     let merge_stage = prefix + "aql_set_merge_" + index.to_string()
     stages.push(
       construction.object([
@@ -4360,134 +4344,9 @@ fn compile_set_stages(
     }
   }
   let steps : Array[@builder.Node] = []
-  let mut current = "set_rows"
-  for index in 0..<@query.final_operation_count(query) {
-    let operation = @query.final_operation_at(query, index).unwrap()
-    let final_name = "aql_set_final_" + index.to_string()
-    match operation {
-      Order(terms) => {
-        let sort : Array[@builder.Node] = []
-        let hidden : Array[(@query.Expression, String)] = []
-        let derives : Array[(String, @builder.Node)] = []
-        let reserved = left_fields.copy()
-        let visible = left_fields.map(field => (field, field))
-        for term in terms {
-          let mut root = @query.expression_node(
-            term.expression,
-            @query.expression_root(term.expression),
-          ).unwrap()
-          while root.kind is Parenthesized(child) {
-            root = @query.expression_node(term.expression, child).unwrap()
-          }
-          let direct = match root.kind {
-            Reference(path) => pipe_slot(path, visible, [])
-            // A bare numeric ORDER term denotes a selected-column ordinal,
-            // not a constant sort key. That separate frontend gap must not
-            // be silently reinterpreted by expression lowering.
-            Number(_) | StringLiteral(_) | Boolean(_) | Null =>
-              raise Abort(UnsupportedOrdering)
-            Unary("-", child) => {
-              if @query.expression_node(term.expression, child).unwrap().kind
-                is Number(_) {
-                raise Abort(UnsupportedOrdering)
-              }
-              None
-            }
-            _ => None
-          }
-          let field = match direct {
-            Some(field) => field
-            None => {
-              let mut reused : String? = None
-              for pair in hidden {
-                if same_expression(term.expression, pair.0) {
-                  reused = Some(pair.1)
-                }
-              }
-              match reused {
-                Some(field) => field
-                None => {
-                  let field = pipe_physical_name(reserved, "aql_set_sort_")
-                  reserved.push(field)
-                  // Only the combined output scope is visible. Reuse its
-                  // evaluated slots; never expand an operand's SELECT.
-                  let value = append_pipe_expression(
-                    construction,
-                    term.expression,
-                    visible,
-                    [],
-                    limits.max_expression_work,
-                  )
-                  derives.push((field, value))
-                  hidden.push((term.expression, field))
-                  field
-                }
-              }
-            }
-          }
-          sort.push(
-            construction.object([
-              ("field", construction.text(field)),
-              ("dir", construction.text(term.direction)),
-              ("nulls", construction.text(term.nulls)),
-            ]),
-          )
-        }
-        let mut sort_from = current
-        let sort_output = if derives.is_empty() {
-          final_name
-        } else {
-          let derived = "aql_set_order_input_" + index.to_string()
-          steps.push(
-            construction.object([
-              ("from", construction.text(current)),
-              ("derive", construction.object(derives)),
-              ("as", construction.text(derived)),
-            ]),
-          )
-          sort_from = derived
-          "aql_set_ordered_" + index.to_string()
-        }
-        steps.push(
-          construction.object([
-            ("from", construction.text(sort_from)),
-            ("sort", construction.array(sort)),
-            ("as", construction.text(sort_output)),
-          ]),
-        )
-        if !derives.is_empty() {
-          steps.push(
-            construction.object([
-              ("from", construction.text(sort_output)),
-              (
-                "select",
-                construction.array(
-                  left_fields.map(field => construction.text(field)),
-                ),
-              ),
-              ("as", construction.text(final_name)),
-            ]),
-          )
-        }
-      }
-      Limit(count, offset) =>
-        steps.push(
-          construction.object([
-            ("from", construction.text(current)),
-            (
-              "take",
-              construction.object([
-                ("count", construction.add(Number(count.to_double()))),
-                ("offset", construction.add(Number(offset.to_double()))),
-              ]),
-            ),
-            ("as", construction.text(final_name)),
-          ]),
-        )
-      _ => raise Abort(UnsupportedSet)
-    }
-    current = final_name
-  }
+  let mut current = append_set_final_steps(
+    construction, query, limits, "set_rows", left_fields, steps, "",
+  )
   if steps.is_empty() {
     current = "aql_set_final_0"
     steps.push(

@@ -265,7 +265,9 @@ fn QueryParser::graph_match(
     self.keyword("ACYCLIC")
     Acyclic
   } else {
-    raise QueryAbort("GRAPH_PATTERN_MODE_REQUIRED", self.peek().start)
+    // The selected GoogleSQL path profile uses WALK when no mode is authored.
+    // Keep the same bounded shape checks and common traversal owner.
+    Walk
   }
   let nodes = [self.graph_node()]
   let edges : Array[GraphEdgePattern] = []
