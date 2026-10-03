@@ -2,12 +2,14 @@
 // entrances of installed Hosts with a real DuckDB source profile. The
 // environment, aliases and account configurations are independent fixtures;
 // nothing is read back from the implementation to build an expectation.
+import './client-check-composition.test.mjs';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {createRequire} from 'node:module';
 import {userInfo} from 'node:os';
+import {DatabaseSync} from 'node:sqlite';
 import {join} from 'node:path';
 import test, {after} from 'node:test';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
@@ -77,7 +79,8 @@ const configurations = Object.freeze({
   undecidable: {readOutcome: 'delegate', aliases: [alias]},
 });
 
-async function installedSource(root, {readOutcome, aliases}) {
+async function installedSource(root, {readOutcome, aliases,
+  environment = sourceEnvironment}) {
   const database = join(root, 'records.duckdb');
   const instance = await DuckDBInstance.create(database);
   const connection = await instance.connect();
@@ -91,30 +94,74 @@ async function installedSource(root, {readOutcome, aliases}) {
   await writeFile(path, JSON.stringify({
     acquisitionPlanning: {policy: 'priority', priority: ['nativeQuery', 'broadQuery']},
     version: 'actql-installed-duckdb-source/0.1',
-    database, schema: 'main', table: 'records', sourceRef,
+    database, schema: 'main', table: 'records',
+    sourceRef: environment.schema_snapshots[0].source_ref,
     queryAliases: aliases,
-    checkEnvironmentWire: canonicalText(sourceEnvironment),
+    checkEnvironmentWire: canonicalText(environment),
     accountConfigurationWire: account(readOutcome),
   }));
   return path;
 }
 
+async function installedConfigurations(root, configuration) {
+  if (!Array.isArray(configuration)) {
+    return {sourceProfilePath: await installedSource(root, configuration)};
+  }
+  if (configuration.length === 0) return {};
+  const paths = [];
+  for (const [index, source] of configuration.entries()) {
+    const directory = join(root, `source-${index}`);
+    await mkdir(directory);
+    paths.push(await installedSource(directory, source));
+  }
+  return paths.length === 1 ? {sourceProfilePath: paths[0]}
+    : {sourceProfilePaths: paths};
+}
+
+// Guard only after fixture creation: checking may consult authorization but
+// must never open an installed source, admit a Run, or reach dispatch.
+function observeCheckOnly(t, root) {
+  const original = DuckDBInstance.create;
+  let sourceOpens = 0, dispatches = 0;
+  t.mock.method(DuckDBInstance, 'create', async function(database, ...args) {
+    if (typeof database === 'string' && database.startsWith(root) &&
+        database.endsWith('records.duckdb')) sourceOpens++;
+    return Reflect.apply(original, this, [database, ...args]);
+  });
+  return {
+    beforeDispatch: () => { dispatches++; throw new Error('UnexpectedCheckDispatch'); },
+    assertNoExecution: () => {
+      assert.equal(sourceOpens, 0, 'check opens no source-row provider');
+      assert.equal(dispatches, 0, 'check dispatches no Run');
+      const journal = new DatabaseSync(join(root, 'state', 'requests',
+        'client-requests.sqlite3'), {readOnly: true});
+      try {
+        assert.equal(journal.prepare('SELECT count(*) AS count FROM client_requests')
+          .get().count, 0, 'check admits no Run');
+      } finally { journal.close(); }
+    },
+  };
+}
+
 async function localClient(t, configuration) {
   const root = await mkdtemp(join(scratch, 'local-'));
   t.after(() => rm(root, {recursive: true, force: true}));
-  const sourceProfilePath = await installedSource(root, configuration);
-  return connectEmbeddedLocal({mode: 'local', owner: 'local',
-    installation: {directory: join(root, 'state'), sourceProfilePath}});
+  const sourceInstallation = await installedConfigurations(root, configuration);
+  const observation = observeCheckOnly(t, root);
+  const client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
+    installation: {directory: join(root, 'state'), ...sourceInstallation}});
+  return {check: client.check, assertNoExecution: observation.assertNoExecution};
 }
 
 async function httpClient(t, configuration, mutateCheckReply) {
   const root = await mkdtemp(join(scratch, 'http-'));
-  const sourceProfilePath = await installedSource(root, configuration);
+  const sourceInstallation = await installedConfigurations(root, configuration);
+  const observation = observeCheckOnly(t, root);
   const host = await openInstalledRemoteHttpHost({
-    directory: join(root, 'state'),
+    directory: join(root, 'state'), beforeDispatch: observation.beforeDispatch,
     authenticate: header => header === 'Bearer owner-token' ? owner
       : undefined,
-    sourceProfilePath,
+    ...sourceInstallation,
   });
   const server = createServer({key: tlsKey, cert: tlsCertificate},
     (request, response) => {
@@ -141,8 +188,20 @@ async function httpClient(t, configuration, mutateCheckReply) {
       'content-type': 'application/json'},
     body: JSON.stringify({connection: {mode: 'remote', owner: 'remote',
       runners: [], consentRefs: []}, ...body})});
-  return Object.freeze({check: client.check, post});
+  return Object.freeze({check: client.check, post,
+    assertNoExecution: observation.assertNoExecution});
 }
+
+const rightEnvironment = JSON.parse(await readFile(join(repository,
+  'adapters/host-node/fixtures/two-source/right.environment.json'), 'utf8'));
+const rightView = rightEnvironment.source_views[0];
+const rightAlias = Object.freeze({name: 'other_records',
+  sourceRef: rightEnvironment.schema_snapshots[0].source_ref,
+  sourceViewContractCid: rightView.contract_cid,
+  schemaContractCid: rightView.output.schema.cid});
+const rightConfiguration = name => ({...configurations[name],
+  environment: rightEnvironment,
+  aliases: name === 'absent' ? [] : [rightAlias]});
 
 const entrances = Object.freeze({local: localClient, http: httpClient});
 const contextRef = /^ctx:[0-9a-f]{64}$/u;
@@ -158,6 +217,48 @@ const protectedSource = [{boundary: 'source_resolution',
   reason: 'unresolved_protected'}];
 
 for (const [entrance, open] of Object.entries(entrances)) {
+  test(`${entrance}: zero, one and two installed Sources preserve public checks`,
+    async t => {
+      for (const configuration of [[], [configurations.allowed],
+        [configurations.allowed, rightConfiguration('denied')]]) {
+        const client = await open(t, configuration);
+        const expected = (verdict, reasons) => ({context_ref: '<ctx>',
+          scope: {kind: 'bound_input'}, verdict, reasons,
+          coverage: {limits: [], unresolved: []}});
+        assert.deepEqual(withoutContext(await client.check('SELECT 1 AS n',
+          {format: 'sql'})).report, expected('verified', []));
+        assert.deepEqual(withoutContext(await client.check('SELECT FROM WHERE',
+          {format: 'sql'})).report,
+        expected('invalid', [{code: 'query_syntax_invalid'}]));
+        client.assertNoExecution();
+      }
+    });
+
+  test(`${entrance}: independent Source disclosure preserves visible checks in either order`,
+    async t => {
+      for (const hidden of ['absent', 'denied', 'undecidable']) {
+        for (const reversed of [false, true]) {
+          const configuration = [configurations.allowed, rightConfiguration(hidden)];
+          if (reversed) configuration.reverse();
+          const client = await open(t, configuration);
+          assert.deepEqual(withoutContext(await check(client, 'satisfied')).report,
+            {context_ref: '<ctx>', scope: {kind: 'bound_input'},
+              verdict: 'verified', reasons: [],
+              coverage: {limits: [], unresolved: []}});
+          assert.deepEqual(withoutContext(await client.check(
+            'SELECT id FROM other_records', {format: 'sql'})).report,
+          {context_ref: '<ctx>', scope: {kind: 'bound_input'},
+            verdict: 'undetermined', reasons: [],
+            coverage: {limits: [], unresolved: protectedSource}});
+          assert.deepEqual(withoutContext(await check(client, 'violation')).report,
+            {context_ref: '<ctx>', scope: {kind: 'bound_input'},
+              verdict: 'invalid', reasons: [{code: 'supplied_value_invalid'}],
+              coverage: {limits: [], unresolved: []}});
+          client.assertNoExecution();
+        }
+      }
+    });
+
   test(`${entrance}: a disclosable violation is reported beside a ` +
     'protected source', async t => {
     for (const name of ['absent', 'denied']) {
@@ -441,8 +542,8 @@ async function installation(install, {readOutcome, aliases},
   if (closed) authorization.close();
   return install({moon, environment, contextKey,
     publication: sourceAliasPublication(moon, environment, aliases),
-    sourceAccess: {authorization, connection: 'local-database',
-      resource: '/records.duckdb', sourceRef}});
+    sourceAccesses: [{authorization, connection: 'local-database',
+      resource: '/records.duckdb', sourceRef}]});
 }
 
 const ownerRequest = (name, principalId = owner) => ({principalId,
@@ -562,8 +663,8 @@ const mutations = Object.freeze({
     "    if (decision?.action !== 'dispatch') return [];"],
   // Whether the decision owner is consulted depends on the published names.
   'unavailability depends on the published names': [
-    'if (!readTuple) return [];',
-    'if (!readTuple || aliases.length === 0) return [];'],
+    'if (!readTuple) return null;',
+    'if (!readTuple || aliases.length === 0) return null;'],
   // A hidden name is checked as if it were visible.
   'hidden source is checked as visible': [
     'JSON.stringify({environmentCid, aliases: visible})',
@@ -621,3 +722,4 @@ test('http: SDK rejects contradictory evidence injected into a real verified rep
       problem: {code: 'check_internal'}, partial_report: value.report});
     await assert.rejects(check(), {code: 'InvalidHostCheckOutcome'});
   });
+
