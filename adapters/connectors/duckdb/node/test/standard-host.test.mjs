@@ -1839,6 +1839,29 @@ async function exerciseStrategyGraph(
     fields:['hop_count'],secondFields:['hop_count'],
     expected:[{hop_count:1},{hop_count:1}],
   }, {
+    name:'retained-labelled-hop-pattern', retainedOutput:true,
+    retainedTraversal:true,
+    steps:[
+      {from:'g',traverse:{start:{from:'seeds',id:'element'},
+        hops:[
+          {direction:'out',edge_types:['Link']},
+          {direction:'out',edge_types:['Link']},
+        ],path_mode:'trail',emit:'paths'},as:'paths'},
+      {from:'paths',filter:'hop_count = 2',as:'out'},
+    ],
+    fields:['hop_count'],secondFields:['hop_count'],
+    expected:[{hop_count:2},{hop_count:2}],
+  }, {
+    name:'retained-unmatched-hop-label', retainedOutput:true,
+    retainedTraversal:true,
+    steps:[
+      {from:'g',traverse:{start:{from:'seeds',id:'element'},
+        hops:[{direction:'out',edge_types:['Missing']}],
+        path_mode:'trail',emit:'paths'},as:'paths'},
+      {from:'paths',filter:'hop_count > 0',as:'out'},
+    ],
+    fields:['hop_count'],secondFields:['hop_count'],expected:[],
+  }, {
     name:'edge-match',
     step:{from:'g',match_edges:{definition:'E',where:'true',
       fields:['src','dst','weight']},as:'out'},
@@ -2000,6 +2023,12 @@ async function exerciseStrategyGraph(
               [field, row[field]]))),
         } : {}),
       };
+      assert.deepEqual(
+        sgaPublicationOwner.execution.publicationInventory.occurrences
+          .map(occurrence => occurrence.name).sort(),
+        Object.keys(expectedResults).sort(),
+        `${publicationCase.name}/published result names`,
+      );
       for (const occurrence of
         sgaPublicationOwner.execution.publicationInventory.occurrences) {
         const received = [];
