@@ -5469,6 +5469,10 @@ async function exerciseStrategyGraph(
     rows: 40,
     advanceQuantum: 1,
     constructionProgress: 80,
+    cancelOnManagedStart: 3,
+    managedStarts: 3,
+    cancelTask: 3,
+    completedTasks: [1, 2],
     step: {
       from: 'g',
       traverse: {

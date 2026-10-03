@@ -12226,7 +12226,8 @@ fn run_standard_host_graph_relation_path(
   let limits = dispatch_test_limits()
   let sequences = dispatch_test_generated(run)
   let selected_path_query = variant.has_prefix("reach_") ||
-    variant.has_prefix("shortest_")
+    variant.has_prefix("shortest_") ||
+    variant.has_prefix("traverse_")
   let separate_graph_task = variant == "projection" || selected_path_query
   let graph_task = if selected_path_query {
     if relation_selector {
@@ -12404,16 +12405,27 @@ fn run_standard_host_graph_relation_path(
     })
     let output_obligations = graph_publication_obligations(run, publication)
     let ordered_outputs = if selected_path_query && relation_selector {
-      [
-        @local_driver.local_managed_carrier_output(carrier, material),
-        @local_driver.local_managed_relation_output(graph_inputs[1]),
-        @local_driver.local_managed_relation_output(graph_inputs[1]),
-      ]
+      if traverse_relation_selector {
+        [
+          @local_driver.local_managed_carrier_output(carrier, material),
+          @local_driver.local_managed_relation_output(graph_inputs[1]),
+        ]
+      } else {
+        [
+          @local_driver.local_managed_carrier_output(carrier, material),
+          @local_driver.local_managed_relation_output(graph_inputs[1]),
+          @local_driver.local_managed_relation_output(graph_inputs[1]),
+        ]
+      }
     } else {
       [@local_driver.local_managed_carrier_output(carrier, material)]
     }
     let output_input_rows = if selected_path_query && relation_selector {
-      [graph_input_rows[1], graph_input_rows[1]]
+      if traverse_relation_selector {
+        [graph_input_rows[1]]
+      } else {
+        [graph_input_rows[1], graph_input_rows[1]]
+      }
     } else {
       []
     }

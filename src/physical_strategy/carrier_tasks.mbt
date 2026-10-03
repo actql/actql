@@ -212,8 +212,6 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
   let mut found_binary = false
   let mut found_external_input = false
   let mut prefer_fused_without_relation = false
-  let mut traverse_step = -1
-  let mut traverse_output_consumed = false
   let mut all_selected = true
   for step in 0..<count {
     guard @lower.node_at(prepared, step) is Some(node) else { return None }
@@ -226,9 +224,6 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
       zero_input_count += 1
     } else if @lower.node_input_count(node) == 2 {
       found_binary = true
-    }
-    if @lower.operation(node) == "SGA.traverse" {
-      traverse_step = step
     }
     if stage != 0 &&
       @lower.operation(node) == "BRIDGE.rows.to_graph" &&
@@ -245,9 +240,6 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
     for input in 0..<@lower.node_input_count(node) {
       match @lower.node_input_target(node, input) {
         Some(@pipeline.Step(producer)) => {
-          if producer == traverse_step {
-            traverse_output_consumed = true
-          }
           guard producer >= 0 &&
             producer < step &&
             @lower.preparation_carrier_at(prepared, @pipeline.Step(producer))
@@ -275,11 +267,6 @@ fn carrier_segment_prefix_end(graph : CheckedDAG, stage : Int) -> Int? {
         None => return None
       }
     }
-  }
-  // A terminal traversal stays with its established fused Graph producer.
-  // Only a later checked Relation step needs the selected Graph handoff.
-  if traverse_step >= 0 && !traverse_output_consumed && !intermediate_result {
-    return None
   }
   if all_selected &&
     found_carrier &&
