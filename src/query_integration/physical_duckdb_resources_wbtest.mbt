@@ -144,7 +144,23 @@ test "common DuckDB start cannot borrow external or exhausted reservations" {
   ).unwrap()
   let before_complete = @resources.ledger_usage(ledger)
   assert_true(before_complete.reserved_execution_bytes > 0L)
+  let compute_attempt = @duckdb_driver.captured_duckdb_attempt(attempt)
+  assert_false(@duckdb_compute.duckdb_compute_scratch_released(compute_attempt))
   @duckdb_driver.complete_captured_duckdb_task(run, attempt).unwrap()
+  assert_true(@duckdb_compute.duckdb_compute_scratch_released(compute_attempt))
+  // The receiver reference is gone, but the accepted rows and scalar work
+  // observations remain available through their own completion ownership.
+  assert_true(
+    @duckdb_compute.duckdb_compute_measurement_usage(compute_attempt) is Some(_),
+  )
+  assert_true(
+    @duckdb_compute.duckdb_compute_demand_usage(compute_attempt) is Some(_),
+  )
+  let completed_output = @strategy.captured_task_output(run, 1, Step(1)).unwrap()
+  assert_eq(@execution.completed_row_count(completed_output), 1)
+  assert_true(
+    @execution.completed_cell(completed_output, 0, 0) is Some(Number(3.0)),
+  )
   let complete = @resources.ledger_usage(ledger)
   assert_eq(complete.holdings, before_complete.holdings + 1)
   assert_eq(complete.held_bytes, before_complete.reserved_retention_bytes)

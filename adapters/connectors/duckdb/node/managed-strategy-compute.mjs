@@ -14,7 +14,7 @@ import {encodeManagedColumnFrame, managedColumnCodecContractCid,
 import {managedParquetCodecContractCid} from './managed-parquet-codec.mjs';
 import {managedPhysicalRepresentation} from
   '../../../store-local/managed-physical-representation.mjs';
-import {settleFailedManagedDuckDB} from './managed-failure.mjs';
+import {closeManagedDuckDBOutput, settleFailedManagedDuckDB} from './managed-failure.mjs';
 
 const runtimeUrl = new URL('../../../../_build/js/release/build/connectors/duckdb/host_node/host_node.js', import.meta.url);
 let runtime;
@@ -307,15 +307,9 @@ export async function runManagedColumnStrategyHostCompute(
       close: async () => {
         if (closed) return;
         authorized = false;
-        moon.managedOutputCancel(output);
-        body.close();
-        store.close();
-        lifecycle.outputDisposed = true;
-        try { await store.cleanup(); }
-        finally {
-          moon.managedStrategyClose(run);
-          moon.managedStrategyRefreshRetention(run);
-        }
+        await closeManagedDuckDBOutput(moon, checked, {
+          run, output, body, store, lifecycle,
+        });
         closed = true;
       },
     });
