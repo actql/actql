@@ -183,9 +183,10 @@ exclusion on these cases). The recorded totals are:
 These are finite normal-implementation CI results at A's fixed source. They
 include the existing normal/cancellation tests and do not repeat the three
 Host mutations on Wasm/native. The locally isolated mutation results above
-remain JS-only. The run's final evidence publication/aggregation status and
-#270's eventual submitted-head CI must still be checked independently; green
-Core jobs do not imply the whole run or a different HEAD passed.
+remain JS-only. The same automatic run subsequently completed with conclusion `success`,
+including its final evidence publication/aggregation. #270's eventual
+submitted-head CI must still be checked independently; this successful run
+does not establish a different HEAD's result.
 
 ## Main integration still required
 
