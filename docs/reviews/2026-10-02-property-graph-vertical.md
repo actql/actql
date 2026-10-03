@@ -1190,3 +1190,23 @@ missing bundles. Logs remain separate at
 `/private/tmp/property-graph-cold-runtime-fixed-20261003.log` and
 `/private/tmp/property-graph-cold-runtime-owned-cache-fixed-20261003.log`.
 No shared cache is changed; neither failed aggregate is reported as passing.
+
+The complete local Salesforce job at
+`98fd56e02db720bf80fbb371dbd7216a508e0312` passes 277 Node/Host tests,
+the Effect recovery probes and all six public Host process-death boundaries,
+then fails the first lower-level capture crash probe. Node 24's default spec
+reporter hides the deliberately terminated test worker's exit code, although
+the saved record confirms the requested `effect-source` Store boundary was
+reached. This failed aggregate is retained at
+`/private/tmp/property-graph-client-salesforce-98fd56e02-20261003.log`.
+
+The lower-level probe now uses the existing process-isolated test reporter,
+as the public Host crash harness already does. It still requires nonzero
+termination and exit code 77, and additionally checks the recorded boundary
+and holding namespace. The three probes (`effect-source`, `effect-capture`,
+`publication-private`) pass after this change, including physical holding
+sharing, failed directory-sync cleanup, retry and zero remaining holdings and
+objects. Their logs are
+`/private/tmp/property-graph-crash-reporter-{effect-source,effect-capture,publication-private}-20261003.log`.
+No product stop, recovery, ACK or expected-result condition is relaxed.
+The complete clean-source aggregate and pushed-SHA CI remain separate checks.
