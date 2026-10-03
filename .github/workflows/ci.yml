@@ -143,7 +143,7 @@ jobs:
       - name: Test environment guards
         run: node --test scripts/moonbit-environment.test.mjs
       - name: Test native SQLite namespace ownership
-        run: node --test scripts/test-native-core.test.mjs
+        run: node --test scripts/test-native-core.test.mjs scripts/native-query-coverage.test.mjs
       - name: Test preflight admission and latest-revision guard
         run: node --test scripts/ci-preflight.test.mjs
       - name: Test focused owning-family selection and zero-test guards

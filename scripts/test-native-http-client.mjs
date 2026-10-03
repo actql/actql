@@ -1,3 +1,4 @@
+import {runNativeQueryTests} from './native-query-coverage.mjs';
 import assert from 'node:assert/strict';
 import {execFileSync, spawn} from 'node:child_process';
 import {
@@ -1192,6 +1193,12 @@ try {
     if (packagePath === 'src/query_integration') {
       resetNativeStoreTransfer();
       nativeStandardTransferCompletions.length = 0;
+      await runNativeQueryTests(moon, 'http-client', {
+        cwd: new URL('../', import.meta.url), env: testEnvironment,
+      });
+      await Promise.all(nativeStandardTransferCompletions);
+      assert.equal(standardGateway.pending(), 0);
+      continue;
     }
     const child = spawn(moon, ['test', packagePath, '--target', 'native'], {
       cwd: new URL('../', import.meta.url),
@@ -1203,10 +1210,6 @@ try {
     const [code, signal] = await once(child, 'exit');
     if (code !== 0) {
       throw new Error(`native HTTP test failed: ${code ?? signal}`);
-    }
-    if (packagePath === 'src/query_integration') {
-      await Promise.all(nativeStandardTransferCompletions);
-      assert.equal(standardGateway.pending(), 0);
     }
   }
   execFileSync(moon, [
