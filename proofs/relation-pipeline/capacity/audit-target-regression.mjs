@@ -3,6 +3,9 @@ import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
+import { validate } from './audit.mjs';
+import { snapshot } from '../inventory.mjs';
+import { unionCapacityParts } from './parts.mjs';
 const root = fileURLToPath(new URL('../../../', import.meta.url));
 const path = join(root, '.artifacts/relation-pipeline/capacity/all.json');
 const original = JSON.parse(readFileSync(path));
@@ -46,7 +49,25 @@ for (const slot of ['healthy', 'js', 'wasm', 'bytes', 'edge', 'history', 'compil
   }
   const fixture = join(directory, `${slot}.json`);
   writeFileSync(fixture, JSON.stringify(report) + '\n');
-  const result = spawnSync(process.execPath, ['proofs/relation-pipeline/capacity/audit.mjs', fixture],
+  let result;
+  if (original.kind === 'capacity-union' && slot !== 'healthy') {
+    // Corrupt cloned producer views as well as their derived union, so these
+    // controls still reach semantic audits rather than merely failing the
+    // immutable-original digest check. Real producer bytes stay untouched.
+    const overrides = new Map();
+    const parts = original.parts.map(ref => {
+      const part = JSON.parse(readFileSync(join(root, ref.path)));
+      for (const key of Object.keys(part)) if (Object.hasOwn(report, key) &&
+        !['part', 'kind', 'executions', 'executionOwners', 'timings', 'complete', 'targets'].includes(key)) part[key] = structuredClone(report[key]);
+      overrides.set(ref.path, JSON.stringify(part, null, 2) + '\n');
+      return { path: ref.path, report: part };
+    });
+    const read = path => overrides.get(path) ?? readFileSync(join(root, path));
+    try {
+      validate(unionCapacityParts(parts, read), snapshot(root), ['js', 'wasm', 'native'], read);
+      result = { status: 0, stdout: '', stderr: '' };
+    } catch (error) { result = { status: 1, stdout: '', stderr: error.stack }; }
+  } else result = spawnSync(process.execPath, ['proofs/relation-pipeline/capacity/audit.mjs', fixture],
     { cwd: root, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 });
   writeFileSync(join(directory, `${slot}.log`), `${result.stdout ?? ''}${result.stderr ?? ''}`);
   assert.ifError(result.error);

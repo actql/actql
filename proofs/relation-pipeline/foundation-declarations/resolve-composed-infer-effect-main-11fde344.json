@@ -1,0 +1,63 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-composed-infer-effect-main-11fde344",
+  "kind": "resolution",
+  "revision": "11fde3441fdcf0766c583c5173ccf8e788a09751",
+  "parents": [
+    "f8e538f370a7e8839e07af173e48c0e95c7934b1",
+    "b2061158bd564224514442cecd68a4e078ae790f"
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-343a5565c1ac",
+    "adopt-985dbbba2789",
+    "adopt-dafff1a1aeea",
+    "bounded-local-execution-guard",
+    "ci-artifact-preflight-fixtures",
+    "ci-declaration-profile",
+    "ci-focused-fixed-requests",
+    "ci-main-carryforward",
+    "ci-maintenance-pr-profile",
+    "ci-mandatory-preflight",
+    "ci-native-query-partition",
+    "ci-portable-pr-targets",
+    "client-ci-runner-context",
+    "client-ci-split",
+    "issue-180-foundation-composition",
+    "main-pr225-ci-resolution",
+    "packed-acquired-infer-acceptance",
+    "packed-composed-infer-effect-acceptance",
+    "parallel-pipeline-evidence",
+    "resolve-acquired-infer-client-ci",
+    "resolve-ci-main-carryforward-artifact-preflight",
+    "resolve-composition-current-ci-main",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-composition-maintenance-ci-main",
+    "resolve-composition-reviewed-supplements-main",
+    "resolve-local-guard-acquired-infer-ci",
+    "resolve-local-guard-pipeline-ci",
+    "resolve-main-model-backing",
+    "resolve-parallel-pipeline-main-infer"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "f8e538f370a7e8839e07af173e48c0e95c7934b1",
+          "digest": "4a97ae9211f1f9c42e514cdc8e581fdaf4f6b87b9882128d5980d61134f279b6",
+          "mode": "100644"
+        },
+        {
+          "revision": "b2061158bd564224514442cecd68a4e078ae790f",
+          "digest": "4efe8163fb965a7399fdd3d0bf17950d8fe4867d5019fc19db54f1c8356533ab",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "9d9a05b73e7d617b950530d26506d6fb1f1330900f3601f9a6a91621ada10a27",
+      "afterMode": "100644",
+      "reason": "Bind the actual main merge of composed Source JOIN INFER Effect acceptance to both real parents. Preserve the native query inventory lint check from current main and the packed composed acceptance step from the feature branch. Both parents changed the protected workflow since their sole maximal merge base, and the merged workflow combines their distinct changes, requiring explicit resolution. Retain all distinct ancestral workflow source groups and historical declarations without changing product code or validator policy."
+    }
+  ]
+}

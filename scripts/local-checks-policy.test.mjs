@@ -80,7 +80,7 @@ test('CI classification is an explicit reviewed list, independent of time budget
 test('split pipeline job wrappers require CI provenance, not a heavy override', () => {
   const workflow = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
   assert.deepEqual(Object.keys(ciOnlyPipelineJobs), [
-    'pipeline-mutations', 'pipeline-capacity', 'pipeline-evidence',
+    'pipeline-mutations', 'pipeline-capacity', 'pipeline-mutations-rest', 'pipeline-capacity-mutants', 'pipeline-validation', 'pipeline-evidence',
   ]);
   for (const name of Object.keys(ciOnlyPipelineJobs)) {
     assert.match(workflow, new RegExp(`^  ${name}:$`, 'mu'));

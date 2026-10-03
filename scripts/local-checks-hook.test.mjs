@@ -56,7 +56,7 @@ test('known-heavy job denies while preserving the selected target in guidance', 
 });
 
 test('CI-only pipeline job hooks deny execution with no heavy override route but permit reporting', () => {
-  for (const name of ['pipeline-mutations', 'pipeline-capacity', 'pipeline-evidence']) {
+  for (const name of ['pipeline-mutations', 'pipeline-capacity', 'pipeline-mutations-rest', 'pipeline-capacity-mutants', 'pipeline-validation', 'pipeline-evidence']) {
     for (const options of ['', ' --allow-heavy', ' --allow-heavy --timeout-seconds 30']) {
       const command = `node scripts/local-checks.mjs run ${name}${options}`;
       assert.equal(classifyCommand(command).classification, 'ci-only');

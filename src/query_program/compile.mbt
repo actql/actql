@@ -1347,6 +1347,7 @@ fn compile_steps(
   nearest_inputs? : Array[Input] = [],
   retained? : Array[RetainedResult]? = None,
   projected_input? : Bool = false,
+  initial_scope? : JoinChainScope? = None,
 ) -> (Array[@builder.Node], Array[String]) raise Abort {
   let step_entries : Array[Array[(String, @builder.Node)]] = []
   let mut output = fields.copy()
@@ -1362,18 +1363,22 @@ fn compile_steps(
   let mut selected_expressions : Array[(@query.Expression, String)] = []
   let mut selected_input_fields = fields.copy()
   let mut selected_output_slots : Array[(String, String)] = []
-  let mut pipe_visible = fields.map(field => (field, field))
+  let mut pipe_visible = initial_scope
+    .map(scope => scope.visible.copy())
+    .unwrap_or(fields.map(field => (field, field)))
   let initial_range = query_range_name(query)
-  let mut pipe_ranges = if projected_input {
+  let mut pipe_ranges = if initial_scope is Some(scope) {
+    scope.ranges.copy()
+  } else if projected_input {
     []
   } else {
     [(initial_range, pipe_visible.copy())]
   }
-  let mut pipe_changed = false
+  let mut pipe_changed = initial_scope is Some(_)
   // Materializing a SELECT resets private slots, not the replacement of
   // range variables. Never resolve subsequent operators through the source
   // alias again after Pipe AS has established a new scope.
-  let mut pipe_rebound = projected_input
+  let mut pipe_rebound = projected_input || initial_scope is Some(_)
   let mut pipe_selected = false
   for i in start_at..<@query.operation_count(query) {
     let operation = @query.operation_at(query, i).unwrap()
@@ -2307,7 +2312,12 @@ fn compile_steps(
               }
             }
           }
-          pipe_slot(path, pipe_visible, pipe_ranges)
+          // A materialized DISTINCT/SELECT cannot sort through a range slot
+          // that its projection removed. An identical selected expression is
+          // handled below using the evaluated output slot.
+          pipe_slot(path, pipe_visible, pipe_ranges).filter(slot => {
+            active_fields.contains(slot)
+          })
         }
         for term in terms {
           let expression = term.expression
@@ -2674,6 +2684,9 @@ pub fn compile(
     return compile_set_query(query, context, limits)
   }
   if @query.join_part_count(query) > 0 {
+    if @query.join_part_count(query) > 1 {
+      return compile_join_chain_query(query, context, limits)
+    }
     return compile_join_query(query, context, limits)
   }
   if limits.max_expression_work < 0 ||
@@ -2877,7 +2890,6 @@ fn compile_cte_query(
   limits : Limits,
 ) -> Result[@program.Program, Issue] {
   if @query.cte_count(query) < 1 ||
-    @query.join_part_count(query) > 1 ||
     context.program_id == "" ||
     context.stage_id == "" ||
     context.stage_result == "" ||
@@ -3072,8 +3084,17 @@ fn compile_cte_query(
       ])
       let (outer_steps, output, outer_inputs, outer_from) = if @query.join_part_count(
           query,
-        ) ==
+        ) >
         1 {
+        compile_join_chain_stage_body(
+          construction,
+          query,
+          known,
+          context,
+          limits,
+          Some(retained),
+        )
+      } else if @query.join_part_count(query) == 1 {
         let part = @query.join_part_at(query, 0).unwrap()
         let mut right_input : Input? = None
         for input in cte_inputs {
@@ -3179,10 +3200,50 @@ fn compile_cte_stage(
   body_start : Int,
 ) -> (@builder.Node?, Input) raise Abort {
   let body = cte.query
-  if @query.set_part_count(body) != 0 ||
-    @query.join_part_count(body) > 1 ||
-    @query.cte_count(body) != 0 {
+  if @query.set_part_count(body) != 0 || @query.cte_count(body) != 0 {
     raise Abort(UnsupportedCte)
+  }
+  if @query.join_part_count(body) > 1 {
+    let (steps, output, inputs, from) = compile_join_chain_stage_body(
+      construction,
+      body,
+      known,
+      context,
+      limits,
+      None,
+    )
+    let stage = construction.object([
+      ("id", construction.text(stage_name)),
+      ("inputs", construction.object(inputs)),
+      ("steps", construction.array(steps)),
+      (
+        "results",
+        construction.object([
+          (
+            "rows",
+            construction.object([
+              ("from", construction.text(from)),
+              (
+                "fields",
+                construction.array(
+                  output.map(field => construction.text(field)),
+                ),
+              ),
+            ]),
+          ),
+        ]),
+      ),
+    ])
+    return (
+      Some(stage),
+      {
+        relation: [cte.name],
+        name: cte.name.value,
+        source: StageResult(stage_name, "rows"),
+        visible_fields: output,
+        graph_bindings: [],
+      },
+    )
   }
   if @query.join_part_count(body) == 1 {
     let left = selected_input(body, { ..context, inputs: known, }, limits)

@@ -15,6 +15,9 @@ export const heavyJobs = Object.freeze([
 export const ciOnlyPipelineJobs = Object.freeze({
   'pipeline-mutations': 'requires real GitHub source/run/attempt/output metadata for producer begin, stage and seal',
   'pipeline-capacity': 'requires real GitHub source/run/attempt/output metadata for producer begin, stage and seal',
+  'pipeline-mutations-rest': 'requires real GitHub source/run/attempt/output metadata for part sealing',
+  'pipeline-capacity-mutants': 'requires real GitHub source/run/attempt/output metadata for part sealing',
+  'pipeline-validation': 'requires actual GitHub source provenance for mandatory validation output',
   'pipeline-evidence': 'requires sealed exact-artifact producer inputs from the same GitHub run and attempt',
 });
 
