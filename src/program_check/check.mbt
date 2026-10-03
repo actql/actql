@@ -4,7 +4,6 @@ struct CheckedProgram {
   keyed_input_proofs : Array[KeyedInputProof]
   nest_limits : Array[Array[NestLimits]]
   traversal_limits : Array[Array[TraversalLimit]]
-  components_limits : Array[Array[ComponentsLimit]]
   sequence_limits : Array[Array[SequenceLimit]]
   interval_search_limits : Array[Array[IntervalSearchLimit]]
   asof_search_limits : Array[Array[AsOfSearchLimit]]
@@ -100,24 +99,10 @@ fn check_supported_source(
               | "session"
               | "sequence"
               | "events"
-              | "graph"
-              | "normalize_graph"
-              | "degree"
-              | "components"
-              | "graph_bounds"
-              | "graphs_equal"
-              | "graph_diff"
-              | "apply_graph_delta"
+              | "property_graph"
               | "match_nodes"
               | "match_edges"
-              | "subgraph"
               | "traverse"
-              | "reach"
-              | "shortest_path"
-              | "graft_graph"
-              | "union_graphs"
-              | "subtract_graphs"
-              | "mean_graphs"
               | "to_vectors"
               | "normalize_vectors"
               | "score_vectors"
@@ -126,8 +111,6 @@ fn check_supported_source(
               | "pool_vectors"
               | "merge_rankings"
               | "text_rank"
-              | "node_rows"
-              | "edge_rows"
               | "infer"
               | "values" => ()
               _ => raise UnitBuildFailure::UnsupportedStaticPath(step)
@@ -162,6 +145,7 @@ fn check(
   text_rank? : @environment.SelectedTextRankProfile? = None,
   capacity_inputs? : @context.ProgramCapacityInputs? = None,
   effect_headers? : @syntax.EffectHeaders? = None,
+  property_graph? : Bool = false,
   model_tasks? : @environment.ModelTasks? = None,
 ) -> CheckedProgram raise LocalConstructionFailure {
   if max_work < 0 || max_bytes < 0 || max_nodes < 0 || max_depth < 0 {
@@ -192,6 +176,7 @@ fn check(
     references_out=Some(references),
     capacity_inputs~,
     effect_headers~,
+    property_graph~,
     model_tasks~,
   )
   let conversion = Some(conversions[0])
@@ -239,14 +224,6 @@ fn check(
   }
   let sequence_limits = prepare_program_sequence_limits(
     units, requirements, budget,
-  ) catch {
-    error => raise Units(error)
-  }
-  let components_limits = prepare_program_components_limits(
-    units,
-    requirements,
-    budget,
-    conversion~,
   ) catch {
     error => raise Units(error)
   }
@@ -320,7 +297,6 @@ fn check(
     keyed_input_proofs,
     nest_limits,
     traversal_limits,
-    components_limits,
     sequence_limits,
     interval_search_limits,
     asof_search_limits,

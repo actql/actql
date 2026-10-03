@@ -43,19 +43,17 @@ pub fn check(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSource
 
 pub fn check_application_closure(@pipeline_typing.ContextualClosure, Array[ApplicationCoverage], selected_policy~ : @capacity_policy.Policy, bound_guards~ : @pipeline_typing.BoundGuardClosure, proof_owners? : Array[(Int, Int, Int)], input_owners? : Array[(Int, Int, Int, Int)], max_work~ : Int) -> Result[ApplicationClosure, ApplicationClosureIssue]
 
-pub fn check_application_coverage(@capacity_graph_input.GraphInputs, @capacity_program_step.Applications, @capacity_sequence_limit.Applications, joins? : @capacity_program_step.JoinApplications?, components? : @capacity_program_step.ComponentsApplications?, traversals? : @capacity_program_step.TraversalApplications?, max_work~ : Int) -> Result[ApplicationCoverage, ApplicationCoverageIssue]
+pub fn check_application_coverage(@capacity_graph_input.GraphInputs, @capacity_program_step.Applications, @capacity_sequence_limit.Applications, joins? : @capacity_program_step.JoinApplications?, traversals? : @capacity_program_step.TraversalApplications?, max_work~ : Int) -> Result[ApplicationCoverage, ApplicationCoverageIssue]
 
 pub fn check_complete(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, @capacity_policy.Policy, @capacity_graph_input.Limits) -> Result[@capacity_graph_input.GraphInputs, @capacity_graph_input.Issue]
 
-pub fn check_consumer_coverage(@capacity_graph_input.GraphInputs, @capacity_sequence_limit.Applications, joins? : @capacity_program_step.JoinApplications?, components? : @capacity_program_step.ComponentsApplications?, traversals? : @capacity_program_step.TraversalApplications?, max_work~ : Int) -> Result[ConsumerCoverage, ConsumerCoverageIssue]
+pub fn check_consumer_coverage(@capacity_graph_input.GraphInputs, @capacity_sequence_limit.Applications, joins? : @capacity_program_step.JoinApplications?, traversals? : @capacity_program_step.TraversalApplications?, max_work~ : Int) -> Result[ConsumerCoverage, ConsumerCoverageIssue]
 
 pub fn check_source_coverage(@capacity_graph_input.GraphInputs, @capacity_program_step.Applications, max_work~ : Int) -> Result[SourceCoverage, SourceCoverageIssue]
 
 pub fn checked_pipeline(@capacity_graph_input.GraphInputs) -> @pipeline_typing.CheckedPipeline
 
 pub fn checked_sources(@capacity_graph_input.GraphInputs) -> @capacity_host_witness.HostSources
-
-pub fn consumer_coverage_components(ConsumerCoverage) -> @capacity_program_step.ComponentsApplications?
 
 pub fn consumer_coverage_graph(ConsumerCoverage) -> @capacity_graph_input.GraphInputs
 
@@ -105,7 +103,6 @@ pub(all) enum ApplicationClosureIssue {
   ForeignGuardClosure
   SequenceGuardBindings(Int)
   TraversalGuardBindings(Int)
-  ComponentsGuardBindings(Int)
   GuardBindings(Int, @capacity_program_step.GuardBindingIssue)
   ProofWorkLimit
   InvalidProofOwner(Int, Int)
@@ -130,7 +127,6 @@ pub(all) enum ApplicationCoverageIssue {
   ForeignProgram
   WorkLimit
   MissingJoinApplications(Int)
-  MissingComponentsApplications(Int)
   MissingTraversalApplications(Int)
   Source(SourceCoverageIssue)
   Consumer(ConsumerCoverageIssue)
@@ -151,7 +147,6 @@ pub(all) enum ConsumerCoverageIssue {
 pub(all) enum ConsumerRequest {
   Sequence(step~ : Int, matches~ : Int, output~ : Int)
   Join(step~ : Int, output~ : Int)
-  Components(step~ : Int, nodes~ : Int, output~ : Int)
   Traversal(step~ : Int, paths~ : Int, output~ : Int)
 } derive(Eq, @debug.Debug)
 
@@ -164,11 +159,9 @@ pub(all) enum PreparationIssue {
   Program(@capacity_program_step.PreparationIssue)
   Sequence(Int, @capacity_sequence_limit.Issue)
   Join(Int, @capacity_program_step.JoinLimitIssue)
-  Components(Int, @capacity_program_step.ComponentsLimitIssue)
   Traversal(Int, @capacity_program_step.TraversalLimitIssue)
   SequenceCollection(@capacity_sequence_limit.CollectionIssue)
   JoinCollection(@capacity_program_step.JoinCollectionIssue)
-  ComponentsCollection(@capacity_program_step.ComponentsCollectionIssue)
   TraversalCollection(@capacity_program_step.TraversalCollectionIssue)
   Coverage(ApplicationCoverageIssue)
 } derive(Eq, @debug.Debug)

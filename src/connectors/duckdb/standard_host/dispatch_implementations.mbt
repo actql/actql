@@ -21,6 +21,8 @@ fn local_dispatch_issue(
     ManagedCompletion(_) => InvalidConfiguration
     // An identity export over the import limits is a resource limit.
     IdentityExport(_) => Run(Physical(InvalidLimits))
+    CarrierSnapshot(SnapshotByteLimit) => Run(Physical(InvalidLimits))
+    CarrierSnapshot(_) => InvalidConfiguration
   }
 }
 

@@ -2,23 +2,27 @@
 struct TraversalHop {
   direction : Direction
   types : Array[String]?
-  edge_predicate : CheckedPredicate?
-  node_predicate : CheckedPredicate?
 }
+
+///|
+pub(all) enum PropertyPathMode {
+  Walk
+  Trail
+  Acyclic
+} derive(Eq, Debug)
 
 ///|
 pub(all) enum TraverseObligation {
   AdmitTraversalGraph
   RespectTraversalHopBounds
-  EvaluateTraversalHopPredicates
-  EmitMinimumNodeDepth
-  EnumerateSimplePaths
+  FilterTraversalLabels
+  EnumeratePropertyPaths
   DeduplicateExactPaths
   CanonicalTraversalOrder
   EnforceTraversalOutputGuard
   BindTraversalOutputGuard(String)
   ResolveTraversalResources
-  ResolveTraversalProfile
+  ResolvePropertyGraphTraversalProfile
 } derive(Eq, Debug)
 
 ///|
@@ -34,6 +38,7 @@ struct CheckedTraverse {
   guard_rows : Count?
   output : @carrier.Carrier
   usage : PredicateUsage
+  property_mode : PropertyPathMode
 }
 
 ///|
@@ -50,12 +55,8 @@ fn traversal_direction(c : @decode.Cursor) -> Direction raise Stop {
 fn traversal_types(
   b : Budget,
   at : @decode.Cursor?,
-  g : @carrier.Graph,
 ) -> Array[String]? raise Stop {
   guard at is Some(at) else { return None }
-  if @carrier.graph_label_contract(g) is None {
-    fail(at, MissingEdgeLabel)
-  }
   let xs = match @decode.view(at) {
     ArrayValue(xs) => xs
     _ => fail(at, InvalidBody)
@@ -109,7 +110,7 @@ pub fn check_traverse(
       text: limits.max_text_bytes,
     }
     scan(b, source)
-    guard input is @carrier.GraphValue(g) else {
+    guard input is @carrier.GraphValue(_) else {
       if @carrier.kind(input) != @carrier.GraphKind {
         fail(source, WrongCarrier(@carrier.kind(input)))
       }
@@ -118,9 +119,21 @@ pub fn check_traverse(
     let root = decoded(
       @decode.closed_object(source, [
         "start", "hops", "direction", "edge_types", "min_hops", "max_hops", "emit",
-        "max_output_rows",
+        "max_output_rows", "path_mode",
       ]),
     )
+    let property_mode = {
+      // A current path mode cannot be interpreted as a historical simple path.
+      guard @decode.lookup(root, "path_mode") is Some(at) else {
+        fail(source, UnsupportedGraphProfile)
+      }
+      match decoded(@decode.text(at)) {
+        "walk" => Walk
+        "trail" => Trail
+        "acyclic" => Acyclic
+        _ => fail(at, InvalidBody)
+      }
+    }
     let at = decoded(@decode.required(root, "start"))
     let start = match
       check_selector(at, input, selector_relation, parameters, {
@@ -135,10 +148,9 @@ pub fn check_traverse(
     b.work -= start.usage.work
     b.nodes -= start.usage.nodes
     b.text -= start.usage.text_bytes
-    let mut tokens = start.usage.tokens
     let at = decoded(@decode.required(root, "emit"))
     let emit = match decoded(@decode.text(at)) {
-      "nodes" => TraversedNodes
+      "nodes" => fail(at, UnsupportedGraphProfile)
       "paths" => TraversedPaths
       _ => fail(at, InvalidBody)
     }
@@ -168,37 +180,13 @@ pub fn check_traverse(
           let direction = traversal_direction(
             decoded(@decode.required(o, "direction")),
           )
-          let types = traversal_types(b, @decode.lookup(o, "edge_types"), g)
-          let predicates : Array[CheckedPredicate?] = []
-          for (key, entity) in [("edge_where", Edges), ("node_where", Nodes)] {
-            match @decode.lookup(o, key) {
-              None => predicates.push(None)
-              Some(c) => {
-                let p = match
-                  check_predicate(entity, c, input, parameters, {
-                    ..limits,
-                    max_work: b.work,
-                    max_nodes: b.nodes,
-                    max_text_bytes: b.text,
-                    max_tokens: limits.max_tokens - tokens,
-                  }) {
-                  Ok(p) => p
-                  Err(e) => raise MatchStop(MatchPredicate(e))
-                }
-                b.work -= p.usage.work
-                b.nodes -= p.usage.nodes
-                b.text -= p.usage.text_bytes
-                tokens += p.usage.tokens
-                predicates.push(Some(p))
-              }
+          let types = traversal_types(b, @decode.lookup(o, "edge_types"))
+          for key in ["edge_where", "node_where"] {
+            if @decode.lookup(o, key) is Some(at) {
+              fail(at, UnsupportedGraphOperation)
             }
           }
-          hops.push({
-            direction,
-            types,
-            edge_predicate: predicates[0],
-            node_predicate: predicates[1],
-          })
+          hops.push({ direction, types, })
         }
         (xs.length().to_double(), xs.length().to_double())
       }
@@ -217,14 +205,9 @@ pub fn check_traverse(
         if minimum > maximum {
           fail(source, InvalidCount)
         }
-        let types = traversal_types(b, @decode.lookup(root, "edge_types"), g)
+        let types = traversal_types(b, @decode.lookup(root, "edge_types"))
         spend(b, source, 1)
-        hops.push({
-          direction,
-          types,
-          edge_predicate: None,
-          node_predicate: None,
-        })
+        hops.push({ direction, types, })
         (minimum, maximum)
       }
     }
@@ -267,11 +250,12 @@ pub fn check_traverse(
       emit,
       guard_rows,
       output: output.output,
+      property_mode,
       usage: {
         work: limits.max_work - b.work,
         nodes: limits.max_nodes - b.nodes,
         text_bytes: limits.max_text_bytes - b.text,
-        tokens,
+        tokens: 0,
       },
     })
   } catch {
@@ -284,6 +268,11 @@ pub fn check_traverse(
 ///|
 pub fn traverse_source(c : CheckedTraverse) -> @decode.Cursor {
   c.source
+}
+
+///|
+pub fn traverse_property_path_mode(c : CheckedTraverse) -> PropertyPathMode {
+  c.property_mode
 }
 
 ///|
@@ -335,18 +324,6 @@ pub fn hop_type_at(h : TraversalHop, index : Int) -> String? {
 }
 
 ///|
-pub fn hop_predicate(
-  h : TraversalHop,
-  entity : EntityKind,
-) -> CheckedPredicate? {
-  if entity == Nodes {
-    h.node_predicate
-  } else {
-    h.edge_predicate
-  }
-}
-
-///|
 pub fn traverse_output(c : CheckedTraverse) -> @carrier.Carrier {
   c.output
 }
@@ -381,16 +358,12 @@ fn traverse_pending_each(
 ) -> Unit {
   emit(AdmitTraversalGraph)
   emit(RespectTraversalHopBounds)
-  emit(EvaluateTraversalHopPredicates)
+  emit(FilterTraversalLabels)
   emit(CanonicalTraversalOrder)
   emit(ResolveTraversalResources)
-  emit(ResolveTraversalProfile)
-  if c.emit == TraversedPaths {
-    emit(EnumerateSimplePaths)
-    emit(DeduplicateExactPaths)
-  } else {
-    emit(EmitMinimumNodeDepth)
-  }
+  emit(ResolvePropertyGraphTraversalProfile)
+  emit(EnumeratePropertyPaths)
+  emit(DeduplicateExactPaths)
   if c.guard_rows is Some(bound) {
     emit(EnforceTraversalOutputGuard)
     if bound is Parameter(name) {

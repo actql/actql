@@ -2,6 +2,7 @@
 package "actql/actql/managed_graph_runtime"
 
 import {
+  "actql/actql/decode_core",
   "actql/actql/lowering_relation",
   "actql/actql/managed_carrier_runtime",
   "actql/actql/managed_graph_storage",
@@ -11,9 +12,13 @@ import {
 }
 
 // Values
-pub fn append_edge(OutputBuilder, @value_admission.CheckedValue, @value_admission.CheckedValue, @value_admission.CheckedValue?, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
+pub fn append_property_edge(OutputBuilder, Int, Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
 
-pub fn append_node(OutputBuilder, @value_admission.CheckedValue, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
+pub fn append_property_node(OutputBuilder, Int, Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
+
+pub fn append_property_snapshot_edge(OutputBuilder, @decode_core.Cursor, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, Issue]
+
+pub fn append_property_snapshot_node(OutputBuilder, @decode_core.Cursor, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, Issue]
 
 pub fn cancel_output(OutputBuilder) -> Bool
 
@@ -23,7 +28,7 @@ pub fn completed_carrier_reference(Completed) -> @managed_carrier_runtime.Comple
 
 pub fn completed_evidence(Completed) -> Evidence?
 
-pub fn completed_material(Completed) -> Result[@managed_carrier_runtime.Material, Issue]
+pub fn completed_material(Completed, snapshot_factory? : @managed_carrier_runtime.SnapshotFactory?) -> Result[@managed_carrier_runtime.Material, Issue]
 
 pub fn completed_measure(Completed) -> @managed_carrier_runtime.Measure
 
@@ -34,8 +39,6 @@ pub fn completed_reference_available(CompletionReference) -> Bool
 pub fn completed_storage(Completed) -> @managed_graph_storage.Storage?
 
 pub fn completed_storage_bytes(Completed) -> Int64?
-
-pub fn contains_declared_node(OutputBuilder, @value_admission.CheckedValue) -> Result[Bool, Issue]
 
 pub fn discard_completed(Completed) -> Bool
 
@@ -52,10 +55,6 @@ pub fn evidence_retained_value_bytes(Evidence) -> Int
 pub fn evidence_workspace_slots(Evidence) -> Int
 
 pub fn finish_output(OutputBuilder) -> Result[Completed, Issue]
-
-pub fn observe_edge(OutputBuilder, @value_admission.CheckedValue, @value_admission.CheckedValue, @value_admission.CheckedValue?, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
-
-pub fn observe_node(OutputBuilder, @value_admission.CheckedValue, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
 
 pub fn output_workspace_slots(OutputBuilder) -> Int
 

@@ -1,0 +1,37 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "bounded-local-execution-guard",
+  "kind": "change",
+  "revision": "4af1e6ec9d790d5c0f9d98ddae36fbf3abcadd7a",
+  "parents": [
+    "4f6feed519170e46c0065d1491c40287e6d34f1a"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "4f6feed519170e46c0065d1491c40287e6d34f1a",
+          "digest": "de409cdab2ba453ae6bf107c5f08a398cf8413df2aee171ff89d90dc3288f85e",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "bb816881c7ab5d9d6a0444720a5d42ea7e22ff0b60e00d22e26b79bd3b0c41c9",
+      "afterMode": "100644",
+      "reason": "Add only bounded local-execution ownership, cancellation, policy and optional hook-adapter fixtures to the existing Linux lint and macOS native jobs. Preserve every existing job, acceptance command, aggregate dependency, timeout, compiler invocation and proof campaign. The hooks do not launch tests or install client settings; hosted verification still exercises the pushed revision."
+    },
+    {
+      "path": "scripts/local-checks.mjs",
+      "before": [
+        {
+          "revision": "4f6feed519170e46c0065d1491c40287e6d34f1a",
+          "digest": "2d62841fbb560af82c7c4308ec183b84bdca15e5499715a6df925969859ea732",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "ce17ad1f0947134f9dfd9887353552fd85f35adcc57d2a6c1b63c669ae3170f8",
+      "afterMode": "100644",
+      "reason": "Route selected local jobs and focused test/build commands through the reviewed shared classifier and process supervisor. Require deliberate --allow-heavy friction for known-heavy work, apply explicit or workflow time budgets, exclude overlapping worktrees and machine-heavy runs, preserve first-cause child failure/cancellation, and retain evidence and locks on incomplete cleanup. Keep cheap jobs, reporting operations and existing argument forwarding available. This is local resource protection, not human approval or a change to historical proof requirements."
+    }
+  ]
+}

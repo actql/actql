@@ -116,30 +116,6 @@ test "top level RESULT consumes evaluated CTE and JOIN output through the shared
 }
 
 ///|
-test "Graph RESULT requires an explicit public Relation projection" {
-  let program = compile(
-    @query.parse_query(
-      "FROM GRAPH g |> MATCH WALK (a)-[]->(b) |> SELECT a.id AS src, b.id AS dst |> RESULT paths |> WHERE src > 0 |> RESULT active",
-      syntax_limits(),
-    ).unwrap(),
-    diamond_graph_context(),
-    construction_limits(),
-  ).unwrap()
-  assert_true(semantic(program).contains("\"fields\":[\"src\",\"dst\"]"))
-  assert_true(
-    compile(
-      @query.parse_query(
-        "FROM GRAPH g |> MATCH WALK (a)-[]->(b) |> RESULT paths |> SELECT a.id AS id",
-        syntax_limits(),
-      ).unwrap(),
-      diamond_graph_context(),
-      construction_limits(),
-    )
-    is Err(UnsupportedResult),
-  )
-}
-
-///|
 test "RESULT inside a CTE or derived query cannot publish a statement Result" {
   for
     text in [

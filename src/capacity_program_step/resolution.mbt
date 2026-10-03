@@ -2,7 +2,6 @@
 pub(all) enum OutputEnforcement {
   SequenceEnforcement(@sequence.SequenceLimits)
   JoinEnforcement(JoinLimit)
-  ComponentsEnforcement(ComponentsLimits)
   TraversalEnforcement(TraversalLimits)
 }
 
@@ -22,7 +21,6 @@ pub(all) enum ResolutionRequest {
     Array[ResolutionInput],
     CountBindings?
   )
-  ComponentsApplication(Int, @wire.ProgramProofClaim, Int, Int)
   JoinApplication(Int, @wire.ProgramProofClaim, Int)
   TraversalApplication(Int, @wire.ProgramProofClaim, Int, Int)
 }
@@ -36,7 +34,6 @@ pub(all) enum ResolutionIssue {
   ForeignApplication(Int)
   DuplicateApplication(Int)
   Step(Int, Issue)
-  Components(Int, ComponentsLimitIssue)
   Join(Int, JoinLimitIssue)
   Traversal(Int, TraversalLimitIssue)
   InvalidOutputProof(Int)
@@ -185,38 +182,6 @@ pub fn resolve_applications(
         work += app.operand_work
         app
       }
-      ComponentsApplication(step, proof, nodes, rows) => {
-        let limit = match
-          check_components_limits(
-            pipeline,
-            step,
-            sources,
-            table,
-            policy,
-            nodes,
-            rows,
-            max_work=max_work - work,
-          ) {
-          Ok(v) => v
-          Err(e) => return Err(Components(position, e))
-        }
-        work += limit.work
-        let app = match
-          resolved_output(
-            pipeline,
-            step,
-            proof,
-            ComponentsEnforcement(limit),
-            table,
-            max_work - work,
-          ) {
-          Ok(v) => v
-          Err(OutputWorkLimit) => return Err(WorkLimit)
-          Err(InvalidOutput) => return Err(InvalidOutputProof(position))
-        }
-        work += app.operand_work
-        app
-      }
       TraversalApplication(step, proof, paths, rows) => {
         let limit = match
           check_traversal_limits(
@@ -308,23 +273,6 @@ pub fn resolve_applications(
         }
         work += verified.work
       }
-      Some(ComponentsEnforcement(v)) => {
-        let verified = match
-          check_components_limits(
-            v.pipeline,
-            v.step,
-            sources,
-            table,
-            policy,
-            v.nodes_index,
-            v.rows_index,
-            max_work=max_work - work,
-          ) {
-          Ok(v) => v
-          Err(e) => return Err(Components(i, e))
-        }
-        work += verified.work
-      }
       Some(TraversalEnforcement(v)) => {
         let verified = match
           check_traversal_limits(
@@ -375,7 +323,6 @@ fn resolved_output(
     SequenceEnforcement(v) =>
       (@sequence.limit(v, @sequence.OutputRows), "actql.bound.sequence-output")
     JoinEnforcement(v) => (v.limit, "actql.bound.join-resolved-output")
-    ComponentsEnforcement(v) => (v.rows, "actql.bound.components-output")
     TraversalEnforcement(v) => (v.rows, "actql.bound.traverse-output")
   }
   let witness = @wire.program_proof_witness(proof)

@@ -6,7 +6,7 @@ import {parameterPrograms} from './parameter-schema.mjs';
 import {positive, parameter} from './aggregate-schema.mjs';
 import {machineCid} from './actql-spec-family.mjs';
 
-export function graphSchemas() {
+export function legacyGraphSchemas() {
   const nonnegative = {oneOf:[{type:'integer',minimum:0,maximum:9007199254740991},parameter]};
   const field = {type:'string',minLength:1};
   const fields = {type:'array',items:field,uniqueItems:true};
@@ -86,6 +86,48 @@ export function graphSchemas() {
     components: {type:'object', additionalProperties:false, required:['kind'],
       properties:{kind:{enum:['weak','strong']}, max_output_rows:positive}},
   };
+}
+
+// Separate closed alternatives, not a permissive union of legacy and keyed
+// members. Semantic key/domain admission remains with the common typed owner.
+export function graphSchemas() {
+  const legacy = legacyGraphSchemas();
+  const field = {type:'string',minLength:1};
+  const keys = {type:'array',minItems:1,uniqueItems:true,items:field};
+  const properties = {oneOf:[
+    {type:'object',additionalProperties:false,required:['mode'],properties:{mode:{const:'all_columns'}}},
+    {type:'object',additionalProperties:false,required:['mode'],properties:{mode:{const:'no_properties'}}},
+    {type:'object',additionalProperties:false,required:['mode','except'],properties:{mode:{const:'all_columns_except'},except:{type:'array',uniqueItems:true,items:field}}},
+    {type:'object',additionalProperties:false,required:['mode','columns'],properties:{mode:{const:'columns'},columns:{type:'array',items:{type:'object',additionalProperties:false,required:['from','to'],properties:{from:field,to:field}}}}},
+  ]};
+  const element = {type:'object',additionalProperties:false,required:['name','from','key'],properties:{
+    name:field,from:field,key:keys,
+    labels:{type:'array',items:{type:'object',additionalProperties:false,required:['name'],properties:{name:field,properties}}},
+  }};
+  const endpoint = {type:'object',additionalProperties:false,required:['definition','key'],properties:{definition:field,key:keys,references_key:keys}};
+  const result = {...legacy,
+    property_graph:{type:'object',additionalProperties:false,required:['version','nodes','edges'],properties:{
+      version:{const:'actql-property-graph-constructor/0.1'},
+      nodes:{type:'array',items:element},
+      edges:{type:'array',items:{...element,required:[...element.required,'source','target'],properties:{...element.properties,source:endpoint,target:endpoint}}},
+    }},
+  };
+  for (const name of ['match_nodes','match_edges']) {
+    const keyed = structuredClone(legacy[name]);
+    keyed.required.push('definition');
+    Object.assign(keyed.properties, {
+      definition:field,label:field,
+      bindings:{type:'object',additionalProperties:false,properties:Object.fromEntries(
+        (name === 'match_nodes' ? ['identity'] : ['identity','source','target']).map(role => [role,field]))},
+    });
+    result[name] = {oneOf:[legacy[name],keyed]};
+  }
+  const paths = structuredClone(legacy.traverse);
+  paths.required.push('path_mode');
+  paths.properties.path_mode = {enum:['walk','trail','acyclic']};
+  paths.properties.emit = {const:'paths'};
+  result.traverse = {oneOf:[legacy.traverse,paths]};
+  return result;
 }
 
 export function checkGraphSchemas(registry) {

@@ -51,6 +51,9 @@ export function checkWorkersArtifact(metafile, source, allowedModules) {
 // the Store it is given. Publication action names are a fixed, dependency-free
 // ABI translation table; they confer no publication authority.
 // No namespace-wide permission.
+// The Carrier snapshot transport is dependency-free: it uses typed arrays,
+// text codecs and timers, and calls the supplied Store lease. It imports no
+// filesystem or Node module; the resolved-dependency checks still apply.
 export const conformanceModules = [
   '_build/workers/modules/bridge.mjs',
   '_build/workers/modules/fixture.mjs',
@@ -60,6 +63,7 @@ export const conformanceModules = [
   'adapters/local-node/retained-input.mjs',
   'adapters/local-node/retained-store.mjs',
   'adapters/local-node/retained-output.mjs',
+  'adapters/local-node/carrier-snapshot.mjs',
   'adapters/store-local/managed-memory-representations.mjs',
   'adapters/store-local/representations.mjs',
   'adapters/store-local/moonbit-row-frames.mjs',
@@ -96,6 +100,7 @@ export const hostModules = [
   'adapters/local-node/retained-input.mjs',
   'adapters/local-node/retained-store.mjs',
   'adapters/local-node/retained-output.mjs',
+  'adapters/local-node/carrier-snapshot.mjs',
   'adapters/store-local/managed-memory-representations.mjs',
   'adapters/store-local/representations.mjs',
   'adapters/store-local/moonbit-row-frames.mjs',

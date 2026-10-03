@@ -61,7 +61,6 @@ pub(all) enum KeyOrigin {
   CalendarSeriesResult
   TimeSeriesResult
   VectorProjectionResult
-  GraphProjectionResult
   WindowMembershipResult
   UnnestResult
   UnpivotResult
@@ -95,7 +94,6 @@ priv enum KeyProducer {
   CalendarProducer(@calendar.CheckedCalendar)
   TimeSeriesProducer(@series.CheckedSeries)
   VectorProjectionProducer(@projection.CheckedProjection)
-  GraphProjectionProducer(@projection.CheckedProjection)
   WindowProducer(@window.CheckedWindow, KeyedRelation)
   UnnestProducer(@relation.CheckedOperation, KeyedRelation)
   UnpivotProducer(@relation.CheckedOperation, KeyedRelation)
@@ -352,16 +350,6 @@ pub fn key_vector_projection_producer(
 ) -> @projection.CheckedProjection? {
   match c.producer {
     Some(VectorProjectionProducer(op)) => Some(op)
-    _ => None
-  }
-}
-
-///|
-pub fn key_graph_projection_producer(
-  c : KeyedRelation,
-) -> @projection.CheckedProjection? {
-  match c.producer {
-    Some(GraphProjectionProducer(op)) => Some(op)
     _ => None
   }
 }

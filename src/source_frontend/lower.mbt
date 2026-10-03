@@ -31,7 +31,6 @@ pub(all) enum Issue {
 /// carries the already-admitted input into the common query lowerer.
 pub(all) enum AliasInput {
   Relation(@query.Input)
-  Graph(@query.GraphInput)
 }
 
 ///|
@@ -69,7 +68,6 @@ pub fn bind_query_context(
     return Err(InvalidProgramId)
   }
   let inputs : Array[@query.Input] = []
-  let graph_inputs : Array[@query.GraphInput] = []
   let mut captured = false
   for index, entry in aliases {
     if entry.name.is_empty() || entry.name.any(part => part.value.is_empty()) {
@@ -96,12 +94,6 @@ pub fn bind_query_context(
           captured = true
         }
       }
-      Graph(input) => {
-        if !@query.same_relation_path(entry.name, input.relation) {
-          return Err(InputNameMismatch)
-        }
-        graph_inputs.push(input)
-      }
     }
   }
   Ok({
@@ -116,7 +108,6 @@ pub fn bind_query_context(
     },
     parameter_declarations,
     inputs,
-    graph_inputs,
   })
 }
 

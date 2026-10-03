@@ -4,7 +4,6 @@
 pub(all) enum CapacityUse {
   Sequence(step~ : Int, matches~ : @wire.LimitClaim, output~ : @wire.LimitClaim)
   Join(step~ : Int, output~ : @wire.LimitClaim)
-  Components(step~ : Int, nodes~ : @wire.LimitClaim, output~ : @wire.LimitClaim)
   Traversal(step~ : Int, paths~ : @wire.LimitClaim, output~ : @wire.LimitClaim)
 }
 
@@ -175,15 +174,6 @@ pub fn bind_capacity_inputs(
             )
           Join(step~, output~) =>
             (step, @capacity.Join(step~, output=ordinal(output)))
-          Components(step~, nodes~, output~) =>
-            (
-              step,
-              @capacity.Components(
-                step~,
-                nodes=ordinal(nodes),
-                output=ordinal(output),
-              ),
-            )
           Traversal(step~, paths~, output~) =>
             (
               step,

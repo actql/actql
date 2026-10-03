@@ -9,118 +9,152 @@ fn limits() -> Limits {
 }
 
 ///|
+fn cursor(text : String) -> @decode.Cursor {
+  @decode.admit(
+    @source.parse_json(text, {
+      max_input_bytes: 100000,
+      max_nodes: 10000,
+      max_depth: 100,
+    }).unwrap(),
+    {
+      max_nodes: 10000,
+      max_depth: 100,
+      max_string_bytes: 100000,
+      max_total_string_bytes: 100000,
+    },
+  ).unwrap()
+}
+
+///|
+// Independently authored contract and preimage, also fixed in the owned corpus.
+fn schema() -> String {
+  (
+    #|{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[{"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"R":[]},"name":"E","properties":{},"source_definition":"N","target_definition":"N"}],"identity_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","node_definitions":[{"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":["name"],"Person":[]},"name":"N","properties":{"name":{"nullable":true,"type":"string"}}}],"value_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","version":"actql-property-graph-contract/0.1"}
+  )
+}
+
+///|
+fn builder() -> Builder {
+  prepare_property(
+    @graph.read_property_graph_cursor(cursor(schema()), {
+      max_bytes: 100000,
+      max_nodes: 10000,
+      max_depth: 100,
+    }).unwrap(),
+    limits(),
+  ).unwrap()
+}
+
+///|
 fn number(value : Double) -> @value.CheckedValue {
-  let contract = @contract.primitive(NumberType, nullable=false)
-  @value.recheck_runtime_value(
-    @value.number_value(value).unwrap(),
-    contract,
+  @value.checked_number_value(
+    value,
+    @contract.primitive(NumberType, nullable=false),
+  ).unwrap()
+}
+
+///|
+fn identity(definition : String, key : Int) -> @value.CheckedValue {
+  let body = "{\"definition\":\"" +
+    definition +
+    "\",\"domain\":\"sha256:" +
+    "0".repeat(64) +
+    "\",\"key\":[" +
+    key.to_string() +
+    "],\"key_types\":[{\"kind\":\"number\"}]}"
+  @value.admit(
+    @contract.primitive(JsonType, nullable=false),
+    cursor(body),
     limits().value_limits,
   ).unwrap()
 }
 
 ///|
-fn text(value : String) -> @value.CheckedValue {
-  @value.checked_text_value(
-    value,
-    @contract.primitive(StringType, nullable=false),
+test "sole graph snapshot identity retains independent edge keys and fixed preimage" {
+  let out = builder()
+  let node = identity("N", 1)
+  begin_property_node(out, node, [number(1.0)]).unwrap()
+  append_property(
+    out,
+    "name",
+    @value.recheck_runtime_value(
+      @value.checked_text_value(
+        "one",
+        @contract.primitive(StringType, nullable=false),
+      ).unwrap().value,
+      @contract.primitive(StringType, nullable=true),
+      limits().value_limits,
+    ).unwrap(),
   ).unwrap()
-}
-
-///|
-fn snapshot(reverse_properties? : Bool = false) -> String {
-  let builder = prepare(
-    "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-    limits(),
-  ).unwrap()
-  begin_node(builder, number(1.0)).unwrap()
-  if reverse_properties {
-    append_property(builder, "z", text("last")).unwrap()
-    return match append_property(builder, "a", number(2.0)) {
-      Err(InvalidPropertyOrder) => "invalid"
-      _ => "accepted"
-    }
+  end_node(out).unwrap()
+  end_nodes(out).unwrap()
+  for key in [10, 11] {
+    begin_property_edge(
+      out,
+      identity("E", key),
+      [number(key.to_double())],
+      node,
+      node,
+    ).unwrap()
+    end_property_edge(out).unwrap()
   }
-  append_property(builder, "a", number(2.0)).unwrap()
-  append_property(builder, "z", text("last")).unwrap()
-  end_node(builder).unwrap()
-  end_nodes(builder).unwrap()
-  begin_edge(builder, number(1.0), number(1.0), None).unwrap()
-  end_edge(builder).unwrap()
-  finish(builder).unwrap()
-}
-
-///|
-test "graph snapshot identity has an independently fixed preimage" {
+  let (cid, _) = finish_property(out).unwrap()
+  // SHA-256 of the independent owned corpus, never of product-derived expectations.
   assert_eq(
-    snapshot(),
-    "sha256:cb6e72527d57d5cc88e9144b16f985ff80a11f9939ce287bcff0314297b804f5",
+    cid, "sha256:4d6e1221c4244ab1074b836a651e7b4522fcdfefa86414121b7529a715b60b1a",
   )
+  assert_true(drain_property_output(out) is Err(InvalidPhase))
+  assert_true(finish_property(out) is Err(InvalidPhase))
 }
 
 ///|
-test "graph snapshot identity rejects noncanonical record order" {
-  let builder = prepare(
-    "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-    limits(),
-  ).unwrap()
-  begin_node(builder, number(2.0)).unwrap()
-  end_node(builder).unwrap()
-  assert_eq(begin_node(builder, number(1.0)), Err(InvalidNodeOrder))
-  assert_eq(snapshot(reverse_properties=true), "invalid")
-}
-
-///|
-/// Canonical typed node-ID order puts 9 before 10; the canonical key encoding
-/// would put "10" first. The expected CID is the SHA-256 of the specified
-/// preimage computed outside this implementation.
-test "graph snapshot identity orders numeric IDs by typed value" {
-  let builder = prepare(
-    "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-    limits(),
-  ).unwrap()
-  for id in [9.0, 10.0] {
-    begin_node(builder, number(id)).unwrap()
-    end_node(builder).unwrap()
-  }
-  end_nodes(builder).unwrap()
-  for edge in [(9.0, 10.0, None), (9.0, 10.0, Some("a")), (10.0, 9.0, None)] {
-    let (source, target, label) = edge
-    begin_edge(builder, number(source), number(target), label.map(text)).unwrap()
-    end_edge(builder).unwrap()
-  }
-  assert_eq(
-    finish(builder),
-    Ok(
-      "sha256:58e79d832142c356f3d84c82aaefe02107299e2c35ad0ee4ea7f9b775462e8b2",
-    ),
-  )
-}
-
-///|
-test "graph snapshot identity rejects encoding order where typed order differs" {
-  let nodes = prepare(
-    "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-    limits(),
-  ).unwrap()
-  begin_node(nodes, number(10.0)).unwrap()
+test "current snapshot identity rejects reversed node and property order" {
+  let nodes = builder()
+  begin_property_node(nodes, identity("N", 2), [number(2.0)]).unwrap()
   end_node(nodes).unwrap()
-  assert_eq(begin_node(nodes, number(9.0)), Err(InvalidNodeOrder))
-  let edges = prepare(
-    "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-    limits(),
-  ).unwrap()
-  end_nodes(edges).unwrap()
-  begin_edge(edges, number(9.0), number(10.0), Some(text("a"))).unwrap()
-  end_edge(edges).unwrap()
-  // An absent label sorts before a present one on the same endpoints.
-  assert_eq(
-    begin_edge(edges, number(9.0), number(10.0), None),
-    Err(InvalidEdgeOrder),
+  assert_true(
+    begin_property_node(nodes, identity("N", 1), [number(1.0)])
+    is Err(InvalidNodeOrder),
   )
-  begin_edge(edges, number(10.0), number(9.0), None).unwrap()
-  end_edge(edges).unwrap()
-  assert_eq(
-    begin_edge(edges, number(9.0), number(11.0), None),
-    Err(InvalidEdgeOrder),
+  let properties = builder()
+  begin_property_node(properties, identity("N", 1), [number(1.0)]).unwrap()
+  append_property(properties, "z", number(1.0)).unwrap()
+  assert_true(
+    append_property(properties, "a", number(1.0)) is Err(InvalidPropertyOrder),
+  )
+}
+
+///|
+test "parallel edge ordering uses independent identity not endpoints or labels" {
+  let out = builder()
+  end_nodes(out).unwrap()
+  let node = identity("N", 1)
+  begin_property_edge(out, identity("E", 11), [number(11.0)], node, node).unwrap()
+  end_property_edge(out).unwrap()
+  assert_true(
+    begin_property_edge(out, identity("E", 10), [number(10.0)], node, node)
+    is Err(InvalidEdgeOrder),
+  )
+  assert_true(
+    begin_property_edge(out, identity("E", 11), [number(11.0)], node, node)
+    is Err(InvalidEdgeOrder),
+  )
+}
+
+///|
+test "snapshot writer phase prevents partial completion and invalid limits" {
+  let out = builder()
+  begin_property_node(out, identity("N", 1), [number(1.0)]).unwrap()
+  assert_true(finish_property(out) is Err(InvalidPhase))
+  assert_true(end_property_edge(out) is Err(InvalidPhase))
+  assert_true(drain_property_output(out) is Ok(_))
+  let checked = @graph.read_property_graph_cursor(cursor(schema()), {
+    max_bytes: 100000,
+    max_nodes: 10000,
+    max_depth: 100,
+  }).unwrap()
+  assert_true(
+    prepare_property(checked, { ..limits(), max_bytes: -1, })
+    is Err(InvalidLimits),
   )
 }

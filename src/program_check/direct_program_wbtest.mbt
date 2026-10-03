@@ -38,10 +38,12 @@ fn checked_direct_program_fixture(
   lexical_steps? : String = "",
   lexical_material? : Bool = true,
   graph_steps? : String = "",
+  graph_step_limit? : Int = 6,
+  property_graph? : Bool = false,
   graph_right? : Bool = false,
   graph_resources? : Bool = true,
-  graph_components? : Bool = false,
   graph_traversal? : String = "",
+  graph_traversal_step? : Int = 3,
   series_steps? : String = "",
   calendar_series? : Bool = false,
   numeric_profile? : @numeric.Profile? = None,
@@ -425,9 +427,8 @@ fn checked_direct_program_fixture(
     local_traversal_capacity_fixture(
       environment,
       operation_name=graph_traversal,
+      step=graph_traversal_step,
     )
-  } else if graph_components {
-    local_components_capacity_fixture(environment, 1)
   } else if vector_steps != "" {
     local_join_capacity_fixture(environment, 1000, 1)
   } else if sequence_body != "" {
@@ -470,9 +471,13 @@ fn checked_direct_program_fixture(
           @context.CapacityMaterial::{
             sources,
             consumers: if graph_traversal != "" {
-              [@capacity.Traversal(step=3, paths=0, output=1)]
-            } else if graph_components {
-              [@capacity.Components(step=3, nodes=0, output=1)]
+              [
+                @capacity.Traversal(
+                  step=graph_traversal_step,
+                  paths=0,
+                  output=1,
+                ),
+              ]
             } else if vector_steps != "" {
               [@capacity.Join(step=1, output=0)]
             } else if sequence_body != "" {
@@ -500,7 +505,7 @@ fn checked_direct_program_fixture(
     { text_time: false, veca: vector_steps != "" || lexical_steps != "", },
     {
       rela: true,
-      sga: graph_steps != "",
+      sga: graph_steps != "" && !property_graph,
       tea: temporal_step != "" ||
       series_steps != "" ||
       event_kind != "" ||
@@ -514,11 +519,12 @@ fn checked_direct_program_fixture(
         7
       } else if vector_steps != "" {
         vector_step_limit
+      } else if graph_steps != "" {
+        graph_step_limit
       } else if temporal_step != "" ||
         window_steps != "" ||
         sequence_body != "" ||
         lexical_steps != "" ||
-        graph_steps != "" ||
         series_steps != "" {
         6
       } else if join_kind != "" ||
@@ -545,6 +551,7 @@ fn checked_direct_program_fixture(
     max_nodes=1000000,
     max_depth=100,
     numeric_profile~,
+    property_graph~,
     text_rank=lexical,
     calendar=if calendar_series {
       Some(calendar_policy_fixture(environment))

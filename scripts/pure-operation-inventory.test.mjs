@@ -7,6 +7,12 @@ import {operationInventory} from './bound-transfer-laws.mjs';
 const read = path => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 const scope = read('docs/design/pure-operation-checking.md');
 const inventory = read('docs/design/pure-operation-test-inventory.md');
+// Reuse the existing authoritative profile classification, not a second
+// operation support list maintained by this navigation index.
+const graphClassification = JSON.parse(read(
+  'docs/reviews/2026-09-19-sga-veca-tea-local-coverage.json',
+)).current_graph_profile.classification;
+const refused = name => graphClassification[name] === 'blocked';
 const rows = inventory.split('\n').filter(line => /^\| [a-z_]+(?:,| \|)/.test(line))
   .map(line => line.split('|').slice(1, -1).map(cell => cell.trim()));
 
@@ -23,12 +29,27 @@ test('acceptance evidence index covers the complete operation scope exactly once
 test('evidence paths exist and both embedded Program schemas contain each operation', () => {
   const registry = JSON.parse(read('spec/contracts/actql-protocol-schemas.json'));
   for (const [names, unit, pipeline, owner] of rows) {
+    const operations = names.split(', ');
+    if (operations.some(refused)) {
+      assert.ok(operations.every(refused), 'Do not mix refusal and execution evidence');
+      assert.equal(pipeline, 'scripts/property-graph-public-host.test.mjs');
+      const publicRefusal = read(pipeline);
+      assert.ok(publicRefusal.includes('coverage.current_graph_profile.classification[entry.operation]'));
+      assert.ok(publicRefusal.includes('ClientProgramUnsupported'));
+      assert.ok(publicRefusal.includes('not_found'));
+      assert.ok(publicRefusal.includes('physicalSteps'));
+    }
     for (const path of [unit, pipeline]) {
-      assert.match(path, /_test\.mbt$/);
-      assert.match(read(path), /^test "/m, path);
+      if (path === 'scripts/property-graph-public-host.test.mjs') {
+        assert.ok(operations.every(refused), 'Public refusal is not execution evidence');
+        assert.match(read(path), /^\s*test\(/m, path);
+      } else {
+        assert.match(path, /_(?:wb)?test\.mbt$/);
+        assert.match(read(path), /^test "/m, path);
+      }
     }
     assert.match(read(owner), /export function/, owner);
-    for (const name of names.split(', ')) {
+    for (const name of operations) {
       for (const program of parameterPrograms(registry)) {
         assert.ok(Object.hasOwn(program.properties.steps.items.properties, name), name);
       }
@@ -56,7 +77,7 @@ function assertSourceGate(source) {
   const barriers = ['infer'];
   assert.deepEqual(members.toSorted(), [
     ...metadata, ...barriers,
-    ...publicOperations.filter(name => !excluded.includes(name)),
+    ...publicOperations.filter(name => !excluded.includes(name) && !refused(name)),
   ].toSorted());
   // This checks dispatch completeness only. It cannot replace the formal-entry
   // tests for Carrier alternatives, ownership, evidence and runtime obligations.
@@ -72,5 +93,10 @@ test('source gate audit detects omissions, unsupported additions and duplicate r
     const changed = source.replace('| "sequence"', replacement);
     assert.notEqual(changed, source);
     assert.throws(() => assertSourceGate(changed));
+  }
+  for (const name of Object.keys(graphClassification).filter(refused)) {
+    const changed = source.replace('| "sequence"', `| "sequence" | "${name}"`);
+    assert.notEqual(changed, source);
+    assert.throws(() => assertSourceGate(changed), `${name} must not silently re-enter the source gate`);
   }
 });

@@ -7,7 +7,7 @@ priv enum OperationCountContract {
   Relation
   Join
   Window
-  Graph
+  PropertyGraph
   Ranking
   Series
   ClassificationOnly
@@ -33,28 +33,13 @@ fn operation_count_contract(
     | @pipeline.IntervalJoin(..)
     | @pipeline.AsOfJoin(..) => Join
     @pipeline.Window(_) => Window
-    @pipeline.Graph(_)
-    | @pipeline.GraphMatch(_)
-    | @pipeline.Subgraph(..)
-    | @pipeline.Traverse(..)
-    | @pipeline.Shortest(..)
-    | @pipeline.GraphStructural(..)
-    | @pipeline.GraphUnion(_)
-    | @pipeline.GraphConstruction(..) => Graph
-    @pipeline.Projection(v) =>
-      match @projection.operation(v) {
-        @projection.NodeRows | @projection.EdgeRows => Graph
-        @projection.Events | @projection.Vectors => ClassificationOnly
-      }
+    @pipeline.PropertyGraphConstruction(..) => PropertyGraph
+    @pipeline.GraphMatch(_) | @pipeline.Traverse(..) => PropertyGraph
+    @pipeline.Projection(_) => ClassificationOnly
     @pipeline.Nearest(..) | @pipeline.Ranking(_) | @pipeline.TextRank(..) =>
       Ranking
     @pipeline.TimeSeries(_) | @pipeline.Calendar(_) => Series
     @pipeline.Sequence(_)
-    | @pipeline.Reach(_)
-    | @pipeline.GraphEquality(..)
-    | @pipeline.GraphDiff(..)
-    | @pipeline.GraphApply(..)
-    | @pipeline.GraphMean(_)
     | @pipeline.Vector(_)
     | @pipeline.Pool(_)
     | @pipeline.Event(_) => ClassificationOnly
@@ -134,7 +119,10 @@ fn core_operation_count_root(
       (OperationJoinCountRules(stage, visit, step), JoinCountRules)
     }
     Window => (OperationWindowCountRules(stage, visit, step), WindowCountRules)
-    Graph => (OperationGraphCountRules(stage, visit, step), GraphCountRules)
+    // The multi-definition keyed sum is in the distinct adopted contract,
+    // not the legacy two-operand/derived-endpoint Graph count body.
+    PropertyGraph =>
+      (OperationGraphCountRules(stage, visit, step), PropertyGraphCountRules)
     Ranking =>
       (OperationRankingCountRules(stage, visit, step), RankingCountRules)
     Series => (OperationSeriesCountRules(stage, visit, step), SeriesCountRules)

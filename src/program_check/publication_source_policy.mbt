@@ -885,138 +885,11 @@ fn prepare_target_source_policy(
             let mut missing = !@graph.traverse_patterned(operation) ||
               @graph.selector_id_count(start) > 0 ||
               @graph.traverse_output_guard(operation) is Some(_)
-            if @graph.selector_predicate(start) is Some(predicate) {
-              if publication_expression_unknown(
-                  @graph.predicate_expression(predicate),
-                  budget,
-                ) {
-                missing = true
-              }
-            }
             for hop in 0..<@graph.traverse_hop_count(operation) {
               identity_charge(budget, 1)
               let hop = @graph.traverse_hop_at(operation, hop).unwrap()
               if @graph.hop_type_count(hop).unwrap_or(0) > 0 {
                 missing = true
-              }
-              for entity in [@graph.Nodes, @graph.Edges] {
-                identity_charge(budget, 1)
-                if @graph.hop_predicate(hop, entity) is Some(predicate) {
-                  if publication_expression_unknown(
-                      @graph.predicate_expression(predicate),
-                      budget,
-                    ) {
-                    missing = true
-                  }
-                }
-              }
-            }
-            carrier_steps.push({
-              step: index,
-              operation: step.operation,
-              unknown_provenance: missing,
-            })
-            unknown = unknown || missing
-            if selector is Some(_) {
-              2
-            } else {
-              1
-            }
-          }
-          @pipeline.Shortest(
-            source_selector~,
-            target_selector~,
-            checked=operation
-          ) => {
-            identity_charge(budget, 1)
-            for side in 0..<2 {
-              identity_charge(budget, 1)
-              if @graph.shortest_endpoint(
-                  operation,
-                  if side == 0 {
-                    Left
-                  } else {
-                    Right
-                  },
-                )
-                is @graph.Selected(selector) {
-                if @graph.selector_predicate(selector) is Some(predicate) {
-                  let _ = publication_expression_unknown(
-                    @graph.predicate_expression(predicate),
-                    budget,
-                  )
-                }
-              }
-            }
-            // The explicit hop bound contributes authored value provenance;
-            // endpoint predicates still consume their complete traversal budget.
-            carrier_steps.push({
-              step: index,
-              operation: step.operation,
-              unknown_provenance: true,
-            })
-            unknown = true
-            1 +
-            (if source_selector is Some(_) { 1 } else { 0 }) +
-            (if target_selector is Some(_) { 1 } else { 0 })
-          }
-          @pipeline.Reach(_) => {
-            identity_charge(budget, 1)
-            carrier_steps.push({
-              step: index,
-              operation: step.operation,
-              unknown_provenance: true,
-            })
-            // The explicit start identity and depth are authored values.
-            unknown = true
-            1
-          }
-          @pipeline.GraphMean(operation) => {
-            identity_charge(budget, 1)
-            carrier_steps.push({
-              step: index,
-              operation: step.operation,
-              unknown_provenance: true,
-            })
-            // Every sample participates, including zero-weight samples.
-            // Weights and support thresholds are authored values, not attestations.
-            unknown = true
-            @graph.mean_sample_count(@graph.mean_options(operation))
-          }
-          @pipeline.GraphEquality(..)
-          | @pipeline.GraphDiff(..)
-          | @pipeline.GraphApply(..)
-          | @pipeline.GraphStructural(..)
-          | @pipeline.GraphUnion(_) => {
-            identity_charge(budget, 1)
-            carrier_steps.push({
-              step: index,
-              operation: step.operation,
-              unknown_provenance: false,
-            })
-            match step.operation {
-              @pipeline.GraphUnion(operation) =>
-                @graph.union_count(operation) + 1
-              _ => 2
-            }
-          }
-          @pipeline.Subgraph(selector~, checked=operation) => {
-            identity_charge(budget, 1)
-            let nodes = @graph.subgraph_nodes(operation)
-            let mut missing = @graph.selector_id_count(nodes) > 0
-            for
-              predicate in [
-                @graph.selector_predicate(nodes),
-                @graph.subgraph_edges(operation),
-              ] {
-              identity_charge(budget, 1)
-              if predicate is Some(predicate) {
-                if publication_expression_unknown(
-                    @graph.predicate_expression(predicate),
-                    budget,
-                  ) {
-                  missing = true
-                }
               }
             }
             carrier_steps.push({
@@ -1051,37 +924,14 @@ fn prepare_target_source_policy(
             unknown = unknown || missing
             1
           }
-          @pipeline.Graph(operation) => {
-            identity_charge(budget, 1)
-            let missing = match @graph.options(operation) {
-              Normalize | DegreeOptions(_) => false
-              ComponentOptions(_, max_output_rows~) =>
-                max_output_rows is Some(_)
-              BoundsOptions(max_nodes~, max_edges~, max_degree~) =>
-                max_nodes is Some(_) ||
-                max_edges is Some(_) ||
-                max_degree is Some(_)
-            }
-            carrier_steps.push({
-              step: index,
-              operation: step.operation,
-              unknown_provenance: missing,
-            })
-            unknown = unknown || missing
-            1
-          }
-          @pipeline.GraphConstruction(nodes~, ..) => {
+          @pipeline.PropertyGraphConstruction(inputs~, ..) => {
             identity_charge(budget, 1)
             carrier_steps.push({
               step: index,
               operation: step.operation,
               unknown_provenance: false,
             })
-            if nodes is Some(_) {
-              2
-            } else {
-              1
-            }
+            inputs.length()
           }
           @pipeline.Vector(operation) => {
             identity_charge(budget, 1)

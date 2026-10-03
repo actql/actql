@@ -82,14 +82,10 @@ pub fn node_accepts_managed_carrier_view(
     | "VEC.score_sort"
     | "VEC.pool"
     | "BRIDGE.events.to_rows"
-    | "BRIDGE.vectors.to_rows"
-    | "BRIDGE.graph.to_node_rows"
-    | "BRIDGE.graph.to_edge_rows" => true
+    | "BRIDGE.vectors.to_rows" => true
     "SGA.apply_delta" => index == 0
     "TEA.join.asof" => index == 0
     "SGA.reachable" => index == 0
-    "SGA.shortest_path" => index == 0
-    "SGA.subgraph" => index == 0
     "SGA.traverse" => index == 0
     "SGA.match_nodes" | "SGA.match_edges" => index == 0
     "VEC.knn_join" => true
@@ -105,25 +101,15 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
   match node.payload {
     Values(_) | InnerJoin(_) | CrossJoinRows(_) | AppendRows(_) | SetRows(_) =>
       true
-    GraphConstructionValue(_) => operation(node) == "BRIDGE.rows.to_graph"
-    GraphTraverseRows(_) =>
+    PropertyGraphConstructionValue(_) =>
+      operation(node) == "BRIDGE.rows.to_property_graph"
+    GraphTraverseRows(checked) =>
       operation(node) == "SGA.traverse" &&
-      (node.input_targets.length() == 1 || node.input_targets.length() == 2)
+      @graph.traverse_emission(checked) == @graph.TraversedPaths &&
+      node.input_targets.length() == 2
     GraphMatchRows(_) =>
       operation(node) == "SGA.match_nodes" ||
       operation(node) == "SGA.match_edges"
-    GraphReachRows(_) => operation(node) == "SGA.reachable"
-    GraphShortestRows(_) => operation(node) == "SGA.shortest_path"
-    GraphEqualityRows(_) => operation(node) == "SGA.equal"
-    GraphDiffRows(_) => operation(node) == "SGA.diff"
-    GraphApplyValue(_) => operation(node) == "SGA.apply_delta"
-    BasicGraph(_) =>
-      operation(node) == "SGA.normalize" ||
-      operation(node) == "SGA.bounds_check" ||
-      operation(node) == "SGA.degree_metrics" ||
-      operation(node) == "SGA.components"
-    StructuralGraph(_) | GraphUnion(_) | GraphMeanValue(_) => true
-    GraphSubgraphValue(_) => operation(node) == "SGA.subgraph"
     VectorValue(_) =>
       operation(node) == "BRIDGE.rows.to_vectors" ||
       operation(node) == "VEC.normalize_l2" ||
@@ -140,8 +126,6 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     AsOfJoinRows(_) => operation(node) == "TEA.join.asof"
     RowWindow(_) => true
     CarrierProjection(_) =>
-      operation(node) == "BRIDGE.graph.to_node_rows" ||
-      operation(node) == "BRIDGE.graph.to_edge_rows" ||
       operation(node) == "BRIDGE.events.to_rows" ||
       operation(node) == "BRIDGE.vectors.to_rows"
     Where(_)
@@ -239,16 +223,6 @@ pub fn node_prefers_fused_without_relation_consumer(
   node : PreparedNode,
 ) -> Bool {
   match node.payload {
-    BasicGraph(_) =>
-      operation(node) == "SGA.normalize" ||
-      operation(node) == "SGA.bounds_check" ||
-      operation(node) == "SGA.degree_metrics" ||
-      operation(node) == "SGA.components"
-    StructuralGraph(_) | GraphUnion(_) | GraphMeanValue(_) => true
-    GraphSubgraphValue(_) => operation(node) == "SGA.subgraph"
-    GraphEqualityRows(_) => operation(node) == "SGA.equal"
-    GraphDiffRows(_) => operation(node) == "SGA.diff"
-    GraphApplyValue(_) => operation(node) == "SGA.apply_delta"
     GraphMatchRows(_) =>
       operation(node) == "SGA.match_nodes" ||
       operation(node) == "SGA.match_edges"
@@ -261,9 +235,7 @@ pub fn node_prefers_fused_without_relation_consumer(
       operation(node) == "TEA.window.sliding_assign"
     VectorValue(_) => operation(node) == "VEC.normalize_l2"
     NearestValue(_) => true
-    CarrierProjection(_) =>
-      operation(node) == "BRIDGE.graph.to_edge_rows" ||
-      operation(node) == "BRIDGE.vectors.to_rows"
+    CarrierProjection(_) => operation(node) == "BRIDGE.vectors.to_rows"
     _ => false
   }
 }
@@ -276,6 +248,14 @@ pub fn node_accepts_managed_relation_view(
   node : PreparedNode,
   index : Int,
 ) -> Bool {
+  if node.payload is PropertyGraphConstructionValue(checked) {
+    return operation(node) == "BRIDGE.rows.to_property_graph" &&
+      index >= 0 &&
+      index < node.input_targets.length() &&
+      node.input_targets.length() ==
+      @graph.property_construction_node_count(checked) +
+      @graph.property_construction_edge_count(checked)
+  }
   if node.payload is RankingValue(_) {
     return operation(node) == "VEC.merge_rankings" &&
       index >= 0 &&
@@ -283,11 +263,7 @@ pub fn node_accepts_managed_relation_view(
   }
   if node.input_targets.length() == 2 && index >= 0 && index < 2 {
     return match node.payload {
-      GraphConstructionValue(_) => operation(node) == "BRIDGE.rows.to_graph"
-      GraphReachRows(_) => index == 1 && operation(node) == "SGA.reachable"
       GraphTraverseRows(_) => index == 1 && operation(node) == "SGA.traverse"
-      GraphSubgraphValue(_) => index == 1 && operation(node) == "SGA.subgraph"
-      GraphApplyValue(_) => index == 1 && operation(node) == "SGA.apply_delta"
       InnerJoin(_)
       | CrossJoinRows(_)
       | AppendRows(_)

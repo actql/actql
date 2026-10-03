@@ -299,17 +299,9 @@ pub fn local_managed_sequence_supported(
         is Some(_)
       @lower.SequenceMatchStep(_) => true
       @lower.NestStep(_) => true
-      @lower.GraphBasicStep(_) => false
-      @lower.GraphStructuralStep(_) => false
-      @lower.GraphUnionStep(_) => false
-      @lower.GraphMeanStep(_) => false
       @lower.GraphMatchStep(_) => false
-      @lower.GraphReachStep(_) => false
-      @lower.GraphSubgraphStep(_) => false
       @lower.GraphTraverseStep(_) => false
-      @lower.GraphShortestStep(_) => false
-      @lower.GraphRelationStep(_) => false
-      @lower.GraphConstructionStep(_) => false
+      @lower.PropertyGraphConstructionStep(_) => false
       @lower.VectorStep(_) => false
       @lower.EventStep(_) => false
       @lower.CarrierProjectionStep(_) => false

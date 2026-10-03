@@ -158,15 +158,15 @@ test "check rejects unsupported or malformed later steps without a partial resul
     (steps, source_error) in [
       ("[{\"asof_join\":{}}]", true),
       ("[{\"sequence\":{}}]", true),
-      ("[{\"normalize_graph\":{}}]", true),
-      ("[{\"subgraph\":{}}]", true),
+      ("[{\"normalize_graph\":{}}]", false),
+      ("[{\"subgraph\":{}}]", false),
       ("[{\"traverse\":{}}]", true),
-      ("[{\"reach\":{}}]", true),
-      ("[{\"shortest_path\":{}}]", true),
-      ("[{\"graft_graph\":{}}]", true),
-      ("[{\"union_graphs\":{}}]", true),
-      ("[{\"subtract_graphs\":{}}]", true),
-      ("[{\"mean_graphs\":{}}]", true),
+      ("[{\"reach\":{}}]", false),
+      ("[{\"shortest_path\":{}}]", false),
+      ("[{\"graft_graph\":{}}]", false),
+      ("[{\"union_graphs\":{}}]", false),
+      ("[{\"subtract_graphs\":{}}]", false),
+      ("[{\"mean_graphs\":{}}]", false),
       ("[{\"to_vectors\":{}}]", true),
       ("[{\"normalize_vectors\":{}}]", true),
       ("[{\"score_vectors\":{}}]", true),
@@ -193,8 +193,14 @@ test "check rejects unsupported or malformed later steps without a partial resul
     catch {
       LocalConstructionFailure::Units(
         UnitBuildFailure::UnsupportedStaticPath(_)
-      ) => assert_false(source_error)
-      LocalConstructionFailure::Source(_) => assert_true(source_error)
+      ) =>
+        if source_error {
+          fail("unexpected static-path refusal for " + steps)
+        }
+      LocalConstructionFailure::Source(_) =>
+        if !source_error {
+          fail("unexpected source refusal for " + steps)
+        }
       e => raise e
     } noraise {
       _ => fail("unsupported check path returned success")
