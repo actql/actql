@@ -49,9 +49,11 @@ Definition-scoped `match_nodes` and `match_edges` now have retained-Store Host
 cases combining an explicit label and a typed property predicate. Each
 selected MATCH feeds a following Relation filter in the same authored Stage;
 the published producer and two independent consumer results are compared with
-fixed one-row expectations. Existing portable predicate resource and stop
-fixtures remain the boundary evidence for the shared MATCH kernels. These
-cases do not certify every selector, projection or missing-property variant.
+fixed one-row expectations. The same edge route covers empty and repeated
+`types`: empty selects no rows, while repeated `Link` does not repeat edges.
+Existing portable predicate resource and stop fixtures remain the boundary
+evidence for the shared MATCH kernels. These cases do not certify every
+selector, projection or missing-property variant.
 
 ## Status interpretation (2026-09-28)
 

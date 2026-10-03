@@ -1882,6 +1882,21 @@ async function exerciseStrategyGraph(
       where:'weight > 10',fields:['src','dst','weight']},as:'out'},
     fields:['src','dst','weight'],secondFields:['weight','src'],
     expected:[{src:2,dst:1,weight:20}],
+  }, {
+    name:'retained-empty-edge-types', retainedOutput:true,
+    selectedStructural:true,
+    step:{from:'g',match_edges:{definition:'E',label:'Link',types:[],
+      where:'true',fields:['src','dst','weight']},as:'out'},
+    fields:['src','dst','weight'],secondFields:['weight','src'],
+    expected:[],
+  }, {
+    name:'retained-repeated-edge-types', retainedOutput:true,
+    selectedStructural:true,
+    step:{from:'g',match_edges:{definition:'E',label:'Link',
+      types:['Link','Link'],where:'true',fields:['src','dst','weight']},
+    as:'out'},
+    fields:['src','dst','weight'],secondFields:['weight','src'],
+    expected:[{src:1,dst:2,weight:10},{src:2,dst:1,weight:20}],
   }];
   for (const publicationCase of graphPublicationCases) {
     const graphProgram = structuredClone(graphProgramBase);
