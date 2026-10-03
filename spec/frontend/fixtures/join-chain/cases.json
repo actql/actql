@@ -39,7 +39,7 @@
     {
       "name": "join-chain-qualified-input",
       "format": "sql",
-      "text": "WITH a AS (SELECT 1 AS id, 2 AS x UNION ALL SELECT 2 AS id, 1 AS x), b AS (SELECT 1 AS id, 20 AS y UNION ALL SELECT 2 AS id, 10 AS y), c AS (SELECT 1 AS id, 100 AS z UNION ALL SELECT 2 AS id, 200 AS z) SELECT a.x AS y, c.z FROM a JOIN b ON a.id = b.id JOIN c ON b.id = c.id ORDER BY b.y + 1",
+      "text": "WITH a AS (SELECT 1 AS id, 2 AS x UNION ALL SELECT 2 AS id, 1 AS x), b AS (SELECT 1 AS id, 10 AS y UNION ALL SELECT 2 AS id, 20 AS y), c AS (SELECT 1 AS id, 100 AS z UNION ALL SELECT 2 AS id, 200 AS z) SELECT a.x AS y, c.z FROM a JOIN b ON a.id = b.id JOIN c ON b.id = c.id ORDER BY b.y + 1",
       "results": {
         "answer": {
           "rows": [
