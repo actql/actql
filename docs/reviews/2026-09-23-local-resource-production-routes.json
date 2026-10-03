@@ -6621,7 +6621,7 @@
           "fixture": "keyed TRAIL retains exact Graph and Relation selector owners through stop and completion"
         },
         {
-          "role": "quantum_and_empty_selector",
+          "role": "path_mode_order_across_quanta",
           "suite": "moon:query_integration",
           "targets": [
             "js",
@@ -6629,7 +6629,7 @@
             "native"
           ],
           "path": "src/query_integration/property_graph_path_order_wbtest.mbt",
-          "fixture": "current TRAIL retains start-major depth order and direction across resume quanta and physical edge permutations"
+          "fixture": "current paths retain start-major depth order and direction across resume quanta and physical edge permutations"
         },
         {
           "role": "path_emit_control_work_ceiling",

@@ -25,6 +25,7 @@ fn fixture_generated_with_ordered(
   fragment_json : String,
   filter : Bool,
   ordered_json : String?,
+  max_fragment_value_bytes? : Int64 = 1000L,
 ) -> @execution.GeneratedSequence raise {
   let registry_limits : @execution.RegistryLimits = {
     max_body_bytes: 100000,
@@ -102,7 +103,7 @@ fn fixture_generated_with_ordered(
         }
         let logical : @lower.FragmentRowLimits = {
           max_input_rows: 100L,
-          max_value_bytes: 1000L,
+          max_value_bytes: max_fragment_value_bytes,
           max_live_value_bytes: 10000L,
           max_work: 100000L,
         }
@@ -114,7 +115,7 @@ fn fixture_generated_with_ordered(
         let request = @lower.prepare_fragment_request(
           pipeline,
           100L,
-          1000L,
+          max_fragment_value_bytes,
           row_limits=if ordered is Some(_) { Some(logical) } else { None },
         ).unwrap()
         contexts.push(

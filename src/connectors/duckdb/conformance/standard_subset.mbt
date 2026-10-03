@@ -424,6 +424,7 @@ fn strategy_fixture_sga_subset_with_retention(
       f.fragment_json,
       true,
       f.ordered_json,
+      max_fragment_value_bytes=10000L,
     ) catch {
       _ => abort("invalid SGA fixture generation")
     }
