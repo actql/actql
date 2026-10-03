@@ -6,7 +6,7 @@ import {execFileSync} from 'node:child_process';
 import {existsSync} from 'node:fs';
 const sha = /^[0-9a-f]{40}$/u;
 const workflowPath = '.github/workflows/ci.yml';
-export const policyPaths = Object.freeze(['.github', 'scripts/ci-targets.mjs', 'scripts/ci-main-base.mjs']);
+export const policyPaths = Object.freeze(['.github', 'scripts/ci-targets.mjs', 'scripts/ci-focused-tests.mjs', 'scripts/test-execution.mjs', 'scripts/packed-query-evidence.mjs', 'scripts/ci-main-base.mjs']);
 const gitDefault = args => execFileSync('git', args, {encoding: 'utf8', maxBuffer: 1024 * 1024});
 const positive = value => Number.isSafeInteger(value) && value > 0;
 
