@@ -525,84 +525,69 @@ test('join independently rejects a capacity report claiming another tested revis
 const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url));
 const workflow = parse(readFileSync(join(repositoryRoot, '.github/workflows/ci.yml'), 'utf8'));
 const { jobs } = workflow;
-const producerJobs = ['pipeline-mutations', 'pipeline-capacity'];
+const producerJobs = ['pipeline-mutations', 'pipeline-mutations-rest', 'pipeline-capacity', 'pipeline-capacity-mutants'];
+const partNames = {'pipeline-mutations':'L-M0','pipeline-mutations-rest':'L-M1','pipeline-capacity':'L-C0','pipeline-capacity-mutants':'L-C1'};
 const normalSchedule = "${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}";
 const runLines = job => jobs[job].steps.filter(step => step.run).flatMap(step => step.run.trim().split('\n'));
 const shell = (script, env) => spawnSync('bash', ['-eo', 'pipefail', '-c', script], {
   cwd: repositoryRoot, env: { ...process.env, ...env }, encoding: 'utf8', timeout: 10_000,
 });
 function successfulNeeds() {
-  return Object.fromEntries(producerJobs.map((name, i) => [name, { result: 'success', outputs: {
+  return {...Object.fromEntries(producerJobs.map((name, i) => [name, { result: 'success', outputs: {
     'artifact-id': String(100 + i), 'artifact-digest': digest(name + '-outer'),
     'archive-digest': digest(name + '-inner'), 'manifest-digest': digest(name + '-manifest'),
-  } }]));
+  } }])), 'pipeline-validation': {result:'success',outputs:{}}};
 }
 
-test('workflow partitions the existing campaigns without dropping or changing acceptance commands', () => {
+test('workflow partitions complete campaigns into exactly four owners with mandatory tests once', () => {
   const artifactCommand = 'node --test proofs/relation-pipeline/ci-artifacts.test.mjs';
   assert.equal(runLines('preflight').filter(line => line === artifactCommand).length, 1);
-  const admissionStep = jobs.preflight.steps.find(step => step.run === artifactCommand);
-  assert.equal(admissionStep.if, undefined, 'Artifact contracts are mandatory for every normal profile');
-  const focused = jobs['pipeline-mutations'].steps.find(step => step.run?.includes('tests=()')).run;
+  assert.equal(jobs.preflight.steps.find(step => step.run === artifactCommand).if, undefined);
+  const focused = jobs['pipeline-validation'].steps.find(step => step.run?.includes('tests=()')).run;
   const listed = shell(focused.split('node --test')[0] + 'printf "%s\\n" "${tests[@]}"', {});
-  assert.equal(listed.status, 0, listed.stderr);
-  const expected = readdirSync(join(repositoryRoot, 'proofs/relation-pipeline'))
-    .filter(name => name.endsWith('.test.mjs') && name !== 'ci-artifacts.test.mjs')
-    .map(name => `proofs/relation-pipeline/${name}`).sort();
-  assert(expected.length > 0);
-  assert.deepEqual(listed.stdout.trim().split('\n').sort(), expected,
-    'The mutation producer retains every other fixture exactly once, excluding only preflight artifacts');
-  const commands = name => runLines(name).filter(line => /^node (?:--test |proofs\/relation-pipeline\/)/u.test(line)
-    && !line.startsWith('node proofs/relation-pipeline/ci-artifacts.mjs'));
-  assert.deepEqual(commands('pipeline-mutations'), [
-    'node proofs/relation-pipeline/history.mjs --write',
-    'node --test "${tests[@]}" proofs/relation-pipeline/capacity/backing/*.test.mjs',
-    'node proofs/relation-pipeline/run.mjs js base',
-    'node proofs/relation-pipeline/mutations.mjs verify',
-  ]);
-  assert.deepEqual(commands('pipeline-capacity'), [
-    'node proofs/relation-pipeline/history.mjs --write',
-    'node proofs/relation-pipeline/capacity/run.mjs all',
-    'node proofs/relation-pipeline/capacity/audit.mjs',
-    'node proofs/relation-pipeline/capacity/audit-target-regression.mjs',
-    'node proofs/relation-pipeline/run.mjs all',
-  ]);
-  assert.deepEqual(commands('pipeline-evidence'), [
-    'node proofs/relation-pipeline/audit.mjs',
-    'node proofs/relation-pipeline/audit-target-regression.mjs',
-    'node proofs/relation-pipeline/capacity/audit.mjs',
-  ]);
-  for (const name of producerJobs) {
-    assert.equal(jobs[name].if, normalSchedule);
-    assert.deepEqual(jobs[name].needs, ['select-targets', 'preflight'], 'Producers share selection and admission, not each other');
-    assert.equal(jobs[name].strategy, undefined, 'A failed sibling must not cancel the other campaign');
-    assert.equal(jobs[name]['runs-on'], 'ubuntu-24.04');
-    for (const step of jobs[name].steps.filter(step => step.run)) {
-      assert.equal(step.if, undefined, 'Campaign and stage commands are unconditional');
-      assert.equal(step['continue-on-error'], undefined);
+  assert.equal(listed.status,0,listed.stderr);
+  const expected = readdirSync(join(repositoryRoot,'proofs/relation-pipeline'))
+    .filter(name=>name.endsWith('.test.mjs')&&name!=='ci-artifacts.test.mjs')
+    .map(name=>`proofs/relation-pipeline/${name}`).sort();
+  assert.deepEqual(listed.stdout.trim().split('\n').sort(),expected);
+  for(const name of producerJobs) {
+    const job=jobs[name], part=partNames[name], lines=runLines(name);
+    assert.equal(job.if,normalSchedule); assert.deepEqual(job.needs,['select-targets','preflight']);
+    assert.equal(job.strategy,undefined);assert.equal(job['runs-on'],'ubuntu-24.04');
+    assert.deepEqual(job.env,{ACTQL_PIPELINE_PART:part});
+    assert(!lines.some(line=>line.includes('node --test')),'Synthetic tests run once elsewhere');
+    assert.equal(lines.at(-1),`node proofs/relation-pipeline/ci-parts.mjs seal ${part}`);
+    for(const step of job.steps.filter(step=>step.run)) {
+      assert.equal(step.if,undefined); assert.equal(step['continue-on-error'],undefined);
     }
-    const role = name.slice('pipeline-'.length);
-    const commands = runLines(name);
-    assert(commands.indexOf(`node proofs/relation-pipeline/ci-artifacts.mjs begin ${role}`) > commands.indexOf('node proofs/relation-pipeline/history.mjs --write'));
-    assert.deepEqual(commands.filter(line => line.includes(`ci-artifacts.mjs stage ${role} `)),
-      requiredStages[role].slice(1).map(stage => `node proofs/relation-pipeline/ci-artifacts.mjs stage ${role} ${stage}`));
-    assert.equal(commands.at(-1), `node proofs/relation-pipeline/ci-artifacts.mjs seal ${role}`);
+    if(part.startsWith('L-M')) {
+      assert(lines.includes('node proofs/relation-pipeline/run.mjs js base'));
+      assert(lines.includes('node proofs/relation-pipeline/mutations.mjs verify'));
+    } else assert(lines.includes(`node proofs/relation-pipeline/capacity/run.mjs all ${part}`));
   }
+  assert(runLines('pipeline-capacity').includes('node proofs/relation-pipeline/run.mjs all'));
+  assert(!runLines('pipeline-capacity-mutants').includes('node proofs/relation-pipeline/run.mjs all'));
+  for(const command of ['audit.mjs','audit-target-regression.mjs','capacity/audit.mjs','capacity/audit-target-regression.mjs'])
+    assert(runLines('pipeline-evidence').includes(`node proofs/relation-pipeline/${command}`));
+  assert.equal(jobs['pipeline-validation'].if,normalSchedule);
+  assert.deepEqual(jobs['pipeline-validation'].needs,['select-targets','preflight']);
+  assert(runLines('pipeline-validation').includes('node proofs/relation-pipeline/ci-parts.mjs validation'));
 });
 
 test('workflow downloads exact producer IDs only after its success and identity guard', () => {
   const final = jobs['pipeline-evidence'];
-  assert.deepEqual(final.needs, producerJobs);
+  assert.deepEqual(final.needs, [...producerJobs,'pipeline-validation']);
   assert.match(final.if, /always\(\)/u);
-  assert.match(final.if, /!\(needs\.pipeline-mutations\.result == 'skipped' && needs\.pipeline-capacity\.result == 'skipped'\)/u);
+  for(const name of [...producerJobs,'pipeline-validation']) assert(final.if.includes(`needs.${name}.result == 'skipped'`));
   assert.deepEqual(final.steps[0].env, { PIPELINE_NEEDS: '${{ toJSON(needs) }}' });
   assert(final.steps[0].run, 'Guard must run before all downloads');
-  for (const producer of ['mutations', 'capacity']) {
-    const job = jobs[`pipeline-${producer}`];
+  for (const name of producerJobs) {
+    const producer = name.slice('pipeline-'.length), part = partNames[name];
+    const job = jobs[name];
     const upload = job.steps.find(step => step.id === 'evidence');
     assert.equal(upload.uses, 'actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02');
-    assert.equal(upload.with.path, `.artifacts/pipeline-ci/${producer}/evidence.tar`);
-    assert.equal(upload.with.name, `relation-pipeline-${producer}-` + '${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}');
+    assert.equal(upload.with.path, `.artifacts/pipeline-ci/${part}/evidence.tar`);
+    assert.equal(upload.with.name, `relation-pipeline-${part}-` + '${{ github.run_id }}-${{ github.run_attempt }}-${{ github.sha }}');
     assert.equal(upload.with['if-no-files-found'], 'error');
     assert.deepEqual(job.outputs, {
       'artifact-id': '${{ steps.evidence.outputs.artifact-id }}',
@@ -614,7 +599,7 @@ test('workflow downloads exact producer IDs only after its success and identity 
     assert(download, producer);
     assert.equal(download.uses, 'actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093');
     assert.deepEqual(download.with, { 'artifact-ids': '${{ needs.pipeline-' + producer + '.outputs.artifact-id }}',
-      path: '${{ runner.temp }}/pipeline-ci/' + producer, 'merge-multiple': true });
+      path: '${{ runner.temp }}/pipeline-ci/' + part, 'merge-multiple': true });
     assert.equal(download.if, undefined);
     assert.equal(download['continue-on-error'], undefined);
   }
@@ -645,6 +630,9 @@ test('workflow producer guard rejects unsuccessful, missing or ambiguous produce
       const needs = successfulNeeds(); delete needs[name].outputs[field];
       assert.notEqual(invoke(needs).status, 0, `${name} ${field}`);
     }
+  }
+  for(const result of ['failure','cancelled','skipped',undefined]) {
+    const needs=successfulNeeds(); needs['pipeline-validation'].result=result; assert.notEqual(invoke(needs).status,0);
   }
   const repeated = successfulNeeds();
   repeated['pipeline-capacity'].outputs['artifact-id'] = repeated['pipeline-mutations'].outputs['artifact-id'];

@@ -406,3 +406,21 @@ dependency omissions and inherited declaration deletion. The fixture is a
 reproducible record comparison, not a substitute for composing the complete
 actual branch histories. In a full checkout, `history.mjs --write` still
 validates every real ancestor, original declaration and source blob.
+
+
+### Completing an omitted source path
+
+An already committed change record can be completed by a later immutable
+`actql-foundation-change-completion/0.1` record in the existing supplements
+directory. It names the original record and its exact byte digest, and lists
+only omitted protected paths from that original source commit. Every added
+entry independently matches the original commit's real parents, before/after
+bytes and modes. The original remains unchanged and independently checked.
+
+An empty, redundant, overriding, unchanged or foreign path is rejected. The
+record must follow the original in Git ancestry. Each individual original's
+effective path set must exactly cover its actual source diff; one completed
+alias cannot excuse another incomplete alias. Effective paths also participate
+in source-binding equality and later merge dependency discovery. The composed
+artifact retains raw records and exposes their completed view separately.
+Existing resolution-input supplements keep their existing acceptance rules.
