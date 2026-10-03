@@ -24,14 +24,23 @@ public snapshot and required CI at the same submitted SHA.
 
 ## Current obligations
 
-This table describes the sole current implementation at
+The following matrix records the migrated obligations at
 `5cae69a164b7bc26ee66bff0b14eb2284b6c4674`, including main
 `a32d8c94404c3f6be52d1fcfb73aab21cbf7093c`. The full local spec job passes:
 resource regression **176/176**, strict boundary checks, independent
 authorization vectors and non-writing metadata validation. Its evidence is
 `/private/tmp/property-graph-spec-5cae69a16-20261003.log`. Earlier sections below
 are a chronological failure/migration record, not current open-issue counts.
-Final Core/API, fresh packed acceptance and pushed-SHA CI are still required.
+Subsequent clean source `73c58a1e1c17a09b96e5c5822fbb514aeb4e961a` passes
+full Core JS **7,287/7,287**, Wasm **7,283/7,283**, and native
+**7,370/7,370** using the CI-equivalent commands and the existing native
+SQLite namespace owner. Main `4f6feed519170e46c0065d1491c40287e6d34f1a`
+is now integrated at `aca1d3f6a4130f6be5054f2428eb9f2718448d60`, with
+constructor **21/21** and multi-root Relation **2/2** narrow tests on each
+target. Exact logs, source boundaries and merge-declaration rationale are in
+the vertical report's leading checkpoint. Current-source API/spec, fresh
+packed acceptance and pushed-SHA CI remain required; older successes do not
+discharge those final obligations.
 
 | Obligation / old failure group | Classification | Current executable evidence | Remaining work |
 | --- | --- | --- | --- |

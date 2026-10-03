@@ -2,7 +2,50 @@
 
 ## Current authority and completion boundary
 
-### Integrated implementation checkpoint (2026-10-03)
+### Three-target Core and current-main integration (2026-10-03)
+
+Clean source `73c58a1e1c17a09b96e5c5822fbb514aeb4e961a` passes the actual
+`scripts/local-checks.mjs run core --target <target>` jobs: JS **7,287/7,287**,
+Wasm **7,283/7,283**, and native **7,370/7,370**. Each job also passes common
+Core checking with `--deny-warn` and the independent Run-vector tests **2/2**.
+Logs: `/private/tmp/property-graph-core-{js,wasm,native}-73c58a1e1-20261003.log`.
+Native uses the existing `test-native-core.mjs` owner with
+`ACTQL_TEST_NATIVE_SQLITE_LIBRARY=/usr/lib/libsqlite3.dylib`; its separate
+trusted-clock test is **1/1**, and the successful full-run namespace is removed
+only after the child exits (84 files, 1.9 MiB before removal). This macOS result
+does not replace the final submitted SHA's Linux CI.
+
+Main `4f6feed519170e46c0065d1491c40287e6d34f1a` is integrated at
+`aca1d3f6a4130f6be5054f2428eb9f2718448d60`. The only textual conflict is
+`package.json`: the Graph surface/public/fresh-packed acceptance and SDK
+cancellation tests stay registered exactly once, while main's redundant
+immediate runtime-builder checks are removed. Historical foundation records
+and validators are unchanged; the explicit merge resolution records both
+parents and all applicable declaration inputs. No independent edit is added
+to `carrier_tasks.mbt`; main's implementation is adopted unchanged.
+
+Before committing that integration, constructor/fused shared-input tests
+**21/21** and main's multi-root Relation tests **2/2** pass on each of JS,
+Wasm and native, and formatting passes. Logs:
+`/private/tmp/property-graph-main4f-{construction,data-set}-{js,wasm,native}-20261003.log`.
+These are integrated working-tree diagnostics matching the committed merge
+tree, not new full Core results. Current-source API/spec, fresh packed public
+snapshot acceptance and final fixed-SHA CI remain to be recorded. No all-SGA
+completion, B adoption GO, public branch replacement or merge is claimed.
+
+The first actual composed-history check rejects the previously undeclared
+`b2180c826a0115b0f2a611efb77d25dc2cdb39ad` package registration merge. Log:
+`/private/tmp/property-graph-main4f-history-20261003.log`. This is separate
+from the 84/84 composer unit tests: it is a missing production declaration,
+not a weakened-validator workaround or a product Graph failure. Both that
+merge and the later `aca1d3f6a4130f6be5054f2428eb9f2718448d60` now receive
+exact-parent/digest/rationale resolutions, including the earlier resolution
+among the later merge's inputs. The unsubmitted pre-correction commit
+`cba8da271de88ad42b93259567cd2caf6cac371e` is retained at local ref
+`archive/pr164-cba8da271-pre-foundation-fix-20261003`; its declaration commit
+is amended before publication, without changing either merge's source tree.
+
+### Earlier integrated implementation checkpoint (2026-10-03)
 
 The current implementation checkpoint is
 `5cae69a164b7bc26ee66bff0b14eb2284b6c4674`, including main
