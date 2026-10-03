@@ -75,6 +75,17 @@
         32
       ],
       "payloadBytes": 40
+    },
+    "array": {
+      "kinds": [
+        "ref",
+        "i32"
+      ],
+      "offsets": [
+        0,
+        8
+      ],
+      "payloadBytes": 16
     }
   },
   "platformBinaries": {
@@ -85,6 +96,16 @@
     "linux-x64": {
       "bin/moonc": "a1fe6384cda566b33addc2082ab55845a712bd6b5f8a74244371a92b8afa7b36",
       "bin/moon": "ebf6f42b9c1667cbd1e3bff5cf7fb091f1250a3eea417724e5b1a80de49783a9"
+    }
+  },
+  "arrayElements": {
+    "int": {
+      "kind": 1,
+      "bytes": 4
+    },
+    "reference": {
+      "kind": 2,
+      "bytes": 8
     }
   }
 }

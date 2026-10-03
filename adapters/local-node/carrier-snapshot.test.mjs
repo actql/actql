@@ -40,6 +40,77 @@ async function fileFixture() {
   return {directory,store};
 }
 
+for (const mode of ['synchronous throw', 'promise rejection']) {
+  test(`snapshot factory ${mode} before acquisition leaves no cleanup responsibility`, async () => {
+    const f = operationFixture();
+    const failure = new Error('FactoryRejectedBeforeAllocation');
+    let factories = 0;
+    const factory = () => {
+      factories++;
+      if (mode === 'synchronous throw') throw failure;
+      return Promise.reject(failure);
+    };
+    const owner = prepareLocalCarrierSnapshot(f.operations, factory, checked);
+    await assert.rejects(owner.roundtrip(), error => error === failure);
+    assert.deepEqual(f.events, ['prepare']);
+    assert.equal(owner.cleanupHandle.status().pending, false);
+    for (let retry = 0; retry < 2; retry++) {
+      assert.deepEqual(await owner.cleanupHandle.retry(), {pending:false});
+      owner.close();
+    }
+    assert.equal(factories, 1);
+    assert.deepEqual(f.events, ['prepare']);
+    await assert.rejects(owner.roundtrip(), /LocalSnapshotAlreadyStarted/);
+    assert.equal(factories, 1);
+  });
+}
+
+for (const boundary of ['reserve', 'start', 'save']) {
+  test(`snapshot ${boundary} failure after acquisition retains the same cleanup owner`, async () => {
+    const {directory,store} = await fileFixture();
+    const f = operationFixture();
+    const failure = new Error(`SnapshotFailureAfterAcquisition:${boundary}`);
+    const cleanupFailure = new Error('SnapshotCleanupRetryRequired');
+    let factories = 0, cleanups = 0;
+    const lease = {...store, reserve(bytes) {
+      if (boundary === 'reserve') throw failure;
+      const writer = store.reserve(bytes);
+      return {...writer, async start() {
+        await writer.start();
+        if (boundary === 'start') throw failure;
+      }};
+    }, async cleanup() {
+      if (++cleanups === 1) throw cleanupFailure;
+      return store.cleanup();
+    }};
+    const operations = {prepare_carrier_snapshot(released) {
+      const operation = f.operations.prepare_carrier_snapshot(released);
+      return {...operation, advance_save() {
+        f.events.push('save');
+        throw failure;
+      }};
+    }};
+    const owner = prepareLocalCarrierSnapshot(operations, () => {
+      factories++; return lease;
+    }, checked);
+    await assert.rejects(owner.roundtrip(), error => error === failure);
+    assert.equal(owner.cleanupHandle.status().pending, true);
+    assert.deepEqual(f.events, boundary === 'save' ? ['prepare','save'] : ['prepare']);
+    await assert.rejects(owner.cleanupHandle.retry(), error => error === cleanupFailure);
+    assert.equal(owner.cleanupHandle.status().pending, true);
+    if (boundary !== 'reserve') assert.equal(store.status().reservedBytes, 256);
+    assert.deepEqual(await owner.cleanupHandle.retry(), {pending:false});
+    assert.deepEqual(await owner.cleanupHandle.retry(), {pending:false});
+    owner.close(); owner.close();
+    assert.equal(factories, 1);
+    assert.equal(cleanups, 2);
+    assert.equal(store.status().reservedBytes, 0);
+    assert.equal(store.status().cleanupPending, false);
+    assert.deepEqual(await readdir(directory), []);
+    assert.deepEqual(f.events, boundary === 'save' ? ['prepare','save'] : ['prepare']);
+  });
+}
+
 test('snapshot verifies actual sealed bytes before reload and releases physical capacity before finish', async () => {
   const {directory,store} = await fileFixture();
   const f = operationFixture();
