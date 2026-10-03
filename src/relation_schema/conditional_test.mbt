@@ -38,6 +38,22 @@ test "presence fields retain ordinary schema name and type validation" {
   let number = @contract.primitive(NumberType, nullable=false)
   assert_true(
     @relation_schema.from_presence_fields(
+      [(Unqualified("id"), number, Required)],
+      max_fields=0,
+      max_name_bytes=2,
+    )
+    is Err(LimitExceeded),
+  )
+  assert_true(
+    @relation_schema.from_presence_fields(
+      [(Unqualified("id"), number, Required)],
+      max_fields=-1,
+      max_name_bytes=2,
+    )
+    is Err(InvalidLimits),
+  )
+  assert_true(
+    @relation_schema.from_presence_fields(
       [
         (Unqualified("id"), number, Required),
         (Unqualified("id"), number, Conditional),

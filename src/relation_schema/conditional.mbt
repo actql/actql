@@ -35,6 +35,12 @@ pub fn from_presence_fields(
   max_fields~ : Int,
   max_name_bytes~ : Int,
 ) -> Result[ConditionalSchema, Issue] {
+  if max_fields < 0 || max_name_bytes < 0 {
+    return Err(InvalidLimits)
+  }
+  if entries.length() > max_fields {
+    return Err(LimitExceeded)
+  }
   let all = match
     from_fields(
       entries.map(entry => (entry.0, entry.1)),
