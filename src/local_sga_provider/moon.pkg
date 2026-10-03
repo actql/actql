@@ -5,6 +5,7 @@ import {
   "actql/actql/bounded_graph_snapshot" @snapshot,
   "actql/actql/decode_core" @decode,
   "actql/actql/carrier_contract" @carrier,
+  "actql/actql/carrier_projection" @projection,
   "actql/actql/connector_sdk" @connector,
   "actql/actql/connectors/local",
   "actql/actql/execution_relation" @execution,

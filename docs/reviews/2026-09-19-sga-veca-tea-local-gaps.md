@@ -65,42 +65,28 @@ Existing portable predicate resource and stop fixtures remain the boundary
 evidence for the shared MATCH kernels. These cases do not certify every
 selector, projection or missing-property variant.
 
-The current definition-keyed `node_rows` and `edge_rows` Bridges remain blocked.
-Their agreed multi-definition contract has a finite known column set with
-required or conditional presence independent of nullability. It preserves each
-row's declared properties and known aliases, distinguishing a missing field
-from a present nullable `NULL`; shared names require compatible types, and
-static references require presence in every possible contributing definition.
-The branch now has a typed conditional Relation schema and a per-row admission
-and wire roundtrip that distinguish absent fields from explicit `NULL`. Carrier
-knowledge withholds conditional fields from ordinary lookup and does not expose
-the sparse layout as a complete dense schema. A focused checker regression
-confirms that unadapted Relation consumers refuse conditional input. These are
-shared boundary components, not a connected Graph Bridge. Definition declarations
-now produce a bounded presence layout, and a typing-only `node_rows` check
-derives the fixed `id` role plus compatible node properties while rejecting
-role collisions. A guaranteed-column adapter now uses the existing bounded
-Relation output owner, checking names and exact contracts during incremental
-cell reads; cancellation and one-short work have focused tests. Authored alias
-metadata is not yet retained through Graph storage. A separate bounded
-ConditionalRow builder now charges presence and steps through nested values
-before accepting each cell; focused tests cover exact and one-short limits,
-absence versus explicit `NULL`, compatible definition contracts, cancellation,
-and cleanup. The checked node layout also maps each output column back to a
-definition's source property without rescanning all properties per cell.
-This builder and mapping are joined by a bounded single-node kernel that reads
-actual immutable Graph storage through an exact producer binding. A bounded
-node cursor now advances over that storage without collecting all output rows;
-each private row requires an acknowledgement before the next begins. Its
-cumulative work limit, row ceiling, progress-then-cancel, unacknowledged-row
-cleanup, input revocation and empty input have focused JS evidence. This is
-not yet the selected Graph Bridge provider or retained Store path, so the
-typing check is not offered as executable `node_rows`. The edge layout,
-retained Store custody and reread, Stage projection connection, and Named
-Result path still need one executable vertical fixture.
-The existing `prepare_admitted_output` and retained Relation decoder remain
-fixed-width and must not receive sparse rows by treating absence as `NULL`.
-No missing Value or retired tuple-Graph fallback is introduced.
+The definition-keyed `node_rows` Bridge now has a selected bounded provider
+for an exact Graph input and a retained-Store Host path. Its finite known
+column set distinguishes required from conditional presence independently of
+nullability. A heterogeneous Graph projects a present value, present `NULL`,
+and absent property into distinct conditional rows. Common Relation output,
+managed import, and retained wire owners preserve that distinction without a
+Missing Value or retired tuple-Graph fallback. A guaranteed-column `select`
+and `filter` can consume the sparse producer in a later task; the standard Host
+reads the published producer projection and two consumers from the real Store
+against independently fixed rows. Directly selecting a conditional property
+is rejected at check time. Focused tests cover the row ceiling, bounded work,
+post-progress cancellation, cleanup, retained roundtrip, and exact versus
+one-short conditional-input work charging. These results do not establish
+direct publication of sparse rows as Named Results: the successful Host path
+explicitly projects guaranteed columns first.
+
+The `edge_rows` Bridge remains blocked. The checked node layout already maps
+each output column back to its definition's source property, and the node
+cursor requires an acknowledgement before the next row. Authored alias
+metadata is not yet retained through Graph storage. The edge layout, alias
+retention, and direct sparse Result representation need separate connections;
+unsupported consumers must not silently reinterpret absence as `NULL`.
 
 ## Status interpretation (2026-09-28)
 

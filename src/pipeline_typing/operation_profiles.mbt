@@ -75,6 +75,7 @@ fn primary_operation_profile(operation : CheckedOperation) -> OperationProfile? 
         }
       Projection(projection) =>
         match @projection.operation(projection) {
+          NodeRows => PropertyGraph
           Events => TEA
           Vectors => VecA
         }

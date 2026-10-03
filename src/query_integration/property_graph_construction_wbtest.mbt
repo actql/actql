@@ -1444,6 +1444,304 @@ test "existing selected Graph provider executes keyed TRAIL from one exact Carri
 }
 
 ///|
+test "selected property node rows use bounded Graph view and shared Relation output" {
+  let nodes = keyed_node_source()
+  let edges = keyed_edge_source()
+  let graph_owner = keyed_bridge_owner(nodes, edges)
+  let construction = @local_bridge.start_rows_to_property_graph(
+    @bounded.control(),
+    prepared_sequence(graph_owner),
+    0,
+    keyed_bridge_inputs(graph_owner, nodes, edges),
+    carrier_graph_storage_limits(),
+    4096L,
+    1000,
+    () => true,
+  ).unwrap()
+  guard keyed_bridge_terminal(construction) is @local_bridge.Complete(graph, ..) else {
+    fail("constructor failed")
+  }
+  let owner = keyed_graph_receiver(
+    graph_owner,
+    body="[{\"from\":\"g\",\"node_rows\":true}]",
+  )
+  let generated = @execution.select_generated_sequence_step(
+    task_test_generated(owner),
+    0,
+  ).unwrap()
+  let provider = @local_sga_provider.provider(
+    {
+      ..carrier_graph_storage_limits(),
+      max_value_nodes: 1000,
+      max_work: 10000,
+    },
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  assert_true(@local_connector.managed_provider_accepts(provider, generated))
+  let read = @graphs.prepare_producer_read(owner, 0, graph_owner, graph).unwrap()
+  let view = @graphs.producer_read_view(read).unwrap()
+  guard @lower.sequence_step(prepared_sequence(owner), 0)
+    is Some(@lower.CarrierProjectionStep(projected)) &&
+    @lower.carrier_projection_node_rows(projected) is Some(plan) else {
+    fail("node row plan missing")
+  }
+  assert_true(
+    physical_equal(
+      @lower.preparation_schema_at(
+        @lower.bound_preparation(owner),
+        @pipeline.Step(0),
+      ).unwrap(),
+      @schema.conditional_relation_schema(
+        @projection.property_node_rows_schema(plan),
+      ),
+    ),
+  )
+  let run = @local_connector.start_managed_provider_with_inputs(
+    provider,
+    generated,
+    [@local_connector.managed_provider_carrier_input(view)],
+    10,
+    10000,
+  ).unwrap()
+  let mut result = None
+  for _ in 0..<10000 {
+    match @local_connector.advance_managed_provider(run, 1).unwrap() {
+      @local_connector.Continue(..) => ()
+      @local_connector.Complete(rows, ..) => {
+        result = Some(rows)
+        break
+      }
+      _ => fail("node rows provider did not complete")
+    }
+  }
+  guard result is Some(output) else { fail("node rows did not terminate") }
+  assert_eq(@execution.completed_row_count(output), 1)
+  guard @pipeline.carrier_at(
+      @lower.pipeline(@lower.bound_preparation(graph_owner)),
+      @pipeline.Step(0),
+    )
+    is Some(@carrier_contract.GraphValue(carrier)) else {
+    fail("Graph schema missing")
+  }
+  let domain = @carrier_contract.property_graph_domain(
+    @carrier_contract.graph_property_definition(carrier),
+  )
+  let expected = "{\"display\":\"one\",\"id\":{\"definition\":\"N\",\"domain\":\"" +
+    domain +
+    "\",\"key\":[\"a\",1],\"key_types\":[{\"kind\":\"string\"},{\"kind\":\"number\"}]}}"
+  assert_eq(
+    @execution.completed_output_row_wire(output, 0, 10000, 10000, 50).unwrap(),
+    expected,
+  )
+  assert_true(@local_connector.cleanup_managed_provider(run).unwrap())
+  assert_true(@execution.completed_output_available(output))
+  assert_true(@local_bridge.cleanup_rows_to_graph(construction).unwrap())
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
+test "property node rows keep absent properties distinct from present null" {
+  let named = keyed_source_owner(
+    "{\"id\":{\"type\":\"number\",\"nullable\":false},\"name\":{\"type\":\"string\",\"nullable\":true}}",
+    "[{\"id\":1,\"name\":\"one\"},{\"id\":2,\"name\":null}]",
+  )
+  let bare = keyed_source_owner(
+    "{\"id\":{\"type\":\"number\",\"nullable\":false}}", "[{\"id\":3}]",
+  )
+  let graph_body =
+    #|[{"property_graph":{"version":"actql-property-graph-constructor/0.1","nodes":[{"name":"Named","from":"nodes","key":["id"],"labels":[{"name":"Named","properties":{"mode":"columns","columns":[{"from":"name","to":"p"}]}}]},{"name":"Bare","from":"edges","key":["id"],"labels":[{"name":"Bare","properties":{"mode":"no_properties"}}]}],"edges":[]},"as":"g"}]
+  let graph_owner = keyed_bridge_owner(named, bare, body=Some(graph_body))
+  let graph_input = [
+    (
+      "g",
+      @pipeline.ProducedInput(
+        @pipeline.produced_input(
+          @lower.pipeline(@lower.bound_preparation(graph_owner)),
+          @pipeline.Step(0),
+        ).unwrap(),
+      ),
+    ),
+  ]
+  let check_limits : @pipeline.Limits = {
+    max_steps: 10,
+    max_work: 100000,
+    max_text_bytes: 100000,
+    max_nodes: 10000,
+    max_tokens: 10000,
+    max_depth: 100,
+  }
+  assert_true(
+    @pipeline.check_with_evidence(
+      input_cursor(
+        "[{\"from\":\"g\",\"node_rows\":true,\"as\":\"rows\"},{\"from\":\"rows\",\"select\":[\"id\"]}]",
+      ),
+      graph_input,
+      None,
+      Some(input_cursor("\"g\"")),
+      check_limits,
+    )
+    is Ok(_),
+  )
+  assert_true(
+    @pipeline.check_with_evidence(
+      input_cursor(
+        "[{\"from\":\"g\",\"node_rows\":true,\"as\":\"rows\"},{\"from\":\"rows\",\"select\":[\"p\"]}]",
+      ),
+      graph_input,
+      None,
+      Some(input_cursor("\"g\"")),
+      check_limits,
+    )
+    is Err({ kind: @pipeline.Operation(@relation.PresenceRequired("p")), .. }),
+  )
+  let construction = @local_bridge.start_rows_to_property_graph(
+    @bounded.control(),
+    prepared_sequence(graph_owner),
+    0,
+    keyed_bridge_inputs(graph_owner, named, bare),
+    carrier_graph_storage_limits(),
+    4096L,
+    1000,
+    () => true,
+  ).unwrap()
+  guard keyed_bridge_terminal(construction) is @local_bridge.Complete(graph, ..) else {
+    fail("heterogeneous Graph construction failed")
+  }
+  let owner = keyed_graph_receiver(
+    graph_owner,
+    body="[{\"from\":\"g\",\"node_rows\":true}]",
+  )
+  let generated = @execution.select_generated_sequence_step(
+    task_test_generated(owner),
+    0,
+  ).unwrap()
+  let provider = @local_sga_provider.provider(
+    {
+      ..carrier_graph_storage_limits(),
+      max_value_nodes: 1000,
+      max_work: 10000,
+    },
+    4096L,
+    @execution.generated_sequence_capacity(
+      generated,
+      dispatch_test_limits().local_execution,
+      dispatch_test_limits().guards,
+    ).unwrap(),
+  )
+  let read = @graphs.prepare_producer_read(owner, 0, graph_owner, graph).unwrap()
+  let run = @local_connector.start_managed_provider_with_inputs(
+    provider,
+    generated,
+    [
+      @local_connector.managed_provider_carrier_input(
+        @graphs.producer_read_view(read).unwrap(),
+      ),
+    ],
+    3,
+    10000,
+  ).unwrap()
+  let mut result = None
+  for _ in 0..<10000 {
+    match @local_connector.advance_managed_provider(run, 1).unwrap() {
+      @local_connector.Continue(..) => ()
+      @local_connector.Complete(rows, ..) => {
+        result = Some(rows)
+        break
+      }
+      _ => fail("heterogeneous node rows failed")
+    }
+  }
+  guard result is Some(output) else {
+    fail("heterogeneous node rows did not terminate")
+  }
+  assert_eq(@execution.completed_row_count(output), 3)
+  assert_true(
+    @execution.completed_presence_cell(output, 0, 1)
+    is Ok(@execution.Present(@admitted.Text("one"))),
+  )
+  assert_true(
+    @execution.completed_presence_cell(output, 1, 1)
+    is Ok(@execution.Present(@admitted.Null)),
+  )
+  assert_true(
+    @execution.completed_presence_cell(output, 2, 1) is Ok(@execution.Absent),
+  )
+  assert_true(@local_connector.cleanup_managed_provider(run).unwrap())
+  let limited = @local_connector.start_managed_provider_with_inputs(
+    provider,
+    generated,
+    [
+      @local_connector.managed_provider_carrier_input(
+        @graphs.producer_read_view(read).unwrap(),
+      ),
+    ],
+    2,
+    10000,
+  ).unwrap()
+  let mut rejected = false
+  for _ in 0..<10000 {
+    match @local_connector.advance_managed_provider(limited, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work <= 1L)
+      @local_connector.Failed(_, ..) => {
+        rejected = true
+        break
+      }
+      _ => fail("row ceiling published partial Graph projection")
+    }
+  }
+  assert_true(rejected)
+  assert_true(@local_connector.cleanup_managed_provider(limited).unwrap())
+  assert_true(@graphs.producer_read_available(read))
+  let cancelled = @local_connector.start_managed_provider_with_inputs(
+    provider,
+    generated,
+    [
+      @local_connector.managed_provider_carrier_input(
+        @graphs.producer_read_view(read).unwrap(),
+      ),
+    ],
+    3,
+    10000,
+  ).unwrap()
+  let mut progressed = false
+  for _ in 0..<10000 {
+    match @local_connector.advance_managed_provider(cancelled, 1).unwrap() {
+      @local_connector.Continue(progress~, work~) => {
+        assert_true(work <= 1L)
+        if progress > 0L {
+          progressed = true
+          break
+        }
+      }
+      _ => fail("Graph projection ended before cancellation")
+    }
+  }
+  assert_true(progressed)
+  assert_true(@local_connector.cancel_managed_provider(cancelled))
+  let mut stopped = false
+  for _ in 0..<10000 {
+    match @local_connector.advance_managed_provider(cancelled, 1).unwrap() {
+      @local_connector.Continue(..) => ()
+      @local_connector.Stopped(..) => {
+        stopped = true
+        break
+      }
+      _ => fail("cancelled Graph projection published output")
+    }
+  }
+  assert_true(stopped)
+  assert_true(@graphs.producer_read_available(read))
+  assert_true(@local_connector.cleanup_managed_provider(cancelled).unwrap())
+  assert_true(@local_bridge.cleanup_rows_to_graph(construction).unwrap())
+  assert_true(@graphs.discard_completed(graph))
+}
+
+///|
 test "snapshot policy is installed and charged before constructor input access" {
   let nodes = keyed_node_source()
   let edges = keyed_edge_source()

@@ -1,5 +1,6 @@
 ///|
 pub(all) enum Operation {
+  NodeRows
   Events
   Vectors
 } derive(Eq, Debug)
@@ -45,6 +46,7 @@ struct CheckedProjection {
   input : @carrier.Carrier
   output : @carrier.Carrier
   usage : Usage
+  node_rows : CheckedPropertyNodeRows?
 }
 
 ///|
@@ -75,10 +77,31 @@ pub fn check(
   if limits.max_work == 0 || limits.max_nodes == 0 {
     return Err(issue(source, BudgetExceeded))
   }
+  if operation == NodeRows {
+    if @decode.boolean(source) != Ok(true) {
+      return Err(issue(source, InvalidBody))
+    }
+    if input is @carrier.Opaque(@carrier.GraphKind) {
+      return Err(issue(source, IncompleteGraph))
+    }
+    let checked = match check_property_node_rows(source, input, limits) {
+      Ok(value) => value
+      Err(problem) => return Err(problem)
+    }
+    return Ok({
+      operation,
+      source,
+      input,
+      output: property_node_rows_output(checked),
+      usage: property_node_rows_usage(checked),
+      node_rows: Some(checked),
+    })
+  }
   if @decode.boolean(source) != Ok(true) {
     return Err(issue(source, InvalidBody))
   }
   let expected = match operation {
+    NodeRows => @carrier.GraphKind
     Events => @carrier.EventsKind
     Vectors => @carrier.VectorsKind
   }
@@ -113,7 +136,14 @@ pub fn check(
       nodes: 1,
       text_bytes: limits.max_text_bytes - text,
     },
+    node_rows: None,
   })
+}
+
+///|
+/// Exact static Graph layout for the checked node_rows occurrence.
+pub fn node_rows(value : CheckedProjection) -> CheckedPropertyNodeRows? {
+  value.node_rows
 }
 
 ///|

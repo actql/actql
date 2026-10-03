@@ -1788,6 +1788,22 @@ async function exerciseStrategyGraph(
     // VALUES, fused constructor/MATCH, two consumers, and the tail.
     completedTasks:5,
   }, {
+    name:'retained-property-node-rows', retainedOutput:true,
+    selectedStructural:true, propertyNodeRows:true,
+    step:{from:'g', node_rows:true, as:'out'},
+    fields:['display'], secondFields:['display'],
+    expected:[{display:'first'},{display:'second'}],
+  }, {
+    name:'retained-sparse-property-node-rows', retainedOutput:true,
+    selectedStructural:true, propertyNodeRows:true,
+    heterogeneousNodeRows:true,
+    steps:[
+      {from:'g', node_rows:true, as:'sparse'},
+      {from:'sparse', select:['display'], as:'projected'},
+    ],
+    fields:['display'], secondFields:['display'],
+    expected:[{display:'first'},{display:'second'},{display:'third'}],
+  }, {
     name:'retained-node-match', retainedOutput:true, selectedStructural:true,
     step:{from:'g', match_nodes:{definition:'N', where:'true',
       fields:['id','node_name']}, as:'out'},
@@ -1927,6 +1943,37 @@ async function exerciseStrategyGraph(
   for (const publicationCase of graphPublicationCases) {
     const graphProgram = structuredClone(graphProgramBase);
     const graphStage = graphProgram.stages.find(stage => stage.id === 'graph');
+    if (publicationCase.propertyNodeRows) {
+      graphStage.steps[0].property_graph.nodes[0].labels[0].properties = {
+        mode:'columns', columns:[
+          {from:'node_name',to:'display'},
+          ...(publicationCase.heterogeneousNodeRows
+            ? [{from:'weight',to:'p'}] : []),
+        ],
+      };
+    }
+    if (publicationCase.heterogeneousNodeRows) {
+      const bareStage = {
+        id:'bare_values', inputs:{},
+        steps:[{values:{
+          schema:{
+            id:{type:'number',nullable:false},
+            alias_name:{type:'string',nullable:false},
+          },
+          rows:[{id:3,alias_name:'third'}],
+        },as:'out'}],
+        results:{r:{from:'out',fields:['id','alias_name']}},
+      };
+      graphProgram.stages.splice(graphProgram.stages.indexOf(graphStage),0,
+        bareStage);
+      graphStage.inputs.bare = {result:{stage:'bare_values',result:'r'}};
+      graphStage.steps[0].property_graph.nodes.push({
+        name:'Bare',from:'bare',key:['id'],
+        labels:[{name:'Bare',properties:{
+          mode:'columns',columns:[{from:'alias_name',to:'display'}],
+        }}],
+      });
+    }
     const consumerA = graphProgram.stages.find(stage => stage.id === 'consumer_a');
     const consumerB = graphProgram.stages.find(stage => stage.id === 'consumer_b');
     const tail = graphProgram.stages.find(stage => stage.id === 'tail');

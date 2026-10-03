@@ -5,9 +5,23 @@ fn key_projection_graph() -> @carrier.Carrier {
 }
 
 ///|
-test "retired Graph projection refuses at the public checker with exact diagnostics" {
+test "checked node rows and unsupported edge rows preserve diagnostics" {
   for key in ["node_rows", "edge_rows"] {
     for body in ["true", "false", "null", "{}", "[]", "1", "\"true\""] {
+      if key == "node_rows" && body == "true" {
+        let checked = @pipeline_typing.check_carriers(
+          cursor("[{\"node_rows\":true}]"),
+          [("g", query_property_graph())],
+          None,
+          None,
+          limits(),
+        ).unwrap()
+        assert_eq(
+          @carrier.kind(@pipeline_typing.step_at(checked, 0).unwrap().output),
+          RelationKind,
+        )
+        continue
+      }
       let issue = @pipeline_typing.check_carriers(
         cursor("[{\"" + key + "\":" + body + "}]"),
         [("g", query_property_graph())],
@@ -76,24 +90,26 @@ test "retired edge row tuples cannot supply whole-tuple join coverage for Proper
 }
 
 ///|
-test "retired Graph projections cannot manufacture key evidence" {
+test "node rows do not manufacture key evidence and edge rows remain unsupported" {
   for graph in [query_property_graph()] {
-    for
-      (body, removed) in [
-        ("node_rows", "[\"id\"]"),
-        ("edge_rows", "[\"src\",\"dst\",\"rel\"]"),
-      ] {
-      assert_true(
-        @pipeline_typing.check_carriers(
-          cursor("[{\"" + body + "\":true},{\"drop\":" + removed + "}]"),
-          [("g", graph)],
-          None,
-          None,
-          limits(),
-        )
-        is Err({ kind: Projection(@projection.UnsupportedGraphOperation), .. }),
+    let nodes = @pipeline_typing.check_carriers(
+      cursor("[{\"node_rows\":true}]"),
+      [("g", graph)],
+      None,
+      None,
+      limits(),
+    ).unwrap()
+    assert_true(@pipeline_typing.candidate_key(nodes, Step(0)) is None)
+    assert_true(
+      @pipeline_typing.check_carriers(
+        cursor("[{\"edge_rows\":true},{\"drop\":[\"src\",\"dst\",\"rel\"]}]"),
+        [("g", graph)],
+        None,
+        None,
+        limits(),
       )
-    }
+      is Err({ kind: Projection(@projection.UnsupportedGraphOperation), .. }),
+    )
   }
 }
 

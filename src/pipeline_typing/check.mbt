@@ -1426,7 +1426,7 @@ fn check_impl(
       current = Some(target)
       continue
     }
-    if key == "node_rows" || key == "edge_rows" {
+    if key == "edge_rows" {
       if @decode.boolean(operation_body) != Ok(true) {
         fail(operation_body, Projection(@projection.InvalidBody))
       }
@@ -1445,8 +1445,9 @@ fn check_impl(
           )
       }
     }
-    if key == "events" || key == "vectors" {
+    if key == "node_rows" || key == "events" || key == "vectors" {
       let projection = match key {
+        "node_rows" => @projection.NodeRows
         "events" => @projection.Events
         _ => @projection.Vectors
       }

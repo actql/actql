@@ -141,6 +141,8 @@ pub fn carrier_handoff_sequence(CarrierHandoffIndex) -> PreparedSequence
 
 pub fn carrier_projection_input_carrier(PreparedCarrierProjection) -> @carrier_contract.Carrier
 
+pub fn carrier_projection_node_rows(PreparedCarrierProjection) -> @carrier_projection.CheckedPropertyNodeRows?
+
 pub fn carrier_projection_operation(PreparedCarrierProjection) -> @carrier_projection.Operation
 
 pub fn carrier_projection_output_carrier(PreparedCarrierProjection) -> @carrier_contract.Carrier

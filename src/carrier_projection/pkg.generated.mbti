@@ -17,6 +17,8 @@ pub fn check_property_node_rows(@decode_core.Cursor, @carrier_contract.Carrier, 
 
 pub fn input(CheckedProjection) -> @carrier_contract.Carrier
 
+pub fn node_rows(CheckedProjection) -> CheckedPropertyNodeRows?
+
 pub fn operation(CheckedProjection) -> Operation
 
 pub fn output(CheckedProjection) -> @carrier_contract.Carrier
@@ -75,6 +77,7 @@ pub(all) struct Limits {
 }
 
 pub(all) enum Operation {
+  NodeRows
   Events
   Vectors
 } derive(Eq, @debug.Debug)

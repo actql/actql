@@ -36,7 +36,7 @@ test "all explicit row bridges reject wrong Carriers at the original operation s
           assert_eq(error.span, @decode.cursor_span(error.source))
           continue
         }
-        if kind == @carrier.GraphKind {
+        if kind == @carrier.GraphKind && (unknown || name == "edge_rows") {
           let error = checked.unwrap_err()
           assert_eq(
             error.kind,
@@ -142,7 +142,7 @@ test "all explicit row bridges require true and do not select an implicit source
       None,
       limits(),
     )
-    if @carrier.kind(carrier) == GraphKind {
+    if name == "edge_rows" {
       let error = checked.unwrap_err()
       assert_eq(error.kind, Projection(@projection.UnsupportedGraphOperation))
       assert_eq(error.path, [Index(0), Key(name)])

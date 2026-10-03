@@ -123,6 +123,57 @@ pub fn start_property_node_rows_stored(
 }
 
 ///|
+/// Use the same bounded row cursor for a task-acquired Graph view. The view
+/// remains with its upstream owner until the enclosing execution stops.
+pub fn start_property_node_rows_view(
+  plan : @projection.CheckedPropertyNodeRows,
+  receiver : @lower.BoundPrepared,
+  step : Int,
+  input : @lifecycle.ProducerView,
+  max_rows : Int,
+  limits : @execution.ValueLimits,
+  max_work : Int,
+  max_workspace_slots : Int,
+) -> Result[PropertyNodeRowsExecution, PropertyNodeRowsIssue] {
+  let prepared = @lower.bound_preparation(receiver)
+  guard @lifecycle.producer_read_reference_matches_operation_input(
+      @lifecycle.producer_view_read_reference(input),
+      receiver,
+      step,
+      0,
+    ) &&
+    @lifecycle.producer_view_property_graph_definition(input) is Ok(actual) &&
+    @projection.property_node_rows_input(plan) is @carrier.GraphValue(expected) &&
+    physical_equal(actual, @carrier.graph_property_definition(expected)) &&
+    @lower.node_at(prepared, step) is Some(operation) &&
+    @lower.node_input_target(operation, 0) is Some(target) &&
+    @lower.preparation_carrier_at(prepared, target)
+    is Some(@carrier.GraphValue(checked)) &&
+    physical_equal(
+      @carrier.graph_property_definition(checked),
+      @carrier.graph_property_definition(expected),
+    ) &&
+    @lifecycle.producer_view_node_count(input) is Some(node_count) else {
+    return Err(InvalidBinding)
+  }
+  start_property_node_rows_read(
+    node_count,
+    max_rows,
+    max_work,
+    () => {
+      @lifecycle.producer_read_reference_available(
+        @lifecycle.producer_view_read_reference(input),
+      )
+    },
+    (node, remaining) => {
+      start_property_node_row_view(
+        plan, receiver, step, input, node, limits, remaining, max_workspace_slots,
+      )
+    },
+  )
+}
+
+///|
 fn stop_property_node_rows_child(value : PropertyNodeRowsExecution) -> Bool {
   if value.pending is Some(_) {
     return true

@@ -27,6 +27,7 @@ import {
   "actql/actql/relation_schema" @schema,
   "actql/actql/value_admission" @admitted,
   "actql/actql/pipeline_typing" @pipeline,
+  "actql/actql/relation_typing" @relation,
   "actql/actql/decode_core" @decode,
   "actql/actql/canonical_json" @identity,
   "actql/actql/encode_core" @encode,
@@ -101,6 +102,7 @@ import {
   "actql/actql/managed_record_storage" @record_storage,
   "actql/actql/managed_carrier_runtime" @carrier_runtime,
   "actql/actql/carrier_contract",
+  "actql/actql/carrier_projection" @projection,
   "actql/actql/execution_authorization" @authorization,
 } for "wbtest"
 

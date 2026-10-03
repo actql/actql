@@ -40,8 +40,24 @@ test "Vectors projection retains its registered typed operation" {
 }
 
 ///|
-test "unconnected Graph projections refuse current input rather than issuing tuple kernels" {
-  for operation in ["node_rows", "edge_rows"] {
+test "current property node rows lower as typed Bridge without reviving edge tuples" {
+  let owner = carrier_projection_owner(
+    "[{\"from\":\"g\",\"node_rows\":true}]",
+    [("g", graph_match_carrier())],
+  )
+  let sequence = @lowering_relation.prepare_sequence(owner, sequence_limits()).unwrap()
+  guard @lowering_relation.sequence_step(sequence, 0)
+    is Some(@lowering_relation.CarrierProjectionStep(projected)) else {
+    fail("expected node row projection")
+  }
+  assert_eq(
+    @lowering_relation.carrier_projection_operation(projected),
+    @projection.NodeRows,
+  )
+  assert_true(
+    @lowering_relation.carrier_projection_node_rows(projected) is Some(_),
+  )
+  for operation in ["edge_rows"] {
     let issue = @pipeline.check_carriers(
       cursor("[{\"from\":\"g\",\"" + operation + "\":true}]"),
       [("g", graph_match_carrier())],

@@ -12,6 +12,7 @@ priv enum RelationExecution {
   MatchNodesExecution(@sga.MatchNodesExecution)
   MatchEdgesExecution(@sga.MatchEdgesExecution)
   TraverseExecution(@sga.TraverseExecution)
+  NodeRowsExecution(@sga.PropertyNodeRowsOutputExecution)
 }
 
 ///|
@@ -180,6 +181,16 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
         @lower.graph_traverse_emits_paths(traverse) &&
         accepts_traverse(traverse)
       }
+      @lower.CarrierProjectionStep(projected) => {
+        guard @lower.node_input_target(node, 0) is Some(input) &&
+          @lower.preparation_carrier_at(prepared, input) is Some(carrier) else {
+          return false
+        }
+        current_graph(carrier) &&
+        @lower.carrier_projection_operation(projected) == @projection.NodeRows &&
+        @lower.carrier_projection_node_rows(projected) is Some(_) &&
+        @lower.operation(node) == "BRIDGE.graph.to_node_rows"
+      }
       // No tuple Graph constructor/projection or legacy SGA execution fallback.
       // Other new-profile operations remain explicit unsupported selections.
       _ => false
@@ -218,7 +229,9 @@ fn accepts(sequence : @execution.GeneratedSequence) -> Bool {
     }
     match
       @lower.sequence_step(@execution.generated_prepared_sequence(sequence), 1) {
-      Some(@lower.GraphMatchStep(_)) | Some(@lower.GraphTraverseStep(_)) => ()
+      Some(@lower.GraphMatchStep(_))
+      | Some(@lower.GraphTraverseStep(_))
+      | Some(@lower.CarrierProjectionStep(_)) => ()
       _ => return false
     }
   }
@@ -623,6 +636,52 @@ fn advance_execution(
               Err(_) => return fail_execution(value)
             }
           }
+          Some(@lower.CarrierProjectionStep(projected)) => {
+            guard @lower.carrier_projection_node_rows(projected) is Some(plan) else {
+              return fail_execution(value)
+            }
+            let limits : @execution.ValueLimits = {
+              max_nodes: value.limits.max_value_nodes,
+              max_text_bytes: value.max_value_bytes,
+              max_depth: value.limits.max_value_depth,
+              max_work: value.limits.max_work,
+            }
+            let started = if direct_view is Some(view) {
+              @sga.start_property_node_rows_output_view(
+                value.control,
+                @execution.generated_completion_preparation(value.generated),
+                value.sequence,
+                value.projection_step,
+                plan,
+                view,
+                value.max_rows,
+                limits,
+                value.limits.max_workspace_slots,
+                value.limits.max_value_bytes,
+                value.limits.max_value_bytes,
+              )
+            } else {
+              guard input is Some(read) else { return fail_execution(value) }
+              @sga.start_property_node_rows_output_stored(
+                value.control,
+                @execution.generated_completion_preparation(value.generated),
+                value.sequence,
+                value.projection_step,
+                plan,
+                read,
+                value.max_rows,
+                limits,
+                value.limits.max_workspace_slots,
+                value.limits.max_value_bytes,
+                value.limits.max_value_bytes,
+                value.inputs,
+              )
+            }
+            match started {
+              Ok(execution) => NodeRowsExecution(execution)
+              Err(_) => return fail_execution(value)
+            }
+          }
           _ => return fail_execution(value)
         }
         value.relation = Some(started)
@@ -667,6 +726,18 @@ fn advance_execution(
               Ok(@sga.TraverseFailed(_, progress~, work~)) =>
                 Ok(RelationFailed(progress, work))
               Ok(@sga.TraverseStopped(_, progress~, work~)) =>
+                Ok(RelationStopped(progress, work))
+              Err(_) => Err(issue())
+            }
+          NodeRowsExecution(execution) =>
+            match @sga.advance_property_node_rows_output(execution, quantum) {
+              Ok(@sga.NodeRowsOutputContinue(progress~, work~)) =>
+                Ok(RelationContinue(progress, work))
+              Ok(@sga.NodeRowsOutputComplete(output, progress~, work~)) =>
+                Ok(RelationComplete(output, progress, work))
+              Ok(@sga.NodeRowsOutputFailed(_, progress~, work~)) =>
+                Ok(RelationFailed(progress, work))
+              Ok(@sga.NodeRowsOutputStopped(_, progress~, work~)) =>
                 Ok(RelationStopped(progress, work))
               Err(_) => Err(issue())
             }
@@ -748,6 +819,11 @@ fn cleanup_execution(
           Ok(_) => ()
           Err(_) => failed = true
         }
+      NodeRowsExecution(execution) =>
+        match @sga.cleanup_property_node_rows_output(execution) {
+          Ok(_) => ()
+          Err(_) => failed = true
+        }
     }
   }
   discard(value.graph) |> ignore
@@ -764,6 +840,8 @@ fn cleanup_execution(
     Some(MatchEdgesExecution(active)) =>
       @sga.match_edges_cleanup_pending(active)
     Some(TraverseExecution(active)) => @sga.traverse_cleanup_pending(active)
+    Some(NodeRowsExecution(active)) =>
+      @sga.property_node_rows_output_cleanup_pending(active)
     None => false
   }
   if failed {
@@ -857,6 +935,16 @@ pub fn provider(
         Some(@lower.GraphMatchStep(_)) => selected_step is Some(_)
         _ => false
       }
+      let direct_node_rows = match
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          selected_step.unwrap_or(0),
+        ) {
+        Some(@lower.CarrierProjectionStep(projected)) =>
+          selected_step is Some(_) &&
+          @lower.carrier_projection_operation(projected) == @projection.NodeRows
+        _ => false
+      }
       let property_inputs = match
         @lower.sequence_step(
           @execution.generated_prepared_sequence(sequence),
@@ -886,7 +974,7 @@ pub fn provider(
         if relations.length() != expected || !carriers.is_empty() {
           return Err(@connector.Execution(@execution.InputSet))
         }
-      } else if direct_match || direct_traverse {
+      } else if direct_match || direct_traverse || direct_node_rows {
         if carriers.length() != 1 ||
           relations.length() !=
           (if direct_traverse { direct_traverse_relation_count } else { 0 }) {

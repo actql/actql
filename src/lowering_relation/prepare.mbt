@@ -234,6 +234,7 @@ pub fn operation(value : PreparedNode) -> String {
       }
     CarrierProjection(value) =>
       match @projection.operation(value) {
+        @projection.NodeRows => "BRIDGE.graph.to_node_rows"
         @projection.Events => "BRIDGE.events.to_rows"
         @projection.Vectors => "BRIDGE.vectors.to_rows"
       }
@@ -452,6 +453,7 @@ pub fn prepare(
       CarrierProjection(value) =>
         (
           match @projection.operation(value) {
+            @projection.NodeRows => "node_rows"
             @projection.Events => "events"
             @projection.Vectors => "vectors"
           },

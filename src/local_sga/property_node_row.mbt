@@ -123,6 +123,58 @@ pub fn start_property_node_row_stored(
 }
 
 ///|
+/// Read the same checked row layout from an acquired managed Graph input.
+/// The view's exact input reference, not merely its Graph kind, owns access.
+pub fn start_property_node_row_view(
+  plan : @projection.CheckedPropertyNodeRows,
+  receiver : @lower.BoundPrepared,
+  step : Int,
+  input : @lifecycle.ProducerView,
+  node : Int,
+  limits : @execution.ValueLimits,
+  max_step_work : Int,
+  max_workspace_slots : Int,
+) -> Result[PropertyNodeRowExecution, PropertyNodeRowIssue] {
+  let prepared = @lower.bound_preparation(receiver)
+  guard @lifecycle.producer_read_reference_matches_operation_input(
+      @lifecycle.producer_view_read_reference(input),
+      receiver,
+      step,
+      0,
+    ) &&
+    @lifecycle.producer_view_property_graph_definition(input) is Ok(actual) &&
+    @projection.property_node_rows_input(plan) is @carrier.GraphValue(expected) &&
+    physical_equal(actual, @carrier.graph_property_definition(expected)) &&
+    @lower.node_at(prepared, step) is Some(operation) &&
+    @lower.node_input_target(operation, 0) is Some(target) &&
+    @lower.preparation_carrier_at(prepared, target)
+    is Some(@carrier.GraphValue(checked)) &&
+    physical_equal(
+      @carrier.graph_property_definition(checked),
+      @carrier.graph_property_definition(expected),
+    ) else {
+    return Err(InvalidBinding)
+  }
+  start_property_node_row_read(
+    plan,
+    node,
+    () => {
+      @lifecycle.producer_read_reference_available(
+        @lifecycle.producer_view_read_reference(input),
+      )
+    },
+    () => @lifecycle.producer_view_node_definition(input, node).to_option(),
+    () => @lifecycle.producer_view_node_identity(input, node).to_option(),
+    index => {
+      @lifecycle.producer_view_node_property(input, node, index).to_option()
+    },
+    limits,
+    max_step_work,
+    max_workspace_slots,
+  )
+}
+
+///|
 pub fn advance_property_node_row(
   value : PropertyNodeRowExecution,
   quantum : Int,

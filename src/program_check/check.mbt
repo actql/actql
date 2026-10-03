@@ -103,6 +103,7 @@ fn check_supported_source(
               | "match_nodes"
               | "match_edges"
               | "traverse"
+              | "node_rows"
               | "to_vectors"
               | "normalize_vectors"
               | "score_vectors"

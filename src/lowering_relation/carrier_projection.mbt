@@ -45,6 +45,13 @@ pub fn carrier_projection_input_carrier(
 }
 
 ///|
+pub fn carrier_projection_node_rows(
+  value : PreparedCarrierProjection,
+) -> @projection.CheckedPropertyNodeRows? {
+  @projection.node_rows(value.checked)
+}
+
+///|
 fn emit_carrier_projection_node(
   prepared : PreparedCarrierProjection,
   out : @encode.Writer,
