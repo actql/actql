@@ -5676,7 +5676,8 @@ No implementation may widen the authored maximum.
 The closed body MUST admit only `start`, `emit`, optional `max_output_rows`, and exactly
 one traversal mode. Homogeneous mode requires literal finite integer-valued
 `min_hops` and `max_hops` in the stated ranges and explicit `direction`, with
-optional `edge_types`. Pattern mode instead requires a nonempty `hops` array
+optional `edge_types`, `edge_where`, and `node_where`. Pattern mode instead
+requires a nonempty `hops` array
 and rejects all four homogeneous members. Each hop admits only `direction`,
 optional `edge_types`, `edge_where`, and `node_where`. A pattern follows its
 entire ordered hop list. Predicates require nullable or non-null boolean and
@@ -5684,6 +5685,17 @@ retain only true. Edge-type lists contain nonempty normalized strings; absence
 does not filter types, empty lists admit no matching edge, and repetition does
 not repeat paths. Any authored list, including an empty one, requires semantic
 edge-label evidence. An empty selection does not bypass static checks.
+
+<!-- requirement-block: traverse.hop-predicate-static-definition-scope -->
+For each hop predicate, the checker determines candidate edge definitions from
+the admitted Graph and the authored static `edge_types` filter. Candidate reached
+node definitions follow those edges' declared endpoints and the hop direction.
+Every referenced `edge_where` or `node_where` property MUST exist with a
+predicate-compatible type in every respective candidate definition. Data rows
+and predicate results do not narrow this static set. A missing property is a
+check-time error, not an implicit NULL or a runtime fallback. A declared
+nullable property whose value is NULL retains the ordinary expression NULL
+rules. A statically empty edge selection still checks any authored predicate.
 
 `emit: nodes` returns `start_id`, `node_id`, and minimum `depth`, ordered by
 those fields. `emit: paths` additionally requires semantic edge identity and

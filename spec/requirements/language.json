@@ -4744,6 +4744,17 @@
       }
     },
     {
+      "requirement_id": "actql.language/traverse.hop-predicate-static-definition-scope",
+      "statement_sha256": "fddbf64a72572fc799e6e9fddef6605e6eaa76419e3d1c1c20c5c330f1abbb06",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "traverse",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/traverse.typed-edge-identity-records",
       "statement_sha256": "78f5f88722e0d85ca448395c64ce70f5bc16ef236f6e207390d9cab604999e5b",
       "status": "pending",
