@@ -165,17 +165,24 @@ export function installedModelEnvironment(moon, baseWire, currentWire,
 // Normal submit uses its original prepared owner. The metadata lookup does
 // not admit a body: MoonBit checks canonical bytes, self-CID, exact Task and
 // ceilings. Returning this contract does not admit prompt/retry/egress policy.
-export function readInstalledModelExecution(moon, prepared, installation) {
-  const step = moon.clientProgramSelectedInferStep(prepared);
+export function readInstalledModelExecution(moon, prepared, installation,
+  occurrence) {
+  const step = occurrence === undefined
+    ? moon.clientProgramSelectedInferStep(prepared)
+    : moon.clientProgramInferOccurrenceCoordinates(occurrence)._2;
   if (step === undefined) return undefined;
-  const taskCid = moon.clientProgramInferModelTaskCid(prepared, step);
+  const taskCid = occurrence === undefined
+    ? moon.clientProgramInferModelTaskCid(prepared, step)
+    : moon.clientProgramInferOccurrenceModelTaskCid(occurrence);
   const entry = installation === undefined ? undefined :
     checkInstallation(installation).find(item => item.modelTaskCid === taskCid);
   if (entry === undefined) {
     throw Object.assign(new Error('InstalledInferModelExecutionUnavailable'),
       {code: 'InstalledInferModelExecutionUnavailable'});
   }
-  return Object.freeze({step, execution: checked(
-    moon.clientProgramReadInferModelExecution(prepared, step,
+  return Object.freeze({step, execution: checked(occurrence === undefined
+    ? moon.clientProgramReadInferModelExecution(prepared, step, entry.bodyWire,
+      entry.cid)
+    : moon.clientProgramReadComposedInferModelExecution(occurrence,
       entry.bodyWire, entry.cid))});
 }

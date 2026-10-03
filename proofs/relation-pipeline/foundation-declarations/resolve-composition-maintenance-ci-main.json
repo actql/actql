@@ -1,0 +1,56 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-composition-maintenance-ci-main",
+  "kind": "resolution",
+  "revision": "736ec05845de80f124878017e269511a5644589c",
+  "parents": [
+    "332e3e9ffc3ae113f0d80fc69b637d74521b746e",
+    "a9f6f2507f13f8e4708e7b71517761599353ddac"
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-343a5565c1ac",
+    "adopt-985dbbba2789",
+    "adopt-dafff1a1aeea",
+    "bounded-local-execution-guard",
+    "ci-maintenance-pr-profile",
+    "ci-portable-pr-targets",
+    "client-ci-runner-context",
+    "client-ci-split",
+    "issue-180-foundation-composition",
+    "main-pr225-ci-resolution",
+    "packed-acquired-infer-acceptance",
+    "packed-composed-infer-effect-acceptance",
+    "parallel-pipeline-evidence",
+    "resolve-acquired-infer-client-ci",
+    "resolve-composition-custody-main-maximal-bases",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-local-guard-acquired-infer-ci",
+    "resolve-local-guard-pipeline-ci",
+    "resolve-local-guard-portable-pr-ci",
+    "resolve-main-local-guard-ci",
+    "resolve-main-local-guard-ci-6520c3f59",
+    "resolve-main-model-backing",
+    "resolve-parallel-pipeline-main-infer"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "332e3e9ffc3ae113f0d80fc69b637d74521b746e",
+          "digest": "a4df329184a39cc1203a2908a7536ea13f7ff653301ddf02e64dd3b9d3920526",
+          "mode": "100644"
+        },
+        {
+          "revision": "a9f6f2507f13f8e4708e7b71517761599353ddac",
+          "digest": "667b34995b7bfc7cdd5aeb9e69f5a869f830bb52ebd41e064a5b3d1f6f52d5e8",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "1816a0b1c13cb30ce0f94c076fd0e1640a25d1bf98727b2ced3fd54fed7ce26b",
+      "afterMode": "100644",
+      "reason": "Preserve main's maintenance-family CI cost controls and select-targets dependencies together with the composition acceptance in the existing packed consumer. Keep commands unconditional within selected jobs and retain the exact artifact producer; do not restore the duplicate Host packed acceptance."
+    }
+  ]
+}

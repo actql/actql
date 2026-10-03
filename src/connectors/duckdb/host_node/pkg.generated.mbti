@@ -29,6 +29,8 @@ pub fn broad_host_begin(BroadNodeRun, String) -> Unit raise NodeHostFailure
 
 pub fn broad_host_bind(BroadNodeRun, @acquisition.DuckDBBroadObservation, @lowering_relation.BoundPrepared, Int) -> @execution_relation.BoundProducerInput raise NodeHostFailure
 
+pub fn broad_host_capacity(@host.BroadHostConfiguration, Bool) -> Int64 raise NodeHostFailure
+
 pub fn broad_host_close(BroadNodeRun) -> Unit
 
 pub fn broad_host_complete(BroadNodeRun) -> @acquisition.DuckDBBroadObservation raise NodeHostFailure
@@ -47,6 +49,16 @@ pub fn broad_host_open(@host.BroadHostConfiguration, String, (@acquisition.DuckD
 
 pub fn broad_host_parameter(BroadNodeRun, Int) -> String raise NodeHostFailure
 
+pub fn broad_host_physical_charge(BroadNodeRun, Int64) -> Unit raise NodeHostFailure
+
+pub fn broad_host_physical_complete(BroadNodeRun, @acquisition.DuckDBBroadObservation) -> Unit raise NodeHostFailure
+
+pub fn broad_host_physical_refresh(BroadNodeRun) -> Unit
+
+pub fn broad_host_physical_settle(BroadNodeRun, Bool) -> Unit raise NodeHostFailure
+
+pub fn broad_host_retain_captured_task(BroadNodeRun, @physical_strategy.CapturedDAG, Int, @acquisition.DuckDBBroadObservation) -> Unit raise NodeHostFailure
+
 pub fn broad_host_source_capture(BroadNodeRun, @acquisition.DuckDBBroadObservation) -> @host.BroadHostSourceCapture raise NodeHostFailure
 
 pub fn broad_host_source_capture_identity_matches(@host.BroadHostSourceCapture, @execution_query.CapturedSourceRelationIdentity) -> Bool
@@ -56,6 +68,8 @@ pub fn broad_host_source_capture_source(@host.BroadHostSourceCapture) -> @execut
 pub fn broad_host_source_capture_source_ref(@host.BroadHostSourceCapture) -> String?
 
 pub fn broad_host_sql(BroadNodeRun, Bool) -> String
+
+pub fn broad_strategy_host_open(@host.BroadHostConfiguration, @physical_resources.Ledger, String, (@acquisition.DuckDBBroadAttempt) -> Bool, Int64, Int64, () -> Bool) -> BroadNodeRun raise NodeHostFailure
 
 pub fn compute_host_abort(ComputeNodeRun) -> Unit
 

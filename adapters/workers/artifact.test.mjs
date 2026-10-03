@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {checkWorkersArtifact} from './artifact.mjs';
+import {checkWorkersArtifact, conformanceModules, hostModules} from './artifact.mjs';
 import {build} from 'esbuild';
 import {mkdtempSync,mkdirSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {buildHost} from './build.mjs';
 
 function graph(dependency, options = {}) {
@@ -55,6 +56,18 @@ test('actual bundler resolution catches a forbidden unused Connector removed fro
   assert.doesNotMatch(result.outputFiles[0].text,/native-addon-marker/);
   assert.throws(() => checkWorkersArtifact(result.metafile,result.outputFiles[0].text,Object.keys(result.metafile.inputs)),
     /Workers(Module|Dependency)Rejected/);
+});
+
+test('completed Local output custody is portable in both Workers profiles', async () => {
+  const result = await build({
+    absWorkingDir: fileURLToPath(new URL('../../', import.meta.url)),
+    entryPoints: ['adapters/local-node/managed-output-custody.mjs'],
+    bundle: true, platform: 'browser', format: 'esm',
+    metafile: true, write: false,
+  });
+  for (const modules of [hostModules, conformanceModules]) {
+    checkWorkersArtifact(result.metafile, result.outputFiles[0].text, modules);
+  }
 });
 
 test('product Local-only Host builds separately without conformance or test Connector modules', async t => {

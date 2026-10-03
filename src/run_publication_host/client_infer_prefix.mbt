@@ -241,6 +241,15 @@ fn prepared_client_infer_host_ceiling(
   if client_infer_metadata_owner(value, 0, step) is None {
     return Err(UnsupportedProgram)
   }
+  read_client_infer_host_ceiling(value, field, missing)
+}
+
+///|
+fn read_client_infer_host_ceiling(
+  value : PreparedClientProgram,
+  field : String,
+  missing : ClientInferHostCapacityIssue,
+) -> Result[Int64, ClientInferHostCapacityIssue] {
   let capacity = match
     @environment.read_capacity(
       @checked.checked_environment(@strategy.graph_program(value.graph)),

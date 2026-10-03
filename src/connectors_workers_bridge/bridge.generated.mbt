@@ -27,6 +27,7 @@ pub(all) suberror NodeHostFailure {
   RemoteCredential(@credential.RemoteCredentialIssue)
   RemoteBundle(@bundle.RemoteBundleIssue)
   PhysicalManifest(@manifest.PhysicalManifestIssue)
+  LocalManagedStart(@binding15.LocalDispatchIssue)
 }
 
 ///|
@@ -8840,6 +8841,6 @@ pub fn local_managed_start(
 ) -> @binding15.LocalManagedDispatchOperations[Int] raise NodeHostFailure {
   match @binding15.start_local_managed_dispatch_node(setup) {
     Ok(value) => value
-    Err(_) => raise InvalidCommand
+    Err(issue) => raise LocalManagedStart(issue)
   }
 }

@@ -13,6 +13,7 @@
   "managed_capacity": "numeric_managed_dispatch_site_capacity",
   "managed_start": "start_numeric_managed_dispatch_node",
   "managed_start_result": {"package":"actql/actql/connectors/reference_compute/driver","type":"NumericManagedDispatchOperations"},
+  "managed_start_error": {"package":"actql/actql/connectors/reference_compute","type":"PlanIssue"},
   "configuration": "NumericComputeConfiguration",
   "configure": "configure_numeric_compute",
   "registration": "numeric_contribution_registration",

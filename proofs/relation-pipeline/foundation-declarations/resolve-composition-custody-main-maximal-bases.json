@@ -1,0 +1,478 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "resolve-composition-custody-main-maximal-bases",
+  "kind": "resolution",
+  "revision": "b8a4c682f90babf0f35edf00eed41ab0365e7c16",
+  "parents": [
+    "00b16ac962879fd860bee11e438adab3fe639ac4",
+    "ec27ef0e9091d20d53e6d1064afe8848b9a24ede"
+  ],
+  "mergeBases": [
+    "4116239f9527e4decffca1b63705dd0abfafd3c2",
+    "4303f0681c7e7ae3544563fa9dd6d7e5c0eebd41"
+  ],
+  "inputs": [
+    "adopt-12e8c958ee13",
+    "adopt-343a5565c1ac",
+    "adopt-3877b637406b",
+    "adopt-63b114ad524b",
+    "adopt-678626b010b4",
+    "adopt-7427f7f09276",
+    "adopt-985dbbba2789",
+    "adopt-9a7c592a8ed9",
+    "adopt-b480cffb6e6d",
+    "adopt-bf2d058c21c1",
+    "adopt-dafff1a1aeea",
+    "adopt-f24288853c19",
+    "bounded-local-execution-guard",
+    "bounded-session-action-input-report",
+    "bounded-session-action-input-timing",
+    "capacity-adopt-cb8707e36ba9",
+    "capacity-adopt-cc13922878b2",
+    "ci-portable-pr-targets",
+    "client-ci-runner-context",
+    "client-ci-split",
+    "composition-custody-executor-fixture",
+    "convergent-foundation-declarations",
+    "issue-180-foundation-composition",
+    "issue-180-invalid-version-fixture",
+    "main-pr225-ci-resolution",
+    "mutation-workspace-audit-compatibility",
+    "mutation-workspace-fixture-ownership",
+    "mutation-workspace-isolation",
+    "packed-acquired-infer-acceptance",
+    "packed-composed-infer-effect-acceptance",
+    "parallel-pipeline-evidence",
+    "parent-startup-main-integration-f2550ea4567d",
+    "pr164-main-a32-verification-resolution",
+    "pr164-main4f-runtime-check-resolution",
+    "pr164-property-graph-source",
+    "remove-duplicate-runtime-package-checks",
+    "resolve-acquired-infer-client-ci",
+    "resolve-composition-infer-main-maximal-bases",
+    "resolve-composition-main-custody",
+    "resolve-local-guard-acquired-infer-ci",
+    "resolve-local-guard-pipeline-ci",
+    "resolve-local-guard-portable-pr-ci",
+    "resolve-main-local-guard-ci",
+    "resolve-main-model-backing",
+    "resolve-parallel-pipeline-main-infer",
+    "sdk-cancel-response-loss-registration"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "00b16ac962879fd860bee11e438adab3fe639ac4",
+          "digest": "a4df329184a39cc1203a2908a7536ea13f7ff653301ddf02e64dd3b9d3920526",
+          "mode": "100644"
+        },
+        {
+          "revision": "ec27ef0e9091d20d53e6d1064afe8848b9a24ede",
+          "digest": "a22ee792f4b836c7d950d8f89f0f8266701e2516557a1718ea4399604b1a3783",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "a4df329184a39cc1203a2908a7536ea13f7ff653301ddf02e64dd3b9d3920526",
+      "afterMode": "100644",
+      "reason": "Retain the actual merge of composition and the shared completed-output custody owner from #193, including convergent declaration validation and the existing CI cost controls. Keep every maximal ancestor, including the zero-obligation ancestor, and all prior introduction records."
+    },
+    {
+      "path": "package.json",
+      "before": [
+        {
+          "revision": "00b16ac962879fd860bee11e438adab3fe639ac4",
+          "digest": "3bf739c2d4cd0059010250e82894afcda948f549abd3973b6eb2870f7ec83cf6",
+          "mode": "100644"
+        },
+        {
+          "revision": "ec27ef0e9091d20d53e6d1064afe8848b9a24ede",
+          "digest": "a564c8fef5bbc0da1c5df2872148d3bead5be9da79124d76031b775f5d1372d4",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "3bf739c2d4cd0059010250e82894afcda948f549abd3973b6eb2870f7ec83cf6",
+      "afterMode": "100644",
+      "reason": "Retain the actual merge of composition and the shared completed-output custody owner from #193, including convergent declaration validation and the existing CI cost controls. Keep every maximal ancestor, including the zero-obligation ancestor, and all prior introduction records."
+    },
+    {
+      "path": "proofs/bounded-session/evidence.test.mjs",
+      "before": [
+        {
+          "revision": "00b16ac962879fd860bee11e438adab3fe639ac4",
+          "digest": "db1b18abcb943dcfc1152dc45af6931c0da10a4f3763bbe10eb3fd28986487c1",
+          "mode": "100644"
+        },
+        {
+          "revision": "ec27ef0e9091d20d53e6d1064afe8848b9a24ede",
+          "digest": "db1b18abcb943dcfc1152dc45af6931c0da10a4f3763bbe10eb3fd28986487c1",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "db1b18abcb943dcfc1152dc45af6931c0da10a4f3763bbe10eb3fd28986487c1",
+      "afterMode": "100644",
+      "reason": "Retain the actual merge of composition and the shared completed-output custody owner from #193, including convergent declaration validation and the existing CI cost controls. Keep every maximal ancestor, including the zero-obligation ancestor, and all prior introduction records."
+    },
+    {
+      "path": "proofs/bounded-session/run.mjs",
+      "before": [
+        {
+          "revision": "00b16ac962879fd860bee11e438adab3fe639ac4",
+          "digest": "8e7f98a7a0c9674ac0ad8917c117e99c93d5cb525ba2c7ceb2a9a0f63984190c",
+          "mode": "100644"
+        },
+        {
+          "revision": "ec27ef0e9091d20d53e6d1064afe8848b9a24ede",
+          "digest": "8e7f98a7a0c9674ac0ad8917c117e99c93d5cb525ba2c7ceb2a9a0f63984190c",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "8e7f98a7a0c9674ac0ad8917c117e99c93d5cb525ba2c7ceb2a9a0f63984190c",
+      "afterMode": "100644",
+      "reason": "Retain the actual merge of composition and the shared completed-output custody owner from #193, including convergent declaration validation and the existing CI cost controls. Keep every maximal ancestor, including the zero-obligation ancestor, and all prior introduction records."
+    },
+    {
+      "path": "proofs/relation-pipeline/audit.mjs",
+      "before": [
+        {
+          "revision": "00b16ac962879fd860bee11e438adab3fe639ac4",
+          "digest": "b2e5a5c6ccb94ae53ea5c3654925ceede8c29f17bb661df57f0e6a713e77d970",
+          "mode": "100644"
+        },
+        {
+          "revision": "ec27ef0e9091d20d53e6d1064afe8848b9a24ede",
+          "digest": "b2e5a5c6ccb94ae53ea5c3654925ceede8c29f17bb661df57f0e6a713e77d970",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "b2e5a5c6ccb94ae53ea5c3654925ceede8c29f17bb661df57f0e6a713e77d970",
+      "afterMode": "100644",
+      "reason": "Retain the actual merge of composition and the shared completed-output custody owner from #193, including convergent declaration validation and the existing CI cost controls. Keep every maximal ancestor, including the zero-obligation ancestor, and all prior introduction records."
+    },
+    {
+      "path": "proofs/relation-pipeline/current-foundation.md",
+      "before": [
+        {
+          "revision": "00b16ac962879fd860bee11e438adab3fe639ac4",
+          "digest": "3b5c54d1a9c074060aa98f917921985fe37b1dd21f242eb31e903baef3a8c37d",
+          "mode": "100644"
+        },
+        {
+          "revision": "ec27ef0e9091d20d53e6d1064afe8848b9a24ede",
+          "digest": "3b5c54d1a9c074060aa98f917921985fe37b1dd21f242eb31e903baef3a8c37d",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "3b5c54d1a9c074060aa98f917921985fe37b1dd21f242eb31e903baef3a8c37d",
+      "afterMode": "100644",
+      "reason": "Retain the actual merge of composition and the shared completed-output custody owner from #193, including convergent declaration validation and the existing CI cost controls. Keep every maximal ancestor, including the zero-obligation ancestor, and all prior introduction records."
+    },
+    {
+      "path": "proofs/relation-pipeline/execute.mjs",
+      "before": [
+        {
+          "revision": "00b16ac962879fd860bee11e438adab3fe639ac4",
+          "digest": "ddbd463f9eccba06825302d84c55b65b2ffc51142e266dd337de48ad71cd1539",
+          "mode": "100644"
+        },
+        {
+          "revision": "ec27ef0e9091d20d53e6d1064afe8848b9a24ede",
+          "digest": "ddbd463f9eccba06825302d84c55b65b2ffc51142e266dd337de48ad71cd1539",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "ddbd463f9eccba06825302d84c55b65b2ffc51142e266dd337de48ad71cd1539",
+      "afterMode": "100644",
+      "reason": "Retain the actual merge of composition and the shared completed-output custody owner from #193, including convergent declaration validation and the existing CI cost controls. Keep every maximal ancestor, including the zero-obligation ancestor, and all prior introduction records."
+    },
+    {
+      "path": "proofs/relation-pipeline/execute.test.mjs",
+      "before": [
+        {
+          "revision": "00b16ac962879fd860bee11e438adab3fe639ac4",
+          "digest": "831b457ade30bf207f7b2dc3865efde6fc8c40e91e18af56606c29bc82f2f601",
+          "mode": "100644"
+        },
+        {
+          "revision": "ec27ef0e9091d20d53e6d1064afe8848b9a24ede",
+          "digest": "831b457ade30bf207f7b2dc3865efde6fc8c40e91e18af56606c29bc82f2f601",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "831b457ade30bf207f7b2dc3865efde6fc8c40e91e18af56606c29bc82f2f601",
+      "afterMode": "100644",
+      "reason": "Retain the actual merge of composition and the shared completed-output custody owner from #193, including convergent declaration validation and the existing CI cost controls. Keep every maximal ancestor, including the zero-obligation ancestor, and all prior introduction records."
+    },
+    {
+      "path": "proofs/relation-pipeline/executor-close.test.mjs",
+      "before": [
+        {
+          "revision": "00b16ac962879fd860bee11e438adab3fe639ac4",
+          "digest": "e99f942a77405b36a1d2afca65d549a18fc141cc54c97b672cca1cab8b42f6d1",
+          "mode": "100644"
+        },
+        {
+          "revision": "ec27ef0e9091d20d53e6d1064afe8848b9a24ede",
+          "digest": "e99f942a77405b36a1d2afca65d549a18fc141cc54c97b672cca1cab8b42f6d1",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "e99f942a77405b36a1d2afca65d549a18fc141cc54c97b672cca1cab8b42f6d1",
+      "afterMode": "100644",
+      "reason": "Retain the actual merge of composition and the shared completed-output custody owner from #193, including convergent declaration validation and the existing CI cost controls. Keep every maximal ancestor, including the zero-obligation ancestor, and all prior introduction records."
+    },
+    {
+      "path": "proofs/relation-pipeline/fixture.mjs",
+      "before": [
+        {
+          "revision": "00b16ac962879fd860bee11e438adab3fe639ac4",
+          "digest": "a365a348c7dbab19cf4498b011a198b6588cabbfe3bd187c9d2b49af789d6450",
+          "mode": "100644"
+        },
+        {
+          "revision": "ec27ef0e9091d20d53e6d1064afe8848b9a24ede",
+          "digest": "a365a348c7dbab19cf4498b011a198b6588cabbfe3bd187c9d2b49af789d6450",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "a365a348c7dbab19cf4498b011a198b6588cabbfe3bd187c9d2b49af789d6450",
+      "afterMode": "100644",
+      "reason": "Retain the actual merge of composition and the shared completed-output custody owner from #193, including convergent declaration validation and the existing CI cost controls. Keep every maximal ancestor, including the zero-obligation ancestor, and all prior introduction records."
+    },
+    {
+      "path": "proofs/relation-pipeline/fixture.test.mjs",
+      "before": [
+        {
+          "revision": "00b16ac962879fd860bee11e438adab3fe639ac4",
+          "digest": "4362179f875066d5b19475e973dde6e07c5472c49b2cd1fd40f2e8b5fff96a9a",
+          "mode": "100644"
+        },
+        {
+          "revision": "ec27ef0e9091d20d53e6d1064afe8848b9a24ede",
+          "digest": "4362179f875066d5b19475e973dde6e07c5472c49b2cd1fd40f2e8b5fff96a9a",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "4362179f875066d5b19475e973dde6e07c5472c49b2cd1fd40f2e8b5fff96a9a",
+      "afterMode": "100644",
+      "reason": "Retain the actual merge of composition and the shared completed-output custody owner from #193, including convergent declaration validation and the existing CI cost controls. Keep every maximal ancestor, including the zero-obligation ancestor, and all prior introduction records."
+    },
+    {
+      "path": "proofs/relation-pipeline/fixtures/convergent-declarations.json",
+      "before": [
+        {
+          "revision": "00b16ac962879fd860bee11e438adab3fe639ac4",
+          "digest": "b454a67231b9b0d6bca361a3b168c00c32f15a2fba27601b1148c9a8fb8945dc",
+          "mode": "100644"
+        },
+        {
+          "revision": "ec27ef0e9091d20d53e6d1064afe8848b9a24ede",
+          "digest": "b454a67231b9b0d6bca361a3b168c00c32f15a2fba27601b1148c9a8fb8945dc",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "b454a67231b9b0d6bca361a3b168c00c32f15a2fba27601b1148c9a8fb8945dc",
+      "afterMode": "100644",
+      "reason": "Retain the actual merge of composition and the shared completed-output custody owner from #193, including convergent declaration validation and the existing CI cost controls. Keep every maximal ancestor, including the zero-obligation ancestor, and all prior introduction records."
+    },
+    {
+      "path": "proofs/relation-pipeline/fixtures/execution-driver.mjs",
+      "before": [
+        {
+          "revision": "00b16ac962879fd860bee11e438adab3fe639ac4",
+          "digest": "2543a046d978b935fea369b39136085fd655ae90e21f6162ddcf09e28bf56223",
+          "mode": "100644"
+        },
+        {
+          "revision": "ec27ef0e9091d20d53e6d1064afe8848b9a24ede",
+          "digest": "2543a046d978b935fea369b39136085fd655ae90e21f6162ddcf09e28bf56223",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "2543a046d978b935fea369b39136085fd655ae90e21f6162ddcf09e28bf56223",
+      "afterMode": "100644",
+      "reason": "Retain the actual merge of composition and the shared completed-output custody owner from #193, including convergent declaration validation and the existing CI cost controls. Keep every maximal ancestor, including the zero-obligation ancestor, and all prior introduction records."
+    },
+    {
+      "path": "proofs/relation-pipeline/fixtures/mutation-driver.mjs",
+      "before": [
+        {
+          "revision": "00b16ac962879fd860bee11e438adab3fe639ac4",
+          "digest": "dd7643cb316783ad2c2d2de3a56eafa210b94fd227ab4c469402fdb2727baf61",
+          "mode": "100644"
+        },
+        {
+          "revision": "ec27ef0e9091d20d53e6d1064afe8848b9a24ede",
+          "digest": "dd7643cb316783ad2c2d2de3a56eafa210b94fd227ab4c469402fdb2727baf61",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "dd7643cb316783ad2c2d2de3a56eafa210b94fd227ab4c469402fdb2727baf61",
+      "afterMode": "100644",
+      "reason": "Retain the actual merge of composition and the shared completed-output custody owner from #193, including convergent declaration validation and the existing CI cost controls. Keep every maximal ancestor, including the zero-obligation ancestor, and all prior introduction records."
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation.mjs",
+      "before": [
+        {
+          "revision": "00b16ac962879fd860bee11e438adab3fe639ac4",
+          "digest": "ea2c2a773a2b6bb420a246f5ec898e573ddd58273e6b3b01fbb8262746d34c7e",
+          "mode": "100644"
+        },
+        {
+          "revision": "ec27ef0e9091d20d53e6d1064afe8848b9a24ede",
+          "digest": "ea2c2a773a2b6bb420a246f5ec898e573ddd58273e6b3b01fbb8262746d34c7e",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "ea2c2a773a2b6bb420a246f5ec898e573ddd58273e6b3b01fbb8262746d34c7e",
+      "afterMode": "100644",
+      "reason": "Retain the actual merge of composition and the shared completed-output custody owner from #193, including convergent declaration validation and the existing CI cost controls. Keep every maximal ancestor, including the zero-obligation ancestor, and all prior introduction records."
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation.test.mjs",
+      "before": [
+        {
+          "revision": "00b16ac962879fd860bee11e438adab3fe639ac4",
+          "digest": "ca871bab212f404665ef7fec03758214d892b07f588753381a33cf40ff24e3f1",
+          "mode": "100644"
+        },
+        {
+          "revision": "ec27ef0e9091d20d53e6d1064afe8848b9a24ede",
+          "digest": "ca871bab212f404665ef7fec03758214d892b07f588753381a33cf40ff24e3f1",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "ca871bab212f404665ef7fec03758214d892b07f588753381a33cf40ff24e3f1",
+      "afterMode": "100644",
+      "reason": "Retain the actual merge of composition and the shared completed-output custody owner from #193, including convergent declaration validation and the existing CI cost controls. Keep every maximal ancestor, including the zero-obligation ancestor, and all prior introduction records."
+    },
+    {
+      "path": "proofs/relation-pipeline/history.mjs",
+      "before": [
+        {
+          "revision": "00b16ac962879fd860bee11e438adab3fe639ac4",
+          "digest": "252e0dd8ede18402d89432cae73739b86134609c08765ef328b86c58c16a4269",
+          "mode": "100644"
+        },
+        {
+          "revision": "ec27ef0e9091d20d53e6d1064afe8848b9a24ede",
+          "digest": "252e0dd8ede18402d89432cae73739b86134609c08765ef328b86c58c16a4269",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "252e0dd8ede18402d89432cae73739b86134609c08765ef328b86c58c16a4269",
+      "afterMode": "100644",
+      "reason": "Retain the actual merge of composition and the shared completed-output custody owner from #193, including convergent declaration validation and the existing CI cost controls. Keep every maximal ancestor, including the zero-obligation ancestor, and all prior introduction records."
+    },
+    {
+      "path": "proofs/relation-pipeline/inventory.mjs",
+      "before": [
+        {
+          "revision": "00b16ac962879fd860bee11e438adab3fe639ac4",
+          "digest": "659294a751e7fdfbac4709171c56a9c290770392e71adb0e39c322d250c89b63",
+          "mode": "100644"
+        },
+        {
+          "revision": "ec27ef0e9091d20d53e6d1064afe8848b9a24ede",
+          "digest": "659294a751e7fdfbac4709171c56a9c290770392e71adb0e39c322d250c89b63",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "659294a751e7fdfbac4709171c56a9c290770392e71adb0e39c322d250c89b63",
+      "afterMode": "100644",
+      "reason": "Retain the actual merge of composition and the shared completed-output custody owner from #193, including convergent declaration validation and the existing CI cost controls. Keep every maximal ancestor, including the zero-obligation ancestor, and all prior introduction records."
+    },
+    {
+      "path": "proofs/relation-pipeline/mutations.mjs",
+      "before": [
+        {
+          "revision": "00b16ac962879fd860bee11e438adab3fe639ac4",
+          "digest": "1397d1252b43f542d9eda3bb551c60dee06f4f705a2287e14423190571ac395c",
+          "mode": "100644"
+        },
+        {
+          "revision": "ec27ef0e9091d20d53e6d1064afe8848b9a24ede",
+          "digest": "1397d1252b43f542d9eda3bb551c60dee06f4f705a2287e14423190571ac395c",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "1397d1252b43f542d9eda3bb551c60dee06f4f705a2287e14423190571ac395c",
+      "afterMode": "100644",
+      "reason": "Retain the actual merge of composition and the shared completed-output custody owner from #193, including convergent declaration validation and the existing CI cost controls. Keep every maximal ancestor, including the zero-obligation ancestor, and all prior introduction records."
+    },
+    {
+      "path": "proofs/relation-pipeline/mutations.test.mjs",
+      "before": [
+        {
+          "revision": "00b16ac962879fd860bee11e438adab3fe639ac4",
+          "digest": "93d55a224f3dfc8aa36d5e1a61da8a5c797ba1338c0be1b2fd1a68760335d29d",
+          "mode": "100644"
+        },
+        {
+          "revision": "ec27ef0e9091d20d53e6d1064afe8848b9a24ede",
+          "digest": "93d55a224f3dfc8aa36d5e1a61da8a5c797ba1338c0be1b2fd1a68760335d29d",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "93d55a224f3dfc8aa36d5e1a61da8a5c797ba1338c0be1b2fd1a68760335d29d",
+      "afterMode": "100644",
+      "reason": "Retain the actual merge of composition and the shared completed-output custody owner from #193, including convergent declaration validation and the existing CI cost controls. Keep every maximal ancestor, including the zero-obligation ancestor, and all prior introduction records."
+    },
+    {
+      "path": "proofs/relation-pipeline/workspaces.mjs",
+      "before": [
+        {
+          "revision": "00b16ac962879fd860bee11e438adab3fe639ac4",
+          "digest": "823e9d4f633ab350b10666a7240834a8e3ca930bd89532873e9fe2b2cd2cef3d",
+          "mode": "100644"
+        },
+        {
+          "revision": "ec27ef0e9091d20d53e6d1064afe8848b9a24ede",
+          "digest": "823e9d4f633ab350b10666a7240834a8e3ca930bd89532873e9fe2b2cd2cef3d",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "823e9d4f633ab350b10666a7240834a8e3ca930bd89532873e9fe2b2cd2cef3d",
+      "afterMode": "100644",
+      "reason": "Retain the actual merge of composition and the shared completed-output custody owner from #193, including convergent declaration validation and the existing CI cost controls. Keep every maximal ancestor, including the zero-obligation ancestor, and all prior introduction records."
+    },
+    {
+      "path": "proofs/relation-pipeline/workspaces.test.mjs",
+      "before": [
+        {
+          "revision": "00b16ac962879fd860bee11e438adab3fe639ac4",
+          "digest": "56ad70d82477c1f7283499228d5786d25839202ba0a51fc1261135350ad617f1",
+          "mode": "100644"
+        },
+        {
+          "revision": "ec27ef0e9091d20d53e6d1064afe8848b9a24ede",
+          "digest": "56ad70d82477c1f7283499228d5786d25839202ba0a51fc1261135350ad617f1",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "56ad70d82477c1f7283499228d5786d25839202ba0a51fc1261135350ad617f1",
+      "afterMode": "100644",
+      "reason": "Retain the actual merge of composition and the shared completed-output custody owner from #193, including convergent declaration validation and the existing CI cost controls. Keep every maximal ancestor, including the zero-obligation ancestor, and all prior introduction records."
+    },
+    {
+      "path": "scripts/local-checks.mjs",
+      "before": [
+        {
+          "revision": "00b16ac962879fd860bee11e438adab3fe639ac4",
+          "digest": "38a760e2666261c88634817726d7874545f7f051a782a5ab16f39b49ff64e437",
+          "mode": "100644"
+        },
+        {
+          "revision": "ec27ef0e9091d20d53e6d1064afe8848b9a24ede",
+          "digest": "38a760e2666261c88634817726d7874545f7f051a782a5ab16f39b49ff64e437",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "38a760e2666261c88634817726d7874545f7f051a782a5ab16f39b49ff64e437",
+      "afterMode": "100644",
+      "reason": "Retain the actual merge of composition and the shared completed-output custody owner from #193, including convergent declaration validation and the existing CI cost controls. Keep every maximal ancestor, including the zero-obligation ancestor, and all prior introduction records."
+    }
+  ]
+}

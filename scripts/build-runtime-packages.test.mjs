@@ -7,8 +7,9 @@ import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-// Independent command inventory: deleting the redundant checks must not also
-// delete, reorder or weaken any existing build, type, unit or packed check.
+// Independent command inventory: runtime preparation keeps its build, type,
+// unit and asset checks. Moving packed acceptance to another CI job also
+// requires the fixed scheduling assertions in client-ci.test.mjs.
 const expectedGates = {
   "check:remote-site-runtime": [
     "moon build --target js --release src/connectors_builtin_node",
@@ -41,8 +42,7 @@ const expectedGates = {
     "node scripts/build-runtime-packages.mjs local-node",
     "node scripts/build-local-node-adapters.mjs",
     "node scripts/build-local-node-adapters.mjs --check",
-    "node scripts/test-packed-local-node-assets.mjs",
-    "node scripts/test-packed-salesforce-source.mjs"
+    "node scripts/test-packed-local-node-assets.mjs"
   ]
 };
 const packages = {
