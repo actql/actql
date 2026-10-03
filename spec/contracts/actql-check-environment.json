@@ -168,58 +168,144 @@
           "type": "object",
           "additionalProperties": false,
           "required": [
-            "version",
-            "node_id_contract",
-            "node_properties",
-            "edge_properties",
-            "edge_labels",
+            "domain",
+            "edge_definitions",
             "identity_law_cid",
-            "value_law_cid"
+            "node_definitions",
+            "value_law_cid",
+            "version"
           ],
           "properties": {
-            "version": {
-              "const": "actql-graph-contract/0.1"
+            "domain": {
+              "type": "string",
+              "pattern": "^sha256:[a-f0-9]{64}$"
             },
-            "node_id_contract": {
-              "$ref": "#/$defs/value_contract"
-            },
-            "node_properties": {
-              "type": "object",
-              "propertyNames": {
-                "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
-              },
-              "additionalProperties": {
-                "$ref": "#/$defs/value_contract"
-              }
-            },
-            "edge_properties": {
-              "type": "object",
-              "propertyNames": {
-                "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
-              },
-              "additionalProperties": {
-                "$ref": "#/$defs/value_contract"
-              }
-            },
-            "edge_labels": {
-              "oneOf": [
-                {
-                  "type": "null"
-                },
-                {
-                  "type": "array",
-                  "uniqueItems": true,
-                  "items": {
-                    "type": "string"
+            "edge_definitions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "key_contracts",
+                  "labels",
+                  "name",
+                  "properties",
+                  "source_definition",
+                  "target_definition"
+                ],
+                "properties": {
+                  "key_contracts": {
+                    "type": "array",
+                    "items": {
+                      "allOf": [
+                        {
+                          "$ref": "#/$defs/value_contract"
+                        },
+                        {
+                          "properties": {
+                            "nullable": {
+                              "const": false
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "minItems": 1
+                  },
+                  "labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "uniqueItems": true
+                    }
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "properties": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "$ref": "#/$defs/value_contract"
+                    }
+                  },
+                  "source_definition": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "target_definition": {
+                    "type": "string",
+                    "minLength": 1
                   }
                 }
-              ]
+              }
             },
             "identity_law_cid": {
-              "const": "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4"
+              "const": "sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc"
+            },
+            "node_definitions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "key_contracts",
+                  "labels",
+                  "name",
+                  "properties"
+                ],
+                "properties": {
+                  "key_contracts": {
+                    "type": "array",
+                    "items": {
+                      "allOf": [
+                        {
+                          "$ref": "#/$defs/value_contract"
+                        },
+                        {
+                          "properties": {
+                            "nullable": {
+                              "const": false
+                            }
+                          }
+                        }
+                      ]
+                    },
+                    "minItems": 1
+                  },
+                  "labels": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "uniqueItems": true
+                    }
+                  },
+                  "name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "properties": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "$ref": "#/$defs/value_contract"
+                    }
+                  }
+                }
+              }
             },
             "value_law_cid": {
-              "const": "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4"
+              "const": "sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc"
+            },
+            "version": {
+              "const": "actql-property-graph-contract/0.1"
             }
           }
         },
@@ -1245,7 +1331,7 @@
       "dispatch": "checked_object_relation_graph_events_vectors_versioned_bodies_no_role_inference",
       "roles": "exact_record_fields_nonnull_KeyComparable_ids_number_or_timestamp_event_time_nonnull_vector_components",
       "vector_identity": "nonempty_ordered_unique_tuple_components_disjoint_no_implicit_stringification",
-      "graph": "existing_structural_body_with_complete_properties_exact_selected_laws_sorted_unique_labels",
+      "graph": "ActQL_owned_definition_domain_typed_node_and_independent_edge_keys_complete_properties_label_sets_exact_selected_laws_no_retired_endpoint_tuple_body_or_conversion",
       "ownership": "retain_exact_envelope_environment_and_sourceview_output_reference_match_declared_carrier",
       "unknown": "missing_schema_is_not_a_json_type_or_an_opaque_body_in_a_present_contract_envelope",
       "identity": "body_has_no_self_cid_envelope_cid_is_not_bare_body_cid_no_row_names_or_runtime_data_in_graph_body"

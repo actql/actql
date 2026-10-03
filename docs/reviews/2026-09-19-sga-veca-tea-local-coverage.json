@@ -63,6 +63,35 @@
     "workers_fixture_freshness",
     "family_selective_artifacts"
   ],
+  "current_graph_profile": {
+    "contract": "actql-property-graph-contract/0.1",
+    "source_sha": "5b317a6ee111e5b4ea3694e3db7da9d2042a4160",
+    "historical_inventory": "portability/historical/local-family-coverage-pre-property-graph.json.txt",
+    "classification": {
+      "normalize_graph": "blocked",
+      "match_nodes": "partial",
+      "match_edges": "partial",
+      "traverse": "partial",
+      "shortest_path": "blocked",
+      "components": "blocked",
+      "reach": "blocked",
+      "graph_bounds": "blocked",
+      "degree": "blocked",
+      "graph_diff": "blocked",
+      "graft_graph": "blocked",
+      "union_graphs": "blocked",
+      "subtract_graphs": "blocked",
+      "subgraph": "blocked",
+      "graphs_equal": "blocked",
+      "apply_graph_delta": "blocked",
+      "mean_graphs": "blocked",
+      "property_graph": "partial",
+      "graph": "blocked",
+      "node_rows": "blocked",
+      "edge_rows": "blocked"
+    },
+    "completion_rule": "Historical tuple-profile suites do not discharge current Graph coverage. Partial resource/cancellation layers apply only to the initial constructor and definition-selected MATCH/TRAIL scope recorded below; they do not establish all normative variants or all SGA execution. Blocked means typed refusal before Run admission, acquisition I/O and dispatch."
+  },
   "operations": [
     {
       "family": "SGA",
@@ -71,28 +100,12 @@
       "output": "graph",
       "canonical": ["SGA.normalize"],
       "variants": ["duplicate policy", "dangling edge policy", "property admission"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "publication",
-        "resources",
-        "cancellation",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_basic_test.mbt",
-        "src/local_sga/normalize_wbtest.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "shared_graph_generation_carrier_and_bridge_consumers",
           "layers": ["standard_host", "consumer_lifetime", "publication"],
@@ -121,30 +134,49 @@
       "operation": "match_nodes",
       "input": "graph",
       "output": "relation",
-      "canonical": ["SGA.match_nodes"],
-      "variants": ["identity list", "literal predicate", "typed property predicate", "missing property", "projection order"],
-      "status": "complete",
+      "canonical": [
+        "SGA.match_nodes"
+      ],
+      "variants": [
+        "identity list",
+        "literal predicate",
+        "typed property predicate",
+        "missing property",
+        "projection order"
+      ],
+      "status": "partial",
       "owner": "local-sga",
+      "current_gap": "Initial constructor and definition-selected MATCH/TRAIL resource/cancellation regressions pass on JS, Wasm and native. Aggregate Core, final-source public snapshot and fresh packed acceptance remain open. Nonempty-hop predicate/resource variants and unconnected SGA consumers are not counted as execution success.",
       "completed_layers": [
         "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "publication",
         "resources",
-        "cancellation",
-        "three_targets"
+        "cancellation"
       ],
       "layer_evidence": [
-        "src/lowering_relation/graph_match_test.mbt",
-        "src/local_sga/match_nodes.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+        {
+          "scope": "initial_current_graph_resource_and_stop_custody_only",
+          "layers": [
+            "resources",
+            "cancellation"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "evidence": [
+            "src/query_integration/property_graph_construction_wbtest.mbt",
+            "src/query_integration/property_graph_predicate_custody_wbtest.mbt",
+            "src/query_integration/property_graph_trail_resource_wbtest.mbt",
+            "src/query_integration/property_graph_selector_custody_wbtest.mbt",
+            "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+            "src/query_integration/property_graph_host_custody_wbtest.mbt",
+            "scripts/property-graph-surface-checker.test.mjs"
+          ],
+          "verification": "26 resource regressions per target; 15 installed Host scenarios on Node. Final committed/pushed SHA verification remains required."
+        }
       ],
-      "implementation_evidence": [
+      "historical_implementation_evidence": [
         {
           "scope": "managed_relation_named_result_publication_and_retrieval",
           "layers": [
@@ -152,7 +184,11 @@
             "consumer_lifetime",
             "publication"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "9aff9c59",
           "evidence": [
             "adapters/host-common/strategy.test.mjs",
@@ -170,7 +206,11 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "b5898232",
           "evidence": [
             "src/lowering_relation/graph_match.mbt",
@@ -191,7 +231,11 @@
             "cancellation",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "39b54d9b",
           "evidence": [
             "src/execution_relation/predicate_expression.mbt",
@@ -209,31 +253,49 @@
       "operation": "match_edges",
       "input": "graph",
       "output": "relation",
-      "canonical": ["SGA.match_edges"],
-      "variants": ["absent/empty/repeated type filters", "literal predicate", "typed property predicate", "missing property", "projection order"],
-      "status": "complete",
+      "canonical": [
+        "SGA.match_edges"
+      ],
+      "variants": [
+        "absent/empty/repeated type filters",
+        "literal predicate",
+        "typed property predicate",
+        "missing property",
+        "projection order"
+      ],
+      "status": "partial",
       "owner": "local-sga",
+      "current_gap": "Initial constructor and definition-selected MATCH/TRAIL resource/cancellation regressions pass on JS, Wasm and native. Aggregate Core, final-source public snapshot and fresh packed acceptance remain open. Nonempty-hop predicate/resource variants and unconnected SGA consumers are not counted as execution success.",
       "completed_layers": [
         "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "publication",
         "resources",
-        "cancellation",
-        "three_targets"
+        "cancellation"
       ],
       "layer_evidence": [
-        "src/lowering_relation/graph_match_test.mbt",
-        "src/local_sga/match_edges.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+        {
+          "scope": "initial_current_graph_resource_and_stop_custody_only",
+          "layers": [
+            "resources",
+            "cancellation"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "evidence": [
+            "src/query_integration/property_graph_construction_wbtest.mbt",
+            "src/query_integration/property_graph_predicate_custody_wbtest.mbt",
+            "src/query_integration/property_graph_trail_resource_wbtest.mbt",
+            "src/query_integration/property_graph_selector_custody_wbtest.mbt",
+            "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+            "src/query_integration/property_graph_host_custody_wbtest.mbt",
+            "scripts/property-graph-surface-checker.test.mjs"
+          ],
+          "verification": "26 resource regressions per target; 15 installed Host scenarios on Node. Final committed/pushed SHA verification remains required."
+        }
       ],
-      "implementation_evidence": [
+      "historical_implementation_evidence": [
         {
           "scope": "edge_type_and_literal_filter_standard_host_execution",
           "layers": [
@@ -244,7 +306,11 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "c9c41e20",
           "evidence": [
             "src/lowering_relation/graph_match.mbt",
@@ -255,8 +321,15 @@
         },
         {
           "scope": "publication_and_environment_cancellation",
-          "layers": ["publication", "cancellation"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "publication",
+            "cancellation"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "8f35730f",
           "evidence": [
             "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
@@ -275,7 +348,11 @@
             "cancellation",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "935913a4",
           "evidence": [
             "src/execution_relation/predicate_expression.mbt",
@@ -293,20 +370,26 @@
       "operation": "traverse",
       "input": "graph plus optional selector relation",
       "output": "relation",
-      "canonical": ["SGA.traverse"],
-      "variants": ["selector ids/relation/predicate", "direction", "repeated hop", "hop pattern", "nodes/paths output", "guard"],
-      "status": "complete",
-      "owner": "local-sga",
-      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "publication", "resources", "cancellation", "three_targets"],
-      "layer_evidence": [
-        "src/lowering_relation/graph_traverse_test.mbt",
-        "src/local_sga/traverse.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "src/query_integration/join_graph_capacity_wbtest.mbt",
-        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      "canonical": [
+        "SGA.traverse"
       ],
-      "implementation_evidence": [
+      "variants": [
+        "selector ids/relation/predicate",
+        "direction",
+        "repeated hop",
+        "hop pattern",
+        "nodes/paths output",
+        "guard"
+      ],
+      "status": "partial",
+      "owner": "local-sga",
+      "current_gap": "Initial constructor and definition-selected MATCH/TRAIL resource/cancellation regressions pass on JS, Wasm and native. Aggregate Core, final-source public snapshot and fresh packed acceptance remain open. Nonempty-hop predicate/resource variants and unconnected SGA consumers are not counted as execution success.",
+      "completed_layers": [
+        "contract",
+        "resources",
+        "cancellation"
+      ],
+      "historical_implementation_evidence": [
         {
           "scope": "literal_start_set_membership_and_order",
           "layers": [
@@ -333,8 +416,19 @@
         },
         {
           "scope": "bounded_edge_type_list_matching",
-          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "resources", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "ccc3d25b",
           "evidence": [
             "src/local_sga/reach.mbt",
@@ -345,8 +439,19 @@
         },
         {
           "scope": "explicit_empty_edge_type_set",
-          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "resources", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "e528eda0",
           "evidence": [
             "src/local_sga/reach.mbt",
@@ -357,8 +462,20 @@
         },
         {
           "scope": "single_edge_type_traversal",
-          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "publication", "resources", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "77cb1ff2",
           "evidence": [
             "src/local_sga/reach.mbt",
@@ -369,8 +486,16 @@
         },
         {
           "scope": "inbound_and_bidirectional_traversal",
-          "layers": ["standard_host", "consumer_lifetime", "publication"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "d08a946c",
           "evidence": [
             "src/query_integration/local_carrier_graph_wbtest.mbt"
@@ -378,8 +503,20 @@
         },
         {
           "scope": "homogeneous_literal_node_traversal_standard_host_path",
-          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "publication", "resources", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "235f8b41",
           "evidence": [
             "src/local_sga/traverse.mbt",
@@ -390,8 +527,12 @@
         },
         {
           "scope": "homogeneous_literal_node_traversal_environment_cancellation",
-          "layers": ["cancellation"],
-          "targets": ["js"],
+          "layers": [
+            "cancellation"
+          ],
+          "targets": [
+            "js"
+          ],
           "sha": "4a72ee83",
           "evidence": [
             "src/connectors/duckdb/conformance/reach_capacity_fixture.mbt",
@@ -401,8 +542,17 @@
         },
         {
           "scope": "relation_backed_start_selection",
-          "layers": ["kernel", "managed", "resources", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "managed",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "20a3d337",
           "evidence": [
             "src/local_sga/reach.mbt",
@@ -413,8 +563,17 @@
         },
         {
           "scope": "typed_predicate_start_selection",
-          "layers": ["kernel", "managed", "resources", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "managed",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "b066dad6",
           "evidence": [
             "src/local_sga/reach.mbt",
@@ -431,7 +590,12 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native", "node"],
+          "targets": [
+            "js",
+            "wasm",
+            "native",
+            "node"
+          ],
           "sha": "ff2a6410",
           "evidence": [
             "src/query_integration/local_carrier_graph_wbtest.mbt",
@@ -447,7 +611,12 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native", "node"],
+          "targets": [
+            "js",
+            "wasm",
+            "native",
+            "node"
+          ],
           "sha": "bf33b6e8",
           "evidence": [
             "src/query_integration/join_graph_capacity_wbtest.mbt",
@@ -466,7 +635,12 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native", "node"],
+          "targets": [
+            "js",
+            "wasm",
+            "native",
+            "node"
+          ],
           "sha": "a4392c06",
           "evidence": [
             "src/local_sga/traverse.mbt",
@@ -485,7 +659,12 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native", "node"],
+          "targets": [
+            "js",
+            "wasm",
+            "native",
+            "node"
+          ],
           "sha": "7e4c2f06",
           "evidence": [
             "src/local_sga/reach.mbt",
@@ -522,8 +701,16 @@
         },
         {
           "scope": "output_ceiling_applies_to_emitted_rows",
-          "layers": ["kernel", "resources", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "5d95e21e",
           "evidence": [
             "src/local_sga/reach.mbt",
@@ -539,7 +726,11 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "0cd04f72",
           "evidence": [
             "src/local_sga/reach.mbt",
@@ -549,8 +740,16 @@
         },
         {
           "scope": "homogeneous_literal_simple_path_kernel",
-          "layers": ["kernel", "resources", "three_targets"],
-          "targets": ["js", "wasm", "native"],
+          "layers": [
+            "kernel",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "c3059ed0",
           "evidence": [
             "src/local_sga/traverse_paths.mbt",
@@ -569,7 +768,11 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "e9cab711",
           "evidence": [
             "src/query_integration/join_graph_capacity_wbtest.mbt",
@@ -579,8 +782,15 @@
         },
         {
           "scope": "homogeneous_literal_simple_path_environment_cancellation",
-          "layers": ["cancellation"],
-          "targets": ["js", "wasm", "native", "node"],
+          "layers": [
+            "cancellation"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native",
+            "node"
+          ],
           "sha": "7e0bd409",
           "evidence": [
             "src/connectors/duckdb/conformance/reach_capacity_fixture.mbt",
@@ -601,7 +811,11 @@
             "cancellation",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "6ee11a18",
           "evidence": [
             "src/local_sga/traverse_paths.mbt",
@@ -622,7 +836,11 @@
             "cancellation",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "09b723e4",
           "evidence": [
             "src/local_sga/traverse_paths.mbt",
@@ -643,7 +861,11 @@
             "cancellation",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "46ba53ff",
           "evidence": [
             "src/local_sga/traverse_paths.mbt",
@@ -661,7 +883,11 @@
             "resources",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "0ae4b508",
           "evidence": [
             "src/query_integration/query_checked_program_wbtest.mbt",
@@ -680,13 +906,41 @@
             "cancellation",
             "three_targets"
           ],
-          "targets": ["js", "wasm", "native"],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
           "sha": "5b91dc2c7",
           "evidence": [
             "src/local_sga/traverse.mbt",
             "src/local_sga/traverse_paths.mbt",
             "src/query_integration/local_carrier_graph_wbtest.mbt"
           ]
+        }
+      ],
+      "layer_evidence": [
+        {
+          "scope": "initial_current_graph_resource_and_stop_custody_only",
+          "layers": [
+            "resources",
+            "cancellation"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "evidence": [
+            "src/query_integration/property_graph_construction_wbtest.mbt",
+            "src/query_integration/property_graph_predicate_custody_wbtest.mbt",
+            "src/query_integration/property_graph_trail_resource_wbtest.mbt",
+            "src/query_integration/property_graph_selector_custody_wbtest.mbt",
+            "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+            "src/query_integration/property_graph_host_custody_wbtest.mbt",
+            "scripts/property-graph-surface-checker.test.mjs"
+          ],
+          "verification": "26 resource regressions per target; 15 installed Host scenarios on Node. Final committed/pushed SHA verification remains required."
         }
       ]
     },
@@ -697,29 +951,12 @@
       "output": "relation",
       "canonical": ["SGA.shortest_path"],
       "variants": ["single/selected endpoints", "each_pair/nearest_per_source/nearest_pair", "direction", "weighted/unweighted", "ties"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "publication",
-        "resources",
-        "cancellation",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_shortest_test.mbt",
-        "src/local_sga/shortest.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "src/query_integration/join_graph_capacity_wbtest.mbt"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "scalar_unweighted_each_pair_vertical_slice",
           "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "three_targets"],
@@ -858,30 +1095,12 @@
       "output": "relation",
       "canonical": ["SGA.components"],
       "variants": ["weak", "strong", "cycles", "disconnected nodes"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "publication",
-        "resources",
-        "cancellation",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_basic_test.mbt",
-        "src/local_sga/components.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "src/query_integration/join_graph_capacity_wbtest.mbt",
-        "src/query_integration/query_checked_program_wbtest.mbt",
-        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "weak_components_named_result_publication_and_retrieval",
           "layers": ["publication"],
@@ -921,29 +1140,12 @@
         "self loops",
         "bounded depth"
       ],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "publication",
-        "resources",
-        "cancellation",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_reach_test.mbt",
-        "src/local_sga/reach.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "bounded_reach_standard_host_and_publication",
           "layers": [
@@ -987,28 +1189,12 @@
       "output": "relation",
       "canonical": ["SGA.bounds_check"],
       "variants": ["node bound", "edge bound", "degree bound", "combined bounds"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "publication",
-        "resources",
-        "cancellation",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_basic_test.mbt",
-        "src/local_sga/graph_bounds.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "bounded_graph_diagnostics_standard_host_execution",
           "layers": [
@@ -1058,28 +1244,12 @@
       "output": "relation",
       "canonical": ["SGA.degree_metrics"],
       "variants": ["incoming", "outgoing", "both", "typed edges"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "publication",
-        "resources",
-        "cancellation",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_basic_test.mbt",
-        "src/local_sga/graph_bounds.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "directional_degree_standard_host_execution",
           "layers": [
@@ -1128,30 +1298,12 @@
       "output": "relation",
       "canonical": ["SGA.diff"],
       "variants": ["empty diff", "node changes", "edge changes", "graph CID deadlines"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "resources",
-        "cancellation",
-        "publication",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_relation_test.mbt",
-        "src/bounded_graph_snapshot/snapshot_wbtest.mbt",
-        "src/bounded_graph_diff/diff_wbtest.mbt",
-        "src/local_sga/graph_diff.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "canonical_bounded_snapshot_and_delta_construction",
           "layers": ["kernel", "resources", "three_targets"],
@@ -1202,29 +1354,12 @@
       "output": "graph",
       "canonical": ["SGA.graft"],
       "variants": ["conflict laws", "equal semantic ids", "shared storage"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "resources",
-        "cancellation",
-        "publication",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_union_test.mbt",
-        "src/local_sga/graft_wbtest.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "standard_host_consumers_publication_and_cancellation",
           "layers": [
@@ -1250,28 +1385,12 @@
       "output": "graph",
       "canonical": ["SGA.union_structural"],
       "variants": ["singleton", "finite list", "repeated input positions", "property laws"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "resources",
-        "cancellation",
-        "publication",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_union_test.mbt",
-        "src/local_sga/graft.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "no_merge_ordered_finite_list",
           "layers": ["kernel", "managed", "three_targets"],
@@ -1361,29 +1480,12 @@
       "output": "graph",
       "canonical": ["SGA.diff_structural"],
       "variants": ["node removal", "edge removal", "property laws", "no-op"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "resources",
-        "cancellation",
-        "publication",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_union_test.mbt",
-        "src/local_sga/graft.mbt",
-        "src/local_sga/graft_wbtest.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "property_free_node_removal_and_endpoint_closure",
           "layers": [
@@ -1483,17 +1585,11 @@
       "output": "graph",
       "canonical": ["SGA.subgraph"],
       "variants": ["selector forms", "edge predicate absent/present", "induced structure"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "three_targets", "publication"],
-      "layer_evidence": [
-        "src/lowering_relation/graph_subgraph_test.mbt",
-        "src/local_sga/subgraph.mbt",
-        "src/local_sga/subgraph_wbtest.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "historical_implementation_evidence": [
         {
           "scope": "literal_identity_induced_subgraph",
           "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "resources", "three_targets", "publication"],
@@ -1583,29 +1679,12 @@
       "output": "relation",
       "canonical": ["SGA.equal"],
       "variants": ["equal", "not equal", "representation difference"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "resources",
-        "cancellation",
-        "publication",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_relation_test.mbt",
-        "src/local_sga/graphs_equal.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "equal_representation_consumers_and_publication",
           "layers": [
@@ -1658,29 +1737,12 @@
       "output": "graph",
       "canonical": ["SGA.apply_delta"],
       "variants": ["valid delta", "wrong base", "empty delta", "CID validation"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "resources",
-        "cancellation",
-        "publication",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_relation_test.mbt",
-        "src/bounded_graph_snapshot/snapshot.mbt",
-        "src/local_sga/graph_apply.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "atomic_delta_kernel_and_managed_provider",
           "layers": [
@@ -1722,31 +1784,12 @@
       "output": "graph",
       "canonical": ["SGA.mean_structural"],
       "variants": ["equal values", "weighted mean", "missing exclude/zero", "null exclude/zero/fail", "repeated inputs"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-sga",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "resources",
-        "cancellation",
-        "publication",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_mean_test.mbt",
-        "src/exact_binary64/exact.mbt",
-        "src/exact_binary64/exact_wbtest.mbt",
-        "src/local_sga/mean.mbt",
-        "src/local_sga/mean_wbtest.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "exact_support_property_laws_and_relation_bridge",
           "layers": [
@@ -2782,35 +2825,68 @@
     },
     {
       "family": "Bridge",
+      "operation": "property_graph",
+      "input": "finite ordered relation occurrences",
+      "output": "keyed property graph",
+      "canonical": [
+        "BRIDGE.rows.to_property_graph"
+      ],
+      "variants": [
+        "definition-scoped typed composite keys",
+        "independent edge keys",
+        "static label property scopes",
+        "NULL-key and missing-endpoint exclusion",
+        "duplicate-key rejection",
+        "repeated producer occurrences",
+        "empty definition families"
+      ],
+      "status": "partial",
+      "owner": "local-bridge",
+      "current_gap": "Initial constructor and definition-selected MATCH/TRAIL resource/cancellation regressions pass on JS, Wasm and native. Aggregate Core, final-source public snapshot and fresh packed acceptance remain open. Nonempty-hop predicate/resource variants and unconnected SGA consumers are not counted as execution success.",
+      "completed_layers": [
+        "contract",
+        "resources",
+        "cancellation"
+      ],
+      "scope": "Initial new-profile constructor, typed MATCH/TRAIL and bounded snapshot save/reload only. This does not claim all SGA operators, external declaration provenance, legacy migration or executable mechanized correspondence.",
+      "layer_evidence": [
+        {
+          "scope": "initial_current_graph_resource_and_stop_custody_only",
+          "layers": [
+            "resources",
+            "cancellation"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "evidence": [
+            "src/query_integration/property_graph_construction_wbtest.mbt",
+            "src/query_integration/property_graph_predicate_custody_wbtest.mbt",
+            "src/query_integration/property_graph_trail_resource_wbtest.mbt",
+            "src/query_integration/property_graph_selector_custody_wbtest.mbt",
+            "src/query_integration/property_graph_text_key_custody_wbtest.mbt",
+            "src/query_integration/property_graph_host_custody_wbtest.mbt",
+            "scripts/property-graph-surface-checker.test.mjs"
+          ],
+          "verification": "26 resource regressions per target; 15 installed Host scenarios on Node. Final committed/pushed SHA verification remains required."
+        }
+      ]
+    },
+    {
+      "family": "Bridge",
       "operation": "graph",
       "input": "relation, relation",
       "output": "graph",
       "canonical": ["BRIDGE.rows.to_graph"],
       "variants": ["explicit nodes/edges", "concise edge relation", "same relation in both positions"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-bridge",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "resources",
-        "cancellation",
-        "publication",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/lowering_relation/graph_construction.mbt",
-        "src/lowering_relation/graph_construction_test.mbt",
-        "src/local_bridge/graph.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "explicit_graph_projection_endpoint_closure_and_finite_expansion",
           "layers": [
@@ -2937,28 +3013,12 @@
       "output": "relation",
       "canonical": ["BRIDGE.graph.to_node_rows"],
       "variants": ["identity restoration", "property columns", "collision failure"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-bridge",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "publication",
-        "resources",
-        "cancellation",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/local_bridge/graph.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "named_result_publication_and_environment_cancellation",
           "layers": ["publication", "cancellation"],
@@ -2978,28 +3038,12 @@
       "output": "relation",
       "canonical": ["BRIDGE.graph.to_edge_rows"],
       "variants": ["identity restoration", "endpoint roles", "collision failure"],
-      "status": "complete",
+      "status": "blocked",
       "owner": "local-bridge",
-      "completed_layers": [
-        "contract",
-        "checker",
-        "lowering",
-        "kernel",
-        "managed",
-        "standard_host",
-        "consumer_lifetime",
-        "publication",
-        "resources",
-        "cancellation",
-        "three_targets"
-      ],
-      "layer_evidence": [
-        "src/local_bridge/graph.mbt",
-        "src/local_sga_provider/graph_pipeline.mbt",
-        "src/query_integration/local_carrier_graph_wbtest.mbt",
-        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
-      ],
-      "implementation_evidence": [
+      "blocker": "The current Property Graph checker or provider explicitly refuses this unconnected operation. No legacy Graph conversion or execution fallback is permitted. Historical tuple-profile resource evidence is not current completion.",
+      "completed_layers": ["contract"],
+      "layer_evidence": [],
+      "historical_implementation_evidence": [
         {
           "scope": "named_result_publication_and_environment_cancellation",
           "layers": ["publication", "cancellation"],
@@ -3347,6 +3391,36 @@
     }
   ],
   "evidence": [
+    {
+      "operation": "property_graph",
+      "sha": "dc111614df6aadca1d58ae6eaef4893dc7fca421",
+      "suites": [
+        {
+          "path": "src/query_integration/property_graph_construction_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed",
+          "scope": "Executed with domain, Plan, snapshot and legacy integration regressions: 38/38 each target. Constructor file includes private capacity/cancel cleanup, independently calculated exact/one-short control work and workspace under quanta 1 and 7."
+        },
+        {
+          "path": "src/query_integration/property_graph_snapshot_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed",
+          "scope": "Same fixed-SHA 38-case sweep: independent fixed snapshot bytes/CID, canonical reload, release of original before restored MATCH/TRAIL, empty types and refusal/cancellation cleanup."
+        },
+        {
+          "path": "scripts/property-graph-surface-checker.test.mjs",
+          "targets": ["node"],
+          "result": "passed",
+          "scope": "Same fixed-SHA 7-case Node run with public Local/HTTPS and legacy RelA. Four surface cases include constructor-positive-work timer cancellation and repeated close without pending custody."
+        },
+        {
+          "path": "scripts/property-graph-public-host.test.mjs",
+          "targets": ["node"],
+          "result": "passed",
+          "scope": "Same fixed-SHA 7-case run: actual public Local/HTTPS Named Result values, schema, reread and independent TRAIL identities."
+        }
+      ]
+    },
     {
       "operation": "normalize_graph",
       "sha": "1905ea74",

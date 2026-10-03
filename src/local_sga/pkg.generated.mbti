@@ -3,131 +3,26 @@ package "actql/actql/local_sga"
 
 import {
   "actql/actql/bounded_execution",
-  "actql/actql/bounded_graph_diff",
-  "actql/actql/bounded_graph_snapshot",
-  "actql/actql/bounded_value_set",
-  "actql/actql/exact_binary64",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
   "actql/actql/managed_carrier_runtime",
   "actql/actql/managed_graph_runtime",
-  "actql/actql/managed_graph_storage",
   "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
 
 // Values
-pub fn advance_components(ComponentsExecution, Int) -> Result[ComponentsPoll, ComponentsIssue]
-
-pub fn advance_graft(GraftExecution, Int) -> Result[GraftPoll, GraftIssue]
-
-pub fn advance_graph_apply(GraphApplyExecution, Int) -> Result[GraphApplyPoll, GraphApplyIssue]
-
-pub fn advance_graph_bounds(GraphBoundsExecution, Int) -> Result[GraphBoundsPoll, GraphBoundsIssue]
-
-pub fn advance_graph_degree(GraphDegreeExecution, Int) -> Result[GraphDegreePoll, GraphBoundsIssue]
-
-pub fn advance_graph_diff(GraphDiffExecution, Int) -> Result[GraphDiffPoll, GraphDiffIssue]
-
-pub fn advance_graphs_equal(GraphsEqualExecution, Int) -> Result[GraphsEqualPoll, GraphsEqualIssue]
-
 pub fn advance_match_edges(MatchEdgesExecution, Int) -> Result[MatchEdgesPoll, MatchEdgesIssue]
 
 pub fn advance_match_nodes(MatchNodesExecution, Int) -> Result[MatchNodesPoll, MatchNodesIssue]
 
-pub fn advance_mean(MeanExecution, Int) -> Result[MeanPoll, MeanIssue]
-
-pub fn advance_normalize(NormalizeExecution, Int) -> Result[NormalizePoll, NormalizeIssue]
-
-pub fn advance_reach(ReachExecution, Int) -> Result[ReachPoll, ReachIssue]
-
-pub fn advance_shortest(ShortestExecution, Int) -> Result[ShortestPoll, ShortestIssue]
-
-pub fn advance_subgraph(SubgraphExecution, Int) -> Result[SubgraphPoll, SubgraphIssue]
-
 pub fn advance_traverse(TraverseExecution, Int) -> Result[TraversePoll, TraverseIssue]
-
-pub fn cleanup_components(ComponentsExecution) -> Result[Bool, ComponentsIssue]
-
-pub fn cleanup_graft(GraftExecution) -> Result[Bool, GraftIssue]
-
-pub fn cleanup_graph_apply(GraphApplyExecution) -> Result[Bool, GraphApplyIssue]
-
-pub fn cleanup_graph_bounds(GraphBoundsExecution) -> Result[Bool, GraphBoundsIssue]
-
-pub fn cleanup_graph_degree(GraphDegreeExecution) -> Result[Bool, GraphBoundsIssue]
-
-pub fn cleanup_graph_diff(GraphDiffExecution) -> Result[Bool, GraphDiffIssue]
-
-pub fn cleanup_graphs_equal(GraphsEqualExecution) -> Result[Bool, GraphsEqualIssue]
 
 pub fn cleanup_match_edges(MatchEdgesExecution) -> Result[Bool, MatchEdgesIssue]
 
 pub fn cleanup_match_nodes(MatchNodesExecution) -> Result[Bool, MatchNodesIssue]
 
-pub fn cleanup_mean(MeanExecution) -> Result[Bool, MeanIssue]
-
-pub fn cleanup_normalize(NormalizeExecution) -> Result[Bool, NormalizeIssue]
-
-pub fn cleanup_reach(ReachExecution) -> Result[Bool, ReachIssue]
-
-pub fn cleanup_shortest(ShortestExecution) -> Result[Bool, ShortestIssue]
-
-pub fn cleanup_subgraph(SubgraphExecution) -> Result[Bool, SubgraphIssue]
-
 pub fn cleanup_traverse(TraverseExecution) -> Result[Bool, TraverseIssue]
-
-pub fn components_cleanup_pending(ComponentsExecution) -> Bool
-
-pub fn components_max_noninterruptible_value_bytes(ComponentsExecution) -> Int
-
-pub fn components_max_noninterruptible_value_nodes(ComponentsExecution) -> Int
-
-pub fn graft_cleanup_pending(GraftExecution) -> Bool
-
-pub fn graft_max_noninterruptible_value_bytes(GraftExecution) -> Int
-
-pub fn graft_max_noninterruptible_value_nodes(GraftExecution) -> Int
-
-pub fn graft_stopped(GraftExecution) -> Bool
-
-pub fn graph_apply_cleanup_pending(GraphApplyExecution) -> Bool
-
-pub fn graph_apply_max_noninterruptible_value_nodes(GraphApplyExecution) -> Int
-
-pub fn graph_apply_private_entry_count(GraphApplyExecution) -> Int
-
-pub fn graph_apply_private_scratch_usage(GraphApplyExecution) -> (Int, Int, Int, Int)
-
-pub fn graph_apply_stopped(GraphApplyExecution) -> Bool
-
-pub fn graph_bounds_cleanup_pending(GraphBoundsExecution) -> Bool
-
-pub fn graph_bounds_max_noninterruptible_value_bytes(GraphBoundsExecution) -> Int
-
-pub fn graph_bounds_max_noninterruptible_value_nodes(GraphBoundsExecution) -> Int
-
-pub fn graph_degree_cleanup_pending(GraphDegreeExecution) -> Bool
-
-pub fn graph_degree_max_noninterruptible_value_bytes(GraphDegreeExecution) -> Int
-
-pub fn graph_degree_max_noninterruptible_value_nodes(GraphDegreeExecution) -> Int
-
-pub fn graph_diff_cleanup_pending(GraphDiffExecution) -> Bool
-
-pub fn graph_diff_max_noninterruptible_value_bytes(GraphDiffExecution) -> Int
-
-pub fn graph_diff_max_noninterruptible_value_nodes(GraphDiffExecution) -> Int
-
-pub fn graph_diff_stopped(GraphDiffExecution) -> Bool
-
-pub fn graphs_equal_cleanup_pending(GraphsEqualExecution) -> Bool
-
-pub fn graphs_equal_max_noninterruptible_value_bytes(GraphsEqualExecution) -> Int
-
-pub fn graphs_equal_max_noninterruptible_value_nodes(GraphsEqualExecution) -> Int
-
-pub fn graphs_equal_stopped(GraphsEqualExecution) -> Bool
 
 pub fn match_edges_cleanup_pending(MatchEdgesExecution) -> Bool
 
@@ -151,66 +46,6 @@ pub fn match_nodes_scratch_slots(MatchNodesExecution) -> Int
 
 pub fn match_nodes_stopped(MatchNodesExecution) -> Bool
 
-pub fn mean_cleanup_pending(MeanExecution) -> Bool
-
-pub fn mean_max_noninterruptible_value_bytes(MeanExecution) -> Int
-
-pub fn mean_max_noninterruptible_value_nodes(MeanExecution) -> Int
-
-pub fn mean_stopped(MeanExecution) -> Bool
-
-pub fn normalize_cleanup_pending(NormalizeExecution) -> Bool
-
-pub fn normalize_max_noninterruptible_value_nodes(NormalizeExecution) -> Int
-
-pub fn normalize_stopped(NormalizeExecution) -> Bool
-
-pub fn reach_cleanup_pending(ReachExecution) -> Bool
-
-pub fn reach_max_noninterruptible_value_bytes(ReachExecution) -> Int
-
-pub fn reach_max_noninterruptible_value_nodes(ReachExecution) -> Int
-
-pub fn reach_stopped(ReachExecution) -> Bool
-
-pub fn shortest_cleanup_pending(ShortestExecution) -> Bool
-
-pub fn shortest_max_noninterruptible_value_bytes(ShortestExecution) -> Int
-
-pub fn shortest_max_noninterruptible_value_nodes(ShortestExecution) -> Int
-
-pub fn shortest_stopped(ShortestExecution) -> Bool
-
-pub fn shortest_value_item_attempts(ShortestExecution) -> Int
-
-pub fn start_components(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[ComponentsExecution, ComponentsIssue]
-
-pub fn start_components_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[ComponentsExecution, ComponentsIssue]
-
-pub fn start_graft(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, Array[@managed_graph_runtime.ProducerRead], @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[GraftExecution, GraftIssue]
-
-pub fn start_graft_views(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, Array[@managed_carrier_runtime.ProducerView], @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[GraftExecution, GraftIssue]
-
-pub fn start_graph_apply(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @execution_relation.ProducerRead, @managed_graph_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[GraphApplyExecution, GraphApplyIssue]
-
-pub fn start_graph_apply_view(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @execution_relation.ProducerRead, @managed_graph_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[GraphApplyExecution, GraphApplyIssue]
-
-pub fn start_graph_bounds(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[GraphBoundsExecution, GraphBoundsIssue]
-
-pub fn start_graph_bounds_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[GraphBoundsExecution, GraphBoundsIssue]
-
-pub fn start_graph_degree(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[GraphDegreeExecution, GraphBoundsIssue]
-
-pub fn start_graph_degree_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[GraphDegreeExecution, GraphBoundsIssue]
-
-pub fn start_graph_diff(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[GraphDiffExecution, GraphDiffIssue]
-
-pub fn start_graph_diff_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int) -> Result[GraphDiffExecution, GraphDiffIssue]
-
-pub fn start_graphs_equal(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[GraphsEqualExecution, GraphsEqualIssue]
-
-pub fn start_graphs_equal_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[GraphsEqualExecution, GraphsEqualIssue]
-
 pub fn start_match_edges(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[MatchEdgesExecution, MatchEdgesIssue]
 
 pub fn start_match_edges_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[MatchEdgesExecution, MatchEdgesIssue]
@@ -219,31 +54,9 @@ pub fn start_match_nodes(@bounded_execution.Control, @execution_relation.Complet
 
 pub fn start_match_nodes_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[MatchNodesExecution, MatchNodesIssue]
 
-pub fn start_mean_views(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, Array[@managed_carrier_runtime.ProducerView], @managed_graph_storage.Limits, Int64, Int, () -> Bool) -> Result[MeanExecution, MeanIssue]
-
-pub fn start_normalize(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[NormalizeExecution, NormalizeIssue]
-
-pub fn start_normalize_view(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @managed_graph_storage.Limits, Int64, () -> Bool) -> Result[NormalizeExecution, NormalizeIssue]
-
-pub fn start_reach(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[ReachExecution, ReachIssue]
-
-pub fn start_reach_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[ReachExecution, ReachIssue]
-
-pub fn start_shortest(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[ShortestExecution, ShortestIssue]
-
-pub fn start_shortest_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead], control_work_limit? : Int?) -> Result[ShortestExecution, ShortestIssue]
-
-pub fn start_subgraph(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, @execution_relation.ProducerRead?, @managed_graph_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[SubgraphExecution, SubgraphIssue]
-
-pub fn start_subgraph_view(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, @execution_relation.ProducerRead?, @managed_graph_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[SubgraphExecution, SubgraphIssue]
-
 pub fn start_traverse(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_graph_runtime.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[TraverseExecution, TraverseIssue]
 
 pub fn start_traverse_view(@bounded_execution.Control, @execution_relation.CompletionPreparation, @lowering_relation.PreparedSequence, Int, @managed_carrier_runtime.ProducerView, Int, @execution_relation.ValueLimits, Int, Int, Int, Array[@execution_relation.ProducerRead]) -> Result[TraverseExecution, TraverseIssue]
-
-pub fn subgraph_cleanup_pending(SubgraphExecution) -> Bool
-
-pub fn subgraph_max_noninterruptible_value_nodes(SubgraphExecution) -> Int
 
 pub fn traverse_cleanup_pending(TraverseExecution) -> Bool
 
@@ -258,143 +71,6 @@ pub fn traverse_value_item_attempts(TraverseExecution) -> Int
 // Errors
 
 // Types and methods
-type ComponentsExecution
-
-pub(all) enum ComponentsIssue {
-  InvalidComponentsKernel
-  ComponentsInputUnavailable
-  ComponentsOutputLimit
-  ComponentsWorkspaceLimit
-  ComponentsWorkLimit
-  ComponentsKeyOrder(@value_admission.KeyOrderIssue)
-  ComponentsOutput(@execution_relation.CaptureIssue)
-  ComponentsCompletion(@execution_relation.TrustedOutputIssue)
-  ComponentsExecutionIssue(@bounded_execution.Issue)
-} derive(Eq, @debug.Debug)
-
-pub enum ComponentsPoll {
-  ComponentsContinue(progress~ : Int64, work~ : Int64)
-  ComponentsComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
-  ComponentsFailed(ComponentsIssue, progress~ : Int64, work~ : Int64)
-  ComponentsStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
-}
-
-type GraftExecution
-
-pub(all) enum GraftIssue {
-  InvalidGraftKernel
-  InvalidGraftLimits
-  GraftInputUnavailable
-  GraftPropertyConflict
-  GraftPropertyValue
-  GraftWorkspaceLimit
-  GraftWorkLimit
-  GraftValue(@value_admission.CompleteEqualityIssue)
-  GraftSet(@bounded_value_set.Issue)
-  GraftOutput(@managed_graph_runtime.Issue)
-  GraftExecutionIssue(@bounded_execution.Issue)
-} derive(Eq, @debug.Debug)
-
-pub enum GraftPoll {
-  GraftContinue(progress~ : Int64, work~ : Int64)
-  GraftComplete(@managed_graph_runtime.Completed, progress~ : Int64, work~ : Int64)
-  GraftFailed(GraftIssue, progress~ : Int64, work~ : Int64)
-  GraftStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
-}
-
-type GraphApplyExecution
-
-pub(all) enum GraphApplyIssue {
-  InvalidGraphApplyKernel
-  GraphApplyInputUnavailable
-  GraphApplyInvalidDelta
-  GraphApplyWrongBase
-  GraphApplyWrongContract
-  GraphApplyWrongTarget
-  GraphApplyPrecondition
-  GraphApplyWorkspaceLimit
-  GraphApplyScratchBytesLimit
-  GraphApplyWorkLimit
-  GraphApplySnapshot(@bounded_graph_snapshot.Issue)
-  GraphApplyOutput(@managed_graph_runtime.Issue)
-  GraphApplyExecutionIssue(@bounded_execution.Issue)
-} derive(Eq, @debug.Debug)
-
-pub enum GraphApplyPoll {
-  GraphApplyContinue(progress~ : Int64, work~ : Int64)
-  GraphApplyComplete(@managed_graph_runtime.Completed, progress~ : Int64, work~ : Int64)
-  GraphApplyFailed(GraphApplyIssue, progress~ : Int64, work~ : Int64)
-  GraphApplyStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
-}
-
-type GraphBoundsExecution
-
-pub(all) enum GraphBoundsIssue {
-  InvalidGraphBoundsKernel
-  GraphBoundsInputUnavailable
-  GraphBoundsWorkspaceLimit
-  GraphBoundsWorkLimit
-  GraphBoundsKeyOrder(@value_admission.KeyOrderIssue)
-  GraphBoundsOutput(@execution_relation.CaptureIssue)
-  GraphBoundsCompletion(@execution_relation.TrustedOutputIssue)
-  GraphBoundsExecutionIssue(@bounded_execution.Issue)
-} derive(Eq, @debug.Debug)
-
-pub enum GraphBoundsPoll {
-  GraphBoundsContinue(progress~ : Int64, work~ : Int64)
-  GraphBoundsComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
-  GraphBoundsFailed(GraphBoundsIssue, progress~ : Int64, work~ : Int64)
-  GraphBoundsStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
-}
-
-type GraphDegreeExecution
-
-pub enum GraphDegreePoll {
-  GraphDegreeContinue(progress~ : Int64, work~ : Int64)
-  GraphDegreeComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
-  GraphDegreeFailed(GraphBoundsIssue, progress~ : Int64, work~ : Int64)
-  GraphDegreeStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
-}
-
-type GraphDiffExecution
-
-pub(all) enum GraphDiffIssue {
-  InvalidGraphDiffKernel
-  GraphDiffInputUnavailable
-  GraphDiffWorkLimit
-  GraphDiffCore(@bounded_graph_diff.Issue)
-  GraphDiffOutput(@execution_relation.CaptureIssue)
-  GraphDiffCompletion(@execution_relation.TrustedOutputIssue)
-  GraphDiffExecutionIssue(@bounded_execution.Issue)
-} derive(Eq, @debug.Debug)
-
-pub enum GraphDiffPoll {
-  GraphDiffContinue(progress~ : Int64, work~ : Int64)
-  GraphDiffComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
-  GraphDiffFailed(GraphDiffIssue, progress~ : Int64, work~ : Int64)
-  GraphDiffStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
-}
-
-type GraphsEqualExecution
-
-pub(all) enum GraphsEqualIssue {
-  InvalidGraphsEqualKernel
-  GraphsEqualInputUnavailable
-  GraphsEqualWorkLimit
-  GraphsEqualComparison(@value_admission.CompleteEqualityIssue)
-  GraphsEqualStorage(@managed_graph_storage.Issue)
-  GraphsEqualOutput(@execution_relation.CaptureIssue)
-  GraphsEqualCompletion(@execution_relation.TrustedOutputIssue)
-  GraphsEqualExecutionIssue(@bounded_execution.Issue)
-} derive(Eq, @debug.Debug)
-
-pub enum GraphsEqualPoll {
-  GraphsEqualContinue(progress~ : Int64, work~ : Int64)
-  GraphsEqualComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
-  GraphsEqualFailed(GraphsEqualIssue, progress~ : Int64, work~ : Int64)
-  GraphsEqualStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
-}
-
 type MatchEdgesExecution
 
 pub(all) enum MatchEdgesIssue {
@@ -440,123 +116,10 @@ pub enum MatchNodesPoll {
   MatchNodesStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
 }
 
-type MeanExecution
-
-pub(all) enum MeanIssue {
-  InvalidMeanKernel
-  InvalidMeanLimits
-  MeanInputUnavailable
-  MeanPropertyConflict
-  MeanPropertyValue
-  MeanWorkspaceLimit
-  MeanWorkLimit
-  MeanValue(@value_admission.CompleteOrderIssue)
-  MeanKey(@value_admission.KeyOrderIssue)
-  MeanNumeric(@exact_binary64.Issue)
-  MeanOutput(@managed_graph_runtime.Issue)
-  MeanExecutionIssue(@bounded_execution.Issue)
-} derive(Eq, @debug.Debug)
-
-pub enum MeanPoll {
-  MeanContinue(progress~ : Int64, work~ : Int64)
-  MeanComplete(@managed_graph_runtime.Completed, progress~ : Int64, work~ : Int64)
-  MeanFailed(MeanIssue, progress~ : Int64, work~ : Int64)
-  MeanStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
-}
-
-type NormalizeExecution
-
-pub(all) enum NormalizeIssue {
-  InvalidKernel
-  InvalidLimits
-  InputUnavailable
-  Output(@managed_graph_runtime.Issue)
-  Execution(@bounded_execution.Issue)
-} derive(Eq, @debug.Debug)
-
-pub enum NormalizePoll {
-  Continue(progress~ : Int64, work~ : Int64)
-  Complete(@managed_graph_runtime.Completed, progress~ : Int64, work~ : Int64)
-  Failed(NormalizeIssue, progress~ : Int64, work~ : Int64)
-  Stopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
-}
-
-type ReachExecution
-
-pub(all) enum ReachIssue {
-  InvalidReachKernel
-  ReachInputUnavailable
-  ReachStartMissing
-  ReachOutputLimit
-  ReachWorkspaceLimit
-  ReachWorkLimit
-  ReachPredicate(@execution_relation.EvalIssueKind)
-  ReachKeyOrder(@value_admission.KeyOrderIssue)
-  ReachGraph(@managed_graph_storage.Issue)
-  ReachOutput(@execution_relation.CaptureIssue)
-  ReachCompletion(@execution_relation.TrustedOutputIssue)
-  ReachExecutionIssue(@bounded_execution.Issue)
-} derive(Eq, @debug.Debug)
-
-pub enum ReachPoll {
-  ReachContinue(progress~ : Int64, work~ : Int64)
-  ReachComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
-  ReachFailed(ReachIssue, progress~ : Int64, work~ : Int64)
-  ReachStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
-}
-
-type ShortestExecution
-
-pub(all) enum ShortestIssue {
-  UnsupportedShortestKernel
-  ShortestInputUnavailable
-  ShortestEndpointMissing
-  ShortestOutputLimit
-  ShortestWorkspaceLimit
-  ShortestWorkLimit
-  ShortestInvalidWeight
-  ShortestCostOverrange
-  ShortestPredicate(@execution_relation.EvalIssueKind)
-  ShortestKeyOrder(@value_admission.KeyOrderIssue)
-  ShortestStorage(@managed_graph_storage.Issue)
-  ShortestOutput(@execution_relation.CaptureIssue)
-  ShortestCompletion(@execution_relation.TrustedOutputIssue)
-  ShortestExecutionIssue(@bounded_execution.Issue)
-} derive(Eq, @debug.Debug)
-
-pub enum ShortestPoll {
-  ShortestContinue(progress~ : Int64, work~ : Int64)
-  ShortestComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
-  ShortestFailed(ShortestIssue, progress~ : Int64, work~ : Int64)
-  ShortestStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
-}
-
-type SubgraphExecution
-
-pub(all) enum SubgraphIssue {
-  InvalidSubgraphKernel
-  InvalidSubgraphLimits
-  SubgraphInputUnavailable
-  MissingSubgraphNodeIdentity(Int)
-  SubgraphPredicate(@execution_relation.EvalIssueKind)
-  SubgraphKeyOrder(@value_admission.KeyOrderIssue)
-  SubgraphWorkLimit
-  SubgraphOutput(@managed_graph_runtime.Issue)
-  SubgraphExecutionIssue(@bounded_execution.Issue)
-} derive(Eq, @debug.Debug)
-
-pub enum SubgraphPoll {
-  SubgraphContinue(progress~ : Int64, work~ : Int64)
-  SubgraphComplete(@managed_graph_runtime.Completed, progress~ : Int64, work~ : Int64)
-  SubgraphFailed(SubgraphIssue, progress~ : Int64, work~ : Int64)
-  SubgraphStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
-}
-
 type TraverseExecution
 
 pub(all) enum TraverseIssue {
   UnsupportedTraverseKernel
-  TraverseReachIssue(ReachIssue)
   TraversePathIssue(TraversePathsIssue)
 } derive(Eq, @debug.Debug)
 
@@ -567,7 +130,6 @@ pub(all) enum TraversePathsIssue {
   TraversePathsOutputLimit
   TraversePathsWorkspaceLimit
   TraversePathsWorkLimit
-  TraversePathsPredicate(@execution_relation.EvalIssueKind)
   TraversePathsKeyOrder(@value_admission.KeyOrderIssue)
   TraversePathsOutput(@execution_relation.CaptureIssue)
   TraversePathsCompletion(@execution_relation.TrustedOutputIssue)

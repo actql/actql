@@ -2,9 +2,8 @@
 pub(all) enum TraversalRule {
   AdmitInputGraph
   RespectAuthoredHops
-  EvaluateHopConditions
-  EmitMinimumDepth
-  EnumerateSimplePaths
+  FilterAuthoredLabels
+  EnumeratePropertyPaths
   DeduplicatePathIdentities
   OrderTraversalRows
 } derive(Eq, Debug)
@@ -31,13 +30,12 @@ fn traversal_execution_check(
   let rule : TraversalRule = match pending {
     AdmitTraversalGraph => TraversalRule::AdmitInputGraph
     RespectTraversalHopBounds => RespectAuthoredHops
-    EvaluateTraversalHopPredicates => EvaluateHopConditions
-    EmitMinimumNodeDepth => EmitMinimumDepth
-    EnumerateSimplePaths => EnumerateSimplePaths
+    FilterTraversalLabels => FilterAuthoredLabels
+    EnumeratePropertyPaths => EnumeratePropertyPaths
     DeduplicateExactPaths => DeduplicatePathIdentities
     CanonicalTraversalOrder => OrderTraversalRows
     ResolveTraversalResources
-    | ResolveTraversalProfile
+    | ResolvePropertyGraphTraversalProfile
     | EnforceTraversalOutputGuard
     | BindTraversalOutputGuard(_) => return Ok(None)
   }

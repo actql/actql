@@ -76,35 +76,7 @@ fn direct_execution_candidate(
     Ok(None) => ()
     other => return other
   }
-  match graph_projection_execution_check(site) {
-    Ok(None) => ()
-    other => return other
-  }
-  match graph_projection_envelope_check(site, policy) {
-    Ok(None) => ()
-    other => return other
-  }
   match graph_construction_execution_check(site, policy) {
-    Ok(None) => ()
-    other => return other
-  }
-  match graph_execution_check(site) {
-    Ok(None) => ()
-    other => return other
-  }
-  match graph_resources_check(site, policy) {
-    Ok(None) => ()
-    other => return other
-  }
-  match graph_equality_execution_check(site, policy) {
-    Ok(None) => ()
-    other => return other
-  }
-  match graph_diff_execution_check(site, policy) {
-    Ok(None) => ()
-    other => return other
-  }
-  match graph_apply_execution_check(site, policy) {
     Ok(None) => ()
     other => return other
   }
@@ -116,27 +88,7 @@ fn direct_execution_candidate(
     Ok(None) => ()
     other => return other
   }
-  match subgraph_execution_check(site, policy) {
-    Ok(None) => ()
-    other => return other
-  }
   match traversal_execution_check(site) {
-    Ok(None) => ()
-    other => return other
-  }
-  match reach_execution_check(site) {
-    Ok(None) => ()
-    other => return other
-  }
-  match shortest_execution_check(site) {
-    Ok(None) => ()
-    other => return other
-  }
-  match graph_structural_execution_check(site, policy) {
-    Ok(None) => ()
-    other => return other
-  }
-  match graph_mean_execution_check(site, policy) {
     Ok(None) => ()
     other => return other
   }

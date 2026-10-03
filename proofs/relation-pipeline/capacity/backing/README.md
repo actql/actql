@@ -122,6 +122,44 @@ must not receive this native byte evidence; the independent core and child-state
 native runtime provenance and rejects target substitution. The unconditional
 capacity-claim gate remains closed, including the parent 256-byte allowance.
 
+## Selected native Array storage and same-point identity union
+
+The two name Arrays and the completed sort-index Array are observed through
+monomorphic borrowed native calls on the actual child fields. Their owner is
+`Array { buf, len }`: pointer at offset zero, Int at eight, pointer-aligned
+payload 16, header eight, hence 24 bytes. The pinned runtime requests a buffer
+header of eight plus `4 * slots` for Int and `8 * slots` for references. Names'
+String referents are not included. No Value/optional/inline-enum representation
+is inferred from these two element layouts.
+
+These formulas come from declared fields and pinned runtime allocation code.
+The core fixture checks actual descriptors, shared static empty buffers,
+different owners, growth to a fresh backing, a deliberately retained old view,
+and clear retaining the grown buffer. It is finite correspondence on the native
+ABI; the observed values are not used as a maximum or as the upper-bound input.
+
+At each existing child checkpoint, admission checks the real backing capacity
+against the independently derived schema/high-water bound. It deduplicates the
+simultaneously observed owner/backing identity tokens, rejects inconsistent
+facts about aliases, and counts copies separately. Static empty buffer storage
+is counted once and reported separately from dynamic requested extents. Neither
+empty visible length nor cleanup success implies that backing storage vanished.
+No identity is unioned across polls, and the observer stores no production
+pointer or new holding reference beyond the borrowed call. JSON strings/logs
+are instrumentation allocations, outside these selected production leaves.
+
+`NativeArrayExtent.lean` proves the slot-to-storage implication and an arbitrary
+finite identity union bounded by the sum of supplied per-allocation ceilings.
+The same identity contributes once. The correspondence gate supplies the
+selected two name-Array and optional completed-index facts; this is not yet the
+complete allocation or holder census. In-progress merge buffers, Value row
+buffers, all control objects, assignment overlap between checkpoints, final
+reservation custody and the 256-byte allowance remain unfinished. JS/Wasm
+reject these native descriptors; their existing portable correspondence remains
+required. Common changes include the native overlay, descriptor admission,
+probe, typed model consumers and audit requirements; no unchanged-common claim
+is made for this extension.
+
 The new `oversized-metadata-map` mutation changes the real constructor to
 `Map([], capacity=16)` without changing the data result. The existing search,
 typed shrinker and target replay must preserve its constructor-bound violation.
@@ -130,7 +168,7 @@ exhaustion of the larger declared byte reservation. Existing resource mutations
 remain. The core probe includes updates/clear at three keys and a seventh-key
 growth to demonstrate why the no-grow premise cannot be omitted.
 
-JS engine layouts, Map/Entry allocation bytes, wrapper/header bytes, retained prior buffers,
+JS/Wasm engine layouts, remaining runtime object bytes, retained prior buffers,
 the complete simultaneous-backing census, the 256-byte parent allowance and
 final reservation handoff remain incomplete. Slot observations cannot be
 admitted as byte claims. The parent byte guarantee therefore remains conditional.
@@ -139,7 +177,7 @@ CI runs these additions through the existing capacity campaign and retains
 receipts below `.artifacts/relation-pipeline/capacity/backing-core/`. For a local
 change use the touched backing Node tests, `backing/check.mjs` for the Lean model,
 and `core-probe.mjs js` for the four small core tests. Native layout changes use
-`core-probe.mjs native` for five small tests, rather than the full campaign.
+`core-probe.mjs native` for six small tests, rather than the full campaign.
 The runner copies the
 reviewed templates to `_build/array-backing-probe/`; run Moon formatting there,
 not inside the source template directory. Generated files in the template

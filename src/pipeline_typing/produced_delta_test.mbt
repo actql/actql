@@ -1,31 +1,28 @@
 ///|
-fn delta_producer() -> @pipeline_typing.CheckedPipeline {
-  let g = delta_graph()
+/// Project independently supplied contract expectations, not a generated diff.
+fn delta_producer() -> @pipeline_typing.CheckedPipeline raise {
   @pipeline_typing.check_carriers(
     cursor(
       (
-        #|[{"graph_diff":{"with":"b"},"from":"a"},{"select":[{"first":"delta"},{"second":"delta"}]}]
+        #|[{"filter":"TRUE","from":"d"},{"select":[{"first":"delta"},{"second":"delta"}]}]
       ),
     ),
-    [("a", g), ("b", g)],
+    [("d", delta_rows())],
     None,
     None,
     limits(),
+    delta_contracts=[("d", Unqualified("delta"), delta_contract())],
   ).unwrap()
 }
 
 ///|
-test "producer Delta contracts retain aliases and application obligations" {
+test "producer expectations retain aliases and exact bounded imported ownership" {
   let producer = delta_producer()
   let input = @pipeline_typing.produced_input(producer, Step(1)).unwrap()
-  let g = delta_graph()
-  let inputs = [
-    ("g", @pipeline_typing.CarrierInput(g)),
-    ("d", @pipeline_typing.ProducedInput(input)),
-  ]
+  let inputs = [("d", @pipeline_typing.ProducedInput(input))]
   let source = cursor(
     (
-      #|[{"drop":["first"],"from":"d","as":"changes"},{"apply_graph_delta":{"with":"changes","field":"second"},"from":"g"}]
+      #|[{"drop":["first"],"from":"d","as":"changes"},{"filter":"TRUE","from":"changes"}]
     ),
   )
   let p = @pipeline_typing.check_with_evidence(
@@ -40,46 +37,50 @@ test "producer Delta contracts retain aliases and application obligations" {
     Step(1),
     Unqualified("second"),
   ).unwrap()
-  assert_true(
-    physical_equal(
-      @pipeline_typing.expected_delta_contract(
-        p,
-        Input(1),
-        Unqualified("second"),
-      ).unwrap(),
-      expected,
-    ),
-  )
+  for
+    target in [
+      @pipeline_typing.Input(0),
+      @pipeline_typing.Step(0),
+      @pipeline_typing.Step(1),
+    ] {
+    assert_true(
+      physical_equal(
+        @pipeline_typing.expected_delta_contract(
+          p,
+          target,
+          Unqualified("second"),
+        ).unwrap(),
+        expected,
+      ),
+    )
+  }
   assert_true(
     @pipeline_typing.expected_delta_contract(p, Step(0), Unqualified("first"))
     is None,
   )
-  guard @pipeline_typing.step_at(p, 1).unwrap().operation
-    is GraphApply(checked~, ..) else {
-    fail("expected apply")
-  }
-  assert_eq(
-    @graph_contract.cid(@graph.apply_graph_contract(checked)),
-    @graph_contract.cid(expected),
-  )
-  assert_true(@graph.apply_pending(checked).contains(MatchExactBaseIdentity))
   assert_true(
     physical_equal(
       @pipeline_typing.producer_pipeline(
-        @pipeline_typing.input_producer(p, 1).unwrap(),
+        @pipeline_typing.input_producer(p, 0).unwrap(),
       ),
       producer,
     ),
   )
+  // Text-identical rows do not acquire the separately retained expectation.
+  let bare = @pipeline_typing.check_carriers(
+    source,
+    [("d", @pipeline_typing.carrier_at(producer, Step(1)).unwrap())],
+    None,
+    None,
+    limits(),
+  ).unwrap()
   assert_true(
-    @pipeline_typing.check_carriers(
-      source,
-      [("g", g), ("d", @pipeline_typing.carrier_at(producer, Step(1)).unwrap())],
-      None,
-      None,
-      limits(),
+    @pipeline_typing.expected_delta_contract(
+      bare,
+      Step(1),
+      Unqualified("second"),
     )
-    is Err({ kind: MissingDeltaContract, .. }),
+    is None,
   )
   let u = @pipeline_typing.usage(p)
   let exact = {
@@ -93,20 +94,17 @@ test "producer Delta contracts retain aliases and application obligations" {
     @pipeline_typing.check_with_evidence(source, inputs, None, None, exact)
     is Ok(_),
   )
-  assert_true(
-    @pipeline_typing.check_with_evidence(source, inputs, None, None, {
-      ..exact,
-      max_work: u.work - 1,
-    })
-    is Err(_),
-  )
-  assert_true(
-    @pipeline_typing.check_with_evidence(source, inputs, None, None, {
-      ..exact,
-      max_text_bytes: u.text_bytes - 1,
-    })
-    is Err(_),
-  )
+  for
+    cap in [
+      { ..exact, max_work: u.work - 1, },
+      { ..exact, max_nodes: u.nodes - 1, },
+      { ..exact, max_text_bytes: u.text_bytes - 1, },
+    ] {
+    assert_true(
+      @pipeline_typing.check_with_evidence(source, inputs, None, None, cap)
+      is Err(_),
+    )
+  }
   assert_true(
     @pipeline_typing.check_with_evidence(source, inputs, None, None, limits(), delta_contracts=[
       ("d", Unqualified("second"), expected),

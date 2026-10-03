@@ -20,19 +20,25 @@ fn graph_conversion_fixture(
       ).unwrap(),
     ).unwrap(),
   )
-  let graph = @carrier.graph(
-    @contract.primitive(StringType, nullable=false),
+  let definition = @carrier.property_node_definition(
+    "N",
+    [@contract.primitive(StringType, nullable=false)],
     fields,
-    fields,
-    labels=None,
-    max_labels=0,
-    max_label_bytes=0,
+    [],
+    max_fields=1,
+    max_name_bytes=1,
   ).unwrap()
-  let node = @source.parse_json("[{\"node_rows\":true}]", {
-    max_input_bytes: 1000,
-    max_nodes: 100,
-    max_depth: 10,
-  }).unwrap()
+  let graph = @carrier.property_graph(
+    "sha256:" + "1".repeat(64),
+    [definition],
+    [],
+    max_definitions=1,
+    max_contract_work=100,
+  ).unwrap()
+  let node = @source.parse_json(
+    "[{\"match_nodes\":{\"definition\":\"N\",\"bindings\":{\"identity\":\"key\"},\"where\":\"true\",\"fields\":[\"key\"]}}]",
+    { max_input_bytes: 1000, max_nodes: 100, max_depth: 10, },
+  ).unwrap()
   let cursor = @decode.admit(node, {
     max_nodes: 100,
     max_depth: 10,
@@ -112,7 +118,7 @@ fn graph_conversion_fixture(
 }
 
 ///|
-test "Graph input conversion retains preflight and rejects a foreign pipeline" {
+test "keyed Graph input conversion retains preflight and rejects a foreign pipeline" {
   let budget = IdentityBudget::{
     work: 100000000,
     bytes: 10000000,
@@ -161,14 +167,14 @@ test "Graph input conversion retains preflight and rejects a foreign pipeline" {
   assert_eq(budget.bytes, before.bytes)
   assert_eq(budget.nodes, before.nodes)
   let input_cid = @wire.cid(@graph_input.bound_witness(original))
-  let body = "{\"inputs\":[\"\{input_cid}\"],\"law_id\":\"actql.bound.graph-node-rows\",\"semantic_ref\":\"checked-step:0\",\"unit\":\"rows\",\"value\":1000,\"version\":\"actql-bound-proof/0.1\"}"
+  let body = "{\"inputs\":[\"\{input_cid}\"],\"law_id\":\"actql.bound.match-nodes\",\"semantic_ref\":\"checked-step:0\",\"unit\":\"rows\",\"value\":1000,\"version\":\"actql-bound-proof/0.1\"}"
   let proof_cid = "sha256:" + @sha.hex(@utf8.encode(body))
   let deps = if input_cid < proof_cid {
     [input_cid, proof_cid]
   } else {
     [proof_cid, input_cid]
   }
-  let witness_body = "{\"dependencies\":[\"\{deps[0]}\",\"\{deps[1]}\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.bound.graph-node-rows\",\"role\":\"proven_upper_bound\",\"source\":{\"kind\":\"program\",\"proof_cid\":\"\{proof_cid}\",\"semantic_ref\":\"checked-step:0\"},\"unit\":\"rows\",\"value\":1000,\"version\":\"actql-bound-witness/0.1\""
+  let witness_body = "{\"dependencies\":[\"\{deps[0]}\",\"\{deps[1]}\"],\"derivation\":{\"op\":\"source\"},\"law_id\":\"actql.bound.match-nodes\",\"role\":\"proven_upper_bound\",\"source\":{\"kind\":\"program\",\"proof_cid\":\"\{proof_cid}\",\"semantic_ref\":\"checked-step:0\"},\"unit\":\"rows\",\"value\":1000,\"version\":\"actql-bound-witness/0.1\""
   let cid = "sha256:" + @sha.hex(@utf8.encode(witness_body + "}"))
   let caps : @wire.Limits = {
     max_bytes: 10000,

@@ -20,9 +20,6 @@ pub fn sequence_canonical_node_count(
     !kernel.expansion.is_empty() {
     return Some(kernel.expansion.length())
   }
-  if sequence.steps.get(step) is Some(GraphConstructionStep(kernel)) {
-    return Some(kernel.expansion.length())
-  }
   sequence.owner.prepared.nodes
   .get(step)
   .map(node => {
@@ -67,19 +64,6 @@ pub fn sequence_canonical_node_at(
           node.id
         } else {
           vector_generated_role_id(kernel.step, expanded.role)
-        },
-        operation: expanded.operation,
-      })
-  }
-  if sequence.steps.get(step) is Some(GraphConstructionStep(kernel)) {
-    return kernel.expansion
-      .get(index)
-      .map(expanded => {
-        source_step: step,
-        id: if expanded.source_node {
-          node.id
-        } else {
-          graph_construction_generated_role_id(step, expanded.role)
         },
         operation: expanded.operation,
       })

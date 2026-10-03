@@ -49,8 +49,7 @@ pub fn prepare_bound_derivation(
     Clamp(_) => (1, Some(0))
     Sum | Join(_) => (2, None)
     QueryTopK(_) => (2, Some(1))
-    GraphCombine(_, n) => (n, None)
-    GraphQuery(query) => (query.inputs.length(), None)
+    PropertyGraphMeasure(_, _, n) => (n, None)
     Ranking(n, maximum) =>
       (n, if n > 0 && maximum is Some(_) { Some(0) } else { None })
   }

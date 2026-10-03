@@ -17,16 +17,21 @@ export const program = {
   stages: [{id: 'main', inputs: {}, steps: [
     {values: {schema: {id: {type: 'string', nullable: false},
       text: {type: 'string', nullable: true}},
-    rows: [{id: 'ticket-1', text: 'urgent'}]}, as: 'input'},
+    rows: [{id: 'a', text: 'urgent'}]}, as: 'input'},
     {assert_rows: {unique_by: ['id']}, as: 'unique'},
+    {filter: {eq: [{field: 'id'}, {literal: 'a'}]}},
     {infer: {contract: 'model-task:packed-risk.v1', key: 'id',
       input: {text: {field: 'text'}}}, as: 'captured'},
-  ], results: {captured: {from: 'captured',
-    fields: ['id', 'outcome', 'value']}}}],
-  results: {answer: {from: {stage: 'main', result: 'captured'}}},
+    {derive: {assessment: {object: {
+      input_key: {object: {id: {field: 'id'}}},
+      outcome: {field: 'outcome'}, value: {field: 'value'},
+    }}}},
+    {select: ['assessment'], as: 'answer'},
+  ], results: {answer: {from: 'answer', fields: ['assessment']}}}],
+  results: {answer: {from: {stage: 'main', result: 'answer'}}},
 };
-export const expected = [{id: 'ticket-1', outcome: 'ok',
-  value: {reason: null, risk: 'high'}}];
+export const expected = [{assessment: {input_key: {id: 'a'}, outcome: 'ok',
+  value: {reason: null, risk: 'high'}}}];
 
 export function configuration(base) {
   const input = {additional_properties: false,

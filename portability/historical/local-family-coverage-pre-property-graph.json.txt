@@ -1,0 +1,4122 @@
+{
+  "version": "actql-local-family-coverage/0.1",
+  "baseline": "0886df5ab75ff77edcd68291470f487346fc1cc4",
+  "targets": ["js", "wasm", "native"],
+  "families": ["SGA", "TEA", "VecA", "Bridge", "VecAExpression"],
+  "states": ["complete", "partial", "missing", "blocked"],
+  "required_layers": [
+    "contract",
+    "checker",
+    "lowering",
+    "kernel",
+    "managed",
+    "standard_host",
+    "consumer_lifetime",
+    "resources",
+    "cancellation",
+    "three_targets",
+    "publication"
+  ],
+  "completion_rule": "Every normative branch is classified and every required layer is complete with suite-connected evidence on one verified SHA.",
+  "normative_sources": {
+    "inventory": "docs/spec/language.md#operation-inventory",
+    "mapping": "docs/spec/language.md#algebra-lowering",
+    "registry": "spec/dependencies/aoa-pipeline-registry.json",
+    "target_contract": "spec/contracts/actql-aoa.json",
+    "work_order": "docs/reviews/2026-09-19-sga-veca-tea-local-execution.md"
+  },
+  "shared_gaps": [
+    "mixed_carrier_relation_stage: selected and fused-prefix Graph, Events, and Vectors paths have three-target standard-Host regressions; bounded selected sort/take, one unselected prefix per Carrier, and the subsequent selected Relation filter per Carrier have Node-delivered in-flight cancellation, but other mixed branches, large-cell cancellation latency, and cross-task failure cleanup still need operation-scoped evidence",
+    "resource_accounting_boundaries: all 68 operations bind to checked production routes, but only 20 have operation-specific boundary records and none yet has complete exact/one-short work and workspace assurance across every production path"
+  ],
+  "shared_completed": [
+    "canonical_aoa_inventory",
+    "ordered_typed_task_inputs",
+    "carrier_lifecycle_core",
+    "bounded_immutable_graph_storage",
+    "bounded_immutable_event_vector_storage",
+    "managed_graph_lifecycle",
+    "managed_vector_lifecycle",
+    "managed_event_lifecycle",
+    "bounded_step_session_core",
+    "carrier_aware_physical_completion",
+    "carrier_producer_views",
+    "carrier_material_custody",
+    "mixed_carrier_provider_inputs",
+    "retained_carrier_standard_dispatch_plumbing",
+    "failed_builder_cleanup_custody",
+    "bounded_result_cleanup_custody",
+    "registered_carrier_provider_boundary",
+    "environment_yield_adapter",
+    "bounded_provider_stop_after_disposal",
+    "stable_graph_construction_projection",
+    "bounded_session_identity_generation",
+    "monotonic_identity_issuance",
+    "bounded_result_finalization",
+    "bounded_finalization_terminal_reports",
+    "bounded_result_resume_lifetime",
+    "carrier_standard_host_dispatch",
+    "bounded_step_execution",
+    "cancellation_delivery_and_stop",
+    "rela_differential_conformance",
+    "resource_accounting_production_routes",
+    "workers_fixture_freshness",
+    "family_selective_artifacts"
+  ],
+  "operations": [
+    {
+      "family": "SGA",
+      "operation": "normalize_graph",
+      "input": "graph",
+      "output": "graph",
+      "canonical": ["SGA.normalize"],
+      "variants": ["duplicate policy", "dangling edge policy", "property admission"],
+      "status": "complete",
+      "owner": "local-sga",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_basic_test.mbt",
+        "src/local_sga/normalize_wbtest.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "shared_graph_generation_carrier_and_bridge_consumers",
+          "layers": ["standard_host", "consumer_lifetime", "publication"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "1905ea74",
+          "evidence": [
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "managed_normalization_bridge_and_environment_cancellation",
+          "layers": ["managed", "standard_host", "cancellation"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "88f94892",
+          "evidence": [
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "SGA",
+      "operation": "match_nodes",
+      "input": "graph",
+      "output": "relation",
+      "canonical": ["SGA.match_nodes"],
+      "variants": ["identity list", "literal predicate", "typed property predicate", "missing property", "projection order"],
+      "status": "complete",
+      "owner": "local-sga",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_match_test.mbt",
+        "src/local_sga/match_nodes.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "managed_relation_named_result_publication_and_retrieval",
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "9aff9c59",
+          "evidence": [
+            "adapters/host-common/strategy.test.mjs",
+            "adapters/host-common/strategy.mjs",
+            "src/execution_relation/managed_publication_bridge.mbt"
+          ]
+        },
+        {
+          "scope": "literal_predicate_bounded_standard_host_execution",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "b5898232",
+          "evidence": [
+            "src/lowering_relation/graph_match.mbt",
+            "src/local_sga/match_nodes.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "typed_property_predicate_standard_host_execution",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "cancellation",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "39b54d9b",
+          "evidence": [
+            "src/execution_relation/predicate_expression.mbt",
+            "src/local_sga/match_nodes.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/pipeline_typing/graph_test.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "SGA",
+      "operation": "match_edges",
+      "input": "graph",
+      "output": "relation",
+      "canonical": ["SGA.match_edges"],
+      "variants": ["absent/empty/repeated type filters", "literal predicate", "typed property predicate", "missing property", "projection order"],
+      "status": "complete",
+      "owner": "local-sga",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_match_test.mbt",
+        "src/local_sga/match_edges.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "edge_type_and_literal_filter_standard_host_execution",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "c9c41e20",
+          "evidence": [
+            "src/lowering_relation/graph_match.mbt",
+            "src/local_sga/match_edges.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "publication_and_environment_cancellation",
+          "layers": ["publication", "cancellation"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "8f35730f",
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "typed_property_predicate_standard_host_execution",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "cancellation",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "935913a4",
+          "evidence": [
+            "src/execution_relation/predicate_expression.mbt",
+            "src/local_sga/match_edges.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/pipeline_typing/graph_test.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "SGA",
+      "operation": "traverse",
+      "input": "graph plus optional selector relation",
+      "output": "relation",
+      "canonical": ["SGA.traverse"],
+      "variants": ["selector ids/relation/predicate", "direction", "repeated hop", "hop pattern", "nodes/paths output", "guard"],
+      "status": "complete",
+      "owner": "local-sga",
+      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "publication", "resources", "cancellation", "three_targets"],
+      "layer_evidence": [
+        "src/lowering_relation/graph_traverse_test.mbt",
+        "src/local_sga/traverse.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt",
+        "src/query_integration/join_graph_capacity_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "literal_start_set_membership_and_order",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "sha": "c009251f",
+          "evidence": [
+            "src/local_sga/reach.mbt",
+            "src/local_sga/traverse.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "src/query_integration/join_graph_capacity_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "bounded_edge_type_list_matching",
+          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "ccc3d25b",
+          "evidence": [
+            "src/local_sga/reach.mbt",
+            "src/local_sga/traverse.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "explicit_empty_edge_type_set",
+          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "e528eda0",
+          "evidence": [
+            "src/local_sga/reach.mbt",
+            "src/local_sga/traverse.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "single_edge_type_traversal",
+          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "publication", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "77cb1ff2",
+          "evidence": [
+            "src/local_sga/reach.mbt",
+            "src/local_sga/traverse.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "inbound_and_bidirectional_traversal",
+          "layers": ["standard_host", "consumer_lifetime", "publication"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "d08a946c",
+          "evidence": [
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "homogeneous_literal_node_traversal_standard_host_path",
+          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "publication", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "235f8b41",
+          "evidence": [
+            "src/local_sga/traverse.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "src/query_integration/join_graph_capacity_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "homogeneous_literal_node_traversal_environment_cancellation",
+          "layers": ["cancellation"],
+          "targets": ["js"],
+          "sha": "4a72ee83",
+          "evidence": [
+            "src/connectors/duckdb/conformance/reach_capacity_fixture.mbt",
+            "src/connectors/duckdb/conformance/strategy_fixture.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "relation_backed_start_selection",
+          "layers": ["kernel", "managed", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "20a3d337",
+          "evidence": [
+            "src/local_sga/reach.mbt",
+            "src/local_sga/traverse.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "typed_predicate_start_selection",
+          "layers": ["kernel", "managed", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "b066dad6",
+          "evidence": [
+            "src/local_sga/reach.mbt",
+            "src/local_sga/traverse.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "predicate_start_standard_host_path",
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native", "node"],
+          "sha": "ff2a6410",
+          "evidence": [
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "src/query_integration/query_checked_program_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "relation_start_standard_host_path",
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native", "node"],
+          "sha": "bf33b6e8",
+          "evidence": [
+            "src/query_integration/join_graph_capacity_wbtest.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "src/query_integration/query_checked_program_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "single_hop_pattern_standard_host_path",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native", "node"],
+          "sha": "a4392c06",
+          "evidence": [
+            "src/local_sga/traverse.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "single_hop_predicate_standard_host_path",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native", "node"],
+          "sha": "7e4c2f06",
+          "evidence": [
+            "src/local_sga/reach.mbt",
+            "src/local_sga/traverse.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "ordered_multi_hop_pattern_standard_host_path",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native",
+            "node"
+          ],
+          "sha": "987327f3",
+          "evidence": [
+            "src/local_sga/reach.mbt",
+            "src/local_sga/traverse.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "output_ceiling_applies_to_emitted_rows",
+          "layers": ["kernel", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "5d95e21e",
+          "evidence": [
+            "src/local_sga/reach.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "combined_predicate_binding_widths",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "0cd04f72",
+          "evidence": [
+            "src/local_sga/reach.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "src/query_integration/query_checked_program_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "homogeneous_literal_simple_path_kernel",
+          "layers": ["kernel", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "c3059ed0",
+          "evidence": [
+            "src/local_sga/traverse_paths.mbt",
+            "src/local_sga/traverse.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "homogeneous_literal_simple_path_standard_host_path",
+          "layers": [
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "e9cab711",
+          "evidence": [
+            "src/query_integration/join_graph_capacity_wbtest.mbt",
+            "src/query_integration/query_checked_program_wbtest.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "homogeneous_literal_simple_path_environment_cancellation",
+          "layers": ["cancellation"],
+          "targets": ["js", "wasm", "native", "node"],
+          "sha": "7e0bd409",
+          "evidence": [
+            "src/connectors/duckdb/conformance/reach_capacity_fixture.mbt",
+            "src/connectors/duckdb/conformance/strategy_fixture.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "relation_start_simple_path_standard_host_path",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "cancellation",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "6ee11a18",
+          "evidence": [
+            "src/local_sga/traverse_paths.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/query_checked_program_wbtest.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "predicate_start_simple_path_standard_host_path",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "cancellation",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "09b723e4",
+          "evidence": [
+            "src/local_sga/traverse_paths.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/query_checked_program_wbtest.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "ordered_patterned_simple_paths_with_hop_predicates",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "cancellation",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "46ba53ff",
+          "evidence": [
+            "src/local_sga/traverse_paths.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/join_graph_capacity_wbtest.mbt",
+            "src/query_integration/query_checked_program_wbtest.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "direction_zero_hop_and_empty_edge_type_path_branches",
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "0ae4b508",
+          "evidence": [
+            "src/query_integration/query_checked_program_wbtest.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "start_major_paths_exact_binding_nullable_selectors_and_bounded_private_state",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "cancellation",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "5b91dc2c7",
+          "evidence": [
+            "src/local_sga/traverse.mbt",
+            "src/local_sga/traverse_paths.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "SGA",
+      "operation": "shortest_path",
+      "input": "graph plus up to two selector relations",
+      "output": "relation",
+      "canonical": ["SGA.shortest_path"],
+      "variants": ["single/selected endpoints", "each_pair/nearest_per_source/nearest_pair", "direction", "weighted/unweighted", "ties"],
+      "status": "complete",
+      "owner": "local-sga",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_shortest_test.mbt",
+        "src/local_sga/shortest.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt",
+        "src/query_integration/join_graph_capacity_wbtest.mbt"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "scalar_unweighted_each_pair_vertical_slice",
+          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "757705ba",
+          "evidence": [
+            "src/local_sga/shortest.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "src/query_integration/join_graph_capacity_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "canonical_equal_hop_identity_ties",
+          "layers": ["kernel", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "457e1886",
+          "evidence": [
+            "src/local_sga/shortest.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "bounded_edge_type_filters_and_publication",
+          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "publication", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "77a0bed4",
+          "evidence": [
+            "src/local_sga/shortest.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "direction_and_zero_hop_standard_host_paths",
+          "layers": ["standard_host", "consumer_lifetime", "publication", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "8023b17d",
+          "evidence": [
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+      {
+        "scope": "literal_selected_endpoint_identity_sets",
+          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "publication", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "43b173aa",
+          "evidence": [
+            "src/local_sga/shortest.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "src/query_integration/query_checked_program_wbtest.mbt"
+        ]
+      },
+      {
+        "scope": "relation_and_predicate_selected_endpoint_sets",
+        "layers": [
+          "kernel",
+          "managed",
+          "standard_host",
+          "consumer_lifetime",
+          "publication",
+          "resources",
+          "cancellation",
+          "three_targets"
+        ],
+        "targets": [
+          "js",
+          "wasm",
+          "native"
+        ],
+        "sha": "c23d7db5",
+        "evidence": [
+          "src/local_sga/shortest.mbt",
+          "src/local_sga_provider/graph_pipeline.mbt",
+          "src/query_integration/join_graph_capacity_wbtest.mbt",
+          "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "src/query_integration/query_checked_program_wbtest.mbt"
+        ]
+      },
+        {
+          "scope": "unweighted_nearest_selection_and_empty_endpoints",
+        "layers": [
+          "kernel",
+          "managed",
+          "standard_host",
+          "consumer_lifetime",
+          "publication",
+          "resources",
+          "cancellation",
+          "three_targets"
+        ],
+        "targets": [
+          "js",
+          "wasm",
+          "native"
+        ],
+        "sha": "b69cfba4",
+        "evidence": [
+          "src/local_sga/shortest.mbt",
+          "src/local_sga_provider/graph_pipeline.mbt",
+          "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "src/query_integration/query_checked_program_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "weighted_cost_selection_and_overrange",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "cancellation",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native"
+          ],
+          "sha": "5060af20",
+          "evidence": [
+            "src/local_sga/shortest.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "SGA",
+      "operation": "components",
+      "input": "graph",
+      "output": "relation",
+      "canonical": ["SGA.components"],
+      "variants": ["weak", "strong", "cycles", "disconnected nodes"],
+      "status": "complete",
+      "owner": "local-sga",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_basic_test.mbt",
+        "src/local_sga/components.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt",
+        "src/query_integration/join_graph_capacity_wbtest.mbt",
+        "src/query_integration/query_checked_program_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "weak_components_named_result_publication_and_retrieval",
+          "layers": ["publication"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "447d674b",
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+            "src/connectors/duckdb/conformance/components_capacity_fixture.mbt",
+            "src/connectors/duckdb/conformance/strategy_fixture.mbt"
+          ]
+        },
+        {
+          "scope": "component_publication_and_environment_cancellation",
+          "layers": ["cancellation", "publication"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "bc7c89fa",
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+            "src/connectors/local/driver/managed_dispatch.mbt",
+            "src/connectors/duckdb/conformance/components_capacity_fixture.mbt",
+            "src/connectors/duckdb/conformance/strategy_fixture.mbt"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "SGA",
+      "operation": "reach",
+      "input": "graph",
+      "output": "relation",
+      "canonical": ["SGA.reachable"],
+      "variants": [
+        "incoming",
+        "outgoing",
+        "both",
+        "cycles",
+        "self loops",
+        "bounded depth"
+      ],
+      "status": "complete",
+      "owner": "local-sga",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_reach_test.mbt",
+        "src/local_sga/reach.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "bounded_reach_standard_host_and_publication",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "4606d221",
+          "evidence": [
+            "src/local_sga/reach.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "reach_publication_retrieval_and_environment_cancellation",
+          "layers": [
+            "standard_host",
+            "publication",
+            "cancellation"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "f96153c8",
+          "evidence": [
+            "src/connectors/duckdb/conformance/reach_capacity_fixture.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "SGA",
+      "operation": "graph_bounds",
+      "input": "graph",
+      "output": "relation",
+      "canonical": ["SGA.bounds_check"],
+      "variants": ["node bound", "edge bound", "degree bound", "combined bounds"],
+      "status": "complete",
+      "owner": "local-sga",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_basic_test.mbt",
+        "src/local_sga/graph_bounds.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "bounded_graph_diagnostics_standard_host_execution",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "69685605",
+          "evidence": [
+            "src/lowering_relation/graph_basic.mbt",
+            "src/local_sga/graph_bounds.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "named_result_publication_and_retrieval",
+          "layers": ["publication"],
+          "targets": ["native"],
+          "sha": "83dcc2d2",
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "environment_cancellation_stop_and_cleanup",
+          "layers": ["cancellation"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "7a7b822e",
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+            "adapters/local-node/strategy-bundle.test.mjs",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "SGA",
+      "operation": "degree",
+      "input": "graph",
+      "output": "relation",
+      "canonical": ["SGA.degree_metrics"],
+      "variants": ["incoming", "outgoing", "both", "typed edges"],
+      "status": "complete",
+      "owner": "local-sga",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_basic_test.mbt",
+        "src/local_sga/graph_bounds.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "directional_degree_standard_host_execution",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "b24d953a",
+          "evidence": [
+            "src/local_sga/graph_bounds.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "named_result_publication_and_retrieval",
+          "layers": ["publication"],
+          "targets": ["native"],
+          "sha": "83dcc2d2",
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "environment_cancellation_stop_and_cleanup",
+          "layers": ["cancellation"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "7a7b822e",
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+            "adapters/local-node/strategy-bundle.test.mjs",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "SGA",
+      "operation": "graph_diff",
+      "input": "graph, graph",
+      "output": "relation",
+      "canonical": ["SGA.diff"],
+      "variants": ["empty diff", "node changes", "edge changes", "graph CID deadlines"],
+      "status": "complete",
+      "owner": "local-sga",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "cancellation",
+        "publication",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_relation_test.mbt",
+        "src/bounded_graph_snapshot/snapshot_wbtest.mbt",
+        "src/bounded_graph_diff/diff_wbtest.mbt",
+        "src/local_sga/graph_diff.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "canonical_bounded_snapshot_and_delta_construction",
+          "layers": ["kernel", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "8d730cf95",
+          "evidence": [
+            "src/bounded_graph_snapshot/snapshot.mbt",
+            "src/bounded_graph_snapshot/snapshot_wbtest.mbt",
+            "src/bounded_graph_diff/diff.mbt",
+            "src/bounded_graph_diff/diff_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "nonempty_standard_host_consumers_and_publication",
+          "layers": [
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "050469b0b",
+          "evidence": [
+            "src/local_sga/graph_diff.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "partial_snapshot_cancellation_stop_and_cleanup",
+          "layers": ["cancellation", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "050469b0b",
+          "evidence": [
+            "src/bounded_graph_snapshot/snapshot.mbt",
+            "src/bounded_graph_diff/diff.mbt",
+            "src/local_sga/graph_diff.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "SGA",
+      "operation": "graft_graph",
+      "input": "graph, graph",
+      "output": "graph",
+      "canonical": ["SGA.graft"],
+      "variants": ["conflict laws", "equal semantic ids", "shared storage"],
+      "status": "complete",
+      "owner": "local-sga",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "cancellation",
+        "publication",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_union_test.mbt",
+        "src/local_sga/graft_wbtest.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "standard_host_consumers_publication_and_cancellation",
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "cancellation"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "867489fb",
+          "evidence": [
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "SGA",
+      "operation": "union_graphs",
+      "input": "graph plus ordered nonempty graph list",
+      "output": "graph",
+      "canonical": ["SGA.union_structural"],
+      "variants": ["singleton", "finite list", "repeated input positions", "property laws"],
+      "status": "complete",
+      "owner": "local-sga",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "cancellation",
+        "publication",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_union_test.mbt",
+        "src/local_sga/graft.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "no_merge_ordered_finite_list",
+          "layers": ["kernel", "managed", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "5dd60e2d",
+          "evidence": [
+            "src/local_sga/graft.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "finite_list_resource_boundary",
+          "layers": ["resources"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "cf752643",
+          "evidence": ["src/local_sga/graft_wbtest.mbt"]
+        },
+        {
+          "scope": "explicit_exact_equal_property_law",
+          "layers": ["kernel", "managed", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "c282a9f0",
+          "evidence": [
+            "src/local_sga/graft.mbt",
+            "src/local_sga/graft_wbtest.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt"
+          ]
+        },
+        {
+          "scope": "standard_host_consumers_publication_and_cancellation",
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "cancellation"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "c533f7a0",
+          "evidence": [
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "numeric_set_laws_and_bounded_fold_work",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "publication",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "385be7a3870acfc5ba7670a3e4ddbeca1ecb384a",
+          "evidence": [
+            "src/local_sga/graft.mbt",
+            "src/local_sga/graft_wbtest.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "resumable_canonical_set_order_and_cleanup",
+          "layers": ["kernel", "resources", "cancellation", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "def46cc0207bab00e1ecf910f3f21f209847b33a",
+          "evidence": [
+            "src/bounded_value_set/set.mbt",
+            "src/bounded_value_set/set_wbtest.mbt",
+            "src/local_sga/graft.mbt",
+            "src/local_sga/graft_wbtest.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "SGA",
+      "operation": "subtract_graphs",
+      "input": "graph, graph",
+      "output": "graph",
+      "canonical": ["SGA.diff_structural"],
+      "variants": ["node removal", "edge removal", "property laws", "no-op"],
+      "status": "complete",
+      "owner": "local-sga",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "cancellation",
+        "publication",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_union_test.mbt",
+        "src/local_sga/graft.mbt",
+        "src/local_sga/graft_wbtest.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "property_free_node_removal_and_endpoint_closure",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "publication",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "1b7dbec3",
+          "evidence": [
+            "src/local_sga/graft.mbt",
+            "src/local_sga/graft_wbtest.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "explicit_exact_equal_property_law",
+          "layers": ["kernel", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "9c0cf275",
+          "evidence": [
+            "src/local_sga/graft.mbt",
+            "src/local_sga/graft_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "exact_equal_host_consumers_and_publication",
+          "layers": [
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "00063427",
+          "evidence": [
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "node_environment_cancellation_delivery",
+          "layers": ["cancellation"],
+          "targets": ["js"],
+          "sha": "053005b9",
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "numeric_set_laws_and_bounded_merge_work",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "publication",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "385be7a3870acfc5ba7670a3e4ddbeca1ecb384a",
+          "evidence": [
+            "src/local_sga/graft.mbt",
+            "src/local_sga/graft_wbtest.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "resumable_canonical_set_order_and_cleanup",
+          "layers": ["kernel", "resources", "cancellation", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "def46cc0207bab00e1ecf910f3f21f209847b33a",
+          "evidence": [
+            "src/bounded_value_set/set.mbt",
+            "src/bounded_value_set/set_wbtest.mbt",
+            "src/local_sga/graft.mbt",
+            "src/local_sga/graft_wbtest.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "SGA",
+      "operation": "subgraph",
+      "input": "graph plus optional relation",
+      "output": "graph",
+      "canonical": ["SGA.subgraph"],
+      "variants": ["selector forms", "edge predicate absent/present", "induced structure"],
+      "status": "complete",
+      "owner": "local-sga",
+      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "three_targets", "publication"],
+      "layer_evidence": [
+        "src/lowering_relation/graph_subgraph_test.mbt",
+        "src/local_sga/subgraph.mbt",
+        "src/local_sga/subgraph_wbtest.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "literal_identity_induced_subgraph",
+          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "resources", "three_targets", "publication"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "87909cdf",
+          "evidence": [
+            "src/local_sga/subgraph.mbt",
+            "src/local_sga/subgraph_wbtest.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "literal_subgraph_carrier_and_bridge_fanout",
+          "layers": ["standard_host", "consumer_lifetime", "publication"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "0c359fda",
+          "evidence": [
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "literal_edge_predicate",
+          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "resources", "three_targets", "publication"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "0a769228",
+          "evidence": [
+            "src/lowering_relation/graph_subgraph.mbt",
+            "src/local_sga/subgraph.mbt",
+            "src/local_sga/subgraph_wbtest.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "literal_subgraph_environment_cancellation",
+          "layers": ["cancellation"],
+          "targets": ["js"],
+          "sha": "bf716212",
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+            "src/workers_conformance/fixture.generated.mbt"
+          ]
+        },
+        {
+          "scope": "node_and_edge_predicate_induced_subgraph",
+          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "resources", "three_targets", "publication"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "2cbc57bf",
+          "evidence": [
+            "src/local_sga/predicate_bindings.mbt",
+            "src/local_sga/subgraph.mbt",
+            "src/local_sga/subgraph_wbtest.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "relation_selector_membership_and_fanout",
+          "layers": ["kernel", "managed", "standard_host", "consumer_lifetime", "resources", "three_targets", "publication"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "d80944d1",
+          "evidence": [
+            "src/lowering_relation/graph_subgraph.mbt",
+            "src/local_sga/subgraph.mbt",
+            "src/local_sga/subgraph_wbtest.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "predicate_and_relation_selector_environment_cancellation",
+          "layers": ["cancellation"],
+          "targets": ["js"],
+          "sha": "38923228",
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+            "src/workers_conformance/fixture.generated.mbt"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "SGA",
+      "operation": "graphs_equal",
+      "input": "graph, graph",
+      "output": "relation",
+      "canonical": ["SGA.equal"],
+      "variants": ["equal", "not equal", "representation difference"],
+      "status": "complete",
+      "owner": "local-sga",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "cancellation",
+        "publication",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_relation_test.mbt",
+        "src/local_sga/graphs_equal.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "equal_representation_consumers_and_publication",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "publication",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "738d19da",
+          "evidence": [
+            "src/local_sga/graphs_equal.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "environment_cancellation_stop_and_cleanup",
+          "layers": ["cancellation"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "092cc87b",
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "unequal_cardinality_and_payload",
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "5b3bb4e5",
+          "evidence": [
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "SGA",
+      "operation": "apply_graph_delta",
+      "input": "graph, relation",
+      "output": "graph",
+      "canonical": ["SGA.apply_delta"],
+      "variants": ["valid delta", "wrong base", "empty delta", "CID validation"],
+      "status": "complete",
+      "owner": "local-sga",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "cancellation",
+        "publication",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_relation_test.mbt",
+        "src/bounded_graph_snapshot/snapshot.mbt",
+        "src/local_sga/graph_apply.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "atomic_delta_kernel_and_managed_provider",
+          "layers": [
+            "kernel",
+            "managed",
+            "resources",
+            "cancellation",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "098f29445",
+          "evidence": [
+            "src/local_sga/graph_apply.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "standard_host_exact_delta_handoff_and_publication",
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "d3877af58",
+          "evidence": [
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "src/query_integration/query_checked_program_wbtest.mbt"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "SGA",
+      "operation": "mean_graphs",
+      "input": "ordered finite graph list",
+      "output": "graph",
+      "canonical": ["SGA.mean_structural"],
+      "variants": ["equal values", "weighted mean", "missing exclude/zero", "null exclude/zero/fail", "repeated inputs"],
+      "status": "complete",
+      "owner": "local-sga",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "cancellation",
+        "publication",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_mean_test.mbt",
+        "src/exact_binary64/exact.mbt",
+        "src/exact_binary64/exact_wbtest.mbt",
+        "src/local_sga/mean.mbt",
+        "src/local_sga/mean_wbtest.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "exact_support_property_laws_and_relation_bridge",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "0b3ef3297e8278f55e4b97bc176401e4dd6f2201",
+          "evidence": [
+            "src/exact_binary64/exact.mbt",
+            "src/exact_binary64/exact_wbtest.mbt",
+            "src/local_sga/mean.mbt",
+            "src/local_sga/mean_wbtest.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "bounded_canonical_order_and_workspace",
+          "layers": ["resources", "cancellation", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "5ff6996a3ecfafebdd01d26d768e3a8392cb78b3",
+          "evidence": [
+            "src/local_sga/mean.mbt",
+            "src/local_sga/mean_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "policy_failure_conformance",
+          "layers": ["kernel", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "9a9956508f7c1b45eb193e33678eb1e696d7f466",
+          "evidence": ["src/local_sga/mean_wbtest.mbt"]
+        },
+        {
+          "scope": "standard_host_consumers_and_publication",
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "39d718cae9297432576bc5f3e3b3b8cb5dd6ce49",
+          "evidence": [
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "environment_cancellation_stop_and_cleanup",
+          "layers": ["cancellation", "resources"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "309d51113514806949bd81bc236b8d4c492a770b",
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "TEA",
+      "operation": "window_events",
+      "input": "events",
+      "output": "events",
+      "canonical": ["TEA.window.fixed_label", "TEA.window.sliding_assign"],
+      "variants": ["fixed", "sliding", "literal/parameter size and step", "offset", "multiple membership"],
+      "status": "complete",
+      "owner": "local-tea",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/window_test.mbt",
+        "src/local_tea/window_wbtest.mbt",
+        "src/query_integration/local_carrier_events_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "literal_parameter_publication_and_kernel_cancellation",
+          "layers": [
+            "consumer_lifetime",
+            "publication",
+            "cancellation"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "fa716474",
+          "evidence": [
+            "src/query_integration/local_carrier_events_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "bounded_observation_page_split",
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "resources"
+          ],
+          "targets": ["js"],
+          "sha": "c000f109",
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "TEA",
+      "operation": "watermark_events",
+      "input": "events",
+      "output": "events",
+      "canonical": ["TEA.watermark.label"],
+      "variants": ["drop", "mark", "late boundary", "stable retained order"],
+      "status": "complete",
+      "owner": "local-tea",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/event_test.mbt",
+        "src/local_tea/watermark_wbtest.mbt",
+        "src/query_integration/local_carrier_events_wbtest.mbt",
+        "adapters/local-node/strategy-bundle.test.mjs",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "retained_consumers_publication_and_kernel_cancellation",
+          "layers": [
+            "consumer_lifetime",
+            "publication",
+            "cancellation"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "fa716474",
+          "evidence": [
+            "src/query_integration/local_carrier_events_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "TEA",
+      "operation": "session",
+      "input": "relation or events",
+      "output": "same carrier",
+      "canonical": ["TEA.window.session_assign"],
+      "variants": ["relation/events", "global/grouped", "literal/parameter gap", "ties"],
+      "status": "complete",
+      "owner": "local-tea",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/event_test.mbt",
+        "src/local_tea/session.mbt",
+        "src/local_tea_provider/events_pipeline.mbt",
+        "src/query_integration/local_carrier_events_wbtest.mbt"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "bounded_session_assignment_standard_host_path",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "two_consumers",
+            "resource_admission",
+            "reclamation",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "d1e3201e",
+          "evidence": [
+            "src/local_tea/session.mbt",
+            "src/local_tea_provider/events_pipeline.mbt",
+            "src/query_integration/local_carrier_events_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "session_variants_and_named_result_publication",
+          "layers": [
+            "standard_host",
+            "two_consumers",
+            "publication",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "790ac5d8",
+          "evidence": [
+            "src/query_integration/local_carrier_events_wbtest.mbt",
+            "src/query_integration/query_checked_program_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "environment_cancellation_stop_and_cleanup",
+          "layers": ["cancellation"],
+          "targets": ["js-node"],
+          "sha": "dbaebaa2",
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+            "src/connectors/duckdb/conformance/standard_subset.mbt"
+          ]
+        },
+        {
+          "scope": "resumable_bounded_session_identity_generation",
+          "layers": ["kernel", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "2bf2499d",
+          "evidence": [
+            "src/local_tea/session.mbt",
+            "src/local_tea/session_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "exact_events_input_and_overlapping_carrier_consumers",
+          "layers": [
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "90e18aff",
+          "evidence": [
+            "src/local_tea/session.mbt",
+            "src/local_tea_provider/events_pipeline.mbt",
+            "src/query_integration/local_carrier_events_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "equal_time_semantic_identity_order",
+          "layers": ["standard_host", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "4ef9c6be",
+          "evidence": [
+            "src/query_integration/local_carrier_events_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "direct_relation_session_publication_and_consumers",
+          "layers": [
+            "managed",
+            "standard_host",
+            "two_consumers",
+            "publication",
+            "resources",
+            "reclamation",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "1a9e0e42",
+          "evidence": [
+            "src/managed_record_storage/storage_wbtest.mbt",
+            "src/local_tea/session.mbt",
+            "src/local_tea_provider/events_pipeline.mbt",
+            "src/query_integration/local_carrier_events_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "retained_events_across_physical_tasks",
+          "layers": [
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "dfff01b2e",
+          "evidence": [
+            "src/physical_strategy/carrier_tasks.mbt",
+            "src/query_integration/local_carrier_events_wbtest.mbt"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "TEA",
+      "operation": "time_series",
+      "input": "none",
+      "output": "relation",
+      "canonical": ["TEA.time_series"],
+      "variants": ["literal/parameter endpoints", "empty", "nonempty", "overflow"],
+      "status": "complete",
+      "owner": "local-tea",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/time_series_test.mbt",
+        "src/value_admission/execution_values_wbtest.mbt",
+        "src/query_integration/local_time_series_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "published_time_series_with_environment_cancellation",
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "cancellation"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "78064895",
+          "evidence": [
+            "src/query_integration/local_time_series_wbtest.mbt",
+            "src/connectors/duckdb/conformance/standard_subset.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "TEA",
+      "operation": "interval_join",
+      "input": "relation, relation",
+      "output": "relation",
+      "canonical": ["TEA.join.interval"],
+      "variants": ["inner/left/semi/anti", "point_in_interval/overlap", "empty/nonempty equality correlation"],
+      "status": "complete",
+      "owner": "local-tea",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/interval_join_test.mbt",
+        "src/execution_relation/interval_join_rows_wbtest.mbt",
+        "src/execution_relation/bounded_interval_join_wbtest.mbt",
+        "src/query_integration/local_managed_interval_join_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "managed_relation_named_result_publication",
+          "layers": ["publication"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "4cf40d94",
+          "evidence": [
+            "src/query_integration/local_managed_interval_join_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "bounded_pair_search_and_environment_cancellation",
+          "layers": ["managed", "resources", "cancellation"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "c59c3352",
+          "evidence": [
+            "src/execution_relation/bounded_interval_join_wbtest.mbt",
+            "src/query_integration/local_managed_interval_join_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "TEA",
+      "operation": "dedupe_events",
+      "input": "events",
+      "output": "events",
+      "canonical": ["TEA.dedupe"],
+      "variants": ["global/grouped", "resolved tie", "unresolved tie failure"],
+      "status": "complete",
+      "owner": "local-tea",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/event_test.mbt",
+        "src/local_tea/dedupe_wbtest.mbt",
+        "src/query_integration/local_carrier_events_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "retained_consumers_publication_and_kernel_cancellation",
+          "layers": [
+            "consumer_lifetime",
+            "publication",
+            "cancellation"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "fa716474",
+          "evidence": [
+            "src/query_integration/local_carrier_events_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "TEA",
+      "operation": "asof_join",
+      "input": "relation/events, relation",
+      "output": "relation",
+      "canonical": ["TEA.join.asof"],
+      "variants": ["relation/events left", "left/inner", "backward/forward/nearest", "identity completion", "tie completion"],
+      "status": "complete",
+      "owner": "local-tea",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/asof_join_test.mbt",
+        "src/execution_relation/asof_join_rows_wbtest.mbt",
+        "src/execution_relation/bounded_asof_join_wbtest.mbt",
+        "src/query_integration/local_managed_asof_join_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "managed_relation_named_result_publication",
+          "layers": ["publication"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "4cf40d94",
+          "evidence": [
+            "src/query_integration/local_managed_asof_join_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "bounded_candidate_search_and_environment_cancellation",
+          "layers": ["managed", "resources", "cancellation"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "a27bd31e",
+          "evidence": [
+            "src/execution_relation/bounded_asof_join_wbtest.mbt",
+            "src/query_integration/local_managed_asof_join_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "TEA",
+      "operation": "sequence",
+      "input": "relation or events",
+      "output": "relation",
+      "canonical": ["TEA.sequence.match"],
+      "variants": ["relation/events", "allow/disallow overlap", "adjacent/subsequence", "global/grouped", "literal/parameter guards"],
+      "status": "complete",
+      "owner": "local-tea",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "cancellation",
+        "publication",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/sequence_match_test.mbt",
+        "src/execution_relation/sequence_match_rows_wbtest.mbt",
+        "src/execution_relation/bounded_sequence_match_wbtest.mbt",
+        "src/query_integration/local_managed_sequence_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "relation_host_consumers_and_named_result_publication",
+          "layers": ["standard_host", "consumer_lifetime", "publication"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "a93ea126",
+          "evidence": [
+            "src/query_integration/local_managed_sequence_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "bounded_matching_and_managed_cancellation",
+          "layers": ["managed", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "1e2c48f6",
+          "evidence": [
+            "src/execution_relation/bounded_sequence_match.mbt",
+            "src/execution_relation/bounded_sequence_match_wbtest.mbt",
+            "src/local_tea_provider/sequence_match.mbt"
+          ]
+        },
+        {
+          "scope": "environment_cancellation_stop_and_cleanup",
+          "layers": ["cancellation"],
+          "targets": ["js-node"],
+          "sha": "1e2c48f6",
+          "evidence": [
+            "src/connectors/duckdb/conformance/sequence_capacity_fixture.mbt",
+            "src/connectors/duckdb/conformance/standard_subset.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "events_sequence_across_physical_tasks",
+          "layers": [
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "d4fb3d6da",
+          "evidence": [
+            "src/local_tea_provider/sequence_match.mbt",
+            "src/query_integration/local_carrier_events_wbtest.mbt"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "VecA",
+      "operation": "normalize_vectors",
+      "input": "vectors",
+      "output": "vectors",
+      "canonical": ["VEC.normalize_l2"],
+      "variants": ["zero vector", "finite components", "rounding boundary"],
+      "status": "complete",
+      "owner": "local-veca",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/vector_test.mbt",
+        "portability/corpus/vector-numeric.json",
+        "src/vector_numeric/fixture.generated_wbtest.mbt",
+        "src/vector_numeric/numeric_wbtest.mbt",
+        "src/local_veca/normalize_wbtest.mbt",
+        "src/query_integration/local_carrier_vectors_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "shared_vector_generation_and_formal_bridge",
+          "layers": ["standard_host", "consumer_lifetime", "publication"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "8a204939",
+          "evidence": [
+            "src/local_veca_provider/vectors_pipeline.mbt",
+            "src/query_integration/local_carrier_vectors_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "environment_cancellation_stop_and_cleanup",
+          "layers": ["cancellation"],
+          "targets": ["js"],
+          "sha": "8a204939",
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "VecA",
+      "operation": "score_vectors",
+      "input": "vectors",
+      "output": "vectors",
+      "canonical": ["VEC.score_sort"],
+      "variants": ["literal/parameter query", "cosine/dot/l2", "score ties"],
+      "status": "complete",
+      "owner": "local-veca",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/vector_test.mbt",
+        "portability/corpus/vector-numeric.json",
+        "src/vector_numeric/fixture.generated_wbtest.mbt",
+        "src/vector_numeric/numeric_wbtest.mbt",
+        "src/value_admission/key_order_wbtest.mbt",
+        "src/local_veca/score_wbtest.mbt",
+        "src/query_integration/local_carrier_vectors_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "literal_parameter_metrics_ties_and_shared_generation",
+          "layers": ["standard_host", "consumer_lifetime", "publication"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "ca6abe4f",
+          "evidence": [
+            "src/local_veca/score_wbtest.mbt",
+            "src/query_integration/local_carrier_vectors_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "environment_cancellation_stop_and_cleanup",
+          "layers": ["cancellation"],
+          "targets": ["js"],
+          "sha": "ca6abe4f",
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "VecA",
+      "operation": "nearest",
+      "input": "relation/vectors, relation/vectors",
+      "output": "relation",
+      "canonical": ["VEC.knn_join"],
+      "variants": ["four Carrier combinations", "explicit/completed roles", "cosine/dot/l2", "k boundaries", "ties"],
+      "status": "complete",
+      "owner": "local-veca",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "cancellation",
+        "publication",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/vector_test.mbt",
+        "src/local_veca/nearest.mbt",
+        "src/local_veca_provider/vectors_pipeline.mbt",
+        "src/query_integration/local_carrier_vectors_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "verified_slices": [
+        {
+          "scope": "relation_relation_explicit_roles_dot_k2_ties",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "0fd16e6d",
+          "evidence": [
+            "src/local_veca/nearest.mbt",
+            "src/query_integration/local_carrier_vectors_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "relation_relation_metrics_inferred_roles_k1_empty_corpus",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "611a7969",
+          "evidence": [
+            "src/query_integration/local_carrier_vectors_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "relation_relation_oversized_k_empty_queries",
+          "layers": [
+            "kernel",
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "e8f06d62",
+          "evidence": [
+            "src/query_integration/local_carrier_vectors_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "relation_relation_named_result_publication",
+          "layers": ["publication"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "6b723dd9",
+          "evidence": [
+            "src/query_integration/local_carrier_vectors_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "all_relation_vectors_input_combinations",
+          "layers": ["kernel", "managed", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "ab818437",
+          "evidence": [
+            "src/local_veca/nearest.mbt",
+            "src/local_veca_provider/vectors_pipeline.mbt",
+            "src/query_integration/local_carrier_vectors_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "relation_relation_environment_cancellation",
+          "layers": [
+            "cancellation"
+          ],
+          "targets": [
+            "js"
+          ],
+          "sha": "456c2f27",
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "fused_relation_vectors_input_combinations",
+          "layers": [
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "publication",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "396da45da",
+          "evidence": [
+            "src/local_veca/nearest.mbt",
+            "src/local_veca_provider/vectors_pipeline.mbt",
+            "src/query_integration/local_carrier_vectors_wbtest.mbt"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "VecA",
+      "operation": "pool_vectors",
+      "input": "relation or vectors",
+      "output": "vectors",
+      "canonical": ["VEC.pool"],
+      "variants": ["relation/vectors", "mean/sum/max", "single/composite group", "output id"],
+      "status": "complete",
+      "owner": "local-veca",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/vector_test.mbt",
+        "src/vector_numeric/numeric_wbtest.mbt",
+        "src/local_veca/pool_wbtest.mbt",
+        "src/query_integration/local_carrier_vectors_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "pooled_generation_consumer_bridge_and_publication",
+          "layers": ["standard_host", "consumer_lifetime", "publication"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "9c751e9c",
+          "evidence": [
+            "src/query_integration/local_carrier_vectors_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "environment_cancellation_stop_and_cleanup",
+          "layers": ["cancellation"],
+          "targets": ["js"],
+          "sha": "9c751e9c",
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "VecA",
+      "operation": "merge_rankings",
+      "input": "ordered relation inputs",
+      "output": "relation",
+      "canonical": ["VEC.merge_rankings"],
+      "variants": ["maximum", "weighted sum", "finite-list reciprocal rank", "tie completion", "repeated inputs"],
+      "status": "complete",
+      "owner": "local-veca",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/vector_test.mbt",
+        "src/local_veca/ranking.mbt",
+        "src/local_veca/ranking_wbtest.mbt",
+        "src/local_veca_provider/vectors_pipeline.mbt",
+        "src/query_integration/local_carrier_vectors_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "verified_slices": [
+        {
+          "scope": "typed_max_weighted_sum_and_ordered_finite_list_rrf",
+          "layers": ["lowering", "three_targets", "resource_admission"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "b954085a",
+          "evidence": [
+            "src/lowering_relation/vector.mbt",
+            "src/lowering_relation/vector_test.mbt"
+          ]
+        },
+        {
+          "scope": "authenticated_maximum_and_weighted_provider_execution",
+          "layers": ["kernel", "managed", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "25aff2fd",
+          "evidence": [
+            "src/query_integration/local_carrier_vectors_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "scored_policy_standard_host_lifecycle_and_publication",
+          "layers": [
+            "standard_host",
+            "two_consumers",
+            "publication",
+            "reclamation",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "467537d6",
+          "evidence": [
+            "src/query_integration/local_carrier_vectors_wbtest.mbt",
+            "src/workers_conformance/fixture.generated.mbt",
+            "src/node_host_conformance/fixture.generated.mbt"
+          ]
+        },
+        {
+          "scope": "negative_rrf_provider_execution",
+          "layers": ["kernel", "managed", "reclamation", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "bf85b1b4",
+          "evidence": [
+            "src/query_integration/local_carrier_vectors_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "bounded_rrf_and_repeated_occurrence_standard_host",
+          "layers": [
+            "kernel",
+            "standard_host",
+            "two_consumers",
+            "three_targets",
+            "resource_admission",
+            "reclamation"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "47660253",
+          "evidence": [
+            "src/local_veca/ranking.mbt",
+            "src/local_veca_provider/vectors_pipeline.mbt",
+            "src/query_integration/local_carrier_vectors_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "rrf_publication_and_environment_cancellation",
+          "layers": [
+            "publication",
+            "cancellation",
+            "stop_confirmation",
+            "reclamation",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native", "node"],
+          "sha": "4ed328ba",
+          "evidence": [
+            "src/query_integration/local_carrier_vectors_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+            "src/workers_conformance/fixture.generated.mbt",
+            "src/node_host_conformance/fixture.generated.mbt"
+          ]
+        },
+        {
+          "scope": "scored_policy_environment_cancellation",
+          "layers": [
+            "cancellation",
+            "stop_confirmation",
+            "reclamation"
+          ],
+          "targets": ["node"],
+          "sha": "580993ac",
+          "evidence": [
+            "src/connectors/duckdb/conformance/strategy_fixture.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "nullable_business_tie_order",
+          "layers": ["kernel", "managed", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "06974f71",
+          "evidence": [
+            "src/value_admission/key_order.mbt",
+            "src/local_veca/ranking.mbt",
+            "src/local_veca/ranking_wbtest.mbt",
+            "src/query_integration/local_carrier_vectors_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "nullable_query_group_order",
+          "layers": ["kernel", "managed", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "5a8badc2",
+          "evidence": [
+            "src/value_admission/key_order.mbt",
+            "src/local_veca/ranking.mbt",
+            "src/local_veca/ranking_wbtest.mbt",
+            "src/query_integration/local_carrier_vectors_wbtest.mbt"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "Bridge",
+      "operation": "property_graph",
+      "input": "finite ordered relation occurrences",
+      "output": "keyed property graph",
+      "canonical": ["BRIDGE.rows.to_property_graph"],
+      "variants": ["definition-scoped typed composite keys", "independent edge keys", "static label property scopes", "NULL-key and missing-endpoint exclusion", "duplicate-key rejection", "repeated producer occurrences", "empty definition families"],
+      "status": "complete",
+      "owner": "local-bridge",
+      "completed_layers": ["contract", "checker", "lowering", "kernel", "managed", "standard_host", "consumer_lifetime", "resources", "cancellation", "three_targets", "publication"],
+      "layer_evidence": [
+        "src/query_integration/property_graph_construction_wbtest.mbt",
+        "src/query_integration/property_graph_plan_wbtest.mbt",
+        "src/query_integration/property_graph_snapshot_wbtest.mbt",
+        "scripts/property-graph-public-host.test.mjs",
+        "scripts/test-packed-property-graph.mjs"
+      ],
+      "scope": "Initial new-profile constructor, typed MATCH/TRAIL and bounded snapshot save/reload only. This does not claim all SGA operators, external declaration provenance, legacy migration or executable mechanized correspondence."
+    },
+    {
+      "family": "Bridge",
+      "operation": "graph",
+      "input": "relation, relation",
+      "output": "graph",
+      "canonical": ["BRIDGE.rows.to_graph"],
+      "variants": ["explicit nodes/edges", "concise edge relation", "same relation in both positions"],
+      "status": "complete",
+      "owner": "local-bridge",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "cancellation",
+        "publication",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/graph_construction.mbt",
+        "src/lowering_relation/graph_construction_test.mbt",
+        "src/local_bridge/graph.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "explicit_graph_projection_endpoint_closure_and_finite_expansion",
+          "layers": [
+            "lowering",
+            "kernel",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "d3080fa9",
+          "evidence": [
+            "src/lowering_relation/graph_construction.mbt",
+            "src/lowering_relation/graph_construction_test.mbt",
+            "src/local_bridge/graph.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "stable_unique_physical_projection_per_graph_branch",
+          "layers": ["lowering", "resources", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "f37b3714",
+          "evidence": [
+            "src/lowering_relation/graph_construction.mbt",
+            "src/lowering_relation/graph_construction_test.mbt"
+          ]
+        },
+        {
+          "scope": "concise_and_split_graph_construction",
+          "layers": [
+            "lowering",
+            "kernel",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "d8928e40",
+          "evidence": [
+            "src/lowering_relation/graph_construction.mbt",
+            "src/lowering_relation/graph_construction_test.mbt",
+            "src/local_bridge/graph.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "concise_graph_environment_cancellation",
+          "layers": [
+            "cancellation",
+            "stop_confirmation",
+            "reclamation"
+          ],
+          "targets": ["node"],
+          "sha": "088770c3",
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+            "src/connectors/duckdb/conformance/components_capacity_fixture.mbt",
+            "src/connectors/duckdb/conformance/strategy_fixture.mbt"
+          ]
+        },
+        {
+          "scope": "managed_graph_material_and_exact_consumers",
+          "layers": [
+            "kernel",
+            "managed",
+            "consumer_lifetime",
+            "resources",
+            "cancellation",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "da4ec645",
+          "evidence": [
+            "src/managed_graph_runtime/output.mbt",
+            "src/local_bridge/graph.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "graph_construction_projection_publication",
+          "layers": [
+            "publication",
+            "three_targets"
+          ],
+          "targets": [
+            "js",
+            "wasm",
+            "native",
+            "node"
+          ],
+          "sha": "9940712f",
+          "evidence": [
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "retained_graph_across_physical_tasks",
+          "layers": [
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "publication",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "16bae24a5",
+          "evidence": [
+            "src/physical_strategy/carrier_tasks.mbt",
+            "src/local_sga_provider/graph_pipeline.mbt",
+            "src/query_integration/local_carrier_graph_wbtest.mbt"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "Bridge",
+      "operation": "node_rows",
+      "input": "graph",
+      "output": "relation",
+      "canonical": ["BRIDGE.graph.to_node_rows"],
+      "variants": ["identity restoration", "property columns", "collision failure"],
+      "status": "complete",
+      "owner": "local-bridge",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/local_bridge/graph.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "named_result_publication_and_environment_cancellation",
+          "layers": ["publication", "cancellation"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "00113491",
+          "evidence": [
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "Bridge",
+      "operation": "edge_rows",
+      "input": "graph",
+      "output": "relation",
+      "canonical": ["BRIDGE.graph.to_edge_rows"],
+      "variants": ["identity restoration", "endpoint roles", "collision failure"],
+      "status": "complete",
+      "owner": "local-bridge",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/local_bridge/graph.mbt",
+        "src/local_sga_provider/graph_pipeline.mbt",
+        "src/query_integration/local_carrier_graph_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "named_result_publication_and_environment_cancellation",
+          "layers": ["publication", "cancellation"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "00113491",
+          "evidence": [
+            "src/query_integration/local_carrier_graph_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "Bridge",
+      "operation": "to_events",
+      "input": "relation",
+      "output": "events",
+      "canonical": ["BRIDGE.rows.to_events"],
+      "variants": ["semantic id", "number/timestamp clock", "uniqueness failure"],
+      "status": "complete",
+      "owner": "local-bridge",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "publication",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/event_test.mbt",
+        "src/query_integration/local_carrier_events_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "exact_carrier_and_bridge_consumers_across_tasks",
+          "layers": ["managed", "consumer_lifetime", "cancellation"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "5b83cf99",
+          "evidence": [
+            "src/local_bridge/events.mbt",
+            "src/local_tea_provider/events_pipeline.mbt",
+            "src/query_integration/local_carrier_events_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "environment_cancellation_during_rows_to_events",
+          "layers": ["cancellation"],
+          "targets": ["js-node"],
+          "sha": "15af5df1",
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "bridged_relation_named_result_publication_and_retrieval",
+          "layers": ["publication"],
+          "targets": ["js-node"],
+          "sha": "fb4a149b9",
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "retained_events_bridge_across_physical_tasks",
+          "layers": [
+            "managed",
+            "standard_host",
+            "consumer_lifetime",
+            "resources",
+            "three_targets"
+          ],
+          "targets": ["js", "wasm", "native"],
+          "sha": "dfff01b2e",
+          "evidence": [
+            "src/physical_strategy/carrier_tasks.mbt",
+            "src/local_tea_provider/events_pipeline.mbt",
+            "src/query_integration/local_carrier_events_wbtest.mbt"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "Bridge",
+      "operation": "events",
+      "input": "events",
+      "output": "relation",
+      "canonical": ["BRIDGE.events.to_rows"],
+      "variants": ["identity transfer", "clock preservation", "page split invariance"],
+      "status": "complete",
+      "owner": "local-bridge",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "publication",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/query_integration/local_carrier_events_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "relation_consumers_and_named_result_publication",
+          "layers": ["consumer_lifetime", "publication"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "842825f8",
+          "evidence": [
+            "src/query_integration/local_carrier_events_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "environment_cancellation_during_events_to_rows",
+          "layers": ["cancellation"],
+          "targets": ["js-node"],
+          "sha": "15af5df1",
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        },
+        {
+          "scope": "timestamp_clock_and_semantic_identity_conformance",
+          "layers": ["kernel", "managed", "three_targets"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "c5f7dd45",
+          "evidence": [
+            "src/query_integration/local_carrier_events_wbtest.mbt"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "Bridge",
+      "operation": "to_vectors",
+      "input": "relation",
+      "output": "vectors",
+      "canonical": ["BRIDGE.rows.to_vectors"],
+      "variants": ["single/composite semantic id", "dimension", "finite component failure"],
+      "status": "complete",
+      "owner": "local-bridge",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "cancellation",
+        "publication",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/vector_test.mbt",
+        "src/query_integration/local_carrier_vectors_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "carrier_consumer_bridge_publication_and_cancellation",
+          "layers": [
+            "consumer_lifetime",
+            "publication",
+            "cancellation"
+          ],
+          "targets": ["js", "wasm", "native", "js-node"],
+          "sha": "eb01dc6f",
+          "evidence": [
+            "src/query_integration/local_carrier_vectors_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "Bridge",
+      "operation": "vectors",
+      "input": "vectors",
+      "output": "relation",
+      "canonical": ["BRIDGE.vectors.to_rows"],
+      "variants": ["identity restoration", "dimension preservation", "opaque carrier evidence"],
+      "status": "complete",
+      "owner": "local-bridge",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "resources",
+        "publication",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/query_integration/local_carrier_vectors_wbtest.mbt"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "relation_consumers_and_named_result_publication",
+          "layers": ["consumer_lifetime", "publication"],
+          "targets": ["js", "wasm", "native"],
+          "sha": "e34840d4",
+          "evidence": [
+            "src/query_integration/local_carrier_vectors_wbtest.mbt"
+          ]
+        },
+        {
+          "scope": "bridge_only_projection_environment_cancellation",
+          "layers": ["cancellation"],
+          "targets": ["js-node"],
+          "sha": "eb01dc6f",
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "VecAExpression",
+      "operation": "vector_score",
+      "input": "two same-dimension vectors and metric",
+      "output": "number",
+      "canonical": ["expression.vector_score"],
+      "variants": ["cosine/dot/l2", "nullable/non-null", "demanded evaluation"],
+      "status": "complete",
+      "owner": "local-veca",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/expression_test.mbt",
+        "src/lowering_relation/ordered_references_test.mbt",
+        "src/execution_relation/expression_wbtest.mbt",
+        "src/vector_numeric/fixture.generated_wbtest.mbt",
+        "src/query_integration/local_managed_values_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "named_result_publication_and_retrieval",
+          "layers": ["publication"],
+          "targets": ["native"],
+          "sha": "f59e17eb",
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+            "src/connectors/duckdb/conformance/strategy_fixture.mbt"
+          ]
+        },
+        {
+          "scope": "bounded_binding_provider_and_environment_cancellation",
+          "layers": ["managed", "standard_host", "consumer_lifetime", "publication", "resources", "cancellation", "three_targets"],
+          "targets": ["js", "wasm", "native", "js-node"],
+          "sha": "05f70065",
+          "evidence": [
+            "src/execution_relation/bounded_binding_rows.mbt",
+            "src/local_veca_provider/vectors_pipeline.mbt",
+            "src/query_integration/local_carrier_vectors_wbtest.mbt",
+            "src/query_integration/local_managed_values_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        }
+      ]
+    },
+    {
+      "family": "VecAExpression",
+      "operation": "vector_concat",
+      "input": "ordered vector expression list",
+      "output": "vector",
+      "canonical": ["expression.vector_concat"],
+      "variants": ["arity two/many", "dimension overflow", "null propagation", "demanded evaluation"],
+      "status": "complete",
+      "owner": "local-veca",
+      "completed_layers": [
+        "contract",
+        "checker",
+        "lowering",
+        "kernel",
+        "managed",
+        "standard_host",
+        "consumer_lifetime",
+        "publication",
+        "resources",
+        "cancellation",
+        "three_targets"
+      ],
+      "layer_evidence": [
+        "src/lowering_relation/expression_test.mbt",
+        "src/lowering_relation/ordered_references_test.mbt",
+        "src/execution_relation/expression_wbtest.mbt",
+        "src/query_integration/local_managed_values_wbtest.mbt",
+        "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+      ],
+      "implementation_evidence": [
+        {
+          "scope": "named_result_publication_and_retrieval",
+          "layers": ["publication"],
+          "targets": ["native"],
+          "sha": "f59e17eb",
+          "evidence": [
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+            "src/connectors/duckdb/conformance/strategy_fixture.mbt"
+          ]
+        },
+        {
+          "scope": "bounded_binding_provider_and_environment_cancellation",
+          "layers": ["managed", "standard_host", "consumer_lifetime", "publication", "resources", "cancellation", "three_targets"],
+          "targets": ["js", "wasm", "native", "js-node"],
+          "sha": "05f70065",
+          "evidence": [
+            "src/execution_relation/bounded_binding_rows.mbt",
+            "src/local_veca_provider/vectors_pipeline.mbt",
+            "src/query_integration/local_carrier_vectors_wbtest.mbt",
+            "src/query_integration/local_managed_values_wbtest.mbt",
+            "adapters/connectors/duckdb/node/test/standard-host.test.mjs"
+          ]
+        }
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "operation": "property_graph",
+      "sha": "dc111614df6aadca1d58ae6eaef4893dc7fca421",
+      "suites": [
+        {
+          "path": "src/query_integration/property_graph_construction_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed",
+          "scope": "Executed with domain, Plan, snapshot and legacy integration regressions: 38/38 each target. Constructor file includes private capacity/cancel cleanup, independently calculated exact/one-short control work and workspace under quanta 1 and 7."
+        },
+        {
+          "path": "src/query_integration/property_graph_snapshot_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed",
+          "scope": "Same fixed-SHA 38-case sweep: independent fixed snapshot bytes/CID, canonical reload, release of original before restored MATCH/TRAIL, empty types and refusal/cancellation cleanup."
+        },
+        {
+          "path": "scripts/property-graph-surface-checker.test.mjs",
+          "targets": ["node"],
+          "result": "passed",
+          "scope": "Same fixed-SHA 7-case Node run with public Local/HTTPS and legacy RelA. Four surface cases include constructor-positive-work timer cancellation and repeated close without pending custody."
+        },
+        {
+          "path": "scripts/property-graph-public-host.test.mjs",
+          "targets": ["node"],
+          "result": "passed",
+          "scope": "Same fixed-SHA 7-case run: actual public Local/HTTPS Named Result values, schema, reread and independent TRAIL identities."
+        }
+      ]
+    },
+    {
+      "operation": "normalize_graph",
+      "sha": "1905ea74",
+      "suites": [
+        {
+          "name": "portable shared Graph generation",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "graft_graph",
+      "sha": "867489fb",
+      "suites": [
+        {
+          "name": "portable Graph graft and retained consumers",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "union_graphs",
+      "sha": "def46cc0207bab00e1ecf910f3f21f209847b33a",
+      "suites": [
+        {
+          "name": "portable bounded structural set merge",
+          "path": "src/local_sga/graft_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "portable Graph consumers and publication",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "mean_graphs",
+      "sha": "9a9956508f7c1b45eb193e33678eb1e696d7f466",
+      "suites": [
+        {
+          "name": "portable exact bounded structural mean",
+          "path": "src/local_sga/mean_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "portable Graph consumers and publication",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "subtract_graphs",
+      "sha": "def46cc0207bab00e1ecf910f3f21f209847b33a",
+      "suites": [
+        {
+          "name": "portable bounded structural set merge",
+          "path": "src/local_sga/graft_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "portable Graph consumers and publication",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "graphs_equal",
+      "sha": "5b3bb4e5",
+      "suites": [
+        {
+          "name": "portable equal and unequal Graph comparison",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "window_events",
+      "sha": "c000f109",
+      "suites": [
+        {
+          "name": "portable retained consumers and publication identity",
+          "path": "src/query_integration/local_carrier_events_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host kernel cancellation and cleanup",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host bounded observation page split",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "watermark_events",
+      "sha": "fa716474",
+      "suites": [
+        {
+          "name": "portable retained consumers and publication identity",
+          "path": "src/query_integration/local_carrier_events_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host kernel cancellation and cleanup",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "dedupe_events",
+      "sha": "fa716474",
+      "suites": [
+        {
+          "name": "portable retained consumers and publication identity",
+          "path": "src/query_integration/local_carrier_events_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host kernel cancellation and cleanup",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "time_series",
+      "sha": "78064895",
+      "suites": [
+        {
+          "name": "portable publication and retained consumers",
+          "path": "src/query_integration/local_time_series_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host timer cancellation and cleanup",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "interval_join",
+      "sha": "c59c3352",
+      "suites": [
+        {
+          "name": "portable bounded join and managed lifetime",
+          "path": "src/query_integration/local_managed_interval_join_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host timer cancellation and cleanup",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "asof_join",
+      "sha": "a27bd31e",
+      "suites": [
+        {
+          "name": "portable bounded join and managed lifetime",
+          "path": "src/query_integration/local_managed_asof_join_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host timer cancellation and cleanup",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "node_rows",
+      "sha": "00113491",
+      "suites": [
+        {
+          "name": "portable managed node projection",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "edge_rows",
+      "sha": "00113491",
+      "suites": [
+        {
+          "name": "portable managed edge projection",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "match_nodes",
+      "sha": "39b54d9b",
+      "suites": [
+        {
+          "name": "portable managed node predicates",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "match_edges",
+      "sha": "935913a4",
+      "suites": [
+        {
+          "name": "portable managed edge predicates",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "components",
+      "sha": "bc7c89fa",
+      "suites": [
+        {
+          "name": "portable managed components",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "reach",
+      "sha": "f96153c8",
+      "suites": [
+        {
+          "name": "portable bounded reach variants and lifetime",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "traverse",
+      "sha": "0ae4b508",
+      "suites": [
+        {
+          "name": "portable node and path variants with retained consumers",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host cancellation and cleanup",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "shortest_path",
+      "sha": "5060af20",
+      "suites": [
+        {
+          "name": "portable weighted paths, publication, and cancellation",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "subgraph",
+      "sha": "38923228",
+      "suites": [
+        {
+          "name": "portable selector variants and retained consumers",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host selector cancellation and cleanup",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "graph_bounds",
+      "sha": "7a7b822e",
+      "suites": [
+        {
+          "name": "portable managed graph bounds",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host graph cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "degree",
+      "sha": "7a7b822e",
+      "suites": [
+        {
+          "name": "portable managed degree",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host graph cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "normalize_vectors",
+      "sha": "8a204939",
+      "suites": [
+        {
+          "name": "portable shared Vectors generation",
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "graph_diff",
+      "sha": "050469b0b",
+      "suites": [
+        {
+          "name": "portable bounded graph delta and lifecycle",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "portable incremental graph delta core",
+          "path": "src/bounded_graph_diff/diff_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "apply_graph_delta",
+      "sha": "d3877af58",
+      "suites": [
+        {
+          "name": "portable atomic graph application and lifecycle",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "score_vectors",
+      "sha": "ca6abe4f",
+      "suites": [
+        {
+          "name": "portable scored Vectors conformance and lifetime",
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "pool_vectors",
+      "sha": "9c751e9c",
+      "suites": [
+        {
+          "name": "portable pooled Vectors conformance and lifetime",
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "merge_rankings",
+      "sha": "580993ac",
+      "suites": [
+        {
+          "name": "portable scored and reciprocal-rank lifecycle",
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host policy cancellation and cleanup",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "to_vectors",
+      "sha": "eb01dc6f",
+      "suites": [
+        {
+          "name": "portable Carrier and Bridge consumers",
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host Bridge cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "vectors",
+      "sha": "eb01dc6f",
+      "suites": [
+        {
+          "name": "portable projection publication and consumers",
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host Bridge cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "events",
+      "sha": "c009251f",
+      "suites": [
+        {
+          "name": "portable typed Events projection and consumers",
+          "path": "src/query_integration/local_carrier_events_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "vector_score",
+      "sha": "c009251f",
+      "suites": [
+        {
+          "name": "portable vector expression and numeric conformance",
+          "path": "src/execution_relation/expression_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "portable managed expression lifecycle",
+          "path": "src/query_integration/local_managed_values_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "vector_concat",
+      "sha": "047d0bd1",
+      "suites": [
+        {
+          "name": "portable vector expression conformance",
+          "path": "src/execution_relation/expression_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and retrieval",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["native"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "nearest",
+      "sha": "396da45da",
+      "suites": [
+        {
+          "name": "portable fused Carrier combinations and lifetime",
+          "path": "src/query_integration/local_carrier_vectors_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host nearest cancellation and cleanup",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "session",
+      "sha": "dfff01b2e",
+      "suites": [
+        {
+          "name": "portable retained Events session lifecycle",
+          "path": "src/query_integration/local_carrier_events_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host publication and cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "sequence",
+      "sha": "d4fb3d6da",
+      "suites": [
+        {
+          "name": "portable Events sequence lifecycle and publication",
+          "path": "src/query_integration/local_carrier_events_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host sequence cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "graph",
+      "sha": "16bae24a5",
+      "suites": [
+        {
+          "name": "portable retained Graph lifecycle and publication",
+          "path": "src/query_integration/local_carrier_graph_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host Graph cancellation",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    },
+    {
+      "operation": "to_events",
+      "sha": "dfff01b2e",
+      "suites": [
+        {
+          "name": "portable retained Events bridge lifecycle",
+          "path": "src/query_integration/local_carrier_events_wbtest.mbt",
+          "targets": ["js", "wasm", "native"],
+          "result": "passed"
+        },
+        {
+          "name": "standard Host Bridge cancellation and publication",
+          "path": "adapters/connectors/duckdb/node/test/standard-host.test.mjs",
+          "targets": ["js"],
+          "result": "passed"
+        }
+      ]
+    }
+  ],
+  "verified_sha": null,
+  "linux_ci": null
+}

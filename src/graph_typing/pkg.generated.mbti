@@ -7,7 +7,6 @@ import {
   "actql/actql/expression_syntax",
   "actql/actql/expression_text",
   "actql/actql/expression_typing",
-  "actql/actql/graph_contract",
   "actql/actql/parameter_binding",
   "actql/actql/relation_append",
   "actql/actql/relation_schema",
@@ -19,125 +18,25 @@ import {
 }
 
 // Values
-pub fn apply_delta_contract(CheckedApply) -> @value_contract.Contract
-
-pub fn apply_field(CheckedApply) -> String
-
-pub fn apply_graph_contract(CheckedApply) -> @graph_contract.CheckedContract
-
-pub fn apply_output(CheckedApply) -> @carrier_contract.Carrier
-
-pub fn apply_pending(CheckedApply) -> Array[ApplyObligation]
-
-pub fn apply_pending_at(CheckedApply, Int) -> ApplyObligation?
-
-pub fn apply_pending_count(CheckedApply) -> Int
-
-pub fn apply_source(CheckedApply) -> @decode_core.Cursor
-
-pub fn apply_usage(CheckedApply) -> Usage
-
-pub fn apply_with_name(CheckedApply) -> String
-
-pub fn check(Operation, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, Limits) -> Result[CheckedGraph, Issue]
-
-pub fn check_apply(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, @graph_contract.CheckedContract, Limits) -> Result[CheckedApply, Issue]
-
-pub fn check_construction(@decode_core.Cursor, @carrier_contract.Carrier?, @carrier_contract.Carrier, Limits) -> Result[CheckedConstruction, Issue]
-
-pub fn check_diff(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedDiff, Issue]
-
-pub fn check_equality(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedEquality, Issue]
-
 pub fn check_match(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedMatch, MatchIssue]
-
-pub fn check_mean(@decode_core.Cursor, Array[@carrier_contract.Carrier], Limits) -> Result[CheckedMean, Issue]
 
 pub fn check_mean_options(@decode_core.Cursor, Limits) -> Result[CheckedMeanOptions, Issue]
 
 pub fn check_path_contract(PathOutput, @decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedPathContract, Issue]
 
-pub fn check_predicate(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedPredicate, PredicateIssue]
-
-pub fn check_reach(@decode_core.Cursor, @carrier_contract.Carrier, Limits, selector_relation? : @carrier_contract.Carrier?, parameters? : @parameter_binding.Declarations?, max_tokens? : Int) -> Result[CheckedReach, MatchIssue]
-
-pub fn check_scope(EntityKind, @decode_core.Cursor, @carrier_contract.Carrier, Limits) -> Result[CheckedScope, Issue]
+pub fn check_property_construction(@decode_core.Cursor, Array[(String, @carrier_contract.Carrier)], String, Limits) -> Result[CheckedPropertyConstruction, Issue]
 
 pub fn check_selector(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSelector, MatchIssue]
 
-pub fn check_shortest(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedShortest, MatchIssue]
-
-pub fn check_structural(StructuralOperation, @decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier, Limits) -> Result[CheckedStructural, Issue]
-
-pub fn check_subgraph(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedSubgraph, MatchIssue]
-
 pub fn check_traverse(@decode_core.Cursor, @carrier_contract.Carrier, @carrier_contract.Carrier?, @parameter_binding.Declarations?, PredicateLimits) -> Result[CheckedTraverse, MatchIssue]
 
-pub fn check_union(@decode_core.Cursor, @carrier_contract.Carrier, Array[@carrier_contract.Carrier], Limits) -> Result[CheckedUnion, Issue]
-
-pub fn construction_edges_name(CheckedConstruction) -> String?
-
-pub fn construction_nodes_name(CheckedConstruction) -> String?
-
-pub fn construction_output(CheckedConstruction) -> @carrier_contract.Carrier
-
-pub fn construction_pending(CheckedConstruction) -> Array[ConstructionObligation]
-
-pub fn construction_pending_at(CheckedConstruction, Int) -> ConstructionObligation?
-
-pub fn construction_pending_count(CheckedConstruction) -> Int
-
-pub fn construction_source(CheckedConstruction) -> @decode_core.Cursor
-
-pub fn construction_usage(CheckedConstruction) -> Usage
-
-pub fn diff_common_graph(CheckedDiff) -> @carrier_contract.Graph
-
-pub fn diff_contract(CheckedDiff) -> @value_contract.Contract
-
-pub fn diff_graph_contract(CheckedDiff) -> @graph_contract.CheckedContract
-
-pub fn diff_output(CheckedDiff) -> @carrier_contract.Carrier
-
-pub fn diff_pending(CheckedDiff) -> Array[DeltaObligation]
-
-pub fn diff_pending_at(CheckedDiff, Int) -> DeltaObligation?
-
-pub fn diff_pending_count(CheckedDiff) -> Int
-
-pub fn diff_source(CheckedDiff) -> @decode_core.Cursor
-
-pub fn diff_usage(CheckedDiff) -> Usage
-
-pub fn diff_with_name(CheckedDiff) -> String
-
-pub fn equality_input(CheckedEquality, @relation_schema.Side) -> @carrier_contract.Graph
-
-pub fn equality_output(CheckedEquality) -> @carrier_contract.Carrier
-
-pub fn equality_pending(CheckedEquality) -> Array[EqualityObligation]
-
-pub fn equality_pending_at(CheckedEquality, Int) -> EqualityObligation?
-
-pub fn equality_pending_count(CheckedEquality) -> Int
-
-pub fn equality_source(CheckedEquality) -> @decode_core.Cursor
-
-pub fn equality_usage(CheckedEquality) -> Usage
-
-pub fn equality_with_name(CheckedEquality) -> String
-
 pub fn hop_direction(TraversalHop) -> Direction
-
-pub fn hop_predicate(TraversalHop, EntityKind) -> CheckedPredicate?
 
 pub fn hop_type_at(TraversalHop, Int) -> String?
 
 pub fn hop_type_count(TraversalHop) -> Int?
 
 pub fn hop_types(TraversalHop) -> Array[String]?
-
-pub fn input(CheckedGraph) -> @carrier_contract.Carrier
 
 pub fn match_diagnostic(MatchIssue, @decode_core.Cursor) -> MatchDiagnostic
 
@@ -165,6 +64,18 @@ pub fn match_pending_count(CheckedMatch) -> Int
 
 pub fn match_predicate(CheckedMatch) -> CheckedPredicate?
 
+pub fn match_property_binding(CheckedMatch, String) -> @relation_schema.FieldName?
+
+pub fn match_property_definition(CheckedMatch) -> Int
+
+pub fn match_property_definition_name(CheckedMatch) -> String
+
+pub fn match_property_label(CheckedMatch) -> String?
+
+pub fn match_property_schema(CheckedMatch) -> @carrier_contract.Knowledge
+
+pub fn match_property_scope_fields(CheckedMatch) -> @carrier_contract.Knowledge
+
 pub fn match_source(CheckedMatch) -> @decode_core.Cursor
 
 pub fn match_type_at(CheckedMatch, Int) -> String?
@@ -177,19 +88,9 @@ pub fn match_usage(CheckedMatch) -> PredicateUsage
 
 pub fn mean_input_names(CheckedMeanOptions) -> Array[String]
 
-pub fn mean_options(CheckedMean) -> CheckedMeanOptions
-
 pub fn mean_options_source(CheckedMeanOptions) -> @decode_core.Cursor
 
 pub fn mean_options_usage(CheckedMeanOptions) -> Usage
-
-pub fn mean_output(CheckedMean) -> @carrier_contract.Carrier
-
-pub fn mean_pending(CheckedMean) -> Array[MeanObligation]
-
-pub fn mean_pending_at(CheckedMean, Int) -> MeanObligation?
-
-pub fn mean_pending_count(CheckedMean) -> Int
 
 pub fn mean_properties(CheckedMeanOptions, EntityKind) -> Array[MeanProperty]
 
@@ -201,27 +102,13 @@ pub fn mean_sample_count(CheckedMeanOptions) -> Int
 
 pub fn mean_support(CheckedMeanOptions, EntityKind) -> Double
 
-pub fn mean_usage(CheckedMean) -> Usage
-
 pub fn mean_weight_at(CheckedMeanOptions, Int) -> Double?
 
 pub fn mean_weights(CheckedMeanOptions) -> Array[Double]
 
-pub fn operation(CheckedGraph) -> Operation
-
-pub fn options(CheckedGraph) -> Options
-
-pub fn output(CheckedGraph) -> @carrier_contract.Carrier
-
 pub fn path_output(CheckedPathContract) -> @carrier_contract.Carrier
 
 pub fn path_usage(CheckedPathContract) -> Usage
-
-pub fn pending_validation_at(CheckedGraph, Int) -> Obligation?
-
-pub fn pending_validation_count(CheckedGraph) -> Int
-
-pub fn pending_validations(CheckedGraph) -> Array[Obligation]
 
 pub fn predicate_expression(CheckedPredicate) -> @expression_typing.TypedExpression
 
@@ -233,33 +120,37 @@ pub fn predicate_reference_name(CheckedPredicate, Int) -> String?
 
 pub fn predicate_usage(CheckedPredicate) -> PredicateUsage
 
-pub fn property_strategy_kind(PropertyStrategy) -> FieldStrategy
+pub fn property_construction_edge_at(CheckedPropertyConstruction, Int) -> PropertyEdge?
 
-pub fn property_strategy_name(PropertyStrategy) -> String
+pub fn property_construction_edge_count(CheckedPropertyConstruction) -> Int
 
-pub fn reach_direction(CheckedReach) -> Direction
+pub fn property_construction_node_at(CheckedPropertyConstruction, Int) -> PropertyElement?
 
-pub fn reach_input(CheckedReach) -> @carrier_contract.Carrier
+pub fn property_construction_node_count(CheckedPropertyConstruction) -> Int
 
-pub fn reach_max_depth(CheckedReach) -> Double
+pub fn property_construction_output(CheckedPropertyConstruction) -> @carrier_contract.Carrier
 
-pub fn reach_output(CheckedReach) -> @carrier_contract.Carrier
+pub fn property_construction_pending_at(CheckedPropertyConstruction, Int) -> ConstructionObligation?
 
-pub fn reach_pending(CheckedReach) -> Array[ReachObligation]
+pub fn property_construction_pending_count(CheckedPropertyConstruction) -> Int
 
-pub fn reach_pending_at(CheckedReach, Int) -> ReachObligation?
+pub fn property_construction_source(CheckedPropertyConstruction) -> @decode_core.Cursor
 
-pub fn reach_pending_count(CheckedReach) -> Int
+pub fn property_construction_usage(CheckedPropertyConstruction) -> Usage
 
-pub fn reach_source(CheckedReach) -> @decode_core.Cursor
+pub fn property_edge_definitions(PropertyEdge) -> (String, String)
 
-pub fn reach_start(CheckedReach) -> ReachStart
+pub fn property_edge_element(PropertyEdge) -> PropertyElement
 
-pub fn reach_usage(CheckedReach) -> PredicateUsage
+pub fn property_edge_keys(PropertyEdge) -> (Array[@relation_schema.FieldName], Array[@relation_schema.FieldName])
 
-pub fn scope_fields(CheckedScope) -> @carrier_contract.Knowledge
+pub fn property_element_definition(PropertyElement) -> @carrier_contract.PropertyNodeDefinition
 
-pub fn scope_usage(CheckedScope) -> Usage
+pub fn property_element_input(PropertyElement) -> String
+
+pub fn property_element_keys(PropertyElement) -> Array[@relation_schema.FieldName]
+
+pub fn property_element_properties(PropertyElement) -> Array[(@relation_schema.FieldName, @relation_schema.FieldName)]
 
 pub fn selector_form(CheckedSelector) -> SelectorForm
 
@@ -277,83 +168,9 @@ pub fn selector_pending_at(CheckedSelector, Int) -> SelectorObligation?
 
 pub fn selector_pending_count(CheckedSelector) -> Int
 
-pub fn selector_predicate(CheckedSelector) -> CheckedPredicate?
-
 pub fn selector_source(CheckedSelector) -> @decode_core.Cursor
 
 pub fn selector_usage(CheckedSelector) -> PredicateUsage
-
-pub fn shortest_direction(CheckedShortest) -> Direction
-
-pub fn shortest_endpoint(CheckedShortest, @relation_schema.Side) -> PathEndpoint
-
-pub fn shortest_input(CheckedShortest) -> @carrier_contract.Carrier
-
-pub fn shortest_max_hops(CheckedShortest) -> Double
-
-pub fn shortest_output(CheckedShortest) -> @carrier_contract.Carrier
-
-pub fn shortest_output_guard(CheckedShortest) -> Count?
-
-pub fn shortest_pending(CheckedShortest) -> Array[ShortestObligation]
-
-pub fn shortest_pending_at(CheckedShortest, Int) -> ShortestObligation?
-
-pub fn shortest_pending_count(CheckedShortest) -> Int
-
-pub fn shortest_selection(CheckedShortest) -> PathSelection
-
-pub fn shortest_source(CheckedShortest) -> @decode_core.Cursor
-
-pub fn shortest_type_at(CheckedShortest, Int) -> String?
-
-pub fn shortest_type_count(CheckedShortest) -> Int?
-
-pub fn shortest_types(CheckedShortest) -> Array[String]?
-
-pub fn shortest_usage(CheckedShortest) -> PredicateUsage
-
-pub fn shortest_weight(CheckedShortest) -> @relation_schema.FieldName?
-
-pub fn source(CheckedGraph) -> @decode_core.Cursor
-
-pub fn structural_operation(CheckedStructural) -> StructuralOperation
-
-pub fn structural_output(CheckedStructural) -> @carrier_contract.Carrier
-
-pub fn structural_pending(CheckedStructural) -> Array[StructuralObligation]
-
-pub fn structural_pending_at(CheckedStructural, Int) -> StructuralObligation?
-
-pub fn structural_pending_count(CheckedStructural) -> Int
-
-pub fn structural_source(CheckedStructural) -> @decode_core.Cursor
-
-pub fn structural_strategies(CheckedStructural, @relation_schema.Side) -> Array[PropertyStrategy]
-
-pub fn structural_strategy_at(CheckedStructural, @relation_schema.Side, Int) -> PropertyStrategy?
-
-pub fn structural_strategy_count(CheckedStructural, @relation_schema.Side) -> Int
-
-pub fn structural_usage(CheckedStructural) -> Usage
-
-pub fn structural_with_name(CheckedStructural) -> String
-
-pub fn subgraph_edges(CheckedSubgraph) -> CheckedPredicate?
-
-pub fn subgraph_nodes(CheckedSubgraph) -> CheckedSelector
-
-pub fn subgraph_output(CheckedSubgraph) -> @carrier_contract.Carrier
-
-pub fn subgraph_pending(CheckedSubgraph) -> Array[SubgraphObligation]
-
-pub fn subgraph_pending_at(CheckedSubgraph, Int) -> SubgraphObligation?
-
-pub fn subgraph_pending_count(CheckedSubgraph) -> Int
-
-pub fn subgraph_source(CheckedSubgraph) -> @decode_core.Cursor
-
-pub fn subgraph_usage(CheckedSubgraph) -> PredicateUsage
 
 pub fn traverse_bounds(CheckedTraverse) -> (Double, Double)
 
@@ -377,61 +194,18 @@ pub fn traverse_pending_at(CheckedTraverse, Int) -> TraverseObligation?
 
 pub fn traverse_pending_count(CheckedTraverse) -> Int
 
+pub fn traverse_property_path_mode(CheckedTraverse) -> PropertyPathMode
+
 pub fn traverse_source(CheckedTraverse) -> @decode_core.Cursor
 
 pub fn traverse_start(CheckedTraverse) -> CheckedSelector
 
 pub fn traverse_usage(CheckedTraverse) -> PredicateUsage
 
-pub fn union_count(CheckedUnion) -> Int
-
-pub fn union_fold_at(CheckedUnion, Int) -> CheckedStructural?
-
-pub fn union_input(CheckedUnion) -> @carrier_contract.Carrier
-
-pub fn union_operand_at(CheckedUnion, Int) -> @carrier_contract.Carrier?
-
-pub fn union_output(CheckedUnion) -> @carrier_contract.Carrier
-
-pub fn union_source(CheckedUnion) -> @decode_core.Cursor
-
-pub fn union_usage(CheckedUnion) -> Usage
-
-pub fn usage(CheckedGraph) -> Usage
-
 // Errors
 
 // Types and methods
-pub(all) enum ApplyObligation {
-  RequireExactlyOneDeltaRow
-  ValidateDeltaVersionAndClosedShape
-  MatchPinnedGraphContract
-  AdmitBaseUnderPinnedContract
-  MatchExactBaseIdentity
-  ValidateOrderedUniqueActions
-  ValidateExactBeforeRecords
-  ValidateAddRemoveUpdateExistence
-  ApplyNodeAndEdgeChangesTogether
-  ValidateResultEndpointsAndContract
-  MatchExactTargetIdentity
-  PreserveGraphPolicyDependencies
-  ResolveApplyResources
-  ResolveSgaProfile
-} derive(Eq, @debug.Debug)
-
-type CheckedApply
-
-type CheckedConstruction
-
-type CheckedDiff
-
-type CheckedEquality
-
-type CheckedGraph
-
 type CheckedMatch
-
-type CheckedMean
 
 type CheckedMeanOptions
 
@@ -439,54 +213,24 @@ type CheckedPathContract
 
 type CheckedPredicate
 
-type CheckedReach
-
-type CheckedScope
+type CheckedPropertyConstruction
 
 type CheckedSelector
 
-type CheckedShortest
-
-type CheckedStructural
-
-type CheckedSubgraph
-
 type CheckedTraverse
-
-type CheckedUnion
-
-pub(all) enum ComponentKind {
-  Weak
-  Strong
-} derive(Eq, @debug.Debug)
 
 pub(all) enum ConstructionObligation {
   AdmitGraphInputRows
-  CloseBothEndpointsAgainstDeclaredNodes
-  DeriveDistinctEndpointNodes
-  JournalEndpointCompletion
-  JournalLabelCompletion
-  CollapseEqualIdentityPayloads
-  RejectConflictingIdentityPayloads
+  RejectDuplicateDefinitionKeys
+  ExcludeNullKeysAndMissingEndpoints
   ResolveGraphConstructionResources
-  ResolveSgaProfile
+  ResolvePropertyGraphProfile
 } derive(Eq, @debug.Debug)
 
 pub enum Count {
   Literal(Int64)
   Parameter(String)
 }
-
-pub(all) enum DeltaObligation {
-  EmitDeltaVersion
-  AdmitSnapshotsUnderCommonContract
-  EmitGraphContractIdentity
-  BindBaseAndTargetIdentities
-  EmitCompleteBeforeAfterRecords
-  SortUniqueActionIdentities
-  ResolveDeltaResources
-  ResolveSgaProfile
-} derive(Eq, @debug.Debug)
 
 pub(all) enum Direction {
   Incoming
@@ -497,23 +241,6 @@ pub(all) enum Direction {
 pub(all) enum EntityKind {
   Nodes
   Edges
-} derive(Eq, @debug.Debug)
-
-pub(all) enum EqualityObligation {
-  AdmitBothGraphs
-  CompareTypedCanonicalGraphs
-  ResolveComparisonResources
-  ResolveSgaProfile
-} derive(Eq, @debug.Debug)
-
-pub(all) enum FieldStrategy {
-  ExactEqual
-  SetUnion
-  SetDifference
-  NumberSum
-  NumberMean
-  NumberMin
-  NumberMax
 } derive(Eq, @debug.Debug)
 
 pub struct Issue {
@@ -530,6 +257,8 @@ pub(all) enum IssueKind {
   WrongCarrier(@carrier_contract.Kind)
   InvalidCount
   IncompleteGraph
+  UnsupportedGraphProfile
+  UnsupportedGraphOperation
   UnknownDeltaField(String)
   UntypedDeltaField(String)
   InvalidDeltaType
@@ -590,21 +319,7 @@ pub(all) enum MatchObligation {
   EvaluateMatchPredicate
   CanonicalMatchOrder
   ResolveMatchResources
-  ResolveMatchProfile
-} derive(Eq, @debug.Debug)
-
-pub(all) enum MeanObligation {
-  AdmitEveryMeanSample
-  CompareExactRationalSupport
-  RetainSupportedNodesBeforeEdges
-  RequirePositiveWeightLabelAgreement
-  ApplyEveryMeanPropertyPolicy
-  RoundExactWeightedMeansOnce
-  RejectNonfiniteMeanResults
-  CanonicalMeanIdentityOrder
-  PreserveMeanObservationAndPolicy
-  ResolveMeanResources
-  ResolveMeanProfile
+  ResolvePropertyGraphMatchProfile
 } derive(Eq, @debug.Debug)
 
 pub struct MeanProperty {
@@ -628,52 +343,12 @@ pub(all) enum NullMeanValue {
   FailNull
 } derive(Eq, @debug.Debug)
 
-pub(all) enum Obligation {
-  ValidateGraphData
-  ResolveSgaProfile
-  ResolveGraphResources
-  ComponentIdentityOrder
-  BindPositiveCount(String)
-  BindNonnegativeCount(String)
-  BoundsReportOrder
-  EnforceOutputGuard
-} derive(Eq, @debug.Debug)
-
-pub(all) enum Operation {
-  NormalizeGraph
-  Degree
-  Components
-  GraphBounds
-} derive(Eq, @debug.Debug)
-
-pub enum Options {
-  Normalize
-  DegreeOptions(Direction)
-  ComponentOptions(ComponentKind, max_output_rows~ : Count?)
-  BoundsOptions(max_nodes~ : Count?, max_edges~ : Count?, max_degree~ : Count?)
-}
-
-pub enum PathEndpoint {
-  Single(@value_admission.CheckedValue)
-  Selected(CheckedSelector)
-}
-
 pub(all) enum PathOutput {
-  TraversedNodes
   TraversedPaths
-  ShortestPaths
-} derive(Eq, @debug.Debug)
-
-pub(all) enum PathSelection {
-  EachPair
-  NearestPerSource
-  NearestPair
 } derive(Eq, @debug.Debug)
 
 pub enum PredicateIssue {
-  InvalidPredicateLimits
   PredicateBudget(@decode_core.Cursor)
-  ScopeIssue(Issue)
   SyntaxIssue(@expression_syntax.Issue)
   TypingIssue(@expression_typing.Issue)
   UnknownPredicateField(@expression_syntax.FieldReference)
@@ -696,30 +371,19 @@ pub(all) struct PredicateUsage {
   tokens : Int
 }
 
-pub struct PropertyStrategy {
-  name : String
-  strategy : FieldStrategy
-}
+type PropertyEdge
 
-pub(all) enum ReachObligation {
-  AdmitReachGraph
-  RequireReachStartMembership
-  JournalReachExpansion
-  BoundedMinimumDepthTraversal
-  CanonicalReachOrder
-  ResolveReachResources
-  ResolveReachProfile
+type PropertyElement
+
+pub(all) enum PropertyPathMode {
+  Walk
+  Trail
+  Acyclic
 } derive(Eq, @debug.Debug)
-
-pub(all) enum ReachStart {
-  SingleReachStart(@value_admission.CheckedValue)
-  SelectedReachStarts(CheckedSelector)
-}
 
 pub enum SelectorForm {
   ExplicitIds
   RelationIds(from~ : String, field~ : @relation_schema.FieldName)
-  PredicateNodes
 }
 
 pub(all) enum SelectorObligation {
@@ -727,54 +391,7 @@ pub(all) enum SelectorObligation {
   RevalidateSelectorReferences
   DeduplicateSelectorIdentities
   RequireSelectorMembership
-  EvaluateSelectorPredicate
   ResolveSelectorResources
-} derive(Eq, @debug.Debug)
-
-pub(all) enum ShortestObligation {
-  AdmitShortestGraph
-  RequireEndpointMembership
-  ValidateAllNonnegativeFiniteWeights
-  FoldPathCostsWithOverrange
-  RejectSelectedOverrangeAtomically
-  SelectSimpleHopBoundedPaths
-  ApplyCanonicalPathTieBreaks
-  CanonicalShortestOutputOrder
-  EnforceShortestOutputGuard
-  BindShortestOutputGuard(String)
-  ResolveShortestResources
-  ResolveShortestProfile
-} derive(Eq, @debug.Debug)
-
-pub(all) enum StructuralObligation {
-  AdmitGraphsUnderCommonContract
-  CompareCompleteIdentityPayloads
-  RejectUnspecifiedConflicts
-  ApplyEveryAuthoredStrategy
-  KeepCompleteOneSidedUnionRecords
-  KeepOnlyLeftSubtractionRecords
-  CloseSubtractionEndpoints
-  ValidateCanonicalSetOperations
-  ValidateFiniteNumericResults
-  PreservePolicyDependencies
-  ResolveStructuralResources
-  ResolveSgaProfile
-} derive(Eq, @debug.Debug)
-
-pub(all) enum StructuralOperation {
-  Graft
-  Union
-  Subtract
-} derive(Eq, @debug.Debug)
-
-pub(all) enum SubgraphObligation {
-  AdmitSubgraphInput
-  InduceSelectedEndpoints
-  FilterInducedEdges
-  PreserveSubgraphIdentitiesAndProperties
-  PreserveSubgraphPolicyAndScope
-  ResolveSubgraphResources
-  ResolveSubgraphProfile
 } derive(Eq, @debug.Debug)
 
 type TraversalHop
@@ -782,15 +399,14 @@ type TraversalHop
 pub(all) enum TraverseObligation {
   AdmitTraversalGraph
   RespectTraversalHopBounds
-  EvaluateTraversalHopPredicates
-  EmitMinimumNodeDepth
-  EnumerateSimplePaths
+  FilterTraversalLabels
+  EnumeratePropertyPaths
   DeduplicateExactPaths
   CanonicalTraversalOrder
   EnforceTraversalOutputGuard
   BindTraversalOutputGuard(String)
   ResolveTraversalResources
-  ResolveTraversalProfile
+  ResolvePropertyGraphTraversalProfile
 } derive(Eq, @debug.Debug)
 
 pub(all) struct Usage {

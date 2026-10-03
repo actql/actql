@@ -37,18 +37,26 @@ async ({root, directory, run, recordTarball}) => {
   const runtimeEnv = {...env, PATH: `${dirname(process.execPath)}:/usr/bin:/bin`};
   for (const name of ['MOON_HOME', 'ACTQL_LOCAL_SOURCE_PROFILE',
     'ACTQL_LOCAL_EFFECT_PROFILE', 'ACTQL_LOCAL_STATE_DIR']) delete runtimeEnv[name];
-  for (const mode of ['success', 'cancel', 'failure', 'capture', 'replay']) {
-    console.log(run(process.execPath, ['packed-single-infer.mjs', mode],
-      {cwd: root, env: runtimeEnv, timeout: 120000}).trimEnd());
+  for (const transport of ['local', 'http']) {
+    for (const mode of ['success', 'cancel', 'failure', 'capture', 'replay']) {
+      console.log(run(process.execPath, ['packed-single-infer.mjs', mode,
+        transport], {cwd: root, env: runtimeEnv, timeout: 120000}).trimEnd());
+    }
   }
   const calls = (await readFile(join(root, 'provider-calls.jsonl'), 'utf8'))
-    .trim().split('\n').map(line => JSON.parse(line).mode);
-  if (JSON.stringify(calls) !== JSON.stringify([
-    'success', 'cancel', 'failure', 'capture'])) {
+    .trim().split('\n').map(line => JSON.parse(line));
+  const expectedCalls = ['local', 'http'].flatMap(transport =>
+    ['success', 'cancel', 'failure', 'capture'].map(mode =>
+      ({mode, transport})));
+  if (JSON.stringify(calls.map(({mode, transport}) => ({mode, transport}))) !==
+      JSON.stringify(expectedCalls)) {
     throw new Error(`Unexpected provider dispatches: ${JSON.stringify(calls)}`);
   }
-  const boundary = JSON.parse(await readFile(join(root, 'capture-boundary.json')));
-  if (boundary.calls !== 1 || boundary.boundary !== 'infer_capture_committed') {
-    throw new Error('Capture process did not stop at its accepted boundary');
+  for (const transport of ['local', 'http']) {
+    const boundary = JSON.parse(await readFile(join(root,
+      `capture-boundary-${transport}.json`)));
+    if (boundary.calls !== 1 || boundary.boundary !== 'infer_capture_committed') {
+      throw new Error(`${transport}: capture process did not stop at its accepted boundary`);
+    }
   }
 });

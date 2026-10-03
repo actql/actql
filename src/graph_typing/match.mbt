@@ -13,7 +13,7 @@ pub(all) enum MatchObligation {
   EvaluateMatchPredicate
   CanonicalMatchOrder
   ResolveMatchResources
-  ResolveMatchProfile
+  ResolvePropertyGraphMatchProfile
 } derive(Eq, Debug)
 
 ///|
@@ -27,6 +27,7 @@ struct CheckedMatch {
   ids : Array[@value.CheckedValue]
   types : Array[String]?
   usage : PredicateUsage
+  property_scope : PropertyMatchScope
 }
 
 ///|
@@ -62,13 +63,16 @@ pub fn check_match(
       text: limits.max_text_bytes,
     }
     scan(b, source)
+    guard input is @carrier.GraphValue(graph) else {
+      fail(source, WrongCarrier(@carrier.kind(input)))
+    }
     let root = decoded(
       @decode.closed_object(
         source,
         if entity == Nodes {
-          ["ids", "where", "fields"]
+          ["ids", "where", "fields", "definition", "label", "bindings"]
         } else {
-          ["types", "where", "fields"]
+          ["types", "where", "fields", "definition", "label", "bindings"]
         },
       ),
     )
@@ -77,16 +81,9 @@ pub fn check_match(
     if entity == Nodes && (ids_source is Some(_)) == (where_source is Some(_)) {
       fail(source, InvalidBody)
     }
-    let scoped = match
-      check_scope(entity, source, input, {
-        ..b.limits,
-        max_work: b.work,
-        max_nodes: b.nodes,
-        max_text_bytes: b.text,
-      }) {
-      Ok(s) => s
-      Err(e) => raise Stop(e)
-    }
+    let scope = check_property_match_scope(entity, source, root, graph, b)
+    let property_scope = scope
+    let scoped = scope.scope
     b.work -= scoped.usage.work
     b.text -= scoped.usage.text_bytes
     let at = decoded(@decode.required(root, "fields"))
@@ -181,14 +178,20 @@ pub fn check_match(
     let predicate = match where_source {
       None => None
       Some(at) => {
-        let p = match
-          check_predicate(entity, at, input, parameters, {
-            max_work: b.work,
-            max_nodes: b.nodes,
-            max_depth: limits.max_depth,
-            max_text_bytes: b.text,
-            max_tokens: limits.max_tokens,
-          }) {
+        let remaining = {
+          max_work: b.work,
+          max_nodes: b.nodes,
+          max_depth: limits.max_depth,
+          max_text_bytes: b.text,
+          max_tokens: limits.max_tokens,
+        }
+        let result = check_predicate_in_scope(
+          scope.scope,
+          at,
+          parameters,
+          remaining,
+        )
+        let p = match result {
           Ok(p) => p
           Err(e) => raise MatchStop(MatchPredicate(e))
         }
@@ -207,6 +210,7 @@ pub fn check_match(
       fields: output.map(value => value.0),
       ids,
       types,
+      property_scope,
       usage: {
         work: limits.max_work - b.work,
         nodes: limits.max_nodes - b.nodes,
@@ -305,7 +309,7 @@ fn match_pending_each(
   emit(AdmitMatchGraphData)
   emit(CanonicalMatchOrder)
   emit(ResolveMatchResources)
-  emit(ResolveMatchProfile)
+  emit(ResolvePropertyGraphMatchProfile)
   if !c.ids.is_empty() {
     emit(ValidateSelectedIdentityMembership)
   }

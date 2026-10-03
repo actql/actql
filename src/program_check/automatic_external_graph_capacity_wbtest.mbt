@@ -5,7 +5,7 @@ fn external_graph_checked_program(
 ) -> CheckedProgram raise {
   let (environment, sources) = external_graph_capacity_fixture()
   let text =
-    #|{"version":"actql/0.1","id":"external-graph","stages":[{"id":"s","inputs":{"g":{"connector":"crm/main","resource":"r"}},"steps":[{"node_rows":true,"as":"rows"}],"results":{"out":{"from":"rows","fields":["id"]}}}],"results":{"out":{"from":{"stage":"s","result":"out"}}}}
+    #|{"version":"actql/0.1","id":"external-graph","stages":[{"id":"s","inputs":{"g":{"connector":"crm/main","resource":"r"}},"steps":[{"match_nodes":{"definition":"N","label":"Node","where":"true","fields":["id"]},"as":"rows"}],"results":{"out":{"from":"rows","fields":["id"]}}}],"results":{"out":{"from":{"stage":"s","result":"out"}}}}
   let text = if imported {
     text.replace(
       old="}],\"results\":{\"out\":{\"from\":{\"stage\":\"s\",\"result\":\"out\"}}}}",
@@ -25,13 +25,12 @@ fn external_graph_checked_program(
   let defaults = distinct_compile_limits()
   let outcome = check_document_with_evidence(
     text,
-    checking_environment(environment, { text_time: false, veca: false, }, {
-      rela: true,
-      sga: true,
-      tea: false,
-      calendar: false,
-      text_rank: false,
-    }),
+    checking_environment(
+      environment,
+      { text_time: false, veca: false, },
+      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+      property_graph=true,
+    ),
     None,
     [{ stage: "s", sources, uses: [], }],
     {
@@ -69,6 +68,8 @@ fn external_graph_checked_program(
     NeedsInputs(_) => fail("unexpected missing inputs")
     Rejected(diagnostic) =>
       match diagnostic_cause(diagnostic) {
+        Environment(Carriers(issue)) =>
+          fail("carrier " + @debug.to_string(issue.kind))
         Source(SourceView(Context(Stages(RowCapacity(InvalidGraph))))) =>
           fail(
             "automatic capacity cannot register the foreign Graph input owner",
@@ -98,7 +99,7 @@ fn external_graph_checked_program(
 }
 
 ///|
-test "standard Graph source derives projection proof from admitted input enforcement" {
+test "Property Graph source derives MATCH proof from admitted input enforcement" {
   for imported in [false, true] {
     let program = external_graph_checked_program(imported, false)
     let publication = unit_publication_at(
@@ -140,7 +141,7 @@ test "imported Graph-derived rows keep input enforcement through repeated append
 }
 
 ///|
-test "Graph projection operands retain producer ownership before material collection" {
+test "Graph MATCH operands retain producer ownership before material collection" {
   let program = external_graph_checked_program(true, false)
   let source = program.units[0].pipeline
   let candidate = @context.publication_row_limit_program_at(
@@ -306,7 +307,6 @@ test "imported Graph limit scope requires retained source admission and bounded 
     ),
     @capacity.consumer_coverage_sequence(consumers),
     joins=@capacity.consumer_coverage_joins(consumers),
-    components=@capacity.consumer_coverage_components(consumers),
     traversals=@capacity.consumer_coverage_traversals(consumers),
     max_work=100000,
   ).unwrap()

@@ -19,7 +19,6 @@ priv enum MatchNodesPhase {
 ///|
 priv struct MatchNodesState {
   source : GraphReadSource
-  graph : @carrier.Graph
   node_count : Int
   prepared : @lower.PreparedGraphMatch
   schema : @schema.Schema
@@ -39,7 +38,6 @@ priv struct MatchNodesState {
   mut predicate_work_remaining : Int
   predicate_input : Map[String, @execution.Value]
   mut predicate_execution : @execution.PredicateExpressionExecution?
-  mut key_comparison : @value.BoundedKeyComparison?
   mut selected : Array[Int]
   mut scratch : Array[Int?]
   scratch_count : Int
@@ -52,6 +50,7 @@ priv struct MatchNodesState {
   mut right_index : Int
   mut merge_index : Int
   mut copy_index : Int
+  mut comparison_unit : Int
   mut emit_index : Int
   mut column : Int
   mut values : Array[@value.CheckedValue]
@@ -136,42 +135,18 @@ fn capped_match_nodes_run_end(start : Int, width : Int, count : Int) -> Int {
 }
 
 ///|
-fn graph_node_alias(graph : @carrier.Graph) -> @schema.FieldName? {
-  match @carrier.graph_names(graph) {
-    Some(names) => {
-      let (node, _, _, _) = @carrier.graph_row_fields(names)
-      Some(node)
-    }
-    None => None
-  }
-}
-
-///|
-fn graph_node_property_index(
-  graph : @carrier.Graph,
-  name : @schema.FieldName,
-) -> Int? {
-  let properties = @carrier.graph_node_properties(graph)
-  for index in 0..<@carrier.field_count(properties) {
-    if @carrier.field_at(properties, index).unwrap().name == name {
-      return Some(index)
-    }
-  }
-  None
-}
-
-///|
-fn node_predicate_field_count(graph : @carrier.Graph) -> Int {
-  graph_node_predicate_binding_count(graph)
-}
-
-///|
 fn node_predicate_binding(
   state : MatchNodesState,
   node : Int,
   index : Int,
 ) -> (String, @execution.Value)? {
-  graph_node_predicate_binding_read(state.graph, state.source, node, index)
+  let fields = @lower.graph_match_property_scope_fields(state.prepared)
+  guard @carrier.field_at(fields, index) is Some(field) &&
+    field.contract is Some(contract) &&
+    match_node_value(state, node, field.name, contract) is Some(value) else {
+    return None
+  }
+  Some((@schema.reference_name(field.name), @execution.capture(value.value)))
 }
 
 ///|
@@ -180,20 +155,29 @@ fn match_node_field(
   node : Int,
   expected : @schema.Field,
 ) -> @value.CheckedValue? {
-  let source = if graph_node_alias(state.graph) == Some(expected.name) {
+  match_node_value(state, node, expected.name, expected.contract)
+}
+
+///|
+fn match_node_value(
+  state : MatchNodesState,
+  node : Int,
+  name : @schema.FieldName,
+  contract : @contract.Contract,
+) -> @value.CheckedValue? {
+  let source = if @lower.graph_match_property_binding(
+      state.prepared,
+      "identity",
+    ) ==
+    Some(name) {
     graph_read_node_identity(state.source, node)
   } else {
-    match graph_node_property_index(state.graph, expected.name) {
-      Some(property) => graph_read_node_property(state.source, node, property)
-      None => None
-    }
+    property_match_field_index(state.prepared, name).bind(index => {
+      graph_read_node_property(state.source, node, index)
+    })
   }
-  source.bind(checked => {
-    @value.recheck_runtime_value(
-      checked.value,
-      expected.contract,
-      state.value_limits,
-    )
+  source.bind(value => {
+    @value.recheck_runtime_value(value.value, contract, state.value_limits)
   })
 }
 
@@ -203,33 +187,17 @@ fn compare_selected_nodes_step(
   left : Int,
   right : Int,
 ) -> Result[Int?, MatchNodesIssue] {
-  let active = match state.key_comparison {
-    Some(value) => value
-    None => {
-      guard graph_read_node_identity(state.source, left) is Some(left_value) &&
-        graph_read_node_identity(state.source, right) is Some(right_value) else {
-        return Err(MatchNodesInputUnavailable)
-      }
-      let value = match
-        @value.start_bounded_key_comparison(left_value, right_value) {
-        Ok(value) => value
-        Err(issue) => return Err(MatchNodesKeyOrder(issue))
-      }
-      state.key_comparison = Some(value)
-      value
-    }
+  guard graph_read_node_identity_order_key(state.source, left) is Some(left_key) &&
+    graph_read_node_identity_order_key(state.source, right) is Some(right_key) else {
+    return Err(MatchNodesInputUnavailable)
   }
-  match @value.advance_bounded_key_comparison(active, 1) {
-    Ok(@value.KeyComparisonContinue(_)) => Ok(None)
-    Ok(@value.KeyComparisonComplete(order~, ..)) => {
-      state.key_comparison = None
-      Ok(Some(order))
-    }
-    Err(issue) => {
-      state.key_comparison = None
-      Err(MatchNodesKeyOrder(issue))
-    }
-  }
+  let (order, next) = graph_identity_compare_unit(
+    left_key,
+    right_key,
+    state.comparison_unit,
+  )
+  state.comparison_unit = next
+  Ok(order)
 }
 
 ///|
@@ -312,7 +280,13 @@ fn match_nodes_step(
         progress += 1
       }
       ResolveIdentities =>
-        if state.predicate is Some(_) {
+        if (state.predicate is Some(_) || state.select_all_nodes is Some(_)) &&
+          state.identity_index < state.node_count &&
+          graph_read_node_definition(state.source, state.identity_index) !=
+          Some(@lower.graph_match_property_definition(state.prepared)) {
+          state.identity_index += 1
+          used += 1
+        } else if state.predicate is Some(_) {
           if state.identity_index < state.node_count {
             state.predicate_field = 0
             state.predicate_input.clear()
@@ -342,6 +316,10 @@ fn match_nodes_step(
           }
           match graph_read_node_index(state.source, identity) {
             Ok(Some(node)) => {
+              if graph_read_node_definition(state.source, node) !=
+                Some(@lower.graph_match_property_definition(state.prepared)) {
+                return @bounded.Failed(InvalidMatchNodesKernel, progress, used)
+              }
               state.selected.push(node)
               state.identity_index += 1
             }
@@ -562,7 +540,6 @@ fn match_nodes_step(
 
 ///|
 fn cleanup_match_nodes_state(state : MatchNodesState) -> Bool {
-  state.key_comparison = None
   if state.predicate_execution is Some(execution) {
     @execution.cancel_predicate_expression(execution) |> ignore
     state.predicate_execution = None
@@ -578,6 +555,7 @@ fn cleanup_match_nodes_state(state : MatchNodesState) -> Bool {
   state.selected = []
   state.scratch = []
   state.scratch_slots.val = 0
+  state.comparison_unit = 0
   state.values = []
   state.predicate_input.clear()
   true
@@ -601,7 +579,7 @@ pub fn start_match_nodes(
   let owner = @lower.sequence_owner(sequence)
   guard @graph.producer_read_matches_operation_input(input, owner, step, 0) &&
     @graph.producer_read_storage(input) is Some(storage) &&
-    @storage.carrier(storage) is @carrier.GraphValue(graph) else {
+    @storage.carrier(storage) is @carrier.GraphValue(_) else {
     return Err(InvalidMatchNodesKernel)
   }
   start_match_nodes_read(
@@ -610,7 +588,6 @@ pub fn start_match_nodes(
     sequence,
     step,
     Stored(input),
-    graph,
     @storage.node_count(storage),
     max_rows,
     limits,
@@ -642,7 +619,7 @@ pub fn start_match_nodes_view(
   guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
     @lower.node_input_target(node, 0) is Some(target) &&
     @lower.preparation_carrier_at(@lower.bound_preparation(owner), target)
-    is Some(@carrier.GraphValue(graph)) &&
+    is Some(@carrier.GraphValue(_)) &&
     @lifecycle.producer_view_kind(input) == @carrier.GraphKind &&
     @lifecycle.producer_read_reference_matches_operation_input(
       @lifecycle.producer_view_read_reference(input),
@@ -659,7 +636,6 @@ pub fn start_match_nodes_view(
     sequence,
     step,
     Viewed(input),
-    graph,
     node_count,
     max_rows,
     limits,
@@ -678,7 +654,6 @@ fn start_match_nodes_read(
   sequence : @lower.PreparedSequence,
   step : Int,
   source : GraphReadSource,
-  graph : @carrier.Graph,
   node_count : Int,
   max_rows : Int,
   limits : @execution.ValueLimits,
@@ -726,7 +701,7 @@ fn start_match_nodes_read(
   let schema = @lower.graph_match_output_schema(prepared)
   let width = @schema.field_count(schema)
   let predicate_fields = if predicate is Some(_) {
-    node_predicate_field_count(graph)
+    @carrier.field_count(@lower.graph_match_property_scope_fields(prepared))
   } else {
     0
   }
@@ -757,6 +732,28 @@ fn start_match_nodes_read(
   let accepted = Ref(false)
   let scratch_slots = Ref(0)
   let port_result = match source {
+    Stored(read) if @lifecycle.producer_read_reference_matches_input(
+        @graph.producer_read_carrier_reference(read),
+        owner,
+        0,
+      ) => {
+      let retained_inputs = [
+        @execution.trusted_output_carrier_input(
+          @graph.producer_read_carrier_reference(read),
+        ),
+      ]
+      for input in inputs {
+        retained_inputs.push(@execution.trusted_output_relation_input(input))
+      }
+      @execution.prepare_trusted_output_port_with_inputs(
+        preparation,
+        @pipeline.Step(step),
+        max_entries,
+        max_name_bytes,
+        fn(_) { if live.val { rows.val } else { None } },
+        inputs=retained_inputs,
+      )
+    }
     Stored(_) =>
       @execution.prepare_trusted_output_port(
         preparation,
@@ -794,7 +791,6 @@ fn start_match_nodes_read(
   }
   let state : MatchNodesState = {
     source,
-    graph,
     node_count,
     prepared,
     schema,
@@ -818,7 +814,6 @@ fn start_match_nodes_read(
     predicate_work_remaining: limits.max_work,
     predicate_input: Map([]),
     predicate_execution: None,
-    key_comparison: None,
     selected: [],
     scratch: [],
     scratch_count: count,
@@ -831,6 +826,7 @@ fn start_match_nodes_read(
     right_index: 0,
     merge_index: 0,
     copy_index: 0,
+    comparison_unit: 0,
     emit_index: 0,
     column: 0,
     values: [],

@@ -60,12 +60,6 @@ pub fn check_applications(@capacity_witness.ProgramClaims, Array[StepBound], max
 
 pub fn check_asof_search_product(@pipeline_typing.CheckedPipeline, Int, TargetRows?, TargetRows?, Int) -> Result[AsOfSearchProduct, AsOfSearchIssue]
 
-pub fn check_components_applications(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, Applications, @capacity_policy.Policy, Array[ComponentsLimits], max_work~ : Int) -> Result[ComponentsApplications, ComponentsCollectionIssue]
-
-pub fn check_components_complete(@pipeline_typing.CheckedPipeline, @capacity_host_witness.HostSources, Applications, @capacity_policy.Policy, Array[ComponentsLimits], max_work~ : Int) -> Result[ComponentsApplications, ComponentsCollectionIssue]
-
-pub fn check_components_limits(@pipeline_typing.CheckedPipeline, Int, @capacity_host_witness.HostSources, Applications, @capacity_policy.Policy, Int, Int, guards? : @pipeline_typing.BoundAuthorGuards?, max_work~ : Int) -> Result[ComponentsLimits, ComponentsLimitIssue]
-
 pub fn check_guard_bindings(Applications, @pipeline_typing.BoundAuthorGuards, max_work~ : Int) -> Result[GuardApplications, GuardBindingIssue]
 
 pub fn check_interval_search_product(@pipeline_typing.CheckedPipeline, Int, TargetRows?, TargetRows?, Int) -> Result[IntervalSearchProduct, IntervalSearchIssue]
@@ -105,48 +99,6 @@ pub fn checked_pipeline(StepBound) -> @pipeline_typing.CheckedPipeline
 pub fn checked_proof(StepBound) -> @capacity_witness.ProgramProofClaim
 
 pub fn checked_step(StepBound) -> Int
-
-pub fn components_application_at(ComponentsApplications, Int) -> ComponentsLimits?
-
-pub fn components_application_guard_bindings_match(ComponentsApplications, @pipeline_typing.BoundAuthorGuards) -> Bool
-
-pub fn components_application_pipeline(ComponentsApplications) -> @pipeline_typing.CheckedPipeline
-
-pub fn components_application_policy(ComponentsApplications) -> @capacity_policy.Policy
-
-pub fn components_application_program(ComponentsApplications) -> Applications
-
-pub fn components_application_sources(ComponentsApplications) -> @capacity_host_witness.HostSources
-
-pub fn components_application_work(ComponentsApplications) -> Int
-
-pub fn components_consumes_limit(ComponentsApplications, Int) -> Bool
-
-pub fn components_limit_claim(ComponentsLimits, ComponentsScope) -> @capacity_witness.LimitClaim
-
-pub fn components_limit_effective_maximum(ComponentsLimits, ComponentsScope) -> Int64
-
-pub fn components_limit_guard_index(ComponentsLimits) -> Int?
-
-pub fn components_limit_guard_value(ComponentsLimits) -> Int64?
-
-pub fn components_limit_guards(ComponentsLimits) -> @pipeline_typing.BoundAuthorGuards?
-
-pub fn components_limit_index(ComponentsLimits, ComponentsScope) -> Int
-
-pub fn components_limit_pipeline(ComponentsLimits) -> @pipeline_typing.CheckedPipeline
-
-pub fn components_limit_policy(ComponentsLimits) -> @capacity_policy.Policy
-
-pub fn components_limit_program(ComponentsLimits) -> Applications
-
-pub fn components_limit_sources(ComponentsLimits) -> @capacity_host_witness.HostSources
-
-pub fn components_limit_step(ComponentsLimits) -> Int
-
-pub fn components_limit_work(ComponentsLimits) -> Int
-
-pub fn components_unconsumed_limit_count(ComponentsApplications) -> Int
 
 pub fn count_parameters_usage(CountParameters) -> (Int, Int)
 
@@ -353,47 +305,6 @@ pub(all) enum CandidateIssue {
   MissingProgramEvidence
 } derive(Eq, @debug.Debug)
 
-type ComponentsApplications
-
-pub(all) enum ComponentsCollectionIssue {
-  InvalidLimits
-  WorkLimit
-  ForeignClaims
-  MissingMixedClosure
-  ForeignPipeline(Int)
-  ForeignSources(Int)
-  ForeignProgram(Int)
-  ForeignPolicy(Int)
-  ForeignGuardBindings(Int)
-  DuplicateApplication(Int)
-  DuplicateConsumption(Int)
-  MissingApplication(Int)
-  UnconsumedLimits(Int)
-} derive(Eq, @debug.Debug)
-
-pub(all) enum ComponentsLimitIssue {
-  InvalidLimits
-  InvalidStep
-  WrongOperation
-  UnresolvedAuthorSource
-  ForeignGuardOwner
-  MissingGuard
-  WorkLimit
-  ForeignClaims
-  MissingMixedClosure
-  MissingLimit(ComponentsScope)
-  SubjectMismatch(ComponentsScope)
-  WrongEnforcement(ComponentsScope)
-  Candidates(ComponentsScope, CandidateIssue)
-} derive(Eq, @debug.Debug)
-
-type ComponentsLimits
-
-pub(all) enum ComponentsScope {
-  InputNodes
-  OutputRows
-} derive(Eq, @debug.Debug)
-
 type CountBindings
 
 type CountParameters
@@ -511,7 +422,6 @@ pub(all) enum JoinLimitIssue {
 pub(all) enum OutputEnforcement {
   SequenceEnforcement(@capacity_sequence_limit.SequenceLimits)
   JoinEnforcement(JoinLimit)
-  ComponentsEnforcement(ComponentsLimits)
   TraversalEnforcement(TraversalLimits)
 }
 
@@ -550,7 +460,6 @@ pub(all) enum ResolutionIssue {
   ForeignApplication(Int)
   DuplicateApplication(Int)
   Step(Int, Issue)
-  Components(Int, ComponentsLimitIssue)
   Join(Int, JoinLimitIssue)
   Traversal(Int, TraversalLimitIssue)
   InvalidOutputProof(Int)
@@ -561,7 +470,6 @@ pub(all) enum ResolutionRequest {
   SequenceApplication(Int, @capacity_witness.ProgramProofClaim, Int, Int)
   ExistingApplication(StepBound)
   DeriveApplication(Int, @capacity_witness.ProgramProofClaim, Array[ResolutionInput], CountBindings?)
-  ComponentsApplication(Int, @capacity_witness.ProgramProofClaim, Int, Int)
   JoinApplication(Int, @capacity_witness.ProgramProofClaim, Int)
   TraversalApplication(Int, @capacity_witness.ProgramProofClaim, Int, Int)
 }

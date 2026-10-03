@@ -3,14 +3,19 @@ package "actql/actql/managed_graph_storage"
 
 import {
   "actql/actql/carrier_contract",
+  "actql/actql/decode_core",
   "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
 
 // Values
-pub fn append_edge(Builder, @value_admission.CheckedValue, @value_admission.CheckedValue, @value_admission.CheckedValue?, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
+pub fn append_property_edge(Builder, Int, Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
 
-pub fn append_node(Builder, @value_admission.CheckedValue, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
+pub fn append_property_node(Builder, Int, Array[@value_admission.CheckedValue], Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
+
+pub fn append_property_snapshot_edge(Builder, @decode_core.Cursor, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, Issue]
+
+pub fn append_property_snapshot_node(Builder, @decode_core.Cursor, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[Unit, Issue]
 
 pub fn builder_construction_work(Builder) -> Int
 
@@ -30,19 +35,25 @@ pub fn carrier(Storage) -> @carrier_contract.Carrier
 
 pub fn construction_work(Storage) -> Int
 
-pub fn contains_declared_node(Builder, @value_admission.CheckedValue) -> Result[Bool, Issue]
-
 pub fn discard(Storage) -> Unit
 
 pub fn edge_count(Storage) -> Int
 
+pub fn edge_definition_index(Storage, Int) -> Int?
+
 pub fn edge_endpoints(Storage, Int) -> (Int, Int)?
 
-pub fn edge_index(Storage, @value_admission.CheckedValue, @value_admission.CheckedValue, @value_admission.CheckedValue?) -> Result[Int?, Issue]
+pub fn edge_identity(Storage, Int) -> @value_admission.CheckedValue?
 
-pub fn edge_label(Storage, Int) -> @value_admission.CheckedValue??
+pub fn edge_identity_index(Storage, @value_admission.CheckedValue) -> Result[Int?, Issue]
+
+pub fn edge_identity_order_key(Storage, Int) -> String?
 
 pub fn edge_property(Storage, Int, Int) -> @value_admission.CheckedValue?
+
+pub fn edge_typed_key(Storage, Int) -> Array[@value_admission.CheckedValue]?
+
+pub fn edge_typed_key_at(Storage, Int, Int) -> @value_admission.CheckedValue?
 
 pub fn finish(Builder) -> Result[Storage, Issue]
 
@@ -54,15 +65,19 @@ pub fn mode(Storage) -> Mode
 
 pub fn node_count(Storage) -> Int
 
+pub fn node_definition_index(Storage, Int) -> Int?
+
 pub fn node_identity(Storage, Int) -> @value_admission.CheckedValue?
+
+pub fn node_identity_order_key(Storage, Int) -> String?
 
 pub fn node_index(Storage, @value_admission.CheckedValue) -> Result[Int?, Issue]
 
 pub fn node_property(Storage, Int, Int) -> @value_admission.CheckedValue?
 
-pub fn observe_edge(Builder, @value_admission.CheckedValue, @value_admission.CheckedValue, @value_admission.CheckedValue?, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
+pub fn node_typed_key(Storage, Int) -> Array[@value_admission.CheckedValue]?
 
-pub fn observe_node(Builder, @value_admission.CheckedValue, Array[@value_admission.CheckedValue]) -> Result[Unit, Issue]
+pub fn node_typed_key_at(Storage, Int, Int) -> @value_admission.CheckedValue?
 
 pub fn prepare(@carrier_contract.Carrier, Mode, Limits) -> Result[Builder, Issue]
 
@@ -78,11 +93,8 @@ type Builder
 pub(all) enum Issue {
   InvalidLimits
   WrongCarrier
-  OpenPropertyContract
   InvalidIdentity
-  InvalidLabel
   InvalidProperties
-  WrongMode
   InputRowLimit
   NodeLimit
   EdgeLimit
@@ -90,8 +102,8 @@ pub(all) enum Issue {
   RetainedValueLimit
   WorkLimit
   WorkspaceLimit
-  DuplicateNodeConflict
-  DuplicateEdgeConflict
+  DuplicateNodeKey
+  DuplicateEdgeKey
   MissingEndpoint
   Closed
 } derive(Eq, @debug.Debug)
@@ -112,7 +124,6 @@ pub(all) struct Limits {
 
 pub(all) enum Mode {
   DeclaredNodes
-  DerivedEndpoints
 } derive(Eq, @debug.Debug)
 
 type Storage

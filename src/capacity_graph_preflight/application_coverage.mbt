@@ -4,7 +4,6 @@ pub(all) enum ApplicationCoverageIssue {
   ForeignProgram
   WorkLimit
   MissingJoinApplications(Int)
-  MissingComponentsApplications(Int)
   MissingTraversalApplications(Int)
   Source(SourceCoverageIssue)
   Consumer(ConsumerCoverageIssue)
@@ -25,7 +24,6 @@ pub fn check_application_coverage(
   program : @program.Applications,
   sequence : @sequence.Applications,
   joins? : @program.JoinApplications? = None,
-  components? : @program.ComponentsApplications? = None,
   traversals? : @program.TraversalApplications? = None,
   max_work~ : Int,
 ) -> Result[ApplicationCoverage, ApplicationCoverageIssue] {
@@ -34,10 +32,6 @@ pub fn check_application_coverage(
   }
   if joins is Some(joined) &&
     !physical_equal(program, @program.join_application_program(joined)) {
-    return Err(ForeignProgram)
-  }
-  if components is Some(apps) &&
-    !physical_equal(program, @program.components_application_program(apps)) {
     return Err(ForeignProgram)
   }
   if traversals is Some(apps) &&
@@ -52,7 +46,7 @@ pub fn check_application_coverage(
   // An absent ledger is valid only if the pipeline has no corresponding steps.
   // Limit-set completeness alone cannot prove operation coverage: the caller
   // could omit both an operation's application and its limit artifact.
-  if joins is None || components is None || traversals is None {
+  if joins is None || traversals is None {
     let steps = @pipeline.step_count(checked_pipeline(graph))
     if steps > remaining {
       return Err(WorkLimit)
@@ -67,11 +61,7 @@ pub fn check_application_coverage(
           if joins is None {
             return Err(MissingJoinApplications(i))
           }
-        @pipeline.Graph(op) =>
-          if components is None && @graph.operation(op) == @graph.Components {
-            return Err(MissingComponentsApplications(i))
-          }
-        @pipeline.Traverse(..) | @pipeline.Reach(_) | @pipeline.Shortest(..) =>
+        @pipeline.Traverse(..) =>
           if traversals is None {
             return Err(MissingTraversalApplications(i))
           }
@@ -84,7 +74,6 @@ pub fn check_application_coverage(
       graph,
       sequence,
       joins~,
-      components~,
       traversals~,
       max_work=remaining,
     ) {

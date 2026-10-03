@@ -42,6 +42,49 @@ fn record_body() -> Json raise {
 }
 
 ///|
+test "Property Graph schema comparisons share the enclosing work owner, not its structural node count" {
+  let body = @json.parse(
+    (
+      #|{"domain":"sha256:0000000000000000000000000000000000000000000000000000000000000000","edge_definitions":[],"identity_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","node_definitions":[{"key_contracts":[{"nullable":false,"type":"number"}],"labels":{"Node":["id","name"],"Person":["id","name"]},"name":"N","properties":{"id":{"nullable":false,"type":"number"},"name":{"nullable":true,"type":"string"}}}],"value_law_cid":"sha256:654315b04dd9391454d0b5ffdf1a559d2bf5cae57eebfcf18c5cc4de2cad66dc","version":"actql-property-graph-contract/0.1"}
+    ),
+  )
+  let modes = carrier_modes(body, "graph")
+  let admitted = check_carrier_schemas(modes, carrier_limits()).unwrap()
+  let (bytes, nodes, work, count) = carrier_schema_usage(admitted)
+  assert_eq(count, 1)
+  let exact : CarrierSchemaLimits = {
+    max_schemas: 1,
+    max_work: work,
+    bodies: { max_bytes: bytes, max_nodes: nodes, max_depth: 100, },
+  }
+  assert_true(check_carrier_schemas(modes, exact) is Ok(_))
+  assert_true(
+    check_carrier_schemas(modes, { ..exact, max_work: work - 1, }) is Err(_),
+  )
+  // Checking an unused second schema must charge its same validation work;
+  // a Catalog can neither reset the owner nor hide a non-output definition.
+  let doubled = carrier_modes(body, "graph", unused=Some(body))
+  let both = check_carrier_schemas(doubled, carrier_limits()).unwrap()
+  let (double_bytes, double_nodes, double_work, _) = carrier_schema_usage(both)
+  assert_eq((double_bytes, double_nodes), (bytes * 2, nodes * 2))
+  assert_true(double_work > work)
+  assert_true(
+    check_carrier_schemas(doubled, {
+      ..carrier_limits(),
+      max_work: double_work,
+    })
+    is Ok(_),
+  )
+  assert_true(
+    check_carrier_schemas(doubled, {
+      ..carrier_limits(),
+      max_work: double_work - 1,
+    })
+    is Err(_),
+  )
+}
+
+///|
 fn role_body(kind : String) -> Json raise {
   if kind == "relation" {
     return record_body()

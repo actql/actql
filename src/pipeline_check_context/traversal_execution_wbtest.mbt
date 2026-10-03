@@ -1,21 +1,33 @@
 ///|
 fn traversal_checked_fixture(
   emission : String,
-  shortest? : Bool = false,
   guard_text? : String = "",
   parameters? : @parameter.Declarations? = None,
   bindings? : @parameter.BoundValues? = None,
 ) -> (@pipeline.CheckedPipeline, @step_bounds.TraversalLimits) raise {
+  let producer = property_execution_pipeline()
+  guard @pipeline.output_carrier(producer) is Some(@carrier.GraphValue(graph)) else {
+    fail("current constructor Graph")
+  }
+  let domain = @carrier.property_graph_domain(
+    @carrier.graph_property_definition(graph),
+  )
+  let identity = "{\"definition\":\"N\",\"domain\":\"" +
+    domain +
+    "\",\"key\":[1],\"key_types\":[{\"kind\":\"number\"}]}"
+  let producer_prefix = property_execution_steps()
+    .strip_suffix("]")
+    .unwrap()
+    .to_owned()
   let pipeline = @pipeline.check_carriers(
     asof_test_cursor(
-      "[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"dst\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1,\"dst\":2}]},\"as\":\"seed\"},{\"graph\":{\"nodes\":{\"from\":\"seed\",\"id\":\"id\",\"fields\":[]},\"edges\":{\"from\":\"seed\",\"source\":\"id\",\"target\":\"dst\",\"fields\":[]}},\"as\":\"g\"}," +
-      (if shortest {
-        "{\"shortest_path\":{\"source\":1,\"target\":1,\"direction\":\"out\",\"max_hops\":3"
-      } else {
-        "{\"traverse\":{\"start\":{\"ids\":[1]},\"direction\":\"out\",\"min_hops\":0,\"max_hops\":3,\"emit\":\"" +
-        emission +
-        "\""
-      }) +
+      producer_prefix +
+      "," +
+      "{\"traverse\":{\"start\":{\"ids\":[" +
+      identity +
+      "]},\"direction\":\"out\",\"min_hops\":0,\"max_hops\":3,\"path_mode\":\"trail\",\"emit\":\"" +
+      emission +
+      "\"" +
       guard_text +
       "}}]",
     ),
@@ -60,7 +72,7 @@ fn traversal_checked_fixture(
       text +
       "],\"effective_max\":7,\"enforcement\":\"engine_atomic\""
     let tail = ",\"subject_ref\":\"" +
-      (if shortest { "shortest_path" } else { "traverse" }) +
+      "traverse" +
       ":checked-step:2" +
       suffix +
       "\",\"unit\":\"" +
@@ -129,7 +141,7 @@ fn traversal_checked_fixture(
 
 ///|
 test "traversal execution retains separate path and output limits with exact owners" {
-  for emission in ["nodes", "paths"] {
+  for emission in ["paths"] {
     let (pipeline, limits) = traversal_checked_fixture(emission)
     let (foreign, foreign_limits) = traversal_checked_fixture(emission)
     let policy = @step_bounds.traversal_limit_policy(limits)
