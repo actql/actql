@@ -43,6 +43,31 @@ fn lower_script_relation(
   output : String,
   retained? : Array[RetainedResult]? = None,
 ) -> Input raise Abort {
+  let known = if @query.cte_count(query) == 0 {
+    known
+  } else {
+    validate_cte_scope(query, known)
+    let mut scoped = known.copy()
+    for index in 0..<@query.cte_count(query) {
+      let cte = @query.cte_at(query, index).unwrap()
+      let name = pipe_physical_name(reserved, "aql_script_cte_")
+      reserved.push(name)
+      let bound = lower_script_relation(
+        construction,
+        cte.query,
+        scoped,
+        context,
+        sources,
+        limits,
+        steps,
+        reserved,
+        name,
+      )
+      scoped = scoped.filter(input => !input_relation_matches([cte.name], input))
+      scoped.push({ ..bound, relation: [cte.name], })
+    }
+    scoped
+  }
   if @query.set_part_count(query) > 0 {
     return lower_script_set_relation(
       construction, query, known, context, sources, limits, steps, reserved, output,
@@ -77,9 +102,6 @@ fn lower_script_relation_term(
 ) -> Input raise Abort {
   if @query.graph_query(query) is Some(_) {
     raise Abort(UnsupportedGraph)
-  }
-  if @query.cte_count(query) > 0 {
-    raise Abort(UnsupportedCte)
   }
   if @query.join_part_count(query) > 0 {
     raise Abort(UnsupportedJoin)

@@ -25,6 +25,20 @@ export const acquiredDataSuccesses = [
     parameterDeclarations: {minimum: {type: 'number'}}, parameters: {minimum: 20},
     results: {copied_rows: {rows: [{amount: 20, id: 2}, {amount: 30, id: 3},
       {amount: 30, id: 3}], columns}}, sourceReadSessionCount: 1},
+  {name: 'acquired-data-cte-pipe-body', format: 'aql-text',
+    text: 'DATA copied = WITH chosen AS (FROM records |> WHERE amount >= 20 |> SELECT amount, id) FROM `CHOSEN` |> SELECT amount, id; FROM copied |> ORDER BY id |> RESULT copied_rows',
+    results: {copied_rows: {rows: [{amount: 20, id: 2}, {amount: 30, id: 3},
+      {amount: 30, id: 3}], columns}}, sourceReadSessionCount: 1},
+  {name: 'acquired-data-cte-set-shared-producer', format: 'aql-text',
+    text: 'DATA copied = WITH chosen AS (FROM records |> SELECT amount, id) SELECT amount, id FROM chosen UNION ALL SELECT amount, id FROM chosen; FROM copied |> ORDER BY id |> RESULT copied_rows',
+    results: {copied_rows: {rows: [{amount: null, id: 1}, {amount: null, id: 1},
+      {amount: 20, id: 2}, {amount: 20, id: 2}, {amount: 30, id: 3},
+      {amount: 30, id: 3}, {amount: 30, id: 3}, {amount: 30, id: 3}], columns}},
+    sourceReadSessionCount: 1},
+  {name: 'acquired-data-cte-shadows-outer-source', format: 'aql-text',
+    text: 'DATA copied = WITH records AS (SELECT amount, id FROM records WHERE id <= 2) SELECT amount, id FROM records; FROM copied |> ORDER BY id |> RESULT copied_rows',
+    results: {copied_rows: {rows: [{amount: null, id: 1}, {amount: 20, id: 2}], columns}},
+    sourceReadSessionCount: 1},
 ];
 
 // Installed Source View provenance is required by the common Graph owner.
@@ -57,4 +71,6 @@ export const acquiredDataRefusals = [
     text: 'DATA copied = FROM records |> WHERE amount >= @minimum |> SELECT id; FROM copied |> SELECT id',
     parameterDeclarations: {minimum: {type: 'number'}},
     parameters: {minimum: 'secret-value'}},
+  {name: 'acquired-data-cte-scope-does-not-leak', format: 'aql-text',
+    text: 'DATA copied = WITH chosen AS (FROM records |> SELECT id) FROM chosen |> SELECT id; FROM chosen |> SELECT id'},
 ];

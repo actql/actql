@@ -416,20 +416,27 @@ fn selected_relation(
 ///|
 // DATA/CTE producer aliases and published relation paths retain their
 // respective rules at every query and constructor entry.
+fn input_relation_matches(
+  relation : Array[@query.NamePart],
+  input : Input,
+) -> Bool {
+  if input.source is StepReference &&
+    relation.length() == 1 &&
+    input.relation.length() == 1 {
+    same_name(relation[0], input.relation[0])
+  } else {
+    same_relation_path(relation, input.relation)
+  }
+}
+
+///|
 fn resolve_relation_input(
   relation : Array[@query.NamePart],
   inputs : Array[Input],
 ) -> Input raise Abort {
   let mut found : Input? = None
   for input in inputs {
-    let matches = if input.source is StepReference &&
-      relation.length() == 1 &&
-      input.relation.length() == 1 {
-      same_name(relation[0], input.relation[0])
-    } else {
-      same_relation_path(relation, input.relation)
-    }
-    if matches {
+    if input_relation_matches(relation, input) {
       if found is Some(_) {
         raise Abort(AmbiguousRelation)
       }
@@ -2880,113 +2887,8 @@ fn compile_cte_query(
   if @query.relation(query).length() != 1 {
     return Err(UnsupportedCte)
   }
-  let used = Array::make(@query.cte_count(query), false)
-  let joined_relation = if @query.join_part_count(query) == 1 {
-    Some(@query.join_part_at(query, 0).unwrap().relation)
-  } else {
-    None
-  }
-  for index in 0..<@query.cte_count(query) {
-    let cte = @query.cte_at(query, index).unwrap()
-    for earlier in 0..<index {
-      if same_relation_name(
-          cte.name,
-          @query.cte_at(query, earlier).unwrap().name,
-        ) {
-        return Err(UnsupportedCte)
-      }
-    }
-    let body = cte.query
-    // RESULT is a statement-level publication obligation. A CTE or a
-    // derived-table body cannot add externally visible exports.
-    for operation_index in 0..<@query.operation_count(body) {
-      if @query.operation_at(body, operation_index) is Some(RetainResult(_)) {
-        return Err(UnsupportedResult)
-      }
-    }
-    if @query.cte_count(body) != 0 || @query.join_part_count(body) > 1 {
-      return Err(UnsupportedCte)
-    }
-    for term in query_terms(body) {
-      let body_relation = @query.relation(term)
-      for future in index..<@query.cte_count(query) {
-        if same_relation_path(body_relation, [
-            @query.cte_at(query, future).unwrap().name,
-          ]) {
-          return Err(UnsupportedCte)
-        }
-      }
-      let mut known_relation = body_relation.is_empty() ||
-        context.inputs.any(input => {
-          same_relation_path(body_relation, input.relation)
-        })
-      for earlier in 0..<index {
-        if same_relation_path(body_relation, [
-            @query.cte_at(query, earlier).unwrap().name,
-          ]) {
-          known_relation = true
-        }
-      }
-      if !known_relation {
-        return Err(UnknownRelation)
-      }
-      if @query.join_part_count(term) == 1 {
-        let right = @query.join_part_at(term, 0).unwrap().relation
-        let mut known_right = false
-        for earlier in 0..<index {
-          if same_relation_path(right, [
-              @query.cte_at(query, earlier).unwrap().name,
-            ]) {
-            known_right = true
-          }
-        }
-        if !known_right {
-          return Err(UnsupportedCte)
-        }
-      }
-    }
-    let joined = match joined_relation {
-      Some(path) => same_relation_path(path, [cte.name])
-      None => false
-    }
-    if query_terms(query).any(term => {
-        same_relation_path(@query.relation(term), [cte.name])
-      }) ||
-      joined {
-      used[index] = true
-    }
-  }
-  if !used.any(value => value) {
-    return Err(UnsupportedCte)
-  }
-  let mut index = @query.cte_count(query) - 1
-  while index >= 0 {
-    if used[index] {
-      for term in query_terms(@query.cte_at(query, index).unwrap().query) {
-        let relation = @query.relation(term)
-        let right = if @query.join_part_count(term) == 1 {
-          Some(@query.join_part_at(term, 0).unwrap().relation)
-        } else {
-          None
-        }
-        for earlier in 0..<index {
-          let name = [@query.cte_at(query, earlier).unwrap().name]
-          if same_relation_path(relation, name) ||
-            (
-              right is Some(right_relation) &&
-              same_relation_path(right_relation, name)
-            ) {
-            used[earlier] = true
-          }
-        }
-      }
-    }
-    index -= 1
-  }
-  // An unused declaration still needs full semantic checking. Until the
-  // frontend can check it without scheduling its acquisition, reject it.
-  if used.any(value => !value) {
-    return Err(UnsupportedCte)
+  validate_cte_scope(query, context.inputs) catch {
+    Abort(issue) => return Err(issue)
   }
   let document = @query.query_document(query)
   let generated = @origin.range(document, 0, 0, kind=Generated).unwrap()
