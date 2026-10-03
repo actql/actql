@@ -9,6 +9,7 @@ import {readmeQuickstart} from './readme-quickstart.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {withPackedQueryEvidence} from './packed-query-evidence.mjs';
 import {packedClientPackage, packedNpmCache} from './packed-client-packages.mjs';
+import {exercisePackedInferSource} from './packed-infer-source-acceptance.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const scratch = join(repository, '..', '.codex-scratch');
@@ -42,6 +43,9 @@ for (const [source, destination] of [
   ['scripts/fixtures/acquired-data-source-input.mjs', 'acquired-data-source-input.mjs'],
   ['scripts/fixtures/property-graph-source-input.mjs', 'property-graph-source-input.mjs'],
   ['scripts/fixtures/string-values-restart.mjs', 'string-values-restart.mjs'],
+  ['scripts/fixtures/installed-infer-fixture.mjs', 'installed-infer-fixture.mjs'],
+  ['scripts/fixtures/infer-source-expectation.mjs', 'infer-source-expectation.mjs'],
+  ['scripts/fixtures/packed-infer-source.mjs', 'packed-infer-source.mjs'],
   ['scripts/fixtures/packed-public-query.mjs', 'acceptance.mjs'],
   ['scripts/fixtures/packed-two-source-public-query.mjs', 'packed-two-source-public-query.mjs'],
   ['scripts/fixtures/packed-two-source-example.mjs', 'packed-two-source-example.mjs'],
@@ -127,6 +131,12 @@ for (const name of ['NODE_PATH', 'NODE_OPTIONS', 'MOON_HOME', 'ACTQL_LOCAL_SOURC
   'ACTQL_LOCAL_EFFECT_PROFILE', 'ACTQL_LOCAL_STATE_DIR']) {
   delete runtimeEnvironment[name];
 }
+const exerciseInferSource = () => exercisePackedInferSource({root, directory,
+  run, environment: runtimeEnvironment, sourceSha: revision.stdout.trim()});
+if (process.argv.includes('--infer-source-only')) {
+  await exerciseInferSource();
+  return;
+}
 // Execute the README's literal runtime commands, then the same Program through
 // the existing public Client acceptance helper on HTTPS. No second pack/build.
 console.log(run('bash', ['-eu', '-c', quickstart.run], root, runtimeEnvironment).trimEnd());
@@ -182,6 +192,9 @@ try {
     const output = run(process.execPath, ['acceptance.mjs'], root,
       runtimeEnvironment, 900_000);
     console.log(output.trimEnd());
+    // Reuse this exact installation and its producer artifact. Source INFER
+    // is a separate authored corpus; narrow non-INFER selections stay narrow.
+    if (!process.argv.some(flag => flag.endsWith('-only'))) await exerciseInferSource();
   }
   // The same packed installation executes this bounded candidate corpus once.
   // Cost inputs go to the Host profile; the public Program never chooses a route.

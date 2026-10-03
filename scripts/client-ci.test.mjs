@@ -52,7 +52,7 @@ done`,
       assert.equal(step['continue-on-error'], undefined);
     }
   }
-  assert.deepEqual(jobs['client-salesforce'].needs, ['select-targets']);
+  assert.deepEqual(jobs['client-salesforce'].needs, ['select-targets', 'preflight']);
 });
 
 test('one producer uploads only manifest and tarballs; consumers select its immutable artifact ID', () => {
@@ -69,7 +69,7 @@ test('one producer uploads only manifest and tarballs; consumers select its immu
   ].map(name => '${{ runner.temp }}/actql-client-packages/' + name));
   assert.deepEqual(producer.outputs, {'artifact-id': '${{ steps.packages.outputs.artifact-id }}'});
   for (const name of consumers) {
-    assert.deepEqual(jobs[name].needs, ['select-targets', 'client-packages']);
+    assert.deepEqual(jobs[name].needs, ['select-targets', 'preflight', 'client-packages']);
     const download = jobs[name].steps.find(step => step.name === 'Download the exact Client package artifact');
     assert.equal(download.uses, './.github/actions/download-client-packages');
     assert.deepEqual(download.with, {
@@ -163,3 +163,4 @@ test('runner-private package/cache environment is set only after successful down
     }
   }
 });
+
