@@ -403,3 +403,132 @@ test('real Git raw changes admit a regular modification and reject structural ch
   assert.equal(inspect().profile, 'full');
 });
 
+
+const declarationFile = 'proofs/relation-pipeline/foundation-declarations/example-change.json';
+const declarationBody = JSON.stringify({version: 'actql-foundation-declaration/0.1', id: 'example-change',
+  kind: 'change', revision: 'a'.repeat(40), parents: ['c'.repeat(40)], changes: []}, null, 2) + '\n';
+const declarationChanges = (paths = [declarationFile]) => paths.map(path => ({path,
+  before: {mode: '000000', object: '0'.repeat(40)}, after: {mode: '100644', object: 'd'.repeat(40)}}));
+const declarationSelection = () => selectTargets([declarationFile], {declarationChanges: declarationChanges(), targetSensitiveDiff: true});
+
+test('typed declaration additions precede new-file and proofs sensitivity without semantic evidence reuse', () => {
+  const selected = validateSelection(declarationSelection());
+  assert.equal(selected.profile, 'declaration');
+  assert.equal(selected.macos, false);
+  const lines = verifyGate(plan(selected), results(selected), context);
+  for (const name of ['core', 'host', 'client', 'native', 'workers', 'connector-addition', 'session-evidence', 'pipeline-evidence', 'native-macos']) {
+    assert(lines.some(line => line.startsWith(`NOT APPLICABLE ${name}:`)), name);
+    const invalid = results(selected); invalid[name] = {result: 'success'};
+    assert.throws(() => verifyGate(plan(selected), invalid, context));
+  }
+  for (const name of ['select-targets', 'preflight', 'lint', 'spec']) {
+    const invalid = results(selected); invalid[name] = {result: 'skipped'};
+    assert.throws(() => verifyGate(plan(selected), invalid, context));
+  }
+  for (const event of ['push', 'workflow_dispatch', 'merge_group']) {
+    assert.equal(selectTargets([declarationFile], {event, declarationChanges: declarationChanges()}).profile, 'full');
+  }
+});
+
+test('declaration inventory fails closed for old records structural changes and mixed consumer inputs', () => {
+  for (const other of ['src/a/ordinary.mbt', 'package.json', '.github/workflows/ci.yml', 'scripts/ci-targets.mjs',
+    'proofs/relation-pipeline/foundation.mjs', 'proofs/relation-pipeline/fixtures/a.json', 'docs/development.md']) {
+    const paths = [declarationFile, other];
+    assert.equal(selectTargets(paths, {declarationChanges: declarationChanges(paths)}).profile, 'full', other);
+  }
+  for (const mutate of [
+    value => { value[0].before.mode = '100644'; value[0].before.object = 'c'.repeat(40); },
+    value => { value[0].after.mode = '120000'; }, value => { value[0].after.mode = '100755'; },
+    value => { value[0].after.mode = '000000'; value[0].after.object = '0'.repeat(40); },
+    value => { value[0].after.object = 'bad'; }, value => { value[0].extra = true; },
+    value => { value.push(value[0]); }, value => { value[0].path += '/nested.json'; },
+  ]) {
+    const entries = declarationChanges(); mutate(entries);
+    assert.equal(selectTargets([declarationFile], {declarationChanges: entries}).profile, 'full');
+  }
+  assert.equal(selectTargets([declarationFile]).profile, 'full');
+  assert.equal(selectTargets([declarationFile], {declarationChanges: declarationChanges(), failure: 'missing base'}).profile, 'full');
+  for (const mutate of [value => {value.event = 'push';}, value => {value.macos = true;},
+    value => {value.targets = all;}, value => {value.declarationChanges = null;},
+    value => {value.paths.push('package.json');}, value => {value.maintenanceChanges = changes(['docs/development.md']);}]) {
+    const invalid = structuredClone(declarationSelection()); mutate(invalid);
+    assert.throws(() => validateSelection(invalid));
+  }
+});
+
+test('exact raw merge delta binds declaration additions and canonical bodies before admission', () => {
+  const base = 'a'.repeat(40), calls = [];
+  const raw = `:000000 100644 ${'0'.repeat(40)} ${'d'.repeat(40)} A\0${declarationFile}\0`;
+  const inspect = (body = declarationBody, records = raw) => readChanges({pull_request: {base: {sha: base}}}, args => {
+    calls.push(args);
+    if (args[0] === 'rev-parse') return head;
+    if (args[0] === 'show') return body;
+    if (args.includes('--name-only')) return declarationFile + '\0';
+    if (args.includes('--raw')) return records;
+    return 'new file mode 100644\n+ canonical sha256 declaration';
+  });
+  const changed = inspect();
+  assert.equal(changed.targetSensitiveDiff, true);
+  assert.equal(selectTargets(changed.paths, changed).profile, 'declaration');
+  assert(calls.some(args => args.join(' ') === `show ${head}:${declarationFile}`));
+  for (const body of ['{}', declarationBody.trim(), declarationBody.replace('example-change', 'wrong-id'),
+    declarationBody.replace('/0.1', '/9.9'), declarationBody.replace('"change"', '"unknown"'),
+    declarationBody.replace('"id":', '"id": "duplicate",\n  "id":')]) assert.throws(() => inspect(body));
+  for (const records of ['', raw.slice(0, -1), raw + raw, raw.replace(declarationFile, declarationFile + '.other')]) {
+    assert.throws(() => inspect(declarationBody, records));
+  }
+});
+
+test('actual Git inventory admits added declarations but retains earlier product commits and old-record tampering', t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-ci-declaration-'));
+  t.after(() => rmSync(root, {recursive: true, force: true}));
+  const env = {...process.env, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null'};
+  const git = args => {
+    const result = spawnSync('git', args, {cwd: root, env, encoding: 'utf8'});
+    assert.equal(result.status, 0, result.stderr); return result.stdout;
+  };
+  git(['init', '-q']); git(['config', 'user.name', 'Fixture']); git(['config', 'user.email', 'fixture@example.invalid']);
+  writeFileSync(join(root, 'product.txt'), 'base\n'); git(['add', '.']); git(['commit', '-qm', 'base']);
+  const base = git(['rev-parse', 'HEAD']).trim();
+  mkdirSync(join(root, 'proofs/relation-pipeline/foundation-declarations'), {recursive: true});
+  writeFileSync(join(root, declarationFile), declarationBody); git(['add', '.']); git(['commit', '-qm', 'declaration']);
+  let delta = readChanges({pull_request: {base: {sha: base}}}, git);
+  assert.equal(selectTargets(delta.paths, delta).profile, 'declaration');
+  writeFileSync(join(root, 'product.txt'), 'changed product\n'); git(['add', '.']); git(['commit', '-qm', 'product']);
+  delta = readChanges({pull_request: {base: {sha: base}}}, git);
+  assert.equal(selectTargets(delta.paths, delta).profile, 'full', 'complete cumulative delta includes source');
+  const productHead = git(['rev-parse', 'HEAD']).trim();
+  writeFileSync(join(root, declarationFile), declarationBody.replace('"changes": []', '"changes": [1]'));
+  git(['add', '.']); git(['commit', '-qm', 'tamper']);
+  delta = readChanges({pull_request: {base: {sha: productHead}}}, git);
+  assert.deepEqual(delta.paths, [declarationFile]);
+  assert.equal(selectTargets(delta.paths, delta).profile, 'full');
+});
+
+test('declaration profile requires actual full history and validator regressions before heavy dispatch', () => {
+  assert.deepEqual(jobs.preflight.needs, ['select-targets']);
+  const tests = jobs.preflight.steps.find(step => step.name === 'Test declaration provenance validators');
+  assert.equal(tests.if, "needs.select-targets.outputs.profile == 'declaration'");
+  for (const file of ['foundation.test.mjs', 'history.test.mjs', 'foundation-integration.test.mjs']) {
+    assert(tests.run.includes(`proofs/relation-pipeline/${file}`));
+  }
+  assert(jobs.preflight.steps.some(step => step.run === 'node proofs/relation-pipeline/history.mjs --write' && !step.if));
+  const archive = jobs.preflight.steps.find(step => step.name === 'Archive declaration provenance and applicability');
+  assert.equal(archive.if, tests.if);
+  assert.equal(archive.with['if-no-files-found'], 'error');
+  assert.equal(archive.with['include-hidden-files'], true);
+  assert.deepEqual(archive.with.path.trim().split('\n'), [
+    '.artifacts/relation-pipeline/current-foundation.json', '.artifacts/relation-pipeline/ci-selection.json']);
+  assert.match(archive.with.path, /current-foundation\.json/u);
+  assert.match(archive.with.path, /ci-selection\.json/u);
+  const selected = declarationSelection();
+  for (const result of ['failure', 'cancelled', 'skipped', undefined]) {
+    const candidate = results(selected); candidate.preflight = {result};
+    assert.throws(() => verifyGate(plan(selected), candidate, context));
+  }
+  for (const name of ['core', 'host', 'client-packages', 'client-distribution', 'client-packed', 'client-salesforce',
+    'native', 'session-evidence', 'pipeline-mutations', 'pipeline-capacity', 'native-macos', 'native-separated-network',
+    'workers', 'connector-addition', 'duckdb-node']) {
+    assert.equal(scheduled(name, {'select-targets': {outputs: {profile: 'declaration', macos: 'false'}}}), false, name);
+  }
+});

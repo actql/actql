@@ -59,6 +59,7 @@ jobs:
   # Admission checks complete before any normal runtime/proof runner starts.
   # Actual retained history is checked before installing the build toolchain.
   preflight:
+    needs: [select-targets]
     if: ${{ !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -74,6 +75,25 @@ jobs:
       - name: Validate actual retained foundation history
         run: node proofs/relation-pipeline/history.mjs --write
       - run: npm ci
+      - name: Test declaration provenance validators
+        if: needs.select-targets.outputs.profile == 'declaration'
+        run: node --test proofs/relation-pipeline/foundation.test.mjs proofs/relation-pipeline/history.test.mjs proofs/relation-pipeline/foundation-integration.test.mjs
+      - name: Record declaration selection (not semantic campaign evidence)
+        if: needs.select-targets.outputs.profile == 'declaration'
+        env:
+          CI_PLAN: ${{ needs.select-targets.outputs.plan }}
+        run: node --input-type=module -e 'import {writeFileSync} from "node:fs"; writeFileSync(".artifacts/relation-pipeline/ci-selection.json", JSON.stringify(JSON.parse(process.env.CI_PLAN), null, 2) + "\n")'
+      - name: Archive declaration provenance and applicability
+        if: needs.select-targets.outputs.profile == 'declaration'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: declaration-provenance-${{ github.run_id }}-${{ github.run_attempt }}
+          include-hidden-files: true
+          path: |
+            .artifacts/relation-pipeline/current-foundation.json
+            .artifacts/relation-pipeline/ci-selection.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Check owned contract versions
         run: npm run check:contract-versions
       - name: Check specification metadata without updating it
