@@ -551,7 +551,12 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch,
       signal?.addEventListener('abort', abort, {once: true});
     });
     try {
-      await Promise.race([operation, interrupted]);
+      // The dispatch supervisor records execution failure only after owned
+      // stop and cleanup. Its rejected physical Promise is not a failure of
+      // this public observation operation. Read the resulting Run state;
+      // unresolved custody remains unknown rather than becoming success.
+      await Promise.race([operation.then(() => undefined, () => undefined),
+        interrupted]);
     } finally {
       signal?.removeEventListener('abort', abort);
     }
