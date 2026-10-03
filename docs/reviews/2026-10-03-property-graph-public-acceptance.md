@@ -1,6 +1,7 @@
 # Unified Property Graph public source acceptance
 
-Status: development acceptance passed; dependency/PR review and required CI are pending.
+Status: development acceptance and pushed-source Client packed/spec CI passed;
+dependency/PR review and the remaining required CI jobs are pending.
 
 ## Fixed source and dependency
 
@@ -78,7 +79,9 @@ Successful temporary installations were reclaimed after evidence was saved.
 - The complete `check:spec` attempt is incomplete: it passed Relation execution
   1,094/1,094, then was interrupted during the slow resource-audit test under
   high load. No guard was bypassed. Required final CI remains pending.
-- Native CLI/public execution was not rerun for this Graph integration.
+- Native CLI execution was not rerun locally. Pushed-source Client packed CI
+  later passed its JSON Program Graph control; this is not authored Graph text
+  CLI acceptance.
 - Unadapted SGA consumers remain unsupported; source-INFER remains a separate
   common-owner dependency. Neither full SGA nor the full Frontend migration is
   declared complete. No main merge or package publication was performed.
@@ -102,4 +105,26 @@ rejects conflicting duplicates. It changes no result expectation, Run owner
 or request identity. The combined Relation/Graph corpus has 18 distinct
 requests; the two composition regressions pass and are imported by the
 existing packed-query evidence CI entry. That registered test entry passes
-22/22 locally. Full-corpus verification on the corrected pushed SHA is pending.
+22/22 locally. Full-corpus verification on the corrected pushed SHA passed,
+as detailed below.
+
+## Pushed-source CI evidence
+
+At `b3ad31f342a097dd2bbed5050e267b1b15b4e9f7`,
+[CI run 37093230414](https://github.com/actql/actql/actions/runs/37093230414)
+completed the Client packed and spec jobs successfully. The full run is not yet
+recorded as successful while other required jobs remain in progress.
+
+The `packed-public-query-b3ad31f342a097dd2bbed5050e267b1b15b4e9f7-37093230414-1`
+artifact records invocation `public-query-evidence-wJZruU`, a clean source,
+14 successful commands, complete output and successful temporary-install cleanup.
+Its five package digests exactly match the local acceptance table above.
+The ordinary full corpus includes all selected Graph source cases on Local/HTTPS
+alongside existing SQL/Pipe, scope, parameter, Result and retained-recovery cases.
+It also passed the common snapshot controls and the native Client's independent
+parallel-edge JSON Program through Named Results. That native control is machine
+input evidence, not source-text CLI execution or migration of remaining SGA calls.
+
+The complete spec job success closes the pushed source's aggregate spec validation;
+the earlier interrupted local attempt remains recorded as incomplete. Later
+documentation-only changes do not alter these executable sources or artifact bytes.
