@@ -1,0 +1,76 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "convergent-foundation-declarations",
+  "kind": "change",
+  "revision": "5218cb747e53fd6099b04d589912f0384359439c",
+  "parents": [
+    "25093479e16c40874701ae7f884ffcc7538d425b"
+  ],
+  "changes": [
+    {
+      "path": "proofs/relation-pipeline/current-foundation.md",
+      "before": [
+        {
+          "revision": "25093479e16c40874701ae7f884ffcc7538d425b",
+          "digest": "b320fc8087624c3eb5e3ca75e16fb3ffa1bb1b5846260d4dac3567a0260f5cbc",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "3b5c54d1a9c074060aa98f917921985fe37b1dd21f242eb31e903baef3a8c37d",
+      "afterMode": "100644",
+      "reason": "Document the reviewed bounded convergence contract, complete provenance reporting and exact published source evidence without promoting provenance into approval or execution proof."
+    },
+    {
+      "path": "proofs/relation-pipeline/fixtures/convergent-declarations.json",
+      "before": [
+        {
+          "revision": "25093479e16c40874701ae7f884ffcc7538d425b",
+          "digest": null,
+          "mode": null
+        }
+      ],
+      "afterDigest": "b454a67231b9b0d6bca361a3b168c00c32f15a2fba27601b1148c9a8fb8945dc",
+      "afterMode": "100644",
+      "reason": "Retain exact canonical Git bytes and references for four equivalent CI merge records, a distinct package merge record and their original dependency declarations."
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation.mjs",
+      "before": [
+        {
+          "revision": "25093479e16c40874701ae7f884ffcc7538d425b",
+          "digest": "33239e0e1fddda2b05666cbf6c09b2ad2dfa8c6a01f10c31a22f572c3a3428c0",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "ea2c2a773a2b6bb420a246f5ec898e573ddd58273e6b3b01fbb8262746d34c7e",
+      "afterMode": "100644",
+      "reason": "Independently verify every record and introduction before converging equivalent source bindings; preserve immutable originals, exact dependency coverage and missing-declaration rejection."
+    },
+    {
+      "path": "proofs/relation-pipeline/foundation.test.mjs",
+      "before": [
+        {
+          "revision": "25093479e16c40874701ae7f884ffcc7538d425b",
+          "digest": "4f509e7e5d2d3f923952763cec3458611fdbeaf2bb92de72dd54e69133bf0a8b",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "ca871bab212f404665ef7fec03758214d892b07f588753381a33cf40ff24e3f1",
+      "afterMode": "100644",
+      "reason": "Exercise real Git convergence, independent record tampering, introduction ancestry, dependency omissions, missing merge declarations and deletion rejection; pin four published equivalents and the distinct resident integration."
+    },
+    {
+      "path": "proofs/relation-pipeline/history.mjs",
+      "before": [
+        {
+          "revision": "25093479e16c40874701ae7f884ffcc7538d425b",
+          "digest": "dc6d36411561943613fc915f3bf011ee6a811b47ac68f4690371c4d9caad301b",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "252e0dd8ede18402d89432cae73739b86134609c08765ef328b86c58c16a4269",
+      "afterMode": "100644",
+      "reason": "Include the immutable published-record regression fixture in the protected composed-foundation scope."
+    }
+  ]
+}
