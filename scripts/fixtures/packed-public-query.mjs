@@ -22,17 +22,30 @@ const inferOnly = process.env.ACTQL_TEST_INFER_REFUSAL_ONLY === '1';
 const joinOnly = process.env.ACTQL_TEST_JOIN_ORDER_ONLY === '1';
 const compositionOnly = process.env.ACTQL_TEST_QUERY_COMPOSITION_ONLY === '1';
 const resultOnly = process.env.ACTQL_TEST_PIPE_RESULT_ONLY === '1';
-const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || inferOnly || joinOnly || sourceFreeOnly || compositionOnly || resultOnly;
+const dataSetStrategyOnly = process.env.ACTQL_TEST_DATA_SET_STRATEGY_ONLY === '1';
+const scopeOnly = process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || inferOnly || joinOnly || sourceFreeOnly || compositionOnly || resultOnly || dataSetStrategyOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const scope = JSON.parse(await readFile('pipe-scope-cases.json', 'utf8'));
 assert.deepEqual(scope.source_rows, sourceRows);
-const scopeInputs = sourceFreeOnly ? {successes: sourceFreeSuccesses, refusals: sourceFreeRefusals}
+const dataSetStrategyInputs = {
+  // Independent machine input bypasses the frontend. Values are deliberately
+  // opposite to the required order; the internal sort slot must not escape.
+  successes: [{name: 'independent-ordered-data-set', format: 'json',
+    text: await readFile('data-set-strategy-program.json', 'utf8'),
+    sourceReadCount: 0,
+    results: {nodes: {rows: [{id: 1}], columns: [
+      {name: 'id', contract: {type: 'number', nullable: false}},
+    ]}}}],
+  refusals: [],
+};
+const scopeInputs = dataSetStrategyOnly ? dataSetStrategyInputs
+  : sourceFreeOnly ? {successes: sourceFreeSuccesses, refusals: sourceFreeRefusals}
   : resultOnly ? {successes: pipeResultSuccesses, refusals: pipeResultRefusals,
     executionFailures: pipeResultExecutionFailures}
   : compositionOnly ? {successes: queryCompositionSuccesses, refusals: queryCompositionRefusals}
   : inferOnly ? {successes: [querySuccesses[0]], refusals: inferRefusals}
   : joinOnly ? joinOrder : scopeOnly ? {successes: scope.successes,
-  refusals: scope.refusals} : {successes: [...querySuccesses, ...sourceFreeSuccesses, ...queryCompositionSuccesses, ...pipeResultSuccesses, ...scope.successes, ...joinOrder.successes],
+  refusals: scope.refusals} : {successes: [...dataSetStrategyInputs.successes, ...querySuccesses, ...sourceFreeSuccesses, ...queryCompositionSuccesses, ...pipeResultSuccesses, ...scope.successes, ...joinOrder.successes],
   refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals],
   executionFailures: pipeResultExecutionFailures};
 const expectedQueryRuns = scopeInputs.successes.length + (scopeInputs.executionFailures?.length ?? 0);
