@@ -1,3 +1,4 @@
+import {runNativeQueryTests} from './native-query-coverage.mjs';
 import assert from 'node:assert/strict';
 import {execFileSync, spawn} from 'node:child_process';
 import {createHash, generateKeyPairSync, X509Certificate} from 'node:crypto';
@@ -506,9 +507,7 @@ try {
     },
     stdio: 'inherit',
   });
-  if (!valuesHttpsOnly) execFileSync(moon, [
-    'test', 'src/query_integration', '--target', 'native',
-  ], {
+  if (!valuesHttpsOnly) await runNativeQueryTests(moon, 'remote-runtime', {
     cwd: repositoryRoot,
     env: {
       ...process.env,
@@ -524,7 +523,6 @@ try {
       ACTQL_TEST_NATIVE_REMOTE_RUNTIME_BUNDLE_CID: envelope.runtimeBundleCid,
       ACTQL_TEST_NATIVE_REMOTE_RUNTIME_SIGNATURE: envelope.signature,
     },
-    stdio: 'inherit',
   });
   const valuesTls = await issueTestCertificates();
   await testValuesHttps(valuesTls, {
