@@ -147,7 +147,11 @@ pub fn compile_query_script(
   let construction : Construction = { builder, generated, }
   try {
     let steps : Array[@builder.Node] = []
-    let sources : ScriptSources = { declarations: [], stages: [], bound: Map([]), }
+    let sources : ScriptSources = {
+      declarations: [],
+      stages: [],
+      bound: Map([]),
+    }
     let mut known = context.inputs.copy()
     let mut graphs : Array[ScriptGraph] = []
     let reserved = known.map(input => input.name)
@@ -176,7 +180,8 @@ pub fn compile_query_script(
             continue
           }
           let bound = lower_script_relation(
-            construction, query, known, context, sources, limits, steps, reserved, output,
+            construction, query, known, context, sources, limits, steps, reserved,
+            output,
           )
           // Body resolution precedes binding. Existing published names may be
           // shadowed only afterward; no forward/recursive DATA reference exists.
@@ -190,20 +195,28 @@ pub fn compile_query_script(
           })
         }
         PropertyGraph(mapping) => {
-          let mut mapping_inputs = known.copy()
+          // Resolve against the original source kind: binding a captured
+          // Relation must not turn its quoted-name rules into DATA alias rules.
+          let producer_names : Map[String, String] = Map([])
           let references = mapping.nodes.map(node => node.producer) +
             mapping.edges.map(edge => edge.producer)
           for path in references {
-            let input = property_mapping_input(path, mapping_inputs)
-            let bound = bind_script_input(
-              construction, input, context, sources, steps, reserved,
-            )
-            mapping_inputs = mapping_inputs.map(candidate => {
-              if candidate.name == input.name { bound } else { candidate }
-            })
+            let input = property_mapping_input(path, known)
+            if !producer_names.contains(input.name) {
+              let bound = bind_script_input(
+                construction, input, context, sources, steps, reserved,
+              )
+              producer_names[input.name] = bound.name
+            }
           }
           steps.push(
-            lower_property_graph_step(construction, mapping, mapping_inputs, output),
+            lower_property_graph_step(
+              construction,
+              mapping,
+              known,
+              output,
+              producer_names~,
+            ),
           )
           graphs = graphs.filter(graph => {
             !same_name(graph.name, declaration.name)
@@ -212,7 +225,7 @@ pub fn compile_query_script(
             name: declaration.name,
             producer: output,
             mapping,
-            inputs: mapping_inputs,
+            inputs: known.copy(),
           })
           // A Graph has its own Carrier, never a fabricated Relation binding.
           known = known.filter(input => {
