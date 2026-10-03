@@ -252,6 +252,8 @@ fn compute_test_limits() -> @execution.SequenceExecutionLimits {
 fn current_graph_relation_program(variant : String) -> String {
   let relation_step = match variant {
     "current_filter" | "current_edge_filter" => "\"filter\":\"true\""
+    "current_degree" => "\"filter\":\"degree >= 0\""
+    "current_bounds" => "\"filter\":\"actual >= 0\""
     "current_filter_false" => "\"filter\":\"false\""
     "current_select" => "\"select\":[\"id\",\"node_name\"]"
     "current_derive" => "\"derive\":{\"copy\":\"id\"}"
@@ -261,24 +263,40 @@ fn current_graph_relation_program(variant : String) -> String {
     "current_unique" => "\"assert_rows\":{\"unique_by\":[\"id\"]}"
     _ => abort("unknown current Graph regression variant")
   }
-  let matched = if variant == "current_edge_filter" {
+  let matched = if variant == "current_degree" {
+    "{\"degree\":{\"direction\":\"both\"},\"as\":\"projected\"}"
+  } else if variant == "current_bounds" {
+    "{\"graph_bounds\":{\"max_nodes\":1,\"max_edges\":1},\"as\":\"projected\"}"
+  } else if variant == "current_edge_filter" {
     "{\"match_edges\":{\"definition\":\"E\",\"label\":\"Edge\",\"where\":\"true\",\"fields\":[\"src\",\"dst\",\"weight\"]},\"as\":\"projected\"}"
   } else {
     "{\"match_nodes\":{\"definition\":\"N\",\"label\":\"Node\",\"bindings\":{\"identity\":\"element\"},\"where\":\"true\",\"fields\":[\"element\",\"id\",\"node_name\"]},\"as\":\"projected\"}"
   }
-  let result_fields = if variant == "current_edge_filter" {
+  let result_fields = if variant == "current_degree" {
+    "\"node\",\"degree\""
+  } else if variant == "current_bounds" {
+    "\"kind\",\"node_id\",\"actual\",\"max\""
+  } else if variant == "current_edge_filter" {
     "\"src\",\"dst\",\"weight\""
   } else if variant == "current_derive" {
     "\"id\",\"node_name\",\"copy\""
   } else {
     "\"id\",\"node_name\""
   }
-  let first_fields = if variant == "current_edge_filter" {
+  let first_fields = if variant == "current_degree" {
+    "\"node\",\"degree\""
+  } else if variant == "current_bounds" {
+    "\"kind\",\"actual\""
+  } else if variant == "current_edge_filter" {
     "\"src\",\"weight\""
   } else {
     "\"id\",\"node_name\""
   }
-  let second_fields = if variant == "current_edge_filter" {
+  let second_fields = if variant == "current_degree" {
+    "\"degree\""
+  } else if variant == "current_bounds" {
+    "\"kind\""
+  } else if variant == "current_edge_filter" {
     "\"weight\""
   } else {
     "\"node_name\""
