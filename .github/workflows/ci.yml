@@ -78,6 +78,8 @@ jobs:
           cache: npm
       - name: Validate actual retained foundation history
         run: node proofs/relation-pipeline/history.mjs --write
+      - name: Reject inconsistent operation support and acceptance evidence before fan-out
+        run: node --test scripts/pure-operation-inventory.test.mjs
       - run: npm ci
       - name: Test pipeline artifact and aggregate contracts
         run: node --test proofs/relation-pipeline/ci-artifacts.test.mjs
