@@ -65,6 +65,7 @@ const report = { version: 'actql-relation-pipeline-structure/0.1', revision, sou
   overlays: Object.fromEntries(Object.entries({ ...overlays, ...generatedObservers }).map(([p, c]) => [p, hash(c)])),
   corpus, normal: {}, boundaries: {}, mutations: [], seed: 148256, search,
   shrinkMeaning: 'local minimum under existing typed reductions, same DISTINCT operation occurrence and accounting resource fault',
+  mutationTimingMeaning: 'durationMs is wall span through restored completion, including intervening mutations; activeDurationMs sums this mutation\'s mutated and healthy blocks, excluding the shared restored installation; phase timers include build, execution, hashing and I/O',
   timings: { boundaries: {} } };
 report.backingCore = runCoreProbe(targets);
 const backingModel = spawnSync(process.execPath, ['proofs/relation-pipeline/capacity/backing/check.mjs'], { cwd: root, encoding: 'utf8' });
@@ -113,6 +114,7 @@ try {
       console.log(`${target}: independently derived workspace bound ${offset < 0 ? 'one-short rejected' : offset === 0 ? 'exact accepted' : 'one-extra accepted'}`);
     }
   }
+  const pending = [];
   if (process.argv[3] !== 'normal') for (const variant of mutations) {
     install(variant);
     const started = performance.now();
@@ -131,27 +133,35 @@ try {
     const shrunk = performance.now();
     assert(!minimum.finalObservations.some((o, i) => fault(minimum.finalCandidates[i], o, anchor)));
     assert.deepEqual(minimum.finalCandidates, candidates(minimum.minimal, registry));
-    const replay = {}, healthy = {}, replayMs = {}, restoredMs = {};
+    const replay = {}, replayMs = {};
     for (const target of targets) {
       const began = performance.now();
       replay[target] = probe([minimum.minimal], target, `${variant.name}-minimal`)[0];
       assert(fault(minimum.minimal, replay[target], anchor));
       replayMs[target] = performance.now() - began;
     }
-    install();
+    pending.push({ started, mutatedMs: performance.now() - started,
+      result: { name: variant.name, site: variant.path, anchor, ...minimum, replay, healthy: {},
+        timings: { searchMs: searched - started, shrinkMs: shrunk - searched, replayMs, restoredMs: {} } } });
+  }
+  // Keep the restored sources contiguous. Every minimum still gets its own
+  // fresh execution/receipt on every target; only incremental builds persist.
+  if (pending.length) install();
+  for (const { started, mutatedMs, result } of pending) {
+    const restored = performance.now();
     for (const target of targets) {
       const began = performance.now();
-      healthy[target] = probe([minimum.minimal], target, `${variant.name}-restored`, true)[0];
-      compareSemantics(minimum.minimal, healthy[target], registry);
-      inspectEvents(minimum.minimal, healthy[target], registry);
-      inspectBacking(minimum.minimal, healthy[target], target);
-      assert(!fault(minimum.minimal, healthy[target], anchor));
-      restoredMs[target] = performance.now() - began;
+      result.healthy[target] = probe([result.minimal], target, `${result.name}-restored`, true)[0];
+      compareSemantics(result.minimal, result.healthy[target], registry);
+      inspectEvents(result.minimal, result.healthy[target], registry);
+      inspectBacking(result.minimal, result.healthy[target], target);
+      assert(!fault(result.minimal, result.healthy[target], result.anchor));
+      result.timings.restoredMs[target] = performance.now() - began;
     }
-    report.mutations.push({ name: variant.name, site: variant.path, anchor, ...minimum, replay, healthy,
-      durationMs: performance.now() - started,
-      timings: { searchMs: searched - started, shrinkMs: shrunk - searched, replayMs, restoredMs } });
-    console.log(`${variant.name}: fresh JS detection/shrink, same-resource minimum, ${targets.length} mutated/restored targets`);
+    result.activeDurationMs = mutatedMs + performance.now() - restored;
+    result.durationMs = performance.now() - started;
+    report.mutations.push(result);
+    console.log(`${result.name}: fresh JS detection/shrink, same-resource minimum, ${targets.length} mutated/restored targets`);
   }
 } finally { restore(); }
 // Save receipts and close this executor before either child verification uses

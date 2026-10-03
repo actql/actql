@@ -2,10 +2,12 @@
 import {spawnSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {addTimingEvidence, formatTiming} from './ci-timing.mjs';
+import {collectArtifactEvidence, formatArtifactEvidence} from './ci-artifacts.mjs';
+import {collectReviewContext, finishReviewEvidence, formatReview} from './ci-review.mjs';
 
 const usage = 'Usage: node scripts/ci-evidence.mjs OWNER/REPO ' +
-  '(--pr NUMBER | --sha FULL_SHA | --runs ID,ID) [--branch BASE_BRANCH] ' +
-  '[--compare RUN:ATTEMPT,RUN:ATTEMPT] [--json]';
+  '(--pr NUMBER | --sha FULL_SHA | --runs ID,ID | --artifacts MANIFEST.json) [--branch BASE_BRANCH] ' +
+  '[--integration BRANCH] [--dependencies PR,PR] [--compare RUN:ATTEMPT,RUN:ATTEMPT] [--json]';
 const fullSha = value => typeof value === 'string' && /^[a-f0-9]{40}$/iu.test(value);
 const positive = value => Number.isSafeInteger(value) && value > 0;
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -20,7 +22,7 @@ export function parseArguments(args) {
   const seen = new Set();
   for (let index = 0; index < rest.length; index++) {
     const flag = rest[index];
-    if (!['--pr', '--sha', '--runs', '--compare', '--branch', '--json'].includes(flag) || seen.has(flag)) {
+    if (!['--pr', '--sha', '--runs', '--artifacts', '--compare', '--branch', '--integration', '--dependencies', '--json'].includes(flag) || seen.has(flag)) {
       throw new Error(usage);
     }
     seen.add(flag);
@@ -31,19 +33,21 @@ export function parseArguments(args) {
       options[flag.slice(2)] = value;
     }
   }
-  if ([options.pr, options.sha, options.runs].filter(Boolean).length !== 1 ||
+  if ([options.pr, options.sha, options.runs, options.artifacts].filter(Boolean).length !== 1 ||
       (options.pr && (!/^[1-9][0-9]*$/u.test(options.pr) || !positive(Number(options.pr)))) ||
-      (options.sha && !fullSha(options.sha)) || (options.pr && options.branch)) {
+      (options.sha && !fullSha(options.sha)) || (options.pr && options.branch) ||
+      (!options.pr && (options.integration || options.dependencies)) ||
+      (options.artifacts && (options.branch || options.compare))) {
     throw new Error(usage);
   }
   if (options.pr) options.pr = Number(options.pr);
   if (options.sha) options.sha = options.sha.toLowerCase();
-  for (const [key, pattern] of [['runs', /^[1-9][0-9]*$/u], ['compare', /^[1-9][0-9]*:[1-9][0-9]*$/u]]) {
+  for (const [key, pattern] of [['runs', /^[1-9][0-9]*$/u], ['dependencies', /^[1-9][0-9]*$/u], ['compare', /^[1-9][0-9]*:[1-9][0-9]*$/u]]) {
     if (!options[key]) continue;
     const values = options[key].split(',');
     if (new Set(values).size !== values.length || values.some(value =>
       !pattern.test(value) || value.split(':').some(part => !positive(Number(part))))) throw new Error(usage);
-    options[key] = key === 'runs' ? values.map(Number) : values;
+    options[key] = key === 'compare' ? values : values.map(Number);
   }
   return options;
 }
@@ -143,6 +147,10 @@ export async function collectEvidence(options, request = ghRequest) {
     }
     report.target = {
       pr: options.pr, url: pr.html_url ?? null, state: pr.state ?? null,
+      draft: typeof pr.draft === 'boolean' ? pr.draft : null,
+      merged: typeof pr.merged === 'boolean' ? pr.merged : null,
+      mergeable: typeof pr.mergeable === 'boolean' ? pr.mergeable : null,
+      mergeabilityState: pr.mergeable_state ?? 'unknown',
       headSha: pr.head.sha, headBranch: pr.head.ref,
       headRepository: pr.head.repo?.full_name ?? null, baseBranch: pr.base.ref,
       currentBaseSha: fullSha(pr.base.sha) ? pr.base.sha : null,
@@ -158,6 +166,8 @@ export async function collectEvidence(options, request = ghRequest) {
       else if (merge) issue(endpoint, 'PR merge/test ref SHA missing');
     }
   }
+
+  const reviewContext = pr ? await collectReviewContext(report, options, pr, {read, list, issue}) : null;
 
   const branch = report.target.baseBranch;
   if (branch) {
@@ -270,6 +280,7 @@ export async function collectEvidence(options, request = ghRequest) {
         headBranch: attempt.head_branch ?? null, sourceMatch: sourceMatch(attempt),
         status: attempt.status ?? null, conclusion: valueOrNull(attempt.conclusion),
         url: attempt.html_url ?? entry.url, testedCheckoutSha: null,
+        checkSuiteId: attempt.check_suite_id ?? null,
         pullRequests: (Array.isArray(attempt.pull_requests) ? attempt.pull_requests : []).filter(object).map(item => ({
           number: item.number ?? null, headSha: item.head?.sha ?? null, baseSha: item.base?.sha ?? null,
         })),
@@ -293,6 +304,7 @@ export async function collectEvidence(options, request = ghRequest) {
       for (const job of jobs ?? []) {
         const identityMatches = job.run_id === run.id && job.run_attempt === number && job.head_sha === attempt.head_sha;
         result.jobs.push({id: job.id ?? null, name: job.name ?? null, url: job.html_url ?? null,
+          checkRunUrl: job.check_run_url ?? null,
           runId: job.run_id ?? null, attempt: job.run_attempt ?? null, headSha: job.head_sha ?? null,
           status: job.status ?? null, conclusion: valueOrNull(job.conclusion), identityMatches,
           endpoint: jobsEndpoint, createdAt: job.created_at ?? null,
@@ -327,7 +339,7 @@ export async function collectEvidence(options, request = ghRequest) {
       // Keep every observation separate from the run/attempt evidence above.
       checks: (checks ?? []).map(check => ({id: check.id ?? null, name: check.name ?? null,
         headSha: check.head_sha ?? null, status: check.status ?? null, conclusion: valueOrNull(check.conclusion),
-        appId: check.app?.id ?? null, url: check.html_url ?? null})),
+        appId: check.app?.id ?? null, checkSuiteId: check.check_suite?.id ?? null, url: check.html_url ?? null})),
       statuses: (statuses ?? []).map(status => ({id: status.id ?? null, context: status.context ?? null,
         state: status.state ?? null, createdAt: status.created_at ?? null, url: status.target_url ?? null})),
     });
@@ -339,6 +351,7 @@ export async function collectEvidence(options, request = ghRequest) {
       issue(statusesEndpoint, 'Commit-status identity/state missing');
     }
   }
+  if (reviewContext) await finishReviewEvidence(report, options, reviewContext, {read, issue});
   addTimingEvidence(report, options.compare);
   return report;
 }
@@ -383,6 +396,7 @@ export function formatHuman(report) {
     if (!group.statuses.length) lines.push(`  statuses: ${group.statusesAvailable ? 'absent' : 'unavailable'}`);
     for (const status of group.statuses) lines.push(`  ${status.context}: ${status.state} at ${status.createdAt ?? 'unknown'} | ${status.url ?? 'URL unknown'}`);
   }
+  lines.push(...formatReview(report));
   if (report.timing) lines.push(...formatTiming(report.timing));
   for (const error of report.errors) lines.push(`ERROR ${error.endpoint}: ${error.message}`);
   lines.push('', ...report.limits);
@@ -394,8 +408,10 @@ async function main() {
   try { options = parseArguments(process.argv.slice(2)); }
   catch (error) { console.error(error.message); process.exitCode = 2; return; }
   if (options.help) { console.log(usage); return; }
-  const report = await collectEvidence(options);
-  console.log(options.json ? JSON.stringify(report, null, 2) : formatHuman(report));
+  let report;
+  try { report = await (options.artifacts ? collectArtifactEvidence(options) : collectEvidence(options)); }
+  catch { console.error('Selected evidence could not be read or validated'); process.exitCode = 1; return; }
+  console.log(options.json ? JSON.stringify(report, null, 2) : options.artifacts ? formatArtifactEvidence(report) : formatHuman(report));
   // Exit status measures retrieval, not CI success. Failed/skipped CI is data.
   process.exitCode = report.complete ? 0 : 1;
 }

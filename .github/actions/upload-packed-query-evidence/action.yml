@@ -1,21 +1,45 @@
 name: Retain packed query evidence
-description: Upload only bounded command logs and the run summary, never payloads
+description: Upload only bounded command logs and partial receipts, never payloads
 inputs:
   directory:
     required: true
     description: Exact evidence directory published by this invocation
   name:
     required: true
-    description: Artifact name
+    description: Artifact name (the run ID and attempt are appended)
 runs:
   using: composite
   steps:
-    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+    - name: Validate owned diagnostic files
+      shell: bash
+      env:
+        EVIDENCE_DIRECTORY: ${{ inputs.directory }}
+      run: |
+        node --input-type=module <<'JS'
+        import {checkCommandEvidenceUpload} from './scripts/packed-query-evidence.mjs';
+        checkCommandEvidenceUpload(process.env.EVIDENCE_DIRECTORY);
+        JS
+    - id: upload
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
       with:
-        name: ${{ inputs.name }}
+        name: ${{ inputs.name }}-${{ github.run_id }}-${{ github.run_attempt }}
         path: |
           ${{ inputs.directory }}/summary.json
+          ${{ inputs.directory }}/*.summary.json
+          ${{ inputs.directory }}/*.started.json
+          ${{ inputs.directory }}/*.result.json
           ${{ inputs.directory }}/*.stdout.log
           ${{ inputs.directory }}/*.stderr.log
         if-no-files-found: error
         retention-days: 7
+    - name: Report collection outcome separately
+      if: always()
+      shell: bash
+      env:
+        UPLOAD_OUTCOME: ${{ steps.upload.outcome }}
+      run: |
+        if [ "$UPLOAD_OUTCOME" != success ]; then
+          echo '::error::Evidence collection/upload failed; verification result is unchanged and diagnostics may be incomplete'
+          exit 1
+        fi
+        echo 'Evidence uploaded; upload success does not establish verification success or completeness'

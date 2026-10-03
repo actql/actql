@@ -61,6 +61,8 @@ pub fn duckdb_compute_inputs_ready(DuckDBComputeAttempt) -> Bool
 
 pub fn duckdb_compute_measurement_usage(DuckDBComputeAttempt) -> (Int, Int, Int)?
 
+pub fn duckdb_compute_scratch_released(DuckDBComputeAttempt) -> Bool
+
 pub fn duckdb_compute_static_rejection(@lowering_relation.BoundPrepared, @connector_sdk.FixedComputeCapacity, @adapter.NativeQueryLimits) -> String?
 
 pub fn duckdb_dispatch_preflight_work(DuckDBDispatchPreparation) -> Int?

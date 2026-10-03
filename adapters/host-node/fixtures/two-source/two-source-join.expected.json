@@ -1,0 +1,53 @@
+{
+  "resultName": "joined",
+  "rows": [
+    {
+      "id": 1,
+      "left_amount": null,
+      "right_amount": 100
+    },
+    {
+      "id": 3,
+      "left_amount": 30,
+      "right_amount": 300
+    },
+    {
+      "id": 3,
+      "left_amount": 30,
+      "right_amount": 300
+    },
+    {
+      "id": 3,
+      "left_amount": 30,
+      "right_amount": 301
+    },
+    {
+      "id": 3,
+      "left_amount": 30,
+      "right_amount": 301
+    }
+  ],
+  "columns": [
+    {
+      "name": "id",
+      "contract": {
+        "type": "number",
+        "nullable": false
+      }
+    },
+    {
+      "name": "left_amount",
+      "contract": {
+        "type": "number",
+        "nullable": true
+      }
+    },
+    {
+      "name": "right_amount",
+      "contract": {
+        "type": "number",
+        "nullable": true
+      }
+    }
+  ]
+}

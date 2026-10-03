@@ -8,6 +8,7 @@ import {join} from 'node:path';
 import {createSqliteTransaction, throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
 import {inspectSqliteSnapshot} from '../host-common/sqlite-format-inspection.mjs';
+import {canonicalJson} from './local-account-config.mjs';
 
 const cid = value => typeof value === 'string' &&
   /^sha256:[0-9a-f]{64}$/u.test(value);
@@ -120,16 +121,77 @@ function retainedRunDefinition(row, control, maxBytes) {
   return admitted;
 }
 
+// A bounded Host-private physical inventory. Its immutable canonical string
+// stays in the existing Run admission row; it is not caller input identity,
+// a permission token, or a second execution journal.
+function validateSourceInventory(wire) {
+  if (typeof wire !== 'string' || Buffer.byteLength(wire) > 256 * 1024) {
+    fail('InvalidClientSourceInventory');
+  }
+  let value;
+  try { value = JSON.parse(wire); } catch (cause) { fail('InvalidClientSourceInventory', cause); }
+  const keys = (object, expected) => object !== null && typeof object === 'object' &&
+    !Array.isArray(object) && Object.keys(object).sort().join(',') === expected.split(',').sort().join(',');
+  if (!keys(value, 'version,environmentCid,acquisitions') ||
+      value.version !== 'actql-client-source-inventory/0.1' || !cid(value.environmentCid) ||
+      !Array.isArray(value.acquisitions) || value.acquisitions.length !== 2 ||
+      canonicalJson(value) !== wire) fail('InvalidClientSourceInventory');
+  const requirements = new Set();
+  for (const [index, occurrence] of value.acquisitions.entries()) {
+    if (!keys(occurrence, 'stage,input,task,checkedSource,readTuple,physicalBinding') ||
+        occurrence.stage !== index || occurrence.input !== 0 || occurrence.task !== index ||
+        !keys(occurrence.checkedSource, 'requirementCid,sourceRef,sourceContractCid,carrierSchemaContractCid,sourceDataPolicyCid,dataClassification,sourceViewContractCid,inputContractCid,outputContractCid') ||
+        !keys(occurrence.readTuple, 'connection,resource,operation') ||
+        !keys(occurrence.physicalBinding, 'version,database,schema,table,utf8_hex')) {
+      fail('InvalidClientSourceInventory');
+    }
+    const source = occurrence.checkedSource, binding = occurrence.physicalBinding;
+    if (![source.requirementCid, source.sourceContractCid, source.carrierSchemaContractCid,
+      source.sourceDataPolicyCid, source.sourceViewContractCid, source.inputContractCid,
+      source.outputContractCid].every(cid) || typeof source.sourceRef !== 'string' ||
+      !source.sourceRef || !['public', 'internal', 'confidential', 'restricted', 'unknown']
+        .includes(source.dataClassification) || requirements.has(source.requirementCid) ||
+      occurrence.readTuple.operation !== 'read' ||
+      typeof occurrence.readTuple.connection !== 'string' || !occurrence.readTuple.connection ||
+      typeof occurrence.readTuple.resource !== 'string' || !occurrence.readTuple.resource ||
+      binding.version !== 'actql-installed-duckdb-target/0.1' ||
+      !keys(binding.utf8_hex, 'database,schema,table') ||
+      ['database','schema','table'].some(key => typeof binding[key] !== 'string' ||
+        !binding[key] || typeof binding.utf8_hex[key] !== 'string' ||
+        !/^(?:[0-9a-f]{2})+$/u.test(binding.utf8_hex[key]) ||
+        Buffer.from(Buffer.from(binding.utf8_hex[key], 'hex').toString('utf8'), 'utf8').toString('hex') !== binding.utf8_hex[key] ||
+        Buffer.from(binding.utf8_hex[key], 'hex').toString('utf8').normalize('NFC') !== binding[key])) {
+      fail('InvalidClientSourceInventory');
+    }
+    requirements.add(source.requirementCid);
+  }
+  return wire;
+}
+
+function admissionEvidenceShape(value) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+  const keys = Object.keys(value).sort().join(',');
+  if (!['authorization,prepared', 'authorization,prepared,sourceInventory'].includes(keys) ||
+      typeof value.prepared !== 'string' || typeof value.authorization !== 'string') return false;
+  if (value.sourceInventory !== undefined) validateSourceInventory(value.sourceInventory);
+  return true;
+}
+
+function assertSourceInventory(retained, proposed) {
+  if (proposed !== undefined) validateSourceInventory(proposed);
+  // A physical start can only be reconciled through its retained owner; a
+// later configuration never becomes authority to restart its sources.
+  if (retained.physicalStartReserved === true) return;
+  if (retained.runAdmissionEvidence?.sourceInventory !== proposed) {
+    fail('ClientRequestSourceInventoryMismatch');
+  }
+}
+
 // Private replay evidence is stored atomically with acceptance. Its semantic
 // admission remains with the common MoonBit owner before any physical start.
 function evidenceJson(value, maxBytes) {
   if (value === undefined) return null;
-  if (value === null || typeof value !== 'object' ||
-      Object.keys(value).sort().join(',') !== 'authorization,prepared' ||
-      typeof value.prepared !== 'string' ||
-      typeof value.authorization !== 'string') {
-    fail('InvalidClientRunAdmissionEvidence');
-  }
+  if (!admissionEvidenceShape(value)) fail('InvalidClientRunAdmissionEvidence');
   const wire = JSON.stringify(value);
   if (Buffer.byteLength(wire) > maxBytes) {
     fail('InvalidClientRunAdmissionEvidence');
@@ -142,12 +204,9 @@ function retainedEvidence(row) {
   let value;
   try { value = JSON.parse(row.run_admission_evidence_json); }
   catch (cause) { fail('ClientRequestJournalCorrupt', cause); }
-  if (value === null || typeof value !== 'object' ||
-      Object.keys(value).sort().join(',') !== 'authorization,prepared' ||
-      typeof value.authorization !== 'string' ||
-      typeof value.prepared !== 'string') {
-    fail('ClientRequestJournalCorrupt');
-  }
+  try {
+    if (!admissionEvidenceShape(value)) fail('ClientRequestJournalCorrupt');
+  } catch (cause) { fail('ClientRequestJournalCorrupt', cause); }
   return Object.freeze(value);
 }
 
@@ -431,6 +490,9 @@ export function openClientRequestJournal(directory, {
             existing.result_names_json !== JSON.stringify(resultNames)) {
           fail('ClientRequestResultInventoryMismatch');
         }
+        assertSourceInventory({physicalStartReserved: existing.physical_start_reserved === 1,
+          runAdmissionEvidence: retainedEvidence(existing)},
+          admissionEvidence === null ? undefined : JSON.parse(admissionEvidence).sourceInventory);
         return Object.freeze({inserted: false, ...admission(existing),
           runAdmissionEvidence: retainedEvidence(existing),
           ...(runDefinitionWire === undefined ? {} :
@@ -604,19 +666,24 @@ export function openClientRequestJournal(directory, {
     // the callback may issue authority but must not start Compute. A racing
     // issuer is discarded when the atomic insert finds an existing Run.
     async admitOrLookupDefinition(identity, {namespaceId, lookupExpiresAt,
-      issueDefinition, resultNames}, requestControl, publicationControl) {
+      issueDefinition, resultNames, sourceInventory}, requestControl, publicationControl) {
       if (!text(namespaceId) || !instant(lookupExpiresAt) ||
           Date.parse(lookupExpiresAt) <= Date.now() ||
           typeof issueDefinition !== 'function') {
         fail('InvalidClientRequestAdmission');
       }
+      if (sourceInventory !== undefined) validateSourceInventory(sourceInventory);
       const retained = journal.resolveDefinition(identity, {namespaceId},
         requestControl, publicationControl);
       if (retained !== undefined) {
+        assertSourceInventory(retained, sourceInventory);
         return Object.freeze({inserted: false, ...retained});
       }
       const issued = await issueDefinition();
       const runDefinition = issued.runDefinition ?? issued;
+      if (issued.runAdmissionEvidence?.sourceInventory !== sourceInventory) {
+        fail('ClientRequestSourceInventoryMismatch');
+      }
       return journal.acceptDefinition(identity, {namespaceId, runDefinition,
         runAdmissionEvidence: issued.runAdmissionEvidence,
         lookupExpiresAt, resultNames: issued.resultNames ?? resultNames}, requestControl, publicationControl);

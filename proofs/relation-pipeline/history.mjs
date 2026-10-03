@@ -84,8 +84,9 @@ export function checkLegacyFoundation(root, { recordPath = currentPath, referenc
 export const foundationCheckpoint = '16d93c2bf7c9c7aa0c485416a7ea1436fd8a060a';
 const checkpointPath = 'proofs/relation-pipeline/foundation-baseline.json';
 const compositionFoundation = ['foundation.mjs', 'foundation.test.mjs',
-  'fixtures/foundation-repository.mjs', 'capacity/finish.mjs',
-  'executor-close.test.mjs'].map(path => `proofs/relation-pipeline/${path}`);
+  'fixtures/foundation-repository.mjs', 'workspaces.mjs', 'workspaces.test.mjs',
+  'execute.test.mjs', 'fixture.test.mjs', 'fixtures/execution-driver.mjs',
+  'capacity/finish.mjs', 'executor-close.test.mjs'].map(path => `proofs/relation-pipeline/${path}`);
 export function currentFoundation(root) {
   const baseline = checkLegacyFoundation(root, { recordPath: checkpointPath,
     reference: foundationCheckpoint, compareWorkingTree: false });

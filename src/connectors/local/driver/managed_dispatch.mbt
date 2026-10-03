@@ -764,7 +764,16 @@ pub fn[T] start_local_managed_dispatch(
               @execution.cancel_completed_output_import(importer) |> ignore
             }
           },
-          settled: fn() { settled.val = true },
+          settled: fn() {
+            settled.val = true
+            // Finalization has detached the pending output. Poll only the
+            // stopped provider workspace once; pending/error keeps its owner.
+            if live.val && (ordinary.val is Some(_) || carrier.val is Some(_)) {
+              release_provider_scratch() |> ignore
+            }
+          },
+          // Observe the installed provider; cleanup_refresh drives pending retries.
+          scratch_released: fn() { provider_execution.val is None },
           retention_released: fn() {
             let relation_released = retained.val is None ||
               retained.val
@@ -791,10 +800,6 @@ pub fn[T] start_local_managed_dispatch(
       },
       aggregate_output_ceilings=setup.aggregate_output_ceilings,
       analytic_envelopes=setup.analytic_envelopes,
-      // This is an observation, not a cleanup poll. Task settlement/disposal
-      // can ask more than once; it must not consume the provider's retries.
-      // Only explicit cleanup_refresh drives cleanup and drops this reference.
-      scratch_released=fn() { provider_execution.val is None },
     ) {
     Ok(value) => value
     Err(issue) => return Err(Configuration(issue))

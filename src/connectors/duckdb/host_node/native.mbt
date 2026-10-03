@@ -222,7 +222,9 @@ pub fn native_host_complete(
       if run.physical is Some(p) {
         // Construct the retained root while post-DB checking capacity is still
         // reserved. DAG adoption subsequently transfers this exact handle.
-        p.source = Some(native_host_captured_source(run, value))
+        let capture = native_host_source_capture(run, value)
+        p.capture = Some(capture)
+        p.source = Some(native_host_source_capture_source(capture))
         p.observation = Some(value)
         match @resources.settle_reservation(p.ledger, p.reservation) {
           Ok(_) => p.completed = true
@@ -356,8 +358,18 @@ pub fn native_host_captured_source(
   run : NativeNodeRun,
   observation : @duckdb_query.DuckDBNativeObservation,
 ) -> @query.CapturedInputSource raise NodeHostFailure {
-  if run.physical is Some(p) && (p.completed || p.closed) {
-    raise Physical(InvalidCharge)
+  if run.physical is Some(p) {
+    if p.closed {
+      raise Physical(InvalidCharge)
+    }
+    if p.completed {
+      guard p.source is Some(source) &&
+        p.observation is Some(expected) &&
+        physical_equal(expected, observation) else {
+        raise Physical(InvalidCharge)
+      }
+      return source
+    }
   }
   let limits = run.limits
   if run.streaming_output {
@@ -405,8 +417,18 @@ pub fn native_host_source_capture(
   run : NativeNodeRun,
   observation : @duckdb_query.DuckDBNativeObservation,
 ) -> @acquisition_host.NativeHostSourceCapture raise NodeHostFailure {
-  if run.physical is Some(p) && (p.completed || p.closed) {
-    raise Physical(InvalidCharge)
+  if run.physical is Some(p) {
+    if p.closed {
+      raise Physical(InvalidCharge)
+    }
+    if p.completed {
+      guard p.capture is Some(capture) &&
+        p.observation is Some(expected) &&
+        physical_equal(expected, observation) else {
+        raise Physical(InvalidCharge)
+      }
+      return capture
+    }
   }
   let limits = run.limits
   match

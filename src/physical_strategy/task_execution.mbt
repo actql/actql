@@ -9,7 +9,6 @@ struct TaskExecution {
   reservation : @resources.Reservation
   mut retained_bytes : (() -> Result[Int64, RunIssue])?
   scratch : Int64
-  scratch_released : (() -> Bool)?
   mut hooks : @connector.ExecutionLifecycleOperations[RunIssue]?
   mut execution_settled : Bool
   mut disposed : Bool
@@ -165,7 +164,17 @@ fn task_execution_retention_released(execution : TaskExecution) -> Bool {
 
 ///|
 fn task_execution_scratch_released(execution : TaskExecution) -> Bool {
-  execution.scratch_released.map(condition => condition()).unwrap_or(true)
+  (execution.hooks.unwrap().scratch_released)()
+}
+
+///|
+// Physical stop and output acceptance do not confirm scratch release.
+fn task_output_remaining_scratch(execution : TaskExecution) -> Int64 {
+  if task_execution_scratch_released(execution) {
+    0L
+  } else {
+    execution.scratch
+  }
 }
 
 ///|
@@ -312,9 +321,6 @@ pub fn[I, T] start_captured_managed_execution(
           }
         }),
         scratch,
-        scratch_released: @connector.prepared_managed_execution_scratch_release_condition(
-          prepared,
-        ),
         hooks: Some(@connector.managed_execution_lifecycle(hooks)),
         execution_settled: false,
         disposed: false,
@@ -473,7 +479,6 @@ fn[T] start_task_execution(
           }
         }),
         scratch,
-        scratch_released: None,
         hooks: Some(hooks),
         execution_settled: false,
         disposed: false,
@@ -888,6 +893,9 @@ fn complete_materialized_execution(
                 output,
                 holding,
                 ForeignCandidate,
+                execution.reservation,
+                retained_bytes,
+                task_output_remaining_scratch(execution),
               )
           }
         }
@@ -900,7 +908,6 @@ fn complete_materialized_execution(
         }
         Ok(_) => ()
       }
-      @resources.settle_reservation(run.ledger, execution.reservation) |> ignore
       run.running = None
       Ok(())
     }

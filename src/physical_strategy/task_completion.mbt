@@ -7,6 +7,9 @@ fn commit_task_output(
   task : Int,
   output : CommittedTaskOutput,
   holding : @resources.Holding?,
+  reservation : @resources.Reservation,
+  output_bytes : Int64,
+  remaining_execution : Int64,
 ) -> Result[Unit, RunIssue] {
   if run.stopped {
     return Err(Stopped)
@@ -20,6 +23,17 @@ fn commit_task_output(
   }
   if holding is Some(value) && !@resources.holding_available(run.ledger, value) {
     return Err(Physical(InvalidCharge))
+  }
+  match
+    @resources.settle_completed_output_reservation(
+      run.ledger,
+      reservation,
+      holding,
+      output_bytes,
+      remaining_execution,
+    ) {
+    Err(issue) => return Err(Physical(issue))
+    Ok(_) => ()
   }
   run.resources[task] = Some({
     holding,
@@ -68,13 +82,24 @@ fn commit_materialized_task_output(
   output : @execution.CompletedOutput,
   holding : @resources.Holding,
   mismatch : RunIssue,
+  reservation : @resources.Reservation,
+  output_bytes : Int64,
+  remaining_execution : Int64,
 ) -> Result[Unit, RunIssue] {
   match
     validate_materialized_task_output(run, task, output, holding, mismatch) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  commit_task_output(run, task, Materialized(output), Some(holding))
+  commit_task_output(
+    run,
+    task,
+    Materialized(output),
+    Some(holding),
+    reservation,
+    output_bytes,
+    remaining_execution,
+  )
 }
 
 ///|
@@ -189,6 +214,9 @@ pub fn[T] complete_managed_task_execution_with_inputs(
       task,
       Managed(@execution.managed_completed_reference(output)),
       holding,
+      execution.reservation,
+      storage_bytes,
+      task_output_remaining_scratch(execution),
     ) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -199,7 +227,6 @@ pub fn[T] complete_managed_task_execution_with_inputs(
     owned.live = false
   }
   execution.retained_bytes = None
-  @resources.settle_reservation(run.ledger, execution.reservation) |> ignore
   run.running = None
   Ok(())
 }
@@ -280,7 +307,8 @@ pub fn complete_carrier_managed_task_execution_with_inputs(
       // producer edge exists. Acquisition and supplied inputs retain their
       // separate capture evidence and cannot be fabricated here.
       let has_internal = run.graph.data.any(edge => {
-        edge.consumer == task && edge.producer > 0
+        edge.consumer == task &&
+        edge.producer >= captured_compute_first_task(run)
       })
       !has_internal &&
       @execution.carrier_managed_completed_output_matches_inputs(output, [])
@@ -319,6 +347,9 @@ pub fn complete_carrier_managed_task_execution_with_inputs(
       task,
       CarrierManaged(@execution.carrier_managed_completed_reference(output)),
       holding,
+      execution.reservation,
+      storage_bytes,
+      task_output_remaining_scratch(execution),
     ) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -329,7 +360,6 @@ pub fn complete_carrier_managed_task_execution_with_inputs(
     owned.live = false
   }
   execution.retained_bytes = None
-  @resources.settle_reservation(run.ledger, execution.reservation) |> ignore
   run.running = None
   Ok(())
 }

@@ -1,6 +1,8 @@
 // Nonzero-execution checks for the supported focused wrappers. See development.md.
 import {spawnSync} from 'node:child_process';
 import {constants} from 'node:os';
+import {join} from 'node:path';
+import {createCommandEvidence, redactCommandEvidence, redactCommandArguments} from './packed-query-evidence.mjs';
 
 const fields = ['tests', 'passed', 'failed', 'cancelled', 'skipped', 'todo'];
 const empty = () => Object.fromEntries(fields.map(field => [field, 0]));
@@ -85,7 +87,7 @@ export function testExecutionResult(kind, command, args, result) {
   }
   if (problem && status === 0) status = 1;
   const counts = evidence?.counts ?? null;
-  const diagnostic = `${JSON.stringify([command, ...args])}: ${problem ?? 'executed'}; ` +
+  const diagnostic = `${JSON.stringify(redactCommandArguments([command, ...args]))}: ${problem ?? 'executed'}; ` +
     `counts=${JSON.stringify(counts)}${counts === null ? ' (summary unavailable)' : ''}`;
   return {status, counts, diagnostic};
 }
@@ -101,11 +103,33 @@ export function assertTestExecution(kind, command, args, result) {
 export function runFocusedTests(kind, args, options = {}) {
   const command = kind === 'node' ? process.execPath : 'moon';
   const selected = kind === 'node' ? nodeTestArguments(args) : ['test', ...args];
-  const result = spawnSync(command, selected, {...options, encoding: 'utf8',
-    stdio: 'pipe', maxBuffer: 64 * 1024 * 1024});
-  process.stdout.write(result.stdout ?? '');
-  process.stderr.write(result.stderr ?? '');
-  const checked = testExecutionResult(kind, command, selected, result);
-  (checked.status === 0 ? process.stdout : process.stderr).write(checked.diagnostic + '\n');
-  return checked.status;
+  const {evidenceScratch = join(options.cwd ?? process.cwd(), '_build', 'focused-evidence'),
+    ...spawnOptions} = options;
+  const env = options.env ?? process.env;
+  let evidence, evidenceError, result, checked;
+  try {
+    evidence = createCommandEvidence({scratch: evidenceScratch,
+      cwd: options.cwd ?? process.cwd(), env, prefix: 'focused-test-'});
+  } catch (error) { evidenceError = error; }
+  const classify = result => testExecutionResult(kind, command, selected, result);
+  if (evidence) {
+    const capture = evidence.capture(command, selected,
+      {killSignal: 'SIGKILL', ...spawnOptions, maxBuffer: 64 * 1024 * 1024}, classify);
+    ({result, checked} = capture);
+    evidenceError ??= capture.writeFailure;
+    try { evidence.finish(checked.status === 0 ? 'passed' : 'failed'); }
+    catch (error) { evidenceError ??= error; }
+  } else {
+    // A broken evidence destination must not replace the primary test result.
+    result = spawnSync(command, selected, {killSignal: 'SIGKILL', ...spawnOptions,
+      encoding: 'utf8', stdio: 'pipe', maxBuffer: 64 * 1024 * 1024});
+    checked = classify(result);
+  }
+  process.stdout.write(redactCommandEvidence(result.stdout ?? '', env));
+  process.stderr.write(redactCommandEvidence(result.stderr ?? '', env));
+  (checked.status === 0 ? process.stdout : process.stderr).write(redactCommandEvidence(checked.diagnostic, env) + '\n');
+  if (evidence) process.stderr.write(`Focused test evidence: ${evidence.directory}\n`);
+  if (evidenceError) process.stderr.write('Focused test evidence write failed; primary test status: ' +
+    checked.status + '; evidence is incomplete\n');
+  return checked.status || (evidenceError ? 1 : 0);
 }

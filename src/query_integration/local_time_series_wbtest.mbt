@@ -416,6 +416,11 @@ test "standard Host runs time series with two retained consumers" {
     obligations=series_obligations,
   )
   let rows = local_managed_test_rows(series_ops)
+  assert_eq(cleanup_attempts.val, 1)
+  assert_true(
+    @resources.ledger_usage(@strategy.captured_dag_ledger(run)).reserved_execution_bytes >
+    0L,
+  )
   assert_eq(rows, [
     "{\"time\":\"1969-12-31T23:59:59.999Z\"}", "{\"time\":\"1970-01-01T00:00:00.001Z\"}",
     "{\"time\":\"1970-01-01T00:00:00.003Z\"}",
@@ -487,7 +492,6 @@ test "standard Host runs time series with two retained consumers" {
   series_live.val = false
   @strategy.close_captured_task_output(run, 1)
   (series_ops.close)()
-  assert_false((series_ops.cleanup_refresh)())
   assert_true((series_ops.cleanup_refresh)())
   assert_eq(cleanup_attempts.val, 2)
   @strategy.stop_captured_dag(run)

@@ -10,32 +10,40 @@ const requested = process.argv[2] ?? 'all';
 assert(['js', 'all'].includes(requested));
 const targets = requested === 'all' ? ['js', 'wasm', 'native'] : ['js'];
 const current = snapshot(root), records = [];
-// Reintroduce only the actual premature retirement condition. This is a JS
-// mutation check, separate from normal finite correspondence on every target.
+// Reintroduce each actual premature retirement condition separately. JS
+// mutation detection is distinct from normal correspondence on every target.
 const site = 'src/physical_strategy/task_execution.mbt';
 const original = readFileSync(join(root, site));
-const before = 'scratch_released: @connector.prepared_managed_execution_scratch_release_condition(\n          prepared,\n        ),';
-assert.equal(original.toString().split(before).length, 2, 'Ambiguous custody mutation site');
-let mutation;
-try {
-  writeFileSync(join(root, site), original.toString().replace(before, 'scratch_released: None,'));
-  const source = snapshot(root);
-  const run = spawnSync(process.execPath,
-    ['proofs/relation-pipeline/capacity/parent-control/custody-run.mjs', 'js', '--expect-fixed', 'normal'],
-    { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
-  const log = `${run.stdout ?? ''}${run.stderr ?? ''}`;
-  assert.notEqual(run.status, 0, 'Premature scratch retirement was not detected');
-  assert(log.includes('Scratch credited before child cleanup'), 'Mutation failed for a different reason');
-  const logPath = `${custodyDirectory}/mutation-${source.digest}.log`;
-  mkdirSync(join(root, custodyDirectory), { recursive: true });
-  writeFileSync(join(root, logPath), log);
-  mutation = { name: 'drop-installed-scratch-release-condition', target: 'js',
-    site, beforeDigest: hash(original), source, exit: run.status, logPath, logDigest: hash(log) };
-} finally {
-  writeFileSync(join(root, site), original);
-  assert.equal(snapshot(root).digest, current.digest, 'Custody mutation source restoration failed');
+const variants = [
+  { name: 'drop-installed-scratch-release-condition', mode: 'normal',
+    before: '(execution.hooks.unwrap().scratch_released)()',
+    after: 'physical_equal(execution, execution)' },
+  { name: 'settle-success-before-scratch-release', mode: 'success',
+    before: 'if task_execution_scratch_released(execution) {', after: 'if true {' },
+];
+const mutations = [];
+for (const variant of variants) {
+  assert.equal(original.toString().split(variant.before).length, 2, 'Ambiguous custody mutation site');
+  try {
+    writeFileSync(join(root, site), original.toString().replace(variant.before, variant.after));
+    const source = snapshot(root);
+    const run = spawnSync(process.execPath,
+      ['proofs/relation-pipeline/capacity/parent-control/custody-run.mjs', 'js', '--expect-fixed', variant.mode],
+      { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 });
+    const log = `${run.stdout ?? ''}${run.stderr ?? ''}`;
+    assert.notEqual(run.status, 0, 'Premature scratch retirement was not detected');
+    assert(log.includes('Scratch credited before child cleanup'), 'Mutation failed for a different reason');
+    const logPath = `${custodyDirectory}/mutation-${source.digest}.log`;
+    mkdirSync(join(root, custodyDirectory), { recursive: true });
+    writeFileSync(join(root, logPath), log);
+    mutations.push({ name: variant.name, mode: variant.mode, target: 'js',
+      site, beforeDigest: hash(original), source, exit: run.status, logPath, logDigest: hash(log) });
+  } finally {
+    writeFileSync(join(root, site), original);
+    assert.equal(snapshot(root).digest, current.digest, 'Custody mutation source restoration failed');
+  }
 }
-for (const target of targets) for (const mode of ['normal', 'pending']) {
+for (const target of targets) for (const mode of ['normal', 'pending', 'success']) {
   const began = performance.now();
   const run = spawnSync(process.execPath,
     ['proofs/relation-pipeline/capacity/parent-control/custody-run.mjs', target, '--expect-fixed', mode],
@@ -50,4 +58,4 @@ for (const target of targets) for (const mode of ['normal', 'pending']) {
 }
 assert.equal(snapshot(root).digest, current.digest);
 mkdirSync(join(root, custodyDirectory), { recursive: true });
-writeFileSync(join(root, custodyDirectory, `${requested}.json`), JSON.stringify({ source: current, mutation, records }, null, 2) + '\n');
+writeFileSync(join(root, custodyDirectory, `${requested}.json`), JSON.stringify({ source: current, mutations, records }, null, 2) + '\n');

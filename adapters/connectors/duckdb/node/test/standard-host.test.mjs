@@ -12611,7 +12611,8 @@ async function exerciseStrategyGraph(
         fixture.strategyFixtureAcquisition(f), fixture.strategyFixtureLedger(f), suppliedLimits, rootRetention);
       try {
         assert.equal(captured.output, undefined);
-        assert.equal(captured.source, undefined);
+        assert.equal(typeof captured.source, 'function');
+        assert.ok(captured.source());
         // Admission keeps the full file ceiling. Only the exact sealed body
         // becomes a holding; unused capacity is released after completion.
         assert.equal(captured.physicalCapacity.retentionBytes, 134615840n);
@@ -12656,7 +12657,8 @@ async function exerciseStrategyGraph(
   const accountedComputes = [];
   try {
     assert.equal(accounted.output, undefined);
-    assert.equal(accounted.source, undefined);
+    assert.equal(typeof accounted.source, 'function');
+    assert.ok(accounted.source());
     const graph = fixture.strategyFixtureGraph(accountedFixture);
     const dag = accounted.openDAG(graph);
     assert.equal(fixture.strategyFixtureAttach(accountedFixture, dag), true);
@@ -13294,12 +13296,32 @@ async function exerciseStrategyGraph(
       }
     } finally {
       const closing = failureExecution?.close();
+      const observedClosing = Promise.allSettled([closing]);
       if (failureExecution) {
-        assert.equal(await failureExecution.cleanup(), true);
-        await closing;
+        const [closeObservation] = await observedClosing;
+        if (closeObservation.status === 'rejected') {
+          const error = closeObservation.reason;
+          assert(error.code === 'ManagedOutputCleanupPending' ||
+            (error instanceof AggregateError &&
+              error.message === 'ManagedSiteTransferCleanupFailed'));
+          assert.equal(error.cleanupPending, true);
+          assert.equal(typeof error.cleanupHandle?.retry, 'function');
+        }
+        // Each cleanup pass retries each independent owner once. A Store
+        // retry may precede the Transfer retry that releases its reader pin.
+        const cleaned = await failureExecution.cleanup();
+        if (!cleaned) {
+          assert.equal(failureExecution.cleanupPending(), true);
+          assert(failureExecution.usage().reservedExecutionBytes > 0n,
+            'pending output cleanup must retain its original scratch');
+          assert.equal(await failureExecution.cleanup(), true,
+            'after source stop, retry must settle the original output owner');
+        }
+        assert.equal(failureExecution.cleanupPending(), false);
         assert.equal(failureExecution.usage().reservedTransferBytes, 0n);
         assert.equal(failureExecution.usage().reservedRetentionBytes, 0n);
-        assert.equal(failureExecution.usage().reservedExecutionBytes, 0n);
+        assert.equal(failureExecution.usage().reservedExecutionBytes, 0n,
+          transferFailureCase);
         assert(failureExecution.usage().transferredBytes > 0n,
           'spent Transfer bytes remain cumulative after failure');
       }

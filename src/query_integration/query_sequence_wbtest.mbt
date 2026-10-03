@@ -140,8 +140,9 @@ fn query_sequence_fixture(
 fn query_generated(
   owner : @lower.BoundPrepared,
   retained? : Array[String] = ["select_1"],
+  prefix_end? : Int? = None,
 ) -> @execution.GeneratedSequence raise {
-  let sequence = prepared_sequence(owner)
+  let sequence = prepared_sequence(owner, prefix_end~)
   @execution.prepare_generated_sequence(
     registered_relation_contracts(),
     sequence,
@@ -150,6 +151,150 @@ fn query_generated(
     100000,
     10000,
   ).unwrap()
+}
+
+///|
+test "query capture accepts an owned prefix without evaluating its failing consumer" {
+  let (query, owner) = query_sequence_fixture(
+    extra=",{\"filter\":\"1 / (id - id) > 0\"}",
+  )
+  let prefix = query_generated(owner, prefix_end=Some(1))
+  let admitted = @query.prepare_query_sequence(query, prefix, 10000).unwrap()
+  let native = @duckdb.compile_native_filter_select_prefix(
+    @execution.generated_prepared_sequence(prefix),
+    "main",
+    "records",
+    native_compile_limits(),
+  ).unwrap()
+  assert_eq(
+    @duckdb.native_query_sql(native),
+    "SELECT \"id\" AS \"id\" FROM \"main\".\"records\" WHERE CAST(\"id\" AS DOUBLE) > ?",
+  )
+  assert_true(physical_equal(@duckdb.native_query_owner(native), owner))
+  assert_true(
+    @duckdb.compile_native_filter_select(
+      owner,
+      "main",
+      "records",
+      native_compile_limits(),
+    )
+    is Err(UnsupportedShape),
+  )
+  assert_true(
+    @duckdb.compile_native_filter_select_prefix(
+      prepared_sequence(owner),
+      "main",
+      "records",
+      native_compile_limits(),
+    )
+    is Err(UnsupportedShape),
+  )
+  assert_true(
+    physical_equal(
+      @execution.generated_sequence_owner(
+        @query.query_generated_sequence(admitted),
+      ),
+      owner,
+    ),
+  )
+  let receipt = @query.admit_query_receipt(
+    admitted,
+    [input_cursor("{\"id\":3}"), input_cursor("{\"id\":1}")],
+    2,
+    run_limits().input_values,
+  ).unwrap()
+  assert_true(
+    @query.execute_query_receipt(admitted, receipt, compute_test_limits())
+    is Err(UnsupportedExecutionShape),
+  )
+  assert_true(
+    @query.execute_query_receipt_guarded(
+      admitted,
+      receipt,
+      compute_test_limits(),
+      max_output_rows=100,
+      max_value_bytes=10000,
+      { max_work: 10000, max_bytes: 10000, max_nodes: 1000, max_depth: 20, },
+    )
+    is Err(Execution(UnsupportedExecutionShape)),
+  )
+  // Reject the unsupported synchronous shape before admitting any input.
+  assert_true(
+    @query.evaluate_query_receipt(
+      admitted,
+      [input_cursor("{\"id\":\"invalid\"}")],
+      1,
+      run_limits().input_values,
+      compute_test_limits(),
+    )
+    is Err(UnsupportedExecutionShape),
+  )
+  let limits = dispatch_test_limits()
+  let foreign = @query.prepare_query_sequence(query, prefix, 10000).unwrap()
+  assert_true(
+    @client_local_host.start_client_query_residual(
+      max_name_bytes=10000,
+      foreign,
+      receipt,
+      fn() { true },
+      limits.local_execution,
+      limits.guards,
+      100,
+      10000,
+    )
+    is Err(ForeignReceipt),
+  )
+  assert_true(
+    @client_local_host.start_client_query_residual(
+      admitted,
+      receipt,
+      fn() { false },
+      max_name_bytes=10000,
+      limits.local_execution,
+      limits.guards,
+      100,
+      10000,
+    )
+    is Err(InputUnavailable),
+  )
+  let active = @client_local_host.start_client_query_residual(
+    max_name_bytes=10000,
+    admitted,
+    receipt,
+    fn() { true },
+    limits.local_execution,
+    limits.guards,
+    100,
+    10000,
+  ).unwrap()
+  let mut completed = None
+  for _ in 0..<1000 {
+    if completed is Some(_) {
+      break
+    }
+    match @local_connector.advance_managed_provider(active, 1).unwrap() {
+      @local_connector.Continue(work~, ..) => assert_true(work <= 1L)
+      @local_connector.Complete(output, work~, ..) => {
+        assert_true(work <= 1L)
+        completed = Some(output)
+      }
+      _ =>
+        fail("owned query prefix did not complete through the bounded provider")
+    }
+  }
+  let output = completed.unwrap()
+  assert_eq(@execution.completed_row_count(output), 1)
+  assert_true(@execution.completed_cell(output, 0, 0) is Some(Number(3)))
+  assert_true(@local_connector.managed_provider_stopped(active))
+  assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
+  assert_true(
+    @query.prepare_query_sequence(
+      query,
+      @execution.select_generated_sequence_step(prefix, 1).unwrap(),
+      10000,
+    )
+    is Err(UnsupportedExecutionShape),
+  )
 }
 
 ///|

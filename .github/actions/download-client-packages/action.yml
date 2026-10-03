@@ -1,0 +1,35 @@
+name: Download exact Client packages
+description: Validate the producer artifact ID before downloading immutable Client inputs
+inputs:
+  artifact-id:
+    description: The successful package producer's single artifact ID
+    required: true
+  path:
+    description: Private destination in this runner
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Require exactly one producer artifact
+      shell: bash
+      env:
+        ARTIFACT_ID: ${{ inputs.artifact-id }}
+      run: |
+        node -e '
+          if (!/^[1-9][0-9]*$/.test(process.env.ARTIFACT_ID ?? "")) {
+            console.error("Missing or invalid Client package artifact ID");
+            process.exit(1);
+          }
+        '
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+      with:
+        artifact-ids: ${{ inputs.artifact-id }}
+        path: ${{ inputs.path }}
+        merge-multiple: true
+    - name: Use verified Client inputs in subsequent acceptance steps
+      shell: bash
+      env:
+        PACKAGES_PATH: ${{ inputs.path }}
+      run: |
+        printf 'ACTQL_PACKED_CLIENT_PACKAGES=%s\n' "$PACKAGES_PATH" >> "$GITHUB_ENV"
+        printf 'ACTQL_TEST_NPM_CACHE=%s/actql-npm-cache\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"

@@ -1,0 +1,24 @@
+{
+  "version": "actql-foundation-declaration/0.1",
+  "id": "client-ci-runner-context",
+  "kind": "change",
+  "revision": "82727dc5db4f5a6a28eda42ff2ec28e1ae3e6b4a",
+  "parents": [
+    "91fcac6907b82c7fc1d2ce81c74150e5cc2302ce"
+  ],
+  "changes": [
+    {
+      "path": ".github/workflows/ci.yml",
+      "before": [
+        {
+          "revision": "91fcac6907b82c7fc1d2ce81c74150e5cc2302ce",
+          "digest": "07726bee0521d937e2f57e6147b227cd8897e0df19aeb7aa1cd3fa5281ca28c2",
+          "mode": "100644"
+        }
+      ],
+      "afterDigest": "de409cdab2ba453ae6bf107c5f08a398cf8413df2aee171ff89d90dc3288f85e",
+      "afterMode": "100644",
+      "reason": "Correct GitHub context availability after the initial workflow validation failure: remove runner.temp from job-level env and let the identity-checked download composite set the same private paths via GITHUB_ENV inside the assigned runner. Preserve all jobs, acceptance commands, guards, uploads and limits."
+    }
+  ]
+}
