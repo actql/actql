@@ -4,6 +4,7 @@ import {spawnSync} from 'node:child_process';
 import test from 'node:test';
 import {parse} from 'yaml';
 import {readChanges, selectTargets, validateSelection} from './ci-targets.mjs';
+import {occurrences} from './check-owned-contract-versions.mjs';
 const all = ['js', 'wasm', 'native'];
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
 const {jobs} = workflow;
@@ -45,8 +46,8 @@ test('unknown, unavailable, malformed and empty diff cannot omit target coverage
   }
   assert.equal(selectTargets(['README.md'], {failure: 'Git object unavailable'}).macos, true);
   assert.equal(selectTargets(['src/a/ordinary.mbt'], {targetSensitiveDiff: true}).macos, true);
-  assert.throws(() => validateSelection({schema: 'actql-ci-targets/1', targets: ['wasm'], macos: false, reason: 'bad'}));
-  assert.throws(() => validateSelection({schema: 'actql-ci-targets/1', targets: ['js'], macos: undefined, reason: 'bad'}));
+  assert.throws(() => validateSelection({schema: 'actql-ci-targets/0.1', targets: ['wasm'], macos: false, reason: 'bad'}));
+  assert.throws(() => validateSelection({schema: 'actql-ci-targets/0.1', targets: ['js'], macos: undefined, reason: 'bad'}));
 });
 test('diff uses exact merge checkout, NUL paths, no rename hiding and no 300-file limit', () => {
   const base = 'a'.repeat(40), head = 'b'.repeat(40), calls = [];
@@ -191,5 +192,16 @@ test('registered files cannot hide type/mode changes or head-only target annotat
         args.includes('--name-only') ? path + '\0' : header + '\n+ other-path');
     assert.equal(changed.targetSensitiveDiff, true, header);
     assert.deepEqual(selectTargets(changed.paths, changed).targets, all);
+  }
+});
+
+test('CI selection follows the owned contract baseline without a legacy exception', () => {
+  for (const path of ['README.md', 'src/unregistered/engine.mbt']) {
+    assert.equal(validateSelection(selectTargets([path])).schema, 'actql-ci-targets/0.1');
+  }
+  const previous = ['actql-ci-targets', '1'].join('/');
+  assert.throws(() => validateSelection({...selectTargets(['README.md']), schema: previous}));
+  for (const file of ['ci-targets.mjs', 'ci-targets.test.mjs']) {
+    assert.deepEqual(occurrences(readFileSync(new URL(file, import.meta.url), 'utf8'), `scripts/${file}`), []);
   }
 });

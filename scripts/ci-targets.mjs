@@ -24,7 +24,7 @@ const reviewedPortableFiles = new Set([
 ]);
 export function selectTargets(paths, {event = 'pull_request', nativeMacos = false, failure = null,
   targetSensitiveDiff = false} = {}) {
-  const full = reason => ({schema: 'actql-ci-targets/1', targets: [...all], macos: true, reason});
+  const full = reason => ({schema: 'actql-ci-targets/0.1', targets: [...all], macos: true, reason});
   if (event !== 'pull_request') {
     const result = full(`Full core verification selected for ${event}`);
     // Preserve the existing explicit opt-in for an on-demand working branch.
@@ -36,11 +36,11 @@ export function selectTargets(paths, {event = 'pull_request', nativeMacos = fals
   if (targetSensitiveDiff) return full('Target-specific syntax or runtime boundary changed');
   const path = paths.find(path => sensitive.test(path) || !reviewedPortableFiles.has(path));
   if (path) return full(`Target-sensitive or unclassified input: ${path}`);
-  return {schema: 'actql-ci-targets/1', targets: ['js'], macos: false,
+  return {schema: 'actql-ci-targets/0.1', targets: ['js'], macos: false,
     reason: 'Reviewed portable paths: PR core uses JS; full targets and macOS selected on main'};
 }
 export function validateSelection(selection) {
-  assert.equal(selection?.schema, 'actql-ci-targets/1');
+  assert.equal(selection?.schema, 'actql-ci-targets/0.1');
   assert.deepEqual(selection.targets, selection.targets?.length === 1 ? ['js'] : all);
   assert.equal(typeof selection.macos, 'boolean');
   assert(typeof selection.reason === 'string' && selection.reason.trim());
